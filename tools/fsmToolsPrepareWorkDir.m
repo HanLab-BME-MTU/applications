@@ -111,8 +111,8 @@ if exist([userPath,filesep,'links'])~=7
         return;
     end
 end
-if exist([userPath,filesep,'links',filesep,'tft'])~=7
-    st=mkdir('links','tft');
+if exist([userPath,filesep,'flow'])~=7
+    st=mkdir('flow');
     % Check status
     if st~=1
         return;
