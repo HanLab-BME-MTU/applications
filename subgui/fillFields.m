@@ -11,9 +11,9 @@ function fillFields(handles,activeJob)
 %
 % OUTPUT         none
 %
-% DEPENDENCIES   findnucloitrack uses {nothing}
+% DEPENDENCIES   findNucloiTrack uses {nothing}
 %                                  
-%                findnucloitrack is used by { PolyTrack }
+%                findNucloiTrack is used by { PolyTrack }
 %
 % Colin Glass, Feb 04         
 

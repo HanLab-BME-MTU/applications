@@ -349,6 +349,12 @@ end
 % Get the image directory name
 imagedir = get(hObject,'String');
 
+if ~exist(imagedir, 'file')
+  h=errordlg('The selected image directory does not exist. Please select another directory.');
+  uiwait(h);
+  return
+end
+
 % Retrieve the current job number and assign it the image directory value
 projNum = get(handles.GUI_st_job_lb,'Value');
 handles.jobs(projNum).imagedirectory =  imagedir;
@@ -1761,14 +1767,16 @@ for projNum = 1:nrofjobs
         
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
-%   try
+   try
       trackCells (hObject,projNum);
-%   catch    
-%     errordlg(['job number ',num2str(projNum),' had an error and could not be completed'])
-%     h=errordlg(['job number ',num2str(projNum),' had an error and could not be completed',lasterr]);
-%     uiwait(h);
-% %   disp(lasterr)
-%   end
+   catch    
+     %h=errordlg(['job number ', num2str(projNum), ' had an error and could not be completed', lasterr]);
+     %uiwait(h);
+     fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', projNum, lasterr);
+   end
+   
+   % Final message for the user to mark the end
+   fprintf (1, 'Tracking finished...\n');
 end
 
 %-------------------------------------------------------------------------------

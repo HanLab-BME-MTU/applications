@@ -12,9 +12,9 @@ function testbutton(hObject)
 % DEPENDENCIES   testbutton uses {imClusterSeg
 %								 trackLinker
 %								 checkMinimalCellCell
-%								 findnucloitrack
+%								 findNucloiTrack
 %								 takenkick
-%								 halosfind}
+%								 ptFindHalos}
 %                                  
 %                testbutton is used by { PolyTrack }
 %
@@ -57,6 +57,8 @@ function testbutton(hObject)
 handles = guidata(hObject);
 projNum = get(handles.GUI_st_job_lb,'Value');
 
+% First tell the user we're busy initializing
+fprintf (1, 'Initializing phase has started for job number %d...\n', projNum);
 
 ImageDirectory = handles.jobs(projNum).imagedirectory;
 First = handles.jobs(projNum).firstimage;
@@ -64,7 +66,7 @@ Last = handles.jobs(projNum).lastimage;
 levnuc_fi = handles.jobs(projNum).fi_nucleus;
 levback_fi = handles.jobs(projNum).fi_background;
 levhalo_fi = handles.jobs(projNum).fi_halolevel;
-ImageNamesList = handles.jobs(projNum).imagenameslist
+ImageNamesList = handles.jobs(projNum).imagenameslist;
 leveladjust = handles.jobs(projNum).leveladjust;
 
 %minimal/maximal size of the black spot in the cells
@@ -87,19 +89,17 @@ levdiff_fi = abs(levnuc_fi-levback_fi)* leveladjust;
 
 
 ErodeDiskSize = round((sqrt(MinSizeNuc))/2) ;
-%how much the blobs found in halosfind shall be eroded. This is an indirect
-%size criteria for halosfind. Increase - minimal size of halos will be
+%how much the blobs found in ptFindHalos shall be eroded. This is an indirect
+%size criteria for ptFindHalos. Increase - minimal size of halos will be
 %increased, decrease - ... decreased
 
 
 cd(ImageDirectory)
 
 
-
 if ~Last > First
-    disp('Fool, with these values (job#',num2str(projNum),') for the increment, the first and the last picture, not even one step is possible... Look again and choose more wisely');
+    fprintf(1, 'Error: the last image # is before the first image # in job number %d\n', projNum);
     return
-    
 else    
 
         name = char(ImageNamesList(First));
@@ -126,17 +126,17 @@ else
               [seg_img, obj_val,nothing,mu0] = imClusterSeg(firstFrame, 1, 'method','kmeans','k_cluster',3,'mu0', [levnuc_fi;levback_fi;levhalo_fi]);
 			
               %find cells that look really dark and nasty
-              [coordNuc,regmax] = findnucloitrack(seg_img,levdiff_fi,MinSizeNuc,MaxSizeNuc,1);
+              [coordNuc,regmax] = findNucloiTrack(seg_img,levdiff_fi,MinSizeNuc,MaxSizeNuc,1);
              
               %find cells that look like the third eye (round, big spots of
               %pure light). We do this because the pictures are of poor
               %quality and display huge halos around certain cells
-              [coordHalo,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel,1);
+              [coordHalo,logihalo] = ptFindHalos(seg_img,ErodeDiskSize,HaloLevel,1);
 		
 		elseif segmentation
            
-              [coordNuc,regmax] = findnucloitrack(firstFrame,levdiff_fi,MinSizeNuc,MaxSizeNuc,2);
-              [coordHalo,logihalo] = halosfind(firstFrame,ErodeDiskSize,HaloLevel,2);
+              [coordNuc,regmax] = findNucloiTrack(firstFrame,levdiff_fi,MinSizeNuc,MaxSizeNuc,2);
+              [coordHalo,logihalo] = ptFindHalos(firstFrame,ErodeDiskSize,HaloLevel,2);
 			
 		
 		else

@@ -1,7 +1,7 @@
-function [coor,halo]= halosfind(Image,erodedisksize,halolevel,methodDeterm)
-% halosfind detects light areas and tries to fit calls into them
+function [coor,halo]= ptFindHalos(Image,erodedisksize,halolevel,methodDeterm)
+% ptFindHalos detects light areas and tries to fit calls into them
 %
-% SYNOPSIS       [coor,halo]= halosfind(Image,erodedisksize,halolevel,methodDeterm)
+% SYNOPSIS       [coor,halo]= ptFindHalos(Image,erodedisksize,halolevel,methodDeterm)
 %
 % INPUT          Image : either original image or segmented image
 %                          (depends on method)
@@ -9,14 +9,14 @@ function [coor,halo]= halosfind(Image,erodedisksize,halolevel,methodDeterm)
 %                halolevel : threshold
 %                methodDeterm : 1 or 2. Says if clustering or image
 %                               segmentation has been applied applied
-%                               (changes what halosfind actually does)
+%                               (changes what ptFindHalos actually does)
 %
 % OUTPUT         coor : found coordinates
 %                halo : binary image giving the areas of halos
 %
-% DEPENDENCIES   halosfind uses {nothing}
+% DEPENDENCIES   ptFindHalos uses {nothing}
 %                                  
-%                halosfind is used by { trackCells
+%                ptFindHalos is used by { trackCells
 %                                       testbutton}
 %
 % Colin Glass, Feb 04         
@@ -43,7 +43,7 @@ elseif methodDeterm==2
 
     
 else
-    error('halosfind doesnt know which method to use (methodDeterm~= 1|2)')
+    error('ptFindHalos doesnt know which method to use (methodDeterm~= 1|2)')
 end 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
