@@ -32,6 +32,7 @@ function [outImage, backgroundLevel, binImageEdge] = ptGetProcessedImage (vararg
 % Andre Kerstens        Jul 04          Fixed bug where imMinimumThreshold for the edge images was 
 %                                       provided the var image for bg's
 % Andre Kerstens        Aug 04          Removed normalization at the end of function
+% Andre Kerstens        Aug 04          Fixed bug with input image index calculation
 
 % Test the number of input variables
 if nargin < 4
@@ -83,8 +84,9 @@ A = [x.^2, x.*y, y.^2, one];
 coeff = A \ backOnlyImage;
 
 % Now calculate the background image using the estimated coefficients (we need
-% the size of the whole input image this time so that we can subtract later.
-[xi,yi] = find (inputImage);
+% the size of the whole input image this time so that we can subtract later).
+defImage = ones (size(inputImage,1), size(inputImage,2));
+[xi,yi] = find (defImage);
 backgroundImage = coeff(1).*(xi.^2) + coeff(2).*(xi.*yi) + coeff(3).*(yi.^2) + coeff(4);
 %figure, mesh (reshape(backgroundImage,size(inputImage)));
 

@@ -165,13 +165,13 @@ for frameCount = plotStartFrame : increment : plotEndFrame
             else  % neighbours is shorter, which means we lost a cell(s)
                % If the lost cell is due to bad tracking, we don't count it
                % as a lost neighbour
-               [diff, diffIndx] = setdiff(prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours);
-               for diffCount = 1 : length (diff)
-                  if ismember(diff(diffCount), cellNrs)
-                     % It is a real neighbour change, so count it
-                     neighbourChangeCount = neighbourChangeCount + 1;
-                  end
-               end
+%                [diff, diffIndx] = setdiff(prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours);
+%                for diffCount = 1 : length (diff)
+%                   if ismember(diff(diffCount), cellNrs)
+%                      % It is a real neighbour change, so count it
+%                      neighbourChangeCount = neighbourChangeCount + 1;
+%                   end
+%                end
                neighbourChange = ~ismember (prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours); 
             end
             
