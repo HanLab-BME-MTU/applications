@@ -204,7 +204,6 @@ end
 
 % Starting optimization
 [noiseParameter,actualP]=fsmAlphaBetaOptimization1D(outFileList,noiseParams,prob,bitDepth);
-noiseParameter=noiseParams;
 
 % Inform user
 string=['Attained probability: ',num2str(100*actualP),'%'];
@@ -219,7 +218,7 @@ newLabel=[fsmExpParam(exp).label,' - OPTIMIZED FOR PROBABILITY = ',num2str(100*p
 fprintf(1,'LABEL\t\t\t%s\n',newLabel);
 fprintf(1,'DESCRIPTION\t\t%s\n',fsmExpParam(exp).description);
 fprintf(1,'BIT DEPTH\t\t"%s"\n',num2str(bitDepth));
-fprintf(1,'NOISE PARAMS\t"%1.8f %1.8f %1.8f"\n',noiseParameter(1),noiseParameter(2),noiseParameter(3));
+fprintf(1,'NOISE PARAMS\t"%1.8f %1.8f %1.8f %d"\n',noiseParameter(1),noiseParameter(2),noiseParameter(3),1); % '1' means that this is an optimized record
 fprintf(1,'GAUSS RATIO\t\t"%1.2f"\n',fsmExpParam(exp).gaussRatio);
 fprintf(1,'#\n');
 fprintf(1,'-------------------------------------------------------------------\n');
