@@ -176,7 +176,7 @@ while not(feof(fid))
         
         % Set bit for bitdepth to 1
         G_=1;
-    elseif findstr(tline,'GAUSS KERNEL (SIGMA)')
+    elseif findstr(tline,'SIGMA')
 
         if S_==1
             % More than one line GAUSS KERNEL for this experiment

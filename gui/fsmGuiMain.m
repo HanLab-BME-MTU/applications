@@ -657,7 +657,7 @@ else
     set(handles.scaleRadio,'Enable','on');
     set(handles.textDescr,'Enable','on');
     set(handles.textSigma,'Enable','on');
-    set(handles.editSigma,'Enable','on');    
+%    set(handles.editSigma,'Enable','on');    
 end
 
 

@@ -210,7 +210,7 @@ fprintf(fid,'DESCRIPTION\t\t"%s"\n',char(answer(2)));
 fprintf(fid,'BIT DEPTH\t\t"%s"\n',num2str(bitDepth));
 fprintf(fid,'NOISE PARAMS\t"%1.8f %1.8f %1.8f"\n',sDN,beta,I0);
 fprintf(fid,'GAUSS RATIO\t\t"%1.2f"\n',GaussRatio);
-fprintf(fid,'GAUSS KERNEL (SIGMA)\t\t"%1.3f"\n',sigma);
+fprintf(fid,'SIGMA\t\t\t"%1.3f"\n',sigma);
 fprintf(fid,'#\n');
 
 % Close file if necessary
