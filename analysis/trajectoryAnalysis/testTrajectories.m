@@ -61,10 +61,13 @@ for i = 1:nGroups
 %     globStats(i).distanceSigma = catStruct(1,'cs.distanceSigma');
 end
 
-
+% prepare to call discriminationMatrix
+% growth/shrinkage times: Don't subtract mean
+testInfo.growthTimes = [1,10];
+testInfo.shrinkageTimes = [1,10];
     
 
-globCompare = discriminationMatrix(globStats);
+globCompare = discriminationMatrix(globStats,testInfo);
 
 % compare g/s speeds
 for i=1:nGroups
