@@ -47,12 +47,12 @@ options = optimset('Display','off');
 parameters.xdata=goodRows-1; %frame1=time0
 parameters.ydata=ampList(goodRows);
 uLin0=[parameters.xdata,ones(length(goodRows),1)]\ampList(goodRows);
-[uLin,sigmaLMS,ssqLin]=leastMedianSquare('(ydata-(u(1)+u(2)*xdata)).^2',uLin0,options,parameters);
+[uLin,sigmaLMS,ssqLin]=leastMedianSquares('(ydata-(u(1)+u(2)*xdata))',uLin0,options,parameters);
 
 %exponential fit a*exp(-t/tau)
 uExp0(1)=median(parameters.ydata(1:5)); %a0
 uExp0(2)=median((parameters.xdata(end-5+[1:5])-parameters.xdata(1:5))./(log(parameters.ydata(1:5))-log(parameters.ydata(end-5+[1:5])))); %tau0
-[uExp,sigmaExp,ssqExp]=leastMedianSquare('(ydata-(u(1)*exp(-xdata/u(2)))).^2',uExp0,options,parameters);
+[uExp,sigmaExp,ssqExp]=leastMedianSquares('(ydata-(u(1)*exp(-xdata/u(2))))',uExp0,options,parameters);
 sigmaExp0=sqrt(sum((uExp0(1)*exp(-parameters.xdata/uExp0(2))-parameters.ydata).^2)/(length(parameters.xdata)-1));
 
 % sliding window (uses the same starting values as exp fit)
