@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 09-Mar-2004 18:05:41
+% Last Modified by GUIDE v2.5 11-Mar-2004 17:08:54
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1156,3 +1156,23 @@ function Untitled_17_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
+% --- Executes when user attempts to close fsmCenter.
+function fsmCenter_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to fsmCenter (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+fsmH=findall(0,'Tag','fsmCenter'); % Get the handle of fsmCenter
+choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
+switch choice,
+    case 'Yes', delete(fsmH);
+    case 'No', return;
+end % switch
+
+
+% --- Executes during object deletion, before destroying properties.
+function fsmCenter_DeleteFcn(hObject, eventdata, handles)
+% hObject    handle to fsmCenter (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
