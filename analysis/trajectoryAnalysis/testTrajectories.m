@@ -446,10 +446,10 @@ globStats(1).probMatD  = cat(3,globCompareD);
 function [cmap,cLimits]=logColormap
 
 colors = [1 1 1;... % boundary
-    0.8 0.8 0.8;... % 1
-    0   0   0  ;... % not sig
-    0   0   1  ;... % p<0.1
-    0   1   0  ;... % p<0.05
+    0   0   0;... % 1
+    1   1   1  ;... % not sig
+    1   1   0.6;... % p<0.1
+    1   0.6 0  ;... % p<0.05
     1   0   0  ];   % p<0.001
 cmap = repeatEntries(colors,[1;1;20;6;34;2]);
 cLimits = [-0.1,3.05];
