@@ -211,3 +211,5 @@ if saveStats.saveOrNot
         save(saveStats.fileName,'dataStats'); %save in file (directory specified through name)
     end
 end
+
+save('simTraj','mtLengthAve');

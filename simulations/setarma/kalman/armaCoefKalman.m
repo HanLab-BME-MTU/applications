@@ -260,9 +260,7 @@ if arOrder + maOrder ~= 0
 
                 prob = conAssign('neg2LnLikelihood',[],[],[],[],[],...
                     'locMinNegLik',param0);
-                prob.PriLevOpt = 1;
-                prob.optParam.MaxFunc = 4000;
-                prob.optParam.MaxIter = 4000;
+                prob.PriLevOpt = 0;
                 prob.user.arOrder = arOrder;
                 prob.user.trajectories = trajectories;
                 prob.user.numAvail = totAvail;
@@ -277,9 +275,7 @@ if arOrder + maOrder ~= 0
                     'locMinNegLik',param0,[],[],[],[],[],'minKalmanConstraint',...
                     [],[],[],[constParam.ar(:,2);constParam.ma(:,2)],...
                     [constParam.ar(:,2);constParam.ma(:,2)]);
-                prob.PriLevOpt = 1;
-                prob.optParam.MaxFunc = 4000;
-                prob.optParam.MaxIter = 4000;
+                prob.PriLevOpt = 0;
                 prob.user.arOrder = arOrder;
                 prob.user.trajectories = trajectories;
                 prob.user.numAvail = totAvail;
@@ -304,21 +300,26 @@ if arOrder + maOrder ~= 0
             %initial parameter values
             param0 = [arParamP0 maParamP0];
 
-            %define global minimization problem
-            prob = glcAssign('neg2LnLikelihood',-0.99*ones(1,arOrder+maOrder),...
-                0.99*ones(1,arOrder+maOrder),'globMinNegLik',[],[],[],[],[],...
-                [],param0);
+            if ~isempty(param0)
 
-            prob.PriLevOpt = 1;
-            prob.optParam.MaxFunc = 300;
-            prob.optParam.MaxIter = 300;
-            %         prob.optParam.IterPrint = 1;
-            prob.user.arOrder = arOrder;
-            prob.user.trajectories = trajectories;
-            prob.user.numAvail = totAvail;
+                %define global minimization problem
+                prob = glcAssign('neg2LnLikelihood',-10*ones(1,arOrder+maOrder),...
+                    10*ones(1,arOrder+maOrder),'globMinNegLik');
+                prob.PriLevOpt = 2;
+                prob.optParam.MaxFunc = 15000;
+                prob.user.arOrder = arOrder;
+                prob.user.trajectories = trajectories;
+                prob.user.numAvail = totAvail;
 
-            %find global minimum of -2ln(likelihood) using Tomlab's glbFast
-            result = tomRun('glbFast',prob,[],2);
+                %find global minimum of -2ln(likelihood) using Tomlab's glbFast
+                result = tomRun('glbFast',prob,[],2);
+
+            else
+
+                %avoid global minimization if ARMA(0,0) is being "optimized"!
+                result.ExitFlag = 1;
+
+            end
 
             if result.ExitFlag == 0 %if global minimization was successful
                 paramI = result.x_k(:,1)'; %use its results as initial guess for local minimization
@@ -327,13 +328,9 @@ if arOrder + maOrder ~= 0
             end
 
             %define local minimizaton problem
-            prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
-                arOrder+maOrder),0.99*ones(1,arOrder+maOrder),'locMinNegLik',...
-                paramI);
-            prob.PriLevOpt = 1;
-            prob.optParam.MaxFunc = 1000;
-            prob.optParam.MaxIter = 1000;
-            %         prob.optParam.IterPrint = 1;
+            prob = conAssign('neg2LnLikelihood',[],[],[],[],[],...
+                'locMinNegLik',paramI);
+            prob.PriLevOpt = 0;
             prob.user.arOrder = arOrder;
             prob.user.trajectories = trajectories;
             prob.user.numAvail = totAvail;
@@ -511,7 +508,7 @@ if H == 1
 end
 
 %use the portmanteau test to check whether residuals are white noise. 
-[H,pVPort,errFlag] = portmanteau(wnVector,5,0.01);
+[H,pVPort,errFlag] = portmanteau(wnVector,10,0.01);
 
 %report failure of fit and do not consider results if residuals are not white noise
 if H == 1

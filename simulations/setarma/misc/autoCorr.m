@@ -3,23 +3,23 @@ function [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %
 %SYNOPSIS [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %
-%INPUT  traj   : Observations of time series to be tested. Either an 
+%INPUT  traj   : Observations of time series to be tested. Either an
 %                array of structures traj(1:nTraj).observations, or a 2D
-%                array (value + std) representing a single trajectory. 
+%                array (value + std) representing a single trajectory.
 %                Missing points should be indicated with NaN.
 %       maxLag : Maximum lag at which autocorrelation function is calculated.
 %       correct: (optional) Switch for correction of trends:
 %                  -1 :if no correction.
 %                   0 :if correcting via linear fit to data.
-%                   n :if correcting by taking the 1st difference at lag n 
-%                (reduces traj length!). 
+%                   n :if correcting by taking the 1st difference at lag n
+%                (reduces traj length!).
 %                Default: -1.
 %
-%OUTPUT gamma  : Unbiased autocorrelation function of series, 
+%OUTPUT gamma  : Unbiased autocorrelation function of series,
 %                where gamma(i) is the autocorrelation at lag i-1.
 %       errFlag: 0 if function executes normally, 1 otherwise.
 %
-%REMARKS Input trajectories could have a nonzero mean. The algorithm accounts 
+%REMARKS Input trajectories could have a nonzero mean. The algorithm accounts
 %        for that.
 %
 %Khuloud Jaqaman, April 2004
@@ -71,7 +71,7 @@ end
 %trajectories are column vectors
 numTraj = length(traj);
 trajLength = zeros(numTraj,1);
-for i=1:numTraj    
+for i=1:numTraj
     [trajLength(i),nCol] = size(traj(i).observations); %length of each trajectory
     if nCol > 2
         disp('--autoCorr: Each trajectory should be a column vector!');
@@ -131,7 +131,7 @@ end
 %calculate unnormalized autocorrelation function for lags 0 through maxLag
 gamma = zeros(maxLag+1,1);
 for lag = 0:maxLag %for each lag
-    
+
     vecMult = [];
     for j = 1:numTraj %go over all trajectories
         if trajLength(j) > lag %which are longer than lag
@@ -148,6 +148,7 @@ for lag = 0:maxLag %for each lag
 
     %calculate autocorrelation function (omit pairs with missing observations)
     gamma(lag+1) = nanmean(vecMult);
+    %     gamma(lag+1) = nansum(vecMult)/(length(vecMult)-1);
 
 end
 
