@@ -184,7 +184,7 @@ for counter1=1:n
     elseif fsmParam.prep.pstSpeckles==3
         
         % Load the image
-        img=imread(char(outFileList(counter1)));
+        img=imread(char(outFileList(counter1,:)));
         
         if autoPolygon==1
             
