@@ -202,7 +202,7 @@ if nargin == 0  % LAUNCH GUI
         if ~isdir(fsmParam.main.imagePath)
             %This could be a platform problem.
             if ispc == 1
-                if strcmp(fsmParam.main.imagePath(1),'/')
+                if ~isempty(fsmParam.main.imagePath) & strcmp(fsmParam.main.imagePath(1),'/')
                     %This is a Unix directory. Try to convert it to PC
                     %format.
                     imgDrive = getDriveName(imageDir);
@@ -218,7 +218,7 @@ if nargin == 0  % LAUNCH GUI
                     noProblem = 0;
                 end
             elseif isunix == 1
-                if ~strcmp(fsmParam.main.imagePath(1),'/')
+                if ~isempty(fsmParam.main.imagePath) & ~strcmp(fsmParam.main.imagePath(1),'/')
                     imgDrive = getDriveName(imageDir);
                     imagePath = dirPC2Unix(fsmParam.main.imagePath,imgDrive);
                     if ~samdir(imagePath,imageDir)
