@@ -1,7 +1,7 @@
 function [trajP,errFlag] = missPointARPred(traj,arParam,numFuture)
 %MISSPOINTARPRED estimates values of missing points in a trajectory assuming it is an AR(p) process
 %
-%SYNOPSIS [trajP,errFlag] = missPointARPred(traj,arParam)
+%SYNOPSIS [trajP,errFlag] = missPointARPred(traj,arParam,numFuture)
 %
 %INPUT  traj     : Trajectory to be modeled (with measurement uncertainty).
 %                  Missing points should be indicated with NaN.
@@ -65,10 +65,10 @@ available = ~isnan(traj(:,1));
 %get indices of missing points
 indx = find(~available);
 
-%check indx - algorithm cannot proceed if there are missing points for time < arOrder.
+%check indx - algorithm cannot proceed if there are missing points for time <= arOrder.
 if ~isempty(indx)
     if indx(1) <= arOrder
-        disp('--missPointARPred: There are missing points for time points < arOrder!');
+        disp('--missPointARPred: There are missing points for time points <= arOrder!');
         disp('  Please fix input data such that at least the first arOrder time points are available!');
         errFlag = 1;
         trajP = [];
