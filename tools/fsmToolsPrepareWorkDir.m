@@ -118,5 +118,12 @@ if exist([userPath,filesep,'flow'])~=7
         return;
     end
 end
+if exist([userPath,filesep,'pointFiles'])~=7
+    st=mkdir('pointFiles');
+    % Check status
+    if st~=1
+        return;
+    end
+end
 % Set status to 1
 status=1;

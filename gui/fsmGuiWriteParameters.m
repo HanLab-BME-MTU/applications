@@ -230,7 +230,18 @@ end
 
 set(handles.TriangCheck,'Value',fsmParam.prep.enhTriang);
 set(handles.autoPolCheck,'Value',fsmParam.prep.autoPolygon);
-set(handles.drawROICheck,'Value',fsmParam.prep.drawROI);
+switch fsmParam.prep.drawROI
+    case 0, 
+        set(handles.drawROICheck,'Value',0);
+        set(handles.loadROICheck,'Value',0);
+    case 1,
+        set(handles.drawROICheck,'Value',1);
+        set(handles.loadROICheck,'Value',0);
+    case 2,
+        set(handles.drawROICheck,'Value',0);
+        set(handles.loadROICheck,'Value',1);        
+    otherwise, error('Unsupported value for fsmParam.prep.drawROI (must be 0,1, or 2).');
+end
 
 set(handles.orderEdit,'String',num2str(fsmParam.prep.paramSpeckles(1))); % Sets the order for 'higher-order speckles'
 set(handles.percEdit,'String',num2str(fsmParam.prep.paramSpeckles(2)));   % Sets the percentage for 'higher-order speckles'

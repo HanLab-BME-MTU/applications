@@ -42,7 +42,7 @@ noiseParam   = fsmParam.main.noiseParam;    % Parameters for the noise model
 paramSpeckles= fsmParam.prep.paramSpeckles; % High-order speckle parameters 
 enhTriang    = fsmParam.prep.enhTriang;     % Enhanced triangulation flag
 autoPolygon  = fsmParam.prep.autoPolygon;   % Automatic analisys of the image to extract cell boundaries
-drawROI      = fsmParam.prep.drawROI;       % The user draws a ROI to restrict analysis
+drawROI      = fsmParam.prep.drawROI;       % The user draws or loads a ROI to restrict analysis
 sigma        = fsmParam.prep.sigma;         % Sigma for image low-pass filtering
 
 % Change to userPath
@@ -136,10 +136,70 @@ if ~isfield(fsmParam,'batchJob')
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
+    % FIRST CHECK WHETHER WE HAVE TO LOAD A ROI
+    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    if drawROI==2
+        
+        % The user is asked to load a ROI
+        [userROIbwFileName,userROIbwPath]=uigetfile( ...
+            {'userROI.mat'}, ...
+            'Please load ''userROI.mat''');
+        if ~(isa(userROIbwFileName,'char') & isa(userROIbwPath,'char'))
+            return 
+        end
+        
+        try
+            
+            % Try to extract all the info we need
+            s=load([userROIbwPath,userROIbwFileName]);
+            userROIbw=s.userROIbw;
+            userROIpoly=s.userROIpoly;
+            
+            % Check dimensions
+            if size(userROIbw)~=[imInfo.Height imInfo.Width]
+                
+                % Error - inform the user that he will have to draw the roi 
+                errorMsg=['The selected userROI.mat contains a polygon incompatible with your image size. You will be now asked to draw a ROI.'];
+                uiwait(errordlg(errorMsg,'Error','modal'));
+                
+                % Set drawROI=1, the user will draw
+                drawROI=1;
+                
+                % And also update fsmParam
+                fsmParam.prep.drawROI=1;
+                
+            else
+                
+                % Save polygon to current project
+                eval(['save ',userPath,filesep,'userROI.mat userROIbw userROIpoly;']);
+                
+            end
+            
+        catch
+            
+            % Error - inform the user that he will have to draw the roi 
+            errorMsg=['Invalid userROI.mat file. You will be now asked to draw a ROI.'];
+            uiwait(errordlg(errorMsg,'Error','modal'));
+            
+            % Set drawROI=1, the user will draw
+            drawROI=1;
+            
+            % And also update fsmParam
+            fsmParam.prep.drawROI=1;
+            
+        end    
+        
+    end
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
     % ALLOW THE USER TO DRAW A ROI
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+    
+    
     if drawROI==1
         
         % Allow the user to draw a ROI
@@ -148,7 +208,7 @@ if ~isfield(fsmParam,'batchJob')
         imshow(img,[]);
         set(gcf,'Name','Please draw region of interest');
         set(gcf,'NumberTitle','off');
-                
+        
         % Select region of interest
         try
             [userROIbw,x,y]=roipoly;
@@ -196,12 +256,12 @@ for counter1=1:n
     
     % Index of the current image
     currentIndex=counter1+firstIndex-1;
-
+    
     if fsmParam.prep.pstSpeckles==1 | fsmParam.prep.pstSpeckles==2
         
         % Load and normalize the image
         img=imreadnd2(char(outFileList(counter1,:)),xmin,xmax);
-
+        
         if autoPolygon==1
             
             % Initialize successCE
@@ -259,7 +319,7 @@ for counter1=1:n
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
             end
-
+            
             % Save it to disk
             indxStr=sprintf(strg,currentIndex);
             eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask

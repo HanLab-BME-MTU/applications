@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 07-Sep-2004 16:34:36
+% Last Modified by GUIDE v2.5 09-Sep-2004 13:48:14
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -513,6 +513,7 @@ if value==0
     set(handles.primaryRadio,'Enable','off');
     set(handles.tertiaryRadio,'Enable','off');
     set(handles.drawROICheck,'Enable','off');
+    set(handles.loadROICheck,'Enable','off');   
     set(handles.scaleRadio,'Enable','off');
     set(handles.textDescr,'Enable','off');
     set(handles.textSigma,'Enable','off');
@@ -531,6 +532,7 @@ else
     set(handles.primaryRadio,'Enable','on');
     set(handles.tertiaryRadio,'Enable','on');
     set(handles.drawROICheck,'Enable','on');
+    set(handles.loadROICheck,'Enable','off');
     set(handles.scaleRadio,'Enable','on');
     set(handles.textDescr,'Enable','on');
     set(handles.textSigma,'Enable','on');
@@ -965,12 +967,9 @@ function radioDispModeTCO_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in drawROICheck.
 function drawROICheck_Callback(hObject, eventdata, handles)
-% hObject    handle to drawROICheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of drawROICheck
-
+if get(handles.drawROICheck,'Value')==1
+    set(handles.loadROICheck,'Value',0);
+end
 
 % --------------------------------------------------------------------
 function fsmGuiMain_CloseRequestFcn(hObject, eventdata, handles)
@@ -1180,5 +1179,17 @@ function popupTrackInit_Callback(hObject, eventdata, handles)
 
 % Hints: contents = get(hObject,'String') returns popupTrackInit contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupTrackInit
+
+
+% --- Executes on button press in loadROICheck.
+function loadROICheck_Callback(hObject, eventdata, handles)
+% hObject    handle to loadROICheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of loadROICheck
+if get(handles.loadROICheck,'Value')==1
+    set(handles.drawROICheck,'Value',0);
+end
 
 

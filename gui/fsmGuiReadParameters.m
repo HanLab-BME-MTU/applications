@@ -58,7 +58,17 @@ fsmParam.main.imgN=str2num(get(handles.numberEdit,'String'));
 fsmParam.prep.autoPolygon=get(handles.autoPolCheck,'Value');
 
 % User draws a ROI
-fsmParam.prep.drawROI=get(handles.drawROICheck,'Value');
+drawROI=get(handles.drawROICheck,'Value');
+loadROI=get(handles.loadROICheck,'Value');
+if drawROI==0 & loadROI==0
+    fsmParam.prep.drawROI=0;    % No drawing, no loading
+elseif drawROI==1 & loadROI==0
+    fsmParam.prep.drawROI=1;    % Drawing, no loading
+elseif drawROI==0 & loadROI==1
+    fsmParam.prep.drawROI=2;    % No drawing, loading
+else
+    error('This combination of selections for load/draw ROI should be impossible.');
+end
 
 % Gauss ratio
 fsmParam.prep.gaussRatio=str2num(get(handles.editGauss,'String'));

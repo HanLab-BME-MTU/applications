@@ -100,7 +100,7 @@ if nargin==6
 end
 
 if ~isempty(fsmParam)
-    if fsmParam.prep.drawROI==1
+    if fsmParam.prep.drawROI~=0 % Either 1 (drawn) or 2 (loaded)
         
         % Load user-defined ROI from disk
         ROIname=[fsmParam.main.path,filesep,'userROI.mat'];

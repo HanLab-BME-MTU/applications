@@ -110,6 +110,7 @@ if fsmParam.prep.enable==1
             error('Wrong value for fsmParam.prep.autoPolygon');
     end
     switch fsmParam.prep.drawROI
+        case 2, fprintf(fid,'User-drawn ROI            : Loaded\n');
         case 1, fprintf(fid,'User-drawn ROI            : Yes\n');
         case 0, fprintf(fid,'User-drawn ROI            : No\n');
         otherwise

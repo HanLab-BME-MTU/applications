@@ -74,7 +74,8 @@ fsmParam.prep.enhTriang=0;          % Delaunay triangulation can be made more st
 fsmParam.prep.autoPolygon=0;        % Automatic analisys of the image to extract cell boundaries  [ 0 : off, 1 : on ]
 % The user draws a ROI
 fsmParam.prep.drawROI=0;            % The user can draw a ROI on the image to restrict the analysis
-
+                                    % It drawROI==1 the user will be asked to draw a roi, if rawROI==2, the user will be asked to
+                                    % load a roi from the current or some other project
 fsmParam.prep.gaussRatio=3.54;      % Gauss ratio
 fsmParam.prep.sigma=1;              % Sigma for low-pass filtering
 fsmParam.prep.uptodate=0;           % Up-to-date flag
