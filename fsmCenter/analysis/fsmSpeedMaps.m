@@ -59,11 +59,11 @@ outFileList=getFileStackNames([dirName,fName]);
 
 if loadMPM==1
     
-    % Load MPM.mat
+    % Load mpm.mat
     [fName,dirName] = uigetfile(...
-        {'MPM.mat;','MPM.mat';
+        {'mpm.mat;','mpm.mat';
         '*.*','All Files (*.*)'},...
-        'Select MPM.mat');
+        'Select mpm.mat');
     if ~(isa(fName,'char') & isa(dirName,'char'))
         return 
     end
