@@ -88,7 +88,7 @@ info = [];
 calc2d = 0;
 nanList = 0;
 oldIdlist = [];
-realTime = 0;
+realTime = 1; % if zero, time is rounded
 
 %go through fields of opt, change defaults with input values if they exist
 if nargin < 5 | isempty(opt)
