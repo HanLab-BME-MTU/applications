@@ -680,35 +680,7 @@ else
 end
 
 function editZValue_Callback(hObject, eventdata, handles)
-
-% If  a z-value is entered by the user, turn all radio button to 0; unless it is one of the presets
-set(handles.confOne,'Value',0);
-set(handles.confTwo,'Value',0);
-set(handles.confThree,'Value',0);
-set(handles.confFour,'Value',0);
-set(handles.confFive,'Value',0);
-set(handles.confSix,'Value',0);
-
-zValues=get(handles.editZValue,'UserData');
-z=str2num(get(handles.editZValue,'String'));
-indx=find(zValues==z);
-set(handles.confOne,'Value',0);
-set(handles.confTwo,'Value',0);
-set(handles.confThree,'Value',0);
-set(handles.confFour,'Value',0);
-set(handles.confFive,'Value',0);
-set(handles.confSix,'Value',0);
-if ~isempty(indx)
-    switch(indx)
-        case 1, set(handles.confOne,'Value',1);
-        case 2, set(handles.confTwo,'Value',1);
-        case 3, set(handles.confThree,'Value',1);
-        case 4, set(handles.confFour,'Value',1);
-        case 5, set(handles.confFive,'Value',1);
-        case 6, set(handles.confSix,'Value',1);
-        otherwise, error('Somehow the entered value does match one of the presets but still we can find which');
-    end
-end
+fsmGuiUpdateConfidences(handles);
 
 
 % --------------------------------------------------------------------
@@ -802,6 +774,21 @@ else
     set(handles.textDescr,'String',fsmExpParam(exp-1).description);
 end
 
+% Check whether it is an optimized experiment or not
+if exp~=1
+    if fsmExpParam(exp-1).quantile==0
+        
+        % Not optimized
+        if strcmp(get(handles.editZValue,'Enable'),'off')
+            set(handles.editZValue,'String','1.96');
+            fsmGuiUpdateConfidences(1);
+        end
+    else
+        % Optimized
+        set(handles.editZValue,'String',num2str(fsmExpParam(exp-1).quantile));
+        fsmGuiUpdateConfidences(0);
+    end
+end
 
 function orderEdit_Callback(hObject, eventdata, handles)
 % hObject    handle to orderEdit (see GCBO)

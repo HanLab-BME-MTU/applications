@@ -140,8 +140,19 @@ if ~isempty(fsmExpParam)
                 
             end
 
-            
         end
+        
+        % If the noise parameters have been optimized, disable the quantile selection...
+        if fsmExpParam(fsmParam.main.noiseParam(7)-1).quantile~=0
+            set(handles.editZValue,'String',num2str(fsmExpParam(fsmParam.main.noiseParam(7)-1).quantile));
+            fsmGuiUpdateConfidences(0);
+        else
+            
+            % Otherwise make sure they are enabled
+            set(handles.editZValue,'String','1.96');
+            fsmGuiUpdateConfidences(1);
+             
+        end    
         
     else
     
@@ -165,6 +176,7 @@ else
     end
     
 end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 

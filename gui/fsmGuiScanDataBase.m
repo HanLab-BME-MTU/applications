@@ -78,6 +78,7 @@ while not(feof(fid))
                 fsmExpParam(counter).description=description;
                 fsmExpParam(counter).bitDepth=bitdepth;
                 fsmExpParam(counter).noiseParams=noiseparams;
+                fsmExpParam(counter).quantile=quantile;
                 fsmExpParam(counter).gaussRatio=gaussratio;
               
             end
@@ -89,7 +90,7 @@ while not(feof(fid))
             L_=0; D_=0; B_=0; N_=0; G_=0;
             
             % Clear variables
-            label=[]; bitdepth=[]; noiseparams=[]; gaussratio=[];
+            label=[]; bitdepth=[]; noiseparams=[]; gaussratio=[]; quantile=[];
 
         end
 
@@ -143,6 +144,12 @@ while not(feof(fid))
 
         % Read noise parameters
         noiseparams=str2num(readString(tline,fid));
+        if length(noiseparams)==3
+            quantile=0;
+        elseif length(noiseparams)==4
+            quantile=noiseparams(4);
+            noiseparams=noiseparams(1:3);            
+        end
         
         % Set bit for bitdepth to 1
         N_=1;
