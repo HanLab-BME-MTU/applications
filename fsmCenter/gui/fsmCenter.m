@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 10-Dec-2004 15:56:23
+% Last Modified by GUIDE v2.5 10-Mar-2005 18:22:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,6 +54,20 @@ function fsmCenter_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for fsmCenter
 handles.output = hObject;
 
+settings = get(handles.fsmCenter,'UserData');
+
+if isempty(settings) | ~isfield(settings,'projDir') | ...
+   (isfield(settings,'projDir')&isempty(settings.projDir))
+   handles.physiParamFile = 'fsmPhysiParam.mat';
+
+   handles = setDefFsmPhysiParam(handles);
+   handles = updateFsmGuiPhysiParamEdit(handles);
+
+   %Disable all fsm software package and physical parameters entrance when there
+   %is no project setup.
+   handles = enableFsmPackages(handles,'off');
+end
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -76,6 +90,65 @@ function varargout = fsmCenter_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
+
+function handles = setDefFsmPhysiParam(handles)
+
+physiParam.NA            = 1.4;
+physiParam.waveLen       = 600; %Unit, nm.
+physiParam.bitDepth      = 14;
+physiParam.pixelSize     = 67; %Unit, nm.
+physiParam.frameInterval = 10; %Unit, sec.
+physiParam.psfSigma         = round(0.21*physiParam.waveLen/physiParam.NA ...
+                           /physiParam.pixelSize*1000)/1000;
+
+handles.physiParam = physiParam;
+
+
+function handles = updateFsmGuiPhysiParamEdit(handles)
+
+physiParam = handles.physiParam;
+
+set(handles.editNA,'String',num2str(physiParam.NA));
+set(handles.editWaveLen,'String',num2str(physiParam.waveLen));
+set(handles.editBitDepth,'String',num2str(physiParam.bitDepth));
+set(handles.editPixelSize,'String',num2str(physiParam.pixelSize));
+set(handles.editFrameInterval,'String',num2str(physiParam.frameInterval));
+set(handles.editCaliSigma,'String',sprintf('%1.3f',physiParam.psfSigma));
+
+
+function handles = enableFsmPackages(handles,fsmState)
+
+if strcmp(fsmState,'off')
+   set(handles.pushFSM,'Enable','off');
+   set(handles.pushBatchJobs,'Enable','off');
+   set(handles.pushImKymoAnalysis,'Enable','off');
+   set(handles.pushEdgeTracker,'Enable','off');
+   set(handles.pushFsmTransition,'Enable','off');
+   set(handles.pushPostProc,'Enable','off');
+
+   %Physical parameters edit fields.
+   %set(handles.editNA,'Enable','off');
+   %set(handles.editWaveLen,'Enable','off');
+   %set(handles.editBitDepth,'Enable','off');
+   %set(handles.editPixelSize,'Enable','off');
+   %set(handles.editFrameInterval,'Enable','off');
+else
+   set(handles.pushFSM,'Enable','on');
+   set(handles.pushBatchJobs,'Enable','on');
+   set(handles.pushImKymoAnalysis,'Enable','on');
+   set(handles.pushEdgeTracker,'Enable','on');
+   set(handles.pushFsmTransition,'Enable','on');
+   set(handles.pushPostProc,'Enable','on');
+
+   %Physical parameters edit fields.
+   %set(handles.editNA,'Enable','on');
+   %set(handles.editWaveLen,'Enable','on');
+   %set(handles.editBitDepth,'Enable','on');
+   %set(handles.editPixelSize,'Enable','on');
+   %set(handles.editFrameInterval,'Enable','on');
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %
@@ -84,6 +157,14 @@ varargout{1} = handles.output;
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+function editField_CreateFcn(hObject, eventdata, handles)
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
 function editBitDepth_CreateFcn(hObject, eventdata, handles)
 if ispc
     set(hObject,'BackgroundColor','white');
@@ -91,7 +172,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-function editSigma_CreateFcn(hObject, eventdata, handles)
+function editCaliSigma_CreateFcn(hObject, eventdata, handles)
 if ispc
     set(hObject,'BackgroundColor','white');
 else
@@ -142,18 +223,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushFSM_Callback(hObject, eventdata, handles)
-settings = get(handles.fsmCenter,'UserData');
-if isempty(settings)
-    errordlg('Please set up project first','Error','modal');
-    return;
-elseif ~isfield(settings,'projDir')
-    errordlg('Please set up project first','Error','modal');
-    return;
-elseif isempty(settings.projDir)
-    errordlg('Please set up project first','Error','modal');
-    return;
+
+hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
+if isempty(hFsmGuiMain)
+    fsmGuiMain;
+elseif ishandle(hFsmGuiMain)
+    figure(hFsmGuiMain);
 end
-fsmGuiMain;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -183,6 +259,23 @@ settings.subProjects=subProjects;
 settings.imgDirList=imgDirList;
 settings.firstImgList=firstImgList;
 set(handles.fsmCenter,'UserData',settings);
+
+%Enable all fsm software package.
+handles = enableFsmPackages(handles,'on');
+
+%Update physical parameters if the parameter file 'fsmPhysiParam.mat' exist.
+physiParamFile = [settings.projDir filesep handles.physiParamFile];
+if exist(physiParamFile,'file') == 2;
+   s = load(physiParamFile);
+   handles.physiParam = s.fsmPhysiParam;
+else
+   handles = setDefFsmPhysiParam(handles);
+end
+
+handles = updateFsmGuiPhysiParamEdit(handles);
+
+guidata(hObject,handles);
+
 % Update other GUIs if they are already running
 
 % fsmPostProc
@@ -288,9 +381,9 @@ function editCalY_Callback(hObject, eventdata, handles)
 function editCalX0_Callback(hObject, eventdata, handles)
 function editCalX_Callback(hObject, eventdata, handles)
 
-function editBitDepth_Callback(hObject, eventdata, handles)
 
-function editSigma_Callback(hObject, eventdata, handles)
+
+function editCaliSigma_Callback(hObject, eventdata, handles)
 
 function editFileName_Callback(hObject, eventdata, handles)
 
@@ -391,7 +484,7 @@ else
         return
     end
 end
-[I0,sDN,GaussRatio,status]=fsmCalcNoiseParam([],str2num(get(handles.editBitDepth,'string')),str2num(get(handles.editSigma,'string')),dataFile);
+[I0,sDN,GaussRatio,status]=fsmCalcNoiseParam([],str2num(get(handles.editBitDepth,'string')),str2num(get(handles.editCaliSigma,'string')),dataFile);
 if status==-1
     uiwait(msgbox('The noise parameters could not be saved to your user database. They were returned to the MATLAB console. Make sure that a file called ''fsmExpParams.txt'' exists in your user directory or in the root directory of the qFSM package. Click on ''User settings'' in fsmCenter and follow the instructions.','Info','modal'));
 elseif status==0
@@ -420,7 +513,13 @@ set(handles.editCalX,'String','');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushImKymoAnalysis_Callback(hObject, eventdata, handles)
-imKymoAnalysis;
+
+hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
+if isempty(hCorrTrack)
+    imKymoAnalysis;
+elseif ishandle(hCorrTrack)
+    figure(hCorrTrack);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -525,4 +624,106 @@ function menuSpeckTackle_Callback(hObject, eventdata, handles)
 function menuTools_Callback(hObject, eventdata, handles)
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Call back functions for physical parameters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function editBitDepth_Callback(hObject, eventdata, handles)
+
+bitDepth = str2num(get(hObject,'String'));
+if isempty(bitDepth)
+   set(hObject,'String',num2str(handles.physiParam.bitDepth));
+   errordlg('Not valid numerical input.','Error','modal');
+   return;
+end
+
+handles.physiParam.bitDepth = bitDepth;
+guidata(hObject,handles);
+saveFsmPhysiParam(handles);
+
+function editNA_Callback(hObject, eventdata, handles)
+NA = str2num(get(hObject,'String'));
+if isempty(NA)
+   set(hObject,'String',num2str(handles.physiParam.NA));
+   errordlg('Not valid numerical input.','Error','modal');
+   return;
+end
+
+physiParam = handles.physiParam;
+
+physiParam.NA      = NA;
+physiParam.psfSigma   = round(0.21*physiParam.waveLen/physiParam.NA ...
+                     /physiParam.pixelSize*1000)/1000;
+set(handles.editCaliSigma,'String',sprintf('%1.3f',physiParam.psfSigma));
+
+handles.physiParam = physiParam;
+guidata(hObject,handles);
+saveFsmPhysiParam(handles);
+
+function editWaveLen_Callback(hObject, eventdata, handles)
+waveLen = str2num(get(hObject,'String'));
+if isempty(waveLen)
+   set(hObject,'String',num2str(handles.physiParam.waveLen));
+   errordlg('Not valid numerical input.','Error','modal');
+   return;
+end
+
+physiParam = handles.physiParam;
+
+physiParam.waveLen = waveLen;
+physiParam.psfSigma   = round(0.21*physiParam.waveLen/physiParam.NA ...
+                     /physiParam.pixelSize*1000)/1000;
+set(handles.editCaliSigma,'String',sprintf('%1.3f',physiParam.psfSigma));
+
+handles.physiParam = physiParam;
+guidata(hObject,handles);
+saveFsmPhysiParam(handles);
+
+function editPixelSize_Callback(hObject, eventdata, handles)
+pixelSize = str2num(get(hObject,'String'));
+if isempty(pixelSize)
+   set(hObject,'String',num2str(handles.physiParam.pixelSize));
+   errordlg('Not valid numerical input.','Error','modal');
+   return;
+end
+
+physiParam = handles.physiParam;
+
+physiParam.pixelSize = pixelSize;
+physiParam.psfSigma     = round(0.21*physiParam.waveLen/physiParam.NA ...
+                       /physiParam.pixelSize*1000)/1000;
+set(handles.editCaliSigma,'String',sprintf('%1.3f',physiParam.psfSigma));
+
+handles.physiParam = physiParam;
+guidata(hObject,handles);
+saveFsmPhysiParam(handles);
+
+function editFrameInterval_Callback(hObject, eventdata, handles)
+frameInterval = str2num(get(hObject,'String'));
+if isempty(frameInterval)
+   set(hObject,'String',num2str(handles.physiParam.frameInterval));
+   errordlg('Not valid numerical input.','Error','modal');
+   return;
+end
+
+handles.physiParam.frameInterval = frameInterval;
+guidata(hObject,handles);
+saveFsmPhysiParam(handles);
+
+
+function saveFsmPhysiParam(handles)
+
+settings = get(handles.fsmCenter,'UserData');
+if isempty(settings)
+   return;
+elseif ~isfield(settings,'projDir')
+   return;
+elseif isempty(settings.projDir)
+   return;
+end
+
+physiParamFile = [settings.projDir filesep handles.physiParamFile];
+fsmPhysiParam  = handles.physiParam;
+
+save(physiParamFile,'fsmPhysiParam');
 

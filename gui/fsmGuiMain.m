@@ -68,6 +68,13 @@ if nargin == 0  % LAUNCH GUI
             fsmParam=fsmGetParamDflts;
         end
         
+        %Since we are going to distinguish the various sigma in fsm from now 
+        %(Mar. 11, 2005) on, for backward compatiblity, I copy the old 'sigma'
+        %to 'filterSigma'.
+        if ~isfield(fsmParam.prep,'filterSigma')
+           fsmParam.prep.filterSimga = fsmParam.prep.sigma;
+        end
+
         % Store default values in defaultFsmParam
         defaultFsmParam=fsmParam;
         
@@ -160,8 +167,18 @@ if nargin == 0  % LAUNCH GUI
     set(handles.pathEdit,'String',workPath);
     set(handles.textImage,'String',imagePath);
 
+    fsmParam = get(handles.start,'UserData');
+    %Get physical parameters from fsmCenter and broadcast them to 'fsmParam'.
+    physiParam = handlesFsmCenter.physiParam;
+    fsmParam.prep.psfSigma    = physiParam.psfSigma;
+    fsmParam.prep.filterSigma = physiParam.psfSigma;
+
+    set(handles.start,'UserData',fsmParam);
+    set(handles.defaultButton,'UserData',fsmParam);
+    fsmGuiWriteParameters(fsmParam,handles);
+
     % Update the GUI if a fsmParam.mat file exists in the workPath
-    catchPathChange(workPath,handles,settings);
+    catchPathChange(workPath,handles,settings,fsmParam);
 
 elseif ischar(varargin{1}) % INVOKE NAMED SUBFUNCTION OR CALLBACK
 
@@ -458,7 +475,7 @@ function varargout = autoPolCheck_Callback(h, eventdata, handles, varargin)
 
 %%%%%
 
-function catchPathChange(newpath,handles,settings,fsmParam)
+function catchPathChange(newpath,handles,settings,inFsmParam)
 
 if newpath~=0
 
@@ -470,6 +487,15 @@ if newpath~=0
         
         % Load the file found
         load([newpath,filesep,'fsmParam.mat']);  
+
+        %For backward compatibility.
+        if ~isfield(fsmParam.prep,'filterSigma')
+           fsmParam.prep.filterSigma = fsmParam.prep.sigma;
+        end
+        if ~isfield(fsmParam.prep,'psfSigma') & nargin == 4 & ...
+           isfield(inFsmParam.prep,'psfSigma')
+           fsmParam.prep.psfSigma = inFsmParam.prep.psfSigma;
+        end
             
     else
         
