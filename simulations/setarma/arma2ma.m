@@ -58,7 +58,7 @@ if arOrder ~= 0
         end
         if checkRoots
             r = abs(roots([-arParam(end:-1:1) 1]));
-            if ~isempty(find(r<=1))
+            if ~isempty(find(r<=1.00001))
                 disp('--arma2ma: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
                 errFlag = 1;
             end

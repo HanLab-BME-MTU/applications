@@ -51,7 +51,7 @@ else
         errFlag = 1;
     end
     r = abs(roots([-arParam0(end:-1:1) 1]));
-    if ~isempty(find(r<=1))
+    if ~isempty(find(r<=1.00001))
         disp('--arlsestim1: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
         errFlag = 1;
     end
@@ -124,11 +124,8 @@ trajP = unknowns(arOrder+1:end);
 
 %check for causality of estimated model
 r = abs(roots([-arParam(end:-1:1) 1]));
-if ~isempty(find(r<=1))
+if ~isempty(find(r<=1.00001))
     disp('--arlsestim1: Warning: Predicted model not causal!');
-    errFlag = 1;
-    noiseSigma = [];
-    return
 end
 
 %get standard deviation of white noise

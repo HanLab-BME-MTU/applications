@@ -49,7 +49,7 @@ arParam = unknown(1:arOrder)';
 rAr = abs(roots([-arParam(end:-1:1) 1]))';
 
 %nonlinear constraint (inequality)
-c = 1.001 - rAr;
+c = 1.00001 - rAr;
 
 %nonlinear constraint equality
 ceq = [];

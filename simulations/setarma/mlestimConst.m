@@ -45,7 +45,7 @@ rAr = abs(roots([-arParam(end:-1:1) 1]))';
 rMa = abs(roots([maParam(end:-1:1) 1]))';
 
 %nonlinear constraint (inequality)
-c = 1.001 - [rAr rMa];
+c = 1.00001 - [rAr rMa];
 
 %nonlinear constraint equality
 ceq = [];

@@ -1,14 +1,15 @@
-function [arParam,noiseSigma,errFlag] = arlsestim0(traj,arOrder)
+function [arParam,noiseSigma,arParamSigma,errFlag] = arlsestim0(traj,arOrder)
 %ARLSESTIM0 estimates parameters of an AR model using least square fitting
 %
-%SYNOPSIS [arParam,noiseSigma,errFlag] = arlsestim0(traj,arOrder)
+%SYNOPSIS [arParam,noiseSigma,arParamSigma,errFlag] = arlsestim0(traj,arOrder)
 %
 %INPUT  traj   : Trajectory to be modeled (with measurement uncertainty.
 %       arOrder: Order of proposed AR model.
 %
-%OUTPUT arParam   : Estimated parameters in model.
-%       noiseSigma: Estimated standard deviation of white noise.
-%       errFlag   : 0 if function executes normally, 1 otherwise.
+%OUTPUT arParam     : Estimated parameters in model.
+%       noiseSigma  : Estimated standard deviation of white noise.
+%       arParamSigma: Uncertainty in estimated AR coefficients.
+%       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, February 2004
 
@@ -44,21 +45,49 @@ if errFlag
     return
 end
     
-%previous points to be used in AR prediction
+%previous points to be used in AR prediction 
+%[(trajLength-arOrder) by arOrder matrix]
 prevPoints = zeros(trajLength-arOrder,arOrder);
 for i=1:trajLength-arOrder
     prevPoints(i,:) = traj(i+arOrder-1:-1:i,1)';
 end
 
 %weights matrix obtained from measurement uncertainties
+%[(trajLength-arOrder) by (trajLength-arOrder) matrix]
 weights = diag(traj(arOrder+1:end,2).^(-2));
 
-%multiply weights by transpose of prevPoints
-weights = prevPoints'*weights;
+%multiply weights by transpose of prevPoints 
+%[arOrder by (trajLength-arOrder) matrix]
+weightsP = prevPoints'*weights;
 
-%get solution
-arParam = inv(weights*prevPoints)*weights*traj(arOrder+1:end,1);
-arParam = arParam';
+%get right hand side of set of equation 
+%[arOrder by 1 vector]
+rhs = weightsP*traj(arOrder+1:end,1);
+
+%get matrix multiplying unknown parameters in left hand side of set of equation 
+%[arOrder by arOrder matrix]
+lhs = weightsP*prevPoints;
+
+%clear variable
+clear weightsP;
+
+%check matrix condition 
+condition = cond(lhs)
+
+%invert equation to get solution
+arParam = (lhs\rhs)';
+
+%check for causality of estimated model
+r = abs(roots([-arParam(end:-1:1) 1]));
+if ~isempty(find(r<=1.00001))
+    disp('--arlsestim0: Warning: Predicted model not causal!');
+end
+
+%prediction error
+epsilon = prevPoints*arParam' - traj(arOrder+1:end,1);
 
 %standard deviation of white noise
-noiseSigma = std(traj(arOrder+1:end,1)-prevPoints*arParam');
+noiseSigma = std(epsilon);
+
+%don't compute uncertainty in parameter estimates for now!
+arParamSigma = [];

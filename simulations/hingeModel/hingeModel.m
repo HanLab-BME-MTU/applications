@@ -89,6 +89,8 @@ if ~free
     frictionCoef = 16*pi*viscosity*chromL^3/(-1+2*log(2*chromL/chromS))/3; %kg*m^2/s
     diffConst = 1.38e-23*temperature/frictionCoef; %s^-1
     
+    diffConst = 5e-16/((0.05e-6)^2);
+    
     %maximum anglular displacement per time step based on the relation <dtheta^2> = 2Ddt
     maxAngle = sqrt(2*diffConst*dt);
     

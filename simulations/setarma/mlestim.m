@@ -64,7 +64,7 @@ else
         errFlag = 1;
     end
     r = abs(roots([-arParam0(end:-1:1) 1]));
-    if ~isempty(find(r<=1))
+    if ~isempty(find(r<=1.00001))
         disp('--mlestim: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
         errFlag = 1;
     end
@@ -79,7 +79,7 @@ else
         errFlag = 1;
     end
     r = abs(roots([maParam0(end:-1:1) 1]));
-    if ~isempty(find(r<=1))
+    if ~isempty(find(r<=1.00001))
         disp('--mlestim: Invertibility requires the polynomial defining the moving average part of the model not to have any zeros for z <= 1!');
         errFlag = 1;
     end
@@ -110,14 +110,14 @@ maParam = params(arOrder+1:end);
 
 %check for causality and invertibility of estimated model
 r = abs(roots([-arParam(end:-1:1) 1]));
-if ~isempty(find(r<=1))
+if ~isempty(find(r<=1.00001))
     disp('--mlestim: Warning: Predicted model not causal!');
     errFlag = 1;
     noiseSigma = [];
     return
 end
 r = abs(roots([maParam(end:-1:1) 1]));
-if ~isempty(find(r<=1))
+if ~isempty(find(r<=1.00001))
     disp('--mlestim: Warning: Predicted model not invertible!');
     errFlag = 1;
     noiseSigma = [];

@@ -59,7 +59,7 @@ else
     end
     if checkRoots
         r = abs(roots([-arParam(end:-1:1) 1]));
-        if ~isempty(find(r<=1))
+        if ~isempty(find(r<=1.00001))
             disp('--innovPredict: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
             errFlag = 1;
         end
@@ -76,7 +76,7 @@ else
     end
     if checkRoots
         r = abs(roots([maParam(end:-1:1) 1]));
-        if ~isempty(find(r<=1))
+        if ~isempty(find(r<=1.00001))
             disp('--innovPredict: Invertibility requires the polynomial defining the moving average part of the model not to have any zeros for z <= 1!');
             errFlag = 1;
         end

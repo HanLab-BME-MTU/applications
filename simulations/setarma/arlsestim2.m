@@ -1,7 +1,7 @@
-function [arParam,noiseSigma,errFlag] = arlsestim2(traj,arOrder,arParam0,noiseSigma0,arTol,sigmaTol)
+function [arParam,noiseSigma,arParamSigma,errFlag] = arlsestim2(traj,arOrder,arParam0,noiseSigma0,arTol,sigmaTol)
 %ARLSESTIM2 estimates parameters of an AR model using least square fitting, accounting for missing data points
 %
-%SYNOPSIS [arParam,noiseSigma,errFlag] = arlsestim2(traj,arOrder,arParam0)
+%SYNOPSIS [arParam,noiseSigma,arParamSigma,errFlag] = arlsestim2(traj,arOrder,arParam0)
 %
 %INPUT  traj        : Trajectory to be modeled (with measurement uncertainty).
 %                     Missing points should be indicated with NaN.
@@ -11,9 +11,10 @@ function [arParam,noiseSigma,errFlag] = arlsestim2(traj,arOrder,arParam0,noiseSi
 %       arTol       : Change in AR coefficients that below which it is safe to stop.
 %       sigmaTol    : Change in WN standard deviation below which it is safe to stop.
 %
-%OUTPUT arParam    : Estimated parameters in model.
-%       noiseSigma : Estimated standard deviation of white noise.
-%       errFlag    : 0 if function executes normally, 1 otherwise.
+%OUTPUT arParam     : Estimated parameters in model.
+%       noiseSigma  : Estimated standard deviation of white noise.
+%       arParamSigma: Uncertainty in estimated AR coefficients.
+%       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, February 2004
 
@@ -52,7 +53,7 @@ else
         errFlag = 1;
     end
     r = abs(roots([-arParam0(end:-1:1) 1]));
-    if ~isempty(find(r<=1))
+    if ~isempty(find(r<=1.00001))
         disp('--arlsestim2: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
         errFlag = 1;
     end
@@ -119,7 +120,7 @@ while arParamDiff > arTol || sigmaDiff > sigmaTol
     trajNew(:,2) = sqrt(traj(:,2).^2+variance);
     
     %call arlsestim0 to update/predict parameters and white noise standard deviation
-    [arParamNew,noiseSigmaNew,errFlag] = arlsestim0(trajNew,arOrder);
+    [arParamNew,noiseSigmaNew,arParamSigma,errFlag] = arlsestim0(trajNew,arOrder);
     
     %compute variables to be compared with "arTol" and "sigmaTol"
     arParamDiff = max(abs(arParamNew-arParam)); %maximum change in AR coefficients
@@ -133,9 +134,7 @@ end
 
 %check for causality of estimated model
 r = abs(roots([-arParam(end:-1:1) 1]));
-if ~isempty(find(r<=1))
+if ~isempty(find(r<=1.00001))
     disp('--arlsestim2: Warning: Predicted model not causal!');
-    errFlag = 1;
-    return
 end
 

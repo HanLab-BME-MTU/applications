@@ -87,7 +87,7 @@ if arOrder ~= 0
     end
     for i = 1:nThresholds+1
         r = abs(roots([-arParam(i,end:-1:1) 1]));
-        if ~isempty(find(r<=1))
+        if ~isempty(find(r<=1.00001))
             disp('--simSetarma: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
             errFlag = 1;
         end
@@ -105,7 +105,7 @@ if maOrder ~= 0
     end
     for i = 1:nThresholds+1
         r = abs(roots([maParam(i,end:-1:1) 1]));
-        if ~isempty(find(r<=1))
+        if ~isempty(find(r<=1.00001))
             disp('--simSetarma: Invertibility requires the polynomial defining the moving average part of the model not to have any zeros for z <= 1!');
             errFlag = 1;
         end

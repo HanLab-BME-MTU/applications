@@ -75,7 +75,7 @@ indxLength = length(indx);
 %check for causality of model
 r = abs(roots([-arParam(end:-1:1) 1]));
 
-if ~isempty(find(r<=1)) %if not causal 
+if ~isempty(find(r<=1.00001)) %if not causal 
 
     if multi %multi-objective
         sumSquareErr = 1e10*ones(2*indxLength+indxLowLength);
