@@ -193,30 +193,27 @@ win_imgDrive  = handles.win_imgDrive;
 subProjDir    = handles.subProjDir;
 selImgDir     = handles.selImgDir;
 
-if selImgDir > length(imgDirList) | isempty(firstImgList)
+if isempty(firstImgList)
    firstImg = '';
 else
    firstImg = firstImgList{selImgDir};
 end
 
-if selImgDir > length(imgDirList)
+%Update the menu for image directory list.
+if selImgDir == 0
    imgDir = '';
+   set(handles.imgDirMH,'String',{'--- Empty ---'});
+   set(handles.imgDirMH,'Value',1);
+   set(handles.imgDirMH,'Enable','off');
 else
    imgDir = imgDirList{selImgDir};
+   set(handles.imgDirMH,'String',imgDirList);
+   set(handles.imgDirMH,'Value',selImgDir);
+   set(handles.imgDirMH,'Enable','on');
 end
 
-if isempty(imgDirList)
-   imgDirList = {'-- New Image Directory (by selecting first image) --'};
-else
-   imgDirList{end+1} = '-- New Image Directory (by selecting first image) --';
-end
-
-%Update popup menu in the GUI.
 set(handles.projDirEH,'string',projDir);
 set(handles.firstImgTH,'string',firstImg);
-set(handles.imgDirMH,'Value',1);
-set(handles.imgDirMH,'String',imgDirList);
-set(handles.imgDirMH,'Value',selImgDir);
 set(handles.imgDirEH,'string',imgDir);
 
 %Search for available results directories for each package.
@@ -424,29 +421,24 @@ function Ok_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 projDir    = get(handles.projDirEH,'string');
-imgDirList = get(handles.imgDirMH,'string');
-selImgDir  = get(handles.imgDirMH,'Value');
-
-if length(imgDirList) == 1
-   imgDirList = {};
-else
-   imgDirList(end) = [];
-end
-
-firstImgList = handles.firstImgList;
-numSubProj   = handles.numSubProj;
-subProjTags  = handles.subProjTags;
-subProjDir   = cell(size(subProjTags));
-
 if isempty(projDir)
     warnH = warndlg('No project directory is set.','Warning','modal');
     return;
 end
 
-if isempty(imgDirList)
-    warnH = warndlg('No image directory is set. ' ,'Warning','modal');
-    return;
+selImgDir  = handles.selImgDir;
+
+if selImgDir == 0;
+   warnH = warndlg('No image directory is set. ' ,'Warning','modal');
+   return;
 end
+
+imgDirList = handles.imgDirList;
+
+firstImgList = handles.firstImgList;
+numSubProj   = handles.numSubProj;
+subProjTags  = handles.subProjTags;
+subProjDir   = cell(size(subProjTags));
 
 for k = 1:numSubProj
    item = get(handles.subProjMH{k},'value');
@@ -532,10 +524,10 @@ function delImgDir_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-selImgDir  = get(handles.imgDirMH,'Value');
-imgDirList = get(handles.imgDirMH,'String');
-if selImgDir == length(imgDirList)
-   %' New Image Directory ' is selected. Do nothing.
+selImgDir  = handles.selImgDir;
+imgDirList = handles.imgDirList;
+
+if selImgDir == 0
    return;
 end
 
@@ -546,27 +538,31 @@ if ~isempty(firstImgList)
    firstImgList(selImgDir) = [];
 end
 
-if selImgDir == length(imgDirList) & selImgDir > 1
+if selImgDir > length(imgDirList)
    selImgDir = selImgDir-1;
 end
 
-if selImgDir == length(imgDirList) | isempty(firstImgList)
+if selImgDir == 0
+   %All image directories are deleted.
+   set(handles.imgDirMH,'Enable','off');
+   set(handles.imgDirMH,'String',{'--- Empty ---'});
+   set(handles.imgDirMH,'Value',1);
+   set(handles.imgDirEH,'String','');
    set(handles.firstImgTH,'String','');
 else
+   %Update the menu list for image directory list.
+   set(handles.imgDirMH,'Enable','on');
+   set(handles.imgDirMH,'String',imgDirList);
+   set(handles.imgDirMH,'Value',selImgDir);
+
+   %Update the edit field for active (selected) image directory and the text
+   %field for first image file name.
+   set(handles.imgDirEH,'String',imgDirList{selImgDir});
    set(handles.firstImgTH,'String',firstImgList{selImgDir});
 end
 
-set(handles.imgDirMH,'Value',selImgDir);
-set(handles.imgDirMH,'String',imgDirList);
-
-if selImgDir == length(imgDirList)
-   set(handles.imgDirEH,'String','');
-else
-   set(handles.imgDirEH,'String',imgDirList{selImgDir});
-end
-
 handles.selImgDir    = selImgDir;
-handles.imgDirList   = imgDirList(1:end-1);
+handles.imgDirList   = imgDirList;
 handles.firstImgList = firstImgList;
 
 guidata(hObject,handles);
@@ -578,53 +574,12 @@ function imgDirMenu_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 firstImgList = handles.firstImgList;
+imgDirList   = handles.imgDirList;
 
 selImgDir  = get(handles.imgDirMH,'Value');
-imgDirList = get(handles.imgDirMH,'String');
-if selImgDir == length(imgDirList)
-   oldDir = pwd;
 
-   if isdir(imgDirList{handles.selImgDir})
-      %Go to the parent of last selected image directory.
-      cd([imgDirList{handles.selImgDir} filesep '..']);
-   end
-
-   %'New Image Directory' is selected. Choose new image directory and 
-   % first image.
-   [firstImgFileName pathName filterIndex] = uigetfile( ...
-      {'*.tif;*.gif;*.jpg;*.png', ...
-      'Image Files (*.tif,*.gif,*.jpg,*.png)';
-      '*.tif','TIFF files (*.tif)';
-      '*.gif','GIF files (*.gif)';
-      '*.jpg','JPEG files (*.jpg)';
-      '*.png','PNG files (*.png)'},'Select the first image');
-
-   cd(oldDir);
-   if filterIndex == 0
-      return;
-   end
-
-   %Add the new image dir to 'imgDirList'.
-   imgDirList{end+1} = imgDirList{end}; %'New Image Directory'.
-   imgDirList{end-1} = pathName;
-
-   set(handles.imgDirMH,'String',imgDirList);
-   handles.imgDirList = imgDirList(1:end-1);
-
-   if isempty(firstImgList)
-      for k = 1:length(imgDirList)-1
-         firstImgList{k} = '';
-      end
-   end
-   firstImgList{selImgDir} = firstImgFileName;
-   handles.firstImgList    = firstImgList;
-end
-
-if length(imgDirList) == 1
-   set(handles.imgDirEH,'String','');
-else
-   set(handles.imgDirEH,'String',imgDirList{selImgDir});
-end
+%Update the gui field for active (selected) image directory.
+set(handles.imgDirEH,'String',imgDirList{selImgDir});
 
 if isempty(firstImgList)
    set(handles.firstImgTH,'String','');
@@ -650,20 +605,23 @@ end
 
 function firstImgBrowse_Callback(hObject, eventdata, handles)
 
+oldDir = pwd;
+
 selImgDir    = handles.selImgDir;
 imgDirList   = handles.imgDirList;
 firstImgList = handles.firstImgList;
 
-oldDir = pwd;
+if ~isempty(imgDirList)
+   if ~isdir(imgDirList{selImgDir})
+      errordlg(['Something is wrong with the current selected image ' ...
+         'directory. If it does not exist any more, please delete it ' ...
+         'using the delete button.'],'Image selection error','modal');
+      return;
+   end
 
-if ~isdir(imgDirList{selImgDir})
-   errordlg(['Something is wrong with the current selected image ' ...
-      'directory. If it does not exist any more, please delete it ' ...
-      'using the delete button.'],'Image selection error','modal');
-   return;
+   cd(imgDirList{selImgDir});
 end
 
-cd(imgDirList{selImgDir});
 [firstImgFileName pathName filterIndex] = uigetfile( ...
    {'*.tif;*.gif;*.jpg;*.png', ...
    'Image Files (*.tif,*.gif,*.jpg,*.png)';
@@ -677,21 +635,44 @@ if filterIndex == 0
    return;
 end
 
-if ~samdir(pathName,imgDirList{selImgDir})
-   errordlg(['Please select image from the current selected ' ...
-      'image directory. The selection will be discarded. ' ...
-      'Please reselect.'],'Image selection error','modal');
-   return;
-end
-
-if isempty(firstImgList)
-   for k = 1:length(imgDirList)-1
-      firstImgList{k} = '';
+%Check whether the selected new image directory exists in 'imgDirList'.
+k = 1; imgDirExist = 0;
+while ~imgDirExist & k <= length(imgDirList)
+   if samdir(pathName,imgDirList{k})
+      imgDirExist = 1;
+   else
+      k = k+1;
    end
 end
 
+if imgDirExist
+   %First, make the matching image directory the active one.
+   selImgDir = k; 
+else
+   %This is a new image directory. Add it to 'imgDirList'.
+   imgDirList{end+1} = pathName;
+   selImgDir = length(imgDirList);
+end
 firstImgList{selImgDir} = firstImgFileName;
+
+%Update the text field for first image file name.
 set(handles.firstImgTH,'String',firstImgFileName);
+
+if selImgDir ~= 0
+   %Update the menu for image directory list.
+   set(handles.imgDirMH,'String',imgDirList);
+   set(handles.imgDirMH,'Value',selImgDir);
+   set(handles.imgDirMH,'Enable','on');
+
+   %Update the text field for active (selected) image directory.
+   set(handles.imgDirEH,'String',imgDirList{selImgDir});
+else
+   %Update the text field for active (selected) image directory.
+   set(handles.imgDirEH,'String','');
+end
+
+handles.selImgDir    = selImgDir;
+handles.imgDirList   = imgDirList;
 handles.firstImgList = firstImgList;
 
 guidata(hObject,handles);
@@ -962,3 +943,8 @@ handles.win_imgDrive  = win_imgDrive;
 handles.subProjDir    = subProjDir;
 handles.physiParam    = physiParam;
 
+if isempty(imgDirList)
+   handles.selImgDir = 0;
+else
+   handles.selImgDir = 1;
+end
