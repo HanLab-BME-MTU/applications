@@ -3,34 +3,34 @@ function varargout = reLinkGUI(varargin)
 %    FIG = RELINKGUI launch reLinkGUI GUI.
 %    RELINKGUI('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.0 16-Jan-2003 08:46:02
+% Last Modified by GUIDE v2.5 06-Feb-2004 20:17:14
 
 if nargin == 0  % LAUNCH GUI
-
-	fig = openfig(mfilename,'reuse');
-
-	% Use system color scheme for figure:
-	set(fig,'Color',get(0,'defaultUicontrolBackgroundColor'));
-
-	% Generate a structure of handles to pass to callbacks, and store it. 
-	handles = guihandles(fig);
-	guidata(fig, handles);
-
-	if nargout > 0
-		varargout{1} = fig;
-	end
+    
+    fig = openfig(mfilename,'reuse');
+    
+    % Use system color scheme for figure:
+    set(fig,'Color',get(0,'defaultUicontrolBackgroundColor'));
+    
+    % Generate a structure of handles to pass to callbacks, and store it. 
+    handles = guihandles(fig);
+    guidata(fig, handles);
+    
+    if nargout > 0
+        varargout{1} = fig;
+    end
     
     %initialize GUI
     initGUI(handles);
-
+    
 elseif ischar(varargin{1}) % INVOKE NAMED SUBFUNCTION OR CALLBACK
-
-	try
-		[varargout{1:nargout}] = feval(varargin{:}); % FEVAL switchyard
-	catch
-		disp(lasterr);
-	end
-
+    
+    try
+        [varargout{1:nargout}] = feval(varargin{:}); % FEVAL switchyard
+    catch
+        disp(lasterr);
+    end
+    
 end
 
 
@@ -74,6 +74,14 @@ end
 function varargout = reLink_okPB_Callback(h, eventdata, handles, varargin)
 % Stub for Callback of the uicontrol handles.reLink_okPB.
 
+%check for recalc
+myTag = get(h,'Tag');
+if strcmp(myTag,'reLink_okPB')
+    recalc = 0;
+else
+    recalc = 1;
+end
+
 %load data
 guiH=handles.reLinkGUI;
 curr_valuemap=GetUserData(guiH,'curr_valuemap');
@@ -110,6 +118,7 @@ for i=1:length(buttonH{2})
     end
 end
 
+really = [];
 if any(delSpot)
     if length(delSpot)>1
         h=warndlg('Only one spot may be deleted at a time!','Warning');
@@ -118,32 +127,34 @@ if any(delSpot)
     end
     %confirm delete spot
     really=questdlg(['Spot',num2str(delSpot),'is unassigned. Do you really want to continue and delete this spot?'],...
-        'Are you sure?','delete spot','delete&recalc','no','no');
+        'Are you sure?','delete spot','no','no');
 else %do normal ask
     %confirm user input
-    really=questdlg('Do you really want to change these links?','Are you sure?','yes','yes&recalc','no','yes');
+    %really=questdlg('Do you really want to change these links?','Are you sure?','yes','yes&recalc','no','yes');
 end
 
+
+
 switch strcmp(really,'no')+2*(strcmp(really,'yes')|strcmp(really,'delete spot'))
-case 1 %no quit%
-    return %end evaluation here
-case 2 %quit but no recalc
-    recalc=0;
-case 0 %quit&recalc
-    recalc=1;
-    %no recalc if no next_time
-    if isnan(next_time)
-        h=warndlg('Current time is last frame => no recalc','Warning');
-        uiwait(h);
-        recalc=0;
-    else
-        %set start time for recalc: if no fusion changes start next_time, else start curr_time
-        if all(curr_valuemap(:,1)==idlist(curr_time).linklist(:,2))
-            recalc_start=next_time;
+    case 1 %no quit%
+        return %end evaluation here
+    case 2 %quit but no recalc
+        %recalc=0;
+    case 0 %quit&recalc
+        %recalc=1;
+        %no recalc if no next_time
+        if isnan(next_time)
+            h=warndlg('Current time is last frame => no recalc','Warning');
+            uiwait(h);
+            recalc=0;
         else
-            recalc_start=curr_time;
+            %set start time for recalc: if no fusion changes start next_time, else start curr_time
+            if all(curr_valuemap(:,1)==idlist(curr_time).linklist(:,2))
+                recalc_start=next_time;
+            else
+                recalc_start=curr_time;
+            end
         end
-    end
 end
 
 %update idlist(ct).linklist
@@ -213,17 +224,17 @@ end
 
 idlist(curr_time).info.detectQ_Pix=detQ;
 idlist(curr_time).info.trackQ_Pix=traQ;
-        
+
 
 %update idlist(pt).linklist
 if ~isnan(prev_time)
     prev_idl_old=idlist(prev_time).linklist; %remember old prev linklist
-%     for i=1:nTags
-%         %update linkup, linkdown
-%         idx=find(prev_valuemap(i)==curr_valuemap(:,2)); %find to which curr_tag the prev_tag links
-%         idlist(prev_time).linklist(i,7)=idlist(curr_time).linklist(idx,2); %prev_linkdown
-%         idlist(curr_time).linklist(idx,6)=idlist(prev_time).linklist(i,2); %curr_linkup
-%     end
+    %     for i=1:nTags
+    %         %update linkup, linkdown
+    %         idx=find(prev_valuemap(i)==curr_valuemap(:,2)); %find to which curr_tag the prev_tag links
+    %         idlist(prev_time).linklist(i,7)=idlist(curr_time).linklist(idx,2); %prev_linkdown
+    %         idlist(curr_time).linklist(idx,6)=idlist(prev_time).linklist(i,2); %curr_linkup
+    %     end
     %update linkup, linkdown
     idlist(prev_time).linklist(:,7) = idlist(curr_time).linklist(:,2);
     idlist(curr_time).linklist(:,6) = idlist(prev_time).linklist(:,2);
@@ -231,26 +242,26 @@ end
 
 %update idlist(nt).linklist
 if ~isnan(next_time)
-%     next_idl_old=idlist(next_time).linklist; %remember old next linklist
-%     oldCol=idlist(next_time).linklist(:,4);
-%     idlist(next_time).linklist(:,4)=2.^(next_valuemap(:)-1);
-%     for i=1:nTags
-%         idx=find(next_valuemap(i)==curr_valuemap(:,2)); %find to which curr_tag the prev_tag links
-%         idlist(next_time).linklist(i,6)=idlist(curr_time).linklist(idx,2); %next_linkup
-%         idlist(curr_time).linklist(idx,7)=idlist(next_time).linklist(i,2); %curr_linkdown
-%     end
-%     %update colors (not links) for all subsequent timesteps
-%     newColList=2.^[0:nTags-1]';
-%     for i=1:nTags
-%         newColList(i,2)=idlist(next_time).linklist(find(oldCol==2^(i-1)),4);
-%     end
-%     for ti=next_time+1:length(idlist)
-%         if ~isempty(idlist(ti).linklist)
-%             for i=1:nTags
-%                 idlist(ti).linklist(i,4)=newColList(find(idlist(ti).linklist(i,4)==newColList(:,1)),2);
-%             end
-%         end
-%     end
+    %     next_idl_old=idlist(next_time).linklist; %remember old next linklist
+    %     oldCol=idlist(next_time).linklist(:,4);
+    %     idlist(next_time).linklist(:,4)=2.^(next_valuemap(:)-1);
+    %     for i=1:nTags
+    %         idx=find(next_valuemap(i)==curr_valuemap(:,2)); %find to which curr_tag the prev_tag links
+    %         idlist(next_time).linklist(i,6)=idlist(curr_time).linklist(idx,2); %next_linkup
+    %         idlist(curr_time).linklist(idx,7)=idlist(next_time).linklist(i,2); %curr_linkdown
+    %     end
+    %     %update colors (not links) for all subsequent timesteps
+    %     newColList=2.^[0:nTags-1]';
+    %     for i=1:nTags
+    %         newColList(i,2)=idlist(next_time).linklist(find(oldCol==2^(i-1)),4);
+    %     end
+    %     for ti=next_time+1:length(idlist)
+    %         if ~isempty(idlist(ti).linklist)
+    %             for i=1:nTags
+    %                 idlist(ti).linklist(i,4)=newColList(find(idlist(ti).linklist(i,4)==newColList(:,1)),2);
+    %             end
+    %         end
+    %     end
     
     %all linklists are sorted according to color. Hence we just have to shuffle
     %the rows in the linklists correctly, and then overwrite the colors with the sorted
@@ -263,7 +274,7 @@ if ~isnan(next_time)
             %reassign colors (don't change linkup/linkdown)
             idlist(ti).linklist(:,4)=sortedColors;
             
-
+            
             %update Q-matrices, but not noise: the noise stays with its
             %spot, but Q has to be sorted according to tag number
             detQ = [];
@@ -287,7 +298,7 @@ if ~isnan(next_time)
     %change linkup/linkdown for next_time
     idlist(curr_time).linklist(:,7) = idlist(next_time).linklist(:,2);
     idlist(next_time).linklist(:,6) = idlist(curr_time).linklist(:,2);
-
+    
 end
 
 %add mulitcolor
@@ -473,7 +484,7 @@ end
 %write idlist-status
 idlist(1).stats.status{end+1}=[date,': relinked idlist, frame ',num2str(curr_time)];
 
-    
+
 if recalc
     idlist=recalcIdlist(idlist,recalc_start,[],dataProperties);
 else 
@@ -636,33 +647,37 @@ while ~done&(curr_time+step<=length(idlist))
 end
 set(reLink_handles.reLink_nextT_txt,'String',['t=',num2str(next_time)]);
 nextH=zeros(next_ntag,1);
-   
+
 %------------------plot buttons
-    
-%distance from Radio_Button to top: 175 pix (starting at 125) 
-%distance from left edge to right edge: 215 pix
+
+%distance from left text: 1 char. Distance
 
 %set position parameters for buttons
-ButtonHeight=25;
-ButtonWidthTag=(140-5*curr_ntag)/curr_ntag;
-ButtonWidthSpot=(140-5*curr_nsp)/curr_nsp;
-xnul=50;
+txtPos = get(reLink_handles.reLink_prevT_txt,'Position');
+currFramePos = get(reLink_handles.reLink_currT_frame,'Position');
+xend = currFramePos(1)+currFramePos(3)-1;
+xnul = txtPos(1)+txtPos(3)+1; %all in chars
+xdelta = xend-xnul;
+ButtonHeight=txtPos(4);
+ButtonWidthTag=(xdelta-curr_ntag+1)/curr_ntag;
+ButtonWidthSpot=(xdelta-curr_nsp+1)/curr_nsp;
 
 %initialize strings to print on  buttons
 tag_string=char(65:64+curr_ntag); %gives ['A','B','C'...] etc. for colors 1,2,4 etc.
 
 %plot prev_time 
 if ~isempty(prev_time)
+    prevFramePos = get(reLink_handles.reLink_prevT_frame,'Position');
+    ButtonYPos = prevFramePos(2)+(prevFramePos(4)-ButtonHeight)/2;
     for i=1:prev_ntag
         prevButtonColor=cMap(p_colorList(i)*cMapFact,:);
         prevH(i,1)=uicontrol('Style','togglebutton','BackgroundColor',prevButtonColor,...
-            'Tag',['PrevTB_',num2str(i)],'Units','pixels',...
-            'Position',[xnul+(i-1)*(ButtonWidthTag+5),260,ButtonWidthTag,ButtonHeight],...
+            'Tag',['PrevTB_',num2str(i)],'Units','characters',...
+            'Position',[xnul+(i-1)*(ButtonWidthTag+1),ButtonYPos,ButtonWidthTag,ButtonHeight],...
             'Callback','reLink_PrevTB_CB(gcbo,[],guidata(gcbo))','String',tag_string(prev_valuemap(i)),...
             'TooltipString',tag_string(prev_valuemap(i)));
-        %set units back to char
-        set(prevH(i,1),'Units','characters');
-    
+        
+        
         
         %if pure color: add strip of mixed color
         multiplicity=length(find(idlist(prev_time).linklist(:,2)==prev_linklist(i,2)));
@@ -675,35 +690,35 @@ if ~isempty(prev_time)
     end
 end
 
-
+ButtonYPos = currFramePos(2)+(currFramePos(4)-ButtonHeight*2)/3*2+ButtonHeight;
 %plot curr_time_spot
 for i=1:curr_nsp
+    
+    
     rowIdx=find(curr_linklist(:,2)==i);
     spotColor=curr_linklist(rowIdx(1),3);
     multiplicity=length(rowIdx);
     buttonColor=cMap(round((spotColor)/multiplicity*cMapFact),:);
     currSH(i)=uicontrol('Style','togglebutton','BackgroundColor',buttonColor,...
-        'Tag',['CurrTB_spot_',num2str(i)],'Units','pixels',...
-        'Position',[xnul+(i-1)*(ButtonWidthSpot+5),215,ButtonWidthSpot,ButtonHeight],...
+        'Tag',['CurrTB_spot_',num2str(i)],'Units','characters',...
+        'Position',[xnul+(i-1)*(ButtonWidthSpot+1),ButtonYPos,ButtonWidthSpot,ButtonHeight],...
         'Callback','reLink_CurrTB_spot_CB(gcbo,[],guidata(gcbo))',...
         'String',[num2str(i)],...
         'TooltipString',[num2str(i)]);
     %set units back to char
-        set(currSH(i,1),'Units','characters');
+    set(currSH(i,1),'Units','characters');
 end
 
-
+ButtonYPos = currFramePos(2)+(currFramePos(4)-ButtonHeight*2)/3;
 %plot curr_time_tag
 for i=1:curr_ntag
     currButtonColor=cMap(c_colorList(i)*cMapFact,:);
     currTH(i)=uicontrol('Style','togglebutton','BackgroundColor',currButtonColor,...
-        'Tag',['CurrTB_tag_',num2str(i)],'Units','pixels',...
-        'Position',[xnul+(i-1)*(ButtonWidthTag+5),180,ButtonWidthTag,ButtonHeight],...
+        'Tag',['CurrTB_tag_',num2str(i)],'Units','characters',...
+        'Position',[xnul+(i-1)*(ButtonWidthTag+1),ButtonYPos,ButtonWidthTag,ButtonHeight],...
         'Callback','reLink_CurrTB_tag_CB(gcbo,[],guidata(gcbo))',...
         'String',[tag_string(curr_valuemap(i,2)),'-',num2str(curr_valuemap(i,1))],...
         'TooltipString',[tag_string(curr_valuemap(i,2)),'-',num2str(curr_valuemap(i,1))]);
-    %set units back to char
-        set(currTH(i,1),'Units','characters');
     
     %if pure color: add strip of mixed color
     multiplicity=length(find(idlist(curr_time).linklist(:,2)==curr_linklist(i,2)));
@@ -714,17 +729,20 @@ for i=1:curr_ntag
         set(currTH(i),'CData',strip);
     end
 end
- 
+
 %plot next_time 
 if ~isempty(next_time)
-    for i=1:next_ntag
+    nextFramePos = get(reLink_handles.reLink_nextT_frame,'Position');
+    ButtonYPos = nextFramePos(2)+(prevFramePos(4)-ButtonHeight)/2;
+    
+    for i=1:next_ntag        
         nextButtonColor=cMap(n_colorList(i)*cMapFact,:);
         nextH(i,1)=uicontrol('Style','togglebutton','BackgroundColor',nextButtonColor,...
-            'Tag',['NextTB_',num2str(i)],'Units','pixels',...
-            'Position',[xnul+(i-1)*(ButtonWidthTag+5),135,ButtonWidthTag,ButtonHeight],...
+            'Tag',['NextTB_',num2str(i)],'Units','characters',...
+            'Position',[xnul+(i-1)*(ButtonWidthTag+1),ButtonYPos,ButtonWidthTag,ButtonHeight],...
             'Callback','reLink_NextTB_CB(gcbo,[],guidata(gcbo))','String',tag_string(next_valuemap(i)),...
-        'TooltipString',tag_string(next_valuemap(i)));
-    %set units back to char
+            'TooltipString',tag_string(next_valuemap(i)));
+        %set units back to char
         set(nextH(i,1),'Units','characters');
         
         %if pure color: add strip of mixed color
@@ -783,5 +801,18 @@ end
 
 %make reLinkGUI topmost
 figure(reLink_handles.reLinkGUI);
+
+
+% --- Executes on button press in reLink_updatePB.
+function reLink_updatePB_Callback(hObject, eventdata, handles)
+% hObject    handle to reLink_updatePB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+%just restart the gui
+rlPos = get(handles.reLinkGUI,'Position');
+delete(handles.reLinkGUI);
+rlh = reLinkGUI;
+set(rlh,'Position',rlPos);
 
 
