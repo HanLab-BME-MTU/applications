@@ -217,6 +217,25 @@ BIT DEPTH	"14"
 NOISE PARAMS	"0.00009726 0 0.03127232"
 GAUSS RATIO	"1.88"
 #
-
-
+LABEL           "Actin Movie (Stephanie): Newt-lung epithelial"
+DESCRIPTION     "Study the contraction of actin-myosinII bundle using the qFSM
+speckle tracking and the force identification tool."
+BIT DEPTH       "14"
+NOISE PARAMS    "0.00013285 2e-4 0.02723759"
+GAUSS RATIO     "3.1525"
+#
+LABEL           "Myosin Movie (Stephanie): Newt-lung epithelial"
+DESCRIPTION     "Study the contraction of actin-myosinII bundle using the qFSM
+speckle tracking and the force identification tool."
+BIT DEPTH       "14"
+NOISE PARAMS    "0.00013233 2e-4 0.02723260"
+GAUSS RATIO     "3.27"
+#
+LABEL           "Actin Movie 3 (Torsten): PTK cell"
+DESCRIPTION     "Study the contraction of actin-myosinII bundle using the qFSM
+speckle tracking and the force identification tool."
+BIT DEPTH       "14"
+NOISE PARAMS    "0.00017010 2e-4 0.02616813"
+GAUSS RATIO     "2.58"
+#
 
