@@ -490,6 +490,13 @@ handles.imgDir = imgDir;
 function handles = getProjSetting(handles)
 
 projDir = handles.projDir;
+tackDir = '';
+lplaDir = '';
+postDir = '';
+edgeDir = '';
+mergDir = '';
+fadhDir = '';
+corrDir = '';
 
 %Read last project setting in the selected project path.
 if isdir(projDir)
