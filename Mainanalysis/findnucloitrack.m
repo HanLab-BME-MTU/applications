@@ -1,7 +1,7 @@
-function [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc,methodDeterm)          
-% findnucloitrack detects dark areas and tries to fit calls into them
+function [coor,regmax] = findNucloiTrack(newImg, lev, minsizenuc, maxsizenuc, methodDeterm)          
+% findNucloiTrack detects dark areas and tries to fit cells into them
 %
-% SYNOPSIS       [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc,methodDeterm)
+% SYNOPSIS       [coor,regmax]= findNucloiTrack(newImg, lev, minsizenuc, maxsizenuc, methodDeterm)
 %
 % INPUT          newImg : either original image or segmented image
 %                          (depends on method)
@@ -9,15 +9,14 @@ function [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc,methodD
 %                minsizenuc : minimal size for nuclei
 %                maxsizenuc : maximal size for nuclei
 %                methodDeterm : 1 or 2. Says if clustering or image
-%                               segmentation has been applied applied
-%                               (changes what findnucloitrack actually does)
+%                               segmentation has been applied (changes what findNucloiTrack actually does)
 %
 % OUTPUT         coor : found coordinates
 %                regmax : binary image giving the areas of nuclei
 %
-% DEPENDENCIES   findnucloitrack uses {nothing}
+% DEPENDENCIES   findNucloiTrack uses {nothing}
 %                                  
-%                findnucloitrack is used by { trackCells
+%                findNucloiTrack is used by { trackCells
 %                                             testbutton}
 %
 % Colin Glass, Feb 04         
@@ -38,7 +37,7 @@ elseif methodDeterm==2
     regmax = imextendedmin(newImg,lev);
     
 else
-    error('findnucloitrack doesnt know which method to use (methodDeterm~= 1|2)')
+    error('findNucloiTrack doesnt know which method to use (methodDeterm~= 1|2)')
 end 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
