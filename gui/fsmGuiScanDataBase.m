@@ -81,11 +81,11 @@ while not(feof(fid))
                 fsmExpParam(counter).quantile=vQuantile;
                 fsmExpParam(counter).gaussRatio=gaussratio;
               
+                % Start collecting data for the next experiment
+                counter=counter+1;
+                
             end
-            
-            % Start collecting data for the next experiment
-            counter=counter+1;
-            
+
             % Turn off bits
             L_=0; D_=0; B_=0; N_=0; G_=0;
             
