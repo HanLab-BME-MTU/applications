@@ -21,6 +21,8 @@ function make3DspotMovie(inputList,inputProperties,ioOptions)
 %                 .viewAngles:       [Az, El] in degrees (can be retrieved with 'view')
 %                 .imgScalingFactor: {[1 1 1]} scaling factor if pixels in some
 %                                    dimensions are 'longer' than the others
+%                 .backgroundColor   {[0 0 0]} RGB for the image background
+%                                    (or color string, like 'b')
 %
 %         ioOptions: (opt) structure for saving figures or the movie
 %                 .save2file:       [{0}/1] whether to save the images to file
@@ -54,6 +56,7 @@ doSpots = 1;
 doImage = 1;
 ask4view = 1;
 figureSize = [360   514   560   420]; %default figure position
+backgroundColor = [0 0 0];
 
 oldPath = pwd;
 
@@ -123,6 +126,11 @@ if nargin > 1 & ~isempty(inputProperties)
         end
     else
         ask4imgScalingFactor = 1;
+    end
+    
+    % background color
+    if isfield(inputProperties,'backgroundColor')
+        backgroundColor = inputProperties.backgroundColor;
     end
     
 end %test inputProperties
@@ -368,7 +376,8 @@ if ask4view
         line(allSpotCoords(:,1),allSpotCoords(:,2),allSpotCoords(:,3),'Color','k');
     end
     
-    set(gca,'XLim',axesXLim,'YLim',axesYLim,'ZLim',axesZLim,'Box','on','PlotBoxAspectRatio', boxAspectRatio);
+    set(gca,'XLim',axesXLim,'YLim',axesYLim,'ZLim',axesZLim,...
+        'Box','on','PlotBoxAspectRatio', boxAspectRatio,'Projection','perspective');
     view(azimuth,elevation);
     
     h = helpdlg('Please choose a view angle and figure size (don''t forget this!), THEN close this window');
@@ -460,7 +469,7 @@ for t = 1:length(inputList)
         
         %show figure and axes
         figH = figure('NumberTitle','off','Name',['Figure ',num2str(imageNumber)],...
-            'Position',figureSize,'Color',[0,0,0]);
+            'Position',figureSize,'Color',backgroundColor);
         axH  = axes('XLim',axesXLim,'YLim',axesYLim,'ZLim',axesZLim,...
             'XTick',axesXLim,'YTick',axesYLim,'ZTick',axesZLim,...
             'XTickLabel',' ', 'YTickLabel',' ', 'ZTickLabel',' ',...

@@ -1,4 +1,4 @@
-function fileListOut = loadFileList(inputChoicesCell,inputTypeList,fileListFile)
+function fileListOut = loadFileList(inputChoicesCell,inputTypeList,fileListFile,helpTitle)
 %LOADFILELIST allows a user to generate a fileList for subsequent automatic loading of data
 %
 %SYNOPSIS fileListOut = loadFileList(inputChoicesCell,inputTypeList,fileListFile)
@@ -35,7 +35,7 @@ function fileListOut = loadFileList(inputChoicesCell,inputTypeList,fileListFile)
 %
 %                            Example: 
 %
-%                            %Explanation of file
+%                            % Explanation of file
 %                              
 %                            BIODATA#spb1#cen1#
 %                            \Wildtype30C\1secMovies\WT_1sec_30C_12\WT_1sec_30C_12-data.mat
@@ -46,6 +46,8 @@ function fileListOut = loadFileList(inputChoicesCell,inputTypeList,fileListFile)
 %                            ...
 %                            ***
 %
+%        helpTitle         : (opt) title of the help dialog box. Default: ''
+%
 %OUTPUT  fileListOut       : struct with fields .file, .type of length n, 
 %                            where n is the number of files to be loaded. 
 %                   .file  : full path for the file including filename
@@ -53,6 +55,7 @@ function fileListOut = loadFileList(inputChoicesCell,inputTypeList,fileListFile)
 %                   .opt   : cell array with additional information, as
 %                            stored on the identifier-line. opt{1} is the
 %                            identifier
+%        if everything cancelled by user, fileListOut will be empty (actually, it will be a 1x0 structure)
 %
 %WARNING: because the function exist(filename,'file') is very slow, the
 %         program does not check wheter the returned files actually exist.
@@ -98,6 +101,10 @@ else
     end
 end
 
+if nargin < 4 | isempty(helpTitle) | ~isstr(helpTitle)
+    helpTitle = '';
+end
+
 
 %------END TEST INPUT----------
 
@@ -118,7 +125,9 @@ choiceSequence = [1:size(inputTypeList,1)];
 inputChoicesNow = inputChoicesCell;
 
 %tell the rules to the user
-h = helpdlg('please select the filetypes and the files you want to load. Once you are done, press ''cancel'' in the selection dialogue','');
+h = helpdlg(...
+    ['please select the filetypes and the files you want to load.',...
+        ' Once you are done, press ''cancel'' in the selection dialogue'], helpTitle);
 uiwait(h)
 
 % remember where we were
