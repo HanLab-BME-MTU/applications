@@ -105,7 +105,7 @@ if uFirst~=origFirstIndex | uLast~=origLastIndex
     % the first preprocessed image
     imageFileName=[path,filesep,body,firstIndex,ext]; 
     outImageFileList=getFileStackNames(imageFileName);
-    outImageFileList=outImageFileList(uFirst:uLast);
+    outImageFileList=outImageFileList(uFirst-str2num(firstIndex)+1:uLast-str2num(firstIndex)+1);
 
     % Update fsmParam
     num=uLast-uFirst+1;

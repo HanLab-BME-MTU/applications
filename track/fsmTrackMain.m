@@ -113,7 +113,7 @@ for counter1=1:lastImage
         % Create speckle map
         [I,img]=fsmTrackFillSpeckleList(cands,imgSize);
         if isempty(I)
-            error('Empty list of coordinates from image 1.');
+            error('Aborting tracking: no particles found in current image.');
         end
         clear cands;
         
@@ -125,7 +125,7 @@ for counter1=1:lastImage
         % Create speckle map
         [J,img2]=fsmTrackFillSpeckleList(cands,imgSize);
         if isempty(J)
-            error('Empty list of coordinates from image 2.');
+            error('Aborting tracking: no particles found in current image.');
         end
         clear cands;
         
@@ -138,7 +138,7 @@ for counter1=1:lastImage
             % Create speckle map
             [K,img3]=fsmTrackFillSpeckleList(cands,imgSize);
             if isempty(K)
-                error('Empty list of coordinates from image 3.');
+                error('Aborting tracking: no particles found in current image.');
             end
             clear cands;
         end
@@ -170,7 +170,7 @@ for counter1=1:lastImage
             % Create speckle map
             [J,img2]=fsmTrackFillSpeckleList(cands,imgSize);
             if isempty(J)
-                error('Empty list of coordinates from image 3.');
+                error('Aborting tracking: no particles found in current image.');
             end
             clear cands;
         end

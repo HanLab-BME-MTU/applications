@@ -37,6 +37,21 @@ end
 % Extract vector field from tmp
 raw=tmp(find(tmp(:,1)~=0 & tmp(:,3)~=0),:);
 
+% In the very unlikely case that ALL particles are unmatched
+if isempty(raw)
+    
+    % Create zero vectors
+    vectors=[0 0 0 0];
+    
+    % Save interpolated vector field to disk for later use with gap closer
+    indxStr=sprintf(strg,counter1);
+    eval(['save ',userPath,filesep,'vectors',filesep,'vectors',indxStr,'.mat vectors;']);
+
+    % Return the same matches
+    return
+    
+end
+
 if gridSize==0
     grid=raw(:,1:2); % Interpolate onto vector positions
 else
@@ -54,7 +69,7 @@ vectors=vectorFieldInterp(raw,grid,d0,[]);
 
 % Save interpolated vector field to disk for later use with gap closer
 indxStr=sprintf(strg,counter1);
-eval(['save ',userPath,filesep,'vectors',filesep,'vectors',indxStr,'.mat vectors;']); % gapList
+eval(['save ',userPath,filesep,'vectors',filesep,'vectors',indxStr,'.mat vectors;']);
 
 % Propagate speckle positions
 spPos=sortrows(tmp(find(tmp(:,1)~=0),1:2)); % Sorted positions
