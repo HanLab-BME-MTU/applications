@@ -41,17 +41,33 @@ fn.FieldNames = {fn.EquNames{:} fn.BndNames{:}};
 % outside: 'fem.fn.EquNames', 'fem.fn.BndNames' and 'fem.fn.FieldNames'.
 
 if ~isempty(ind)
-   numSubDoms = max(ind);
-   fem.equ.ind    = ind;
+   if isnumeric(ind)
+      numSubDoms  = max(ind);
+      fem.equ.ind = ind;
+   elseif iscell(ind)
+      numSubDoms  = length(ind);
+      fem.equ.ind = ind;
+   else
+      error(['The input ''ind'' for ''elModelAssemble'' is not ' ...
+         'correctly defined.']);
+   end
 else
    numSubDoms = 1;
 end
 
 if ~isempty(bndInd)
-   numBnds     = max(bndInd);
-   fem.bnd.ind = bndInd;
+   if isnumeric(bndInd)
+      numBnds     = max(bndInd);
+      fem.bnd.ind = bndInd;
+   elseif iscell(bndInd)
+      numBnds     = length(bndInd);
+      fem.bnd.ind = bndInd;
+   else
+      error(['The input ''bndInd'' for ''elModelAssemble'' is not ' ...
+         'correctly defined.']);
+   end
 else
-   numBnds     = 1;
+   numBnds = 1;
 end
 
 equNames   = fn.EquNames;
@@ -234,8 +250,8 @@ elseif ischar(fnValue) | isa(fnValue,'function_handle')
    if ( isa(fnValue,'function_handle') & ~iscell(fpValue) ) | ...
       ( ~isempty(fpValue) & ~iscell(fpValue) ) | ...
       ( iscell(fpValue) & length(fpValue) ~= 2 ) | ...
-      ( ~isempty(fpValue{1}) & ~iscell(fpValue{1}) ) | ...
-      ( ~isempty(fpValue{2}) & ~iscell(fpValue{2}) )
+      ( iscell(fpValue) & ~isempty(fpValue{1}) & ~iscell(fpValue{1}) ) | ...
+      ( iscell(fpValue) & ~isempty(fpValue{2}) & ~iscell(fpValue{2}) )
       msg  = ['The definition of ''fp.' fieldName ''' does not match ' ...
          'the definition of ''fn.' fieldName '''or is wrong. ' ...
          'See ELMODELASSEMBLE'];

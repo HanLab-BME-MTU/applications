@@ -36,6 +36,21 @@ end
 bfDisplayPx(pe) = [];
 bfDisplayPy(pe) = [];
 
+%Get the grid points that are inside the identification region. They will be
+% used to calculate the intensity score for contraction and adhesion.
+[is,pe] = postinterp(fem,[gridX gridY].');
+gridIn = 1:length(gridX);
+gridIn(pe) = [];
+
+%We assign scores to contraction and adhesion that identifies contraction site
+% and adhesion sites with color.
+scoreMCF = zeros(length(gridy),length(gridx));
+scoreADF = scoreMCF;
+
+%pp-form that interpolates 'scoreMCF' and 'scoreADF'.
+ppMCF = cell(numTimeSteps,1);
+ppADF = cell(numTimeSteps,1);
+
 recBF       = zeros(length(bfDisplayPx),2,numTimeSteps);
 residueDisp = cell(numTimeSteps,1);
 residueBF   = cell(numTimeSteps,1);
@@ -66,6 +81,64 @@ for jj = 1:numTimeSteps
       [bfDisplayPx bfDisplayPy].');
    recDispU(:,:,jj) = [recDispU1;recDispU2].';
 
+   %Identify the location of adhesion and contration and assign intensity
+   % scores that approximately separate the two. It is based on the angle
+   % between the force and the displacement.
+   %The force on grid points inside the identification region.
+   [gridBFx,gridBFy] = postinterp(fem,'f1','f2', ...
+      [gridX(gridIn) gridY(gridIn)].');
+
+   %The displacements on grid points.
+   [gridU1,gridU2] = postinterp(fem,'f1','f2', ...
+      [gridX(gridIn) gridY(gridIn)].');
+
+   %Compute the length of the body force.
+   gridBFLen = sqrt(gridBFx.^2+gridBFy.^2);
+
+   %Compute the length of the displacements and their average .
+   gridDispLen = sqrt(gridU1.^2+gridU2.^2);
+   avgDispLen = sum(gridDispLen(:))/length(gridDispLen(:));
+
+   %We only consider displacements that are above a threshold value. We call
+   % these displacements the significant displacements.
+   % 'sigDispInd' : Index of the significant displacements.
+   sigDispInd = find(gridDispLen>=avgDispLen*sigDispThreshold);
+
+   %Normalize the displacement.
+   unitGridU1 = zeros(size(gridU1));
+   unitGridU2 = zeros(size(gridU2));
+   unitGridU1(sigDispInd) = gridU1(sigDispInd)./gridDispLen(sigDispInd);
+   unitGridU2(sigDispInd) = gridU2(sigDispInd)./gridDispLen(sigDispInd);
+   
+   %Calculate the intensity scores for contraction and adhesion.
+   % 'gridMCF' : Score for Myosin Contractile Force.
+   % 'gridADF' : Score for Adhesion Dragging Force.
+   %The sign of the dot product between the force and the displacement tells
+   % if the angle between the force and the displacment is less or greater than
+   % pi/2.
+   gridADF = -gridBFLen;
+   gridADF(sigDispInd) = gridBFx(sigDispInd).*unitGridU1(sigDispInd) + ...
+      gridBFy(sigDispInd).*unitGridU2(sigDispInd);
+
+   % mcfInd : Indices where we assign the total body force to myosin
+   % contraction and zero to adhesion.
+   mcfInd = find(gridADF>=0);
+   gridADF(mcfInd) = 0;
+   gridADF = abs(gridADF);
+
+   gridMCF = zeros(size(gridBFLen));
+   gridMCF(sigDispInd) = abs(gridBFx(sigDispInd).*unitGridU2(sigDispInd) - ...
+      gridBFy(sigDispInd).*unitGridU1(sigDispInd));
+   gridMCF(mcfInd) = gridBFLen(mcfInd);
+
+   %Interpolate 'gridMCF' and 'gridADF' to get the pp-form of the scores.
+   scoreMCF(gridIn) = gridMCF;
+   scoreADF(gridIn) = gridADF;
+   ppMCF{jj} = csape({gridy,gridx},scoreMCF);
+   ppADF{jj} = csape({gridy,gridx},scoreADF);
+   scoreMCF(:) = 0;
+   scoreADF(:) = 0;
+
    %The displacements computed with the identified force. To be compared with 
    % 'dataU1' and 'dataU2'.
    [dataUC1{jj} dataUC2{jj}] = postinterp(fem,'u1','u2', ...
@@ -86,7 +159,7 @@ for jj = 1:numTimeSteps
 
    %Save the identified body force calculated on the demonstration points.
    save([resultPath 'bfId'],'bfDisplayPx','bfDisplayPy', ...
-      'recBF','recDispU','residueDisp','residueBF');
+      'recBF','recDispU','residueDisp','residueBF','ppMCF','ppADF');
 
    %Save the computed displacement from the identified body force.
    save([resultPath 'dispId'],'dataPx','dataPy','dataUC1','dataUC2');

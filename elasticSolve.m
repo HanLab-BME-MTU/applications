@@ -2,7 +2,7 @@ function fem = elasticSolve(fem,tspan)
 %ELASTICSOLVE  Solve the elastic equations by FEMLAB.
 %
 % SYNOPSIS :
-%    fem = elasticSolve(fem,options,fn,fp)
+%    fem = elasticSolve(fem,tspan)
 %    Note: This function takes the 'fem' structure assembled by
 %       ELMODELASSEMBLE and calles the FEMLAB PDE solver that solves the 
 %       equation based on information stored in 'fem'. The solution is also 
@@ -11,7 +11,7 @@ function fem = elasticSolve(fem,tspan)
 % INPUT :
 %    tspan : A 1D array of time steps (strictly increasing or decreasing) over 
 %       which the time dependent elastic equation is integrated and the
-%       solution is output. For static problem, it can be set to [].
+%       solution is output. For static problem, pass [].
 
 %Check if 'tspan' is a strictly increasing (or decreasing) array of numerical
 % values:

@@ -64,15 +64,22 @@ plot(fieldPGx,fieldPGy,'r-');
 
 %Generate a grid with gridDx X gridDy raster sidelength. And, 
 % the grid sampling data points are those inside the predefined polygon.
-grid = framework(size(rawI{1}),[gridDy gridDx]);
-in   = inpolygon(grid(:,2),grid(:,1),fieldPGx,fieldPGy);
+[numPixelsY,numPixelsX] = size(rawI{1});
+numGridX = ceil(numPixelsX/gridDx);
+numGridY = ceil(numPixelsY/gridDy);
+gridx    = linspace(1,numPixelsX,numGridX);
+gridy    = linspace(1,numPixelsY,numGridY);
+[gridX,gridY] = meshgrid(gridx,gridy);
+gridX = reshape(gridX,length(gridX(:)),1);
+gridY = reshape(gridY,length(gridY(:)),1);
+in   = inpolygon(gridX,gridY,fieldPGx,fieldPGy);
 ind  = find(in==1);
 
 gridPx  = cell(numTimeSteps,1);
 gridPy  = cell(numTimeSteps,1);
 for jj = 1:numTimeSteps
-   gridPx{jj} = grid(ind,2);
-   gridPy{jj} = grid(ind,1);
+   gridPx{jj} = gridX(ind);
+   gridPy{jj} = gridY(ind);
 end
 
 %Plot the raw data points and displacements.

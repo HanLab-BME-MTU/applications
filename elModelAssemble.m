@@ -3,7 +3,7 @@ function fem = elModelAssemble(geom,mesh,options,fn,fp,ind,bndInd)
 %                 structure of FEMLAB. 
 %
 % SYNOPSIS : 
-%    fem = elModelAssemble(geom,options,fn,fp,ind,bndInd)
+%    fem = elModelAssemble(geom,mesh,options,fn,fp,ind,bndInd)
 %
 % INPUT :
 %    geom : A FEMLAB geometry object that defines the geometry of the domain.
