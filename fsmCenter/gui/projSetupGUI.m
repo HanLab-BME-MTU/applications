@@ -56,6 +56,41 @@ function projSetupGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for projSetupGUI
 %handles.output = hObject;
 
+if nargin > 7
+   error('Wrong number of input arguments.');
+end
+
+%First check if it is openned from 'fsmCenter'. If yes, always open it.
+% Otherwise, check wether 'fsmCenter' if running. If yes, do not open.
+callObjTag  = '';
+callObjName = '';
+if nargin == 7
+   callObj = varargin{4};
+   if ishandle(callObj)
+      callObjTag  = get(callObj,'Tag');
+      callObjName = get(callObj,'Name');
+   end
+end
+
+if ~strcmp(callObjTag,'fsmCenter') | ~strcmp(callObjName,'fsmCenter')
+   %It is not openned from 'fsmCenter'. Check whether 'fsmCenter' is running.
+   hfsmC=findall(0,'Tag','fsmCenter','Name','fsmCenter');
+
+   if ~isempty(hfsmC) & ishandle(hfsmC)
+      handles.projDir     = '';
+      handles.imgDir      = '';
+      handles.subProjDir  = {};
+      guidata(hObject,handles);
+
+      %'fsmCenter' is running.
+      warnH = warndlg(['fsmCenter is running. In this case, you are ' ...
+         'only allowed to change the project structure there.']);
+
+      projSetupGUI('closeRequestFcn',hObject,[],guidata(hObject));
+      return;
+   end
+end
+
 subProjTags = {'tack', ...
                'lpla', ...
                'post', ...
@@ -217,6 +252,9 @@ end
 
 delete(hObject);
 
+function closeRequestFcn(hObject,eventdata,handles)
+
+delete(hObject);
 
 
 % --- Executes on button press on Cancel.
@@ -225,7 +263,9 @@ function cancel_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.projDir = '';
+handles.projDir     = '';
+handles.imgDir      = '';
+handles.subProjDir  = {};
 
 % Update handles structure
 guidata(hObject, handles);

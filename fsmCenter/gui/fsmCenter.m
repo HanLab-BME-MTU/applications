@@ -154,7 +154,8 @@ fsmGuiMain;
 
 function pushOpenProject_Callback(hObject, eventdata, handles)
 projDir=get(handles.textCurrentProject,'String');
-[projDir,imageDir,subProjects]=projSetupGUI('a','b',projDir);
+[projDir,imageDir,subProjects]=projSetupGUI('a','b',projDir, ...
+   get(hObject,'Parent'));
 if isempty(projDir)
     % Nothing to do here - the user just canceled
     return
