@@ -57,7 +57,7 @@ for jj = 1:numTimeSteps
       dataPy{jj} = gridPy;
       dataPx{jj} = gridPx;
    elseif strcmp(dataSite,'speckle')
-      in    = inpolygon(dataP(:,2),dataP(:,1),fieldPGx,fieldPGy);
+      in    = inpolygon(speckleP{jj}(:,2),speckleP{jj}(:,1),fieldPGx,fieldPGy);
       ind   = find(in==1);
 
       dataPy{jj} = speckleP{jj}(ind,1);

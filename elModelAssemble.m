@@ -73,12 +73,21 @@ function fem = elModelAssemble(geom,mesh,options,fn,fp,ind,bndInd)
 %    
 %       The parameters to the function is provided by the structure 'fp'
 %       explained below. The distinction between an evaluation string and a
-%       function name is determined by checking if there is any parameter to
-%       the function. See explaination for 'fp'.
+%       function name is determined by checking if there is any arguments
+%       passed through the structure 'fp' to the function. 
+%       See explaination for 'fp'.
 %    
-%       Note : The field can be left undefined or defined as an empty matrix, 
-%              [], if it is not used. For evaluation string, you can only use
-%              variables that can be recogonized by FEMLAB.
+%       The field can be left undefined or defined as an empty matrix, 
+%       [], if it is not used. For evaluation string, you can only use
+%       variables that can be recogonized by FEMLAB.
+%
+%       The name of the function can not be the same as the correponding field
+%       name. For example,
+%          fn.YModul = 'YModul'; %The name of the function that defines the
+%                                % Young's Modulus.
+%          fp.YModul = { {'x' 'y'} {2 4} }; %Arguments to be passed to the
+%                                           % function.
+%       will give you an error.
 %
 %       See examples.
 %

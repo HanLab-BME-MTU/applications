@@ -9,8 +9,8 @@ load([resultPath 'dispField']);
 imshow(rawI{1},[]); hold on;
 
 %Plot the raw data points and displacements and the filtered displacements.
-quiver(rawDataPx{1},rawDataPy{1},rawDataU1{1}*2,rawDataU2{1}*2,0,'y'); 
-quiver(rawDataPx{1},rawDataPy{1},sDataU1{1}*2,sDataU2{1}*2,0,'r'); 
+quiver(dataPx{1},dataPy{1},rawDataU1{1}*2,rawDataU2{1}*2,0,'y'); 
+quiver(dataPx{1},dataPy{1},sDataU1{1}*15,sDataU2{1}*15,0,'r'); 
 plot(fieldPGx,fieldPGy,'go');
 plot(fieldPGx,fieldPGy,'b');
 
