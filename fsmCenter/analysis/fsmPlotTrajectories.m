@@ -4,8 +4,7 @@ function fsmPlotTrajectories(method,colorCode)
 % REMARK        Run fsmPlotTrajectories through the graphical user interface fsmCenter 
 %               ----------------------------------------------------------------------
 %
-% INPUT         method   : [1 | 2] Method 2 is SLOW!
-%                          1 - All the matches in a selected frame range are displayed in 
+% INPUT         method   : 1 - All the matches in a selected frame range are displayed in 
 %                              one plot. Trajectories longer than the range will be cut.
 %                          2 - All the trajectories originitating within the selected frame 
 %                              range are displayed in one plot. Trajectories longer than the 

@@ -903,7 +903,7 @@ function pushHelpPlotTraj_Callback(hObject, eventdata, handles)
 % hObject    handle to pushHelpPlotTraj (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-web(['file:///' which('qFSM_default.html')]);
+web(['file:///' which('qFSM_plotTrajectories.html')]);
 
 
 % --- Executes on button press in radioPTMethod1.
