@@ -1,7 +1,7 @@
-function [c,ceq] = armaConst(param,arOrder,maOrder,traj)
-%ARMACONST imposes causality and invertibility constraints
+function [c,ceq] = mlestimConst(param,arOrder,maOrder,traj)
+%MLESTIMCONST imposes causality and invertibility constraints
 %
-%SYNOPSIS [c,ceq] = armaConst(param,traj,arOrder,maOrder)
+%SYNOPSIS [c,ceq] = mlestimConst(param,traj,arOrder,maOrder)
 %
 %INPUT  param   : Set of parameters in ARMA model (concat. of arParam and maParam)
 %       arOrder : Order of autoregressive part of process.
@@ -14,8 +14,8 @@ function [c,ceq] = armaConst(param,arOrder,maOrder,traj)
 %Khuloud Jaqaman, February 2004
 
 %check if correct number of arguments were used when function was called
-if nargin ~= nargin('armaConst')
-    disp('--armaConst: Incorrect number of input arguments!');
+if nargin ~= nargin('mlestimConst')
+    disp('--mlestimConst: Incorrect number of input arguments!');
     errFlag  = 1;
     xPredicted = [];
     innovCoef = [];
@@ -26,11 +26,11 @@ end
 %check input data
 [nRow,nCol] = size(param);
 if nRow ~= 1
-    disp('--armaConst: "param" should be a row vector!');
+    disp('--mlestimConst: "param" should be a row vector!');
     errFlag = 1;
 end
 if nCol ~= arOrder+maOrder
-    disp('--armaConst: Wrong length of vector "param"!');
+    disp('--mlestimConst: Wrong length of vector "param"!');
     errFlag = 1;
 end
 

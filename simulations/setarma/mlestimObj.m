@@ -1,7 +1,7 @@
-function redLikeliV = redLikelihood(param,arOrder,maOrder,traj)
-%REDLIKELIHOOD calculates the reduced likelihood of the fit of an ARMA model to observed data
+function redLikeliV = mlestimObj(param,arOrder,maOrder,traj)
+%MLESTIMOBJ calculates the reduced likelihood of the fit of an ARMA model to observed data
 %
-%SYNOPSIS redLikeliV = redLikelihood(param,arOrder,maOrder,traj)
+%SYNOPSIS redLikeliV = mlestimObj(param,arOrder,maOrder,traj)
 %
 %INPUT  param   : Set of parameters in ARMA model (concat. of arParam and maParam)
 %       arOrder : Order of autoregressive part of process.
@@ -13,8 +13,8 @@ function redLikeliV = redLikelihood(param,arOrder,maOrder,traj)
 %Khuloud Jaqaman, February 2004
 
 %check if correct number of arguments were used when function was called
-if nargin ~= nargin('redLikelihood')
-    disp('--redLikelihood: Incorrect number of input arguments!');
+if nargin ~= nargin('mlestimObj')
+    disp('--mlestimObj: Incorrect number of input arguments!');
     errFlag  = 1;
     xPredicted = [];
     innovCoef = [];
@@ -25,11 +25,11 @@ end
 %check input data
 [nRow,nCol] = size(param);
 if nRow ~= 1
-    disp('--armaConst: "param" should be a row vector!');
+    disp('--mlestimObj: "param" should be a row vector!');
     errFlag = 1;
 end
 if nCol ~= arOrder+maOrder
-    disp('--armaConst: Wrong length of vector "param"!');
+    disp('--mlestimObj: Wrong length of vector "param"!');
     errFlag = 1;
 end
 

@@ -1,7 +1,7 @@
-function [arParam,noiseSigma,errFlag] = arLsEstim(traj,arOrder)
-%ARLSESTIM estimates parameters of an AR model using least square fitting
+function [arParam,noiseSigma,errFlag] = arlsestim0(traj,arOrder)
+%ARLSESTIM0 estimates parameters of an AR model using least square fitting
 %
-%SYNOPSIS [arParam,noiseSigma,errFlag] = arLsEstim(traj,arOrder)
+%SYNOPSIS [arParam,noiseSigma,errFlag] = arlsestim0(traj,arOrder)
 %
 %INPUT  traj   : Trajectory to be modeled (with measurement uncertainty.
 %       arOrder: Order of proposed AR model.
@@ -15,8 +15,8 @@ function [arParam,noiseSigma,errFlag] = arLsEstim(traj,arOrder)
 errFlag = 0;
 
 %check if correct number of arguments were used when function was called
-if nargin ~= nargin('arLsEstim')
-    disp('--arLsEstim: Incorrect number of input arguments!');
+if nargin ~= nargin('arlsestim0')
+    disp('--arlsestim0: Incorrect number of input arguments!');
     errFlag  = 1;
     arParam = [];
     return
@@ -24,20 +24,20 @@ end
 
 %check input data
 if arOrder < 1
-    disp('--arLsEstim: Variable "arOrder" should be >= 1!');
+    disp('--arlsestim0: Variable "arOrder" should be >= 1!');
     errFlag = 1;
 end
 [trajLength,nCol] = size(traj);
 if trajLength < 5*arOrder
-    disp('--arLsEstim: Length of trajectory should be at least 5 times larger than model order!');
+    disp('--arlsestim0: Length of trajectory should be at least 5 times larger than model order!');
     errFlag = 1;
 end
 if nCol ~= 2
-    disp('--arLsEstim: "traj" should have one column for measurement and one for measurement uncertainty!');
+    disp('--arlsestim0: "traj" should have one column for measurement and one for measurement uncertainty!');
     errFlag = 1;
 end
 if errFlag
-    disp('--arLsEstim: please fix input data!');
+    disp('--arlsestim0: please fix input data!');
     return
 end
     

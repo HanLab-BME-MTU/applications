@@ -1,7 +1,7 @@
-function [c,ceq] = arSSEConst(unknown,arOrder,traj)
-%arSSEConst imposes causality constraint on AR coefficients
+function [c,ceq] = arlsestim1Const(unknown,arOrder,traj)
+%ARLSESTIM1CONST imposes causality constraint on AR coefficients
 %
-%SYNOPSIS [c,ceq] = arSSEConst(unknown,arOrder,traj)
+%SYNOPSIS [c,ceq] = arlsestim1Const(unknown,arOrder,traj)
 %
 %INPUT  unknown : Set of AR coefficients and measurement error-free values. 
 %       arOrder : Order of autoregressive model.
@@ -13,8 +13,8 @@ function [c,ceq] = arSSEConst(unknown,arOrder,traj)
 %Khuloud Jaqaman, February 2004
 
 %check if correct number of arguments were used when function was called
-if nargin ~= nargin('arSSEConst')
-    disp('--arSSEConst: Incorrect number of input arguments!');
+if nargin ~= nargin('arlsestim1Const')
+    disp('--arlsestim1Const: Incorrect number of input arguments!');
     errFlag  = 1;
     c = [];
     ceq = [];
@@ -24,11 +24,11 @@ end
 %check input data
 [nRow,nCol] = size(unknown);
 if nRow ~= arOrder+length(traj(:,1))
-    disp('--arSSEConst: Wrong length of vector "unknown"!');
+    disp('--arlsestim1Const: Wrong length of vector "unknown"!');
     errFlag = 1;
 end
 if nCol ~= 1
-    disp('--arSSEConst: "param" should be a column vector!');
+    disp('--arlsestim1Const: "param" should be a column vector!');
     errFlag = 1;
 end
 

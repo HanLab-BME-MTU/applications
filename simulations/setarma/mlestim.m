@@ -101,8 +101,8 @@ options = optimset('Display','iter');
 
 %minimize the reduced likelihood (defined in Eq. 5.2.12 of "Introduction to Time
 %Series and Forecasting" by Brockwell and Davis) to get best set of parameters.
-[params,minFunc,exitFlag,output] = fmincon(@redLikelihood,param0,[],[],[],[],...
-    -10*ones(pLength,1),10*ones(pLength,1),@armaConst,options,arOrder,maOrder,traj);
+[params,minFunc,exitFlag,output] = fmincon(@mlestimObj,param0,[],[],[],[],...
+    -10*ones(pLength,1),10*ones(pLength,1),@mlestimConst,options,arOrder,maOrder,traj);
 
 %assign parameters obtained through minimization
 arParam = params(1:arOrder);
