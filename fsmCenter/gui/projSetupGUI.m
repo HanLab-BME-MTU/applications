@@ -296,7 +296,7 @@ if isdir(projDir)
 
     projSettings.projDir         = projDir;
 
-    settingsMatFile = 'lastProjSettings.mat';
+    settingsMatFile = [projDir filesep 'lastProjSettings.mat'];
     if isunix==1
         projSettings.unix_imgDirList = imgDirList;
 
