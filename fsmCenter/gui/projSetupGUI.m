@@ -63,6 +63,7 @@ handles.lplaDir = '';
 handles.postDir = '';
 handles.edgeDir = '';
 handles.mergDir = '';
+handles.fadhDir = '';
 handles.corrDir = '';
 projDir=[];
 imgDir=[];
@@ -95,7 +96,8 @@ if ~isempty(resDirList)
     handles.postDir = resDirList{3};
     handles.edgeDir = resDirList{4};
     handles.mergDir = resDirList{5};
-    handles.corrDir = resDirList{6};
+    handles.fadhDir = resDirList{6};
+    handles.corrDir = resDirList{7};
 end
 
 
@@ -112,6 +114,8 @@ handles.edgeDirMH  = findobj('tag','edgeSuffix');
 handles.edgeDirTFH = findobj('tag','edgeSufNew');
 handles.mergDirMH  = findobj('tag','mergSuffix');
 handles.mergDirTFH = findobj('tag','mergSufNew');
+handles.fadhDirMH  = findobj('tag','fadhSuffix');
+handles.fadhDirTFH = findobj('tag','fadhSufNew');
 handles.corrDirMH  = findobj('tag','corrSuffix');
 handles.corrDirTFH = findobj('tag','corrSufNew');
 
@@ -166,6 +170,7 @@ lplaDir = handles.lplaDir;
 postDir = handles.postDir;
 edgeDir = handles.edgeDir;
 mergDir = handles.mergDir;
+fadhDir = handles.mergDir;
 corrDir = handles.corrDir;
 
 %tackDirList = {};
@@ -181,6 +186,7 @@ lplaDirList = findProjSubDir(projDirStruct,'lpla');
 postDirList = findProjSubDir(projDirStruct,'post');
 edgeDirList = findProjSubDir(projDirStruct,'edge');
 mergDirList = findProjSubDir(projDirStruct,'merg');
+fadhDirList = findProjSubDir(projDirStruct,'fadh');
 corrDirList = findProjSubDir(projDirStruct,'corr');
 
 set(handles.projDirTFH,'string',projDir);
@@ -216,6 +222,7 @@ updateDirList(handles.lplaDirMH,handles.lplaDirTFH,lplaDirList,lplaDir,'lpla');
 updateDirList(handles.postDirMH,handles.postDirTFH,postDirList,postDir,'post');
 updateDirList(handles.edgeDirMH,handles.edgeDirTFH,edgeDirList,edgeDir,'edge');
 updateDirList(handles.mergDirMH,handles.mergDirTFH,mergDirList,mergDir,'merg');
+updateDirList(handles.fadhDirMH,handles.fadhDirTFH,fadhDirList,fadhDir,'fadh');
 updateDirList(handles.corrDirMH,handles.corrDirTFH,corrDirList,corrDir,'corr');
 
 
@@ -249,7 +256,7 @@ if nargout >= 2
 end
 if nargout == 3
     varargout{3} = {handles.tackDir,handles.lplaDir,handles.postDir, ...
-            handles.edgeDir,handles.mergDir,handles.corrDir};
+            handles.edgeDir,handles.mergDir,handles.fadhDir,handles.corrDir};
 end
 
 %Write image path to a file named 'lastProjSetting.txt'.
@@ -269,6 +276,7 @@ if isdir(handles.projDir)
         fprintf(fid,'%s\n',['    fsm Center: ' handles.postDir]);
         fprintf(fid,'%s\n',['  Edge Tracker: ' handles.edgeDir]);
         fprintf(fid,'%s\n',['        Merger: ' handles.mergDir]);
+        fprintf(fid,'%s\n',['Focal Adhesion: ' handles.mergDir]);
         fprintf(fid,'%s\n',['   corrTracker: ' handles.corrDir]);
         fclose(fid);
     end
@@ -354,6 +362,14 @@ else
     mergDir = ['merg' get(handles.mergDirTFH,'string')];
 end
 
+item = get(handles.fadhDirMH,'value');
+menu = get(handles.fadhDirMH,'string');
+if iscell(menu) & strcmp(menu{item},'New') == 0
+    fadhDir = menu{item};
+else
+    fadhDir = ['fadh' get(handles.fadhDirTFH,'string')];
+end
+
 item = get(handles.corrDirMH,'value');
 menu = get(handles.corrDirMH,'string');
 if iscell(menu) & strcmp(menu{item},'New') == 0
@@ -367,6 +383,7 @@ lplaOK = 1;
 postOK = 1;
 edgeOK = 1;
 mergOK = 1;
+fadhOK = 1;
 corrOK = 1;
 if ~isdir([projDir filesep tackDir])
     [tackOK,msg,msgID] = mkdir(projDir,tackDir);
@@ -383,12 +400,15 @@ end
 if ~isdir([projDir filesep mergDir])
     [mergOK,msg,msgID] = mkdir(projDir,mergDir);
 end
+if ~isdir([projDir filesep fadhDir])
+    [fadhOK,msg,msgID] = mkdir(projDir,fadhDir);
+end
 if ~isdir([projDir filesep corrDir])
     [corrOK,msg,msgID] = mkdir(projDir,corrDir);
 end
 
 if tackOK == 1 & lplaOK == 1 & postOK == 1 & edgeOK == 1 & ...
-        mergOK == 1 & corrOK == 1
+   mergOK == 1 & fadhOK == 1 & corrOK == 1
     handles.projDir = projDir;
     handles.imgDir  = imgDir;
     handles.tackDir = tackDir;
@@ -396,6 +416,7 @@ if tackOK == 1 & lplaOK == 1 & postOK == 1 & edgeOK == 1 & ...
     handles.postDir = postDir;
     handles.edgeDir = edgeDir;
     handles.mergDir = mergDir;
+    handles.fadhDir = fadhDir;
     handles.corrDir = corrDir;
 else
     warning('Trouble making new directory.');
@@ -406,6 +427,7 @@ else
     handles.postDir = '';
     handles.edgeDir = '';
     handles.mergDir = '';
+    handles.fadhDir = '';
     handles.corrDir = '';
 end
 
@@ -529,6 +551,12 @@ if isdir(projDir)
                         else
                             mergDir = sscanf(textL(k+1:end),'%s');
                         end
+                    case 'FocalAdhesion'
+                        if k == length(textL)
+                            fadhDir = '';
+                        else
+                            fadhDir = sscanf(textL(k+1:end),'%s');
+                        end
                     case 'corrTracker'
                         if k == length(textL)
                             corrDir = '';
@@ -551,6 +579,7 @@ if isdir(projDir)
             handles.postDir= '';
             handles.edgeDir= '';
             handles.mergDir= '';
+            handles.fadhDir= '';
             handles.corrDir= '';
         else
             handles.imgDir  = imgDir;
@@ -559,6 +588,7 @@ if isdir(projDir)
             handles.postDir = postDir;
             handles.edgeDir = edgeDir;
             handles.mergDir = mergDir;
+            handles.fadhDir = fadhDir;
             handles.corrDir = corrDir;
         end
         fclose(fid);
