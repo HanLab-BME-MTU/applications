@@ -14,7 +14,11 @@ function fsmCentercb_findEdges
 % Aaron Ponti, 11/18/2003
 
 % Retrieve image from figure
-img=get(get(gca,'Children'),'CData');
+children=get(gca,'Children');
+if length(children)>1
+    children=children(end);
+end
+img=get(children,'CData');
 
 try
     img=double(img);

@@ -22,13 +22,17 @@ lineNo=1;
 sigma=char(inputdlg(prompt,dlgTitle,lineNo,def));
 
 % Retrieve image from figure
-img=get(get(gca,'Children'),'CData');
+children=get(gca,'Children');
+if length(children)>1
+    children=children(end);
+end
+img=get(children,'CData');
 
 % Filter
 fImg=Gauss2D(img,str2num(sigma));
 
 % Update figure
-set(get(gca,'Children'),'CData',fImg);
+set(children,'CData',fImg);
 refresh;
 
 % Export to base workspace

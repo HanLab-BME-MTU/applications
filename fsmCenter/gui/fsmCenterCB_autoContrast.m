@@ -14,7 +14,11 @@ function fsmCentercb_autoContrast
 % Aaron Ponti, 11/18/2003
 
 % Retrieve image from figure
-img=get(get(gca,'Children'),'CData');
+children=get(gca,'Children');
+if length(children)>1
+    children=children(end); % We take the last one, which is the image (first in last out)
+end
+img=get(children,'CData');
 
 % Display stretched image
 set(gca,'CLimMode','manual');

@@ -13,13 +13,17 @@ function fsmCenterCB_invertImage
 % Aaron Ponti, 01/22/2004
 
 % Retrieve image from figure
-img=get(get(gca,'Children'),'CData');
+children=get(gca,'Children');
+if length(children)>1
+    children=children(end); % We take the last one, which is the image (first in last out)
+end
+img=get(children,'CData');
 
 % Invert
 iImg=(img-max(img(:)))/(min(img(:))-max(img(:)));
 
 % Refresh figure
-set(get(gca,'Children'),'CData',iImg);
+set(children,'CData',iImg);
 set(gca,'CLimMode','manual');
 set(gca,'CLim',[0 1]);
 refresh;
