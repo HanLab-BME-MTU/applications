@@ -3,7 +3,7 @@ function [cellProps, clusterProps] = ptCalculateCellAreaWithM (M, distanceToCell
 %                      calculates image properties
 %
 % SYNOPSIS     [cellProps, clusterProps] = ptCalculateCellAreaWithM (M, distanceToCellArea, minSizeNucleus,
-%                                                                    clusterDirectory)
+%                                                                    clusterDirectory, startFrame, endFrame, increment)
 %
 % INPUT    M : the magic position matrix
 %          distanceToCellArea : distance a set of coordinates may have to an cell area and still belong to it

@@ -232,7 +232,7 @@ else		% lastImaNum > firstImaNum
                      % cell: add it to the lost cell list. We might find it again later
                      % so that we can close the gap in the track
                      % The current M entry is different from the current frame nr: recalculate
-                     currentMEntry = loopCount - 1;
+                     currentMEntry = imageCount;
                      if isempty (lostCells)
                         lostCells = [unmatchedCellCoord, currentMEntry];
                      else
@@ -305,8 +305,9 @@ else		% lastImaNum > firstImaNum
                if ~isempty (matchedLostCells)
                   clusterDir = [saveDirectory filesep 'info'];
                   % The current M entry is different from the current frame nr: recalculate
-                  currentMEntry = loopCount - 1;
-                  [M, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, currentMEntry, clusterDir);   
+                  currentMEntry = ceil ((imageCount - startFrame) / increment);
+                  [M, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, currentMEntry, ...
+                                                        startFrame, increment, clusterDir);   
                end
             end     % ~isempty (lostCellsToMatch)
          end    % ~isempty (lostCells) & ~isempty (newCells)

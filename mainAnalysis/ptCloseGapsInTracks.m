@@ -1,8 +1,9 @@
-function [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, frameNr, clusterDirectory)
+function [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, frameNr, startFrame, increment, clusterDirectory)
 % ptCloseGapsInTracks closes gaps in cell tracks based on lost cells that have been matched up with
 % new cells
 %
-% SYNOPSIS       [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, clusterDirectory)
+% SYNOPSIS       [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, 
+%                                                         frameNr, startFrame, increment, clusterDirectory)
 %
 % INPUT          M : M stack as returned by the tracker functions
 %                        M = [y x y x]   [y x y x]   [y x y x]
@@ -13,6 +14,8 @@ function [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells
 %                lostCells : a matrix of lost cell coordinates incl the framenr they 
 %                            went lost: [y x frame]
 %                frameNr : the frame where the new cells have been found
+%                startFrame: the startFrame of the movie (needed for M position calculation)
+%                increment: the rate of increment of the movie frames (needed for M position calculation)
 %                clusterDirectory : the directory where the binary cluster mat files can be found
 %
 % OUTPUT         M : a new M stack where gaps have been closed using linear interpolation
@@ -37,6 +40,10 @@ for iCount = 1 : size (matchedCells,1)
    % twice in the matrix) we only take the last one
    frameLostCell = frameLostCell (end,1);
    
+   % Based on this info the position in M where the frame was lost can now
+   % be calculated
+   lostCellMEntry = ceil ((frameLostCell - startFrame) / increment);
+   
    % Get the lost cell coordinates
    lostCell = matchedCells (iCount, 1:2);
 
@@ -44,13 +51,13 @@ for iCount = 1 : size (matchedCells,1)
    newCell = matchedCells (iCount, 3:4);
    
    % Use all of this information to find the lost cell entry in M
-   lostCellMInd = find (M (:,1,frameLostCell) == lostCell (1) & M (:,2,frameLostCell) == lostCell (2));
+   lostCellMInd = find (M (:,1,lostCellMEntry) == lostCell (1) & M (:,2,lostCellMEntry) == lostCell (2));
 
    % Same for the new cell entry in M
    newCellMInd = find (M (:,3,frameNr) == newCell (1) & M (:,4,frameNr) == newCell (2));
 
    % How many frames are in between the lost and new cell?
-   numberOfFrames = frameNr - frameLostCell;
+   numberOfFrames = frameNr - lostCellMEntry;
 
    % Using the lost and new cell coordinates and the number of frames in between, the
    % missing coordinates can be calculated
@@ -64,7 +71,7 @@ for iCount = 1 : size (matchedCells,1)
       % First locate and load the correct binary cluster image
       cd (clusterDirectory);
       formatStr = sprintf ('%%.%dd', 3);
-      imageNr = sprintf (formatStr, frameLostCell + jCount);
+      imageNr = sprintf (formatStr, frameLostCell + jCount - 1);
       clusterFile = ['clusters' imageNr];
       load (clusterFile);
 
@@ -77,41 +84,41 @@ for iCount = 1 : size (matchedCells,1)
       
       % Use these values to update M and this way close the track
       if (jCount == 1) && (numberOfFrames == 1)
-         % Update the M entry (pos 3 and 4) where the cell was lost (frameLostCell)
-         M (lostCellMInd,3,frameLostCell) = y(jCount);
-         M (lostCellMInd,4,frameLostCell) = x(jCount);
+         % Update the M entry (pos 3 and 4) where the cell was lost (lostCellMEntry)
+         M (lostCellMInd,3,lostCellMEntry) = y(jCount);
+         M (lostCellMInd,4,lostCellMEntry) = x(jCount);
          
          % Update pos 1 and 2 in the M entry where the new cell was found as well
          M (newCellMInd,1,frameNr) = y(jCount);
          M (newCellMInd,2,frameNr) = x(jCount);
 
       elseif (jCount == 1) && (numberOfFrames > 1)
-         % Update the M entry (pos 3 and 4) where the cell was lost (frameLostCell)
-         M (lostCellMInd,3,frameLostCell) = y(jCount);
-         M (lostCellMInd,4,frameLostCell) = x(jCount);
+         % Update the M entry (pos 3 and 4) where the cell was lost (lostCellMEntry)
+         M (lostCellMInd,3,lostCellMEntry) = y(jCount);
+         M (lostCellMInd,4,lostCellMEntry) = x(jCount);
 
          % Find the next zero entry so that it can be updated with the new values
-         zeroInd = find (M (:,1,frameLostCell+jCount) == 0 & M (:,2,frameLostCell+jCount) == 0 & ...
-                         M (:,3,frameLostCell+jCount) == 0 & M (:,4,frameLostCell+jCount) == 0);
-         M (zeroInd(1),1,frameLostCell+jCount) = y(jCount);
-         M (zeroInd(1),2,frameLostCell+jCount) = x(jCount);
+         zeroInd = find (M (:,1,lostCellMEntry+jCount) == 0 & M (:,2,lostCellMEntry+jCount) == 0 & ...
+                         M (:,3,lostCellMEntry+jCount) == 0 & M (:,4,lostCellMEntry+jCount) == 0);
+         M (zeroInd(1),1,lostCellMEntry+jCount) = y(jCount);
+         M (zeroInd(1),2,lostCellMEntry+jCount) = x(jCount);
 
       elseif (jCount > 1) && (jCount < numberOfFrames)
          % Find the entry (pos 1 and 2) that we updated for the previous jCount because we have
          % to update the second half of this as well (pos 3 and 4)
-         entryInd = find (M (:,1,frameLostCell+jCount-1) == y(jCount-1) & M (:,2,frameLostCell+jCount-1) == x(jCount-1));
-         M (entryInd,3,frameLostCell+jCount-1) = y(jCount);
-         M (entryInd,4,frameLostCell+jCount-1) = x(jCount);
+         entryInd = find (M (:,1,lostCellMEntry+jCount-1) == y(jCount-1) & M (:,2,lostCellMEntry+jCount-1) == x(jCount-1));
+         M (entryInd,3,lostCellMEntry+jCount-1) = y(jCount);
+         M (entryInd,4,lostCellMEntry+jCount-1) = x(jCount);
 
          % Find the next zero entry so that can be updated with the new values
-         zeroInd = find (M (:,1,frameLostCell+jCount) == 0 & M (:,2,frameLostCell+jCount) == 0 & ...
-                         M (:,3,frameLostCell+jCount) == 0 & M (:,4,frameLostCell+jCount) == 0);
-         M (zeroInd(1),1,frameLostCell+jCount) = y(jCount);
-         M (zeroInd(1),2,frameLostCell+jCount) = x(jCount);
+         zeroInd = find (M (:,1,lostCellMEntry+jCount) == 0 & M (:,2,lostCellMEntry+jCount) == 0 & ...
+                         M (:,3,lostCellMEntry+jCount) == 0 & M (:,4,lostCellMEntry+jCount) == 0);
+         M (zeroInd(1),1,lostCellMEntry+jCount) = y(jCount);
+         M (zeroInd(1),2,lostCellMEntry+jCount) = x(jCount);
 
       elseif (jCount > 1) && (jCount == numberOfFrames)    
          % Update the M entry before the entry where the new cell was found
-         entryInd = find (M (:,1,frameLostCell+jCount-1) == y(jCount-1) & M (:,2,frameLostCell+jCount-1) == x(jCount-1));
+         entryInd = find (M (:,1,lostCellMEntry+jCount-1) == y(jCount-1) & M (:,2,lostCellMEntry+jCount-1) == x(jCount-1));
          M (entryInd,3,frameNr-1) = y(jCount);
          M (entryInd,4,frameNr-1) = x(jCount);
 
