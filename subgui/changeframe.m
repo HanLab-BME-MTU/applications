@@ -42,7 +42,7 @@ piccount =findall(0,'Style','text','Tag','picturecount');
 handles=guidata(hObject);
 
 %the good old jobvalues... we need them once more                
-imagedirectory=handles.jobvalues.imagedirectory;
+imagedirectory=handles.postpro.imagepath;
 imagename=handles.jobvalues.imagename;
 firstimage=handles.jobvalues.firstimage;
 lastimage=handles.jobvalues.lastimage;

@@ -216,6 +216,13 @@ function GUI_pp_imagebrowse_pb_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+handles = guidata(hObject);
+[filename,jobValPath]=uigetfile({'*.tif','TIFF-files'},'Please select an image');
+
+handles.postpro.imagepath= jobValPath;
+
+% Update handles structure
+guidata(hObject, handles);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -243,6 +250,15 @@ function GUI_pp_imagepath_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_pp_imagepath_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_pp_imagepath_ed as a double
 
+
+handles = guidata(hObject);
+
+path = get(hObject,'String');
+
+handles.postpro.imagepath= path;
+
+% Update handles structure
+guidata(hObject, handles);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -295,10 +311,8 @@ handles = guidata(hObject);
 
 numb=get(hObject,'String');
 
-%select current project
-projNum=get(handles.GUI_st_job_lb,'Value');
 
-handles.jobs(projNum).increment= str2num(numb);
+handles.postpro.minusframes= str2num(numb);
 
 
 % Update handles structure
@@ -331,7 +345,19 @@ function GUI_app_plusframes_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_app_plusframes_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_app_plusframes_ed as a double
 
+handles = guidata(hObject);
 
+
+numb=get(hObject,'String');
+
+
+handles.postpro.plusframes= str2num(numb);
+
+
+% Update handles structure
+guidata(hObject, handles);
+
+set(handles.GUI_app_plusframes_ed,'String',handles.postpro.plusframes);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % --- Executes during object creation, after setting all properties.
@@ -359,6 +385,21 @@ function GUI_app_relinkdist_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_app_relinkdist_ed as a double
 
 
+handles = guidata(hObject);
+
+
+numb=get(hObject,'String');
+
+
+handles.postpro.maxdistpostpro= str2num(numb);
+
+
+% Update handles structure
+guidata(hObject, handles);
+
+set(handles.GUI_app_relinkdist_ed,'String',handles.postpro.maxdistpostpro);
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % --- Executes during object creation, after setting all properties.
@@ -384,6 +425,22 @@ function GUI_app_minimaltrack_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_app_minimaltrack_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_app_minimaltrack_ed as a double
+
+
+handles = guidata(hObject);
+
+
+numb=get(hObject,'String');
+
+
+handles.postpro.minimaltrack= str2num(numb);
+
+
+% Update handles structure
+guidata(hObject, handles);
+
+set(handles.GUI_app_minimaltrack_ed,'String',handles.postpro.minimaltrack);
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

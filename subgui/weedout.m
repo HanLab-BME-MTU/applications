@@ -183,7 +183,5 @@ MPM(chuck,:) = [];
 
 
 
-saveallpath=get(handles.GUI_fm_saveallpath_ed,'String')
-
 cd(saveallpath)
 save('MPM', 'MPM')
