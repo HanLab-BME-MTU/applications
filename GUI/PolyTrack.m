@@ -97,6 +97,7 @@ varargout{1} = handles.output;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 % --- Executes during object creation, after setting all properties.
@@ -183,36 +184,52 @@ else
 	handles.jobs(projNum).imagedirectory = imagedirectory;
 	handles.jobs(projNum).imagename = filename;
 	
+    
+    
+    %now we have to do the following:
+    %find out what part of the filename describes the images and which part
+    %is just counting them through.
+    %we beginn by starting from the rear end of filename (after cutting off
+    %the extension) and converting the last few elements (starting with
+    %only one and then adding on one each loop) from a string to a number.
+    %As soon as the answer of the conversion is NaN we have struck the
+    %first letter. Furthermore we say that max three digits are considered
+    %as numbering.
+    
     number = 0;
     countNum = 0;
-    while ~isnan(number)
+    while ~isnan(number) & (countNum <4)
          countNum = countNum+1
          number = str2num(filename(end-(4+countNum):end-4));
          
     end
         
     
-    handles.jobs(projNum).bodyname = filename(1:(end-(4+countNum)));
+    handles.jobs(projNum).bodyname = filename(1:(end-(3+countNum)));
      bodyname = handles.jobs(projNum).bodyname;
-	%select current project
+     
+	%set to current project
 	set(handles.GUI_st_job_lb,'Value',projNum);
 	
-	
+	%look what is to be found whithin the filedirectory
 	dirList = dir(imagedirectory);
-	
     dirList  =  struct2cell(dirList);
     dirList = dirList(1,:);
+    
+    %find all files within directory with the same name as our file
     ind = strmatch(handles.jobs(projNum).bodyname,dirList);
     dirList = dirList(ind)';
     handles.jobs(projNum).lastimage = length(dirList);
       
+    %now we sort the images by successive numbers:
+    %first we get all numbers and write them into a vector
     for jRearange = 1:length(dirList)
         tmpName = char(dirList(jRearange));
         imageNum(jRearange) = str2num(tmpName(length(handles.jobs(projNum).bodyname)+1:end-4));
     end
     
+    %now we sort that vector and sort the dirList accordingly
     [junk,indVec] = sort(imageNum);
-    
     handles.jobs(projNum).imagenameslist = dirList(indVec);
     
     
@@ -246,6 +263,10 @@ else
 	
     
     
+    %here we create a directory to save the details and results of this job
+    %into
+    %Note: we call the directory results+bodyname+number
+    %number will be lowest unoccupied number for this specific directoryname
     
 	cd(imagedirectory)
 	done = 0;
@@ -253,7 +274,8 @@ else
 	while done==0
            newdirname = [];
            newdirname = ['results',bodyname,num2str(counter)];
-        
+           
+           %we loop on untill we find an unoccupied newdirname
           if exist(newdirname,'dir')==0
              mkdir(imagedirectory,newdirname);
              tempname = [imagedirectory,newdirname];
@@ -292,10 +314,14 @@ handles = guidata(hObject);
 
 jobList = get(handles.GUI_st_job_lb,'String');
 projNum = get(handles.GUI_st_job_lb,'Value');
+
+%joblist will only then be a cell, if there loaded jobs within.
+%Otherwise it is a string (No project loaded)
 if ~iscell(jobList)
-    return
     %no cell, no job, no delete
-    disp('Why delete when there is nothing to delete?');
+    h=errordlg('Why delete when there is nothing to delete?');
+    uiwait(h);
+    return
 end
 
 if length(jobList)==1
@@ -304,9 +330,12 @@ if length(jobList)==1
 else
     jobList(projNum) = [];
 end
+
 %store new jobList
+%jump back to value 1 to be on the safe side
 set(handles.GUI_st_job_lb,'Value',1);
 set(handles.GUI_st_job_lb,'String',jobList);
+
 %store job data
 handles.jobs(projNum) = [];
 
@@ -392,26 +421,27 @@ function GUI_st_path_imagename_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_st_path_imagename_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_st_path_imagename_ed as a double
-handles = guidata(hObject);
 
-
-imagename = get(hObject,'String');
-
-%select current project
-projNum = get(handles.GUI_st_job_lb,'Value');
-
-handles.jobs(projNum).imagename =  imagename;
-
-
-% Update handles structure
-guidata(hObject, handles);
-
-%%%%%%%%save altered values to disk%%%%%%%%%%%%
-cd(handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% handles = guidata(hObject);
+% 
+% 
+% imagename = get(hObject,'String');
+% 
+% %select current project
+% projNum = get(handles.GUI_st_job_lb,'Value');
+% 
+% handles.jobs(projNum).imagename =  imagename;
+% 
+% 
+% % Update handles structure
+% guidata(hObject, handles);
+% 
+% %%%%%%%%save altered values to disk%%%%%%%%%%%%
+% cd(handles.jobs(projNum).savedirectory)
+% jobvalues = handles.jobs(projNum);
+% save ('jobvalues','jobvalues')
+% clear jobvalues
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
@@ -519,6 +549,7 @@ function GUI_st_iq_set_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 leveldeterminer(hObject);
+
 handles = guidata(hObject);
 
 projNum = get(handles.GUI_st_job_lb,'Value');
@@ -559,12 +590,27 @@ function GUI_st_iq_fi_background_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_st_iq_fi_background_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_fi_background_ed as a double
+
 handles = guidata(hObject);
 
+
+fi_background= get(hObject,'String');
+
+%select current project
+projNum = get(handles.GUI_st_job_lb,'Value');
+
+handles.jobs(projNum).fi_background =  fi_background;
 
 
 % Update handles structure
 guidata(hObject, handles);
+
+%%%%%%%%save altered values to disk%%%%%%%%%%%%
+cd(handles.jobs(projNum).savedirectory)
+jobvalues = handles.jobs(projNum);
+save ('jobvalues','jobvalues')
+clear jobvalues
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -592,12 +638,27 @@ function GUI_st_iq_fi_nucleus_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_st_iq_fi_nucleus_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_fi_nucleus_ed as a double
+
 handles = guidata(hObject);
+
+
+fi_nucleus= get(hObject,'String');
+
+%select current project
+projNum = get(handles.GUI_st_job_lb,'Value');
+
+handles.jobs(projNum).fi_nucleus =  fi_nucleus;
 
 
 % Update handles structure
 guidata(hObject, handles);
 
+%%%%%%%%save altered values to disk%%%%%%%%%%%%
+cd(handles.jobs(projNum).savedirectory)
+jobvalues = handles.jobs(projNum);
+save ('jobvalues','jobvalues')
+clear jobvalues
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -628,8 +689,23 @@ function GUI_st_iq_la_background_ed_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 
+la_background= get(hObject,'String');
+
+%select current project
+projNum = get(handles.GUI_st_job_lb,'Value');
+
+handles.jobs(projNum).la_background =  la_background;
+
+
 % Update handles structure
 guidata(hObject, handles);
+
+%%%%%%%%save altered values to disk%%%%%%%%%%%%
+cd(handles.jobs(projNum).savedirectory)
+jobvalues = handles.jobs(projNum);
+save ('jobvalues','jobvalues')
+clear jobvalues
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -660,9 +736,23 @@ function GUI_st_iq_la_nucleus_ed_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 
+la_nucleus= get(hObject,'String');
+
+%select current project
+projNum = get(handles.GUI_st_job_lb,'Value');
+
+handles.jobs(projNum).la_nucleus =  la_nucleus;
+
 
 % Update handles structure
 guidata(hObject, handles);
+
+%%%%%%%%save altered values to disk%%%%%%%%%%%%
+cd(handles.jobs(projNum).savedirectory)
+jobvalues = handles.jobs(projNum);
+save ('jobvalues','jobvalues')
+clear jobvalues
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -968,14 +1058,9 @@ function GUI_st_bp_setmindist_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_st_bp_setmindist_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
 
 
 SetCellValues(hObject,3);
-
-
-% Update handles structure
-guidata(hObject, handles);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1594,6 +1679,26 @@ function GUI_st_iq_fi_halolevel_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_st_iq_fi_halolevel_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_fi_halolevel_ed as a double
 
+handles = guidata(hObject);
+
+
+fi_halolevel = get(hObject,'String');
+
+%select current project
+projNum = get(handles.GUI_st_job_lb,'Value');
+
+handles.jobs(projNum).fi_halolevel =  fi_halolevel;
+
+
+% Update handles structure
+guidata(hObject, handles);
+
+%%%%%%%%save altered values to disk%%%%%%%%%%%%
+cd(handles.jobs(projNum).savedirectory)
+jobvalues = handles.jobs(projNum);
+save ('jobvalues','jobvalues')
+clear jobvalues
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1623,6 +1728,28 @@ function GUI_st_iq_la_halolevel_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_st_iq_la_halolevel_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_la_halolevel_ed as a double
+
+
+handles = guidata(hObject);
+
+
+la_halolevel = get(hObject,'String');
+
+%select current project
+projNum = get(handles.GUI_st_job_lb,'Value');
+
+handles.jobs(projNum).la_halolevel =  la_halolevel;
+
+
+% Update handles structure
+guidata(hObject, handles);
+
+%%%%%%%%save altered values to disk%%%%%%%%%%%%
+cd(handles.jobs(projNum).savedirectory)
+jobvalues = handles.jobs(projNum);
+save ('jobvalues','jobvalues')
+clear jobvalues
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

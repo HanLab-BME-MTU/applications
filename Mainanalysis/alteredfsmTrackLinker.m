@@ -38,6 +38,8 @@ for counter1=1:size(M,3)-1
     
     for counter2=1:size(stop,1)
                 
+        
+               %Attention: this if /else statement is the only difference to Aarons original code 
               if start(counter2,1)~=0 | start(counter2,2)~=0 
                         
                         t=start(counter2,1)==stop(:,1);

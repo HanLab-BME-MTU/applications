@@ -134,6 +134,7 @@ img_corr=[];
 sizecorr=[];
 
 img_corr=normxcorr2(template,searcharea);
+
 sizecorr=size(img_corr);
 
 %now we superimpose a distance criteria. First we have to build a matrix of
@@ -163,7 +164,7 @@ for f = 1:sizecorr(1,1)
 end
 
 %multiply img_corr with dist, thus having intrduced a distance criteria
-img_cor=img_corr.*dist;
+img_cor = img_corr.*dist;
 
 clear dist;
 
@@ -183,8 +184,8 @@ yjj=xi(xii);
    
 %add together everything that's necessary to receive the coordinates of the
 %found spot in the frame (not within img_corr)
-coordnew(1,1)=xii+x_img_1-round(size(template,1)/2);      %%%+round(difftemplecentcentroid(i,1));
-coordnew(1,2)=yjj+y_img_1-round(size(template,2)/2);   %%%+round(difftemplecentcentroid(i,2));
+coordnew(1,1)=xii + x_img_1 - round(size(template,1)/2);      %%%+round(difftemplecentcentroid(i,1));
+coordnew(1,2)=yjj + y_img_1 - round(size(template,2)/2);   %%%+round(difftemplecentcentroid(i,2));
 
 if coordnew(1,1) < 1
       coordnew(1,1) = 1;
@@ -203,16 +204,17 @@ if coordnew(1,2) > (img_h-1)
 end
    
 
-coordnew(1,1)=coordnew(1,1)+tempelcellmarker;
-coordnew(1,2)=coordnew(1,2)+tempelcellmarker;
+coordnew(1,1) = coordnew(1,1)+tempelcellmarker;
+coordnew(1,2) = coordnew(1,2)+tempelcellmarker;
 
 
 %mark cells that were new cells (or new cells propagated by 
 %templates) as new cells propagated by templates
-coordflo=floor(coord+0.1);
-what=round(10*(coord-coordflo));
+coordflo = floor(coord+0.1);
+what = round(10*(coord-coordflo));
+
 if what==newcell | what==newcelltempel
-        coordnew=floor(coordnew)+newcelltempelmarker;
+        coordnew = floor(coordnew)+newcelltempelmarker;
 end
     
    

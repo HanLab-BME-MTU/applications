@@ -330,7 +330,7 @@ else
                       newCoord = checkMinimalCellCell(coordNuc,haloCoord,MinDistCellCell)  ;  
                  
                       
-                      PROPERTIES = [];
+                      
                       
                               %run body now, for conveniance (we need binary images of 
                                %the cells to run body)

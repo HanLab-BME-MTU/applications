@@ -128,7 +128,7 @@ handles.postpro=handles.defaultpostpro;
 [filename,jobValPath]=uigetfile({'*.mat','mat-files'},'Please select a file named jobvalues.mat');
 
 if ~strcmp(filename,'jobvalues.mat') &~ strcmp(filename,'MPM.mat')
-   disp('select a file named jobvalues.mat!!!!!!!!!')
+   disp('select a file named jobvalues.mat  or MPM.mat !!!!!!!!!')
    return
 end
 

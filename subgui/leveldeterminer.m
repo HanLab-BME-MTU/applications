@@ -30,16 +30,17 @@ lastImage=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 [img_h,img_w]=size(firstImage);
 
+
+
+
 %get the intensity values of these pictures
-
-
-
 %%%%%%%%%%%%%%first picture%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %background
 backfirst = figure, imshow(firstImage,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
 
 [X,Y] = getpts(backfirst);
+
 intense = [];
 for dots = 1:size(X,1)
     
