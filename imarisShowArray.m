@@ -30,6 +30,9 @@ if nargin < 1 || isempty(array)
 end
 % store size of array. Pad empty dimension with ones
 sizeArray = ones(1,5);
+% we have to permute the array, so that dimension 4 will be displayed in
+% the time channel
+array = permute(array,[1,2,3,5,4]);
 sizeArray(1:ndims(array)) = size(array);
 if length(sizeArray) > 5
     error('too many dimensions to display!')
@@ -46,6 +49,9 @@ else
     % we do not want to assign a new imaris handle - take the old one!
     imaAppName = inputname(2);
 end
+
+% name of the input variable
+varName = inputname(1);
 
 %=============
 
@@ -73,7 +79,7 @@ imaDataSet.mExtendMaxZ = sizeArray(3);
 minArray = min(array(:));
 maxArray = max(array(:));
 
-for ch = 0:size(array,5)-1
+for ch = 0:size(array,4)-1
     imaDataSet.SetChannelRange(ch,minArray,maxArray);
     imaDataSet.SetChannelName(ch,num2str(ch+1));
 end
@@ -83,6 +89,9 @@ imaApp.mDataSet = imaDataSet;
 
 % set view to projections
 imaApp.mViewer = 'eViewerSection';
+
+% name the imaris session
+imaApp.mDataSet.SetParameter('Image', 'Name', varName);
 
 %========================
 

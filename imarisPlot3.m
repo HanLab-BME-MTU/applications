@@ -9,9 +9,10 @@ function imarisApplication = imarisPlot3(plotData)
 %               - spotRadius (opt): size of plot spots. Can be set
 %                    individually for every data point. Default: [0.5]
 %               - color (opt): [R/G/B/Opacity] for the group of spots.
-%                    Opacity of 0 = opaque. Default: [1,0,0,0.5]
+%                    Opacity of 0 = opaque. Default: [1,0,0,0]
 %               - name (opt) : name of group of spots. Default: data_#,
 %                    where # is the place of the set in the structure
+%               - time (opt) : timepoint where the group should be plotted
 %
 % OUTPUT  imarisApplication: Handle to the imaris Application
 %
@@ -20,6 +21,8 @@ function imarisApplication = imarisPlot3(plotData)
 %              imarisApplication will be created in the workspace
 %          (2) Imaris can not handle doubles. All values will be converted
 %              to singles
+%          (3) Imaris currently needs at least two spots per group (bug).
+%              If only one spot is submitted, it will double it.
 %
 % c: jonas, 11/04
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -32,7 +35,7 @@ function imarisApplication = imarisPlot3(plotData)
 
 % defaults
 def_spotRadius = 0.5;
-def_color = [1,0,0,0.5]; % R/G/B/opacity
+def_color = [1,0,0,0]; % R/G/B/opacity
 def_nameStub = 'data_'; % stub to which number will be added
 
 % input arguments
@@ -55,6 +58,17 @@ for i = 1:nGroups
 
     % test xyz
     plotData(i).XYZ = returnRightVector(plotData(i).XYZ,3);
+    
+    %====
+    % bug-workaround
+    % currently, there can not be jut one spot. Therefore, we just double
+    % it
+    if size(plotData(i).XYZ,1)==1
+        bugfix = [1;1];
+        plotData(i).XYZ = bugfix *  plotData(i).XYZ;
+    else
+        bugfix = 1;
+    end
 
     % test spotSize
     if ~isfield(plotData,'spotRadius') || isempty(plotData(i).spotRadius)
@@ -65,7 +79,7 @@ for i = 1:nGroups
         % make sure there are enough radii
     elseif length(plotData(i).spotRadius) == 1
         plotData(i).spotRadius = ...
-            repmat(plotData(i).spotRadius,size(plotData(i).XYZ,1),1);
+            bugfix *  repmat(plotData(i).spotRadius,size(plotData(i).XYZ,1),1);
 
     else
         plotData(i).spotRadius = returnRightVector(plotData(i).spotRadius);
@@ -91,6 +105,11 @@ for i = 1:nGroups
     elseif ~isstr(plotData(i).name)
         error('name has to be a string')
     end
+    
+    % time
+    if ~isfield(plotData,'time') || isempty(plotData(i).time)
+        plotData(i).time = 1;
+    end
 end
 
 
@@ -113,6 +132,13 @@ allData = cat(1,plotData.XYZ);
 dataExtent = [min(allData);max(allData)];
 dataRange = dataExtent(2,:) - dataExtent(1,:);
 
+% make sure we have at least enough space to place a sphere
+allRadii = cat(1,plotData.spotRadius);
+dataRange = max(dataRange,repmat(max(allRadii),[1,3]));
+
+% extent in time
+allTime = cat(1,plotData.time);
+maxTime = max(allTime);
 
 % to transform coordinates: subtract origin, divide by range to make data
 % going from 0 to 10
@@ -140,7 +166,7 @@ pause(0.5)
 
 % make dataSet and put into imaris
 imaDataSet = imaApp.mFactory.CreateDataSet;
-imaDataSet.SetData(single(zeros(12,12,12)));
+imaDataSet.SetData(single(zeros(12,12,12,1,maxTime)));
 imaDataSet.mExtendMinX = -1;
 imaDataSet.mExtendMinY = -1;
 imaDataSet.mExtendMinZ = -1;
@@ -175,7 +201,7 @@ for iGroup = 1:nGroups
     nCoords = size(plotData(iGroup).XYZ,1);
     coords = single((plotData(iGroup).XYZ - repmat(origin,nCoords,1))...
         ./repmat(divideRange,nCoords,1));
-    imaSpots.Set(coords, single(zeros(nCoords,1)),...
+    imaSpots.Set(coords, single(repmat(plotData(iGroup).time-1,[nCoords,1])),...
         single(plotData(iGroup).spotRadius));
     
     % set color
