@@ -83,12 +83,6 @@ list(indx,:)=[]; % Kill these entries
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Calculate the divergence of the vector field along the profile line
-% [div,d0]=vectorFieldDiv(list,P,d0,[]);
-
-% Update d0 depending on divergence
-% d0=updateD0FromDiv(div,d0,1,size(list,1),size(list,1));
-
 % Interpolate along the profile line
 Mi=vectorFieldInterp(list,P,d0,[]);
 

@@ -35,6 +35,9 @@ end
 % Tack work path
 userPath=fsmParam.main.path;
 
+% Format string for numeric suffix
+strg=fsmParam.specific.formString;
+
 % Read current image number (in string format)
 currentFrame=fsmParam.specific.fileList(counter,:);
 [imagePath,imageBody,imageNo,imageExt]=getFilenameBody(currentFrame);
@@ -85,8 +88,11 @@ if fsmParam.track.init~=0
         % Extract init vector field from vectors
         initM=vectors(find(vectors(:,1)~=0 & vectors(:,3)~=0),:);
         
+        % Inform the user that the tracker will be initialized for this frame
+        fprintf(1,'Frame %s: the tracker will be initialized for this frame.\n',imageNo);
+        
     else
-        errorMsg=['Could not find any vector field in ',initPath,' to use as an initializer. Skipping initialization.'];
+        errorMsg=['Frame ',imageNo,': could not find a vector field in ',initPath,' to use as an initializer. Skipping initialization.'];
         fprintf(1,'%s\n',errorMsg);
         initM=[];
     end
@@ -157,15 +163,54 @@ if fsmParam.track.enhanced==1
         
         % Save interpolated vector field to disk for later use with gap closer
         eval(['save ',userPath,filesep,'vectors',filesep,'vectors',imageNo,'.mat vectors;']);
-        
+
     end
 
     % Track with vectors as an initializer
     M=fsmTrackTrackerBMTNNIterative(vectors,I,J,threshold,influence);
-    
+
 end
 
 % If none of the above was run, simply track once with no propagation
 if fsmParam.track.init==0 & fsmParam.track.enhanced==0
     M=fsmTrackTrackerBMTNNIterative([],I,J,threshold,influence);
+end
+
+% At this point, if the initializer is used (fsmParam.track.init~=0), and NO vector field has been created for 
+%   the next frame by imKymoAnalysis, save the obtained (averaged) vector field as the initializer for the next frame
+if fsmParam.track.init~=0
+    
+    % Next frame's vector field
+    indxStr=sprintf(strg,str2num(imageNo)+1); % Next frame
+    if exist([initPath,filesep,'vectors',indxStr,'.mat'],'file')~=2
+        
+        % Okay, we need to create the initializer for the next frame
+            
+        % Extract vectors from M
+        raw=M(find(M(:,1)~=0 & M(:,3)~=0),:);
+
+        % If needed, prepare interpolation grid
+        if gridSize==0
+            grid=raw(:,1:2); % Interpolate onto vector positions
+        else
+            grid=framework(imgSize,gridSize); % Interpolate onto a regular grid
+        end
+
+        % Average returned M to be used to propagate I again
+        vectors=vectorFieldAdaptInterp(raw,grid,d0,[],'strain');
+
+        % Save averaged vectors to the initializer subdirecory
+        indxStr=sprintf(strg,str2num(imageNo)+1); % Next frame
+        try
+            eval(['save ',initPath,filesep,'vectors',indxStr,'.mat vectors;']);
+        catch
+            fprintf(1,'Could not save vectors to disk. They won''t be used to initialize the tracker for the next frame pair.\n');
+        end
+
+    else
+   
+        % A vector field already exists - skipping
+
+    end
+
 end

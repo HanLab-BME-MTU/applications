@@ -234,10 +234,10 @@ if nImages>1
     if isfield(fsmParam,'project')
         outputdir=[fsmParam.project.path,filesep,fsmParam.project.post,filesep];
         if ~isdir(outputdir)
-            outputdir=[];
+            outputdir='';
         end
     else
-        outputdir=[];
+        outputdir='';
     end
     outputdir=uigetdir(outputdir,'Select directory to save vector maps to.');
     if outputdir==0 % The user clicked on cancel
@@ -411,10 +411,10 @@ if INTERP_CALC==1
         % Interpolate - get the deterministic part of the signal
         try
             if useDiv==1
-                [divM,d0]=vectorFieldDiv(currentM,Iyx,d0_init,[]);
-                d0=updateD0FromDiv(divM,d0,1,size(Iyx,1),size(Iyx,1));
+                Md=vectorFieldAdaptInterp(currentM,Iyx,d0_init,[],'strain');
+            else
+                Md=vectorFieldInterp(currentM,Iyx,d0_init,[]);
             end
-            Md=vectorFieldInterp(currentM,Iyx,d0,[]);
         catch
             errordlg('Sorry, OUT OF MEMORY. Either reduce the number of frames for time averaging or analyze only a subset of the vector field (by drawing a ROI).','Error','modal');
             return

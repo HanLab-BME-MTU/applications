@@ -204,7 +204,7 @@ if isfield(fsmParam,'project')
         outputdir=[];
     end
 else
-    outputdir=[];
+    outputdir='';
 end
 outputdir=uigetdir(outputdir,'Select directory to save speed maps to.');
 if outputdir==0 % The user clicked on cancel
@@ -237,9 +237,7 @@ if interp==1
         Mv=Mp(find(Mp(:,1)~=0 & Mp(:,3)~=0),:);
         
         % Interpolate onto a grid
-        [divM,d0]=vectorFieldDiv(Mv,G,d0_init,[]);
-        d0=updateD0FromDiv(divM,d0_init,1,size(Mv,1),size(G,1));
-        Md(:,:,current)=vectorFieldInterp(Mv,G,d0,[]);
+        Md(:,:,current)=vectorFieldAdaptInterp(Mv,G,d0_init,[],'strain');
         
         % Updating waitbar
         waitbar(current/steps,h);
