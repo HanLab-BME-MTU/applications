@@ -157,7 +157,8 @@ if ~isempty(fsmExpParam)
         else
             
             % Otherwise make sure they are enabled
-            set(handles.editZValue,'String','1.96');
+%             set(handles.editZValue,'String','1.96');
+            set(handles.editZValue,'String',num2str(fsmParam.main.noiseParam(5)));
             fsmGuiUpdateConfidences(1);
              
         end    
