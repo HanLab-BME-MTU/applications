@@ -5,8 +5,10 @@ fprintf(1,'Post assemble of the identified body force : ');
 
 localStartTime = cputime;
 
-coefBFx = coef(1:dimBF);
-coefBFy = coef(dimBF+1:2*dimBF);
+coefBFx = zeros(dimFS,1);
+coefBFy = zeros(dimFS,1);
+coefBFx(indDomDOF) = coef(1:dimBF);
+coefBFy(indDomDOF) = coef(dimBF+1:2*dimBF);
 save([resultPath 'bfId'],'fs','coefBFx','coefBFy');
 
 %For debugging : Solve the elastic equation with the identified force and
@@ -44,6 +46,12 @@ gridPy(pe) = [];
 % 'dataU1' and 'dataU2'.
 [dataUC1 dataUC2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
 [gridUC1 gridUC2] = postinterp(fem,'u1','u2',[gridPx gridPy].');
+
+%Calculate the residue of the forword computed displacements.
+resDisp = (dataUC1-dataU1).^2 + (dataUC2-dataU2).^2;
+
+%Calculate the residue of the regularized force.
+resBF = sigma*coef.*coef;
 
 %Save the computed displacement from the identified body force.
 save([resultPath 'dispId'],'dataPx','dataPy','dataUC1','dataUC2');

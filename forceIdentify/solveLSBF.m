@@ -9,7 +9,7 @@ A = reshape(A,2*numDP,2*dimBF);
 [m,n] = size(A);
 
 %Regularization parameter for 'solveLS'.
-sigma = 1e6;
+sigma = 1e2; %1e6;
 
 coef  = (A.'*A+sigma*eye(n))\(A.'*rightU);
 

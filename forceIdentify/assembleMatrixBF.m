@@ -1,6 +1,6 @@
 %This script file computes the matrix approximation to the forward linear
 % operator for the body force. It can only run after running 'setupModel' and 
-% loading data.
+% 'calFwdOpBF' or loading data.
 
 fprintf(1,'\nConstructing the matrix A for the Body Force :\n');
 
@@ -38,12 +38,20 @@ fs.bnd.r = 0;
 fs.mesh  = rectmesh(curvL,curvT,curvR,curvB,bfDomHin,bfDomVin);
 fs.geom  = fs.mesh;
 fs.xmesh = meshextend(fs);
+%Find the indices of the DOFs whose shape functions have support disconnected 
+% from the boundary.
+N = assemble(fs,'out','N');
+indDomDOF = find(full(sum(N,1))==0);
 
 %The Degree of Freedom vector for the basis or shape function in the finite
 % element space.
-%dimBF  = flngdof(fs)/2; %Dimention of external Body Force.
-dimBF  = flngdof(fs); %Dimention of external Body Force.
-coefBF = zeros(dimBF,1);
+%Dimention of the function space where the basis can be nonzero on the 
+% boundary.
+dimFS  = flngdof(fs); 
+coefFS = zeros(dimFS,1);
+%Dimention of the function space where the basis function is kept zero on the
+% boundary.
+dimBF = length(indDomDOF);
 
 %Step 2: Construct the matrix approximation to the forward operator.
 %We use each basis function as the body force to solve our
@@ -54,10 +62,13 @@ sol = cell(2*dimBF,1); %To store the solutions corresponding to each basis.
 col = 0;
 ll  = 0;
 if strcmp(fwdOpComputed,'none') == 1
-   for k = 1:dimBF
+   for j = 1:dimBF
+      %'k' is the index of 'coefFS' whose corresponding basis function is zero
+      % on the boundary.
+      k = indDomDOF(j);
       ll = ll+1;
-      coefBF(k) = 1;
-      fp.BodyFx = {{'x' 'y'} {fs coefBF}};
+      coefFS(k) = 1;
+      fp.BodyFx = {{'x' 'y'} {fs coefFS}};
       fp.BodyFy = {{'x' 'y'} {[] 0}};
       fem = elModelUpdate(fem,'fp',fp);
       fem = elasticSolve(fem,[]);
@@ -70,7 +81,7 @@ if strcmp(fwdOpComputed,'none') == 1
       A(:,2,ll,1)  = bspU2.';
 
       fp.BodyFx = {{'x' 'y'} {[] 0}};
-      fp.BodyFy = {{'x' 'y'} {fs coefBF}};
+      fp.BodyFy = {{'x' 'y'} {fs coefFS}};
       fem = elModelUpdate(fem,'fp',fp);
       fem = elasticSolve(fem,[]);
       sol{col+2} = fem.sol;
@@ -79,7 +90,7 @@ if strcmp(fwdOpComputed,'none') == 1
       A(:,1,ll,2)  = bspU1.';
       A(:,2,ll,2)  = bspU2.';
 
-      coefBF(k) = 0;
+      coefFS(k) = 0;
 
       col = col+2;
       if rem(col,10) == 0

@@ -88,8 +88,13 @@ else
    load([modelPath 'femId'],'fem');
 end
 
-%Data points for recovery are the combination of raw data points and the
-% interpolated grid points.
+%Points where the forward computed displacements and raw displacements are
+%compared for optimal fit can be either the raw data points or the
+% interpolated grid points or both.
+dataPx = cell(numTimeSteps,1);
+dataPy = cell(numTimeSteps,1);
+dataU1 = cell(numTimeSteps,1);
+dataU2 = cell(numTimeSteps,1);
 if strcmp(forceToIdentify,'tf') == 1
    load([resultPath 'dispId']);
    dataPx = rawDataPx;
@@ -99,18 +104,18 @@ if strcmp(forceToIdentify,'tf') == 1
 elseif strcmp(dataToUse,'raw') == 1
    dataPx = rawDataPx;
    dataPy = rawDataPy;
-   dataU1 = rawDataU1.';
-   dataU2 = rawDataU2.';
+   dataU1 = rawDataU1;
+   dataU2 = rawDataU2;
 elseif strcmp(dataToUse,'smooth') == 1
    dataPx = rawDataPx;
    dataPy = rawDataPy;
-   dataU1 = sDataU1.';
-   dataU2 = sDataU2.';
-elseif strcmp(dataToUse,'interp') == 1
-   dataPx = [rawDataPx; gridPx];
-   dataPy = [rawDataPy; gridPy];
-   dataU1 = [sDataU1; gridU1].';
-   dataU2 = [sDataU2; gridU2].';
+   dataU1 = sDataU1;
+   dataU2 = sDataU2;
+elseif strcmp(dataToUse,'grid') == 1
+   dataPx = gridPx;
+   dataPy = gridPy;
+   dataU1 = gridU1;
+   dataU2 = gridU2;
 elseif strcmp(dataToUse,'simul') == 1
    load([resultPath 'simField']);
    dataU1 = simulU1;
@@ -122,13 +127,16 @@ end
 %They must also be inside the target recovery region.
 % 'tmpFem': temporary FEM structure for the purpose of finding sampling points
 % that are bounded by 'msh'.
-[is,pe] = postinterp(fem,[dataPx dataPy].');
-dataPx(pe) = []; % 'pe': index of points outside 'msh'.
-dataPy(pe) = [];
-dataU1(pe) = [];
-dataU2(pe) = [];
+numDP = zeros(numTimeSteps,1);
+for jj = 1:numTimeSteps
+   [is,pe] = postinterp(fem,[dataPx{jj} dataPy{jj}].');
+   dataPx{jj}(pe) = []; % 'pe': index of points outside 'msh'.
+   dataPy{jj}(pe) = [];
+   dataU1{jj}(pe) = [];
+   dataU2{jj}(pe) = [];
 
-numDP = length(dataPx);
+   numDP(jj) = length(dataPx{jj});
+end
 
 %Calculate the displacements of the boundary elements of 'msh'. See
 % 'help meshinit' for information about the MESH structure in FEMLAB.
@@ -153,12 +161,6 @@ numDP = length(dataPx);
 edgeS   = cell(1,numEdges);
 edgeP   = cell(1,numEdges);
 edgeU   = cell(1,numEdges);
-edgeU1  = cell(1,numEdges);
-edgeU2  = cell(1,numEdges);
-edgeUC1 = cell(1,numEdges);
-edgeUC2 = cell(1,numEdges);
-edgePPx = cell(1,numEdges);
-edgePPy = cell(1,numEdges);
 edgArcLen = zeros(1,numEdges);
 for k = 1:numEdges
    %Extract the arclenth parameters.
@@ -174,21 +176,34 @@ for k = 1:numEdges
    edgeI = [edgeI(sortI) msh.e(2,edgEndI)];
 
    edgeP{k}  = [msh.p(1,edgeI); msh.p(2,edgeI)];
-   edgeU{k}  = vectorFieldInterp(rawDispV,edgeP{k}(2:-1:1,:).',edgCorLen,[]);
-   edgeU1{k} = edgeU{k}(:,4) - edgeU{k}(:,2);
-   edgeU2{k} = edgeU{k}(:,3) - edgeU{k}(:,1);
+end
 
-   %For debugging:
-   %edgeU1{k} = edgeU1{k}/2; 
-   %edgeU2{k} = edgeU2{k}/2;
+edgeU1  = cell(numTimeSteps,numEdges);
+edgeU2  = cell(numTimeSteps,numEdges);
+edgeUC1 = cell(numTimeSteps,numEdges);
+edgeUC2 = cell(numTimeSteps,numEdges);
+edgePPx = cell(numTimeSteps,numEdges);
+edgePPy = cell(numTimeSteps,numEdges);
+for jj = 1:numTimeSteps
+   for k = 1:numEdges
+      edgeU{k}  = vectorFieldInterp(rawDispV{jj}, ...
+         edgeP{k}(2:-1:1,:).',edgCorLen,[]);
+      edgeU1{jj}{k} = edgeU{k}(:,4) - edgeU{k}(:,2);
+      edgeU2{jj}{k} = edgeU{k}(:,3) - edgeU{k}(:,1);
 
-   %Create spline interpolation of the edge displacement using arclength
-   % parameter stored in 'msh.e(3:4,:)'.
-   edgePPx{k} = spline(edgeS{k}, edgeU1{k}.');
-   edgePPy{k} = spline(edgeS{k}, edgeU2{k}.');
+      %For debugging:
+      %edgeU1{jj}{k} = edgeU1{jj}{k}/2; 
+      %edgeU2{jj}{k} = edgeU2{jj}{k}/2;
+
+      %Create spline interpolation of the edge displacement using arclength
+      % parameter stored in 'msh.e(3:4,:)'.
+      edgePPx{jj}{k} = spline(edgeS{k}, edgeU1{jj}{k}.');
+      edgePPy{jj}{k} = spline(edgeS{k}, edgeU2{jj}{k}.');
+   end
 end
 
 %Save the displacements on the boundary.
-save([resultPath 'edgeDisp'],'numEdges','edgePPx','edgePPy');
+save([resultPath 'edgeDisp'],'numEdges','edgePPx','edgePPy', ...
+   'edgeS','edgeP','edgeU1','edgeU2');
 
 fprintf(1,'%f sec.', cputime-localStartTime);
