@@ -22,7 +22,7 @@ function varargout = fsmPostProc(varargin)
 
 % Edit the above text to modify the response to help fsmPostProc
 
-% Last Modified by GUIDE v2.5 02-Sep-2004 17:45:57
+% Last Modified by GUIDE v2.5 10-Sep-2004 18:26:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -290,6 +290,12 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
+function editEstMaxRadius_CreateFcn(hObject, eventdata, handles)
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -830,6 +836,58 @@ web(['file:///' which('qFSM_speckleClasses.html')]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %
+% %  ESTIMATE SEARCH RADIUS FOR SPECKTACKLE'S TRACKER
+% %
+% %    (and related functions/callbacks)
+% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function pushEstSearchR_Callback(hObject, eventdata, handles)
+
+% Get project information and paths
+projDir=getProjDir(handles);
+if isempty(projDir)
+    uiwait(errordlg('No project defined. Please create/load a project in fsmCenter.','Error','modal'));
+    return
+end
+
+% Cands subdirectory
+candsDir=[projDir,filesep,'cands'];
+
+% Get max raius from fsmPostProc
+maxRadius=str2num(get(handles.editEstMaxRadius,'String'));
+
+% Call function
+allDistances=fsmEstSearchRadius(candsDir,maxRadius);
+
+% Return output to the MATLAB workspace
+assignin('base','allDistances',allDistances);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  END OF ESTIMATE SEARCH RADIUS FOR SPECKTACKLE'S TRACKER
+%
+%    (and related functions/callbacks)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function editEstMaxRadius_Callback(hObject, eventdata, handles)
+maxR=fix(str2num(get(handles.editEstMaxRadius,'String')));
+if isempty(maxR)
+    maxR=10;
+end
+if maxR<=0
+    maxR=10;
+end
+set(handles.editEstMaxRadius,'String',num2str(maxR));
+
+function pushHelpEstSearchR_Callback(hObject, eventdata, handles)
+web(['file:///' which('qFSM_default.html')]);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
 % %  EXIT CALLBACK
 % %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -872,7 +930,7 @@ function menuHelp_Callback(hObject, eventdata, handles)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function projDir=getProjDir(handles)
+function [projDir,tackProjDir]=getProjDir(handles)
 % Chech whether a project exists
 projDir=get(handles.textCurrentProject,'String');
 if isempty(projDir)
@@ -890,6 +948,9 @@ else
         return    
     end
 end
+
+%%%%%%
+
 
 function updateProjectInfo(handles);
 
@@ -926,3 +987,6 @@ else
     end
     set(handles.popupCurrentExp,'Enable','on');
 end
+
+
+

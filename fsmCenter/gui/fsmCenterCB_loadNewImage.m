@@ -21,7 +21,9 @@ if ~isempty(hFsm)
     handles=guidata(hFsm);
     imagePath=get(handles.textCurrentImage,'String');
     if ~isempty(imagePath)
-        cd(imagePath);
+        if isdir(imagePath)
+            cd(imagePath);
+        end
     end
 end
 
