@@ -6,6 +6,7 @@ function [data,orientation] = calculateTrajectoryFromIdlist(idlist,dataPropertie
 %INPUT    idlist         : any type of idlist
 %         dataProperties : the corresponding data properties
 %         tag1,2         : number (1:nTag) of first and second tag, OR string from labelcolor
+%   if the first four arguments are omitted, the user is asked for input
 %         opt            : optional options structure 
 %                           .info :   struct that should be returned in the
 %                                     output field info. 
@@ -31,12 +32,81 @@ function [data,orientation] = calculateTrajectoryFromIdlist(idlist,dataPropertie
 %c: 11/03 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%=========================
 %-------TEST INPUT--------
+%=========================
 
+%=========================
 %check nargin (we do not really check for correct idlist, dataProperties)
-if nargin < 4
-    error('not enough input arguments. Please define idlist, dataProperties and two tags')
+if nargin < 4 | isempty(idlist) | isempty(dataProperties) | isempty(tag1) | isempty(tag2)
+    [fileName,pathName] = uigetfile({'*-data-??-???-????-??-??-??.mat','project data files'},'select project data file');
+        
+        if fileName==0;
+            h = errordlg('No data loaded','Warning!');
+            uiwait(h);
+            return % end evaluation here
+        end
+        cd(pathName);
+        data = load(fileName); % loads everything into the structure data
+        if ~isfield(data,'dataProperties')
+            h = errordlg('No dataProperties in project data: corrupt data file','Warning!');
+            uiwait(h);
+            return % end evaluation here
+        else
+            dataProperties = data.dataProperties;
+        end
+        %---let the user choose which idlist to load
+        
+        % find which idlists there are
+        dataFieldNames = fieldnames(data);
+        idnameListIdx = strmatch('idlist',dataFieldNames);
+        idnameList = dataFieldNames(idnameListIdx);
+        
+        % have the user choose, if there is more than one entry left
+        switch length(idnameList)
+            case 0 %no idlist loaded. continue w/o loading
+                
+                idname = '';
+                h = errordlg('No idlist found in project data','Warning!');
+                uiwait(h);
+                
+            case 1 % only one idlist loaded. Continue
+                
+                idname = char(idnameList);
+                
+            otherwise %l et the user choose
+                idSelect = chooseFileGUI(idnameList);
+                if isempty(idSelect)
+                    idname = '';
+                    h = errordlg('No data loaded!','Warning!');
+                    uiwait(h);
+                    return % end evaluation here
+                else
+                    idname = idnameList{idSelect};
+                end
+        end
+        
+        eval(['idlist = data.',idname,';']);
+        
+        clear data
+        
+        % get tags
+        tagList = idlist(1).stats.labelcolor;
+        
+        h = helpdlg('Please choose first tag','');
+        uiwait(h);
+        tagNum1 = chooseFileGUI(tagList);
+        tag1 = tagList{tagNum1};
+        tagList(tagNum1)=[];
+        
+        h = helpdlg('Please choose second tag','');
+        uiwait(h);
+        tagNum2 = chooseFileGUI(tagList);
+        tag2 = tagList{tagNum2};
+        
+        clear tagNum1 tagNum2 tagList
 end
+%=========================
 
 %check options structure
 %set defaults
@@ -81,10 +151,16 @@ end
 p2mM = diag([dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_Z]);
 pix2muMat = blkdiag(p2mM,p2mM);
 
+%=========================
 %---END TEST INPUT--------
+%=========================
 
 
+
+
+%=========================
 %-------CALC 2D-CASE IF SELECTED
+%=========================
 switch calc2d
     case 1 %maximum projection
         [outputData3S,outputDataMP] = threeVsTwoD(idlist, dataProperties);
@@ -100,10 +176,17 @@ if isempty(idlist)
     error('can not calculate trajectory: idlist is empty')
 end
         
+%=========================
 %---END CALC 2D-CASE IF SELECTED
+%=========================
 
 
+
+
+
+%=========================
 %-------READ COORDS AND SIGMAZERO AND Q
+%=========================
 
 %cat linklist and extract coords, chi2, timePoints
 linkLists = cat(3,idlist.linklist);
@@ -155,11 +238,15 @@ for t = timePoints' %only look at good timepoints
     ct = ct+1;
 end
 
+%=========================
 %---END READ COORDS AND SIGMAZERO AND Q
+%=========================
 
 
 
+%=========================
 %-------CALC DISTANCE & DISTANCESIGMA
+%=========================
 
 %calc norms
 [distanceN,normedVectors]=normList(distanceVectors);
@@ -167,18 +254,24 @@ end
 %calc sigma
 distanceSigma = adgui_calcPlotData_distanceSigma(anaDat,[1 2],distanceVectors,distanceN,0);
 
+%=========================
 %---END CALC DISTANCE AND DISTANCESIGMA
+%=========================
 
 
 
+%=========================
 %-------READ TIME AND TIMESIGMA
+%=========================
 
 timeAll = dataProperties.frameTime;
 time = mean(timeAll(timePoints,:),2);
 %timeSigma is half the time between (lastCol - firstCol of frameTime)
 timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/2;
 
+%=========================
 %---END READ TIME AND TIMESIGMA
+%=========================
 
 % %-------READ CHI2 - don't need
 % if isempty(chi2)
@@ -188,14 +281,19 @@ timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/2;
 % end
 % %---END READ CHI2
 
-if nargin > 1
+
+
+%=========================
+if nargout > 1
     %orientation: [-pi/2...pi/2]. calculate from vN*[0 0 1]
     orientation = pi/2-acos(normedVectors(:,3));
 else
     orientation = [];
 end
 
+%=========================
 %-------ASSIGN OUTPUT
+%=========================
 data.distance   = [distanceN,distanceSigma];
 data.time       = [time,timeSigma];
 data.timePoints = timePoints;

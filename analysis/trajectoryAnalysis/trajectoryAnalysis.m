@@ -44,13 +44,14 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %                               the program. Otherwise, you have to specify
 %                               this option in
 %                               calculateTrajectoryFromIdlist
-%           - clusterData   : [0/{1}] uses EM clustering to find clusters
+%           - clusterData   : [{0}/1] uses EM clustering to find clusters
 %                               of speeds.
 %                               
 %        testOpt: optional structure with the following optional fields
 %           - splitData     : [{0}/1] split data into two sets, returns two
 %                               output arguments
 %           - debug         : [{0}/1] turns on debug features
+%           - randomize     : [{0}/1] randomize the input list
 %
 %OUTPUT  trajectoryDescription
 %           .individualStatistics(1:n)
@@ -70,7 +71,11 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %c: 11/03 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+
+%===================================================================
 %--------------DEFINE CONSTANTS ET AL-- (for test input, see below)
+%===================================================================
 
 %set defaults
 showDetails = 1;
@@ -82,12 +87,17 @@ saveMat = 0;
 saveMatPath = '';
 saveMatName = '';
 verbose = [1,2]; 
-DEBUG = []; %[1,2] for groupUnits
 fileNameList = {'data_1'};
 calculateTrajectoryOpt.calc2d = 0; %1 or 2 if MP/in-focus slices only
 expOrSim = 'x';
-splitData = 0; %whether or not to split the data into two sets (to check the homogenity of the sample)
-clusterData = 1;
+clusterData = 0;
+
+% test opt
+DEBUG = []; %[1,2] for groupUnits
+splitData = 0; % whether or not to split the data into two sets (to check the homogenity of the sample)
+randomize = 0; % whether or not to randomize the order of the input data
+
+% other
 fidTxt = [];
 
 %defaults not in inputStructure (see also constants!)
@@ -138,10 +148,16 @@ identifierCell{1,2} = s;
 identifierCell{1,3} = length(identifierCell{1,2});
 
 clear h b s
+%===================================================================
 %----------END DEFINE CONSTANTS ET AL--
+%===================================================================
 
 
+
+
+%===================================================================
 %--------------TEST INPUT--------
+%===================================================================
 
 
 %lookfor data
@@ -310,17 +326,28 @@ else
         DEBUG = testOpt.debug;
         constants.DEBUG = DEBUG;
     end
+    if isfield(testOpt,'randomize')
+        randomize = testOpt.randomize;
+    end
 end
 
+%===================================================================
 %----------END TEST INPUT--------
+%===================================================================
 
+
+
+%===================================================================
 %----------assign output---
+%===================================================================
 trajectoryDescription = [];
 trajectoryDescription2 = [];
 %--------------------------
 
 
+%===================================================================
 %--------------LOAD DATA & ASK FOR PATHS---------
+%===================================================================
 if loadData
     
     %go to biodata. remember oldDir first
@@ -328,8 +355,8 @@ if loadData
     cdBiodata(2);
     
     %buld a list of data files
-    fileList = loadFileList({'*-data-??-???-????-??-??-??.mat','project data files';...
-            '*.mte;*.mts;*.mtx','results files'},[1;2]);
+    fileList = loadFileList({'*.mte;*.mts;*.mtx','results files';...
+            '*-data-??-???-????-??-??-??.mat','project data files'},[2;1]);
     
 end
 
@@ -429,10 +456,10 @@ if loadData
         
         try
         %load all
-        all = load(fileList(i).file);
+        allDat = load(fileList(i).file);
         
         %load the idlist specified in lastResult
-        eval(['idlist2use = all.',all.lastResult,';']);
+        eval(['idlist2use = allDat.',allDat.lastResult,';']);
         
         
         
@@ -458,7 +485,7 @@ if loadData
         end
         
         %-----calculate trajectory
-        data(ct) = calculateTrajectoryFromIdlist(idlist2use,all.dataProperties,tag1,tag2,calculateTrajectoryOpt);
+        data(ct) = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
         %-------------------------
         
         %remember fileName
@@ -478,11 +505,18 @@ if loadData
     cd(oldDir);
 end %if loadFiles
 
-clear fileList helpTxt problem i nFiles
+clear fileList helpTxt problem i nFiles allDat
 
+%===================================================================
 %----------END LOAD DATA  & ASK FOR PATHS---------
+%===================================================================
 
+
+
+%===================================================================
 %--------------WRITE FILE-LIST--------
+%===================================================================
+
 %already write the fileList for the results-file (if selected): if
 %something happens during the calculations, at least the list is not lost.
 if saveTxt
@@ -572,9 +606,14 @@ if saveTxt
     
     %do not close file yet - we will write more!
 end
+%===================================================================
 %----------END WRITE FILE-LIST--------
+%===================================================================
 
-%----------COMPARE TWO DATA SETS-----
+%===================================================================
+%----------COMPARE TWO DATA SETS / RANDOMIZE
+%===================================================================
+
 if splitData
     nData = length(data);
     if mod(nData,2)~=0
@@ -584,8 +623,7 @@ if splitData
     % create two sets (thanks to Aaron for the idea!)
     % get nData random numbers, sort, take the first nData/2 indices for
     % the first half etc.
-    randomNumbers = rand(nData,1);
-    [dummy,rankList] = sort(randomNumbers);
+    rankList = randperm(nData);
     dataSet1 = rankList(1:nData/2);
     dataSet2 = rankList(nData/2+1:end);
     
@@ -593,11 +631,26 @@ if splitData
     data  = data(dataSet1); % use data for data1 - makes coding easier
     fileNameList2 = fileNameList(dataSet2);
     fileNameList  = fileNameList(dataSet1); % same as above
+    
+elseif randomize
+    
+    % put data into random order
+    nData = length(data);
+    data = data(randperm(nData));
+    
+    % if splitData, we have everything random already, so no need
+    
 end
+    
+%===================================================================
 %------END COMPARE TWO DATA SETS-----
+%===================================================================
 
 
+%===================================================================
 %--------------CALCULATE---------
+%===================================================================
+
 if DEBUG
     trajectoryDescription = trajectoryAnalysisMain(data,constants,showDetails,doConvergence,verbose,fileNameList);
     if splitData % do the second set
@@ -617,14 +670,19 @@ else
         error(lasterr)
     end
 end
+%===================================================================
 %----------END CALCULATE---------
+%===================================================================
 
 
 %-----add additional info for trajDes here
 %
 %----------------------------------------
 
+%===================================================================
 %-------------STORE DATA---------
+%===================================================================
+
 %splitData only works for saveMat
 
 %save mat file first, because it's less lines
@@ -660,7 +718,13 @@ if saveTxt
     
     for nStat = 1:numStats
         %(I so love these formatted strings)
-        fprintf(fidTxt,'%20s\t%5.6f\t%5.6f\n',statisticsCell{nStat,:});
+        vars2write = [statisticsCell{nStat,:}];
+        switch length(vars2write)
+            case 1
+                fprintf(fidTxt,'%20s\t%5.6f\n',vars2write);
+            case 2
+                fprintf(fidTxt,'%20s\t%5.6f\t%5.6f\n',vars2write);
+        end
     end
     
     %---loop through the individual trajectories, print their overall statistics
@@ -673,7 +737,13 @@ if saveTxt
         %read the list
         statisticsCell = [statisticsTitles,struct2cell(trajectoryDescription.individualStatistics(nFile).summary)];
         for nStat = 1:numStats
-            fprintf(fidTxt,'%20s\t%15.6f\t%15.6f\n',statisticsCell{nStat,:});
+            vars2write = statisticsCell{nStat,:};
+            switch length(vars2write)
+                case 1
+                    fprintf(fidTxt,'%20s\t%5.6f\n',vars2write);
+                case 2
+                    fprintf(fidTxt,'%20s\t%5.6f\t%5.6f\n',vars2write);
+            end
         end
     end
     %DO NOT UNCOMMENT - USE ONLY AS TEMPLATE           
@@ -696,4 +766,6 @@ if saveTxt
 end %if saveTxt
 
 
+%===================================================================
 %---------END STORE DATA---------
+%===================================================================

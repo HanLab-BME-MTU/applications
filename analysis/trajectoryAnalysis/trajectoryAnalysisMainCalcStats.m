@@ -213,6 +213,11 @@ shrinkageGroups = findGroups(stateListShrinkage,2);
 %pause & undetermined & deleted
 pauseIdx = find(dataListG(:,3)==3);
 undeterminedIdx = find(dataListG(:,3)<=0 & dataListG(:,3) >= -constants.MAXDELETED);
+
+% try to find undetermined groups
+undeterminedGroups = findGroups(dataListG(:,3),[0:-1:constants.MAXDELETED]);
+
+
 deletedIdx = find(dataListG(:,3) < -constants.MAXDELETED);
 
 sigmaMax  = max(dataListG(:,5:6),[],2);
@@ -233,13 +238,14 @@ if ~isempty(growthIdx)
     % for the difference between values, not for the individual stds!
     
     % 2/23: Do not use sigma-weighting any more: too unstable!
-    indGrowthSpeedSigma = 60*sigmaMax(growthIdx)./(abs(dataListG(growthIdx,4)).*sqrt(dataListG(growthIdx,7)));
+    % indGrowthSpeedSigma = sigmaMax(growthIdx)./(abs(dataListG(growthIdx,4)).*sqrt(dataListG(growthIdx,7)));
 %     [growthSpeedMean, growthSpeedStd] = weightedStats(dataListG(growthIdx,4),...
 %         indGrowthSpeedSigma,'s');
 %     [growthSpeedMeanPW, growthSpeedStdPW] = weightedStats(dataListG(growthIdx,4),...
 %         sigmaMax(growthIdx),'s');
     
     % use normal mean, weigh only with time
+    indGrowthSpeedSigma = 1./dataListG(growthIdx,7);
     [growthSpeedMeanNW,growthSpeedStdNW] = weightedStats(dataListG(growthIdx,4)*60,dataListG(growthIdx,7),'w');
     
     %transform to um/min
@@ -309,7 +315,7 @@ if ~isempty(shrinkageIdx)
     % for the difference between values, not for the individual stds!
     
     % 2/23: Do not use sigma-weighting any more: too unstable!
-     indShrinkageSpeedSigma = 60*sigmaMax(shrinkageIdx)./(abs(dataListG(shrinkageIdx,4)).*sqrt(dataListG(shrinkageIdx,7)));
+    % indShrinkageSpeedSigma = sigmaMax(shrinkageIdx)./(abs(dataListG(shrinkageIdx,4)).*sqrt(dataListG(shrinkageIdx,7)));
 % 
 %     [shrinkageSpeedMean, shrinkageSpeedStd] = weightedStats(dataListG(shrinkageIdx,4),...
 %         indShrinkageSpeedSigma,'s');
@@ -317,6 +323,7 @@ if ~isempty(shrinkageIdx)
 %         sigmaMax(shrinkageIdx),'s');
 
     %non-weighted stats
+    indShrinkageSpeedSigma = 1./dataListG(shrinkageIdx,7);
     [shrinkageSpeedMeanNW,shrinkageSpeedStdNW] = weightedStats(dataListG(shrinkageIdx,4)*60,dataListG(shrinkageIdx,7),'w');
     
     %transform to um/min
@@ -351,9 +358,13 @@ end
 if ~isempty(undeterminedIdx)
     %time
     undeterminedTimeTotal = sum(dataListG(undeterminedIdx,7));
-    %distance
-    [undeterminedDistanceMean,undeterminedDistanceStd] = ...
-        weightedStats(abs(dataListG(undeterminedIdx,9)),dataListG(undeterminedIdx,10),'s');
+    %distance - use groups
+    for i = 1:size(undeterminedGroups,1)
+        groupDist(i,1) = sum(dataListG(undeterminedGroups(i,1):undeterminedGroups(i,2),9));
+        groupDist(i,2) = sum(dataListG([undeterminedGroups(i,1),undeterminedGroups(i,2)],10));
+    end
+    %use absolute values for undetermined distance!
+    [undeterminedDistanceMean,undeterminedDistanceStd] = weightedStats(abs(groupDist(:,1)),groupDist(:,2),'s');
 end
 
 %PAUSE
@@ -448,7 +459,7 @@ if nargout > 1
     
     if ~isempty(growthIdx)
         [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
-                indGrowthSpeedSigma*growthSpeedMeanNW],'norm',1,0);
+                indGrowthSpeedSigma],'norm',1,0); %indGrowthSpeedSigma*growthSpeedMeanNW
         
         % if requested and possible, cluster speeds
         if nargout > 2 & length(growthIdx) > constants.MAXCLUSTER
@@ -463,7 +474,7 @@ if nargout > 1
             % #of clusters, relative weights, positions, covariances = 
             %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
             [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(indGrowthSpeeds',...
-                constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-4,1,[],[],any(verbose==4));
+                constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-6,1,[],[],any(verbose==4));
             % and strore
             clusterStruct(1).antipolewardBestK = (gbestk); 
             
@@ -471,7 +482,7 @@ if nargout > 1
             for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
                 % force EM to return data only for selected k of means
                 [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(indGrowthSpeeds',...
-                    kCluster,kCluster,0,1e-4,1,[],[],any(verbose==4));
+                    kCluster,kCluster,0,1e-6,1,[],[],any(verbose==4));
                 
                 [antipolewardMeans,muIdx] = sort(gbestmu);
                 antipolewardWeight = gbestpp(muIdx);
@@ -486,7 +497,7 @@ if nargout > 1
     end
     if ~isempty(shrinkageIdx)
         [shrinkageSpeedDistY,shrinkageSpeedDistX] = contHisto([60*dataListG(shrinkageIdx,4),...
-                indShrinkageSpeedSigma*abs(shrinkageSpeedMeanNW)],'norm',1,0);
+                indShrinkageSpeedSigma],'norm',1,0); % indShrinkageSpeedSigma*abs(shrinkageSpeedMeanNW)
         
         % if requested and possible, cluster speeds
         if nargout > 2 & length(shrinkageIdx) > constants.MAXCLUSTER
@@ -501,7 +512,7 @@ if nargout > 1
             % #of clusters, relative weights, positions, covariances = 
             %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
             [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(indShrinkageSpeeds',...
-                constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-4,1,[],[],any(verbose==4));
+                constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-6,1,[],[],any(verbose==4));
             % store cluster data
             clusterStruct(1).polewardBestK = (sbestk);
             
@@ -509,7 +520,7 @@ if nargout > 1
             for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
                 % force EM to return data only for selected k of means
                 [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(indShrinkageSpeeds',...
-                    kCluster,kCluster,0,1e-4,1,[],[],any(verbose==4));
+                    kCluster,kCluster,0,1e-6,1,[],[],any(verbose==4));
                 
                 [polewardMeans,muIdx] = sort(sbestmu);
                 polewardWeight = sbestpp(muIdx);
