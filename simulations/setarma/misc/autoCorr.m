@@ -12,6 +12,9 @@ function [gamma,errFlag] = autoCorr(traj,maxLag)
 %                where gamma(i) is the autocorrelation at lag i-1.
 %       errFlag: 0 if function executes normally, 1 otherwise.
 %
+%REMARKS Input trajectories could have a nonzero mean. The algorithm accounts 
+%        for that.
+%
 %Khuloud Jaqaman, April 2004
 
 %initialize output

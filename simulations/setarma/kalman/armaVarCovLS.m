@@ -6,8 +6,8 @@ function [varCovMat,arParam,maParam,errFlag] = armaVarCovLS(...
 %    trajectories,wnVector,arOrder,maOrder)
 %
 %INPUT  trajectories: Structure array containing trajectories to be modeled:
-%           .traj      : 2D array of measurements and their uncertainties.
-%                        Missing points should be indicated with NaN.
+%           .observations: 2D array of measurements and their uncertainties.
+%                          Missing points should be indicated with NaN.
 %       wnVector    : Structure containing 1 field:
 %           .series    : Estimated white noise series in a trajectory.
 %       arOrder     : Order of AR part of process.
@@ -35,12 +35,13 @@ end
 
 %check input data
 for i=1:length(trajectories);
-    [trajLength,nCol] = size(trajectories(i).traj);
+    [trajLength,nCol] = size(trajectories(i).observations);
     if nCol ~= 2
         if nCol == 1 %if no error is supplied, it is assumed that there is no observational error
-            trajectories(i).traj = [trajectories(i).traj ones(trajLength,1)];
+            trajectories(i).observations = [trajectories(i).observations ...
+                ones(trajLength,1)];
         else
-            disp('--armaCoefKalman: "trajectories.traj" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+            disp('--armaCoefKalman: "trajectories.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
             errFlag = 1;
         end
     end
@@ -62,7 +63,7 @@ epsilon = [];
 for i = 1:length(trajectories)
     
     %obtain available points in this trajectory
-    available = find(~isnan(trajectories(i).traj(:,1)));
+    available = find(~isnan(trajectories(i).observations(:,1)));
 
     %find data points to be used in fitting
     fitSet = available(find((available(maxOrder+1:end)-available(1:end-maxOrder))...
@@ -75,23 +76,23 @@ for i = 1:length(trajectories)
     %[size: fitLength1 by sumOrder]
     prevPoints1 = zeros(fitLength1,sumOrder);
     for j = 1:arOrder
-        prevPoints1(:,j) = trajectories(i).traj(fitSet-j,1)...
-            ./trajectories(i).traj(fitSet,2);
+        prevPoints1(:,j) = trajectories(i).observations(fitSet-j,1)...
+            ./trajectories(i).observations(fitSet,2);
     end    
     for j = arOrder+1:sumOrder
         prevPoints1(:,j) = wnVector(i).series(fitSet-j+arOrder)...
-            ./trajectories(i).traj(fitSet,2);
+            ./trajectories(i).observations(fitSet,2);
     end
     %put points from all trajectories together in 1 matrix
     prevPoints = [prevPoints; prevPoints1];
     
     %form vector of weighted observations
-    observations = [observations; trajectories(i).traj(fitSet,1)...
-            ./trajectories(i).traj(fitSet,2)];
+    observations = [observations; trajectories(i).observations(fitSet,1)...
+            ./trajectories(i).observations(fitSet,2)];
     
     %form vector of weighted errors
     epsilon = [epsilon; wnVector(i).series(fitSet)...
-            ./trajectories(i).traj(fitSet,2)];
+            ./trajectories(i).observations(fitSet,2)];
     
 end %(for i = 1:length(trajectories))
 

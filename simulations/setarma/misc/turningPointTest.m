@@ -6,14 +6,22 @@ function [H,errFlag] = turningPointTest(traj,significance)
 %INPUT  traj        : Trajectory to be tested. An array of structures
 %                     with the field "observations". Missing data points
 %                     in a trajectory should be indicated with NaN.
-%       significance: Significance level of hypothesis test. Default: 0.95.
+%       significance: Significance level of hypothesis test. Default: 0.05.
 %
 %OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
 %       errFlag : 0 if function executes normally, 1 otherwise.
 %
 %REMARK This test is taken from Brockwell and Davis, "Introduction to Time
-%       Series and Forecasting", p.36. Use with caution where there are
-%       missing observations.
+%       Series and Forecasting", p.36. 
+%       The original test is applied to a single time series which does not 
+%       have any missing observations.
+%       Here the test can be applied to several time series that are 
+%       considered to be realizations of the same process and which could 
+%       have missing data points. Thus I generalize the mean to be 2/3 all
+%       points tested. As for the variance, in the book it is given by
+%       (16n-29)/90 = 8(n-2)/45+1/30 = 8(all points tested)/45+1/30. For
+%       large n, 1/30 can be ignored. Thus I approximate the variance by
+%       8(all points tested)/45.
 
 %Khuloud Jaqaman, August 2004
 
@@ -28,26 +36,25 @@ if nargin < 1
     return
 end
 
-%check that trajectories are column vectors and get their overall length
+%check that trajectories are column vectors
 numTraj = length(traj);
-trajLength = 0;
 for i=1:numTraj
     nCol = size(traj(i).observations,2);
     if nCol > 1
         disp('--turningPointTest: Each trajectory should be a column vector!');
         errFlag = 1;
-    else
-        trajLength = trajLength + length(find(~isnan(traj(i).observations)));
     end
 end
 
 %assign default value of significance, if needed
 if nargin < 2
-    significance = 0.95;
+    significance = 0.05;
 end
 
-%get number of turning points
+%get number of turning points and total number of points tested
 numTurnPoints = 0;
+numPointsTested = 0;
+
 for i=1:numTraj %for each trajectory
 
     %check which points are turning points
@@ -56,12 +63,15 @@ for i=1:numTraj %for each trajectory
 
     %calculate number of turning points
     numTurnPoints = numTurnPoints + length(find(turnPointTest>0));
+    
+    %obtain number of points tested
+    numPointsTested = numPointsTested + length(find(~isnan(turnPointTest)));
 
 end
 
 %calculate mean and standard deviation of distribution of number of turning points
-meanTurnPoints = 2*(trajLength-2*numTraj)/3;
-stdTurnPoints = sqrt((16*trajLength-29)/90);
+meanTurnPoints = 2*numPointsTested/3;
+stdTurnPoints = sqrt(8*numPointsTested/45);
 
 %calculate the test statistic
 testStatistic = (numTurnPoints-meanTurnPoints)/stdTurnPoints;
@@ -69,8 +79,8 @@ testStatistic = (numTurnPoints-meanTurnPoints)/stdTurnPoints;
 %get the p-value of the test statistic assuming a standard normal distribution
 pValue = 1 - normcdf(abs(testStatistic),0,1);
 
-if pValue < (1-significance)/2 %if p-value is smaller than limit
-    H = 1; %reject hypothesis that series is IID
-else %if p-value is larger than limit
-    H = 0; %cannot reject hypothesis
+if pValue < significance/2 %if p-value is smaller than probability of type I error
+    H = 1; %reject null hypothesis that series is IID
+else %if p-value is larger than probability of type I error
+    H = 0; %cannot reject null hypothesis
 end

@@ -6,8 +6,8 @@ function [arParam,maParam,wnVariance,wnVector,aic,aicc,errFlag] = ...
 %    armaCoefKalman(trajectories,arParamP0,maParamP0)
 %
 %INPUT  trajectories: Structure array containing trajectories to be modeled:
-%           .traj       : 2D array of measurements and their uncertainties.
-%                         Missing points should be indicated with NaN.
+%           .observations: 2D array of measurements and their uncertainties.
+%                          Missing points should be indicated with NaN.
 %       arParamP0   : Initial guess of partial autoregressive coefficients (row vector).
 %       maParamP0   : Initial guess of partial moving average coefficients (row vector).
 %
@@ -49,17 +49,17 @@ end
 
 %check input data
 for i=1:length(trajectories);
-    traj = trajectories(i).traj;
+    traj = trajectories(i).observations;
     [trajLength,nCol] = size(traj);
     if nCol ~= 2
         if nCol == 1 %if no error is supplied, it is assumed that there is no observational error
             traj = [traj zeros(trajLength,1)];
         else
-            disp('--armaCoefKalman: "trajectories.traj" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+            disp('--armaCoefKalman: "trajectories.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
             errFlag = 1;
         end
     end
-    trajectories(i).traj = traj;
+    trajectories(i).observations = traj;
 end
 [nRow,arOrder] = size(arParamP0);
 if ~isempty(arParamP0)
@@ -94,11 +94,11 @@ param0 = [arParamP0 maParamP0];
 %obtain number of available observations and their indices, and shift
 %trajectory to get zero mean
 for i=1:length(trajectories)
-    traj = trajectories(i).traj;
+    traj = trajectories(i).observations;
     trajectories(i).available = find(~isnan(traj(:,1))); %get indices of available points
     numAvail(i) = length(trajectories(i).available); %get total # of available points
     traj(:,1) = traj(:,1) - mean(traj(trajectories(i).available,1)); %shift trajectory
-    trajectories(i).traj = traj;
+    trajectories(i).observations = traj;
 end
 %calculcate overall number of available points (in all trajectories)
 totAvail = sum(numAvail); 
@@ -135,10 +135,12 @@ if exitFlag > 0
     r = abs(roots([-arParam(end:-1:1) 1]));
     if ~isempty(find(r<=1.00001))
         disp('--armaCoefKalman: Warning: Predicted model not causal!');
+        keyboard;
     end
     r = abs(roots([maParam(end:-1:1) 1]));
     if ~isempty(find(r<=1.00001))
         disp('--armaCoefKalman: Warning: Predicted model not invertible!');
+        keyboard;
     end
 
     %obtain likelihood, white noise sequence and white noise variance
@@ -152,7 +154,7 @@ if exitFlag > 0
         %get the innovations, their variances and the estimated white noise series
         %using Kalman prediction and filtering
         [innovation,innovationVar,wnVector(i).series,errFlag] = ...
-            armaKalmanInnov(trajectories(i).traj,arParam,maParam);
+            armaKalmanInnov(trajectories(i).observations,arParam,maParam);
         if errFlag
             return
         end

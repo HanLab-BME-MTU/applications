@@ -6,7 +6,7 @@ function [H,errFlag] = rankTest(traj,significance)
 %INPUT  traj        : Trajectory to be tested. An array of structures
 %                     with the field "observations". Missing observations 
 %                     should be indicated with NaN.
-%       significance: Significance level of hypothesis test. Default: 0.95.
+%       significance: Significance level of hypothesis test. Default: 0.05.
 %
 %OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
 %       errFlag : 0 if function executes normally, 1 otherwise.
@@ -17,6 +17,8 @@ function [H,errFlag] = rankTest(traj,significance)
 %       observations.
 %
 %Khuloud Jaqaman, August 2004
+
+%%% FIX STD %%%
 
 %initialize output
 H = [];
@@ -44,20 +46,31 @@ end
 
 %assign default value of significance, if needed
 if nargin < 2
-    significance = 0.95;
+    significance = 0.05;
 end
 
-%calculate number of points where x(t) > x(t-1)
+%calculate number of pairs where x(t1) > x(t2) for t1>t2 and get total 
+%number of pairs tested
 numIncPairs = 0;
+numPairsTested = 0
+
 for j = 1:numTraj
     for i=1:trajLength(j)-1
-        numIncPairs = numIncPairs + length(find((traj(j).observations(i+1:...
-            end)-traj(j).observations(i))>0));
+
+        %calculate x(t1) - x(t2)
+        trajDiff = traj(j).observations(i+1:end) - traj(j).observations(i);
+        
+        %get number of pairs with x(t1) > x(t2)
+        numIncPairs = numIncPairs + length(find(trajDiff>0));
+        
+        %get number of pairs tested
+        numPairsTested = numPairsTested + length(find(~isnan(trajDiff)));
+    
     end
 end
 
 %calculate mean and standard deviation of distribution
-meanIncPairs = sum(availLength.*(availLength-1))/4;
+meanIncPairs = numPairsTested/2;
 stdIncPairs = sqrt(sum(availLength)*(sum(availLength)-1)*...
     (2*sum(availLength)+5)/72);
 
@@ -67,8 +80,8 @@ testStatistic = (numIncPairs-meanIncPairs)/stdIncPairs;
 %get the p-value of the test statistic assuming a standard normal distribution
 pValue = 1 - normcdf(abs(testStatistic),0,1);
 
-if pValue < (1-significance)/2 %if p-value is smaller than limit
+if pValue < significance/2 %if p-value is smaller than probability of type I error
     H = 1; %reject hypothesis that series is IID => there is a linear trend
-else %if p-value is larger than limit
+else %if p-value is larger than probability of type I error
     H = 0; %cannot reject hypothesis
 end

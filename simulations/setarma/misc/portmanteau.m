@@ -8,14 +8,18 @@ function [H,errFlag] = portmanteau(traj,maxLag,significance)
 %                     in a trajectory should be indicated with NaN.
 %       maxLag      : Maximum lag used to calculate autocorrelation
 %                     function. Default: 40.
-%       significance: Significance level of hypothesis test. Default: 0.95.
+%       significance: Significance level of hypothesis test. Default: 0.05.
 %
 %OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
 %       errFlag : 0 if function executes normally, 1 otherwise.
 %
 %REMARK This test is taken from Brockwell and Davis, "Introduction to Time
-%       Series and Forecasting", p.36. Use with caution when there are
-%       missing observations.
+%       Series and Forecasting", p.36. In the original test, 1 time series 
+%       which does not have any missing observations is used. Here the test
+%       can be applied to several time series that are considered to be
+%       realizations of the same process and which could have missing data
+%       points. Thus I substitute the total number of points used in the test
+%       for trajectory length in the original test.
 
 %Khuloud Jaqaman, August 2004
 
@@ -30,15 +34,16 @@ if nargin < 1
     return
 end
 
-%check that trajectories are column vectors and get their overall length
-trajLength = 0;
+%check that trajectories are column vectors and get the total number of 
+%available points
+numAvail = 0; %initialize number of points to zero
 for i=1:length(traj)
     nCol = size(traj(i).observations,2);
-    if nCol > 1
+    if nCol > 1 %check that each trajectory is a colum vector
         disp('--portmanteau: Each trajectory should be a column vector!');
         errFlag = 1;
     else
-        trajLength = trajLength + length(find(~isnan(traj(i).observations)));
+        numAvail = numAvail + length(find(~isnan(traj(i).observations)));
     end
 end
 
@@ -49,7 +54,7 @@ end
 
 %assign default value of significance, if needed
 if nargin < 3
-    significance = 0.95;
+    significance = 0.05;
 end
 
 %get autocorrelation function of time series
@@ -61,14 +66,14 @@ end
 gamma = gamma(2:end); %get rid of autocorrelation at 0 lag
 
 %calculate the Ljung and Box test statistic
-QLB = trajLength*(trajLength+2)*sum(gamma.^2./[trajLength-1:-1:trajLength-maxLag]');
+QLB = numAvail*(numAvail+2)*sum(gamma.^2./[numAvail-1:-1:numAvail-maxLag]');
 
 %get the p-value of the test statistic assuming a chi2 distribution
 pValue = 1 - chi2cdf(QLB,maxLag);
 
-if pValue < 1-significance %if p-value is smaller than limit
-    H = 1; %reject hypothesis that series is IID
-else %if p-value is larger than limit
-    H = 0; %cannot reject hypothesis
+if pValue < significance %if p-value is smaller than probability of type I error
+    H = 1; %reject null hypothesis that series is IID
+else %if p-value is larger than probability of type I error
+    H = 0; %cannot reject null hypothesis
 end
 

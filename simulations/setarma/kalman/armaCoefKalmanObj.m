@@ -6,8 +6,8 @@ function neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,trajectories)
 %INPUT  param       : Set of partial ARMA coefficients.
 %       arOrder     : Order of autoregressive part of process.
 %       trajectories: Structure array containing trajectories to be modeled:
-%           .traj     : 2D array of measurements and their uncertainties.
-%                       Missing points should be indicated with NaN.
+%           .observations: 2D array of measurements and their uncertainties.
+%                          Missing points should be indicated with NaN.
 %           .available: Indices of existing observations.
 %
 %OUTPUT neg2LnLikelihood: Value of -2ln(likelihood).
@@ -58,7 +58,7 @@ for i = 1:length(trajectories)
     %get the innovations, their variances and process white noise
     %using Kalman prediction and filtering
     [innovation,innovationVar,wnVector,errFlag] = ...
-        armaKalmanInnov(trajectories(i).traj,arParam,maParam);
+        armaKalmanInnov(trajectories(i).observations,arParam,maParam);
     if errFlag
         return
     end

@@ -6,12 +6,12 @@ function [arParamK,maParamK,wnVariance,wnVector,aic,varCovMat,arParamL,maParamL,
 %    = armaIdentKalman(trajectories,modelParam)
 %
 %INPUT  trajectories: Structure array containing trajectories to be modeled:
-%           .traj     : 2D array of measurements and their uncertainties.
-%                       Missing points should be indicated with NaN.
+%           .observations: 2D array of measurements and their uncertainties.
+%                          Missing points should be indicated with NaN.
 %       modelParam  : Structure array of models to be tested. Each entry consists of 
 %                    2 elements:
-%           .arParamP0: Initial guess of partial autoregressive coefficients (row vector).
-%           .maParamP0: Initial guess of partial moving average coefficients (row vector).
+%           .arParamP0   : Initial guess of partial autoregressive coefficients (row vector).
+%           .maParamP0   : Initial guess of partial moving average coefficients (row vector).
 %
 %OUTPUT arParamK   : 1st row: AR coefficients estimated by Kalman filter.
 %                    2nd row: corresponding partial AR coefficients.
