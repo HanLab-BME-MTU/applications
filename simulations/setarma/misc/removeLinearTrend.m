@@ -1,15 +1,19 @@
-function trajectoryOut = removeLinearTrend(trajectory)
+function [trajectoryOut, linFit] = removeLinearTrend(trajectory, sigmaTrajectory)
 %REMOVELINEARTREND removes a linear trend from a data series 
 %   by doing a robust linear fit and subsequent subtraction. Furthermore,
 %   it sets the mean to zero
 %
-% SYNOPSIS  outTrajectory = removeLinearTrend(trajectory)
+% SYNOPSIS  outTrajectory = removeLinearTrend(trajectory, sigmaTrajectory)
 %
-% INPUT     trajectory: any 1D data series vector. Can contain NaNs
+% INPUT     trajectory     : any 1D data series vector. Can contain NaNs
+%           sigmaTrajectory: (optional) The corresponding uncertainties
 %
 % OUTPUT    trajectoryOut: the above data series without linear trend and
 %                          with zero mean
+%           linFit       : intercept and slope of linear fit
 %
+%
+% currently, there is no error propagation implemented.
 %
 %c: jonas 9/04
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -22,11 +26,18 @@ function trajectoryOut = removeLinearTrend(trajectory)
 trajSizeOri = size(trajectory);
 
 % make into column vector
-trajectory = trajectory(:);
+trajectory = returnRightVector(trajectory);
 
 % and get the new size
 trajSize = size(trajectory);
 
+% check for sigma
+if nargin > 1 && ~isempty(sigmaTrajectory)
+    sigmaTrajectory = returnRightVector(sigmaTrajectory);
+else
+    sigmaTrajectory = ones(trajSize);
+end
+    
 %============
 
 
@@ -41,7 +52,7 @@ A = [ones(trajSize),[1:trajSize(1)]'];
 B = trajectory;
 
 % robust linear fit
-xLin = linearLeastMedianSquares(A,B);
+linFit = linearLeastMedianSquares(A,B,diag(sigmaTrajectory));
 
 %=================
 
@@ -50,7 +61,7 @@ xLin = linearLeastMedianSquares(A,B);
 %===================
 
 % subtract trend
-trajectory = trajectory - A*xLin;
+trajectory = trajectory - A*linFit;
 
 % subtract mean
 trajectoryOut = trajectory - nanmean(trajectory);

@@ -88,7 +88,7 @@ end
 
 % use lsqcurvefit because we can easily input ydata
 options = optimset('Display','off');
-hurst = lsqcurvefit(@fitfun, [xi1, h1], lag, corr, [],[], options)
+hurst = lsqcurvefit(@fitfun, [xi1, h1], lag, corr, [],[], options);
 
 if verbose
 % plot
@@ -98,7 +98,7 @@ plot(lag, exp(-(lag/hurst(1)).^(2*hurst(2))),'r');
 end
 
 % output
-hurstParms = [sigma,xi1,h1;sigma,hurst];
+hurstParms = [sigma,hurst];
 
 %========================
 
