@@ -5,8 +5,8 @@ function [gaussFit, gaussgrad] = multiGauss(fSze,parms)
 %
 % INPUT fSze   : size
 %       parms  : 
-% OUTPUT parms     :  center coordinates 
-%        gaussgrad :  goodness of fit
+% OUTPUT gaussFit  :  image of gaussians
+%        gaussgrad :  image gradient
 
 % c: 29/05/01	dT
 
@@ -35,16 +35,22 @@ for i=1:nGs
     %place the gaussians
     gaussFit=gaussFit+weight*gm;
     
-    % compute parm gradient
-    x1=([-floor(fSze(1)/2):floor(fSze(1)/2)]-center(1))./sigma(1);
-    y1=([-floor(fSze(2)/2):floor(fSze(2)/2)]-center(2))./sigma(2);
-    z1=([-floor(fSze(3)/2):floor(fSze(3)/2)]-center(3))./sigma(3);
-    
-    sca=ones(length(gaussFit(:)),1);
-    tg=[weight*gm(:)*ones(1,7)];
-    
-    [yc, xc,zc]=meshgrid(y1,x1,z1);
-    
-    gaussgrad(:,(i-1)*GAUSS_PARMS+1:i*GAUSS_PARMS)=[xc(:)/sigma(1) yc(:)/sigma(2) zc(:)/sigma(3) xc(:).^2/sigma(1) +yc(:).^2/sigma(2) zc(:).^2/sigma(3) sca/weight ].*tg;
-end;
+    if nargout > 1
+
+        % compute parm gradient
+        x1=([-floor(fSze(1)/2):floor(fSze(1)/2)]-center(1))./sigma(1);
+        y1=([-floor(fSze(2)/2):floor(fSze(2)/2)]-center(2))./sigma(2);
+        z1=([-floor(fSze(3)/2):floor(fSze(3)/2)]-center(3))./sigma(3);
+
+        sca=ones(length(gaussFit(:)),1);
+        tg=[weight*gm(:)*ones(1,7)];
+
+        [yc, xc,zc]=meshgrid(y1,x1,z1);
+
+        gaussgrad(:,(i-1)*GAUSS_PARMS+1:i*GAUSS_PARMS)=...
+            [xc(:)/sigma(1), yc(:)/sigma(2), zc(:)/sigma(3),...
+            xc(:).^2/sigma(1) +yc(:).^2/sigma(2), zc(:).^2/sigma(3), sca/weight ].*tg;
+
+    end
+end
 

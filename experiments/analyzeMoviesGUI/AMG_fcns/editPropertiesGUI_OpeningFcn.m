@@ -156,6 +156,10 @@ set(handles.edit_lensID_txt,'String',header.lensID);
 if header.lensID==12003 %do like this until we can look it up somewhere
     NA = 1.4;
     set(handles.edit_NA_txt,'String',1.4); 
+elseif header.lensID==10002 %do like this until we can look it up somewhere
+    NA = 1.4;
+    set(handles.edit_NA_txt,'String',1.4); 
+    
 else
     NA = [];
     set(handles.edit_NA_txt,'String','','Style','edit');
@@ -183,15 +187,16 @@ set(handles.edit_timeLapse_txt,'String',timeLapse);
 %filter parameters (can't be edited)
 %start assuming that the psf matches the theoretical psf
 handles.sigmaCorrection(1) = 1.12;%1.2 before pixCorr.
-handles.sigmaCorrection(2) = 1.3;%1.3;
+handles.sigmaCorrection(2) = 1.0;%1.3 before NAcorr
 
 set(handles.edit_sigmaCorrX_txt,'String',handles.sigmaCorrection(1));
 set(handles.edit_sigmaCorrY_txt,'String',handles.sigmaCorrection(1));
 set(handles.edit_sigmaCorrZ_txt,'String',handles.sigmaCorrection(2));
 
 if ~isempty(NA)
-    FT_XY =  handles.sigmaCorrection(1)*(0.21*header.wvl(1)/NA)/header.pixelX;
-    FT_Z =  handles.sigmaCorrection(2)*(0.66*header.wvl(1)*1.33/(NA)^2)/header.pixelZ;
+    [FT_XY, FT_Z] = calcFilterParms(...
+        header.wvl(1),NA,1.51,'gauss',handles.sigmaCorrection, [header.pixelX, header.pixelZ]);
+
     patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
     handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
     set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));

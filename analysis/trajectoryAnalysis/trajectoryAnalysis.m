@@ -68,6 +68,9 @@ function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %        testOpt: optional structure with the following optional fields
 %           - splitData     : [{0}/1] split inputData into two sets, returns two
 %                               output arguments
+%           - subset        : [fraction,n] {[1,1]} randomly takes n unique
+%                              subsets of size fraction*nData. MaxN is 100
+%                              (exclusive to splitData).
 %           - debug         : [{0}/1] turns on debug features
 %           - randomize     : [{0}/1] randomize the input list
 %           - clustermax    : max # of clusters the EM algorithm looks for

@@ -467,7 +467,7 @@ for t=1:movieLength
     switch resample
         case 1
             synthMovie(:,:,:,1,t) = ...
-                resampleMean(synthStackTmp,sampling .* ones(1,3), pixelSize);
+                imResample(synthStackTmp,sampling .* ones(1,3), pixelSize);
         case 0
             synthMovie(:,:,:,1,t) = synthStackTmp;
     end

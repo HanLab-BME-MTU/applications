@@ -235,8 +235,8 @@ try %tries to convert input into double. If it fails or if input<0, input is del
     else %calculate filter parameters
         wvl = str2double(get(handles.edit_wavelength_txt,'String'));
         NA = num;
-        FT_XY =  handles.sigmaCorrection(1)*(0.21*wvl/NA)/handles.pixelsizeXYZ(1);
-        FT_Z =  handles.sigmaCorrection(2)*(0.66*wvl*1.33/(NA)^2)/handles.pixelsizeXYZ(2);
+        [FT_XY, FT_Z] = calcFilterParms(...
+            wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
         patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
         handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
         set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
