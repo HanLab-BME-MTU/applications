@@ -123,7 +123,7 @@ end
 %check for causality of estimated model
 r = abs(roots([-arParam(end:-1:1) 1]));
 if ~isempty(find(r<=1.00001))
-    disp('--arlsestimGapsFill: Warning: Predicted model (arParam0) not causal!');
+    disp('--arlsestim0: Warning: Predicted model (arParam0) not causal!');
 end
 
 %get vector of weighted residuals

@@ -46,22 +46,18 @@ trajMean = mean(traj(find(~isnan(traj))));
 gamma = zeros(maxLag+1,1);
 for i = 0:maxLag 
     
-    %find tentative pairs of points to be used in calculation
+    %find pairs of points to be used in calculation
     vec1 = traj(1:end-i);
     vec2 = traj(i+1:end);
     
-    %remove all pairs with a missing point in the first vector
-    indx = find(~isnan(vec1));
-    vec1 = vec1(indx);
-    vec2 = vec2(indx);
+    %multiply mean-subtracted vectors
+    vecMult = (vec1-trajMean).*(vec2-trajMean);
     
-    %remove all pairs with a missing point in the second vector
-    indx = find(~isnan(vec2));
-    vec1 = vec1(indx) - trajMean;
-    vec2 = vec2(indx) - trajMean;
-    
+    %remove all pairs with missing point(s)
+    vecMult = vecMult(find(~isnan(vecMult)));
+
     %calculare the autocorrelation function
-    gamma(i+1) = mean(vec1.*vec2);
+    gamma(i+1) = mean(vecMult);
     
 end
 

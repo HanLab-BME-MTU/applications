@@ -1,7 +1,7 @@
 %script test3
 
-trajLength = 5000; %trajectory length
-missing = 1000;
+trajLength = 10000; %trajectory length
+missing = 2000;
 arOrder = 4;
 
 maxErr = 0.025; %maximum measurement error standard deviation
@@ -17,7 +17,7 @@ for i = 1:1
     perturb = (2*rand(trajLength,1)-1)*2.*err; %perturbation due to measurement error
     traj = [traj1+perturb err]; %trajectory with perturbation
     
-    [arParam(i,:),varCovMat(:,:,i),residuals(:,i),noiseSigma(i),errFlag] = arlsestim0(traj,arOrder);
+%    [arParam(i,:),varCovMat(:,:,i),residuals(:,i),noiseSigma(i),errFlag] = arlsestim0(traj,arOrder);
     
     traj2 = traj; %copy traj1 into traj2
     
