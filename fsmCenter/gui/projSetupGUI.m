@@ -269,9 +269,9 @@ if isdir(projDir)
          filesepInd = findstr('/',imgDir);
          mntInd = findstr('/mnt/',imgDir);
          if isempty(mntInd)
-            unix_imgDrive = imgDir(1:filesepInd(3)-1);
-         else
             unix_imgDrive = imgDir(1:filesepInd(2)-1);
+         else
+            unix_imgDrive = imgDir(1:filesepInd(3)-1);
          end
       elseif ispc == 1
          colonInd = findstr(':',imgDir);
@@ -293,14 +293,20 @@ if isdir(projDir)
     if isunix==1
         projSettings.unix_imgDirList = imgDirList;
 
-        if samdir(handles.win_imgDrive,win_imgDrive)
-           projSettings.win_imgDirList = dirUnix2PC(imgDirList,win_imgDrive);
+        if samdir(handles.unix_imgDrive,unix_imgDrive)
+           if isdir(handles.win_imgDrive)
+              projSettings.win_imgDirList = ...
+                 dirUnix2PC(imgDirList,handles.win_imgDrive);
+           end
         end
         settingsFileName='lastProjSettings_unix.txt';
     elseif ispc==1
         projSettings.win_imgDirList = imgDirList;
-        if samdir(handles.unix_imgDrive,unix_imgDrive)
-           projSettings.unix_imgDirList = dirPC2Unix(imgDirList,unix_imgDrive);
+        if samdir(handles.win_imgDrive,win_imgDrive)
+           if isdir(handles.unix_imgDrive)
+              projSettings.unix_imgDirList = ...
+                 dirPC2Unix(imgDirList,handles.unix_imgDrive);
+           end
         end
         settingsFileName='lastProjSettings_win.txt';
     else
