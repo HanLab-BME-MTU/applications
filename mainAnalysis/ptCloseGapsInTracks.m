@@ -42,7 +42,8 @@ for iCount = 1 : size (matchedCells,1)
    
    % Based on this info the position in M where the frame was lost can now
    % be calculated
-   lostCellMEntry = ceil ((frameLostCell - startFrame) / increment);
+   %lostCellMEntry = ceil ((frameLostCell - startFrame) / increment);
+   lostCellMEntry = frameLostCell;
    
    % Get the lost cell coordinates
    lostCell = matchedCells (iCount, 1:2);
@@ -57,14 +58,14 @@ for iCount = 1 : size (matchedCells,1)
    newCellMInd = find (M (:,3,frameNr) == newCell (1) & M (:,4,frameNr) == newCell (2));
 
    % How many frames are in between the lost and new cell?
-   numberOfFrames = frameNr - lostCellMEntry;
+   numberOfFrames = ceil((frameNr - lostCellMEntry) / increment);
 
    % Using the lost and new cell coordinates and the number of frames in between, the
    % missing coordinates can be calculated
    y = []; x = [];
    for jCount = 1 : numberOfFrames
-      y(jCount) = (floor(((newCell(1) - lostCell(1)) / numberOfFrames)) * jCount) + lostCell(1);
-      x(jCount) = (floor(((newCell(2) - lostCell(2)) / numberOfFrames)) * jCount) + lostCell(2);
+      y(jCount) = (ceil(((newCell(1) - lostCell(1)) / (numberOfFrames+1))) * jCount) + lostCell(1);
+      x(jCount) = (ceil(((newCell(2) - lostCell(2)) / (numberOfFrames+1))) * jCount) + lostCell(2);
    
       % Using the cluster (binary) image of the cells (nuclei and halos combined) make sure
       % the calculated coordinate are actually in a cell area

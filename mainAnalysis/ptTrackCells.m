@@ -232,7 +232,7 @@ else		% lastImaNum > firstImaNum
                      % cell: add it to the lost cell list. We might find it again later
                      % so that we can close the gap in the track
                      % The current M entry is different from the current frame nr: recalculate
-                     currentMEntry = imageCount;
+                     currentMEntry = ceil ((imageCount - startFrame) / increment);
                      if isempty (lostCells)
                         lostCells = [unmatchedCellCoord, currentMEntry];
                      else
@@ -257,7 +257,7 @@ else		% lastImaNum > firstImaNum
                                                                          boxSizeImage);
                                                                      
                % Make sure that we only accept cells with a minimum correlation
-	       if correlation > minimalQualityCorr
+	           if correlation > minimalQualityCorr
                   if (min(sqrt ((newCoord(:,1) - templateCellCoord(1,1)).^2 + ...
                                 (newCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell   
 

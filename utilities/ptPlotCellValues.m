@@ -20,8 +20,12 @@ function ptPlotCellValues (ptPostpro)
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file
 
 % First assign all the postpro fields to a meaningfull variable
-startFrame = ptPostpro.plotfirstimg;
-endFrame = ptPostpro.plotlastimg;
+startFrame = ptPostpro.firstimg;
+endFrame = ptPostpro.lastimg;
+increment = ptPostpro.increment;
+plotStartFrame = ptPostpro.plotfirstimg;
+plotEndFrame = ptPostpro.plotlastimg;
+numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagename;
@@ -51,74 +55,88 @@ perimeterPlot = ptPostpro.perimeterplot;
 cellProps = ptPostpro.cellProps;
 clusterProps = ptPostpro.clusterProps;
 
+% Initialize properties counter
+propCount = ceil ((plotStartFrame - startFrame) / increment);
+
+% Initialize X-axis vector and counter
+xAxis = zeros (1, numberOfFrames);
+iCount = 0;
+
 % Calculate a number of statistics for every frame
-for frameCount = startFrame : endFrame
+for frameCount = plotStartFrame : increment : plotEndFrame
    
+   % Update the properties counter
+   propCount = propCount + 1;
+    
+   % Update the x-axis vector and counter
+   iCount = iCount + 1;
+   xAxis (iCount) = frameCount;
+    
    % Remove the zero rows from cellProps 
-   [notZeroEntryRows, notZeroEntryCols] = find (cellProps (:,:,frameCount));
+   [notZeroEntryRows, notZeroEntryCols] = find (cellProps (:,:,propCount));
    notZeroEntryRows = unique (notZeroEntryRows);
-   cells = cellProps (notZeroEntryRows,:,frameCount);
+   cells = cellProps (notZeroEntryRows,:,propCount);
    
    % Remove the zero rows from clusterProps 
-   [notZeroEntryRows, notZeroEntryCols] = find (clusterProps (:,:,frameCount));
+   [notZeroEntryRows, notZeroEntryCols] = find (clusterProps (:,:,propCount));
    notZeroEntryRows = unique (notZeroEntryRows);
-   clusters = clusterProps (notZeroEntryRows,:,frameCount);
+   clusters = clusterProps (notZeroEntryRows,:,propCount);
    
    % Calculate the amount of all cells per frame
-   cellAmount  (frameCount) = sum (clusters (:, 2));
+   cellAmount  (iCount) = sum (clusters (:, 2));
    
    % Calculate the amount of clusters per frame (a cluster should contain at
    % least 2 nuclei (and therefore we use > 1)
-   clusterAmount (frameCount) = size (clusters (find (clusters (:,2) > 1)), 1);
+   clusterAmount (iCount) = size (clusters (find (clusters (:,2) > 1)), 1);
    
    % Calculate the average amount of cells per cluster
-   sumCellsInCluster (frameCount) = sum (clusters (find (clusters (:,2) > 1), 2));
-   if clusterAmount (frameCount)
-      cellsPerCluster (frameCount) = round ( sumCellsInCluster (frameCount) / clusterAmount (frameCount));
+   sumCellsInCluster (iCount) = sum (clusters (find (clusters (:,2) > 1), 2));
+   if clusterAmount (iCount)
+      cellsPerCluster (iCount) = round ( sumCellsInCluster (iCount) / clusterAmount (iCount));
    else
-      cellsPerCluster (frameCount) = 0;
+      cellsPerCluster (iCount) = 0;
    end
    
    % Calculate the amount of single cells per frame. This is in principle a
    % cluster with only one nuclei
-   singleCellAmount (frameCount) = size (clusters (find (clusters (:,2) == 1)), 1);
+   singleCellAmount (iCount) = size (clusters (find (clusters (:,2) == 1)), 1);
    
    % Calculate the percentage of single cells
-   percentageSingleCells (frameCount) = (singleCellAmount (frameCount) / ...
-                                        (singleCellAmount (frameCount) + sumCellsInCluster (frameCount))) * 100.0;
+   percentageSingleCells (iCount) = (singleCellAmount (iCount) / ...
+                                    (singleCellAmount (iCount) + sumCellsInCluster (iCount))) * 100.0;
                                     
    % Calculate the percentage of clustered cells
-   percentageClusteredCells (frameCount) = 100.0 - percentageSingleCells (frameCount);
+   percentageClusteredCells (iCount) = 100.0 - percentageSingleCells (iCount);
    
    % Calculate the average area per cluster
-   sumClusterArea (frameCount) = sum (clusters (find (clusters (:,2) > 1), 3));
-   if clusterAmount (frameCount) ~= 0
-      areaPerCluster (frameCount) = sumClusterArea (frameCount) / clusterAmount (frameCount);
+   sumClusterArea (iCount) = sum (clusters (find (clusters (:,2) > 1), 3));
+   if clusterAmount (iCount) ~= 0
+      areaPerCluster (iCount) = sumClusterArea (iCount) / clusterAmount (iCount);
    else
-      areaPerCluster (frameCount) = 0;
+      areaPerCluster (iCount) = 0;
    end
    
    % Calculate the average area per single cell
-   sumSingleCellArea (frameCount) = sum (clusters (find (clusters (:,2) == 1), 3));
-   if singleCellAmount (frameCount) ~= 0
-      areaPerSingleCell (frameCount) = sumSingleCellArea (frameCount) / singleCellAmount (frameCount);
+   sumSingleCellArea (iCount) = sum (clusters (find (clusters (:,2) == 1), 3));
+   if singleCellAmount (iCount) ~= 0
+      areaPerSingleCell (iCount) = sumSingleCellArea (iCount) / singleCellAmount (iCount);
    else
-      areaPerSingleCell (frameCount) = 0;
+      areaPerSingleCell (iCount) = 0;
    end
    
    % Calculate average perimeter length
-   sumClusterPerimeter (frameCount) = sum (clusters (find (clusters (:,2) > 1), 4));
-   if clusterAmount (frameCount) ~= 0 
-      perimeterLength (frameCount) = sumClusterPerimeter (frameCount) / clusterAmount (frameCount);
+   sumClusterPerimeter (iCount) = sum (clusters (find (clusters (:,2) > 1), 4));
+   if clusterAmount (iCount) ~= 0 
+      perimeterLength (iCount) = sumClusterPerimeter (iCount) / clusterAmount (iCount);
    else
-      perimeterLength (frameCount) = 0;
+      perimeterLength (iCount) = 0;
    end
    
    % Calculate perimeter / area for clusters
-   if sumClusterArea (frameCount) ~= 0
-      perimeterDivArea (frameCount) = sumClusterPerimeter (frameCount) / sumClusterArea (frameCount);
+   if sumClusterArea (iCount) ~= 0
+      perimeterDivArea (iCount) = sumClusterPerimeter (iCount) / sumClusterArea (iCount);
    else
-      perimeterDivArea (frameCount) = 0;
+      perimeterDivArea (iCount) = 0;
    end
 end 
 
@@ -130,35 +148,35 @@ if cellClusterPlot
    
    % Draw a subplot showing the amount of cells per frame
    ymax = max (cellAmount) + 1;
-   subplot(2,2,1); plot (cellAmount); 
+   subplot(2,2,1); plot (xAxis, cellAmount); 
    title ('Amount of Cells');
    xlabel ('Frames');
    ylabel ('# of cells');
-   axis ([0 endFrame 0 ymax]);     
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
    
    % Draw a subplot showing the amount of clusters per frame
    ymax = max (clusterAmount) + 1;
-   subplot(2,2,2); plot (clusterAmount); 
+   subplot(2,2,2); plot (xAxis, clusterAmount); 
    title ('Amount of Clusters');
    xlabel ('Frames');
    ylabel ('# of clusters');
-   axis ([0 endFrame 0 ymax]);
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
       
    % Draw a subplot showing the amount of cells per cluster
    ymax = max (cellsPerCluster) + 1;
-   subplot (2,2,3); plot (cellsPerCluster); 
+   subplot (2,2,3); plot (xAxis, cellsPerCluster); 
    title ('Average Amount of Cells per Cluster');
    xlabel ('Frames');
    ylabel ('# cells per cluster');
-   axis ([0 endFrame 0 ymax]);
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
  
    % Draw a subplot showing the amount of single cells
    ymax = max (singleCellAmount) + 1;
-   subplot (2,2,4); plot (singleCellAmount); 
+   subplot (2,2,4); plot (xAxis, singleCellAmount); 
    title ('Amount of Single Cells');
    xlabel ('Frames');
    ylabel ('# of single cells');
-   axis ([0 endFrame 0 ymax]);
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
    
    
    % Generate a new figure for percentage single / clustered cels
@@ -166,20 +184,29 @@ if cellClusterPlot
    
    % Draw a subplot showing the percentage of single cells
    ymax = 100.0;   % 100% is the max we can get
-   subplot (2,1,1); plot (percentageSingleCells); 
+   subplot (2,1,1); plot (xAxis, percentageSingleCells); 
    title ('Percentage Single Cells');
    xlabel ('Frames');
    ylabel ('% single cells');
-   axis ([0 endFrame 0 ymax]);
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
    
    % Draw a subplot showing the percentage of clustered cells
    ymax = 100.0;   % 100% is the max we can get
-   subplot (2,1,2); plot (percentageClusteredCells); 
+   subplot (2,1,2); plot (xAxis, percentageClusteredCells); 
    title ('Percentage Clustered Cells');
    xlabel ('Frames');
    ylabel ('% clustered cells');
-   axis ([0 endFrame 0 ymax]);
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
    
+   % Save MAT files for amount of cells and perc. single cells
+   cd (savePath);
+   save ('amountAllCells.mat','cellAmount');
+   save ('percentageSingleCells.mat','percentageSingleCells');
+   
+   % Save CSV files for amount of cells and perc. single cells
+   cd (savePath);
+   csvwrite ('amountAllCells.csv','cellAmount');
+   csvwrite ('percentageSingleCells.csv','percentageSingleCells');
    
    % Save the figures in fig, eps and tif format
    hgsave (h_fig, [savePath filesep 'singleCellsAndClusterStats.fig']);
@@ -195,20 +222,19 @@ if areaPlot
    
    % Draw a subplot showing the avg area of a single cell    
    ymax = max (areaPerSingleCell) + 1;
-   subplot (2,1,1); plot (areaPerSingleCell);
+   subplot (2,1,1); plot (xAxis, areaPerSingleCell);
    title ('Average Single Cell Area');
    xlabel ('Frames');
    ylabel ('Avg single cell area');
-   axis ([0 endFrame 0 ymax]);
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
         
    % Draw a subplot showing the avg area of a cluster
    ymax = max (areaPerCluster) + 1;
-   subplot (2,1,2); plot (areaPerCluster); 
+   subplot (2,1,2); plot (xAxis, areaPerCluster); 
    title ('Average Cluster Area');
    xlabel ('Frames');
    ylabel ('Avg cluster area');
-   axis ([0 endFrame 0 ymax]);
-        
+   axis ([xAxis(1) xAxis(end) 0 ymax]);     
    
    % Save the figures in fig, eps and tif format     
    hgsave(h_fig,[savePath filesep 'cellAndClusterAreaStats.fig']);
@@ -223,20 +249,19 @@ if perimeterPlot
    
    % Draw a plot showing the avg perimeter length of clusters
    ymax = max (perimeterLength) + 1;
-   subplot (2,1,1); plot (perimeterLength); 
+   subplot (2,1,1); plot (xAxis, perimeterLength); 
    title ('Average Perimeter Length of Clusters');
    xlabel ('Frames');
    ylabel ('Perimeter Length');
-   axis ([0 endFrame 0 ymax]);
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
    
    % Draw a plot showing the perimeter of clusters divided by area
    ymax = max (perimeterDivArea);
-   subplot (2,1,2); plot (perimeterDivArea); 
+   subplot (2,1,2); plot (xAxis, perimeterDivArea); 
    title ('Perimeter/Area of Clusters');
    xlabel ('Frames');
    ylabel ('Perimeter/Area');
-   axis ([0 endFrame 0 ymax]);
-        
+   axis ([xAxis(1) xAxis(end) 0 ymax]);     
    
    % Save the figures in fig, eps and tif format        
    hgsave(h_fig,[savePath filesep 'areaPerimStats.fig']);

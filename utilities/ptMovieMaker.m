@@ -1,133 +1,131 @@
-function ptMovieMaker (hObject) 
+function ptMovieMaker (ptPostpro, MPM) 
 % ptMovieMaker makes movies from the information gathered in the analysis
 %
-% SYNOPSIS       ptMovieMaker (hObject)
+% SYNOPSIS       ptMovieMaker (ptPostpro, MPM)
 %
-% INPUT          hObject : handle to an object within PolyTrack_PP
+% INPUT          ptPostpro : a structure which contains the information
+%                            from the GUI
+%                MPM       : matrix containing the cell tracks
 %
-% OUTPUT         no function output: movies are saved to disk          
+% OUTPUT         no function output: movies are saved to file specified by the user         
 %
 % DEPENDENCIES   ptMovieMaker uses { nothing }
 %                                  
 %                ptMovieMaker is used by { PolyTrack_PP }
 %
-% Colin Glass, Feb 04
-handles = guidata (hObject);
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Colin Glass           Feb 04          Initial release
+% Andre Kerstens        Jun 04          Cleaned up source and renamed file.
+%                                       Also made it independent of gui handles
 
-% Determine the size of the MPM matrix
-[numRows, numCols] = size (handles.MPM);
-
-% And get the image name list
-imageNameList = handles.jobvalues.imagenameslist;
+% First assign all the postpro fields to a meaningfull variable
+startFrame = ptPostpro.firstimg;
+endFrame = ptPostpro.lastimg;
+increment = ptPostpro.increment;
+movieStartFrame = ptPostpro.moviefirstimg;
+movieEndFrame = ptPostpro.movielastimg;
+numberOfFrames = ceil((movieEndFrame - movieStartFrame) / increment) + 1;
+savePath = ptPostpro.saveallpath;
+jobPath = ptPostpro.jobpath;
+imageName = ptPostpro.imagename;
+imageDirectory = ptPostpro.imagepath;
+imageNameList = ptPostpro.imagenameslist;
+intensityMax = ptPostpro.intensitymax;
+figureSize = ptPostpro.figureSize;
 
 % How many frames does the user wants to see the tracks of?
-dragTailLength = handles.postpro.dragtail;
+dragTailLength = ptPostpro.dragtail;
 
 % What is the name of the movie
-dragTailFileName = handles.postpro.dragtailfile;
-
-% Starting frame for the movie
-startFrame = handles.postpro.moviefirstimg;
+dragTailFileName = ptPostpro.dragtailfile;
 
 % We need prior images for the dragTail movie
-if startFrame < dragTailLength + 2
-    startFrame = dragTailLength + 2;
+if ceil ((movieStartFrame - startFrame + 1) / increment) < dragTailLength + 1
+    movieStartFrame = ((dragTailLength + 1) * increment) + 1;
 end
-
-% Last frame for the movie
-lastFrame = handles.postpro.movielastimg;
-
-% Make sure it doesn't go out of range
-if lastFrame > handles.jobvalues.lastimage
-   lastFrame = handles.jobvalues.lastimage;
-elseif lastFrame < startFrame
-   h = errordlg('First frame, last frame and dragtail length are not compatible! Please change these.');
-   uiwait(h);          % Wait until the user presses the OK button
-   return;
-end;
-
-% Get image and save directory and go to save dir
-imageDirectory = handles.postpro.imagepath;
-savePath = handles.postpro.saveallpath;
+ 
+% Go to the directory where the image will be saved
 cd (savePath);
 
 % Initialize the movie
 makeQTMovie ('start', dragTailFileName);
 %mov = avifile ('dragtail.avi')
 
-% Initialize counter
-frameCounter = startFrame - 1;
+% Initialize MPM counter
+MPMCount = ceil ((movieStartFrame - startFrame) / increment);
 
 % Let the user know we are starting
-fprintf (1, 'ptMovieMaker: starting to generate movie frames %d to %d...\n', startFrame, lastFrame);
+fprintf (1, '\nptMovieMaker: Generating movie frames: ');
 
 % Start doing the actual work to create the movie
-for movieStep = startFrame : lastFrame
+for movieStep = movieStartFrame : increment : movieEndFrame
     
-   % counter
-   frameCounter = frameCounter + 1;
-   fprintf (1, 'ptMovieMaker: Creating movie frame # %d ...\n', frameCounter); 
+   % Let the user know where we are
+   fprintf (1, '%d ', movieStep); 
+   
+   % Increase MPM counter
+   MPMCount = MPMCount + 1;
     
-   % Use only the cells chosen by the user
-   if ~isempty (handles.selectedcells)
-      selectedCells = zeros (size (handles.selectedcells, 1), 2);
-      selectedCells(:,:) = handles.MPM (handles.selectedcells, (2 * movieStep - 1):(2 * movieStep));
-   else
-      selectedCells = zeros (size (handles.MPM, 1), 2);
-      selectedCells(:,:) = handles.MPM (:, (2 * movieStep - 1):(2 * movieStep));
-   end
-
-   % selectedCells defines which cells will be taken into account. This is
-   % either defined by the user (PolyTrack_PP) or it will just be all cells
-   % within the current picture
-     
+   selectedCells = zeros (size (MPM, 1), 2);
+   selectedCells(:,:) = MPM (:, (2 * MPMCount - 1):(2 * MPMCount));
+      
+   % Remove the zero rows
    selectedCells = find (selectedCells(:,1) & selectedCells(:,2)); 
    
+   % Go the image directory and fetch the current frame
    cd (imageDirectory);
-
    name = char (imageNameList (movieStep)); 
-   nowImgH = imreadnd2 (name, 0, handles.jobvalues.intensityMax);
-
-   [rows,cols] = find (handles.MPM);
-		
-   % if the user specified a size for the movie, that's the size we are going to use
-   if ~isempty (handles.postpro.figureSize)
-      figure ('Position', handles.postpro.figureSize);
-      imshow (nowImgH, []);
+   nowImgH = imreadnd2 (name, 0, intensityMax);
+	
+   % If the user specified a size for the movie, that's the size we are going to use
+   if ~isempty (figureSize)
+      figure ('Position', figureSize), imshow (nowImgH, []);
    else
       figure, imshow (nowImgH, []);
    end
 
+   % Hold on the figure for the dragtail drawing
    hold on;
+   
    % One colour per time step (dragTailLength tells you how many
-   % timesteps there are
+   % timesteps there are)
    colorMap = jet (dragTailLength + 1);
 
    % Initialize the dragtail counter
    colorCount = 0;
         
-   % Loop through the previous pictures to generate the dragtails
-   for iCount = (2 * (movieStep - dragTailLength)) : 2 : (2 * movieStep)
+   % Loop through the previous frames to generate the dragtails
+   for iCount = (2 * (MPMCount - dragTailLength)) : 2 : (2 * MPMCount)
+       
+      % Increase dragtail counter
       colorCount = colorCount + 1;
-      vec = handles.MPM (selectedCells, iCount-3 : iCount);
-      [rows, cols] = find (vec == 0);
+      
+      % Get the needed frames from MPM
+      selectedFrames = MPM (selectedCells, iCount-3 : iCount);
+      
+      % Find the ones that contain zeros and make the whole row 0
+      [rows, cols] = find (selectedFrames == 0);
       rows = unique (rows);
-      vec (rows,:) = 0;
+      selectedFrames (rows,:) = 0;
 
-      for hCount = 1 : size (vec,1)
-         if vec (hCount,1) ~= 0
+      % Overlay the dragtails on the figure
+      for hCount = 1 : size (selectedFrames,1)
+         if selectedFrames (hCount,1) ~= 0
 	        ph = [];
-	        ph = plot (vec (hCount, 1:2:3), vec (hCount, 2:2:4));
+	        ph = plot (selectedFrames (hCount, 1:2:3), selectedFrames (hCount, 2:2:4));
 	        set (ph, 'Color', colorMap (colorCount,:));
 	        clear ph;
-         end   % if vec
+         end   % if selectedFrames
       end   % for hCount
    end   % for iCount
         
-   % Plot the points that actually belong to the current picture
-   plot (vec (:,3), vec (:,4), 'r.');
+   % Plot the generated dragtail points on the figure
+   plot (selectedFrames (:,3), selectedFrames (:,4), 'r.');
    hold off;
 
+   % Go to the directory where the movies are stored
    cd (savePath);
   
    % Add the current figure to the movie
@@ -137,6 +135,7 @@ for movieStep = startFrame : lastFrame
    
    % Close the figure
    close;
+   
 end   % for movieStep
 
 % finalize the movie and write it to disk
@@ -144,4 +143,4 @@ makeQTMovie ('finish');
 %mov = close(mov);
 
 % Let the user know we have finished
-fprintf (1, 'ptMovieMaker: finished generating movie.\n');
+fprintf (1, '\nptMovieMaker: finished generating movie.\n');

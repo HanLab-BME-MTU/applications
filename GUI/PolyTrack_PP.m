@@ -149,11 +149,6 @@ if strcmp (filename, 'MPM.mat')
       uiwait(h);          % Wait until the user presses the OK button
       return;
    end
-   
-   % Step back one directory
-   cd ..
-   jobValPath = [pwd, filesep];
-
 elseif strcmp (filename, 'jobvalues.mat')
    % Load the M.mat file which should be present
    if exist ('M.mat', 'file')
@@ -180,13 +175,20 @@ elseif strcmp (filename, 'jobvalues.mat')
 end
     
 % Load the jobvalues file
-if exist('jobvalues.mat', 'file')
-   load('jobvalues.mat');
+if exist ('jobvalues.mat', 'file')
+   load ('jobvalues.mat');
    handles.jobvalues = jobvalues;
 else
-   h = errordlg('The file jobvalues.mat does not exist...');
-   uiwait(h);          % Wait until the user presses the OK button
-   return;
+   % It might be one directory back if it is a processed MPM file
+   cd ..;
+   if exist ('jobvalues.mat', 'file')
+      load ('jobvalues.mat');
+      handles.jobvalues = jobvalues;
+   else
+      h = errordlg ('The file jobvalues.mat does not exist...');
+      uiwait(h);          % Wait until the user presses the OK button
+      return;
+   end
 end
 
 % Load the cell properties file if it exists
@@ -243,6 +245,8 @@ end
 handles.selectedcells = [];
 handles.postpro.imagepath = handles.jobvalues.imagedirectory;
 handles.postpro.increment = handles.jobvalues.increment;
+handles.postpro.firstimg = handles.jobvalues.firstimage;
+handles.postpro.lastimg = handles.jobvalues.lastimage;
 handles.postpro.maxdistpostpro = handles.jobvalues.maxsearch;
 handles.postpro.plotfirstimg = handles.jobvalues.firstimage;
 handles.postpro.plotlastimg = handles.jobvalues.lastimage;
@@ -251,6 +255,8 @@ handles.postpro.moviefirstimg = handles.jobvalues.firstimage;
 handles.postpro.movielastimg = handles.jobvalues.lastimage;
 handles.postpro.jobpath = jobValPath;
 handles.postpro.imagename = handles.jobvalues.imagename;
+handles.postpro.imagenameslist = handles.jobvalues.imagenameslist;
+handles.postpro.intensitymax = handles.jobvalues.intensityMax;
 
 % Update fields on the GUI with the latest values
 set (handles.GUI_pp_jobpath_ed, 'String', jobValPath);
@@ -267,6 +273,9 @@ set (handles.GUI_app_minimaltrack_ed, 'String', handles.postpro.minimaltrack);
 set (handles.GUI_fm_tracksince_ed, 'String', handles.postpro.dragtail);
 set (handles.GUI_fm_filename_ed, 'String', handles.postpro.dragtailfile);
 set (handles.multFrameVelocity, 'String', handles.postpro.multFrameVelocity);
+set (handles.pp_firstframe, 'String', handles.postpro.firstimg);
+set (handles.pp_lastframe, 'String', handles.postpro.lastimg);
+set (handles.pp_increment, 'String', handles.postpro.increment);
 
 % And update the gui handles struct
 guidata(hObject, handles);
@@ -702,6 +711,14 @@ function GUI_ad_analyze_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata (hObject);
 
+% Check that the plot frame values provided are in range
+if (handles.postpro.plotfirstimg < handles.postpro.firstimg) | ...
+   (handles.postpro.plotlastimg > handles.postpro.lastimg)
+   h = errordlg('Plot start and end frame value are out of range. Please reenter values...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+end
+
 % Assign the radiobutton values to the postpro struct
 handles.postpro.cellclusterplot = get (handles.checkbox_clustercellstats,'Value');
 handles.postpro.areaplot = get (handles.checkbox_areastats,'Value');
@@ -932,9 +949,21 @@ function GUI_fm_universalstudios_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_fm_universalstudios_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+% Check that the plot frame values provided are in range
+handles = guidata (hObject);
+
+if (handles.postpro.moviefirstimg < handles.postpro.firstimg) | ...
+   (handles.postpro.movielastimg > handles.postpro.lastimg)
+   h = errordlg('Movie start and end frame value are out of range. Please reenter values...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+end
 
 % Start the function that will create the dragtail movie
-ptMovieMaker (hObject);
+ptMovieMaker (handles.postpro, handles.MPM);
+
+% Update handles structure
+guidata (hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -951,18 +980,28 @@ function GUI_fm_moviesize_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_fm_moviesize_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata (hObject);
 
+% Show an empty figure
 viewPrepFigH = figure;
 
+% Show the user a dialog that explains what to do
 h = helpdlg ('Please resize the figure and close the figure window. The selected size will be used for the movie.');
 
+% Set the dialog window on a certain screen position
 set (h, 'Position', [320.2500 272.2500 297.7500 79.5000]);
 
+% wait for the user to press the ok button after resizing the figure window
 uiwait (h);
 
+% Get the new figure size
 handles.postpro.figureSize = get (viewPrepFigH, 'Position');
-    
+
+% Close the figure    
 close (viewPrepFigH);
+
+% Update handles structure
+guidata (hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -1159,3 +1198,80 @@ end
 
 % Update handles structure
 guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function pp_firstframe_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to pp_firstframe (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function pp_firstframe_Callback(hObject, eventdata, handles)
+% hObject    handle to pp_firstframe (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of pp_firstframe as text
+%        str2double(get(hObject,'String')) returns contents of pp_firstframe as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function pp_lastframe_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to pp_lastframe (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function pp_lastframe_Callback(hObject, eventdata, handles)
+% hObject    handle to pp_lastframe (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of pp_lastframe as text
+%        str2double(get(hObject,'String')) returns contents of pp_lastframe as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function pp_increment_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to pp_increment (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function pp_increment_Callback(hObject, eventdata, handles)
+% hObject    handle to pp_increment (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of pp_increment as text
+%        str2double(get(hObject,'String')) returns contents of pp_increment as a double
+
+
