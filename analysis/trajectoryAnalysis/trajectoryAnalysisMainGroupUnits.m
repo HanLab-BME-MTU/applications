@@ -245,7 +245,7 @@ switch STRATEGY
                         time0 = time(dataIdxFit(1),1);
                         A(:,2) = time(dataIdxFit,1) - time0; % fill in time
                         
-                        distance0 = distance(dataIdxFit(1),1)
+                        distance0 = distance(dataIdxFit(1),1);
                         B = distance(dataIdxFit,1)-distance0; % fill in distance
                         
                         Qllii = distance(dataIdxFit,2).^2; %diagonal elements of the covariance matrix
