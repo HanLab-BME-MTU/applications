@@ -46,8 +46,8 @@ autoPolygon  = fsmParam.prep.autoPolygon;   % Automatic analisys of the image to
 drawROI      = fsmParam.prep.drawROI;       % The user draws or loads a ROI to restrict analysis
 % sigma        = fsmParam.prep.sigma;       % Sigma for image low-pass filtering, replaced as seen below
 subpixel     = fsmParam.prep.subpixel;      % significant speckles are localized with subpixel accuracy
-psfsigma     = fsmParam.prep.psfSigma       % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
-filtersigma  = fsmParam.prep.filterSigma    % sigma used for the low-pass filtering; except where specifically
+psfsigma     = fsmParam.prep.psfSigma;       % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
+filtersigma  = fsmParam.prep.filterSigma;    % sigma used for the low-pass filtering; except where specifically
                                             % stated differently by the user, filtersigma should have the same value as psfsigma; 
                                             % for filtersigma>psfsigma, image information is lost during filtering!!                                            % same value as 
 projDir = fsmParam.project.path;

@@ -201,8 +201,8 @@ end
 
 if fsmParam.prep.subpixel==1
     cands=candsTot; 
-    psfsigma     = fsmParam.prep.psfSigma       % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
-    filtersigma  = fsmParam.prep.filterSigma    % sigma used for the low-pass filtering; except where specifically
+    psfsigma     = fsmParam.prep.psfSigma;       % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
+    filtersigma  = fsmParam.prep.filterSigma;    % sigma used for the low-pass filtering; except where specifically
                                                 % stated differently by the user, filtersigma should have the same value as psfsigma; 
                                                 % for filtersigma>psfsigma, image information is lost during filtering!!                                            % same value as 
     %mixture model Gauss sigma (mmsigma) is calculated from psfsigma and
