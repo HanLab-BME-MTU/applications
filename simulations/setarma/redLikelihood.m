@@ -37,16 +37,27 @@ end
 arParam = param(1:arOrder);
 maParam = param(arOrder+1:end);
 
-%get 1-step predictions of trajectory using innovations algorithm with
-%the current parameters
-[trajP,innovCoef,innovErr,errFlag] = innovPredict(traj,...
-    arOrder,maOrder,arParam,maParam,0);
-if errFlag
-    error('redLikeliV: Could not predict trajectory!');
+%check for causality of model
+r = abs(roots([-arParam(end:-1:1) 1]));
+
+if ~isempty(find(r<=1)) %if not causal 
+
+    redLikeliV = 1e10;
+    
+else %causal
+    
+    %get 1-step predictions of trajectory using innovations algorithm with
+    %the current parameters
+    [trajP,innovCoef,innovErr,errFlag] = innovPredict(traj,...
+        arOrder,maOrder,arParam,maParam,0);
+    if errFlag
+        error('redLikeliV: Could not predict trajectory!');
+    end
+    
+    %relative square prediction error per time point
+    relError = (trajP-traj).^2./innovErr(1:end-1);
+    
+    %reduced likelihood
+    redLikeliV = log(mean(relError)) + mean(log(innovErr(1:end-1)));
+    
 end
-
-%relative square prediction error per time point
-relError = (trajP-traj).^2./innovErr(1:end-1);
-
-%reduced likelihood
-redLikeliV = log(mean(relError)) + mean(log(innovErr(1:end-1)));

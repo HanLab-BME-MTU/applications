@@ -102,7 +102,7 @@ options = optimset('Display','iter');
 %minimize the reduced likelihood (defined in Eq. 5.2.12 of "Introduction to Time
 %Series and Forecasting" by Brockwell and Davis) to get best set of parameters.
 [params,minFunc,exitFlag,output] = fmincon(@redLikelihood,param0,[],[],[],[],...
-    -1*ones(pLength,1),1*ones(pLength,1),@armaConst,options,arOrder,maOrder,traj);
+    -10*ones(pLength,1),10*ones(pLength,1),@armaConst,options,arOrder,maOrder,traj);
 
 %assign parameters obtained through minimization
 arParam = params(1:arOrder);
@@ -134,9 +134,8 @@ end
 
 %get standard deviation of white noise in process
 relError = (trajP-traj).^2./innovErr(1:end-1);
-errLength = length(relError);
 noiseSigma = sqrt(mean(relError));
 
 %get Akaike's Information Criterion of model
-aicc = errLength*log(2*pi*noiseSigma^2) + sum(log(innovErr(1:end-1))) + ...
-    errLength + 2*errLength*(arOrder+maOrder+1)/(errLength-arOrder-maOrder-2); 
+aicc = trajLength*log(2*pi*noiseSigma^2) + sum(log(innovErr(1:end-1))) + ...
+    trajLength + 2*trajLength*(arOrder+maOrder+1)/(trajLength-arOrder-maOrder-2);
