@@ -18,6 +18,7 @@ function varargout = PolyTrack(varargin)
 % --------------------- ----------      -----------------------------------------------
 % Colin Glass           Feb 04          Initial version
 % Andre Kerstens        Jun 04          Changed default mincellsize to 300 (from 250)
+% Andre Kerstens        Jul 04          Image file check is only done if it hasn't be done before.
 
 % This is matlab stuff we should not touch.
 % Begin initialization code - DO NOT EDIT
@@ -244,45 +245,62 @@ else
    
     % Test whether the max greyvalue per frame is not more than the
     % bitdepth value specified on the gui
-    fprintf (1, 'Checking image files of job %d for correctness...\n', jobNumber);
+    % But do this only if it hasn't be done before (filesChecked matfile)
+    if ~exist ('filesChecked.mat', 'file')
+       fprintf (1, 'Checking image files of job %d for correctness...\n', jobNumber);
     
-    % Calculate the max posible grey value
-    maxGreyValue = (2^handles.jobs(jobNumber).bitdepth);
+       % Calculate the max posible grey value
+       maxGreyValue = (2^handles.jobs(jobNumber).bitdepth);
     
-    % Set the mouse pointer to busy
-    set(gcf,'Pointer','watch');
+       % Set the mouse pointer to busy
+       set(gcf,'Pointer','watch');
     
-    % Sort the images by successive numbers:
-    % First we get all numbers and write them into a vector
-    for jRearange = 1:length(dirList)
-       tmpName = char(dirList(jRearange));
-       if max (max (imread(tmpName))) > maxGreyValue
-          % The frame contains a value higher than the bitdepth specified
-          errormsg = ['Image file ' tmpName ' contains a grey value bigger than ' ...
-                      num2str(maxGreyValue) ' (' num2str(max(max(imread(tmpName)))) ...
-                      '). Please correct before loading job...'];
-          h = errordlg (errormsg);
-          uiwait (h);
-          jobList(end) = [];
-          if isempty (jobList)
-             jobList = char('No project loaded');
-             set(handles.GUI_st_job_lb,'Value',1);
-          else
-             set(handles.GUI_st_job_lb,'Value', length(jobList));
-          end
-          set(handles.GUI_st_job_lb,'String',jobList);
-          handles.jobs(jobNumber) = [];
-          guidata(hObject, handles);
-          return
-       else
-          imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
-       end
-    end
+       % Sort the images by successive numbers:
+       % First we get all numbers and write them into a vector
+       for jRearange = 1:length(dirList)
+         tmpName = char(dirList(jRearange));
+         if max (max (imread(tmpName))) > maxGreyValue
+            % The frame contains a value higher than the bitdepth specified
+            errormsg = ['Image file ' tmpName ' contains a grey value bigger than ' ...
+                        num2str(maxGreyValue) ' (' num2str(max(max(imread(tmpName)))) ...
+                        '). Please correct before loading job...'];
+            h = errordlg (errormsg);
+            uiwait (h);
+            jobList(end) = [];
+            if isempty (jobList)
+              jobList = char('No project loaded');
+              set(handles.GUI_st_job_lb,'Value',1);
+            else
+              set(handles.GUI_st_job_lb,'Value', length(jobList));
+            end
+            set(handles.GUI_st_job_lb,'String',jobList);
+            handles.jobs(jobNumber) = [];
+            guidata(hObject, handles);
+            return
+         else  
+           % Add the job to the list
+           imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
+         end
+         
+         % Create a file that is used to skip the test next time
+         cd (imagedirectory);
+         filesChecked = 1;
+         save ('filesChecked.mat', 'filesChecked');
+         
+      end   % for jRearrange
     
-    % Set the mouse pointer to normal again
-    set(gcf,'Pointer','arrow');
+      % Set the mouse pointer to normal again
+      set(gcf,'Pointer','arrow');
     
-    fprintf (1, 'All image files of job %d are correct!\n', jobNumber);
+      fprintf (1, 'All image files of job %d are correct!\n', jobNumber);
+      
+    else
+      % Do the sorting without the greyvalue check
+      for jRearange = 1:length(dirList)
+        tmpName = char(dirList(jRearange));
+        imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
+      end  % for jRearange
+    end  % if exist ('filesChecked.mat', 'file')
     
     % Then we sort that vector and sort the dirList accordingly
     [junk,indVec] = sort(imageNum);

@@ -42,6 +42,8 @@ function [newCoord] = ptInitializeJob (ptJob, jobNumber)
 % --------------------- --------        --------------------------------------------------------
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source, make function independent of GUI handle
+% Andre Kerstens        Jul 04          ptGetProcessedImage and ptFindCoordFromClusters did not have
+%                                       enough parameters
 
 % First tell the user we're busy initializing
 fprintf (1, 'Initializing phase has started for job number %d...\n', jobNumber);
@@ -83,7 +85,7 @@ else
    % Read that image from disk using the given min and max intensity values and do
    % background subtraction as well
    tempFirstImage = imreadnd2 (imageName, 0, intensityMax);
-   [firstImage, backgroundLevel] = ptGetProcessedImage (tempFirstImage, intensityMax, 15);
+   [firstImage, backgroundLevel, edgeImage] = ptGetProcessedImage (tempFirstImage, intensityMax, 21, 5);
    clear tempFirstImage;
 
    % Get the size of the image
@@ -115,8 +117,8 @@ else
    
    % Check whether we can find some more cells based on average cell size and cluster areas
    % that have no coordinates in them: if these are big enough we label them as cells
-   [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (segmentedImage, newCoord, minSizeNuc);
-
+   [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (edgeImage, newCoord, minSizeNuc, edgeKernel);
+                                                                        
    % If we found any new cells add them to the already found ones
    if ~isempty (avgCoord)
       newCoord = cat (1, newCoord, avgCoord);
