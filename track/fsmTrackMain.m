@@ -1,4 +1,4 @@
-efunction [fsmParam,status]=fsmTrackMain(fsmParam)
+function [fsmParam,status]=fsmTrackMain(fsmParam)
 % fsmTrackMain is the main function of the fsmTrack module
 %
 % SYNOPSIS   [fsmParam,status]=fsmTrackMain(fsmParam)
