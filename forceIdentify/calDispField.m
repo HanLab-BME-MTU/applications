@@ -35,7 +35,8 @@ for jj = 1:numTimeSteps
             M(find(M(:,1,k)~=0 & M(:,3,k)~=0),:,k)];
       end
    elseif strcmp(dispType,'MFTrack')
-      MFT          = mFrameTrajBuild(M(:,:,frame1:frame2-1));
+      %MFT          = mFrameTrajBuild(M(:,:,frame1:frame2-1));
+      MFT          = mFrameTrajBuild(M(:,:,frame1:frame2-1),mFCorLen);
       rawDispV{jj} = MFT(:,[1 2 end-1 end]);
    end
    frame1 = frame1+framesPerTStep;
@@ -70,6 +71,9 @@ for jj = 1:numTimeSteps
    gridPy{jj} = grid(ind,1);
 end
 
+%Plot the raw data points and displacements.
+quiver(rawDataPx{1},rawDataPy{1},rawDataU1{1},rawDataU2{1},0,'y'); 
+
 sDataU1 = cell(numTimeSteps,1);
 sDataU2 = cell(numTimeSteps,1);
 gridU1  = cell(numTimeSteps,1);
@@ -88,6 +92,12 @@ if strcmp(calInterp,'yes')
       sDataU1{jj} = sDispV(:,4)-sDispV(:,2);
       sDataU2{jj} = sDispV(:,3)-sDispV(:,1);
    end
+
+   if strcmp(showInterp,'yes')
+      %the filtered displacements.
+      quiver(rawDataPx{1},rawDataPy{1},sDataU1{1},sDataU2{1},0,'r'); 
+   end
+
    save([resultPath 'dispField'],'rawI','rawDispV','rawDataPx', ...
       'rawDataPy','rawDataU1','rawDataU2','corLen','edgCorLen', ...
       'gridPx','gridPy','sDataU1','sDataU2','gridU1','gridU2');
@@ -97,12 +107,5 @@ else
       'gridPx','gridPy');
 end
 
-%Plot the raw data points and displacements.
-quiver(rawDataPx{1},rawDataPy{1},rawDataU1{1},rawDataU2{1},0,'y'); 
-
-if strcmp(showInterp,'yes')
-   %the filtered displacements.
-   quiver(rawDataPx{1},rawDataPy{1},sDataU1{1},sDataU2{1},0,'r'); 
-end
 
 hold off;
