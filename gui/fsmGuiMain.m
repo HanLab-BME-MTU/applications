@@ -923,6 +923,9 @@ fsmExpParam=get(handles.expPopup,'UserData');
 % Read defaultFsmParam from 'UserData' field of default button
 defaultFsmParam=get(handles.defaultButton,'UserData');
 
+% Since we need to change 'filterSigma', we also get 'fsmParam'.
+fsmParam = get(handles.start,'UserData');
+
 % Write bit depth
 if exp==1
     set(handles.bitDepthEdit,'String',num2str(log2(defaultFsmParam.main.normMax+1)));    
@@ -937,12 +940,28 @@ else
     set(handles.editGauss,'String',num2str(fsmExpParam(exp-1).gaussRatio));
 end
 
+% Write gauss kernel
+if exp==1
+    set(handles.editSigma,'String',num2str(defaultFsmParam.prep.sigma));
+else
+    if ~isfield(fsmExpParam(exp-1),'caliSigma') | isempty(fsmExpParam(exp-1).caliSigma)
+        set(handles.editSigma,'String',num2str(defaultFsmParam.prep.sigma));
+    else
+        set(handles.editSigma,'String',num2str(fsmExpParam(exp-1).caliSigma));
+    end
+end
+
 % Write description
 if exp==1
     set(handles.textDescr,'String','Experiment description');
 else
     set(handles.textDescr,'String',fsmExpParam(exp-1).description);
 end
+
+%Update 'filterSigma' in 'fsmParam'.
+filterSigma = str2num(get(handles.editSigma,'String'));
+fsmParam.prep.filterSigma = filterSigma;
+set(handles.start,'UserData',fsmParam);
 
 % Check whether it is an optimized experiment or not
 if exp~=1

@@ -117,6 +117,7 @@ if fsmParam.prep.enable==1
             error('Wrong value for fsmParam.prep.autoPolygon');
     end
     fprintf(fid,'Gauss ratio                    : %1.2f\n',fsmParam.prep.gaussRatio);
+    fprintf(fid,'Sigma for low-pass filtering   : %1.3f\n',fsmParam.prep.filterSigma);
     
 elseif fsmParam.prep.enable==0
     

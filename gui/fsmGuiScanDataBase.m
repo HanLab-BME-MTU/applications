@@ -20,13 +20,14 @@ fsmExpParam=struct('label','',...
     'description','',...
     'bitDepth',0,...
     'noiseParams',[0 0 0],...
-    'gaussRatio',0);
+    'gaussRatio',0, ...
+    'caliSigma',0);
 
 % Experiment counter
 counter=0;
 
 % Set parameter flags to zero
-L_=0; D_=0; B_=0; N_=0; G_=0;
+L_=0; D_=0; B_=0; N_=0; G_=0; S_=0;
 
 % Open file
 fid=fopen(fileName);
@@ -66,7 +67,7 @@ while not(feof(fid))
             counter=counter+1;
             
             % Turn off bits
-            L_=0; D_=0; B_=0; N_=0; G_=0;
+            L_=0; D_=0; B_=0; N_=0; G_=0; S_=0;
             
         else
 
@@ -80,6 +81,15 @@ while not(feof(fid))
                 fsmExpParam(counter).noiseParams=noiseparams;
                 fsmExpParam(counter).quantile=vQuantile;
                 fsmExpParam(counter).gaussRatio=gaussratio;
+                
+                %For backward compatibility, we add sigma for calibration in this
+                % way to cope with old experiments where 'sigma' information
+                % is not saved. (Added by Lin Ji on Mar. 31, 2005.)
+                if S_==1
+                    fsmExpParam(counter).caliSigma=caliSigma;
+                else
+                    fsmExpParam(counter).caliSigma=[];
+                end
               
                 % Start collecting data for the next experiment
                 counter=counter+1;
@@ -87,10 +97,10 @@ while not(feof(fid))
             end
 
             % Turn off bits
-            L_=0; D_=0; B_=0; N_=0; G_=0;
+            L_=0; D_=0; B_=0; N_=0; G_=0; S_=0;
             
             % Clear variables
-            label=[]; bitdepth=[]; noiseparams=[]; gaussratio=[]; vQuantile=[];
+            label=[]; bitdepth=[]; noiseparams=[]; gaussratio=[]; vQuantile=[]; caliSigma=[];
 
         end
 
@@ -161,11 +171,23 @@ while not(feof(fid))
             error('The file format does not follow the specifications.');
         end
 
-        % Read noise parameters
+        % Read GAUSS RATIO
         gaussratio=str2num(readString(tline,fid));
         
         % Set bit for bitdepth to 1
         G_=1;
+    elseif findstr(tline,'GAUSS KERNEL (SIGMA)')
+
+        if S_==1
+            % More than one line GAUSS KERNEL for this experiment
+            error('The file format does not follow the specifications.');
+        end
+
+        % Read GAUSS KERNEL
+        caliSigma=str2num(readString(tline,fid));
+        
+        % Set bit for bitdepth to 1
+        S_=1;
 
     else
         
