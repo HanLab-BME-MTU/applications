@@ -1,6 +1,19 @@
 function testbutton(hObject)
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% First picture is treated specially%%%%%%%% 
+% Why? Because we have to define some filmspecific values and see if
+% the first results are credible. Ok? here goes...
+
+
+%determin the the level of imextendmin by clicking (in the picture,
+%which will pop up when running the test)on a lot of nucloi
+%(followed by ENTER) and several times on the background (followed by ENTER)
+%This whole procedure has to be gone through twice, once for the
+%first pic, once for the last. For every picture of the serie a
+%value for lev will be interpolated
+
+     
 
 handles = guidata(hObject);
 
@@ -23,15 +36,8 @@ levnuc_fi=handles.jobs(projNum).fi_nucleus;
 levback_fi=handles.jobs(projNum).fi_background;
 levnuc_la=handles.jobs(projNum).la_nucleus;
 levback_la=handles.jobs(projNum).la_background;
-               
+levhalo_fi=handles.jobs(projNum).fi_halolevel;
 
-
-
-radius=handles.jobs(projNum).maxsearch;
-%range in which direct assignement ,of found coordinates, from frame to
-%frame is accepted
-
-Increment=handles.jobs(projNum).increment;
 
 
 ErodeDiskSize=10;
@@ -39,7 +45,6 @@ ErodeDiskSize=10;
 %size criteria for halosfind. Increase - minimal size of halos will be
 %increased, decrease - ... decreased
 
-HaloLevel=handles.jobs(projNum).halolevel;
 
 %minimal/maximal size of the black spot in the cells
 minsizenuc=handles.jobs(projNum).minsize;
@@ -54,26 +59,11 @@ MinDistCellCell=handles.jobs(projNum).minsdist;
 %search. Searches with templates are more tolerant.)
 
 
-
-LevelChanger=handles.jobs(projNum).leveladjust;
-%this value influences the level between the nucloi and the background, as
-%calculated from input (clicking in the pictures, which pop up shortly
-%after the programm starts rolling
+cd(path)
 
 
 
-
-
-h=First
-while h+Increment<=Last
-      h=h+Increment;
-end
-Last=h
-
-
-
-
-levdiff_fi=abs(levnuc_fi-levback_fi)*LevelChanger;
+levdiff_fi=abs(levnuc_fi-levback_fi)*handles.jobs(projNum).leveladjust;
 
 
 
@@ -104,104 +94,46 @@ else
         picnew=imread(name);
            
         
-     
-		
-        
-	%     
-	%     picnew=double(wholeheapimg(i).info);
         
         [img_h,img_w]=size(picnew);
        
-                 
-                      %%%%%%%%%%%%%%%%%%%%%%%%%%%% First picture is treated specially%%%%%%%% 
-                      % Why? Because we have to define some filmspecific values and see if
-                      % the first results are credible. Ok? here goes...
-                    
-                
-                      %determin the the level of imextendmin by clicking (in the picture,
-                      %which will pop up when running the programm)on a lot of nucloi
-                      %(followed by ENTER) and several times on the background (followed by ENTER)
-                      %This whole procedure has to be gone through twice, once for the
-                      %first pic, once for the last. For every picture of the serie a
-                      %value for lev will be interpolated
-                      
-                 
-             
-                      
-	
-                       
-              
+    
+           
+  
+
+        coordcol=[];
+        regmax=[];
+        [coordcol,regmax]=findnucloitrack(picnew,levdiff_fi,minsizenuc,maxsizenuc);
+    
+       
+        HaloLevel=(levhalo_fi-levback_fi)*2/3+levback_fi;
+        altercoor=[];
+        [altercoor,logihalo]=halosfind(picnew,ErodeDiskSize,HaloLevel);
           
-                     coordcol=[];
-                     regmax=[];
-                     [coordcol,regmax]=findnucloitrack(picnew,levdiff_fi,minsizenuc,maxsizenuc);
-                
-                   
-                     
-                     altercoor=[];
-                     [altercoor,logihalo]=halosfind(picnew,ErodeDiskSize,HaloLevel);
-                      
-                     
-                     %now follows a little something that will ensure a minimal
-                     %distance between two found cells
-                     namesnumbers=[0,0];
-                     if isempty(altercoor) == 0
-                                  for h=1:size(altercoor,1)
-                                                uff=[];
-                                                uff= min(sqrt((coordcol(:,1)-altercoor(h,1)).^2+(coordcol(:,2)-altercoor(h,2)).^2));
-                                                
-                                                if uff > (1.5*MinDistCellCell)
-                                                          namesnumbers(end+1,1)=altercoor(h,1);
-                                                          namesnumbers(end,2)=altercoor(h,2);
-                                                end
-                                                
-                                   end
-                                   
-                                   namesnumbers(1,:)=[];
-                                   
-                                   if isempty(namesnumbers) == 0
-                                                coordcoll=cat(1,coordcol,namesnumbers);
-                                                
-                                   else
-                                                coordcoll=coordcol;
-                                                
-                                   end
-                                 
-                                   
-                      else
-                                   coordcoll=coordcol;
-                      end
-                      
-                     
-                    
-                      
-        
-                   
-                   
-                      %manually fill in the missing and erase the wrong cells
-                      coordcoll=takenkick(picnew,coordcoll);
-                    
-			
-              coordcoll=round(coordcoll);
-                     
-               
-                    
-                      
-                     
-                    
-                    
+         
+        %now follows a little something that will ensure a minimal
+        %distance between two found cells
+             
+        coordcoll= checkMinimalCellCell(coordcol,altercoor,MinDistCellCell);           
+ 
 
-
-
-
-
-
-
-
-handles.jobs(projNum).coordinatespicone= coordcoll;
-
-
-% Update handles structure
-guidata(hObject, handles);
+        %manually fill in the missing and erase the wrong cells
+        coordcoll=takenkick(picnew,coordcoll);
+       
+        coordcoll=round(coordcoll);
+         
+		
+		handles.jobs(projNum).coordinatespicone= coordcoll;
+		
+		
+		% Update handles structure
+		guidata(hObject, handles);
+		
+		%%%%%%%%save altered values to disk%%%%%%%%%%%%
+		cd(handles.jobs(projNum).savedirectory)
+		jobvalues=handles.jobs(projNum);
+		save ('jobvalues','jobvalues')
+		clear jobvalues
+		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 end

@@ -4,6 +4,11 @@ function weedout(hObject)
 handles=guidata(hObject);
 
 
+if get(handles.GUI_app_autopostpro_cb,'Value')==1
+   set(handles.GUI_app_autopostpro_cb,'Value',0);
+end
+    
+    
 minimaltrack= handles.postpro.minimaltrack;
 maxdistpostpro= handles.postpro.maxdistpostpro ;
 
@@ -21,7 +26,7 @@ handles.MPM=handles.MPM(firsts,:);
 
 
 %The goal of this little routine is to relink tracks
-for i=1:size(handles.MPM,2)
+for i=1:size(handles.MPM,1)
         onecell=handles.MPM(i,:);
         index=find(onecell);
         beginn(i)=min(index);
@@ -29,7 +34,7 @@ for i=1:size(handles.MPM,2)
 end
 
 counter=0;
-while counter<size(handles.MPM,2)
+while counter<size(handles.MPM,1)-0.3
        
     counter=counter+1;
     
@@ -37,13 +42,15 @@ while counter<size(handles.MPM,2)
     near= find((nomore(counter)-beginn(counter+1:end))<minusframes & (nomore(counter)-beginn(counter+1:end))>0 & (nomore(counter)-nomore(counter+1:end))<plusframes);
     
     if ~isempty (near)
-        [distance,chuck] = min(sqrt((handles.MPM(counter,nomore(counter)-1)-handles.MPM(near(:)+counter,nomore(counter)+1)).^2+(handles.MPM(counter,nomore(counter))-handles.MPM(near(:)+counter,nomore(counter)+2)).^2));
+        [distance,chuck] = min(sqrt((handles.MPM(counter,nomore(counter)-1)-handles.MPM(near(:)+...
+                               counter,nomore(counter)+1)).^2+(handles.MPM(counter,nomore(counter))...
+                               -handles.MPM(near(:)+counter,nomore(counter)+2)).^2));
     
         if distance < maxdistpostpro
             
             handles.MPM(counter,nomore(counter)+1:end)=handles.MPM(chuck+counter,nomore(counter)+1:end);
             
-            handles.MPM(chuck+counter,:)=[];
+            handles.MPM(chuck+counter,:)=0;
             
         end
 
@@ -56,7 +63,10 @@ end
 
 clear chuck;
 
-
+clear firsts;
+[firsts,cols]= find(handles.MPM);
+firsts=unique(firsts);
+handles.MPM=handles.MPM(firsts,:);
 
 
 [rows,cols]=find(handles.MPM);
@@ -76,8 +86,10 @@ else
         uniqueIdx = [0,uniqueIdx];
 end 
 numberOfOccurences = diff(uniqueIdx); 
-chuck = uniqueEntries(find(numberOfOccurences < minimaltrack));
+chuck = uniqueEntries(find(numberOfOccurences < minimaltrack*2));
 handles.MPM(chuck,:) = [];
 
+set(handles.GUI_app_autopostpro_cb,'Value',1);
 
 guidata(hObject,handles);
+

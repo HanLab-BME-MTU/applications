@@ -28,11 +28,14 @@ frametoKeep=str2num(FrameandCell(sepindex+1:end));
 
 
 
-handles.MPM(celltoKeep,frametoLink*2-1:end)=handles.MPM(celltoLink,frametoLink*2-1:end);
+mpmframe=((frametoLink-handles.jobvalues.firstimage)/handles.jobvalues.increment)+1
+
+
+handles.MPM(celltoKeep,mpmframe*2-1:end)=handles.MPM(celltoLink,mpmframe*2-1:end);
 
 keep = questdlg('Shall the cell, which is about to be linked be erased completely, or shall its track previous to linking be kept? ','','ERASE!!!','keep','ERASE!!!');
 if strcmp(keep,'keep')
-     handles.MPM(celltoLink,frametoLink*2-1:end)=0;
+     handles.MPM(celltoLink,mpmframe*2-1:end)=0;
     
 else
      handles.MPM(celltoLink,:)=0;

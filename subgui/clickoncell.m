@@ -67,5 +67,4 @@ hold off;
 
 
 
-disp('connard')
 

@@ -1,4 +1,4 @@
-function [MPM,PROPERTIES,M,lostonedge]=trackmater(hObject,projNum,bool)
+function trackmater(hObject,projNum)
 
 
 % % % % % % % % % % % % % % set(handles.GUI_st_bp_mmpixel_pm,'String',num2str(activeJob.mmpixel));
@@ -13,21 +13,23 @@ handles = guidata(hObject);
 
 
 
-path=handles.jobs(projNum).imagedirectory;
+ImageDirectory=handles.jobs(projNum).imagedirectory;
 main=handles.jobs(projNum).imagename;
 ext=main(end-3:end);
-bodyfilename=main(1:end-7);
+bodyFileName=main(1:end-7);
 
 
 First=handles.jobs(projNum).firstimage;
 Last=handles.jobs(projNum).lastimage;
 
 
-levnuc_fi=handles.jobs(projNum).fi_nucleus;
-levback_fi=handles.jobs(projNum).fi_background;
-levnuc_la=handles.jobs(projNum).la_nucleus;
-levback_la=handles.jobs(projNum).la_background;
-               
+LevNuc_fi=handles.jobs(projNum).fi_nucleus;
+LevBack_fi=handles.jobs(projNum).fi_background;
+LevHalo_fi=handles.jobs(projNum).fi_halolevel;      
+
+LevNuc_la=handles.jobs(projNum).la_nucleus;
+LevBack_la=handles.jobs(projNum).la_background;
+LevHalo_la=handles.jobs(projNum).la_halolevel;      
 
 
 radius=handles.jobs(projNum).maxsearch;
@@ -37,7 +39,7 @@ radius=handles.jobs(projNum).maxsearch;
 Increment=handles.jobs(projNum).increment;
 
 
-pathbring=handles.jobs(projNum).savedirectory;
+SaveDirectory=handles.jobs(projNum).savedirectory;
 
 
 percentbackground=handles.jobs(projNum).noiseparameter;
@@ -50,7 +52,7 @@ ErodeDiskSize=10;
 %size criteria for halosfind. Increase - minimal size of halos will be
 %increased, decrease - ... decreased
 
-HaloLevel=handles.jobs(projNum).halolevel;
+%HaloLevel=handles.jobs(projNum).halolevel;
 
 %minimal/maximal size of the black spot in the cells
 minsizenuc=handles.jobs(projNum).minsize;
@@ -134,8 +136,6 @@ GoodCell=round(GoodCellMarker*10);
 TempelCellMarker=0.2;
 TempelCell=round(TempelCellMarker*10);
 
-%NOOOO, DON'T DO IT!
-
 NewCellMarker=0.3;
 NewCell=round(NewCellMarker*10);
 
@@ -156,10 +156,15 @@ Last=h
 howmanypics=Last-First+1;
 
 
-levdiff_fi=abs(levnuc_fi-levback_fi)*LevelChanger;
-levdiff_la=abs(levnuc_la-levback_la)*LevelChanger;
+levdiff_fi=abs(LevNuc_fi-LevBack_fi)*LevelChanger;
+levdiff_la=abs(LevNuc_la-LevBack_la)*LevelChanger;
+
 incr=(levdiff_la-levdiff_fi)/(howmanypics-1);
-incrback=(levback_la-levback_fi)/(howmanypics-1);
+incrback=(LevBack_la-LevBack_fi)/(howmanypics-1);
+incrhalo=(LevHalo_la-LevHalo_fi)/(howmanypics-1);
+
+
+
 
 
 i=0;
@@ -167,15 +172,15 @@ k=0;
 a=0;
 lostonedge=0;
 
-picnew=[];
+newImg=[];
 MPM=[];
 PROPERTIES=[];
 M=[];
-coord=[];;
+coord=[];
 
 emptyM=zeros(1,4);
 
-cd(path);
+cd(ImageDirectory);
 % mkdir(path,'bin_clust') ;
 % 
 % bin_clust_path=path,'bin_clust';
@@ -188,170 +193,76 @@ if ~Last > First
     
 else    
     
-    countingalong=0
-	for looper=First:Increment:Last
-        looper
-        countingalong=countingalong+1
+    
+    %while index is equal to the number of the image, countingloops keeps
+    %track of the loops
+    countingloops=0
+	for index=First:Increment:Last
+        index
+        countingloops=countingloops+1
+        
+        cd(ImageDirectory)
+        
         % Format
 		s=3; %s=length(num2str(no));
 		strg=sprintf('%%.%dd',s);
 		
 		% Create numerical index
-		indxStr=sprintf(strg,looper);
+		indxStr=sprintf(strg,index);
         
-        name=[bodyfilename indxStr ext]; 
+        name=[bodyFileName indxStr ext]; 
         
         %get the current picture
-        picnew=imread(name);
+        newImg=imread(name);
            
-        
-     
-		
-        
-	%     
-	%     picnew=double(wholeheapimg(i).info);
-        
-        [img_h,img_w]=size(picnew);
-        
-        %[labeled,infos,avarea,ero]=body(picnew,round(cat(1,imagedata_struc.Centroid)),binaernuc);
-	
+               
+       [img_h,img_w]=size(newImg);
         
         
-        if looper == First
-                     
-                      %%%%%%%%%%%%%%%%%%%%%%%%%%%% First picture is treated specially%%%%%%%% 
-                      % Why? Because we have to define some filmspecific values and see if
-                      % the first results are credible. Ok? here goes...
-                    
-                
-                      %determin the the level of imextendmin by clicking (in the picture,
-                      %which will pop up when running the programm)on a lot of nucloi
-                      %(followed by ENTER) and several times on the background (followed by ENTER)
-                      %This whole procedure has to be gone through twice, once for the
-                      %first pic, once for the last. For every picture of the serie a
-                      %value for lev will be interpolated
-                      
-%                  
-%                       % Create numerical index
-% 				      indxStr=sprintf(strg,Last);
-%                         
-%                       name=[bodyfilename indxStr ext]; 
-%                         
-%                       %get the current picture
-%                       oldestpic=imread(name);
-%            
-%                       
-%                      
-%                      %level increment from pic to pic
-% 			
-% 	
-%                      %incrback is the increment to interpolate the value of the
-%                      %background, which we need for function halosfind
-%                    
-%                      clear levback_la;
-%                      
-                       
-                     %now the results will be presented, so that, should they be bad,
-                     %one can stop the programm immediatly. Last pic
-%                      coordlast=[];
-%                      regmax=[];
-%                      [coordlast,regmax]=findnucloitrack(double(oldestpic),levdiff_la,minsizenuc,maxsizenuc);
-%       %               figure, imshow(regmax);
-%                      figure, imshow(oldestpic);
-%                      hold on
-%                      plot(coordlast(:,1),coordlast(:,2),'.')
-%                      hold off
-%                      
-%                      clear coordlast;
-%                      clear regmax;
-% 			         clear levdiff_la;
-			
-             
-%                      %first pic
-%                      coordcol=[];
-%                      regmax=[];
-                     [coordcol,regmax]=findnucloitrack(picnew,levdiff_fi,minsizenuc,maxsizenuc);
-%         %             figure, imshow(regmax);
-%                      figure, imshow(picnew);
-%                      hold on
-%                      plot(coordcol(:,1),coordcol(:,2),'.')
-%                      hold off
-%                      
-%                      
-%                      altercoor=[];
-                      [altercoor,logihalo]=halosfind(picnew,ErodeDiskSize,HaloLevel);
-%                       
-%                      
-%                      %now follows a little something that will ensure a minimal
-%                      %distance between two found cells
-%                      namesnumbers=[0,0];
-%                      if isempty(altercoor) == 0
-%                                   for h=1:size(altercoor,1)
-%                                                 uff=[];
-%                                                 uff= min(sqrt((coordcol(:,1)-altercoor(h,1)).^2+(coordcol(:,2)-altercoor(h,2)).^2));
-%                                                 
-%                                                 if uff > (1.5*MinDistCellCell)
-%                                                           namesnumbers(end+1,1)=altercoor(h,1);
-%                                                           namesnumbers(end,2)=altercoor(h,2);
-%                                                 end
-%                                                 
-%                                    end
-%                                    
-%                                    namesnumbers(1,:)=[];
-%                                    
-%                                    if isempty(namesnumbers) == 0
-%                                                 coordcoll=cat(1,coordcol,namesnumbers);
-%                                                 
-%                                    else
-%                                                 coordcoll=coordcol;
-%                                                 
-%                                    end
-%                                  
-%                                    
-%                       else
-%                                    coordcoll=coordcol;
-%                       end
-                      
-                      coordcoll=handles.jobs(projNum).coordinatespicone;
+        
+       if index == First
+                         
+                      BODYIMG=zeros(img_h,img_w);
+	                   
+                      [coordNuc,regmax]=findnucloitrack(newImg,levdiff_fi,minsizenuc,maxsizenuc);
 
+                       HaloLevel=  (LevHalo_fi-LevBack_fi)*2/3+LevBack_fi;
+                      [haloCoord,logihalo]=halosfind(newImg,ErodeDiskSize,HaloLevel);
+
+                      
+                      
+                      if ~isempty(handles.jobs(projNum).coordinatespicone);
+                          
+                            newCoord=handles.jobs(projNum).coordinatespicone;
+                        else 
+                           newCoord= checkMinimalCellCell(coordNuc,haloCoord,MinDistCellCell);           
+                      end
+                      
+                      
                       PROPERTIES=[];
-                      [PROPERTIES,ero,labeled]= body(picnew,coordcoll,regmax,logihalo,PlusMinus);
+                      [PROPERTIES,BODYIMG(:,:,1),labeled]= body(newImg,newCoord,regmax,logihalo,PlusMinus);
                       
+                      
+                     
+                      clear regmax;
+                      clear haloCoord;
+                      clear coordNuc;
+                      clear namesnumbers;
+                      clear uff;
                     
-                      
                       emptyprop=zeros(1,size(PROPERTIES,2));
                       
-                      clear regmax;
-                      clear altercoor;
-                      clear coordcol;
-                      clear namesnumbers;
-                      clear uff
-                    
                    
-                   
-                      %manually fill in the missing and erase the wrong cells
-                    
-                    
-			
                       %now we mark these coordinates as good coordinates, meaning their
                       %existence is credible. Futhermore cells marked as good cells will
                       %be treated prioritely, when it comes to allocating cells found in
                       %a new picture
-                      coordcoll=coordcoll+GoodCellMarker;
-                     
-                
-                      %%%%numberofnuc=size(coordcoll,2);
-                      %%%%coordzuordn=round(cat(1,filmdata_struc(1).Centroid)
-                    
+                      oldCoord=newCoord+GoodCellMarker;
+                   
                     
                       emptyM=zeros(1,4);
                      
                     
-                    
-                    
-                    
-                    
-            
         %the following is what we do with pictures that aren't number one
         else
             
@@ -359,98 +270,42 @@ else
         
                     
                       %adjust level via increment
-                      levnucinterpol=levdiff_fi+(countingalong-1)*Increment*incr;
-                      lebainterpol=levback_fi+(countingalong-1)*Increment*incrback;
+                      levnucinterpol =levdiff_fi+(countingloops-1)*Increment*incr;
+                      lebainterpol =LevBack_fi+(countingloops-1)*Increment*incrback;
+                      halointerpol =LevHalo_fi+(countingloops-1)*Increment*incrhalo;
+                      HaloLevel =(halointerpol-lebainterpol)*2/3+lebainterpol;
+                      clear halointerpol
+                      
+                     
+
+                      
                       
                       %find cells that look really dark and nasty
-                      coordnuc=[];
-                      [coordnuc,regmax]=findnucloitrack(picnew,levnucinterpol,minsizenuc,maxsizenuc);
+                      coordNuc=[];
+                      [coordNuc,regmax]=findnucloitrack(newImg,levnucinterpol,minsizenuc,maxsizenuc);
                      
+                      %find cells that look like the third eye (round, big spots of
+                      %pure light). We do this because the pictures are of poor
+                      %quality and display huge halos around certain cells
+                      [haloCoord,logihalo]=halosfind(newImg,ErodeDiskSize,HaloLevel);
+                       
+                      newCoord= checkMinimalCellCell(coordNuc,haloCoord,MinDistCellCell)  ;
                       
-                      %ensure a minimal distance between them
-                      count=1;
-                      while count < length(coordnuc)
-                               paff=[];
-                               paff= min(sqrt((coordnuc(count+1:end,1)-coordnuc(count,1)).^2 + (coordnuc(count+1:end,2)-coordnuc(count,2)).^2));
-                               if paff < MinDistCellCell
-                                       coordnuc(count,:)=[];
-                                       count=count-1;
-                               end
-                               count=count+1;
-                       end
-                       clear count;    
-                       clear paff;
-                       
-                       
-                       %find cells that look like the third eye (round, big spots of
-                       %pure light). We do this because the pictures are of poor
-                       %quality and display huge halos around certain cells
-                       [altercoor,logihalo]=halosfind(picnew,ErodeDiskSize,HaloLevel);
-                       
-                       
-                       %ensure minimal distance between them
-                       count=1;
-                       while count < length(altercoor)
-                               paffalt=[];
-                               paffalt= min(sqrt((altercoor(count+1:end,1)-altercoor(count,1)).^2 + (altercoor(count+1:end,2)-altercoor(count,2)).^2));
-                        
-                               if paffalt < MinDistCellCell
-                                       altercoor(count,:)=[];
-                                       count=count-1;
-                               end
-                               count=count+1;
-                       end
-                       clear paffalt;
-                       clear count;
-                       
-                       
-                       %ensure minimal distance between dark, nasty-looking cells and
-                       %third eyes (look above(findnucloitrack,halosfind))
-                       namesnumbers=[0,0];
-                       if isempty(altercoor) == 0
-                            for h=1:size(altercoor,1)
-                                    uff=[];
-                                     
-                                    uff= min(sqrt((coordnuc(:,1)-altercoor(h,1)).^2+(coordnuc(:,2)-altercoor(h,2)).^2));
-                                    %note that here the minimal distance is larger than
-                                    %between two cells found by the same routine,
-                                    %because... ahhhmmm... just to make sure
-                                    if uff  >  (1.5*MinDistCellCell)
-                                          namesnumbers(end+1,1)=altercoor(h,1);
-                                          namesnumbers(end,2)=altercoor(h,2);
-                                    end
-                             end
-                             namesnumbers(1,:)=[];
-                             
-                             if isempty(namesnumbers) == 0
-                                    coord1=cat(1,coordnuc,namesnumbers);
-                             else
-                                    coord1=coordnuc;
-                             end
-                                 
-                       else
-                              coord1=coordnuc;
-                       end
-                       clear altercoor;    
-                       clear namesnumbers;   
-                       clear coordnuc;   
-                       clear uff;
-                       
-                       
-                                
-                               %calculate this stuff now, for conveniance (we need binary images of 
+                      
+                 
+                               %run body now, for conveniance (we need binary images of 
                                %the cells to run body)
                                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                                prope=[];
                                ero=[];
                               
-                               [prope,ero,labeled]= body(picnew,coordcoll,regmax,logihalo,PlusMinus);
+                               [prope,ero,labeled]= body(newImg,newCoord,regmax,logihalo,PlusMinus);
                              
+                               BODYIMG(:,:,countingloops)=ero;
                                
-                               
-                               PROPERTIES(1:size(emptyprop,1),1:size(emptyprop,2),countingalong,1)=emptyprop;
-                               %stuff this information into a stack
-                               PROPERTIES(1:size(prope,1),1:size(prope,2),countingalong,1)=prope;
+                               PROPERTIES(1:size(emptyprop,1),1:size(emptyprop,2),countingloops,1)=emptyprop;
+                               %store this information in a stack
+                               PROPERTIES(1:size(prope,1),1:size(prope,2),countingloops,1)=prope;
                                
                                clear prope;
                                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -461,13 +316,13 @@ else
                        %mark coordinates as high quality coordinates. These cells
                        %are found in the usual way, so they are superior to cells
                        %found for instance by templates
-                       coord1=round(coord1)+GoodCellMarker;
+                       newCoord=round(newCoord)+GoodCellMarker;
                           
                        
                           
                       
                        %we all know what the following is for - evading computer idiocity
-                       coordcollflo=[];
+                       oldCoordflo=[];
                        coordextrainf=[];
                        rowcoord=[];
                        firstcoord=[];
@@ -479,20 +334,20 @@ else
                        %here we seperate the cells found already long ago from the ones found 
                        %only lately (we believe in the existence of the first more than in the 
                        %existence of the later)
-                       coordcollflo=floor(coordcoll+0.1);
-                       coordextrainf=round(10*(coordcoll-coordcollflo));
+                       oldCoordflo=floor(oldCoord+0.1);
+                       coordextrainf=round(10*(oldCoord-oldCoordflo));
                        rowcoord= find(coordextrainf(:,1)==TempelCell | coordextrainf(:,1)==GoodCell);
                        
                        %old cells
-                       firstcoord=coordcoll(rowcoord,:);
+                       firstcoord=oldCoord(rowcoord,:);
                        
                        clear rowcoord;
-                       clear coordcollflo;
+                       clear oldCoordflo;
                        
                        
                        %new cells
                        secrowcoord= find(coordextrainf(:,1)==NewCell | coordextrainf(:,1)==NewCelTempl);
-                       secondcoord=coordcoll(secrowcoord,:);
+                       secondcoord=oldCoord(secrowcoord,:);
                        
                        clear coordextrainf;
                        clear secrowcoord;
@@ -504,10 +359,10 @@ else
                        %first we try to allocate the old cells to any set of coordinates
                        %found in the new picture
                        tmp1=[];
-                       tmp1=fsmTrackTrackerBMTNN(firstcoord,coord1,radius);
+                       tmp1=fsmTrackTrackerBMTNN(firstcoord,newCoord,radius);
                       
                        clear firstcoord;
-                      % clear coord1;
+                      % clear newCoord;
                   
                        % if there are new cells, now is the time to try to allocate them
                        % to any set of coordinates not yet allocated to an old cell
@@ -533,7 +388,7 @@ else
                                   tmp2=fsmTrackTrackerBMTNN(secondcoord,coord2,radius);
                                   
                                   %combine the two allocation matrices to one
-                                  tmp=cat(1,tmp1,tmp2)
+                                  tmp=cat(1,tmp1,tmp2);
                                   
                                   clear tmp2;
                        else 
@@ -544,24 +399,24 @@ else
                                   
                                   if size(secondcoord,1) >0
                                           temzeros=zeros(size(secondcoord,1),4);
-                                          temzeros(:,1:2)=secondcoord(:,1:2)
+                                          temzeros(:,1:2)=secondcoord(:,1:2);
                                           tmp=cat(1,tmp1,temzeros);
                                           clear temzeros;
                                       
                                   else
                                           %since their are no new cells tmp2 is empty, so tmp1 is
                                           %complete
-                                          tmp=tmp1    
+                                          tmp=tmp1    ;
                                   end
                        end
                        
                                    
-                                   if length(find(tmp(:,3)~=0 & tmp(:,4)~=0)) ~= size(coord1,1)
-                                       uuupsyouvelostone=1
+                                   if length(find(tmp(:,3)~=0 & tmp(:,4)~=0)) ~= size(newCoord,1)
+                                       uuupsyouvelostone=1;
                                    end
                                        
                                    
-                                   if length(find(tmp(:,1)~=0 & tmp(:,2)~=0)) ~= size(coordcoll,1)
+                                   if length(find(tmp(:,1)~=0 & tmp(:,2)~=0)) ~= size(oldCoord,1)
                                        BIGTROUBLE=1
                                    end
                                    
@@ -607,7 +462,7 @@ else
                                                       %routine. It will return the found
                                                       %coordinates and the value of the
                                                       %corralation
-                                                      [newcoord,absmaxcorr]=templfindertrack(tempcoord,picold,picnew,lebainterpol,TempelCellMarker,NewCell,NewCelTempl,NewCelTempelMarker,percentbackground,sizetemple,box_size_img);
+                                                      [newcoord,absmaxcorr]=templfindertrack(tempcoord,oldImg,newImg,lebainterpol,TempelCellMarker,NewCell,NewCelTempl,NewCelTempelMarker,percentbackground,sizetemple,box_size_img);
                                                       
                                                       %of course we only accept the correlation, if it of a minimal
                                                       %quality. NOTE WELL: that within the routine the background (everything 
@@ -637,7 +492,7 @@ else
                                                                         tmpflo=floor(tmp(rowofit,3)+0.1);
                                                                         extr=round(10*(tmp(rowofit,3)-tmpflo));
                                                                         
-                                                                        clear tmpflo
+                                                                        clear tmpflo;
                                                                         
                                                                         newflo=floor(newcoord(1,1)+0.1);
                                                                         extrnew=round(10*(newcoord(1,1)-newflo));
@@ -713,13 +568,13 @@ else
                           
                       
                      
-                       M(1:size(emptyM,1),1:size(emptyM,2),countingalong-1,1)=emptyM;
+                       M(1:size(emptyM,1),1:size(emptyM,2),countingloops-1,1)=emptyM;
                        %stuff this information into a stack
-                       M(1:size(tmp,1),1:size(tmp,2),countingalong-1,1)=tmp;
+                       M(1:size(tmp,1),1:size(tmp,2),countingloops-1,1)=tmp;
                        
                           
-                                   if length(find(tmp(:,1)~=0 & tmp(:,2)~=0)) ~= size(coordcoll,1)
-                                       BIGTROUBLE=1
+                                   if length(find(tmp(:,1)~=0 & tmp(:,2)~=0)) ~= size(oldCoord,1)
+                                       BIGTROUBLE=1;
                                    end
                        
                        
@@ -727,15 +582,7 @@ else
                        tmp=emptyM;
                        
                        
-                       %a place for a break point, nothing more
-                       if countingalong == 8
-                           kooool=1
-                       end
-                       
-                       
-                       
-                       
-                       
+                
                        
                        
                        
@@ -746,21 +593,21 @@ else
                        %certain cells, based on an analysis of the various tracks of
                        %cells over the last ? frames (defined in GUI_start). 
                    
-                       if countingalong > howmanytimestepsslide+1
+                       if countingloops > howmanytimestepsslide+1
                            
-                               templrow=[];
+                               templateRow=[];
                                MPMslide=[];
                                MPMflo=[];
                                xtempl=[];
                                ytempl=[];
-                               sizz=[];
+                         
                                
-                               MPMslide=alteredfsmTrackLinker(M(:,:,countingalong-howmanytimestepsslide+1:countingalong-1));
+                               MPMslide=alteredfsmTrackLinker(M(:,:,countingloops-howmanytimestepsslide+1:countingloops-1));
                                %MPMslide is a matrix which gives the tracks of all cells over
                                %the last ? frames. It get's updated after every new frame.
                                
                                MPMflo=floor(MPMslide+0.1);
-                               extrainf=round(10*(MPMslide-MPMflo));
+                               MPMIdentCell=round(10*(MPMslide-MPMflo));
                                %extrinf has the same size as MPMslide and every value reflects the extracted
                                %information of the coordinate located at the same spot in
                                %MPMslide. The information is already included in MPMslide. It
@@ -772,64 +619,56 @@ else
                                
                                %After a few frames, new cells will be accepted as old cells, but only if, 
                                %after their initial finding, they weren't propagated by templates 
-                               accept=find(extrainf(:,3)==NewCell);
+                               identNew=find(MPMIdentCell(:,3)==NewCell);
                                
-                               if isempty(accept) == 0
-                                       for g=1:length(accept)
-                                               if extrainf(accept(g),end)==NewCell;% & extrainf(accept(g),7)==NewCell & extrainf(accept(g),9)==NewCell %make sure a new cell wasn't propagated via templates
-                                                       restore=[];
-                                                       restore=find(M(:,3,countingalong-1)==MPMslide(accept(g),end-1) &  M(:,4,countingalong-1)==MPMslide(accept(g),end))  ;
-                                                       M(restore,3:4,countingalong-1)=round(M(restore,3:4,countingalong-1))+GoodCellMarker;
-                                                       MPMslide(accept(g),end-1)= M(restore,3,countingalong-1);
-                                                       MPMslide(accept(g),end)= M(restore,4,countingalong-1);
+                               if ~isempty(identNew)
+                                       for index=1:length(identNew)
+                                               if isempty(find(MPMIdentCell(identNew(index),:)==NewCelTempl))  &   MPMIdentCell(identNew(index),end)~=0; %make sure a new cell wasn't propagated via templates
+                                                       markOld=[];
+                                                       markOld=find(M(:,3,countingloops-1)==MPMslide(identNew(index),end-1) &  M(:,4,countingloops-1)==MPMslide(identNew(index),end));
+                                                       M(markOld,3:4,countingloops-1)=round(M(markOld,3:4,countingloops-1))+GoodCellMarker;
+                                                       MPMslide(identNew(index),end-1)= M(markOld,3,countingloops-1);
+                                                       MPMslide(identNew(index),end)= M(markOld,4,countingloops-1);
                                                        
-                                                       clear restore;
+                                                       clear markOld;
                                                         
-                                               elseif  extrainf(accept(g),end)==NewCelTempl & extrainf(accept(g),end-2)==NewCelTempl
-								                       annilhil=find(M(:,3,countingalong-1)==MPMslide(accept(g),end-1) &  M(:,4,countingalong-1)==MPMslide(accept(g),end) )  ;
-								                       M(annilhil,3:4,countingalong-1)=0;
-								                       MPMslide(accept(g),end-1)=0;
-                                                       MPMslide(accept(g),end)=0;
+                                               elseif  MPMIdentCell(identNew(index),end)==NewCelTempl & MPMIdentCell(identNew(index),end-2)==NewCelTempl
+                                                       delCell=[];
+								                       delCell=find(M(:,3,countingloops-1)==MPMslide(identNew(index),end-1) &  M(:,4,countingloops-1)==MPMslide(identNew(index),end));
+								                       M(delCell,3:4,countingloops-1)=0;
+								                       MPMslide(identNew(index),end-1)=0;
+                                                       MPMslide(identNew(index),end)=0;
                                                        
-                                                       clear annilhil
+                                                       clear delCell
                                                        
                                                end
                                        
                                        end
                                end
                                
-                               clear accept;
+                               clear identNew;
                                
-	% % % % % % % % % % % % % % % % % % % % % % % % % %                            [shrow,shcol]= find(extrainf==0)
-	% % % % % % % % % % % % % % % % % % % % % % % % % %                            shadow=unique(shrow);
-	% % % % % % % % % % % % % % % % % % % % % % % % % %                            extrainf(shadow,:)=0;
-	% % % % % % % % % % % % % % % % % % % % % % % % % %                            clear shadow;
-	% % % % % % % % % % % % % % % % % % % % % % % % % %                            clear shrow;
-	% % % % % % % % % % % % % % % % % % % % % % % % % %                            clear shcol;
-	% % % % % % % % % % % % % % % % % % % % % % % % % %                            %a row containing zeros is no good, so we make sure they won't
-	% % % % % % % % % % % % % % % % % % % % % % % % % %                            %be used for any of the following
-                               
-	
+
                                %here we search for old cells, that have been propagated via
                                %template search over the last five frames. Afterwards we will
                                %compare their tracks with tracks of newly found cells. If they
                                %corralate strongly, we replace the templatestuff (old cell) by the newly
                                %found cell
                              
-                                templrow=find(ismember(extrainf(:,3:end),TempelCell*ones((howmanytimestepsslide-1)*2),'rows'));
+                                templateRow=find(ismember(MPMIdentCell(:,3:end),TempelCell*ones((howmanytimestepsslide-1)*2),'rows'));
                                
                                
-                               if ~isempty(templrow)
+                               if ~isempty(templateRow)
                                       
                                   
-                                     newrows= find(extrainf(:,3)==NewCell & extrainf(:,end)==NewCell);
+                                     newCellRow= find(MPMIdentCell(:,3)==NewCell & MPMIdentCell(:,end)==NewCell);
                                      %newly found cells
                                    
                                      
-                                     if ~isempty(newrows)
+                                     if ~isempty(newCellRow)
                                          
-                                             if ~isempty(find(extrainf(newrows,3:end)))
-                                                 BIGISHTROUBLE=1
+                                             if ~isempty(find(MPMIdentCell(newCellRow,3:end)))
+                                                 BIGISHTROUBLE=1;
                                              end
                                              
                                              xtempl=[];
@@ -840,59 +679,51 @@ else
                                              %extract the x and y
                                              %coordinates of the cells         
                                           
-                                             xtempl(:,:)=(MPMslide(templrow(:),3:2:end-1))'; 
-                                             ytempl(:,:)=(MPMslide(templrow(:),4:2:end))';
+                                             xtempl(:,:)=(MPMslide(templateRow(:),3:2:end-1))'; 
+                                             ytempl(:,:)=(MPMslide(templateRow(:),4:2:end))';
 						 
-                                             sizz=size(xtempl,1);
+                                       
                                                         
                                       
                                              %we want to correlate the displacementvectors
                                              %(displacement of a cell from one frame to the 
                                              %next), so we need to calculate it
-                                             diffxx=diff(xtempl);
-                                             diffyy=diff(ytempl);
+                                             moveXXTemplate=diff(xtempl);
+                                             moveYYTemplate=diff(ytempl);
                                             
                                              
                                              
                                              
                                              
-                                             for g=1:length(newrows)
+                                             for indexNewCell=1:length(newCellRow)
                                                                    
                                                             xnewone=[];
                                                             ynewone=[];
-                                                            sizzle=[];
-                                                            diffxxnew=[];
-                                                            diffyynew=[];
+                                        
+                                                            moveXXNewCell=[];
+                                                            moveYYNewCell=[];
                                                              
-                                                            xnewone=(MPMslide(newrows(g),1:2:end-1))';
-                                                            ynewone=(MPMslide(newrows(g),2:2:end))';
-                                                            sizzle=length(xnewone);
+                                                            xnewone=(MPMslide(newCellRow(indexNewCell),1:2:end-1))';
+                                                            ynewone=(MPMslide(newCellRow(indexNewCell),2:2:end))';
+                                                       
                                                             
-                                                            diffxxnew=diff(xnewone);
-                                                            diffyynew=diff(ynewone);
-                                                            
-	% % %                                                                 for q=1:sizzle-1
-	% % %                                                                             %vectors of the old location to the new
-	% % %                                                                             %(frame to frame)
-	% % %                                                                               diffxxnew(sizzle-q,1)=xnewone(sizzle+1-q)-xnewone(sizzle-q);
-	% % %                                                                                diffyynew(sizzle-q,1)=ynewone(sizzle+1-q)-ynewone(sizzle-q);
-	% % %                                                                 end
-                                                             
-                                                            
+                                                            moveXXNewCell=diff(xnewone);
+                                                            moveYYNewCell=diff(ynewone);
+                                                           
                           
                                                             %make sure we correlate two things of the same
                                                             %length
-                                                            if sizz == sizzle
-                                                                       correlas=[];
+                                                            if length(xtempl) == length(xnewone)
+                                                                       corrTempRow=[];
                                                                        nomore=[];
-                                                                       for r=1:length(templrow)
+                                                                       for indexTempRow=1:length(templateRow)
                                                                          
                                                                              
                                                                                   lostfound=[];
                                                                                   tempfound=[];
-                                                                                  writetemp=[];
+                                                                                  writeHereRow=[];
                                                                                  
-                                                                                  distance=min(sqrt((xtempl(:,r)-xnewone(:,1)).^2+(ytempl(:,r)-ynewone(:,1)).^2 ));
+                                                                                  distance=min(sqrt((xtempl(:,indexTempRow)-xnewone(:,1)).^2+(ytempl(:,indexTempRow)-ynewone(:,1)).^2 ));
                                                                                  
                                                                                   
                                                                                   %now, if these points at some point are
@@ -906,74 +737,74 @@ else
                                                                                               %not in MPMslide, but in M. Since M
                                                                                               %is not sorted, we have to always
                                                                                               %find the right spot
-                                                                                              IRGENDWIE_USTUUUUUSCHE=1
-                                                                                              lostfound=[];
-                                                                                              tempfound=[];
+                                                                                              IRGENDWIE_USTUUUUUSCHE=1;
+                                                                                              templateCoord=[];
+                                                                                              newCeCoord=[];
                                                                                                              
                                                                                               
                                                                                               %first we copy out the coordinates of
                                                                                               %the old cell, tracked by templates
-                                                                                              lostfound=MPMslide(templrow(r),:);
+                                                                                              templateCoord=MPMslide(templateRow(indexTempRow),:);
                                                                                               %Now we erase the values from MPMslide, so that we won't by accident use them again
-                                                                                              MPMslide(templrow(r),:)=0;
+                                                                                              MPMslide(templateRow(indexTempRow),:)=0;
                                                                                            
                                                                                               %same procedure for the new cell we
                                                                                               %want to link to the old cell
-                                                                                              tempfound=MPMslide(newrows(g),:)
-                                                                                              MPMslide(newrows(g),:)=0;
+                                                                                              newCeCoord=MPMslide(newCellRow(indexNewCell),:);
+                                                                                              MPMslide(newCellRow(indexNewCell),:)=0;
                                                                                          
-                                                                                              for h=1:((size(MPMslide,2)-2)/2)
+                                                                                              for jFrameCount=1:((size(MPMslide,2)-2)/2)
                                                                                                  
-                                                                                                         writetemp=[];
-                                                                                                         gotemp=[];
+                                                                                                         writeHereRow=[];
+                                                                                                         eraseHereRow=[];
                                                                                                          
-                                                                                                         %ok,now: in lostfound is the track of the old 
-                                                                                                         %cell.Tempfound is the track of the cell we wish to put at
+                                                                                                         %ok,now: in templateCoord is the track of the old 
+                                                                                                         %cell.newCeCoord is the track of the cell we wish to put at
                                                                                                          %it's place. Both are of the form:
                                                                                                          %[x1,y1,x2,y2,x3,y3,x4,y4,x5,y5]
                                                                                                          %So always two numbers correspond to the coordinates
                                                                                                          %in one frame(1,2,3...) mean different frames.
                                                                                                          %SOOOO: we find the location of the coordinates of the old
-                                                                                                         %cell, by searching elements of lostfound in M. With every
-                                                                                                         %increase in h we increase the index of lostfound by two
+                                                                                                         %cell, by searching elements of templateCoord in M. With every
+                                                                                                         %increase in h we increase the index of templateCoord by two
                                                                                                          %(because two values (x and y)per picture). M has three
                                                                                                          %dimensions. Every element of the third dimension is a
                                                                                                          %matrice(other two dimensions)of the form 
                                                                                                          %[x1,y1,x2,y2],thus giving the connection
                                                                                                          %between two frames, BUUUUTTTT: the next element 
                                                                                                          %will be [x2,y2,x3,y3]!!!!!! This is very important!!!!!!. 
-                                                                                                         %So with every frame (h) we make one step into the third dimesion in M.
-                                                                                                         %with each set of x and y of lostfound we locate the rigth
+                                                                                                         %So with every frame (jFrameCount) we make one step into the third dimesion in M.
+                                                                                                         %with each set of x and y of templateCoord we locate the rigth
                                                                                                          %row in M. 
-                                                                                                         writetemp=find(M(:,1,countingalong-5+h)== lostfound(2*h-1)  &  M(:,2,countingalong-5+h)== lostfound(2*h));
+                                                                                                         writeHereRow=find(M(:,1,countingloops-5+jFrameCount)== templateCoord(2*jFrameCount-1)  &  M(:,2,countingloops-5+jFrameCount)== templateCoord(2*jFrameCount));
                                                                                                          
                                                                                                          %since we overwrite the old
                                                                                                          %cell with the new, we have to
                                                                                                          %eliminate the new, in order
                                                                                                          %not to have it twice
-                                                                                                          gotemp=find(M(:,1,countingalong-5+h)== tempfound(2*h-1)  &  M(:,2,countingalong-5+h)== tempfound(2*h));
+                                                                                                          eraseHereRow=find(M(:,1,countingloops-5+jFrameCount)== newCeCoord(2*jFrameCount-1)  &  M(:,2,countingloops-5+jFrameCount)== newCeCoord(2*jFrameCount));
                                                                                                           
                                                                                                           %now we juggle the information into the right place.
                                                                                                           %Since M is
                                                                                                           %[x1,y1,x2,y2] , next layer [x2,y2,x3,y3]
-                                                                                                          %and tempfound is
+                                                                                                          %and newCeCoord is
                                                                                                           %[x1,y1,x2,y2,x3,y3,x4,y4,x5,y5]
                                                                                                           %therefor:  
-                                                                                                          %M(writetemp,:,countingalong-4) replaced by tempfound(1:4)
+                                                                                                          %M(writeHereRow,:,countingloops-4) replaced by newCeCoord(1:4)
                                                                                                           %and
-                                                                                                          %M(writetemp,:,countingalong-3) replaced by tempfound(3:6) 
+                                                                                                          %M(writeHereRow,:,countingloops-3) replaced by newCeCoord(3:6) 
                                                                                                           %and so on.
-                                                                                                          M(writetemp,:,countingalong-5+h)=tempfound(2*h-1:2*h+2);
+                                                                                                          M(writeHereRow,:,countingloops-5+jFrameCount)=newCeCoord(2*jFrameCount-1:2*jFrameCount+2);
                                                                                               
                                                                                                           %erase redundant info
-                                                                                                          M(gotemp,:,countingalong-5+h)=0;
+                                                                                                          M(eraseHereRow,:,countingloops-5+jFrameCount)=0;
                                                                                                          
                                                                                                          
                                                                                                end
-                                                                                               clear writetemp;
-                                                                                               clear gotemp;
-                                                                                               clear lostfound;
-                                                                                               clear tempfound;
+                                                                                               clear writeHereRow;
+                                                                                               clear eraseHereRow;
+                                                                                               clear templateCoord;
+                                                                                               clear newCeCoord;
                                                                                      
                                                                                      
                                                                                                nomore=1;
@@ -985,12 +816,14 @@ else
                                                                                                    %now we correlate the displacement vectors of the old cell with
                                                                                                    %the ones of the new cell
                                                                                                 
-                                                                                                   correlx=xcorr(diffxx(:,r), diffxxnew,'coeff');
-                                                                                                   correly=xcorr(diffyy(:,r),diffyynew,'coeff');
+                                                                                                   correlx=xcorr(moveXXTemplate(:,indexTempRow), moveXXNewCell,'coeff');
+                                                                                                   correly=xcorr(moveYYTemplate(:,indexTempRow),moveYYNewCell,'coeff');
                                                                                              
-                                                                                                   oops=round(length(correlx)/2);
-                                                                                             
-                                                                                                   correlas(r)=correlx(oops)+correly(oops);
+                                                                                                   indCorr=round(length(correlx)/2);
+                                                                                                   
+                                                                                                   
+                                                                                                   %one correlation value for each row of templates
+                                                                                                   corrTempRow(indexTempRow)=correlx(indCorr)+correly(indCorr);
                                                                                                    
                                                                                     end
                                                                          end
@@ -1000,110 +833,105 @@ else
                                                                          %that correlates nicely
                                                                          if isempty(nomore)
                                                                               
-                                                                                     if ~isempty(correlas);
+                                                                                     if ~isempty(corrTempRow);
                                                                                                  
-                                                                                                 important=[];
-                                                                                                 [crap,important]=max(correlas) ;
+                                                                                                 indBC=[];
+                                                                                                 [bestCorr,indBC]=max(corrTempRow) ;
                                                                                                  
-                                                                                                 if crap > MinTrackCorr
+                                                                                                 if bestCorr > MinTrackCorr
                                                                                                      
                                                                                                              %this is exactly the same procedure as above. I know it would be clever to make a function out of it
                                                                                                              %but there would be so many BIG matrices involved I decided to have it in here twice. Ah well. Anyway look above
                                                                                                              %(look for IRGENDWIE_USTUUUSCHE)
                                                                                                              IRGENDWIE_USTUUUSCHE=1
-                                                                                                             lostfound=[];
-                                                                                                             tempfound=[];
+                                                                                                             templateCoord=[];
+                                                                                                             newCeCoord=[];
                                                                                                              
-                                                                                                             lostfound=MPMslide(templrow(important),:);
-                                                                                                             MPMslide(templrow(important),:)=0;
+                                                                                                             templateCoord=MPMslide(templateRow(indBC),:);
+                                                                                                             MPMslide(templateRow(indBC),:)=0;
                                                                                                                
-                                                                                                             tempfound=MPMslide(newrows(g),:);
-                                                                                                             MPMslide(newrows(g),:)=0;
+                                                                                                             newCeCoord=MPMslide(newCellRow(indexNewCell),:);
+                                                                                                             MPMslide(newCellRow(indexNewCell),:)=0;
                                                                                                              
-                                                                                                             for h=1:(size(MPMslide,2)-2)/2
-                                                                                                                      writetemp=[];
-                                                                                                                      gotemp=[];
+                                                                                                             for jFrameCount=1:(size(MPMslide,2)-2)/2
+                                                                                                                      writeHereRow=[];
+                                                                                                                      eraseHereRow=[];
                                                                                                                  
-                                                                                                                      writetemp=find(M(:,1,countingalong-5+h)== lostfound(2*h-1)  &  M(:,2,countingalong-5+h)== lostfound(2*h));
-                                                                                                                      gotemp=find(M(:,1,countingalong-5+h)== tempfound(2*h-1)  &  M(:,2,countingalong-5+h)== tempfound(2*h));
+                                                                                                                      writeHereRow=find(M(:,1,countingloops-5+jFrameCount)== templateCoord(2*jFrameCount-1)  &  M(:,2,countingloops-5+jFrameCount)== templateCoord(2*jFrameCount));
+                                                                                                                      eraseHereRow=find(M(:,1,countingloops-5+jFrameCount)== newCeCoord(2*jFrameCount-1)  &  M(:,2,countingloops-5+jFrameCount)== newCeCoord(2*jFrameCount));
                                                                                                                       
                                                                                                                       
-                                                                                                                      M(writetemp,:,countingalong-5+h)=(tempfound(2*h-1:2*h+2));
+                                                                                                                      M(writeHereRow,:,countingloops-5+jFrameCount)=(newCeCoord(2*jFrameCount-1:2*jFrameCount+2));
                                                                                                                       
                                                                                                                   
-                                                                                                                      M(gotemp,:,countingalong-5+h)=0;
+                                                                                                                      M(eraseHereRow,:,countingloops-5+jFrameCount)=0;
                                                                                                                       
                                                                                                              end
-                                                                                                             clear writetemp;
-                                                                                                             clear gotemp;
-                                                                                                             clear lostfound;
-                                                                                                             clear tempfound;
+                                                                                                             clear writeHereRow;
+                                                                                                             clear eraseHereRow;
+                                                                                                             clear templateCoord;
+                                                                                                             clear newCeCoord;
                                                                                                  end
-                                                                                                 clear important;
+                                                                                                 clear indBC;
                                                                                       end    
                                                                          end
-                                                                         clear correlas;
+                                                                         clear corrTempRow;
                                                                          clear nomore;
                                                             else
                                                                           ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRROOOOOOOOOOOOOOOOOOR=1;
                                                                           %if you've landed here by executing the programm your in TROUBLE. But it's basically impossible
                                                                           %so you haven't - and you needn't worry. UNLESS you've been meddling with the programm. Tut tut.
-                                                                          %But actually it isn't THAT bad. The displacement vector of old cell and new cell (diffxx,diffxxnew...)
+                                                                          %But actually it isn't THAT bad. The displacement vector of old cell and new cell (moveXXTemplate,moveXXNewCell...)
                                                                           %aren't of the same length, so check what's wrong.
                                                                           
                                                             end
                                                             clear xnewone;
                                                             clear ynewone;
-                                                            clear sizzle;
-                                                            clear diffxxnew;
-                                                            clear diffyynew;
+                                               
+                                                            clear moveXXNewCell;
+                                                            clear moveYYNewCell;
                                                               
                                               end
                                         end
                                end
-                               clear templrow;
+                               clear templateRow;
                                clear MPMslide;
                                clear xtempl;
                                clear ytempl;
-                               clear sizz;
+                
                        end
                         
                       
                     
-                       clear coord1;
+                       clear newCoord;
                        
                        
                        
-                       coordcoll=[];
+                       oldCoord=[];
                        realcoord=[];
-                       realcoord=find(M(:,3,countingalong-1) | M(:,4,countingalong-1));
+                       realcoord=find(M(:,3,countingloops-1) | M(:,4,countingloops-1));
                       
-                       %coordcoll=coord1;
+                       %oldCoord=newCoord;
                     
                     
-                       coordcoll(:,1)=M(realcoord,3,countingalong-1)   ;%             tmp(realcoord,3);
-                       coordcoll(:,2)=M(realcoord,4,countingalong-1)  ;
+                       oldCoord(:,1)=M(realcoord,3,countingloops-1);%             tmp(realcoord,3);
+                       oldCoord(:,2)=M(realcoord,4,countingloops-1);
                        clear realcoord;
              
                        
                        
           end
-          picold=picnew;
+          oldImg=newImg;
           
           
-          
-          
-	% Format
-	s=3; %s=length(num2str(no));
-	strg=sprintf('%%.%dd',s);
-	
-	% Create numerical index
-	indxStr=sprintf(strg,looper);
-	
-	figure, imshow(ero)
-	eval(['print -djpeg100 ',pathbring,filesep,'clusters_binary',indxStr,'.jpg']);
-          
-	close
+    cd(SaveDirectory)
+   
+    save('M', 'M')
+    save ('PROPERTIES', 'PROPERTIES')
+    save('BODYIMG','BODYIMG')
+%%    save (['lostonedge',date], 'lostonedge')
+   
+
           
 	end
       
@@ -1113,13 +941,9 @@ else
              
     %we save all the data we found to some directory. It looks awefully
     %puny after so many lines of code.
-    cd(pathbring)
-    jobvalues=handles.jobs(projNum);
+   
     
-    save('M', 'M')
-    save ('PROPERTIES', 'PROPERTIES')
-    save (['lostonedge',date], 'lostonedge')
-    save ('jobvalues','jobvalues')
+   
  
     
 end

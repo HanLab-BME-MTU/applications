@@ -2,13 +2,10 @@ function stuffplotter(hObject)
 
 handles=guidata(hObject);
 
-if (handles.postpro.analfirstimg- handles.jobvalues.firstimage)~=0
-    start=round((handles.postpro.analfirstimg- handles.jobvalues.firstimage)/handles.jobvalues.increment);
-else
-    start=1;
-end
 
-stop = round((handles.postpro.anallastimg-start)/handles.jobvalues.increment) +start;
+start=round((handles.postpro.analfirstimg- handles.jobvalues.firstimage)/handles.jobvalues.increment)+1;
+
+stop = floor((handles.postpro.anallastimg - handles.jobvalues.firstimage)/handles.jobvalues.increment+0.00001)+1 ;
 
 
 
@@ -18,7 +15,7 @@ stop = round((handles.postpro.anallastimg-start)/handles.jobvalues.increment) +s
 
 for pic=start:stop
     
-    
+    whatcells=[];
     
 	if ~isempty(handles.selectedcells)
         whatcells=zeros(size(handles.selectedcells,1),2);
@@ -30,7 +27,7 @@ for pic=start:stop
     
     if ~isempty(handles.selectedcells)
         cellnumbers=handles.selectedcells;
-        whatcells(:,:)=handles.MPM(cellnumbers,2*pic-1:2*pic);
+        whatcells(:,:)=handles.MPM(handles.selectedcells,2*pic-1:2*pic);
     else  
         whatcells(:,:)=handles.MPM(:,2*pic-1:2*pic);
     end

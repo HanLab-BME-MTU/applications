@@ -6,7 +6,7 @@ function [coor]= takenkick(info,coor)
 %marks missed or faulty coordinates
 
 
-figure, imshow(info,[]), title('LEFT klick on the UNMARKED(!!!!!) nucloi /// RIGHT klick on (or close to) the FALSELY marked nucs ///  press ENTER when finished /// repeats as long as you klick on something, between to sucsessive presses on ENTER...');
+taken=figure, imshow(info,[]), title('LEFT klick on the UNMARKED(!!!!!) nucloi /// RIGHT klick on (or close to) the FALSELY marked nucs ///  press ENTER when finished /// repeats as long as you klick on something, between to sucsessive presses on ENTER...');
 hold on;
 
 plot(coor(:,1),coor(:,2),'.');
@@ -53,9 +53,15 @@ while done==0
                  [nothing,nothing2,onoff] = ginput;
                  hold off
                  
+                 close
+                 
                  %onoff is one if the user did a left click. In this case
                  %the programm will stop.
-                 if onoff(1)==1
+                 if isempty (onoff)
+                     done=1
+                     break
+                     
+                 elseif onoff(1)==1
                        done=1;
                        break
                  end
@@ -71,7 +77,8 @@ while done==0
                  hold on;
                  plot(coor(:,1),coor(:,2),'.');
                  [xx,yy,leftright] = ginput;
-              
+                 close
+                 
 		end
         %as long as there's Input - continue
         
@@ -117,4 +124,4 @@ while done==0
 		hold off;
 
 end
-
+close(taken)
