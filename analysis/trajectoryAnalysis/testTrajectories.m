@@ -1,8 +1,13 @@
-function [indStats,crossStats,globStats]=testTrajectories(trajectoryData,groupOrInd)
+function globStats=testTrajectories(trajectoryData)
+%TESTTRAJECTORIES produces discrimination matrices for the comparison of trajectoryData
 %
+% INPUT trajectoryData: Structure with multiple runs from trajectoryAnalysis
 %
+% OUTPUT globStats: discrimination matrices with p-values
 %
-%
+% help created 3/05
+% c: jonas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %============
 % TEST INPUT
@@ -13,337 +18,21 @@ function [indStats,crossStats,globStats]=testTrajectories(trajectoryData,groupOr
 % number of groups to compare
 nGroups = length(trajectoryData(:));
 
-% whether to compare individual stats
-if nargin < 2 | isempty(groupOrInd)
-    groupOrInd = 'group';
-end
-switch groupOrInd
-    case 'group'
-        if nGroups == 1
-            error('to compare groups we need at least two sets of trajectories')
-        end
-        doIndividual = 0;
-    case 'ind'
-        % we find the number of individuals on the fly - later we can adapt
-        % for preallocation etc.
-        doIndividual = 1;
-    otherwise
-        error('wrong input for groupOrInd')
-end
 
-%==================
-
-% do inds first, then group anyway, if there's more than one
-
-% create colormap - store in subfunction
-[cmap,cLimits]=logColormap;
-
-
-% read data
-indStats(1:nGroups) = struct('compStruct',[],'probMat',[],'outlierTest',[],'nTrajectories',[]);
-crossStats(1:nGroups,1:nGroups) = struct('probMat',[]);
-for iGroup = 1:nGroups
-
-    % loop through all the individual trajectories, collect all data
-    % and then calculate ranksums
-
-    % count trajectories
-    nTrajectories(iGroup) = length(trajectoryData(iGroup).individualStatistics);
-    % prepare list of data to compare
-    clear compStruct % kill old compStruct
-    compStruct(1:nTrajectories(iGroup)) = struct('growthSpeeds',[],'shrinkageSpeeds',[],...
-        'growthTimes',[],'shrinkageTimes',[],'distanceSigma',[]);
-
-
-
-    for ti = 1:nTrajectories(iGroup)
-        % read data. Calculate indices first, though
-        [growthIdx,growthGroupIdx] = ...
-            trajectoryAnalysisMainCalcStatsFindGroups(...
-            trajectoryData(iGroup).individualStatistics(ti).dataListGroup,1);
-        nGrowthGroups = size(growthGroupIdx,1);
-        [shrinkageIdx,shrinkageGroupIdx] = ...
-            trajectoryAnalysisMainCalcStatsFindGroups(...
-            trajectoryData(iGroup).individualStatistics(ti).dataListGroup,2);
-        nShrinkageGroups = size(shrinkageGroupIdx,1);
-
-        % speeds. Speeds persisting over longer periods of time are
-        % repeated per interval
-        if ~isempty(growthIdx)
-        compStruct(ti).growthSpeeds = repeatEntries(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-            growthIdx,4), diff(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-            growthIdx,[1:2]),1,2))*60;
-    end
-    if ~isempty(shrinkageIdx)
-        compStruct(ti).shrinkageSpeeds = repeatEntries(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-            shrinkageIdx,4), diff(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-            shrinkageIdx,[1:2]),1,2))*60;
-    end
-
-        % growth/ shrinkage group times
-if ~isempty(growthGroupIdx)
-        compStruct(ti).growthTimes = diff([trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-            growthGroupIdx(:,1),1),trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-            growthGroupIdx(:,2),2)],1,2);
-end
-        %                     compStruct(ti).growthTimes = zeros(nGrowthGroups,1);
-        %                     for i=1:nGrowthGroups
-        %                         compStruct(ti).growthTimes(i) =...
-        %                             sum(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-        %                             growthGroupIdx(i,1):growthGroupIdx(i,2),7));
-        %                     end
-        if ~isempty(shrinkageGroupIdx)
-        compStruct(ti).shrinkageTimes = diff([trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-            shrinkageGroupIdx(:,1),1),trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-            shrinkageGroupIdx(:,2),2)],1,2);
-end
-        %             compStruct(ti).shrinkageTimes = zeros(nShrinkageGroups,1);
-        %             for i=1:nShrinkageGroups
-        %                 compStruct(ti).shrinkageTimes(i) =...
-        %                     sum(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-        %                     shrinkageGroupIdx(i,1):shrinkageGroupIdx(i,2),7));
-        %             end
-
-        % distance mean - all distance
-        
-        % currently, we do not need distanceSigma - therefore allow taking
-        % from individualStatistics
-        if isfield(trajectoryData(iGroup).individualStatistics(ti),'addedStats')
-            compStruct(ti).distance = trajectoryData(iGroup).individualStatistics(ti).addedStats.distance(:,1);
-        else
-            % do not worry about the last distance we're not taking into
-            % account. This is just a hack, anyway
-            compStruct(ti).distance = trajectoryData(iGroup).individualStatistics(ti).dataListSeed(:,11);
-        end
-
-        % distance variation - distance minus mean of distance
-        compStruct(ti).distanceSigma = ...
-            (compStruct(ti).distance - trajectoryData(iGroup).individualStatistics(ti).summary.distanceMean(1));
-    end % loop trajectories
-
-    % save compStruct
-    indStats(iGroup).compStruct = compStruct;
-
-end % loop groups
-
-if doIndividual
-    for iGroup = 1:nGroups
-        % read compStruct
-        compStruct = indStats(iGroup).compStruct;
-        % prepare otuput
-        [probMatGS,probMatSS,probMatGT,probMatST,probMatD] = deal(ones(nTrajectories(iGroup)));
-        for ti = 1:nTrajectories(iGroup)
-
-            for tj = ti-1:-1:1
-                % compare
-
-                % growth speeds
-                [dummy,probGS] = ttest2(compStruct(ti).growthSpeeds,compStruct(tj).growthSpeeds);
-                [probMatGS(ti,tj),probMatGS(tj,ti)] = deal(probGS);
-
-                % shrinkage speeds
-                [dummy,probSS] = ttest2(compStruct(ti).shrinkageSpeeds,compStruct(tj).shrinkageSpeeds);
-                [probMatSS(ti,tj),probMatSS(tj,ti)] = deal(probSS);
-
-                % growth vs shrinkage speeds
-                %                 [dummy,probMatSP(ti,tj)] = ttest2(compStruct(ti).growthSpeeds,compStruct(tj).shrinkageSpeeds);
-                %                 [dummy,probMatSP(tj,ti)] = ttest2(compStruct(ti).shrinkageSpeeds,compStruct(tj).growthSpeeds);
-
-                % catastrophe
-                [probMatGT(ti,tj),probMatGT(tj,ti)] = ...
-                    deal(ranksum(compStruct(ti).growthTimes,compStruct(tj).growthTimes));
-
-                % rescue
-                [probMatST(ti,tj),probMatST(tj,ti)] = ...
-                    deal(ranksum(compStruct(ti).shrinkageTimes,compStruct(tj).shrinkageTimes));
-
-                % distance mean
-                [dummy,probDist] = ttest2(compStruct(ti).distance,compStruct(tj).distance);
-                [probMatDM(ti,tj),probMatDM(tj,ti)] = deal(probDist);
-
-                % distance sigma
-                [dummy,probDist] = kstest2(compStruct(ti).distanceSigma,compStruct(tj).distanceSigma);
-                [probMatDS(ti,tj),probMatDS(tj,ti)] = deal(probDist);
-            end
-        end
-
-        % test for outliers
-        outlierTest = zeros(nTrajectories(iGroup),4);
-        for ti = 1:nTrajectories(iGroup)
-            % find the values of all except the one we want to compare
-            allOtherGS = cat(1,compStruct([1:ti-1,ti+1:end]).growthSpeeds);
-            allOtherSS = cat(1,compStruct([1:ti-1,ti+1:end]).shrinkageSpeeds);
-            allOtherGT = cat(1,compStruct([1:ti-1,ti+1:end]).growthTimes);
-            allOtherST = cat(1,compStruct([1:ti-1,ti+1:end]).shrinkageTimes);
-            allOtherDM = cat(1,compStruct([1:ti-1,ti+1:end]).distance);
-            allOtherDS = cat(1,compStruct([1:ti-1,ti+1:end]).distanceSigma);
-
-            % compare
-            outlierTest(ti,1)=ranksum(allOtherGS,compStruct(ti).growthSpeeds);
-            outlierTest(ti,2)=ranksum(allOtherSS,compStruct(ti).shrinkageSpeeds);
-            outlierTest(ti,3)=ranksum(allOtherGT,compStruct(ti).growthTimes);
-            outlierTest(ti,4)=ranksum(allOtherST,compStruct(ti).shrinkageTimes);
-            outlierTest(ti,5)=ranksum(allOtherDM,compStruct(ti).distance);
-            outlierTest(ti,6)=ranksum(allOtherDS,compStruct(ti).distanceSigma);
-
-        end
-
-
-        % display
-        %         dispMat1 = [probMatGS, repmat(1.122,nTrajectories(iGroup),1), probMatSS; ...
-        %                 repmat(1.122,1,2*nTrajectories(iGroup)+1);...
-        %                 probMatGT, repmat(1.122,nTrajectories(iGroup),1),probMatST];
-        %         dispMatLog = -log10(dispMat1);
-        %         uiViewPanel;
-        %         uH=gcf;
-        %         imshow(dispMatLog);
-        %         % apply colormap and cLims
-        %         set(uH,'Colormap',logColormap);
-        %         set(gca,'CLim',cLimits)
-        %
-        %         % distance
-        %         fh=figure;imshow(-log10(probMatD));
-        %         set(fh,'Colormap',logColormap);
-        %         set(gca,'CLim',cLimits)
-
-
-
-        % outliers
-        uiViewPanel;
-        outlierTestLog = -log10(outlierTest);
-        imshow(outlierTestLog);
-        % apply colormap and cLims
-        set(gcf,'Colormap',logColormap);
-        set(gca,'CLim',cLimits)
-
-
-        % store data
-
-        indStats(iGroup).probMat = cat(3,probMatGS, probMatSS, probMatGT, probMatST, probMatDM, probMatDS);
-        indStats(iGroup).outlierTest = outlierTest;
-        indStats(iGroup).nTrajectories = nTrajectories(iGroup);
-
-        % cross-test between groups
-        for jGroup = iGroup-1:-1:1
-            [probMatGS,probMatSS,probMatGT,probMatST,probMatD] = ...
-                deal(ones(indStats(iGroup).nTrajectories,indStats(jGroup).nTrajectories));
-            for ti = 1:indStats(iGroup).nTrajectories
-                % loop through full group J, because we won't get anything
-                % symmetric
-                for tj = 1:indStats(jGroup).nTrajectories
-                    probMatGS(ti,tj)=ranksum(indStats(iGroup).compStruct(ti).growthSpeeds,indStats(jGroup).compStruct(tj).growthSpeeds);
-                    probMatSS(ti,tj)=ranksum(indStats(iGroup).compStruct(ti).shrinkageSpeeds,indStats(jGroup).compStruct(tj).shrinkageSpeeds);
-                    probMatGT(ti,tj)=ranksum(indStats(iGroup).compStruct(ti).growthTimes,indStats(jGroup).compStruct(tj).growthTimes);
-                    probMatST(ti,tj)=ranksum(indStats(iGroup).compStruct(ti).shrinkageTimes,indStats(jGroup).compStruct(tj).shrinkageTimes);
-                    [dummy,probMatDS(ti,tj)]=kstest2(indStats(iGroup).compStruct(ti).distanceSigma,indStats(jGroup).compStruct(tj).distanceSigma);
-                end
-            end
-
-            crossStats(iGroup,jGroup).probMat = cat(3,probMatGS, probMatSS, probMatGT, probMatST, probMatDS);
-        end
-
-
-    end %for iGroup = 1:nGroups
-
-    % display big matrices
-    nTrajectoriesAll = cat(1,indStats.nTrajectories);
-    % allocate matrices. We want separations between the individual
-    % matrices. Remember that we take the log of the thing
-    bigMatSize = sum(nTrajectoriesAll) + length(nTrajectoriesAll)-1;
-    [allGS,allSS,allGT,allST,allD] = deal(repmat(1.2,bigMatSize,bigMatSize));
-    currentRow = 0;
-
-
-    for iGroup = 1:nGroups % rows
-        currentCol = 0;
-        for jGroup = 1:nGroups % cols - start at zero
-            % decide from where we want to read the information
-            switch (iGroup == jGroup) + 2*(iGroup < jGroup)
-                % 0: below diagonal
-                % 1: diagonal
-                % 2: above diagonal
-                case 1
-                    % read from indStats
-                    allGS(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        indStats(iGroup).probMat(:,:,1);
-                    allSS(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        indStats(iGroup).probMat(:,:,2);
-                    allGT(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        indStats(iGroup).probMat(:,:,3);
-                    allST(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        indStats(iGroup).probMat(:,:,4);
-                    allDS(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        indStats(iGroup).probMat(:,:,5);
-
-                case 0
-                    % read from crossStats, don't transpose
-                    allGS(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(iGroup,jGroup).probMat(:,:,1);
-                    allSS(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(iGroup,jGroup).probMat(:,:,2);
-                    allGT(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(iGroup,jGroup).probMat(:,:,3);
-                    allST(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(iGroup,jGroup).probMat(:,:,4);
-                    allDS(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(iGroup,jGroup).probMat(:,:,5);
-
-                case 2
-                    % read from crossStats, transpose
-                    allGS(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(jGroup,iGroup).probMat(:,:,1)';
-                    allSS(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(jGroup,iGroup).probMat(:,:,2)';
-                    allGT(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(jGroup,iGroup).probMat(:,:,3)';
-                    allST(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(jGroup,iGroup).probMat(:,:,4)';
-                    allDS(currentRow+1:currentRow+nTrajectoriesAll(iGroup),currentCol+1:currentCol+nTrajectoriesAll(jGroup))=...
-                        crossStats(jGroup,iGroup).probMat(:,:,5)';
-
-            end % switch
-            currentCol = currentCol+nTrajectoriesAll(jGroup)+1;
-        end % for jGroup = 1:nGroups - cols
-        currentRow = currentRow+nTrajectoriesAll(iGroup)+1;
-    end % for iGroup = 1:nGroups - rows
-
-    % display
-    uH=figure('Name','GrowthSpeed');
-    imshow(-log10(allGS));
-    % apply colormap and cLims
-    set(uH,'Colormap',logColormap);
-    set(gca,'CLim',cLimits)
-    colorbar
-
-    uH=figure('Name','ShrinkageSpeed');
-    imshow(-log10(allSS));
-    % apply colormap and cLims
-    set(uH,'Colormap',logColormap);
-    set(gca,'CLim',cLimits)
-    colorbar
-
-    uH=figure('Name','Catastrophe');
-    imshow(-log10(allGT));
-    % apply colormap and cLims
-    set(uH,'Colormap',logColormap);
-    set(gca,'CLim',cLimits)
-    colorbar
-
-    uH=figure('Name','Rescue');
-    imshow(-log10(allST));
-    % apply colormap and cLims
-    set(uH,'Colormap',logColormap);
-    set(gca,'CLim',cLimits)
-    colorbar
-
-    uH=figure('Name','Distance');
-    imshow(-log10(allDS));
-    % apply colormap and cLims
-    set(uH,'Colormap',logColormap);
-    set(gca,'CLim',cLimits)
-    colorbar
-
-end %if doIndividual
+ 
+% %         % currently, we do not need distanceSigma - therefore allow taking
+% %         % from individualStatistics
+% %         if isfield(trajectoryData(iGroup).individualStatistics(ti),'addedStats')
+% %             compStruct(ti).distance = trajectoryData(iGroup).individualStatistics(ti).addedStats.distance(:,1);
+% %         else
+% %             % do not worry about the last distance we're not taking into
+% %             % account. This is just a hack, anyway
+% %             compStruct(ti).distance = trajectoryData(iGroup).individualStatistics(ti).dataListSeed(:,11);
+% %         end
+% % 
+% %         % distance variation - distance minus mean of distance
+% %         compStruct(ti).distanceSigma = ...
+% %             (compStruct(ti).distance - trajectoryData(iGroup).individualStatistics(ti).summary.distanceMean(1));
 
 %====================
 % COMPARE GLOBALLY
@@ -351,95 +40,105 @@ end %if doIndividual
 
 % read values. Transform speeds for kstests
 for i = 1:nGroups
-    cs = indStats(i).compStruct;
-    globStats(i).growthSpeeds = catStruct(1,'cs.growthSpeeds');
+
+    globStats(i).growthSpeeds = repeatEntries(...
+        trajectoryData(i).overallDistribution.antipolewardSpeed(:,1),...
+        trajectoryData(i).overallDistribution.antipolewardSpeed(:,2));
+    
     globStats(i).growthSpeedsT = ...
         (globStats(i).growthSpeeds - mean(globStats(i).growthSpeeds));
-    globStats(i).shrinkageSpeeds = abs(catStruct(1,'cs.shrinkageSpeeds'));
+    
+    globStats(i).shrinkageSpeeds = abs(repeatEntries(...
+        trajectoryData(i).overallDistribution.polewardSpeed(:,1),...
+        trajectoryData(i).overallDistribution.polewardSpeed(:,2)));
     globStats(i).shrinkageSpeedsT = ...
         (globStats(i).shrinkageSpeeds - mean(globStats(i).shrinkageSpeeds));
-    globStats(i).growthTimes = catStruct(1,'cs.growthTimes');
-    globStats(i).shrinkageTimes = catStruct(1,'cs.shrinkageTimes');
-    globStats(i).distance = catStruct(1,'cs.distance');
-    globStats(i).distanceSigma = catStruct(1,'cs.distanceSigma');
+    
+    globStats(i).growthTimes = trajectoryData(i).overallDistribution.growthTime(:,1);
+    globStats(i).shrinkageTimes = trajectoryData(i).overallDistribution.shrinkageTime(:,1);
+    globStats(i).distance = trajectoryData(i).overallDistribution.distance(:,1);
+%     globStats(i).distanceSigma = catStruct(1,'cs.distanceSigma');
 end
 
-% compare all
-[globCompareGS1,...
-    globCompareSS1,...
-    globCompareF,...%globCompareGT1,globCompareST1,...
-    globCompareD] = deal(repmat(1.01,[nGroups,nGroups]));
-globCompareSP = zeros(nGroups,2);
 
-for gi = 1:nGroups
+    
 
-    % growth vs shrinkage ttest2
-    [dummy,globCompareSP(gi,1)] = ttest2(globStats(gi).growthSpeeds,(globStats(gi).shrinkageSpeeds));
-    % trandformed growth vs shrinkage kstest2
-    [dummy,globCompareSP(gi,2)] = kstest2(globStats(gi).growthSpeedsT,(globStats(gi).shrinkageSpeedsT));
+globCompare = discriminationMatrix(globStats);
 
-    for gj = gi-1:-1:1
-        % growth ttest
-        [dummy,globCompareGS1(gi,gj)] = ttest2(globStats(gi).growthSpeeds,globStats(gj).growthSpeeds,...
-            0.05,'both','unequal');
-        % transformed growth kolmogorov
-        [dummy,globCompareGS1(gj,gi)] = kstest2(globStats(gi).growthSpeedsT,globStats(gj).growthSpeedsT);
-        
-        % shrinkage ttest
-        [dummy,globCompareSS1(gi,gj)] = ttest2(globStats(gi).shrinkageSpeeds,globStats(gj).shrinkageSpeeds,...
-            0.05,'both','unequal');
-         % transformed shrinkage kolmogorov
-        [dummy,globCompareSS1(gj,gi)] = kstest2(globStats(gi).shrinkageSpeedsT,globStats(gj).shrinkageSpeedsT);
-
-
-        % catastrophe kolmogorov
-        [dummy,globCompareF(gi,gj)] = kstest2(globStats(gi).growthTimes,globStats(gj).growthTimes);
-%         [globCompareGT1(gi,gj),globCompareGT1(gj,gi)] = deal(...
-%             probGT);
-        % rescue kolmogorov
-        [dummy,globCompareF(gj,gi)] = kstest2(globStats(gi).shrinkageTimes,globStats(gj).shrinkageTimes);
-%         [globCompareST1(gi,gj),globCompareST1(gj,gi)] = deal(...
-%             probST);
-
-        % distance mean (ttest) and sigma (kstest)
-        [dummy,globCompareD(gi,gj)] = ttest2(globStats(gi).distance,globStats(gj).distance,0.05,'both','unequal');
-        [dummy,globCompareD(gj,gi)] = kstest2(globStats(gi).distanceSigma,globStats(gj).distanceSigma);
-    end
+% compare g/s speeds
+for i=1:nGroups
+    [dummy,pValue] = ttest2(...
+        globStats(i).growthSpeeds,globStats(i).shrinkageSpeeds,...
+        0.05,'both','unequal');
+    globCompare.speeds(i,1) = pValue;
+    [dummy,pValue] = kstest2(...
+        globStats(i).growthSpeeds,globStats(i).shrinkageSpeeds);
+    globCompare.speeds(i,2) = pValue;
 end
+
+[cmap,cLimits]=logColormap;
 
 % display
 uH = uiViewPanel;
-set(uH,'Name','GlobalGrowth')
-imshow(-log10(globCompareGS1));
-set(uH,'Colormap',logColormap);
+set(uH,'Name','Growth')
+imshow(-log10(globCompare.growthSpeeds));
+set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
+for i=1:nGroups
+    for j=1:nGroups
+        text(j,i,sprintf('%3.3f',globCompare.growthSpeeds(i,j)),...
+            'HorizontalAlignment','center')
+    end
+end
 uH = uiViewPanel;
-set(uH,'Name','GlobalShrinkage')
-imshow(-log10(globCompareSS1));
-set(uH,'Colormap',logColormap);
+set(uH,'Name','Shrinkage')
+imshow(-log10(globCompare.shrinkageSpeeds));
+set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
+for i=1:nGroups
+    for j=1:nGroups
+        text(j,i,sprintf('%3.3f',globCompare.shrinkageSpeeds(i,j)),...
+            'HorizontalAlignment','center')
+    end
+end
 uH = uiViewPanel;
-set(uH,'Name','GlobalSpeeds')
-imshow(-log10(globCompareSP));
-set(uH,'Colormap',logColormap);
+set(uH,'Name','Speeds')
+imshow(-log10(globCompare.speeds));
+set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
+for i=1:nGroups
+    for j=1:nGroups
+        text(j,i,sprintf('%3.3f',globCompare.speeds(i,j)),...
+            'HorizontalAlignment','center')
+    end
+end
 uH = uiViewPanel;
-set(uH,'Name','GlobalCatastrophe')
-imshow(-log10(globCompareF));
-set(uH,'Colormap',logColormap);
+set(uH,'Name','Catastrophe')
+imshow(-log10(globCompare.growthTimes));
+set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
+for i=1:nGroups
+    for j=1:nGroups
+        text(j,i,sprintf('%3.3f',globCompare.growthTimes(i,j)),...
+            'HorizontalAlignment','center')
+    end
+end
+uH = uiViewPanel;
+set(uH,'Name','Catastrophe')
+imshow(-log10(globCompare.shrinkageTimes));
+set(uH,'Colormap',cmap);
+set(gca,'CLim',cLimits)
+for i=1:nGroups
+    for j=1:nGroups
+        text(j,i,sprintf('%3.3f',globCompare.shrinkageTimes(i,j)),...
+            'HorizontalAlignment','center')
+    end
+end
 uH = uiViewPanel;
 set(uH,'Name','GlobalDistance')
-imshow(-log10(globCompareD));
-set(uH,'Colormap',logColormap);
+imshow(-log10(globCompare.distance));
+set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
-
-globStats(1).probMatSP = globCompareSP;
-globStats(1).probMatGS = cat(3,globCompareGS1);
-globStats(1).probMatSS = cat(3,globCompareSS1);
-globStats(1).probMatGT = cat(3,globCompareF);
-globStats(1).probMatD  = cat(3,globCompareD);
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -454,145 +153,3 @@ colors = [1 1 1;... % boundary
 cmap = repeatEntries(colors,[1;1;20;6;34;2]);
 cLimits = [-0.1,3.05];
 
-% cLimits = [-0.05,7];
-% cmap =  [1.0000    1.0000    1.0000;...
-%     0         0         0;...
-%     0         0    0.0169;...
-%     0         0    0.0339;...
-%     0         0    0.0508;...
-%     0         0    0.0678;...
-%     0         0    0.0847;...
-%     0         0    0.1017;...
-%     0         0    0.1186;...
-%     0         0    0.1356;...
-%     0         0    0.1525;...
-%     0         0    0.1695;...
-%     0         0    0.1864;...
-%     0         0    0.2034;...
-%     0         0    0.2203;...
-%     0         0    0.2373;...
-%     0         0    0.2542;...
-%     0         0    0.2712;...
-%     0         0    0.2881;...
-%     0         0    0.3051;...
-%     0         0    0.3220;...
-%     0         0    0.3390;...
-%     0         0    0.3559;...
-%     0         0    0.3729;...
-%     0         0    0.3898;...
-%     0         0    0.4068;...
-%     0         0    0.4237;...
-%     0         0    0.4407;...
-%     0         0    0.4576;...
-%     0         0    0.4746;...
-%     0         0    0.4915;...
-%     0         0    0.5085;...
-%     0         0    0.5254;...
-%     0         0    0.5424;...
-%     0         0    0.5593;...
-%     0         0    0.5763;...
-%     0         0    0.5932;...
-%     0         0    0.6102;...
-%     0         0    0.6271;...
-%     0         0    0.6441;...
-%     0         0    0.6610;...
-%     0         0    0.6780;...
-%     0         0    0.6949;...
-%     0         0    0.7119;...
-%     0         0    0.7288;...
-%     0         0    0.7458;...
-%     0         0    0.7627;...
-%     0         0    0.7797;...
-%     0         0    0.7966;...
-%     0         0    0.8136;...
-%     0         0    0.8305;...
-%     0         0    0.8475;...
-%     0         0    0.8644;...
-%     0         0    0.8814;...
-%     0         0    0.8983;...
-%     0         0    0.9153;...
-%     0         0    0.9322;...
-%     0         0    0.9492;...
-%     0         0    0.9661;...
-%     0         0    0.9831;...
-%     0         0    1.0000;...
-%     1.0000    1.0000         0;...
-%     1.0000    0.9872         0;...
-%     1.0000    0.9744         0;...
-%     1.0000    0.9615         0;...
-%     1.0000    0.9487         0;...
-%     1.0000    0.9359         0;...
-%     1.0000    0.9231         0;...
-%     1.0000    0.9103         0;...
-%     1.0000    0.8974         0;...
-%     1.0000    0.8846         0;...
-%     1.0000    0.8718         0;...
-%     1.0000    0.8590         0;...
-%     1.0000    0.8462         0;...
-%     1.0000    0.8333         0;...
-%     1.0000    0.8205         0;...
-%     1.0000    0.8077         0;...
-%     1.0000    0.7949         0;...
-%     1.0000    0.7821         0;...
-%     1.0000    0.7692         0;...
-%     1.0000    0.7564         0;...
-%     1.0000    0.7436         0;...
-%     1.0000    0.7308         0;...
-%     1.0000    0.7179         0;...
-%     1.0000    0.7051         0;...
-%     1.0000    0.6923         0;...
-%     1.0000    0.6795         0;...
-%     1.0000    0.6667         0;...
-%     1.0000    0.6538         0;...
-%     1.0000    0.6410         0;...
-%     1.0000    0.6282         0;...
-%     1.0000    0.6154         0;...
-%     1.0000    0.6026         0;...
-%     1.0000    0.5897         0;...
-%     1.0000    0.5769         0;...
-%     1.0000    0.5641         0;...
-%     1.0000    0.5513         0;...
-%     1.0000    0.5385         0;...
-%     1.0000    0.5256         0;...
-%     1.0000    0.5128         0;...
-%     1.0000    0.5000         0;...
-%     1.0000    0.4750         0;...
-%     1.0000    0.4500         0;...
-%     1.0000    0.4250         0;...
-%     1.0000    0.4000         0;...
-%     1.0000    0.3750         0;...
-%     1.0000    0.3500         0;...
-%     1.0000    0.3250         0;...
-%     1.0000    0.3000         0;...
-%     1.0000    0.2750         0;...
-%     1.0000    0.2500         0;...
-%     1.0000    0.2250         0;...
-%     1.0000    0.2000         0;...
-%     1.0000    0.1750         0;...
-%     1.0000    0.1500         0;...
-%     1.0000    0.1250         0;...
-%     1.0000    0.1000         0;...
-%     1.0000    0.0750         0;...
-%     1.0000    0.0500         0;...
-%     1.0000    0.0250         0;...
-%     1.0000         0         0;...
-%     0.9750         0         0;...
-%     0.9500         0         0;...
-%     0.9250         0         0;...
-%     0.9000         0         0;...
-%     0.8750         0         0;...
-%     0.8500         0         0;...
-%     0.8250         0         0;...
-%     0.8000         0         0;...
-%     0.7750         0         0;...
-%     0.7500         0         0;...
-%     0.7250         0         0;...
-%     0.7000         0         0;...
-%     0.6750         0         0;...
-%     0.6500         0         0;...
-%     0.6250         0         0;...
-%     0.6000         0         0;...
-%     0.5750         0         0;...
-%     0.5500         0         0;...
-%     0.5250         0         0;...
-%     0.5000         0         0];
