@@ -90,14 +90,15 @@ for counter1 = 1 : size(M,3) - 1
       % END OF ANALYSIS
       %
       else
-         tM(counter2,:) = 0;
+         tM(counter2,1:2) = 0;
                 
          if (M(counter2,3,counter1+1) ~= 0 | M(counter2,4,counter1+1) ~= 0) & ...
             (M(counter2,1,counter1+1) == 0 & M(counter2,2,counter1+1) == 0)
-            M(end+1,:,:)=0;
+            %M(end+1,:,:)=0;
             %=M(end,3:4,counter1);
-            tM(end+1,:)=0;
-            tM(end,3:4)=M(counter2,3:4,counter1+1);
+            %tM(end+1,:)=0;
+            %tM(end,3:4)=M(counter2,3:4,counter1+1);
+            tM(counter2,3:4)=M(counter2,3:4,counter1+1);
          end
       end
    end

@@ -199,6 +199,7 @@ else		% lastImaNum > firstImaNum
 
       % From frame 2 we should start matching coordinates
       if imageCount > startFrame
+          
          % Match the current coordinates with the ones found in the previous frame
          matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
 
@@ -252,6 +253,10 @@ else		% lastImaNum > firstImaNum
          unmatchedNewCells = find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0);
 	     unmatchedNewCellsCoord = matchedCells (unmatchedNewCells,3:4);
 	 
+         % Initialize the matrix for previous coordinates that we find
+         foundPrevCells (1,:) = [0 0 0 0]; 
+         
+         % Start the template matching process if needed
          if ~isempty (unmatchedNewCells)
             couldNotMatch = []; 
             for jCount =  1 : size (unmatchedNewCells, 1)
@@ -269,6 +274,10 @@ else		% lastImaNum > firstImaNum
                      % Add these coordinates to the previously found ones
                      previousCoord (end+1,1) = templateCellCoord (1,1);
                      previousCoord (end,2) = templateCellCoord (1,2);
+
+                     % Store these as well so that we can modify previous
+                     % M-entries later on
+                     foundPrevCells (end+1,:) = [0 0 templateCellCoord(1,1) templateCellCoord(1,2)];
                   end
                end   % if correlation
             end   % for jCount
@@ -282,9 +291,10 @@ else		% lastImaNum > firstImaNum
          % Now that we have new newCoord and new PreviousCoord coordinates, we can do a renewed match
          matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
 
-         % Add a number of zero rows to the matchedCells matrix to make space for the coordinates
-         % that we later will calculate to close tracks
-         zeroRows = zeros (size (lostCells,1), 4);
+         % Add a number of zero rows to the matchedCells matrix to make
+         % space for the coordinates that we later will calculate to close
+         % tracks and to add any previous coords we found
+         zeroRows = zeros (size (lostCells,1) + size (foundPrevCells,1), 4);
          matchedCells = [matchedCells ; zeroRows];
 
          % Add the newly found matches to the M matrix and make sure all the rows and colums 
@@ -292,6 +302,19 @@ else		% lastImaNum > firstImaNum
          M (1 : size (emptyM, 1), 1 : size (emptyM, 2), loopCount - 1) = emptyM;
          M (1 : size (matchedCells, 1), 1 : size (matchedCells, 2), loopCount - 1) = matchedCells;
 
+         % In case we found previous coords by template, we should modify a
+         % zero row in the previous M entry as well, otherwise we will get
+         % problems linking tracks later on 
+         if loopCount > 2
+            foundPrevCells (1,:) = [];
+            zeroInd = find (M (:,1,loopCount - 2) == 0 & M (:,2,loopCount - 2) == 0 & ...
+                            M (:,3,loopCount - 2) == 0 & M (:,4,loopCount - 2) == 0);
+            M (zeroInd(1:size (foundPrevCells,1)), 1 : size (foundPrevCells, 2), loopCount - 2) = foundPrevCells;
+         end
+         
+         % Empty foundPrevCells for the next loop run
+         clear foundPrevCells;
+         
          % There's one more thing to do: see if we can match lost cells in previous frames to any of
          % the new ones found in this frame. Allow this for a max history of timeStepSlide frames.
          newCells = matchedCells (find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0 & ...

@@ -203,7 +203,7 @@ minDistIndex = uniqueEntries (find (numberOfOccurences < minTrackLength*2-1));
 MPM(minDistIndex,:) = [];
 
 % Store the modified MPM matrix in the data* directory
-if savePath ~= []
+if ~isempty (savePath)
    cd (savePath);
    save ('MPM.mat', 'MPM');
 end
