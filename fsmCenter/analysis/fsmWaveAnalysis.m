@@ -239,16 +239,36 @@ if moveROI==1
     else
         
         % Loading failed, the user must select corresponding vectors###.mat
-        [newFName,newDirName] = uigetfile(...
-            {'*.mat;','Matlab workspaces (*.mat)';
-            '*.*','All Files (*.*)'},...
-            'Select first kinScore matrix');
-        if ~(isa(newFName,'char') & isa(newDirName,'char'))
-            return 
-        end
-        % Recover all file names from the stack
-        vectorOutFileList=getFileStackNames([newDirName,newFName]);
+
+        textStr= [ 'The selected project does not seem to contain vectors###.mat files. ', ...
+            'These files are created by the hierarchical neural network tracker. ', ...
+            'If these files exist somewhere out of the project directory, you might want to locate them manually; ',...
+            'alternatively, you can skip selection (but your ROIs will not be moved along the vector field) or abort.' ];
+            
+        choice=questdlg(textStr, ...
+            'Warning', ...
+            'Locate','Skip','Abort','Skip');
+
+        switch choice,
+            case 'Locate',
+                [newFName,newDirName] = uigetfile(...
+                    {'*.mat;','Matlab workspaces (*.mat)';
+                    '*.*','All Files (*.*)'},...
+                    'Select first vectors###.mat file');
+                if ~(isa(newFName,'char') & isa(newDirName,'char'))
+                    return
+                end
+                % Recover all file names from the stack
+                vectorOutFileList=getFileStackNames([newDirName,newFName]);
+            case 'Skip',
+                moveROI=0;             % Turn off "Move ROI along vector field"
+                vectorOutFileList=[];
+            case 'Abort',
+                return
+        end % switch
+
         
+       
     end
     
     % Calculate the center(s) of mass of the polygon(s)

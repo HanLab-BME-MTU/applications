@@ -327,6 +327,10 @@ if roi=='g' % The b/w mask is used only to get a subset of the grid
             bwMask=[];
         else
             load([dirName,filesep,fName]);
+            if exist('bwMask')~=1
+                uiwait(errordlg('The chosen file does not appear to contain a valid b/w mask.','Error','modal'));
+                return;
+            end
         end
     else
         bwMask=[];
