@@ -52,7 +52,7 @@ defaultjob = struct('imagedirectory', [], 'imagename', [], 'firstimage', 1, 'las
                    'increment', 1, 'savedirectory', [], 'maxsearch', 81, 'mmpixel', [], 'mmpixel_index', 1,...
                    'minsize',200, 'maxsize', 4000, 'minsdist', 25, 'fi_halolevel', [], 'la_halolevel', [],...
                    'minedge', 10, 'sizetemplate', 41, 'boxsize', 141, 'noiseparameter', 0.15,...
-                   'mincorrqualtempl', 0.3, 'leveladjust', 0.7, 'timestepslide', 5, 'mintrackcorrqual', 0.5,...
+                   'mincorrqualtempl', 0.5, 'leveladjust', 0.7, 'timestepslide', 5, 'mintrackcorrqual', 0.5,...
                    'coordinatespicone', [], 'intensityMax', 4095, 'bitdepth', 12, 'bitdepth_index', 3, 'bodyname', [],...
                    'imagenameslist', [], 'timeperframe', [], 'timestepslide_index', 2);
 
@@ -65,8 +65,9 @@ set(hObject,'Color',[0,0,0.627]);
 % Update handles structure
 guidata(hObject, handles);
 
-% Let's turn the resize warnings off
+% Let's turn the resize and int conversion warnings off
 iptsetpref ('TrueSizeWarning', 'off');
+intwarning ('off');
 
 % UIWAIT makes GUI_start wait for user response (see UIRESUME)
 % uiwait(handles.polyTrack_mainwindow);
@@ -1386,22 +1387,33 @@ for jobNumber = 1 : nrOfJobs
 
    % Save the definite version of jobvalues
    if ~isempty(handles.jobs(jobNumber).savedirectory)
-      cd (handles.jobs(jobNumber).savedirectory)
+      cd (handles.jobs(jobNumber).savedirectory);
       jobvalues = handles.jobs(jobNumber);
-      save ('jobvalues','jobvalues')
-      clear jobvalues
+      save ('jobvalues','jobvalues');
+      clear jobvalues;
    end
         
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
    %try
-      ptTrackCells (handles.jobs(jobNumber), jobNumber);
-      %catch    
-     %fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
-     %end
+      [M, clusterProps, cellProps, imageCount] = ptTrackCells (handles.jobs(jobNumber), jobNumber);
+   %catch    
+   %  fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
+  
+     % Save M, cluster and cell data
+     %cd (handles.jobs(jobNumber).savedirectory);
+     %save ('M','M');
+     %save ('clusterProps','clusterProps');
+     %save ('cellProps','cellProps');
+     
+     % Make sure the jobvalues for this job are adjusted
+     %handles.jobs(jobNumber).firstimage = imageCount;
+     %jobvalues = handles.jobs(jobNumber);
+     %save ('jobvalues','jobvalues');
+   %end
    
    % Final message for the user to mark the end
-   fprintf (1, 'Tracking finished...\n');
+   fprintf (1, '\nTracking finished...\n');
 end
 
 %-------------------------------------------------------------------------------

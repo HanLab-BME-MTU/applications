@@ -1,19 +1,25 @@
-function ptTrackCells (ptJob, jobNumber)
+function [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumber)
 % ptTrackCells finds and links coordinates in a serie of phase contrast images 
 %
-% SYNOPSIS       ptTrackCells (ptJob, jobNumber)
+% SYNOPSIS       [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumber)
 %
 % INPUT          ptJob : a structure which contains the data for the job to process. See below 
 %                        for the exact structure details
 %                jobNumber : which job is currently being dealt with. This is used to print
 %                            some status information on the matlab command line
 %
-% OUTPUT         All outputs are written directly to disk 
-%                M : described in ptTrackLinker
+% OUTPUT         M : described in ptTrackLinker
 %                cellProps : 
 %                  cellProps(:,1) = coord(:,1);
 %	 	           cellProps(:,2) = coord(:,2);
 %		           cellProps(:,3) = clustermember(:);
+%                clusterProps :
+%                  clusterProps (:,1) = uniqClusterNr (:);          (which cells are in this cluster)
+%                  clusterProps (:,2) = numberOfCells (:);          (how many cells in this cluster)
+%                  clusterProps (:,3) = clusterArea (:);            (the area of this cluster)
+%                  clusterProps (:,4) = clusterPerimeter (:);       (the length of the perimeter)
+%                  clusterProps (:,5) = clusterPerimeterElements (:); (how many elements does the perimeter exist of)
+%                imageCount : the last image that was processed (also needed in case of crashes)
 %
 % DEPENDENCIES   ptTrackCells uses { imClusterSeg
 %				     ptTrackLinker
@@ -58,8 +64,8 @@ fprintf (1, 'Starting analysis of job number %d:\n', jobNumber);
 imageDirectory       = ptJob.imagedirectory;
 imageName            = ptJob.imagename;
 increment            = ptJob.increment;
-firstImageNr         = ptJob.firstimage;
-lastImageNr          = ptJob.lastimage;
+startFrame           = ptJob.firstimage;
+endFrame             = ptJob.lastimage;
 imageNameList        = ptJob.imagenameslist;
 maxSearch            = ptJob.maxsearch;
 saveDirectory        = ptJob.savedirectory;
@@ -74,14 +80,14 @@ minimalQualityCorr   = ptJob.mincorrqualtempl;
 minTrackCorr         = ptJob.mintrackcorrqual;
 minDistCellToCell    = ptJob.minsdist;
 timeStepSlide        = ptJob.timestepslide;
-approxDistance       = round (minDistCellToCell / 2);
+distanceToCellArea   = round (minDistCellToCell / 2);
 erodeDiskSize        = 15;
 emptyM               = zeros (1,4);      % All zeros M matrix entry
 emptyCell            = zeros (1,3);
 emptyCluster         = zeros (1,5);
 
 % Check that the first and last image numbers are actually the right way around
-if ~(lastImageNr > firstImageNr)
+if ~(endFrame > startFrame)
    fprintf (1, 'ptTrackCells: Last image # is smaller than first image # in job %d\n', jobNumber);
    return;
 else		% lastImaNum > firstImaNum
@@ -93,7 +99,7 @@ else		% lastImaNum > firstImaNum
    lostCells = [];
 
    % loop from the first frame to the last frame using the given increment
-   for imageCount = firstImageNr : increment : lastImageNr
+   for imageCount = startFrame : increment : endFrame
        
       % Print the image number that is being processed
       fprintf (1, '     Processing image # %d on %s\n', imageCount, datestr(now));
@@ -161,7 +167,7 @@ else		% lastImaNum > firstImaNum
       [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc);
 
       % If the user specified his/her own coordinates on the gui, use these instead
-      if imageCount == firstImageNr
+      if imageCount == startFrame
          % Get the previously initiated coordinates if they exist
          if ~isempty (ptJob.coordinatespicone);
             nucCoord = ptJob.coordinatespicone;
@@ -187,9 +193,9 @@ else		% lastImaNum > firstImaNum
       end
 
       % From frame 2 we should start matching coordinates
-      if imageCount > firstImageNr
+      if imageCount > startFrame
          % Match the current coordinates with the ones found in the previous frame
-         matchedCells = fsmTrackTrackerBMTNN (previousCoord, newCoord, maxSearch, maxSearch);
+         matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
 
          % Use template matching to find cells that where not found in the BMTNN match
 	     unmatchedCells = find (matchedCells (:,3) == 0 & matchedCells (:,4) == 0);
@@ -226,7 +232,7 @@ else		% lastImaNum > firstImaNum
                      % cell: add it to the lost cell list. We might find it again later
                      % so that we can close the gap in the track
                      % The current M entry is different from the current frame nr: recalculate
-                     currentMEntry = imageCount - firstImageNr - 1;
+                     currentMEntry = loopCount - 1;
                      if isempty (lostCells)
                         lostCells = [unmatchedCellCoord, currentMEntry];
                      else
@@ -264,7 +270,7 @@ else		% lastImaNum > firstImaNum
 	     end   % if ~isempty (unmatchedCells)
          
          % Now that we have new newCoord and new PreviousCoord coordinates, we can do a renewed match
-         matchedCells = fsmTrackTrackerBMTNN (previousCoord, newCoord, maxSearch, maxSearch);
+         matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
 
          % Add a number of zero rows to the matchedCells matrix to make space for the coordinates
          % that we later will calculate to close tracks
@@ -281,9 +287,9 @@ else		% lastImaNum > firstImaNum
          newCells = matchedCells (find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0 & ...
                                         matchedCells (:,3) ~= 0 & matchedCells (:,4) ~= 0),3:4);
          if ~isempty (lostCells) & ~isempty (newCells)        
-            lostCellsToMatch = lostCells (find (lostCells (:,3) >= max ((imageCount - timeStepSlide), 1)), :);
+            lostCellsToMatch = lostCells (find (lostCells (:,3) >= max ((loopCount - timeStepSlide), 1)), :);
             if ~isempty (lostCellsToMatch)
-               matchedLostCells = fsmTrackTrackerBMTNN (lostCellsToMatch (:,1:2), newCells, maxSearch, maxSearch);
+               matchedLostCells = ptTracker (lostCellsToMatch (:,1:2), newCells, maxSearch, maxSearch);
             
                % Kick out all entries that have not been matched (they get a chance later)
                matchedLostCells (find ((matchedLostCells (:,1) == 0 & matchedLostCells (:,2) == 0) | ...
@@ -294,15 +300,15 @@ else		% lastImaNum > firstImaNum
                if ~isempty (matchedLostCells)
                   clusterDir = [saveDirectory filesep 'info'];
                   % The current M entry is different from the current frame nr: recalculate
-                  currentMEntry = imageCount - firstImageNr - 1;
+                  currentMEntry = loopCount - 1;
                   [M, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, currentMEntry, clusterDir);   
                end
             end     % ~isempty (lostCellsToMatch)
          end    % ~isempty (lostCells) & ~isempty (newCells)
-      end   % if imageCount > firstImageNr
+      end   % if imageCount > startFrame
 
       % Calculate single cell and cluster properties and generate binary and labeled images
-      [cellProp, clusterProp] = ptCalculateCellArea (labeledCellImage, newCoord, approxDistance, minSizeNuc);
+      [cellProp, clusterProp] = ptCalculateCellArea (labeledCellImage, newCoord, distanceToCellArea, minSizeNuc);
       
       % Accumulate the cell properties
       cellProps (1 : size (emptyCell, 1), 1 : size (emptyCell, 2), imageCount) = emptyCell;
@@ -317,7 +323,24 @@ else		% lastImaNum > firstImaNum
          fprintf (1, 'ptTrackCells: Save directory %s does not exist. Exiting...\n', saveDirectory);
          return;
       else
-          
+         % Go to the save directory
+         cd (saveDirectory); 
+         
+         % Save M matrix (tracks)
+         if exist ('M', 'var')
+            save('M.mat', 'M');
+         end
+
+         % Save cell properties
+         if exist ('cellProps', 'var')
+            save ('cellProps.mat', 'cellProps');
+         end
+
+         % Save cluster properties
+         if exist ('clusterProps', 'var')
+            save ('clusterProps.mat', 'clusterProps');
+         end
+ 
          % Go to the directory where the segmentation, cell and cluster info
          % is going to be saved. Create it first if it doesn't exist and cd into it
          infoDir = [saveDirectory filesep 'info'];
@@ -364,6 +387,11 @@ else		% lastImaNum > firstImaNum
    end   % for imageCount
 end % if ~(lastImaNum > firstImaNum)
 
+% Generate the cell and cluster properties. This function also takes
+% coordinates into account that have been generated to close gaps
+clusterDirectory = [saveDirectory filesep 'info'];
+[cellProps, clusterProps] = ptCalculateCellAreaWithM (M, distanceToCellArea, minSizeNuc, clusterDirectory, ...
+                                                      startFrame, endFrame, increment);
 % Go to the save directory
 cd (saveDirectory);
 
@@ -383,4 +411,4 @@ if exist ('clusterProps', 'var')
 end
 
 % Tell the user we've finished
-fprintf (1, 'Finished analysis of job number %d.\n', jobNumber);
+fprintf (1, '\nFinished analysis of job number %d.\n', jobNumber);

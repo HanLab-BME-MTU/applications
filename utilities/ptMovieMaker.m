@@ -47,7 +47,7 @@ elseif lastFrame < startFrame
 end;
 
 % Get image and save directory and go to save dir
-imageDirectory = handles.jobvalues.imagedirectory;
+imageDirectory = handles.postpro.imagepath;
 savePath = handles.postpro.saveallpath;
 cd (savePath);
 

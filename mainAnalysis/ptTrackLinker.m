@@ -30,6 +30,7 @@ function [MPM, M] = ptTrackLinker (M)
 
 % Let the user know we're starting to link
 fprintf (1, 'ptTrackLinker: Starting track linkage process...\n');
+fprintf (1, 'ptTrackLinker: Linking frame #: ');
 
 % Initialize counter
 counter = 0;
@@ -39,7 +40,7 @@ for counter1 = 1 : size(M,3) - 1
   
    % counter
    counter = counter + 1;
-   fprintf (1, 'ptTrackLinker: Linking frame # %d ...\n', counter);
+   fprintf (1, '%d ', counter);
    
    % Read speckle positions at time point (=img) counter1
    start = (M(:, 3:4, counter1));
@@ -63,7 +64,7 @@ for counter1 = 1 : size(M,3) - 1
                         
          % No matching found -> error!
          if isempty(y)
-             fprintf (1, 'ptTrackLinker: Time points %d to %d.\n', counter1, counter1 + 1);
+             fprintf (1, '\nptTrackLinker: Time points %d to %d.\n', counter1, counter1 + 1);
              warning ('ptTrackLinker: Warning! Correspondance not found.');
              tM(counter2,:) = 0; % -1;   
          end
@@ -111,7 +112,7 @@ end
 MPM(:,1:2) =M(:,1:2,1);
 
 % Keep the user up-to-date on what is happening
-fprintf (1, 'ptTrackLinker: Postprocessing linked frames...\n');
+fprintf (1, '\nptTrackLinker: Postprocessing linked frames...\n');
 
 % Remove info that is not needed anymore
 for counter3 = 2 : size(M,3)

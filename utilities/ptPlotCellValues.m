@@ -18,7 +18,7 @@ function ptPlotCellValues (ptPostpro, MPM)
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Colin Glass           Feb 04          Initial release
-% Andre Kerstens        May 04          Cleaned up source and renamed file
+% Andre Kerstens        Jun 04          Cleaned up source and renamed file
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.plotfirstimg;
@@ -200,23 +200,3 @@ if perimeterPlot
    print(h_fig, [savePath filesep 'areasPerim.eps'],'-depsc2','-tiff');
    print(h_fig, [savePath filesep 'areasPerim.tif'],'-dtiff');     
 end
-    
-
-% h_fig=figure,title(handles.jobvalues.imagename);
-% ymax=max(percentageSingle);
-% subplot(1,1,1); plot(percentageSingle), title('Percentage of single cells (red - filtered, blue - non-filtered)');
-% hold on;
-% plot(percentageSingleFiltered, 'r');
-% xlabel('Frames');
-% ylabel('percentage of single cells');
-% axis([0 endFrame 0 1]);
-% hold off;
-%         
-%            
-% hgsave(h_fig,[savePath filesep 'percentSingle.fig']);
-% print(h_fig, [savePath filesep 'percentSingle.eps'],'-depsc2','-tiff');
-% print(h_fig, [savePath filesep 'percentSingle.tif'],'-dtiff');
-
-% cd(savePath);
-% save ('newProps', 'newProps');
-% save ('percentageSingle','percentageSingle');

@@ -701,18 +701,28 @@ function GUI_ad_analyze_pb_Callback(hObject, eventdata, handles)
 handles = guidata (hObject);
 
 % Assign the radiobutton values to the postpro struct
-handles.postpro.cellclusterplot = get (handles.GUI_ad_numberofthings_rb,'Value');
-handles.postpro.areaplot = get (handles.GUI_ad_areas_rb,'Value');
-handles.postpro.perimeterplot = get(handles.GUI_ad_perimeter_rb,'Value');
+handles.postpro.cellclusterplot = get (handles.checkbox_clustercellstats,'Value');
+handles.postpro.areaplot = get (handles.checkbox_areastats,'Value');
+handles.postpro.perimeterplot = get(handles.checkbox_perimeter,'Value');
+handles.postpro.speedplot = get(handles.checkbox_speed,'Value');
+handles.postpro.cellcelldistplot = get(handles.checkbox_cellcelldisthist,'Value');
 
-% Here is where the bulk of the graphing work is done; we give it the
-% postpro structure and MPM matrix to work with
-ptPlotCellValues (handles.postpro, handles.MPM);
-
-% Only if the 'speed of cells' radiobutton is selected, the speed graphs have to be done
-%if get (handles.GUI_ad_speed_rb, 'Value')
-%   ptPlotSpeedValues (hObject);
-%end
+if (~handles.postpro.cellclusterplot & ~handles.postpro.areaplot & ...
+    ~handles.postpro.perimeterplot & ~handles.postpro.speedplot & ...
+    ~handles.postpro.cellcelldistplot)
+   h = errordlg ('No plots selected. Please select a plot first...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+else
+   % Here is where the bulk of the graphing work is done; we give it the
+   % postpro structure and MPM matrix to work with
+   ptPlotCellValues (handles.postpro, handles.MPM);
+   
+   % Do the speed plots as well if the user wants it
+   if handles.postpro.speedplot
+      ptPlotSpeedValues (handles.postpro, handles.MPM);
+   end
+end
 
 % This is a function which was done for the cell meeting poster
 % Temporary and has to be replaced by a more structured function
@@ -721,7 +731,7 @@ ptPlotCellValues (handles.postpro, handles.MPM);
 %----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
-function GUI_fm_movieimgone_ed_CreateFcn(hObject, eventdata, handles)
+function GUI_fm_movieimgone_ed_CreateFcn (hObject, eventdata, handles)
 % hObject    handle to GUI_fm_movieimgone_ed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1052,5 +1062,50 @@ handles.postpro.dragtailfile = filename;
 
 % Update handles structure
 guidata(hObject, handles);
+
+
+% --- Executes on button press in checkbox_clustercellstats.
+function checkbox_clustercellstats_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_clustercellstats (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_clustercellstats
+
+
+% --- Executes on button press in checkbox_perimeter.
+function checkbox_perimeter_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_perimeter (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_perimeter
+
+
+% --- Executes on button press in checkbox_speed.
+function checkbox_speed_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_speed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_speed
+
+
+% --- Executes on button press in checkbox_cellcelldisthist.
+function checkbox_cellcelldisthist_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_cellcelldisthist (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_cellcelldisthist
+
+
+% --- Executes on button press in checkbox_areastats.
+function checkbox_areastats_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_areastats (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_areastats
 
 

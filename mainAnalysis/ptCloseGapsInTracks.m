@@ -32,7 +32,11 @@ for iCount = 1 : size (matchedCells,1)
 
    % This way we find out which frame that cell was lost
    frameLostCell = lostCells (matchedCellIndex, 3);
-
+   
+   % In case there are multiple entries (which means a lost cell exists
+   % twice in the matrix) we only take the last one
+   frameLostCell = frameLostCell (end,1);
+   
    % Get the lost cell coordinates
    lostCell = matchedCells (iCount, 1:2);
 
