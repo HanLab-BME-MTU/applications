@@ -157,12 +157,16 @@ exp=exp-1;
 
 % Prepare input
 noiseParams=zeros(1,5);
+
 noiseParams(2:4)=fsmExpParam(exp).noiseParams; % [alpha beta I0]
 noiseParams(5)=str2num(get(handles.editQuantile,'String'));
 noiseParams(1)=noiseParams(5)/fsmExpParam(exp).gaussRatio;
 bitDepth=fsmExpParam(exp).bitDepth;
 prob=str2num(get(handles.editProb,'String'))/100;
 
+%<<<<<<< .mine
+imageNameList = [];  % please add the file selection slide code here
+%=======
 % Loading images
 [fName,dirName] = uigetfile(...
     {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
@@ -203,13 +207,26 @@ else
 end
 
 % Starting optimization
-[noiseParameter,actualP]=fsmAlphaBetaOptimization1D(outFileList,noiseParams,prob,bitDepth);
+[noiseParameter,actualP, ratio]=fsmAlphaBetaOptimization1D(outFileList,noiseParams,prob,bitDepth);
+ratio
+pause;
+pause;
 
+noiseParams = noiseParameter;
+%noiseParameter=noiseParams;
+%>>>>>>> .r574
+
+%<<<<<<< .mine
+%[noiseParams, actualP]=fsmAlphaBetaOptimization1D(imageNameList, noiseParams, noiseParams(5));
+
+
+%=======
 % Inform user
 string=['Attained probability: ',num2str(100*actualP),'%'];
 uiwait(msgbox(string,'Info','modal'));
 
 % Print the result to console and ask the user to copy/paste the record into the database
+%>>>>>>> .r575
 fprintf(1,'\n\nTo add this experiment to your database:\n');
 fprintf(1,'(1) Click on ''Edit experiment parameters'' in fsmCenter.\n');
 fprintf(1,'(2) Copy/paste this record at the end of your experiment settings file.\n');
@@ -218,7 +235,7 @@ newLabel=[fsmExpParam(exp).label,' - OPTIMIZED FOR PROBABILITY = ',num2str(100*p
 fprintf(1,'LABEL\t\t\t%s\n',newLabel);
 fprintf(1,'DESCRIPTION\t\t%s\n',fsmExpParam(exp).description);
 fprintf(1,'BIT DEPTH\t\t"%s"\n',num2str(bitDepth));
-fprintf(1,'NOISE PARAMS\t"%1.8f %1.8f %1.8f %d"\n',noiseParameter(1),noiseParameter(2),noiseParameter(3),1); % '1' means that this is an optimized record
+fprintf(1,'NOISE PARAMS\t"%1.8f %1.8f %1.8f %d"\n', noiseParameter(2), noiseParameter(3), noiseParameter(4), 1); % '1' means that this is an optimized record
 fprintf(1,'GAUSS RATIO\t\t"%1.2f"\n',fsmExpParam(exp).gaussRatio);
 fprintf(1,'#\n');
 fprintf(1,'-------------------------------------------------------------------\n');
