@@ -88,31 +88,34 @@ if ~isempty(fsmExpParam)
     % Check that the saved experiment number does not exceed the number of experiments in the database
     expNotValid=0;
     if fsmParam.main.noiseParam(7)>length(fsmExpParam)+1
-    
-        % Mark this experiment as not valid
-        expNotValid=1;
-    
-    end
-
-    % If the experiment number is valid, check that it is still pointing to the correct experiment
-    if ~isfield(fsmParam.main,'label') % Back-compatibility
-        fsmParam.main.label=[];
-    end
-    
-    % This prevents a problem when the user attempts to start a new fsmGuiMain when it is already open
-    if fsmParam.main.noiseParam(7)==1
-        expLabel='Select experiment';
-    else
-        expLabel=fsmExpParam(fsmParam.main.noiseParam(7)-1).label;
-    end
-    
-    if expNotValid==0 & ~strcmp(fsmParam.main.label,expLabel)
         
         % Mark this experiment as not valid
         expNotValid=1;
-
+        
+    else
+        
+        % If the experiment number is valid, check that it is still pointing to the correct experiment
+        if ~isfield(fsmParam.main,'label') % Back-compatibility
+            fsmParam.main.label=[];
+        end
+        
+        % This prevented a problem when the user attempts to start a new fsmGuiMain when it is already open
+        %   (it is no longer strictly necessary)
+        if fsmParam.main.noiseParam(7)==1
+            expLabel='Select experiment';
+        else
+            expLabel=fsmExpParam(fsmParam.main.noiseParam(7)-1).label;
+        end
+        
+        if expNotValid==0 & ~strcmp(fsmParam.main.label,expLabel)
+            
+            % Mark this experiment as not valid
+            expNotValid=1;
+            
+        end
+        
     end
-
+    
     % If the experiment is valid, add it to the sroll-down menu, otherwise inform the user
 
     if expNotValid==0
