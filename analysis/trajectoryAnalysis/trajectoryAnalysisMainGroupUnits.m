@@ -1,9 +1,20 @@
 function dataListG = trajectoryAnalysisMainGroupUnits(dataList,distance,time,constants,compatible)
 %TRAJECTORYANALYSISMAINGROUPUNITS groups consecutive units of the same type according to the selected strategy 
-%trajectoryAnalysisMainGroupUnits(dataListS,distance,time,tp2dataIdx,constants,compatible)
-%...update help when done...
 %
+% currently implemented strategy (#1): for all fits: test for outliers (T; H0: residual == 0) 
+%        for growth/shrinkage: test for significant slope (T; H0: slope == 0)
+%        for pause           : test for better fit with slope (F; H0: 2df does not fit better than 1df)
 %
+% INPUT dataList    nIntervals-by-11 list of data to group
+%       distance    n-by-2 vector [dist. between tags, sigma of this distance]
+%       time        n-by-2 vector [time of interval edges, 0]
+%       constants   fields for all the constants; probabilities, debug
+%       compatible  the states (dataList(:,3)) to be grouped if possible
+%
+% OUTPUT dataListGroup grouped dataList
+%
+% c: 01/04 jonas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 

@@ -30,6 +30,10 @@ function [statisticsStruct, distributionStruct] = trajectoryAnalysisMainCalcStat
 %      and distribution structure with distributions from contHisto for
 %      both speeds and the distance
 %
+%     distributionStruct.separationSpeedDistribution = [growthSpeedDistX,growthSpeedDistY];
+%     distributionStruct.congressionSpeedDistribution = [shrinkageSpeedDistX,shrinkageSpeedDistY];
+%     distributionStruct.distanceDistribution = [distanceDistX,distanceDistY];
+%
 % c: 1/04 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
