@@ -7,7 +7,7 @@ function convertedData = convertTrajectoryData(data,join)
 %                timepoints (ntpx1) or simulation data structure with fields
 %                distance (timeIntx2), timeInterval (1x1)
 %          join: (opt) whether to join the individual elements of the struct
-%                array data. Default is 0 for sim2TA and 1 for TA2sim
+%                array data. Default is 0
 %          
 %
 % OUTPUT   convertedData : the other data type
@@ -32,9 +32,12 @@ else
     error('input structure for CONVERTTRAJECTORYDATA does not contain the necessary fields. Please seek help.')
 end
 
-% test join. Default = 1 for dataType==1 and 0 for dataType==2
+% test join. 
+% old Default = 1 for dataType==1 and 0 for dataType==2
+% new Default: 0 for both
 if nargin < 2 | isempty(join)
-    join = 2 - dataType;
+    %join = 2 - dataType;
+    join = 0;
 end
 
 %----------------

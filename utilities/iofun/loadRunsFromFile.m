@@ -30,6 +30,10 @@ function run = loadRunsFromFile(nRunsOrFileList,varargin)
 %                               SNR      SNR max            0
 %                               isT      tracked or not     0
 %                               pos      position structure 0
+%                               nanDist  distance as nanList
+%                                 output will have field
+%                                 timeInterval instead of
+%                                 time/timePoints. Default: 0
 %                            
 %
 % OUTPUT   run             input structure for trajectoryAnalysis with e.v.
@@ -64,6 +68,7 @@ addPos  = 0;
 addOri  = 0;
 addSnr  = 0;
 addIsT  = 0;
+convDist= 0;
 
 if nargin == 0 || isempty(nRunsOrFileList)
     error('Specify nRunsOrFileList in loadRunsFromFile!')
@@ -126,6 +131,8 @@ for in = 1:length(varargin)
         case 'pos'
             % add position structure
             addPos = newValue;
+        case 'nanDist'
+            convDist = newValue;
          
         otherwise
             warning('Option %i for loadRunsFromFile not recognized',in);
@@ -251,6 +258,11 @@ for iRun = 1:nRuns
                 calculateTrajectoryOpt.identifier = fileList(iFile).opt{1};
             end
             
+            % check whether to convert data to nanList
+            if convDist
+                calculateTrajectoryOpt.nanList = 1;
+            end
+            
             %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
             [tmpData,ori,pos,sig0,dataProperties,snrMax,isTracked] = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
             %-------------------------
@@ -259,11 +271,15 @@ for iRun = 1:nRuns
             if addDist
                 data(dataCt).distance = tmpData.distance;
             end
-            if addTime
-                data(dataCt).time     = tmpData.time;
-            end
-            if addTP
-                data(dataCt).timePoints = tmpData.timePoints;
+            if convDist
+                data(dataCt).timeInterval = tmpData.timeInterval;
+            else
+                if addTime
+                    data(dataCt).time     = tmpData.time;
+                end
+                if addTP
+                    data(dataCt).timePoints = tmpData.timePoints;
+                end
             end
             
             % add more data

@@ -105,7 +105,16 @@ end
         %             end
 
         % distance mean - all distance
-        compStruct(ti).distance = trajectoryData(iGroup).individualStatistics(ti).addedStats.distance(:,1);
+        
+        % currently, we do not need distanceSigma - therefore allow taking
+        % from individualStatistics
+        if isfield(trajectoryData(iGroup).individualStatistics(ti),'addedStats')
+            compStruct(ti).distance = trajectoryData(iGroup).individualStatistics(ti).addedStats.distance(:,1);
+        else
+            % do not worry about the last distance we're not taking into
+            % account. This is just a hack, anyway
+            compStruct(ti).distance = trajectoryData(iGroup).individualStatistics(ti).dataListSeed(:,11);
+        end
 
         % distance variation - distance minus mean of distance
         compStruct(ti).distanceSigma = ...
