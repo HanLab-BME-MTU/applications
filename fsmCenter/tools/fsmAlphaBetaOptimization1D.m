@@ -1,4 +1,4 @@
-function [noiseParameter, actualP] = fsmAlphaBetaOptimization1D(imageNameList, noiseParameter, confidenceP)
+function [noiseParameter, actualP] = fsmAlphaBetaOptimization1D(imageNameList, noiseParameter, confidenceP, bitDepth)
 % Function alphaBetaOptimization1D optimizes noise parameters alpha & beta based on their given initial values
 % such that the speckle detection result best matches user-specified confidence probability. The optimization
 % search is performed in a 1D fashion, namely first with respect to beta, then with respect to alpha.
@@ -36,12 +36,11 @@ else
     optimImageStackLen = length(imageNameList);
 end
 
-info = imfinfo(firstImageName, 'tiff');
+info = imfinfo(char(firstImageName), 'tiff');
 imHeight = info.Height;
 imWidth = info.Width;
-bitDepth = info.BitDepth;
 
-[img_temp, map_temp] = imread(firstImageName, 'tiff');
+[img_temp, map_temp] = imread(char(firstImageName), 'tiff');
 figure;
 imshow(img_temp, map_temp);
 bw = roipoly;
@@ -59,7 +58,7 @@ cStack = struct('cands',[]); % Stack of cands
 sigmaG = 1.0;
 
 for i = 1 : optimImageStackLen
-    img = double(imread(char(imageNameList(i)), 'tiff')) / (2 ^ bitDepth);  % Normalization
+    img = double(imread(char(imageNameList(i)), 'tiff')) / (2 ^ bitDepth-1);  % Normalization
     imGStack(:, :, i) = gauss2d(img, sigmaG);
     imMinStack(:, :, i) = locmin2d(imGStack(:, :, i), [3,3]);
     imMaxStack(:, :, i) = locmax2d(imGStack(:, :, i), [5,5]);

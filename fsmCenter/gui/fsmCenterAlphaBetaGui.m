@@ -22,7 +22,7 @@ function varargout = fsmCenterAlphaBetaGui(varargin)
 
 % Edit the above text to modify the response to help fsmCenterAlphaBetaGui
 
-% Last Modified by GUIDE v2.5 06-May-2004 17:56:42
+% Last Modified by GUIDE v2.5 11-May-2004 12:01:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -58,7 +58,7 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 % UIWAIT makes fsmCenterAlphaBetaGui wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+% uiwait(handles.NoiseParameterOptimizer);
 
 % Read parameter experiments from fsmExpParams.txt
 userDir=fsmCenter_getUserSettings;
@@ -91,9 +91,9 @@ set(handles.expPopup,'String',labels);
 % Attach the experiment database to expPopup userdata
 set(handles.expPopup,'UserData',fsmExpParam);
 
-% Attach a list of z values to handles.editQuantile
-zValues=[1.15 1.29 1.45 1.645 1.96 2.58];
-set(handles.editQuantile,'UserData',zValues);
+% Attach a list of z values to handles.editProb
+prob=[75 80 85 90 95 99];
+set(handles.editProb,'UserData',prob);
 
 % --- Outputs from this function are returned to the command line.
 function varargout = fsmCenterAlphaBetaGui_OutputFcn(hObject, eventdata, handles)
@@ -157,9 +157,49 @@ noiseParams(2:4)=fsmExpParam(exp).noiseParams; % [alpha beta I0]
 noiseParams(5)=str2num(get(handles.editQuantile,'String'));
 noiseParams(1)=noiseParams(5)/fsmExpParam(exp).gaussRatio;
 bitDepth=fsmExpParam(exp).bitDepth;
+prob=str2num(get(handles.editProb,'String'))/100;
 
-% Startin optimization
-% [noiseParameter,actualP]=fsmAlphaBetaOptimization1D(optimImageStack,noiseParams,noiseParams(5),pixelDepth);
+% Loading images
+[fName,dirName] = uigetfile(...
+    {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
+    '*.tif','TIF files (*.tif)'
+    '*.tiff','TIFF files (*.tiff)'
+    '*.jpg;','JPG files (*.jpg)'
+    '*.jpeg;','JPEG files (*.jpeg)'
+    '*.*','All Files (*.*)'},...
+    'Select first image');
+if~((isa(fName,'char') & isa(dirName,'char')))
+    return
+end
+
+% Get file names
+outFileList=getFileStackNames([dirName,fName]);
+n=length(outFileList);
+
+% The user can decide the number of images to be cropped
+prompt={'Specify the number of images to be used for the optimization.'};
+dlg_title='User input requested';
+num_lines=1;
+default=3; % Default value is 3 frames
+def={num2str(default)}; 
+answer=fix(str2num(char(inputdlg(prompt,dlg_title,num_lines,def))));
+
+% Check the selected number
+if isempty(answer)
+    disp('Aborting.\n');
+    return
+end
+
+if answer<1 | answer>n
+    fprintf(1,'Invalid number of images specified. Using the default value (%d).\n',default);
+else
+    % Crop outFileList
+    n=answer;
+    outFileList=outFileList(1:n);
+end
+
+% Starting optimization
+[noiseParameter,actualP]=fsmAlphaBetaOptimization1D(outFileList,noiseParams,prob,bitDepth);
 noiseParameter=noiseParams;
 
 fprintf(1,'\n\nTo add this experiment to your database:\n');
@@ -184,14 +224,15 @@ function radioConf75_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of radioConf75
-zValues=get(handles.editQuantile,'UserData');
+prob=get(handles.editProb,'UserData');
 set(handles.radioConf75,'Value',1);
 set(handles.radioConf80,'Value',0);
 set(handles.radioConf85,'Value',0);
 set(handles.radioConf90,'Value',0);
 set(handles.radioConf95,'Value',0);
 set(handles.radioConf99,'Value',0);
-set(handles.editQuantile,'String',zValues(1));
+set(handles.editProb,'String',prob(1));
+set(handles.editQuantile,'String',num2str(quantileFromConfProb(prob(1)/100)));
 
 % --- Executes on button press in radioConf80.
 function radioConf80_Callback(hObject, eventdata, handles)
@@ -200,14 +241,15 @@ function radioConf80_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of radioConf80
-zValues=get(handles.editQuantile,'UserData');
+prob=get(handles.editProb,'UserData');
 set(handles.radioConf75,'Value',0);
 set(handles.radioConf80,'Value',1);
 set(handles.radioConf85,'Value',0);
 set(handles.radioConf90,'Value',0);
 set(handles.radioConf95,'Value',0);
 set(handles.radioConf99,'Value',0);
-set(handles.editQuantile,'String',zValues(2));
+set(handles.editProb,'String',prob(2));
+set(handles.editQuantile,'String',num2str(quantileFromConfProb(prob(2)/100)));
 
 
 % --- Executes on button press in radioConf85.
@@ -217,15 +259,15 @@ function radioConf85_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of radioConf85
-zValues=get(handles.editQuantile,'UserData');
+prob=get(handles.editProb,'UserData');
 set(handles.radioConf75,'Value',0);
 set(handles.radioConf80,'Value',0);
 set(handles.radioConf85,'Value',1);
 set(handles.radioConf90,'Value',0);
 set(handles.radioConf95,'Value',0);
 set(handles.radioConf99,'Value',0);
-set(handles.editQuantile,'String',zValues(3));
-
+set(handles.editProb,'String',prob(3));
+set(handles.editQuantile,'String',num2str(quantileFromConfProb(prob(3)/100)));
 
 % --- Executes on button press in radioConf90.
 function radioConf90_Callback(hObject, eventdata, handles)
@@ -234,14 +276,15 @@ function radioConf90_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of radioConf90
-zValues=get(handles.editQuantile,'UserData');
+prob=get(handles.editProb,'UserData');
 set(handles.radioConf75,'Value',0);
 set(handles.radioConf80,'Value',0);
 set(handles.radioConf85,'Value',0);
 set(handles.radioConf90,'Value',1);
 set(handles.radioConf95,'Value',0);
 set(handles.radioConf99,'Value',0);
-set(handles.editQuantile,'String',zValues(4));
+set(handles.editProb,'String',prob(4));
+set(handles.editQuantile,'String',num2str(quantileFromConfProb(prob(4)/100)));
 
 
 % --- Executes on button press in radioConf95.
@@ -251,14 +294,15 @@ function radioConf95_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of radioConf95
-zValues=get(handles.editQuantile,'UserData');
+prob=get(handles.editProb,'UserData');
 set(handles.radioConf75,'Value',0);
 set(handles.radioConf80,'Value',0);
 set(handles.radioConf85,'Value',0);
 set(handles.radioConf90,'Value',0);
 set(handles.radioConf95,'Value',1);
 set(handles.radioConf99,'Value',0);
-set(handles.editQuantile,'String',zValues(5));
+set(handles.editProb,'String',prob(5));
+set(handles.editQuantile,'String',num2str(quantileFromConfProb(prob(5)/100)));
 
 
 % --- Executes on button press in radioConf99.
@@ -268,14 +312,43 @@ function radioConf99_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of radioConf99
-zValues=get(handles.editQuantile,'UserData');
+prob=get(handles.editProb,'UserData');
 set(handles.radioConf75,'Value',0);
 set(handles.radioConf80,'Value',0);
 set(handles.radioConf85,'Value',0);
 set(handles.radioConf90,'Value',0);
 set(handles.radioConf95,'Value',0);
 set(handles.radioConf99,'Value',1);
-set(handles.editQuantile,'String',zValues(6));
+set(handles.editProb,'String',prob(6));
+set(handles.editQuantile,'String',num2str(quantileFromConfProb(prob(6)/100)));
+
+
+% --- Executes during object creation, after setting all properties.
+function editProb_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editProb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editProb_Callback(hObject, eventdata, handles)
+% hObject    handle to editProb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editProb as text
+%        str2double(get(hObject,'String')) returns contents of editProb as a double
+
+updateConfProbs(handles);
+
 
 
 % --- Executes during object creation, after setting all properties.
@@ -301,13 +374,62 @@ function editQuantile_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editQuantile as text
 %        str2double(get(hObject,'String')) returns contents of editQuantile as a double
+q=str2num(get(handles.editQuantile,'String'));
+if q<=0
+    q=1.96;
+    set(handles.editQuantile,'String',num2str(1.96));
+end
+p=confProbFromQuantile(q);
+set(handles.editProb,'String',num2str(100*p));
+updateConfProbs(handles);
 
-zValues=get(handles.editQuantile,'UserData');
+function updateConfProbs(handles)
+
 set(handles.radioConf75,'Value',0);
 set(handles.radioConf80,'Value',0);
 set(handles.radioConf85,'Value',0);
 set(handles.radioConf90,'Value',0);
 set(handles.radioConf95,'Value',0);
-set(handles.radioConf99,'Value',1);
-set(handles.editQuantile,'String',zValues(6));
+set(handles.radioConf99,'Value',0);
 
+prob=get(handles.editProb,'UserData');
+userProb=str2num(get(handles.editProb,'String'));
+if userProb>=100 | userProb<=0
+    userProb=95;
+end
+indx=find(prob==userProb);
+if ~isempty(indx)
+    switch indx
+        case 1, set(handles.radioConf75,'Value',1);
+        case 2, set(handles.radioConf80,'Value',1);
+        case 3, set(handles.radioConf85,'Value',1);
+        case 4, set(handles.radioConf90,'Value',1);
+        case 5, set(handles.radioConf95,'Value',1);
+        case 6, set(handles.radioConf99,'Value',1);
+        otherwise
+            error('This should not happen');
+    end
+end
+set(handles.editQuantile,'String',num2str(quantileFromConfProb(userProb/100)));
+
+
+% --------------------------------------------------------------------
+function menuExit_Callback(hObject, eventdata, handles)
+% hObject    handle to menuExit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes when user attempts to close NoiseParameterOptimizer.
+function NoiseParameterOptimizer_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to NoiseParameterOptimizer (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+hF=findall(0,'Tag','NoiseParameterOptimizer');
+choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
+switch choice,
+    case 'Yes', delete(hF);
+    case 'No', return;
+end
