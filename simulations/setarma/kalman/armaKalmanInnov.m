@@ -1,0 +1,101 @@
+function [innovation,innovationVar,errFlag] = armaKalmanInnov(traj,...
+    arOrder,maOrder,arParam,maParam,obsVariance);
+%ARMAKALMANINNOV finds the innovations (and their variances) resulting from fitting an ARMA(p,q) model to a time series which could have missing data points using Kalman prediction and filtering.
+%
+%SYNOPSIS [innovation,innovationVar,errFlag] = armaKalmanInnov(traj,...
+%    arOrder,maOrder,arParam,maParam,obsVariance);
+%
+%INPUT  traj       : Trajectory to be modeled (with measurement uncertainties).
+%                    Missing points should be indicated with NaN.
+%       arOrder    : Order of AR part of proposed ARMA model.
+%       maOrder    : Order of MA part of proposed ARMA model.
+%       arParam    : Autoregressive coefficients (row vector).
+%       maParam    : Moving average coefficients (row vector).
+%       obsVariance: Observational error variance.
+%
+%OUTPUT innovation   : Vector of differences between predicted and observed data, or innovations.
+%       innovationVar: Vector of innovation varainces.
+%       errFlag      : 0 if function executes normally, 1 otherwise.
+%
+%REMARKS The algorithm implemented here is that presented in R. H. Jones,
+%        "Maximum Likelihood Fitting of ARMA Models to Time Series with
+%        Missing Observations", Technometrics 22: 389-395 (1980). All
+%        equation numbers used here are those in that paper.
+%
+%Khuloud Jaqaman, July 2004
+
+%initialize output
+innovaton = [];
+innovationVar = [];
+errFlag = 0;
+
+%check if correct number of arguments was used when function was called
+if nargin < nargin('armaKalmanInnov')
+    disp('--armaKalmanInnov: Incorrect number of input arguments!');
+    errFlag  = 1;
+    return
+end
+
+%get maxOrder to determine size of matrices in Eq. 2.15 - 2.17
+maxOrder = max(arOrder,maOrder+1);
+
+%add zeros to ends of arParam and maParam to get vectors of length maxOrder
+arParamMod = [arParam zeros(1,maxOrder-arOrder)];
+maParamMod = [maParam zeros(1,maxOrder-maOrder)];
+
+%construct matrix F (Eq. 2.15, 2.16)
+transitionMat = diag(ones(maxOrder-1,1),1);
+transitionMat(end,:) = arParamMod(end:-1:1); 
+
+%construct column vector G (Eq. 2.15, 2.16) using the recursions in Eq. 2.13
+maContribution = ones(maxOrder,1);
+for i = 2:maxOrder
+    dummy = maParamMod(i-1) + arParamMod(1:i-1)*maContribution(i-1:-1:1);
+    maContribution = dummy;
+end
+
+%construct row vector H (Eq. 2.17)
+observationVec = zeros(1,maxOrder);
+observationVec(1) = 1;
+
+%initialize state vector and its covariance matrix
+stateVecT_T = zeros(maxOrder,1); %Z(0|0)
+[stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,maContribution); %P(0|0)
+
+%initialize innovations vector and its covariance matrix
+innovation = zeros(trajLength,1);
+innovationVar = zeros(trajLength,1);
+
+for timePoint = 1:trajLength
+    
+    %predict state at time T+1 given state at time T
+    stateVecT1_T = transitionMat*stateVecT_T; %Z(t+1|t), Eq. 3.1
+    %obtain the predicted state's covariance matrix
+    stateCovMatT1_T = F*stateCovMatT_T*F' + maContribution*maContribution'; %P(t+1|t), Eq. 3.2
+    %predict observable at time T+1
+    observableP = stateVecT1_T(1); %y(t+1|t), Eq. 3.3
+    
+    if isnan(traj(timePoint,1)) %if observation at this time point is missing
+
+        %cannot modify state vector and its covariance matrix predicted 
+        %from previous timepoint since there is no observation
+        stateVecT_T = stateVecT1_T; %Z(t+1|t+1), Eq. 5.1
+        stateCovMatT_T = stateCovMatT1_T; %P(t+1|t+1), Eq. 5.2
+        
+    else %if there is an observation
+        
+        %get innovation
+        innovation(timePoint) = traj(timePoint,1)-observableP; %dy(t+1), Eq. 3.8
+        %and its variance
+        innovationVar(timePoint) = stateCovMatT1_T(1,1) + obsVariance; %V(t+1), Eq. 3.6 & 3.10
+        
+        %calculate delta
+        delta = stateCovMatT1_T*observationVec'/innovationVar(timePoint); %delta(t+1), Eq. 3.5
+        %modify state vector prediction using observation
+        stateVecT_T = stateVecT1_T + delta*innovation(timePoint); %Z(t+1|t+1), Eq. 3.4
+        %update state covariance matrix
+        stateCovMatT_T = stateCovMatT1_T - delta*observationVec*stateCovMatT1_T; %P(t+1|t+1), Eq. 3.7
+        
+    end
+    
+end
