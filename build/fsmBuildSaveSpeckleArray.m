@@ -679,13 +679,19 @@ end
 if ~isempty(D)
     
     % Row
+    E=zeros(size(D));
     for i=1:size(D,1)
-        t=D(i,:); t=t==min(t); E(i,:)=t;
+        t=D(i,:); 
+        t=t==min(t); 
+        E(i,:)=t;
     end
     
     % Column
+    F=zeros(size(D));
     for i=1:size(D,2)
-        t=D(:,i); t=t==min(t); F(:,i)=t;
+        t=D(:,i); 
+        t=t==min(t); 
+        F(:,i)=t;
     end
     
     % Thresholding
