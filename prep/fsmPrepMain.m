@@ -45,6 +45,7 @@ enhTriang    = fsmParam.prep.enhTriang;     % Enhanced triangulation flag
 autoPolygon  = fsmParam.prep.autoPolygon;   % Automatic analisys of the image to extract cell boundaries
 drawROI      = fsmParam.prep.drawROI;       % The user draws or loads a ROI to restrict analysis
 sigma        = fsmParam.prep.sigma;         % Sigma for image low-pass filtering
+subpixel     = fsmParam.prep.subpixel;      % significant speckles are localized with subpixel accuracy
 
 projDir = fsmParam.project.path;
 edgeDir = fsmParam.project.edge;
@@ -326,6 +327,10 @@ for counter1=1:n
         % Load and normalize the image
         img=imreadnd2(char(outFileList(counter1,:)),xmin,xmax);
         
+         % retain copy of original image for mixture model
+         %orig_image is normalized, but NOT filtered
+         orig_image=img;
+        
         if autoPolygon==1
             
             % Initialize successCE
@@ -372,12 +377,15 @@ for counter1=1:n
             img=img.*bwMask;
             clear bwMask;
         end
-        
+
+              
         % Prepare the image for the analysis
         img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],sigma);
         
         % Statistically test the local maxima to extract (significant) speckles 
-        fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,enhTriang,fsmParam);
+        fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,enhTriang,fsmParam,orig_image);
+        
+                
         
     elseif fsmParam.prep.pstSpeckles==3
         
