@@ -122,110 +122,132 @@ end
 %if future = 1, estimate the missing points iteratively using values
 %of points dependent on them as well.
 
+%assign a level to each point
+level = NaN*ones(trajLength,1);
+for i = max(max(tarOrder),delay)+1:trajLength
+    level(i) = find(((trajP(i-delay,1)>vThresholds(1:end-1)) + ...
+        (trajP(i-delay,1)<=vThresholds(2:end))) == 2);
+end
+
+%initialize variable indicating whether there are points switching regimes after an iteration
+levelChange = 1;
+
 if future
     
-    %assign a level to each point
-    level = NaN*ones(trajLength,1);
-    for i = max(max(tarOrder),delay)+1:trajLength
-        level(i) = find(((trajP(i-delay,1)>vThresholds(1:end-1)) + ...
-            (trajP(i-delay,1)<=vThresholds(2:end))) == 2);
-    end
-
-    %copy trajP into trajP2 where missing points will be estimated again
-    trajP2 = trajP;
-    
-    i0 = 1; %variable to loop over all missing points
-    
-    while i0 <= length(indx) %go over all missing points
+    while levelChange
         
-        i = i0;
-        missCluster = zeros(length(indx),1); %delete missing points in previous cluster
-        missCluster(i) = indx(i); %first missing point in cluster
+        i0 = 1; %variable to loop over missing points
         
-        if i0 ~= length(indx)
-            j = 1;
-            while j ~= 0
-                j = min(max(tarOrder),trajLength-i);
-                while j > tarOrder(level(indx(i)+j)) && j > 1
-                    j = j - 1;
+        while i0 <= length(indx) %go over all missing points
+            
+            i = i0;
+            indxI = indx(i);
+            missCluster = zeros(length(indx),1); %reserve memory for missCluster, delete missing points in previous cluster
+            missCluster(i) = indxI; %first missing point in cluster
+            
+            if i0 ~= length(indx) %if missing point is not last missing point in trajectory
+                
+                numMissInt = 1;
+                while numMissInt ~= 0
+                    
+                    indxI = indx(i); %time point at which data is missing
+                    
+                    jump = min(max(tarOrder),trajLength-indxI); %get farthest possible dependent point
+                    while jump > tarOrder(level(indxI+jump)) && jump > 1 %determine dependence interval
+                        jump = jump - 1;
+                    end
+                    
+                    numMissInt = length(find(~available(indxI+1:indxI+jump))); %get number of missing points in this interval
+                    missCluster(i+1:i+numMissInt) = indx(i+1:i+numMissInt); %add missing points to current cluster
+                    
+                    i = i + numMissInt; %update missing point index whose future points are checked
+                    
                 end
-                while indx(i+1) <= indx(i)+j
-                    i = i + 1;
-                    missCluster(i) = indx(i);
-                end
-                if i == length(indx)
-                    j = 0;
+                
+            end
+            missCluster = missCluster(find(missCluster)); %remove all extra entries in array
+            
+            %number of missing points to be determined simultaneously
+            numMiss = i-i0+1; 
+            
+            %number of equation to be used in determining missing points
+            numEq = indx(i)-indx(i0)+1+max(tarOrder);
+            
+            %construct matrix on LHS multiplying unknowns
+            %[size: numEq by numMiss]
+            lhsMat = zeros(numEq,numMiss);
+            for j = 1:numMiss %for each column
+                start = missCluster(j)-missCluster(1)+1;
+                finish = min(start+max(tarOrder),numEq);
+                lhsMat(start,j) = 1;
+                for j1 = start+1:finish
+                    varNum = missCluster(j)+j1-start;
+                    if varNum > trajLength
+                        break
+                    end
+                    lhsMat(j1,j) = -tarParam(level(varNum),j1-start);
                 end
             end
-        end
-        missCluster = missCluster(find(missCluster)); %remove all extra entries in array
-        
-        %number of missing points to be determined simultaneously
-        numMiss = i-i0+1; 
-        
-        k = 1;
-        for j = indx(i0):indx(i)+max(tarOrder)
-            if max((j-indx(i0:i)>=0).*(j-indx(i0:i)<=tarOrder(level(j))))
-                eqPart(k) = j;
-                k = k + 1;
+            
+            %evaluate vector on RHS
+            %[size: numEq by 1]
+            rhsVec = zeros(numEq,1);
+            for j=1:numEq
+                varNum = indx(i0)+j-1;
+                if varNum > trajLength
+                    break
+                end
+                levelJ = level(varNum);
+                rhsVecMult = [-1 tarParam(levelJ,1:tarOrder(levelJ))];
+                rhsVec(j) = rhsVecMult*(available(varNum:-1:varNum-tarOrder(levelJ)).*...
+                    trajP(varNum:-1:varNum-tarOrder(levelJ),1));
             end
+            
+            %get rid of equations that do not involve any unknowns (such a situation
+            %might arise due to different AR orders in different regimes
+            lhsMat(find(isnan(lhsMat))) = 0; %first replace NaN with 0
+            rowIndx = []; %then find rows in lhsMat with are all zero
+            for j=1:numEq
+                if ~isempty(find(lhsMat(j,:)))
+                    rowIndx(end+1) = j; 
+                end
+            end
+            lhsMat = lhsMat(rowIndx,:); %modify lhsMat
+            rhsVec = rhsVec(rowIndx); %modify rhsVec
+            NumEq = length(rowIndx); %update number of equations used in estimation
+            
+            %estimate missing data points
+            trajP(missCluster,1) = lhsMat\rhsVec;
+            
+            %get uncertainty in estimates. 
+            %get vector of weighted residuals
+            epsilon = lhsMat*trajP(missCluster,1) - rhsVec;
+            
+            %compute variance-covariance matrix
+            varCovMat = inv(lhsMat'*lhsMat)*(epsilon'*epsilon/(numEq-numMiss));
+            
+            %get uncertainty in estimates using varCovMat
+            trajP(missCluster,2) = sqrt(diag(varCovMat));
+            
+            %update variable indicating beginning of cluster
+            i0 = i + 1;
+            
+        end %(while i0 <= length(indx))
+        
+        %assign a new level to each point
+        levelP = NaN*ones(trajLength,1);
+        for i = max(max(tarOrder),delay)+1:trajLength
+            levelP(i) = find(((trajP(i-delay,1)>vThresholds(1:end-1)) + ...
+                (trajP(i-delay,1)<=vThresholds(2:end))) == 2);
         end
         
-        %number of equation to be used in determining missing points
-        numEq = length(eqPart);
+        %compare new level assignments to old level assignments in order to determine whether algorithm converged
+        diff = levelP-level; %calculate difference between 2 assignments
+        diff = diff(find(~isnan(diff))); %get rid of NaNs from time points < max(tarOrder)
+        if isempty(find(diff)) %if none have changed, exit
+            levelChange = 0;
+        end
         
-%         %construct matrix on LHS multiplying unknowns
-%         %[size: numEq by numMiss]
-%         lhsMat = zeros(numEq,numMiss);
-%         for j = 1:numMiss %for each column
-%             start = indx(j+i0-1)-indx(i0)+1;
-%             finish = min(start+arOrder,numEq);
-%             lhsMat(start:finish,j) = [1 -arParam(1:finish-start)]';
-%         end
-%         
-%         %evaluate vector on RHS
-%         %[size: numEq by 1]
-%         rhsVecMult = [-1 arParam];
-%         rhsVec = zeros(numEq,1);
-%         for j=1:numEq
-%             varNum = indx(i0)+j-1;
-%             if varNum > trajLength
-%                 break
-%             end
-%             rhsVec(j) = rhsVecMult*(available(varNum:-1:varNum-arOrder).*...
-%                 trajP(varNum:-1:varNum-arOrder,1));
-%         end
-%         
-%         %in case end of trajectory is reached and less than the expected number
-%         if j ~= numEq %of equations is available, 
-%             lhsMat = lhsMat(1:j-1,:); %truncate lhsMat 
-%             rhsVec = rhsVec(1:j-1); %and rhsVec accordingly
-%         end
-%         
-%         %estimate missing data points
-%         trajP(missCluster,1) = lhsMat\rhsVec;
-%         
-%         %get uncertainty in estimates. This is not possible if numFuture = 0
-%         %(since all we have is one equation in one unknown)
-%         if numFuture ~= 0
-%             
-%             %get vector of weighted residuals
-%             epsilon = lhsMat*trajP(missCluster,1) - rhsVec;
-%             
-%             %compute variance-covariance matrix
-%             varCovMat = inv(lhsMat'*lhsMat)*(epsilon'*epsilon/(numEq-numMiss));
-%             
-%             %get uncertainty in estimates using varCovMat
-%             trajP(missCluster,2) = sqrt(diag(varCovMat));
-%             
-%         end
-        
-        %update variable indicating beginning of cluster
-        i0 = i + 1;
-        
-        %update list of "available" points
-        available(missCluster) = 1;
-        
-    end %(while i0 <= length(indx))
+    end %(while levelChange)
     
 end %(if future)

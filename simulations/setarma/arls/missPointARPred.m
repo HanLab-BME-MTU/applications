@@ -118,11 +118,13 @@ while i0 <= length(indx) %go over all missing points
     
     %evaluate vector on RHS
     %[size: numEq by 1]
+    eqBreak = 0;
     rhsVecMult = [-1 arParam];
     rhsVec = zeros(numEq,1);
     for j=1:numEq
         varNum = indx(i0)+j-1;
         if varNum > trajLength
+            eqBreak = 1;
             break
         end
         rhsVec(j) = rhsVecMult*(available(varNum:-1:varNum-arOrder).*...
@@ -130,7 +132,7 @@ while i0 <= length(indx) %go over all missing points
     end
     
     %in case end of trajectory is reached and less than the expected number
-    if j ~= numEq %of equations is available, 
+    if eqBreak %of equations is available, 
         lhsMat = lhsMat(1:j-1,:); %truncate lhsMat 
         rhsVec = rhsVec(1:j-1); %and rhsVec accordingly
     end
