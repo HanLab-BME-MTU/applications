@@ -3,7 +3,7 @@
 
 %Load parameters that are needed for the calculation of the displacement
 % field.
-%run([resultPath 'fieldPar']);
+run([resultPath 'setPar']);
 
 %Get the image of the cell.
 rawI = imread(imgFile);
