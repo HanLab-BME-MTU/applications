@@ -35,8 +35,8 @@ fem = elModelUpdate(fem,'fn',fn);
 %Set the points where the identified force is to be calculated for
 % demonstration.
 if strcmp(bfDisplaySite,'grid') == 1
-   bfDisplayPx = gridPx{1};
-   bfDisplayPy = gridPy{1};
+   bfDisplayPx = gridPx;
+   bfDisplayPy = gridPy;
 elseif strcmp(bfDisplaySite,'speckle') == 1
    bfDisplayPy = speckleP{1}(:,1);
    bfDisplayPx = speckleP{1}(:,2);
