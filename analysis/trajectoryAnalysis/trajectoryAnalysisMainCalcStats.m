@@ -247,8 +247,11 @@ if ~isempty(growthIdx)
     %rescue and catastrophe are considered poisson processes - hence the
     %catastrophe rate (="half life" of a growing MT) is the inverse mean growth time
     %time is calculated with groups
-    growthGroupsDeltaT = time(dataListG(growthGroups(:,2),2),1) - time(dataListG(growthGroups(:,1),1),1);
-    growthGroupsDeltaTsigma = sqrt(time(dataListG(growthGroups(:,2),2),2).^2 + time(dataListG(growthGroups(:,1),1),2).^2);
+    % since the tests will pick up the difference between 0.9 and 1.1
+    % second timesteps, we use timepoints instead of real time -
+    % therefore, sigma has no meaning
+    growthGroupsDeltaT = dataListG(growthGroups(:,2),2) - dataListG(growthGroups(:,1),1);
+    %growthGroupsDeltaTsigma = sqrt(time(dataListG(growthGroups(:,2),2),2).^2 + time(dataListG(growthGroups(:,1),1),2).^2);
     
     invGrowthTimeMean = 1/mean(growthGroupsDeltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
@@ -310,8 +313,11 @@ if ~isempty(shrinkageIdx)
     %rescue and catastrophe are considered poisson processes - hence the
     %catastrophe rate (="half life" of a growing MT) is the inverse mean shrinkage time
     %time is calculated with groups
-    shrinkageGroupsDeltaT = time(dataListG(shrinkageGroups(:,2),2),1) - time(dataListG(shrinkageGroups(:,1),1),1);
-    shrinkageGroupsDeltaTsigma = sqrt(time(dataListG(shrinkageGroups(:,2),2),2).^2 + time(dataListG(shrinkageGroups(:,1),1),2).^2);
+    % since the tests will pick up the difference between 0.9 and 1.1
+    % second timesteps, we use timepoints instead of real time -
+    % therefore, sigma has no meaning
+    shrinkageGroupsDeltaT = dataListG(shrinkageGroups(:,2),2) - dataListG(shrinkageGroups(:,1),1);
+    %shrinkageGroupsDeltaTsigma = sqrt(time(dataListG(shrinkageGroups(:,2),2),2).^2 + time(dataListG(shrinkageGroups(:,1),1),2).^2);
     
     invShrinkageTimeMean = 1/mean(shrinkageGroupsDeltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
@@ -493,7 +499,8 @@ if nargout > 1
         
         distributionStruct.antipolewardSpeed = [60*dataListG(growthIdx,4),...
             diff(dataListG(growthIdx,[1,2]),1,2),indGrowthSpeedSigma];
-        distributionStruct.growthTime = [growthGroupsDeltaT,growthGroupsDeltaTsigma];
+        % no sigma for timepoint-growth times
+        distributionStruct.growthTime = [growthGroupsDeltaT];
     end
 %         % calculate distributions
 %         [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
@@ -507,7 +514,8 @@ if nargout > 1
     if ~isempty(shrinkageIdx)
         distributionStruct.polewardSpeed = [60*dataListG(shrinkageIdx,4),...
             diff(dataListG(shrinkageIdx,[1,2]),1,2),indShrinkageSpeedSigma];
-        distributionStruct.shrinkageTime = [shrinkageGroupsDeltaT,shrinkageGroupsDeltaTsigma];
+        % no sigma for timepoint-shrinkage times
+        distributionStruct.shrinkageTime = [shrinkageGroupsDeltaT];
     end
     
   
