@@ -13,7 +13,7 @@ function speckleClasses=fsmAssignSpecklesToClasses(speckleArray)
 %                 .first   : index of 'd' speckle in speckleArray
 %                 .pos     : [y x     Speckle coordinate at actual birth
 %                             y x]    Speckle coordinate at actual death
-%                 .class   : one of 13 possible classes (see below)
+%                 .class   : one of ten possible classes (see below)
 %                 .network : indicates the network (lp or la) to which the speckle belongs
 %                            this field is NOT FILLED in this function, but in assignSpecklesToNetworks
 %
@@ -42,10 +42,27 @@ end
 % Total number of speckles
 total=length([speckleArray.timepoint]);
 
-% Pre-allocate memory
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Initialize empty speckleClasses
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Memory needed
 tot=0.5*(length(find([speckleArray.status]=='b'))+length(find([speckleArray.status]=='d'))+length(find([speckleArray.status]=='f'))+length(find([speckleArray.status]=='l')));
-speckleClasses(1:tot)=struct('bTime',0,'dTime',0,'first',0,'last',0,'pos',0,'class',0,'network',0);
+
+% Empty structure
+speckleClasses=struct( ...
+    'bTime',   uint16(zeros(tot,1)),...   % unsigned integer 16
+    'dTime',   uint16(zeros(tot,1)),...   % unsigned integer 16
+    'first',   zeros(tot,1),...           % double
+    'last',    zeros(tot,1),...           % double
+    'pos',     uint16(zeros(2,2,tot)),... % unsigned integer 16
+    'class',   uint8(zeros(tot,1)),...    % unsigned integer 8
+    'network', uint8(zeros(tot,1)));      % unsigned integer 8
 % Remark: the .network field is not used in this function, it will be used in assignSpecklesToNetworks
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Initialization
 count=0;
@@ -149,11 +166,11 @@ for i=1:total
             disp('Not enough space allocated. Reallocating...'); % This should never happen
         end
         if class<11
-            firstFrame=double(speckleArray.timepoint(currentB))+1;
-            lastFrame=double(speckleArray.timepoint(i))-1;
+            firstFrame=speckleArray.timepoint(currentB)+1; % This requires an overloaded operator for uint16
+            lastFrame=speckleArray.timepoint(i)-1;
         elseif class==11
             firstFrame=1;
-            lastFrame=double(speckleArray.timepoint(i))-1;
+            lastFrame=speckleArray.timepoint(i)-1;
         elseif class==12
             % This cannot happen
             disp('Bug in fsmAssigmSpecklesToClasses.');
@@ -163,12 +180,12 @@ for i=1:total
         else
             error('Wrong class');
         end
-        speckleClasses(count).bTime = firstFrame; % Store actual birth time (not of 'b' speckle) - Store 1 for 'f' speckles
-        speckleClasses(count).dTime = lastFrame;  % Store actual death time (not of 'd' speckle) - Store last frame for 'l' speckles
-        speckleClasses(count).first = currentB;
-        speckleClasses(count).last  = i;
-        speckleClasses(count).pos   = [speckleArray.spPos(currentB,:); speckleArray.spPos(i,:)]; 
-        speckleClasses(count).class = class;
+        speckleClasses.bTime(count)   = uint16(firstFrame); % Store actual birth time (not of 'b' speckle) - Store 1 for 'f' speckles
+        speckleClasses.dTime(count)   = uint16(lastFrame);  % Store actual death time (not of 'd' speckle) - Store last frame for 'l' speckles
+        speckleClasses.first(count)   = currentB;
+        speckleClasses.last(count)    = i;
+        speckleClasses.pos(:,:,count) = uint16([speckleArray.spPos(currentB,:); speckleArray.spPos(i,:)]); 
+        speckleClasses.class(count)   = uint8(class);
 
         % Mark last event as 'd'
         lastEv='d';    
@@ -197,20 +214,20 @@ for i=1:total
             % This cannot happen
             disp('Bug in fsmAssigmSpecklesToClasses.');
         elseif class==12
-            firstFrame=double(speckleArray.timepoint(currentB))+1;
-            lastFrame=double(speckleArray.timepoint(i)); % Last time point in the movie
+            firstFrame=speckleArray.timepoint(currentB)+1;
+            lastFrame=speckleArray.timepoint(i); % Last time point in the movie
         elseif class==13
             firstFrame=1;
-            lastFrame=double(speckleArray.timepoint(i)); % Last time point in the movie
+            lastFrame=speckleArray.timepoint(i); % Last time point in the movie
         else
             error('Wrong class');
         end
-        speckleClasses(count).bTime = firstFrame; % Store actual birth time (not of 'b' speckle)
-        speckleClasses(count).dTime = lastFrame;  % Store actual death time (not of 'd' speckle)      
-        speckleClasses(count).first = currentB;
-        speckleClasses(count).last  = i;
-        speckleClasses(count).pos   = [speckleArray.spPos(currentB,:); speckleArray.spPos(i,:)]; %reshape([speckleArray(currentB:i).spPos],2,1+(i-currentB))';
-        speckleClasses(count).class = class;
+        speckleClasses.bTime(count)   = uint16(firstFrame); % Store actual birth time (not of 'b' speckle)
+        speckleClasses.dTime(count)   = uint16(lastFrame);  % Store actual death time (not of 'd' speckle)      
+        speckleClasses.first(count)   = currentB;
+        speckleClasses.last(count)    = i;
+        speckleClasses.pos(:,:,count) = uint16([speckleArray.spPos(currentB,:); speckleArray.spPos(i,:)]);
+        speckleClasses.class(count)   = uint8(class);
         
         % Mark last event as 'l'
         lastEv='l';    
