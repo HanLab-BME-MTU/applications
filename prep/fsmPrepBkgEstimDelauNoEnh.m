@@ -64,7 +64,12 @@ y=cat(1,y,dSet(:,1));
 x=cat(1,x,dSet(:,2));
 
 % Delaunay triangulation
-triMin=delaunay(pMin(:,1),pMin(:,2));
+mv=ver('MATLAB');
+if str2num(mv.Version)<7
+    triMin=delaunay(pMin(:,1),pMin(:,2));
+else
+    triMin=delaunay(pMin(:,1),pMin(:,2),{'Qt'}); % New delaunay function (MATLAB 7), 'Qt' -> triangulated output
+end
 
 % Search triangles
 triangles=tsearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
