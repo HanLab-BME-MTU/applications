@@ -72,7 +72,7 @@ for i=1:length(helpcoord);
                 
                 where=labeled(x_1:x_2,y_1:y_2);
                 helper=find(where);
-                if isempty(helper) == 0
+                if ~isempty(helper) 
                     
                         here=[];
                         noth=[];
@@ -115,6 +115,12 @@ for i=1:length(helpcoord);
         
  end
 
+ onBackGround=find(belongsto==0);
+ if ~isempty(onBackGround)
+     coord(onBackGround,:)=[];
+     belongsto(onBackGround)=[];
+ end
+ 
 %now we determin how many times a set of coordinates fall into the same
 %labeled area,thus: how many nucloi per area
 belo = sort(belongsto);
@@ -128,6 +134,8 @@ else
 end 
 numberOfOccurences = diff(uniqueIdx); 
 
+noSensibleInf=[]
+
 bodycount=zeros(length(uniqueEntries),1);
 for i=1:length(uniqueEntries);
         %area of a group devided by the amount of nucloi in the group. Average
@@ -139,6 +147,7 @@ for i=1:length(uniqueEntries);
                 bodycount(i) = areabod/numberOfOccurences(i);
             else 
                 
+                noSensibleInf(end+1,1)=i;
                 perimdivare(i) = 0;
                 bodycount(i) = 0;
                 
@@ -146,6 +155,7 @@ for i=1:length(uniqueEntries);
         
 end 
 
+uniqueEntries(noSensibleInf(:))=[];
 
 perimdivarea=sum(perimdivare)/length(perimdivare);
 %one row of hell is equivalent to the properties of one group(area)
@@ -163,17 +173,23 @@ PROPERTIES(:,3)=belongsto(:);
 
 f=0;
 
+noSensibleProp=[];
 %fill the right information into the right spots of PROPERTIES, via belongsto(now PROPERTIES(:,3)) (PROPERTIES<->hell)
 for i=1:length(coord);
         f=[];
         f= find (PROPERTIES(i,3)==hell(:,1));
-        if isempty(f)==0
+        if ~isempty(f)
             PROPERTIES(i,4)=hell(f,2);
             PROPERTIES(i,5)=hell(f,3);
             PROPERTIES(i,6)=hell(f,4);
+            
+        else
+            noSensibleProp(end+1,1)=i;
         end
+        
 end 
 
+PROPERTIES(noSensibleProp(:))=[];
 clear f;
 
 %avarea is the average area of all cells
