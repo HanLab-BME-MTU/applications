@@ -10,6 +10,7 @@ function [trackPairs,nsp]=trackingStrategy(idlist);
 % OUTPUT trackPairs : matrix [source target] numberOfTimepointsx2
 
 % c: 26/3/03	dT
+%%%%%%%%%%%%%%%%%%%%%%
 
 % Constants
 BW = -1;
