@@ -114,9 +114,7 @@ else
    error('Unknown value for ''dataToUse''.');
 end
 
-%They must also be inside the target recovery region.
-% 'tmpFem': temporary FEM structure for the purpose of finding sampling points
-% that are bounded by 'msh'.
+%The data points must also be inside the target recovery region.
 numDP = zeros(numTimeSteps,1);
 for jj = 1:numTimeSteps
    [is,pe] = postinterp(fem,[dataPx{jj} dataPy{jj}].');
@@ -197,5 +195,9 @@ end
 %Save the displacements on the boundary.
 save([resultPath 'edgeDisp'],'numEdges','edgePPx','edgePPy', ...
    'edgeS','edgeP','edgeU1','edgeU2');
+
+%Save the displacements on the data points.
+save([resultPath 'dataDisp'],'dataPx','dataPy','dataU1','dataU2', ...
+   'speckleP');
 
 fprintf(1,'%f sec.\n', cputime-localStartTime);

@@ -1,10 +1,21 @@
 %Post assemble of the identified body force and some calculation
 % for debugging purpose. It is run after 'solveLSBF'.
 
+if strcmp(fwdOpComputed,'all') == 1
+   fprintf(1,'Load the identified body force and displacements: \n');
+   load([resultPath 'bfId']);
+   load([resultPath 'dispId']);
+   return;
+end
+
 fprintf(1,'Post assemble of the identified body force : ');
 
 localStartTime = cputime;
 
+load([modelPath 'femId']);
+load([resultPath 'dispField']);
+load([resultPath 'dataDisp']);
+load([resultPath 'edgeDisp']);
 load([resultPath 'coefBFId']);
 
 %For debugging : Solve the elastic equation with the identified force and
@@ -19,7 +30,7 @@ end
 fn.BodyFx = 'femBodyF';
 fn.BodyFy = 'femBodyF';
 
-fem = elModelUpdate(fem,'fn',fn,'fp',fp);
+fem = elModelUpdate(fem,'fn',fn);
 
 %Set the points where the identified force is to be calculated for
 % demonstration.
@@ -42,6 +53,15 @@ bfDisplayPy(pe) = [];
 gridIn = 1:length(gridX);
 gridIn(pe) = [];
 
+%The data points must also be inside the target recovery region.
+for jj = 1:numTimeSteps
+   [is,pe] = postinterp(fem,[dataPx{jj} dataPy{jj}].');
+   dataPx{jj}(pe) = []; % 'pe': index of points outside 'msh'.
+   dataPy{jj}(pe) = [];
+   dataU1{jj}(pe) = [];
+   dataU2{jj}(pe) = [];
+end
+
 %We assign scores to contraction and adhesion that identifies contraction site
 % and adhesion sites with color.
 scoreMCF = zeros(length(gridy),length(gridx));
@@ -57,6 +77,8 @@ residueBF   = cell(numTimeSteps,1);
 recDispU    = zeros(length(bfDisplayPx),2,numTimeSteps);
 dataUC1     = cell(numTimeSteps,1);
 dataUC2     = cell(numTimeSteps,1);
+dataBFx     = cell(numTimeSteps,1);
+dataBFy     = cell(numTimeSteps,1);
 for jj = 1:numTimeSteps
    fp.BodyFx = {{'x' 'y'} {fs coefBFx(:,jj)}};
    fp.BodyFy = {{'x' 'y'} {fs coefBFy(:,jj)}};
@@ -156,12 +178,18 @@ for jj = 1:numTimeSteps
    scoreMCF(:) = 0;
    scoreADF(:) = 0;
 
-   %The displacements computed with the identified force. To be compared with 
+   %The displacements computed with the identified force and the identified
+   % force at the data points. To be compared with 
    % 'dataU1' and 'dataU2'.
    [dataUC1{jj} dataUC2{jj}] = postinterp(fem,'u1','u2', ...
       [dataPx{jj} dataPy{jj}].');
    dataUC1{jj} = dataUC1{jj}.';
    dataUC2{jj} = dataUC2{jj}.';
+
+   [dataBFx{jj} dataBFy{jj}] = postinterp(fem,'f1','f2', ...
+      [dataPx{jj} dataPy{jj}].');
+   dataBFx{jj} = dataBFx{jj}.';
+   dataBFy{jj} = dataBFy{jj}.';
 
    %Calculate the residue of the forword computed displacements.
    residueDisp{jj} = (dataUC1{jj}-dataU1{jj}).^2 + (dataUC2{jj}-dataU2{jj}).^2;
@@ -181,7 +209,8 @@ for jj = 1:numTimeSteps
       'recBF','recDispU','residueDisp','residueBF','ppMCF','ppADF');
 
    %Save the computed displacement from the identified body force.
-   save([resultPath 'dispId'],'dataPx','dataPy','dataUC1','dataUC2');
+   save([resultPath 'dispId'],'dataPx','dataPy','dataU1','dataU2', ...
+      'dataUC1','dataUC2', 'dataBFx','dataBFy');
 end
 
 fprintf(1,'%f sec.\n',cputime-localStartTime);

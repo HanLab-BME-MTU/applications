@@ -100,10 +100,11 @@ for jj = 1:numTimeSteps
 end
 
 %Plot the data points.
-plot(dataPx{1},dataPy{1},'y.'); 
+%plot(dataPx{1},dataPy{1},'y.'); 
 
 %Plot the data points and displacements.
-quiver(dataPx{1},dataPy{1},rawDataU1{1},rawDataU2{1},0,'y'); 
+quiver(dataPx{1},dataPy{1},rawDataU1{1}*dispScale, ...
+   rawDataU2{1}*dispScale,0,'y'); 
 
 sDataU1 = cell(numTimeSteps,1);
 sDataU2 = cell(numTimeSteps,1);
@@ -119,7 +120,8 @@ if strcmp(calInterp,'yes')
 
    if strcmp(showInterp,'yes')
       %the filtered displacements.
-      quiver(dataPx{1},dataPy{1},sDataU1{1},sDataU2{1},0,'r'); 
+      quiver(dataPx{1},dataPy{1},sDataU1{1}*dispScale, ...
+         sDataU2{1}*dispScale,0,'r'); 
    end
 
    save([resultPath 'dispField'],'rawI','rawDispV','dataPx', ...
