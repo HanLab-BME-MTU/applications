@@ -13,7 +13,7 @@ function [kappa,errFlag] = transAutoCov(arOrder,maOrder,arParam,maParam,...
 %       maxLag      : Maximum lag at which autocovariance function is
 %                     calculated.
 %
-%OUTPUT kappa       : Autocovariance function for lags 0 to maxLag.
+%OUTPUT kappa       : Autocovariance matrix for lags 0 to maxLag.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %REMARK This function computed the autocovariance function of the transformed process 
@@ -101,8 +101,8 @@ end
 
 
 maxLag = max(maxLagI,maxLagJ);
-[gamma,errFlag] = autoCov(arOrder,maOrder,arParam,maParam,variance,maxLag);
-gamma = [gamma(end:-1:2); gamma(1); gamma(2:end)];
+[gamma,gammaV,errFlag] = autoCov(arOrder,maOrder,arParam,maParam,variance,maxLag);
+gammaV = [gammaV(end:-1:2); gammaV(1); gammaV(2:end)];
 
 maxOrder = max(arOrder,maOrder);
 
@@ -117,14 +117,17 @@ for lagI = 0:maxLagI
 
         if lagI>=1 && lagI<=maxOrder && lagJ>=1 && lagJ<=maxOrder
 
-            kappa(lagI+1,lagJ+1) = gamma(maxLag+1+lagDiff)/variance;
+            kappa(lagI+1,lagJ+1) = gammaV(maxLag+1+lagDiff);
             
         elseif minLocal<=maxOrder && maxOrder<maxLocal && maxLocal<=2*maxOrder
             
-            kappa(lagI+1,lagJ+1) = (gamma(maxLag+1+lagDiff)-(arParam*...
-                gamma(maxLag+2-lagDiff:maxLag+1+arOrder-lagDiff)))/variance;
+            kappa(lagI+1,lagJ+1) = gammaV(maxLag+1+lagDiff);
+            if arOrder ~= 0
+                kappa(lagI+1,lagJ+1) = kappa(lagI+1,lagJ+1)-(arParam*...
+                    gammaV(maxLag+2-lagDiff:maxLag+1+arOrder-lagDiff));
+            end
            
-        elseif min(lagI,lagJ) > maxOrder
+        elseif min(lagI,lagJ) > maxOrder && maOrder ~= 0
 
             maPoly1 = [1 maParam];
             maPoly2 = [maPoly1(1+lagDiff:end) zeros(1,min(maOrder+1,lagDiff))]';

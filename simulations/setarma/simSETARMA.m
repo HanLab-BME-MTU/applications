@@ -1,9 +1,9 @@
     function [traj,errFlag] = simSETARMA(nThresholds,vThresholds,delay,arOrder,...
-    maOrder,arParam,maParam,noiseSigma,trajLength)
+    maOrder,arParam,maParam,noiseSigma,trajLength,trajInit)
 %SIMSETARMA simulates a Self Exciting Threshold Autoregressive Moving Average trajectory
 %
 %SYNOPSIS [traj,errFlag] = simSETARMA(nThresholds,vThresholds,delay,arOrder,...
-%    maOrder,arParam,maParam,noiseSigma,trajLength)
+%    maOrder,arParam,maParam,noiseSigma,trajLength,trajInit)
 %
 %INPUT  nThresholds : Number of thresholds.
 %       vThresholds : Column vector (of size nThresholds) of values of thresholds, 
@@ -15,6 +15,7 @@
 %       maPAram     : (nThresholds+1) by maOrder matrix of moving average parameters.
 %       noiseSigma  : Standard deviation of noise used in simulation (noise mean = 0).
 %       trajLength  : Length of trajectory to be simulated.
+%       trajInit    : Trajectory in first max(arOrder,delay) time points.
 %
 %OUTPUT traj        : Simulated trajectory.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
@@ -45,10 +46,18 @@ else
         errFlag = 1;
     end
 end
-if delay <= 0
-    disp('--simSETARMA: "delay" should be a positive integer');
-    errFlag = 1;
+if nThresholds ~= 0
+    if delay <= 0
+        disp('--simSETARMA: "delay" should be a positive integer!');
+        errFlag = 1;
+    end
+else
+    if delay < 0
+        disp('--simSETARMA: "delay" should be a nonnegative integer!');
+        errFlag = 1;
+    end
 end
+    
 if arOrder < 0
     disp('--simSETARMA: "arOrder" should be a nonnegative integer!');
     errFlag = 1;
@@ -106,32 +115,48 @@ if trajLength <= 0
     disp('--simSETARMA: "trajLength" should be a nonnegative integer!');
     errFlag = 1;
 end
+if length(trajInit) ~= max(arOrder,delay)
+    disp('--simSETARMA: Number of time points initialized should equal max(arOrder,delay)!');
+    errFlag = 1;
+end
 if errFlag
     disp('--simSETARMA: Please fix input data!');
     traj = [];
     return
 end
 
+%put +/- infinity on ends of thresholds for comparison later on
 vThresholds = [-Inf; vThresholds; Inf];
 
-shift = max(max(arOrder,maOrder)-1,delay);
+%number of previous time points needed due to dependence on the past.
+shift = max(max(arOrder,maOrder),delay);
+
+%actual length of trajectory simulated. The added 10*shift time
+%points in the beginning are deleted in the end of the calculation and are 
+%used only to remove any artificiality in the initial conditions.
 tempL = trajLength+10*shift;
 
-noise = idinput(tempL,'rgs',[],[-noiseSigma noiseSigma]); %noise in simulation
+%noise in simulation
+noise = idinput(tempL,'rgs',[],[-noiseSigma noiseSigma]);
 
-traj = zeros(tempL,1); %initialize trajectory
+%reserve memory for trajectory
+traj = zeros(tempL,1);
 
+%enter values of first few time steps
+traj(shift:-1:shift-max(arOrder,delay)+1) = trajInit(end:-1:1);
+
+%obtain trajectory
 for t = shift+1:tempL
-    level = find(((vThresholds(1:end-1)<=traj(t-delay)) + ...
+    level = find(((vThresholds(1:end-1)<=traj(t-delay)) + ... %determine level
         (vThresholds(2:end)>traj(t-delay))) == 2);
-    traj(t) = noise(t);
-    for i = 1:arOrder
+    traj(t) = noise(t);                                     %noise at time point t
+    for i = 1:arOrder                                       %AR part
         traj(t) = traj(t) + arParam(level,i)*traj(t-i);
     end
-    for i = 1:maOrder
+    for i = 1:maOrder                                       %MA part
         traj(t) = traj(t) + maParam(level,i)*noise(t-i);
     end
 end
 
+%get rid of initial 10*shift time points
 traj = traj(10*shift+1:end);
-

@@ -1,7 +1,7 @@
-function [gamma,errFlag] = autoCov(arOrder,maOrder,arParam,maParam,variance,maxLag)
+function [gamma,gammaV,errFlag] = autoCov(arOrder,maOrder,arParam,maParam,variance,maxLag)
 %AUTOCOV calculates the autocovariance function of an ARMA(p,q) model. 
 %
-%SYNOPSIS [gamma,errFlag] = autoCov(arOrder,maOrder,arParam,maParam,variance,maxLag)
+%SYNOPSIS [gamma,gammaV,errFlag] = autoCov(arOrder,maOrder,arParam,maParam,variance,maxLag)
 %
 %INPUT  arOrder     : Order of autoregressive part.
 %       maOrder     : Order of moving average part.
@@ -12,6 +12,8 @@ function [gamma,errFlag] = autoCov(arOrder,maOrder,arParam,maParam,variance,maxL
 %                     calculated.
 %
 %OUTPUT gamma       : Autocovariance function for lags 0 to maxLag.
+%       gammaV      : Autocovariance/noise variance for lags 0 to maxLag
+%                     (useful for noise free simulations).
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, February 2004
@@ -23,6 +25,7 @@ if nargin ~= nargin('autoCov')
     disp('--autoCov: Incorrect number of input arguments!');
     errFlag  = 1;
     gamma = [];
+    gammaV = [];
     return
 end
 
@@ -38,6 +41,7 @@ end
 if errFlag
     disp('--autoCov: Please fix input data!');
     gamma = [];
+    gammaV = [];
     return
 end
 if arOrder ~= 0
@@ -85,6 +89,7 @@ end
 if errFlag
     disp('--autoCov: Please fix input data!');
     gamma = [];
+    gammaV = [];
     return
 end
 
@@ -92,11 +97,14 @@ end
 [maInfParam,errFlag] = arma2ma(arOrder,maOrder,arParam,maParam,2*maxLag);
 if errFlag
     gamma = [];
+    gammaV = [];
     return
 end
 
-gamma = zeros(maxLag+1,1);
+gammaV = zeros(maxLag+1,1);
 
 for lag = 0:maxLag
-    gamma(lag+1) = variance*sum(maInfParam(1:end-lag).*maInfParam(1+lag:end));
+    gammaV(lag+1) = sum(maInfParam(1:end-lag).*maInfParam(1+lag:end));
 end
+
+gamma = variance*gammaV;
