@@ -1,7 +1,7 @@
 function [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %AUTOCORR calculates the unbiased autocorrelation function of a time series with missing observations
 %
-%SYNOPSIS [gamma,errFlag] = autoCorr(traj,maxLag)
+%SYNOPSIS [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %
 %INPUT  traj   : Observations of time series whose autocorrelation function
 %                is to be calculated. 
@@ -9,10 +9,12 @@ function [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %                one single trajectory. 
 %                Missing points should be indicated with NaN.
 %       maxLag : Maximum lag at which autocorrelation function is calculated.
-%       correct: (optional) Switch for correction of trends.
-%                  {-1} if no correction
-%                   0   if correct via linear fit to data
-%                   n   if correct via nth difference (reduces traj length!)
+%       correct: (optional) Switch for correction of trends:
+%                  -1 :if no correction.
+%                   0 :if correcting via linear fit to data.
+%                   n :if correcting by taking the 1st difference at lag n 
+%                (reduces traj length!). 
+%                Default: -1.
 %
 %OUTPUT gamma  : Unbiased autocorrelation function of series, 
 %                where gamma(i) is the autocorrelation at lag i-1.
@@ -23,14 +25,16 @@ function [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %
 %Khuloud Jaqaman, April 2004
 
-%initialize output and set defaults
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 errFlag = 0;
 gamma = [];
-defCorrect = -1;
 
-%=============
-% TEST INPUT
-%=============
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check if correct number of arguments were used when function was called
 if nargin < 2 || nargin > 3
@@ -56,34 +60,18 @@ elseif ~isfield(traj,'observations')
     errFlag = 1;
 end
 
-% check input correct
+%check input "correct"
 if nargin > 2 && ~isempty(correct)
     % use user input
-else
-    correct = defCorrect;
+else %use default
+    correct = -1;
 end
 
-numTraj = length(traj); %number of trajectories
-trajMean = zeros(numTraj,1);
+%get number of trajectories, length of each trajectory, and make sure that
+%trajectories are column vectors
+numTraj = length(traj);
 trajLength = zeros(numTraj,1);
-
 for i=1:numTraj    
-    
-    % correct the trajectories if necessary and remember the mean
-    switch correct
-        case -1
-            % remember mean
-            trajMean(i) = nanmean(traj(i).observations);
-        case 0
-            % remove trend with linear fit
-            traj(i).observations = removeLinearTrend(traj(i).observations);
-            trajMean(i) = 0;
-        otherwise
-            traj(i).observations = ...
-                traj(i).observations(correct+1:end) - traj(i).observations(1:end-correct);
-            trajMean(i) = nanmean(traj(i).observations);
-    end
-    
     [trajLength(i),nCol] = size(traj(i).observations); %length of each trajectory
     if nCol > 1
         disp('--autoCorr: Each trajectory should be a column vector!');
@@ -91,12 +79,11 @@ for i=1:numTraj
     end
 end
 
-% ad-hoc criterion to ensure that we have enough data points
+%ad-hoc criterion to ensure that there are enough data points
 if sum(trajLength((trajLength>maxLag))-maxLag) < 3*maxLag
     disp('--autoCorr: Trajectories not long enough! Increase trajectories or reduce maxLag');
     errFlag = 1;
 end
-
 
 if errFlag
     if nargout == 2
@@ -107,13 +94,36 @@ if errFlag
     end
 end
 
-%==============
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Trend correction
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+trajMean = zeros(numTraj,1);
 
+for i=1:numTraj
 
-%==============
-% CALCULATE
-%==============
+    %correct trajectories if necessary and remember the mean
+    switch correct
+        case -1
+            %remember mean
+            trajMean(i) = nanmean(traj(i).observations);
+        case 0
+            %remove trend with linear fit
+            traj(i).observations = removeLinearTrend(traj(i).observations);
+            trajMean(i) = 0;
+        otherwise %remove trend with differencing at specified lag
+            traj(i).observations = traj(i).observations(correct+1:end) ...
+                - traj(i).observations(1:end-correct);
+            trajMean(i) = nanmean(traj(i).observations);
+            %modify trajectory length
+            trajLength(i) = trajLength(i) - correct;
+    end
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Autocorrelation function calculation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %calculate unnormalized autocorrelation function for lags 0 through maxLag
 gamma = zeros(maxLag+1,1);
@@ -143,3 +153,6 @@ end
 
 %normalize autocorrelation function
 gamma = gamma/gamma(1);
+
+
+%%%%% ~~ the end ~~ %%%%%
