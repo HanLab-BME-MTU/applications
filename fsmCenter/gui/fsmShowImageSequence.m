@@ -152,7 +152,7 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
         return
     end
 
-        % Extract speckle classes
+    % Extract speckle classes
     primary=find([cands.status]==1 & [cands.speckleType]==1);
     secondary=find([cands.status]==1 & [cands.speckleType]==2);
     tertiary=find([cands.status]==1 & [cands.speckleType]==3);
@@ -173,9 +173,9 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
     if ~isempty(currentH)
         delete(currentH);
     end
-% 
-%     % Select color for the plot depending on how many frames are
-%     %    already on the figure
+
+    % Select color for the plot depending on how many frames are
+    %    already on the figure
 %     mx=0;
 %     n=get(currentH,'UserData');
 %     if ~isempty(n) & iscell(n)
@@ -186,7 +186,7 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
 %     mx=mx+1;
 %     indx=mod(mx,5);
 %     if indx==0; indx=5; end
-% 
+
     % Find the 
     % Plot speckles 
     %    All speckles of a certain type are in one plot -   
@@ -207,6 +207,12 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
     set(hTitle,'Interpreter','none')
 
     hold off;
+% else
+%     % Delete the old cands dots
+%     currentH=findall(gca,'Tag','cands');
+%     if ~isempty(currentH)
+%         delete(currentH);
+%     end
 end
     
 % Add title

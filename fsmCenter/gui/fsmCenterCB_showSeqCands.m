@@ -21,6 +21,12 @@ hMenu = findobj('Label','Show speckle selection');
 
 if strcmp(get(hMenu, 'Checked'),'on')
     set(hMenu, 'Checked', 'off');
+    
+    % Delete the old cands dots
+    currentH=findall(gca,'Tag','cands');
+    if ~isempty(currentH)
+        delete(currentH);
+    end
 else 
     set(hMenu, 'Checked', 'on');
 

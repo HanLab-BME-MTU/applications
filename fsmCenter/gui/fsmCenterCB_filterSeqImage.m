@@ -39,6 +39,8 @@ else
         % Check returned value
         if isempty(sigma)
             disp('Aborted by user.');
+            set(hMenu, 'Checked', 'off');
+            assignin('base','sigmaSeq',[]);
             return
         end
     end

@@ -136,7 +136,7 @@ if(isa(fileName,'char') & isa(dirName,'char'))
     
     % Add title
     titleStr=[dirName,fileName,' (',num2str(size(image,1)),'x',num2str(size(image,2)),')'];
-    set(h,'Name',titleStr,'NumberTitle','off');
+    set(imgHandle,'Name',titleStr,'NumberTitle','off');
     
     % Add univocal tag
     set(imgHandle,'Tag','ViewPanel');
