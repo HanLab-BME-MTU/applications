@@ -61,13 +61,13 @@ function GUI_start_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for GUI_start
 handles.output = hObject;
 
-defaultjob=struct('imagedirectory',[],'imagename',[],'firstimage',[],'lastimage',[],...
+defaultjob=struct('imagedirectory',[],'imagename',[],'firstimage',1,'lastimage',[],...
                    'increment',1,'savedirectory',[],'fi_background',[],'fi_nucleus',[],...
                    'la_background',[],'la_nucleus',[],'maxsearch',48,'mmpixel',[],...
                    'minsize',300,'maxsize',1500,'minsdist',30,'fi_halolevel',[],'la_halolevel',[],...
                    'minedge',10,'sizetemplate',41,'boxsize',141,'noiseparameter',0.15,...
                    'mincorrqualtempl',0.2,'leveladjust',0.7,'timestepslide',5,'mintrackcorrqual',0.5,...
-                   'coordinatespicone',[],'intensityMax',4095,'bitdepth',12) ;
+                   'coordinatespicone',[],'intensityMax',4095,'bitdepth',12,'bodyname',[],'imagenameslist',[]) ;
                
 handles.defaultjob=defaultjob;
 
@@ -182,38 +182,70 @@ else
 	handles.jobs(projNum).imagedirectory=imagedirectory;
 	handles.jobs(projNum).imagename=filename;
 	
+    number=0;
+    countNum=0;
+    while ~isnan(number)
+         countNum = countNum+1
+         number = str2num(filename(end-(4+countNum):end-4));
+         
+    end
+        
+    
+    handles.jobs(projNum).bodyname = filename(1:(end-(4+countNum)));
+     
 	%select current project
 	set(handles.GUI_st_job_lb,'Value',projNum);
 	
 	
 	dirList=dir(imagedirectory);
 	
-	howmuchindir=length(dirList);
+    dirList = struct2cell(dirList)
+    dirList = dirList(1,:)
+    ind = strmatch(handles.jobs(projNum).bodyname,dirList);
+    dirList = dirList(ind)'
+    handles.jobs(projNum).lastimage = length(dirList);
+      
+    for jRearange = 1:length(dirList)
+        tmpName = char(dirList(jRearange));
+        imageNum(jRearange) = str2num(tmpName(length(handles.jobs(projNum).bodyname)+1:end-4));
+    end
+    
+    [junk,indVec] = sort(imageNum);
+    
+    handles.jobs(projNum).imagenameslist = dirList(indVec);
+    
+    
+    
+    
+% 	howmuchindir=length(dirList);
+% 	
+% 	ct=1;
+% 	while  ct < howmuchindir
+%         if ~dirList(ct).isdir & (length(dirList(ct).name)>6)
+%             if strcmp (dirList(ct).name(end-3:end),'.tif') 
+%                handles.jobs(projNum).firstimage=str2num(dirList(ct).name(end-6:end-4));
+%                 ct=howmuchindir+100;
+%             end
+%         end
+%             ct=ct+1;
+% 	end
+% 	
+% 	ct= howmuchindir;
+% 	while ct >0
+%         if ~dirList(ct).isdir & (length(dirList(ct).name)>6)
+%             if strcmp (dirList(ct).name(end-3:end),'.tif') 
+%                 handles.jobs(projNum).lastimage=str2num(dirList(ct).name(end-6:end-4));
+%                 ct=-77;
+%             end
+%         end
+%      
+%         ct=ct-1;
+%         
+% 	end
 	
-	ct=1;
-	while  ct < howmuchindir
-        if ~dirList(ct).isdir & (length(dirList(ct).name)>6)
-            if strcmp (dirList(ct).name(end-3:end),'.tif') 
-               handles.jobs(projNum).firstimage=str2num(dirList(ct).name(end-6:end-4));
-                ct=howmuchindir+100;
-            end
-        end
-            ct=ct+1;
-	end
-	
-	ct= howmuchindir;
-	while ct >0
-        if ~dirList(ct).isdir & (length(dirList(ct).name)>6)
-            if strcmp (dirList(ct).name(end-3:end),'.tif') 
-                handles.jobs(projNum).lastimage=str2num(dirList(ct).name(end-6:end-4));
-                ct=-77;
-            end
-        end
-     
-        ct=ct-1;
-        
-	end
-	
+    
+    
+    
 	cd(imagedirectory)
 	done=0;
 	counter=1

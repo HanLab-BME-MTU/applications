@@ -9,7 +9,7 @@ function [coor]= takenkick(info,coor)
 taken=figure, imshow(info,[]), title('LEFT klick on the UNMARKED(!!!!!) nucloi /// RIGHT klick on (or close to) the FALSELY marked nucs ///  press ENTER when finished /// repeats as long as you klick on something, between to sucsessive presses on ENTER...');
 hold on;
 
-plot(coor(:,1),coor(:,2),'.');
+plot(coor(:,1),coor(:,2),'r.');
 
 done=0;
 found=[];
@@ -49,7 +49,7 @@ while done==0
                  onoff=0
                  figure, imshow(info,[]), title('Is this correct? if yes: leftklick  -- if no: rightklick    then press ENTER')
                  hold on;
-                 plot(coor(:,1),coor(:,2),'.');
+                 plot(coor(:,1),coor(:,2),'r.');
                  [nothing,nothing2,onoff] = ginput;
                  hold off
                  
@@ -75,7 +75,7 @@ while done==0
                  
                  figure, imshow(info,[]), title('LEFT klick on the UNMARKED(!!!!!) nucloi /// RIGHT klick on (or close to) the FALSELY marked nucs ///  press ENTER when finished /// repeats as long as you klick on something, between to sucsessive presses on ENTER...');
                  hold on;
-                 plot(coor(:,1),coor(:,2),'.');
+                 plot(coor(:,1),coor(:,2),'r.');
                  [xx,yy,leftright] = ginput;
                  close
                  
@@ -95,7 +95,7 @@ while done==0
                  cooradd=[0,0];
                  xin=round(xx(left));
                  yin=round(yy(left));
-                 plot(xin,yin,'.');
+                 plot(xin,yin,'r.');
                  cooradd=cat(2,xin,yin);
                  addon=cat(1,addon,cooradd);
 		end

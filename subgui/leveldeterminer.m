@@ -3,32 +3,24 @@ function leveldeterminer(hObject)
 handles = guidata(hObject);
 
 projNum = get(handles.GUI_st_job_lb,'Value');
-ImageDirectory=handles.jobs(projNum).imagedirectory;
-ImageName=handles.jobs(projNum).imagename;
-FirstImaNum=handles.jobs(projNum).firstimage;
-LastImaNum=handles.jobs(projNum).lastimage;
+ImageDirectory = handles.jobs(projNum).imagedirectory;
 
-
+FirstImaNum = handles.jobs(projNum).firstimage;
+LastImaNum = handles.jobs(projNum).lastimage;
+ImageNamesList = handles.jobs(projNum).imagenameslist
 
 cd(ImageDirectory);
 
-ext=ImageName(end-3:end);
-ImageName=ImageName(1:end-7);
+name = char(ImageNamesList(FirstImaNum));
 
-s=3; %s=length(num2str(no));
-strg=sprintf('%%.%dd',s);
-% Create numerical index
-
-indxStr=sprintf(strg,FirstImaNum);   
-name=[ImageName indxStr ext]; 
 firstImage=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 
 [img_h,img_w]=size(firstImage);
 
-indxStr=sprintf(strg,LastImaNum);
-name=[ImageName indxStr ext]; 
-    
+
+name = char(ImageNamesList(LastImaNum));
+
 lastImage=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 
@@ -37,11 +29,11 @@ lastImage=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 %first picture
 %background
-backfirst=figure, imshow(firstImage,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
+backfirst = figure, imshow(firstImage,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
 
 [X,Y] = getpts(backfirst);
-intense=[];
-for dots=1:size(X,1)
+intense = [];
+for dots = 1:size(X,1)
     
 	if X(dots) > 3 & X(dots) <img_w-3 & Y(dots) > 3 & Y(dots) <img_h-3  
       

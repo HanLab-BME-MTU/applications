@@ -31,9 +31,11 @@ levnuc_fi = handles.jobs(projNum).fi_nucleus;
 levback_fi = handles.jobs(projNum).fi_background;
 levhalo_fi = handles.jobs(projNum).fi_halolevel;
 
+ImageNamesList = handles.jobs(projNum).imagenameslist
+
 % levnuc_la = handles.jobs(projNum).la_nucleus;
 % levback_la = handles.jobs(projNum).la_background;
-% levdiff_fi = abs(levnuc_fi-levback_fi)*handles.jobs(projNum).leveladjust;
+levdiff_fi = abs(levnuc_fi-levback_fi)*handles.jobs(projNum).leveladjust;
 
 
 ErodeDiskSize = 10;
@@ -63,15 +65,17 @@ if ~Last > First
     
 else    
 
-    
-        % Format
-		s=3; %s=length(num2str(no));
-		strg = sprintf('%%.%dd',s);
-		
-		% Create numerical index
-		indxStr = sprintf(strg,First);
+%     
+%         % Format
+% 		s=3; %s=length(num2str(no));
+% 		strg = sprintf('%%.%dd',s);
+% 		
+% 		% Create numerical index
+% 		indxStr = sprintf(strg,First);
+%         
+%         name = [bodyfilename indxStr ext]; 
         
-        name = [bodyfilename indxStr ext]; 
+        name = char(ImageNamesList(1))
         
         %get the current picture
         firstFrame = imreadnd2(name,0,handles.jobs(projNum).intensityMax);

@@ -1,4 +1,4 @@
-function changeframe
+function nothingatall
 
 
 delete(gca)

@@ -6,29 +6,21 @@ handles = guidata(hObject);
 projNum = get(handles.GUI_st_job_lb,'Value');
 imageDirectory=handles.jobs(projNum).imagedirectory;
 imageName=handles.jobs(projNum).imagename;
-firstImageNum=handles.jobs(projNum).firstimage;
+FirstImageNum=handles.jobs(projNum).firstimage;
 LastImaNum=handles.jobs(projNum).lastimage;
 
+ImageNamesList = handles.jobs(projNum).imagenameslist
 
+cd(ImageDirectory);
 
-cd(imageDirectory);
+name = char(ImageNamesList(FirstImaNum));
 
-ext=imageName(end-3:end);
-main=imageName(1:end-7);
-
-s=3; %s=length(num2str(no));
-strg=sprintf('%%.%dd',s);
-% Create numerical index
-
-indxStr=sprintf(strg,firstImageNum);   
-name=[main indxStr ext]; 
 firstImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 
 [img_h,img_w]=size(firstImg);
 
-indxStr=sprintf(strg,LastImaNum);
-name=[main indxStr ext]; 
+name = char(ImageNamesList(LastImaNum));
     
 lastImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
