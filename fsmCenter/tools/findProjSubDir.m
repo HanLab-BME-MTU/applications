@@ -9,7 +9,7 @@ function dirList = findProjSubDir(parDir,dirSpec)
 %
 % INPUT :
 %    parDir  : A string that specifies the parent directory. Use '.' for the 
-%              current directory is searched.
+%              current directory.
 %    dirSpec : A string for package common name. For example, 'tack' means all
 %              directories whose first four characters are 'tack'.
 
