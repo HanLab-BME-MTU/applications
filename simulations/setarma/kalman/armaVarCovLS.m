@@ -20,11 +20,18 @@ function [varCovMat,arParam,maParam,errFlag] = armaVarCovLS(...
 %
 %Khuloud Jaqaman, July 2004
 
-%initialize output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 varCovMat = [];
 arParam = [];
 maParam = [];
 errFlag = 0;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check if correct number of arguments was used when function was called
 if nargin < nargin('armaVarCovLS')
@@ -55,11 +62,16 @@ end
 maxOrder = max(arOrder,maOrder);
 sumOrder = arOrder + maOrder;
 
-%go over all trajectories
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Parameter estimation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 fitLength = 0;
 prevPoints = [];
 observations = [];
 epsilon = [];
+
+%go over all trajectories
 for i = 1:length(trajectories)
     
     %obtain available points in this trajectory
@@ -104,3 +116,6 @@ maParam = maParam(arOrder+1:sumOrder);
 %calculate variance-covariance matrix
 varCovMat = epsilon'*epsilon * inv(prevPoints'*prevPoints)...
     /(fitLength-sumOrder);
+
+
+%%%%% ~~ the end ~~ %%%%%

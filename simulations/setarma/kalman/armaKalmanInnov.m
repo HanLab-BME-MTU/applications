@@ -25,11 +25,18 @@ function [innovation,innovationVar,wnVector,errFlag] = ...
 %
 %Khuloud Jaqaman, July 2004
 
-%initialize output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 innovaton = [];
 innovationVar = [];
 wnVector = [];
 errFlag = 0;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check if correct number of arguments was used when function was called
 if nargin < nargin('armaKalmanInnov')
@@ -49,6 +56,10 @@ maxOrder = max(arOrder,maOrder+1);
 %add zeros to ends of arParam and maParam to get vectors of length maxOrder
 arParamMod = [arParam zeros(1,maxOrder-arOrder)];
 maParamMod = [maParam zeros(1,maxOrder-maOrder)];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Calculation of innovations
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %construct matrix F (Eq. 2.15, 2.16)
 transitionMat = diag(ones(maxOrder-1,1),1);
@@ -79,6 +90,7 @@ innovation = NaN*ones(trajLength,1);
 innovationVar = NaN*ones(trajLength,1);
 wnVector = NaN*ones(trajLength,1);
 
+%got over all points in trajectory
 for timePoint = 1:trajLength
     
     %predict state at time T+1 given state at time T
@@ -120,6 +132,9 @@ for timePoint = 1:trajLength
         %wn(t+1) = x(t+1|t+1) - x(t+1|t) (Eq. 2.10 with j=1)
         wnVector(timePoint) = stateVecT_T(1) - stateVecT1_T(1);
         
-    end
+    end %(if isnan(traj(timePoint,1)))
     
-end
+end %(for timePoint = 1:trajLength)
+
+
+%%%%% ~~ the end ~~ %%%%%

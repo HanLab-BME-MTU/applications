@@ -20,10 +20,17 @@ function neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,trajectories)
 %
 %Khuloud Jaqaman, July 2004
 
-%initialize output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 neg2LnLikelihood = [];
 
-%check if correct number of arguments were used when function was called
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%check if correct number of input arguments are used
 if nargin ~= nargin('armaCoefKalmanObj')
     disp('--armaCoefKalmanObj: Incorrect number of input arguments!');
     return
@@ -33,7 +40,7 @@ end
 arParamP = param(1:arOrder);
 maParamP = param(arOrder+1:end);
 
-%get AR and MA coefficients
+%get AR and MA coefficients from the partial AR and MA coefficients, respectively
 if ~isempty(arParamP)
     [arParam,errFlag] = levinsonDurbinAR(arParamP);
 else
@@ -45,15 +52,19 @@ else
     maParam = [];
 end
 
-%go over all trajectories to get likelihood
-sum1 = 0;
-sum2 = 0;
-numAvail = 0;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Likelihood calculation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+sum1 = 0; %1st sum in Eq. 3.15
+sum2 = 0; %2nd sum in Eq. 3.15
+numAvail = 0; %number of available points
+
+%go over all trajectories to get innovations and their variances
 for i = 1:length(trajectories)
     
     %calculate the number of available points in this trajectory
     available = trajectories(i).available;
-%     available = available(find(available>10));
     numAvail = numAvail + length(available);
     
     %get the innovations, their variances and process white noise
@@ -74,7 +85,14 @@ end
 %construct -2ln(likelihood)
 neg2LnLikelihood = sum1 + numAvail*log(sum2);
 
-% % %TOMLAB stuff
+
+%%%%% ~~ the end ~~ %%%%%
+
+
+
+% % % %FOR TOMLAB
+% % % 
+% % % %get parameters from structure "prob"
 % % % arOrder = prob.user.arOrder;
 % % % trajectories = prob.user.trajectories;
 
