@@ -128,7 +128,15 @@ end
 
 % Select output dir
 if SAVEFILE==1
-    outputdir=uigetdir('','Select directory to save turnover maps to.');
+    if isfield(fsmParam,'project')
+        outputdir=[fsmParam.project.path,filesep,fsmParam.project.post,filesep];
+        if ~isdir(outputdir)
+            outputdir=[];
+        end
+    else
+        outputdir=[];
+    end
+    outputdir=uigetdir(outputdir,'Select directory to save turnover maps to.');
     if outputdir==0 % The user clicked on cancel
         disp('Aborted by the user.');
         return

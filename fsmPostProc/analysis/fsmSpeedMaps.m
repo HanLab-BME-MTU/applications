@@ -197,7 +197,16 @@ if loadMPM==0
 end
 
 % Select output dir
-outputdir=uigetdir('','Select directory to save speed maps to.');
+% Default
+if isfield(fsmParam,'project')
+    outputdir=[fsmParam.project.path,filesep,fsmParam.project.post,filesep];
+    if ~isdir(outputdir)
+        outputdir=[];
+    end
+else
+    outputdir=[];
+end
+outputdir=uigetdir(outputdir,'Select directory to save speed maps to.');
 if outputdir==0 % The user clicked on cancel
     disp('Aborted by the user.');
     outputdir=[];

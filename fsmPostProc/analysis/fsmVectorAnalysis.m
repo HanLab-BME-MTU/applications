@@ -230,7 +230,16 @@ imgSize=size(img);
 % If needed, ask the user to specify an output directory
 if nImages>1
     % Select output dir
-    outputdir=uigetdir('','Select directory to save vector maps to.');
+    % Default
+    if isfield(fsmParam,'project')
+        outputdir=[fsmParam.project.path,filesep,fsmParam.project.post,filesep];
+        if ~isdir(outputdir)
+            outputdir=[];
+        end
+    else
+        outputdir=[];
+    end
+    outputdir=uigetdir(outputdir,'Select directory to save vector maps to.');
     if outputdir==0 % The user clicked on cancel
         disp('Aborted by the user.');
         return
