@@ -168,7 +168,7 @@ varCovMat = zeros(max(tarOrder),max(tarOrder),nThresholds+1);
 for level = 1:nThresholds+1
     
     %construct weighted matrix of previous points multiplying AR coefficients (on LHS of equation)
-    %[size: fitLength by tarOrder]
+    %[size: fitLength by tarOrder(level)]
     lhsMat = zeros(fitLength(level),tarOrder(level));
     for i=1:tarOrder(level)
         lhsMat(:,i) = traj(fitSet(1:fitLength(level),level)-i,1)...
@@ -197,11 +197,11 @@ for level = 1:nThresholds+1
         return
     end
     
-    %check for causality of estimated model
-    r = abs(roots([-tarParam(level,tarOrder(level):-1:1) 1]));
-    if ~isempty(find(r<=1.00001))
-        disp('--tarCoefEstim: Warning: Predicted model not causal!');
-    end
+%     %check for causality of estimated model
+%     r = abs(roots([-tarParam(level,tarOrder(level):-1:1) 1]));
+%     if ~isempty(find(r<=1.00001))
+%         disp('--tarCoefEstim: Warning: Predicted model not causal!');
+%     end
     
     %get vector of weighted residuals
     residuals(fitSet(1:fitLength(level),level)) = lhsMat*tarParam(level,1:tarOrder(level))' - rhsVec;
@@ -222,3 +222,6 @@ end %(for levels=1:nThresholds+1)
 
 %add to the beginning of each column the number of data points in that regime
 fitSet = [fitLength; fitSet];
+
+%transform noiseSigma into a column vector
+noiseSigma = noiseSigma';

@@ -8,7 +8,7 @@ function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDel
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainties).
 %                      Missing points should be indicated with NaN.
 %       vThresholds  : Column vector of thresholds, sorted in increasing order.
-%       delayTest    : Values of delay parameter to be tested.
+%       delayTest    : Row vector of values of delay parameter.
 %       tarOrder     : Order of proposed TAR model in each regime.
 %       method (opt) : Solution method: 'dir' (default) for direct least square 
 %                      minimization using the matlab "\", 'iter' for iterative 
@@ -90,10 +90,10 @@ sumSqResid = 1e20; %ridiculously large number
 for delay1 = delayTest %go over all suggested delay parameters
     
     %estimate coeffients and residuals
-    [tarParam1,varCovMat1,residuals1,noiseSigma1,fitSet1,errFlag] = tarlsestim0(...
+    [tarParam1,varCovMat1,residuals1,noiseSigma1,fitSet1,errFlag] = tarCoefEstim(...
         traj,vThresholds,delay1,tarOrder,method,tol);
     if errFlag
-        disp('--tarDelayCoef: tarlsestim0 did not function properly!');
+        disp('--tarDelayCoef: tarCoefEstim did not function properly!');
         tarParam = [];
         varCovMat = [];
         residuals = [];
@@ -104,7 +104,7 @@ for delay1 = delayTest %go over all suggested delay parameters
     end
     
     %get sum over squares of all residuals
-    sumSqResid1 = fitSet1(1,:)*noiseSigma1';
+    sumSqResid1 = fitSet1(1,:)*noiseSigma1.^2;
     
     %compare current sum over squared residuals to sum in previous delay parameter trial
     %if it is smaller, then update results
@@ -119,3 +119,11 @@ for delay1 = delayTest %go over all suggested delay parameters
     end
     
 end %(for delay = delayTest)
+
+% %check for causality of estimated model
+% for level = 1:length(vThresholds)+1
+%     r = abs(roots([-tarParam(level,tarOrder(level):-1:1) 1]));
+%     if ~isempty(find(r<=1.00001))
+%         disp('--tarDelayCoef: Warning: Predicted model not causal!');
+%     end
+% end
