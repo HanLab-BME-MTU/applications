@@ -20,6 +20,19 @@ if length(children)>1
 end
 img=get(children,'CData');
 
+% Ask the user to specify the bitdepth
+prompt={'Please specify the bit-depth of your image:'};
+def={'14'};
+dlgTitle='User input requested';
+lineNo=1;
+bitDepth=char(inputdlg(prompt,dlgTitle,lineNo,def));
+
+if isempty(bitDepth)
+    uiwait(msgbox('Edge extraction interrupted by user.','Warning','modal'));
+    return
+end
+
+% Try to extract edges
 try
     img=double(img);
     
