@@ -49,7 +49,8 @@ else
 end
 
     
-
+clustDist= zeros(size(handles.clustercells));
+singleDist =  zeros(size(handles.singlecells));
 
 
 for pic = start:(stop-1)
@@ -76,14 +77,17 @@ for pic = start:(stop-1)
         numbercells(pic,1) = (length(whatcells)-length(zerRows));
         dist(:,pic) = sqrt((vec(:,1)-vec(:,3)).^2 + (vec(:,2)-vec(:,4)).^2);
         
-        clustDist(:,pic)= dist(handles.clustercells(:,pic), pic);
-        singleDist(:,pic) = dist(handles.singlecells(:,pic), pic);
+        
+        realrows=find(handles.clustercells(:,pic));
+        clustDist(1:length(realrows),pic)= dist(handles.clustercells(realrows,pic), pic);
+        realrows=find(handles.singlecells(:,pic));
+        singleDist(1:length(realrows),pic) = dist(handles.singlecells(realrows,pic), pic);
         
         %calculate the average. (since we sum up, the zeros do not bother us) 
         avardist(pic,1) = sum(dist(:,pic))/(length(whatcells)-length(zerRows));
         
-        avarclustDist(pic,1) = sum(clustDist(:,pic)) / (size(handles.clustercells(:,pic)),1)
-        avarsingleDist(pic,1) =  sum(singleDist(:,pic)) / (size(handles.singlecells(:,pic)),1)
+        avarclustDist(pic,1) = sum(clustDist(:,pic)) / (size(find(handles.clustercells(:,pic)),1))
+        avarsingleDist(pic,1) =  sum(singleDist(:,pic)) / (size(find(handles.singlecells(:,pic)),1))
         
         
         realdist = dist(find(dist(:,pic)),pic);

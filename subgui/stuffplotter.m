@@ -27,6 +27,25 @@ NewProps=zeros(6,start-stop+1);
 handles.PROPERTIES(:,4,:)=0;
 PROPERTIES = handles.PROPERTIES
 
+
+  whatcells=[];
+    
+	if ~isempty(handles.selectedcells)
+        whatcells = zeros(size(handles.selectedcells,1),2);
+        handles.singlecells = zeros(size(handles.selectedcells,1),1)
+        handles.clustercells = zeros(size(handles.selectedcells,1),1)
+        
+	else
+        whatcells = zeros(size(handles.MPM,1),2);
+        handles.singlecells = zeros(size(handles.MPM,1),2);
+        handles.clustercells = zeros(size(handles.MPM,1),2);
+        
+	end
+
+    
+
+
+
 for pic=start:stop
  
     %now we quickly calculate the number of cells within a cluster. This
@@ -57,17 +76,12 @@ for pic=start:stop
     
 	if ~isempty(handles.selectedcells)
         whatcells = zeros(size(handles.selectedcells,1),2);
-        handles.singlecells = zeros(size(handles.selectedcells,1),1)
-        handles.clustercells = zeros(size(handles.selectedcells,1),1)
-        
+      
 	else
         whatcells = zeros(size(handles.MPM,1),2);
-        handles.singlecells = zeros(size(handles.MPM,1),2);
-        handles.clustercells = zeros(size(handles.MPM,1),2);
-        
+       
 	end
 
-    
     
     if ~isempty(handles.selectedcells) 
         whatcells(:,:)=handles.MPM(handles.selectedcells,(2*pic-1):(2*pic));
@@ -98,7 +112,7 @@ for pic=start:stop
     %coordinates
     
     [properRows,indWhatCells] = ismember(round(handles.PROPERTIES(:,1:2,pic)),round(whatcells),'rows');
-    NewProps(6,pic) = size(find(properRows,1));
+    NewProps(6,pic) = size(find(properRows),1);
     takeIntoAccount = handles.PROPERTIES(properRows,:,pic);
     
     indWhatCells = indWhatCells(find(indWhatCells));
@@ -121,9 +135,9 @@ for pic=start:stop
     Clusters = find(takeIntoAccount(:,4)>1.5)
     
     if ~isempty(handles.selectedcells) 
-             handles.clustercells(1:length(Cluster),pic) = handles.selectedcells(indWhatCells(Cluster));
+             handles.clustercells(1:length(Clusters),pic) = indWhatCells(Clusters);
      else   
-            handles.clustercells(1:length(Cluster),pic) = indWhatCells(Cluster);
+            handles.clustercells(1:length(Clusters),pic) = indWhatCells(Clusters);
      end
     [uniqclust,uniCluRows,invert]=unique(takeIntoAccount(Clusters,3));
     NewProps(1,pic)=length(uniqclust);

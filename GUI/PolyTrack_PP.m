@@ -595,12 +595,15 @@ function GUI_ad_analyze_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_ad_analyze_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
 
+
+stuffplotter(hObject);
+
+handles = guidata(hObject);
 if get(handles.GUI_ad_speed_rb,'Value')
     speed(hObject);
 end
-stuffplotter(hObject);
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
