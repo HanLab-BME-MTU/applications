@@ -1,4 +1,4 @@
-function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIbw,maxSpeed,segment)
+function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIbw,maxSpeed,segment,bitDepth)
 % fsmSpeedMaps creates speed maps from the flow maps returned by the SpeckTackle package
 %
 % fsmSpeedMaps goes through the whole M (or Md) stack of s matrices (each matrix corresponds to the
@@ -22,6 +22,7 @@ function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,ov
 %                             Set it to 0 to turn off rescaling (the function will set this value to 110% 
 %                             of the maximum velocity from frame 1) or to any velocity n in nm/min.
 %               segment     : [ 0 | 1 ] turns on and off automatic segmentation
+%               bitDpeth    : image bit depth, used for automatic segmentation
 %
 % OUTPUT        outputdir   : directory where the speed maps are saved to.
 %               speedMaps saved to disk as .tif, .eps, .mat 
@@ -35,8 +36,8 @@ function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,ov
 global uFirst uLast
 
 % Check input parameters
-if nargin~=10
-    error('10 input parameters expected');
+if nargin~=11
+    error('11 input parameters expected');
 end
 
 % Initialize output
@@ -271,7 +272,7 @@ for c2=1:steps
     
     if segment==1
         % Find cell boundaries
-        xmax=2^14-1;
+        xmax=2^bitDepth-1;
         img=imreadnd2(char(outFileList(c2)),0,xmax);
         try
             [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
@@ -321,6 +322,10 @@ for c2=1:steps
         hold on;
         % Check for MATLAB version - quiver 7.0 is no longer compatible
         v=ver('MATLAB');
+        pointPos=findstr(v.Version,'.');
+        if ~isempty(pointPos)
+            v.Version=v.Version(1:pointPos(1)+1);
+        end
         if str2num(v.Version)<7
             qH=quiver(MavDisp(:,2),MavDisp(:,1),MavDisp(:,4)-MavDisp(:,2),MavDisp(:,3)-MavDisp(:,1),0);
         else
@@ -342,19 +347,19 @@ for c2=1:steps
     % Save image
     indxStr=sprintf(strg,indices(c2));
     if scaleFactor~=0
-        fname=[outputdir,filesep,'tif',filesep,'speedMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.tif'];
+        fname=[outputdir,filesep,'tif',filesep,'speedMap_d0=',num2str(d0_init),'_scale=',num2str(scaleFactor),'x_frames=',num2str(n),'_',indxStr,'.tif'];
         print(gcf,'-dtiffnocompression',fname);
-        fname=[outputdir,filesep,'eps',filesep,'speedMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.eps'];
+        fname=[outputdir,filesep,'eps',filesep,'speedMap_d0=',num2str(d0_init),'_scale=',num2str(scaleFactor),'x_frames=',num2str(n),'_',indxStr,'.eps'];
         print(gcf,'-dpsc2',fname);
         % Save speedMap to disk as well
-        eval(['save ',outputdir,filesep,'mat',filesep,'speedMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.mat speedMap;']);
+        eval(['save ',outputdir,filesep,'mat',filesep,'speedMap_d0=',num2str(d0_init),'_scale=',num2str(scaleFactor),'x_frames=',num2str(n),'_',indxStr,'.mat speedMap;']);
     else
-        fname=[outputdir,filesep,'tif',filesep,'speedMap_d0=',num2str(d0_init),'_',indxStr,'.tif'];
+        fname=[outputdir,filesep,'tif',filesep,'speedMap_d0=',num2str(d0_init),'_frames=',num2str(n),'_',indxStr,'.tif'];
         print(gcf,'-dtiffnocompression',fname);
-        fname=[outputdir,filesep,'eps',filesep,'speedMap_d0=',num2str(d0_init),'_',indxStr,'.eps'];
+        fname=[outputdir,filesep,'eps',filesep,'speedMap_d0=',num2str(d0_init),'_frames=',num2str(n),'_',indxStr,'.eps'];
         print(gcf,'-dpsc2',fname);
         % Save speedMap to disk as well
-        eval(['save ',outputdir,filesep,'mat',filesep,'speedMap_d0=',num2str(d0_init),'_',indxStr,'.mat speedMap;']);
+        eval(['save ',outputdir,filesep,'mat',filesep,'speedMap_d0=',num2str(d0_init),'_frames=',num2str(n),'_',indxStr,'.mat speedMap;']);
     end
     
 

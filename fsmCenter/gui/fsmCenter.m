@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 22-Jun-2004 16:31:13
+% Last Modified by GUIDE v2.5 04-Aug-2004 11:40:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -634,7 +634,8 @@ sampling=str2num(get(handles.editSMSampling,'string'));
 pixelSize=str2num(get(handles.editSMPixel,'string'));
 maxSpeed=str2num(get(handles.editSMMax,'string'));
 segment=get(handles.checkSMSegment,'value');
-outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIbw,maxSpeed,segment);
+bitDepth=str2num(get(handles.editSMBitDepth,'String'));
+outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIbw,maxSpeed,segment,bitDepth);
 if ~isempty(outputdir)
     % Maps have been saved to disk
     msg=['Speed maps have been saved to ',outputdir,'.'];
@@ -1426,7 +1427,13 @@ function checkSMSegment_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkSMSegment
-
+if get(handles.checkSMSegment,'Value')==1
+    set(handles.textSMBitDepth,'Enable','on');
+    set(handles.editSMBitDepth,'Enable','on');
+else
+    set(handles.textSMBitDepth,'Enable','off');
+    set(handles.editSMBitDepth,'Enable','off');
+end    
 
 % --------------------------------------------------------------------
 function MenuToolsCalibration_Callback(hObject, eventdata, handles)
@@ -1440,5 +1447,32 @@ function MenuToolsOptCalibration_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuToolsOptCalibration (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function editSMBitDepth_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editSMBitDepth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editSMBitDepth_Callback(hObject, eventdata, handles)
+% hObject    handle to editSMBitDepth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editSMBitDepth as text
+%        str2double(get(hObject,'String')) returns contents of editSMBitDepth as a double
 
 
