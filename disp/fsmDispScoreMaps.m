@@ -305,7 +305,7 @@ for i=2:lastImage
     img3C=applyColorMap(img,cScores,[-15 15],mapC,convFactor);
 
 	% Display image
-	fH=figure;
+	fH=figure('Visible','off');
 	imshow(img3C);
     indxStr=sprintf(strg,currentIndex);   
 	title(indxStr);
