@@ -314,7 +314,7 @@ end
 
 function writeResults(stats,fid)
 
-fprintf(fid,'\n\nSummary from speckleArray\n-------------------------\n\n');
+fprintf(fid,'\n\nSummary from speckleArray (%s)\n-------------------------------------------------\n\n',datestr(now));
 fprintf(fid,'Total number of speckles [s|g|f|l]  : %d\n',stats.sCounter+stats.gCounter);
 fprintf(fid,'Number of events                    : %d\n',stats.events);
 fprintf(fid,'Number of (complete) speckles       : %d\n',stats.complete);

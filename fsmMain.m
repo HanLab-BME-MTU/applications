@@ -29,6 +29,23 @@ if nargin~=1
     error('One parameter (fsmParam) expected');
 end
 
+% Store current directory
+olddir=cd;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%   CREATE WORK DIRECTORY
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+status=fsmToolsPrepareWorkDir(fsmParam.main.path);
+if status==0
+    return;
+end
+
+% Make sure to be in the work path
+cd(fsmParam.main.path);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   START TIMER
@@ -38,7 +55,7 @@ end
 tic;
 
 % Write as well to 'log.txt'
-fid=fopen([fsmParam.main.path,filesep,'log.txt'],'a');
+fid=fopen('log.txt','a');
 
 % Could the file be opened successfully?
 if fid==-1
@@ -54,17 +71,6 @@ fprintf(fid,'*******************************************************************
 
 % Close the file
 fclose(fid);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%   CREATE WORK DIRECTORY
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-status=fsmToolsPrepareWorkDir(fsmParam.main.path);
-if status==0
-    return;
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -427,5 +433,12 @@ fprintf(fid,'*******************************************************************
 
 % Close the file
 fclose(fid);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%   CHANGE BACK TO PREVIOUS DIRECTORY
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+cd(olddir);
 
 

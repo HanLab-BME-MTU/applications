@@ -47,7 +47,12 @@ fprintf(fid,'\nParameters\n----------\n\n');
 
 % Start writing fields
 
-% MAIN & SPECIFIC
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%    MAIN & SPECIFIC
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 fprintf(fid,'[ EXPERIMENT INFO ]\n\n');
 fprintf(fid,'Work path                 : %s\n',fsmParam.main.path);
 fprintf(fid,'Number of images          : %d\n',fsmParam.specific.imageNumber); % This must be read from .specific
@@ -66,7 +71,12 @@ end
 fprintf(fid,'Quantile                  : %1.2f (%s)\n',quantile,percent);
 fprintf(fid,'Noise parameters          : [ sDN = %1.8f; beta = %1.8f; I0 = %1.8f ]\n',fsmParam.main.noiseParam(2),fsmParam.main.noiseParam(3),fsmParam.main.noiseParam(4));
 
-% PREP
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%    PREP
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 fprintf(fid,'Experiment name           : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).label); % This belongs to MAIN
 fprintf(fid,'Experiment description    : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
 
@@ -113,16 +123,21 @@ else
     
 end
 
-% TRACK
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%    TRACK
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 fprintf(fid,'\n> TRACK \n');
 
 if fsmParam.track.enable==1
     
     fprintf(fid,'Module ''track''            : run\n');
     switch fsmParam.track.tracker
-        case 1, fprintf(fid,'Selected tracker          : Brownian Motion Tracker + Neural Network\n');
-        case 2, fprintf(fid,'Selected tracker          : Enhanced Brownian Motion Tracker\n');
-        case 3, fprintf(fid,'Selected tracker          : Flow tracker (3 frames)\n');
+        case 1, fprintf(fid,'Selected tracker          : Neural Network Tracker\n');
+        case 2, fprintf(fid,'Selected tracker          : 2-frame Graph-based Tracker\n');
+        case 3, fprintf(fid,'Selected tracker          : 3-frame Graph-based Tracker\n');
         otherwise
             error('Wrong value for fsmParam.prep.tracker');
     end
@@ -141,7 +156,8 @@ if fsmParam.track.enable==1
     end
 
     fprintf(fid,'Search radius (pixels)    : %d\n',fsmParam.track.threshold);
-    
+    fprintf(fid,'Influence radius (pixels) : %d\n',fsmParam.track.influence);
+        
 elseif fsmParam.track.enable==0
     
     fprintf(fid,'Module ''track''            : not run\n');
@@ -151,7 +167,12 @@ else
     
 end
 
-% BUILD
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%    BUILD
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 fprintf(fid,'\n> BUILD \n');
 switch fsmParam.build.enable
     case 1, fprintf(fid,'Module ''build''            : run\n');
@@ -160,7 +181,12 @@ switch fsmParam.build.enable
         error('Wrong value for fsmParam.build.enable');
 end
 
-% KIN
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%    KIN
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 fprintf(fid,'\n> KIN \n');
 if fsmParam.kin.enable==1
     
@@ -185,7 +211,12 @@ else
 end
 
 
-% DISP
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%    DISP
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 fprintf(fid,'\n> DISP \n');
 switch fsmParam.disp.enable
     case 1, fprintf(fid,'Module ''disp''             : run\n');

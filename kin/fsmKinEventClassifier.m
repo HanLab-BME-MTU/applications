@@ -672,7 +672,6 @@ fprintf(1,'[5] Number of BLEACH events (a subset of [3])      : %d\n',numberOfBl
 fprintf(1,'[6] Number of RESULTING SCORES                     : %d\n\n\n',numberOfSignificantEvents-numberOfBleachEvents);
 
 % To file
-fprintf(fid,'#BEGIN\n\n');
 fprintf(fid,'\n\nSpeckle classification (%s)\n',datestr(now));
 fprintf(fid,'Summary\n-----------------------------------------------\n\n');
 fprintf(fid,'[1] Total number of events                         : %d\n',numberOfEvents);
@@ -681,7 +680,6 @@ fprintf(fid,'[3] Number of STATISTICALLY SIGNIFICANT events     : %d\n',numberOf
 fprintf(fid,'[4] Number of NON STATISTICALLY SIGNIFICANT events : %d\n',numberOfInsignificantEvents);
 fprintf(fid,'[5] Number of BLEACH events (a subset of [3])      : %d\n',numberOfBleachEvents);
 fprintf(fid,'[6] Number of RESULTING SCORES                     : %d\n\n\n',numberOfSignificantEvents-numberOfBleachEvents);
-fprintf(fid,'#END\n\n');
 
 % Close file
 if fclose(fid)==-1;
