@@ -1,4 +1,4 @@
-function [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, filesSelected)
+function [allMPM, allCellProps, allClusterProps, allFrameProps, allValidFrames, jobData, result] = ptRetrieveJobData (fileList, filesSelected)
 % ptRetrieveJobData loads data from the files indicated by
 % filePath and stores these in several structs and cells
 %
@@ -12,6 +12,7 @@ function [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result]
 %                allCellProps : cell containing all cellProps matrices
 %                allClusterProps : cell containing all clusterProps matrices
 %                allFrameProps : cell containing all frameProps matrices
+%                allValidFrames : cell containing all validFrames arrays
 %                jobData : struct containing all other data related to jobs
 %                result : result of the operation (0 = good, 1 = error)
 %
@@ -23,6 +24,7 @@ function [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result]
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Aug 04          Initial Release
+% Andre Kerstens        Nov 04          build in validFrames support
 
 % Initialize result of the whole operation (0 = okay)
 result = 0;
@@ -39,6 +41,7 @@ if ischar(filesSelected)
       allCellProps = [];
       allClusterProps = [];
       allFrameProps = [];
+      allValidFrames = [];
       jobData = [];
       return;
    end
@@ -91,10 +94,12 @@ for iCount = 1 : fileNumbers
        return
     end
 
-    % Set imagefile path and name
-    %jobData(iCount).imagefilepath = allJobvalues{iCount}.imagedirectory;
-    %jobData(iCount).imagename = allJobvalues{iCount}.imagename;
-    %jobData(iCount).imagefilepath = [pathString filesep '..'];
+    % Load the validFrames file
+    [allValidFrames{iCount}, result] = ptReadValues (pathString, 'validFrames.mat', 'validFrames');
+    if result == 1  % error
+       return
+    end
+    % Set image filename
     jobData(iCount).imagename = allJobvalues{iCount}.imagename;    
         
     % Determine image file path from MPM path
@@ -111,9 +116,10 @@ for iCount = 1 : fileNumbers
        allCellProps = [];
        allClusterProps = [];
        allFrameProps = [];
+       allValidFrames = [];
        jobData = [];
        return;
-    end
+    end    
     jobData(iCount).imagefilepath = pwd;
     cd (currentPath);   % Reset the original path
     
@@ -132,8 +138,8 @@ for iCount = 1 : fileNumbers
     % our previously found data and parameters
     jobData(iCount).selectedcells = [];
     jobData(iCount).increment = allJobvalues{iCount}.increment;
-    jobData(iCount).firstimg = allJobvalues{iCount}.firstimage;
-    jobData(iCount).lastimg = allJobvalues{iCount}.lastimage;
+    jobData(iCount).firstimg = allValidFrames{iCount}(1,1);
+    jobData(iCount).lastimg = allValidFrames{iCount}(1,end);
     jobData(iCount).imagenameslist = allJobvalues{iCount}.imagenameslist;
     jobData(iCount).intensitymax = allJobvalues{iCount}.intensityMax;
     jobData(iCount).jobpath = pathString;

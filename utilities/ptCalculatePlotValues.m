@@ -29,6 +29,7 @@ MPM = handles.allMPM;
 cellProps = handles.allCellProps;
 clusterProps = handles.allClusterProps;
 frameProps = handles.allFrameProps;
+validFrames = handles.allValidFrames;
 jobData = handles.jobData;
 guiData = handles.guiData;
 
@@ -41,8 +42,9 @@ plotEndFrame = guiData.plotlastimg;
 %maxFrames = mpmLength / 2;
 
 % Determine the movie with the most frames
-[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
-minFrames = mpmLength / 2;
+%[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
+%minFrames = mpmLength / 2;
+[shortestMovie, minFrames] = ptMinMovieLength (validFrames);
 
 % Make sure we only process up to the shortest MPM else the averaging will
 % not work correctly
@@ -51,16 +53,23 @@ if plotEndFrame > minFrames
 end
 
 % Get start and end frames and increment value
-startFrame = jobData(1).firstimg;
-endFrame = jobData(shortestMPM).lastimg;
-increment = jobData(1).increment;
+%startFrame = jobData(1).firstimg;
+startFrame = jobData(shortestMovie).firstimg;
+%endFrame = jobData(shortestMPM).lastimg;
+endFrame = jobData(shortestMovie).lastimg;
+%increment = jobData(1).increment;
+increment = jobData(shortestMovie).increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
+%numberOfFrames = length (validFrames{shortestMovie}(1,;));
 
-% Get pixellength and frame interval
+% Get pixellength and frame interval; These values should
+% be the same for all selected movies, therefore just take the first one.
+% Note: we can get the framerate from the validFrames array
 frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
 pixelLength = jobData(1).mmpixel;
 
-% Get row and colsizes for the convex hull calculation
+% Get row and colsizes for the convex hull calculation. These sizes should
+% be the same for all selected movies, therefore just take the first one.
 rowSize = jobData(1).rowsize;
 colSize = jobData(1).colsize;
 

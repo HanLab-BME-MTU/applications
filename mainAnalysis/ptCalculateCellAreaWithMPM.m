@@ -1,9 +1,9 @@
-function [cellProps, clusterProps, frameProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNucleus, clusterDirectory, startFrame, endFrame, increment)
+function [cellProps, clusterProps, frameProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNucleus, clusterDirectory, startFrame, endFrame, increment, validFrames)
 % ptCalculateCellAreaMPM  determines what areas of an image are occupied by cells and
 % calculates image properties
 %
 % SYNOPSIS     [cellProps, clusterProps, frameProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNucleus,
-%                                                         clusterDirectory, startFrame, endFrame, increment)
+%                                                         clusterDirectory, startFrame, endFrame, increment, validFrames)
 %
 % INPUT    MPM : the magic position matrix
 %          distanceToCellArea : distance a set of coordinates may have to an cell area and still belong to it
@@ -12,6 +12,8 @@ function [cellProps, clusterProps, frameProps] = ptCalculateCellAreaWithMPM (MPM
 %          startFrame : frame the movie starts with (not necessarily 1)
 %          endFrame : frame the movie ends with (not necessarily the last frame)
 %          increment : what's the increment between frames
+%          validFrames : array showing which frames in the movie are bad
+%          (0) and should not be processed
 %
 % OUTPUT       cellProps :
 %                 cellProps (:,1) = coord (:,1);
@@ -48,8 +50,9 @@ fprintf (1, '     Processing frame: ');
 % Use the size of the M matrix to determine how many frames we should process
 nrOfFrames = round (size (MPM, 2) / 2);
 
-% Initialize loop counter for M index
+% Initialize loop counter for M index and image files
 mCount = 0;
+imageCount = startFrame - increment;
 
 % Initialize empty cell and cluster rows
 emptyCell            = zeros (1,3);
@@ -59,30 +62,50 @@ emptyFrame           = zeros (1,5);
 % Initialize the coordinate matrix
 coord = [];
 
-for frameCount = startFrame : increment : endFrame
+%for frameCount = startFrame : increment : endFrame
+for frameCount = validFrames(1,:)    
 
-   % Where are we processing the movie?
-   fprintf (1, '%d ', frameCount);
-   
-   % Increase M counter
+   % Increase M and image counter
    mCount = mCount + 1;
-   
+   imageCount = imageCount + increment;
+
+   % Check that we don't go past the endframe
+   if imageCount > endFrame
+      return;
+   end
+       
+   % To make sure that the frame we are reading from disk is valid we'll cycle through the
+   % validFrames array as long as needed and increase imageCount
+%    while find(validFrames(1,:) == imageCount) == []
+%        imageCount = imageCount + increment;
+%        
+%        % Check that we don't go past the endframe
+%        if imageCount > endFrame
+%           return;
+%        end
+%    end
+       
+   % Where are we processing the movie?
+   %fprintf (1, '%d ', imageCount);
+   fprintf (1, '%d ', frameCount);
+
    % Load the cluster (binary) image of the cells (nuclei and halos combined)
    cd (clusterDirectory);
    formatStr = sprintf ('%%.%dd', 3);
+   %imageNr = sprintf (formatStr, imageCount);
    imageNr = sprintf (formatStr, frameCount);
    clusterFile = ['clusters' imageNr];
    load (clusterFile);
-   
+
    % Label the cluster image
    imgLabeledCellArea = bwlabel (clusterImage);
-   
+
    % Get the coordinates for this frame out of the MPM matrix. 
    coord = MPM (:, 2*mCount-1:2*mCount);
-    
+
    % Throw out the zeros that were likely to be in MPM
    coord (find (coord (:,1) == 0 & coord (:,2) == 0),:) = [];
-    
+
    % Prepare a matrix for the grouping of coordinates to objects
    clusterNr = zeros (length (coord), 1);
 
@@ -95,7 +118,7 @@ for frameCount = startFrame : increment : endFrame
          clusterNr(iCount) = imgLabeledCellArea (coord(iCount,2), coord(iCount,1));
       else
          % We also take cells into account that are near enough a cell area
-     
+
          % Get the size of the input image
          [img_h, img_w] = size (imgLabeledCellArea);
 
@@ -106,7 +129,7 @@ for frameCount = startFrame : increment : endFrame
          % Calculate the coordinates of the point after the cell area
          x_2 = round (coord (iCount,2) + distanceToCellArea);
          y_2 = round (coord (iCount,1) + distanceToCellArea);
-                   
+
          % Make sure all of the calculated coordinates are within image boundaries
          if x_1 < 1
             x_1 = 1;
@@ -120,7 +143,7 @@ for frameCount = startFrame : increment : endFrame
             y_2 = y_2 - y_1 + 1;
             y_1 = 1;
          end 
-				
+
          if y_2 > img_w
             y_2 = img_w;
          end 
@@ -143,10 +166,10 @@ for frameCount = startFrame : increment : endFrame
                uniqLabelIndex = [0 ; uniqLabelIndex];      % col vector
             else
                uniqLabelIndex = [0 , uniqLabelIndex];      % row vector
-	        end
+            end
 
             % Get the maximum label value which the cell belongs to
-	        numberOfOcc = diff (uniqLabelIndex); 
+            numberOfOcc = diff (uniqLabelIndex); 
             [value, index] = max (numberOfOcc);
             clusterNr(iCount) = uniqLabelArea (index);
          end   % if ~isempty (labelArea)
@@ -160,7 +183,7 @@ for frameCount = startFrame : increment : endFrame
       coord (onBackGround,:) = [];
       clusterNr (onBackGround) = [];
    end
- 
+
    % Determine how many times a set of coordinates falls into the same
    % labeled area (aka how many nuclei per area)
    clusterNrSorted = sort (clusterNr);
@@ -186,21 +209,21 @@ for frameCount = startFrame : increment : endFrame
 
       % Calculate the area of this cluster
       clusterArea (iCount) = length (find (cluster));
-   
+
       % Calculate the perimeter and perimeter area of this cluster. The function bwperim will take holes
       % into account as well
       clusterPerimeter (iCount) = length (find (bwperim (cluster)));
-   
+
       % Inverse the binary cluster image with the object of interest
       clusterInv = ~cluster;
-   
+
       % Label this image: background and holes in the object will get a number
       clusterInvLabel = bwlabel (clusterInv);
-   
+
       % To find the number of perimeter elements of the object take the max
       % label nr
       clusterPerimeterElements (iCount) = max (max (clusterInvLabel));
-      
+
       % Calculate ratio area/convex_hull_area for all cells and clusters
       labelCluster = bwlabel (cluster);
       regionProps = regionprops (labelCluster, 'Area', 'ConvexArea');
@@ -208,7 +231,7 @@ for frameCount = startFrame : increment : endFrame
       convexArea(iCount) = regionProps(1).ConvexArea;
       Solidity(iCount) = area(iCount) / convexArea(iCount);
    end
-   
+
 %    % Calculate ratio area/convex_hull_area for all cells and clusters
 %    regionProps = regionprops (edgeImageLabeled, 'Area', 'ConvexArea');
 %    for jCount = 1 : size (regionProps, 1)
@@ -228,7 +251,7 @@ for frameCount = startFrame : increment : endFrame
    frameProp (1,1) = avgArea;
    frameProp (1,2) = avgConvexArea;
    frameProp (1,3) = avgSolidity;
-   
+
    % One row of clusterProps is equivalent to the properties of one cluster
    clusterProp = zeros (length (uniqClusterNr), 5);
    clusterProp (:,1) = uniqClusterNr (:);
@@ -236,31 +259,34 @@ for frameCount = startFrame : increment : endFrame
    clusterProp (:,3) = clusterArea (:);
    clusterProp (:,4) = clusterPerimeter (:);
    clusterProp (:,5) = clusterPerimeterElements (:);
-    
+
    % One row of cellProps gives all information for one set of coordinates
    cellProp = zeros (length (coord), 3);
    cellProp(:,1) = coord(:,1);
    cellProp(:,2) = coord(:,2);
    cellProp(:,3) = clusterNr(:);
- 
+
    % Accumulate the cell properties
    cellProps (1 : size (emptyCell, 1), 1 : size (emptyCell, 2), mCount) = emptyCell;
    cellProps (1 : size (cellProp, 1), 1 : size (cellProp, 2), mCount) = cellProp;
-   
+
    % Accumulate the cluster properties
    clusterProps (1 : size (emptyCluster, 1), 1 : size (emptyCluster, 2), mCount) = emptyCluster;
    clusterProps (1 : size (clusterProp, 1), 1 : size (clusterProp, 2), mCount) = clusterProp;
-   
+
    % Accumulate the frame properties
-   frameProps (1 : size (emptyFrame, 1), 1 : size (emptyFrame, 2), frameCount) = emptyFrame;
-   frameProps (1 : size (frameProp, 1), 1 : size (frameProp, 2), frameCount) = frameProp;
-   
+   %frameProps (1 : size (emptyFrame, 1), 1 : size (emptyFrame, 2), frameCount) = emptyFrame;
+   %frameProps (1 : size (frameProp, 1), 1 : size (frameProp, 2), frameCount) = frameProp;
+   frameProps (1 : size (emptyFrame, 1), 1 : size (emptyFrame, 2), mCount) = emptyFrame;
+   frameProps (1 : size (frameProp, 1), 1 : size (frameProp, 2), mCount) = frameProp;
+
    % clear temporary variables
    clear onBackGround;
    clear cluster; clear clusterArea; clear clusterPerimeter; clear clusterInv;
    clear clusterInvLabel; clear clusterPerimeterElements;
    clear clusterProp; clear cellProp; clear frameProp;
-end
+
+end  %  for frameCount = startFrame : increment : endFrame
 
 % Let the user know we've finished
 fprintf (1, '\n     ptCalculateCellAreaWithMPM.m: Finished generating cell and cluster properties.\n');

@@ -50,13 +50,14 @@ increment      = handles.jobData(1).increment;
 imageRange     = handles.ma;
 imageNameList  = handles.jobData(1).imagenameslist;
 intensityMax   = handles.jobData(1).intensitymax;
+validFrames    = handles.allValidFrames{1};
 
 % Get the current value of the slider, so that we know which frame the user wants to process
 sliderValue = get (sliderHandle, 'Value');
 sliderValue = round (sliderValue * imageRange);
 
 % Calculate the frame number to show
-imageNumber = (sliderValue - 1) * increment + firstImage;
+imageNumber = validFrames(1,((sliderValue - 1)*increment)+firstImage);
 
 % Write the current frame number in the little window above the slider
 set (frameCounterHandle, 'String', num2str (imageNumber));

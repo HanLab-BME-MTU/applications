@@ -222,7 +222,7 @@ handles = guidata(hObject);
 [filename, jobValPath] = uigetfile ({'*.tif','TIFF-files'},'Please select an image');
 
 % And store this in the postpro struct
-if exist ('jobValPath', 'file')
+if exist ('jobValPath', 'dir')
    cd (jobValPath);
 
    if ~exist('filename', 'file')
@@ -2028,7 +2028,7 @@ if length(filesSelected) > 1
 end
 
 % Get the values from the job
-[allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, 'all');
+[allMPM, allCellProps, allClusterProps, allFrameProps, allValidFrames, jobData, result] = ptRetrieveJobData (fileList, 'all');
 
 % Check the result value (0 is good)
 if result > 0
@@ -2044,17 +2044,23 @@ handles.jobData = jobData;
 alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
 
 % Default plot and movie ranges will be made similar to the frame range
+% (which can be found in validFrames: 1st and last entry)
 if ~alwaysCountFrom1
-   handles.guiData.plotfirstimg = jobData(filesSelected).firstimg;
-   handles.guiData.plotlastimg = jobData(filesSelected).lastimg;
+   %handles.guiData.plotfirstimg = jobData(filesSelected).firstimg;
+   %handles.guiData.plotlastimg = jobData(filesSelected).lastimg;
+   handles.guiData.plotfirstimg = allValidFrames{filesSelected}(1,1);
+   handles.guiData.plotlastimg = allValidFrames{filesSelected}(1,end);
 else
    handles.guiData.plotfirstimg = 1;
-   handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
+   %handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
+   handles.guiData.plotlastimg = length (allValidFrames{filesSelected}(1,:));
 end
 
 % Set movie frame start and end
-handles.guiData.moviefirstimg = jobData(filesSelected).firstimg;
-handles.guiData.movielastimg = jobData(filesSelected).lastimg;
+%handles.guiData.moviefirstimg = jobData(filesSelected).firstimg;
+%handles.guiData.movielastimg = jobData(filesSelected).lastimg;
+handles.guiData.moviefirstimg = allValidFrames{filesSelected}(1,1);
+handles.guiData.movielastimg = allValidFrames{filesSelected}(1,end);
    
 % Set values on the GUI
 ptSetPostproGUIValues (handles, filesSelected);
@@ -2127,7 +2133,7 @@ else
    filePath = fileList{end};
 
    % Get the values from the job
-   [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, 'all');
+   [allMPM, allCellProps, allClusterProps, allFrameProps, allValidFrames, jobData, result] = ptRetrieveJobData (fileList, 'all');
 
    % Check the result value (0 is good)
    if result > 0
@@ -2142,24 +2148,31 @@ else
    % Get radioButton values
    alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
 
-   % Default plot ranges will be made similar to the frame range
+   % Default plot and movie ranges will be made similar to the frame range
+   % (which can be found in validFrames: 1st and last entry)
    if ~alwaysCountFrom1
-      guiData.plotfirstimg = jobData(end).firstimg;
-      guiData.plotlastimg = jobData(end).lastimg;
+      %guiData.plotfirstimg = jobData(filesSelected).firstimg;
+      %guiData.plotlastimg = jobData(filesSelected).lastimg;
+      guiData.plotfirstimg = allValidFrames{end}(1,1);
+      guiData.plotlastimg = allValidFrames{end}(1,end);
    else
       guiData.plotfirstimg = 1;
-      guiData.plotlastimg = jobData(end).lastimg - jobData(end).firstimg + 1;
+      %guiData.plotlastimg = jobData(end).lastimg - jobData(end).firstimg + 1;
+      guiData.plotlastimg = length (allValidFrames{end}(1,:));
    end
-   
+
    % Set movie frame start and end
-   guiData.moviefirstimg = jobData(end).firstimg;
-   guiData.movielastimg = jobData(end).lastimg;
-   
+   %guiData.moviefirstimg = jobData(end).firstimg;
+   %guiData.movielastimg = jobData(end).lastimg;
+   guiData.moviefirstimg = allValidFrames{end}(1,1);
+   guiData.movielastimg = allValidFrames{end}(1,end);
+
    % Assign all values to the handles struct
    handles.allMPM = allMPM;
    handles.allCellProps = allCellProps;
    handles.allClusterProps = allClusterProps;
    handles.allFrameProps = allFrameProps;
+   handles.allValidFrames = allValidFrames;
    handles.jobData = jobData;
    handles.guiData = guiData;
 
@@ -2281,7 +2294,7 @@ else
       end
       
       % Get the values from the job
-      [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, 'all');
+      [allMPM, allCellProps, allClusterProps, allFrameProps, allValidFrames, jobData, result] = ptRetrieveJobData (fileList, 'all');
 
       % Check the result value (0 is good)
       if result == 1
@@ -2312,6 +2325,7 @@ else
       handles.allCellProps = allCellProps;
       handles.allClusterProps = allClusterProps;
       handles.allFrameProps = allFrameProps;
+      handles.allValidFrames = allValidFrames;
       handles.jobData = jobData;
       handles.guiData = guiData;
 
@@ -2448,7 +2462,7 @@ fileList = get(handles.GUI_filelist_lb,'String');
 filesSelected = get(handles.GUI_filelist_lb,'Value');
 
 % Retrieve the data for the selected jobs
-[allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, filesSelected);
+[allMPM, allCellProps, allClusterProps, allFrameProps, allValidFrames, jobData, result] = ptRetrieveJobData (fileList, filesSelected);
 
 % Check the result value (0 is good)
 if result > 0
@@ -2572,6 +2586,7 @@ handles.allMPM = allMPM;
 handles.allCellProps = allCellProps;
 handles.allClusterProps = allClusterProps;
 handles.allFrameProps = allFrameProps;
+handles.allValidFrames = allValidFrames;
 handles.jobData = jobData;
 handles.guiData = guiData;
 
@@ -2813,23 +2828,23 @@ if ischar(fileList) | length(filesSelected) > 1
 end
 
 % Retrieve the data for the selected jobs
-[allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, 'all');
+[allMPM, allCellProps, allClusterProps, allFrameProps, allValidFrames, jobData, result] = ptRetrieveJobData (fileList, 'all');
 
 % Get radioButton values
 alwaysCountFrom1 = get (hObject,'Value');
 
 % Default plot ranges will be made similar to the frame range
 if ~alwaysCountFrom1
-  handles.guiData.plotfirstimg = jobData(filesSelected).firstimg;
-  handles.guiData.plotlastimg = jobData(filesSelected).lastimg;
+  handles.guiData.plotfirstimg = allValidFrames{filesSelected}(1,1);
+  handles.guiData.plotlastimg = allValidFrames{filesSelected}(1,end);
 else
   handles.guiData.plotfirstimg = 1;
-  handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
+  handles.guiData.plotlastimg = length(allValidFrames{filesSelected}(1,:));
 end
 
 % Set movie frame start and end
-handles.guiData.moviefirstimg = jobData(filesSelected).firstimg;
-handles.guiData.movielastimg = jobData(filesSelected).lastimg;
+handles.guiData.moviefirstimg = allValidFrames{filesSelected}(1,1);
+handles.guiData.movielastimg = allValidFrames{filesSelected}(1,end);
 
 % Set values on the GUI
 ptSetPostproGUIValues (handles, filesSelected);
