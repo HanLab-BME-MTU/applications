@@ -190,6 +190,9 @@ for counter1=1:n
 
         if autoPolygon==1
             
+            % Initialize successCE
+            successCE=-1;
+            
             % Extract cell outlines (b/w mask)
             try
                 [successCE,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'bit_depth',xmax);
@@ -225,6 +228,9 @@ for counter1=1:n
         img=imread(char(outFileList(counter1,:)));
         
         if autoPolygon==1
+            
+            % Initialize successCE
+            successCE=-1;
             
             % Extract cell outlines (b/w mask)
             try
