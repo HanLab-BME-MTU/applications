@@ -22,7 +22,7 @@ function varargout = fsmTransition(varargin)
 
 % Edit the above text to modify the response to help fsmTransition
 
-% Last Modified by GUIDE v2.5 03-Sep-2004 14:57:08
+% Last Modified by GUIDE v2.5 03-Sep-2004 18:34:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -254,11 +254,11 @@ n=str2num(get(handles.editExtractFrames,'String'));
 medianFiltFrames=str2num(get(handles.editExtractMedian,'String'));
 dist=str2num(get(handles.editExtractSupport,'String'));
 toggleDpRatio=get(handles.checkExtractDpRatio,'Value');
-[positionsScore,positionsVel,positionsTrans,fPositionsTrans,dpRatio,scoreProfiles,speedProfiles]=fsmTransExtractLpToLaTransition(tackProjDir,toggleKinetic,toggleSpeed,toggleDpRatio,profiles,dist,n,medianFiltFrames);
-
-eval(['save ',lplaProjDir,filesep,'positionsScore.mat positionsScore']);
-eval(['save ',lplaProjDir,filesep,'positionsVel.mat positionsVel']);
-eval(['save ',lplaProjDir,filesep,'positionsTrans.mat positionsTrans']);
+minDist=str2num(get(handles.editExtractMinDist,'String'));
+DEBUG=get(handles.checkExtractDebug,'Value');
+[fPositionsScore,fPositionsVel,fPositionsTrans,dpRatio,scoreProfiles,speedProfiles]=fsmTransExtractLpToLaTransition(tackProjDir,toggleKinetic,toggleSpeed,toggleDpRatio,profiles,dist,n,DEBUG,medianFiltFrames,minDist);
+eval(['save ',lplaProjDir,filesep,'fPositionsScore.mat fPositionsScore']);
+eval(['save ',lplaProjDir,filesep,'fPositionsVel.mat fPositionsVel']);
 eval(['save ',lplaProjDir,filesep,'fPositionsTrans.mat fPositionsTrans']);
 eval(['save ',lplaProjDir,filesep,'dpRatio.mat dpRatio']);
 eval(['save ',lplaProjDir,filesep,'scoreProfiles.mat scoreProfiles']);
@@ -266,22 +266,23 @@ eval(['save ',lplaProjDir,filesep,'speedProfiles.mat speedProfiles']);
 % Save settings
 fid=fopen([lplaProjDir,filesep,'extractTransitionSettings.txt'],'a+');
 if fid~=-1
-    fprintf(fid,'>%s\n\n',datestr(now,0));
-    fprintf(fid,'Use kinetic criterion      : %d\n',toggleKinetic);
-    fprintf(fid,'Use speed criterion        : %d\n',toggleSpeed);
-    fprintf(fid,'Calculate depoly/poly ratio: %d\n',toggleDpRatio);
-    fprintf(fid,'Median filter order        : %d\n',medianFiltFrames);
-    fprintf(fid,'Support (pixels)           : %d\n',dist);
-    fprintf(fid,'Time averaging (frames)    : %d\n\n',n);
+    fprintf(fid,'>%s\n',datestr(now,0));
+    fprintf(fid,'Use kinetic criterion              : %d\n',toggleKinetic);
+    fprintf(fid,'Use speed criterion                : %d\n',toggleSpeed);
+    fprintf(fid,'Calculate depoly/poly ratio        : %d\n',toggleDpRatio);
+    fprintf(fid,'Median filter order                : %d\n',medianFiltFrames);
+    fprintf(fid,'Support (pixels)                   : %d\n',dist);
+    fprintf(fid,'Time averaging (frames)            : %d\n',n);
+    fprintf(fid,'Min leading-edge distance (pixels) : %d\n\n',minDist);
+    fprintf(fid,'\n');
     fclose(fid);
 end
 msg=['Files saved in [',lplaProjDir,']'];
 uiwait(msgbox(msg,'Info','modal'));
 
 % Return to Matlab workspace
-assignin('base','positionsScore',positionsScore);
-assignin('base','positionsVel',positionsVel);
-assignin('base','positionsTrans',positionsTrans);
+assignin('base','fPositionsScore',fPositionsScore);
+assignin('base','fPositionsVel',fPositionsVel);
 assignin('base','fPositionsTrans',fPositionsTrans);
 assignin('base','dpRatio',dpRatio);
 assignin('base','scoreProfiles',scoreProfiles);
@@ -292,6 +293,119 @@ assignin('base','speedProfiles',speedProfiles);
 % END EXTRACT TRANSITION
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
+% %  CALCULATE TRANSITION TO LE DISTANCE
+% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function pushTransToEdgeDist_Callback(hObject, eventdata, handles)
+
+[projDir,tackProjDir,edgeProjDir,lplaProjDir]=getProjDir(handles);
+if isempty(projDir)
+    errordlg('No project defined. Please create/load a project in fsmCenter.','Error','modal');
+    return
+end    
+if any([isempty(tackProjDir) isempty(edgeProjDir) isempty(lplaProjDir)])
+    uiwait(errordlg('Could not find all (sub)projects. Quitting.','Error','modal'));
+    return
+end
+
+% Find which of the radio buttons is active ('Use ... transition')
+indx=find([get(handles.radioCalcKin,'Value') get(handles.radioCalcSpeed,'Value') get(handles.radioCalcTrans,'Value')]);
+
+switch indx
+    case 1, fName=[lplaProjDir,filesep,'fPositionsScore.mat'];  
+    case 2, fName=[lplaProjDir,filesep,'fPositionsSpeed.mat']; 
+    case 3, fName=[lplaProjDir,filesep,'fPositionsTrans.mat']; 
+    otherwise, error('One of the radio buttons in ''Calculate transition to edge distances'' should be on.');
+end
+
+if exist(fName,'file')==2
+    s=load(fName);
+    switch indx
+        case 1, positionsTrans=s.fPositionsScore;
+        case 2, positionsTrans=s.fPositionsSpeed;
+        case 3, positionsTrans=s.fPositionsTrans;
+        otherwise, error('The loaded fPositions*.mat file is not valid.');
+    end
+else
+    errordlg('Please run ''Extract transition'' in fsmTransition','Error','modal');
+    return
+end
+            
+% Load edgePixels.mat
+edgeFName=[lplaProjDir,filesep,'edgePixels.mat'];
+
+if exist(edgeFName,'file')~=2
+    errordlg('Please run ''Import prPanel data'' in fsmTransition.');
+    return
+end
+
+s=load(edgeFName);
+try
+    edgePixels=s.edgePixels;
+catch
+    errordlg('The loaded edgePixels.mat file is not valid. Please run ''Import prPanel data'' in fsmTransition.','Error','modal');
+    return
+end
+
+% Get parameters from user interface
+splineTolEdge=str2num(get(handles.editTEDTolEdge,'String'));
+splineTolTrans=str2num(get(handles.editTEDTolTrans,'String'));
+medianFilterFrames=str2num(get(handles.editTEDTolMedian,'String'));
+mech=get(handles.checkCalcMech,'Value');
+
+% Run function
+[transToEdgeDistNearest,transToEdgeDistMech,spTrans_y,spTrans_x,spEdge_y,spEdge_x,splineCoordsTrans,splineCoordsEdge]=fsmTransTransitionToEdgeDistances(positionsTrans,edgePixels,splineTolEdge,splineTolTrans,medianFilterFrames,mech);
+
+% Save output
+eval(['save ',lplaProjDir,filesep,'transToEdgeDistNearest.mat transToEdgeDistNearest']);
+eval(['save ',lplaProjDir,filesep,'transToEdgeDistMech.mat transToEdgeDistMech']);
+eval(['save ',lplaProjDir,filesep,'spEdge.mat spEdge_y spEdge_x']);
+eval(['save ',lplaProjDir,filesep,'spTrans.mat spTrans_y spTrans_x']);
+eval(['save ',lplaProjDir,filesep,'splineCoordsTrans.mat splineCoordsTrans']);
+eval(['save ',lplaProjDir,filesep,'splineCoordsEdge.mat splineCoordsEdge']);
+eval(['save ',lplaProjDir,filesep,'settings.mat splineTolEdge splineTolTrans medianFilterFrames']);
+% Save settings
+fid=fopen([lplaProjDir,filesep,'calcTransToLEDistancesSettings.txt'],'a+');
+if fid~=-1
+    fprintf(fid,'>%s\n',datestr(now,0));
+    fprintf(fid,'Spline tolerance for the edge       : %d\n',splineTolEdge);
+    fprintf(fid,'Spline tolerance for the transition : %d\n',splineTolTrans);
+    fprintf(fid,'Median filter order                 : %d\n',medianFilterFrames);
+    switch indx
+        case 1, fprintf(fid,'Transition criterion                : kinetic\n');
+        case 2, fprintf(fid,'Transition criterion                : kinematic\n');
+        case 3, fprintf(fid,'Transition criterion                : kinetic + kinematic\n');
+        otherwise, error('Indx should be 1,..,3');
+    end
+    switch mech
+        case 0, fprintf(fid,'Mechanical model                    : not used\n');
+        case 1, fprintf(fid,'Mechanical model                    : used\n');
+        otherwise, error('Mechanical model should be either selected (mech=1) or not selected (mech=0).');
+    end
+    fprintf(fid,'\n');
+    fclose(fid);
+end
+msg=['Files saved in [',lplaProjDir,']'];
+uiwait(msgbox(msg,'Info','modal'));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% END CALCULATE TRANSITION TO LE DISTANCE
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function editTEDTolMedian_Callback(hObject, eventdata, handles)
+if num2str(get(handles.editTEDTolMedian,'String'))==0
+    set(handles.editTEDTolMedian,'String',1);
+end
+
+
 
 % --- Executes on button press in checkExtractKin.
 function checkExtractKin_Callback(hObject, eventdata, handles)
@@ -462,52 +576,6 @@ function checkLpShowPolygons_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkLpShowPolygons
 
 
-% --- Executes on button press in pushTransToEdgeDist.
-function pushTransToEdgeDist_Callback(hObject, eventdata, handles)
-% hObject    handle to pushTransToEdgeDist (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Select fPositionsScore.mat or positionsScore.mat or positionsScore.mat or positionsVel.mat
-[fName,dirName] = uigetfile(...
-    {'*.mat;','Matlab workspaces (*.mat)';
-    '*.*','All Files (*.*)'},...
-    'Select fPositionsScore.mat or positionsScore.mat or positionsScore.mat or positionsVel.mat');
-if ~(isa(fName,'char') & isa(dirName,'char'))
-    return 
-end
-trans=load([dirName,fName]);
-field=fieldnames(trans);
-if strcmp(field,'fPositionsTrans')==0 & strcmp(field,'positionsTrans')==0 & strcmp(field,'positionsScore')==0 & strcmp(field,'positionsVel')==0 
-    error('The loaded file must be one of fPositionsScore.mat or positionsScore.mat or positionsScore.mat or positionsVel.mat');
-end
-eval(['positionsTrans=trans.',char(field),';']);
-% Select edgePixels.mat
-[fName,dirName] = uigetfile(...
-    {'edgePixels.mat;','Matlab workspaces (*.mat)';
-    '*.*','All Files (*.*)'},...
-    'Select edgePixels.mat');
-if ~(isa(fName,'char') & isa(dirName,'char'))
-    return 
-end
-load([dirName,fName]);
-splineTolEdge=str2num(get(handles.editTEDTolEdge,'String'));
-splineTolTrans=str2num(get(handles.editTEDTolTrans,'String'));
-medianFilterFrames=str2num(get(handles.editTEDTolMedian,'String'));
-[transToEdgeDistNearest,transToEdgeDistMech,spTrans_y,spTrans_x,spEdge_y,spEdge_x,splineCoordsTrans,splineCoordsEdge]=fsmTransTransitionToEdgeDistances(positionsTrans,edgePixels,splineTolEdge,splineTolTrans,medianFilterFrames);
-% Save output
-path=uigetdir('','Select directory where to save the computed distances');
-if path~=0
-    eval(['save ',path,filesep,'transToEdgeDistNearest.mat transToEdgeDistNearest']);
-    eval(['save ',path,filesep,'transToEdgeDistMech.mat transToEdgeDistMech']);
-    eval(['save ',path,filesep,'spEdge.mat spEdge_y spEdge_x']);
-    eval(['save ',path,filesep,'spTrans.mat spTrans_y spTrans_x']);
-    eval(['save ',path,filesep,'splineCoordsTrans.mat splineCoordsTrans']);
-    eval(['save ',path,filesep,'splineCoordsEdge.mat splineCoordsEdge']);
-    eval(['save ',path,filesep,'settings.mat splineTolEdge splineTolTrans medianFilterFrames']);
-    msg=['Files saved in [',path,']'];
-    uiwait(msgbox(msg,'Info','modal'));
-end
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1013,8 +1081,8 @@ function edit17_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function editTEDTolMedian_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editTEDTolMedian (see GCBO)
+function textTEDTolMedian_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to textTEDTolMedian (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -1028,13 +1096,13 @@ end
 
 
 
-function editTEDTolMedian_Callback(hObject, eventdata, handles)
-% hObject    handle to editTEDTolMedian (see GCBO)
+function textTEDTolMedian_Callback(hObject, eventdata, handles)
+% hObject    handle to textTEDTolMedian (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of editTEDTolMedian as text
-%        str2double(get(hObject,'String')) returns contents of editTEDTolMedian as a double
+% Hints: get(hObject,'String') returns contents of textTEDTolMedian as text
+%        str2double(get(hObject,'String')) returns contents of textTEDTolMedian as a double
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1352,5 +1420,100 @@ function popupLpla_Callback(hObject, eventdata, handles)
 
 % Hints: contents = get(hObject,'String') returns popupLpla contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupLpla
+
+
+% --- Executes during object creation, after setting all properties.
+function editExtractMinDist_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editExtractMinDist (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editExtractMinDist_Callback(hObject, eventdata, handles)
+% hObject    handle to editExtractMinDist (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editExtractMinDist as text
+%        str2double(get(hObject,'String')) returns contents of editExtractMinDist as a double
+
+
+% --- Executes on button press in checkExtractDebug.
+function checkExtractDebug_Callback(hObject, eventdata, handles)
+% hObject    handle to checkExtractDebug (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkExtractDebug
+if get(handles.checkExtractDebug,'Value')==1
+    uiwait(warndlg('This creates A LOT of figures. Don''t use it if you plan to analyze many frames with many profiles.','Warning','modal'));
+end
+
+
+% --------------------------------------------------------------------
+function menuExit_Callback(hObject, eventdata, handles)
+% hObject    handle to menuExit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+function fsmTransition_CloseRequestFcn(hObject, eventdata, handles)
+fsmH=findall(0,'Tag','fsmTransition'); % Get the handle of fsmPostProc
+choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
+switch choice,
+    case 'Yes', delete(fsmH);
+    case 'No', return;
+end
+
+
+function radioCalcKin_Callback(hObject, eventdata, handles)
+set(handles.radioCalcKin,'Value',1);
+set(handles.radioCalcSpeed,'Value',0);
+set(handles.radioCalcTrans,'Value',0);
+
+
+function radioCalcSpeed_Callback(hObject, eventdata, handles)
+set(handles.radioCalcKin,'Value',0);
+set(handles.radioCalcSpeed,'Value',1);
+set(handles.radioCalcTrans,'Value',0);
+
+
+function radioCalcTrans_Callback(hObject, eventdata, handles)
+set(handles.radioCalcKin,'Value',0);
+set(handles.radioCalcSpeed,'Value',0);
+set(handles.radioCalcTrans,'Value',1);
+
+
+% --- Executes during object creation, after setting all properties.
+function editTEDTolMedian_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editTEDTolMedian (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+% --- Executes on button press in checkCalcMech.
+function checkCalcMech_Callback(hObject, eventdata, handles)
+% hObject    handle to checkCalcMech (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkCalcMech
 
 

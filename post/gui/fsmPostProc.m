@@ -893,12 +893,12 @@ if ~isempty(settings)
         error('projDir stored in fsmCenter''s UserData and in fsmCenter''s .textCurrentProject field are different!');    
     end
 end
-set(handles.textCurrentProject,'String',projDir);
 
 % If necessary, look for subproject
 if isempty(projDir)
     set(handles.popupCurrentExp,'Enable','off');
 else
+    set(handles.textCurrentProject,'String',projDir);
     subProjects=findProjSubDir(projDir,'tack');
     set(handles.popupCurrentExp,'String',subProjects);
     % Set as default the one chosen in the project

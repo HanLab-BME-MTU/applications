@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 02-Sep-2004 17:10:19
+% Last Modified by GUIDE v2.5 03-Sep-2004 14:05:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -182,16 +182,12 @@ end
 hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
 if ~isempty(hCorrTrack)
     imKymoAnalysis;
-%     handlesCorr=guidata(hCorrTrack);
-%     handlesCorr.projDir = projDir;
-%     handlesCorr.imgDir  = {imageDir};
-%     handlesCorr.tackDir = char(subProjects(1));
-%     handlesCorr.lplaDir = char(subProjects(2));
-%     handlesCorr.postDir = char(subProjects(3));
-%     handlesCorr.edgeDir = char(subProjects(4));
-%     handlesCorr.mergDir = char(subProjects(5));
-%     handlesCorr.corrDir = char(subProjects(6));
-%     guidata(hCorrTrack,handlesCorr);
+end
+
+% fsmTransition
+hFsmTransition=findall(0,'Tag','fsmTransition','Name','fsmTransition');
+if ~isempty(hFsmTransition)
+    fsmTransition;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -387,6 +383,17 @@ fsmPostProc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %
+% %  TRANSITION ANALYSIS
+% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function pushFsmTransition_Callback(hObject, eventdata, handles)
+fsmTransition;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
 % %  EXIT
 % %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -411,6 +418,10 @@ function helpFsmCenter_Callback(hObject, eventdata, handles)
 function menuSpeckTackle_Callback(hObject, eventdata, handles)
 
 function menuTools_Callback(hObject, eventdata, handles)
+
+
+
+
 
 
 
