@@ -307,6 +307,13 @@ if fsmParam.kin.enable==1
             return    
         else
             load(firstFileName); % Load speckleArray.mat from disk
+            
+            % Check that the speckleArray is really in the old format
+            if length(speckleArray)>1 & length(speckleArray(1).timepoint)==1
+                uiwait(msgbox('The loaded speckleArray has the old structure. Please run "Convert specklArray" in fsmCenter and try again.','Error','modal'));
+                return
+            end
+
         end
         
     end

@@ -28,7 +28,7 @@ bleachRed=fsmParam.kin.bleachRed;
 oldDir=cd;
 
 
-if length(speckleArray)==1;
+if length([speckleArray.timepoint])==1; % Empty speckleArray
 	return
 end
 
@@ -38,7 +38,7 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-l=length(speckleArray);            % End
+l=length([speckleArray.timepoint]);            % End
 c1=0;                              % Start
 
 numberOfEvents=0;
@@ -63,31 +63,31 @@ while c1<=(l-1)
 	%
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
-	if speckleArray(c1).status=='b'
+	if speckleArray.status(c1)=='b'
 		
 		numberOfEvents=numberOfEvents+1;
 		
 		% COLLECT DATA TO HANDLE A BIRTH EVENT
 		
-		birthTime=speckleArray(c1+1).timepoint;
+		birthTime=speckleArray.timepoint(c1+1); % This requires an overloaded operator for uint16
 		
 		event='birth';
 		
 		if c1<=(l-timepoints+1)
 			
-			intensity(1)=speckleArray(c1).intensity;
-			background(1)=speckleArray(c1).background;
-			sigmaMax(1)=speckleArray(c1).sigmaSp;
-			sigmaMin(1)=speckleArray(c1).sigmaBg;
+			intensity(1)=speckleArray.intensity(c1);
+			background(1)=speckleArray.background(c1);
+			sigmaMax(1)=speckleArray.sigmaSp(c1);
+			sigmaMin(1)=speckleArray.sigmaBg(c1);
 			sigmaDiff(1)=sqrt(sigmaMax(1)^2+sigmaMin(1)^2);
 			
 			for c2=1:timepoints-1
 				
-				if (speckleArray(c1+c2).status=='s' | speckleArray(c1+c2).status=='g' | speckleArray(c1+c2).status=='l') & speckleArray(c1+c2).timepoint==speckleArray(c1).timepoint+c2
-					intensity(1+c2)=speckleArray(c1+c2).intensity;
-					background(1+c2)=speckleArray(c1+c2).background;
-					sigmaMax(1+c2)=speckleArray(c1+c2).sigmaSp;
-					sigmaMin(1+c2)=speckleArray(c1+c2).sigmaBg;
+				if (speckleArray.status(c1+c2)=='s' | speckleArray.status(c1+c2)=='g' | speckleArray.status(c1+c2)=='l') & speckleArray.timepoint(c1+c2)==speckleArray.timepoint(c1)+c2
+					intensity(1+c2)=speckleArray.intensity(c1+c2);
+					background(1+c2)=speckleArray.background(c1+c2);
+					sigmaMax(1+c2)=speckleArray.sigmaSp(c1+c2);
+					sigmaMin(1+c2)=speckleArray.sigmaBg(c1+c2);
 					sigmaDiff(1+c2)=sqrt(sigmaMax(1+c2)^2+sigmaMin(1+c2)^2);
 					
 				else
@@ -105,30 +105,30 @@ while c1<=(l-1)
 		
 	end 
 	
-	if speckleArray(c1).status=='d' 
+	if speckleArray.status(c1)=='d' 
 		
 		numberOfEvents=numberOfEvents+1;
 
 		% COLLECT DATA TO HANDLE A DEATH EVENT
-		deathTime=speckleArray(c1).timepoint-1;
+		deathTime=speckleArray.timepoint(c1)-1;
 		
 		event='death';
 		
 		if c1>=timepoints
 			
-			intensity(timepoints)=speckleArray(c1).intensity;
-			background(timepoints)=speckleArray(c1).background;
-			sigmaMax(timepoints)=speckleArray(c1).sigmaSp;
-			sigmaMin(timepoints)=speckleArray(c1).sigmaBg;
+			intensity(timepoints)=speckleArray.intensity(c1);
+			background(timepoints)=speckleArray.background(c1);
+			sigmaMax(timepoints)=speckleArray.sigmaSp(c1);
+			sigmaMin(timepoints)=speckleArray.sigmaBg(c1);
 			sigmaDiff(timepoints)=sqrt(sigmaMax(timepoints)^2+sigmaMin(timepoints)^2);
 			
 			for c2=1:timepoints-1
 				
-				if (speckleArray(c1-c2).status=='s' | speckleArray(c1-c2).status=='g' | speckleArray(c1-c2).status=='f') & speckleArray(c1-c2).timepoint==speckleArray(c1).timepoint-c2
-					intensity(timepoints-c2)=speckleArray(c1-c2).intensity;
-					background(timepoints-c2)=speckleArray(c1-c2).background;
-					sigmaMax(timepoints-c2)=speckleArray(c1-c2).sigmaSp;
-					sigmaMin(timepoints-c2)=speckleArray(c1-c2).sigmaBg;
+				if (speckleArray.status(c1-c2)=='s' | speckleArray.status(c1-c2)=='g' | speckleArray.status(c1-c2)=='f') & speckleArray.timepoint(c1-c2)==speckleArray.timepoint(c1)-c2
+					intensity(timepoints-c2)=speckleArray.intensity(c1-c2);
+					background(timepoints-c2)=speckleArray.background(c1-c2);
+					sigmaMax(timepoints-c2)=speckleArray.sigmaSp(c1-c2);
+					sigmaMin(timepoints-c2)=speckleArray.sigmaBg(c1-c2);
 					sigmaDiff(timepoints-c2)=sqrt(sigmaMax(timepoints-c2)^2+sigmaMin(timepoints-c2)^2);
 					
 				else
@@ -147,7 +147,7 @@ while c1<=(l-1)
 		
 	end 
 	
-	if speckleArray(c1).status=='s' | speckleArray(c1).status=='g' | speckleArray(c1).status=='f' | speckleArray(c1).status=='l'
+	if speckleArray.status(c1)=='s' | speckleArray.status(c1)=='g' | speckleArray.status(c1)=='f' | speckleArray.status(c1)=='l'
 		
 		% We are inside a speckle - nothing to classify
 		intensity=[];
@@ -611,18 +611,18 @@ while c1<=(l-1)
 			if abs(balance)<bleachRed
 			
 				% WRITE RESULTS FOR A BLEACH-SCORE
-				speckleArray(c1).score=0;
-				speckleArray(c1).activity=0;
+				speckleArray.score(c1)=0;
+				speckleArray.activity(c1)=0;
 				numberOfBleachEvents=numberOfBleachEvents+1;
 				
 			else
 				
 				% WRITE RESULTS
-				speckleArray(c1).score=balance;
+				speckleArray.score(c1)=balance;
 				if polScore==1 & depolScore==0
-					speckleArray(c1).activity=1;
+					speckleArray.activity(c1)=1;
 				elseif polScore==0 & depolScore==1
-					speckleArray(c1).activity=-1;
+					speckleArray.activity(c1)=-1;
 				end
 			end
 			

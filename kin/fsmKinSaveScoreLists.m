@@ -58,23 +58,35 @@ SCORE=zeros(nRows,4);
 h = waitbar(0,'Rearranging speckles...');
 
 % Run through speckleArray and place events
-l=length(speckleArray);
+l=length([speckleArray.timepoint]);
+
+% Calculate some longer step size (not to spend too much time updating the waitbar)
+step=0.5*10^fix(log10(l)-1); if step<1, step=1; end
+
 counter=0;
 for i=1:l
-	if speckleArray(i).activity~=0
+	if speckleArray.activity(i)~=0
 		counter=counter+1;
-        if speckleArray(i).status=='b'
-            eventTimePoint=speckleArray(i).timepoint+1;
-        elseif speckleArray(i).status=='d'
-            eventTimePoint=speckleArray(i).timepoint-1;
+        if speckleArray.status(i)=='b'
+            eventTimePoint=double(speckleArray.timepoint(i))+1;
+        elseif speckleArray.status(i)=='d'
+            eventTimePoint=double(speckleArray.timepoint(i))-1;
         else
             error('This event has an activity but is not a ''b'' or ''d'' speckle');
         end
         SCORE(counter,1:4)=...
-            [eventTimePoint speckleArray(i).spPos(1) speckleArray(i).spPos(2)  speckleArray(i).score];
+            [eventTimePoint double(speckleArray.spPos(i,1)) double(speckleArray.spPos(i,2))  speckleArray.score(i)];
 	end
-	% Update wait bar
-	waitbar(i/l,h);
+
+    % Update waitbar if needed
+    if step>1
+        if mod(i,step)==1
+            waitbar(i/l,h);
+        end
+    else
+        waitbar(i/l,h);
+    end        
+    
 end
 
 % Close waitbar

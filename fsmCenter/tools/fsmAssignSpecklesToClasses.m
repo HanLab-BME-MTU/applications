@@ -40,11 +40,11 @@ if nargin~=1
 end
 
 % Total number of speckles
-total=length(speckleArray);
+total=length([speckleArray.timepoint]);
 
 % Pre-allocate memory
 tot=0.5*(length(find([speckleArray.status]=='b'))+length(find([speckleArray.status]=='d'))+length(find([speckleArray.status]=='f'))+length(find([speckleArray.status]=='l')));
-speckleClasses=repmat(struct('bTime',0,'dTime',0,'first',0,'last',0,'pos',0,'class',0,'network',0),1,tot);
+speckleClasses(1:tot)=struct('bTime',0,'dTime',0,'first',0,'last',0,'pos',0,'class',0,'network',0);
 % Remark: the .network field is not used in this function, it will be used in assignSpecklesToNetworks
 
 % Initialization
@@ -68,11 +68,11 @@ for i=1:total
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % Look for a birth   
-    if speckleArray(i).status=='b'
+    if speckleArray.status(i)=='b'
         
         % If last speckle was not complete, it will be discarded by this one
         currentB=i; % Mark this as the latest birth met
-        switch speckleArray(i).activity
+        switch double(speckleArray.activity(i))
             case  1, BP=1;
             case  0, BP=0;
             case -1, BP=-1;
@@ -84,7 +84,7 @@ for i=1:total
     end
     
     % Look for a speckles without birth   
-    if speckleArray(i).status=='f'
+    if speckleArray.status(i)=='f'
         
         currentB=i; % Mark this as the latest "birth" met
         BP=-2; % 'f' speckles have no activity
@@ -99,10 +99,10 @@ for i=1:total
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % Look for a death
-    if speckleArray(i).status=='d'
+    if speckleArray.status(i)=='d'
         
         if lastEv=='b' % Last event was a birth, this is a complete speckle
-            switch speckleArray(i).activity
+            switch double(speckleArray.activity(i))
                 case  1, DP=1;
                 case  0, DP=0;
                 case -1, DP=-1;
@@ -149,11 +149,11 @@ for i=1:total
             disp('Not enough space allocated. Reallocating...'); % This should never happen
         end
         if class<11
-            firstFrame=speckleArray(currentB).timepoint+1;
-            lastFrame=speckleArray(i).timepoint-1;
+            firstFrame=double(speckleArray.timepoint(currentB))+1;
+            lastFrame=double(speckleArray.timepoint(i))-1;
         elseif class==11
             firstFrame=1;
-            lastFrame=speckleArray(i).timepoint-1;
+            lastFrame=double(speckleArray.timepoint(i))-1;
         elseif class==12
             % This cannot happen
             disp('Bug in fsmAssigmSpecklesToClasses.');
@@ -167,7 +167,7 @@ for i=1:total
         speckleClasses(count).dTime = lastFrame;  % Store actual death time (not of 'd' speckle) - Store last frame for 'l' speckles
         speckleClasses(count).first = currentB;
         speckleClasses(count).last  = i;
-        speckleClasses(count).pos   = [speckleArray(currentB).spPos; speckleArray(i).spPos]; %reshape([speckleArray(currentB:i).spPos],2,1+(i-currentB))'; 
+        speckleClasses(count).pos   = [speckleArray.spPos(currentB,:); speckleArray.spPos(i,:)]; 
         speckleClasses(count).class = class;
 
         % Mark last event as 'd'
@@ -175,7 +175,7 @@ for i=1:total
         
     end
         
-    if speckleArray(i).status=='l'
+    if speckleArray.status(i)=='l'
         
         if lastEv=='b' % This is a speckle with no birth
             class=12;
@@ -197,11 +197,11 @@ for i=1:total
             % This cannot happen
             disp('Bug in fsmAssigmSpecklesToClasses.');
         elseif class==12
-            firstFrame=speckleArray(currentB).timepoint+1;
-            lastFrame=speckleArray(i).timepoint; % Last time point in the movie
+            firstFrame=double(speckleArray.timepoint(currentB))+1;
+            lastFrame=double(speckleArray.timepoint(i)); % Last time point in the movie
         elseif class==13
             firstFrame=1;
-            lastFrame=speckleArray(i).timepoint; % Last time point in the movie
+            lastFrame=double(speckleArray.timepoint(i)); % Last time point in the movie
         else
             error('Wrong class');
         end
@@ -209,7 +209,7 @@ for i=1:total
         speckleClasses(count).dTime = lastFrame;  % Store actual death time (not of 'd' speckle)      
         speckleClasses(count).first = currentB;
         speckleClasses(count).last  = i;
-        speckleClasses(count).pos   = [speckleArray(currentB).spPos; speckleArray(i).spPos]; %reshape([speckleArray(currentB:i).spPos],2,1+(i-currentB))';
+        speckleClasses(count).pos   = [speckleArray.spPos(currentB,:); speckleArray.spPos(i,:)]; %reshape([speckleArray(currentB:i).spPos],2,1+(i-currentB))';
         speckleClasses(count).class = class;
         
         % Mark last event as 'l'

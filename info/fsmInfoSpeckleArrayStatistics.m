@@ -68,7 +68,7 @@ count=0;
 lastEv='n'; posB=0; 
 lifetime=[];
 
-for i=1:length(speckleArray)
+for i=1:length([speckleArray.timepoint])
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
@@ -76,24 +76,24 @@ for i=1:length(speckleArray)
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    if speckleArray(i).status=='l'
+    if speckleArray.status(i)=='l'
         % Speckle without death
         stats.bSpeckle=stats.bSpeckle+1;
         last='l';
     end
-    if speckleArray(i).status=='f'
+    if speckleArray.status(i)=='f'
         % Speckle without birth
         stats.dSpeckle=stats.dSpeckle+1;
         last='f';
     end
-    if speckleArray(i).status=='d'
+    if speckleArray.status(i)=='d'
         if last=='b'
             % A complete speckle
             stats.complete=stats.complete+1;
         end
         last='d';
     end
-    if speckleArray(i).status=='b'
+    if speckleArray.status(i)=='b'
         last='b';
     end
     
@@ -103,10 +103,10 @@ for i=1:length(speckleArray)
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    if speckleArray(i).status=='g'
+    if speckleArray.status(i)=='g'
         stats.gCounter=stats.gCounter+1;
     end
-    if speckleArray(i).status=='s' | speckleArray(i).status=='f' | speckleArray(i).status=='l'
+    if speckleArray.status(i)=='s' | speckleArray.status(i)=='f' | speckleArray.status(i)=='l'
         stats.sCounter=stats.sCounter+1;
     end
 
@@ -118,23 +118,23 @@ for i=1:length(speckleArray)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % POLY
-    if speckleArray(i).activity==1
+    if speckleArray.activity(i)==1
         % Store a positive score
         polCounter=polCounter+1;
-        stats.pScores(polCounter)=speckleArray(i).score;
+        stats.pScores(polCounter)=speckleArray.score(i);
         % Check whether this score is the strongest positive score
-        if speckleArray(i).score>stats.polyScore
-            stats.polyScore=speckleArray(i).score;
+        if speckleArray.score(i)>stats.polyScore
+            stats.polyScore=speckleArray.score(i);
         end
     end
     % DEPOLY
-    if speckleArray(i).activity==-1
+    if speckleArray.activity(i)==-1
         % Store a negative score
         depolCounter=depolCounter+1;
-        stats.dScores(depolCounter)=speckleArray(i).score;
+        stats.dScores(depolCounter)=speckleArray.score(i);
         % Check whether this score is the strongest negative score
-        if speckleArray(i).score<stats.depolyScore
-            stats.depolyScore=speckleArray(i).score;
+        if speckleArray.score(i)<stats.depolyScore
+            stats.depolyScore=speckleArray.score(i);
         end
     end
     
@@ -144,7 +144,7 @@ for i=1:length(speckleArray)
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    if speckleArray(i).status=='b' & speckleArray(i).activity~=0
+    if speckleArray.status(i)=='b' & speckleArray.activity(i)~=0
         if lastEv=='b' | lastEv=='f' | lastEv=='l'
             % Forget this
             lastEv='n';
@@ -154,8 +154,8 @@ for i=1:length(speckleArray)
             posB=i;
         end
     end
-    if speckleArray(i).status=='d'
-        if speckleArray(i).activity~=0
+    if speckleArray.status(i)=='d'
+        if speckleArray.activity(i)~=0
             if lastEv=='b' & posB~=-1
                 if ((i-1)-posB)>1 % Count them only if the trajectory is more than one frame (i.e. not a ghost speckle)
                     count=count+1;
@@ -169,7 +169,7 @@ for i=1:length(speckleArray)
         end
         lastEv='d';
     end
-    if speckleArray(i).status=='f' |speckleArray(i).status=='l'
+    if speckleArray.status(i)=='f' |speckleArray.status(i)=='l'
         lastEv='n';
         posB=-1;
     end
@@ -181,9 +181,9 @@ for i=1:length(speckleArray)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % For this analysis we only consider SIGNIFICANT events
-    if (speckleArray(i).status=='b' | speckleArray(i).status=='d') & speckleArray(i).activity~=0
+    if (speckleArray.status(i)=='b' | speckleArray.status(i)=='d') & speckleArray.activity(i)~=0
         stats.events=stats.events+1;
-        if speckleArray(i).lmEvent~=0
+        if speckleArray.lmEvent(i)~=0
             stats.weakEvents=stats.weakEvents+1;
         end
     end
@@ -201,13 +201,13 @@ stats.meanLifeTime=mean(lifetime);
 
 % Last event check
 foundB=0; foundD=0;
-for i=length(speckleArray):-1:1
-    if speckleArray(i).status=='b' & foundB==0
+for i=length([speckleArray.timepoint]):-1:1
+    if speckleArray.status(i)=='b' & foundB==0
         lastB=i;
         foundB=1;
         continue;
     end
-    if speckleArray(i).status=='d' & foundD==0
+    if speckleArray.status(i)=='d' & foundD==0
         lastD=i;
         foundD=1;
         continue;
@@ -225,7 +225,7 @@ while i<=lastB % To stay within speckleArray with the check
     end
     clear tb td;
     % Found a birth
-    if speckleArray(i).status=='b'
+    if speckleArray.status(i)=='b'
         % Store tb
         tb=i;
         %
@@ -234,11 +234,11 @@ while i<=lastB % To stay within speckleArray with the check
         deltaIs=0;
         
         % Go along the lifetime
-        while speckleArray(i).status=='s' | speckleArray(i).status=='g'
+        while speckleArray.status(i)=='s' | speckleArray.status(i)=='g'
             n=n+1;
             i=i+1;
         end
-        if speckleArray(i).status=='d'
+        if speckleArray.status(i)=='d'
             % End of the speckles reached
             
             % Store td
@@ -247,7 +247,7 @@ while i<=lastB % To stay within speckleArray with the check
             if n==1
                 % Ghost speckle
                 gC=gC+1;
-                stats.ghostDI(gC)=speckleArray(tb+1).deltaI;
+                stats.ghostDI(gC)=speckleArray.deltaI(tb+1);
                 stats.numberOfGhost=stats.numberOfGhost+1;
             end
             if n>1
@@ -257,7 +257,7 @@ while i<=lastB % To stay within speckleArray with the check
                 jPos=0;
                 for j=tb+1:td-1
                     jPos=jPos+1;
-                    deltaIs(jPos)=speckleArray(j).deltaI;
+                    deltaIs(jPos)=speckleArray.deltaI(j);
                 end
                 stats.speckleDI(nC:nC+length(deltaIs)-1)=deltaIs;
                 stats.numberOfSpeckle=stats.numberOfSpeckle+1;
@@ -271,8 +271,8 @@ while i<=lastB % To stay within speckleArray with the check
             
         end
         
-        if i<=length(speckleArray)-1
-            if speckleArray(i).status=='b' 
+        if i<=length([speckleArray.timepoint])-1
+            if speckleArray.status(i)=='b' 
                 % Speckle with no 'd'
                 i=i-1;
             end

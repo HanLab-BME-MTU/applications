@@ -44,6 +44,9 @@ sp=size(cM,1);   % Number of speckle lines
 h=waitbar(0,'Indexing speckles...');
 tot=sp*tp;
 
+% Calculate some longer step size (not to spend too much time updating the waitbar)
+step=0.5*10^fix(log10(tot)-1); if step<1, step=1; end
+
 %
 % Index speckles and non-speckles
 %
@@ -164,8 +167,14 @@ for c1=1:sp
         % Reset pos4;
         pos4=0;
         
-        % Update waitbar
-        waitbar((c1*c2)/tot,h);
+        % Update waitbar if needed
+        if step>1
+            if mod((c1*c2),step)==1
+                waitbar((c1*c2)/tot,h);
+            end
+        else
+            waitbar((c1*c2)/tot,h);
+        end        
         
     end
 end
@@ -179,28 +188,38 @@ close(h);
 % Allocate memory for speckleArray
 lengthSpeckleArray=max(table(:));
 
-% Initialize empty speckle array - removed the obsolete fields .subwindow and .line
-speckleArray(1:lengthSpeckleArray)=struct(...
-    'timepoint',uint16(0),...  % Unsigned integer 16: 1 - 65535 (2 bytes)
-    'spPos',uint16([0 0]),...  % Unsigned integer 16 
-    'bgPos1',uint16([0 0]),... % Unsigned integer 16
-    'bgPos2',uint16([0 0]),... % Unsigned integer 16
-    'bgPos3',uint16([0 0]),... % Unsigned integer 16
-    'intensity',0,...          % Double (8 bytes)
-    'background',0,...         % Double
-    'deltaI',0,...             % Double
-    'deltaICrit',0,...         % Double
-    'sigmaSp',0,...            % Double 
-    'sigmaBg',0,...            % Double
-    'status','',...            % Char (1 byte)
-    'speckleType',uint8(0),... % Unsigned integer 8: 1 - 255 (1 byte)
-    'score',0,...              % Double 
-    'activity',int8(0),...     % Integer 8: -128 - 127 (1 byte)
-    'lmEvent',logical(0));     % Logical: 0 | 1 (1 byte)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Initialize empty speckle array
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+speckleArray=struct(...
+    'timepoint',   uint16(zeros(lengthSpeckleArray,1)),...  % Unsigned integer 16: 1 - 65535 (2 bytes)
+    'spPos',       uint16(zeros(lengthSpeckleArray,2)),...  % Unsigned integer 16 
+    'bgPos1',      uint16(zeros(lengthSpeckleArray,2)),...  % Unsigned integer 16
+    'bgPos2',      uint16(zeros(lengthSpeckleArray,2)),...  % Unsigned integer 16
+    'bgPos3',      uint16(zeros(lengthSpeckleArray,2)),...  % Unsigned integer 16
+    'intensity',   zeros(lengthSpeckleArray,1),...          % Double (8 bytes)
+    'background',  zeros(lengthSpeckleArray,1),...          % Double
+    'deltaI',      zeros(lengthSpeckleArray,1),...          % Double
+    'deltaICrit',  zeros(lengthSpeckleArray,1),...          % Double
+    'sigmaSp',     zeros(lengthSpeckleArray,1),...          % Double 
+    'sigmaBg',     zeros(lengthSpeckleArray,1),...          % Double
+    'status',      char(zeros(lengthSpeckleArray,1)),...    % Char (1 byte)
+    'speckleType', uint8(zeros(lengthSpeckleArray,1)),...   % Unsigned integer 8: 1 - 255 (1 byte)
+    'score',       zeros(lengthSpeckleArray,1),...          % Double 
+    'activity',    int8(zeros(lengthSpeckleArray,1)),...    % Integer 8: -128 - 127 (1 byte)
+    'lmEvent',     logical(zeros(lengthSpeckleArray,1)));   % Logical: 0 | 1 (1 byte)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Initialize waitbar 
 h=waitbar(0,'Populating speckleArray structure...');
 tot=size(cM,1)*0.5*size(cM,2)*size(cM,3);
+
+% Calculate some longer step size (not to spend too much time updating the waitbar)
+step=0.5*10^fix(log10(tot)-2); if step<1, step=1; end
 
 counter=0;
 
@@ -352,173 +371,170 @@ end
                 % CASE 1: SPECKLE HAVING NO PRE-BIRTH OR POST-DEATH SPECKLE ASSOCIATED
                 %
                 if b==0 & d==0
-                    speckleArray(s).timepoint=c1;
-                    %speckleArray(s).subwindow=0;
-                    %speckleArray(s).line=c3;
+                    speckleArray.timepoint(s)    = uint16(c1);
+                    
                     % Check if the speckle is reported in gapList
                     coords(1,1:2)=[cM(c3,(c1-1)*2+1,c2) cM(c3,(c1-1)*2+2,c2)];
                     resp=checkGapList(gapList,coords);
-                    %
-                    speckleArray(s).spPos=coords; 
+                    speckleArray.spPos(s,1:2)    = uint16(coords'); 
+                                        
                     [intensity,background,bk1,bk2,bk3,deltaI,deltaICrit,sigmaMax,sigmaMin,speckleType]=SSpeckleInfo(candsS,allCandsPos,coords);
-                    speckleArray(s).intensity=intensity;
-                    speckleArray(s).background=background;
-                    speckleArray(s).bgPos1=bk1;
-                    speckleArray(s).bgPos2=bk2;
-                    speckleArray(s).bgPos3=bk3;
-                    speckleArray(s).deltaI=deltaI;
-                    speckleArray(s).deltaICrit=deltaICrit;
-                    speckleArray(s).sigmaSp=sigmaMax;
-                    speckleArray(s).sigmaBg=sigmaMin;
+                    speckleArray.intensity(s)    = intensity;
+                    speckleArray.background(s)   = background;
+                    speckleArray.bgPos1(s,1:2)   = uint16(bk1');
+                    speckleArray.bgPos2(s,1:2)   = uint16(bk2');
+                    speckleArray.bgPos3(s,1:2)   = uint16(bk3');
+                    speckleArray.deltaI(s)       = deltaI;
+                    speckleArray.deltaICrit(s)   = deltaICrit;
+                    speckleArray.sigmaSp(s)      = sigmaMax;
+                    speckleArray.sigmaBg(s)      = sigmaMin;
                     if resp==1
                         % This speckle is a closed gap
-                        speckleArray(s).status='g';
+                        speckleArray.status(s)   = 'g';
                     else
                         % This is an actual speckle
-                        speckleArray(s).status='s';
+                        speckleArray.status(s)   = 's';
                     end
                     if e==1 % This is a speckle in the last frame of the movie
-                        speckleArray(s).status='f';
+                        speckleArray.status(s)   = 'f';
                     elseif e==2 % This is a speckle in the first frame of the movie
-                        speckleArray(s).status='l';
+                        speckleArray.status(s)   = 'l';
                     else
                         % Normal speckle
                     end
-                    speckleArray(s).lmEvent=0;
-                    speckleArray(s).speckleType=speckleType;
+                    speckleArray.lmEvent(s)      = logical(0);
+                    speckleArray.speckleType(s)  = uint8(speckleType);
                     % Add zero score- and activity fields
-                    speckleArray(s).score=0;
-                    speckleArray(s).activity=0;
+                    speckleArray.score(s)        = 0;
+                    speckleArray.activity(s)     = int8(0);
                 end
                 
                 %
                 % CASE 2: SPECKLE HAVING PRE-BIRTH SPECKLE ASSOCIATED
                 %
                 if b~=0 & d==0
+                    
                     % Start with actual speckle
-                    speckleArray(s).timepoint=c1;
-                    %speckleArray(s).subwindow=0;
-                    %speckleArray(s).line=c3;
+                    speckleArray.timepoint(s)    = uint16(c1);
+
                     % Check if the speckle is reported in gapList
                     coords(1,1:2)=[cM(c3,(c1-1)*2+1,c2) cM(c3,(c1-1)*2+2,c2)];
                     resp=checkGapList(gapList,coords);
-                    %
-                    speckleArray(s).spPos=coords; 
+                    speckleArray.spPos(s,1:2)     = uint16(coords'); 
+                    
                     [intensity,background,bk1,bk2,bk3,deltaI,deltaICrit,sigmaMax,sigmaMin,speckleType]=SSpeckleInfo(candsS,allCandsPos,coords);
-                    speckleArray(s).intensity=intensity;
-                    speckleArray(s).background=background;
-                    speckleArray(s).bgPos1=bk1;
-                    speckleArray(s).bgPos2=bk2;
-                    speckleArray(s).bgPos3=bk3;
-                    speckleArray(s).deltaI=deltaI;
-                    speckleArray(s).deltaICrit=deltaICrit;
-                    speckleArray(s).sigmaSp=sigmaMax;
-                    speckleArray(s).sigmaBg=sigmaMin;
+                    speckleArray.intensity(s)    = intensity;
+                    speckleArray.background(s)   = background;
+                    speckleArray.bgPos1(s,1:2)   = uint16(bk1');
+                    speckleArray.bgPos2(s,1:2)   = uint16(bk2');
+                    speckleArray.bgPos3(s,1:2)   = uint16(bk3');
+                    speckleArray.deltaI(s)       = deltaI;
+                    speckleArray.deltaICrit(s)   = deltaICrit;
+                    speckleArray.sigmaSp(s)      = sigmaMax;
+                    speckleArray.sigmaBg(s)      = sigmaMin;
                     if resp==1
                         % This speckle is a closed gap
-                        speckleArray(s).status='g';
+                        speckleArray.status(s)   = 'g';
                     else
                         % This is an actual speckle
-                        speckleArray(s).status='s';
+                        speckleArray.status(s)   = 's';
                     end
                     if e==1 % This is a speckle in the last frame of the movie
-                        speckleArray(s).status='f';
+                        speckleArray.status(s)   = 'f';
                     elseif e==2 % This is a speckle in the first frame of the movie
-                        speckleArray(s).status='l';
+                        speckleArray.status(s)   = 'l';
                     else
                         % Normal speckle
                     end
-                    speckleArray(s).lmEvent=0;
-                    speckleArray(s).speckleType=speckleType;
+                    speckleArray.lmEvent(s)      = logical(0);
+                    speckleArray.speckleType(s)  = uint8(speckleType);
                     % Add zero score- and activity fields
-                    speckleArray(s).score=0;
-                    speckleArray(s).activity=0;
+                    speckleArray.score(s)        = 0;
+                    speckleArray.activity(s)     = int8(0);
                     
                     % Now with pre-birth non-speckle
-                    speckleArray(b)=speckleArray(s);
-                    speckleArray(b).timepoint=speckleArray(s).timepoint-1;
+                    speckleArray.timepoint(b)    = speckleArray.timepoint(s)-1; % This requires an overloaded operator for uint16
                     [intensity,background,bk1,bk2,bk3,deltaI,deltaICrit,sigmaMax,sigmaMin,lmEvent,spPos,speckleType]=BDSpeckleInfo(coords,candsS,allCandsPos,insCandsB,insCandsBPos,imgB,c1,c2,c3,cM,noiseParams,threshold,aImgB,maskR,stdImg);
-                    speckleArray(b).spPos=spPos;            
-                    speckleArray(b).intensity=intensity;
-                    speckleArray(b).background=background;
-                    speckleArray(b).bgPos1=bk1;
-                    speckleArray(b).bgPos2=bk2;
-                    speckleArray(b).bgPos3=bk3;
-                    speckleArray(b).deltaI=deltaI;
-                    speckleArray(b).deltaICrit=deltaICrit;
-                    speckleArray(b).sigmaSp=sigmaMax;
-                    speckleArray(b).sigmaBg=sigmaMin;
-                    speckleArray(b).status='b';
-                    speckleArray(b).lmEvent=lmEvent;
-                    speckleArray(b).speckleType=speckleType;
+                    speckleArray.spPos(b,1:2)    = uint16(spPos');            
+                    speckleArray.intensity(b)    = intensity;
+                    speckleArray.background(b)   = background;
+                    speckleArray.bgPos1(b,1:2)   = uint16(bk1');
+                    speckleArray.bgPos2(b,1:2)   = uint16(bk2');
+                    speckleArray.bgPos3(b,1:2)   = uint16(bk3');
+                    speckleArray.deltaI(b)       = deltaI;
+                    speckleArray.deltaICrit(b)   = deltaICrit;
+                    speckleArray.sigmaSp(b)      = sigmaMax;
+                    speckleArray.sigmaBg(b)      = sigmaMin;
+                    speckleArray.status(b)       = 'b';
+                    speckleArray.lmEvent(b)      = logical(lmEvent);
+                    speckleArray.speckleType(b)  = uint8(speckleType);
                     % Add zero score- and activity fields
-                    speckleArray(b).score=0;
-                    speckleArray(b).activity=0;
+                    speckleArray.score(b)        = 0;
+                    speckleArray.activity(b)     = int8(0);
                 end
                 
                 %
                 % CASE 3: SPECKLE HAVING POST-DEATH SPECKLE ASSOCIATED
                 %
                 if b==0 & d~=0
+                    
                     % Start with actual speckle
-                    speckleArray(s).timepoint=c1;
-                    %speckleArray(s).subwindow=0;
-                    %speckleArray(s).line=c3;
+                    speckleArray.timepoint(s)    = uint16(c1);
+
                     % Check if the speckle is reported in gapList
                     coords(1,1:2)=[cM(c3,(c1-1)*2+1,c2) cM(c3,(c1-1)*2+2,c2)];
                     resp=checkGapList(gapList,coords);
-                    %
-                    speckleArray(s).spPos=coords;
+                    speckleArray.spPos(s,1:2)    = uint16(coords'); 
+                    
                     [intensity,background,bk1,bk2,bk3,deltaI,deltaICrit,sigmaMax,sigmaMin,speckleType]=SSpeckleInfo(candsS,allCandsPos,coords);
-                    speckleArray(s).intensity=intensity;
-                    speckleArray(s).background=background;
-                    speckleArray(s).bgPos1=bk1;
-                    speckleArray(s).bgPos2=bk2;
-                    speckleArray(s).bgPos3=bk3;
-                    speckleArray(s).deltaI=deltaI;
-                    speckleArray(s).deltaICrit=deltaICrit;
-                    speckleArray(s).sigmaSp=sigmaMax;
-                    speckleArray(s).sigmaBg=sigmaMin;
+                    speckleArray.intensity(s)    = intensity;
+                    speckleArray.background(s)   = background;
+                    speckleArray.bgPos1(s,1:2)   = uint16(bk1');
+                    speckleArray.bgPos2(s,1:2)   = uint16(bk2');
+                    speckleArray.bgPos3(s,1:2)   = uint16(bk3');
+                    speckleArray.deltaI(s)       = deltaI;
+                    speckleArray.deltaICrit(s)   = deltaICrit;
+                    speckleArray.sigmaSp(s)      = sigmaMax;
+                    speckleArray.sigmaBg(s)      = sigmaMin;
                     if resp==1
                         % This speckle is a closed gap
-                        speckleArray(s).status='g';
+                        speckleArray.status(s)   = 'g';
                     else
                         % This is an actual speckle
-                        speckleArray(s).status='s';
+                        speckleArray.status(s)   = 's';
                     end
                     if e==1 % This is a speckle in the last frame of the movie
-                        speckleArray(s).status='f';
+                        speckleArray.status(s)   = 'f';
                     elseif e==2 % This is a speckle in the first frame of the movie
-                        speckleArray(s).status='l';
+                        speckleArray.status(s)   = 'l';
                     else
                         % Normal speckle
                     end
-                    speckleArray(s).lmEvent=0;
-                    speckleArray(s).speckleType=speckleType;
+                    speckleArray.lmEvent(s)      = logical(0);
+                    speckleArray.speckleType(s)  = uint8(speckleType);
                     % Add zero score- and activity fields
-                    speckleArray(s).score=0;
-                    speckleArray(s).activity=0;
+                    speckleArray.score(s)        = 0;
+                    speckleArray.activity(s)     = int8(0);
                     
                     % Now with post-death non-speckle
-                    speckleArray(d)=speckleArray(s);
-                    speckleArray(d).timepoint=speckleArray(s).timepoint+1;
+                    speckleArray.timepoint(d)    = speckleArray.timepoint(s)+1; % This requires an overloaded operator for uint16
                     [intensity,background,bk1,bk2,bk3,deltaI,deltaICrit,sigmaMax,sigmaMin,lmEvent,spPos,speckleType]=BDSpeckleInfo(coords,candsS,allCandsPos,insCandsD,insCandsDPos,imgD,c1,c2,c3,cM,noiseParams,threshold,aImgD,maskR,stdImg);
-                    speckleArray(d).spPos=spPos;         
-                    speckleArray(d).intensity=intensity;
-                    speckleArray(d).background=background;
-                    speckleArray(d).bgPos1=bk1;
-                    speckleArray(d).bgPos2=bk2;
-                    speckleArray(d).bgPos3=bk3;             
-                    speckleArray(d).deltaI=deltaI;
-                    speckleArray(d).deltaICrit=deltaICrit;
-                    speckleArray(d).sigmaSp=sigmaMax;
-                    speckleArray(d).sigmaBg=sigmaMin;
-                    speckleArray(d).status='d';
-                    speckleArray(d).lmEvent=lmEvent;			  
-                    speckleArray(d).speckleType=speckleType;
+                    speckleArray.spPos(d,1:2)    = uint16(spPos');         
+                    speckleArray.intensity(d)    = intensity;
+                    speckleArray.background(d)   = background;
+                    speckleArray.bgPos1(d,1:2)   = uint16(bk1');
+                    speckleArray.bgPos2(d,1:2)   = uint16(bk2');
+                    speckleArray.bgPos3(d,1:2)   = uint16(bk3');
+                    speckleArray.deltaI(d)       = deltaI;
+                    speckleArray.deltaICrit(d)   = deltaICrit;
+                    speckleArray.sigmaSp(d)      = sigmaMax;
+                    speckleArray.sigmaBg(d)      = sigmaMin;
+                    speckleArray.status(d)       = 'd';
+                    speckleArray.lmEvent(d)      = logical(lmEvent);			  
+                    speckleArray.speckleType(d)  = uint8(speckleType);
                     % Add zero score- and activity fields
-                    speckleArray(d).score=0;
-                    speckleArray(d).activity=0;
+                    speckleArray.score(d)        = 0;
+                    speckleArray.activity(d)     = int8(0);
                     
                 end
                 
@@ -526,91 +542,96 @@ end
                 % CASE 4: SPECKLE HAVING BOTH PRE-BIRTH OR POST-DEATH SPECKLE ASSOCIATED
                 %
                 if b~=0 & d~=0                             % THIS IS A GHOST SPECKLE!
+                    
                     % Start with actual speckle
-                    speckleArray(s).timepoint=c1;
-                    %speckleArray(s).subwindow=0;
-                    %speckleArray(s).line=c3;
+                    speckleArray.timepoint(s)    = uint16(c1);
+
                     % Check if the speckle is reported in gapList
                     coords(1,1:2)=[cM(c3,(c1-1)*2+1,c2) cM(c3,(c1-1)*2+2,c2)];
                     resp=checkGapList(gapList,coords);
-                    %
-                    speckleArray(s).spPos=coords; 
+                    speckleArray.spPos(s,1:2)    = uint16(coords'); 
+                    
                     [intensity,background,bk1,bk2,bk3,deltaI,deltaICrit,sigmaMax,sigmaMin,speckleType]=SSpeckleInfo(candsS,allCandsPos,coords);
-                    speckleArray(s).intensity=intensity;
-                    speckleArray(s).background=background;
-                    speckleArray(s).bgPos1=bk1;
-                    speckleArray(s).bgPos2=bk2;
-                    speckleArray(s).bgPos3=bk3;
-                    speckleArray(s).deltaI=deltaI;
-                    speckleArray(s).deltaICrit=deltaICrit;
-                    speckleArray(s).sigmaSp=sigmaMax;
-                    speckleArray(s).sigmaBg=sigmaMin;
+                    speckleArray.intensity(s)    = intensity;
+                    speckleArray.background(s)   = background;
+                    speckleArray.bgPos1(s,1:2)   = uint16(bk1');
+                    speckleArray.bgPos2(s,1:2)   = uint16(bk2');
+                    speckleArray.bgPos3(s,1:2)   = uint16(bk3');
+                    speckleArray.deltaI(s)       = deltaI;
+                    speckleArray.deltaICrit(s)   = deltaICrit;
+                    speckleArray.sigmaSp(s)      = sigmaMax;
+                    speckleArray.sigmaBg(s)      = sigmaMin;
                     if resp==1
                         % This speckle is a closed gap
-                        speckleArray(s).status='g';
+                        speckleArray.status(s)   = 'g';
                     else
                         % This is an actual speckle
-                        speckleArray(s).status='s';
+                        speckleArray.status(s)   = 's';
                     end
                     if e==1 % This is a speckle in the last frame of the movie
-                        speckleArray(s).status='f';
+                        speckleArray.status(s)   = 'f';
                     elseif e==2 % This is a speckle in the first frame of the movie
-                        speckleArray(s).status='l';
+                        speckleArray.status(s)   = 'l';
                     else
                         % Normal speckle
                     end
-                    speckleArray(s).lmEvent=0;
-                    speckleArray(s).speckleType=speckleType;
+                    speckleArray.lmEvent(s)      = logical(0);
+                    speckleArray.speckleType(s)  = uint8(speckleType);
                     % Add zero score- and activity fields
-                    speckleArray(s).score=0;
-                    speckleArray(s).activity=0;
+                    speckleArray.score(s)        = 0;
+                    speckleArray.activity(s)     = int8(0);
                     
                     % Now with pre-birth non-speckle
-                    speckleArray(b)=speckleArray(s);
-                    speckleArray(b).timepoint=speckleArray(s).timepoint-1;
+                    speckleArray.timepoint(b)    = speckleArray.timepoint(s)-1; % This requires an overloaded operator for uint16
                     [intensity,background,bk1,bk2,bk3,deltaI,deltaICrit,sigmaMax,sigmaMin,lmEvent,spPos,speckleType]=BDSpeckleInfo(coords,candsS,allCandsPos,insCandsB,insCandsBPos,imgB,c1,c2,c3,cM,noiseParams,threshold,aImgB,maskR,stdImg);
-                    speckleArray(b).spPos=spPos;
-                    speckleArray(b).intensity=intensity;
-                    speckleArray(b).background=background;
-                    speckleArray(b).bgPos1=bk1;
-                    speckleArray(b).bgPos2=bk2;
-                    speckleArray(b).bgPos3=bk3;
-                    speckleArray(b).deltaI=deltaI;
-                    speckleArray(b).deltaICrit=deltaICrit;
-                    speckleArray(b).sigmaSp=sigmaMax;
-                    speckleArray(b).sigmaBg=sigmaMin;
-                    speckleArray(b).status='b';
-                    speckleArray(b).lmEvent=lmEvent;
-                    speckleArray(b).speckleType=speckleType;
+                    speckleArray.spPos(b,1:2)    = uint16(spPos');            
+                    speckleArray.intensity(b)    = intensity;
+                    speckleArray.background(b)   = background;
+                    speckleArray.bgPos1(b,1:2)   = uint16(bk1');
+                    speckleArray.bgPos2(b,1:2)   = uint16(bk2');
+                    speckleArray.bgPos3(b,1:2)   = uint16(bk3');
+                    speckleArray.deltaI(b)       = deltaI;
+                    speckleArray.deltaICrit(b)   = deltaICrit;
+                    speckleArray.sigmaSp(b)      = sigmaMax;
+                    speckleArray.sigmaBg(b)      = sigmaMin;
+                    speckleArray.status(b)       = 'b';
+                    speckleArray.lmEvent(b)      = logical(lmEvent);
+                    speckleArray.speckleType(b)  = uint8(speckleType);
                     % Add zero score- and activity fields
-                    speckleArray(b).score=0;
-                    speckleArray(b).activity=0;
+                    speckleArray.score(b)        = 0;
+                    speckleArray.activity(b)     = int8(0);
                     
                     % Now with post-death non-speckle
-                    speckleArray(d)=speckleArray(s);
-                    speckleArray(d).timepoint=speckleArray(s).timepoint+1;
+                    speckleArray.timepoint(d)    = speckleArray.timepoint(s)+1; % This requires an overloaded operator for uint16
                     [intensity,background,bk1,bk2,bk3,deltaI,deltaICrit,sigmaMax,sigmaMin,lmEvent,spPos,speckleType]=BDSpeckleInfo(coords,candsS,allCandsPos,insCandsD,insCandsDPos,imgD,c1,c2,c3,cM,noiseParams,threshold,aImgD,maskR,stdImg);
-                    speckleArray(d).spPos=spPos;
-                    speckleArray(d).intensity=intensity;
-                    speckleArray(d).background=background;
-                    speckleArray(d).bgPos1=bk1;
-                    speckleArray(d).bgPos2=bk2;
-                    speckleArray(d).bgPos3=bk3;             
-                    speckleArray(d).deltaI=deltaI;
-                    speckleArray(d).deltaICrit=deltaICrit;
-                    speckleArray(d).sigmaSp=sigmaMax;
-                    speckleArray(d).sigmaBg=sigmaMin;
-                    speckleArray(d).status='d';
-                    speckleArray(d).lmEvent=lmEvent;
-                    speckleArray(d).speckleType=speckleType;
+                    speckleArray.spPos(d,1:2)    = uint16(spPos');
+                    speckleArray.intensity(d)    = intensity;
+                    speckleArray.background(d)   = background;
+                    speckleArray.bgPos1(d,1:2)   = uint16(bk1');
+                    speckleArray.bgPos2(d,1:2)   = uint16(bk2');
+                    speckleArray.bgPos3(d,1:2)   = uint16(bk3');             
+                    speckleArray.deltaI(d)       = deltaI;
+                    speckleArray.deltaICrit(d)   = deltaICrit;
+                    speckleArray.sigmaSp(d)      = sigmaMax;
+                    speckleArray.sigmaBg(d)      = sigmaMin;
+                    speckleArray.status(d)       = 'd';
+                    speckleArray.lmEvent(d)      = logical(lmEvent);
+                    speckleArray.speckleType(d)  = uint8(speckleType);
                     % Add zero score- and activity fields
-                    speckleArray(d).score=0;
-                    speckleArray(d).activity=0;
+                    speckleArray.score(d)        = 0;
+                    speckleArray.activity(d)     = int8(0);
                 end  
             end
             
-            % Update waitbar
-            waitbar((c1*c2*c3)/tot,h);
+            % Update waitbar if needed
+            if step>1
+                if mod((c1*c2*c3),step)==1
+                    waitbar((c1*c2*c3)/tot,h);
+                end
+            else
+                waitbar((c1*c2*c3)/tot,h);
+            end        
+            
         end
     end
 end

@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 30-Apr-2004 08:52:28
+% Last Modified by GUIDE v2.5 07-May-2004 10:24:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1236,5 +1236,55 @@ function checkSMMask_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkSMMask
+
+
+% --- Executes on button press in pushConvertSA.
+function pushConvertSA_Callback(hObject, eventdata, handles)
+% hObject    handle to pushConvertSA (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Load speckleArray.mat
+[fName,dirName] = uigetfile(...
+    {'speckleArray.mat;','speckleArray.mat';
+    '*.*','All Files (*.*)'},...
+    'Select speckleArray.mat');
+if ~(isa(fName,'char') & isa(dirName,'char'))
+    return
+end
+load([dirName,fName]);
+if exist('speckleArray')~=1
+    error('The loaded file does not appear to be valid');
+end
+% Convert
+speckleArray=fsmConvertSpeckleArray(speckleArray);
+% Save
+quit=0;
+rounds=0;
+while quit==0
+    rounds=rounds+1;
+    if rounds==1
+        path=uigetdir(dirName,'Please select a directory where to save the new speckleArray');
+    else
+        path=uigetdir(dirName,'Please specifiy a different directory or leave whithout saving');
+    end
+    if path~=0
+        if exist([path,filesep,'speckleArray.mat'])==2
+            choice=questdlg('A speckleArray.mat file already exists in this directory. Do you want to overwrite it?','User input requested','Yes','No','Yes');
+            switch choice,
+                case 'Yes', save([path,filesep,'speckleArray.mat'],'speckleArray'); quit=1; uiwait(msgbox('speckleArray.mat saved.','Info','modal'));
+                case 'No', % Do nothing
+            end % switch
+        else
+            save([path,filesep,'speckleArray.mat'],'speckleArray'); quit=1; uiwait(msgbox('speckleArray.mat saved.','Info','modal'));
+            
+        end
+    else
+        disp('Aborted.');
+        quit=1;
+    end
+end
+
+
 
 
