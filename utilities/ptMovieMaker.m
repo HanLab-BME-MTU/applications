@@ -1,4 +1,4 @@
-function ptMovieMaker (ptPostpro, MPM) 
+function ptMovieMaker (radioButtons, handles) 
 % ptMovieMaker makes movies from the information gathered in the analysis
 %
 % SYNOPSIS       ptMovieMaker (ptPostpro, MPM)
@@ -6,6 +6,7 @@ function ptMovieMaker (ptPostpro, MPM)
 % INPUT          ptPostpro : a structure which contains the information
 %                            from the GUI
 %                MPM       : matrix containing the cell tracks
+%                savePath : directory where the movie will be saved.
 %
 % OUTPUT         no function output: movies are saved to file specified by the user         
 %
@@ -20,25 +21,44 @@ function ptMovieMaker (ptPostpro, MPM)
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file.
 %                                       Also made it independent of gui handles
 % Andre Kerstens        Aug 04          Bug fix: forgot to close fig after addframe QT movie
+% Andre Kerstens        Sep 04          Rewrite for the new data structures
 
-% First assign all the postpro fields to a meaningfull variable
-startFrame = ptPostpro.firstimg;
-endFrame = ptPostpro.lastimg;
-increment = ptPostpro.increment;
-movieStartFrame = ptPostpro.moviefirstimg;
-movieEndFrame = ptPostpro.movielastimg;
+% Get the latest data from the handles
+MPM = handles.allMPM{1};    % We should have received only one MPM
+cellProps = handles.allCellProps;
+clusterProps = handles.allClusterProps;
+frameProps = handles.allFrameProps;
+jobData = handles.jobData;
+guiData = handles.guiData;
+
+% Get values from the gui (these are used for all jobs)
+movieStartFrame = guiData.moviefirstimg;
+movieEndFrame = guiData.movielastimg;
+
+% Get start and end frames and increment value
+startFrame = jobData(1).firstimg;
+endFrame = jobData(1).lastimg;
+increment = jobData(1).increment;
 numberOfFrames = ceil((movieEndFrame - movieStartFrame) / increment) + 1;
-savePath = ptPostpro.saveallpath;
-jobPath = ptPostpro.jobpath;
-imageName = ptPostpro.imagename;
-imageDirectory = ptPostpro.imagepath;
-imageNameList = ptPostpro.imagenameslist;
-intensityMax = ptPostpro.intensitymax;
-figureSize = ptPostpro.figureSize;
-movieType = ptPostpro.movietype;
+
+% First assign all the jobdata fields to a meaningful variable
+imageName = jobData(1).imagename;
+imageDirectory = jobData(1).imagefilepath;
+imageNameList = jobData(1).imagenameslist;
+intensityMax = jobData(1).intensitymax;
+figureSize = jobData(1).figuresize;
+
+% Determine the movie type
+if radioButtons.movietypeavi
+   movieType = 1; % AVI
+elseif radioButtons.movietypeqt
+   movieType = 2; % QT
+else
+   movieType = 1; % AVI
+end
 
 % How many frames does the user wants to see the tracks of?
-dragTailLength = ptPostpro.dragtail;
+dragTailLength = guiData.dragtaillength;
 
 % We need enough frames to show the length of the dragtail
 if (movieEndFrame - movieStartFrame + 1) < dragTailLength
@@ -48,20 +68,28 @@ if (movieEndFrame - movieStartFrame + 1) < dragTailLength
 end
 
 % What is the name of the movie
-dragTailFileName = ptPostpro.dragtailfile;
+dragTailFileName = guiData.dragtailfile;
 
 % We need prior images for the dragTail movie
 if ceil ((movieStartFrame - startFrame + 1) / increment) < dragTailLength + 1
     movieStartFrame = ((dragTailLength + 1) * increment) + 1;
 end
 
+% Get save path
+savePath = guiData.savedatapath;
+
+% If it doesn't exist yet, create it in the results directory
+if ~exist (savePath, 'dir')
+   mkdir (savePath);
+end
+
 % Go to the directory where the image will be saved
 cd (savePath);
 
 % Initialize the movie
-if movieType == 1   % QT
+if movieType == 1   % AVI
    mov = avifile ([dragTailFileName '.avi']);
-elseif movieType == 2   % AVI
+elseif movieType == 2   % QT
    makeQTMovie ('start', [dragTailFileName '.mov']);
 else
    h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);

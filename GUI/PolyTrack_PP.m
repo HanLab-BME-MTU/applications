@@ -1009,36 +1009,30 @@ function GUI_fm_universalstudios_pb_Callback(hObject, eventdata, handles)
 % Check that the plot frame values provided are in range
 handles = guidata (hObject);
 
-% Get the job list and the current job
-fileList = get(handles.GUI_filelist_lb,'String');
-filesSelected = get(handles.GUI_filelist_lb,'Value');
-
-% We only can do automatic postprocessing on one movie at a time
-if length(filesSelected) > 1
-   % Show an error dialog with an appropriate message and wait for the user to press a button
-   h=errordlg ('Values can only be shown for one job at a time. Please select only one job from the list.');
-   uiwait (h);
-   return
-else
-   % Get the filepath
-   filePath = fileList{filesSelected};
-    
-   % Retrieve the postpro structure for the selected job
-   [handles, result] = ptRetrievePostproData (filePath, handles);
-   
-   % Set values on the GUI
-   ptSetPostproGUIValues (handles);
-
-   if (handles.postpro.moviefirstimg < handles.postpro.firstimg) | ...
-      (handles.postpro.movielastimg > handles.postpro.lastimg)
-      h = errordlg ('Movie start and end frame value are out of range. Please re-enter values...');
-      uiwait(h);          % Wait until the user presses the OK button
-      return;
-   end
-
-   % Start the function that will create the dragtail movie
-   ptMovieMaker (handles.postpro, handles.MPM);
+% Check that files have been selected before
+if ~isfield (handles, 'allMPM')  
+    errorStr = ['Jobs should be selected first by using the Select button!'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
 end
+
+% Make sure only 1 job is selected
+if length(handles.allMPM) > 1
+    errorStr = ['A movie can only be generated for one job at a time. Please select only one job from the list.'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% Assign the radiobutton values to the radioButtons struct
+radioButtons = getRadiobuttonValues (handles);
+
+% Start the function that will create the dragtail movie
+ptMovieMaker (radioButtons, handles);
+
+% Show a message telling the user we've finished
+msgbox ('Finished generating movie. Press OK to continue...');
    
 % Update handles structure
 guidata (hObject, handles);
@@ -2297,6 +2291,20 @@ for jobCount = 1 : length(allMPM)
         end
     end  % if jobCount == 1
     
+    % Make sure the start and end frames fit to the selected movie frames
+    if (guiData.moviefirstimg < startFrame)
+        errorStr = ['The selected movie start frame (' num2str(guiData.moviefirstimg) ') does not fit with the job start frame (' num2str(startFrame) ') ...'];
+        h = errordlg(errorStr);
+        uiwait(h);          % Wait until the user presses the OK button  
+        return;
+    end
+    if (guiData.movielastimg > endFrame)
+        errorStr = ['The selected movie end frame (' num2str(guiData.movielastimg) ') does not fit with the job end frame (' num2str(endFrame) ') ...'];
+        h = errordlg(errorStr);
+        uiwait(h);          % Wait until the user presses the OK button  
+        return;
+    end
+    
     % Get frame interval and pixel length
     frameInterval = round (jobData(jobCount).timeperframe / 60);    % In minutes
     pixelLength = jobData(jobCount).mmpixel;
@@ -2438,6 +2446,13 @@ radioButtons.donotshowplots = get (handles.GUI_notshowplots_cb,'Value');
 
 % Get button for running average
 radioButtons.runningaverage = get (handles.GUI_running_average_cb,'Value');
+
+% Get movie buttons
+radioButtons.movieinclorig = get (handles.GUI_fm_incloriginal_rb,'Value');
+radioButtons.movieinclnuclei = get (handles.GUI_fm_inclcentromers_rb,'Value');
+radioButtons.movieincltracks = get (handles.GUI_fm_incltracks_rb,'Value');
+radioButtons.movietypeavi = get (handles.GUI_movietype_avi_rb,'Value');
+radioButtons.movietypeqt = get (handles.GUI_movietype_qt_rb,'Value');
 
 %--------------------------------------------------------------------
 

@@ -76,6 +76,9 @@ for iCount = 1 : length (filesSelected)
     info = imfinfo ([jobData(iCount).imagefilepath filesep jobData(iCount).imagename]);
     jobData(iCount).rowsize = info.Height;
     jobData(iCount).colsize = info.Width;
+    
+    % Figure size for movie generation
+    jobData(iCount).figuresize = [];
 
     % Get the imagename without .tif
     jobData(iCount).imagenamenotiff = regexprep(jobData(iCount).imagename, '.tif', '', 'ignorecase');
