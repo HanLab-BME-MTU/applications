@@ -193,55 +193,57 @@ else
             saveTxt = 0;
         elseif ioOpt.saveTxt == 1
             saveTxt = 1;
-            %only now check for path
-            if isfield(ioOpt,'saveTxtPath')
-                %check whether we have been given a name or a path
-                pathNameLength = length(ioOpt.saveTxtPath);
-                fileSepList = strfind(ioOpt.saveTxtPath);
-                if isempty(fileSepList)
-                    %assume we're just being given the name
-                    saveTxtPath = pwd;
-                    saveTxtName = ioOpt.saveTxtPath;
-                elseif fileSepList(end)==pathNameLength
-                    %path ends with filesep, so no name
-                    saveTxtPath = ioOpt.saveTxtPath;
-                    saveTxtName = '';
-                else
-                    %1:lastFileSep-1 = path, rest = filename
-                    saveTxtPath = ioOpt.saveTxtPath(1:fileSepList(end)-1);
-                    saveTxtName = ioOpt.saveTxtPath(fileSepList(end)+1:end);
-                end
-            end
-            
         end
     end
+    
+    %only now check for path
+    if saveTxt & isfield(ioOpt,'saveTxtPath')
+        %check whether we have been given a name or a path
+        pathNameLength = length(ioOpt.saveTxtPath);
+        fileSepList = strfind(ioOpt.saveTxtPath,filesep);
+        if isempty(fileSepList)
+            %assume we're just being given the name
+            saveTxtPath = pwd;
+            saveTxtName = ioOpt.saveTxtPath;
+        elseif fileSepList(end)==pathNameLength
+            %path ends with filesep, so no name
+            saveTxtPath = ioOpt.saveTxtPath;
+            saveTxtName = '';
+        else
+            %1:lastFileSep-1 = path, rest = filename
+            saveTxtPath = ioOpt.saveTxtPath(1:fileSepList(end)-1);
+            saveTxtName = ioOpt.saveTxtPath(fileSepList(end)+1:end);
+        end
+    end
+    
     if isfield(ioOpt,'saveMat')
         if ioOpt.saveMat == 0
             saveMat = 0;
         elseif ioOpt.saveMat == 1
             saveMat = 1;
-            %only now check for path
-            if isfield(ioOpt,'saveMatPath')
-                %check whether we have been given a name or a path
-                pathNameLength = length(ioOpt.saveMatPath);
-                fileSepList = strfind(ioOpt.saveMatPath);
-                if isempty(fileSepList)
-                    %assume we're just being given the name
-                    saveMatPath = pwd;
-                    saveMatName = ioOpt.saveMatPath;
-                elseif fileSepList(end)==pathNameLength
-                    %path ends with filesep, so no name
-                    saveMatPath = ioOpt.saveMatPath;
-                    saveMatName = '';
-                else
-                    %1:lastFileSep-1 = path, rest = filename
-                    saveMatPath = ioOpt.saveMatPath(1:fileSepList(end)-1);
-                    saveMatName = ioOpt.saveMatPath(fileSepList(end)+1:end);
-                end
-            end
-            
         end
     end
+    
+    %only now check for path
+    if saveMat & isfield(ioOpt,'saveMatPath')
+        %check whether we have been given a name or a path
+        pathNameLength = length(ioOpt.saveMatPath);
+        fileSepList = strfind(ioOpt.saveMatPath,filesep);
+        if isempty(fileSepList)
+            %assume we're just being given the name
+            saveMatPath = pwd;
+            saveMatName = ioOpt.saveMatPath;
+        elseif fileSepList(end)==pathNameLength
+            %path ends with filesep, so no name
+            saveMatPath = ioOpt.saveMatPath;
+            saveMatName = '';
+        else
+            %1:lastFileSep-1 = path, rest = filename
+            saveMatPath = ioOpt.saveMatPath(1:fileSepList(end)-1);
+            saveMatName = ioOpt.saveMatPath(fileSepList(end)+1:end);
+        end
+    end
+    
     if isfield(ioOpt,'verbose')
         if any(ioOpt.verbose == 0) %works for [], too
             verbose = 0;

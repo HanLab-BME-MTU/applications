@@ -28,7 +28,7 @@ tpInd = 0;
 dlaLength = 0;
 
 %for plotting: calc extreme coords
-yAxisLimits = [0,max(sum(distanceAll,2))];
+yAxisLimits = [0,max(sum(distanceAll(:,[1,2,2]),2))];
 xAxisLimits = [0,max(sum(timeAll,2))];
 
 %--------LOOP THROUGH EVERYTHING
