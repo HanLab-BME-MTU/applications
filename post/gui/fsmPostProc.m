@@ -57,24 +57,8 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
-% Check whether fsmCenter is running - if not, open it
-hfsmC=findall(0,'Tag','fsmCenter','Name','fsmCenter');
-if isempty(hfsmC)
-    hfsmC=fsmCenter;
-end
-% Get current project
-handlesFsmCenter=guidata(hfsmC);
-projDir=get(handlesFsmCenter.textCurrentProject,'String');
-set(handles.textCurrentProject,'String',projDir);
-
-% If necessary, look for subproject
-if isempty(projDir)
-    set(handles.popupCurrentExp,'Enable','off');
-else
-    subProjects=findProjSubDir(projDir,'tack');
-    set(handles.popupCurrentExp,'String',subProjects);
-    set(handles.popupCurrentExp,'Enable','on');
-end
+% Update project info from fsmCenter
+updateProjectInfo(handles);
 
 % UIWAIT makes fsmPostProc wait for user response (see UIRESUME)
 % uiwait(handles.fsmPostProc);
@@ -899,4 +883,25 @@ else
         projDir=[]; % Return empty
         return    
     end
+end
+
+function updateProjectInfo(handles);
+
+% Check whether fsmCenter is running - if not, open it
+hfsmC=findall(0,'Tag','fsmCenter','Name','fsmCenter');
+if isempty(hfsmC)
+    hfsmC=fsmCenter;
+end
+% Get current project
+handlesFsmCenter=guidata(hfsmC);
+projDir=get(handlesFsmCenter.textCurrentProject,'String');
+set(handles.textCurrentProject,'String',projDir);
+
+% If necessary, look for subproject
+if isempty(projDir)
+    set(handles.popupCurrentExp,'Enable','off');
+else
+    subProjects=findProjSubDir(projDir,'tack');
+    set(handles.popupCurrentExp,'String',subProjects);
+    set(handles.popupCurrentExp,'Enable','on');
 end
