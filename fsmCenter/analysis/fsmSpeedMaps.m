@@ -153,6 +153,11 @@ if loadMPM==1
     G=framework(imgSize,gridSize);
 end
 
+% If the user loads Md, crop it to the number of frames to be analyzed
+if loadMPM==0
+    Md=Md(:,:,1:uLast);
+end
+
 % Select output dir
 outputdir=uigetdir('','Select directory to save speed maps to.');
 if outputdir==0 % The user clicked on cancel
@@ -353,14 +358,14 @@ for c2=1:steps
         fname=[outputdir,filesep,'tif',filesep,'speedMap_d0=',num2str(d0_init),'_scale=',num2str(scaleFactor),'x_frames=',num2str(n),'_',indxStr,'.tif'];
         print(gcf,'-dtiffnocompression',fname);
         fname=[outputdir,filesep,'eps',filesep,'speedMap_d0=',num2str(d0_init),'_scale=',num2str(scaleFactor),'x_frames=',num2str(n),'_',indxStr,'.eps'];
-        print(gcf,'-dpsc2',fname);
+        print(gcf,'-depsc2','-r600',fname);
         % Save speedMap to disk as well
         eval(['save ',outputdir,filesep,'mat',filesep,'speedMap_d0=',num2str(d0_init),'_scale=',num2str(scaleFactor),'x_frames=',num2str(n),'_',indxStr,'.mat speedMap;']);
     else
         fname=[outputdir,filesep,'tif',filesep,'speedMap_d0=',num2str(d0_init),'_frames=',num2str(n),'_',indxStr,'.tif'];
         print(gcf,'-dtiffnocompression',fname);
         fname=[outputdir,filesep,'eps',filesep,'speedMap_d0=',num2str(d0_init),'_frames=',num2str(n),'_',indxStr,'.eps'];
-        print(gcf,'-dpsc2',fname);
+        print(gcf,'-depsc2','-r600',fname);
         % Save speedMap to disk as well
         eval(['save ',outputdir,filesep,'mat',filesep,'speedMap_d0=',num2str(d0_init),'_frames=',num2str(n),'_',indxStr,'.mat speedMap;']);
     end

@@ -137,8 +137,8 @@ if method==1
             h=quiver('v6',Mv(:,2),Mv(:,1),Mv(:,4)-Mv(:,2),Mv(:,3)-Mv(:,1),0);
         end
         if colorCode==1
-            set(h(1),'Color',cmap(cmapIndex,:));
-            set(h(2),'Color',cmap(cmapIndex,:));
+            set(h(1),'Color',cmap(cmapIndex,:)); set(h(1),'LineWidth',1);
+            set(h(2),'Color',cmap(cmapIndex,:)); set(h(1),'LineWidth',1);
         else
             set(h(1),'Color','red');
             set(h(2),'Color','red');
@@ -192,7 +192,7 @@ else
                 traj(currentPos:currentPos+1)=[NaN NaN]; % Division with the next trajectory
                 currentPos=currentPos+2;
             else
-                aarp=23;
+                % 
             end
         end
         

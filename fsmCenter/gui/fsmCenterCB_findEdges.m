@@ -14,11 +14,8 @@ function fsmCentercb_findEdges
 % Aaron Ponti, 11/18/2003
 
 % Retrieve image from figure
-children=get(gca,'Children');
-if length(children)>1
-    children=children(end);
-end
-img=get(children,'CData');
+hImg=findall(gca,'Type','Image');
+img=get(hImg,'CData');
 
 % Ask the user to specify the bitdepth
 prompt={'Please specify the bit-depth of your image:'};

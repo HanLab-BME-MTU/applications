@@ -28,17 +28,14 @@ if isempty(sigma)
 end
 
 % Retrieve image from figure
-children=get(gca,'Children');
-if length(children)>1
-    children=children(end);
-end
-img=get(children,'CData');
+hImg=findall(gca,'Type','Image');
+img=get(hImg,'CData');
 
 % Filter
 fImg=Gauss2D(img,str2num(sigma));
 
 % Update figure
-set(children,'CData',fImg);
+set(hImg,'CData',fImg);
 refresh;
 
 % Export to base workspace
