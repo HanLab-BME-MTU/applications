@@ -57,4 +57,5 @@ weights = prevPoints'*weights;
 arParam = inv(weights*prevPoints)*weights*traj(arOrder+1:end,1);
 arParam = arParam';
 
+%standard deviation of white noise
 noiseSigma = std(traj(arOrder+1:end,1)-prevPoints*arParam');

@@ -6,7 +6,7 @@ function [c,ceq] = armaConst(param,arOrder,maOrder,traj)
 %INPUT  param   : Set of parameters in ARMA model (concat. of arParam and maParam)
 %       arOrder : Order of autoregressive part of process.
 %       maOrder : Order of moving average part of process.
-%       traj    : Observed trajectory.innovPredict
+%       traj    : Observed trajectory.
 %
 %OUTPUT c   : Constraint that roots should be larger than one.
 %       ceq : Empty, but must be included due to matlab requirements.
