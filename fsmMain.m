@@ -3,9 +3,9 @@ function fsmParam=fsmMain(fsmParam)
 %
 % SYNOPSIS      fsmMain
 %
-% REMARK        Run fsmMain through the graphical user interface fsmGuiRun 
-%               ----------------------------------------------------------
-%
+% REMARK        Run fsmMain through the graphical user interface fsmGuiMain
+%               -----------------------------------------------------------
+%               
 % INPUT         fsmParam    : parameter structure
 %                             (type 'help fsmGetparamsDeflt' for more detail)
 %
@@ -23,6 +23,9 @@ function fsmParam=fsmMain(fsmParam)
 %               fsmMain is used by { fsmMainRun }
 %
 % Aaron Ponti, October 2nd, 2002
+%
+% See Also fsmSpeedMaps
+
 if nargin~=1
     error('One parameter (fsmParam) expected');
 end
