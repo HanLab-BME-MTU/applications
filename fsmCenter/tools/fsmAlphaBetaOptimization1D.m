@@ -1,16 +1,15 @@
-function [noiseParameter, actualP] = fsmAlphaBetaOptimization1D(optimImageStack, noiseParameter, confidenceP, pixelDepth)
-% Function fsmAlphaBetaOptimization1D optimizes noise parameters alpha & beta based on their given initial values
+function [noiseParameter, actualP] = fsmAlphaBetaOptimization1D(imageNameList, noiseParameter, confidenceP)
+% Function alphaBetaOptimization1D optimizes noise parameters alpha & beta based on their given initial values
 % such that the speckle detection result best matches user-specified confidence probability. The optimization
 % search is performed in a 1D fashion, namely first with respect to beta, then with respect to alpha.
 %
-% SYNOPSIS   [noiseParameter] = fsmAlphaBetaOptimization1D(optimImageStack, noiseParameter, confidenceP, pixelDepth)
+% SYNOPSIS   [noiseParameter] = alphaBetaOptimization1D(optimImageStack, optimImageStackLen, noiseParameter)
 %
-% INPUT      optimImageStack      :     stack of images for optimization, normalized.
+% INPUT        imageNameList      :     self-explanatory.
 %             noiseParameter      :     original noise parameters in form [k sigmaDN PoissonNoise I0] 
 %                                       where k = quantile / GaussianRatio;
 %                confidenceP      :     user specified confidence probability. The objective of the optimization process
 %                                       is to make the Percentage of ROI Speckles as close to this value as possible. 
-%                 pixelDepth      :     self-explanatory.
 % 
 % ANNOTATION   Percentage of ROI Speckles is the percentage of accepted speckles within ROI (region of interest)
 %              with respect to total accepted speckles.
@@ -27,8 +26,28 @@ function [noiseParameter, actualP] = fsmAlphaBetaOptimization1D(optimImageStack,
 % Setting ROI through user input. Compute Gauss filtered image
 % stack, local_max stack, local_min stack and cands stack
 
-[imHeight, imWidth, optimImageStackLen] = size(optimImageStack)  
-[bw, xpoly, ypoly] = roipoly(uint8(optimImageStack(:,:,1) * (2^pixelDepth))); % user specifies region of interest
+if (isempty(imageNameList)) % in case the name list is not provided
+    [firstImageName, pathname] = uigetfile('.tif', 'Please choose the first image from the sequence for optimization.');
+    firstImageName = strcat(pathname, firstImageName);
+    imageNameList = getFileStackNames(firstImageName);
+    optimImageStackLen = 3;  % use 3 frames by default
+else
+    firstImageName = imageNameList(1);
+    optimImageStackLen = length(imageNameList);
+end
+
+info = imfinfo(firstImageName, 'tiff');
+imHeight = info.Height;
+imWidth = info.Width;
+bitDepth = info.BitDepth;
+
+[img_temp, map_temp] = imread(firstImageName, 'tiff');
+figure;
+imshow(img_temp, map_temp);
+bw = roipoly;
+% imshow(bw);
+% pause;
+close;
 
 % Gauss filtering, find localmax and localmin
 imGStack = zeros(imHeight, imWidth, optimImageStackLen);   % Gauss filtered image stack
@@ -38,8 +57,10 @@ imMaxStack = zeros(imHeight, imWidth, optimImageStackLen); % local maximum stack
 h = waitbar(0, 'Computing local maxima & minima over the image stack, Please wait...');
 cStack = struct('cands',[]); % Stack of cands
 sigmaG = 1.0;
+
 for i = 1 : optimImageStackLen
-    imGStack(:, :, i) = gauss2d(optimImageStack(:, :, i), sigmaG);
+    img = double(imread(char(imageNameList(i)), 'tiff')) / (2 ^ bitDepth);  % Normalization
+    imGStack(:, :, i) = gauss2d(img, sigmaG);
     imMinStack(:, :, i) = locmin2d(imGStack(:, :, i), [3,3]);
     imMaxStack(:, :, i) = locmax2d(imGStack(:, :, i), [5,5]);
     cStack(i).cands = fsmPrepBkgEstimDelauNoEnh(size(imGStack(:, :, i)), imMaxStack(:, :, i), imMinStack(:, :, i)); % Finds 3 loc min around each loc max
@@ -85,7 +106,7 @@ for m = 1 : beta_num
     for n = 1 : optimImageStackLen
         fprintf('n = %f\n', n);
         [y, x] = alphaBeta(imGStack(:, :, n), imMaxStack(:, :, n), imMinStack(:, :, n), cStack(n).cands, np_temp, 0);
-        temp_len = length(x);
+        temp_len = length(x)
         beta_LmaxNum(m) = beta_LmaxNum(m) + temp_len;
         for s = 1 : temp_len
             if (bw(round(y(s)), round(x(s))) == 1)
