@@ -181,6 +181,13 @@ if ishandle(figH)
     set(figH,'Visible','off');
 end
 
+%relinkgui
+relinkH = findall(0,'Tag','reLinkGUI');
+if ishandle(relinkH)
+    positions.relinkPos = get(relinkH,'Position');
+    delete(relinkH);
+end
+
 %save labelPanelPosition
 positions.labelPanelPos = labelPanelPos;
 

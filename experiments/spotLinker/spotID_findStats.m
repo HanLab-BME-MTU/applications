@@ -158,7 +158,8 @@ if findGoodTime
     goodTime=zeros(size(spots,2),1);
     goodTime(goodGoodRows)=1;
 else
-    goodTime=ones(size(spots,2),1);
+    goodTime=zeros(size(spots,2),1);
+    goodTime(goodRows)=1;
 end
 
 %-------------find stats
@@ -197,10 +198,10 @@ sigmaAmp=median(smSig2);
 
 %check if sigmas~=0 (can be a problem with synthetic data)
 if sigmaXyz==0
-    sigmaXyz==0.0001;
+    sigmaXyz=0.0001;
 end
 if sigmaAmp==0
-    sigmaAmp==0.0001;
+    sigmaAmp=0.0001;
 end
 
 

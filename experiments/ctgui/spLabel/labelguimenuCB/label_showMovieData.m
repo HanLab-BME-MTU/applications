@@ -163,3 +163,6 @@ myMessageBox(dataFigH,msg);
 %save messageBoxH
 SetUserData(imgFigureH,dataFigH,1);
         
+% make gui top most
+figure(imgFigureH);
+figure(labelguiH);

@@ -485,7 +485,7 @@ idlist(1).stats.status{1}=[date, ': pure&original idlist'];
 % end
 
 %----------------------if verbose: plot intList
-if (verbose~=0|saveFile==1) & (findGoodTime == 1)
+if (verbose~=0|saveFile==1)
     gT=find(goodTime);
     if timeLapse==1.001 %no data properties, time not known
         xData=gT;
@@ -528,7 +528,7 @@ intListFileName=['intList-',nowString];
 if saveFile
     %save file
     save(idlistFileName,'idlist');
-    save(intListFileName,'intList');
+    % save(intListFileName,'intList');
 end
 
 idlist(1).stats.name = dataProperties.name;

@@ -12,6 +12,20 @@ if nargin == 0  % LAUNCH GUI
     % Use system color scheme for figure:
     set(fig,'Color',get(0,'defaultUicontrolBackgroundColor'));
     
+    %set shortcuts
+    loadAllH = findall(fig,'Tag','label_load');
+    set(loadAllH,'Accelerator','L');
+    label_loadslistH = findall(fig,'Tag','label_loadslist');
+    set(label_loadslistH,'Accelerator','I');
+    label_saveslistH =  findall(fig,'Tag','label_saveslist');
+    set(label_saveslistH,'Accelerator','S');
+    label_reload_idlistH =  findall(fig,'Tag','label_reload_idlist');
+    set(label_reload_idlistH,'Accelerator','Z');
+    label_deletetpH =  findall(fig,'Tag','label_deletetp');
+    set(label_deletetpH,'Accelerator','D');
+    reLinkTagsH =  findall(fig,'Tag','reLinkTags');
+    set(reLinkTagsH,'Accelerator','R');
+    
     % Generate a structure of handles to pass to callbacks, and store it. 
     handles = guihandles(fig);
     guidata(fig, handles);

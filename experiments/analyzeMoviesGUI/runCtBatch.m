@@ -759,6 +759,7 @@ try
                         if ~isempty(disFigH)
                             delete(disFigH);
                         end
+                        
                             
                         %save 'lastResult' and ''lastResult''
                         fprintf(fidJob,[nowString,' save(%s,',lastResult,',''-append'');\n'],projData);

@@ -1,4 +1,4 @@
-function data = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
+function [data,orientation] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
 %CALCULATETRAJECTORYFORMIDLIST calculates distance trajectories from an idlist
 %
 %SYNOPSIS data = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,mode)
@@ -22,6 +22,8 @@ function data = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,op
 %                                  describe the data
 %                               .tags   cell containing the two tags used
 %                                       calculate the trajectory {'tag1';'tag2'}
+%
+%         orientation    : 1-by-n matrix of angles [rad] from the xy-plane
 %
 %
 %REMARKS  fusions will not be considered as valid timepoints
@@ -135,6 +137,7 @@ timePoints = squeeze(linkLists(1,1,:));
 
 %loop through idlist to get Q-matrices (write 'anaDat' for sigma-calculation)
 ct = 1;
+anaDat(1:length(timePoints)) = struct('stats',[]);
 for t = timePoints' %only look at good timepoints
     %get QMatrix and transform to microns
     if isfield(idlist(t).info,'trackQ_Pix') & ~isempty(idlist(t).info.trackQ_Pix) & isfield(idlist(t).info,'trackerMessage')
@@ -159,7 +162,7 @@ end
 %-------CALC DISTANCE & DISTANCESIGMA
 
 %calc norms
-[distanceN]=normList(distanceVectors);
+[distanceN,normedVectors]=normList(distanceVectors);
 
 %calc sigma
 distanceSigma = adgui_calcPlotData_distanceSigma(anaDat,[1 2],distanceVectors,distanceN,0);
@@ -184,6 +187,13 @@ timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/2;
 %     end
 % end
 % %---END READ CHI2
+
+if nargin > 1
+    %orientation: [-pi/2...pi/2]. calculate from vN*[0 0 1]
+    orientation = pi/2-acos(normedVectors(:,3));
+else
+    orientation = [];
+end
 
 %-------ASSIGN OUTPUT
 data.distance   = [distanceN,distanceSigma];

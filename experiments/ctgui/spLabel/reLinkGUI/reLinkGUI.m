@@ -496,7 +496,7 @@ end
 SetUserData(imgFigureH,idlist,1);
 
 % delete(handles.reLinkGUI);
-% labelgui('refresh');
+labelgui('refresh');
 
 
 % --------------------------------------------------------------------
@@ -509,6 +509,12 @@ really=questdlg('Do you really want to quit without saving changes?','Quit?','ye
 if strcmp(really,'no')
     return %end evaluation here
 end
+
+%remember position
+labelGuiH=findall(0,'Tag','labelgui');
+positions = GetUserData(labelGuiH,'positions'); %get position struct
+positions.relinkPos = get(handles.reLinkGUI,'Position');
+SetUserData(labelGuiH,positions,1);
 
 %use delete, not close so that the closreqFcn is not called
 delete(handles.reLinkGUI);
@@ -556,6 +562,8 @@ set(allH,'Value',0);
 %---------------------------------------------------------------------
 function initGUI(reLink_handles)
 %initializes GUI: plots buttons, sets UserData etc. 
+
+set(reLink_handles.reLinkGUI,'Visible','off')
 
 %----------get labelgui handles-------------
 imgFigureH=GetUserData(openfig('labelgui','reuse'),'currentWindow');
@@ -682,7 +690,13 @@ if ~isempty(prev_time)
         %if pure color: add strip of mixed color
         multiplicity=length(find(idlist(prev_time).linklist(:,2)==prev_linklist(i,2)));
         if multiplicity>1 
-            [dummy,dummy,z]=meshgrid(1:ButtonWidthTag,1:round(ButtonHeight/3),1:3);
+            % read positions in pixel -> change units of button first
+            set(prevH(1,1),'Units','pixels')
+            buttonPosPix = get(prevH(1,1),'Position');
+            % set units back to char
+            set(prevH(1,1),'Units','characters');
+            % draw strip
+            [dummy,dummy,z]=meshgrid(1:buttonPosPix(3),1:round(buttonPosPix(4)/3),1:3);
             stripColor=cMap(round(prev_linklist(i,3)/multiplicity*cMapFact),:);
             strip=stripColor(z);
             set(prevH(i),'CData',strip);
@@ -720,10 +734,16 @@ for i=1:curr_ntag
         'String',[tag_string(curr_valuemap(i,2)),'-',num2str(curr_valuemap(i,1))],...
         'TooltipString',[tag_string(curr_valuemap(i,2)),'-',num2str(curr_valuemap(i,1))]);
     
-    %if pure color: add strip of mixed color
+    %if ~pure color: add strip of mixed color
     multiplicity=length(find(idlist(curr_time).linklist(:,2)==curr_linklist(i,2)));
     if multiplicity>1 
-        [dummy,dummy,z]=meshgrid(1:ButtonWidthTag,1:round(ButtonHeight/3),1:3);
+        % read positions in pixel -> change units of button first
+        set(currTH(1,1),'Units','pixels')
+        buttonPosPix = get(currTH(1,1),'Position');
+        % set units back to char
+        set(currTH(1,1),'Units','characters');
+        % draw strip
+        [dummy,dummy,z]=meshgrid(1:buttonPosPix(3),1:round(buttonPosPix(4)/3),1:3);
         stripColor=cMap(round(curr_linklist(i,3)/multiplicity*cMapFact),:);
         strip=stripColor(z);
         set(currTH(i),'CData',strip);
@@ -749,7 +769,13 @@ if ~isempty(next_time)
         multiplicity=length(find(idlist(next_time).linklist(:,2)==next_linklist(i,2)));
         %multiplicity=length(idlist(next_time).spot(next_linklist(i,2)).linkup);
         if multiplicity>1 
-            [dummy,dummy,z]=meshgrid(1:ButtonWidthTag,1:round(ButtonHeight/3),1:3);
+            % read positions in pixel -> change units of button first
+            set(nextH(1,1),'Units','pixels')
+            buttonPosPix = get(nextH(1,1),'Position');
+            % set units back to char
+            set(nextH(1,1),'Units','characters');
+            % draw strip
+            [dummy,dummy,z]=meshgrid(1:buttonPosPix(3),1:round(buttonPosPix(4)/3),1:3);
             stripColor=cMap(round(next_linklist(i,3)/multiplicity*cMapFact),:);
             strip=stripColor(z);
             set(nextH(i),'CData',strip);
@@ -762,6 +788,13 @@ buttonH={prevH,currSH,currTH,nextH};
 
 %store time in array
 allTime=[prev_time,curr_time,next_time];
+
+%---------if applicable: set position
+positions = GetUserData(labelGuiH,'positions'); %get position struct
+if isfield(positions,'relinkPos')
+    set(reLink_handles.reLinkGUI,'Position',positions.relinkPos)
+end
+
 
 %----------------save user data
 SetUserData(reLink_handles.reLinkGUI,prev_valuemap,1);
@@ -798,8 +831,9 @@ if ~isempty(view3DH)
 end
 
 
-
-%make reLinkGUI topmost
+% make gui appear again
+set(reLink_handles.reLinkGUI,'Visible','on')
+% make reLinkGUI topmost
 figure(reLink_handles.reLinkGUI);
 
 
@@ -809,10 +843,16 @@ function reLink_updatePB_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%just restart the gui
-rlPos = get(handles.reLinkGUI,'Position');
+% just restart the gui, but remember the position
+
+% remember position
+labelGuiH=findall(0,'Tag','labelgui');
+positions = GetUserData(labelGuiH,'positions'); %get position struct
+positions.relinkPos = get(handles.reLinkGUI,'Position');
+SetUserData(labelGuiH,positions,1);
+
+% restart
 delete(handles.reLinkGUI);
-rlh = reLinkGUI;
-set(rlh,'Position',rlPos);
+reLinkGUI;
 
 

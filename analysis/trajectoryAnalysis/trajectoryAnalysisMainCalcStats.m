@@ -238,17 +238,18 @@ if ~isempty(growthIdx)
     indGrowthSpeedSigma = sigmaMax(growthIdx)./(abs(dataListG(growthIdx,4)).*sqrt(dataListG(growthIdx,7)));
     [growthSpeedMean, growthSpeedStd] = weightedStats(dataListG(growthIdx,4),...
         indGrowthSpeedSigma,'s');
-    [growthSpeedMeanPW, growthSpeedStdPW] = weightedStats(dataListG(growthIdx,4),...
-        sigmaMax(growthIdx),'s');
+%     [growthSpeedMeanPW, growthSpeedStdPW] = weightedStats(dataListG(growthIdx,4),...
+%         sigmaMax(growthIdx),'s');
     
-    growthSpeedMeanNW = mean(dataListG(growthIdx,4))*60;
-    growthSpeedStdNW = std(dataListG(growthIdx,4))*60/sqrt(length(growthIdx));
+    [growthSpeedMeanNW,growthSpeedStdNW] = weightedStats(dataListG(growthIdx,4)*60,dataListG(growthIdx,7),'w');
+%     growthSpeedMeanNW = mean(dataListG(growthIdx,4))*60;
+%     growthSpeedStdNW = std(dataListG(growthIdx,4))*60/sqrt(length(growthIdx));
     
     %transform to um/min
     growthSpeedMean = growthSpeedMean*60;
     growthSpeedStd  = growthSpeedStd *60;
-    growthSpeedMeanPW = growthSpeedMeanPW*60;
-    growthSpeedStdPW  = growthSpeedStdPW *60;
+%     growthSpeedMeanPW = growthSpeedMeanPW*60;
+%     growthSpeedStdPW  = growthSpeedStdPW *60;
     
     %time (inv needed for frequencies, total for %undetermined)
     %rescue and catastrophe are considered poisson processes - hence the
@@ -313,17 +314,18 @@ if ~isempty(shrinkageIdx)
 
     [shrinkageSpeedMean, shrinkageSpeedStd] = weightedStats(dataListG(shrinkageIdx,4),...
         indShrinkageSpeedSigma,'s');
-    [shrinkageSpeedMeanPW, shrinkageSpeedStdPW] = weightedStats(dataListG(shrinkageIdx,4),...
-        sigmaMax(shrinkageIdx),'s');
+%     [shrinkageSpeedMeanPW, shrinkageSpeedStdPW] = weightedStats(dataListG(shrinkageIdx,4),...
+%         sigmaMax(shrinkageIdx),'s');
     %non-weighted stats
-    shrinkageSpeedMeanNW = mean(dataListG(shrinkageIdx,4))*60;
-    shrinkageSpeedStdNW  = std(dataListG(shrinkageIdx,4))*60/sqrt(length(shrinkageIdx));
+    [shrinkageSpeedMeanNW,shrinkageSpeedStdNW] = weightedStats(dataListG(shrinkageIdx,4)*60,dataListG(shrinkageIdx,7),'w');
+%     shrinkageSpeedMeanNW = mean(dataListG(shrinkageIdx,4))*60;
+%     shrinkageSpeedStdNW  = std(dataListG(shrinkageIdx,4))*60/sqrt(length(shrinkageIdx));
     
     %transform to um/min
     shrinkageSpeedMean = shrinkageSpeedMean*60;
     shrinkageSpeedStd  = shrinkageSpeedStd *60;
-    shrinkageSpeedMeanPW = shrinkageSpeedMeanPW*60;
-    shrinkageSpeedStdPW  = shrinkageSpeedStdPW *60;
+%     shrinkageSpeedMeanPW = shrinkageSpeedMeanPW*60;
+%     shrinkageSpeedStdPW  = shrinkageSpeedStdPW *60;
     
     %time (inv needed for frequencies, total for %undetermined)
     %rescue and catastrophe are considered poisson processes - hence the
@@ -353,7 +355,7 @@ if ~isempty(undeterminedIdx)
     undeterminedTimeTotal = sum(dataListG(undeterminedIdx,7));
     %distance
     [undeterminedDistanceMean,undeterminedDistanceStd] = ...
-        weightedStats(dataListG(undeterminedIdx,9),dataListG(undeterminedIdx,10),'s');
+        weightedStats(abs(dataListG(undeterminedIdx,9)),dataListG(undeterminedIdx,10),'s');
 end
 
 %PAUSE
@@ -385,10 +387,8 @@ statisticsStruct = struct(...
     'con2sepFreq' ,             [invShrinkageTimeMean , invShrinkageTimeStd],...
     'separationSpeed' ,         [growthSpeedMean , growthSpeedStd],...
     'separationSpeedNW',        [growthSpeedMeanNW , growthSpeedStdNW],...
-    'separationSpeedPW',        [growthSpeedMeanPW , growthSpeedStdPW],...
     'congressionSpeed' ,        [shrinkageSpeedMean , shrinkageSpeedStd],...
     'congressionSpeedNW' ,      [shrinkageSpeedMeanNW , shrinkageSpeedStdNW],...
-    'congressionSpeedPW' ,      [shrinkageSpeedMeanPW , shrinkageSpeedStdPW],...
     'distanceMean',             [distanceMean,distanceStd],...
     'minDistance',              [minDistance , minDistanceStd],...
     'minDistanceM5' ,           [minDistanceM5 , minDistanceM5Std],...

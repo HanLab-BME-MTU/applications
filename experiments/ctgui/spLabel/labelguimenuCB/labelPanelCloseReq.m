@@ -57,6 +57,13 @@ try
         delete(figH);
     end
     
+    %relinkgui
+    relinkH = findall(0,'Tag','reLinkGUI');
+    if ishandle(relinkH)
+        positions.relinkPos = get(relinkH,'Position');
+        delete(relinkH);
+    end
+    
     %remember labelPanelPosition
     positions.labelPanelPos = get(imgFigureH,'Position');
     
