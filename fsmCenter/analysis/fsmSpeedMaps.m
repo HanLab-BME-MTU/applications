@@ -40,7 +40,7 @@ global uFirst uLast
     '*.jpg;','JPG files (*.jpg)'
     '*.jpeg;','JPEG files (*.jpeg)'
     '*.*','All Files (*.*)'},...
-    'Select one image from the stack');
+    'Select first image');
 if(isa(fName,'char') & isa(dirName,'char'))
     img=nrm(imread([dirName,fName]),1);
     % Store image size
@@ -219,7 +219,9 @@ if exist([outputdir,filesep,'eps'])~=7
 end
 
 % Create vector of indices for file names
-indices=[uFirst:uLast-n+1]+fix(n/2);
+[path,body,indxStart,ext]=getFilenameBody(char(outFileList(1)));
+[path,body,indxEnd,ext]=getFilenameBody(char(outFileList(end)));
+indices=[str2num(indxStart):str2num(indxEnd)-n+1]+fix(n/2);
 
 % Initializing waitbar
 h=waitbar(0,'Creating speed maps...');
@@ -258,7 +260,7 @@ for c2=1:steps
     xmax=2^14-1;
     img=imreadnd2(char(outFileList(c2)),0,xmax);
     try
-        [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',0,'bit_depth',xmax);
+        [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
     catch
         % Uses last one
     end
