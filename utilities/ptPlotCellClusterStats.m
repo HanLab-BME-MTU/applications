@@ -83,16 +83,16 @@ if ptPostpro.cellclusterplot_1
     
     % Save MAT files for amount of cells and perc. single cells
     cd (savePath);
-    save ('amountAllCells.mat','cellAmount');
+    save ([imageName '_amountAllCells.mat'],'cellAmount');
     
     % Save CSV files for amount of cells and perc. single cells
     cd (savePath);
-    csvwrite ('amountAllCells.csv', [xAxis ; cellAmount]);
+    csvwrite ([imageName '_amountAllCells.csv'], [xAxis ; cellAmount]);
     
     % Save the figures in fig, eps and tif format
-    hgsave (h_fig, [savePath filesep 'amountAllCells.fig']);
-    print (h_fig, [savePath filesep 'amountAllCells.eps'], '-depsc2', '-tiff');
-    print (h_fig, [savePath filesep 'amountAllCells.tif'], '-dtiff'); 
+    hgsave (h_fig, [savePath filesep [imageName '_amountAllCells.fig']]);
+    print (h_fig, [savePath filesep [imageName '_amountAllCells.eps']], '-depsc2', '-tiff');
+    print (h_fig, [savePath filesep [imageName '_amountAllCells.tif']], '-dtiff'); 
 end
 
 if ptPostpro.cellclusterplot_2
@@ -126,14 +126,14 @@ if ptPostpro.cellclusterplot_2
 
     % Save MAT files for amount of cells and perc. single cells
     cd (savePath);
-    save ('percentageSingleCells.mat','percentageSingleCells');
+    save ([imageName '_percentageSingleCells.mat'],'percentageSingleCells');
 
     % Save CSV files for amount of cells and perc. single cells
     cd (savePath);
-    csvwrite ('percentageSingleCells.csv', [xAxis ; percentageSingleCells]);
+    csvwrite ([imageName '_percentageSingleCells.csv'], [xAxis ; percentageSingleCells]);
 
     % Save the figures in fig, eps and tif format
-    hgsave (h_fig2, [savePath filesep 'percentageSingleClusteredCells.fig']);
-    print (h_fig2, [savePath filesep 'percentageSingleClusteredCells.eps'], '-depsc2', '-tiff');
-    print (h_fig2, [savePath filesep 'percentageSingleClusteredCells.tif'], '-dtiff'); 
+    hgsave (h_fig2, [savePath filesep [imageName '_percentageSingleClusteredCells.fig']]);
+    print (h_fig2, [savePath filesep [imageName '_percentageSingleClusteredCells.eps']], '-depsc2', '-tiff');
+    print (h_fig2, [savePath filesep [imageName '_percentageSingleClusteredCells.tif']], '-dtiff'); 
 end

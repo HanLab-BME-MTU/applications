@@ -58,9 +58,9 @@ if ptPostpro.areaplot_2
     end
 
     % Save the figures in fig, eps and tif format     
-    hgsave(h_fig,[savePath filesep 'averageCellAndClusterArea.fig']);
-    print(h_fig, [savePath filesep 'averageCellAndClusterArea.eps'],'-depsc2','-tiff');
-    print(h_fig, [savePath filesep 'averageCellAndClusterArea.tif'],'-dtiff');
+    hgsave(h_fig,[savePath filesep [imageName '_averageCellAndClusterArea.fig']]);
+    print(h_fig, [savePath filesep [imageName '_averageCellAndClusterArea.eps']],'-depsc2','-tiff');
+    print(h_fig, [savePath filesep [imageName '_averageCellAndClusterArea.tif']],'-dtiff');
 end
 
 if ptPostpro.areaplot_1
@@ -93,9 +93,9 @@ if ptPostpro.areaplot_1
     end
 
     % Save the figures in fig, eps and tif format     
-    hgsave(h_fig2,[savePath filesep 'areaAllCells.fig']);
-    print(h_fig2, [savePath filesep 'areaAllCells.eps'],'-depsc2','-tiff');
-    print(h_fig2, [savePath filesep 'areaAllCells.tif'],'-dtiff');
+    hgsave(h_fig2,[savePath filesep [imageName '_areaAllCells.fig']]);
+    print(h_fig2, [savePath filesep [imageName '_areaAllCells.eps']],'-depsc2','-tiff');
+    print(h_fig2, [savePath filesep [imageName '_areaAllCells.tif']],'-dtiff');
 end
 
 if ptPostpro.areaplot_3
@@ -129,11 +129,11 @@ if ptPostpro.areaplot_3
     end
 
     % Save the figures in fig, eps and tif format     
-    hgsave(h_fig3,[savePath filesep 'averageAreaAndRatio.fig']);
-    print(h_fig3, [savePath filesep 'averageAreaAndRatio.eps'],'-depsc2','-tiff');
-    print(h_fig3, [savePath filesep 'averageAreaAndRatio.tif'],'-dtiff');
+    hgsave(h_fig3,[savePath filesep [imageName '_averageAreaAndRatio.fig']]);
+    print(h_fig3, [savePath filesep [imageName '_averageAreaAndRatio.eps']],'-depsc2','-tiff');
+    print(h_fig3, [savePath filesep [imageName '_averageAreaAndRatio.tif']],'-dtiff');
     
     % Save CSV files
     cd (savePath);
-    csvwrite ('averageAreaAndRatio.csv', [xAxis ; areaRatio(:,3)']);
+    csvwrite ([imageName '_averageAreaAndRatio.csv'], [xAxis ; areaRatio(:,3)']);
 end

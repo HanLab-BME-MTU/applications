@@ -30,7 +30,7 @@ plotStartFrame = ptPostpro.plotfirstimg;
 plotEndFrame = ptPostpro.plotlastimg;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
-imageName = ptPostpro.imagename;
+imageName = ptPostpro.imagenamenotiff;
 increment = ptPostpro.increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 maxDistance = ptPostpro.neighbourdist;
@@ -161,25 +161,37 @@ for frameCount = plotStartFrame : increment : plotEndFrame
          
             % Both contain the cell: find out if neighbours are similar
             if length(neighbours(neighbourInd).neighbours) >= length(prevNeighbours(prevNeighbourInd).neighbours)    
-               neighbourChange = ~ismember (neighbours(neighbourInd).neighbours, prevNeighbours(prevNeighbourInd).neighbours); 
+               % If a new cell comes into the image, we don't count it as a new neighbour
+               [diff, diffIndx] = setdiff(neighbours(neighbourInd).neighbours, prevNeighbours(prevNeighbourInd).neighbours);
+               for diffCount = 1 : length (diff)
+                  if ismember(diff(diffCount), prevCellNrs)
+                     % It is a real neighbour change, so count it
+                     neighbourChangeCount = neighbourChangeCount + 1;
+                  end
+               end
+%                neighbourChange = ~ismember (neighbours(neighbourInd).neighbours, prevNeighbours(prevNeighbourInd).neighbours); 
             else  % neighbours is shorter, which means we lost a cell(s)
-               % If the lost cell is due to bad tracking, we don't count it
-               % as a lost neighbour
-%                [diff, diffIndx] = setdiff(prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours);
-%                for diffCount = 1 : length (diff)
-%                   if ismember(diff(diffCount), cellNrs)
-%                      % It is a real neighbour change, so count it
-%                      neighbourChangeCount = neighbourChangeCount + 1;
-%                   end
-%                end
-               neighbourChange = ~ismember (prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours); 
+               % If the lost cell is due to bad tracking, we don't count it as a lost neighbour
+               [diff, diffIndx] = setdiff(prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours);
+               for diffCount = 1 : length (diff)
+                  if ismember(diff(diffCount), cellNrs)
+                     % It is a real neighbour change, so count it
+                     neighbourChangeCount = neighbourChangeCount + 1;
+                  end
+               end
+%                neighbourChange = ~ismember (prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours); 
             end
             
             % Sum up the changes
-            nbChange(count) = nbChange(count) + sum(neighbourChange);
+%             nbChange(count) = nbChange(count) + sum(neighbourChange);
+            nbChange(count) = nbChange(count) + neighbourChangeCount;
             
             % Increase change counter
             count = count + 1;
+            
+            % Reset neighbourChangeCount
+            neighbourChangeCount = 0;
+            
          end  % ~isempty(find(prevCellNrs == cCount))
       end  % if frameCount > plotStartFrame 
       
@@ -219,12 +231,12 @@ if ptPostpro.neighbourplot_2
     end
 
     % Save the figures in fig, eps and tif format  
-    hgsave (h_fig2,[savePath filesep 'avgNeighbourChange.fig']);
-    print (h_fig2, [savePath filesep 'avgNeighbourChange.eps'],'-depsc2','-tiff');
-    print (h_fig2, [savePath filesep 'avgNeighbourChange.tif'],'-dtiff');      
+    hgsave (h_fig2,[savePath filesep [imageName '_avgNeighbourChange.fig']]);
+    print (h_fig2, [savePath filesep [imageName '_avgNeighbourChange.eps']],'-depsc2','-tiff');
+    print (h_fig2, [savePath filesep [imageName '_avgNeighbourChange.tif']],'-dtiff');      
     
     % Save CSV files
     cd (savePath); 
-    csvwrite ('avgNeighbourInteractionChange.csv', [xAxis ; avgNbChange]);
+    csvwrite ([imageName '_avgNeighbourInteractionChange.csv'], [xAxis ; avgNbChange]);
 end
 

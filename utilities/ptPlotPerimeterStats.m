@@ -51,6 +51,6 @@ else
 end
 
 % Save the figures in fig, eps and tif format        
-hgsave(h_fig,[savePath filesep 'areaPerimStats.fig']);
-print(h_fig, [savePath filesep 'areaPerimStats.eps'],'-depsc2','-tiff');
-print(h_fig, [savePath filesep 'areaPerimStats.tif'],'-dtiff');     
+hgsave(h_fig,[savePath filesep [imageName '_areaPerimStats.fig']]);
+print(h_fig, [savePath filesep [imageName '_areaPerimStats.eps']],'-depsc2','-tiff');
+print(h_fig, [savePath filesep [imageName '_areaPerimStats.tif']],'-dtiff');     

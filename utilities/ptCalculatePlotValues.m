@@ -30,7 +30,7 @@ plotEndFrame = ptPostpro.plotlastimg;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
-imageName = ptPostpro.imagename;
+imageName = ptPostpro.imagenamenotiff;
 pixelLength = ptPostpro.mmpixel;
 rowSize = ptPostpro.rowsize;
 colSize = ptPostpro.colsize;
@@ -191,5 +191,5 @@ end
 if cellClusterPlot | areaPlot | perimeterPlot
    % For all the figures we want to keep the xAxis as well 
    cd (savePath);
-   save ('xAxis-CellStats.mat','xAxis');
+   save ([imageName '_xAxis-CellStats.mat'],'xAxis');
 end

@@ -28,7 +28,7 @@ plotEndFrame = ptPostpro.plotlastimg;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
-imageName = ptPostpro.imagename;
+imageName = ptPostpro.imagenamenotiff;
 rowSize = ptPostpro.rowsize;
 colSize = ptPostpro.colsize;
 pixelLength = ptPostpro.mmpixel;
@@ -151,9 +151,9 @@ if ptPostpro.cellcelldistplot_1
     end
     
     % Save the figures in fig, eps and tif format     
-    hgsave (h_fig,[savePath filesep 'AvgDistanceBetweenCells.fig']);
-    print (h_fig, [savePath filesep 'AvgDistanceBetweenCells.eps'],'-depsc2','-tiff');
-    print (h_fig, [savePath filesep 'AvgDistanceBetweenCells.tif'],'-dtiff');
+    hgsave (h_fig,[savePath filesep [imageName '_AvgDistanceBetweenCells.fig']]);
+    print (h_fig, [savePath filesep [imageName '_AvgDistanceBetweenCells.eps']],'-depsc2','-tiff');
+    print (h_fig, [savePath filesep [imageName '_AvgDistanceBetweenCells.tif']],'-dtiff');
 end
 
 % % Calculate the maximum distance value

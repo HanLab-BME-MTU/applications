@@ -278,6 +278,9 @@ info = imfinfo (handles.jobvalues.imagename);
 handles.postpro.rowsize = info.Height;
 handles.postpro.colsize = info.Width;
 
+% Get the imagename without .tif
+imageNameNoTiff = regexprep(handles.jobvalues.imagename, '.tif', '', 'ignorecase');
+
 % Now we have to fill up the rest of the postpro structure with
 % our previously found data and parameters
 handles.selectedcells = [];
@@ -293,6 +296,7 @@ handles.postpro.moviefirstimg = handles.jobvalues.firstimage;
 handles.postpro.movielastimg = handles.jobvalues.lastimage;
 handles.postpro.jobpath = jobValPath;
 handles.postpro.imagename = handles.jobvalues.imagename;
+handles.postpro.imagenamenotiff = imageNameNoTiff;
 handles.postpro.imagenameslist = handles.jobvalues.imagenameslist;
 handles.postpro.intensitymax = handles.jobvalues.intensityMax;
 handles.postpro.maxdistance = handles.jobvalues.maxsearch;

@@ -27,7 +27,7 @@ plotStartFrame = ptPostpro.plotfirstimg;
 plotEndFrame = ptPostpro.plotlastimg;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
-imageName = ptPostpro.imagename;
+imageName = ptPostpro.imagenamenotiff;
 increment = ptPostpro.increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 cellProps = ptPostpro.cellProps;
@@ -195,11 +195,11 @@ if ptPostpro.neighbourplot_1
     end
 
     % Save the figures in fig, eps and tif format        
-    hgsave (h_fig,[savePath filesep 'avgNeighbourTrajLength.fig']);
-    print (h_fig, [savePath filesep 'avgNeighbourTrajLength.eps'],'-depsc2','-tiff');
-    print (h_fig, [savePath filesep 'avgNeighbourTrajLength.tif'],'-dtiff');      
+    hgsave (h_fig,[savePath filesep [imageName '_avgNeighbourTrajLength.fig']]);
+    print (h_fig, [savePath filesep [imageName '_avgNeighbourTrajLength.eps']],'-depsc2','-tiff');
+    print (h_fig, [savePath filesep [imageName '_avgNeighbourTrajLength.tif']],'-dtiff');      
     
     % Save CSV files
     cd (savePath);
-    csvwrite ('avgNeighbourTrajLength.csv', [xAxis ; avgTrajFrame]);
+    csvwrite ([imageName '_avgNeighbourTrajLength.csv'], [xAxis ; avgTrajFrame]);
 end

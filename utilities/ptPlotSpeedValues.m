@@ -29,7 +29,7 @@ plotStartFrame = ptPostpro.plotfirstimg;
 plotEndFrame = ptPostpro.plotlastimg;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
-imageName = ptPostpro.imagename;
+imageName = ptPostpro.imagenamenotiff;
 increment = ptPostpro.increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 cellProps = ptPostpro.cellProps;
@@ -277,9 +277,9 @@ if ptPostpro.speedplot_2
     end
 
     % Save the figures in fig, eps and tif format        
-    hgsave (h_fig,[savePath filesep 'avgVelocityAllCells.fig']);
-    print (h_fig, [savePath filesep 'avgVelocityAllCells.eps'],'-depsc2','-tiff');
-    print (h_fig, [savePath filesep 'avgVelocityAllCells.tif'],'-dtiff');      
+    hgsave (h_fig,[savePath filesep [imageName '_avgVelocityAllCells.fig']]);
+    print (h_fig, [savePath filesep [imageName '_avgVelocityAllCells.eps']],'-depsc2','-tiff');
+    print (h_fig, [savePath filesep [imageName '_avgVelocityAllCells.tif']],'-dtiff');      
 
     % Generate the figure and title
     h_fig2 = figure('Name', imageName);
@@ -310,19 +310,19 @@ if ptPostpro.speedplot_2
 
     % Save MAT files for avg all, single and clustered cell velocity
     cd (savePath);
-    save ('avgCellVelocity.mat','avgVelocity');
-    save ('avgSingleCellVelocity.mat','avgSingleVelocity');
-    save ('avgClusteredCellVelocity.mat','avgClusteredVelocity');
+    save ([imageName '_avgCellVelocity.mat'],'avgVelocity');
+    save ([imageName '_avgSingleCellVelocity.mat'],'avgSingleVelocity');
+    save ([imageName '_avgClusteredCellVelocity.mat'],'avgClusteredVelocity');
 
     % Save CSV files for avg all, single and clustered cell velocity
-    csvwrite ('avgCellVelocity.csv', [xAxis ; avgVelocity]);
-    csvwrite ('avgSingleCellVelocity.csv', [xAxis ; avgSingleVelocity]);
-    csvwrite ('avgClusteredCellVelocity.csv', [xAxis ; avgClusteredVelocity]);
+    csvwrite ([imageName '_avgCellVelocity.csv'], [xAxis ; avgVelocity]);
+    csvwrite ([imageName '_avgSingleCellVelocity.csv'], [xAxis ; avgSingleVelocity]);
+    csvwrite ([imageName '_avgClusteredCellVelocity.csv'], [xAxis ; avgClusteredVelocity]);
 
     % Save the figures in fig, eps and tif format     
-    hgsave (h_fig2,[savePath filesep 'avgSingleAndClusterVelocity.fig']);
-    print (h_fig2, [savePath filesep 'avgSingleAndClusterVelocity.eps'],'-depsc2','-tiff');
-    print (h_fig2, [savePath filesep 'avgSingleAndClusterVelocity.tif'],'-dtiff');
+    hgsave (h_fig2,[savePath filesep [imageName '_avgSingleAndClusterVelocity.fig']]);
+    print (h_fig2, [savePath filesep [imageName '_avgSingleAndClusterVelocity.eps']],'-depsc2','-tiff');
+    print (h_fig2, [savePath filesep [imageName '_avgSingleAndClusterVelocity.tif']],'-dtiff');
 end
 
 
@@ -346,15 +346,15 @@ if ptPostpro.speedplot_1
 
     % Save MAT files for percentage velocity higher than single cell speed
     cd (savePath);
-    save ('velAllCellsHigherThanAvgSingleCells.mat','velAllCellsHigherThanAvgSingleCells');
+    save ([imageName '_velAllCellsHigherThanAvgSingleCells.mat'],'velAllCellsHigherThanAvgSingleCells');
 
     % Save CSV files for percentage velocity higher than single cell speed
-    csvwrite ('velAllCellsHigherThanAvgSingleCells.csv', [xAxis ; velAllCellsHigherThanAvgSingleCells]);
+    csvwrite ([imageName '_velAllCellsHigherThanAvgSingleCells.csv'], [xAxis ; velAllCellsHigherThanAvgSingleCells]);
 
     % Save the figures in fig, eps and tif format        
-    hgsave (h_fig3,[savePath filesep 'velAllCellsHigherThanAvgSingleCells.fig']);
-    print (h_fig3, [savePath filesep 'velAllCellsHigherThanAvgSingleCells.eps'],'-depsc2','-tiff');
-    print (h_fig3, [savePath filesep 'velAllCellsHigherThanAvgSingleCells.tif'],'-dtiff');
+    hgsave (h_fig3,[savePath filesep [imageName '_velAllCellsHigherThanAvgSingleCells.fig']]);
+    print (h_fig3, [savePath filesep [imageName '_velAllCellsHigherThanAvgSingleCells.eps']],'-depsc2','-tiff');
+    print (h_fig3, [savePath filesep [imageName '_velAllCellsHigherThanAvgSingleCells.tif']],'-dtiff');
 end
 
 
@@ -401,19 +401,19 @@ if ptPostpro.speedplot_3
 
     % Save MAT files for avg all, single and clustered cell variance
     cd (savePath);
-    save ('varCellVelocity.mat','varVelocity');
-    save ('varSingleCellVelocity.mat','varSingleCellVelocity');
-    save ('varClusteredCellVelocity.mat','varClusteredCellVelocity');
+    save ([imageName '_varCellVelocity.mat'],'varVelocity');
+    save ([imageName '_varSingleCellVelocity.mat'],'varSingleCellVelocity');
+    save ([imageName '_varClusteredCellVelocity.mat'],'varClusteredCellVelocity');
 
     % Save CSV files for avg all, single and clustered cell variance
-    csvwrite ('varCellVelocity.csv', [xAxis ; varVelocity]);
-    csvwrite ('varSingleCellVelocity.csv', [xAxis ; varSingleCellVelocity]);
-    csvwrite ('varClusteredCellVelocity.csv', [xAxis ; varClusteredCellVelocity]);
+    csvwrite ([imageName '_varCellVelocity.csv'], [xAxis ; varVelocity]);
+    csvwrite ([imageName '_varSingleCellVelocity.csv'], [xAxis ; varSingleCellVelocity]);
+    csvwrite ([imageName '_varClusteredCellVelocity.csv'], [xAxis ; varClusteredCellVelocity]);
 
     % Save the figures in fig, eps and tif format     
-    hgsave (h_fig4,[savePath filesep 'varSingleAndClusterVelocity.fig']);
-    print (h_fig4, [savePath filesep 'varSingleAndClusterVelocity.eps'],'-depsc2','-tiff');
-    print (h_fig4, [savePath filesep 'varSingleAndClusterVelocity.tif'],'-dtiff');
+    hgsave (h_fig4,[savePath filesep [imageName '_varSingleAndClusterVelocity.fig']]);
+    print (h_fig4, [savePath filesep [imageName '_varSingleAndClusterVelocity.eps']],'-depsc2','-tiff');
+    print (h_fig4, [savePath filesep [imageName '_varSingleAndClusterVelocity.tif']],'-dtiff');
 end
 
 
@@ -454,5 +454,5 @@ end
 
 % For all the figures we want to keep the xAxis as well 
 cd (savePath);
-save ('xAxis-CellDisp.mat','xAxis');
+save ([imageName '_xAxis-CellDisp.mat'],'xAxis');
 
