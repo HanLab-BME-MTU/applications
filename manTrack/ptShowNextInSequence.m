@@ -17,6 +17,21 @@ function ptShowNextInSequence
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Feb 05          First Release
 
+% get the structure in the subfunction
+handles = guidata(gcbo);
+
+% Fetch the values from the handlesMt
+imageDirectory = handles.imageDirectory;
+imageName = handles.imageName;
+firstImage = handles.firstImage;
+lastImage = handles.lastImage;
+imageNameList = handles.imageNameList;
+intensityMax = handles.intensityMax;
+imageRange = handles.imageRange;
+MPM = handles.MPM;
+manualMPM = handles.manualMPM;
+validFrames = handles.validFrames;
+
 % Delete the axes currently shown in the figure on the screen
 delete (gca)
 
@@ -45,20 +60,21 @@ else
     imageCounterHandle = findall (0, 'Style', 'text', 'Tag', 'imageCounter');
 
     % Fetch the values from the handlesMt
-    imageDirectory = handlesMt.imageDirectory;
-    imageName = handlesMt.imageName;
-    firstImage = handlesMt.firstImage;
-    lastImage = handlesMt.lastImage;
-    imageNameList = handlesMt.imageNameList;
-    intensityMax = handlesMt.intensityMax;
-    imageRange = handlesMt.imageRange;
+%     imageDirectory = handlesMt.movieDirectory;
+%     imageName = handlesMt.imageName;
+%     firstImage = handlesMt.firstImage;
+%     lastImage = handlesMt.lastImage;
+%     imageNameList = handlesMt.imageNameList;
+%     intensityMax = handlesMt.intensityMax;
+%     imageRange = handlesMt.imageRange;
 
     % Get the current value of the slider, so that we know which frame the user wants to process
     sliderValue = get (sliderHandle, 'Value');
     sliderValue = round (sliderValue * imageRange);
 
     % Calculate the frame number to show
-    imageNumber = (sliderValue - 1)+firstImage;
+    %imageNumber = (sliderValue - 1)+firstImage;
+    imageNumber = validFrames(1,(sliderValue - 1)+firstImage);
 
     % Write the current frame number in the little window above the slider
     set (imageCounterHandle, 'String', num2str (imageNumber));
@@ -77,20 +93,26 @@ else
     axis([1 size(image,2) 1 size(image,1)]);
 
     % Identify the real cells (at least one coord different from zero)
-    realCellIndex = find (handlesMt.MPM(:, 2 * sliderValue - 1) | handlesMt.MPM(:, 2 * sliderValue));
+    realCellIndex = find(MPM(:,2*sliderValue-1) | MPM(:,2*sliderValue));
 
     % Find the row indices from a transposed MPM matrix
-    cellsWithNums = zeros (size (handlesMt.MPM, 1), 3);
-    cellsWithNums(:,3) = [1:1:size(handlesMt.MPM,1)]';
+    cellsWithNums = zeros (size (MPM, 1), 3);
+    cellsWithNums(:,3) = [1:1:size(MPM,1)]';
 
     % Grab all rows in MPM, so that the row indices correspond to the cells
-    cellsWithNums(:,1:2) = handlesMt.MPM(:, 2 * sliderValue - 1 : 2 * sliderValue);
+    cellsWithNums(:,1:2) = MPM(:,2*sliderValue-1 : 2*sliderValue);
 
     % Now take the cells identified as real cells (at least one coord different from zero)
     % and plot those as red dots. The cell number is written as colored text on the current axes.
     hold on;
     dots = plot (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), 'r.');
-    set(dots,'Tag','dots','ButtonDownFcn','ptManTrackCells');
+    set(dots,'Tag','dots','ButtonDownFcn',@ptManTrackCells);
+    
+    % Let's paint already selected dots yellow
+    manCoords = manualMPM(2*imageNumber-1:2*imageNumber);
+    [value,indx] = min(sqrt((cellsWithNums(:,1)-manCoords(1)).^2 + (cellsWithNums(:,2)-manCoords(2)).^2));
+    plot(cellsWithNums(indx,1),cellsWithNums(indx,2),'y.');
+   
     hold off;
     
     % That's it: wait for the next user action

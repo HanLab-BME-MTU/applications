@@ -24,7 +24,7 @@ function varargout = ptManTrack(varargin)
 
 % Edit the above text to modify the response to help ptManTrack
 
-% Last Modified by GUIDE v2.5 18-Feb-2005 12:35:14
+% Last Modified by GUIDE v2.5 24-Feb-2005 19:15:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -45,6 +45,7 @@ else
 end
 % End initialization code - DO NOT EDIT
 
+%---------------------------------------------------------------------
 
 % --- Executes just before ptManTrack is made visible.
 function ptManTrack_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -63,6 +64,7 @@ guidata(hObject, handles);
 % UIWAIT makes ptManTrack wait for user response (see UIRESUME)
 % uiwait(handles.ptManTrack);
 
+%---------------------------------------------------------------------
 
 % --- Outputs from this function are returned to the command line.
 function varargout = ptManTrack_OutputFcn(hObject, eventdata, handles) 
@@ -74,6 +76,7 @@ function varargout = ptManTrack_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in pb_selectmovie_ptmt.
 function pb_selectmovie_ptmt_Callback(hObject, eventdata, handles)
@@ -129,7 +132,34 @@ else
     end  
     
     handles.resultsDirectory = resultsDirectory;
+    set (handles.edit_resultspath_ptmt, 'String', resultsDirectory);
 end
+
+% Load the validFrames matrix if available
+try
+    load ([resultsDirectory filesep 'validFrames.mat']);
+catch
+    msgStr = ['No validFrames file present in ' resultsDirectory '. Exiting...'];
+    h = errordlg(msgStr);
+    uiwait(h);
+    return;
+end   
+handles.validFrames = validFrames;
+
+% Load the MPM matrix if available
+try
+    load ([resultsDirectory filesep 'MPM.mat']);
+catch
+    msgStr = ['No MPM file present in ' resultsDirectory '. Exiting...'];
+    h = errordlg(msgStr);
+    uiwait(h);
+    return;
+end   
+handles.MPM = MPM;
+
+% Initialize an MPM for manual tracks
+manualMPM = zeros(1,size(MPM,2));
+handles.manualMPM = manualMPM;
 
 % Check for images in the directory provided
 dirList = dir(movieDirectory);
@@ -138,7 +168,7 @@ dirList = dirList(1,:);
 
 % If we found some tiff's ask the user to select a specific file
 if ~isempty(dirList)
-    curDir = pwd; cd(directory);
+    curDir = pwd; cd(movieDirectory);
     [imageFile, imageDirectory] = uigetfile('*.tif','TIFF files','Select an image from the desired sequence');
     cd(curDir);
 else
@@ -156,9 +186,6 @@ if imageFile == 0
     return;
 end
 
-% Separate into parts
-%[directory, filename, extension, dummy] = fileparts([imageDirectory filesep imageFile]);
-
 % Find the body part of the filename
 number = 0;
 countNum = 0;
@@ -168,15 +195,25 @@ while ~isnan(number) & (countNum < 3)
 end
 bodyname = lower(imageFile(1:(end-(4+countNum))));
 
+set (handles.edit_bodyname_ptmt, 'String', bodyname(1:end-2));
+
 % Filter the directory list previously acquired
 ind = strmatch(bodyname, dirList);
 dirList = dirList(ind)';
+
+% Do the sorting without the greyvalue check
+for jRearange = 1:length(dirList)
+   tmpName = char(dirList(jRearange));
+   imageNum(jRearange) = str2num(tmpName(length(bodyname)+1:end-4));
+end 
+% Then we sort that vector and sort the dirList accordingly
+[junk,indVec] = sort(imageNum);
+imageNameList = dirList(indVec);
 
 % Store all these values
 imageName      = bodyname;
 firstImage     = 1;
 lastImage      = length(dirList);
-imageNameList  = dirList;
 intensityMax   = 4095;
 
 % Also store in the handles struct
@@ -185,10 +222,12 @@ handles.firstImage     = firstImage;
 handles.lastImage      = lastImage;
 handles.imageNameList  = imageNameList;
 handles.intensityMax   = intensityMax;
+handles.bodyName       = bodyname;
 
 % Update handles structure
 guidata(hObject, handles);
 
+%---------------------------------------------------------------------
 
 function edit_moviepath_ptmt_Callback(hObject, eventdata, handles)
 % hObject    handle to edit_moviepath_ptmt (see GCBO)
@@ -219,7 +258,7 @@ handles.movieDirectory = movieDirectory;
 
 % There should be at least one result dir available to get the coordinates
 % from (MPM). If more are available ask the user
-dirList = dir(directory);
+dirList = dir(movieDirectory);
 dirList = struct2cell(dirList);
 dirList = dirList(1,:);
 ind = strmatch('results_', dirList);
@@ -240,6 +279,7 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
+%---------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function edit_moviepath_ptmt_CreateFcn(hObject, eventdata, handles)
@@ -253,6 +293,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in pb_starttrack_ptmt.
 function pb_starttrack_ptmt_Callback(hObject, eventdata, handles)
@@ -263,12 +304,98 @@ handles = guidata(hObject);
 
 if isfield(handles,'movieDirectory');
     % Show the slider window
-    ptShowImageSequence(handles.movieDirectory);
+    ptShowImageSequence();
 else
     msgStr = ['No movie directory selected. Please choose a directory first'];
     h = errordlg(msgStr);
     uiwait(h);
     return;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+%---------------------------------------------------------------------
+
+function edit_resultspath_ptmt_Callback(hObject, eventdata, handles)
+
+%---------------------------------------------------------------------
+
+function edit_resultspath_ptmt_CreateFcn(hObject, eventdata, handles)
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+%---------------------------------------------------------------------
+
+function edit_bodyname_ptmt_Callback(hObject, eventdata, handles)
+
+%---------------------------------------------------------------------
+
+function edit_bodyname_ptmt_CreateFcn(hObject, eventdata, handles)
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+%---------------------------------------------------------------------
+
+function edit_savedir_ptmt_Callback(hObject, eventdata, handles)
+handles = guidata (hObject);
+
+% Get the value of the save directory
+saveDirectory = get (hObject, 'String');
+
+% If the path doesn't exist yet create it
+if ~exist (saveDirectory, 'dir')
+   msgStr = ['This directory does not exist yet. Do you want to create it?'];
+   answer = questdlg(msgStr, 'Create Directory', 'Yes', 'No', 'Yes');
+   if strcmp(answer,'Yes')
+      mkdir (saveDirectory);
+   else
+      h = errordlg('This save directory does not exist. Please select another directory...');
+      uiwait(h);          % Wait until the user presses the OK button
+      return;
+   end
+end
+
+% Assign it to the handles structure
+handles.saveDirectory = saveDirectory;
+
+% Update handles structure
+guidata (hObject, handles);
+
+%---------------------------------------------------------------------
+
+function edit_savedir_ptmt_CreateFcn(hObject, eventdata, handles)
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+%---------------------------------------------------------------------
+
+function pb_browsesavedir_ptmt_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
+
+% Let the user browse for an image file and path
+saveDirectory = uigetdir('','Select save directory');
+
+% And store this in the handles struct
+if exist(saveDirectory, 'dir') == 7
+   handles.saveDirectory = saveDirectory;
+   set (handles.edit_savedir_ptmt, 'String', saveDirectory);
+else
+   h = errordlg('This save directory does not exist. Please select another directory...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
 end
 
 % Update handles structure

@@ -305,7 +305,7 @@ else		% lastImaNum > firstImaNum
              newAvgCoord = newCoord;
           end
 
-          % Agian make sure the minimum cell to cell distance is valid
+          % Again make sure the minimum cell to cell distance is valid
           newCoord = ptCheckMinimalCellDistance (newAvgCoord, [], minDistCellToCell);
 
           % Store the nuclei coords incl new ones as intermediate result
@@ -320,8 +320,17 @@ else		% lastImaNum > firstImaNum
              matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
 
              % Use template matching to find cells that where not found in the BMTNN match
-             unmatchedCells = find (matchedCells (:,3) == 0 & matchedCells (:,4) == 0);
-             unmatchedCellsCoord = matchedCells (unmatchedCells,1:2);
+             if ~isempty(matchedCells)
+                 unmatchedCells = find (matchedCells (:,3) == 0 & matchedCells (:,4) == 0);
+                 unmatchedCellsCoords = matchedCells (unmatchedCells,1:2);
+                 
+                 % Make sure the minimum cell to cell distance is valid for
+                 % unmatched cells as well
+                 unmatchedCellsCoord = ptCheckMinimalCellDistance (unmatchedCellsCoords, [], minDistCellToCell);
+             else
+                 unmatchedCellsCoord = [];
+                 unmatchedCells = [];
+             end
 
              % Keep lost cells for later
              % AK: added this to test how algoritm performs without

@@ -1,11 +1,10 @@
-function ptShowImageSequence (directory)
+function ptShowImageSequence ()
 % ptShowImageSequence opens a figure and puts a slider into it; the callback belonging
 % to that slider (ptShowNextInSequence) takes care of showing the correct frame
 %
-% SYNOPSIS       ptShowImageSequence (directory)
+% SYNOPSIS       ptShowImageSequence ()
 %
-% INPUT          directory : directory where the images and coordinates can
-%                            be found
+% INPUT          none
 %
 % OUTPUT         none
 %
@@ -38,78 +37,21 @@ else
     lastImage = handlesMt.lastImage;
     imageNameList = handlesMt.imageNameList;
     intensityMax = handlesMt.intensityMax;
-    
+    resultsDirectory = handlesMt.resultsDirectory;
+    MPM = handlesMt.MPM;
+    validFrames = handlesMt.validFrames;
+    saveDirectory = get(handlesMt.edit_savedir_ptmt,'String');
+    bodyName = handlesMt.bodyName;
+           
     % if the slider (and less important, the little windos with the number of
     % the current frame) already exist, delete them now.
     imageCounterHandle = findall (0, 'Style', 'text', 'Tag', 'imageCounter');
     sliderHandle = findall (0, 'Style', 'slider', 'Tag', 'imageSlider');
 
-    if ~isempty (imageCounterHandle)
-        delete (imageCounterHandle);
-    end
-    if ~isempty (sliderHandle)
-        delete (sliderHandle);
-    end
-
-%     % Check for images in the directory provided
-%     dirList = dir(directory);
-%     dirList = struct2cell(dirList);
-%     dirList = dirList(1,:);
-% 
-%     % If we found some tiff's ask the user to select a specific file
-%     if ~isempty(dirList)
-%         curDir = pwd; cd(directory);
-%         [imageFile, imageDirectory] = uigetfile('*.tif','TIFF files','Select an image from the desired sequence');
-%         cd(curDir);
-%     else
-%         msg = 'No TIFF files can be found in this directory. Exiting...';
-%         h = errordlg(msg);
-%         uiwait(h);
-%         return;
-%     end
-% 
-%     if imageFile == 0
-%         % Nothing selected
-%         msg = 'No TIFF file has been selected. Exiting...';
-%         h = errordlg(msg);
-%         uiwait(h);
-%         return;
-%     end
-% 
-%     % Separate into parts
-%     %[directory, filename, extension, dummy] = fileparts([imageDirectory filesep imageFile]);
-% 
-%     % Find the body part of the filename
-%     number = 0;
-%     countNum = 0;
-%     while ~isnan(number) & (countNum < 3)   
-%         countNum = countNum + 1;
-%         number = str2num(imageFile(end-(4+countNum):end-4));
-%     end
-%     bodyname = lower(imageFile(1:(end-(4+countNum))));
-% 
-%     % Filter the directory list previously acquired
-%     ind = strmatch(bodyname, dirList);
-%     dirList = dirList(ind)';
-% 
-%     % Store all these values
-%     imageName      = bodyname;
-%     firstImage     = 1;
-%     lastImage      = length(dirList);
-%     imageNameList  = dirList;
-%     intensityMax   = 4095;
-% 
-%     % Also store in the handlesMt struct
-%     handlesMt.imageDirectory = imageDirectory;
-%     handlesMt.imageName      = imageName;
-%     handlesMt.firstImage     = firstImage;
-%     handlesMt.lastImage      = lastImage;
-%     handlesMt.imageNameList  = imageNameList;
-%     handlesMt.intensityMax   = intensityMax;
-    
     % Calculate the image range taking into account the increment between frames
-    imageRange = lastImage - firstImage + 1;
-    handlesMt.imageRange = imageRange;
+    %imageRange = lastImage - firstImage + 1;
+    imageRange = size (validFrames,2);
+    %handlesMt.imageRange = imageRange;
 
     % Generate the slider step values for the uicontrol
     % First the arrow slide step (1):
@@ -118,11 +60,11 @@ else
     slider_step(2) = 5 / imageRange;
 
     % Update the handlesMt structure
-    guidata(hManTrack, handlesMt);
+    %guidata(hManTrack, handlesMt);
 
     % Draw a new figure on the screen
     h = figure;
-    set(h,'Tag','ptSequenceFigure');
+    set(h,'Tag','ptSequenceFigure','CloseRequestFcn',@ptManTrackClose);
 
     % Draw the frame counter in the figure; it is identified by the tag
     % imageCount
@@ -152,6 +94,11 @@ else
     fileName = char(imageNameList(firstImage));
     image = imreadnd2(fileName, 0, intensityMax);
 
+    % Get image size
+    imInfo = imfinfo([imageDirectory filesep fileName]);
+    rowSize = imInfo.Height;
+    colSize = imInfo.Width;
+    
     % Show the frame on the screen in the current figure
     hold on;
     imshow (image, []), title (num2str (firstImage));
@@ -161,11 +108,9 @@ else
     axis([1 size(image,2) 1 size(image,1)]);
 
     % Read the MPM file
-    try
-        load ([handlesMt.resultsDirectory 'MPM.mat']);
-        handlesMt.MPM = MPM;
-        guidata(hManTrack,handlesMt);
-    
+%     try
+%         load ([resultsDirectory filesep 'MPM.mat']);
+        
         % Identify the real cells (at least one coord different from zero)
         realCellIndex = find(MPM(:,1) | MPM(:,2));
 
@@ -180,13 +125,38 @@ else
         % and plot those as red dots. The cell number is written as colored text on the current axes.
         hold on;
         dots = plot (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), 'r.');
-        set(dots,'Tag','dots','ButtonDownFcn','ptManTrackCells');
+        set(dots,'Tag','dots','ButtonDownFcn',@ptManTrackCells);
+        txt = text (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), ...
+                    num2str (cellsWithNums (realCellIndex, 3)), 'Color', 'r');
 
         % That's it: wait for the next user action
         hold off;
-    catch
-        msgStr = ['No MPM file present in ' handlesMt.resultsDirectory '. Exiting...'];
-        h = errordlg(msgStr);
-        uiwait(h);
-    end
+%     catch
+%         msgStr = ['No MPM file present in ' resultsDirectory '. Exiting...'];
+%         h = errordlg(msgStr);
+%         uiwait(h);
+%     end
+
+    % create structure of handles
+    handlesNew = guihandles(sliderHandle); 
+    
+    % add relevant data
+    handlesNew.imageDirectory   = imageDirectory;
+    handlesNew.resultsDirectory = resultsDirectory;
+    handlesNew.imageName        = imageName;
+    handlesNew.firstImage       = firstImage;
+    handlesNew.lastImage        = lastImage;
+    handlesNew.imageNameList    = imageNameList;
+    handlesNew.intensityMax     = intensityMax;
+    handlesNew.imageRange       = imageRange;
+    handlesNew.MPM              = MPM;
+    handlesNew.manualMPM        = zeros(1,size(MPM,2));
+    handlesNew.validFrames      = validFrames;
+    handlesNew.rowSize          = rowSize;
+    handlesNew.colSize          = colSize;
+    handlesNew.saveDirectory    = saveDirectory;
+    handlesNew.bodyName         = bodyName;
+    
+    % save the structure
+    guidata(sliderHandle,handlesNew)     
 end
