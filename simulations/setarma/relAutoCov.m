@@ -1,7 +1,9 @@
-function [gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag)
+function [gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag,...
+    checkRoots)
 %RELAUTOCOV calculates the autocovariance function of an ARMA model. 
 %
-%SYNOPSIS [gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag)
+%SYNOPSIS [gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag,...
+%    checkRoots)
 %
 %INPUT  arOrder     : Order of autoregressive part.
 %       maOrder     : Order of moving average part.
@@ -9,6 +11,7 @@ function [gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag)
 %       maPAram     : Row vector of moving average coefficients.
 %       maxLag      : Maximum lag at which autocovariance function is
 %                     calculated.
+%       checkRoots  : 1 if AR polynomial roots are to be checked, 0 otherwise.
 %
 %OUTPUT gammaV      : Autocovariance/(noise variance) for lags 0 to maxLag
 %                     (useful for noise free simulations).
@@ -45,16 +48,10 @@ if arOrder ~= 0
     if nRow ~= 1
         disp('--relAutoCov: "arParam" should be a row vector!');
         errFlag = 1;
-    else
-        if nCol ~= arOrder
-            disp('--relAutoCov: Wrong length of "arParam"!');
-            errFlag = 1;
-        end
-        r = abs(roots([-arParam(end:-1:1) 1]));
-        if ~isempty(find(r<=1))
-            disp('--relAutoCov: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
-            errFlag = 1;
-        end
+    end
+    if nCol ~= arOrder
+        disp('--relAutoCov: Wrong length of "arParam"!');
+        errFlag = 1;
     end
 end
 if maOrder ~= 0
@@ -62,16 +59,10 @@ if maOrder ~= 0
     if nRow ~= 1
         disp('--relAutoCov: "maParam" should be a row vector!');
         errFlag = 1;
-    else
-        if nCol ~= maOrder
-            disp('--relAutoCov: Wrong length of "maParam"!');
-            errFlag = 1;
-        end
-        r = abs(roots([maParam(end:-1:1) 1]));
-        if ~isempty(find(r<=1))
-            disp('--relAutoCov: Invertibility requires the polynomial defining the moving average part of the model not to have any zeros for z <= 1!');
-            errFlag = 1;
-        end
+    end
+    if nCol ~= maOrder
+        disp('--relAutoCov: Wrong length of "maParam"!');
+        errFlag = 1;
     end
 end
 if maxLag < 0
@@ -84,15 +75,18 @@ if errFlag
     return
 end
 
-
-[maInfParam,errFlag] = arma2ma(arOrder,maOrder,arParam,maParam,2*maxLag);
+%write AMRA(p,q) process as an MA(infinity process). Note that the
+%causality condition must be satisfied.
+[maInfParam,errFlag] = arma2ma(arOrder,maOrder,arParam,maParam,2*maxLag,checkRoots);
 if errFlag
     gammaV = [];
     return
 end
 
+%initialize gammaV (autocovariance/variance)
 gammaV = zeros(maxLag+1,1);
 
+%calculate autocovariance using Eq. 3.2.3
 for lag = 0:maxLag
     gammaV(lag+1) = maInfParam(1:end-lag)'*maInfParam(1+lag:end);
 end

@@ -1,7 +1,9 @@
-function [arParam,maParam,noiseSigma,trajP,errFlag] = mlestim(traj,arOrder,maOrder,arParam0,maParam0)
-%MLESTIM estimates the parameters of an ARMA modelto reproduce an observed trajectory
+function [arParam,maParam,noiseSigma,trajP,errFlag] = mlestim(traj,...
+    arOrder,maOrder,arParam0,maParam0)
+%MLESTIM estimates the parameters of an ARMA model to reproduce an observed trajectory
 %
-%SYNOPSIS [arParam,maParam,noiseSigma,trajP,errFlag] = mlestim(traj,arOrder,maOrder,arParam0,maParam0)
+%SYNOPSIS [arParam,maParam,noiseSigma,trajP,errFlag] = mlestim(traj,...
+%    arOrder,maOrder,arParam0,maParam0)
 %
 %INPUT  traj    : Observed trajectory    
 %       arOrder : Order of autoregressive part of process.
@@ -97,25 +99,56 @@ if errFlag
     return
 end
 
-%initial guess of parameters
+%initial set of parameters
 param0 = [arParam0 maParam0];
+pLength = length(param0);
+
+%define optimization options.
+options = optimset('Display','iter');
 
 %minimize the reduced likelihood (defined in Eq. 5.2.12 of "Introduction to Time
 %Series and Forecasting" by Brockwell and Davis) to get best set of parameters.
-[params,minFunc,exitFlag,output] = fmincon(@redLikelihood,param0,A,b,Aeq,beq,...
-    lb,ub,nonlcon,options,OTHER PARAM);
+[params,minFunc,exitFlag,output] = fmincon(@redLikelihood,param0,[],[],[],[],...
+    -1*ones(pLength,1),1*ones(pLength,1),@armaConst,options,arOrder,maOrder,traj);
+% [params,minFunc,exitFlag,output] = fmincon(@redLikelihood,param0,[],[],[],[],...
+%     [0.6 -0.2],[0.9 0],@armaConst,options,arOrder,maOrder,traj);
 
 %assign parameters obtained through minimization
 arParam = params(1:arOrder);
 maParam = params(arOrder+1:end);
 
-%get maximum likelihood linear prediction of trajectory
-[trajP,innovCoef,innovErr,errFlag] = innovPredict(traj,arOrder,maOrder,arParam,maParam);
+%check for causality and invertibility of estimated model
+if arOrder ~= 0
+    r = abs(roots([-arParam0(end:-1:1) 1]));
+    if ~isempty(find(r<=1))
+        disp('--innovPredict: Warning: Predicted model not causal!');
+        errFlag = 1;
+        noiseSigma = [];
+        return
+    end
+end
+if maOrder ~= 0
+    r = abs(roots([maParam0(end:-1:1) 1]));
+    if ~isempty(find(r<=1))
+        disp('--innovPredict: Warning: Predicted model not invertible!');
+        errFlag = 1;
+        noiseSigma = [];
+        return
+    end
+end
+ 
+%If estimated model is OK, get maximum likelihood linear prediction of trajectory
+[trajP,innovCoef,innovErr,errFlag] = innovPredict(traj,arOrder,maOrder,...
+    arParam,maParam,1);
 if errFlag
     noiseSigma = [];
     return
 end
 
 %get standard deviation of white noise in process
-trajDiff = (trajP-traj).^2./innovErr(1:end-1);
-noiseSigma = sqrt(mean(trajDiff));
+relError = (trajP-traj).^2./innovErr(1:end-1);
+% if maOrder ~= 0
+    noiseSigma = sqrt(mean(relError));
+% else
+%     noiseSigma = sqrt(sum(relError(1:arOrder))/length(relError));
+% end

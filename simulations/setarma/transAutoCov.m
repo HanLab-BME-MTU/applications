@@ -1,9 +1,9 @@
 function [kappa,errFlag] = transAutoCov(arOrder,maOrder,arParam,maParam,...
-    maxLagI,maxLagJ)
+    maxLagI,maxLagJ,checkRoots)
 %TRANSAUTOCOV calculates the autocovariance function for the innovations algorithm (see Remark)
 %
 %SYNOPSIS [kappa,errFlag] = transAutoCov(arOrder,maOrder,arParam,maParam,...
-%    maxLagI,maxLagJ)
+%    maxLagI,maxLagJ,checkRoots)
 %
 %INPUT  arOrder     : Order of autoregressive part.
 %       maOrder     : Order of moving average part.
@@ -11,6 +11,7 @@ function [kappa,errFlag] = transAutoCov(arOrder,maOrder,arParam,maParam,...
 %       maPAram     : Row vector of moving average coefficients.
 %       maxLag      : Maximum lag at which autocovariance function is
 %                     calculated.
+%       checkRoots  : 1 if AR polynomial roots are to be checked, 0 otherwise.
 %
 %OUTPUT kappa       : Autocovariance matrix for lags 0 to maxLag.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
@@ -51,16 +52,10 @@ if arOrder ~= 0
     if nRow ~= 1
         disp('--transAutoCov: "arParam" should be a row vector!');
         errFlag = 1;
-    else
-        if nCol ~= arOrder
-            disp('--transAutoCov: Wrong length of "arParam"!');
-            errFlag = 1;
-        end
-        r = abs(roots([-arParam(end:-1:1) 1]));
-        if ~isempty(find(r<=1))
-            disp('--transAutoCov: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
-            errFlag = 1;
-        end
+    end
+    if nCol ~= arOrder
+        disp('--transAutoCov: Wrong length of "arParam"!');
+        errFlag = 1;
     end
 end
 if maOrder ~= 0
@@ -68,16 +63,10 @@ if maOrder ~= 0
     if nRow ~= 1
         disp('--transAutoCov: "maParam" should be a row vector!');
         errFlag = 1;
-    else
-        if nCol ~= maOrder
-            disp('--transAutoCov: Wrong length of "maParam"!');
-            errFlag = 1;
-        end
-        r = abs(roots([maParam(end:-1:1) 1]));
-        if ~isempty(find(r<=1))
-            disp('--transAutoCov: Invertibility requires the polynomial defining the moving average part of the model not to have any zeros for z <= 1!');
-            errFlag = 1;
-        end
+    end
+    if nCol ~= maOrder
+        disp('--transAutoCov: Wrong length of "maParam"!');
+        errFlag = 1;
     end
 end
 if maxLagI < 0
@@ -95,21 +84,24 @@ if errFlag
 end
 
 
+%compute (autocovariance function)/(noise varaince) of an ARMA(p,q) process
 maxLag = max(maxLagI,maxLagJ);
-[gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag);
+[gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag,checkRoots);
 gammaV = [gammaV(end:-1:2); gammaV(1); gammaV(2:end)];
 
-maxOrder = max(arOrder,maOrder);
+maxOrder = max(arOrder,maOrder);  %needed for calculation of kappa
 
+%initialize kappa (autocovariance matrix of transformed process)
 kappa = zeros(maxLagI+1,maxLagJ+1);
 
 for lagI = 0:maxLagI
     for lagJ = 0:maxLagJ
         
-        minLocal = min(lagI,lagJ);
-        maxLocal = max(lagI,lagJ);
-        lagDiff = abs(lagI-lagJ);
+        minLocal = min(lagI,lagJ); %minimum of pair
+        maxLocal = max(lagI,lagJ); %maximum of pair
+        lagDiff = abs(lagI-lagJ);  %absolute difference between the two lags
 
+        %implementation of Eq. 3.3.3
         if lagI>=1 && lagI<=maxOrder && lagJ>=1 && lagJ<=maxOrder
 
             kappa(lagI+1,lagJ+1) = gammaV(maxLag+1+lagDiff);
