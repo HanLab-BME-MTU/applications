@@ -20,14 +20,6 @@ if isempty(bfDomPGx)
    bfDomPGy = recPGy;
 end
 
-curvL = [bfDomPGx(bfDomPGVI(1):bfDomPGVI(2)) ...
-         bfDomPGy(bfDomPGVI(1):bfDomPGVI(2))].';
-curvT = [bfDomPGx(bfDomPGVI(2):bfDomPGVI(3)) ...
-         bfDomPGy(bfDomPGVI(2):bfDomPGVI(3))].';
-curvR = [bfDomPGx(bfDomPGVI(3):bfDomPGVI(4)) ...
-         bfDomPGy(bfDomPGVI(3):bfDomPGVI(4))].';
-curvB = [bfDomPGx(bfDomPGVI(4):end) bfDomPGy(bfDomPGVI(4):end)].';
-
 %Name of any function in the space.
 %fs.dim = {'v1' 'v2'};
 fs.dim = {'v'};
@@ -35,9 +27,37 @@ fs.dim = {'v'};
 fs.shape = 1;
 fs.bnd.h = 1;
 fs.bnd.r = 0;
-fs.mesh  = rectmesh(curvL,curvT,curvR,curvB,bfDomHin,bfDomVin);
-fs.geom  = fs.mesh;
+
+if exist('fsMesh')==1 & strcmp(fsMesh,'femMesh')
+   curve = geomspline([bfDomPGx bfDomPGy].', ...
+      'splinemethod','centripetal','closed','auto');
+   geom  = geomcoerce('solid',{curve});
+   if exist('fsMeshPar')
+      mesh = meshinit(geom,fsMeshPar{:});
+   else
+      mesh = meshinit(geom);
+   end
+else
+   curvL = [bfDomPGx(bfDomPGVI(1):bfDomPGVI(2)) ...
+            bfDomPGy(bfDomPGVI(1):bfDomPGVI(2))].';
+   curvT = [bfDomPGx(bfDomPGVI(2):bfDomPGVI(3)) ...
+            bfDomPGy(bfDomPGVI(2):bfDomPGVI(3))].';
+   curvR = [bfDomPGx(bfDomPGVI(3):bfDomPGVI(4)) ...
+            bfDomPGy(bfDomPGVI(3):bfDomPGVI(4))].';
+   curvB = [bfDomPGx(bfDomPGVI(4):end) bfDomPGy(bfDomPGVI(4):end)].';
+   mesh  = rectmesh(curvL,curvT,curvR,curvB,bfDomHin,bfDomVin);
+   geom  = mesh;
+end
+
+if exist('bfConstraint')==1 & strcmp(bfConstraint,'adhLocation') == 1
+   segAdh = imClusterSeg(adhImg,1,'method','kmeans','k_cluster',3);
+elseif exist('bfConstraint')==0 | strcmp(bfConstraint,'none') == 1
+   fs.geom = geom;
+   fs.mesh = mesh;
+end
+
 fs.xmesh = meshextend(fs);
+
 %Find the indices of the DOFs whose shape functions have support disconnected 
 % from the boundary.
 N = assemble(fs,'out','N');
@@ -47,7 +67,7 @@ indDomDOF = find(full(sum(N,1))==0);
 % element space.
 %Dimention of the function space where the basis can be nonzero on the 
 % boundary.
-dimFS  = flngdof(fs); 
+dimFS  = flngdof(fs);
 coefFS = zeros(dimFS,1);
 %Dimention of the function space where the basis function is kept zero on the
 % boundary.

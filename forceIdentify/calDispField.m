@@ -6,14 +6,11 @@
 run([resultPath 'setPar']);
 
 %Get the image of the cell.
-rawI = cell(numTimeSteps,1);
-for jj = 1:numTimeSteps
-   rawI{jj} = imread(imgFile{jj});
-end
+cellImg = imread(imgFile{1});
 
 %Show the image 
 figure(gcf); hold off;
-imshow(rawI{1},[]); axis on; hold on;
+imshow(cellImg,[]); axis on; hold on;
 
 %Load the displacement field given in the multidimentional array, 'M' that is
 % produced by the speckle tracking software.
@@ -35,7 +32,7 @@ speckleP = cell(numTimeSteps,1);
 
 %Generate a grid with gridDx X gridDy raster sidelength. And, 
 % the grid sampling data points are those inside the predefined polygon.
-[numPixelsY,numPixelsX] = size(rawI{1});
+[numPixelsY,numPixelsX] = size(cellImg);
 numGridX = ceil(numPixelsX/gridDx);
 numGridY = ceil(numPixelsY/gridDy);
 gridx    = linspace(1,numPixelsX,numGridX);
@@ -124,12 +121,12 @@ if strcmp(calInterp,'yes')
          sDataU2{1}*dispScale,0,'r'); 
    end
 
-   save([resultPath 'dispField'],'rawI','rawDispV','dataPx', ...
+   save([resultPath 'dispField'],'rawDispV','dataPx', ...
       'dataPy','rawDataU1','rawDataU2','sDataU1','sDataU2', ...
       'MFCorLen','corLen','edgCorLen','gridPx','gridPy', ...
       'gridx','gridy','gridX','gridY','speckleP');
 else
-   save([resultPath 'dispField'],'rawI','rawDispV','dataPx', ...
+   save([resultPath 'dispField'],'rawDispV','dataPx', ...
       'dataPy','rawDataU1','rawDataU2','MFCorLen','corLen','edgCorLen', ...
       'gridPx','gridPy','gridx','gridy','gridX','gridY','speckleP');
 end

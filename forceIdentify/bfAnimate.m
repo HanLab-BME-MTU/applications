@@ -4,13 +4,13 @@
 load([resultPath 'bfId']);
 
 %Get the image of the cell.
-rawI = cell(numTimeSteps,1);
+cellImg = {};
 for jj = 1:numTimeSteps
-   rawI{jj} = imread(imgFile{jj});
+   cellImg{jj} = imread(imgFile{jj});
 end
 
 %M = vectorFieldAnimate([bfDisplayPx bfDisplayPy],recBF,100000, ...
-%   'bgImg',rawI{1},'vColor','r','colorMap','default');
+%   'bgImg',cellImg,'vColor','r','colorMap','default');
 M = vectorFieldAnimate([bfDisplayPx bfDisplayPy],recBF,bfScale, ...
-   'bgImg',rawI{1},'aviMovie',{[resultPath 'bfMovie'] {'fps' 10} }, ...
+   'bgImg',cellImg,'aviMovie',{[resultPath 'bfMovie'] {'fps' 10} }, ...
    'colorMap','autumn');

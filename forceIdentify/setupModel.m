@@ -79,7 +79,11 @@ if strcmp(fwdOpComputed,'fem') == 0
    if strcmp(meshType,'rectMesh') == 1
       fem = elModelAssemble([],msh,options,fn,fp,ind,bndInd);
    elseif strcmp(meshType,'femMesh') == 1
-      fem = elModelAssemble(geom,[],options,fn,fp,ind,bndInd);
+      if exist('domMeshPar') == 1
+         fem = elModelAssemble(geom,domMeshPar,options,fn,fp,ind,bndInd);
+      else
+         fem = elModelAssemble(geom,[],options,fn,fp,ind,bndInd);
+      end
       msh = fem.mesh;
    end
 

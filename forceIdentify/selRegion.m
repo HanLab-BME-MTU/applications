@@ -3,10 +3,14 @@
 % Always start with the left-lower corner when the polygon is viewed as a
 % deformed rectangle.
 
-figure(gcf); hold off;
+%Get the image of the cell.
+cellImg = imread(imgFile{1});
 
+figure(gcf); hold off;
+imshow(cellImg,[]); hold on;
+
+load([modelPath 'fieldGeom']);
 load([resultPath 'dispField']);
-imshow(rawI{1},[]); hold on;
 
 %Plot the raw data points and displacements and the filtered displacements.
 quiver(dataPx{1},dataPy{1},rawDataU1{1}*2,rawDataU2{1}*2,0,'y'); 
@@ -35,7 +39,7 @@ end
 
 if choice == 1 | choice == 2
    for k = 1:length(recPGx)
-      text(recPGx(k),recPGy(k),num2str(k),'color','r');
+      text(recPGx(k),recPGy(k),num2str(k),'color','g');
    end
 
    %Ask for the indices of the other three vertices of the polygon, 'recPG'  

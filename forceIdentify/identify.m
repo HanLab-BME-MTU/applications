@@ -1,6 +1,9 @@
 %Set up monitor of the computation time.
 startTime = cputime;
 
+%Get the cell image
+cellImg = imread(imgFile{1});
+
 %Set up the model including the geometry, the mesh, the coefficient functions
 % in the equation and the boundary condition.
 setupModel;
