@@ -534,7 +534,7 @@ if selImgDir == length(imgDirList)
       cd([imgDirList{handles.selImgDir} filesep '..']);
    end
 
-   %' New Image Directory ' is selected. Choose new image directory and 
+   %'New Image Directory' is selected. Choose new image directory and 
    % first image.
    [firstImgFileName pathName filterIndex] = uigetfile( ...
       {'*.tif;*.gif;*.jpg;*.png', ...
@@ -565,7 +565,6 @@ if selImgDir == length(imgDirList)
    handles.firstImgList    = firstImgList;
 end
 
-handles.selImgDir = selImgDir;
 if length(imgDirList) == 1
    set(handles.imgDirEH,'String','');
 else
@@ -578,6 +577,7 @@ else
    set(handles.firstImgTH,'String',firstImgList{selImgDir});
 end
 
+handles.selImgDir = selImgDir;
 guidata(hObject,handles);
 
 function imgDirEdit_Callback(hObject, eventdata, handles)
@@ -598,11 +598,6 @@ function firstImgBrowse_Callback(hObject, eventdata, handles)
 selImgDir    = handles.selImgDir;
 imgDirList   = handles.imgDirList;
 firstImgList = handles.firstImgList;
-
-if selImgDir == length(imgDirList)
-   %' New Image Directory ' is selected in 'imgDir' menu. Do nothing.
-   return;
-end
 
 oldDir = pwd;
 
