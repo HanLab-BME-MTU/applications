@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 01-Nov-2004 14:48:57
+% Last Modified by GUIDE v2.5 02-Feb-2005 11:18:57
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -519,6 +519,7 @@ if value==0
     set(handles.textAdvancedPrep,'Enable','off');
     set(handles.textGauss,'Enable','off');
     set(handles.editGauss,'Enable','off');
+    set(handles.subpixel,'Enable','off');
     set(handles.primaryRadio,'Enable','off');
     set(handles.tertiaryRadio,'Enable','off');
     set(handles.drawROICheck,'Enable','off');
@@ -537,6 +538,7 @@ else
     set(handles.expPopup,'Enable','on');
     set(handles.textAdvancedPrep,'Enable','on');
     set(handles.textGauss,'Enable','on');
+    set(handles.subpixel,'Enable','on');
     set(handles.editGauss,'Enable','on');
     set(handles.primaryRadio,'Enable','on');
     set(handles.tertiaryRadio,'Enable','on');
@@ -1281,6 +1283,15 @@ function checkTest_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkTest
 
 
+% --- Executes on button press in subpixel.
+function subpixel_Callback(hObject, eventdata, handles)
+% hObject    handle to subpixel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of subpixel
+
+
 % --- Executes on selection change in edgeBitDepth.
 function edgeBitDepth_Callback(hObject, eventdata, handles)
 % hObject    handle to edgeBitDepth (see GCBO)
@@ -1302,5 +1313,4 @@ function edgeBitDepth_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 
