@@ -17,6 +17,7 @@ function ptCalculateNeighbourChanges (ptPostpro, MPM)
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Jul 04          Initial version of neighbour change calculation
+% Andre Kerstens        Aug 04          Changed way how changes are counted; more accurate with new method
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -140,19 +141,31 @@ for frameCount = plotStartFrame : increment : plotEndFrame
       % To compare neighbours we need to be at least at frame 2
       if (frameCount > plotStartFrame) & (~isempty(neighbours{cCount,2})) & ...
          (~isempty(prevNeighbours{cCount,2}))
-         
-         % Compare the current neighbours to the ones in the previous frame
-         if length(neighbours{cCount,2}) == length(prevNeighbours{cCount,2})
-            if neighbours{cCount,2} ~= prevNeighbours{cCount,2}
-            
-               % Neighbours have changed: add to counter
-               nbChange(cCount) = nbChange(cCount) + 1;
+     
+         diff = [];
+         for i = 1 : max(length(neighbours{cCount,2}), length(prevNeighbours{cCount,2}))
+            if max(length(neighbours{cCount,2}), length(prevNeighbours{cCount,2})) == length(prevNeighbours{cCount,2})
+               diff(i) = ~length( find (neighbours{cCount,2} == prevNeighbours{cCount,2}(i)));
+            else
+               diff(i) = ~length( find (prevNeighbours{cCount,2} == neighbours{cCount,2}(i)));
             end
-         else
-            % More neighbours have changed
-            nbChange(cCount) = nbChange(cCount) + abs(length(neighbours{cCount,2}) - ...
-                                                      length(prevNeighbours{cCount,2}));
          end
+         nbChange(cCount) = nbChange(cCount) + sum(diff);
+            
+         
+%         % Compare the current neighbours to the ones in the previous frame
+%          if length(neighbours{cCount,2}) == length(prevNeighbours{cCount,2})
+%             if neighbours{cCount,2} ~= prevNeighbours{cCount,2}
+%             
+%                % Neighbours have changed: add to counter
+%                nbChange(cCount) = nbChange(cCount) + 1;
+%             end
+%          else
+%             % More neighbours have changed
+%             nbChange(cCount) = nbChange(cCount) + abs(length(neighbours{cCount,2}) - ...
+%                                                       length(prevNeighbours{cCount,2}));
+%          end
+
       end  % if frameCount > plotStartFrame   
    end  % for cCount = 1 : size(cells,1) 
    
