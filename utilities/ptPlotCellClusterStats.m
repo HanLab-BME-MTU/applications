@@ -28,7 +28,7 @@ function ptPlotCellClusterStats (imageName, savePath, xAxis, cellAmount, cluster
 % Andre Kerstens        Jun 04          Initial release of ptPlotCellClusterStats
 
 % Generate the figure and title     
-h_fig = figure; title (imageName);
+h_fig = figure('Name', imageName);
    
 % Draw a subplot showing the amount of cells per frame
 ymax = max (cellAmount) + 1;
@@ -80,7 +80,7 @@ end
    
    
 % Generate a new figure for percentage single / clustered cels
-h_fig2 = figure; title (imageName);
+h_fig2 = figure('Name', imageName);
 
 % Draw a subplot showing the percentage of single cells
 ymax = 100.0;   % 100% is the max we can get

@@ -18,6 +18,7 @@ function ptPlotCellValues (ptPostpro)
 % --------------------- --------        --------------------------------------------------------
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file
+% Andre Kerstens        Jul 04          Added pixelarea all cells percentage
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -29,6 +30,11 @@ numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagename;
+rowSize = ptPostpro.rowsize;
+colSize = ptPostpro.colsize;
+
+% Calculate the total area of the frame
+totalAreaFrame = rowSize * colSize;
 
 % Get radio button values
 cellClusterPlot = ptPostpro.cellclusterplot;
@@ -124,6 +130,10 @@ for frameCount = plotStartFrame : increment : plotEndFrame
       areaPerSingleCell (iCount) = 0;
    end
    
+   % Calculate area taken up by single and clustered cells together
+   totalAreaAllCells (iCount) = sumSingleCellArea (iCount) + sumClusterArea (iCount);
+   percentageAreaAllCells (iCount) = (totalAreaAllCells (iCount) / totalAreaFrame) * 100.0;
+   
    % Calculate average perimeter length
    sumClusterPerimeter (iCount) = sum (clusters (find (clusters (:,2) > 1), 4));
    if clusterAmount (iCount) ~= 0 
@@ -147,7 +157,7 @@ if cellClusterPlot
 end   
 if areaPlot
    % Generate area plots if the users requested these
-   ptPlotAreaStats (imageName, savePath, xAxis, areaPerSingleCell, areaPerCluster);
+   ptPlotAreaStats (imageName, savePath, xAxis, areaPerSingleCell, areaPerCluster, percentageAreaAllCells);
 end
 
 if perimeterPlot

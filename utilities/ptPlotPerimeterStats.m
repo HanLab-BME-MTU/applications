@@ -23,7 +23,7 @@ function ptPlotPerimeterStats (imageName, savePath, xAxis, perimeterLength, peri
 % Andre Kerstens        Jun 04          Initial release of ptPlotPerimeterStats
 
 % Generate the figure and title
-h_fig = figure; title (imageName);
+h_fig = figure('Name', imageName);
 
 % Draw a plot showing the avg perimeter length of clusters
 ymax = max (perimeterLength) + 1;

@@ -38,7 +38,7 @@ frameInterval = round (ptPostpro.timeperframe / 60);    % In minutes
 pixelLength = ptPostpro.mmpixel;
 
 % In case the velocity over multiple frames is needed the following
-% variable should be used (AK: new GUI value?)
+% variable should be used
 multipleFrameVelocity = ptPostpro.multFrameVelocity;
 
 % Initialize the displacement and x-axis matrix
@@ -304,7 +304,7 @@ end   % for frameCount
 
 
 % Generate the avg velocity plot (all cells)
-h_fig = figure; title (imageName);
+h_fig = figure('Name', imageName);
    
 % Draw a plot showing average velocity of all cells
 ymax = max (avgVelocity) + 1;
@@ -325,7 +325,7 @@ print (h_fig, [savePath filesep 'avgVelocityAllCells.tif'],'-dtiff');
 
 
 % Generate the figure and title
-h_fig = figure; title (imageName);
+h_fig = figure('Name', imageName);
    
 % Draw a subplot showing the avg velocity of a single cell    
 ymax = max (avgSingleVelocity) + 1;
@@ -370,7 +370,7 @@ print (h_fig, [savePath filesep 'avgSingleAndClusterVelocity.tif'],'-dtiff');
 
 % Generate the plot that shows all cells velocity against single cell
 % velocity (in percent)
-h_fig = figure; title (imageName);
+h_fig = figure('Name', imageName);
    
 % Draw the plot
 ymax = 100;
@@ -398,7 +398,7 @@ print (h_fig, [savePath filesep 'velAllCellsHigherThanAvgSingleCells.tif'],'-dti
 
 
 % Generate the figure and title for the variance plot
-h_fig = figure; title (['Variance' imageName]);
+h_fig = figure('Name', imageName);
    
 % Draw a subplot showing the velocity variance of all cells    
 ymax = max (varVelocity)+1;
@@ -454,7 +454,7 @@ print (h_fig, [savePath filesep 'varSingleAndClusterVelocity.tif'],'-dtiff');
 
 
 % %Generate a 3D velocity histogram using the surface function
-% h_fig = figure;
+% h_fig = figure('Name', imageName);
 % surf (displacementHist);
 % title ('3D Velocity Histogram');
 % 

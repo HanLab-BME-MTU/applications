@@ -57,6 +57,8 @@ function [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumb
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source, make function independent of GUI handle
 % Andre Kerstens        Jun 04          Modification necessary because of extra parameter ptGetProcessedImage
+% Andre Kerstens        Jul 04          In case of too many bad segmentations, the function will return 
+%                                       and give up on the job
 
 % Tell the user that we've started
 fprintf (1, 'Starting analysis of job number %d:\n', jobNumber);
@@ -167,6 +169,14 @@ else		% lastImaNum > firstImaNum
          escapeCount = escapeCount + 1;
       end   % while 
 
+      if escapeCount >= maxCount
+         fprintf (1, 'ptTrackCells: Bad segmentation: Giving up on job %d.\n', jobNumber);
+         M = [];
+         clusterProps = []; 
+         cellProps = [];
+         return
+      end
+      
       % Find all the cell nuclei coordinates
       [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc);
 

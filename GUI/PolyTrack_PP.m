@@ -12,7 +12,12 @@ function varargout = PolyTrack_PP(varargin)
 %
 % OUTPUT        varargout
 %
-% Last Modified by A. Kerstens 09-Mar-2004
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Colin Glass           Feb 04          Initial release
+% Andre Kerstens        Jun 04          Cleaned up source and renamed file
+% Andre Kerstens        Jul 04          Added size of movie to ptPostpro
 
 % All kinds of matlab initialization stuff; leave as is...
 % Begin initialization code - DO NOT EDIT
@@ -250,6 +255,13 @@ while 1
    counter = counter + 1;
 end
 
+% Store the size of the image
+cd (handles.jobvalues.imagedirectory);
+tempImage = imreadnd2 (handles.jobvalues.imagename, 0, handles.jobvalues.intensityMax);
+[rows, cols] = size (tempImage);
+handles.postpro.rowsize = rows;
+handles.postpro.colsize = cols;
+
 % Now we have to fill up the rest of the postpro structure with
 % our previously found data and parameters
 handles.selectedcells = [];
@@ -267,6 +279,7 @@ handles.postpro.jobpath = jobValPath;
 handles.postpro.imagename = handles.jobvalues.imagename;
 handles.postpro.imagenameslist = handles.jobvalues.imagenameslist;
 handles.postpro.intensitymax = handles.jobvalues.intensityMax;
+handles.postpro.maxdistance = handles.jobvalues.maxsearch;
 
 % These are new additions which won't be in the older jobs
 if ~isempty (handles.jobvalues.timeperframe)
@@ -775,8 +788,14 @@ else
 
    % Here is where the bulk of the graphing work is done; we give it the
    % postpro structure and MPM matrix to work with
+   % First do the area and perimeter plots
    if handles.postpro.cellclusterplot | handles.postpro.areaplot | handles.postpro.perimeterplot
       ptPlotCellValues (handles.postpro);
+   end
+   
+   % Then do the cell-cell distance histograms
+   if handles.postpro.cellcelldistplot
+      ptPlotHistValues (handles.postpro);
    end
    
    % Do the speed plots as well if the user wants it
