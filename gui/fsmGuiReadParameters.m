@@ -137,7 +137,7 @@ end
 fsmParam.prep.enhTriang=get(handles.TriangCheck,'Value');
 
 % Tracker
-indx=find([get(handles.radioTrackBrownian,'Value') get(handles.radioEnhTrackBrownian,'Value') get(handles.radioTrackFlow,'Value')]);
+indx=get(handles.popupTracker,'Value');
 fsmParam.track.tracker=indx;
 fsmParam.track.enhanced=get(handles.checkEnhTrack,'Value');
 fsmParam.track.grid=get(handles.checkGrid,'Value');
@@ -148,6 +148,13 @@ fsmParam.track.influence=str2num(get(handles.editInfluence,'String'));
 
 % Tracker's correlation length
 fsmParam.track.corrLength=str2num(get(handles.editCorrLength,'String'));
+
+% Tracker's initializer
+if get(handles.checkTrackInit,'Value')==0
+    fsmParam.track.init=0;
+else
+    fsmParam.track.init=get(handles.popupTrackInit,'Value');
+end
 
 % Set status to 1
 status=1;

@@ -186,8 +186,11 @@ for counter1=1:lastImage
     
     switch TRACKER
         case 1
-            %         [tmp,n1,n2,nc1,nc2]=fsmTrackTrackerA(img,img2,img,img2);
+
+%             tmp=fsmTrackTrackerBMTNNMain(initM,I,J,threshold,influence);
             tmp=fsmTrackTrackerBMTNN(I,J,threshold,influence);
+        
+            
         case 2
             tmp=fsmTrackTrackerP(img,img2,threshold);    
         case 3

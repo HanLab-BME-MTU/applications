@@ -71,7 +71,10 @@ if ~isfield(fsmParam,'batchJob')
     if(isa(fName,'char') & isa(dirName,'char'))
         
         % Check that the user did not change the image directory
-        if strcmp(dirName,imagePath)==0
+        %    (remove fileseps)
+        testDirName=dirName;     testDirName(findstr(testDirName,filesep))=[];
+        testImagePath=imagePath; testImagePath(findstr(testImagePath,filesep))=[];
+        if strcmp(testDirName,testImagePath)==0
             uiwait(warndlg('If you really want to analyzes these images, please go back to fsmCenter and change the project settings.','Warning','modal'));
             return % Returns an error (status=0)
         end

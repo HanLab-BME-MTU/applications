@@ -1,9 +1,9 @@
-function tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,counter1,gridSize,d0,userPath,threshold,influence,imgSize)
+function currentM=fsmTrackEnhancedTracker(currentM,I,J,strg,counter1,gridSize,d0,userPath,threshold,influence,imgSize)
 % fsmTrackMain uses the interpolated vector field to refine the tracking
 %
-% SYNOPSIS   tmp=fsmTrackEnhancedTracker(tmp,img,img2,strg,counter1,gridSize,d0,userPath,threshold,influence,imgSize)
+% SYNOPSIS   currentM=fsmTrackEnhancedTracker(currentM,img,img2,strg,counter1,gridSize,d0,userPath,threshold,influence,imgSize)
 %
-% INPUT      tmp        : M matrix returned by the tracker for the current frame pair
+% INPUT      currentM   : M matrix returned by the tracker for the current frame pair
 %            I          : matrix [y x I]n of speckle coordinates and intensities for frame 1
 %            J          : matrix [y x I]n of speckle coordinates and intensities for frame 2
 %            strg       : format string for the correct numbering of files
@@ -14,14 +14,14 @@ function tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,counter1,gridSize,d0,userPath,
 %            d0         : correlation length or interpolation
 %            userPath   : work directory (where the interpolated vector field is saved)
 %            threshold  : radius of the region searched by the tracker for matching speckles
-%            influence :  radius of influence for the neural network tracker. This is the initial search
+%            influence  : radius of influence for the neural network tracker. This is the initial search
 %                         radius; the neural network can more effectively reconstruct flow if it can
 %                         search over larger areas and therefore take more particles into account. The final
 %                         matches will be constrained to have a maximum distance = 'radius', but initially 
 %                         a larger search radius ('influence') will be used.
 %            imgSize    : image size [y x]
 %
-% OUTPUT     tmp        : modified M matrix
+% OUTPUT     currentM   : modified M matrix
 %
 % DEPENDENCES   fsmTrackEnhancedTracker uses { framework ; vectorFieldDiv ; updateD0FromDiv;
 %                                              vectorFieldInterp ; fsmTrackPropSpecklePos ;
@@ -34,8 +34,8 @@ if nargin~=11
     error('Wrong number of input arguments');
 end
 
-% Extract vector field from tmp
-raw=tmp(find(tmp(:,1)~=0 & tmp(:,3)~=0),:);
+% Extract vector field from currentM
+raw=currentM(find(currentM(:,1)~=0 & currentM(:,3)~=0),:);
 
 % In the very unlikely case that ALL particles are unmatched
 if isempty(raw)
@@ -72,7 +72,7 @@ indxStr=sprintf(strg,counter1);
 eval(['save ',userPath,filesep,'vectors',filesep,'vectors',indxStr,'.mat vectors;']);
 
 % Propagate speckle positions
-spPos=sortrows(tmp(find(tmp(:,1)~=0),1:2)); % Sorted positions
+spPos=sortrows(currentM(find(currentM(:,1)~=0),1:2)); % Sorted positions
 pSpPos=fsmTrackPropSpecklePos(spPos,vectors,'FORWARD');
 
 % Create IP (with propagated positions)
@@ -85,7 +85,7 @@ tmp2=fsmTrackTrackerBMTNN(IP,J,threshold,influence);
 % Create a copy of tmp2
 copyTmp2=tmp2;
 
-% Correct back the coordinates of the first frame (= tmp(:,1:2))
+% Correct back the coordinates of the first frame (= currentM(:,1:2))
 for i=1:size(spPos,1)
     indx=find(tmp2(:,1)==pSpPos(i,1) & tmp2(:,2)==pSpPos(i,2));
     if length(indx)~=1
@@ -93,4 +93,4 @@ for i=1:size(spPos,1)
     end
     copyTmp2(indx,1:2)=spPos(i,:);
 end
-tmp=copyTmp2;
+currentM=copyTmp2;

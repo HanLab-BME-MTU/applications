@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 02-Sep-2004 18:48:33
+% Last Modified by GUIDE v2.5 07-Sep-2004 16:34:36
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -567,17 +567,19 @@ function varargout = editThreshold_Callback(h, eventdata, handles, varargin)
 function checkTrackModule_Callback(hObject, eventdata, handles)
 
 if get(handles.checkTrackModule,'Value')==0
-    toggleTrackModule(handles,0);
+    fsmGuiMain('toggleTrackModule',handles,0);
 else
-    toggleTrackModule(handles,1);
+    fsmGuiMain('toggleTrackModule',handles,1);
+    
+    % Update fields depending on which tracker is chosen
+    fsmGuiMain('popupTracker_Callback',hObject, eventdata, handles);
+    
 end    
 
+% This function turns everything on|off in the tracking module
 function toggleTrackModule(handles,value)
 
 if value==0
-    set(handles.radioTrackBrownian,'Enable','off');
-    set(handles.radioEnhTrackBrownian,'Enable','off');
-    set(handles.radioTrackFlow,'Enable','off');
     set(handles.textThreshold,'Enable','off');
     set(handles.editThreshold,'Enable','off');
     set(handles.checkEnhTrack,'Enable','off');
@@ -586,85 +588,26 @@ if value==0
     set(handles.editInfluence,'Enable','off');
     set(handles.textCorrLength,'Enable','off');
     set(handles.editCorrLength,'Enable','off');
+    set(handles.popupTracker,'Enable','off');
+    set(handles.textTracker,'Enable','off');
+    set(handles.popupTrackInit,'Enable','off');
+    set(handles.checkTrackInit,'Enable','off');
+    set(handles.textTrackInitNote,'Enable','off');
 else
-    set(handles.radioTrackBrownian,'Enable','on');
-    set(handles.radioEnhTrackBrownian,'Enable','on');
-    set(handles.radioTrackFlow,'Enable','on');
-    if get(handles.radioTrackBrownian,'Value')==1
-        set(handles.checkEnhTrack,'Enable','on');
-        set(handles.textCorrLength,'Enable','on');
-        set(handles.editCorrLength,'Enable','on');
-        set(handles.textInfluence,'Enable','on');
-        set(handles.editInfluence,'Enable','on');
-        if get(handles.checkEnhTrack,'Value')==1
-            set(handles.checkGrid,'Enable','on');    
-        else
-            set(handles.checkGrid,'Enable','off');
-        end               
-    else
-        set(handles.checkEnhTrack,'Enable','off');
-        set(handles.textCorrLength,'Enable','off');
-        set(handles.editCorrLength,'Enable','off');
-        set(handles.textInfluence,'Enable','off');
-        set(handles.editInfluence,'Enable','off');        
-    end
     set(handles.textThreshold,'Enable','on');
     set(handles.editThreshold,'Enable','on');
-end    
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% TRACKER SELECTION CALLBACK
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function radioTrackBrownian_Callback(hObject, eventdata, handles)
-
-% Hint: get(hObject,'Value') returns toggle state of radioTrackBrownian
-set(handles.radioTrackBrownian,'Value',1);
-set(handles.radioEnhTrackBrownian,'Value',0);
-set(handles.radioTrackFlow,'Value',0);
-set(handles.textInfluence,'Enable','on');
-set(handles.editInfluence,'Enable','on');
-set(handles.checkEnhTrack,'Enable','on');
-if get(handles.checkEnhTrack,'Value')==1
+    set(handles.checkEnhTrack,'Enable','on');
     set(handles.checkGrid,'Enable','on');
-else
-    set(handles.checkGrid,'Enable','off');
+    set(handles.textInfluence,'Enable','on');
+    set(handles.editInfluence,'Enable','on');
+    set(handles.textCorrLength,'Enable','on');
+    set(handles.editCorrLength,'Enable','on');
+    set(handles.popupTracker,'Enable','on');
+    set(handles.textTracker,'Enable','on');
+    set(handles.popupTrackInit,'Enable','on');
+    set(handles.checkTrackInit,'Enable','on');
+    set(handles.textTrackInitNote,'Enable','on');
 end
-set(handles.textCorrLength,'Enable','on');
-set(handles.editCorrLength,'Enable','on');
-
-
-function radioEnhTrackBrownian_Callback(hObject, eventdata, handles)
-% Hint: get(hObject,'Value') returns toggle state of radioEnhTrackBrownian
-set(handles.radioTrackBrownian,'Value',0);
-set(handles.radioEnhTrackBrownian,'Value',1);
-set(handles.radioTrackFlow,'Value',0);
-% set(handles.textThreshold,'Enable','on');
-% set(handles.editThreshold,'Enable','on');
-set(handles.textInfluence,'Enable','off');
-set(handles.editInfluence,'Enable','off');
-set(handles.checkEnhTrack,'Enable','off');
-set(handles.checkGrid,'Enable','off');
-set(handles.textCorrLength,'Enable','off');
-set(handles.editCorrLength,'Enable','off');
-
-% -------------------------------------------------------------------------
-
-function radioTrackFlow_Callback(hObject, eventdata, handles)
-% Hint: get(hObject,'Value') returns toggle state of radioTrackFlow
-set(handles.radioTrackBrownian,'Value',0);
-set(handles.radioEnhTrackBrownian,'Value',0);
-set(handles.radioTrackFlow,'Value',1);
-set(handles.textThreshold,'Enable','on');
-set(handles.editThreshold,'Enable','on');
-set(handles.textInfluence,'Enable','off');
-set(handles.editInfluence,'Enable','off');
-set(handles.checkEnhTrack,'Enable','off');
-set(handles.checkGrid,'Enable','off');
-set(handles.textCorrLength,'Enable','off');
-set(handles.editCorrLength,'Enable','off');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -1127,5 +1070,96 @@ function editCorrLength_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editCorrLength as text
 %        str2double(get(hObject,'String')) returns contents of editCorrLength as a double
+
+
+% --- Executes on button press in checkTrackInit.
+function checkTrackInit_Callback(hObject, eventdata, handles)
+% hObject    handle to checkTrackInit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkTrackInit
+if get(handles.checkTrackInit,'Value')==1
+    set(handles.popupTrackInit,'Enable','on');
+else
+    set(handles.popupTrackInit,'Enable','off');
+end
+
+% --- Executes during object creation, after setting all properties.
+function popupTracker_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupTracker (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+% --- Executes on selection change in popupTracker.
+function popupTracker_Callback(hObject, eventdata, handles)
+% hObject    handle to popupTracker (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns popupTracker contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupTracker
+value=get(handles.popupTracker,'Value');
+if value==1
+    fsmGuiMain('toggleTrackModule',handles,1);
+    fsmGuiMain('checkEnhTrack_Callback',handles.checkEnhTrack,[],handles); % Turns on|off gird depending on 'iterative'
+    fsmGuiMain('checkTrackInit_Callback',handles.checkTrackInit,[],handles); % Turns on|off Initializer
+end
+if value==2
+    tfsmGuiMain('toggleTrackModule',handles,0);
+    set(handles.textTracker,'Enable','on');
+    set(handles.popupTracker,'Enable','on');
+    set(handles.textThreshold,'Enable','on');
+    set(handles.editThreshold,'Enable','on');
+end
+if value==3
+    fsmGuiMain('toggleTrackModule',handles,0);
+    set(handles.textTracker,'Enable','on');
+    set(handles.popupTracker,'Enable','on');
+    set(handles.textThreshold,'Enable','on');
+    set(handles.editThreshold,'Enable','on');
+end   
+
+% --- Executes on button press in checkInitKymo.
+function checkInitKymo_Callback(hObject, eventdata, handles)
+% hObject    handle to checkInitKymo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkInitKymo
+
+
+% --- Executes during object creation, after setting all properties.
+function popupTrackInit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupTrackInit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+% --- Executes on selection change in popupTrackInit.
+function popupTrackInit_Callback(hObject, eventdata, handles)
+% hObject    handle to popupTrackInit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns popupTrackInit contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupTrackInit
 
 

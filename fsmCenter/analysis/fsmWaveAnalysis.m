@@ -94,7 +94,7 @@ strg=fsmParam.specific.formString;
 if status==0
     return
 end
-nImages=length(imageFileList);
+nImages=size(imageFileList,1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %

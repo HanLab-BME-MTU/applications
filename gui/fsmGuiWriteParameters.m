@@ -284,38 +284,12 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Enable/disable module
-if fsmParam.track.enable==1
-    set(handles.checkTrackModule,'Value',1);
-    set(handles.checkEnhTrack,'Enable','on');
-    set(handles.radioTrackBrownian,'Enable','on');
-    set(handles.radioTrackBrownian,'Enable','on');
-    set(handles.radioTrackBrownian,'Enable','on');
-    set(handles.radioEnhTrackBrownian,'Enable','on');
-    if fsmParam.track.tracker==1
-        set(handles.editInfluence,'Enable','on');
-    else
-        set(handles.editInfluence,'Enable','off');
-    end
-    
-    if fsmParam.track.enhanced==1
-        set(handles.checkGrid,'Enable','on');
-    else
-        set(handles.checkGrid,'Enable','off');
-        
-    end               
+% Write fsmParam.track information into gui
+if isfield(fsmParam.track,'init')
+    set(handles.checkTrackInit,'Value',fsmParam.track.init);
 else
-    set(handles.checkTrackModule,'Value',0);
-    set(handles.radioTrackBrownian,'Enable','off');
-    set(handles.radioEnhTrackBrownian,'Enable','off');
-    set(handles.radioTrackFlow,'Enable','off');
-    set(handles.textThreshold,'Enable','off');
-    set(handles.editThreshold,'Enable','off');
-    set(handles.checkEnhTrack,'Enable','off');
-    set(handles.checkGrid,'Enable','off');
-    set(handles.editInfluence,'Enable','off');
-end
-% Default
+    set(handles.checkTrackInit,'Value',0);
+end    
 set(handles.editThreshold,'String',num2str(fsmParam.track.threshold));
 if isfield(fsmParam.track,'influence')
     set(handles.editInfluence,'String',num2str(fsmParam.track.influence));
@@ -328,22 +302,33 @@ if isfield(fsmParam.track,'corrLength')
 else
     set(handles.editCorrLength,'String','33');
 end
-switch fsmParam.track.tracker
-    case 1
-        set(handles.radioTrackBrownian,'Value',1);
-        set(handles.radioEnhTrackBrownian,'Value',0);
-        set(handles.radioTrackFlow,'Value',0);
-    case 2
-        set(handles.radioTrackBrownian,'Value',0);
-        set(handles.radioEnhTrackBrownian,'Value',1);
-        set(handles.radioTrackFlow,'Value',0);
-    case 3
-        set(handles.radioTrackBrownian,'Value',0);
-        set(handles.radioEnhTrackBrownian,'Value',0);
-        set(handles.radioTrackFlow,'Value',1);
-otherwise
-        error('Please specify an existing tracker');
+
+
+% Enable/disable module
+if fsmParam.track.enable==1
+    
+    % Check module
+    set(handles.checkTrackModule,'Value',1);
+
+    % Turn on everything
+    fsmGuiMain('toggleTrackModule',handles,1);
+    
+    % Set tracker in fsmGuiMain's tracker popup
+    set(handles.popupTracker,'Value',fsmParam.track.tracker);
+        
+    % Turn on|off depending on selected tracker
+    fsmGuiMain('popupTracker_Callback',handles.popupTracker,[],handles);
+    
+else
+    
+    % Uncheck module
+    set(handles.checkTrackModule,'Value',0);
+
+    % Turn off everything
+    fsmGuiMain('toggleTrackModule',handles,0);
+
 end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 

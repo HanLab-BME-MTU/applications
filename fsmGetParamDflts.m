@@ -77,6 +77,8 @@ fsmParam.track.enable=1;            % Activates the TRACKER module [ 0 : off | 1
 % Threshold
 fsmParam.track.threshold=3;         % Defines the search radius for the tracker (pixels)
 fsmParam.track.influence=3;         % Defines the radius of influence for the BMTNN tracker (pixels)
+% Initializer
+fsmParam.track.init=0;              % Turns on|off the initializer for the tracker [ 0 : off | 1,2,3,... initializer ]
 % Tracker
 fsmParam.track.tracker=1;           % Specifies the tracker to be selected [1: BMTNN | 2: BMTG | 3: 3FT ]
 % Hierarchical tracking
