@@ -41,7 +41,7 @@ if ~radioButtons.donotshowplots
     
     if radioButtons.plotestimate
        hold on;
-       [yPlot, est] = ptPlotEstimate (xAxis, avgTrajFrame, 1);
+       [yPlot, est] = ptPlotEstimate (xAxis, avgTrajFrame, 1, []);
        hold off;
     end
         

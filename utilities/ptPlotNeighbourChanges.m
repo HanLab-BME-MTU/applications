@@ -42,7 +42,7 @@ if ~radioButtons.donotshowplots
     % If needed show the fitted trapezoid on the plot
     if radioButtons.plotestimate
        hold on;
-       [yPlot, est] = ptPlotEstimate (xAxis, avgNbChange, 1);
+       [yPlot, est] = ptPlotEstimate (xAxis, avgNbChange, 1, []);
        hold off;
     end
     
@@ -69,6 +69,12 @@ end
 csvwrite ([SaveDir filesep imageName '_avgNeighbourInteractionChange.csv'], [xAxis ; avgNbChange]);
 
 if radioButtons.plotestimate
+    if ~radioButtons.donotshowplots 
+        csvwrite ([SaveDir filesep imageName '_fittedCurveNeighbourChange.csv'], [xAxis ; yPlot]);
+        csvwrite ([SaveDir filesep imageName '_curveEstimatesNeighbourChange.csv'], est);
+    end
+end
+
    csvwrite ([SaveDir filesep imageName '_fittedCurveNeighbourChange.csv'], [xAxis ; yPlot]);
    csvwrite ([SaveDir filesep imageName '_curveEstimatesNeighbourChange.csv'], est);
 end

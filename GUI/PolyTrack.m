@@ -68,6 +68,23 @@ defaultjob = struct('imagedirectory', [], 'imagename', [], 'firstimage', 1, 'las
 % Assign the default job values to the GUI handle so it can be passed around
 handles.defaultjob = defaultjob;
 
+% Get environment variable POLYDATA if it exists
+polyDataDirectory = getenv('POLYDATA');
+if isempty(polyDataDirectory)
+    if ispc
+        polyDataDirectory = 'C:';
+    else  % Unix
+        polyDataDirectory = '/tmp';
+    end
+    fprintf (1, 'POLYDATA environment variable not set. Setting default: %s\n', polyDataDirectory);    
+end
+
+% Update biodata and tmp gui text boxes
+set (handles.text_polydatadir_pt,'String',polyDataDirectory);
+
+% Assign biodata and tmp to the handles struct
+handles.polyDataDirectory = polyDataDirectory;
+
 % Set the colors of the gui
 set(hObject,'Color',[0,0,0.627]);
 
@@ -152,13 +169,18 @@ handles = guidata(hObject);
 % Get a handle to the GUI job list
 listhandle = handles.GUI_st_job_lb;
 
+% Start at the polytrack directory (POLYDATA)
+currentDir = pwd;
+cd (handles.polyDataDirectory);
+
 % Select an image filename or a file called 'jobvalues.mat' from a user selected directory
 [filename,imagedirectory] = uigetfile({'*.tif;*.TIF;*.tiff;*.TIFF','TIFF-files';'jobvalues.mat','Saved Values';'*.*','all files'},...
                                       'Please select a TIFF image file or jobvalues.mat file');
 
 % Do nothing in case the user doesn't select anything
 if filename == 0
-    return
+    cd (currentDir);
+    return;
 end
 
 % Else go on and check whether a file called 'jobvalues.mat' has been selected
@@ -2261,4 +2283,93 @@ msgbox(message);
 guidata(hObject, handles);
 
 % --------------------------------------------------------------------
+
+function text_polydatadir_pt_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
+
+% Get input from the gui and assign it to the handle; if directory does not
+% exist, ask user whether to create it
+polyDataDirectory = get(hObject,'String');
+
+% If a filesep exist at the end of the path, remove it
+if polyDataDirectory(end) == '/'
+    polyDataDirectory(end) = '';
+end
+
+% If the path doesn't exist ask user if it should be created
+if ~exist(polyDataDirectory, 'dir')
+   msgStr = ['This directory does not exist yet. Do you want to create it?'];
+   answer = questdlg(msgStr, 'Create Directory', 'Yes', 'No', 'Yes');
+   if strcmp(answer,'Yes')
+      mkdir (polyDataDirectory);
+   else
+      polyDataDirectory = handles.polyDataDirectory;
+      set(handles.text_polydatadir_pt,'String',polyDataDirectory);
+   end
+end
+
+% Assign it to the guiData structure
+handles.polyDataDirectory = polyDataDirectory;
+
+% Update handles structure
+guidata(hObject, handles);
+
+% --------------------------------------------------------------------
+
+function text_polydatadir_pt_CreateFcn(hObject, eventdata, handles)
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --------------------------------------------------------------------
+
+function pb_polydatabrowse_pt_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
+
+% Retrieve the directory and filename where to save the result
+polyDataDirectory = get(handles.text_polydatadir_pt,'String');
+
+directory = uigetdir(polyDataDirectory,'Please select a new POLYDATA directory');
+
+% Do nothing in case the user doesn't select anything
+if directory == 0
+   return
+end
+
+% If a filesep exist at the end of the path, remove it
+if directory(end) == '/'
+    directory(end) = '';
+end
+
+% % Check the directory structure under BIODATA and create projects subdir 
+% % if not existent
+% if ~exist([directory filesep 'projects'],'dir')
+%     try
+%         mkdir(directory,'projects');
+%     catch
+%         fprintf (1, 'Error: cannot create projects directory under %s. Please create it manually.\n', polyDataDirectory);
+%     end
+% end
+% 
+% % Do the same for the experiments subdir
+% if ~exist([directory filesep 'experiments'],'dir')
+%     try
+%         mkdir(directory,'experiments');
+%     catch
+%         fprintf (1, 'Error: cannot create experiments directory under %s. Please create it manually.\n', polyDataDirectory);
+%     end
+% end
+
+% Update the biodata text field
+set(handles.text_polydatadir_pt, 'String',directory);
+
+% Update polyDataDirectory in the handles
+handles.polyDataDirectory = directory;
+
+% Update GUI handles struct
+guidata (hObject,handles);
+
 

@@ -65,7 +65,7 @@ end
 % Calculate the image range taking into account the increment between frames
 %imageRange = floor ((lastImage - firstImage + 1) / increment + 0.001);
 %imageRange = floor ((lastImage - firstImage + 1) / increment);
-imageRange = size (handles.allValidFrames{1},2)
+imageRange = size (handles.allValidFrames{1},2);
 handles.ma = imageRange;
 
 % Generate the slider step values for the uicontrol
@@ -114,6 +114,9 @@ hold on;
 imshow (image, []), title (num2str (firstImage));
 hold off;
 
+% Make sure the axis are correct
+axis([1 size(image,2) 1 size(image,1)]);
+
 % Get the cells corresponding to the first frame. We create a third column
 % (first two being [x,y]) with the row indices of MPM. We are NOT interested in
 % the indices the cells will have in the vector cellsWithNums!!! Why?
@@ -133,7 +136,8 @@ cellsWithNums(:,1:2) = handles.allMPM{1}(:,1:2);
 % Now take the cells identified as real cells (at least one coord different from zero)
 % and plot those as red dots. The cell number is written as colored text on the current axes.
 hold on;
-plot (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), 'r.');
+dots = plot (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), 'r.');
+set(dots,'Tag','dots','ButtonDownFcn','ptActionOnCells');
 txt = text (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), num2str (cellsWithNums (realCellIndex, 3)), 'Color', 'r');
 
 % That's it: wait for the next user action

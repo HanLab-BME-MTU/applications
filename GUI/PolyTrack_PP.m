@@ -68,23 +68,58 @@ handles.defaultPostPro = defaultPostPro;
 home = getenv('HOME');
 if isempty (home)
    if ispc
-      home = 'H:';
+      home = 'C:';
    else
       home = '/tmp';
    end
    fprintf (1, 'HOME environment variable not set. Setting default: %s\n', home);
 end
 
+% Get environment variable POLYDATA if it exists
+polyDataDirectory = getenv('POLYDATA');
+if isempty(polyDataDirectory)
+    if ispc
+        polyDataDirectory = 'C:';
+    else  % Unix
+        polyDataDirectory = '/tmp';
+    end
+    fprintf (1, 'POLYDATA environment variable not set. Setting default: %s\n', polyDataDirectory);    
+end
+
+% Create results save dir if it doesn't exist yet
+if ~exist([polyDataDirectory filesep 'ptData'],'dir')
+    try
+        mkdir(polyDataDirectory,'ptData');
+    catch
+        fprintf (1, 'Error: cannot create ptData directory under %s. Please create it manually.\n', polyDataDirectory);
+    end
+end
+
+% Create movies save dir if it doesn't exist yet
+if ~exist([polyDataDirectory filesep 'ptMovies'],'dir')
+    try
+        mkdir(polyDataDirectory,'ptMovies');
+    catch
+        fprintf (1, 'Error: cannot create ptMovies directory under %s. Please create it manually.\n', polyDataDirectory);
+    end
+end
+
+% Update biodata and tmp gui text boxes
+set (handles.text_polydatadir_ptpp,'String',polyDataDirectory);
+
+% Assign biodata and tmp to the handles struct
+handles.polyDataDirectory = polyDataDirectory;
+
 % Set settings path
-handles.guiData.savesettingpath = [home filesep 'fileInfoPP.mat'];
+handles.guiData.savesettingpath = [polyDataDirectory filesep 'fileInfoPP.mat'];
 set (handles.GUI_savesettingpath_ed, 'String', handles.guiData.savesettingpath);
 
 % Set save path
-handles.guiData.savedatapath = [home filesep 'ptData'];
+handles.guiData.savedatapath = [polyDataDirectory filesep 'ptData'];
 set (handles.GUI_fm_saveallpath_ed, 'String', handles.guiData.savedatapath);
 
 % Set movie file path
-handles.guiData.dragtailfile = [home filesep 'trackMovie'];
+handles.guiData.dragtailfile = [polyDataDirectory filesep 'ptMovies' filesep 'trackMovie'];
 set (handles.GUI_fm_filename_ed, 'String', handles.guiData.dragtailfile);
 
 % Set binsize
@@ -2168,13 +2203,18 @@ function GUI_add_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
+% Start at the polytrack directory (POLYDATA)
+currentDir = pwd;
+cd (handles.polyDataDirectory);
+
 % Select an image filename or a file called 'jobvalues.mat' from a user selected directory
 [filename, directory] = uigetfile ({'MPM.mat', 'MPM-Files'; '*.*', 'all files'}, ...
                                       'Please select an MPM file');
 
 % Do nothing in case the user doesn't select anything
 if filename == 0
-   return
+   cd (currentDir);
+   return;
 else
    % Convert filename to lowercase
    fileLower = lower (filename);
@@ -2336,11 +2376,12 @@ if ~exist (pathString, 'dir')
 end
 
 % Select an setting file from a user selected directory
-[filename, directory] = uigetfile ({[pathString filesep '*.mat'], 'Setting Files'; '*.*', 'all files'}, ...
+[filename, directory] = uigetfile ({[handles.polyDataDirectory filesep '*.mat'], 'Setting Files'; '*.*', 'all files'}, ...
                                       'Please select a PP setting file');
 
 % Do nothing in case the user doesn't select anything
 if filename == 0
+   cd (currentDir);
    return
 else
     
@@ -2389,12 +2430,12 @@ else
       else
          handles.guiData.plotfirstimg = 1;
          %handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
-         handles.guiData.plotlastimg = allValidFrames{filesSelected}(1,end) - allValidFrames{filesSelected}(1,1) + 1;
+         handles.guiData.plotlastimg = allValidFrames{filesSelected(end)}(1,end) - allValidFrames{filesSelected(end)}(1,1) + 1;
       end
 
       % Set movie frame start and end
-      handles.guiData.moviefirstimg = jobData(filesSelected).firstimg;
-      handles.guiData.movielastimg = jobData(filesSelected).lastimg;
+      handles.guiData.moviefirstimg = jobData(filesSelected(1)).firstimg;
+      handles.guiData.movielastimg = jobData(filesSelected(1)).lastimg;
       
       % Assign all values to the handles struct
       handles.allMPM = allMPM;
@@ -3096,4 +3137,92 @@ end
 guidata(hObject, handles); 
 
 %--------------------------------------------------------------------
+
+function text_polydatadir_ptpp_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
+
+% Get input from the gui and assign it to the handle; if directory does not
+% exist, ask user whether to create it
+polyDataDirectory = get(hObject,'String');
+
+% If a filesep exist at the end of the path, remove it
+if polyDataDirectory(end) == '/'
+    polyDataDirectory(end) = '';
+end
+
+% If the path doesn't exist ask user if it should be created
+if ~exist(polyDataDirectory, 'dir')
+   msgStr = ['This directory does not exist yet. Do you want to create it?'];
+   answer = questdlg(msgStr, 'Create Directory', 'Yes', 'No', 'Yes');
+   if strcmp(answer,'Yes')
+      mkdir (polyDataDirectory);
+   else
+      polyDataDirectory = handles.polyDataDirectory;
+      set(handles.text_polydatadir_pt,'String',polyDataDirectory);
+   end
+end
+
+% Assign it to the guiData structure
+handles.polyDataDirectory = polyDataDirectory;
+
+% Update handles structure
+guidata(hObject, handles);
+
+% --------------------------------------------------------------------
+
+function text_polydatadir_ptpp_CreateFcn(hObject, eventdata, handles)
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --------------------------------------------------------------------
+
+function pb_polydatabrowse_ptpp_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
+
+% Retrieve the directory and filename where to save the result
+polyDataDirectory = get(handles.text_polydatadir_ptpp,'String');
+
+directory = uigetdir(polyDataDirectory,'Please select a new POLYDATA directory');
+
+% Do nothing in case the user doesn't select anything
+if directory == 0
+   return
+end
+
+% If a filesep exist at the end of the path, remove it
+if directory(end) == '/'
+    directory(end) = '';
+end
+
+% % Check the directory structure under BIODATA and create projects subdir 
+% % if not existent
+% if ~exist([directory filesep 'projects'],'dir')
+%     try
+%         mkdir(directory,'projects');
+%     catch
+%         fprintf (1, 'Error: cannot create projects directory under %s. Please create it manually.\n', polyDataDirectory);
+%     end
+% end
+% 
+% % Do the same for the experiments subdir
+% if ~exist([directory filesep 'experiments'],'dir')
+%     try
+%         mkdir(directory,'experiments');
+%     catch
+%         fprintf (1, 'Error: cannot create experiments directory under %s. Please create it manually.\n', polyDataDirectory);
+%     end
+% end
+
+% Update the biodata text field
+set(handles.text_polydatadir_ptpp, 'String',directory);
+
+% Update polyDataDirectory in the handles
+handles.polyDataDirectory = directory;
+
+% Update GUI handles struct
+guidata (hObject,handles);
 

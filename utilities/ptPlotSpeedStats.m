@@ -57,6 +57,17 @@ if radioButtons.speedplot_2
             hold on; plot (xAxis, raAvgVelocity, 'r'); hold off;
         end
         
+        if radioButtons.plotestimate
+           hold on;
+           [yPlot, est] = ptPlotEstimate (xAxis, avgVelocity, 1, [2 1 1]);
+           hold off;
+           
+           if ~radioButtons.donotshowplots 
+               csvwrite ([SaveDir filesep imageName '_fittedCurveAllVelocity.csv'], [xAxis ; yPlot]);
+               csvwrite ([SaveDir filesep imageName '_curveEstimatesAllVelocity.csv'], est);
+           end
+        end
+        
         title ('Avg Velocity All Cells');
         xlabel ('Frames');
         ylabel ('Velocity (um/min)');
@@ -73,6 +84,12 @@ if radioButtons.speedplot_2
             hold on; plot (xAxis, raAvgVelocitySquared, 'r'); hold off;
         end
                 
+        if radioButtons.plotestimate
+           hold on;
+           [yPlot, est] = ptPlotEstimate (xAxis, avgVelocitySquared, 1, [2 1 2]);
+           hold off;
+        end        
+        
         title ('Avg Squared Velocity All Cells');
         xlabel ('Frames');
         ylabel ('Velocity^2 (um/min)');
@@ -98,6 +115,17 @@ if radioButtons.speedplot_2
             hold on; plot (xAxis, raAvgSingleVelocity, 'r'); hold off;
         end
         
+        if radioButtons.plotestimate
+           hold on;
+           [yPlot, est] = ptPlotEstimate (xAxis, avgSingleVelocity, 1, [2 1 1]);
+           hold off;
+           
+           if ~radioButtons.donotshowplots 
+               csvwrite ([SaveDir filesep imageName '_fittedCurveSingleVelocity.csv'], [xAxis ; yPlot]);
+               csvwrite ([SaveDir filesep imageName '_curveEstimatesSingleVelocity.csv'], est);
+           end
+        end  
+        
         title ('Avg Single Cell Velocity');
         xlabel ('Frames');
         ylabel ('Velocity (um/min)');
@@ -115,6 +143,17 @@ if radioButtons.speedplot_2
             hold on; plot (xAxis, raAvgClusteredVelocity, 'r'); hold off;
         end
         
+        if radioButtons.plotestimate
+           hold on;
+           [yPlot, est] = ptPlotEstimate (xAxis, avgClusteredVelocity, 1, [2 1 2]);
+           hold off;
+           
+           if ~radioButtons.donotshowplots 
+               csvwrite ([SaveDir filesep imageName '_fittedCurveClusteredVelocity.csv'], [xAxis ; yPlot]);
+               csvwrite ([SaveDir filesep imageName '_curveEstimatesClusteredVelocity.csv'], est);
+           end
+        end  
+        
         title ('Avg Clustered Cell Velocity');
         xlabel ('Frames');
         ylabel ('Velocity (um/min)');
@@ -123,7 +162,7 @@ if radioButtons.speedplot_2
         else
            axis ([xAxis(1) xAxis(1)+1 0 ymax]);
         end
-        
+                
         % Save the figures in fig, eps and tif format     
         hgsave (h_fig2,[SaveDir filesep [imageName '_avgSingleAndClusterVelocity.fig']]);
         print (h_fig2, [SaveDir filesep [imageName '_avgSingleAndClusterVelocity.eps']],'-depsc2','-tiff');

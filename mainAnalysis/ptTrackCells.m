@@ -7,6 +7,8 @@ function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptT
 %                        for the exact structure details
 %                jobNumber : which job is currently being dealt with. This is used to print
 %                            some status information on the matlab command line
+%                saveIntResults : 1 if intermediate results have to be
+%                                 saved; 0 if not saved
 %
 % OUTPUT         M : described in ptTrackLinker
 %                cellProps : 
@@ -68,6 +70,13 @@ function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptT
 % Andre Kerstens        Jul 04          Added frame properties to functions
 % Andre Kerstens        Jul 04          Segmentation function now uses precalculated mu0 values
 
+% Get a pointer to the chromdynMain gui
+hPtMain = findall(0,'Tag','polyTrack_mainwindow','Name','PolyTrack');
+if ~isempty(hPtMain)
+    % Get the currently selected project and experiment data
+    handles = guidata(hPtMain);
+end 
+
 % Tell the user that we've started
 fprintf (1, 'ptTrackCells: Starting analysis of job number %d:\n', jobNumber);
 
@@ -100,6 +109,11 @@ emptyM               = zeros (1,4);      % All zeros M matrix entry
 emptyCell            = zeros (1,3);
 emptyCluster         = zeros (1,5);
 emptyFrame           = zeros (1,5);
+
+% Created info directory if needed
+if saveIntResults
+    mkdir(saveDirectory,'info');
+end
 
 % Initialize the vector that holds the valid frame info and the
 % accompanying frame rates (taken from the image file header)
@@ -252,6 +266,11 @@ else		% lastImaNum > firstImaNum
           % Find all the cell nuclei coordinates
           [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc);
 
+          % Store the nuclei coords as intermediate result
+          if saveIntResults
+              save([saveDirectory filesep 'info' filesep 'nucleiCoord_pass1_' num2str(imageCount) '.mat'],'nucCoord');
+          end
+          
           % If the user specified his/her own coordinates on the gui, use these instead
           if imageCount == startFrame
              % Get the previously initiated coordinates if they exist
@@ -268,7 +287,12 @@ else		% lastImaNum > firstImaNum
 
           % Make sure the minimum cell to cell distance is valid
           newCoord = ptCheckMinimalCellDistance (nucCoord, wouldBeNucCoord, minDistCellToCell);
-
+ 
+          % Store the nuclei coords incl wouldbe ones as intermediate result
+          if saveIntResults
+              save([saveDirectory filesep 'info' filesep 'nucleiCoord_pass2_' num2str(imageCount) '.mat'],'newCoord');
+          end
+          
           % Check whether we can find some more cells based on average cell size and cluster areas
           % that have no coordinates in them: if these are big enough we label them as cells
           [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (edgeImage, newCoord, ...
@@ -284,6 +308,11 @@ else		% lastImaNum > firstImaNum
           % Agian make sure the minimum cell to cell distance is valid
           newCoord = ptCheckMinimalCellDistance (newAvgCoord, [], minDistCellToCell);
 
+          % Store the nuclei coords incl new ones as intermediate result
+          if saveIntResults
+              save([saveDirectory filesep 'info' filesep 'nucleiCoord_pass3_' num2str(imageCount) '.mat'],'newCoord');
+          end
+          
           % From frame 2 we should start matching coordinates
           if imageCount > startFrame
 
@@ -294,96 +323,119 @@ else		% lastImaNum > firstImaNum
              unmatchedCells = find (matchedCells (:,3) == 0 & matchedCells (:,4) == 0);
              unmatchedCellsCoord = matchedCells (unmatchedCells,1:2);
 
-             if ~isempty (unmatchedCells)
-                couldNotMatch = [];
-                for jCount =  1 : size (unmatchedCells, 1)
-                   unmatchedCellCoord = unmatchedCellsCoord(jCount,:);
-                   % Check whether the lost cell was near the edge of the image (specified by minEdge)
-                   % in this case we assume it wandered out of sight and we don't try to template match it
-                   if abs (unmatchedCellCoord(1,1)) > minEdge & abs (unmatchedCellCoord(1,1) - imgHeight) > minEdge & ...
-                      abs (unmatchedCellCoord(1,2)) > minEdge & abs (unmatchedCellCoord(1,2) - imgWidth) > minEdge
-
-                      % Do the template matching
-                      [templateCellCoord, correlation] = ptFindCellsByTemplate (unmatchedCellCoord, previousImage, ...
-                                                                                newImage, backgroundLevel,percentBackground, ...
-                                                                                sizeTemplate, boxSizeImage);
-
-                      % Make sure that we only accept cells with a minimum correlation
-                      if correlation > minimalQualityCorr
-
-                         % Check that the newly found cell is far enough away from
-                         % other cells. If it is not, disregard it.
-                         if (min(sqrt ((newCoord(:,1) - templateCellCoord(1,1)).^2 + ...
-                                       (newCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell
-
-                            % Update the newCoord array (since we found a new cell after all)
-                            newCoord (end+1,1) = templateCellCoord (1,1);
-                            newCoord (end,2) = templateCellCoord (1,2);
-                         end
-                      else
-                         % We didn't find a template match which means we lost the
-                         % cell: add it to the lost cell list. We might find it again later
-                         % so that we can close the gap in the track
-                         % The current M entry is different from the current frame nr: recalculate
-                         %currentMEntry = ceil ((imageCount - startFrame) / increment);
-                         currentMEntry = mCount-1;
-                         if isempty (lostCells)
-                            lostCells = [unmatchedCellCoord, currentMEntry];
-                         else
-                            lostCells = cat (1, lostCells, [unmatchedCellCoord, currentMEntry]);
-                         end
-                      end   % if correlation
-                   end   % if abs (
-                end   % for jCount
-             end   % if ~isempty (unmatchedCells)
-
-             % Ofcourse we can do this the other way around as well: find old cells by template
-             unmatchedNewCells = find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0);
-             unmatchedNewCellsCoord = matchedCells (unmatchedNewCells,3:4);
-
-             % Initialize the matrix for previous coordinates that we find,
-             % these will be added to M later on
-             foundPrevCells (1,:) = [0 0 0 0]; 
-
-             % Start the template matching process if needed
-             if ~isempty (unmatchedNewCells)
-                couldNotMatch = []; 
-                for jCount =  1 : size (unmatchedNewCells, 1)
-                   unmatchedNewCellCoord = unmatchedNewCellsCoord(jCount,:);
-                   [templateCellCoord, correlation] = ptFindCellsByTemplate (unmatchedNewCellCoord, newImage, ...
-                                                                             previousImage, backgroundLevel, ...
-                                                                             percentBackground, sizeTemplate, ...
-                                                                             boxSizeImage);
-
-                   % Make sure that we only accept cells with a minimum correlation
-                   if correlation > minimalQualityCorr
-                      if (min(sqrt ((previousCoord(:,1) - templateCellCoord(1,1)).^2 + ...
-                                    (previousCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell   
-
-                         % Add these coordinates to the previously found ones
-                         previousCoord (end+1,1) = templateCellCoord (1,1);
-                         previousCoord (end,2) = templateCellCoord (1,2);
-
-                         % Store these as well so that we can modify previous
-                         % M-entries later on
-                         foundPrevCells (end+1,:) = [0 0 templateCellCoord(1,1) templateCellCoord(1,2)];
-                      end
-                   end   % if correlation
-                end   % for jCount
-             end   % if ~isempty (unmatchedCells)
-
-             % Make sure the cells in newCoord and previousCoord are far enough
-             % away from each other
-             newCoord = ptCheckMinimalCellDistance (newCoord, [], minDistCellToCell);
-             previousCoord = ptCheckMinimalCellDistance (previousCoord, [], minDistCellToCell);
-
-             % Now that we have new newCoord and new PreviousCoord coordinates, we can do a renewed match
-             matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
-
+             % Keep lost cells for later
+             % AK: added this to test how algoritm performs without
+             % template matching
+             if ~isempty(unmatchedCellsCoord)
+                 currentMEntry = mCount-1.*ones(size(unmatchedCellsCoord,1),1);
+                 if isempty (lostCells)
+                    lostCells = [unmatchedCellsCoord, currentMEntry];
+                 else
+                    lostCells = cat (1, lostCells, [unmatchedCellsCoord, currentMEntry]);
+                 end   
+             end
+             
+% AK: commented the following code to test how algoritm performs without
+% template matching:
+%
+%              if ~isempty (unmatchedCells)
+%                 couldNotMatch = [];
+%                 for jCount =  1 : size (unmatchedCells, 1)
+%                    unmatchedCellCoord = unmatchedCellsCoord(jCount,:);
+%                    % Check whether the lost cell was near the edge of the image (specified by minEdge)
+%                    % in this case we assume it wandered out of sight and we don't try to template match it
+%                    if abs (unmatchedCellCoord(1,1)) > minEdge & abs (unmatchedCellCoord(1,1) - imgHeight) > minEdge & ...
+%                       abs (unmatchedCellCoord(1,2)) > minEdge & abs (unmatchedCellCoord(1,2) - imgWidth) > minEdge
+% 
+%                       % Do the template matching
+%                       [templateCellCoord, correlation] = ptFindCellsByTemplate (unmatchedCellCoord, previousImage, ...
+%                                                                                 newImage, backgroundLevel,percentBackground, ...
+%                                                                                 sizeTemplate, boxSizeImage);
+% 
+%                       % Make sure that we only accept cells with a minimum correlation
+%                       if correlation > minimalQualityCorr
+% 
+%                          % Check that the newly found cell is far enough away from
+%                          % other cells. If it is not, disregard it.
+%                          if (min(sqrt ((newCoord(:,1) - templateCellCoord(1,1)).^2 + ...
+%                                        (newCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell
+% 
+%                             % Update the newCoord array (since we found a new cell after all)
+%                             newCoord (end+1,1) = templateCellCoord (1,1);
+%                             newCoord (end,2) = templateCellCoord (1,2);
+%                          end
+%                       else
+%                          % We didn't find a template match which means we lost the
+%                          % cell: add it to the lost cell list. We might find it again later
+%                          % so that we can close the gap in the track
+%                          % The current M entry is different from the current frame nr: recalculate
+%                          %currentMEntry = ceil ((imageCount - startFrame) / increment);
+%                          currentMEntry = mCount-1;
+%                          if isempty (lostCells)
+%                             lostCells = [unmatchedCellCoord, currentMEntry];
+%                          else
+%                             lostCells = cat (1, lostCells, [unmatchedCellCoord, currentMEntry]);
+%                          end
+%                       end   % if correlation
+%                    end   % if abs (
+%                 end   % for jCount
+%              end   % if ~isempty (unmatchedCells)
+% 
+%              % Ofcourse we can do this the other way around as well: find old cells by template
+%              unmatchedNewCells = find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0);
+%              unmatchedNewCellsCoord = matchedCells (unmatchedNewCells,3:4);
+% 
+%              % Initialize the matrix for previous coordinates that we find,
+%              % these will be added to M later on
+%              foundPrevCells (1,:) = [0 0 0 0]; 
+% 
+%              % Start the template matching process if needed
+%              if ~isempty (unmatchedNewCells)
+%                 couldNotMatch = []; 
+%                 for jCount =  1 : size (unmatchedNewCells, 1)
+%                    unmatchedNewCellCoord = unmatchedNewCellsCoord(jCount,:);
+%                    [templateCellCoord, correlation] = ptFindCellsByTemplate (unmatchedNewCellCoord, newImage, ...
+%                                                                              previousImage, backgroundLevel, ...
+%                                                                              percentBackground, sizeTemplate, ...
+%                                                                              boxSizeImage);
+% 
+%                    % Make sure that we only accept cells with a minimum correlation
+%                    if correlation > minimalQualityCorr
+%                       if (min(sqrt ((previousCoord(:,1) - templateCellCoord(1,1)).^2 + ...
+%                                     (previousCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell   
+% 
+%                          % Add these coordinates to the previously found ones
+%                          previousCoord (end+1,1) = templateCellCoord (1,1);
+%                          previousCoord (end,2) = templateCellCoord (1,2);
+% 
+%                          % Store these as well so that we can modify previous
+%                          % M-entries later on
+%                          foundPrevCells (end+1,:) = [0 0 templateCellCoord(1,1) templateCellCoord(1,2)];
+%                       end
+%                    end   % if correlation
+%                 end   % for jCount
+%              end   % if ~isempty (unmatchedCells)
+% 
+%              % Make sure the cells in newCoord and previousCoord are far enough
+%              % away from each other
+%              newCoord = ptCheckMinimalCellDistance (newCoord, [], minDistCellToCell);
+%              previousCoord = ptCheckMinimalCellDistance (previousCoord, [], minDistCellToCell);
+% 
+%              % Store the nuclei coords incl template ones as intermediate result
+%              if saveIntResults
+%                  save([saveDirectory filesep 'info' filesep 'nucleiCoord_pass4_' num2str(imageCount) '.mat'],'newCoord');
+%              end
+%              
+%              % Now that we have new newCoord and new PreviousCoord coordinates, we can do a renewed match
+%              matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
+% 
              % Add a number of zero rows to the matchedCells matrix to make
              % space for the coordinates that we later will calculate to close
              % tracks and to add any previous coords we found
-             zeroRows = zeros (size (lostCells,1) + size (foundPrevCells,1), 4);
+             %zeroRows = zeros (size (lostCells,1) + size (foundPrevCells,1), 4);
+             % AK: the above line was replaced with the next one to test
+             % algorithm without templ matching
+             zeroRows = zeros (size (lostCells,1) + size (unmatchedCellsCoord,1), 4);
              matchedCells = [matchedCells ; zeroRows];
 
              % Add the newly found matches to the M matrix and make sure all the rows and colums 
@@ -417,21 +469,22 @@ else		% lastImaNum > firstImaNum
                 end     % ~isempty (lostCellsToMatch)
              end    % ~isempty (lostCells) & ~isempty (newCells)
 
-             % In case we found previous coords by template, we should modify a
-             % zero row in the previous M entry as well, otherwise we will get
-             % problems linking tracks later on 
-             if mCount > 2
-                foundPrevCells (1,:) = [];
-                if ~isempty (foundPrevCells)
-                   zeroInd = find (M (:,1,mCount - 2) == 0 & M (:,2,mCount - 2) == 0 & ...
-                                   M (:,3,mCount - 2) == 0 & M (:,4,mCount - 2) == 0);
-                   M (zeroInd(1:size (foundPrevCells,1)), 1 : size (foundPrevCells, 2), mCount - 2) = ...
-                      foundPrevCells;
-                end
-             end
-
-             % Empty foundPrevCells for the next loop run
-             clear foundPrevCells; clear zeroInd;      
+% AK: commented out the next block to test algorithm without templ matching
+%              % In case we found previous coords by template, we should modify a
+%              % zero row in the previous M entry as well, otherwise we will get
+%              % problems linking tracks later on 
+%              if mCount > 2
+%                 foundPrevCells (1,:) = [];
+%                 if ~isempty (foundPrevCells)
+%                    zeroInd = find (M (:,1,mCount - 2) == 0 & M (:,2,mCount - 2) == 0 & ...
+%                                    M (:,3,mCount - 2) == 0 & M (:,4,mCount - 2) == 0);
+%                    M (zeroInd(1:size (foundPrevCells,1)), 1 : size (foundPrevCells, 2), mCount - 2) = ...
+%                       foundPrevCells;
+%                 end
+%              end
+% 
+%              % Empty foundPrevCells for the next loop run
+%              clear foundPrevCells; clear zeroInd;      
 
           end   % if imageCount > startFrame
 

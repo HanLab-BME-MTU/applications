@@ -56,7 +56,7 @@ if ~radioButtons.donotshowplots
     % If needed show the fitted trapezoid on the plot
     if radioButtons.plotestimate
        hold on;
-       [yPlot, est] = ptPlotEstimate (xAxis, ripleySlopeInclin, -1);
+       [yPlot, est] = ptPlotEstimate (xAxis, ripleySlopeInclin, -1, []);
        hold off;
     end
             
@@ -109,3 +109,9 @@ end
 csvwrite ([SaveDir filesep imageName '_avgRipleySlopeInclination.csv'], [xAxis ; ripleySlopeInclin]);
 csvwrite ([SaveDir filesep imageName '_avgRipleySlopeStart.csv'], [xAxis ; ripleySlopeStart]);
 
+if radioButtons.plotestimate
+    if ~radioButtons.donotshowplots 
+        csvwrite ([SaveDir filesep imageName '_fittedCurveRipleySlopeInclination.csv'], [xAxis ; yPlot]);
+        csvwrite ([SaveDir filesep imageName '_curveEstimatesRipleySlopeInclination.csv'], est);
+    end
+end

@@ -72,6 +72,9 @@ hold on;
 imshow (image, []), title (num2str (imageNumber));
 hold off;
 
+% Make sure the axis are correct
+axis([1 size(image,2) 1 size(image,1)]);
+
 % Get the cells corresponding to this frame. We create a third column
 % (first two being [x,y]) with the row indices of MPM. We are NOT interested in
 % the indices the cells will have in the vector cellsWithNums!!! Why?
@@ -91,8 +94,10 @@ cellsWithNums(:,1:2) = handles.allMPM{1}(:, 2 * sliderValue - 1 : 2 * sliderValu
 % Now take the cells identified as real cells (at least one coord different from zero)
 % and plot those as red dots. The cell number is written as colored text on the current axes.
 hold on;
-plot (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), 'r.');
-txt = text (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), num2str (cellsWithNums (realCellIndex, 3)), 'Color', 'r');
+dots = plot (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), 'r.');
+set(dots,'Tag','dots','ButtonDownFcn','ptActionOnCells');
+txt = text (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), ...
+            num2str (cellsWithNums (realCellIndex, 3)), 'Color', 'r');
 hold off;
 
 % Depending on who was the caller, set some object values
