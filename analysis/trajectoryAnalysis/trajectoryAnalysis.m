@@ -44,8 +44,10 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %                               the program. Otherwise, you have to specify
 %                               this option in
 %                               calculateTrajectoryFromIdlist
-%           - clusterData   : [{0}/1] uses EM clustering to find clusters
-%                               of speeds.
+%           - clusterData   : [{0}/1/2/3] uses EM clustering to find clusters
+%                               of speeds. 1 clusters only at the end, 2
+%                               will additionaly cluster for the convergence
+%                               statistics, and 3 will cluster all
 %                               
 %        testOpt: optional structure with the following optional fields
 %           - splitData     : [{0}/1] split data into two sets, returns two
@@ -117,6 +119,7 @@ constants.DEBUG = DEBUG;
 constants.DOCLUSTER = 1; % this does not really belong here, but it's easiest to pass it with the constants
 constants.MINCLUSTER = 1; % min # of cluster the EM algorithm looks for
 constants.MAXCLUSTER = 5; % max # of cluster the EM algorithm looks for
+constants.INDCLUSTER = 0; % try all individual k's?
 
 %build list of possible identifiers
 %HOME/BIODATA/SIMDATA (also: NONE/NOFILE)
@@ -651,7 +654,7 @@ end
 %--------------CALCULATE---------
 %===================================================================
 
-if DEBUG
+if ~isempty(DEBUG) | ~saveTxt % if no file, we do not care
     trajectoryDescription = trajectoryAnalysisMain(data,constants,showDetails,doConvergence,verbose,fileNameList);
     if splitData % do the second set
         trajectoryDescription2 = trajectoryAnalysisMain(data2,constants,showDetails,doConvergence,verbose,fileNameList2);
@@ -718,12 +721,13 @@ if saveTxt
     
     for nStat = 1:numStats
         %(I so love these formatted strings)
-        vars2write = [statisticsCell{nStat,:}];
+        txt2write  = statisticsCell{nStat,1};
+        vars2write = [statisticsCell{nStat,2:end}];
         switch length(vars2write)
             case 1
-                fprintf(fidTxt,'%20s\t%5.6f\n',vars2write);
+                fprintf(fidTxt,'%25s\t%5.6f\n',txt2write,vars2write);
             case 2
-                fprintf(fidTxt,'%20s\t%5.6f\t%5.6f\n',vars2write);
+                fprintf(fidTxt,'%25s\t%5.6f\t%5.6f\n',txt2write,vars2write);
         end
     end
     
@@ -737,12 +741,13 @@ if saveTxt
         %read the list
         statisticsCell = [statisticsTitles,struct2cell(trajectoryDescription.individualStatistics(nFile).summary)];
         for nStat = 1:numStats
-            vars2write = statisticsCell{nStat,:};
+            txt2write  = statisticsCell{nStat,1};
+            vars2write = [statisticsCell{nStat,2:end}];
             switch length(vars2write)
                 case 1
-                    fprintf(fidTxt,'%20s\t%5.6f\n',vars2write);
+                    fprintf(fidTxt,'%25s\t%5.6f\n',txt2write,vars2write);
                 case 2
-                    fprintf(fidTxt,'%20s\t%5.6f\t%5.6f\n',vars2write);
+                    fprintf(fidTxt,'%25s\t%5.6f\t%5.6f\n',txt2write,vars2write);
             end
         end
     end

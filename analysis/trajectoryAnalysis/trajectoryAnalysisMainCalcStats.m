@@ -239,20 +239,20 @@ if ~isempty(growthIdx)
     
     % 2/23: Do not use sigma-weighting any more: too unstable!
     % indGrowthSpeedSigma = sigmaMax(growthIdx)./(abs(dataListG(growthIdx,4)).*sqrt(dataListG(growthIdx,7)));
-%     [growthSpeedMean, growthSpeedStd] = weightedStats(dataListG(growthIdx,4),...
-%         indGrowthSpeedSigma,'s');
-%     [growthSpeedMeanPW, growthSpeedStdPW] = weightedStats(dataListG(growthIdx,4),...
-%         sigmaMax(growthIdx),'s');
+    %     [growthSpeedMean, growthSpeedStd] = weightedStats(dataListG(growthIdx,4),...
+    %         indGrowthSpeedSigma,'s');
+    %     [growthSpeedMeanPW, growthSpeedStdPW] = weightedStats(dataListG(growthIdx,4),...
+    %         sigmaMax(growthIdx),'s');
     
     % use normal mean, weigh only with time
     indGrowthSpeedSigma = 1./dataListG(growthIdx,7);
     [growthSpeedMeanNW,growthSpeedStdNW] = weightedStats(dataListG(growthIdx,4)*60,dataListG(growthIdx,7),'w');
     
     %transform to um/min
-%     growthSpeedMean = growthSpeedMean*60;
-%     growthSpeedStd  = growthSpeedStd *60;
-%     growthSpeedMeanPW = growthSpeedMeanPW*60;
-%     growthSpeedStdPW  = growthSpeedStdPW *60;
+    %     growthSpeedMean = growthSpeedMean*60;
+    %     growthSpeedStd  = growthSpeedStd *60;
+    %     growthSpeedMeanPW = growthSpeedMeanPW*60;
+    %     growthSpeedStdPW  = growthSpeedStdPW *60;
     
     %time (inv needed for frequencies, total for %undetermined)
     %rescue and catastrophe are considered poisson processes - hence the
@@ -316,21 +316,21 @@ if ~isempty(shrinkageIdx)
     
     % 2/23: Do not use sigma-weighting any more: too unstable!
     % indShrinkageSpeedSigma = sigmaMax(shrinkageIdx)./(abs(dataListG(shrinkageIdx,4)).*sqrt(dataListG(shrinkageIdx,7)));
-% 
-%     [shrinkageSpeedMean, shrinkageSpeedStd] = weightedStats(dataListG(shrinkageIdx,4),...
-%         indShrinkageSpeedSigma,'s');
-%     [shrinkageSpeedMeanPW, shrinkageSpeedStdPW] = weightedStats(dataListG(shrinkageIdx,4),...
-%         sigmaMax(shrinkageIdx),'s');
-
+    % 
+    %     [shrinkageSpeedMean, shrinkageSpeedStd] = weightedStats(dataListG(shrinkageIdx,4),...
+    %         indShrinkageSpeedSigma,'s');
+    %     [shrinkageSpeedMeanPW, shrinkageSpeedStdPW] = weightedStats(dataListG(shrinkageIdx,4),...
+    %         sigmaMax(shrinkageIdx),'s');
+    
     %non-weighted stats
     indShrinkageSpeedSigma = 1./dataListG(shrinkageIdx,7);
     [shrinkageSpeedMeanNW,shrinkageSpeedStdNW] = weightedStats(dataListG(shrinkageIdx,4)*60,dataListG(shrinkageIdx,7),'w');
     
     %transform to um/min
-%     shrinkageSpeedMean = shrinkageSpeedMean*60;
-%     shrinkageSpeedStd  = shrinkageSpeedStd *60;
-%     shrinkageSpeedMeanPW = shrinkageSpeedMeanPW*60;
-%     shrinkageSpeedStdPW  = shrinkageSpeedStdPW *60;
+    %     shrinkageSpeedMean = shrinkageSpeedMean*60;
+    %     shrinkageSpeedStd  = shrinkageSpeedStd *60;
+    %     shrinkageSpeedMeanPW = shrinkageSpeedMeanPW*60;
+    %     shrinkageSpeedStdPW  = shrinkageSpeedStdPW *60;
     
     %time (inv needed for frequencies, total for %undetermined)
     %rescue and catastrophe are considered poisson processes - hence the
@@ -452,10 +452,11 @@ if nargout > 1
     distributionStruct.polewardSpeedDistribution = [];
     distributionStruct.distanceDistribution = [];
     
-    clusterStruct(1:constants.MAXCLUSTER) = struct(...
-        'antipolewardBestK',[],'antipolewardClusters',[],...
-        'polewardBestK',[],'polewardClusters',[]);
-
+    % init cluster, make sure we get the right size (i.e. do we need 1 or 5 fields?)
+    clusterStruct(1:(constants.MAXCLUSTER-1)*constants.INDCLUSTER+1) = struct(...
+        'antipolewardBest',[],'antipolewardClusters',[],...
+        'polewardBest',[],'polewardClusters',[],'apNum',[],'tpNum',[]);
+    
     
     if ~isempty(growthIdx)
         [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
@@ -471,24 +472,49 @@ if nargout > 1
             numIntervals    = round(numIntervals/min(numIntervals));
             indGrowthSpeeds = repeatEntries(indGrowthSpeeds,numIntervals);
             
-            % #of clusters, relative weights, positions, covariances = 
-            %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
-            [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(indGrowthSpeeds',...
-                constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-6,1,[],[],any(verbose==4));
-            % and strore
-            clusterStruct(1).antipolewardBestK = (gbestk); 
-            
-            %find results for every cluster
-            for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
-                % force EM to return data only for selected k of means
+            antipolewardBest = zeros(3,16); % init correctly, because you never know how many clusters you'll get
+            % repeat 3 times to avoid the (hopefully) lone outlier
+            for iTry = 1:3
+                % #of clusters, relative weights, positions, covariances = 
+                %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
                 [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(indGrowthSpeeds',...
-                    kCluster,kCluster,0,1e-6,1,[],[],any(verbose==4));
-                
+                    constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-6,1,[],[],any(verbose==4));
+                % and strore
                 [antipolewardMeans,muIdx] = sort(gbestmu);
                 antipolewardWeight = gbestpp(muIdx);
                 antipolewardVariance = sqrt(gbestcov(:,:,muIdx));
+                antipolewardBest(iTry,1:gbestk*3+1) = [gbestk,antipolewardMeans, antipolewardWeight, squeeze(antipolewardVariance)']; 
+            end % for iTry = 1:3
+            
+            % take means among the most often found cluster
+            reallyBestK = round(mean(antipolewardBest(:,1)));
+            bestIdx = find(antipolewardBest(:,1)==reallyBestK);
+            
+            if isempty(bestIdx)
+                clusterStruct(1).antipolewardBest = []; % avoid calling mean for nothing and creating warning
+            else
+                % since the results are sorted, we take the correct means
+                clusterStruct(1).antipolewardBest = [reallyBestK,mean(antipolewardBest(bestIdx,2:3*reallyBestK+1),1)];
+            end
+            
+            % store number of bestk
+            clusterStruct(1).apNum = antipolewardBest(:,1)';
+            
+            if constants.INDCLUSTER
                 
-                clusterStruct(kCluster).antipolewardClusters = [antipolewardMeans',antipolewardWeight',squeeze(antipolewardVariance)];
+                %find results for every cluster
+                for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
+                    % force EM to return data only for selected k of means
+                    [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(indGrowthSpeeds',...
+                        kCluster,kCluster,0,1e-6,1,[],[],any(verbose==4));
+                    
+                    [antipolewardMeans,muIdx] = sort(gbestmu);
+                    antipolewardWeight = gbestpp(muIdx);
+                    antipolewardVariance = sqrt(gbestcov(:,:,muIdx));
+                    
+                    clusterStruct(kCluster).antipolewardClusters = [antipolewardMeans',antipolewardWeight',squeeze(antipolewardVariance)];
+                end
+                
             end
         end
     else
@@ -509,24 +535,47 @@ if nargout > 1
             numIntervals       = round(numIntervals/min(numIntervals));
             indShrinkageSpeeds = repeatEntries(indShrinkageSpeeds,numIntervals);
             
-            % #of clusters, relative weights, positions, covariances = 
-            %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
-            [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(indShrinkageSpeeds',...
-                constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-6,1,[],[],any(verbose==4));
-            % store cluster data
-            clusterStruct(1).polewardBestK = (sbestk);
-            
-            %find results for every cluster
-            for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
-                % force EM to return data only for selected k of means
+            % repeat 3 times to avoid the (hopefully) lone outlier
+            polewardBest = zeros(3,16); % init correctly, because you never know how many clusters you'll get
+            for iTry = 1:3
+                % #of clusters, relative weights, positions, covariances = 
+                %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
                 [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(indShrinkageSpeeds',...
-                    kCluster,kCluster,0,1e-6,1,[],[],any(verbose==4));
-                
+                    constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-6,1,[],[],any(verbose==4));
+                % store cluster data
                 [polewardMeans,muIdx] = sort(sbestmu);
                 polewardWeight = sbestpp(muIdx);
                 polewardVariance = sqrt(sbestcov(:,:,muIdx));
-                
-                clusterStruct(kCluster).polewardClusters = [polewardMeans',polewardWeight',squeeze(polewardVariance)];
+                polewardBest(iTry,1:sbestk*3+1) = [sbestk,polewardMeans, polewardWeight, squeeze(polewardVariance)']; 
+            end % for iTry = 1:3
+            
+            % take means among the most often found cluster
+            reallyBestK = round(mean(polewardBest(:,1)));
+            bestIdx = find(polewardBest(:,1)==reallyBestK);
+            
+            if isempty(bestIdx)
+                clusterStruct(1).polewardBest = []; % avoid calling mean for nothing and creating warning
+            else
+                % since the results are sorted, we take the correct means
+                clusterStruct(1).polewardBest = [reallyBestK,mean(polewardBest(bestIdx,2:3*reallyBestK+1),1)];
+            end
+            
+            % store number of bestk
+            clusterStruct(1).tpNum = polewardBest(:,1)';
+            
+            if constants.INDCLUSTER
+                %find results for every cluster
+                for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
+                    % force EM to return data only for selected k of means
+                    [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(indShrinkageSpeeds',...
+                        kCluster,kCluster,0,1e-6,1,[],[],any(verbose==4));
+                    
+                    [polewardMeans,muIdx] = sort(sbestmu);
+                    polewardWeight = sbestpp(muIdx);
+                    polewardVariance = sqrt(sbestcov(:,:,muIdx));
+                    
+                    clusterStruct(kCluster).polewardClusters = [polewardMeans',polewardWeight',squeeze(polewardVariance)];
+                end
             end
         end
     else
