@@ -117,7 +117,7 @@ for frameCount = plotStartFrame : increment : plotEndFrame
             neighboursTemp(nCount,1) = cellEntries(hCount,2);
             nCount = nCount + 1;
          end
-      end
+      end  % hCount = 1 : size (cellEntries, 1)
       
       % Take only the unique neighbours
       neighboursTemp = unique (neighboursTemp);
@@ -200,8 +200,9 @@ for frameCount = plotStartFrame : increment : plotEndFrame
       
    end  % for cCount = cellIndex
    
-   % Average the neighbour changes
-   avgNbChange(iCount) = sum(nbChange); %/ length(nbChange);
+   % Average the neighbour changes and normalize over the number of cells
+   %avgNbChange(iCount) = sum(nbChange); %/ length(nbChange);
+   avgNbChange(iCount) = sum(nbChange) / length (cellIndex);
       
    % Keep the neighbours of this frame for use in the next
    prevNeighbours = neighbours;
