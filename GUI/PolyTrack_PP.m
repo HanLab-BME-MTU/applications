@@ -300,13 +300,11 @@ function GUI_pp_imagepath_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_pp_imagepath_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_pp_imagepath_ed as a double
-
-
 handles = guidata(hObject);
 
+% Assign the entered path to the postpro struct
 path = get(hObject,'String');
-
-handles.postpro.imagepath= path;
+handles.postpro.imagepath = path;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -329,7 +327,7 @@ guidata(hObject, handles);
 
 
 
-manuelpostpro(hObject)
+manuelpostpro(hObject);
 
 %----------------------------------------------------------------------------
 
@@ -509,8 +507,8 @@ minusframes = handles.postpro.minusframes;
 plusframes = handles.postpro.plusframes;
 
 MPM = handles.MPM;
-MPM = weedout(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,saveallpath);
-handles.MPM = MPM
+MPM = weedout (MPM, plusframes, minusframes, maxdistpostpro, minimaltrack, saveallpath);
+handles.MPM = MPM;
 
 guidata(hObject, handles);
 
@@ -707,8 +705,10 @@ stuffplotter(hObject);
 
 handles = guidata(hObject);
 if get(handles.GUI_ad_speed_rb,'Value')
-    speed(hObject);
+    speed (hObject);
 end
+
+ptPoster (hObject);
 
 %----------------------------------------------------------------------------
 

@@ -61,11 +61,11 @@ slidervalue=round(slidervalue*(ma-1)+1);
 whichpic=(slidervalue-1)*increment + firstimage;
 
 %write the current frame number in the little window above the slider
-set(piccount,'String',num2str(whichpic))
+set(piccount,'String',num2str(whichpic));
 
 
 %go get the frame
-cd(imagedirectory)
+cd (imagedirectory);
 
 name = char(ImageNamesList(whichpic));
 picnew=imreadnd2(name,0,handles.jobvalues.intensityMax);

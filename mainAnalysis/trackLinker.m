@@ -24,6 +24,9 @@ function [MPM,M]=trackLinker(M)
 % tracked thing per row. Original code can return more than one per row,
 % seperated by zeros
 
+% Let the user know we're starting to link
+fprintf (1, 'Starting track linkage process...\n');
+
 % Initialize counter and waitbar
 counter = 0;
 tot = 2 * (size(M,3)-1);
@@ -112,21 +115,28 @@ for counter1 = 1 : size(M,3) - 1
    %fprintf(1, 'Linking # frame %d ...\n', counter);
 end
 
-% Remove not needed info
 MPM(:,1:2)=M(:,1:2,1);
+counter = 0;
+
+% Keep the user up-to-date on what is happening
+fprintf (1, 'Postprocessing linked frames...\n');
+
+% Remove info that is not needed anymore
 for counter3=2:size(M,3)
     
    % counter
-   counter = counter + 1;
+   %counter = counter + 1;
     
    MPM(:,(counter3-1)*2+(1:2))=M(:,1:2,counter3);
     
    % Update wait bar
    %waitbar(counter/tot,h);
-   fprintf(1, 'Linking frame # %d ...\n', counter);
+   %fprintf(1, 'Linking frame # %d ...\n', counter);
 end
 
 MPM(:,counter3*2+(1:2))=M(:,3:4,counter3);
 
+% Let the user know we've finished
+fprintf (1, 'Finished linking tracks!\n');
 % Close waitbar
 %close(h);

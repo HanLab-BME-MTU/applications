@@ -13,14 +13,14 @@ function cellselect
 %
 % Colin Glass, Feb 04     
 
-
-hObject=findall(0,'Tag','GUI_pp_jobbrowse_pb');
-handles=guidata(hObject);
+% 
+hObject = findall (0, 'Tag', 'GUI_pp_jobbrowse_pb');
+handles = guidata (hObject);
 
 %first we have to find out which cell the user has clicked on
-whichcell=str2num(get(gco,'String'));
-set(gco,'Color','y')
+whichcell = str2num (get(gco, 'String'));
+set (gco, 'Color', 'y')
 
-handles.selectedcells(end+1,1)=whichcell;
+handles.selectedcells (end + 1, 1) = whichcell;
 
 guidata(hObject, handles);

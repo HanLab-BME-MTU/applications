@@ -26,7 +26,8 @@ function MPM = weedout(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,sa
 %
 % Colin Glass, Feb 04
 
-
+% Write a message to the screen
+fprintf (1, 'Automatically filtering and relinking tracks using provided values...\n');
 
 % % % 
 % % % if get(handles.GUI_app_autopostpro_cb,'Value')==1
@@ -112,7 +113,7 @@ while counter < (size(MPM,1)-0.3)
     %track stops and try to link
     if ~linked
           gaps = find(  (disappear(counter)+3.9) < size(MPM,1) ...
-                      & ((disappear(counter)-appear(counter+1:end)) == -2) )
+                      & ((disappear(counter)-appear(counter+1:end)) == -2) );
                     
           if ~isempty (gaps)
     
@@ -183,5 +184,8 @@ MPM(chuck,:) = [];
 
 
 
-cd(saveallpath)
-save('MPM', 'MPM')
+cd(saveallpath);
+save('MPM', 'MPM');
+
+% Tell the user that we've finished
+fprintf (1, 'Filtering and relinking finished!\n');

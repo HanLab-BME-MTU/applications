@@ -123,7 +123,7 @@ else
 %                   imgMinusBack = imgMinusBack + abs(smallest)
 %               end
               
-              [seg_img, obj_val,nothing,mu0] = imClusterSeg(firstFrame, 1, 'method','kmeans','k_cluster',3,'mu0', [levnuc_fi;levback_fi;levhalo_fi]);
+              [seg_img, dummy,mu0] = imClusterSeg(firstFrame, 1, 'method','kmeans','k_cluster',3,'mu0', [levnuc_fi;levback_fi;levhalo_fi]);
 			
               %find cells that look really dark and nasty
               [coordNuc,regmax] = findNucloiTrack(seg_img,levdiff_fi,MinSizeNuc,MaxSizeNuc,1);
@@ -140,7 +140,7 @@ else
 			
 		
 		else
-              disp('you have to choose one of the methods, clustering or segmentation')
+              disp('You have to choose one of the methods, clustering or segmentation')
               return
 		end
 		

@@ -222,8 +222,8 @@ else
          % to segment the image
          if clustering
             % Here's the call to the image segmentation function
-            [seg_img, obj_val, nothing, mu0] = imClusterSeg(newImg, 0, 'method', 'kmeans', ...
-               'k_cluster', 3, 'mu0', [levNucFirst;levBackFirst;levHaloFirst]);
+            [seg_img, dummy, mu0] = imClusterSeg(newImg, 0, 'method', 'kmeans', ...
+               'k_cluster', 3);
                         
             % Find areas that are really dark and match cells into them
             [coordNuc, regmax] = findNucloiTrack(seg_img, levDiffFirst, minSizeNuc, maxSizeNuc, 1);
@@ -294,7 +294,7 @@ else
 % 	     if sign(smallest)== -1
 %               imgMinusBack = imgMinusBack + abs(smallest)
 %            end
-            [seg_img, obj_val,nothing,mu0] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', mu0);
+            [seg_img, dummy, mu0] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', mu0);
                           
             coordNuc = [];
             [coordNuc,regmax] = findNucloiTrack(seg_img,levDiffInterpol,minSizeNuc,maxSizeNuc,1);
@@ -874,7 +874,7 @@ else
       % Create numerical index
       indxStr = sprintf(strg, jImageNum);
       nameClust = ['clusters' indxStr]; 
-      save (nameClust, 'binaryImage')
+      save ('binaryImage','nameClust');
         
       %save (['lostOnEdge',date], 'lostOnEdge')
    end
