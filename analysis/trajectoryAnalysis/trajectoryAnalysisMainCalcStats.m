@@ -379,7 +379,16 @@ else
     lVerdeEtAl = NaN;
 end
 
-[timeMean,timeStd] = weightedStats(time(:,1),time(:,2),'s');
+% time
+% we don't use timeSigma here, as it is never considered
+goodIntervalIdx = dataListG(:,3)>-1;
+intervalLength = dataListG(goodIntervalIdx,2)-dataListG(goodIntervalIdx,1);
+timeVector = dataListG(goodIntervalIdx,7)./intervalLength;
+timeMean = mean(timeVector);
+timeStd  = std(timeVector);
+if any(verbose == 5)
+    figure('Name',fileName),histogram(timeVector)
+end
 % FRAP
 % - here is where it would be -
 

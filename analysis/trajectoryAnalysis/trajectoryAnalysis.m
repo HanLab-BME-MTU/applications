@@ -28,7 +28,8 @@ function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %                             Verbose = 2 shows trajectories
 %                             Verbose = 3 shows distributions
 %                             Verboes = 4 shows clustering result
-%                             Verbose = [1,2,3,4] shows all
+%                             Verbose = 5 shows time distribution
+%                             Verbose = [1,2,3,4,5] shows all
 %                             Verbose = [] or [0] does not show anything.
 %                             Asking for savePaths is not affected by
 %                             verbose settings
