@@ -155,7 +155,7 @@ for i=1:length(uniqueEntries);
         
 end 
 
-uniqueEntries(noSensibleInf(:))=[];
+
 
 perimdivarea=sum(perimdivare)/length(perimdivare);
 %one row of hell is equivalent to the properties of one group(area)
@@ -164,6 +164,9 @@ hell(:,1)=uniqueEntries(:);
 hell(:,2)=numberOfOccurences(:);
 hell(:,3)=bodycount(:);
 hell(:,4)=perimdivare(:);
+
+hell(noSensibleInf,:)=[];
+
     
 %one row of PROPERTIES gives all information for one set of coordinates
 PROPERTIES=zeros(length(coord),6);
@@ -189,7 +192,7 @@ for i=1:length(coord);
         
 end 
 
-PROPERTIES(noSensibleProp(:))=[];
+PROPERTIES(noSensibleProp,:)=[];
 clear f;
 
 %avarea is the average area of all cells
