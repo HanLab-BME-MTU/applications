@@ -1,7 +1,7 @@
 function M=fsmTrackTrackerBMTNNMain(I,J,threshold,influence,fsmParam,counter,gridSize)
 % fsmTrackMain uses the interpolated vector field to refine the tracking
 %
-% SYNOPSIS   currentM=fsmTrackEnhancedTracker(currentM,img,img2,strg,counter1,gridSize,d0,userPath,threshold,influence,imgSize)
+% SYNOPSIS   currentM=fsmTrackEnhancedTracker(I,J,threshold,influence,fsmParam,counter,gridSize)
 %
 % INPUT      I          : matrix [y x I]n of speckle coordinates and intensities for frame 1
 %            J          : matrix [y x I]n of speckle coordinates and intensities for frame 2
@@ -35,8 +35,9 @@ end
 % Tack work path
 userPath=fsmParam.main.path;
 
-% Read format string for the correct numbering of files
-strg=fsmParam.specific.formString;
+% Read current image number (in string format)
+currentFrame=fsmParam.specific.fileList(counter,:);
+[imagePath,imageBody,imageNo,imageExt]=getFilenameBody(currentFrame);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -63,8 +64,6 @@ if fsmParam.track.init~=0
     end
     
     % Read current vector field (initializer) from initPath
-    currentFrame=fsmParam.specific.fileList(counter,:);
-    [imagePath,imageBody,imageNo,imageExt]=getFilenameBody(currentFrame);
     currentVectorField=[initPath,'vectors',imageNo,'.mat'];
     if exist(currentVectorField,'file')==2
         s=load(currentVectorField);
@@ -139,8 +138,7 @@ if fsmParam.track.enhanced==1
         vectors=[0 0 0 0];
         
         % Save interpolated vector field to disk for later use with gap closer
-        indxStr=sprintf(strg,counter);
-        eval(['save ',userPath,filesep,'vectors',filesep,'vectors',indxStr,'.mat vectors;']);
+        eval(['save ',userPath,filesep,'vectors',filesep,'vectors',imageNo,'.mat vectors;']);
         
         % Return the same matches
         return
@@ -158,8 +156,7 @@ if fsmParam.track.enhanced==1
         vectors=vectorFieldAdaptInterp(raw,grid,d0,[],'strain');
         
         % Save interpolated vector field to disk for later use with gap closer
-        indxStr=sprintf(strg,counter);
-        eval(['save ',userPath,filesep,'vectors',filesep,'vectors',indxStr,'.mat vectors;']);
+        eval(['save ',userPath,filesep,'vectors',filesep,'vectors',imageNo,'.mat vectors;']);
         
     end
 
