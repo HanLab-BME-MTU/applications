@@ -43,14 +43,19 @@ ErodeDiskSize = 10;
 
 
 %minimal/maximal size of the black spot in the cells
-minsizenuc = handles.jobs(projNum).minsize;
-maxsizenuc = handles.jobs(projNum).maxsize;
+MinSizeNuc = handles.jobs(projNum).minsize;
+MaxSizeNuc = handles.jobs(projNum).maxsize;
 
 
 MinDistCellCell = handles.jobs(projNum).minsdist;
 %an educated guess of the minimal distance between neighbouring cells
 %(better to big than to small, for this value is used for the static
 %search. Searches with templates are more tolerant.)
+
+
+
+segmentation = handles.jobs(projNum).minmaxthresh;
+clustering = handles.jobs(projNum).clustering;
 
 
 cd(ImageDirectory)
@@ -63,16 +68,6 @@ if ~Last > First
     
 else    
 
-%     
-%         % Format
-% 		s=3; %s=length(num2str(no));
-% 		strg = sprintf('%%.%dd',s);
-% 		
-% 		% Create numerical index
-% 		indxStr = sprintf(strg,First);
-%         
-%         name = [bodyfilename indxStr ext]; 
-        
         name = char(ImageNamesList(First))
         
         %get the current picture
@@ -82,17 +77,39 @@ else
 
         [img_h,img_w] = size(firstFrame);
        
-        [seg_img, obj_val] = imClusterSeg(firstFrame, 1, 'method','kmeans','k_cluster',3,'mu0', [levnuc_fi;levback_fi;levhalo_fi]);
-
-        coordNuc = [];
-        regmax = [];
-        [coordNuc,regmax] = findnucloitrack(seg_img,levdiff_fi,minsizenuc,maxsizenuc);
-    
-       
-        HaloLevel = (levhalo_fi-levback_fi)*2/3+levback_fi;
-        coordHalo = [];
-        [coordHalo,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel);
-          
+         HaloLevel = (levhalo_fi-levback_fi)*2/3+levback_fi;
+        
+		
+		if clustering
+         
+%               background = imopen(firstFrame,strel('disk',80));
+%               imgMinusBack = imsubtract(firstFrame,background); 
+%               smallest = min(min(imgMinusBack));
+%               if sign(smallest)== -1
+%                   imgMinusBack = imgMinusBack + abs(smallest)
+%               end
+              
+              [seg_img, obj_val,nothing,mu0] = imClusterSeg(firstFrame, 1, 'method','kmeans','k_cluster',3,'mu0', [levnuc_fi;levback_fi;levhalo_fi]);
+			
+              %find cells that look really dark and nasty
+              [coordNuc,regmax] = findnucloitrack(seg_img,levdiff_fi,MinSizeNuc,MaxSizeNuc,1);
+             
+              %find cells that look like the third eye (round, big spots of
+              %pure light). We do this because the pictures are of poor
+              %quality and display huge halos around certain cells
+              [coordHalo,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel,1);
+		
+		elseif segmentation
+           
+              [coordNuc,regmax] = findnucloitrack(firstFrame,levdiff_fi,MinSizeNuc,MaxSizeNuc,2);
+              [coordHalo,logihalo] = halosfind(firstFrame,ErodeDiskSize,HaloLevel,2);
+			
+		
+		else
+              disp('you have to choose one of the methods, clustering or segmentation')
+              return
+		end
+		
          
         %now follows a little something that will ensure a minimal
         %distance between two found cells

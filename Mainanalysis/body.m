@@ -1,5 +1,5 @@
 
-function [PROPERTIES,ero,labeled]= body(seg_img,coord,regmax,logihalo,plusminus)
+function [PROPERTIES,ero,labeled]= body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)
 %f=figure;
 %ero is a binary picture of the whole area occupied by cells
 %belongsto 
@@ -16,15 +16,28 @@ helpcoord=[];
 
 helpcoord=round(coord);
 
-% %first we kick out the background, 
-% background = imopen(image,strel('disk',bodyDiskSize));
-% I2 = imsubtract(image,background); 
-% I3 = imadjust(I2, stretchlim(I2), [0 1]);
-% balevel = graythresh(I3);
-% ero = im2bw(I3,balevel)|regmax|logihalo; 
 
-ero =(seg_img==1 | seg_img==3);
+%%%%%%%%%%%%%%%%%%%%%%%% Important%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%depending on which method of image analysis we use , there two different
+%approaches
 
+if methodDeterm==1
+    ero =(seg_img==1 | seg_img==3);
+    
+elseif methodDeterm==2
+    %first we kick out the background, 
+	background = imopen(image,strel('disk',bodyDiskSize));
+	I2 = imsubtract(image,background); 
+	I3 = imadjust(I2, stretchlim(I2), [0 1]);
+	balevel = graythresh(I3);
+	ero = im2bw(I3,balevel)|regmax|logihalo; 
+    
+else
+    error('body doesnt know which method to use (methodDeterm~= 1|2)')
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
 
 %fill out the holes
 %ero = imfill(bw,'holes');

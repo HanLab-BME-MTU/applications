@@ -82,7 +82,8 @@ MinimalQualityCorr = handles.jobs(projNum).mincorrqualtempl;
 MinTrackCorr = handles.jobs(projNum).mintrackcorrqual;
   
 
-
+segmentation = handles.jobs(projNum).minmaxthresh;
+clustering = handles.jobs(projNum).clustering;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -211,30 +212,59 @@ else
         
        if jImageNum == FirstImaNum
                          
-           
-                      
-                      [seg_img, obj_val,nothing,mu0] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', [LevNuc_fi;LevBack_fi;LevHalo_fi]);
-                      
                       BODYIMG = zeros(img_h,img_w);
-	                   
-                      [coordNuc,regmax] = findnucloitrack(seg_img,levdiff_fi,MinSizeNuc,MaxSizeNuc);
-
-                       HaloLevel = (LevHalo_fi-LevBack_fi)*2/3+LevBack_fi;
-                      [haloCoord,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel);
-
                       
+                      HaloLevel = (LevHalo_fi-LevBack_fi)*2/3+LevBack_fi;
+                      
+                      if clustering
+                          
+%                           background = imopen(newImg,strel('disk',40));
+% 	                      imgMinusBack = imsubtract(newImg,background); 
+%                           smallest = min(min(imgMinusBack));
+% 	                      if sign(smallest)== -1
+%                               imgMinusBack = imgMinusBack + abs(smallest)
+%                           end
+                          
+                          
+                          [seg_img, obj_val,nothing,mu0] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', [LevNuc_fi;LevBack_fi;LevHalo_fi]);
+                        
+                          %find cells that look really dark and nasty
+                          [coordNuc,regmax] = findnucloitrack(seg_img,levdiff_fi,MinSizeNuc,MaxSizeNuc,1);
+                         
+                          %find cells that look like the third eye (round, big spots of
+                          %pure light). We do this because the pictures are of poor
+                          %quality and display huge halos around certain cells
+                          [haloCoord,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel,1);
+	                   
+                      elseif segmentation
+                          
+                          [coordNuc,regmax] = findnucloitrack(newImg,levdiff_fi,MinSizeNuc,MaxSizeNuc,2);
+                          [haloCoord,logihalo] = halosfind(newImg,ErodeDiskSize,HaloLevel,2);
+
+                    
+                      else
+                          disp('you have to choose one of the methods, clustering or segmentation')
+                          return
+                      end
+
+                         
                       
                       if ~isempty(handles.jobs(projNum).coordinatespicone);
                           
                             newCoord = handles.jobs(projNum).coordinatespicone;
-                        else 
-                           newCoord = checkMinimalCellCell(coordNuc,haloCoord,MinDistCellCell);           
+                      else 
+                            newCoord = checkMinimalCellCell(coordNuc,haloCoord,MinDistCellCell);           
                       end
                       
                       
                       PROPERTIES = [];
-                      [PROPERTIES,BODYIMG,labeled] = body(seg_img,newCoord,regmax,logihalo,PlusMinus);
                       
+                      if clustering
+                          
+                           [PROPERTIES,BODYIMG,labeled] = body(seg_img,newCoord,regmax,logihalo,PlusMinus,1);
+                      elseif segmentation
+                           [PROPERTIES,BODYIMG,labeled] = body(newImg,newCoord,regmax,logihalo,PlusMinus,2);
+                      end
                       
                      
                       clear regmax;
@@ -272,31 +302,48 @@ else
               
                       
                      
+                         
+                      if clustering
+%                           
+%                           background = imopen(newImg,strel('disk',40));
+% 	                      imgMinusBack = imsubtract(newImg,background); 
+%                           smallest = min(min(imgMinusBack));
+% 	                      if sign(smallest)== -1
+%                               imgMinusBack = imgMinusBack + abs(smallest)
+%                           end
+                          [seg_img, obj_val,nothing,mu0] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', mu0);
+                          
+                           coordNuc = [];
+                          [coordNuc,regmax] = findnucloitrack(seg_img,levDiffInterpol,MinSizeNuc,MaxSizeNuc,1);
+                          [haloCoord,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel,1);
+	                   
+                      elseif segmentation
+                          HaloLevel = (LevHalo_fi-LevBack_fi)*2/3+LevBack_fi;
+                          [coordNuc,regmax] = findnucloitrack(newImg,levDiffInterpol,MinSizeNuc,MaxSizeNuc,2);
+                          [haloCoord,logihalo] = halosfind(newImg,ErodeDiskSize,HaloLevel,2);
 
-                      [seg_img, obj_val,nothing,mu0] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', mu0);%[levNucInterpol;levBaInterpol;halointerpol]);
-                      
-                      %find cells that look really dark and nasty
-                      coordNuc = [];
-                      [coordNuc,regmax] = findnucloitrack(seg_img,levDiffInterpol,MinSizeNuc,MaxSizeNuc);
-                     
-                      %find cells that look like the third eye (round, big spots of
-                      %pure light). We do this because the pictures are of poor
-                      %quality and display huge halos around certain cells
-                      [haloCoord,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel);
-                       
-                      newCoord = checkMinimalCellCell(coordNuc,haloCoord,MinDistCellCell)  ;
-                      
-                      
+                      else
+                          disp('you have to choose one of the methods, clustering or segmentation')
+                          return
+                      end
+
+                      newCoord = checkMinimalCellCell(coordNuc,haloCoord,MinDistCellCell)  ;  
                  
-                               %run body now, for conveniance (we need binary images of 
+                      
+                      PROPERTIES = [];
+                      
+                              %run body now, for conveniance (we need binary images of 
                                %the cells to run body)
                                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                                prope = [];
                                ero = [];
-                              
-                               [prope,BODYIMG,labeled] =  body(seg_img,newCoord,regmax,logihalo,PlusMinus);
-                             
                                
+                               if clustering
+                                   [prope,BODYIMG,labeled] = body(seg_img,newCoord,regmax,logihalo,PlusMinus,1);
+                               elseif segmentation
+                                   [prope,BODYIMG,labeled] = body(newImg,newCoord,regmax,logihalo,PlusMinus,2);
+                               end
+                              
                                PROPERTIES(1:size(emptyprop,1),1:size(emptyprop,2),countingloops,1) = emptyprop;
                                %store this information in a stack
                                PROPERTIES(1:size(prope,1),1:size(prope,2),countingloops,1) = prope;

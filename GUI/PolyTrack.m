@@ -22,7 +22,7 @@ function varargout = PolyTrack(varargin)
 
 % Edit the above text to modify the response to help GUI_start
 
-% Last Modified by GUIDE v2.5 23-Feb-2004 14:33:31
+% Last Modified by GUIDE v2.5 25-Feb-2004 15:33:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -67,7 +67,8 @@ defaultjob = struct('imagedirectory',[],'imagename',[],'firstimage',1,'lastimage
                    'minsize',300,'maxsize',1500,'minsdist',30,'fi_halolevel',[],'la_halolevel',[],...
                    'minedge',10,'sizetemplate',41,'boxsize',141,'noiseparameter',0.15,...
                    'mincorrqualtempl',0.2,'leveladjust',0.7,'timestepslide',5,'mintrackcorrqual',0.5,...
-                   'coordinatespicone',[],'intensityMax',4095,'bitdepth',12,'bodyname',[],'imagenameslist',[],'timeperframe',[]) ;
+                   'coordinatespicone',[],'intensityMax',4095,'bitdepth',12,'bodyname',[],'imagenameslist',[]...
+                   ,'timeperframe',[],'clustering',1,'minmaxthresh',0) ;
                
 handles.defaultjob = defaultjob;
 
@@ -192,7 +193,7 @@ else
         
     
     handles.jobs(projNum).bodyname = filename(1:(end-(4+countNum)));
-     
+     bodyname = handles.jobs(projNum).bodyname;
 	%select current project
 	set(handles.GUI_st_job_lb,'Value',projNum);
 	
@@ -251,7 +252,7 @@ else
 	counter = 1
 	while done==0
            newdirname = [];
-           newdirname = ['results',filename,num2str(counter)];
+           newdirname = ['results',bodyname,num2str(counter)];
         
           if exist(newdirname,'dir')==0
              mkdir(imagedirectory,newdirname);
@@ -1703,7 +1704,81 @@ projNum = get(handles.GUI_st_job_lb,'Value');
 
 handles.jobs(projNum).timeperframe =  str2num(numb);
 
+guidata(hObject, handles);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% --- Executes on button press in GUI_st_eo_clustering_rb.
+function GUI_st_eo_clustering_rb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_st_eo_clustering_rb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of GUI_st_eo_clustering_rb
+handles = guidata(hObject);
+
+numb = get(hObject,'Value');
+
+%select current project
+projNum = get(handles.GUI_st_job_lb,'Value');
+
+handles.jobs(projNum).clustering =  numb;
+
+if numb
+    handles.jobs(projNum).minmaxthresh = 0;
+else
+    handles.jobs(projNum).minmaxthresh = 1;
+end
+    
+set(handles.GUI_st_eo_minmaxthresh_rb,'Value',handles.jobs(projNum).minmaxthresh);
+
+
+
+
+guidata(hObject, handles);
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+% --- Executes on button press in GUI_st_eo_minmaxthresh_rb.
+function GUI_st_eo_minmaxthresh_rb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_st_eo_minmaxthresh_rb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of GUI_st_eo_minmaxthresh_rb
+
+handles = guidata(hObject);
+
+numb = get(hObject,'Value');
+
+%select current project
+projNum = get(handles.GUI_st_job_lb,'Value');
+
+handles.jobs(projNum).minmaxthresh =  numb;
+
+if numb
+    handles.jobs(projNum).clustering = 0;
+else
+    handles.jobs(projNum).clustering = 1;
+end
+    
+set(handles.GUI_st_eo_clustering_rb,'Value',handles.jobs(projNum).clustering);
+
+
+
+
+guidata(hObject, handles);
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

@@ -29,8 +29,11 @@ set(handles.GUI_st_eo_mincorrqualtempl_pm,'String',num2str(activeJob.mincorrqual
 set(handles.GUI_st_eo_noiseparameter_pm,'String',num2str(activeJob.noiseparameter));
 set(handles.GUI_st_eo_leveladjust_pm,'String',num2str(activeJob.leveladjust));
 
+set(handles.GUI_st_eo_clustering_rb,'Value',activeJob.clustering);
+set(handles.GUI_st_eo_minmaxthresh_rb,'Value',activeJob.minmaxthresh);
 
-%set(handles.GUI_st_path_timeperframe_ed,'String',num2str(activeJob.timeperframe));
+
+set(handles.GUI_st_path_timeperframe_ed,'String',num2str(activeJob.timeperframe));
 
 
 if ~isempty(activeJob.mmpixel)

@@ -1,14 +1,27 @@
-function [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc)
+function [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc,methodDeterm)
 
 
 
-%newImg is the picture, lev was determined from values taken from the picture
+%newImg is the picture, or the segmented image (clustering), lev was determined from values taken from the picture
 regmax = [];
 
-%regmax = imextendedmin(newImg,lev);
 
-regmax = newImg==1;
+%%%%%%%%%%%%%%%%%%%%%%%% Important%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%depending on which method of image analysis we use , there two different
+%approaches
 
+if methodDeterm==1
+    regmax = newImg==1;
+    
+elseif methodDeterm==2
+    regmax = imextendedmin(newImg,lev);
+    
+else
+    error('findnucloitrack doesnt know which method to use (methodDeterm~= 1|2)')
+end 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    
 img_labels = [];
 
 img_labels =  bwlabel(regmax);

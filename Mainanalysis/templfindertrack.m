@@ -124,7 +124,7 @@ bacoll=[];
 [barow,bacoll]=find(searcharea<(levback*1.2)&searcharea>(levback*0.8));
    
 for f=1:length(barow)
-       searcharea(barow(f),bacoll(f))=rand(1)*255;
+       searcharea(barow(f),bacoll(f))=rand(1);
 end
 clear barow;
 clear bacoll;
@@ -136,13 +136,13 @@ sizecorr=[];
 img_corr=normxcorr2(template,searcharea);
 sizecorr=size(img_corr);
 
-%now we superimpose a distancecriteria. First we have to build a matrix of
+%now we superimpose a distance criteria. First we have to build a matrix of
 %the same size as img_corr, then adjust it's values according to the
 %distance from where the cell was in the last picture
-dist=zeros(sizecorr(1,1),sizecorr(1,2));
+dist = zeros(sizecorr(1,1),sizecorr(1,2));
 
-for f=1:sizecorr(1,1)
-       for g=1:sizecorr(1,2)
+for f = 1:sizecorr(1,1)
+       for g = 1:sizecorr(1,2)
                
                %the following means: if the distance to the initial
                %coordinates is smaller than 20, the value is one
@@ -151,8 +151,8 @@ for f=1:sizecorr(1,1)
                         dist(f,g)=1;
                         
                %if it is bigger than 20, the value slowly decreases         
-               else dist(f,g)=1-((sqrt((g+x_img_1-round((sizetemple-1)/2)-coord(1,1))^2+...
-                       (f+y_img_1-round((sizetemple-1)/2)-coord(1,2))^2)-20)/80);
+               else dist(f,g) = 1-((sqrt((g+x_img_1-round((sizetemple-1)/2)-coord(1,1))^2+...
+                                (f+y_img_1-round((sizetemple-1)/2)-coord(1,2))^2)-20)/80);
                end
               
                %negative values become zero

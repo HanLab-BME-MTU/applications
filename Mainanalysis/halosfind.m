@@ -1,21 +1,32 @@
-function [coor,halo]= halosfind(seg_Image,erodedisksize,halolevel)
+function [coor,halo]= halosfind(Image,erodedisksize,halolevel,methodDeterm)
 
 
 
-% 
-% index=[];
-% halo=zeros(size(info,1),size(info,2));
-% img_labels=[];
-% haloshlabel=[];
-% theones=[];
-% 
-% %look for pixels that are above a certain value
-% index=find(info >halolevel);
-% halo(index)=1;
-% clear index;
+%%%%%%%%%%%%%%%%%%%%%%%% Important%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%depending on which method of image analysis we use , there two different
+%approaches
 
+if methodDeterm==1
+    halo = Image==3;
+    
+elseif methodDeterm==2
+    index=[];
+	halo=zeros(size(Image,1),size(Image,2));
+	img_labels=[];
+	haloshlabel=[];
+	theones=[];
+	
+	%look for pixels that are above a certain value
+	index=find(Image >halolevel);
+	halo(index)=1;
+	clear index;
 
-halo = seg_Image==3;
+    
+else
+    error('halosfind doesnt know which method to use (methodDeterm~= 1|2)')
+end 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
 
 %close small gaps
 se = strel('disk',3);
@@ -33,7 +44,7 @@ haloshlabel= imerode(img_labels,Se);
 clear img_labels;
 
 %haloshrunk= imdilate(haloshrunk,Se);
-%info is the picture, lev was determined from values taken from the picture
+%Image is the picture, lev was determined from values taken from the picture
 
 % % se = strel('disk',4);       % disk, radius 4
 % % 
