@@ -1,9 +1,10 @@
-function globStats=testTrajectories(trajectoryData)
+function [globCompare, globStats]=testTrajectories(trajectoryData)
 %TESTTRAJECTORIES produces discrimination matrices for the comparison of trajectoryData
 %
 % INPUT trajectoryData: Structure with multiple runs from trajectoryAnalysis
 %
-% OUTPUT globStats: discrimination matrices with p-values
+% OUTPUT globCompare: discrimination matrices with p-values
+%        globStats : distributions of the compared values
 %
 % help created 3/05
 % c: jonas

@@ -233,8 +233,8 @@ cd(oldDir);
 % LOAD FILES
 %================
 problem = [];
-dataCt = 1;
-runCt = 1;
+dataCt = 0;
+runCt = 0;
 for iRun = 1:nRuns
     fileList = inputList(iRun).fileList;
     for iFile = 1:length(fileList)
@@ -295,6 +295,9 @@ for iRun = 1:nRuns
             %-------------------------
             end
             
+            % update dataCt
+            dataCt = dataCt + 1;
+            
             % add standard data
             if addDist
                 data(dataCt).distance = tmpData.distance;
@@ -336,8 +339,7 @@ for iRun = 1:nRuns
             %remember fileName
             fileNameList{dataCt} = fileList(iFile).file;
             
-            % prepare runCt for next turn
-            dataCt = dataCt + 1;
+            
             
             
         catch
@@ -351,15 +353,16 @@ for iRun = 1:nRuns
     end %for i = 1:length(fileList)
     
     % make sure we loaded something
-    if dataCt == 1
+    if dataCt == 0
         error('no data loaded!') % alternatively, we just could move on without updating runCt/dataCt
     else
+        runCt = runCt +1;
         run(runCt).data = data;
         run(runCt).fileNameList = fileNameList;
         clear data
         clear fileNameList;
-        runCt = runCt +1;
-        dataCt = 1;
+        
+        dataCt = 0;
     end
     
 end %  for iRun = runCt:length(fileListStruct)
