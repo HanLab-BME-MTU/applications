@@ -811,11 +811,11 @@ try
                             if ~isempty(intFigH)
                                 delete(intFigH)
                             end
-                            disFigH = findall(0,'Tag','disFig')
+                            disFigH = findall(0,'Tag','disFig');
                             if ~isempty(disFigH)
                                 delete(disFigH);
                             end
-                            labelPanelH = findall(0,'Tag','LabelPanel')
+                            labelPanelH = findall(0,'Tag','LabelPanel');
                             if ~isempty(labelPanelH)
                                 delete(labelPanelH);
                             end

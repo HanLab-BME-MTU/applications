@@ -190,7 +190,7 @@ end
 %prepare data for histograms
 numberOfClassesXyz=1+log2(length(dxyz));
 numberOfClassesAmp=1+log2(length(damp));
-meanXyz=mean(dxyz); %becomes sigma.xyz, because there are only positive distances
+meanXyz=mean(dxyz)+eps; %becomes sigma.xyz, because there are only positive distances
 meanAmp=mean(damp); %becomes deltamp (multiplied by 0.8, as linear fit usually was below mean(damp) )
 sigmaXyz=std(dxyz);
 
@@ -232,6 +232,7 @@ end
 
 sxyz=meanXyz;
 samp=zeros(size(spots,2),1);
+%make sure we do not get smSig2 == 0 below
 samp(goodRows)=smSig2;
 deltamp=zeros(size(spots,2),1);
 
@@ -241,3 +242,11 @@ deltamp(goodRows(1:end-1))=sm3(2:end)-sm3(1:end-1);
 %     deltamp(goodRows(1:end-1)) = meanAmp;
 % end
 
+% test samp: if there are bad zeros: display warning
+zeroSamp = find(samp(goodRows)==0);
+if zeroSamp
+    sprintf(['warning: sigmaAmp (samp) is zero %i times. Change to 1e-10'],length(zeroSamp))
+    samp(goodRows(zeroSamp)) = 1e-10;
+end
+    
+    

@@ -93,14 +93,25 @@ else
         otherwise %let the user choose
             idSelect = chooseFileGUI(idnameList);
             if isempty(idSelect)
-                idname = '[]';
+                idname = '';
             else
                 idname = idnameList{idSelect};
             end
     end
 end
 
-
+if isempty(idname)
+    ans = myQuestdlg('Do you want to load an idlist?','No idlist loaded from project file','Yes','No','Don''t load anything','Yes');
+    switch ans
+        case 'Yes'
+            label_loadslistCB;
+        case 'No'
+            % just no idlist, so continue
+        otherwise
+            % quit here, no load
+            return
+    end
+end
 
 label_loadmovieCB(filteredMovie,projProperties.projName,pathName);
 
@@ -113,5 +124,7 @@ dataFile.name = fileName;
 dataFile.path = pathName;
 SetUserData(imgFigureH,dataFile,1);
 
-%load idlist
-eval(['label_loadslistCB(data.',idname,',idname,slist);']);
+if ~isempty(idname) % do not load idlist if there isn't any!
+    %load idlist
+    eval(['label_loadslistCB(data.',idname,',idname,slist);']);
+end
