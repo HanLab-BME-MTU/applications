@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 21-May-2004 15:52:46
+% Last Modified by GUIDE v2.5 22-Jun-2004 16:31:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1422,5 +1422,19 @@ function checkSMSegment_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkSMSegment
+
+
+% --------------------------------------------------------------------
+function MenuToolsCalibration_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuToolsCalibration (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuToolsOptCalibration_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuToolsOptCalibration (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
 
