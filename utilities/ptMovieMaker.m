@@ -42,6 +42,9 @@ guiData = handles.guiData;
 % Get values from the gui (these are used for all jobs)
 movieStartFrame = guiData.moviefirstimg;
 movieEndFrame = guiData.movielastimg;
+if movieEndFrame > jobData(1).lastimg
+    movieEndFrame = jobData(1).lastimg;
+end
 
 % Get start and end frames and increment value
 startFrame = jobData(1).firstimg;
@@ -77,7 +80,8 @@ if (movieEndFrame - movieStartFrame + 1) < dragTailLength
 end
 
 % What is the name of the movie
-dragTailFileName = guiData.dragtailfile;
+dragTailPath = guiData.dragtailfile;
+[dir,dragTailFile,dummy,ext] = fileparts(dragTailPath);
 
 % We need prior images for the dragTail movie
 if ceil ((movieStartFrame - startFrame + 1) / increment) < dragTailLength + 1
@@ -92,14 +96,14 @@ if ~exist (SaveDir, 'dir')
    mkdir (SaveDir);
 end
 
-% Go to the directory where the image will be saved
+% Go to the directory where the movie will be saved
 cd (SaveDir);
 
 % Initialize the movie
 if movieType == 1   % AVI
-   mov = avifile ([dragTailFileName '.avi']);
+   mov = avifile ([dragTailPath '.avi']);
 elseif movieType == 2   % QT
-   MakeQTMovie ('start', [dragTailFileName '.mov']);
+   MakeQTMovie ('start', [dragTailPath '.mov']);
 else
    h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
    uiwait (h);
@@ -122,9 +126,13 @@ for movieStep = movieStartFrame : increment : movieEndFrame
    % Increase MPM counter
    MPMCount = MPMCount + 1;
     
-   selectedCells = zeros (size (MPM, 1), 2);
-   selectedCells(:,:) = MPM (:, (2 * MPMCount - 1):(2 * MPMCount));
-      
+   selectedCells = zeros(size (MPM, 1), 2);
+   selectedCells(:,:) = MPM(:, (2 * MPMCount - 1):(2 * MPMCount));
+   
+   % Store the coordinates for later
+   selectedDots = selectedCells; 
+   selectedDots(find(selectedDots(:,1) == 0 & selectedDots(:,2) == 0),:) = [];
+   
    % Remove the zero rows
    selectedCells = find (selectedCells(:,1) & selectedCells(:,2)); 
    
@@ -133,64 +141,103 @@ for movieStep = movieStartFrame : increment : movieEndFrame
    name = char (imageNameList (movieStep)); 
    nowImgH = imreadnd2 (name, 0, intensityMax);
 	
+   if movieStep == movieStartFrame
+       if ~isempty (figureSize)
+          h_fig = figure ('Position', figureSize);
+       else
+          h_fig = figure;
+       end
+   end
+   
    % If the user specified a size for the movie, that's the size we are going to use
    if ~isempty (figureSize)
-      figure ('Position', figureSize), imshow (nowImgH, []);
+      imshow (nowImgH, []);
    else
-      figure, imshow (nowImgH, []);
-   end
+      if movieStep == movieStartFrame
+          imshow (nowImgH, []);
+      else
+          imgPtr=findall(gca,'Type','Image');
+          set(imgPtr,'CData',nowImgH);
+          set(imgPtr,'CDataMapping','scaled')
+          set(gca,'CLimMode','auto');
+          refresh;
+      end
+   end  % ~isempty (figureSize)
 
+   % Check whether there are already dots plotted and if yes delete them
+   currentH=findall(gca,'Tag','dots');
+   if ~isempty(currentH)
+      delete(currentH);
+   end
+   
+   % Check whether there are already tails plotted and if yes delete them
+   currentH=findall(gca,'Tag','tails');
+   if ~isempty(currentH)
+      delete(currentH);
+   end
+   
    % Hold on the figure for the dragtail drawing
    hold on;
    
-   % One colour per time step (dragTailLength tells you how many
-   % timesteps there are)
-   colorMap = jet (dragTailLength + 1);
+   if get(handles.GUI_fm_incltracks_rb,'Value') == 1
+   
+       % One colour per time step (dragTailLength tells you how many
+       % timesteps there are)
+       colorMap = jet (dragTailLength + 1);
 
-   % Initialize the dragtail counter
-   colorCount = 0;
-        
-   % Loop through the previous frames to generate the dragtails
-   for iCount = (2 * (MPMCount - dragTailLength)) : 2 : (2 * MPMCount)
-       
-      % Increase dragtail counter
-      colorCount = colorCount + 1;
-      
-      % Get the needed frames from MPM
-      selectedFrames = MPM (selectedCells, iCount-3 : iCount);
-      
-      % Find the ones that contain zeros and make the whole row 0
-      [rows, cols] = find (selectedFrames == 0);
-      rows = unique (rows);
-      selectedFrames (rows,:) = 0;
+       % Initialize the dragtail counter
+       colorCount = 0;
 
-      % Overlay the dragtails on the figure
-      for hCount = 1 : size (selectedFrames,1)
-         if selectedFrames (hCount,1) ~= 0
-	        ph = [];
-	        ph = plot (selectedFrames (hCount, 1:2:3), selectedFrames (hCount, 2:2:4));
-	        set (ph, 'Color', colorMap (colorCount,:));
-	        clear ph;
-         end   % if selectedFrames
-      end   % for hCount
-   end   % for iCount
-        
-   % Plot the generated dragtail points on the figure
-   plot (selectedFrames (:,3), selectedFrames (:,4), 'r.');
+       % Loop through the previous frames to generate the dragtails
+       for iCount = (2 * (MPMCount - dragTailLength)) : 2 : (2 * MPMCount)
+
+          % Increase dragtail counter
+          colorCount = colorCount + 1;
+
+          % Get the needed frames from MPM
+          selectedFrames = MPM (selectedCells, iCount-3 : iCount);
+
+          % Find the ones that contain zeros and make the whole row 0
+          [rows, cols] = find (selectedFrames == 0);
+          rows = unique (rows);
+          selectedFrames (rows,:) = 0;
+
+          % Overlay the dragtails on the figure; each with its own color
+          for hCount = 1 : size (selectedFrames,1)
+             if selectedFrames (hCount,1) ~= 0
+                %ph = [];
+                ph = plot (selectedFrames (hCount, 1:2:3), selectedFrames (hCount, 2:2:4));
+
+                % Mark the tails as tails
+                set (ph, 'Color', colorMap(colorCount,:),'Tag','tails');
+                %clear ph;
+             end   % if selectedFrames
+          end   % for hCount
+       end   % for iCount
+   end  % get(handles.GUI_fm_incltracks_rb,'Value') == 1
+   
+   if get(handles.GUI_fm_inclcentromers_rb,'Value') == 1       
+       % Plot the nuclei coordinates on the figure (red dots) and mark them
+       dots = plot (selectedDots (:,1), selectedDots (:,2), 'r.');
+       set (dots, 'Tag', 'dots');
+   end  % get(handles.GUI_fm_inclcentromers_rb,'Value') == 1
+   
    hold off;
 
    % Go to the directory where the movies are stored
    cd (SaveDir);
   
+   % Save movie as tiff if needed
+   if get(handles.GUI_fm_saveastiff_rb,'Value') == 1 
+       print (h_fig, [SaveDir filesep [dragTailFile '_' num2str(movieStep) '.tif']],'-dtiff');
+   end
+   
    % Add the current figure to the movie
-   % Initialize the movie
    if movieType == 1   % QT
-      F = getframe (gca);
+      F = getframe (gcf);
       mov = addframe (mov, F);
-      close;
    elseif movieType == 2   % AVI
-      MakeQTMovie ('addaxes', gca);
-      close;
+      MakeQTMovie ('addaxes', gcf);
    else
       h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
       uiwait (h);
@@ -210,6 +257,9 @@ else
    result = 1;
    return;
 end
+
+% Close figure
+close;
 
 % Let the user know we have finished
 fprintf (1, '\nptMovieMaker: finished generating movie.\n');

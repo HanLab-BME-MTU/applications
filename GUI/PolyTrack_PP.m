@@ -349,13 +349,13 @@ handles = guidata(hObject);
 num = get (hObject, 'String');
 
 % Convert this value to a number
-handles.postpro.minusframes = str2num (num);
+handles.guiData.minusframes = str2num (num);
 
 % Update handles structure
 guidata (hObject, handles);
 
 % Update the field on the GUI
-set (handles.GUI_app_minusframes_ed, 'String', handles.postpro.minusframes);
+set (handles.GUI_app_minusframes_ed, 'String', handles.guiData.minusframes);
 
 %----------------------------------------------------------------------------
 
@@ -388,13 +388,13 @@ handles = guidata (hObject);
 num = get (hObject, 'String');
 
 % Convert this value to a number
-handles.postpro.plusframes = str2num (num);
+handles.guiData.plusframes = str2num (num);
 
 % Update handles structure
 guidata (hObject, handles);
 
 % Update the field on the GUI
-set (handles.GUI_app_plusframes_ed, 'String', handles.postpro.plusframes);
+set (handles.GUI_app_plusframes_ed, 'String', handles.guiData.plusframes);
 
 %----------------------------------------------------------------------------
 
@@ -427,13 +427,13 @@ handles = guidata (hObject);
 num = get (hObject, 'String');
 
 % Convert this value to a number
-handles.postpro.maxdistpostpro = str2num (num);
+handles.guiData.maxdistpostpro = str2num (num);
 
 % Update handles structure
 guidata (hObject, handles);
 
 % Update the field on the GUI
-set (handles.GUI_app_relinkdist_ed, 'String', handles.postpro.maxdistpostpro);
+set (handles.GUI_app_relinkdist_ed, 'String', handles.guiData.maxdistpostpro);
 
 %----------------------------------------------------------------------------
 
@@ -466,13 +466,13 @@ handles = guidata (hObject);
 num = get(hObject,'String');
 
 % Convert this value to a number
-handles.postpro.minimaltrack = str2num (num);
+handles.guiData.minimaltrack = str2num (num);
 
 % Update handles structure
 guidata (hObject, handles);
 
 % Update the field on the GUI
-set (handles.GUI_app_minimaltrack_ed, 'String', handles.postpro.minimaltrack);
+set (handles.GUI_app_minimaltrack_ed, 'String', handles.guiData.minimaltrack);
 
 %----------------------------------------------------------------------------
 
@@ -625,7 +625,7 @@ handles = guidata(hObject);
 num = get (hObject,'String');
 
 % Assign it to the postpro structure
-handles.postpro.plotfirstimg = str2num (num);
+handles.guiData.plotfirstimg = str2num (num);
 
 % Update handles structure
 guidata (hObject, handles);
@@ -661,7 +661,7 @@ handles = guidata (hObject);
 num = get (hObject,'String');
 
 % Assign it to the postpro structure
-handles.postpro.plotlastimg = str2num (num);
+handles.guiData.plotlastimg = str2num (num);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -873,11 +873,16 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.postpro.moviefirstimg = handles.postpro.firstimg;
-    set (handles.GUI_fm_movieimgone_ed, 'String', num2str(handles.postpro.moviefirstimg));  % Revert the value back
+    if isfield(handles.jobData(1),'moviefirstimg')
+        handles.guiData.moviefirstimg = handles.jobData(1).firstimg;
+        set (handles.GUI_fm_movieimgone_ed, 'String', num2str(handles.guiData.moviefirstimg));  % Revert the value back
+    else
+        handles.guiData.moviefirstimg = 1;
+        set (handles.GUI_fm_movieimgone_ed, 'String', num2str(handles.guiData.moviefirstimg));  % Revert the value back
+    end
     return
 else
-    handles.postpro.moviefirstimg = val;
+    handles.guiData.moviefirstimg = val;
 end
 
 % Update handles structure
@@ -917,27 +922,22 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.postpro.movielastimg = handles.postpro.lastimg;
-    set (handles.GUI_fm_movieimgend_ed, 'String', num2str(handles.postpro.movielastimg));  % Revert the value back
+    if isfield(handles.jobData(1),'movielastimg')
+        handles.guiData.movielastimg = handles.jobData(1).lastimg;
+        set (handles.GUI_fm_movieimgone_ed, 'String', num2str(handles.guiData.movielastimg));  % Revert the value back
+    else
+        handles.guiData.movielastimg = 1;
+        set (handles.GUI_fm_movieimgend_ed, 'String', num2str(handles.guiData.movielastimg));  % Revert the value back
+    end
     return
 else
-    handles.postpro.movielastimg = val;
+    handles.guiData.movielastimg = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
-%----------------------------------------------------------------------------
-
-% --- Executes on button press in GUI_fm_incloriginal_rb.
-function GUI_fm_incloriginal_rb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_fm_incloriginal_rb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of GUI_fm_incloriginal_rb
-
-%----------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_fm_inclcentromers_rb.
 function GUI_fm_inclcentromers_rb_Callback(hObject, eventdata, handles)
@@ -1007,8 +1007,8 @@ handles = guidata (hObject);
 % Get the value of 'Tracks from last...'
 num = get (hObject, 'String');
 
-% Assign it to the postpro structure
-handles.postpro.dragtail = str2num (num);
+% Assign it to the guiData structure
+handles.guiData.dragtail = str2num (num);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -1056,7 +1056,7 @@ if ~exist (path, 'dir')
    end
 end
 
-% Assign it to the postpro structure
+% Assign it to the handles structure
 handles.saveallpath = path;
 
 % Update handles structure
@@ -1123,7 +1123,7 @@ handles = guidata(hObject);
 % Let the user browse for an image file and path
 saveDirectory = uigetdir('','Select Save Directory');
 
-% And store this in the postpro struct
+% And store this in the handles struct
 if exist(saveDirectory, 'dir') == 7
    handles.saveallpath = saveDirectory;
    set (handles.GUI_fm_saveallpath_ed, 'String', handles.saveallpath);
@@ -1158,7 +1158,7 @@ set (h, 'Position', [320.2500 272.2500 297.7500 79.5000]);
 uiwait (h);
 
 % Get the new figure size
-handles.postpro.figureSize = get (viewPrepFigH, 'Position');
+handles.guiData.figureSize = get (viewPrepFigH, 'Position');
 
 % Close the figure    
 close (viewPrepFigH);
@@ -1198,17 +1198,17 @@ val = str2double (strval);
 if isnan (val)
    h = errordlg('Sorry, this field has to contain a number.');
    uiwait(h);          % Wait until the user presses the OK button
-   handles.postpro.binsize = 4;
-   set (handles.GUI_ad_binsize_ed, 'String', handles.postpro.binsize);
+   handles.guiData.binsize = 4;
+   set (handles.GUI_ad_binsize_ed, 'String', handles.guiData.binsize);
    return
 else
    if val >= 2   % binsize should be at least 2
-      handles.postpro.binsize = val;
+      handles.guiData.binsize = val;
    else
       h = errordlg('Sorry, the bin size should be at least 2.');
       uiwait(h);          % Wait until the user presses the OK button
-      handles.postpro.binsize = 4;
-      set (handles.GUI_ad_binsize_ed, 'String', handles.postpro.binsize);
+      handles.guiData.binsize = 4;
+      set (handles.GUI_ad_binsize_ed, 'String', handles.guiData.binsize);
    end
 end
 
@@ -1666,7 +1666,7 @@ val = get (hObject,'Value');
 
 if val == 1
    % Button was clicked so should become 1
-   handles.postpro.movietype = 1;   % avi
+   handles.guiData.movietype = 1;   % avi
    set (handles.GUI_movietype_avi_rb, 'Value', 1);
    
    % The QT button should automatically become 0
@@ -1674,7 +1674,7 @@ if val == 1
 else
    % Button was already selected, but make sure that movietype is set
    % correctly
-   handles.postpro.movietype = 1;   % avi
+   handles.guiData.movietype = 1;   % avi
 end
 
 % Update handles structure
@@ -1710,7 +1710,7 @@ val = get (hObject,'Value');
 
 if val == 1
    % Button was clicked so should become 2
-   handles.postpro.movietype = 2;   % qt
+   handles.guiData.movietype = 2;   % qt
    set (handles.GUI_movietype_qt_rb, 'Value', 1);
    
    % The QT button should automatically become 0
@@ -1718,7 +1718,7 @@ if val == 1
 else
    % Button was already selected, but make sure that movietype is set
    % correctly
-   handles.postpro.movietype = 2;   % qt
+   handles.guiData.movietype = 2;   % qt
 end
 
 % Update handles structure
@@ -1869,11 +1869,11 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.postpro.nrtrajectories = 5;
-    set (handles.nr_traj_ed, 'Value', handles.postpro.nrtrajectories);  % Revert the value back
+    handles.guiData.nrtrajectories = 5;
+    set (handles.nr_traj_ed, 'Value', handles.guiData.nrtrajectories);  % Revert the value back
     return
 else
-    handles.postpro.nrtrajectories = val;
+    handles.guiData.nrtrajectories = val;
 end
 
 % Update handles structure
@@ -1923,11 +1923,11 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.postpro.neighbourdist = 81;
-    set (handles.neighbour_dist_ed, 'Value', handles.postpro.neighbourdist);  % Revert the value back
+    handles.guiData.neighbourdist = 81;
+    set (handles.neighbour_dist_ed, 'Value', handles.guiData.neighbourdist);  % Revert the value back
     return
 else
-    handles.postpro.neighbourdist = val;
+    handles.guiData.neighbourdist = val;
 end
 
 % Update handles structure
@@ -2073,7 +2073,7 @@ handles.guiData.moviefirstimg = allValidFrames{filesSelected}(1,1);
 handles.guiData.movielastimg = allValidFrames{filesSelected}(1,end);
    
 % Set values on the GUI
-ptSetPostproGUIValues (handles, filesSelected);
+handles = ptSetPostproGUIValues (handles, filesSelected);
 
 % Update GUI handles struct
 guidata (hObject,handles);
@@ -2187,7 +2187,7 @@ else
    handles.guiData = guiData;
 
    % Set values on the GUI
-   ptSetPostproGUIValues (handles, length(fileList));
+   handles = ptSetPostproGUIValues (handles, length(fileList));
 
    % Go to the selected directory: user comfort for next file
    cd (directory);
@@ -2345,7 +2345,7 @@ else
       set (handles.GUI_filelist_lb, 'Value', filesSelected);
       
       % Set values on the GUI
-      ptSetPostproGUIValues (handles, length(fileList));
+      handles = ptSetPostproGUIValues (handles, length(fileList));
       
       % Set the savepath as well
       set (handles.GUI_fm_saveallpath_ed, 'String', saveDir);
@@ -2698,9 +2698,9 @@ radioButtons.donotshowplots = get (handles.GUI_notshowplots_cb,'Value');
 radioButtons.runningaverage = get (handles.GUI_running_average_cb,'Value');
 
 % Get movie buttons
-radioButtons.movieinclorig = get (handles.GUI_fm_incloriginal_rb,'Value');
 radioButtons.movieinclnuclei = get (handles.GUI_fm_inclcentromers_rb,'Value');
 radioButtons.movieincltracks = get (handles.GUI_fm_incltracks_rb,'Value');
+radioButtons.moviesaveastiff = get (handles.GUI_fm_saveastiff_rb,'Value'); 
 radioButtons.movietypeavi = get (handles.GUI_movietype_avi_rb,'Value');
 radioButtons.movietypeqt = get (handles.GUI_movietype_qt_rb,'Value');
 
@@ -2863,7 +2863,7 @@ handles.guiData.movielastimg = allValidFrames{filesSelected}(1,end);
 
 % Set values on the GUI
 %ptSetPostproGUIValues (handles, filesSelected);
-ptSetPostproGUIValues (handles, 1);
+handles = ptSetPostproGUIValues (handles, 1);
 
 % Update handles structure
 guidata(hObject, handles); 
@@ -2921,4 +2921,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 %--------------------------------------------------------------------
+
+
+function GUI_fm_saveastiff_rb_Callback(hObject, eventdata, handles)
+
 

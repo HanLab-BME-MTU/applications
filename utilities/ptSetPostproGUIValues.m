@@ -1,4 +1,4 @@
-function ptSetPostproGUIValues (handles, nr)
+function handles = ptSetPostproGUIValues (handles, nr)
 % ptSetPostproGUIValues shows the current handles struct on the GUI
 %
 % SYNOPSIS       ptSetPostproGUIValues (handles)
@@ -6,7 +6,7 @@ function ptSetPostproGUIValues (handles, nr)
 % INPUT          handles : GUI handle struct containing the postpro info
 %                nr : the number of the job to show
 %
-% OUTPUT         None
+% OUTPUT         handles: updated handles struct
 %
 % DEPENDENCIES   ptSetPostproGUIValues uses {nothing}
 %                                  
