@@ -255,8 +255,8 @@ end
 % Initializing progress bar
 h = waitbar(0,'Preprocessing...');
 
-%Added by Lin Ji on Jan. 24, 2005
-%Search in the 'edge' directory first to see if edge has already
+% Added by Lin Ji on Jan. 24, 2005
+% Search in the 'edge' directory first to see if edge has already
 % been detected using edge tracking 'prPanel'.
 
 bgMaskDir = [projDir filesep edgeDir filesep 'cell_mask'];

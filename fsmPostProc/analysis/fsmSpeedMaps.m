@@ -82,6 +82,15 @@ strg=sprintf('%%.%dd',s);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
+% GET THE LOCATION OF THE BACKGROUND MASKS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+bgMaskDir = [fsmParam.project.path filesep fsmParam.project.edge filesep 'cell_mask'];
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
 % LOAD VECTOR FIELDS 
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -306,6 +315,10 @@ if ~isempty(userROIpoly)
     userROIbw=roipoly(bwMask,userROIpoly(:,2),userROIpoly(:,1));
 end
 
+% Added by Matthias. Take background masks from
+% the edge directory instead calculating them again!
+%bgMaskDir = [projDir edgeDir filesep 'cell_mask'];
+
 % Calculate average vector fields
 steps=size(Md,3)-n+1;
 for c2=1:steps
@@ -334,15 +347,25 @@ for c2=1:steps
     speedMap=imresize(speedMap,imgSize,'bilinear');
     
     if segment==1
-        % Find cell boundaries
-        xmax=2^bitDepth-1;
-        img=imreadnd2(char(imageFileList(c2,:)),0,xmax);
-        try
-            [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
-        catch
-            % Uses last one
-        end       
-    
+        [dumpath,bgMaskName,ext] = fileparts(imageFileList(c2,:));
+        bgMaskPath = [bgMaskDir filesep 'mask_' bgMaskName ext];
+        
+        bgExist = exist(bgMaskPath,'file');
+        
+        if bgExist ~= 0
+            bwMask = imread(bgMaskPath);
+        else
+            disp('No mask found in specified edge directory');
+            % Find cell boundaries
+            xmax=2^bitDepth-1;
+            img=imreadnd2(char(imageFileList(c2,:)),0,xmax);
+            try
+                [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
+            catch
+                % Uses last one
+            end
+        end
+        
         % Crop velocity map
         speedMap=speedMap.*bwMask;
         
