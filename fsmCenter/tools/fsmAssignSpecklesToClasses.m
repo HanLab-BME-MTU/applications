@@ -1,5 +1,5 @@
 function speckleClasses=fsmAssignSpecklesToClasses(speckleArray)
-% fsmAssignSpecklesToClasses assigns each speckle in speckleArray to one of 10 classes
+% fsmAssignSpecklesToClasses assigns each speckle in speckleArray to one of 13 classes
 % 
 % SYNOPSIS   speckleClasses=fsmAssignSpecklesToClasses(speckleArray)
 %
@@ -28,9 +28,9 @@ function speckleClasses=fsmAssignSpecklesToClasses(speckleArray)
 %  8 : non significant BIRTH,                     significant DEATH due to POLYMERIZATION
 %  9 : non significant BIRTH,                     non significant DEATH
 % 10 : ghost speckle, a subset of class 9.
-% 11 : speckles already present in frame 1 which die within the movie
-% 12 : speckles which are born within the movie and are still present at movie end
-% 13 : speckles which live for the whole movie
+% 11 : speckle already present in frame 1 which dies within the movie
+% 12 : speckle born within the movie and still present at movie end
+% 13 : speckle which lives for the whole movie
 %
 % Aaron Ponti, 04/09/2004
 
