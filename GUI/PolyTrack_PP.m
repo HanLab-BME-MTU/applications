@@ -802,6 +802,17 @@ else
       save ([savePath filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
    end
    
+%    if radioButtons.ripleyplot            
+%       if radioButtons.ripleyplot_1
+%           
+%           % Run the calculation
+%           [cpar,pvr,dpvr] = ClusterQuantRipley(mpm,imsizex,imsizey);
+%           
+%           % Do the plots
+%           %??????
+%       end
+%    end
+   
    % Set the mouse pointer to normal again
    set(gcbf,'Pointer','arrow');
    
@@ -1965,6 +1976,16 @@ if length(filesSelected) > 1
     return;
 end
 
+% Get the values from the job
+[allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, 'all');
+
+% Check the result value (0 is good)
+if result > 0
+   h=errordlg ('An error occured while fetching data for the selected files (ptRetrieveJobData).');
+   uiwait (h); 
+   return;
+end
+
 % Default plot and movie ranges will be made similar to the frame range
 handles.guiData.plotfirstimg = handles.jobData(filesSelected).firstimg;
 handles.guiData.plotlastimg = handles.jobData(filesSelected).lastimg;
@@ -2179,7 +2200,7 @@ else
       % Set the GUI values for the first one
       filePath = fileList{1};
 
-      if ~exist(filePath, 'dir')
+      if ~exist(filePath)
          h=errordlg('These job directories do not exist. Please load another set.');
          uiwait(h);
          return;
@@ -2196,7 +2217,8 @@ else
       % Get the values from the GUI
       [guiData] = ptRetrieveGUIData (handles);
    
-      % Default plot and movie ranges will be made similar to the frame range
+      % Default plot and movie ranges will be made similar to the frame
+      % range of the last job
       guiData.plotfirstimg = jobData(length(fileList)).firstimg;
       guiData.plotlastimg = jobData(length(fileList)).lastimg;
       guiData.moviefirstimg = jobData(length(fileList)).firstimg;
@@ -2540,6 +2562,10 @@ radioButtons.neighbourplot = get(handles.checkbox_neighbourhood,'Value');
    radioButtons.neighbourplot_1 = get(handles.checkbox_nb_trajectories,'Value');
    radioButtons.neighbourplot_2 = get(handles.checkbox_nb_interact,'Value');
    
+% Get Ripley choas values
+radioButtons.ripleyplot = get(handles.GUI_ripley_cb,'Value');
+   radioButtons.ripleyplot_1 = get(handles.GUI_chaosstats_cb,'Value');
+   
 % Get histogram radiobutton values
 radioButtons.allcellshist = get (handles.GUI_vel_all_cells_cb,'Value');
 radioButtons.singlecellshist = get (handles.GUI_vel_single_cells_cb,'Value');
@@ -2652,5 +2678,11 @@ function GUI_maxcellcelldist_ed_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+function GUI_chaosstats_cb_Callback(hObject, eventdata, handles)
+
+
+function GUI_ripley_cb_Callback(hObject, eventdata, handles)
 
 

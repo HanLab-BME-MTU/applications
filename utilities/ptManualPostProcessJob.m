@@ -101,6 +101,7 @@ image = imreadnd2 (fileName, 0, intensityMax);
 % Show the frame on the screen in the current figure
 hold on;
 imshow (image, []), title (num2str (firstImage));
+hold off;
 
 % Get the cells corresponding to the first frame. We create a third column
 % (first two being [x,y]) with the row indices of MPM. We are NOT interested in
@@ -120,6 +121,7 @@ cellsWithNums(:,1:2) = handles.allMPM{1}(:,1:2);
 
 % Now take the cells identified as real cells (at least one coord different from zero)
 % and plot those as red dots. The cell number is written as colored text on the current axes.
+hold on;
 plot (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), 'r.');
 txt = text (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), num2str (cellsWithNums (realCellIndex, 3)), 'Color', 'r');
 
