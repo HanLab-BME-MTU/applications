@@ -12,7 +12,7 @@ function [scoreProfile,polyProfile,depolyProfile,P,posScores,img2C]=fsmKineticPr
 %                 or a net assembly map (img2C) as returned by fsmKineticMaps
 % imgSize       : size of the analyzed image
 % M             : M stack as returned by fsmTrackMain
-% n             : number of frames
+% n             : number of frames for averaging
 %               : if n is set to 0, then all frames are considered
 % lineDescr     : start and end points for the profile (line going from A to B)
 %                           [ A(1) B(1)
@@ -49,7 +49,7 @@ P=lineCoords(lineDescr(:,1),lineDescr(:,2),sampling);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ischar(firstKinScore) % String pointing to the fist kinScore###.mat
-    [poly,depoly,img2C]=fsmKineticMaps(firstKinScore,imgSize,n,0); %5
+    [poly,depoly,img2C]=fsmKineticMaps(firstKinScore,imgSize,[n n],0); %5
 else
     if size(firstKinScore,3)~=3
         error('Please make sure that the net assembly map has the correct dimensions - see fsmKineticMaps');

@@ -100,6 +100,14 @@ else
     disp('The PREPROCESSING module was not run.');
 end
 
+% If preprocessing is not run, check that the list of images is correct
+if status==2
+    [fsmParam,status]=fsmCheckFsmParam(fsmParam);
+    if status==0
+        return;
+    end
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   TRACKER MODULE

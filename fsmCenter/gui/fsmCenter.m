@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 06-Apr-2004 17:07:57
+% Last Modified by GUIDE v2.5 30-Apr-2004 08:52:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -327,7 +327,7 @@ set(handles.editTSampling,'String',num2str(abs(str2num(get(handles.editTSampling
 
 function editLabel_Callback(hObject, eventdata, handles)
 if str2num(get(handles.editLabel,'String'))<0 | str2num(get(handles.editLabel,'String'))>1
-    uiwait(msgbox('Please enter a value between 0 and 1.','help','modal'));
+    uiwait(msgbox('Please enter a value between 0 and 1.','Help','modal'));
     set(handles.editLabel,'String','0.3')
 end
 
@@ -371,7 +371,7 @@ function editSpectrumSigma_Callback(hObject, eventdata, handles)
 % Make sure the entered value is > 0
 set(handles.editSpectrumSigma,'String',num2str(abs(fix(str2num(get(handles.editSpectrumSigma,'String'))))));
 if ~mod(str2num(get(handles.editSpectrumSigma,'String')),2)
-    uiwait(msgbox('Please enter an integer, ODD value > 0.','help','modal'));
+    uiwait(msgbox('Please enter an integer, ODD value > 0.','Help','modal'));
     set(handles.editSpectrumSigma,'String','1');
 end
 
@@ -550,6 +550,28 @@ function pushSpeedMaps_Callback(hObject, eventdata, handles)
 % hObject    handle to pushHelpSpeed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+if get(handles.checkSMMask,'Value')==1
+    % Load userROI.mat
+    [fName,dirName] = uigetfile(...
+        {'userROI.mat;','userROI.mat';
+        '*.*','All Files (*.*)'},...
+        'Select userROI.mat');
+    if ~(isa(fName,'char') & isa(dirName,'char'))
+        choice=questdlg('You didn''t pick any file.','Error','Continue without ROI','Exit','Exit');
+        switch choice,
+            case 'Continue without ROI', userROIbw=[];
+            case 'Exit', return;
+        end % switch
+    end
+    load([dirName,fName]);
+    if exist('userROIbw')~=1
+        choice=questdlg('The loaded file does not seem to contain a valid ROI.','Error','Continue without ROI','Exit','Exit');
+        switch choice,
+            case 'Continue without ROI', userROIbw=[];
+            case 'Exit', return;
+        end % switch
+    end
+end
 gridSize=[str2num(get(handles.editYSP,'string')) str2num(get(handles.editXSP,'string'))];
 n=str2num(get(handles.editFrameSP,'string'));
 d0=str2num(get(handles.editSMCL,'string'));
@@ -558,7 +580,12 @@ overlayVectors=get(handles.checkSMOverlay,'value');
 sampling=str2num(get(handles.editSMSampling,'string'));
 pixelSize=str2num(get(handles.editSMPixel,'string'));
 maxSpeed=str2num(get(handles.editSMMax,'string'));
-fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,maxSpeed);
+outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIbw,maxSpeed);
+if ~isempty(outputdir)
+    % Maps have been saved to disk
+    msg=['Speed maps have been saved to ',outputdir,'.'];
+    uiwait(msgbox(msg,'Help','modal'));
+end
 
 % --- Executes on button press in pushHelpSpeed.
 function pushHelpSpeed_Callback(hObject, eventdata, handles)
@@ -959,13 +986,24 @@ n=str2num(get(handles.editFrameTN,'String'));
 sigma=str2num(get(handles.editSigmaTN,'String'));
 
 % Call function
-[polyMap,depolyMap,netMapRGB]=fsmKineticMaps([],[info.Height info.Width],n,sigma);
+[polyMap,depolyMap,netMapRGB,outputdir]=fsmKineticMaps([],[info.Height info.Width],[-1 n],sigma);
 
-% Show maps and return them to Matlab base workspace
-figure; imshow(polyMap,[]); title('Polymerization map'); assignin('base','polyMap',polyMap);
-figure; imshow(-depolyMap,[]); title('Depolymerization map'); assignin('base','depolyMap',depolyMap);
-figure; imshow(netMapRGB,[]); title('Net assembly map'); assignin('base','netMapRGB',netMapRGB);
-assignin('base','netMap',polyMap+depolyMap);
+if isempty(outputdir)
+    
+    % Show maps and return them to Matlab base workspace
+    figure; imshow(polyMap,[]); title('Polymerization map'); assignin('base','polyMap',polyMap);
+    figure; imshow(-depolyMap,[]); title('Depolymerization map'); assignin('base','depolyMap',depolyMap);
+    figure; imshow(netMapRGB,[]); title('Net assembly map'); assignin('base','netMapRGB',netMapRGB);
+    assignin('base','netMap',polyMap+depolyMap);
+    
+else
+    
+    % Maps have been saved to disk
+    msg=['Turnover maps have been saved to ',outputdir,'.'];
+    uiwait(msgbox(msg,'Help','modal'));
+    
+end
+
 
 % --- Executes on button press in pushHelpTurnover.
 function pushHelpTurnover_Callback(hObject, eventdata, handles)
@@ -1188,5 +1226,14 @@ function checkTrajPlots_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkTrajPlots
+
+
+% --- Executes on button press in checkSMMask.
+function checkSMMask_Callback(hObject, eventdata, handles)
+% hObject    handle to checkSMMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkSMMask
 
 

@@ -28,7 +28,26 @@ gaussRatio=fsmParam.prep.gaussRatio;
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Path
-set(handles.pathEdit,'String',fsmParam.main.path);
+currentPath=get(handles.pathEdit,'String');
+if isempty(currentPath)
+    % No path specified yet
+    set(handles.pathEdit,'String',fsmParam.main.path);
+else
+    if strcmp(fsmParam.main.path,get(handles.pathEdit,'String'))==0
+        
+        infoPathString=['The loaded fsmParam.mat file contains stored path information [',fsmParam.main.path,'] which does not match the current selection [',currentPath,'].'];
+        choice=questdlg(infoPathString, ...
+            'User input requested', ...
+            'Use current path','Use stored path','Use current path');
+        switch choice
+            case 'Use current path', set(handles.pathEdit,'String',currentPath);
+            case 'Use stored path',  set(handles.pathEdit,'String',fsmParam.main.path);
+            otherwise
+                error('Wrong selection');
+        end
+    end
+end
+
 % Image number
 if fsmParam.specific.imageNumber~=0
     set(handles.numberEdit,'String',fsmParam.specific.imageNumber);

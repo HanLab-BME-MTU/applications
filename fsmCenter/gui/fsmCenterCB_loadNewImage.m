@@ -40,6 +40,9 @@ if(isa(fileName,'char') & isa(dirName,'char'))
     titleStr=[dirName,fileName,' (',num2str(size(img,1)),'x',num2str(size(img,2)),')'];
     set(h,'Name',titleStr,'NumberTitle','off');
 
+    % Add univocal tag
+    set(h,'Tag','ViewPanel');
+    
     % Return image to MATLAB base workspace
     assignin('base','img',img);
 else
@@ -55,5 +58,3 @@ figure(gcf);
 hMenu=uimenu('Label','More Tools');
 uimenu(hMenu,'Label','Load image','Callback','fsmCenterCB_loadNewImage;','Accelerator','L');
 uimenu(hMenu,'Label','Find edges','Callback','fsmCenterCB_findEdges;','Accelerator','E','Separator','On');
-
-

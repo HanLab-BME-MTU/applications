@@ -56,21 +56,23 @@ if isempty(userPath(1).directory)
 end
 
 % Start gui
-h=batchGUI;
-set(h,'Name','Running...');
-strH=get(h,'Children');
+% h=batchGUI;
+% set(h,'Name','Running...');
+% strH=get(h,'Children');
+% nExp=length(userPath);
+% set(strH(1),'String',num2str(nExp));
+% set(strH(4),'String','Running batch job');
+% set(strH(3),'String','0');
+% set(strH(2),'String','of');
+
 nExp=length(userPath);
-set(strH(1),'String',num2str(nExp));
-set(strH(4),'String','Running batch job');
-set(strH(3),'String','0');
-set(strH(2),'String','of');
-
-
 for i=1:nExp
     
-    % Update gui
-    set(strH(3),'String',num2str(i));
-    
+%     % Update gui
+%     set(strH(3),'String',num2str(i));
+  
+fprintf(1,'Running batch job %d of %d.\n',i,nExp);
+
     cd(userPath(i).directory);
     if ~exist('fsmParam.mat')
         error('No fsmParam.mat found in current directory');
@@ -110,17 +112,19 @@ for i=1:nExp
     
 end
 
-% Update gui
-if nExp>1
-    str=[num2str(nExp),' batch jobs run.'];
-else
-    str='1 batch job run.';
-end 
-set(strH(4),'String',str);
-set(strH(3),'String','');
-set(strH(2),'String','');
-set(strH(1),'String','');
-set(h,'Name','All done!');
+% % Update gui
+% if nExp>1
+%     str=[num2str(nExp),' batch jobs run.'];
+% else
+%     str='1 batch job run.';
+% end 
+% set(strH(4),'String',str);
+% set(strH(3),'String','');
+% set(strH(2),'String','');
+% set(strH(1),'String','');
+% set(h,'Name','All done!');
+
+fprintf(1,'All done! %d batch job(s) run.\n',nExp);
 
 % Change back to old dir
 cd(oldDir);

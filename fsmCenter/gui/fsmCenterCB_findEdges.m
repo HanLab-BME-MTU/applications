@@ -45,10 +45,12 @@ try
     [ans,img_edge,img_bg,edge_pixel,length_edge,frame_pos]=imFindCellEdge(double(img),'',0,'filter_image',1,'img_sigma',1,'bit_depth',2^bitDepth-1);
     figure(gcf);
     hold on
-    plot(edge_pixel(:,1),edge_pixel(:,2),'y-');
+    plot(edge_pixel(:,1),edge_pixel(:,2),'y-'); % Coordinates in edge_pixel are returned a [x y]n
+    % Swap columns in img_edge from [x y] to [y x] (for compatibility)
+    edge_pixel=edge_pixel(:,[2 1]);
+    assignin('base','edgePixels',edge_pixel);
     assignin('base','imgEdge',img_edge);
     assignin('base','bwMask',img_bg);
-    assignin('base','edgePixels',edge_pixel);
    
 catch
     

@@ -1,11 +1,11 @@
-function fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,maxSpeed)
+function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIbw,maxSpeed)
 % fsmSpeedMaps creates speed maps from the flow maps returned by the SpeckTackle package
 %
 % fsmSpeedMaps goes through the whole M (or Md) stack of s matrices (each matrix corresponds to the
 %    matches returned by the tracker for frames 2 consecutive frames) and creates t<=s speed maps
 %    each of which is the average over n frames [j-n/2:j+n/2] around frame j, j in [fix(n/2)+1:s-fix(n/2)]
 %   
-% SYNOPSIS      fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,maxSpeed)
+% SYNOPSIS      outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIbw,maxSpeed)
 %
 % INPUT         gridSize    : [y x], defines the grid on which the velocities are calculated   
 %               n           : number of frames for temporal averaging.
@@ -17,11 +17,14 @@ function fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,
 %               sampling    : movie sampling size (s)
 %               pixelSize   : pixel size in the image domain (nm)
 %               overlayVect : [ 0 | 1 ] overlays vector field to speed map
+%               userROIbw   : black and white mask (0,1)-matrix used to mask parts of the image
 %               maxSpeed    : [ 0 | n ] maximum expected speed (to set the same color scaling for all frames)
 %                             Set it to 0 to turn off rescaling (the function will set this value to 110% 
 %                             of the maximum velocity from frame 1) or to any velocity n in nm/min.
 %
-% OUTPUT        velocityMaps saved to disk as 
+% OUTPUT        outputdir   : directory where the speed maps are saved to.
+%               speedMaps saved to disk as .tif, .eps, .mat 
+%
 %
 % DEPENDENCES   fsmSpeedMaps uses { }
 %               fsmSpeedMaps is used by { }
@@ -137,11 +140,13 @@ if n>uLast
     n=uLast;
 end
 
-% Interpolation grid
-G=framework(imgSize,gridSize);
+if loadMPM==1
+    % Interpolation grid
+    G=framework(imgSize,gridSize);
+end
 
 % Select output dir
-outputdir=uigetdir('','Select directory for output');
+outputdir=uigetdir('','Select directory to save speed maps to.');
 if outputdir==0 % The user clicked on cancel
     disp('Aborted by the user.');
     return
@@ -248,13 +253,13 @@ for c2=1:steps
     velocities(:,3)=sqrt(meanVectors(:,1).^2+meanVectors(:,2).^2);
     
     % Reshape
-    velocityMap=reshape(velocities(:,3),length(unique(G(:,2))),length(unique(G(:,1))))';
+    speedMap=reshape(velocities(:,3),length(unique(Md(:,2,1))),length(unique(Md(:,1,1))))';
     
     % Transform to nm/min
-    velocityMap=velocityMap*(60/sampling)*pixelSize;
+    speedMap=speedMap*(60/sampling)*pixelSize;
     
     % If needed, resize
-    velocityMap=imresize(velocityMap,imgSize,'bilinear');
+    speedMap=imresize(speedMap,imgSize,'bilinear');
     
     % Find cell boundaries
     xmax=2^14-1;
@@ -266,11 +271,19 @@ for c2=1:steps
     end
     
     % Crop velocity map
-    velocityMap=velocityMap.*bwMask;
+    speedMap=speedMap.*bwMask;
 
+    % If needed apply the userROI as well
+    if ~isempty(userROIbw)
+        % Check size
+        if size(speedMap)==size(userROIbw)
+            speedMap=speedMap.*userROIbw;
+        end
+    end
+    
     % Display
     mH=figure;
-    imshow(velocityMap,[]);
+    imshow(speedMap,[]);
     colormap('jet')
 
     % Plot vectors if requested by the user
@@ -304,20 +317,30 @@ for c2=1:steps
 
     % Set color range between 0 and MAXSPEED and update colorbar
     if c2==1 & maxSpeed==0
-        maxSpeed=max(velocityMap(:))*1.1; % Give a 10% space
+        maxSpeed=max(speedMap(:))*1.1; % Give a 10% space
     end
     set(gca,'CLim',[0 maxSpeed]);
     colorbar;
 
     % Save image
     indxStr=sprintf(strg,indices(c2));
-    fname=[outputdir,filesep,'tif',filesep,outputFileName,'_velocityMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.tif'];
-    print(gcf,'-dtiffnocompression',fname);
-    fname=[outputdir,filesep,'eps',filesep,outputFileName,'_velocityMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.eps'];
-    print(gcf,'-dpsc2',fname);
+    if scaleFactor~=0
+        fname=[outputdir,filesep,'tif',filesep,'speedMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.tif'];
+        print(gcf,'-dtiffnocompression',fname);
+        fname=[outputdir,filesep,'eps',filesep,'speedMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.eps'];
+        print(gcf,'-dpsc2',fname);
+        % Save speedMap to disk as well
+        eval(['save ',outputdir,filesep,'mat',filesep,'speedMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.mat speedMap;']);
+    else
+        fname=[outputdir,filesep,'tif',filesep,'speedMap_d0=',num2str(d0_init),'_',indxStr,'.tif'];
+        print(gcf,'-dtiffnocompression',fname);
+        fname=[outputdir,filesep,'eps',filesep,'speedMap_d0=',num2str(d0_init),'_',indxStr,'.eps'];
+        print(gcf,'-dpsc2',fname);
+        % Save speedMap to disk as well
+        eval(['save ',outputdir,filesep,'mat',filesep,'speedMap_d0=',num2str(d0_init),'_',indxStr,'.mat speedMap;']);
+    end
+    
 
-    % Save velocityMap to disk as well
-    eval(['save ',outputdir,filesep,'mat',filesep,outputFileName,'_velocityMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.mat velocityMap']);
 
     close(gcf);
     

@@ -46,6 +46,12 @@ else
     d=n;
 end
 
+% Check d
+sizeM=size(M,3);
+if d>sizeM
+    d=sizeM;
+end
+
 % Initialize memory for the list
 list=zeros(h*d,4);
 
