@@ -22,16 +22,16 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 07-Sep-2004 11:59:49
+% Last Modified by GUIDE v2.5 15-Sep-2004 11:53:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @fsmCenter_OpeningFcn, ...
-                   'gui_OutputFcn',  @fsmCenter_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @fsmCenter_OpeningFcn, ...
+    'gui_OutputFcn',  @fsmCenter_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin & isstr(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -193,6 +193,34 @@ end
 hFsmTransition=findall(0,'Tag','fsmTransition','Name','fsmTransition');
 if ~isempty(hFsmTransition)
     fsmTransition;
+end
+
+function pushDescription_Callback(hObject, eventdata, handles)
+% This function allows the user to create a text file where all notes, comments, and description are stored.
+projDir=get(handles.textCurrentProject,'String');
+if isempty(projDir)
+    % No project active
+    uiwait(errordlg('Plese create/open a project first.','Error','modal'));
+    return;
+end
+
+% Check whether a file description.txt exists in the project directory
+if exist([projDir,filesep,'description.txt'],'file')==2
+    % Open it
+    edit([projDir,filesep,'description.txt']);
+else
+    % Create it
+    fid=fopen([projDir,filesep,'description.txt'],'w');
+    if fid==-1
+        uiwait(errordlg('Cannot write to the project directory.','Error','modal'));
+        return;
+    else
+        % Add an initial text
+        fwrite(fid,'Please use this file to store your comments, notes, descriptions of the project.');
+        fclose(fid);
+        edit([projDir,filesep,'description.txt']);
+    end
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -475,4 +503,7 @@ function helpFsmCenter_Callback(hObject, eventdata, handles)
 function menuSpeckTackle_Callback(hObject, eventdata, handles)
 
 function menuTools_Callback(hObject, eventdata, handles)
+
+
+
 
