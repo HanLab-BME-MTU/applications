@@ -201,10 +201,10 @@ for bigIter = 1:maxNumSim
 end
 
 %additional input variables for statistical analysis function
-ioOpt.verbose = 2; %display graphs
+ioOpt.verbose = 0;
 ioOpt.convergence = 0; %check descriptor convergence as a function of sample size
 ioOpt.saveTxt = 0;
-ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat0.txt'; %save results in file
+%ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat0.txt'; %save results in file
 ioOpt.expOrSim = 's'; %specify that it is simulation data
 
 %perform Jonas' statistical analysis and get restults in dataStats
@@ -218,4 +218,3 @@ if saveStats.saveOrNot
         save(saveStats.fileName,'dataStats'); %save in file (directory specified through name)
     end
 end
-

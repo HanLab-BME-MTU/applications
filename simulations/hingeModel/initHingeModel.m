@@ -1,5 +1,11 @@
-function [hingeParam,hingeInit] = initHingeModel
+function [numTrials,hingeParam,hingeInit] = initHingeModel
 
-hingeParam = struct('free',1,'chromL',[],'chromS',[],'viscosity',[],'temperature',[]);
+numTrials = 10;
 
-hingeInit = [0 0 0.09]; %in micrometers
+for i = 1:numTrials
+    hingeParam(i) = struct('free',1,'chromL',[],'chromS',[],'viscosity',[],'temperature',[]);
+end
+
+for i=1:numTrials
+    hingeInit(i,:) = [0 0 i*0.01]; %in micrometers
+end

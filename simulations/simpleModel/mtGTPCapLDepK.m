@@ -126,8 +126,8 @@ if kTOnTFree < 0
     disp('--mtGTPCapLDepK: kTOnTFree cannot be negative!');
     errFlag = 1;
 end
-if addAmpT < 0 || addAmpT >= kTOnTFree
-    disp('--mtGTPCapLDepK: addAmpT should be positive and smaller than kTOnTFree!');
+if addAmpT < 0 || addAmpT > kTOnTFree
+    disp('--mtGTPCapLDepK: addAmpT should be positive and smaller than or equal to kTOnTFree!');
     errFlag = 1;
 end
 if addLenT < minLength + 3/addWidT || addLenT > maxLength - 3/addWidT
@@ -146,8 +146,8 @@ if kDOffFree < 0
     disp('--mtGTPCapLDepK: kDOff cannot be negative!');
     errFlag = 1;
 end
-if addAmpD < 0 || addAmpD >= kDOffFree
-    disp('--mtGTPCapLDepK: addAmpD should be positive and smaller than kDOffFree!');
+if addAmpD < 0 || addAmpD > kDOffFree
+    disp('--mtGTPCapLDepK: addAmpD should be positive and smaller than or equal to kDOffFree!');
     errFlag = 1;
 end
 if kHydrolysis < 0

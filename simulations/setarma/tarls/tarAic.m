@@ -50,7 +50,7 @@ if dummy ~= nThresholds + 1
     errFlag = 1;
 else
     for i = 1:nThresholds+1
-        tarOrder(i) = length(find(tarParam(i,:)));
+        tarOrder(i) = length(find(~isnan(tarParam(i,:))));
         r = abs(roots([-tarParam(i,tarOrder(i):-1:1) 1]));
         if ~isempty(find(r<=1.00001))
             disp('--tarAic: Causality requires the autoregressive polynomial not to have any zeros for z <= 1!');

@@ -21,7 +21,7 @@ errFlag = 0;
 if nargin ~= nargin('missPointARPred')
     disp('--missPointARPred: Incorrect number of input arguments!');
     errFlag  = 1;
-    trajP = []
+    trajP = [];
     return
 end
 

@@ -134,6 +134,7 @@ trajP2 = trajP;
 
 %initialize variable indicating whether another iteration should be performed
 doAgain = 1;
+firstTime = 1;
 
 if future
     
@@ -173,7 +174,7 @@ if future
             %number of missing points to be determined simultaneously
             numMiss = i-i0+1; 
             
-            %number of equation to be used in determining missing points
+            %number of equations to be used in determining missing points
             numEq = indx(i)-indx(i0)+1+max(tarOrder);
             
             %construct matrix on LHS multiplying unknowns
@@ -244,21 +245,18 @@ if future
                 (trajP2(i-delay,1)<=vThresholds(2:end))) == 2);
         end
 
-        %compare new estimates of missing points to old ones
-        diff = max(abs(trajP2(indx,1)-trajP(indx,1)));
-        if diff <= 1e-6
-            doAgain = 0;
+        %compare new estimates of missing points to old ones, taking their
+        %uncertainties into consideration
+        if ~firstTime
+            diff = abs(trajP2(indx,1)-trajP(indx,1)) - (trajP2(indx,2)+trajP(indx,2));
+            if max(diff) < 0
+                doAgain = 0;
+            end
         end
-        
-%         %compare new level assignments to old level assignments in order to determine whether algorithm converged
-%         diff = levelP-level; %calculate difference between 2 assignments
-%         diff = diff(find(~isnan(diff))); %get rid of NaNs from time points < max(tarOrder)
-%         if isempty(find(diff)) %if none have changed, exit
-%             doAgain = 0;
-%         end
         
         level = levelP;
         trajP = trajP2;
+        firstTime = 0;
         
     end %(while levelChange)
     

@@ -32,10 +32,11 @@ end
 
 free = hingeParam.free;
 if ~free
-    chromL = hingeParam.chromL;
-    chromS = hingeParam.chromS;
-    viscosity = hingeParam.viscosity;
-    temperature = hingeParam.temperature;
+    %     chromL = hingeParam.chromL;
+    %     chromS = hingeParam.chromS;
+    %     viscosity = hingeParam.viscosity;
+    %     temperature = hingeParam.temperature;
+    diffConst = hingeParam.diffConst;
 end
 
 %check for error in input
@@ -45,24 +46,24 @@ if free ~= 0 && free ~= 1
     errFlag = 1;
     return;
 end
-if ~free
-    if isempty(chromL) || chromL < 0
-        disp('--hingeModel: Large radius of chromosome should be positive!');
-        errFlag = 1;
-    end
-    if isempty(chromS) || chromS < 0
-        disp('--hingeModel: Small radius of chromosome should be positive!');
-        errFlag = 1;
-    end
-    if isempty(viscosity) || viscosity < 0
-        disp('--hingeModel: Viscosity should be positive!');
-        errFlag = 1;
-    end
-    if isempty(temperature) || temperature < 0
-        disp('--hingeModel: temperature should be positive!');
-        errFlag = 1;
-    end
-end
+% if ~free
+%     %     if isempty(chromL) || chromL < 0
+%     %         disp('--hingeModel: Large radius of chromosome should be positive!');
+%     %         errFlag = 1;
+%     %     end
+%     %     if isempty(chromS) || chromS < 0
+%     %         disp('--hingeModel: Small radius of chromosome should be positive!');
+%     %         errFlag = 1;
+%     %     end
+%     %     if isempty(viscosity) || viscosity < 0
+%     %         disp('--hingeModel: Viscosity should be positive!');
+%     %         errFlag = 1;
+%     %     end
+%     %     if isempty(temperature) || temperature < 0
+%     %         disp('--hingeModel: temperature should be positive!');
+%     %         errFlag = 1;
+%     %     end
+% end
 if totalTime <= 0
     disp('--hingeModel: Total time should be positive!');
     errFlag = 1;
@@ -79,17 +80,15 @@ end
 
 if ~free
     
-    %rotational diffusion constant of a chromosome about its two short semi-axes, 
-    %assuming it is a long prolate ellipsoid of revolution with semi-axes chromL 
-    %and chromS (chromL > 5*chromS). The formula for the rotational friction coefficient
-    %is taken from [C. Tanford, Physical Chemistry of Macromolecules (1961), p.436]. 
-    %The formula also uses the viscosity of the medium.
-    chromL = chromL*1e-6; %in meters
-    chromS = chromS*1e-6; %in meters
-    frictionCoef = 16*pi*viscosity*chromL^3/(-1+2*log(2*chromL/chromS))/3; %kg*m^2/s
-    diffConst = 1.38e-23*temperature/frictionCoef; %s^-1
-    
-    diffConst = 5e-16/((0.05e-6)^2);
+%     %rotational diffusion constant of a chromosome about its two short semi-axes, 
+%     %assuming it is a long prolate ellipsoid of revolution with semi-axes chromL 
+%     %and chromS (chromL > 5*chromS). The formula for the rotational friction coefficient
+%     %is taken from [C. Tanford, Physical Chemistry of Macromolecules (1961), p.436]. 
+%     %The formula also uses the viscosity of the medium.
+%     chromL = chromL*1e-6; %in meters
+%     chromS = chromS*1e-6; %in meters
+%     frictionCoef = 16*pi*viscosity*chromL^3/(-1+2*log(2*chromL/chromS))/3; %kg*m^2/s
+%     diffConst = 1.38e-23*temperature/frictionCoef; %s^-1
     
     %maximum anglular displacement per time step based on the relation <dtheta^2> = 2Ddt
     maxAngle = sqrt(2*diffConst*dt);

@@ -36,7 +36,7 @@ errFlag = 0;
 
 %check if correct number of arguments was used when function was called
 if nargin < 2
-    disp('--tarOrderThreshDelayCoef: Incorrect number of input arguments!');
+    disp('--tarModelIdent: Incorrect number of input arguments!');
     errFlag  = 1;
     vThresholds = [];
     delay = [];
@@ -53,14 +53,14 @@ end
 if nargin >= 3
     
     if ~strncmp(method,'dir',3) && ~strncmp(method,'iter',4) 
-        disp('--tarOrderThreshDelayCoef: Warning: Wrong input for "method". "dir" assumed!');
+        disp('--tarModelIdent: Warning: Wrong input for "method". "dir" assumed!');
         method = 'dir';
     end
     
     if strncmp(method,'iter',4)
         if nargin == 4
             if tol <= 0
-                disp('--tarOrderThreshDelayCoef: Warning: "tol" should be positive! A value of 0.001 assigned!');
+                disp('--tarModelIdent: Warning: "tol" should be positive! A value of 0.001 assigned!');
                 tol = 0.001;
             end
         else
@@ -73,8 +73,8 @@ else
     tol = [];
 end
 
-%initial value of Akaikes Information Criterion (AIC)
-aicV = 1e20; %ridiculously large number
+%assign initial value of Akaikes Information Criterion (AIC)
+aicV = 1e10; %(ridiculously large number)
 
 for i = 1:length(modelParam) %go over all suggested models
     
@@ -115,13 +115,84 @@ for i = 1:length(modelParam) %go over all suggested models
     
 end %(for i = 1:numComb)
 
+%check whether regimes found are truly distinct. If any two regimes are not
+%significantly different from each other, merge them into one
+
+%get number of thresholds
+nThresholds = length(vThresholds); 
+%get order in each regime
+for level=1:nThresholds+1
+    tarOrder(level) = length(find(~isnan(tarParam(level,:))));
+end
+
+%compare each regime to the one after it
+newThresh = [];
+for level = 1:nThresholds
+    
+    %find larger order in the two regimes
+    maxOrder = max(tarOrder(level),tarOrder(level+1));
+    
+    %get estimated parameters
+    param1M = tarParam(level,1:maxOrder)';
+    param1M(find(isnan(param1M))) = 0;
+    param2M = tarParam(level+1,1:maxOrder)';
+    param2M(find(isnan(param2M))) = 0;
+    
+    %get corresponding variance-covariance matrix
+    param1V = varCovMat(1:maxOrder,1:maxOrder,level);
+    param1V(find(isnan(param1V))) = 0;
+    param2V = varCovMat(1:maxOrder,1:maxOrder,level+1);
+    param2V(find(isnan(param2V))) = 0;
+    
+    %find vector of differences in coefficients
+    diffM = param1M - param2M;
+    
+    %calculate variance-covariance matrix of difference vector
+    diffV = [eye(maxOrder) -eye(maxOrder)]*[param1V zeros(maxOrder); ...
+            zeros(maxOrder) param2V]*[eye(maxOrder) -eye(maxOrder)]';
+    
+    %compute testStatistic whose cumulative distribution function is to be
+    %compare with 1-significance level (notice that testStatistic has a
+    %chi2 distribution)
+    testStatistic = diffM'*(diffV\diffM)/maxOrder;
+    
+    %if the cumulative density of this difference is greater than 95%,
+    if chi2cdf(testStatistic,maxOrder) > 0.95
+        newThresh(end+1) = level; %start a new level
+    end
+    
+end
+
+%when levels are combined, give the new level an order equal to the
+%smallest order of the combined levels.
+newOrder(1) = min(tarOrder(1:newThresh(1)));
+for i=2:length(newThresh)
+    newOrder(i) = min(tarOrder(newThresh(i-1)+1:newThresh(i)));
+end
+if isempty(i)
+    i = 1;
+end
+newOrder(end+1) = min(tarOrder(newThresh(i)+1:end));
+
+%assign new thresholds and orders
+vThresholds = vThresholds(newThresh);
+tarOrder = newOrder;
+nThresholds = length(vThresholds);
+
+%estimate the coefficients one last time using the new thresholds and
+%orders, plus the previously obtained delay parameter
+[tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarCoefEstim(...
+    traj,vThresholds,delay,tarOrder,method,tol);
+
 %check for causality of estimated model
-for level = 1:length(vThresholds)+1
-    tarOrder = length(find(~isnan(tarParam(level,:))));
-    r = abs(roots([-tarParam(level,tarOrder:-1:1) 1]));
+for level = 1:nThresholds+1
+    r = abs(roots([-tarParam(level,tarOrder(level):-1:1) 1]));
     if ~isempty(find(r<=1.00001))
-        disp('--tarOrderThreshDelayCoef: Warning: Predicted model not causal!');
+        disp('--tarModelIdent: Warning: Predicted model not causal!');
     end
 end
+
+%get the model's AIC value
+[aicV,errFlag] = tarAic(traj,vThresholds,delay,tarParam);
 
 toc
