@@ -21,7 +21,7 @@ function [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTr
 %
 %
 %
-% DEPENDENCES   fsmPrepConfirmLoopSpeckles uses { locmax2d, tSearch,fsmPrepTestLocalMaxima }
+% DEPENDENCES   fsmPrepConfirmLoopSpeckles uses { locmax2d, tsearch,fsmPrepTestLocalMaxima }
 %               fsmPrepConfirmLoopSpeckles is used by { fsmPrepMainSecondarySpeckles }
 %
 % Alexandre Matov, April 2nd, 2003
@@ -34,7 +34,7 @@ Imax=locmax2d(Inew,[5,5]);
 pMax=[yi,xi];
 
 % Assign local maxima to local minimum triangles
-triangles=tSearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
+triangles=tsearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
 
 % Store information into cands structure
 for i=1:size(triangles,1)
