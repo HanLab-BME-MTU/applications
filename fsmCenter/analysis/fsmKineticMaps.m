@@ -59,7 +59,7 @@ else
     n=len;
 end
 
-% Initialize emtpy map
+% Initialize emtpy maps
 polyMap=zeros(imgSize);
 depolyMap=polyMap;
 
@@ -111,3 +111,4 @@ mx=max([polyMap(:);abs(depolyMap(:))]);
 img2C=zeros([imgSize 3]);
 img2C(:,:,1)=polyMap/mx;
 img2C(:,:,2)=abs(depolyMap)/mx;
+

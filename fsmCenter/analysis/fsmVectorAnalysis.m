@@ -134,6 +134,12 @@ file.name='';
 
 % Open file
 fid=fopen([mpmDirName,filesep,'parameters.txt']);
+
+if fid==-1
+    disp('Error: could not find file ''parameters.txt'' in the work directory specified.');
+    return
+end
+
 c=0;
 while not(feof(fid))
  

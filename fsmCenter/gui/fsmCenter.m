@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 16-Feb-2004 10:58:56
+% Last Modified by GUIDE v2.5 23-Feb-2004 12:38:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -549,12 +549,11 @@ gridSize=[str2num(get(handles.editYSP,'string')) str2num(get(handles.editXSP,'st
 n=str2num(get(handles.editFrameSP,'string'));
 d0=str2num(get(handles.editSMCL,'string'));
 loadMPM=get(handles.radioSMMPM,'value');
-loadPolygon=get(handles.checkSMPoly,'value');
-resizeMap=get(handles.checkSMResize,'value');
+overlayVectors=get(handles.checkSMOverlay,'value');
 sampling=str2num(get(handles.editSMSampling,'string'));
 pixelSize=str2num(get(handles.editSMPixel,'string'));
 maxSpeed=str2num(get(handles.editSMMax,'string'));
-fsmSpeedMaps(gridSize,n,d0,loadMPM,loadPolygon,sampling,pixelSize,resizeMap,maxSpeed);
+fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,maxSpeed);
 
 % --- Executes on button press in pushHelpSpeed.
 function pushHelpSpeed_Callback(hObject, eventdata, handles)
@@ -765,13 +764,13 @@ function editSMMax_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of editSMMax as a double
 
 
-% --- Executes on button press in checkSMResize.
-function checkSMResize_Callback(hObject, eventdata, handles)
-% hObject    handle to checkSMResize (see GCBO)
+% --- Executes on button press in checkSMOverlay.
+function checkSMOverlay_Callback(hObject, eventdata, handles)
+% hObject    handle to checkSMOverlay (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of checkSMResize
+% Hint: get(hObject,'Value') returns toggle state of checkSMOverlay
 
 
 % --- Executes on button press in pushPRStart.
