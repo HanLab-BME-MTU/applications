@@ -259,10 +259,12 @@ handles = enableFsmPackages(handles,'on');
 %else
 %   handles.physiParam = getDefFsmPhysiParam;
 %end
-handles.physiParam = physiParam{1};
-saveFsmPhysiParam(handles);
+if ~isempty(physiParam)
+    handles.physiParam = physiParam{1};
+    saveFsmPhysiParam(handles);
 
-handles = updateFsmGuiPhysiParamEdit(handles);
+    handles = updateFsmGuiPhysiParamEdit(handles);
+end
 
 guidata(hObject,handles);
 
