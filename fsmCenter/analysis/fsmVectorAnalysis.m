@@ -1,12 +1,13 @@
-function fsmVectorAnalysis(imgNum,roi,displ,scale,d0,useDiv,output,displROI,invertROI)
+function fsmVectorAnalysis(nAvg,roi,displ,scale,d0,useDiv,output,displROI,invertROI)
 % fsmVectorAnalysis reports several statistics on vector fields (obtained from FSM)
 %
-% SYNOPSIS      fsmVectorAnalysis(imgNum,roi,displ,scale,d0,useDiv,output,displROI,invertROI)
+% SYNOPSIS      fsmVectorAnalysis(nImages,roi,displ,scale,d0,useDiv,output,displROI,invertROI)
 %
 % REMARK        Run fsmVectorAnalysis through the graphical user interface fsmCenter 
 %               ------------------------------------------------------------------
 %
-% INPUT                     imgNum   :number of images to be analyzed 
+% INPUT                     nImages   : number of images to be analyzed 
+%                           nAvg     : number of frames for time averaging
 %                           roi      : [ 0|1 0|1 0|1]  
 %                           roi(1)   : if 1, allows the user to draw a region of interest
 %                           roi(2)   : if 1, allows the user to load a saved region of interest
@@ -15,10 +16,10 @@ function fsmVectorAnalysis(imgNum,roi,displ,scale,d0,useDiv,output,displROI,inve
 %                           If roi(1) is 1, roi(2) should be 0 and vice versa.
 %               displ     : [ 0|1 0|1 0|1 0|1 0|1 ] turns on and off some display
 %                           displ(1) : if 1, displays raw vector field
-%                           displ(2) : if 1, displays interpolated vector field
+%                           displ(2) : if 1, displays averaged vector field
 %                           displ(3) : if 1, displays noise vectors
 %                           displ(4) : if 1, displays map of goodness for raw vs.
-%                                      interpolated field match and SNR map
+%                                      averaged field match and SNR map
 %                           displ(5) : if 1, displays image (with all vector fields overlaid)
 %                scale    : scaling factor for vector field display
 %                d0       : correlation length of the interpolator
@@ -37,9 +38,17 @@ function fsmVectorAnalysis(imgNum,roi,displ,scale,d0,useDiv,output,displROI,inve
 %
 % Aaron Ponti, May 15th, 2003
 
+global uFirst uLast
+
 if nargin~=9
     error('9 input parameters expected');
 end
+
+if mod(nAvg,2)==0
+    errordlg('The number of frames for time averaging MUST BE ODD.','Error','modal');
+    return
+end
+    
 
 % Store current directory
 oldDir=cd;
@@ -68,7 +77,7 @@ else
 end
 
 if displ(3)==1
-    INTERP_CALC=1;    % To calculate noise vectors, interpolated vectors are needed
+    INTERP_CALC=1;    % To calculate noise vectors, averaged vectors are needed
     NOISE_CALC=1;
     NOISE_DISPLAY=1;
 else
@@ -76,7 +85,7 @@ else
     NOISE_DISPLAY=0;
 end
 
-if displ(4)==1        % Noise analysis - both interpolated and noise vectors are needed
+if displ(4)==1        % Noise analysis - both averaged and noise vectors are needed
     INTERP_CALC=1;
     NOISE_CALC=1;
     ERROR_CALC=1;
@@ -85,271 +94,371 @@ else
 end
 
 if ~any([RAW_DISPLAY INTERP_CALC NOISE_CALC ERROR_CALC])
-    uiwait(msgbox('Nothing to display.','help','modal'));
+    errordlg('Nothing to display...','Error','modal');
     return
 end
 
+POLYGON_DISPLAY=0;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% SELECT IMAGE AND EXPERIMENT
+% SELECT EXPERIMENT
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Select image
-[fName,dirName] = uigetfile(...
-    {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
-    '*.tif','TIF files (*.tif)'
-    '*.tiff','TIFF files (*.tiff)'
-    '*.jpg;','JPG files (*.jpg)'
-    '*.jpeg;','JPEG files (*.jpeg)'
-    '*.*','All Files (*.*)'},...
-    'Select image');
-if(isa(fName,'char') & isa(dirName,'char'))
-    img=nrm(imread([dirName,fName]),1);
-    % Store image size
-    imgSize=size(img);
+% Select fsmParam.mat
+[fsmParamName,fsmParamPath] = uigetfile(...
+    {'fsmParam.mat','fsmParam.mat'},...
+    'Select fsmParam.mat');
+if(isa(fsmParamPath,'char') & isa(fsmParamName,'char'))
+    loadedFile=load([fsmParamPath,fsmParamName]);
+    if strcmp(fieldnames(loadedFile),'fsmParam')
+        fsmParam=loadedFile.fsmParam;
+    else
+        errordlg('The loaded file is not a valid ''fsmParam.mat'' file.','Error','modal');
+        return
+    end
 else
     return 
 end
-% Read frame number
-[path,body,no,ext]=getFilenameBody([dirName,fName]);
-selectedFrame=str2num(no);
 
-% Select MPM
-[mpmFileName,mpmDirName] = uigetfile(...
-    {'mpm.mat','mpm.mat'},...
-    'Select mpm.mat');
-if(isa(mpmFileName,'char') & isa(mpmDirName,'char'))
-   load([mpmDirName,mpmFileName]);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% CHECK THAT THE TRACKING MODULE IS UP-TO-DATE AND LOAD mpm.mat
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if isfield(fsmParam.track,'uptodate')
+
+    % Check that the tracking module is up-to-date
+    if fsmParam.track.uptodate==0
+        
+        % The tracking module is not up-to-date. Inform the user and return    
+        errordlg('The file ''mpm.mat'' is not up-to-date. Please re-run the Tracking module in SpeckTackle.','Error','modal');
+        return
+
+    else
+        uptodate=1;    
+    end
+    
 else
-   return 
+    
+    % Old version of fsmParam.mat. Inform the user that he/she has to make sure that everything is up-to-date
+    uiwait(msgbox('Since ''fsmParam.mat'' has been created by an old version of SpeckTackle, I cannot make sure that ''mpm.mat'' is up-to-date. Continue at your own risk.','Warning'));
+    uptodate=-1;
+    
 end
 
-%
-% Calculate which is the frame to be read out of M relative to the first image analyzed
-%
-
-% Create structure for filenames
-file.name='';
-
-% Open file
-fid=fopen([mpmDirName,filesep,'parameters.txt']);
-
-if fid==-1
-    disp('Error: could not find file ''parameters.txt'' in the work directory specified.');
+% Load mpm.mat
+if exist([fsmParamPath,filesep,'mpm.mat'],'file');
+    load([fsmParamPath,filesep,'mpm.mat']);
+else
+    errordlg('Could not find ''mpm.mat''.','Error','modal');
     return
 end
 
-c=0;
-while not(feof(fid))
- 
-    % Read new line
-    tline=fgetl(fid);
-    
-    % Break if end of file
-    if ~ischar(tline)
-        break
-    end
-    
-    if isempty(tline)
-        % Jump to next line
-        continue
-    end
-
-    if findstr(tline,'First image name and path :')
-        c=c+1;
-        file(c).name=tline(29:end);
-    end
-    
-end
-
-% Close file
-fclose(fid);
-
-% Calculate frame
-if c==0
-    error('No valid file name for the first image has been found in the file ''parameters.txt''.');
-end
-fileName=file(c).name;
-[path,body,no,ext]=getFilenameBody(fileName);
-
-% Load file names and check input parameter imgNum
-if imgNum>1
-    outFileList=getFileStackNames([dirName,fName]);
-    len=length(outFileList);
-    if imgNum>len
-        imgNum=len;
-    end
-end
-
-% Select correct frame in MPM to read
-frame=selectedFrame-str2num(no)+1;
-if frame<0 | frame>size(M,3)
-   error('The selected image has not been analyzed.');
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Start analysis
+% GET IMAGE FILE NAMES AND NUMBER FROM fsmParam
 %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Set constants
-loadROIAgain=1;   % If a roi is loaded, one cand decied whether to use the same for ALL images, or 
-                  % to load one for each new frame - the user will be asked
-askLoadAgain=1;   % Ask user?
-drawROIAgain=1;   % Draw the roi for each frame, or only once and the use it for all images - the
-                  % user will be asked
-askDrawAgain=1;   % Ask user?
+imageFileList=fsmParam.specific.fileList;
+imageFirstIndex=fsmParam.specific.firstIndex;
+imageLastIndex=fsmParam.specific.lastIndex;
 
-for c1=1:imgNum
-    
-    currFrame=frame+c1-1;
-    if imgNum>1
-        % Load current image
-        img=imread(char(outFileList(c1)));
-    end
-    
-    % Extract corresponding frame
-    Mm=M(:,:,currFrame);
-    
-    % Extract vectors
-    Mv=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),:);
-    
-    % Sort Mv
-    Mv=sortrows(Mv,1:2);
-    
-    % Set figure handle to zero
-    h=0;
-    
-    if roi(1)==1 & roi(2)==0
-        
-        if drawROIAgain==1
-            
-            % Show image
-            h=figure; imshow(img,[]);
-            
-            % Add some explanations...
-            set(h,'NumberTitle','off','Name','Please draw your Region Of Interest...');
-            
-            % Draw roi
-            try
-                [bw,x,y]=roipoly;
-            catch
-                uiwait(msgbox('No polygon was selected. Quitting.','Error','modal'));
-                return
-            end
-            
-            % Set coordinates outside of the image to the image borders + (or -) 1
-            x(find(x<1))=0; x(find(x>imgSize(2)))=imgSize(2)+1;
-            y(find(y<1))=0; y(find(y>imgSize(1)))=imgSize(1)+1;
-            
-            % Close figure
-            close(h);
-            
-            % Save roi
-            if roi(3)==1
-                
-                % Specify path and filename
-                [saveFileName,savePath]=uiputfile(...
-                    {'*.mat','*.mat'},...
-                    'Save polygon as...');
-                if(isa(saveFileName,'char') & isa(savePath,'char'))
-                    if isempty(findstr('.',saveFileName))
-                        saveFileName=[saveFileName,'.mat'];
-                    else
-                        if ~strcmp(saveFileName(end-3:end),'.mat')
-                            saveFileName(end-3:end)='.mat';
-                        end
-                    end
-                    eval(['save ',[savePath,filesep,saveFileName],' y x']);
-                else
-                    disp('ROI not saved.');
-                end
-                
-            end
-    
-            if askDrawAgain==1 & imgNum>1
-                button = questdlg('Do you want to use this ROI for all images?',...
-                    'User input requested','Yes','No','Yes');
-                if strcmp(button,'Yes')
-                    drawROIAgain=0;
-                elseif strcmp(button,'No')
-                    drawROIAgain=1;
-                end
-                askDrawAgain=0;
-            end
-            
-        end
-        
-    elseif roi(1)==0 & roi(2)==1
-        
-        if loadROIAgain==1
-            
-            % Load roi
-            [roiFileName,roiDirName] = uigetfile(...
-                {'*.mat','*.mat'},...
-                'Load roi...');
-            if(isa(roiFileName,'char') & isa(roiDirName,'char'))
-                load([roiDirName,roiFileName]);
-                if ~(exist('y') & exist('x'))
-                    error('The loaded roi is not valid');
-                end
-            else
-                return 
-            end
-        
-            if askLoadAgain==1  & imgNum>1
-                button = questdlg('Do you want to use this ROI for all images?',...
-                    'User input requested','Yes','No','Yes');
-                if strcmp(button,'Yes')
-                    loadROIAgain=0;
-                elseif strcmp(button,'No')
-                    loadROIAgain=1;
-                end
-                askLoadAgain=0;
-            end
-        end
-        
-    elseif roi(1)==1 & roi(2)==1
-        error('The region of interest can be either drawn or loaded, not both');
-        
+% Check that the size of MPM matches the number of analyzed images
+nImages=imageLastIndex-imageFirstIndex+1;
+if size(M,3)+1~=nImages
+    if uptodate==-1
+        errordlg('The tracking module is not up-to-date. Please re-run the tracking module in SpeckTackle.','Error','modal');
     else
-        % Roi not drawn and not loaded
-        y=[];x=[];
+        errordlg('Even though the tracking module appears to be up-to-date, it is NOT. THIS IS A BUG. Please REPORT it.','Error','modal');
+        return
+    end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% ASK THE USER TO SPECIFY THE RANGE OF IMAGES HE/SHE WANTS TO ANALYZE
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% The minimum number of frames to be selected depends on the value assigned to nAvg by the user
+if nAvg==0
+    minN=1; % This causes the all stack to be averaged into one speed map
+else
+    minN=nAvg-1;
+end
+
+guiH=fsmTrackSelectFramesGUI; ch=get(guiH,'Children');
+set(findobj('Tag','pushOkay'),'UserData',minN); % At least n-1 frames must be considered
+titleDlg='Select frame pairs to be processed:';
+set(findobj('Tag','editFirstFrame'),'String',num2str(1));
+set(findobj('Tag','editLastFrame'),'String',num2str(nImages-1));
+set(findobj('Tag','SelectFramesGUI'),'Name',titleDlg);
+sSteps=[1/((nImages-1)-1) 1/((nImages-1)-1)];
+set(findobj('Tag','sliderFirstFrame'),'SliderStep',sSteps,'Max',nImages-1,'Min',1,'Value',1);
+set(findobj('Tag','sliderLastFrame'),'SliderStep',sSteps,'Max',nImages-1,'Min',1,'Value',nImages-1);
+waitfor(guiH); % The function waits for the dialog to close (and to return values for uFirst and uLast)
+
+if uFirst==-1
+    return % The user closed the dialog
+end
+
+% Update n depending on the selection
+if nAvg==0
+    nAvg=uLast-uFirst+1;
+end
+
+if nAvg>uLast
+    nAvg=uLast;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% CREATE NUMER AND LIST OF IMAGES, AND FRAMES TO BE PROCESSED
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Index of the first and last matrices in M to be analyzed
+firstMatrix=uFirst;
+lastMatrix=uLast;
+
+% Calculate the corresponding indices for imageFileList and for the outputs
+imageIndices=[firstMatrix:lastMatrix-nAvg+1]+fix(nAvg/2);
+
+% Update number of images to be processed
+nImages=length(imageIndices);
+
+% Update imageFileList
+imageFileList=imageFileList(imageIndices,:);
+
+% Crop the frames to be processed from M
+M=M(:,:,firstMatrix:lastMatrix);
+
+% Load first image
+img=imread(char(imageFileList(1,:)));
+
+% Store image size
+imgSize=size(img);
+
+% If needed, ask the user to specify an output directory
+if nImages>1
+    % Select output dir
+    outputdir=uigetdir('','Select directory to save speed maps to.');
+    if outputdir==0 % The user clicked on cancel
+        disp('Aborted by the user.');
+        return
     end
     
-    % Cut vectors not belonging to the roi
-    if ~isempty(y)
-        try
-            index=inpolygon(Mv(:,1),Mv(:,2),y,x);
-        catch
-            % Restart fsmCenter if it exists
-            auxH=findobj(0,'Type','figure','Tag','fsmCenter');
-            close(auxH);
-            fsmCenter;
-            uiwait(msgbox('No polygon selected.','Warning','warn'));
-            return
+    % String format
+    [path,outputFileName,no,ext]=getFilenameBody(imageFileList(1,:));
+    s=length(no);
+    strg=sprintf('%%.%dd',s);
+    
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% DRAW | LOAD, SAVE A POLYGON IF NEEDED
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if roi(1)==1 & roi(2)==0
+    
+    % Show image
+    h=figure; imshow(img,[]);
+    
+    % Add some explanations...
+    set(h,'NumberTitle','off','Name','Please draw your Region Of Interest...');
+    
+    % Draw roi
+    try
+        [bw,x,y]=roipoly;
+    catch
+        uiwait(msgbox('No polygon was selected. Quitting.','Error','modal'));
+        return
+    end
+    
+    % Set coordinates outside of the image to the image borders + (or -) 1
+    x(find(x<1))=0; x(find(x>imgSize(2)))=imgSize(2)+1;
+    y(find(y<1))=0; y(find(y>imgSize(1)))=imgSize(1)+1;
+    
+    % Close figure
+    close(h);
+    
+    % Save roi
+    if roi(3)==1
+        
+        % Specify path and filename
+        [saveFileName,savePath]=uiputfile(...
+            {'*.mat','*.mat'},...
+            'Save polygon as...');
+        if(isa(saveFileName,'char') & isa(savePath,'char'))
+            if isempty(findstr('.',saveFileName))
+                saveFileName=[saveFileName,'.mat'];
+            else
+                if ~strcmp(saveFileName(end-3:end),'.mat')
+                    saveFileName(end-3:end)='.mat';
+                end
+            end
+            eval(['save ',[savePath,filesep,saveFileName],' y x']);
+        else
+            disp('ROI not saved.');
         end
+        
+    end
+    
+elseif roi(1)==0 & roi(2)==1
+    
+    % Load roi
+    [roiFileName,roiDirName] = uigetfile(...
+        {'*.mat','*.mat'},...
+        'Load roi...');
+    if(isa(roiFileName,'char') & isa(roiDirName,'char'))
+        load([roiDirName,roiFileName]);
+        if ~(exist('y') & exist('x'))
+            error('The loaded roi is not valid');
+        end
+    else
+        return 
+    end
+    
+elseif roi(1)==1 & roi(2)==1
+    error('The region of interest can be either drawn or loaded, not both');
+    
+else
+    % Roi not drawn and not loaded
+    y=[];x=[];
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% APPLY POLYGON IF REQUESTED BY THE USER
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if ~isempty(y) & ~isempty(x)
+    
+    if displROI==1
+        PPOLYGON_DISPLAY=1;
+    end
+    
+    for c1=1:size(M,3)
+        
+        % Extract corresponding frame
+        Mm=M(:,:,c1);
+        
+        % Extract vectors
+        Mv=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),:);
+        
+        % Cut vectors not belonging to the roi
+        index=inpolygon(Mv(:,1),Mv(:,2),y,x);
+        
+        % If the user selected 'Invert ROI' kill the vectors WITHIN the polygon
         if invertROI==1
             Mv(index,:)=[];        
         else
             Mv(~index,:)=[];
         end
-        % Set flag
-        POLYGON_DISPLAY=(1 & displROI); % If the user decided not to display the polygon
-    else
-        POLYGON_DISPLAY=0;
+        
+        % Store the selected vectors
+        M(:,:,c1)=0;
+        M(1:size(Mv,1),1:4,c1)=Mv;
+        
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Resize M
+    cM=M>0; [i j k]=find(cM); M=M(1:max(i),:,:);
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% INTERPOLATE VECTOR FIELDS IF NEEDED
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if INTERP_CALC==1
+    
+    % Initialize empty Mt stack where to store the averaged vector fields
+    emptyMt=[0 0 0 0];
+    Mt=emptyMt;
+    
+    currentFrame=0;
+    
+    % Interpolation frame shift
+    intFrame=fix(nAvg/2)+1;
+        
+    for c1=1:nImages
+        
+        currentM=[];
+        
+        % To average over time, append raw vectors from the nAvg frames
+        for c2=c1:c1+nAvg-1
+            
+            % Extract corresponding frame
+            Mm=M(:,:,c2);
+        
+            % Extract vectors
+            Mv=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),:);
+
+            %Append
+            currentM=cat(1,currentM,Mv);    
+            
+        end
+        
+        % The interpolation points are the coordinates of the central frame
+        Mm=M(:,:,c1+intFrame-1);
+        Iyx=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),1:2);
+            
+        % Interpolate - get the deterministic part of the signal
+        if useDiv==1
+            [divM,d0]=vectorFieldDiv(currentM,Iyx,d0_init,[]);
+            d0=updateD0FromDiv(divM,d0,1,size(Iyx,1),size(Iyx,1));
+        end
+        Md=vectorFieldInterp(currentM,Iyx,d0,[]);
+            
+        % Store Md
+        currentFrame=currentFrame+1;
+        Mt(1:size(emptyMt,1),1:size(emptyMt,2),currentFrame)=emptyMt;
+        Mt(1:size(Md,1),1:size(Md,2),currentFrame)=Md;
+            
+    end
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% ANALYSIS AND PLOTS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+for c1=1:nImages %firstMatrix:lastMatrix
+    
+    % Current index for raw data (taking into account the number of frames for averaging)
+    currentRawFrame=c1+fix(nAvg/2);
+    
+    % Extract corresponding frame
+    Mm=M(:,:,currentRawFrame);
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
-    % ANALYSIS AND PLOTS
+    % CURRENT RAW VECTORS
     %
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Mv=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),:); 
+    
+    % Set figure handle to zero
+    h=0;
     
     % Display image if needed
     if displ(5)==1 & (any([RAW_DISPLAY INTERP_DISPLAY NOISE_DISPLAY])==1)
+        
+        % Load current image
+        img=imread(char(imageFileList(c1,:)));
         
         % Show image
         h=figure; imshow(img,[]);
@@ -371,31 +480,24 @@ for c1=1:imgNum
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
-    % CALCULATE AND PLOT INTERPOLATED VECTORS
+    % PLOT INTERPOLATED VECTORS
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    if INTERP_CALC==1
+    if INTERP_CALC==1 & INTERP_DISPLAY==1
         
-        % Extract interpolation points
-        Iyx=unique(Mv(:,1:2),'rows');
+        % Extract corresponding frame
+        Mm=Mt(:,:,c1);
+    
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %
+        % CURRENT INTERPOLATED VECTORS
+        %
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        Md=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),:);
         
-        % Interpolate - get the deterministic part of the signal
-        if useDiv==1
-            [divM,d0]=vectorFieldDiv(Mv,Iyx,d0_init,[]);
-            d0=updateD0FromDiv(divM,d0,1,size(Iyx,1),size(Iyx,1));
-        end
-        Md=vectorFieldInterp(Mv,Iyx,d0,[]);
-        
-        % Sort Md
-        Md=sortrows(Md,1:2);
-        
-        if INTERP_DISPLAY==1
-            
-            % Plot interpolated field
-            h=vectorFieldPlot(Md,h,[],scale);
-            
-        end
+        % Plot averaged field
+        h=vectorFieldPlot(Md,h,[],scale);
         
     end
     
@@ -408,7 +510,7 @@ for c1=1:imgNum
     if NOISE_CALC==1
         
         % "Calculate" noise vector as the vectorial difference between the original vectors and the
-        % interpolated ones (deterministic part)
+        % averaged ones (deterministic part)
         Ms=zeros(size(Mv));
         Ms(:,1:2)=Md(:,3:4);
         Ms(:,3:4)=Mv(:,3:4);
@@ -416,7 +518,7 @@ for c1=1:imgNum
         if scale~=1
             
             Mss=Ms;
-            Mss(:,1:2)=Md(:,1:2)+scale*(Md(:,3:4)-Md(:,1:2)); % The noise vector starts at the end of the the interpolated
+            Mss(:,1:2)=Md(:,1:2)+scale*(Md(:,3:4)-Md(:,1:2)); % The noise vector starts at the end of the the averaged
             Mss(:,3:4)=Mv(:,1:2)+scale*(Mv(:,3:4)-Mv(:,1:2)); % (deterministic) vector and ends at the end of the raw vector 
             
         else
@@ -456,29 +558,40 @@ for c1=1:imgNum
         if RAW_DISPLAY==1
             str=[str,', ',char(colors(1)),' -> raw']; % Color 1 used for raw
             if INTERP_DISPLAY==1
-                str=[str,', ',char(colors(2)),' -> interpolated']; % Color 2 used for interpolated
+                str=[str,', ',char(colors(2)),' -> averaged']; % Color 2 used for averaged
                 if NOISE_DISPLAY==1
-                    str=[str,', ',char(colors(3)),' -> noise']; % Color 3 used for interpolated
+                    str=[str,', ',char(colors(3)),' -> noise']; % Color 3 used for averaged
                 end
             else
                 if NOISE_DISPLAY==1
-                    str=[str,', ',char(colors(2)),' -> noise']; % Color 2 used for interpolated
+                    str=[str,', ',char(colors(2)),' -> noise']; % Color 2 used for averaged
                 end
             end
         else
             if INTERP_DISPLAY==1
-                str=[str,', ',char(colors(1)),' -> interpolated'];
+                str=[str,', ',char(colors(1)),' -> averaged'];
                 if NOISE_DISPLAY==1
-                    str=[str,', ',char(colors(2)),' -> noise']; % Color 2 used for interpolated
+                    str=[str,', ',char(colors(2)),' -> noise']; % Color 2 used for averaged
                 end
             else
                 if NOISE_DISPLAY==1
-                    str=[str,', ',char(colors(1)),' -> noise']; % Color 1 used for interpolated
+                    str=[str,', ',char(colors(1)),' -> noise']; % Color 1 used for averaged
                 end
                 
             end      
         end
         title(str);
+        
+        % Save the image to disk if needed
+        if nImages>1
+            indxStr=sprintf(strg,imageIndices(c1));
+            fname=[outputdir,filesep,'flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
+            print(gcf,'-dtiffnocompression',fname);
+            
+            % Close image
+            close(h);
+        end
+        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -500,7 +613,7 @@ for c1=1:imgNum
         ls=sqrt(s(:,1).^2+s(:,2).^2);
         
         %
-        % Match raw vs. interpolated vectors
+        % Match raw vs. averaged vectors
         %
         
         % Error on lengths
@@ -560,8 +673,19 @@ for c1=1:imgNum
             
             % Show image
             imshow(img3C_map,[]);
-            title('Match raw vs. interpolated vectors - Red: good match, blue: bad match');
+            title('Match raw vs. averaged vectors - Red: good match, blue: bad match');
             
+            % Save the image to disk if needed
+            if nImages>1
+                indxStr=sprintf(strg,imageIndices(c1));
+                fname=[outputdir,filesep,'matchMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
+                print(gcf,'-dtiffnocompression',fname);
+                
+                % Close image
+                close(h);
+
+            end
+
             % Open new figure for SNR
             h=figure; 
             
@@ -582,6 +706,17 @@ for c1=1:imgNum
             % Show image
             imshow(img3C_SNR,[]);
             title('SNR - Red: good match, blue: bad match');
+            
+            % Save the image to disk if needed
+            if nImages>1
+                indxStr=sprintf(strg,imageIndices(c1));
+                fname=[outputdir,filesep,'SNRMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
+                print(gcf,'-dtiffnocompression',fname);
+                
+                % Close image
+                close(h);
+
+            end
             
         else
             
@@ -632,7 +767,20 @@ for c1=1:imgNum
                 end            
             end
             axis ij
-            title('Match raw vs. interpolated vectors - smaller circles, better match');
+            title('Match raw vs. averaged vectors - smaller circles, better match');
+            
+            % Save the image to disk if needed
+            if nImages>1
+                indxStr=sprintf(strg,imageIndices(c1));
+                fname=[outputdir,filesep,'matchMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
+                print(gcf,'-dtiffnocompression',fname);
+                
+                % Close image
+                close(h);
+
+            end
+            
+            close(h);
             
             % Open new figure for SNR
             h=figure; 
@@ -669,15 +817,23 @@ for c1=1:imgNum
             axis ij
             title('SNR - larger circles, higher SNR');
             
+            % Save the image to disk if needed
+            if nImages>1
+                indxStr=sprintf(strg,imageIndices(c1));
+                fname=[outputdir,filesep,'SNRMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
+                print(gcf,'-dtiffnocompression',fname);
+                
+                % Close image
+                close(h);
+
+            end
+
         end
     end
     
     if ERROR_CALC==1
-        if imgNum==1
-            fprintf(1,'File name                        : %s\n',[dirName,fName]);
-        else
-            fprintf(1,'File name                        : %s\n',char(outFileList(c1)));
-        end
+
+        fprintf(1,'File name                        : %s\n',char(imageFileList(c1,:)));
         fprintf(1,'Correlation length d0            : %d\n',d0_init);
         fprintf(1,'Number of RAW vectors            : %d\n',size(Mv,1));
         fprintf(1,'Mean RAW vector length           : %2.4f +/- %2.4f (+/- %2.2f%%)\n',mean(lv),std(lv),100*std(lv)/mean(lv));

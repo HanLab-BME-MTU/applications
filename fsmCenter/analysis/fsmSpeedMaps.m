@@ -17,7 +17,8 @@ function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,ov
 %               sampling    : movie sampling size (s)
 %               pixelSize   : pixel size in the image domain (nm)
 %               overlayVect : [ 0 | 1 ] overlays vector field to speed map
-%               userROIbw   : black and white mask (0,1)-matrix used to mask parts of the image
+%               userROIbw   : black and white mask (0,1)-matrix used to mask parts of the image. 
+%                             Pass userROIbw=[] if you don't want to mask the map.
 %               maxSpeed    : [ 0 | n ] maximum expected speed (to set the same color scaling for all frames)
 %                             Set it to 0 to turn off rescaling (the function will set this value to 110% 
 %                             of the maximum velocity from frame 1) or to any velocity n in nm/min.
@@ -238,9 +239,12 @@ if exist([outputdir,filesep,'eps'])~=7
 end
 
 % Create vector of indices for file names
-[path,body,indxStart,ext]=getFilenameBody(char(outFileList(1)));
-[path,body,indxEnd,ext]=getFilenameBody(char(outFileList(end)));
+[path,body,indxStart,ext]=getFilenameBody(char(outFileList(uFirst)));
+[path,body,indxEnd,ext]=getFilenameBody(char(outFileList(uLast)));
 indices=[str2num(indxStart):str2num(indxEnd)-n+1]+fix(n/2);
+
+% Update image file list
+outFileList=outFileList(indices-str2num(indxStart)+1);
 
 % Initializing waitbar
 h=waitbar(0,'Creating speed maps...');

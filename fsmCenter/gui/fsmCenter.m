@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 16-Aug-2004 16:34:33
+% Last Modified by GUIDE v2.5 27-Aug-2004 11:19:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -454,7 +454,7 @@ function pushUser_Callback(hObject, eventdata, handles)
 fsmCenter_setUserSettings;
 
 function pushVector_Callback(hObject, eventdata, handles)
-n=str2num(get(handles.editImageNumber,'String'));
+nAvg=str2num(get(handles.editVectorAnalysis,'String'));
 displ=[get(handles.checkRaw,'Value') get(handles.checkInterp,'Value') get(handles.checkNoise,'Value') get(handles.checkError,'Value') get(handles.checkDisplayImg,'Value')];
 roi=[get(handles.checkROI,'Value') get(handles.checkLoadROI,'Value') get(handles.checkSaveROI,'Value')];
 scale=str2num(get(handles.editScale,'String'));
@@ -463,7 +463,7 @@ useDiv=get(handles.checkDiv,'Value');
 output=find([get(handles.radioCMap,'Value') get(handles.radioCircle,'Value')]);
 displROI=get(handles.checkDisplayROI,'Value');
 invertROI=get(handles.checkInvertROI,'Value');
-fsmVectorAnalysis(n,roi,displ,scale,d0,useDiv,output,displROI,invertROI);
+fsmVectorAnalysis(nAvg,roi,displ,scale,d0,useDiv,output,displROI,invertROI);
 
 function editFrame_Callback(hObject, eventdata, handles)
 
@@ -634,7 +634,7 @@ if get(handles.checkSMMask,'Value')==1
     if ~(isa(fName,'char') & isa(dirName,'char'))
         choice=questdlg('You didn''t pick any file.','Error','Continue without ROI','Exit','Exit');
         switch choice,
-            case 'Continue without ROI'; filePicked=0;
+            case 'Continue without ROI'; userROIbw=[]; filePicked=0;
             case 'Exit', return;
         end % switch
     else
@@ -644,7 +644,7 @@ if get(handles.checkSMMask,'Value')==1
         % Load the file
         load([dirName,fName]);
     end
-    if exist('userROIbw')~=1
+    if filePicked==1 & exist('userROIbw')~=1
         choice=questdlg('The loaded file does not seem to contain a valid ROI.','Error','Continue without ROI','Exit','Exit');
         switch choice,
             case 'Continue without ROI', userROIbw=[];
@@ -1578,5 +1578,38 @@ function pushHelpTurnoverMaps_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 web(['file:///' which('qFSM_turnoverMaps.html')]);
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function editVectorAnalysis_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editVectorAnalysis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editVectorAnalysis_Callback(hObject, eventdata, handles)
+% hObject    handle to editVectorAnalysis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editVectorAnalysis as text
+%        str2double(get(hObject,'String')) returns contents of editVectorAnalysis as a double
+nAvg=str2num(get(handles.editVectorAnalysis,'String'));
+if mod(nAvg,2)==0
+    warndlg('Please enter an ODD number of frames.','Warning','modal');
+    set(handles.editVectorAnalysis,'String','1');
+end
+
 
 
