@@ -31,9 +31,15 @@ function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,ov
 %
 % Aaron Ponti, January 16th, 2004
 
-% Check input parameters
-
 global uFirst uLast
+
+% Check input parameters
+if nargin~=9
+    error('9 input parameters expected');
+end
+
+% Initialize output
+outputdir=[];
 
 % Load first image
 [fName,dirName] = uigetfile(...
@@ -149,6 +155,7 @@ end
 outputdir=uigetdir('','Select directory to save speed maps to.');
 if outputdir==0 % The user clicked on cancel
     disp('Aborted by the user.');
+    outputdir=[];
     return
 end
 

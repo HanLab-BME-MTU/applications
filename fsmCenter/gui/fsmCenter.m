@@ -580,6 +580,7 @@ overlayVectors=get(handles.checkSMOverlay,'value');
 sampling=str2num(get(handles.editSMSampling,'string'));
 pixelSize=str2num(get(handles.editSMPixel,'string'));
 maxSpeed=str2num(get(handles.editSMMax,'string'));
+userROIbw=get(handles.checkSMMask,'value');
 outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIbw,maxSpeed);
 if ~isempty(outputdir)
     % Maps have been saved to disk
