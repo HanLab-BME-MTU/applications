@@ -507,6 +507,14 @@ delete(handles.reLinkGUI);
 function varargout = reLink_connectTagsRB_Callback(h, eventdata, handles, varargin)
 % Stub for Callback of the uicontrol handles.reLink_connectTagsRB.
 
+% make sure that if a user clicks a second time, the button is not turned
+% off
+rbState = get(h,'Value')
+if rbState == 0
+    set(h,'Value',1);
+    return
+end
+
 set(handles.reLink_resetfusionRB,'Value',0);
 
 %reset all buttons
@@ -517,6 +525,14 @@ set(allH,'Value',0);
 % --------------------------------------------------------------------
 function varargout = reLink_resetfusionRB_Callback(h, eventdata, handles, varargin)
 % Stub for Callback of the uicontrol handles.reLink_resetfusionRB.
+
+% make sure that if a user clicks a second time, the button is not turned
+% off
+rbState = get(h,'Value')
+if rbState == 0
+    set(h,'Value',1);
+    return
+end
 
 set(handles.reLink_connectTagsRB,'Value',0);
 
@@ -643,7 +659,10 @@ if ~isempty(prev_time)
             'Tag',['PrevTB_',num2str(i)],'Units','pixels',...
             'Position',[xnul+(i-1)*(ButtonWidthTag+5),260,ButtonWidthTag,ButtonHeight],...
             'Callback','reLink_PrevTB_CB(gcbo,[],guidata(gcbo))','String',tag_string(prev_valuemap(i)),...
-        'TooltipString',tag_string(prev_valuemap(i)));
+            'TooltipString',tag_string(prev_valuemap(i)));
+        %set units back to char
+        set(prevH(i,1),'Units','characters');
+    
         
         %if pure color: add strip of mixed color
         multiplicity=length(find(idlist(prev_time).linklist(:,2)==prev_linklist(i,2)));
@@ -669,6 +688,8 @@ for i=1:curr_nsp
         'Callback','reLink_CurrTB_spot_CB(gcbo,[],guidata(gcbo))',...
         'String',[num2str(i)],...
         'TooltipString',[num2str(i)]);
+    %set units back to char
+        set(currSH(i,1),'Units','characters');
 end
 
 
@@ -681,6 +702,8 @@ for i=1:curr_ntag
         'Callback','reLink_CurrTB_tag_CB(gcbo,[],guidata(gcbo))',...
         'String',[tag_string(curr_valuemap(i,2)),'-',num2str(curr_valuemap(i,1))],...
         'TooltipString',[tag_string(curr_valuemap(i,2)),'-',num2str(curr_valuemap(i,1))]);
+    %set units back to char
+        set(currTH(i,1),'Units','characters');
     
     %if pure color: add strip of mixed color
     multiplicity=length(find(idlist(curr_time).linklist(:,2)==curr_linklist(i,2)));
@@ -701,6 +724,8 @@ if ~isempty(next_time)
             'Position',[xnul+(i-1)*(ButtonWidthTag+5),135,ButtonWidthTag,ButtonHeight],...
             'Callback','reLink_NextTB_CB(gcbo,[],guidata(gcbo))','String',tag_string(next_valuemap(i)),...
         'TooltipString',tag_string(next_valuemap(i)));
+    %set units back to char
+        set(nextH(i,1),'Units','characters');
         
         %if pure color: add strip of mixed color
         multiplicity=length(find(idlist(next_time).linklist(:,2)==next_linklist(i,2)));
