@@ -158,8 +158,12 @@ if nargin == 0  % LAUNCH GUI
             workPath=[projDir,char(settings.subProjects(1)),filesep];
         else
             workPath=[projDir,filesep,char(settings.subProjects(1)),filesep];
-        end  
-        imagePath=char(settings.imageDir);
+        end
+        if iscell(settings.imageDir)
+            imagePath=settings.imageDir{1};
+        else
+            imagePath=settings.imageDir;
+        end
         
         % Store project information if fsmGuiMain's UserData
         set(handles.fsmGuiMain,'UserData',settings);
@@ -183,6 +187,79 @@ if nargin == 0  % LAUNCH GUI
 
     % Update the GUI if a fsmParam.mat file exists in the workPath
     catchPathChange(workPath,handles,settings,fsmParam);
+    
+    %Check whether the image path stored in fsmParam is compatible with the
+    %one in 'settings' which is setup in fsmCenter. The incompatibility can
+    %be caused by platform dependent directory format.
+    fsmParam = get(handles.start,'UserData');
+    if iscell(settings.imageDir)
+        imageDir = settings.imageDir{1};
+    else
+        imageDir = settings.imageDir;
+    end
+    noProblem = 1;
+    if ~samdir(fsmParam.main.imagePath,imageDir)
+        if ~isdir(fsmParam.main.imagePath)
+            %This could be a platform problem.
+            if ispc == 1
+                if strcmp(fsmParam.main.imagePath(1),'/')
+                    %This is a Unix directory. Try to convert it to PC
+                    %format.
+                    imgDrive = getDriveName(imageDir);
+                    imagePath = dirUnix2PC(fsmParam.main.imagePath,imgDrive);
+                    if ~samdir(imagePath,imageDir)
+                        %Still not same dir. Image path has been changed
+                        %since last tracking. Give warning.
+                        noProblem = 0;
+                    else
+                        fsmParam.main.imagePath = imagePath;
+                    end
+                else
+                    noProblem = 0;
+                end
+            elseif isunix == 1
+                if ~strcmp(fsmParam.main.imagePath(1),'/')
+                    imgDrive = getDriveName(imageDir);
+                    imagePath = dirPC2Unix(fsmParam.main.imagePath,imgDrive);
+                    if ~samdir(imagePath,imageDir)
+                        %Still not same dir. Image path has been changed
+                        %since last tracking. Give warning.
+                        noProblem = 0;
+                    else
+                        fsmParam.main.imagePath = imagePath;
+                    end
+                else
+                    noProblem = 0;                    
+                end
+            end
+        else
+            %It is not platform problem. Image path has been changed since
+            %last tracking.
+            noProblem = 0;
+        end
+    end
+    
+    if ~noProblem
+        %Ask the user to make a choice.
+        question = sprintf('%s\n%s\n%s\n%s\n%s\n%s','The image path from project setup: ', ...
+            imageDir, ...
+            'is different from the stored image path of last specktackle tracking:', ...
+            [fsmParam.main.imagePath '.'], 'Do you want to continue with the project image path:', ...
+            [imageDir '?']);
+        answer = questdlg(question,'Alert','Yes','No','Yes');
+        
+        if strcmp(answer,'Yes') == 1
+            fsmParam.main.imagePath = imageDir;
+        else
+            fsmH=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle'); % Get the handle of specktackle.
+            if ishandle(fsmH)
+                delete(fsmH);
+                return;
+            end
+        end
+    end
+    set(handles.start,'UserData',fsmParam);
+    fsmGuiWriteParameters(fsmParam,handles);
 
 elseif ischar(varargin{1}) % INVOKE NAMED SUBFUNCTION OR CALLBACK
 
