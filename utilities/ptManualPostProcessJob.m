@@ -47,14 +47,16 @@ handles.listofcells='...';
 imageDirectory = handles.jobData(1).imagefilepath;
 imageName      = handles.jobData(1).imagename;
 firstImage     = handles.jobData(1).firstimg;
+realFirstImage = handles.jobData(1).realfirstimg;
 lastImage      = handles.jobData(1).lastimg;
+realLastImage  = handles.jobData(1).reallastimg;
 increment      = handles.jobData(1).increment;
 imageNameList  = handles.jobData(1).imagenameslist;
 intensityMax   = handles.jobData(1).intensitymax;
 
 % Check that we actually have some images to show. If not, give an error
 % message
-checkName = [imageDirectory filesep char(imageNameList(firstImage))];
+checkName = [imageDirectory filesep char(imageNameList(realFirstImage))];
 if exist (checkName, 'file') ~= 2
     errorStr = ['No images available in directory ' imageDirectory];
     h = errordlg(errorStr);
@@ -106,7 +108,7 @@ sliderHandle = uicontrol ('Style', 'slider', ...
 % Now we show the first image including red dots for the cells overlaid on the image
 % Read the image frame from disk
 cd (imageDirectory);
-fileName = char (imageNameList (firstImage));
+fileName = char (imageNameList (realFirstImage));
 image = imreadnd2 (fileName, 0, intensityMax);
 
 % Show the frame on the screen in the current figure

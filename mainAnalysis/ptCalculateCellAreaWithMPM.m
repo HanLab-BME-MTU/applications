@@ -82,7 +82,7 @@ for frameCount = validFrames(1,:)
    cd (clusterDirectory);
    formatStr = sprintf ('%%.%dd', 3);
    %imageNr = sprintf (formatStr, imageCount);
-   imageNr = sprintf (formatStr, frameCount);
+   imageNr = sprintf (formatStr, frameCount+startFrame-1);
    clusterFile = ['clusters' imageNr];
    load (clusterFile);
 

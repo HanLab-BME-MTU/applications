@@ -45,7 +45,9 @@ handles = guidata (hObject);
 imageDirectory = handles.jobData(1).imagefilepath;
 imageName      = handles.jobData(1).imagename;
 firstImage     = handles.jobData(1).firstimg;
+realFirstImage = handles.jobData(1).realfirstimg;
 lastImage      = handles.jobData(1).lastimg;
+realLastImage  = handles.jobData(1).reallastimg;
 increment      = handles.jobData(1).increment;
 imageRange     = handles.ma;
 imageNameList  = handles.jobData(1).imagenameslist;
@@ -58,13 +60,14 @@ sliderValue = round (sliderValue * imageRange);
 
 % Calculate the frame number to show
 imageNumber = validFrames(1,((sliderValue - 1)*increment)+firstImage);
+realImageNumber = imageNumber + realFirstImage - 1;
 
 % Write the current frame number in the little window above the slider
 set (frameCounterHandle, 'String', num2str (imageNumber));
 
 % Read the image frame from disk
 cd (imageDirectory);
-fileName = char (imageNameList (imageNumber));
+fileName = char (imageNameList (realImageNumber));
 image = imreadnd2 (fileName, 0, intensityMax);
 
 % Show the frame on the screen in the current figure

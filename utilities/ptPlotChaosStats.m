@@ -48,10 +48,10 @@ if ~radioButtons.donotshowplots
    
     % Plot the running average
     if radioButtons.runningaverage
-        plot (xAxis, ripleySlopeInclin, 'c', xAxis, raRipleySlopeInclin, 'b'); 
+        plot (xAxis, ripleySlopeInclin, 'b', xAxis, raRipleySlopeInclin, 'c'); 
         legend('Inclination value','Avg inclination value',1);
     else
-        plot (xAxis, ripleySlopeInclin, 'c'); 
+        plot (xAxis, ripleySlopeInclin, 'b'); 
         legend('Inclination value',1);
     end
 
@@ -85,11 +85,11 @@ if ~radioButtons.donotshowplots
    
     % Plot the running average
     if radioButtons.runningaverage
-        plot (xAxis, ripleySlopeStart, 'c', xAxis, raRipleySlopeStart, 'b'); 
+        plot (xAxis, ripleySlopeStart, 'b', xAxis, raRipleySlopeStart, 'c'); 
         legend('Slope start value','Avg slope start value',2);
     else
-        plot (xAxis, ripleySlopeStart, 'c'); 
-        legend('Slope start value',2);
+        plot (xAxis, ripleySlopeStart, 'b'); 
+        %legend('Slope start value',2);
     end
 
     % If needed show the fitted line on the plot

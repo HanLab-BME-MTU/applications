@@ -38,7 +38,7 @@ if ~radioButtons.donotshowplots
 
     % Draw a plot showing neighbour traj. 
     ymax = max (avgTrajFrame) + (0.1*max (avgTrajFrame));
-    plot (xAxis, avgTrajFrame, 'c'); 
+    plot (xAxis, avgTrajFrame, 'b'); 
     
     if radioButtons.plotestimate
        hold on;
@@ -47,7 +47,7 @@ if ~radioButtons.donotshowplots
     end
         
     if radioButtons.runningaverage
-        hold on; plot (xAxis, raAvgTrajFrame, 'b'); hold off;
+        hold on; plot (xAxis, raAvgTrajFrame, 'c'); hold off;
     end
         
     title ('Avg Neighbour Trajectory Velocity');

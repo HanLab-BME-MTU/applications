@@ -27,6 +27,12 @@ function [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells
 % DEPENDENCIES   ptCloseGapsInTracks uses { nothing }
 %
 %                ptCloseGapsInTracks is used by { ptTrackCells }
+%
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Andre Kerstens        Mar 04          Initial release
+% Andre Kerstens        Mar 05          Bugfix
 
 % Get the lost cells that were matched up with new cells
 matchedCells = matchedLostCells (find (matchedLostCells (:,3) ~= 0 & matchedLostCells (:,4) ~= 0), :);
@@ -75,8 +81,8 @@ for iCount = 1 : size (matchedCells,1)
       % First locate and load the correct binary cluster image
       cd (clusterDirectory);
       formatStr = sprintf ('%%.%dd', 3);
-      curFrameNr = frameLostCell + startFrame + jCount - 1;
-      imageNr = sprintf (formatStr, validFrames(1,curFrameNr));
+      curFrameNr = validFrames(1,frameLostCell+jCount-1) + startFrame;
+      imageNr = sprintf (formatStr, curFrameNr);
       clusterFile = ['clusters' imageNr];
       load (clusterFile);
 

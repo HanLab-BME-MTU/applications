@@ -77,5 +77,5 @@ slopeValue = (yPlot(end) - yPlot(1)) / (xPlot(end) - xPlot(1));
 
 % Print the text on the graph
 if isempty(errmsg)
-   text (xValue, yValue, lineText, 'HorizontalAlignment',horAlign,'VerticalAlignment',vertAlign);
+   %text (xValue, yValue, lineText, 'HorizontalAlignment',horAlign,'VerticalAlignment',vertAlign);
 end

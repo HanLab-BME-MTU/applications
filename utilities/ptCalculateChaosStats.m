@@ -59,6 +59,9 @@ if plotEndFrame > minFrames
     plotEndFrame = minFrames;
 end
 
+% Get drugtime point
+drugTimepoint = guiData.drugtimepoint;
+
 % Get max MPM length
 [mpmNr, maxLength] = ptMaxMPMLength(MPM);
 
@@ -124,7 +127,7 @@ for jobCount = 1 : length(MPM)
     
     % Calculate clustering parameter values
     fprintf (1, 'Performing Ripley clustering job %d...\n', jobCount);
-    [cpar,pvr,dpvr,cpar2] = ClusterQuantRipley (ripMPM, colSize, rowSize);
+    [cpar,pvr,dpvr,cpar2] = ClusterQuantRipley (ripMPM, colSize, rowSize, drugTimepoint);
     
     % Store cpar value
     ripleyClust(jobCount,1:length(cpar)) = cpar;

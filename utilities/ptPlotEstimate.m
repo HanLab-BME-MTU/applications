@@ -185,5 +185,5 @@ end
 
 % Print the text on the graph
 if isempty(errmsg)
-   text (xValue, yValue, lineText, 'HorizontalAlignment',horAlign,'VerticalAlignment',vertAlign);
+   %text (xValue, yValue, lineText, 'HorizontalAlignment',horAlign,'VerticalAlignment',vertAlign);
 end
