@@ -60,6 +60,12 @@ guidata(hObject, handles);
 % UIWAIT makes fsmCenter wait for user response (see UIRESUME)
 % uiwait(handles.fsmCenter);
 
+% Checks for user settings
+userDir=fsmCenter_getUserSettings;
+if isempty(userDir)
+    uiwait(msgbox('No user directory has been defined yet. Please click on "User settings" and follow the instructions.','Info','modal'));
+end
+
 % --- Outputs from this function are returned to the command line.
 function varargout = fsmCenter_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -293,7 +299,7 @@ userDir=fsmCenter_getUserSettings;
 if ~isempty(userDir)
     dataFile=[userDir,filesep,'fsmExpParams.txt'];
 else
-    edit('fsmExpParams.txt'); % Default fsmExpParams.txt file
+    dataFile=which('fsmExpParams.txt'); % Default fsmExpParams.txt file
 end
 [I0,sDN,GaussRatio,status]=fsmCalcNoiseParam([],str2num(get(handles.editBitDepth,'string')),str2num(get(handles.editSigma,'string')),dataFile);
 if status==-1
