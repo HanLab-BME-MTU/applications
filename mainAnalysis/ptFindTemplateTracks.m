@@ -1,8 +1,8 @@
-function [coordnew,cc]= templfindertrack(coord,oldpic,newpic,levback,tempelcellmarker,newcell,newcelltempel,newcelltempelmarker,percentbackground,sizetemple,box_size_img)
-% templfindertrack finds cells in a subsequent frame using template
+function [coordnew,cc]= ptFindTemplateTracks(coord,oldpic,newpic,levback,tempelcellmarker,newcell,newcelltempel,newcelltempelmarker,percentbackground,sizetemple,box_size_img)
+% ptFindTemplateTracks finds cells in a subsequent frame using template
 %                  matching (correlation)
 %
-% SYNOPSIS       [coordnew,cc]= templfindertrack(coord,oldpic,newpic,levback,tempelcellmarker,newcell,newcelltempel,
+% SYNOPSIS       [coordnew,cc]= ptFindTemplateTracks(coord,oldpic,newpic,levback,tempelcellmarker,newcell,newcelltempel,
 %                                                newcelltempelmarker,percentbackground,sizetemple,box_size_img)
 %
 % INPUT 		 coord : coordinates of the cell we wish to find in the new image
@@ -20,9 +20,9 @@ function [coordnew,cc]= templfindertrack(coord,oldpic,newpic,levback,tempelcellm
 % OUTPUT         coordnew : found coordinates
 %                cc : maximum of correlation
 %
-% DEPENDENCIES   templfindertrack uses {nothing}
+% DEPENDENCIES   ptFindTemplateTracks uses {nothing}
 %                                  
-%                templfindertrack is used by { ptTrackCells }
+%                ptFindTemplateTracks is used by { ptTrackCells }
 %                                   
 % Colin Glass, Feb 04         
 

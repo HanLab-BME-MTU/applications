@@ -11,7 +11,7 @@ function testbutton(hObject)
 %
 % DEPENDENCIES   testbutton uses {imClusterSeg
 %								 ptTrackLinker
-%								 checkMinimalCellCell
+%								 ptCheckMinimalCellDistance
 %								 ptFindNucloiTrack
 %								 takenkick
 %								 ptFindHalos}
@@ -148,7 +148,7 @@ else
         %now follows a little something that will ensure a minimal
         %distance between two found cells
              
-        newCoord =  checkMinimalCellCell(coordNuc,coordHalo,MinDistCellCell);           
+        newCoord =  ptCheckMinimalCellDistance(coordNuc,coordHalo,MinDistCellCell);           
  
 
         %manually fill in the missing and erase the wrong cells

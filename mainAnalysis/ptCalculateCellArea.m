@@ -1,9 +1,9 @@
 
-function [cellProps,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)       
-% body  determins what areas of an image are occupied by cells and
+function [cellProps,ero,labeled] = ptCalculateCellArea(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)       
+% ptCalculateCellArea  determins what areas of an image are occupied by cells and
 %       calculates image properties
 %
-% SYNOPSIS       [cellProps,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)
+% SYNOPSIS       [cellProps,ero,labeled] = ptCalculateCellArea(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)
 %
 % INPUT          seg_img : either original image or segmented image
 %                          (depends on method)
@@ -14,7 +14,7 @@ function [cellProps,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,
 %                            cell area and still belong to it
 %                methodDeterm : 1 or 2. Says if clustering or image
 %                               segmentation has been applied applied
-%                               (changes what body actually does)
+%                               (changes what ptCalculateCellArea actually does)
 %
 % OUTPUT         cellProps : cellProps(:,1)=coord(:,1);
 %						 	  cellProps(:,2)=coord(:,2);
@@ -27,10 +27,9 @@ function [cellProps,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,
 %                labeled : bwlabeled ero
 %
 %
-% DEPENDENCIES   body uses {nothing}
+% DEPENDENCIES   ptCalculateCellArea uses {nothing}
 %                                  
-%                body is used by { ptTrackCells
-%                                  testbutton}
+%                ptCalculateCellArea is used by { ptTrackCells }
 %
 % Colin Glass, Feb 04         
 
@@ -73,7 +72,7 @@ elseif methodDeterm==2
 	ero = im2bw(I3,balevel)|regmax|logihalo; 
     
 else
-    error('body doesnt know which method to use (methodDeterm~= 1|2)')
+    error('ptCalculateCellArea doesnt know which method to use (methodDeterm~= 1|2)')
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

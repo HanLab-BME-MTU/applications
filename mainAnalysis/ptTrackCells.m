@@ -18,11 +18,11 @@ function ptTrackCells(hObject,projNum)
 %
 % DEPENDENCIES   ptTrackCells uses { imClusterSeg
 %				   ptTrackLinker
-%				   checkMinimalCellCell
+%				   ptCheckMinimalCellDistance
 %				   ptFindNucloiTrack
-%				   body
+%				   ptCalculateCellArea
 %				   ptFindHalos
-%				   templfindertrack }
+%				   ptFindTemplateTracks }
 %                                  
 %                ptTrackCells is used by { PolyTrack }
 %
@@ -45,7 +45,7 @@ function ptTrackCells(hObject,projNum)
 % 					minmaxthresh : onoff - should minima and segmentation be used 
 % 					clustering : onoff - should clustering be used
 % 					increment : image to image increment (imagenameslist)
-% 					noiseparameter : used to calculate threshold whithin templfindertrack for ignoring certain pixels
+% 					noiseparameter : used to calculate threshold whithin ptFindTemplateTracks for ignoring certain pixels
 % 					savedirectory : where shall calculated data be saved to
 % 					sizetemplate : what size should a template have
 % 					boxsize : what size should the searcharea(template matching) have
@@ -251,15 +251,15 @@ else
          if ~isempty(handles.jobs(projNum).coordinatespicone);
             newCoord = handles.jobs(projNum).coordinatespicone;
          else 
-            newCoord = checkMinimalCellCell(coordNuc,haloCoord,minDistCellToCell);           
+            newCoord = ptCheckMinimalCellDistance(coordNuc,haloCoord,minDistCellToCell);           
          end
                       
          cellProps = [];
                      
          if clustering
-            [cellProps,binaryImage,labeled] = body(seg_img,newCoord,regmax,logihalo,approxDistance,1);
+            [cellProps,binaryImage,labeled] = ptCalculateCellArea(seg_img,newCoord,regmax,logihalo,approxDistance,1);
          elseif segmentation
-            [cellProps,binaryImage,labeled] = body(newImg,newCoord,regmax,logihalo,approxDistance,2);
+            [cellProps,binaryImage,labeled] = ptCalculateCellArea(newImg,newCoord,regmax,logihalo,approxDistance,2);
          end
                      
          clear regmax;
@@ -309,7 +309,7 @@ else
             return
          end
 
-         newCoord = checkMinimalCellCell(coordNuc,haloCoord,minDistCellToCell)  ;  
+         newCoord = ptCheckMinimalCellDistance(coordNuc,haloCoord,minDistCellToCell)  ;  
 
          %mark coordinates as high quality coordinates. These cells
          %are found in the usual way, so they are superior to cells
@@ -413,7 +413,7 @@ else
          %found in the new picture. Instead of just giving up, we now
          %try to track them with templates. Of course these cells
          %will be marked (within the tracking via templates routine - called 
-         %templfindertrack). If they are old cells they will be
+         %ptFindTemplateTracks). If they are old cells they will be
          %marked as "old cells tracked via template", if they are new
          %cells as "new cells tracked via template". The
          %actual marker is a digit (fraction) behind the dot
@@ -442,7 +442,7 @@ else
                   %routine. It will return the found
                   %coordinates and the value of the
                   %corralation
-                  [newcoord,absmaxcorr] = templfindertrack(tempcoord,oldImg,newImg,levBaInterpol,templateCellMarker,newCell,newCellTemplate,newCellTemplateMarker,percentBackground,sizeTemplate,boxSizeImage);
+                  [newcoord,absmaxcorr] = ptFindTemplateTracks(tempcoord,oldImg,newImg,levBaInterpol,templateCellMarker,newCell,newCellTemplate,newCellTemplateMarker,percentBackground,sizeTemplate,boxSizeImage);
                                                       
                   if sqrt((tempcoord(1,1)-newcoord(1,1)).^2 + (tempcoord(1,2)-newcoord(1,2)).^2) > 2*maxSearch
                      %the programm made a mistake
@@ -838,16 +838,16 @@ else
          oldCoord(:,2) = M(realcoord,4,countLoops-1);
          clear realcoord;
           
-         %run body now, for conveniance (we need binary images of 
-         %the cells to run body)
+         %run ptCalculateCellArea now, for conveniance (we need binary images of 
+         %the cells to run ptCalculateCellArea)
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          prope = [];
          ero = [];
                   
          if clustering
-            [prope,binaryImage,labeled] = body(seg_img,oldCoord,regmax,logihalo,approxDistance,1);
+            [prope,binaryImage,labeled] = ptCalculateCellArea(seg_img,oldCoord,regmax,logihalo,approxDistance,1);
          elseif segmentation
-            [prope,binaryImage,labeled] = body(newImg,oldCoord,regmax,logihalo,approxDistance,2);
+            [prope,binaryImage,labeled] = ptCalculateCellArea(newImg,oldCoord,regmax,logihalo,approxDistance,2);
          end
                  
          cellProps(1:size(emptyprop,1),1:size(emptyprop,2),countLoops,1) = emptyprop;
@@ -874,7 +874,7 @@ else
       % Create numerical index
       indxStr = sprintf(strg, jImageNum);
       nameClust = ['clusters' indxStr]; 
-      save ('binaryImage','nameClust');
+      save ('nameClust','nameClust');
         
       %save (['lostOnEdge',date], 'lostOnEdge')
    end
