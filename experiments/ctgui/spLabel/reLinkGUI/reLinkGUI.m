@@ -7,6 +7,17 @@ function varargout = reLinkGUI(varargin)
 
 if nargin == 0  % LAUNCH GUI
     
+    % if the gui is already open, the user should not be able to reopen it
+    % therefore look for open figure and call update if there was an open
+    % figure
+    rlH = findall(0,'Tag','reLinkGUI');
+    if ~isempty(rlH)
+        rlHandles = guidata(rlH);
+        reLink_updatePB_Callback(rlHandles.reLink_updatePB, [], rlHandles);
+        return
+    end
+    
+    
     fig = openfig(mfilename,'reuse');
     
     % Use system color scheme for figure:

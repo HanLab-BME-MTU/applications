@@ -143,16 +143,17 @@ catch
 end
 close(waitbarHandle); 
 
-%add button for fitting psf
-handles.fitButtonH = uicontrol('Style','togglebutton','Units','pixels','Position',[1 1 70 35], 'String','Set PSF',...
-    'TooltipString','Click here to start fitting the PSF','Tag','preview_fitButton_TB',...
-    'Callback','editPropertiesGUI_preview_psFit(gcbo,[],guidata(findall(0,''Tag'',''EPGUI'')))');
-
-handles.previewPSF.cord = cord;
-handles.previewPSF.selFrames = selFrames;
-handles.previewPSF.axesList = moviePlot;
-handles.previewPSF.figureH = previewFig;
-handles.previewPSF.imgSize = size(filteredImg);
+% Do not show psf-fit button anymore
+% %add button for fitting psf
+% handles.fitButtonH = uicontrol('Style','togglebutton','Units','pixels','Position',[1 1 70 35], 'String','Set PSF',...
+%     'TooltipString','Click here to start fitting the PSF','Tag','preview_fitButton_TB',...
+%     'Callback','editPropertiesGUI_preview_psFit(gcbo,[],guidata(findall(0,''Tag'',''EPGUI'')))');
+% 
+% handles.previewPSF.cord = cord;
+% handles.previewPSF.selFrames = selFrames;
+% handles.previewPSF.axesList = moviePlot;
+% handles.previewPSF.figureH = previewFig;
+% handles.previewPSF.imgSize = size(filteredImg);
 
 %remember coordinates for psFit
 
