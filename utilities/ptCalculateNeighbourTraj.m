@@ -147,9 +147,11 @@ for frameCount = plotStartFrame : increment : plotEndFrame
                for tCount = 0 : nrOfTrajectories
                   traj(tCount+1) = sqrt((MPM(mpmIndex, 2*MPMCount-1+(tCount*2)) - MPM(mpmIndex, 2*MPMCount-1+(tCount*2+2)))^2 + ...
                                       (MPM(mpmIndex, 2*MPMCount+(tCount*2)) - MPM(mpmIndex, 2*MPMCount+(tCount*2+2)))^2);
+                  % Convert into micrometer
+                  traj(tCount+1) = (traj(tCount+1) * pixelLength) / frameInterval;
                end
                
-               % Average the trajectories and calculate in micrometers
+               % Average the trajectories
                avgTraj = (sum (traj) / (nrOfTrajectories+1));
                
                % Sum the average traj. per neighbour
@@ -167,7 +169,7 @@ for frameCount = plotStartFrame : increment : plotEndFrame
       end  % for cCount = 1 : size(cells,1)
       
       % Average the trajectory for all cells with neighbours
-      avgTrajFrame(iCount) = (trajFrame / cellsWithNeighbours) * pixelLength;
+      avgTrajFrame(iCount) = trajFrame / cellsWithNeighbours;
       
    end   % if (MPMCount + nrOfTrajectories) < numberOfFrames
       
@@ -185,9 +187,9 @@ if ptPostpro.neighbourplot_1
     % Draw a plot showing neighbour traj. 
     ymax = max (avgTrajFrame) + (0.1*max (avgTrajFrame));
     plot (xAxis, avgTrajFrame); 
-    title ('Avg Neighbour Trajectory Length');
+    title ('Avg Neighbour Trajectory Velocity');
     xlabel ('Frames');
-    ylabel ('Avg Traj. Length (um)');
+    ylabel ('Avg Traj. Vel. (um/min)');
     if length (xAxis) > 1
        axis ([xAxis(1) xAxis(end) 0 ymax]);
     else

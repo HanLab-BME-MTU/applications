@@ -56,7 +56,7 @@ handles.output = hObject;
 % Create a default postprocessing structure that defines all the fields used in the program
 defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, ...
                         'dragtail', 6, 'dragtailfile', 'trackmovie', 'figureSize', [], ...
-                        'multFrameVelocity', 1, 'binsize', 4, 'mmpixel', 0.639, 'timeperframe', 300, ...
+                        'multFrameVelocity', 1, 'binsize', 13, 'mmpixel', 0.639, 'timeperframe', 300, ...
                         'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
@@ -1904,3 +1904,40 @@ end
 
 % Update handles structure
 guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function GUI_average_data_menu_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_average_data_menu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata (hObject);
+
+% Call Averaging program
+ptAverageData;
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+% --------------------------------------------------------------------
+function GUI_movie_menu_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_movie_menu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function GUI_make_hist_movie_menu_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_make_hist_movie_menu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata (hObject);
+
+% Call Averaging program
+ptMakeHistogramMovies;
+
+% Update handles structure
+guidata(hObject, handles);
+

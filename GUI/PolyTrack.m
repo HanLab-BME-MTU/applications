@@ -2148,3 +2148,17 @@ handles = guidata(hObject);
 % Update handles structure
 guidata(hObject, handles);
 
+
+% --------------------------------------------------------------------
+function GUI_postprocess_data_menu_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_postprocess_data_menu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Call Polytrack_PP
+Polytrack_PP;
+
+% Update handles structure
+guidata(hObject, handles);
+

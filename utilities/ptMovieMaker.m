@@ -19,6 +19,7 @@ function ptMovieMaker (ptPostpro, MPM)
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file.
 %                                       Also made it independent of gui handles
+% Andre Kerstens        Aug 04          Bug fix: forgot to close fig after addframe QT movie
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -151,6 +152,7 @@ for movieStep = movieStartFrame : increment : movieEndFrame
       close;
    elseif movieType == 2   % AVI
       makeQTMovie ('addaxes', gca);
+      close;
    else
       h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
       uiwait (h);
