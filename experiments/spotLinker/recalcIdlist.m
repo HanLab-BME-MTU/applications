@@ -173,9 +173,17 @@ idlistNew=spotID(slist,opt,dataProperties);
 %idlist(timeStart).linklist is taken from old-linklist; linkup from and linkdown to second linklist-new have to be adjusted
 %find 2nd time
 t2=t1+1; 
+lengthIdlist = length(idlist);
 %lookfor first good frame
 while isempty(idlistNew(t2).linklist)&(t2<totalNumOfFrames+1)
     t2=t2+1;
+    if t2>lengthIdlist
+        % there is no good frame left! - do not change idlist
+        % this might be faster if it is further above in the program, but
+        % it is clearer if it's here.
+        disp('did not recalc idlist - there was no good frame left')
+        return
+    end
 end
 
 %use of field spot/flag is discontinued - if exist, remove in old idlist
