@@ -5,7 +5,8 @@ function newCoord = ptCheckMinimalCellDistance (nucleiCoord, extraNucCoord, minD
 % SYNOPSIS       newCoord = ptCheckMinimalCellDistance(nucleiCoord,haloCoord,minDistCellCell)   
 %
 % INPUT          nucleiCoord     : a set of nuclei coordinates
-%                extraNucCoord   : a set of possible nuclei coordinates
+%                extraNucCoord   : a set of possible nuclei coordinates.
+%                This can be [] in case only the nucleiCoord has te be tested
 %                minDistCellCell : minimal distance between two cells (in pixels)
 %
 % OUTPUT         newCoord : the combined coordinates, with minimal distance between them
@@ -39,23 +40,24 @@ end
 clear iCount;    
 clear distance;
 
-% Ensure minimal distance between the would be nuclei and the real ones
-jCount = 1;
-while jCount < length (extraNucCoord)
-   distance = [];
-   distance = min (sqrt ((nucleiCoord (jCount+1:end, 1) - extraNucCoord (jCount, 1)).^2 + ...
-                         (nucleiCoord (jCount+1:end, 2) - extraNucCoord (jCount, 2)).^2));
+% Ensure minimal distance between the would be nuclei and the real ones if
+% there are any (extraNucCoord will be [] if no vector is provided)
+if ~isempty (extraNucCoord)
+   jCount = 1;
+   while jCount < length (extraNucCoord)
+      distance = [];
+      distance = min (sqrt ((nucleiCoord (jCount+1:end, 1) - extraNucCoord (jCount, 1)).^2 + ...
+                            (nucleiCoord (jCount+1:end, 2) - extraNucCoord (jCount, 2)).^2));
 
-   % Test the distance between them
-   if distance < minDistCellCell
-      % Throw away the coordinate, because the distance is to small
-      extraNucCoord (jCount,:) = [];
-      jCount = jCount - 1;
+      % Test the distance between them
+      if distance < minDistCellCell
+         % Throw away the coordinate, because the distance is to small
+         extraNucCoord (jCount,:) = [];
+         jCount = jCount - 1;
+      end
+      jCount = jCount + 1; 
    end
-  jCount = jCount + 1;
 end
-clear distance;
-clear jCount;
 
 % If we found any new nuclei coordinates, cat them together with the nuclei ones
 if ~isempty (extraNucCoord)

@@ -269,6 +269,11 @@ else		% lastImaNum > firstImaNum
             end   % for jCount
 	     end   % if ~isempty (unmatchedCells)
          
+         % Make sure the cells in newCoord and previousCoord are far enough
+         % away from each other
+         newCoord = ptCheckMinimalCellDistance (newCoord, [], minDistCellToCell);
+         previousCoord = ptCheckMinimalCellDistance (previousCoord, [], minDistCellToCell);
+         
          % Now that we have new newCoord and new PreviousCoord coordinates, we can do a renewed match
          matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
 
@@ -283,7 +288,7 @@ else		% lastImaNum > firstImaNum
          M (1 : size (matchedCells, 1), 1 : size (matchedCells, 2), loopCount - 1) = matchedCells;
 
          % There's one more thing to do: see if we can match lost cells in previous frames to any of
-         % the new ones found in this frame. Allow this for a max history of 5 frames.
+         % the new ones found in this frame. Allow this for a max history of timeStepSlide frames.
          newCells = matchedCells (find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0 & ...
                                         matchedCells (:,3) ~= 0 & matchedCells (:,4) ~= 0),3:4);
          if ~isempty (lostCells) & ~isempty (newCells)        

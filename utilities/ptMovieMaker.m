@@ -53,6 +53,7 @@ cd (savePath);
 
 % Initialize the movie
 makeQTMovie ('start', dragTailFileName);
+%mov = avifile ('dragtail.avi')
 
 % Initialize counter
 frameCounter = startFrame - 1;
@@ -131,6 +132,8 @@ for movieStep = startFrame : lastFrame
   
    % Add the current figure to the movie
    makeQTMovie ('addaxes', gca);
+   %F = getframe (gca);
+   %mov = addframe (mov, F);
    
    % Close the figure
    close;
@@ -138,6 +141,7 @@ end   % for movieStep
 
 % finalize the movie and write it to disk
 makeQTMovie ('finish');
+%mov = close(mov);
 
 % Let the user know we have finished
 fprintf (1, 'ptMovieMaker: finished generating movie.\n');
