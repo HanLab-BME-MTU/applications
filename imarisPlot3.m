@@ -1,4 +1,4 @@
-function imarisApplication = imarisPlot3(plotData)
+function imarisApplication = imarisPlot3(plotData,aspectRatio)
 %IMARISPLOT3 generates a 3D data plot
 %
 % SYNOPSIS imarisApplication = imarisPlot3(plotData)
@@ -7,12 +7,19 @@ function imarisApplication = imarisPlot3(plotData)
 %                       for plotting with fields:
 %               - XYZ: n-by-3 arrays of coordinates
 %               - spotRadius (opt): size of plot spots. Can be set
-%                    individually for every data point. Default: [0.5]
+%                    individually for every data point. Default: [0.25]
+%                    If aspect ratio is set to other than 0, radius 1 is
+%                    about 1/10 of the plot box. Otherwise, it is measured
+%                    in the units of the input.
 %               - color (opt): [R/G/B/Opacity] for the group of spots.
 %                    Opacity of 0 = opaque. Default: [1,0,0,0]
 %               - name (opt) : name of group of spots. Default: data_#,
 %                    where # is the place of the set in the structure
 %               - time (opt) : timepoint where the group should be plotted
+%           aspectRatio (opt): Aspect ratio of the data. With the default,
+%                              [1,1,1], the plot box has the shape of a
+%                              cube. Specify [0,0,0] if a unit step should
+%                              be the same in every direction.
 %
 % OUTPUT  imarisApplication: Handle to the imaris Application
 %
@@ -34,9 +41,11 @@ function imarisApplication = imarisPlot3(plotData)
 %======================
 
 % defaults
-def_spotRadius = 0.5;
+def_spotRadius = 0.25;
 def_color = [1,0,0,0]; % R/G/B/opacity
 def_nameStub = 'data_'; % stub to which number will be added
+def_aspectRatio = [1,1,1]; % aspect ratio
+def_maxImSize = 100000; % maximum number of pixels for a single image
 
 % input arguments
 if nargin == 0 || isempty(plotData) || ~isstruct(plotData)
@@ -58,16 +67,13 @@ for i = 1:nGroups
 
     % test xyz
     plotData(i).XYZ = returnRightVector(plotData(i).XYZ,3);
-    
+
     %====
     % bug-workaround
     % currently, there can not be jut one spot. Therefore, we just double
     % it
     if size(plotData(i).XYZ,1)==1
-        bugfix = [1;1];
-        plotData(i).XYZ = bugfix *  plotData(i).XYZ;
-    else
-        bugfix = 1;
+        plotData(i).XYZ = repmat(plotData(i).XYZ,[2,1]);
     end
 
     % test spotSize
@@ -79,7 +85,7 @@ for i = 1:nGroups
         % make sure there are enough radii
     elseif length(plotData(i).spotRadius) == 1
         plotData(i).spotRadius = ...
-            bugfix *  repmat(plotData(i).spotRadius,size(plotData(i).XYZ,1),1);
+            repmat(plotData(i).spotRadius,size(plotData(i).XYZ,1),1);
 
     else
         plotData(i).spotRadius = returnRightVector(plotData(i).spotRadius);
@@ -102,17 +108,20 @@ for i = 1:nGroups
     % name
     if ~isfield(plotData,'name') || isempty(plotData(i).name)
         plotData(i).name = [def_nameStub,num2str(i)];
-    elseif ~isstr(plotData(i).name)
+    elseif ~ischar(plotData(i).name)
         error('name has to be a string')
     end
-    
+
     % time
     if ~isfield(plotData,'time') || isempty(plotData(i).time)
         plotData(i).time = 1;
     end
 end
 
-
+% aspect ratio
+if nargin < 2 || isempty(aspectRatio)
+    aspectRatio = def_aspectRatio;
+end
 
 %=========================================
 
@@ -125,25 +134,98 @@ end
 % pass it to Imaris
 % 1) Find extent of data, calculate limits
 % 2) Calculate coordinate transformation
+%       This has to be done, in case the aspect ratio is fixed. Otherwise,
+%       we just adjust the image extent.
 % 3) Later: join same colors, make 3D-histogram
 
-% find extent
+% find extent. make sure we have enough space to place a sphere
 allData = cat(1,plotData.XYZ);
-dataExtent = [min(allData);max(allData)];
-dataRange = dataExtent(2,:) - dataExtent(1,:);
-
-% make sure we have at least enough space to place a sphere
 allRadii = cat(1,plotData.spotRadius);
-dataRange = max(dataRange,repmat(max(allRadii),[1,3]));
+maxRadius = max(allRadii);
+dataExtent = [min(allData) - repmat(maxRadius,[1,3]);...
+    max(allData) + repmat(maxRadius,[1,3])];
+dataRange = dataExtent(2,:) - dataExtent(1,:);
 
 % extent in time
 allTime = cat(1,plotData.time);
 maxTime = max(allTime);
 
-% to transform coordinates: subtract origin, divide by range to make data
-% going from 0 to 10
-origin = dataExtent(1,:);
-divideRange = dataRange/10;
+
+% imageDelta takes into account that the pixel coordinates are at the
+% center of the pixel. Therefore, if we want to go from 0 to 10, we need 11
+% pixels.
+imageDelta = [1, 1, 1];
+
+% select size of image - consider aspect ratio
+if any(aspectRatio) == 0
+    % use dataRange as image size
+
+    % we do not need to make any kind of coordinate transformation
+    doTransform = 0;
+
+    % test for max image size
+    bigExtent = ceil(dataRange);
+    if prod(bigExtent) < def_maxImSize
+
+
+        % assign imageSize - correct with imageDelta
+        imSize = bigExtent + imageDelta;
+
+        % find origin of image (coord - radius - some round-off delta)
+        deltaExtent = bigExtent - dataRange;
+        origin = dataExtent(1,:) - deltaExtent/2;
+
+    else
+        % we need to adjust image size. However, by setting the image
+        % extent, we will get the correct aspect ratio.
+        divImg = repmat((def_maxImSize/prod(bigExtent))^(1/3),[1,3]);
+
+        % assign imSize
+        imSize = ceil(bigExtent./divImg) + imageDelta;
+        % this is a reasonable approximation
+        deltaExtent = (bigExtent - dataRange);
+        % origin does not need to be adjusted - this is done below
+        origin = dataExtent(1,:) - deltaExtent/2;
+
+    end
+
+    % set extends of image
+    extendMin = (origin - ((imageDelta-1)/2));
+    extendMax = (bigExtent + origin + ((imageDelta-1)/2));
+
+    % store data for axis labels
+    stepSize = (extendMax - extendMin)./(imSize-imageDelta); % one less steps that pix
+    plotBoxData = [extendMin-stepSize/2; extendMax+stepSize/2; stepSize]';
+
+
+
+else % use aspect ratio
+
+    % we need to transform the ranges onto [0...10].*aspectRatio
+    doTransform = 1;
+
+    % to transform coordinates: subtract origin, divide by range to make data
+    % going from 0 to 10
+    origin = dataExtent(1,:);
+
+    % "inner image": 10x10x10*aspectRatio
+    imSize = ([10,10,10]).* aspectRatio + imageDelta;
+
+
+    % we will divide the coordinates by divideRange -> multiply by imSize
+    divideRange = dataRange ./ (imSize - imageDelta);
+
+    % the extends of the image will be imSize - 1;
+    extendMin = zeros(1,3);
+    extendMax = imSize - 1;
+
+    % store data for axis labels
+    stepSize = divideRange;
+    plotBoxData = [origin - divideRange/2;...
+        origin + dataExtent(2,:) + divideRange/2; stepSize]';
+
+
+end
 
 %========================================
 
@@ -159,20 +241,28 @@ divideRange = dataRange/10;
 imaApp = imarisStartNew;
 % insert a pause. 0.2 seconds works, too, but I want to avoid a crash on
 % slower machines.
-pause(0.5) 
+pause(0.5)
 
 
 
 
 % make dataSet and put into imaris
 imaDataSet = imaApp.mFactory.CreateDataSet;
-imaDataSet.SetData(single(zeros(12,12,12,1,maxTime)));
-imaDataSet.mExtendMinX = -1;
-imaDataSet.mExtendMinY = -1;
-imaDataSet.mExtendMinZ = -1;
+imaDataSet.SetData(single((zeros([imSize,1,maxTime]))));
+% image starts at imageDelta/2 pixels left of origin - divide to ensure
+% aspect ratio!
+imaDataSet.mExtendMinX =  extendMin(1);
+imaDataSet.mExtendMinY =  extendMin(2);
+imaDataSet.mExtendMinZ =  extendMin(3);
+% image ends at imageDelta/2 pixels right of dataRange + origin - divide to
+% ensure aspect ratio!
+
+imaDataSet.mExtendMaxX = extendMax(1);
+imaDataSet.mExtendMaxY = extendMax(2);
+imaDataSet.mExtendMaxZ = extendMax(3);
 imaApp.mDataSet = imaDataSet;
 
-% make top-level surpass scene 
+% make top-level surpass scene
 imaSurpassScene = imaApp.mFactory.CreateDataContainer;
 
 % fill surpass scene with light and frame
@@ -193,26 +283,31 @@ imaSurpassScene.AddChild(imaSSSpots);
 
 % loop through data and add spots
 for iGroup = 1:nGroups
-    
+
     % create spot object
     imaSpots = imaApp.mFactory.CreateSpots;
-    
+
     % set spots
     nCoords = size(plotData(iGroup).XYZ,1);
-    coords = single((plotData(iGroup).XYZ - repmat(origin,nCoords,1))...
-        ./repmat(divideRange,nCoords,1));
+    if doTransform
+        coords = single((plotData(iGroup).XYZ - repmat(origin,[nCoords,1]) )...
+            ./ repmat(divideRange,[nCoords,1]));
+    else
+        coords = single(plotData(iGroup).XYZ);
+    end
     imaSpots.Set(coords, single(repmat(plotData(iGroup).time-1,[nCoords,1])),...
         single(plotData(iGroup).spotRadius));
-    
+
+
     % set color
     color = single(plotData(iGroup).color);
     imaSpots.SetColor(color(1),color(2),color(3),color(4));
-    
+
     % set name
     imaSpots.mName = plotData(iGroup).name;
-    
+
     imaSSSpots.AddChild(imaSpots);
-    
+
 end
 
 %===========================
@@ -224,20 +319,26 @@ end
 
 % since it is not possible in Imaris to set axes labels, we give the
 % information in matlab
-xStep = dataRange(1)/10;
-yStep = dataRange(2)/10;
-zStep = dataRange(3)/10;
+
+% the center of the pixel is the actual coordinate. However, Imaris plots
+% the frame around the pixel. Therefore, we need to add/subtract the
+% pixelsize
+% We do this already when calculating plotBoxData
 xString = sprintf('Xmin: %f, Xmax: %f, Xstep: %f',...
-    dataExtent(1,1)-1.5*xStep,...
-    dataExtent(2,1)+1.5*xStep,...
-    xStep);
+    plotBoxData(1,:));
 yString = sprintf('Ymin: %f, Ymax: %f, Ystep: %f',...
-    dataExtent(1,2)-1.5*yStep,...
-    dataExtent(2,2)+1.5*yStep,...
-    yStep);
+    plotBoxData(2,:));
 zString = sprintf('Zmin: %f, Zmax: %f, Zstep: %f',...
-    dataExtent(1,3)-1.5*zStep,...
-    dataExtent(2,3)+1.5*zStep,...
-    zStep);
+    plotBoxData(3,:));
 %plot to command line
-sprintf([xString '\n' yString '\n' zString])
+disp(sprintf(['axis limits and step sizes:\n'xString '\n' yString '\n' zString]))
+
+%=========================
+
+%=========================
+% ASSIGN OUTPUT
+%=========================
+
+if nargout > 0
+    imarisApplication = imaApp;
+end
