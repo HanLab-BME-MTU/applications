@@ -30,6 +30,8 @@ set(handles.GUI_st_eo_noiseparameter_pm,'String',num2str(activeJob.noiseparamete
 set(handles.GUI_st_eo_leveladjust_pm,'String',num2str(activeJob.leveladjust));
 
 
+%set(handles.GUI_st_path_timeperframe_ed,'String',num2str(activeJob.timeperframe));
+
 
 if ~isempty(activeJob.mmpixel)
 set(handles.GUI_st_bp_mmpixel_pm,'String',num2str(activeJob.mmpixel));

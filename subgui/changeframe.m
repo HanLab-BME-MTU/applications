@@ -77,7 +77,19 @@ cellsWithNums(:,1:2)=handles.MPM(:,2*slidervalue-1:2*slidervalue);
 %different from zero)
 plot(cellsWithNums(indRealCell,1),cellsWithNums(indRealCell,2),'r.');
 txt= text(cellsWithNums(indRealCell,1),cellsWithNums(indRealCell,2),num2str(cellsWithNums(indRealCell,3)),'Color','r');
-set(txt,'ButtonDownFcn','manrelink'); 
+
+
+if  handles.whichcallback == 1
+    set(txt,'ButtonDownFcn','manrelink'); 
+   
+elseif  handles.whichcallback == 2
+    if ~isempty(handles.selectedcells)
+        handles.selectedcells=[];
+        guidata(hObject, handles);
+    end
+    set(txt,'ButtonDownFcn','cellselect');
+    
+end
 
 hold off;
 

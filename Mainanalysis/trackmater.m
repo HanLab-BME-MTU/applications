@@ -47,16 +47,16 @@ sizetemple = handles.jobs(projNum).sizetemplate;
 box_size_img = handles.jobs(projNum).boxsize;
 
 
-ErodeDiskSize = 9;
-%how much the blobs found in halosfind shall be eroded. This is an indirect
-%size criteria for halosfind. Increase - minimal size of halos will be
-%increased, decrease - ... decreased
 
 
 %minimal/maximal size of the black spot in the cells
 MinSizeNuc = handles.jobs(projNum).minsize;
 MaxSizeNuc = handles.jobs(projNum).maxsize;
 
+ErodeDiskSize = round((sqrt(MinSizeNuc))/2)+1 ;
+%how much the blobs found in halosfind shall be eroded. This is an indirect
+%size criteria for halosfind. Increase - minimal size of halos will be
+%increased, decrease - ... decreased
 
 
 MinDistCellCell = handles.jobs(projNum).minsdist;
@@ -186,6 +186,8 @@ if ~LastImaNum > FirstImaNum
 else    
     
     
+    IRGENDWIE_USTUUUUUSCHE=[];
+    
     %index is equal to the number of the image, countingloops keeps
     %track of the loops
     countingloops = 0
@@ -211,7 +213,7 @@ else
                          
            
                       
-                      [seg_img, obj_val] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', [LevNuc_fi;LevBack_fi;LevHalo_fi]);
+                      [seg_img, obj_val,nothing,mu0] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', [LevNuc_fi;LevBack_fi;LevHalo_fi]);
                       
                       BODYIMG = zeros(img_h,img_w);
 	                   
@@ -271,7 +273,7 @@ else
                       
                      
 
-                      [seg_img, obj_val] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', [levNucInterpol;levBaInterpol;halointerpol]);
+                      [seg_img, obj_val,nothing,mu0] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', mu0);%[levNucInterpol;levBaInterpol;halointerpol]);
                       
                       %find cells that look really dark and nasty
                       coordNuc = [];
@@ -358,7 +360,7 @@ else
                   
                        % if there are new cells, now is the time to try to allocate them
                        % to any set of coordinates not yet allocated to an old cell
-                       if  size(find(tmp1(:,1)==0),1) >0 & size(secondcoord,1) >0
+                       if  size(find(tmp1(:,1)==0 & tmp1(:,2)==0),1) >0 & size(secondcoord,1) >0
                                   identnew = find(tmp1(:,1)==0 & tmp1(:,2)==0);
                                   %in any case the sets coordinates not allocated to an old cell
                                   %are marked as a new cells, for they will either be allocated
@@ -426,7 +428,7 @@ else
                        %cells as "new cells tracked via template". The
                        %actual marker is a digit (fraction) behind the dot
                        trouble = [];
-                       trouble = find(tmp(:,3)==0);
+                       trouble = find(tmp(:,3)==0 & tmp(:,4)==0);
                            
                            
                        if ~isempty (trouble)
@@ -736,7 +738,7 @@ else
                                                                                               %not in MPMslide, but in M. Since M
                                                                                               %is not sorted, we have to always
                                                                                               %find the right spot
-                                                                                              IRGENDWIE_USTUUUUUSCHE = 1;
+                                                                                              IRGENDWIE_USTUUUUUSCHE = IRGENDWIE_USTUUUUUSCHE +1;
                                                                                               templateCoord = [];
                                                                                               newCeCoord = [];
                                                                                                              
@@ -842,7 +844,7 @@ else
                                                                                                              %this is exactly the same procedure as above. I know it would be clever to make a function out of it
                                                                                                              %but there would be so many BIG matrices involved I decided to have it in here twice. Ah well. Anyway look above
                                                                                                              %(look for IRGENDWIE_USTUUUSCHE)
-                                                                                                             IRGENDWIE_USTUUUSCHE = 1
+                                                                                                             IRGENDWIE_USTUUUSCHE = IRGENDWIE_USTUUUSCHE +1
                                                                                                              templateCoord = [];
                                                                                                              newCeCoord = [];
                                                                                                              
@@ -949,6 +951,10 @@ else
 		
 	end
       
+    cd(SaveDirectory)
+    if ~isempty(IRGENDWIE_USTUUUUUSCHE)
+         save('IRGENDWIE_USTUUUUUSCHE', 'IRGENDWIE_USTUUUUUSCHE');
+    end
 	%it's all over now. All we have to do is change the format of the
 	%information we have painstakingly gathered over the last ??? lines
 	%MPM = fsmTrackLinker(M);

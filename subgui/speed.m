@@ -2,31 +2,79 @@ function speed(hObject)
 
 handles=guidata(hObject);
 
+
+handles=guidata(hObject);
+
+
+start=round((handles.postpro.analfirstimg- handles.jobvalues.firstimage)/handles.jobvalues.increment)+1
+if start < 1
+    start = 1;
+end
+
+stop = floor((handles.postpro.anallastimg - handles.jobvalues.firstimage)/handles.jobvalues.increment+0.00001)+1 
+
+if stop > handles.jobvalues.lastimage
+    stop = handles.jobvalues.lastimage;
+end
+
+saveallpath=handles.postpro.saveallpath;
+
+
 bins=[0:1:60];
 
-[numrows,numcols]=size(handles.MPM);
+% [numrows,numcols]=size(handles.MPM);
 
-dist=zeros(numrows,1);
+%dist=zeros(numrows,1);
 
-saveallpath=get(handles.GUI_fm_saveallpath_ed,'String');
 
-for i=1:2:numcols-3
-        
-        vec=handles.MPM(:,i:i+3);
-        [rows,cols]=find(vec==0);
-        rows=unique(rows);
-        vec(rows,:)=0;
-        
-        numbercells((i+1)/2,1)=(numrows-length(rows));
-        dist(:,(i+1)/2)=sqrt((vec(:,1)-vec(:,3)).^2 + (vec(:,2)-vec(:,4)).^2);
-        avardist((i+1)/2,1)=sum(dist(1:numrows,(i+1)/2))/(numrows-length(rows));
-        
-        realdist=dist(find(dist(:,(i+1)/2)),(i+1)/2);
-        speedvar((i+1)/2)=var(realdist);
-         
-        velHist(:,(i+1)/2)=hist(realdist,bins)';
-        velHist(:,(i+1)/2)=velHist(:,(i+1)/2)./(numrows-length(rows));
+numberPics = stop-start+1;
+
+
+    
+whatcells=[];
+
+if ~isempty(handles.selectedcells)
+    whatcells = zeros(size(handles.selectedcells,1));
+    dist = zeros(size(handles.selectedcells,1));
+    
+else
+    whatcells = zeros(size(handles.MPM,1),2);
+    dist = zeros(size(handles.MPM,1),2);
+    
+end
+
+    
+for pic=start:(stop-1)
+
+    
+    
+    if ~isempty(handles.selectedcells) 
+        whatcells = handles.selectedcells;
+    else  
+        whatcells = [1:length(handles.MPM(:,(2*pic-1)))]' ;
     end
+
+
+
+
+        
+        vec=handles.MPM( whatcells,(2*pic-1):(2*pic+2));
+        [zerRows,cols]=find(vec==0);
+        zerRows=unique(zerRows);
+        vec(zerRows,:)=0;
+        
+        numbercells(pic,1) = (length(whatcells)-length(zerRows));
+        dist(:,pic) = sqrt((vec(:,1)-vec(:,3)).^2 + (vec(:,2)-vec(:,4)).^2);
+        avardist(pic,1) = sum(dist(1:length(whatcells),pic))/(length(whatcells)-length(zerRows));
+        
+        realdist = dist(find(dist(:,pic)),pic);
+        speedvar(pic) = var(realdist);
+         
+        velHist(:,pic) = hist(realdist,bins)';
+        velHist(:,pic) = velHist(:,pic)./(length(whatcells)-length(zerRows));
+        
+        
+end
        
     
         h_fig=figure
@@ -49,7 +97,7 @@ for i=1:2:numcols-3
 		xlabel('Frames')
 		ylabel('# cells')
 		ymax=max(numbercells);
-		axis([0 numcols/2 0 ymax])
+		axis([start stop 0 ymax])
 		
 		
 		hgsave(h_fig,[saveallpath filesep 'numbercells.fig']);
@@ -62,14 +110,14 @@ for i=1:2:numcols-3
 		xlabel('Frames')
 		ylabel('distance per frame (in pixel)')
 		ymax=max(avardist);
-		axis([0 numcols/2 0 ymax])
+		axis([start stop 0 ymax])
 		
 	
 		subplot(2,1,2); plot(speedvar),title('variance of avarage velocity of cells')
 		xlabel('Frames')
 		ylabel('variance')
 		ymax=max(speedvar);
-		axis([0 numcols/2 0 ymax])
+		axis([start stop 0 ymax])
 		
         
 		hgsave(h_fig,[saveallpath filesep 'velocity.fig']);

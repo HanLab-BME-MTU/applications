@@ -7,41 +7,86 @@ handles=guidata(hObject);
 
 
 start=round((handles.postpro.analfirstimg- handles.jobvalues.firstimage)/handles.jobvalues.increment)+1
+if start < 1
+    start = 1;
+end
 
 stop = floor((handles.postpro.anallastimg - handles.jobvalues.firstimage)/handles.jobvalues.increment+0.00001)+1 
 
-saveallpath=get(handles.GUI_fm_saveallpath_ed,'String');
+if stop > handles.jobvalues.lastimage
+    stop = handles.jobvalues.lastimage;
+end
 
- NewProps=zeros(6,start-stop+1);
+saveallpath=handles.postpro.saveallpath;
 
 
+NewProps=zeros(6,start-stop+1);
 
-for pic=start:stop
+handles.PROPERTIES(:,4,:)=0;
+ PROPERTIES = handles.PROPERTIES
+
+ for pic=start:stop
+ 
+ 
+	
+        
+    %now we quickly calculate the number of cells within a cluster. This
+    %may seem a little bit late to do so, but only now we know which cells
+    %are actually accepted by postprocessing
     
+	belo = sort(handles.PROPERTIES(:,3,pic));
+	[uniqueEntries, uniqueIdx] = unique(belo);
+	%uniqueIdx returns the last occurence of the respective unique entry
+	%having sorted m before, we can now count the number of occurences
+	if size(uniqueEntries,1) > size(uniqueEntries,2);
+            uniqueIdx = [0;uniqueIdx];
+	else
+            uniqueIdx = [0,uniqueIdx];
+	end 
+	numberOfOccurences = diff(uniqueIdx); 
+
+
+     for clustering = 1:length(uniqueEntries)
+           order = ismember(handles.PROPERTIES(:,3,pic),uniqueEntries(clustering))
+           handles.PROPERTIES(order ,4,pic) = numberOfOccurences(clustering);
+     end
+     %done
+     
+     
+     
     whatcells=[];
     
 	if ~isempty(handles.selectedcells)
-        whatcells=zeros(size(handles.selectedcells,1),2);
+        whatcells = zeros(size(handles.selectedcells,1),2);
 	else
-        whatcells=zeros(size(handles.MPM,1),2);
+        whatcells = zeros(size(handles.MPM,1),2);
 	end
 
     
     
     if ~isempty(handles.selectedcells) 
-        whatcells(:,:)=handles.MPM(handles.selectedcells,2*pic-1:2*pic);
+        whatcells(:,:)=handles.MPM(handles.selectedcells,(2*pic-1):(2*pic));
+       % presentCells(:,:)=handles.MPM(:,(2*pic-1):(2*pic));
+        
     else  
-        whatcells(:,:)=handles.MPM(:,2*pic-1:2*pic);
+        whatcells(:,:)=handles.MPM(:,(2*pic-1):(2*pic));
+       % presentCells(:,:)=handles.MPM(:,(2*pic-1):(2*pic));
     end
     
     %whatcells defines which cells will be taken into account. This is
     %either defined by the user (PolyTrack_PP) or it will just be all cells
     %within the current picture
     
-    whatcells=whatcells(find(whatcells(:,1)&whatcells(:,2)),:); 
+    whatcells = whatcells(find(whatcells(:,1) & whatcells(:,2)),:); 
+  %  presentCells = presentCells(find(presentCells(:,1) & presentCells(:,2)),:); 
    
     NewProps(6,pic)=size(whatcells,1);
     
+%     
+%     properRows = ismember(round(handles.PROPERTIES(:,1:2,pic)),round(presentCells),'rows');
+%     referenceAllCells = handles.PROPERTIES(properRows,:,pic);
+%     
+%     clear properRows
     
     %here we find all the rows of PROPERTIES that correspond to cells we are
     %intersted in. PROPERTIES(:,1:2,pic) and whatcells are both [x,y]
@@ -50,6 +95,8 @@ for pic=start:stop
     takeIntoAccount=handles.PROPERTIES(properRows,:,pic);
     
         
+    
+    
 	% REMINDER:
 	% one row of PROPERTIES gives information on one set of coordinates (one
 	% cell). takeIntoAccount has the same layout
@@ -59,7 +106,7 @@ for pic=start:stop
 	% PROPERTIES(:,3)=belongsto(:);  (number of cluster - label)
 	% PROPERTIES(:,4)=numberOfOccurences(:);  (how many cells in the cluster
 	%                                          this cell is in)
-	% PROPERTIES(:,5)=bodycount(:);  (area per cell)
+	% PROPERTIES(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
 	% PROPERTIES(:,6)=perimdivare(:);  (cluster)
         
     
@@ -73,16 +120,15 @@ for pic=start:stop
     NewProps(2,pic)=sum(takeIntoAccount(Clusters(uniCluRows),4))/NewProps(1,pic);
     
     %how big an area per cell
-    
-    NewProps(3,pic)=sum(takeIntoAccount(:,5))/NewProps(6,pic);
+    bridge=takeIntoAccount(:,5)./takeIntoAccount(:,4);
+    NewProps(3,pic)=sum(bridge)/NewProps(6,pic);
     
     %how big an area per cluster
-    bridge=takeIntoAccount(:,5).*(takeIntoAccount(:,4));
-    NewProps(4,pic)=sum(bridge(Clusters(uniCluRows)))/length(uniCluRows);
+  
+    NewProps(4,pic)=sum(takeIntoAccount(Clusters(uniCluRows),5))/length(uniCluRows);
     
     %perimeter/area
-    uff=find(takeIntoAccount(:,6));
-    NewProps(5,pic)=sum(takeIntoAccount(uff,6))/length(uff);
+    NewProps(5,pic)=sum(takeIntoAccount(Clusters(uniCluRows),6))/length(uniCluRows);
     
     %percentage single cells
     NewProps(7,pic)=(NewProps(6,pic)-length(Clusters))/NewProps(6,pic)

@@ -22,7 +22,7 @@ function varargout = PolyTrack_PP(varargin)
 
 % Edit the above text to modify the response to help GUI_postprocess
 
-% Last Modified by GUIDE v2.5 09-Feb-2004 15:05:38
+% Last Modified by GUIDE v2.5 23-Feb-2004 14:48:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,7 +59,7 @@ function GUI_postprocess_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 
-defaultpostpro=struct('minusframes',5,'plusframes',2,'minimaltrack',5,'tracksince',6);
+defaultpostpro=struct('minusframes',5,'plusframes',2,'minimaltrack',5,'dragtail',6,'figureSize',[]);
 handles.defaultpostpro=defaultpostpro;
 
 
@@ -203,7 +203,7 @@ set(handles.GUI_app_relinkdist_ed,'String',handles.jobvalues.maxsearch);
 set(handles.GUI_app_minusframes_ed,'String',handles.postpro.minusframes);
 set(handles.GUI_app_plusframes_ed,'String',handles.postpro.plusframes);
 set(handles.GUI_app_minimaltrack_ed,'String',handles.postpro.minimaltrack);
-set(handles.GUI_fm_tracksince_ed,'String',handles.postpro.tracksince);
+set(handles.GUI_fm_tracksince_ed,'String',handles.postpro.dragtail);
 
 
 guidata(hObject, handles);
@@ -251,6 +251,17 @@ function GUI_pp_manuelpostpro_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_pp_manuelpostpro_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+handles = guidata(hObject);
+
+
+handles.whichcallback = 1;
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
 manuelpostpro(hObject)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -480,6 +491,16 @@ function GUI_ad_selectcells_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_ad_selectcells_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+handles = guidata(hObject);
+
+
+handles.whichcallback = 2;
+
+% Update handles structure
+guidata(hObject, handles);
+
+manuelpostpro(hObject)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -717,6 +738,16 @@ function GUI_fm_tracksince_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_fm_tracksince_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_tracksince_ed as a double
 
+handles = guidata(hObject);
+
+numb = get(hObject,'String');
+
+handles.postpro.dragtail= str2num(numb);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -744,6 +775,14 @@ function GUI_fm_saveallpath_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_fm_saveallpath_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_saveallpath_ed as a double
 
+handles = guidata(hObject);
+
+path = get(hObject,'String');
+
+handles.postpro.saveallpath= path;
+
+% Update handles structure
+guidata(hObject, handles);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -754,6 +793,7 @@ function GUI_fm_universalstudios_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
+movieMaker(hObject) 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -793,18 +833,63 @@ function GUI_fm_moviesize_pb_Callback(hObject, eventdata, handles)
 %     end
 %     disp(['az and el in case you have to retry: ',num2str(azimuth),' ',num2str(elevation)])
 %     
-    figureSize = get(viewPrepFigH,'Position');
+    handles.postpro.figureSize = get(viewPrepFigH,'Position');
     
     close(viewPrepFigH);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% % % % % % % 
+% % % % % % % % --- Executes on button press in GUI_app_autopostpro_cb.
+% % % % % % % function GUI_app_autopostpro_cb_Callback(hObject, eventdata, handles)
+% % % % % % % % hObject    handle to GUI_app_autopostpro_cb (see GCBO)
+% % % % % % % % eventdata  reserved - to be defined in a future version of MATLAB
+% % % % % % % % handles    structure with handles and user data (see GUIDATA)
+% % % % % % % 
+% % % % % % % % Hint: get(hObject,'Value') returns toggle state of GUI_app_autopostpro_cb
+% % % % % % % 
+% % % % % % % 
 
-% --- Executes on button press in GUI_app_autopostpro_cb.
-function GUI_app_autopostpro_cb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_app_autopostpro_cb (see GCBO)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+% --- Executes during object creation, after setting all properties.
+function GUI_ad_mintimeclust_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_ad_mintimeclust_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function GUI_ad_mintimeclust_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_ad_mintimeclust_ed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of GUI_app_autopostpro_cb
+% Hints: get(hObject,'String') returns contents of GUI_ad_mintimeclust_ed as text
+%        str2double(get(hObject,'String')) returns contents of GUI_ad_mintimeclust_ed as a double
 
 
+
+handles = guidata(hObject);
+
+numb = get(hObject,'String');
+
+handles.postpro.mintimeclust= str2num(numb);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

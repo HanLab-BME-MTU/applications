@@ -14,7 +14,7 @@ handles = guidata(hObject);
 projNum = get(handles.GUI_st_job_lb,'Value');
 ImageDirectory=handles.jobs(projNum).imagedirectory;
 ImageName=handles.jobs(projNum).imagename;
-FirstImageNum=handles.jobs(projNum).firstimage;
+FirstImaNum=handles.jobs(projNum).firstimage;
 LastImaNum=handles.jobs(projNum).lastimage;
 ImageNamesList = handles.jobs(projNum).imagenameslist
 
@@ -34,7 +34,7 @@ lastImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 %-Minimal size of nuclei (1)
 if jobdeterminer == 1
-    figure, imshow(firstImg),title('Make a polygon around the smallest nucleus, by clicking on its rimm, going around clock- or anticlockwise,then press ENTER') ; 
+    figure, imshow(firstImg,[]),title('Make a polygon around the smallest nucleus, by clicking on its rimm, going around clock- or anticlockwise,then press ENTER') ; 
     BW =roipoly;
     close
     if ~length(find(BW))==0
