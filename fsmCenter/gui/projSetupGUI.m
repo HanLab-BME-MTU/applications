@@ -236,7 +236,7 @@ function varargout = projSetupGUI_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if nargout > 5 
+if nargout > 6
     error('Too many output arguments.');
 end
 
@@ -254,6 +254,7 @@ firstImgList = handles.firstImgList;
 numSubProj   = handles.numSubProj;
 subProjDir   = handles.subProjDir;
 subProjTitle = handles.subProjTitle;
+physiParam   = handles.physiParam;
 
 unix_imgDrive = [];
 win_imgDrive  = [];
@@ -286,6 +287,12 @@ if isdir(projDir)
       firstImgList{1}         = firstImg;
    end
 
+   if ~isempty(physiParam)
+      selPhysiParam = physiParam{selImgDir};
+      physiParam{selImgDir} = physiParam{1};
+      physiParam{1}         = selPhysiParam;
+   end
+
 
     projSettings.projDir         = projDir;
 
@@ -314,6 +321,7 @@ if isdir(projDir)
     end
     projSettings.firstImgList    = firstImgList;
     projSettings.subProjDir      = subProjDir;
+    projSettings.physiParam      = physiParam;
     
     save(settingsMatFile,'projSettings');
     
@@ -364,8 +372,11 @@ end
 if nargout >= 4
     varargout{4} = imgDirList;
 end
-if nargout == 5
+if nargout >= 5
     varargout{5} = firstImgList;
+end
+if nargout == 6
+    varargout{6} = physiParam;
 end
 
 delete(hObject);
@@ -706,6 +717,13 @@ if isdir(projDir)
         subProjDir   = projSettings.subProjDir;
         firstImgList = projSettings.firstImgList;
         
+        if isfield(projSettings,'physiParam')
+           physiParam = projSettings.physiParam;
+        else
+           for k = 1:length(firstImgList)
+              physiParam{k} = getDefFsmPhysiParam;
+           end
+        end
         if isfield(projSettings,'unix_imgDirList')
             unix_imgDirList = projSettings.unix_imgDirList;
             filesepInd = findstr('/',unix_imgDirList{1});
@@ -897,6 +915,12 @@ if isdir(projDir)
                     'and will be ignored.'],'Warning','modal');
             end
             fclose(fid);
+
+            if noProblem
+               for k = 1:length(imgDirList)
+                  physiParam{k} = getDefFsmPhysiParam;
+               end
+            end
         end
     end
 else
@@ -918,6 +942,10 @@ if ~noProblem
    for k = 1:numSubProj
       subProjDir{k} = '';
    end
+
+   win_imgDrive  = [];
+   unix_imgDrive = [];
+   physiParam    = [];
 end
 
 handles.projDir       = projDir;
@@ -926,4 +954,5 @@ handles.firstImgList  = firstImgList;
 handles.unix_imgDrive = unix_imgDrive;
 handles.win_imgDrive  = win_imgDrive;
 handles.subProjDir    = subProjDir;
+handles.physiParam    = physiParam;
 

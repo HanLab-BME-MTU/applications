@@ -60,7 +60,7 @@ if isempty(settings) | ~isfield(settings,'projDir') | ...
    (isfield(settings,'projDir')&isempty(settings.projDir))
    handles.physiParamFile = 'fsmPhysiParam.mat';
 
-   handles = setDefFsmPhysiParam(handles);
+   handles.physiParam = getDefFsmPhysiParam;
    handles = updateFsmGuiPhysiParamEdit(handles);
 
    %Disable all fsm software package and physical parameters entrance when there
@@ -90,18 +90,6 @@ function varargout = fsmCenter_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-
-function handles = setDefFsmPhysiParam(handles)
-
-physiParam.NA            = 1.4;
-physiParam.waveLen       = 600; %Unit, nm.
-physiParam.bitDepth      = 14;
-physiParam.pixelSize     = 67; %Unit, nm.
-physiParam.frameInterval = 10; %Unit, sec.
-physiParam.psfSigma         = round(0.21*physiParam.waveLen/physiParam.NA ...
-                           /physiParam.pixelSize*1000)/1000;
-
-handles.physiParam = physiParam;
 
 
 function handles = updateFsmGuiPhysiParamEdit(handles)
@@ -241,7 +229,7 @@ end
 
 function pushOpenProject_Callback(hObject, eventdata, handles)
 projDir=get(handles.textCurrentProject,'String');
-[projDir,imageDir,subProjects,imgDirList,firstImgList]= ...
+[projDir,imageDir,subProjects,imgDirList,firstImgList,physiParam]= ...
    projSetupGUI('a','b',projDir,get(hObject,'Parent'));
 if isempty(projDir)
     % Nothing to do here - the user just canceled
@@ -264,13 +252,15 @@ set(handles.fsmCenter,'UserData',settings);
 handles = enableFsmPackages(handles,'on');
 
 %Update physical parameters if the parameter file 'fsmPhysiParam.mat' exist.
-physiParamFile = [settings.projDir filesep handles.physiParamFile];
-if exist(physiParamFile,'file') == 2;
-   s = load(physiParamFile);
-   handles.physiParam = s.fsmPhysiParam;
-else
-   handles = setDefFsmPhysiParam(handles);
-end
+%physiParamFile = [settings.projDir filesep handles.physiParamFile];
+%if exist(physiParamFile,'file') == 2;
+%   s = load(physiParamFile);
+%   handles.physiParam = s.fsmPhysiParam;
+%else
+%   handles.physiParam = getDefFsmPhysiParam;
+%end
+handles.physiParam = physiParam{1};
+saveFsmPhysiParam(handles);
 
 handles = updateFsmGuiPhysiParamEdit(handles);
 
@@ -727,3 +717,11 @@ fsmPhysiParam  = handles.physiParam;
 
 save(physiParamFile,'fsmPhysiParam');
 
+settingsMatFile = [settings.projDir filesep 'lastProjSettings.mat'];
+if exist(settingsMatFile,'file') == 2
+   s = load(settingsMatFile);
+   projSettings = s.projSettings;
+   projSettings.physiParam{1} = handles.physiParam;
+
+   save(settingsMatFile,'projSettings');
+end
