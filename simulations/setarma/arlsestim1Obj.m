@@ -1,12 +1,13 @@
-function [sumSquareErr,errFlag] = arlsestim1Obj(unknown,arOrder,traj)
+function [sumSquareErr,errFlag] = arlsestim1Obj(unknown,arOrder,traj,noiseSigma)
 %ARLSESTIM1OBJ computes the sum of square prediction errors for arlsestim1
 %
-%SYNOPSIS [sumSquareErr,sseGrad,errFlag] = arlsestim1Obj(unknown0,arOrder,traj)
+%SYNOPSIS [sumSquareErr,sseGrad,errFlag] = arlsestim1Obj(unknown0,arOrder,traj,noiseSigma)
 %
 %INPUT  unknown     : AR parameters and measurement error-free trajectory.
 %       arOrder     : Order of proposed AR model.
 %       traj        : Observed trajectory to be modeled (with measurement uncertainty).
 %                     Missing points should be indicated with Inf.
+%       noiseSigma  : Standard deviation of white noise.
 %
 %OUTPUT sumSquareErr: sum of square prediction errors.
 %       sseGard     : vactor of partial derivatives of sumSquareErr.
@@ -41,6 +42,10 @@ if nCol ~= 1
     disp('--arlsestim1Obj: Variable "unknown" should be a column vector!');
     errFlag = 1;
 end
+if noiseSigma < 0
+    disp('--arlsestim1Obj: White noise standard deviation should be nonnegative!');
+    errFlag = 1;
+end
 if errFlag
     disp('--arlsestim1Obj: please fix input data!');
     return
@@ -55,7 +60,7 @@ r = abs(roots([-arParam(end:-1:1) 1]));
 if ~isempty(find(r<=1)) %if not causal 
 
     sumSquareErr = 1e10;
-    %     sseGrad = [];
+    sseGrad = [];
     
 else %causal
 
@@ -96,33 +101,33 @@ else %causal
     
     %weights obtained from measurement uncertainties and white noise variance
     weights = zeros(2*indxLength+indxLowLength,1);
-    weights(1:indxLength) = traj(indx,2).^(-2);
+    weights(1:indxLength) = 1./(noiseSigma^2+traj(indx,2).^2);
     weights(indxLength+1:indxLength+indxLowLength) = traj(indxLow,2).^(-2);
-    weights(indxLength+indxLowLength+1:end) = weights(1:indxLength);
+    weights(indxLength+indxLowLength+1:end) = traj(indx,2).^(-2);
     
     %value of function to be minimized (sum of weighted square errors)
     sumSquareErr = errVec'*(weights.*errVec)/2;
     
-    %     %initialize partial derivatives vector
-    %     sseGrad = zeros(size(unknown));
-    %     
-    %     %partial derivatives w.r.t. AR coefficients
-    %     dummy = weights(1:indxLength).*errVec(1:indxLength);
-    %     sseGrad(1:arOrder) = prevPoints'*dummy;
-    %     
-    %     %partial derivatives w.r.t. measurement error-free data points 
-    %     %AR part
-    %     for i=arOrder+1:length(sseGrad)-1
-    %         j = i - arOrder;
-    %         subIndx = indxInv(max(j+1,arOrder+1):min(j+arOrder,trajLength));
-    %         subIndx = subIndx(find(subIndx));
-    %         backShift = indx(subIndx) - j;
-    %         sseGrad(i) = arParam(backShift)*(weights(subIndx).*errVec(subIndx));
-    %     end
-    %     %additional part
-    %     sseGrad(arOrder+indxLow) = sseGrad(indxLow) + weights(indxLength+1:indxLength+indxLowLength)...
-    %         .*errVec(indxLength+1:indxLength+indxLowLength);
-    %     sseGrad(arOrder+indx) = sseGrad(indx) + weights(indxLength+indxLowLength+1:end)...
-    %         .*errVec(indxLength+indxLowLength+1:end);
+    %initialize partial derivatives vector
+    sseGrad = zeros(size(unknown));
+    
+    %partial derivatives w.r.t. AR coefficients
+    dummy = weights(1:indxLength).*errVec(1:indxLength);
+    sseGrad(1:arOrder) = prevPoints'*dummy;
+    
+    %partial derivatives w.r.t. measurement error-free data points 
+    %AR part
+    for i=arOrder+1:length(sseGrad)-1
+        j = i - arOrder;
+        subIndx = indxInv(max(j+1,arOrder+1):min(j+arOrder,trajLength));
+        subIndx = subIndx(find(subIndx));
+        backShift = indx(subIndx) - j;
+        sseGrad(i) = arParam(backShift)*(weights(subIndx).*errVec(subIndx));
+    end
+    %additional part
+    sseGrad(arOrder+indxLow) = sseGrad(indxLow) + weights(indxLength+1:indxLength+indxLowLength)...
+        .*errVec(indxLength+1:indxLength+indxLowLength);
+    sseGrad(arOrder+indx) = sseGrad(indx) + weights(indxLength+indxLowLength+1:end)...
+        .*errVec(indxLength+indxLowLength+1:end);
     
 end

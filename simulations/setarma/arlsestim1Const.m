@@ -1,11 +1,14 @@
-function [c,ceq] = arlsestim1Const(unknown,arOrder,traj)
+function [c,ceq] = arlsestim1Const(unknown,arOrder,traj,noiseSigma)
 %ARLSESTIM1CONST imposes causality constraint on AR coefficients
 %
-%SYNOPSIS [c,ceq] = arlsestim1Const(unknown,arOrder,traj)
+%SYNOPSIS [c,ceq] = arlsestim1Const(unknown,arOrder,traj,noiseSigma)
 %
-%INPUT  unknown : Set of AR coefficients and measurement error-free values. 
-%       arOrder : Order of autoregressive model.
-%       traj    : Observed trajectory.
+%INPUT  unknown    : Set of AR coefficients and measurement error-free values. 
+%       arOrder    : Order of autoregressive model.
+%       traj       : Observed trajectory.
+%       noiseSigma : Standard deviation of white noise. Note that both
+%                    "traj" and "noiseSigma" are not needed in this
+%                    function, but must be passed because of fmincon.
 %
 %OUTPUT c   : Constraint that roots should be larger than one.
 %       ceq : Empty, but must be included due to matlab requirements.
@@ -33,7 +36,7 @@ if nCol ~= 1
 end
 
 %distribute parameters
-arParam = unknown(1:arOrder);
+arParam = unknown(1:arOrder)';
 
 %roots of AR polynomial
 rAr = abs(roots([-arParam(end:-1:1) 1]))';
