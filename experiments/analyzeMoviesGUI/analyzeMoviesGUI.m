@@ -277,6 +277,7 @@ if strcmp(fileName(end),'d')&exist([pathName,fileName(1:end-4),'_corr.r3c'])
         case 'load corrected'
             %change fileName
             fileName = [fileName(1:end-4),'_corr.r3c'];
+            destFileName = fileName;
         otherwise
             %cancel or []
             return

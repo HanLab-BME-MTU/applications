@@ -135,7 +135,7 @@ try
                                             job(i).correctBackground = [];
                                             job(i).projName = moviename(1:end-4);
                                             job(i).fileExtension = moviename(end-3:end);
-                                            dataProperties.name = job(i).projName;
+                                            job(i).dataProperties.name = job(i).projName;
                                             
                                             %remove old projectData-file and write a new one
                                             oldProjData = chooseFile('-data-',[],'new','log');
@@ -167,7 +167,7 @@ try
                                             
                                             %copy old log file
                                             fprintf(fidJob,[nowString,' copy old log file to new log file\n'],job(i).projData);
-                                            fprintf(fid2,['---begin copy old logfile---\n'])
+                                            fprintf(fid2,['---begin copy old logfile---\n']);
                                             
                                             %close and reopen old logfile first
                                             fclose(fid);
