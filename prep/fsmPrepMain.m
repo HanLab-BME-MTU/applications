@@ -46,6 +46,11 @@ autoPolygon  = fsmParam.prep.autoPolygon;   % Automatic analisys of the image to
 drawROI      = fsmParam.prep.drawROI;       % The user draws or loads a ROI to restrict analysis
 sigma        = fsmParam.prep.sigma;         % Sigma for image low-pass filtering
 
+projDir = fsmParam.project.path;
+edgeDir = fsmParam.project.edge;
+
+oldPath = pwd;
+
 % Change to userPath
 cd(userPath);
 
@@ -250,6 +255,63 @@ end
 % Initializing progress bar
 h = waitbar(0,'Preprocessing...');
 
+%Added by Lin Ji on Jan. 24, 2005
+%Search in the 'edge' directory first to see if edge has already
+% been detected using edge tracking 'prPanel'.
+bgMaskDir = [projDir filesep edgeDir filesep 'cell_mask'];
+
+if isdir(bgMaskDir)
+   dirList = dir(bgMaskDir);
+   fileList = {dirList(find([dirList.isdir] == 0)).name};
+   bgMaskFileList = fileList(strmatch('mask_',fileList));
+
+   %Get the index of the available mask files.
+   bgMaskFileIndex = zeros(size(bgMaskFileList));
+   for k = 1:length(bgMaskFileList)
+      [path,body,no,ext] = getFilenameBody(bgMaskFileList{k});
+      bgMaskFileList{k} = [bgMaskDir filesep bgMaskFileList{k}];
+      bgMaskFileIndex(k) = str2num(no);
+   end
+   [bgMaskFileIndex,sortedI] = sort(bgMaskFileIndex);
+   bgMaskFileList = bgMaskFileList(sortedI);
+else
+   bgMaskFileList = {};
+end
+
+if isempty(bgMaskFileList)
+   warndlg(['No cell edge mask files has been found in the selected ' ...
+      '''edge'' directory: ' edgeDir '. Please run edge tracking first by ' ...
+      'click ''Run edge tracker'' button in ''fsmCenter'' ' ...
+      'or uncheck ''Automatic img segmentation''.'],'warning','modal');
+   cd(oldPath);
+   if ishandle(h)
+      delete(h);
+   end
+   return;
+end
+
+%Check if edge detection has been done for the selected images.
+inRangeI = find(bgMaskFileIndex>=firstIndex & ...
+   bgMaskFileIndex<=firstIndex+n-1);
+
+if length(inRangeI) < n
+   ans = questdlg(['Cell edge mask files are missing for some images ' ...
+      'in the selected ''edge'' directory: ' edgeDir ...
+      '. Do you want to continue or go back and run edge tracking again by ' ...
+      'click ''Run edge tracker'' button in ''fsmCenter''?'], ...
+      'warning','Continue','Cancel','Continue');
+
+   if strcmp(ans,'Cancel')
+      cd(oldPath);
+      if ishandle(h)
+         delete(h);
+      end
+      return;
+   end
+end
+
+%%%%%% End of Lin Ji's change %%%%%%%%
+
 % Go through the stack (n images)
 for counter1=1:n
     
@@ -267,21 +329,36 @@ for counter1=1:n
             successCE=-1;
             
             % Extract cell outlines (b/w mask)
-            try
-                % Here use special bit depth instead of the FSM bit depth
-                % contact Matthias for more questions
-                eBD = 2^str2num(edgeBitDepth)-1;
-                img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
-                [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',0,'filter_image',1,'bit_depth',eBD);
-            catch
-                bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
-                fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+            %Added by Lin Ji on Jan 24, 2005. Check weather a mask file has
+            % already existed.
+            if ~isempty(bgMaskFileList)
+               %Check if the current image has a 'bgMask' file already.
+               rBgMaskInd = find(bgMaskFileIndex==currentIndex);
+
+               if ~isempty(rBgMaskInd)
+                  bwMask = imread(bgMaskFileList{rBgMaskInd});
+                  successCE = 1;
+               end
             end
-            
+
+            %if successCE == -1
+            %   try
+            %      % Here use special bit depth instead of the FSM bit depth
+            %      % contact Matthias for more questions
+            %      eBD = 2^str2num(edgeBitDepth)-1;
+            %      img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
+            %      [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',0,'filter_image',1,'bit_depth',eBD);
+            %   catch
+            %      bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
+            %      fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+            %   end
+            %end
+
             % If imFindCellEdge returns successCE==-1 create a white mask too
             if successCE==-1
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
-                fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+                %fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+                fprintf(1,'Edge mask file for frame %s is missing.\n',num2str(currentIndex));
             end
             
             % Save it to disk
@@ -310,21 +387,33 @@ for counter1=1:n
             successCE=-1;
             
             % Extract cell outlines (b/w mask)
-            try
-                % Here use special bit depth instead of the FSM bit depth
-                % contact Matthias for more questions
-                eBD = 2^str2num(edgeBitDepth)-1;
-                img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
-                [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',1,'filter_image',1,'bit_depth',eBD);
-            catch
-                bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
-                fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+            %Added by Lin Ji on Jan 24, 2005. Check weather a mask file has
+            % already existed.
+            if ~isempty(bgMaskFileList)
+               %Check if the current image has a 'bgMask' file already.
+               rBgMaskInd = find(bgMaskFileIndex==currentIndex);
+
+               if ~isempty(rBgMaskInd)
+                  bwMask = imread(bgMaskFileList{rBgMaskInd});
+                  successCE = 1;
+               end
             end
+            %try
+            %    % Here use special bit depth instead of the FSM bit depth
+            %    % contact Matthias for more questions
+            %    eBD = 2^str2num(edgeBitDepth)-1;
+            %    img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
+            %    [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',1,'filter_image',1,'bit_depth',eBD);
+            %catch
+            %    bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
+            %    fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+            %end
             
             % If imFindCellEdge returns successCE==-1 create a white mask too
             if successCE==-1
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
-                fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+            %    fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+                fprintf(1,'Edge mask file for frame %s is missing.\n',num2str(currentIndex));
             end
             
             % Save it to disk
