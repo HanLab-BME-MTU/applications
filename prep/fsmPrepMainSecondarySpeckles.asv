@@ -190,13 +190,9 @@ end
 if fsmParam.prep.subpixel==1
       %for now, keep sigma and bitdpeth fixed, next step, look for the appr. values
        cands=candsTot;   
-% IMPORTANT: up until now, no module for setting the value of the parameter
-% sigma; in Aaron's function, set to 1; in this function set to constant
-% value
-%Margaret's data: sigma=0.8
-%synthetic data: sigma =1 , 1.5, 2
+% IMPORTANT: up until now, no module for setting the value of thj
        
-       sigma=1;
+       sigma=0.8;
        image=oI;
        disp('calculating sub-pixel locations...');
        [candsSP] = candsToSubpixelN(image,cands,sigma);
