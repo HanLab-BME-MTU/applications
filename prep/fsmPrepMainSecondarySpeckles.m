@@ -1,4 +1,4 @@
-function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,enhTriang,fsmParam)
+function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,enhTriang,fsmParam,oI)
 
 % fsmPrepMainSecondarySpeckles is the main function of the fsmPrepSecondarySpeckles sub-module
 %
@@ -18,6 +18,8 @@ function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noisePar
 %                          (before stopping)
 %            enhTriang  :  turns on enhanced triangulation for Matlab Version < 6.5
 %            fsmParam   :  (optional) fsmParam structure for SpeckTackle
+%            oI         :  original image necessary for subpixel accuracy
+%                           determination; is normalized, but NOT filtered
 %
 % OUTPUT     candsTot   :  augmented cands structure (see fsmPrepTestLocalMaxima.m)
 %            IMfinal    :  local maxima map
@@ -170,6 +172,7 @@ for i=1:length(candsTot)
 end
 [yMfinal,xMfinal]=find(ne(IMfinal,0));
 
+
 % Save speckle information (cands and locMax) to disk for future use
 if SAVEINFO==1
     locMax=IMfinal;
@@ -179,6 +182,22 @@ if SAVEINFO==1
     eval(strcat('save locMax',filesep,'locMax',indxStr,'.mat locMax;')); % Save loc max positions
     
 end
+
+% Estimate subpixel positions of speckles
+% NOTE: until the size of the GuassKernel used for filtering the image is 
+% made variable to accomodate different psfs, it is necessary to do the 
+% mixture model fitting on the unfiltered original image, rather than the filtered one
+if fsmParam.prep.subpixel==1
+      %for now, keep sigma and bitdpeth fixed, next step, look for the appr. values
+       cands=candsTot;   
+       sigma=0.8;
+       image=oI;
+       disp('calculating sub-pixel locations...');
+       [candsSP] = candsToSubpixelN(image,cands,sigma);
+       eval( (strcat('save cands',filesep,'cands',indxStr,'_spa.mat candsSP;')) );
+end
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % DEBUG FIGURES:
