@@ -294,13 +294,13 @@ try
                                         %cropped/corrected movie
                                         moviename = [job(i).projName,'.r3c'];
                                         fprintf(fidJob,[nowString,' movie  =  readmat(%s);\n'],moviename);
-                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n',moviename]);
+                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n'],moviename);
                                         movie  =  readmat(moviename);
                                     else
                                         %normal movie
                                         moviename = [job(i).projName,'.r3d'];
                                         fprintf(fidJob,[nowString,' movie  =  r3dread(%s);\n'],moviename);
-                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n',moviename]);
+                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n'],moviename);
                                         movie  =  r3dread(moviename);
                                     end
                                     
