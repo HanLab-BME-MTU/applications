@@ -28,7 +28,7 @@ function [I0,sDN,GaussRatio,status]=fsmCalcNoiseParam(firstfilename,bitDepth,sig
 % OUTPUT   I0           : average intensity
 %          sDN          : average standard deviation (sigmaDarkNoise)
 %          GaussRatio   : ratio std(image)/std(filtered_image)
-%          status       : 0   if the user passed dataFile=[];
+%          status       : 0   if the user passed dataFile=[] or the calibration was interrupted by the user;
 %                         1   if the parameters where successfully written to the file 'dataFile';
 %                         -1  if the function failed to write them to the file specified by the user.
 %
@@ -174,6 +174,13 @@ def={'* * * LABEL * * *','* * * DESCRIPTION * * *'};
 dlgTitle='Please enter a label and a description for the experiment';
 lineNo=1;
 answer=inputdlg(prompt,dlgTitle,lineNo,def);
+
+if isempty(answer)
+    answer={'* * * LABEL * * *','* * * DESCRIPTION * * *'};
+    disp('Warning: you did not specify LABEL and DESCRIPTION for this experiment.');
+    disp('The record will be saved anyway.');
+    disp('Click on ''Edit experiment database'' in fsmCenter to update the record manually.');
+end
 
 if isempty(dataFile) | ~exist(dataFile,'file')
     fid=1;

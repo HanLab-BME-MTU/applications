@@ -299,7 +299,7 @@ end
 if status==-1
     uiwait(msgbox('The noise parameters could not be saved to your user database. They were returned to the MATLAB console. Make sure that a file called ''fsmExpParams.txt'' exists in your user directory or in the root directory of the qFSM package. Click on ''User settings'' in fsmCenter and follow the instructions.','Info','modal'));
 elseif status==0
-    disp('Status zero means that the user requested display to console. This shouldn''t happen here. Please report this bug.');
+    disp('Calibration interrupted by the user.');
 elseif status==1
     uiwait(msgbox('The noise parameters were successfully added to your user database. They will be added to the ''Camera calibration'' popup menu the next time you''ll start SpeckTackle. If you need to modify the entered record, click on ''Edit experiment database'' in fsmCenter and scroll down to the end to the file.','Info','modal'));
 else
