@@ -12,13 +12,14 @@ function [pacfV,errFlag] = pacf(gamma,maxLag)
 %
 %Khuloud Jaqaman, February 2004
 
+%initialize output
 errFlag = 0;
+pacfV = [];
 
 %check if correct number of arguments were used when function was called
 if nargin ~= nargin('pacf')
     disp('--pacf: Incorrect number of input arguments!');
     errFlag  = 1;
-    pacfV = [];
     return
 end
 
@@ -33,7 +34,6 @@ if length(gamma) < maxLag+1
 end
 if errFlag
     disp('--pacf: Please fix input data!');
-    pacfV = [];
     return
 end
 

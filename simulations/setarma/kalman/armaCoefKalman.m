@@ -26,7 +26,8 @@ function [arParam,maParam,wnVariance,wnVector,aic,aicc,errFlag] = ...
 %        equation numbers used here are those in that paper. The main
 %        difference is that I do not estimate the observational error
 %        variance, but use that obtained from experimental data or
-%        simulated trajectories (and is thus time-dependent).
+%        simulated trajectories (and is thus time-dependent). Also, 
+%        trajectories are shifted to get zero mean before analysis is done.
 %
 %Khuloud Jaqaman, July 2004
 
@@ -48,15 +49,17 @@ end
 
 %check input data
 for i=1:length(trajectories);
-    [trajLength,nCol] = size(trajectories(i).traj);
+    traj = trajectories(i).traj;
+    [trajLength,nCol] = size(traj);
     if nCol ~= 2
         if nCol == 1 %if no error is supplied, it is assumed that there is no observational error
-            trajectories(i).traj = [trajectories(i).traj zeros(trajLength,1)];
+            traj = [traj zeros(trajLength,1)];
         else
             disp('--armaCoefKalman: "trajectories.traj" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
             errFlag = 1;
         end
     end
+    trajectories(i).traj = traj;
 end
 [nRow,arOrder] = size(arParamP0);
 if ~isempty(arParamP0)
@@ -88,12 +91,17 @@ end
 %initial values of parameters to be estimated
 param0 = [arParamP0 maParamP0];
 
-%obtain number of available observations and their indices
+%obtain number of available observations and their indices, and shift
+%trajectory to get zero mean
 for i=1:length(trajectories)
-    trajectories(i).available = find(~isnan(trajectories(i).traj(:,1)));
-    numAvail(i) = length(trajectories(i).available);
+    traj = trajectories(i).traj;
+    trajectories(i).available = find(~isnan(traj(:,1))); %get indices of available points
+    numAvail(i) = length(trajectories(i).available); %get total # of available points
+    traj(:,1) = traj(:,1) - mean(traj(trajectories(i).available,1)); %shift trajectory
+    trajectories(i).traj = traj;
 end
-totAvail = sum(numAvail);
+%calculcate overall number of available points (in all trajectories)
+totAvail = sum(numAvail); 
 
 %define optimization options.
 options = optimset('Display','final','DiffMaxChange',1e-3,...
