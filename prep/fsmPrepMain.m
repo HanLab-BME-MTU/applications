@@ -258,56 +258,59 @@ h = waitbar(0,'Preprocessing...');
 %Added by Lin Ji on Jan. 24, 2005
 %Search in the 'edge' directory first to see if edge has already
 % been detected using edge tracking 'prPanel'.
+
 bgMaskDir = [projDir filesep edgeDir filesep 'cell_mask'];
+if autoPolygon == 1
+    if isdir(bgMaskDir)
+        dirList = dir(bgMaskDir);
+        fileList = {dirList(find([dirList.isdir] == 0)).name};
+        bgMaskFileList = fileList(strmatch('mask_',fileList));
 
-if isdir(bgMaskDir)
-   dirList = dir(bgMaskDir);
-   fileList = {dirList(find([dirList.isdir] == 0)).name};
-   bgMaskFileList = fileList(strmatch('mask_',fileList));
+        %Get the index of the available mask files.
+        bgMaskFileIndex = zeros(size(bgMaskFileList));
+        for k = 1:length(bgMaskFileList)
+            [path,body,no,ext] = getFilenameBody(bgMaskFileList{k});
+            bgMaskFileList{k}  = [bgMaskDir filesep bgMaskFileList{k}];
+            bgMaskFileIndex(k) = str2num(no);
+        end
+        [bgMaskFileIndex,sortedI] = sort(bgMaskFileIndex);
+        bgMaskFileList = bgMaskFileList(sortedI);
+    else
+        bgMaskFileList  = {};
+        bgMaskFileIndex = [];
+    end
 
-   %Get the index of the available mask files.
-   bgMaskFileIndex = zeros(size(bgMaskFileList));
-   for k = 1:length(bgMaskFileList)
-      [path,body,no,ext] = getFilenameBody(bgMaskFileList{k});
-      bgMaskFileList{k} = [bgMaskDir filesep bgMaskFileList{k}];
-      bgMaskFileIndex(k) = str2num(no);
-   end
-   [bgMaskFileIndex,sortedI] = sort(bgMaskFileIndex);
-   bgMaskFileList = bgMaskFileList(sortedI);
-else
-   bgMaskFileList = {};
-end
+    if isempty(bgMaskFileList)
+        warndlg(['No cell edge mask files has been found in the selected ' ...
+            '''edge'' directory: ' edgeDir '. Please run edge tracking first by ' ...
+            'click ''Run edge tracker'' button in ''fsmCenter'' ' ...
+            'or uncheck ''Automatic img segmentation''.'],'warning','modal');
+        cd(oldPath);
+        if ishandle(h)
+            delete(h);
+        end
+        return;
+    end
 
-if isempty(bgMaskFileList)
-   warndlg(['No cell edge mask files has been found in the selected ' ...
-      '''edge'' directory: ' edgeDir '. Please run edge tracking first by ' ...
-      'click ''Run edge tracker'' button in ''fsmCenter'' ' ...
-      'or uncheck ''Automatic img segmentation''.'],'warning','modal');
-   cd(oldPath);
-   if ishandle(h)
-      delete(h);
-   end
-   return;
-end
+    %Check if edge detection has been done for the selected images.
+    inRangeI = find(bgMaskFileIndex>=firstIndex & ...
+        bgMaskFileIndex<=firstIndex+n-1);
 
-%Check if edge detection has been done for the selected images.
-inRangeI = find(bgMaskFileIndex>=firstIndex & ...
-   bgMaskFileIndex<=firstIndex+n-1);
+    if length(inRangeI) < n
+        ans = questdlg(['Cell edge mask files are missing for some images ' ...
+            'in the selected ''edge'' directory: ' edgeDir ...
+            '. Do you want to continue or go back and run edge tracking again by ' ...
+            'click ''Run edge tracker'' button in ''fsmCenter''?'], ...
+            'warning','Continue','Cancel','Continue');
 
-if length(inRangeI) < n
-   ans = questdlg(['Cell edge mask files are missing for some images ' ...
-      'in the selected ''edge'' directory: ' edgeDir ...
-      '. Do you want to continue or go back and run edge tracking again by ' ...
-      'click ''Run edge tracker'' button in ''fsmCenter''?'], ...
-      'warning','Continue','Cancel','Continue');
-
-   if strcmp(ans,'Cancel')
-      cd(oldPath);
-      if ishandle(h)
-         delete(h);
-      end
-      return;
-   end
+        if strcmp(ans,'Cancel')
+            cd(oldPath);
+            if ishandle(h)
+                delete(h);
+            end
+            return;
+        end
+    end
 end
 
 %%%%%% End of Lin Ji's change %%%%%%%%
