@@ -91,10 +91,15 @@ if nargin < 2 || isempty(modelParamOrder) %if no models to fit were input
     %randomly generate initial parameter guesses for AR and MA orders from 0:5
     for i=0:5
         for j=0:5
-            modelParam(i+1,j+1).arParamP0 = 4*rand(1,i) - 2;
-            modelParam(i+1,j+1).maParamP0 = 4*rand(1,j) - 2;
-        end
+            %             modelParam(i+1,j+1).arParamP0 = 4*rand(1,i) - 2;
+            %             modelParam(i+1,j+1).maParamP0 = 4*rand(1,j) - 2;
+            modelParam(i+1,j+1).arParamP0 = [];
+            modelParam(i+1,j+1).maParamP0 = [];
+            modelParam(i+1,j+1).autoGen = 1; %logical variable indicating
+        end %that initial guess is derived from coefficients of previous model
     end
+    %first model's initial guess cannot be derived from previous model's result, 
+    modelParam(1,1).autoGen = 0; %since there is no previous model
 
 else %if models or model order were supplied
 
@@ -103,7 +108,7 @@ else %if models or model order were supplied
         modelParam = modelParamOrder;
 
     else %if range of AR and MA orders was input
-
+        
         %check size of matrix
         [nRow,nCol] = size(modelParamOrder);
         if nRow ~= 2 || nCol ~= 2
@@ -113,10 +118,17 @@ else %if models or model order were supplied
             %generate random initial parameter guesses for the order range specified
             for i=1:modelParamOrder(1,2)-modelParamOrder(1,1)+1
                 for j=1:modelParamOrder(2,2)-modelParamOrder(2,1)+1
-                    modelParam(i,j).arParamP0 = 4*rand(1,i) - 2;
-                    modelParam(i,j).maParamP0 = 4*rand(1,j) - 2;
+                    %                     modelParam(i,j).arParamP0 = 4*rand(1,i) - 2;
+                    %                     modelParam(i,j).maParamP0 = 4*rand(1,j) - 2;
+                    modelParam(i,j).arParamP0 = [];
+                    modelParam(i,j).maParamP0 = [];
+                    modelParam(i,j).autoGen = 1;
                 end
             end
+            modelParam(1,1).arParamP0 = 4*rand(1,modelParamOrder(1,1)) - 2;
+            modelParam(1,1).maParamP0 = 4*rand(1,modelParamOrder(2,1)) - 2;
+            modelParam(1,1).autoGen = 0;
+            
         end
 
     end
@@ -150,8 +162,18 @@ for i=1:size(modelParam,1)
     for j=1:size(modelParam,2)
 
         %assign model data
-        arParamP0 = modelParam(i,j).arParamP0;
-        maParamP0 = modelParam(i,j).maParamP0;
+        if ~modelParam(i,j).autoGen %if there is an initial guess
+            arParamP0 = modelParam(i,j).arParamP0;
+            maParamP0 = modelParam(i,j).maParamP0;
+        else %if initial guess must be generated from lower order models
+            if j~=1
+                arParamP0 = fitResults(i,j-1).arParamK(2,:);
+                maParamP0 = [fitResults(i,j-1).maParamK(2,:) 0.1];
+            else
+                arParamP0 = [fitResults(i-1,j).arParamK(2,:) 0.1];
+                maParamP0 = fitResults(i-1,j).maParamK(2,:);
+            end
+        end
 
         %estimate ARMA coeffients and white noise variance
         [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...

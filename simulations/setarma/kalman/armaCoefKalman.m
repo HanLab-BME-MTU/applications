@@ -500,6 +500,9 @@ armaCoef2.maParam = maParamL;
 %compare parameters
 [H,pVCompKL,errFlag] = armaCoefComp(armaCoef1,armaCoef2,varCovMat,varCovMat,...
     'global');
+if errFlag
+    pVCompKL = 0;
+end
 
 %report failure of fit and do not consider results if coefficients are significantly different
 if H == 1

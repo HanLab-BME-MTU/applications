@@ -164,6 +164,9 @@ tempL = trajLength+10*shift;
 traj = zeros(tempL,1);
 noise = zeros(tempL,1);
 
+%initialize normal random number generator
+randn('state',sum(100*clock));
+
 %enter values of first few time steps
 %note that I do not go from 1 to max(arOrder,delay) but go the other way
 %around (starting at shift) since maOrder might be larger than arOrder and

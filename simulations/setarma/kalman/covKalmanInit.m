@@ -80,8 +80,8 @@ stateCovMat00 = zeros(maxOrder);
 stateCovMat00(1,:) = correlations(1:maxOrder)';
 for i = 2:maxOrder
     for j = i:maxOrder
-        stateCovMat00(i,j) = correlations(j-i+1) - procErrCov(1:i)'...
-            *procErrCov(1+j-i:j);
+        stateCovMat00(i,j) = correlations(j-i+1) - procErrCov(1:i-1)'...
+            *procErrCov(1+j-i:j-1);
     end
 end
 stateCovMat00 = stateCovMat00 + stateCovMat00' - diag(diag(stateCovMat00));
