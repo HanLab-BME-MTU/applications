@@ -154,7 +154,7 @@ fsmGuiMain;
 
 function pushOpenProject_Callback(hObject, eventdata, handles)
 projDir=get(handles.textCurrentProject,'String');
-[projDir,imageDir,subProjects]=projSetupGUI;
+[projDir,imageDir,subProjects]=projSetupGUI('a','b',projDir);
 if ~isempty(projDir)
     set(handles.textCurrentProject,'String',projDir);
     set(handles.textCurrentImage,'String',imageDir);

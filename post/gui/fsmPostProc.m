@@ -22,7 +22,7 @@ function varargout = fsmPostProc(varargin)
 
 % Edit the above text to modify the response to help fsmPostProc
 
-% Last Modified by GUIDE v2.5 02-Sep-2004 13:54:31
+% Last Modified by GUIDE v2.5 02-Sep-2004 17:45:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -885,6 +885,12 @@ end
 % Get current project
 handlesFsmCenter=guidata(hfsmC);
 projDir=get(handlesFsmCenter.textCurrentProject,'String');
+% Get settings from fsmCenter
+settings=get(handlesFsmCenter.fsmCenter,'UserData');
+% Check
+if ~strcmp(projDir,settings.projDir)
+    error('projDir stored in fsmCenter''s UserData and in fsmCenter''s .textCurrentProject field are different!');
+end
 set(handles.textCurrentProject,'String',projDir);
 
 % If necessary, look for subproject
@@ -893,6 +899,12 @@ if isempty(projDir)
 else
     subProjects=findProjSubDir(projDir,'tack');
     set(handles.popupCurrentExp,'String',subProjects);
-    set(handles.popupCurrentExp,'Value',1);
+    % Set as default the one chosen in the project
+    [found,pos]=ismember(settings.subProjects(1),subProjects);
+    if found==0
+        error('The directory stored fsmCenter''s settings does not actually exist on disk!');
+    else
+        set(handles.popupCurrentExp,'Value',pos);
+    end
     set(handles.popupCurrentExp,'Enable','on');
 end

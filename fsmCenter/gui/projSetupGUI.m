@@ -66,11 +66,12 @@ handles.mergDir = '';
 handles.corrDir = '';
 projDir=[];
 imgDir=[];
-
-if nargin==3
-    projDir=[];
-    resDirList={};
-end
+resDirList={};
+    
+% if nargin==3
+%     projDir=[];
+%     resDirList={};
+% end
 
 if nargin > 5
     projDir = varargin{3};
