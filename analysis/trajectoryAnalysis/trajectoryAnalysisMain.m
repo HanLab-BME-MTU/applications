@@ -29,6 +29,7 @@ dlaLength = 0;
 
 %for plotting: calc extreme coords
 yAxisLimits = [0,max(sum(distanceAll,2))];
+xAxisLimits = [0,max(sum(timeAll,2))];
 
 %--------LOOP THROUGH EVERYTHING
 for numData = 1:length(data)
@@ -82,9 +83,10 @@ for numData = 1:length(data)
     %---------PLOT
     if any(verbose == 2)
         plotFigH = figure('Name',fileNameList{numData});
-        axes('NextPlot','add','YLim',yAxisLimits);
-        plot(timePoints(:,1),distance(:,1),'-dk');
-        myErrorbar(timePoints(:,1),distance(:,1),distance(:,2));
+        axes('NextPlot','add','YLim',yAxisLimits,'XLim',xAxisLimits);
+        plot(time(:,1),distance(:,1),'-dk');
+        myErrorbar(time(:,1),distance(:,1),distance(:,2));
+        
         
         %---plot deleted intervals with '--w' here
    
@@ -97,8 +99,8 @@ for numData = 1:length(data)
         %build NaN-separated lists for time and distance
         %time
         growthTime = repmat(NaN,[3,length(growthIdx)]);
-        growthTime(1,:) = timePoints(growthStartDataIdx,1)';
-        growthTime(2,:) = timePoints(growthEndDataIdx,1)';
+        growthTime(1,:) = time(growthStartDataIdx,1)';
+        growthTime(2,:) = time(growthEndDataIdx,1)';
         growthTime = growthTime(:);
         %distance
         growthDistance = repmat(NaN,[3,length(growthIdx)]);
@@ -118,8 +120,8 @@ for numData = 1:length(data)
         %build NaN-separated lists for time and distance
         %time
         shrinkageTime = repmat(NaN,[3,length(shrinkageIdx)]);
-        shrinkageTime(1,:) = timePoints(shrinkageStartDataIdx,1)';
-        shrinkageTime(2,:) = timePoints(shrinkageEndDataIdx,1)';
+        shrinkageTime(1,:) = time(shrinkageStartDataIdx,1)';
+        shrinkageTime(2,:) = time(shrinkageEndDataIdx,1)';
         shrinkageTime = shrinkageTime(:);
         %distance
         shrinkageDistance = repmat(NaN,[3,length(shrinkageIdx)]);
@@ -139,8 +141,8 @@ for numData = 1:length(data)
         %build NaN-separated lists for time and distance
         %time
         deletedTime = repmat(NaN,[3,length(deletedIdx)]);
-        deletedTime(1,:) = timePoints(deletedStartDataIdx,1)';
-        deletedTime(2,:) = timePoints(deletedEndDataIdx,1)';
+        deletedTime(1,:) = time(deletedStartDataIdx,1)';
+        deletedTime(2,:) = time(deletedEndDataIdx,1)';
         deletedTime = deletedTime(:);
         %distance
         deletedDistance = repmat(NaN,[3,length(deletedIdx)]);
@@ -177,8 +179,8 @@ for numData = 1:length(data)
         %build NaN-separated lists for time and distance
         %time
         pauseTime = repmat(NaN,[3,length(pauseIdx)]);
-        pauseTime(1,:) = timePoints(pauseStartDataIdx,1)';
-        pauseTime(2,:) = timePoints(pauseEndDataIdx,1)';
+        pauseTime(1,:) = time(pauseStartDataIdx,1)';
+        pauseTime(2,:) = time(pauseEndDataIdx,1)';
         pauseTime = pauseTime(:);
         
         %distance
@@ -215,8 +217,8 @@ for numData = 1:length(data)
         %build NaN-separated lists for time and distance
         %time
         growthTime = repmat(NaN,[3,length(growthIdx)]);
-        growthTime(1,:) = timePoints(growthStartDataIdx,1)';
-        growthTime(2,:) = timePoints(growthEndDataIdx,1)';
+        growthTime(1,:) = time(growthStartDataIdx,1)';
+        growthTime(2,:) = time(growthEndDataIdx,1)';
         growthTime = growthTime(:);
         %distance
         
@@ -238,8 +240,8 @@ for numData = 1:length(data)
         %build NaN-separated lists for time and distance
         %time
         shrinkageTime = repmat(NaN,[3,length(shrinkageIdx)]);
-        shrinkageTime(1,:) = timePoints(shrinkageStartDataIdx,1)';
-        shrinkageTime(2,:) = timePoints(shrinkageEndDataIdx,1)';
+        shrinkageTime(1,:) = time(shrinkageStartDataIdx,1)';
+        shrinkageTime(2,:) = time(shrinkageEndDataIdx,1)';
         shrinkageTime = shrinkageTime(:);
         %distance
         
@@ -287,13 +289,20 @@ end %for numData = 1:length(data)
 %---------CALCULATE OVERALL STATISTICS
 %if we did convergence, this will just be the nth entry, else we have a
 %field overallStatistics
-[overallStatistics,overallDistribution] = ...
+if constants.DOCLUSTER
+[overallStatistics,overallDistribution,overallCluster] = ...
         trajectoryAnalysisMainCalcStats(dataListAll(1:dlaLength,:),distanceAll(1:tpInd,:),timeAll(1:tpInd,:),verbose,...
         ['overall statistics for ',num2str(numData),' trajectories'],constants);
+else
+    [overallStatistics,overallDistribution] = ...
+        trajectoryAnalysisMainCalcStats(dataListAll(1:dlaLength,:),distanceAll(1:tpInd,:),timeAll(1:tpInd,:),verbose,...
+        ['overall statistics for ',num2str(numData),' trajectories'],constants);
+    overallCluster = [];
+end
+
 if doConvergence
     %create a field but leave it empty
     trajectoryDescription.overallStatistics = [];
-    
 else
     %calculate overallStatistics
     trajectoryDescription.overallStatistics = overallStatistics;
@@ -302,3 +311,4 @@ else
 end
 
 trajectoryDescription.overallDistribution = overallDistribution;
+trajectoryDescription.speedClustering     = overallCluster;

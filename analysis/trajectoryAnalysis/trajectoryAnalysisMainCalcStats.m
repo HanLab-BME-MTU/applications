@@ -1,4 +1,4 @@
-function [statisticsStruct, distributionStruct] = trajectoryAnalysisMainCalcStats(dataListG,distance,time,verbose,fileName,constants)
+function [statisticsStruct, distributionStruct, clusterStruct] = trajectoryAnalysisMainCalcStats(dataListG,distance,time,verbose,fileName,constants)
 %TRAJECTORYANALYSISMAINCALCSTATS calculates statistics for trajectoryAnalysis
 %
 % OUTPUT statistics structure with fields
@@ -25,7 +25,7 @@ function [statisticsStruct, distributionStruct] = trajectoryAnalysisMainCalcStat
 %     'pauseTime' ,               
 %     'undeterminedTime' ,        
 %     'deletedTime' ,             
-%     'nTimepoints',              
+%     'nTimepoints', 
 %
 %      and distribution structure with distributions from contHisto for
 %      both speeds and the distance
@@ -33,6 +33,11 @@ function [statisticsStruct, distributionStruct] = trajectoryAnalysisMainCalcStat
 %     distributionStruct.separationSpeedDistribution = [growthSpeedDistX,growthSpeedDistY];
 %     distributionStruct.congressionSpeedDistribution = [shrinkageSpeedDistX,shrinkageSpeedDistY];
 %     distributionStruct.distanceDistribution = [distanceDistX,distanceDistY];
+%
+%      and clusterStruct:
+%       clusterStruct.numberOfDistributions = # of clusters
+%       clusterStruct.centersOfDistributions = #oD means
+%       clusterStruct.?
 %
 % c: 1/04 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -47,6 +52,10 @@ warning off MATLAB:divideByZero;
 %GROWTH
 growthSpeedMean = [];
 growthSpeedStd = [];
+growthSpeedMeanNW = [];
+growthSpeedStdNW = [];
+growthSpeedMeanPW = [];
+growthSpeedStdPW = [];
 invGrowthTimeMean = [];
 invGrowthTimeStd = [];
 growthTimeTotal = 0;
@@ -67,6 +76,10 @@ growthTimeRatio = [];
 %SHRINKAGE
 shrinkageSpeedMean = [];
 shrinkageSpeedStd = [];
+shrinkageSpeedMeanNW = [];
+shrinkageSpeedStdNW = [];
+shrinkageSpeedMeanPW = [];
+shrinkageSpeedStdPW = [];
 invShrinkageTimeMean = [];
 invShrinkageTimeStd = [];
 shrinkageTimeTotal = 0;
@@ -427,19 +440,77 @@ end
 
 %--------------CALCULATE DISTRIBUTIONS
 if nargout > 1
-    [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
-            indGrowthSpeedSigma*growthSpeedMean],'norm',1,0);
-    [shrinkageSpeedDistY,shrinkageSpeedDistX] = contHisto([60*dataListG(shrinkageIdx,4),...
-            indShrinkageSpeedSigma*abs(shrinkageSpeedMean)],'norm',1,0);
+    % initialize to avoid problems with empty indexLists
+    distributionStruct.separationSpeedDistribution = [];
+    distributionStruct.congressionSpeedDistribution = [];
+    distributionStruct.distanceDistribution = [];
+    
+    clusterStruct.separationK = [];
+    clusterStruct.separationMeans = [];
+    clusterStruct.separationWeight = [];
+    clusterStruct.separationVariance = [];
+    
+    clusterStruct.congressionK = [];
+    clusterStruct.congressionMeans = [];
+    clusterStruct.congressionWeight = [];
+    clusterStruct.congressionVariance = [];
+    
+    if ~isempty(growthIdx)
+        [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
+                indGrowthSpeedSigma*growthSpeedMean],'norm',1,0);
+        % if requested, cluster speeds
+        if nargout > 2
+            % #of clusters, relative weights, positions, covariances = 
+            %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
+            [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(60*dataListG(growthIdx,4)',1,5,0,1e-4,1,[],[],any(verbose==4));
+            % and strore
+            clusterStruct.separationK = gbestk;
+            clusterStruct.separationMeans = gbestmu;
+            clusterStruct.separationWeight = gbestpp;
+            clusterStruct.separationVariance = gbestcov;
+        end
+    else
+        growthSpeedDistY = [];
+        growthSpeedDistX = [];
+    end
+    if ~isempty(shrinkageIdx)
+        [shrinkageSpeedDistY,shrinkageSpeedDistX] = contHisto([60*dataListG(shrinkageIdx,4),...
+                indShrinkageSpeedSigma*abs(shrinkageSpeedMean)],'norm',1,0);
+        if nargout > 2
+            % #of clusters, relative weights, positions, covariances = 
+            %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
+            [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(60*dataListG(shrinkageIdx,4)',1,5,0,1e-4,1,[],[],any(verbose==4));
+            % store cluster data
+            clusterStruct.congressionK = sbestk;
+            clusterStruct.congressionMeans = sbestmu;
+            clusterStruct.congressionWeight = sbestpp;
+            clusterStruct.congressionVariance = sbestcov;
+        end
+    else
+        shrinkageSpeedDistY = [];
+        shrinkageSpeedDistX = [];
+    end
+    
+    % there will always be distance...
     [distanceDistY,distanceDistX] = contHisto(distance,'norm',1,0);
     
-    if any(verbose == 3)
-        %plot without detail. Would cost too much memory
-        figure('Name','speed distribution'),plot(growthSpeedDistX,growthSpeedDistY/max(growthSpeedDistY),'-g',...
-            -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedDistY),'-r');
+    % plot without detail. Would cost too much memory
+    switch any(verbose == 3)*(~isempty(growthIdx)+2*~isempty(shrinkageIdx))
+        case 1 % only growth
+            figure('Name','speed distribution'),plot(growthSpeedDistX,growthSpeedDistY/max(growthSpeedDistY),'-g'...
+                );
+        case 2 % only shrinkage
+            figure('Name','speed distribution'),plot(...
+                -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedDistY),'-r');
+        case 3 % both growth and shrinkage
+            figure('Name','speed distribution'),plot(growthSpeedDistX,growthSpeedDistY/max(growthSpeedDistY),'-g',...
+                -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedDistY),'-r');
+        otherwise % don't plot
+    end
+    if any(verbose == 3) % don't forget distance!!
         figure('Name','distance distribution'),area(distanceDistX,distanceDistY);
     end
-        
+    
     
     distributionStruct.separationSpeedDistribution = [growthSpeedDistX,growthSpeedDistY];
     distributionStruct.congressionSpeedDistribution = [shrinkageSpeedDistX,shrinkageSpeedDistY];

@@ -18,7 +18,8 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %                             Verbose = 1 writes to commandline
 %                             Verbose = 2 shows trajectories
 %                             Verbose = 3 shows distributions
-%                             Verbose = [1,2,3] shows all
+%                             Verboes = 4 shows clustering result
+%                             Verbose = [1,2,3,4] shows all
 %                             Verbose = [] or [0] does not show anything.
 %                             Asking for savePaths is not affected by
 %                             verbose settings
@@ -43,6 +44,9 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %                               the program. Otherwise, you have to specify
 %                               this option in
 %                               calculateTrajectoryFromIdlist
+%           - clusterData   : [0/{1}] uses EM clustering to find clusters
+%                               of speeds.
+%                               
 %        testOpt: optional structure with the following optional fields
 %           - splitData     : [{0}/1] split data into two sets, returns two
 %                               output arguments
@@ -83,6 +87,7 @@ fileNameList = {'data_1'};
 calculateTrajectoryOpt.calc2d = 0; %1 or 2 if MP/in-focus slices only
 expOrSim = 'x';
 splitData = 0; %whether or not to split the data into two sets (to check the homogenity of the sample)
+clusterData = 1;
 
 %defaults not in inputStructure (see also constants!)
 writeShortFileList = 1; %writes everything on one line.
@@ -98,6 +103,7 @@ constants.STRATEGY = 1; %fitting strategy
 constants.MINLENGTH = 2; %minimum length of a unit
 constants.MAXDELETED = 0; %max number of deleted frames between two timepoints that is accepted
 constants.DEBUG = DEBUG; 
+constants.DOCLUSTER = 1; % this does not really belong here, but it's easiest to pass it with the constants
 
 %build list of possible identifiers
 %HOME/BIODATA/SIMDATA (also: NONE/NOFILE)
@@ -257,6 +263,9 @@ else
     if isfield(ioOpt,'calc2d')
         calculateTrajectoryOpt.calc2d = ioOpt.calc2d;
     end
+    if isfield(ioOpt,'clusterData')
+        constants.DOCLUSTER = ioOpt.clusterData;
+    end
 end
 
 %make sure that we have enough fileNames
@@ -375,7 +384,7 @@ if saveMat
         h = helpdlg(helpTxt,'');
         uiwait(h);
         
-        [saveMatName,saveMatPath] = uiputfile('mtDynamics-*','save results as mat file');
+        [saveMatName,saveMatPath] = uiputfile({'*.mat;*.mt*','MT-dynamics files'},'save results as mat file');
         
         %if user cancelled, nothing will be save                               
         if saveMatName == 0

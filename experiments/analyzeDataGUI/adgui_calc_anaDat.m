@@ -51,7 +51,7 @@ startT=1;
 while(isempty(idlist(startT).linklist) & startT<nTimePoints)
     startT=startT+1;
 end;
-if startT > nTimePoints
+if startT >= nTimePoints & isempty(idlist(startT).linklist)
     error('empty idlist')
 end
 

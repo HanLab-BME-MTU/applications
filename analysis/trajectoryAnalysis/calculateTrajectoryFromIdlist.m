@@ -43,6 +43,8 @@ calc2d = 0;
 
 %go through fields of opt, change defaults with input values if they exist
 if nargin < 5 | isempty(opt)
+    % keep defaults
+else
     if isfield(opt,'info')
         info = opt.info;
     end
@@ -91,6 +93,10 @@ switch calc2d
     otherwise
         %keep normal idlist
 end
+
+if isempty(idlist)
+    error('can not calculate trajectory: idlist is empty')
+end
         
 %---END CALC 2D-CASE IF SELECTED
 
@@ -99,6 +105,7 @@ end
 
 %cat linklist and extract coords, chi2, timePoints
 linkLists = cat(3,idlist.linklist);
+
 
 %coords
 coords = linkLists([tag1,tag2],9:11,:);
