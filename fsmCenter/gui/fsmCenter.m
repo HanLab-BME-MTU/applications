@@ -154,8 +154,8 @@ fsmGuiMain;
 
 function pushOpenProject_Callback(hObject, eventdata, handles)
 projDir=get(handles.textCurrentProject,'String');
-[projDir,imageDir,subProjects]=projSetupGUI('a','b',projDir, ...
-   get(hObject,'Parent'));
+[projDir,imageDir,subProjects,imgDirList,firstImgList]= ...
+   projSetupGUI('a','b',projDir,get(hObject,'Parent'));
 if isempty(projDir)
     % Nothing to do here - the user just canceled
     return
@@ -169,6 +169,8 @@ set(handles.textCurrentImage,'String',imageDir);
 settings.projDir=projDir;
 settings.imageDir={imageDir}; % This is a cell (n-channel movies)
 settings.subProjects=subProjects;
+settings.imgDirList=imgDirList;
+settings.firstImgList=firstImgList;
 set(handles.fsmCenter,'UserData',settings);
 % Update other GUIs if they are already running
 
