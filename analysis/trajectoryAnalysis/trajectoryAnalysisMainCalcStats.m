@@ -2,26 +2,22 @@ function [statisticsStruct, distributionStruct, clusterStruct] = trajectoryAnaly
 %TRAJECTORYANALYSISMAINCALCSTATS calculates statistics for trajectoryAnalysis
 %
 % OUTPUT statistics structure with fields
-%     'sep2conFreq' ,             catastrophe frequency
-%     'con2sepFreq' ,             rescue frequency
-%     'separationSpeed' ,         growth speed
-%     'separationSpeedNW',        
-%     'separationSpeedPW',        
-%     'congressionSpeed' ,        shrinkage speed
-%     'congressionSpeedNW' ,      
-%     'congressionSpeedPW' ,      
+%     'ap2tpFreq' ,             catastrophe frequency
+%     'tp2apFreq' ,             rescue frequency
+%     'antipolewardSpeed' ,         growth speed
+%     'polewardSpeed' ,        shrinkage speed
 %     'distanceMean',             std is std of sample!
 %     'minDistance',              
 %     'minDistanceM5' ,           mean of 5 smallest distances
 %     'maxDistance' ,             
 %     'maxDistanceM5' ,           mean of 5 largest distances
-%     'separationDistance' ,      mean distance per growth event
-%     'separationDistanceTotal' , 
-%     'congressionDistance' ,     mean distance per shrinkage event
-%     'congressionDistanceTotal', 
+%     'antipolewardDistance' ,      mean distance per growth event
+%     'antipolewardDistanceTotal' , 
+%     'polewardDistance' ,     mean distance per shrinkage event
+%     'polewardDistanceTotal', 
 %     'undeterminedDistance' ,    
-%     'separationTime' ,          
-%     'congressionTime' ,         
+%     'antipolewardTime' ,          
+%     'polewardTime' ,         
 %     'pauseTime' ,               
 %     'undeterminedTime' ,        
 %     'deletedTime' ,             
@@ -30,8 +26,8 @@ function [statisticsStruct, distributionStruct, clusterStruct] = trajectoryAnaly
 %      and distribution structure with distributions from contHisto for
 %      both speeds and the distance
 %
-%     distributionStruct.separationSpeedDistribution = [growthSpeedDistX,growthSpeedDistY];
-%     distributionStruct.congressionSpeedDistribution = [shrinkageSpeedDistX,shrinkageSpeedDistY];
+%     distributionStruct.antipolewardSpeedDistribution = [growthSpeedDistX,growthSpeedDistY];
+%     distributionStruct.polewardSpeedDistribution = [shrinkageSpeedDistX,shrinkageSpeedDistY];
 %     distributionStruct.distanceDistribution = [distanceDistX,distanceDistY];
 %
 %      and clusterStruct:
@@ -385,22 +381,22 @@ pauseTimeRatio = 100*pauseTimeTotal/divisor;
 %write statistics structure
 % 
 statisticsStruct = struct(...
-    'sep2conFreq' ,             [invGrowthTimeMean , invGrowthTimeStd],...
-    'con2sepFreq' ,             [invShrinkageTimeMean , invShrinkageTimeStd],...
-    'separationSpeed' ,         [growthSpeedMeanNW , growthSpeedStdNW],...
-    'congressionSpeed' ,        [shrinkageSpeedMeanNW , shrinkageSpeedStdNW],...
+    'ap2tpFreq (cat)' ,         [invGrowthTimeMean , invGrowthTimeStd],...
+    'tp2apFreq (res)' ,         [invShrinkageTimeMean , invShrinkageTimeStd],...
+    'antipolewardSpeed' ,       [growthSpeedMeanNW , growthSpeedStdNW],...
+    'polewardSpeed' ,           [shrinkageSpeedMeanNW , shrinkageSpeedStdNW],...
     'distanceMean',             [distanceMean,distanceStd],...
     'minDistance',              [minDistance , minDistanceStd],...
     'minDistanceM5' ,           [minDistanceM5 , minDistanceM5Std],...
     'maxDistance' ,             [maxDistance , maxDistanceStd],...
     'maxDistanceM5' ,           [maxDistanceM5 , maxDistanceM5Std],...
-    'separationDistance' ,      [growthDistanceMean , growthDistanceStd],...
-    'separationDistanceTotal' , [growthDistanceTotal],...
-    'congressionDistance' ,     [shrinkageDistanceMean , shrinkageDistanceStd],...
-    'congressionDistanceTotal', [shrinkageDistanceTotal],...
+    'antipolewardDistance' ,      [growthDistanceMean , growthDistanceStd],...
+    'antipolewardDistanceTotal' , [growthDistanceTotal],...
+    'polewardDistance' ,     [shrinkageDistanceMean , shrinkageDistanceStd],...
+    'polewardDistanceTotal', [shrinkageDistanceTotal],...
     'undeterminedDistance' ,    [undeterminedDistanceMean , undeterminedDistanceStd],...
-    'separationTime' ,          [growthTimeTotal,growthTimeRatio],...
-    'congressionTime' ,         [shrinkageTimeTotal,shrinkageTimeRatio],...
+    'antipolewardTime' ,          [growthTimeTotal,growthTimeRatio],...
+    'polewardTime' ,         [shrinkageTimeTotal,shrinkageTimeRatio],...
     'pauseTime' ,               [pauseTimeTotal,pauseTimeRatio],...
     'undeterminedTime' ,        [undeterminedTimeTotal,undeterminedTimeRatio],...
     'deletedTime' ,             [deletedTimeTotal],...
@@ -441,13 +437,13 @@ end
 %--------------CALCULATE DISTRIBUTIONS
 if nargout > 1
     % initialize to avoid problems with empty indexLists
-    distributionStruct.separationSpeedDistribution = [];
-    distributionStruct.congressionSpeedDistribution = [];
+    distributionStruct.antipolewardSpeedDistribution = [];
+    distributionStruct.polewardSpeedDistribution = [];
     distributionStruct.distanceDistribution = [];
     
     clusterStruct(1:constants.MAXCLUSTER) = struct(...
-        'separationBestK',[],'separationClusters',[],...
-        'congressionBestK',[],'congressionClusters',[]);
+        'antipolewardBestK',[],'antipolewardClusters',[],...
+        'polewardBestK',[],'polewardClusters',[]);
 
     
     if ~isempty(growthIdx)
@@ -461,7 +457,7 @@ if nargout > 1
             [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(60*dataListG(growthIdx,4)',...
                 constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-4,1,[],[],any(verbose==4));
             % and strore
-            clusterStruct(1).separationBestK = (gbestk); 
+            clusterStruct(1).antipolewardBestK = (gbestk); 
             
             %find results for every cluster
             for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
@@ -469,11 +465,11 @@ if nargout > 1
                 [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(60*dataListG(growthIdx,4)',...
                     kCluster,kCluster,0,1e-4,1,[],[],any(verbose==4));
                 
-                [separationMeans,muIdx] = sort(gbestmu);
-                separationWeight = gbestpp(muIdx);
-                separationVariance = sqrt(gbestcov(:,:,muIdx));
+                [antipolewardMeans,muIdx] = sort(gbestmu);
+                antipolewardWeight = gbestpp(muIdx);
+                antipolewardVariance = sqrt(gbestcov(:,:,muIdx));
                 
-                clusterStruct(kCluster).separationClusters = [separationMeans',separationWeight',squeeze(separationVariance)];
+                clusterStruct(kCluster).antipolewardClusters = [antipolewardMeans',antipolewardWeight',squeeze(antipolewardVariance)];
             end
         end
     else
@@ -491,7 +487,7 @@ if nargout > 1
             [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(60*dataListG(shrinkageIdx,4)',...
                 constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-4,1,[],[],any(verbose==4));
             % store cluster data
-            clusterStruct(1).congressionBestK = (sbestk);
+            clusterStruct(1).polewardBestK = (sbestk);
             
             %find results for every cluster
             for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
@@ -499,11 +495,11 @@ if nargout > 1
                 [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(60*dataListG(shrinkageIdx,4)',...
                     kCluster,kCluster,0,1e-4,1,[],[],any(verbose==4));
                 
-                [congressionMeans,muIdx] = sort(sbestmu);
-                congressionWeight = sbestpp(muIdx);
-                congressionVariance = sqrt(sbestcov(:,:,muIdx));
+                [polewardMeans,muIdx] = sort(sbestmu);
+                polewardWeight = sbestpp(muIdx);
+                polewardVariance = sqrt(sbestcov(:,:,muIdx));
                 
-                clusterStruct(kCluster).congressionClusters = [congressionMeans',congressionWeight',squeeze(congressionVariance)];
+                clusterStruct(kCluster).polewardClusters = [polewardMeans',polewardWeight',squeeze(polewardVariance)];
             end
         end
     else
@@ -532,8 +528,8 @@ if nargout > 1
     end
     
     
-    distributionStruct.separationSpeedDistribution = [growthSpeedDistX,growthSpeedDistY];
-    distributionStruct.congressionSpeedDistribution = [shrinkageSpeedDistX,shrinkageSpeedDistY];
+    distributionStruct.antipolewardSpeedDistribution = [growthSpeedDistX,growthSpeedDistY];
+    distributionStruct.polewardSpeedDistribution = [shrinkageSpeedDistX,shrinkageSpeedDistY];
     distributionStruct.distanceDistribution = [distanceDistX,distanceDistY];
 end
 %-------------end calc dist
