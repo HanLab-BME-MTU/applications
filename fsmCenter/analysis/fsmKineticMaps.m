@@ -1,9 +1,11 @@
-function [polyMap,depolyMap,kinMap2C,outputdir]=fsmKineticMaps(firstKinScore,imgSize,n,sigma)
+function [polyMap,depolyMap,kinMap2C,outputdir]=fsmKineticMaps(projDir,firstKinScore,imgSize,n,sigma)
 % fsmKineticMaps creates maps of polymerization, depolymerization and net assembly rate
 %
 % SYNOPSIS      [polyMap,depolyMap,kinMap2C]=fsmKineticMaps(firstKinScore,imgSize,n,sigma)
 %
-% INPUT         firstKinScore  : string containing the name (with complete path) of the 
+% INPUT         projDir        : string pointing to the project directory (where the fsmParam.mat file is 
+%                                located). Pass projDir=[] to manually select fsmParam.mat via a dialog.
+%               firstKinScore  : string containing the name (with complete path) of the 
 %                                first kinScore###.mat file
 %                                set firstKinScore=[] to have the function open a dialog
 %               imgSize        : size of the analyzed images
@@ -36,8 +38,8 @@ function [polyMap,depolyMap,kinMap2C,outputdir]=fsmKineticMaps(firstKinScore,img
 
 global uFirst uLast
 
-if nargin<3 | nargin>4
-    error('Three or four input parameters expected');
+if nargin<4 | nargin>5
+    error('Four or five input parameters expected');
 end
 
 if nargin==3
@@ -47,29 +49,52 @@ end
 % Initialize outputs
 polyMap=[];depolyMap=[];kinMap2C=[];outputdir=[];
 
-% Check whether firstKinScore has been passed and, in case, whether it points to a file
-if isempty(firstKinScore) | exist(firstKinScore)~=2 % Not a file
-    
-    % Select kinScore###.mat
-    [fName,dirName] = uigetfile(...
-        {'*.mat;','Matlab workspaces (*.mat)';
-        '*.*','All Files (*.*)'},...
-        'Select first kinScore matrix');
-    if ~(isa(fName,'char') & isa(dirName,'char'))
-        return 
-    end
-    
-    firstKinScore=[dirName,fName];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% LOOK FOR AND CHECK fsmParam.mat
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[fsmParam,status]=fsmPostGetFsmParam(projDir);
+if status==0
+    return
 end
 
-% String format for extension
-[path,outputFileName,no,ext]=getFilenameBody(firstKinScore);
-s=length(no);
-strg=sprintf('%%.%dd',s);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% CHECK THAT THE KINETIC MODULE IS UP-TO-DATE AND GET THE LIST OF kinScore###.mat FILES
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Recover all file names from the stack
-outFileList=getFileStackNames(firstKinScore);
-len=length(outFileList);
+if isfield(fsmParam.kin,'uptodate')
+
+    % Check that the tracking module is up-to-date
+    if fsmParam.kin.uptodate==0
+        
+        % The tracking module is not up-to-date. Inform the user and return    
+        errordlg('The ''kinScore###.mat'' files are not up-to-date. Please re-run the Kinetic module in SpeckTackle.','Error','modal');
+        return
+
+    else
+        uptodate=1;    
+    end
+    
+else
+    
+    % Old version of fsmParam.mat. Inform the user that he/she has to make sure that everything is up-to-date
+    uiwait(msgbox('Since ''fsmParam.mat'' has been created by an old version of SpeckTackle, I cannot make sure that the ''kinScore###.mat'' files are up-to-date. Continue at your own risk.','Warning'));
+    uptodate=-1;
+    
+end
+
+% Get list of kinScore files
+[kinScoreList,success]=fsmPostGetSubProjFileList([projDir,filesep,'kinScore'],'kinScore');
+len=length(kinScoreList);
+
+% String format for extension
+strg=fsmParam.specific.formString;
+
+% Image size
+imgSize=fsmParam.specific.imgSize;
 
 % User input asked
 if n(1)==-1
@@ -77,7 +102,7 @@ if n(1)==-1
     % Select range of frames for which to create maps
     guiH=fsmTrackSelectFramesGUI;
     set(findall(0,'Tag','pushOkay'),'UserData',0); % Minimum range 
-    title='Select images to be processed:';
+    title='Select frames to be processed:';
     set(findall(0,'Tag','editFirstFrame'),'String',num2str(1));
     set(findall(0,'Tag','editLastFrame'),'String',num2str(len));
     set(findall(0,'Tag','SelectFramesGUI'),'Name',title);
@@ -91,8 +116,8 @@ if n(1)==-1
     end
     
     % Keep only the file names in the user-selected range
-    outFileList=outFileList(uFirst:uLast);
-    len=length(outFileList); % Update
+    kinScoreList=kinScoreList(uFirst:uLast);
+    len=length(kinScoreList); % Update
     
 end
 
@@ -100,8 +125,8 @@ end
 if n(1)==-1
     n(1)=len;
 else
-    outFileList=outFileList(1:n(1));
-    len=length(outFileList);
+    kinScoreList=kinScoreList(1:n(1));
+    len=length(kinScoreList);
 end
 
 % If the number of frames for averaging is not set, set it equal to the total number of frames
@@ -142,15 +167,14 @@ if SAVEFILE==1
 else
     outputdir=[];
 end
-  
 
 % Create vector of indices for file names
-[path,body,indxStart,ext]=getFilenameBody(char(outFileList(1)));
-[path,body,indxEnd,ext]=getFilenameBody(char(outFileList(end)));
+[path,body,indxStart,ext]=getFilenameBody(char(kinScoreList(1)));
+[path,body,indxEnd,ext]=getFilenameBody(char(kinScoreList(end)));
 indices=[str2num(indxStart):str2num(indxEnd)-n(2)+1]+fix(n(2)/2);
 
 % Number of images
-nImg=length(outFileList)-(n(2)-1);
+nImg=length(kinScoreList)-(n(2)-1);
 
 if nImg>1
     
@@ -172,10 +196,10 @@ for i=1:nImg
         currentIndx=i+j-1;
         
         % Load kinScore
-        load(char(outFileList(currentIndx)));
+        load(char(kinScoreList(currentIndx)));
         
         % Read index
-        [path,body,indxStr,ext]=getFilenameBody(char(outFileList(currentIndx)));
+        [path,body,indxStr,ext]=getFilenameBody(char(kinScoreList(currentIndx)));
         
         % Copy matrix
         eval(['kinScore=kinScore',indxStr,'; clear kinScore',indxStr,';']);

@@ -22,7 +22,7 @@ function varargout = fsmPostProc(varargin)
 
 % Edit the above text to modify the response to help fsmPostProc
 
-% Last Modified by GUIDE v2.5 01-Sep-2004 14:28:53
+% Last Modified by GUIDE v2.5 02-Sep-2004 13:54:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -64,9 +64,17 @@ if isempty(hfsmC)
 end
 % Get current project
 handlesFsmCenter=guidata(hfsmC);
-projDir=get(handlesFsmCenter.fsmCenter,'UserData');
+projDir=get(handlesFsmCenter.textCurrentProject,'String');
 set(handles.textCurrentProject,'String',projDir);
 
+% If necessary, look for subproject
+if isempty(projDir)
+    set(handles.popupCurrentExp,'Enable','off');
+else
+    subProjects=findProjSubDir(projDir,'tack');
+    set(handles.popupCurrentExp,'String',subProjects);
+    set(handles.popupCurrentExp,'Enable','on');
+end
 
 % UIWAIT makes fsmPostProc wait for user response (see UIRESUME)
 % uiwait(handles.fsmPostProc);
@@ -290,6 +298,24 @@ if ispc
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
+
+function popupCurrentExp_CreateFcn(hObject, eventdata, handles)
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
+% %  CALLBACKS
+% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function popupCurrentExp_Callback(hObject, eventdata, handles)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -661,34 +687,35 @@ function editSMMax_Callback(hObject, eventdata, handles)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function pushHelpTurnoverMaps_Callback(hObject, eventdata, handles)
-web(['file:///' which('qFSM_turnoverMaps.html')]);
-
 function pushKinMaps_Callback(hObject, eventdata, handles)
-% Load the first image
-[fName,dirName] = uigetfile(...
-    {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
-    '*.tif','TIF files (*.tif)'
-    '*.tiff','TIFF files (*.tiff)'
-    '*.jpg;','JPG files (*.jpg)'
-    '*.jpeg;','JPEG files (*.jpeg)'
-    '*.*','All Files (*.*)'},...
-    'Load image');
-if(isa(fName,'char') & isa(dirName,'char'))
-    
-    % Image information - needed for image size
-    info=imfinfo([dirName,fName]);
-    
-else
-    return % Returns an error (status=0)
+projDir=getProjDir(handles);
+if isempty(projDir)
+    return
 end
+% % Load the first image
+% [fName,dirName] = uigetfile(...
+%     {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
+%     '*.tif','TIF files (*.tif)'
+%     '*.tiff','TIFF files (*.tiff)'
+%     '*.jpg;','JPG files (*.jpg)'
+%     '*.jpeg;','JPEG files (*.jpeg)'
+%     '*.*','All Files (*.*)'},...
+%     'Load image');
+% if(isa(fName,'char') & isa(dirName,'char'))
+%     
+%     % Image information - needed for image size
+%     info=imfinfo([dirName,fName]);
+%     
+% else
+%     return % Returns an error (status=0)
+% end
 
 % Read parameters
 n=str2num(get(handles.editFrameTN,'String'));
 sigma=str2num(get(handles.editSigmaTN,'String'));
 
 % Call function
-[polyMap,depolyMap,netMapRGB,outputdir]=fsmKineticMaps([],[info.Height info.Width],[-1 n],sigma);
+[polyMap,depolyMap,netMapRGB,outputdir]=fsmKineticMaps(projDir,[],[1000 1000],[-1 n],sigma);
 
 if isempty(outputdir)
     
@@ -712,8 +739,8 @@ else
     
 end
 
-function pushHelpTurnover_Callback(hObject, eventdata, handles)
-web(['file:///' which('qFSM_default.html')]);
+function pushHelpTurnoverMaps_Callback(hObject, eventdata, handles)
+web(['file:///' which('qFSM_turnoverMaps.html')]);
 
 function editFrameTN_Callback(hObject, eventdata, handles)
 nAvg=fix(str2num(get(handles.editFrameTN,'String')));
@@ -862,12 +889,14 @@ if isempty(projDir)
     warndlg('No project defined. Please create/load a project in fsmCenter.','Warning','modal');
     return
 else
+    % Check for multiple subprojects
+    subProjs=get(handles.popupCurrentExp,'String');
+    subProj=subProjs(get(handles.popupCurrentExp,'Value'));
     % Check that the project directory exists
+    projDir=[projDir,filesep,char(subProj),filesep];
     if ~isdir(projDir)
-        warndlg('The directory spedified does not exist. Please check your project.','Warning','modal');
-        return
+        warndlg('The directory specified does not exist. Please check your project.','Warning','modal');
+        projDir=[]; % Return empty
+        return    
     end
 end
-% TODO: check for sub-directories 'tack'
-projDir=[projDir,filesep,'tack',filesep];
-disp('Check for sub-directories ''tack''');
