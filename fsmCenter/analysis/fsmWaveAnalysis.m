@@ -1,4 +1,4 @@
-function [scores,allScores]=fsmWaveAnalysis(analysis,roi,gridSize,time,freq,minValue,tSampling,moveROI)
+function [scores,allScores,bwMask,py0,px0]=fsmWaveAnalysis(analysis,roi,gridSize,time,freq,minValue,tSampling,moveROI,bwMask)
 % fsmWaveAnalysis performs spectral analysis on the results of FSM package
 %
 % The scores calculated by the kinetic analysis of FSM are assigned to regions of interest
@@ -29,18 +29,30 @@ function [scores,allScores]=fsmWaveAnalysis(analysis,roi,gridSize,time,freq,minV
 %               moveROI     : [ 0 | 1 ]; if 1, the roi is moved from frame to frame along
 %                             the vector field - if loads the saved vector field from a
 %                             previous run of specTackle.
+%               bwMask      : if a B&W mask is passed, the user does not need to draw a region of interest to
+%                             select a subset of the grid; instead, the mask is used.
 %
 % OUTPUT        scores      : an [m x t] matrix containing all scores. scores(i,j) contains 
 %                             the score for window i at time point j (for roi='g'). If roi 
 %                             is 'p' or 'r' i is always = 1.
+%               allScores   : scores catenated into a long vectors
+%               bwMask      : black and white mask drawn or passed to select a subset of the grid for analysis
+%               py0         : (initial) y coordinates of all windows (a n x 5 matrix, where n is the number of windows)
+%                                If moveROI==1 the windows are moved.
+%               px0         : (initial) x coordinates of all windows (a n x 5 matrix, where n is the number of windows) 
+%                                If moveROI==1 the windows are moved.
 %
 % DEPENDENCES   fsmWaveAnalysis uses { }
 %               fsmMain is used by { fsmCenter }
 %
 % Aaron Ponti, May 15th, 2003
 
-if nargin~=8
-    error('Seven input parameter expected');
+if nargin<8 | nargin>9
+    error('Eight or nine input parameters expected');
+end
+
+if nargin==8
+    bwMask=[];
 end
 
 if analysis==[0 0]
@@ -89,7 +101,7 @@ if roi=='p'
 
     % Select polygon
     try
-        [bw,px,py]=roipoly;
+        [bwMask,px,py]=roipoly;
     catch
         close;
         uiwait(msgbox('No polygon was selected. Quitting.','Error','modal'));
@@ -109,7 +121,7 @@ if roi=='p'
 elseif roi=='g'
     
     % Select windows 
-    [Gm,Wm]=selectRegion(img,gridSize,gridSize); %round(1.5*gridSize)
+    [Gm,Wm,tmp1,tmp2,tmp3,tmp4,tmp5,tmp6,bwMask]=selectRegion(img,gridSize,gridSize,bwMask);
     
     % Set number of rois
     windows=size(Wm,1);
@@ -138,6 +150,9 @@ elseif roi=='r'
     
     px=[rect(1) rect(1)+rect(3) rect(1)+rect(3) rect(1) rect(1)];
     py=[rect(2) rect(2) rect(2)+rect(4) rect(2)+rect(4) rect(2)];
+    
+    % Creating a b/w mask
+    bwMask=ones(size(img));bwMask=roipoly(bwMask,px,py);
     
     % Close figure
     close(h);

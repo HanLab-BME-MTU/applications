@@ -334,11 +334,13 @@ if roi=='g' % The b/w mask is used only to get a subset of the grid
 else
     bwMask=[];
 end
-[scores,allScores,bwMask]=fsmWaveAnalysis(analysis,roi,gridSize,sigma,sigmaFreq,label,tSampling,moveROI,bwMask);
+[scores,allScores,bwMask,py,px]=fsmWaveAnalysis(analysis,roi,gridSize,sigma,sigmaFreq,label,tSampling,moveROI,bwMask);
 if ~isempty(bwMask)
     assignin('base','scores',scores);
     assignin('base','allScores',allScores);
     assignin('base','bwMask',bwMask);
+    assignin('base','py',py);
+    assignin('base','px',px);
     if roi=='g' % The b/w mask is used only to get a subset of the grid
         if get(handles.checkSaveBwMask,'Value')==1
             path=uigetdir('','Please select a directory where to save the b/w mask'); 
@@ -616,6 +618,8 @@ if get(handles.checkSMMask,'Value')==1
             case 'Exit', return;
         end % switch
     end
+else
+    userROIbw=[];
 end
 gridSize=[str2num(get(handles.editYSP,'string')) str2num(get(handles.editXSP,'string'))];
 n=str2num(get(handles.editFrameSP,'string'));
