@@ -965,6 +965,30 @@ else
                        oldCoord(:,1) = M(realcoord,3,countingloops-1);%             tmp(realcoord,3);
                        oldCoord(:,2) = M(realcoord,4,countingloops-1);
                        clear realcoord;
+                       
+                       
+                              %run body now, for conveniance (we need binary images of 
+                               %the cells to run body)
+                               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                               prope = [];
+                               ero = [];
+                               
+                               if clustering
+                                   [prope,BODYIMG,labeled] = body(seg_img,oldCoord,regmax,logihalo,PlusMinus,1);
+                               elseif segmentation
+                                   [prope,BODYIMG,labeled] = body(newImg,oldCoord,regmax,logihalo,PlusMinus,2);
+                               end
+                              
+                               PROPERTIES(1:size(emptyprop,1),1:size(emptyprop,2),countingloops,1) = emptyprop;
+                               %store this information in a stack
+                               PROPERTIES(1:size(prope,1),1:size(prope,2),countingloops,1) = prope;
+                               
+                               clear prope;
+                               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                       
+                       
+                       
+                       
              
                        
                        

@@ -57,8 +57,14 @@ for pic=start:stop
     
 	if ~isempty(handles.selectedcells)
         whatcells = zeros(size(handles.selectedcells,1),2);
+        handles.singlecells = zeros(size(handles.selectedcells,1),1)
+        handles.clustercells = zeros(size(handles.selectedcells,1),1)
+        
 	else
         whatcells = zeros(size(handles.MPM,1),2);
+        handles.singlecells = zeros(size(handles.MPM,1),2);
+        handles.clustercells = zeros(size(handles.MPM,1),2);
+        
 	end
 
     
@@ -75,7 +81,8 @@ for pic=start:stop
     %whatcells defines which cells will be taken into account. This is
     %either defined by the user (PolyTrack_PP) or it will just be all cells
     %within the current picture
-    whatcells = whatcells(find(whatcells(:,1) & whatcells(:,2)),:); 
+    good = find(whatcells(:,1) | whatcells(:,2));
+    whatcells = whatcells(good,:); 
 
     
 %     presentCells = presentCells(find(presentCells(:,1) & presentCells(:,2)),:); 
@@ -90,11 +97,11 @@ for pic=start:stop
     %intersted in. PROPERTIES(:,1:2,pic) and whatcells are both [x,y]
     %coordinates
     
-    properRows= ismember(round(handles.PROPERTIES(:,1:2,pic)),round(whatcells),'rows');
-    NewProps(6,pic)=size(properRows,1);
-    takeIntoAccount=handles.PROPERTIES(properRows,:,pic);
+    [properRows,indWhatCells] = ismember(round(handles.PROPERTIES(:,1:2,pic)),round(whatcells),'rows');
+    NewProps(6,pic) = size(find(properRows,1));
+    takeIntoAccount = handles.PROPERTIES(properRows,:,pic);
     
-        
+    indWhatCells = indWhatCells(find(indWhatCells));
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% REMINDER:
@@ -111,7 +118,13 @@ for pic=start:stop
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
     
     %how many clusters. At least two members.
-    Clusters=find(takeIntoAccount(:,4)>1.5)
+    Clusters = find(takeIntoAccount(:,4)>1.5)
+    
+    if ~isempty(handles.selectedcells) 
+             handles.clustercells(1:length(Cluster),pic) = handles.selectedcells(indWhatCells(Cluster));
+     else   
+            handles.clustercells(1:length(Cluster),pic) = indWhatCells(Cluster);
+     end
     [uniqclust,uniCluRows,invert]=unique(takeIntoAccount(Clusters,3));
     NewProps(1,pic)=length(uniqclust);
     
@@ -131,7 +144,13 @@ for pic=start:stop
     NewProps(5,pic)=sum(takeIntoAccount(Clusters(uniCluRows),6))/length(uniCluRows);
     
     %percentage single cells
-    NewProps(7,pic)=(NewProps(6,pic)-length(Clusters))/NewProps(6,pic)
+    indSingle = find(takeIntoAccount(:,4)==1)
+    if ~isempty(handles.selectedcells) 
+             handles.singlecells (1:length(indSingle),pic) = handles.selectedcells(indWhatCells(indSingle));
+     else   
+             handles.singlecells(1:length(indSingle),pic) = indWhatCells(indSingle);
+     end
+    NewProps(7,pic) = size(indSingle,1) / NewProps(6,pic);
     
    
 end 
@@ -224,7 +243,9 @@ end
 		hgsave(h_fig,[saveallpath filesep 'percentSingle.fig']);
 		print(h_fig, [saveallpath filesep 'percentSingle.eps'],'-depsc2','-tiff');
 		print(h_fig, [saveallpath filesep 'percentSingle.tif'],'-dtiff');
-		
+	
+        
+guidata(hObject, handles);
 
 cd(saveallpath)
 save('NewProps', 'NewProps')

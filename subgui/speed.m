@@ -76,8 +76,15 @@ for pic = start:(stop-1)
         numbercells(pic,1) = (length(whatcells)-length(zerRows));
         dist(:,pic) = sqrt((vec(:,1)-vec(:,3)).^2 + (vec(:,2)-vec(:,4)).^2);
         
+        clustDist(:,pic)= dist(handles.clustercells(:,pic), pic);
+        singleDist(:,pic) = dist(handles.singlecells(:,pic), pic);
+        
         %calculate the average. (since we sum up, the zeros do not bother us) 
-        avardist(pic,1) = sum(dist(1:length(whatcells),pic))/(length(whatcells)-length(zerRows));
+        avardist(pic,1) = sum(dist(:,pic))/(length(whatcells)-length(zerRows));
+        
+        avarclustDist(pic,1) = sum(clustDist(:,pic)) / (size(handles.clustercells(:,pic)),1)
+        avarsingleDist(pic,1) =  sum(singleDist(:,pic)) / (size(handles.singlecells(:,pic)),1)
+        
         
         realdist = dist(find(dist(:,pic)),pic);
         %calculate rhe variance. Here we do have to worry about
@@ -129,6 +136,28 @@ print(h_fig, [saveallpath filesep 'numbercells.eps'],'-depsc2','-tiff');
 print(h_fig, [saveallpath filesep 'numbercells.tif'],'-dtiff');
 
 
+
+h_fig=figure
+subplot(2,1,1); plot(avarclustDist),title('avarage velocity of cells within clusters')
+xlabel('Frames')
+ylabel('distance per frame (in pixel)')
+ymax=max(avarclustDist);
+axis([start stop 0 ymax])
+
+
+subplot(2,1,2); plot(avarsingleDist),title('avarage velocity of single cells')
+xlabel('Frames')
+ylabel('distance per frame (in pixel)')
+ymax=max(avarsingleDist);
+axis([start stop 0 ymax])
+
+hgsave(h_fig,[saveallpath filesep 'velSingleClust.fig']);
+print(h_fig, [saveallpath filesep 'velSingleClust.eps'],'-depsc2','-tiff');
+print(h_fig, [saveallpath filesep 'velSingleClust.tif'],'-dtiff');
+	
+
+
+
 h_fig=figure
 subplot(2,1,1); plot(avardist),title('avarage velocity of cells')
 xlabel('Frames')
@@ -157,7 +186,13 @@ cd(saveallpath)
 save('distances', 'dist')
 save('speedvariances','speedvar')
 save('avardist','avardist')
-    
+save('clustDist', 'clustDist')
+save('singleDist', 'singleDist')
+save('avarclustDist', 'avarclustDist')
+save('avarsingleDist', 'avarsingleDist')
+
+
+
 
 
 % update the handles
