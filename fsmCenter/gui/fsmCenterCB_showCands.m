@@ -98,7 +98,8 @@ h4=plot(hPos(:,2),hPos(:,1),'*','Color',colors{indx},'MarkerSize',4); % Higher-o
 set(h4,'Tag','cands'); set(h4,'UserData',str2num(no));
 
 % Title
-title('Speckles: . (1st order), + (2nd), ^ (3rd), * (4th and above)'); 
+hTitle=title('Speckles: . (1st order), + (2nd), ^ (3rd), * (4th and above)'); 
+set(hTitle,'Interpreter','none')
 
 % Return loaded cands to MATLAB base workspace
 assignin('base','cands',cands);
