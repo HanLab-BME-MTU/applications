@@ -119,8 +119,10 @@ elseif strcmp(dataToUse,'grid') == 1
    dataU2 = gridU2;
 elseif strcmp(dataToUse,'simul') == 1
    load([resultPath 'simField']);
-   dataU1 = simulU1;
-   dataU2 = simulU2;
+   dataPx{:} = simDataPx;
+   dataPy{:} = simDataPy;
+   dataU1{:} = simulU1.';
+   dataU2{:} = simulU2.';
 else
    error('Unknown value for ''dataToUse''.');
 end

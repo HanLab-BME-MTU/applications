@@ -9,5 +9,5 @@ for jj = 1:numTimeSteps
    rawI{jj} = imread(imgFile{jj});
 end
 
-M = vectorFieldAnimate([bfDisplayPx bfDisplayPy],recBF,10000/2, ...
+M = vectorFieldAnimate([bfDisplayPx bfDisplayPy],recDispU,1, ...
    'bgImg',rawI{1},'vc','r');

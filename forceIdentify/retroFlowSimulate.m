@@ -9,37 +9,38 @@
 load([modelPath 'femId']);
 
 %Load the identified body force.
-load([resultPath 'bfId']);
-fn.BodyFx = 'spMyoDFx';
-fn.BodyFy = 'spMyoDFy';
-fp.BodyFx = {{'x' 'y'} {fs coefBF(1:end/2)}};
-fp.BodyFy = {{'x' 'y'} {fs coefBF(end/2+1:end)}};
+load([resultPath 'coefBFId']);
+fn.BodyFx = 'femBodyF';
+fn.BodyFy = 'femBodyF';
+fp.BodyFx = {{'x' 'y'} {fs coefBFx(:,testFrame)}};
+fp.BodyFy = {{'x' 'y'} {fs coefBFy(:,testFrame)}};
 
 %Load the boundary displacements.
 load([resultPath 'edgeDisp']);
 for k = 1:numEdges
    fn.BndDispx{k} = 'bndDisp';
    fn.BndDispy{k} = 'bndDisp';
-   fp.BndDispx{k} = {{'s'} {edgePPx{k}}};
-   fp.BndDispy{k} = {{'s'} {edgePPy{k}}};
+   fp.BndDispx{k} = {{'s'} {edgePPx{testFrame,k}}};
+   fp.BndDispy{k} = {{'s'} {edgePPy{testFrame,k}}};
 end
 
 %Modify the body force.
-fp.BodyFx = {{'x' 'y'} {fs coefBF(1:end/2)/2}};
-fp.BodyFy = {{'x' 'y'} {fs coefBF(end/2+1:end)}};
+fp.BodyFx = {{'x' 'y'} {fs coefBFx(:,testFrame)}};
+fp.BodyFy = {{'x' 'y'} {fs coefBFy(:,testFrame)}};
 
 fem = elModelUpdate(fem,'fn',fn,'fp',fp);
 fem = elasticSolve(fem,[]);
 
 %Load the raw data points where we shall computed the simulated displacements.
 load([resultPath 'dispField']);
-dataPx = rawDataPx;
-dataPy = rawDataPy;
-[is,pe] = postinterp(fem,[rawDataPx rawDataPy].');
-dataPx(pe) = [];
-dataPy(pe) = [];
-[simulU1 simulU2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
-[simulBFx simulBFy] = postinterp(fem,'f1','f2',[dataPx dataPy].');
+simDataPx = rawDataPx{testFrame};
+simDataPy = rawDataPy{testFrame};
+[is,pe] = postinterp(fem,[simDataPx simDataPy].');
+simDataPx(pe) = [];
+simDataPy(pe) = [];
+[simulU1 simulU2] = postinterp(fem,'u1','u2',[simDataPx simDataPy].');
+%[simulBFx simulBFy] = postinterp(fem,'f1','f2',[dataPx dataPy].');
+[simulBFx simulBFy] = postinterp(fem,'f1','f2',[bfDisplayPx bfDisplayPy].');
 
 %Add noise to data.
 %Noise level for testing simulation result.
@@ -47,4 +48,5 @@ noiseA = 0.0;
 simulU1 = simulU1.*(1+noiseA*randn(size(simulU1)));
 simulU2 = simulU2.*(1+noiseA*randn(size(simulU2)));
 
-save([resultPath 'simField'],'dataPx','dataPy','simulU1','simulU2');
+save([resultPath 'simField'],'simDataPx','simDataPy', ...
+   'simulU1','simulU2','simulBFx','simulBFy');
