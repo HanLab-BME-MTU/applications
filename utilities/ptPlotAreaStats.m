@@ -16,7 +16,7 @@ function ptPlotAreaStats (imageName, savePath, xAxis, areaPerSingleCell, areaPer
 %
 % DEPENDENCIES   ptPlotAreaStats  uses { nothing }
 %                                  
-%                ptPlotAreaStats is used by { ptPlotCellValues }
+%                ptPlotAreaStats is used by { ptCalculatePlotValues }
 %
 % Revision History
 % Name                  Date            Comment

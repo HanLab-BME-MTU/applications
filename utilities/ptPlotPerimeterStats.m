@@ -15,7 +15,7 @@ function ptPlotPerimeterStats (imageName, savePath, xAxis, perimeterLength, peri
 %
 % DEPENDENCIES   ptPlotPerimeterStats  uses { nothing }
 %                                  
-%                ptPlotPerimeterStats is used by { ptPlotCellValues }
+%                ptPlotPerimeterStats is used by { ptCalculatePlotValues }
 %
 % Revision History
 % Name                  Date            Comment

@@ -794,7 +794,7 @@ else
    % postpro structure and MPM matrix to work with
    % First do the area and perimeter plots
    if handles.postpro.cellclusterplot | handles.postpro.areaplot | handles.postpro.perimeterplot
-      ptPlotCellValues (handles.postpro);
+      ptCalculatePlotValues (handles.postpro);
    end
    
    % Then do the cell-cell distance histograms

@@ -102,26 +102,33 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    %distanceHist (:,iCount) = hist (distances, binSize);
    
    
-%    if frameCount == plotStartFrame
-%       for kCount = 1 : size(cells,1)
-%          distAllCells (kCount) = sqrt ((cells(kCount,1) - cells(:,1)).^2 + ...
-%                                        (cells(kCount,2) - cells(:,2)).^2);
-%    
-%          % Kick out all the ones that are > maxDistance
-%          neighbours = distAllCells (find (distAllCells < maxDistance));
-%          
-%          % Take the 3 nearest neighbours
-%          if length (neighbours) >= 3
-%             nearNeighbours = neighbours(1:3);
-%          else
-%             nearNeighbours = [0 ; 0 ; 0];
-%             if length (neighbours) > 0
-%                nearNeighbours (1: length(neighbours)) = neighbours;
-%             end
-%          end
-%       end
-%    elseif frameCount > plotStartFrame
-      
+   if frameCount == plotStartFrame
+      for kCount = 1 : size(cells,1)
+         distAllCells = sqrt ((cells(kCount,1) - cells(:,1)).^2 + ...
+                                       (cells(kCount,2) - cells(:,2)).^2);
+   
+         % Kick out all the ones that are > maxDistance
+         neighbours = distAllCells (find (distAllCells < (3*maxDistance)));
+         
+         % Sort the neighbours vector
+         sortedNeighbours = sort(neighbours);
+         
+         % Kick out the zero entry (the one distanced with itself)
+         sortedNeighbours(find (sortedNeighbours == 0)) = [];
+         
+         % Take the 3 nearest neighbours, but leave out the zero entry
+         if length (sortedNeighbours) >= 3
+            nearNeighbours (kCount,:) = sortedNeighbours(1:3);
+         else
+            nearNeighbours(kCount,:) = [0 , 0 , 0];
+            if length (sortedNeighbours) > 0
+               nearNeighbours (kCount,1: length(sortedNeighbours)) = sortedNeighbours;
+            end
+         end
+      end
+   elseif frameCount > plotStartFrame
+      % Dummy
+   end
    
    
    

@@ -1,17 +1,17 @@
-function ptPlotCellValues (ptPostpro)
-% ptPlotCellValues plots information gathered in cellProps and
+function ptCalculatePlotValues (ptPostpro)
+% ptCalculatePlotValues plots information gathered in cellProps and
 % clusterProps during the cell tracking (PolyTrack) 
 %
-% SYNOPSIS       ptPlotCellValues (ptPostpro)
+% SYNOPSIS       ptCalculatePlotValues (ptPostpro)
 %
 % INPUT          ptPostpro : a structure which contains the information
 %                            from the GUI (see below)
 %                
 % OUTPUT         None (plots are directly shown on the screen) 
 %
-% DEPENDENCIES   ptPlotCellValues.m  uses { nothing }
+% DEPENDENCIES   ptCalculatePlotValues.m  uses { nothing }
 %                                  
-%                ptPlotCellValues.m is used by { PolyTrack_PP }
+%                ptCalculatePlotValues.m is used by { PolyTrack_PP }
 %
 % Revision History
 % Name                  Date            Comment
