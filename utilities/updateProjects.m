@@ -1,7 +1,7 @@
 function updateProjects(varargin)
-%UPDATEEXPERIMENTALDATA is a tool to change parts of or information in chromdyn experimental data structures
+%UPDATEPROJECTS is a tool to change parts of or information in chromdyn experimental data structures
 %
-% SYNOPSIS updateExperimentalData(opt1,opt2,...)
+% SYNOPSIS updateProjects(opt1,opt2,...)
 %
 % INPUT    opt1,opt2,... : strings telling what to update
 %                           - 'changePath' : updates relative path of
@@ -149,7 +149,7 @@ for iProject = 1:size(listOfDataFiles,1)
     
     movieDate = datenum(d.date);
     firstDate = datenum('01-Mar-2002');
-    lastDate  = datenum('01-May-2004');
+    lastDate  = datenum('01-Aug-2004');
     
     % make sure we get the right thing
     isLaterThanFirst = movieDate > firstDate;
@@ -159,7 +159,7 @@ for iProject = 1:size(listOfDataFiles,1)
     isLargePix       = abs(1-projectDataFile.dataProperties.PIXELSIZE_XY/pixelsizeOld(2)) < 0.001;
     isRightLens      = projectDataFile.dataProperties.LENSID == 12003;
     
-    reallyChangePixelsize = changePixelsize & isRightLens & (isSmallPix | isLargePix) & isLaterThanFirst & isBeforeLast;
+    reallyChangePixelsize = changePixelsize & isRightLens & (isSmallPix | isLargePix) & isLaterThanFirst;% & isBeforeLast;
     %-------------------------
     
     %==========

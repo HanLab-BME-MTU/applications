@@ -204,7 +204,6 @@ deletedIdx = find(dataListG(:,3) < -constants.MAXDELETED & dataListG(:,3)>-99);
 
 sigmaMax  = max(dataListG(:,5:6),[],2);
 sigmaMax2 = sigmaMax.^2; 
-
 % 
 %====================
 % growth statistics
@@ -252,7 +251,7 @@ if ~isempty(growthIdx)
     groupDist = zeros(size(growthGroups));
     for i = 1:size(growthGroups,1)
         groupDist(i,1) = sum(dataListG(growthGroups(i,1):growthGroups(i,2),9));
-        groupDist(i,2) = sqrt(sum(sigmaMax2(growthGroups(i,1):growthGroups(i,2))));
+        groupDist(i,2) = sqrt(sum(dataListG(growthGroups(i,1):growthGroups(i,2),10)));
     end
     [growthDistanceMean, growthDistanceStd] = weightedStats(groupDist(:,1),groupDist(:,2),'s');
     growthDistanceTotal = sum(groupDist(:,1));
@@ -311,7 +310,7 @@ if ~isempty(shrinkageIdx)
     groupDist = zeros(size(shrinkageGroups));
     for i = 1:size(shrinkageGroups,1)
         groupDist(i,1) = sum(dataListG(shrinkageGroups(i,1):shrinkageGroups(i,2),9));
-        groupDist(i,2) = sqrt(sum(sigmaMax2(shrinkageGroups(i,1):shrinkageGroups(i,2))));
+        groupDist(i,2) = sqrt(sum(dataListG(shrinkageGroups(i,1):shrinkageGroups(i,2),10)));
     end
     [shrinkageDistanceMean, shrinkageDistanceStd] = weightedStats(groupDist(:,1),groupDist(:,2),'s');
     shrinkageDistanceTotal = sum(groupDist(:,1));

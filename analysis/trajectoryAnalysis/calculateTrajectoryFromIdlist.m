@@ -1,7 +1,7 @@
-function [data,orientation] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
+function [data,orientation,positions,sigmaZero,timeLapse] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
 %CALCULATETRAJECTORYFORMIDLIST calculates distance trajectories from an idlist
 %
-%SYNOPSIS [data, orientation] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,mode)
+%SYNOPSIS [data, orientation, positions] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
 %
 %INPUT    idlist         : any type of idlist
 %         dataProperties : the corresponding data properties
@@ -27,6 +27,13 @@ function [data,orientation] = calculateTrajectoryFromIdlist(idlist,dataPropertie
 %                                       calculate the trajectory {'tag1';'tag2'}
 %
 %         orientation    : 1-by-n matrix of angles [rad] from the xy-plane
+%       
+%         positions      : 1-by-2 struct with fields
+%           .coordinates : ntp-by-3 array of coordinates. Deleted frames
+%                           are replaced by NaNs
+%           .covariances : 3-by-3-by-ntp array of covariances
+%
+%         sigmaZero      : average chi2 (noise) of the two tags combined
 %
 %
 %REMARKS  fusions will not be considered as valid timepoints
@@ -41,56 +48,7 @@ function [data,orientation] = calculateTrajectoryFromIdlist(idlist,dataPropertie
 %=========================
 %check nargin (we do not really check for correct idlist, dataProperties)
 if nargin < 4 | isempty(idlist) | isempty(dataProperties) | isempty(tag1) | isempty(tag2)
-    [fileName,pathName] = uigetfile({'*-data-??-???-????-??-??-??.mat','project data files'},'select project data file');
-        
-        if fileName==0;
-            h = errordlg('No data loaded','Warning!');
-            uiwait(h);
-            return % end evaluation here
-        end
-        cd(pathName);
-        data = load(fileName); % loads everything into the structure data
-        if ~isfield(data,'dataProperties')
-            h = errordlg('No dataProperties in project data: corrupt data file','Warning!');
-            uiwait(h);
-            return % end evaluation here
-        else
-            dataProperties = data.dataProperties;
-        end
-        %---let the user choose which idlist to load
-        
-        % find which idlists there are
-        dataFieldNames = fieldnames(data);
-        idnameListIdx = strmatch('idlist',dataFieldNames);
-        idnameList = dataFieldNames(idnameListIdx);
-        
-        % have the user choose, if there is more than one entry left
-        switch length(idnameList)
-            case 0 %no idlist loaded. continue w/o loading
-                
-                idname = '';
-                h = errordlg('No idlist found in project data','Warning!');
-                uiwait(h);
-                
-            case 1 % only one idlist loaded. Continue
-                
-                idname = char(idnameList);
-                
-            otherwise %l et the user choose
-                idSelect = chooseFileGUI(idnameList);
-                if isempty(idSelect)
-                    idname = '';
-                    h = errordlg('No data loaded!','Warning!');
-                    uiwait(h);
-                    return % end evaluation here
-                else
-                    idname = idnameList{idSelect};
-                end
-        end
-        
-        eval(['idlist = data.',idname,';']);
-        
-        clear data
+     [idlist,dataProperties] = loadProjectData;
         
         % get tags
         tagList = idlist(1).stats.labelcolor;
@@ -146,7 +104,8 @@ try
         tags = idlist(1).stats.labelcolor([tag1,tag2],1);
     end
     %define indexList for indexing Q-matrix
-    tagIdxList = [(tag1-1)*3+1:tag1*3,(tag2-1)*3+1:tag2*3];
+    tagIdxList1 = [(tag1-1)*3+1:tag1*3];
+    tagIdxList2 = [(tag2-1)*3+1:tag2*3];
 catch
     error(['bad idlist or pointer to nonexistent tag: ',lasterr])
 end
@@ -154,8 +113,7 @@ end
 
 
 %calc pix2mu-matrix
-p2mM = diag([dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_Z]);
-pix2muMat = blkdiag(p2mM,p2mM);
+pix2muMat = diag([dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_Z]);
 
 %=========================
 %---END TEST INPUT--------
@@ -198,55 +156,54 @@ end
 linkLists = cat(3,idlist.linklist);
 
 
-%coords
+% coords
 coords = linkLists([tag1,tag2],9:11,:);
 
-%already calc distanceVectors to find zero distances
-distanceVectors = diff(coords,1,1);
-%make it a n-by-3 vector
-if size(linkLists,3)==1
-    % do not adjust distanceVector size, they are already ntp-by-3
-else
-    distanceVectors = squeeze(distanceVectors)';
-end
-
-%find fusions
-fusIdx = find(sum(distanceVectors,2)==0);
-
-%eliminate entries in distVec, linkLists
-distanceVectors(fusIdx,:) = [];
-linkLists(:,:,fusIdx) = [];
-
-%chi (be backward compatible)
-if size(linkLists,2)<12
-    chi2 = [];
-else
-    chi2 = squeeze(linkLists([tag1,tag2],12,:))';
-end
-
-%timepoints
+% timepoints
 timePoints = squeeze(linkLists(1,1,:));
+maxTime = max(timePoints);
+
+% sigmaZero (be backward compatible)
+if size(linkLists,2)<12
+    fillSigma = 1;
+    sigma0 = zeros(length(timePoints),2);
+else
+    fillSigma = 0;
+    sigma0 = squeeze(linkLists([tag1,tag2],12,:))';
+end
 
 
-%loop through idlist to get Q-matrices (write 'anaDat' for sigma-calculation)
-ct = 1;
-anaDat(1:length(timePoints)) = struct('stats',[]);
-for t = timePoints' %only look at good timepoints
-    %get QMatrix and transform to microns
+% read Q-Matrices
+[covariance1,covariance2] = deal(repmat(NaN,[3,3,maxTime]));
+for t = timePoints'
     if isfield(idlist(t).info,'trackQ_Pix') & ~isempty(idlist(t).info.trackQ_Pix) & isfield(idlist(t).info,'trackerMessage')
         sourceT = str2double(idlist(t).info.trackerMessage.source);
-        anaDat(ct).stats.qMatrix = pix2muMat*(idlist(t).info.trackQ_Pix(tagIdxList,tagIdxList)+...
-            idlist(sourceT).info.detectQ_Pix(tagIdxList,tagIdxList))*pix2muMat;  
+        covariance1(:,:,t) = pix2muMat*(idlist(t).info.trackQ_Pix(tagIdxList1,tagIdxList1)+...
+            idlist(sourceT).info.detectQ_Pix(tagIdxList1,tagIdxList1))*pix2muMat;  
+        covariance2(:,:,t) = pix2muMat*(idlist(t).info.trackQ_Pix(tagIdxList2,tagIdxList2)+...
+            idlist(sourceT).info.detectQ_Pix(tagIdxList2,tagIdxList2))*pix2muMat;  
     else
-        anaDat(ct).stats.qMatrix = pix2muMat*idlist(t).info.detectQ_Pix(tagIdxList,tagIdxList)*pix2muMat;
+        covariance1(:,:,t) = pix2muMat*(idlist(t).info.detectQ_Pix(tagIdxList1,tagIdxList1))*pix2muMat;
+        covariance2(:,:,t) = pix2muMat*(idlist(t).info.detectQ_Pix(tagIdxList2,tagIdxList2))*pix2muMat;
     end
-    if isempty(chi2)
-        anaDat(ct).stats.noise = idlist(t).info.noise([tag1,tag2]);
-    else
-        anaDat(ct).stats.noise = chi2(ct,:);
+    
+    if fillSigma
+        sigma0(t,:) = idlist(t).info.noise([tag1,tag2]);
     end
-    ct = ct+1;
 end
+
+% fill coords and sigmaZero with NaNs for deleted times
+[pos1,pos2] = deal(repmat(NaN,maxTime,3));
+sigmaZero   = pos1(:,1);
+
+pos1(timePoints,:)    = squeeze(coords(1,:,:))';
+pos2(timePoints,:)    = squeeze(coords(2,:,:))';
+if fillSigma
+    sigmaZero(timePoints) = mean(sigma0(timePoints,:),2);
+else
+    sigmaZero(timePoints) = mean(sigma0,2);
+end
+
 
 %=========================
 %---END READ COORDS AND SIGMAZERO AND Q
@@ -258,11 +215,22 @@ end
 %-------CALC DISTANCE & DISTANCESIGMA
 %=========================
 
-%calc norms
-[distanceN,normedVectors]=normList(distanceVectors);
+% prepare data for distance calculation
+positions(1:2) = struct('coordinates',{pos1,pos2},'covariances',{covariance1,covariance2});
 
-%calc sigma
-distanceSigma = adgui_calcPlotData_distanceSigma(anaDat,[1 2],distanceVectors,distanceN,0);
+[distanceN, distanceSigma, normedVectors] = deltaCoordinates(positions,sigmaZero);
+
+% throw away data with zero distance or NaN
+badIdx = find(distanceN == 0 | isnan(distanceN));
+
+distanceN(badIdx) = [];
+distanceSigma(badIdx) = [];
+normedVectors(badIdx,:) = [];
+
+% if no zero distance, all badIdx are not in timePoints
+badTpIdx = find(ismember(timePoints,badIdx));
+timePoints(badTpIdx) = [];
+
 
 %=========================
 %---END CALC DISTANCE AND DISTANCESIGMA
@@ -279,20 +247,15 @@ time = mean(timeAll(timePoints,:),2);
 %timeSigma is half the time between (lastCol - firstCol of frameTime)
 timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/2;
 
+timeLapse = dataProperties.timeLapse;
+
 %=========================
 %---END READ TIME AND TIMESIGMA
 %=========================
 
-% %-------READ CHI2 - don't need
-% if isempty(chi2)
-%     for i = 1:ct-1
-%         chi2(i,:)=anaDat(i).stats.noise;
-%     end
-% end
-% %---END READ CHI2
 
-
-
+%=========================
+% ORIENTATION   
 %=========================
 if nargout > 1
     %orientation: [-pi/2...pi/2]. calculate from vN*[0 0 1]

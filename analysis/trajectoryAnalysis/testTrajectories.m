@@ -1,4 +1,4 @@
-function testTrajectories(trajectoryData,groupOrInd)
+function [indStats,crossStats]=testTrajectories(trajectoryData,groupOrInd)
 %
 %
 %
@@ -36,7 +36,7 @@ end
 % do inds first, then group anyway, if there's more than one
 
 % create colormap
-logColormap = repeatEntries([0.3 0.3 0.3;...
+logColormap = repeatEntries([1 1 1;...
                              0 0 0;...
                              0 0 1;...
                              0 1 1;...
@@ -76,25 +76,33 @@ if doIndividual
                 trajectoryData(iGroup).individualStatistics(ti).dataListGroup,2);
             nShrinkageGroups = size(shrinkageGroupIdx,1);
             
-            % speeds
-            compStruct(ti).growthSpeeds = trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-                growthIdx,4);
-            compStruct(ti).shrinkageSpeeds = trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-                shrinkageIdx,4);
+            % speeds. Speeds persisting over longer periods of time are
+            % repeated per interval
+            compStruct(ti).growthSpeeds = repeatEntries(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
+                growthIdx,4), diff(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
+                growthIdx,[1:2]),1,2))*60;
+            compStruct(ti).shrinkageSpeeds = repeatEntries(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
+                shrinkageIdx,4), diff(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
+                shrinkageIdx,[1:2]),1,2))*60;
             
             % growth/ shrinkage group times
-            compStruct(ti).growthTimes = zeros(nGrowthGroups,1);
-            for i=1:nGrowthGroups
-                compStruct(ti).growthTimes(i) =...
-                    sum(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-                    growthGroupIdx(i,1):growthGroupIdx(i,2),7));
-            end
-            compStruct(ti).shrinkageTimes = zeros(nShrinkageGroups,1);
-            for i=1:nShrinkageGroups
-                compStruct(ti).shrinkageTimes(i) =...
-                    sum(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
-                    shrinkageGroupIdx(i,1):shrinkageGroupIdx(i,2),7));
-            end
+            
+            compStruct(ti).growthTimes = diff(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
+                growthIdx,[1:2]),1,2);
+%             compStruct(ti).growthTimes = zeros(nGrowthGroups,1);
+%             for i=1:nGrowthGroups
+%                 compStruct(ti).growthTimes(i) =...
+%                     sum(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
+%                     growthGroupIdx(i,1):growthGroupIdx(i,2),7));
+%             end
+            compStruct(ti).shrinkageTimes = diff(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
+                shrinkageIdx,[1:2]),1,2);
+%             compStruct(ti).shrinkageTimes = zeros(nShrinkageGroups,1);
+%             for i=1:nShrinkageGroups
+%                 compStruct(ti).shrinkageTimes(i) =...
+%                     sum(trajectoryData(iGroup).individualStatistics(ti).dataListGroup(...
+%                     shrinkageGroupIdx(i,1):shrinkageGroupIdx(i,2),7));
+%             end
             
             for tj = ti-1:-1:1
                 % compare
@@ -264,3 +272,56 @@ if doIndividual
     
 end %if doIndividual
 
+%====================
+% COMPARE GLOBALLY
+%====================
+
+% read values
+if doIndividual
+    % read global params from indStats
+    for i = 1:nGroups
+        cs = indStats(i).compStruct;
+        globStats(i).growthSpeeds = catStruct(1,'cs.growthSpeeds');
+        globStats(i).shrinkageSpeeds = catStruct(1,'cs.shrinkageSpeeds');
+        globStats(i).growthTimes = catStruct(1,'cs.growthTimes');
+        globStats(i).shrinkageTimes = catStruct(1,'cs.shrinkageTimes');
+    end
+else
+end
+
+% compare all
+[globCompareGS,globCompareSS,globCompareGT,globCompareST] = deal(zeros(nGroups));
+for gi = 1:nGroups
+    for gj = gi:-1:1
+        [globCompareGS(gi,gj),globCompareGS(gj,gi)] = deal(...
+            ranksum(globStats(gi).growthSpeeds,globStats(gj).growthSpeeds));
+        [globCompareSS(gi,gj),globCompareSS(gj,gi)] = deal(...
+            ranksum(globStats(gi).shrinkageSpeeds,globStats(gj).shrinkageSpeeds));
+        [globCompareGT(gi,gj),globCompareGT(gj,gi)] = deal(...
+            ranksum(globStats(gi).growthTimes,globStats(gj).growthTimes));
+        [globCompareST(gi,gj),globCompareST(gj,gi)] = deal(...
+            ranksum(globStats(gi).shrinkageTimes,globStats(gj).shrinkageTimes));
+    end
+end
+
+% display
+uH = uiviewpanel;
+set(uH,'Name','GlobalGrowth')
+imshow(-log10(globCompareGS));
+set(uH,'Colormap',logColormap);
+set(gca,'CLim',cLimits)
+uH = uiviewpanel;
+set(uH,'Name','GlobalShrinkage')
+imshow(-log10(globCompareSS));
+set(uH,'Colormap',logColormap);
+set(gca,'CLim',cLimits)
+uH = uiviewpanel;
+set(uH,'Name','GlobalCatastrophe')
+imshow(-log10(globCompareGT));
+set(uH,'Colormap',logColormap);
+set(gca,'CLim',cLimits)
+uH = uiviewpanel;
+set(uH,'Name','GlobalRescue')
+imshow(-log10(globCompareGS));
+set(uH,'Colormap',logColormap);
+set(gca,'CLim',cLimits)
