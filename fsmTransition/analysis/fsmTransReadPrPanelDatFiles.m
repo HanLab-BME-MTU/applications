@@ -107,6 +107,10 @@ if sum([PIXELEDGE NORMALS PROTRUSION SEGMENTS])==0
     return
 end
 
+% Initialize wiatbar
+hWait=waitbar(0,'Please wait...');
+nSteps=4;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % CELL EDGE COORDINATES
@@ -186,8 +190,9 @@ if PIXELEDGE~=0
     fclose(fid0);
    
 end
-
-    
+% Update waitbar
+waitbar(1/nSteps,hWait);
+  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % NORMALS
@@ -278,6 +283,9 @@ if NORMALS~=0
     
 end
 
+% Update waitbar
+waitbar(2/nSteps,hWait);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % PROTRUSION VECTORS
@@ -360,6 +368,9 @@ if PROTRUSION~=0
     fclose(fid2);
     
 end
+
+% Update waitbar
+waitbar(3/nSteps,hWait);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -449,3 +460,9 @@ if SEGMENTS~=0
     end
     
 end
+
+% Update waitbar
+waitbar(4/nSteps,hWait);
+
+% Close waitbar
+close(hWait);
