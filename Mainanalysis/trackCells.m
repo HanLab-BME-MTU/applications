@@ -863,8 +863,8 @@ else
       %puny after so many lines of code.
       cd (saveDirectory)
 		
-      save('M', 'M')
-      save ('cellProps', 'cellProps')
+      save('M.mat', 'M')
+      save ('cellprops.mat', 'cellProps')
       
       cd ('body')
       % Format

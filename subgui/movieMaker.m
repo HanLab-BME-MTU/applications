@@ -174,12 +174,12 @@ makeQtmovie('finish');
 
 % % hold on
 % % 
-% % PROPPERIMG=getinfor(cellprops)
+% % PROPPERIMG=getinfor(cellProps)
 % % 
 % % figure,title('coordinates per image')
 % % hold on
 % % 
-% % cellprops
+% % cellProps
 
 % 	cmap=jet(numcols/2-1);
 % 	

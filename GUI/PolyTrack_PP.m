@@ -164,7 +164,7 @@ end
 % Load the cell properties file if it exists
 if exist ('cellprops.mat','file')
    load('cellprops.mat');
-   handles.cellprops = cellprops;
+   handles.cellProps = cellProps;
 else
    h = errordlg('The file cellprops.mat does not exist...');
    uiwait(h);          % Wait until the user presses the OK button
