@@ -174,7 +174,7 @@ if ishandle(figH)%remember position
 end
 
 %disFigure
-figH = findall(0,'Tag','disFigH');
+figH = findall(0,'Tag','disFig');
 if ishandle(figH)
     %remember position
     positions.disFigPos = get(figH(1),'Position');

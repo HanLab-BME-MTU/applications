@@ -112,11 +112,18 @@ end
 timePoints = cat(1,anaDat.timePoint);
 timePointsBF = (timePoints(1:end-1)+timePoints(2:end))/2;
 
+%calculate number of timepoints between frames
+numTimePointsBF = diff(timePoints);
+
 xData = timePointsBF;
 xLabel = 'Timepoints between frames';
 xStats = [];
 
 legendText = [{'TimepointsBF'};legendText];
+
+% adjust distance by dividing by numTimePointsBF - if one, remains the
+% same, if two, is halved etc.
+yData = yData./numTimePointsBF;
 
 
 %use the right colorOrder. From MatlabHelp:
