@@ -118,6 +118,7 @@ end
 %Get handles to GUI objects.
 handles.projDirEH  = findobj('tag','projDirEdit');
 handles.imgDirMH   = findobj('tag','imgDirMenu');
+handles.imgDirEH   = findobj('tag','imgDirEdit');
 handles.firstImgTH = findobj('tag','firstImgText');
 
 projDir = '';
@@ -132,9 +133,9 @@ end
 selImgDir = 1;
 [imgDirList,firstImgList,subProjDir] = getProjSetting(projDir,subProjNames);
 if isempty(imgDirList)
-   imgDirList = {' New '};
+   imgDirList = {'-- New Image Directory (by selecting first image) --'};
 else
-   imgDirList{end+1} = ' New ';
+   imgDirList{end+1} = '-- New Image Directory (by selecting first image) --';
 end
 set(handles.imgDirMH,'Value',selImgDir);
 set(handles.imgDirMH,'String',imgDirList);
@@ -200,16 +201,23 @@ handles.firstImgList = firstImgList;
 
 handles.selImgDir = selImgDir;
 
-if strcmp(imgDirList{selImgDir},' New ') | isempty(firstImgList)
+if selImgDir > length(imgDirList) | isempty(firstImgList)
    firstImg = '';
 else
    firstImg = firstImgList{selImgDir};
+end
+
+if selImgDir > length(imgDirList)
+   imgDir = '';
+else
+   imgDir = imgDirList{selImgDir};
 end
 
 %Search for available results directories for each package and update popup
 % menu in the GUI.
 set(handles.projDirEH,'string',projDir);
 set(handles.firstImgTH,'string',firstImg);
+set(handles.imgDirEH,'string',imgDir);
 
 projDirStruct=dir(projDir);
 subProjDirList = cell(size(subProjDir));
@@ -470,7 +478,7 @@ function delImgDir_Callback(hObject, eventdata, handles)
 selImgDir  = get(handles.imgDirMH,'Value');
 imgDirList = get(handles.imgDirMH,'String');
 if selImgDir == length(imgDirList)
-   %' New ' is selected. Do nothing.
+   %' New Image Directory ' is selected. Do nothing.
    return;
 end
 
@@ -490,14 +498,24 @@ if selImgDir == length(imgDirList) | isempty(firstImgList)
 else
    set(handles.firstImgTH,'String',firstImgList{selImgDir});
 end
+
+set(handles.imgDirMH,'Value',selImgDir);
+set(handles.imgDirMH,'String',imgDirList);
+
+if selImgDir == length(imgDirList)
+   set(handles.imgDirEH,'String','');
+else
+   set(handles.imgDirEH,'String',imgDirList{selImgDir});
+end
+
 handles.selImgDir    = selImgDir;
-handles.imgDirList   = imgDirList;
+handles.imgDirList   = imgDirList(1:end-1);
 handles.firstImgList = firstImgList;
 
 guidata(hObject,handles);
 
 
-function imgDir_Callback(hObject, eventdata, handles)
+function imgDirMenu_Callback(hObject, eventdata, handles)
 % hObject    handle to imgDir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -514,7 +532,8 @@ if selImgDir == length(imgDirList)
       cd([imgDirList{handles.selImgDir} filesep '..']);
    end
 
-   %' New ' is selected. Choose new image directory and first image.
+   %' New Image Directory ' is selected. Choose new image directory and 
+   % first image.
    [firstImgFileName pathName filterIndex] = uigetfile( ...
       {'*.tif;*.gif;*.jpg;*.png', ...
       'Image Files (*.tif,*.gif,*.jpg,*.png)';
@@ -529,11 +548,11 @@ if selImgDir == length(imgDirList)
    end
 
    %Add the new image dir to 'imgDirList'.
-   imgDirList{end+1} = imgDirList{end}; %' New '.
+   imgDirList{end+1} = imgDirList{end}; %'New Image Directory'.
    imgDirList{end-1} = pathName;
 
    set(handles.imgDirMH,'String',imgDirList);
-   handles.imgDirList = imgDirList;
+   handles.imgDirList = imgDirList(1:end-1);
 
    if isempty(firstImgList)
       for k = 1:length(imgDirList)-1
@@ -545,6 +564,11 @@ if selImgDir == length(imgDirList)
 end
 
 handles.selImgDir = selImgDir;
+if length(imgDirList) == 1
+   set(handles.imgDirEH,'String','');
+else
+   set(handles.imgDirEH,'String',imgDirList{selImgDir});
+end
 
 if isempty(firstImgList)
    set(handles.firstImgTH,'String','');
@@ -553,6 +577,17 @@ else
 end
 
 guidata(hObject,handles);
+
+function imgDirEdit_Callback(hObject, eventdata, handles)
+
+selImgDir = handles.selImgDir;
+imgDirList = handles.imgDirList;
+
+if isempty(imgDirList)
+   set(handles.imgDirEH,'String','');
+else
+   set(handles.imgDirEH,'String',imgDirList{selImgDir});
+end
 
 
 
@@ -563,7 +598,7 @@ imgDirList   = handles.imgDirList;
 firstImgList = handles.firstImgList;
 
 if selImgDir == length(imgDirList)
-   %' New ' is selected in 'imgDir' menu. Do nothing.
+   %' New Image Directory ' is selected in 'imgDir' menu. Do nothing.
    return;
 end
 
