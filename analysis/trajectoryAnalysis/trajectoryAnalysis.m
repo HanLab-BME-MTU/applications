@@ -1,16 +1,23 @@
-function [trajectoryDescription] = trajectoryAnalysis(data,ioOpt,testOpt)
+function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %TRAJECTORYANALYSIS analyzes experimental and simulated microtubule trajectories and returns corresponding statistical descriptors
 %
-% SYNOPSIS  [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(data,ioOpt,testOpt)
+% SYNOPSIS  [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %
-% INPUT  data(1:n) (opt): structure containing n different trajectories with fields
+% INPUT  inputData(1:n) (opt): structure containing n different trajectories with fields
 %           - distance   tx2 array [distance, sigmaDistance] in microns
 %           - time       tx2 array [time, sigmaTime] in seconds
 %           - timePoints tx1 array [timePoint#] 
-%           - info       struct containing additional information about the data
+%           - info       struct containing additional information about the inputData
 %                  -tags    : cell containing the two strings designating
 %                             the tags between which the distance is
 %                             measured, e.g. {'spb1','cen1'}
+%
+%       alternatively, inputData can be a collection of several sets of data:
+%         inputData(1:iRun) with fields
+%           - data              : (as inputData(1:n) above)
+%           - fileNameList{1:n} : a cell array of strings of the same
+%                                  length as data containing fileNames/descriptions 
+%                                  of the individual trajectories           
 %
 %        ioOpt: optional structure with the following optional fields
 %           - details       : return detailed analysis? [{0}/1]
@@ -25,26 +32,31 @@ function [trajectoryDescription] = trajectoryAnalysis(data,ioOpt,testOpt)
 %                             Verbose = [] or [0] does not show anything.
 %                             Asking for savePaths is not affected by
 %                             verbose settings
-%           - loadData      : [{0}/1] if data is given as input: whether to
-%                               ask for more data or not
-%           - saveTxt       : write statistics in text file? [0/{1}]
+%           - loadData      : [{0}/1/n] if inputData is not empty: whether to
+%                               ask for more data or not. if inputData is
+%                               not a run, loadData is forced to 1 (if n) and the
+%                               data is appended to the input
+%           - saveTxt       : write statistics in text file? [0/{1}] 
+%                               currently works for 1 run only
 %           - saveTxtPath   : if saveTxt is 1, specify the path to save.
 %                               if does not end with filesep, program
 %                               assumes it to include the filename!
 %                               otherwise the program asks for the save-path
 %           - saveMat       : save output in mat file? [{0}/1]
+%                               will save all the runs in one single file
 %           - saveMatPath   : if saveMat is 1, specify the path to save.
 %                               if does not end with filesep, program
 %                               assumes it to include the filename!
 %                               otherwise the program asks for the save-path
 %           - fileNameList  : list of fileNames/descriptions of the input
-%                               data
-%           - expOrSim      : switch that tells whether data is from
+%                               data. This only needs to be specified if
+%                               the inputData is not given as run
+%           - expOrSim      : switch that tells whether inputData is from
 %                               experiment or simulation ['e'/'s']. def: 'x'
 %           - calc2d        : [{0}/1/2] depending on whether the
 %                               normal 3D-data or the maxProjection
 %                               or the in-focus-slice data should be
-%                               used. Works only if data is being loaded by
+%                               used. Works only if inputData is being loaded by
 %                               the program. Otherwise, you have to specify
 %                               this option in
 %                               calculateTrajectoryFromIdlist
@@ -54,12 +66,12 @@ function [trajectoryDescription] = trajectoryAnalysis(data,ioOpt,testOpt)
 %                               statistics, and 3 will cluster all
 %                               
 %        testOpt: optional structure with the following optional fields
-%           - splitData     : [{0}/1] split data into two sets, returns two
+%           - splitData     : [{0}/1] split inputData into two sets, returns two
 %                               output arguments
 %           - debug         : [{0}/1] turns on debug features
 %           - randomize     : [{0}/1] randomize the input list
 %           - clustermax    : max # of clusters the EM algorithm looks for
-%           - downsample    : [1] takes only every nth point, returns n
+%           - downsample    : [{1}/n] takes only every nth point, returns n
 %                               times more trajctories
 %
 % OUTPUT trajectoryDescription
@@ -104,7 +116,7 @@ loadData = 0;
 
 % test opt
 DEBUG = []; %[1,2] for groupUnits
-splitData = 0; % whether or not to split the data into two sets (to check the homogenity of the sample)
+splitData = 0; % whether or not to split the inputData into two sets (to check the homogenity of the sample)
 randomize = 0; % whether or not to randomize the order of the input data
 CLUSTERMAX = 5;
 downsample = 1; % 1 means no downsampling
@@ -176,16 +188,16 @@ clear h b s
 %===================================================================
 
 
-%lookfor data
-if nargin == 0 | isempty(data)
+%lookfor inputData
+if nargin == 0 | isempty(inputData)
     loadDataForced = 1; % we override the default
-    data = [];
-    dataRmIdx = [];
-    
+    inputData = [];
+    inputDataRmIdx = [];
+    inputDataIsRun = -1; % -1 : loaded input data / 0: no-run input data / 1: run input data
 else
     loadDataForced = 0;
-    % test data
-    [data,dataRmIdx] = trajectoryAnalysisIsGoodData(data,constants);
+    % test inputData
+    [inputData,inputDataRmIdx,inputDataIsRun] = trajectoryAnalysisIsGoodData(inputData,constants);
     
 end
 
@@ -274,22 +286,25 @@ else
             verbose = ioOpt.verbose;
         end
     end
-    if isfield(ioOpt,'fileNameList')
+    
+    % we do not care about the fileNameList if the input is given as run
+    if isfield(ioOpt,'fileNameList') & ~inputDataIsRun
         if iscell(ioOpt.fileNameList)
             fileNameList = ioOpt.fileNameList;
-            % make sure we remove fileNames if we have removed data
-            if ~isempty(dataRmIdx)
+            % make sure we remove fileNames if we have removed inputData
+            if ~isempty(inputDataRmIdx)
                 if length(fileNameList)>1
-                    fileNameList(dataRmIdx) = [];
+                    fileNameList(inputDataRmIdx) = [];
                 else
                     %there was an error already because we killed all the
-                    %data
+                    %inputData
                 end
             end
         else
             error('ioOpt.fileNameList has to be a cell array of strings!')
         end
     end
+    
     if isfield(ioOpt,'expOrSim')
         if length(ioOpt.expOrSim)>1 | ~isstr(ioOpt.expOrSim) | isempty(strfind('esx',ioOpt.expOrSim))
             error('expOrSim has to be one letter (e, s, or x)');
@@ -305,6 +320,11 @@ else
     end
     if isfield(ioOpt,'loadData')
         loadData = ioOpt.loadData;
+        % if isrun is zero (not []), we force loadData to 1 if it was not 0
+        % before
+        if loadData & inputDataIsRun == 0
+            loadData = 1;
+        end
     end
 end
 
@@ -350,23 +370,45 @@ end
 
 oldDir = pwd; %remember old dir before loading
 
-if loadData
-    
-    %go to biodata. remember oldDir first
-    
+loadCt = 0;
+if loadData    
+    %go to biodata. remember oldDir first   
     cdBiodata(2);
     
-    %buld a list of data files
-    fileList = loadFileList({'*.mte;*.mts;*.mtx','results files';...
-            '*-data-??-???-????-??-??-??.mat','project data files'},[2;1]);
-    
+    %buld a list of data files   
+    for iInput = 1:loadData
+        fileList = loadFileList({'*.mte;*.mts;*.mtx','results files';...
+                '*-data-??-???-????-??-??-??.mat','project data files'},[2;1],...
+                [],['load data for run - ' num2str(loadCt+1) ' -']);
+            if ~isempty(fileList)
+                % only count loaded data if we have loaded at all
+                loadCt = loadCt + 1;
+                inputLoaded(loadCt).fileList = fileList;
+            end    
+    end
+else
+    inputLoaded = [];
 end
+
+% check whether we do have data at all
+if loadCt == 0 & isempty(inputData)
+    disp('no files loaded - end evaluation')
+    return
+end
+
+% count runs (we do not count the additional runs yet!)
+if inputDataIsRun == 0
+    numRun = 1;
+else
+    numRun = loadCt + length(inputData);
+end
+
 
 %---interrupt load data and ask for paths - calculating the trajectories
 %takes too much time!
 
-%first: textFile
-if saveTxt
+%first: textFile - only if we have just one run!
+if saveTxt & numRun == 1
     if isempty(saveTxtName) %only ask if no name has been given before
         helpTxt = 'Please select filename,';
         if isempty(saveTxtPath)
@@ -404,9 +446,13 @@ if saveTxt
     else
         %the user has chose something him/herself
     end
+else
+    % we do not save at all
+    saveTxt = 0;
+    saveTxtName == 0;
 end
 
-%second: matFile
+%second: matFile - save anyway
 if saveMat
     if isempty(saveMatName) %only ask if no name has been given before
         helpTxt = 'Please select filename';
@@ -436,27 +482,22 @@ end
 
 %resume loading data - downsampling is done in tALoadDAta
    
-%count number of files
-nFiles = length(fileList);
 
-if nFiles == 0 & isempty(data)
-    disp('no files loaded - end evaluation')
-    return
-end
 
 %========= LOAD DATA & SET UP RUNS ===============================
 % new data is appended to old one
 loadOptions = struct('standardTags', {standardTags},...
     'downsample', downsample,...
     'splitData', splitData,...
-    'randomize', randomize);
+    'randomize', randomize,...
+    'calculateTrajectoryOpt',calculateTrajectoryOpt);
 
-[run, fileNameListSave] = trajectoryAnalysisLoadData(fileList, constants, data, fileNameList, loadOptions);
+[run, fileNameListSave] = trajectoryAnalysisLoadData(inputLoaded, constants, inputData, fileNameList, loadOptions);
 %===================================================
 
 cd(oldDir);
 
-clear fileList helpTxt problem i data fileNameList 
+clear fileList helpTxt problem i inputData fileNameList loadOptions
 
 %===================================================================
 %----------END LOAD DATA  & ASK FOR PATHS---------
@@ -500,7 +541,7 @@ if saveTxt
         tagList = {''};
         
         %read tagList
-        tagList = data(nFile).info.tags;
+        tagList = run(1).data(nFile).info.tags;
         
         %read fileName
         fileName = fileNameListSave{nFile};

@@ -198,7 +198,11 @@ coords = linkLists([tag1,tag2],9:11,:);
 %already calc distanceVectors to find zero distances
 distanceVectors = diff(coords,1,1);
 %make it a n-by-3 vector
-distanceVectors = squeeze(distanceVectors)';
+if size(linkLists,3)==1
+    % do not adjust distanceVector size, they are already ntp-by-3
+else
+    distanceVectors = squeeze(distanceVectors)';
+end
 
 %find fusions
 fusIdx = find(sum(distanceVectors,2)==0);

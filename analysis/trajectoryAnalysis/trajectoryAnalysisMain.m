@@ -154,7 +154,7 @@ for numData = 1:length(data)
         
         %plot data
         delPH = plot(deletedTime,deletedDistance,'-');
-        set(delPH,'Color',[0.3 0.3 0.3]);
+        set(delPH,'Color',[0.7 0.7 0.7]);
     end
     %-----END PLOT
     

@@ -1,13 +1,14 @@
-function [run,fileNameListSave] = trajectoryAnalysisLoadData(fileList,constants,optData,fileNameList,loadOptions)
+function [run,fileNameListSave] = trajectoryAnalysisLoadData(fileListStruct,constants,optData,fileNameList,loadOptions)
 %TRAJECTORYANALYSISLOADDATA loads trajectories given in fileList into data
 %
-% SYNOPSIS [run,fileNameListSave] = trajectoryAnalysisLoadData(fileList,optData,fileNameList,loadOptions)
+% SYNOPSIS [run,fileNameListSave] = trajectoryAnalysisLoadData(fileListStruct,optData,fileNameList,loadOptions)
 %
-% INPUT    fileList     : as returned from loadFileList (can be empty)
+% INPUT    fileListStruct(1:nfl).fileList     : as returned from loadFileList (can be empty)
 %          constants    : needs field constants.MINTRAJECTORYLENGTH
 %          optData      : (opt) data already structured like the output
-%                         structure 
+%                         structure (run) or single set of data
 %          fileNameList : list of fileNames (cell array of strings!)
+%                         only if optData is not a run structure
 %          loadOptions  : (opt) data structure for additional options
 %                   the first four are applied in this order
 %               - splitData    [{0}/1] whether to split the data randomly
@@ -25,7 +26,17 @@ function [run,fileNameListSave] = trajectoryAnalysisLoadData(fileList,constants,
 %               - randomize    [{0},1] whether to randomize the order of the data
 %
 %               - standardTags {standardTag1; standardTag2} tag names given
-%                              to the two points at either end of the distance
+%                              to the two points at either end of the
+%                              distance
+%               - calculateTrajectoryOpt : options structure for
+%                                          calculateTrajectory, with fields
+%                           .info :   struct that should be returned in the
+%                                     output field info. 
+%                           .calc2d : [{0}/1/2] depending on whether the
+%                                     normal 3D-data or the maxProjection
+%                                     or the in-focus-slice data should be
+%                                     used.
+%
 %
 % OUTPUT   run(1:nRun): structure with data for every individual run with
 %           fields
@@ -59,7 +70,7 @@ standardFileName = {'data_1'};
 % test input
 %============
 
-if nargin < 1 | (isempty(fileList) & (nargin < 3 | isempty(optData)))
+if nargin < 1 | (isempty(fileListStruct) & (nargin < 3 | isempty(optData)))
     error('not enough input arguments to load data')
 end
 
@@ -69,10 +80,74 @@ if nargin < 2 | isempty(constants)
     error('please specify constants.MINTRAJECTORYLENGTH')
 end
 
+
+
+% test loadOptions before testing optData - there could be standardTags
+if nargin < 5 | isempty(loadOptions)
+    % set all to standard
+else
+    if isfield(loadOptions,'downsample')
+        % downsample is at least 1
+        downsample = max(loadOptions.downsample,1);
+    end
+    
+    if isfield(loadOptions,'splitData')
+        splitData = loadOptions.splitData;
+    end
+    
+    if isfield(loadOptions,'subset')
+        subset = loadOptions.subset;
+        if subset(1) <= 0 | subset(1) > 1
+            error('please input the first parameter of loadOptions.subset as a fraction between 0+ and 1')
+        end
+        if length(subset) == 1
+            subset(2) = 99.99;
+        end
+    end
+    if isfield(loadOptions,'standardTags')
+        if length(loadOptions.standardTags) == 2 & iscell(loadOptions.standardTags)
+            standardTag1 = loadOptions.standardTags{1};
+            standardTag2 = loadOptions.standardTags{2};
+        end
+    end
+    if isfield(loadOptions,'calculateTrajectoryOpt')
+        calculateTrajectoryOpt = loadOptions.calculateTrajectoryOpt;
+    end
+        
+end
+
+rmOptDataIdx = [];
+if nargin < 3 | isempty(optData)
+    % init optData
+    optData = [];
+    optDataIsRun = -1;
+else
+    % test optData
+    try
+        [optData,rmOptDataIdx,optDataIsRun] = trajectoryAnalysisIsGoodData(optData,constants,standardTag1,standardTag2);
+    catch
+        % if there was just not enough data, but we are loading, it's not
+        % so much of a problem
+        if strcmp(lasterr,'no valid data points after removal')
+            if ~isempty(fileList)
+                warning('TRAJECTORYANALYSIS:inputTest','no data left in optData after removal')
+                optData = [];
+                fileNameList = []; % init or kill
+            else
+                % if there is no data, we are not happy
+                rethrow(lasterror)
+            end
+        else
+            rethrow(lasterror)
+        end
+    end
+end
+
+% test fileNameList after testing optData - it could be a run!
 if nargin < 4
     fileNameList = []; % just init
 else
-    if  ~isempty(optData)
+    if  ~isempty(optData) & optDataIsRun == 0
         
         %set default if necessary
         if isempty(fileNameList)
@@ -103,67 +178,16 @@ else
                 error('not enough fileNames in ioOpt.fileNameList!')
             end
         elseif lengthData < lengthFNL
-            warning('there are more fileNames than data - assignment of names could be inaccurate!')
-        end
-    end
-end
-
-% test loadOptions before testing optData - there could be standardTags
-if nargin < 5 | isempty(loadOptions)
-    % set all to standard
-else
-    if isfield(loadOptions,'downsample')
-        % downsample is at least 1
-        downsample = max(loadOptions.downsample,1);
-    end
-    
-    if isfield(loadOptions,'splitData')
-        splitData = loadOptions.splitData;
-    end
-    
-    if isfield(loadOptions,'subset')
-        subset = loadOptions.subset;
-        if subset(1) <= 0 | subset(1) > 1
-            error('please input the first parameter of loadOptions.subset as a fraction between 0+ and 1')
-        end
-        if length(subset) == 1
-            subset(2) = 99.99;
-        end
-    end
-    if isfield(loadOptions,'standardTags')
-        if length(loadOptions.standardTags) == 2 & iscell(loadOptions.standardTags)
-            standardTag1 = loadOptions.standardTags{1};
-            standardTag2 = loadOptions.standardTags{2};
-        end
-    end
-end
-
-
-if nargin < 3 | isempty(optData)
-    % init optData
-    optData = [];
-else
-    % test optData
-    try
-        [optData,rmIdx] = trajectoryAnalysisIsGoodData(optData,constants,standardTag1,standardTag2);
-        fileNameList(rmIdx) = [];
-    catch
-        % if there was just not enough data, but we are loading, it's not
-        % so much of a problem
-        if strcmp(lasterr,'no valid data points after removal')
-            if ~isempty(fileList)
-                warning('TRAJECTORYANALYSIS:inputTest','no data left in optData after removal')
-                optData = [];
-                fileNameList = [];
+            % maybe we have just removed some of the optData
+            if lengthFNL == lengthData + length(rmOptDataIdx)
+                fileNameList(rmOptDataIdx) = [];
             else
-                % if there is no data, we are not happy
-                rethrow(lasterror)
+                warning('there are more fileNames than data - assignment of names could be inaccurate!')
             end
-        else
-            rethrow(lasterror)
         end
     end
 end
+
 
 %=========================================================================
 
@@ -172,106 +196,154 @@ end
 % LOAD DATA
 %=======================================================
 
-% append to optData
-data = optData;
-ct = length(data) + 1; 
+% append to optData if it is a trajectoryData, otherwise, append to the
+% runs
 
-% the assignment data(i) = output.a/b/c does not work if data is []. hence
-% we delete data if it's empty
-if isempty(data)
-    clear data
+switch optDataIsRun
+    case 0 % trajectoryData is passed down
+        
+        if isempty(fileListStruct)
+            % we do not load, so just write run
+            run = struct('data',optData,'fileNameList',{fileNameList});
+            runCt = 1;
+            dataCt = 1;
+        else
+            
+            run = struct('data',[],'fileNameList',[]);
+            data = optData; % init data only here, we can not init it empty
+            runCt = 1;
+            dataCt = length(data) + 1; % we append data
+        end
+        
+    case 1 % run is passed down
+        
+        run = optData;
+        runCt = length(run) + 1; % we append runs
+        dataCt = 1;
+        
+    case -1 % nothing is passed down
+        
+        run = struct('data',[],'fileNameList',[]);
+        runCt = 1;
+        dataCt = 1;
+        
 end
+
 
 problem = [];
 %load the data
-for i = 1:length(fileList)
+for iRun = 1:length(fileListStruct)
+    fileList = fileListStruct(iRun).fileList;
+    for iFile = 1:length(fileList)
+        
+        
+        try
+            %load all
+            allDat = load(fileList(iFile).file);
+            
+            %load the idlist specified in lastResult
+            eval(['idlist2use = allDat.',allDat.lastResult,';']);
+            
+            
+            %---prepare calculate trajectory
+            
+            %choose tags
+            %check whether there is a non-empty field opt, else just use
+            %standardTags
+            
+            flopt = fileList(iFile).opt; %increase readability
+            if isempty(flopt) | length(flopt)<3  | isempty(flopt{2}) | isempty(flopt{3})%there could be more options in the future!
+                % use default tag1, tag2
+                tag1 = standardTag1;
+                tag2 = standardTag2;
+            else
+                tag1 = fileList(iFile).opt{2};
+                tag2 = fileList(iFile).opt{3};
+            end
+            
+            %store identifier
+            if isempty(fileList(iFile).opt) | isempty(fileList(iFile).opt{1})
+                calculateTrajectoryOpt.identifier = 'NONE';
+            else
+                calculateTrajectoryOpt.identifier = fileList(iFile).opt{1};
+            end
+            
+            %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
+            data(dataCt) = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
+            %-------------------------
+            
+            % test whether we want to keep this
+            if length(data(dataCt).timePoints)<constants.MINTRAJECTORYLENGTH
+                error('not enough data points')
+            end
+            
+            %remember fileName
+            fileNameList{dataCt} = fileList(iFile).file;
+            
+            % prepare runCt for next turn
+            dataCt = dataCt + 1;
+            
+            
+        catch
+            if isempty(problem)
+                problem = lasterr;
+            end
+            disp([fileList(iFile).file, ' could not be loaded:',char(10),problem])
+        end
+        
+        clear lr id dp
+    end %for i = 1:length(fileList)
     
-    
-    try
-        %load all
-        allDat = load(fileList(i).file);
-        
-        %load the idlist specified in lastResult
-        eval(['idlist2use = allDat.',allDat.lastResult,';']);
-        
-        
-        %---prepare calculate trajectory
-        
-        %choose tags
-        %check whether there is a non-empty field opt, else just use
-        %standardTags
-        
-        flopt = fileList(i).opt; %increase readability
-        if isempty(flopt) | length(flopt)<3  | isempty(flopt{2}) | isempty(flopt{3})%there could be more options in the future!
-            % use default tag1, tag2
-            tag1 = standardTag1;
-            tag2 = standardTag2;
-        else
-            tag1 = fileList(i).opt{2};
-            tag2 = fileList(i).opt{3};
-        end
-        
-        %store identifier
-        if isempty(fileList(i).opt) | isempty(fileList(i).opt{1})
-            calculateTrajectoryOpt.identifier = 'NONE';
-        else
-            calculateTrajectoryOpt.identifier = fileList(i).opt{1};
-        end
-        
-        %-----calculate trajectory
-        data(ct) = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
-        %-------------------------
-        
-        % test whether we want to keep this
-        if length(data(ct).timePoints)<constants.MINTRAJECTORYLENGTH
-            error('not enough data points')
-        end
-        
-        %remember fileName
-        fileNameList{ct} = fileList(i).file;
-        ct = ct + 1;
-        
-        
-    catch
-        if isempty(problem)
-            problem = lasterr;
-        end
-        disp([fileList(i).file, ' could not be loaded:',char(10),problem])
+    % make sure we loaded something
+    if dataCt == 1
+        error('no data loaded!') % alternatively, we just could move on without updating runCt/dataCt
+    else
+        run(runCt).data = data;
+        run(runCt).fileNameList = fileNameList;
+        clear data
+        runCt = runCt +1;
+        dataCt = 1;
     end
     
-    clear lr id dp
-end %for i = 1:length(fileList)
+end %  for iRun = runCt:length(fileListStruct)
 
 % remember the filenames for all the data loaded before we tinker with the
 % data
-fileNameListSave = fileNameList;
+if length(run) == 1
+    fileNameListSave = run(1).fileNameList;
+else
+    fileNameListSave = {}; % we do not need this if we do not save
+end
 
 %===================================================================
 %----------SPLIT DATA SETS / SUBSET
 %===================================================================
-
 if splitData
-    nData = length(data);
-    if mod(nData,2)~=0
-        disp('warning: odd number of files, not taking into account last file')
-        nData = nData - 1;
-    end
-    % create two sets (thanks to Aaron for the idea!)
-    % get nData random numbers, sort, take the first nData/2 indices for
-    % the first half etc.
-    rankList = randperm(nData);
-    dataSet1 = rankList(1:nData/2);
-    dataSet2 = rankList(nData/2+1:end);
-    
-    run(1).data  = data(dataSet2);
-    run(2).data  = data(dataSet1); 
-    run(1).fileNameList = fileNameList(dataSet2);
-    run(2).fileNameList  = fileNameList(dataSet1); % same as above
+    nRuns = length(run);
+    % make indexLists to store runs
+    oddRuns = [1:nRun]*2-1;
+    evenRuns = oddRuns +1;
+    for iRun = 1:nRuns
+        nData = length(run(iRun).data);
+        if mod(nData,2)~=0
+            disp('warning: odd number of files, not taking into account last file')
+            nData = nData - 1;
+        end
+        % create two sets (thanks to Aaron for the idea!)
+        % get nData random numbers, sort, take the first nData/2 indices for
+        % the first half etc.
+        rankList = randperm(nData);
+        dataSet1 = rankList(1:nData/2);
+        dataSet2 = rankList(nData/2+1:end);
+        
+        newRun(oddRuns(iRun)).data  = run(iRun).ata(dataSet2);
+        newRun(evenRuns(iRun)).data  = run(iRun).data(dataSet1); 
+        newRun(oddRuns(iRun)).fileNameList = run(iRun).fileNameList(dataSet2);
+        newRun(evenRuns(iRun)).fileNameList  = run(iRun).fileNameList(dataSet1); % same as above
+        
+    end % for iRun = 1:nRuns
 elseif ~all(subset == [1 1])
     disp('sorry, ''subset'' not implemented yet')
-else
-    run(1).data = data;
-    run(1).fileNameList = fileNameList;
 end
 
 

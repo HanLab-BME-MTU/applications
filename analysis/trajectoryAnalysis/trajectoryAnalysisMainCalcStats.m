@@ -46,6 +46,7 @@ distributionStruct = [];
 statisticsStruct   = [];
 
 %we take the inverses of arrays that can be zero: turn off warnings
+warningState = warning;
 warning off MATLAB:divideByZero;
 
 %------- INIT VARIABLES
@@ -422,17 +423,21 @@ pauseTimeRatio = 100*pauseTimeTotal/divisor;
 % J and L (see Verde et al, 1992)
 if ~isempty(growthSpeedMeanNW) & ~isempty(shrinkageSpeedMeanNW) & ~isempty(invGrowthTimeMean) & ~isempty(invShrinkageTimeMean)
    
-    fres = invShrinkageTimeMean/60; % transform into um/min
-    fcat = invGrowthTimeMean/60;    % same
+    fres = invShrinkageTimeMean*60; % transform into min^-1
+    fcat = invGrowthTimeMean*60;    % same
     
     % J = [vg*fres-vs*fcat]/[fcat+fres]
     jVerdeEtAl = (growthSpeedMeanNW * fres - abs(shrinkageSpeedMeanNW) * fcat)/(fcat + fres);
-    lVerdeEtAl = (growthSpeedMeanNW * shrinkageSpeedMeanNW) / (abs(shrinkageSpeedMeanNW) * fcat - growthSpeedMeanNW * fres);
+    % L = [vs*vg]/[vs*fcat-vg*fres]
+    lVerdeEtAl = (growthSpeedMeanNW * abs(shrinkageSpeedMeanNW)) / (abs(shrinkageSpeedMeanNW) * fcat - growthSpeedMeanNW * fres);
     
 else
     jVerdeEtAl = NaN;
     lVerdeEtAl = NaN;
 end
+
+% FRAP
+% - here is where it would be -
 
 %write statistics structure
 % 
@@ -583,4 +588,4 @@ if nargout > 2
 end
 
 %don't forget to turn the warnings back on
-warning on MATLAB:divideByZero
+warning(warningState);
