@@ -76,20 +76,8 @@ end
 % Read parameter structure from handles.expPopup
 fsmExpParam=get(handles.expPopup,'UserData');
 
-% Assign noise parameters
-exp=get(handles.expPopup,'Value');
-if exp~=1
-    fsmParam.main.noiseParam(1,2:4)=fsmExpParam(exp-1).noiseParams;
-else
-    uiwait(msgbox('Please select an experiment.','Warning','warn'));
-    return;
-end
-
 % Add value of the popup window
 fsmParam.main.noiseParam(1,7)=get(handles.expPopup,'Value');
-
-% Store experiment label
-fsmParam.main.label=fsmExpParam(exp-1).label;
 
 % Normalization boundaries
 fsmParam.main.normMin=0;
@@ -121,6 +109,26 @@ switch fsmParam.prep.pstSpeckles
     otherwise
         error('The expected value for fsmParam.prep.pstSpeckles is either 1 or 2 or 3');
 end
+
+% Assign noise parameters
+exp=get(handles.expPopup,'Value');
+if exp~=1
+    fsmParam.main.noiseParam(1,2:4)=fsmExpParam(exp-1).noiseParams;
+    % Store experiment label
+    fsmParam.main.label=fsmExpParam(exp-1).label;
+else
+    if fsmParam.prep.pstSpeckles(1)~=3
+        uiwait(msgbox('Please select an experiment.','Warning','warn'));
+        return;
+    else
+        % Store experiment label
+        fsmParam.main.label='Scale space'; % Set it to 'Scale space' so that there won't be any check for setting the next time fsmParam is loaded
+        % Make sure that fsmParam.main.noiseParam(7) does not point to any experiment
+        fsmParam.main.noiseParam(7)=1;
+        set(handles.expPopup,'Value',1);
+    end
+end
+
 
 % Enhanced triangulation
 fsmParam.prep.enhTriang=get(handles.TriangCheck,'Value');

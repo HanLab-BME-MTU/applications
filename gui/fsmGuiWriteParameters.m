@@ -78,9 +78,14 @@ switch fsmParam.main.noiseParam(6)
     case 6, set(handles.confSix,'Value',1); set(handles.editZValue,'String',num2str(zValue(6)));
     otherwise, set(handles.editZValue,'String',fsmParam.main.noiseParam(5)); % User-defined quantile
 end
-
+    
 % Read parameter structure from handles.expPopup
 fsmExpParam=get(handles.expPopup,'UserData');
+
+% If the user selected 'Scale space', let's skip the whole settings check
+if strcmp(fsmParam.main.label,'Scale space')
+    fsmExpParam=[];
+end
 
 % If only the default fsmParam.mat has been loaded, there is no need for further controls
 if ~isempty(fsmExpParam)
@@ -116,7 +121,7 @@ if ~isempty(fsmExpParam)
         
     end
     
-    % If the experiment is valid, add it to the sroll-down menu, otherwise inform the user
+    % If the experiment is valid, add it to the scroll-down menu, otherwise inform the user
 
     if expNotValid==0
         
@@ -345,6 +350,13 @@ end
 % BUILDER MODULE
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Check for 'Scale space'
+if fsmParam.prep.pstSpeckles==3 & strcmp(fsmParam.main.label,'Scale space')
+    fsmParam.build.enable=0; % Make sure that only preprocessing and tracking are allowed if the user picked 'Scale space'
+    set(handles.checkBuildModule,'Enable','off');
+end
+
 % Enable/disable module
 if fsmParam.build.enable==1
     set(handles.checkBuildModule,'Value',1);
@@ -357,6 +369,18 @@ end
 % KINETIC ANALYSIS MODULE
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Check for 'Scale space'
+if fsmParam.prep.pstSpeckles==3 & strcmp(fsmParam.main.label,'Scale space')
+    fsmParam.kin.enable=0; % Make sure that only preprocessing and tracking are allowed if the user picked 'Scale space'
+    set(handles.textBleach,'Enable','off');
+    set(handles.checkKinModule,'Enable','off');
+    set(handles.bleachRadioOff,'Enable','off');
+    set(handles.bleachRadio1x,'Enable','off');
+    set(handles.bleachRadio2x,'Enable','off');
+    set(handles.bleachRadio3x,'Enable','off');
+end
+
 % Enable/disable module
 if fsmParam.kin.enable==1
     set(handles.checkKinModule,'Value',1);
@@ -381,6 +405,13 @@ end
 % RESULT DISPLAY MODULE
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Check for 'Scale space'
+if fsmParam.prep.pstSpeckles==3 & strcmp(fsmParam.main.label,'Scale space')
+    fsmParam.disp.enable=0; % Make sure that only preprocessing and tracking are allowed if the user picked 'Scale space'
+    set(handles.checkDispModule,'Enable','off');
+end
+
 % Enable/disable module
 if fsmParam.disp.enable==1
     set(handles.checkDispModule,'Value',1);

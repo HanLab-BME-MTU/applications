@@ -50,6 +50,7 @@ end
 sizeM=size(M,3);
 if d>sizeM
     d=sizeM;
+    fprintf(1,'Warning: there are not enough frames in M to process the requested %d frames. Using %d frames.\n',n,d);
 end
 
 % Initialize memory for the list

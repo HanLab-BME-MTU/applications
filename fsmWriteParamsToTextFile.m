@@ -77,9 +77,13 @@ fprintf(fid,'Noise parameters          : [ sDN = %1.8f; beta = %1.8f; I0 = %1.8f
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fprintf(fid,'Experiment name           : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).label); % This belongs to MAIN
-fprintf(fid,'Experiment description    : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
-
+if strcmp(fsmParam.main.label,'Scale space') & fsmParam.main.noiseParam(7)==1
+    fprintf(fid,'Experiment name           : Scale space\n'); % This belongs to MAIN
+    fprintf(fid,'Experiment description    : Scale space\n');
+else
+    fprintf(fid,'Experiment name           : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).label); % This belongs to MAIN
+    fprintf(fid,'Experiment description    : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
+end
 fprintf(fid,'\n[ MODULES ]\n');
 
 fprintf(fid,'\n> PREP \n');

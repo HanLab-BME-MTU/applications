@@ -38,7 +38,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % image segmentation
 
-If=gauss2d(I,sigmaOne); % filter the image with sigmaOne
+If=Gauss2D(I,sigmaOne); % filter the image with sigmaOne
 MN=mean(If(:)); % find the Mean Intensity over the whole filtered image
 If1=If<=MN; % thresholded image - under the mean
 
@@ -52,14 +52,14 @@ BWdfill=BWdfill>MNN; % thresholded image - above the mean
 
 BG=(If1)&(BWdfill); % logical And between the two thresholded images above 
 BG=~BG; % reverse
-bg1=double(imfill(BG,'holes')); % fill in holes
+bg1=double(imfill(double(BG),'holes')); % fill in holes
 bg2=~bg1; % reverse
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % scale space speckle detection
 
 % filter sigma 2
-I2=gauss2d(I,sigmaTwo);
+I2=Gauss2D(I,sigmaTwo);
 % substract
 Isub=If-I2;
 % clipping, for there are some negative values after substraction of the (more) filtered image
