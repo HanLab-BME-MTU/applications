@@ -130,7 +130,7 @@ for i = 1:nGroups
 
     % class
     if ~isfield(plotData,'class')
-        plotData(i).class = 1;
+        plotData(i).class = '';
 
         % bad if there is something in class which is not a char
     elseif ~isempty(plotData(i).class) && ~ischar(plotData(i).class)
