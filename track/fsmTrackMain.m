@@ -363,6 +363,7 @@ if TRACKER==1 | TRACKER ==3
             
         end
         
+        %Delete any saved
         % Close waitbar
         close(h);
         

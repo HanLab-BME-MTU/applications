@@ -239,7 +239,7 @@ if fsmParam.track.init~=0
         % Save averaged vectors to the initializer subdirectory
         indxStr=sprintf(strg,str2num(imageNo)+1); % Next frame
         try
-            eval(['save ',initPath,filesep,'tackflow',indxStr,'.mat flow;']);
+            eval(['save ',initPath,filesep,'tackFlow',indxStr,'.mat flow;']);
         catch
             fprintf(1,'Could not save vector flow field to disk. It won''t be used to initialize the tracker for the next frame pair.\n');
         end
