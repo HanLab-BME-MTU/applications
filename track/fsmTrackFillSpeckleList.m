@@ -1,4 +1,4 @@
-function [specklePos,speckleMap]=fsmTrackFillSpeckleListz(cands,imgSize)
+function [specklePos,speckleMap]=fsmTrackFillSpeckleList(cands,imgSize)
 % fsmTrackFillSpeckleList creates an (nx3) matrix [y x I]n of speckle coordinates and intensity and a 2D speckle map
 %
 % SYNOPSIS   [specklePos,speckleMap]=fsmTrackFillSpeckleListz(cands,imgSize)
