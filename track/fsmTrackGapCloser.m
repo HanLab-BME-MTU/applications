@@ -142,8 +142,9 @@ for c1=1:Mdepth-1
         
         % Create distance matrix
         D=createDistanceMatrix(pM,nM);
-        
+
         % Row
+        E=zeros(size(D));
         for i=1:size(D,1)
             t=D(i,:);
             t=t==min(t);
@@ -151,6 +152,7 @@ for c1=1:Mdepth-1
         end
         
         % Column
+        F=zeros(size(D));
         for i=1:size(D,2)
             t=D(:,i);
             t=t==min(t);
