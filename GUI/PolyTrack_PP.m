@@ -1428,8 +1428,6 @@ else
    handles.postpro.movietype = 1;   % avi
 end
 
-fprintf (1, '%d\n', handles.postpro.movietype);
-
 % Update handles structure
 guidata(hObject, handles);   
    
@@ -1471,8 +1469,6 @@ else
    % correctly
    handles.postpro.movietype = 2;   % qt
 end
-
-fprintf (1, '%d\n', handles.postpro.movietype);
 
 % Update handles structure
 guidata(hObject, handles);   

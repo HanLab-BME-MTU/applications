@@ -56,6 +56,7 @@ function [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumb
 % --------------------- --------        --------------------------------------------------------
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source, make function independent of GUI handle
+% Andre Kerstens        Jun 04          Modification necessary because of extra parameter ptGetProcessedImage
 
 % Tell the user that we've started
 fprintf (1, 'Starting analysis of job number %d:\n', jobNumber);
@@ -82,6 +83,8 @@ minDistCellToCell    = ptJob.minsdist;
 timeStepSlide        = ptJob.timestepslide;
 distanceToCellArea   = round (minDistCellToCell / 2);
 erodeDiskSize        = 15;
+bgKernel             = 21;
+edgeKernel           = 5;
 emptyM               = zeros (1,4);      % All zeros M matrix entry
 emptyCell            = zeros (1,3);
 emptyCluster         = zeros (1,5);
@@ -122,7 +125,8 @@ else		% lastImaNum > firstImaNum
       tempImage = imreadnd2 (imageFilename, 0, intensityMax);
 
       % Process the image: subtract background, increase contrast between halos and nuclei
-      [newImage, backgroundLevel] = ptGetProcessedImage (tempImage, intensityMax, 21);
+      [newImage, backgroundLevel, edgeImage] = ptGetProcessedImage (tempImage, intensityMax, ...
+                                                                    bgKernel, edgeKernel);
 
       % Calculate the size of the image
       [imgHeight, imgWidth] = size (newImage);
@@ -185,7 +189,8 @@ else		% lastImaNum > firstImaNum
 
       % Check whether we can find some more cells based on average cell size and cluster areas
       % that have no coordinates in them: if these are big enough we label them as cells
-      [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (segmentedImage, newCoord, minSizeNuc);
+      [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (edgeImage, newCoord, ...
+                                                                            minSizeNuc, edgeKernel);
       
       % If we found any new cells add them to the already found ones
       if ~isempty (avgCoord)
@@ -347,7 +352,9 @@ else		% lastImaNum > firstImaNum
       end   % if imageCount > startFrame
 
       % Calculate single cell and cluster properties and generate binary and labeled images
-      [cellProp, clusterProp] = ptCalculateCellArea (labeledCellImage, newCoord, distanceToCellArea, minSizeNuc);
+      %[cellProp, clusterProp] = ptCalculateCellArea (labeledCellImage, newCoord, distanceToCellArea, minSizeNuc);
+      [cellProp, clusterProp] = ptCalculateCellAreaUsingVariance (labeledCellImage, newCoord, ...
+                                                                  distanceToCellArea, minSizeNuc, edgeKernel);
       
       % Accumulate the cell properties
       cellProps (1 : size (emptyCell, 1), 1 : size (emptyCell, 2), imageCount) = emptyCell;
@@ -434,6 +441,8 @@ end % if ~(lastImaNum > firstImaNum)
                                                   
 % Generate the MPM matrix as well so that it can be used from disk if needed
 MPM = ptTrackLinker (M);
+
+save ('MPMbefore.mat', 'MPM');
 
 % Make sure the tracks have a minimum track length (specified on GUI)
 MPM = ptMinTrackLength (MPM, minTrackLength);

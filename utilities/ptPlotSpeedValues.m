@@ -18,6 +18,7 @@ function ptPlotSpeedValues (ptPostpro, MPM)
 % --------------------- --------        --------------------------------------------------------
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file
+% Andre Kerstens        Jun 04          Changed ymax to 100% for percentage all cells
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -372,7 +373,7 @@ print (h_fig, [savePath filesep 'avgSingleAndClusterVelocity.tif'],'-dtiff');
 h_fig = figure; title (imageName);
    
 % Draw the plot
-ymax = max (velAllCellsHigherThanAvgSingleCells) + 1;
+ymax = 100;
 plot (xAxis, velAllCellsHigherThanAvgSingleCells); 
 title ('% All Cells with Velocity higher than Average Single Cell Velocity');
 xlabel ('Frames');
@@ -465,26 +466,26 @@ print (h_fig, [savePath filesep 'varSingleAndClusterVelocity.tif'],'-dtiff');
 
 % Generate a 3D velocity histogram using 3-d bars which is chopped up in bins with size binSize
 
-% Calculate the maximum displacement value
-maxDisp = max (max (displacementHist));
-
-% Generate the bin vector by using the GUI field binsize
-bin = [];
-for binCount = 1 : binSize
-   binCol = round (binCount * maxDisp / binSize);
-   bin = [bin binCol];
-end
-
-% Generate a 3D displacement histogram using 3-d bars which is chopped up in bins
-h_fig = figure;
-%bar3 (bin, displacementHist, 0.5, 'detached');
-bar3 (bin, displacementHist, 0.5, 'detached');
-title ('3D Displacement Histogram (binned)');
-
-% Save this figure to disk as fig, eps and tiff
-hgsave (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.fig']);
-print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.eps'], '-depsc2', '-tiff');
-print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.tif'], '-dtiff');
+% % Calculate the maximum displacement value
+% maxDisp = max (max (displacementHist));
+% 
+% % Generate the bin vector by using the GUI field binsize
+% bin = [];
+% for binCount = 1 : binSize
+%    binCol = round (binCount * maxDisp / binSize);
+%    bin = [bin binCol];
+% end
+% 
+% % Generate a 3D displacement histogram using 3-d bars which is chopped up in bins
+% h_fig = figure;
+% %bar3 (bin, displacementHist, 0.5, 'detached');
+% bar3 (bin, displacementHist, 0.5, 'detached');
+% title ('3D Displacement Histogram (binned)');
+% 
+% % Save this figure to disk as fig, eps and tiff
+% hgsave (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.fig']);
+% print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.eps'], '-depsc2', '-tiff');
+% print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.tif'], '-dtiff');
 
 
 % For all the figures we want to keep the xAxis as well 

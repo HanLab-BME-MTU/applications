@@ -1,12 +1,14 @@
-function [newCoord, imgClusterArea, labeledClusterImage] = ptFindCoordFromClusters (inputImage, coord, minSizeNucleus)
+function [newCoord, imgClusterArea, labeledClusterImage] = ptFindCoordFromClusters (edgeImage, coord, minSizeNucleus, edgeKernelSize)
 % ptFindCoordFromClusters tries to find unfound single cells based on the average cell size
 %       and clusters without any coordinates
 %
-% SYNOPSIS     [newCoord] = ptFindCoordFromClusters (labeledClusterImage, coord, avgCellArea)
+% SYNOPSIS     [newCoord, imgClusterArea, labeledClusterImage] = ptFindCoordFromClusters ...
+%                               (edgeImage, coord, minSizeNucleus, edgeKernelSize)
 %
 % INPUT    inputImage : segmented image (1 = nuclei, 2 = background, 3 = halos)
 %          coord : set of coordinates
 %          minSizeNucleus : the minimum size a nucleus should have
+%          edgeKernelSize : size of the kernel that was used to create the edge variance image
 %
 % OUTPUT   newCoord : newly found coordinates
 %          imgClusterImage: a binary image containing all of the clusters
@@ -22,25 +24,42 @@ function [newCoord, imgClusterArea, labeledClusterImage] = ptFindCoordFromCluste
 % --------------------- ----------      -----------------------------------------------
 % Andre Kerstens        May 04          Wrote a function to determine coordinates based
 %                                       on average cell size
+% Andre Kerstens        Jun 04          Calculations are done based on edges found in variance image
 
-% The binary image is an or-function of the input image where pixels are 1 (nuclei) and the
-% input image where pixels are 3 (halos)
-imgClusterArea = (inputImage == 1 | inputImage == 3);
+% Process the edge image so that we end up with a labeled image of areas
+% % First remove the white edge that was created during convolution
+% edgeImageNoEdge = edgeImage(edgeKernelSize:end-edgeKernelSize, edgeKernelSize:end-edgeKernelSize);
 
-% Fill out any gaps by dilating and eroding the image a couple of times.
-imgClusterArea = imdilate (imgClusterArea, strel ('disk', 8));
-imgClusterArea = imerode  (imgClusterArea, strel ('disk', 8));
-imgClusterArea = imdilate (imgClusterArea, strel ('disk', 4));
-imgClusterArea = imerode  (imgClusterArea, strel ('disk', 3));
-imgClusterArea = imdilate (imgClusterArea, strel ('disk', 2));
-imgClusterArea = imerode  (imgClusterArea, strel ('disk', 1));
-imgClusterArea = imdilate (imgClusterArea, strel ('disk', 1));
+% Some morphological operations to increase cluster quality
+edgeImageOpened = bwareaopen (edgeImage, minSizeNucleus);
+edgeImageClosed = imfill (edgeImageOpened, 'holes');
+edgeImageBridged = bwmorph (edgeImageClosed,'bridge');
+edgeImageFilled = imfill (edgeImageBridged, 'holes');
 
-% Get rid of all the really small objects (smaller than a nucleus)
-imgClusterArea = bwareaopen (imgClusterArea, minSizeNucleus);
+% Label the image
+edgeImageLabeled = bwlabel (edgeImageFilled);
+imgClusterArea = edgeImageFilled;
 
-% Label the objects in imgCellArea: 0 = background, 1 = first object, 2 = second object, etc
-labeledClusterImage = bwlabel (imgClusterArea);
+% % The binary image is an or-function of the input image where pixels are 1 (nuclei) and the
+% % input image where pixels are 3 (halos)
+% imgClusterArea = (inputImage == 1 | inputImage == 3);
+% 
+% % Fill out any gaps by dilating and eroding the image a couple of times.
+% imgClusterArea = imdilate (imgClusterArea, strel ('disk', 8));
+% imgClusterArea = imerode  (imgClusterArea, strel ('disk', 8));
+% imgClusterArea = imdilate (imgClusterArea, strel ('disk', 4));
+% imgClusterArea = imerode  (imgClusterArea, strel ('disk', 3));
+% imgClusterArea = imdilate (imgClusterArea, strel ('disk', 2));
+% imgClusterArea = imerode  (imgClusterArea, strel ('disk', 1));
+% imgClusterArea = imdilate (imgClusterArea, strel ('disk', 1));
+% 
+% % Get rid of all the really small objects (smaller than a nucleus)
+% imgClusterArea = bwareaopen (imgClusterArea, minSizeNucleus);
+% 
+% % Label the objects in imgCellArea: 0 = background, 1 = first object, 2 = second object, etc
+% labeledClusterImage = bwlabel (imgClusterArea);
+
+labeledClusterImage = edgeImageLabeled;
 
 % Find the number of clusters in the image
 maxClusterNr = max (max (labeledClusterImage));

@@ -1,20 +1,24 @@
-function [outImage, backgroundLevel] = ptGetProcessedImage (varargin)
+function [outImage, backgroundLevel, binImageEdge] = ptGetProcessedImage (varargin)
 % ptGetProcessedImage uses a number of image filtering functions to improve the
 % image quality of the phase-contrast cell images so that an optimal segmentation 
 % can take place. In particular the functions imVarianceImage, imMinimumThreshold 
 % and im2bw are used.
 %
-% SYNOPSIS       outImage = ptGetProcessedImage (varargin)
+% SYNOPSIS       [outImage, backgroundLevel, binImageEdge] = ptGetProcessedImage (varargin)
 %
-% INPUT          inputImage: the image that has to be processed
-%                greyMax:    the maximum greylevel value of the image (eg 4095 for a 12-bit image)
-%                kernelSize: this should be an odd value and is used to calculate the variance image
-%                            (15 is uaually a good value)
+% INPUT          inputImage:     the image that has to be processed
+%                greyMax:        the maximum greylevel value of the image (eg 4095 for a 12-bit image)
+%                kernelSizeBg:   this should be an odd value and is used to calculate the variance image
+%                                used for background subtraction (21 is a good value)
+%                kernelSizeEdge: this should be an odd value and is used to
+%                                calculate the variance image used for the edge image
 %
 % OUTPUT         outImage       : the processed image which can be used for segmentation
 %                backgroundLevel: the average level of the subtracted background
+%                binImageEdge   : image containing edges found in the variance image
 %
-% DEPENDENCIES   ptGetProcessedImage uses { imVarianceImage 
+% DEPENDENCIES   ptGetProcessedImage uses { imVarianceImage
+%                                           imMinimumThreshold
 %                                           im2bw }
 %                                  
 %                ptGetProcessedImage is used by { ptTrackCells }
@@ -24,33 +28,48 @@ function [outImage, backgroundLevel] = ptGetProcessedImage (varargin)
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Apr 04          Initial release
 % Andre Kerstens        May 04          Function now uses automatic thresholding to find the background
+% Andre Kerstens        Jun 04          Added edge image to output of function
 
 % Test the number of input variables
-if nargin < 3
-   error('The input image, the maximum grey level (eg 4095 for a 12 bit image) and the kernel size (15 is a good value) have to be provided. See help ptGetProcessedImage.');
+if nargin < 4
+   error('The input image, the maximum grey level (eg 4095 for a 12 bit image) and the kernel sizes for background subtraction and edge image have to be provided. See help ptGetProcessedImage.');
 end
 
 % Get the input variables
-inputImage = varargin{1};
-greyMax    = varargin{2};
-kernelSize = varargin{3};
+inputImage   = varargin{1};
+greyMax      = varargin{2};
+kernelSizeBg = varargin{3};
+kernelSizeEdge = varargin{4};
 
-% Calculate the variance image
-varImage = imVarianceImage (inputImage, kernelSize);
+% Calculate variance images useful for background subtraction and for edge
+% detection
+varImageBg = imVarianceImage (inputImage, kernelSizeBg);
+varImageEdge = imVarianceImage (inputImage, kernelSizeEdge);
 
-% Calculate the optimum threshold to segment this image
-[threshold, J] = imMinimumThreshold (varImage, greyMax);
+% Calculate the optimum thresholds to segment this image (bg subtraction
+% and edge thresholds)
+[thresholdBg, JBg] = imMinimumThreshold (varImageBg, greyMax);
+[thresholdEdge, JEdge] = imMinimumThreshold (varImageBg, greyMax);
 
 % Get the binary image where all of the background is 1
-binImage = ~im2bw (varImage, threshold);
+binImageBg = ~im2bw (varImageBg, thresholdBg);
+
+% Get the binary edge image
+binImageEdgeTemp = im2bw (varImageEdge, thresholdEdge);
+
+% Make the edge pixels 0 again using a zero mask
+mask = zeros (size (binImageEdgeTemp));
+mask(kernelSizeEdge+1:end-kernelSizeEdge, kernelSizeEdge+1:end-kernelSizeEdge) = ...
+    binImageEdgeTemp(kernelSizeEdge+1:end-kernelSizeEdge, kernelSizeEdge+1:end-kernelSizeEdge);
+binImageEdge = mask;
 
 % Show only the background pixels in the original image (by multiplying with 
 % the binary image). And then fetch the index of these specific pixels
-newImage = inputImage .* binImage;
-backOnlyImage = newImage (find (binImage));
+newImage = inputImage .* binImageBg;
+backOnlyImage = newImage (find (binImageBg));
 
 % Get the x and y coordinates of these pixels
-[x,y] = find (binImage);
+[x,y] = find (binImageBg);
 
 % Now we start to solve the equation I(x,y) = f(x,y) where f(x,y) is ax^2+bxy+cy^2+d
 % For this we need to create a matrix A = [x^2, xy, y^2, 1] to solve the coeff. 

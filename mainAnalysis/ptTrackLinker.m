@@ -28,6 +28,8 @@ function [MPM, M] = ptTrackLinker (M)
 % Colin Glass           Feb 04          Adapted Aaron's function for use in Polytrack
 % Andre Kerstens        Mar 04          Cleaned up source; made output viable for command line
 % Andre Kerstens        Jun 04          Implemented bugfix for bug #83
+% Andre Kerstens        Jun 04          Had to undo change with finding zero entries in M, since 
+%                                       this didn't result in the desired effect.
 
 % Let the user know we're starting to link
 fprintf (1, '\n     ptTrackLinker: Starting track linkage process...\n');
@@ -53,7 +55,7 @@ for counter1 = 1 : size(M,3) - 1
    
    for counter2 = 1 : size(stop, 1)
 
-      %Attention: this if /else statement is the only difference to Aarons original code 
+      % Start doing something in case start coords not zero 
       if start(counter2, 1) ~= 0 | start(counter2, 2) ~= 0 
                         
          t = start(counter2, 1) == stop(:,1);
@@ -96,28 +98,31 @@ for counter1 = 1 : size(M,3) - 1
                 
          if (M(counter2,3,counter1+1) ~= 0 | M(counter2,4,counter1+1) ~= 0) & ...
             (M(counter2,1,counter1+1) == 0 & M(counter2,2,counter1+1) == 0)
-            %M(end+1,:,:)=0;
+            M(end+1,:,:)=0;
             %=M(end,3:4,counter1);
-            %tM(end+1,:)=0;
-            %tM(end,3:4)=M(counter2,3:4,counter1+1);
+            tM(end+1,:)=0;
+            tM(end,3:4)=M(counter2,3:4,counter1+1);
             %tM(counter2,3:4)=M(counter2,3:4,counter1+1);
          end
       end  % if start(counter2, 1) ~= 0
       
    end  % for counter2 = 1 : size(stop, 1)
 
-   % Look for M 1:2 entries that are 0, but where the 3:4 entries are
-   % non zero
-   [row, col] = find ((M(:,1,counter1+1) == 0 & M(:,2,counter1+1) == 0) & ...
-                      (M(:,3,counter1+1) ~= 0 & M(:,4,counter1+1) ~= 0));
-   if ~isempty (row)
-      % Find a zero entry in tM
-      zeroInd = find (tM (:,1) == 0 & tM (:,2) == 0 & tM (:,3) == 0 & tM (:,4) == 0);
-        
-      % Add the non-zero M-entries to tM
-      tM(zeroInd(1:size(row,1)), 3) = M(row,3,counter1+1);
-      tM(zeroInd(1:size(row,1)), 4) = M(row,4,counter1+1);
-   end
+%    % Look for M 1:2 entries that are 0, but where the 3:4 entries are
+%    % non zero
+%    [row, col] = find ((M(:,1,counter1+1) == 0 & M(:,2,counter1+1) == 0) & ...
+%                       (M(:,3,counter1+1) ~= 0 & M(:,4,counter1+1) ~= 0));
+%    if ~isempty (row)
+%       % Find a zero entry in M(:,:,counter1) the previous M entry. This is
+%       % necessary so that we do not start in a row that another track is
+%       % using already
+%       zeroInd = find (M (:,1,counter1) == 0 & M (:,2,counter1) == 0 & ...
+%                       M (:,3,counter1) == 0 & M (:,4,counter1) == 0);
+%         
+%       % Add the non-zero M-entries to tM
+%       tM(zeroInd(1:size(row,1)), 3) = M(row,3,counter1+1);
+%       tM(zeroInd(1:size(row,1)), 4) = M(row,4,counter1+1);
+%    end
    
    % Replace M with re-ordered one
    M(:,:,counter1+1) = tM;
