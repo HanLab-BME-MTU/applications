@@ -48,11 +48,11 @@ function GUI_postprocess_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % Create a default postprocessing structure that defines all the fields used in the program
-defaultpostpro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5,...
+defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5,...
                         'dragtail', 6, 'figureSize', []);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
-handles.defaultpostpro = defaultpostpro;
+handles.defaultPostPro = defaultPostPro;
 
 % Set the color of the gui
 set(hObject,'Color',[0,0,0.627]);
@@ -98,6 +98,20 @@ function GUI_pp_jobpath_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_pp_jobpath_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_pp_jobpath_ed as a double
 
+handles = guidata(hObject);
+
+% Get the job path and name
+jobPath = get(hObject,'String');
+
+if ~exist(jobPath, 'file')
+   h=errordlg('The selected job path does not exist. Please select another job path... ');
+   uiwait(h);
+   return
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
 %----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_pp_jobbrowse_pb.
@@ -109,10 +123,10 @@ function GUI_pp_jobbrowse_pb_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Start with the default post processing structure
-handles.postpro=handles.defaultpostpro;
+handles.postpro = handles.defaultPostPro;
 
 % Use the gui to let the user select a jobvalues.mat filename
-[filename,jobValPath]=uigetfile({'*.mat','mat-files'},'Select jobvalues.mat or MPM.mat');
+[filename, jobValPath] = uigetfile({'*.mat','mat-files'},'Select jobvalues.mat or MPM.mat');
 
 % Check that the user actually selected a valid file
 if ~strcmp(filename, 'jobvalues.mat') & ~strcmp(filename, 'MPM.mat')
@@ -125,9 +139,9 @@ end
 cd (jobValPath)
 
 % Load MPM.mat file if selected from the gui and if it exists
-if strcmp(filename, 'MPM.mat')
-   if exist('MPM.mat', 'file')
-      load(filename);
+if strcmp (filename, 'MPM.mat')
+   if exist ('MPM.mat', 'file')
+      load (filename);
       handles.MPM = MPM;
    else
       h = errordlg('The file MPM.mat does not exist...');
@@ -137,15 +151,16 @@ if strcmp(filename, 'MPM.mat')
    
    % Step back one directory
    cd ..
-   jobValPath = pwd;
-elseif strcmp(filename, 'jobvalues.mat')
+   jobValPath = [pwd, filesep];
+
+elseif strcmp (filename, 'jobvalues.mat')
    % Load the M.mat file which should be present
-   if exist('M.mat', 'file')
-      load('M.mat');
-      % Call up the track link function and retrieve the MPM matrix
+   if exist ('M.mat', 'file')
+      load ('M.mat');
+      % Call up the track link function to generate the MPM matrix
       handles.MPM = trackLinker(M);
    else
-      h = errordlg('The file M.mat does not exist...');
+      h = errordlg('The file M.mat does not exist. Please make sure it is present as well...');
       uiwait(h);          % Wait until the user presses the OK button
       return;
    end
@@ -161,32 +176,47 @@ else
    return;
 end
 
-% Load the cell properties file if it exists
+% Load the cell properties file if it exists (it should!)
 if exist ('cellprops.mat','file')
    load('cellprops.mat');
-   handles.cellProps = cellProps;
+   if exist('cellProps','var')
+      handles.cellProps = cellProps;
+   else
+      handles.cellProps = cellprops;
+   end
 else
-   h = errordlg('The file cellprops.mat does not exist...');
+   h = errordlg('The file cellprops.mat does not exist. Please make sure it is present as well...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
 end
 
+% Now that all the loading is done, we'll start the real stuff
 cd (jobValPath)
+
+% Counters to keep track of where we are
 done = 0;
 counter = 1;
+
+% Here is where a new data subdirectory has to be created. Since 
+% this has to be a unique name, a counter is used to find the
+% next available unique directory name
 while done == 0
    newdirname=[];
    newdirname=['data', num2str(counter)];
  
-   if exist(newdirname, 'dir') == 0
+   % If it doesn't exist yet, create it in the results directory
+   if ~exist(newdirname, 'dir')
       mkdir(jobValPath, newdirname);
         
+      % Save it in the handles struct and tell the loop we're done
       handles.postpro.saveallpath = [jobValPath, newdirname];
       done = 1;
    end
    counter = counter + 1;
 end
 
+% Now we have to fill up the rest of the postpro structure with
+% our previously found data and parameters
 handles.selectedcells = [];
 handles.postpro.imagepath = handles.jobvalues.imagedirectory;
 handles.postpro.maxdistpostpro = handles.jobvalues.maxsearch;
@@ -196,22 +226,21 @@ handles.postpro.selectedcells = [];
 handles.postpro.moviefirstimg = handles.jobvalues.firstimage;
 handles.postpro.movielastimg = handles.jobvalues.lastimage;
 
-guidata(hObject, handles);
+% Update fields on the GUI with the latest values
+set(handles.GUI_pp_jobpath_ed, 'String', jobValPath);
+set(handles.GUI_pp_imagepath_ed, 'String', handles.postpro.imagepath);
+set(handles.GUI_fm_saveallpath_ed, 'String', handles.postpro.saveallpath);
+set(handles.GUI_ad_firstimage_ed, 'String', handles.postpro.analfirstimg);
+set(handles.GUI_ad_lastimage_ed, 'String', handles.postpro.anallastimg);
+set(handles.GUI_fm_movieimgone_ed, 'String', handles.postpro.analfirstimg);
+set(handles.GUI_fm_movieimgend_ed, 'String', handles.postpro.anallastimg);
+set(handles.GUI_app_relinkdist_ed, 'String', handles.postpro.maxdistpostpro);
+set(handles.GUI_app_minusframes_ed, 'String', handles.postpro.minusframes);
+set(handles.GUI_app_plusframes_ed, 'String', handles.postpro.plusframes);
+set(handles.GUI_app_minimaltrack_ed, 'String', handles.postpro.minimaltrack);
+set(handles.GUI_fm_tracksince_ed, 'String', handles.postpro.dragtail);
 
-set(handles.GUI_pp_jobpath_ed,'String',jobValPath);
-set(handles.GUI_pp_imagepath_ed,'String',handles.jobvalues.imagedirectory);
-set(handles.GUI_fm_saveallpath_ed,'String', handles.postpro.saveallpath);
-set(handles.GUI_ad_firstimage_ed,'String',handles.jobvalues.firstimage);
-set(handles.GUI_ad_lastimage_ed,'String',handles.jobvalues.lastimage);
-set(handles.GUI_fm_movieimgone_ed,'String',handles.jobvalues.firstimage);
-set(handles.GUI_fm_movieimgend_ed,'String',handles.jobvalues.lastimage);
-set(handles.GUI_app_relinkdist_ed,'String',handles.jobvalues.maxsearch);
-
-set(handles.GUI_app_minusframes_ed,'String',handles.postpro.minusframes);
-set(handles.GUI_app_plusframes_ed,'String',handles.postpro.plusframes);
-set(handles.GUI_app_minimaltrack_ed,'String',handles.postpro.minimaltrack);
-set(handles.GUI_fm_tracksince_ed,'String',handles.postpro.dragtail);
-
+% And update the gui handles struct
 guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
@@ -221,11 +250,27 @@ function GUI_pp_imagebrowse_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_pp_imagebrowse_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 handles = guidata(hObject);
-[filename,jobValPath]=uigetfile({'*.tif','TIFF-files'},'Please select an image');
 
-handles.postpro.imagepath= jobValPath;
+% Let the user browse for an image file and path
+[filename,jobValPath] = uigetfile ({'*.tif','TIFF-files'},'Please select an image');
+
+% And store this in the postpro struct
+if exist('jobValPath', 'file')
+   cd (jobValPath);
+
+   if ~exist('filename', 'file')
+      h = errordlg('The image file does not exist. Please select another file...');
+      uiwait(h);          % Wait until the user presses the OK button
+      return;
+   else
+      handles.postpro.imagepath = jobValPath;
+   end
+else
+   h = errordlg('The image directory does not exist. Please select another directory...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+end
 
 % Update handles structure
 guidata(hObject, handles);

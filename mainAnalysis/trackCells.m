@@ -244,7 +244,7 @@ else
 
             % If none of the methods is selected (which should be impossible) show error
          else
-            fprintf(1, 'One of the methods clustering or segmentation has to be selected.\n');
+            fprintf(1, 'At least one of the methods clustering or segmentation has to be selected.\n');
             return
          end
                       

@@ -1956,7 +1956,11 @@ savedirectory = get(hObject,'String');
 %if ~exist(savedirectory, 'file')
 %  h=errordlg('The selected save directory does not exist. I will create it first...');
 %  uiwait(h);
-%  mkdir (savedirectory);
+%  if ~(mkdir (savedirectory))
+%     h=errordlg('The directory could not be created, please select another one...');
+%     uiwait(h);
+%     return
+%  end
 %end
 
 % Select the current job and store the directory name in the struct

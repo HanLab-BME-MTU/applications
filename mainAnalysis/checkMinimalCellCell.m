@@ -1,14 +1,13 @@
-                      
-function coord1 = checkMinimalCellCell(coordnuc,altercoor,MinDistCellCell)                                    
+function coord1 = checkMinimalCellCell (coordnuc, altercoor, minDistCellCell)                                    
 % checkMinimalCellCell combines two lists of coordinates and ensures a
 %                      minimal distance between every combination of two
 %                      cells
 %
-% SYNOPSIS       coord1 = checkMinimalCellCell(coordnuc,altercoor,MinDistCellCell)   
+% SYNOPSIS       coord1 = checkMinimalCellCell(coordnuc,altercoor,minDistCellCell)   
 %
-% INPUT          coordnuc : a bunch of coordinates
-%                altercoor : an other bunch of coordinates
-%                MinDistCellCell : minimal distance between two cells
+% INPUT          coordnuc : a set of coordinates
+%                altercoor : another set of coordinates
+%                minDistCellCell : minimal distance between two cells
 %
 % OUTPUT         coord1 : the combined coordinates, with minimal distance
 %                         between them
@@ -21,15 +20,16 @@ function coord1 = checkMinimalCellCell(coordnuc,altercoor,MinDistCellCell)
 %
 % Colin Glass, Feb 04         
 
-
-%ensure a minimal distance between them
-count=1;
-while count < length(coordnuc)
-       paff=[];
-       paff= min(sqrt((coordnuc(count+1:end,1)-coordnuc(count,1)).^2 + (coordnuc(count+1:end,2)-coordnuc(count,2)).^2));
-       if paff < MinDistCellCell
-               coordnuc(count,:)=[];
-               count=count-1;
+% ensure a minimal distance between them
+count = 1;
+while count < length (coordnuc)
+       paff = [];
+       paff = min(sqrt((coordnuc(count+1:end, 1) - coordnuc(count, 1)).^2 + (coordnuc(count+1:end, 2) - ...
+       coordnuc(count, 2)).^2));
+       
+       if paff < minDistCellCell
+               coordnuc(count,:) = [];
+               count = count - 1;
        end
        count=count+1;
 end
@@ -43,7 +43,7 @@ while count < length(altercoor)
        paffalt=[];
        paffalt= min(sqrt((altercoor(count+1:end,1)-altercoor(count,1)).^2 + (altercoor(count+1:end,2)-altercoor(count,2)).^2));
 
-       if paffalt < MinDistCellCell
+       if paffalt < minDistCellCell
                altercoor(count,:)=[];
                count=count-1;
        end
@@ -64,7 +64,7 @@ if isempty(altercoor) == 0
             %note that here the minimal distance is larger than
             %between two cells found by the same routine,
             %because... ahhhmmm... just to make sure
-            if uff  >  (1.5*MinDistCellCell)
+            if uff  >  (1.5*minDistCellCell)
                   namesnumbers(end+1,1)=altercoor(h,1);
                   namesnumbers(end,2)=altercoor(h,2);
             end
