@@ -31,20 +31,26 @@ increment = ptPostpro.increment;
 numberOfFrames = ceil((endFrame - startFrame) / increment) + 1;
 cellProps = ptPostpro.cellProps;
 clusterProps = ptPostpro.clusterProps;
- 
+
+% In case the velocity over multiple frames is needed the following
+% variable should be used (AK: new GUI value?)
+multipleFrameVelocity = 3;
+
 % Initialize the displacement and x-axis matrix
-displacementAll = zeros (size (MPM,1), numberOfFrames);
-avgDisplacement = zeros (1, numberOfFrames-1);
-avgSingleDisplacement = zeros (1, numberOfFrames-1);
-avgClusteredDisplacement = zeros (1, numberOfFrames-1);
-xAxis = zeros (1, numberOfFrames-1);
+%displacementAll = zeros (size (MPM,1), numberOfFrames);
+avgDisplacement = zeros (1, numberOfFrames-multipleFrameVelocity);
+avgSingleDisplacement = zeros (1, numberOfFrames-multipleFrameVelocity);
+avgClusteredDisplacement = zeros (1, numberOfFrames-multipleFrameVelocity);
 
 % Initialize MPM counter
 MPMCount = 1;
 
 % In case the velocity over multiple frames is needed the following
 % variable should be used (AK: new GUI value?)
-multipleFrameVelocity = 1;
+multipleFrameVelocity = 3;
+
+% Initialize X-axis vector
+xAxis = zeros (1, numberOfFrames-multipleFrameVelocity);
 
 % Go through every frame of the set. Start at the second frame
 % because only from there we can start calculating a displacement
