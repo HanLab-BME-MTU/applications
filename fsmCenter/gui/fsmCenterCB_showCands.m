@@ -24,18 +24,25 @@ else
     return
 end
 
-% Plot positions
-hold on;
-for i=1:length(cands)
-    if cands(i).status==1
-        switch cands(i).speckleType
-            case 1, plot(cands(i).Lmax(2),cands(i).Lmax(1),'r.');
-            case 2, plot(cands(i).Lmax(2),cands(i).Lmax(1),'y.');
-            case 3, plot(cands(i).Lmax(2),cands(i).Lmax(1),'g.');
-            otherwise, plot(cands(i).Lmax(2),cands(i).Lmax(1),'c.');
-        end
-    end
-end
+% Extract speckle classes
+primary=find([cands.status]==1 & [cands.speckleType]==1);
+secondary=find([cands.status]==1 & [cands.speckleType]==2);
+tertiary=find([cands.status]==1 & [cands.speckleType]==3);
+higher=find([cands.status]==1 & [cands.speckleType]>3);
+
+% Extract speckle positions
+pPos=reshape([cands(primary).Lmax],2,length([cands(primary).Lmax])/2)';
+sPos=reshape([cands(secondary).Lmax],2,length([cands(secondary).Lmax])/2)';
+tPos=reshape([cands(tertiary).Lmax],2,length([cands(tertiary).Lmax])/2)';
+hPos=reshape([cands(higher).Lmax],2,length([cands(higher).Lmax])/2)';
+
+% Plot speckles 
+%    All speckles of a certain type are in one plot -   
+%    this allows to easily change their properties 
+plot(pPos(:,2),pPos(:,1),'ro'); % Primary speckles
+plot(sPos(:,2),sPos(:,1),'yo'); % Secondary peckles
+plot(tPos(:,2),tPos(:,1),'go'); % Tertiary speckles
+plot(hPos(:,2),hPos(:,1),'co'); % Higher-order speckles
 
 % Title
 title('Speckle order - Red: 1st, Yellow: 2nd, Green: 3rd, Cyan: 4th and above'); 
