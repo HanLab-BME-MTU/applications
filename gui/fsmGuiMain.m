@@ -537,13 +537,6 @@ end
 % --- Executes on button press in checkDispModule.
 function checkDispModule_Callback(hObject, eventdata, handles)
 % Nothing to do
-if get(handles.checkDispModule,'Value')==0
-    set(handles.radioDispModeOrig,'Enable','off');
-    set(handles.radioDispModeTCO,'Enable','off');
-else
-    set(handles.radioDispModeOrig,'Enable','on');
-    % set(handles.radioDispModeTCO,'Enable','off'); % Remove comment when ready
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
