@@ -53,7 +53,8 @@ imageNameList  = handles.jobvalues.imagenameslist;
 intensityMax   = handles.jobvalues.intensityMax;
 
 % Calculate the image range taking into account the increment between frames
-imageRange = floor ((lastImage - firstImage + 1) / increment + 0.001);
+%imageRange = floor ((lastImage - firstImage + 1) / increment + 0.001);
+imageRange = floor ((lastImage - firstImage + 1) / increment);
 handles.ma = imageRange;
 
 % Generate the slider step values for the uicontrol

@@ -19,6 +19,7 @@ function varargout = PolyTrack_PP(varargin)
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file
 % Andre Kerstens        Jul 04          Added size of movie to ptPostpro
 % Andre Kerstens        Jul 04          Added area/convex-hull-area plot
+% Andre Kerstens        Aug 04          Complete redesign to be able to handle multiple movies
 
 % All kinds of matlab initialization stuff; leave as is...
 % Begin initialization code - DO NOT EDIT
@@ -55,12 +56,31 @@ handles.output = hObject;
 
 % Create a default postprocessing structure that defines all the fields used in the program
 defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, ...
-                        'dragtail', 6, 'dragtailfile', 'trackmovie', 'figureSize', [], ...
+                        'dragtail', 6, 'dragtailfile', 'trackMovie', 'figureSize', [], ...
                         'multFrameVelocity', 1, 'binsize', 13, 'mmpixel', 0.639, 'timeperframe', 300, ...
-                        'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81);
+                        'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81, 'windowsize', 5);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
+
+% Set the HOME env variable if not set already
+home = getenv('HOME');
+if isempty (home)
+   if ispc
+      home = 'H:';
+   else
+      home = '/tmp';
+   end
+   fprintf (1, 'HOME environment variable not set. Setting default: %s\n', home);
+end
+
+% Set settings path
+handles.savesettingpath = [home filesep 'fileInfoPP.mat'];
+set (handles.GUI_savesettingpath_ed, 'String', handles.savesettingpath);
+
+% Set movie file path
+handles.dragtailfile = [home filesep 'trackMovie'];
+set (handles.GUI_fm_filename_ed, 'String', handles.dragtailfile);
 
 % Set the color of the gui
 set(hObject,'Color',[0,0,0.627]);
@@ -92,8 +112,8 @@ varargout{1} = handles.output;
 %----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
-function GUI_pp_jobpath_ed_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GUI_pp_jobpath_ed (see GCBO)
+function GUI_savesettingpath_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_savesettingpath_ed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -107,236 +127,29 @@ end
 
 %----------------------------------------------------------------------------
 
-function GUI_pp_jobpath_ed_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_pp_jobpath_ed (see GCBO)
+function GUI_savesettingpath_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_savesettingpath_ed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of GUI_pp_jobpath_ed as text
-%        str2double(get(hObject,'String')) returns contents of GUI_pp_jobpath_ed as a double
+% Hints: get(hObject,'String') returns contents of GUI_savesettingpath_ed as text
+%        str2double(get(hObject,'String')) returns contents of GUI_savesettingpath_ed as a double
 
 handles = guidata(hObject);
 
 % Get the job path and name
-jobPath = get(hObject,'String');
+savePath = get(hObject,'String');
 
-if ~exist(jobPath, 'file')
-   h=errordlg('The selected job path does not exist. Please select another job path... ');
+if ~exist(savePath, 'file')
+   h=errordlg('The selected path does not exist. Please select another path... ');
    uiwait(h);
    return
 end
 
+% Save in the handles struct
+handles.savesettingpath = savePath;
+
 % Update handles structure
-guidata(hObject, handles);
-
-%----------------------------------------------------------------------------
-
-% --- Executes on button press in GUI_pp_jobbrowse_pb.
-function GUI_pp_jobbrowse_pb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_pp_jobbrowse_pb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% Update handles structure
-handles = guidata(hObject);
-
-% Start with the default post processing structure
-handles.postpro = handles.defaultPostPro;
-
-% Use the gui to let the user select a jobvalues.mat filename
-[filename, jobValPath] = uigetfile({'*.mat','mat-files'},'Select jobvalues.mat or MPM.mat');
-
-% Check that the user actually selected a valid file
-if ~strcmp(filename, 'jobvalues.mat') & ~strcmp(filename, 'MPM.mat')
-   h = errordlg('Please select a file named jobvalues.mat or MPM.mat...');
-   uiwait(h);          % Wait until the user presses the OK button
-   return
-end
-
-% Determine image file path from jobvalues path
-cd (jobValPath); cd ('..');
-imageFilePath = pwd;
-
-% Change directory to the selected path
-cd (jobValPath);
-
-% Load MPM.mat file if selected from the gui and if it exists
-if strcmp (filename, 'MPM.mat')
-   if exist ('MPM.mat', 'file')
-      load (filename);
-      handles.MPM = MPM;
-   else
-      h = errordlg('The file MPM.mat does not exist...');
-      uiwait(h);          % Wait until the user presses the OK button
-      return;
-   end
-elseif strcmp (filename, 'jobvalues.mat')
-   % Load the M.mat file which should be present
-   if exist ('M.mat', 'file')
-      load ('M.mat');
-
-      % Call up the track linker function to generate the MPM matrix
-      MPM = ptTrackLinker (M);
-      
-      % If there are totally empty rows in MPM, erase them
-      % First find all unique rows unequal to zero
-      [notZeroEntryRows, notZeroEntryCols] = find (MPM);
-      notZeroEntryRows = unique (notZeroEntryRows);
-      
-      % Get these entries from MPM and keep them
-      cleanedMPM = MPM (notZeroEntryRows,:);
-
-      % Assign the loaded and cleaned up MPM to the handles struct
-      handles.MPM = cleanedMPM;
-   else
-      h = errordlg('The file M.mat does not exist. Please make sure it is present as well...');
-      uiwait(h);          % Wait until the user presses the OK button
-      return;
-   end
-end
-    
-% Load the jobvalues file
-if exist ('jobvalues.mat', 'file')
-   load ('jobvalues.mat');
-   handles.jobvalues = jobvalues;
-else
-   % It might be one directory back if it is a processed MPM file
-   cd ..;
-   if exist ('jobvalues.mat', 'file')
-      load ('jobvalues.mat');
-      handles.jobvalues = jobvalues;
-   else
-      h = errordlg ('The file jobvalues.mat does not exist...');
-      uiwait(h);          % Wait until the user presses the OK button
-      return;
-   end
-end
-
-% Load the cell properties file if it exists
-if exist ('cellProps.mat','file')
-   load('cellProps.mat');
-   if exist('cellProps','var')
-      handles.postpro.cellProps = cellProps;
-   end
-else
-   h = errordlg('The file cellProps.mat does not exist. Please make sure it is present...');
-   uiwait(h);          % Wait until the user presses the OK button
-   return;
-end
-
-% Load the cluster properties file if it exists
-if exist ('clusterProps.mat','file')
-   load('clusterProps.mat');
-   if exist('clusterProps','var')
-      handles.postpro.clusterProps = clusterProps;
-   end
-else
-   h = errordlg('The file clusterProps.mat does not exist. Please make sure it is present...');
-   uiwait(h);          % Wait until the user presses the OK button
-   return;
-end
-
-% Load the frame properties file if it exists
-if exist ('frameProps.mat','file')
-   load('frameProps.mat');
-   if exist('frameProps','var')
-      handles.postpro.frameProps = frameProps;
-   end
-else
-   h = errordlg('The file frameProps.mat does not exist. Please make sure it is present...');
-   uiwait(h);          % Wait until the user presses the OK button
-   return;
-end
-
-% Now that all the loading is done, we'll start the processing
-cd (jobValPath);
-
-% Counters to keep track of where we are
-counter = 1;
-
-% Here is where a new data subdirectory has to be created. Since 
-% this has to be a unique name, a counter is used to find the
-% next available unique directory name
-while 1
-   % Initialize the new data dir name
-   newDirectoryName = ['data', num2str(counter)];
- 
-   % If it doesn't exist yet, create it in the results directory
-   if ~exist (newDirectoryName, 'dir')
-      mkdir (jobValPath, newDirectoryName);
-        
-      % Save it in the handles struct and tell the loop we're done
-      handles.postpro.saveallpath = [jobValPath, newDirectoryName];
-      break;
-   end
-   % Else the directory existed already so we increase the counter
-   counter = counter + 1;
-end
-
-% Store the size of the image
-cd (imageFilePath);
-info = imfinfo (handles.jobvalues.imagename);
-handles.postpro.rowsize = info.Height;
-handles.postpro.colsize = info.Width;
-
-% Get the imagename without .tif
-imageNameNoTiff = regexprep(handles.jobvalues.imagename, '.tif', '', 'ignorecase');
-
-% Now we have to fill up the rest of the postpro structure with
-% our previously found data and parameters
-handles.selectedcells = [];
-handles.postpro.imagepath = imageFilePath;
-handles.postpro.increment = handles.jobvalues.increment;
-handles.postpro.firstimg = handles.jobvalues.firstimage;
-handles.postpro.lastimg = handles.jobvalues.lastimage;
-handles.postpro.maxdistpostpro = handles.jobvalues.maxsearch;
-handles.postpro.plotfirstimg = handles.jobvalues.firstimage;
-handles.postpro.plotlastimg = handles.jobvalues.lastimage;
-handles.postpro.selectedcells = [];
-handles.postpro.moviefirstimg = handles.jobvalues.firstimage;
-handles.postpro.movielastimg = handles.jobvalues.lastimage;
-handles.postpro.jobpath = jobValPath;
-handles.postpro.imagename = handles.jobvalues.imagename;
-handles.postpro.imagenamenotiff = imageNameNoTiff;
-handles.postpro.imagenameslist = handles.jobvalues.imagenameslist;
-handles.postpro.intensitymax = handles.jobvalues.intensityMax;
-handles.postpro.maxdistance = handles.jobvalues.maxsearch;
-
-% These are new additions which won't be in the older jobs
-if ~isempty (handles.jobvalues.timeperframe)
-   handles.postpro.timeperframe = handles.jobvalues.timeperframe;
-end
-
-if ~isempty (handles.jobvalues.mmpixel)
-   handles.postpro.mmpixel = handles.jobvalues.mmpixel;
-end
-
-% Update fields on the GUI with the latest values
-set (handles.GUI_pp_jobpath_ed, 'String', jobValPath);
-set (handles.GUI_pp_imagepath_ed, 'String', handles.postpro.imagepath);
-set (handles.GUI_fm_saveallpath_ed, 'String', handles.postpro.saveallpath);
-set (handles.GUI_ad_firstimage_ed, 'String', handles.postpro.plotfirstimg);
-set (handles.GUI_ad_lastimage_ed, 'String', handles.postpro.plotlastimg);
-set (handles.GUI_fm_movieimgone_ed, 'String', handles.postpro.moviefirstimg);
-set (handles.GUI_fm_movieimgend_ed, 'String', handles.postpro.movielastimg);
-set (handles.GUI_app_relinkdist_ed, 'String', handles.postpro.maxdistpostpro);
-set (handles.GUI_app_minusframes_ed, 'String', handles.postpro.minusframes);
-set (handles.GUI_app_plusframes_ed, 'String', handles.postpro.plusframes);
-set (handles.GUI_app_minimaltrack_ed, 'String', handles.postpro.minimaltrack);
-set (handles.GUI_fm_tracksince_ed, 'String', handles.postpro.dragtail);
-set (handles.GUI_fm_filename_ed, 'String', handles.postpro.dragtailfile);
-set (handles.multFrameVelocity, 'String', handles.postpro.multFrameVelocity);
-set (handles.GUI_ad_binsize_ed, 'String', handles.postpro.binsize);
-set (handles.pp_firstframe, 'String', handles.postpro.firstimg);
-set (handles.pp_lastframe, 'String', handles.postpro.lastimg);
-set (handles.pp_increment, 'String', handles.postpro.increment);
-set (handles.GUI_mmpixel_ed, 'String', handles.postpro.mmpixel);
-set (handles.GUI_frameinterval_ed, 'String', handles.postpro.timeperframe);
-set (handles.GUI_movietype_avi_rb, 'Value', 1);
-set (handles.GUI_movietype_qt_rb, 'Value', 0);
-set (handles.nr_traj_ed, 'String', handles.postpro.nrtrajectories);
-set (handles.neighbour_dist_ed, 'String', handles.postpro.neighbourdist);
-
-% And update the gui handles struct
 guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
@@ -412,18 +225,49 @@ function GUI_pp_manuelpostpro_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_pp_manuelpostpro_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 handles = guidata(hObject);
 
-% This is to signal that the ptManualPostProcessJob function is called by the
-% GUI manual processing button
-handles.whichcallback = 1;
+% Get the job list and the current job
+fileList = get(handles.GUI_filelist_lb,'String');
+filesSelected = get(handles.GUI_filelist_lb,'Value');
+
+% We only can do manual postprocessing on one movie at a time
+if length(filesSelected) > 1
+   % Show an error dialog with an appropriate message and wait for the user to press a button
+   h=errordlg ('Manual processing can only be done for one job at a time. Please select only one job from the list.');
+   uiwait (h);
+   return
+else
+   % Get the filepath
+   filePath = fileList{filesSelected};
+    
+   % Retrieve the postpro structure for the selected job
+   [handles, result] = ptRetrievePostproData (filePath, handles);
+   
+   % Check the result value (0 is good)
+   if result == 1
+      h = errordlg('An error occurred when retrieving postpro data. Please try again...');
+      uiwait(h);          % Wait until the user presses the OK button 
+      return;
+   else
+   
+      % Set values on the GUI
+      ptSetPostproGUIValues (handles);
+   
+      % This is to signal that the ptManualPostProcessJob function is called by the
+      % GUI manual processing button
+      handles.whichcallback = 1;
+   
+      % Update handles structure
+      guidata(hObject, handles);
+
+      % Do the manual postprocessing 
+      ptManualPostProcessJob (hObject);
+   end
+end
 
 % Update handles structure
-guidata(hObject, handles);
-
-% Do the manual postprocessing 
-ptManualPostProcessJob (hObject);
+%guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -590,23 +434,49 @@ function GUI_app_autopostpro_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-% Get all the latest values from the GUI
-saveAllPath = handles.postpro.saveallpath;
-minTrackDistance = handles.postpro.minimaltrack;
-maxDistance = handles.postpro.maxdistpostpro;
-minusFrames = handles.postpro.minusframes;
-plusFrames = handles.postpro.plusframes;
-MPM = handles.MPM;
+% Get the job list and the current job
+fileList = get(handles.GUI_filelist_lb,'String');
+filesSelected = get(handles.GUI_filelist_lb,'Value');
 
-% Get the latest MPM matrix and filter it using the values on the GUI (eg eliminating
-% tracks that are too short)
-updatedMPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxDistance, minTrackDistance, saveAllPath);
+% We only can do automatic postprocessing on one movie at a time
+if length(filesSelected) > 1
+   % Show an error dialog with an appropriate message and wait for the user to press a button
+   h=errordlg ('Linking can only be done for one job at a time. Please select only one job from the list.');
+   uiwait (h);
+   return
+else
+   % Get the filepath
+   filePath = fileList{filesSelected};
+    
+   % Retrieve the postpro structure for the selected job
+   [handles, result] = ptRetrievePostproData (filePath, handles);
+   
+   % Set values on the GUI
+   ptSetPostproGUIValues (handles);
+   
+   % Check the result value (0 is good)
+   if result == 1
+       return;
+   end
+   
+   % Get all the latest values from the GUI
+   saveAllPath = handles.saveallpath;
+   minTrackDistance = handles.postpro.minimaltrack;
+   maxDistance = handles.postpro.maxdistpostpro;
+   minusFrames = handles.postpro.minusframes;
+   plusFrames = handles.postpro.plusframes;
+   MPM = handles.MPM;
 
-% Update the handles structure with the filtered MPM matrix
-handles.MPM = updatedMPM;
+   % Get the latest MPM matrix and filter it using the values on the GUI (eg eliminating
+   % tracks that are too short)
+   updatedMPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxDistance, minTrackDistance, saveAllPath);
 
-% Update the handles structure
-guidata (hObject, handles);
+   % Update the handles structure with the filtered MPM matrix
+   handles.MPM = updatedMPM;
+end
+
+% Update handles structure
+guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -770,72 +640,149 @@ function GUI_ad_plot_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata (hObject);
 
-% Check that the plot frame values provided are in range
-if (handles.postpro.plotfirstimg < handles.postpro.firstimg) | ...
-   (handles.postpro.plotlastimg > handles.postpro.lastimg)
-   h = errordlg('Plot start and end frame value are out of range. Please reenter values...');
-   uiwait(h);          % Wait until the user presses the OK button
-   return;
+% Check that files have been selected before
+if ~isfield (handles, 'allMPM')
+    errorStr = ['Jobs should be selected first by using the Select button!'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
 end
 
-% Assign the radiobutton values to the postpro struct
-handles.postpro.cellclusterplot = get (handles.checkbox_clustercellstats,'Value');
-   handles.postpro.cellclusterplot_1 = get (handles.checkbox_amount_cells,'Value');
-   handles.postpro.cellclusterplot_2 = get (handles.checkbox_percentage_cells,'Value');
-   
-handles.postpro.areaplot = get (handles.checkbox_areastats,'Value');
-   handles.postpro.areaplot_1 = get (handles.checkbox_total_area,'Value');
-   handles.postpro.areaplot_2 = get (handles.checkbox_single_cluster_area,'Value');
-   handles.postpro.areaplot_3 = get (handles.checkbox_avg_convex_hull_area,'Value');
-  
-handles.postpro.perimeterplot = get(handles.checkbox_perimeter,'Value');
+% Get the path where plot data will be saved
+savePath = handles.guiData.savedatapath;
 
-handles.postpro.speedplot = get(handles.checkbox_speed,'Value');
-   handles.postpro.speedplot_1 = get(handles.checkbox_all_to_single_speed,'Value');
-   handles.postpro.speedplot_2 = get(handles.checkbox_average_speed,'Value');
-   handles.postpro.speedplot_3 = get(handles.checkbox_speed_variance,'Value');
-   
-handles.postpro.cellcelldistplot = get(handles.checkbox_cellcelldisthist,'Value');
-   handles.postpro.cellcelldistplot_1 = get(handles.checkbox_avg_distance_cells,'Value');
-   
-handles.postpro.neighbourplot = get(handles.checkbox_neighbourhood,'Value');
-   handles.postpro.neighbourplot_1 = get(handles.checkbox_nb_trajectories,'Value');
-   handles.postpro.neighbourplot_2 = get(handles.checkbox_nb_interact,'Value');
+% If it doesn't exist yet, create it in the results directory
+if ~exist (savePath, 'dir')
+   mkdir (savePath);
+end
 
-if (~handles.postpro.cellclusterplot & ~handles.postpro.areaplot & ...
-    ~handles.postpro.perimeterplot & ~handles.postpro.speedplot & ...
-    ~handles.postpro.cellcelldistplot & ~handles.postpro.neighbourplot)
+% Test if the save directory already contains files
+[answer, empty] = directoryEmpty (savePath);
+
+% If it does and the user doesn't want to overwrite, do nothing and return
+if strcmp(answer,'') & ~empty
+   return
+end
+
+% Name used for plots is the current date and time in format YYYYMMDDThhmmss
+plotName = datestr(now,30);
+
+% Get window size for averaging
+windowSize = handles.guiData.windowsize;
+
+% Assign the radiobutton values to the radioButtons struct
+radioButtons = getRadiobuttonValues (handles);
+
+if (~radioButtons.cellclusterplot & ~radioButtons.areaplot & ...
+    ~radioButtons.perimeterplot & ~radioButtons.speedplot & ...
+    ~radioButtons.cellcelldistplot & ~radioButtons.neighbourplot)
    h = errordlg ('No plots selected. Please select a plot first...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
 else
-    
-   % Here is where the bulk of the graphing work is done; we give it the
-   % postpro structure and MPM matrix to work with
-   % First do the area and perimeter plots
-   if handles.postpro.cellclusterplot | handles.postpro.areaplot | handles.postpro.perimeterplot
-      ptCalculatePlotValues (handles.postpro);
-   end
    
-   % Then do the cell-cell distance histograms
-   if handles.postpro.cellcelldistplot
-      ptPlotHistValues (handles.postpro);
-   end
-   
-   % Do the speed plots as well if the user wants it
-   if handles.postpro.speedplot
-      ptPlotSpeedValues (handles.postpro, handles.MPM);
-   end
-   
-   % Do the speed plots as well if the user wants it
-   if handles.postpro.neighbourplot
-      if handles.postpro.neighbourplot_1
-         ptCalculateNeighbourTraj (handles.postpro, handles.MPM);
+   % These calculations can take a while so set the mouse pointer to busy
+   set(gcf,'Pointer','watch');
+      
+   % Do the cell/cluster, area and perimeter plots
+   if radioButtons.cellclusterplot | radioButtons.areaplot | radioButtons.perimeterplot
+                
+      % Run one iteration of the calculation
+      [cellClusterStats, areaStats, perimeterStats, xAxis] = ptCalculatePlotValues (handles);
+               
+      % Here's where the plotting itself starts
+      if radioButtons.cellclusterplot
+         % Generate single cell and cluster plots if the users requested these
+         ptPlotCellClusterStats (radioButtons, plotName, savePath, xAxis, cellClusterStats, windowSize);
+      end   
+      if radioButtons.areaplot
+         % Generate area plots if the users requested these
+         ptPlotAreaStats (radioButtons, plotName, savePath, xAxis, areaStats, windowSize);
       end
-      if handles.postpro.neighbourplot_2
-         ptCalculateNeighbourChanges (handles.postpro, handles.MPM);
+
+      if radioButtons.perimeterplot
+         % Generate perimater plots if the users requested these
+         ptPlotPerimeterStats (radioButtons, plotName, savePath, xAxis, perimeterStats, windowSize);
       end
+
+      % For all the figures we want to keep the xAxis as well 
+      save ([savePath filesep plotName '_xAxis-CellStats.mat'],'xAxis');
    end
+   
+   % Then do the cell-cell distance plots
+   if radioButtons.cellcelldistplot
+       
+      % Run one iteration of the calculation
+      [cellCellDistStats, xAxis] = ptCalculateCellCellDist (handles);
+               
+      % Create the plots
+      ptPlotCellCellDist (radioButtons, plotName, savePath, xAxis, cellCellDistStats, windowSize);
+   end
+   
+   % Initialize some tmp vars
+   xAxisLengthPrev = 0;
+  
+   % Do the speed plots if the user requested these
+   if radioButtons.speedplot
+       
+      % Run the calculation for the velocity stats
+      [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis] = ...
+                               ptCalculateSpeedValues (handles);
+      
+      % Here's where the plotting itself starts
+      if radioButtons.speedplot_2
+         % Generate avg velocity plots if the users requested these
+          ptPlotSpeedStats (radioButtons, plotName, savePath, xAxis, avgVelocityStats, windowSize);
+      end   
+      if radioButtons.speedplot_1
+         % Generate vel. single cell plots if the users requested these
+          ptPlotSingleSpeedStats (radioButtons, plotName, savePath, xAxis, velocitySingleStats, windowSize);
+      end
+
+      if radioButtons.speedplot_3
+         % Generate velocity variance plots if the users requested these
+          ptPlotSpeedVarStats (radioButtons, plotName, savePath, xAxis, velocityVarStats, windowSize);
+      end
+
+      if radioButtons.speedplot_4 | radioButtons.allcellshist | radioButtons.singlecellshist | ...
+         radioButtons.clusteredcellshist
+         % Generate velocity histogram plots if the users requested these
+          ptPlotVelocityHist (radioButtons, plotName, savePath, xAxis, velocityHistStats);
+      end      
+      
+      % For all the figures we want to keep the xAxis as well 
+      save ([savePath filesep plotName '_xAxis-Velocity.mat'],'xAxis');
+   end
+
+   % Do the neighbourhood plots if the user requested these
+   if radioButtons.neighbourplot            
+      if radioButtons.neighbourplot_1
+                    
+         % Run one iteration of the calculation
+         [neighTrajStats, xAxis] = ptCalculateNeighbourTraj (handles); 
+            
+         % Do the plots   
+         ptPlotNeighbourTraj (radioButtons, plotName, savePath, xAxis, neighTrajStats, windowSize);
+      end
+            
+      if radioButtons.neighbourplot_2
+          
+         % Run one iteration of the calculation
+         [neighChangeStats, xAxis] = ptCalculateNeighbourChanges (handles); 
+            
+         % Do the plots   
+         ptPlotNeighbourChanges (radioButtons, plotName, savePath, xAxis, neighChangeStats, windowSize);
+      end
+      
+      % For all the figures we want to keep the xAxis as well 
+      save ([savePath filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
+   end
+   
+   % Set the mouse pointer to normal again
+   set(gcf,'Pointer','arrow');
+   
+   % Show a message telling the user we've finished
+   msgbox ('Finished generating plots and histograms. Press OK to continue...');
 end
 
 %----------------------------------------------------------------------------
@@ -1041,8 +988,13 @@ handles = guidata (hObject);
 % Get the value of the save directory
 path = get (hObject, 'String');
 
+% If the path doesn't exist yet create it
+if ~exist (savePath, 'dir')
+   mkdir (savePath);
+end
+
 % Assign it to the postpro structure
-handles.postpro.saveallpath = path;
+handles.saveallpath = path;
 
 % Update handles structure
 guidata (hObject, handles);
@@ -1057,16 +1009,37 @@ function GUI_fm_universalstudios_pb_Callback(hObject, eventdata, handles)
 % Check that the plot frame values provided are in range
 handles = guidata (hObject);
 
-if (handles.postpro.moviefirstimg < handles.postpro.firstimg) | ...
-   (handles.postpro.movielastimg > handles.postpro.lastimg)
-   h = errordlg ('Movie start and end frame value are out of range. Please re-enter values...');
-   uiwait(h);          % Wait until the user presses the OK button
-   return;
+% Get the job list and the current job
+fileList = get(handles.GUI_filelist_lb,'String');
+filesSelected = get(handles.GUI_filelist_lb,'Value');
+
+% We only can do automatic postprocessing on one movie at a time
+if length(filesSelected) > 1
+   % Show an error dialog with an appropriate message and wait for the user to press a button
+   h=errordlg ('Values can only be shown for one job at a time. Please select only one job from the list.');
+   uiwait (h);
+   return
+else
+   % Get the filepath
+   filePath = fileList{filesSelected};
+    
+   % Retrieve the postpro structure for the selected job
+   [handles, result] = ptRetrievePostproData (filePath, handles);
+   
+   % Set values on the GUI
+   ptSetPostproGUIValues (handles);
+
+   if (handles.postpro.moviefirstimg < handles.postpro.firstimg) | ...
+      (handles.postpro.movielastimg > handles.postpro.lastimg)
+      h = errordlg ('Movie start and end frame value are out of range. Please re-enter values...');
+      uiwait(h);          % Wait until the user presses the OK button
+      return;
+   end
+
+   % Start the function that will create the dragtail movie
+   ptMovieMaker (handles.postpro, handles.MPM);
 end
-
-% Start the function that will create the dragtail movie
-ptMovieMaker (handles.postpro, handles.MPM);
-
+   
 % Update handles structure
 guidata (hObject, handles);
 
@@ -1077,6 +1050,23 @@ function GUI_fm_browsesaveallpath_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_fm_browsesaveallpath_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Let the user browse for an image file and path
+saveDirectory = uigetdir('','Select Save Directory');
+
+% And store this in the postpro struct
+if exist(saveDirectory, 'dir') == 7
+   handles.saveallpath = saveDirectory;
+   set (handles.GUI_fm_saveallpath_ed, 'String', handles.saveallpath);
+else
+   h = errordlg('This save directory does not exist. Please select another directory...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+end
+
+% Update handles structure
+guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -1281,11 +1271,13 @@ if val == 1
    set (handles.checkbox_all_to_single_speed, 'Value', 1);
    set (handles.checkbox_average_speed, 'Value', 1);
    set (handles.checkbox_speed_variance, 'Value', 1);
+   set (handles.checkbox_speed_histogram, 'Value', 1);
 else  % val == 0
    % Checkbox was unselected so unselect all the children
    set (handles.checkbox_all_to_single_speed, 'Value', 0);
    set (handles.checkbox_average_speed, 'Value', 0);
    set (handles.checkbox_speed_variance, 'Value', 0);   
+   set (handles.checkbox_speed_histogram, 'Value', 0);
 end
 
 % Update handles structure
@@ -1387,6 +1379,7 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
+%--------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function pp_firstframe_CreateFcn(hObject, eventdata, handles)
@@ -1402,6 +1395,8 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
+%--------------------------------------------------------------------------
+
 function pp_firstframe_Callback(hObject, eventdata, handles)
 % hObject    handle to pp_firstframe (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1410,6 +1405,7 @@ function pp_firstframe_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of pp_firstframe as text
 %        str2double(get(hObject,'String')) returns contents of pp_firstframe as a double
 
+%--------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function pp_lastframe_CreateFcn(hObject, eventdata, handles)
@@ -1425,6 +1421,8 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
+%--------------------------------------------------------------------------
+
 function pp_lastframe_Callback(hObject, eventdata, handles)
 % hObject    handle to pp_lastframe (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1433,6 +1431,7 @@ function pp_lastframe_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of pp_lastframe as text
 %        str2double(get(hObject,'String')) returns contents of pp_lastframe as a double
 
+%--------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function pp_increment_CreateFcn(hObject, eventdata, handles)
@@ -1448,7 +1447,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%--------------------------------------------------------------------------
 
 function pp_increment_Callback(hObject, eventdata, handles)
 % hObject    handle to pp_increment (see GCBO)
@@ -1458,7 +1457,7 @@ function pp_increment_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of pp_increment as text
 %        str2double(get(hObject,'String')) returns contents of pp_increment as a double
 
-
+%--------------------------------------------------------------------------
 
 function GUI_mmpixel_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_mmpixel_ed (see GCBO)
@@ -1486,6 +1485,8 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
+%--------------------------------------------------------------------------
+
 % --- Executes during object creation, after setting all properties.
 function GUI_mmpixel_ed_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to GUI_mmpixel_ed (see GCBO)
@@ -1500,7 +1501,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%--------------------------------------------------------------------------
 
 function GUI_frameinterval_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_frameinterval_ed (see GCBO)
@@ -1528,6 +1529,8 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
+%--------------------------------------------------------------------------
+
 % --- Executes during object creation, after setting all properties.
 function GUI_frameinterval_ed_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to GUI_frameinterval_ed (see GCBO)
@@ -1542,6 +1545,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
+%--------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_movietype_avi_rb_CreateFcn(hObject, eventdata, handles)
@@ -1556,6 +1560,8 @@ if ispc
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
+
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_movietype_avi_rb.
 function GUI_movietype_avi_rb_Callback(hObject, eventdata, handles)
@@ -1638,6 +1644,7 @@ function checkbox_speed_variance_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_speed_variance
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_average_speed.
 function checkbox_average_speed_Callback(hObject, eventdata, handles)
@@ -1851,6 +1858,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
+%--------------------------------------------------------------------
 
 % --- Executes on button press in GUI_vel_all_cells_cb.
 function GUI_vel_all_cells_cb_Callback(hObject, eventdata, handles)
@@ -1860,6 +1868,7 @@ function GUI_vel_all_cells_cb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_vel_all_cells_cb
 
+%--------------------------------------------------------------------
 
 % --- Executes on button press in GUI_vel_single_cells_cb.
 function GUI_vel_single_cells_cb_Callback(hObject, eventdata, handles)
@@ -1869,6 +1878,7 @@ function GUI_vel_single_cells_cb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_vel_single_cells_cb
 
+%--------------------------------------------------------------------
 
 % --- Executes on button press in GUI_vel_clust_cells_cb.
 function GUI_vel_clust_cells_cb_Callback(hObject, eventdata, handles)
@@ -1878,35 +1888,8 @@ function GUI_vel_clust_cells_cb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_vel_clust_cells_cb
 
-
-% --- Executes on button press in GUI_generate_hist_pb.
-function GUI_generate_hist_pb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_generate_hist_pb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata (hObject);
-
-% Assign the radiobutton values to the postpro struct
-handles.postpro.allcellshist = get (handles.GUI_vel_all_cells_cb,'Value');
-handles.postpro.singlecellshist = get (handles.GUI_vel_single_cells_cb,'Value');
-handles.postpro.clusteredcellshist = get (handles.GUI_vel_clust_cells_cb,'Value');
-   
-if (~handles.postpro.allcellshist & ~handles.postpro.singlecellshist & ...
-    ~handles.postpro.clusteredcellshist )
-   h = errordlg ('No histogram type selected. Please select at least one histogram type...');
-   uiwait(h);          % Wait until the user presses the OK button
-   return;
-else
-   % Here is where the bulk of the histogram work is done; we give it the
-   % postpro structure and MPM matrix to work with
-   ptGenerateHistograms (handles.postpro, handles.MPM);
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
-
 % --------------------------------------------------------------------
+
 function GUI_average_data_menu_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_average_data_menu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1919,16 +1902,15 @@ ptAverageData;
 % Update handles structure
 guidata(hObject, handles);
 
-
-
 % --------------------------------------------------------------------
+
 function GUI_movie_menu_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_movie_menu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
 % --------------------------------------------------------------------
+
 function GUI_make_hist_movie_menu_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_make_hist_movie_menu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1940,4 +1922,585 @@ ptMakeHistogramMovies;
 
 % Update handles structure
 guidata(hObject, handles);
+
+%--------------------------------------------------------------------
+
+% --- Executes on selection change in GUI_filelist_lb.
+function GUI_filelist_lb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_filelist_lb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns GUI_filelist_lb contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from GUI_filelist_lb
+
+%--------------------------------------------------------------------
+
+% --- Executes during object creation, after setting all properties.
+function GUI_filelist_lb_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_filelist_lb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: listbox controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+%--------------------------------------------------------------------
+
+% --- Executes on button press in GUI_add_pb.
+function GUI_add_pb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_add_pb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Select an image filename or a file called 'jobvalues.mat' from a user selected directory
+[filename, directory] = uigetfile ({'MPM.mat', 'MPM-Files'; '*.*', 'all files'}, ...
+                                      'Please select an MPM file');
+
+% Do nothing in case the user doesn't select anything
+if filename == 0
+   return
+else
+   % Convert filename to lowercase
+   fileLower = lower (filename);
+   
+   % Check whether it is a MPM file (ext .mat)
+   if (strfind (fileLower, 'mpm.mat')) == []
+      errormsg = ['File ' filename ' is not a MPM file. Please choose a file named MPM.mat.'];
+      h = errordlg (errormsg);
+      uiwait (h);
+      return
+   end
+   
+   % Get the current file list
+   fileList = get (handles.GUI_filelist_lb, 'String');
+   
+   % Cat together the directory and filename
+   filePath = [directory filename];
+      
+   % If fileList consists of more than one entry, append the new file path after the
+   % last one else just put it in the fileList as the first entry
+   if ~iscell(fileList)
+      fileList = cell(1);
+      fileList(1) = cellstr(filePath);
+   else   % The list already had some files in it 
+       
+      % Add the filename to the list
+      fileList(end+1) = cellstr(filePath);
+   end
+       
+   % Show the values for this job on the GUI
+   %filePath = fileList(end);
+   filePath = fileList{end};
+    
+   % Retrieve the postpro structure for the selected job. Since this is the
+   % first time it is loaded we want the default values
+   [handles, result] = ptRetrievePostproDataDefault (filePath, handles);
+   
+   % Check the result value (0 is good)
+   if result == 1
+       return;
+   end
+
+   % Set values on the GUI
+   ptSetPostproGUIValues (handles);
+
+   % Go to the selected directory: user comfort for next file
+   cd (directory);
+end
+      
+% Store the modified job list back in the GUI handle
+set(handles.GUI_filelist_lb,'String',fileList);
+set (handles.GUI_filelist_lb, 'Value', length(fileList));
+
+% Update handles structure
+guidata(hObject, handles);
+
+%--------------------------------------------------------------------
+
+% --- Executes on button press in GUI_remove_pb.
+function GUI_remove_pb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_remove_pb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Get the job list and the current job
+fileList = get(handles.GUI_filelist_lb,'String');
+fileNumber = get(handles.GUI_filelist_lb,'Value');
+
+% fileList will only then be a cell, if there are results in it.
+% Otherwise it is a string (No csv's loaded)
+if ~iscell(fileList)
+    % Show an error dialog with an appropriate message and wait
+    % for the user to press a button
+    h=errordlg('Sorry, there are no files to remove.');
+    uiwait(h);
+    return;
+end
+
+% Remove files (multiple files are possible)
+if length(fileNumber) > 0
+   fileList(fileNumber) = [];
+end
+
+% Put a standard string in the file list window if there are no files to show
+% and delete the currently selected file from the gui
+if length(fileList) == 0
+   fileList = char('No files loaded.');
+end
+
+% Set the list to the first file to be on the safe side
+% And store new jobList in gui handle
+set (handles.GUI_filelist_lb, 'Value', 1);
+set (handles.GUI_filelist_lb, 'String', fileList);
+
+% Update GUI handles struct
+guidata (hObject,handles);
+
+%--------------------------------------------------------------------
+
+% --- Executes on button press in GUI_load_pb.
+function GUI_load_pb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_load_pb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Retrieve the directory and filename where to save the result
+saveDirectory = get(handles.GUI_savesettingpath_ed,'String');
+[pathString, filename, ext, version] = fileparts (saveDirectory);
+
+if ~exist (pathString, 'dir')
+   % Show an error dialog with an appropriate message and wait
+   % for the user to press a button
+   h=errordlg ('The save directory does not exist. Please choose another directory.');
+   uiwait (h);
+   return
+end
+
+% Select an image filename or a file called 'jobvalues.mat' from a user selected directory
+[filename, directory] = uigetfile ({[pathString filesep '*.mat'], 'Setting Files'; '*.*', 'all files'}, ...
+                                      'Please select a PP setting file');
+
+% Do nothing in case the user doesn't select anything
+if filename == 0
+   return
+else
+    
+   % Load previous list from disk
+   load ([directory filename]);
+
+   % Check that a fileInfoPP struct exist in the variable space
+   if ~exist ('fileInfoPP', 'var')
+      h=errordlg('This is not a valid setting file. Please select another one.');
+      uiwait(h);
+      return;
+   else
+       
+      % Get file info from struct
+      fileList = fileInfoPP.fileList;
+      filesSelected = fileInfoPP.filesSelected;
+      savePath = fileInfoPP.savePath;
+
+      % Get the job list and the current job
+      set (handles.GUI_filelist_lb, 'String', fileList);
+      set (handles.GUI_filelist_lb, 'Value', filesSelected);
+      
+      % Set the GUI values for the first one
+      filePath = fileList{1};
+      [handles, result] = ptRetrievePostproDataDefault (filePath, handles);
+
+      % Check the result value (0 is good)
+      if result == 1
+         return;
+      end
+
+      % Set values on the GUI
+      ptSetPostproGUIValues (handles);
+      
+      % Set the savepath as well
+      set (handles.GUI_fm_saveallpath_ed, 'String', savePath);
+   end
+end
+
+% Update GUI handles struct
+guidata (hObject,handles);
+
+%--------------------------------------------------------------------
+
+% --- Executes on button press in GUI_save_pb.
+function GUI_save_pb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_save_pb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Retrieve the directory and filename where to save the result
+saveDirectory = get(handles.GUI_savesettingpath_ed,'String');
+[pathString, filename, ext, version] = fileparts (saveDirectory);
+
+if ~exist (pathString, 'dir')
+   % Show an error dialog with an appropriate message and wait
+   % for the user to press a button
+   h=errordlg ('The save directory does not exist. Please choose another directory.');
+   uiwait (h);
+   return
+end
+
+% Get the job list and the current job
+fileList = get(handles.GUI_filelist_lb,'String');
+filesSelected = get(handles.GUI_filelist_lb,'Value');
+savePath = get(handles.GUI_fm_saveallpath_ed,'String');
+
+% Store this info in a struct so that we can save it easily
+fileInfoPP.fileList = fileList;
+fileInfoPP.filesSelected = filesSelected;
+fileInfoPP.savePath = savePath;
+
+% Ask the user where to save the file
+[filename,path] = uiputfile(saveDirectory, 'Save settings as');
+
+% Save to disk
+save ([path filename], 'fileInfoPP');
+
+% Modify the GUI and handles as well
+handles.savepath = [path filename];
+set (handles.GUI_savesettingpath_ed, 'String', handles.savepath);
+
+% Update GUI handles struct
+guidata (hObject,handles);
+
+%--------------------------------------------------------------------
+
+% --- Executes on button press in GUI_moviebrowse_pb.
+function GUI_moviebrowse_pb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_moviebrowse_pb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Retrieve the directory and filename where to save the result
+movieDirectory = get(handles.GUI_fm_filename_ed,'String');
+[pathString, filename, ext, version] = fileparts (movieDirectory);
+
+% Select an image filename or a file called 'jobvalues.mat' from a user selected directory
+%[filename, directory] = uigetfile ({movieDirectory, 'movie files'; '*.*', 'all files'}, ...
+%                        'Please select a filename');
+directory = uigetdir (pathString, 'Please select a directory');
+
+% Do nothing in case the user doesn't select anything
+if directory == 0
+   return
+else   
+   % Get the job list and the current job
+   set (handles.GUI_fm_filename_ed, 'String', [directory filesep filename]);
+end
+
+% Update GUI handles struct
+guidata (hObject,handles);
+
+%--------------------------------------------------------------------
+
+function checkbox_speed_histogram_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_moviebrowse_pb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+%--------------------------------------------------------------------
+
+function [mpmNr, mpmLength] = max_MPM_length (allMPM)
+% Returns the length of the longest MPM in the list of MPM's
+
+% Initialize vars
+prevLength = 0;
+mpmNr = 0;
+mpmLength = 0;
+      
+% Go throught the list of MPMs
+for iCount = 1 : length(allMPM)
+   
+   % Test for length and keep if longer
+   curLength = size(allMPM{iCount},2);
+   if curLength > prevLength
+      prevLength = curLength;
+  
+      mpmNr = iCount;
+      mpmLength = curLength;
+   end
+end
+
+%--------------------------------------------------------------------
+
+% --- Executes on button press in GUI_select_pb.
+function GUI_select_pb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_select_pb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Get the job list and the current job
+fileList = get(handles.GUI_filelist_lb,'String');
+filesSelected = get(handles.GUI_filelist_lb,'Value');
+
+% Retrieve the data for the selected jobs
+[allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, filesSelected);
+
+% Check the result value (0 is good)
+if result == 1
+   h=errordlg ('An error occured while fetching data for the selected files (ptRetrieveJobData).');
+   uiwait (h); 
+   return;
+end
+
+% Get the data from the GUI
+[guiData] = ptRetrieveGUIData (handles);
+
+% Check that the job and gui data fit together over movies
+for jobCount = 1 : length(allMPM)
+
+    % Get first and last frame numbers and increment
+    startFrame = jobData(jobCount).firstimg;
+    endFrame = jobData(jobCount).lastimg;
+    increment = jobData(jobCount).increment;
+    
+    % Make sure the start and end frames fit to the selected plot frames
+    if (guiData.plotfirstimg < startFrame)
+        errorStr = ['The selected plot start frame (' num2str(guiData.plotfirstimg) ') does not fit with the job start frame (' num2str(startFrame) ') ...'];
+        h = errordlg(errorStr);
+        uiwait(h);          % Wait until the user presses the OK button  
+        return;
+    end
+    if (guiData.plotlastimg > endFrame)
+        errorStr = ['The selected plot end frame (' num2str(guiData.plotlastimg) ') does not fit with the job end frame (' num2str(endFrame) ') ...'];
+        h = errordlg(errorStr);
+        uiwait(h);          % Wait until the user presses the OK button  
+        return;
+    end
+   
+    % Make sure increment is consistent over movies
+    if jobCount == 1
+        prevIncrement = increment;
+    else
+        if increment ~= prevIncrement
+            errorStr = ['The increment value is different between the ' length(allMPM) ' movies.'];
+            h = errordlg(errorStr);
+            uiwait(h);          % Wait until the user presses the OK button  
+            return;
+        end
+    end  % if jobCount == 1
+    
+    % Get frame interval and pixel length
+    frameInterval = round (jobData(jobCount).timeperframe / 60);    % In minutes
+    pixelLength = jobData(jobCount).mmpixel;
+    
+    % Check that values are consistent over movies
+    if jobCount == 1
+        prevFrameInterval = frameInterval;
+        prevPixelLength = pixelLength;
+    else
+        if frameInterval ~= prevFrameInterval
+            errorStr = ['The frame rate is different between the ' length(allMPM) ' movies.'];
+            h = errordlg(errorStr);
+            uiwait(h);          % Wait until the user presses the OK button  
+            return;
+        end
+        if pixelLength ~= prevPixelLength
+            errorStr = ['The pixel length is different between the ' length(allMPM) ' movies.'];
+            h = errordlg(errorStr);
+            uiwait(h);          % Wait until the user presses the OK button  
+            return;
+        end
+    end  % if jobCount == 1
+    
+    % Get row and colsizes
+    rowSize = jobData(jobCount).rowsize;
+    colSize = jobData(jobCount).colsize;
+    
+    % Make sure row and colsize is consistent over movies
+    if jobCount == 1
+        prevRowSize = rowSize;
+        prevColSize = colSize;
+    else
+        if rowSize ~= prevRowSize
+            errorStr = ['The frame row size is different between the ' length(allMPM) ' movies.'];
+            h = errordlg(errorStr);
+            uiwait(h);          % Wait until the user presses the OK button  
+            return;
+        end
+        if colSize ~= prevColSize
+            errorStr = ['The frame column size is different between the ' length(allMPM) ' movies.'];
+            h = errordlg(errorStr);
+            uiwait(h);          % Wait until the user presses the OK button  
+            return;
+        end
+    end  % if jobCount == 1
+end  % for jobCount = 1 : length(allMPM)
+
+% Assign all values to the handles struct
+handles.allMPM = allMPM;
+handles.allCellProps = allCellProps;
+handles.allClusterProps = allClusterProps;
+handles.allFrameProps = allFrameProps;
+handles.jobData = jobData;
+handles.guiData = guiData;
+
+% Update GUI handles struct
+guidata (hObject,handles);
+
+%--------------------------------------------------------------------
+
+function [answer, empty] = directoryEmpty (path)
+% Test if the save directory already contains files and in case it does,
+% warn the user that they are going to be overwritten. Windows and
+% linux/unix pc's have to be treated differently in this regard
+
+% Get directory listing
+dirList = dir ([path filesep '*']);
+
+% Check whether directory is empty
+if ~ispc   % linux/unix pc
+    if (length (dirList) > 2) & (dirList(1).name == '.') & (dirList(2).name == '..')
+       empty = 0;
+    else
+       empty = 1;
+    end
+else   % windows pc
+    if (length (dirList) > 0)
+       empty = 0;
+    else
+       empty = 1;
+    end
+end
+
+% If not empty ask whether the user wants to empty it
+answer = '';
+if ~empty
+   answer = questdlg(['Directory ' path ' is not empty. All existing files will be overwritten. Continue?']);
+   if strcmp(answer,'Yes')
+      delete ([path filesep '*']);
+      empty = 1;
+   else
+      answer = '';
+      empty = 0;
+   end
+end
+
+%--------------------------------------------------------------------
+
+function radioButtons = getRadiobuttonValues (handles)
+% Assign the radiobutton values to the radioButtons struct
+
+% Gett cell/cluster stats values
+radioButtons.cellclusterplot = get (handles.checkbox_clustercellstats,'Value');
+   radioButtons.cellclusterplot_1 = get (handles.checkbox_amount_cells,'Value');
+   radioButtons.cellclusterplot_2 = get (handles.checkbox_percentage_cells,'Value');
+   
+% Get area stats values
+radioButtons.areaplot = get (handles.checkbox_areastats,'Value');
+   radioButtons.areaplot_1 = get (handles.checkbox_total_area,'Value');
+   radioButtons.areaplot_2 = get (handles.checkbox_single_cluster_area,'Value');
+   radioButtons.areaplot_3 = get (handles.checkbox_avg_convex_hull_area,'Value');
+  
+% Get perimeter stats values
+radioButtons.perimeterplot = get(handles.checkbox_perimeter,'Value');
+
+% Get velocity values
+radioButtons.speedplot = get(handles.checkbox_speed,'Value');
+   radioButtons.speedplot_1 = get(handles.checkbox_all_to_single_speed,'Value');
+   radioButtons.speedplot_2 = get(handles.checkbox_average_speed,'Value');
+   radioButtons.speedplot_3 = get(handles.checkbox_speed_variance,'Value');
+   radioButtons.speedplot_4 = get(handles.checkbox_speed_histogram,'Value');
+   
+% Get cell/cell distance values
+radioButtons.cellcelldistplot = get(handles.checkbox_cellcelldisthist,'Value');
+   radioButtons.cellcelldistplot_1 = get(handles.checkbox_avg_distance_cells,'Value');
+   
+% Get neighbourhood stats values
+radioButtons.neighbourplot = get(handles.checkbox_neighbourhood,'Value');
+   radioButtons.neighbourplot_1 = get(handles.checkbox_nb_trajectories,'Value');
+   radioButtons.neighbourplot_2 = get(handles.checkbox_nb_interact,'Value');
+   
+% Get histogram radiobutton values
+radioButtons.allcellshist = get (handles.GUI_vel_all_cells_cb,'Value');
+radioButtons.singlecellshist = get (handles.GUI_vel_single_cells_cb,'Value');
+radioButtons.clusteredcellshist = get (handles.GUI_vel_clust_cells_cb,'Value');
+
+% Get button for show/not show plots
+radioButtons.donotshowplots = get (handles.GUI_notshowplots_cb,'Value');
+
+% Get button for running average
+radioButtons.runningaverage = get (handles.GUI_running_average_cb,'Value');
+
+%--------------------------------------------------------------------
+
+% --- Executes on button press in GUI_notshowplots_cb.
+function GUI_notshowplots_cb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_notshowplots_cb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of GUI_notshowplots_cb
+
+%--------------------------------------------------------------------
+
+% --- Executes on button press in GUI_running_average_cb.
+function GUI_running_average_cb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_running_average_cb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of GUI_running_average_cb
+
+%--------------------------------------------------------------------
+
+function GUI_windowsize_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_windowsize_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of GUI_windowsize_ed as text
+%        str2double(get(hObject,'String')) returns contents of GUI_windowsize_ed as a double
+handles = guidata (hObject);
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get (hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.guiData.windowsize = 5;
+    set (handles.GUI_windowsize_ed, 'Value', handles.guiData.windowsize);  % Revert the value back
+    return
+else
+    handles.guiData.windowsize = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+%--------------------------------------------------------------------
+
+% --- Executes during object creation, after setting all properties.
+function GUI_windowsize_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_windowsize_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
 

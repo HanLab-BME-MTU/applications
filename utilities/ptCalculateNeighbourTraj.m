@@ -1,13 +1,13 @@
-function ptCalculateNeighbourTraj (ptPostpro, MPM)
+function [neighTrajStats, xAxis] = ptCalculateNeighbourTraj (handles)
 % ptCalculateNeighbourTraj plots neighbour traj. information gathered in MPM. 
 %
 % SYNOPSIS       ptCalculateNeighbourTraj (ptPostpro, MPM)
 %
-% INPUT          ptPostpro : a structure which contains the information
-%                            from the GUI
+% INPUT          handles : a structure which contains the information from the GUI
 %                MPM       : matrix containing the cell tracks
 %                
-% OUTPUT         None (plots are directly shown on the screen) 
+% OUTPUT         neighTrajStats : struct with following fields:
+%                    avgTrajFrame : vector with avg trajectory length changes
 %
 % DEPENDENCIES   ptCalculateNeighbourTraj  uses {nothing}
 %                                  
@@ -18,29 +18,38 @@ function ptCalculateNeighbourTraj (ptPostpro, MPM)
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Jul 04          Initial version
 % Andre Kerstens        Aug 04          Renamed to ptCalculateNeighbourTraj
+% Andre Kerstens        Sep 04          Complete rewrite of plotting functions
 
-% First assign all the postpro fields to a meaningfull variable
-startFrame = ptPostpro.firstimg;
-endFrame = ptPostpro.lastimg;
-increment = ptPostpro.increment;
-plotStartFrame = ptPostpro.plotfirstimg;
-plotEndFrame = ptPostpro.plotlastimg;
-savePath = ptPostpro.saveallpath;
-jobPath = ptPostpro.jobpath;
-imageName = ptPostpro.imagenamenotiff;
-increment = ptPostpro.increment;
+% Get the latest data from the handles
+MPM = handles.allMPM;
+cellProps = handles.allCellProps;
+clusterProps = handles.allClusterProps;
+frameProps = handles.allFrameProps;
+jobData = handles.jobData;
+guiData = handles.guiData;
+
+% Get values from the gui (these are used for all jobs)
+plotStartFrame = guiData.plotfirstimg;
+plotEndFrame = guiData.plotlastimg;
+maxDistance = guiData.maxdistance;
+
+% Determine the movie with the most frames
+[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
+maxFrames = mpmLength / 2;
+
+% Get start and end frames and increment value
+startFrame = jobData(1).firstimg;
+endFrame = jobData(longestMPM).lastimg;
+increment = jobData(1).increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
-cellProps = ptPostpro.cellProps;
-clusterProps = ptPostpro.clusterProps;
-binSize = ptPostpro.binsize;
-frameInterval = round (ptPostpro.timeperframe / 60);    % In minutes
-pixelLength = ptPostpro.mmpixel;
-maxDistance = ptPostpro.maxdistance;
-maxDistToNeighbour = maxDistance;
+
+% Get pixellength and frame interval
+frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
+pixelLength = jobData(1).mmpixel;
 
 % Over how many frames to we calculate trajectories
 % eg 5 frames means 4 trajectories
-nrOfTrajectories = ptPostpro.nrtrajectories - 1;
+nrOfTrajectories = guiData.nrtrajectories - 1;
 
 % Initialize the trajectory matrix
 avgTrajFrame = zeros (1, numberOfFrames-nrOfTrajectories-1);
@@ -51,9 +60,6 @@ MPMCount = ceil ((plotStartFrame - startFrame) / increment);
 % Initialize X-axis vector
 xAxis = zeros (1, numberOfFrames-nrOfTrajectories-1);
 iCount = 0;
-
-% These calculations can take a while so set the mouse pointer to busy
-set(gcf,'Pointer','watch');
 
 % Go through every frame of the set.
 for frameCount = plotStartFrame : increment : plotEndFrame
@@ -67,141 +73,123 @@ for frameCount = plotStartFrame : increment : plotEndFrame
       % Store the frame number for display on the x-axis
       iCount = iCount + 1;
       xAxis (iCount) = frameCount;
-   
-      % Initialize the average trajectory for the frame
-      trajFrame = 0;
-      
-      % Get the cell list for this frame and throw the zero entries out
-      cells = MPM (:, 2*MPMCount-1 : 2*MPMCount);
-      cells = cells (find (cells (:,1) ~= 0 & cells (:,2) ~= 0),:);
-      
-      % Triangulate all the cells with their neighbours
-      triangleIndex = delaunay (cells(:,1), cells(:,2));
-      
+
       % Initialize counter for cells with nearest-enough neighbours
       cellsWithNeighbours = 0;
+
+      % Clear variables
+      clear cells triangleIndex cellEntries neighbours;
+      clear distance mpmIndex avgTrajNeighbours;
+      clear trajFrame;
       
-      % Find neighbours for all these cells and do some trajectory calculations
-      for cCount = 1 : size(cells,1)
+      for jobCount = 1 : length(MPM)         
+      
+          % Get the cell list for this frame and throw the zero entries out
+          cells{jobCount} = MPM{jobCount}(:, 2*MPMCount-1 : 2*MPMCount);
+          cells{jobCount} = cells{jobCount}(find (cells{jobCount}(:,1) ~= 0 & cells{jobCount}(:,2) ~= 0),:);
+
+          % Triangulate all the cells with their neighbours
+          triangleIndex{jobCount} = delaunay (cells{jobCount}(:,1), cells{jobCount}(:,2));
           
-         % Find the entries in triangleIndex for cell 'iCount'
-         cellEntries = triangleIndex(find (triangleIndex(:,1)==cCount | triangleIndex(:,2)==cCount | ...
-                                          triangleIndex(:,3)==cCount),:);
-         
-         % Extract the neighbours (incl duplicates)
-         neighbours = [];
-         nCount = 1;
-         for hCount = 1 : size (cellEntries, 1)
-            if cellEntries(hCount,1) == cCount
-               neighbours(nCount,1) = cellEntries(hCount,2);
-               nCount = nCount + 1;
-               neighbours(nCount,1) = cellEntries(hCount,3);
-               nCount = nCount + 1;
-            end
-            if cellEntries(hCount,2) == cCount
-               neighbours(nCount,1) = cellEntries(hCount,1);
-               nCount = nCount + 1;
-               neighbours(nCount,1) = cellEntries(hCount,3);
-               nCount = nCount + 1;
-            end
-            if cellEntries(hCount,3) == cCount
-               neighbours(nCount,1) = cellEntries(hCount,1);
-               nCount = nCount + 1;
-               neighbours(nCount,1) = cellEntries(hCount,2);
-               nCount = nCount + 1;
-            end
-         end
-         % Take only the unique neighbours
-         neighbours = unique (neighbours);
-         
-         % Calculate the distance to all of the neighbours
-         distance = [];
-         for dCount = 1 : length (neighbours)   
-            distance(dCount,1) = sqrt ((cells(cCount, 1) - cells(neighbours(dCount,1), 1))^2 + ...
-                                       (cells(cCount, 2) - cells(neighbours(dCount,1), 2))^2);  
-         end
-         
-         % Only keep the neighbours that are close enough
-         neighbours = neighbours (find (distance < maxDistToNeighbour));                                 
-                                          
-         % In case the cell has any neighbours do some work
-         if ~isempty (neighbours)
-             
-            cellsWithNeighbours = cellsWithNeighbours + 1;
-            
-            % For every neighbour we are going to calculate avg trajectory
-            % length for the specified amount of frames
-            trajNeighbours = 0;
-            for nCount = 1 : length (neighbours)
-               
-               % Fetch the neighbour from cells
-               curNeighbour = cells (neighbours(nCount,1),:);
-               
-               % Find the current neighbour in MPM
-               mpmIndex = find (MPM(:,2*MPMCount-1) == curNeighbour(:,1) & ...
-                                MPM(:,2*MPMCount) == curNeighbour(:,2));
-                            
-               % Calculate trajectories for the specified amount of frames
-               % for this neighbour
-               traj = [];
-               for tCount = 0 : nrOfTrajectories
-                  traj(tCount+1) = sqrt((MPM(mpmIndex, 2*MPMCount-1+(tCount*2)) - MPM(mpmIndex, 2*MPMCount-1+(tCount*2+2)))^2 + ...
-                                      (MPM(mpmIndex, 2*MPMCount+(tCount*2)) - MPM(mpmIndex, 2*MPMCount+(tCount*2+2)))^2);
-                  % Convert into micrometer
-                  traj(tCount+1) = (traj(tCount+1) * pixelLength) / frameInterval;
-               end
-               
-               % Average the trajectories
-               avgTraj = (sum (traj) / (nrOfTrajectories+1));
-               
-               % Sum the average traj. per neighbour
-               trajNeighbours = trajNeighbours + avgTraj;
-            end
-            
-            % Average the trajectory for all neighbours
-            avgTrajNeighbours = trajNeighbours / length (neighbours); 
-             
-            % Sum the avg trajectory for all neighbours
-            trajFrame = trajFrame + avgTrajNeighbours;
-             
-         end  % if ~isempty (neighbours)
-               
-      end  % for cCount = 1 : size(cells,1)
+          % Initialize avgTraj
+          avgTrajNeighbours{jobCount} = zeros (1, size(cells{jobCount},1));
+                
+
+          % Find neighbours for all these cells and do some trajectory calculations
+          for cCount = 1 : size(cells{jobCount},1)
+              
+             % Find the entries in triangleIndex for cell 'iCount'
+             cellEntries{jobCount} = triangleIndex{jobCount}(find (triangleIndex{jobCount}(:,1)==cCount | ...
+                                                                   triangleIndex{jobCount}(:,2)==cCount | ...
+                                                                   triangleIndex{jobCount}(:,3)==cCount),:);
+
+             % Extract the neighbours (incl duplicates)
+             nCount = 1;
+             for hCount = 1 : size (cellEntries{jobCount}, 1)
+                if cellEntries{jobCount}(hCount,1) == cCount
+                   neighbours{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,2);
+                   nCount = nCount + 1;
+                   neighbours{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,3);
+                   nCount = nCount + 1;
+                end
+                if cellEntries{jobCount}(hCount,2) == cCount
+                   neighbours{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,1);
+                   nCount = nCount + 1;
+                   neighbours{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,3);
+                   nCount = nCount + 1;
+                end
+                if cellEntries{jobCount}(hCount,3) == cCount
+                   neighbours{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,1);
+                   nCount = nCount + 1;
+                   neighbours{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,2);
+                   nCount = nCount + 1;
+                end
+             end
+             % Take only the unique neighbours
+             neighbours{jobCount} = unique (neighbours{jobCount});
+
+             % Calculate the distance to all of the neighbours
+             distance{jobCount} = [];
+             for dCount = 1 : length (neighbours{jobCount})   
+                distance{jobCount}(dCount,1) = sqrt ((cells{jobCount}(cCount, 1) - ...
+                                                      cells{jobCount}(neighbours{jobCount}(dCount,1), 1))^2 + ...
+                                                     (cells{jobCount}(cCount, 2) - ...
+                                                      cells{jobCount}(neighbours{jobCount}(dCount,1), 2))^2);  
+             end
+
+             % Only keep the neighbours that are close enough
+             neighbours{jobCount} = neighbours{jobCount}(find (distance{jobCount} < maxDistance));
+
+             % In case the cell has any neighbours do some work
+             if ~isempty (neighbours{jobCount})
+
+                cellsWithNeighbours = cellsWithNeighbours + 1;
+
+                % Initialize avgTraj
+                avgTraj = zeros (1, length (neighbours{jobCount}));
+                
+                % For every neighbour we are going to calculate avg trajectory
+                % length for the specified amount of frames
+                for nCount = 1 : length (neighbours{jobCount})
+
+                   % Fetch the neighbour from cells
+                   curNeighbour = cells{jobCount}(neighbours{jobCount}(nCount,1),:);
+
+                   % Find the current neighbour in MPM
+                   mpmIndex = find (MPM{jobCount}(:,2*MPMCount-1) == curNeighbour(:,1) & ...
+                                    MPM{jobCount}(:,2*MPMCount) == curNeighbour(:,2));
+
+                   % Calculate trajectories for the specified amount of frames for this neighbour
+                   traj = [];
+                   for tCount = 0 : nrOfTrajectories
+                      traj(tCount+1,1) = sqrt((MPM{jobCount}(mpmIndex, 2*MPMCount-1+(tCount*2)) - ...
+                                               MPM{jobCount}(mpmIndex, 2*MPMCount-1+(tCount*2+2)))^2 + ...
+                                              (MPM{jobCount}(mpmIndex, 2*MPMCount+(tCount*2)) - ...
+                                               MPM{jobCount}(mpmIndex, 2*MPMCount+(tCount*2+2)))^2);
+                      % Convert into micrometer per minute
+                      traj(tCount+1) = (traj(tCount+1) * pixelLength) / frameInterval;
+                   end
+
+                   % Average the trajectory
+                   avgTraj(nCount) = (sum(traj) / (nrOfTrajectories+1));
+                   
+                end  % for nCount = 1 : length (neighbours{jobCount})
+
+                % Average the trajectory for all neighbours
+                avgTrajNeighbours{jobCount}(cCount) = sum(avgTraj) / length (neighbours{jobCount}); 
+
+             end  % if ~isempty (neighbours{jobCount})
+          end  % for cCount = 1 : size(cells{jobCount},1)
+      end  % jobCount = 1 : length(MPM)   
       
-      % Average the trajectory for all cells with neighbours
-      avgTrajFrame(iCount) = trajFrame / cellsWithNeighbours;
+      % Cat the avgTrajNeighbours together
+      catAvgTrajNeighbours = cat (2, avgTrajNeighbours{:});
       
-   end   % if (MPMCount + nrOfTrajectories) < numberOfFrames
+      % Sum and average the trajectory frames
+      avgTrajFrame(iCount) = sum (catAvgTrajNeighbours) / cellsWithNeighbours;
       
+   end   % if (MPMCount + nrOfTrajectories) < numberOfFrame
 end   % for frameCount
 
-% Set the mouse pointer to normal again
-set(gcf,'Pointer','arrow');
-
-% Here is where all the plotting starts
-if ptPostpro.neighbourplot_1
-
-    % Generate the neighbour traj. plot 
-    h_fig = figure('Name', imageName);
-
-    % Draw a plot showing neighbour traj. 
-    ymax = max (avgTrajFrame) + (0.1*max (avgTrajFrame));
-    plot (xAxis, avgTrajFrame); 
-    title ('Avg Neighbour Trajectory Velocity');
-    xlabel ('Frames');
-    ylabel ('Avg Traj. Vel. (um/min)');
-    if length (xAxis) > 1
-       axis ([xAxis(1) xAxis(end) 0 ymax]);
-    else
-       axis ([xAxis(1) xAxis(1)+1 0 ymax]);
-    end
-
-    % Save the figures in fig, eps and tif format        
-    hgsave (h_fig,[savePath filesep [imageName '_avgNeighbourTrajLength.fig']]);
-    print (h_fig, [savePath filesep [imageName '_avgNeighbourTrajLength.eps']],'-depsc2','-tiff');
-    print (h_fig, [savePath filesep [imageName '_avgNeighbourTrajLength.tif']],'-dtiff');      
-    
-    % Save CSV files
-    cd (savePath);
-    csvwrite ([imageName '_avgNeighbourTrajLength.csv'], [xAxis ; avgTrajFrame]);
-end
+% Prepare output data
+neighTrajStats.avgTrajFrame = avgTrajFrame;

@@ -68,7 +68,7 @@ if isempty (home)
    fprintf (1, 'HOME environment variable not set. Setting default: %s\n', home);
 end
 
-handles.savedirectory = [home filesep 'hist_movie.avi'];
+handles.savedirectory = [home filesep 'hist_movie.mov'];
 set (handles.GUI_savepath_ed, 'String', handles.savedirectory);
 
 % Set the colors of the gui
@@ -244,6 +244,7 @@ end
 % Cd into the directory and init the movie file
 cd (pathString);
 movie = avifile ([filename ext]);
+%makeQTMovie ('start', [filename ext]);
 
 % retrieve the histogram file list
 fileList = get(handles.GUI_histogram_file_lb,'String');
@@ -360,6 +361,7 @@ for movieStep = 1 : numberOfFiles(1)
       
    % Add the frame to the movie
    movie = addframe (movie, F);
+   %makeQTMovie ('addaxes', gca);
       
    % Close the figure
    close; 
@@ -367,6 +369,7 @@ end
 
 % Close the movie file
 movie = close(movie);
+%makeQTMovie ('finish');
 
 % Set the mouse pointer to normal again
 set(gcf,'Pointer','arrow');

@@ -56,7 +56,7 @@ handles.output = hObject;
 % Create a default job structure that defines all the fields used in the program
 %data = struct('savedirectory', []);
 
-% Assign the default job values to the GUI handle so it can be passed around
+% Set the HOME env variable if not set already
 home = getenv('HOME');
 if isempty (home)
    if ispc
@@ -142,7 +142,7 @@ handles = guidata(hObject);
 % Assign the radiobutton value to the handles struct
 alwaysReadCsvFile = get (handles.GUI_always_read_csv_cb, 'Value');
 
-% Select an image filename or a file called 'jobvalues.mat' from a user selected directory
+% Select an csv file from a user selected directory
 [filename, directory] = uigetfile ({'*.csv', 'CSV-Files'; '*.*', 'all files'}, ...
                                       'Please select a CSV file with Polytrack Results');
 

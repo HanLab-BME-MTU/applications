@@ -194,13 +194,11 @@ else
     handles.jobs(jobNumber).imagedirectory = imagedirectory;
     handles.jobs(jobNumber).imagename = filename;
     
-%     % Get the bitdepth from the gui just in case it is different from the
-%     % default
-%     val = get(handles.GUI_st_bitdepth_pm, 'Value');
-%     list = get(handles.GUI_st_bitdepth_pm, 'String');
-%     selected_val = list{val};
-%     handles.jobs(jobNumber).bitdepth = str2double(selected_val);
-	    
+    % Now the image directory is known, let's rename all filenames to
+    % lowercase to prevent problems later on (Metamorph sometimes names the
+    % files with arbitrary upper and lowercase characters)
+    renameImageFilesToLower (imagedirectory);
+    	    
     % Now we have to do the following:
     % Find out what part of the filename describes the images and which part
     % is just counting them through.
@@ -2148,8 +2146,8 @@ handles = guidata(hObject);
 % Update handles structure
 guidata(hObject, handles);
 
-
 % --------------------------------------------------------------------
+
 function GUI_postprocess_data_menu_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_postprocess_data_menu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -2161,4 +2159,43 @@ Polytrack_PP;
 
 % Update handles structure
 guidata(hObject, handles);
+
+% --------------------------------------------------------------------
+
+function renameImageFilesToLower (pathDir)
+% This function renames all tif files in the specified image directory to
+% lower case characters. Fix needed for metamorph.
+
+% Check that we got an input path
+if ~exist (pathDir, 'var')
+    return
+end
+
+% Get a directory listing of all files
+dirlist=dir(pathDir);
+dirlist=struct2cell(dirlist);
+dirlist=dirlist(1,:);
+
+% Make a temp directory (needed for movefile function)
+tmpDir = '/tmpAhGdjdS';
+mkdir ([pathDir tmpDir]);
+
+% Loop through the tif files and rename if necessary (renaming being moving
+% the file in this case
+for i=1:length(dirlist)
+  fileName = char(dirlist{i});
+  if ~strcmp(fileName(1), char('.'))
+     newFile = lower(char(dirlist{i}));
+     extension = lower(char(dirlist{i}(end-2:end))); 
+     if ~strcmp(fileName,newFile) & ...
+         strcmp(extension,'tif')
+        movefile([pathDir filesep fileName],[pathDir tmpDir filesep newFile]);
+        delete ([pathDir filesep fileName]);
+        movefile([pathDir tmpDir filesep newFile],[pathDir filesep newFile]);
+     end
+  end
+end
+
+% Remove the temp dir
+rmdir ([pathDir tmpDir]);
 

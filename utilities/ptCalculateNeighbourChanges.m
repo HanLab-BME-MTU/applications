@@ -1,13 +1,12 @@
-function ptCalculateNeighbourChanges (ptPostpro, MPM)
+function [neighChangeStats, xAxis] = ptCalculateNeighbourChanges (handles)
 % ptCalculateNeighbourChanges plots neighbour change info from MPM. 
 %
 % SYNOPSIS       ptCalculateNeighbourChanges (ptPostpro, MPM)
 %
-% INPUT          ptPostpro : a structure which contains the information
-%                            from the GUI
-%                MPM       : matrix containing the cell tracks
+% INPUT          handles : a structure which contains the information from the GUI
 %                
-% OUTPUT         None (plots are directly shown on the screen) 
+% OUTPUT         neighChangeStats : struct with following fields:
+%                     : vector with avg trajectory length changes
 %
 % DEPENDENCIES   ptCalculateNeighbourChanges  uses {nothing}
 %                                  
@@ -21,23 +20,39 @@ function ptCalculateNeighbourChanges (ptPostpro, MPM)
 % Andre Kerstens        Aug 04          Changed neighbour datastore from cell array to struct (cell2mat 
 %                                       function is way to slow!)
 % Andre Kerstens        Aug 04          Fixed bug where csv where saved in wrong dir
+% Andre Kerstens        Sep 04          Complete rewrite of plotting functions
 
-% First assign all the postpro fields to a meaningfull variable
-startFrame = ptPostpro.firstimg;
-endFrame = ptPostpro.lastimg;
-increment = ptPostpro.increment;
-plotStartFrame = ptPostpro.plotfirstimg;
-plotEndFrame = ptPostpro.plotlastimg;
-savePath = ptPostpro.saveallpath;
-jobPath = ptPostpro.jobpath;
-imageName = ptPostpro.imagenamenotiff;
-increment = ptPostpro.increment;
+% Get the latest data from the handles
+MPM = handles.allMPM;
+cellProps = handles.allCellProps;
+clusterProps = handles.allClusterProps;
+frameProps = handles.allFrameProps;
+jobData = handles.jobData;
+guiData = handles.guiData;
+
+% Get values from the gui (these are used for all jobs)
+plotStartFrame = guiData.plotfirstimg;
+plotEndFrame = guiData.plotlastimg;
+binSize = guiData.binsize;
+multipleFrameVelocity = guiData.multFrameVelocity;
+maxDistance = guiData.maxneighbourdist;
+
+% Determine the movie with the most frames
+[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
+maxFrames = mpmLength / 2;
+
+% Get start and end frames and increment value
+startFrame = jobData(1).firstimg;
+endFrame = jobData(longestMPM).lastimg;
+increment = jobData(1).increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
-maxDistance = ptPostpro.neighbourdist;
-maxDistToNeighbour = maxDistance;
+
+% Get pixellength and frame interval
+frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
+pixelLength = jobData(1).mmpixel;
 
 % Initialize the avg neighbour change vector
-avgNbChange = zeros (1, numberOfFrames);
+allAvgNbChange = zeros (1, numberOfFrames);
 
 % Initialize MPM counter (start with 0 if plotStartFrame=startFrame)
 MPMCount = ceil ((plotStartFrame - startFrame) / increment);
@@ -46,11 +61,14 @@ MPMCount = ceil ((plotStartFrame - startFrame) / increment);
 xAxis = zeros (1, numberOfFrames-1);
 iCount = 0;
 
-% These calculations can take a while so set the mouse pointer to busy
-set(gcf,'Pointer','watch');
+% Inform the user
+%fprintf (1, '\nProcessing frame: ');
 
 % Go through every frame of the set.
 for frameCount = plotStartFrame : increment : plotEndFrame
+    
+   % Let the user know where we are
+   %fprintf (1, '%d ', frameCount);
     
    % Increase MPM counter
    MPMCount = MPMCount + 1;
@@ -59,185 +77,177 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    iCount = iCount + 1;
    xAxis (iCount) = frameCount;
    
-   % Get the cell list for this frame, throw the zero entries out for
-   % the neighbour change calculations, but keep the original indexnrs
-   cells = MPM (:, 2*MPMCount-1 : 2*MPMCount);
-   [cellIndexRow, cellIndexCol] = find (cells);
-   cellIndex = unique(cellIndexRow)';
-      
-   % Triangulate all the cells with their neighbours
-   triangleIndex = delaunay (cells(:,1), cells(:,2));
-      
-   % Initialize counter for cells with nearest-enough neighbours
-   cellsWithNeighbours = 0;
-      
-   % Initialize neighbour change counter
-   nbChange = zeros(length(cellIndex),1);
-   neighbourChangeCount = 0;
+   % Clear the some temp vars
+   clear cells cellIndex neighbours neighboursTemp;
+   clear nbChange avgNbChange;
+   clear cellEntries cellNrs neighbourInd;
+   clear cellIndexRow cellIndexCol unrealNeighIndex;
+   clear prevNeighbourInd neighbourInd cellNrs;
+   clear diff diffIndx;
    
-   % Initialize counters
-   count = 1;
-   neighCount = 1;
+   for jobCount = 1 : length(MPM) 
    
-   % Init neighbours vector
-   clear neighbours;
-   neighbours(1:length(cellIndex))=struct('cell',[],'neighbours',[]);
-   
-   % Find neighbours for all these cells and do neighbour change analysis
-   for cCount = cellIndex
-                 
-      % Find the entries in triangleIndex for cell 'cCount'
-      neighboursTemp = [];
-      cellEntries = triangleIndex(find (triangleIndex(:,1)==cCount | triangleIndex(:,2)==cCount | ...
-                                        triangleIndex(:,3)==cCount),:);
-         
-      % Continue if there are no cells in the triangualtion matrix                                  
-      if isempty(cellEntries)
-         continue;
-      end
-                                        
-      % Extract the neighbours (incl duplicates)
-      nCount = 1;
-      for hCount = 1 : size (cellEntries, 1)
-         if cellEntries(hCount,1) == cCount
-            neighboursTemp(nCount,1) = cellEntries(hCount,2);
-            nCount = nCount + 1;
-            neighboursTemp(nCount,1) = cellEntries(hCount,3);
-            nCount = nCount + 1;
-         end
-         if cellEntries(hCount,2) == cCount
-            neighboursTemp(nCount,1) = cellEntries(hCount,1);
-            nCount = nCount + 1;
-            neighboursTemp(nCount,1) = cellEntries(hCount,3);
-            nCount = nCount + 1;
-         end
-         if cellEntries(hCount,3) == cCount
-            neighboursTemp(nCount,1) = cellEntries(hCount,1);
-            nCount = nCount + 1;
-            neighboursTemp(nCount,1) = cellEntries(hCount,2);
-            nCount = nCount + 1;
-         end
-      end  % hCount = 1 : size (cellEntries, 1)
-      
-      % Take only the unique neighbours
-      neighboursTemp = unique (neighboursTemp);
-      
-      % Find the 0-entry triangle point (last entry in cells)
-      unrealNeighbour = length (cells);
-      unrealNeighIndex = find (neighboursTemp == unrealNeighbour);
-      
-      % If it exists, kick it out of the neighbour vector
-      if ~isempty(unrealNeighIndex)
-         neighboursTemp(unrealNeighIndex) = [];
-      end
-         
-      % Calculate the distance to all of the neighbours
-      distance = [];
-      for dCount = 1 : length (neighboursTemp)   
-         distance(dCount,1) = sqrt ((cells(cCount, 1) - cells(neighboursTemp(dCount,1), 1))^2 + ...
-                                    (cells(cCount, 2) - cells(neighboursTemp(dCount,1), 2))^2);  
-      end
-        
-      % Only keep the neighbours that are close enough
-      neighbours(neighCount).cell = cCount;
-      neighbours(neighCount).neighbours = neighboursTemp(find (distance < maxDistToNeighbour))';                                 
+       % Get the cell list for this frame, throw the zero entries out for
+       % the neighbour change calculations, but keep the original indexnrs
+       cells{jobCount} = MPM{jobCount}(:, 2*MPMCount-1 : 2*MPMCount);
+       [cellIndexRow{jobCount}, cellIndexCol{jobCount}] = find (cells{jobCount});
+       cellIndex{jobCount} = unique(cellIndexRow{jobCount})';
 
-      % To compare neighbours we need to be at least at frame 2
-      if frameCount > plotStartFrame
-           
-         % Get the cell numbers from the previous neighbours cells
-         %prevCellNrs = [prevNeighbours.cell]';
-         
-         % Find the index for the current cell in prevCellNrs
-         prevNeighbourInd = find(prevCellNrs == cCount);
-         
-         % In case the current cellnr can be found in the previous
-         % neighbours we go ahead and compare
-         if ~isempty(prevNeighbourInd)
-             
-            % Get the index for neighbours as well
-            cellNrs = [neighbours.cell]';
-            neighbourInd = find (cellNrs == cCount);
-         
-            % Both contain the cell: find out if neighbours are similar
-            if length(neighbours(neighbourInd).neighbours) >= length(prevNeighbours(prevNeighbourInd).neighbours)    
-               % If a new cell comes into the image, we don't count it as a new neighbour
-               [diff, diffIndx] = setdiff(neighbours(neighbourInd).neighbours, prevNeighbours(prevNeighbourInd).neighbours);
-               for diffCount = 1 : length (diff)
-                  if ismember(diff(diffCount), prevCellNrs)
-                     % It is a real neighbour change, so count it
-                     neighbourChangeCount = neighbourChangeCount + 1;
-                  end
-               end
-%                neighbourChange = ~ismember (neighbours(neighbourInd).neighbours, prevNeighbours(prevNeighbourInd).neighbours); 
-            else  % neighbours is shorter, which means we lost a cell(s)
-               % If the lost cell is due to bad tracking, we don't count it as a lost neighbour
-               [diff, diffIndx] = setdiff(prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours);
-               for diffCount = 1 : length (diff)
-                  if ismember(diff(diffCount), cellNrs)
-                     % It is a real neighbour change, so count it
-                     neighbourChangeCount = neighbourChangeCount + 1;
-                  end
-               end
-%                neighbourChange = ~ismember (prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours); 
-            end
-            
-            % Sum up the changes
-%             nbChange(count) = nbChange(count) + sum(neighbourChange);
-            nbChange(count) = nbChange(count) + neighbourChangeCount;
-            
-            % Increase change counter
-            count = count + 1;
-            
-            % Reset neighbourChangeCount
-            neighbourChangeCount = 0;
-            
-         end  % ~isempty(find(prevCellNrs == cCount))
-      end  % if frameCount > plotStartFrame 
-      
-      % Increase neighbour struct counter
-      neighCount = neighCount + 1;
-      
-   end  % for cCount = cellIndex
+       % Triangulate all the cells with their neighbours
+       triangleIndex{jobCount} = delaunay (cells{jobCount}(:,1), cells{jobCount}(:,2));
+
+       % Initialize counter for cells with nearest-enough neighbours
+       cellsWithNeighbours = 0;
+
+       % Initialize neighbour change counter
+       nbChange{jobCount} = zeros(length(cellIndex{jobCount}),1);
+       neighbourChangeCount = 0;
+
+       % Initialize counters
+       count = 1;
+       neighCount = 1;
+
+       % Init neighbours vector
+       %clear neighbours;
+       neighbours{jobCount}(1:length(cellIndex{jobCount})) = struct('cell',[],'neighbours',[]);
+
+       % Find neighbours for all these cells and do neighbour change analysis
+       for cCount = cellIndex{jobCount}
+
+          % Find the entries in triangleIndex for cell 'cCount'
+          neighboursTemp{jobCount} = [];
+          cellEntries{jobCount} = triangleIndex{jobCount}(find (triangleIndex{jobCount}(:,1) == cCount | ...
+                                                                triangleIndex{jobCount}(:,2) == cCount | ...
+                                                                triangleIndex{jobCount}(:,3) == cCount),:);
+
+          % Continue if there are no cells in the triangualtion matrix                                  
+          if isempty(cellEntries{jobCount})
+             continue;
+          end
+
+          % Extract the neighbours (incl duplicates)
+          nCount = 1;
+          for hCount = 1 : size (cellEntries{jobCount}, 1)
+             if cellEntries{jobCount}(hCount,1) == cCount
+                neighboursTemp{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,2);
+                nCount = nCount + 1;
+                neighboursTemp{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,3);
+                nCount = nCount + 1;
+             end
+             if cellEntries{jobCount}(hCount,2) == cCount
+                neighboursTemp{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,1);
+                nCount = nCount + 1;
+                neighboursTemp{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,3);
+                nCount = nCount + 1;
+             end
+             if cellEntries{jobCount}(hCount,3) == cCount
+                neighboursTemp{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,1);
+                nCount = nCount + 1;
+                neighboursTemp{jobCount}(nCount,1) = cellEntries{jobCount}(hCount,2);
+                nCount = nCount + 1;
+             end
+          end  % hCount = 1 : size (cellEntries, 1)
+
+          % Take only the unique neighbours
+          neighboursTemp{jobCount} = unique (neighboursTemp{jobCount});
+
+          % Find the 0-entry triangle point (last entry in cells)
+          unrealNeighbour = length (cells{jobCount});
+          unrealNeighIndex{jobCount} = find (neighboursTemp{jobCount} == unrealNeighbour);
+
+          % If it exists, kick it out of the neighbour vector
+          if ~isempty(unrealNeighIndex)
+             neighboursTemp{jobCount}(unrealNeighIndex{jobCount}) = [];
+          end
+
+          % Calculate the distance to all of the neighbours
+          distance = [];
+          for dCount = 1 : length (neighboursTemp{jobCount})   
+             distance(dCount,1) = sqrt ((cells{jobCount}(cCount, 1) - ...
+                                         cells{jobCount}(neighboursTemp{jobCount}(dCount,1), 1))^2 + ...
+                                        (cells{jobCount}(cCount, 2) - ...
+                                         cells{jobCount}(neighboursTemp{jobCount}(dCount,1), 2))^2);  
+          end
+
+          % Only keep the neighbours that are close enough
+          neighbours{jobCount}(neighCount).cell = cCount;
+          neighbours{jobCount}(neighCount).neighbours = neighboursTemp{jobCount}(find (distance < maxDistance))';                                 
+
+          % To compare neighbours we need to be at least at frame 2
+          if frameCount > plotStartFrame
+
+             % Find the index for the current cell in prevCellNrs
+             %prevNeighbourInd = find([prevNeighbours{jobCount}.cell]'prevCellNrs == cCount);
+             prevNeighbourInd{jobCount} = find([prevNeighbours{jobCount}.cell]' == cCount);
+
+             % In case the current cellnr can be found in the previous
+             % neighbours we go ahead and compare
+             if ~isempty(prevNeighbourInd{jobCount})
+
+                % Get the index for neighbours as well
+                cellNrs{jobCount} = [neighbours{jobCount}.cell]';
+                neighbourInd{jobCount} = find (cellNrs{jobCount} == cCount);
+
+                % Both contain the cell: find out if neighbours are similar
+                if length(neighbours{jobCount}(neighbourInd{jobCount}).neighbours) >= ...
+                       length(prevNeighbours{jobCount}(prevNeighbourInd{jobCount}).neighbours)    
+                   % If a new cell comes into the image, we don't count it as a new neighbour
+                   [diff, diffIndx] = setdiff(neighbours{jobCount}(neighbourInd{jobCount}).neighbours, ...
+                                              prevNeighbours{jobCount}(prevNeighbourInd{jobCount}).neighbours);
+                   for diffCount = 1 : length (diff)
+                      if ismember(diff(diffCount), [prevNeighbours{jobCount}.cell]')
+                      %if ismember(diff(diffCount), prevCellNrs)
+                         % It is a real neighbour change, so count it
+                         neighbourChangeCount = neighbourChangeCount + 1;
+                      end
+                   end
+                else  % neighbours is shorter, which means we lost a cell(s)
+                   % If the lost cell is due to bad tracking, we don't count it as a lost neighbour
+                   [diff, diffIndx] = setdiff(prevNeighbours{jobCount}(prevNeighbourInd{jobCount}).neighbours, ...
+                                              neighbours{jobCount}(neighbourInd{jobCount}).neighbours);
+                   for diffCount = 1 : length (diff)
+                      if ismember(diff(diffCount), cellNrs{jobCount})
+                         % It is a real neighbour change, so count it
+                         neighbourChangeCount = neighbourChangeCount + 1;
+                      end
+                   end
+                end
+
+                % Sum up the changes
+                nbChange{jobCount}(count) = nbChange{jobCount}(count) + neighbourChangeCount;
+
+                % Increase change counter
+                count = count + 1;
+
+                % Reset neighbourChangeCount
+                neighbourChangeCount = 0;
+
+             end  % ~isempty(find(prevCellNrs == cCount))
+          end  % if frameCount > plotStartFrame 
+
+          % Increase neighbour struct counter
+          neighCount = neighCount + 1;
+
+       end  % for cCount = cellIndex{jobCount}
+       
+       %avgNbChange{jobCount} = sum(nbChange{jobCount}) / length (cellIndex{jobCount});
+       avgNbChange{jobCount} = sum(nbChange{jobCount});
+       
+   end  % for jobCount = 1 : length(MPM)
+   
+   % Cat the relevant vectors together
+   catAvgNbChange = cat (1, avgNbChange{:})';
+   catCellIndex = cat (2, cellIndex{:});
    
    % Average the neighbour changes and normalize over the number of cells
-   %avgNbChange(iCount) = sum(nbChange); %/ length(nbChange);
-   avgNbChange(iCount) = sum(nbChange) / length (cellIndex);
+   allAvgNbChange(iCount) = sum(catAvgNbChange) / length (catCellIndex);
       
    % Keep the neighbours of this frame for use in the next
    prevNeighbours = neighbours;
-   
-   % Store the cell numbers from the previous neighbours cells
-   prevCellNrs = [prevNeighbours.cell]';
 end   % for frameCount
 
-% Set the mouse pointer to normal again
-set(gcf,'Pointer','arrow');
+% Inform the user
+%fprintf (1, '\n');
 
-if ptPostpro.neighbourplot_2
-
-    % Generate the neighbour change plot (all cells)
-    h_fig2 = figure('Name', imageName);
-
-    % Draw a plot showing average velocity of all cells
-    ymax = max (avgNbChange) + (0.1*max (avgNbChange));
-    plot (xAxis, avgNbChange); 
-    title ('Avg Neighbour Interaction Change');
-    xlabel ('Frames');
-    ylabel ('Avg Neighbour Change');
-    if length (xAxis) > 1
-       axis ([xAxis(1) xAxis(end) 0 ymax]);
-    else
-       axis ([xAxis(1) xAxis(1)+1 0 ymax]);
-    end
-
-    % Save the figures in fig, eps and tif format  
-    hgsave (h_fig2,[savePath filesep [imageName '_avgNeighbourChange.fig']]);
-    print (h_fig2, [savePath filesep [imageName '_avgNeighbourChange.eps']],'-depsc2','-tiff');
-    print (h_fig2, [savePath filesep [imageName '_avgNeighbourChange.tif']],'-dtiff');      
-    
-    % Save CSV files
-    cd (savePath); 
-    csvwrite ([imageName '_avgNeighbourInteractionChange.csv'], [xAxis ; avgNbChange]);
-end
-
+% Prepare output data
+neighChangeStats.avgNbChange = allAvgNbChange;

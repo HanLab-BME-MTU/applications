@@ -34,7 +34,8 @@ delete (gca)
 
 % Look for objects needed for information
 sliderHandle = findall (0, 'Tag', 'pictureslide');
-hObject = findall (0, 'Tag', 'GUI_pp_jobbrowse_pb');
+%hObject = findall (0, 'Tag', 'GUI_add_pb');
+hObject = findall (0, 'Tag', 'GUI_filelist_lb');
 frameCounterHandle = findall (0, 'Style', 'text', 'Tag', 'picturecount');
 
 % Use the hObject just found to get to the handles structure

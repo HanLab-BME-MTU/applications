@@ -1,4 +1,4 @@
-function ptGenerateHistograms (ptPostpro, MPM)
+function ptGenerateHistograms (ptPostpro, MPM, savePath, radioButtons)
 % ptGenerateHistograms generates histograms for every frame of the movie. 
 %
 % SYNOPSIS       ptGenerateHistograms (ptPostpro, MPM)
@@ -6,6 +6,8 @@ function ptGenerateHistograms (ptPostpro, MPM)
 % INPUT          ptPostpro : a structure which contains the information
 %                            from the GUI
 %                MPM       : matrix containing the cell tracks
+%                savePath  : directory where the hist files will be saved
+%                radioButtons : the values of the radiobuttons
 %                
 % OUTPUT         None (histograms are saved on disk) 
 %
@@ -17,14 +19,22 @@ function ptGenerateHistograms (ptPostpro, MPM)
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Aug 04          Initial release
+% Andre Kerstens        Sep 04          Added savePath as input parameter
+% Andre Kerstens        Sep 04          Rewrite for new strcutures
+
+% Get the latest data from the handles
+cellProps = handles.allCellProps;
+clusterProps = handles.allClusterProps;
+frameProps = handles.allFrameProps;
+jobData = handles.jobData;
+guiData = handles.guiData;
 
 % First assign all the postpro fields to a meaningfull variable
-startFrame = ptPostpro.firstimg;
-endFrame = ptPostpro.lastimg;
+startFrame = handles.jobData;
+endFrame = size(MPM/2,2);
 increment = ptPostpro.increment;
 plotStartFrame = ptPostpro.plotfirstimg;
 plotEndFrame = ptPostpro.plotlastimg;
-savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagenamenotiff;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
@@ -66,9 +76,6 @@ maxVelocity = [];
 maxSingleCellVelocity = [];
 maxClusteredCellVelocity = [];
 histFrameCount = 10;
-
-% Set the mouse pointer to busy
-set(gcf,'Pointer','watch');
 
 % Go through every frame of the set. Start at the second frame
 % because only from there we can start calculating a displacement
@@ -225,6 +232,3 @@ end
 if generateClusteredCellsHist
    save ('maxVelClusteredCells.mat', 'maxClusteredCellVelocity');
 end
-
-% Set the mouse pointer to normal again
-set(gcf,'Pointer','arrow');
