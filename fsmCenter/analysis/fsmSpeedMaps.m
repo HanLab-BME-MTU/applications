@@ -319,7 +319,13 @@ for c2=1:steps
         % Plot vectors on top of speed map
         MavDisp(:,3:4)=[MavDisp(:,1:2)+scaleFactor*(MavDisp(:,3:4)-MavDisp(:,1:2))];
         hold on;
-        qH=quiver(MavDisp(:,2),MavDisp(:,1),MavDisp(:,4)-MavDisp(:,2),MavDisp(:,3)-MavDisp(:,1),0);
+        % Check for MATLAB version - quiver 7.0 is no longer compatible
+        v=ver('MATLAB');
+        if str2num(v.Version)<7
+            qH=quiver(MavDisp(:,2),MavDisp(:,1),MavDisp(:,4)-MavDisp(:,2),MavDisp(:,3)-MavDisp(:,1),0);
+        else
+            qH=quiver('v6',MavDisp(:,2),MavDisp(:,1),MavDisp(:,4)-MavDisp(:,2),MavDisp(:,3)-MavDisp(:,1),0);
+        end
         set(qH(1),'Color',[0 0 0]); % Base
         set(qH(2),'Color',[0 0 0]); % Tip
     else
