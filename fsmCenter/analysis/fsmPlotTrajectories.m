@@ -97,8 +97,8 @@ imshow(img,[]);
 hold on
 set(figPlotH,'NumberTitle','off');
 switch method
-    case 1, strg=['Trajectories contained in frame range ',num2Str(uFirst),' - ',num2str(uLast)];
-    case 2, strg=['Trajectories originating in frame range ',num2Str(uFirst),' - ',num2str(uLast)];
+    case 1, strg=['Trajectories contained in frame range ',num2str(uFirst),' - ',num2str(uLast)];
+    case 2, strg=['Trajectories originating in frame range ',num2str(uFirst),' - ',num2str(uLast)];
     otherwise, error('Wrong method selected');
 end
 set(figPlotH,'Name',strg);
@@ -222,7 +222,7 @@ if (colorCode==1 & method==1 & uLast-uFirst>1) | (colorCode==1 & method==2 & uLa
     imshow(cbar,[]);
     colormap(cmap);
     set(figH,'NumberTitle','off');
-    strg=['Selected interval: frame ',num2Str(uFirst),' (blue) -> frame ',num2str(uLast),' (green)'];
+    strg=['Selected interval: frame ',num2str(uFirst),' (blue) -> frame ',num2str(uLast),' (green)'];
     set(figH,'Name',strg);
 end
 
