@@ -1,10 +1,11 @@
-function [yPlot, est] = ptPlotEstimate (xdata, ydata)
+function [yPlot, est] = ptPlotEstimate (xdata, ydata, slope)
 % ptPlotEstimate plots the estimated function calculated by ptFitCurve 
 %
 % SYNOPSIS       ptPlotEstimate (xdata, ydata)
 %
 % INPUT          xdata : x-axis values
 %                ydata : y-axis values
+%                slope : expected slope (<0 neg, >0 pos)
 %                
 % OUTPUT         yPlot : y-axis values 
 %                est : the estimated coefficients from ptFitCurve
@@ -19,12 +20,14 @@ function [yPlot, est] = ptPlotEstimate (xdata, ydata)
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Oct 04          Initial version
+% Andre Kerstens        Dec 04          Added slope parameter to be able to
+%                                       handle pos and neg slopes
 
 % Initialize yPlot
 yPlot = [];
 
 % Calculate the estimate that best fits on the data
-[est, error] = ptFitCurve(xdata,ydata,35);
+[est, error] = ptFitCurve(xdata,ydata,35,slope);
 
 % Check whether a curve could be fitted at all. If not, do not plot
 if error   

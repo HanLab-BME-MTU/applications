@@ -811,15 +811,17 @@ else
    
    if radioButtons.ripleyplot   
       % Let's make sure we have the avg speeds as well since Ripley needs these
-      if ~radioButtons.speedplot   
-          [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis] = ...
-                               ptCalculateSpeedValues (handles);
-          
-          % Assign the velocity stats to the handles struct
-          handles.avgVelocityStats = avgVelocityStats;
-      end
+%       if ~radioButtons.speedplot   
+%           [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis] = ...
+%                                ptCalculateSpeedValues (handles);
+%           
+%           % Assign the velocity stats to the handles struct
+%           %handles.avgVelocityStats = avgVelocityStats;
+%       end
       
       if radioButtons.ripleyplot_1
+          % Assign the velocity stats to the handles struct
+%           handles.avgVelocityStats = avgVelocityStats;
           
           % Run the calculation
           radioButtons = getRadiobuttonValues (handles);

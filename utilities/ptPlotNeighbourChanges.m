@@ -35,13 +35,14 @@ if ~radioButtons.donotshowplots
     % Generate the neighbour change plot (all cells)
     h_fig2 = figure('Name', imageName);
 
-    % Draw a plot showing average velocity of all cells
+    % Draw a plot showing neighborhood change
     ymax = max (avgNbChange) + (0.1*max (avgNbChange));
     plot (xAxis, avgNbChange); 
         
+    % If needed show the fitted trapezoid on the plot
     if radioButtons.plotestimate
        hold on;
-       [yPlot, est] = ptPlotEstimate (xAxis, avgNbChange);
+       [yPlot, est] = ptPlotEstimate (xAxis, avgNbChange, 1);
        hold off;
     end
     

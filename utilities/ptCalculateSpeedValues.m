@@ -122,7 +122,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
 
    % If the velocity is calculated over multiple frames we should have
    % enough frames to do this
-   if MPMCount > find(validFrames{:}(1,:) == multipleFrameVelocity)
+   if MPMCount > find(validFrames{shortestMovie}(1,:) == multipleFrameVelocity)
 
       % Increase counter
       %iCount = iCount + 1;

@@ -24,11 +24,11 @@ function ptPlotChaosStats (radioButtons, imageName, SaveDir, xAxis, chaosStats, 
 % Fetch the input data
 ripleyClustering = chaosStats.ripleyClustering;
 
-if radioButtons.ripleysimplot
-   simulationAvg = chaosStats.simulationAvg;
-   simulationMax = chaosStats.simulationMax;
-   simulationMin = chaosStats.simulationMin;
-end
+% if radioButtons.ripleysimplot
+%    simulationAvg = chaosStats.simulationAvg;
+%    simulationMax = chaosStats.simulationMax;
+%    simulationMin = chaosStats.simulationMin;
+% end
 
 % Calculate average values if we have to
 if radioButtons.runningaverage    
@@ -38,18 +38,18 @@ end
 % Here's where the plotting starts
 if ~radioButtons.donotshowplots
 
-    % Generate the neighbour change plot (all cells)
+    % Generate the chaos plot
     h_fig = figure('Name', imageName);
 
-    % Draw a plot showing average velocity of all cells
-    ymax1 = max(ripleyClustering) + (0.1*max (ripleyClustering));
-    if radioButtons.ripleysimplot
-       ymax2 = max(simulationMax) + (0.1*max (simulationMax));
-    else
-       ymax2 = 0;
-    end
-    ymax = max([ymax1 ymax2]);
-
+    % Draw a plot showing clustering parameter
+    ymax = max(ripleyClustering) + (0.1*max (ripleyClustering));
+%     if radioButtons.ripleysimplot
+%        ymax2 = max(simulationMax) + (0.1*max (simulationMax));
+%     else
+%        ymax2 = 0;
+%     end
+%     ymax = max([ymax1 ymax2]);
+   
     % Plot the running average
     if radioButtons.runningaverage
         plot (xAxis, ripleyClustering, 'c', xAxis, raRipleyClustering, 'r'); 
@@ -58,20 +58,27 @@ if ~radioButtons.donotshowplots
         plot (xAxis, ripleyClustering, 'c'); 
         legend('Clust value',3);
     end
-    
-    % Plot the simulation results as well if the user wants this
-    if radioButtons.ripleysimplot
-       hold on; 
-       plot (xAxis, simulationAvg, 'g');
-       plot (xAxis, simulationMax, '--');
-       plot (xAxis, simulationMin, '.');  
-       if radioButtons.runningaverage
-          legend('Clust value','Avg clust value','Simulated avg','Simulated max','Simulated min',3);
-       else
-          legend('Clust value','Simulated avg','Simulated max','Simulated min',3);
-       end
+
+    % If needed show the fitted trapezoid on the plot
+    if radioButtons.plotestimate
+       hold on;
+       [yPlot, est] = ptPlotEstimate (xAxis, ripleyClustering, -1);
        hold off;
     end
+    
+    % Plot the simulation results as well if the user wants this
+%     if radioButtons.ripleysimplot
+%        hold on; 
+%        plot (xAxis, simulationAvg, 'g');
+%        plot (xAxis, simulationMax, '--');
+%        plot (xAxis, simulationMin, '.');  
+%        if radioButtons.runningaverage
+%           legend('Clust value','Avg clust value','Simulated avg','Simulated max','Simulated min',3);
+%        else
+%           legend('Clust value','Simulated avg','Simulated max','Simulated min',3);
+%        end
+%        hold off;
+%     end
         
     title ('Avg Clustering Paremeter Value');
     xlabel ('Frames');

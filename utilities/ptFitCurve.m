@@ -1,15 +1,16 @@
-function [estimates, error] = ptFitCurve(xdata, ydata, tDrug)
+function [estimates, error] = ptFitCurve(xdata, ydata, tDrug, slope)
 % ptFitCurve calculates the best estimate for the coefficients a1, a2, t0 
 % and t1 of the function:
 %      t>t0 : a1
 %      t0<=t<t1 : ((a2-a1)/(t1-t0))(t-t0)+a1 
 %      t>=t1 : a2
 %
-% SYNOPSIS       ptFitCurve (xdata, ydata)
+% SYNOPSIS       ptFitCurve (xdata, ydata, tDrug, slope)
 %
 % INPUT          xdata : x-axis values
 %                ydata : y-axis values
 %                tDrug : timepoint where growth factor is put in the mix
+%                slope : positive (>0) or negative (<0) slope expected
 %                
 % OUTPUT         estimates : the best estimates for the coeff [a1 a2 t0 t1] 
 %                error : is 1 if a curve cannot be fitted, 0 otherwise
@@ -22,10 +23,20 @@ function [estimates, error] = ptFitCurve(xdata, ydata, tDrug)
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Oct 04          Initial version
+% Andre Kerstens        Dec 04          Added slope parameter to be able to
+%                                       handle neg and pos slopes (user can choose)
 
 % Initialize error and estimates
 error = 0;
 estimates = [];
+
+if ~exist('slope','var')
+   slope = 1;
+end
+
+if ~exist('tDrug','var')
+   tDrug = 35;
+end
 
 % Initialize the initial estimate matrix
 guess = zeros(4,1);
@@ -36,14 +47,22 @@ guess(1) = mean(ydata(1:tDrug));
 % Calculate the standard deviation of b1
 sigma = std(ydata(1:tDrug));
 
-% Find the first value of ydata that is bigger than 3*sigma: this is
+% Find the first value of ydata that is bigger/smaller than 3*sigma: this is
 % going to be t0; we also want tDrug as a minimum
-ind = find(ydata > guess(1)+(3*sigma));
+if slope >= 0
+   ind = find(ydata > guess(1)+(3*sigma));
+else
+   ind = find(ydata < guess(1)-(3*sigma));
+end
 
-% If index is empty it means that the graph is too flat for point > 3*sigma
+% If index is empty it means that the graph is too flat for point >/< 3*sigma
 % so let's try something smaller
-if isempty(ind)    
-   ind = find(ydata > guess(1)+(2*sigma));
+if isempty(ind)  
+   if slope >= 0
+      ind = find(ydata > guess(1)+(2*sigma));
+   else
+      ind = find(ydata < guess(1)-(2*sigma));
+   end
    
    % If it's still empty, we give up because there won't be much to fit in
    % this data
@@ -65,12 +84,20 @@ guess(2) = mean(ydata(length(ydata)-tDrug:end));
 
 % Estimate t1 by using the standard dev of the second plateau
 sigma = std(ydata(length(ydata)-tDrug:end));
-ind = find(ydata < guess(2)-(2*sigma));
+if slope >= 0
+   ind = find(ydata < guess(2)-(2*sigma));
+else
+   ind = find(ydata > guess(2)+(2*sigma));
+end
 
 % If index is empty it means that the graph is too flat for point < 2*sigma
 % so let's try something smaller
 if isempty(ind)
-   ind = find(ydata < guess(2)-(1*sigma));
+   if slope >= 0
+      ind = find(ydata < guess(2)-(1*sigma));
+   else
+      ind = find(ydata > guess(2)+(1*sigma));
+   end
    
    % If it's still empty, we give up because there won't be much to fit in
    % this data
