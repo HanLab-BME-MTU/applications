@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 19-Apr-2004 14:43:30
+% Last Modified by GUIDE v2.5 10-May-2004 10:31:44
 clc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -420,13 +420,13 @@ if value==0
     set(handles.textAdvancedPrep,'Enable','off');
     set(handles.textGauss,'Enable','off');
     set(handles.editGauss,'Enable','off');
-    set(handles.textExplanation,'Enable','off');
-    set(handles.textExplanation2,'Enable','off');   
     set(handles.primaryRadio,'Enable','off');
     set(handles.tertiaryRadio,'Enable','off');
     set(handles.drawROICheck,'Enable','off');
     set(handles.scaleRadio,'Enable','off');
     set(handles.textDescr,'Enable','off');
+    set(handles.textSigma,'Enable','off');
+    set(handles.editSigma,'Enable','off');    
 else
     set(handles.TriangCheck,'Enable','on');
     set(handles.autoPolCheck,'Enable','on');
@@ -438,13 +438,13 @@ else
     set(handles.textAdvancedPrep,'Enable','on');
     set(handles.textGauss,'Enable','on');
     set(handles.editGauss,'Enable','on');
-    set(handles.textExplanation,'Enable','on');
-    set(handles.textExplanation2,'Enable','on');   
     set(handles.primaryRadio,'Enable','on');
     set(handles.tertiaryRadio,'Enable','on');
     set(handles.drawROICheck,'Enable','on');
     set(handles.scaleRadio,'Enable','on');
-    set(handles.textDescr,'Enable','off');
+    set(handles.textDescr,'Enable','on');
+    set(handles.textSigma,'Enable','on');
+    set(handles.editSigma,'Enable','on');    
 end
 
 
@@ -985,5 +985,30 @@ function editInfluence_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editInfluence as text
 %        str2double(get(hObject,'String')) returns contents of editInfluence as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function editSigma_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editSigma (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editSigma_Callback(hObject, eventdata, handles)
+% hObject    handle to editSigma (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editSigma as text
+%        str2double(get(hObject,'String')) returns contents of editSigma as a double
 
 

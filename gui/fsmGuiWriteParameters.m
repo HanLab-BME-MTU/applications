@@ -154,8 +154,8 @@ if fsmParam.prep.enable==1
     set(handles.expPopup,'Enable','on');
     set(handles.textGauss,'Enable','on');
     set(handles.editGauss,'Enable','on');
-    set(handles.textExplanation,'Enable','on');
-    set(handles.textExplanation2,'Enable','on');
+    set(handles.textGauss,'Enable','on');
+    set(handles.editGauss,'Enable','on');    
 else
     set(handles.TriangCheck,'Enable','off');
     set(handles.autoPolCheck,'Enable','off');
@@ -168,12 +168,20 @@ else
     set(handles.expPopup,'Enable','off');
     set(handles.textGauss,'Enable','off');
     set(handles.editGauss,'Enable','off');
-    set(handles.textExplanation,'Enable','off');
-    set(handles.textExplanation2,'Enable','off');  
+    set(handles.textGauss,'Enable','off');
+    set(handles.editGauss,'Enable','off');    
 end
 
 % Gauss Ratio
 set(handles.editGauss,'String',num2str(gaussRatio));
+
+% Sigma (the following check assures back-compatibility)
+if isfield(fsmParam.prep,'sigma')
+    set(handles.editSigma,'String',num2str(fsmParam.prep.sigma));
+else
+    set(handles.editSigma,'String',num2str(1));    
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
 % TRACKING MODULE

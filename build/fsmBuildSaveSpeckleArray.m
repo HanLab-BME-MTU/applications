@@ -1,7 +1,7 @@
-function speckleArray=fsmBuildSaveSpeckleArray(cM,outFileList,xmin,xmax,firstIndex,strg,noiseParams,threshold,factors,W,userPath)
+function speckleArray=fsmBuildSaveSpeckleArray(cM,outFileList,xmin,xmax,firstIndex,strg,noiseParams,threshold,factors,W,userPath,sigma)
 % fsmBuildSaveSpeckleArray fills the speckleArray structure containing all speckle information extracted from the analysis of an FSM stack
 %
-% SYNOPSIS   speckleArray=fsmBuildSaveSpeckleArray(cM,outFileList,xmin,xmax,firstIndex,strg,noiseParams,threshold,factors,userPath)
+% SYNOPSIS   speckleArray=fsmBuildSaveSpeckleArray(cM,outFileList,xmin,xmax,firstIndex,strg,noiseParams,threshold,factors,userPath,sigma)
 %
 % INPUT      cM            : magic position matrix (mpm) as returned by the tracker module
 %            outFileList   : string matrix containing all image file names.
@@ -26,14 +26,20 @@ function speckleArray=fsmBuildSaveSpeckleArray(cM,outFileList,xmin,xmax,firstInd
 %                            (e.g. when a grid is created with framework).
 %                            Otherwise, set W=[1 1;size(image,1) size(image,2)]
 %            userPath      : work path
+%            sigma         : sigma for image low-pass filtering (optional, default = 1)
 %
 % OUTPUT     speckleArray  : structure containing all speckle information extracted from an image stack
 %
 % fsmBuildSaveSpeckleArray is used by { fsmBuildMain }
 % fsmBuildSaveSpeckleArray uses { }
 
-if nargin~=11
+if nargin<11 | nargin>12
     error('Wrong number of input arguments');
+end
+
+% Sigma has a default value of 1
+if nargin==11
+    sigma=1;
 end
 
 tp=size(cM,2)/2; % Number of time points
@@ -310,13 +316,13 @@ for c1=1:tp                                    % Cycle through timepoints
     if c1>1
         imgB=imreadnd2(outFileList(c1-1,:),xmin,xmax);
         % Prepare image
-        imgB=fsmPrepPrepareImage(imgB,factors(c1-1),W);
+        imgB=fsmPrepPrepareImage(imgB,factors(c1-1),W,sigma);
     end
     
     if c1<tp
         imgD=imreadnd2(outFileList(c1+1,:),xmin,xmax);
         % Prepare image
-        imgD=fsmPrepPrepareImage(imgD,factors(c1+1),W);
+        imgD=fsmPrepPrepareImage(imgD,factors(c1+1),W,sigma);
     end
     
     % For the auxiliary function for the selection of local maxima, the following is needed

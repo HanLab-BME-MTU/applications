@@ -42,6 +42,7 @@ paramSpeckles= fsmParam.prep.paramSpeckles; % High-order speckle parameters
 enhTriang    = fsmParam.prep.enhTriang;     % Enhanced triangulation flag
 autoPolygon  = fsmParam.prep.autoPolygon;   % Automatic analisys of the image to extract cell boundaries
 drawROI      = fsmParam.prep.drawROI;       % The user draws a ROI to restrict analysis
+sigma        = fsmParam.prep.sigma;         % Sigma for image low-pass filtering
 
 % Change to userPath
 cd(userPath);
@@ -217,7 +218,7 @@ for counter1=1:n
         end
         
         % Prepare the image for the analysis
-        img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)]);
+        img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],sigma);
         
         % Statistically test the local maxima to extract (significant) speckles 
         fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,enhTriang,fsmParam);

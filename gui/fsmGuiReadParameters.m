@@ -60,6 +60,9 @@ fsmParam.prep.drawROI=get(handles.drawROICheck,'Value');
 % Gauss ratio
 fsmParam.prep.gaussRatio=str2num(get(handles.editGauss,'String'));
 
+% Sigma
+fsmParam.prep.sigma=str2num(get(handles.editSigma,'String'));
+
 % Noise parameters
 indx=find([get(handles.confOne,'Value') get(handles.confTwo,'Value') get(handles.confThree,'Value') get(handles.confFour,'Value') get(handles.confFive,'Value') get(handles.confSix,'Value')]);
 fsmParam.main.noiseParam(1,1)=str2num(get(handles.editZValue,'String'))/gaussRatio;

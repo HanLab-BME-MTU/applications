@@ -44,6 +44,8 @@ factors=fsmParam.specific.intCorrFactors;
 imageSize=fsmParam.specific.imgSize;
 W=[1 1 0 0; 0 0 imageSize(1) imageSize(2)]; % Maintained for possible future re-use
 firstIndex=fsmParam.specific.firstIndex;
+sigma=fsmParam.prep.sigma;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % CHANGE TO WORK PATH
@@ -71,7 +73,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Save information into an array of struct speckle
-speckleArray=fsmBuildSaveSpeckleArray(MPM,outFileList,xmin,xmax,firstIndex,strg,noiseParam,threshold,factors,W,userPath);
+speckleArray=fsmBuildSaveSpeckleArray(MPM,outFileList,xmin,xmax,firstIndex,strg,noiseParam,threshold,factors,W,userPath,sigma);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %

@@ -58,6 +58,8 @@ fsmParam.prep.autoPolygon=0;        % Automatic analisys of the image to extract
 % The user draws a ROI
 fsmParam.prep.drawROI=0;            % The user can draw a ROI on the image to restrict the analysis
 fsmParam.prep.gaussRatio=3.54;      % Gauss ratio
+fsmParam.prep.sigma=1;              % Sigma for low-pass filtering
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
 % TRACKING MODULE
