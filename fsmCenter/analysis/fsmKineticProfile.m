@@ -49,7 +49,7 @@ P=lineCoords(lineDescr(:,1),lineDescr(:,2),sampling);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ischar(firstKinScore) % String pointing to the fist kinScore###.mat
-    [poly,depoly,img2C]=fsmKineticMaps(firstKinScore,imgSize,n,5);
+    [poly,depoly,img2C]=fsmKineticMaps(firstKinScore,imgSize,n,0); %5
 else
     if size(firstKinScore,3)~=3
         error('Please make sure that the net assembly map has the correct dimensions - see fsmKineticMaps');
