@@ -7,6 +7,8 @@ handles=guidata(hObject);
 
 dist=zeros(numrows,1);
 
+saveallpath=get(handles.GUI_fm_saveallpath_ed,'String');
+
 for i=1:2:numcols-3
         
         vec=handles.MPM(:,i:i+3);
@@ -25,25 +27,42 @@ for i=1:2:numcols-3
     end
     
     
-    
-    figure, plot(numbercells),title('number of cells')
-    xlabel('Frames')
-    ylabel('# cells')
-    
-    
-    figure, 
-    subplot(2,1,1); plot(avardist),title('avarage distance travelled by cells')
-    xlabel('Frames')
-    ylabel('distance per frame (in pixel)')
-  
-    subplot(2,1,2); plot(speedvar),title('variance of avarage distance travelled by a cell')
-      xlabel('Frames')
-    ylabel('variance')
+		
+		h_fig=figure,plot(numbercells),title('number of cells')
+		xlabel('Frames')
+		ylabel('# cells')
+		ymax=max(numbercells);
+		axis([0 numcols/2 0 ymax])
+		
+		
+		hgsave(h_fig,[saveallpath filesep 'numbercells.fig']);
+		print(h_fig, [saveallpath filesep 'numbercells.eps'],'-depsc2','-tiff');
+		print(h_fig, [saveallpath filesep 'numbercells.tif'],'-dtiff');
+		
+		
+		h_fig=figure
+		subplot(2,1,1); plot(avardist),title('avarage velocity of cells')
+		xlabel('Frames')
+		ylabel('distance per frame (in pixel)')
+		ymax=max(avardist);
+		axis([0 numcols/2 0 ymax])
+		
+	
+		subplot(2,1,2); plot(speedvar),title('variance of avarage velocity of cells')
+		xlabel('Frames')
+		ylabel('variance')
+		ymax=max(speedvar);
+		axis([0 numcols/2 0 ymax])
+		
+        
+		hgsave(h_fig,[saveallpath filesep 'velocity.fig']);
+		print(h_fig, [saveallpath filesep 'velocity.eps'],'-depsc2','-tiff');
+		print(h_fig, [saveallpath filesep 'velocity.tif'],'-dtiff');
+		
     
    
-        
-saveallpath=get(handles.GUI_fm_saveallpath_ed,'String')
-
+    
+   
 cd(saveallpath)
 save('distances', 'dist')
 save('speedvariances','speedvar')

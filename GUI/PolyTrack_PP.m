@@ -518,6 +518,16 @@ function GUI_ad_firstimage_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_ad_firstimage_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_ad_firstimage_ed as a double
+handles = guidata(hObject);
+
+numb=get(hObject,'String');
+
+
+
+handles.postpro.firstlastimg= str2num(numb);
+
+% Update handles structure
+guidata(hObject, handles);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -545,6 +555,16 @@ function GUI_ad_lastimage_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_ad_lastimage_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_ad_lastimage_ed as a double
+handles = guidata(hObject);
+
+numb=get(hObject,'String');
+
+
+
+handles.postpro.anallastimg= str2num(numb);
+
+% Update handles structure
+guidata(hObject, handles);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
