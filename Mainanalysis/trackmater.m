@@ -1,16 +1,72 @@
 function trackmater(hObject,projNum)
+% trackmater finds and links coordinates in a serie of phase contrast images 
+%
+% SYNOPSIS       trackmater(hObject,projNum)
+%
+% INPUT          hObject : a handle to the Gui which called the function
+%                projNum : which job is currently being delt with
+
+% OUTPUT         All outputs are either written directly to disk 
+%                M : described in alteredfsmTrackLinker
+%                PROPERTIES : PROPERTIES(:,1)=coord(:,1);
+%						 	  PROPERTIES(:,2)=coord(:,2);
+%							  PROPERTIES(:,3)=belongsto(:);  (number of cluster - label)
+%							  PROPERTIES(:,4)=numberOfOccurences(:);  (how many cells in the cluster
+%							                                           this cell is in)
+%							  PROPERTIES(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
+%							  PROPERTIES(:,6)=perimdivare(:);  (cluster)
+%                BODYIMG is the binary image of the areas occupied by cells                
+%
+% DEPENDENCIES   trackmater uses {imClusterSeg
+%								 alteredfsmTrackLinker
+%								 checkMinimalCellCell
+%								 findnucloitrack
+%								 body
+%								 halosfind
+%								 templfindertrack }
+%                                  
+%                trackmater is used by { PolyTrack }
+%
+% REMARK         trackmater fetches directly in GUI PolyTrack
+%                   handles : structure with information used within GUI
+% 				  from handles.jobs(projNum):
+% 					imagedirectory : where are the images 
+% 					imagename : what are the images called
+% 					imagenameslist : list of images within imagedirectory with imagename
+% 					firstimage : which images shall we start with (refers to imagenameslist)
+% 					lastimage : which images shall be the last one (refers to imagenameslist)
+% 					intensityMax : highest value image can have (calc from bitdepth)
+% 					fi_nucleus / la_nucleus : nucloi intensity first / last image
+% 					fi_background / la_background : background intensity first / last image
+% 					fi_halolevel / la_halolevel : halo intensity first image
+% 					leveladjust : factor to adjust intensity difference nucloi/ background
+% 					minsize : minimal size of nucloi 
+% 					maxsize : maximal size of nucloi
+% 					minsdist : minimal distance between two cells
+% 					minmaxthresh : onoff - should minima and segmentation be used 
+% 					clustering : onoff - should clustering be used
+% 					increment : image to image increment (imagenameslist)
+% 					noiseparameter : used to calculate threshold whithin templfindertrack for ignoring certain pixels
+% 					savedirectory : where shall calculated data be saved to
+% 					sizetemplate : what size should a template have
+% 					boxsize : what size should the searcharea(template matching) have
+% 					timestepslide : hao many timesteps should retrospectively be analysed during programm execution
+% 					minedge : minimal distance to edge to still use templatesearch
+% 					mincorrqualtempl : minimal quality of correlation(template) 
+% 					mintrackcorrqual : minimal quality of correlation (track comparison)
+%
+% Colin Glass, Feb 04
+
+
+%%%%NOTE: it might be a good idea to change the input from a guihandle and
+%%%%a number to a structure activejob, which includes the jobvalues
 
 
 % % % % % % % % % % % % % % set(handles.GUI_st_bp_mmpixel_pm,'String',num2str(activeJob.mmpixel));
-
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%fetch and extract values
 
 handles = guidata(hObject);
-
-%projNum = get(handles.GUI_st_job_lb,'Value');
-
-
 
 
 ImageDirectory = handles.jobs(projNum).imagedirectory;
@@ -21,10 +77,6 @@ FirstImaNum = handles.jobs(projNum).firstimage;
 LastImaNum = handles.jobs(projNum).lastimage;
 ImageNamesList = handles.jobs(projNum).imagenameslist;
 
-
-
-
-
 LevNuc_fi = handles.jobs(projNum).fi_nucleus;
 LevBack_fi = handles.jobs(projNum).fi_background;
 LevHalo_fi = handles.jobs(projNum).fi_halolevel;      
@@ -33,37 +85,24 @@ LevNuc_la = handles.jobs(projNum).la_nucleus;
 LevBack_la = handles.jobs(projNum).la_background;
 LevHalo_la = handles.jobs(projNum).la_halolevel;      
 
-
 MaxSearch = handles.jobs(projNum).maxsearch;
 %range in which direct assignement ,of found coordinates, from frame to
 %frame is accepted
 
-
 SaveDirectory = handles.jobs(projNum).savedirectory;
-
 
 percentbackground = handles.jobs(projNum).noiseparameter;
 sizetemple = handles.jobs(projNum).sizetemplate;
 box_size_img = handles.jobs(projNum).boxsize;
 
-
-
-
 %minimal/maximal size of the black spot in the cells
 MinSizeNuc = handles.jobs(projNum).minsize;
 MaxSizeNuc = handles.jobs(projNum).maxsize;
-
-ErodeDiskSize = round((sqrt(MinSizeNuc))/2)+1 ;
-%how much the blobs found in halosfind shall be eroded. This is an indirect
-%size criteria for halosfind. Increase - minimal size of halos will be
-%increased, decrease - ... decreased
-
 
 MinDistCellCell = handles.jobs(projNum).minsdist;
 %an educated guess of the minimal distance between neighbouring cells
 %(better to big than to small, for this value is used for the static
 %search. Searches with templates are more tolerant.)
-
 
 LevelChanger = handles.jobs(projNum).leveladjust;
 %this value influences the level between the nucloi and the background, as
@@ -73,21 +112,25 @@ LevelChanger = handles.jobs(projNum).leveladjust;
 %at least 4!!!
 howmanytimestepsslide = handles.jobs(projNum).timestepslide;
 
-
 MinEdge = handles.jobs(projNum).minedge;
 %minimal distance to edge for tracking with template
 
 MinimalQualityCorr = handles.jobs(projNum).mincorrqualtempl;
-
 MinTrackCorr = handles.jobs(projNum).mintrackcorrqual;
   
-
 segmentation = handles.jobs(projNum).minmaxthresh;
 clustering = handles.jobs(projNum).clustering;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Parameters that aren't open to discussion
+
+ErodeDiskSize = round((sqrt(MinSizeNuc))/2) ;
+%how much the blobs found in halosfind shall be eroded. This is an indirect
+%size criteria for halosfind. Increase - minimal size of halos will be
+%increased, decrease - ... decreased
 
 DistanceCorrel = MaxSearch*1.5; 
 %range within witch to look for corralations of tracks over several pics. 
@@ -174,9 +217,6 @@ coord = [];
 emptyM = zeros(1,4);
 
 cd(ImageDirectory);
-% mkdir(path,'bin_clust') ;
-% 
-% bin_clust_path = path,'bin_clust';
 
 
 
@@ -201,6 +241,7 @@ else
         
         cd(ImageDirectory)
 		name = char(ImageNamesList(jImageNum));
+        
         %get the current picture
         newImg = imreadnd2(name,0,handles.jobs(projNum).intensityMax);
               
@@ -278,7 +319,7 @@ else
                    
                       %now we mark these coordinates as good coordinates, meaning their
                       %existence is credible. Futhermore cells marked as good cells will
-                      %be treated prioritely, when it comes to allocating cells found in
+                      %be treated with priority, when it comes to allocating cells found in
                       %a new picture
                       oldCoord = newCoord+GoodCellMarker;
                    
@@ -286,12 +327,10 @@ else
                       emptyM = zeros(1,4);
                      
                     
+                      
         %the following is what we do with pictures that aren't number one
         else
             
-                     
-        
-                    
                       %adjust level via increment
                       levDiffInterpol = levdiff_fi+(countingloops-1)*Increment*incrDiff;
                       levBaInterpol = LevBack_fi+(countingloops-1)*Increment*incrback;
@@ -301,7 +340,6 @@ else
                       HaloLevel = (halointerpol-levBaInterpol)*2/3+levBaInterpol;
               
                       
-                     
                          
                       if clustering
 %                           
@@ -329,30 +367,7 @@ else
 
                       newCoord = checkMinimalCellCell(coordNuc,haloCoord,MinDistCellCell)  ;  
                  
-                      
-                      
-                      
-                              %run body now, for conveniance (we need binary images of 
-                               %the cells to run body)
-                               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                               prope = [];
-                               ero = [];
-                               
-                               if clustering
-                                   [prope,BODYIMG,labeled] = body(seg_img,newCoord,regmax,logihalo,PlusMinus,1);
-                               elseif segmentation
-                                   [prope,BODYIMG,labeled] = body(newImg,newCoord,regmax,logihalo,PlusMinus,2);
-                               end
-                              
-                               PROPERTIES(1:size(emptyprop,1),1:size(emptyprop,2),countingloops,1) = emptyprop;
-                               %store this information in a stack
-                               PROPERTIES(1:size(prope,1),1:size(prope,2),countingloops,1) = prope;
-                               
-                               clear prope;
-                               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                       
-                       
-                       
+                     
                        
                        %mark coordinates as high quality coordinates. These cells
                        %are found in the usual way, so they are superior to cells
@@ -987,8 +1002,6 @@ else
                                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                        
                        
-                       
-                       
              
                        
                        
@@ -1003,17 +1016,18 @@ else
 		
 		save('M', 'M')
 		save ('PROPERTIES', 'PROPERTIES')
+        
 		cd ('body')
         
-        
 		% Format
-		s=3; %s=length(num2str(no));
+		s=3;
 		strg = sprintf('%%.%dd',s);
 		
 		% Create numerical index
 		indxStr = sprintf(strg,jImageNum);
 		
 		nameClust = ['clusters' indxStr]; 
+        
 		save(nameClust,'BODYIMG')
         
         

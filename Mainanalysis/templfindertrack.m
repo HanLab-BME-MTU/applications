@@ -1,22 +1,30 @@
 function [coordnew,cc]= templfindertrack(coord,oldpic,newpic,levback,tempelcellmarker,newcell,newcelltempel,newcelltempelmarker,percentbackground,sizetemple,box_size_img)
-
-% IMONEDGEOPERATOR 
+% templfindertrack finds cells in a subsequent frame using template
+%                  matching (correlation)
+%
+% SYNOPSIS       [coordnew,cc]= templfindertrack(coord,oldpic,newpic,levback,tempelcellmarker,newcell,newcelltempel,
+%                                                newcelltempelmarker,percentbackground,sizetemple,box_size_img)
+%
+% INPUT 		 coord : coordinates of the cell we wish to find in the new image
+% 				 oldpic : the image in which that cell is 
+% 				 newpic : the image in which we wish to find the cell 
+% 				 levback : approximated level of the background
+% 				 tempelcellmarker : marker for old cells found by templates
+% 				 newcell : identifier of new cells 
+% 				 newcelltempel : identifier of new cells found by template
+% 				 newcelltempelmarker : marker for new cells found by templates
+% 			   	 percentbackground : threshold for ignoring areas within template and image (1+-percentbackground * levback = thresh)
+% 				 sizetemple : the size we want the template to have
+% 			 	 box_size_img : the size of the searcharea
 % 
+% OUTPUT         coordnew : found coordinates
+%                cc : maximum of correlation
 %
-% SYNOPSIS    imOnEdgeOperator(img_in, edge)
-%
-% INPUT       img_n        : image at time step n
-%             img_nn       : image at time step n+1
-%             edge         : 2d matrix of the edge pixels coordinates       
-% 
-% OUTPUT      thresh       : the threshold value
-%             mean_bg      : the mean value of the background
-%             mean_obj     : the mean value of the object
-%                           
-% DEPENDENCES           This function uses{  
-%                       }
-%
-% Colin Glass
+% DEPENDENCIES   templfindertrack uses {nothing}
+%                                  
+%                templfindertrack is used by { trackmater }
+%                                   
+% Colin Glass, Feb 04         
 
 %make a template
 

@@ -1,7 +1,25 @@
                       
-function coord1= checkMinimalCellCell(coordnuc,altercoor,MinDistCellCell)                      
-                      
-                      
+function coord1 = checkMinimalCellCell(coordnuc,altercoor,MinDistCellCell)                                    
+% checkMinimalCellCell combines two lists of coordinates and ensures a
+%                      minimal distance between every combination of two
+%                      cells
+%
+% SYNOPSIS       coord1 = checkMinimalCellCell(coordnuc,altercoor,MinDistCellCell)   
+%
+% INPUT          coordnuc : a bunch of coordinates
+%                altercoor : an other bunch of coordinates
+%                MinDistCellCell : minimal distance between two cells
+%
+% OUTPUT         coord1 : the combined coordinates, with minimal distance
+%                         between them
+%
+%
+% DEPENDENCIES   checkMinimalCellCell uses {nothing}
+%                                  
+%                checkMinimalCellCell is used by { trackmater
+%                                                  testbutton}
+%
+% Colin Glass, Feb 04         
 
 
 %ensure a minimal distance between them

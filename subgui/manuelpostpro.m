@@ -1,4 +1,21 @@
 function manuelpostpro(hObject)
+% manuelpostpro opens a figure and puts a slider with callback changeframe
+%               into it
+%
+% SYNOPSIS       manuelpostpro(hObject)
+%
+% INPUT          hObject : handle of an object of the GUI calling manuelpostpro
+%
+% OUTPUT         none
+%
+% DEPENDENCIES   manuelpostpro uses {nothing}
+%                                  
+%                manuelpostpro is used by { PolyTrack_PP }
+%
+% Colin Glass, Feb 04         
+
+
+
 
 % A routine that, together with it's subprograms, allows the user to
 % manually postprocess the results of the main analysis. 
@@ -18,6 +35,8 @@ if ~isempty(pictureslideH)
     delete(pictureslideH);
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%fetch and extract values
 
 handles = guidata(hObject)
 
@@ -30,6 +49,11 @@ imagename=handles.jobvalues.imagename;
 firstimage=handles.jobvalues.firstimage;
 lastimage=handles.jobvalues.lastimage;
 increment=handles.jobvalues.increment;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
 
 ma=floor((lastimage-firstimage)/increment+0.001);
 handles.ma=ma;

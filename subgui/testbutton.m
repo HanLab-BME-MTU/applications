@@ -1,4 +1,47 @@
 function testbutton(hObject)
+% testbutton finds coordinates in an image
+%
+% SYNOPSIS       trackmater(hObject,projNum)
+%
+% INPUT          hObject : a handle to the Gui which called the function
+%                
+% OUTPUT         list of coordinates manually checked and edited by user.
+%                Written into handles
+%                             
+%
+% DEPENDENCIES   testbutton uses {imClusterSeg
+%								 alteredfsmTrackLinker
+%								 checkMinimalCellCell
+%								 findnucloitrack
+%								 takenkick
+%								 halosfind}
+%                                  
+%                testbutton is used by { PolyTrack }
+%
+% REMARK         testbutton fetches directly in GUI PolyTrack:
+% 					projNum : currently treated job
+%                   handles : structure with information used within GUI
+% 				  from handles.jobs(projNum):
+% 					imagedirectory : where are the images 
+% 					imagename : what are the images called
+% 					imagenameslist : list of images within imagedirectory with imagename
+% 					firstimage : which images shall we start with (refers to imagenameslist)
+% 					lastimage : which images shall be the last one (refers to imagenameslist)
+% 					intensityMax : highest value image can have (calc from bitdepth)
+% 					fi_nucleus : nucloi intensity first image
+% 					fi_background : background intensity first image
+% 					fi_halolevel : halo intensity first image
+% 					leveladjust : factor to adjust intensity difference nucloi/ background
+% 					minsize : minimal size of nucloi 
+% 					maxsize : maximal size of nucloi
+% 					minsdist : minimal distance between two cells
+% 					minmaxthresh : onoff - should minima and segmentation be used 
+% 					clustering : onoff - should clustering be used
+%
+% Colin Glass, Feb 04
+
+
+
 
 %determin the the level of imextendmin by clicking (in the picture,
 %which will pop up when running the test)several times on the background
@@ -8,54 +51,45 @@ function testbutton(hObject)
 %first pic, once for the last. For every picture of the serie a
 %value for lev will be interpolated
 
-     
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%fetch information
 
 handles = guidata(hObject);
-
 projNum = get(handles.GUI_st_job_lb,'Value');
 
 
-
-
 ImageDirectory = handles.jobs(projNum).imagedirectory;
-
-
-
 First = handles.jobs(projNum).firstimage;
 Last = handles.jobs(projNum).lastimage;
-
-
 levnuc_fi = handles.jobs(projNum).fi_nucleus;
 levback_fi = handles.jobs(projNum).fi_background;
 levhalo_fi = handles.jobs(projNum).fi_halolevel;
-
 ImageNamesList = handles.jobs(projNum).imagenameslist
-
-% levnuc_la = handles.jobs(projNum).la_nucleus;
-% levback_la = handles.jobs(projNum).la_background;
-levdiff_fi = abs(levnuc_fi-levback_fi)*handles.jobs(projNum).leveladjust;
-
-
-ErodeDiskSize = 10;
-%how much the blobs found in halosfind shall be eroded. This is an indirect
-%size criteria for halosfind. Increase - minimal size of halos will be
-%increased, decrease - ... decreased
-
+leveladjust = handles.jobs(projNum).leveladjust
 
 %minimal/maximal size of the black spot in the cells
 MinSizeNuc = handles.jobs(projNum).minsize;
 MaxSizeNuc = handles.jobs(projNum).maxsize;
-
 
 MinDistCellCell = handles.jobs(projNum).minsdist;
 %an educated guess of the minimal distance between neighbouring cells
 %(better to big than to small, for this value is used for the static
 %search. Searches with templates are more tolerant.)
 
-
-
 segmentation = handles.jobs(projNum).minmaxthresh;
 clustering = handles.jobs(projNum).clustering;
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+levdiff_fi = abs(levnuc_fi-levback_fi)* leveladjust;
+
+
+ErodeDiskSize = round((sqrt(MinSizeNuc))/2) ;
+%how much the blobs found in halosfind shall be eroded. This is an indirect
+%size criteria for halosfind. Increase - minimal size of halos will be
+%increased, decrease - ... decreased
 
 
 cd(ImageDirectory)

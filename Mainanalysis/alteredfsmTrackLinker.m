@@ -1,7 +1,7 @@
 function [MPM,M]=alteredfsmTrackLinker(M)
-% fsmTrackLinker creates the magic position matrix MPM from M
+% alteredfsmTrackLinker creates the magic position matrix MPM from M
 %
-% SYNOPSIS      [MPM,M]=fsmTrackLinker(M)
+% SYNOPSIS      [MPM,M]=alteredfsmTrackLinker(M)
 %
 % INPUT         M          : M stack as returned by the tracker functions
 %                                  M = [y x y x]   [y x y x]   [y x y x]
@@ -14,9 +14,15 @@ function [MPM,M]=alteredfsmTrackLinker(M)
 %               M          : Rearranged M matrix.
 %
 % DEPENDENCES   fsmTrackLinker uses { }
-%               fsmTrackLinker is used by { fsmTrackMain } 
+%               fsmTrackLinker is used by { trackmater } 
 %
 % Aaron Ponti, 2002
+
+% altered by Colin Glass, Feb 2004
+
+% the changes in this code result in the fact, that MPM returns only one
+% tracked thing per row. Original code can return more than one per row,
+% seperated by zeros
 
 % Initialize counter and waitbar
 counter=0;

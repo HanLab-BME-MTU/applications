@@ -1,26 +1,26 @@
 function varargout = PolyTrack(varargin)
-% GUI_START M-file for GUI_start.fig
-%      GUI_START, by itself, creates a new GUI_START or raises the existing
+% PolyTrack M-file for PolyTrack.fig
+%      PolyTrack, by itself, creates a new PolyTrack or raises the existing
 %      singleton*.
 %
-%      H = GUI_START returns the handle to a new GUI_START or the handle to
+%      H = PolyTrack returns the handle to a new PolyTrack or the handle to
 %      the existing singleton*.
 %
-%      GUI_START('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in GUI_START.M with the given input arguments.
+%      PolyTrack('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in PolyTrack.M with the given input arguments.
 %
-%      GUI_START('Property','Value',...) creates a new GUI_START or raises the
+%      PolyTrack('Property','Value',...) creates a new PolyTrack or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before GUI_start_OpeningFunction gets called.  An
+%      applied to the GUI before PolyTrack_OpeningFunction gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to GUI_start_OpeningFcn via varargin.
+%      stop.  All inputs are passed to PolyTrack_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help GUI_start
+% Edit the above text to modify the response to help PolyTrack
 
 % Last Modified by GUIDE v2.5 25-Feb-2004 15:33:03
 
@@ -198,14 +198,14 @@ else
     
     number = 0;
     countNum = 0;
-    while ~isnan(number) & (countNum <4)
+    while ~isnan(number) & (countNum <3)
          countNum = countNum+1;
          number = str2num(filename(end-(4+countNum):end-4));
          
     end
         
     
-    handles.jobs(projNum).bodyname = filename(1:(end-(3+countNum)));
+    handles.jobs(projNum).bodyname = filename(1:(end-(4+countNum)));
      bodyname = handles.jobs(projNum).bodyname;
      
 	%set to current project

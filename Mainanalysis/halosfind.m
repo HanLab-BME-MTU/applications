@@ -1,5 +1,25 @@
 function [coor,halo]= halosfind(Image,erodedisksize,halolevel,methodDeterm)
-
+% halosfind detects light areas and tries to fit calls into them
+%
+% SYNOPSIS       [coor,halo]= halosfind(Image,erodedisksize,halolevel,methodDeterm)
+%
+% INPUT          Image : either original image or segmented image
+%                          (depends on method)
+%                erodedisksize : size of disk to erode with
+%                halolevel : threshold
+%                methodDeterm : 1 or 2. Says if clustering or image
+%                               segmentation has been applied applied
+%                               (changes what halosfind actually does)
+%
+% OUTPUT         coor : found coordinates
+%                halo : binary image giving the areas of halos
+%
+% DEPENDENCIES   halosfind uses {nothing}
+%                                  
+%                halosfind is used by { trackmater
+%                                       testbutton}
+%
+% Colin Glass, Feb 04         
 
 
 %%%%%%%%%%%%%%%%%%%%%%%% Important%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

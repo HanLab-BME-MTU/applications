@@ -1,4 +1,21 @@
 function movieMaker(hObject) 
+% movieMaker makes movies from the information gathered in the amin
+%            analysis
+%
+% SYNOPSIS       movieMaker(hObject)
+%
+% INPUT          hObject : handle to an object within PolyTrack_PP
+%                MPM
+%                ImageNamesList
+%                dragTailLength...
+%
+% OUTPUT         saves movies to disk          
+%
+% DEPENDENCIES   movieMaker  uses {nothing}
+%                                  
+%                movieMaker is used by { PolyTrack_PP }
+%
+% Colin Glass, Feb 04
 
 handles=guidata(hObject);
 
@@ -10,22 +27,30 @@ ImageNamesList = handles.jobvalues.imagenameslist;
 
 dragTailLength = handles.postpro.dragtail;
 
+
+%starting frame relativ to first frame analysed with polytrack
 start = round((handles.postpro.moviefirstimg- handles.jobvalues.firstimage)/handles.jobvalues.increment)+1
+
+%we have to have prior images for dragTail
 if start < dragTailLength+2
     start = dragTailLength+2;
 end
 
+
+%last frame relativ to first frame analysed with polytrack
 stop = floor((handles.postpro.movielastimg - handles.jobvalues.firstimage)/handles.jobvalues.increment+0.00001)+1 
 
 if stop > handles.jobvalues.lastimage
     stop = handles.jobvalues.lastimage;
 end
 
+
 imagedirectory = handles.jobvalues.imagedirectory;
 saveallpath = handles.postpro.saveallpath;
 
 cd(saveallpath)
 
+%initialize the movie
 makeQTmovie('start','trackmov.mov')
 
 
@@ -33,6 +58,7 @@ for movieStep = start:stop
     
     whatcells=[];
     
+    %use only the cells chosen by the user, if he chose any
 	if ~isempty(handles.selectedcells)
         whatcells=zeros(size(handles.selectedcells,1),2);
            whatcells(:,:)=handles.MPM(handles.selectedcells,(2*movieStep-1):(2*movieStep));
@@ -54,30 +80,30 @@ for movieStep = start:stop
 
      
      name = char(ImageNamesList(movieStep)); 
-     nowImg=imreadnd2(name,0,handles.jobvalues.intensityMax);
+     nowImgH=imreadnd2(name,0,handles.jobvalues.intensityMax);
 
-		
-		
-		
-		
 		[rows,cols]= find(handles.MPM);
 		
 		
-		
+		%if the user specified a size for the movie, that's the size we are
+		%going to use
 		if ~isempty(handles.postpro.figureSize)
 		     figure('Position',handles.postpro.figureSize) 
-             imshow(nowImg,[])
+             imshow(nowImgH,[])
         else
-             figure, imshow(nowImg,[])
+             figure, imshow(nowImgH,[])
         end
         
+        
+        
 		hold on
-		
-		
-		%one colour per time step
+		%one colour per time step (dragTailLength tells you how many
+		%timesteps there are
 		cmap=jet(dragTailLength+1);
-		%cmap=jet(numcols/2-1);
+
 		counter=0;
+        
+        %loop through the previous pictures (for the tails)
 		for i=(2*(movieStep-dragTailLength)):2:(2*movieStep)
             
                 counter=counter+1;
@@ -87,22 +113,22 @@ for movieStep = start:stop
                 vec(rows,:)=0;
                 
                 
+                
                  for h=1:size(vec,1)
                      
-                 
-                     %   if vec(h,1)~=0 & sqrt((vec(:,1)-vec(:,3)).^2 + (vec(:,2)-vec(:,4)).^2)<80
-                             %   plot(vec(h,1),vec(h,2),'.')
-                             ph=[];
-                              ph=  plot(vec(h,1:2:3),vec(h,2:2:4));
-                              set(ph,'Color',cmap(counter,:));
-                              clear ph
-                              %  end
-                  
+                        if vec(h,1)~=0
+							%   plot(vec(h,1),vec(h,2),'.')
+							ph=[];
+							ph=  plot(vec(h,1:2:3),vec(h,2:2:4));
+							set(ph,'Color',cmap(counter,:));
+							clear ph
+                        end
+                      
                 end
                 
-                
-                
 		end
+        
+        %plot the points that actually belong to the current picture
 		plot(vec(:,3),vec(:,4),'r.')
 		
 		hold off
@@ -110,15 +136,14 @@ for movieStep = start:stop
         
         cd(saveallpath)
   
+        %add the current figure to the movie
 		makeQtmovie('addaxes',gca);
+        
 		close
 end
 
+%finalize the movie
 makeQtmovie('finish');
-
-
-
-
 
 
 

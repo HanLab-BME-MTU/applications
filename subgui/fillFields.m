@@ -1,4 +1,22 @@
 function fillFields(handles,activeJob)
+% fillFields writes all values within activejob into the right place in
+%            PolyTrack
+%
+% SYNOPSIS       fillFields(handles,activeJob)
+%
+% INPUT          handles : structure with all the information of PolyTrack
+%                         (GUI)
+%                activeJob : structure with information specific for a
+%                            certain job (of the list in PolyTrack)
+%
+% OUTPUT         none
+%
+% DEPENDENCIES   findnucloitrack uses {nothing}
+%                                  
+%                findnucloitrack is used by { PolyTrack }
+%
+% Colin Glass, Feb 04         
+
 
 %all this program does, is fill values into the respective fields of
 %PolyTrack (GUI). No big deal

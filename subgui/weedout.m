@@ -1,25 +1,43 @@
 
-function weedout(hObject)
+function MPM = weedout(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,saveallpath)
+% weedout filters and relinks the tracks given in MPM
+%
+% SYNOPSIS       MPM = weedout(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,saveallpath)
+%
+% INPUT          MPM        : Magic Position Matrix 
+%                               MPM = [ y  x  y  x  y  x ... ]
+%                                        t1    t2    t3
+%                plusframes : how many frames after the currently analysed
+%                             track stops must a candidate for linkage survive
+% 		  		 minusframes : how many frames (at most!) before the currently analysed
+%                              track stops can a candidate for linkage be
+%                              present
+% 				 maxdistpostpro : max distance for relinking
+% 				 minimaltrack : minimal length of tracks (ales they get
+% 			                	erased
+% 				 saveallpath : where shall the new MPM be saved
+%
+%
+% OUTPUT         altered MPM          
+%
+% DEPENDENCIES   weedout  uses {nothing}
+%                                  
+%                weedout is used by { PolyTrack_PP }
+%
+% Colin Glass, Feb 04
 
-handles=guidata(hObject);
 
-% 
-% if get(handles.GUI_app_autopostpro_cb,'Value')==1
-%    set(handles.GUI_app_autopostpro_cb,'Value',0);
-% end
-%     
-    
-minimaltrack= handles.postpro.minimaltrack;
-maxdistpostpro= handles.postpro.maxdistpostpro ;
 
-minusframes = handles.postpro.minusframes;
-plusframes = handles.postpro.plusframes;
-
+% % % 
+% % % if get(handles.GUI_app_autopostpro_cb,'Value')==1
+% % %    set(handles.GUI_app_autopostpro_cb,'Value',0);
+% % % end
+% % %     
 
 %if there are totally empty rows, erase them
-[firsts,cols]= find(handles.MPM);
+[firsts,cols]= find(MPM);
 firsts=unique(firsts);
-handles.MPM=handles.MPM(firsts,:);
+MPM=MPM(firsts,:);
 
 
 
@@ -28,8 +46,8 @@ handles.MPM=handles.MPM(firsts,:);
 %The goal of this little routine is to relink tracks
 %first we find (for every cell) the frame in which it appears and the frame
 %in which it disappears
-for i=1:size(handles.MPM,1)
-        onecell=handles.MPM(i,:);
+for i=1:size(MPM,1)
+        onecell=MPM(i,:);
         index=find(onecell);
         appear(i)=min(index);
         disappear(i)=max(index);
@@ -42,7 +60,7 @@ counter=0;
 %then erase the newer cell. 
 %in this way we reduce the likelyhood of asigning a new number to a cell
 %already found 
-while counter < (size(handles.MPM,1)-0.3)
+while counter < (size(MPM,1)-0.3)
        
     linked = 0;
     
@@ -55,20 +73,20 @@ while counter < (size(handles.MPM,1)-0.3)
                & (disappear(counter)-appear(counter+1:end)) > 0 ...
                & (disappear(counter)-disappear(counter+1:end)) < plusframes ...
                &  appear(counter+1:end) > 1.1 ...
-               & (disappear(counter)+1.9) < size(handles.MPM,2)  );
+               & (disappear(counter)+1.9) < size(MPM,2)  );
     
     if ~isempty (near)
     
-           [distance,chuck] = min( sqrt( ( handles.MPM(counter , disappear(counter)-1) - handles.MPM(near(:)+counter , disappear(counter)+1) ).^2 ... 
-                                           + ( handles.MPM(counter , disappear(counter)) - handles.MPM(near(:)+counter , disappear(counter)+2) ).^2  ) );
+           [distance,chuck] = min( sqrt( ( MPM(counter , disappear(counter)-1) - MPM(near(:)+counter , disappear(counter)+1) ).^2 ... 
+                                           + ( MPM(counter , disappear(counter)) - MPM(near(:)+counter , disappear(counter)+2) ).^2  ) );
          
             if distance < maxdistpostpro
                 
                 %add the found track to the current track
-                handles.MPM(counter , (disappear(counter)+1):end) = handles.MPM(near(chuck)+counter , (disappear(counter)+1):end);
+                MPM(counter , (disappear(counter)+1):end) = MPM(near(chuck)+counter , (disappear(counter)+1):end);
                 
                 %erase the redundant track
-                handles.MPM(near(chuck)+counter , :) = 0;
+                MPM(near(chuck)+counter , :) = 0;
                 
                 %make sure the current track gets processed again, with the new stop location. Maybe we can find a new link there 
                 disappear(counter) = disappear(near(chuck)+counter);
@@ -93,26 +111,26 @@ while counter < (size(handles.MPM,1)-0.3)
     %we look for tracks which begin two frames after our current
     %track stops and try to link
     if ~linked
-          gaps = find(  (disappear(counter)+3.9) < size(handles.MPM,1) ...
+          gaps = find(  (disappear(counter)+3.9) < size(MPM,1) ...
                       & ((disappear(counter)-appear(counter+1:end)) == -2) )
                     
           if ~isempty (gaps)
     
-                [distance,chuck] = min( sqrt( ( handles.MPM(counter , disappear(counter)-1) - handles.MPM(gaps(:)+counter , disappear(counter)+3) ).^2 ... 
-                                           + ( handles.MPM(counter , disappear(counter)) - handles.MPM(gaps(:)+counter , disappear(counter)+4) ).^2  ) );
+                [distance,chuck] = min( sqrt( ( MPM(counter , disappear(counter)-1) - MPM(gaps(:)+counter , disappear(counter)+3) ).^2 ... 
+                                           + ( MPM(counter , disappear(counter)) - MPM(gaps(:)+counter , disappear(counter)+4) ).^2  ) );
                 
                 if distance < maxdistpostpro
                         
                         %add the found track to the current track
-                        handles.MPM(counter , (disappear(counter)+3):end) = handles.MPM(gaps(chuck)+counter , (disappear(counter)+3):end);
+                        MPM(counter , (disappear(counter)+3):end) = MPM(gaps(chuck)+counter , (disappear(counter)+3):end);
                         
                         %fill in the gap
-                        handles.MPM(counter , disappear(counter)+1)=   handles.MPM(counter , disappear(counter)-1) +...
-                                                                    round( (handles.MPM(counter , disappear(counter)+3) - handles.MPM(counter , disappear(counter)-1))/2 );
-                        handles.MPM(counter , disappear(counter)+2)=   handles.MPM(counter , disappear(counter)) +...
-                                                                    round( (handles.MPM(counter , disappear(counter)+4) - handles.MPM(counter , disappear(counter)))/2 );
+                        MPM(counter , disappear(counter)+1)=   MPM(counter , disappear(counter)-1) +...
+                                                                    round( (MPM(counter , disappear(counter)+3) - MPM(counter , disappear(counter)-1))/2 );
+                        MPM(counter , disappear(counter)+2)=   MPM(counter , disappear(counter)) +...
+                                                                    round( (MPM(counter , disappear(counter)+4) - MPM(counter , disappear(counter)))/2 );
                         %erase the redundant track
-                        handles.MPM(gaps(chuck)+counter , :) = 0;
+                        MPM(gaps(chuck)+counter , :) = 0;
                         
                         %make sure the current track gets processed again, with the new stop location. Maybe we can finf a new link there 
                         disappear(counter) = disappear(gaps(chuck)+counter);
@@ -137,13 +155,13 @@ clear chuck;
 
 %again erase all tracks with no entries at all
 clear firsts;
-[firsts,cols]= find(handles.MPM);
+[firsts,cols]= find(MPM);
 firsts=unique(firsts);
-handles.MPM=handles.MPM(firsts,:);
+MPM=MPM(firsts,:);
 
 
 % here we chuck out cells that didn't stay longer than mintrack frames
-[rows,cols]=find(handles.MPM);
+[rows,cols]=find(MPM);
 
 sorrows = sort(rows);
 [uniqueEntries, uniqueIdx] = unique(sorrows);
@@ -158,15 +176,13 @@ end
 
 numberOfOccurences = diff(uniqueIdx); 
 chuck = uniqueEntries(find(numberOfOccurences < minimaltrack*2-1));
-handles.MPM(chuck,:) = [];
+MPM(chuck,:) = [];
 
 %set(handles.GUI_app_autopostpro_cb,'Value',1);
 
 
-%save the altered data
-guidata(hObject,handles);
 
-MPM=handles.MPM
+
 saveallpath=get(handles.GUI_fm_saveallpath_ed,'String')
 
 cd(saveallpath)

@@ -1,7 +1,21 @@
 function manrelink
+% manrelink creates objects with callbacks to manipulate cell tracks
+%
+% SYNOPSIS       manrelink
+%
+% INPUT          none (gets data from the current object, which is the object with the callback manrelink (text made by changeframe))
+%
+% OUTPUT         none
+%
+% DEPENDENCIES   manrelink uses {nothing}
+%                                  
+%                manrelink is used by { changeframe (as a callback) }
+%
+% Colin Glass, Feb 04        
 
 %this is the callback of the cell numbers in the shown image(look at
 %changeframe). 
+
 hObject=findall(0,'Tag','GUI_pp_jobbrowse_pb');
 handles=guidata(hObject);
 

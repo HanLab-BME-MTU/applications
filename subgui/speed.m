@@ -1,4 +1,23 @@
 function speed(hObject)
+% speed plots information gathered in MPM. Certain details
+%              get derived from MPM first
+%
+% SYNOPSIS       speed(hObject)
+%
+% INPUT          hObject : handle to an object within PolyTrack_PP
+%                inputs are fetched directly from the GUI (PolyTrack_PP)
+%                MPM
+%                singlecells
+%                clustercells   
+%                lastimage...
+%
+% OUTPUT         saves plots and calc velocities to disk          
+%
+% DEPENDENCIES   speed  uses {nothing}
+%                                  
+%                speed is used by { PolyTrack_PP }
+%
+% Colin Glass, Feb 04
 
 handles=guidata(hObject);
 

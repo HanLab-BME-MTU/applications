@@ -1,5 +1,17 @@
 function linknow
-
+% linknow  finds out which cell is currently calling back and links it to
+%          the cell selected in linklist (listbox)
+%
+% SYNOPSIS       linknow
+%
+% INPUT          none (gets data from the current object, which is the object with the callback manrelink (text made by changeframe))
+%
+% OUTPUT         none
+%
+% DEPENDENCIES   linknow uses {nothing}
+%                                  
+%                linknow is used by { manrelink (as a callback) }
+%
 
 %this is the callback of a click within the listbox, created by manrelink.
 %Here we link the cell clicked on in the listbox to the current callback

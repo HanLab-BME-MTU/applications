@@ -1,4 +1,18 @@
 function stuffplotter(hObject)
+% stuffplotter plots information gathered in PROPERTIES. Certain details
+%              get derived from PROPERTIES first
+%
+% SYNOPSIS       stuffplotter(hObject)
+%
+% INPUT          hObject : handle to an object within PolyTrack_PP
+%                
+% OUTPUT         altered MPM          
+%
+% DEPENDENCIES   stuffplotter  uses {nothing}
+%                                  
+%                stuffplotter is used by { PolyTrack_PP }
+%
+% Colin Glass, Feb 04
 
 
 %We now want to rearrange certain data (PROPERTIES), so that we can plot it.  
@@ -63,17 +77,17 @@ for pic=start:stop
 	end 
 	numberOfOccurences = diff(uniqueIdx); 
 
-
-     for clustering = 1:length(uniqueEntries)
-           order = ismember(handles.PROPERTIES(:,3,pic),uniqueEntries(clustering))
-           handles.PROPERTIES(order ,4,pic) = numberOfOccurences(clustering);
+    %calculate the number of members for every cluster
+     for indUniEnt = 1:length(uniqueEntries)
+           order = ismember(handles.PROPERTIES(:,3,pic),uniqueEntries(indUniEnt))
+           handles.PROPERTIES(order ,4,pic) = numberOfOccurences(indUniEnt);
      end
      %done
      
      
      
     whatcells=[];
-    
+    %if the user has selected certain cells, only use these
 	if ~isempty(handles.selectedcells)
         whatcells = zeros(size(handles.selectedcells,1),2);
       
@@ -134,11 +148,8 @@ for pic=start:stop
     %how many clusters. At least two members.
     Clusters = find(takeIntoAccount(:,4)>1.5)
     
-    if ~isempty(handles.selectedcells) 
-             handles.clustercells(1:length(Clusters),pic) = indWhatCells(Clusters);
-     else   
-            handles.clustercells(1:length(Clusters),pic) = indWhatCells(Clusters);
-     end
+     handles.clustercells(1:length(Clusters),pic) = indWhatCells(Clusters);
+    
     [uniqclust,uniCluRows,invert]=unique(takeIntoAccount(Clusters,3));
     NewProps(1,pic)=length(uniqclust);
     
@@ -159,11 +170,9 @@ for pic=start:stop
     
     %percentage single cells
     indSingle = find(takeIntoAccount(:,4)==1)
-    if ~isempty(handles.selectedcells) 
-             handles.singlecells (1:length(indSingle),pic) = handles.selectedcells(indWhatCells(indSingle));
-     else   
-             handles.singlecells(1:length(indSingle),pic) = indWhatCells(indSingle);
-     end
+    
+    handles.singlecells (1:length(indSingle),pic) = indWhatCells(indSingle);
+    
     NewProps(7,pic) = size(indSingle,1) / NewProps(6,pic);
     
    

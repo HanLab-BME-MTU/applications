@@ -1,5 +1,26 @@
-function [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc,methodDeterm)
-
+function [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc,methodDeterm)          
+% findnucloitrack detects dark areas and tries to fit calls into them
+%
+% SYNOPSIS       [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc,methodDeterm)
+%
+% INPUT          newImg : either original image or segmented image
+%                          (depends on method)
+%                lev : level used for minima detection
+%                minsizenuc : minimal size for nuclei
+%                maxsizenuc : maximal size for nuclei
+%                methodDeterm : 1 or 2. Says if clustering or image
+%                               segmentation has been applied applied
+%                               (changes what findnucloitrack actually does)
+%
+% OUTPUT         coor : found coordinates
+%                regmax : binary image giving the areas of nuclei
+%
+% DEPENDENCIES   findnucloitrack uses {nothing}
+%                                  
+%                findnucloitrack is used by { trackmater
+%                                             testbutton}
+%
+% Colin Glass, Feb 04         
 
 
 %newImg is the picture, or the segmented image (clustering), lev was determined from values taken from the picture

@@ -1,4 +1,21 @@
 function [coor]= takenkick(info,coor)
+% takenkick displays an image with coordinates ploted into it. It allows to
+%           manually add and delete coordinates
+%
+% SYNOPSIS       [coor]= takenkick(info,coor)
+%
+% INPUT          info : image
+%                coor : list of coordinates
+%
+%
+% OUTPUT         coor : edited list of coordinates
+%                             
+%
+% DEPENDENCIES   takenkick uses {nothing}
+%                                  
+%                takenkick is used by { testbutton }
+%
+% Colin Glass, Feb 04
 
 
 % the goal of this programm is to manually add or substract coordinates.

@@ -1,5 +1,44 @@
 
-function [PROPERTIES,ero,labeled]= body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)
+function [PROPERTIES,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)       
+% body  determins what areas of an image are occupied by cells and
+%       calculates image properties
+%
+% SYNOPSIS       [PROPERTIES,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)
+%
+% INPUT          seg_img : either original image or segmented image
+%                          (depends on method)
+%                coord : set of coordinates
+%                regmax : binary image giving the areas of nuclei
+%                logihalo : binary image giving the areas of halos
+%                plusminus : distance a set of coordinates may have to an
+%                            cell area and still belong to it
+%                methodDeterm : 1 or 2. Says if clustering or image
+%                               segmentation has been applied applied
+%                               (changes what body actually does)
+%
+% OUTPUT         PROPERTIES : PROPERTIES(:,1)=coord(:,1);
+%						 	  PROPERTIES(:,2)=coord(:,2);
+%							  PROPERTIES(:,3)=belongsto(:);  (number of cluster - label)
+%							  PROPERTIES(:,4)=numberOfOccurences(:);  (how many cells in the cluster
+%							                                           this cell is in)
+%							  PROPERTIES(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
+%							  PROPERTIES(:,6)=perimdivare(:);  (cluster)
+%                ero : is the binary image of the areas occupied by cells                
+%                labeled : bwlabeled ero
+%
+%
+% DEPENDENCIES   body uses {nothing}
+%                                  
+%                body is used by { trackmater
+%                                  testbutton}
+%
+% Colin Glass, Feb 04         
+
+
+
+
+
+
 %f=figure;
 %ero is a binary picture of the whole area occupied by cells
 %belongsto 

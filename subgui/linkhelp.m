@@ -1,5 +1,18 @@
 function linkhelp
-
+% linkhelp finds out which cell is currently calling back and writes the
+%          details of this cell into the linklist (listbox)
+%
+% SYNOPSIS       linkhelp
+%
+% INPUT          none (gets data from the current object, which is the object with the callback manrelink (text made by changeframe))
+%
+% OUTPUT         none
+%
+% DEPENDENCIES   linkhelp uses {nothing}
+%                                  
+%                linkhelp is used by { manrelink (as a callback) }
+%
+% Colin Glass, Feb 04   
 %this is the callback of the linkbutton (manrelink). It adds the current
 %callback cell to the linklist, so that it can later be selected for
 %linkage

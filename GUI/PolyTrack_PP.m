@@ -393,8 +393,19 @@ function GUI_app_autopostpro_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_app_autopostpro_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 
-weedout(hObject);
+saveallpath = handles.postpro.saveallpath;
+minimaltrack = handles.postpro.minimaltrack;
+maxdistpostpro = handles.postpro.maxdistpostpro ;
+minusframes = handles.postpro.minusframes;
+plusframes = handles.postpro.plusframes;
+
+MPM = handles.MPM;
+MPM = weedout(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,saveallpath);
+handles.MPM = MPM
+
+guidata(hObject, handles);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

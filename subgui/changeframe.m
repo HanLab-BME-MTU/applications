@@ -1,4 +1,19 @@
 function changeframe
+% changeframe finds the rigth image and coordinates. These it shows in the
+%             figure opened by manuelpostpro
+%
+% SYNOPSIS       changeframe
+%
+% INPUT          none (it gets values from the slider created in
+%                      manuelpostpro)
+%
+% OUTPUT         none
+%
+% DEPENDENCIES   changeframe uses {nothing}
+%                                  
+%                changeframe is used by { manuelpostpro (as a callback) }
+%
+% Colin Glass, Feb 04         
 
 
 %this is the callback of the slider, created in manualpostpro
@@ -11,6 +26,8 @@ function changeframe
 %if the user clicks on the number of the cell, manrelink comes into play.
 %Look there for more
 
+
+
 %delete the figure currently shown in the figure
 delete(gca)
 
@@ -19,6 +36,8 @@ pictureslideH=findall(0,'Tag','pictureslide');
 hObject=findall(0,'Tag','GUI_pp_jobbrowse_pb');
 piccount =findall(0,'Style','text','Tag','picturecount');
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%fetch and extract values
 
 handles=guidata(hObject);
 
@@ -30,6 +49,7 @@ lastimage=handles.jobvalues.lastimage;
 increment=handles.jobvalues.increment;
 ma=handles.ma;
 ImageNamesList = handles.jobvalues.imagenameslist;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %get the current value of the slider, so that we know which frame the user
