@@ -55,10 +55,11 @@ function GUI_postprocess_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % Create a default postprocessing structure that defines all the fields used in the program
-defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, ...
+defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, 'maxsearch', 81, ...
                         'dragtail', 6, 'dragtailfile', 'trackMovie', 'figureSize', [], ...
-                        'multFrameVelocity', 1, 'binsize', 13, 'mmpixel', 0.639, 'timeperframe', 300, ...
-                        'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81, 'windowsize', 5);
+                        'multframevelocity', 1, 'binsize', 13, 'mmpixel', 0.639, 'timeperframe', 300, ...
+                        'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81, 'windowsize', 5, ...
+                        'maxcellcelldist', 81);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -75,12 +76,64 @@ if isempty (home)
 end
 
 % Set settings path
-handles.savesettingpath = [home filesep 'fileInfoPP.mat'];
-set (handles.GUI_savesettingpath_ed, 'String', handles.savesettingpath);
+handles.guiData.savesettingpath = [home filesep 'fileInfoPP.mat'];
+set (handles.GUI_savesettingpath_ed, 'String', handles.guiData.savesettingpath);
+
+% Set save path
+handles.guiData.savedatapath = [home filesep 'ptData'];
+set (handles.GUI_fm_saveallpath_ed, 'String', handles.guiData.savedatapath);
 
 % Set movie file path
-handles.dragtailfile = [home filesep 'trackMovie'];
-set (handles.GUI_fm_filename_ed, 'String', handles.dragtailfile);
+handles.guiData.dragtailfile = [home filesep 'trackMovie'];
+set (handles.GUI_fm_filename_ed, 'String', handles.guiData.dragtailfile);
+
+% Set binsize
+handles.guiData.binsize = defaultPostPro.binsize;
+set (handles.GUI_ad_binsize_ed, 'String', handles.guiData.binsize);
+
+% Set relink distance
+handles.guiData.relinkdistance = defaultPostPro.maxsearch;
+set (handles.GUI_app_relinkdist_ed, 'String', handles.guiData.relinkdistance);
+
+% Set plusframes
+handles.guiData.plusframes = defaultPostPro.plusframes;
+set (handles.GUI_app_plusframes_ed, 'String', handles.guiData.plusframes);
+
+% Set minusframes
+handles.guiData.minusframes = defaultPostPro.minusframes;
+set (handles.GUI_app_minusframes_ed, 'String', handles.guiData.minusframes);
+
+% Set trackdistance
+handles.guiData.mintrackdistance = defaultPostPro.minimaltrack;
+set (handles.GUI_app_minimaltrack_ed, 'String', handles.guiData.mintrackdistance);
+
+% Set dragtail length
+handles.guiData.dragtaillength = defaultPostPro.dragtail;
+set (handles.GUI_fm_tracksince_ed, 'String', handles.guiData.dragtaillength);
+
+% Set the movie type
+set (handles.GUI_movietype_avi_rb, 'Value', 1);
+set (handles.GUI_movietype_qt_rb, 'Value', 0);
+
+% Set window size
+handles.guiData.windowsize = defaultPostPro.windowsize;
+set (handles.GUI_windowsize_ed, 'String', handles.guiData.windowsize);
+
+% Set multiple frame velocity
+handles.guiData.multframevelocity = defaultPostPro.multframevelocity;
+set (handles.multFrameVelocity, 'String', handles.guiData.multframevelocity);
+
+% Set neighbourhood traj length
+handles.guiData.nrtrajectories = defaultPostPro.nrtrajectories;
+set (handles.nr_traj_ed, 'String', handles.guiData.nrtrajectories);
+
+% Set neighbourhood max dist
+handles.guiData.maxneighbourdist = defaultPostPro.neighbourdist;
+set (handles.neighbour_dist_ed, 'String', handles.guiData.maxneighbourdist);
+
+% Set max cellcell dist
+handles.guiData.maxcellcelldist = defaultPostPro.maxcellcelldist;
+set (handles.GUI_maxcellcelldist_ed, 'String', handles.guiData.maxcellcelldist);
 
 % Set the color of the gui
 set(hObject,'Color',[0,0,0.627]);
@@ -1000,10 +1053,12 @@ end
 radioButtons = getRadiobuttonValues (handles);
 
 % Start the function that will create the dragtail movie
-ptMovieMaker (radioButtons, handles);
+result = ptMovieMaker (radioButtons, handles);
 
 % Show a message telling the user we've finished
-msgbox ('Finished generating movie. Press OK to continue...');
+if result == 0
+   msgbox ('Finished generating movie. Press OK to continue...');
+end
    
 % Update handles structure
 guidata (hObject, handles);
@@ -1335,10 +1390,10 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.postpro.multFrameVelocity = 1;
-    set (handles.multFrameVelocity, 'String', handles.postpro.multFrameVelocity);
+    set (handles.multframevelocity, 'String', handles.postpro.multframevelocity);
     return
 else
-    handles.postpro.multFrameVelocity = val;
+    handles.postpro.multframevelocity = val;
 end
 
 % Update handles structure
@@ -1898,6 +1953,29 @@ function GUI_filelist_lb_Callback(hObject, eventdata, handles)
 
 % Hints: contents = get(hObject,'String') returns GUI_filelist_lb contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from GUI_filelist_lb
+handles = guidata(hObject);
+
+% Get the job list and the current job
+fileList = get(handles.GUI_filelist_lb,'String');
+filesSelected = get(handles.GUI_filelist_lb,'Value');
+
+% GUI values can only be updated for 1 job at the time, so in case we have
+% more, do nothing
+if length(filesSelected) > 1
+    return;
+end
+
+% Default plot and movie ranges will be made similar to the frame range
+handles.guiData.plotfirstimg = handles.jobData(filesSelected).firstimg;
+handles.guiData.plotlastimg = handles.jobData(filesSelected).lastimg;
+handles.guiData.moviefirstimg = handles.jobData(filesSelected).firstimg;
+handles.guiData.movielastimg = handles.jobData(filesSelected).lastimg;
+
+% Set values on the GUI
+ptSetPostproGUIValues (handles, filesSelected);
+
+% Update GUI handles struct
+guidata (hObject,handles);
 
 %--------------------------------------------------------------------
 
@@ -1961,20 +2039,37 @@ else
    end
        
    % Show the values for this job on the GUI
-   %filePath = fileList(end);
    filePath = fileList{end};
-    
-   % Retrieve the postpro structure for the selected job. Since this is the
-   % first time it is loaded we want the default values
-   [handles, result] = ptRetrievePostproDataDefault (filePath, handles);
-   
+
+   % Get the values from the job
+   [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, 'all');
+
    % Check the result value (0 is good)
-   if result == 1
-       return;
+   if result > 0
+      h=errordlg ('An error occured while fetching data for the selected files (ptRetrieveJobData).');
+      uiwait (h); 
+      return;
    end
+   
+   % Get the values from the GUI
+   [guiData] = ptRetrieveGUIData (handles);
+   
+   % Default plot and movie ranges will be made similar to the frame range
+   guiData.plotfirstimg = jobData(length(fileList)).firstimg;
+   guiData.plotlastimg = jobData(length(fileList)).lastimg;
+   guiData.moviefirstimg = jobData(length(fileList)).firstimg;
+   guiData.movielastimg = jobData(length(fileList)).lastimg;
+
+   % Assign all values to the handles struct
+   handles.allMPM = allMPM;
+   handles.allCellProps = allCellProps;
+   handles.allClusterProps = allClusterProps;
+   handles.allFrameProps = allFrameProps;
+   handles.jobData = jobData;
+   handles.guiData = guiData;
 
    % Set values on the GUI
-   ptSetPostproGUIValues (handles);
+   ptSetPostproGUIValues (handles, length(fileList));
 
    % Go to the selected directory: user comfort for next file
    cd (directory);
@@ -2010,9 +2105,16 @@ if ~iscell(fileList)
     return;
 end
 
-% Remove files (multiple files are possible)
+% Remove files from the list (multiple files are possible) and empty the
+% data from the cell structs
 if length(fileNumber) > 0
    fileList(fileNumber) = [];
+   
+   handles.jobData(fileNumber) = [];
+   handles.allMPM(fileNumber) = [];
+   handles.allCellProps(fileNumber) = [];
+   handles.allClusterProps(fileNumber) = [];
+   handles.allFrameProps(fileNumber) = [];
 end
 
 % Put a standard string in the file list window if there are no files to show
@@ -2080,15 +2182,34 @@ else
       
       % Set the GUI values for the first one
       filePath = fileList{1};
-      [handles, result] = ptRetrievePostproDataDefault (filePath, handles);
+   
+      % Get the values from the job
+      [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, 'all');
 
       % Check the result value (0 is good)
       if result == 1
          return;
       end
 
+      % Get the values from the GUI
+      [guiData] = ptRetrieveGUIData (handles);
+   
+      % Default plot and movie ranges will be made similar to the frame range
+      guiData.plotfirstimg = jobData(length(fileList)).firstimg;
+      guiData.plotlastimg = jobData(length(fileList)).lastimg;
+      guiData.moviefirstimg = jobData(length(fileList)).firstimg;
+      guiData.movielastimg = jobData(length(fileList)).lastimg;
+
+      % Assign all values to the handles struct
+      handles.allMPM = allMPM;
+      handles.allCellProps = allCellProps;
+      handles.allClusterProps = allClusterProps;
+      handles.allFrameProps = allFrameProps;
+      handles.jobData = jobData;
+      handles.guiData = guiData;
+
       % Set values on the GUI
-      ptSetPostproGUIValues (handles);
+      ptSetPostproGUIValues (handles, length(fileList));
       
       % Set the savepath as well
       set (handles.GUI_fm_saveallpath_ed, 'String', savePath);
@@ -2219,7 +2340,7 @@ filesSelected = get(handles.GUI_filelist_lb,'Value');
 [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, filesSelected);
 
 % Check the result value (0 is good)
-if result == 1
+if result > 0
    h=errordlg ('An error occured while fetching data for the selected files (ptRetrieveJobData).');
    uiwait (h); 
    return;
@@ -2238,13 +2359,13 @@ for jobCount = 1 : length(allMPM)
     
     % Make sure the start and end frames fit to the selected plot frames
     if (guiData.plotfirstimg < startFrame)
-        errorStr = ['The selected plot start frame (' num2str(guiData.plotfirstimg) ') does not fit with the job start frame (' num2str(startFrame) ') ...'];
+        errorStr = ['The selected plot start frame (' num2str(guiData.plotfirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
         h = errordlg(errorStr);
         uiwait(h);          % Wait until the user presses the OK button  
         return;
     end
     if (guiData.plotlastimg > endFrame)
-        errorStr = ['The selected plot end frame (' num2str(guiData.plotlastimg) ') does not fit with the job end frame (' num2str(endFrame) ') ...'];
+        errorStr = ['The selected plot end frame (' num2str(guiData.plotlastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
         h = errordlg(errorStr);
         uiwait(h);          % Wait until the user presses the OK button  
         return;
@@ -2264,13 +2385,13 @@ for jobCount = 1 : length(allMPM)
     
     % Make sure the start and end frames fit to the selected movie frames
     if (guiData.moviefirstimg < startFrame)
-        errorStr = ['The selected movie start frame (' num2str(guiData.moviefirstimg) ') does not fit with the job start frame (' num2str(startFrame) ') ...'];
+        errorStr = ['The selected movie start frame (' num2str(guiData.moviefirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
         h = errordlg(errorStr);
         uiwait(h);          % Wait until the user presses the OK button  
         return;
     end
     if (guiData.movielastimg > endFrame)
-        errorStr = ['The selected movie end frame (' num2str(guiData.movielastimg) ') does not fit with the job end frame (' num2str(endFrame) ') ...'];
+        errorStr = ['The selected movie end frame (' num2str(guiData.movielastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
         h = errordlg(errorStr);
         uiwait(h);          % Wait until the user presses the OK button  
         return;
@@ -2286,13 +2407,13 @@ for jobCount = 1 : length(allMPM)
         prevPixelLength = pixelLength;
     else
         if frameInterval ~= prevFrameInterval
-            errorStr = ['The frame rate is different between the ' length(allMPM) ' movies.'];
+            errorStr = ['The frame rate is different between the ' num2str(length(allMPM)) ' movies.'];
             h = errordlg(errorStr);
             uiwait(h);          % Wait until the user presses the OK button  
             return;
         end
         if pixelLength ~= prevPixelLength
-            errorStr = ['The pixel length is different between the ' length(allMPM) ' movies.'];
+            errorStr = ['The pixel length is different between the ' num2str(length(allMPM)) ' movies.'];
             h = errordlg(errorStr);
             uiwait(h);          % Wait until the user presses the OK button  
             return;
@@ -2309,13 +2430,13 @@ for jobCount = 1 : length(allMPM)
         prevColSize = colSize;
     else
         if rowSize ~= prevRowSize
-            errorStr = ['The frame row size is different between the ' length(allMPM) ' movies.'];
+            errorStr = ['The image row size is different between the ' num2str(length(allMPM)) ' movies.'];
             h = errordlg(errorStr);
             uiwait(h);          % Wait until the user presses the OK button  
             return;
         end
         if colSize ~= prevColSize
-            errorStr = ['The frame column size is different between the ' length(allMPM) ' movies.'];
+            errorStr = ['The image column size is different between the ' num2str(length(allMPM)) ' movies.'];
             h = errordlg(errorStr);
             uiwait(h);          % Wait until the user presses the OK button  
             return;
@@ -2487,6 +2608,37 @@ if ispc
     set(hObject,'BackgroundColor','white');
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+%--------------------------------------------------------------------
+
+function GUI_maxcellcelldist_ed_Callback(hObject, eventdata, handles)
+handles = guidata (hObject);
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get (hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.guiData.maxcellcelldist = handles.defaultPostPro.maxcellcelldist;
+    set (handles.GUI_maxcellcelldist_ed, 'String', num2str(handles.guiData.maxcellcelldist));  % Revert the value back
+    return
+else
+    handles.guiData.maxcellcelldist = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+%--------------------------------------------------------------------
+
+function GUI_maxcellcelldist_ed_CreateFcn(hObject, eventdata, handles)
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
 
 

@@ -34,7 +34,7 @@ guiData = handles.guiData;
 plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
 binSize = guiData.binsize;
-maxDistance = guiData.maxdistance;
+maxDistance = guiData.maxcellcelldist;
 
 % Determine the movie with the most frames
 [longestMPM, mpmLength] = ptMaxMPMLength (MPM);

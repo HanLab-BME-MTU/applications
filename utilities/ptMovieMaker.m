@@ -1,4 +1,4 @@
-function ptMovieMaker (radioButtons, handles) 
+function result = ptMovieMaker (radioButtons, handles) 
 % ptMovieMaker makes movies from the information gathered in the analysis
 %
 % SYNOPSIS       ptMovieMaker (ptPostpro, MPM)
@@ -8,7 +8,7 @@ function ptMovieMaker (radioButtons, handles)
 %                MPM       : matrix containing the cell tracks
 %                savePath : directory where the movie will be saved.
 %
-% OUTPUT         no function output: movies are saved to file specified by the user         
+% OUTPUT         result : result of the operation (0 = ok, 1 = error)         
 %
 % DEPENDENCIES   ptMovieMaker uses { nothing }
 %                                  
@@ -23,8 +23,12 @@ function ptMovieMaker (radioButtons, handles)
 % Andre Kerstens        Aug 04          Bug fix: forgot to close fig after addframe QT movie
 % Andre Kerstens        Sep 04          Rewrite for the new data structures
 
+% Initialize result
+result = 0;
+
 % Make sure only 1 MPM is present
-if length(allMPM) > 1
+if length(handles.allMPM) > 1
+    result = 1;
     return;
 end
 
@@ -69,7 +73,8 @@ dragTailLength = guiData.dragtaillength;
 if (movieEndFrame - movieStartFrame + 1) < dragTailLength
    h = errordlg (['Not enough frames for dragtail length of ' num2str(dragTailLength) '. Exiting...']);
    uiwait (h);
-   return
+   result = 1;
+   return;
 end
 
 % What is the name of the movie
@@ -77,7 +82,7 @@ dragTailFileName = guiData.dragtailfile;
 
 % We need prior images for the dragTail movie
 if ceil ((movieStartFrame - startFrame + 1) / increment) < dragTailLength + 1
-    movieStartFrame = ((dragTailLength + 1) * increment) + 1;
+    movieStartFrame = ((dragTailLength + 1) * increment) + movieStartFrame;
 end
 
 % Get save path
@@ -99,7 +104,8 @@ elseif movieType == 2   % QT
 else
    h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
    uiwait (h);
-   return
+   result = 1;
+   return;
 end
 
 % Initialize MPM counter
@@ -189,7 +195,8 @@ for movieStep = movieStartFrame : increment : movieEndFrame
    else
       h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
       uiwait (h);
-      return
+      result = 1;
+      return;
    end    
 end   % for movieStep
 
@@ -201,7 +208,8 @@ elseif movieType == 2   % AVI
 else
    h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
    uiwait (h);
-   return
+   result = 1;
+   return;
 end
 
 % Let the user know we have finished

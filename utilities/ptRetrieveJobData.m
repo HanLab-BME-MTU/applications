@@ -28,11 +28,34 @@ function [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result]
 result = 0;
 filePath = cell(1);
 
+% filesSelected could be 'all' or a number. Find out first
+if ischar(filesSelected)
+   if num2str(filesSelected) == 'all'
+      fileNumbers = length(fileList);
+      method = 1;
+   else
+      result = 1;  % Error
+      allMPM = [];
+      allCellProps = [];
+      allClusterProps = [];
+      allFrameProps = [];
+      jobData = [];
+      return;
+   end
+elseif isnumeric(filesSelected)
+   fileNumbers = length(filesSelected);
+   method = 2;
+end
+
 % Get the data for all jobs
-for iCount = 1 : length (filesSelected)
+for iCount = 1 : fileNumbers
     
     % Get the filepath
-    filePath(iCount) = cellstr(fileList{filesSelected(iCount)});
+    if method == 1
+       filePath(iCount) = cellstr(fileList{iCount});
+    elseif method == 2
+       filePath(iCount) = cellstr(fileList{filesSelected(iCount)});
+    end
 
     % Load MPM matrix and assign to handles struct
     load (char(filePath(iCount)));
@@ -43,7 +66,7 @@ for iCount = 1 : length (filesSelected)
 
     % Get the directory part of the string
     [pathString, filename, ext, version] = fileparts (char(filePath(iCount)));
-
+    
     % Load the jobvalues file
     [allJobvalues{iCount}, result] = ptReadValues (pathString, 'jobvalues.mat', 'jobvalues');
     if result == 1  % error
@@ -67,10 +90,32 @@ for iCount = 1 : length (filesSelected)
     if result == 1  % error
        return
     end
-    
+
     % Set imagefile path and name
-    jobData(iCount).imagefilepath = allJobvalues{iCount}.imagedirectory;
-    jobData(iCount).imagename = allJobvalues{iCount}.imagename;
+    %jobData(iCount).imagefilepath = allJobvalues{iCount}.imagedirectory;
+    %jobData(iCount).imagename = allJobvalues{iCount}.imagename;
+    %jobData(iCount).imagefilepath = [pathString filesep '..'];
+    jobData(iCount).imagename = allJobvalues{iCount}.imagename;    
+        
+    % Determine image file path from MPM path
+    currentPath = pwd;
+    cd (pathString); cd ('..');
+    if isempty(dir(jobData(iCount).imagename))
+       % No images found: let's try one more directory down
+       cd ('..');
+    end
+    if isempty(dir(jobData(iCount).imagename))
+       % Still no images found
+       result = 1;
+       allMPM = [];
+       allCellProps = [];
+       allClusterProps = [];
+       allFrameProps = [];
+       jobData = [];
+       return;
+    end
+    jobData(iCount).imagefilepath = pwd;
+    cd (currentPath);   % Reset the original path
     
     % Store the size of the image
     info = imfinfo ([jobData(iCount).imagefilepath filesep jobData(iCount).imagename]);

@@ -51,7 +51,7 @@ generateClusteredCellsHist = ptPostpro.clusteredcellshist;
 
 % In case the velocity over multiple frames is needed the following
 % variable should be used
-multipleFrameVelocity = ptPostpro.multFrameVelocity;
+multipleFrameVelocity = ptPostpro.multframevelocity;
 
 % Initialize the displacement and x-axis matrix
 %displacementAll = zeros (size (MPM,1), numberOfFrames);

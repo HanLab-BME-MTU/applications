@@ -49,7 +49,7 @@ guiData = handles.guiData;
 plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
 binSize = guiData.binsize;
-multipleFrameVelocity = guiData.multFrameVelocity;
+multipleFrameVelocity = guiData.multframevelocity;
 
 % Determine the movie with the most frames
 [longestMPM, mpmLength] = ptMaxMPMLength (MPM);
@@ -205,21 +205,21 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       %save (filename, 'histVelClusteredCells');
             
       % Store max velocity of the frame
-      if ~isempty(velocity)
+      if ~isempty(allVelocity)
          maxVelocity(iCount) = max (allVelocity);
       else
          maxVelocity(iCount) = 0;
       end
       
       % Store max single cell velocity of the frame
-      if ~isempty(singleCellVelocity)
+      if ~isempty(allSingleCellVelocity)
          maxSingleCellVelocity(iCount) = max (allSingleCellVelocity);
       else
          maxSingleCellVelocity(iCount) = 0;
       end
       
       % Store max clustered cell velocity of the frame
-      if ~isempty(clusteredCellVelocity)
+      if ~isempty(allClusteredCellVelocity)
          maxClusteredCellVelocity(iCount) = max (allClusteredCellVelocity);
       else
          maxClusteredCellVelocity(iCount) = 0;
@@ -233,35 +233,35 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       end
 
       % Calculate the variance of the velocity for single cells
-      if ~isempty (singleCellVelocity)
+      if ~isempty (allSingleCellVelocity)
          varSingleCellVelocity(iCount) = var (allSingleCellVelocity);
       else
          varSingleCellVelocity(iCount) = 0;
       end
 
       % Calculate the variance of the velocity for clustered cells
-      if ~isempty (clusteredCellVelocity)
+      if ~isempty (allClusteredCellVelocity)
          varClusteredCellVelocity(iCount) = var (allClusteredCellVelocity);
       else
          varClusteredCellVelocity(iCount) = 0;
       end
 
       % From this the average displacement for all cells can be calculated
-      if length (displacement) > 0
+      if length (allDisplacement) > 0
          avgDisplacement(iCount) = sum (allDisplacement) / length (allDisplacement);
       else
          avgDisplacement(iCount) = 0;
       end
 
       % From this the average displacement for single cells can be calculated
-      if length (singleCellsDisplacement) > 0
+      if length (allSingleCellsDisplacement) > 0
          avgSingleDisplacement(iCount) = sum (allSingleCellsDisplacement) / length (allSingleCellsDisplacement);
       else
          avgSingleDisplacement(iCount) = 0;
       end
 
       % From this the average displacement for clustered cells can be calculated
-      if length (clusteredCellsDisplacement) > 0
+      if length (allClusteredCellsDisplacement) > 0
          avgClusteredDisplacement(iCount) = sum (allClusteredCellsDisplacement) / length (allClusteredCellsDisplacement);
       else
          avgClusteredDisplacement(iCount) = 0;
@@ -277,14 +277,14 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       end
 
       % From this the average velocity for single cells can be calculated
-      if length (singleCellsDisplacement) > 0
+      if length (allSingleCellsDisplacement) > 0
          avgSingleVelocity (iCount) = sum (allSingleCellVelocity) / length (allSingleCellVelocity);
       else
          avgSingleVelocity (iCount) = 0;
       end
 
       % From this the average velocity for clustered cells can be calculated
-      if length (clusteredCellsDisplacement) > 0
+      if length (allClusteredCellsDisplacement) > 0
          avgClusteredVelocity(iCount) = sum (allClusteredCellVelocity) / length (allClusteredCellVelocity);
       else
          avgClusteredVelocity(iCount) = 0;
@@ -292,7 +292,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
 
       % Calculate how many cells (of all cells) have a velocity higher or
       % equal than the average single cell velocity (in percent)
-      if length (velocity) ~= 0
+      if length (allVelocity) ~= 0
          velAllCellsHigherThanAvgSingleCells(iCount) = (length (find (allVelocity >= avgSingleVelocity(iCount))) / ...
                                                         length (allVelocity)) * 100.0;
       else

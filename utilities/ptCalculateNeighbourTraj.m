@@ -31,7 +31,7 @@ guiData = handles.guiData;
 % Get values from the gui (these are used for all jobs)
 plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
-maxDistance = guiData.maxdistance;
+maxDistance = guiData.maxneighbourdist;
 
 % Determine the movie with the most frames
 [longestMPM, mpmLength] = ptMaxMPMLength (MPM);

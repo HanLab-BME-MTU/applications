@@ -176,8 +176,8 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    
    for jobCount = 1 : length(frameProps)
       % Calculate the area and convex-hull-area in um^2
-      tmpConvexHullData{jobCount}(1) = frameProps{jobCount}(1, 1, frameCount) * (pixelLength^2);
-      tmpConvexHullData{jobCount}(2) = frameProps{jobCount}(1, 2, frameCount) * (pixelLength^2);
+      tmpConvexHullData{jobCount}(1) = frameProps{jobCount}(1, 1, iCount) * (pixelLength^2);
+      tmpConvexHullData{jobCount}(2) = frameProps{jobCount}(1, 2, iCount) * (pixelLength^2);
    
       % Calculate the ratio area / convex-hull-area in percent
       tmpConvexHullData{jobCount}(3) = (tmpConvexHullData{jobCount}(1) / tmpConvexHullData{jobCount}(2)) * 100;
@@ -187,9 +187,9 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    catConvexHullData = cat(1, tmpConvexHullData{:});
    
    % Average data
-   convexHullData(1,frameCount) = sum(catConvexHullData(:,1)) / length(frameProps);
-   convexHullData(2,frameCount) = sum(catConvexHullData(:,2)) / length(frameProps);
-   convexHullData(3,frameCount) = sum(catConvexHullData(:,3)) / length(frameProps);
+   convexHullData(1,iCount) = sum(catConvexHullData(:,1)) / length(frameProps);
+   convexHullData(2,iCount) = sum(catConvexHullData(:,2)) / length(frameProps);
+   convexHullData(3,iCount) = sum(catConvexHullData(:,3)) / length(frameProps);
 end 
 
 % Put the convex hull data in a matrix

@@ -34,7 +34,7 @@ guiData = handles.guiData;
 plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
 binSize = guiData.binsize;
-multipleFrameVelocity = guiData.multFrameVelocity;
+multipleFrameVelocity = guiData.multframevelocity;
 maxDistance = guiData.maxneighbourdist;
 
 % Determine the movie with the most frames
