@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 07-May-2004 18:46:22
+% Last Modified by GUIDE v2.5 14-May-2004 14:14:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1316,3 +1316,9 @@ function menuToolsConvert_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
+% --- Executes on button press in pushOptimCal.
+function pushOptimCal_Callback(hObject, eventdata, handles)
+% hObject    handle to pushOptimCal (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+fsmCenterAlphaBetaGui;

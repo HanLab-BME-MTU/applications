@@ -59,7 +59,7 @@ sigmaG = 1.0;
 
 for i = 1 : optimImageStackLen
     img = double(imread(char(imageNameList(i)), 'tiff')) / (2 ^ bitDepth-1);  % Normalization
-    imGStack(:, :, i) = gauss2d(img, sigmaG);
+    imGStack(:, :, i) = Gauss2D(img, sigmaG);
     imMinStack(:, :, i) = locmin2d(imGStack(:, :, i), [3,3]);
     imMaxStack(:, :, i) = locmax2d(imGStack(:, :, i), [5,5]);
     cStack(i).cands = fsmPrepBkgEstimDelauNoEnh(size(imGStack(:, :, i)), imMaxStack(:, :, i), imMinStack(:, :, i)); % Finds 3 loc min around each loc max
