@@ -754,6 +754,8 @@ if isdir(projDir)
         elseif ispc == 1
             if ~isempty(win_imgDrive)
                 imgDirList = win_imgDirList;
+                
+                noProblem = 1;
             elseif ~isempty(unix_imgDrive)
                 tryAgain = 'Yes';
                 prompt = sprintf(['Last project is set up in Unix platform. \n' ...
