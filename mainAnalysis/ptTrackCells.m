@@ -253,7 +253,8 @@ else		% lastImaNum > firstImaNum
          unmatchedNewCells = find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0);
 	     unmatchedNewCellsCoord = matchedCells (unmatchedNewCells,3:4);
 	 
-         % Initialize the matrix for previous coordinates that we find
+         % Initialize the matrix for previous coordinates that we find,
+         % these will be added to M later on
          foundPrevCells (1,:) = [0 0 0 0]; 
          
          % Start the template matching process if needed
@@ -302,20 +303,7 @@ else		% lastImaNum > firstImaNum
          M (1 : size (emptyM, 1), 1 : size (emptyM, 2), loopCount - 1) = emptyM;
          M (1 : size (matchedCells, 1), 1 : size (matchedCells, 2), loopCount - 1) = matchedCells;
 
-         % In case we found previous coords by template, we should modify a
-         % zero row in the previous M entry as well, otherwise we will get
-         % problems linking tracks later on 
-         if loopCount > 2
-            foundPrevCells (1,:) = [];
-            zeroInd = find (M (:,1,loopCount - 2) == 0 & M (:,2,loopCount - 2) == 0 & ...
-                            M (:,3,loopCount - 2) == 0 & M (:,4,loopCount - 2) == 0);
-            M (zeroInd(1:size (foundPrevCells,1)), 1 : size (foundPrevCells, 2), loopCount - 2) = foundPrevCells;
-         end
-         
-         % Empty foundPrevCells for the next loop run
-         clear foundPrevCells;
-         
-         % There's one more thing to do: see if we can match lost cells in previous frames to any of
+         % See if we can match lost cells in previous frames to any of
          % the new ones found in this frame. Allow this for a max history of timeStepSlide frames.
          newCells = matchedCells (find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0 & ...
                                         matchedCells (:,3) ~= 0 & matchedCells (:,4) ~= 0),3:4);
@@ -339,6 +327,23 @@ else		% lastImaNum > firstImaNum
                end
             end     % ~isempty (lostCellsToMatch)
          end    % ~isempty (lostCells) & ~isempty (newCells)
+         
+         % In case we found previous coords by template, we should modify a
+         % zero row in the previous M entry as well, otherwise we will get
+         % problems linking tracks later on 
+         if loopCount > 2
+            foundPrevCells (1,:) = [];
+            if ~isempty (foundPrevCells)
+               zeroInd = find (M (:,1,loopCount - 2) == 0 & M (:,2,loopCount - 2) == 0 & ...
+                               M (:,3,loopCount - 2) == 0 & M (:,4,loopCount - 2) == 0);
+               M (zeroInd(1:size (foundPrevCells,1)), 1 : size (foundPrevCells, 2), loopCount - 2) = ...
+                  foundPrevCells;
+            end
+         end
+         
+         % Empty foundPrevCells for the next loop run
+         clear foundPrevCells; clear zeroInd;      
+
       end   % if imageCount > startFrame
 
       % Calculate single cell and cluster properties and generate binary and labeled images

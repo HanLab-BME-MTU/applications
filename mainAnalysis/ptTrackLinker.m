@@ -27,6 +27,7 @@ function [MPM, M] = ptTrackLinker (M)
 % Aaron Ponti           2002            Initial release for FSM
 % Colin Glass           Feb 04          Adapted Aaron's function for use in Polytrack
 % Andre Kerstens        Mar 04          Cleaned up source; made output viable for command line
+% Andre Kerstens        Jun 04          Implemented bugfix for bug #83
 
 % Let the user know we're starting to link
 fprintf (1, '\n     ptTrackLinker: Starting track linkage process...\n');
@@ -43,6 +44,7 @@ for counter1 = 1 : size(M,3) - 1
    fprintf (1, '%d ', counter);
    
    % Read speckle positions at time point (=img) counter1
+   clear start; clear stop;
    start = (M(:, 3:4, counter1));
    stop = (M(:, 1:2, counter1+1));
    
@@ -64,7 +66,7 @@ for counter1 = 1 : size(M,3) - 1
                         
          % No matching found -> error!
          if isempty(y)
-             fprintf (1, '\nptTrackLinker: Time points %d to %d.\n', counter1, counter1 + 1);
+             fprintf (1, '\nptTrackLinker: Time points %d to %d.\n', counter1, counter1+1);
              warning ('ptTrackLinker: Warning! Correspondance not found.');
              tM(counter2,:) = 0; % -1;   
          end
@@ -98,17 +100,31 @@ for counter1 = 1 : size(M,3) - 1
             %=M(end,3:4,counter1);
             %tM(end+1,:)=0;
             %tM(end,3:4)=M(counter2,3:4,counter1+1);
-            tM(counter2,3:4)=M(counter2,3:4,counter1+1);
+            %tM(counter2,3:4)=M(counter2,3:4,counter1+1);
          end
-      end
+      end  % if start(counter2, 1) ~= 0
+      
+   end  % for counter2 = 1 : size(stop, 1)
+
+   % Look for M 1:2 entries that are 0, but where the 3:4 entries are
+   % non zero
+   [row, col] = find ((M(:,1,counter1+1) == 0 & M(:,2,counter1+1) == 0) & ...
+                      (M(:,3,counter1+1) ~= 0 & M(:,4,counter1+1) ~= 0));
+   if ~isempty (row)
+      % Find a zero entry in tM
+      zeroInd = find (tM (:,1) == 0 & tM (:,2) == 0 & tM (:,3) == 0 & tM (:,4) == 0);
+        
+      % Add the non-zero M-entries to tM
+      tM(zeroInd(1:size(row,1)), 3) = M(row,3,counter1+1);
+      tM(zeroInd(1:size(row,1)), 4) = M(row,4,counter1+1);
    end
-    
+   
    % Replace M with re-ordered one
    M(:,:,counter1+1) = tM;
     
    % Reset tM
    tM = zeros(size(tM));
-end
+end  % for counter1 = 1 : size(M,3) - 1
 
 MPM(:,1:2) =M(:,1:2,1);
 
