@@ -22,7 +22,7 @@ function varargout = PolyTrack(varargin)
 
 % Edit the above text to modify the response to help PolyTrack
 
-% Last Modified by GUIDE v2.5 25-Feb-2004 15:33:03
+% Last Modified by GUIDE v2.5 01-Mar-2004 14:40:17
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -78,7 +78,7 @@ set(hObject,'Color',[0,0,0.627]);
 guidata(hObject, handles);
 
 % UIWAIT makes GUI_start wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+% uiwait(handles.polyTrack_mainwindow);
 
 
 
@@ -1912,4 +1912,23 @@ guidata(hObject, handles);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+% --------------------------------------------------------------------
+function File_menu_Callback(hObject, eventdata, handles)
+% hObject    handle to File_menu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function exit_menuitem_Callback(hObject, eventdata, handles)
+% hObject    handle to Untitled_3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Destroy the GUI
+delete(handles.polyTrack_mainwindow);
+
 
