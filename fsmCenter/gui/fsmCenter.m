@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 02-Sep-2004 14:55:53
+% Last Modified by GUIDE v2.5 02-Sep-2004 17:10:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -157,6 +157,7 @@ projDir=get(handles.textCurrentProject,'String');
 [projDir,imageDir,subProjects]=projSetupGUI;
 if ~isempty(projDir)
     set(handles.textCurrentProject,'String',projDir);
+    set(handles.textCurrentImage,'String',imageDir);
 end
 % Add projDir, imageDir and subProjects to the userData of fsmCenter
 settings.projDir=projDir;
