@@ -82,7 +82,8 @@ if nargin == 2 | ~(strcmp(sw,'w')|strcmp(sw,'s'))
 elseif strcmp(sw,'s')
     %w = 1/sigma^2
     if any(weights == 0)
-        error('There is no perfect observation and hence no sigma==0!')
+        warning('WEIGHTEDSTATS:sigma==0','At least one sigma == 0; set to eps');
+	weights = max(weights,eps);
     end
     %assign weight 1 to the measurement with smallest error
     weights = (repmat(min(weights,[],1),numRows,1)./weights).^2; 
