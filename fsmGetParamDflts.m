@@ -54,7 +54,7 @@ fsmParam.prep.paramSpeckles=[3 0.01 1.06]; % Sets [order percentage] for 'higher
 fsmParam.prep.enhTriang=0;          % Delaunay triangulation can be made more stable by enhancing it 
 %                                    [ 0 : no | 1 : yes (slower)]
 % Auto polygon
-fsmParam.prep.autoPolygon=1;        % Automatic analisys of the image to extract cell boundaries  [ 0 : off, 1 : on ]
+fsmParam.prep.autoPolygon=0;        % Automatic analisys of the image to extract cell boundaries  [ 0 : off, 1 : on ]
 fsmParam.prep.gaussRatio=3.54;      % Gauss ratio
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
