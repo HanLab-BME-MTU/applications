@@ -1,9 +1,9 @@
-function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,vThresholds,...
+function [vThresholds,delay,tarParam,varCovMat,residuals,noiseSigma,fitSet,...
         aicV,errFlag] = tarModelIdent(traj,modelParam,method,tol)
 %TARMODELIDENT fits a TAR model, i.e. determines its segmentation, thresholds, delay parameter, AR orders and coefficients, to a time series which could have missing data points.
 %
-%SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,vThresholds,...
-%        aicV,errFlag] = tarModelIdent(traj,vThreshTest,delayTest,tarOrderTest,method,tol)
+%SYNOPSIS [vThresholds,delay,tarParam,varCovMat,residuals,noiseSigma,fitSet,...
+%        aicV,errFlag] = tarModelIdent(traj,modelParam,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainties).
 %                      Missing points should be indicated with NaN.
@@ -17,14 +17,14 @@ function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,vThresholds,...
 %                      Needed only when method 'iter' is used. If not
 %                      supplied, 0.001 is assumed. 
 %
-%OUTPUT tarParam     : Estimated parameters in each regime.
+%OUTPUT vThresholds  : Column vector of estimated thresholds, sorted in increasing order.
+%       delay        : Time lag (delay parameter) of value compared to vThresholds.
+%       tarParam     : Estimated parameters in each regime.
 %       varCovMat    : Variance-covariance matrix of estimated parameters.
 %       residuals    : Difference between measurements and model predictions.
 %       noiseSigma   : Estimated standard deviation of white noise in each regime.
 %       fitSet       : Set of points used for data fitting. Each column in 
 %                      matrix corresponds to a certain regime. 
-%       delay        : Time lag (delay parameter) of value compared to vThresholds.
-%       vThresholds  : Column vector of estimated thresholds, sorted in increasing order.
 %       aicV         : Value of Akaike's Information Criterion for the best model.
 %       errFlag      : 0 if function executes normally, 1 otherwise.
 %
@@ -38,13 +38,13 @@ errFlag = 0;
 if nargin < 2
     disp('--tarOrderThreshDelayCoef: Incorrect number of input arguments!');
     errFlag  = 1;
+    vThresholds = [];
+    delay = [];
     tarParam = [];
     varCovMat = [];
     residuals = [];
     noiseSigma = [];
     fitSet = [];
-    delay = [];
-    vThresholds = [];
     aicV = []
     return
 end
@@ -83,19 +83,19 @@ for i = 1:length(modelParam) %go over all suggested models
     delayTest1 = modelParam(i).delayTest;
     tarOrderTest1 = modelParam(i).tarOrderTest;
     
-    %estimate coeffients, residuals, delay parameter and thresholds
-    [tarParam1,varCovMat1,residuals1,noiseSigma1,fitSet1,delay1,vThresholds1,...
+    %estimate thresholds, delay parameter, coeffients and residuals
+    [vThresholds1,delay1,tarParam1,varCovMat1,residuals1,noiseSigma1,fitSet1,...
             aicV1,errFlag] = tarOrderThreshDelayCoef(traj,vThreshTest1,delayTest1,...
         tarOrderTest1,method,tol);
     if errFlag
         disp('--tarModelIdent: tarOrderThreshDelayCoef did not function properly!');
+        vThresholds = [];
+        delay = [];
         tarParam = [];
         varCovMat = [];
         residuals = [];
         noiseSigma = [];
         fitSet = [];
-        delay = [];
-        vThresholds = [];
         aicV = [];
         return
     end
@@ -103,13 +103,13 @@ for i = 1:length(modelParam) %go over all suggested models
     %compare current AIC to AIC in previous trials
     %if it is smaller, then update results
     if aicV1 < aicV
+        vThresholds = vThresholds1;
+        delay = delay1;
         tarParam = tarParam1;
         varCovMat = varCovMat1;
         residuals = residuals1;
         noiseSigma = noiseSigma1;
         fitSet = fitSet1;
-        delay = delay1;
-        vThresholds = vThresholds1;
         aicV = aicV1;
     end
     

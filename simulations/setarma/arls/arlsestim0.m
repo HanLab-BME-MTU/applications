@@ -1,7 +1,9 @@
-function [arParam,varCovMat,residuals,noiseSigma,errFlag] = arlsestim0(traj,arOrder,method,tol)
+function [arParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] =...
+    arlsestim0(traj,arOrder,method,tol)
 %ARLSESTIM0 fits an AR model to a trajectory (which could have missing data points) using least squares.
 %
-%SYNOPSIS [arParam,varCovMat,residuals,noiseSigma,errFlag] = arlsestim0(traj,arOrder,method,tol)
+%SYNOPSIS [arParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] =...
+%    arlsestim0(traj,arOrder,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainty).
 %                      Missing points should be indicated with NaN.
@@ -17,6 +19,7 @@ function [arParam,varCovMat,residuals,noiseSigma,errFlag] = arlsestim0(traj,arOr
 %       varCovMat    : Variance-covariance matrix of estimated parameters.
 %       residuals    : Difference between measurements and model predictions.
 %       noiseSigma   : Estimated standard deviation of white noise.
+%       fitSet       : Set of points used for data fitting.
 %       errFlag      : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, April 2004
@@ -138,3 +141,6 @@ residuals(fitSet) = residuals(fitSet).*traj(fitSet,2);
 
 %get standard deviation of white noise
 noiseSigma = std(residuals(fitSet));
+
+%add to the beginning of each column the number of data points in that regime
+fitSet = [fitLength; fitSet];

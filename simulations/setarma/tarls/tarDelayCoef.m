@@ -1,8 +1,8 @@
-function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDelayCoef(...
+function [delay,tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarDelayCoef(...
     traj,vThresholds,delayTest,tarOrder,method,tol)
 %TARDELAYCOEF fits a TAR model of specified segmentation, AR orders and thresholds (i.e. determines its delay parameter and coefficients) to a time series which could have missing data points.
 %
-%SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDelayCoef(...
+%SYNOPSIS [delay,tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarDelayCoef(...
 %    traj,vThresholds,delayTest,tarOrder,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainties).
@@ -17,13 +17,13 @@ function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDel
 %                      Needed only when method 'iter' is used. If not
 %                      supplied, 0.001 is assumed. 
 %
-%OUTPUT tarParam     : Estimated parameters in each regime.
+%OUTPUT delay        : Time lag (delay parameter) of value compared to vThresholds.
+%       tarParam     : Estimated parameters in each regime.
 %       varCovMat    : Variance-covariance matrix of estimated parameters.
 %       residuals    : Difference between measurements and model predictions.
 %       noiseSigma   : Estimated standard deviation of white noise in each regime.
 %       fitSet       : Set of points used for data fitting. Each column in 
 %                      matrix corresponds to a certain regime. 
-%       delay        : Time lag (delay parameter) of value compared to vThresholds.
 %       errFlag      : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, April 2004
@@ -34,29 +34,33 @@ errFlag = 0;
 if nargin < 4
     disp('--tarDelayCoef: Incorrect number of input arguments!');
     errFlag  = 1;
+    delay = [];
     tarParam = [];
     varCovMat = [];
     residuals = [];
     noiseSigma = [];
     fitSet = [];
-    delay = [];
     return
 end
 
 %check input data
-dummy = size(delayTest,1);
-if dummy ~= 1
-    disp('--tarDelayCoef: "delayTest" must be a row vector!');
-    errFlag = 1;
+if ~isempty(delayTest)
+    dummy = size(delayTest,1);
+    if dummy ~= 1
+        disp('--tarDelayCoef: "delayTest" must be a row vector!');
+        errFlag = 1;
+    end
+else
+    delayTest = 1;
 end
 if errFlag
     disp('--tarDelayCoef: Please fix input data!');
+    delay = [];
     tarParam = [];
     varCovMat = [];
     residuals = [];
     noiseSigma = [];
     fitSet = [];
-    delay = [];
     return
 end
 
@@ -94,12 +98,12 @@ for delay1 = delayTest %go over all suggested delay parameters
         traj,vThresholds,delay1,tarOrder,method,tol);
     if errFlag
         disp('--tarDelayCoef: tarCoefEstim did not function properly!');
+        delay = [];
         tarParam = [];
         varCovMat = [];
         residuals = [];
         noiseSigma = [];
         fitSet = [];
-        delay = [];
         return
     end
     
@@ -109,12 +113,12 @@ for delay1 = delayTest %go over all suggested delay parameters
     %compare current sum over squared residuals to sum in previous delay parameter trial
     %if it is smaller, then update results
     if sumSqResid1 < sumSqResid
+        delay = delay1;
         tarParam = tarParam1;
         varCovMat = varCovMat1;
         residuals = residuals1;
         noiseSigma = noiseSigma1;
         fitSet = fitSet1;
-        delay = delay1;
         sumSqResid = sumSqResid1;
     end
     
