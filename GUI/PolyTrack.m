@@ -1475,10 +1475,13 @@ for jobNumber = 1 : nrOfJobs
       clear jobvalues;
    end
         
+   % Get value of 'saveintresults' radiobutton
+   saveFiles = get (handles.GUI_saveintresults_cb,'Value');
+   
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
    try
-      [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptTrackCells (handles.jobs(jobNumber), jobNumber);
+      [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptTrackCells (handles.jobs(jobNumber), jobNumber, saveFiles);
    catch    
       fprintf (1, '\nJob number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
   
@@ -2161,30 +2164,35 @@ function renameImageFilesToLower (pathDir)
 % lower case characters. Fix needed for metamorph.
 
 % Check that we got an input path
-if ~exist ('pathDir', 'var')
-    return
-end
+% if ~exist ('pathDir', 'var')
+%     return
+% end
+% 
+% % Get a directory listing of all files
+% dirlist=dir(pathDir);
+% dirlist=struct2cell(dirlist);
+% dirlist=dirlist(1,:);
+% 
+% % Make a temp file (needed to rename files to)
+% tmpFile = 'tmpAhGdjdS';
+% 
+% % Loop through the tif files and rename if necessary (renaming being moving
+% % the file in this case
+% for i=1:length(dirlist)
+%   fileName = char(dirlist{i});
+%   if ~strcmp(fileName(1), char('.'))
+%      newFile = lower(char(dirlist{i}));
+%      extension = lower(char(dirlist{i}(end-2:end))); 
+%      if ~strcmp(fileName,newFile) & ...
+%          (strcmp(extension,'tif') | strcmp(extension,'iff'))
+%         movefile([pathDir filesep fileName],[pathDir filesep tmpFile]);
+%         movefile([pathDir filesep tmpFile],[pathDir filesep newFile]);
+%      end
+%   end
+% end
 
-% Get a directory listing of all files
-dirlist=dir(pathDir);
-dirlist=struct2cell(dirlist);
-dirlist=dirlist(1,:);
+% --------------------------------------------------------------------
 
-% Make a temp file (needed to rename files to)
-tmpFile = 'tmpAhGdjdS';
+function GUI_saveintresults_cb_Callback(hObject, eventdata, handles)
 
-% Loop through the tif files and rename if necessary (renaming being moving
-% the file in this case
-for i=1:length(dirlist)
-  fileName = char(dirlist{i});
-  if ~strcmp(fileName(1), char('.'))
-     newFile = lower(char(dirlist{i}));
-     extension = lower(char(dirlist{i}(end-2:end))); 
-     if ~strcmp(fileName,newFile) & ...
-         (strcmp(extension,'tif') | strcmp(extension,'iff'))
-        movefile([pathDir filesep fileName],[pathDir filesep tmpFile]);
-        movefile([pathDir filesep tmpFile],[pathDir filesep newFile]);
-     end
-  end
-end
 

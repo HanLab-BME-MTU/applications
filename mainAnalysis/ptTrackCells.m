@@ -1,4 +1,4 @@
-function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptTrackCells (ptJob, jobNumber)
+function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptTrackCells (ptJob, jobNumber, saveIntResults)
 % ptTrackCells finds and links coordinates in a serie of phase contrast images 
 %
 % SYNOPSIS       [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumber)
@@ -516,22 +516,25 @@ else		% lastImaNum > firstImaNum
                 imwrite (clusterImage, [saveDirectory filesep 'body' filesep clusterFile '.tif']);
              end
 
-             % Do some processing on the segmented image first
-             if exist ('segmentedImage', 'var')
-                %save (segmentFile, 'segmentedImage');
-                procSegmImage = zeros (size (segmentedImage));
-                procSegmImage (find (segmentedImage == 2)) = 0.5; procSegmImage (find (segmentedImage == 3)) = 1;
-                imwrite (procSegmImage, [saveDirectory filesep 'body' filesep segmentFile '.tif']);
-             end
+              % Save intermediate results if needed    
+              if saveIntResults    
+                 % Do some processing on the segmented image first
+                 if exist ('segmentedImage', 'var')
+                    %save (segmentFile, 'segmentedImage');
+                    procSegmImage = zeros (size (segmentedImage));
+                    procSegmImage (find (segmentedImage == 2)) = 0.5; procSegmImage (find (segmentedImage == 3)) = 1;
+                    imwrite (procSegmImage, [saveDirectory filesep 'body' filesep segmentFile '.tif']);
+                 end
 
-             % Save the nuclei image
-             if exist ('imgNuclei', 'var')
-                imwrite (imgNuclei, [saveDirectory filesep 'body' filesep nucleiFile '.tif']);
+                 % Save the nuclei image
+                 if exist ('imgNuclei', 'var')
+                    imwrite (imgNuclei, [saveDirectory filesep 'body' filesep nucleiFile '.tif']);
+                 end
+             
+                 % Save coordinates in ascii file
+                 coordinatesFile = ['coordinates' indxStr];
+                 save ([saveDirectory filesep 'body' filesep coordinatesFile '.txt'], 'newCoord', '-ASCII');
              end
-
-             % Save coordinates in ascii file
-             coordinatesFile = ['coordinates' indxStr];
-             save ([saveDirectory filesep 'body' filesep coordinatesFile '.txt'], 'newCoord', '-ASCII');
           end   % if ~exist (saveDirector
 
           % Save the previous coordinates and image for the next run through the loop
