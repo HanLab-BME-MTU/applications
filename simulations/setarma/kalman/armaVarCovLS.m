@@ -79,7 +79,8 @@ for i = 1:length(trajectories)
             ./trajectories(i).traj(fitSet,2);
     end    
     for j = arOrder+1:sumOrder
-        prevPoints1(:,j) = wnVector(i).series(fitSet-j+arOrder);
+        prevPoints1(:,j) = wnVector(i).series(fitSet-j+arOrder)...
+            ./trajectories(i).traj(fitSet,2);
     end
     %put points from all trajectories together in 1 matrix
     prevPoints = [prevPoints; prevPoints1];

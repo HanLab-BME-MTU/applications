@@ -3,7 +3,7 @@ function neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,trajectories)
 %
 %SYNOPSIS neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,trajectories)
 %
-%INPUT  param       : Set of ARMA coefficients.
+%INPUT  param       : Set of partial ARMA coefficients.
 %       arOrder     : Order of autoregressive part of process.
 %       trajectories: Structure array containing trajectories to be modeled:
 %           .traj     : 2D array of measurements and their uncertainties.
@@ -30,8 +30,20 @@ if nargin ~= nargin('armaCoefKalmanObj')
 end
 
 %assign parameters
-arParam = param(1:arOrder);
-maParam = param(arOrder+1:end);
+arParamP = param(1:arOrder);
+maParamP = param(arOrder+1:end);
+
+%get AR and MA coefficients
+if ~isempty(arParamP)
+    [arParam,errFlag] = levinsonDurbinAR(arParamP);
+else
+    arParam = [];
+end
+if ~isempty(maParamP)
+    [maParam,errFlag] = levinsonDurbinMA(maParamP);
+else
+    maParam = [];
+end
 
 %go over all trajectories to get likelihood
 sum1 = 0;
@@ -47,6 +59,9 @@ for i = 1:length(trajectories)
     %using Kalman prediction and filtering
     [innovation,innovationVar,wnVector,errFlag] = ...
         armaKalmanInnov(trajectories(i).traj,arParam,maParam);
+    if errFlag
+        return
+    end
     
     %1st sum in Eq. 3.15
     sum1 = sum1 + sum(log(innovationVar(available)));
@@ -57,3 +72,8 @@ end
 
 %construct -2ln(likelihood)
 neg2LnLikelihood = sum1 + numAvail*log(sum2);
+
+% % %TOMLAB stuff
+% % % arOrder = prob.user.arOrder;
+% % % trajectories = prob.user.trajectories;
+

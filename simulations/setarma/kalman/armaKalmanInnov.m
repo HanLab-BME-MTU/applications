@@ -70,8 +70,9 @@ observationVec(1) = 1;
 
 %initialize state vector and its covariance matrix
 stateVecT_T = zeros(maxOrder,1); %Z(0|0)
-[stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,procErrCov,...
-    arOrder,maOrder,maxOrder); %P(0|0)
+% [stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,procErrCov,...
+%     arOrder,maOrder,maxOrder); %P(0|0)
+stateCovMatT_T = 1e4*ones(maxOrder);
 
 %initialize innovations vector, its covariance matrix and white noise vector
 innovation = NaN*ones(trajLength,1);
@@ -101,6 +102,12 @@ for timePoint = 1:trajLength
         innovation(timePoint) = traj(timePoint,1) - observableP; 
         %and its variance, V(t+1) (Eq. 3.6 & 3.10)
         innovationVar(timePoint) = stateCovMatT1_T(1,1) + traj(timePoint,2)^2;
+
+        if innovationVar(timePoint) < 0
+            disp('neg!');
+            errFlag = 1;
+            return
+        end
         
         %calculate delta
         delta = stateCovMatT1_T*observationVec'/innovationVar(timePoint); %delta(t+1), Eq. 3.5

@@ -1,15 +1,15 @@
 function [arParam,maParam,wnVariance,wnVector,aic,aicc,errFlag] = ...
-    armaCoefKalman(trajectories,arParam0,maParam0)
+    armaCoefKalman(trajectories,arParamP0,maParamP0)
 %ARMACOEFKALMAN fits an ARMA(p,q) model to a time series which could have missing data points using Kalman prediction and filtering.
 %
 %SYNOPSIS [arParam,maParam,wnVariance,wnVector,aic,aicc,errFlag] = ...
-%    armaCoefKalman(trajectories,arParam0,maParam0)
+%    armaCoefKalman(trajectories,arParamP0,maParamP0)
 %
 %INPUT  trajectories: Structure array containing trajectories to be modeled:
 %           .traj       : 2D array of measurements and their uncertainties.
 %                         Missing points should be indicated with NaN.
-%       arParam0    : Initial guess of autoregressive coefficients (row vector).
-%       maParam0    : Initial guess of moving average coefficients (row vector).
+%       arParamP0   : Initial guess of partial autoregressive coefficients (row vector).
+%       maParamP0   : Initial guess of partial moving average coefficients (row vector).
 %
 %OUTPUT arParam     : Estimated AR parameters.
 %       maParam     : Estimated MA parameters.
@@ -58,27 +58,25 @@ for i=1:length(trajectories);
         end
     end
 end
-[nRow,arOrder] = size(arParam0);
-if ~isempty(arParam0)
+[nRow,arOrder] = size(arParamP0);
+if ~isempty(arParamP0)
     if nRow ~= 1
-        disp('--armaCoefKalman: "arParam0" should be a row vector!');
+        disp('--armaCoefKalman: "arParamP0" should be a row vector!');
         errFlag = 1;
     end
-    r = abs(roots([-arParam0(end:-1:1) 1]));
-    if ~isempty(find(r<=1.00001))
-        disp('--armaCoefKalman: Initial AR part should be causal (i.e. all roots of AR polynomial should be greater than 1)!');
+    if ~isempty(find(abs(arParamP0)>=1))
+        disp('--armaCoefKalman: All entries in "arParamP0" should be smaller than 1 in magnitude!');
         errFlag = 1;
     end
 end
-[nRow,maOrder] = size(maParam0);
-if ~isempty(maParam0)
+[nRow,maOrder] = size(maParamP0);
+if ~isempty(maParamP0)
     if nRow ~= 1
-        disp('--armaCoefKalman: "maParam0" should be a row vector!');
+        disp('--armaCoefKalman: "maParamP0" should be a row vector!');
         errFlag = 1;
     end
-    r = abs(roots([maParam0(end:-1:1) 1]));
-    if ~isempty(find(r<=1.00001))
-        disp('--armaCoefKalman: Initial MA part should be invertible (i.e. all roots of MA polynomial should be greater than 1)!');
+    if ~isempty(find(abs(maParamP0)>=1))
+        disp('--armaCoefKalman: All entries in "maParamP0" should be smaller than 1 in magnitude!');
         errFlag = 1;
     end
 end
@@ -88,73 +86,116 @@ if errFlag
 end
 
 %initial values of parameters to be estimated
-param0 = [arParam0 maParam0];
+param0 = [arParamP0 maParamP0];
 
 %obtain number of available observations and their indices
-numAvail = 0;
 for i=1:length(trajectories)
     trajectories(i).available = find(~isnan(trajectories(i).traj(:,1)));
-    numAvail = numAvail + length(trajectories(i).available);
+    numAvail(i) = length(trajectories(i).available);
 end
+totAvail = sum(numAvail);
 
 %define optimization options.
-options = optimset('Display','off','maxIter',1e6,'maxFunEvals',1e6');
+options = optimset('Display','final','DiffMaxChange',1e-3,...
+    'DiffMinChange',1e-8,'TolFun',1e-4,'TolX',1e-4); 
 
 %minimize -2ln(likelihood) to get ARMA coefficients and variance of observational error
-[params,minFunc,exitFlag,output] = fmincon(@armaCoefKalmanObj,param0,[],[],[],[],...
-    [-50*ones(1,arOrder-1) -0.99 -50*ones(1,maOrder-1) -0.99],...
-    [50*ones(1,arOrder-1) 0.99 50*ones(1,maOrder-1) 0.99],...
-    @armaCoefKalmanConst,options,arOrder,trajectories);
+[params,fval,exitFlag] = fmincon(@armaCoefKalmanObj,param0,[],[],[],[],...
+    -0.99*ones(1,arOrder+maOrder),0.99*ones(1,arOrder+maOrder),...
+    [],options,arOrder,trajectories);
 
-%assign parameters obtained through minimization
-arParam = params(1:arOrder);
-maParam = params(arOrder+1:end);
+%if minimization was successful
+if exitFlag > 0
 
-%check for causality and invertibility of estimated model
-r = abs(roots([-arParam(end:-1:1) 1]));
-if ~isempty(find(r<=1.00001))
-    disp('--armaCoefKalman: Warning: Predicted model not causal!');
-end
-r = abs(roots([maParam(end:-1:1) 1]));
-if ~isempty(find(r<=1.00001))
-    disp('--armaCoefKalman: Warning: Predicted model not invertible!');
-end
+    %assign parameters obtained through minimization
+    arParamP = params(1:arOrder);
+    maParamP = params(arOrder+1:end);
 
-%obtain likelihood, white noise sequence and white noise variance
-sum1 = 0;
-sum2 = 0;
-for i = 1:length(trajectories)
+    %get AR and MA coefficients
+    if ~isempty(arParamP)
+        [arParam,errFlag] = levinsonDurbinAR(arParamP);
+    else
+        arParam = [];
+    end
+    if ~isempty(maParamP)
+        [maParam,errFlag] = levinsonDurbinMA(maParamP);
+    else
+        maParam = [];
+    end
+
+    %check for causality and invertibility of estimated model
+    r = abs(roots([-arParam(end:-1:1) 1]));
+    if ~isempty(find(r<=1.00001))
+        disp('--armaCoefKalman: Warning: Predicted model not causal!');
+    end
+    r = abs(roots([maParam(end:-1:1) 1]));
+    if ~isempty(find(r<=1.00001))
+        disp('--armaCoefKalman: Warning: Predicted model not invertible!');
+    end
+
+    %obtain likelihood, white noise sequence and white noise variance
+    sum1 = 0;
+    sum2 = 0;
+    for i = 1:length(trajectories)
+
+        %obtain available points in this trajectory
+        available = trajectories(i).available;
+
+        %get the innovations, their variances and the estimated white noise series
+        %using Kalman prediction and filtering
+        [innovation,innovationVar,wnVector(i).series,errFlag] = ...
+            armaKalmanInnov(trajectories(i).traj,arParam,maParam);
+        if errFlag
+            return
+        end
+
+        %calculate white noise variance of current trajectory
+        wnVarianceSamp(i) = mean(innovation(available).^2./innovationVar(available));
+
+        %1st sum in Eq. 3.15
+        sum1 = sum1 + sum(log(innovationVar(available)));
+        %2nd sum in Eq. 3.15
+        sum2 = sum2 + sum(innovation(available).^2./innovationVar(available));
+
+    end %(for i = 1:length(trajectories))
+
+    %calculate -2ln(likelihood)
+    neg2LnLikelihood = sum1 + totAvail*log(sum2);
+
+    %calculate mean white noise variance of all trajectories
+    wnVariance = sum(numAvail.*wnVarianceSamp)/totAvail;
+
+    %get number of parameters estimated: arOrder AR coefficients, maOrder MA
+    %coefficients and white noise variance
+    numParam = arOrder + maOrder + 1;
+
+    %evaluate Akaike's Information Criterion
+    aic = neg2LnLikelihood + 2*numParam;
+
+    %evaluate the bias-corrected Akaike's Information Criterion
+    aicc = neg2LnLikelihood + 2*numParam*totAvail/(totAvail-numParam-1);
+
+    %put partial coefficients in 2nd row of coefficients matrix
+    arParam(2,:) = arParamP;
+    maParam(2,:) = maParamP;
+
+else %if minimization was not successful
     
-    %obtain available points in this trajectory
-    available = trajectories(i).available;
+    errFlag = 1;
     
-    %get the innovations, their variances and the estimated white noise series
-    %using Kalman prediction and filtering
-    [innovation,innovationVar,wnVector(i).series,errFlag] = ...
-        armaKalmanInnov(trajectories(i).traj,arParam,maParam);
+end %(if exitFlag > 0)
     
-    %calculate white noise variance of current trajectory
-    wnVarianceSamp(i) = mean(innovation(available).^2./innovationVar(available));
-    
-    %1st sum in Eq. 3.15
-    sum1 = sum1 + sum(log(innovationVar(available)));
-    %2nd sum in Eq. 3.15
-    sum2 = sum2 + sum(innovation(available).^2./innovationVar(available));
-    
-end
+% % %TOMLAB stuff
+% % % prob = glcAssign('armaCoefKalmanObj',-0.99*ones(1,arOrder+maOrder),...
+% % %     0.99*ones(1,arOrder+maOrder),'minNegLik',[],[],[],[],[],[],param0);
+% % % prob.user.arOrder = arOrder;
+% % % prob.user.trajectories = trajectories;
+% % % prob.PriLevOpt = 15;
+% % % prob.optParam.MaxFunc = 3000;
+% % % prob.optParam.MaxIter = 3000;
+% % % result = tomRun('glbFast',prob,0,2);
+% % % result2 = tomRun('conSolve',prob,0,2);
+% % % params = result.x_k(:,1)';
+% % % params2 = result.x_k(:,1)';
 
-%calculate -2ln(likelihood) 
-neg2LnLikelihood = sum1 + numAvail*log(sum2);
 
-%calculate mean white noise variance of all trajectories
-wnVariance = mean(wnVarianceSamp);
-
-%get number of parameters estimated: arOrder AR coefficients, maOrder MA
-%coefficients and white noise variance
-numParam = arOrder + maOrder + 1;
-
-%evaluate Akaike's Information Criterion
-aic = neg2LnLikelihood + 2*numParam;
-
-%evaluate the bias-corrected Akaike's Information Criterion
-aicc = neg2LnLikelihood + 2*numParam*numAvail/(numAvail-numParam-1);

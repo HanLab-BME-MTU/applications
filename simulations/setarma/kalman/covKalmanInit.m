@@ -65,8 +65,13 @@ correlations = lhsMat\rhsVec;
 if maOrder > arOrder
     correlations = [correlations; zeros(maOrder-arOrder,1)];
     for i = arOrder+2:maOrder+1
-        correlations(i) = arParam*correlations(i-1:-1:i-arOrder) ...
-            + maParam(i-1:maOrder)*procErrCov(1:maOrder+2-i);
+        if ~isempty(arParam)
+            correlations(i) = arParam*correlations(i-1:-1:i-arOrder);
+        end
+        if ~isempty(maParam)
+            correlations(i) = correlations(i) + maParam(i-1:maOrder)...
+                *procErrCov(1:maOrder+2-i);
+        end
     end
 end
 
