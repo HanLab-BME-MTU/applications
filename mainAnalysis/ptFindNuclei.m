@@ -1,21 +1,21 @@
-function [coord, imgNucloiArea] = ptFindNucloiTrack (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
-% ptFindNucloiTrack detects dark areas and tries to fit cells into them
+function [coord, imgNucloiArea] = ptFindNuclei (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
+% ptFindNuclei detects dark areas and tries to fit cells into them
 %
-% SYNOPSIS       [coord, imgNucloiArea] = ptFindNucloiTrack (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
+% SYNOPSIS       [coord, imgNucloiArea] = ptFindNuclei (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
 %
 % INPUT          inputImage    : either original image or segmented image (depends on method)
 %                nucloiLevel   : level used for minima detection
 %                nucloiMinSize : minimal size for nuclei
 %                nucloiMaxSize : maximal size for nuclei
 %                method        : 1 or 2. Says if clustering or image segmentation has been applied 
-%                                (changes what ptFindNucloiTrack actually does)
+%                                (changes what ptFindNuclei actually does)
 %
 % OUTPUT         coord         : coordinates found
 %                imgNucloiArea : binary image showing the areas of nuclei
 %
-% DEPENDENCIES   ptFindNucloiTrack uses { nothing }
+% DEPENDENCIES   ptFindNuclei uses { nothing }
 %                                  
-%                ptFindNucloiTrack is used by { ptTrackCells
+%                ptFindNuclei is used by { ptTrackCells
 %                                               ptInitializeJob } 
 %
 % Revision History
@@ -34,7 +34,7 @@ elseif method == 2      % Segmentation
    imgNucloiArea = imextendedmin (inputImage, nucloiLevel);
     
 else
-   fprintf (1, 'ptFindNucloiTrack: invalid method. Please use method 1 or 2.\n');
+   fprintf (1, 'ptFindNuclei: invalid method. Please use method 1 or 2.\n');
 end 
 
 % Label the image

@@ -1767,12 +1767,11 @@ for jobNumber = 1 : nrOfJobs
         
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
-   try
-      %ptTrackCells (hObject,jobNumber);
+   %try
       ptTrackCells (handles.jobs(jobNumber), jobNumber);
-   catch    
-     fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
-   end
+   %catch    
+   %  fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
+   %end
    
    % Final message for the user to mark the end
    fprintf (1, 'Tracking finished...\n');
@@ -2507,7 +2506,7 @@ handles = guidata(hObject);
 jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
+if exist ('handles.jobs(jobNumber).savedirectory')
    cd (handles.jobs(jobNumber).savedirectory)
    jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')

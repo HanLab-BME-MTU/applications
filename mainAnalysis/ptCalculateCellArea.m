@@ -57,14 +57,14 @@ elseif method == 2        % Segmentation (which uses a normal image)
    % Here we have to do a bit more since we're starting from a normal image
    % First we find the background by filtering out all the smaller 
    % objects (smaller than a disk with radius 35)
-   background = imopen (inputImage, strel ('disk', bodyDiskSize));
+   %background = imopen (inputImage, strel ('disk', bodyDiskSize));
 
    % Then we subtract the background from the original image
-   I2 = imsubtract (inputImage,background); 
+   %I2 = imsubtract (inputImage,background); 
 
    % Normalize all the intensities to the range (0..1) ; stretchlim finds the maximum
    % intensities of the image which is needed as an input to imadjust
-   I3 = imadjust (I2, stretchlim(I2), [0 1]);
+   %I3 = imadjust (I2, stretchlim(I2), [0 1]);
 
    % Find a global image threshold (between 0 and 1) using Otsu's method
    imgThreshold = graythresh (I3);

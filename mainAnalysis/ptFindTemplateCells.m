@@ -1,7 +1,7 @@
-function [newCoord, maxCorrelation] = ptFindTemplateTracks (currentCoord, currentImage, newImage, backgroundLevel, oldCellTemplateMarker, newCell, newCellTemplate, newCellTemplateMarker, percentBackground, templateSize, searchAreaSize)
-% ptFindTemplateTracks finds cells in a subsequent frame using template matching (correlation)
+function [newCoord, maxCorrelation] = ptFindTemplateCells (currentCoord, currentImage, newImage, backgroundLevel, oldCellTemplateMarker, newCell, newCellTemplate, newCellTemplateMarker, percentBackground, templateSize, searchAreaSize)
+% ptFindTemplateCells finds cells in a subsequent frame using template matching (correlation)
 %
-% SYNOPSIS       [newCoord,maxCorrelation] = ptFindTemplateTracks (currentCoord, currentImage, newImage, backgroundLevel, 
+% SYNOPSIS       [newCoord,maxCorrelation] = ptFindTemplateCells (currentCoord, currentImage, newImage, backgroundLevel, 
 %                                            oldCellTemplateMarker, newCell, newCellTemplate, newCellTemplateMarker, 
 %                                            percentBackground, templateSize, searchAreaSize)
 %
@@ -21,9 +21,9 @@ function [newCoord, maxCorrelation] = ptFindTemplateTracks (currentCoord, curren
 % OUTPUT         newCoord       : found coordinates
 %                maxCorrelation : maximum correlation
 %
-% DEPENDENCIES   ptFindTemplateTracks uses { nothing }
+% DEPENDENCIES   ptFindTemplateCells uses { nothing }
 %                                  
-%                ptFindTemplateTracks is used by { ptTrackCells }
+%                ptFindTemplateCells is used by { ptTrackCells }
 %                                   
 % Revision History
 % Name                  Date            Comment

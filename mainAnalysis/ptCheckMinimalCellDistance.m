@@ -24,14 +24,14 @@ function coord1 = ptCheckMinimalCellDistance (coordnuc, altercoor, minDistCellCe
 count = 1;
 while count < length (coordnuc)
        paff = [];
-       paff = min(sqrt((coordnuc(count+1:end, 1) - coordnuc(count, 1)).^2 + (coordnuc(count+1:end, 2) - ...
-       coordnuc(count, 2)).^2));
+       paff = min (sqrt ((coordnuc(count+1:end, 1) - coordnuc(count, 1)).^2 + ...
+                 (coordnuc(count+1:end, 2) - coordnuc(count, 2)).^2));
        
        if paff < minDistCellCell
                coordnuc(count,:) = [];
                count = count - 1;
        end
-       count=count+1;
+       count = count + 1;
 end
 clear count;    
 clear paff;
@@ -41,11 +41,12 @@ clear paff;
 count=1;
 while count < length(altercoor)
        paffalt=[];
-       paffalt= min(sqrt((altercoor(count+1:end,1)-altercoor(count,1)).^2 + (altercoor(count+1:end,2)-altercoor(count,2)).^2));
+       paffalt= min (sqrt ((altercoor(count+1:end,1)-altercoor(count,1)).^2 + ...
+                     (altercoor(count+1:end,2)-altercoor(count,2)).^2));
 
        if paffalt < minDistCellCell
-               altercoor(count,:)=[];
-               count=count-1;
+               altercoor(count,:) = [];
+               count = count - 1;
        end
        count=count+1;
 end
@@ -54,31 +55,32 @@ clear count;
 
 
 %ensure minimal distance between dark, nasty-looking cells and
-%third eyes (look above(findnucloitrack,ptFindHalos))
-namesnumbers=[0,0];
+%third eyes (look above (ptFindNuclei,ptFindHalos))
+namesnumbers = [0,0];
 if isempty(altercoor) == 0
-    for h=1:size(altercoor,1)
-            uff=[];
+    for h= 1 : size(altercoor,1)
+            uff = [];
              
-            uff= min(sqrt((coordnuc(:,1)-altercoor(h,1)).^2+(coordnuc(:,2)-altercoor(h,2)).^2));
+            uff = min (sqrt ((coordnuc(:,1) - altercoor(h,1)).^2 + ...
+                     (coordnuc(:,2) - altercoor(h,2)).^2));
             %note that here the minimal distance is larger than
             %between two cells found by the same routine,
             %because... ahhhmmm... just to make sure
-            if uff  >  (1.5*minDistCellCell)
-                  namesnumbers(end+1,1)=altercoor(h,1);
-                  namesnumbers(end,2)=altercoor(h,2);
+            if uff  >  (1.5 * minDistCellCell)
+                  namesnumbers(end+1,1) = altercoor(h,1);
+                  namesnumbers(end,2) = altercoor(h,2);
             end
      end
-     namesnumbers(1,:)=[];
+     namesnumbers(1,:) = [];
      
      if isempty(namesnumbers) == 0
-            coord1=cat(1,coordnuc,namesnumbers);
+            coord1 = cat(1, coordnuc, namesnumbers);
      else
-            coord1=coordnuc;
+            coord1 = coordnuc;
      end
          
 else
-      coord1=coordnuc;
+      coord1 = coordnuc;
 end
 clear altercoor;    
 clear namesnumbers;   

@@ -13,7 +13,7 @@ function [newCoord] = ptInitializeJob (ptJob, jobNumber)
 % DEPENDENCIES   ptInitializeJob uses { imClusterSeg
 %				        ptTrackLinker
 %				        ptCheckMinimalCellDistance
-%				        ptFindNucloiTrack
+%				        ptFindNuclei
 %				        ptUserCellProcessing
 %				        ptFindHalos }
 %                                  
@@ -123,7 +123,7 @@ else
    end
 
    % Find areas that are really dark and match cells into them
-   [coordNuc, regmax] = ptFindNucloiTrack (inputImage, levDiffFirst, minSizeNuc, maxSizeNuc, method);
+   [coordNuc, regmax] = ptFindNuclei (inputImage, levDiffFirst, minSizeNuc, maxSizeNuc, method);
 
    % Find cells that look like round, big spots of pure light. We do this because sometimes
    % the pictures are of poor quality and display huge halos around certain cells
