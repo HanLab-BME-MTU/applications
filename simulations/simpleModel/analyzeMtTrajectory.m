@@ -1,8 +1,8 @@
-function [errFlag,dataStats] = analyzeMtTrajectory(model,modelParam,...
+function [dataStats,errFlag] = analyzeMtTrajectory(model,modelParam,...
     initialState,runInfo,saveTraj,saveStats)
 %ANALYZEMTTRAJECTORY statistically analyzes trajectories of microtubules
 %
-%SYNOPSIS [errFlag,dataStats] = analyzeMtTrajectory(model,modelParam,...
+%SYNOPSIS [dataStats,errFlag] = analyzeMtTrajectory(model,modelParam,...
 %   initialState,runInfo,saveTraj,saveToFile)
 %
 %INPUT  model        : model of interest. 1 - mtDynInstability,
@@ -169,66 +169,89 @@ for bigIter = 1:maxNumSim
     %Use the average value of the position and its standard deviation in 
     %an appropriate interval (aveInterval) around the instance as the 
     %position and error at that instance.
-    [mtLengthAve,mtLengthSD,errFlag] = averageMtTraj(mtLength(:,bigIter),...
-        simTimeStep,expTimeStep,aveInterval);
+    [mtLengthAve(:,bigIter),mtLengthSD(:,bigIter),errFlag] = averageMtTraj(...
+        mtLength(:,bigIter),simTimeStep,expTimeStep,aveInterval);
     if errFlag
         return;
     end
-    
-    %write data in correct format for calcMTDynamics
-    [inputDataEntry,errFlag] = getAnaDat(mtLengthAve,mtLengthSD,bigIter,...
-        expTimeStep,aveInterval);
-    inputData(bigIter) = inputDataEntry;
 end
 
-%analyze trajectories using experimental sampling rate and appropriate averaging interval
-varargout = calcMTDynamics(inputData,0,0,0,[],analyzeOpt);
-
-%%%%%%%%%%%%%%%%%%%%
-%%THIS SECTION MUST BE FIXED TO ACCOMODATE ALL CASES!!!%%
-
-%save analysis results in dataStats and shift trajectory back to what it
-%was before the correction
+%write data in correct format for statistical analysis
+trajLength = length(mtLengthAve(:,1));
 for bigIter = 1:maxNumSim
-    dataStats(bigIter) = varargout(bigIter).statistics;
-    if minminLength(bigIter) ~= 0
-        dataStats(bigIter).distanceMean(1) = dataStats(bigIter).distanceMean(1)...
-            + 1.1*minminLength(bigIter);
-        dataStats(bigIter).minDistance(1) = dataStats(bigIter).minDistance(1)...
-            + 1.1*minminLength(bigIter);
-        dataStats(bigIter).minDistanceM5(1) = dataStats(bigIter).minDistanceM5(1)...
-            + 1.1*minminLength(bigIter);
-        dataStats(bigIter).maxDistance(1) = dataStats(bigIter).maxDistance(1)...
-            + 1.1*minminLength(bigIter);
-        dataStats(bigIter).maxDistanceM5(1) = dataStats(bigIter).maxDistanceM5(1)...
-            + 1.1*minminLength(bigIter);
-    end
+    data(bigIter).distance = [mtLengthAve(:,bigIter) mtLengthSD(:,bigIter)]; %distance + std
+    data(bigIter).time = [[0:trajLength-1]'*expTimeStep zeros(trajLength,1)]; %time + std
+    data(bigIter).timePoints = [1:trajLength]'; %time point number
+    data(bigIter).info.tags = {'spb1','cen1'}; %tag labels
 end
 
-%do the same for the combined analysis of all trajectories
-% minLengthAll = min(minminLength);
-% dataStats(maxNumSim+1) = varargout(end).statistics;
-% if minLengthAll ~= 0
-%     dataStats(maxNumSim+1).distanceMean(1) = dataStats(maxNumSim+1).distanceMean(1)...
-%         + 1.1*minLengthAll;
-%     dataStats(maxNumSim+1).minDistance(1) = dataStats(maxNumSim+1).minDistance(1)...
-%         + 1.1*minLengthAll;
-%     dataStats(maxNumSim+1).minDistanceM5(1) = dataStats(maxNumSim+1).minDistanceM5(1)...
-%         + 1.1*minLengthAll;
-%     dataStats(maxNumSim+1).maxDistance(1) = dataStats(maxNumSim+1).maxDistance(1)...
-%         + 1.1*minLengthAll;
-%     dataStats(maxNumSim+1).maxDistanceM5(1) = dataStats(maxNumSim+1).maxDistanceM5(1)...
-%         + 1.1*minLengthAll;
+%additional input variables for statistical analysis function
+ioOpt.verbose = 2; %display graphs
+ioOpt.saveTxt = 1;
+ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat0.txt'; %save results in file
+ioOpt.expOrSim = 's'; %specify that it is simulation data
+
+%perform Jonas' statistical analysis and get restults in dataStats
+dataStats = trajectoryAnalysis(data,ioOpt);
+
+
+
+
+% OLD STUFF WHICH I MIGHT REMOVE!
+%    
+% %write data in correct format for calcMTDynamics
+% [inputDataEntry,errFlag] = getAnaDat(mtLengthAve,mtLengthSD,bigIter,...
+%     expTimeStep,aveInterval);
+% inputData(bigIter) = inputDataEntry;
+% 
+% %analyze trajectories using experimental sampling rate and appropriate averaging interval
+% varargout = calcMTDynamics(inputData,0,0,0,[],analyzeOpt);
+% 
+% %%%%%%%%%%%%%%%%%%%%
+% %%THIS SECTION MUST BE FIXED TO ACCOMODATE ALL CASES!!!%%
+% 
+% %save analysis results in dataStats and shift trajectory back to what it
+% %was before the correction
+% for bigIter = 1:maxNumSim
+%     dataStats(bigIter) = varargout(bigIter).statistics;
+%     if minminLength(bigIter) ~= 0
+%         dataStats(bigIter).distanceMean(1) = dataStats(bigIter).distanceMean(1)...
+%             + 1.1*minminLength(bigIter);
+%         dataStats(bigIter).minDistance(1) = dataStats(bigIter).minDistance(1)...
+%             + 1.1*minminLength(bigIter);
+%         dataStats(bigIter).minDistanceM5(1) = dataStats(bigIter).minDistanceM5(1)...
+%             + 1.1*minminLength(bigIter);
+%         dataStats(bigIter).maxDistance(1) = dataStats(bigIter).maxDistance(1)...
+%             + 1.1*minminLength(bigIter);
+%         dataStats(bigIter).maxDistanceM5(1) = dataStats(bigIter).maxDistanceM5(1)...
+%             + 1.1*minminLength(bigIter);
+%     end
 % end
-
-%%%%%%%%%%%%%%%%%%%
-
-%save data if user wants to
-if saveStats.saveOrNot
-    if isempty(saveStats.fileName)
-        save(['dataStats-',nowString],'dataStats'); %save in file
-    else
-        save(saveStats.fileName,'dataStats'); %save in file (directory specified through name)
-    end
-end
-
+% 
+% %do the same for the combined analysis of all trajectories
+% % minLengthAll = min(minminLength);
+% % dataStats(maxNumSim+1) = varargout(end).statistics;
+% % if minLengthAll ~= 0
+% %     dataStats(maxNumSim+1).distanceMean(1) = dataStats(maxNumSim+1).distanceMean(1)...
+% %         + 1.1*minLengthAll;
+% %     dataStats(maxNumSim+1).minDistance(1) = dataStats(maxNumSim+1).minDistance(1)...
+% %         + 1.1*minLengthAll;
+% %     dataStats(maxNumSim+1).minDistanceM5(1) = dataStats(maxNumSim+1).minDistanceM5(1)...
+% %         + 1.1*minLengthAll;
+% %     dataStats(maxNumSim+1).maxDistance(1) = dataStats(maxNumSim+1).maxDistance(1)...
+% %         + 1.1*minLengthAll;
+% %     dataStats(maxNumSim+1).maxDistanceM5(1) = dataStats(maxNumSim+1).maxDistanceM5(1)...
+% %         + 1.1*minLengthAll;
+% % end
+% 
+% %%%%%%%%%%%%%%%%%%%
+% 
+% %save data if user wants to
+% if saveStats.saveOrNot
+%     if isempty(saveStats.fileName)
+%         save(['dataStats-',nowString],'dataStats'); %save in file
+%     else
+%         save(saveStats.fileName,'dataStats'); %save in file (directory specified through name)
+%     end
+% end
+% 
