@@ -45,21 +45,21 @@ load ('velocityVariance');
 
 % Generate a plot with both average velocity and variance of single cells and 
 % cells within clusters in one figure
-h_fig = figure;
-subplot (2,1,1); plot (averageClusterDisplacement), title ('Average velocity of cells within clusters');
-xlabel ('Frames');
-ylabel ('displacement per frame (in pixel)');
-ymax = max (averageClusterDisplacement);
-axis ([startFrame stopFrame 0 ymax]);
-subplot (2,1,2); plot (averageSingleDisplacement), title('Average velocity of single cells');
-xlabel ('Frames');
-ylabel ('displacement per frame (in pixel)');
-ymax = max(averageSingleDisplacement);
-axis ([startFrame stopFrame 0 ymax]);
+% h_fig = figure;
+% subplot (2,1,1); plot (averageClusterDisplacement), title ('Average velocity of cells within clusters');
+% xlabel ('Frames');
+% ylabel ('displacement per frame (in pixel)');
+% ymax = max (averageClusterDisplacement);
+% axis ([startFrame stopFrame 0 ymax]);
+% subplot (2,1,2); plot (averageSingleDisplacement), title('Average velocity of single cells');
+% xlabel ('Frames');
+% ylabel ('displacement per frame (in pixel)');
+% ymax = max(averageSingleDisplacement);
+% axis ([startFrame stopFrame 0 ymax]);
 
-hgsave (h_fig, [saveAllPath filesep 'velocitySingleCluster.fig']);
-print (h_fig, [saveAllPath filesep 'velocitySingleCluster.eps'], '-depsc2', '-tiff');
-print (h_fig, [saveAllPath filesep 'velocitySingleCluster.tif'], '-dtiff');
+% hgsave (h_fig, [saveAllPath filesep 'velocitySingleCluster.fig']);
+% print (h_fig, [saveAllPath filesep 'velocitySingleCluster.eps'], '-depsc2', '-tiff');
+% print (h_fig, [saveAllPath filesep 'velocitySingleCluster.tif'], '-dtiff');
 
 % average the average velocity of cells
 winWidth = 25;
@@ -70,14 +70,15 @@ velocityVarianceFiltered = filtfilt (window ./ sum (window), 1, velocityVariance
 
 % Calculate start, end and cutover values for the average velocity (start
 % and end are averaged over 20 values)
-avgDispStart = sum (averageDisplacement(1:20)) / 20;
-avgDispEnd = sum (averageDisplacement(end-20:end)) / 20;
+avgDispStart = sum (averageDisplacementFiltered(1:20)) / 20;
+avgDispEnd = sum (averageDisplacementFiltered(end-20:end)) / 20;
 avgDispCutover = (abs (avgDispEnd - avgDispStart) / 2) + min ([avgDispStart avgDispEnd]);
-avgDispValues = [avgDispStart avgDispEnd avgDispCutover];
+avgDispCutoverFrame = find (abs(averageDisplacementFiltered - avgDispCutover) == min (abs (percentageSingleFiltered - percSingleCutover)));
+avgDispValues = [avgDispStart avgDispEnd avgDispCutover avgDispCutoverFrame];
 
 % Prepare vector that holds single and cluster cell numbers measured
 % against thresholds
-thresholdedCells = zeros(numberOfFrames,4);
+thresholdedCells = zeros(numberOfFrames-1,4);
 
 for iFrame = startFrame : (stopFrame - 1)    
    % Now we'll calculate single and cluster cell numbers via another method
@@ -98,7 +99,8 @@ thresholdedCellsFiltered = filtfilt (window ./ sum (window), 1, thresholdedCells
 
 % Generate a plot with both average velocity and variance of cells in one figure
 h_fig = figure;
-subplot (2,1,1); plot (averageDisplacement), title('Average velocity of cells');
+%subplot (2,1,1); plot (averageDisplacement), title('Average velocity of cells');
+plot (averageDisplacement), title('Average velocity of cells');
 hold on;
 plot (averageDisplacementFiltered, 'r');
 xlabel ('Frames');
@@ -106,18 +108,18 @@ ylabel ('displacement per frame (in pixel)');
 ymax = max(averageDisplacement);
 axis ([startFrame stopFrame 0 ymax]);
 hold off;
-subplot (2,1,2); plot (velocityVariance), title('Variance of avarage velocity of cells');
-hold on;
-plot (velocityVarianceFiltered, 'r');
-xlabel ('Frames');
-ylabel ('variance');
-ymax = max(velocityVariance);
-axis ([startFrame stopFrame 0 ymax]);
-hold off;
+% subplot (2,1,2); plot (velocityVariance), title('Variance of avarage velocity of cells');
+% hold on;
+% plot (velocityVarianceFiltered, 'r');
+% xlabel ('Frames');
+% ylabel ('variance');
+% ymax = max(velocityVariance);
+% axis ([startFrame stopFrame 0 ymax]);
+% hold off;
 
-hgsave (h_fig, [saveAllPath filesep 'velocityVariance.fig']);
-print (h_fig, [saveAllPath filesep 'velocityVariance.eps'], '-depsc2', '-tiff');
-print (h_fig, [saveAllPath filesep 'velocityVariance.tif'], '-dtiff');
+% hgsave (h_fig, [saveAllPath filesep 'velocityVariance.fig']);
+% print (h_fig, [saveAllPath filesep 'velocityVariance.eps'], '-depsc2', '-tiff');
+% print (h_fig, [saveAllPath filesep 'velocityVariance.tif'], '-dtiff');
 
 % average the percentage of single cells
 winWidth = 25;
@@ -127,15 +129,16 @@ percentageSingleFiltered = filtfilt (window ./ sum (window), 1, percentageSingle
 
 % Calculate start, end and cutover values for percentage single cells (start and end are averaged over
 % 20 values)
-percSingleStart = sum (percentageSingle(1:20)) / 20;
-percSingleEnd = sum (percentageSingle(end-20:end)) / 20;
+percSingleStart = sum (percentageSingleFiltered(1:20)) / 20;
+percSingleEnd = sum (percentageSingleFiltered(end-20:end)) / 20;
 percSingleCutover = (abs (percSingleEnd - percSingleStart) / 2) + min ([percSingleStart percSingleEnd]);
-percSingleValues = [percSingleStart percSingleEnd percSingleCutover];
+percSingleCutoverFrame = find (abs(percentageSingleFiltered - percSingleCutover) == min (abs (percentageSingleFiltered - percSingleCutover)));
+percSingleValues = [percSingleStart percSingleEnd percSingleCutover percSingleCutoverFrame];
 
 % Plot the percentage of single cells calculated by colin's method
 h_fig=figure,title(handles.jobvalues.imagename);
 ymax=max(percentageSingle);
-subplot(1,1,1); plot(percentageSingle), title('Percentage of single cells (red - filtered, blue - non-filtered)');
+subplot(1,1,1); plot(percentageSingle), title('Percentage of single cells (colins method)');
 hold on;
 plot(percentageSingleFiltered, 'r');
 xlabel('Frames');
@@ -147,24 +150,29 @@ hgsave(h_fig,[saveAllPath filesep 'percentSingle.fig']);
 print(h_fig, [saveAllPath filesep 'percentSingle.eps'],'-depsc2','-tiff');
 print(h_fig, [saveAllPath filesep 'percentSingle.tif'],'-dtiff');
 	
-% Plot all the cells in all the frames against their velocities
+% Plot all the cells in all the frames against their velocities and put the
+% filtered average velocity there as well
 transposedDisplacement = displacement';
 h_fig = figure;
-plot (transposedDisplacement,'rx'), title('Velocity of cells');
+plot (transposedDisplacement,'rx'), title('Velocity of cells (black line shows average velocity)');
+hold on;
+plot (averageDisplacementFiltered, 'k');
 xlabel ('Frames');
 ylabel ('displacement per frame (in pixel)');
-
-% Plot number of single cells
-h_fig = figure;
-ymax=max(thresholdedCells(:,1));
-subplot (2,1,1); plot (thresholdedCells(:,1),'g'), title('Number of single cells');
-hold on;
-plot (thresholdedCellsFiltered(:,1),'r');
-xlabel ('Frames');
-ylabel ('# cells');
 hold off;
+
+% Plot number of single cells with new method
+h_fig = figure;
+% ymax=max(thresholdedCells(:,1));
+% subplot (2,1,1); plot (thresholdedCells(:,1),'g'), title('Number of single cells');
+% hold on;
+% plot (thresholdedCellsFiltered(:,1),'r');
+% xlabel ('Frames');
+% ylabel ('# cells');
+% hold off;
 % Plot perc. of single cells (calculated with vel. method)
-subplot (2,1,2); plot (thresholdedCells(:,3),'g'), title('Percentage of single cells');
+%subplot (2,1,2); plot (thresholdedCells(:,3),'g'), title('Percentage of single cells');
+plot (thresholdedCells(:,3),'g'), title('Percentage of single cells');
 hold on;
 plot (thresholdedCellsFiltered(:,3),'r');
 ymax=max(thresholdedCells(:,3));
@@ -173,22 +181,22 @@ ylabel ('Percentage');
 hold off;
 
 % Plot number of cluster cells
-h_fig = figure;
-ymax=max(thresholdedCells(:,2));
-subplot (2,1,1); plot (thresholdedCells(:,2),'g'), title('Number of cluster cells');
-hold on;
-plot (thresholdedCellsFiltered(:,2),'r');
-xlabel ('Frames');
-ylabel ('# cells');
-hold off;
-% Plot perc. of cluster cells (calculated with vel. method)
-subplot (2,1,2); plot (thresholdedCells(:,4),'g'), title('Percentage of cluster cells');
-hold on;
-plot (thresholdedCellsFiltered(:,4),'r');
-ymax=max(thresholdedCells(:,4));
-xlabel ('Frames');
-ylabel ('Percentage');
-hold off;
+% h_fig = figure;
+% ymax=max(thresholdedCells(:,2));
+% subplot (2,1,1); plot (thresholdedCells(:,2),'g'), title('Number of cluster cells');
+% hold on;
+% plot (thresholdedCellsFiltered(:,2),'r');
+% xlabel ('Frames');
+% ylabel ('# cells');
+% hold off;
+% % Plot perc. of cluster cells (calculated with vel. method)
+% subplot (2,1,2); plot (thresholdedCells(:,4),'g'), title('Percentage of cluster cells');
+% hold on;
+% plot (thresholdedCellsFiltered(:,4),'r');
+% ymax=max(thresholdedCells(:,4));
+% xlabel ('Frames');
+% ylabel ('Percentage');
+% hold off;
 
 guidata(hObject, handles);
 
@@ -207,9 +215,9 @@ fprintf (fid, '%f %f %f %f\n', thresholdedCells);
 fclose (fid);
 
 fid = fopen ('percSingleValues.txt','w');
-fprintf (fid, '%f %f %f\n', percSingleValues);
+fprintf (fid, '%f %f %f %f\n', percSingleValues);
 fclose (fid);
 
 fid = fopen ('avgDispValues.txt','w');
-fprintf (fid, '%f %f %f\n', avgDispValues);
+fprintf (fid, '%f %f %f %f\n', avgDispValues);
 fclose (fid);
