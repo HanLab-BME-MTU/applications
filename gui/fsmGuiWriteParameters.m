@@ -194,8 +194,11 @@ else
 end
 % Default
 set(handles.editThreshold,'String',fsmParam.track.threshold);
-set(handles.editInfluence,'String',fsmParam.track.influence);
-set(handles.checkEnhTrack,'Value',fsmParam.track.enhanced);
+if isfield(fsmParam.track,'influence')
+    set(handles.editInfluence,'String',fsmParam.track.influence);
+else
+    set(handles.editInfluence,'String',fsmParam.track.threshold);
+end    
 set(handles.checkGrid,'Value',fsmParam.track.grid);
 switch fsmParam.track.tracker
     case 1

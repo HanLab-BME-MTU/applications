@@ -55,7 +55,7 @@ function [M,conflict,options,v,w]=labonteNN(x,y,options)
 
 % FLAGS
 DEBUG=0;    % Plots the particles at every iteration to see convergence progress
-VERBOSE=0;  % Outputs some information about the current iteration (text only)
+VERBOSE=1;  % Outputs some information about the current iteration (text only)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
