@@ -1,6 +1,6 @@
 function changeframe
 % changeframe finds the rigth image and coordinates. These it shows in the
-%             figure opened by manuelpostpro
+% figure opened by manuelpostpro
 %
 % SYNOPSIS       changeframe
 %
@@ -53,7 +53,7 @@ intensityMax   = handles.jobvalues.intensityMax;
 
 % Get the current value of the slider, so that we know which frame the user wants to process
 sliderValue = get (sliderHandle, 'Value');
-sliderValue = round (sliderValue * (imageRange - 1) + 1);
+sliderValue = round (sliderValue * imageRange);
 
 % Calculate the frame number to show
 imageNumber = (sliderValue - 1) * increment + firstImage;
@@ -68,7 +68,7 @@ image = imreadnd2 (fileName, 0, intensityMax);
 
 % Show the frame on the screen in the current figure
 hold on;
-imshow (image, []), title (num2str (imageNumber))
+imshow (image, []), title (num2str (imageNumber));
 
 % Get the cells corresponding to this frame. We create a third column
 % (first two being [x,y]) with the row indices of MPM. We are NOT interested in
@@ -105,4 +105,3 @@ end
 
 % That's it: wait for the next user action
 hold off;
-

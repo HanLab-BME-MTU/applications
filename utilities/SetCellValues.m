@@ -48,7 +48,7 @@ intensityMax   = handles.jobs(jobNumber).intensityMax;
 cd (imageDirectory);
 fileName = char (imageNameList (firstImage));
 tempFirstImg = imreadnd2 (fileName, 0, intensityMax);
-[firstImg, background] = ptGetProcessedImage (tempFirstImg, 20);
+[firstImg, backgroundLevel] = ptGetProcessedImage (tempFirstImg, intensityMax, 15);
 
 % Get the image size
 [img_h,img_w]=size(firstImg);

@@ -1,16 +1,13 @@
-function [coord, imgNuclei] = ptFindNuclei (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
+function [nucCoord, imgNuclei] = ptFindNuclei (inputImage, nucleiMinSize, nucleiMaxSize)
 % ptFindNuclei detects dark areas and tries to fit cells into them
 %
-% SYNOPSIS       [coord, imgNuclei] = ptFindNuclei (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
+% SYNOPSIS       [nucCoord, imgNuclei] = ptFindNuclei (inputImage, nucloiMinSize, nucloiMaxSize)
 %
 % INPUT          inputImage    : either original image or segmented image (depends on method)
-%                nucloiLevel   : level used for minima detection
-%                nucloiMinSize : minimal size for nuclei
-%                nucloiMaxSize : maximal size for nuclei
-%                method        : 1 or 2. Says if clustering or image segmentation has been applied 
-%                                (changes what ptFindNuclei actually does)
+%                nucleiMinSize : minimal size for nuclei
+%                nucleiMaxSize : maximal size for nuclei
 %
-% OUTPUT         coord         : coordinates found
+% OUTPUT         nucCoord         : coordinates found
 %                imgNuclei : binary image showing the areas of nuclei
 %
 % DEPENDENCIES   ptFindNuclei uses { nothing }
@@ -24,43 +21,53 @@ function [coord, imgNuclei] = ptFindNuclei (inputImage, nucloiLevel, nucloiMinSi
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source
 
-% Do some input checking first to determine the segmentation method used
-if method == 1          % Clustering
-   % The input image is already segmented, so take the pixels with value 3
-   imgNuclei = inputImage == 1;
-    
-elseif method == 2 || method == 3     % Thresholding
-   % Calculate the binary image based on the nucloi intensity level
-   imgNuclei = imextendedmin (inputImage, nucloiLevel);
-    
-else
-   fprintf (1, 'ptFindNuclei: invalid method. Please use method 1 or 2.\n');
-end 
+imgNuclei = inputImage == 1;
 
 % Let's do some morphological ops now to clean the image up
-imgNuclei = imfill (imgNuclei,'holes');
-imgNuclei = imerode (imgNuclei, strel ('disk', 5));
-imgNuclei = imdilate (imgNuclei, strel ('disk', 5));
-imgNuclei = bwareaopen (imgNuclei, 50);
+imgNuclei = imerode (imgNuclei, strel ('disk', 2));
+imgNuclei = imdilate (imgNuclei, strel ('disk', 2));
+imgNuclei = imopen (imgNuclei, strel ('disk', 3));
+imgNuclei = imclose (imgNuclei, strel ('disk', 3));
 
 % Label the image
 imgNucleiLabeled = bwlabel (imgNuclei);
 
 % Calculate nucloi properties using the regionprops function from the image toolbox
-nucloiProperties = regionprops (imgNucleiLabeled, 'Area', 'PixelList');
+nucleiProperties = regionprops (imgNucleiLabeled, 'Area', 'PixelList', 'Eccentricity');
 
 % Find really small and big regions and temporarily store this info
-nucleiArea = [nucloiProperties.Area];
-nucloiMinMaxArea = find ((nucleiArea < round (nucloiMinSize / 4 * 3)) | (nucleiArea > nucloiMaxSize));
-tempProperties = nucloiProperties (nucloiMinMaxArea);
+nucleiArea = [nucleiProperties.Area];
+nucleiMinMaxArea = find ((nucleiArea < nucleiMinSize) | (nucleiArea > nucleiMaxSize*2));
+tempProperties = nucleiProperties (nucleiMinMaxArea);
 
 % Get all pixels within those regions
 minMaxCoord = cat (1, tempProperties(:).PixelList);
 
+% Also get the eccentricity of the regions so that we can remove long areas that are not
+% nuclei, but stuff that comes out of the nuclei. 0.98 should be a good value to find these.
+nucleiEccentricity = [nucleiProperties.Eccentricity];
+nucleiBigEcc = find (nucleiEccentricity > 0.98);
+tempProperties2 = nucleiProperties (nucleiBigEcc);
+
+% Get the pixels in those areas as well
+bigEccCoord = cat (1, tempProperties2(:).PixelList);
+
+% Concatenate all of the coordinates to be removed together
+removeCoord = cat (1, minMaxCoord, bigEccCoord);
+
 % Set all of those pixels to zero so that we can forget about them
-for iCount = 1 : size (minMaxCoord, 1)
-   imgNuclei (minMaxCoord(iCount, 2), minMaxCoord(iCount, 1)) = 0;
+for iCount = 1 : size (removeCoord, 1)
+   imgNuclei (removeCoord(iCount, 2), removeCoord(iCount, 1)) = 0;
 end
+
+% Now label the new image again
+imgNucleiLabeled = bwlabel (imgNuclei);
+
+% Calculate nuclei properties using the regionprops function again
+nucleiProperties = regionprops (imgNucleiLabeled, 'Centroid');
+
+% And get the coordinates of all the remaining nuclei
+nucCoord = round (cat (1, nucleiProperties.Centroid));
 
 % Close gaps which are smaller than a disk with radius 3
 %imgNuclei = imclose(imgNuclei, strel('disk',3));
@@ -118,19 +125,3 @@ end
 %    imgNucleiLabeled = bwlabel (imgNuclei);
 % end
 
-% Calculate nucloi properties using the regionprops function from the image toolbox
-nucloiProperties = regionprops(imgNucleiLabeled, 'Area', 'PixelList', 'MajorAxisLength', 'Centroid', 'Eccentricity');
-
-% Remove really small nuclei
-clear nucleiArea; clear tempProperties;
-nucleiArea = [nucloiProperties.Area];
-nucleiMinArea = find (nucleiArea > nucloiMinSize);
-tempProperties = nucloiProperties (nucleiMinArea);
-
-% Remove really large nuclei
-clear nucleiArea;
-nucleiArea = [tempProperties.Area];
-nucleiMaxArea = find(nucleiArea < nucloiMaxSize);
-tempProperties2 = tempProperties (nucleiMaxArea);
-
-coord = round (cat (1, tempProperties2.Centroid));

@@ -50,10 +50,10 @@ handles.output = hObject;
 % Create a default job structure that defines all the fields used in the program
 defaultjob = struct('imagedirectory', [], 'imagename', [], 'firstimage', 1, 'lastimage', [],...
                    'increment', 1, 'savedirectory', [], 'fi_background', [], 'fi_nucleus', [],...
-                   'la_background', [], 'la_nucleus', [], 'maxsearch', 48, 'mmpixel', [], 'mmpixel_index', 1,...
-                   'minsize',300, 'maxsize', 2000, 'minsdist', 30, 'fi_halolevel', [], 'la_halolevel', [],...
+                   'la_background', [], 'la_nucleus', [], 'maxsearch', 81, 'mmpixel', [], 'mmpixel_index', 1,...
+                   'minsize',300, 'maxsize', 2500, 'minsdist', 30, 'fi_halolevel', [], 'la_halolevel', [],...
                    'minedge', 10, 'sizetemplate', 41, 'boxsize', 141, 'noiseparameter', 0.15,...
-                   'mincorrqualtempl', 0.2, 'leveladjust', 0.7, 'timestepslide', 5, 'mintrackcorrqual', 0.5,...
+                   'mincorrqualtempl', 0.50, 'leveladjust', 0.7, 'timestepslide', 5, 'mintrackcorrqual', 0.5,...
                    'coordinatespicone', [], 'intensityMax', 4095, 'bitdepth', 12, 'bitdepth_index', 3, 'bodyname', [],...
                    'imagenameslist', [], 'timeperframe', [], 'clustering', 1, 'minmaxthresh', 0, 'emclustering', 0, ...
                    'timestepslide_index', 2);
@@ -66,6 +66,9 @@ set(hObject,'Color',[0,0,0.627]);
 
 % Update handles structure
 guidata(hObject, handles);
+
+% Let's turn the resize warnings off
+iptsetpref ('TrueSizeWarning', 'off');
 
 % UIWAIT makes GUI_start wait for user response (see UIRESUME)
 % uiwait(handles.polyTrack_mainwindow);
@@ -1775,11 +1778,11 @@ for jobNumber = 1 : nrOfJobs
         
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
-   try
+   %try
       ptTrackCells (handles.jobs(jobNumber), jobNumber);
-   catch    
-     fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
-   end
+      %catch    
+     %fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
+     %end
    
    % Final message for the user to mark the end
    fprintf (1, 'Tracking finished...\n');
@@ -1959,14 +1962,8 @@ end
 % Get the directory path and name
 savedirectory = get(hObject,'String');
 
-%if ~exist(savedirectory, 'file')
-%  h=errordlg('The selected save directory does not exist. I will create it first...');
-%  uiwait(h);
-%  if ~(mkdir (savedirectory))
-%     h=errordlg('The directory could not be created, please select another one...');
-%     uiwait(h);
-%     return
-%  end
+%if ~exist(savedirectory, 'dir')
+%  mkdir (savedirectory);
 %end
 
 % Select the current job and store the directory name in the struct
@@ -1978,8 +1975,8 @@ handles.jobs(jobNumber).savedirectory =  savedirectory;
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
+if ~isempty(savedirectory)
+   cd (savedirectory)
    jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues

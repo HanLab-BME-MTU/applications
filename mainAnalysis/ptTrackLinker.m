@@ -1,7 +1,7 @@
 function [MPM, M] = ptTrackLinker (M)
 % ptTrackLinker creates the magic position matrix MPM from M
 %
-% SYNOPSIS      [MPM,M]=ptTrackLinker(M)
+% SYNOPSIS      [MPM,M] = ptTrackLinker(M)
 %
 % INPUT         M          : M stack as returned by the tracker functions
 %                                  M = [y x y x]   [y x y x]   [y x y x]
@@ -13,16 +13,14 @@ function [MPM, M] = ptTrackLinker (M)
 %                                         t1    t2    t3
 %               M          : Rearranged M matrix.
 %
-% DEPENDENCES   fsmTrackLinker uses { }
-%               fsmTrackLinker is used by { ptTrackCells } 
-%
-% Aaron Ponti, 2002
-%
-% altered from fsmTrackLinker by Colin Glass, Feb 2004
+% DEPENDENCES   ptTrackLinker uses { }
+%               ptTrackLinker is used by { ptTrackCells 
+%                                          Polytrack_PP } 
 %
 % the changes in this code result in the fact, that MPM returns only one
-% tracked thing per row. Original code can return more than one per row,
+% tracked cell per row. Original code can return more than one per row,
 % seperated by zeros
+%
 % Revision History
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------

@@ -45,13 +45,13 @@ intensityArea = 49;
 cd (imageDirectory);
 name = char (imageNameList (firstImageNr));
 firstTempImage = imreadnd2 (name, 0, intensityMax);
-[firstImage, backgroundFirst] = ptGetProcessedImage (firstTempImage, 20);
+[firstImage, backgroundLevFirst] = ptGetProcessedImage (firstTempImage, intensityMax, 15);
 clear firstTempImage;
 
 % And fetch the last image as well
 name = char (imageNameList (lastImageNr));
 lastTempImage = imreadnd2 (name, 0, intensityMax);
-[lastImage, backgroundLast] = ptGetProcessedImage (lastTempImage, 20);
+[lastImage, backgroundLevLast] = ptGetProcessedImage (lastTempImage, intensityMax, 15);
 clear lastTempImage;
 
 % Get the image size

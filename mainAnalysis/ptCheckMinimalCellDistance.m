@@ -1,11 +1,11 @@
-function newCoord = ptCheckMinimalCellDistance (nucleiCoord, haloCoord, minDistCellCell)                                    
+function newCoord = ptCheckMinimalCellDistance (nucleiCoord, extraNucCoord, minDistCellCell)
 % ptCheckMinimalCellDistance combines two lists of coordinates and ensures a
 % minimal distance between every combination of two cells
 %
 % SYNOPSIS       newCoord = ptCheckMinimalCellDistance(nucleiCoord,haloCoord,minDistCellCell)   
 %
 % INPUT          nucleiCoord     : a set of nuclei coordinates
-%                haloCoord       : a set of halo coordinates
+%                extraNucCoord   : a set of possible nuclei coordinates
 %                minDistCellCell : minimal distance between two cells (in pixels)
 %
 % OUTPUT         newCoord : the combined coordinates, with minimal distance between them
@@ -39,17 +39,17 @@ end
 clear iCount;    
 clear distance;
 
-% Ensure minimal distance between the halos
+% Ensure minimal distance between the would be nuclei and the real ones
 jCount = 1;
-while jCount < length (haloCoord)
+while jCount < length (extraNucCoord)
    distance = [];
-   distance = min (sqrt ((haloCoord (jCount+1:end, 1) - haloCoord (jCount, 1)).^2 + ...
-                         (haloCoord (jCount+1:end, 2) - haloCoord (jCount, 2)).^2));
+   distance = min (sqrt ((nucleiCoord (jCount+1:end, 1) - extraNucCoord (jCount, 1)).^2 + ...
+                         (nucleiCoord (jCount+1:end, 2) - extraNucCoord (jCount, 2)).^2));
 
    % Test the distance between them
    if distance < minDistCellCell
       % Throw away the coordinate, because the distance is to small
-      haloCoord (jCount,:) = [];
+      extraNucCoord (jCount,:) = [];
       jCount = jCount - 1;
    end
   jCount = jCount + 1;
@@ -57,41 +57,14 @@ end
 clear distance;
 clear jCount;
 
-% Ensure minimal distance between nuclei and halos
-% If the distance is greater, add the halo coordinates to the mix. AK: why?????
-haloCoordKept = [0,0];
-if ~isempty (haloCoord)
-   for hCount = 1 : size (haloCoord, 1)
-      distance = [];
-      distance = min (sqrt ((nucleiCoord (:, 1) - haloCoord (hCount, 1)).^2 + ...
-                            (nucleiCoord (:, 2) - haloCoord (hCount, 2)).^2));
-
-      % Note that here the minimal distance is larger than
-      % between two cells found by the same routine, because... ahhhmmm... just to make sure
-      if distance  >  (1.5 * minDistCellCell)
-         haloCoordKept (end+1, 1) = haloCoord (hCount, 1);
-         haloCoordKept (end, 2) = haloCoord (hCount, 2);
-      end
-   end
-
-   % Throw away the [0,0] coordinates again
-   haloCoordKept (1,:) = [];
-     
-   % If we found any new coordinates, cat them together with the nuclei ones
-   if ~isempty (haloCoordKept)
-      newCoord = cat (1, nucleiCoord, haloCoordKept);
-   else
-      newCoord = nucleiCoord;
-   end
+% If we found any new nuclei coordinates, cat them together with the nuclei ones
+if ~isempty (extraNucCoord)
+   newCoord = cat (1, nucleiCoord, extraNucCoord);
 else
    newCoord = nucleiCoord;
 end
 
-newCoord = nucleiCoord;
-
-clear haloCoord;    
-clear namesnumbers;   
-clear nucleiCoord;   
-clear distance;
+% Just in case there are duplicate entries remove them now
+newCoord = unique (newCoord, 'rows');
 
 

@@ -158,7 +158,8 @@ elseif strcmp (filename, 'jobvalues.mat')
    if exist ('M.mat', 'file')
       load ('M.mat');
       % Call up the track link function to generate the MPM matrix
-      handles.MPM = ptTrackLinker(M);
+      MPM = ptTrackLinker(M);
+      handles.MPM = MPM;
    else
       h = errordlg('The file M.mat does not exist. Please make sure it is present as well...');
       uiwait(h);          % Wait until the user presses the OK button
@@ -191,7 +192,7 @@ else
 end
 
 % Now that all the loading is done, we'll start the real stuff
-cd (jobValPath)
+cd (jobValPath);
 
 % Counters to keep track of where we are
 done = 0;
@@ -325,9 +326,8 @@ handles.whichcallback = 1;
 % Update handles structure
 guidata(hObject, handles);
 
-
-
-manuelpostpro(hObject);
+% Do the manual postprocessing stuff
+manuelpostpro (hObject);
 
 %----------------------------------------------------------------------------
 
