@@ -148,8 +148,23 @@ for i=1:total
         if count>tot
             disp('Not enough space allocated. Reallocating...'); % This should never happen
         end
-        speckleClasses(count).bTime = speckleArray(currentB).timepoint+1; % Store actual birth time (not of 'b' speckle)
-        speckleClasses(count).dTime = speckleArray(i).timepoint-1; % Store actual death time (not of 'd' speckle)      
+        if class<11
+            firstFrame=speckleArray(currentB).timepoint+1;
+            lastFrame=speckleArray(i).timepoint-1;
+        elseif class==11
+            firstFrame=1;
+            lastFrame=speckleArray(i).timepoint-1;
+        elseif class==12
+            % This cannot happen
+            disp('Bug in fsmAssigmSpecklesToClasses.');
+        elseif class==13
+            % This cannot happen
+            disp('Bug in fsmAssigmSpecklesToClasses.');
+        else
+            error('Wrong class');
+        end
+        speckleClasses(count).bTime = firstFrame; % Store actual birth time (not of 'b' speckle) - Store 1 for 'f' speckles
+        speckleClasses(count).dTime = lastFrame;  % Store actual death time (not of 'd' speckle) - Store last frame for 'l' speckles
         speckleClasses(count).first = currentB;
         speckleClasses(count).last  = i;
         speckleClasses(count).pos   = [speckleArray(currentB).spPos; speckleArray(i).spPos]; %reshape([speckleArray(currentB:i).spPos],2,1+(i-currentB))'; 
@@ -175,8 +190,23 @@ for i=1:total
         if count>tot
             disp('Not enough space allocated. Reallocating...'); % This should never happen
         end
-        speckleClasses(count).bTime = speckleArray(currentB).timepoint+1; % Store actual birth time (not of 'b' speckle)
-        speckleClasses(count).dTime = speckleArray(i).timepoint-1; % Store actual death time (not of 'd' speckle)      
+        if class<11
+            % This cannot happen
+            disp('Bug in fsmAssigmSpecklesToClasses.');
+        elseif class==11
+            % This cannot happen
+            disp('Bug in fsmAssigmSpecklesToClasses.');
+        elseif class==12
+            firstFrame=speckleArray(currentB).timepoint+1;
+            lastFrame=speckleArray(i).timepoint; % Last time point in the movie
+        elseif class==13
+            firstFrame=1;
+            lastFrame=speckleArray(i).timepoint; % Last time point in the movie
+        else
+            error('Wrong class');
+        end
+        speckleClasses(count).bTime = firstFrame; % Store actual birth time (not of 'b' speckle)
+        speckleClasses(count).dTime = lastFrame;  % Store actual death time (not of 'd' speckle)      
         speckleClasses(count).first = currentB;
         speckleClasses(count).last  = i;
         speckleClasses(count).pos   = [speckleArray(currentB).spPos; speckleArray(i).spPos]; %reshape([speckleArray(currentB:i).spPos],2,1+(i-currentB))';
