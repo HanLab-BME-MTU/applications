@@ -104,8 +104,12 @@ for iCount = 1 : fileNumbers
     jobData(iCount).imagename = allJobvalues{iCount}.imagename;    
     
     % Set image sizes
-    jobData(iCount).rowsize = allJobvalues{iCount}.rowsize;
-    jobData(iCount).colsize = allJobvalues{iCount}.colsize;
+    if isfield(allJobvalues{iCount},'rowsize')
+        jobData(iCount).rowsize = allJobvalues{iCount}.rowsize;
+    end
+    if isfield(allJobvalues{iCount},'colsize')
+        jobData(iCount).colsize = allJobvalues{iCount}.colsize;
+    end
     
     % Determine image file path from MPM path
     currentPath = pwd;
@@ -127,11 +131,11 @@ for iCount = 1 : fileNumbers
         jobData(iCount).imagesavailable = 1;
 
         % Store the size of the image
-        if ~isfield(jobData(iCount),'rowsize') | ~isfield(jobData(iCount),'colsize')
+        %if ~isfield(jobData(iCount),'rowsize') | ~isfield(jobData(iCount),'colsize')
             info = imfinfo ([jobData(iCount).imagefilepath filesep jobData(iCount).imagename]);
             jobData(iCount).rowsize = info.Height;
             jobData(iCount).colsize = info.Width;
-        end
+        %end
 
         % Figure size for movie generation
         jobData(iCount).figuresize = [];
