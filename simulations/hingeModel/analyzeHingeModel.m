@@ -271,8 +271,6 @@ for trialIter = 1:numTrials
     
 end
 
-save('trajData','inputData');
-
 %additional input variables for statistical analysis function
 ioOpt.verbose = 0;
 ioOpt.saveTxt = 0;
