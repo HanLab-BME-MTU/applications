@@ -141,7 +141,7 @@ firstIndex=uFirst;
 lastIndex=uLast;
 
 % Calculate the corresponding indices for imageFileList and for the outputs
-indices=firstIndex:lastIndex;
+indices=imageFirstIndex:imageLastIndex;
 
 % Update all lists
 imageFileList=imageFileList(uFirst:uLast,:);
