@@ -71,10 +71,11 @@ for frameCount = startFrame : increment : endFrame
    
    % Label the cluster image
    imgLabeledCellArea = bwlabel (clusterImage);
+   
    % Get the coordinates for this frame out of the M matrix. Since the
    % number of M entries is one less than the number of frames, the last
    % frame coordinates should be fetched differently.l
-   if mCount < endFrame
+   if mCount < nrOfFrames-1
       coord = M (:,1:2,mCount);
    else
       coord = M (:,3:4,mCount-1);

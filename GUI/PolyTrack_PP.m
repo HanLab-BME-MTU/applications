@@ -716,7 +716,9 @@ if (~handles.postpro.cellclusterplot & ~handles.postpro.areaplot & ...
 else
    % Here is where the bulk of the graphing work is done; we give it the
    % postpro structure and MPM matrix to work with
-   ptPlotCellValues (handles.postpro, handles.MPM);
+   if handles.postpro.cellclusterplot | handles.postpro.areaplot | handles.postpro.perimeterplot
+      ptPlotCellValues (handles.postpro, handles.MPM);
+   end
    
    % Do the speed plots as well if the user wants it
    if handles.postpro.speedplot

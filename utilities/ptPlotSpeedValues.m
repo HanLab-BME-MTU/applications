@@ -25,133 +25,309 @@ endFrame = ptPostpro.plotlastimg;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagename;
-numberOfFrames = endFrame - startFrame + 1;
+startFrame = ptPostpro.plotfirstimg;
+endFrame = ptPostpro.plotlastimg;
+increment = ptPostpro.increment;
+numberOfFrames = ceil((endFrame - startFrame) / increment) + 1;
+cellProps = ptPostpro.cellProps;
+clusterProps = ptPostpro.clusterProps;
  
-% Initialize the displacement matrix
-displacement = zeros(size(handles.MPM,1), numberOfFrames);
+% Initialize the displacement and x-axis matrix
+displacementAll = zeros (size (MPM,1), numberOfFrames);
+avgDisplacement = zeros (1, numberOfFrames-1);
+avgSingleDisplacement = zeros (1, numberOfFrames-1);
+avgClusteredDisplacement = zeros (1, numberOfFrames-1);
+xAxis = zeros (1, numberOfFrames-1);
 
-% Prepare displacement matrix for clusters and single cells
-clusterDisplacement = zeros(size(handles.clustercells));
-singleDisplacement = zeros(size(handles.singlecells));
+% Initialize MPM counter
+MPMCount = 1;
 
-% Prepare vector that holds single and cluster cell numbers
-thresholdedCells = zeros(numberOfFrames,4);
-curCoordinates1 = zeros(numberOfFrames,2);
-curCoordinates2 = zeros(numberOfFrames,2);
-curCoordinates = zeros(numberOfFrames,4);
+% In case the velocity over multiple frames is needed the following
+% variable should be used (AK: new GUI value?)
+multipleFrameVelocity = 1;
 
-% Setup the binning used to define granularity of 3D velocity histogram
-% This number is based on the max track distance
-binSize = [0 : 1 : (ptPostpro.maxsearch + 10)];
-
-% Now we go through every frame of the set
-for frameCount = startFrame : (endFrame - 1)
-
-   % See if the user selected a specific range of cells and act accordingly
-   if ~isempty(handles.selectedcells) 
-      whatCells = handles.selectedcells;
-   else  
-      % If nothing has been selected use all the cells in this frame
-      whatCells = [1:length(handles.MPM(:,(2*frameCount-1)))]' ;
-   end
-	    
-   % Take four columns of MPM [x1,y1,x2,y2]. Basically every row is two
-   % sets of coordinates, corresponding to two subsequent frames.
-   % For every frame take these 2 x and 2 y coordinates out of MPM and assign
-   % these to curCoordinates. From these the displacement can be calculated 
-   % from frame to frame later on
-   %curCoordinates = handles.MPM (whatCells, (2 * frameCount - 1):(2 * frameCount + 2));
-
-   % The following is an experiment for the poster to the take the displacement
-   % over 3 frames instead of 1 (x1 to x4)
-   % AK: This should be made a variable in the gui
-   % Since to calculate the average velocity we need the frame to frame
-   % displacement, we keep that as well
-   curCoordinates1 = handles.MPM (whatCells, (2 * frameCount - 1):(2 * frameCount));
-   curCoordinates2 = handles.MPM (whatCells, (2 * frameCount + 5):(2 * frameCount + 6));
-   curCoordinates = [curCoordinates1 curCoordinates2];
-   curCoordinatesVel = handles.MPM (whatCells, (2 * frameCount - 1):(2 * frameCount + 2));
-
-   % Find all the zeros in the curCoordinates matrix: these can then be filtered out
-   % Note: We do not erase the rows with zeros in them. In this way,
-   % the row index of displacement corresponds to the row index of MPM
-   [zeroRows,cols] = find(curCoordinates == 0);
-   [zeroRowsVel,colsVel] = find(curCoordinatesVel == 0);
+% Go through every frame of the set. Start at the second frame
+% because only from there we can start calculating a displacement
+for frameCount = startFrame+increment : increment : endFrame
+    
+   % Increase MPM counter
+   MPMCount = MPMCount + 1;
    
-   % Since we find row indexes for every colum (4 times the same) this has 
-   % to be filtered a bit
-   zeroRows = unique (zeroRows);
-   zeroRowsVel = unique (zeroRowsVel);
+   % If the velocity is calculated over multiple frames we should have
+   % enough frames to do this
+   if MPMCount > multipleFrameVelocity
+   
+      % Store the frame number for display on the x-axis
+      xAxis (MPMCount-multipleFrameVelocity) = frameCount;
+   
+      % Get the coordinates from the previous (dependent on the value of
+      % multipleFrameVelocity) and the current frame
+      prevCoordinates = MPM (:, 2*(MPMCount-multipleFrameVelocity)-1 : 2*(MPMCount-multipleFrameVelocity));
+      curCoordinates = MPM (:, 2*MPMCount-1 : 2*MPMCount);
+      coordinates = [prevCoordinates curCoordinates];
+   
+      % If coordinates in the current frame have started a track or the
+      % ones in the previous frame ended a track, we cannot
+      % calculate a displacement so we should throw these out
+      coordinates (find ((coordinates (:,1) == 0 & coordinates (:,2) == 0) | ...
+                         (coordinates (:,3) == 0 & coordinates (:,4) == 0)),:) = [];
+      
+      % From the cluster and cell properties we can find out which cells
+      % are single and which belong to a cluster. First initialize two
+      % matrices for this
+      singleCellCoords = zeros (size (coordinates,1), 4);
+      clusteredCellCoords = zeros (size (coordinates,1), 4);
+      
+      % Initialize single and clustered cell coordinates counters
+      singleCellCount = 0;
+      clusteredCellCount = 0;
+      
+      % Find the single cell and clustered coordinates and store these
+      for iCount = 1 : size (coordinates,1) 
 
-   % Now make sure all the rows with zeros have their colums zero'd out. We don't 
-   % delete these since we want to keep curCoordinates the same size as MPM
-   curCoordinates(zeroRows,:) = 0;
-   curCoordinatesVel(zeroRowsVel,:) = 0;
+         % Find the index of the cell in CellProps
+         cellIndex = find (cellProps (:,1,MPMCount) == coordinates (iCount,3) & ...
+                           cellProps (:,2,MPMCount) == coordinates (iCount,4));
+             
+         % Find this cluster in clusterProps
+         clusterIndex = find (clusterProps (:,1,MPMCount) == cellProps (cellIndex,3,MPMCount));
+         
+         % Test whether this cell is in a cluster or not
+         if clusterProps (clusterIndex,2,MPMCount) == 1  % Single cell found
+            
+            % Increase the counter for the single cell matrix
+            singleCellCount = singleCellCount + 1; 
+            
+            % Store the coordinates
+            singleCellCoords (singleCellCount,:) = coordinates (iCount,:);
+         else    % The cell was in a cluster
+            
+            % Increase the counter for the clustered cell matrix
+            clusteredCellCount = clusteredCellCount + 1; 
+            
+            % Store the coordinates
+            clusteredCellCoords (clusteredCellCount,:) = coordinates (iCount,:);
+         end
+      end  % for iCount = 1 : size (coordinates,1)
+      
+      % Remove all the zero entries in both matrices
+      singleCellCoords (find (singleCellCoords(:,1) == 0), :) = [];
+      clusteredCellCoords (find (clusteredCellCoords(:,1) == 0), :) = [];
+      
+      % Initialize displacement matrices
+      displacement = zeros (size (coordinates,1),1);
+      singleCellsDisplacement = zeros (size (singleCellCoords,1),1);
+      clusteredCellsDisplacement = zeros (size (clusteredCellCoords,1),1);
+      
+      % Calculate the displacement for all cells
+      displacement = sqrt ((coordinates(:,1) - coordinates(:,3)).^2 + ...
+                           (coordinates(:,2) - coordinates(:,4)).^2);
+                      
+      % Calculate the displacement for single cells
+      singleCellsDisplacement = sqrt ((singleCellCoords(:,1) - singleCellCoords(:,3)).^2 + ...
+                                      (singleCellCoords(:,2) - singleCellCoords(:,4)).^2);
+                      
+      % Calculate the displacement for clustered cells
+      clusteredCellsDisplacement = sqrt ((clusteredCellCoords(:,1) - clusteredCellCoords(:,3)).^2 + ...
+                                         (clusteredCellCoords(:,2) - clusteredCellCoords(:,4)).^2);                
+                     
+      % From this the average displacement for all cells can be calculated
+      if length (displacement) > 0
+         avgDisplacement (MPMCount-multipleFrameVelocity) = sum (displacement) / length (displacement);
+      else
+         avgDisplacement (MPMCount-multipleFrameVelocity) = 0;
+      end
 
-   % Calculate how many cells we have in this frame
-   numberOfCells (frameCount,1) = (length(whatCells) - length(zeroRows));
+      % From this the average displacement for single cells can be calculated
+      if length (singleCellsDisplacement) > 0
+         avgSingleDisplacement (MPMCount-multipleFrameVelocity) = sum (singleCellsDisplacement) / length (singleCellsDisplacement);
+      else
+         avgSingleDisplacement (MPMCount-multipleFrameVelocity) = 0;
+      end
 
-   % Calculate the displacement the cells travelled from this frame to the next
-   displacement (:,frameCount) = sqrt((curCoordinates(:,1)-curCoordinates(:,3)).^2 + (curCoordinates(:,2) - curCoordinates(:,4)).^2);
-   displacementVel (:,frameCount) = sqrt((curCoordinatesVel(:,1)-curCoordinatesVel(:,3)).^2 + (curCoordinatesVel(:,2) - curCoordinatesVel(:,4)).^2);
-   
-   % Find the indexes of all rows in clustercells which are non-zero and
-   % calculate the displacement of all the cells in those clusters
-   realClusterRows = find (handles.clustercells(:,frameCount));
-   clusterDisplacement (1:length (realClusterRows), frameCount) = displacement (handles.clustercells (realClusterRows, frameCount), frameCount);
+      % From this the average displacement for clustered cells can be calculated
+      if length (clusteredCellsDisplacement) > 0
+         avgClusteredDisplacement (MPMCount-multipleFrameVelocity) = sum (clusteredCellsDisplacement) / length (clusteredCellsDisplacement);
+      else
+         avgClusteredDisplacement (MPMCount-multipleFrameVelocity) = 0;
+      end
+      
+   end   % if MPMCount > multipleFrameVelocity 
+      
+end   % for frameCount
 
-   % Find the indexes of all rows in singlecells which are non-zero and
-   % calculate the displacement of all those cells who are NOT in a cluster
-   realSingleRows = find (handles.singlecells (:, frameCount));
-   singleDisplacement (1:length (realSingleRows), frameCount) = displacement (handles.singlecells (realSingleRows, frameCount), frameCount);
-   
-   % Calculate the average displacement for all selected cells (since we sum up, the zeros do not bother us) 
-   if (length(whatCells) - length(zeroRows)) ~= 0
-      averageDisplacementVel (frameCount,1) = sum (displacementVel(:,frameCount)) / (length(whatCells) - length(zeroRowsVel));
-      averageDisplacement (frameCount,1) = sum (displacement(:,frameCount)) / (length(whatCells) - length(zeroRows));
-   else
-      averageDisplacementVel (frameCount,1) = 0;
-       averageDisplacement (frameCount,1) = 0;
-   end
-   
-   % Calculate the average displacement for cells in a cluster
-   if (size (find (handles.clustercells (:,frameCount)), 1)) ~= 0
-      averageClusterDisplacement (frameCount, 1) = sum (clusterDisplacement(:, frameCount)) / ...
-                                               (size (find (handles.clustercells (:,frameCount)), 1));
-   else
-      averageClusterDisplacement (frameCount, 1) = 0;
-   end
 
-   % Calculate the average displacement for cells NOT in a cluster
-   if (size (find (handles.singlecells (:,frameCount)), 1)) ~= 0
-      averageSingleDisplacement (frameCount, 1) = sum (singleDisplacement(:, frameCount)) / ...
-                                              (size (find (handles.singlecells (:,frameCount)), 1));
-   else
-      averageSingleDisplacement (frameCount, 1) = 0;
-   end
+% Generate the avg displacement plot (all cells)
+h_fig = figure; title (imageName);
    
-   % Calculate the variance of the displacements. Here we do have to worry about zeros
-   % and that's why we remove them first using the find function (finds all non-zero
-   % elements in displacement
-   realDisplacement = displacement (find (displacement (:,frameCount)), frameCount);
-   velocityVariance (frameCount) = var (realDisplacement);
+% Draw a plot showing the perimeter of clusters divided by area
+ymax = max (avgDisplacement)+1;
+plot (xAxis, avgDisplacement); 
+title ('Avg Displacment All Cells');
+xlabel ('Frames');
+ylabel ('Displacement');
+axis ([xAxis(1) xAxis(end) 0 ymax]);
+        
+% Save the figures in fig, eps and tif format        
+hgsave (h_fig,[savePath filesep 'avgDisplacementAllCells.fig']);
+print (h_fig, [savePath filesep 'avgDisplacementAllCells.eps'],'-depsc2','-tiff');
+print (h_fig, [savePath filesep 'avgDisplacementAllCells.tif'],'-dtiff');      
+
+
+
+% Generate the figure and title
+h_fig = figure; title (imageName);
    
-   % Now we'll calculate single and cluster cell numbers via another method
-   thresholdValue = averageDisplacement (frameCount,1);
-   thresholdedCells (frameCount,1) = sum (realDisplacement > thresholdValue);  % Store nr of single cells
-   thresholdedCells (frameCount,2) = sum (realDisplacement <= thresholdValue); % Store nr of cluster cells
-   thresholdedCells (frameCount,3) = thresholdedCells (frameCount,1) / length (realDisplacement); % perc. single cells
-   thresholdedCells (frameCount,4) = thresholdedCells (frameCount,2) / length (realDisplacement); % perc. cluster cells
-   
-   % Generate the 2D histograms and normalize the result. This is preparation for the 3D 
-   % one which will be dealt with later
-   if (length(whatCells) - length(zeroRows)) ~= 0
-      velocityHist (:, frameCount) = hist (realDisplacement, binSize)';
-      velocityHist (:, frameCount) = velocityHist (:,frameCount) ./ (length(whatCells) - length(zeroRows));
-   else
-      velocityHist (:, frameCount) = 0;
-   end
-end
+% Draw a subplot showing the avg area of a single cell    
+ymax = max (avgSingleDisplacement)+1;
+subplot (2,1,1); plot (xAxis, avgSingleDisplacement);
+title ('Avg Single Cell Displacement');
+xlabel ('Frames');
+ylabel ('Displacement');
+axis ([xAxis(1) xAxis(end) 0 ymax]);
+        
+% Draw a subplot showing the avg area of a cluster
+ymax = max (avgClusteredDisplacement)+1;
+subplot (2,1,2); plot (xAxis, avgClusteredDisplacement); 
+title ('Avg Clustered Cell Displacement');
+xlabel ('Frames');
+ylabel ('Displacement');
+axis ([xAxis(1) xAxis(end) 0 ymax]);
+        
+% Save the figures in fig, eps and tif format     
+hgsave (h_fig,[savePath filesep 'avgSingleAndClusterDisplacement.fig']);
+print (h_fig, [savePath filesep 'avgSingleAndClusterDisplacement.eps'],'-depsc2','-tiff');
+print (h_fig, [savePath filesep 'avgSingleAndClusterDisplacement.tif'],'-dtiff');
+
+
+
+
+
+
+
+
+% % Prepare displacement matrix for clusters and single cells
+% clusterDisplacement = zeros(size(handles.clustercells));
+% singleDisplacement = zeros(size(handles.singlecells));
+% 
+% % Prepare vector that holds single and cluster cell numbers
+% thresholdedCells = zeros(numberOfFrames,4);
+% curCoordinatesSingleCell = zeros(numberOfFrames,2);
+% curCoordinatesClusters = zeros(numberOfFrames,2);
+% curCoordinates = zeros(numberOfFrames,4);
+% 
+% % Setup the binning used to define granularity of 3D velocity histogram
+% % This number is based on the max track distance
+% binSize = [0 : 1 : (ptPostpro.maxsearch + 10)];
+% 
+% % Now we go through every frame of the set
+% for frameCount = startFrame : (endFrame - 1)
+% 
+%    % See if the user selected a specific range of cells and act accordingly
+%    if ~isempty(handles.selectedcells) 
+%       whatCells = handles.selectedcells;
+%    else  
+%       % If nothing has been selected use all the cells in this frame
+%       whatCells = [1:length(handles.MPM(:,(2*frameCount-1)))]' ;
+%    end
+% 	    
+%    % Take four columns of MPM [x1,y1,x2,y2]. Basically every row is two
+%    % sets of coordinates, corresponding to two subsequent frames.
+%    % For every frame take these 2 x and 2 y coordinates out of MPM and assign
+%    % these to curCoordinates. From these the displacement can be calculated 
+%    % from frame to frame later on
+%    %curCoordinates = handles.MPM (whatCells, (2 * frameCount - 1):(2 * frameCount + 2));
+% 
+%    % The following is an experiment for the poster to the take the displacement
+%    % over 3 frames instead of 1 (x1 to x4)
+%    % AK: This should be made a variable in the gui
+%    % Since to calculate the average velocity we need the frame to frame
+%    % displacement, we keep that as well
+%    curCoordinates1 = handles.MPM (whatCells, (2 * frameCount - 1):(2 * frameCount));
+%    curCoordinates2 = handles.MPM (whatCells, (2 * frameCount + 5):(2 * frameCount + 6));
+%    curCoordinates = [curCoordinates1 curCoordinates2];
+%    curCoordinatesVel = handles.MPM (whatCells, (2 * frameCount - 1):(2 * frameCount + 2));
+% 
+%    % Find all the zeros in the curCoordinates matrix: these can then be filtered out
+%    % Note: We do not erase the rows with zeros in them. In this way,
+%    % the row index of displacement corresponds to the row index of MPM
+%    [zeroRows,cols] = find(curCoordinates == 0);
+%    [zeroRowsVel,colsVel] = find(curCoordinatesVel == 0);
+%    
+%    % Since we find row indexes for every colum (4 times the same) this has 
+%    % to be filtered a bit
+%    zeroRows = unique (zeroRows);
+%    zeroRowsVel = unique (zeroRowsVel);
+% 
+%    % Now make sure all the rows with zeros have their colums zero'd out. We don't 
+%    % delete these since we want to keep curCoordinates the same size as MPM
+%    curCoordinates(zeroRows,:) = 0;
+%    curCoordinatesVel(zeroRowsVel,:) = 0;
+% 
+%    % Calculate how many cells we have in this frame
+%    numberOfCells (frameCount,1) = (length(whatCells) - length(zeroRows));
+% 
+%    % Calculate the displacement the cells travelled from this frame to the next
+%    displacement (:,frameCount) = sqrt((curCoordinates(:,1)-curCoordinates(:,3)).^2 + (curCoordinates(:,2) - curCoordinates(:,4)).^2);
+%    displacementVel (:,frameCount) = sqrt((curCoordinatesVel(:,1)-curCoordinatesVel(:,3)).^2 + (curCoordinatesVel(:,2) - curCoordinatesVel(:,4)).^2);
+%    
+%    % Find the indexes of all rows in clustercells which are non-zero and
+%    % calculate the displacement of all the cells in those clusters
+%    realClusterRows = find (handles.clustercells(:,frameCount));
+%    clusterDisplacement (1:length (realClusterRows), frameCount) = displacement (handles.clustercells (realClusterRows, frameCount), frameCount);
+% 
+%    % Find the indexes of all rows in singlecells which are non-zero and
+%    % calculate the displacement of all those cells who are NOT in a cluster
+%    realSingleRows = find (handles.singlecells (:, frameCount));
+%    singleDisplacement (1:length (realSingleRows), frameCount) = displacement (handles.singlecells (realSingleRows, frameCount), frameCount);
+%    
+%    % Calculate the average displacement for all selected cells (since we sum up, the zeros do not bother us) 
+%    if (length(whatCells) - length(zeroRows)) ~= 0
+%       averageDisplacementVel (frameCount,1) = sum (displacementVel(:,frameCount)) / (length(whatCells) - length(zeroRowsVel));
+%       averageDisplacement (frameCount,1) = sum (displacement(:,frameCount)) / (length(whatCells) - length(zeroRows));
+%    else
+%       averageDisplacementVel (frameCount,1) = 0;
+%        averageDisplacement (frameCount,1) = 0;
+%    end
+%    
+%    % Calculate the average displacement for cells in a cluster
+%    if (size (find (handles.clustercells (:,frameCount)), 1)) ~= 0
+%       averageClusterDisplacement (frameCount, 1) = sum (clusterDisplacement(:, frameCount)) / ...
+%                                                (size (find (handles.clustercells (:,frameCount)), 1));
+%    else
+%       averageClusterDisplacement (frameCount, 1) = 0;
+%    end
+% 
+%    % Calculate the average displacement for cells NOT in a cluster
+%    if (size (find (handles.singlecells (:,frameCount)), 1)) ~= 0
+%       averageSingleDisplacement (frameCount, 1) = sum (singleDisplacement(:, frameCount)) / ...
+%                                               (size (find (handles.singlecells (:,frameCount)), 1));
+%    else
+%       averageSingleDisplacement (frameCount, 1) = 0;
+%    end
+%    
+%    % Calculate the variance of the displacements. Here we do have to worry about zeros
+%    % and that's why we remove them first using the find function (finds all non-zero
+%    % elements in displacement
+%    realDisplacement = displacement (find (displacement (:,frameCount)), frameCount);
+%    velocityVariance (frameCount) = var (realDisplacement);
+%    
+%    % Now we'll calculate single and cluster cell numbers via another method
+%    thresholdValue = averageDisplacement (frameCount,1);
+%    thresholdedCells (frameCount,1) = sum (realDisplacement > thresholdValue);  % Store nr of single cells
+%    thresholdedCells (frameCount,2) = sum (realDisplacement <= thresholdValue); % Store nr of cluster cells
+%    thresholdedCells (frameCount,3) = thresholdedCells (frameCount,1) / length (realDisplacement); % perc. single cells
+%    thresholdedCells (frameCount,4) = thresholdedCells (frameCount,2) / length (realDisplacement); % perc. cluster cells
+%    
+%    % Generate the 2D histograms and normalize the result. This is preparation for the 3D 
+%    % one which will be dealt with later
+%    if (length(whatCells) - length(zeroRows)) ~= 0
+%       velocityHist (:, frameCount) = hist (realDisplacement, binSize)';
+%       velocityHist (:, frameCount) = velocityHist (:,frameCount) ./ (length(whatCells) - length(zeroRows));
+%    else
+%       velocityHist (:, frameCount) = 0;
+%    end
+% end
 
 % Now we start the actual plotting of the velocity related stuff
 % Every plot is shown on the screen and saved to disk in three formats: fig, tiff and eps
@@ -262,17 +438,14 @@ end
 % title('Velocity of cells');
 
 % Save all of the calculated values to disk
-cd (savePath);
-save ('velocityVariance', 'velocityVariance');
-save ('displacement', 'displacement');
-save ('displacementVel', 'displacementVel');
-save ('singleDisplacement', 'singleDisplacement');
-save ('clusterDisplacement', 'clusterDisplacement');
-save ('averageDisplacement', 'averageDisplacement');
-save ('averageDisplacementVel', 'averageDisplacementVel');
-save ('averageSingleDisplacement', 'averageSingleDisplacement');
-save ('averageClusterDisplacement', 'averageClusterDisplacement');
-save ('thresholdedCells','thresholdedCells');
-
-% update the handles struct
-guidata (hObject, handles);
+% cd (savePath);
+% save ('velocityVariance', 'velocityVariance');
+% save ('displacement', 'displacement');
+% save ('displacementVel', 'displacementVel');
+% save ('singleDisplacement', 'singleDisplacement');
+% save ('clusterDisplacement', 'clusterDisplacement');
+% save ('averageDisplacement', 'averageDisplacement');
+% save ('averageDisplacementVel', 'averageDisplacementVel');
+% save ('averageSingleDisplacement', 'averageSingleDisplacement');
+% save ('averageClusterDisplacement', 'averageClusterDisplacement');
+% save ('thresholdedCells','thresholdedCells');

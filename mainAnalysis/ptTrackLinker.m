@@ -29,8 +29,8 @@ function [MPM, M] = ptTrackLinker (M)
 % Andre Kerstens        Mar 04          Cleaned up source; made output viable for command line
 
 % Let the user know we're starting to link
-fprintf (1, 'ptTrackLinker: Starting track linkage process...\n');
-fprintf (1, 'ptTrackLinker: Linking frame #: ');
+fprintf (1, '\n     ptTrackLinker: Starting track linkage process...\n');
+fprintf (1, '     ptTrackLinker: Linking frame: ');
 
 % Initialize counter
 counter = 0;
@@ -111,9 +111,6 @@ end
 
 MPM(:,1:2) =M(:,1:2,1);
 
-% Keep the user up-to-date on what is happening
-fprintf (1, '\nptTrackLinker: Postprocessing linked frames...\n');
-
 % Remove info that is not needed anymore
 for counter3 = 2 : size(M,3)
    MPM(:,(counter3-1)*2+(1:2)) = M(:,1:2,counter3);
@@ -122,4 +119,4 @@ end
 MPM(:,counter3*2+(1:2)) = M(:,3:4,counter3);
 
 % Let the user know we've finished
-fprintf (1, 'ptTrackLinker: Finished linking tracks!\n');
+fprintf (1, '\n     ptTrackLinker: Finished linking tracks!\n');

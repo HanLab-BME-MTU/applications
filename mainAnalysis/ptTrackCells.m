@@ -259,7 +259,7 @@ else		% lastImaNum > firstImaNum
                % Make sure that we only accept cells with a minimum correlation
 	       if correlation > minimalQualityCorr
                   if (min(sqrt ((newCoord(:,1) - templateCellCoord(1,1)).^2 + ...
-                            (newCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell   
+                                (newCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell   
 
                      % Add these coordinates to the previously found ones
                      previousCoord (end+1,1) = templateCellCoord (1,1);
@@ -398,12 +398,21 @@ end % if ~(lastImaNum > firstImaNum)
 clusterDirectory = [saveDirectory filesep 'info'];
 [cellProps, clusterProps] = ptCalculateCellAreaWithM (M, distanceToCellArea, minSizeNuc, clusterDirectory, ...
                                                       startFrame, endFrame, increment);
+                                                  
+% Generate the MPM matrix as well so that it can be used from disk if needed
+MPM = ptTrackLinker (M);
+
 % Go to the save directory
 cd (saveDirectory);
 
-% Save M matrix (tracks)
+% Save M matrix 
 if exist ('M', 'var')
    save('M.mat', 'M');
+end
+
+% Save MPM matrix
+if exist ('MPM', 'var')
+   save ('MPM.mat', 'MPM');
 end
 
 % Save cell properties
