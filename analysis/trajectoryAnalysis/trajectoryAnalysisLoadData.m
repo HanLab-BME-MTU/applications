@@ -13,12 +13,10 @@ function [run,fileNameListSave] = trajectoryAnalysisLoadData(fileListStruct,cons
 %                   the first four are applied in this order
 %               - splitData    [{0}/1] whether to split the data randomly
 %                              into two exclusive sets (exclusive to subset)
-%                              overrides subset.
-%               - subset       [fraction,n] {[1,1]} randomly takes n
-%                              subsets of size fraction*nData
-%                              (exclusive to splitData)
-%                              if n is omitted, all possible subsets are
-%                              taken ( nData!/((nData*fraction)! * (nData-nData*fraction)!) )
+%                              overrides subset. 
+%               - subset       [fraction,n] {[1,1]} randomly takes n unique
+%                              subsets of size fraction*nData. MaxN is 100
+%                              (exclusive to splitData). 
 %               - downsample   scalar. downsample n means that out of one
 %                              trajectory, n trajectories will be made by
 %                              taking every nth data point from the
@@ -101,7 +99,10 @@ else
             error('please input the first parameter of loadOptions.subset as a fraction between 0+ and 1')
         end
         if length(subset) == 1
-            subset(2) = 99.99;
+            error('please specify how many subsets you want to have');
+        end
+        if subset(2)> 100
+            error('You can''t choose more than 100 subsets at a time, sorry.')
         end
     end
     if isfield(loadOptions,'standardTags')
@@ -339,18 +340,113 @@ if splitData
         dataSet1 = rankList(1:nData/2);
         dataSet2 = rankList(nData/2+1:end);
         
-        newRun(oddRuns(iRun)).data  = run(iRun).ata(dataSet2);
+        newRun(oddRuns(iRun)).data  = run(iRun).data(dataSet2);
         newRun(evenRuns(iRun)).data  = run(iRun).data(dataSet1); 
         newRun(oddRuns(iRun)).fileNameList = run(iRun).fileNameList(dataSet2);
         newRun(evenRuns(iRun)).fileNameList  = run(iRun).fileNameList(dataSet1); % same as above
         
     end % for iRun = 1:nRuns
 elseif ~all(subset == [1 1])
-    disp('sorry, ''subset'' not implemented yet')
-end
+    % subset = [frac,n]. We take n subsets of size frac*nData, or the
+    % maximum number of possible subsets for the given fraction. 
+    % max # of subsets: 
+    % size subset s=round(frac*nData) or 1 or nData
+    % max# = nData!/(s! * (nData-s)!)
+    %
+    % we loop through the runs, and fill newRuns. We init first with n
+    % subsets per run, but might have to throw away some entries at the end
+    %
+    % to select the random subsets, we first make a lookup-table. Then we
+    % randomly select one of the table entries and delete this entry.
+    % Rinse, repeat. Of course, it's much faster to throw away entries in
+    % the list if n is close to the maximum. 
+    % OK, this is a bad idea. The number of possible permutations is just
+    % too high to create the LUT. Instead, we will limit the number of
+    % allowed permutations to 100, make 200 random permutations, and select
+    % the first n unique ones. This is quite quick and works probably
+    % always, except if you have a very bad day.
+    
+    % turn off warnings
+    oldWarnings = warnings;
+    warning off MATLAB:nchoosek:LargeCoefficient
+    
+    % preassign newRun
+    nRuns = length(run);
+    newRun(1:nRuns*subset(1)) = struct('data',[],'fileNameList',[]);
+    
+    newRunCt = 0;
+    % loop through runs
+    for iRun = 1:nRuns
+        
+        % calculate how many how large subsets we want to make. Minimum size: 1
+        nData = length(run(iRun).data);
+        subSetSize = max(round(subset(1)*nData),1);
+        numSubSets = subset(2);
+        
+        % calculate how many subsets are possible
+        maxNumSS = nchoosek(nData,subSetSize);
+        
+        %...and adjust numSubSets if necessary
+        numSubSets = min(maxNumSS,numSubSets);
+        
+        enoughSubsets = 0;
+        numAttempts = 0;
+        maxNumAttempts = 3;
+        
+        while enoughSubsets & numAttempts<maxNumAttempts
+            
+            numAttempts = numAttempts + 1;
+            
+            % now create 200 randperms
+            randomSets = zeros(200,nData);
+            for i = 1:200
+                randomSets(i,:)=randperm(nData);
+            end
+            
+            % select the subset
+            poSS = randomSets(:,1:subSetSize);
+            poSS = sort(poSS,2);
+            poSS = unique(poSS,'rows');
+            % now we have the possible subset. Check if we have enough subsets.
+            numPossibleSS = size(poSS,1);
+            enoughSubsets = >=numSubSets;
+            
+        end
+        
+        % we tried now up to three times, so if we still do not have enough
+        % subsets, that's just pure bad luck
+        
+        if ~enoughSubsets
+            warning('sorry, not enough subsets could be found. Using all we have')
+            selectedSS = poSS;
+            numSubSets = numPossibleSS;
+        else
+            % careful! unique sorts
+            rp = randperm(numPossibleSS);
+            selectedSS = poSS(rp(1:numSubSets),:);
+        end
+        
+        % loop through all the subsets and assign
+        for iSet = 1:numSubSets
+            newRunCt = newRunCt + 1;
+            newRun(newRunCt).data = run(iRun).data(selectedSS(iSet,:));
+            newRun(newRunCt).fileNameList = run(iRun).fileNameList(iSet,:);
+        end
+        
+        % and then go on to the next round
+        
+    end % for iRun = 1:nRuns
+    
+    % finally, throw away empty newRuns
+    newRun(newRunCt+1:end) = [];
+    
+    % turn on warnings
+    warning(oldWarnings);
+    
+end %  if split/subset
 
 
-
+run = newRun;
 
 %===================================================================
 %------END COMPARE TWO DATA SETS-----
