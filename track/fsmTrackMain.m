@@ -190,32 +190,37 @@ for counter1=1:lastImage
     case 2
         tmp=fsmTrackTrackerP(img,img2,threshold);    
     case 3
-        tmp=fsmTrackTrackerPP(img,img2,img3,threshold);    
+%         tmp=fsmTrackTrackerPP(img,img2,img3,threshold); 
+        tft(I,J,K,threshold); % no output at present, funciton writes to disc
     otherwise
         error('Please select an EXISTING tracker.');
     end
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %
-    % ENHANCED TRACKING
-    %
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    if enhanced==1
+  
+    if TRACKER~=3
         
-        % Call external function to perform enhanced tracking
-        tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,currentIndex,gridSize,d0,userPath,threshold,influence,size(img));
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %
+        % ENHANCED TRACKING
+        %
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        if enhanced==1
+            
+            % Call external function to perform enhanced tracking
+            tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,currentIndex,gridSize,d0,userPath,threshold,influence,size(img));
+            
+        end
+        
+        % Check for unsupported error
+        if isempty(tmp)
+            error('Something went wrong during tracking...');
+        end
+        
+        % Store speckle position information
+        M(1:size(emptyM,1),1:size(emptyM,2),counter1,1)=emptyM;
+        M(1:size(tmp,1),1:size(tmp,2),counter1,1)=tmp;
         
     end
-    
-    % Check for unsupported error
-    if isempty(tmp)
-        error('Something went wrong during tracking...');
-    end
-    
-    % Store speckle position information
-    M(1:size(emptyM,1),1:size(emptyM,2),counter1,1)=emptyM;
-    M(1:size(tmp,1),1:size(tmp,2),counter1,1)=tmp;
     
     % Update wait bar
     waitbar(counter1/(n-1),h);
@@ -227,6 +232,15 @@ end
 
 % Close waitbar
 close(h);
+
+if TRACKER==3
+    
+    % Set the status to 1 to mean that the module successfully finished
+    status=1;
+    
+    return
+    
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
