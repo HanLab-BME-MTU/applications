@@ -1,90 +1,97 @@
-function coord1 = ptCheckMinimalCellDistance (coordnuc, altercoor, minDistCellCell)                                    
+function newCoord = ptCheckMinimalCellDistance (nucleiCoord, haloCoord, minDistCellCell)                                    
 % ptCheckMinimalCellDistance combines two lists of coordinates and ensures a
-%                      minimal distance between every combination of two
-%                      cells
+% minimal distance between every combination of two cells
 %
-% SYNOPSIS       coord1 = ptCheckMinimalCellDistance(coordnuc,altercoor,minDistCellCell)   
+% SYNOPSIS       newCoord = ptCheckMinimalCellDistance(nucleiCoord,haloCoord,minDistCellCell)   
 %
-% INPUT          coordnuc : a set of coordinates
-%                altercoor : another set of coordinates
-%                minDistCellCell : minimal distance between two cells
+% INPUT          nucleiCoord     : a set of nuclei coordinates
+%                haloCoord       : a set of halo coordinates
+%                minDistCellCell : minimal distance between two cells (in pixels)
 %
-% OUTPUT         coord1 : the combined coordinates, with minimal distance
-%                         between them
+% OUTPUT         newCoord : the combined coordinates, with minimal distance between them
 %
-%
-% DEPENDENCIES   ptCheckMinimalCellDistance uses {nothing}
+% DEPENDENCIES   ptCheckMinimalCellDistance uses { nothing }
 %                                  
 %                ptCheckMinimalCellDistance is used by { ptTrackCells
-%                                                  ptInitializeJob}
+%                                                        ptInitializeJob }
 %
-% Colin Glass, Feb 04         
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Colin Glass           Feb 04          Initial release
+% Andre Kerstens        Apr 04          Cleaned up source
 
-% ensure a minimal distance between them
-count = 1;
-while count < length (coordnuc)
-       paff = [];
-       paff = min (sqrt ((coordnuc(count+1:end, 1) - coordnuc(count, 1)).^2 + ...
-                 (coordnuc(count+1:end, 2) - coordnuc(count, 2)).^2));
-       
-       if paff < minDistCellCell
-               coordnuc(count,:) = [];
-               count = count - 1;
-       end
-       count = count + 1;
+% Ensure a minimal distance between nuclei coordinates
+iCount = 1;
+while iCount < length (nucleiCoord)
+   distance = [];
+   distance = min (sqrt ((nucleiCoord (iCount+1:end, 1) - nucleiCoord (iCount, 1)).^2 + ...
+                         (nucleiCoord (iCount+1:end, 2) - nucleiCoord (iCount, 2)).^2));
+
+   % Test the distance between them
+   if distance < minDistCellCell
+      % Throw away the coordinate, because the distance is to small
+      nucleiCoord(iCount,:) = [];
+      iCount = iCount - 1;
+   end
+   iCount = iCount + 1;
 end
-clear count;    
-clear paff;
+clear iCount;    
+clear distance;
 
+% Ensure minimal distance between the halos
+jCount = 1;
+while jCount < length (haloCoord)
+   distance = [];
+   distance = min (sqrt ((haloCoord (jCount+1:end, 1) - haloCoord (jCount, 1)).^2 + ...
+                         (haloCoord (jCount+1:end, 2) - haloCoord (jCount, 2)).^2));
 
-%ensure minimal distance between them
-count=1;
-while count < length(altercoor)
-       paffalt=[];
-       paffalt= min (sqrt ((altercoor(count+1:end,1)-altercoor(count,1)).^2 + ...
-                     (altercoor(count+1:end,2)-altercoor(count,2)).^2));
-
-       if paffalt < minDistCellCell
-               altercoor(count,:) = [];
-               count = count - 1;
-       end
-       count=count+1;
+   % Test the distance between them
+   if distance < minDistCellCell
+      % Throw away the coordinate, because the distance is to small
+      haloCoord (jCount,:) = [];
+      jCount = jCount - 1;
+   end
+  jCount = jCount + 1;
 end
-clear paffalt;
-clear count;
+clear distance;
+clear jCount;
 
+% Ensure minimal distance between nuclei and halos
+% If the distance is greater, add the halo coordinates to the mix. AK: why?????
+haloCoordKept = [0,0];
+if ~isempty (haloCoord)
+   for hCount = 1 : size (haloCoord, 1)
+      distance = [];
+      distance = min (sqrt ((nucleiCoord (:, 1) - haloCoord (hCount, 1)).^2 + ...
+                            (nucleiCoord (:, 2) - haloCoord (hCount, 2)).^2));
 
-%ensure minimal distance between dark, nasty-looking cells and
-%third eyes (look above (ptFindNuclei,ptFindHalos))
-namesnumbers = [0,0];
-if isempty(altercoor) == 0
-    for h= 1 : size(altercoor,1)
-            uff = [];
-             
-            uff = min (sqrt ((coordnuc(:,1) - altercoor(h,1)).^2 + ...
-                     (coordnuc(:,2) - altercoor(h,2)).^2));
-            %note that here the minimal distance is larger than
-            %between two cells found by the same routine,
-            %because... ahhhmmm... just to make sure
-            if uff  >  (1.5 * minDistCellCell)
-                  namesnumbers(end+1,1) = altercoor(h,1);
-                  namesnumbers(end,2) = altercoor(h,2);
-            end
-     end
-     namesnumbers(1,:) = [];
+      % Note that here the minimal distance is larger than
+      % between two cells found by the same routine, because... ahhhmmm... just to make sure
+      if distance  >  (1.5 * minDistCellCell)
+         haloCoordKept (end+1, 1) = haloCoord (hCount, 1);
+         haloCoordKept (end, 2) = haloCoord (hCount, 2);
+      end
+   end
+
+   % Throw away the [0,0] coordinates again
+   haloCoordKept (1,:) = [];
      
-     if isempty(namesnumbers) == 0
-            coord1 = cat(1, coordnuc, namesnumbers);
-     else
-            coord1 = coordnuc;
-     end
-         
+   % If we found any new coordinates, cat them together with the nuclei ones
+   if ~isempty (haloCoordKept)
+      newCoord = cat (1, nucleiCoord, haloCoordKept);
+   else
+      newCoord = nucleiCoord;
+   end
 else
-      coord1 = coordnuc;
+   newCoord = nucleiCoord;
 end
-clear altercoor;    
+
+newCoord = nucleiCoord;
+
+clear haloCoord;    
 clear namesnumbers;   
-clear coordnuc;   
-clear uff;
+clear nucleiCoord;   
+clear distance;
 
 

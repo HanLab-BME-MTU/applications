@@ -31,19 +31,18 @@ function [MPM, M] = ptTrackLinker (M)
 % Andre Kerstens        Mar 04          Cleaned up source; made output viable for command line
 
 % Let the user know we're starting to link
-fprintf (1, 'Starting track linkage process...\n');
+fprintf (1, 'ptTrackLinker: Starting track linkage process...\n');
 
 % Initialize counter and waitbar
 counter = 0;
 tot = 2 * (size(M,3)-1);
-%h=waitbar(0,'Linking...');
 
 % Reorganize M
 for counter1 = 1 : size(M,3) - 1
   
    % counter
    counter = counter + 1;
-   fprintf(1, 'Linking frame # %d ...\n', counter);
+   fprintf (1, 'ptTrackLinker: Linking frame # %d ...\n', counter);
    
    % Read speckle positions at time point (=img) counter1
    start = (M(:, 3:4, counter1));
@@ -52,7 +51,7 @@ for counter1 = 1 : size(M,3) - 1
    % Re-arrange stop (and therefore M) to correspond to the sequence of start
    tM = zeros(size(start, 1), 4);
    
-   for counter2 = 1:size(stop, 1)
+   for counter2 = 1 : size(stop, 1)
 
       %Attention: this if /else statement is the only difference to Aarons original code 
       if start(counter2, 1) ~= 0 | start(counter2, 2) ~= 0 
@@ -67,41 +66,36 @@ for counter1 = 1 : size(M,3) - 1
                         
          % No matching found -> error!
          if isempty(y)
-             fprintf(1, 'Time points %d to %d.\n', counter1, counter1 + 1);
-             warning('ptTrackLinker: Warning! Correspondance not found.');
-             tM(counter2,:)=0; % -1;   
-%               if M(counter2,3,counter1+1)~=0
-%                        M(end+1,:,:)=0;
-%                        tM(end+1,:)=0;
-%                        tM(end,3:4)=M(counter2,3:4,counter1+1);
-%              end
+             fprintf (1, 'ptTrackLinker: Time points %d to %d.\n', counter1, counter1 + 1);
+             warning ('ptTrackLinker: Warning! Correspondance not found.');
+             tM(counter2,:) = 0; % -1;   
          end
                         
          % Only one entry found in stop
-         if length(y)==1
-             tM(counter2,:)=M(y,:,counter1+1);
-             stop(y,:)=-3;
+         if length(y) == 1
+             tM(counter2,:) = M(y,:,counter1+1);
+             stop(y,:) = -3;
          end
                         
-         % More than one entry found, but either 'no speckle' (0) 
-         %   or 'already treated' (-3)
-         if length(y)>1 & (start(counter2,1)~=0 | start(counter2,1)~=-3)
-             tM(counter2,:)=M(y(1),:,counter1+1);
-             stop(y(1),:)=-3;
+         % More than one entry found, but either 'no speckle' (0) or 'already treated' (-3)
+         if length(y) > 1 & (start(counter2,1) ~= 0 | start(counter2,1) ~= -3)
+             tM(counter2,:) = M(y(1),:,counter1+1);
+             stop(y(1),:) = -3;
          end
                         
          % More than one repetition of a speckle found (~=0 & ~=-3)
-         if  length(y)>1 & start(counter2,1)~=0 & start(counter2,1)~=-3
-             error('fsmTrackLinker: Warning! Not all repetitions have been removed.');
+         if  length(y) > 1 & start(counter2,1) ~= 0 & start(counter2,1) ~= -3
+             warning ('ptTrackLinker: Warning! Not all repetitions have been removed.');
          end        
          
-         % 
-         % END OF ANALYSIS
-         %
+      % 
+      % END OF ANALYSIS
+      %
       else
-         tM(counter2,:)=0;
+         tM(counter2,:) = 0;
                 
-         if (M(counter2,3,counter1+1)~=0 | M(counter2,4,counter1+1)~=0) & (M(counter2,1,counter1+1)==0 & M(counter2,2,counter1+1)==0)
+         if (M(counter2,3,counter1+1) ~= 0 | M(counter2,4,counter1+1) ~= 0) & ...
+            (M(counter2,1,counter1+1) == 0 & M(counter2,2,counter1+1) == 0)
             M(end+1,:,:)=0;
             %=M(end,3:4,counter1);
             tM(end+1,:)=0;
@@ -111,38 +105,23 @@ for counter1 = 1 : size(M,3) - 1
    end
     
    % Replace M with re-ordered one
-   M(:,:,counter1+1)=tM;
+   M(:,:,counter1+1) = tM;
     
    % Reset tM
-   tM=zeros(size(tM));
-    
-   % Update wait bar
-   %waitbar(counter/tot,h);   
-   %fprintf(1, 'Linking # frame %d ...\n', counter);
+   tM = zeros(size(tM));
 end
 
-MPM(:,1:2)=M(:,1:2,1);
-counter = 0;
+MPM(:,1:2) =M(:,1:2,1);
 
 % Keep the user up-to-date on what is happening
-fprintf (1, 'Postprocessing linked frames...\n');
+fprintf (1, 'ptTrackLinker: Postprocessing linked frames...\n');
 
 % Remove info that is not needed anymore
-for counter3=2:size(M,3)
-    
-   % counter
-   %counter = counter + 1;
-    
-   MPM(:,(counter3-1)*2+(1:2))=M(:,1:2,counter3);
-    
-   % Update wait bar
-   %waitbar(counter/tot,h);
-   %fprintf(1, 'Linking frame # %d ...\n', counter);
+for counter3 = 2 : size(M,3)
+   MPM(:,(counter3-1)*2+(1:2)) = M(:,1:2,counter3);
 end
 
-MPM(:,counter3*2+(1:2))=M(:,3:4,counter3);
+MPM(:,counter3*2+(1:2)) = M(:,3:4,counter3);
 
 % Let the user know we've finished
-fprintf (1, 'Finished linking tracks!\n');
-% Close waitbar
-%close(h);
+fprintf (1, 'ptTrackLinker: Finished linking tracks!\n');

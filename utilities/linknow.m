@@ -4,94 +4,93 @@ function linknow
 %
 % SYNOPSIS       linknow
 %
-% INPUT          none (gets data from the current object, which is the object with the callback manrelink (text made by changeframe))
+% INPUT          none (gets data from the current object, which is the object with 
+%                      the callback manrelink (text made by changeframe))
 %
 % OUTPUT         none
 %
-% DEPENDENCIES   linknow uses {nothing}
+% DEPENDENCIES   linknow uses { nothing }
 %                                  
 %                linknow is used by { manrelink (as a callback) }
 %
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Colin Glass           Feb 04          Initial release
+% Andre Kerstens        Mar 04          Cleaned up source
 
-%this is the callback of a click within the listbox, created by manrelink.
-%Here we link the cell clicked on in the listbox to the current callback
-%cell.
+% Fetch the current handles structure by finding hObject
+hObject = findall (0, 'Tag', 'GUI_pp_jobbrowse_pb');
+handles = guidata (hObject);
 
-hObject=findall(0,'Tag','GUI_pp_jobbrowse_pb');
-handles=guidata(hObject);
-
-linklisthelpingH= findall(0,'Style','listbox','Tag','linklist');
-
-%make sure there actually are cells listed in the listbox. If not we no
-%cell to link to.
-listofcells=handles.listofcells;
-if ~iscell(listofcells)
-    return
+% Make sure there actually are cells listed in the list. If not there's nothing to link 
+% to so just return
+linkedList = handles.listofcells;
+if ~iscell(linkedList)
+   fprintf (1, 'No cells present in the linked list. Returning...\n');
+   return;
 end
 
-%Number of the current callback cell (the one the user has clicked on
-%last). NOT on the cell selected within listbox!
-%We have saved that number in userdata while creating listbox
-celltoLink=str2num(get(linklisthelpingH,'UserData'));
+% Get the number of the cell the user has clicked on.
+% That number was saved in userdata while creating the list
+linkedListHandle = findall (0, 'Style', 'listbox', 'Tag', 'linklist');
+cellToLink = str2num (get (linkedListHandle, 'UserData'));
 
-%the linkage will take place in the current frame, not the one where the
-%cell within the listbox was selected
-piccount =findall(0,'Style','text','Tag','picturecount');
-frametoLink=str2num(get(piccount,'String'));
+% The linking will take place in the current frame, not the one where the
+% cell within the listbox was selected
+frameCounterHandle = findall (0, 'Style', 'text', 'Tag', 'picturecount');
+frameCount = str2num (get (frameCounterHandle, 'String'));
 
+% Details on the cell we wish to have another cell assigned to. This is the
+% cell listed in the listbox, not the current callback cell.
+selectedListCell = get (linkedListHandle, 'Value');
 
-%details on the cell we wish to have an other cell asigned to. This is the
-%cell listed in the listbox, not the current callback cell.
-%find out which cell of the list was selected
-whichinlist=get(linklisthelpingH,'Value');
+% Get the string from the listbox. That string contains the cell number and the
+% frame in which it was added to the listbox, separated by a '/'
+linkString = char (linkedList (selectedListCell));
+separatorIndex = findstr (linkString, '/');
 
-%get the string from thre listbox. That string contains the cell number and the
-%frame in which it was added to the listbox, seprated by a '/'
-FrameandCell=char(listofcells(whichinlist));
-sepindex=findstr(FrameandCell,'/');
+% Isolate cell number and frame number
+linkToCell = str2num (linkString (1:separatorIndex-1));
+linkToFrame = str2num (linkString (separatorIndex+1:end));
 
-%isolate cell number and frame number
-celltoKeep=str2num(FrameandCell(1:sepindex-1));
-frametoKeep=str2num(FrameandCell(sepindex+1:end));
+% The numbering for frame and for processed frame can differ, since not every
+% existing frame had to be processed. We need to calculate which processed
+% frame the current frame corresponds to.
+mpmframe = ((frameCount - handles.jobvalues.firstimage) / handles.jobvalues.increment) + 1;
 
+% Link mpmframe*2 because for every processed frame there two columns of coordinates
+handles.MPM (linkToCell, mpmframe * 2 - 1:end) = handles.MPM (cellToLink, mpmframe * 2 - 1:end);
 
-%the numbering for frame and for processed frame can differ, since not every
-%existing frame had to be processed. We need to calculate which processed
-%frame the current frame corresponds to.
-mpmframe=((frametoLink-handles.jobvalues.firstimage)/handles.jobvalues.increment)+1
-
-%link. (mpmframe*2 because for every processed frame there two columns of
-%coordinates
-handles.MPM(celltoKeep,mpmframe*2-1:end)=handles.MPM(celltoLink,mpmframe*2-1:end);
-
-%erase redundant track
-keep = questdlg('Shall the cell, which is about to be linked be erased completely, or shall its track previous to linking be kept? ','','ERASE!!!','keep','ERASE!!!');
-if strcmp(keep,'keep')
-     handles.MPM(celltoLink,mpmframe*2-1:end)=0;
-    
+% Erase redundant track or not? Ask the user. Erasing it will be the default.
+answer = questdlg ('Should the previous cell track be kept or can it be erased? ', '', 'Erase', 'Keep', 'Erase');
+if strcmp (answer, 'Keep')
+   % Keep the previous track
+   handles.MPM(cellToLink, mpmframe * 2 - 1:end) = 0;
 else
-     handles.MPM(celltoLink,:)=0;
+   % Erase it from MPM
+   handles.MPM (cellToLink,:) = 0;
 end
 
-
-%erase the linked cell from the linklist
-if length(listofcells)==1
-    listofcells = char('...');
-    none=1
+% Erase the linked cell from the linked list
+if length (linkedList) == 1
+   % The cell was the only entry so initialize the whole list (to empty)
+   linkedList = char ('...');
 else
-    listofcells(whichinlist) = [];
+   % Erase the cell entry
+   linkedList (selectedListCell) = [];
 end
 
-handles.listofcells=listofcells;
+% Store linked list for later use
+handles.listofcells=linkedList;
 
+% Find and get rid of all the associated GUI objects as well
+deleteButtonHandle = findall (0, 'Style', 'pushbutton', 'Tag', 'chuckout');
+linkButtonHandle = findall (0, 'Style', 'pushbutton', 'Tag', 'linkbutton');
+delete (linkButtonHandle)
+delete (deleteButtonHandle)
+delete (linkedListHandle)
 
-%save results
+% Update the handles structure
 guidata(hObject,handles);
 
-
-chuckhelpH =findall(0,'Style','pushbutton','Tag','chuckout');
-linkbuttonH =findall(0,'Style','pushbutton','Tag','linkbutton');
-
-delete(chuckhelpH)
-delete(linklisthelpingH)
-delete(linkbuttonH)

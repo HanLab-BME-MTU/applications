@@ -1,7 +1,7 @@
-function [coord, imgNucloiArea] = ptFindNuclei (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
+function [coord, imgNuclei] = ptFindNuclei (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
 % ptFindNuclei detects dark areas and tries to fit cells into them
 %
-% SYNOPSIS       [coord, imgNucloiArea] = ptFindNuclei (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
+% SYNOPSIS       [coord, imgNuclei] = ptFindNuclei (inputImage, nucloiLevel, nucloiMinSize, nucloiMaxSize, method)
 %
 % INPUT          inputImage    : either original image or segmented image (depends on method)
 %                nucloiLevel   : level used for minima detection
@@ -11,7 +11,7 @@ function [coord, imgNucloiArea] = ptFindNuclei (inputImage, nucloiLevel, nucloiM
 %                                (changes what ptFindNuclei actually does)
 %
 % OUTPUT         coord         : coordinates found
-%                imgNucloiArea : binary image showing the areas of nuclei
+%                imgNuclei : binary image showing the areas of nuclei
 %
 % DEPENDENCIES   ptFindNuclei uses { nothing }
 %                                  
@@ -27,25 +27,31 @@ function [coord, imgNucloiArea] = ptFindNuclei (inputImage, nucloiLevel, nucloiM
 % Do some input checking first to determine the segmentation method used
 if method == 1          % Clustering
    % The input image is already segmented, so take the pixels with value 3
-   imgNucloiArea = inputImage == 1;
+   imgNuclei = inputImage == 1;
     
-elseif method == 2      % Segmentation
+elseif method == 2 || method == 3     % Thresholding
    % Calculate the binary image based on the nucloi intensity level
-   imgNucloiArea = imextendedmin (inputImage, nucloiLevel);
+   imgNuclei = imextendedmin (inputImage, nucloiLevel);
     
 else
    fprintf (1, 'ptFindNuclei: invalid method. Please use method 1 or 2.\n');
 end 
 
+% Let's do some morphological ops now to clean the image up
+imgNuclei = imfill (imgNuclei,'holes');
+imgNuclei = imerode (imgNuclei, strel ('disk', 5));
+imgNuclei = imdilate (imgNuclei, strel ('disk', 5));
+imgNuclei = bwareaopen (imgNuclei, 50);
+
 % Label the image
-imgNucloiAreaLabeled = bwlabel (imgNucloiArea);
+imgNucleiLabeled = bwlabel (imgNuclei);
 
 % Calculate nucloi properties using the regionprops function from the image toolbox
-nucloiProperties = regionprops (imgNucloiAreaLabeled, 'Area', 'PixelList');
+nucloiProperties = regionprops (imgNucleiLabeled, 'Area', 'PixelList');
 
 % Find really small and big regions and temporarily store this info
-nucloiArea = [nucloiProperties.Area];
-nucloiMinMaxArea = find ((nucloiArea < round (nucloiMinSize / 4 * 3)) | (nucloiArea > nucloiMaxSize));
+nucleiArea = [nucloiProperties.Area];
+nucloiMinMaxArea = find ((nucleiArea < round (nucloiMinSize / 4 * 3)) | (nucleiArea > nucloiMaxSize));
 tempProperties = nucloiProperties (nucloiMinMaxArea);
 
 % Get all pixels within those regions
@@ -53,78 +59,78 @@ minMaxCoord = cat (1, tempProperties(:).PixelList);
 
 % Set all of those pixels to zero so that we can forget about them
 for iCount = 1 : size (minMaxCoord, 1)
-   imgNucloiArea (minMaxCoord(iCount, 2), minMaxCoord(iCount, 1)) = 0;
+   imgNuclei (minMaxCoord(iCount, 2), minMaxCoord(iCount, 1)) = 0;
 end
 
 % Close gaps which are smaller than a disk with radius 3
-imgNucloiArea = imclose(imgNucloiArea, strel('disk',3));
+%imgNuclei = imclose(imgNuclei, strel('disk',3));
 
 % And dilate the picture as well (same disk size)
-imgNucloiArea = imdilate(imgNucloiArea, strel('disk',3));
+%imgNuclei = imdilate(imgNuclei, strel('disk',3));
 
 % Label results of the processed image
-imgNucloiAreaLabeledBefore = bwlabel (imgNucloiArea);
-lastNucloiGroup = max (max (imgNucloiAreaLabeledBefore)) ;
+%imgNucleiLabeledBefore = bwlabel (imgNuclei);
+%lastNucloiGroup = max (max (imgNucleiLabeledBefore)) ;
 
 % More morphological operations, but this time the regions are already labeled.
 % So if one region gets seperated thus becoming two or more, it still has the same numbers.
-imgNucloiArea = imerode (imgNucloiArea, strel('disk',7));
-imgNucloiArea = imdilate (imgNucloiArea, strel('disk',6));
+%imgNuclei = imerode (imgNuclei, strel('disk',7));
+%imgNuclei = imdilate (imgNuclei, strel('disk',6));
 
 % Now we label the image again. So we have one image labeled before the
 % second morph and one labeled after
-imgNucloiAreaLabeledAfter = bwlabel (imgNucloiArea);
+%imgNucleiLabeledAfter = bwlabel (imgNuclei);
 
-counter = 0;
-membership = [];
+%counter = 0;
+%membership = [];
 
-% For every group of imgNucloiAreaLabeledBefore (labeled before second morph oper) we allow
-% one labeled group in imgNucloiAreaLabeledAfter (labeled after...). If there are more then 
+% For every group of imgNucleiLabeledBefore (labeled before second morph oper) we allow
+% one labeled group in imgNucleiLabeledAfter (labeled after...). If there are more then 
 % one region we selected the biggest.
-for group = 1 : lastNucloiGroup
-   counter = counter + 1;
-   nucloiGroup = imgNucloiAreaLabeledAfter (find (imgNucloiAreaLabeledBefore == group));
-   nucloiGroup = nucloiGroup (find (nucloiGroup));
-   uniqueNucloiGroup = unique (nucloiGroup);
-   if ~isempty (uniqueNucloiGroup)
-      if length (uniqueNucloiGroup) > 1.1  
-         [uniqueEntries, numberOfOccurences] = countEntries (nucloiGroup);
-         [dummy, groupIndex] = max (numberOfOccurences);
-         membership (group, 1) = uniqueEntries (groupIndex);
-      else 
-         membership (counter, 1) = uniqueNucloiGroup;
-      end
-   else
-      counter = counter - 1;
-   end
-end
+% for group = 1 : lastNucloiGroup
+%    counter = counter + 1;
+%    nucloiGroup = imgNucleiLabeledAfter (find (imgNucleiLabeledBefore == group));
+%    nucloiGroup = nucloiGroup (find (nucloiGroup));
+%    uniqueNucloiGroup = unique (nucloiGroup);
+%    if ~isempty (uniqueNucloiGroup)
+%       if length (uniqueNucloiGroup) > 1.1  
+%          [uniqueEntries, numberOfOccurences] = countEntries (nucloiGroup);
+%          [dummy, groupIndex] = max (numberOfOccurences);
+%          membership (group, 1) = uniqueEntries (groupIndex);
+%       else 
+%          membership (counter, 1) = uniqueNucloiGroup;
+%       end
+%    else
+%       counter = counter - 1;
+%    end
+% end
 
-% In membership we have at most one group (belonging to imgNucloiAreaLabeledAfter) for
-% every each group belonging to imgNucloiAreaLabeledBefore
-% imgNucloiArea is overwritten now only including the groups (of imgNucloiAreaLabeledAfter) given in membership
-if ~isempty (membership)
-   % find all the non-zero groups
-   membership = membership (find (membership));
-   imgNucloiArea = ismember (imgNucloiAreaLabeledAfter, membership);
-
-   % Label the new image again
-   clear imgNucloiAreaLabeled;
-   imgNucloiAreaLabeled = bwlabel (imgNucloiArea);
-end
+% In membership we have at most one group (belonging to imgNucleiLabeledAfter) for
+% every each group belonging to imgNucleiLabeledBefore
+% imgNuclei is overwritten now only including the groups (of imgNucleiLabeledAfter) given in membership
+% if ~isempty (membership)
+%    % find all the non-zero groups
+%    membership = membership (find (membership));
+%    imgNuclei = ismember (imgNucleiLabeledAfter, membership);
+% 
+%    % Label the new image again
+%    clear imgNucleiLabeled;
+%    imgNucleiLabeled = bwlabel (imgNuclei);
+% end
 
 % Calculate nucloi properties using the regionprops function from the image toolbox
-nucloiProperties = regionprops(imgNucloiAreaLabeled, 'Area', 'PixelList', 'MajorAxisLength', 'Centroid', 'Eccentricity');
+nucloiProperties = regionprops(imgNucleiLabeled, 'Area', 'PixelList', 'MajorAxisLength', 'Centroid', 'Eccentricity');
 
-% Remove really small and big areas
-clear nucloiArea;
-clear tempProperties;
-nucloiArea = [nucloiProperties.Area];
-nucloiMinArea = find (nucloiArea > nucloiMinSize);
-tempProperties = nucloiProperties (nucloiMinArea);
+% Remove really small nuclei
+clear nucleiArea; clear tempProperties;
+nucleiArea = [nucloiProperties.Area];
+nucleiMinArea = find (nucleiArea > nucloiMinSize);
+tempProperties = nucloiProperties (nucleiMinArea);
 
-clear nucloiArea;
-nucloiArea = [tempProperties.Area];
-nucloiMaxArea = find(nucloiArea < nucloiMaxSize);
-tempProperties2 = tempProperties (nucloiMaxArea);
+% Remove really large nuclei
+clear nucleiArea;
+nucleiArea = [tempProperties.Area];
+nucleiMaxArea = find(nucleiArea < nucloiMaxSize);
+tempProperties2 = tempProperties (nucleiMaxArea);
 
 coord = round (cat (1, tempProperties2.Centroid));

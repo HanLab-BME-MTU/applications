@@ -49,28 +49,36 @@ fprintf (1, 'Initializing phase has started for job number %d...\n', jobNumber);
 % Assign all the job data to local variables
 imageDirectory    = ptJob.imagedirectory;
 imageNameList     = ptJob.imagenameslist;
-firstImageNr        = ptJob.firstimage;
-lastImageNr         = ptJob.lastimage;
+firstImageNr      = ptJob.firstimage;
+lastImageNr       = ptJob.lastimage;
 levNucFirst       = ptJob.fi_nucleus;
 levBackFirst      = ptJob.fi_background;
 levHaloFirst      = ptJob.fi_halolevel;
 levelAdjust       = ptJob.leveladjust;
 
-%minimal/maximal size of the black spot in the cells
+% Minimal/maximal size of the nuclei
 minSizeNuc        = ptJob.minsize;
 maxSizeNuc        = ptJob.maxsize;
 
+% An educated guess of the minimal distance between neighbouring cells
+% (better to big than to small, for this value is used for the static
+% search. Searches with templates are more tolerant.)
 MinDistCellCell   = ptJob.minsdist;
-%an educated guess of the minimal distance between neighbouring cells
-%(better to big than to small, for this value is used for the static
-%search. Searches with templates are more tolerant.)
 
 % Get the maximum image intensity of the images in the job
 maxImageIntensity = ptJob.intensityMax;
-segmentation      = ptJob.minmaxthresh;
 
 % User selectable clustering method
-clustering        = ptJob.clustering;
+if ptJob.clustering
+   method = 1;
+elseif ptJob.minmaxthresh
+   method = 2;
+elseif ptJob.emclustering
+   method = 3;
+else
+   fprintf(1, 'ptInitializeJob: Wrong method. A valid method (1,2,3) has to be selected.\n');
+   return;
+end
 
 % Get the difference between nuclei and background intensity and adjust this
 levDiffFirst = abs (levNucFirst - levBackFirst) * levelAdjust;
@@ -85,14 +93,17 @@ cd (imageDirectory)
 
 % Make sure the images are in correct sequence. If not throw an error
 if ~lastImageNr > firstImageNr
-   fprintf (1, 'Error: the last image # is before the first image # in job number %d\n', jobNumber);
+   fprintf (1, 'ptInitializeJob: Error: the last image # is before the first image # in job number %d\n', jobNumber);
    return;
 else
    % Get the name of the first image in the list
    imageName = char (imageNameList (firstImageNr));
 
-   % Read that image from disk using the given min and max intensity values
-   firstImage = imreadnd2 (imageName, 0, maxImageIntensity);
+   % Read that image from disk using the given min and max intensity values and do
+   % background subtraction as well
+   tempFirstImage = imreadnd2 (imageName, 0, maxImageIntensity);
+   [firstImage, background] = ptGetProcessedImage (tempFirstImage, 20);
+   clear tempFirstImage;
 
    % Get the size of the image
    [img_h, img_w] = size (firstImage);
@@ -101,33 +112,30 @@ else
    HaloLevel = (levHaloFirst - levBackFirst) * 2 / 3 + levBackFirst;
 
    % Depending on the method selected by the user do the appropriate segmentation
-   if clustering
-      % Specify the method
-      method = 1;
-
+   if method == 1
       % Segment the image using the k-means method
-      [segmentedImage, dummy, mu0] = imClusterSeg (firstImage, 1, 'method', 'kmeans', 'k_cluster', 3, 'mu0', ...
+      [segmentedImage, dummy, mu0] = imClusterSeg (firstImage, 0, 'method', 'kmeans', 'k_cluster', 3, 'mu0', ...
                                                    [levNucFirst ; levBackFirst ; levHaloFirst]);
+      %[segmentedImage, dummy, mu0] = imClusterSeg (firstImage, 0, 'method', 'kmeans', 'k_cluster', 3);
       % Copy the image for later use
       inputImage = segmentedImage;
 
-   elseif segmentation
-      % Specify only method and input image since the used image has already been segmented
-      method = 2;
+   elseif method == 2 
+      % Specify only input image since the image will be segmented in the following functions
       inputImage = firstImage;
+   elseif method == 3
+      % Segment the image using the EM method
+      [segmentedImage, dummy, mu0] = imClusterSeg (firstImage, 0, 'method', 'em', 'k_min', 2, 'k_max', 2);
 
-   else
-      % Show an error message
-      fprintf(1, 'At least one of the methods clustering or segmentation has to be selected.\n');
-      return;
+      inputImage = firstImage;
    end
 
    % Find areas that are really dark and match cells into them
-   [coordNuc, regmax] = ptFindNuclei (inputImage, levDiffFirst, minSizeNuc, maxSizeNuc, method);
+   [coordNuc, nucImage] = ptFindNuclei (inputImage, levDiffFirst, minSizeNuc, maxSizeNuc, method);
 
-   % Find cells that look like round, big spots of pure light. We do this because sometimes
+   % Find areas that look like round, big spots of pure light. We do this because sometimes
    % the pictures are of poor quality and display huge halos around certain cells
-   [coordHalo, logihalo] = ptFindHalos (inputImage, ErodeDiskSize, HaloLevel, method);
+   [coordHalo, haloImage] = ptFindHalos (inputImage, ErodeDiskSize, HaloLevel, method);
 
    % Ensure a minimal distance between two found cells
    newCoord =  ptCheckMinimalCellDistance (coordNuc, coordHalo, MinDistCellCell);           
@@ -139,7 +147,7 @@ else
    newCoord = round (newCoord);
 
    % Tell the user we've finished
-   fprintf (1, 'Finished Initializing phase for job number %d.\n', jobNumber);
+   fprintf (1, 'ptInitializeJob: Finished Initializing phase for job number %d.\n', jobNumber);
 
    return;
 end

@@ -1,40 +1,42 @@
 function deletingrow
-% deletingrow  finds out which cell is currently calling back and erases it
-%              from MPM
+% deletingrow  finds out which cell is currently calling this function and erase it from MPM
 %
 % SYNOPSIS       deletingrow
 %
-% INPUT          none (gets data from the current object, which is the object with the callback manrelink (text made by changeframe))
+% INPUT          none (gets data from the current object, which is the object with the 
+%                      callback manrelink (text made by changeframe))
 %
 % OUTPUT         none
 %
-% DEPENDENCIES   deletingrow uses {nothing}
+% DEPENDENCIES   deletingrow uses { nothing }
 %                                  
 %                deletingrow is used by { manrelink (as a callback) }
-%
-%this is the callback of the chuckout button (manrelink).
-%it erases the current callback cell
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Colin Glass           Feb 04          Initial release
+% Andre Kerstens        Mar 04          Cleaned up source
 
-hObject=findall(0,'Tag','GUI_pp_jobbrowse_pb');
-handles=guidata(hObject);
+% Fetch the current handles structure by finding hObject
+hObject = findall (0, 'Tag', 'GUI_pp_jobbrowse_pb');
+handles = guidata (hObject);
 
+% Get the information from the delete button
+deleteButtonHandle = findall (0, 'Style', 'pushbutton', 'Tag', 'chuckout');
 
-chuckhelpH =findall(0,'Style','pushbutton','Tag','chuckout');
+% Find out which cell the user wants to delete
+selectedCell = str2num (get (deleteButtonHandle, 'UserData'));
 
-%find out which cell the user wishes to delete
-whichcell= str2num(get(chuckhelpH,'UserData'));
+% Delete the found cell from MPM
+handles.MPM (selectedCell,:) = 0;
 
-%delete that cell
-handles.MPM(whichcell,:)=0;
+% Find and get rid of all the associated GUI objects as well
+linkedListHandle = findall (0, 'Style', 'listbox', 'Tag', 'linklist');
+linkButtonHandle = findall (0, 'Style', 'pushbutton', 'Tag', 'linkbutton');
+delete (linkedListHandle)
+delete (linkButtonHandle)
+delete (deleteButtonHandle)
 
-%save changed data
-guidata(hObject,handles);
+% Update the handles structure
+guidata (hObject, handles);
 
-
-
-linklisthelpingH= findall(0,'Style','listbox','Tag','linklist');
-linkbuttonH =findall(0,'Style','pushbutton','Tag','linkbutton');
-
-delete(chuckhelpH)
-delete(linklisthelpingH)
-delete(linkbuttonH)

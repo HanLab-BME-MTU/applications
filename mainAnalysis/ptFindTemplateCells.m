@@ -23,7 +23,7 @@ function [newCoord, maxCorrelation] = ptFindTemplateCells (currentCoord, current
 %
 % DEPENDENCIES   ptFindTemplateCells uses { nothing }
 %                                  
-%                ptFindTemplateCells is used by { ptTrackCells }
+%                ptFindTemplateCells is used by { ptGetProcessedImage }
 %                                   
 % Revision History
 % Name                  Date            Comment

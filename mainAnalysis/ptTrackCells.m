@@ -109,8 +109,18 @@ howManyTimeStepSlide = ptJob.timestepslide;
 minEdge              = ptJob.minedge;
 minimalQualityCorr   = ptJob.mincorrqualtempl;
 minTrackCorr         = ptJob.mintrackcorrqual;
-segmentation         = ptJob.minmaxthresh;
-clustering           = ptJob.clustering;
+
+% Segmentation method used
+if ptJob.clustering
+   method = 1;
+elseif ptJob.minmaxthresh
+   method = 2;
+elseif ptJob.emclustering
+   method = 3;
+else
+   fprintf(1, 'ptTrackCells: Wrong method. A valid method (1,2,3) has to be selected.\n');
+   return;
+end
 
 % How much the blobs found in ptFindHalos shall be eroded. This is an indirect
 % size criteria for ptFindHalos. Increase - minimal size of halos will be
@@ -187,7 +197,10 @@ else
    % Index is equal to the number of the image, countLoops keeps
    % track of the loops
    countLoops = 0;
-    
+
+   % Generate the initial mu0 values for the segmentation
+   mu0Init = [levNucFirst ; levBackFirst ; levHaloFirst];
+   
    % Loop through all the images of the job using the specified increment
    for jImageNum = firstImaNum:increment:lastImaNum
         
@@ -207,21 +220,12 @@ else
       fileName = char(imageNamesList(jImageNum));
         
       % Read the current image and normalize the intensity values to [0..1]
-      newImage = imreadnd2 (fileName, 0, maxImageIntensity);
-      %tempImage = imreadnd2 (fileName, 0, maxImageIntensity);
+      tempImage = imreadnd2 (fileName, 0, maxImageIntensity);
+
+      % Subtract the background from the image (this is done using robustfit)
+      [newImage, background] = ptGetProcessedImage (tempImage, 20);
+      clear tempImage;
       
-      % We have to do a bit more since we're starting from a normal image
-      % First we find the background by filtering out all the smaller 
-      % objects (smaller than a disk with radius 35)
-      %background = imopen (tempImage, strel ('disk', 35));
-
-      % Then we subtract the background from the original image
-      %subtractedImage = imsubtract (tempImage, background); 
-
-      % Normalize all the intensities to the range (0..1) ; stretchlim finds the maximum
-      % intensities of the image which is needed as an input to imadjust
-      %newImage = imadjust (subtractedImage, stretchlim(subtractedImage), [0 1]);
-   
       % Calculate the size of the normalized image
       [img_h,img_w] = size(newImage);
         
@@ -235,18 +239,18 @@ else
             
          % In case the clustering algorithm has been selected use the kmeans method
          % to segment the image
-         if clustering
+         if method == 1
             % Here's the call to the image segmentation function; we also
             % get mu0 back which we use to segment the following images
-            [segmentedImage, dummy, mu0] = imClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', 3);
-            method = 1;
+            [segmentedImage, dummy, mu0] = imClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', 3, ...
+                                                         'mu0', mu0Init);
+            %[segmentedImage, dummy, mu0] = imClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', 3);
             inputImage = segmentedImage;
-         elseif segmentation
-            method = 2;
+         elseif method == 2
             inputImage = newImage;
-         else
-            fprintf (1, 'ptTrackCells: wrong method. Method should be one of clustering or segmentation.\n');
-            return;
+         elseif method == 3
+            [segmentedImage, dummy, p, mu0] = imClusterSeg (newImage, 0, 'method', 'em', 'k_min', 2, 'k_max', 2);
+            inputImage = newImage;
          end
 
          [nucCoord, imgNuclei] = ptFindNuclei (inputImage, levDiffFirst, minSizeNuc, maxSizeNuc, method);
@@ -254,6 +258,11 @@ else
                                
          if ~isempty (ptJob.coordinatespicone);
             newCoord = ptJob.coordinatespicone;
+            
+            % Just in case there are any zeros in there, let's remove them
+            % because they will only cause trouble later on
+            tempIndex = unique (find (newCoord(:,1) ~= 0));
+            newCoord = newCoord (tempIndex,:);
          else 
             newCoord = ptCheckMinimalCellDistance (nucCoord, haloCoord, minDistCellToCell);           
          end
@@ -271,32 +280,65 @@ else
                   
          emptyM = zeros (1,4);
                       
-      % The following is what we do with images that are not the first one
+      % The following is what we do with images that are not the first
       else
           
          % Adjust level via increment
          levDiffInterpol = levDiffFirst + (countLoops - 1) * increment * incrDiff;
-         levBaInterpol = levBackFirst + (countLoops - 1) * increment * incrBack;
-         halointerpol = levHaloFirst + (countLoops - 1) * increment * incrHalo;
-         levNucInterpol = levNucFirst + (countLoops - 1) * increment * incrNuc;
-         haloLevel = (halointerpol-levBaInterpol)*2/3+levBaInterpol;
+         levelBackInterpol = levBackFirst + (countLoops - 1) * increment * incrBack;
+         levelHaloInterpol = levHaloFirst + (countLoops - 1) * increment * incrHalo;
+         %levelNucInterpol = levNucFirst + (countLoops - 1) * increment * incrNuc;
+         haloLevel = (levelHaloInterpol - levelBackInterpol) * 2 / 3 + levelBackInterpol;
          
-         if clustering
-            [segmentedImage, dummy, mu0] = imClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', 3, 'mu0', mu0);
-            method = 1;
-            inputImage = segmentedImage;
-         elseif segmentation
-            method = 2;
+         if method == 1
+            % Segment the image; if necessary multiple times
+            nucleiArea = 1;
+            escapeCount = 0; maxCount = 5;
+            while (nucleiArea > 0.5) && (escapeCount < maxCount)
+                
+                % Calculate the variation for mu0 in case we segment more than once
+                % The second time start with the initial mu0
+                if escapeCount == 1
+                    mu0 = mu0Init;
+                elseif escapeCount > 1
+                    mu0 = mu0 + [0.005 ; 0.005 ; 0.005];
+                end
+                
+                % Segment the image again
+                [segmentedImage, dummy, mu0] = imClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', 3, 'mu0', mu0);
+                inputImage = segmentedImage;
+
+                % The number of pixels in the nuclei should be relatively small compared to all the pixels in the image.
+                % If large, something went wrong and we'll have to do the clustering again. Build in some sort
+                % of mechanism that we don't hang in here forever.
+                bwNuclei = zeros (size (segmentedImage));
+                bwNuclei (find (segmentedImage == 1)) = 1;
+                nucleiArea = bwarea (bwNuclei) / (size (segmentedImage, 1) * size (segmentedImage, 2));
+
+                % Increase the counter so that we eventually come out of the loop
+                escapeCount = escapeCount + 1;
+           end
+
+            % Did we run against the max count and not segment correctly?: Stop
+            if escapeCount == maxCount
+               error ('ptTrackCells: error, could not segment image correctly.');
+               return;
+            end
+
+         elseif method == 2
             inputImage = newImage;
             haloLevel = (levHaloFirst - levBackFirst) * 2 / 3 + levBackFirst;
-         else
-            fprintf (1, 'ptTrackCells: wrong method. Method should be one of clustering or segmentation.\n');
-            return;
+         elseif method == 3
+            [segmentedImage, dummy, p0, mu0] = imClusterSeg (newImage, 0, 'method', 'em', 'k_min', 2, 'k_max', 2, 'mu0', mu0, 'p0', p0);
          end
 
+         % Find the coordinates of all the nuclei
          [nucCoord, imgNuclei] = ptFindNuclei (inputImage, levDiffInterpol, minSizeNuc, maxSizeNuc, method);
+
+         % Find the coordinates of all the halos
          [haloCoord, imgHalo] = ptFindHalos (inputImage, erodeDiskSize, haloLevel, method);
          
+         % Ensure a minimal distance between cells
          newCoord = ptCheckMinimalCellDistance (nucCoord, haloCoord, minDistCellToCell);  
          
          % Mark coordinates as high quality coordinates. These cells are found in the usual way, 
@@ -338,7 +380,7 @@ else
          clear newCellCoordIndex;
 
          % First we try to allocate the old cells to any set of coordinates found in the new picture
-         matchedCells = fsmTrackTrackerBMTNN (previousCoordNewCells, newCoord, maxSearch);
+         matchedCells = fsmTrackTrackerBMTNN (previousCoordNewCells, newCoord, maxSearch, maxSearch);
                       
          clear previousCoordNewCells;
                   
@@ -358,7 +400,7 @@ else
             clear foundNewCells
 
             newMatchedCells = [];
-            newMatchedCells = fsmTrackTrackerBMTNN (newCellCoord, notAllocatedCellCoord, maxSearch);
+            newMatchedCells = fsmTrackTrackerBMTNN (newCellCoord, notAllocatedCellCoord, maxSearch, maxSearch);
                                   
             % Combine the two allocation matrices to one
             revisedMatchedCells = cat (1, matchedCells, newMatchedCells);
@@ -424,7 +466,7 @@ else
                   % routine. It will return the found
                   % coordinates and the value of the
                   % corralation
-                  [templateCellCoord, correlation] = ptFindTemplateCells (unmatchedCellsCoord, previousImage, newImage, levBaInterpol, templateCellMarker, ...
+                  [templateCellCoord, correlation] = ptFindTemplateCells (unmatchedCellsCoord, previousImage, newImage, levelBackInterpol, templateCellMarker, ...
                                            newCell, newTemplateCell, newTemplateCellMarker, percentBackground, sizeTemplate, boxSizeImage);
                                                       
                   if sqrt ((unmatchedCellsCoord(1,1) - templateCellCoord(1,1)).^2 + (unmatchedCellsCoord(1,2) - templateCellCoord(1,2)).^2) > 2 * maxSearch
@@ -784,15 +826,12 @@ else
           
          tempProps = [];
                            
-         if clustering
-            method = 1;
+         if method == 1
             inputImage = segmentedImage;
-         elseif segmentation
-            method = 2;
+         elseif method == 2
             inputImage = newImage;
-         else
-            fprintf (1, 'ptTrackCells: wrong method. Method should be one of clustering or segmentation.\n');
-            return;
+         elseif method == 3
+            inputImage = newImage;
          end
                  
          [tempProps, binaryImage, labeled] = ptCalculateCellArea (inputImage, previousCoord, imgNuclei, imgHalo, approxDistance, method);

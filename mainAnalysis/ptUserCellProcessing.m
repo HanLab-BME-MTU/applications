@@ -19,7 +19,8 @@ function [newCoord] = ptUserCellProcessing (inputImage, coord)
 % Andre Kerstens        Mar 04          Cleaned up source
 
 % Show the image in a figure
-initialFigure = figure, imshow (inputImage, []), title ('Left-klick on the unmarked nuclei, right-klick on the dots that are not nuclei // Press ENTER twice when finished.');
+initialFigure = figure, imshow (inputImage, []);
+title ('Left-klick on the unmarked nuclei, right-klick on the dots you want removed // Press ENTER twice when finished.');
 
 % Show the coordinates overlayed as red dots in the same figure
 hold on;
@@ -58,7 +59,8 @@ while 1
       coord = cat (1, coord, allAddCoord);
    
       % Ask the user if this is really correct and show the final image
-      finalFigure = figure, imshow (inputImage, []), title ('Finished? Yes: left-click -- No: right-click, followed by pressing ENTER.');
+      finalFigure = figure, imshow (inputImage, []);
+      title ('Finished? Yes: left-click -- No: right-click, followed by pressing ENTER.');
 
       % Overlay the red dots again
       hold on;
@@ -87,7 +89,8 @@ while 1
       found = [];
    
       % Plot the updated figure on the screen again and ask the user to change coordinates
-      initialFigure = figure, imshow (inputImage, []), title ('Left-klick on the unmarked nuclei, right-klick on the dots that are not nuclei // Press ENTER twice when finished.');
+      initialFigure = figure, imshow (inputImage, []); 
+      title ('Left-klick on the unmarked nuclei, right-klick on the dots that are not nuclei // Press ENTER twice when finished.');
 
       % Also overlay the coordinates in red dots again
       hold on;

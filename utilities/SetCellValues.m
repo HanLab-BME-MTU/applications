@@ -1,25 +1,24 @@
-function SetCellValues(hObject,jobdeterminer)
+function SetCellValues (hObject,objectChoice)
 % SetCellValues let's the user specify values of images
 %
-% SYNOPSIS       SetCellValues(hObject,jobdeterminer)
+% SYNOPSIS       SetCellValues (hObject,objectChoice)
 %
 % INPUT          hObject : handle to an object of GUI (PolyTrack)
-%                jobdeterminer : what kind of value interestes the user 
+%                objectChoice : what kind of value interestes the user 
 %                                1 - minimal size nucloi
 %                                2 - maximal size nucloi
 %                                3 - minimal distance between two nuclei
 %
-% OUTPUT         none (get written directly into handles
-%                minsize or maxsize or minsdist
+% OUTPUT         none (results get written directly into handles)
 %
-% DEPENDENCIES   SetCellValues uses {nothing}
+% DEPENDENCIES   SetCellValues uses { nothing }
 %                                  
 %                SetCellValues is used by { PolyTrack }
 %
 % REMARK         SetCellValues fetches directly in GUI PolyTrack:
-% 					projNum : currently treated job
+% 					jobNumber : current job
 %                   handles : structure with information used within GUI
-% 			      from  handles.jobs(projNum):
+% 			      from  handles.jobs (jobNumber):
 % 					imagedirectory : where are the images 
 % 					imagename : what are the images called
 % 					imagenameslist : list of images within imagedirectory with imagename
@@ -28,78 +27,92 @@ function SetCellValues(hObject,jobdeterminer)
 % 					intensityMax : highest value image can have (calc from bitdepth)
 % 					
 %
-% Colin Glass, Feb 04         
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Colin Glass           Feb 04          Initial release
+% Andre Kerstens        Mar 04          Cleaned up source
 
-
-%this routine enables the user to specify:
-%-Minimal size of nuclei (1)
-%-Maximal size of nuclei (2)
-%-Minimal distance between two nuclei (3)
-%interactively. Which one of the three it is going to be, depends on the
-%value of jobdeterminer
+% Get the handles structure from the GUI and determine current job number
+handles = guidata (hObject);
+jobNumber = get (handles.GUI_st_job_lb,'Value');
 
 change=0;
-handles = guidata(hObject);
 
-projNum = get(handles.GUI_st_job_lb,'Value');
-ImageDirectory=handles.jobs(projNum).imagedirectory;
-ImageName=handles.jobs(projNum).imagename;
-FirstImaNum=handles.jobs(projNum).firstimage;
-LastImaNum=handles.jobs(projNum).lastimage;
-ImageNamesList = handles.jobs(projNum).imagenameslist;
-intensityMax = handles.jobs(projNum).intensityMax;
+imageDirectory = handles.jobs(jobNumber).imagedirectory;
+firstImage    = handles.jobs(jobNumber).firstimage;
+imageNameList = handles.jobs(jobNumber).imagenameslist;
+intensityMax   = handles.jobs(jobNumber).intensityMax;
 
+% Fetch the first image from disk
+cd (imageDirectory);
+fileName = char (imageNameList (firstImage));
+tempFirstImg = imreadnd2 (fileName, 0, intensityMax);
+[firstImg, background] = ptGetProcessedImage (tempFirstImg, 20);
 
-cd(ImageDirectory);
-
-name = char(ImageNamesList(FirstImaNum));
-firstImg=imreadnd2(name,0,intensityMax);
-
-name = char(ImageNamesList(LastImaNum)); 
-lastImg=imreadnd2(name,0,intensityMax);
-
+% Get the image size
 [img_h,img_w]=size(firstImg);
 
+% Depending on what we have to do go through one of the code parts below
 
+if objectChoice == 1               % Minimal size of nuclei (1)
+   % Show figure with first image
+   figure, imshow (firstImg,[]);
+   title('Draw a polygon around the smallest nucleus and press ENTER when finished.');
 
-%-Minimal size of nuclei (1)
-if jobdeterminer == 1
-    figure, imshow(firstImg,[]),title('Make a polygon around the smallest nucleus, by clicking on its rimm, going around clock- or anticlockwise,then press ENTER') ; 
-    BW =roipoly;
-    close
-    if ~length(find(BW))==0
-        handles.jobs(projNum).minsize= length(find(BW));
-        change=1;
-    end
-end
+   % Get the polygon coordinates and store in polyImage (this is a binary image 
+   % containing the selected region of firstImg)
+   polyImage = roipoly;
 
+   % Close figure
+   close;
 
+   if length (find (polyImage)) > 0
+      % Store the length of the selected region (which is the nucleus diameter) in the handles struct
+      handles.jobs(jobNumber).minsize = length (find (polyImage));
+      change = 1;
+   end
 
-%-Maximal size of nuclei (2)
-if jobdeterminer == 2
-    figure, imshow(firstImg), title('Make a polygon around the biggest nucleus, by clicking on its rimm, going around clock- or anticlockwise,then press ENTER') ;
-     BW =roipoly;
-    close
-    if ~length(find(BW))==0
-        handles.jobs(projNum).maxsize= length(find(BW));
-        change=1;
-    end
-   
-end
-  
+elseif objectChoice == 2            % Maximal size of nuclei (2)
+   % Show figure with first image
+   figure, imshow (firstImg);
+   title('Draw a polygon around the biggest nucleus and press ENTER when finished.');
 
+   % Get the polygon coordinates and store in polyImage (this is a binary image 
+   % containing the selected region of firstImg)
+   polyImage = roipoly;
 
-%-Minimal distance between two nuclei (3)
-if jobdeterminer == 3
-    figure, imshow(firstImg), title('click on the centers of the two cells closest to each other, then press ENTER') ;
-     [x,y] =getpts;
-     close
+    % Close figure
+   close;
+
+   if length (find (polyImage)) > 0
+      % Store the length of the selected region (which is the nucleus diameter) in the handles struct
+      handles.jobs(jobNumber).maxsize = length (find (polyImage));
+      change = 1;
+   end
+
+elseif objectChoice == 3            % Minimal distance between two nuclei (3)
+   % Show figure with first image
+   figure, imshow (firstImg);
+   title('Click on the centerpoints of the two nuclei closest to each other and press ENTER.');
+
+   % Get the coordinates of the pixels clicked by the user
+   [x,y] = getpts;
+
+   % Close figure
+   close;
      
-     if length(x)>1
-         handles.jobs(projNum).minsdist= round(sqrt((x(1)-x(2))^2+(y(1)-y(2))^2));
-         change=1;
-    end
-    
+   if length (x) > 1
+      % If more than 2 points clicked, take the first two
+      handles.jobs(jobNumber).minsdist = round (sqrt ((x(1) - x(2))^2 + (y(1) - y(2))^2));
+      change = 1;
+   else
+      fprintf (1, 'Warning: Only one nuclei selected (two are needed). Returning...\n');
+      return;
+   end
+else
+   fprintf (1, 'Warning: Invalid choice for object. Returning...\n');
+   return;
 end
 
 
@@ -109,12 +122,12 @@ if change==1
 	guidata(hObject, handles);
 	
 	%%%%%%%%save altered values to disk%%%%%%%%%%%%
-	cd(handles.jobs(projNum).savedirectory)
-	jobvalues=handles.jobs(projNum);
+	cd(handles.jobs(jobNumber).savedirectory)
+	jobvalues=handles.jobs(jobNumber);
 	save ('jobvalues','jobvalues')
 	clear jobvalues
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
 	%now we update the value in PolyTrack
-	ptFillFields (handles,handles.jobs(projNum));
+	ptFillFields (handles,handles.jobs(jobNumber));
 end

@@ -51,9 +51,9 @@ tempCoord = round (coord);
 if method == 1            % Clustering (which uses the segmented image)
    % The binary image is an or-function of the input image where pixels are 1 and the 
    % input image where pixels are 3
-   imgCellArea = (inputImage==1 | inputImage==3);
+   imgCellArea = (inputImage == 1 | inputImage == 3);
 
-elseif method == 2        % Segmentation (which uses a normal image)
+elseif method == 2 || method == 3        % Thresholding (which uses a normal image)
    % Here we have to do a bit more since we're starting from a normal image
    % First we find the background by filtering out all the smaller 
    % objects (smaller than a disk with radius 35)
@@ -65,7 +65,8 @@ elseif method == 2        % Segmentation (which uses a normal image)
    % Normalize all the intensities to the range (0..1) ; stretchlim finds the maximum
    % intensities of the image which is needed as an input to imadjust
    %I3 = imadjust (I2, stretchlim(I2), [0 1]);
-
+   I3 = inputImage;
+   
    % Find a global image threshold (between 0 and 1) using Otsu's method
    imgThreshold = graythresh (I3);
    
@@ -101,7 +102,8 @@ belongsToCluster = zeros (length (tempCoord), 1);
 
 % Determine to which group each set of coordinates belongs
 for i = 1 : length (tempCoord)          % process all cols in tempCoord (that's what length returns)
-   if imgLabeledCellArea (tempCoord (i,2), tempCoord (i,1)) ~= 0
+   if imgLabeledCellArea (tempCoord(i,2), tempCoord(i,1)) ~= 0
+
       % If the coordinates fall into a labeled area, that cluster label is stored in a matrix
       belongsToCluster(i) = imgLabeledCellArea (tempCoord(i,2), tempCoord(i,1));
 
