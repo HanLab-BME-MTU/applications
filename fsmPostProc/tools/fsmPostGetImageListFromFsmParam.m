@@ -2,6 +2,7 @@ function [imageFileList,imageFirstIndex,imageLastIndex,status]=fsmPostGetImageLi
 
 status=0;
 
+% Extract info from fsmParam
 imageFileList=fsmParam.specific.fileList;
 imageFirstIndex=fsmParam.specific.firstIndex;
 imageLastIndex=fsmParam.specific.lastIndex;
@@ -27,11 +28,17 @@ if exist(imageFileList(1,:),'file')==0
         % Check index
         [tmp1,newName,newIndex,newExt]=getFilenameBody([newImagePath,newImageName]);
         
-        if strcmp([currentName,currentIndex,currentExt],[newName,newIndex,newExt])==0
-            errordlg('Please pick the same image!','Error','modal');
-            return
-        end
         
+        choice=questdlg('The selected file does not appear to be the same as pointed to in fsmParam. However, this may happen if you run SpeckTackle and the post-processing in two different operating systems, such as Windows and Linux. Do you want to use the image you selected?', ...
+                       'Warning', ...
+                       'Yes','No','No');
+                   
+        switch choice
+            case 'Yes', % Continue like this
+            case 'No', return
+            otherwise, error('Impossible choice in the dialog.');
+        end
+    
         % Re-create list of files
         imageFileList=getFileStackNames([newImagePath,newImageName]);
 

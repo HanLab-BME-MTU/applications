@@ -201,7 +201,7 @@ end
 if isfield(fsmParam,'project')
     outputdir=[fsmParam.project.path,filesep,fsmParam.project.post,filesep];
     if ~isdir(outputdir)
-        outputdir=[];
+        outputdir='';
     end
 else
     outputdir='';
