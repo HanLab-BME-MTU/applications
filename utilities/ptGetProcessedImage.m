@@ -31,6 +31,7 @@ function [outImage, backgroundLevel, binImageEdge] = ptGetProcessedImage (vararg
 % Andre Kerstens        Jun 04          Added edge image to output of function
 % Andre Kerstens        Jul 04          Fixed bug where imMinimumThreshold for the edge images was 
 %                                       provided the var image for bg's
+% Andre Kerstens        Aug 04          Removed normalization at the end of function
 
 % Test the number of input variables
 if nargin < 4
@@ -89,12 +90,14 @@ backgroundImage = coeff(1).*(xi.^2) + coeff(2).*(xi.*yi) + coeff(3).*(yi.^2) + c
 
 % The average background level is approx. equal to the constant in the equation
 backgroundLevel = coeff(4);
-%backgroundLevel = min(min(backgroundImage)) + ((max(max(backgroundImage)) - min(min(backgroundImage))) / 2);
 
 % Now we only have to subtract the background from the image and we're done
 outImage = inputImage - reshape(backgroundImage,size(inputImage));
 
 % Let's normalize the image back to [0..1] again
-imageMinimum = min (min (outImage));
-imageMaximum = max (max (outImage));
-outImage = (outImage - imageMinimum) / (imageMaximum - imageMinimum);
+%imageMinimum = min (min (outImage));
+%imageMaximum = max (max (outImage));
+%outImage = (outImage - imageMinimum) / (imageMaximum - imageMinimum);
+
+% The background level will be approx. 0 in the subtracted image
+backgroundLevel = 0;
