@@ -151,7 +151,7 @@ sel=[get(handles.checkPrepModule,'Value'), ...
         get(handles.checkDispModule,'Value')];
 indx0=find(sel==0);
 indx1=find(sel==1);
-if ~((sel(1)==0 & max(indx0)<min(indx1)) | (sel(1)==1 & min(indx0)>max(indx1)))
+if any([indx0>min(indx1) & indx0<max(indx1)])
     uiwait(msgbox('Please check the selection of your modules.','Error','Error','modal'));
     return
 end    
