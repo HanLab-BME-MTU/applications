@@ -51,6 +51,7 @@ currentFrame=fsmParam.specific.fileList(counter,:);
 % Check whether the user asked for an initializer of the tracker
 if fsmParam.track.init~=0
     
+    initCorLen = Inf;
     switch fsmParam.track.init
         
         case 1            
@@ -61,6 +62,12 @@ if fsmParam.track.init~=0
                 error('This is a bug: fsmParam.track.init is different 0, still fsmParam.track.initPath is empty.');
             end
             
+            % Read the correlation length for initialization.
+            corrLenFile = [initPath filesep 'corrLen.mat'];
+            if exist(corrLenFile,'file')
+                s = load(corrLenFile);
+                initCorLen = s.corrLen;
+            end
         case 2
             
             % Flow provided by TFT - saved into /tack/flow
@@ -76,6 +83,7 @@ if fsmParam.track.init~=0
     
     % Read current vector field (initializer) from initPath
     currentFlowField=[initPath,'flow',imageNo,'.mat'];
+    tackAvgFlowField = [initPath,'tackFlow',imageNo,'.mat'];
     if exist(currentFlowField,'file')==2
         s=load(currentFlowField);
         fields=fieldnames(s);
@@ -102,6 +110,24 @@ if fsmParam.track.init~=0
         % Inform the user that the tracker will be initialized for this frame
         fprintf(1,'Frame %s: the tracker will be initialized for this frame.\n',imageNo);
         
+    elseif exist(tackAvgFlowField,'file')==2
+        %If no initial flow field from the initializer for the curren
+        %frame. try to look for if there is one average flow field from the
+        %tracked speckle of the previous frame.
+        s = load(tackAvgFlowField);
+        delete(tackAvgFlowField);
+        flow = s.flow;
+        if size(flow,2)~=4
+            errorMsg=['The flow fields found in ',initPath,' are not valid. Skipping initialization.'];
+            fprintf(1,'%s\n',errorMsg);
+        end        
+        
+        % Extract init flow vector field from vectors
+        initM=flow;
+        nanInd=find(isnan(flow(:,3)) | isnan(flow(:,4))); 
+        initM(nanInd,3:4) = flow(nanInd,1:2);
+        % Inform the user that the tracker will be initialized for this frame
+        fprintf(1,'Frame %s: the tracker will be initialized for this frame by the average flow field from previous tracking.\n',imageNo);
     else
         errorMsg=['Frame ',imageNo,': could not find a flow field in ',initPath,' to use as an initializer. Skipping initialization.'];
         fprintf(1,'%s\n',errorMsg);
@@ -123,7 +149,7 @@ end
 
 % Track with initM as an initializer
 if ~isempty(initM)
-    M=fsmTrackTrackerBMTNNIterative(initM,I,J,threshold,influence);
+    M=fsmTrackTrackerBMTNNIterative(initM,I,J,threshold,influence,initCorLen);
 else
     M=[];
 end
@@ -213,7 +239,7 @@ if fsmParam.track.init~=0
         % Save averaged vectors to the initializer subdirectory
         indxStr=sprintf(strg,str2num(imageNo)+1); % Next frame
         try
-            eval(['save ',initPath,filesep,'flow',indxStr,'.mat flow;']);
+            eval(['save ',initPath,filesep,'tackflow',indxStr,'.mat flow;']);
         catch
             fprintf(1,'Could not save vector flow field to disk. It won''t be used to initialize the tracker for the next frame pair.\n');
         end

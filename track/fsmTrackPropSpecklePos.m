@@ -1,4 +1,4 @@
-function pSpPos=fsmTrackPropSpecklePos(spPos,Mi,mode)
+function pSpPos=fsmTrackPropSpecklePos(spPos,Mi,mode,corLen)
 % fsmTrackPropSpecklePos propagates speckle positions based on an interpolated vector field
 %
 % SYNOPSIS      pSpPos=fsmTrackPropSpecklePos(spPos,Mi,mode)
@@ -30,13 +30,16 @@ end
 if size(Mi,2)~=4
     error('Mi must be an (mx4) matrix');
 end
-if nargin==3
+if nargin>=3
     mode=upper(mode);
     if ~strcmp(mode,'BACKWARD')
         mode='FORWARD';
     end
 else
     mode='FORWARD';
+end
+if nargin < 4
+    corLen = Inf;
 end
 
 % Calculate vectors
@@ -55,11 +58,16 @@ pSpPos=zeros(size(spPos));
 for i=1:size(D,1)
     
     % For each speckle find the closest interpolation point
-    pos=find(D(i,:)==min(D(i,:)));
-    pos=pos(1);
-    
-    % Update speckle position by adding the vector at the closest interpolation point
-    pSpPos(i,1:2)=spPos(i,1:2)+v(pos,:);
-    
+    minD = min(D(i,:));
+    if minD <= corLen
+        pos=find(D(i,:)==minD);
+        pos=pos(1);
+
+        % Update speckle position by adding the vector at the closest interpolation point
+        pSpPos(i,1:2)=spPos(i,1:2)+v(pos,:);
+    else %No propogation.
+        pSpPos(i,1:2)= spPos(i,1:2);
+    end
+
 end
 

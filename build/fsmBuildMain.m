@@ -74,13 +74,13 @@ end
 
 % Save information into an array of struct speckle
 % To cope with subpixel.
-%if fsmParam.prep.subpixel
-%    speckleArray=fsmBuildSaveSpeckleArraySPix(MPM,outFileList,xmin,xmax,firstIndex,strg,noiseParam,threshold,factors,W,userPath,sigma);
-%else
-%    speckleArray=fsmBuildSaveSpeckleArray(MPM,outFileList,xmin,xmax,firstIndex,strg,noiseParam,threshold,factors,W,userPath,sigma);
-%end
+if fsmParam.prep.subpixel
+    speckleArray=fsmBuildSaveSpeckleArraySPix(MPM,outFileList,xmin,xmax,firstIndex,strg,noiseParam,threshold,factors,W,userPath,sigma);
+else
+    speckleArray=fsmBuildSaveSpeckleArray(MPM,outFileList,xmin,xmax,firstIndex,strg,noiseParam,threshold,factors,W,userPath,sigma);
+end
 %Force it to 'speckleArray.spPos' to be double.
-speckleArray=fsmBuildSaveSpeckleArraySPix(MPM,outFileList,xmin,xmax,firstIndex,strg,noiseParam,threshold,factors,W,userPath,sigma);
+%speckleArray=fsmBuildSaveSpeckleArraySPix(MPM,outFileList,xmin,xmax,firstIndex,strg,noiseParam,threshold,factors,W,userPath,sigma);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %

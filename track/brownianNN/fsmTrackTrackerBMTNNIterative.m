@@ -1,10 +1,13 @@
-function M=fsmTrackTrackerBMTNNIterative(initM,I,J,threshold,influence)
+function M=fsmTrackTrackerBMTNNIterative(initM,I,J,threshold,influence,initCorLen)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % If an initializer for the tracker exists, use it to propagate speckle positions at frame I
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if nargin < 6
+    initCorLen = Inf;
+end
 
 if ~isempty(initM)
     
@@ -13,7 +16,7 @@ if ~isempty(initM)
     
     % Propagate speckle positions
     spPos=I(:,1:2); % Extract only positions
-    pSpPos=fsmTrackPropSpecklePos(spPos,initM,'FORWARD');
+    pSpPos=fsmTrackPropSpecklePos(spPos,initM,'FORWARD',initCorLen);
     
     % Now I is the propagated version of the original I
     I=cat(2,pSpPos,I(:,3)); % Add original intensities to the propagated positions
