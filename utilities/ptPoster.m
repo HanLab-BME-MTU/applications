@@ -37,6 +37,8 @@ saveAllPath=handles.postpro.saveallpath;
 % Load all needed values
 load ('percentageSingle');
 load ('averageDisplacement');
+load ('displacementVel');
+load ('averageDisplacementVel');
 load ('averageSingleDisplacement');
 load ('averageClusterDisplacement');
 load ('displacement');
@@ -65,16 +67,25 @@ load ('velocityVariance');
 winWidth = 25;
 winSigma = 0.5;
 window = gausswin (winWidth, winSigma);
+averageDisplacementVelFiltered = filtfilt (window ./ sum (window), 1, averageDisplacementVel);
 averageDisplacementFiltered = filtfilt (window ./ sum (window), 1, averageDisplacement);
 velocityVarianceFiltered = filtfilt (window ./ sum (window), 1, velocityVariance);
 
 % Calculate start, end and cutover values for the average velocity (start
 % and end are averaged over 20 values)
+avgDispVelStart = sum (averageDisplacementVel(1:20)) / 20;
+avgDispVelEnd = sum (averageDisplacementVel(end-20:end)) / 20;
+avgDispVelCutover = (abs (avgDispVelEnd - avgDispVelStart) / 2) + min ([avgDispVelStart avgDispVelEnd]);
+avgDispVelCutoverFrame = find (abs(averageDisplacementVelFiltered - avgDispVelCutover) == min (abs (averageDisplacementVelFiltered - avgDispVelCutover)));
+
+% Calculate start, end and cutover values for the three frame displacement (start
+% and end are averaged over 20 values)
 avgDispStart = sum (averageDisplacement(1:20)) / 20;
 avgDispEnd = sum (averageDisplacement(end-20:end)) / 20;
 avgDispCutover = (abs (avgDispEnd - avgDispStart) / 2) + min ([avgDispStart avgDispEnd]);
 avgDispCutoverFrame = find (abs(averageDisplacementFiltered - avgDispCutover) == min (abs (averageDisplacementFiltered - avgDispCutover)));
-avgDispValues = [avgDispStart avgDispEnd avgDispCutover avgDispCutoverFrame];
+
+avgDispValues = [avgDispVelStart avgDispVelEnd avgDispVelCutover avgDispVelCutoverFrame; avgDispStart avgDispEnd avgDispCutover avgDispCutoverFrame];
 
 % Prepare vector that holds single and cluster cell numbers measured
 % against thresholds
@@ -83,6 +94,7 @@ thresholdedCells = zeros(numberOfFrames-1,4);
 for iFrame = startFrame : (stopFrame - 1)    
    % Now we'll calculate single and cluster cell numbers via another method
    realDisplacement = displacement (find (displacement (:,iFrame)), iFrame);
+   %thresholdValue= averageDisplacementFiltered (iFrame,1);
    thresholdValue = avgDispEnd;
    %thresholdValue = 10;
    thresholdedCells (iFrame,1) = sum (realDisplacement > thresholdValue);  % Store nr of single cells
@@ -100,12 +112,13 @@ thresholdedCellsFiltered = filtfilt (window ./ sum (window), 1, thresholdedCells
 % Generate a plot with both average velocity and variance of cells in one figure
 h_fig = figure;
 %subplot (2,1,1); plot (averageDisplacement), title('Average velocity of cells');
-plot (averageDisplacement), title('Average velocity of cells');
+plot (averageDisplacementVel), title('Average velocity of cells');
 hold on;
-plot (averageDisplacementFiltered, 'r');
+plot (averageDisplacementVelFiltered, 'r');
+plot (avgDispVelCutover, 'k');
 xlabel ('Frames');
 ylabel ('displacement per frame (in pixel)');
-ymax = max(averageDisplacement);
+ymax = max(averageDisplacementVel);
 axis ([startFrame stopFrame 0 ymax]);
 hold off;
 % subplot (2,1,2); plot (velocityVariance), title('Variance of avarage velocity of cells');
@@ -152,13 +165,24 @@ print(h_fig, [saveAllPath filesep 'percentSingle.tif'],'-dtiff');
 	
 % Plot all the cells in all the frames against their velocities and put the
 % filtered average velocity there as well
+transposedDisplacementVel = displacementVel';
+h_fig = figure;
+plot (transposedDisplacementVel,'rx'), title('Velocity of cells (black line shows average velocity)');
+hold on;
+plot (averageDisplacementVelFiltered, 'k');
+xlabel ('Frames');
+ylabel ('displacement per frame (in pixel)');
+hold off;
+
+% Plot all the cells in all the frames against their three frame displacements and put the
+% filtered average displacement there as well
 transposedDisplacement = displacement';
 h_fig = figure;
-plot (transposedDisplacement,'rx'), title('Velocity of cells (black line shows average velocity)');
+plot (transposedDisplacement,'rx'), title('three frame displacements (black line shows average)');
 hold on;
 plot (averageDisplacementFiltered, 'k');
 xlabel ('Frames');
-ylabel ('displacement per frame (in pixel)');
+ylabel ('displacement per three frames (in pixel)');
 hold off;
 
 % Plot number of single cells with new method
@@ -201,7 +225,8 @@ hold off;
 guidata(hObject, handles);
 
 % Write values to the disk as mat file
-save ('transposedDisplacement','transposedDisplacement');
+save ('transposedDisplacementVel','transposedDisplacementVel');
+save ('averageDisplacementVelFiltered','averageDisplacementVelFiltered');
 save ('averageDisplacementFiltered','averageDisplacementFiltered');
 save ('velocityVarianceFiltered','velocityVarianceFiltered');
 save ('percentageSingleFiltered','percentageSingleFiltered');
@@ -211,13 +236,13 @@ save ('avgDispValues','avgDispValues');
 % Write the thresholdedCells matrix, the avg velocity and percent single cell values 
 % to the disk in ascii format
 fid = fopen ('thresholdedCells.txt','w');
-fprintf (fid, '%f %f %f %f\n', thresholdedCells);
+fprintf (fid, '%f %f %f %f\n', thresholdedCells');
 fclose (fid);
 
 fid = fopen ('percSingleValues.txt','w');
-fprintf (fid, '%f %f %f %f\n', percSingleValues);
+fprintf (fid, '%f %f %f %f\n', percSingleValues');
 fclose (fid);
 
 fid = fopen ('avgDispValues.txt','w');
-fprintf (fid, '%f %f %f %f\n', avgDispValues);
+fprintf (fid, '%f %f %f %f %f %f %f %f\n', avgDispValues');
 fclose (fid);

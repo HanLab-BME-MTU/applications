@@ -133,9 +133,11 @@ for iFrame = startFrame : (stopFrame - 1)
    
    % Calculate the average displacement for all selected cells (since we sum up, the zeros do not bother us) 
    if (length(whatCells) - length(zeroRows)) ~= 0
-      averageDisplacement (iFrame,1) = sum (displacementVel(:,iFrame)) / (length(whatCells) - length(zeroRowsVel));
+      averageDisplacementVel (iFrame,1) = sum (displacementVel(:,iFrame)) / (length(whatCells) - length(zeroRowsVel));
+      averageDisplacement (iFrame,1) = sum (displacement(:,iFrame)) / (length(whatCells) - length(zeroRows));
    else
-      averageDisplacement (iFrame,1) = 0;
+      averageDisplacementVel (iFrame,1) = 0;
+       averageDisplacement (iFrame,1) = 0;
    end
    
    % Calculate the average displacement for cells in a cluster
@@ -289,9 +291,11 @@ end
 cd (saveAllPath);
 save ('velocityVariance', 'velocityVariance');
 save ('displacement', 'displacement');
+save ('displacementVel', 'displacementVel');
 save ('singleDisplacement', 'singleDisplacement');
 save ('clusterDisplacement', 'clusterDisplacement');
 save ('averageDisplacement', 'averageDisplacement');
+save ('averageDisplacementVel', 'averageDisplacementVel');
 save ('averageSingleDisplacement', 'averageSingleDisplacement');
 save ('averageClusterDisplacement', 'averageClusterDisplacement');
 save ('thresholdedCells','thresholdedCells');
