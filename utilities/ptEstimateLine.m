@@ -12,7 +12,8 @@ function [xPlot, yPlot, sigma, est] = ptEstimateLine (xdata, ydata, subPlot, dru
 %                drugTimepoint : time point of drug application
 %                
 % OUTPUT         yPlot : y-axis values 
-%                est : the estimated coefficients from ptFitCurve
+%                estimates : the estimated values calculated in this
+%                            function
 %
 % DEPENDENCIES   ptEstimateLine uses { ptFitLine }
 %                                  
@@ -75,6 +76,9 @@ slopeValue = (yPlot(end) - yPlot(1)) / (xPlot(end) - xPlot(1));
 [lineText, errmsg] = sprintf('Min = %f\nMax = %f\nt0 = %d\nt1 = %d\nSlope = %f', ...
                              minValue, maxValue, t0, t1, slopeValue);
 
+% Put the estimates in a vector
+estimates = [minValue; maxValue; t0; t1; slopeValue];
+                             
 % Print the text on the graph
 if isempty(errmsg)
    %text (xValue, yValue, lineText, 'HorizontalAlignment',horAlign,'VerticalAlignment',vertAlign);

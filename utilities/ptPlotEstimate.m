@@ -1,4 +1,4 @@
-function [yPlot, est] = ptPlotEstimate (xdata, ydata, slope, subPlot, drugTimepoint)
+function [yPlot, estimates] = ptPlotEstimate (xdata, ydata, slope, subPlot, drugTimepoint)
 % ptPlotEstimate plots the estimated function calculated by ptFitCurve 
 %
 % SYNOPSIS       ptPlotEstimate (xdata, ydata)
@@ -13,7 +13,8 @@ function [yPlot, est] = ptPlotEstimate (xdata, ydata, slope, subPlot, drugTimepo
 %                drugTimepoint : time point of drug application
 %                
 % OUTPUT         yPlot : y-axis values 
-%                est : the estimated coefficients from ptFitCurve
+%                estimates : the estimated values calculated in this
+%                            function
 %                (plots are also shown on the screen and saved on the disk) 
 %
 % DEPENDENCIES   ptPlotEstimate uses { ptFitCurve }
@@ -183,6 +184,9 @@ end
                               t1Format '\nSlope = ' slopeFormat '\nSigma = %f\n'], ...
                               minValue, maxValue, t0, t1, slopeValue, sigma);    
 
+% Put the estimates in a vector
+estimates = [minValue; maxValue; t0; t1; slopeValue];                          
+                              
 % Print the text on the graph
 if isempty(errmsg)
    %text (xValue, yValue, lineText, 'HorizontalAlignment',horAlign,'VerticalAlignment',vertAlign);
