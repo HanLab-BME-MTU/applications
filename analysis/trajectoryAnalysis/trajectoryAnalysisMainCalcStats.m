@@ -245,7 +245,7 @@ if ~isempty(growthIdx)
     
     invGrowthTimeMean = 1/mean(deltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
-    invGrowthTimeStd = std(deltaT)*invGrowthTimeMean^2;
+    invGrowthTimeStd = (std(deltaT)/sqrt(size(growthGroups,1)))*invGrowthTimeMean^2;
     growthTimeTotal = sum(deltaT);
     
     %distance - again, use groups. unfortunately, we need the loop
@@ -320,7 +320,7 @@ if ~isempty(shrinkageIdx)
     
     invShrinkageTimeMean = 1/mean(deltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
-    invShrinkageTimeStd = std(deltaT)*invShrinkageTimeMean^2;
+    invShrinkageTimeStd = (std(deltaT)/sqrt(size(shrinkageGroups,1)))*invShrinkageTimeMean^2;
     shrinkageTimeTotal = sum(deltaT);
     
     %distance - again, use groups. unfortunately, we need the loop
