@@ -295,12 +295,10 @@ switch STRATEGY
                                 % Qll    = V
                                 
                                 case 0 %test linear fit
-                                    Qvvii = diag( V - A*inv(A'*weightMatrix*A)*A'); %diagonal elements of the covariance matrix of the residuals
+                                    Qvvii = abs(diag( V - A*inv(A'*weightMatrix*A)*A')); %diagonal elements of the covariance matrix of the residuals
                                     %pValue = tcdf(res./sqrt(Qvvii),ntp-2);
-                                    maxOutlier4T = max(res./sqrt(Qvvii));
-                                    if ~isreal(maxOutlier4T)
-                                        keyboard
-                                    end
+                                    maxOutlier4T = max(res./abs(sqrt(Qvvii)));
+                                    
                                     meanOrIntercept = A(1,:)*X;
                                     
                                     
@@ -311,12 +309,10 @@ switch STRATEGY
                                     % Since we are interested in the diagonal elements
                                     % only, anyway, we can do it very
                                     % simple: Qvv = Qllii - 1/sum(Qllii)
-                                    Qvvii = Qllii - 1/trace(weightMatrix); %we use the non-normed weights
+                                    Qvvii = abs(Qllii - 1/trace(weightMatrix)); %we use the non-normed weights
                                     %pValue = tcdf(resMean./sqrt(Qvvii),ntp-1);
-                                    maxOutlier4T = max(res./sqrt(Qvvii));
-                                    if ~isreal(maxOutlier4T)
-                                        keyboard
-                                    end
+                                    maxOutlier4T = max(res./abs(sqrt(Qvvii)));
+                                    
                                     meanOrIntercept = weightedMean;
                                     
                                     
