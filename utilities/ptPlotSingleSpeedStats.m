@@ -1,11 +1,11 @@
-function ptPlotSingleSpeedStats (radioButtons, imageName, savePath, xAxis, velocitySingleStats, windowSize)
+function ptPlotSingleSpeedStats (radioButtons, imageName, SaveDir, xAxis, velocitySingleStats, windowSize)
 % ptPlotSingleSpeedStats generates the plots for the velocity statistics
 %
-% SYNOPSIS       ptPlotSingleSpeedStats (radioButtons, imageName, savePath, xAxis, velocityStats)
+% SYNOPSIS       ptPlotSingleSpeedStats (radioButtons, imageName, SaveDir, xAxis, velocityStats)
 %
 % INPUT          radioButtons : struct containing the value of all gui radiobuttons
 %                imageName : name of the first image in the movie (used as title)
-%                savePath : name of the directory where the plots are saved in files
+%                SaveDir : name of the directory where the plots are saved in files
 %                xAxis : matrix with frame numbers (this should have the same length as
 %                        (all the other matrices that follow)
 %                velocityStats : struct with the following fields:
@@ -59,14 +59,14 @@ if radioButtons.speedplot_1
         end
 
         % Save the figures in fig, eps and tif format        
-        hgsave (h_fig3,[savePath filesep [imageName '_velAllCellsHigherThanAvgSingleCells.fig']]);
-        print (h_fig3, [savePath filesep [imageName '_velAllCellsHigherThanAvgSingleCells.eps']],'-depsc2','-tiff');
-        print (h_fig3, [savePath filesep [imageName '_velAllCellsHigherThanAvgSingleCells.tif']],'-dtiff');
+        hgsave (h_fig3,[SaveDir filesep [imageName '_velAllCellsHigherThanAvgSingleCells.fig']]);
+        print (h_fig3, [SaveDir filesep [imageName '_velAllCellsHigherThanAvgSingleCells.eps']],'-depsc2','-tiff');
+        print (h_fig3, [SaveDir filesep [imageName '_velAllCellsHigherThanAvgSingleCells.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplots
     
     % Save MAT files for percentage velocity higher than single cell speed
-    save ([savePath filesep imageName '_velAllCellsHigherThanAvgSingleCells.mat'],'velAllCellsHigherThanAvgSingleCells');
+    save ([SaveDir filesep imageName '_velAllCellsHigherThanAvgSingleCells.mat'],'velAllCellsHigherThanAvgSingleCells');
 
     % Save CSV files for percentage velocity higher than single cell speed
-    csvwrite ([savePath filesep imageName '_velAllCellsHigherThanAvgSingleCells.csv'], [xAxis ; velAllCellsHigherThanAvgSingleCells]);
+    csvwrite ([SaveDir filesep imageName '_velAllCellsHigherThanAvgSingleCells.csv'], [xAxis ; velAllCellsHigherThanAvgSingleCells]);
 end

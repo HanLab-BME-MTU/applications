@@ -191,16 +191,16 @@ function GUI_savesettingpath_ed_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Get the job path and name
-savePath = get(hObject,'String');
+saveDir = get(hObject,'String');
 
-if ~exist(savePath, 'file')
+if ~exist(saveDir, 'file')
    h=errordlg('The selected path does not exist. Please select another path... ');
    uiwait(h);
    return
 end
 
 % Save in the handles struct
-handles.savesettingpath = savePath;
+handles.savesettingpath = saveDir;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -488,11 +488,11 @@ plusFrames = handles.guiData.plusframes;
 minusFrames = handles.guiData.minusframes;
 maxDistance = handles.guiData.relinkdistance;
 minTrackDistance = handles.guiData.mintrackdistance;
-savePath = handles.guiData.savedatapath;
+saveDir = handles.guiData.savedatapath;
 
 % Process all the MPMs in the list
 for iCount = 1 : length (handles.allMPM)
-   updatedMPM = ptTrackFilter(handles.allMPM{iCount}, plusFrames, minusFrames, maxDistance, minTrackDistance, savePath);
+   updatedMPM = ptTrackFilter(handles.allMPM{iCount}, plusFrames, minusFrames, maxDistance, minTrackDistance, saveDir);
    handles.allMPM{iCount} = updatedMPM;
 end
 
@@ -673,15 +673,15 @@ if ~isfield (handles, 'allMPM')
 end
 
 % Get the path where plot data will be saved
-savePath = handles.guiData.savedatapath;
+saveDir = handles.guiData.savedatapath;
 
 % If it doesn't exist yet, create it in the results directory
-if ~exist (savePath, 'dir')
-   mkdir (savePath);
+if ~exist (saveDir, 'dir')
+   mkdir (saveDir);
 end
 
 % Test if the save directory already contains files
-[answer, empty] = directoryEmpty (savePath);
+[answer, empty] = directoryEmpty (saveDir);
 
 % If it does and the user doesn't want to overwrite, do nothing and return
 if strcmp(answer,'') & ~empty
@@ -718,20 +718,20 @@ else
       % Here's where the plotting itself starts
       if radioButtons.cellclusterplot
          % Generate single cell and cluster plots if the users requested these
-         ptPlotCellClusterStats (radioButtons, plotName, savePath, xAxis, cellClusterStats, windowSize);
+         ptPlotCellClusterStats (radioButtons, plotName, saveDir, xAxis, cellClusterStats, windowSize);
       end   
       if radioButtons.areaplot
          % Generate area plots if the users requested these
-         ptPlotAreaStats (radioButtons, plotName, savePath, xAxis, areaStats, windowSize);
+         ptPlotAreaStats (radioButtons, plotName, saveDir, xAxis, areaStats, windowSize);
       end
 
       if radioButtons.perimeterplot
          % Generate perimater plots if the users requested these
-         ptPlotPerimeterStats (radioButtons, plotName, savePath, xAxis, perimeterStats, windowSize);
+         ptPlotPerimeterStats (radioButtons, plotName, saveDir, xAxis, perimeterStats, windowSize);
       end
 
       % For all the figures we want to keep the xAxis as well 
-      save ([savePath filesep plotName '_xAxis-CellStats.mat'],'xAxis');
+      save ([saveDir filesep plotName '_xAxis-CellStats.mat'],'xAxis');
    end
    
    % Then do the cell-cell distance plots
@@ -741,7 +741,7 @@ else
       [cellCellDistStats, xAxis] = ptCalculateCellCellDist (handles);
                
       % Create the plots
-      ptPlotCellCellDist (radioButtons, plotName, savePath, xAxis, cellCellDistStats, windowSize);
+      ptPlotCellCellDist (radioButtons, plotName, saveDir, xAxis, cellCellDistStats, windowSize);
    end
    
    % Initialize some tmp vars
@@ -757,26 +757,26 @@ else
       % Here's where the plotting itself starts
       if radioButtons.speedplot_2
          % Generate avg velocity plots if the users requested these
-          ptPlotSpeedStats (radioButtons, plotName, savePath, xAxis, avgVelocityStats, windowSize);
+          ptPlotSpeedStats (radioButtons, plotName, saveDir, xAxis, avgVelocityStats, windowSize);
       end   
       if radioButtons.speedplot_1
          % Generate vel. single cell plots if the users requested these
-          ptPlotSingleSpeedStats (radioButtons, plotName, savePath, xAxis, velocitySingleStats, windowSize);
+          ptPlotSingleSpeedStats (radioButtons, plotName, saveDir, xAxis, velocitySingleStats, windowSize);
       end
 
       if radioButtons.speedplot_3
          % Generate velocity variance plots if the users requested these
-          ptPlotSpeedVarStats (radioButtons, plotName, savePath, xAxis, velocityVarStats, windowSize);
+          ptPlotSpeedVarStats (radioButtons, plotName, saveDir, xAxis, velocityVarStats, windowSize);
       end
 
       if radioButtons.speedplot_4 | radioButtons.allcellshist | radioButtons.singlecellshist | ...
          radioButtons.clusteredcellshist
          % Generate velocity histogram plots if the users requested these
-          ptPlotVelocityHist (radioButtons, plotName, savePath, xAxis, velocityHistStats);
+          ptPlotVelocityHist (radioButtons, plotName, saveDir, xAxis, velocityHistStats);
       end      
       
       % For all the figures we want to keep the xAxis as well 
-      save ([savePath filesep plotName '_xAxis-Velocity.mat'],'xAxis');
+      save ([saveDir filesep plotName '_xAxis-Velocity.mat'],'xAxis');
    end
 
    % Do the neighbourhood plots if the user requested these
@@ -787,7 +787,7 @@ else
          [neighTrajStats, xAxis] = ptCalculateNeighbourTraj (handles); 
             
          % Do the plots   
-         ptPlotNeighbourTraj (radioButtons, plotName, savePath, xAxis, neighTrajStats, windowSize);
+         ptPlotNeighbourTraj (radioButtons, plotName, saveDir, xAxis, neighTrajStats, windowSize);
       end
             
       if radioButtons.neighbourplot_2
@@ -796,11 +796,11 @@ else
          [neighChangeStats, xAxis] = ptCalculateNeighbourChanges (handles); 
             
          % Do the plots   
-         ptPlotNeighbourChanges (radioButtons, plotName, savePath, xAxis, neighChangeStats, windowSize);
+         ptPlotNeighbourChanges (radioButtons, plotName, saveDir, xAxis, neighChangeStats, windowSize);
       end
       
       % For all the figures we want to keep the xAxis as well 
-      save ([savePath filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
+      save ([saveDir filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
    end
    
    if radioButtons.ripleyplot            
@@ -810,11 +810,11 @@ else
           [chaosStats, xAxis] = ptCalculateChaosStats (handles);
           
           % Do the plots
-          ptPlotChaosStats (radioButtons, plotName, savePath, xAxis, chaosStats, windowSize);
+          ptPlotChaosStats (radioButtons, plotName, saveDir, xAxis, chaosStats, windowSize);
       end
       
       % For these figures we want to keep the xAxis as well 
-      save ([savePath filesep plotName '_xAxis-Chaos.mat'],'xAxis');
+      save ([saveDir filesep plotName '_xAxis-Chaos.mat'],'xAxis');
    end
    
    % Set the mouse pointer to normal again
@@ -1028,8 +1028,8 @@ handles = guidata (hObject);
 path = get (hObject, 'String');
 
 % If the path doesn't exist yet create it
-if ~exist (savePath, 'dir')
-   mkdir (savePath);
+if ~exist (path, 'dir')
+   mkdir (path);
 end
 
 % Assign it to the postpro structure
@@ -2052,7 +2052,7 @@ else
    fileLower = lower (filename);
    
    % Check whether it is a MPM file (ext .mat)
-   if (strfind (fileLower, 'mpm.mat')) == []
+   if ~strcmp(fileLower, 'mpm.mat')
       errormsg = ['File ' filename ' is not a MPM file. Please choose a file named MPM.mat.'];
       h = errordlg (errormsg);
       uiwait (h);
@@ -2222,7 +2222,7 @@ else
       % Get file info from struct
       fileList = fileInfoPP.fileList;
       filesSelected = fileInfoPP.filesSelected;
-      savePath = fileInfoPP.savePath;
+      saveDir = fileInfoPP.saveDir;
 
       % Set the GUI values for the first one
       filePath = fileList{1};
@@ -2276,7 +2276,7 @@ else
       ptSetPostproGUIValues (handles, length(fileList));
       
       % Set the savepath as well
-      set (handles.GUI_fm_saveallpath_ed, 'String', savePath);
+      set (handles.GUI_fm_saveallpath_ed, 'String', saveDir);
    end
 end
 
@@ -2307,12 +2307,12 @@ end
 % Get the job list and the current job
 fileList = get(handles.GUI_filelist_lb,'String');
 filesSelected = get(handles.GUI_filelist_lb,'Value');
-savePath = get(handles.GUI_fm_saveallpath_ed,'String');
+saveDir = get(handles.GUI_fm_saveallpath_ed,'String');
 
 % Store this info in a struct so that we can save it easily
 fileInfoPP.fileList = fileList;
 fileInfoPP.filesSelected = filesSelected;
-fileInfoPP.savePath = savePath;
+fileInfoPP.saveDir = saveDir;
 
 % Ask the user where to save the file
 [filename,path] = uiputfile(saveDirectory, 'Save settings as');

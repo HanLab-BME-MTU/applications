@@ -34,12 +34,22 @@ plotEndFrame = guiData.plotlastimg;
 maxDistance = guiData.maxneighbourdist;
 
 % Determine the movie with the most frames
-[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
-maxFrames = mpmLength / 2;
+%[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
+%maxFrames = mpmLength / 2;
+
+% Determine the movie with the most frames
+[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
+minFrames = mpmLength / 2;
+
+% Make sure we only process up to the shortest MPM else the averaging will
+% not work correctly
+if plotEndFrame > minFrames
+    plotEndFrame = minFrames;
+end
 
 % Get start and end frames and increment value
 startFrame = jobData(1).firstimg;
-endFrame = jobData(longestMPM).lastimg;
+endFrame = jobData(shortestMPM).lastimg;
 increment = jobData(1).increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 
@@ -57,7 +67,7 @@ avgTrajFrame = zeros (1, numberOfFrames-nrOfTrajectories-1);
 % Initialize properties counter depending on radiobutton value
 alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
 if ~alwaysCountFrom1
-   MPMCount = ceil ((plotStartFrame - 1) / increment);
+   MPMCount = ceil ((plotStartFrame - startFrame) / increment);
 else
    MPMCount = ceil ((plotStartFrame - 1) / increment);
 end
@@ -77,7 +87,11 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    
       % Store the frame number for display on the x-axis
       iCount = iCount + 1;
-      xAxis (iCount) = frameCount;
+      if ~alwaysCountFrom1
+          xAxis(iCount) = frameCount;
+      else
+          xAxis(iCount) = iCount;
+      end
 
       % Initialize counter for cells with nearest-enough neighbours
       cellsWithNeighbours = 0;

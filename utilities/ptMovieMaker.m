@@ -3,10 +3,9 @@ function result = ptMovieMaker (radioButtons, handles)
 %
 % SYNOPSIS       ptMovieMaker (ptPostpro, MPM)
 %
-% INPUT          ptPostpro : a structure which contains the information
-%                            from the GUI
-%                MPM       : matrix containing the cell tracks
-%                savePath : directory where the movie will be saved.
+% INPUT          radioButtons : a structure which contains the status of the radio
+%                               buttons on the GUI
+%                handles      : struct containing the GUI data
 %
 % OUTPUT         result : result of the operation (0 = ok, 1 = error)         
 %
@@ -86,15 +85,15 @@ if ceil ((movieStartFrame - startFrame + 1) / increment) < dragTailLength + 1
 end
 
 % Get save path
-savePath = guiData.savedatapath;
+SaveDir = guiData.savedatapath;
 
 % If it doesn't exist yet, create it in the results directory
-if ~exist (savePath, 'dir')
-   mkdir (savePath);
+if ~exist (SaveDir, 'dir')
+   mkdir (SaveDir);
 end
 
 % Go to the directory where the image will be saved
-cd (savePath);
+cd (SaveDir);
 
 % Initialize the movie
 if movieType == 1   % AVI
@@ -181,7 +180,7 @@ for movieStep = movieStartFrame : increment : movieEndFrame
    hold off;
 
    % Go to the directory where the movies are stored
-   cd (savePath);
+   cd (SaveDir);
   
    % Add the current figure to the movie
    % Initialize the movie

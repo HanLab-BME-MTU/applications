@@ -1,11 +1,11 @@
-function ptPlotChaosStats (radioButtons, imageName, savePath, xAxis, chaosStats, windowSize)
+function ptPlotChaosStats (radioButtons, imageName, SaveDir, xAxis, chaosStats, windowSize)
 % ptPlotChaosStats plots clustering info from MPMs. 
 %
-% SYNOPSIS       ptPlotChaosStats (imageName, savePath, xAxisNeigh, chaosStats, windowSize)
+% SYNOPSIS       ptPlotChaosStats (imageName, SaveDir, xAxisNeigh, chaosStats, windowSize)
 %
 % INPUT          radioButtons : values of radiobuttons on the gui
 %                imageName : Name that will be used as the plot title
-%                savePath : directory where plots will be stored
+%                SaveDir : directory where plots will be stored
 %                xAxisNeigh : vector with x-axis values
 %                chaosStats : vector with clustering info
 %                windowSize : size of the averaging window 
@@ -53,11 +53,11 @@ if ~radioButtons.donotshowplots
     end
 
     % Save the figures in fig, eps and tif format  
-    hgsave (h_fig,[savePath filesep [imageName '_avgRipleyClustering.fig']]);
-    print (h_fig, [savePath filesep [imageName '_avgRipleyClustering.eps']],'-depsc2','-tiff');
-    print (h_fig, [savePath filesep [imageName '_avgRipleyClustering.tif']],'-dtiff');      
+    hgsave (h_fig,[SaveDir filesep [imageName '_avgRipleyClustering.fig']]);
+    print (h_fig, [SaveDir filesep [imageName '_avgRipleyClustering.eps']],'-depsc2','-tiff');
+    print (h_fig, [SaveDir filesep [imageName '_avgRipleyClustering.tif']],'-dtiff');      
 end
 
 % Save CSV files
-csvwrite ([savePath filesep imageName '_avgRipleyClustering.csv'], [xAxis ; ripleyClustering]);
+csvwrite ([SaveDir filesep imageName '_avgRipleyClustering.csv'], [xAxis ; ripleyClustering]);
 

@@ -25,15 +25,21 @@ guiData = handles.guiData;
 % Get values from the gui (these are used for all jobs)
 plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
-increment = jobData(1).increment;
-numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
+%increment = jobData(1).increment;
+%numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 
 % Determine the movie with the most frames
-[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
-maxFrames = mpmLength / 2;
+[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
+minFrames = mpmLength / 2;
+
+% Make sure we only process up to the shortest MPM else the averaging will
+% not work correctly
+if plotEndFrame > minFrames
+    plotEndFrame = minFrames;
+end
 
 % Initialize the ripley clustering vector
-ripleyClust = zeros (length(MPM), numberOfFrames);
+ripleyClust = zeros (length(MPM), minFrames);
 
 for jobCount = 1 : length(MPM) 
 
@@ -46,7 +52,7 @@ for jobCount = 1 : length(MPM)
     % Initialize properties counter depending on radiobutton value
     alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
     if ~alwaysCountFrom1
-       MPMCount = ceil ((plotStartFrame - 1) / increment);
+       MPMCount = ceil ((plotStartFrame - startFrame) / increment);
     else
        MPMCount = ceil ((plotStartFrame - 1) / increment);
     end
@@ -66,7 +72,11 @@ for jobCount = 1 : length(MPM)
        
        % Store the frame number for display on the x-axis
        iCount = iCount + 1;
-       xAxis (iCount) = frameCount;
+       if ~alwaysCountFrom1
+           xAxis(iCount) = frameCount;
+       else
+           xAxis(iCount) = iCount;
+       end
 
        % Since the ripley function doesn't know how to handle plot start
        % and end frames, we have to crop the MPM first

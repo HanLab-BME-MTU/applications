@@ -1,11 +1,11 @@
-function ptPlotNeighbourChanges (radioButtons, imageName, savePath, xAxis, neighChangeStats, windowSize)
+function ptPlotNeighbourChanges (radioButtons, imageName, SaveDir, xAxis, neighChangeStats, windowSize)
 % ptPlotNeighbourChanges plots neighbour change info from MPM. 
 %
-% SYNOPSIS       ptPlotNeighbourChanges (imageName, savePath, xAxisNeigh, neighChangeStats, windowSize)
+% SYNOPSIS       ptPlotNeighbourChanges (imageName, SaveDir, xAxisNeigh, neighChangeStats, windowSize)
 %
 % INPUT          radioButtons : values of radiobuttons on the gui
 %                imageName : Name that will be used as the plot title
-%                savePath : directory where plots will be stored
+%                SaveDir : directory where plots will be stored
 %                xAxisNeigh : vector with x-axis values
 %                neighChangeStats : vector with neighbourhood interactions
 %                windowSize : size of the averaging window 
@@ -53,11 +53,11 @@ if ~radioButtons.donotshowplots
     end
 
     % Save the figures in fig, eps and tif format  
-    hgsave (h_fig2,[savePath filesep [imageName '_avgNeighbourChange.fig']]);
-    print (h_fig2, [savePath filesep [imageName '_avgNeighbourChange.eps']],'-depsc2','-tiff');
-    print (h_fig2, [savePath filesep [imageName '_avgNeighbourChange.tif']],'-dtiff');      
+    hgsave (h_fig2,[SaveDir filesep [imageName '_avgNeighbourChange.fig']]);
+    print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourChange.eps']],'-depsc2','-tiff');
+    print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourChange.tif']],'-dtiff');      
 end
 
 % Save CSV files
-csvwrite ([savePath filesep imageName '_avgNeighbourInteractionChange.csv'], [xAxis ; avgNbChange]);
+csvwrite ([SaveDir filesep imageName '_avgNeighbourInteractionChange.csv'], [xAxis ; avgNbChange]);
 

@@ -1,11 +1,11 @@
-function ptPlotCellCellDist (radioButtons, imageName, savePath, xAxis, cellCellDistStats, windowSize)
+function ptPlotCellCellDist (radioButtons, imageName, SaveDir, xAxis, cellCellDistStats, windowSize)
 %  ptPlotCellCellDist generates the plots for the inter cell distances
 %
-% SYNOPSIS       ptPlotCellCellDist (radioButtons, imageName, savePath, xAxis, cellCellDistStats, windowSize)
+% SYNOPSIS       ptPlotCellCellDist (radioButtons, imageName, SaveDir, xAxis, cellCellDistStats, windowSize)
 %
 % INPUT          ptPostpro : postprocessing structure
 %                imageName : name of the first image in the movie (used as title)
-%                savePath : name of the directory where the plots are saved in files
+%                SaveDir : name of the directory where the plots are saved in files
 %                xAxis : matrix with frame numbers (this should have the same length as
 %                        (all the other matrices that follow)
 %                cellCellDistStats : struct containing:
@@ -57,8 +57,8 @@ if radioButtons.cellcelldistplot_1
         end
 
         % Save the figures in fig, eps and tif format     
-        hgsave (h_fig,[savePath filesep [imageName '_AvgDistanceBetweenCells.fig']]);
-        print (h_fig, [savePath filesep [imageName '_AvgDistanceBetweenCells.eps']],'-depsc2','-tiff');
-        print (h_fig, [savePath filesep [imageName '_AvgDistanceBetweenCells.tif']],'-dtiff');
+        hgsave (h_fig,[SaveDir filesep [imageName '_AvgDistanceBetweenCells.fig']]);
+        print (h_fig, [SaveDir filesep [imageName '_AvgDistanceBetweenCells.eps']],'-depsc2','-tiff');
+        print (h_fig, [SaveDir filesep [imageName '_AvgDistanceBetweenCells.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplots    
 end

@@ -37,12 +37,22 @@ plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
 
 % Determine the movie with the most frames
-[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
-maxFrames = mpmLength / 2;
+%[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
+%maxFrames = mpmLength / 2;
+
+% Determine the movie with the most frames
+[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
+minFrames = mpmLength / 2;
+
+% Make sure we only process up to the shortest MPM else the averaging will
+% not work correctly
+if plotEndFrame > minFrames
+    plotEndFrame = minFrames;
+end
 
 % Get start and end frames and increment value
 startFrame = jobData(1).firstimg;
-endFrame = jobData(longestMPM).lastimg;
+endFrame = jobData(shortestMPM).lastimg;
 increment = jobData(1).increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 
@@ -97,7 +107,11 @@ for frameCount = plotStartFrame : increment : plotEndFrame
     
    % Update the x-axis vector and counter
    iCount = iCount + 1;
-   xAxis (iCount) = frameCount;
+   if ~alwaysCountFrom1
+       xAxis(iCount) = frameCount;
+   else
+       xAxis(iCount) = iCount;
+   end
     
    for jobCount = 1 : length (cellProps)
        % Remove the zero rows from cellProps 

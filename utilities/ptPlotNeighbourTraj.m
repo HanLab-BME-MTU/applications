@@ -1,11 +1,11 @@
-function ptPlotNeighbourTraj (radioButtons, imageName, savePath, xAxis, neighTrajStats, windowSize)
+function ptPlotNeighbourTraj (radioButtons, imageName, SaveDir, xAxis, neighTrajStats, windowSize)
 % ptPlotNeighbourTraj plots neighbour traj. information gathered in MPM. 
 %
-% SYNOPSIS       ptPlotNeighbourTraj (imageName, savePath, xAxisNeigh, neighTrajStats, windowSize)
+% SYNOPSIS       ptPlotNeighbourTraj (imageName, SaveDir, xAxisNeigh, neighTrajStats, windowSize)
 %
 % INPUT          radioButtons : values of radiobuttons on the gui
 %                imageName : Name that will be used as the plot title
-%                savePath : directory where plots will be stored
+%                SaveDir : directory where plots will be stored
 %                xAxisNeigh : vector with x-axis values
 %                neighTrajStats : vector with neighbourhood trajectories
 %                windowSize : size of the averaging window 
@@ -53,10 +53,10 @@ if ~radioButtons.donotshowplots
     end
 
     % Save the figures in fig, eps and tif format        
-    hgsave (h_fig,[savePath filesep [imageName '_avgNeighbourTrajLength.fig']]);
-    print (h_fig, [savePath filesep [imageName '_avgNeighbourTrajLength.eps']],'-depsc2','-tiff');
-    print (h_fig, [savePath filesep [imageName '_avgNeighbourTrajLength.tif']],'-dtiff');      
+    hgsave (h_fig,[SaveDir filesep [imageName '_avgNeighbourTrajLength.fig']]);
+    print (h_fig, [SaveDir filesep [imageName '_avgNeighbourTrajLength.eps']],'-depsc2','-tiff');
+    print (h_fig, [SaveDir filesep [imageName '_avgNeighbourTrajLength.tif']],'-dtiff');      
 end
 
 % Save CSV files
-csvwrite ([savePath filesep imageName '_avgNeighbourTrajLength.csv'], [xAxis ; avgTrajFrame]);
+csvwrite ([SaveDir filesep imageName '_avgNeighbourTrajLength.csv'], [xAxis ; avgTrajFrame]);

@@ -1,4 +1,4 @@
-function ptGenerateHistograms (ptPostpro, MPM, savePath, radioButtons)
+function ptGenerateHistograms (ptPostpro, MPM, SaveDir, radioButtons)
 % ptGenerateHistograms generates histograms for every frame of the movie. 
 %
 % SYNOPSIS       ptGenerateHistograms (ptPostpro, MPM)
@@ -6,7 +6,7 @@ function ptGenerateHistograms (ptPostpro, MPM, savePath, radioButtons)
 % INPUT          ptPostpro : a structure which contains the information
 %                            from the GUI
 %                MPM       : matrix containing the cell tracks
-%                savePath  : directory where the hist files will be saved
+%                SaveDir  : directory where the hist files will be saved
 %                radioButtons : the values of the radiobuttons
 %                
 % OUTPUT         None (histograms are saved on disk) 
@@ -19,7 +19,7 @@ function ptGenerateHistograms (ptPostpro, MPM, savePath, radioButtons)
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Aug 04          Initial release
-% Andre Kerstens        Sep 04          Added savePath as input parameter
+% Andre Kerstens        Sep 04          Added SaveDir as input parameter
 % Andre Kerstens        Sep 04          Rewrite for new strcutures
 
 % Get the latest data from the handles
@@ -172,7 +172,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       clusteredCellVelocity = velocity(clusteredCellIndex);
             
       % Go to the save dir
-      cd (savePath);
+      cd (SaveDir);
       
       % Calculate histogram for velocity all cells
       if generateAllCellsHist
@@ -220,7 +220,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
 end   % for frameCount
 
 % Save max velocity vectors
-cd (savePath);
+cd (SaveDir);
 if generateAllCellsHist
    save ('maxVelAllCells.mat', 'maxVelocity');
 end

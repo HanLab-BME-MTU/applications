@@ -1,11 +1,11 @@
-function ptPlotPerimeterStats (radioButtons, imageName, savePath, xAxis, perimeterStats, windowSize)
+function ptPlotPerimeterStats (radioButtons, imageName, SaveDir, xAxis, perimeterStats, windowSize)
 % ptPlotPerimeterStats generates the plots for the cell and cluster perimeter statistics
 %
-% SYNOPSIS       ptPlotPerimeterStats (radioButtons, imageName, savePath, xAxis, perimeterStats, windowSize)
+% SYNOPSIS       ptPlotPerimeterStats (radioButtons, imageName, SaveDir, xAxis, perimeterStats, windowSize)
 %
 % INPUT          radioButtons : struct containing the value of all gui radiobuttons
 %                imageName : name of the first image in the movie (used as title)
-%                savePath : name of the directory where the plots are saved in files
+%                SaveDir : name of the directory where the plots are saved in files
 %                xAxis : matrix with frame numbers (this should have the same length as
 %                        (all the other matrices that follow)
 %                perimeterStats : struct containing the following fields:
@@ -77,7 +77,7 @@ if ~radioButtons.donotshowplots
     end
 
     % Save the figures in fig, eps and tif format        
-    hgsave(h_fig,[savePath filesep [imageName '_areaPerimStats.fig']]);
-    print(h_fig, [savePath filesep [imageName '_areaPerimStats.eps']],'-depsc2','-tiff');
-    print(h_fig, [savePath filesep [imageName '_areaPerimStats.tif']],'-dtiff');     
+    hgsave(h_fig,[SaveDir filesep [imageName '_areaPerimStats.fig']]);
+    print(h_fig, [SaveDir filesep [imageName '_areaPerimStats.eps']],'-depsc2','-tiff');
+    print(h_fig, [SaveDir filesep [imageName '_areaPerimStats.tif']],'-dtiff');     
 end  % if ~radioButtons.donotshowplots

@@ -1,11 +1,11 @@
-function ptPlotCellClusterStats (radioButtons, imageName, savePath, xAxis, cellClusterStats, windowSize)
+function ptPlotCellClusterStats (radioButtons, imageName, SaveDir, xAxis, cellClusterStats, windowSize)
 % ptPlotCellClusterStats generates the plots for the cell and cluster statistics
 %
-% SYNOPSIS       ptPlotCellClusterStats (ptPostpro, imageName, savePath, xAxis, cellClusterStats, windowSize)
+% SYNOPSIS       ptPlotCellClusterStats (ptPostpro, imageName, SaveDir, xAxis, cellClusterStats, windowSize)
 %
 % INPUT          ptPostpro : postpro struct
 %                imageName : name of the first image in the movie (used as title)
-%                savePath : name of the directory where the plots are saved in files
+%                SaveDir : name of the directory where the plots are saved in files
 %                xAxis : matrix with frame numbers (this should have the same length as
 %                        (all the other matrices that follow)
 %                cellClusterStats : struct containing the fields:
@@ -125,16 +125,16 @@ if radioButtons.cellclusterplot_1
         end
         
         % Save the figures in fig, eps and tif format
-        hgsave (h_fig, [savePath filesep [imageName '_amountAllCells.fig']]);
-        print (h_fig, [savePath filesep [imageName '_amountAllCells.eps']], '-depsc2', '-tiff');
-        print (h_fig, [savePath filesep [imageName '_amountAllCells.tif']], '-dtiff'); 
+        hgsave (h_fig, [SaveDir filesep [imageName '_amountAllCells.fig']]);
+        print (h_fig, [SaveDir filesep [imageName '_amountAllCells.eps']], '-depsc2', '-tiff');
+        print (h_fig, [SaveDir filesep [imageName '_amountAllCells.tif']], '-dtiff'); 
     end  % if ~radioButtons.donotshowplots
     
     % Save MAT files for amount of cells and perc. single cells
-    save ([savePath filesep imageName '_amountAllCells.mat'],'cellAmount');
+    save ([SaveDir filesep imageName '_amountAllCells.mat'],'cellAmount');
     
     % Save CSV files for amount of cells and perc. single cells
-    csvwrite ([savePath filesep imageName '_amountAllCells.csv'], [xAxis ; cellAmount]);
+    csvwrite ([SaveDir filesep imageName '_amountAllCells.csv'], [xAxis ; cellAmount]);
     
 end
 
@@ -180,14 +180,14 @@ if radioButtons.cellclusterplot_2
         end
         
         % Save the figures in fig, eps and tif format
-        hgsave (h_fig2, [savePath filesep [imageName '_percentageSingleClusteredCells.fig']]);
-        print (h_fig2, [savePath filesep [imageName '_percentageSingleClusteredCells.eps']], '-depsc2', '-tiff');
-        print (h_fig2, [savePath filesep [imageName '_percentageSingleClusteredCells.tif']], '-dtiff'); 
+        hgsave (h_fig2, [SaveDir filesep [imageName '_percentageSingleClusteredCells.fig']]);
+        print (h_fig2, [SaveDir filesep [imageName '_percentageSingleClusteredCells.eps']], '-depsc2', '-tiff');
+        print (h_fig2, [SaveDir filesep [imageName '_percentageSingleClusteredCells.tif']], '-dtiff'); 
     end  % if ~radioButtons.donotshowplots
     
     % Save MAT files for amount of cells and perc. single cells
-    save ([savePath filesep imageName '_percentageSingleCells.mat'],'percentageSingleCells');
+    save ([SaveDir filesep imageName '_percentageSingleCells.mat'],'percentageSingleCells');
 
     % Save CSV files for amount of cells and perc. single cells
-    csvwrite ([savePath filesep imageName '_percentageSingleCells.csv'], [xAxis ; percentageSingleCells]);
+    csvwrite ([SaveDir filesep imageName '_percentageSingleCells.csv'], [xAxis ; percentageSingleCells]);
 end

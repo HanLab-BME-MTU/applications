@@ -27,7 +27,7 @@ increment = ptPostpro.increment;
 plotStartFrame = ptPostpro.plotfirstimg;
 plotEndFrame = ptPostpro.plotlastimg;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
-savePath = ptPostpro.saveallpath;
+SaveDir = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagename;
 
@@ -136,7 +136,7 @@ end
 % Save MAT files for amount of cells, amount of clusters, cells per
 % cluster, amount of single cells, amount of cells in clusters, perc.
 % single cells and perc. clustered cells
-cd (savePath);
+cd (SaveDir);
 save ('amountAllCells.mat','cellAmount');
 save ('amountClusters.mat','clusterAmount');
 save ('amountSingleCells.mat','singleCellAmount');
@@ -147,7 +147,7 @@ save ('percentageSingleCells.mat','percentageSingleCells');
 save ('xAxis-CellStats.mat','xAxis');
 
 % Save CSV files for amount of cells and perc. single cells
-cd (savePath);
+cd (SaveDir);
 csvwrite ('amountAllCells.csv', [xAxis ; cellAmount]);
 csvwrite ('percentageSingleCells.csv', [xAxis ; percentageSingleCells]);
 

@@ -1,7 +1,7 @@
-function MPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxRelinkDist, minTrackLength, savePath)
+function MPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxRelinkDist, minTrackLength, SaveDir)
 % ptTrackFilter filters and relinks the tracks given in MPM
 %
-% SYNOPSIS       MPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxRelinkDist, minTrackLength, savePath)
+% SYNOPSIS       MPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxRelinkDist, minTrackLength, SaveDir)
 %
 % INPUT          MPM        : Magic Position Matrix 
 %                               MPM = [ y  x  y  x  y  x ... ]
@@ -12,7 +12,7 @@ function MPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxRelinkDist, minTr
 %                              track stops can a candidate for gap closing be present
 % 				 maxRelinkDist : max distance for relinking
 % 				 minTrackLength : minimal length of tracks (or else they get erased)
-% 				 savePath : where shall the new MPM be saved
+% 				 SaveDir : where shall the new MPM be saved
 %
 %
 % OUTPUT         MPM : the modified MPM matrix
@@ -203,8 +203,8 @@ minDistIndex = uniqueEntries (find (numberOfOccurences < minTrackLength*2-1));
 MPM(minDistIndex,:) = [];
 
 % Store the modified MPM matrix in the data* directory
-if ~isempty (savePath)
-   cd (savePath);
+if ~isempty (SaveDir)
+   cd (SaveDir);
    save ('MPM.mat', 'MPM');
 end
 

@@ -1,11 +1,11 @@
-function ptPlotSpeedStats (radioButtons, imageName, savePath, xAxis, avgVelocityStats, windowSize)
+function ptPlotSpeedStats (radioButtons, imageName, SaveDir, xAxis, avgVelocityStats, windowSize)
 % ptPlotSpeedStats generates the plots for the velocity statistics
 %
-% SYNOPSIS       ptPlotSpeedStats (radioButtons, imageName, savePath, xAxis, velocityStats)
+% SYNOPSIS       ptPlotSpeedStats (radioButtons, imageName, SaveDir, xAxis, velocityStats)
 %
 % INPUT          radioButtons : struct containing the value of all gui radiobuttons
 %                imageName : name of the first image in the movie (used as title)
-%                savePath : name of the directory where the plots are saved in files
+%                SaveDir : name of the directory where the plots are saved in files
 %                xAxis : matrix with frame numbers (this should have the same length as
 %                        (all the other matrices that follow)
 %                velocityStats : struct with the following fields:
@@ -83,9 +83,9 @@ if radioButtons.speedplot_2
         end
 
         % Save the figures in fig, eps and tif format        
-        hgsave (h_fig,[savePath filesep [imageName '_avgVelocityAllCells.fig']]);
-        print (h_fig, [savePath filesep [imageName '_avgVelocityAllCells.eps']],'-depsc2','-tiff');
-        print (h_fig, [savePath filesep [imageName '_avgVelocityAllCells.tif']],'-dtiff');      
+        hgsave (h_fig,[SaveDir filesep [imageName '_avgVelocityAllCells.fig']]);
+        print (h_fig, [SaveDir filesep [imageName '_avgVelocityAllCells.eps']],'-depsc2','-tiff');
+        print (h_fig, [SaveDir filesep [imageName '_avgVelocityAllCells.tif']],'-dtiff');      
 
         % Generate the figure and title
         h_fig2 = figure('Name', imageName);
@@ -125,13 +125,13 @@ if radioButtons.speedplot_2
         end
         
         % Save the figures in fig, eps and tif format     
-        hgsave (h_fig2,[savePath filesep [imageName '_avgSingleAndClusterVelocity.fig']]);
-        print (h_fig2, [savePath filesep [imageName '_avgSingleAndClusterVelocity.eps']],'-depsc2','-tiff');
-        print (h_fig2, [savePath filesep [imageName '_avgSingleAndClusterVelocity.tif']],'-dtiff');
+        hgsave (h_fig2,[SaveDir filesep [imageName '_avgSingleAndClusterVelocity.fig']]);
+        print (h_fig2, [SaveDir filesep [imageName '_avgSingleAndClusterVelocity.eps']],'-depsc2','-tiff');
+        print (h_fig2, [SaveDir filesep [imageName '_avgSingleAndClusterVelocity.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplots
         
     % Save MAT files for avg all, single and clustered cell velocity
-    cd (savePath);
+    cd (SaveDir);
     save ([imageName '_avgCellVelocity.mat'],'avgVelocity');
     save ([imageName '_avgSingleCellVelocity.mat'],'avgSingleVelocity');
     save ([imageName '_avgClusteredCellVelocity.mat'],'avgClusteredVelocity');

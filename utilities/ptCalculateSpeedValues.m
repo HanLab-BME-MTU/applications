@@ -52,43 +52,55 @@ binSize = guiData.binsize;
 multipleFrameVelocity = guiData.multframevelocity;
 
 % Determine the movie with the most frames
-[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
-maxFrames = mpmLength / 2;
+%[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
+%maxFrames = mpmLength / 2;
+
+% Determine the movie with the most frames
+[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
+minFrames = mpmLength / 2;
+
+% Make sure we only process up to the shortest MPM else the averaging will
+% not work correctly
+if plotEndFrame > minFrames
+    plotEndFrame = minFrames;
+end
 
 % Get start and end frames and increment value
 startFrame = jobData(1).firstimg;
-endFrame = jobData(longestMPM).lastimg;
+endFrame = jobData(shortestMPM).lastimg;
 increment = jobData(1).increment;
+numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 
 % Get pixellength and frame interval
 frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
 pixelLength = jobData(1).mmpixel;
 
 % Initialize the displacement and x-axis matrices
-avgDisplacement = zeros (1, maxFrames-multipleFrameVelocity);
-avgSingleDisplacement = zeros (1, maxFrames-multipleFrameVelocity);
-avgClusteredDisplacement = zeros (1, maxFrames-multipleFrameVelocity);
-avgVelocity = zeros (1, maxFrames-multipleFrameVelocity);
-avgVelocitySquared = zeros (1, maxFrames-multipleFrameVelocity);
-avgSingleVelocity = zeros (1, maxFrames-multipleFrameVelocity);
-avgClusteredVelocity = zeros (1, maxFrames-multipleFrameVelocity);
-velAllCellsHigherThanAvgSingleCells = zeros (1, maxFrames-multipleFrameVelocity);
-velocityHist = zeros (binSize, maxFrames-multipleFrameVelocity);
-maxVelocity = zeros (1, maxFrames-multipleFrameVelocity);
-xAxis = zeros (1, maxFrames-multipleFrameVelocity);
+avgDisplacement = zeros (1, numberOfFrames-multipleFrameVelocity);
+avgSingleDisplacement = zeros (1, numberOfFrames-multipleFrameVelocity);
+avgClusteredDisplacement = zeros (1, numberOfFrames-multipleFrameVelocity);
+avgVelocity = zeros (1, numberOfFrames-multipleFrameVelocity);
+avgVelocitySquared = zeros (1, numberOfFrames-multipleFrameVelocity);
+avgSingleVelocity = zeros (1, numberOfFrames-multipleFrameVelocity);
+avgClusteredVelocity = zeros (1, numberOfFrames-multipleFrameVelocity);
+velAllCellsHigherThanAvgSingleCells = zeros (1, numberOfFrames-multipleFrameVelocity);
+velocityHist = zeros (binSize, numberOfFrames-multipleFrameVelocity);
+maxVelocity = zeros (1, numberOfFrames-multipleFrameVelocity);
+xAxis = zeros (1, numberOfFrames-multipleFrameVelocity);
 
 % Initialize MPM counter
-MPMCount = ceil ((plotStartFrame - startFrame) / increment) + 1;
+%MPMCount = ceil ((plotStartFrame - startFrame) / increment) + 1;
 
 % Initialize properties counter depending on radiobutton value
 alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
 if ~alwaysCountFrom1
-   MPMCount = ceil ((plotStartFrame - 1) / increment) + 1;
+   MPMCount = ceil ((plotStartFrame - startFrame) / increment) + 1;
 else
    MPMCount = ceil ((plotStartFrame - 1) / increment) + 1;
 end
 
-% Initialize counter for avg vectors
+% Initialize x-axis and counter for avg vectors
+xAxis = zeros (1, numberOfFrames-multipleFrameVelocity);
 iCount = 0;
 
 % Go through every frame of the set. Start at the second frame
@@ -106,7 +118,11 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       iCount = iCount + 1;
 
       % Store x-Axis value
-      xAxis(iCount) = frameCount;
+      if ~alwaysCountFrom1
+          xAxis(iCount) = frameCount;
+      else
+          xAxis(iCount) = iCount;
+      end
 
       for jobCount = 1 : length(MPM)
           
@@ -199,17 +215,17 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
 
       % Calculate histogram for velocity all cells
       histVelAllCells{iCount} = hist (allVelocity, binSize);
-      %filename = [savePath filesep 'histVelAllCells_' num2str(iCount) '.mat'];
+      %filename = [SaveDir filesep 'histVelAllCells_' num2str(iCount) '.mat'];
       %save (filename, 'histVelAllCells');
             
       % Save the velocity hist for single cells
       histVelSingleCells{iCount} = hist (allSingleCellVelocity, binSize);
-      %filename = [savePath filesep 'histVelSingleCells_' num2str(iCount) '.mat'];
+      %filename = [SaveDir filesep 'histVelSingleCells_' num2str(iCount) '.mat'];
       %save (filename, 'histVelSingleCells');
       
       % Save the velocity hist for clustered cells
       histVelClusteredCells{iCount} = hist (allClusteredCellVelocity, binSize);
-      %filename = [savePath filesep 'histVelClusteredCells_' num2str(iCount) '.mat'];
+      %filename = [SaveDir filesep 'histVelClusteredCells_' num2str(iCount) '.mat'];
       %save (filename, 'histVelClusteredCells');
             
       % Store max velocity of the frame

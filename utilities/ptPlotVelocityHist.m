@@ -1,11 +1,11 @@
-function ptPlotVelocityHist (radioButtons, imageName, savePath, xAxis, velocityHistStats)
+function ptPlotVelocityHist (radioButtons, imageName, SaveDir, xAxis, velocityHistStats)
 % ptPlotSpeedVarStats generates the velocity histogram plots
 %
-% SYNOPSIS       ptPlotHist (radioButtons, imageName, savePath, xAxis, velocityHistStats)
+% SYNOPSIS       ptPlotHist (radioButtons, imageName, SaveDir, xAxis, velocityHistStats)
 %
 % INPUT          radioButtons : struct containing the value of all gui radiobuttons
 %                imageName : name for the title of the plots
-%                savePath : name of the directory where the plots are saved in files
+%                SaveDir : name of the directory where the plots are saved in files
 %                xAxis : matrix with frame numbers (this should have the same length as
 %                        (all the other matrices that follow)
 %                velocityHistStats : struct with the following fields:
@@ -47,44 +47,44 @@ if radioButtons.speedplot_4
         title ([imageName '3D Velocity Histogram (binned)']);
 
         % Save this figure to disk as fig, eps and tiff
-        hgsave (h_fig, [savePath filesep [imageName '_3dBinnedVelocityHistogram.fig']]);
-        print (h_fig, [savePath filesep [imageName '_3dBinnedVelocityHistogram.eps']], '-depsc2', '-tiff');
-        print (h_fig, [savePath filesep [imageName '_3dBinnedVelocityHistogram.tif']], '-dtiff');
+        hgsave (h_fig, [SaveDir filesep [imageName '_3dBinnedVelocityHistogram.fig']]);
+        print (h_fig, [SaveDir filesep [imageName '_3dBinnedVelocityHistogram.eps']], '-depsc2', '-tiff');
+        print (h_fig, [SaveDir filesep [imageName '_3dBinnedVelocityHistogram.tif']], '-dtiff');
     end  % if ~radioButtons.donotshowplots
 end
 
 % Save histogram for velocity all cells
 if radioButtons.allcellshist
     for iCount = 1 : length(velocityHistStats.histVelAllCells)
-       filename = [savePath filesep 'histVelAllCells_' num2str(iCount) '.mat'];
+       filename = [SaveDir filesep 'histVelAllCells_' num2str(iCount) '.mat'];
        histVect = velocityHistStats.histVelAllCells{iCount};
        save (filename, 'histVect');
     end
     maxVelocity = velocityHistStats.maxVelocity;
-    save ([savePath filesep 'maxVelAllCells.mat'], 'maxVelocity');
+    save ([SaveDir filesep 'maxVelAllCells.mat'], 'maxVelocity');
 end
             
 % Save the velocity hist for single cells
 if radioButtons.singlecellshist
     for iCount = 1 : length(velocityHistStats.histVelSingleCells)
-       filename = [savePath filesep 'histVelSingleCells_' num2str(iCount) '.mat'];
+       filename = [SaveDir filesep 'histVelSingleCells_' num2str(iCount) '.mat'];
        histVect = velocityHistStats.histVelSingleCells{iCount};
        save (filename, 'histVect');
     end
     maxSingleCellVelocity = velocityHistStats.maxSingleCellVelocity;
-    save ([savePath filesep 'maxVelSingleCells.mat'], 'maxSingleCellVelocity');
+    save ([SaveDir filesep 'maxVelSingleCells.mat'], 'maxSingleCellVelocity');
 end
      
 % Save the velocity hist for clustered cells
 if radioButtons.clusteredcellshist
     for iCount = 1 : length(velocityHistStats.histVelClusteredCells)
-       filename = [savePath filesep 'histVelClusteredCells_' num2str(iCount) '.mat'];
+       filename = [SaveDir filesep 'histVelClusteredCells_' num2str(iCount) '.mat'];
        histVect = velocityHistStats.histVelClusteredCells{iCount};
        save (filename, 'histVect');
     end
     maxClusteredCellVelocity = velocityHistStats.maxClusteredCellVelocity;
-    save ([savePath filesep 'maxVelClusteredCells.mat'], 'maxClusteredCellVelocity');
+    save ([SaveDir filesep 'maxVelClusteredCells.mat'], 'maxClusteredCellVelocity');
 end
 
 % For all the figures we want to keep the xAxis as well 
-save ([savePath filesep 'velocityHist.mat'], 'velocityHist');
+save ([SaveDir filesep 'velocityHist.mat'], 'velocityHist');

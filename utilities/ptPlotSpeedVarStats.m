@@ -1,11 +1,11 @@
-function ptPlotSpeedVarStats (radioButtons, imageName, savePath, xAxis, velocityVarStats, windowSize)
+function ptPlotSpeedVarStats (radioButtons, imageName, SaveDir, xAxis, velocityVarStats, windowSize)
 % ptPlotSpeedVarStats generates the plots for the velocity statistics
 %
-% SYNOPSIS       ptPlotSpeedVarStats (radioButtons, imageName, savePath, xAxis, velocityVarStats)
+% SYNOPSIS       ptPlotSpeedVarStats (radioButtons, imageName, SaveDir, xAxis, velocityVarStats)
 %
 % INPUT          radioButtons : struct containing the value of all gui radiobuttons
 %                imageName : name of the first image in the movie (used as title)
-%                savePath : name of the directory where the plots are saved in files
+%                SaveDir : name of the directory where the plots are saved in files
 %                xAxis : matrix with frame numbers (this should have the same length as
 %                        (all the other matrices that follow)
 %                velocityVarStats : struct with the following fields:
@@ -97,18 +97,18 @@ if radioButtons.speedplot_3
         end
 
         % Save the figures in fig, eps and tif format     
-        hgsave (h_fig4,[savePath filesep [imageName '_varSingleAndClusterVelocity.fig']]);
-        print (h_fig4, [savePath filesep [imageName '_varSingleAndClusterVelocity.eps']],'-depsc2','-tiff');
-        print (h_fig4, [savePath filesep [imageName '_varSingleAndClusterVelocity.tif']],'-dtiff');
+        hgsave (h_fig4,[SaveDir filesep [imageName '_varSingleAndClusterVelocity.fig']]);
+        print (h_fig4, [SaveDir filesep [imageName '_varSingleAndClusterVelocity.eps']],'-depsc2','-tiff');
+        print (h_fig4, [SaveDir filesep [imageName '_varSingleAndClusterVelocity.tif']],'-dtiff');
     end   % if ~radioButtons.donotshowplots
     
     % Save MAT files for avg all, single and clustered cell variance
-    save ([savePath filesep imageName '_varCellVelocity.mat'],'varVelocity');
-    save ([savePath filesep imageName '_varSingleCellVelocity.mat'],'varSingleCellVelocity');
-    save ([savePath filesep imageName '_varClusteredCellVelocity.mat'],'varClusteredCellVelocity');
+    save ([SaveDir filesep imageName '_varCellVelocity.mat'],'varVelocity');
+    save ([SaveDir filesep imageName '_varSingleCellVelocity.mat'],'varSingleCellVelocity');
+    save ([SaveDir filesep imageName '_varClusteredCellVelocity.mat'],'varClusteredCellVelocity');
 
     % Save CSV files for avg all, single and clustered cell variance
-    csvwrite ([savePath filesep imageName '_varCellVelocity.csv'], [xAxis ; varVelocity]);
-    csvwrite ([savePath filesep imageName '_varSingleCellVelocity.csv'], [xAxis ; varSingleCellVelocity]);
-    csvwrite ([savePath filesep imageName '_varClusteredCellVelocity.csv'], [xAxis ; varClusteredCellVelocity]);
+    csvwrite ([SaveDir filesep imageName '_varCellVelocity.csv'], [xAxis ; varVelocity]);
+    csvwrite ([SaveDir filesep imageName '_varSingleCellVelocity.csv'], [xAxis ; varSingleCellVelocity]);
+    csvwrite ([SaveDir filesep imageName '_varClusteredCellVelocity.csv'], [xAxis ; varClusteredCellVelocity]);
 end
