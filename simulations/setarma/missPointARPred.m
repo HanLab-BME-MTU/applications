@@ -47,8 +47,8 @@ if ~isempty(find(r<=1.00001))
     disp('--missPointARPred: Input model must be causal!');
     errFlag = 1;
 end
-if numFuture > arOrder
-    disp('--missPointARPred: numFuture should be <= model order!');
+if numFuture < 0 || numFuture > arOrder
+    disp('--missPointARPred: numFuture should be between 0 and arOrder!');
     errFlag = 1;
 end
 

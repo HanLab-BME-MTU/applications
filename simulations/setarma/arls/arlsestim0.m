@@ -1,23 +1,25 @@
-function [arParam,noiseSigma,varCovMat,errFlag] = arlsestim0(traj,arOrder,method,tol)
-%ARLSESTIM0 estimates parameters of an AR model using least square fitting
+function [arParam,varCovMat,residuals,noiseSigma,errFlag] = arlsestim0(traj,arOrder,method,tol)
+%ARLSESTIM0 fits an AR model to a trajectory (which could have missing data points) using least squares.
 %
-%SYNOPSIS [arParam,noiseSigma,varCovMat,errFlag] = arlsestim0(traj,arOrder,method,tol)
+%SYNOPSIS [arParam,varCovMat,residuals,noiseSigma,errFlag] = arlsestim0(traj,arOrder,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainty).
+%                      Missing points should be indicated with NaN.
 %       arOrder      : Order of proposed AR model.
-%       method (opt) : Solution method: 'dir' for direct least square minimization 
-%                      using the matlab "\", 'iter' for iterative refinement using 
-%                      the function "lsIterRefn". The default is 'dir'.
+%       method (opt) : Solution method: 'dir' (default) for direct least square 
+%                      minimization using the matlab "\", 'iter' for iterative 
+%                      refinement using the function "lsIterRefn".
 %       tol (opt)    : Tolerance at which calculation is stopped.
 %                      Needed only when method 'iter' is used. If not
 %                      supplied, 0.001 is assumed. 
 %
-%OUTPUT arParam     : Estimated parameters in model.
-%       noiseSigma  : Estimated standard deviation of white noise.
-%       varCovMat   : Variance-covariance matrix of estimated parameters
-%       errFlag     : 0 if function executes normally, 1 otherwise.
+%OUTPUT arParam      : Estimated parameters in model.
+%       varCovMat    : Variance-covariance matrix of estimated parameters.
+%       residuals    : Difference between measurements and model predictions.
+%       noiseSigma   : Estimated standard deviation of white noise.
+%       errFlag      : 0 if function executes normally, 1 otherwise.
 %
-%Khuloud Jaqaman, March 2004
+%Khuloud Jaqaman, April 2004
 
 errFlag = 0;
 
@@ -26,6 +28,8 @@ if nargin < 2
     disp('--arlsestim0: Incorrect number of input arguments!');
     errFlag  = 1;
     arParam = [];
+    varCovMat = [];
+    residuals = [];
     noiseSigma = [];
     return
 end
@@ -51,8 +55,9 @@ end
 if errFlag
     disp('--arlsestim0: Please fix input data!');
     arParam = [];
-    noiseSigma = [];
     varCovMat = [];
+    residuals = [];
+    noiseSigma = [];
     return
 end
 
@@ -79,18 +84,25 @@ else
     method = 'dir';
 end
 
-%weighted matrix of previous points multiplying AR coefficients (on LHS of equation)
-%[(trajLength-arOrder) by arOrder matrix]
-lhsMat = zeros(trajLength-arOrder,arOrder);
+%get indices of available points
+indxP = find(~isnan(traj(:,1))); 
+
+%find data points to be used in fitting
+fitSet = indxP(find((indxP(arOrder+1:end)-indxP(1:end-arOrder))==arOrder)+arOrder);
+fitLength = length(fitSet);
+
+%construct weighted matrix of previous points multiplying AR coefficients (on LHS of equation)
+%[size: fitLength by arOrder]
+lhsMat = zeros(fitLength,arOrder);
 for i=1:arOrder
-    lhsMat(:,i) = traj(arOrder+1-i:end-i,1)./traj(arOrder+1:end,2);
+    lhsMat(:,i) = traj(fitSet-i,1)./traj(fitSet,2);
 end
 
-%weighted vector of points used to determine parameters (on RHS of equation)
-%[(trajLength-arOrder) by 1 vector]
-rhsVec = traj(arOrder+1:end,1)./traj(arOrder+1:end,2);
+%construct weighted vector of points used to determine parameters (on RHS of equation)
+%[size: fitLength by 1]
+rhsVec = traj(fitSet,1)./traj(fitSet,2);
 
-%estimated values of parameters
+%estimate AR coefficients
 switch method
     case 'dir' %use MATLAB "\"
         arParam = (lhsMat\rhsVec)';
@@ -101,23 +113,28 @@ end
 if errFlag
     disp('--arlsestim0: "lsIterRefn" did not function normally!');
     arParam = [];
-    noiseSigma = [];
     varCovMat = [];
+    residuals = [];
+    noiseSigma = [];
     return
 end
+
 
 %check for causality of estimated model
 r = abs(roots([-arParam(end:-1:1) 1]));
 if ~isempty(find(r<=1.00001))
-    disp('--arlsestim0: Warning: Predicted model not causal!');
+    disp('--arlsestimGapsFill: Warning: Predicted model (arParam0) not causal!');
 end
 
-%vector of weighted residuals
-epsilon = lhsMat*arParam' - rhsVec;
+%get vector of weighted residuals
+residuals = NaN*ones(trajLength,1);
+residuals(fitSet) = lhsMat*arParam' - rhsVec;
 
-%variance-covariance matrix
-varCovMat = inv(lhsMat'*lhsMat)*(epsilon'*epsilon/(trajLength-2*arOrder));
+%calculate variance-covariance matrix
+varCovMat = inv(lhsMat'*lhsMat)*(residuals(fitSet)'*residuals(fitSet)/(fitLength-arOrder));
 
-%standard deviation of white noise (note that nonweighted residuals should
-%be used in this calculation)
-noiseSigma = std(epsilon.*traj(arOrder+1:end,2));
+%get nonweighted residuals
+residuals(fitSet) = residuals(fitSet).*traj(fitSet,2);
+
+%get standard deviation of white noise
+noiseSigma = std(residuals(fitSet));
