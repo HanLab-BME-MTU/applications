@@ -279,7 +279,7 @@ if isempty(retArea)
 end
 if isempty(area)
     msg=['Selected area: y = ',num2str(retArea(1)),' : ',num2str(retArea(3)),'; x = ',num2str(retArea(2)),' : ',num2str(retArea(4))];
-    choice=myquestdlg(msg,'Info','Fill','Discard','Fill');
+    choice=myQuestdlg(msg,'Info','Fill','Discard','Fill');
     if strcmp(choice,'Fill')
         set(handles.editCalY0,'String',num2str(retArea(1)));
         set(handles.editCalY,'String',num2str(retArea(3)));
