@@ -1,9 +1,9 @@
-function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDelayEstim(...
+function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDelayCoef(...
     traj,vThresholds,delayTest,tarOrder,method,tol)
-%TARLSESTIM0 fits a TAR model to a trajectory (which could have missing data points) using least squares.
+%TARLDELAYCOEF fits a TAR model of specified segmentation, AR orders and thresholds (i.e. determines its delay parameter and coefficients) to a time series which could have missing data points.
 %
-%SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDelayEstim(...
-%    traj,vThresholds,tarOrder,method,tol)
+%SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDelayCoef(...
+%    traj,vThresholds,delayTest,tarOrder,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainties).
 %                      Missing points should be indicated with NaN.
@@ -32,7 +32,7 @@ errFlag = 0;
 
 %check if correct number of arguments was used when function was called
 if nargin < 4
-    disp('--tarDelayEstim: Incorrect number of input arguments!');
+    disp('--tarDelayCoef: Incorrect number of input arguments!');
     errFlag  = 1;
     tarParam = [];
     varCovMat = [];
@@ -46,11 +46,11 @@ end
 %check input data
 dummy = size(delayTest,1);
 if dummy ~= 1
-    disp('--tarDelayEstim: "delayTest" must be a row vector!');
+    disp('--tarDelayCoef: "delayTest" must be a row vector!');
     errFlag = 1;
 end
 if errFlag
-    disp('--tarDelayEstim: Please fix input data!');
+    disp('--tarDelayCoef: Please fix input data!');
     tarParam = [];
     varCovMat = [];
     residuals = [];
@@ -64,14 +64,14 @@ end
 if nargin >= 5
     
     if ~strncmp(method,'dir',3) && ~strncmp(method,'iter',4) 
-        disp('--tarDelayEstim: Warning: Wrong input for "method". "dir" assumed!');
+        disp('--tarDelayCoef: Warning: Wrong input for "method". "dir" assumed!');
         method = 'dir';
     end
     
     if strncmp(method,'iter',4)
         if nargin == 4
             if tol <= 0
-                disp('--tarDelayEstim: Warning: "tol" should be positive! A value of 0.001 assigned!');
+                disp('--tarDelayCoef: Warning: "tol" should be positive! A value of 0.001 assigned!');
                 tol = 0.001;
             end
         else
@@ -93,7 +93,7 @@ for delay1 = delayTest %go over all suggested delay parameters
     [tarParam1,varCovMat1,residuals1,noiseSigma1,fitSet1,errFlag] = tarlsestim0(...
         traj,vThresholds,delay1,tarOrder,method,tol);
     if errFlag
-        disp('--tarDelayEstim: tarlsestim0 did not function properly!');
+        disp('--tarDelayCoef: tarlsestim0 did not function properly!');
         tarParam = [];
         varCovMat = [];
         residuals = [];

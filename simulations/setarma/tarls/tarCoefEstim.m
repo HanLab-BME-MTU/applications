@@ -1,8 +1,8 @@
-function [tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarlsestim0(...
+function [tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarCoefEstim(...
     traj,vThresholds,delay,tarOrder,method,tol)
-%TARLSESTIM0 fits a TAR model to a trajectory (which could have missing data points) using least squares.
+%TARCOEFESTIM uses least squares to fit a TAR model of specified segmentation, AR orders, thresholds and delay parameter (i.e. determines its coefficients) to a time series which could have missing data points.
 %
-%SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarlsestim0(...
+%SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarCoefEstim(...
 %    traj,vThresholds,delay,tarOrder,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainties).
@@ -31,7 +31,7 @@ errFlag = 0;
 
 %check if correct number of arguments was used when function was called
 if nargin < 4
-    disp('--tarlsestim0: Incorrect number of input arguments!');
+    disp('--tarCoefEstim: Incorrect number of input arguments!');
     errFlag  = 1;
     tarParam = [];
     varCovMat = [];
@@ -43,29 +43,29 @@ end
 %check input data
 [trajLength,nCol] = size(traj);
 if trajLength < max(tarOrder)
-    disp('--tarlsestim0: Length of trajectory should be larger than model order!');
+    disp('--tarCoefEstim: Length of trajectory should be larger than model order!');
     errFlag = 1;
 end
 if nCol ~= 2
     if nCol == 1
         traj = [traj ones(trajLength,1)];
     else
-        disp('--tarlsestim0: "traj" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+        disp('--tarCoefEstim: "traj" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
         errFlag = 1;
     end
 end
 if ~isempty(vThresholds)
     [nThresholds,nCol] = size(vThresholds);
     if nCol ~= 1
-        disp('tarlsestim0: "vThresholds" should be a column vector!');
+        disp('tarCoefEstim: "vThresholds" should be a column vector!');
     else
         if min(vThresholds(2:end)-vThresholds(1:end-1)) <= 0
-            disp('--tarlsestim0: Entries in "vThresholds" should be sorted in increasing order, with no two elements alike!');
+            disp('--tarCoefEstim: Entries in "vThresholds" should be sorted in increasing order, with no two elements alike!');
             errFlag = 1;
         end
     end
     if delay <= 0
-        disp('--tarlsestim0: "delay" should be a positive integer!');
+        disp('--tarCoefEstim: "delay" should be a positive integer!');
         errFlag = 1;
     end
 else
@@ -74,16 +74,16 @@ else
 end
 dummy = length(tarOrder);
 if dummy ~= nThresholds + 1
-    disp('--tarlsestim0: Wrong number of entries in "arOrder"!');
+    disp('--tarCoefEstim: Wrong number of entries in "arOrder"!');
     errFlag = 1;
 else
     if min(tarOrder) < 1
-        disp('--tarlsestim0: Variable "tarOrder" should be >= 1!');
+        disp('--tarCoefEstim: Variable "tarOrder" should be >= 1!');
         errFlag = 1;
     end
 end
 if errFlag
-    disp('--tarlsestim0: Please fix input data!');
+    disp('--tarCoefEstim: Please fix input data!');
     tarParam = [];
     varCovMat = [];
     residuals = [];
@@ -95,14 +95,14 @@ end
 if nargin >= 5
     
     if ~strncmp(method,'dir',3) && ~strncmp(method,'iter',4) 
-        disp('--tarlsestim0: Warning: Wrong input for "method". "dir" assumed!');
+        disp('--tarCoefEstim: Warning: Wrong input for "method". "dir" assumed!');
         method = 'dir';
     end
     
     if strncmp(method,'iter',4)
         if nargin == 4
             if tol <= 0
-                disp('--tarlsestim0: Warning: "tol" should be positive! A value of 0.001 assigned!');
+                disp('--tarCoefEstim: Warning: "tol" should be positive! A value of 0.001 assigned!');
                 tol = 0.001;
             end
         else
@@ -189,7 +189,7 @@ for level = 1:nThresholds+1
             tarParam(level,1:tarOrder(level)) = tarParam1';
     end
     if errFlag
-        disp('--tarlsestim0: "lsIterRefn" did not function normally!');
+        disp('--tarCoefEstim: "lsIterRefn" did not function normally!');
         tarParam = [];
         varCovMat = [];
         residuals = [];
@@ -200,7 +200,7 @@ for level = 1:nThresholds+1
     %check for causality of estimated model
     r = abs(roots([-tarParam(level,tarOrder(level):-1:1) 1]));
     if ~isempty(find(r<=1.00001))
-        disp('--tarlsestim0: Warning: Predicted model not causal!');
+        disp('--tarCoefEstim: Warning: Predicted model not causal!');
     end
     
     %get vector of weighted residuals
