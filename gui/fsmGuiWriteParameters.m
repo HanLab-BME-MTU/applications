@@ -128,6 +128,21 @@ if ~isempty(fsmExpParam)
             set(handles.textDescr,'String',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
         end
 
+        % Check that that the noise parameters did not change
+        if any((fsmParam.main.noiseParam(2:4)==fsmExpParam(fsmParam.main.noiseParam(7)-1).noiseParams)==0) | fsmParam.prep.gaussRatio~=fsmExpParam(fsmParam.main.noiseParam(7)-1).gaussRatio
+            
+            msg=['The parameters in the experiment database do not match those saved in the project. Which version do you want to use?'];
+            choice=myQuestdlg(msg,'User input requested','Database (project parameters will be lost)','Project (database won''t be changed)','Database (project parameters will be lost)');
+            if strcmp(choice,'Database (project parameters will be lost)')
+                
+                fsmParam.main.noiseParam(2:4)=fsmExpParam(fsmParam.main.noiseParam(7)-1).noiseParams;
+                fsmParam.prep.gaussRatio=fsmExpParam(fsmParam.main.noiseParam(7)-1).gaussRatio;
+                
+            end
+
+            
+        end
+        
     else
     
         uiwait(msgbox('The experiment is no longer in the database (or old version of fsmParam.mat).','Error','modal'));
