@@ -1,4 +1,4 @@
-function ptPlotSpeedStats (radioButtons, imageName, SaveDir, xAxis, avgVelocityStats, windowSize)
+function ptPlotSpeedStats (radioButtons, imageName, SaveDir, xAxis, avgVelocityStats, windowSize, drugTimepoint)
 % ptPlotSpeedStats generates the plots for the velocity statistics
 %
 % SYNOPSIS       ptPlotSpeedStats (radioButtons, imageName, SaveDir, xAxis, velocityStats)
@@ -14,7 +14,8 @@ function ptPlotSpeedStats (radioButtons, imageName, SaveDir, xAxis, avgVelocityS
 %                   avgVelocitySquared : vector with squared avg velocity all cells
 %                   avgSingleVelocity : vector with avg single cell vel.
 %                   avgClusteredVelocity : vector with avg clustered cell vel.
-%                windowSize : size of the averaging window                
+%                windowSize : size of the averaging window 
+%                drugTimepoint : frame number where the drug/EGF is applied
 %
 % OUTPUT         None (plots are directly shown on the screen and written to disk) 
 %
@@ -59,7 +60,7 @@ if radioButtons.speedplot_2
         
         if radioButtons.plotestimate
            hold on;
-           [yPlot, est] = ptPlotEstimate (xAxis, avgVelocity, 1, [2 1 1]);
+           [yPlot, est] = ptPlotEstimate (xAxis, avgVelocity, 1, [2 1 1], drugTimepoint);
            hold off;
            
            if ~radioButtons.donotshowplots 
@@ -86,7 +87,7 @@ if radioButtons.speedplot_2
                 
         if radioButtons.plotestimate
            hold on;
-           [yPlot, est] = ptPlotEstimate (xAxis, avgVelocitySquared, 1, [2 1 2]);
+           [yPlot, est] = ptPlotEstimate (xAxis, avgVelocitySquared, 1, [2 1 2], drugTimepoint);
            hold off;
         end        
         
@@ -117,7 +118,7 @@ if radioButtons.speedplot_2
         
         if radioButtons.plotestimate
            hold on;
-           [yPlot, est] = ptPlotEstimate (xAxis, avgSingleVelocity, 1, [2 1 1]);
+           [yPlot, est] = ptPlotEstimate (xAxis, avgSingleVelocity, 1, [2 1 1], drugTimepoint);
            hold off;
            
            if ~radioButtons.donotshowplots 
@@ -145,7 +146,7 @@ if radioButtons.speedplot_2
         
         if radioButtons.plotestimate
            hold on;
-           [yPlot, est] = ptPlotEstimate (xAxis, avgClusteredVelocity, 1, [2 1 2]);
+           [yPlot, est] = ptPlotEstimate (xAxis, avgClusteredVelocity, 1, [2 1 2], drugTimepoint);
            hold off;
            
            if ~radioButtons.donotshowplots 

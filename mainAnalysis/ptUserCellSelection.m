@@ -33,7 +33,7 @@ end
 
 % Show the image in a figure
 selectFig = figure; imshow (inputImage, []);
-title ('Select marked nuclei by left-clicking on them with the mouse // Right-click when finished.');
+title ('Select marked nuclei by left-clicking on them with the mouse (followed by ENTER) // Right-click when finished (followed by ENTER).');
 
 % Get the coordinates from the MPM
 cellCoord(:,:) = handles.allMPM{1}(:, (2*frameNr-1):(2*frameNr));
@@ -55,6 +55,7 @@ plot(cellCoord(:,1),cellCoord(:,2),'r.');
 if exist('prevSelectedCells','var')
    plot(prevSelectedCells(:,1),prevSelectedCells(:,2),'y.');
 end
+hold off;
 
 % The user can left-click on nuclei. Everytime the user presses ENTER, the selections will become visible.
 % The user can continue to select cells as long as she selects at least one

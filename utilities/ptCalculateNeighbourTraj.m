@@ -195,6 +195,12 @@ for frameCount = plotStartFrame : increment : plotEndFrame
                        mpmIndex = find (MPM{jobCount}(:,2*frameIndx-1) == curNeighbour(:,1) & ...
                                         MPM{jobCount}(:,2*frameIndx) == curNeighbour(:,2));
 
+                       % If multiple are found (for whatever reason), pick
+                       % the first one
+                       if length(mpmIndex) > 1
+                           mpmIndex = mpmIndex(1);
+                       end
+                                        
                        % Calculate trajectories for the specified amount of frames for this neighbour
                        traj = [];
                        for tCount = 0 : nrOfTrajectories

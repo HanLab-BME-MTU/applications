@@ -15,6 +15,7 @@ function [guiData] = ptRetrieveGUIData (handles)
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Sep 04          Initial Release
+% Andre Kerstens        Mar 05          Added drug application timepoint
 
 % Get the latest values from the GUI
 guiData.plotfirstimg = str2num(get(handles.GUI_ad_firstimage_ed,'string'));
@@ -28,6 +29,7 @@ guiData.dragtailfile = get(handles.GUI_fm_filename_ed, 'String');
 guiData.nrtrajectories = str2num(get(handles.nr_traj_ed, 'String'));
 guiData.maxneighbourdist = str2num(get(handles.neighbour_dist_ed, 'String'));
 guiData.maxcellcelldist = str2num(get(handles.GUI_maxcellcelldist_ed, 'String'));
+guiData.drugtimepoint = str2num(get(handles.GUI_drugtimepoint_ed, 'String'));
 
 % Get the path where to save new data
 guiData.savedatapath = get(handles.GUI_fm_saveallpath_ed,'string');

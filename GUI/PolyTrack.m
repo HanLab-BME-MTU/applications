@@ -21,6 +21,9 @@ function varargout = PolyTrack(varargin)
 % Andre Kerstens        Jul 04          Image file check is only done if it hasn't be done before.
 % Andre Kerstens        Jul 04          Added frame properties matrix to ptTrackCells
 % Andre Kerstens        Oct 04          Implemented fix for renaming files
+% Andre Kerstens        Mar 05          Multiple image files can now be
+%                                       selected at once (using ctrl and
+%                                       shift keys)
 
 % This is matlab stuff we should not touch.
 % Begin initialization code - DO NOT EDIT
@@ -63,7 +66,7 @@ defaultjob = struct('imagedirectory', [], 'imagename', [], 'firstimage', 1, 'las
                    'mincorrqualtempl', 0.5, 'leveladjust', 0.7, 'timestepslide', 5, 'mintracklength', 2,...
                    'coordinatespicone', [], 'intensityMax', 4095, 'bitdepth', 12, 'bitdepth_index', 3, 'bodyname', [],...
                    'imagenameslist', [], 'timeperframe', 300, 'timestepslide_index', 2, 'rowsize', 0, ...
-                   'colsize', 0);
+                   'colsize', 0, 'drugtimepoint', 30);
 
 % Assign the default job values to the GUI handle so it can be passed around
 handles.defaultjob = defaultjob;
@@ -174,197 +177,217 @@ currentDir = pwd;
 cd (handles.polyDataDirectory);
 
 % Select an image filename or a file called 'jobvalues.mat' from a user selected directory
-[filename,imagedirectory] = uigetfile({'*.tif;*.TIF;*.tiff;*.TIFF','TIFF-files';'jobvalues.mat','Saved Values';'*.*','all files'},...
-                                      'Please select a TIFF image file or jobvalues.mat file');
+[selectedFile,imagedirectory] = uigetfile({'*_t1.tif;*_T1.TIF;*_t1.tiff;*_T1.TIFF','TIFF-files';'jobvalues.mat','Saved Values';'*.*','all files'},...
+                                      'Please select a TIFF image file or jobvalues.mat file','MultiSelect','on');
 
 % Do nothing in case the user doesn't select anything
-if filename == 0
-    cd (currentDir);
-    return;
-end
-
-% Else go on and check whether a file called 'jobvalues.mat' has been selected
-gotvals = 0;
-if strcmp(filename,'jobvalues.mat')
-    cd (imagedirectory);
-    load jobvalues.mat;
-    filename = jobvalues.imagename;
-    gotvals = 1;
-end
-
-% Get the current job list
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% If jobList consists of more than one entry append the new filename after the
-% last one else just put it in the jobList as the first entry
-if ~iscell(jobList)
-    jobList = cellstr(filename);
-else
-    jobList(end+1) = cellstr(filename);
-end
-
-% Store the modified job list back in the GUI handle
-set(handles.GUI_st_job_lb,'String',jobList);
-
-% Get the last job in the job list
-jobNumber = length(jobList); 
-
-% In case a jobvalues.mat file was read, store this in the handle
-if gotvals == 1
-    handles.jobs(jobNumber) = jobvalues;
-    clear jobvalues
-% else start using the default job values and do some more
-else
-    handles.jobs(jobNumber) = handles.defaultjob;
-    handles.jobs(jobNumber).imagedirectory = imagedirectory;
-    handles.jobs(jobNumber).imagename = lower(filename);
-    
-    % Now the image directory is known, let's rename all filenames to
-    % lowercase to prevent problems later on (Metamorph sometimes names the
-    % files with arbitrary upper and lowercase characters)
-    %renameImageFilesToLower (imagedirectory);
-    	    
-    % Store the size of the frames
-    imInfo = imfinfo([imagedirectory filesep filename]);
-    handles.jobs(jobNumber).rowsize = imInfo.Height;
-    handles.jobs(jobNumber).colsize = imInfo.Width;
-    
-    % Find out what part of the filename describes the images and which part
-    % is just counting them through.    
-    number = 0;
-    countNum = 0;
-    while ~isnan(number) & (countNum <3)
-       countNum = countNum+1;
-       number = str2num(filename(end-(4+countNum):end-4));
+if ~iscell(selectedFile)
+    if selectedFile == 0
+        cd (currentDir);
+        return;
     end
+end
 
-    % Extract the body of the filename and store in handles struct
-    handles.jobs(jobNumber).bodyname = lower(filename(1:(end-(4+countNum))));
-    bodyname = handles.jobs(jobNumber).bodyname;
-     
-    % Select the current project
-    set(handles.GUI_st_job_lb, 'Value', jobNumber);
-	
-    % Create a list of files present in the image directory selected by the user
-    dirList = dir(imagedirectory);
-    dirList = struct2cell(dirList);
-    dirList = dirList(1,:);
-    
-    % Find all files within this directory with the same name as the selected filename
-    ind = strmatch(handles.jobs(jobNumber).bodyname, dirList);
-    dirList = dirList(ind)';
-    handles.jobs(jobNumber).lastimage = length(dirList);
-      
-    % Go to the directory where the images are stored
-    if ~exist (imagedirectory, 'dir')
-       h=errordlg(['Image directory ' imagedirectory ' does not exist. Please change path...']);
-       uiwait(h);
-       return
-    else 
-       cd (imagedirectory);
-    end
-   
-    % Test whether the max greyvalue per frame is not more than the
-    % bitdepth value specified on the gui
-    % But do this only if it hasn't be done before (filesChecked matfile)
-    if (~(exist ('filesChecked.mat', 'file') == 2))
-       fprintf (1, 'Checking image files of job %d for grey value correctness...\n', jobNumber);
-    
-       % Calculate the max posible grey value
-       maxGreyValue = (2^handles.jobs(jobNumber).bitdepth);
-    
-       % Set the mouse pointer to busy
-       set(gcbf,'Pointer','watch');
-    
-       % Sort the images by successive numbers:
-       % First we get all numbers and write them into a vector
-       for jRearange = 1:length(dirList)
-         tmpName = char(dirList(jRearange));
-         if max (max (imread(tmpName))) > maxGreyValue
-            % The frame contains a value higher than the bitdepth specified
-            errormsg = ['Image file ' tmpName ' contains a grey value bigger than ' ...
-                        num2str(maxGreyValue) ' (' num2str(max(max(imread(tmpName)))) ...
-                        '). Please correct before loading job...'];
-            h = errordlg (errormsg);
-            uiwait (h);
-            jobList(end) = [];
-            if isempty (jobList)
-              jobList = char('No project loaded');
-              set(handles.GUI_st_job_lb,'Value',1);
-            else
-              set(handles.GUI_st_job_lb,'Value', length(jobList));
-            end
-            set(handles.GUI_st_job_lb,'String',jobList);
-            handles.jobs(jobNumber) = [];
-            guidata(hObject, handles);
-            return
-         else  
-           % Add the job to the list
-           imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
-         end
-         
-      end   % for jRearrange
-    
-      % Set the mouse pointer to normal again
-      set(gcbf,'Pointer','arrow');
- 
-      % Create a file that is used to skip the test next time
-      cd (imagedirectory);
-      filesChecked = 1;
-      save ('filesChecked.mat', 'filesChecked');   
-   
-      fprintf (1, 'All image files of job %d are correct!\n', jobNumber);
-      
+% Check whether 1 or multiple files have been selected
+if iscell(selectedFile)
+    nrOfFiles = length(selectedFile);
+else
+    nrOfFiles = 1;
+end
+
+% Loop through all the files
+for fileCount = 1 : nrOfFiles
+    % Retrieve file name
+    if iscell(selectedFile)
+        filename = selectedFile{fileCount};
     else
-      % Do the sorting without the greyvalue check
-      for jRearange = 1:length(dirList)
-        tmpName = char(dirList(jRearange));
-        imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
-      end  % for jRearange
-    end  % if exist ('filesChecked.mat', 'file')
-    
-    % Then we sort that vector and sort the dirList accordingly
-    [junk,indVec] = sort(imageNum);
-    handles.jobs(jobNumber).imagenameslist = dirList(indVec);
-        
-    % Create a directory to save the details and results of this job
-    % Note: we call the directory results + bodyname + seq number
-    % number will be lowest unoccupied number for this specific directory name
-    cd (imagedirectory)
-    done = 0;
-    counter = 1;
-    while done == 0
-        newdirname = [];
-        newdirname = ['results_', bodyname, num2str(counter)];
-           
-        % Loop on until we find an unoccupied new dirname
-        if exist (newdirname, 'dir') == 0
-            mkdir (imagedirectory, newdirname);
-            tempname = [imagedirectory, newdirname];
-            mkdir(tempname,'body');
-             
-            handles.jobs(jobNumber).savedirectory = [imagedirectory, newdirname];
-            done = 1;
-        end
-        counter = counter + 1;
+        filename = selectedFile;
     end
+    
+    % Else go on and check whether a file called 'jobvalues.mat' has been
+    % selected
+    gotvals = 0;
+    if strcmp(filename,'jobvalues.mat')
+        cd (imagedirectory);
+        load jobvalues.mat;
+        filename = jobvalues.imagename;
+        gotvals = 1;
+    end
+
+    % Get the current job list
+    jobList = get(handles.GUI_st_job_lb,'String');
+
+    % If jobList consists of more than one entry append the new filename after the
+    % last one else just put it in the jobList as the first entry
+    if ~iscell(jobList)
+        jobList = cellstr(filename);
+    else
+        jobList(end+1) = cellstr(filename);
+    end
+
+    % Store the modified job list back in the GUI handle
+    set(handles.GUI_st_job_lb,'String',jobList);
+
+    % Get the last job in the job list
+    jobNumber = length(jobList); 
+
+    % In case a jobvalues.mat file was read, store this in the handle
+    if gotvals == 1
+        handles.jobs(jobNumber) = jobvalues;
+        clear jobvalues
+    % else start using the default job values and do some more
+    else
+        handles.jobs(jobNumber) = handles.defaultjob;
+        handles.jobs(jobNumber).imagedirectory = imagedirectory;
+        handles.jobs(jobNumber).imagename = lower(filename);
+
+        % Now the image directory is known, let's rename all filenames to
+        % lowercase to prevent problems later on (Metamorph sometimes names the
+        % files with arbitrary upper and lowercase characters)
+        %renameImageFilesToLower (imagedirectory);
+
+        % Store the size of the frames
+        imInfo = imfinfo([imagedirectory filesep filename]);
+        handles.jobs(jobNumber).rowsize = imInfo.Height;
+        handles.jobs(jobNumber).colsize = imInfo.Width;
+
+        % Find out what part of the filename describes the images and which part
+        % is just counting them through.    
+        number = 0;
+        countNum = 0;
+        while ~isnan(number) & (countNum <3)
+           countNum = countNum+1;
+           number = str2num(filename(end-(4+countNum):end-4));
+        end
+
+        % Extract the body of the filename and store in handles struct
+        handles.jobs(jobNumber).bodyname = lower(filename(1:(end-(4+countNum))));
+        bodyname = handles.jobs(jobNumber).bodyname;
+
+        % Select the current project
+        set(handles.GUI_st_job_lb, 'Value', jobNumber);
+
+        % Create a list of files present in the image directory selected by the user
+        dirList = dir(imagedirectory);
+        dirList = struct2cell(dirList);
+        dirList = dirList(1,:);
+
+        % Find all files within this directory with the same name as the selected filename
+        ind = strmatch(handles.jobs(jobNumber).bodyname, dirList);
+        dirList = dirList(ind)';
+        handles.jobs(jobNumber).lastimage = length(dirList);
+
+        % Go to the directory where the images are stored
+        if ~exist (imagedirectory, 'dir')
+           h=errordlg(['Image directory ' imagedirectory ' does not exist. Please change path...']);
+           uiwait(h);
+           return
+        else 
+           cd (imagedirectory);
+        end
+
+        % Test whether the max greyvalue per frame is not more than the
+        % bitdepth value specified on the gui
+        % But do this only if it hasn't be done before (filesChecked matfile)
+        if (~(exist ('filesChecked.mat', 'file') == 2))
+           fprintf (1, 'Checking image files of job %d for grey value correctness...\n', jobNumber);
+
+           % Calculate the max posible grey value
+           maxGreyValue = (2^handles.jobs(jobNumber).bitdepth);
+
+           % Set the mouse pointer to busy
+           set(gcbf,'Pointer','watch');
+
+           % Sort the images by successive numbers:
+           % First we get all numbers and write them into a vector
+           for jRearange = 1:length(dirList)
+             tmpName = char(dirList(jRearange));
+             if max (max (imread(tmpName))) > maxGreyValue
+                % The frame contains a value higher than the bitdepth specified
+                errormsg = ['Image file ' tmpName ' contains a grey value bigger than ' ...
+                            num2str(maxGreyValue) ' (' num2str(max(max(imread(tmpName)))) ...
+                            '). Please correct before loading job...'];
+                h = errordlg (errormsg);
+                uiwait (h);
+                jobList(end) = [];
+                if isempty (jobList)
+                  jobList = char('No project loaded');
+                  set(handles.GUI_st_job_lb,'Value',1);
+                else
+                  set(handles.GUI_st_job_lb,'Value', length(jobList));
+                end
+                set(handles.GUI_st_job_lb,'String',jobList);
+                handles.jobs(jobNumber) = [];
+                guidata(hObject, handles);
+                return
+             else  
+               % Add the job to the list
+               imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
+             end
+
+          end   % for jRearrange
+
+          % Set the mouse pointer to normal again
+          set(gcbf,'Pointer','arrow');
+
+          % Create a file that is used to skip the test next time
+          cd (imagedirectory);
+          filesChecked = 1;
+          save ('filesChecked.mat', 'filesChecked');   
+
+          fprintf (1, 'All image files of job %d are correct!\n', jobNumber);
+
+        else
+          % Do the sorting without the greyvalue check
+          for jRearange = 1:length(dirList)
+            tmpName = char(dirList(jRearange));
+            imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
+          end  % for jRearange
+        end  % if exist ('filesChecked.mat', 'file')
+
+        % Then we sort that vector and sort the dirList accordingly
+        [junk,indVec] = sort(imageNum);
+        handles.jobs(jobNumber).imagenameslist = dirList(indVec);
+
+        % Create a directory to save the details and results of this job
+        % Note: we call the directory results + bodyname + seq number
+        % number will be lowest unoccupied number for this specific directory name
+        cd (imagedirectory)
+        done = 0;
+        counter = 1;
+        while done == 0
+            newdirname = [];
+            newdirname = ['results_', bodyname, num2str(counter)];
+
+            % Loop on until we find an unoccupied new dirname
+            if exist (newdirname, 'dir') == 0
+                mkdir (imagedirectory, newdirname);
+                tempname = [imagedirectory, newdirname];
+                mkdir(tempname,'body');
+
+                handles.jobs(jobNumber).savedirectory = [imagedirectory, newdirname];
+                done = 1;
+            end
+            counter = counter + 1;
+        end
+    end
+
+    % Store the modified job list back in the GUI handle
+    set(handles.GUI_st_job_lb,'String',jobList);
+
+    % Update GUI handle struct
+    guidata(hObject, handles);
+
+    % Store the latest data in jobvalues.mat in the specified save directory
+    if ~isempty(handles.jobs(jobNumber).savedirectory)
+       jobvalues = handles.jobs(jobNumber);
+       save ([handles.jobs(jobNumber).savedirectory filesep 'jobvalues'],'jobvalues')
+       clear jobvalues
+    end
+
+    % Last but not least make sure the text field on the GUI show the latest values
+    ptFillFields(handles, handles.jobs(jobNumber))
 end
-
-% Store the modified job list back in the GUI handle
-set(handles.GUI_st_job_lb,'String',jobList);
-
-% Update GUI handle struct
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ([handles.jobs(jobNumber).savedirectory filesep 'jobvalues'],'jobvalues')
-   clear jobvalues
-end
-
-% Last but not least make sure the text field on the GUI show the latest values
-ptFillFields(handles, handles.jobs(jobNumber))
 
 %-------------------------------------------------------------------------------
 
@@ -2371,5 +2394,59 @@ handles.polyDataDirectory = directory;
 
 % Update GUI handles struct
 guidata (hObject,handles);
+
+%---------------------------------------------------------------------
+
+function GUI_drugtimepoint_ed_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
+
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
+% Get the currently selected project
+jobNumber = get(handles.GUI_st_job_lb,'Value');
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get(hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.jobs(jobNumber).drugtimepoint = handles.defaultJob.drugtimepoint;
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    return
+else
+    handles.jobs(jobNumber).drugtimepoint = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+% Store the latest data in jobvalues.mat in the specified save directory
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
+
+%----------------------------------------------------------------------
+
+function GUI_drugtimepoint_ed_CreateFcn(hObject, eventdata, handles)
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 

@@ -59,7 +59,8 @@ defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, 'm
                         'dragtail', 6, 'dragtailfile', 'trackMovie', 'figureSize', [], ...
                         'multframevelocity', 1, 'binsize', 13, 'mmpixel', 0.639, 'timeperframe', 300, ...
                         'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81, 'windowsize', 5, ...
-                        'maxcellcelldist', 81, 'ripconfint', 85, 'fulltracks', 0, 'dragtracks', 1);
+                        'maxcellcelldist', 81, 'ripconfint', 85, 'fulltracks', 0, 'dragtracks', 1, ...
+                        'drugtimepoint', 30);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -177,6 +178,10 @@ set (handles.GUI_maxcellcelldist_ed, 'String', handles.guiData.maxcellcelldist);
 % Set ripley confidence interval
 handles.guiData.ripleyconfint = defaultPostPro.ripconfint;
 set (handles.GUI_ripconfint_ed, 'String', handles.guiData.ripleyconfint);
+
+% Set drug application time point
+handles.guiData.drugtimepoint = defaultPostPro.drugtimepoint;
+set (handles.GUI_drugtimepoint_ed, 'String', handles.guiData.drugtimepoint);
 
 % Set the color of the gui
 set(hObject,'Color',[0,0,0.627]);
@@ -782,6 +787,9 @@ plotName = datestr(now,30);
 % Get window size for running average
 windowSize = guiData.windowsize;
 
+% Get drug timepoint
+drugTimepoint = guiData.drugtimepoint;
+
 % Assign the radiobutton values to the radioButtons struct
 radioButtons = getRadiobuttonValues (handles);
 
@@ -845,7 +853,8 @@ else
       % Here's where the plotting itself starts
       if radioButtons.speedplot_2
          % Generate avg velocity plots if the users requested these
-          ptPlotSpeedStats (radioButtons, plotName, saveDir, xAxis, avgVelocityStats, windowSize);
+          ptPlotSpeedStats (radioButtons, plotName, saveDir, xAxis, avgVelocityStats, windowSize, ...
+                            drugTimepoint);
       end   
       if radioButtons.speedplot_1
          % Generate vel. single cell plots if the users requested these
@@ -875,7 +884,8 @@ else
          [neighTrajStats, xAxis] = ptCalculateNeighbourTraj (handles); 
             
          % Do the plots   
-         ptPlotNeighbourTraj (radioButtons, plotName, saveDir, xAxis, neighTrajStats, windowSize);
+         ptPlotNeighbourTraj (radioButtons, plotName, saveDir, xAxis, neighTrajStats, windowSize, ...
+                              drugTimepoint);
       end
             
       if radioButtons.neighbourplot_2
@@ -884,7 +894,8 @@ else
          [neighChangeStats, xAxis] = ptCalculateNeighbourChanges (handles); 
             
          % Do the plots   
-         ptPlotNeighbourChanges (radioButtons, plotName, saveDir, xAxis, neighChangeStats, windowSize);
+         ptPlotNeighbourChanges (radioButtons, plotName, saveDir, xAxis, neighChangeStats, windowSize, ...
+                                 drugTimepoint);
       end
       
       % For all the figures we want to keep the xAxis as well 
@@ -901,7 +912,8 @@ else
           [chaosStats, xAxis] = ptCalculateChaosStats (handles, radioButtons);
           
           % Do the plots
-          ptPlotChaosStats (radioButtons, plotName, saveDir, xAxis, chaosStats, windowSize);
+          ptPlotChaosStats (radioButtons, plotName, saveDir, xAxis, chaosStats, windowSize, ...
+                            drugTimepoint);
       end
       
       % For these figures we want to keep the xAxis as well 
@@ -3225,4 +3237,37 @@ handles.polyDataDirectory = directory;
 
 % Update GUI handles struct
 guidata (hObject,handles);
+
+% --------------------------------------------------------------------
+
+function GUI_drugtimepoint_ed_Callback(hObject, eventdata, handles)
+handles = guidata (hObject);
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get (hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.guiData.ripleyconfint = handles.defaultPostPro.drugtimepoint;
+    set (handles.GUI_drugtimepoint_ed, 'String', num2str(handles.guiData.drugtimepoint));  % Revert the value back
+    return
+else
+    handles.guiData.drugTimepoint = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+% --------------------------------------------------------------------
+
+function GUI_drugtimepoint_ed_CreateFcn(hObject, eventdata, handles)
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
 

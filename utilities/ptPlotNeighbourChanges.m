@@ -1,4 +1,4 @@
-function ptPlotNeighbourChanges (radioButtons, imageName, SaveDir, xAxis, neighChangeStats, windowSize)
+function ptPlotNeighbourChanges (radioButtons, imageName, SaveDir, xAxis, neighChangeStats, windowSize, drugTimepoint)
 % ptPlotNeighbourChanges plots neighbour change info from MPM. 
 %
 % SYNOPSIS       ptPlotNeighbourChanges (imageName, SaveDir, xAxisNeigh, neighChangeStats, windowSize)
@@ -9,6 +9,7 @@ function ptPlotNeighbourChanges (radioButtons, imageName, SaveDir, xAxis, neighC
 %                xAxisNeigh : vector with x-axis values
 %                neighChangeStats : vector with neighbourhood interactions
 %                windowSize : size of the averaging window 
+%                drugTimepoint : frame number where the drug/EGF is applied 
 %                
 % OUTPUT         None (plots are directly shown on the screen) 
 %
@@ -42,7 +43,7 @@ if ~radioButtons.donotshowplots
     % If needed show the fitted trapezoid on the plot
     if radioButtons.plotestimate
        hold on;
-       [yPlot, est] = ptPlotEstimate (xAxis, avgNbChange, 1, []);
+       [yPlot, est] = ptPlotEstimate (xAxis, avgNbChange, 1, [], drugTimepoint);
        hold off;
     end
     

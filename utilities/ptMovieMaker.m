@@ -172,11 +172,13 @@ for movieStep = movieStartFrame : increment : movieEndFrame
    else
       if movieStep == movieStartFrame
           imshow (nowImgH, []);
+          title(num2str(movieStep));
       else
           imgPtr=findall(gca,'Type','Image');
           set(imgPtr,'CData',nowImgH);
           set(imgPtr,'CDataMapping','scaled')
           set(gca,'CLimMode','auto');
+          title(num2str(movieStep));
           refresh;
       end
    end  % ~isempty (figureSize)

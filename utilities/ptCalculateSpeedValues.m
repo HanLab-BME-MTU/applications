@@ -183,6 +183,12 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
                  % we can skip over this part
                  if ~isempty (cellIndex)
 
+                    % Check whether cellIndex contains double coordinate
+                    % pairs (shouldn't be)
+                    if length(cellIndex) > 1
+                        cellIndex = cellIndex(1);   % Take the first one
+                    end
+                     
                     % Find this cluster in clusterProps
                     clusterIndex = find (clusterProps{jobCount}(:,1,frameIndx) == cellProps{jobCount}(cellIndex,3,frameIndx));
 

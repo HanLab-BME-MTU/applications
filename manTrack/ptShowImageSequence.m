@@ -49,18 +49,13 @@ else
     sliderHandle = findall (0, 'Style', 'slider', 'Tag', 'imageSlider');
 
     % Calculate the image range taking into account the increment between frames
-    %imageRange = lastImage - firstImage + 1;
     imageRange = size (validFrames,2);
-    %handlesMt.imageRange = imageRange;
 
     % Generate the slider step values for the uicontrol
     % First the arrow slide step (1):
     slider_step(1) = 1 / imageRange;
     % Then the stepsize (5):
     slider_step(2) = 5 / imageRange;
-
-    % Update the handlesMt structure
-    %guidata(hManTrack, handlesMt);
 
     % Draw a new figure on the screen
     h = figure;
@@ -107,35 +102,26 @@ else
     % Make sure the axis are correct
     axis([1 size(image,2) 1 size(image,1)]);
 
-    % Read the MPM file
-%     try
-%         load ([resultsDirectory filesep 'MPM.mat']);
-        
-        % Identify the real cells (at least one coord different from zero)
-        realCellIndex = find(MPM(:,1) | MPM(:,2));
+    % Identify the real cells (at least one coord different from zero)
+    realCellIndex = find(MPM(:,1) | MPM(:,2));
 
-        % Find the row indices from a transposed MPM matrix
-        cellsWithNums = zeros(size(MPM,1),3);
-        cellsWithNums(:,3) = [1:1:size(MPM,1)]';
+    % Find the row indices from a transposed MPM matrix
+    cellsWithNums = zeros(size(MPM,1),3);
+    cellsWithNums(:,3) = [1:1:size(MPM,1)]';
 
-        % Grab all rows in MPM, so that the row indices correspond to the cells
-        cellsWithNums(:,1:2) = MPM(:,1:2);
+    % Grab all rows in MPM, so that the row indices correspond to the cells
+    cellsWithNums(:,1:2) = MPM(:,1:2);
 
-        % Now take the cells identified as real cells (at least one coord different from zero)
-        % and plot those as red dots. The cell number is written as colored text on the current axes.
-        hold on;
-        dots = plot (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), 'r.');
-        set(dots,'Tag','dots','ButtonDownFcn',@ptManTrackCells);
-        txt = text (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), ...
-                    num2str (cellsWithNums (realCellIndex, 3)), 'Color', 'r');
+    % Now take the cells identified as real cells (at least one coord different from zero)
+    % and plot those as red dots. The cell number is written as colored text on the current axes.
+    hold on;
+    dots = plot (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), 'r.');
+    set(dots,'Tag','dots','ButtonDownFcn',@ptManTrackCells);
+    txt = text (cellsWithNums (realCellIndex, 1), cellsWithNums (realCellIndex, 2), ...
+                num2str (cellsWithNums (realCellIndex, 3)), 'Color', 'r');
 
-        % That's it: wait for the next user action
-        hold off;
-%     catch
-%         msgStr = ['No MPM file present in ' resultsDirectory '. Exiting...'];
-%         h = errordlg(msgStr);
-%         uiwait(h);
-%     end
+    % That's it: wait for the next user action
+    hold off;
 
     % create structure of handles
     handlesNew = guihandles(sliderHandle); 

@@ -201,7 +201,7 @@ set (handles.edit_bodyname_ptmt, 'String', bodyname(1:end-2));
 ind = strmatch(bodyname, dirList);
 dirList = dirList(ind)';
 
-% Do the sorting without the greyvalue check
+% Do the sorting
 for jRearange = 1:length(dirList)
    tmpName = char(dirList(jRearange));
    imageNum(jRearange) = str2num(tmpName(length(bodyname)+1:end-4));

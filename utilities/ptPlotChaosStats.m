@@ -1,4 +1,4 @@
-function ptPlotChaosStats (radioButtons, imageName, SaveDir, xAxis, chaosStats, windowSize)
+function ptPlotChaosStats (radioButtons, imageName, SaveDir, xAxis, chaosStats, windowSize, drugTimepoint)
 % ptPlotChaosStats plots clustering info from MPMs. 
 %
 % SYNOPSIS       ptPlotChaosStats (imageName, SaveDir, xAxisNeigh, chaosStats, windowSize)
@@ -9,6 +9,7 @@ function ptPlotChaosStats (radioButtons, imageName, SaveDir, xAxis, chaosStats, 
 %                xAxisNeigh : vector with x-axis values
 %                chaosStats : vector with clustering info
 %                windowSize : size of the averaging window 
+%                drugTimepoint : frame number where the drug/EGF is applied 
 %                
 % OUTPUT         None (plots are directly shown on the screen) 
 %
@@ -43,6 +44,7 @@ if ~radioButtons.donotshowplots
 
     % Draw a plot showing clustering parameter
     ymax = max(ripleySlopeInclin) + (0.1*max (ripleySlopeInclin));
+    ymin = min(ripleySlopeInclin) - (0.1*max (ripleySlopeInclin));
    
     % Plot the running average
     if radioButtons.runningaverage
@@ -56,7 +58,7 @@ if ~radioButtons.donotshowplots
     % If needed show the fitted trapezoid on the plot
     if radioButtons.plotestimate
        hold on;
-       [yPlot, est] = ptPlotEstimate (xAxis, ripleySlopeInclin, -1, []);
+       [yPlot1, est1] = ptPlotEstimate (xAxis, ripleySlopeInclin, -1, [], drugTimepoint);
        hold off;
     end
             
@@ -89,7 +91,14 @@ if ~radioButtons.donotshowplots
         plot (xAxis, ripleySlopeStart, 'c'); 
         legend('Slope start value',2);
     end
-            
+
+    % If needed show the fitted line on the plot
+    if radioButtons.plotestimate
+       hold on;
+       [xPlot2, yPlot2, sigma2, est2] = ptEstimateLine (xAxis, ripleySlopeStart, [], drugTimepoint);
+       hold off;
+    end
+                        
     title ('Avg Slope Start Value');
     xlabel ('Frames');
     ylabel ('Avg Slope Start Value');
@@ -105,13 +114,18 @@ if ~radioButtons.donotshowplots
     print (h_fig2, [SaveDir filesep [imageName '_avgRipleySlopeStart.tif']],'-dtiff');      
 end
 
-% Save CSV files
-csvwrite ([SaveDir filesep imageName '_avgRipleySlopeInclination.csv'], [xAxis ; ripleySlopeInclin]);
-csvwrite ([SaveDir filesep imageName '_avgRipleySlopeStart.csv'], [xAxis ; ripleySlopeStart]);
+if ~radioButtons.donotshowplots
+    % Save CSV files
+    csvwrite ([SaveDir filesep imageName '_avgRipleySlopeInclination.csv'], [xAxis ; ripleySlopeInclin]);
+    csvwrite ([SaveDir filesep imageName '_avgRipleySlopeStart.csv'], [xAxis ; ripleySlopeStart]);
+end
 
 if radioButtons.plotestimate
     if ~radioButtons.donotshowplots 
-        csvwrite ([SaveDir filesep imageName '_fittedCurveRipleySlopeInclination.csv'], [xAxis ; yPlot]);
-        csvwrite ([SaveDir filesep imageName '_curveEstimatesRipleySlopeInclination.csv'], est);
+        csvwrite ([SaveDir filesep imageName '_fittedCurveRipleySlopeInclination.csv'], [xAxis ; yPlot1]);
+        csvwrite ([SaveDir filesep imageName '_curveEstimatesRipleySlopeInclination.csv'], est1);
+        
+        csvwrite ([SaveDir filesep imageName '_fittedCurveRipleySlopeStart.csv'], [xPlot2 ; yPlot2]);
+        csvwrite ([SaveDir filesep imageName '_curveEstimatesRipleySlopeStart.csv'], est2);
     end
 end

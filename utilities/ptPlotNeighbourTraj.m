@@ -1,4 +1,4 @@
-function ptPlotNeighbourTraj (radioButtons, imageName, SaveDir, xAxis, neighTrajStats, windowSize)
+function ptPlotNeighbourTraj (radioButtons, imageName, SaveDir, xAxis, neighTrajStats, windowSize, drugTimepoint)
 % ptPlotNeighbourTraj plots neighbour traj. information gathered in MPM. 
 %
 % SYNOPSIS       ptPlotNeighbourTraj (imageName, SaveDir, xAxisNeigh, neighTrajStats, windowSize)
@@ -9,6 +9,7 @@ function ptPlotNeighbourTraj (radioButtons, imageName, SaveDir, xAxis, neighTraj
 %                xAxisNeigh : vector with x-axis values
 %                neighTrajStats : vector with neighbourhood trajectories
 %                windowSize : size of the averaging window 
+%                drugTimepoint : frame number where the drug/EGF is applied 
 %                
 % OUTPUT         None (plots are directly shown on the screen) 
 %
@@ -41,7 +42,7 @@ if ~radioButtons.donotshowplots
     
     if radioButtons.plotestimate
        hold on;
-       [yPlot, est] = ptPlotEstimate (xAxis, avgTrajFrame, 1, []);
+       [yPlot, est] = ptPlotEstimate (xAxis, avgTrajFrame, 1, [], drugTimepoint);
        hold off;
     end
         

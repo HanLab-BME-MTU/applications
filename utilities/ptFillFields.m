@@ -38,6 +38,7 @@ set (handles.GUI_st_eo_mincorrqualtempl_pm, 'String', num2str (activeJob.mincorr
 set (handles.GUI_st_eo_noiseparameter_pm,   'String', num2str (activeJob.noiseparameter));
 set (handles.GUI_st_path_timeperframe_ed,   'String', num2str (activeJob.timeperframe));
 set (handles.GUI_st_bp_mmpixel_pm,          'String', num2str (activeJob.mmpixel));
+set (handles.GUI_drugtimepoint_ed,          'String', num2str (activeJob.drugtimepoint));
 
 % Set the timestep slide popup menu
 if ~isempty (activeJob.timestepslide)
