@@ -194,6 +194,31 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Create subdirectories if needed
+if exist([outputdir,filesep,'tif'])~=7
+    % Create directory
+    success=mkdir(outputdir,'tif');
+    if success==0
+        error('Could not create subfolder in specified directory');
+    end
+end
+if exist([outputdir,filesep,'mat'])~=7
+    % Create directory
+    success=mkdir(outputdir,'mat');
+    if success==0
+        error('Could not create subfolder in specified directory');
+    end
+
+end
+if exist([outputdir,filesep,'eps'])~=7
+    % Create directory
+    success=mkdir(outputdir,'eps');
+    if success==0
+        error('Could not create subfolder in specified directory');
+    end
+end
+
+
 % Create vector of indices for file names
 indices=[uFirst:uLast-n+1]+fix(n/2);
 
@@ -284,13 +309,13 @@ for c2=1:steps
 
     % Save image
     indxStr=sprintf(strg,indices(c2));
-    fname=[outputdir,filesep,outputFileName,'_velocityMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.tif'];
+    fname=[outputdir,filesep,'tif',filesep,outputFileName,'_velocityMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.tif'];
     print(gcf,'-dtiffnocompression',fname);
-    fname=[outputdir,filesep,outputFileName,'_velocityMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.eps'];
+    fname=[outputdir,filesep,'eps',filesep,outputFileName,'_velocityMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.eps'];
     print(gcf,'-dpsc2',fname);
 
     % Save velocityMap to disk as well
-    eval(['save ',outputdir,filesep,outputFileName,'_velocityMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.mat velocityMap']);
+    eval(['save ',outputdir,filesep,'mat',filesep,outputFileName,'_velocityMap_d0=',num2str(d0_init),'_scale',num2str(scaleFactor),'x_',indxStr,'.mat velocityMap']);
 
     close(gcf);
     
