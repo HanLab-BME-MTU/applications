@@ -12,6 +12,9 @@ function dataListG = trajectoryAnalysisMainGroupUnits(dataList,distance,time,con
 %       compatible  the states (dataList(:,3)) to be grouped if possible
 %
 % OUTPUT dataListGroup grouped dataList
+%       dataList has the following cols
+%       1:startIdx, 2:endIdx, 3:state, 4:slope, 5:slopeSigma, 6:slopeSigmaAPR,
+%       7:deltaT, 8:(deltaTSigma), 9:deltaD, 10:deltaDSigma, 11:startDistance
 %
 % c: 01/04 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -269,6 +272,11 @@ switch STRATEGY
                             %calculate chi2
                             res  = abs(A*X-B); %abs here for the outlier testing
                             chi2 = sum(res'*weightMatrix*res)/(ntp-2); %weighted stats!
+                            
+                            if chi2 == 0
+                                res = max(res,realmin*10);
+                                chi2 = 100 * realmin;
+                            end
                             
                             %calculate sigmaApriori
                             sigmaApriori = XSigma/sqrt(XSigmaZeroH);

@@ -1,7 +1,9 @@
 function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(data,ioOpt,testOpt)
 %TRAJECTORYANALYSIS analyzes experimental and simulated microtubule trajectories and returns corresponding statistical descriptors
 %
-%INPUT   data(1:n) (opt): structure containing n different trajectories with fields
+% SYNOPSIS  [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(data,ioOpt,testOpt)
+%
+% INPUT  data(1:n) (opt): structure containing n different trajectories with fields
 %           - distance   tx2 array [distance, sigmaDistance] in microns
 %           - time       tx2 array [time, sigmaTime] in seconds
 %           - timePoints tx1 array [timePoint#] 
@@ -56,7 +58,7 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %           - randomize     : [{0}/1] randomize the input list
 %           - clustermax    : max # of clusters the EM algorithm looks for
 %
-%OUTPUT  trajectoryDescription
+% OUTPUT trajectoryDescription
 %           .individualStatistics(1:n)
 %               .statistics
 %               .details (opt)
