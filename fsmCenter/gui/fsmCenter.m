@@ -599,11 +599,16 @@ if get(handles.checkSMMask,'Value')==1
     if ~(isa(fName,'char') & isa(dirName,'char'))
         choice=questdlg('You didn''t pick any file.','Error','Continue without ROI','Exit','Exit');
         switch choice,
-            case 'Continue without ROI', userROIbw=[];
+            case 'Continue without ROI'; filePicked=0;
             case 'Exit', return;
         end % switch
+    else
+        filePicked=1;
     end
-    load([dirName,fName]);
+    if filePicked==1
+        % Load the file
+        load([dirName,fName]);
+    end
     if exist('userROIbw')~=1
         choice=questdlg('The loaded file does not seem to contain a valid ROI.','Error','Continue without ROI','Exit','Exit');
         switch choice,
@@ -620,7 +625,6 @@ overlayVectors=get(handles.checkSMOverlay,'value');
 sampling=str2num(get(handles.editSMSampling,'string'));
 pixelSize=str2num(get(handles.editSMPixel,'string'));
 maxSpeed=str2num(get(handles.editSMMax,'string'));
-userROIbw=get(handles.checkSMMask,'value');
 segment=get(handles.checkSMSegment,'value');
 outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIbw,maxSpeed,segment);
 if ~isempty(outputdir)
