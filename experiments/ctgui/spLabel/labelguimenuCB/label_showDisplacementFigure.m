@@ -123,7 +123,7 @@ legendText = [{'TimepointsBF'};legendText];
 
 % adjust distance by dividing by numTimePointsBF - if one, remains the
 % same, if two, is halved etc.
-yData = yData./numTimePointsBF;
+yData = yData./repmat(numTimePointsBF,1,size(yData,2));
 
 
 %use the right colorOrder. From MatlabHelp:
