@@ -17,7 +17,7 @@ function [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc,methodD
 %
 % DEPENDENCIES   findnucloitrack uses {nothing}
 %                                  
-%                findnucloitrack is used by { trackmater
+%                findnucloitrack is used by { trackCells
 %                                             testbutton}
 %
 % Colin Glass, Feb 04         

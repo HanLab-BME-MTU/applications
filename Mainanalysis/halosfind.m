@@ -16,7 +16,7 @@ function [coor,halo]= halosfind(Image,erodedisksize,halolevel,methodDeterm)
 %
 % DEPENDENCIES   halosfind uses {nothing}
 %                                  
-%                halosfind is used by { trackmater
+%                halosfind is used by { trackCells
 %                                       testbutton}
 %
 % Colin Glass, Feb 04         

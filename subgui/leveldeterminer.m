@@ -60,7 +60,7 @@ lastImage=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 %%%%%%%%%%%%%%first picture%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %background
-backfirst = figure, imshow(firstImage,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
+backfirst = figure, imshow(firstImage,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Right-click or press enter to finish.') ;
 
 [X,Y] = getpts(backfirst);
 
@@ -80,7 +80,7 @@ clear Y
 
 
 %nucloi
-nucfirst=figure, imshow(firstImage,[]), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
+nucfirst=figure, imshow(firstImage,[]), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Right-click or press enter to finish.');
 [X,Y] = getpts(nucfirst);
 intense=[];
 for dots=1:size(X,1)
@@ -98,7 +98,7 @@ clear Y
 
 
 %halos
-halofirst=figure, imshow(firstImage,[]), title('Click on the halos(approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
+halofirst=figure, imshow(firstImage,[]), title('Click on the halos(approx 8 times). Make sure your clicks on a lot of different ones. Right-click or press enter to finish.');
 
 [X,Y] = getpts(halofirst);
 intense=[];
@@ -119,7 +119,7 @@ clear Y
 
 %%%%%%%%%last picture%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %background
-backlast=figure, imshow(lastImage,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
+backlast=figure, imshow(lastImage,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Right-click or press enter to finish.') ;
 
 
 
@@ -140,7 +140,7 @@ clear Y
 
 
 %nucloi
-nuclast=figure, imshow(lastImage,[]), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
+nuclast=figure, imshow(lastImage,[]), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Right-click or press enter to finish.');
 
 [X,Y] = getpts(nuclast);
 intense=[];
@@ -159,7 +159,7 @@ clear Y
 
 
 %halos
-halolast=figure, imshow(lastImage,[]), title('Click on the halos (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
+halolast=figure, imshow(lastImage,[]), title('Click on the halos (approx 8 times). Make sure your clicks on a lot of different ones. Right-click or press enter to finish.');
 
 [X,Y] = getpts(halolast);
 intense=[];
@@ -167,7 +167,7 @@ for dots=1:size(X,1)
     
 	if X(dots) > 3 & X(dots) <img_w-3 & Y(dots) > 3 & Y(dots) <img_h-3  
       
-        intense(end+1)=sum(sum(lastImage(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49;
+        intense(end+1) = sum( sum( lastImage(Y(dots)-3:Y(dots)+3,X(dots)-3: X(dots)+3) ) ) / 49;
     end
 end
 handles.jobs(projNum).la_halolevel= sum(intense)/length(intense);

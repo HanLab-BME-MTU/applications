@@ -63,7 +63,7 @@ while done==0
                  
                  %ask the user if this is really correct
                  onoff=[];
-                 onoff=0
+                 onoff=0;
                  figure, imshow(info,[]), title('Is this correct? if yes: leftklick  -- if no: rightklick    then press ENTER')
                  hold on;
                  plot(coor(:,1),coor(:,2),'r.');
@@ -75,7 +75,7 @@ while done==0
                  %onoff is one if the user did a left click. In this case
                  %the programm will stop.
                  if isempty (onoff)
-                     done=1
+                     done=1;
                      break
                      
                  elseif onoff(1)==1
@@ -141,4 +141,4 @@ while done==0
 		hold off;
 
 end
-close(taken)
+close(taken);

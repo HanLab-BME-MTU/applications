@@ -1,6 +1,6 @@
 function fillFields(handles,activeJob)
 % fillFields writes all values within activejob into the right place in
-%            PolyTrack
+% the PolyTrack GUI
 %
 % SYNOPSIS       fillFields(handles,activeJob)
 %
@@ -18,8 +18,8 @@ function fillFields(handles,activeJob)
 % Colin Glass, Feb 04         
 
 
-%all this program does, is fill values into the respective fields of
-%PolyTrack (GUI). No big deal
+% All this program does, is fill values into the respective fields of the
+% PolyTrack (GUI).
 set(handles.GUI_st_path_imagedirectory_ed,'String',activeJob.imagedirectory);
 set(handles.GUI_st_path_imagename_ed,'String',activeJob.imagename);
 set(handles.GUI_st_path_firstimage_ed,'String',num2str(activeJob.firstimage));
@@ -50,20 +50,18 @@ set(handles.GUI_st_eo_leveladjust_pm,'String',num2str(activeJob.leveladjust));
 set(handles.GUI_st_eo_clustering_rb,'Value',activeJob.clustering);
 set(handles.GUI_st_eo_minmaxthresh_rb,'Value',activeJob.minmaxthresh);
 
-
 set(handles.GUI_st_path_timeperframe_ed,'String',num2str(activeJob.timeperframe));
 
-
+% Set the microm-to-pixel listbox
 if ~isempty(activeJob.mmpixel)
-set(handles.GUI_st_bp_mmpixel_pm,'String',num2str(activeJob.mmpixel));
+   set(handles.GUI_st_bp_mmpixel_pm,'String',num2str(activeJob.mmpixel));
 end
 
+% Set the timestep slide listbox
 if ~isempty(activeJob.timestepslide)
-set(handles.GUI_st_eo_timestepslide_pm,'String',num2str(activeJob.timestepslide));
+   set(handles.GUI_st_eo_timestepslide_pm,'String',num2str(activeJob.timestepslide));
 end
 
-val=round((activeJob.bitdepth-6)/2);
-set(handles.GUI_st_bitdepth_pm,'Value',val)
-
-
-
+% Set the bitdepth field
+val = round((activeJob.bitdepth-6)/2);
+set(handles.GUI_st_bitdepth_pm,'Value',val);

@@ -1,7 +1,7 @@
 function testbutton(hObject)
 % testbutton finds coordinates in an image
 %
-% SYNOPSIS       trackmater(hObject,projNum)
+% SYNOPSIS       trackCells(hObject,projNum)
 %
 % INPUT          hObject : a handle to the Gui which called the function
 %                

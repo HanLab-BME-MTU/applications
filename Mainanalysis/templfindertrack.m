@@ -22,7 +22,7 @@ function [coordnew,cc]= templfindertrack(coord,oldpic,newpic,levback,tempelcellm
 %
 % DEPENDENCIES   templfindertrack uses {nothing}
 %                                  
-%                templfindertrack is used by { trackmater }
+%                templfindertrack is used by { trackCells }
 %                                   
 % Colin Glass, Feb 04         
 
