@@ -207,10 +207,10 @@ else
 end
 
 % Starting optimization
-[noiseParameter,actualP, ratio]=fsmAlphaBetaOptimization1D(outFileList,noiseParams,prob,bitDepth);
-ratio
-pause;
-pause;
+[noiseParameter,actualP]=fsmAlphaBetaOptimization1D(outFileList,noiseParams,prob,bitDepth);
+% ratio
+% pause;
+% pause;
 
 noiseParams = noiseParameter;
 %noiseParameter=noiseParams;
@@ -232,8 +232,8 @@ fprintf(1,'(1) Click on ''Edit experiment parameters'' in fsmCenter.\n');
 fprintf(1,'(2) Copy/paste this record at the end of your experiment settings file.\n');
 fprintf(1,'-------------------------------------------------------------------\n');
 newLabel=[fsmExpParam(exp).label,' - OPTIMIZED FOR PROBABILITY = ',num2str(100*prob),'% (QUANTILE = ',num2str(noiseParams(5)),')'];
-fprintf(1,'LABEL\t\t\t%s\n',newLabel);
-fprintf(1,'DESCRIPTION\t\t%s\n',fsmExpParam(exp).description);
+fprintf(1,'LABEL\t\t\t"%s"\n',newLabel);
+fprintf(1,'DESCRIPTION\t\t"%s"\n',fsmExpParam(exp).description);
 fprintf(1,'BIT DEPTH\t\t"%s"\n',num2str(bitDepth));
 fprintf(1,'NOISE PARAMS\t"%1.8f %1.8f %1.8f %d"\n', noiseParameter(2), noiseParameter(3), noiseParameter(4), 1); % '1' means that this is an optimized record
 fprintf(1,'GAUSS RATIO\t\t"%1.2f"\n',fsmExpParam(exp).gaussRatio);
