@@ -104,10 +104,7 @@ try
             mywaitbar(i/numPlots,waitbarHandle,numPlots);
         end
     else %there is no filtered movie yet. load unfiltered movie and do background subtraction if necessary
-        [rawMovie,handles.previewData.movieName] = ...
-            r3dread(handles.previewData.movieName,[],[],[],handles.currentBGState);
-%         [rawMovie,handles.previewData.movieName,handles.oldBGState] = ...
-%             correctBackground(handles.previewData.movieName,handles.currentBGState,handles.oldBGState);
+        [rawMovie,handles.previewData.movieName,handles.oldBGState] = correctBackground(handles.previewData.movieName,handles.currentBGState,handles.oldBGState);
         rawMovie = rawMovie(:,:,:,:,selFrames);
         filteredMovie = filtermovie(rawMovie,[handles.FILTERPRM]);
         for i = 1:numPlots
