@@ -42,6 +42,13 @@ if plotEndFrame > minFrames
     plotEndFrame = minFrames;
 end
 
+% Get max MPM length
+[mpmNr, maxLength] = ptMaxMPMLength(MPM);
+
+% Initialize the ripley clustering vectors
+ripleyClust = zeros (length(MPM), ceil(maxLength/2));
+ripleyClustSlopePoint = zeros (length(MPM), ceil(maxLength/2));
+
 for jobCount = 1 : length(MPM) 
 
     % Get start and end frames and increment value
@@ -61,10 +68,6 @@ for jobCount = 1 : length(MPM)
     % Initialize cropped MPM
     %ripMPM = zeros (size(MPM{jobCount},1),numberOfFrames*2);
     ripMPM = zeros(size(MPM{jobCount},1), 2*length(validFrames{jobCount}(1,:)));
-    
-    % Initialize the ripley clustering vectors
-    ripleyClust = zeros (length(MPM), numberOfFrames);
-    ripleyClustSlopePoint = zeros (length(MPM), numberOfFrames);
     
     % Initialize X-axis vector and iCount
     xAxis = zeros (1, numberOfFrames);
@@ -103,7 +106,7 @@ for jobCount = 1 : length(MPM)
     frameSize = [colSize rowSize];
     
     % Calculate clustering parameter values
-    fprintf (1, 'Performing Ripley clustering ...\n');
+    fprintf (1, 'Performing Ripley clustering job %d...\n', jobCount);
     [cpar,pvr,dpvr,cpar2] = ClusterQuantRipley (ripMPM, colSize, rowSize);
     
     % Store cpar value
@@ -117,9 +120,49 @@ end  % for jobCount = 1 : length(MPM)
 xIndex = find(xAxis);
 lastEntry = xIndex(end);
 
+% Get the nr of jobs
+nrJobs = length(MPM);
+
 % Calculate the average values over all MPMs
-avgRipleyClust = sum(ripleyClust,1) / length(MPM);
-avgripleyClustSlopePoint = sum(ripleyClustSlopePoint,1) / length(MPM);
+%avgRipleyClust = sum(ripleyClust,1) / nrJobs;
+%avgripleyClustSlopePoint = sum(ripleyClustSlopePoint,1) / nrJobs;
+
+% Set up the loop counter;
+loopCount = 0;
+
+% Initialize the avg ripley vectors
+avgRipleyClust = zeros (length(MPM), numberOfFrames);
+avgRipleyClustSlopePoint = zeros (length(MPM), numberOfFrames);
+
+% Start summing and averaging frames
+for frameCount = plotStartFrame : increment : plotEndFrame
+    
+    % Increase loop counter
+    loopCount = loopCount + 1;
+    
+    % Initialize sums
+    ripleyClustSum = 0;
+    ripleyClustSlopePointSum = 0;
+    sumCount = 0;
+    
+    % Go through all the jobs
+    for jobCount = 1 : nrJobs
+        
+        % Find the frame in validFrames for this job
+        frameIndx = find(validFrames{jobCount}(1,:) == loopCount);
+        
+        if ~isempty(frameIndx)
+            ripleyClustSum = ripleyClustSum + ripleyClust(jobCount,frameIndx);
+            ripleyClustSlopePointSum = ripleyClustSlopePointSum + ripleyClustSlopePoint(jobCount,frameIndx);
+            
+            sumCount = sumCount + 1;
+        end
+    end
+
+    % Average the summed up values
+    avgRipleyClust(loopCount) = ripleyClustSum / sumCount;
+    avgripleyClustSlopePoint(loopCount) = ripleyClustSlopePointSum / sumCount;     
+end
 
 % Prepare output data
 chaosStats.ripleySlopeInclin = avgRipleyClust(1:lastEntry);
