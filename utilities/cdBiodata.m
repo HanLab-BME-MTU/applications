@@ -7,6 +7,7 @@ function mainDir=cdBiodata(option)
 %                   1 if in a biodata directory: don't do anything
 %                   2 if in a biodata directory and if there are r3d-files: move up one level
 %                   3 as 2, but if not in biodata directory: do not change to it
+%                   4 do not change dir at all, just return mainDir
 %
 %OUTPUT     BIODATA - directory
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -50,4 +51,6 @@ switch option
         if ~isempty(dir('*.r3*'))
             cd .. %if in a project dir: move up one file to allow easier switching between projects
         end
+    case 4
+        % do not do anything - just return mainDir
 end
