@@ -1,83 +1,110 @@
-function [arParam,noiseSigma,arParamSigma,errFlag] = arlsestim0(traj,arOrder)
+function [arParam,noiseSigma,varCovMat,errFlag] = arlsestim0(traj,arOrder,method,tol)
 %ARLSESTIM0 estimates parameters of an AR model using least square fitting
 %
-%SYNOPSIS [arParam,noiseSigma,arParamSigma,errFlag] = arlsestim0(traj,arOrder)
+%SYNOPSIS [arParam,noiseSigma,varCovMat,errFlag] = arlsestim0(traj,arOrder,method,tol)
 %
-%INPUT  traj   : Trajectory to be modeled (with measurement uncertainty.
-%       arOrder: Order of proposed AR model.
+%INPUT  traj         : Trajectory to be modeled (with measurement uncertainty).
+%       arOrder      : Order of proposed AR model.
+%       method (opt) : Solution method: 'dir' for direct least square minimization 
+%                      using the matlab "\", 'iter' for iterative refinement using 
+%                      the function "lsIterRefn". The default is 'dir'.
+%       tol (opt)    : Tolerance at which calculation is stopped.
+%                      Needed only when method 'iter' is used. If not
+%                      supplied, 0.001 is assumed. 
 %
 %OUTPUT arParam     : Estimated parameters in model.
 %       noiseSigma  : Estimated standard deviation of white noise.
-%       arParamSIgma: Uncertainty in estimated AR coefficients.
+%       varCovMat   : Variance-covariance matrix of estimated parameters
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
-%Khuloud Jaqaman, February 2004
+%Khuloud Jaqaman, March 2004
 
 errFlag = 0;
 
-%check if correct number of arguments were used when function was called
-if nargin ~= nargin('arlsestim0')
+%check if correct number of arguments was used when function was called
+if nargin < 2
     disp('--arlsestim0: Incorrect number of input arguments!');
     errFlag  = 1;
     arParam = [];
     noiseSigma = [];
-    arParamSigma = [];
     return
 end
 
 %check input data
+[trajLength,nCol] = size(traj);
+if trajLength < arOrder
+    disp('--arlsestim0: Length of trajectory should be larger than model order!');
+    errFlag = 1;
+end
+if nCol ~= 2
+    if nCol == 1
+        traj = [traj ones(trajLength,1)];
+    else
+        disp('--arlsestim0: "traj" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+        errFlag = 1;
+    end
+end
 if arOrder < 1
     disp('--arlsestim0: Variable "arOrder" should be >= 1!');
     errFlag = 1;
 end
-[trajLength,nCol] = size(traj);
-if trajLength < 5*arOrder
-    disp('--arlsestim0: Length of trajectory should be at least 5 times larger than model order!');
-    errFlag = 1;
-end
-if nCol ~= 2
-    disp('--arlsestim0: "traj" should have one column for measurement and one for measurement uncertainty!');
-    errFlag = 1;
-end
 if errFlag
-    disp('--arlsestim0: please fix input data!');
+    disp('--arlsestim0: Please fix input data!');
     arParam = [];
     noiseSigma = [];
-    arParamSigma = [];
+    varCovMat = [];
     return
 end
+
+%check optional parameters
+if nargin >= 3
     
-%previous points to be used in AR prediction 
-%[(trajLength-arOrder) by arOrder matrix]
-prevPoints = zeros(trajLength-arOrder,arOrder);
-for i=1:trajLength-arOrder
-    prevPoints(i,:) = traj(i+arOrder-1:-1:i,1)';
+    if ~strncmp(method,'dir',3) && ~strncmp(method,'iter',4) 
+        disp('--arlsestim0: Warning: Wrong input for "method". "dir" assumed!');
+        method = 'dir';
+    end
+    
+    if strncmp(method,'iter',4)
+        if nargin == 4
+            if tol <= 0
+                disp('--arlsestim0: Warning: "tol" should be positive! A value of 0.001 assigned!');
+                tol = 0.001;
+            end
+        else
+            tol = 0.001;
+        end
+    end
+    
+else
+    method = 'dir';
 end
 
-%weights matrix obtained from measurement uncertainties
-%[(trajLength-arOrder) by (trajLength-arOrder) matrix]
-weights = diag(traj(arOrder+1:end,2).^(-2));
+%weighted matrix of previous points multiplying AR coefficients (on LHS of equation)
+%[(trajLength-arOrder) by arOrder matrix]
+lhsMat = zeros(trajLength-arOrder,arOrder);
+for i=1:arOrder
+    lhsMat(:,i) = traj(arOrder+1-i:end-i,1)./traj(arOrder+1:end,2);
+end
 
-%multiply weights by transpose of prevPoints 
-%[arOrder by (trajLength-arOrder) matrix]
-weightsP = prevPoints'*weights;
+%weighted vector of points used to determine parameters (on RHS of equation)
+%[(trajLength-arOrder) by 1 vector]
+rhsVec = traj(arOrder+1:end,1)./traj(arOrder+1:end,2);
 
-%get right hand side of set of equation 
-%[arOrder by 1 vector]
-rhs = weightsP*traj(arOrder+1:end,1);
-
-%get matrix multiplying unknown parameters in left hand side of set of equation 
-%[arOrder by arOrder matrix]
-lhs = weightsP*prevPoints;
-
-%clear variable
-clear weightsP;
-
-%variance-covariance matrix
-varCovarMat = inv(lhs);
-
-%solution
-arParam = (varCovarMat*rhs)';
+%estimated values of parameters
+switch method
+    case 'dir' %use MATLAB "\"
+        arParam = (lhsMat\rhsVec)';
+    case 'iter' %use iterative refinement method
+        [arParam,errFlag] = lsIterRefn(lhsMat,rhsVec,tol);
+        arParam = arParam';
+end
+if errFlag
+    disp('--arlsestim0: "lsIterRefn" did not function normally!');
+    arParam = [];
+    noiseSigma = [];
+    varCovMat = [];
+    return
+end
 
 %check for causality of estimated model
 r = abs(roots([-arParam(end:-1:1) 1]));
@@ -85,11 +112,12 @@ if ~isempty(find(r<=1.00001))
     disp('--arlsestim0: Warning: Predicted model not causal!');
 end
 
-%prediction error
-epsilon = prevPoints*arParam' - traj(arOrder+1:end,1);
-
-%standard deviation of white noise
-noiseSigma = std(epsilon);
+%vector of weighted residuals
+epsilon = lhsMat*arParam' - rhsVec;
 
 %variance-covariance matrix
-arParamSigma = varCovarMat*sqrt((epsilon'*weights*epsilon)/(trajLength-2*arOrder));
+varCovMat = inv(lhsMat'*lhsMat)*(epsilon'*epsilon/(trajLength-2*arOrder));
+
+%standard deviation of white noise (note that nonweighted residuals should
+%be used in this calculation)
+noiseSigma = std(epsilon.*traj(arOrder+1:end,2));
