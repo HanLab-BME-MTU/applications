@@ -1,14 +1,15 @@
-function imarisLoadProject(addOrReplace,centerOrNot)
-%imarisLoadProject loads, transforms and displays chromdyn-data in imaris
+function imarisApplication = imarisLoadProject(addOrReplace,centerOrNot)
+%IMARISLOADPROJECT loads, transforms and displays chromdyn-data in imaris
 %
-% SYNOPSIS imarisLoadProject
+% SYNOPSIS imarisApplication = imarisLoadProject(addOrReplace,centerOrNot)
 %
 % INPUT    the code asks for project data and a filtered movie
 %          addOrReplace : whether to add to or replace the current surpass 
-%                           scene 
+%                           scene 'add'/{'replace'}
 %          center       : whether to center the data on the centroid [{0}/1]
 %
-% OUTPUT   the code will launch imaris and show the image data there
+% OUTPUT   imarisApplication: Handle to imaris application
+%          (the code will launch imaris and show the image data there)
 %
 % c: 04/04 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -18,14 +19,21 @@ function imarisLoadProject(addOrReplace,centerOrNot)
 %=============
 replace = 1;
 center  = 0;
+% find handle to imaris figure if exists
+imFigH = findall(0,'Name','Imaris figure');
+if isempty(imFigH)
+    imFigHandles = [];
+else
+    % get handles
+    imFigHandles = guidata(imFigH);
+end
 
-if nargin < 1 | isempty(addOrReplace)
+
+if nargin < 1 || isempty(addOrReplace)
     % default
 else
     switch addOrReplace
         case 'add'
-            % check whether there is an imarisFigure open
-            imFigH = findall(0,'Name','Imaris figure');
             if ~isempty(imFigH)
                 replace = 0;
             else
@@ -38,7 +46,7 @@ else
     end
 end
 
-if nargin < 1 || isempty(centerOrNot)
+if nargin < 2 || isempty(centerOrNot)
     % default
 else
     switch centerOrNot
@@ -163,11 +171,13 @@ end
 % Launch imaris and feed with data
 %====================================
 
-% load imaris
-vImarisApplication = actxserver('Imaris.Application');
+% get handle to imaris application. Start new if necessary
+if isempty(imFigH)
+    imaApplication = actxserver('Imaris.Application');
+else
+    imaApplication = imFigHandles.imarisData.imaApplication;
+end
 
-
-vImarisDataSet = vImarisApplication.mDataSet;
 
 %--------- load movie into data 
 if center
@@ -193,64 +203,50 @@ else
 
 end
 
+% create dataSet
+imaDataSet = imaApplication.mFactory.CreateDataSet;
+
 % convert double to single and set
-vImarisDataSet.SetData(single(filteredMovie));
-
-
+imaDataSet.SetData(single(filteredMovie));
 
 % set extent of movie 
 
-vImarisDataSet.mExtendMaxX = imarisMovieSize(1);
-vImarisDataSet.mExtendMaxY = imarisMovieSize(2);
-vImarisDataSet.mExtendMaxZ = imarisMovieSize(3);
+imaDataSet.mExtendMaxX = imarisMovieSize(1);
+imaDataSet.mExtendMaxY = imarisMovieSize(2);
+imaDataSet.mExtendMaxZ = imarisMovieSize(3);
+
+% load dataSet into Imaris
+imaApplication.mDataSet = imaDataSet;
 
 
 %-------- create surpass scene
 if replace
-    vImarisSurpassScene = actxserver('Imaris.DataContainer');
-    vImarisApplication.mSurpassScene = vImarisSurpassScene;
+    imaSurpassScene = imaApplication.mFactory.CreateDataContainer;
+    imaApplication.mSurpassScene = imaSurpassScene;
 else
-    imFigHandles = guidata(imFigH);
-    vImarisSurpassScene = imFigHandles.vImarisSurpassScene;
+    imaSurpassScene = imaApplication.mSurpassScene;
 end
 
 % add light, frame if necessary
 if replace
-    vImarisLightSource = actxserver('Imaris.LightSource');
-    vImarisSurpassScene.AddChild(vImarisLightSource);
+    imaLightSource = imaApplication.mFactory.CreateLightSource;
+    imaSurpassScene.AddChild(imaLightSource);
+    imaFrame = imaApplication.mFactory.CreateFrame;
+    imaSurpassScene.AddChild(imaFrame);
 end
-    vImarisFrame = actxserver('Imaris.Frame');
-    vImarisSurpassScene.AddChild(vImarisFrame);
     
-% if ~replace
-%     % problem: if I add a second track the first frame gets weird -
-%     % therefore add a second (good) frame and delete the first one
-%     nKids = vImarisSurpassScene.GetNumberOfChildren;
-%     kid = nKids-2;
-%     frameDeleted = 0;
-%     vImarisTypeConvert = actxserver('Imaris.TypeConvert');
-%     while ~frameDeleted & kid >= 0
-%         
-%         k = vImarisSurpassScene.GetChild(kid);
-%         if vImarisTypeConvert.IsFrame(k)
-%             vImarisSurpassScene.RemoveChild(k);
-%             frameDeleted = 1;
-%         else
-%             kid = kid-1;
-%         end
-%     end
-% end
+    
 %-------- load spots ---------
 % create a spots component
-vImarisSpots = actxserver('Imaris.Spots');
+imaSpots = imaApplication.mFactory.CreateSpots;
 % name the spots after the project
-vImarisSpots.mName = projectName;
-% set size to 3 pixels (intensity does not work yet)
-vImarisSpots.mRadius = dataProperties.PIXELSIZE_XY*3;
+imaSpots.mName = projectName;
+
 % put them in - don't forget the -1
-vImarisSpots.SetPos(spotList(:,2:4), spotList(:,1)-1);
+%([x,y,z], t, radius)
+imaSpots.Set(spotList(:,2:4), spotList(:,1)-1, spotList(:,5)*100);
 % add spots to the surpass scene as last child
-vImarisSurpassScene.AddChild(vImarisSpots);
+imaSurpassScene.AddChild(imaSpots);
 
 
 
@@ -258,23 +254,30 @@ vImarisSurpassScene.AddChild(vImarisSpots);
 for i = 1:nTags
     
     % create track component
-    vImarisTrack = actxserver('Imaris.Track');
+    imaTrack = imaApplication.mFactory.CreateTrack;
     
     % name it according to the tag
-    vImarisTrack.mName = idlist(1).stats.labelcolor{i};
+    imaTrack.mName = idlist(1).stats.labelcolor{i};
     
-    % put in edges. Do not forget -1
-    vImarisTrack.SetTrack(vImarisSpots, edgeList(:,:,i)-1);
+    % set spots possible for this track (=all of them)
+    imaTrack.SetSpots(imaSpots)
     
+    % set edges. Rember -1
+imaTrack.SetEdges(edgeList(:,:,i)-1)
+
+% name timepoints with intensity (good idea?)
     for nsp = 1:size(spotList,1)
-        vImarisTrack.GetChild(nsp-1).mName = ['t ' num2str(spotList(nsp,1)) ' int ' num2str(spotList(nsp,5))];
-        vImarisTrack.GetChild(nsp-1).mVisible = 0;
+        imaTrack.GetChild(nsp-1).mName = ['t ' num2str(spotList(nsp,1)) ' int ' num2str(spotList(nsp,5))];
+        imaTrack.GetChild(nsp-1).mVisible = 0;
     end
     
-    % add track to the surpass scene as last child
-    vImarisSurpassScene.AddChild(vImarisTrack);
+    % here is where I would love to set the line thickness
     
+    
+    % add track to the surpass scene as last child
+    imaSurpassScene.AddChild(imaTrack);
 end
+    
 
 % now load all the connections & name them
 % Make connections from tag 4 to tags 1-3,
@@ -285,27 +288,30 @@ for iTag = nTags-1:-1:1
     for tagNum2 = 1:iTag
         
         % create new track component
-        vImarisTrack = actxserver('Imaris.Track');
+        imaTrack = imaApplication.mFactory.CreateTrack;
         
         % name it
-        vImarisTrack.mName = ['conn. ' idlist(1).stats.labelcolor{tagNum1} idlist(1).stats.labelcolor{tagNum2}];
+        imaTrack.mName = ['conn. ' idlist(1).stats.labelcolor{tagNum1} idlist(1).stats.labelcolor{tagNum2}];
         
         % and load the list. Don't forget -1
-        vImarisTrack.SetTrack(vImarisSpots, connectionList(:,:,connCt + tagNum1-tagNum2)-1);
+        imaTrack.SetSpots(imaSpots)
+        imaTrack.SetEdges(connectionList(:,:,connCt + tagNum1-tagNum2)-1);
         
         % make all the spots invisible
         for nsp = 1:size(spotList,1)
-            vImarisTrack.GetChild(nsp-1).mVisible = 0;
+            imaTrack.GetChild(nsp-1).mVisible = 0;
         end
         
         % finally, add connection to surpass scene
-        vImarisSurpassScene.AddChild(vImarisTrack);
+        imaSurpassScene.AddChild(imaTrack);
         
     end
     connCt = connCt + tagNum1;
 end
 
-vImarisApplication.mViewer = 'eViewerSurpass';
+% make sure that the view fits and set it to surpass
+imaApplication.mSurpassCamera.Fit;
+imaApplication.mViewer = 'eViewerSurpass';
 
 %=================================
 % LAUNCH "IMARIS-FIGURE"
@@ -327,9 +333,12 @@ imFigHandles.projectData.dataProperties = dataProperties;
 %imFigHandles.projectData.projProperties = projProperties;
 
 % store imaris data
+imFigHandles.imarisData.imaApplication = imaApplication;
 imFigHandles.imarisData.spotList = spotList;
 imFigHandles.imarisData.edgeList = edgeList;
 
-imFigHandles.vImarisSurpassScene = vImarisSurpassScene;
-
 guidata(imFigH,imFigHandles)
+
+if nargout > 0
+    imarisApplication = imaApplication;
+end
