@@ -33,31 +33,31 @@ noiseSigma = [];
 
 %check if correct number of arguments was used when function was called
 if nargin < 2
-    disp('--arlsestim0: Incorrect number of input arguments!');
+    disp('--arCoefEstim: Incorrect number of input arguments!');
     errFlag  = 1;
     return
 end
 
 %check input data
 [trajLength,nCol] = size(traj);
-if trajLength < arOrder
-    disp('--arlsestim0: Length of trajectory should be larger than model order!');
+if trajLength < arOrder+1
+    disp('--arCoefEstim: Length of trajectory should be larger than model order + 1!');
     errFlag = 1;
 end
 if nCol ~= 2
     if nCol == 1
         traj = [traj ones(trajLength,1)];
     else
-        disp('--arlsestim0: "traj" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+        disp('--arCoefEstim: "traj" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
         errFlag = 1;
     end
 end
 if arOrder < 1
-    disp('--arlsestim0: Variable "arOrder" should be >= 1!');
+    disp('--arCoefEstim: Variable "arOrder" should be >= 1!');
     errFlag = 1;
 end
 if errFlag
-    disp('--arlsestim0: Please fix input data!');
+    disp('--arCoefEstim: Please fix input data!');
     return
 end
 
@@ -65,14 +65,14 @@ end
 if nargin >= 3
     
     if ~strncmp(method,'dir',3) && ~strncmp(method,'iter',4) 
-        disp('--arlsestim0: Warning: Wrong input for "method". "dir" assumed!');
+        disp('--arCoefEstim: Warning: Wrong input for "method". "dir" assumed!');
         method = 'dir';
     end
     
     if strncmp(method,'iter',4)
         if nargin == 4
             if tol <= 0
-                disp('--arlsestim0: Warning: "tol" should be positive! A value of 0.001 assigned!');
+                disp('--arCoefEstim: Warning: "tol" should be positive! A value of 0.001 assigned!');
                 tol = 0.001;
             end
         else
@@ -111,7 +111,7 @@ switch method
         arParam = arParam';
 end
 if errFlag
-    disp('--arlsestim0: "lsIterRefn" did not function normally!');
+    disp('--arCoefEstim: "lsIterRefn" did not function normally!');
     return
 end
 
@@ -119,7 +119,7 @@ end
 %check for causality of estimated model
 r = abs(roots([-arParam(end:-1:1) 1]));
 if ~isempty(find(r<=1.00001))
-    disp('--arlsestim0: Warning: Predicted model (arParam0) not causal!');
+    disp('--arCoefEstim: Warning: Predicted model (arParam0) not causal!');
 end
 
 %get vector of weighted residuals

@@ -91,9 +91,9 @@ for arOrder1 = arOrderTest %go over all AR orders
     
     %estimate coeffients and residuals
     [arParam1,varCovMat1,residuals1,noiseSigma1,fitSet1,errFlag] =...
-        arlsestim0(traj,arOrder1,method,tol);
+        arCoefEstim(traj,arOrder1,method,tol);
     if errFlag
-        disp('--arModelIdent: arlsestim0 did not function properly!');
+        disp('--arModelIdent: arCoefEstim did not function properly!');
         arParam = [];
         varCovMat = [];
         residuals = [];
