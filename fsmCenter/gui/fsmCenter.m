@@ -173,7 +173,10 @@ if ~isempty(hFsmPostProc)
 end
 
 % fsmGuiMain (SpeckTackle)
-% hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
+hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
+if ~isempty(hFsmGuiMain)
+    fsmGuiMain;
+end
 
 % imKymoAnalysis
 hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');

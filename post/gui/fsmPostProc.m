@@ -888,8 +888,10 @@ projDir=get(handlesFsmCenter.textCurrentProject,'String');
 % Get settings from fsmCenter
 settings=get(handlesFsmCenter.fsmCenter,'UserData');
 % Check
-if ~strcmp(projDir,settings.projDir)
-    error('projDir stored in fsmCenter''s UserData and in fsmCenter''s .textCurrentProject field are different!');
+if ~isempty(settings)
+    if ~strcmp(projDir,settings.projDir)
+        error('projDir stored in fsmCenter''s UserData and in fsmCenter''s .textCurrentProject field are different!');    
+    end
 end
 set(handles.textCurrentProject,'String',projDir);
 

@@ -15,10 +15,11 @@ function varargout = fsmGuiMain(varargin)
 
 if nargin == 0  % LAUNCH GUI
 
-    % Do not allow another instance of fsmGuiMain to be started
-    if ~isempty(findall(0,'Tag','fsmGuiMain') & findall(0,'Name','SpeckTackle'))
-        disp('SpeckTackle is already running...');
-        return;
+    % Check whether fsmGuiMain is already running
+    if ~isempty(findall(0,'Tag','fsmGuiMain','Name','SpeckTackle'))
+        alreadyOpen=1;
+    else
+        alreadyOpen=0;
     end
     
 	fig = openfig(mfilename,'reuse');
@@ -33,84 +34,119 @@ if nargin == 0  % LAUNCH GUI
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
-    % Check whether fsmCenter is running - if not, open it
+    % INITIALIZE USER INTERFACE IF IT WAS NOT OPEN BEFORE
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    if alreadyOpen==0
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %
+        % Link fsmParam and defaultFsmParam to the GUI
+        %
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        % Load fsmParam structure from fsmParam.mat, if it exists
+        pathOfFsmMain=which('fsmMain.m');
+        % Get path for fsmParam
+        indx=find(pathOfFsmMain==filesep);
+        indx=indx(length(indx));
+        fsmParamPath=[pathOfFsmMain(1:indx),'fsmParam.mat'];
+        if exist(fsmParamPath)==2
+            load(fsmParamPath); % Load defaut values stored in the fsm directory
+        else
+            % Initialize fsmParam with default values
+            fsmParam=fsmGetParamDflts;
+        end
+        
+        % Store default values in defaultFsmParam
+        defaultFsmParam=fsmParam;
+        
+        % Link fsmParam to the start button
+        set(handles.start,'UserData',fsmParam);
+        
+        % Link defaultFsmParam to the default button
+        set(handles.defaultButton,'UserData',defaultFsmParam);
+        
+        % Link z values to the z value edit box
+        confidenceProb=[1.15 1.29 1.45 1.645 1.96 2.58];
+        set(handles.editZValue,'UserData',confidenceProb);
+        
+        % Fill all fields with the values from fsmParam
+        fsmGuiWriteParameters(defaultFsmParam,handles);
+        
+        % Read parameter experiments from fsmExpParams.txt
+        userDir=fsmCenter_getUserSettings;
+        if isempty(userDir)
+            fsmExpParamPath=[pathOfFsmMain(1:indx),'fsmExpParams.txt'];
+        else
+            fsmExpParamPath=[userDir,filesep,'fsmExpParams.txt'];
+            if exist(fsmExpParamPath)~=2
+                % No database found in user-defined directory
+                % Reverting to default database
+                fsmExpParamPath=[pathOfFsmMain(1:indx),'fsmExpParams.txt'];
+            end
+        end
+        if exist(fsmExpParamPath)~=2
+            uiwait(msgbox('Could not find experiment database! Get fsmExpParams.txt from the repository and restart SpeckTackle.','Error','modal'));
+            return
+        end
+        
+        % Fill parameters structure
+        fsmExpParam=fsmGuiScanDataBase(fsmExpParamPath);
+        
+        % Fill the scroll-down menu in the user interface
+        labels=cell(length(fsmExpParam)+1,1);
+        labels(1,1)={'Select experiment'};
+        for i=1:length(fsmExpParam)
+            labels(i+1,1)={fsmExpParam(i).label};
+        end
+        set(handles.expPopup,'String',labels);
+        
+        % Attach fsmExpParam to the userData field of the scroll-down menu
+        set(handles.expPopup,'UserData',fsmExpParam);
+    
+    end
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    % CHECK WHETHER A PROJECT IS OPEN IN FSMCENTER
+    %
+    %    Anywy, open fsmCenter if it not yet open
+    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    % Update if needed
     hfsmC=findall(0,'Tag','fsmCenter','Name','fsmCenter');
     if isempty(hfsmC)
         hfsmC=fsmCenter;
     end
     % Get current project
     handlesFsmCenter=guidata(hfsmC);
-    projDir=get(handlesFsmCenter.fsmCenter,'UserData');
-%     set(handles.textCurrentProject,'String',projDir);
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %
-    % Link fsmParam and defaultFsmParam to the GUI
-    %
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    % Load fsmParam structure from fsmParam.mat, if it exists
-    pathOfFsmMain=which('fsmMain.m');
-    % Get path for fsmParam
-    indx=find(pathOfFsmMain==filesep);
-    indx=indx(length(indx));
-    fsmParamPath=[pathOfFsmMain(1:indx),'fsmParam.mat'];
-    if exist(fsmParamPath)==2
-        load(fsmParamPath); % Load defaut values stored in the fsm directory
-    else
-        % Initialize fsmParam with default values
-        fsmParam=fsmGetParamDflts;
-    end
-    
-    % Store default values in defaultFsmParam
-    defaultFsmParam=fsmParam;
-    
-    % Link fsmParam to the start button
-    set(handles.start,'UserData',fsmParam);
-    
-    % Link defaultFsmParam to the default button
-    set(handles.defaultButton,'UserData',defaultFsmParam);
-
-    % Link z values to the z value edit box
-    confidenceProb=[1.15 1.29 1.45 1.645 1.96 2.58];
-    set(handles.editZValue,'UserData',confidenceProb);
-
-    % Fill all fields with the values from fsmParam
-    fsmGuiWriteParameters(defaultFsmParam,handles);
-
-    % Read parameter experiments from fsmExpParams.txt
-    userDir=fsmCenter_getUserSettings;
-    if isempty(userDir)
-        fsmExpParamPath=[pathOfFsmMain(1:indx),'fsmExpParams.txt'];
-    else
-        fsmExpParamPath=[userDir,filesep,'fsmExpParams.txt'];
-        if exist(fsmExpParamPath)~=2
-            % No database found in user-defined directory
-            % Reverting to default database
-            fsmExpParamPath=[pathOfFsmMain(1:indx),'fsmExpParams.txt'];
+    projDir=get(handlesFsmCenter.textCurrentProject,'String');
+    % Get settings from fsmCenter
+    settings=get(handlesFsmCenter.fsmCenter,'UserData');
+    % Check
+    if ~isempty(settings)
+        if ~strcmp(projDir,settings.projDir)
+            error('projDir stored in fsmCenter''s UserData and in fsmCenter''s .textCurrentProject field are different!');
         end
     end
-    if exist(fsmExpParamPath)~=2
-        uiwait(msgbox('Could not find experiment database! Get fsmExpParams.txt from the repository and restart SpeckTackle.','Error','modal'));
-        return
+    if ~isempty(projDir)
+        % Set up the project path
+        if strcmp(projDir(end),filesep)==1
+            workPath=[projDir,char(settings.subProjects(1)),filesep];
+        else
+            workPath=[projDir,filesep,char(settings.subProjects(1)),filesep];
+        end     
+    else
+        workPath=[];
     end
+    set(handles.pathEdit,'String',workPath);
     
-    % Fill parameters structure
-    fsmExpParam=fsmGuiScanDataBase(fsmExpParamPath);
-    
-    % Fill the scroll-down menu in the user interface
-    labels=cell(length(fsmExpParam)+1,1);
-    labels(1,1)={'Select experiment'};
-    for i=1:length(fsmExpParam)
-        labels(i+1,1)={fsmExpParam(i).label};
-    end
-    set(handles.expPopup,'String',labels);
-    
-    % Attach fsmExpParam to the userData field of the scroll-down menu
-    set(handles.expPopup,'UserData',fsmExpParam);
-    
+    % Update the GUI if a fsmParam.mat file exists in the workPath
+    catchPathChange(workPath,handles);
+
 elseif ischar(varargin{1}) % INVOKE NAMED SUBFUNCTION OR CALLBACK
 
 	try
@@ -368,25 +404,25 @@ function varargout = autoPolCheck_Callback(h, eventdata, handles, varargin)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function varargout = ButtonBrowse_Callback(h, eventdata, handles, varargin)
-
-% Select path
-matlabVersion=ver('MATLAB');
-if str2num(matlabVersion.Version)<6.5
-    [newfile,newpath]=uiputfile('fsm.ini','Select work directory');
-else
-    newpath=uigetdir('','Select work directory');
-end
-% Check whether an fsmParam.mat file already exists
-catchPathChange(newpath,handles);
-
-%%%%%
-
-function pathEdit_Callback(hObject, eventdata, handles)
-
-newpath=get(handles.pathEdit,'String');
-% Check whether an fsmParam.mat file already exists
-catchPathChange(newpath,handles);
+% function varargout = ButtonBrowse_Callback(h, eventdata, handles, varargin)
+% 
+% % Select path
+% matlabVersion=ver('MATLAB');
+% if str2num(matlabVersion.Version)<6.5
+%     [newfile,newpath]=uiputfile('fsm.ini','Select work directory');
+% else
+%     newpath=uigetdir('','Select work directory');
+% end
+% % Check whether an fsmParam.mat file already exists
+% catchPathChange(newpath,handles);
+% 
+% %%%%%
+% 
+% function pathEdit_Callback(hObject, eventdata, handles)
+% 
+% newpath=get(handles.pathEdit,'String');
+% % Check whether an fsmParam.mat file already exists
+% catchPathChange(newpath,handles);
 
 
 %%%%%
