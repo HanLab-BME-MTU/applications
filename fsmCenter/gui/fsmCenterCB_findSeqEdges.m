@@ -77,10 +77,7 @@ else
         assignin('base','edgePixels',edge_pixel);
         assignin('base','imgEdge',img_edge);
         assignin('base','bwMask',img_bg);
-
     catch
-
         uiwait(errordlg('The function failed to retrieve edges.','Error'));
-
     end
 end

@@ -82,7 +82,7 @@ else
         
         [path,body,no,ext]=getFilenameBody([dirName,filesep,fileName]);
         
-        formatStr = sprintf ('%%.%dd', 3);
+        formatStr = sprintf ('%%.%dd', length(no));
         imageNr = sprintf (formatStr, imageNumber);
         
         candsName = [path body imageNr ext];
@@ -162,6 +162,7 @@ else
     handles.imageSeq.candsPath = path;
     handles.imageSeq.candsBody = body;
     handles.imageSeq.candsExt = ext;
+    handles.imageSeq.candsNo = no;
     
     % Update the handles struct
     guidata(hFsm, handles);

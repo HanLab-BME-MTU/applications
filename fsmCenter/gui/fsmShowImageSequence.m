@@ -162,8 +162,9 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
     candsPath = handles.imageSeq.candsPath;
     candsBody = handles.imageSeq.candsBody;
     candsExt = handles.imageSeq.candsExt;
+    candsNo = handles.imageSeq.candsNo;
     
-    formatStr = sprintf ('%%.%dd', 3);
+    formatStr = sprintf ('%%.%dd', length(candsNo));
     imageNr = sprintf (formatStr, imageNumber);
 
     candsName = [candsPath candsBody imageNr candsExt];
