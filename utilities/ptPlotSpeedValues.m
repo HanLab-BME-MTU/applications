@@ -19,6 +19,7 @@ function ptPlotSpeedValues (ptPostpro, MPM)
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file
 % Andre Kerstens        Jun 04          Changed ymax to 100% for percentage all cells
+% Andre Kerstens        Aug 04          Fixed bug in velocity squared
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -139,7 +140,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
                       
       % Calculate true velocity in um/min for all cells
       velocity = (displacement * pixelLength) / (multipleFrameVelocity * frameInterval);
-      velocitySquared = velocity.^2;
+      %velocitySquared = velocity.^2;
       
       % Calculate the displacement for single cells
       singleCellsDisplacement = sqrt ((singleCellCoords(:,1) - singleCellCoords(:,3)).^2 + ...
@@ -147,7 +148,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       
       % Calculate true velocity in um/min for all cells
       singleCellVelocity = (singleCellsDisplacement * pixelLength) / (multipleFrameVelocity * frameInterval);
-      singleCellVelocitySquared = singleCellVelocity.^2;
+      %singleCellVelocitySquared = singleCellVelocity.^2;
       
       % Calculate the displacement for clustered cells
       clusteredCellsDisplacement = sqrt ((clusteredCellCoords(:,1) - clusteredCellCoords(:,3)).^2 + ...
@@ -155,7 +156,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       
       % Calculate true velocity in um/min for all cells
       clusteredCellVelocity = (clusteredCellsDisplacement * pixelLength) / (multipleFrameVelocity * frameInterval);   
-      clusteredCellVelocitySquared = clusteredCellVelocity.^2;
+      %clusteredCellVelocitySquared = clusteredCellVelocity.^2;
       
       % Calculate the variance of the velocity for all cells
       if ~isempty (velocity)
@@ -202,7 +203,8 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       % From this the average velocity for all cells can be calculated
       if length (displacement) > 0
          avgVelocity (iCount) = sum (velocity) / length (velocity);
-         avgVelocitySquared (iCount) = sum (velocitySquared) / length (velocitySquared);
+         %avgVelocitySquared (iCount) = sum (velocitySquared) / length (velocitySquared);
+         avgVelocitySquared(iCount) = avgVelocity(iCount)^2;
       else
          avgVelocity (iCount) = 0;
       end
@@ -210,7 +212,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       % From this the average velocity for single cells can be calculated
       if length (singleCellsDisplacement) > 0
          avgSingleVelocity (iCount) = sum (singleCellVelocity) / length (singleCellVelocity);
-         avgSingleVelocitySquared (iCount) = sum (singleCellVelocitySquared) / length (singleCellVelocitySquared);
+         %avgSingleVelocitySquared (iCount) = sum (singleCellVelocitySquared) / length (singleCellVelocitySquared);
       else
          avgSingleVelocity (iCount) = 0;
       end
@@ -218,8 +220,8 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       % From this the average velocity for clustered cells can be calculated
       if length (clusteredCellsDisplacement) > 0
          avgClusteredVelocity (iCount) = sum (clusteredCellVelocity) / length (clusteredCellVelocity);
-         avgClusteredVelocitySquared (iCount) = sum (clusteredCellVelocitySquared) / ...
-                                                length (clusteredCellVelocitySquared);
+         %avgClusteredVelocitySquared (iCount) = sum (clusteredCellVelocitySquared) / ...
+         %                                       length (clusteredCellVelocitySquared);
       else
          avgClusteredVelocity (iCount) = 0;
       end
@@ -451,5 +453,6 @@ end
 
 
 % For all the figures we want to keep the xAxis as well 
+cd (savePath);
 save ('xAxis-CellDisp.mat','xAxis');
 

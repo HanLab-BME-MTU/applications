@@ -25,6 +25,7 @@ function [newCoord, imgClusterArea, labeledClusterImage] = ptFindCoordFromCluste
 % Andre Kerstens        May 04          Wrote a function to determine coordinates based
 %                                       on average cell size
 % Andre Kerstens        Jun 04          Calculations are done based on edges found in variance image
+% Andre Kerstens        Aug 04          Fixed 'divide by zero' warning
 
 % Process the edge image so that we end up with a labeled image of areas
 % % First remove the white edge that was created during convolution
@@ -98,7 +99,11 @@ for iCount = 1 : maxClusterNr
 end 
 
 % Determine the average cell area using the data of all the clusters
-avgCellArea = round (sum (cellArea) / length (cellArea));
+if length (cellArea) > 0
+   avgCellArea = round (sum (cellArea) / length (cellArea));
+else
+   avgCellArea = 0;
+end
 
 % Now that we have the average cell size compare it with all the coordinate-less
 % clusters to see if it could be a cell

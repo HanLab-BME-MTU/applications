@@ -20,6 +20,7 @@ function ptCalculateNeighbourChanges (ptPostpro, MPM)
 % Andre Kerstens        Aug 04          Changed way how changes are counted; more accurate with new method
 % Andre Kerstens        Aug 04          Changed neighbour datastore from cell array to struct (cell2mat 
 %                                       function is way to slow!)
+% Andre Kerstens        Aug 04          Fixed bug where csv where saved in wrong dir
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -32,7 +33,7 @@ jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagename;
 increment = ptPostpro.increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
-maxDistance = ptPostpro.maxdistance;
+maxDistance = ptPostpro.neighbourdist;
 maxDistToNeighbour = maxDistance;
 
 % Initialize the avg neighbour change vector
@@ -72,6 +73,7 @@ for frameCount = plotStartFrame : increment : plotEndFrame
       
    % Initialize neighbour change counter
    nbChange = zeros(length(cellIndex),1);
+   neighbourChangeCount = 0;
    
    % Initialize counters
    count = 1;
@@ -160,7 +162,16 @@ for frameCount = plotStartFrame : increment : plotEndFrame
             % Both contain the cell: find out if neighbours are similar
             if length(neighbours(neighbourInd).neighbours) >= length(prevNeighbours(prevNeighbourInd).neighbours)    
                neighbourChange = ~ismember (neighbours(neighbourInd).neighbours, prevNeighbours(prevNeighbourInd).neighbours); 
-            else
+            else  % neighbours is shorter, which means we lost a cell(s)
+               % If the lost cell is due to bad tracking, we don't count it
+               % as a lost neighbour
+               [diff, diffIndx] = setdiff(prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours);
+               for diffCount = 1 : length (diff)
+                  if ismember(diff(diffCount), cellNrs)
+                     % It is a real neighbour change, so count it
+                     neighbourChangeCount = neighbourChangeCount + 1;
+                  end
+               end
                neighbourChange = ~ismember (prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours); 
             end
             
@@ -207,12 +218,13 @@ if ptPostpro.neighbourplot_2
        axis ([xAxis(1) xAxis(1)+1 0 ymax]);
     end
 
-    % Save the figures in fig, eps and tif format        
+    % Save the figures in fig, eps and tif format  
     hgsave (h_fig2,[savePath filesep 'avgNeighbourChange.fig']);
     print (h_fig2, [savePath filesep 'avgNeighbourChange.eps'],'-depsc2','-tiff');
     print (h_fig2, [savePath filesep 'avgNeighbourChange.tif'],'-dtiff');      
     
-     % Save CSV files
+    % Save CSV files
+    cd (savePath); 
     csvwrite ('avgNeighbourInteractionChange.csv', [xAxis ; avgNbChange]);
 end
 

@@ -17,6 +17,7 @@ function ptPlotHistValues (ptPostpro)
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Jul 04          First version of ptPlotHistValues
+% Andre Kerstens        Aug 04          Added save function for figures
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -148,6 +149,11 @@ if ptPostpro.cellcelldistplot_1
     else
        axis ([xAxis(1) xAxis(1)+1 0 ymax]);
     end
+    
+    % Save the figures in fig, eps and tif format     
+    hgsave (h_fig,[savePath filesep 'AvgDistanceBetweenCells.fig']);
+    print (h_fig, [savePath filesep 'AvgDistanceBetweenCells.eps'],'-depsc2','-tiff');
+    print (h_fig, [savePath filesep 'AvgDistanceBetweenCells.tif'],'-dtiff');
 end
 
 % % Calculate the maximum distance value

@@ -57,7 +57,7 @@ handles.output = hObject;
 defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, ...
                         'dragtail', 6, 'dragtailfile', 'trackmovie', 'figureSize', [], ...
                         'multFrameVelocity', 1, 'binsize', 4, 'mmpixel', 0.639, 'timeperframe', 300, ...
-                        'movietype', 1, 'nrtrajectories', 5);
+                        'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -330,6 +330,7 @@ set (handles.GUI_frameinterval_ed, 'String', handles.postpro.timeperframe);
 set (handles.GUI_movietype_avi_rb, 'Value', 1);
 set (handles.GUI_movietype_qt_rb, 'Value', 0);
 set (handles.nr_traj_ed, 'String', handles.postpro.nrtrajectories);
+set (handles.neighbour_dist_ed, 'String', handles.postpro.neighbourdist);
 
 % And update the gui handles struct
 guidata(hObject, handles);
@@ -1792,6 +1793,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_nb_interact.
 function checkbox_nb_interact_Callback(hObject, eventdata, handles)
@@ -1800,5 +1802,49 @@ function checkbox_nb_interact_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_nb_interact
+
+%---------------------------------------------------------------------
+
+function neighbour_dist_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to neighbour_dist_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of neighbour_dist_ed as text
+%        str2double(get(hObject,'String')) returns contents of neighbour_dist_ed as a double
+handles = guidata (hObject);
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get (hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.postpro.neighbourdist = 81;
+    set (handles.neighbour_dist_ed, 'Value', handles.postpro.neighbourdist);  % Revert the value back
+    return
+else
+    handles.postpro.neighbourdist = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+%---------------------------------------------------------------------
+
+% --- Executes during object creation, after setting all properties.
+function neighbour_dist_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to neighbour_dist_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
 
 

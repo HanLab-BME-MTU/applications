@@ -30,6 +30,7 @@ function [MPM, M] = ptTrackLinker (M)
 % Andre Kerstens        Jun 04          Implemented bugfix for bug #83
 % Andre Kerstens        Jun 04          Had to undo change with finding zero entries in M, since 
 %                                       this didn't result in the desired effect.
+% Andre Kerstens        Aug 04          Fixed bug where nr of frames <3 would crash this function
 
 % Let the user know we're starting to link
 fprintf (1, '\n     ptTrackLinker: Starting track linkage process...\n');
@@ -134,8 +135,12 @@ end  % for counter1 = 1 : size(M,3) - 1
 MPM(:,1:2) =M(:,1:2,1);
 
 % Remove info that is not needed anymore
-for counter3 = 2 : size(M,3)
-   MPM(:,(counter3-1)*2+(1:2)) = M(:,1:2,counter3);
+if size(M,3) > 1
+   for counter3 = 2 : size(M,3)
+      MPM(:,(counter3-1)*2+(1:2)) = M(:,1:2,counter3);
+   end
+else
+   counter3 = 1;
 end
 
 MPM(:,counter3*2+(1:2)) = M(:,3:4,counter3);

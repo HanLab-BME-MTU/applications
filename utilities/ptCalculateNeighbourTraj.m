@@ -199,6 +199,7 @@ if ptPostpro.neighbourplot_1
     print (h_fig, [savePath filesep 'avgNeighbourTrajLength.eps'],'-depsc2','-tiff');
     print (h_fig, [savePath filesep 'avgNeighbourTrajLength.tif'],'-dtiff');      
     
-     % Save CSV files
+    % Save CSV files
+    cd (savePath);
     csvwrite ('avgNeighbourTrajLength.csv', [xAxis ; avgTrajFrame]);
 end
