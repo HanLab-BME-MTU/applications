@@ -44,9 +44,12 @@ paramSpeckles= fsmParam.prep.paramSpeckles; % High-order speckle parameters
 enhTriang    = fsmParam.prep.enhTriang;     % Enhanced triangulation flag
 autoPolygon  = fsmParam.prep.autoPolygon;   % Automatic analisys of the image to extract cell boundaries
 drawROI      = fsmParam.prep.drawROI;       % The user draws or loads a ROI to restrict analysis
-sigma        = fsmParam.prep.sigma;         % Sigma for image low-pass filtering
+% sigma        = fsmParam.prep.sigma;       % Sigma for image low-pass filtering, replaced as seen below
 subpixel     = fsmParam.prep.subpixel;      % significant speckles are localized with subpixel accuracy
-
+psfsigma     = fsmParam.prep.psfSigma       % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
+filtersigma  = fsmParam.prep.filterSigma    % sigma used for the low-pass filtering; except where specifically
+                                            % stated differently by the user, filtersigma should have the same value as psfsigma; 
+                                            % for filtersigma>psfsigma, image information is lost during filtering!!                                            % same value as 
 projDir = fsmParam.project.path;
 edgeDir = fsmParam.project.edge;
 
@@ -380,7 +383,7 @@ for counter1=1:n
 
               
         % Prepare the image for the analysis
-        img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],sigma);
+        img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],filtersigma);
         
         % Statistically test the local maxima to extract (significant) speckles 
         fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,enhTriang,fsmParam,orig_image);

@@ -183,20 +183,37 @@ if SAVEINFO==1
     
 end
 
+%-----------------------------------------
 % Estimate subpixel positions of speckles
-% NOTE: until the size of the GuassKernel used for filtering the image is 
-% made variable to accomodate different psfs, it is necessary to do the 
-% mixture model fitting on the unfiltered original image, rather than the filtered one
+%-----------------------------------------
+% The size of the GaussKernel used for filtering the image (in
+% fsmPrepareImage) has, as of March 2005, been set to the real value of 
+% psfsigma as determined by the physical parameters,
+% psfsigma=0.21*(lambda/NA)/pixelsize
+% Thus, the the mixture model fitting may be performed without loss of
+% information on the filtered image (called I), rather than the original
+% image (called oI)
+%
+% However, it is important to note that performing the Gauss fit in the
+% mixture model on the filtered image (which is broadened), rather than on
+% the original one, requires to modify the sigma of the mixture-model fit!
+
+
 if fsmParam.prep.subpixel==1
-      %for now, keep sigma and bitdpeth fixed, next step, look for the appr. values
-       cands=candsTot;   
-% IMPORTANT: up until now, no module for setting the value of thj
-       
-       sigma=0.8;
-       image=oI;
-       disp('calculating sub-pixel locations...');
-       [candsSP] = candsToSubpixelN(image,cands,sigma);
-       eval( (strcat('save cands',filesep,'cands',indxStr,'_spa.mat candsSP;')) );
+    cands=candsTot; 
+    psfsigma     = fsmParam.prep.psfSigma       % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
+    filtersigma  = fsmParam.prep.filterSigma    % sigma used for the low-pass filtering; except where specifically
+                                                % stated differently by the user, filtersigma should have the same value as psfsigma; 
+                                                % for filtersigma>psfsigma, image information is lost during filtering!!                                            % same value as 
+    %mixture model Gauss sigma (mmsigma) is calculated from psfsigma and
+    %filtersigma; in the usual case where psfsigma=filtersigma, then
+    %mmsigma=sqrt(2)*psfsigma
+    mmsigma=sqrt(psfsigma^2+filtersigma^2);
+    image=I;
+    disp(['psfsigma=',num2str(psfsigma),'   filtersigma=',num2str(filtersigma),'   mixmodsigma=',num2str(mmsigma)]);
+    disp('calculating sub-pixel locations...');
+    [candsSP] = candsToSubpixelN(image,cands,mmsigma);
+    eval( (strcat('save cands',filesep,'cands',indxStr,'_spa.mat candsSP;')) );
 end
 
 

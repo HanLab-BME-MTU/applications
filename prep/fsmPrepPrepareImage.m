@@ -27,6 +27,9 @@ if nargin<3 | nargin>4
 end
 
 % Sigma has a default value of 1.
+% In practice, the real sigma is calculated from the physical parameters, 
+% where sigma=0.21*(lambda/NA)/pixelsize; ideally, for sufficient oversampling,
+% the value of sigma should be >=1
 if nargin==3
     sigma=1;
 end
