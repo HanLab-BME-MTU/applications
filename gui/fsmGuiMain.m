@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 11-Mar-2004 17:30:09
+% Last Modified by GUIDE v2.5 19-Mar-2004 09:21:53
 clc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -142,6 +142,19 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function varargout = start_Callback(h, eventdata, handles, varargin)
+
+% Check the selection of modules
+sel=[get(handles.checkPrepModule,'Value'), ...
+        get(handles.checkTrackModule,'Value'), ...
+        get(handles.checkBuildModule,'Value'), ...
+        get(handles.checkKinModule,'Value'), ...
+        get(handles.checkDispModule,'Value')];
+indx0=find(sel==0);
+indx1=find(sel==1);
+if ~((sel(1)==0 & max(indx0)<min(indx1)) | (sel(1)==1 & min(indx0)>max(indx1)))
+    uiwait(msgbox('Please check the selection of your modules.','Error','Error','modal'));
+    return
+end    
 
 % Read fsmParam from start button
 fsmParam=get(handles.start,'UserData');
@@ -332,7 +345,7 @@ function varargout = autoPolCheck_Callback(h, eventdata, handles, varargin)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% PATH SELECTION CALLBACK
+% PATH SELECTION CALLBACKS
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -345,6 +358,21 @@ if str2num(matlabVersion.Version)<6.5
 else
     newpath=uigetdir('','Select work directory');
 end
+% Check whether an fsmParam.mat file already exists
+catchPathChange(newpath,handles);
+
+%%%%%
+
+function pathEdit_Callback(hObject, eventdata, handles)
+
+newpath=get(handles.pathEdit,'String');
+% Check whether an fsmParam.mat file already exists
+catchPathChange(newpath,handles);
+
+
+%%%%%
+
+function catchPathChange(newpath,handles,fsmParam)
 
 if newpath~=0
     set(handles.pathEdit,'String',newpath);
@@ -376,6 +404,14 @@ end
 function varargout = checkPrepModule_Callback(h, eventdata, handles, varargin)
 
 if get(handles.checkPrepModule,'Value')==0
+    togglePrepModule(handles,0);
+else
+    togglePrepModule(handles,1);
+end
+    
+function togglePrepModule(handles,value)
+
+if value==0
     set(handles.TriangCheck,'Enable','off');
     set(handles.autoPolCheck,'Enable','off');
     set(handles.textDel,'Enable','off');
@@ -388,6 +424,9 @@ if get(handles.checkPrepModule,'Value')==0
     set(handles.textExplanation2,'Enable','off');   
     set(handles.primaryRadio,'Enable','off');
     set(handles.tertiaryRadio,'Enable','off');
+    set(handles.drawROICheck,'Enable','off');
+    set(handles.scaleRadio,'Enable','off');
+    set(handles.textDescr,'Enable','off');
 else
     set(handles.TriangCheck,'Enable','on');
     set(handles.autoPolCheck,'Enable','on');
@@ -403,7 +442,11 @@ else
     set(handles.textExplanation2,'Enable','on');   
     set(handles.primaryRadio,'Enable','on');
     set(handles.tertiaryRadio,'Enable','on');
+    set(handles.drawROICheck,'Enable','on');
+    set(handles.scaleRadio,'Enable','on');
+    set(handles.textDescr,'Enable','off');
 end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -414,6 +457,14 @@ end
 function varargout = checkKinModule_Callback(h, eventdata, handles, varargin)
 
 if get(handles.checkKinModule,'Value')==0
+    toggleKinModule(handles,0);
+else
+    toggleKinModule(handles,1);
+end
+
+function toggleKinModule(handles,value)
+
+if value==0
     set(handles.textBleach,'Enable','off');
     set(handles.bleachRadioOff,'Enable','off');
     set(handles.bleachRadio1x,'Enable','off');
@@ -444,8 +495,15 @@ function varargout = editThreshold_Callback(h, eventdata, handles, varargin)
 
 function checkTrackModule_Callback(hObject, eventdata, handles)
 
-% Hint: get(hObject,'Value') returns toggle state of checkTrackModule
-if get(hObject,'Value')==0
+if get(handles.checkTrackModule,'Value')==0
+    toggleTrackModule(handles,0);
+else
+    toggleTrackModule(handles,1);
+end    
+
+function toggleTrackModule(handles,value)
+
+if value==0
     set(handles.radioTrackBrownian,'Enable','off');
     set(handles.radioEnhTrackBrownian,'Enable','off');
     set(handles.radioTrackFlow,'Enable','off');
@@ -557,8 +615,7 @@ function checkDispModule_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in checkBuildModule.
 function checkBuildModule_Callback(hObject, eventdata, handles)
-% Nothing to do
-
+% Nothing to do    
 
 % --- Executes during object creation, after setting all properties.
 function editGass_CreateFcn(hObject, eventdata, handles)
@@ -854,5 +911,14 @@ function fsmGuiMain_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to fsmGuiMain (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushCalReload.
+function pushCalReload_Callback(hObject, eventdata, handles)
+% hObject    handle to pushCalReload (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
 
 
