@@ -701,7 +701,8 @@ function GUI_ad_analyze_pb_Callback(hObject, eventdata, handles)
 handles = guidata (hObject);
 
 % Assign the radiobutton values to the postpro struct
-handles.postpro.cellareaplot = get (handles.GUI_ad_numberofthings_rb,'Value');
+handles.postpro.cellclusterplot = get (handles.GUI_ad_numberofthings_rb,'Value');
+handles.postpro.areaplot = get (handles.GUI_ad_areas_rb,'Value');
 
 % Here is where the bulk of the graphing work is done; we give it the
 % postpro structure and MPM matrix to work with

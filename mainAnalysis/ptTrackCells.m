@@ -68,7 +68,7 @@ sizeTemplate         = ptJob.sizetemplate;
 boxSizeImage         = ptJob.boxsize;
 minSizeNuc           = ptJob.minsize;
 maxSizeNuc           = ptJob.maxsize;
-intensityMax    = ptJob.intensityMax;
+intensityMax         = ptJob.intensityMax;
 minEdge              = ptJob.minedge;
 minimalQualityCorr   = ptJob.mincorrqualtempl;
 minTrackCorr         = ptJob.mintrackcorrqual;
@@ -335,7 +335,7 @@ else		% lastImaNum > firstImaNum
          
          % Save as tiff as well
          if exist ('clusterImage', 'var')
-            %save (clusterFile, 'clusterImage');
+            save (clusterFile, 'clusterImage');
             imwrite (clusterImage, [saveDirectory filesep 'body' filesep clusterFile '.tif']);
          end
 

@@ -28,7 +28,8 @@ jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagename;
 
 % Get radio button values
-cellAreaPlot = ptPostpro.cellareaplot;
+cellClusterPlot = ptPostpro.cellclusterplot;
+areaPlot = ptPostpro.areaplot;
 
 % Get the cell and cluster properties for all frames. These are in the format:
 %
@@ -68,27 +69,49 @@ for frameCount = startFrame : endFrame
    clusterAmount (frameCount) = size (clusters (find (clusters (:,2) > 1)), 1);
    
    % Calculate the average amount of cells per cluster
-   sumCellsInCluster (frameCount) = sum (clusters (find (clusters (:,2) > 1)));
-   cellsPerCluster (frameCount) = round ( sumCellsInCluster (frameCount) / clusterAmount (frameCount));
+   sumCellsInCluster (frameCount) = sum (clusters (find (clusters (:,2) > 1), 2));
+   if clusterAmount (frameCount)
+      cellsPerCluster (frameCount) = round ( sumCellsInCluster (frameCount) / clusterAmount (frameCount));
+   else
+      cellsPerCluster (frameCount) = 0;
+   end
    
    % Calculate the amount of single cells per frame. This is in principle a
    % cluster with only one nuclei
    singleCellAmount (frameCount) = size (clusters (find (clusters (:,2) == 1)), 1);
+   
+   % Calculate the average area per cluster
+   sumClusterArea (frameCount) = sum (clusters (find (clusters (:,2) > 1), 3));
+   if clusterAmount (frameCount) ~= 0
+      areaPerCluster (frameCount) = round ( sumClusterArea (frameCount) / clusterAmount (frameCount));
+   else
+      areaPerCluster (frameCount) = 0;
+   end
+   
+   % Calculate the average area per single cell
+   sumSingleCellArea (frameCount) = sum (clusters (find (clusters (:,2) == 1), 3));
+   if singleCellAmount (frameCount) ~= 0
+      areaPerSingleCell (frameCount) = round ( sumSingleCellArea (frameCount) / singleCellAmount (frameCount));
+   else
+      areaPerSingleCell (frameCount) = 0;
+   end
 end 
 
-% Generate area plots if the users requested these
-if cellAreaPlot
+% Generate single cell and cluster plots if the users requested these
+if cellClusterPlot
     
    % Generate the figure and title     
    h_fig = figure; title (imageName);
         
+   % Draw a subplot showing the amount of clusters per frame
    ymax = max (clusterAmount) + 1;
    subplot(2,2,1); plot (clusterAmount); 
    title ('Amount of clusters');
    xlabel ('Frames');
    ylabel ('# of clusters');
    axis ([0 endFrame 0 ymax]);
-       
+      
+   % Draw a subplot showing the amount of cells per cluster
    ymax = max (cellsPerCluster) + 1;
    subplot (2,2,2); plot (cellsPerCluster); 
    title ('Average amount of cells per cluster');
@@ -96,6 +119,7 @@ if cellAreaPlot
    ylabel ('# cells per cluster');
    axis ([0 endFrame 0 ymax]);
  
+   % Draw a subplot showing the amount of single cells
    ymax = max (singleCellAmount) + 1;
    subplot (2,2,3); plot (singleCellAmount); 
    title ('Amount of single cells');
@@ -103,34 +127,39 @@ if cellAreaPlot
    ylabel ('# of single cells');
    axis ([0 endFrame 0 ymax]);
 	
+   % Save the figures in fig, eps and tif format
    hgsave (h_fig, [savePath filesep 'singleCellsAndClusterStats.fig']);
    print (h_fig, [savePath filesep 'singleCellsAndClusterStats.eps'], '-depsc2', '-tiff');
    print (h_fig, [savePath filesep 'singleCellsAndClusterStats.tif'], '-dtiff');         
 end   
 
-% if get(handles.GUI_ad_areas_rb,'Value')
-%         
-%        h_fig=figure,title(handles.jobvalues.imagename);
-%         
-%        ymax=max(newProps(3,:));
-%         subplot(1,2,1);plot(newProps(3,:)), title('how big an area per cell');
-%         xlabel('Frames');
-%         ylabel('area per cell');
-%         axis([0 endFrame 0 ymax]);
-%         
-%         ymax=max(newProps(4,:));
-%         subplot(1,2,2); plot(newProps(4,:)), title('how big an area per cluster');
-%         xlabel('Frames');
-%         ylabel('area per cluster');
-%         axis([0 endFrame 0 ymax]);
-%         
-%         
-% 		hgsave(h_fig,[savePath filesep 'areas.fig']);
-% 		print(h_fig, [savePath filesep 'areas.eps'],'-depsc2','-tiff');
-% 		print(h_fig, [savePath filesep 'areas.tif'],'-dtiff');
-% 		
-%         
-% end
+% Generate area plots if the users requested these
+if areaPlot
+    
+   % Generate the figure and title      
+   h_fig = figure; title (imageName);
+   
+   % Draw a subplot showing the avg area of a single cell    
+   ymax = max (areaPerSingleCell) + 1;
+   subplot (2,1,1); plot (areaPerSingleCell);
+   title ('Average Single Cell Area');
+   xlabel ('Frames');
+   ylabel ('Avg single cell area');
+   axis ([0 endFrame 0 ymax]);
+        
+   % Draw a subplot showing the avg area of a cluster
+   ymax = max (areaPerCluster) + 1;
+   subplot (2,1,2); plot (areaPerCluster); 
+   title ('Average Cluster Area');
+   xlabel ('Frames');
+   ylabel ('Avg cluster area');
+   axis ([0 endFrame 0 ymax]);
+        
+   % Save the figures in fig, eps and tif format     
+   hgsave(h_fig,[savePath filesep 'cellAndClusterAreaStats.fig']);
+   print(h_fig, [savePath filesep 'cellAndClusterAreaStats.eps'],'-depsc2','-tiff');
+   print(h_fig, [savePath filesep 'cellAndClusterAreaStats.tif'],'-dtiff');
+end
 
 % if get(handles.GUI_ad_perimeter_rb,'Value')
 %         

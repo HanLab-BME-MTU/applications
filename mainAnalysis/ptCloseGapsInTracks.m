@@ -118,7 +118,7 @@ for iCount = 1 : size (matchedCells,1)
    
    % Remove the processed entry from lostCells because we don't want to
    % process it again later on
-   lostCells(matchedCellIndex,:) = [];
+   lostCells (matchedCellIndex,:) = [];
    
 end    % for iCount = 1 : size (matchedCells,1)
 
