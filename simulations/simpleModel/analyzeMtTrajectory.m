@@ -1,4 +1,4 @@
-function [dataStats,errFlag] = analyzeMtTrajectory(model,modelParam,...
+function [dataStats,dataStats2,errFlag] = analyzeMtTrajectory(model,modelParam,...
     initialState,runInfo,saveTraj,saveStats)
 %ANALYZEMTTRAJECTORY statistically analyzes trajectories of microtubules
 %
@@ -177,6 +177,7 @@ for bigIter = 1:maxNumSim
         return;
     end
 end
+mtLengthAve2 = mtLengthAve + 50;
 
 %write data in correct format for statistical analysis
 trajLength = length(mtLengthAve(:,1));
@@ -188,7 +189,7 @@ for bigIter = 1:maxNumSim
 end
 
 %additional input variables for statistical analysis function
-ioOpt.verbose = 0; %display graphs
+ioOpt.verbose = 2; %display graphs
 ioOpt.convergence = 0; %check descriptor convergence as a function of sample size
 ioOpt.saveTxt = 0;
 ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat0.txt'; %save results in file
@@ -197,7 +198,12 @@ ioOpt.expOrSim = 's'; %specify that it is simulation data
 %perform Jonas' statistical analysis and get restults in dataStats
 dataStats = trajectoryAnalysis(data,ioOpt);
 
+%temporary - for checking!
 
+for bigIter = 1:maxNumSim
+    data(bigIter).distance = [mtLengthAve2(:,bigIter) mtLengthSD(:,bigIter)];
+end
+dataStats2 = trajectoryAnalysis(data,ioOpt);
 
 
 % OLD STUFF WHICH I MIGHT REMOVE!
