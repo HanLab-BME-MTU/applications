@@ -68,6 +68,11 @@ if loadMPM==1
         return 
     end
     load([dirName,fName]);
+    if ~exist('M')
+        % The user didn't pick a valid mpm.mat file
+        uiwait(msgbox('Invalid mpm.mat file chosen.','error','modal'));
+        return
+    end
     clear MPM;
     
     % Toggle interpolation
@@ -87,7 +92,12 @@ else
         return 
     end
     load([dirName,fName]);
-    
+    if ~exist('Md')
+        % The user didn't pick a valid Md.mat file
+        uiwait(msgbox('Invalid Md###-###.mat file chosen.','error','modal'));
+        return
+    end
+
     % No interpolation
     interp=0;
 
@@ -128,6 +138,10 @@ G=framework(imgSize,gridSize);
 
 % Select output dir
 outputdir=uigetdir('','Select directory for output');
+if outputdir==0 % The user clicked on cancel
+    disp('Aborted by the user.');
+    return
+end
 
 % Start
 if interp==1
