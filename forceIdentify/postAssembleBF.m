@@ -5,13 +5,7 @@ fprintf(1,'Post assemble of the identified body force : ');
 
 localStartTime = cputime;
 
-coefBFx = zeros(dimFS,numTimeSteps);
-coefBFy = zeros(dimFS,numTimeSteps);
-for jj = 1:numTimeSteps
-   coefBFx(indDomDOF,jj) = coef(1:dimBF,jj);
-   coefBFy(indDomDOF,jj) = coef(dimBF+1:2*dimBF,jj);
-end
-save([resultPath 'coefBFId'],'fs','coefBFx','coefBFy');
+load([resultPath 'coefBFId']);
 
 %For debugging : Solve the elastic equation with the identified force and
 % compare the computed displacement with the measured displacement data.
@@ -29,25 +23,25 @@ fem = elModelUpdate(fem,'fn',fn,'fp',fp);
 
 %Set the points where the identified force is to be calculated for
 % demonstration.
-if strcmp(forcePointType,'grid') == 1
-   forcePx = gridPx{1};
-   forcePy = gridPy{1};
-else strcmp(forcePointType,'data') == 1
-   forcePx = dataPx{1};
-   forcePy = dataPy{1};
+if strcmp(bfDisplaySite,'grid') == 1
+   bfDisplayPx = gridPx{1};
+   bfDisplayPy = gridPy{1};
+elseif strcmp(bfDisplaySite,'data') == 1
+   bfDisplayPx = dataPx{1};
+   bfDisplayPy = dataPy{1};
 end
 
 %Get the points that are inside the identification region.
-[is,pe] = postinterp(fem,[forcePx forcePy].');
-forcePx(pe) = [];
-forcePy(pe) = [];
+[is,pe] = postinterp(fem,[bfDisplayPx bfDisplayPy].');
+bfDisplayPx(pe) = [];
+bfDisplayPy(pe) = [];
 
-bodyFRx = cell(numTimeSteps,1);
-bodyFRy = cell(numTimeSteps,1);
-resDisp = cell(numTimeSteps,1);
-resBF   = cell(numTimeSteps,1);
-dataUC1 = cell(numTimeSteps,1);
-dataUC2 = cell(numTimeSteps,1);
+recBF       = zeros(length(bfDisplayPx),2,numTimeSteps);
+residueDisp = cell(numTimeSteps,1);
+residueBF   = cell(numTimeSteps,1);
+recDispU    = zeros(length(bfDisplayPx),2,numTimeSteps);
+dataUC1     = cell(numTimeSteps,1);
+dataUC2     = cell(numTimeSteps,1);
 for jj = 1:numTimeSteps
    fp.BodyFx = {{'x' 'y'} {fs coefBFx(:,jj)}};
    fp.BodyFy = {{'x' 'y'} {fs coefBFy(:,jj)}};
@@ -61,26 +55,29 @@ for jj = 1:numTimeSteps
    fem = elasticSolve(fem,[]);
 
    %Calculate the identified force.
-   [bodyFRx{jj},bodyFRy{jj}] = postinterp(fem,'f1','f2', ...
-      [forcePx forcePy].');
+   [recBFx,recBFy] = postinterp(fem,'f1','f2', ...
+      [bfDisplayPx bfDisplayPy].');
+   recBF(:,:,jj) = [recBFx; recBFy].';
    %[bfxR,bfyR] = postinterp(fem,'f1','f2',fs.mesh.p);
+
+   %The displacements on the points where the force field is to be
+   % demonstrated.
+   [recDispU1,recDispU2] = postinterp(fem,'u1','u2', ...
+      [bfDisplayPx bfDisplayPy].');
+   recDispU(:,:,jj) = [recDispU1;recDispU2].';
 
    %The displacements computed with the identified force. To be compared with 
    % 'dataU1' and 'dataU2'.
    [dataUC1{jj} dataUC2{jj}] = postinterp(fem,'u1','u2', ...
       [dataPx{jj} dataPy{jj}].');
-
-   %The displacements on the points where the force field is to be
-   % demonstrated.
-   [dispRU1{jj},dispRU2{jj}] = postinterp(fem,'u1','u2', ...
-      [forcePx forcePy].');
-   %[gridUC1 gridUC2] = postinterp(fem,'u1','u2',[gridPx gridPy].');
+   dataUC1{jj} = dataUC1{jj}.';
+   dataUC2{jj} = dataUC2{jj}.';
 
    %Calculate the residue of the forword computed displacements.
-   resDisp{jj} = (dataUC1{jj}-dataU1{jj}).^2 + (dataUC2{jj}-dataU2{jj}).^2;
+   residueDisp{jj} = (dataUC1{jj}-dataU1{jj}).^2 + (dataUC2{jj}-dataU2{jj}).^2;
 
    %Calculate the residue of the regularized force.
-   resBF{jj} = sigma*coef(:,jj).*coef(:,jj);
+   residueBF{jj} = sigma*coef(:,jj).*coef(:,jj);
 
    %The displacement on the edge to be compared with 'edgeU1' etc.
    for k = 1:numEdges
@@ -88,8 +85,8 @@ for jj = 1:numTimeSteps
    end
 
    %Save the identified body force calculated on the demonstration points.
-   save([resultPath 'bfId'],'forcePx','forcePy', ...
-      'bodyFRx','bodyFRy','dispRU1','dispRU2');
+   save([resultPath 'bfId'],'bfDisplayPx','bfDisplayPy', ...
+      'recBF','recDispU','residueDisp','residueBF');
 
    %Save the computed displacement from the identified body force.
    save([resultPath 'dispId'],'dataPx','dataPy','dataUC1','dataUC2');

@@ -219,12 +219,9 @@ end
 %    fem.fp      = fp;
 %    fem.ind     = ind;
 %    fem.bnd.ind = bndInd;
-if strcmp(fnChanged,'yes') == 1
+if strcmp(fnChanged,'yes') == 1 | strcmp(fpChanged,'yes') == 1
    fem = inputsCheck(fem,options,fn,fp,ind,bndInd);
    fem = varDefine(fem);
    fem.const = constDefine(fem);
    fem.xmesh = meshextend(fem);
-elseif strcmp(fpChanged,'yes') == 1
-   fem = inputsCheck(fem,options,fn,fp,ind,bndInd);
-   fem.const = constDefine(fem);
 end

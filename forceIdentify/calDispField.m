@@ -59,7 +59,7 @@ plot(fieldPGx,fieldPGy,'r-');
 
 %Generate a grid with gridDx X gridDy raster sidelength. And, 
 % the grid sampling data points are those inside the predefined polygon.
-grid = framework(size(rawI),[gridDy gridDx]);
+grid = framework(size(rawI{1}),[gridDy gridDx]);
 in   = inpolygon(grid(:,2),grid(:,1),fieldPGx,fieldPGy);
 ind  = find(in==1);
 
@@ -83,7 +83,7 @@ if strcmp(calInterp,'yes')
       gridU2{jj} = gridUi(:,3)-gridUi(:,1);
 
       %Smoothed displacements at the raw data points.
-      sDispV = vectorFieldInterp(rawDispV{jj},rawDispV(:,1:2), ...
+      sDispV = vectorFieldInterp(rawDispV{jj},rawDispV{jj}(:,1:2), ...
          corLen,[fieldPGx fieldPGy]); 
       sDataU1{jj} = sDispV(:,4)-sDispV(:,2);
       sDataU2{jj} = sDispV(:,3)-sDispV(:,1);
@@ -98,11 +98,11 @@ else
 end
 
 %Plot the raw data points and displacements.
-quiver(rawDataPx{1},rawDataPy{1},rawDataU1{1}*5,rawDataU2{1}*5,0,'y'); 
+quiver(rawDataPx{1},rawDataPy{1},rawDataU1{1},rawDataU2{1},0,'y'); 
 
 if strcmp(showInterp,'yes')
    %the filtered displacements.
-   quiver(rawDataPx{1},rawDataPy{1},sDataU1{1}*5,sDataU2{1}*5,0,'r'); 
+   quiver(rawDataPx{1},rawDataPy{1},sDataU1{1},sDataU2{1},0,'r'); 
 end
 
 hold off;

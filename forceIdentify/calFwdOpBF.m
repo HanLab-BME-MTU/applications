@@ -90,41 +90,41 @@ if strcmp(fwdOpComputed,'none') == 1
    end
    save([modelPath 'solBFId'],'sol');
 elseif strcmp(fwdOpComputed,'fem') == 1
-   fprintf(1,['\n  Loading the solution to the elastic equation ' ...
+   fprintf(1,['  Loading the solution to the elastic equation ' ...
       'for each basis function.\n']);
    load([modelPath 'solBFId'],'sol');
 end
 
 if strcmp(fwdOpComputed,'A') == 1
-   fprintf(1,'\n  Loading the matrix A for the Body Force.\n');
+   fprintf(1,'  Loading the matrix A for the Body Force.\n');
    load([resultPath 'AbfId'],'A');
 else
-   col = 0;
-   ll  = 0;
-   A   = cell(numTimeSteps,1)
+   A   = cell(numTimeSteps,1);
    for jj = 1:numTimeSteps
-      fprintf(1,'\n  Constructing the matrix A at time step %d :\n', jj);
+      fprintf(1,'  Constructing the matrix A at time step %d :\n', jj);
       A{jj} = zeros(numDP(jj),2,dimBF,2);
 
+      col = 0;
+      ll  = 0;
       for k = 1:dimBF
          ll = ll+1;
 
          %'bspU1' and 'bspU2' is used to temporarily store the solution at the
          % data points.
          fem.sol = sol{col+1};
-         [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
-         A(:,1,ll,1)  = bspU1.';
-         A(:,2,ll,1)  = bspU2.';
+         [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx{jj} dataPy{jj}].');
+         A{jj}(:,1,ll,1)  = bspU1.';
+         A{jj}(:,2,ll,1)  = bspU2.';
 
          fem.sol = sol{col+2};
-         [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
-         A(:,1,ll,2)  = bspU1.';
-         A(:,2,ll,2)  = bspU2.';
+         [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx{jj} dataPy{jj}].');
+         A{jj}(:,1,ll,2)  = bspU1.';
+         A{jj}(:,2,ll,2)  = bspU2.';
 
          col = col+2;
          if rem(col,100) == 0
             fprintf(1,'    Columns %d out of %d finished.  %f sec.\n', ...
-               col,2*dimBF,cputime-localStartTime));
+               col,2*dimBF,cputime-localStartTime);
          end
       end
       %Reshape 'A';

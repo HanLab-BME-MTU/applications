@@ -86,6 +86,7 @@ if strcmp(fwdOpComputed,'fem') == 0
    save([modelPath 'femId'],'fem');
 else
    load([modelPath 'femId'],'fem');
+   msh = fem.mesh;
 end
 
 %Points where the forward computed displacements and raw displacements are

@@ -28,7 +28,7 @@ function MFT = mFrameTrajBuild(varargin)
 %       frame.
 
 %Parse and check the inputs.
-[M,corLen,YX] = parse_inputs(varargin);
+[M,corLen,YX] = parse_inputs(varargin{:});
 
 %Get the total number of frames in 'M'.
 numFrames = size(M,3)+1;
@@ -38,11 +38,12 @@ numPoints = size(YX,1);
 
 MFT = zeros(numPoints,2*numFrames);
 
-frameID = 1;
-for jj = 1:2:numFrames-1
+frameID    = 1;
+MFT(:,1:2) = YX;
+for jj = 1:2:2*numFrames-3
    MFT(:,jj:jj+3) = vectorFieldInterp( ...
       M(find(M(:,1,frameID)~=0 & M(:,3,frameID)~=0),:,frameID), ...
-      MFT{k}(:,jj:jj+1),corLen,[]);
+      MFT(:,jj:jj+1),corLen,[]);
    frameID = frameID+1;
 end
 
@@ -62,7 +63,7 @@ M = varargin{1};
 if nargin == 3
    YX = varargin{3};
 else
-   YX = M(find(M(:,1,1)~=0 & M(:,3,1)~=0),:,1);
+   YX = M(find(M(:,1,1)~=0 & M(:,3,1)~=0),1:2,1);
 end
 
 if nargin >= 2

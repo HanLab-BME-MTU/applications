@@ -33,11 +33,11 @@ for jj = 1:numTimeSteps
    [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx{jj} dataPy{jj}].');
 
    rightU{jj} = zeros(2*numDP(jj),1);
-   rightU{jj}(1:numDP) = dataU1{jj}-bspU1;
-   rightU{jj}(numDP(jj)+1:2*numDP(jj)) = dataU2{jj}-bspU2;
+   rightU{jj}(1:numDP(jj)) = dataU1{jj}-bspU1.';
+   rightU{jj}(numDP(jj)+1:2*numDP(jj)) = dataU2{jj}-bspU2.';
 
-   %For debugging, calculate the boundary displacements to compare with 'edge1U1'
-   % etc.
+   %For debugging, calculate the boundary displacements to compare with 
+   % 'edge1U1' etc.
    for k = 1:numEdges
       [edgeUC1{jj,k} edgeUC2{jj,k}] = postinterp(fem,'u1','u2',edgeP{k});
    end
