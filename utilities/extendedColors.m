@@ -75,8 +75,8 @@ if nargin == 1 & ~isempty(colorSwitch)
                 beta = 0;
             end
             
-            %take no chances with col num
-            colorNum = round(abs(rem(colorSwitch(1),24)));
+            %take no chances with col num - make sure that there is no 0
+            colorNum = round(abs(rem(colorSwitch(1)-1,24)))+1;
             
     end %colorSwitch switch
 

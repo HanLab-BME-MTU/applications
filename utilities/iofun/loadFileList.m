@@ -114,17 +114,22 @@ storeLength = 100;
 done = 0;
 %lookup list for what to do - add a 0th entry for cancel
 toutDouxList = [-1;inputTypeList(:,1)];
+choiceSequence = [1:size(inputTypeList,1)];
+inputChoicesNow = inputChoicesCell;
 
 %tell the rules to the user
 h = helpdlg('please select the filetypes and the files you want to load. Once you are done, press ''cancel'' in the selection dialogue','');
 uiwait(h)
+
+% remember where we were
+oldPath = pwd;
 
 %start while loop: loop until user does not want to load further data
 while ~done
     
     %get file and entry number of typeList filterIndex returns the
     %choice or 0 if cancel
-    [fileName,pathName,filterIdx] = uigetfile(inputChoicesCell,'select file or cancel!');
+    [fileName,pathName,filterIdx] = uigetfile(inputChoicesNow,'select file or cancel!');
     
     %lookup the choice
     whatToutDoux = toutDouxList(filterIdx+1); %filterIdx could be 0 if cancel
@@ -158,11 +163,31 @@ while ~done
                 store(1:storeLength-INITSTORELENGTH) = tmp;
             end
             
+            % change to the new directory, and go up if project dir (allow for nonBiodata)
+            cd(pathName);
+            cdBiodata(3);
+            
         otherwise
             error('bad entry in chooseFileType was not correctly detected during input check')
     end
     
+    % rearrange the input choices, so that the last selection is topmost
+    if ~done 
+        % user chose choice#filteridx. copy #1 to that position and the
+        % choice to position 1
+        newTopChoice = choiceSequence(filterIdx);
+        choiceSequence(filterIdx) = choiceSequence(1);
+        choiceSequence(1) = newTopChoice;
+        
+        % rearrange lists
+        inputChoicesNow = inputChoicesCell(choiceSequence,:);
+        toutDouxList = [-1;inputTypeList(choiceSequence,1)];
+    end
+    
 end %while ~done
+
+% go back to old path
+cd(oldPath);
 
 store(nextStoreIdx:end) = [];
 
