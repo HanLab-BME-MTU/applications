@@ -99,7 +99,7 @@ cd (SaveDir);
 if movieType == 1   % AVI
    mov = avifile ([dragTailFileName '.avi']);
 elseif movieType == 2   % QT
-   makeQTMovie ('start', [dragTailFileName '.mov']);
+   MakeQTMovie ('start', [dragTailFileName '.mov']);
 else
    h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
    uiwait (h);
@@ -189,7 +189,7 @@ for movieStep = movieStartFrame : increment : movieEndFrame
       mov = addframe (mov, F);
       close;
    elseif movieType == 2   % AVI
-      makeQTMovie ('addaxes', gca);
+      MakeQTMovie ('addaxes', gca);
       close;
    else
       h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
@@ -203,7 +203,7 @@ end   % for movieStep
 if movieType == 1   % QT
    mov = close(mov);
 elseif movieType == 2   % AVI
-   makeQTMovie ('finish');
+   MakeQTMovie ('finish');
 else
    h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
    uiwait (h);
