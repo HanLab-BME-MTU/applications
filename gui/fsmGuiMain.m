@@ -518,22 +518,32 @@ if value==0
     set(handles.checkGrid,'Enable','off');
     set(handles.textInfluence,'Enable','off');
     set(handles.editInfluence,'Enable','off');
+    set(handles.textCorrLength,'Enable','off');
+    set(handles.editCorrLength,'Enable','off');
 else
     set(handles.radioTrackBrownian,'Enable','on');
     set(handles.radioEnhTrackBrownian,'Enable','on');
     set(handles.radioTrackFlow,'Enable','on');
-    set(handles.checkEnhTrack,'Enable','on');
+    if get(handles.radioTrackBrownian,'Value')==1
+        set(handles.checkEnhTrack,'Enable','on');
+        set(handles.textCorrLength,'Enable','on');
+        set(handles.editCorrLength,'Enable','on');
+        set(handles.textInfluence,'Enable','on');
+        set(handles.editInfluence,'Enable','on');
+        if get(handles.checkEnhTrack,'Value')==1
+            set(handles.checkGrid,'Enable','on');    
+        else
+            set(handles.checkGrid,'Enable','off');
+        end               
+    else
+        set(handles.checkEnhTrack,'Enable','off');
+        set(handles.textCorrLength,'Enable','off');
+        set(handles.editCorrLength,'Enable','off');
+        set(handles.textInfluence,'Enable','off');
+        set(handles.editInfluence,'Enable','off');        
+    end
     set(handles.textThreshold,'Enable','on');
     set(handles.editThreshold,'Enable','on');
-    if get(handles.checkEnhTrack,'Value')==1
-        set(handles.textInfluence,'Enable','on');
-        set(handles.checkGrid,'Enable','on');    
-        set(handles.editInfluence,'Enable','on');
-    else
-        set(handles.textInfluence,'Enable','off');
-        set(handles.checkGrid,'Enable','off');
-        set(handles.editInfluence,'Enable','off');
-    end               
 end    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -556,6 +566,8 @@ if get(handles.checkEnhTrack,'Value')==1
 else
     set(handles.checkGrid,'Enable','off');
 end
+set(handles.textCorrLength,'Enable','on');
+set(handles.editCorrLength,'Enable','on');
 
 
 function radioEnhTrackBrownian_Callback(hObject, eventdata, handles)
@@ -569,6 +581,8 @@ set(handles.textInfluence,'Enable','off');
 set(handles.editInfluence,'Enable','off');
 set(handles.checkEnhTrack,'Enable','off');
 set(handles.checkGrid,'Enable','off');
+set(handles.textCorrLength,'Enable','off');
+set(handles.editCorrLength,'Enable','off');
 
 % -------------------------------------------------------------------------
 
@@ -583,6 +597,8 @@ set(handles.textInfluence,'Enable','off');
 set(handles.editInfluence,'Enable','off');
 set(handles.checkEnhTrack,'Enable','off');
 set(handles.checkGrid,'Enable','off');
+set(handles.textCorrLength,'Enable','off');
+set(handles.editCorrLength,'Enable','off');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
