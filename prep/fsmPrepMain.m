@@ -69,6 +69,13 @@ if ~isfield(fsmParam,'batchJob')
         '*.*','All Files (*.*)'},...
         'Select first image');
     if(isa(fName,'char') & isa(dirName,'char'))
+        
+        % Check that the user did not change the image directory
+        if strcmp(dirName,imagePath)==0
+            uiwait(warndlg('If you really want to analyzes these images, please go back to fsmCenter and change the project settings.','Warning','modal'));
+            return % Returns an error (status=0)
+        end
+        
         [imageOne,map]=imread([dirName,fName]);
         % Store image size
         imageSize=size(imageOne);
