@@ -116,11 +116,11 @@ for timePoint = 1:trajLength
         %and its variance, V(t+1) (Eq. 3.6 & 3.10)
         innovationVar(timePoint) = stateCovMatT1_T(1,1) + traj(timePoint,2)^2;
 
-        %check whether innovation variance is negative (which it should not be!)
-        if innovationVar(timePoint) < 0
-            disp('neg!')
-            errFlag = 1;
-        end
+%         %check whether innovation variance is negative (which it should not be!)
+%         if innovationVar(timePoint) < 0
+%             disp('neg!')
+%             errFlag = 1;
+%         end
 
         %calculate delta
         delta = stateCovMatT1_T*observationVec'/innovationVar(timePoint); %delta(t+1), Eq. 3.5
