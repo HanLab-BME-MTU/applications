@@ -140,7 +140,7 @@ function GUI_st_addjob_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-listhandle = handles.GUI_st_job_lb
+listhandle = handles.GUI_st_job_lb;
 
 [filename,imagedirectory]=uigetfile({'*.tif','TIFF-files';'jobvalues.mat','Saved Values';'*.*','all files'},...
                                      'Please select an image file or jobvalues.mat');
@@ -154,7 +154,7 @@ if strcmp(filename,'jobvalues.mat')
     cd(imagedirectory)
     load jobvalues.mat
     filename=jobvalues.imagename;
-    gotvals=1
+    gotvals=1;
 end
 
 
@@ -174,7 +174,7 @@ projNum = length(jobList);
 
 
 if gotvals==1
-    handles.jobs(projNum)=jobvalues
+    handles.jobs(projNum)=jobvalues;
     clear jobvalues
 else
 
@@ -220,8 +220,11 @@ else
 	while done==0
            newdirname=[];
            newdirname=['results',num2str(counter)];
+        
           if exist(newdirname,'dir')==0
              mkdir(imagedirectory,newdirname);
+             tempname=[imagedirectory,newdirname];
+             mkdir(tempname,'body');
              
              handles.jobs(projNum).savedirectory=[imagedirectory, newdirname];
              done=1;
@@ -236,7 +239,7 @@ else
 
 % Update handles structure
 guidata(hObject, handles);
-handles = guidata(hObject)
+handles = guidata(hObject);
 
 fillFields(handles,handles.jobs(projNum))
 

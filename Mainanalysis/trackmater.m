@@ -240,7 +240,7 @@ else
                       
                       
                       PROPERTIES=[];
-                      [PROPERTIES,BODYIMG(:,:,1),labeled]= body(newImg,newCoord,regmax,logihalo,PlusMinus);
+                      [PROPERTIES,BODYIMG,labeled]= body(newImg,newCoord,regmax,logihalo,PlusMinus);
                       
                       
                      
@@ -299,9 +299,8 @@ else
                                prope=[];
                                ero=[];
                               
-                               [prope,ero,labeled]= body(newImg,newCoord,regmax,logihalo,PlusMinus);
+                               [prope,BODYIMG,labeled]= body(newImg,newCoord,regmax,logihalo,PlusMinus);
                              
-                               BODYIMG(:,:,countingloops)=ero;
                                
                                PROPERTIES(1:size(emptyprop,1),1:size(emptyprop,2),countingloops,1)=emptyprop;
                                %store this information in a stack
@@ -928,7 +927,16 @@ else
    
     save('M', 'M')
     save ('PROPERTIES', 'PROPERTIES')
-    save('BODYIMG','BODYIMG')
+    cd ('body')
+        % Format
+		s=3; %s=length(num2str(no));
+		strg=sprintf('%%.%dd',s);
+		
+		% Create numerical index
+		indxStr=sprintf(strg,index);
+        
+        nameClust=['clusters' indxStr]; 
+    save(nameClust,'BODYIMG')
 %%    save (['lostonedge',date], 'lostonedge')
    
 
