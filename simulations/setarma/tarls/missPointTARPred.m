@@ -245,17 +245,17 @@ if future
         end
 
         %compare new estimates of missing points to old ones
-        diff = max(abs(trajP2(indx)-trajP(indx)));
-        if diff <= 0.001
+        diff = max(abs(trajP2(indx,1)-trajP(indx,1)));
+        if diff <= 1e-6
             doAgain = 0;
         end
         
-        %compare new level assignments to old level assignments in order to determine whether algorithm converged
-        diff = levelP-level; %calculate difference between 2 assignments
-        diff = diff(find(~isnan(diff))); %get rid of NaNs from time points < max(tarOrder)
-        if isempty(find(diff)) %if none have changed, exit
-            doAgain = 0;
-        end
+%         %compare new level assignments to old level assignments in order to determine whether algorithm converged
+%         diff = levelP-level; %calculate difference between 2 assignments
+%         diff = diff(find(~isnan(diff))); %get rid of NaNs from time points < max(tarOrder)
+%         if isempty(find(diff)) %if none have changed, exit
+%             doAgain = 0;
+%         end
         
         level = levelP;
         trajP = trajP2;

@@ -201,33 +201,24 @@ for bigIter = 1:maxNumSim
         return;
     end
     
-    %get rid of unreasonably small standard deviations which
-    %mess up the statistical analysis in "trajectoryAnalysis".
-    
-    %find points in mtLengthSD with unreasonably small standard deviation
-    zeroStdIdx = find(mtLengthSD(:,bigIter)==1e-15);
-    if ~isempty(zeroStdIdx)
-        %set their STD to very large number
-        mtLengthSD(zeroStdIdx,bigIter) = 1e15;
-        %get the value just above the lowest 1%
-        lowestPercentSD = prctile(mtLengthSD(:,bigIter),1);
-        %get the minimum STD
-        minSD = min(mtLengthSD(:,bigIter));
-        %assign a "reasonable" STD to those problematic points
-        mtLengthSD(zeroStdIdx,bigIter) = min(lowestPercentSD*0.5,minSD);
-    end
-    
+    %get rid of unreasonably small standard deviations which mess up the statistical
+    %analysis in "trajectoryAnalysis".
+    %compute the chi2 cumulative distribution of mtLengthSD
+    p = chi2cdf(mtLengthSD(:,bigIter),1);
+    %find indices of very small STDs
+    badIdx = find(p<0.001);
+    %assign a large value to those entries
+    mtLengthSD(badIdx,bigIter) = 999;
+    %assign to them 0.8 the new minimum value 
+    mtLengthSD(badIdx,bigIter) = 0.8*min(mtLengthSD(:,bigIter));
     %do the same for SPBToTagSD
     for i=1:3
-        zeroStdIdx = find(SPBToTagSD(:,i,bigIter)==1e-15);
-        if ~isempty(zeroStdIdx)
-            SPBToTagSD(zeroStdIdx,i,bigIter) = 1e15;
-            lowestPercentSD = prctile(SPBToTagSD(:,i,bigIter),1);
-            minSD = min(SPBToTagSD(:,i,bigIter));
-            SPBToTagSD(zeroStdIdx,i,bigIter) = min(lowestPercentSD*0.5,minSD);
-        end
+        p = chi2cdf(SPBToTagSD(:,i,bigIter),1);
+        badIdx = find(p<0.001);
+        SPBToTagSD(badIdx,i,bigIter) = 999;
+        SPBToTagSD(badIdx,i,bigIter) = 0.8*min(SPBToTagSD(:,i,bigIter));
     end
-    
+   
 end
 
 %write 1st set of data in correct format for statistical analysis
@@ -240,7 +231,7 @@ for bigIter = 1:maxNumSim
 end
 
 %additional input variables for statistical analysis function
-ioOpt.verbose = 2; %display graphs
+ioOpt.verbose = 0;
 ioOpt.saveTxt = 0;
 %ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat1D.txt'; %save results in file
 ioOpt.expOrSim = 's'; %specify that it is simulation data

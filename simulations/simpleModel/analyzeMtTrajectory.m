@@ -178,20 +178,16 @@ for bigIter = 1:maxNumSim
         return;
     end
     
-    %get rid of unreasonably small standard deviations which
-    %mess up the statistical analysis in "trajectoryAnalysis".
-    %find points with unreasonably small standard deviation
-    zeroStdIdx = find(mtLengthSD(:,bigIter)==1e-15);
-    if ~isempty(zeroStdIdx)
-        %set their STD to very large number
-        mtLengthSD(zeroStdIdx,bigIter) = 1e15;
-        %get the value just above the lowest 1%
-        lowestPercentSD = prctile(mtLengthSD(:,bigIter),1);
-        %get the minimum STD
-        minSD = min(mtLengthSD(:,bigIter));
-        %assign a "reasonable" STD to those problematic points
-        mtLengthSD(zeroStdIdx,bigIter) = min(lowestPercentSD*0.5,minSD);
-    end
+    %get rid of unreasonably small standard deviations which mess up the statistical 
+    %analysis in "trajectoryAnalysis".
+    %compute the chi2 cumulative distribution
+    p = chi2cdf(mtLengthSD(:,bigIter),1);
+    %find indices of very small STDs
+    badIdx = find(p<0.001);
+    %assign a large value to those entries
+    mtLengthSD(badIdx,bigIter) = 999;
+    %assign to them 0.8 the new minimum value 
+    mtLengthSD(badIdx,bigIter) = 0.8*min(mtLengthSD(:,bigIter));
     
 end
 
@@ -213,9 +209,6 @@ ioOpt.expOrSim = 's'; %specify that it is simulation data
 
 %perform Jonas' statistical analysis and get restults in dataStats
 dataStats = trajectoryAnalysis(data,ioOpt);
-
-data(1).distance(:,1) = data(1).distance(:,1) + 1;
-dataStats2 = trajectoryAnalysis(data,ioOpt);
 
 %save data if user wants to
 if saveStats.saveOrNot
