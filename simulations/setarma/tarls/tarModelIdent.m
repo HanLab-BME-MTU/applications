@@ -144,7 +144,7 @@ for level = 1:nThresholds
     param2V = varCovMat(1:maxOrder,1:maxOrder,level+1);
     param2V(find(isnan(param2V))) = 0;
     
-    %find vector of differences in coefficients
+    %calculate vector of differences in coefficients
     diffM = param1M - param2M;
     
     %calculate variance-covariance matrix of difference vector
@@ -152,26 +152,24 @@ for level = 1:nThresholds
             zeros(maxOrder) param2V]*[eye(maxOrder) -eye(maxOrder)]';
     
     %compute testStatistic whose cumulative distribution function is to be
-    %compare with 1-significance level (notice that testStatistic has a
+    %compared with (1-significance level) (notice that testStatistic has a
     %chi2 distribution)
     testStatistic = diffM'*(diffV\diffM)/maxOrder;
     
-    %if the cumulative density of this difference is greater than 95%,
-    if chi2cdf(testStatistic,maxOrder) > 0.95
-        newThresh(end+1) = level; %start a new level
+    %if the cumulative density of this difference is greater than 99%, start a new level
+    if chi2cdf(testStatistic,maxOrder) > 0.99
+        newThresh(end+1) = level; %i.e. new threshold separates between "level" and "level+1"
     end
     
-end
+end %(for level = 1:nThresholds)
 
-%when levels are combined, give the new level an order equal to the
-%smallest order of the combined levels.
+%find new orders in new regimes. When levels are combined, give the new
+%level an order equal to the smallest order of the combined levels.
 newOrder(1) = min(tarOrder(1:newThresh(1)));
 for i=2:length(newThresh)
     newOrder(i) = min(tarOrder(newThresh(i-1)+1:newThresh(i)));
 end
-if isempty(i)
-    i = 1;
-end
+i = length(newThresh); %must do this in case there is only 1 threshold (and thus loop is skipped)
 newOrder(end+1) = min(tarOrder(newThresh(i)+1:end));
 
 %assign new thresholds and orders
@@ -193,6 +191,6 @@ for level = 1:nThresholds+1
 end
 
 %get the model's AIC value
-[aicV,errFlag] = tarAic(traj,vThresholds,delay,tarParam);
+[aicV,errFlag] = tarAic(traj(:,1),vThresholds,delay,tarParam);
 
 toc

@@ -37,6 +37,7 @@ if nargin < 4
     varCovMat = [];
     residuals = [];
     noiseSigma = [];
+    fitSet = [];
     return
 end
 
@@ -88,6 +89,7 @@ if errFlag
     varCovMat = [];
     residuals = [];
     noiseSigma = [];
+    fitSet = [];
     return
 end
 
@@ -194,6 +196,7 @@ for level = 1:nThresholds+1
         varCovMat = [];
         residuals = [];
         noiseSigma = [];
+        fitSet = [];
         return
     end
     

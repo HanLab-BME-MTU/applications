@@ -85,7 +85,7 @@ vThresholds = [-Inf; vThresholds; Inf];
 indx = find(~isnan(traj));
 
 %2. discard first max(tarOrder) trajectory points
-indx2 = find(indx>max(tarOrder));
+indx2 = find(indx>max(tarOrder)); %note that indx2 is an array of indices of elements in indx
 indx2 = indx2(find(indx2>max(tarOrder)));
 
 %3. find all points whose "delay"-time-steps predecessors are available
@@ -130,12 +130,12 @@ for level = 1:nThresholds+1
     %[size: aicLength by tarOrder(level)]
     prevPoints = zeros(aicLength(level),tarOrder(level));
     for i=1:tarOrder(level)
-        prevPoints(:,i) = traj(aicSet(1:aicLength(level),level)-i);
+        prevPoints(:,i) = traj(aicSet(2:aicLength(level)+1,level)-i);
     end
     
     %construct vector of points in this regime
     %[size: aicLength by 1]
-    currentPoint = traj(aicSet(1:aicLength(level),level));
+    currentPoint = traj(aicSet(2:aicLength(level)+1,level));
     
     %get vector of residuals
     residuals(aicSet(1:aicLength(level),level)) = prevPoints*tarParam(level,...
@@ -147,4 +147,4 @@ for level = 1:nThresholds+1
 end %(for levels=1:nThresholds+1)
 
 %calculate Akaike's Information Criterion
-aicV = aicSet(1,:)*noiseVar' + sum(2*tarOrder+2);
+aicV = aicSet(1,:)*log(noiseVar)' + sum(2*tarOrder+2);
