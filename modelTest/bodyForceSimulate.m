@@ -4,7 +4,7 @@ fprintf(1,'Start simulation ...\n');
 startTime = cputime;
 
 %load the geometry of the lamellipodium;
-load data/simulGeom; %You get: 'geom', 'smplPGx' and 'smplPGy'.
+load simulGeom; %You get: 'geom', 'smplPGx' and 'smplPGy'.
 
 %Get the starting and ending vertice number of each edge and the coordinate of
 % each vertice.
@@ -62,5 +62,5 @@ fp.MyoDragFy = { [] {{'x','y'} {myoA}} [] };
 femS = elModelAssemble(geom,{'hmax',10},options,fn,fp,ind,bndInd);
 femS = elasticSolve(femS,[]);
 
-save data/simulData femS;
+save simulData femS;
 fprintf(1,'Done: %f sec.',cputime-startTime);
