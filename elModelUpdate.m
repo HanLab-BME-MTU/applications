@@ -221,7 +221,8 @@ end
 %    fem.bnd.ind = bndInd;
 if strcmp(fnChanged,'yes') == 1 | strcmp(fpChanged,'yes') == 1
    fem = inputsCheck(fem,options,fn,fp,ind,bndInd);
+   fem.varNames = varNameDefine(fem);
    fem = varDefine(fem);
-   fem= constDefine(fem);
+   fem = constDefine(fem);
    fem.xmesh = meshextend(fem);
 end

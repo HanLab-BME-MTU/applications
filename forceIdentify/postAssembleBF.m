@@ -119,14 +119,14 @@ for jj = 1:numTimeSteps
 
    %Compute the length of the displacements and their average .
    gridDispLen = sqrt(gridU1.^2+gridU2.^2);
-   avgDispLen = sum(gridDispLen(:))/length(gridDispLen(:));
+   smDispLen   = max(gridDispLen)*smDispThreshold;
 
    %We only consider displacements that are above a threshold value. We call
    % these displacements the significant displacements.
    % 'smDispInd' : Index of the significant displacements.
-   smDispInd = find(gridDispLen<avgDispLen*smDispThreshold);
-   bigDispInd  = [1:length(gridDispLen)];
-   bigDispInd(smDispInd) = [];
+   smDispInd = find(gridDispLen<smDispLen);
+   %bigDispInd  = [1:length(gridDispLen)];
+   %bigDispInd(smDispInd) = [];
 
    %Normalize the displacement.
    %unitGridU1 = zeros(size(gridU1));
