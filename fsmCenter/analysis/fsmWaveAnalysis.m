@@ -1,4 +1,4 @@
-function [scores,allScores,bwMask,py0,px0]=fsmWaveAnalysis(analysis,roi,gridSize,time,freq,minValue,tSampling,moveROI,bwMask)
+function [scores,allScores,outBwMask,py0,px0]=fsmWaveAnalysis(projDir,analysis,roi,gridSize,time,freq,minValue,tSampling,moveROI,bwMask)
 % fsmWaveAnalysis performs spectral analysis on the results of FSM package
 %
 % The scores calculated by the kinetic analysis of FSM are assigned to regions of interest
@@ -10,7 +10,9 @@ function [scores,allScores,bwMask,py0,px0]=fsmWaveAnalysis(analysis,roi,gridSize
 % REMARK        Run fsmWaveAnalysis through the graphical user interface fsmCenter 
 %               ------------------------------------------------------------------
 %
-% INPUT         analysis    : [ 0|1 0|1 ], turns on and off the first and second analyses,
+% INPUT         projDir     : string pointing to the project directory (where the fsmParam.mat file is 
+%                             located). Pass projDir=[] to manually select fsmParam.mat via a dialog.
+%               analysis    : [ 0|1 0|1 ], turns on and off the first and second analyses,
 %                             respectively
 %               roi         : one of 'g', 'r', 'p' - define the region of interest for the
 %                                                    spectral analysis
@@ -36,7 +38,7 @@ function [scores,allScores,bwMask,py0,px0]=fsmWaveAnalysis(analysis,roi,gridSize
 %                             the score for window i at time point j (for roi='g'). If roi 
 %                             is 'p' or 'r' i is always = 1.
 %               allScores   : scores catenated into a long vectors
-%               bwMask      : black and white mask drawn or passed to select a subset of the grid for analysis
+%               outBwMask   : black and white mask drawn or passed to select a subset of the grid for analysis
 %               py0         : (initial) y coordinates of all windows (a n x 5 matrix, where n is the number of windows)
 %                                If moveROI==1 the windows are moved.
 %               px0         : (initial) x coordinates of all windows (a n x 5 matrix, where n is the number of windows) 
@@ -47,11 +49,13 @@ function [scores,allScores,bwMask,py0,px0]=fsmWaveAnalysis(analysis,roi,gridSize
 %
 % Aaron Ponti, May 15th, 2003
 
-if nargin<8 | nargin>9
-    error('Eight or nine input parameters expected');
+global uFirst uLast
+
+if nargin<9 | nargin>10
+    error('Nine or ten input parameters expected');
 end
 
-if nargin==8
+if nargin==9
     bwMask=[];
 end
 
@@ -63,32 +67,104 @@ end
 % Initialize output parameters
 scores=0;
 allScores=0;
-bwMask=[];
+outBwMask=[];
 py0=[];
 px0=[];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% SELECT ROIs AND KINSCORE FILES
+% LOOK FOR AND CHECK fsmParam.mat
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[fsmParam,status]=fsmPostGetFsmParam(projDir);
+if status==0
+    return
+end
+
+% Store image size
+imgSize=fsmParam.specific.imgSize;
+
+% Store string for numerical format
+strg=fsmParam.specific.formString;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% GET THE LIST OF IMAGE FILE NAMES AND FIRST/LAST INDICES FROM fsmParam
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[imageFileList,imageFirstIndex,imageLastIndex,status]=fsmPostGetImageListFromFsmParam(fsmParam);
+if status==0
+    return
+end
+nImages=length(imageFileList);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% GET THE LIST OF kinScore###.mat FILES
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[kinScoreFileList,success]=fsmPostGetSubProjFileList([projDir,filesep,'kinscore',filesep],'kinScore');
+if success==0
+    errordlg('Could not create the list of kinScore###.mat files.','Error','modal');
+    return
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% GET THE LIST OF vectors###.mat FILES
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[vectorOutFileList,success]=fsmPostGetSubProjFileList([projDir,filesep,'vectors',filesep],'vectors');
+if success==0
+    disp('Could not create the list of vectors###.mat files.');
+end
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% ASK THE USER TO SPECIFY THE RANGE OF IMAGES HE/SHE WANTS TO ANALYZE
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Select image
-[fName,dirName] = uigetfile(...
-    {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
-    '*.tif','TIF files (*.tif)'
-    '*.tiff','TIFF files (*.tiff)'
-    '*.jpg;','JPG files (*.jpg)'
-    '*.jpeg;','JPEG files (*.jpeg)'
-    '*.*','All Files (*.*)'},...
-    'Select image');
-if(isa(fName,'char') & isa(dirName,'char'))
-   img=nrm(imread([dirName,fName]),1);
-   % Store image size
-   imgSize=size(img);
-else
-   return 
+minN=1;
+guiH=fsmTrackSelectFramesGUI; ch=get(guiH,'Children');
+set(findobj('Tag','pushOkay'),'UserData',minN); % At least n-1 frames must be considered
+titleDlg='Select frames to be processed (the more the better):';
+set(findobj('Tag','editFirstFrame'),'String',num2str(1));
+set(findobj('Tag','editLastFrame'),'String',num2str(nImages-1));
+set(findobj('Tag','SelectFramesGUI'),'Name',titleDlg);
+sSteps=[1/((nImages-1)-1) 1/((nImages-1)-1)];
+set(findobj('Tag','sliderFirstFrame'),'SliderStep',sSteps,'Max',nImages-1,'Min',1,'Value',1);
+set(findobj('Tag','sliderLastFrame'),'SliderStep',sSteps,'Max',nImages-1,'Min',1,'Value',nImages-1);
+waitfor(guiH); % The function waits for the dialog to close (and to return values for uFirst and uLast)
+
+if uFirst==-1
+    return % The user closed the dialog
 end
+
+% Load the first image selected
+img=imread(imageFileList(uFirst,:));
+
+% Index of the first and last matrices in M to be analyzed
+firstIndex=uFirst;
+lastIndex=uLast;
+
+% Calculate the corresponding indices for imageFileList and for the outputs
+indices=firstIndex:lastIndex;
+
+% Update all lists
+imageFileList=imageFileList(uFirst:uLast,:);
+kinScoreFileList=kinScoreFileList(uFirst:uLast);
+if ~isempty(vectorOutFileList)
+    vectorOutFileList=vectorOutFileList(uFirst:uLast);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% SELECT RHE REGION OF INTEREST
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Initialize vectors to store polygon vertex coordinates
 px=[];py=[];
@@ -182,111 +258,57 @@ end
 % Number of vertices of the polygon(s)
 len=size(py,2)-1;
 
-% Select corresponding kinScore###.mat
-[fName,dirName] = uigetfile(...
-    {'*.mat;','Matlab workspaces (*.mat)';
-    '*.*','All Files (*.*)'},...
-    'Select first kinScore matrix');
-if ~(isa(fName,'char') & isa(dirName,'char'))
-   return 
-end
-
-% Recover all file names from the stack
-outFileList=getFileStackNames([dirName,fName]);
-
-% Number of images
-n=length(outFileList);
-    
-% String format for extension
-[path,body,no,ext]=getFilenameBody([dirName,fName]);
-s=length(no);
-strg=sprintf('%%.%dd',s);
-    
-% Store numeric indices
-firstIndex=str2num(no);
-indices=[firstIndex:firstIndex+n-1];
-
 % User input needed?
 user=0;
 
 % If needed, prepare the series of vector field names
 if moveROI==1
-
-    % Create file name
-    fileSepPos=findstr(filesep,dirName);
-    if length(fileSepPos)>1 & dirName(end)==filesep
-        fileSepPos=fileSepPos(end-1); 
-        newDirName=dirName(1:fileSepPos);
-        indxStr=sprintf(strg,indices(1));
-        firstVectorFieldName=[newDirName,'vectors',filesep,'vectors',indxStr,'.mat'];
-        % Set flag
-        user=0;
-    else
-        % Set flag
-        user=1;
-    end
     
-    % Try to load it
-    if exist(firstVectorFieldName)==2
+    if isempty(vectorOutFileList)
         
-        % Set flag
-        user=0;
+        % No vectors###.mat found in the project; maybe somewhere else... Ask the user.
         
-    else
-        
-        % Set flag
-       user=1;
-        
-    end
-    
-    if user==0
-        
-        % Recover all file names from the stack
-        vectorOutFileList=getFileStackNames(firstVectorFieldName);
-        
-    else
-        
-        % Loading failed, the user must select corresponding vectors###.mat
-
         textStr= [ 'The selected project does not seem to contain vectors###.mat files. ', ...
-            'These files are created by the hierarchical neural network tracker. ', ...
-            'If these files exist somewhere out of the project directory, you might want to locate them manually; ',...
-            'alternatively, you can skip selection (but your ROIs will not be moved along the vector field) or abort.' ];
-            
+                'These files are created by the hierarchical neural network tracker. ', ...
+                'If these files exist somewhere out of the project directory, you might want to locate them manually; ',...
+                'alternatively, you can skip selection (but your ROIs will not be moved along the vector field) or abort.' ];
+        
         choice=questdlg(textStr, ...
             'Warning', ...
             'Locate','Skip','Abort','Skip');
-
+        
         switch choice,
             case 'Locate',
-                [newFName,newDirName] = uigetfile(...
-                    {'*.mat;','Matlab workspaces (*.mat)';
-                    '*.*','All Files (*.*)'},...
-                    'Select first vectors###.mat file');
-                if ~(isa(newFName,'char') & isa(newDirName,'char'))
+                newDirName=uigetdir('','Please select the directory containing the vectors###.mat files');
+                if newDirName==0
                     return
                 end
-                % Recover all file names from the stack
-                vectorOutFileList=getFileStackNames([newDirName,newFName]);
+                [vectorOutFileList,success]=fsmPostGetSubProjFileList(newDirName,'vectors');
+                if success==0
+                    uiwait(warndlg('Could not create the list of vectors###.mat files. Skipping.','Error','modal'));
+                    moveROI=0;             % Turn off "Move ROI along vector field"
+                    vectorOutFileList=[];
+                else
+                    vectorOutFileList=vectorOutFileList(firstIndex:lastIndex);
+                end
+                
             case 'Skip',
                 moveROI=0;             % Turn off "Move ROI along vector field"
                 vectorOutFileList=[];
             case 'Abort',
                 return
         end % switch
-
         
-       
     end
     
     % Calculate the center(s) of mass of the polygon(s)
     yCM=sum(py(:,1:len),2)./len;
     xCM=sum(px(:,1:len),2)./len;
-        
+    
     % Store the initial position of the polygon(s)
     py0=py;
     px0=px;
-        
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -294,6 +316,9 @@ end
 % ORDER SCORES TO WINDOWS
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Number of images
+n=length(kinScoreFileList);
 
 % Initialize output vector
 scores=zeros(windows,n);
@@ -341,7 +366,7 @@ for c1=1:n
     end
     
     % Load current kinScore
-    load(char(outFileList(c1)));
+    load(char(kinScoreFileList(c1)));
     indxStr=sprintf(strg,indices(c1));
     eval(['kinScore=kinScore',indxStr,';clear kinScore',indxStr,';']);
         
@@ -552,3 +577,5 @@ if analysis(2)==1
     
 end
     
+% Return the bwMask
+outBwMask=bwMask;

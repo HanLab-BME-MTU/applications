@@ -1,14 +1,10 @@
-function [polyMap,depolyMap,kinMap2C,outputdir]=fsmKineticMaps(projDir,firstKinScore,imgSize,n,sigma)
+function [polyMap,depolyMap,kinMap2C,outputdir]=fsmKineticMaps(projDir,n,sigma)
 % fsmKineticMaps creates maps of polymerization, depolymerization and net assembly rate
 %
-% SYNOPSIS      [polyMap,depolyMap,kinMap2C]=fsmKineticMaps(firstKinScore,imgSize,n,sigma)
+% SYNOPSIS      [polyMap,depolyMap,kinMap2C]=fsmKineticMaps(projDir,n,sigma)
 %
 % INPUT         projDir        : string pointing to the project directory (where the fsmParam.mat file is 
 %                                located). Pass projDir=[] to manually select fsmParam.mat via a dialog.
-%               firstKinScore  : string containing the name (with complete path) of the 
-%                                first kinScore###.mat file
-%                                set firstKinScore=[] to have the function open a dialog
-%               imgSize        : size of the analyzed images
 %               n              : [k m] = [ number of frames to be considered from the whole stack , number of frames for time integration ]
 %                                
 %                                k = n(1) is the number of frames (actually their corresponding kinScore###.mat files) from the total stack to 
@@ -38,11 +34,11 @@ function [polyMap,depolyMap,kinMap2C,outputdir]=fsmKineticMaps(projDir,firstKinS
 
 global uFirst uLast
 
-if nargin<4 | nargin>5
-    error('Four or five input parameters expected');
+if nargin<2 | nargin>3
+    error('Two or three input parameters expected');
 end
 
-if nargin==3
+if nargin==2
     sigma=5;
 end
 

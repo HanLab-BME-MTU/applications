@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 01-Sep-2004 16:28:44
+% Last Modified by GUIDE v2.5 02-Sep-2004 14:55:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -154,18 +154,40 @@ fsmGuiMain;
 
 function pushOpenProject_Callback(hObject, eventdata, handles)
 projDir=get(handles.textCurrentProject,'String');
-projDir=projSetupGui;
+[projDir,imageDir,subProjects]=projSetupGUI;
 if ~isempty(projDir)
     set(handles.textCurrentProject,'String',projDir);
 end
-% Add projDir to the userData of fsmCenter
-set(handles.fsmCenter,'userData',projDir);
+% Add projDir, imageDir and subProjects to the userData of fsmCenter
+settings.projDir=projDir;
+settings.imageDir={imageDir}; % This is a cell (n-channel movies)
+settings.subProjects=subProjects;
+set(handles.fsmCenter,'UserData',settings);
 % Update other GUIs if they are already running
+
+% fsmPostProc
 hFsmPostProc=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing');
 if ~isempty(hFsmPostProc)
     fsmPostProc;
 end
+
+% fsmGuiMain (SpeckTackle)
 % hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
+
+% imKymoAnalysis
+hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
+if ~isempty(hCorrTrack)
+    handlesCorr=guidata(hCorrTrack);
+    handles.projDir = projDir;
+    handles.imgDir  = {imageDir};
+    handles.tackDir = char(subProjects(1));
+    handles.lplaDir = char(subProjects(2));
+    handles.postDir = char(subProjects(3));
+    handles.edgeDir = char(subProjects(4));
+    handles.mergDir = char(subProjects(5));
+    handles.corrDir = char(subProjects(6));
+    guidata(hCorrTrack,handlesCorr);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -338,6 +360,17 @@ set(handles.editCalX,'String','');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %
+% %  IMKYMOANALYSIS
+% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function pushImKymoAnalysis_Callback(hObject, eventdata, handles)
+imKymoAnalysis;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
 % %  POST PROCESSING
 % %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -373,3 +406,7 @@ function helpFsmCenter_Callback(hObject, eventdata, handles)
 function menuSpeckTackle_Callback(hObject, eventdata, handles)
 
 function menuTools_Callback(hObject, eventdata, handles)
+
+
+
+

@@ -165,6 +165,7 @@ nImages=imageLastIndex-imageFirstIndex+1;
 if size(M,3)+1~=nImages
     if uptodate==-1
         errordlg('The tracking module is not up-to-date. Please re-run the tracking module in SpeckTackle.','Error','modal');
+        return
     else
         errordlg('Even though the tracking module appears to be up-to-date, it is NOT. THIS IS A BUG. Please REPORT it.','Error','modal');
         return

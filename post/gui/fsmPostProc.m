@@ -317,6 +317,12 @@ if analysis==[0 0]
     uiwait(msgbox('Please select some analysis to perform.','Info','modal'));
     return
 end
+
+projDir=getProjDir(handles);
+if isempty(projDir)
+    return
+end
+
 moveROI=get(handles.checkMoveROI,'Value');
 choice=find([get(handles.radioGrid,'Value') get(handles.radioPoly,'Value') get(handles.radioRect,'Value')]);
 switch choice
@@ -338,6 +344,7 @@ if roi=='g' % The b/w mask is used only to get a subset of the grid
             '*.*','All Files (*.*)'},...
             'Select wavesBwMask.mat');
         if ~(isa(fName,'char') & isa(dirName,'char'))
+            disp('Continuing without mask...');
             bwMask=[];
         else
             load([dirName,filesep,fName]);
@@ -352,7 +359,7 @@ if roi=='g' % The b/w mask is used only to get a subset of the grid
 else
     bwMask=[];
 end
-[scores,allScores,bwMask,py,px]=fsmWaveAnalysis(analysis,roi,gridSize,sigma,sigmaFreq,label,tSampling,moveROI,bwMask);
+[scores,allScores,bwMask,py,px]=fsmWaveAnalysis(projDir,analysis,roi,gridSize,sigma,sigmaFreq,label,tSampling,moveROI,bwMask);
 if ~isempty(bwMask)
     assignin('base','scores',scores);
     assignin('base','allScores',allScores);
@@ -676,30 +683,13 @@ projDir=getProjDir(handles);
 if isempty(projDir)
     return
 end
-% % Load the first image
-% [fName,dirName] = uigetfile(...
-%     {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
-%     '*.tif','TIF files (*.tif)'
-%     '*.tiff','TIFF files (*.tiff)'
-%     '*.jpg;','JPG files (*.jpg)'
-%     '*.jpeg;','JPEG files (*.jpeg)'
-%     '*.*','All Files (*.*)'},...
-%     'Load image');
-% if(isa(fName,'char') & isa(dirName,'char'))
-%     
-%     % Image information - needed for image size
-%     info=imfinfo([dirName,fName]);
-%     
-% else
-%     return % Returns an error (status=0)
-% end
 
 % Read parameters
 n=str2num(get(handles.editFrameTN,'String'));
 sigma=str2num(get(handles.editSigmaTN,'String'));
 
 % Call function
-[polyMap,depolyMap,netMapRGB,outputdir]=fsmKineticMaps(projDir,[],[1000 1000],[-1 n],sigma);
+[polyMap,depolyMap,netMapRGB,outputdir]=fsmKineticMaps(projDir,[-1 n],sigma);
 
 if isempty(outputdir)
     
@@ -903,5 +893,6 @@ if isempty(projDir)
 else
     subProjects=findProjSubDir(projDir,'tack');
     set(handles.popupCurrentExp,'String',subProjects);
+    set(handles.popupCurrentExp,'Value',1);
     set(handles.popupCurrentExp,'Enable','on');
 end
