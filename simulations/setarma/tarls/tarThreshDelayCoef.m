@@ -1,13 +1,16 @@
-function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDelayCoef(...
-    traj,vThresholds,delayTest,tarOrder,method,tol)
-%TARDELAYCOEF fits a TAR model of specified segmentation, AR orders and thresholds (i.e. determines its delay parameter and coefficients) to a time series which could have missing data points.
+function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,vThresholds,...
+        errFlag] = tarThreshDelayCoef(traj,vThreshTest,delayTest,tarOrder,method,tol)
+%TARTHRESHDELAYCOEF fits a TAR model of specified segmentation, AR orders and thresholds (i.e. determines its delay parameter and coefficients) to a time series which could have missing data points.
 %
-%SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDelayCoef(...
+%SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarThreshDelayCoef(...
 %    traj,vThresholds,delayTest,tarOrder,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainties).
 %                      Missing points should be indicated with NaN.
-%       vThresholds  : Column vector of thresholds, sorted in increasing order.
+%       vThreshTest  : 2-column matrix containing min and max values of thresholds
+%                      Thresholds are sorted in increasing order in a row.
+%                      Note that the max of a threshold should be larger
+%                      than its min and smaller than the min of the next threshold.
 %       delayTest    : Values of delay parameter to be tested.
 %       tarOrder     : Order of proposed TAR model in each regime.
 %       method (opt) : Solution method: 'dir' (default) for direct least square 
@@ -24,6 +27,7 @@ function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,errFlag] = tarDel
 %       fitSet       : Set of points used for data fitting. Each column in 
 %                      matrix corresponds to a certain regime. 
 %       delay        : Time lag (delay parameter) of value compared to vThresholds.
+%       vThresholds  : Column vector of estimated thresholds, sorted in increasing order.
 %       errFlag      : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, April 2004
@@ -32,7 +36,7 @@ errFlag = 0;
 
 %check if correct number of arguments was used when function was called
 if nargin < 4
-    disp('--tarDelayCoef: Incorrect number of input arguments!');
+    disp('--tarThreshDelayCoef: Incorrect number of input arguments!');
     errFlag  = 1;
     tarParam = [];
     varCovMat = [];
@@ -40,23 +44,34 @@ if nargin < 4
     noiseSigma = [];
     fitSet = [];
     delay = [];
+    vThresholds = [];
     return
 end
 
 %check input data
-dummy = size(delayTest,1);
-if dummy ~= 1
-    disp('--tarDelayCoef: "delayTest" must be a row vector!');
+[nThresholds,dummy] = size(vThreshTest,2);
+if dummy ~= 2
+    disp('--tarThreshDelayCoef: "vThreshTest" must have two columns!');
     errFlag = 1;
+else
+    if min(vThreshTest(1:end,1)-vThreshTest(1:end,1)) <= 0
+        disp('--tarThreshDelayCoef: Entries in 2nd column in "vThreshTest" should be larger than corresponding entries in 1st column!');
+        errFlag = 1;
+    end
+    if min(vThreshTest(2:end,1)-vThreshTest(1:end-1,2)) < 0
+        disp('--tarThreshDelayCoef: Min possible value of a certain threshold should not be smaller than the max possible value of a previous threshold!');
+        errFlag = 1;
+    end
 end
 if errFlag
-    disp('--tarDelayCoef: Please fix input data!');
+    disp('--tarThreshDelayCoef: Please fix input data!');
     tarParam = [];
     varCovMat = [];
     residuals = [];
     noiseSigma = [];
     fitSet = [];
     delay = [];
+    vThresholds = [];
     return
 end
 
@@ -64,14 +79,14 @@ end
 if nargin >= 5
     
     if ~strncmp(method,'dir',3) && ~strncmp(method,'iter',4) 
-        disp('--tarDelayCoef: Warning: Wrong input for "method". "dir" assumed!');
+        disp('--tarThreshDelayCoef: Warning: Wrong input for "method". "dir" assumed!');
         method = 'dir';
     end
     
     if strncmp(method,'iter',4)
         if nargin == 4
             if tol <= 0
-                disp('--tarDelayCoef: Warning: "tol" should be positive! A value of 0.001 assigned!');
+                disp('--tarThreshDelayCoef: Warning: "tol" should be positive! A value of 0.001 assigned!');
                 tol = 0.001;
             end
         else
@@ -84,8 +99,15 @@ else
     tol = [];
 end
 
+numPermute = nThresholds^rangeDiv
+permutation = zeros(numPermute,nThresholds);
+permutation(:,1) = repeatEntries([1:rangeDiv]',nThresholds);
+permutation(:,2) = 
+
+
 %initial sum of squares of residuals
 sumSqResid = 1e20; %ridiculously large number
+
 
 for delay1 = delayTest %go over all suggested delay parameters
     
@@ -93,13 +115,14 @@ for delay1 = delayTest %go over all suggested delay parameters
     [tarParam1,varCovMat1,residuals1,noiseSigma1,fitSet1,errFlag] = tarlsestim0(...
         traj,vThresholds,delay1,tarOrder,method,tol);
     if errFlag
-        disp('--tarDelayCoef: tarlsestim0 did not function properly!');
+        disp('--tarThreshDelayCoef: tarlsestim0 did not function properly!');
         tarParam = [];
         varCovMat = [];
         residuals = [];
         noiseSigma = [];
         fitSet = [];
         delay = [];
+        vThresholds = [];
         return
     end
     
