@@ -29,7 +29,7 @@ function [cellProps,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,
 %
 % DEPENDENCIES   body uses {nothing}
 %                                  
-%                body is used by { trackCells
+%                body is used by { ptTrackCells
 %                                  testbutton}
 %
 % Colin Glass, Feb 04         

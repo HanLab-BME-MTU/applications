@@ -1,7 +1,7 @@
-function trackCells(hObject,projNum)
-% trackCells finds and links coordinates in a serie of phase contrast images 
+function ptTrackCells(hObject,projNum)
+% ptTrackCells finds and links coordinates in a serie of phase contrast images 
 %
-% SYNOPSIS       trackCells(hObject,projNum)
+% SYNOPSIS       ptTrackCells(hObject,projNum)
 %
 % INPUT          hObject : a handle to the Gui which called the function
 %                projNum : which job is currently being dealt with
@@ -16,7 +16,7 @@ function trackCells(hObject,projNum)
 %		             cellProps(:,6)=perimdivare(:);  (cluster)
 %                binaryImage is the binary image of the areas occupied by cells                
 %
-% DEPENDENCIES   trackCells uses { imClusterSeg
+% DEPENDENCIES   ptTrackCells uses { imClusterSeg
 %				   trackLinker
 %				   checkMinimalCellCell
 %				   findNucloiTrack
@@ -24,9 +24,9 @@ function trackCells(hObject,projNum)
 %				   ptFindHalos
 %				   templfindertrack }
 %                                  
-%                trackCells is used by { PolyTrack }
+%                ptTrackCells is used by { PolyTrack }
 %
-% REMARK         trackCells fetches directly in GUI PolyTrack:
+% REMARK         ptTrackCells fetches directly in GUI PolyTrack:
 %                   handles : structure with information used within GUI
 % 				  from handles.jobs(projNum):
 % 					imagedirectory : where are the images 

@@ -16,19 +16,18 @@ function movieMaker(hObject)
 %                movieMaker is used by { PolyTrack_PP }
 %
 % Colin Glass, Feb 04
-
 handles=guidata(hObject);
 
+% Determine the size of the MPM matrix
+[numrows, numcols] = size (handles.MPM);
 
-
-[numrows,numcols]=size(handles.MPM);
-
+% And get the image name list
 ImageNamesList = handles.jobvalues.imagenameslist;
 
+% How many frames does the user wants to see the tracks of?
 dragTailLength = handles.postpro.dragtail;
 
-
-%starting frame relativ to first frame analysed with polytrack
+% Starting frame relativ to first frame analysed with polytrack
 start = round((handles.postpro.moviefirstimg- handles.jobvalues.firstimage)/handles.jobvalues.increment)+1
 
 %we have to have prior images for dragTail

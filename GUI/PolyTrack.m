@@ -1768,7 +1768,7 @@ for projNum = 1:nrofjobs
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
    try
-      trackCells (hObject,projNum);
+      ptTrackCells (hObject,projNum);
    catch    
      %h=errordlg(['job number ', num2str(projNum), ' had an error and could not be completed', lasterr]);
      %uiwait(h);

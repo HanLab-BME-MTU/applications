@@ -14,7 +14,7 @@ function [MPM,M]=trackLinker(M)
 %               M          : Rearranged M matrix.
 %
 % DEPENDENCES   fsmTrackLinker uses { }
-%               fsmTrackLinker is used by { trackCells } 
+%               fsmTrackLinker is used by { ptTrackCells } 
 %
 % Aaron Ponti, 2002
 %

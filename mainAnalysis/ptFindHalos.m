@@ -16,7 +16,7 @@ function [coor,halo]= ptFindHalos(Image,erodedisksize,halolevel,methodDeterm)
 %
 % DEPENDENCIES   ptFindHalos uses {nothing}
 %                                  
-%                ptFindHalos is used by { trackCells
+%                ptFindHalos is used by { ptTrackCells
 %                                       testbutton}
 %
 % Colin Glass, Feb 04         

@@ -15,7 +15,7 @@ function coord1 = checkMinimalCellCell (coordnuc, altercoor, minDistCellCell)
 %
 % DEPENDENCIES   checkMinimalCellCell uses {nothing}
 %                                  
-%                checkMinimalCellCell is used by { trackCells
+%                checkMinimalCellCell is used by { ptTrackCells
 %                                                  testbutton}
 %
 % Colin Glass, Feb 04         
