@@ -62,6 +62,9 @@ singleDisplacement = zeros(size(handles.singlecells));
 
 % Prepare vector that holds single and cluster cell numbers
 thresholdedCells = zeros(numberOfFrames,4);
+curCoordinates1 = zeros(numberOfFrames,2);
+curCoordinates2 = zeros(numberOfFrames,2);
+curCoordinates = zeros(numberOfFrames,4);
 
 % Setup the binning used to define granularity of 3D velocity histogram
 % This number is based on the max track distance
@@ -83,7 +86,13 @@ for iFrame = startFrame : (stopFrame - 1)
    % For every frame take these 2 x and 2 y coordinates out of MPM and assign
    % these to curCoordinates. From these the displacement can be calculated 
    % from frame to frame later on
-   curCoordinates = handles.MPM (whatCells, (2*iFrame-1):(2*iFrame+2));
+   %curCoordinates = handles.MPM (whatCells, (2 * iFrame - 1):(2 * iFrame + 2));
+
+   % The following is an experiment for the poster to the take the displacement
+   % over 3 frames instead of 1 (x1 to x4)
+   curCoordinates1 = handles.MPM (whatCells, (2 * iFrame - 1):(2 * iFrame));
+   curCoordinates2 = handles.MPM (whatCells, (2 * iFrame + 5):(2 * iFrame + 6));
+   curCoordinates = [curCoordinates1 curCoordinates2];
 
    % Find all the zeros in the curCoordinates matrix: these can then be filtered out
    % Note: We do not erase the rows with zeros in them. In this way,

@@ -70,10 +70,10 @@ velocityVarianceFiltered = filtfilt (window ./ sum (window), 1, velocityVariance
 
 % Calculate start, end and cutover values for the average velocity (start
 % and end are averaged over 20 values)
-avgDispStart = sum (averageDisplacementFiltered(1:20)) / 20;
-avgDispEnd = sum (averageDisplacementFiltered(end-20:end)) / 20;
+avgDispStart = sum (averageDisplacement(1:20)) / 20;
+avgDispEnd = sum (averageDisplacement(end-20:end)) / 20;
 avgDispCutover = (abs (avgDispEnd - avgDispStart) / 2) + min ([avgDispStart avgDispEnd]);
-avgDispCutoverFrame = find (abs(averageDisplacementFiltered - avgDispCutover) == min (abs (percentageSingleFiltered - percSingleCutover)));
+avgDispCutoverFrame = find (abs(averageDisplacementFiltered - avgDispCutover) == min (abs (averageDisplacementFiltered - avgDispCutover)));
 avgDispValues = [avgDispStart avgDispEnd avgDispCutover avgDispCutoverFrame];
 
 % Prepare vector that holds single and cluster cell numbers measured
@@ -83,7 +83,7 @@ thresholdedCells = zeros(numberOfFrames-1,4);
 for iFrame = startFrame : (stopFrame - 1)    
    % Now we'll calculate single and cluster cell numbers via another method
    realDisplacement = displacement (find (displacement (:,iFrame)), iFrame);
-   thresholdValue = averageDisplacementFiltered (iFrame,1) + 5;
+   thresholdValue = avgDispEnd;
    %thresholdValue = 10;
    thresholdedCells (iFrame,1) = sum (realDisplacement > thresholdValue);  % Store nr of single cells
    thresholdedCells (iFrame,2) = sum (realDisplacement <= thresholdValue); % Store nr of cluster cells
@@ -129,8 +129,8 @@ percentageSingleFiltered = filtfilt (window ./ sum (window), 1, percentageSingle
 
 % Calculate start, end and cutover values for percentage single cells (start and end are averaged over
 % 20 values)
-percSingleStart = sum (percentageSingleFiltered(1:20)) / 20;
-percSingleEnd = sum (percentageSingleFiltered(end-20:end)) / 20;
+percSingleStart = sum (percentageSingle(1:20)) / 20;
+percSingleEnd = sum (percentageSingle(end-20:end)) / 20;
 percSingleCutover = (abs (percSingleEnd - percSingleStart) / 2) + min ([percSingleStart percSingleEnd]);
 percSingleCutoverFrame = find (abs(percentageSingleFiltered - percSingleCutover) == min (abs (percentageSingleFiltered - percSingleCutover)));
 percSingleValues = [percSingleStart percSingleEnd percSingleCutover percSingleCutoverFrame];
