@@ -189,8 +189,10 @@ edgePPx = cell(numTimeSteps,numEdges);
 edgePPy = cell(numTimeSteps,numEdges);
 for jj = 1:numTimeSteps
    for k = 1:numEdges
-      edgeU{k}  = vectorFieldInterp(rawDispV{jj}, ...
-         edgeP{k}(2:-1:1,:).',edgCorLen,[]);
+      edgeU{k}  = vectorFieldSparseInterp(rawDispV{jj}, ...
+         edgeP{k}(2:-1:1,:).',2*edgCorLen,edgCorLen,[]);
+      %edgeU{k}  = vectorFieldInterp(rawDispV{jj}, ...
+      %   edgeP{k}(2:-1:1,:).',edgCorLen,[]);
       edgeU1{jj,k} = edgeU{k}(:,4) - edgeU{k}(:,2);
       edgeU2{jj,k} = edgeU{k}(:,3) - edgeU{k}(:,1);
 

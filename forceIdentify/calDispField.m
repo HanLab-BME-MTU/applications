@@ -29,11 +29,15 @@ frame1 = startFrame;
 frame2 = frame1+framesPerTraj-1;
 for jj = 1:numTimeSteps
    if strcmp(dispType,'MFAverage')
-      rawDispV{jj} = M(find(M(:,1,frame1)~=0 & M(:,3,frame1)~=0),:,frame1);
+      rawDispV{jj}  = M(find(M(:,1,frame1)~=0 & M(:,3,frame1)~=0),:,frame1);
+      rawDataPx{jj} = rawDispV{jj}(:,2);
+      rawDataPy{jj} = rawDispV{jj}(:,1);
       for k = frame1+1:frame2-1
          rawDispV{jj} = [rawDispV{jj}; ...
             M(find(M(:,1,k)~=0 & M(:,3,k)~=0),:,k)];
       end
+      rawDispV{jj} = vectorFieldSparseInterp(rawDispV{jj}, ...
+         [rawDataPx{jj} rawDataPy{jj}],2*mFCorLen,mFCorLen,[]); 
    elseif strcmp(dispType,'MFTrack')
       %MFT          = mFrameTrajBuild(M(:,:,frame1:frame2-1));
       MFT          = mFrameTrajBuild(M(:,:,frame1:frame2-1),mFCorLen);
@@ -81,14 +85,14 @@ gridU2  = cell(numTimeSteps,1);
 if strcmp(calInterp,'yes')
    for jj = 1:numTimeSteps
       %interpolate the vectors on the grid and data points.
-      gridUi = vectorFieldInterp(rawDispV{jj},[gridPy{jj} gridPx{jj}], ...
-         corLen,[fieldPGx fieldPGy]);
+      gridUi = vectorFieldSparseInterp(rawDispV{jj}, ...
+         [gridPy{jj} gridPx{jj}], 2*corLen,corLen,[fieldPGx fieldPGy]);
       gridU1{jj} = gridUi(:,4)-gridUi(:,2); %Displacement in x-direction.
       gridU2{jj} = gridUi(:,3)-gridUi(:,1);
 
       %Smoothed displacements at the raw data points.
-      sDispV = vectorFieldInterp(rawDispV{jj},rawDispV{jj}(:,1:2), ...
-         corLen,[fieldPGx fieldPGy]); 
+      sDispV = vectorFieldSparseInterp(rawDispV{jj},rawDispV{jj}(:,1:2), ...
+         2*corLen,corLen,[fieldPGx fieldPGy]); 
       sDataU1{jj} = sDispV(:,4)-sDispV(:,2);
       sDataU2{jj} = sDispV(:,3)-sDispV(:,1);
    end
