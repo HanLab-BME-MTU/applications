@@ -78,7 +78,7 @@ if ~strcmp(callObjTag,'fsmCenter') | ~strcmp(callObjName,'fsmCenter')
 
    if ~isempty(hfsmC) & ishandle(hfsmC)
       handles.projDir     = '';
-      handles.imgDir      = '';
+      handles.imgDirList  = {};
       handles.subProjDir  = {};
       guidata(hObject,handles);
 
@@ -115,6 +115,11 @@ for k = 1:numSubProj
    subProjNames{k} = sscanf(subProjTitle{k},'%s');
 end
 
+%Get handles to GUI objects.
+handles.projDirEH  = findobj('tag','projDirEdit');
+handles.imgDirMH   = findobj('tag','imgDirMenu');
+handles.firstImgTH = findobj('tag','firstImgText');
+
 projDir = '';
 if nargin > 5
    projDir = varargin{3};
@@ -124,11 +129,16 @@ if ~isdir(projDir)
    projDir = pwd;
 end
 
-[imgDir,subProjDir] = getProjSetting(projDir,subProjNames);
+selImgDir = 1;
+[imgDirList,firstImgList,subProjDir] = getProjSetting(projDir,subProjNames);
+if isempty(imgDirList)
+   imgDirList = {' New '};
+else
+   imgDirList{end+1} = ' New ';
+end
+set(handles.imgDirMH,'Value',selImgDir);
+set(handles.imgDirMH,'String',imgDirList);
 
-%Get handles to GUI objects.
-handles.projDirTFH = findobj('tag','projDir');
-handles.imgDirTFH  = findobj('tag','imgDir');
 
 %To get the handle to those 'subProj' GUI objects.
 %Text Field Handle.
@@ -146,7 +156,8 @@ handles.subProjTitle = subProjTitle;
 handles.subProjNames = subProjNames;
 
 
-handles = updateGUI(handles,projDir,imgDir,subProjDir);
+handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
+   firstImgList,subProjDir);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -175,20 +186,30 @@ if ~isempty(selDir)
     end
 end
 
-function handles = updateGUI(handles,projDir,imgDir,subProjDir)
+function handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
+   firstImgList,subProjDir)
 
 numSubProj  = handles.numSubProj;
 subProjTags = handles.subProjTags;
 subProjMH   = handles.subProjMH;
 subProjTFH  = handles.subProjTFH;
 
-handles.projDir = projDir;
-handles.imgDir  = imgDir;
+handles.projDir      = projDir;
+handles.imgDirList   = imgDirList;
+handles.firstImgList = firstImgList;
+
+handles.selImgDir = selImgDir;
+
+if strcmp(imgDirList{selImgDir},' New ') | isempty(firstImgList)
+   firstImg = '';
+else
+   firstImg = firstImgList{selImgDir};
+end
 
 %Search for available results directories for each package and update popup
 % menu in the GUI.
-set(handles.projDirTFH,'string',projDir);
-set(handles.imgDirTFH,'string',imgDir);
+set(handles.projDirEH,'string',projDir);
+set(handles.firstImgTH,'string',firstImg);
 
 projDirStruct=dir(projDir);
 subProjDirList = cell(size(subProjDir));
@@ -207,9 +228,10 @@ function varargout = projSetupGUI_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if nargout > 3
+if nargout > 5 
     error('Too many output arguments.');
 end
+
 if isempty(handles)
     for k = 1:nargout
         varargout{k} = '';
@@ -217,18 +239,16 @@ if isempty(handles)
     return;
 end
 
-if nargout >= 1
-    varargout{1} = handles.projDir;
-end
-if nargout >= 2
-    varargout{2} = handles.imgDir;
-end
-if nargout == 3
-    varargout{3} = handles.subProjDir;
-end
+projDir      = handles.projDir;
+imgDirList   = handles.imgDirList;
+selImgDir    = handles.selImgDir;
+firstImgList = handles.firstImgList;
+numSubProj   = handles.numSubProj;
+subProjDir   = handles.subProjDir;
+subProjTitle = handles.subProjTitle;
 
 %Write image path to a file named 'lastProjSetting.txt'.
-if isdir(handles.projDir) 
+if isdir(projDir) 
     if isunix==1
         settingsFileName='lastProjSettings_unix.txt';
     elseif ispc==1
@@ -238,11 +258,36 @@ if isdir(handles.projDir)
     end
     fid = fopen([handles.projDir filesep settingsFileName],'w');
     if fid ~= -1
-       fprintf(fid,'%s\n',['    Image Path: ' handles.imgDir]);
+       %Write image path.
+       if isempty(imgDirList)
+          fprintf(fid,'%s\n',['    Image Path: ']);
+       else
+          imgDir = imgDirList{selImgDir};
 
-       numSubProj   = handles.numSubProj;
-       subProjDir   = handles.subProjDir;
-       subProjTitle = handles.subProjTitle;
+          %Switch so that the first img dir is always the selected one.
+          imgDirList{selImgDir} = imgDirList{1};
+          imgDirList{1}         = imgDir;
+
+          fprintf(fid,'%s\n',['    Image Path: ' imgDir]);
+          for k = 2:length(imgDirList)
+             fprintf(fid,'%s\n',['              : ' imgDirList{k}]);
+          end
+       end
+       %Write first image name.
+       if isempty(firstImgList)
+          fprintf(fid,'%s\n',['   First Image: ']);
+       else
+          firstImg = firstImgList{selImgDir};
+          %Switch so that the first img dir is always the selected one.
+          firstImgList{selImgDir} = firstImgList{1};
+          firstImgList{1}         = firstImg;
+
+          fprintf(fid,'%s\n',['   First Image: ' firstImg]);
+          for k = 2:length(imgDirList)
+             fprintf(fid,'%s\n',['              : ' firstImgList{k}]);
+          end
+       end
+
        for k = 1:numSubProj
           fprintf(fid,'%s\n',[subProjTitle{k} ': ' subProjDir{k}]);
        end
@@ -250,9 +295,39 @@ if isdir(handles.projDir)
     end
 end
 
+if isempty(imgDirList)
+   imgDir = '';
+else
+   imgDir = imgDirList{1};
+end
+
+if nargout >= 1
+    varargout{1} = projDir;
+end
+if nargout >= 2
+    varargout{2} = imgDir;
+end
+if nargout >= 3
+    varargout{3} = subProjDir;
+end
+if nargout >= 4
+    varargout{4} = imgDirList;
+end
+if nargout == 5
+    varargout{5} = firstImgList;
+end
+
 delete(hObject);
 
 function closeRequestFcn(hObject,eventdata,handles)
+
+handles.projDir      = '';
+handles.imgDirList   = {};
+handles.firstImgList = {};
+handles.subProjDir   = {};
+
+% Update handles structure
+guidata(hObject, handles);
 
 delete(hObject);
 
@@ -263,9 +338,10 @@ function cancel_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.projDir     = '';
-handles.imgDir      = '';
-handles.subProjDir  = {};
+handles.projDir      = '';
+handles.imgDirList   = {};
+handles.firstImgList = {};
+handles.subProjDir   = {};
 
 % Update handles structure
 guidata(hObject, handles);
@@ -279,21 +355,29 @@ function Ok_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-projDir = get(handles.projDirTFH,'string');
-imgDir  = get(handles.imgDirTFH,'string');
+projDir    = get(handles.projDirEH,'string');
+imgDirList = get(handles.imgDirMH,'string');
+selImgDir  = get(handles.imgDirMH,'Value');
 
-numSubProj  = handles.numSubProj;
-subProjTags = handles.subProjTags;
-subProjDir  = cell(size(subProjTags));
+if length(imgDirList) == 1
+   imgDirList = {};
+else
+   imgDirList(end) = [];
+end
+
+firstImgList = handles.firstImgList;
+numSubProj   = handles.numSubProj;
+subProjTags  = handles.subProjTags;
+subProjDir   = cell(size(subProjTags));
 
 if isempty(projDir)
     warnH = warndlg('No project directory is set.','Warning','modal');
     return;
 end
 
-if isempty(imgDir)
-    warnH = warndlg('No image directory is set.','Warning','modal');
-    return;
+if isempty(imgDirList)
+    warnH = warndlg(['No image directory is set. ' ...
+       'Project will be setup without image directory.'],'Warning','modal');
 end
 
 for k = 1:numSubProj
@@ -306,26 +390,22 @@ for k = 1:numSubProj
    end
 end
 
-subProjOK = 1; k =1;
-while subProjOK & k <= numSubProj
+subProjOK = ones(1,numSubProj);
+for k = 1:numSubProj
    if ~isdir([projDir filesep subProjDir{k}])
-      [subProjOK,msg,msgID] = mkdir(projDir,subProjDir{k});
+      [subProjOK(k),msg,msgID] = mkdir(projDir,subProjDir{k});
    end
-   k = k+1;
+   if subProjOK(k) ~= 1
+      fprintf(1,'%s\n',['Trouble making ' subProjTag{k} ' directory: ' ...
+         subProjDir{k} '.']);
+      subProjDir{k} = '';
+   end
 end
 
-if subProjOK
-   handles.projDir = projDir;
-   handles.imgDir  = imgDir;
-   handles.subProjDir = subProjDir;
-else
-   warning('Trouble making new directory.');
-   handles.projDir = '';
-   handles.imgDir  = '';
-   for k = 1:numSubProj
-      handles.subProjDir{k} = '';
-   end
-end
+handles.projDir    = projDir;
+handles.imgDirList = imgDirList;
+handles.selImgDir  = selImgDir;
+handles.subProjDir = subProjDir;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -347,8 +427,10 @@ end
 
 subProjNames = handles.subProjNames;
 if ~samdir(handles.projDir,projDir)
-    [imgDir subProjDir] = getProjSetting(projDir,subProjNames);
-    handles = updateGUI(handles,projDir,imgDir,subProjDir);
+    [imgDirList firstImgList subProjDir] = ...
+       getProjSetting(projDir,subProjNames);
+    handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
+       firstImgList,subProjDir);
 end
 
 guidata(hObject,handles);
@@ -360,7 +442,7 @@ function projDir_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-projDir = get(handles.projDirTFH,'string');
+projDir = get(handles.projDirEH,'string');
 
 if ~isdir(projDir)
    errordlg('The entered path is not a directory.','Input error','modal');
@@ -369,8 +451,10 @@ end
 
 subProjNames = handles.subProjNames;
 if ~samdir(handles.projDir,projDir)
-    [imgDir subProjDir] = getProjSetting(projDir,subProjNames);
-    handles = updateGUI(handles,projDir,imgDir,subProjDir);
+    [imgDirList firstImgList subProjDir] = ...
+       getProjSetting(projDir,subProjNames);
+    handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
+       firstImgList,subProjDir);
 end
 
 guidata(hObject,handles);
@@ -378,24 +462,37 @@ guidata(hObject,handles);
 
 
 % --- Executes on button press on Browse.
-function imgDirBrowse_Callback(hObject, eventdata, handles)
+function delImgDir_Callback(hObject, eventdata, handles)
 % hObject    handle to imgDirBrowse (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isdir(handles.imgDir)
-   imgDir = uigetdir([handles.imgDir filesep '..'], ...
-      'Please select your image directory');
+selImgDir  = get(handles.imgDirMH,'Value');
+imgDirList = get(handles.imgDirMH,'String');
+if selImgDir == length(imgDirList)
+   %' New ' is selected. Do nothing.
+   return;
+end
+
+imgDirList(selImgDir) = [];
+
+firstImgList = handles.firstImgList;
+if ~isempty(firstImgList)
+   firstImgList(selImgDir) = [];
+end
+
+if selImgDir == length(imgDirList) & selImgDir > 1
+   selImgDir = selImgDir-1;
+end
+
+if selImgDir == length(imgDirList) | isempty(firstImgList)
+   set(handles.firstImgTH,'String','');
 else
-   imgDir = uigetdir('','Please select your image directory');
+   set(handles.firstImgTH,'String',firstImgList{selImgDir});
 end
-
-if isnumeric(imgDir) & imgDir == 0
-    return;
-end
-
-set(handles.imgDirTFH,'string',imgDir);
-handles.imgDir = imgDir;
+handles.selImgDir    = selImgDir;
+handles.imgDirList   = imgDirList;
+handles.firstImgList = firstImgList;
 
 guidata(hObject,handles);
 
@@ -405,21 +502,117 @@ function imgDir_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-imgDir = get(handles.imgDirTFH,'string');
+firstImgList = handles.firstImgList;
 
-if ~isdir(imgDir)
-   errordlg('The entered path is not a directory.','Input error','modal');
-   return;
+selImgDir  = get(handles.imgDirMH,'Value');
+imgDirList = get(handles.imgDirMH,'String');
+if selImgDir == length(imgDirList)
+   oldDir = pwd;
+
+   if isdir(imgDirList{handles.selImgDir})
+      %Go to the parent of last selected image directory.
+      cd([imgDirList{handles.selImgDir} filesep '..']);
+   end
+
+   %' New ' is selected. Choose new image directory and first image.
+   [firstImgFileName pathName filterIndex] = uigetfile( ...
+      {'*.tif;*.gif;*.jpg;*.png', ...
+      'Image Files (*.tif,*.gif,*.jpg,*.png)';
+      '*.tif','TIFF files (*.tif)';
+      '*.gif','GIF files (*.gif)';
+      '*.jpg','JPEG files (*.jpg)';
+      '*.png','PNG files (*.png)'},'Select the first image');
+
+   cd(oldDir);
+   if filterIndex == 0
+      return;
+   end
+
+   %Add the new image dir to 'imgDirList'.
+   imgDirList{end+1} = imgDirList{end}; %' New '.
+   imgDirList{end-1} = pathName;
+
+   set(handles.imgDirMH,'String',imgDirList);
+   handles.imgDirList = imgDirList;
+
+   if isempty(firstImgList)
+      for k = 1:length(imgDirList)-1
+         firstImgList{k} = '';
+      end
+   end
+   firstImgList{selImgDir} = firstImgFileName;
+   handles.firstImgList    = firstImgList;
 end
 
-if ~samdir(handles.imgDir,imgDir)
-    handles.imgDir = imgDir;
+handles.selImgDir = selImgDir;
+
+if isempty(firstImgList)
+   set(handles.firstImgTH,'String','');
+else
+   set(handles.firstImgTH,'String',firstImgList{selImgDir});
 end
 
 guidata(hObject,handles);
 
 
-function [imgDir,subProjDir] = getProjSetting(projDir,subProjNames)
+
+function firstImgBrowse_Callback(hObject, eventdata, handles)
+
+selImgDir    = handles.selImgDir;
+imgDirList   = handles.imgDirList;
+firstImgList = handles.firstImgList;
+
+if selImgDir == length(imgDirList)
+   %' New ' is selected in 'imgDir' menu. Do nothing.
+   return;
+end
+
+oldDir = pwd;
+
+if ~isdir(imgDirList{selImgDir})
+   errordlg(['Something is wrong with the current selected image ' ...
+      'directory. If it does not exist any more, please delete it ' ...
+      'using the delete button.'],'Image selection error','modal');
+   return;
+end
+
+cd(imgDirList{selImgDir});
+[firstImgFileName pathName filterIndex] = uigetfile( ...
+   {'*.tif;*.gif;*.jpg;*.png', ...
+   'Image Files (*.tif,*.gif,*.jpg,*.png)';
+   '*.tif','TIFF files (*.tif)';
+   '*.gif','GIF files (*.gif)';
+   '*.jpg','JPEG files (*.jpg)';
+   '*.png','PNG files (*.png)'},'Select the first image');
+
+cd(oldDir);
+if filterIndex == 0
+   return;
+end
+
+if ~samdir(pathName,imgDirList{selImgDir})
+   errordlg(['Please select image from the current selected ' ...
+      'image directory. The selection will be discarded. ' ...
+      'Please reselect.'],'Image selection error','modal');
+   return;
+end
+
+if isempty(firstImgList)
+   for k = 1:length(imgDirList)-1
+      firstImgList{k} = '';
+   end
+end
+
+firstImgList{selImgDir} = firstImgFileName;
+set(handles.firstImgTH,'String',firstImgFileName);
+handles.firstImgList = firstImgList;
+
+guidata(hObject,handles);
+
+
+
+function [imgDirList,firstImgList,subProjDir] =  ...
+   getProjSetting(projDir,subProjNames)
 
 numSubProj = length(subProjNames);
 
@@ -427,7 +620,8 @@ subProjDir = cell(size(subProjNames));
 for k = 1:numSubProj
    subProjDir{k} = '';
 end
-imgDir = '';
+imgDirList   = {};
+firstImgList = {};
 
 %Read last project setting in the selected project path.
 noProblem = 0;
@@ -442,35 +636,66 @@ if isdir(projDir)
     fid = fopen([projDir filesep settingsFileName],'r');
     if fid ~= -1
         noProblem = 1;
-        textL = fgetl(fid);
+        textL     = fgetl(fid);
+        lineNo    = 1;
+        imgLineNo = -1;
         while noProblem & ischar(textL)
-            k = 1;
-            while k <= length(textL) & ~strcmp(textL(k),':')
-                k = k+1;
-            end
-            if k == 1 | k > length(textL)
+            k = findstr(':',textL);
+            if isempty(k) | k == 1
                 noProblem = 0;
             else
                 %Use 'sscanf' to remove space.
                 headStr = sscanf(textL(1:k-1),'%s');
                 if strcmp(headStr,'ImagePath')
+                   imgLineNo = lineNo;
                    if k ~= length(textL)
-                      imgDir = sscanf(textL(k+1:end),'%s');
+                      numImgDirs = 1;
+                      imgDirList{numImgDirs} = sscanf(textL(k+1:end),'%s');
+                   end
+                elseif isempty(headStr) 
+                   if lineNo == imgLineNo+1 & k ~= length(textL)
+                      %Get next image path or first image name.
+                      imgLineNo = lineNo;
+                      imgStr = sscanf(textL(k+1:end),'%s');
+                      if isempty(imgStr)
+                         if isempty(firstImgList)
+                            noProblem = 0;
+                         end
+                      else
+                         numImgDirs = numImgDirs+1;
+                         if isempty(firstImgList)
+                            imgDirList{numImgDirs} = imgStr;
+                         else
+                            firstImgList{numImgDirs} = imgStr;
+                         end
+                      end
+                   else
+                      noProblem = 0;
+                   end
+                elseif strcmp(headStr,'FirstImage')
+                   if lineNo == imgLineNo+1
+                      %The first image has to be written next to image path.
+                      imgLineNo = lineNo;
+                      if k ~= length(textL)
+                         numImgDirs = 1;
+                         firstImgList{numImgDirs} = ...
+                            sscanf(textL(k+1:end),'%s');
+                      end
+                   else
+                      noProblem = 0;
                    end
                 else
-                   j1 = 1;
-                   while ~strcmp(headStr,subProjNames{j1}) & j1 <= numSubProj
-                      j1 = j1+1;
-                   end
-                   if j1 <= numSubProj
-                      if k ~= length(textL)
-                         subProjDir{j1} = sscanf(textL(k+1:end),'%s');
-                      end
+                   j1 = strmatch(headStr,subProjNames,'exact');
+                   if isempty(j1)
+                      noProblem = 0;
+                   elseif k ~= length(textL)
+                      subProjDir{j1} = sscanf(textL(k+1:end),'%s');
                    end
                 end
             end
             
-            textL = fgetl(fid);
+            textL  = fgetl(fid);
+            lineNo = lineNo+1;
         end
         if ~noProblem
            warnH = warndlg(['Project setting file is corrupted ' ...
@@ -480,8 +705,18 @@ if isdir(projDir)
     end
 end
 
+if noProblem == 1 & length(firstImgList) ~= length(imgDirList)
+   if ~isempty(firstImgList)
+      noProblem = 0;
+      warnH = warndlg(['Number of image directories and first images ' ...
+         'do not match. Project setting file is likely corrupted ' ...
+         'and therefore will be ignored.'],'Warning','modal'); 
+   end
+end
+
 if ~noProblem
-   imgDir  = '';
+   imgDirList   = {};
+   firstImgList = {};
    for k = 1:numSubProj
       subProjDir{k} = '';
    end
