@@ -129,7 +129,7 @@ for frameCount = plotStartFrame : increment : plotEndFrame
        % Find the index where this frame can be found
        frameIndx = find(validFrames{jobCount}(1,:) == propCount);
        
-       if isempty(frameIndx)
+       if isempty(frameIndx) | frameIndx > length(cellProps{jobCount})
            % Frame was bad and cannot be found in cellProps
            cells{jobCount} = [];
            clusters{jobCount} = [];

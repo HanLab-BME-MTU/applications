@@ -132,7 +132,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
           % Find the index where this frame can be found
           frameIndx = find(validFrames{jobCount}(1,:) == MPMCount);
 
-          if isempty(frameIndx)
+          if isempty(frameIndx) | frameIndx > length(cellProps{jobCount})
               % Frame was bad and cannot be found in MPM
               displacement{jobCount} = [];
               velocity{jobCount} = [];
