@@ -112,6 +112,46 @@ refresh;
 % Make sure the axis are correct
 axis([1 size(image,2) 1 size(image,1)]);
 
+% See if the edge finder has to be run
+hEdgeMenu = findobj('Label','Find edges');
+if strcmp(get(hEdgeMenu, 'Checked'),'on')
+    % Retrieve image from figure
+    hImg=findall(gca,'Type','Image');
+    img=get(hImg,'CData');
+
+    % Get bitdepth from handles struct
+    bitDepth = handles.imageSeq.bitDepth;
+
+    % Check whether there are already edges plotted and if yes delete them
+    currentH=findall(gca,'Tag','edge');
+    if ~isempty(currentH)
+        delete(currentH);
+    end
+    
+    % Try to extract edges
+    try
+        img=double(img);
+
+        % Normalize the image
+        img=img/(2^bitDepth-1);
+
+        [ans,img_edge,img_bg,edge_pixel,length_edge,frame_pos]=imFindCellEdge(double(img),'',0,'filter_image',1,'img_sigma',1,'bit_depth',2^bitDepth-1);
+        figure(gcf);
+        hold on
+        e1=plot(edge_pixel(:,1),edge_pixel(:,2),'y-'); % Coordinates in edge_pixel are returned a [x y]n
+        set(e1,'Tag','edge');
+        hold off
+        
+        % Swap columns in img_edge from [x y] to [y x] (for compatibility)
+        edge_pixel=edge_pixel(:,[2 1]);
+        assignin('base','edgePixels',edge_pixel);
+        assignin('base','imgEdge',img_edge);
+        assignin('base','bwMask',img_bg);
+    catch
+        uiwait(errordlg('The function failed to retrieve edges.','Error'));
+    end
+end
+
 % Get handle to speckle plot menu and see whether these have to be plotted
 % as well
 hSpeckleMenu = findobj('Label','Show speckle selection');
@@ -174,19 +214,6 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
         delete(currentH);
     end
 
-    % Select color for the plot depending on how many frames are
-    %    already on the figure
-%     mx=0;
-%     n=get(currentH,'UserData');
-%     if ~isempty(n) & iscell(n)
-%         for i=1:length(n)
-%             if n{i}>mx; mx=n{i}; end
-%         end
-%     end
-%     mx=mx+1;
-%     indx=mod(mx,5);
-%     if indx==0; indx=5; end
-
     % Find the 
     % Plot speckles 
     %    All speckles of a certain type are in one plot -   
@@ -207,14 +234,8 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
     set(hTitle,'Interpreter','none')
 
     hold off;
-% else
-%     % Delete the old cands dots
-%     currentH=findall(gca,'Tag','cands');
-%     if ~isempty(currentH)
-%         delete(currentH);
-%     end
 end
-    
+
 % Add title
 titleStr=[imageDirectory,fileName,' (',num2str(size(image,1)),'x',num2str(size(image,2)),')'];
 set(figHandle,'Name',titleStr,'NumberTitle','off');

@@ -165,7 +165,7 @@ fsmCenterCB_addSeqToolsMenu(gcf);
 % Create menu with additional tools
 figure(gcf);
 hMenu=uimenu('Label','More Tools');
-uimenu(hMenu,'Label','Find edges','Callback','fsmCenterCB_findEdges;','Accelerator','E','Separator','On');
+uimenu(hMenu,'Label','Find edges','Callback','fsmCenterCB_findSeqEdges;','Accelerator','E','Separator','On');
 
 % Go back to old directory
 cd(oldDir);
