@@ -1,5 +1,5 @@
 function [traj,errFlag] = simSetarma(vThresholds,delay,arParam,maParam,...
-    noiseSigma,trajLength,trajInit)
+    noiseSigma,trajLength,trajInit)%,wnNotNormalDistr)
 %SIMSETARMA generates a Self Exciting Threshold Autoregressive Moving Average trajectory
 %
 %SYNOPSIS [traj,errFlag] = simSetarma(vThresholds,delay,arParam,maParam,...
@@ -16,7 +16,7 @@ function [traj,errFlag] = simSetarma(vThresholds,delay,arParam,maParam,...
 %                     columns in matrix is equal to largest AR order 
 %                     among all regimes. Thus regimes with smaller orders 
 %                     have NaN for entries beyond their order.
-%       maPAram     : Matrix of moving average coefficients. The ith row 
+%       maParam     : Matrix of moving average coefficients. The ith row 
 %                     represents the MA coefficients corresponding to the 
 %                     regime between vThersholds(i-1) and vThersholds(i). 
 %                     For n thresholds, there are n+1 rows. Number of
@@ -176,8 +176,15 @@ traj(shift:-1:shift-max([arOrder delay])+1) = trajInit(end:-1:1);
 %obtain trajectory
 if nThresholds == 0 %if there is only one regime
 
+    %get white noise vector
+    noise(shift+1:tempL) = noiseSigma*randn(tempL-shift,1);
+
+    %     dumdum = rand(20099,1);
+    %     [dumdum,randIndx] = sort(dumdum);
+    %     noise(shift+1:tempL) = noiseSigma*wnNotNormalDistr(randIndx(1:tempL-shift));
+
+    %construct trajectory
     for i = shift+1:tempL
-        noise(i) = noiseSigma*randn(1);
         traj(i) = arParam(1:arOrder)*traj(i-1:-1:i-arOrder)... %AR
             + maParam(1:maOrder)*noise(i-1:-1:i-maOrder)...    %MA
             + noise(i);                             %noise

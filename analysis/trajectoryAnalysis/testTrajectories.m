@@ -80,7 +80,7 @@ end
 
 % display
 uH = uiViewPanel;
-set(uH,'Name','Growth')
+set(uH,'Name','Growth Speeds')
 imshow(-log10(globCompare.growthSpeeds));
 set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
@@ -91,7 +91,7 @@ for i=1:nGroups
     end
 end
 uH = uiViewPanel;
-set(uH,'Name','Shrinkage')
+set(uH,'Name','Shrinkage Speeds')
 imshow(-log10(globCompare.shrinkageSpeeds));
 set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
@@ -113,7 +113,7 @@ for i=1:nGroups
     end
 end
 uH = uiViewPanel;
-set(uH,'Name','Catastrophe')
+set(uH,'Name','Growth Times')
 imshow(-log10(globCompare.growthTimes));
 set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
@@ -124,7 +124,7 @@ for i=1:nGroups
     end
 end
 uH = uiViewPanel;
-set(uH,'Name','Catastrophe')
+set(uH,'Name','Shrinkage Times')
 imshow(-log10(globCompare.shrinkageTimes));
 set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
