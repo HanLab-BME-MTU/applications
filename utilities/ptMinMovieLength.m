@@ -30,8 +30,8 @@ for iCount = 1 : length(allValidFrames)
    
    % Test for length and keep if shorter
    %curLength = size(allvalidFrames{iCount},2);
-   curLength = allValidFrames{iCount}(1,end) - allValidFrames{iCount}(1,1) + 1;
-   %curLength = length (allValidFrames{iCount}(1,:));
+   %curLength = allValidFrames{iCount}(1,end) - allValidFrames{iCount}(1,1) + 1;
+   curLength = length (allValidFrames{iCount}(1,:));
    if curLength < prevLength
       prevLength = curLength;
   

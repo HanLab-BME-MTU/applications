@@ -808,36 +808,44 @@ else
    % Do the cell/cluster, area and perimeter plots
    if radioButtons.cellclusterplot | radioButtons.areaplot | radioButtons.perimeterplot
                 
-      % Run one iteration of the calculation
-      [cellClusterStats, areaStats, perimeterStats, xAxis] = ptCalculatePlotValues (handles);
-               
-      % Here's where the plotting itself starts
-      if radioButtons.cellclusterplot
-         % Generate single cell and cluster plots if the users requested these
-         ptPlotCellClusterStats (radioButtons, plotName, saveDir, xAxis, cellClusterStats, windowSize);
-      end   
-      if radioButtons.areaplot
-         % Generate area plots if the users requested these
-         ptPlotAreaStats (radioButtons, plotName, saveDir, xAxis, areaStats, windowSize);
-      end
+      try
+          % Run one iteration of the calculation
+          [cellClusterStats, areaStats, perimeterStats, xAxis] = ptCalculatePlotValues (handles);
 
-      if radioButtons.perimeterplot
-         % Generate perimater plots if the users requested these
-         ptPlotPerimeterStats (radioButtons, plotName, saveDir, xAxis, perimeterStats, windowSize);
-      end
+          % Here's where the plotting itself starts
+          if radioButtons.cellclusterplot
+             % Generate single cell and cluster plots if the users requested these
+             ptPlotCellClusterStats (radioButtons, plotName, saveDir, xAxis, cellClusterStats, windowSize);
+          end   
+          if radioButtons.areaplot
+             % Generate area plots if the users requested these
+             ptPlotAreaStats (radioButtons, plotName, saveDir, xAxis, areaStats, windowSize);
+          end
 
-      % For all the figures we want to keep the xAxis as well 
-      save ([saveDir filesep plotName '_xAxis-CellStats.mat'],'xAxis');
+          if radioButtons.perimeterplot
+             % Generate perimater plots if the users requested these
+             ptPlotPerimeterStats (radioButtons, plotName, saveDir, xAxis, perimeterStats, windowSize);
+          end
+
+          % For all the figures we want to keep the xAxis as well 
+          save ([saveDir filesep plotName '_xAxis-CellStats.mat'],'xAxis');
+      catch
+          disp('An error occured: the cell/cluster, area and perimeter plots cannot be completed.');
+      end
    end
    
    % Then do the cell-cell distance plots
    if radioButtons.cellcelldistplot
        
-      % Run one iteration of the calculation
-      [cellCellDistStats, xAxis] = ptCalculateCellCellDist (handles);
-               
-      % Create the plots
-      ptPlotCellCellDist (radioButtons, plotName, saveDir, xAxis, cellCellDistStats, windowSize);
+      try
+          % Run one iteration of the calculation
+          [cellCellDistStats, xAxis] = ptCalculateCellCellDist (handles);
+
+          % Create the plots
+          ptPlotCellCellDist (radioButtons, plotName, saveDir, xAxis, cellCellDistStats, windowSize);
+      catch
+          disp('An error occured: the cell/cell distance plots cannot be completed.');
+      end
    end
    
    % Initialize some tmp vars
@@ -846,78 +854,99 @@ else
    % Do the speed plots if the user requested these
    if radioButtons.speedplot
        
-      % Run the calculation for the velocity stats
-      [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis] = ...
-                               ptCalculateSpeedValues (handles);
-      
-      % Here's where the plotting itself starts
-      if radioButtons.speedplot_2
-         % Generate avg velocity plots if the users requested these
-          ptPlotSpeedStats (radioButtons, plotName, saveDir, xAxis, avgVelocityStats, windowSize, ...
-                            drugTimepoint);
-      end   
-      if radioButtons.speedplot_1
-         % Generate vel. single cell plots if the users requested these
-          ptPlotSingleSpeedStats (radioButtons, plotName, saveDir, xAxis, velocitySingleStats, windowSize);
-      end
+      try
+          % Run the calculation for the velocity stats
+          [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis] = ...
+                                   ptCalculateSpeedValues (handles);
 
-      if radioButtons.speedplot_3
-         % Generate velocity variance plots if the users requested these
-          ptPlotSpeedVarStats (radioButtons, plotName, saveDir, xAxis, velocityVarStats, windowSize);
-      end
+          % Here's where the plotting itself starts
+          if radioButtons.speedplot_2
+             % Generate avg velocity plots if the users requested these
+              ptPlotSpeedStats (radioButtons, plotName, saveDir, xAxis, avgVelocityStats, windowSize, ...
+                                drugTimepoint);
+          end   
+          if radioButtons.speedplot_1
+             % Generate vel. single cell plots if the users requested these
+              ptPlotSingleSpeedStats (radioButtons, plotName, saveDir, xAxis, velocitySingleStats, windowSize);
+          end
 
-      if radioButtons.speedplot_4 | radioButtons.allcellshist | radioButtons.singlecellshist | ...
-         radioButtons.clusteredcellshist
-         % Generate velocity histogram plots if the users requested these
-          ptPlotVelocityHist (radioButtons, plotName, saveDir, xAxis, velocityHistStats);
-      end      
-      
-      % For all the figures we want to keep the xAxis as well 
-      save ([saveDir filesep plotName '_xAxis-Velocity.mat'],'xAxis');
+          if radioButtons.speedplot_3
+             % Generate velocity variance plots if the users requested these
+              ptPlotSpeedVarStats (radioButtons, plotName, saveDir, xAxis, velocityVarStats, windowSize);
+          end
+
+          if radioButtons.speedplot_4 | radioButtons.allcellshist | radioButtons.singlecellshist | ...
+             radioButtons.clusteredcellshist
+             % Generate velocity histogram plots if the users requested these
+              ptPlotVelocityHist (radioButtons, plotName, saveDir, xAxis, velocityHistStats);
+          end      
+
+          % For all the figures we want to keep the xAxis as well 
+          save ([saveDir filesep plotName '_xAxis-Velocity.mat'],'xAxis');
+      catch
+          disp('An error occured: the velocity plots cannot be completed.');
+      end
    end
 
    % Do the neighbourhood plots if the user requested these
    if radioButtons.neighbourplot            
       if radioButtons.neighbourplot_1
                     
-         % Run one iteration of the calculation
-         [neighTrajStats, xAxis] = ptCalculateNeighbourTraj (handles); 
-            
-         % Do the plots   
-         ptPlotNeighbourTraj (radioButtons, plotName, saveDir, xAxis, neighTrajStats, windowSize, ...
-                              drugTimepoint);
+         try
+             % Run one iteration of the calculation
+             [neighTrajStats, xAxis] = ptCalculateNeighbourTraj (handles); 
+
+             % Do the plots   
+             ptPlotNeighbourTraj (radioButtons, plotName, saveDir, xAxis, neighTrajStats, windowSize, ...
+                                  drugTimepoint);
+         catch
+             disp('An error occured: the neighborhood trajectory plot cannot be completed.');
+         end
       end
             
       if radioButtons.neighbourplot_2
           
-         % Run one iteration of the calculation
-         [neighChangeStats, xAxis] = ptCalculateNeighbourChanges (handles); 
-            
-         % Do the plots   
-         ptPlotNeighbourChanges (radioButtons, plotName, saveDir, xAxis, neighChangeStats, windowSize, ...
-                                 drugTimepoint);
+         try
+             % Run one iteration of the calculation
+             [neighChangeStats, xAxis] = ptCalculateNeighbourChanges (handles); 
+
+             % Do the plots   
+             ptPlotNeighbourChanges (radioButtons, plotName, saveDir, xAxis, neighChangeStats, windowSize, ...
+                                     drugTimepoint);
+         catch
+             disp('An error occured: the neighborhood changes plot cannot be completed.');
+         end
       end
       
-      % For all the figures we want to keep the xAxis as well 
-      save ([saveDir filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
+      try
+          % For all the figures we want to keep the xAxis as well 
+          save ([saveDir filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
+      catch
+      end
    end
    
    % Only do chaos stats calculations when image (and indirectly image
    % size) are available
    if radioButtons.ripleyplot         
       if radioButtons.ripleyplot_1
-          
-          % Run the calculation
-          radioButtons = getRadiobuttonValues (handles);
-          [chaosStats, xAxis] = ptCalculateChaosStats (handles, radioButtons);
-          
-          % Do the plots
-          ptPlotChaosStats (radioButtons, plotName, saveDir, xAxis, chaosStats, windowSize, ...
-                            drugTimepoint);
+          try
+              % Run the calculation
+              radioButtons = getRadiobuttonValues (handles);
+              [chaosStats, xAxis] = ptCalculateChaosStats (handles, radioButtons);
+
+              % Do the plots
+              ptPlotChaosStats (radioButtons, plotName, saveDir, xAxis, chaosStats, windowSize, ...
+                                drugTimepoint);
+          catch
+              disp('An error occured: the ripley plots cannot be completed.');
+          end
       end
       
-      % For these figures we want to keep the xAxis as well 
-      save ([saveDir filesep plotName '_xAxis-Chaos.mat'],'xAxis');
+      try
+          % For these figures we want to keep the xAxis as well 
+          save ([saveDir filesep plotName '_xAxis-Chaos.mat'],'xAxis');
+      catch
+      end
    end
    
    % Set the mouse pointer to normal again
@@ -3282,6 +3311,14 @@ end
 
 function GUI_log_coordinates_pb_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
+
+% Check that files have been selected before
+if ~isfield (handles, 'allMPM')  
+    errorStr = ['Jobs should be selected first by using the Select button!'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
 
 % Get selected cells from the handles struct
 if isfield(handles.jobData(1),'selectedcells') & ...
