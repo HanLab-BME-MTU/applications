@@ -94,7 +94,10 @@ if fsmParam.track.init~=0
         end        
         
         % Extract init flow vector field from vectors
-        initM=flow(find(flow(:,1)~=0 & flow(:,3)~=0),:);
+        initM=flow;
+        nanInd=find(isnan(flow(:,3)) | isnan(flow(:,4))); 
+        initM(nanInd,3:4) = flow(nanInd,1:2);
+        %initM=flow(find(flow(:,1)~=0 & flow(:,3)~=0),:);
         
         % Inform the user that the tracker will be initialized for this frame
         fprintf(1,'Frame %s: the tracker will be initialized for this frame.\n',imageNo);

@@ -42,7 +42,12 @@ end
 if(isa(fileName,'char') & isa(dirName,'char'))
     try
         s=load([dirName,fileName]);
-        cands=s.cands;
+        %To cope with subpixel cands.
+        if isfield(s,'candsSP')
+            cands = s.candsSP;
+        else
+            cands=s.cands;
+        end
     catch
         uiwait(errordlg('Invalid cands file.','Error','modal'));
         return
@@ -52,6 +57,11 @@ else
 end
 
 % Index
+%To cope with subpixel cands filename. e.g. cands001_spa.
+ind = strfind(fileName,'_spa');
+if ~isempty(ind)
+    fileName = fileName(1:ind(end)-1);
+end
 [path,body,no,ext]=getFilenameBody([dirName,filesep,fileName]);
 
 % Extract speckle classes
