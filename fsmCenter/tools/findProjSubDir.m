@@ -2,7 +2,7 @@ function dirList = findProjSubDir(parDir,dirSpec)
 %findDir This function finds all the project subdirectories for specified 
 %        package common name.
 %
-% SYNOPSIS : dirList = findDir(parDir,dirSpec)
+% SYNOPSIS : dirList = findProjSubDir(parDir,dirSpec)
 %    Search in 'parDir' all directories that meet the name specification in
 %    'dirSpec' and return a cell array of directories. If 'parDir' does not
 %    exit or is empty, an empty array is returned.

@@ -170,7 +170,7 @@ lplaDir = handles.lplaDir;
 postDir = handles.postDir;
 edgeDir = handles.edgeDir;
 mergDir = handles.mergDir;
-fadhDir = handles.mergDir;
+fadhDir = handles.fadhDir;
 corrDir = handles.corrDir;
 
 %tackDirList = {};
@@ -276,7 +276,7 @@ if isdir(handles.projDir)
         fprintf(fid,'%s\n',['    fsm Center: ' handles.postDir]);
         fprintf(fid,'%s\n',['  Edge Tracker: ' handles.edgeDir]);
         fprintf(fid,'%s\n',['        Merger: ' handles.mergDir]);
-        fprintf(fid,'%s\n',['Focal Adhesion: ' handles.mergDir]);
+        fprintf(fid,'%s\n',['Focal Adhesion: ' handles.fadhDir]);
         fprintf(fid,'%s\n',['   corrTracker: ' handles.corrDir]);
         fclose(fid);
     end
