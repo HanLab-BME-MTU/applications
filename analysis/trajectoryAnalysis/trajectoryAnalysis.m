@@ -88,6 +88,7 @@ calculateTrajectoryOpt.calc2d = 0; %1 or 2 if MP/in-focus slices only
 expOrSim = 'x';
 splitData = 0; %whether or not to split the data into two sets (to check the homogenity of the sample)
 clusterData = 1;
+fidTxt = [];
 
 %defaults not in inputStructure (see also constants!)
 writeShortFileList = 1; %writes everything on one line.
@@ -600,7 +601,9 @@ else
         end
         
     catch
-        fclose(fidTxt);
+        if ~isempty(fidTxt) 
+            fclose(fidTxt);
+        end
         error(lasterr)
     end
 end
