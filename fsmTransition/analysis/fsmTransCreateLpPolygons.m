@@ -64,5 +64,5 @@ end
 
 % If requested by the user, plot polygons
 if showPolygons==1
-    plotLpPolygons(lpPolygons,[MXY MXX])
+    fsmTransPlotLpPolygons(lpPolygons,[MXY MXX])
 end
