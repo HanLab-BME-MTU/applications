@@ -74,6 +74,8 @@ growth2ShrinkageRatio = [];
 growth2UndeterminedRatio = [];
 growthDistanceTotal = [];
 growthTimeRatio = [];
+growthNumber = 0;
+growthGroupNumber = 0;
 
 %SHRINKAGE
 shrinkageSpeedMean = [];
@@ -98,10 +100,13 @@ shrinkage2GrowthRatio = [];
 shrinkage2UndeterminedRatio = [];
 shrinkageDistanceTotal = [];
 shrinkageTimeRatio = [];
+shrinkageNumber = 0;
+shrinkageGroupNumber = 0;
 
 %PAUSE
 pauseTimeTotal = 0;
 pauseTimeRatio = [];
+pauseNumber = 0;
 
 %UNDETERMINED
 undeterminedTimeTotal = 0;
@@ -300,31 +305,9 @@ if ~isempty(growthIdx)
     [growthDistanceMean, growthDistanceStd] = weightedStats(groupDist(:,1),groupDist(:,2),'s');
     growthDistanceTotal = sum(groupDist(:,1));
     
-    %     %calculate detailed transition frequencies
-    %     
-    %     %if the last block is growth: classify as g2u
-    %     if growthIdx(end) == size(stateList,1)
-    %         growth2UndeterminedIdx = growthIdx(end);
-    %         growthIdx(end) = [];
-    %     end
-    %     
-    %     %calculate g2s: look for <0 blocks after >0 blocks, then calculate
-    %     %stats as above
-    %     growth2ShrinkageIdx = growthIdx(find( stateList(growthIdx+1,2)<0 ));
-    %     growth2ShrinkageNum = length(growth2ShrinkageIdx);
-    %     invGrowth2ShrinkageTimeMean = 1/mean(stateList(growth2ShrinkageIdx,5));
-    %     invGrowth2ShrinkageTimeStd = std(stateList(growth2ShrinkageIdx,5))*invGrowth2ShrinkageTimeMean^2;
-    %     
-    %     %calculate g2u: look for ==0 blocks after >0 blocks, then calculate
-    %     %stats as above. Don't forget the g2uIdx assigned above!
-    %     growth2UndeterminedIdx = [growthIdx(find( stateList(growthIdx+1,2)==0 ));growth2UndeterminedIdx];
-    %     growth2UndeterminedNum = length(growth2UndeterminedIdx);
-    %     invGrowth2UndeterminedTimeMean = 1/mean(stateList(growth2UndeterminedIdx,5));
-    %     invGrowth2UndeterminedTimeStd = std(stateList(growth2UndeterminedIdx,5))*invGrowth2UndeterminedTimeMean^2;
-    %     
-    %     %calculate ratios in %
-    %     growth2ShrinkageRatio = 100*growth2ShrinkageNum/(growth2ShrinkageNum+growth2UndeterminedNum);
-    %     growth2UndeterminedRatio = 100*growth2UndeterminedNum/(growth2ShrinkageNum+growth2UndeterminedNum);        
+    % calculate numbers
+    growthNumber = length(growthIdx);
+    growthGroupNumber = size(growthGroups,1);
 end
 % 
 % 
@@ -380,6 +363,10 @@ if ~isempty(shrinkageIdx)
     end
     [shrinkageDistanceMean, shrinkageDistanceStd] = weightedStats(groupDist(:,1),groupDist(:,2),'s');
     shrinkageDistanceTotal = sum(groupDist(:,1));
+    
+    % calculate numbers
+    shrinkageNumber = length(shrinkageIdx);
+    shrinkageGroupNumber = size(shrinkageGroups,1);
 end
 
 
@@ -400,7 +387,8 @@ end
 if ~isempty(pauseIdx)
     %time
     pauseTimeTotal = sum(dataListG(pauseIdx,7));
-    
+    % number
+    pauseNumber = length(pauseIdx);
 end
 
 %DELETED
@@ -442,16 +430,17 @@ end
 %write statistics structure
 % 
 statisticsStruct = struct(...
-    'ap2tpFreq__cat' ,            [invGrowthTimeMean , invGrowthTimeStd],...
-    'tp2apFreq__res' ,            [invShrinkageTimeMean , invShrinkageTimeStd],...
-    'antipolewardSpeed' ,         [growthSpeedMeanNW , growthSpeedStdNW],...
-    'polewardSpeed' ,             [shrinkageSpeedMeanNW , shrinkageSpeedStdNW],...
+    'ap2tpFreq__cat' ,            [invGrowthTimeMean , invGrowthTimeStd, growthGroupNumber],...
+    'tp2apFreq__res' ,            [invShrinkageTimeMean , invShrinkageTimeStd, shrinkageGroupNumber],...
+    'antipolewardSpeed' ,         [growthSpeedMeanNW , growthSpeedStdNW, growthNumber],...
+    'polewardSpeed' ,             [shrinkageSpeedMeanNW , shrinkageSpeedStdNW, shrinkageNumber],...
     'distanceMean',               [distanceMean,distanceMeanStd],...
     'distanceStd',                [distanceStd,distanceStdStd],...
     'minDistance',                [minDistance , minDistanceStd],...
     'minDistanceM5' ,             [minDistanceM5 , minDistanceM5Std],...
     'maxDistance' ,               [maxDistance , maxDistanceStd],...
     'maxDistanceM5' ,             [maxDistanceM5 , maxDistanceM5Std],...
+    'pauseNumber',                [pauseNumber],...
     'avgApDistance' ,             [growthDistanceMean , growthDistanceStd],...
     'avgTpDistance' ,             [shrinkageDistanceMean , shrinkageDistanceStd],...
     'avgUndetDistance' ,          [undeterminedDistanceMean , undeterminedDistanceStd],...
@@ -513,10 +502,6 @@ if nargout > 1
         % calculate distributions
         [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
                 indGrowthSpeedSigma],'norm',1,0); %indGrowthSpeedSigma*growthSpeedMeanNW
-        
-        
-        
-        
         
     else
         growthSpeedDistY = [];

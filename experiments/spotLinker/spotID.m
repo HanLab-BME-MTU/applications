@@ -522,7 +522,7 @@ end
 
 %save lists if option is set
 idlistFileName=['idlist-',nowString];
-intListFileName=['intList-',nowString];
+% intListFileName=['intList-',nowString];
 
 
 if saveFile

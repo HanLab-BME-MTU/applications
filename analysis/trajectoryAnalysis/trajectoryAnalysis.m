@@ -675,12 +675,10 @@ if saveTxt
             %(I so love these formatted strings)
             txt2write  = statisticsCell{nStat,1};
             vars2write = [statisticsCell{nStat,2:end}];
-            switch length(vars2write)
-                case 1
-                    fprintf(fidTxt,'%25s\t%5.6f\n',txt2write,vars2write);
-                case 2
-                    fprintf(fidTxt,'%25s\t%5.6f\t%5.6f\n',txt2write,vars2write);
-            end
+            formatString = '%25sVARIABLES\n';
+            % allow for any nunber of vars2write
+            formatString = strrep(formatString,'VARIABLES',repmat('\t%5.6f',[1,length(vars2write)]));
+            fprintf(fidTxt,formatString,txt2write,vars2write);
         end
         
         %---loop through the individual trajectories, print their overall statistics
@@ -695,12 +693,9 @@ if saveTxt
             for nStat = 1:numStats
                 txt2write  = statisticsCell{nStat,1};
                 vars2write = [statisticsCell{nStat,2:end}];
-                switch length(vars2write)
-                    case 1
-                        fprintf(fidTxt,'%25s\t%5.6f\n',txt2write,vars2write);
-                    case 2
-                        fprintf(fidTxt,'%25s\t%5.6f\t%5.6f\n',txt2write,vars2write);
-                end
+                formatString = '%25sVARIABLES\n';
+                formatString = strrep(formatString,'VARIABLES',repmat('\t%5.6f',[1,length(vars2write)]));
+                fprintf(fidTxt,formatString,txt2write,vars2write);
             end
         end
         %DO NOT UNCOMMENT - USE ONLY AS TEMPLATE           

@@ -28,8 +28,8 @@ function updateProjects(varargin)
 
 changePath = 0;
 changePixelsize = 0;
-pixelsizeOld = 0.000;
-pixelsizeNew = 0.000;
+pixelsizeOld = 94/1825;
+pixelsizeNew = 0.072;
 cleanupFiles = 0;
 
 %========================
@@ -104,7 +104,7 @@ end
 % BUILD FILE/DIR-LIST, GET BIODATA-STUFF
 %=======================================
 
-listOfDataFiles = searchFiles('-data-','log',[],1,'new');
+listOfDataFiles = searchFiles('-data-','log',topDirectoryName,1,'new');
 mainDir = cdBiodata(4);
 mainDirLength = length(mainDir);
 
@@ -142,11 +142,11 @@ for iProject = 1:size(listOfDataFiles,1)
         %-----delete old slists
         slistList = dir([currentDir 'slist*']);
         % find the newest date
-        slistDates = cat(1,slistList.date)
+        slistDates = datenum(cat(1,slistList.date));
         [dummy,dateIdx] = sort(slistDates);
         % the newest date will be at the end of the list, so delete all
         % others
-        for i = 1:length(dateIdx-1)
+        for i = 1:length(dateIdx)-1
             delete([currentDir slistList(dateIdx(i)).name]);
         end
         
@@ -159,11 +159,11 @@ for iProject = 1:size(listOfDataFiles,1)
         %-----delete old intFigures
         intFigureList = dir([currentDir 'intFigure*']);
         % find the newest date
-        intFigureDates = cat(1,intFigureList.date)
+        intFigureDates = datenum(cat(1,intFigureList.date));
         [dummy,dateIdx] = sort(intFigureDates);
         % the newest date will be at the end of the list, so delete all
         % others
-        for i = 1:length(dateIdx-1)
+        for i = 1:length(dateIdx)-1
             delete([currentDir intFigureList(dateIdx(i)).name]);
         end
         
@@ -177,45 +177,65 @@ for iProject = 1:size(listOfDataFiles,1)
         
         %-----delete old filtered movies
         filteredMovieList = dir([currentDir '*.fim']);
-        filteredMovieDates = cat(1,filteredMovieList.date)
+        filteredMovieDates = datenum(cat(1,filteredMovieList.date));
         [dummy,dateIdx] = sort(filteredMovieDates);
         % the newest date will be at the end of the list, so delete all
         % others
-        for i = 1:length(dateIdx-1)
+        for i = 1:length(dateIdx)-1
             delete([currentDir filteredMovieList(dateIdx(i)).name]);
         end
         
-        %------delete tmpDataProperties
-        delete([currentDir 'tmpDataProperties.mat']);
+        %------delete tmpDataProperties - wildcard prevents warning
+        delete([currentDir 'tmpDataProperties*']);
         
         %-------------------------------------------
         % save idlists out of projectDataFile
         
-        if ~(changePixelsize & projectDataFile.dataProperties.PIXELSIZE_XY == pixelsizeOld)
+        if ~(changePixelsize & strcmp(rats(projectDataFile.dataProperties.PIXELSIZE_XY),rats(pixelsizeOld)))
             if isfield(projectDataFile,'idlist')
                 idlist = projectDataFile.idlist;
-                idname = [currentDir 'idlist-' idlist(1).stats.created{1}];
+                if iscell(idlist(1).stats.created)
+                    idlistCreated = idlist(1).stats.created{1};
+                else
+                    idlistCreated = idlist(1).stats.created;
+                end
+                idname = [currentDir 'idlist-' idlistCreated];
                 save(idname,'idlist');
                 clear idlist
                 
                 % only if there was idlist, there will be idlist_L
                 if isfield(projectDataFile,'idlist_L')
                     idlist_L = projectDataFile.idlist_L;
-                    idname = [currentDir 'idlist-L-' idlist_L(1).stats.created{1}];
+                    if iscell(idlist_L(1).stats.created)
+                        idlistCreated = idlist_L(1).stats.created{1};
+                    else
+                        idlistCreated = idlist_L(1).stats.created;
+                    end
+                    idname = [currentDir 'idlist-L-' idlistCreated];
                     save(idname,'idlist_L');
                     clear idlist_L
                     
                     % only if there was idlist_L, there will be idlisttrack
                     if isfield(projectDataFile,'idlisttrack')
                         idlisttrack = projectDataFile.idlisttrack;
-                        idname = [currentDir 'idlisttrack-' idlisttrack(1).stats.created{1}];
+                        if iscell(idlisttrack(1).stats.created)
+                            idlistCreated = idlisttrack(1).stats.created{1};
+                        else
+                            idlistCreated = idlisttrack(1).stats.created;
+                        end
+                        idname = [currentDir 'idlisttrack-' idlistCreated];
                         save(idname,'idlisttrack');
                         clear idlisttrack
                         
                         % only if there was idlisttrack, there will be idlisttrack_L
                         if isfield(projectDataFile,'idlisttrack_L')
                             idlisttrack_L = projectDataFile.idlisttrack_L;
-                            idname = [currentDir 'idlisttrack-L-' idlisttrack_L(1).stats.created{1}];
+                            if iscell(idlisttrack_L(1).stats.created)
+                                idlistCreated = idlisttrack_L(1).stats.created{1};
+                            else
+                                idlistCreated = idlisttrack_L(1).stats.created;
+                            end
+                            idname = [currentDir 'idlisttrack-L-' idlistCreated];
                             save(idname,'idlisttrack_L');
                             clear idlisttrack_L
                             
@@ -238,13 +258,17 @@ for iProject = 1:size(listOfDataFiles,1)
     % idlists and update (otherwise, just write to file). Then, update the
     % r3dHeader and tmpDataProperties
     
-    if changePixelsize & projectDataFile.dataProperties.PIXELSIZE_XY == pixelsizeOld;
+    % compare rational approximation to the pixelsize - we would never get
+    % it right, otherwise
+    if changePixelsize & strcmp(rats(projectDataFile.dataProperties.PIXELSIZE_XY),rats(pixelsizeOld));
         
         pixelsizeRatio = pixelsizeNew/pixelsizeOld;
         
         
-        % change pixelsize in dataProperties
+        % change pixelsize in dataProperties. Change sigmaCorrection, too,
+        % so that the filtersize etc. remains correct
         projectDataFile.dataProperties.PIXELSIZE_XY = pixelsizeNew;
+        projectDataFile.dataProperties.sigmaCorrection(1) = projectDataFile.dataProperties.sigmaCorrection(1) * pixelsizeRatio;
         changedVariables{end+1} = 'dataProperties';
         
         % change pixelsize in idlists on disk. Do this before saving
@@ -283,12 +307,17 @@ for iProject = 1:size(listOfDataFiles,1)
                     idlist(t).linklist(:,9:10) = idlist(t).linklist(:,9:10)*pixelsizeRatio;
                 end
             end
-            idlist(1).stats.status{end+1} = [nowString 'changed XY pixelsize'];
+            idlist(1).stats.status{end+1} = [date ': changed XY pixelsize'];
             projectDataFile.idlist = idlist;
             changedVariables{end+1} = 'idlist';
             
             if cleanupFiles
-                idname = [currentDir 'idlist-' idlist(1).stats.created{1}];
+                if iscell(idlist(1).stats.created)
+                    idlistCreated = idlist(1).stats.created{1};
+                else
+                    idlistCreated = idlist(1).stats.created;
+                end
+                idname = [currentDir 'idlist-' idlistCreated];
                 save(idname,'idlist');
             end
             clear idlist
@@ -302,12 +331,18 @@ for iProject = 1:size(listOfDataFiles,1)
                         idlist_L(t).linklist(:,9:10) = idlist_L(t).linklist(:,9:10)*pixelsizeRatio;
                     end
                 end
-                idlist_L(1).stats.status{end+1} = [nowString 'changed XY pixelsize'];
+                idlist_L(1).stats.status{end+1} = [date ': changed XY pixelsize'];
                 projectDataFile.idlist_L = idlist_L;
                 changedVariables{end+1} = 'idlist_L';
                 
                 if cleanupFiles
-                    idname = [currentDir 'idlist-L-' idlist_L(1).stats.created{1}];
+                    % put name together, save
+                    if iscell(idlist_L(1).stats.created)
+                        idlistCreated = idlist_L(1).stats.created{1};
+                    else
+                        idlistCreated = idlist_L(1).stats.created;
+                    end
+                    idname = [currentDir 'idlist-L-' idlistCreated];
                     save(idname,'idlist_L');
                 end
                 clear idlist_L
@@ -321,12 +356,18 @@ for iProject = 1:size(listOfDataFiles,1)
                             idlisttrack(t).linklist(:,9:10) = idlisttrack(t).linklist(:,9:10)*pixelsizeRatio;
                         end
                     end
-                    idlisttrack(1).stats.status{end+1} = [nowString 'changed XY pixelsize'];
+                    idlisttrack(1).stats.status{end+1} = [date ': changed XY pixelsize'];
                     projectDataFile.idlisttrack = idlisttrack;
                     changedVariables{end+1} = 'idlisttrack';
                     
                     if cleanupFiles
-                        idname = [currentDir 'idlisttrack-' idlisttrack(1).stats.created{1}];
+                        % put name together, save
+                        if iscell(idlisttrack(1).stats.created)
+                            idlistCreated = idlisttrack(1).stats.created{1};
+                        else
+                            idlistCreated = idlisttrack(1).stats.created;
+                        end
+                        idname = [currentDir 'idlisttrack-' idlistCreated];
                         save(idname,'idlisttrack');
                     end
                     clear idlisttrack
@@ -340,12 +381,18 @@ for iProject = 1:size(listOfDataFiles,1)
                                 idlisttrack_L(t).linklist(:,9:10) = idlisttrack_L(t).linklist(:,9:10)*pixelsizeRatio;
                             end
                         end
-                        idlisttrack_L(1).stats.status{end+1} = [nowString 'changed XY pixelsize'];
+                        idlisttrack_L(1).stats.status{end+1} = [date ': changed XY pixelsize'];
                         projectDataFile.idlisttrack_L = idlisttrack_L;
                         changedVariables{end+1} = 'idlisttrack_L';
                         
                         if cleanupFiles
-                            idname = [currentDir 'idlisttrack-L-' idlisttrack_L(1).stats.created{1}];
+                            % put name together, save
+                            if iscell(idlisttrack_L(1).stats.created)
+                                idlistCreated = idlisttrack_L(1).stats.created{1};
+                            else
+                                idlistCreated = idlisttrack_L(1).stats.created;
+                            end
+                            idname = [currentDir 'idlisttrack-L-' idlistCreated];
                             save(idname,'idlisttrack_L');
                         end
                         clear idlisttrack_L
@@ -363,7 +410,7 @@ for iProject = 1:size(listOfDataFiles,1)
             save([currentDir 'r3dMovieHeader'], 'r3dMovieHeader');
             clear('r3dMovieHeader')
         catch
-            if ~strcmp(lasterr ['Error using ==> load' char(10) 'Unable to read file ' currentDir 'r3dMovieHeader: file does not exist.'])
+            if ~strmatch(lasterr, ['Error using ==> load' char(10) 'Unable to read file ' currentDir])
                 % we care about all errors except the nonexistent header
                 rethrow(lasterror)
             end
@@ -376,7 +423,7 @@ for iProject = 1:size(listOfDataFiles,1)
             save([currentDir 'tmpDataProperties'], 'tmpDataProperties');
             clear('tmpDataProperties')
         catch
-            if ~strcmp(lasterr ['Error using ==> load' char(10) 'Unable to read file ' currentDir 'tmpDataProperties: file does not exist.'])
+            if ~strmatch(lasterr, ['Error using ==> load' char(10) 'Unable to read file ' currentDir])
                 % we care about all errors except the nonexistent header
                 rethrow(lasterror)
             end
@@ -414,7 +461,7 @@ for iProject = 1:size(listOfDataFiles,1)
         eval([changedVariables{i} '= projectDataFile.' changedVariables{i} ';']);
         
         % save
-        eval(['save([currentDir,listOfDataFiles{iProject,1}],' changedVariables{i} ', ''-append'' );']);
+        eval(['save([currentDir,listOfDataFiles{iProject,1}],''' changedVariables{i} ''', ''-append'' );']);
         
     end
     

@@ -21,7 +21,7 @@ function [sxyz, samp, deltamp,goodTime,centerOfMass,plotData]=spotID_findStats(s
 % c: 23/09/02	Jonas
 
 %-------------initialization
-
+warningState = warning;
 
 dxyz=[];
 damp=[];
@@ -43,17 +43,18 @@ end
 %suppress maxFunEvalWarning
 options = optimset('Display','off');
 
-%linear fit (not scaled with real time) - discontinued
+% collect xdata, ydata
 parameters.xdata=goodRows-1; %frame1=time0
 parameters.ydata=ampList(goodRows);
-uLin0=[parameters.xdata,ones(length(goodRows),1)]\ampList(goodRows);
-[uLin,sigmaLMS,ssqLin]=leastMedianSquares('(ydata-(u(1)+u(2)*xdata))',uLin0,options,parameters);
 
 %exponential fit a*exp(-t/tau)
-uExp0(1)=median(parameters.ydata(1:5)); %a0
-uExp0(2)=median((parameters.xdata(end-5+[1:5])-parameters.xdata(1:5))./(log(parameters.ydata(1:5))-log(parameters.ydata(end-5+[1:5])))); %tau0
-[uExp,sigmaExp,ssqExp]=leastMedianSquares('(ydata-(u(1)*exp(-xdata/u(2))))',uExp0,options,parameters);
-sigmaExp0=sqrt(sum((uExp0(1)*exp(-parameters.xdata/uExp0(2))-parameters.ydata).^2)/(length(parameters.xdata)-1));
+uExp0(1)=robustMean(parameters.ydata(1:5)); %a0
+uExp0(2)=robustMean((parameters.xdata(end-5+[1:5])-parameters.xdata(1:5))./(log(parameters.ydata(1:5))-log(parameters.ydata(end-5+[1:5])))); %tau0
+[uExp,dummy,sigmaExp]=leastMedianSquares('(ydata-(u(1)*exp(-xdata/u(2))))',uExp0,options,parameters);
+
+% calculate approx sigma of exp-residuals without using the results of the exp fit
+[dummy, meanResidual, inlierIdx] = robustMean((uExp0(1)*exp(-parameters.xdata/uExp0(2))-parameters.ydata).^2);
+sigmaExp0=sqrt(meanResidual * length(inlierIdx) / (length(inlierIdx)-1) );
 
 % sliding window (uses the same starting values as exp fit)
 % first estimate an exponential fit (done above). Then calculate a sliding
@@ -99,7 +100,8 @@ try
         uLin02(2)=yExpip(ti);
         parWindow.xdata=parameters.xdata(tStart(ti):tEnd(ti));
         parWindow.ydata=parameters.ydata(tStart(ti):tEnd(ti));
-        [uLin2(ti,:),sigmaLMS2(ti,1)]=leastMedianSquare('(ydata-(u(1)+u(2)*xdata)).^2',uLin02,options,parWindow);
+        [uTmp,dummy,sigmaLMS2(ti,1)]=leastMedianSquares('(ydata-(u(1)+u(2)*xdata))',uLin02,options,parWindow);
+        uLin2(ti,:) = uTmp';
         mywaitbar(ti/length(parameters.xdata),waitbarHandle,length(parameters.xdata));
     end
 catch
@@ -111,16 +113,18 @@ catch
 end
 close(waitbarHandle);
 
-%linear fit for sigma
-uLin03(1)=sigmaLMS2(1);
-uLin03(2)=(sigmaLMS2(end)-sigmaLMS2(1))/length(parameters.xdata);
-parWindow.xdata=parameters.xdata;
-parWindow.ydata=sigmaLMS2;
-[uLin3,sigmaLMS3]=leastMedianSquare('(ydata-(u(1)+u(2)*xdata)).^2',uLin03,options,parWindow);
-smSig=uLin3(1)+uLin3(2)*parameters.xdata;
-%median of sigma
-smSig2=median(sigmaLMS2)*ones(size(parameters.xdata));
+%linear fit for sigma - not used
+% uLin03(1)=sigmaLMS2(1);
+% uLin03(2)=(sigmaLMS2(end)-sigmaLMS2(1))/length(parameters.xdata);
+% aMatrix =[ones(size(parameters.xdata)),parameters.xdata];
+% bMatrix = sigmaLMS2;
+% [uLin3,sigmaLMS3] = linearLeastMedianSquares(A,B,[],uLin03);
+% smSig=uLin3(1)+uLin3(2)*parameters.xdata;
 
+%robust mean of sigma
+smSig2=robustMean(sigmaLMS2)*ones(size(parameters.xdata));
+
+% smoothening of the curve - take geometrical mean because of exponential
 raw=uLin2(:,1)+parameters.xdata.*uLin2(:,2);
 sm1=raw;sm1(2:end-1)=sqrt(raw(1:end-2).*raw(3:end));
 sm2=raw;
@@ -142,11 +146,13 @@ if verbose>1|saveFile==1 %only draw figure if necessary
     if ~isempty(projName)
         set(figH,'Name',projName);
     end
-    plot(xPlot,ampList(goodRows),'.k',xPlot,raw,'-b',xPlot,raw+2.5*sigmaLMS2,'--b',xPlot,raw-2.5*sigmaLMS2,'--b',...
-        xPlot,sm3,'-r',xPlot,sm3+2.5*smSig2,'--r',xPlot,sm3-2.5*smSig2,'--r');
+    plot(xPlot,ampList(goodRows),'.k',...
+            xPlot,sm3,'-r',xPlot,sm3+2.5*smSig2,'--r',xPlot,sm3-2.5*smSig2,'--r');
+%     plot(xPlot,ampList(goodRows),'.k',xPlot,raw,'-b',xPlot,raw+2.5*sigmaLMS2,'--b',xPlot,raw-2.5*sigmaLMS2,'--b',...
+%         xPlot,sm3,'-r',xPlot,sm3+2.5*smSig2,'--r',xPlot,sm3-2.5*smSig2,'--r');
     hold on
-    plot(xPlot,uExp(1)*exp(-parameters.xdata/uExp(2)),'-m',...
-        xPlot,uExp(1)*exp(-parameters.xdata/uExp(2))+2.5*sigmaExp,'--m',xPlot,uExp(1)*exp(-parameters.xdata/uExp(2))-2.5*sigmaExp,'--m');
+    plot(xPlot,uExp(1)*exp(-parameters.xdata/uExp(2)),'-b',...
+        xPlot,uExp(1)*exp(-parameters.xdata/uExp(2))+2.5*sigmaExp,'--b',xPlot,uExp(1)*exp(-parameters.xdata/uExp(2))-2.5*sigmaExp,'--b');
     %plot(xPlot,uLin(2)*parameters.xdata+uLin(1),'-g',...
     %xPlot,uLin(2)*parameters.xdata+uLin(1)+2.5*sigmaLMS,'--g',xPlot,uLin(2)*parameters.xdata+uLin(1)-2.5*sigmaLMS,'--g');
     %title([num2str(uLin(2)),'*x+',num2str(uLin(1)),'; sigma=',num2str(sigmaLMS)]);
@@ -250,3 +256,4 @@ if zeroSamp
 end
     
     
+warning(warningState);

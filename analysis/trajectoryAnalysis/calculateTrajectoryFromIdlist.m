@@ -14,6 +14,8 @@ function [data,orientation] = calculateTrajectoryFromIdlist(idlist,dataPropertie
 %                                     normal 3D-data or the maxProjection
 %                                     or the in-focus-slice data should be
 %                                     used.
+%                           .nanList: [{0}/1] whether to give data in the
+%                                     form of nanList (converted with convertTrajectoryData)
 %
 %OUTPUT   data           : structure containing trajectory data
 %                           .time       = [time in sec, sigmaTime]
@@ -112,6 +114,7 @@ end
 %set defaults
 info = [];
 calc2d = 0;
+nanList = 0;
 
 %go through fields of opt, change defaults with input values if they exist
 if nargin < 5 | isempty(opt)
@@ -122,6 +125,9 @@ else
     end
     if isfield(opt,'calc2d')
         calc2d = opt.calc2d;
+    end
+    if isfield(opt,'nanList')
+        nanList = opt.nanList;
     end
 end
 
@@ -303,6 +309,10 @@ data.time       = [time,timeSigma];
 data.timePoints = timePoints;
 data.info       = info;
 data.info.tags  = tags;
-% data.chi2 = mean(chi2,2);
+
+if nanList
+    data = convertTrajectoryData(data);
+end
+    
 
 %---END ASSIGN OUTPUT
