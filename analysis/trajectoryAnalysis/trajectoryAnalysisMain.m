@@ -26,10 +26,15 @@ distanceAll = cat(1,data.distance);
 timeAll = cat(1,data.time);
 tpInd = 0;
 dlaLength = 0;
+individualMeanDistances = [];
 
 %for plotting: calc extreme coords
 yAxisLimits = [0,max(sum(distanceAll(:,[1,2,2]),2))];
 xAxisLimits = [0,max(sum(timeAll,2))];
+
+% init trajectoryDescription
+trajectoryDescription = struct('overallStatistics',[],'individualStatistics',[],'convergenceStatistics',[],...
+    'convergenceClusters',[],'overallClusters',[]);
 
 %--------LOOP THROUGH EVERYTHING
 for numData = 1:length(data)
@@ -284,16 +289,23 @@ for numData = 1:length(data)
     dlaLength = dlaLength + dlgLength + 1; %update length
     tpInd = tpInd + nTimePoints; %update individual length
     
+    % store data for convergence/overall statistics
+    individualMeanDistances = [individualMeanDistances;...
+            trajectoryDescription.individualStatistics(numData).summary.distanceMean(1),...
+            trajectoryDescription.individualStatistics(numData).summary.distanceStd(1),...
+            trajectoryDescription.individualStatistics(numData).summary.nTimepoints(1)];
+    
+    
     if doConvergence
         if constants.DOCLUSTER > 1 %cluster for convergence only, and if individuals are selected
             [trajectoryDescription.convergenceStatistics(numData),dummy,...
-                    trajectoryDescription.convergenceClustering(numData)] = ...
+                    trajectoryDescription.convergenceClusters(numData)] = ...
                 trajectoryAnalysisMainCalcStats(dataListAll(1:dlaLength,:),distanceAll(1:tpInd,:),timeAll(1:tpInd,:),verbose,...
-                ['convergence statistics for ',num2str(numData),' trajectories'],constants);
+                ['convergence statistics for ',num2str(numData),' trajectories'],constants,individualMeanDistances);
         else
             trajectoryDescription.convergenceStatistics(numData) = ...
                 trajectoryAnalysisMainCalcStats(dataListAll(1:dlaLength,:),distanceAll(1:tpInd,:),timeAll(1:tpInd,:),verbose,...
-                ['convergence statistics for ',num2str(numData),' trajectories'],constants);
+                ['convergence statistics for ',num2str(numData),' trajectories'],constants,individualMeanDistances);
         end
     end
     %-----END CALCULATE STATISTICS
@@ -306,11 +318,11 @@ end %for numData = 1:length(data)
 if constants.DOCLUSTER
 [overallStatistics,overallDistribution,overallCluster] = ...
         trajectoryAnalysisMainCalcStats(dataListAll(1:dlaLength,:),distanceAll(1:tpInd,:),timeAll(1:tpInd,:),verbose,...
-        ['overall statistics for ',num2str(numData),' trajectories'],constants);
+        ['overall statistics for ',num2str(numData),' trajectories'],constants,individualMeanDistances);
 else
     [overallStatistics,overallDistribution] = ...
         trajectoryAnalysisMainCalcStats(dataListAll(1:dlaLength,:),distanceAll(1:tpInd,:),timeAll(1:tpInd,:),verbose,...
-        ['overall statistics for ',num2str(numData),' trajectories'],constants);
+        ['overall statistics for ',num2str(numData),' trajectories'],constants,individualMeanDistances);
     overallCluster = [];
 end
 
@@ -325,4 +337,4 @@ else
 end
 
 trajectoryDescription.overallDistribution = overallDistribution;
-trajectoryDescription.speedClustering     = overallCluster;
+trajectoryDescription.overallClusters     = overallCluster;

@@ -54,6 +54,7 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %                               output arguments
 %           - debug         : [{0}/1] turns on debug features
 %           - randomize     : [{0}/1] randomize the input list
+%           - clustermax    : max # of clusters the EM algorithm looks for
 %
 %OUTPUT  trajectoryDescription
 %           .individualStatistics(1:n)
@@ -98,6 +99,7 @@ clusterData = 0;
 DEBUG = []; %[1,2] for groupUnits
 splitData = 0; % whether or not to split the data into two sets (to check the homogenity of the sample)
 randomize = 0; % whether or not to randomize the order of the input data
+CLUSTERMAX = 5;
 
 % other
 fidTxt = [];
@@ -117,9 +119,11 @@ constants.MINLENGTH = 2; % minimum length of a unit
 constants.MAXDELETED = 0; % max number of deleted frames between two timepoints that is accepted
 constants.DEBUG = DEBUG; 
 constants.DOCLUSTER = 1; % this does not really belong here, but it's easiest to pass it with the constants
-constants.MINCLUSTER = 1; % min # of cluster the EM algorithm looks for
-constants.MAXCLUSTER = 5; % max # of cluster the EM algorithm looks for
-constants.INDCLUSTER = 0; % try all individual k's?
+constants.CLUSTERMIN = 1; % min # of cluster the EM algorithm looks for
+constants.CLUSTERMAX = CLUSTERMAX; % max # of cluster the EM algorithm looks for
+constants.CLUSTERIND = 0; % try all individual k's?
+constants.CLUSTERTRY = 10; % how many times the clustering algorithm is repeated
+constants.CLUSTERMINWEIGHT = 0.05; % min weight to become a significant cluster
 
 %build list of possible identifiers
 %HOME/BIODATA/SIMDATA (also: NONE/NOFILE)
@@ -331,6 +335,9 @@ else
     end
     if isfield(testOpt,'randomize')
         randomize = testOpt.randomize;
+    end
+    if isfield(testOpt,'clustermax')
+        constants.CLUSTERMAX = testOpt.clustermax;
     end
 end
 
@@ -709,6 +716,7 @@ if saveTxt
     fprintf(fidTxt,'Slope   Test: %1.3f\n',constants.TESTPROBABILITY);
     fprintf(fidTxt,'Pause   Test: %1.3f\n',constants.PROBF);
     fprintf(fidTxt,'Outlier Test: %1.3f\n\n\n',constants.PROBOUTLIER);
+    %fprintf(fidTxt,'Clustering:')
     
     %read them first
     if doConvergence
