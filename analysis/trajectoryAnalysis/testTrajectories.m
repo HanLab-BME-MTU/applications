@@ -139,7 +139,12 @@ set(uH,'Name','GlobalDistance')
 imshow(-log10(globCompare.distance));
 set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
-
+for i=1:nGroups
+    for j=1:nGroups
+        text(j,i,sprintf('%3.3f',globCompare.distance(i,j)),...
+            'HorizontalAlignment','center')
+    end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [cmap,cLimits]=logColormap
