@@ -119,6 +119,11 @@ if ~isempty(fsmParam.specific.fileList) % Already analyzed
             
         end
             
+    else
+        
+        % The images exist, inform fsmMain that it can continue safely.
+        status=1;
+        
     end
     
 end
