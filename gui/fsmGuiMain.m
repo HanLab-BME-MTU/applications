@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 06-Aug-2004 13:57:14
+% Last Modified by GUIDE v2.5 02-Sep-2004 18:48:33
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -138,12 +138,15 @@ if nargin == 0  % LAUNCH GUI
             workPath=[projDir,char(settings.subProjects(1)),filesep];
         else
             workPath=[projDir,filesep,char(settings.subProjects(1)),filesep];
-        end     
+        end  
+        imagePath=char(settings.imageDir);
     else
         workPath=[];
+        imagePath=[];
     end
     set(handles.pathEdit,'String',workPath);
-    
+    set(handles.textImage,'String',imagePath);
+
     % Update the GUI if a fsmParam.mat file exists in the workPath
     catchPathChange(workPath,handles);
 
