@@ -192,8 +192,14 @@ for counter1=1:n
             
             % Extract cell outlines (b/w mask)
             try
-                [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',0,'bit_depth',xmax);
+                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',1,'filter_image',1,'bit_depth',xmax);
             catch
+                bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
+                fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+            end
+            
+            % If imFindCellEdge returns successCE==-1 create a white mask too
+            if successCE==-1
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
             end
@@ -222,12 +228,18 @@ for counter1=1:n
             
             % Extract cell outlines (b/w mask)
             try
-                [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',0,'bit_depth',xmax);
+                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',1,'filter_image',1,'bit_depth',xmax);
             catch
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
             end
             
+            % If imFindCellEdge returns successCE==-1 create a white mask too
+            if successCE==-1
+                bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
+                fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+            end
+
             % Save it to disk
             indxStr=sprintf(strg,currentIndex);
             eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask
