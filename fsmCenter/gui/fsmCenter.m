@@ -962,7 +962,7 @@ sigma=str2num(get(handles.editSigmaTN,'String'));
 
 % Show maps and return them to Matlab base workspace
 figure; imshow(polyMap,[]); title('Polymerization map'); assignin('base','polyMap',polyMap);
-figure; imshow(-depolyMap,[]); title('Depolymerization map'); assignin('base','depolyMap',-depolyMap);
+figure; imshow(-depolyMap,[]); title('Depolymerization map'); assignin('base','depolyMap',depolyMap);
 figure; imshow(netMapRGB,[]); title('Net assembly map'); assignin('base','netMapRGB',netMapRGB);
 assignin('base','netMap',polyMap+depolyMap);
 
