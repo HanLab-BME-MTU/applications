@@ -321,11 +321,11 @@ else
     set(handles.editInfluence,'Enable','off');
 end
 % Default
-set(handles.editThreshold,'String',fsmParam.track.threshold);
+set(handles.editThreshold,'String',num2str(fsmParam.track.threshold));
 if isfield(fsmParam.track,'influence')
-    set(handles.editInfluence,'String',fsmParam.track.influence);
+    set(handles.editInfluence,'String',num2str(fsmParam.track.influence));
 else
-    set(handles.editInfluence,'String',fsmParam.track.threshold);
+    set(handles.editInfluence,'String',num2str(fsmParam.track.threshold));
 end    
 set(handles.checkGrid,'Value',fsmParam.track.grid);
 switch fsmParam.track.tracker

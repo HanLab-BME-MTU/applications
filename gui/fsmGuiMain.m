@@ -525,11 +525,12 @@ else
     set(handles.checkEnhTrack,'Enable','on');
     set(handles.textThreshold,'Enable','on');
     set(handles.editThreshold,'Enable','on');
-    set(handles.textInfluence,'Enable','on');
     if get(handles.checkEnhTrack,'Value')==1
+        set(handles.textInfluence,'Enable','on');
         set(handles.checkGrid,'Enable','on');    
         set(handles.editInfluence,'Enable','on');
     else
+        set(handles.textInfluence,'Enable','off');
         set(handles.checkGrid,'Enable','off');
         set(handles.editInfluence,'Enable','off');
     end               

@@ -71,8 +71,8 @@ fsmParam.prep.sigma=1;              % Sigma for low-pass filtering
 % Enable module
 fsmParam.track.enable=1;            % Activates the TRACKER module [ 0 : off | 1 : on ]
 % Threshold
-fsmParam.track.threshold='3';       % Defines the search radius for the tracker
-fsmParam.track.influence='3';       % Defines the radius of influence for the BMTNN tracker
+fsmParam.track.threshold=3;         % Defines the search radius for the tracker (pixels)
+fsmParam.track.influence=3;         % Defines the radius of influence for the BMTNN tracker (pixels)
 % Tracker
 fsmParam.track.tracker=1;           % Specifies the tracker to be selected [1: BMTNN | 2: BMTG | 3: 3FT ]
 % Hierarchical tracking
@@ -83,6 +83,8 @@ fsmParam.track.enhanced=0;          % When this is flag is set to one, the track
 fsmParam.track.grid=0;              % Specifies whether the interpolation of the vector field has to be
                                     % be performed onto a regular grid or at the original
                                     % vector positions
+% Correlation length for tracking
+fsmParam.track.corrLength=33;       % Correlation length in pixels
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
