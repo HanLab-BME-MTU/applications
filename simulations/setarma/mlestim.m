@@ -1,8 +1,8 @@
-function [arParam,maParam,noiseSigma,trajP,errFlag] = mlestim(traj,...
+function [arParam,maParam,noiseSigma,trajP,aicc,errFlag] = mlestim(traj,...
     arOrder,maOrder,arParam0,maParam0)
 %MLESTIM estimates the parameters of an ARMA model to reproduce an observed trajectory
 %
-%SYNOPSIS [arParam,maParam,noiseSigma,trajP,errFlag] = mlestim(traj,...
+%SYNOPSIS [arParam,maParam,noiseSigma,trajP,aicc,errFlag] = mlestim(traj,...
 %    arOrder,maOrder,arParam0,maParam0)
 %
 %INPUT  traj    : Observed trajectory    
@@ -16,6 +16,7 @@ function [arParam,maParam,noiseSigma,trajP,errFlag] = mlestim(traj,...
 %       noiseSigma: Standard deviation of white noise in model.
 %       trajP     : Predicted trajectory using the innovations algorithm and
 %                   the maximum likelihood estimates of the ARMA coefficients. 
+%       aicc      : Bias-Corrected Akaike's Information Criterion for order selection.
 %       errFlag   : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, February 2004
@@ -45,6 +46,9 @@ end
 if maOrder < 0
     disp('--mlestim: "maOrder" should be a nonnegative integer!');
     errFlag = 1;
+end
+if maOrder == 0
+    disp('--mlestim: Warning: Algorithm works best when MA order is at least 1!');
 end
 if arOrder == 0 && maOrder == 0
     disp('--mlestim: Either "arOrder" or "maOrder" should be nonzero!');
@@ -110,8 +114,6 @@ options = optimset('Display','iter');
 %Series and Forecasting" by Brockwell and Davis) to get best set of parameters.
 [params,minFunc,exitFlag,output] = fmincon(@redLikelihood,param0,[],[],[],[],...
     -1*ones(pLength,1),1*ones(pLength,1),@armaConst,options,arOrder,maOrder,traj);
-% [params,minFunc,exitFlag,output] = fmincon(@redLikelihood,param0,[],[],[],[],...
-%     [0.6 -0.2],[0.9 0],@armaConst,options,arOrder,maOrder,traj);
 
 %assign parameters obtained through minimization
 arParam = params(1:arOrder);
@@ -147,8 +149,13 @@ end
 
 %get standard deviation of white noise in process
 relError = (trajP-traj).^2./innovErr(1:end-1);
-% if maOrder ~= 0
+errLength = length(relError);
+if maOrder ~= 0
     noiseSigma = sqrt(mean(relError));
-% else
-%     noiseSigma = sqrt(sum(relError(1:arOrder))/length(relError));
-% end
+else
+    noiseSigma = sqrt(sum(relError(1:arOrder))/errLength);
+end
+
+%get Akaike's Information Criterion of model
+aicc = errLength*log(2*pi*noiseSigma^2) + sum(log(innovErr(1:end-1))) + ...
+    errLength + 2*errLength*(arOrder+maOrder+1)/(errLength-arOrder-maOrder-2); 

@@ -29,14 +29,14 @@ maParam = param(arOrder+1:end);
 
 %roots of AR polynomial
 if arOrder ~= 0
-    rAr = abs(roots([-arParam(end:-1:1) 1]));
+    rAr = abs(roots([-arParam(end:-1:1) 1]))';
 else
     rAr = [];
 end
 
 %roots of MA polynomial
 if maOrder ~= 0
-    rMa = abs(roots([maParam(end:-1:1) 1]));
+    rMa = abs(roots([maParam(end:-1:1) 1]))';
 else
     rMa = [];
 end

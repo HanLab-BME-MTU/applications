@@ -160,3 +160,5 @@ end
 
 %get rid of initial 10*shift time points
 traj = traj(10*shift+1:end);
+
+traj = traj - mean(traj);

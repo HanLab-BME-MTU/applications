@@ -34,20 +34,14 @@ if errFlag
     error('redLikeliV: Could not predict trajectory!');
 end
 
-% %mean prediction error
-% meanError = mean((trajP-traj).^2./innovErr(1:end-1));
-% 
-% %reduced likelihood
-% redLikeliV = log(meanError) + mean(log(innovErr(1:end-1)));
-
 %relative square prediction error per time point
 relError = (trajP-traj).^2./innovErr(1:end-1);
 
 %reduced likelihood
-% if maOrder ~= 0
+if maOrder ~= 0
     redLikeliV = log(mean(relError)) + mean(log(innovErr(1:end-1)));
-% else
-%     errLength = length(relError)
-%     redLikeliV = log(sum(relError(1:arOrder))/errLength) + ...
-%         sum(log(innovErr(1:arOrder))/errLength;
-% end
+else
+    errLength = length(relError);
+    redLikeliV = log(sum(relError(1:arOrder))/errLength) + ...
+        sum(log(innovErr(1:arOrder)))/errLength;
+end
