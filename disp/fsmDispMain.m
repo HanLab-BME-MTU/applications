@@ -1,7 +1,7 @@
 function [fsmParam,status,SCORE]=fsmDispMain(fsmParam,SCORE)
 % fsmDispMain is the main function of the fsmDisp module
 %
-% SYNOPSIS   [fsmParam,status]=fsmDispMain(fsmParam,speckleArray)
+% SYNOPSIS   [fsmParam,status]=fsmDispMain(fsmParam,SCORE)
 %
 % INPUT      fsmParam     :   general parameter structure
 %            SCORE        :   scores rearranged into a matrix with the form
