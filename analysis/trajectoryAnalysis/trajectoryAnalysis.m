@@ -348,12 +348,15 @@ if saveTxt
         helpTxt = [helpTxt, ' and filetype to save the summary of the results as text file! If you press ''cancel'', the file will not be saved'];
         
         %tell the user what's going on
-        h = helpdlg(helpTxt,'');
-        uiwait(h);
-        cdBiodata(0);
-        [saveTxtName,saveTxtPath,eos] = uiputfile({'*.mte','experimental MT data';...
-                '*.mts','simulation MT data';...
-                '*.mtx','any (mixed) MT data'},'save results as text file');
+        ans = myQuestdlg(helpTxt,'','OK','cancel','OK');
+        if strcmp(ans,'OK')
+            cdBiodata(0);
+            [saveTxtName,saveTxtPath,eos] = uiputfile({'*.mte','experimental MT data';...
+                    '*.mts','simulation MT data';...
+                    '*.mtx','any (mixed) MT data'},'save results as text file');
+        else
+            saveTxtName = 0;
+        end
         
         %if user cancelled, nothing will be save                               
         if saveTxtName == 0
@@ -386,10 +389,13 @@ if saveMat
         helpTxt = [helpTxt, ' to save the results as mat-file! If you press ''cancel'', the file will not be saved'];
         
         %tell the user what's going on
-        h = helpdlg(helpTxt,'');
-        uiwait(h);
+        ans = myQuestdlg(helpTxt,'','OK','cancel','OK');
+        if strcmp(ans,'OK')
         
         [saveMatName,saveMatPath] = uiputfile({'*.mat;*.mt*','MT-dynamics files'},'save results as mat file');
+        else
+            saveMatName = 0;
+        end
         
         %if user cancelled, nothing will be save                               
         if saveMatName == 0
