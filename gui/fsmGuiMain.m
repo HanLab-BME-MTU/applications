@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 11-Mar-2004 17:18:11
+% Last Modified by GUIDE v2.5 11-Mar-2004 17:30:09
 clc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -825,18 +825,23 @@ function drawROICheck_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of drawROICheck
 
 
-% --- Executes when user attempts to close fsmGuiMain.
+% --------------------------------------------------------------------
 function fsmGuiMain_CloseRequestFcn(hObject, eventdata, handles)
-% hObject    handle to fsmGuiMain (see GCBO)
+% hObject    handle to menuExit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hint: delete(hObject) closes the figure
 fsmGMH=findall(0,'Tag','fsmGuiMain'); % Get the handle of fsmGuiMain
 choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
 switch choice,
     case 'Yes', delete(fsmGMH);
     case 'No', return;
 end % switch
+
+
+% --- Executes during object deletion, before destroying properties.
+function fsmGuiMain_DeleteFcn(hObject, eventdata, handles)
+% hObject    handle to fsmGuiMain (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
 
