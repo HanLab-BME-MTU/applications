@@ -1,4 +1,4 @@
-function [fsmParam,status]=fsmTrackMain(fsmParam)
+efunction [fsmParam,status]=fsmTrackMain(fsmParam)
 % fsmTrackMain is the main function of the fsmTrack module
 %
 % SYNOPSIS   [fsmParam,status]=fsmTrackMain(fsmParam)
@@ -61,6 +61,7 @@ cd(userPath);
 
 % Calculate grid size for enhanced tracking if needed
 
+gridSize=0;
 if enhanced==1
     nP=min(imgSize/11);
     if nP<5
@@ -187,36 +188,43 @@ for counter1=1:lastImage
     switch TRACKER
         case 1
 
-%             tmp=fsmTrackTrackerBMTNNMain(initM,I,J,threshold,influence);
-            tmp=fsmTrackTrackerBMTNN(I,J,threshold,influence);
-        
+            % Use neural-network-augmented nearest-neighbor tracker (NN2)
+            tmp=fsmTrackTrackerBMTNNMain(I,J,threshold,influence,fsmParam,counter1,gridSize);
             
         case 2
+
+            % Use 2-frame graph tracker
             tmp=fsmTrackTrackerP(img,img2,threshold);    
+            
         case 3
-            %         tmp=fsmTrackTrackerPP(img,img2,img3,threshold); 
-            links = tft(I,J,K,threshold); % 
-            savefile = [userPath,filesep,'links',filesep,'tft',filesep,'links',indxStr,'.mat'];
+
+            % Use 3-frame graph tracker
+            links = tft(I,J,K,threshold); 
+            aux1_indxStr = sprintf(strg,currentIndex);
+            savefile = [userPath,filesep,'links',filesep,'links',aux1_indxStr,'.mat'];
             save(savefile,'links')
+            
+            aux1_links = links(:,1:4);
             clear links
+            if counter1 > 1
+                aux2_indxStr=sprintf(strg,currentIndex-1);
+                aux_path = [userPath,filesep,'links',filesep,'links',aux2_indxStr,'.mat'];
+                load(aux_path)
+                aux2_links = links(:,3:6);
+                clear links
+                aux_links = [aux1_links;aux2_links];
+            else
+                aux_links = aux1_links;
+            end          
+            flow = vectorFieldInterp(aux_links,aux_links(:,1:2),33,[]); % 33 is d0
+            savefile = [userPath,filesep,'flow',filesep,'flow',aux1_indxStr,'.mat'];
+            save(savefile,'flow')
+            
         otherwise
             error('Please select an EXISTING tracker.');
     end
     
     if TRACKER~=3
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %
-        % ENHANCED TRACKING
-        %
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
-        if enhanced==1
-            
-            % Call external function to perform enhanced tracking
-            tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,currentIndex,gridSize,d0,userPath,threshold,influence,size(img));
-            
-        end
         
         % Check for unsupported error
         if isempty(tmp)

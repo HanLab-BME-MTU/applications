@@ -152,8 +152,18 @@ fsmParam.track.corrLength=str2num(get(handles.editCorrLength,'String'));
 % Tracker's initializer
 if get(handles.checkTrackInit,'Value')==0
     fsmParam.track.init=0;
+    fsmParam.track.initPath='';
 else
     fsmParam.track.init=get(handles.popupTrackInit,'Value');
+    switch fsmParam.track.init
+        case 1,
+            % Vectors provided by imKymoAnalysis - saved into /corr/vectors
+            fsmParam.track.initPath=[fsmParam.project.path,filesep,fsmParam.project.corr,filesep,'vectors',filesep];
+            
+        otherwise
+            
+            error('Only tracker initialization by imKymoAnalysis is supported right now.');
+    end
 end
 
 % Set status to 1

@@ -112,7 +112,7 @@ if nargin == 0  % LAUNCH GUI
     %
     % CHECK WHETHER A PROJECT IS OPEN IN FSMCENTER
     %
-    %    Anywy, open fsmCenter if it not yet open
+    %    Anyway, open fsmCenter if it not yet open
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
@@ -140,6 +140,10 @@ if nargin == 0  % LAUNCH GUI
             workPath=[projDir,filesep,char(settings.subProjects(1)),filesep];
         end  
         imagePath=char(settings.imageDir);
+        
+        % Store project information if fsmGuiMain's UserData
+        set(handles.fsmGuiMain,'UserData',settings);
+        
     else
         workPath=[];
         imagePath=[];
@@ -216,6 +220,21 @@ end
 
 % Read fsmParam from start button
 fsmParam=get(handles.start,'UserData');
+
+% Read project structure from fsmGuiMain's UserData and sotre it in fsmParam.project
+settings=get(handles.fsmGuiMain,'UserData');
+if isempty(settings)
+    error('Could not retrieve project settings from fsmGuiMain''s ''UserData'' field.');
+end
+projectDir=settings.projDir;
+subProjects=settings.subProjects;
+fsmParam.project.path=projectDir;
+fsmParam.project.corr=subProjects{strmatch('corr',subProjects)};
+fsmParam.project.edge=subProjects{strmatch('edge',subProjects)};
+fsmParam.project.lpla=subProjects{strmatch('lpla',subProjects)};
+fsmParam.project.merg=subProjects{strmatch('merg',subProjects)};
+fsmParam.project.post=subProjects{strmatch('post',subProjects)};
+fsmParam.project.tack=subProjects{strmatch('tack',subProjects)};
 
 % Complement fsmParam with values from GUI
 [fsmParam,status]=fsmGuiReadParameters(handles,fsmParam);
@@ -1115,7 +1134,7 @@ if value==1
     fsmGuiMain('checkTrackInit_Callback',handles.checkTrackInit,[],handles); % Turns on|off Initializer
 end
 if value==2
-    tfsmGuiMain('toggleTrackModule',handles,0);
+    fsmGuiMain('toggleTrackModule',handles,0);
     set(handles.textTracker,'Enable','on');
     set(handles.popupTracker,'Enable','on');
     set(handles.textThreshold,'Enable','on');

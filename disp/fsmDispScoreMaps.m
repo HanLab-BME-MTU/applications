@@ -179,7 +179,7 @@ if autoPolygon==1
             string=['load ' fName];
             eval(string);
             
-            % Caluclate current area
+            % Calculate current area
             currArea=sum(bwMask(:));
             
             % Check whether currArea==totArea - this means that autoPolygon failed
@@ -254,7 +254,7 @@ for i=2:lastImage
         
         % Load black-and-white mask
         indxStr=sprintf(strg,currentIndex);   
-        fName=[rootUserPath filesep 'bwMask' indxStr '.mat'];
+        fName=[rootUserPath filesep 'bwMask' filesep 'bwMask' indxStr '.mat'];
         
         if exist(fName)==2
             string=['load ' fName];

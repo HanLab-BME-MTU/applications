@@ -17,9 +17,22 @@ if nargin~=0
 end
 
 % Create structure and substructures
-fsmParam=struct('main',0,'prep',0,'track',0,'build',0,'kin',0,'disp',0);
+fsmParam=struct('project',[],'main',[],'prep',[],'track',[],'build',[],'kin',[],'disp',[],'specific',[]);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% PROJECT
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Project paths
+fsmParam.project.path='';             % Project path
+fsmParam.project.corr='';             % Work path for the imKymoAnalysis package
+fsmParam.project.edge='';             % Work path for the Edge Tracker package
+fsmParam.project.lpla='';             % Work path for the fsmTransition package
+fsmParam.project.merg='';             % Work path for the Merger package
+fsmParam.project.post='';             % Work path for the Post processing package
+fsmParam.project.tack='';             % Work path for the SpeckTackle package
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
@@ -79,6 +92,8 @@ fsmParam.track.threshold=3;         % Defines the search radius for the tracker 
 fsmParam.track.influence=3;         % Defines the radius of influence for the BMTNN tracker (pixels)
 % Initializer
 fsmParam.track.init=0;              % Turns on|off the initializer for the tracker [ 0 : off | 1,2,3,... initializer ]
+fsmParam.track.initPath='';         % Points to the path where vector fields to initialize the tracker are stored 
+                                    % They are saved as vecotrs###.mat, where ### represents the frame number
 % Tracker
 fsmParam.track.tracker=1;           % Specifies the tracker to be selected [1: BMTNN | 2: BMTG | 3: 3FT ]
 % Hierarchical tracking
