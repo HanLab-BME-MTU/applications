@@ -5,10 +5,12 @@ function [tagPos,errFlag] = hingeModel(hingeParam,coordInit,totalTime,dt);
 %
 %INPUT  hingeParam : Parameters used in the model:
 %           free        : 0 if diffusive rotation, 1 if free rotation.
-%           chromL      : Long semi-axis of chromosome (microns).
-%           chromS      : Short semi-axis of chromosome (microns).
-%           viscosity   : viscosity of medium inside the nucleus (Pa*s).
-%           temperature : Absolute temperature of system (K).
+%           diffConst   : Rotational diffusion constant of chromosome about
+%                         its centromere.
+% % % %           chromL      : Long semi-axis of chromosome (microns).
+% % % %           chromS      : Short semi-axis of chromosome (microns).
+% % % %           viscosity   : viscosity of medium inside the nucleus (Pa*s).
+% % % %           temperature : Absolute temperature of system (K).
 %       coordInit  : Initial position of hinge tip, in Cartesian
 %                    coordinates, entered as a row vector (microns).
 %       totalTime  : Total time of simulation in seconds.

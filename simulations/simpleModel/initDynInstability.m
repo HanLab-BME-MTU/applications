@@ -2,12 +2,12 @@ function [initialState,modelParam,runInfo,saveTraj,saveStats] = initDynInstabili
 
 initialState = struct('mtLength0',0.44,'mtState0',1,'free',1,'unitConc',20);
 
-modelParam = struct('minLength',-10000,'kOnElong',0.3,'kOffElong',5,'kOnShrink',0.5,'kOffShrink',11);
+modelParam = struct('minLength',-10000,'kOnElong',0.3,'kOffElong',5,'kOnShrink',0.5,...
+    'kOffShrink',11);
 
-runInfo = struct('maxNumSim',1,'totalTime',10000,'simTimeStep',0.01,'timeEps',0.5,'expTimeStep',1,'aveInterval',0.6,'analyzeOpt',1);
+runInfo = struct('maxNumSim',1,'totalTime',10000,'simTimeStep',0.01,'timeEps',0.5,...
+    'expTimeStep',1,'aveInterval',0.6);
 
-for i=1:100
-    saveTraj(i) = struct('saveOrNot',0);
-end
+saveTraj = struct('saveOrNot',0);
     
 saveStats = struct('saveOrNot',0);
