@@ -17,10 +17,12 @@ oldDir=cd;
 
 % Read current image path from fsmCenter
 hFsm=findall(0,'Tag','fsmCenter','Name','fsmCenter');
-handles=guidata(hFsm);
-imagePath=get(handles.textCurrentImage,'String');
-if ~isempty(imagePath)
-    cd(imagePath);
+if ~isempty(hFsm)
+    handles=guidata(hFsm);
+    imagePath=get(handles.textCurrentImage,'String');
+    if ~isempty(imagePath)
+        cd(imagePath);
+    end
 end
 
 % Select image
