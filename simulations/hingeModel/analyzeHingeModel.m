@@ -182,11 +182,12 @@ end
 %     
 % end
 
-%sample trajectory at instances of experimental measurement (expTimeStep). 
-%Use the average value of the position and its standard deviation in 
-%an appropriate interval (aveInterval) around the instance as the 
-%position and error at that instance.
-for bigIter = 1:maxNumSim    
+for bigIter = 1:maxNumSim
+    
+    %sample trajectory at instances of experimental measurement (expTimeStep). 
+    %Use the average value of the position and its standard deviation in 
+    %an appropriate interval (aveInterval) around the instance as the 
+    %position and error at that instance.
     [mtLengthAve(:,bigIter),mtLengthSD(:,bigIter),errFlag] = averageMtTraj(...
         mtLength(:,bigIter),simTimeStep,expTimeStep,aveInterval);
     if errFlag
@@ -199,6 +200,34 @@ for bigIter = 1:maxNumSim
     if errFlag
         return;
     end
+    
+    %get rid of unreasonably small standard deviations which
+    %mess up the statistical analysis in "trajectoryAnalysis".
+    
+    %find points in mtLengthSD with unreasonably small standard deviation
+    zeroStdIdx = find(mtLengthSD(:,bigIter)==1e-15);
+    if ~isempty(zeroStdIdx)
+        %set their STD to very large number
+        mtLengthSD(zeroStdIdx,bigIter) = 1e15;
+        %get the value just above the lowest 1%
+        lowestPercentSD = prctile(mtLengthSD(:,bigIter),1);
+        %get the minimum STD
+        minSD = min(mtLengthSD(:,bigIter));
+        %assign a "reasonable" STD to those problematic points
+        mtLengthSD(zeroStdIdx,bigIter) = min(lowestPercentSD*0.5,minSD);
+    end
+    
+    %do the same for SPBToTagSD
+    for i=1:3
+        zeroStdIdx = find(SPBToTagSD(:,i,bigIter)==1e-15);
+        if ~isempty(zeroStdIdx)
+            SPBToTagSD(zeroStdIdx,i,bigIter) = 1e15;
+            lowestPercentSD = prctile(SPBToTagSD(:,i,bigIter),1);
+            minSD = min(SPBToTagSD(:,i,bigIter));
+            SPBToTagSD(zeroStdIdx,i,bigIter) = min(lowestPercentSD*0.5,minSD);
+        end
+    end
+    
 end
 
 %write 1st set of data in correct format for statistical analysis
@@ -232,79 +261,3 @@ end
 
 %perform Jonas' statistical analysis and get restults in dataStats3
 dataStats3 = trajectoryAnalysis(data,ioOpt);
-
-% OLD STUFF TO BE REMOVED!
-%
-% %save data if user wants to
-% if saveStats.saveOrNot
-%     if isempty(saveStats.fileName)
-%         save(['dataStats-',nowString],'dataStats','dataStats3'); %save in file
-%     else
-%         save(saveStats.fileName,'dataStats','dataStats3'); %save in file (directory specified through name)
-%     end
-% end
-%
-% %write data in correct format for calcMTDynamics
-% [inputDataEntry,errFlag] = getAnaDat(mtLengthAve,mtLengthSD,bigIter,...
-%     expTimeStep,aveInterval);
-% inputData(bigIter) = inputDataEntry;
-% [inputDataEntry,errFlag] = getAnaDat3(SPBToTagAve,SPBToTagSD,bigIter,...
-%     expTimeStep,aveInterval);
-% inputData3(bigIter) = inputDataEntry;
-% 
-% %analyze trajectories using experimental sampling rate and appropriate averaging interval
-% varargout = calcMTDynamics(inputData,0,0,0,[],analyzeOpt);
-% varargout3 = calcMTDynamics(inputData3,0,0,0,[],analyzeOpt);
-% 
-% %%%%%%%%%%%%%%%%%%%%
-% %%THIS SECTION MUST BE FIXED TO ACCOMODATE ALL CASES!!!%%
-% 
-% %save analysis results in dataStats and shift trajectory back to what it
-% %was before the correction
-% for bigIter = 1:maxNumSim
-%     dataStats(bigIter) = varargout(bigIter).statistics;
-%     if minminLength(bigIter) ~= 0
-%         dataStats(bigIter).distanceMean(1) = dataStats(bigIter).distanceMean(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats(bigIter).minDistance(1) = dataStats(bigIter).minDistance(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats(bigIter).minDistanceM5(1) = dataStats(bigIter).minDistanceM5(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats(bigIter).maxDistance(1) = dataStats(bigIter).maxDistance(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats(bigIter).maxDistanceM5(1) = dataStats(bigIter).maxDistanceM5(1)...
-%             + 1.1*minminLength(bigIter);
-%     end
-% end
-% for bigIter = 1:maxNumSim
-%     dataStats3(bigIter) = varargout3(bigIter).statistics;
-%     if minminLength(bigIter) ~= 0
-%         dataStats3(bigIter).distanceMean(1) = dataStats3(bigIter).distanceMean(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats3(bigIter).minDistance(1) = dataStats3(bigIter).minDistance(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats3(bigIter).minDistanceM5(1) = dataStats3(bigIter).minDistanceM5(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats3(bigIter).maxDistance(1) = dataStats3(bigIter).maxDistance(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats3(bigIter).maxDistanceM5(1) = dataStats3(bigIter).maxDistanceM5(1)...
-%             + 1.1*minminLength(bigIter);
-%     end
-% end
-% 
-% %do the same for the combined analysis of all trajectories
-% % minLengthAll = min(minminLength);
-% % dataStats(maxNumSim+1) = varargout(end).statistics;
-% % if minLengthAll ~= 0
-% %     dataStats(maxNumSim+1).distanceMean(1) = dataStats(maxNumSim+1).distanceMean(1)...
-% %         + 1.1*minLengthAll;
-% %     dataStats(maxNumSim+1).minDistance(1) = dataStats(maxNumSim+1).minDistance(1)...
-% %         + 1.1*minLengthAll;
-% %     dataStats(maxNumSim+1).minDistanceM5(1) = dataStats(maxNumSim+1).minDistanceM5(1)...
-% %         + 1.1*minLengthAll;
-% %     dataStats(maxNumSim+1).maxDistance(1) = dataStats(maxNumSim+1).maxDistance(1)...
-% %         + 1.1*minLengthAll;
-% %     dataStats(maxNumSim+1).maxDistanceM5(1) = dataStats(maxNumSim+1).maxDistanceM5(1)...
-% %         + 1.1*minLengthAll;
-% % end
-% 
