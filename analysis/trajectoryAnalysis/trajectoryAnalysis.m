@@ -82,7 +82,7 @@ saveMat = 0;
 saveMatPath = '';
 saveMatName = '';
 verbose = [1,2]; 
-DEBUG = []; %[1,2] for groupUnits
+DEBUG = [99]; %[1,2] for groupUnits
 fileNameList = {'data_1'};
 calculateTrajectoryOpt.calc2d = 0; %1 or 2 if MP/in-focus slices only
 expOrSim = 'x';
@@ -97,14 +97,16 @@ standardTag2 = 'cen1';
 
 
 constants.TESTPROBABILITY = 0.95;
-constants.PROB2SIDES = 1-(1-constants.TESTPROBABILITY)/2; %testprob for 2-sided test
-constants.PROBOUTLIER = 0.8; %probability for ouliers. if lower, less fits get accepted
-constants.PROBF = 0.7; %probability for whether linear fit is better than pause. if lower, there are less pauses
-constants.STRATEGY = 1; %fitting strategy
-constants.MINLENGTH = 2; %minimum length of a unit
-constants.MAXDELETED = 0; %max number of deleted frames between two timepoints that is accepted
+constants.PROB2SIDES = 1-(1-constants.TESTPROBABILITY)/2; % testprob for 2-sided test
+constants.PROBOUTLIER = 0.8; % probability for ouliers. if lower, less fits get accepted
+constants.PROBF = 0.7; % probability for whether linear fit is better than pause. if lower, there are less pauses
+constants.STRATEGY = 1; % fitting strategy
+constants.MINLENGTH = 2; % minimum length of a unit
+constants.MAXDELETED = 0; % max number of deleted frames between two timepoints that is accepted
 constants.DEBUG = DEBUG; 
 constants.DOCLUSTER = 1; % this does not really belong here, but it's easiest to pass it with the constants
+constants.MINCLUSTER = 1; % min # of cluster the EM algorithm looks for
+constants.MAXCLUSTER = 5; % max # of cluster the EM algorithm looks for
 
 %build list of possible identifiers
 %HOME/BIODATA/SIMDATA (also: NONE/NOFILE)

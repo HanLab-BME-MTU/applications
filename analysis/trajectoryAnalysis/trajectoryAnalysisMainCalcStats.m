@@ -458,11 +458,13 @@ if nargout > 1
     if ~isempty(growthIdx)
         [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
                 indGrowthSpeedSigma*growthSpeedMean],'norm',1,0);
-        % if requested, cluster speeds
-        if nargout > 2
+        
+        % if requested and possible, cluster speeds
+        if nargout > 2 & length(growthIdx) > constants.MAXCLUSTER
             % #of clusters, relative weights, positions, covariances = 
             %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
-            [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(60*dataListG(growthIdx,4)',1,5,0,1e-4,1,[],[],any(verbose==4));
+            [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(60*dataListG(growthIdx,4)',...
+                constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-4,1,[],[],any(verbose==4));
             % and strore
             clusterStruct.separationK = gbestk;
             clusterStruct.separationMeans = gbestmu;
@@ -476,10 +478,13 @@ if nargout > 1
     if ~isempty(shrinkageIdx)
         [shrinkageSpeedDistY,shrinkageSpeedDistX] = contHisto([60*dataListG(shrinkageIdx,4),...
                 indShrinkageSpeedSigma*abs(shrinkageSpeedMean)],'norm',1,0);
-        if nargout > 2
+        
+        % if requested and possible, cluster speeds
+        if nargout > 2 & length(shrinkageIdx) > constants.MAXCLUSTER
             % #of clusters, relative weights, positions, covariances = 
             %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,[],[],verbose)
-            [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(60*dataListG(shrinkageIdx,4)',1,5,0,1e-4,1,[],[],any(verbose==4));
+            [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(60*dataListG(shrinkageIdx,4)',...
+                constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-4,1,[],[],any(verbose==4));
             % store cluster data
             clusterStruct.congressionK = sbestk;
             clusterStruct.congressionMeans = sbestmu;

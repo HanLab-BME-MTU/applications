@@ -69,6 +69,7 @@ if ask4idlist
         case 0
             %no spots
             doSpots = 0;
+            idlist = [];
             
         case 1
             
@@ -252,18 +253,18 @@ if ask4pixelSize
     uiwait(h);
     
     %let the user choose. filterIdx will return 0 if cancel
-    [fileName,pathName,filterIdx] = uigetfile({'*-data-??-???-????-??-??-??.mat,tmpDataProperties','data/dataProperties files'},...
+    [fileName,pathName,filterIdx] = uigetfile({'*-data-??-???-????-??-??-??.mat;tmpDataProperties.mat','data/dataProperties files'},...
         'load scaling factor');
     
     switch filterIdx
         case 0
             imgScalingFactor = [];
         case 1
-            dpStruct = load([fileName,pathName]);
+            dpStruct = load([pathName,fileName]);
             try
-                pixelSize = [dataStruct.dataProperties.PIXELSIZE_XY,...
-                            dataStruct.dataProperties.PIXELSIZE_XY,...
-                            dataStruct.dataProperties.PIXELSIZE_Z];
+                pixelSize = [dpStruct.dataProperties.PIXELSIZE_XY,...
+                            dpStruct.dataProperties.PIXELSIZE_XY,...
+                            dpStruct.dataProperties.PIXELSIZE_Z];
             catch
                 error(['no pixelSize found in ',pathName, fileName])
             end

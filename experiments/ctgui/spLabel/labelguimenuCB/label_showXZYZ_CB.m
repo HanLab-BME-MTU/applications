@@ -31,7 +31,9 @@ else %check and open figure
 	
 	if isempty(dataProperties)
 		set(hObject,'Checked','on'); %uncheck
-		error('can''t do this right without dataProperties');
+        h = errordlg('can''t do this without dataProperties: Please load an idlist first!');
+        uiwait(h)
+        return
 	end
 	
 	%calc ratio of z vs. xy. Has to be an integer

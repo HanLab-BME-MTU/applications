@@ -11,7 +11,8 @@ function make3DspotMovie(inputList,inputProperties,ioOptions)
 %
 %                 .image:  3D image to be displayed as 'background'
 %
-%                 one of both is optional!
+%                 if inputList is not empty, you have to specify at least
+%                 one of the two fields!
 %
 %
 %         inputProperties: (opt) structure with optional description of the input
@@ -25,7 +26,7 @@ function make3DspotMovie(inputList,inputProperties,ioOptions)
 %                 .save2file:       [{0}/1] whether to save the images to file
 %                 .save2filePath :  where to save the file, name
 %                 .save2movie:      [0/{1}] whether to save the images
-%                                   QT-movie
+%                                   as QuickTime-movie
 %                 .save2moviePath : where to save the file, name
 %                 .verbose:         [0/{1}] currently without effect,
 %                                   because there is no point in not
@@ -57,7 +58,7 @@ figureSize = [360   514   560   420]; %default figure position
 oldPath = pwd;
 
 %-----TEST INPUT
-if nargin == 0
+if nargin == 0 | isempty(inputList)
     loadData = 1;
 else
     loadData = 0;
@@ -347,22 +348,26 @@ else
 end %if doImage axesLimits
 
 %try to set best possible view
-if ask4view & doSpots
-    %collect vector of all spot coordinates
-    if isempty(allSpotCoords)
-        allSpotCoords = cat(1,inputList.spots);
-        allSpotCoords = allSpotCoords(:,1:3);
-    end
-    if doImage %take into account blowUpVector
-        allSpotCoords(:,3) = allSpotCoords(:,3)*pixelRatio;
-    end
-    
-    %take only every fifth frame
-    allSpotCoords = allSpotCoords([1:5:end],:);
+if ask4view 
     
     viewPrepFigH = figure('NumberTitle','off','Name','select view');
-    plot3(allSpotCoords(:,1),allSpotCoords(:,2),allSpotCoords(:,3),'.','MarkerSize',16);
-    line(allSpotCoords(:,1),allSpotCoords(:,2),allSpotCoords(:,3),'Color','k');
+    
+    if doSpots %we plot some spots
+        %collect vector of all spot coordinates
+        if isempty(allSpotCoords)
+            allSpotCoords = cat(1,inputList.spots);
+            allSpotCoords = allSpotCoords(:,1:3);
+        end
+        if doImage %take into account blowUpVector
+            allSpotCoords(:,3) = allSpotCoords(:,3)*pixelRatio;
+        end
+        
+        %take only every fifth frame
+        allSpotCoords = allSpotCoords([1:5:end],:);
+        plot3(allSpotCoords(:,1),allSpotCoords(:,2),allSpotCoords(:,3),'.','MarkerSize',16);
+        line(allSpotCoords(:,1),allSpotCoords(:,2),allSpotCoords(:,3),'Color','k');
+    end
+    
     set(gca,'XLim',axesXLim,'YLim',axesYLim,'ZLim',axesZLim,'Box','on','PlotBoxAspectRatio', boxAspectRatio);
     view(azimuth,elevation);
     
@@ -376,16 +381,19 @@ if ask4view & doSpots
     uiwait(h);
     
     [azimuth,elevation] = view;
-    if azimuth < 0
-        azimuth = azimuth +360;
-    end
-    disp(['az and el in case you have to retry: ',num2str(azimuth),' ',num2str(elevation)])
     
     figureSize = get(viewPrepFigH,'Position');
     
     close(viewPrepFigH);
     
 end
+
+%in defaults, az<0, so check here
+if azimuth < 0
+    azimuth = azimuth +360;
+end
+disp(['az and el in case you have to retry: ',num2str(azimuth),' ',num2str(elevation)])
+
 
 if doImage
     %create the imgPlotMatrices. The projection itself will always be the
@@ -437,7 +445,7 @@ end
 %now, finally, loop through inputList, show images and ask for accepting
 h = helpdlg(['now the software will generate the images.',...
         ' Please DO NOT change anything about them - just accept or discard individual images.',...
-        ' Please DO NOT click on anything else while the movie is being stored - otherwise you will get the wrong image!'],...
+        ' Please KEEP THE FIGURE IN THE FOREGROUND - otherwise you will get the wrong image!'],...
     'Please read carefully!');
 uiwait(h);
 
