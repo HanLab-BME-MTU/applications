@@ -148,7 +148,7 @@ if nargin == 0  % LAUNCH GUI
     set(handles.textImage,'String',imagePath);
 
     % Update the GUI if a fsmParam.mat file exists in the workPath
-    catchPathChange(workPath,handles);
+    catchPathChange(workPath,handles,settings);
 
 elseif ischar(varargin{1}) % INVOKE NAMED SUBFUNCTION OR CALLBACK
 
@@ -430,10 +430,9 @@ function varargout = autoPolCheck_Callback(h, eventdata, handles, varargin)
 
 %%%%%
 
-function catchPathChange(newpath,handles,fsmParam)
+function catchPathChange(newpath,handles,settings,fsmParam)
 
 if newpath~=0
-    set(handles.pathEdit,'String',newpath);
 
     % If an fsmParam.mat file is found in this path, use this as fsmParam
     if exist([newpath,filesep,'fsmParam.mat'])==2
@@ -444,13 +443,27 @@ if newpath~=0
         % Load the file found
         load([newpath,filesep,'fsmParam.mat']);  
             
-        % Fill all fields with the values from fsmParam
-        fsmGuiWriteParameters(fsmParam,handles);
+    else
         
-        % Link fsmParam to the start button (the default value are not modified)
-        set(handles.start,'UserData',fsmParam);
+        % Get default values
+        fsmParam=get(handles.defaultButton,'UserData');
+        
+    end
+
+    % Fill all fields with the values from fsmParam
+    fsmGuiWriteParameters(fsmParam,handles);
+    
+    % Link fsmParam to the start button (the default values are not modified)
+    set(handles.start,'UserData',fsmParam);
+    
+    if isempty(fsmParam.main.path)
+        
+        % Update user interface with project paths
+        set(handles.pathEdit,'String',newpath);
+        set(handles.textImage,'String',char(settings.imageDir));
 
     end
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -662,7 +675,7 @@ set(handles.editCorrLength,'Enable','off');
 function saveParamsButton_Callback(hObject, eventdata, handles)
 userPath=get(handles.pathEdit,'String');
 if isempty(userPath)
-    uiwait(msgbox('Please specify a work path.','Warning','warn'));
+    uiwait(msgbox('Please setup a project in fsmCenter.','Warning','warn'));
     return;
 else
     % Create ROOT directory

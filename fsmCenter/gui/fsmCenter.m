@@ -181,16 +181,17 @@ end
 % imKymoAnalysis
 hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
 if ~isempty(hCorrTrack)
-    handlesCorr=guidata(hCorrTrack);
-    handles.projDir = projDir;
-    handles.imgDir  = {imageDir};
-    handles.tackDir = char(subProjects(1));
-    handles.lplaDir = char(subProjects(2));
-    handles.postDir = char(subProjects(3));
-    handles.edgeDir = char(subProjects(4));
-    handles.mergDir = char(subProjects(5));
-    handles.corrDir = char(subProjects(6));
-    guidata(hCorrTrack,handlesCorr);
+    imKymoAnalysis;
+%     handlesCorr=guidata(hCorrTrack);
+%     handlesCorr.projDir = projDir;
+%     handlesCorr.imgDir  = {imageDir};
+%     handlesCorr.tackDir = char(subProjects(1));
+%     handlesCorr.lplaDir = char(subProjects(2));
+%     handlesCorr.postDir = char(subProjects(3));
+%     handlesCorr.edgeDir = char(subProjects(4));
+%     handlesCorr.mergDir = char(subProjects(5));
+%     handlesCorr.corrDir = char(subProjects(6));
+%     guidata(hCorrTrack,handlesCorr);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -42,11 +42,14 @@ fsmParam.disp.enable=get(handles.checkDispModule,'Value');
 % Path
 path=get(handles.pathEdit,'String');
 if isempty(path)
-    uiwait(msgbox('Please choose a work directory.','Warning','warn'));
+    uiwait(msgbox('Please setup a project in fsmCenter.','Warning','warn'));
     return;
 else
     fsmParam.main.path=path;
 end
+
+% Image path
+fsmParam.main.imagePath=get(handles.textImage,'String');
 
 % Number of images
 fsmParam.main.imgN=str2num(get(handles.numberEdit,'String'));

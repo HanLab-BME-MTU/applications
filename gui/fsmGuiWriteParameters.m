@@ -52,6 +52,13 @@ else
     end
 end
 
+% Image path
+if isfield(fsmParam.main,'imagePath')
+    set(handles.textImage,'String',fsmParam.main.imagePath);
+else
+    set(handles.textImage,'String','');
+end
+
 % Image number
 if fsmParam.specific.imageNumber~=0
     set(handles.numberEdit,'String',fsmParam.specific.imageNumber);
@@ -87,105 +94,98 @@ if strcmp(fsmParam.main.label,'Scale space')
     fsmExpParam=[];
 end
 
-% If only the default fsmParam.mat has been loaded, there is no need for further controls
-if ~isempty(fsmExpParam)
+% If the experiment number is valid, check that it is still pointing to the correct experiment
+if ~isfield(fsmParam.main,'label') % Back-compatibility
+    fsmParam.main.label=[];
+end
+
+if isempty(fsmParam.main.label) & fsmParam.main.noiseParam(7)==1
     
-    % Check that the saved experiment number does not exceed the number of experiments in the database
-    expNotValid=0;
-    if fsmParam.main.noiseParam(7)>length(fsmExpParam)+1
+    % This is the default fsmParam - set experiments to default
+    expLabel='Select experiment';
+    
+    set(handles.expPopup,'Value',1);
+    set(handles.textDescr,'String','Experiment description');
+    
+else
+    
+    if isempty(fsmExpParam)
         
-        % Mark this experiment as not valid
-        expNotValid=1;
+        % This is the default fsmParam - set experiments to default
+        expLabel='Select experiment';
+        
+        set(handles.expPopup,'Value',1);
+        set(handles.textDescr,'String','Experiment description');
         
     else
         
-        % If the experiment number is valid, check that it is still pointing to the correct experiment
-        if ~isfield(fsmParam.main,'label') % Back-compatibility
-            fsmParam.main.label=[];
-        end
-        
-        % This prevented a problem when the user attempts to start a new fsmGuiMain when it is already open
-        %   (it is no longer strictly necessary)
-        if fsmParam.main.noiseParam(7)==1
-            expLabel='Select experiment';
-        else
-            expLabel=fsmExpParam(fsmParam.main.noiseParam(7)-1).label;
-        end
-        
-        if expNotValid==0 & ~strcmp(fsmParam.main.label,expLabel)
+        expNotValid=0;
+        if fsmParam.main.noiseParam(7)>length(fsmExpParam)+1
             
             % Mark this experiment as not valid
             expNotValid=1;
             
-        end
-        
-    end
-    
-    % If the experiment is valid, add it to the scroll-down menu, otherwise inform the user
-
-    if expNotValid==0
-        
-        % Set correct experiment in scroll-down menu
-        set(handles.expPopup,'Value',fsmParam.main.noiseParam(7));
-
-
-        % Set correct experiment description
-        if fsmParam.main.noiseParam(7)==1
-            set(handles.textDescr,'String','Experiment description');
         else
-            set(handles.textDescr,'String',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
-        end
-
-        % Check that that the noise parameters did not change
-        if any((fsmParam.main.noiseParam(2:4)==fsmExpParam(fsmParam.main.noiseParam(7)-1).noiseParams)==0) | fsmParam.prep.gaussRatio~=fsmExpParam(fsmParam.main.noiseParam(7)-1).gaussRatio
             
-            msg=['The parameters in the experiment database do not match those saved in the project. Which version do you want to use?'];
-            choice=myQuestdlg(msg,'User input requested','Database (project parameters will be lost)','Project (database won''t be changed)','Database (project parameters will be lost)');
-            if strcmp(choice,'Database (project parameters will be lost)')
+            expLabel=fsmExpParam(fsmParam.main.noiseParam(7)-1).label;
+            if ~strcmp(fsmParam.main.label,expLabel)
                 
-                fsmParam.main.noiseParam(2:4)=fsmExpParam(fsmParam.main.noiseParam(7)-1).noiseParams;
-                fsmParam.prep.gaussRatio=fsmExpParam(fsmParam.main.noiseParam(7)-1).gaussRatio;
+                % Mark this experiment as not valid
+                expNotValid=1;
                 
             end
-
         end
         
-        % If the noise parameters have been optimized, disable the quantile selection...
-        if fsmExpParam(fsmParam.main.noiseParam(7)-1).quantile~=0
-            set(handles.editZValue,'String',num2str(fsmExpParam(fsmParam.main.noiseParam(7)-1).quantile));
-            fsmGuiUpdateConfidences(0);
+        % If the experiment is valid, add it to the scroll-down menu, otherwise inform the user
+        if expNotValid==0
+            
+            % Set correct experiment in scroll-down menu
+            set(handles.expPopup,'Value',fsmParam.main.noiseParam(7));
+                
+            % Set correct experiment description
+            if fsmParam.main.noiseParam(7)==1
+                set(handles.textDescr,'String','Experiment description');
+            else
+                set(handles.textDescr,'String',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
+            end
+                
+            % Check that that the noise parameters did not change
+            if any((fsmParam.main.noiseParam(2:4)==fsmExpParam(fsmParam.main.noiseParam(7)-1).noiseParams)==0) | fsmParam.prep.gaussRatio~=fsmExpParam(fsmParam.main.noiseParam(7)-1).gaussRatio
+                    
+                msg=['The parameters in the experiment database do not match those saved in the project. Which version do you want to use?'];
+                choice=myQuestdlg(msg,'User input requested','Database (project parameters will be lost)','Project (database won''t be changed)','Database (project parameters will be lost)');
+                if strcmp(choice,'Database (project parameters will be lost)')
+                    
+                    fsmParam.main.noiseParam(2:4)=fsmExpParam(fsmParam.main.noiseParam(7)-1).noiseParams;
+                    fsmParam.prep.gaussRatio=fsmExpParam(fsmParam.main.noiseParam(7)-1).gaussRatio;
+                    
+                end
+                
+            end
+                
+            % If the noise parameters have been optimized, disable the quantile selection...
+            if fsmExpParam(fsmParam.main.noiseParam(7)-1).quantile~=0
+                set(handles.editZValue,'String',num2str(fsmExpParam(fsmParam.main.noiseParam(7)-1).quantile));
+                fsmGuiUpdateConfidences(0);
+            else
+                
+                % Otherwise make sure they are enabled
+                set(handles.editZValue,'String',num2str(fsmParam.main.noiseParam(5)));
+                fsmGuiUpdateConfidences(1);
+                
+            end    
+            
         else
             
-            % Otherwise make sure they are enabled
-%             set(handles.editZValue,'String','1.96');
-            set(handles.editZValue,'String',num2str(fsmParam.main.noiseParam(5)));
-            fsmGuiUpdateConfidences(1);
-             
-        end    
-        
-    else
-    
-        uiwait(msgbox('The experiment is no longer in the database (or old version of fsmParam.mat).','Error','modal'));
-        set(handles.expPopup,'Value',1);
-        set(handles.textDescr,'String','Experiment description');
+            uiwait(msgbox('The experiment is no longer in the database (or old version of fsmParam.mat).','Error','modal'));
+            set(handles.expPopup,'Value',1);
+            set(handles.textDescr,'String','Experiment description');
+            
+        end
         
     end
-
-else
-
-    if fsmParam.main.noiseParam(7)~=1
-        
-        error('Corrupted fsmParam.mat');
-        
-    else
     
-        set(handles.expPopup,'Value',1);
-        set(handles.textDescr,'String','Experiment description');
-
-    end
-    
-end
-
+end    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 

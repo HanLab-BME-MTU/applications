@@ -28,6 +28,8 @@ fsmParam=struct('main',0,'prep',0,'track',0,'build',0,'kin',0,'disp',0);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Path
 fsmParam.main.path='';                 % Work and result path (select from GUI)
+% Image path
+fsmParam.main.imagePath='';            % Image path (defined at the project level)
 % Image number
 fsmParam.main.imgN=0;                  % Number of image to be processed from the stack [0 = all]
 % Camera bit depth
@@ -38,7 +40,7 @@ fsmParam.main.noiseParam=[0 0 0 0 0 5 1];% Noise parameters from the camera cali
                                          % The sixth position defines which confidence was chosen
                                          % The seventh position which noise parameter wae set
 % To prevent pointing to wrong experiments in the database, store the label of the experiment, too
-fsmParam.main.label=[];
+fsmParam.main.label='';
                                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 

@@ -33,7 +33,8 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-userPath     = fsmParam.main.path;          % Working path
+userPath     = fsmParam.main.path;          % Working path (defined at the project level)
+imagePath    = fsmParam.main.imagePath;     % Image path (defined at the project level)
 imgNumber    = fsmParam.main.imgN;          % Number of image to be processed from the stack
 xmin         = fsmParam.main.normMin;       % Lower intensity bound for intensity normalization
 xmax         = fsmParam.main.normMax;       % Upper intensity bound for intensity normalization
@@ -57,6 +58,7 @@ cd(userPath);
 
 if ~isfield(fsmParam,'batchJob')
     
+    cd(imagePath);
     % The user must select the first image of the stack 
     [fName,dirName] = uigetfile(...
         {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
@@ -73,6 +75,7 @@ if ~isfield(fsmParam,'batchJob')
     else
         return % Returns an error (status=0)
     end
+    cd(userPath);
     
     % Check whether the image is 8 bit and the selected bitdepth is higher
     imInfo=imfinfo([dirName,fName]);
