@@ -3,8 +3,9 @@ function [H,errFlag] = portmanteau(traj,maxLag,significance)
 
 %SYNOPSIS [H,errFlag] = portmanteau(traj,maxLag,significance)
 %
-%INPUT  traj        : Trajectory to be tested. Missing observations should be
-%                     indicated with NaN.
+%INPUT  traj        : Trajectories to be tested. An array of structures
+%                     with the field "observations". Missing data points
+%                     in a trajectory should be indicated with NaN.
 %       maxLag      : Maximum lag used to calculate autocorrelation
 %                     function. Default: 40.
 %       significance: Significance level of hypothesis test. Default: 0.95.
@@ -13,8 +14,8 @@ function [H,errFlag] = portmanteau(traj,maxLag,significance)
 %       errFlag : 0 if function executes normally, 1 otherwise.
 %
 %REMARK This test is taken from Brockwell and Davis, "Introduction to Time
-%       Series and Forecasting", p.36. Before any testing, it shifts the 
-%       trajectory to get zero mean.
+%       Series and Forecasting", p.36. Use with caution when there are
+%       missing observations.
 
 %Khuloud Jaqaman, August 2004
 
@@ -28,10 +29,18 @@ if nargin < 1
     errFlag = 1;
     return
 end
-trajLength = length(find(~isnan(traj)));
 
-%shift trajectory to get zero mean
-traj = traj - mean(traj(find(~isnan(traj))));
+%check that trajectories are column vectors and get their overall length
+trajLength = 0;
+for i=1:length(traj)
+    nCol = size(traj(i).observations,2);
+    if nCol > 1
+        disp('--portmanteau: Each trajectory should be a column vector!');
+        errFlag = 1;
+    else
+        trajLength = trajLength + length(find(~isnan(traj(i).observations)));
+    end
+end
 
 %assign default value of maxLag, if needed
 if nargin < 2

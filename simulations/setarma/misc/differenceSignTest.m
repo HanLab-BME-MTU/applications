@@ -3,8 +3,9 @@ function [H,errFlag] = differenceSignTest(traj,significance)
 
 %SYNOPSIS [H,errFlag] = differenceSignTest(traj,significance)
 %
-%INPUT  traj        : Trajectory to be tested. Missing observations should be
-%                     indicated with NaN.
+%INPUT  traj        : Trajectory to be tested. An array of structures
+%                     with the field "observations". Missing data points
+%                     in a trajectory should be indicated with NaN.
 %       significance: Significance level of hypothesis test. Default: 0.95.
 %
 %OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
@@ -13,8 +14,8 @@ function [H,errFlag] = differenceSignTest(traj,significance)
 %REMARK This test is taken from Brockwell and Davis, "Introduction to Time
 %       Series and Forecasting", p.37. It can be used to detect linear
 %       trends in a time series. However, it cannot detect any cyclic
-%       element. 
-
+%       element. Use with caution where there are missing observations.
+%
 %Khuloud Jaqaman, August 2004
 
 %initialize output
@@ -27,7 +28,19 @@ if nargin < 1
     errFlag = 1;
     return
 end
-trajLength = length(find(~isnan(traj)));
+
+%check that trajectories are column vectors and get their overall length
+numTraj = length(traj);
+trajLength = 0;
+for i=1:numTraj
+    nCol = size(traj(i).observations,2);
+    if nCol > 1
+        disp('--turningPointTest: Each trajectory should be a column vector!');
+        errFlag = 1;
+    else
+        trajLength = trajLength + length(find(~isnan(traj(i).observations)));
+    end
+end
 
 %assign default value of significance, if needed
 if nargin < 2
@@ -35,10 +48,14 @@ if nargin < 2
 end
 
 %calculate number of points where x(t) > x(t-1)
-numIncPoints = length(find((traj(2:end)-traj(1:end-1))>0));
+numIncPoints = 0;
+for i = 1:numTraj
+    numIncPoints = numIncPoints + length(find((traj(i).observations(2:end)...
+        -traj(i).observations(1:end-1))>0));
+end
 
 %calculate mean and standard deviation of distribution
-meanIncPoints = (trajLength-1)/2;
+meanIncPoints = (trajLength-numTraj)/2;
 stdIncPoints = sqrt((trajLength+1)/12);
 
 %calculate the test statistic

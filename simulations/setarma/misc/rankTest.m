@@ -3,8 +3,9 @@ function [H,errFlag] = rankTest(traj,significance)
 
 %SYNOPSIS [H,errFlag] = rankTest(traj,significance)
 %
-%INPUT  traj        : Trajectory to be tested. Missing observations should be
-%                     indicated with NaN.
+%INPUT  traj        : Trajectory to be tested. An array of structures
+%                     with the field "observations". Missing observations 
+%                     should be indicated with NaN.
 %       significance: Significance level of hypothesis test. Default: 0.95.
 %
 %OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
@@ -12,8 +13,9 @@ function [H,errFlag] = rankTest(traj,significance)
 %
 %REMARK This test is taken from Brockwell and Davis, "Introduction to Time
 %       Series and Forecasting", p.37. It can be used to detect linear
-%       trends in a time series. 
-
+%       trends in a time series. Use with caution where there are missing 
+%       observations.
+%
 %Khuloud Jaqaman, August 2004
 
 %initialize output
@@ -26,8 +28,19 @@ if nargin < 1
     errFlag = 1;
     return
 end
-availLength = length(find(~isnan(traj)));
-trajLength = length(traj);
+
+%check that trajectories are column vectors and get their overall length
+numTraj = length(traj);
+for i=1:numTraj
+    nCol = size(traj(i).observations,2);
+    if nCol > 1
+        disp('--turningPointTest: Each trajectory should be a column vector!');
+        errFlag = 1;
+    else
+        trajLength(i) = length(traj(i).observations);
+        availLength(i) = length(find(~isnan(traj(i).observations)));
+    end
+end
 
 %assign default value of significance, if needed
 if nargin < 2
@@ -36,13 +49,17 @@ end
 
 %calculate number of points where x(t) > x(t-1)
 numIncPairs = 0;
-for i=1:trajLength-1
-    numIncPairs = numIncPairs + length(find((traj(i+1:end)-traj(i))>0));
+for j = 1:numTraj
+    for i=1:trajLength(j)-1
+        numIncPairs = numIncPairs + length(find((traj(j).observations(i+1:...
+            end)-traj(j).observations(i))>0));
+    end
 end
 
 %calculate mean and standard deviation of distribution
-meanIncPairs = availLength*(availLength-1)/4;
-stdIncPairs = sqrt(availLength*(availLength-1)*(2*availLength+5)/72);
+meanIncPairs = sum(availLength.*(availLength-1))/4;
+stdIncPairs = sqrt(sum(availLength)*(sum(availLength)-1)*...
+    (2*sum(availLength)+5)/72);
 
 %calculate the test statistic
 testStatistic = (numIncPairs-meanIncPairs)/stdIncPairs;

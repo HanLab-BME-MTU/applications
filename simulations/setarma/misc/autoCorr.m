@@ -33,7 +33,7 @@ end
 numTraj = length(traj); %number of trajectories
 for i=1:numTraj
     [trajLength(i),nCol] = size(traj(i).observations); %length of each trajectory
-    if nCol ~= 1
+    if nCol > 1
         disp('--autoCorr: Each trajectory should be a column vector!');
         errFlag = 1;
     end
