@@ -13,7 +13,7 @@ function speckleClasses=fsmAssignSpecklesToClasses(speckleArray)
 %                 .first   : index of 'd' speckle in speckleArray
 %                 .pos     : [y x     Speckle coordinate at actual birth
 %                             y x]    Speckle coordinate at actual death
-%                 .class   : one of ten possible classes (see below)
+%                 .class   : one of 13 possible classes (see below)
 %                 .network : indicates the network (lp or la) to which the speckle belongs
 %                            this field is NOT FILLED in this function, but in assignSpecklesToNetworks
 %

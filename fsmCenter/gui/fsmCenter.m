@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 04-Aug-2004 11:40:43
+% Last Modified by GUIDE v2.5 11-Aug-2004 19:06:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -528,11 +528,11 @@ function checkMoveROI_Callback(hObject, eventdata, handles)
 
 function pushHelpKin_Callback(hObject, eventdata, handles)
 %uiwait(msgbox('Sorry, help not available yet.','Help','modal'));
-help fsmWaveAnalysis;
+web(['file:///' which('qFSM_default.html')]);
 
 function pushHelpFlow_Callback(hObject, eventdata, handles)
 %uiwait(msgbox('Sorry, help not available yet.','Help','modal'));
-help fsmVectorAnalysis;
+web(['file:///' which('qFSM_default.html')]);
 
 function checkPowerSpectrum_Callback(hObject, eventdata, handles)
 if get(handles.checkPowerSpectrum,'Value')==1
@@ -663,7 +663,7 @@ function pushHelpSpeed_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %uiwait(msgbox('Sorry, help not available yet.','Help','modal'));
-help fsmSpeedMaps;
+web(['file:///' which('qFSM_default.html')]);
 
 % --- Executes during object creation, after setting all properties.
 function editYSP_CreateFcn(hObject, eventdata, handles)
@@ -903,7 +903,7 @@ function pushHelpPlotTraj_Callback(hObject, eventdata, handles)
 % hObject    handle to pushHelpPlotTraj (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-help fsmPlotTrajectories;
+web(['file:///' which('qFSM_default.html')]);
 
 
 % --- Executes on button press in radioPTMethod1.
@@ -1086,7 +1086,7 @@ function pushHelpTurnover_Callback(hObject, eventdata, handles)
 % hObject    handle to pushHelpTurnover (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-help fsmKineticMaps;
+web(['file:///' which('qFSM_default.html')]);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1490,4 +1490,70 @@ function editSMBitDepth_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editSMBitDepth as text
 %        str2double(get(hObject,'String')) returns contents of editSMBitDepth as a double
 
+
+
+
+% --- Executes on button press in pushAssignSpecklesToClasses.
+function pushAssignSpecklesToClasses_Callback(hObject, eventdata, handles)
+% hObject    handle to pushAssignSpecklesToClasses (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Load speckleArray.mat
+[fName,dirName] = uigetfile(...
+    {'speckleArray.mat;','speckleArray.mat';
+    '*.*','All Files (*.*)'},...
+    'Select speckleArray.mat');
+if ~(isa(fName,'char') & isa(dirName,'char'))
+    return
+end
+load([dirName,fName]);
+if exist('speckleArray')~=1
+    % The loaded speckleArray is invalid
+    uiwait(msgbox('The loaded speckleArray is invalid.','error','modal'));
+    return
+end
+
+% Check that the speckleArray is not in the old format
+if ~(length(speckleArray)==1 & length(speckleArray(1).timepoint)>1)
+    disp('This speckleArray structure is in the old format. Use ''Convert speckleArray'' in fsmCenter to update it and then retry.');
+    return
+end
+
+% Assign speckles to classes
+speckleClasses=fsmAssignSpecklesToClasses(speckleArray);
+
+% Save
+quit=0;
+rounds=0;
+while quit==0
+    rounds=rounds+1;
+    if rounds==1
+        path=uigetdir(dirName,'Please select a directory where to save speckleClasses.mat');
+    else
+        path=uigetdir(dirName,'Please specifiy a different directory or click on cancel to leave whithout saving');
+    end
+    if path~=0
+        if exist([path,filesep,'speckleClasses.mat'])==2
+            choice=questdlg('A speckleClasses.mat file already exists in this directory. Do you want to overwrite it?','User input requested','Yes','No','Yes');
+            switch choice,
+                case 'Yes', save([path,filesep,'speckleClasses.mat'],'speckleClasses'); quit=1; uiwait(msgbox('speckleClasses.mat successfully saved.','Info','modal'));
+                case 'No', % Do nothing
+            end % switch
+        else
+            save([path,filesep,'speckleClasses.mat'],'speckleClasses'); quit=1; uiwait(msgbox('speckleClasses.mat successfully saved.','Info','modal'));
+        end
+    else
+        disp('Aborted.');
+        quit=1;
+    end
+end
+
+
+% --- Executes on button press in pushHelpAssignClasses.
+function pushHelpAssignClasses_Callback(hObject, eventdata, handles)
+% hObject    handle to pushHelpAssignClasses (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+web(['file:///' which('qFSM_speckleclasses.html')]);
 
