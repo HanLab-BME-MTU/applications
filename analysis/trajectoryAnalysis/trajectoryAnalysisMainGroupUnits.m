@@ -256,7 +256,7 @@ switch STRATEGY
                         %calculate linear fit. a0+a1*x=y
                         [X,XSigma,XSigmaZeroH] = myLscov(A,B,V);
                         
-%                         if XSigma(2) == 0
+%                         if XSigma(2) < 1e-13
 %                             keyboard
 %                         end
                         
@@ -286,12 +286,16 @@ switch STRATEGY
                             chi2 = sum(res'*weightMatrix*res)/(ntp-2); %weighted stats!
                             
                             if chi2 == 0
-                                res = max(res,realmin*10);
-                                chi2 = 100 * realmin;
+                                res = max(res,eps);
+                                chi2 = eps;
                             end
                             
                             %calculate sigmaApriori
-                            sigmaApriori = XSigma/sqrt(XSigmaZeroH);
+                            if real(XSigmaZeroH) <= 0 
+                                sigmaApriori = [NaN; NaN];
+                            else
+                                sigmaApriori = XSigma/sqrt(XSigmaZeroH);
+                            end
                             
                             %CHECK FOR OUTLIERS: If there are individual
                             %datapoints that are not compatible with the
