@@ -15,7 +15,9 @@ function imarisApplication = imarisPlot3(plotData,aspectRatio)
 %                    Opacity of 0 = opaque. Default: [1,0,0,0]
 %               - name (opt) : name of group of spots. Default: data_#,
 %                    where # is the place of the set in the structure
-%               - time (opt) : timepoint where the group should be plotted
+%               - time (opt) : timepoint where the group should be plotted.
+%                    Can be set individually for each spot (like
+%                    spotRadius). Default: 1.
 %           aspectRatio (opt): Aspect ratio of the data. With the default,
 %                              [1,1,1], the plot box has the shape of a
 %                              cube. Specify [0,0,0] if a unit step should
@@ -59,6 +61,7 @@ end
 
 % loop through structure and make sure everything's allright
 nGroups = length(plotData);
+nCoords = zeros(nGroups,1);
 
 for i = 1:nGroups
     if isempty(plotData(i).XYZ)
@@ -75,21 +78,23 @@ for i = 1:nGroups
     if size(plotData(i).XYZ,1)==1
         plotData(i).XYZ = repmat(plotData(i).XYZ,[2,1]);
     end
+    
+    nCoords(i) = size(plotData(i).XYZ,1);
 
     % test spotSize
     if ~isfield(plotData,'spotRadius') || isempty(plotData(i).spotRadius)
         % fill in spotRadius
         plotData(i).spotRadius = ...
-            repmat(def_spotRadius,size(plotData(i).XYZ,1),1);
+            repmat(def_spotRadius,nCoords(i),1);
 
         % make sure there are enough radii
     elseif length(plotData(i).spotRadius) == 1
         plotData(i).spotRadius = ...
-            repmat(plotData(i).spotRadius,size(plotData(i).XYZ,1),1);
+            repmat(plotData(i).spotRadius,nCoords(i),1);
 
     else
         plotData(i).spotRadius = returnRightVector(plotData(i).spotRadius);
-        if length(plotData(i).spotRadius) ~= size(plotData(i).XYZ,1)
+        if length(plotData(i).spotRadius) ~= nCoords(i)
             error('if a list of radii is given, it has to match the number of coordinates!')
         end
 
@@ -115,6 +120,17 @@ for i = 1:nGroups
     % time
     if ~isfield(plotData,'time') || isempty(plotData(i).time)
         plotData(i).time = 1;
+    end
+    if length(plotData(i).time) == 1
+        % adjust number of time
+        plotData(i).time = repmat(plotData(i).time,[nCoords(i), 1]);
+    else
+        % make sure the time vector has the correct length
+        plotData(i).time = returnRightVector(plotData(i).time);
+        if length(plotData(i).time) ~= nCoords(i)
+            error('if a list of timepoints is given, it has to match the number of coordinates!')
+        end
+
     end
 end
 
@@ -288,14 +304,14 @@ for iGroup = 1:nGroups
     imaSpots = imaApp.mFactory.CreateSpots;
 
     % set spots
-    nCoords = size(plotData(iGroup).XYZ,1);
+    
     if doTransform
         coords = single((plotData(iGroup).XYZ - repmat(origin,[nCoords,1]) )...
             ./ repmat(divideRange,[nCoords,1]));
     else
         coords = single(plotData(iGroup).XYZ);
     end
-    imaSpots.Set(coords, single(repmat(plotData(iGroup).time-1,[nCoords,1])),...
+    imaSpots.Set(coords, single(plotData(iGroup).time-1),...
         single(plotData(iGroup).spotRadius));
 
 
@@ -331,7 +347,7 @@ yString = sprintf('Ymin: %f, Ymax: %f, Ystep: %f',...
 zString = sprintf('Zmin: %f, Zmax: %f, Zstep: %f',...
     plotBoxData(3,:));
 %plot to command line
-disp(sprintf(['axis limits and step sizes:\n'xString '\n' yString '\n' zString]))
+disp(sprintf(['axis limits and step sizes:\n' xString '\n' yString '\n' zString]))
 
 %=========================
 
