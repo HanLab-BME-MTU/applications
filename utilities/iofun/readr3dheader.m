@@ -53,6 +53,7 @@ header.pixelX = fread(fid,1,'float');
 header.pixelY = fread(fid,1,'float');
 header.pixelZ = fread(fid,1,'float');
 
+
 %offset
 fseek(fid,128,-1);
 nint=fread(fid,1,'short');
@@ -119,6 +120,37 @@ else
 end;
 
 fclose(fid);
+
+%-------------------------------
+% correct pixelsize if necessary
+%-------------------------------
+d = dir(fname);
+date = datenum(d.date);
+firstDate = datenum('01-Mar-2002');
+lastDate  = datenum('01-May-2004');
+
+% make sure we get the right thing
+isLaterThanFirst = date > firstDate;
+isBeforeLast     = date < lastDate;
+isSmallPix       = abs(1-header.pixelX/0.0515) < 0.001;
+isLargePix       = abs(1-header.pixelX/0.0720) < 0.001;
+isRightLens      = header.lensID == 12003;
+
+% correct if necessary
+if isRightLens & (isSmallPix | isLargePix)
+    if isLaterThanFirst
+        if isBeforeLast
+            % using so many digits after the decimal is kind of nonsense,
+            % but API wants at least six, so we give them eight
+            header.pixelX = 0.04803126;
+            header.pixelY = 0.04803126;
+        end
+    else
+        warning('Very old movie - pixelsize might be slightly off!')
+    end
+end
+
+%-------------------------------
 
 % header structure:
 

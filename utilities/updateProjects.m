@@ -28,8 +28,9 @@ function updateProjects(varargin)
 
 changePath = 0;
 changePixelsize = 0;
-pixelsizeOld = 94/1825;
-pixelsizeNew = 0.072;
+pixelsizeOld(1) = 0.0515;
+pixelsizeOld(2) = 0.0720;
+pixelsizeNew = 0.04803126;
 cleanupFiles = 0;
 
 %========================
@@ -119,6 +120,7 @@ mainDirLength = length(mainDir);
 
 for iProject = 1:size(listOfDataFiles,1)
     
+    
     % init var to remember changed vars, so that we only save the necessary
     % vars of the data file
     changedVariables = cell(0);
@@ -126,6 +128,30 @@ for iProject = 1:size(listOfDataFiles,1)
     % load the current project file
     currentDir = [listOfDataFiles{iProject,2}, filesep];
     projectDataFile = load([currentDir,listOfDataFiles{iProject,1}]);
+    
+    disp(['updating ' currentDir]);
+    
+    
+    %==================
+    % find whether to change pixelsize
+    %==================
+    % compare approx. pixelsize - we would never get
+    % it right, otherwise
+    d = dir([currentDir '*.r3d']);
+    movieDate = datenum(d.date);
+    firstDate = datenum('01-Mar-2002');
+    lastDate  = datenum('01-May-2004');
+    
+    % make sure we get the right thing
+    isLaterThanFirst = movieDate > firstDate;
+    isBeforeLast     = movieDate < lastDate;
+    
+    isSmallPix       = abs(1-projectDataFile.dataProperties.PIXELSIZE_XY/pixelsizeOld(1)) < 0.001;
+    isLargePix       = abs(1-projectDataFile.dataProperties.PIXELSIZE_XY/pixelsizeOld(2)) < 0.001;
+    isRightLens      = projectDataFile.dataProperties.LENSID == 12003;
+    
+    reallyChangePixelsize = changePixelsize & isRightLens & (isSmallPix | isLargePix) & isLaterThanFirst & isBeforeLast;
+    %-------------------------
     
     %==========
     % CLEANUP
@@ -189,9 +215,9 @@ for iProject = 1:size(listOfDataFiles,1)
         delete([currentDir 'tmpDataProperties*']);
         
         %-------------------------------------------
-        % save idlists out of projectDataFile
         
-        if ~(changePixelsize & strcmp(rats(projectDataFile.dataProperties.PIXELSIZE_XY),rats(pixelsizeOld)))
+        
+        if ~(reallyChangePixelsize)
             if isfield(projectDataFile,'idlist')
                 idlist = projectDataFile.idlist;
                 if iscell(idlist(1).stats.created)
@@ -258,11 +284,14 @@ for iProject = 1:size(listOfDataFiles,1)
     % idlists and update (otherwise, just write to file). Then, update the
     % r3dHeader and tmpDataProperties
     
-    % compare rational approximation to the pixelsize - we would never get
-    % it right, otherwise
-    if changePixelsize & strcmp(rats(projectDataFile.dataProperties.PIXELSIZE_XY),rats(pixelsizeOld));
+    
+    if reallyChangePixelsize;
         
-        pixelsizeRatio = pixelsizeNew/pixelsizeOld;
+        if isSmallPix
+            pixelsizeRatio = pixelsizeNew/pixelsizeOld(1);
+        else % large pix
+            pixelsizeRatio = pixelsizeNew/pixelsizeOld(2);
+        end
         
         
         % change pixelsize in dataProperties. Change sigmaCorrection, too,
@@ -331,7 +360,7 @@ for iProject = 1:size(listOfDataFiles,1)
                         idlist_L(t).linklist(:,9:10) = idlist_L(t).linklist(:,9:10)*pixelsizeRatio;
                     end
                 end
-                idlist_L(1).stats.status{end+1} = [date ': changed XY pixelsize'];
+                idlist_L(1).stats.status{end+1} = [date ' : changed XY pixelsize'];
                 projectDataFile.idlist_L = idlist_L;
                 changedVariables{end+1} = 'idlist_L';
                 

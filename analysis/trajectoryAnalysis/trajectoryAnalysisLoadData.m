@@ -113,6 +113,9 @@ else
     if isfield(loadOptions,'calculateTrajectoryOpt')
         calculateTrajectoryOpt = loadOptions.calculateTrajectoryOpt;
     end
+    if isfield(loadOptions,'randomize')
+        randomize = loadOptions.randomize;
+    end
         
 end
 
