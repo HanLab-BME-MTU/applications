@@ -39,10 +39,11 @@ hPos=reshape([cands(higher).Lmax],2,length([cands(higher).Lmax])/2)';
 % Plot speckles 
 %    All speckles of a certain type are in one plot -   
 %    this allows to easily change their properties 
-plot(pPos(:,2),pPos(:,1),'ro'); % Primary speckles
-plot(sPos(:,2),sPos(:,1),'yo'); % Secondary peckles
-plot(tPos(:,2),tPos(:,1),'go'); % Tertiary speckles
-plot(hPos(:,2),hPos(:,1),'co'); % Higher-order speckles
+hold on;
+plot(pPos(:,2),pPos(:,1),'r.'); % Primary speckles
+plot(sPos(:,2),sPos(:,1),'y.'); % Secondary peckles
+plot(tPos(:,2),tPos(:,1),'g.'); % Tertiary speckles
+plot(hPos(:,2),hPos(:,1),'c.'); % Higher-order speckles
 
 % Title
 title('Speckle order - Red: 1st, Yellow: 2nd, Green: 3rd, Cyan: 4th and above'); 
