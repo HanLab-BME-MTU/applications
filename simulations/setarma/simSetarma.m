@@ -166,4 +166,4 @@ end
 traj = traj(10*shift+1:end);
 
 %shift trajectory so that it has zero mean
-traj = traj - mean(traj);
+% traj = traj - mean(traj);

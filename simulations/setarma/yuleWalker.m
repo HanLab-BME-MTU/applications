@@ -1,7 +1,7 @@
 function [arParam,noiseSigma,errFlag] = yuleWalker(traj,arOrder)
 %YULEWALKER estimates the parameters of an AR process using the Yule-Walker Equations
 %
-%SYNOPSIS [arParam,errFlag] = yuleWalker(traj,arOrder)
+%SYNOPSIS [arParam,noiseSigma,errFlag] = yuleWalker(traj,arOrder)
 %
 %INPUT  traj   : Trajectory to be modeled.
 %       arOrder: Order of proposed AR model.
