@@ -189,3 +189,29 @@ for iGroup = 1:nGroups
     
 end
 
+%===========================
+
+
+%===========================
+% SHOW DATA ABOUT AXES
+%===========================
+
+% since it is not possible in Imaris to set axes labels, we give the
+% information in matlab
+xStep = dataRange(1)/10;
+yStep = dataRange(2)/10;
+zStep = dataRange(3)/10;
+xString = sprintf('Xmin: %f, Xmax: %f, Xstep: %f',...
+    dataExtent(1,1)-1.5*xStep,...
+    dataExtent(2,1)+1.5*xStep,...
+    xStep);
+yString = sprintf('Ymin: %f, Ymax: %f, Ystep: %f',...
+    dataExtent(1,2)-1.5*yStep,...
+    dataExtent(2,2)+1.5*yStep,...
+    yStep);
+zString = sprintf('Zmin: %f, Zmax: %f, Zstep: %f',...
+    dataExtent(1,3)-1.5*zStep,...
+    dataExtent(2,3)+1.5*zStep,...
+    zStep);
+%plot to command line
+sprintf([xString '\n' yString '\n' zString])
