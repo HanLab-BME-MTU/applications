@@ -7,7 +7,7 @@ function ptTrackCells(hObject,projNum)
 %                projNum : which job is currently being dealt with
 %
 % OUTPUT         All outputs are written directly to disk 
-%                M : described in trackLinker
+%                M : described in ptTrackLinker
 %                cellProps : cellProps(:,1)=coord(:,1);
 %	 	             cellProps(:,2)=coord(:,2);
 %		             cellProps(:,3)=belongsto(:);  (number of cluster - label)
@@ -17,9 +17,9 @@ function ptTrackCells(hObject,projNum)
 %                binaryImage is the binary image of the areas occupied by cells                
 %
 % DEPENDENCIES   ptTrackCells uses { imClusterSeg
-%				   trackLinker
+%				   ptTrackLinker
 %				   checkMinimalCellCell
-%				   findNucloiTrack
+%				   ptFindNucloiTrack
 %				   body
 %				   ptFindHalos
 %				   templfindertrack }
@@ -226,7 +226,7 @@ else
                'k_cluster', 3);
                         
             % Find areas that are really dark and match cells into them
-            [coordNuc, regmax] = findNucloiTrack(seg_img, levDiffFirst, minSizeNuc, maxSizeNuc, 1);
+            [coordNuc, regmax] = ptFindNucloiTrack(seg_img, levDiffFirst, minSizeNuc, maxSizeNuc, 1);
                         
             % Find cells that look like the third eye (round, big spots of
             % pure light). We do this because the pictures are of poor
@@ -237,7 +237,7 @@ else
          % difference is the last parameter in the function call: 2
          elseif segmentation
             % Find areas that are really dark and match cells into them
-            [coordNuc, regmax] = findNucloiTrack(newImg, levDiffFirst, minSizeNuc, maxSizeNuc, 2);
+            [coordNuc, regmax] = ptFindNucloiTrack(newImg, levDiffFirst, minSizeNuc, maxSizeNuc, 2);
 
             % And again find the cells that look like big bright spots
             [haloCoord, logihalo] = ptFindHalos(newImg, erodeDiskSize,haloLevel, 2);
@@ -297,12 +297,12 @@ else
             [seg_img, dummy, mu0] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', mu0);
                           
             coordNuc = [];
-            [coordNuc,regmax] = findNucloiTrack(seg_img,levDiffInterpol,minSizeNuc,maxSizeNuc,1);
+            [coordNuc,regmax] = ptFindNucloiTrack(seg_img,levDiffInterpol,minSizeNuc,maxSizeNuc,1);
             [haloCoord,logihalo] = ptFindHalos(seg_img,erodeDiskSize,haloLevel,1);
 	                   
          elseif segmentation
             haloLevel = (levHaloFirst-levBackFirst)*2/3+levBackFirst;
-            [coordNuc,regmax] = findNucloiTrack(newImg,levDiffInterpol,minSizeNuc,maxSizeNuc,2);
+            [coordNuc,regmax] = ptFindNucloiTrack(newImg,levDiffInterpol,minSizeNuc,maxSizeNuc,2);
             [haloCoord,logihalo] = ptFindHalos(newImg,erodeDiskSize,haloLevel,2);
          else
             disp('you have to choose one of the methods, clustering or segmentation')
@@ -566,7 +566,7 @@ else
             xtempl = [];
             ytempl = [];
                                
-            MPMslide = trackLinker(M(:,:,(countLoops-howManyTimeStepSlide+1):(countLoops-1)));
+            MPMslide = ptTrackLinker(M(:,:,(countLoops-howManyTimeStepSlide+1):(countLoops-1)));
             %MPMslide is a matrix which gives the tracks of all cells over
             %the last ? frames. It get's updated after every new frame.
                   
@@ -882,7 +882,7 @@ else
    %it's all over now. All we have to do is change the format of the
    %information we have painstakingly gathered
    %cd (saveDirectory)
-   %MPM = trackLinker(M);
+   %MPM = ptTrackLinker(M);
 end
          
 % AK: the comments below are kept because Colin has worked so hard on them :-)

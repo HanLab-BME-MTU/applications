@@ -1,7 +1,7 @@
-function [MPM,M]=trackLinker(M)
-% trackLinker creates the magic position matrix MPM from M
+function [MPM,M]=ptTrackLinker(M)
+% ptTrackLinker creates the magic position matrix MPM from M
 %
-% SYNOPSIS      [MPM,M]=trackLinker(M)
+% SYNOPSIS      [MPM,M]=ptTrackLinker(M)
 %
 % INPUT         M          : M stack as returned by the tracker functions
 %                                  M = [y x y x]   [y x y x]   [y x y x]
@@ -62,7 +62,7 @@ for counter1 = 1 : size(M,3) - 1
          % No matching found -> error!
          if isempty(y)
              fprintf(1, 'Time points %d to %d.\n', counter1, counter1 + 1);
-             warning('trackLinker: Warning! Correspondance not found.');
+             warning('ptTrackLinker: Warning! Correspondance not found.');
              tM(counter2,:)=0; % -1;   
 %               if M(counter2,3,counter1+1)~=0
 %                        M(end+1,:,:)=0;

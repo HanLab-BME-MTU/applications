@@ -36,7 +36,7 @@ clear count;
 
 
 %ensure minimal distance between dark, nasty-looking cells and
-%third eyes (look above(findNucloiTrack,ptFindHalos))
+%third eyes (look above(ptFindNucloiTrack,ptFindHalos))
 namesnumbers=[0,0];
 if isempty(altercoor) == 0
     for h=1:size(altercoor,1)
