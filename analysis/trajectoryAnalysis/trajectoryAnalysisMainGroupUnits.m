@@ -51,7 +51,7 @@ minDifferent = 1;
 %----END FIND GROUPS TO FIT
 
 %test that we want to fit at all
-if isempty(group2List)
+if isempty(group2List) | all(group2List(:,2)<minLength)
     return
 end
 

@@ -120,6 +120,7 @@ deletedTimeTotal = 0;
 
 
 
+
 %----END INIT VARIABLES
 
 %--- OVERALL STATISTICS
@@ -247,8 +248,9 @@ sigmaMax  = max(dataListG(:,5:6),[],2);
 sigmaMax2 = sigmaMax.^2; 
 
 % 
-
-%growth statistics
+%====================
+% growth statistics
+%====================
 
 if ~isempty(growthIdx)
     %speed -- weight sigma and time
@@ -327,7 +329,10 @@ end
 % 
 % 
 % 
+%====================
 % %shrinkage statistics
+%====================
+
 if ~isempty(shrinkageIdx)
     
     % old sigma - if used, change distributions below!!
@@ -404,13 +409,30 @@ end
 
 
 
-%calculate additional stats
+%====================
+% calculate additional stats
+%====================
 divisor = (undeterminedTimeTotal+...
     growthTimeTotal+shrinkageTimeTotal+pauseTimeTotal);
 undeterminedTimeRatio = 100*undeterminedTimeTotal/divisor;
 growthTimeRatio = 100*growthTimeTotal/divisor;
 shrinkageTimeRatio = 100*shrinkageTimeTotal/divisor;
 pauseTimeRatio = 100*pauseTimeTotal/divisor;
+
+% J and L (see Verde et al, 1992)
+if ~isempty(growthSpeedMeanNW) & ~isempty(shrinkageSpeedMeanNW) & ~isempty(invGrowthTimeMean) & ~isempty(invShrinkageTimeMean)
+   
+    fres = invShrinkageTimeMean/60; % transform into um/min
+    fcat = invGrowthTimeMean/60;    % same
+    
+    % J = [vg*fres-vs*fcat]/[fcat+fres]
+    jVerdeEtAl = (growthSpeedMeanNW * fres - abs(shrinkageSpeedMeanNW) * fcat)/(fcat + fres);
+    lVerdeEtAl = (growthSpeedMeanNW * shrinkageSpeedMeanNW) / (abs(shrinkageSpeedMeanNW) * fcat - growthSpeedMeanNW * fres);
+    
+else
+    jVerdeEtAl = NaN;
+    lVerdeEtAl = NaN;
+end
 
 %write statistics structure
 % 
@@ -425,9 +447,10 @@ statisticsStruct = struct(...
     'minDistanceM5' ,             [minDistanceM5 , minDistanceM5Std],...
     'maxDistance' ,               [maxDistance , maxDistanceStd],...
     'maxDistanceM5' ,             [maxDistanceM5 , maxDistanceM5Std],...
-    'antipolewardDistance' ,      [growthDistanceMean , growthDistanceStd],...
-    'polewardDistance' ,          [shrinkageDistanceMean , shrinkageDistanceStd],...
-    'undeterminedDistance' ,      [undeterminedDistanceMean , undeterminedDistanceStd],...
+    'avgApDistance' ,             [growthDistanceMean , growthDistanceStd],...
+    'avgTpDistance' ,             [shrinkageDistanceMean , shrinkageDistanceStd],...
+    'avgUndetDistance' ,          [undeterminedDistanceMean , undeterminedDistanceStd],...
+    'jAndLVerdeEtAl',             [jVerdeEtAl , lVerdeEtAl],...
     'antipolewardTime' ,          [growthTimeTotal,growthTimeRatio],...
     'polewardTime' ,              [shrinkageTimeTotal,shrinkageTimeRatio],...
     'pauseTime' ,                 [pauseTimeTotal,pauseTimeRatio],...

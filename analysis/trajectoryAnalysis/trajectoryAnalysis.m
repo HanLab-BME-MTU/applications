@@ -1,4 +1,4 @@
-function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(data,ioOpt,testOpt)
+function [trajectoryDescription] = trajectoryAnalysis(data,ioOpt,testOpt)
 %TRAJECTORYANALYSIS analyzes experimental and simulated microtubule trajectories and returns corresponding statistical descriptors
 %
 % SYNOPSIS  [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(data,ioOpt,testOpt)
@@ -25,6 +25,8 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %                             Verbose = [] or [0] does not show anything.
 %                             Asking for savePaths is not affected by
 %                             verbose settings
+%           - loadData      : [{0}/1] if data is given as input: whether to
+%                               ask for more data or not
 %           - saveTxt       : write statistics in text file? [0/{1}]
 %           - saveTxtPath   : if saveTxt is 1, specify the path to save.
 %                               if does not end with filesep, program
@@ -57,6 +59,8 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %           - debug         : [{0}/1] turns on debug features
 %           - randomize     : [{0}/1] randomize the input list
 %           - clustermax    : max # of clusters the EM algorithm looks for
+%           - downsample    : [1] takes only every nth point, returns n
+%                               times more trajctories
 %
 % OUTPUT trajectoryDescription
 %           .individualStatistics(1:n)
@@ -96,20 +100,22 @@ fileNameList = {'data_1'};
 calculateTrajectoryOpt.calc2d = 0; %1 or 2 if MP/in-focus slices only
 expOrSim = 'x';
 clusterData = 0;
+loadData = 0;
 
 % test opt
 DEBUG = []; %[1,2] for groupUnits
 splitData = 0; % whether or not to split the data into two sets (to check the homogenity of the sample)
 randomize = 0; % whether or not to randomize the order of the input data
 CLUSTERMAX = 5;
+downsample = 1; % 1 means no downsampling
 
 % other
 fidTxt = [];
+fileList = [];
 
 %defaults not in inputStructure (see also constants!)
 writeShortFileList = 1; %writes everything on one line.
-standardTag1 = 'spb1';
-standardTag2 = 'cen1';
+standardTags = {'spb1';'cen1'};
 
 
 constants.TESTPROBABILITY = 0.95;
@@ -119,6 +125,7 @@ constants.PROBF = 0.7; % probability for whether linear fit is better than pause
 constants.STRATEGY = 1; % fitting strategy
 constants.MINLENGTH = 2; % minimum length of a unit
 constants.MAXDELETED = 0; % max number of deleted frames between two timepoints that is accepted
+constants.MINTRAJECTORYLENGTH = 10;
 constants.DEBUG = DEBUG; 
 constants.DOCLUSTER = clusterData; % this does not really belong here, but it's easiest to pass it with the constants
 constants.CLUSTERMIN = 1; % min # of cluster the EM algorithm looks for
@@ -171,24 +178,15 @@ clear h b s
 
 %lookfor data
 if nargin == 0 | isempty(data)
-    loadData = 1;
+    loadDataForced = 1; % we override the default
+    data = [];
+    dataRmIdx = [];
+    
 else
-    loadData = 0;
+    loadDataForced = 0;
+    % test data
+    [data,dataRmIdx] = trajectoryAnalysisIsGoodData(data,constants);
     
-    %make sure input is complete
-    if ~isfield(data,'distance') | ~isfield(data,'time') | ~isfield(data,'timePoints') 
-        error('please check your input structure!')
-    end
-    
-    %add the info.tags field if it's missing
-    if ~isfield(data,'info') 
-        data(1).info = [];
-    end
-    for nData = 1:length(data)
-        if ~isfield(data(nData).info,'tags') | isempty(data(nData).info.tags)
-            data(nData).info.tags = {standardTag1,standardTag2};
-        end
-    end
 end
 
 %go through options
@@ -279,6 +277,15 @@ else
     if isfield(ioOpt,'fileNameList')
         if iscell(ioOpt.fileNameList)
             fileNameList = ioOpt.fileNameList;
+            % make sure we remove fileNames if we have removed data
+            if ~isempty(dataRmIdx)
+                if length(fileNameList)>1
+                    fileNameList(dataRmIdx) = [];
+                else
+                    %there was an error already because we killed all the
+                    %data
+                end
+            end
         else
             error('ioOpt.fileNameList has to be a cell array of strings!')
         end
@@ -296,32 +303,14 @@ else
     if isfield(ioOpt,'clusterData')
         constants.DOCLUSTER = ioOpt.clusterData;
     end
-end
-
-%make sure that we have enough fileNames
-if ~loadData %loading data we ourselves make sure it's ok
-    lengthFNL = length(fileNameList);
-    lengthData = length(data);
-    if (lengthData > lengthFNL) 
-        %if more data than fnl : fill fnl if length 1
-        %if > 1 return error
-        %if less data than fnl : return warning
-        if lengthFNL == 1
-            if isempty(fileNameList{1}) || strcmp(fileNameList{1},'data_1');
-                dataStr = [repmat('data_',[lengthData,1]),num2str([1:lengthData]')]; %string data_  1 - data_999
-                dataStr = regexprep(dataStr,' ','_'); %dataStr = data___1 - data_999
-                fileNameList = cellstr(dataStr);
-            else
-                fileNameList = repmat(fileNameList,[lengthData,1]);
-            end
-        else
-            error('not enough fileNames in ioOpt.fileNameList!')
-        end
-    elseif lengthData < lengthFNL
-        warning('there are more fileNames than data - assignment of names could be inaccurate!')
+    if isfield(ioOpt,'loadData')
+        loadData = ioOpt.loadData;
     end
 end
-    
+
+% == decide load data. If one of them is 1, load.
+loadData = max(loadData,loadDataForced);
+
 
 %check testOpt
 
@@ -341,6 +330,9 @@ else
     if isfield(testOpt,'clustermax')
         constants.CLUSTERMAX = testOpt.clustermax;
     end
+    if isfield(testOpt,'downsample')
+        downsample = max(testOpt.downsample,1); % has to be at least 1
+    end
 end
 
 %===================================================================
@@ -349,21 +341,19 @@ end
 
 
 
-%===================================================================
-%----------assign output---
-%===================================================================
-trajectoryDescription = [];
-trajectoryDescription2 = [];
-%--------------------------
+
 
 
 %===================================================================
 %--------------LOAD DATA & ASK FOR PATHS---------
 %===================================================================
+
+oldDir = pwd; %remember old dir before loading
+
 if loadData
     
     %go to biodata. remember oldDir first
-    oldDir = pwd;
+    
     cdBiodata(2);
     
     %buld a list of data files
@@ -430,8 +420,8 @@ if saveMat
         %tell the user what's going on
         ans = myQuestdlg(helpTxt,'','OK','cancel','OK');
         if strcmp(ans,'OK')
-        
-        [saveMatName,saveMatPath] = uiputfile({'*.mat;*.mt*','MT-dynamics files'},'save results as mat file');
+            
+            [saveMatName,saveMatPath] = uiputfile({'*.mat;*.mt*','MT-dynamics files'},'save results as mat file');
         else
             saveMatName = 0;
         end
@@ -443,81 +433,30 @@ if saveMat
         
     end
 end
-   
-%resume loading data
-if loadData
-    
-    %count number of files
-    nFiles = length(fileList);
-    
-    if nFiles == 0 %& noOtherFiles
-        disp('no files loaded - end evaluation')
-        return
-    end
-        
-    
-%     %define vars
-%     rawData(1:nFiles) = struct('distance',[],'time',[],'timePoints',[]);
-    
-    ct = 1; %change this counter if we allow passing data && loading
-    
-    problem = [];
-    %load the data
-    for i = 1:length(fileList)
-        
-        
-        try
-        %load all
-        allDat = load(fileList(i).file);
-        
-        %load the idlist specified in lastResult
-        eval(['idlist2use = allDat.',allDat.lastResult,';']);
-        
-        
-        
-        %---prepare calculate trajectory
-        
-        %choose tags
-        %check whether there is a non-empty field opt, else just use spb1
-        %and cen1
-        flopt = fileList(i).opt; %increase readability
-        if isempty(flopt) | length(flopt)<3  | isempty(flopt{2}) | isempty(flopt{3})%there could be more options in the future!
-            tag1 = 'spb1';
-            tag2 = 'cen1';
-        else
-            tag1 = fileList(i).opt{2};
-            tag2 = fileList(i).opt{3};
-        end
-        
-        %store identifier
-        if isempty(fileList(i).opt) | isempty(fileList(i).opt{1})
-            calculateTrajectoryOpt.identifier = 'NONE';
-        else
-            calculateTrajectoryOpt.identifier = fileList(i).opt{1};
-        end
-        
-        %-----calculate trajectory
-        data(ct) = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
-        %-------------------------
-        
-        %remember fileName
-        fileNameList{ct} = fileList(i).file;
-        ct = ct + 1;
-        
-        
-        catch
-            if isempty(problem)
-                problem = lasterr;
-            end
-            disp([fileList(i).file, ' could not be loaded:',char(10),problem])
-        end
-        
-        clear lr id dp
-    end %for i = 1:length(fileList)
-    cd(oldDir);
-end %if loadFiles
 
-clear fileList helpTxt problem i nFiles allDat
+%resume loading data - downsampling is done in tALoadDAta
+   
+%count number of files
+nFiles = length(fileList);
+
+if nFiles == 0 & isempty(data)
+    disp('no files loaded - end evaluation')
+    return
+end
+
+%========= LOAD DATA & SET UP RUNS ===============================
+% new data is appended to old one
+loadOptions = struct('standardTags', {standardTags},...
+    'downsample', downsample,...
+    'splitData', splitData,...
+    'randomize', randomize);
+
+[run, fileNameListSave] = trajectoryAnalysisLoadData(fileList, constants, data, fileNameList, loadOptions);
+%===================================================
+
+cd(oldDir);
+
+clear fileList helpTxt problem i data fileNameList 
 
 %===================================================================
 %----------END LOAD DATA  & ASK FOR PATHS---------
@@ -553,7 +492,7 @@ if saveTxt
     
     %now loop through the fileNameList, find the identifier and write the
     %file
-    for nFile = 1:length(fileNameList)
+    for nFile = 1:length(fileNameListSave)
         
         %init variables
         identifier = '';
@@ -564,7 +503,7 @@ if saveTxt
         tagList = data(nFile).info.tags;
         
         %read fileName
-        fileName = fileNameList{nFile};
+        fileName = fileNameListSave{nFile};
         lengthFileName = length(fileName);
         
         %now sieve the fileName until we find the identifier, or know for
@@ -609,7 +548,7 @@ if saveTxt
         
         %now write everything to file
         fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'], identifier, tagList{1}, tagList{2}, restOfFileName);
-           
+        
         
     end %for nFile = 1:length(fileNameList)
     
@@ -622,41 +561,7 @@ end
 %----------END WRITE FILE-LIST--------
 %===================================================================
 
-%===================================================================
-%----------COMPARE TWO DATA SETS / RANDOMIZE
-%===================================================================
 
-if splitData
-    nData = length(data);
-    if mod(nData,2)~=0
-        disp('warning: odd number of files, not taking into account last file')
-        nData = nData - 1;
-    end
-    % create two sets (thanks to Aaron for the idea!)
-    % get nData random numbers, sort, take the first nData/2 indices for
-    % the first half etc.
-    rankList = randperm(nData);
-    dataSet1 = rankList(1:nData/2);
-    dataSet2 = rankList(nData/2+1:end);
-    
-    data2 = data(dataSet2);
-    data  = data(dataSet1); % use data for data1 - makes coding easier
-    fileNameList2 = fileNameList(dataSet2);
-    fileNameList  = fileNameList(dataSet1); % same as above
-    
-elseif randomize
-    
-    % put data into random order
-    nData = length(data);
-    data = data(randperm(nData));
-    
-    % if splitData, we have everything random already, so no need
-    
-end
-    
-%===================================================================
-%------END COMPARE TWO DATA SETS-----
-%===================================================================
 
 
 %===================================================================
@@ -664,17 +569,14 @@ end
 %===================================================================
 
 if ~isempty(DEBUG) | ~saveTxt % if no file, we do not care
-    trajectoryDescription = trajectoryAnalysisMain(data,constants,showDetails,doConvergence,verbose,fileNameList);
-    if splitData % do the second set
-        trajectoryDescription2 = trajectoryAnalysisMain(data2,constants,showDetails,doConvergence,verbose,fileNameList2);
+    for iRun = 1:length(run)
+        trajectoryDescription(iRun) = trajectoryAnalysisMain(run(iRun).data,constants,showDetails,doConvergence,verbose,run(iRun).fileNameList);
     end
 else
     try
-        trajectoryDescription = trajectoryAnalysisMain(data,constants,showDetails,doConvergence,verbose,fileNameList);
-        if splitData %do the second set
-            trajectoryDescription2 = trajectoryAnalysisMain(data2,constants,showDetails,doConvergence,verbose,fileNameList2);
+        for iRun = 1:length(run)
+            trajectoryDescription(iRun) = trajectoryAnalysisMain(run(iRun).data,constants,showDetails,doConvergence,verbose,run(iRun).fileNameList);
         end
-        
     catch
         if ~isempty(fidTxt) 
             fclose(fidTxt);
@@ -700,57 +602,36 @@ end
 %save mat file first, because it's less lines
 if saveMat
     save([saveMatPath,saveMatName],'trajectoryDescription');
-    if splitData
-        save([saveMatPath,[saveMatName,'_2']],'trajectoryDescription2');
-    end
 end
 
 %save text file
 if saveTxt
     
-    %get fieldNames for saving
-    statisticsTitles = fieldnames(trajectoryDescription.individualStatistics(1).summary);
-    numStats = length(statisticsTitles);
-    
-    %---write overall statistics, date, probabilities
-    fprintf(fidTxt,['\n\n---OVERALL STATISTICS---\n']);
-    fprintf(fidTxt,[nowString,'\n']);
-    fprintf(fidTxt,'Slope   Test: %1.3f\n',constants.TESTPROBABILITY);
-    fprintf(fidTxt,'Pause   Test: %1.3f\n',constants.PROBF);
-    fprintf(fidTxt,'Outlier Test: %1.3f\n\n\n',constants.PROBOUTLIER);
-    %fprintf(fidTxt,'Clustering:')
-    
-    %read them first
-    if doConvergence
-        overallStats = trajectoryDescription.convergenceStatistics(end);
-    else
-        overallStats = trajectoryDescription.overallStatistics;
-    end
-    %make cell for writing down
-    statisticsCell = [statisticsTitles,struct2cell(overallStats)];
-    
-    for nStat = 1:numStats
-        %(I so love these formatted strings)
-        txt2write  = statisticsCell{nStat,1};
-        vars2write = [statisticsCell{nStat,2:end}];
-        switch length(vars2write)
-            case 1
-                fprintf(fidTxt,'%25s\t%5.6f\n',txt2write,vars2write);
-            case 2
-                fprintf(fidTxt,'%25s\t%5.6f\t%5.6f\n',txt2write,vars2write);
-        end
-    end
-    
-    %---loop through the individual trajectories, print their overall statistics
-    fprintf(fidTxt,'\n\n---individual data---');
-    numFiles = length(fileNameList);
-    for nFile = 1:numFiles
-        %write a nice title
-        fprintf(fidTxt,'\n\noverall statistics for %s\n',fileNameList{nFile});
+    for iRun = 1:length(run)
         
-        %read the list
-        statisticsCell = [statisticsTitles,struct2cell(trajectoryDescription.individualStatistics(nFile).summary)];
+        %get fieldNames for saving
+        statisticsTitles = fieldnames(trajectoryDescription(iRun).individualStatistics(1).summary);
+        numStats = length(statisticsTitles);
+        
+        %---write overall statistics, date, probabilities
+        fprintf(fidTxt,['\n\n---OVERALL STATISTICS, run %i or %i---\n'], iRun, length(run));
+        fprintf(fidTxt,[nowString,'\n']);
+        fprintf(fidTxt,'Slope   Test: %1.3f\n',constants.TESTPROBABILITY);
+        fprintf(fidTxt,'Pause   Test: %1.3f\n',constants.PROBF);
+        fprintf(fidTxt,'Outlier Test: %1.3f\n\n\n',constants.PROBOUTLIER);
+        %fprintf(fidTxt,'Clustering:')
+        
+        %read them first
+        if doConvergence
+            overallStats = trajectoryDescription(iRun).convergenceStatistics(end);
+        else
+            overallStats = trajectoryDescription(iRun).overallStatistics;
+        end
+        %make cell for writing down
+        statisticsCell = [statisticsTitles,struct2cell(overallStats)];
+        
         for nStat = 1:numStats
+            %(I so love these formatted strings)
             txt2write  = statisticsCell{nStat,1};
             vars2write = [statisticsCell{nStat,2:end}];
             switch length(vars2write)
@@ -760,23 +641,43 @@ if saveTxt
                     fprintf(fidTxt,'%25s\t%5.6f\t%5.6f\n',txt2write,vars2write);
             end
         end
-    end
-    %DO NOT UNCOMMENT - USE ONLY AS TEMPLATE           
-    %         %loop through individual trajectories, print measurements
-    %         fprintf(fidData,'\n\n---individual data II---');
-    %         for i = 1:numData
-    %             fprintf(fidData,'\n\ndetailed statistics for %s\n',mtdDat(i).info.name);
-    %             
-    %             
-    %             %group
-    % %             numEntries = size(mtdDat(i).stateList.group,1);
-    % %             fprintf(fidData,'group data [counter, state(1/2/-1/-2/0), startIdx#, endIdx#, deltaT, deltaD, speed1, speedSigma1, speed2, speedSigma2, avg. time in undetermined state, sum of single counters, significance1, significance2]\n');
-    % %             for j = 1:numEntries
-    % %                 fprintf(fidData,'%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n*',mtdDat(i).stateList.group(j,:));
-    % %             end
-    %         end
-    %-----------------------
-    
+        
+        %---loop through the individual trajectories, print their overall statistics
+        fprintf(fidTxt,'\n\n---individual data---');
+        numFiles = length(run(iRun).fileNameList);
+        for nFile = 1:numFiles
+            %write a nice title
+            fprintf(fidTxt,'\n\noverall statistics for %s\n',run(iRun).fileNameList{nFile});
+            
+            %read the list
+            statisticsCell = [statisticsTitles,struct2cell(trajectoryDescription(iRun).individualStatistics(nFile).summary)];
+            for nStat = 1:numStats
+                txt2write  = statisticsCell{nStat,1};
+                vars2write = [statisticsCell{nStat,2:end}];
+                switch length(vars2write)
+                    case 1
+                        fprintf(fidTxt,'%25s\t%5.6f\n',txt2write,vars2write);
+                    case 2
+                        fprintf(fidTxt,'%25s\t%5.6f\t%5.6f\n',txt2write,vars2write);
+                end
+            end
+        end
+        %DO NOT UNCOMMENT - USE ONLY AS TEMPLATE           
+        %         %loop through individual trajectories, print measurements
+        %         fprintf(fidData,'\n\n---individual data II---');
+        %         for i = 1:numData
+        %             fprintf(fidData,'\n\ndetailed statistics for %s\n',mtdDat(i).info.name);
+        %             
+        %             
+        %             %group
+        % %             numEntries = size(mtdDat(i).stateList.group,1);
+        % %             fprintf(fidData,'group data [counter, state(1/2/-1/-2/0), startIdx#, endIdx#, deltaT, deltaD, speed1, speedSigma1, speed2, speedSigma2, avg. time in undetermined state, sum of single counters, significance1, significance2]\n');
+        % %             for j = 1:numEntries
+        % %                 fprintf(fidData,'%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n*',mtdDat(i).stateList.group(j,:));
+        % %             end
+        %         end
+        %-----------------------
+    end % for iRun = 1:length(run)
     fclose(fidTxt);
 end %if saveTxt
 

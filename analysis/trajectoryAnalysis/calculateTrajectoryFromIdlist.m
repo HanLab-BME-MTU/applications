@@ -1,7 +1,7 @@
 function [data,orientation] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
 %CALCULATETRAJECTORYFORMIDLIST calculates distance trajectories from an idlist
 %
-%SYNOPSIS data = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,mode)
+%SYNOPSIS [data, orientation] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,mode)
 %
 %INPUT    idlist         : any type of idlist
 %         dataProperties : the corresponding data properties
