@@ -49,9 +49,9 @@ end
 
 R1=cat(2,P1,Q1);
 
-D=createDistanceMatrix(R2,R1);
+% D=createDistanceMatrix(R2,R1);
 % nula=1e-10;
-% D=createSparseDistanceMatrix(R2,R1,5.2,nula);
+D=createSparseDistanceMatrix(R2,R1,5.21);
 
 RemovePosSec=[]; % initialization
 count=0; % initialization
@@ -60,7 +60,8 @@ r=0; % initialization
 for i=1:size(D,1)   
     
     rowI=D(i,:); % primary
-    minDistRow=find(rowI<=5.2); % Change BECAUSE of SPARSE MATRIXfind(rowI>nula); 
+%     minDistRow=find(rowI<=5.2); % Change BECAUSE of SPARSE MATRIXfind(rowI>nula); 
+    minDistRow=find(rowI<=5.2 & rowI>0);
     if ~isempty(minDistRow)
         
 %         if cands2(i).status==1 % secondary

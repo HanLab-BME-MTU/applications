@@ -136,8 +136,13 @@ if ~isfield(fsmParam,'batchJob')
         set(gcf,'NumberTitle','off');
                 
         % Select region of interest
-        [userROIbw,x,y]=roipoly;
-        userROIpoly=[y x];
+        try
+            [userROIbw,x,y]=roipoly;
+            userROIpoly=[y x];
+        catch
+            close(gcf);
+            return
+        end
         
         % Close current figure
         close(gcf);
