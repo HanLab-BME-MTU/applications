@@ -199,7 +199,7 @@ else
     number = 0;
     countNum = 0;
     while ~isnan(number) & (countNum <4)
-         countNum = countNum+1
+         countNum = countNum+1;
          number = str2num(filename(end-(4+countNum):end-4));
          
     end
@@ -1359,6 +1359,7 @@ function GUI_st_run_pb_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 jobList = get(handles.GUI_st_job_lb,'String');
+
 if iscell(jobList)
     howmanyjobs = length(jobList); 
 else
@@ -1387,8 +1388,10 @@ for projNum = 1:howmanyjobs
 % 		try
            trackmater(hObject,projNum);
 % 		catch    
-%            disp(['job number ',num2str(projNum),' had an error and could not be completed'])
-%            disp(lasterr)
+%            errordlg(['job number ',num2str(projNum),' had an error and could not be completed'])
+%              h=errordlg(['job number ',num2str(projNum),' had an error and could not be completed',lasterr]);
+%              uiwait(h);
+% %            disp(lasterr)
 % 		end
            
 end
@@ -1396,20 +1399,20 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-% --- Executes on button press in pushbutton18.
-function pushbutton18_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton18 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-
-
-% Update handles structure
-guidata(hObject, handles);
-
+% % % % % 
+% % % % % 
+% % % % % % --- Executes on button press in pushbutton18.
+% % % % % function pushbutton18_Callback(hObject, eventdata, handles)
+% % % % % % hObject    handle to pushbutton18 (see GCBO)
+% % % % % % eventdata  reserved - to be defined in a future version of MATLAB
+% % % % % % handles    structure with handles and user data (see GUIDATA)
+% % % % % handles = guidata(hObject);
+% % % % % 
+% % % % % 
+% % % % % 
+% % % % % % Update handles structure
+% % % % % guidata(hObject, handles);
+% % % % % 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1781,14 +1784,16 @@ function GUI_st_bitdepth_pm_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from GUI_st_bitdepth_pm
 handles = guidata(hObject)
 
-
+%bitdepth depending on what the user chooses from the list
 bitDepth = (get(hObject,'Value')*2)+6;
 
 %select current project
 projNum = get(handles.GUI_st_job_lb,'Value');
 
+%calculate the maximal value of the image, depending on it's bitdepth
 handles.jobs(projNum).intensityMax =  2^bitDepth-1;
 handles.jobs(projNum).bitdepth = bitDepth;
+
 guidata(hObject, handles);
 
 
@@ -1862,11 +1867,10 @@ end
 set(handles.GUI_st_eo_minmaxthresh_rb,'Value',handles.jobs(projNum).minmaxthresh);
 
 
-
-
 guidata(hObject, handles);
 
 
+%only one of the radiobuttons (clustering, minmaxthresh) can be activ. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

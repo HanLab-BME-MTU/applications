@@ -26,8 +26,8 @@ if methodDeterm==1
     
 elseif methodDeterm==2
     %first we kick out the background, 
-	background = imopen(image,strel('disk',bodyDiskSize));
-	I2 = imsubtract(image,background); 
+	background = imopen(seg_img,strel('disk',bodyDiskSize));
+	I2 = imsubtract(seg_img,background); 
 	I3 = imadjust(I2, stretchlim(I2), [0 1]);
 	balevel = graythresh(I3);
     
@@ -44,7 +44,12 @@ end
 %ero = imfill(bw,'holes');
 ero= imdilate(ero,strel('disk',8));
 ero= imerode(ero,strel('disk',10));
+ero= imdilate(ero,strel('disk',4));
+ero= imerode(ero,strel('disk',3));
 ero= imdilate(ero,strel('disk',2));
+ero= imerode(ero,strel('disk',1));
+ero= imdilate(ero,strel('disk',1));
+ero= imdilate(ero,strel('disk',1));
 
 %figure,imshow(ero),title('body');
 labeled=bwlabel(ero);
@@ -161,7 +166,7 @@ for i=1:length(uniqueEntries);
         if length(find(onebody))>10
                 areabod = length(find(onebody));
                 perimdivare(i) = length(find(bwperim(onebody)))/areabod;
-                bodycount(i) = areabod/numberOfOccurences(i);
+                bodycount(i) = areabod;
             else 
                 
                 noSensibleInf(end+1,1)=i;

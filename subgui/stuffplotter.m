@@ -22,14 +22,13 @@ saveallpath=handles.postpro.saveallpath;
 
 NewProps=zeros(6,start-stop+1);
 
-handles.PROPERTIES(:,4,:)=0;
- PROPERTIES = handles.PROPERTIES
 
- for pic=start:stop
+%erase this information. it was calculated before we cleaned up the results
+handles.PROPERTIES(:,4,:)=0;
+PROPERTIES = handles.PROPERTIES
+
+for pic=start:stop
  
- 
-	
-        
     %now we quickly calculate the number of cells within a cluster. This
     %may seem a little bit late to do so, but only now we know which cells
     %are actually accepted by postprocessing
@@ -76,27 +75,28 @@ handles.PROPERTIES(:,4,:)=0;
     %whatcells defines which cells will be taken into account. This is
     %either defined by the user (PolyTrack_PP) or it will just be all cells
     %within the current picture
-    
     whatcells = whatcells(find(whatcells(:,1) & whatcells(:,2)),:); 
-  %  presentCells = presentCells(find(presentCells(:,1) & presentCells(:,2)),:); 
-   
-    NewProps(6,pic)=size(whatcells,1);
+
     
-%     
+%     presentCells = presentCells(find(presentCells(:,1) & presentCells(:,2)),:); 
 %     properRows = ismember(round(handles.PROPERTIES(:,1:2,pic)),round(presentCells),'rows');
 %     referenceAllCells = handles.PROPERTIES(properRows,:,pic);
 %     
 %     clear properRows
     
+
+
     %here we find all the rows of PROPERTIES that correspond to cells we are
     %intersted in. PROPERTIES(:,1:2,pic) and whatcells are both [x,y]
     %coordinates
+    
     properRows= ismember(round(handles.PROPERTIES(:,1:2,pic)),round(whatcells),'rows');
+    NewProps(6,pic)=size(properRows,1);
     takeIntoAccount=handles.PROPERTIES(properRows,:,pic);
     
         
     
-    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% REMINDER:
 	% one row of PROPERTIES gives information on one set of coordinates (one
 	% cell). takeIntoAccount has the same layout
@@ -108,7 +108,7 @@ handles.PROPERTIES(:,4,:)=0;
 	%                                          this cell is in)
 	% PROPERTIES(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
 	% PROPERTIES(:,6)=perimdivare(:);  (cluster)
-        
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
     
     %how many clusters. At least two members.
     Clusters=find(takeIntoAccount(:,4)>1.5)
