@@ -59,4 +59,3 @@ for lag = 1:maxLag
     pacfV(lag+1) = soln(end);
     
 end
-disp('end');
