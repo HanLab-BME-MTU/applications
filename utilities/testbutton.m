@@ -10,9 +10,9 @@ function testbutton(hObject)
 %                             
 %
 % DEPENDENCIES   testbutton uses {imClusterSeg
-%								 trackLinker
+%								 ptTrackLinker
 %								 checkMinimalCellCell
-%								 findNucloiTrack
+%								 ptFindNucloiTrack
 %								 takenkick
 %								 ptFindHalos}
 %                                  
@@ -126,7 +126,7 @@ else
               [seg_img, dummy,mu0] = imClusterSeg(firstFrame, 1, 'method','kmeans','k_cluster',3,'mu0', [levnuc_fi;levback_fi;levhalo_fi]);
 			
               %find cells that look really dark and nasty
-              [coordNuc,regmax] = findNucloiTrack(seg_img,levdiff_fi,MinSizeNuc,MaxSizeNuc,1);
+              [coordNuc,regmax] = ptFindNucloiTrack(seg_img,levdiff_fi,MinSizeNuc,MaxSizeNuc,1);
              
               %find cells that look like the third eye (round, big spots of
               %pure light). We do this because the pictures are of poor
@@ -135,7 +135,7 @@ else
 		
 		elseif segmentation
            
-              [coordNuc,regmax] = findNucloiTrack(firstFrame,levdiff_fi,MinSizeNuc,MaxSizeNuc,2);
+              [coordNuc,regmax] = ptFindNucloiTrack(firstFrame,levdiff_fi,MinSizeNuc,MaxSizeNuc,2);
               [coordHalo,logihalo] = ptFindHalos(firstFrame,ErodeDiskSize,HaloLevel,2);
 			
 		

@@ -158,7 +158,7 @@ elseif strcmp (filename, 'jobvalues.mat')
    if exist ('M.mat', 'file')
       load ('M.mat');
       % Call up the track link function to generate the MPM matrix
-      handles.MPM = trackLinker(M);
+      handles.MPM = ptTrackLinker(M);
    else
       h = errordlg('The file M.mat does not exist. Please make sure it is present as well...');
       uiwait(h);          % Wait until the user presses the OK button
