@@ -84,9 +84,9 @@ for numData = 1:length(data)
     
     %---------PLOT
     if any(verbose == 2)
-        plotFigH = figure('Name',fileNameList{numData});
+        plotFigH = figure('Name',getNameFromFullPath(fileNameList{numData}));
         axes('NextPlot','add','YLim',yAxisLimits,'XLim',xAxisLimits);
-        plot(time(:,1),distance(:,1),'-dk');
+        plot(time(:,1),distance(:,1),'-dk','Tag',getNameFromFullPath(fileNameList{numData}));
         myErrorbar(time(:,1),distance(:,1),distance(:,2));
         
         
@@ -111,7 +111,7 @@ for numData = 1:length(data)
         growthDistance = growthDistance(:);
         
         %plot data
-        plot(growthTime,growthDistance,'--g');
+        plot(growthTime,growthDistance,'--g','Tag','TAfit');
         
         %----shrinkage
         %read indices
@@ -132,7 +132,7 @@ for numData = 1:length(data)
         shrinkageDistance = shrinkageDistance(:);
         
         %plot data
-        plot(shrinkageTime,shrinkageDistance,'--r');
+        plot(shrinkageTime,shrinkageDistance,'--r','Tag','TAfit');
         
         %---deleted
         %read indices
@@ -153,7 +153,7 @@ for numData = 1:length(data)
         deletedDistance = deletedDistance(:);
         
         %plot data
-        delPH = plot(deletedTime,deletedDistance,'-');
+        delPH = plot(deletedTime,deletedDistance,'-','Tag','TAfit');
         set(delPH,'Color',[0.7 0.7 0.7]);
     end
     %-----END PLOT
@@ -194,7 +194,7 @@ for numData = 1:length(data)
         
         
         %plot data
-        plot(pauseTime,pauseDistance,'-c');
+        plot(pauseTime,pauseDistance,'-c','Tag','TAfit');
     end
     %-----END PLOT
     
@@ -232,7 +232,7 @@ for numData = 1:length(data)
         growthDistance = growthDistance(:);
         
         %plot data
-        plot(growthTime,growthDistance,'-g');
+        plot(growthTime,growthDistance,'-g','Tag','TAfit');
         
         %----shrinkage
         %read indices
@@ -255,7 +255,7 @@ for numData = 1:length(data)
         shrinkageDistance = shrinkageDistance(:);
         
         %plot data
-        plot(shrinkageTime,shrinkageDistance,'-r');
+        plot(shrinkageTime,shrinkageDistance,'-r','Tag','TAfit');
     end
     %-----END PLOT
     

@@ -509,7 +509,9 @@ if downsample - 1 % triggers if downsample is 2 or more
                     newData(newDataCt).time     = data(iData).time(newTp2oldTpIdx,:);
                     
                     % don't forget info
-                    newData(newDataCt).info = data(iData).info;
+                    if isfield(data(iData),'info')
+                        newData(newDataCt).info = data(iData).info;
+                    end
                     
                     % update fileNameList
                     newFileNameList{newDataCt,1} = [fileNameList{iData} '_ds' num2str(downsample) '_' num2str(iNewData(1))];

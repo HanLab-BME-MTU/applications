@@ -378,6 +378,12 @@ end
 % FRAP
 % - here is where it would be -
 
+% DEBUG 
+if growthTimeTotal ~=floor(growthTimeTotal)
+    disp('dbstop:broken growthTime')
+    keyboard
+end
+
 %write statistics structure
 % 
 statisticsStruct = struct(...
@@ -526,7 +532,7 @@ end
 %======================
 % additional statistics
 
-addedStats = [];
+addedStats.distance = distance;
 
 %don't forget to turn the warnings back on
 warning(warningState);

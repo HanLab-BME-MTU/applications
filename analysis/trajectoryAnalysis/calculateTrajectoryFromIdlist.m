@@ -1,4 +1,4 @@
-function [data,orientation,positions,sigmaZero,timeLapse] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
+function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
 %CALCULATETRAJECTORYFORMIDLIST calculates distance trajectories from an idlist
 %
 %SYNOPSIS [data, orientation, positions] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
@@ -16,6 +16,10 @@ function [data,orientation,positions,sigmaZero,timeLapse] = calculateTrajectoryF
 %                                     used.
 %                           .nanList: [{0}/1] whether to give data in the
 %                                     form of nanList (converted with convertTrajectoryData)
+%                           .oldIdlist: if specified, the program
+%                                       calculates snrMax
+%                           .realTime : [{0}/1] whether to use real time or
+%                                       rounded time
 %
 %OUTPUT   data           : structure containing trajectory data
 %                           .time       = [time in sec, sigmaTime]
@@ -34,6 +38,12 @@ function [data,orientation,positions,sigmaZero,timeLapse] = calculateTrajectoryF
 %           .covariances : 3-by-3-by-ntp array of covariances
 %
 %         sigmaZero      : average chi2 (noise) of the two tags combined
+%
+%         dataProperties : dataProperties
+%
+%         snrMax         : SNR of the higher intensity tag
+%          
+%         isTracked      : whether the frame has been tracked or not
 %
 %
 %REMARKS  fusions will not be considered as valid timepoints
@@ -73,6 +83,8 @@ end
 info = [];
 calc2d = 0;
 nanList = 0;
+oldIdlist = [];
+realTime = 0;
 
 %go through fields of opt, change defaults with input values if they exist
 if nargin < 5 | isempty(opt)
@@ -86,6 +98,12 @@ else
     end
     if isfield(opt,'nanList')
         nanList = opt.nanList;
+    end
+    if isfield(opt,'oldIdlist') & nargout > 5
+        oldIdlist = opt.oldIdlist;
+    end
+    if isfield(opt,'realTime')
+        realTime = opt.realTime;
     end
 end
 
@@ -173,19 +191,26 @@ else
 end
 
 
-% read Q-Matrices
+% read Q-Matrices, isTracked
 [covariance1,covariance2] = deal(repmat(NaN,[3,3,maxTime]));
+isT = repmat(NaN,maxTime,1);
 for t = timePoints'
     if isfield(idlist(t).info,'trackQ_Pix') & ~isempty(idlist(t).info.trackQ_Pix) & isfield(idlist(t).info,'trackerMessage')
+        % tracked frame. Add covariance of source and target
         sourceT = str2double(idlist(t).info.trackerMessage.source);
         covariance1(:,:,t) = pix2muMat*(idlist(t).info.trackQ_Pix(tagIdxList1,tagIdxList1)+...
             idlist(sourceT).info.detectQ_Pix(tagIdxList1,tagIdxList1))*pix2muMat;  
         covariance2(:,:,t) = pix2muMat*(idlist(t).info.trackQ_Pix(tagIdxList2,tagIdxList2)+...
-            idlist(sourceT).info.detectQ_Pix(tagIdxList2,tagIdxList2))*pix2muMat;  
+            idlist(sourceT).info.detectQ_Pix(tagIdxList2,tagIdxList2))*pix2muMat; 
+        isT(t) = 1;
     else
+        % only detected
         covariance1(:,:,t) = pix2muMat*(idlist(t).info.detectQ_Pix(tagIdxList1,tagIdxList1))*pix2muMat;
         covariance2(:,:,t) = pix2muMat*(idlist(t).info.detectQ_Pix(tagIdxList2,tagIdxList2))*pix2muMat;
+        isT(t) = 0;
     end
+    
+    
     
     if fillSigma
         sigma0(t,:) = idlist(t).info.noise([tag1,tag2]);
@@ -202,6 +227,30 @@ if fillSigma
     sigmaZero(timePoints) = mean(sigma0(timePoints,:),2);
 else
     sigmaZero(timePoints) = mean(sigma0,2);
+end
+
+% take care of nans in isTracked
+isTracked = isT(timePoints);
+
+% calculate snrMax if selected
+if ~isempty(oldIdlist)
+    % loop to read amplitudes
+    intData = repmat(NaN,maxTime,2);
+    for t = timePoints' % everything that's in lastResult is also in idlist_L
+        rowIdx1 = find(oldIdlist(t).linklist(tag1,2)==oldIdlist(t).linklist(:,2));
+        rowIdx2 = find(oldIdlist(t).linklist(tag2,2)==oldIdlist(t).linklist(:,2));
+        % intData = [totalAmp1, totalAmp2]
+        intData(t,:) = ...
+            [sum(oldIdlist(t).linklist(rowIdx1,8)),sum(oldIdlist(t).linklist(rowIdx2,8))];
+    end
+    % decide for a tag
+    meanInt = nanmean(intData);
+    higherInt = 1 + (meanInt(1) < meanInt(2));
+    
+    snrMax = intData(timePoints,higherInt)./sqrt(sigma0(:,higherInt));
+    
+else
+    snrMax = [];
 end
 
 
@@ -242,12 +291,24 @@ timePoints(badTpIdx) = [];
 %-------READ TIME AND TIMESIGMA
 %=========================
 
+if realTime
 timeAll = dataProperties.frameTime;
 time = mean(timeAll(timePoints,:),2);
 %timeSigma is half the time between (lastCol - firstCol of frameTime)
 timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/2;
 
-timeLapse = dataProperties.timeLapse;
+else
+    % start at t=1*rounded timeLapse
+    avgTimeLapse = round(dataProperties.timeLapse);
+    time = (timePoints) * avgTimeLapse;
+    timeSigma = zeros(size(time));
+    
+    if abs(dataProperties.timeLapse - avgTimeLapse) > 0.11
+        warning('CALCULATETRAJECTORYFROMIDLIST:wrongTime',...
+            'Possible source of error: timeLapse %f used instead of %f',avgTimeLapse,dataProperties.timeLapse);
+    end
+end
+
 
 %=========================
 %---END READ TIME AND TIMESIGMA
