@@ -106,7 +106,7 @@ for i = 1:length(modelParam) %go over all suggested models
         aicV = aicV1;
     end
     
-end %(for i = 1:numComb)
+end %(for i = 1:length(modelParam))
 
 %check whether regimes found are truly distinct. If any two regimes are not
 %significantly different from each other, merge them into one

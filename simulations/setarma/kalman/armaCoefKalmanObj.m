@@ -1,11 +1,10 @@
-function neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,maOrder,traj,available)
+function neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,traj,available)
 %ARMACOEFKALMANOBJ calculates -2ln(likelihood) of the fit of an ARMA model to time series which could have missing data points
 %
-%SYNOPSIS neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,maOrder,traj,available)
+%SYNOPSIS neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,traj,available)
 %
-%INPUT  param    : Set of ARMA coefficients and observational error variance.
+%INPUT  param    : Set of ARMA coefficients.
 %       arOrder  : Order of autoregressive part of process.
-%       maOrder  : Order of moving average part of process.
 %       traj     : Observed trajectory (with measurement uncertainties).
 %                  Missing points should be indicated with NaN.
 %       available: Indices of available observations.
@@ -31,12 +30,10 @@ end
 
 %assign parameters
 arParam = param(1:arOrder);
-maParam = param(arOrder+1:end-1);
-obsVariance = param(end);
+maParam = param(arOrder+1:end);
 
 %get the innovations and their variances using Kalman prediction and filtering
-[innovation,innovationVar,errFlag] = armaKalmanInnov(traj,arOrder,maOrder,...
-    arParam,maParam,obsVariance);
+[innovation,innovationVar,errFlag] = armaKalmanInnov(traj,arParam,maParam);
 
 %construct -2ln(likelihood)
 neg2LnLikelihood = sum(log(innovationVar(available))) ...

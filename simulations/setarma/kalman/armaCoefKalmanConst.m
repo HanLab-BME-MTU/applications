@@ -1,11 +1,10 @@
-function [c,ceq] = armaCoefKalmanConst(param,arOrder,maOrder,traj,available)
+function [c,ceq] = armaCoefKalmanConst(param,arOrder,traj,available)
 %ARMACOEFKALMANCONST imposes causality and invertibility constraints on ARMA coefficients
 %
-%SYNOPSIS [c,ceq] = armaCoefKalmanConst(param,arOrder,maOrder,traj,available)
+%SYNOPSIS [c,ceq] = armaCoefKalmanConst(param,arOrder,traj,available)
 %
 %INPUT  param    : Set of parameters in ARMA model (concat. of arParam and maParam)
 %       arOrder  : Order of autoregressive part of process.
-%       maOrder  : Order of moving average part of process.
 %       traj     : Observed trajectory.
 %       available: Indices of available observations.
 %
@@ -25,26 +24,10 @@ if nargin ~= nargin('armaCoefKalmanConst')
     errFlag  = 1;
     return
 end
-
-%check input data
-[nRow,nCol] = size(param);
-if nRow ~= 1
-    disp('--armaCoefKalmanConst: "param" should be a row vector!');
-    errFlag = 1;
-end
-if nCol ~= arOrder+maOrder+1
-    disp('--armaCoefKalmanConst: Wrong length of vector "param"!');
-    errFlag = 1;
-end
-if errFlag
-    disp('--armaCoefKalmanConst: Please fix input data!');
-    return
-end
     
 %distribute parameters
 arParam = param(1:arOrder);
-maParam = param(arOrder+1:end-1);
-obsVariance = param(end);
+maParam = param(arOrder+1:end);
 
 %roots of AR polynomial
 rAr = abs(roots([-arParam(end:-1:1) 1]))';

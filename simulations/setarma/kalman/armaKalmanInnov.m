@@ -1,26 +1,25 @@
-function [innovation,innovationVar,errFlag] = armaKalmanInnov(traj,...
-    arOrder,maOrder,arParam,maParam,obsVariance);
+function [innovation,innovationVar,errFlag] = armaKalmanInnov(traj,arParam,maParam);
 %ARMAKALMANINNOV finds the innovations (and their variances) resulting from fitting an ARMA(p,q) model to a time series which could have missing data points using Kalman prediction and filtering.
 %
 %SYNOPSIS [innovation,innovationVar,errFlag] = armaKalmanInnov(traj,...
-%    arOrder,maOrder,arParam,maParam,obsVariance);
+%    arOrder,maOrder,arParam,maParam);
 %
 %INPUT  traj       : Trajectory to be modeled (with measurement uncertainties).
 %                    Missing points should be indicated with NaN.
-%       arOrder    : Order of AR part of proposed ARMA model.
-%       maOrder    : Order of MA part of proposed ARMA model.
 %       arParam    : Autoregressive coefficients (row vector).
 %       maParam    : Moving average coefficients (row vector).
-%       obsVariance: Observational error variance.
 %
 %OUTPUT innovation   : Vector of differences between predicted and observed data, or innovations.
-%       innovationVar: Vector of innovation varainces.
+%       innovationVar: Vector of innovation variances.
 %       errFlag      : 0 if function executes normally, 1 otherwise.
 %
 %REMARKS The algorithm implemented here is that presented in R. H. Jones,
 %        "Maximum Likelihood Fitting of ARMA Models to Time Series with
 %        Missing Observations", Technometrics 22: 389-395 (1980). All
-%        equation numbers used here are those in that paper.
+%        equation numbers used here are those in that paper. The main
+%        difference is that I do not estimate the observational error
+%        variance, but use that obtained from experimental data or
+%        simulated trajectories (and is thus time-dependent).
 %
 %Khuloud Jaqaman, July 2004
 
@@ -36,8 +35,10 @@ if nargin < nargin('armaKalmanInnov')
     return
 end
 
-%find trajectory length
+%find trajectory length, arOrder and maOrder
 trajLength = size(traj,1);
+arOrder = length(arParam);
+maOrder = length(maParam);
 
 %get maxOrder to determine size of matrices in Eq. 2.15 - 2.17
 maxOrder = max(arOrder,maOrder+1);
@@ -92,10 +93,10 @@ for timePoint = 1:trajLength
         
     else %if there is an observation
         
-        %get innovation
-        innovation(timePoint) = traj(timePoint,1)-observableP; %dy(t+1), Eq. 3.8
-        %and its variance
-        innovationVar(timePoint) = stateCovMatT1_T(1,1) + obsVariance; %V(t+1), Eq. 3.6 & 3.10
+        %get innovation, dy(t+1) (Eq. 3.8)
+        innovation(timePoint) = traj(timePoint,1)-observableP; 
+        %and its variance, V(t+1) (Eq. 3.6 & 3.10)
+        innovationVar(timePoint) = stateCovMatT1_T(1,1) + traj(timePoint,2)^2;
         
         %calculate delta
         delta = stateCovMatT1_T*observationVec'/innovationVar(timePoint); %delta(t+1), Eq. 3.5
