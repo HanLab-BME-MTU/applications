@@ -2263,11 +2263,11 @@ else
    [allMPM, allCellProps, allClusterProps, allFrameProps, allValidFrames, jobData, result] = ptRetrieveJobData (fileList, 'all');
 
    % Check the result value (0 is good)
-   if result > 0
-      h=errordlg ('An error occured while fetching data for the selected files (ptRetrieveJobData).');
-      uiwait (h); 
-      return;
-   end
+%    if result > 0
+%       h=errordlg ('An error occured while fetching data for the selected files (ptRetrieveJobData).');
+%       uiwait (h); 
+%       return;
+%    end
    
    % Get the values from the GUI
    [guiData] = ptRetrieveGUIData (handles);
@@ -3087,29 +3087,37 @@ end
 
 % Start adding cells to selectedCellsMatrix: for this we have to find
 % the first free row
-freeCount = 1;
-freeRow = find(selectedCellsMatrix(freeCount,:));
-while ~isempty(freeRow)
-    freeCount = freeCount + 1;
-    freeRow = find(selectedCellsMatrix(freeCount,:));
+[rowIndx,colIndx] = find(selectedCellsMatrix);
+if ~isempty(rowIndx)
+    rowIndx = sort(unique(rowIndx));
+    freeCount = rowIndx(end) + 1;
+else
+    freeCount = 1;
 end
+
+% freeCount = 1;
+% freeRow = find(selectedCellsMatrix(freeCount,:));
+% while ~isempty(freeRow)
+%     freeCount = freeCount + 1;
+%     freeRow = find(selectedCellsMatrix(freeCount,:));
+% end
+
+% Cut out that part of the MPM
+tempMPM = MPM(selectedCells,:);
+
+% Set up counter
+tmpCount = 0;
 
 % Walk through the selected cells and find tracks in all frames
 for iCount = freeCount : freeCount+length(selectedCells)-1
 
-    % Find out which parts of the MPM we can throw away (we only want the
-    % tracks of the selected cells
-    %firstRow = find(MPM(frameNr*2)) + selectedCells(iCount-freeCount+1) - 1;
-
-    % Cut out that part of the MPM
-    %tempMPM = MPM(firstRow,:);
-    tempMPM = MPM(selectedCells,:);
-
+    % Update counter
+    tmpCount = tmpCount + 1;
+    
     % Figure out where the first whole block of coordinates is
-    zeroIndx = find(tempMPM == 0);
-    nonZeroIndx = find(tempMPM);
+    zeroIndx = find(tempMPM(tmpCount,:) == 0);
+    nonZeroIndx = find(tempMPM(tmpCount,:));
     zeroIndx = zeroIndx(find(zeroIndx > nonZeroIndx(1)));
-    %tempMPM = tempMPM(nonZeroIndx(2):2:zeroIndx(1)-1);
 
     % Loop through this row of coordinates and fill the selectedCellsMatrix
     if ~isempty(zeroIndx)
@@ -3269,5 +3277,58 @@ function GUI_drugtimepoint_ed_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+% --------------------------------------------------------------------
+
+function GUI_log_coordinates_pb_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
+
+% Get selected cells from the handles struct
+if isfield(handles.jobData(1),'selectedcells') & ...
+   ~isempty(handles.jobData(1).selectedcells)
+    selectedCells = handles.jobData(1).selectedcells;
+    MPM = handles.allMPM{1};
+else
+    errorStr = ['No cells have been selected. Please select cells first!'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% Get the coordinates from the MPM for all the cells selected
+% Information will be saved as following:
+% frame 1: cell1_x cell1_y cell2_x cell2_y cellx_x cellx_y
+% frame 2: cell1_x cell1_y cell2_x cell2_y cellx_x cellx_y
+% frame x: cell1_x cell1_y cell2_x cell2_y cellx_x cellx_y
+[rowIndx,colIndx] = find(selectedCells);
+rowIndx = unique(rowIndx);
+coord = zeros(size(selectedCells,2),size(selectedCells(rowIndx,:),1)*2);
+for rowCount = 1 : size(selectedCells(rowIndx,:),1)
+    for colCount = 1 : size(selectedCells,2)
+        if selectedCells(rowCount,colCount) ~= 0
+            coord(colCount,rowCount*2-1) = MPM(selectedCells(rowCount,colCount),colCount*2-1);
+            coord(colCount,rowCount*2) = MPM(selectedCells(rowCount,colCount),colCount*2);
+        else
+            coord(colCount,rowCount*2-1) = 0;
+            coord(colCount,rowCount*2) = 0;
+        end
+    end
+end
+
+% Save this information in a csv file in the ptData directory
+try
+    csvwrite([handles.guiData.savedatapath filesep 'selected_cell_coord.csv'],coord);
+catch
+    errorStr = ['Error writing coordinate CSV file ' handles.guiData.savedatapath filesep 'selected_cell_coord.csv!'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% Let the user know
+h = msgbox(['Successfully wrote CSV file ' handles.guiData.savedatapath filesep 'selected_cell_coord.csv']);
+
+% Update handles structure
+guidata(hObject, handles);
 
 

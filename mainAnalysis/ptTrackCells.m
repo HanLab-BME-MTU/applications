@@ -225,7 +225,7 @@ else		% lastImaNum > firstImaNum
          badFrameCounter = badFrameCounter + 1;
          
          if badFrameCounter > 10   % Stop since we wouldn't be able to track anymore
-            fprintf (1, '     ptTrackCells: Too many (>10) bad frames in a row. Exiting...\n');
+            fprintf (1, '     ptTrackCells: Too many (>10) bad frames in a row.\nCheck the bitdepth.\nExiting...\n');
             M = [];
             clusterProps = [];
             cellProps = [];
@@ -248,8 +248,11 @@ else		% lastImaNum > firstImaNum
           % Calculate the amount of time (in secs) between this and the previous frame
           % datenum gives back the difference in days (time is the
           % fraction) which we have to convert back to seconds
-          if loopCount > 1
-             julianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
+          if mCount > 1
+             % There might be several formats of storing the date; let's
+             % try a couple of them
+             %julianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
+             julianTime = datenum(imageInfo.DateTime, 'mmm dd yy HH:MM:SS');
              frameTime = round(abs(julianTime - prevJulianTime) * 60 * 60 * 24);
          
              if frameTime >= 1  % 1 sec is the minimum we accept
@@ -260,7 +263,8 @@ else		% lastImaNum > firstImaNum
          
              prevJulianTime = julianTime;
           else
-             prevJulianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
+             %prevJulianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
+             prevJulianTime = datenum(imageInfo.DateTime, 'mmm dd yy HH:MM:SS');
           end 
           
           % Find all the cell nuclei coordinates

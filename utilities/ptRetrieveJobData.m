@@ -69,37 +69,52 @@ for iCount = 1 : fileNumbers
 
     % Get the directory part of the string
     [pathString, filename, ext, version] = fileparts (char(filePath(iCount)));
+  
+    % Load the validFrames file
+    [allValidFrames{iCount}, result] = ptReadValues (pathString, 'validFrames.mat', 'validFrames');
+    if result == 1  % error
+       allValidFrames = []; 
+       allCellProps = []; 
+       allClusterProps = [];
+       allFrameProps = [];
+       jobData = [];       
+       return
+    end    
     
     % Load the jobvalues file
     [allJobvalues{iCount}, result] = ptReadValues (pathString, 'jobvalues.mat', 'jobvalues');
     if result == 1  % error
+       allCellProps = []; 
+       allClusterProps = [];
+       allFrameProps = [];
+       jobData = [];
        return
     end
 
     % Load the cell properties file
     [allCellProps{iCount}, result] = ptReadValues (pathString, 'cellProps.mat', 'cellProps');
     if result == 1  % error
-       return
+       allCellProps = []; 
+       %allClusterProps = [];
+       %allFrameProps = [];
+       %return
     end
     
     % Load the cluster properties file
     [allClusterProps{iCount}, result] = ptReadValues (pathString, 'clusterProps.mat', 'clusterProps');
     if result == 1  % error
-       return
+       allClusterProps = [];
+       %allFrameProps = [];
+       %return
     end
     
     % Load the frame properties file
     [allFrameProps{iCount}, result] = ptReadValues (pathString, 'frameProps.mat', 'frameProps');
     if result == 1  % error
-       return
+       allFrameProps = [];
+       %return
     end
 
-    % Load the validFrames file
-    [allValidFrames{iCount}, result] = ptReadValues (pathString, 'validFrames.mat', 'validFrames');
-    if result == 1  % error
-       return
-    end
-    
     % Set image filename
     jobData(iCount).imagename = allJobvalues{iCount}.imagename;    
     
