@@ -795,6 +795,7 @@ handles.postpro.cellcelldistplot = get(handles.checkbox_cellcelldisthist,'Value'
    
 handles.postpro.neighbourplot = get(handles.checkbox_neighbourhood,'Value');
    handles.postpro.neighbourplot_1 = get(handles.checkbox_nb_trajectories,'Value');
+   handles.postpro.neighbourplot_2 = get(handles.checkbox_nb_interact,'Value');
 
 if (~handles.postpro.cellclusterplot & ~handles.postpro.areaplot & ...
     ~handles.postpro.perimeterplot & ~handles.postpro.speedplot & ...
@@ -803,22 +804,7 @@ if (~handles.postpro.cellclusterplot & ~handles.postpro.areaplot & ...
    uiwait(h);          % Wait until the user presses the OK button
    return;
 else
-%    if handles.postpro.cellclusterplot
-%       % Generate single cell and cluster plots if the users requested these
-%       ptPlotCellClusterStats (imageName, savePath, xAxis, cellAmount, clusterAmount, cellsPerCluster, ...
-%                               singleCellAmount, percentageSingleCells, percentageClusteredCells);
-%    end   
-%    
-%    if handles.postpro.areaplot
-%       % Generate area plots if the users requested these
-%       ptPlotAreaStats (imageName, savePath, xAxis, areaPerSingleCell, areaPerCluster);
-%    end
-% 
-%    if handles.postpro.perimeterplot
-%       % Generate perimater plots if the users requested these
-%       ptPlotPerimeterStats (imageName, savePath, xAxis, perimeterLength, perimeterDivArea);
-%    end
-
+    
    % Here is where the bulk of the graphing work is done; we give it the
    % postpro structure and MPM matrix to work with
    % First do the area and perimeter plots
@@ -838,7 +824,12 @@ else
    
    % Do the speed plots as well if the user wants it
    if handles.postpro.neighbourplot
-      ptCalculateNeighbourhoodInteractions (handles.postpro, handles.MPM);
+      if handles.postpro.neighbourplot_1
+         ptCalculateNeighbourTraj (handles.postpro, handles.MPM);
+      end
+      if handles.postpro.neighbourplot_2
+         ptCalculateNeighbourChanges (handles.postpro, handles.MPM);
+      end
    end
 end
 
@@ -1737,9 +1728,11 @@ val = get (hObject,'Value');
 if val == 1
    % Checkbox is selected, so select all children
    set (handles.checkbox_nb_trajectories, 'Value', 1);
+   set (handles.checkbox_nb_interact, 'Value', 1);
 else  % val == 0
    % Checkbox was unselected so unselect all the children
    set (handles.checkbox_nb_trajectories, 'Value', 0);
+   set (handles.checkbox_nb_interact, 'Value', 0);
 end
 
 % Update handles structure
@@ -1798,5 +1791,14 @@ if ispc
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
+
+
+% --- Executes on button press in checkbox_nb_interact.
+function checkbox_nb_interact_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_nb_interact (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_nb_interact
 
 

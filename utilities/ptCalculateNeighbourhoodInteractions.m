@@ -1,7 +1,7 @@
-function ptCalculateNeighbourhoodInteractions (ptPostpro, MPM)
-% ptCalculateNeighbourhoodInteractions plots speed information gathered in MPM. 
+function ptCalculateNeighbourTraj (ptPostpro, MPM)
+% ptCalculateNeighbourTraj plots neighbour traj. information gathered in MPM. 
 %
-% SYNOPSIS       ptCalculateNeighbourhoodInteractions (ptPostpro, MPM)
+% SYNOPSIS       ptCalculateNeighbourTraj (ptPostpro, MPM)
 %
 % INPUT          ptPostpro : a structure which contains the information
 %                            from the GUI
@@ -9,14 +9,15 @@ function ptCalculateNeighbourhoodInteractions (ptPostpro, MPM)
 %                
 % OUTPUT         None (plots are directly shown on the screen) 
 %
-% DEPENDENCIES   ptCalculateNeighbourhoodInteractions  uses {nothing}
+% DEPENDENCIES   ptCalculateNeighbourTraj  uses {nothing}
 %                                  
-%                ptCalculateNeighbourhoodInteractions is used by { PolyTrack_PP }
+%                ptCalculateNeighbourTraj is used by { PolyTrack_PP }
 %
 % Revision History
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Jul 04          Initial version
+% Andre Kerstens        Aug 04          Renamed to ptCalculateNeighbourTraj
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -178,11 +179,11 @@ set(gcf,'Pointer','arrow');
 % Here is where all the plotting starts
 if ptPostpro.neighbourplot_1
 
-    % Generate the avg velocity plot (all cells)
+    % Generate the neighbour traj. plot 
     h_fig = figure('Name', imageName);
 
-    % Draw a plot showing average velocity of all cells
-    ymax = max (avgTrajFrame) + 1;
+    % Draw a plot showing neighbour traj. 
+    ymax = max (avgTrajFrame) + (0.1*max (avgTrajFrame));
     plot (xAxis, avgTrajFrame); 
     title ('Avg Neighbour Trajectory Length');
     xlabel ('Frames');

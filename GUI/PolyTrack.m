@@ -150,7 +150,7 @@ handles = guidata(hObject);
 listhandle = handles.GUI_st_job_lb;
 
 % Select an image filename or a file called 'jobvalues.mat' from a user selected directory
-[filename,imagedirectory] = uigetfile({'*.tif','TIFF-files';'jobvalues.mat','Saved Values';'*.*','all files'},...
+[filename,imagedirectory] = uigetfile({'*.tif;*.TIF;*.tiff;*.TIFF','TIFF-files';'jobvalues.mat','Saved Values';'*.*','all files'},...
                                       'Please select a TIFF image file or jobvalues.mat file');
 
 % Do nothing in case the user doesn't select anything
@@ -247,7 +247,7 @@ else
     % Test whether the max greyvalue per frame is not more than the
     % bitdepth value specified on the gui
     % But do this only if it hasn't be done before (filesChecked matfile)
-    if (exist ('filesChecked.mat', 'file') == 2)
+    if (~(exist ('filesChecked.mat', 'file') == 2))
        fprintf (1, 'Checking image files of job %d for correctness...\n', jobNumber);
     
        % Calculate the max posible grey value
@@ -315,7 +315,7 @@ else
     counter = 1;
     while done == 0
         newdirname = [];
-        newdirname = ['results', bodyname, num2str(counter)];
+        newdirname = ['results_', bodyname, num2str(counter)];
            
         % Loop on until we find an unoccupied new dirname
         if exist (newdirname, 'dir') == 0
