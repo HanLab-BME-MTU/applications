@@ -153,7 +153,8 @@ for numData = 1:length(data)
         deletedDistance = deletedDistance(:);
         
         %plot data
-        plot(deletedTime,deletedDistance,'-b');
+        delPH = plot(deletedTime,deletedDistance,'-');
+        set(delPH,'Color',[0.3 0.3 0.3]);
     end
     %-----END PLOT
     
