@@ -13,7 +13,7 @@ function [coor]= takenkick(info,coor)
 %
 % DEPENDENCIES   takenkick uses {nothing}
 %                                  
-%                takenkick is used by { testbutton }
+%                takenkick is used by { ptInitializeJob }
 %
 % Colin Glass, Feb 04
 

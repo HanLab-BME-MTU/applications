@@ -119,7 +119,7 @@ jobNumber = get(hObject,'Value');
 
 % Use the values of this project to select the correct job and fill the
 % text fields of the GUI
-fillFields(handles,handles.jobs(jobNumber))
+ptFillFields(handles,handles.jobs(jobNumber))
 
 %-------------------------------------------------------------------------------
 
@@ -253,7 +253,7 @@ guidata(hObject, handles);
 %handles = guidata(hObject);
 
 % Last but not least make sure the text field on the GUI show the latest% values
-fillFields(handles, handles.jobs(jobNumber))
+ptFillFields(handles, handles.jobs(jobNumber))
 
 %-------------------------------------------------------------------------------
 
@@ -301,9 +301,9 @@ guidata(hObject,handles);
 % Show the data of the first job in the list, or if no job is present, 
 % show the data of the defaultjob
 if isempty (listnotfilled)
-    fillFields (handles, handles.jobs(1))
+    ptFillFields (handles, handles.jobs(1))
 else
-    fillFields (handles, handles.defaultjob)
+    ptFillFields (handles, handles.defaultjob)
 end
 
 %-------------------------------------------------------------------------------
@@ -466,7 +466,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).firstimage = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).firstimage = val;
@@ -532,7 +532,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).lastimage = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).lastimage = val;
@@ -579,7 +579,7 @@ handles = guidata(hObject);
 jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Fill all the threshold input fields with the newly found values
-fillFields(handles,handles.jobs(jobNumber))
+ptFillFields(handles,handles.jobs(jobNumber))
 
 % Update handles structure
 guidata(hObject, handles);
@@ -641,7 +641,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).fi_background = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).fi_background = val;
@@ -707,7 +707,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).fi_nucleus = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).fi_nucleus = val;
@@ -773,7 +773,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).la_background = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).la_background = val;
@@ -839,7 +839,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).la_nucleus = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).la_nucleus = val;
@@ -905,7 +905,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).maxsearch = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).maxsearch = val;
@@ -1092,7 +1092,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).minsize = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).minsize = val;
@@ -1158,7 +1158,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).maxsize = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).maxsize = val;
@@ -1225,7 +1225,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).minsdist = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).minsdist = val;
@@ -1357,7 +1357,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).minedge = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).minedge = val;
@@ -1424,7 +1424,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).noiseparameter = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).noiseparameter = val;
@@ -1491,7 +1491,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).mincorrqualtempl = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).mincorrqualtempl = val;
@@ -1559,7 +1559,7 @@ else
    handles.jobs(jobNumber).increment = increment;
    handles.jobs(jobNumber).savedirectory = savedirectory;
 
-   fillFields(handles,handles.jobs(jobNumber))
+   ptFillFields(handles,handles.jobs(jobNumber))
 end
 
 % Update handles structure
@@ -1642,7 +1642,7 @@ else
    handles.jobs(jobNumber).savedirectory = savedirectory;
 
    % Update all the fields on the gui
-   fillFields(handles,handles.jobs(jobNumber))
+   ptFillFields(handles,handles.jobs(jobNumber))
 end 
 
 % Update handles structure
@@ -1698,7 +1698,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).leveladjust = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).leveladjust = val;
@@ -1827,7 +1827,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).sizetemplate = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).sizetemplate = val;
@@ -1893,7 +1893,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).mintrackcorrqual = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).mintrackcorrqual = val;
@@ -2062,7 +2062,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).increment = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).increment = val;
@@ -2102,7 +2102,21 @@ else
 end 
 
 % Start the test and initialization process
-testbutton(hObject);
+newCoord = ptInitializeJob (handles.jobs(jobNumber), jobNumber);
+
+% Store the newly found coordinates in the handles struct
+handles.jobs(jobNumber).coordinatespicone = newCoord;
+
+% Update handles structure
+guidata (hObject, handles);
+
+% Store the latest data in jobvalues.mat in the specified save directory
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -2153,7 +2167,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).fi_halolevel = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).fi_halolevel = val;
@@ -2219,7 +2233,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).la_halolevel = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).la_halolevel = val;
@@ -2351,7 +2365,7 @@ if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
     handles.jobs(jobNumber).timeperframe = [];
-    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
+    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
     handles.jobs(jobNumber).timeperframe = val;

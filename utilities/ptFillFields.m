@@ -1,8 +1,8 @@
-function fillFields(handles,activeJob)
-% fillFields writes all values within activejob into the right place in
+function ptFillFields(handles,activeJob)
+% ptFillFields writes all values within activejob into the right place in
 % the PolyTrack GUI
 %
-% SYNOPSIS       fillFields(handles,activeJob)
+% SYNOPSIS       ptFillFields(handles,activeJob)
 %
 % INPUT          handles : structure with all the information of PolyTrack
 %                         (GUI)

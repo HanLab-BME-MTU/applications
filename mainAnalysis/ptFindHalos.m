@@ -15,7 +15,7 @@ function [coord, imgHaloArea]= ptFindHalos (inputImage, erosionDiskSize, haloLev
 % DEPENDENCIES   ptFindHalos uses { nothing }
 %                                  
 %                ptFindHalos is used by { ptTrackCells
-%                                         testbutton }
+%                                         ptInitializeJob }
 %
 % Revision History
 % Name                  Date            Comment

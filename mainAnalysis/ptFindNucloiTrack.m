@@ -16,7 +16,7 @@ function [coord, imgNucloiArea] = ptFindNucloiTrack (inputImage, nucloiLevel, nu
 % DEPENDENCIES   ptFindNucloiTrack uses { nothing }
 %                                  
 %                ptFindNucloiTrack is used by { ptTrackCells
-%                                               testbutton } 
+%                                               ptInitializeJob } 
 %
 % Revision History
 % Name                  Date            Comment

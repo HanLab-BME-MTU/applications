@@ -16,7 +16,7 @@ function coord1 = ptCheckMinimalCellDistance (coordnuc, altercoor, minDistCellCe
 % DEPENDENCIES   ptCheckMinimalCellDistance uses {nothing}
 %                                  
 %                ptCheckMinimalCellDistance is used by { ptTrackCells
-%                                                  testbutton}
+%                                                  ptInitializeJob}
 %
 % Colin Glass, Feb 04         
 

@@ -116,5 +116,5 @@ if change==1
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
 	%now we update the value in PolyTrack
-	fillFields(handles,handles.jobs(projNum));
+	ptFillFields (handles,handles.jobs(projNum));
 end

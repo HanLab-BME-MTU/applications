@@ -97,7 +97,7 @@ minDistCellToCell    = ptJob.minsdist;
 % This value influences the level between the nuclei and the background, as
 % calculated from input (clicking in the pictures, which pop up shortly
 % after the program starts
-levelChanger         = ptJob.leveladjust;
+levelAdjust          = ptJob.leveladjust;
 
 % Minimum 4
 howManyTimeStepSlide = ptJob.timestepslide;
@@ -151,8 +151,8 @@ bodyFileName = imageName(1:end-7);
 
 howManyImg = lastImaNum - firstImaNum + 1;
 
-levDiffFirst = abs(levNucFirst - levBackFirst) * levelChanger;
-levDiffLast = abs(levNucLast - levBackLast) * levelChanger;
+levDiffFirst = abs (levNucFirst - levBackFirst) * levelAdjust;
+levDiffLast = abs (levNucLast - levBackLast) * levelAdjust;
 
 incrDiff = (levDiffLast - levDiffFirst) / (howManyImg - 1);
 incrBack = (levBackLast - levBackFirst) / (howManyImg - 1);
