@@ -309,6 +309,11 @@ if isempty(projDir)
     return;
 end
 
+if isempty(imgDir)
+    warnH = warndlg('No image directory is set.','Warning','modal');
+    return;
+end
+
 item = get(handles.tackDirMH,'value');
 menu = get(handles.tackDirMH,'string');
 if iscell(menu) & strcmp(menu{item},'New') == 0
@@ -416,7 +421,7 @@ function projDirBrowse_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-projDir = uigetdir;
+projDir = uigetdir('','Please select your project directory');
 
 if isnumeric(projDir) & projDir == 0
     return;
@@ -449,7 +454,7 @@ function imgDirBrowse_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-imgDir = uigetdir;
+imgDir = uigetdir('','Please select your image directory');
 
 if isnumeric(imgDir) & imgDir == 0
     return;
