@@ -1,9 +1,9 @@
 function [varCovMat,arParam,maParam,errFlag] = armaLeastSquares(...
-    trajectories,wnVector,arOrder,maOrder)
+    trajectories,wnVector,arOrder,maOrder,wnVariance)
 %ARMALEASTSQUARES estimates the ARMA coefficients and their variance-covariance matrix of a trajectory whose residuals are known.
 %
 %SYNOPSIS [varCovMat,arParam,maParam,errFlag] = armaLeastSquares(...
-%    trajectories,wnVector,arOrder,maOrder)
+%    trajectories,wnVector,arOrder,maOrder,wnVariance)
 %
 %INPUT  trajectories: Observations of time series to be fitted. Either an 
 %                     array of structures traj(1:nTraj).observations, or a
@@ -14,8 +14,12 @@ function [varCovMat,arParam,maParam,errFlag] = armaLeastSquares(...
 %           .observations: Estimated white noise series in a trajectory.
 %       arOrder     : Order of AR part of process.
 %       maOrder     : Order of MA part of process.
+%       wnVariance  : Estimated variance of white noise in process.
+%                     Optional. Default: Zero.
 %
-%OUTPUT varCovMat : Variance-Covariance matrix of estimated coefficients.
+%OUTPUT varCovMat : Variance-Covariance matrix of estimated coefficients:
+%           .cofactorMat  : Cofactor matrix.
+%           .posterioriVar: A posteriori estimate of residuals' variance.
 %       arParam   : Estimated AR coefficients.
 %       maParam   : Estimated MA coefficients.
 %       errFlag   : 0 if function executes normally, 1 otherwise.
@@ -36,7 +40,7 @@ errFlag = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check if correct number of arguments was used when function was called
-if nargin < nargin('armaLeastSquares')
+if nargin < 4
     disp('--armaLeastSquares: Incorrect number of input arguments!');
     errFlag = 1;
     return
@@ -49,23 +53,41 @@ if ~isstruct(trajectories)
     trajectories.observations = tmp;
     clear tmp
 elseif ~isfield(trajectories,'observations')
-    disp('--autoCorr: Please input the trajectories in fields "observations"')
+    disp('--armaLeastSquares: Please input the trajectories in fields "observations"')
     errFlag = 1;
     return
 end
 
-for i=1:length(trajectories);
-    [trajLength,nCol] = size(trajectories(i).observations);
-    if nCol ~= 2
-        if nCol == 1 %if no error is supplied, it is assumed that there is no observational error
-            trajectories(i).observations = [trajectories(i).observations ...
-                ones(trajLength,1)];
-        else
-            disp('--armaCoefKalman: "trajectories.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
-            errFlag = 1;
-        end
+if nargin < 5 || isempty(wnVariance)
+    wnVariance = 0;
+else
+    if wnVariance < 0
+        disp('--armaLeastSquares: White Noise Variance should be nonnegative!');
+        errFlag = 1;
     end
 end
+
+for i=1:length(trajectories);
+    [trajLength,nCol] = size(trajectories(i).observations);
+    switch nCol
+        case 1 %if no error is supplied
+            if wnVariance == 0
+                trajectories(i).observations = [trajectories(i).observations ...
+                    ones(trajLength,1)]; %assume that there is no observational error
+            else
+                trajectories(i).observations = [trajectories(i).observations ...
+                    sqrt(wnVariance)*ones(trajLength,1)]; %assume that there is no observational error
+            end
+        case 2 %if there is observational error
+            trajectories(i).observations(:,2) = ...
+                sqrt(trajectories(i).observations(:,2).^2+wnVariance);
+        otherwise
+            disp('--armaLeastSquares: "trajectories.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+            errFlag = 1;
+    end
+end
+
+%exit if there are problems in input data
 if errFlag
     disp('--armaLeastSquares: Please fix input data!');
     return
@@ -127,8 +149,8 @@ arParam = maParam(1:arOrder);
 maParam = maParam(arOrder+1:sumOrder);
 
 %calculate variance-covariance matrix
-varCovMat = epsilon'*epsilon * inv(prevPoints'*prevPoints)...
-    /(fitLength-sumOrder);
+varCovMat.cofactorMat = inv(prevPoints'*prevPoints);
+varCovMat.posterioriVar = epsilon'*epsilon/(fitLength-sumOrder);
 
 
 %%%%% ~~ the end ~~ %%%%%

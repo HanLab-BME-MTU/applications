@@ -1,11 +1,11 @@
 function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
-    wnVector,selectCrit,pValuePort,errFlag] = armaCoefKalman(trajectories,...
-    arParamP0,maParamP0,minOpt)
+    wnVector,selectCrit,pVCompKL,pVPort,errFlag] = armaCoefKalman(...
+    trajectories,arParamP0,maParamP0,minOpt)
 %ARMACOEFKALMAN fits an ARMA(p,q) model to a time series which could have missing data points.
 %
 %SYNOPSIS [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
-%    wnVector,selectCrit,errFlag] = armaCoefKalman(trajectories,arParamP0,...
-%    maParamP0,minOpt)
+%    wnVector,selectCrit,pVCompKL,pVPort,errFlag] = armaCoefKalman(...
+%    trajectories,arParamP0,maParamP0,minOpt)
 %
 %INPUT  trajectories: Observations of time series to be fitted. Either an 
 %                     array of structures traj(1:nTraj).observations, or a
@@ -27,15 +27,21 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %       arParamL    : Estimated AR parameters using least squares fitting.
 %       maParamL    : Estimated MA parameters using least squares fitting.
 %       varCovMat   : Variance-covariance matrix of ARMA coefficients, 
-%                     estimated via least squares fitting.
+%                     estimated via least squares fitting:
+%           .cofactorMat  : Cofactor matrix.
+%           .posterioriVar: A posteriori estimate of residuals' variance.
 %       wnVariance  : Estimated variance of white noise in process.
 %       wnVector    : Structure array containing the field:
-%           .observations: Estimated white noise series in corresponding 
-%                          trajectory.
+%           .observations : Estimated white noise series in corresponding 
+%                           trajectory.
 %       selectCrit  : Model selection criterion. Contains 3 fields:
-%            .aic        : Akaike's Information Criterion.
-%            .aicc       : Bias-Corrected Akaike's Information Criterion.
-%            .bic        : Bayesian Information Criterion.
+%            .aic         : Akaike's Information Criterion.
+%            .aicc        : Bias-Corrected Akaike's Information Criterion.
+%            .bic         : Bayesian Information Criterion.
+%       pVCompKL    : P-value for comparing ARMA coefficients obtained by
+%                     Kalman filter and maximum likelihood estimation with
+%                     those obtained using least squares fitting.
+%       pVPort      : P-value of the portmanteau test of the residuals.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %REMARKS The Kalman filter & likelihood maximization algorithm implemented 
@@ -72,7 +78,8 @@ varCovMat = [];
 wnVariance = [];
 wnVector = [];
 selectCrit = [];
-pValuePort = [];
+pVCompKL = [];
+pVPort = [];
 errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -413,10 +420,10 @@ end %(if proceed)
 %Least squares fitting
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%reformulate the problem as a least square fitting and obtain the
+%reformulate the problem as a least squares fitting and obtain the
 %variance-covariance matrix of the estimated ARMA coefficients
 [varCovMat,arParamL,maParamL,errFlag] = armaLeastSquares(trajOriginal,...
-    wnVector,length(arParamK(1,:)),length(maParamK(1,:)));
+    wnVector,length(arParamK(1,:)),length(maParamK(1,:)),wnVariance);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Post-processing
@@ -434,46 +441,23 @@ armaCoef2.arParam = arParamL;
 armaCoef2.maParam = maParamL;
 
 %compare parameters
-[H,errFlag] = armaCoefComp(armaCoef1,varCovMat,armaCoef2,varCovMat,...
+[H,pVCompKL,errFlag] = armaCoefComp(armaCoef1,armaCoef2,varCovMat,varCovMat,...
     'global');
 
 %report failure of fit and do not consider results if coefficients are significantly different
 if H == 1
-    disp('--armaCoefKalman: Discrepency between least squares and maximum likelihood!')
+%     disp('--armaCoefKalman: Discrepency between least squares and maximum likelihood!')
     errFlag = 1;
 end
 
-%check whether residuals are white noise. If not, then fit is not good
-%enough and model is skipped
-
-%portmanteau test
-[H,pValuePort,errFlag] = portmanteau(wnVector,5,0.01);
+%use the portmanteau test to check whether residuals are white noise. 
+[H,pVPort,errFlag] = portmanteau(wnVector,5,0.01);
 
 %report failure of fit and do not consider results if residuals are not white noise
 if H == 1
-    disp('--armaCoefKalman: Residuals did not pass portmanteau test!')
+%     disp('--armaCoefKalman: Residuals did not pass portmanteau test!')
     errFlag = 1;
 end
-
-% %turning point test
-% [H,pValue,errFlag] = turningPointTest(wnVector,0.005);
-% 
-% %report failure of fit and do not consider results if residuals are not white noise
-% if H == 1
-%     disp('--armaCoefKalman: Residuals did not pass turning point test!')
-%     errFlag = 1;
-%     return
-% end
-% 
-% %difference sign test
-% [H,pValue,errFlag] = differenceSignTest(wnVector,0.005);
-% 
-% %report failure of fit and do not consider results if residuals are not white noise
-% if H == 1
-%     disp('--armaCoefKalman: Residuals did not pass difference sign test!')
-%     errFlag = 1;
-%     return
-% end
 
 if errFlag
     return

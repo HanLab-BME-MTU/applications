@@ -47,6 +47,8 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %
 %Khuloud Jaqaman, July 2004
 
+%MUST BE FIXED SINCE ARMACOEFKALMAN OUTPUT WAS CHANGED!!!
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Output
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -3,7 +3,7 @@ function [rho,errFlag] = relDeterminability(varCovMat)
 %
 %SYNOPSIS [rho,errFlag] = relDeterminability(varCovMat)
 %
-%INPUT  varCovMat: Variance-covariance matrix estimated parameters.
+%INPUT  varCovMat: Variance-covariance matrix of estimated parameters.
 %
 %OUTPUT rho      : Vector of relative parameter determinability.
 %       errFlag  : 0 if function executes normally, 1 otherwise.
