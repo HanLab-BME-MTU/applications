@@ -1,22 +1,21 @@
 function [kappa,errFlag] = transAutoCov(arOrder,maOrder,arParam,maParam,...
-    variance,maxLagI,maxLagJ)
+    maxLagI,maxLagJ)
 %TRANSAUTOCOV calculates the autocovariance function for the innovations algorithm (see Remark)
 %
 %SYNOPSIS [kappa,errFlag] = transAutoCov(arOrder,maOrder,arParam,maParam,...
-%    variance,maxLagI,maxLagJ)
+%    maxLagI,maxLagJ)
 %
 %INPUT  arOrder     : Order of autoregressive part.
 %       maOrder     : Order of moving average part.
 %       arParam     : Row vector of autoregression coefficients.
 %       maPAram     : Row vector of moving average coefficients.
-%       variance    : Variance of white noise in model. 
 %       maxLag      : Maximum lag at which autocovariance function is
 %                     calculated.
 %
 %OUTPUT kappa       : Autocovariance matrix for lags 0 to maxLag.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
-%REMARK This function computed the autocovariance function of the transformed process 
+%REMARK This function computes the autocovariance function of the transformed process 
 %defined in Eq. 3.3.1 of "Introduction to Time Series and Forecasting" by
 %Brockwell and Davis. This transformation simplifies the use of the
 %innovations algorithm for 1-step prediction of an ARMA(p,q) process.
@@ -81,10 +80,6 @@ if maOrder ~= 0
         end
     end
 end
-if variance < 0
-    disp('--transAutoCov: White noise variance should be nonnegative!');
-    errFlag;
-end
 if maxLagI < 0
     disp('--transAutoCov: "maxLagI" should be a nonnegative integer!');
     errFlag = 1;
@@ -101,7 +96,7 @@ end
 
 
 maxLag = max(maxLagI,maxLagJ);
-[gamma,gammaV,errFlag] = autoCov(arOrder,maOrder,arParam,maParam,variance,maxLag);
+[gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag);
 gammaV = [gammaV(end:-1:2); gammaV(1); gammaV(2:end)];
 
 maxOrder = max(arOrder,maOrder);
@@ -127,7 +122,7 @@ for lagI = 0:maxLagI
                     gammaV(maxLag+2-lagDiff:maxLag+1+arOrder-lagDiff));
             end
            
-        elseif min(lagI,lagJ) > maxOrder && maOrder ~= 0
+        elseif minLocal > maxOrder && maOrder ~= 0
 
             maPoly1 = [1 maParam];
             maPoly2 = [maPoly1(1+lagDiff:end) zeros(1,min(maOrder+1,lagDiff))]';

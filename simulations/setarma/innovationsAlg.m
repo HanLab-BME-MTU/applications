@@ -42,7 +42,7 @@ end
 innovErr = zeros(maxIndex+1,1);
 innovCoef = zeros(maxIndex+1);
 
-innovErr(1) = kappa(2,2);
+innovErr(1) = max(kappa(2,2),1e-30);
 
 for n = 1:maxIndex
     
@@ -55,6 +55,6 @@ for n = 1:maxIndex
         
     end
     
-    innovErr(n+1) = kappa(n+2,n+2) - sum(innovErr(1:n)'.*innovCoef(n,n:-1:1).^2);
+    innovErr(n+1) = max(kappa(n+2,n+2)-(innovCoef(n,n:-1:1).^2)*innovErr(1:n),1e-30);
     
 end

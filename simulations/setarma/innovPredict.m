@@ -1,17 +1,20 @@
-function [xPredicted,errFlag] = innovPredict(xObserved,arOrder,maOrder,arParam,maParam,variance)
+function [xPredicted,innovCoef,innovErr,errFlag] = innovPredict(xObserved,...
+    arOrder,maOrder,arParam,maParam)
 %INNOVPREDICT calculates the 1-step predictor of a time series assuming it's an ARMA process
 %
-%SYNOPSIS [xPredicted,errFlag] = innovPredict(xObserved,arOrder,maOrder,arParam,maParam,variance)
+%SYNOPSIS [xPredicted,innovCoef,innovErr,errFlag] = innovPredict(xObserved,...
+%    arOrder,maOrder,arParam,maParam)
 %
 %INPUT  xObserved   : Observed time series.
 %       arOrder     : Order of autoregressive part of process.
 %       maOrder     : Order of moving average part of process.
 %       arParam     : Row vector of autoregression coefficients.
 %       maPAram     : Row vector of moving average coefficients.
-%       variance    : Variance of white noise in model. 
 %
 %OUTPUT xPredicted  : Predicted time series, using the innovations
 %                     algorithm and 1-step prediction.
+%       innovCoef   : Coefficients calculated in algorithm.
+%       innovErr    : Mean squared error of predictions.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, February 2004
@@ -78,10 +81,6 @@ if maOrder ~= 0
         end
     end
 end
-if variance < 0
-    disp('--innovPredict: White noise variance should be nonnegative!');
-    errFlag;
-end
 if errFlag
     disp('--innovPredict: Please fix input data!');
     xPredicted = [];
@@ -92,7 +91,7 @@ trajLength = length(xObserved); %trajectory length
 
 %get autocovariance matrix of transformed process to use in innovations algorithm
 [kappa,errFlag] = transAutoCov(arOrder,maOrder,arParam,maParam,...
-    variance,trajLength+2,trajLength+2);
+    trajLength+2,trajLength+2);
 if errFlag
     xPredicted = [];
     return
@@ -100,6 +99,10 @@ end
 
 %get innovations algorithm coefficients and prediction errors 
 [innovErr,innovCoef,errFlag] = innovationsAlg(kappa,trajLength);
+if errFlag
+    xPredicted = [];
+    return
+end
 
 maxOrder = max(arOrder,maOrder); %needed for prediction
 
@@ -108,22 +111,22 @@ xPredicted = zeros(trajLength,1); %(not that, by definition, xPredicted(0) = 0)
 
 %predict values between n=2 and n=maxOrder-1
 for n=1:maxOrder-1
-    xPredicted(n+1) = sum(innovCoef(n,1:n).*(xObserved(n:-1:1)-xPredicted(n:-1:1)));
+    xPredicted(n+1) = innovCoef(n,1:n)'*(xObserved(n:-1:1)-xPredicted(n:-1:1));
 end
 
 %predict values between n=maxOrder and n=trajLength
 if maOrder == 0 %no MA, only AR
     for n=maxOrder:trajLength-1
-        xPredicted(n+1) = arParam.*xObserved(n:-1:n+1-arOrder);
+        xPredicted(n+1) = arParam*xObserved(n:-1:n+1-arOrder);
     end
 elseif arOrder == 0 %no AR, only MA
     for n=maxOrder:trajLength-1
-        xPredicted(n+1) = sum(innovCoef(n,1:maOrder)'.*...
-            (xObserved(n:-1:n+1-maOrder)-xPredicted(n:-1:n+1-maOrder)));
+        xPredicted(n+1) = innovCoef(n,1:maOrder)*...
+            (xObserved(n:-1:n+1-maOrder)-xPredicted(n:-1:n+1-maOrder));
     end
 else %both AR and MA
     for n=maxOrder:trajLength-1
-        xPredicted(n+1) = arParam.*xObserved(n:-1:n+1-arOrder) + ...
-            sum(innovCoef(n,1:maOrder)'.*(xObserved(n:-1:n+1-maOrder)-xPredicted(n:-1:n+1-maOrder)));
+        xPredicted(n+1) = arParam*xObserved(n:-1:n+1-arOrder) + innovCoef(n,1:maOrder)*...
+            (xObserved(n:-1:n+1-maOrder)-xPredicted(n:-1:n+1-maOrder));
     end
 end
