@@ -2,14 +2,14 @@ function [scoreProfile,polyProfile,depolyProfile,P,posScores,img2C]=fsmKineticPr
 % function [scoreProfile,P,posScores]=fsmKineticProfile(firstKinScore,imgSize,n,lineDescr,dist,d0,sampling)
 % fsmKineticProfile calculates a kinetic profile along a line from polyMap and depolyMap
 %
-% polyMap and depolyMap are returned by fsmKineticMaps
+% polyMap and depolyMap are returned by fsmTransKineticMaps
 %
 % [scoreProfile,polyProfile,depolyProfile,P,posScores]=fsmKineticProfile(firstKinScore,M,n,lineDescr,dist,d0,sampling)
 %
 % INPUT
 %
 % firstKinScore : string containing name (with full path) of the first kinScore.mat structure
-%                 or a net assembly map (img2C) as returned by fsmKineticMaps
+%                 or a net assembly map (img2C) as returned by fsmTransKineticMaps
 % imgSize       : size of the analyzed image
 % M             : M stack as returned by fsmTrackMain
 % n             : number of frames for averaging
@@ -31,7 +31,7 @@ function [scoreProfile,polyProfile,depolyProfile,P,posScores,img2C]=fsmKineticPr
 % depolyProfile : net depoly profile
 % P             : coordinates of the points along the profile
 % posScores     : coordinates of the selected scores
-% img2C         : net assembly map (see fsmKineticMaps)
+% img2C         : net assembly map (see fsmTransKineticMaps)
 %
 % Aaron Ponti, 12/08/2003
 
@@ -49,10 +49,10 @@ P=lineCoords(lineDescr(:,1),lineDescr(:,2),sampling);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ischar(firstKinScore) % String pointing to the fist kinScore###.mat
-    [poly,depoly,img2C]=fsmKineticMaps(firstKinScore,imgSize,[n n],0); %5
+    [poly,depoly,img2C]=fsmTransKineticMaps(firstKinScore,imgSize,[n n],0); %5
 else
     if size(firstKinScore,3)~=3
-        error('Please make sure that the net assembly map has the correct dimensions - see fsmKineticMaps');
+        error('Please make sure that the net assembly map has the correct dimensions - see fsmTransKineticMaps');
     else
         poly=firstKinScore(:,:,1);
         depoly=firstKinScore(:,:,2);
