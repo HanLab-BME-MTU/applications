@@ -18,6 +18,8 @@ function ptCalculateNeighbourChanges (ptPostpro, MPM)
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Jul 04          Initial version of neighbour change calculation
 % Andre Kerstens        Aug 04          Changed way how changes are counted; more accurate with new method
+% Andre Kerstens        Aug 04          Changed neighbour datastore from cell array to struct (cell2mat 
+%                                       function is way to slow!)
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -30,20 +32,11 @@ jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagename;
 increment = ptPostpro.increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
-cellProps = ptPostpro.cellProps;
-clusterProps = ptPostpro.clusterProps;
-binSize = ptPostpro.binsize;
-frameInterval = round (ptPostpro.timeperframe / 60);    % In minutes
-pixelLength = ptPostpro.mmpixel;
 maxDistance = ptPostpro.maxdistance;
 maxDistToNeighbour = maxDistance;
 
 % Initialize the avg neighbour change vector
 avgNbChange = zeros (1, numberOfFrames);
-
-% Initialize previous neighbours cell (take some big number which is always
-% bigger than the cell list in a frame
-prevNeighbours = cell(10000, 2);
 
 % Initialize MPM counter (start with 0 if plotStartFrame=startFrame)
 MPMCount = ceil ((plotStartFrame - startFrame) / increment);
@@ -65,10 +58,11 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    iCount = iCount + 1;
    xAxis (iCount) = frameCount;
    
-   % Get the cell list for this frame and throw the zero entries out for
-   % the neighbour change calculations
+   % Get the cell list for this frame, throw the zero entries out for
+   % the neighbour change calculations, but keep the original indexnrs
    cells = MPM (:, 2*MPMCount-1 : 2*MPMCount);
-   cellCount = size(cells,1);
+   [cellIndexRow, cellIndexCol] = find (cells);
+   cellIndex = unique(cellIndexRow)';
       
    % Triangulate all the cells with their neighbours
    triangleIndex = delaunay (cells(:,1), cells(:,2));
@@ -77,11 +71,19 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    cellsWithNeighbours = 0;
       
    % Initialize neighbour change counter
-   nbChange = zeros(size(cells,1),1) ;
+   nbChange = zeros(length(cellIndex),1);
    
-   % Find neighbours for all these cells and do some trajectory calculations
-   for cCount = 1 : min (cellCount, length(prevNeighbours))
-          
+   % Initialize counters
+   count = 1;
+   neighCount = 1;
+   
+   % Init neighbours vector
+   clear neighbours;
+   neighbours(1:length(cellIndex))=struct('cell',[],'neighbours',[]);
+   
+   % Find neighbours for all these cells and do neighbour change analysis
+   for cCount = cellIndex
+                 
       % Find the entries in triangleIndex for cell 'cCount'
       neighboursTemp = [];
       cellEntries = triangleIndex(find (triangleIndex(:,1)==cCount | triangleIndex(:,2)==cCount | ...
@@ -135,46 +137,54 @@ for frameCount = plotStartFrame : increment : plotEndFrame
       end
         
       % Only keep the neighbours that are close enough
-      neighbours{cCount,1} = cCount;
-      neighbours{cCount,2} = neighboursTemp (find (distance < maxDistToNeighbour));                                 
+      neighbours(neighCount).cell = cCount;
+      neighbours(neighCount).neighbours = neighboursTemp(find (distance < maxDistToNeighbour))';                                 
 
       % To compare neighbours we need to be at least at frame 2
-      if (frameCount > plotStartFrame) & (~isempty(neighbours{cCount,2})) & ...
-         (~isempty(prevNeighbours{cCount,2}))
-     
-         diff = [];
-         for i = 1 : max(length(neighbours{cCount,2}), length(prevNeighbours{cCount,2}))
-            if max(length(neighbours{cCount,2}), length(prevNeighbours{cCount,2})) == length(prevNeighbours{cCount,2})
-               diff(i) = ~length( find (neighbours{cCount,2} == prevNeighbours{cCount,2}(i)));
-            else
-               diff(i) = ~length( find (prevNeighbours{cCount,2} == neighbours{cCount,2}(i)));
-            end
-         end
-         nbChange(cCount) = nbChange(cCount) + sum(diff);
-            
+      if frameCount > plotStartFrame
+           
+         % Get the cell numbers from the previous neighbours cells
+         %prevCellNrs = [prevNeighbours.cell]';
          
-%         % Compare the current neighbours to the ones in the previous frame
-%          if length(neighbours{cCount,2}) == length(prevNeighbours{cCount,2})
-%             if neighbours{cCount,2} ~= prevNeighbours{cCount,2}
-%             
-%                % Neighbours have changed: add to counter
-%                nbChange(cCount) = nbChange(cCount) + 1;
-%             end
-%          else
-%             % More neighbours have changed
-%             nbChange(cCount) = nbChange(cCount) + abs(length(neighbours{cCount,2}) - ...
-%                                                       length(prevNeighbours{cCount,2}));
-%          end
-
-      end  % if frameCount > plotStartFrame   
-   end  % for cCount = 1 : size(cells,1) 
+         % Find the index for the current cell in prevCellNrs
+         prevNeighbourInd = find(prevCellNrs == cCount);
+         
+         % In case the current cellnr can be found in the previous
+         % neighbours we go ahead and compare
+         if ~isempty(prevNeighbourInd)
+             
+            % Get the index for neighbours as well
+            cellNrs = [neighbours.cell]';
+            neighbourInd = find (cellNrs == cCount);
+         
+            % Both contain the cell: find out if neighbours are similar
+            if length(neighbours(neighbourInd).neighbours) >= length(prevNeighbours(prevNeighbourInd).neighbours)    
+               neighbourChange = ~ismember (neighbours(neighbourInd).neighbours, prevNeighbours(prevNeighbourInd).neighbours); 
+            else
+               neighbourChange = ~ismember (prevNeighbours(prevNeighbourInd).neighbours, neighbours(neighbourInd).neighbours); 
+            end
+            
+            % Sum up the changes
+            nbChange(count) = nbChange(count) + sum(neighbourChange);
+            
+            % Increase change counter
+            count = count + 1;
+         end  % ~isempty(find(prevCellNrs == cCount))
+      end  % if frameCount > plotStartFrame 
+      
+      % Increase neighbour struct counter
+      neighCount = neighCount + 1;
+      
+   end  % for cCount = cellIndex
    
    % Average the neighbour changes
-   avgNbChange(iCount) = sum(nbChange) / length(nbChange);
+   avgNbChange(iCount) = sum(nbChange); %/ length(nbChange);
       
    % Keep the neighbours of this frame for use in the next
    prevNeighbours = neighbours;
    
+   % Store the cell numbers from the previous neighbours cells
+   prevCellNrs = [prevNeighbours.cell]';
 end   % for frameCount
 
 % Set the mouse pointer to normal again
@@ -190,7 +200,7 @@ if ptPostpro.neighbourplot_2
     plot (xAxis, avgNbChange); 
     title ('Avg Neighbour Interaction Change');
     xlabel ('Frames');
-    ylabel ('Avg Neighbour Chng');
+    ylabel ('Avg Neighbour Change');
     if length (xAxis) > 1
        axis ([xAxis(1) xAxis(end) 0 ymax]);
     else
