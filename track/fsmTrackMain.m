@@ -68,7 +68,7 @@ if enhanced==1
     else
         gridSize=[11 11];
     end
-
+    
     % Calculate d0 for interpolation
     d0=3*max(gridSize);
     
@@ -93,18 +93,18 @@ else
 end
 
 for counter1=1:lastImage
-
+    
     % Current index
     currentIndex=counter1+firstIndex-1;
-
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
     % PREPARE THE IMAGES FOR TRACKING (FROM cands###.mat)
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+    
     if counter1==1   % Only in the first round we need to process three files
-                
+        
         % Load speckle information for the first image from cands###.mat
         indxStr=sprintf(strg,currentIndex);
         %eval(strcat('load cands',filesep,'cands',indxStr,'.mat;')); % Load cands for the current image
@@ -121,7 +121,7 @@ for counter1=1:lastImage
         indxStr=sprintf(strg,currentIndex+1);
         %eval(strcat('load cands',filesep,'cands',indxStr,'.mat;')); % Load cands for the current image
         eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
-       
+        
         % Create speckle map
         [J,img2]=fsmTrackFillSpeckleList(cands,imgSize);
         if isempty(J)
@@ -134,7 +134,7 @@ for counter1=1:lastImage
             indxStr=sprintf(strg,currentIndex+2);
             %eval(strcat('load cands',filesep,'cands',indxStr,'.mat;')); % Load cands for the current image
             eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
-
+            
             % Create speckle map
             [K,img3]=fsmTrackFillSpeckleList(cands,imgSize);
             if isempty(K)
@@ -142,7 +142,7 @@ for counter1=1:lastImage
             end
             clear cands;
         end
-           
+        
     else % Only the third image needs to be processed
         
         img=img2; clear img2; % The first image is the second from the previous run
@@ -161,12 +161,12 @@ for counter1=1:lastImage
             [K,img3]=fsmTrackFillSpeckleList(cands,imgSize);
             clear cands;
         else
-        
+            
             % Load only speckle information for the third image from cands###.mat
             indxStr=sprintf(strg,currentIndex+1);
             %eval(strcat('load cands',filesep,'cands',indxStr,'.mat;')); % Load cands for the current image
             eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
-
+            
             % Create speckle map
             [J,img2]=fsmTrackFillSpeckleList(cands,imgSize);
             if isempty(J)
@@ -176,7 +176,7 @@ for counter1=1:lastImage
         end
         
     end
-        
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
     % TRACK
@@ -184,18 +184,21 @@ for counter1=1:lastImage
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     switch TRACKER
-    case 1
-%         [tmp,n1,n2,nc1,nc2]=fsmTrackTrackerA(img,img2,img,img2);
-        tmp=fsmTrackTrackerBMTNN(I,J,threshold,influence);
-    case 2
-        tmp=fsmTrackTrackerP(img,img2,threshold);    
-    case 3
-%         tmp=fsmTrackTrackerPP(img,img2,img3,threshold); 
-        tft(I,J,K,threshold); % no output at present, funciton writes to disc
-    otherwise
-        error('Please select an EXISTING tracker.');
+        case 1
+            %         [tmp,n1,n2,nc1,nc2]=fsmTrackTrackerA(img,img2,img,img2);
+            tmp=fsmTrackTrackerBMTNN(I,J,threshold,influence);
+        case 2
+            tmp=fsmTrackTrackerP(img,img2,threshold);    
+        case 3
+            %         tmp=fsmTrackTrackerPP(img,img2,img3,threshold); 
+            links = tft(I,J,K,threshold); % 
+            savefile = [userPath,filesep,'links',filesep,'tft',filesep,'links',indxStr,'.mat'];
+            save(savefile,'links')
+            clear links
+        otherwise
+            error('Please select an EXISTING tracker.');
     end
-  
+    
     if TRACKER~=3
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -224,10 +227,10 @@ for counter1=1:lastImage
     
     % Update wait bar
     waitbar(counter1/(n-1),h);
-
+    
     % Force matlab to update the waitbar
     drawnow;
- 
+    
 end
 
 % Close waitbar
@@ -260,8 +263,8 @@ if size(M,3)>1 % In case only two frames have been tracked, no gaps can be close
         % Close gaps in M
         closedGap=0; [M,closedGap]=fsmTrackGapCloser(M,threshold,strg,userPath,firstIndex);
     end
-
-
+    
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
     %   LINKER
