@@ -314,6 +314,8 @@ else
     set(handles.editCorrLength,'String','33');
 end
 
+% Set enhanced checkbox
+set(handles.checkEnhTrack,'Value',fsmParam.track.enhanced);
 
 % Enable/disable module
 if fsmParam.track.enable==1

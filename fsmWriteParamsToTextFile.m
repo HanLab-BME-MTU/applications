@@ -146,6 +146,13 @@ if fsmParam.track.enable==1
         otherwise
             error('Wrong value for fsmParam.prep.tracker');
     end
+    switch fsmParam.track.init
+        case 1, fprintf(fid,'Tracker initialized       : kymograph\n');
+                fprintf(fid,'Initializer path          : %s\n',fsmParam.track.initPath);
+        case 0, fprintf(fid,'Tracker initialized       : no\n');
+        otherwise,
+            error('Wrong value for fsmParam.track.init');
+    end
     switch fsmParam.track.enhanced
         case 1, 
             fprintf(fid,'Hierarchical tracking     : Yes\n');    
@@ -157,12 +164,13 @@ if fsmParam.track.enable==1
             end
         case 0, fprintf(fid,'Hierarchical tracking     : No\n');
         otherwise
-            error('Wrong value for fsmParam.prep.enhanced');
+            error('Wrong value for fsmParam.track.enhanced');
     end
 
     fprintf(fid,'Search radius (pixels)    : %d\n',fsmParam.track.threshold);
     fprintf(fid,'Influence radius (pixels) : %d\n',fsmParam.track.influence);
-        
+    fprintf(fid,'Correlation length (pxls) : %d\n',fsmParam.track.corrLength);
+    
 elseif fsmParam.track.enable==0
     
     fprintf(fid,'Module ''track''            : not run\n');
