@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 14-May-2004 14:14:42
+% Last Modified by GUIDE v2.5 21-May-2004 15:52:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -316,7 +316,38 @@ sigma=str2num(get(handles.editTimeSigma,'String'));
 sigmaFreq=str2num(get(handles.editSpectrumSigma,'String'));
 tSampling=str2num(get(handles.editTSampling,'String'));
 label=str2num(get(handles.editLabel,'String'));
-fsmWaveAnalysis(analysis,roi,gridSize,sigma,sigmaFreq,label,tSampling,moveROI);
+if roi=='g' % The b/w mask is used only to get a subset of the grid
+    if get(handles.checkLoadBwMask,'Value')==1
+        % Load wavesBwMask.mat
+        [fName,dirName] = uigetfile(...
+            {'wavesBwMask.mat;','wavesBwMask.mat';
+            '*.*','All Files (*.*)'},...
+            'Select wavesBwMask.mat');
+        if ~(isa(fName,'char') & isa(dirName,'char'))
+            bwMask=[];
+        else
+            load([dirName,filesep,fName]);
+        end
+    else
+        bwMask=[];
+    end
+else
+    bwMask=[];
+end
+[scores,allScores,bwMask]=fsmWaveAnalysis(analysis,roi,gridSize,sigma,sigmaFreq,label,tSampling,moveROI,bwMask);
+if ~isempty(bwMask)
+    assignin('base','scores',scores);
+    assignin('base','allScores',allScores);
+    assignin('base','bwMask',bwMask);
+    if roi=='g' % The b/w mask is used only to get a subset of the grid
+        if get(handles.checkSaveBwMask,'Value')==1
+            path=uigetdir('','Please select a directory where to save the b/w mask'); 
+            if path~=0
+                save([path,filesep,'wavesBwMask.mat'],'bwMask');
+            end
+        end
+    end
+end
 
 function editY_Callback(hObject, eventdata, handles)
 
@@ -341,6 +372,9 @@ set(handles.textY,'Enable','on');
 set(handles.textX,'Enable','on');
 set(handles.editY,'Enable','on');
 set(handles.editX,'Enable','on');
+set(handles.textBwMask,'Enable','on');
+set(handles.checkLoadBwMask,'Enable','on');
+set(handles.checkSaveBwMask,'Enable','on');
 
 function radioPoly_Callback(hObject, eventdata, handles)
 set(handles.radioGrid,'Value',0);
@@ -352,6 +386,9 @@ set(handles.textY,'Enable','off');
 set(handles.textX,'Enable','off');
 set(handles.editY,'Enable','off');
 set(handles.editX,'Enable','off');
+set(handles.textBwMask,'Enable','off');
+set(handles.checkLoadBwMask,'Enable','off');
+set(handles.checkSaveBwMask,'Enable','off');
 
 function radioRect_Callback(hObject, eventdata, handles)
 set(handles.radioGrid,'Value',0);
@@ -363,6 +400,9 @@ set(handles.textY,'Enable','off');
 set(handles.textX,'Enable','off');
 set(handles.editY,'Enable','off');
 set(handles.editX,'Enable','off');
+set(handles.textBwMask,'Enable','off');
+set(handles.checkLoadBwMask,'Enable','off');
+set(handles.checkSaveBwMask,'Enable','off');
 
 function pushMeta_Callback(hObject, eventdata, handles)
 stk2tif(get(handles.editFileName,'string'));
@@ -581,7 +621,8 @@ sampling=str2num(get(handles.editSMSampling,'string'));
 pixelSize=str2num(get(handles.editSMPixel,'string'));
 maxSpeed=str2num(get(handles.editSMMax,'string'));
 userROIbw=get(handles.checkSMMask,'value');
-outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIbw,maxSpeed);
+segment=get(handles.checkSMSegment,'value');
+outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIbw,maxSpeed,segment);
 if ~isempty(outputdir)
     % Maps have been saved to disk
     msg=['Speed maps have been saved to ',outputdir,'.'];
@@ -1328,3 +1369,50 @@ function pushOptimCal_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 fsmCenterAlphaBetaGui;
+
+
+% --- Executes on button press in checkbox23.
+function checkbox23_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox23 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox23
+
+
+% --- Executes on button press in checkbox24.
+function checkbox24_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox24 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox24
+
+
+% --- Executes on button press in checkLoadBwMask.
+function checkLoadBwMask_Callback(hObject, eventdata, handles)
+% hObject    handle to checkLoadBwMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkLoadBwMask
+
+
+% --- Executes on button press in checkSaveBwMask.
+function checkSaveBwMask_Callback(hObject, eventdata, handles)
+% hObject    handle to checkSaveBwMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkSaveBwMask
+
+
+% --- Executes on button press in checkSMSegment.
+function checkSMSegment_Callback(hObject, eventdata, handles)
+% hObject    handle to checkSMSegment (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkSMSegment
+
+

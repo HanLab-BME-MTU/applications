@@ -1,4 +1,4 @@
-function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIbw,maxSpeed)
+function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIbw,maxSpeed,segment)
 % fsmSpeedMaps creates speed maps from the flow maps returned by the SpeckTackle package
 %
 % fsmSpeedMaps goes through the whole M (or Md) stack of s matrices (each matrix corresponds to the
@@ -21,6 +21,7 @@ function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,ov
 %               maxSpeed    : [ 0 | n ] maximum expected speed (to set the same color scaling for all frames)
 %                             Set it to 0 to turn off rescaling (the function will set this value to 110% 
 %                             of the maximum velocity from frame 1) or to any velocity n in nm/min.
+%               segment     : [ 0 | 1 ] turns on and off automatic segmentation
 %
 % OUTPUT        outputdir   : directory where the speed maps are saved to.
 %               speedMaps saved to disk as .tif, .eps, .mat 
@@ -34,8 +35,8 @@ function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,ov
 global uFirst uLast
 
 % Check input parameters
-if nargin~=9
-    error('9 input parameters expected');
+if nargin~=10
+    error('10 input parameters expected');
 end
 
 % Initialize output
@@ -268,18 +269,21 @@ for c2=1:steps
     % If needed, resize
     speedMap=imresize(speedMap,imgSize,'bilinear');
     
-    % Find cell boundaries
-    xmax=2^14-1;
-    img=imreadnd2(char(outFileList(c2)),0,xmax);
-    try
-        [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
-    catch
-        % Uses last one
+    if segment==1
+        % Find cell boundaries
+        xmax=2^14-1;
+        img=imreadnd2(char(outFileList(c2)),0,xmax);
+        try
+            [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
+        catch
+            % Uses last one
+        end       
+    
+        % Crop velocity map
+        speedMap=speedMap.*bwMask;
+        
     end
     
-    % Crop velocity map
-    speedMap=speedMap.*bwMask;
-
     % If needed apply the userROI as well
     if ~isempty(userROIbw)
         % Check size
