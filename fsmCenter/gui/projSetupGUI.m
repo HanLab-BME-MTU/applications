@@ -56,6 +56,30 @@ function projSetupGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for projSetupGUI
 %handles.output = hObject;
 
+subProjTags = {'tack', ...
+               'lpla', ...
+               'post', ...
+               'edge', ...
+               'merg', ...
+               'fadh', ...
+               'corr'};
+
+subProjTitle = {'   speckTackle', ...
+                'fsm Transition', ...
+                '    fsm Center', ...
+                '  Edge Tracker', ...
+                '        Merger', ...
+                'Focal Adhesion', ...
+                '   corrTracker'};
+
+numSubProj = length(subProjTags);
+
+%Remove space in 'subProjTitle'.
+subProjNames = cell(size(subProjTitle));
+for k = 1:numSubProj
+   subProjNames{k} = sscanf(subProjTitle{k},'%s');
+end
+
 projDir = '';
 if nargin > 5
    projDir = varargin{3};
@@ -65,27 +89,29 @@ if ~isdir(projDir)
    projDir = pwd;
 end
 
-[imgDir,resDirList] = getProjSetting(projDir);
+[imgDir,subProjDir] = getProjSetting(projDir,subProjNames);
 
 %Get handles to GUI objects.
 handles.projDirTFH = findobj('tag','projDir');
 handles.imgDirTFH  = findobj('tag','imgDir');
-handles.tackDirMH  = findobj('tag','tackSuffix');
-handles.tackDirTFH = findobj('tag','tackSufNew');
-handles.lplaDirMH  = findobj('tag','lplaSuffix');
-handles.lplaDirTFH = findobj('tag','lplaSufNew');
-handles.postDirMH  = findobj('tag','postSuffix');
-handles.postDirTFH = findobj('tag','postSufNew');
-handles.edgeDirMH  = findobj('tag','edgeSuffix');
-handles.edgeDirTFH = findobj('tag','edgeSufNew');
-handles.mergDirMH  = findobj('tag','mergSuffix');
-handles.mergDirTFH = findobj('tag','mergSufNew');
-handles.fadhDirMH  = findobj('tag','fadhSuffix');
-handles.fadhDirTFH = findobj('tag','fadhSufNew');
-handles.corrDirMH  = findobj('tag','corrSuffix');
-handles.corrDirTFH = findobj('tag','corrSufNew');
 
-handles = updateGUI(handles,projDir,imgDir,resDirList);
+%To get the handle to those 'subProj' GUI objects.
+%Text Field Handle.
+subProjTFH = cell(size(subProjTags));
+%Menu Handle.
+subProjMH = cell(size(subProjTags));
+for k = 1:numSubProj
+   handles.subProjMH{k}  = findobj('tag',[subProjTags{k} 'Suffix']);
+   handles.subProjTFH{k} = findobj('tag',[subProjTags{k} 'SufNew']);
+end
+
+handles.subProjTags  = subProjTags;
+handles.numSubProj   = numSubProj;
+handles.subProjTitle = subProjTitle;
+handles.subProjNames = subProjNames;
+
+
+handles = updateGUI(handles,projDir,imgDir,subProjDir);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -114,49 +140,30 @@ if ~isempty(selDir)
     end
 end
 
-function handles = updateGUI(handles,projDir,imgDir,resDirList)
+function handles = updateGUI(handles,projDir,imgDir,subProjDir)
+
+numSubProj  = handles.numSubProj;
+subProjTags = handles.subProjTags;
+subProjMH   = handles.subProjMH;
+subProjTFH  = handles.subProjTFH;
 
 handles.projDir = projDir;
 handles.imgDir  = imgDir;
 
 %Search for available results directories for each package and update popup
 % menu in the GUI.
-tackDir = resDirList{1};
-lplaDir = resDirList{2};
-postDir = resDirList{3};
-edgeDir = resDirList{4};
-mergDir = resDirList{5};
-fadhDir = resDirList{6};
-corrDir = resDirList{7};
-
-handles.tackDir = tackDir;
-handles.lplaDir = lplaDir;
-handles.postDir = postDir;
-handles.edgeDir = edgeDir;
-handles.mergDir = mergDir;
-handles.fadhDir = fadhDir;
-handles.corrDir = corrDir;
-
-projDirStruct=dir(projDir);
-tackDirList = findProjSubDir(projDirStruct,'tack');
-lplaDirList = findProjSubDir(projDirStruct,'lpla');
-postDirList = findProjSubDir(projDirStruct,'post');
-edgeDirList = findProjSubDir(projDirStruct,'edge');
-mergDirList = findProjSubDir(projDirStruct,'merg');
-fadhDirList = findProjSubDir(projDirStruct,'fadh');
-corrDirList = findProjSubDir(projDirStruct,'corr');
-
 set(handles.projDirTFH,'string',projDir);
 set(handles.imgDirTFH,'string',imgDir);
 
-updateDirList(handles.tackDirMH,handles.tackDirTFH,tackDirList,tackDir,'tack');
-updateDirList(handles.lplaDirMH,handles.lplaDirTFH,lplaDirList,lplaDir,'lpla');
-updateDirList(handles.postDirMH,handles.postDirTFH,postDirList,postDir,'post');
-updateDirList(handles.edgeDirMH,handles.edgeDirTFH,edgeDirList,edgeDir,'edge');
-updateDirList(handles.mergDirMH,handles.mergDirTFH,mergDirList,mergDir,'merg');
-updateDirList(handles.fadhDirMH,handles.fadhDirTFH,fadhDirList,fadhDir,'fadh');
-updateDirList(handles.corrDirMH,handles.corrDirTFH,corrDirList,corrDir,'corr');
+projDirStruct=dir(projDir);
+subProjDirList = cell(size(subProjDir));
+for k = 1:numSubProj
+   subProjDirList{k} = findProjSubDir(projDirStruct,subProjTags{k});
+   updateDirList(subProjMH{k},subProjTFH{k},subProjDirList{k}, ...
+      subProjDir{k},subProjTags{k});
+end
 
+handles.subProjDir = subProjDir;
 
 % --- Outputs from this function are returned to the command line.
 function varargout = projSetupGUI_OutputFcn(hObject, eventdata, handles)
@@ -182,8 +189,7 @@ if nargout >= 2
     varargout{2} = handles.imgDir;
 end
 if nargout == 3
-    varargout{3} = {handles.tackDir,handles.lplaDir,handles.postDir, ...
-            handles.edgeDir,handles.mergDir,handles.fadhDir,handles.corrDir};
+    varargout{3} = handles.subProjDir;
 end
 
 %Write image path to a file named 'lastProjSetting.txt'.
@@ -197,15 +203,15 @@ if isdir(handles.projDir)
     end
     fid = fopen([handles.projDir filesep settingsFileName],'w');
     if fid ~= -1
-        fprintf(fid,'%s\n',['    Image Path: ' handles.imgDir]);
-        fprintf(fid,'%s\n',['   speckTackle: ' handles.tackDir]);
-        fprintf(fid,'%s\n',['fsm Transition: ' handles.lplaDir]);
-        fprintf(fid,'%s\n',['    fsm Center: ' handles.postDir]);
-        fprintf(fid,'%s\n',['  Edge Tracker: ' handles.edgeDir]);
-        fprintf(fid,'%s\n',['        Merger: ' handles.mergDir]);
-        fprintf(fid,'%s\n',['Focal Adhesion: ' handles.fadhDir]);
-        fprintf(fid,'%s\n',['   corrTracker: ' handles.corrDir]);
-        fclose(fid);
+       fprintf(fid,'%s\n',['    Image Path: ' handles.imgDir]);
+
+       numSubProj   = handles.numSubProj;
+       subProjDir   = handles.subProjDir;
+       subProjTitle = handles.subProjTitle;
+       for k = 1:numSubProj
+          fprintf(fid,'%s\n',[subProjTitle{k} ': ' subProjDir{k}]);
+       end
+       fclose(fid);
     end
 end
 
@@ -236,6 +242,10 @@ function Ok_Callback(hObject, eventdata, handles)
 projDir = get(handles.projDirTFH,'string');
 imgDir  = get(handles.imgDirTFH,'string');
 
+numSubProj  = handles.numSubProj;
+subProjTags = handles.subProjTags;
+subProjDir  = cell(size(subProjTags));
+
 if isempty(projDir)
     warnH = warndlg('No project directory is set.','Warning','modal');
     return;
@@ -246,113 +256,35 @@ if isempty(imgDir)
     return;
 end
 
-item = get(handles.tackDirMH,'value');
-menu = get(handles.tackDirMH,'string');
-if iscell(menu) & strcmp(menu{item},'New') == 0
-    tackDir = menu{item};
-else
-    tackDir = ['tack' get(handles.tackDirTFH,'string')];
+for k = 1:numSubProj
+   item = get(handles.subProjMH{k},'value');
+   menu = get(handles.subProjMH{k},'string');
+   if iscell(menu) & strcmp(menu{item},'New') == 0
+      subProjDir{k} = menu{item};
+   else
+      subProjDir{k} = [subProjTags{k} get(handles.subProjTFH{k},'string')];
+   end
 end
 
-item = get(handles.lplaDirMH,'value');
-menu = get(handles.lplaDirMH,'string');
-if iscell(menu) & strcmp(menu{item},'New') == 0
-    lplaDir = menu{item};
-else
-    lplaDir = ['lpla' get(handles.lplaDirTFH,'string')];
+subProjOK = 1; k =1;
+while subProjOK & k <= numSubProj
+   if ~isdir([projDir filesep subProjDir{k}])
+      [subProjOK,msg,msgID] = mkdir(projDir,subProjDir{k});
+   end
+   k = k+1;
 end
 
-item = get(handles.postDirMH,'value');
-menu = get(handles.postDirMH,'string');
-if iscell(menu) & strcmp(menu{item},'New') == 0
-    postDir = menu{item};
+if subProjOK
+   handles.projDir = projDir;
+   handles.imgDir  = imgDir;
+   handles.subProjDir = subProjDir;
 else
-    postDir = ['post' get(handles.postDirTFH,'string')];
-end
-
-item = get(handles.edgeDirMH,'value');
-menu = get(handles.edgeDirMH,'string');
-if iscell(menu) & strcmp(menu{item},'New') == 0
-    edgeDir = menu{item};
-else
-    edgeDir = ['edge' get(handles.edgeDirTFH,'string')];
-end
-
-item = get(handles.mergDirMH,'value');
-menu = get(handles.mergDirMH,'string');
-if iscell(menu) & strcmp(menu{item},'New') == 0
-    mergDir = menu{item};
-else
-    mergDir = ['merg' get(handles.mergDirTFH,'string')];
-end
-
-item = get(handles.fadhDirMH,'value');
-menu = get(handles.fadhDirMH,'string');
-if iscell(menu) & strcmp(menu{item},'New') == 0
-    fadhDir = menu{item};
-else
-    fadhDir = ['fadh' get(handles.fadhDirTFH,'string')];
-end
-
-item = get(handles.corrDirMH,'value');
-menu = get(handles.corrDirMH,'string');
-if iscell(menu) & strcmp(menu{item},'New') == 0
-    corrDir = menu{item};
-else
-    corrDir = ['corr' get(handles.corrDirTFH,'string')];
-end
-
-tackOK = 1;
-lplaOK = 1;
-postOK = 1;
-edgeOK = 1;
-mergOK = 1;
-fadhOK = 1;
-corrOK = 1;
-if ~isdir([projDir filesep tackDir])
-    [tackOK,msg,msgID] = mkdir(projDir,tackDir);
-end
-if ~isdir([projDir filesep lplaDir])
-    [lplaOK,msg,msgID] = mkdir(projDir,lplaDir);
-end
-if ~isdir([projDir filesep postDir])
-    [postOK,msg,msgID] = mkdir(projDir,postDir);
-end
-if ~isdir([projDir filesep edgeDir])
-    [edgeOK,msg,msgID] = mkdir(projDir,edgeDir);
-end
-if ~isdir([projDir filesep mergDir])
-    [mergOK,msg,msgID] = mkdir(projDir,mergDir);
-end
-if ~isdir([projDir filesep fadhDir])
-    [fadhOK,msg,msgID] = mkdir(projDir,fadhDir);
-end
-if ~isdir([projDir filesep corrDir])
-    [corrOK,msg,msgID] = mkdir(projDir,corrDir);
-end
-
-if tackOK == 1 & lplaOK == 1 & postOK == 1 & edgeOK == 1 & ...
-   mergOK == 1 & fadhOK == 1 & corrOK == 1
-    handles.projDir = projDir;
-    handles.imgDir  = imgDir;
-    handles.tackDir = tackDir;
-    handles.lplaDir = lplaDir;
-    handles.postDir = postDir;
-    handles.edgeDir = edgeDir;
-    handles.mergDir = mergDir;
-    handles.fadhDir = fadhDir;
-    handles.corrDir = corrDir;
-else
-    warning('Trouble making new directory.');
-    handles.projDir = '';
-    handles.imgDir  = '';
-    handles.tackDir = '';
-    handles.lplaDir = '';
-    handles.postDir = '';
-    handles.edgeDir = '';
-    handles.mergDir = '';
-    handles.fadhDir = '';
-    handles.corrDir = '';
+   warning('Trouble making new directory.');
+   handles.projDir = '';
+   handles.imgDir  = '';
+   for k = 1:numSubProj
+      handles.subProjDir{k} = '';
+   end
 end
 
 % Update handles structure
@@ -373,9 +305,10 @@ if isnumeric(projDir) & projDir == 0
     return;
 end
 
+subProjNames = handles.subProjNames;
 if ~samdir(handles.projDir,projDir)
-    [imgDir resDirList] = getProjSetting(projDir);
-    handles = updateGUI(handles,projDir,imgDir,resDirList);
+    [imgDir subProjDir] = getProjSetting(projDir,subProjNames);
+    handles = updateGUI(handles,projDir,imgDir,subProjDir);
 end
 
 guidata(hObject,handles);
@@ -394,9 +327,10 @@ if ~isdir(projDir)
    return;
 end
 
+subProjNames = handles.subProjNames;
 if ~samdir(handles.projDir,projDir)
-    [imgDir resDirList] = getProjSetting(projDir);
-    handles = updateGUI(handles,projDir,imgDir,resDirList);
+    [imgDir subProjDir] = getProjSetting(projDir,subProjNames);
+    handles = updateGUI(handles,projDir,imgDir,subProjDir);
 end
 
 guidata(hObject,handles);
@@ -445,16 +379,15 @@ end
 guidata(hObject,handles);
 
 
-function [imgDir,resDirList] = getProjSetting(projDir)
+function [imgDir,subProjDir] = getProjSetting(projDir,subProjNames)
 
-%projDir = handles.projDir;
-%tackDir = handles.tackDir;
-%lplaDir = handles.lplaDir;
-%postDir = handles.postDir;
-%edgeDir = handles.edgeDir;
-%mergDir = handles.mergDir;
-%fadhDir = handles.fadhDir;
-%corrDir = handles.corrDir;
+numSubProj = length(subProjNames);
+
+subProjDir = cell(size(subProjNames));
+for k = 1:numSubProj
+   subProjDir{k} = '';
+end
+imgDir = '';
 
 %Read last project setting in the selected project path.
 noProblem = 0;
@@ -480,56 +413,20 @@ if isdir(projDir)
             else
                 %Use 'sscanf' to remove space.
                 headStr = sscanf(textL(1:k-1),'%s');
-                switch headStr
-                    case 'ImagePath'
-                        if k == length(textL)
-                            imgDir = '';
-                        else
-                            imgDir = sscanf(textL(k+1:end),'%s');
-                        end
-                    case 'speckTackle'
-                        if k == length(textL)
-                            tackDir = '';
-                        else
-                            tackDir = sscanf(textL(k+1:end),'%s');
-                        end
-                    case 'fsmTransition'
-                        if k == length(textL)
-                            lplaDir = '';
-                        else
-                            lplaDir = sscanf(textL(k+1:end),'%s');
-                        end
-                    case 'fsmCenter'
-                        if k == length(textL)
-                            postDir = '';
-                        else
-                            postDir = sscanf(textL(k+1:end),'%s');
-                        end
-                    case 'EdgeTracker'
-                        if k == length(textL)
-                            edgeDir = '';
-                        else
-                            edgeDir = sscanf(textL(k+1:end),'%s');
-                        end
-                    case 'Merger'
-                        if k == length(textL)
-                            mergDir = '';
-                        else
-                            mergDir = sscanf(textL(k+1:end),'%s');
-                        end
-                    case 'FocalAdhesion'
-                        if k == length(textL)
-                            fadhDir = '';
-                        else
-                            fadhDir = sscanf(textL(k+1:end),'%s');
-                        end
-                    case 'corrTracker'
-                        if k == length(textL)
-                            corrDir = '';
-                        else
-                            corrDir = sscanf(textL(k+1:end),'%s');
-                        end
-                    otherwise
+                if strcmp(headStr,'ImagePath')
+                   if k ~= length(textL)
+                      imgDir = sscanf(textL(k+1:end),'%s');
+                   end
+                else
+                   j1 = 1;
+                   while ~strcmp(headStr,subProjNames{j1}) & j1 <= numSubProj
+                      j1 = j1+1;
+                   end
+                   if j1 <= numSubProj
+                      if k ~= length(textL)
+                         subProjDir{j1} = sscanf(textL(k+1:end),'%s');
+                      end
+                   end
                 end
             end
             
@@ -545,13 +442,8 @@ end
 
 if ~noProblem
    imgDir  = '';
-   tackDir = '';
-   lplaDir = '';
-   postDir= '';
-   edgeDir= '';
-   mergDir= '';
-   fadhDir= '';
-   corrDir= '';
+   for k = 1:numSubProj
+      subProjDir{k} = '';
+   end
 end
 
-resDirList = {tackDir,lplaDir,postDir,edgeDir,mergDir,fadhDir,corrDir};
