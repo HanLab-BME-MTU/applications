@@ -1,7 +1,7 @@
-function speckleClasses=assignSpecklesToClasses(speckleArray)
-% assignSpecklesToClasses assigns each speckle in speckleArray to one of 10 classes
+function speckleClasses=fsmAssignSpecklesToClasses(speckleArray)
+% fsmAssignSpecklesToClasses assigns each speckle in speckleArray to one of 10 classes
 % 
-% SYNOPSIS   speckleClasses=assignSpecklesToClasses(speckleArray)
+% SYNOPSIS   speckleClasses=fsmAssignSpecklesToClasses(speckleArray)
 %
 % The speckleArray structure is analyzed and a new, smaller structure, speckleClasses is returned 
 % with following fields:
@@ -31,6 +31,13 @@ function speckleClasses=assignSpecklesToClasses(speckleArray)
 % 11 : speckles already present in frame 1 which die within the movie
 % 12 : speckles which are born within the movie and are still present at movie end
 % 13 : speckles which live for the whole movie
+%
+% Aaron Ponti, 04/09/2004
+
+% Check input
+if nargin~=1
+    error('One input parameter expected');
+end
 
 % Total number of speckles
 total=length(speckleArray);
@@ -46,7 +53,7 @@ lastEv='n';
 currentB=0;
 
 % Calculate some longer step size (not to spend too much time updating the waitbar)
-step=0.5*10^fix(log10(total)-1);
+step=0.5*10^fix(log10(total)-1); if step<1, step=1; end
 
 % Initialize the waitbar
 wH=waitbar(0,'Please wait...');
@@ -181,10 +188,15 @@ for i=1:total
     end
     
     % Update waitbar if needed
-    if mod(i,step)==1
+    if step>1
+        if mod(i,step)==1
+            waitbar(i/total,wH);
+        end
+    else
         waitbar(i/total,wH);
-    end
+    end        
     
 end
 
+% Close waitbar
 close(wH);
