@@ -10,4 +10,4 @@ for jj = 1:numTimeSteps
 end
 
 M = vectorFieldAnimate([bfDisplayPx bfDisplayPy],recDispU,30, ...
-   'bgImg',rawI{1},'vc','r');
+   'bgImg',rawI{1},'colorMap','autumn');
