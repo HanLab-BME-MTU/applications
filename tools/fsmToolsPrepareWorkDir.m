@@ -104,6 +104,13 @@ if exist([userPath,filesep,'vectors'])~=7
         return;
     end
 end
+if exist([userPath,filesep,'tftraw'])~=7
+    st=mkdir('tftraw');
+    % Check status
+    if st~=1
+        return;
+    end
+end
 
 
 % Set status to 1
