@@ -110,7 +110,10 @@ end
 %calculate time
 %calc data
 timePoints = cat(1,anaDat.timePoint);
-timePointsBF = (timePoints(1:end-1)+timePoints(2:end))/2;
+%timePointsBF = (timePoints(1:end-1)+timePoints(2:end))/2;
+% instead of using timepoints between frames, we use the first of the two
+% timepoints
+timePointsBF = timePoints(1:end-1);
 
 %calculate number of timepoints between frames
 numTimePointsBF = diff(timePoints);
