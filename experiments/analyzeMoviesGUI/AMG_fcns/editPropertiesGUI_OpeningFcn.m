@@ -186,7 +186,7 @@ set(handles.edit_timeLapse_txt,'String',timeLapse);
 
 %filter parameters (can't be edited)
 %start assuming that the psf matches the theoretical psf
-handles.sigmaCorrection(1) = 1.12;%1.2 before pixCorr.
+handles.sigmaCorrection(1) = 1.0;%1.2 before pixCorr.
 handles.sigmaCorrection(2) = 1.0;%1.3 before NAcorr
 
 set(handles.edit_sigmaCorrX_txt,'String',handles.sigmaCorrection(1));
