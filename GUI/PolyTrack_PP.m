@@ -57,7 +57,7 @@ handles.output = hObject;
 defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, ...
                         'dragtail', 6, 'dragtailfile', 'trackmovie', 'figureSize', [], ...
                         'multFrameVelocity', 1, 'binsize', 4, 'mmpixel', 0.639, 'timeperframe', 300, ...
-                        'movietype', 1);
+                        'movietype', 1, 'nrtrajectories', 5);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -274,10 +274,9 @@ end
 
 % Store the size of the image
 cd (imageFilePath);
-tempImage = imreadnd2 (handles.jobvalues.imagename, 0, handles.jobvalues.intensityMax);
-[rows, cols] = size (tempImage);
-handles.postpro.rowsize = rows;
-handles.postpro.colsize = cols;
+info = imfinfo (handles.jobvalues.imagename);
+handles.postpro.rowsize = info.Height;
+handles.postpro.colsize = info.Width;
 
 % Now we have to fill up the rest of the postpro structure with
 % our previously found data and parameters
@@ -330,6 +329,7 @@ set (handles.GUI_mmpixel_ed, 'String', handles.postpro.mmpixel);
 set (handles.GUI_frameinterval_ed, 'String', handles.postpro.timeperframe);
 set (handles.GUI_movietype_avi_rb, 'Value', 1);
 set (handles.GUI_movietype_qt_rb, 'Value', 0);
+set (handles.nr_traj_ed, 'String', handles.postpro.nrtrajectories);
 
 % And update the gui handles struct
 guidata(hObject, handles);
@@ -792,10 +792,13 @@ handles.postpro.speedplot = get(handles.checkbox_speed,'Value');
    
 handles.postpro.cellcelldistplot = get(handles.checkbox_cellcelldisthist,'Value');
    handles.postpro.cellcelldistplot_1 = get(handles.checkbox_avg_distance_cells,'Value');
+   
+handles.postpro.neighbourplot = get(handles.checkbox_neighbourhood,'Value');
+   handles.postpro.neighbourplot_1 = get(handles.checkbox_nb_trajectories,'Value');
 
 if (~handles.postpro.cellclusterplot & ~handles.postpro.areaplot & ...
     ~handles.postpro.perimeterplot & ~handles.postpro.speedplot & ...
-    ~handles.postpro.cellcelldistplot)
+    ~handles.postpro.cellcelldistplot & ~handles.postpro.neighbourplot)
    h = errordlg ('No plots selected. Please select a plot first...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
@@ -832,6 +835,11 @@ else
    if handles.postpro.speedplot
       ptPlotSpeedValues (handles.postpro, handles.MPM);
    end
+   
+   % Do the speed plots as well if the user wants it
+   if handles.postpro.neighbourplot
+      ptCalculateNeighbourhoodInteractions (handles.postpro, handles.MPM);
+   end
 end
 
 %----------------------------------------------------------------------------
@@ -860,11 +868,19 @@ function GUI_fm_movieimgone_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_fm_movieimgone_ed as text
 handles = guidata (hObject);
 
-% Get the value of 'First Image'
-num = get (hObject, 'String');
-
-% Assign it to the postpro structure
-handles.postpro.moviefirstimg = str2num (num);
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get (hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.postpro.moviefirstimg = handles.postpro.firstimg;
+    set (handles.GUI_fm_movieimgone_ed, 'String', num2str(handles.postpro.moviefirstimg));  % Revert the value back
+    return
+else
+    handles.postpro.moviefirstimg = val;
+end
 
 % Update handles structure
 guidata(hObject, handles);
@@ -896,11 +912,19 @@ function GUI_fm_movieimgend_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_movieimgend_ed as a double
 handles = guidata (hObject);
 
-% Get the value of 'Last Image'
-num = get (hObject, 'String');
-
-% Assign it to the postpro structure
-handles.postpro.movielastimg = str2num (num);
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get (hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.postpro.movielastimg = handles.postpro.lastimg;
+    set (handles.GUI_fm_movieimgend_ed, 'String', num2str(handles.postpro.movielastimg));  % Revert the value back
+    return
+else
+    handles.postpro.movielastimg = val;
+end
 
 % Update handles structure
 guidata(hObject, handles);
@@ -1579,6 +1603,8 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
+%---------------------------------------------------------------------
+
 % --- Executes on button press in GUI_movietype_qt_rb.
 function GUI_movietype_qt_rb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_movietype_qt_rb (see GCBO)
@@ -1606,6 +1632,8 @@ end
 guidata(hObject, handles);   
 
 
+%---------------------------------------------------------------------
+
 % --- Executes on button press in checkbox_speed_variance.
 function checkbox_speed_variance_Callback(hObject, eventdata, handles)
 % hObject    handle to checkbox_speed_variance (see GCBO)
@@ -1623,6 +1651,7 @@ function checkbox_average_speed_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_average_speed
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_all_to_single_speed.
 function checkbox_all_to_single_speed_Callback(hObject, eventdata, handles)
@@ -1632,6 +1661,7 @@ function checkbox_all_to_single_speed_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_all_to_single_speed
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_avg_distance_cells.
 function checkbox_avg_distance_cells_Callback(hObject, eventdata, handles)
@@ -1641,6 +1671,7 @@ function checkbox_avg_distance_cells_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_avg_distance_cells
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_avg_convex_hull_area.
 function checkbox_avg_convex_hull_area_Callback(hObject, eventdata, handles)
@@ -1650,6 +1681,7 @@ function checkbox_avg_convex_hull_area_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_avg_convex_hull_area
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_total_area.
 function checkbox_total_area_Callback(hObject, eventdata, handles)
@@ -1659,6 +1691,7 @@ function checkbox_total_area_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_total_area
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_single_cluster_area.
 function checkbox_single_cluster_area_Callback(hObject, eventdata, handles)
@@ -1668,6 +1701,7 @@ function checkbox_single_cluster_area_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_single_cluster_area
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_amount_cells.
 function checkbox_amount_cells_Callback(hObject, eventdata, handles)
@@ -1677,6 +1711,7 @@ function checkbox_amount_cells_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_amount_cells
 
+%---------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_percentage_cells.
 function checkbox_percentage_cells_Callback(hObject, eventdata, handles)
@@ -1685,5 +1720,83 @@ function checkbox_percentage_cells_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_percentage_cells
+
+%---------------------------------------------------------------------
+
+% --- Executes on button press in checkbox_neighbourhood.
+function checkbox_neighbourhood_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_neighbourhood (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_neighbourhood
+handles = guidata(hObject);
+
+val = get (hObject,'Value');
+
+if val == 1
+   % Checkbox is selected, so select all children
+   set (handles.checkbox_nb_trajectories, 'Value', 1);
+else  % val == 0
+   % Checkbox was unselected so unselect all the children
+   set (handles.checkbox_nb_trajectories, 'Value', 0);
+end
+
+% Update handles structure
+guidata(hObject, handles); 
+
+%---------------------------------------------------------------------
+
+% --- Executes on button press in checkbox_nb_trajectories.
+function checkbox_nb_trajectories_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_nb_trajectories (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_nb_trajectories
+
+%---------------------------------------------------------------------
+
+function nr_traj_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to nr_traj_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of nr_traj_ed as text
+%        str2double(get(hObject,'String')) returns contents of nr_traj_ed as a double
+handles = guidata (hObject);
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get (hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.postpro.nrtrajectories = 5;
+    set (handles.nr_traj_ed, 'Value', handles.postpro.nrtrajectories);  % Revert the value back
+    return
+else
+    handles.postpro.nrtrajectories = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+%---------------------------------------------------------------------
+
+% --- Executes during object creation, after setting all properties.
+function nr_traj_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to nr_traj_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
 
 
