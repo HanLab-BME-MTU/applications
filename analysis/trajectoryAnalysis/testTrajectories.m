@@ -15,7 +15,7 @@ nGroups = length(trajectoryData(:));
 
 % whether to compare individual stats
 if nargin < 2 | isempty(groupOrInd)
-    groupOrInd = 'ind';
+    groupOrInd = 'group';
 end
 switch groupOrInd
     case 'group'

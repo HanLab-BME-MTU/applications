@@ -14,11 +14,11 @@ distanceVectorMatrixN = cat(4, anaDat.distanceVectorMatrixN);
 vector1 = squeeze(distanceVectorMatrixN(tag1,tag2,:,:));
 vector2 = squeeze(distanceVectorMatrixN(tag3,tag4,:,:));
 
-angles = sum(vector1.*vector2,1)';
+angles = acos(sum(vector1.*vector2,1)')*180/pi;
 data = angles;
 
 %write axis label
-label = ['angle [rad]'];
+label = ['angle [deg]'];
 
 legendText = [legendText;{['angle between ',anaDat(1).info.labelColor{tag1}, '-', anaDat(1).info.labelColor{tag2},...
                 ' and ', anaDat(1).info.labelColor{tag3}, '-', anaDat(1).info.labelColor{tag4}, '[rad]']}];

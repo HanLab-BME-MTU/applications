@@ -34,6 +34,8 @@ function run = loadRunsFromFile(nRunsOrFileList,varargin)
 %                                 output will have field
 %                                 timeInterval instead of
 %                                 time/timePoints. Default: 0
+%                               idlist   entire idlist      0
+%                        
 %                            
 %
 % OUTPUT   run             input structure for trajectoryAnalysis with e.v.
@@ -50,6 +52,7 @@ function run = loadRunsFromFile(nRunsOrFileList,varargin)
 %                           .snrMax
 %                           .isTracked
 %                           .position
+%                           .idlist
 %
 % c: jonas, 05/05
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -69,6 +72,8 @@ addOri  = 0;
 addSnr  = 0;
 addIsT  = 0;
 convDist= 0;
+addIdlist = 0;
+
 
 if nargin == 0 || isempty(nRunsOrFileList)
     error('Specify nRunsOrFileList in loadRunsFromFile!')
@@ -133,11 +138,23 @@ for in = 1:length(varargin)
             addPos = newValue;
         case 'nanDist'
             convDist = newValue;
+        case 'idlist'
+            addIdlist = newValue;
          
         otherwise
             warning('Option %i for loadRunsFromFile not recognized',in);
     end
 end
+
+% check whether we have to call calculateTrajectoryFromIdlist
+selectionVector = [addTP;addTime;addDist;addDP;addSig0;addPos;addOri;...
+    addSnr;addIsT;convDist;addIdlist];
+if all(selectionVector == [zeros(length(selectionVector)-1,1);1])
+    calcTraj = 0;
+else
+    calcTraj = 1;
+end
+
 
 % % tags
 % if nargin < 2 | isempty(tags)
@@ -263,9 +280,13 @@ for iRun = 1:nRuns
                 calculateTrajectoryOpt.nanList = 1;
             end
             
+            if calcTraj
             %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
-            [tmpData,ori,pos,sig0,dataProperties,snrMax,isTracked] = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
+            [tmpData,ori,pos,sig0,dataProperties,snrMax,isTracked] =...
+                calculateTrajectoryFromIdlist(...
+                idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
             %-------------------------
+            end
             
             % add standard data
             if addDist
@@ -300,6 +321,9 @@ for iRun = 1:nRuns
             end
             if addIsT
                 data(dataCt).isTracked = isTracked;
+            end
+            if addIdlist
+                data(dataCt).idlist = idlist2use;
             end
             
             %remember fileName

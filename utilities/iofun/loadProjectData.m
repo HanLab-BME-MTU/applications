@@ -1,12 +1,13 @@
-function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName)
+function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname)
 %LOADPROJECTDATA loads experimental Chromdyn data from file
 %
-% SYNOPSIS [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName)
+% SYNOPSIS [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname)
 %
 % INPUT    fileName  (opt) name of data file. if 1, the program will load
 %                       GUI mode
 %          pathName  (opt) name of path for data file. If fileName, but no
 %                       pathName is specified, currentDir is used
+%          idname    (opt) name of idlist to be loaded.
 %
 % OUTPUT   idlist           user selected idlist if several possible
 %          dataProperties   
@@ -39,6 +40,10 @@ if nargin < 2 || isempty(pathName)
 end
 if ~strcmp(pathName(end),filesep)
     pathName = [pathName,filesep];
+end
+
+if nargin < 3 || isempty(idname)
+    idname = [];
 end
 
 %=================
@@ -100,29 +105,36 @@ dataFieldNames = fieldnames(data);
 idnameListIdx = strmatch('idlist',dataFieldNames);
 idnameList = dataFieldNames(idnameListIdx);
 
-%have the user choose, if there is more than one entry left
-switch length(idnameList)
-    case 0 %no idlist loaded. if GUI, continue w/o loading
-        
-        if GUI
-            h = warndlg('no idlist found in data')
-            uiwait(h);
-            idname = '';
-        else
-            error('no idlist found in data')
-        end
-        
-    case 1 %only one idlist loaded. Continue
-        
-        idname = char(idnameList);
-        
-    otherwise %let the user choose
-        idSelect = chooseFileGUI(idnameList);
-        if isempty(idSelect)
-            idname = '';
-        else
-            idname = idnameList{idSelect};
-        end
+idIdx = [];
+if ~isempty(idname)
+    idIdx = find(strcmp(idnameList,idname));
+end
+
+if isempty(idIdx)
+    %have the user choose, if there is more than one entry left
+    switch length(idnameList)
+        case 0 %no idlist loaded. if GUI, continue w/o loading
+
+            if GUI
+                h = warndlg('no idlist found in data')
+                uiwait(h);
+                idname = '';
+            else
+                error('no idlist found in data')
+            end
+
+        case 1 %only one idlist loaded. Continue
+
+            idname = char(idnameList);
+
+        otherwise %let the user choose
+            idSelect = chooseFileGUI(idnameList);
+            if isempty(idSelect)
+                idname = '';
+            else
+                idname = idnameList{idSelect};
+            end
+    end
 end
 if isempty(idname)
     if GUI
