@@ -114,7 +114,7 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
         
         if fid1
             fprintf(fid1,[nowString,' corrFrames  =  dataMovie(:,:,:,:,[1:%i,end-%i+1:end]);\n'],correctionInfo.correctFrames(1),correctionInfo.correctFrames(2));
-            fprintf(fid2,[nowString,' extract correction frames: first %s, last %s)\n'],correctionInfo.correctFrames(1),correctionInfo.correctFrames(2));
+            fprintf(fid2,[nowString,' extract correction frames: first %i, last %i)\n'],correctionInfo.correctFrames(1),correctionInfo.correctFrames(2));
         end
         
         corrFrames = dataMovie(:,:,:,:,[1:correctionInfo.correctFrames(1),end-correctionInfo.correctFrames(2)+1:end]);

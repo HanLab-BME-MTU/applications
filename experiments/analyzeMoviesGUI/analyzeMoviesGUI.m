@@ -550,31 +550,53 @@ end
 handles = guidata(handles.AMG);
 
 if handles.apply2all>0 %could be 1 or 2
+    
+    % read the properties of myJob, and apply it to all the other projects. If
+    % they are not as far as myJob yet, they will have to do the catching
+    % up with the default parameters. If they are further advanced, the
+    % concerned jobs are rerun. (It all depends on what job settings the user wants
+    % to apply to all!)
+    
     myJobNum = get(handles.dirListBox,'Value');
     myJob = handles.job(myJobNum);
     myJobs2run = bsum2bvec(myJob.jobs2run);
-    %get projectData of jobs2run
+    
+    % get individual job properties of myJob
     myFieldNames = '';
+    if any(myJobs2run == 1) %filter movie. Copy correct background
+        myFieldNames = [myFieldNames;{'correctBackground'}];
+    end
     if any(myJobs2run==2)
-        myFieldNames = {'CH_MAXSLOPE';'F_TEST_PROB'};
+        myFieldNames = [myFieldNames;{'dataProperties.CH_MAXSLOPE';'dataProperties.F_TEST_PROB'}];
     end
     if any(myJobs2run==4)
-        myFieldNames = [myFieldNames;{'IDopt'}];
+        myFieldNames = [myFieldNames;{'dataProperties.IDopt'}];
     end
 %     if any(myJobs2run==16)
 %         myFieldNames = [myFieldNames];
 %     end
     if handles.apply2all==2 %update movie properties, too
-        myFieldNames = [myFieldNames;{'cellCycle';'strains';'drugs';'temperature'}];
+        myFieldNames = [myFieldNames;{'dataProperties.cellCycle';...
+                                      'dataProperties.strains';...
+                                      'dataProperties.drugs';...
+                                      'dataProperties.temperature'}];
     end
+    
     %set job properties
     for i = 1:dirListLength
         if i~=myJobNum
+            
+            % run the same jobs as in myJob; if there has been any previous
+            % analysis, discard those results!
             handles.job(i).jobs2run = myJob.jobs2run;
-            %check if project is "ready" to run jobs
+            
+            % check if project is "ready" to run jobs
+            % or whether we have to run some jobs first, before we get to
+            % the point where the current project would start
+            
             statVec = bsum2bvec(handles.job(i).projProperties.status);
-            if isempty(statVec)
-                statVec = 0; %not beautiful, but I don't have a better idea right now
+            if isempty(statVec) 
+                statVec = 0; % I do not want to risk changing bsum2bvec for this
             end
             if ~isempty(myJobs2run) %only look at jobs2run if there is any
                 jobi = myJobs2run(1);
@@ -582,15 +604,16 @@ if handles.apply2all>0 %could be 1 or 2
                     jobi = jobi/2;
                     handles.job(i).jobs2run = handles.job(i).jobs2run+jobi;
                 end
-                %dataProperties for the jobs2run
-                if myJob.createNew&myJobs2run(1)<4 %createNew is being forced
+                % check whether we have to force createNew
+                if myJob.createNew & myJobs2run(1)<=2 
                     handles.job(i).createNew = 1;
                 end
             end
-            %set other properties 
+            
+            % set all the necessary job properties
             handles.job(i).eraseAllPrev = myJob.eraseAllPrev;
             for j = 1:size(myFieldNames,1)
-                eval(['handles.job(i).dataProperties.',myFieldNames{j},' = myJob.dataProperties.',myFieldNames{j},';']);
+                eval(['handles.job(i).',myFieldNames{j},' = myJob.',myFieldNames{j},';']);
             end
         end
     end
