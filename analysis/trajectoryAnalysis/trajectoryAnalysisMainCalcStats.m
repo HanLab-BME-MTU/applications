@@ -43,7 +43,6 @@ function [statisticsStruct, distributionStruct, clusterStruct] = trajectoryAnaly
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 distributionStruct = [];
-clusterStruct      = [];
 statisticsStruct   = [];
 
 %we take the inverses of arrays that can be zero: turn off warnings
@@ -537,7 +536,7 @@ end
 % if requested and possible, cluster speeds
 if nargout > 2 
     % init cluster, make sure we get the right size (i.e. do we need 1 or 5 fields?)
-    initRange = [1:(constants.CLUSTERIND-1)*constants.CLUSTERMAX+1];
+    initRange = [1:(constants.CLUSTERIND)*constants.CLUSTERMAX+1];
     clusterStruct(initRange) = struct(...
         'antipolewardSpeed',[],'polewardSpeed',[],'apIndividual',[],...
         'tpIndividual',[],'apNum',[],'tpNum',[]);

@@ -32,9 +32,6 @@ individualMeanDistances = [];
 yAxisLimits = [0,max(sum(distanceAll(:,[1,2,2]),2))];
 xAxisLimits = [0,max(sum(timeAll,2))];
 
-% init trajectoryDescription
-trajectoryDescription = struct('overallStatistics',[],'individualStatistics',[],'convergenceStatistics',[],...
-    'convergenceClusters',[],'overallClusters',[]);
 
 %--------LOOP THROUGH EVERYTHING
 for numData = 1:length(data)
