@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 27-Jan-2004 18:13:28
+% Last Modified by GUIDE v2.5 05-Feb-2004 11:48:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -923,5 +923,99 @@ function editCalX_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editCalX as text
 %        str2double(get(hObject,'String')) returns contents of editCalX as a double
+
+
+% --- Executes on button press in pushKinMaps.
+function pushKinMaps_Callback(hObject, eventdata, handles)
+% hObject    handle to pushKinMaps (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Load the first image
+[fName,dirName] = uigetfile(...
+    {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
+    '*.tif','TIF files (*.tif)'
+    '*.tiff','TIFF files (*.tiff)'
+    '*.jpg;','JPG files (*.jpg)'
+    '*.jpeg;','JPEG files (*.jpeg)'
+    '*.*','All Files (*.*)'},...
+    'Load image');
+if(isa(fName,'char') & isa(dirName,'char'))
+    
+    % Image information - needed for image size
+    info=imfinfo([dirName,fName]);
+    
+else
+    return % Returns an error (status=0)
+end
+
+% Read parameters
+n=str2num(get(handles.editFrameTN,'String'));
+sigma=str2num(get(handles.editSigmaTN,'String'));
+
+% Call function
+[polyMap,depolyMap,netMap]=fsmKineticMaps([],[info.Height info.Width],n,sigma);
+
+% Show maps and return them to Matlab base workspace
+figure; imshow(polyMap,[]); title('Polymerization map'); assignin('base','polyMap',polyMap);
+figure; imshow(-depolyMap,[]); title('Depolymerization map'); assignin('base','depolyMap',-depolyMap);
+figure; imshow(netMap,[]); title('Net assembly map'); assignin('base','netMap',netMap);
+
+% --- Executes on button press in pushHelpTurnover.
+function pushHelpTurnover_Callback(hObject, eventdata, handles)
+% hObject    handle to pushHelpTurnover (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+help fsmKineticMaps;
+
+
+% --- Executes during object creation, after setting all properties.
+function editFrameTN_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editFrameTN (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editFrameTN_Callback(hObject, eventdata, handles)
+% hObject    handle to editFrameTN (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editFrameTN as text
+%        str2double(get(hObject,'String')) returns contents of editFrameTN as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function editSigmaTN_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editSigmaTN (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editSigmaTN_Callback(hObject, eventdata, handles)
+% hObject    handle to editSigmaTN (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editSigmaTN as text
+%        str2double(get(hObject,'String')) returns contents of editSigmaTN as a double
 
 

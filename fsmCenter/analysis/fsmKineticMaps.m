@@ -20,7 +20,7 @@ function [polyMap,depolyMap,img2C]=fsmKineticMaps(firstKinScore,imgSize,n,sigma)
 % DEPENDENCES   fsmKineticMaps uses { }
 %               fsmKineticMaps is used by {  }
 %
-% Aaron Ponti, Septemer 2th, 2003
+% Aaron Ponti, September 2th, 2003
 
 if nargin<3 | nargin>4
     error('Three or four input parameters expected');
