@@ -65,7 +65,9 @@ x=cat(1,x,dSet(:,2));
 
 % Delaunay triangulation
 mv=ver('MATLAB');
-if str2num(mv.Version)<7
+posDot=findstr(mv.Version,'.'); % In case MATLAB's version is something like 6.5.1 (2 dots)
+posDot=posDot(1);
+if str2num(mv.Version(1:posDot+1))<7
     triMin=delaunay(pMin(:,1),pMin(:,2));
 else
     triMin=delaunay(pMin(:,1),pMin(:,2),{'Qt'}); % New delaunay function (MATLAB 7), 'Qt' -> triangulated output
