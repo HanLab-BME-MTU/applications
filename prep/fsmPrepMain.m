@@ -160,7 +160,7 @@ for counter1=1:n
             
             % Extract cell outlines (b/w mask)
             try
-                [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',0);
+                [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',0,'bit_depth',xmax);
             catch
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
@@ -190,7 +190,7 @@ for counter1=1:n
             
             % Extract cell outlines (b/w mask)
             try
-                [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',0);
+                [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',0,'bit_depth',xmax);
             catch
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
