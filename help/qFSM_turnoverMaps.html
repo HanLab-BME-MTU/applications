@@ -1,0 +1,20 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta>
+  <title>qFSM online documentation</title>
+  <link type="text/css" rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<h2>ONLINE qFSM DOCUMENTATION</h2>
+<h1>Turnover maps</h1>
+<p>&nbsp;</p>
+<p>This function creates maps of <b>polymerization</b>, <b>depolymerization</b> and <b>net assembly rate</b> by averaging <i>kinetic scores</i> calculated by <b>SpeckTackle</b> in both time and space.
+<p>Time averaging is performed by collecting kinetic scores over <b><i>n</i></b> frames. The value for <i>n</i> is set by the user in the <b>"Number of frames for time averaging"</b> field. Kinetic scores are created by SpeckTackle. The user is asked to pick the first kinScore###.mat file in the SpeckTackle project directory. When asked to pick an image, the user can pick <b>any</b> image of the stack, since the image is only used to define the size of the maps to be created.</p>
+<p>Space averaging is obtained by a convolution of the time-averaged map with a Gaussian kernel with sigma specifid by the user through the "<b>Sigma for map low-pass filtering (pixels)"</b> field. The user should pick a value for sigma which gives a meaningful kernel support.</p>
+<p>The function will either create <i>one</i> (steady-state) map or <i>several</i>, depending on the value of <i>n</i> and the range of frames <b><i>t</i></b> the user decides to analyze. In fact, the user is asked to specify the range of frames <i>t</i> to be analyzed through a dialog. Maps will be created over the selected range with a sliding window of the specified number of frames <i>n</i>.</p> 
+<p>If the number of frames <i>n</i> for time averaging is set to zero, all <i>t</i> frames in the stack will be used to create one single steady-state map. Such a steady state map is displayed in three figures: one polymerization map, one depolymerization map, and an RGB net assembly map, with the polymerization map in the Red channel, and the depolymerization map in the Green channel. These figures are <b>not</b> automatically written to disk. The user can still do this via the figures' menu.</p>
+<p>In contrast, if several maps are created over the user-defined range (meaning  <i>n</i><<i>t</i>), the user will be asked to pick a directory where the maps will be automatically saved (as .mat and .tif files).</p>
+<p>&nbsp;</p>
+</body>
+</html>

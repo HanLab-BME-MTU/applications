@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 11-Aug-2004 19:06:39
+% Last Modified by GUIDE v2.5 16-Aug-2004 16:34:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1555,5 +1555,14 @@ function pushHelpAssignClasses_Callback(hObject, eventdata, handles)
 % hObject    handle to pushHelpAssignClasses (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-web(['file:///' which('qFSM_speckleclasses.html')]);
+web(['file:///' which('qFSM_speckleClasses.html')]);
+
+
+% --- Executes on button press in pushHelpTurnoverMaps.
+function pushHelpTurnoverMaps_Callback(hObject, eventdata, handles)
+% hObject    handle to pushHelpTurnoverMaps (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+web(['file:///' which('qFSM_turnoverMaps.html')]);
+
 

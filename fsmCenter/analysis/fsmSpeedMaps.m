@@ -296,6 +296,7 @@ for c2=1:steps
     % Display
     mH=figure;
     imshow(speedMap,[]);
+    figure(mH); % Make sure the focus is on the speedMap (and not on the waitbar - this appears to be a MATLAB 7 problem)
     colormap('jet')
 
     % Plot vectors if requested by the user
@@ -341,6 +342,8 @@ for c2=1:steps
     if c2==1 & maxSpeed==0
         maxSpeed=max(speedMap(:))*1.1; % Give a 10% space
     end
+    % Make sure the focus is on the speedMap (and not on the waitbar - this appears to be a MATLAB 7 problem)
+    figure(mH);
     set(gca,'CLim',[0 maxSpeed]);
     colorbar;
 
