@@ -11,7 +11,7 @@ function [varCovMat,arParam,maParam,errFlag] = armaVarCovLS(...
 %           .observations: 2D array of measurements and their uncertainties.
 %                     Missing points should be indicated with NaN.
 %       wnVector    : Structure containing 1 field:
-%           .series    : Estimated white noise series in a trajectory.
+%           .observations: Estimated white noise series in a trajectory.
 %       arOrder     : Order of AR part of process.
 %       maOrder     : Order of MA part of process.
 %
@@ -44,7 +44,7 @@ end
 
 %check trajectory and turn it into struct if necessary
 if ~isstruct(trajectories)
-    tmp = trajectories(:);
+    tmp = trajectories;
     clear trajectories
     trajectories.observations = tmp;
     clear tmp
@@ -105,7 +105,7 @@ for i = 1:length(trajectories)
             ./trajectories(i).observations(fitSet,2);
     end    
     for j = arOrder+1:sumOrder
-        prevPoints1(:,j) = wnVector(i).series(fitSet-j+arOrder)...
+        prevPoints1(:,j) = wnVector(i).observations(fitSet-j+arOrder)...
             ./trajectories(i).observations(fitSet,2);
     end
     %put points from all trajectories together in 1 matrix
@@ -116,7 +116,7 @@ for i = 1:length(trajectories)
             ./trajectories(i).observations(fitSet,2)];
     
     %form vector of weighted errors
-    epsilon = [epsilon; wnVector(i).series(fitSet)...
+    epsilon = [epsilon; wnVector(i).observations(fitSet)...
             ./trajectories(i).observations(fitSet,2)];
     
 end %(for i = 1:length(trajectories))

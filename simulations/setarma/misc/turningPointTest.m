@@ -1,6 +1,6 @@
 function [H,errFlag] = turningPointTest(traj,significance)
 %TURNINGPOINTTEST tests the hypothesis that a time series is IID by looking at the number of turning points in it.
-
+%
 %SYNOPSIS [H,errFlag] = turningPointTest(traj,significance)
 %
 %INPUT  traj        : Observations of time series to be tested. Either an 
@@ -46,7 +46,7 @@ end
 
 %check trajectory and turn into struct if necessary
 if ~isstruct(traj)
-    tmp = traj(:);
+    tmp = traj;
     clear traj
     traj.observations = tmp;
     clear tmp

@@ -1,9 +1,9 @@
 function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
-    wnVector,aic,errFlag] = armaIdentKalman(trajectories,modelParam)
+    wnVector,aic,errFlag] = armaIdentKalman(trajectories,modelParam,minOpt)
 %ARMAIDENTKALMAN determines the ARMA model (i.e. its order, coefficients and white noise variance) that best fits a time series which could have missing data points.
 %
 %SYNOPSIS [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
-%    wnVector,aic,errFlag] = armaIdentKalman(trajectories,modelParam)
+%    wnVector,aic,errFlag] = armaIdentKalman(trajectories,modelParam,minOpt)
 %
 %INPUT  trajectories: Observations of time series to be fitted. Either an 
 %                     array of structures traj(1:nTraj).observations, or a
@@ -14,6 +14,13 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %                    2 elements:
 %           .arParamP0   : Initial guess of partial autoregressive coefficients (row vector).
 %           .maParamP0   : Initial guess of partial moving average coefficients (row vector).
+%       minOpt      : Optional. Minimization option: 
+%                     -'ml' for Matlab local minimizer "fmincon";
+%                     -'tl' for Tomlab local minimizer "ucSolve";
+%                     -'tg' for Tomlab global minimizer "glbFast"' followed
+%                       by Tomlab local minimizer "ucSolve";
+%                     -'nag' for NAG's local minimizerE04JAF.
+%                     Default: 'ml'
 %
 %OUTPUT arParamK    : Estimated AR parameters using likelihood maximization.
 %       maParamK    : Estimated MA parameters using likelihood maximization.
@@ -23,7 +30,7 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %                     estimated via least squares fitting.
 %       wnVariance  : Estimated variance of white noise in process.
 %       wnVector    : Structure array containing the field:
-%           .series      : Estimated white noise series in corresponding 
+%           .observations: Estimated white noise series in corresponding 
 %                          trajectory.
 %       aic         : Akaike's Information Criterion.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
@@ -55,10 +62,22 @@ errFlag = 0;
 
 %check whether correct number of input arguments was used
 %all other validation is done in armaCoefKalman
-if nargin < nargin('armaIdentKalman')
+if nargin < 2
     disp('--armaIdentKalman: Incorrect number of input arguments!');
     errFlag = 1;
     return
+end
+
+%check whether minOpt has one of the required values
+if nargin == 2
+    minOpt = 'ml';
+else
+    if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
+            && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
+        disp('--armaIdentKalman: "minOpt" should be either "ml", "tl", "tg" or "nag"!');
+        errFlag = 1;
+        return
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -79,7 +98,7 @@ for i = 1:length(modelParam)
     try
         [arParamK1,maParamK1,arParamL1,maParamL1,varCovMat1,wnVariance1,...
             wnVector1,aic1,errFlag] = armaCoefKalman(trajectories,...
-            arParamP0,maParamP0);
+            arParamP0,maParamP0,minOpt);
         if errFlag
             aic1 = [];
         end

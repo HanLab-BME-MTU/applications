@@ -50,7 +50,7 @@ end
 
 %check trajectory and turn into struct if necessary
 if ~isstruct(traj)
-    tmp = traj(:);
+    tmp = traj;
     clear traj
     traj.observations = tmp;
     clear tmp

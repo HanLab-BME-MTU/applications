@@ -1,18 +1,20 @@
-function neg2LnLikelihoodV = neg2LnLikelihood(param,arOrder,trajectories,...
-    numAvail)
+function neg2LnLikelihoodV = neg2LnLikelihood(param,prob)
 %NEG2LNLIKELIHOOD calculates -2ln(likelihood) of the fit of an ARMA model to time series with missing data points
 %
-%SYNOPSIS neg2LnLikelihoodV = neg2LnLikelihood(param,arOrder,trajectories,...
-%     numAvail)
+%SYNOPSIS neg2LnLikelihoodV = neg2LnLikelihood(param,prob)
 %
 %INPUT  param       : Set of partial ARMA coefficients.
-%       arOrder     : Order of autoregressive part of process.
-%       trajectories: Observations of time series to be fitted. Either an 
-%                     array of structures traj(1:nTraj).observations, or a
-%                     2D array representing one single trajectory. 
-%           .observations: 2D array of measurements and their uncertainties.
-%                     Missing points should be indicated with NaN.
-%       numAvail    : Total number of available observations.
+%       prob        : structure in Tomlab format containing variables
+%                     needed for calculations.
+%          .user.arOrder     : Order of autoregressive part of process.
+%          .user.trajectories: Observations of time series to be fitted. 
+%                              Either an array of structures 
+%                              traj(1:nTraj).observations, where 
+%                              "observations" is a 2D array of measurements
+%                              and uncertainties, or a 2D array representing
+%                              one single trajectory. 
+%                              Missing points should be indicated with NaN.
+%          .user.numAvail    : Total number of available observations.
 %
 %OUTPUT neg2LnLikelihoodV: Value of -2ln(likelihood).
 %
@@ -40,9 +42,14 @@ if nargin ~= nargin('neg2LnLikelihood')
     return
 end
 
+%get variables from structure "prob"
+arOrder = prob.user.arOrder;
+trajectories = prob.user.trajectories;
+numAvail = prob.user.numAvail;
+
 %check trajectory and turn it into struct if necessary
 if ~isstruct(trajectories)
-    tmp = trajectories(:);
+    tmp = trajectories;
     clear trajectories
     trajectories.observations = tmp;
     clear tmp
@@ -90,17 +97,7 @@ for i = 1:length(trajectories)
 end
 
 %construct -2ln(likelihood)
-neg2LnLikelihoodV = sum1 + numAvail*log(sum2);
+neg2LnLikelihoodV = (sum1 + numAvail*log(sum2))/1000;
 
 
 %%%%% ~~ the end ~~ %%%%%
-
-
-
-% % % %FOR TOMLAB
-% % % 
-% % % %get parameters from structure "prob"
-% % % arOrder = prob.user.arOrder;
-% % % trajectories = prob.user.trajectories;
-% % % numAvail = prob.user.numAvail;
-

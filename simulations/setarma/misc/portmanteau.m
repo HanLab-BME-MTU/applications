@@ -1,6 +1,6 @@
 function [H,errFlag] = portmanteau(traj,maxLag,significance)
 %PORTMANTEAU tests the hypothesis that a time series is IID by looking at its autocorrelation function.
-
+%
 %SYNOPSIS [H,errFlag] = portmanteau(traj,maxLag,significance)
 %
 %INPUT  traj        : Observations of time series to be tested. Either an 
@@ -44,7 +44,7 @@ end
 
 %check trajectory and turn into struct if necessary
 if ~isstruct(traj)
-    tmp = traj(:);
+    tmp = traj;
     clear traj
     traj.observations = tmp;
     clear tmp

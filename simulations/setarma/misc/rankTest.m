@@ -1,6 +1,6 @@
 function [H,errFlag] = rankTest(traj,significance)
 %RANKTEST tests the hypothesis that a time series is IID by checking whether it has any linear trend.
-
+%
 %SYNOPSIS [H,errFlag] = rankTest(traj,significance)
 %
 %INPUT  traj        : Observations of time series to be tested. Either an 
@@ -42,7 +42,7 @@ end
 
 %check trajectory and turn into struct if necessary
 if ~isstruct(traj)
-    tmp = traj(:);
+    tmp = traj;
     clear traj
     traj.observations = tmp;
     clear tmp

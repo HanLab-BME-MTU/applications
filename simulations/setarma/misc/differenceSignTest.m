@@ -1,6 +1,6 @@
 function [H,errFlag] = differenceSignTest(traj,significance)
 %DIFFERENCESIGNTEST tests the hypothesis that a time series is IID by checking whether it has any linear trend.
-
+%
 %SYNOPSIS [H,errFlag] = differenceSignTest(traj,significance)
 %
 %INPUT  traj        : Observations of time series to be tested. Either an 
@@ -48,7 +48,7 @@ end
 
 %check trajectory and turn into struct if necessary
 if ~isstruct(traj)
-    tmp = traj(:);
+    tmp = traj;
     clear traj
     traj.observations = tmp;
     clear tmp
@@ -63,7 +63,7 @@ numTraj = length(traj);
 for i=1:numTraj
     nCol = size(traj(i).observations,2);
     if nCol > 1
-        disp('--turningPointTest: Each trajectory should be a column vector!');
+        disp('--differenceSignTest: Each trajectory should be a column vector!');
         errFlag = 1;
     end
 end
@@ -71,6 +71,11 @@ end
 %assign default value of significance, if needed
 if nargin < 2
     significance = 0.05;
+end
+
+if errFlag
+    disp('--differenceSignTest: Please fix input data!');
+    return
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
