@@ -270,8 +270,8 @@ for counter1=1:n
             try
                 % Here use special bit depth instead of the FSM bit depth
                 % contact Matthias for more questions
-                edgeBitDepth = 2^edgeBitDepth;
-                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'bit_depth',edgeBitDepth);
+                eBD = 2^str2num(edgeBitDepth)-1;
+                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'bit_depth',eBD);
             catch
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
@@ -312,8 +312,8 @@ for counter1=1:n
             try
                 % Here use special bit depth instead of the FSM bit depth
                 % contact Matthias for more questions
-                edgeBitDepth = 2^edgeBitDepth;
-                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',1,'filter_image',1,'bit_depth',edgeBitDepth);
+                eBD = 2^str2num(edgeBitDepth)-1;
+                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',1,'filter_image',1,'bit_depth',eBD);
             catch
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
