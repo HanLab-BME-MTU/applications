@@ -991,17 +991,23 @@ sigma=str2num(get(handles.editSigmaTN,'String'));
 
 if isempty(outputdir)
     
-    % Show maps and return them to Matlab base workspace
-    figure; imshow(polyMap,[]); title('Polymerization map'); assignin('base','polyMap',polyMap);
-    figure; imshow(-depolyMap,[]); title('Depolymerization map'); assignin('base','depolyMap',depolyMap);
-    figure; imshow(netMapRGB,[]); title('Net assembly map'); assignin('base','netMapRGB',netMapRGB);
-    assignin('base','netMap',polyMap+depolyMap);
+    if ~isempty(polyMap) & ~isempty(depolyMap) & ~isempty(netMapRGB)
+        % Show maps and return them to Matlab base workspace
+        figure; imshow(polyMap,[]); title('Polymerization map'); assignin('base','polyMap',polyMap);
+        figure; imshow(-depolyMap,[]); title('Depolymerization map'); assignin('base','depolyMap',depolyMap);
+        figure; imshow(netMapRGB,[]); title('Net assembly map'); assignin('base','netMapRGB',netMapRGB);
+        assignin('base','netMap',polyMap+depolyMap);
+    end
     
 else
     
-    % Maps have been saved to disk
-    msg=['Turnover maps have been saved to ',outputdir,'.'];
-    uiwait(msgbox(msg,'Help','modal'));
+    if ~isempty(polyMap) & ~isempty(depolyMap) & ~isempty(netMapRGB)
+        % Maps have been saved to disk
+        msg=['Turnover maps have been saved to ',outputdir,'.'];
+        uiwait(msgbox(msg,'Help','modal'));
+    else
+        % Interrupted by user in the last step
+    end
     
 end
 
