@@ -37,6 +37,8 @@ fsmParam.main.normMax=2^14-1;          % Upper intensity bound for intensity nor
 fsmParam.main.noiseParam=[0 0 0 0 0 5 1];% Noise parameters from the camera calibration (select from GUI)
                                          % The sixth position defines which confidence was chosen
                                          % The seventh position which noise parameter wae set
+% To prevent pointing to wrong experiments in the database, store the label of the experiment, too
+fsmParam.main.label=[];
                                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
@@ -130,11 +132,3 @@ fsmParam.specific.fileList='';      % All file names written in a (char) matrix;
 fsmParam.specific.intCorrFactors=0; % Intensity correction factors
 fsmParam.specific.firstIndex=0;     % Index of the first image
 fsmParam.specific.lastIndex=0;      % Index of the last image
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 
-% OBSOLETE
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%fsmParam.main.alwaysAccept=1;      % If 1, assumes that the user always answer yes when prompted

@@ -88,6 +88,9 @@ end
 % Add value of the popup window
 fsmParam.main.noiseParam(1,7)=get(handles.expPopup,'Value');
 
+% Store experiment label
+fsmParam.main.label=fsmExpParam(exp-1).label;
+
 % Normalization boundaries
 fsmParam.main.normMin=0;
 fsmParam.main.normMax=2^(str2num(get(handles.bitDepthEdit,'String')))-1;

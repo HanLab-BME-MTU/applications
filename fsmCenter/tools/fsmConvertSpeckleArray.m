@@ -1,14 +1,17 @@
-function newSpeckleArray=fsmConvertSpeckleArray(speckleArray)
+function [newSpeckleArray,status]=fsmConvertSpeckleArray(speckleArray)
 % fsmConvertSpeckleArray converts the speckleArray structure to the new format
 %
 % The old speckleArray was an 'array of structs'; the new one is a 'struct of arrays', 
 % a format which guarantees a huge reduction in memory usage.
 %
-% SYNOPSIS      newSpeckleArray=fsmConvertSpeckleArray(speckleArray)
+% SYNOPSIS      [newSpeckleArray,status]=fsmConvertSpeckleArray(speckleArray)
 %
-% INPUT         speckleArray    : speckle structure (see fsmBuildSaveSpeckleArray for more info)
+% INPUT         speckleArray    : speckle array structure as returned by an old version of fsmBuildSaveSpeckleArray
 %
 % OUTPUT        newSpeckleArray : speckleArray with the new format
+%               status          : 0 : conversion successful
+%                                 1 : invalid speckleArray (newSpeckleArray=[] is returned)
+%                                 2 : speckleArray already in the new format (newSpeckleArray=[] is returned)
 %
 % DEPENDENCES   fsmConvertSpeckleArray uses { }
 %               fsmMain is used by { fsmCenter }
@@ -30,13 +33,17 @@ fields={'timepoint','spPos','bgPos1','bgPos2','bgPos3','intensity', ...
         'status','speckleType','score','activity','lmEvent'};
 for i=1:length(fields)
     if isfield(speckleArray,char(fields(i)))==0
-        error('The input speckleArray is not valid.');
+        newSpeckleArray=[];  % Return an empty newSpeckleArray
+        status=1;            % The input speckleArray is not valid.
+        return
     end
 end
 
 % Check that the speckleArray is really in the old format
 if length(speckleArray)==1 & length(speckleArray(1).timepoint)>1
-    error('This speckleArray is already in the new format.');
+    newSpeckleArray=[]; % Return an empty newSpeckleArray
+    status=2;           % This speckleArray is already in the new format.
+    return
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -87,3 +94,9 @@ newSpeckleArray.score(1:lengthSpeckleArray)       = [speckleArray.score];
 newSpeckleArray.activity(1:lengthSpeckleArray)    = [speckleArray.activity];
 newSpeckleArray.lmEvent(1:lengthSpeckleArray)     = [speckleArray.lmEvent];
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Everything is fine - return a success
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+status=0;

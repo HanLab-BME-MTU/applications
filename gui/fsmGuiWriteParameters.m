@@ -34,16 +34,20 @@ if isempty(currentPath)
     set(handles.pathEdit,'String',fsmParam.main.path);
 else
     if strcmp(fsmParam.main.path,get(handles.pathEdit,'String'))==0
-        
-        infoPathString=['The loaded fsmParam.mat file contains stored path information [',fsmParam.main.path,'] which does not match the current selection [',currentPath,'].'];
-        choice=questdlg(infoPathString, ...
-            'User input requested', ...
-            'Use current path','Use stored path','Use current path');
-        switch choice
-            case 'Use current path', set(handles.pathEdit,'String',currentPath);
-            case 'Use stored path',  set(handles.pathEdit,'String',fsmParam.main.path);
-            otherwise
-                error('Wrong selection');
+    if ~isempty(fsmParam.main.path)
+            infoPathString=['The loaded fsmParam.mat file contains stored path information [',fsmParam.main.path,'] which does not match the current selection [',currentPath,'].'];
+            choice=questdlg(infoPathString, ...
+                'User input requested', ...
+                'Use current path','Use stored path','Use current path');
+            switch choice
+                case 'Use current path', set(handles.pathEdit,'String',currentPath);
+                case 'Use stored path',  set(handles.pathEdit,'String',fsmParam.main.path);
+                otherwise
+                    error('Wrong selection');
+            end
+        else
+            % No path specified yet
+            set(handles.pathEdit,'String',fsmParam.main.path);
         end
     end
 end
@@ -74,17 +78,77 @@ switch fsmParam.main.noiseParam(6)
     case 6, set(handles.confSix,'Value',1); set(handles.editZValue,'String',num2str(zValue(6)));
     otherwise, set(handles.editZValue,'String',fsmParam.main.noiseParam(5)); % User-defined quantile
 end
-% Set correct experiment in scroll-down menu
-set(handles.expPopup,'Value',fsmParam.main.noiseParam(7));
 
 % Read parameter structure from handles.expPopup
 fsmExpParam=get(handles.expPopup,'UserData');
 
-% Set correct experiment description
-if fsmParam.main.noiseParam(7)==1
-    set(handles.textDescr,'String','Experiment description');
+% If only the default fsmParam.mat has been loaded, there is no need for further controls
+if ~isempty(fsmExpParam)
+    
+    % Check that the saved experiment number does not exceed the number of experiments in the database
+    expNotValid=0;
+    if fsmParam.main.noiseParam(7)>length(fsmExpParam)+1
+    
+        % Mark this experiment as not valid
+        expNotValid=1;
+    
+    end
+
+    % If the experiment number is valid, check that it is still pointing to the correct experiment
+    if ~isfield(fsmParam.main,'label') % Back-compatibility
+        fsmParam.main.label=[];
+    end
+    
+    % This prevents a problem when the user attempts to start a new fsmGuiMain when it is already open
+    if fsmParam.main.noiseParam(7)==1
+        expLabel='Select experiment';
+    else
+        expLabel=fsmExpParam(fsmParam.main.noiseParam(7)-1).label;
+    end
+    
+    if expNotValid==0 & ~strcmp(fsmParam.main.label,expLabel)
+        
+        % Mark this experiment as not valid
+        expNotValid=1;
+
+    end
+
+    % If the experiment is valid, add it to the sroll-down menu, otherwise inform the user
+
+    if expNotValid==0
+        
+        % Set correct experiment in scroll-down menu
+        set(handles.expPopup,'Value',fsmParam.main.noiseParam(7));
+
+
+        % Set correct experiment description
+        if fsmParam.main.noiseParam(7)==1
+            set(handles.textDescr,'String','Experiment description');
+        else
+            set(handles.textDescr,'String',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
+        end
+
+    else
+    
+        uiwait(msgbox('The experiment is no longer in the database (or old version of fsmParam.mat).','Error','modal'));
+        set(handles.expPopup,'Value',1);
+        set(handles.textDescr,'String','Experiment description');
+        
+    end
+
 else
-    set(handles.textDescr,'String',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
+
+    if fsmParam.main.noiseParam(7)~=1
+        
+        error('Corrupted fsmParam.mat');
+        
+    else
+    
+        set(handles.expPopup,'Value',1);
+        set(handles.textDescr,'String','Experiment description');
+
+    end
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -156,6 +220,7 @@ if fsmParam.prep.enable==1
     set(handles.editGauss,'Enable','on');
     set(handles.textGauss,'Enable','on');
     set(handles.editGauss,'Enable','on');    
+    set(handles.textDescr,'Enable','on');
 else
     set(handles.TriangCheck,'Enable','off');
     set(handles.autoPolCheck,'Enable','off');
@@ -170,6 +235,7 @@ else
     set(handles.editGauss,'Enable','off');
     set(handles.textGauss,'Enable','off');
     set(handles.editGauss,'Enable','off');    
+    set(handles.textDescr,'Enable','off');
 end
 
 % Gauss Ratio

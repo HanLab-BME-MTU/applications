@@ -1254,10 +1254,25 @@ if ~(isa(fName,'char') & isa(dirName,'char'))
 end
 load([dirName,fName]);
 if exist('speckleArray')~=1
-    error('The loaded file does not appear to be valid');
+    % The loaded speckleArray is invalid
+    uiwait(msgbox('The loaded speckleArray is invalid.','error','modal'));
+    return
 end
 % Convert
-speckleArray=fsmConvertSpeckleArray(speckleArray);
+[speckleArray,status]=fsmConvertSpeckleArray(speckleArray);
+if isempty(speckleArray)
+    if status==1
+        % The loaded speckleArray is invalid
+        uiwait(msgbox('The loaded speckleArray is invalid.','error','modal'));
+        return
+    elseif status==2
+        % The loaded speckleArray was already in the new format
+        uiwait(msgbox('The loaded speckleArray is already in the new format.','Info','modal'));
+        return
+    else
+        error('if speckleArray is empty, status has to be either 1 or 2');
+    end
+end
 % Save
 quit=0;
 rounds=0;
@@ -1272,12 +1287,11 @@ while quit==0
         if exist([path,filesep,'speckleArray.mat'])==2
             choice=questdlg('A speckleArray.mat file already exists in this directory. Do you want to overwrite it?','User input requested','Yes','No','Yes');
             switch choice,
-                case 'Yes', save([path,filesep,'speckleArray.mat'],'speckleArray'); quit=1; uiwait(msgbox('speckleArray.mat saved.','Info','modal'));
+                case 'Yes', save([path,filesep,'speckleArray.mat'],'speckleArray'); quit=1; uiwait(msgbox('Converted speckleArray.mat successfully saved.','Info','modal'));
                 case 'No', % Do nothing
             end % switch
         else
-            save([path,filesep,'speckleArray.mat'],'speckleArray'); quit=1; uiwait(msgbox('speckleArray.mat saved.','Info','modal'));
-            
+            save([path,filesep,'speckleArray.mat'],'speckleArray'); quit=1; uiwait(msgbox('Converted speckleArray.mat successfully saved.','Info','modal'));
         end
     else
         disp('Aborted.');

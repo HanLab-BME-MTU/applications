@@ -4,7 +4,6 @@ function varargout = fsmGuiMain(varargin)
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
 % Last Modified by GUIDE v2.5 10-May-2004 10:31:44
-clc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -16,6 +15,12 @@ clc;
 
 if nargin == 0  % LAUNCH GUI
 
+    % Do not allow another instance of fsmGuiMain to be started
+    if ~isempty(findall(0,'Tag','fsmGuiMain') & findall(0,'Name','SpeckTackle'))
+        disp('SpeckTackle is already running...');
+        return;
+    end
+    
 	fig = openfig(mfilename,'reuse');
 
 	% Generate a structure of handles to pass to callbacks, and store it. 
@@ -25,7 +30,7 @@ if nargin == 0  % LAUNCH GUI
 	if nargout > 0
 		varargout{1} = fig;
 	end
-
+   
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
     % Link fsmParam and defaultFsmParam to the GUI
