@@ -107,6 +107,8 @@ for jj = 1:numTimeSteps
    % scores that approximately separate the two. It is based on the angle
    % between the force and the displacement.
    %The force on grid points inside the identification region.
+   gridXin = gridX(gridIn);
+   gridYin = gridY(gridIn);
    [gridBFx,gridBFy] = postinterp(fem,'f1','f2', ...
       [gridX(gridIn) gridY(gridIn)].');
 
@@ -120,13 +122,6 @@ for jj = 1:numTimeSteps
    %Compute the length of the displacements and their average .
    gridDispLen = sqrt(gridU1.^2+gridU2.^2);
    smDispLen   = max(gridDispLen)*smDispThreshold;
-
-   %We only consider displacements that are above a threshold value. We call
-   % these displacements the significant displacements.
-   % 'smDispInd' : Index of the significant displacements.
-   smDispInd = find(gridDispLen<smDispLen);
-   %bigDispInd  = [1:length(gridDispLen)];
-   %bigDispInd(smDispInd) = [];
 
    %Normalize the displacement.
    %unitGridU1 = zeros(size(gridU1));
@@ -160,10 +155,17 @@ for jj = 1:numTimeSteps
    %Significant myosin dragging force.
    gridMCF(mcfInd) = gridBFLen(mcfInd);
    
+   %We only consider displacements that are above a threshold value. We call
+   % these displacements the significant displacements.
+   % 'smDispInd' : Index of the significant displacements.
+   smDispInd = find(gridDispLen(adfInd)<smDispLen);
+   %bigDispInd  = [1:length(gridDispLen)];
+   %bigDispInd(smDispInd) = [];
+
    %Compute the significant dragging coefficient.
    gridADF(adfInd) = gridBFLen(adfInd)./gridDispLen(adfInd);
    %gridADF(smDispInd) = gridBFLen(smDispInd)./(avgDispLen*smDispThreshold);
-   gridADF(smDispInd) = 0;
+   gridADF(adfInd(smDispInd)) = gridBFLen(adfInd(smDispInd))./smDispLen;
 
    %gridMCF = zeros(size(gridBFLen));
    %gridMCF(sigDispInd) = abs(gridBFx(sigDispInd).*unitGridU2(sigDispInd) - ...
@@ -206,7 +208,9 @@ for jj = 1:numTimeSteps
 
    %Save the identified body force calculated on the demonstration points.
    save([resultPath 'bfId'],'bfDisplayPx','bfDisplayPy', ...
-      'recBF','recDispU','residueDisp','residueBF','ppMCF','ppADF');
+      'recBF','recDispU','residueDisp','residueBF', ...
+      'gridXin','gridYin','gridBFx','gridBFy', ...
+      'adfInd','mcfInd','ppMCF','ppADF');
 
    %Save the computed displacement from the identified body force.
    save([resultPath 'dispId'],'dataPx','dataPy','dataU1','dataU2', ...

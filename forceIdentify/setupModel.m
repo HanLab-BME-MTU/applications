@@ -108,8 +108,25 @@ elseif strcmp(dataToUse,'simul') == 1
    load([resultPath 'simField']);
    dataPx{:} = simDataPx;
    dataPy{:} = simDataPy;
-   dataU1{:} = simulU1.';
-   dataU2{:} = simulU2.';
+
+   %simulU1 = simulU1.*(1+noiseA*randn(size(simulU1)));
+   %simulU2 = simulU2.*(1+noiseA*randn(size(simulU2)));
+   numRealization = 50;
+   nDataU1 = zeros(length(simulU1),numRealization);
+   nDataU2 = zeros(length(simulU2),numRealization);
+
+   dataU1{:} = (zeros(size(simulU1))).';
+   dataU2{:} = (zeros(size(simulU2))).';
+
+   simulUL = sqrt(simulU1.^2+simulU2.^2);
+   for k = 1:numRealization
+      nDataU1(:,k) = (simulU1+noiseA*simulUL.*randn(size(simulU1))).';
+      nDataU2(:,k) = (simulU2+noiseA*simulUL.*randn(size(simulU2))).';
+      dataU1{:} = dataU1{:}+nDataU1(:,k); 
+      dataU2{:} = dataU2{:}+nDataU2(:,k); 
+   end
+   dataU1{:} = dataU1{:}/numRealization;
+   dataU2{:} = dataU2{:}/numRealization;
 else
    error('Unknown value for ''dataToUse''.');
 end

@@ -149,7 +149,6 @@ propertyNames = {'geom'
 ReAssemble   = 'no';
 geomChanged  = 'no';
 meshChanged  = 'no';
-fnChanged    = 'no';
 fpChanged    = 'no';
 for k = 1:2:nargin-1
    if ~ischar(varargin{k})
@@ -169,7 +168,7 @@ for k = 1:2:nargin-1
          ReAssemble = 'yes';
       case 'fn'
          fn = varargin{k+1};
-         fnChanged = 'yes';
+         ReAssemble = 'yes';
       case 'fp'
          fp = varargin{k+1};
          fpChanged = 'yes';
@@ -184,25 +183,22 @@ for k = 1:2:nargin-1
    end
 end
 
-if strcmp(geomChanged,'yes') | strcmp(meshChanged,'yes')
+if strcmp(geomChanged,'yes')
    if strcmp(meshChanged,'yes')
       fem = elModelAssemble(geom,mesh,options,fn,fp,ind,bndInd);
    else
       fem = elModelAssemble(geom,[],options,fn,fp,ind,bndInd);
    end
    return;
-end
-
-if strcmp(meshChanged,'yes')
-   if isstruct(mesh)
-      %'mesh' is a completely defined MESH structure. We define 'geom' using 
-      % mesh as geometry in this case.
-      fem = elModelAssemble([],mesh,options,fn,fp,ind,bndInd);
-   else
-      %'mesh' is a cell array of meshing parameters.
-      fem = elModelAssemble(geom,mesh,options,fn,fp,ind,bndInd);
+else
+   if strcmp(meshChanged,'yes')
+      if isa(mesh,'struct')
+         fem = elModelAssemble([],mesh,options,fn,fp,ind,bndInd);
+      else
+         fem = elModelAssemble(geom,mesh,options,fn,fp,ind,bndInd);
+      end
+      return;
    end
-   return;
 end
 
 if strcmp(ReAssemble,'yes')
@@ -219,9 +215,9 @@ end
 %    fem.fp      = fp;
 %    fem.ind     = ind;
 %    fem.bnd.ind = bndInd;
-if strcmp(fnChanged,'yes') == 1 | strcmp(fpChanged,'yes') == 1
+if strcmp(fpChanged,'yes') == 1
    fem = inputsCheck(fem,options,fn,fp,ind,bndInd);
-   fem.varNames = varNameDefine(fem);
+   %fem.varNames = varNameDefine(fem);
    fem = varDefine(fem);
    fem = constDefine(fem);
    fem.xmesh = meshextend(fem);

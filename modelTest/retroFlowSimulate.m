@@ -79,11 +79,10 @@ elseif strcmp(whatToTest,'adhesion') == 1
    %          adhesion.
    mcfInd = find((dotProdBFU-recBFLen*cos(mcfAngle))>=0);
    adfInd = find((-dotProdBFU-recBFLen*cos(adfAngle))>=0);
-   myoDFx = recBFx;
-   myoDFy = recBFy;
-
-   myoDFx(adfInd) = 0;
-   myoDFy(adfInd) = 0;
+   myoDFx = zeros(size(recBFx));
+   myoDFy = zeros(size(recBFy));
+   myoDFx(mcfInd) = recBFx(mcfInd);
+   myoDFy(mcfInd) = recBFy(mcfInd);
 
    %Set the myosin dragging force to be zero where the adhesion intensity is
    % higher than the threshold, 'adhThreshold'.
@@ -111,8 +110,8 @@ elseif strcmp(whatToTest,'adhesion') == 1
       coefFS(k) = 0;
    end
 
-   coefMyox = (myoA.'*myoA+0*eye(dimFS))\(myoA.'*myoDFx.');
-   coefMyoy = (myoA.'*myoA+0*eye(dimFS))\(myoA.'*myoDFy.');
+   coefMyox = (myoA.'*myoA+0.01*eye(dimFS))\(myoA.'*myoDFx.');
+   coefMyoy = (myoA.'*myoA+0.01*eye(dimFS))\(myoA.'*myoDFy.');
    %coefMyox = myoA\(myoDFx.');
    %coefMyoy = myoA\(myoDFy.');
 
@@ -140,15 +139,13 @@ fem = elasticSolve(fem,[]);
 %Load the data points used to identify the force. We shall compute the 
 % simulated displacements there.
 load([bfDataPath 'dispId']);
-[simulU1 simulU2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
+simDataPx = dataPx{testTimeStep};
+simDataPy = dataPy{testTimeStep};
+[simulU1 simulU2] = postinterp(fem,'u1','u2', ...
+   [simDataPx simDataPy].');
 %[simulBFx simulBFy] = postinterp(fem,'f1','f2',[dataPx dataPy].');
 [simMyoDFx simMyoDFy] = postinterp(fem,'f1','f2',[bfDisplayPx bfDisplayPy].');
+[simDispU1 simDispU2] = postinterp(fem,'u1','u2',[bfDisplayPx bfDisplayPy].');
 
-%Add noise to data.
-%Noise level for testing simulation result.
-noiseA = 0.0;
-simulU1 = simulU1.*(1+noiseA*randn(size(simulU1)));
-simulU2 = simulU2.*(1+noiseA*randn(size(simulU2)));
-
-save([bfDataPath 'simField'],'simDataPx','simDataPy', ...
-   'simulU1','simulU2','simulBFx','simulBFy');
+save([resultPath 'simField'], 'simDataPx','simDataPy','simulU1','simulU2', ...
+   'simDispU1','simDispU2','simMyoDFx','simMyoDFy');

@@ -48,7 +48,7 @@ end
 
 x   = varargin{1};
 y   = varargin{2};
-imI = varargin{3}
+imI = varargin{3};
 A   = varargin{4};
 V   = varargin{5};
 

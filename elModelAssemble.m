@@ -155,13 +155,12 @@ function fem = elModelAssemble(geom,mesh,options,fn,fp,ind,bndInd)
 %       Since for the 3rd subdomain we have an evaluation string, 'x+y', use
 %       the empty matrix, [], to distinguish it from a function name.
 
+%Check if 'geom' and 'mesh' are consistant.
 if isempty(geom)
    if isempty(mesh) | ~isa(mesh,'struct')
       error(['When the first argument,''geom'' is empty, ' ...
          'the second argument, ''mesh'' must be a complete predefined ' ...
          'MESH structure of FEMLAB.']);
-   else
-      fem.geom = mesh;
    end
 else
    if ~isempty(mesh) & ~isa(mesh,'struct') & ~iscell(mesh)
@@ -169,7 +168,6 @@ else
          'empty matrix, [], or a cell array of meshing arguments, ' ...
          'or the completely defined MESH structure.']); 
    end
-   fem.geom = geom; % set geometry.
 end
 
 %INPUTSCHECK is a private function that checks the legitimacy of the inputs
@@ -181,7 +179,7 @@ end
 %    fem.fp      = fp;
 %    fem.ind     = ind;
 %    fem.bnd.ind = bndInd;
-fem = inputsCheck(fem,options,fn,fp,ind,bndInd);
+fem = inputsCheck([],options,fn,fp,ind,bndInd);
 
 %Start the construction of the fields of FEM structure that are needed by
 % FEMLAB.
@@ -323,15 +321,21 @@ fem.shape = 2; % Largrange elelments.
 
 %Define the meshing.
 if isempty(mesh)
+   fem.geom = geom;
    fem.mesh = meshinit(fem);
    fem.mesh = meshrefine(fem);
    fem.mesh = meshrefine(fem);
-elseif isa(mesh,'struct')
+elseif isa(mesh,'struct') 
    fem.mesh = mesh;
-   fem.geom = mesh;
+   if isempty(geom)
+      fem.geom = mesh;
+   else
+      fem.geom = geom;
+   end
 else 
    %'mesh' is a cell array of meshing parameters that are accepted by
    % 'meshinit'.
+   fem.geom = geom;
    fem.mesh = meshinit(fem,mesh{:});
 end
 
