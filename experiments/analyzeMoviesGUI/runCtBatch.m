@@ -130,7 +130,12 @@ try
                                     else
                                         %normal movie: correct if necessary
                                         moviename = [job(i).projName,'.r3d'];
-                                        [movie,moviename] = correctBackground(moviename,job(i).correctBackground,[],fidJob,fid);
+                                        
+                                        %[movie,moviename] = correctBackground(moviename,job(i).correctBackground,[],fidJob,fid);
+                                        
+                                        [movie,moviename] = ...
+                                            r3dread(moviename,[],[],[],job(i).correctBackground);
+                                        
                                         if ~isempty(job(i).correctBackground)
                                             job(i).correctBackground = [];
                                             job(i).projName = moviename(1:end-4);
