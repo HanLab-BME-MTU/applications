@@ -57,6 +57,12 @@ fsmParam.main.imgN=str2num(get(handles.numberEdit,'String'));
 % Auto cell boundaries
 fsmParam.prep.autoPolygon=get(handles.autoPolCheck,'Value');
 
+% Special Bit depth setting for Auto cell boundaries
+val                 = get(handles.edgeBitDepth,'Value');
+string_list         = get(handles.edgeBitDepth,'String');
+bit_depth           = string_list{val};
+fsmParam.prep.edgeBitDepth = bit_depth;
+
 % User draws a ROI
 drawROI=get(handles.drawROICheck,'Value');
 loadROI=get(handles.loadROICheck,'Value');

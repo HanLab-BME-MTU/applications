@@ -38,6 +38,7 @@ imagePath    = fsmParam.main.imagePath;     % Image path (defined at the project
 imgNumber    = fsmParam.main.imgN;          % Number of image to be processed from the stack
 xmin         = fsmParam.main.normMin;       % Lower intensity bound for intensity normalization
 xmax         = fsmParam.main.normMax;       % Upper intensity bound for intensity normalization
+edgeBitDepth = fsmParam.prep.edgeBitDepth;  % special bit depth for edge detection
 noiseParam   = fsmParam.main.noiseParam;    % Parameters for the noise model
 paramSpeckles= fsmParam.prep.paramSpeckles; % High-order speckle parameters 
 enhTriang    = fsmParam.prep.enhTriang;     % Enhanced triangulation flag
@@ -267,7 +268,10 @@ for counter1=1:n
             
             % Extract cell outlines (b/w mask)
             try
-                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'bit_depth',xmax);
+                % Here use special bit depth instead of the FSM bit depth
+                % contact Matthias for more questions
+                edgeBitDepth = 2^edgeBitDepth;
+                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'bit_depth',edgeBitDepth);
             catch
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
@@ -306,7 +310,10 @@ for counter1=1:n
             
             % Extract cell outlines (b/w mask)
             try
-                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',1,'filter_image',1,'bit_depth',xmax);
+                % Here use special bit depth instead of the FSM bit depth
+                % contact Matthias for more questions
+                edgeBitDepth = 2^edgeBitDepth;
+                [successCE,img_edge,bwMask]=imFindCellEdge(img,'',1,'filter_image',1,'bit_depth',edgeBitDepth);
             catch
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));

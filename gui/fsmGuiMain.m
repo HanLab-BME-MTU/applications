@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 27-Sep-2004 15:01:12
+% Last Modified by GUIDE v2.5 01-Nov-2004 14:48:57
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -1279,5 +1279,28 @@ function checkTest_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkTest
+
+
+% --- Executes on selection change in edgeBitDepth.
+function edgeBitDepth_Callback(hObject, eventdata, handles)
+% hObject    handle to edgeBitDepth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns edgeBitDepth contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from edgeBitDepth
+
+
+% --- Executes during object creation, after setting all properties.
+function edgeBitDepth_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edgeBitDepth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 

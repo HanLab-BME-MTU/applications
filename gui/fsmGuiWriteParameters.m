@@ -230,6 +230,8 @@ end
 
 set(handles.TriangCheck,'Value',fsmParam.prep.enhTriang);
 set(handles.autoPolCheck,'Value',fsmParam.prep.autoPolygon);
+set(handles.edgeBitDepth   ,'String', {'16', '14', '12', '10', '8'});
+
 switch fsmParam.prep.drawROI
     case 0, 
         set(handles.drawROICheck,'Value',0);
