@@ -424,11 +424,6 @@ if shutdown==0
     return
 else
     
-    
-    % Close all child guis
-    force=1; % Forces all user interfaces to close without asking for confirmation
-
-    
     % fsmPostProc
     hFsmPostProc=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing');
     if ~isempty(hFsmPostProc)
@@ -453,6 +448,13 @@ else
         fsmTransition('fsmTransition_CloseRequestFcn',fsmH,[],guidata(hFsmTransition)); % The calling GUI is fsmH -> fsmCenter
     end
 
+    % fsmCenterAlphaBetaGui
+    hFsmCenterABGui=findall(0,'Tag','NoiseParameterOptimizer','Name','Optimizer');
+    if ~isempty(hFsmCenterABGui)
+        fsmCenterAlphaBetaGui('NoiseParameterOptimizer_CloseRequestFcn',fsmH,[],guidata(hFsmCenterABGui)); % The calling GUI is fsmH -> fsmCenter
+    end
+    
+    
     % And now close fsmCenter
     delete(fsmH);
     
