@@ -3,13 +3,14 @@ function [H,errFlag] = turningPointTest(traj,significance)
 
 %SYNOPSIS [H,errFlag] = turningPointTest(traj,significance)
 %
-%INPUT  traj        : Trajectory to be tested. An array of structures
-%                     with the field "observations". Missing data points
-%                     in a trajectory should be indicated with NaN.
+%INPUT  traj        : Observations of time series to be tested. Either an 
+%                     array of structures traj(1:nTraj).observations, or 
+%                     a column representing one single trajectory. Missing 
+%                     points should be indicated with NaN.
 %       significance: Significance level of hypothesis test. Default: 0.05.
 %
-%OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
-%       errFlag : 0 if function executes normally, 1 otherwise.
+%OUTPUT H           : 1 if hypothesis can be rejected, 0 otherwise.
+%       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %REMARK This test is taken from Brockwell and Davis, "Introduction to Time
 %       Series and Forecasting", p.36. 
@@ -25,13 +26,32 @@ function [H,errFlag] = turningPointTest(traj,significance)
 
 %Khuloud Jaqaman, August 2004
 
-%initialize output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 H = [];
 errFlag = 0;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check input data
 if nargin < 1
     disp('--turningPointTest: You should at least input time series to be analyzed!');
+    errFlag = 1;
+    return
+end
+
+%check trajectory and turn into struct if necessary
+if ~isstruct(traj)
+    tmp = traj(:);
+    clear traj
+    traj.observations = tmp;
+    clear tmp
+elseif ~isfield(traj,'observations')
+    disp('--turningPointTest: Please input the trajectories in fields ''observations''')
     errFlag = 1;
     return
 end
@@ -50,6 +70,10 @@ end
 if nargin < 2
     significance = 0.05;
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Testing
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %get number of turning points and total number of points tested
 numTurnPoints = 0;
@@ -84,3 +108,7 @@ if pValue < significance/2 %if p-value is smaller than probability of type I err
 else %if p-value is larger than probability of type I error
     H = 0; %cannot reject null hypothesis
 end
+
+
+%%%%% ~~ the end ~~ %%%%%
+

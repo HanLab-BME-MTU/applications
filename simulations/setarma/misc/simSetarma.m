@@ -136,7 +136,7 @@ if nargin == 7
         errFlag = 1;
     end
 else %if trajInit was not input, assign default value
-    trajInit = zeros(1,max([arOrder delay]))
+    trajInit = zeros(1,max([arOrder delay]));
 end
     
 %exit if there are problems in input data
@@ -168,7 +168,7 @@ noise = zeros(tempL,1);
 traj(shift:-1:shift-max([arOrder delay])+1) = trajInit(end:-1:1);
 
 %obtain trajectory
-if nThersholds == 0 %if there is only one regime
+if nThresholds == 0 %if there is only one regime
 
     for i = shift+1:tempL
         noise(i) = noiseSigma*randn(1);

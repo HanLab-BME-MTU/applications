@@ -3,9 +3,10 @@ function [H,errFlag] = rankTest(traj,significance)
 
 %SYNOPSIS [H,errFlag] = rankTest(traj,significance)
 %
-%INPUT  traj        : Trajectory to be tested. An array of structures
-%                     with the field "observations". Missing observations 
-%                     should be indicated with NaN.
+%INPUT  traj        : Observations of time series to be tested. Either an 
+%                     array of structures traj(1:nTraj).observations, or 
+%                     a column representing one single trajectory. Missing 
+%                     points should be indicated with NaN.
 %       significance: Significance level of hypothesis test. Default: 0.05.
 %
 %OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
@@ -13,20 +14,40 @@ function [H,errFlag] = rankTest(traj,significance)
 %
 %REMARK This test is taken from Brockwell and Davis, "Introduction to Time
 %       Series and Forecasting", p.37. It can be used to detect linear
-%       trends in a time series. Use with caution where there are missing 
-%       observations.
+%       trends in a time series.
+%
+%       MUST BE FIXED FOR MULTIPLE TRAJECTORIES WITH MISSING DATA POINTS!
 %
 %Khuloud Jaqaman, August 2004
 
 %%% FIX STD %%%
 
-%initialize output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 H = [];
 errFlag = 0;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check input data
 if nargin < 1
     disp('--rankTest: You should at least input time series to be analyzed!');
+    errFlag = 1;
+    return
+end
+
+%check trajectory and turn into struct if necessary
+if ~isstruct(traj)
+    tmp = traj(:);
+    clear traj
+    traj.observations = tmp;
+    clear tmp
+elseif ~isfield(traj,'observations')
+    disp('--rankTest: Please input the trajectories in fields ''observations''')
     errFlag = 1;
     return
 end
@@ -36,7 +57,7 @@ numTraj = length(traj);
 for i=1:numTraj
     nCol = size(traj(i).observations,2);
     if nCol > 1
-        disp('--turningPointTest: Each trajectory should be a column vector!');
+        disp('--rankTest: Each trajectory should be a column vector!');
         errFlag = 1;
     else
         trajLength(i) = length(traj(i).observations);
@@ -48,6 +69,10 @@ end
 if nargin < 2
     significance = 0.05;
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Testing
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %calculate number of pairs where x(t1) > x(t2) for t1>t2 and get total 
 %number of pairs tested
@@ -85,3 +110,7 @@ if pValue < significance/2 %if p-value is smaller than probability of type I err
 else %if p-value is larger than probability of type I error
     H = 0; %cannot reject hypothesis
 end
+
+
+%%%%% ~~ the end ~~ %%%%%
+

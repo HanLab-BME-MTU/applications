@@ -3,11 +3,10 @@ function [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %
 %SYNOPSIS [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %
-%INPUT  traj   : Observations of time series whose autocorrelation function
-%                is to be calculated. 
-%                Either an array of structures traj(1:nTraj).observations, or 
-%                one single trajectory. 
-%                Missing points should be indicated with NaN.
+%INPUT  traj   : Observations of time series to be tested. Either an 
+%                array of structures traj(1:nTraj).observations, or 
+%                a column representing one single trajectory. Missing 
+%                points should be indicated with NaN.
 %       maxLag : Maximum lag at which autocorrelation function is calculated.
 %       correct: (optional) Switch for correction of trends:
 %                  -1 :if no correction.
@@ -58,6 +57,7 @@ if ~isstruct(traj)
 elseif ~isfield(traj,'observations')
     disp('--autoCorr: Please input the trajectories in fields ''observations''')
     errFlag = 1;
+    return
 end
 
 %check input "correct"
@@ -143,11 +143,8 @@ for lag = 0:maxLag %for each lag
         end
     end
 
-    %remove all pairs with missing observations
-    vecMult = vecMult(~isnan(vecMult));
-
-    %calculate autocorrelation function
-    gamma(lag+1) = mean(vecMult);
+    %calculate autocorrelation function (omit pairs with missing observations)
+    gamma(lag+1) = nanmean(vecMult);
 
 end
 

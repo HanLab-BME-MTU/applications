@@ -3,9 +3,10 @@ function [H,errFlag] = portmanteau(traj,maxLag,significance)
 
 %SYNOPSIS [H,errFlag] = portmanteau(traj,maxLag,significance)
 %
-%INPUT  traj        : Trajectories to be tested. An array of structures
-%                     with the field "observations". Missing data points
-%                     in a trajectory should be indicated with NaN.
+%INPUT  traj        : Observations of time series to be tested. Either an 
+%                     array of structures traj(1:nTraj).observations, or 
+%                     a column representing one single trajectory. Missing 
+%                     points should be indicated with NaN.
 %       maxLag      : Maximum lag used to calculate autocorrelation
 %                     function. Default: 40.
 %       significance: Significance level of hypothesis test. Default: 0.05.
@@ -23,13 +24,32 @@ function [H,errFlag] = portmanteau(traj,maxLag,significance)
 
 %Khuloud Jaqaman, August 2004
 
-%initialize output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 H = [];
 errFlag = 0;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check input data
 if nargin < 1
     disp('--portmanteau: You should at least input time series to be analyzed!');
+    errFlag = 1;
+    return
+end
+
+%check trajectory and turn into struct if necessary
+if ~isstruct(traj)
+    tmp = traj(:);
+    clear traj
+    traj.observations = tmp;
+    clear tmp
+elseif ~isfield(traj,'observations')
+    disp('--portmaneau: Please input the trajectories in fields ''observations''')
     errFlag = 1;
     return
 end
@@ -57,6 +77,10 @@ if nargin < 3
     significance = 0.05;
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Testing
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %get autocorrelation function of time series
 [gamma,errFlag] = autoCorr(traj,maxLag);
 if errFlag
@@ -76,4 +100,7 @@ if pValue < significance %if p-value is smaller than probability of type I error
 else %if p-value is larger than probability of type I error
     H = 0; %cannot reject null hypothesis
 end
+
+
+%%%%% ~~ the end ~~ %%%%%
 

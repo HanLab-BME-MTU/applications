@@ -30,7 +30,7 @@ errFlag = 0;
 %check if correct number of arguments was used
 if nargin < 2 || nargin > 3
     disp('--arma2ma: You should input AR and MA coefficients!')
-    disp('           Number of MA coefficients to calculate is optional!');
+    disp('           Number of MA coefficients to calculate, however, is optional!');
     errFlag  = 1;
     return
 end
@@ -44,7 +44,7 @@ if ~isempty(arParam)
     else
         r = abs(roots([-arParam(end:-1:1) 1]));
         if ~isempty(find(r<=1))
-            disp('--arma2ma: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
+            disp('--arma2ma: Causality requires the polynomial defining the autoregressive part of the model to have no zeros for z <= 1!');
             errFlag = 1;
         end
     end

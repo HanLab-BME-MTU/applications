@@ -3,9 +3,10 @@ function [H,errFlag] = differenceSignTest(traj,significance)
 
 %SYNOPSIS [H,errFlag] = differenceSignTest(traj,significance)
 %
-%INPUT  traj        : Trajectory to be tested. An array of structures
-%                     with the field "observations". Missing data points
-%                     in a trajectory should be indicated with NaN.
+%INPUT  traj        : Observations of time series to be tested. Either an 
+%                     array of structures traj(1:nTraj).observations, or 
+%                     a column representing one single trajectory. Missing 
+%                     points should be indicated with NaN.
 %       significance: Significance level of hypothesis test. Default: 0.05.
 %
 %OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
@@ -27,13 +28,32 @@ function [H,errFlag] = differenceSignTest(traj,significance)
 %
 %Khuloud Jaqaman, August 2004
 
-%initialize output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 H = [];
 errFlag = 0;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check input data
 if nargin < 1
     disp('--differenceSignTest: You should at least input time series to be analyzed!');
+    errFlag = 1;
+    return
+end
+
+%check trajectory and turn into struct if necessary
+if ~isstruct(traj)
+    tmp = traj(:);
+    clear traj
+    traj.observations = tmp;
+    clear tmp
+elseif ~isfield(traj,'observations')
+    disp('--differenceSignTest: Please input the trajectories in fields ''observations''')
     errFlag = 1;
     return
 end
@@ -52,6 +72,10 @@ end
 if nargin < 2
     significance = 0.05;
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Testing
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %calculate number of points where x(t) > x(t-1) and total number of
 %points tested
@@ -86,3 +110,6 @@ if pValue < significance/2 %if p-value is smaller than probability of type I err
 else %if p-value is larger than probability of type I error
     H = 0; %cannot reject hypothesis
 end
+
+
+%%%%% ~~ the end ~~ %%%%%
