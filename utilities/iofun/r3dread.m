@@ -181,7 +181,8 @@ end
 
 if correctBG
     %calculate background correction image
-    [backgroundCorrectionImage,minStart,maxEnd] = r3dreadCorrectBackground(filename,numRow,numCol,numZ,numWvl,numTimes,correctionDataFromFile,correctionDataFromVar,MOVIERANGE);
+    [backgroundCorrectionImage,minStart,maxEnd,r3dMovieHeader] = r3dreadCorrectBackground(...
+        filename,numRow,numCol,numZ,numWvl,numTimes,correctionDataFromFile,correctionDataFromVar,MOVIERANGE,r3dMovieHeader);
     
     %adjust start and nTimes if necessary
     start = start + minStart - 1;
@@ -194,7 +195,8 @@ end
 % load movie
 %------------
 
-
+%open the file again - we might have closed it when reading the background
+[file, message] = fopen(filename,'r','b');
 
 %allocate mem
 image=zeros(numRow,numCol,numZ,numWvl,nTimes);
@@ -212,6 +214,8 @@ for t=1:nTimes
         image(:,:,:,w,t) = (image(:,:,:,w,t)/MOVIERANGE)-backgroundCorrectionImage(:,:,:,w);
     end;
 end;
+
+image = image - min(image(:));
 
 fclose(file);
 

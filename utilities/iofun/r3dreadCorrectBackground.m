@@ -1,4 +1,4 @@
-function [backgroundCorrectionImage,minStart,maxEnd] = r3dreadCorrectBackground(filename,numRow,numCol,numZ,numWvl,numTimes,correctionDataFromFile,correctionDataFromVar,MOVIERANGE)
+function [backgroundCorrectionImage,minStart,maxEnd,r3dMovieHeader] = r3dreadCorrectBackground(filename,numRow,numCol,numZ,numWvl,numTimes,correctionDataFromFile,correctionDataFromVar,MOVIERANGE,r3dMovieHeader)
 %CORRECTBACKGROUND calculates the backgroundcorrection image for movies loaded with r3dread
 %
 % INPUT filename: moviefilename
@@ -26,6 +26,13 @@ function [backgroundCorrectionImage,minStart,maxEnd] = r3dreadCorrectBackground(
     isThereVar = ~isempty(correctionDataFromVar);
     isThereFile = ~isempty(correctionDataFromFile);
     
+    if isThereVar % change var
+        info = struct('correctFiles',correctionDataFromVar.correctFrames,...
+            'correctFrames',correctionDataFromVar.correctFrames);
+        correctionDataFromVar.info = info;
+        correctionDataFromVar = rmfield(correctionDataFromVar,{'correctFiles','correctFrames'});
+    end
+    
     switch isThereFile + 2*isThereVar
         
         case 1 % file only, no var : load corrImg
@@ -47,7 +54,7 @@ function [backgroundCorrectionImage,minStart,maxEnd] = r3dreadCorrectBackground(
             
             % if there info is the same, we are up to date
             
-            if isequanwithequalnans(correctionDataFromVar.info,correctionDataFromFile.info)
+            if isequalwithequalnans(correctionDataFromVar.info,correctionDataFromFile.info)
                 backgroundCorrectionImage = correctionDataFromFile.image;
                 calcCorrection = 0;
                 correctionData = correctionDataFromFile;
@@ -82,9 +89,9 @@ function [backgroundCorrectionImage,minStart,maxEnd] = r3dreadCorrectBackground(
         case 1 % calculate from frames
             
             %load first and last frames via r3dread
-            firstCorrFrames = r3dread(filename,1,correctionDataFromFile.info.correctFrames(1),MOVIERANGE,0);
+            firstCorrFrames = r3dread(filename,1,correctionData.info.correctFrames(1),MOVIERANGE,0);
             lastCorrFrames  = r3dread(...
-                fileName,numTimes-correctionDataFromFile.info.correctFrames(2)+1,correctionDataFromFile.info.correctFrames(2),MOVIERANGE,0);
+                filename,numTimes-correctionData.info.correctFrames(2)+1,correctionData.info.correctFrames(2),MOVIERANGE,0);
             corrFrames = cat(5,firstCorrFrames,lastCorrFrames);
             
             % make correctionSlice
@@ -100,13 +107,13 @@ function [backgroundCorrectionImage,minStart,maxEnd] = r3dreadCorrectBackground(
             
             oldDir = pwd;
             corrImg = [];
-            for i = 1:size(correctionDataFromFile.info.correctFiles,1)
+            for i = 1:size(correctionData.info.correctFiles,1)
                 %move to corrMovieDir via bioDataMainDir
                 cdBiodata(0);
-                cd(correctionDataFromFile.info.correctFiles{i,1});
+                cd(correctionData.info.correctFiles{i,1});
                 
                 %read correctionMovie
-                corrMovieName = correctionDataFromFile.info.correctFiles{i,2};
+                corrMovieName = correctionData.info.correctFiles{i,2};
                 if strcmp(corrMovieName(end),'d');
                     corrMov = r3dread(corrMovieName,[],[],MOVIERANGE,0);
                 else
@@ -147,13 +154,21 @@ function [backgroundCorrectionImage,minStart,maxEnd] = r3dreadCorrectBackground(
     if ~isempty(correctionData) & isfield(correctionData,'image')
         % do not save, because we have already calculated the image before!
     else
-        correctionData.image = backgroundCorrectionSlice;
-        save('correctionData','correctionData');
+        
         
         %read header
-        if ~isempty(r3dMovieHeader)
+        
+        if isfield(correctionData,'header')
+            r3dMovieHeader = correctionData.header;
+            correctionData = rmfield(correctionData,'header');
+        else
             r3dMovieHeader = readr3dheader(filename);
         end
+        
+        %save without header
+        
+        correctionData.image = backgroundCorrectionSlice;
+        save('correctionData','correctionData');
         
         %correct time, movieLength if necessary
         if ~isempty(correctionData.info.correctFrames)
@@ -161,9 +176,9 @@ function [backgroundCorrectionImage,minStart,maxEnd] = r3dreadCorrectBackground(
             % multiple wavelengths.
             % Since it is a 1 by numzSlices*numTimepoints
             % vector, we have to calculate from where to where to take it
-            firstNum = (correctionDataFromFile.info.correctFrames(1))*numZ+1; 
-            lastNum = (numTimes - sum(correctionInfo.correctFrames)) * numZ; %ms5+cF1+cF2-cF2
-            r3dMovieHeader.Time = correctionInfo.header.Time(firstNum:lastNum);
+            firstNum = (correctionData.info.correctFrames(1))*numZ+1; 
+            lastNum = (numTimes - sum(correctionData.info.correctFrames)) * numZ; %ms5+cF1+cF2-cF2
+            r3dMovieHeader.Time = r3dMovieHeader.Time(firstNum:lastNum);
             r3dMovieHeader.numTimepoints = numTimes - sum(correctionData.info.correctFrames);
         end
         r3dMovieHeader.cropInfo = []; %for compatibility
