@@ -109,6 +109,7 @@ if trajLength <= 0
 end
 if length(trajInit) ~= max([arOrder delay])
     disp('--simSetarma: Number of time points initialized should equal max(arOrder,delay)!');
+    disp('              Note that delay is set to 1 when there are no thresholds.');
     errFlag = 1;
 end
 if errFlag

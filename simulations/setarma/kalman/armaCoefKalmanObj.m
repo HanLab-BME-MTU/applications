@@ -39,4 +39,5 @@ obsVariance = param(end);
     arParam,maParam,obsVariance);
 
 %construct -2ln(likelihood)
-neg2LnLikelihood = sum(ln(innovationVar(available))) + length(available)*ln(sum(innovation(available).^2./innovationVar(available)));
+neg2LnLikelihood = sum(log(innovationVar(available))) ...
+    + length(available)*log(sum(innovation(available).^2./innovationVar(available)));

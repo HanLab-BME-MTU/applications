@@ -36,6 +36,9 @@ if nargin < nargin('armaKalmanInnov')
     return
 end
 
+%find trajectory length
+trajLength = size(traj,1);
+
 %get maxOrder to determine size of matrices in Eq. 2.15 - 2.17
 maxOrder = max(arOrder,maOrder+1);
 
@@ -48,10 +51,13 @@ transitionMat = diag(ones(maxOrder-1,1),1);
 transitionMat(end,:) = arParamMod(end:-1:1); 
 
 %construct column vector G (Eq. 2.15, 2.16) using the recursions in Eq. 2.13
-maContribution = ones(maxOrder,1);
+%note that procErrCov(i) is the covariance of the process at time t 
+%with the white noise at time t+i-1, normalized by the white noise variance
+%(Eqs. 4.2, 4.3 and 4.4)
+procErrCov = ones(maxOrder,1);
 for i = 2:maxOrder
-    dummy = maParamMod(i-1) + arParamMod(1:i-1)*maContribution(i-1:-1:1);
-    maContribution = dummy;
+    dummy = maParamMod(i-1) + arParamMod(1:i-1)*procErrCov(i-1:-1:1);
+    procErrCov(i) = dummy;
 end
 
 %construct row vector H (Eq. 2.17)
@@ -60,7 +66,8 @@ observationVec(1) = 1;
 
 %initialize state vector and its covariance matrix
 stateVecT_T = zeros(maxOrder,1); %Z(0|0)
-[stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,maContribution); %P(0|0)
+[stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,procErrCov,...
+    arOrder,maOrder,maxOrder); %P(0|0)
 
 %initialize innovations vector and its covariance matrix
 innovation = zeros(trajLength,1);
@@ -71,7 +78,8 @@ for timePoint = 1:trajLength
     %predict state at time T+1 given state at time T
     stateVecT1_T = transitionMat*stateVecT_T; %Z(t+1|t), Eq. 3.1
     %obtain the predicted state's covariance matrix
-    stateCovMatT1_T = F*stateCovMatT_T*F' + maContribution*maContribution'; %P(t+1|t), Eq. 3.2
+    stateCovMatT1_T = transitionMat*stateCovMatT_T*transitionMat' ...
+        + procErrCov*procErrCov'; %P(t+1|t), Eq. 3.2
     %predict observable at time T+1
     observableP = stateVecT1_T(1); %y(t+1|t), Eq. 3.3
     
