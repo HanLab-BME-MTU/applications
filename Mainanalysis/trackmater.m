@@ -1,33 +1,32 @@
-function trackmater(hObject,projNum)
-% trackmater finds and links coordinates in a serie of phase contrast images 
+function trackCells(hObject,projNum)
+% trackCells finds and links coordinates in a serie of phase contrast images 
 %
-% SYNOPSIS       trackmater(hObject,projNum)
+% SYNOPSIS       trackCells(hObject,projNum)
 %
 % INPUT          hObject : a handle to the Gui which called the function
-%                projNum : which job is currently being delt with
-
+%                projNum : which job is currently being dealt with
+%
 % OUTPUT         All outputs are either written directly to disk 
 %                M : described in alteredfsmTrackLinker
 %                PROPERTIES : PROPERTIES(:,1)=coord(:,1);
-%						 	  PROPERTIES(:,2)=coord(:,2);
-%							  PROPERTIES(:,3)=belongsto(:);  (number of cluster - label)
-%							  PROPERTIES(:,4)=numberOfOccurences(:);  (how many cells in the cluster
-%							                                           this cell is in)
-%							  PROPERTIES(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
-%							  PROPERTIES(:,6)=perimdivare(:);  (cluster)
+%	 	 PROPERTIES(:,2)=coord(:,2);
+%		 PROPERTIES(:,3)=belongsto(:);  (number of cluster - label)
+%		 PROPERTIES(:,4)=numberOfOccurences(:);  (how many cells in the cluster this cell is in)
+%		 PROPERTIES(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
+%		 PROPERTIES(:,6)=perimdivare(:);  (cluster)
 %                BODYIMG is the binary image of the areas occupied by cells                
 %
-% DEPENDENCIES   trackmater uses {imClusterSeg
-%								 alteredfsmTrackLinker
-%								 checkMinimalCellCell
-%								 findnucloitrack
-%								 body
-%								 halosfind
-%								 templfindertrack }
+% DEPENDENCIES   trackCells uses {imClusterSeg
+%				  alteredfsmTrackLinker
+%				  checkMinimalCellCell
+%				  findnucloitrack
+%				  body
+%				  halosfind
+%				  templfindertrack }
 %                                  
-%                trackmater is used by { PolyTrack }
+%                trackCells is used by { PolyTrack }
 %
-% REMARK         trackmater fetches directly in GUI PolyTrack
+% REMARK         trackCells fetches directly in GUI PolyTrack
 %                   handles : structure with information used within GUI
 % 				  from handles.jobs(projNum):
 % 					imagedirectory : where are the images 
