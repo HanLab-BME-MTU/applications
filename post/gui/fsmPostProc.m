@@ -558,6 +558,10 @@ web(['file:///' which('qFSM_default.html')]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushSpeedMaps_Callback(hObject, eventdata, handles)
+projDir=getProjDir(handles);
+if isempty(projDir)
+    return
+end
 if get(handles.checkSMMask,'Value')==1
     % Load userROI.mat
     [fName,dirName] = uigetfile(...
@@ -597,7 +601,7 @@ pixelSize=str2num(get(handles.editSMPixel,'string'));
 maxSpeed=str2num(get(handles.editSMMax,'string'));
 segment=get(handles.checkSMSegment,'value');
 bitDepth=str2num(get(handles.editSMBitDepth,'String'));
-outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIpoly,maxSpeed,segment,bitDepth);
+outputdir=fsmSpeedMaps(projDir,gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIpoly,maxSpeed,segment,bitDepth);
 if ~isempty(outputdir)
     % Maps have been saved to disk
     msg=['Speed maps have been saved to ',outputdir,'.'];
@@ -734,9 +738,13 @@ function editSigmaTN_Callback(hObject, eventdata, handles)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushPlotTraj_Callback(hObject, eventdata, handles)
+projDir=getProjDir(handles);
+if isempty(projDir)
+    return
+end
 method=find([get(handles.radioPTMethod1,'Value') get(handles.radioPTMethod2,'Value')]);
 colorCode=get(handles.checkTrajPlots,'Value');
-fsmPlotTrajectories(method,colorCode);
+fsmPlotTrajectories(projDir,method,colorCode);
 
 function pushHelpPlotTraj_Callback(hObject, eventdata, handles)
 web(['file:///' which('qFSM_plotTrajectories.html')]);
@@ -762,24 +770,27 @@ function checkTrajPlots_Callback(hObject, eventdata, handles)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushAssignSpecklesToClasses_Callback(hObject, eventdata, handles)
-% Load speckleArray.mat
-[fName,dirName] = uigetfile(...
-    {'speckleArray.mat;','speckleArray.mat';
-    '*.*','All Files (*.*)'},...
-    'Select speckleArray.mat');
-if ~(isa(fName,'char') & isa(dirName,'char'))
+projDir=getProjDir(handles);
+if isempty(projDir)
     return
 end
-load([dirName,fName]);
-if exist('speckleArray')~=1
+fileName=[projDir,filesep,'speckleArray.mat'];
+% Try to load
+try
+    load(fileName);
+catch
+    uiwait(errordlg('Could not load speckleArray.mat.','Error','modal'));
+    return
+end
+if exist('speckleArray','var')~=1
     % The loaded speckleArray is invalid
-    uiwait(msgbox('The loaded speckleArray is invalid.','error','modal'));
+    uiwait(errordlg('The loaded speckleArray is not valid.','Error','modal'));
     return
 end
 
 % Check that the speckleArray is not in the old format
 if ~(length(speckleArray)==1 & length(speckleArray(1).timepoint)>1)
-    disp('This speckleArray structure is in the old format. Use ''Convert speckleArray'' in fsmCenter to update it and then retry.');
+    uiwait(errordlg('This speckleArray structure is in the old format. Use ''Convert speckleArray'' in fsmCenter to update it and then retry.','Error','modal'));
     return
 end
 
@@ -792,9 +803,9 @@ rounds=0;
 while quit==0
     rounds=rounds+1;
     if rounds==1
-        path=uigetdir(dirName,'Please select a directory where to save speckleClasses.mat');
+        path=uigetdir(projDir,'Please select a directory where to save speckleClasses.mat');
     else
-        path=uigetdir(dirName,'Please specifiy a different directory or click on cancel to leave whithout saving');
+        path=uigetdir(projDir,'Please specifiy a different directory or click on cancel to leave whithout saving');
     end
     if path~=0
         if exist([path,filesep,'speckleClasses.mat'])==2

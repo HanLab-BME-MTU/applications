@@ -1,10 +1,14 @@
-function fsmPlotTrajectories(method,colorCode)
+function fsmPlotTrajectories(projDir,method,colorCode)
 % fsmPlotTrajectories plots speckle trajectories
+%
+% SYNOPSIS      fsmPlotTrajectories(projDir,method,colorCode)
 %
 % REMARK        Run fsmPlotTrajectories through the graphical user interface fsmCenter 
 %               ----------------------------------------------------------------------
 %
-% INPUT         method   : 1 - All the matches in a selected frame range are displayed in 
+% INPUT         projDir  : string pointing to the project directory (where the fsmParam.mat file is 
+%                             located). Pass projDir=[] to manually select fsmParam.mat via a dialog.
+%               method   : 1 - All the matches in a selected frame range are displayed in 
 %                              one plot. Trajectories longer than the range will be cut.
 %                          2 - All the trajectories originitating within the selected frame 
 %                              range are displayed in one plot. Trajectories longer than the 
@@ -30,32 +34,61 @@ if nargin==1
     colorCode=0;
 end
 
-% Load image - this is needed to get image size
-[fName,dirName] = uigetfile(...
-    {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
-    '*.tif','TIF files (*.tif)'
-    '*.tiff','TIFF files (*.tiff)'
-    '*.jpg;','JPG files (*.jpg)'
-    '*.jpeg;','JPEG files (*.jpeg)'
-    '*.*','All Files (*.*)'},...
-    'Select starting image');
-if(isa(fName,'char') & isa(dirName,'char'))
-    img=nrm(imread([dirName,fName]),1);
-    % Store image size
-    imgSize=size(img);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% LOOK FOR AND CHECK fsmParam.mat
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[fsmParam,status]=fsmPostGetFsmParam(projDir);
+if status==0
+    return
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% GET THE LIST OF IMAGE FILE NAMES AND FIRST/LAST INDICES FROM fsmParam
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[imageFileList,imageFirstIndex,imageLastIndex,status]=fsmPostGetImageListFromFsmParam(fsmParam);
+if status==0
+    return
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% CHECK THAT THE TRACKING MODULE IS UP-TO-DATE AND LOAD mpm.mat
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if isfield(fsmParam.track,'uptodate')
+
+    % Check that the tracking module is up-to-date
+    if fsmParam.track.uptodate==0
+        
+        % The tracking module is not up-to-date. Inform the user and return    
+        errordlg('The file ''mpm.mat'' is not up-to-date. Please re-run the Tracking module in SpeckTackle.','Error','modal');
+        return
+
+    else
+        uptodate=1;    
+    end
+    
 else
-    return 
+    
+    % Old version of fsmParam.mat. Inform the user that he/she has to make sure that everything is up-to-date
+    uiwait(msgbox('Since ''fsmParam.mat'' has been created by an old version of SpeckTackle, I cannot make sure that ''mpm.mat'' is up-to-date. Continue at your own risk.','Warning'));
+    uptodate=-1;
+    
 end
 
 % Load mpm.mat
-[fName,dirName] = uigetfile(...
-    {'mpm.mat;','mpm.mat';
-    '*.*','All Files (*.*)'},...
-    'Select mpm.mat');
-if ~(isa(fName,'char') & isa(dirName,'char'))
-    return 
+if exist([projDir,filesep,'mpm.mat'],'file');
+    load([projDir,filesep,'mpm.mat']);
+    clear MPM;
+else
+    errordlg('Could not find ''mpm.mat''.','Error','modal');
+    return
 end
-load([dirName,fName]);
 
 % Select first and last frame
 last=size(M,3)+1;
@@ -88,6 +121,17 @@ if colorCode==1
     % Initialize colormap
     cmap=colormap(winter(uLast-uFirst+1));close(gcf);
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% GET SOME IMAGE INFO
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Load first image
+img=double(imread(char(imageFileList(uFirst,:))));
+
+% Store image size
+imgSize=size(img);
 
 % Open figure and axes
 figPlotH=figure;
