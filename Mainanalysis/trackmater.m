@@ -702,8 +702,8 @@ else
                                                             moveXXNewCell=[];
                                                             moveYYNewCell=[];
                                                              
-                                                            xnewone=(MPMslide(newCellRow(indexNewCell),1:2:end-1));
-                                                            ynewone=(MPMslide(newCellRow(indexNewCell),2:2:end));
+                                                            xnewone=(MPMslide(newCellRow(indexNewCell),3:2:end-1))';
+                                                            ynewone=(MPMslide(newCellRow(indexNewCell),4:2:end))';
                                                        
                                                             
                                                             moveXXNewCell=diff(xnewone);
@@ -712,7 +712,7 @@ else
                           
                                                             %make sure we correlate two things of the same
                                                             %length
-                                                            if length(xtempl) == length(xnewone)
+                                                            if size(xtempl,1) == length(xnewone)
                                                                        corrTempRow=[];
                                                                        nomore=[];
                                                                        for indexTempRow=1:length(templateRow)
@@ -722,7 +722,7 @@ else
                                                                                   tempfound=[];
                                                                                   writeHereRow=[];
                                                                                  
-                                                                                  distance=min(sqrt((xtempl(indexTempRow,:)-xnewone(:)).^2+(ytempl(indexTempRow,:)-ynewone(:)).^2 ));
+                                                                                  distance=min(sqrt((xtempl(:,indexTempRow)-xnewone(:)).^2+(ytempl(:,indexTempRow)-ynewone(:)).^2 ));
                                                                                  
                                                                                   
                                                                                   %now, if these points at some point are
@@ -743,9 +743,9 @@ else
                                                                                               
                                                                                               %first we copy out the coordinates of
                                                                                               %the old cell, tracked by templates
-                                                                                              templateCoord=MPMslide(templateRow(indexTempRow),:);
+                                                                                              templateCoord=MPMslide(:,templateRow(indexTempRow));
                                                                                               %Now we erase the values from MPMslide, so that we won't by accident use them again
-                                                                                              MPMslide(templateRow(indexTempRow),:)=0;
+                                                                                              MPMslide(:,templateRow(indexTempRow))=0;
                                                                                            
                                                                                               %same procedure for the new cell we
                                                                                               %want to link to the old cell
@@ -815,8 +815,8 @@ else
                                                                                                    %now we correlate the displacement vectors of the old cell with
                                                                                                    %the ones of the new cell
                                                                                                 
-                                                                                                   correlx=xcorr(moveXXTemplate(indexTempRow,:), moveXXNewCell(:),'coeff');
-                                                                                                   correly=xcorr(moveYYTemplate(indexTempRow,:),moveYYNewCell(:),'coeff');
+                                                                                                   correlx=xcorr(moveXXTemplate(:,indexTempRow), moveXXNewCell(:),'coeff');
+                                                                                                   correly=xcorr(moveYYTemplate(:,indexTempRow),moveYYNewCell(:),'coeff');
                                                                                              
                                                                                                    indCorr=round(length(correlx)/2);
                                                                                                    

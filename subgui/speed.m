@@ -2,9 +2,9 @@ function speed(hObject)
 
 handles=guidata(hObject);
 
-bins=[0:1:80];
+bins=[0:1:60];
 
-[numrows,numcols]=size(handles.MPM)
+[numrows,numcols]=size(handles.MPM);
 
 dist=zeros(numrows,1);
 
@@ -17,7 +17,7 @@ for i=1:2:numcols-3
         rows=unique(rows);
         vec(rows,:)=0;
         
-        numbercells((i+1)/2,1)=(numrows-length(rows))
+        numbercells((i+1)/2,1)=(numrows-length(rows));
         dist(:,(i+1)/2)=sqrt((vec(:,1)-vec(:,3)).^2 + (vec(:,2)-vec(:,4)).^2);
         avardist((i+1)/2,1)=sum(dist(1:numrows,(i+1)/2))/(numrows-length(rows));
         
@@ -25,7 +25,7 @@ for i=1:2:numcols-3
         speedvar((i+1)/2)=var(realdist);
          
         velHist(:,(i+1)/2)=hist(realdist,bins)';
-        
+        velHist(:,(i+1)/2)=velHist(:,(i+1)/2)./(numrows-length(rows));
     end
        
     
