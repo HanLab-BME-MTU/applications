@@ -133,6 +133,10 @@ if n==0
     n=uLast;
 end
 
+if n>uLast
+    n=uLast;
+end
+
 % Interpolation grid
 G=framework(imgSize,gridSize);
 

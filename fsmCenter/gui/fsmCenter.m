@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 15-Mar-2004 15:37:27
+% Last Modified by GUIDE v2.5 06-Apr-2004 17:07:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -798,7 +798,8 @@ function pushPlotTraj_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 method=find([get(handles.radioPTMethod1,'Value') get(handles.radioPTMethod2,'Value')]);
-fsmPlotTrajectories(method);
+colorCode=get(handles.checkTrajPlots,'Value');
+fsmPlotTrajectories(method,colorCode);
 
 % --- Executes on button press in pushHelpPlotTraj.
 function pushHelpPlotTraj_Callback(hObject, eventdata, handles)
@@ -988,8 +989,6 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
-
 function editFrameTN_Callback(hObject, eventdata, handles)
 % hObject    handle to editFrameTN (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1012,8 +1011,6 @@ if ispc
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
-
-
 
 function editSigmaTN_Callback(hObject, eventdata, handles)
 % hObject    handle to editSigmaTN (see GCBO)
@@ -1180,5 +1177,16 @@ function helpFsmCenter_Callback(hObject, eventdata, handles)
 % hObject    handle to helpFsmCenter (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+% stat=web(['file:///' which('fsmCenterHelp.html') ],'-browser');
+% stat=web(['file:///' which('fsmCenterHelp.html') ]);
+
+
+% --- Executes on button press in checkTrajPlots.
+function checkTrajPlots_Callback(hObject, eventdata, handles)
+% hObject    handle to checkTrajPlots (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkTrajPlots
 
 
