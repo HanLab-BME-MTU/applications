@@ -147,11 +147,11 @@ NewCelTempl=round(NewCelTempelMarker*10);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-h=First
+h=First;
 while h+Increment<=Last
       h=h+Increment;
 end
-Last=h
+Last=h;
 
 howmanypics=Last-First+1;
 
@@ -198,7 +198,7 @@ else
     %track of the loops
     countingloops=0
 	for index=First:Increment:Last
-        index
+        index;
         countingloops=countingloops+1
         
         cd(ImageDirectory)
@@ -702,8 +702,8 @@ else
                                                             moveXXNewCell=[];
                                                             moveYYNewCell=[];
                                                              
-                                                            xnewone=(MPMslide(newCellRow(indexNewCell),1:2:end-1))';
-                                                            ynewone=(MPMslide(newCellRow(indexNewCell),2:2:end))';
+                                                            xnewone=(MPMslide(newCellRow(indexNewCell),1:2:end-1));
+                                                            ynewone=(MPMslide(newCellRow(indexNewCell),2:2:end));
                                                        
                                                             
                                                             moveXXNewCell=diff(xnewone);
@@ -722,7 +722,7 @@ else
                                                                                   tempfound=[];
                                                                                   writeHereRow=[];
                                                                                  
-                                                                                  distance=min(sqrt((xtempl(indexTempRow,:)-xnewone(:,1)).^2+(ytempl(indexTempRow,:)-ynewone(:,1)).^2 ));
+                                                                                  distance=min(sqrt((xtempl(indexTempRow,:)-xnewone(:)).^2+(ytempl(indexTempRow,:)-ynewone(:)).^2 ));
                                                                                  
                                                                                   
                                                                                   %now, if these points at some point are
@@ -815,8 +815,8 @@ else
                                                                                                    %now we correlate the displacement vectors of the old cell with
                                                                                                    %the ones of the new cell
                                                                                                 
-                                                                                                   correlx=xcorr(moveXXTemplate(indexTempRow,:), moveXXNewCell,'coeff');
-                                                                                                   correly=xcorr(moveYYTemplate(indexTempRow,:),moveYYNewCell,'coeff');
+                                                                                                   correlx=xcorr(moveXXTemplate(indexTempRow,:), moveXXNewCell(:),'coeff');
+                                                                                                   correly=xcorr(moveYYTemplate(indexTempRow,:),moveYYNewCell(:),'coeff');
                                                                                              
                                                                                                    indCorr=round(length(correlx)/2);
                                                                                                    

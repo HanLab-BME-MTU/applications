@@ -134,7 +134,7 @@ else
 end 
 numberOfOccurences = diff(uniqueIdx); 
 
-noSensibleInf=[]
+noSensibleInf=[];
 
 bodycount=zeros(length(uniqueEntries),1);
 for i=1:length(uniqueEntries);

@@ -3,9 +3,9 @@ function stuffplotter(hObject)
 handles=guidata(hObject);
 
 
-start=round((handles.postpro.analfirstimg- handles.jobvalues.firstimage)/handles.jobvalues.increment)+1;
+start=round((handles.postpro.analfirstimg- handles.jobvalues.firstimage)/handles.jobvalues.increment)+1
 
-stop = floor((handles.postpro.anallastimg - handles.jobvalues.firstimage)/handles.jobvalues.increment+0.00001)+1 ;
+stop = floor((handles.postpro.anallastimg - handles.jobvalues.firstimage)/handles.jobvalues.increment+0.00001)+1 
 
 
 
@@ -102,6 +102,11 @@ if get(handles.GUI_ad_perimeter_rb,'Value')
         ylabel('perimeter/area')
 end
     
+saveallpath=get(handles.GUI_fm_saveallpath_ed,'String')
+
+cd(saveallpath)
+save('PROPPERIMG', 'PROPPERIMG')
+
 %     
 %       figure, plot(numbercells),title('number of cells')
 %     xlabel('Frames')

@@ -121,6 +121,9 @@ function GUI_pp_jobbrowse_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % Update handles structure
 handles = guidata(hObject);
+handles.postpro=handles.defaultpostpro;
+
+
 
 [filename,jobValPath]=uigetfile({'*.mat','mat-files'},'Please select a file named jobvalues.mat');
 
@@ -142,7 +145,26 @@ handles.PROPERTIES=PROPERTIES;
 % load('PROPERTIES.Mat');
 % handles.PROPERTIES=PROPERTIES;
 
-handles.postpro=handles.defaultpostpro;
+cd(jobValPath)
+done=0;
+counter=1
+while done==0
+       newdirname=[];
+       newdirname=['data',num2str(counter)];
+    
+      if exist(newdirname,'dir')==0
+         mkdir(jobValPath,newdirname);
+        
+         handles.postpro.saveallpath=[jobValPath, newdirname];
+         done=1;
+     end
+     counter=counter+1;
+ end
+ 
+
+
+
+
 
 handles.selectedcells=[];
 
@@ -154,13 +176,13 @@ handles.postpro.anallastimg = handles.jobvalues.lastimage;
 handles.postpro.selectedcells = [];
 handles.postpro.moviefirstimg = handles.jobvalues.firstimage;
 handles.postpro.movielastimg = handles.jobvalues.lastimage;
-handles.postpro.saveallpath=jobValPath;
+
 
 guidata(hObject, handles);
 
 set(handles.GUI_pp_jobpath_ed,'String',jobValPath);
 set(handles.GUI_pp_imagepath_ed,'String',handles.jobvalues.imagedirectory);
-set(handles.GUI_fm_saveallpath_ed,'String',jobValPath);
+set(handles.GUI_fm_saveallpath_ed,'String', handles.postpro.saveallpath);
 set(handles.GUI_ad_firstimage_ed,'String',handles.jobvalues.firstimage);
 set(handles.GUI_ad_lastimage_ed,'String',handles.jobvalues.lastimage);
 set(handles.GUI_fm_movieimgone_ed,'String',handles.jobvalues.firstimage);
@@ -521,8 +543,11 @@ function GUI_ad_analyze_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_ad_analyze_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 
-
+if get(handles.GUI_ad_speed_rb,'Value')
+    speed(hObject);
+end
 stuffplotter(hObject);
 
 
