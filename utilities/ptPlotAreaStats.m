@@ -134,5 +134,5 @@ if ptPostpro.areaplot_3
     print(h_fig3, [savePath filesep 'averageAreaAndRatio.tif'],'-dtiff');
     
     % Save CSV files
-    csvwrite ('averageAreaAndRatio.csv', [xAxis ; averageAreaAndRatio]);
+    csvwrite ('averageAreaAndRatio.csv', [xAxis ; areaRatio(:,3)']);
 end
