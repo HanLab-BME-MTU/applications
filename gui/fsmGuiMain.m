@@ -33,6 +33,20 @@ if nargin == 0  % LAUNCH GUI
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
+    % Check whether fsmCenter is running - if not, open it
+    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    hfsmC=findall(0,'Tag','fsmCenter','Name','fsmCenter');
+    if isempty(hfsmC)
+        hfsmC=fsmCenter;
+    end
+    % Get current project
+    handlesFsmCenter=guidata(hfsmC);
+    projDir=get(handlesFsmCenter.fsmCenter,'UserData');
+%     set(handles.textCurrentProject,'String',projDir);
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
     % Link fsmParam and defaultFsmParam to the GUI
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

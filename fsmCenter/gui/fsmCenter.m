@@ -158,6 +158,17 @@ projDir=projSetupGui;
 if ~isempty(projDir)
     set(handles.textCurrentProject,'String',projDir);
 end
+% Add projDir to the userData of fsmCenter
+set(handles.fsmCenter,'userData',projDir);
+% Update other GUIs if they exist
+hFsmPostProc=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing');
+if ~isempty(hFsmPostProc)
+    handlesFsmPostProc=guidata(hFsmPostProc);
+    set(handlesFsmPostProc.textCurrentProject,'String',projDir);
+end
+hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,4 +1,4 @@
-function fsmVectorAnalysis(nAvg,roi,displ,scale,d0,useDiv,output,displROI,invertROI)
+function fsmVectorAnalysis(projDir,nAvg,roi,displ,scale,d0,useDiv,output,displROI,invertROI)
 % fsmVectorAnalysis reports several statistics on vector fields (obtained from FSM)
 %
 % SYNOPSIS      fsmVectorAnalysis(nImages,roi,displ,scale,d0,useDiv,output,displROI,invertROI)
@@ -6,7 +6,9 @@ function fsmVectorAnalysis(nAvg,roi,displ,scale,d0,useDiv,output,displROI,invert
 % REMARK        Run fsmVectorAnalysis through the graphical user interface fsmCenter 
 %               ------------------------------------------------------------------
 %
-% INPUT         nImages   : number of images to be analyzed 
+% INPUT         projDir   : string pointing to the project directory (where the fsmParam.mat file is 
+%                           located). Pass projDir=[] to manually select fsmParam.mat via a dialog.
+%               nImages   : number of images to be analyzed 
 %               nAvg      : number of frames for time averaging (must be ODD)
 %               roi       :  [ 0|1 0|1 0|1]  
 %                           roi(1)   : if 1, allows the user to draw a region of interest
@@ -40,8 +42,8 @@ function fsmVectorAnalysis(nAvg,roi,displ,scale,d0,useDiv,output,displROI,invert
 
 global uFirst uLast
 
-if nargin~=9
-    error('9 input parameters expected');
+if nargin~=10
+    error('10 input parameters expected');
 end
 
 if mod(nAvg,2)==0
@@ -104,12 +106,25 @@ POLYGON_DISPLAY=0;
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Select fsmParam.mat
-[fsmParamName,fsmParamPath] = uigetfile(...
-    {'fsmParam.mat','fsmParam.mat'},...
-    'Select fsmParam.mat');
-if(isa(fsmParamPath,'char') & isa(fsmParamName,'char'))
-    loadedFile=load([fsmParamPath,fsmParamName]);
+if isempty(projDir)
+    % Select fsmParam.mat
+    [fsmParamName,projDir] = uigetfile(...
+        {'fsmParam.mat','fsmParam.mat'},...
+        'Select fsmParam.mat');
+    if projDir==0
+        % The user pressed on Cancel
+        return;
+    end
+else
+    fsmParamName='fsmParam.mat';
+    if exist([projDir,filesep,fsmParamName],'file')==0
+        errordlg('No fsmParam.mat file could be found in the passed project directory.','Error','modal');
+        return
+    end    
+end
+
+if(isa(projDir,'char') & isa(fsmParamName,'char'))
+    loadedFile=load([projDir,filesep,fsmParamName]);
     if strcmp(fieldnames(loadedFile),'fsmParam')
         fsmParam=loadedFile.fsmParam;
     else
@@ -148,8 +163,8 @@ else
 end
 
 % Load mpm.mat
-if exist([fsmParamPath,filesep,'mpm.mat'],'file');
-    load([fsmParamPath,filesep,'mpm.mat']);
+if exist([projDir,filesep,'mpm.mat'],'file');
+    load([projDir,filesep,'mpm.mat']);
 else
     errordlg('Could not find ''mpm.mat''.','Error','modal');
     return

@@ -57,6 +57,17 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
+% Check whether fsmCenter is running - if not, open it
+hfsmC=findall(0,'Tag','fsmCenter','Name','fsmCenter');
+if isempty(hfsmC)
+    hfsmC=fsmCenter;
+end
+% Get current project
+handlesFsmCenter=guidata(hfsmC);
+projDir=get(handlesFsmCenter.fsmCenter,'UserData');
+set(handles.textCurrentProject,'String',projDir);
+
+
 % UIWAIT makes fsmPostProc wait for user response (see UIRESUME)
 % uiwait(handles.fsmPostProc);
 
@@ -450,6 +461,7 @@ web(['file:///' which('qFSM_default.html')]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushVector_Callback(hObject, eventdata, handles)
+projDir=getProjDir(handles);
 nAvg=str2num(get(handles.editVectorAnalysis,'String'));
 displ=[get(handles.checkRaw,'Value') get(handles.checkInterp,'Value') get(handles.checkNoise,'Value') get(handles.checkError,'Value') get(handles.checkDisplayImg,'Value')];
 roi=[get(handles.checkROI,'Value') get(handles.checkLoadROI,'Value') get(handles.checkSaveROI,'Value')];
@@ -459,8 +471,6 @@ useDiv=get(handles.checkDiv,'Value');
 output=find([get(handles.radioCMap,'Value') get(handles.radioCircle,'Value')]);
 displROI=get(handles.checkDisplayROI,'Value');
 invertROI=get(handles.checkInvertROI,'Value');
-projDir=[];
-warndlg('fsmPostProc: currently, an EMPTY project directory projDir is passed to fsmVectorAnalysis.','Warning','modal');
 fsmVectorAnalysis(projDir,nAvg,roi,displ,scale,d0,useDiv,output,displROI,invertROI);
 
 function checkInvertROI_Callback(hObject, eventdata, handles)
@@ -800,3 +810,28 @@ end
 
 % Menu
 function menuHelp_Callback(hObject, eventdata, handles)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
+% %  ACCESSORY FUNCTIONS
+% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function projDir=getProjDir(handles)
+% Chech whether a project exists
+projDir=get(handles.textCurrentProject,'String');
+if isempty(projDir)
+    warndlg('No project defined. Please create/load a project in fsmCenter.','Warning','modal');
+    return
+else
+    % Check that the project directory exists
+    if ~isdir(projDir)
+        warndlg('The directory spedified does not exist. Please check your project.','Warning','modal');
+        return
+    end
+end
+% TODO: check for sub-directories 'tack'
+projDir=[projDir,filesep,'tack',filesep];
+disp('Check for sub-directories ''tack''');
