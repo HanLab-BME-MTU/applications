@@ -134,7 +134,7 @@ for frameCount = plotStartFrame : increment : plotEndFrame
               % Find neighbours for all these cells and do some trajectory calculations
               for cCount = 1 : size(cells{jobCount},1)
 
-                 % Find the entries in triangleIndex for cell 'iCount'
+                 % Find the entries in triangleIndex for cell 'cCount'
                  cellEntries{jobCount} = triangleIndex{jobCount}(find (triangleIndex{jobCount}(:,1)==cCount | ...
                                                                        triangleIndex{jobCount}(:,2)==cCount | ...
                                                                        triangleIndex{jobCount}(:,3)==cCount),:);
@@ -184,6 +184,8 @@ for frameCount = plotStartFrame : increment : plotEndFrame
                     % Initialize avgTraj
                     avgTraj = zeros (1, length (neighbours{jobCount}));
 
+                    realNeighborCount = 0;
+                    
                     % For every neighbour we are going to calculate avg trajectory
                     % length for the specified amount of frames
                     for nCount = 1 : length (neighbours{jobCount})
@@ -203,22 +205,44 @@ for frameCount = plotStartFrame : increment : plotEndFrame
                                         
                        % Calculate trajectories for the specified amount of frames for this neighbour
                        traj = [];
+                       realTrajCount = 0;
                        for tCount = 0 : nrOfTrajectories
-                          traj(tCount+1,1) = sqrt((MPM{jobCount}(mpmIndex, 2*frameIndx-1+(tCount*2)) - ...
-                                                   MPM{jobCount}(mpmIndex, 2*frameIndx-1+(tCount*2+2)))^2 + ...
-                                                  (MPM{jobCount}(mpmIndex, 2*frameIndx+(tCount*2)) - ...
-                                                   MPM{jobCount}(mpmIndex, 2*frameIndx+(tCount*2+2)))^2);
-                          % Convert into micrometer per minute
-                          traj(tCount+1) = (traj(tCount+1) * pixelLength) / (validFrames{jobCount}(2,frameIndx)/60);
+                          if (MPM{jobCount}(mpmIndex, 2*frameIndx-1+(tCount*2)) ~= 0) & ...
+                             (MPM{jobCount}(mpmIndex, 2*frameIndx-1+(tCount*2+2)) ~= 0) & ...
+                             (MPM{jobCount}(mpmIndex, 2*frameIndx+(tCount*2)) ~= 0) & ...
+                             (MPM{jobCount}(mpmIndex, 2*frameIndx+(tCount*2+2)) ~= 0)
+                              traj(tCount+1,1) = sqrt((MPM{jobCount}(mpmIndex, 2*frameIndx-1+(tCount*2)) - ...
+                                                       MPM{jobCount}(mpmIndex, 2*frameIndx-1+(tCount*2+2)))^2 + ...
+                                                      (MPM{jobCount}(mpmIndex, 2*frameIndx+(tCount*2)) - ...
+                                                       MPM{jobCount}(mpmIndex, 2*frameIndx+(tCount*2+2)))^2);
+                              % Convert into micrometer per minute
+                              traj(tCount+1,1) = (traj(tCount+1) * pixelLength) / (validFrames{jobCount}(2,frameIndx)/60);
+                              
+                              % Increase trajectory counter
+                              realTrajCount = realTrajCount + 1;
+                          else
+                              traj(tCount+1,1) = 0;
+                          end
                        end
 
                        % Average the trajectory
-                       avgTraj(nCount) = (sum(traj) / (nrOfTrajectories+1));
+                       if realTrajCount > 0
+                           avgTraj(nCount) = (sum(traj) / realTrajCount);
+                           realNeighborCount = realNeighborCount + 1;
+                       else
+                           avgTraj(nCount) = 0;
+                       end
 
                     end  % for nCount = 1 : length (neighbours{jobCount})
 
                     % Average the trajectory for all neighbours
-                    avgTrajNeighbours{jobCount}(cCount) = sum(avgTraj) / length (neighbours{jobCount}); 
+                    %if length (neighbours{jobCount}) > 0
+                    if realNeighborCount > 0    
+                        %avgTrajNeighbours{jobCount}(cCount) = sum(avgTraj) / length (neighbours{jobCount}); 
+                        avgTrajNeighbours{jobCount}(cCount) = sum(avgTraj) / realNeighborCount;
+                    else
+                        avgTrajNeighbours{jobCount}(cCount) = 0;
+                    end
 
                  end  % if ~isempty (neighbours{jobCount})
               end  % for cCount = 1 : size(cells{jobCount},1)
@@ -242,7 +266,12 @@ for frameCount = plotStartFrame : increment : plotEndFrame
           catAvgTrajNeighbours = cat (2, avgTrajNeighbours{:});
 
           % Sum and average the trajectory frames
-          avgTrajFrame(iCount) = sum (catAvgTrajNeighbours) / cellsWithNeighbours;
+          if cellsWithNeighbours > 0
+              %avgTrajFrame(iCount) = sum (catAvgTrajNeighbours) / cellsWithNeighbours(find(cellsWithNeighbours));
+              avgTrajFrame(iCount) = sum (catAvgTrajNeighbours) / length(catAvgTrajNeighbours(find(catAvgTrajNeighbours)));
+          else
+              avgTrajFrame(iCount) = 0;
+          end
           
       end  % if averageSum > 0
    end   % if (MPMCount + nrOfTrajectories) < numberOfFrame
