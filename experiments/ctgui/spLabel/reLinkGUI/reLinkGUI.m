@@ -509,7 +509,7 @@ function varargout = reLink_connectTagsRB_Callback(h, eventdata, handles, vararg
 
 % make sure that if a user clicks a second time, the button is not turned
 % off
-rbState = get(h,'Value')
+rbState = get(h,'Value');
 if rbState == 0
     set(h,'Value',1);
     return
@@ -528,7 +528,7 @@ function varargout = reLink_resetfusionRB_Callback(h, eventdata, handles, vararg
 
 % make sure that if a user clicks a second time, the button is not turned
 % off
-rbState = get(h,'Value')
+rbState = get(h,'Value');
 if rbState == 0
     set(h,'Value',1);
     return

@@ -11,14 +11,11 @@ if isempty(imgFigureH)
 end;
 dataProperties = GetUserData(imgFigureH,'dataProperties');
 
-ButtonName = questdlg('Remove ALL timepoints from here on?','WARNING','Yes','Yes&Recalc','No','No');
-switch strcmp(ButtonName,'No')+2*(strcmp(ButtonName,'Yes'))
-case 1 %no
-    return %end execution here
-case 2 %yes
-    recalc = 0;
-case 0 %yes%recalc
-    recalc = 1;
+ButtonName = questdlg('Remove ALL timepoints from here on?','WARNING','Yes','No','No');
+if strcmp(ButtonName,'Yes')
+    %continue
+else
+    return
 end
 
 %read data
@@ -35,10 +32,10 @@ end
 idlist(1).stats.status{end+1}=[date,': deleted frames from ',num2str(curr_time),' to end'];
 
 
-%recalculate connections
-if recalc
-    idlist = recalcIdlist(idlist,1,[],dataProperties);
-end
+% %recalculate connections - we don't allow this here
+% if recalc
+%     idlist = recalcIdlist(idlist,1,[],dataProperties);
+% end
         
 %save data
 SetUserData(imgFigureH,idlist,1);
