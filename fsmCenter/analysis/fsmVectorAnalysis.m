@@ -7,7 +7,7 @@ function fsmVectorAnalysis(nAvg,roi,displ,scale,d0,useDiv,output,displROI,invert
 %               ------------------------------------------------------------------
 %
 % INPUT         nImages   : number of images to be analyzed 
-%               nAvg      : number of frames for time averaging
+%               nAvg      : number of frames for time averaging (must be ODD)
 %               roi       :  [ 0|1 0|1 0|1]  
 %                           roi(1)   : if 1, allows the user to draw a region of interest
 %                           roi(2)   : if 1, allows the user to load a saved region of interest
@@ -42,6 +42,10 @@ global uFirst uLast
 
 if nargin~=9
     error('9 input parameters expected');
+end
+
+if mod(nAvg,2)==0
+    error('The number of frames ''nAvg'' must be ODD.')
 end
 
 % Store current directory
