@@ -150,12 +150,13 @@ selImgDir = 1;
 handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
    firstImgList,subProjDir);
 
+handles.figH = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % UIWAIT makes projSetupGUI wait for user response (see UIRESUME)
-uiwait(hObject);
+uiwait(handles.figH);
 
 function updateDirList(dirMH,dirTFH,dirList,selDir,dirName)
 
@@ -354,7 +355,7 @@ handles.subProjDir   = {};
 % Update handles structure
 guidata(hObject, handles);
 
-uiresume;
+uiresume(handles.figH);
 
 
 % --- Executes on button press on Ok.
@@ -384,8 +385,8 @@ if isempty(projDir)
 end
 
 if isempty(imgDirList)
-    warnH = warndlg(['No image directory is set. ' ...
-       'Project will be setup without image directory.'],'Warning','modal');
+    warnH = warndlg('No image directory is set. ' ,'Warning','modal');
+    return;
 end
 
 for k = 1:numSubProj
@@ -418,7 +419,7 @@ handles.subProjDir = subProjDir;
 % Update handles structure
 guidata(hObject, handles);
 
-uiresume;
+uiresume(handles.figH);
 
 
 % --- Executes on button press on Browse.
@@ -685,37 +686,69 @@ if isdir(projDir)
                 if strcmp(headStr,'ImagePath')
                    imgLineNo = lineNo;
                    if k ~= length(textL)
-                      numImgDirs = 1;
-                      imgDirList{numImgDirs} = sscanf(textL(k+1:end),'%s');
+                      imgDir = sscanf(textL(k+1:end),'%s');
+                      if isempty(imgDir)
+                         numImgDirs = 0;
+                         imgDirList = {};
+                      else
+                         numImgDirs = 1;
+                         imgDirList{numImgDirs} = imgDir;
+                      end
                    end
-                elseif isempty(headStr) 
-                   if lineNo == imgLineNo+1 & k ~= length(textL)
-                      %Get next image path or first image name.
-                      imgLineNo = lineNo;
-                      imgStr = sscanf(textL(k+1:end),'%s');
-                      if isempty(imgStr)
-                         if isempty(firstImgList)
+                   lastHead = headStr; 
+                elseif strcmp(headStr,'FirstImage')
+                   if strcmp(lastHead,'ImagePath') 
+                      %The first image has to be written next to image path.
+                      if k ~= length(textL)
+                         imgName = sscanf(textL(k+1:end),'%s');
+                      else
+                         imgName = '';
+                      end
+
+                      if isempty(imgDirList) 
+                         if ~isempty(imgName)
                             noProblem = 0;
+                         else
+                            firstImgList = {};
                          end
                       else
-                         numImgDirs = numImgDirs+1;
-                         if isempty(firstImgList)
-                            imgDirList{numImgDirs} = imgStr;
-                         else
-                            firstImgList{numImgDirs} = imgStr;
-                         end
+                         numImgDirs = 1;
+                         firstImgList{numImgDirs} = imgName;
                       end
                    else
                       noProblem = 0;
                    end
-                elseif strcmp(headStr,'FirstImage')
-                   if lineNo == imgLineNo+1
-                      %The first image has to be written next to image path.
-                      imgLineNo = lineNo;
+                   lastHead = headStr; 
+                elseif isempty(headStr) 
+                   if strcmp(lastHead,'ImagePath') 
+                      if isempty(imgDirList)
+                         noProblem = 0;
+                      elseif k ~= length(textL)
+                         %Get next image path
+                         imgDir = sscanf(textL(k+1:end),'%s');
+                      else
+                         imgDir = '';
+                      end
+
+                      if isempty(imgDir)
+                         noProblem = 0;
+                      else
+                         numImgDirs = numImgDirs+1;
+                         imgDirList{numImgDirs} = imgDir;
+                      end
+                   elseif strcmp(lastHead,'FirstImage') 
                       if k ~= length(textL)
-                         numImgDirs = 1;
-                         firstImgList{numImgDirs} = ...
-                            sscanf(textL(k+1:end),'%s');
+                         %Get next first image name.
+                         imgName = sscanf(textL(k+1:end),'%s');
+                      else
+                         imgName = '';
+                      end
+                      numImgDirs = numImgDirs+1;
+
+                      if numImgDirs > length(imgDirList)
+                         noProblem = 0;
+                      else
+                         firstImgList{numImgDirs} = imgName;
                       end
                    else
                       noProblem = 0;
@@ -727,6 +760,7 @@ if isdir(projDir)
                    elseif k ~= length(textL)
                       subProjDir{j1} = sscanf(textL(k+1:end),'%s');
                    end
+                   lastHead = headStr; 
                 end
             end
             
