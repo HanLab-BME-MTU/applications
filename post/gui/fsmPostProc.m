@@ -837,13 +837,29 @@ web(['file:///' which('qFSM_speckleClasses.html')]);
 
 % CloseRequestFcn
 function fsmPostProc_CloseRequestFcn(hObject, eventdata, handles)
-fsmH=findall(0,'Tag','fsmPostProc'); % Get the handle of fsmPostProc
-choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
-switch choice,
-    case 'Yes', delete(fsmH);
-    case 'No', return;
+fsmH=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing'); % Get the handle of fsmPostProc
+
+% Check whether fsmPostProc is calling its own closeRequestFcn or whether fsmCenter is doing it
+hFsmCenter=findall(0,'Tag','fsmCenter','Name','fsmCenter');
+
+if hFsmCenter==hObject
+    % Yes, it is fsmCenter
+    force=1;
+else
+    % No, someone else is trying to close it
+    force=0;
 end
 
+% Close
+if fsmH~=hObject & force==1
+    delete(fsmH); % Force closing
+else
+    choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
+    switch choice,
+        case 'Yes', delete(fsmH);
+        case 'No', return;
+    end
+end
 
 % Menu
 function menuHelp_Callback(hObject, eventdata, handles)

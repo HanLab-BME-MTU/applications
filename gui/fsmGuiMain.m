@@ -1015,12 +1015,29 @@ function fsmGuiMain_CloseRequestFcn(hObject, eventdata, handles)
 % hObject    handle to menuExit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-fsmGMH=findall(0,'Tag','fsmGuiMain'); % Get the handle of fsmGuiMain
-choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
-switch choice,
-    case 'Yes', delete(fsmGMH);
-    case 'No', return;
-end % switch
+fsmH=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle'); % Get the handle of fsmPostProc
+
+% Check whether fsmPostProc is calling its own closeRequestFcn or whether fsmCenter is doing it
+hFsmCenter=findall(0,'Tag','fsmCenter','Name','fsmCenter');
+
+if hFsmCenter==hObject
+    % Yes, it is fsmCenter
+    force=1;
+else
+    % No, someone else is trying to close it
+    force=0;
+end
+
+% Close
+if fsmH~=hObject & force==1
+    delete(fsmH); % Force closing
+else
+    choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
+    switch choice,
+        case 'Yes', delete(fsmH);
+        case 'No', return;
+    end
+end
 
 
 % --- Executes during object deletion, before destroying properties.

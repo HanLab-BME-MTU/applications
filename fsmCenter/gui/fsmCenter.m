@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 03-Sep-2004 14:05:18
+% Last Modified by GUIDE v2.5 07-Sep-2004 11:16:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -394,6 +394,17 @@ fsmTransition;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %
+% %  EDGE TRACKER
+% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function pushEdgeTracker_Callback(hObject, eventdata, handles)
+prPanel;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
 % %  EXIT
 % %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -405,12 +416,51 @@ function fsmCenter_CloseRequestFcn(hObject, eventdata, handles)
 fsmH=findall(0,'Tag','fsmCenter'); % Get the handle of fsmCenter
 choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
 switch choice,
-    case 'Yes', delete(fsmH);
-    case 'No', return;
+    case 'Yes', shutdown=1;
+    case 'No', shutdown=0;
 end % switch
 
-% Menu
+if shutdown==0
+    return
+else
+    
+    
+    % Close all child guis
+    force=1; % Forces all user interfaces to close without asking for confirmation
 
+    
+    % fsmPostProc
+    hFsmPostProc=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing');
+    if ~isempty(hFsmPostProc)
+        fsmPostProc('fsmPostProc_CloseRequestFcn',fsmH,[],guidata(hFsmPostProc)); % The calling GUI is fsmH -> fsmCenter
+    end
+    
+    % fsmGuiMain (SpeckTackle)
+    hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
+    if ~isempty(hFsmGuiMain)
+        fsmGuiMain('fsmGuiMain_CloseRequestFcn',fsmH,[],guidata(hFsmGuiMain)); % The calling GUI is fsmH -> fsmCenter
+    end
+    
+    % imKymoAnalysis
+    hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
+    if ~isempty(hCorrTrack)
+        imKymoAnalysis('closeRequest',fsmH,[],guidata(hCorrTrack)); % The calling GUI is fsmH -> fsmCenter
+    end
+    
+    % fsmTransition
+    hFsmTransition=findall(0,'Tag','fsmTransition','Name','fsmTransition');
+    if ~isempty(hFsmTransition)
+        fsmTransition('fsmTransition_CloseRequestFcn',fsmH,[],guidata(hFsmTransition)); % The calling GUI is fsmH -> fsmCenter
+    end
+
+    % And now close fsmCenter
+    delete(fsmH);
+    
+    
+%     fsmCenter('fsmCenter_CloseRequestFcn',gcbo,[],guidata(gcbo))
+end
+
+% Menu
 function menuHelp_Callback(hObject, eventdata, handles)
 
 function helpFsmCenter_Callback(hObject, eventdata, handles)
@@ -418,11 +468,4 @@ function helpFsmCenter_Callback(hObject, eventdata, handles)
 function menuSpeckTackle_Callback(hObject, eventdata, handles)
 
 function menuTools_Callback(hObject, eventdata, handles)
-
-
-
-
-
-
-
 
