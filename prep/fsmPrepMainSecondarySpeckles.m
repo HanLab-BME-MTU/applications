@@ -116,8 +116,9 @@ if ~isempty(fsmParam)
     end
 end
 
-%SIG=1.88;% for the twice convolved image (or 1.77)
-SIG=1.60;
+% SIG=1.60;
+% SIG=1.77;
+SIG=1.88; % for the twice convolved image (or 1.77)
 
 % local minima
 Imin=locmin2d(IG,[3,3]);
