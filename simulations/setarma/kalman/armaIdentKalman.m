@@ -5,9 +5,11 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %SYNOPSIS [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %    wnVector,aic,errFlag] = armaIdentKalman(trajectories,modelParam)
 %
-%INPUT  trajectories: Structure array containing trajectories to be modeled:
+%INPUT  trajectories: Observations of time series to be fitted. Either an 
+%                     array of structures traj(1:nTraj).observations, or a
+%                     2D array representing one single trajectory. 
 %           .observations: 2D array of measurements and their uncertainties.
-%                          Missing points should be indicated with NaN.
+%                     Missing points should be indicated with NaN.
 %       modelParam  : Structure array of models to be tested. Each entry consists of 
 %                    2 elements:
 %           .arParamP0   : Initial guess of partial autoregressive coefficients (row vector).

@@ -5,9 +5,11 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %SYNOPSIS [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %    wnVector,aic,errFlag] = armaCoefKalman(trajectories,arParamP0,maParamP0)
 %
-%INPUT  trajectories: Structure array containing trajectories to be modeled:
+%INPUT  trajectories: Observations of time series to be fitted. Either an 
+%                     array of structures traj(1:nTraj).observations, or a
+%                     2D array representing one single trajectory. 
 %           .observations: 2D array of measurements and their uncertainties.
-%                          Missing points should be indicated with NaN.
+%                     Missing points should be indicated with NaN.
 %       arParamP0   : Initial guess of partial autoregressive coefficients (row vector).
 %       maParamP0   : Initial guess of partial moving average coefficients (row vector).
 %
@@ -71,7 +73,18 @@ if nargin < nargin('armaCoefKalman')
     return
 end
 
-%check input data
+%check trajectory and turn it into struct if necessary
+if ~isstruct(trajectories)
+    tmp = trajectories(:);
+    clear trajectories
+    trajectories.observations = tmp;
+    clear tmp
+elseif ~isfield(trajectories,'observations')
+    disp('--autoCorr: Please input the trajectories in fields ''observations''')
+    errFlag = 1;
+    return
+end
+
 trajOriginal = trajectories;
 for i=1:length(trajectories);
     traj = trajectories(i).observations;
@@ -115,15 +128,13 @@ if errFlag
     return
 end
 
-%obtain number of available observations and their indices, and shift
-%trajectory to get zero mean
+%obtain number of available observations and shift trajectories to get zero mean
 for i=1:length(trajectories)
     
     traj = trajectories(i).observations;
-    trajectories(i).available = find(~isnan(traj(:,1))); %get indices of available points
-    numAvail(i) = length(trajectories(i).available); %get total # of available points
-%     traj(:,1) = traj(:,1) - mean(traj(trajectories(i).available,1)); %shift trajectory
-%     trajectories(i).observations = traj;
+    numAvail(i) = length(find(~isnan(traj(:,1)))); %get # of available points
+    traj(:,1) = traj(:,1) - nanmean(traj(:,1)); %shift trajectory
+    trajectories(i).observations = traj;
 
 end
 totAvail = sum(numAvail); %calculate total number of available points
@@ -141,9 +152,9 @@ options = optimset('Display','final','DiffMaxChange',1e-3,...
     'maxIter',1000); 
 
 %minimize -2ln(likelihood) using fmincon to get ARMA coefficients
-[params,fval,exitFlag] = fmincon(@armaCoefKalmanObj,param0,[],[],[],[],...
+[params,fval,exitFlag] = fmincon(@neg2LnLikelihood,param0,[],[],[],[],...
     -0.99*ones(1,arOrder+maOrder),0.99*ones(1,arOrder+maOrder),...
-    [],options,arOrder,trajectories);
+    [],options,arOrder,trajectories,totAvail);
 
 %if minimization was successful
 if exitFlag > 0
@@ -185,10 +196,6 @@ if exitFlag > 0
     sum2 = 0;
     for i = 1:length(trajectories)
 
-        %obtain available points in this trajectory
-        available = trajectories(i).available;
-%         available = available(available>=2);
-
         %get the innovations, their variances and the estimated white noise series
         %using Kalman prediction and filtering
         [innovation,innovationVar,wnVector(i).series,errFlag] = ...
@@ -199,12 +206,12 @@ if exitFlag > 0
         end
 
         %calculate white noise variance of current trajectory
-        wnVarianceSamp(i) = mean(innovation(available).^2./innovationVar(available));
+        wnVarianceSamp(i) = nanmean(innovation.^2./innovationVar);
 
         %1st sum in Eq. 3.15
-        sum1 = sum1 + sum(log(innovationVar(available)));
+        sum1 = sum1 + nansum(log(innovationVar));
         %2nd sum in Eq. 3.15
-        sum2 = sum2 + sum(innovation(available).^2./innovationVar(available));
+        sum2 = sum2 + nansum(innovation.^2./innovationVar);
 
     end %(for i = 1:length(trajectories))
 
@@ -256,7 +263,7 @@ end %(if exitFlag > 0)
 % % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % % % 
 % % % %define global minimization problem
-% % % prob = glcAssign('armaCoefKalmanObj',-0.99*ones(1,arOrder+maOrder),...
+% % % prob = glcAssign('neg2LnLikelihood',-0.99*ones(1,arOrder+maOrder),...
 % % %     0.99*ones(1,arOrder+maOrder),'globMinNegLik',[],[],[],[],[],[],param0);
 % % % 
 % % % prob.PriLevOpt = 2;
@@ -266,6 +273,7 @@ end %(if exitFlag > 0)
 % % % 
 % % % prob.user.arOrder = arOrder;
 % % % prob.user.trajectories = trajectories;
+% % % prob.user.numAvail = totAvail;
 % % % 
 % % % %find global minimum using glbFast
 % % % result = tomRun('glbFast',prob,[],2);
@@ -277,7 +285,7 @@ end %(if exitFlag > 0)
 % % % end
 % % % 
 % % % %define local minimizaton problem
-% % % prob = conAssign('armaCoefKalmanObj',[],[],[],-0.99*ones(1,arOrder+maOrder),...
+% % % prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,arOrder+maOrder),...
 % % %     0.99*ones(1,arOrder+maOrder),'locMinNegLik',paramI);
 % % % 
 % % % prob.PriLevOpt = 2;

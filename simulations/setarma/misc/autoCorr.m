@@ -48,7 +48,7 @@ if maxLag <= 0
     errFlag = 1;
 end
 
-% check trajectory and turn into struct if necessary
+%check trajectory and turn into struct if necessary
 if ~isstruct(traj)
     tmp = traj(:);
     clear traj

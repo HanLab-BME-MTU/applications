@@ -1,16 +1,20 @@
-function neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,trajectories)
-%ARMACOEFKALMANOBJ calculates -2ln(likelihood) of the fit of an ARMA model to time series which could have missing data points
+function neg2LnLikelihoodV = neg2LnLikelihood(param,arOrder,trajectories,...
+    numAvail)
+%NEG2LNLIKELIHOOD calculates -2ln(likelihood) of the fit of an ARMA model to time series with missing data points
 %
-%SYNOPSIS neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,trajectories)
+%SYNOPSIS neg2LnLikelihoodV = neg2LnLikelihood(param,arOrder,trajectories,...
+%     numAvail)
 %
 %INPUT  param       : Set of partial ARMA coefficients.
 %       arOrder     : Order of autoregressive part of process.
-%       trajectories: Structure array containing trajectories to be modeled:
+%       trajectories: Observations of time series to be fitted. Either an 
+%                     array of structures traj(1:nTraj).observations, or a
+%                     2D array representing one single trajectory. 
 %           .observations: 2D array of measurements and their uncertainties.
-%                          Missing points should be indicated with NaN.
-%           .available: Indices of existing observations.
+%                     Missing points should be indicated with NaN.
+%       numAvail    : Total number of available observations.
 %
-%OUTPUT neg2LnLikelihood: Value of -2ln(likelihood).
+%OUTPUT neg2LnLikelihoodV: Value of -2ln(likelihood).
 %
 %REMARKS The algorithm implemented here is that presented in R. H. Jones,
 %        "Maximum Likelihood Fitting of ARMA Models to Time Series with
@@ -24,16 +28,24 @@ function neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,trajectories)
 %Output
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-neg2LnLikelihood = [];
+neg2LnLikelihoodV = [];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check if correct number of input arguments are used
-if nargin ~= nargin('armaCoefKalmanObj')
-    disp('--armaCoefKalmanObj: Incorrect number of input arguments!');
+if nargin ~= nargin('neg2LnLikelihood')
+    disp('--neg2LnLikelihood: Incorrect number of input arguments!');
     return
+end
+
+%check trajectory and turn it into struct if necessary
+if ~isstruct(trajectories)
+    tmp = trajectories(:);
+    clear trajectories
+    trajectories.observations = tmp;
+    clear tmp
 end
 
 %assign parameters
@@ -58,16 +70,10 @@ end
 
 sum1 = 0; %1st sum in Eq. 3.15
 sum2 = 0; %2nd sum in Eq. 3.15
-numAvail = 0; %number of available points
 
 %go over all trajectories to get innovations and their variances
 for i = 1:length(trajectories)
-    
-    %calculate the number of available points in this trajectory
-    available = trajectories(i).available;
-%     available = available(available>=2);
-    numAvail = numAvail + length(available);
-    
+        
     %get the innovations, their variances and process white noise
     %using Kalman prediction and filtering
     [innovation,innovationVar,wnVector,errFlag] = ...
@@ -77,14 +83,14 @@ for i = 1:length(trajectories)
     end
         
     %1st sum in Eq. 3.15
-    sum1 = sum1 + sum(log(innovationVar(available)));
+    sum1 = sum1 + nansum(log(innovationVar));
     %2nd sum in Eq. 3.15
-    sum2 = sum2 + sum(innovation(available).^2./innovationVar(available));
+    sum2 = sum2 + nansum(innovation.^2./innovationVar);
     
 end
 
 %construct -2ln(likelihood)
-neg2LnLikelihood = sum1 + numAvail*log(sum2);
+neg2LnLikelihoodV = sum1 + numAvail*log(sum2);
 
 
 %%%%% ~~ the end ~~ %%%%%
@@ -96,4 +102,5 @@ neg2LnLikelihood = sum1 + numAvail*log(sum2);
 % % % %get parameters from structure "prob"
 % % % arOrder = prob.user.arOrder;
 % % % trajectories = prob.user.trajectories;
+% % % numAvail = prob.user.numAvail;
 

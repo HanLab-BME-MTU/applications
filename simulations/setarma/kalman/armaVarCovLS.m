@@ -5,9 +5,11 @@ function [varCovMat,arParam,maParam,errFlag] = armaVarCovLS(...
 %SYNOPSIS [varCovMat,arParam,maParam,errFlag] = armaVarCovLS(...
 %    trajectories,wnVector,arOrder,maOrder)
 %
-%INPUT  trajectories: Structure array containing trajectories to be modeled:
+%INPUT  trajectories: Observations of time series to be fitted. Either an 
+%                     array of structures traj(1:nTraj).observations, or a
+%                     2D array representing one single trajectory. 
 %           .observations: 2D array of measurements and their uncertainties.
-%                          Missing points should be indicated with NaN.
+%                     Missing points should be indicated with NaN.
 %       wnVector    : Structure containing 1 field:
 %           .series    : Estimated white noise series in a trajectory.
 %       arOrder     : Order of AR part of process.
@@ -40,7 +42,18 @@ if nargin < nargin('armaVarCovLS')
     return
 end
 
-%check input data
+%check trajectory and turn it into struct if necessary
+if ~isstruct(trajectories)
+    tmp = trajectories(:);
+    clear trajectories
+    trajectories.observations = tmp;
+    clear tmp
+elseif ~isfield(trajectories,'observations')
+    disp('--autoCorr: Please input the trajectories in fields "observations"')
+    errFlag = 1;
+    return
+end
+
 for i=1:length(trajectories);
     [trajLength,nCol] = size(trajectories(i).observations);
     if nCol ~= 2
