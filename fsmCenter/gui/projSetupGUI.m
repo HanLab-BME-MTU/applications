@@ -118,7 +118,7 @@ guidata(hObject, handles);
 % UIWAIT makes projSetupGUI wait for user response (see UIRESUME)
 uiwait(hObject);
 
-function updateDirList(dirMH,dirList,selDir,dirName)
+function updateDirList(dirMH,dirTFH,dirList,selDir,dirName)
 
 if isempty(dirList)
    set(dirMH,'string',{'New'});
@@ -126,19 +126,21 @@ else
    set(dirMH,'string',{'New',dirList{:}});
 end
 set(dirMH,'value',1);
+set(dirTFH,'string','');
+
 if ~isempty(selDir) 
    tmpInd = find(strcmp(dirList,selDir));
    if ~isempty(tmpInd)
       set(dirMH,'value',tmpInd+1);
-   else
-      if length(selDir) < 4 | strcmp(selDir(1:4),dirName) == 0
-         error(['The first 4 characters of ' dirName ' directiory has to ' ...
-            'be ''' dirName '''.']);
-      else
-         if length(selDir) > 4
-            set(dirTFH,'string',selDir(5:end));
-         end
-      end
+   %else
+   %   if length(selDir) < 4 | strcmp(selDir(1:4),dirName) == 0
+   %      error(['The first 4 characters of ' dirName ' directiory has to ' ...
+   %         'be ''' dirName '''.']);
+   %   else
+   %      if length(selDir) > 4
+   %         set(dirTFH,'string',selDir(5:end));
+   %      end
+   %   end
    end
 end
 
@@ -161,14 +163,16 @@ corrDir = handles.corrDir;
 %edgeDirList = {};
 %mergDirList = {};
 %corrDirList = {};
-if ~isempty(projDir)
-   if isdir(projDir)
-      tackDirList = findProjSubDir(projDir,'tack');
-      lplaDirList = findProjSubDir(projDir,'lpla');
-      postDirList = findProjSubDir(projDir,'post');
-      edgeDirList = findProjSubDir(projDir,'edge');
-      mergDirList = findProjSubDir(projDir,'merg');
-      corrDirList = findProjSubDir(projDir,'corr');
+tackDirList = findProjSubDir(projDir,'tack');
+lplaDirList = findProjSubDir(projDir,'lpla');
+postDirList = findProjSubDir(projDir,'post');
+edgeDirList = findProjSubDir(projDir,'edge');
+mergDirList = findProjSubDir(projDir,'merg');
+corrDirList = findProjSubDir(projDir,'corr');
+
+set(handles.projDirTFH,'string',projDir);
+%if ~isempty(projDir)
+   %if isdir(projDir)
       %dirList = dir(projDir);
       %dirNameList = {dirList(find([dirList.isdir])).name};
       %for k = 1:length(dirNameList)
@@ -188,18 +192,18 @@ if ~isempty(projDir)
       %      end
       %   end
       %end
-   end
-   set(handles.projDirTFH,'string',projDir);
-end
+%   end
+%   set(handles.projDirTFH,'string',projDir);
+%end
 
 set(handles.imgDirTFH,'string',imgDir);
 
-updateDirList(handles.tackDirMH,tackDirList,tackDir,'tack');
-updateDirList(handles.lplaDirMH,lplaDirList,lplaDir,'lpla');
-updateDirList(handles.postDirMH,postDirList,postDir,'post');
-updateDirList(handles.edgeDirMH,edgeDirList,edgeDir,'edge');
-updateDirList(handles.mergDirMH,mergDirList,mergDir,'merg');
-updateDirList(handles.corrDirMH,corrDirList,corrDir,'corr');
+updateDirList(handles.tackDirMH,handles.tackDirTFH,tackDirList,tackDir,'tack');
+updateDirList(handles.lplaDirMH,handles.lplaDirTFH,lplaDirList,lplaDir,'lpla');
+updateDirList(handles.postDirMH,handles.postDirTFH,postDirList,postDir,'post');
+updateDirList(handles.edgeDirMH,handles.edgeDirTFH,edgeDirList,edgeDir,'edge');
+updateDirList(handles.mergDirMH,handles.mergDirTFH,mergDirList,mergDir,'merg');
+updateDirList(handles.corrDirMH,handles.corrDirTFH,corrDirList,corrDir,'corr');
 
 
 

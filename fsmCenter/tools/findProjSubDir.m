@@ -4,20 +4,19 @@ function dirList = findProjSubDir(parDir,dirSpec)
 %
 % SYNOPSIS : dirList = findDir(parDir,dirSpec)
 %    Search in 'parDir' all directories that meet the name specification in
-%    'dirSpec' and return a cell array of directories.
+%    'dirSpec' and return a cell array of directories. If 'parDir' does not
+%    exit or is empty, an empty array is returned.
 %
 % INPUT :
-%    parDir  : A string that specifies the parent directory. If it is empty,
-%              the current directory is searched.
+%    parDir  : A string that specifies the parent directory. Use '.' for the 
+%              current directory is searched.
 %    dirSpec : A string for package common name. For example, 'tack' means all
 %              directories whose first four characters are 'tack'.
 
-if isempty(parDir)
-   parDir = pwd;
-end
+dirList = {};
 
-if ~isdir(parDir)
-   error([parDir 'does not exist.']);
+if isempty(parDir) | ~isdir(parDir)
+   return;
 end
 
 dirSpecLen = length(dirSpec);
@@ -25,7 +24,6 @@ dirSpecLen = length(dirSpec);
 wholeList = dir(parDir);
 allDirList = {wholeList(find([wholeList.isdir])).name};
 
-dirList = {}:
 for k = 1:length(allDirList)
    if length(allDirList{k}) >= dirSpecLen
       if strcmp(allDirList{k}(1:dirSpecLen),dirSpec)
