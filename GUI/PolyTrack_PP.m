@@ -1852,3 +1852,55 @@ else
 end
 
 
+% --- Executes on button press in GUI_vel_all_cells_cb.
+function GUI_vel_all_cells_cb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_vel_all_cells_cb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of GUI_vel_all_cells_cb
+
+
+% --- Executes on button press in GUI_vel_single_cells_cb.
+function GUI_vel_single_cells_cb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_vel_single_cells_cb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of GUI_vel_single_cells_cb
+
+
+% --- Executes on button press in GUI_vel_clust_cells_cb.
+function GUI_vel_clust_cells_cb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_vel_clust_cells_cb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of GUI_vel_clust_cells_cb
+
+
+% --- Executes on button press in GUI_generate_hist_pb.
+function GUI_generate_hist_pb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_generate_hist_pb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata (hObject);
+
+% Assign the radiobutton values to the postpro struct
+handles.postpro.allcellshist = get (handles.GUI_vel_all_cells_cb,'Value');
+handles.postpro.singlecellshist = get (handles.GUI_vel_single_cells_cb,'Value');
+handles.postpro.clusteredcellshist = get (handles.GUI_vel_clust_cells_cb,'Value');
+   
+if (~handles.postpro.allcellshist & ~handles.postpro.singlecellshist & ...
+    ~handles.postpro.clusteredcellshist )
+   h = errordlg ('No histogram type selected. Please select at least one histogram type...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+else
+   % Here is where the bulk of the histogram work is done; we give it the
+   % postpro structure and MPM matrix to work with
+   ptGenerateHistograms (handles.postpro, handles.MPM);
+end
+
+% Update handles structure
+guidata(hObject, handles);

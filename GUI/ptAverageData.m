@@ -20,9 +20,6 @@ function varargout = ptAverageData(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help ptAverageData
-
-% Last Modified by GUIDE v2.5 12-Jul-2004 15:53:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -62,12 +59,12 @@ handles.output = hObject;
 % Assign the default job values to the GUI handle so it can be passed around
 home = getenv('HOME');
 if isempty (home)
-   fprintf (1, 'HOME environment variable not set. Setting default...\n');
    if ispc
-      home = 'C:';
+      home = 'H:';
    else
       home = '/tmp';
    end
+   fprintf (1, 'HOME environment variable not set. Setting default: %s\n', home);
 end
 
 handles.savedirectory = [home filesep 'polytrack_average.csv'];
@@ -158,7 +155,7 @@ else
    
    % Check whether it is a CSV file (ext .csv)
    if (strfind (fileLower, '.csv')) == []
-      errormsg = ['File ' filename ' is not a CSV file. Please choose another file.']
+      errormsg = ['File ' filename ' is not a CSV file. Please choose another file.'];
       h = errordlg (errormsg);
       uiwait (h);
       return
@@ -186,7 +183,7 @@ else
       
          % Make sure the new csv file has the same dimensions as the one read before
          if size (csvFile,1) ~= size (csvFilePrev,1) | size (csvFile,2) ~= size (csvFilePrev,2)
-            errormsg = ['File ' filename ' has another dimension as the files already loaded. Please choose another file.']
+            errormsg = ['File ' filename ' has another dimension as the files already loaded. Please choose another file.'];
             h = errordlg (errormsg);
             uiwait (h);
             return
@@ -195,7 +192,7 @@ else
          
          % Also make sure their X-axis are the same (unless the user requests not to)
          if csvFile(1,:) ~= csvFilePrev(1,:)
-            errormsg = ['File ' filename ' has a different X-axis structure as the files loaded before. Please choose another file.']
+            errormsg = ['File ' filename ' has a different X-axis structure as the files loaded before. Please choose another file.'];
             h = errordlg (errormsg);
             uiwait (h);
             return

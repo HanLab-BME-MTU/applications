@@ -19,7 +19,8 @@ function ptPlotSpeedValues (ptPostpro, MPM)
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file
 % Andre Kerstens        Jun 04          Changed ymax to 100% for percentage all cells
-% Andre Kerstens        Aug 04          Fixed bug in velocity squared
+% Andre Kerstens        Aug 04          Fixed bug in velocity squared and made loop more 
+%                                       effective (less calculations)
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -55,6 +56,22 @@ MPMCount = ceil ((plotStartFrame - startFrame) / increment) + 1;
 xAxis = zeros (1, numberOfFrames-multipleFrameVelocity);
 iCount = 0;
 
+% Initialize storage
+varVelocity = [];
+varSingleCellVelocity = [];
+varClusteredCellVelocity = [];
+avgDisplacement = [];
+avgSingleDisplacement = [];
+avgClusteredDisplacement = [];
+avgVelocity = [];
+avgVelocitySquared = [];
+avgSingleVelocity = [];
+avgClusteredVelocity = [];
+velAllCellsHigherThanAvgSingleCells = [];
+displacementHist = [];
+velocityHist = [];
+maxVelocity = [];
+
 % Go through every frame of the set. Start at the second frame
 % because only from there we can start calculating a displacement
 for frameCount = plotStartFrame+increment : increment : plotEndFrame
@@ -85,8 +102,8 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       % From the cluster and cell properties we can find out which cells
       % are single and which belong to a cluster. First initialize two
       % matrices for this
-      singleCellCoords = zeros (size (coordinates,1), 4);
-      clusteredCellCoords = zeros (size (coordinates,1), 4);
+      singleCellIndex = zeros (size (coordinates,1), 1);
+      clusteredCellIndex = zeros (size (coordinates,1), 1);
       
       % Initialize single and clustered cell coordinates counters
       singleCellCount = 0;
@@ -113,26 +130,30 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
                singleCellCount = singleCellCount + 1; 
             
                % Store the coordinates
-               singleCellCoords (singleCellCount,:) = coordinates (jCount,:);
+               singleCellIndex (singleCellCount,:) = jCount;
             else    % The cell was in a cluster
             
                % Increase the counter for the clustered cell matrix
                clusteredCellCount = clusteredCellCount + 1; 
             
                % Store the coordinates
-               clusteredCellCoords (clusteredCellCount,:) = coordinates (jCount,:);
+               clusteredCellIndex (clusteredCellCount,:) = jCount;
             end
          end  % if ~isempty
       end  % for jCount = 1 : size (coordinates,1)
       
       % Remove all the zero entries in both matrices
-      singleCellCoords (find (singleCellCoords(:,1) == 0), :) = [];
-      clusteredCellCoords (find (clusteredCellCoords(:,1) == 0), :) = [];
+      singleCellIndex (find (singleCellIndex(:,1) == 0), :) = [];
+      clusteredCellIndex (find (clusteredCellIndex(:,1) == 0), :) = [];
       
       % Initialize displacement matrices
       displacement = zeros (size (coordinates,1),1);
-      singleCellsDisplacement = zeros (size (singleCellCoords,1),1);
-      clusteredCellsDisplacement = zeros (size (clusteredCellCoords,1),1);
+      velocity = zeros (size (coordinates,1),1);
+      singleCellsDisplacement = zeros (size (singleCellIndex,1),1);
+      singleCellsVelocity = zeros (size (singleCellIndex,1),1);
+      clusteredCellsDisplacement = zeros (size (clusteredCellIndex,1),1);
+      clusteredCellsVelocity = zeros (size (clusteredCellIndex,1),1);
+      
       
       % Calculate the displacement for all cells
       displacement = sqrt ((coordinates(:,1) - coordinates(:,3)).^2 + ...
@@ -140,23 +161,18 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
                       
       % Calculate true velocity in um/min for all cells
       velocity = (displacement * pixelLength) / (multipleFrameVelocity * frameInterval);
-      %velocitySquared = velocity.^2;
-      
+            
       % Calculate the displacement for single cells
-      singleCellsDisplacement = sqrt ((singleCellCoords(:,1) - singleCellCoords(:,3)).^2 + ...
-                                      (singleCellCoords(:,2) - singleCellCoords(:,4)).^2);
+      singleCellsDisplacement = displacement(singleCellIndex,:);
       
       % Calculate true velocity in um/min for all cells
-      singleCellVelocity = (singleCellsDisplacement * pixelLength) / (multipleFrameVelocity * frameInterval);
-      %singleCellVelocitySquared = singleCellVelocity.^2;
+      singleCellVelocity = velocity(singleCellIndex,:);
       
       % Calculate the displacement for clustered cells
-      clusteredCellsDisplacement = sqrt ((clusteredCellCoords(:,1) - clusteredCellCoords(:,3)).^2 + ...
-                                         (clusteredCellCoords(:,2) - clusteredCellCoords(:,4)).^2);   
+      clusteredCellsDisplacement = displacement(clusteredCellIndex);
       
       % Calculate true velocity in um/min for all cells
-      clusteredCellVelocity = (clusteredCellsDisplacement * pixelLength) / (multipleFrameVelocity * frameInterval);   
-      %clusteredCellVelocitySquared = clusteredCellVelocity.^2;
+      clusteredCellVelocity = velocity(clusteredCellIndex);
       
       % Calculate the variance of the velocity for all cells
       if ~isempty (velocity)
@@ -188,9 +204,9 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
 
       % From this the average displacement for single cells can be calculated
       if length (singleCellsDisplacement) > 0
-         avgSingleVelocity (iCount) = sum (singleCellsDisplacement) / length (singleCellsDisplacement);
+         avgSingleDisplacement (iCount) = sum (singleCellsDisplacement) / length (singleCellsDisplacement);
       else
-         avgSingleVelocity (iCount) = 0;
+         avgSingleDisplacement (iCount) = 0;
       end
 
       % From this the average displacement for clustered cells can be calculated
@@ -203,16 +219,15 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       % From this the average velocity for all cells can be calculated
       if length (displacement) > 0
          avgVelocity (iCount) = sum (velocity) / length (velocity);
-         %avgVelocitySquared (iCount) = sum (velocitySquared) / length (velocitySquared);
          avgVelocitySquared(iCount) = avgVelocity(iCount)^2;
       else
          avgVelocity (iCount) = 0;
+         avgVelocitySquared(iCount) = 0;
       end
 
       % From this the average velocity for single cells can be calculated
       if length (singleCellsDisplacement) > 0
          avgSingleVelocity (iCount) = sum (singleCellVelocity) / length (singleCellVelocity);
-         %avgSingleVelocitySquared (iCount) = sum (singleCellVelocitySquared) / length (singleCellVelocitySquared);
       else
          avgSingleVelocity (iCount) = 0;
       end
@@ -220,8 +235,6 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       % From this the average velocity for clustered cells can be calculated
       if length (clusteredCellsDisplacement) > 0
          avgClusteredVelocity (iCount) = sum (clusteredCellVelocity) / length (clusteredCellVelocity);
-         %avgClusteredVelocitySquared (iCount) = sum (clusteredCellVelocitySquared) / ...
-         %                                       length (clusteredCellVelocitySquared);
       else
          avgClusteredVelocity (iCount) = 0;
       end
@@ -236,14 +249,27 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       end
       
       % Generate a displacement histogram
-      displacementHist (:,iCount) = hist (displacement, binSize);
+      %displacementHist (:,iCount) = hist (displacement, binSize);
       
       % Generate a velocity histogram
       velocityHist (:,iCount) = hist (velocity, binSize);
       
+      % Store max velocity of the frame
+      maxVelocity(iCount) = max (velocity);
+      
    end   % if MPMCount > multipleFrameVelocity 
       
 end   % for frameCount
+
+% Calculate the maximum velocity value
+maxVel = max (maxVelocity);
+
+% Generate the bin vector by using the GUI field binsize
+bin = [];
+for binCount = 1 : binSize
+   binCol = round (binCount * maxVel / binSize);
+   bin = [bin binCol];
+end
 
 
 % Here is where all the plotting starts
@@ -423,36 +449,26 @@ end
 % title ('3D Velocity Histogram');
 % 
 % % Save this figure to disk as fig, eps and tiff
-% hgsave (h_fig, [savePath filesep '3dDisplacementHistogram.fig']);
-% print (h_fig, [savePath filesep '3dDisplacementHistogram.eps'], '-depsc2', '-tiff');
-% print (h_fig, [savePath filesep '3dDisplacementHistogram.tif'], '-dtiff');
+% hgsave (h_fig, [savePath filesep [imageName '_3dDisplacementHistogram.fig']]);
+% print (h_fig, [savePath filesep [imageName '_3dDisplacementHistogram.eps']], '-depsc2', '-tiff');
+% print (h_fig, [savePath filesep [imageName '_3dDisplacementHistogram.tif']], '-dtiff');
 
 
 % Generate a 3D velocity histogram using 3-d bars which is chopped up in bins with size binSize
 
-% % Calculate the maximum displacement value
-% maxDisp = max (max (displacementHist));
-% 
-% % Generate the bin vector by using the GUI field binsize
-% bin = [];
-% for binCount = 1 : binSize
-%    binCol = round (binCount * maxDisp / binSize);
-%    bin = [bin binCol];
-% end
-% 
-% % Generate a 3D displacement histogram using 3-d bars which is chopped up in bins
-% h_fig = figure;
-% %bar3 (bin, displacementHist, 0.5, 'detached');
-% bar3 (bin, displacementHist, 0.5, 'detached');
-% title ('3D Displacement Histogram (binned)');
-% 
-% % Save this figure to disk as fig, eps and tiff
-% hgsave (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.fig']);
-% print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.eps'], '-depsc2', '-tiff');
-% print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.tif'], '-dtiff');
+% Generate a 3D displacement histogram using 3-d bars which is chopped up in bins
+h_fig = figure;
+bar3 (bin, velocityHist, 0.5, 'detached');
+title ('3D Velocity Histogram (binned)');
+
+% Save this figure to disk as fig, eps and tiff
+hgsave (h_fig, [savePath filesep [imageName '_3dBinnedVelocityHistogram.fig']]);
+print (h_fig, [savePath filesep [imageName '_3dBinnedVelocityHistogram.eps']], '-depsc2', '-tiff');
+print (h_fig, [savePath filesep [imageName '_3dBinnedVelocityHistogram.tif']], '-dtiff');
 
 
 % For all the figures we want to keep the xAxis as well 
 cd (savePath);
-save ([imageName '_xAxis-CellDisp.mat'],'xAxis');
+save ([imageName '_xAxis-Velocity.mat'],'xAxis');
+save ([imageName '_velocityHist.mat'], 'velocityHist');
 

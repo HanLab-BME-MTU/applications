@@ -42,6 +42,7 @@ function [cellProps, clusterProps, frameProps] = ptCalculateCellAreaUsingVarianc
 %                                       and general cleanup of code
 % Andre Kerstens        Jun 04          Calculations are done based on edges found in variance image
 % Andre Kerstens        Jul 04          Added calculations for frame properties
+% Andre Kerstens        Aug 04          Added test for existence of variables
 
 % Prepare a matrix for the grouping of coordinates to objects
 clusterNr = zeros (length (coord), 1);
@@ -183,9 +184,21 @@ end
 % end
 
 % Calculate average ratios for the frame
-avgSolidity = sum(Solidity) / length(Solidity);
-avgArea = sum(area) / length(area);
-avgConvexArea = sum(convexArea) / length(convexArea);
+if exist('Solidity') & length(Solidity) > 0
+   avgSolidity = sum(Solidity) / length(Solidity);
+else
+   avgSolidity = 0;
+end
+if exist('area') & length(area)
+   avgArea = sum(area) / length(area);
+else
+   avgArea = 0;
+end
+if exist('convexArea') & length(convexArea)
+   avgConvexArea = sum(convexArea) / length(convexArea);
+else
+   avgConvexArea = 0;
+end
 
 % Properties for the whole frame are stored in frameProps
 % Keep some space for later values as well

@@ -44,6 +44,7 @@ inputImage   = varargin{1};
 greyMax      = varargin{2};
 kernelSizeBg = varargin{3};
 kernelSizeEdge = varargin{4};
+%counter = varargin{5};
 
 % Calculate variance images used for background subtraction and for edge
 % detection
@@ -88,13 +89,17 @@ coeff = A \ backOnlyImage;
 defImage = ones (size(inputImage,1), size(inputImage,2));
 [xi,yi] = find (defImage);
 backgroundImage = coeff(1).*(xi.^2) + coeff(2).*(xi.*yi) + coeff(3).*(yi.^2) + coeff(4);
-%figure, mesh (reshape(backgroundImage,size(inputImage)));
+bgImage = reshape(backgroundImage,size(inputImage));
+
+%filename = ['bgImage_' num2str(counter) '.mat'];
+%fprintf (1, 'filename = %s\n', filename);
+%save (filename, 'bgImage');
 
 % The average background level is approx. equal to the constant in the equation
 backgroundLevel = coeff(4);
 
 % Now we only have to subtract the background from the image and we're done
-outImage = inputImage - reshape(backgroundImage,size(inputImage));
+outImage = inputImage - bgImage;
 
 % Let's normalize the image back to [0..1] again
 %imageMinimum = min (min (outImage));

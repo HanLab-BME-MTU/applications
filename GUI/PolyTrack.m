@@ -2135,3 +2135,16 @@ end
 delete(handles.polyTrack_mainwindow);
 
 %-------------------------------------------------------------------------------
+
+
+% --- Executes on button press in GUI_store_bg_plane_cb.
+function GUI_store_bg_plane_cb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_store_bg_plane_cb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hint: get(hObject,'Value') returns toggle state of GUI_store_bg_plane_cb
+handles = guidata(hObject);
+
+% Update handles structure
+guidata(hObject, handles);
+
