@@ -107,6 +107,10 @@ bleachValues=[0 7.25e-5 1.45e-4 2.175e-4]; % 1x corresponds to the mean of the n
 indx=find([get(handles.bleachRadioOff,'Value') get(handles.bleachRadio1x,'Value') get(handles.bleachRadio2x,'Value') get(handles.bleachRadio3x,'Value')]);
 fsmParam.kin.bleachRed=bleachValues(indx);
 
+
+% Subpixel accurate localization of speckles
+fsmParam.prep.subpixel = get(handles.subpixel,'Value');
+
 % Secondary speckles
 fsmParam.prep.pstSpeckles=find([get(handles.primaryRadio,'Value') get(handles.tertiaryRadio,'Value') get(handles.scaleRadio,'Value')]);
 switch fsmParam.prep.pstSpeckles
