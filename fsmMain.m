@@ -25,6 +25,7 @@ function fsmParam=fsmMain(fsmParam)
 % Aaron Ponti, October 2nd, 2002
 
 
+
 if nargin~=1
     error('One parameter (fsmParam) expected');
 end
