@@ -958,12 +958,13 @@ n=str2num(get(handles.editFrameTN,'String'));
 sigma=str2num(get(handles.editSigmaTN,'String'));
 
 % Call function
-[polyMap,depolyMap,netMap]=fsmKineticMaps([],[info.Height info.Width],n,sigma);
+[polyMap,depolyMap,netMapRGB]=fsmKineticMaps([],[info.Height info.Width],n,sigma);
 
 % Show maps and return them to Matlab base workspace
 figure; imshow(polyMap,[]); title('Polymerization map'); assignin('base','polyMap',polyMap);
 figure; imshow(-depolyMap,[]); title('Depolymerization map'); assignin('base','depolyMap',-depolyMap);
-figure; imshow(netMap,[]); title('Net assembly map'); assignin('base','netMap',netMap);
+figure; imshow(netMapRGB,[]); title('Net assembly map'); assignin('base','netMapRGB',netMapRGB);
+assignin('base','netMap',polyMap+depolyMap);
 
 % --- Executes on button press in pushHelpTurnover.
 function pushHelpTurnover_Callback(hObject, eventdata, handles)
