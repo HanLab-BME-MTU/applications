@@ -1,11 +1,11 @@
 function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
     wnVector,selectCrit,pVCompKL,pVPort,errFlag] = armaCoefKalman(...
-    trajectories,arParamP0,maParamP0,minOpt)
+    trajectories,arParamP0,maParamP0,constParam,minOpt)
 %ARMACOEFKALMAN fits an ARMA(p,q) model to a time series which could have missing data points.
 %
 %SYNOPSIS [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %    wnVector,selectCrit,pVCompKL,pVPort,errFlag] = armaCoefKalman(...
-%    trajectories,arParamP0,maParamP0,minOpt)
+%    trajectories,arParamP0,maParamP0,constParam,minOpt)
 %
 %INPUT  trajectories: Observations of time series to be fitted. Either an 
 %                     array of structures traj(1:nTraj).observations, or a
@@ -14,13 +14,21 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %                     Missing points should be indicated with NaN.
 %       arParamP0   : Initial guess of partial autoregressive coefficients (row vector).
 %       maParamP0   : Initial guess of partial moving average coefficients (row vector).
+%       constParam  : Set of constrained parameters. Constains 2 fields:
+%           .ar     : 2D array. 1st column is AR parameter number and
+%                     2nd column is parameter value. No need to input if
+%                     there are no constraints on AR parameters.
+%           .ma     : 2D array. 1st column is MA parameter number and
+%                     2nd column is parameter value.No need to input if
+%                     there are no constraints on MA parameters.
+%                     Optional. Default: 0
 %       minOpt      : Optional. Minimization option: 
 %                     -'ml' for Matlab local minimizer "fmincon";
 %                     -'tl' for Tomlab local minimizer "ucSolve";
 %                     -'tg' for Tomlab global minimizer "glbFast"' followed
 %                       by Tomlab local minimizer "ucSolve";
 %                     -'nag' for NAG's local minimizerE04JAF.
-%                     Default: 'ml'
+%                     Default: 'tl'
 %
 %OUTPUT arParamK    : Estimated AR parameters using likelihood maximization.
 %       maParamK    : Estimated MA parameters using likelihood maximization.
@@ -64,6 +72,9 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %        Finally, trajectories are shifted to get zero mean before analysis
 %        is done.
 %
+%        THE 'ml', 'tg' AND 'nag' MINIMIZATION OPTIONS SHOULD BE MODIFIED
+%        TO ACCOUNT FOR CONSTRAINTS! ONLY 'tl' DOES RIGHT NOW!
+%
 %Khuloud Jaqaman, July 2004
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -105,7 +116,7 @@ elseif ~isfield(trajectories,'observations')
     return
 end
 
-%get number of trajectories and add column for observational error if necessary
+%get number of trajectories and add column for observational error if not input
 trajOriginal = trajectories;
 for i=1:length(trajectories);
     traj = trajectories(i).observations;
@@ -147,18 +158,48 @@ if ~isempty(maParamP0)
     end
 end
 
+%check parameter constraints
+if nargin < 4 || isempty(constParam) %if no constraints were entered
+    constParam = [];
+else
+    if isfield(constParam,'ar')
+        [nRow,nCol] = size(constParam.ar);
+        if nCol ~= 2
+            disp('--armaCoefKalman: constParam.ar should have 2 columns!');
+        else
+            if min(constParam.ar(:,1)) < 1 || max(constParam.ar(:,1)) > arOrder
+                disp('--armaCoefKalman: Wrong AR parameter numbers in constraint!');
+            end
+        end
+    else
+        constParam.ar = zeros(0,2);
+    end
+    if isfield(constParam,'ma')
+        [nRow,nCol] = size(constParam.ma);
+        if nCol ~= 2
+            disp('--armaCoefKalman: constParam.ma should have 2 columns!');
+        else
+            if min(constParam.ma(:,1)) < 1 || max(constParam.ma(:,1)) > maOrder
+                disp('--armaCoefKalman: Wrong MA parameter numbers in constraint!');
+            end
+        end
+    else
+        constParam.ma = zeros(0,2);
+    end
+end
+
 %check whether minOpt has one of the required values
-if nargin == 3
-    minOpt = 'ml';
+if nargin < 5 || isempty(minOpt)
+    minOpt = 'tl';
 else
     if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
             && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
         disp('--armaCoefKalman: "minOpt" should be either "ml", "tl" or "tg"!');
         errFlag = 1;
     end
-end
+end %(if nargin < 5 || isempty(minOpt))
 
-%exit function if there are problems in input data
+%exit if there are problems in input data
 if errFlag
     disp('--armaCoefKalman: Please fix input data!');
     return
@@ -191,7 +232,7 @@ if arOrder + maOrder ~= 0
                 'maxFunEvals',4000,'maxIter',3000);
 
             %define structure containing additional parameters
-            %note that it's written in Tomlab notation for convenience
+            %note that it i0s written in Tomlab notation for convenience
             prob.user.arOrder = arOrder;
             prob.user.trajectories = trajectories;
             prob.user.numAvail = totAvail;
@@ -216,22 +257,44 @@ if arOrder + maOrder ~= 0
             %initial parameter values
             param0 = [arParamP0 maParamP0];
 
-            %define local minimizaton problem
-            prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
-                arOrder+maOrder),0.99*ones(1,arOrder+maOrder),'locMinNegLik',...
-                param0);
-            prob.PriLevOpt = 1;
-            prob.optParam.MaxFunc = 4000;
-            prob.optParam.MaxIter = 4000;
-            %         prob.optParam.IterPrint = 1;
-            prob.user.arOrder = arOrder;
-            prob.user.trajectories = trajectories;
-            prob.user.numAvail = totAvail;
-            %         prob.Solver.Alg = 1;
+            if isempty(constParam) %if there are no constraints
 
-            %minimize -2ln(likelihood) using Tomlab's ucSolve
-            result = tomRun('ucSolve',prob,[],2);
+                %define local minimizaton problem
+                prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
+                    arOrder+maOrder),0.99*ones(1,arOrder+maOrder),...
+                    'locMinNegLik',param0);
+                prob.PriLevOpt = 1;
+                prob.optParam.MaxFunc = 4000;
+                prob.optParam.MaxIter = 4000;
+                prob.user.arOrder = arOrder;
+                prob.user.trajectories = trajectories;
+                prob.user.numAvail = totAvail;
 
+                %minimize -2ln(likelihood) using Tomlab's ucSolve
+                result = tomRun('ucSolve',prob,[],2);
+
+            else %if there are constraints
+
+                %define local minimizaton problem with constraints
+                prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
+                    arOrder+maOrder),0.99*ones(1,arOrder+maOrder),...
+                    'locMinNegLik',param0,[],[],[],[],[],'minKalmanConstraint',...
+                    [],[],[],[constParam.ar(:,2);constParam.ma(:,2)],...
+                    [constParam.ar(:,2);constParam.ma(:,2)]);
+                prob.PriLevOpt = 1;
+                prob.optParam.MaxFunc = 4000;
+                prob.optParam.MaxIter = 4000;
+                prob.user.arOrder = arOrder;
+                prob.user.trajectories = trajectories;
+                prob.user.numAvail = totAvail;
+                prob.user.constParam.ar = constParam.ar(:,1);
+                prob.user.constParam.ma = constParam.ma(:,1);
+
+                %minimize -2ln(likelihood) using Tomlab's conSolve
+                result = tomRun('conSolve',prob,[],2);
+
+            end
+                
             %proceed if minimization was successful
             if result.ExitFlag == 0
                 params = result.x_k';
@@ -423,7 +486,8 @@ end %(if proceed)
 %reformulate the problem as a least squares fitting and obtain the
 %variance-covariance matrix of the estimated ARMA coefficients
 [varCovMat,arParamL,maParamL,errFlag] = armaLeastSquares(trajOriginal,...
-    wnVector,length(arParamK(1,:)),length(maParamK(1,:)),wnVariance);
+    wnVector,length(arParamK(1,:)),length(maParamK(1,:)),constParam,...
+    wnVariance);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Post-processing

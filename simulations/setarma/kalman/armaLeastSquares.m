@@ -1,9 +1,9 @@
 function [varCovMat,arParam,maParam,errFlag] = armaLeastSquares(...
-    trajectories,wnVector,arOrder,maOrder,wnVariance)
+    trajectories,wnVector,arOrder,maOrder,constParam,wnVariance)
 %ARMALEASTSQUARES estimates the ARMA coefficients and their variance-covariance matrix of a trajectory whose residuals are known.
 %
 %SYNOPSIS [varCovMat,arParam,maParam,errFlag] = armaLeastSquares(...
-%    trajectories,wnVector,arOrder,maOrder,wnVariance)
+%    trajectories,wnVector,arOrder,maOrder,constParam,wnVariance)
 %
 %INPUT  trajectories: Observations of time series to be fitted. Either an 
 %                     array of structures traj(1:nTraj).observations, or a
@@ -14,6 +14,14 @@ function [varCovMat,arParam,maParam,errFlag] = armaLeastSquares(...
 %           .observations: Estimated white noise series in a trajectory.
 %       arOrder     : Order of AR part of process.
 %       maOrder     : Order of MA part of process.
+%       constParam  : Set of constrained parameters. Constains 2 fields:
+%            .ar : 2D array. 1st column is AR parameter number and
+%                  2nd column is parameter value. No need to input if
+%                  there are no constraints on AR parameters.
+%            .ma : 2D array. 1st column is MA parameter number and
+%                  2nd column is parameter value.No need to input if
+%                  there are no constraints on MA parameters.
+%                     Optional. Default: 0
 %       wnVariance  : Estimated variance of white noise in process.
 %                     Optional. Default: Zero.
 %
@@ -58,7 +66,36 @@ elseif ~isfield(trajectories,'observations')
     return
 end
 
-if nargin < 5 || isempty(wnVariance)
+if nargin < 5 || isempty(constParam) %if there are no constraints
+    constParam = [];
+else %if constraints were input
+    if isfield(constParam,'ar') && ~isempty(constParam.ar)
+        [nRow,nCol] = size(constParam.ar);
+        if nCol ~= 2
+            disp('--armaCoefKalman: constParam.ar should have 2 columns!');
+        else
+            if min(constParam.ar(:,1)) < 1 || max(constParam.ar(:,1)) > arOrder
+                disp('--armaCoefKalman: Wrong AR parameter numbers in constraint!');
+            end
+        end
+    else
+        constParam.ar = zeros(0,2);
+    end
+    if isfield(constParam,'ma') && ~isempty(constParam.ma)
+        [nRow,nCol] = size(constParam.ma);
+        if nCol ~= 2
+            disp('--armaCoefKalman: constParam.ma should have 2 columns!');
+        else
+            if min(constParam.ma(:,1)) < 1 || max(constParam.ma(:,1)) > maOrder
+                disp('--armaCoefKalman: Wrong MA parameter numbers in constraint!');
+            end
+        end
+    else
+        constParam.ma = zeros(0,2);
+    end
+end
+
+if nargin < 6 || isempty(wnVariance) %if no white noise variance was entered
     wnVariance = 0;
 else
     if wnVariance < 0
@@ -143,14 +180,53 @@ for i = 1:length(trajectories)
     
 end %(for i = 1:length(trajectories))
 
-%estimate ARMA coefficients
-maParam = (prevPoints\observations)';
-arParam = maParam(1:arOrder);
-maParam = maParam(arOrder+1:sumOrder);
+if isempty(constParam) %if minimization in unconstrained
 
-%calculate variance-covariance matrix
-varCovMat.cofactorMat = inv(prevPoints'*prevPoints);
-varCovMat.posterioriVar = epsilon'*epsilon/(fitLength-sumOrder);
+    %estimate ARMA coefficients
+    maParam = (prevPoints\observations)';
+    arParam = maParam(1:arOrder);
+    maParam = maParam(arOrder+1:sumOrder);
 
+    %calculate variance-covariance matrix
+    varCovMat.cofactorMat = inv(prevPoints'*prevPoints);
+    varCovMat.posterioriVar = epsilon'*epsilon/(fitLength-sumOrder);
 
+else %if minimization is constrained
+
+    %get cofactor matrix of unconstrained problem
+    ucCofactMat = inv(prevPoints'*prevPoints);
+
+    %get number of constraints
+    numConst = length(constParam.ar(:,1)) + length(constParam.ma(:,1));
+    constIndx = [constParam.ar(:,1); constParam.ma(:,1)+arOrder];
+
+    %construct matrix of constraints
+    constMat = zeros(numConst,sumOrder);
+    for i=1:numConst
+        constMat(i,constIndx(i)) = 1;
+    end
+
+    %construct cofactor matrix of contrained problem
+    dummy = inv(constMat*ucCofactMat*constMat');
+    conCofactMat = [(ucCofactMat-ucCofactMat*constMat'*dummy*constMat* ...
+        ucCofactMat) (ucCofactMat*constMat'*dummy); ...
+        (dummy*constMat*ucCofactMat) (-dummy)];
+
+    %combine observations vector with constraints
+    observationsConst = [prevPoints'*observations; constParam.ar(:,2); ...
+        constParam.ma(:,2)];
+
+    %compute solution
+    lagrangeMult = (conCofactMat*observationsConst)';
+    arParam = lagrangeMult(1:arOrder);
+    maParam = lagrangeMult(arOrder+1:sumOrder);
+    lagrangeMult = lagrangeMult(sumOrder+1:end);
+
+    %calculate variance-covariance matrix
+    varCovMat.cofactorMat = conCofactMat(1:sumOrder,1:sumOrder);
+    varCovMat.posterioriVar = epsilon'*epsilon/(fitLength-sumOrder);
+
+end
+
+    
 %%%%% ~~ the end ~~ %%%%%
