@@ -1,0 +1,34 @@
+function [maParam,errFlag] = levinsonDurbinMA(maParamP)
+%LEVINSONDURBINMA determines MA coefficients from partial MA coefficients using Levinson-Durbin recursions.
+%
+%SYNOPSIS [maParam,errFlag] = levinsonDurbinMA(maParamP)
+%
+%INPUT  maParamP: Partial moving average coefficients (row vector).
+%
+%OUTPUT arParam : moving average coefficients (row vector).
+%       errFlag : 0 if function executes normally, 1 otherwise.
+%
+%REMARKS The recursion used is that presented in R. H. Jones,
+%        "Maximum Likelihood Fitting of ARMA Models to Time Series with
+%        Missing Observations", Technometrics 22: 389-395 (1980), Eq. 6.4. 
+%
+%Khuloud Jaqaman, July 2004
+
+%initialize output
+arParam = [];
+errFlag = [];
+
+%get MA order
+maOrder = length(maParamP);
+
+temp = [];
+for i=1:maOrder
+    temp = [temp zeros(2,1)];
+    temp(2,i) = maParamP(i);
+    for j=1:i-1
+        temp(2,j) = temp(1,j) + maParamP(i)*temp(1,i-j);
+    end
+    temp(1,:) = temp(2,:);
+end
+
+maParam = temp(2,:);
