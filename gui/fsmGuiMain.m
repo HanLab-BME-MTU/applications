@@ -41,6 +41,10 @@ if nargin == 0  % LAUNCH GUI
     % Fix the weird background color in Linux
     if isunix
         set(handles.fsmGuiMain,'Color',[0.701961 0.701961 0.701961]);
+        set(handles.numberEdit,'BackgroundColor',[0.701961 0.701961 0.701961]);
+        set(handles.bitDepthEdit,'BackgroundColor',[0.701961 0.701961 0.701961]);
+        set(handles.editThreshold,'BackgroundColor',[0.701961 0.701961 0.701961]);
+        set(handles.expPopup,'BackgroundColor',[0.701961 0.701961 0.701961]);        
     end
     
     if alreadyOpen==0
