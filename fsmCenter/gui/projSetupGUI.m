@@ -27,11 +27,11 @@ function varargout = projSetupGUI(varargin)
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @projSetupGUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @projSetupGUI_OutputFcn, ...
-                   'gui_LayoutFcn',  [], ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @projSetupGUI_OpeningFcn, ...
+    'gui_OutputFcn',  @projSetupGUI_OutputFcn, ...
+    'gui_LayoutFcn',  [], ...
+    'gui_Callback',   []);
 if nargin & isstr(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -73,18 +73,18 @@ if nargin==3
 end
 
 if nargin > 5
-   projDir = varargin{3};
+    projDir = varargin{3};
 end
 if nargin > 6
-   imgDir = varargin{4};
+    imgDir = varargin{4};
 end
 if nargin > 7 
-   resDirList = varargin{5};
+    resDirList = varargin{5};
 end
 
 if isempty(projDir)
-   %Use the current directory.
-   projDir = pwd;
+    %Use the current directory.
+    projDir = pwd;
 end
 
 handles.projDir = projDir;
@@ -119,7 +119,7 @@ handles = getProjSetting(handles);
 updateGUI(hObject,handles);
 
 if ~isempty(imgDir)
-   set(handles.imgDirTFH,'string',imgDir);
+    set(handles.imgDirTFH,'string',imgDir);
 end
 
 % Update handles structure
@@ -131,27 +131,27 @@ uiwait(hObject);
 function updateDirList(dirMH,dirTFH,dirList,selDir,dirName)
 
 if isempty(dirList)
-   set(dirMH,'string',{'New'});
+    set(dirMH,'string',{'New'});
 else
-   set(dirMH,'string',{'New',dirList{:}});
+    set(dirMH,'string',{'New',dirList{:}});
 end
 set(dirMH,'value',1);
 set(dirTFH,'string','');
 
 if ~isempty(selDir) 
-   tmpInd = find(strcmp(dirList,selDir));
-   if ~isempty(tmpInd)
-      set(dirMH,'value',tmpInd+1);
-   %else
-   %   if length(selDir) < 4 | strcmp(selDir(1:4),dirName) == 0
-   %      error(['The first 4 characters of ' dirName ' directiory has to ' ...
-   %         'be ''' dirName '''.']);
-   %   else
-   %      if length(selDir) > 4
-   %         set(dirTFH,'string',selDir(5:end));
-   %      end
-   %   end
-   end
+    tmpInd = find(strcmp(dirList,selDir));
+    if ~isempty(tmpInd)
+        set(dirMH,'value',tmpInd+1);
+        %else
+        %   if length(selDir) < 4 | strcmp(selDir(1:4),dirName) == 0
+        %      error(['The first 4 characters of ' dirName ' directiory has to ' ...
+        %         'be ''' dirName '''.']);
+        %   else
+        %      if length(selDir) > 4
+        %         set(dirTFH,'string',selDir(5:end));
+        %      end
+        %   end
+    end
 end
 
 function updateGUI(hObject,handles)
@@ -184,26 +184,26 @@ corrDirList = findProjSubDir(projDirStruct,'corr');
 
 set(handles.projDirTFH,'string',projDir);
 %if ~isempty(projDir)
-   %if isdir(projDir)
-      %dirList = dir(projDir);
-      %dirNameList = {dirList(find([dirList.isdir])).name};
-      %for k = 1:length(dirNameList)
-      %   if length(dirNameList{k}) >= 4
-      %      if strcmp(dirNameList{k}(1:4),'tack') == 1
-      %         tackDirList = {tackDirList{:} dirNameList{k}};
-      %      elseif strcmp(dirNameList{k}(1:4),'lpla') == 1
-      %         lplaDirList = {lplaDirList{:} dirNameList{k}};
-      %      elseif strcmp(dirNameList{k}(1:4),'post') == 1
-      %         postDirList = {postDirList{:} dirNameList{k}};
-      %      elseif strcmp(dirNameList{k}(1:4),'edge') == 1
-      %         edgeDirList = {edgeDirList{:} dirNameList{k}};
-      %      elseif strcmp(dirNameList{k}(1:4),'merg') == 1
-      %         mergDirList = {mergDirList{:} dirNameList{k}};
-      %      elseif strcmp(dirNameList{k}(1:4),'corr') == 1
-      %         corrDirList = {corrDirList{:} dirNameList{k}};
-      %      end
-      %   end
-      %end
+%if isdir(projDir)
+%dirList = dir(projDir);
+%dirNameList = {dirList(find([dirList.isdir])).name};
+%for k = 1:length(dirNameList)
+%   if length(dirNameList{k}) >= 4
+%      if strcmp(dirNameList{k}(1:4),'tack') == 1
+%         tackDirList = {tackDirList{:} dirNameList{k}};
+%      elseif strcmp(dirNameList{k}(1:4),'lpla') == 1
+%         lplaDirList = {lplaDirList{:} dirNameList{k}};
+%      elseif strcmp(dirNameList{k}(1:4),'post') == 1
+%         postDirList = {postDirList{:} dirNameList{k}};
+%      elseif strcmp(dirNameList{k}(1:4),'edge') == 1
+%         edgeDirList = {edgeDirList{:} dirNameList{k}};
+%      elseif strcmp(dirNameList{k}(1:4),'merg') == 1
+%         mergDirList = {mergDirList{:} dirNameList{k}};
+%      elseif strcmp(dirNameList{k}(1:4),'corr') == 1
+%         corrDirList = {corrDirList{:} dirNameList{k}};
+%      end
+%   end
+%end
 %   end
 %   set(handles.projDirTFH,'string',projDir);
 %end
@@ -231,39 +231,46 @@ function varargout = projSetupGUI_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if nargout > 3
-   error('Too many output arguments.');
+    error('Too many output arguments.');
 end
 if isempty(handles)
-   for k = 1:nargout
-      varargout{k} = '';
-   end
-   return;
+    for k = 1:nargout
+        varargout{k} = '';
+    end
+    return;
 end
 
 if nargout >= 1
-   varargout{1} = handles.projDir;
+    varargout{1} = handles.projDir;
 end
 if nargout >= 2
-   varargout{2} = handles.imgDir;
+    varargout{2} = handles.imgDir;
 end
 if nargout == 3
-   varargout{3} = {handles.tackDir,handles.lplaDir,handles.postDir, ...
-      handles.edgeDir,handles.mergDir,handles.corrDir};
+    varargout{3} = {handles.tackDir,handles.lplaDir,handles.postDir, ...
+            handles.edgeDir,handles.mergDir,handles.corrDir};
 end
 
 %Write image path to a file named 'lastProjSetting.txt'.
 if isdir(handles.projDir) 
-   fid = fopen([handles.projDir filesep 'lastProjSetting.txt'],'w');
-   if fid ~= -1
-      fprintf(fid,'%s\n',['    Image Path: ' handles.imgDir]);
-      fprintf(fid,'%s\n',['   speckTackle: ' handles.tackDir]);
-      fprintf(fid,'%s\n',['fsm Transition: ' handles.lplaDir]);
-      fprintf(fid,'%s\n',['    fsm Center: ' handles.postDir]);
-      fprintf(fid,'%s\n',['  Edge Tracker: ' handles.edgeDir]);
-      fprintf(fid,'%s\n',['        Merger: ' handles.mergDir]);
-      fprintf(fid,'%s\n',['   corrTracker: ' handles.corrDir]);
-      fclose(fid);
-   end
+    if isunix==1
+        settingsFileName='lastProjSettings_unix.txt';
+    elseif ispc==1
+        settingsFileName='lastProjSettings_win.txt';
+    else
+        error('Platform not supported.');
+    end
+    fid = fopen([handles.projDir filesep settingsFileName],'w');
+    if fid ~= -1
+        fprintf(fid,'%s\n',['    Image Path: ' handles.imgDir]);
+        fprintf(fid,'%s\n',['   speckTackle: ' handles.tackDir]);
+        fprintf(fid,'%s\n',['fsm Transition: ' handles.lplaDir]);
+        fprintf(fid,'%s\n',['    fsm Center: ' handles.postDir]);
+        fprintf(fid,'%s\n',['  Edge Tracker: ' handles.edgeDir]);
+        fprintf(fid,'%s\n',['        Merger: ' handles.mergDir]);
+        fprintf(fid,'%s\n',['   corrTracker: ' handles.corrDir]);
+        fclose(fid);
+    end
 end
 
 delete(hObject);
@@ -297,56 +304,56 @@ projDir = get(handles.projDirTFH,'string');
 imgDir  = get(handles.imgDirTFH,'string');
 
 if isempty(projDir)
-   warnH = warndlg('No project directory is set.','Warning','modal');
-   return;
+    warnH = warndlg('No project directory is set.','Warning','modal');
+    return;
 end
 
 item = get(handles.tackDirMH,'value');
 menu = get(handles.tackDirMH,'string');
 if iscell(menu) & strcmp(menu{item},'New') == 0
-   tackDir = menu{item};
+    tackDir = menu{item};
 else
-   tackDir = ['tack' get(handles.tackDirTFH,'string')];
+    tackDir = ['tack' get(handles.tackDirTFH,'string')];
 end
 
 item = get(handles.lplaDirMH,'value');
 menu = get(handles.lplaDirMH,'string');
 if iscell(menu) & strcmp(menu{item},'New') == 0
-   lplaDir = menu{item};
+    lplaDir = menu{item};
 else
-   lplaDir = ['lpla' get(handles.lplaDirTFH,'string')];
+    lplaDir = ['lpla' get(handles.lplaDirTFH,'string')];
 end
 
 item = get(handles.postDirMH,'value');
 menu = get(handles.postDirMH,'string');
 if iscell(menu) & strcmp(menu{item},'New') == 0
-   postDir = menu{item};
+    postDir = menu{item};
 else
-   postDir = ['post' get(handles.postDirTFH,'string')];
+    postDir = ['post' get(handles.postDirTFH,'string')];
 end
 
 item = get(handles.edgeDirMH,'value');
 menu = get(handles.edgeDirMH,'string');
 if iscell(menu) & strcmp(menu{item},'New') == 0
-   edgeDir = menu{item};
+    edgeDir = menu{item};
 else
-   edgeDir = ['edge' get(handles.edgeDirTFH,'string')];
+    edgeDir = ['edge' get(handles.edgeDirTFH,'string')];
 end
 
 item = get(handles.mergDirMH,'value');
 menu = get(handles.mergDirMH,'string');
 if iscell(menu) & strcmp(menu{item},'New') == 0
-   mergDir = menu{item};
+    mergDir = menu{item};
 else
-   mergDir = ['merg' get(handles.mergDirTFH,'string')];
+    mergDir = ['merg' get(handles.mergDirTFH,'string')];
 end
 
 item = get(handles.corrDirMH,'value');
 menu = get(handles.corrDirMH,'string');
 if iscell(menu) & strcmp(menu{item},'New') == 0
-   corrDir = menu{item};
+    corrDir = menu{item};
 else
-   corrDir = ['corr' get(handles.corrDirTFH,'string')];
+    corrDir = ['corr' get(handles.corrDirTFH,'string')];
 end
 
 tackOK = 1;
@@ -356,44 +363,44 @@ edgeOK = 1;
 mergOK = 1;
 corrOK = 1;
 if ~isdir([projDir filesep tackDir])
-   [tackOK,msg,msgID] = mkdir(projDir,tackDir);
+    [tackOK,msg,msgID] = mkdir(projDir,tackDir);
 end
 if ~isdir([projDir filesep lplaDir])
-   [lplaOK,msg,msgID] = mkdir(projDir,lplaDir);
+    [lplaOK,msg,msgID] = mkdir(projDir,lplaDir);
 end
 if ~isdir([projDir filesep postDir])
-   [postOK,msg,msgID] = mkdir(projDir,postDir);
+    [postOK,msg,msgID] = mkdir(projDir,postDir);
 end
 if ~isdir([projDir filesep edgeDir])
-   [edgeOK,msg,msgID] = mkdir(projDir,edgeDir);
+    [edgeOK,msg,msgID] = mkdir(projDir,edgeDir);
 end
 if ~isdir([projDir filesep mergDir])
-   [mergOK,msg,msgID] = mkdir(projDir,mergDir);
+    [mergOK,msg,msgID] = mkdir(projDir,mergDir);
 end
 if ~isdir([projDir filesep corrDir])
-   [corrOK,msg,msgID] = mkdir(projDir,corrDir);
+    [corrOK,msg,msgID] = mkdir(projDir,corrDir);
 end
 
 if tackOK == 1 & lplaOK == 1 & postOK == 1 & edgeOK == 1 & ...
-   mergOK == 1 & corrOK == 1
-   handles.projDir = projDir;
-   handles.imgDir  = imgDir;
-   handles.tackDir = tackDir;
-   handles.lplaDir = lplaDir;
-   handles.postDir = postDir;
-   handles.edgeDir = edgeDir;
-   handles.mergDir = mergDir;
-   handles.corrDir = corrDir;
+        mergOK == 1 & corrOK == 1
+    handles.projDir = projDir;
+    handles.imgDir  = imgDir;
+    handles.tackDir = tackDir;
+    handles.lplaDir = lplaDir;
+    handles.postDir = postDir;
+    handles.edgeDir = edgeDir;
+    handles.mergDir = mergDir;
+    handles.corrDir = corrDir;
 else
-   warning('Trouble making new directory.');
-   handles.projDir = '';
-   handles.imgDir  = '';
-   handles.tackDir = '';
-   handles.lplaDir = '';
-   handles.postDir = '';
-   handles.edgeDir = '';
-   handles.mergDir = '';
-   handles.corrDir = '';
+    warning('Trouble making new directory.');
+    handles.projDir = '';
+    handles.imgDir  = '';
+    handles.tackDir = '';
+    handles.lplaDir = '';
+    handles.postDir = '';
+    handles.edgeDir = '';
+    handles.mergDir = '';
+    handles.corrDir = '';
 end
 
 % Update handles structure
@@ -411,7 +418,7 @@ function projDirBrowse_Callback(hObject, eventdata, handles)
 projDir = uigetdir;
 
 if isnumeric(projDir) & projDir == 0
-   return;
+    return;
 end
 
 set(handles.projDirTFH,'string',projDir);
@@ -430,9 +437,9 @@ function projDir_Callback(hObject, eventdata, handles)
 projDir = get(handles.projDirTFH,'string');
 
 if ~samdir(handles.projDir,projDir)
-   handles.projDir = projDir;
-   handles = getProjSetting(handles);
-   updateGUI(hObject,handles);
+    handles.projDir = projDir;
+    handles = getProjSetting(handles);
+    updateGUI(hObject,handles);
 end
 
 % --- Executes on button press on Browse.
@@ -444,7 +451,7 @@ function imgDirBrowse_Callback(hObject, eventdata, handles)
 imgDir = uigetdir;
 
 if isnumeric(imgDir) & imgDir == 0
-   return;
+    return;
 end
 
 set(handles.imgDirTFH,'string',imgDir);
@@ -458,91 +465,98 @@ projDir = handles.projDir;
 
 %Read last project setting in the selected project path.
 if isdir(projDir)
-   fid = fopen([projDir filesep 'lastProjSetting.txt'],'r');
-   if fid ~= -1
-      noProblem = 1;
-      textL = fgetl(fid);
-      while noProblem & ischar(textL)
-         k = 1;
-         while k <= length(textL) & ~strcmp(textL(k),':')
-            k = k+1;
-         end
-         if k == 1 | k > length(textL)
-            noProblem = 0;
-         else
-            %Use 'sscanf' to remove space.
-            headStr = sscanf(textL(1:k-1),'%s');
-            switch headStr
-               case 'ImagePath'
-                  if k == length(textL)
-                     imgDir = '';
-                  else
-                     imgDir = sscanf(textL(k+1:end),'%s');
-                  end
-               case 'speckTackle'
-                  if k == length(textL)
-                     tackDir = '';
-                  else
-                     tackDir = sscanf(textL(k+1:end),'%s');
-                  end
-               case 'fsmTransition'
-                  if k == length(textL)
-                     lplaDir = '';
-                  else
-                     lplaDir = sscanf(textL(k+1:end),'%s');
-                  end
-               case 'fsmCenter'
-                  if k == length(textL)
-                     postDir = '';
-                  else
-                     postDir = sscanf(textL(k+1:end),'%s');
-                  end
-               case 'EdgeTracker'
-                  if k == length(textL)
-                     edgeDir = '';
-                  else
-                     edgeDir = sscanf(textL(k+1:end),'%s');
-                  end
-               case 'Merger'
-                  if k == length(textL)
-                     mergDir = '';
-                  else
-                     mergDir = sscanf(textL(k+1:end),'%s');
-                  end
-               case 'corrTracker'
-                  if k == length(textL)
-                     corrDir = '';
-                  else
-                     corrDir = sscanf(textL(k+1:end),'%s');
-                  end
-               otherwise
+    if isunix==1
+        settingsFileName='lastProjSettings_unix.txt';
+    elseif ispc==1
+        settingsFileName='lastProjSettings_win.txt';
+    else
+        error('Platform not supported.');
+    end
+    fid = fopen([projDir filesep settingsFileName],'r');
+    if fid ~= -1
+        noProblem = 1;
+        textL = fgetl(fid);
+        while noProblem & ischar(textL)
+            k = 1;
+            while k <= length(textL) & ~strcmp(textL(k),':')
+                k = k+1;
             end
-         end
-
-         textL = fgetl(fid);
-      end
-      if ~noProblem
-         warnH = warndlg(['Project setting file is corrupted ' ...
-            'and will be ignored.'],'Warning','modal');
-
-         handles.imgDir  = '';
-         handles.tackDir = '';
-         handles.lplaDir = '';
-         handles.postDir= '';
-         handles.edgeDir= '';
-         handles.mergDir= '';
-         handles.corrDir= '';
-      else
-         handles.imgDir  = imgDir;
-         handles.tackDir = tackDir;
-         handles.lplaDir = lplaDir;
-         handles.postDir = postDir;
-         handles.edgeDir = edgeDir;
-         handles.mergDir = mergDir;
-         handles.corrDir = corrDir;
-      end
-      fclose(fid);
-   end
+            if k == 1 | k > length(textL)
+                noProblem = 0;
+            else
+                %Use 'sscanf' to remove space.
+                headStr = sscanf(textL(1:k-1),'%s');
+                switch headStr
+                    case 'ImagePath'
+                        if k == length(textL)
+                            imgDir = '';
+                        else
+                            imgDir = sscanf(textL(k+1:end),'%s');
+                        end
+                    case 'speckTackle'
+                        if k == length(textL)
+                            tackDir = '';
+                        else
+                            tackDir = sscanf(textL(k+1:end),'%s');
+                        end
+                    case 'fsmTransition'
+                        if k == length(textL)
+                            lplaDir = '';
+                        else
+                            lplaDir = sscanf(textL(k+1:end),'%s');
+                        end
+                    case 'fsmCenter'
+                        if k == length(textL)
+                            postDir = '';
+                        else
+                            postDir = sscanf(textL(k+1:end),'%s');
+                        end
+                    case 'EdgeTracker'
+                        if k == length(textL)
+                            edgeDir = '';
+                        else
+                            edgeDir = sscanf(textL(k+1:end),'%s');
+                        end
+                    case 'Merger'
+                        if k == length(textL)
+                            mergDir = '';
+                        else
+                            mergDir = sscanf(textL(k+1:end),'%s');
+                        end
+                    case 'corrTracker'
+                        if k == length(textL)
+                            corrDir = '';
+                        else
+                            corrDir = sscanf(textL(k+1:end),'%s');
+                        end
+                    otherwise
+                end
+            end
+            
+            textL = fgetl(fid);
+        end
+        if ~noProblem
+            warnH = warndlg(['Project setting file is corrupted ' ...
+                    'and will be ignored.'],'Warning','modal');
+            
+            handles.imgDir  = '';
+            handles.tackDir = '';
+            handles.lplaDir = '';
+            handles.postDir= '';
+            handles.edgeDir= '';
+            handles.mergDir= '';
+            handles.corrDir= '';
+        else
+            handles.imgDir  = imgDir;
+            handles.tackDir = tackDir;
+            handles.lplaDir = lplaDir;
+            handles.postDir = postDir;
+            handles.edgeDir = edgeDir;
+            handles.mergDir = mergDir;
+            handles.corrDir = corrDir;
+        end
+        fclose(fid);
+    end
 end
 
 
