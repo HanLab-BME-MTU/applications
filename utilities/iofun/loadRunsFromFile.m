@@ -1,7 +1,7 @@
-function run = loadRunsFromFile(nRunsOrFileList,addOri,addPos,addSig0,addLag,addDist,addTime,addTP)
+function run = loadRunsFromFile(nRunsOrFileList,varargin)
 %LOADRUNSFROMFILE lets the user load runs from file
 %
-% SYNOPSIS run = loadRunsFromFile(nRunsOrFileList,addOri,addPos,addSigma0,addTime)
+% SYNOPSIS run = loadRunsFromFile(nRunsOrFileList,varargin)
 %
 % INPUT    nRunsOrFilelist (opt) if scalar, then n Runs are loaded.
 %                            otherwise, specify inputList a 1-by-nRuns
@@ -15,14 +15,37 @@ function run = loadRunsFromFile(nRunsOrFileList,addOri,addPos,addSig0,addLag,add
 %                                        identifier
 %                            Default : 1
 %
-%          add...          (all opt) Switches to add more data to the
-%                            output: orientation, position 
-%                            structure, sigma0, timeLapse (all default 0),
-%                            distance, time, timePoints (all default 1)
+%          varargin        (all opt) Strings to select which data to add to the output.
+%                             If the string starts with a '-', the data is
+%                             not loaded. If it starts with nothing, or
+%                             '+', the data is added.
+%
+%                             Strings   Explanation     Default
+%                               dist     distance           1
+%                               time     time [s]           1
+%                               tp       timePoints         1
+%                               ori      orientation        0
+%                               sig0     sigmaZero          0
+%                               dp       dataProperties     0
+%                               SNR      SNR max            0
+%                               isT      tracked or not     0
+%                               pos      position structure 0
 %                            
 %
 % OUTPUT   run             input structure for trajectoryAnalysis with e.v.
-%                            additional fields
+%                            additional fields. Fieldnames:
+%                      
+%                       .fileNameList
+%                       .data
+%                           .distance
+%                           .time
+%                           .timePoints
+%                           .orientation
+%                           .sigmaZero
+%                           .dataProperties
+%                           .snrMax
+%                           .isTracked
+%                           .position
 %
 % c: jonas, 05/05
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -31,27 +54,74 @@ function run = loadRunsFromFile(nRunsOrFileList,addOri,addPos,addSig0,addLag,add
 % TEST INPUT
 %================
 
+% defaults
+addTP   = 1;
+addTime = 1;
+addDist = 1;
+addDP   = 0;
+addSig0 = 0;
+addPos  = 0;
+addOri  = 0;
+addSnr  = 0;
+addIsT  = 0;
+
+
 % SWITCHES
-if nargin < 8 | isempty(addTP)
-    addTP = 1;
-end
-if nargin < 7 | isempty(addTime)
-    addTime = 1;
-end
-if nargin < 6 | isempty(addDist)
-    addDist = 1;
-end
-if nargin < 5 | isempty(addLag)
-    addLag = 0;
-end
-if nargin < 4 | isempty(addSig0)
-    addSig0 = 0;
-end
-if nargin < 3 | isempty(addPos)
-    addPos = 0;
-end
-if nargin < 2 | isempty(addOri)
-    addOri = 0;
+for in = 1:length(varargin)
+    arg2check = varargin{in};
+    
+    % make sure it's a string
+    % FUTURE: if it's the last argument, check whether it is some option
+    % structure
+    if ~isstr(arg2check)
+        error('Options for loadRunsFromFile have to be strings! (offending argument#: %i)',in);
+    end
+    
+    % check for + or - sign
+    switch arg2check(1)
+        case '+'
+            newValue = 1;
+            arg2check = arg2check(2:end);
+        case '-'
+            newValue = 0;
+            arg2check = arg2check(2:end);
+        otherwise
+            newValue = 1;
+    end
+    
+    % find which to set
+    switch arg2check
+        case 'dist'
+            % distance 
+            addDist = newValue;
+        case 'time'     
+            % time [s] 
+            addTime = newValue;
+        case 'tp'
+            % timePoints 
+            addTP = newValue;
+        case 'ori'
+            % orientation    
+            addOri = newValue;
+        case 'sig0'
+            % sigmaZero
+            addSig0 = newValue;
+        case 'dp'
+            % dataProperties
+            addDP = newValue;
+        case 'SNR'
+            % SNR max
+            addSnr = newValue;
+        case 'isT'
+            % tracked or not
+            addIsT = newValue;
+        case 'pos'
+            % add position structure
+            addPos = newValue;
+         
+        otherwise
+            warning('Option %i for loadRunsFromFile not recognized',in);
+    end
 end
 
 % % tags
@@ -118,7 +188,7 @@ if loadData
     
 end
 
-
+cd(oldDir);
 %================
 
 
@@ -140,6 +210,14 @@ for iRun = 1:nRuns
             
             %load the idlist specified in lastResult
             eval(['idlist2use = allDat.',allDat.lastResult,';']);
+            
+            % if addSnr, we add the idlist_L, if it exists
+            if addSnr
+                if isfield(allDat,'idlist_L')
+                    calculateTrajectoryOpt.oldIdlist = allDat.idlist_L;
+                end
+            end
+                    
             
             
             %---prepare calculate trajectory
@@ -166,7 +244,7 @@ for iRun = 1:nRuns
             end
             
             %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
-            [tmpData,ori,pos,sig0,tL] = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
+            [tmpData,ori,pos,sig0,dataProperties,snrMax,isTracked] = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
             %-------------------------
             
             % add standard data
@@ -190,8 +268,14 @@ for iRun = 1:nRuns
             if addSig0
                 data(dataCt).sigmaZero = sig0;
             end
-            if addLag
-                data(dataCt).timeLapse = tL;
+            if addDP
+                data(dataCt).dataProperties = dataProperties;
+            end
+            if addSnr
+                data(dataCt).snrMax = snrMax;
+            end
+            if addIsT
+                data(dataCt).isTracked = isTracked;
             end
             
             %remember fileName
@@ -218,6 +302,7 @@ for iRun = 1:nRuns
         run(runCt).data = data;
         run(runCt).fileNameList = fileNameList;
         clear data
+        clear fileNameList;
         runCt = runCt +1;
         dataCt = 1;
     end

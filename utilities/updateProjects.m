@@ -328,7 +328,7 @@ for iProject = 1:size(listOfDataFiles,1)
             % assign back
             eval([idname '= idlist;']);
             % save to disk - use name idname
-            eval(['save([currentDir idlistList(iList).name],' idname ');']);
+            eval(['save([currentDir idlistList(iList).name],''' idname ''');']);
             % clear vars
             clear('idlist', idname)
         end

@@ -12,8 +12,10 @@ selectedTags = [tag1,tag2];
 distanceVectorMatrixN = cat(4, anaDat.distanceVectorMatrixN);
 vector1 = squeeze(distanceVectorMatrixN(tag1,tag2,:,:));
 
+sc = dataProperties.sigmaCorrection;
+
 %find rayleigh-distances for e1,e2,e3
-rayleighVector = dataProperties.FT_SIGMA.*[0.61/0.21, 0.61/0.21, 2/0.66];
+rayleighVector = dataProperties.FT_SIGMA.*[0.61/0.21/sc(1), 0.61/0.21/sc(1), 2/0.66/sc(2)];
 %calc in microns
 rayleighVector = rayleighVector .* [dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_Z];
 
