@@ -168,13 +168,13 @@ if exitFlag > 0
     %these two criteria should be taken care of by using the partial AR and
     %MA coefficients, but I do this check just in case something goes wrong
     r = abs(roots([-arParamK(end:-1:1) 1]));
-    if ~isempty(find(r<=1.00001))
+    if ~isempty(find(r<=1))
         disp('--armaCoefKalman: Predicted model not causal!');
         errFlag = 1;
         return
     end
     r = abs(roots([maParamK(end:-1:1) 1]));
-    if ~isempty(find(r<=1.00001))
+    if ~isempty(find(r<=1))
         disp('--armaCoefKalman: Predicted model not invertible!');
         errFlag = 1;
         return
@@ -187,6 +187,7 @@ if exitFlag > 0
 
         %obtain available points in this trajectory
         available = trajectories(i).available;
+%         available = available(available>=2);
 
         %get the innovations, their variances and the estimated white noise series
         %using Kalman prediction and filtering

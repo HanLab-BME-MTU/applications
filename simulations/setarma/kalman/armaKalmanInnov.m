@@ -83,7 +83,7 @@ observationVec(1) = 1;
 stateVecT_T = zeros(maxOrder,1); %Z(0|0)
 % [stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,procErrCov,...
 %     arOrder,maOrder,maxOrder); %P(0|0)
-stateCovMatT_T = 1e4*ones(maxOrder);
+stateCovMatT_T = 1e3*ones(maxOrder);
 
 %initialize innovations vector, its covariance matrix and white noise vector
 innovation = NaN*ones(trajLength,1);

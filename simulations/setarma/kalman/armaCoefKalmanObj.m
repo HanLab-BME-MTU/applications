@@ -65,6 +65,7 @@ for i = 1:length(trajectories)
     
     %calculate the number of available points in this trajectory
     available = trajectories(i).available;
+%     available = available(available>=2);
     numAvail = numAvail + length(available);
     
     %get the innovations, their variances and process white noise
