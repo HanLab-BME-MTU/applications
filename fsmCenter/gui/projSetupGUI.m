@@ -705,9 +705,9 @@ if isdir(projDir)
             filesepInd = findstr('/',unix_imgDirList{1});
             mntInd = findstr('/mnt/',unix_imgDirList{1});
             if isempty(mntInd)
-                unix_imgDrive = unix_imgDirList{1}(1:filesepInd(3)-1);
-            else
                 unix_imgDrive = unix_imgDirList{1}(1:filesepInd(2)-1);
+            else
+                unix_imgDrive = unix_imgDirList{1}(1:filesepInd(3)-1);
             end
         elseif isfield(projSettings,'win_imgDirList')
             win_imgDirList = projSettings.win_imgDirList;
@@ -721,12 +721,12 @@ if isdir(projDir)
                 noProblem = 1;
             elseif ~isempty(win_imgDrive)                
                 tryAgain = 'Yes';
-                prompt = ['Last project is set up in Windows. ' ...
-                    'The image drive letter is ' win_imgDrive  '.' ...
-                    'Please enter image drive name in Unix format:'];
+                prompt = sprintf(['Last project is set up in Windows. \n' ...
+                    'The image drive letter is ' win_imgDrive  '.\n' ...
+                    'Please enter image drive name in Unix format:']);
                 while strcmp(tryAgain,'Yes')
-                    answer = inputdlg(prompt,'title',1,'');
-                    unix_imgDrive = answer;
+                    answer = inputdlg(prompt,'title',1,{''});
+                    unix_imgDrive = answer{1};
 
                     %Convert image directories to Unix format.
                     imgDirList = dirPC2Unix(win_imgDirList,unix_imgDrive);
@@ -749,15 +749,15 @@ if isdir(projDir)
                 imgDirList = win_imgDirList;
             elseif ~isempty(unix_imgDrive)
                 tryAgain = 'Yes';
-                prompt = ['Last project is set up in Unix platform. ' ...
-                    'The image drive name is ' unix_imgDrive  '.' ...
-                    'Please enter image drive letter in PC format:'];
+                prompt = sprintf(['Last project is set up in Unix platform. \n' ...
+                    'The image drive name is ' unix_imgDrive  '.\n' ...
+                    'Please enter image drive letter in PC format:']);
                 while strcmp(tryAgain,'Yes')
-                    answer = inputdlg(prompt,'title',1,'');
-                    win_imgDrive = answer;
+                    answer = inputdlg(prompt,'title',1,{''});
+                    win_imgDrive = answer{1};
 
-                    %Convert image directories to Unix format.
-                    imgDirList = dirUnix2PC(win_imgDirList,win_imgDrive);
+                    %Convert image directories to PC format.
+                    imgDirList = dirUnix2PC(unix_imgDirList,win_imgDrive);
                     if ~isdir(imgDirList{1})
                         question = ['Invalid drive letter. Do you want to try again? ' ...
                             'If no, the old image directories will be removed. ' ...
