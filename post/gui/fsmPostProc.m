@@ -367,6 +367,8 @@ function checkMeanScores_Callback(hObject, eventdata, handles)
 
 function checkMoveROI_Callback(hObject, eventdata, handles)
 
+function editTimeSigma_Callback(hObject, eventdata, handles)
+
 % Grid size
 function editY_Callback(hObject, eventdata, handles)
 function editX_Callback(hObject, eventdata, handles)
@@ -462,6 +464,9 @@ web(['file:///' which('qFSM_default.html')]);
 
 function pushVector_Callback(hObject, eventdata, handles)
 projDir=getProjDir(handles);
+if isempty(projDir)
+    return
+end
 nAvg=str2num(get(handles.editVectorAnalysis,'String'));
 displ=[get(handles.checkRaw,'Value') get(handles.checkInterp,'Value') get(handles.checkNoise,'Value') get(handles.checkError,'Value') get(handles.checkDisplayImg,'Value')];
 roi=[get(handles.checkROI,'Value') get(handles.checkLoadROI,'Value') get(handles.checkSaveROI,'Value')];
@@ -490,6 +495,10 @@ function checkDiv_Callback(hObject, eventdata, handles)
 function checkSMOverlay_Callback(hObject, eventdata, handles)
 
 function checkSMMask_Callback(hObject, eventdata, handles)
+
+function editScale_Callback(hObject, eventdata, handles)
+
+function editD0_Callback(hObject, eventdata, handles)
 
 function editVectorAnalysis_Callback(hObject, eventdata, handles)
 nAvg=fix(str2num(get(handles.editVectorAnalysis,'String')));
@@ -625,33 +634,19 @@ else
     set(handles.editSMBitDepth,'Enable','off');
 end    
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %
-% %  PLOT TRAJECTORIES
-% %
-% %    (and related functions/callbacks)
-% %
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function editYSP_Callback(hObject, eventdata, handles)
 
-function pushPlotTraj_Callback(hObject, eventdata, handles)
-method=find([get(handles.radioPTMethod1,'Value') get(handles.radioPTMethod2,'Value')]);
-colorCode=get(handles.checkTrajPlots,'Value');
-fsmPlotTrajectories(method,colorCode);
+function editXSP_Callback(hObject, eventdata, handles)
 
-function pushHelpPlotTraj_Callback(hObject, eventdata, handles)
-web(['file:///' which('qFSM_plotTrajectories.html')]);
+function editSMCL_Callback(hObject, eventdata, handles)
 
-function radioPTMethod1_Callback(hObject, eventdata, handles)
-set(handles.radioPTMethod1,'Value',1);
-set(handles.radioPTMethod2,'Value',0);
+function editSMBitDepth_Callback(hObject, eventdata, handles)
 
-function radioPTMethod2_Callback(hObject, eventdata, handles)
-set(handles.radioPTMethod1,'Value',0);
-set(handles.radioPTMethod2,'Value',1);
+function editSMSampling_Callback(hObject, eventdata, handles)
 
-function checkTrajPlots_Callback(hObject, eventdata, handles)
+function editSMPixel_Callback(hObject, eventdata, handles)
+
+function editSMMax_Callback(hObject, eventdata, handles)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -725,6 +720,36 @@ if nAvg<0
     nAvg=1;
 end
 set(handles.editFrameTN,'String',num2str(nAvg));
+
+function editSigmaTN_Callback(hObject, eventdata, handles)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
+% %  PLOT TRAJECTORIES
+% %
+% %    (and related functions/callbacks)
+% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function pushPlotTraj_Callback(hObject, eventdata, handles)
+method=find([get(handles.radioPTMethod1,'Value') get(handles.radioPTMethod2,'Value')]);
+colorCode=get(handles.checkTrajPlots,'Value');
+fsmPlotTrajectories(method,colorCode);
+
+function pushHelpPlotTraj_Callback(hObject, eventdata, handles)
+web(['file:///' which('qFSM_plotTrajectories.html')]);
+
+function radioPTMethod1_Callback(hObject, eventdata, handles)
+set(handles.radioPTMethod1,'Value',1);
+set(handles.radioPTMethod2,'Value',0);
+
+function radioPTMethod2_Callback(hObject, eventdata, handles)
+set(handles.radioPTMethod1,'Value',0);
+set(handles.radioPTMethod2,'Value',1);
+
+function checkTrajPlots_Callback(hObject, eventdata, handles)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
