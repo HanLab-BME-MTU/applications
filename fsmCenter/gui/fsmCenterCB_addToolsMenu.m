@@ -16,6 +16,7 @@ hMenu=uimenu('Label','Common Tools');
 % uimenu(hMenu,'Label','Load image','Callback','fsmCenterCB_loadNewImage;','Accelerator','L');
 uimenu(hMenu,'Label','Draw polygon','Callback','fsmCenterCB_drawPolygon;','Accelerator','D'); %'Separator','On'
 uimenu(hMenu,'Label','Load polygon','Callback','fsmCenterCB_loadPolygon;'); %'Separator','On'
+uimenu(hMenu,'Label','Crop image','Callback','fsmCenterCB_cropImage;'); %'Separator','On'
 % uimenu(hMenu,'Label','Find edges','Callback','fsmCenterCB_findEdges;','Accelerator','E');
 uimenu(hMenu,'Label','Filter image','Callback','fsmCenterCB_filterImage;','Accelerator','F');
 % uimenu(hMenu,'Label','Auto contrast','Callback','fsmCenterCB_autoContrast;','Accelerator','T');

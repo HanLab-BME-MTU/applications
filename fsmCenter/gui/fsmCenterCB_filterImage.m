@@ -21,6 +21,12 @@ dlgTitle='User input requested';
 lineNo=1;
 sigma=char(inputdlg(prompt,dlgTitle,lineNo,def));
 
+% Check returned value
+if isempty(sigma)
+    disp('Aborted by user.');
+    return
+end
+
 % Retrieve image from figure
 children=get(gca,'Children');
 if length(children)>1
