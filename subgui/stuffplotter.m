@@ -25,19 +25,19 @@ for pic=start:stop
 
     
     
-    if ~isempty(handles.selectedcells)
-        cellnumbers=handles.selectedcells;
+    if ~isempty(handles.selectedcells) 
         whatcells(:,:)=handles.MPM(handles.selectedcells,2*pic-1:2*pic);
     else  
         whatcells(:,:)=handles.MPM(:,2*pic-1:2*pic);
     end
     
    whatcells=whatcells(find(whatcells(:,1)&whatcells(:,2)),:); 
+   
    PROPPERIMG(6,pic)=size(whatcells,1);
     
-    real= ismember(round(handles.PROPERTIES(:,1:2,pic)),round(whatcells),'rows');
+    properRows= ismember(round(handles.PROPERTIES(:,1:2,pic)),round(whatcells),'rows');
     
-    takeintoaccount=handles.PROPERTIES(real,:,pic);
+    takeintoaccount=handles.PROPERTIES(properRows,:,pic);
  
     
     %how many clusters

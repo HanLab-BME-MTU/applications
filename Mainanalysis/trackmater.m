@@ -723,7 +723,7 @@ else
                                                                                   tempfound=[];
                                                                                   writeHereRow=[];
                                                                                  
-                                                                                  distance=min(sqrt((xtempl(:,indexTempRow)-xnewone(:,1)).^2+(ytempl(:,indexTempRow)-ynewone(:,1)).^2 ));
+                                                                                  distance=min(sqrt((xtempl(indexTempRow,:)-xnewone(:,1)).^2+(ytempl(indexTempRow,:)-ynewone(:,1)).^2 ));
                                                                                  
                                                                                   
                                                                                   %now, if these points at some point are
@@ -816,8 +816,8 @@ else
                                                                                                    %now we correlate the displacement vectors of the old cell with
                                                                                                    %the ones of the new cell
                                                                                                 
-                                                                                                   correlx=xcorr(moveXXTemplate(:,indexTempRow), moveXXNewCell,'coeff');
-                                                                                                   correly=xcorr(moveYYTemplate(:,indexTempRow),moveYYNewCell,'coeff');
+                                                                                                   correlx=xcorr(moveXXTemplate(indexTempRow,:), moveXXNewCell,'coeff');
+                                                                                                   correly=xcorr(moveYYTemplate(indexTempRow,:),moveYYNewCell,'coeff');
                                                                                              
                                                                                                    indCorr=round(length(correlx)/2);
                                                                                                    

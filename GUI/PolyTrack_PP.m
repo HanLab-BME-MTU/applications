@@ -136,6 +136,9 @@ handles.jobvalues=jobvalues;
 load('M.mat');
 handles.MPM=alteredfsmTrackLinker(M);
 
+load('PROPERTIES.mat');
+handles.PROPERTIES=PROPERTIES;
+
 % load('PROPERTIES.Mat');
 % handles.PROPERTIES=PROPERTIES;
 

@@ -3,11 +3,11 @@ function weedout(hObject)
 
 handles=guidata(hObject);
 
-
-if get(handles.GUI_app_autopostpro_cb,'Value')==1
-   set(handles.GUI_app_autopostpro_cb,'Value',0);
-end
-    
+% 
+% if get(handles.GUI_app_autopostpro_cb,'Value')==1
+%    set(handles.GUI_app_autopostpro_cb,'Value',0);
+% end
+%     
     
 minimaltrack= handles.postpro.minimaltrack;
 maxdistpostpro= handles.postpro.maxdistpostpro ;
@@ -42,18 +42,19 @@ while counter<size(handles.MPM,1)-0.3
     near= find((nomore(counter)-beginn(counter+1:end))<minusframes & (nomore(counter)-beginn(counter+1:end))>0 & (nomore(counter)-nomore(counter+1:end))<plusframes);
     
     if ~isempty (near)
-        [distance,chuck] = min(sqrt((handles.MPM(counter,nomore(counter)-1)-handles.MPM(near(:)+...
-                               counter,nomore(counter)+1)).^2+(handles.MPM(counter,nomore(counter))...
-                               -handles.MPM(near(:)+counter,nomore(counter)+2)).^2));
-    
-        if distance < maxdistpostpro
-            
-            handles.MPM(counter,nomore(counter)+1:end)=handles.MPM(chuck+counter,nomore(counter)+1:end);
-            
-            handles.MPM(chuck+counter,:)=0;
-            
-        end
-
+        if nomore(counter)+1<size(handles.MPM,2)
+               [distance,chuck] = min(sqrt((handles.MPM(counter,nomore(counter)-1)-handles.MPM(near(:)+...
+                        counter,nomore(counter)+1)).^2+(handles.MPM(counter,nomore(counter))...
+                        -handles.MPM(near(:)+counter,nomore(counter)+2)).^2));
+             
+                if distance < maxdistpostpro
+                    
+                    handles.MPM(counter,nomore(counter)+1:end)=handles.MPM(chuck+counter,nomore(counter)+1:end);
+                    
+                    handles.MPM(chuck+counter,:)=0;
+                    
+                end
+       end
 
     end
 
@@ -89,7 +90,7 @@ numberOfOccurences = diff(uniqueIdx);
 chuck = uniqueEntries(find(numberOfOccurences < minimaltrack*2));
 handles.MPM(chuck,:) = [];
 
-set(handles.GUI_app_autopostpro_cb,'Value',1);
+%set(handles.GUI_app_autopostpro_cb,'Value',1);
 
 guidata(hObject,handles);
 
