@@ -138,6 +138,15 @@ for iProject = 1:size(listOfDataFiles,1)
     % compare approx. pixelsize - we would never get
     % it right, otherwise
     d = dir([currentDir '*.r3d']);
+    if isempty(d)
+        warning(['No r3d-movie found in ' currentDir]);
+        d = dir([currentDir '*.r3c']);
+        if isempty(d)
+            warning(['No movie found in ' currentDir]);
+            d(1).date = '22-Apr-2004';
+        end
+    end
+    
     movieDate = datenum(d.date);
     firstDate = datenum('01-Mar-2002');
     lastDate  = datenum('01-May-2004');

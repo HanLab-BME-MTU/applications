@@ -241,7 +241,7 @@ switch STRATEGY
                         A(:,2) = time(dataIdxFit,1); %fill in time
                         B = distance(dataIdxFit,1);
                         Qllii = distance(dataIdxFit,2).^2; %diagonal elements of the covariance matrix
-                        V = diag(Qllii); %covariance matrix
+                        V = diag(Qllii); %covariance matrix (inverse of the weights for myLscov!)
                         weightMatrix = diag(1./Qllii); %weight matrix
                         
                         
@@ -289,16 +289,26 @@ switch STRATEGY
                             %we discard
                             
                             switch testPause
+                                
+                                % Qvv = Qll - A(A'*Qll^-1*A)A'
+                                % Qll^-1 = weightMatrix
+                                % Qll    = V
+                                
                                 case 0 %test linear fit
-                                    Qvvii = abs((ones(ntp,1)-A*X)).*Qllii; %diagonal elements of the covariance matrix of the residuals
+                                    Qvvii = diag( V - A*inv(A'*weightMatrix*A)*A'); %diagonal elements of the covariance matrix of the residuals
                                     %pValue = tcdf(res./sqrt(Qvvii),ntp-2);
                                     maxOutlier4T = max(res./sqrt(Qvvii));
                                     meanOrIntercept = A(1,:)*X;
                                     
                                     
                                 case 1 %test mean (pause)
-                                    %Am = ones(ntp,1), X = weightedMean
-                                    Qvvii = abs((1-repmat(weightedMean,1)))*Qllii; %we use the non-normed weights
+                                    % A = ones(ntp,1), so the term by which
+                                    % we subtract is a matrix filled with
+                                    % inv(trace(Qll^-1)), because Qll is diagonal. 
+                                    % Since we are interested in the diagonal elements
+                                    % only, anyway, we can do it very
+                                    % simple: Qvv = Qllii - 1/sum(Qllii)
+                                    Qvvii = Qllii - 1/trace(weightMatrix); %we use the non-normed weights
                                     %pValue = tcdf(resMean./sqrt(Qvvii),ntp-1);
                                     maxOutlier4T = max(res./sqrt(Qvvii));
                                     meanOrIntercept = weightedMean;

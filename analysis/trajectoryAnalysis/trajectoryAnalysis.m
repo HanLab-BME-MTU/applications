@@ -132,7 +132,7 @@ standardTags = {'spb1';'cen1'};
 
 constants.TESTPROBABILITY = 0.95;
 constants.PROB2SIDES = 1-(1-constants.TESTPROBABILITY)/2; % testprob for 2-sided test
-constants.PROBOUTLIER = 0.8; % probability for ouliers. if lower, less fits get accepted
+constants.PROBOUTLIER = 0.75; % probability for ouliers. if lower, less fits get accepted
 constants.PROBF = 0.7; % probability for whether linear fit is better than pause. if lower, there are less pauses
 constants.STRATEGY = 1; % fitting strategy
 constants.MINLENGTH = 2; % minimum length of a unit
