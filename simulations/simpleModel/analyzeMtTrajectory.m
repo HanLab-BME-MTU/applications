@@ -1,4 +1,4 @@
-function [dataStats,dataStats2,errFlag] = analyzeMtTrajectory(model,modelParam,...
+function [dataStats,errFlag] = analyzeMtTrajectory(model,modelParam,...
     initialState,runInfo,saveTraj,saveStats)
 %ANALYZEMTTRAJECTORY statistically analyzes trajectories of microtubules
 %
@@ -177,7 +177,6 @@ for bigIter = 1:maxNumSim
         return;
     end
 end
-mtLengthAve2 = mtLengthAve + 50;
 
 %write data in correct format for statistical analysis
 trajLength = length(mtLengthAve(:,1));
@@ -198,69 +197,12 @@ ioOpt.expOrSim = 's'; %specify that it is simulation data
 %perform Jonas' statistical analysis and get restults in dataStats
 dataStats = trajectoryAnalysis(data,ioOpt);
 
-%temporary - for checking!
-
-for bigIter = 1:maxNumSim
-    data(bigIter).distance = [mtLengthAve2(:,bigIter) mtLengthSD(:,bigIter)];
+%save data if user wants to
+if saveStats.saveOrNot
+    if isempty(saveStats.fileName)
+        save(['dataStats-',nowString],'dataStats'); %save in file
+    else
+        save(saveStats.fileName,'dataStats'); %save in file (directory specified through name)
+    end
 end
-dataStats2 = trajectoryAnalysis(data,ioOpt);
 
-
-% OLD STUFF WHICH I MIGHT REMOVE!
-%    
-% %write data in correct format for calcMTDynamics
-% [inputDataEntry,errFlag] = getAnaDat(mtLengthAve,mtLengthSD,bigIter,...
-%     expTimeStep,aveInterval);
-% inputData(bigIter) = inputDataEntry;
-% 
-% %analyze trajectories using experimental sampling rate and appropriate averaging interval
-% varargout = calcMTDynamics(inputData,0,0,0,[],analyzeOpt);
-% 
-% %%%%%%%%%%%%%%%%%%%%
-% %%THIS SECTION MUST BE FIXED TO ACCOMODATE ALL CASES!!!%%
-% 
-% %save analysis results in dataStats and shift trajectory back to what it
-% %was before the correction
-% for bigIter = 1:maxNumSim
-%     dataStats(bigIter) = varargout(bigIter).statistics;
-%     if minminLength(bigIter) ~= 0
-%         dataStats(bigIter).distanceMean(1) = dataStats(bigIter).distanceMean(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats(bigIter).minDistance(1) = dataStats(bigIter).minDistance(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats(bigIter).minDistanceM5(1) = dataStats(bigIter).minDistanceM5(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats(bigIter).maxDistance(1) = dataStats(bigIter).maxDistance(1)...
-%             + 1.1*minminLength(bigIter);
-%         dataStats(bigIter).maxDistanceM5(1) = dataStats(bigIter).maxDistanceM5(1)...
-%             + 1.1*minminLength(bigIter);
-%     end
-% end
-% 
-% %do the same for the combined analysis of all trajectories
-% % minLengthAll = min(minminLength);
-% % dataStats(maxNumSim+1) = varargout(end).statistics;
-% % if minLengthAll ~= 0
-% %     dataStats(maxNumSim+1).distanceMean(1) = dataStats(maxNumSim+1).distanceMean(1)...
-% %         + 1.1*minLengthAll;
-% %     dataStats(maxNumSim+1).minDistance(1) = dataStats(maxNumSim+1).minDistance(1)...
-% %         + 1.1*minLengthAll;
-% %     dataStats(maxNumSim+1).minDistanceM5(1) = dataStats(maxNumSim+1).minDistanceM5(1)...
-% %         + 1.1*minLengthAll;
-% %     dataStats(maxNumSim+1).maxDistance(1) = dataStats(maxNumSim+1).maxDistance(1)...
-% %         + 1.1*minLengthAll;
-% %     dataStats(maxNumSim+1).maxDistanceM5(1) = dataStats(maxNumSim+1).maxDistanceM5(1)...
-% %         + 1.1*minLengthAll;
-% % end
-% 
-% %%%%%%%%%%%%%%%%%%%
-% 
-% %save data if user wants to
-% if saveStats.saveOrNot
-%     if isempty(saveStats.fileName)
-%         save(['dataStats-',nowString],'dataStats'); %save in file
-%     else
-%         save(saveStats.fileName,'dataStats'); %save in file (directory specified through name)
-%     end
-% end
-% 

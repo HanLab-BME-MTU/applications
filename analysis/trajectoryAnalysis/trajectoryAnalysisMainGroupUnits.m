@@ -298,6 +298,9 @@ switch STRATEGY
                                     Qvvii = diag( V - A*inv(A'*weightMatrix*A)*A'); %diagonal elements of the covariance matrix of the residuals
                                     %pValue = tcdf(res./sqrt(Qvvii),ntp-2);
                                     maxOutlier4T = max(res./sqrt(Qvvii));
+                                    if ~isreal(maxOutlier4T)
+                                        keyboard
+                                    end
                                     meanOrIntercept = A(1,:)*X;
                                     
                                     
@@ -311,6 +314,9 @@ switch STRATEGY
                                     Qvvii = Qllii - 1/trace(weightMatrix); %we use the non-normed weights
                                     %pValue = tcdf(resMean./sqrt(Qvvii),ntp-1);
                                     maxOutlier4T = max(res./sqrt(Qvvii));
+                                    if ~isreal(maxOutlier4T)
+                                        keyboard
+                                    end
                                     meanOrIntercept = weightedMean;
                                     
                                     
