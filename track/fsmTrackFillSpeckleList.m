@@ -47,7 +47,8 @@ for counter1=1:nSp
     if cands(counter1).status==1
         numberOfSpeckles=numberOfSpeckles+1;
         specklePos(numberOfSpeckles,1:3)=[cands(counter1).Lmax, cands(counter1).ILmax];
-        speckleMap(cands(counter1).Lmax(1),cands(counter1).Lmax(2))=cands(counter1).ILmax;
+        % if cands are in sub-pixel accuracy, round here
+        speckleMap(round(cands(counter1).Lmax(1)),round(cands(counter1).Lmax(2)))=cands(counter1).ILmax;
     end
 end 
 
