@@ -22,17 +22,17 @@ function ptPlotChaosStats (radioButtons, imageName, SaveDir, xAxis, chaosStats, 
 % Andre Kerstens        Oct 04          Initial version
 
 % Fetch the input data
-ripleyClustering = chaosStats.ripleyClustering;
-
-% if radioButtons.ripleysimplot
-%    simulationAvg = chaosStats.simulationAvg;
-%    simulationMax = chaosStats.simulationMax;
-%    simulationMin = chaosStats.simulationMin;
-% end
+ripleySlopeInclin = chaosStats.ripleySlopeInclin;
+ripleySlopeStart = chaosStats.ripleySlopeStart;
 
 % Calculate average values if we have to
 if radioButtons.runningaverage    
-    raRipleyClustering = movingAverage (ripleyClustering, windowSize, 'median');
+    raRipleySlopeInclin = movingAverage (ripleySlopeInclin, windowSize, 'median');
+end
+
+% Calculate average values if we have to
+if radioButtons.runningaverage    
+    raRipleySlopeStart = movingAverage (ripleySlopeStart, windowSize, 'median');
 end
 
 % Here's where the plotting starts
@@ -42,47 +42,27 @@ if ~radioButtons.donotshowplots
     h_fig = figure('Name', imageName);
 
     % Draw a plot showing clustering parameter
-    ymax = max(ripleyClustering) + (0.1*max (ripleyClustering));
-%     if radioButtons.ripleysimplot
-%        ymax2 = max(simulationMax) + (0.1*max (simulationMax));
-%     else
-%        ymax2 = 0;
-%     end
-%     ymax = max([ymax1 ymax2]);
+    ymax = max(ripleySlopeInclin) + (0.1*max (ripleySlopeInclin));
    
     % Plot the running average
     if radioButtons.runningaverage
-        plot (xAxis, ripleyClustering, 'c', xAxis, raRipleyClustering, 'r'); 
-        legend('Clust value','Avg clust value',3);
+        plot (xAxis, ripleySlopeInclin, 'c', xAxis, raRipleySlopeInclin, 'b'); 
+        legend('Inclination value','Avg inclination value',1);
     else
-        plot (xAxis, ripleyClustering, 'c'); 
-        legend('Clust value',3);
+        plot (xAxis, ripleySlopeInclin, 'c'); 
+        legend('Inclination value',1);
     end
 
     % If needed show the fitted trapezoid on the plot
     if radioButtons.plotestimate
        hold on;
-       [yPlot, est] = ptPlotEstimate (xAxis, ripleyClustering, -1);
+       [yPlot, est] = ptPlotEstimate (xAxis, ripleySlopeInclin, -1);
        hold off;
     end
-    
-    % Plot the simulation results as well if the user wants this
-%     if radioButtons.ripleysimplot
-%        hold on; 
-%        plot (xAxis, simulationAvg, 'g');
-%        plot (xAxis, simulationMax, '--');
-%        plot (xAxis, simulationMin, '.');  
-%        if radioButtons.runningaverage
-%           legend('Clust value','Avg clust value','Simulated avg','Simulated max','Simulated min',3);
-%        else
-%           legend('Clust value','Simulated avg','Simulated max','Simulated min',3);
-%        end
-%        hold off;
-%     end
-        
-    title ('Avg Clustering Paremeter Value');
+            
+    title ('Avg Inclination Value');
     xlabel ('Frames');
-    ylabel ('Avg Clust. Value');
+    ylabel ('Avg Inclin. Value');
     if length (xAxis) > 1
        axis ([xAxis(1) xAxis(end) 0 ymax]);
     else
@@ -90,16 +70,42 @@ if ~radioButtons.donotshowplots
     end
 
     % Save the figures in fig, eps and tif format  
-    hgsave (h_fig,[SaveDir filesep [imageName '_avgRipleyClustering.fig']]);
-    print (h_fig, [SaveDir filesep [imageName '_avgRipleyClustering.eps']],'-depsc2','-tiff');
-    print (h_fig, [SaveDir filesep [imageName '_avgRipleyClustering.tif']],'-dtiff');      
+    hgsave (h_fig,[SaveDir filesep [imageName '_avgRipleySlopeInclin.fig']]);
+    print (h_fig, [SaveDir filesep [imageName '_avgRipleySlopeInclin.eps']],'-depsc2','-tiff');
+    print (h_fig, [SaveDir filesep [imageName '_avgRipleySlopeInclin.tif']],'-dtiff');      
+
+    
+    % Generate the chaos plot
+    h_fig2 = figure('Name', imageName);
+
+    % Draw a plot showing clustering parameter
+    ymax = max(ripleySlopeStart) + (0.1*max (ripleySlopeStart));
+   
+    % Plot the running average
+    if radioButtons.runningaverage
+        plot (xAxis, ripleySlopeStart, 'c', xAxis, raRipleySlopeStart, 'b'); 
+        legend('Slope start value','Avg slope start value',2);
+    else
+        plot (xAxis, ripleySlopeStart, 'c'); 
+        legend('Slope start value',2);
+    end
+            
+    title ('Avg Slope Start Value');
+    xlabel ('Frames');
+    ylabel ('Avg Slope Start Value');
+    if length (xAxis) > 1
+       axis ([xAxis(1) xAxis(end) 0 ymax]);
+    else
+       axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+    end
+
+    % Save the figures in fig, eps and tif format  
+    hgsave (h_fig2,[SaveDir filesep [imageName '_avgRipleySlopeStart.fig']]);
+    print (h_fig2, [SaveDir filesep [imageName '_avgRipleySlopeStart.eps']],'-depsc2','-tiff');
+    print (h_fig2, [SaveDir filesep [imageName '_avgRipleySlopeStart.tif']],'-dtiff');      
 end
 
 % Save CSV files
-csvwrite ([SaveDir filesep imageName '_avgRipleyClustering.csv'], [xAxis ; ripleyClustering]);
-
-if radioButtons.ripleysimplot
-    csvwrite ([SaveDir filesep imageName '_avgRipleySimulationValues.csv'], ...
-              [xAxis ; simulationAvg ; simulationMax ; simulationMin]);
-end
+csvwrite ([SaveDir filesep imageName '_avgRipleySlopeInclination.csv'], [xAxis ; ripleySlopeInclin]);
+csvwrite ([SaveDir filesep imageName '_avgRipleySlopeStart.csv'], [xAxis ; ripleySlopeStart]);
 

@@ -62,8 +62,9 @@ for jobCount = 1 : length(MPM)
     %ripMPM = zeros (size(MPM{jobCount},1),numberOfFrames*2);
     ripMPM = zeros(size(MPM{jobCount},1), 2*length(validFrames{jobCount}(1,:)));
     
-    % Initialize the ripley clustering vector
+    % Initialize the ripley clustering vectors
     ripleyClust = zeros (length(MPM), numberOfFrames);
+    ripleyClustSlopePoint = zeros (length(MPM), numberOfFrames);
     
     % Initialize X-axis vector and iCount
     xAxis = zeros (1, numberOfFrames);
@@ -108,6 +109,8 @@ for jobCount = 1 : length(MPM)
     % Store cpar value
     ripleyClust(jobCount,1:length(cpar)) = cpar;
     
+    ripleyClustSlopePoint(jobCount,1:length(cpar2)) = cpar2;
+    
 end  % for jobCount = 1 : length(MPM) 
 
 % Determine the last entry in xAxis
@@ -116,9 +119,11 @@ lastEntry = xIndex(end);
 
 % Calculate the average values over all MPMs
 avgRipleyClust = sum(ripleyClust,1) / length(MPM);
+avgripleyClustSlopePoint = sum(ripleyClustSlopePoint,1) / length(MPM);
 
 % Prepare output data
-chaosStats.ripleyClustering = avgRipleyClust(1:lastEntry);
+chaosStats.ripleySlopeInclin = avgRipleyClust(1:lastEntry);
+chaosStats.ripleySlopeStart = avgripleyClustSlopePoint(1:lastEntry);
 
 % Also take valid xAxis entries
 xAxis = xAxis(1:lastEntry);

@@ -37,7 +37,7 @@ if ~radioButtons.donotshowplots
 
     % Draw a plot showing neighborhood change
     ymax = max (avgNbChange) + (0.1*max (avgNbChange));
-    plot (xAxis, avgNbChange); 
+    plot (xAxis, avgNbChange, 'c'); 
         
     % If needed show the fitted trapezoid on the plot
     if radioButtons.plotestimate
@@ -47,7 +47,7 @@ if ~radioButtons.donotshowplots
     end
     
     if radioButtons.runningaverage
-        hold on; plot (xAxis, raAvgNbChange, 'r'); hold off;
+        hold on; plot (xAxis, raAvgNbChange, 'b'); hold off;
     end
         
     title ('Avg Neighbour Interaction Change');

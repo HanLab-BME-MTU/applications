@@ -809,19 +809,8 @@ else
       save ([saveDir filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
    end
    
-   if radioButtons.ripleyplot   
-      % Let's make sure we have the avg speeds as well since Ripley needs these
-%       if ~radioButtons.speedplot   
-%           [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis] = ...
-%                                ptCalculateSpeedValues (handles);
-%           
-%           % Assign the velocity stats to the handles struct
-%           %handles.avgVelocityStats = avgVelocityStats;
-%       end
-      
+   if radioButtons.ripleyplot         
       if radioButtons.ripleyplot_1
-          % Assign the velocity stats to the handles struct
-%           handles.avgVelocityStats = avgVelocityStats;
           
           % Run the calculation
           radioButtons = getRadiobuttonValues (handles);
@@ -2673,7 +2662,6 @@ radioButtons.neighbourplot = get(handles.checkbox_neighbourhood,'Value');
 % Get Ripley choas values
 radioButtons.ripleyplot = get(handles.GUI_ripley_cb,'Value');
    radioButtons.ripleyplot_1 = get(handles.GUI_chaosstats_cb,'Value');
-   radioButtons.ripleysimplot = get(handles.GUI_chaossim_cb,'Value');
    
 % Get histogram radiobutton values
 radioButtons.allcellshist = get (handles.GUI_vel_all_cells_cb,'Value');
