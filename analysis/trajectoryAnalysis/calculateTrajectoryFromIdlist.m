@@ -57,8 +57,12 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked] 
 
 %=========================
 %check nargin (we do not really check for correct idlist, dataProperties)
-if nargin < 4 | isempty(idlist) | isempty(dataProperties) | isempty(tag1) | isempty(tag2)
+if nargin < 2 || isempty(idlist) || isempty(dataProperties) 
      [idlist,dataProperties] = loadProjectData;
+     
+ end
+ 
+ if nargin < 4 || isempty(tag1) || isempty(tag2)
         
         % get tags
         tagList = idlist(1).stats.labelcolor;

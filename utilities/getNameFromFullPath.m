@@ -11,7 +11,7 @@ function dataName = getNameFromFullPath(fullName)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % test input
-if ~isstr(fullName)
+if ~ischar(fullName)
     error('GETNAMEFROMFULLPATH needs string as input')
 end
 
@@ -23,8 +23,9 @@ end
 filesepList = findstr(fullName,filesep);
 
 if isempty(filesepList)
-    error('no valid filesep found in full path')
-end
+    % we assume this is directly the correct name
+    dataName = fullName;
+else
 
 lastFilesep = filesepList(end);
 
@@ -33,3 +34,4 @@ dataStart = findstr(fullName,'data');
 
 % read name (assume e.g,: \ndc10-1_37C_G1_001_corr-data-25-Mar-2004-14-32-00.mat)
 dataName = fullName(lastFilesep+1 : dataStart-2);
+end

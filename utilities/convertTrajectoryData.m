@@ -32,9 +32,9 @@ else
     error('input structure for CONVERTTRAJECTORYDATA does not contain the necessary fields. Please seek help.')
 end
 
-% test join. Default = 0 for dataType==1 and 1 for dataType==2
+% test join. Default = 1 for dataType==1 and 0 for dataType==2
 if nargin < 2 | isempty(join)
-    join = dataType-1;
+    join = 2 - dataType;
 end
 
 %----------------
@@ -46,7 +46,7 @@ end
 
 switch dataType*2 + join
     %--------TrajectoryAnalysisData to Nan-separated list---------
-    case 1 % TA2sim, no join
+    case 2 % TA2sim, no join
         
         % get the length of data
         numData = length(data);
@@ -79,7 +79,7 @@ switch dataType*2 + join
         
         %END CASE 1
         
-    case 2 %TA2sim, join
+    case 3 %TA2sim, join
         
         % get the length of data
         numData = length(data);

@@ -114,14 +114,14 @@ if ~isempty(mv)
     set(stackslideH,'Value',1);
     set(stackslideH,'Min',0.999999999);
     set(stackslideH,'Max',size(mv,3));
-    set(stackslideH,'SliderStep',[1/size(mv,3) 10/size(mv,3)]);
+    set(stackslideH,'SliderStep',[1/(size(mv,3)-1) 10/(size(mv,3)-1)]);
     set(stacktextH,'String','1');
     
     %set timeslider and text values
     set(timeslideH,'Value',1);
     set(timeslideH,'Min',0.9999999);
     set(timeslideH,'Max',size(mv,5));
-    set(timeslideH,'SliderStep',[1/size(mv,5) 10/size(mv,5)]);
+    set(timeslideH,'SliderStep',[1/(size(mv,5)-1) 10/(size(mv,5)-1)]);
     set(timetextH,'String','1');
     
     %save directory from which movie was loaded

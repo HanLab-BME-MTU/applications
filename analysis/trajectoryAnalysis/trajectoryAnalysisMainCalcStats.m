@@ -378,11 +378,7 @@ end
 % FRAP
 % - here is where it would be -
 
-% DEBUG 
-if growthTimeTotal ~=floor(growthTimeTotal)
-    disp('dbstop:broken growthTime')
-    keyboard
-end
+
 
 %write statistics structure
 % 

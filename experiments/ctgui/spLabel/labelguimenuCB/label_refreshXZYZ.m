@@ -30,7 +30,7 @@ PIXELSIZE_XY=dataProperties.PIXELSIZE_XY;
 PIXELSIZE_Z=dataProperties.PIXELSIZE_Z;
 
 %labelguiData
-curr_time = get(labelguiHandles.slider3,'Value');
+curr_time = round(get(labelguiHandles.slider3,'Value'));
 if ~isempty(idlist)
     cMap = GetUserData(labelguiH,'cMap');
     cMapFact = size(cMap,1)/idlist(1).stats.maxColor;

@@ -163,7 +163,7 @@ if nargout > 2
             error('No projProperties in project data!');
         end
     else
-        projProperties = data.projProperties;
+        projectProperties = data.projProperties;
     end
 end
 
@@ -189,8 +189,8 @@ if nargout > 4
     
     %--------------try to load filtered movie
     %try to find filenames in the path from which projectData has been loaded
-    filteredMovieName = chooseFile('filtered_movie',[],'new');
-    altFilteredMovieName = chooseFile('moviedat',[],'new');
+    filteredMovieName = chooseFile('filtered_movie',pathName,'new');
+    altFilteredMovieName = chooseFile('moviedat',pathName,'new');
     if isempty(filteredMovieName)
         if isempty(altFilteredMovieName) %to ensure compatibility with earlier versions
             disp('no filtered movie found. load unfiltered movie instead')
@@ -204,10 +204,10 @@ if nargout > 4
                 filteredMovie  =  r3dread(moviename);
             end
         else
-            filteredMovie = readmat(altFilteredMovieName);
+            filteredMovie = readmat([pathName filesep altFilteredMovieName]);
         end
     else 
-        filteredMovie = readmat(filteredMovieName);
+        filteredMovie = readmat([pathName filesep filteredMovieName]);
     end;
     
     %test if everything correctly loaded

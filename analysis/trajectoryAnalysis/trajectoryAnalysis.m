@@ -137,7 +137,7 @@ constants.PROBF = 0.7; % probability for whether linear fit is better than pause
 constants.STRATEGY = 1; % fitting strategy
 constants.MINLENGTH = 2; % minimum length of a unit
 constants.MAXDELETED = 0; % max number of deleted frames between two timepoints that is accepted
-constants.MINTRAJECTORYLENGTH = 10;
+constants.MINTRAJECTORYLENGTH = 3;
 constants.DEBUG = DEBUG; 
 constants.DOCLUSTER = clusterData; % this does not really belong here, but it's easiest to pass it with the constants
 constants.CLUSTERMIN = 1; % min # of cluster the EM algorithm looks for
@@ -153,7 +153,7 @@ identifierCell = cell(3,3);
 
 identifierCell{3,1} = 'HOME';
 h = (getenv('HOME'));
-if ~isempty(h) & strcmp(h(end),filesep) %should actually never happen
+if ~isempty(h) && strcmp(h(end),filesep) %should actually never happen
     h = h(1:end-1);
 end
 identifierCell{3,2} = h;
@@ -161,7 +161,7 @@ identifierCell{3,3} = length(identifierCell{3,2});
 
 identifierCell{2,1} = 'BIODATA';
 b = (getenv('BIODATA'));
-if ~isempty(b) & strcmp(b(end),filesep)
+if ~isempty(b) && strcmp(b(end),filesep)
     b = b(1:end-1);
 end
 identifierCell{2,2} = b;
@@ -169,7 +169,7 @@ identifierCell{2,3} = length(identifierCell{2,2});
 
 identifierCell{1,1} = 'SIMDATA';
 s = (getenv('SIMDATA'));
-if ~isempty(s) & strcmp(s(end),filesep)
+if ~isempty(s) && strcmp(s(end),filesep)
     s = s(1:end-1);
 end
 identifierCell{1,2} = s;
@@ -189,7 +189,7 @@ clear h b s
 
 
 %lookfor inputData
-if nargin == 0 | isempty(inputData)
+if nargin == 0 || isempty(inputData)
     loadDataForced = 1; % we override the default
     inputData = [];
     inputDataRmIdx = [];
@@ -206,7 +206,7 @@ end
 %to consider all cases!! (whenever there is a "wrong" input, the default is taken)
 
 
-if nargin < 2 | isempty(ioOpt)
+if nargin < 2 || isempty(ioOpt)
     %do nothing
 else
     if isfield(ioOpt,'details')
@@ -232,7 +232,7 @@ else
     end
     
     %only now check for path
-    if saveTxt & isfield(ioOpt,'saveTxtPath')
+    if saveTxt && isfield(ioOpt,'saveTxtPath')
         %check whether we have been given a name or a path
         pathNameLength = length(ioOpt.saveTxtPath);
         fileSepList = strfind(ioOpt.saveTxtPath,filesep);
@@ -260,7 +260,7 @@ else
     end
     
     %only now check for path
-    if saveMat & isfield(ioOpt,'saveMatPath')
+    if saveMat && isfield(ioOpt,'saveMatPath')
         %check whether we have been given a name or a path
         pathNameLength = length(ioOpt.saveMatPath);
         fileSepList = strfind(ioOpt.saveMatPath,filesep);
@@ -288,7 +288,7 @@ else
     end
     
     % we do not care about the fileNameList if the input is given as run
-    if isfield(ioOpt,'fileNameList') & ~inputDataIsRun
+    if isfield(ioOpt,'fileNameList') && ~inputDataIsRun
         if iscell(ioOpt.fileNameList)
             fileNameList = ioOpt.fileNameList;
             % make sure we remove fileNames if we have removed inputData
@@ -306,7 +306,7 @@ else
     end
     
     if isfield(ioOpt,'expOrSim')
-        if length(ioOpt.expOrSim)>1 | ~isstr(ioOpt.expOrSim) | isempty(strfind('esx',ioOpt.expOrSim))
+        if length(ioOpt.expOrSim)>1 || ~ischar(ioOpt.expOrSim) || isempty(strfind('esx',ioOpt.expOrSim))
             error('expOrSim has to be one letter (e, s, or x)');
         else
             expOrSim=ioOpt.expOrSim;
@@ -322,7 +322,7 @@ else
         loadData = ioOpt.loadData;
         % if isrun is zero (not []), we force loadData to 1 if it was not 0
         % before
-        if loadData & inputDataIsRun == 0
+        if loadData && inputDataIsRun == 0
             loadData = 1;
         end
     end
@@ -334,7 +334,7 @@ loadData = max(loadData,loadDataForced);
 
 %check testOpt
 
-if nargin < 3 | isempty(testOpt)
+if nargin < 3 || isempty(testOpt)
     %do nothing
 else
     if isfield(testOpt,'splitData')
@@ -365,7 +365,7 @@ end
 
 
 %===================================================================
-%--------------LOAD DATA & ASK FOR PATHS---------
+%--------------LOAD DATA && ASK FOR PATHS---------
 %===================================================================
 
 oldDir = pwd; %remember old dir before loading
@@ -391,7 +391,7 @@ else
 end
 
 % check whether we do have data at all
-if loadCt == 0 & isempty(inputData)
+if loadCt == 0 && isempty(inputData)
     disp('no files loaded - end evaluation')
     return
 end
@@ -408,7 +408,7 @@ end
 %takes too much time!
 
 %first: textFile - only if we have just one run!
-if saveTxt & numRun == 1
+if saveTxt && numRun == 1
     if isempty(saveTxtName) %only ask if no name has been given before
         helpTxt = 'Please select filename,';
         if isempty(saveTxtPath)
@@ -435,13 +435,13 @@ if saveTxt & numRun == 1
         else
             
             %get expOrSim
-            eosVect = ['esx'];
+            eosVect = 'esx';
             expOrSim = eosVect(eos);
         end
     end
     
     %append the file extension
-    if saveTxt & ~strcmp(saveTxtName(end-3),'.')
+    if saveTxt && ~strcmp(saveTxtName(end-3),'.')
         saveTxtName = [saveTxtName,'.mt',expOrSim];
     else
         %the user has chose something him/herself
@@ -449,7 +449,7 @@ if saveTxt & numRun == 1
 else
     % we do not save at all
     saveTxt = 0;
-    saveTxtName == 0;
+    saveTxtName = 0;
 end
 
 %second: matFile - save anyway
@@ -484,7 +484,7 @@ end
    
 
 
-%========= LOAD DATA & SET UP RUNS ===============================
+%========= LOAD DATA && SET UP RUNS ===============================
 % new data is appended to old one
 loadOptions = struct('standardTags', {standardTags},...
     'downsample', downsample,...
@@ -500,7 +500,7 @@ cd(oldDir);
 clear fileList helpTxt problem i inputData fileNameList loadOptions
 
 %===================================================================
-%----------END LOAD DATA  & ASK FOR PATHS---------
+%----------END LOAD DATA  && ASK FOR PATHS---------
 %===================================================================
 
 
@@ -550,7 +550,7 @@ if saveTxt
         %now sieve the fileName until we find the identifier, or know for
         %sure that there isn't any
         %use if/elseif, because we want biodata/simdata to override home
-        if ~isempty(identifierCell{1,2}) & strcmpi(identifierCell{1,2},fileName(1:min(identifierCell{1,3},lengthFileName))) %check for SIMDATA
+        if ~isempty(identifierCell{1,2}) && strcmpi(identifierCell{1,2},fileName(1:min(identifierCell{1,3},lengthFileName))) %check for SIMDATA
             
             %read identifier, restOfFileName. There is no filesep at the
             %end of the identifier path, so the restOfFileName should start
@@ -558,7 +558,7 @@ if saveTxt
             identifier = identifierCell{1,1};
             restOfFileName = fileName(identifierCell{1,3}+1:end);
             
-        elseif ~isempty(identifierCell{2,2}) & strcmpi(identifierCell{2,2},fileName(1:min(identifierCell{2,3},lengthFileName))) %check for BIODATA
+        elseif ~isempty(identifierCell{2,2}) && strcmpi(identifierCell{2,2},fileName(1:min(identifierCell{2,3},lengthFileName))) %check for BIODATA
             
             %read identifier, restOfFileName. There is no filesep at the
             %end of the identifier path, so the restOfFileName should start
@@ -566,7 +566,7 @@ if saveTxt
             identifier = identifierCell{2,1};
             restOfFileName = fileName(identifierCell{2,3}+1:end);
             
-        elseif ~isempty(identifierCell{3,2}) & strcmpi(identifierCell{3,2},fileName(1:min(identifierCell{3,3},lengthFileName))) %check for HOME
+        elseif ~isempty(identifierCell{3,2}) && strcmpi(identifierCell{3,2},fileName(1:min(identifierCell{3,3},lengthFileName))) %check for HOME
             
             %read identifier, restOfFileName. There is no filesep at the
             %end of the identifier path, so the restOfFileName should start
@@ -574,7 +574,7 @@ if saveTxt
             identifier = identifierCell{3,1};
             restOfFileName = fileName(identifierCell{3,3}+1:end);
             
-        elseif exist(fileName) %check for NONE
+        elseif exist(fileName,'file') %check for NONE
             
             %assign none
             identifier = 'NONE';
@@ -609,7 +609,7 @@ end
 %--------------CALCULATE---------
 %===================================================================
 
-if ~isempty(DEBUG) | ~saveTxt % if no file, we do not care
+if ~isempty(DEBUG) || ~saveTxt % if no file, we do not care
     for iRun = 1:length(run)
         trajectoryDescription(iRun) = trajectoryAnalysisMain(run(iRun).data,constants,showDetails,doConvergence,verbose,run(iRun).fileNameList);
     end
@@ -622,7 +622,7 @@ else
         if ~isempty(fidTxt) 
             fclose(fidTxt);
         end
-        error(lasterr)
+        rethrow(lasterr)
     end
 end
 %===================================================================
@@ -655,7 +655,7 @@ if saveTxt
         numStats = length(statisticsTitles);
         
         %---write overall statistics, date, probabilities
-        fprintf(fidTxt,['\n\n---OVERALL STATISTICS, run %i or %i---\n'], iRun, length(run));
+        fprintf(fidTxt,'\n\n---OVERALL STATISTICS, run %i or %i---\n', iRun, length(run));
         fprintf(fidTxt,[nowString,'\n']);
         fprintf(fidTxt,'Slope   Test: %1.3f\n',constants.TESTPROBABILITY);
         fprintf(fidTxt,'Pause   Test: %1.3f\n',constants.PROBF);

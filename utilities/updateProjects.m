@@ -42,7 +42,9 @@ cleanupFiles = 0;
 % nothing is to be done
 
 if nargin == 0
-    error('please specify at least one input argument for UPDATEPROJECTS!')
+    warning('UPDATEPROJECTS:noinput','please specify at least one input argument for UPDATEPROJECTS!')
+    help updateProjects
+    return
 end
 
 % init actionString

@@ -65,6 +65,14 @@ addOri  = 0;
 addSnr  = 0;
 addIsT  = 0;
 
+if nargin == 0 || isempty(nRunsOrFileList)
+    error('Specify nRunsOrFileList in loadRunsFromFile!')
+end
+
+if nRunsOrFileList == 0
+    return
+end
+
 
 % SWITCHES
 for in = 1:length(varargin)

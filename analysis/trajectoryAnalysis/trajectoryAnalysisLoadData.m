@@ -346,6 +346,7 @@ if splitData
         newRun(evenRuns(iRun)).fileNameList  = run(iRun).fileNameList(dataSet1); % same as above
         
     end % for iRun = 1:nRuns
+    
 elseif ~all(subset == [1 1])
     % subset = [frac,n]. We take n subsets of size frac*nData, or the
     % maximum number of possible subsets for the given fraction. 
@@ -409,7 +410,7 @@ elseif ~all(subset == [1 1])
             poSS = unique(poSS,'rows');
             % now we have the possible subset. Check if we have enough subsets.
             numPossibleSS = size(poSS,1);
-            enoughSubsets = >=numSubSets;
+            enoughSubsets = numPossibleSS >= numSubSets;
             
         end
         
@@ -442,6 +443,11 @@ elseif ~all(subset == [1 1])
     
     % turn on warnings
     warning(oldWarnings);
+    
+else
+    
+    % we change nothing
+    newRun = run;
     
 end %  if split/subset
 

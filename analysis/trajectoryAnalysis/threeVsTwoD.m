@@ -23,11 +23,14 @@ for i = 1:length(inputData)%loop through all data
     %calculate depth-of-field
     pixel_Z = dataProperties.PIXELSIZE_Z;
     wvl     = dataProperties.WVL;
-    nRef    = 1.33;
+    nRef    = 1.52;
     NA      = dataProperties.NA;
     nZSlices = dataProperties.movieSize(3);
     
-    dofInterval = 1.1*wvl*nRef/(NA^2); %we accept a signal if it is at 50% intensity in the focal plane (ca. 1.1 dof)
+    % assumption: we have two tags with SNR 8 each. We can still detect
+    % them at SNR=2 in the focal plane.
+    % we accept a signal if it is at 25% intensity in the focal plane (ca. 1.55 dof)
+    dofInterval = 1.55*wvl*nRef/(NA^2); 
     
     
     %loop through idlist to
@@ -61,6 +64,8 @@ for i = 1:length(inputData)%loop through all data
     % seconds. So we just assume there is a perfect microscopist, and keep
     % all inFocus
     outOfFocusFrames = badIntervalIdx;
+    inFocusFrames    = goodIntervalIdx;
+    
     if ~isempty(goodIntervalIdx) | length(goodIntervalIdx)==1
         do3S = 1;
     else
@@ -102,7 +107,9 @@ for i = 1:length(inputData)%loop through all data
     
     idlist3S = idlistMP;
     %remove all frames where tags are out of focus
-    [idlist3S(outOfFocusFrames).linklist] = deal([]);
+    if ~isempty(outOfFocusFrames)
+        [idlist3S(outOfFocusFrames).linklist] = deal([]);
+    end
     
     %calc anaDat
     anaDatMP = adgui_calc_anaDat(idlistMP, dataProperties,'idlisttrack_L');
@@ -114,13 +121,11 @@ for i = 1:length(inputData)%loop through all data
         outputData3S(i).dataProperties = dataProperties;
         outputData3S(i).anaDat = anaDat3S;
         outputData3S(i).frameList = inFocusFrames;
-        outputData3S(i).focalPlane = focalPlane;
     else
         outputData3S(i).idlist = [];
         outputData3S(i).dataProperties = [];
         outputData3S(i).anaDat = [];
         outputData3S(i).frameList = [];
-        outputData3S(i).focalPlane = [];
     end
     
     outputDataMP(i).idlist = idlistMP;
