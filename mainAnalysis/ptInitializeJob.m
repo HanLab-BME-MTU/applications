@@ -117,7 +117,7 @@ else
    
    % Check whether we can find some more cells based on average cell size and cluster areas
    % that have no coordinates in them: if these are big enough we label them as cells
-   [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (edgeImage, newCoord, minSizeNuc, edgeKernel);
+   [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (edgeImage, newCoord, minSizeNuc, 5);
                                                                         
    % If we found any new cells add them to the already found ones
    if ~isempty (avgCoord)

@@ -33,6 +33,7 @@ function ptSetCellValues (hObject,objectChoice)
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source
 % Andre Kerstens        May 04          Renamed to ptSetCellValues.m
+% Andre Kerstens        Jul 04          Added parameters to ptGetProcessedImage
 
 % Get the handles structure from the GUI and determine current job number
 handles = guidata (hObject);
@@ -49,7 +50,7 @@ intensityMax   = handles.jobs(jobNumber).intensityMax;
 cd (imageDirectory);
 fileName = char (imageNameList (firstImage));
 tempFirstImg = imreadnd2 (fileName, 0, intensityMax);
-[firstImg, backgroundLevel] = ptGetProcessedImage (tempFirstImg, intensityMax, 15);
+[firstImg, backgroundLevel, edgeImage] = ptGetProcessedImage (tempFirstImg, intensityMax, 15, 5);
 
 % Get the image size
 [img_h,img_w]=size(firstImg);
