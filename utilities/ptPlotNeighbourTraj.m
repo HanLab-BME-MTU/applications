@@ -38,6 +38,12 @@ if ~radioButtons.donotshowplots
     % Draw a plot showing neighbour traj. 
     ymax = max (avgTrajFrame) + (0.1*max (avgTrajFrame));
     plot (xAxis, avgTrajFrame); 
+    
+    if radioButtons.plotestimate
+       hold on;
+       [yPlot, est] = ptPlotEstimate (xAxis, avgTrajFrame);
+       hold off;
+    end
         
     if radioButtons.runningaverage
         hold on; plot (xAxis, raAvgTrajFrame, 'r'); hold off;
@@ -60,3 +66,8 @@ end
 
 % Save CSV files
 csvwrite ([SaveDir filesep imageName '_avgNeighbourTrajLength.csv'], [xAxis ; avgTrajFrame]);
+
+if radioButtons.plotestimate
+   csvwrite ([SaveDir filesep imageName '_fittedCurveNeighbourTraj.csv'], [xAxis ; yPlot]);
+   csvwrite ([SaveDir filesep imageName '_curveEstimatesNeighbourTraj.csv'], est);
+end

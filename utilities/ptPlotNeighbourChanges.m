@@ -39,6 +39,12 @@ if ~radioButtons.donotshowplots
     ymax = max (avgNbChange) + (0.1*max (avgNbChange));
     plot (xAxis, avgNbChange); 
         
+    if radioButtons.plotestimate
+       hold on;
+       [yPlot, est] = ptPlotEstimate (xAxis, avgNbChange);
+       hold off;
+    end
+    
     if radioButtons.runningaverage
         hold on; plot (xAxis, raAvgNbChange, 'r'); hold off;
     end
@@ -53,11 +59,16 @@ if ~radioButtons.donotshowplots
     end
 
     % Save the figures in fig, eps and tif format  
-    hgsave (h_fig2,[SaveDir filesep [imageName '_avgNeighbourChange.fig']]);
-    print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourChange.eps']],'-depsc2','-tiff');
-    print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourChange.tif']],'-dtiff');      
+    hgsave (h_fig2,[SaveDir filesep [imageName '_avgNeighbourInteractionChange.fig']]);
+    print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourInteractionChange.eps']],'-depsc2','-tiff');
+    print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourInteractionChange.tif']],'-dtiff'); 
 end
 
 % Save CSV files
 csvwrite ([SaveDir filesep imageName '_avgNeighbourInteractionChange.csv'], [xAxis ; avgNbChange]);
+
+if radioButtons.plotestimate
+   csvwrite ([SaveDir filesep imageName '_fittedCurveNeighbourChange.csv'], [xAxis ; yPlot]);
+   csvwrite ([SaveDir filesep imageName '_curveEstimatesNeighbourChange.csv'], est);
+end
 

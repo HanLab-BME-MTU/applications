@@ -1046,7 +1046,14 @@ path = get (hObject, 'String');
 
 % If the path doesn't exist yet create it
 if ~exist (path, 'dir')
-   mkdir (path);
+   msgStr = ['This directory does not exist yet. Do you want to create it?'];
+   answer = questdlg(msgStr, 'Create Directory', 'Yes', 'No', 'Yes');
+   if strcmp(answer,'Yes')
+      mkdir (path);
+   else
+      path = handles.guiData.savedatapath;
+      set(handles.GUI_fm_saveallpath_ed, 'String', path);
+   end
 end
 
 % Assign it to the postpro structure
@@ -1245,10 +1252,23 @@ function GUI_fm_filename_ed_Callback(hObject, eventdata, handles)
 handles = guidata (hObject);
 
 % Get the value of 'movie filename'
-filename = get (hObject, 'String');
+movieDirectory = get (hObject, 'String');
+[pathString, filename, ext, version] = fileparts (movieDirectory);
 
-% Assign it to the postpro structure
-handles.postpro.dragtailfile = filename;
+% If the path doesn't exist yet create it
+if ~exist (pathString, 'dir')
+   msgStr = ['This directory does not exist yet. Do you want to create it?'];
+   answer = questdlg(msgStr, 'Create Directory', 'Yes', 'No', 'Yes');
+   if strcmp(answer,'Yes')
+      mkdir (pathString);
+   else
+      moviePath = handles.guiData.dragtailfile;
+      set(handles.GUI_fm_filename_ed, 'String', moviePath);
+   end
+end
+
+% Assign it to the guiData structure
+handles.guiData.dragtailfile = [pathString filesep filename];
 
 % Update handles structure
 guidata(hObject, handles);
@@ -1421,11 +1441,11 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.postpro.multFrameVelocity = 1;
-    set (handles.multframevelocity, 'String', handles.postpro.multframevelocity);
+    handles.guiData.multframevelocity = 1;
+    set (handles.multframevelocity, 'String', handles.guiData.multframevelocity);
     return
 else
-    handles.postpro.multframevelocity = val;
+    handles.guiData.multframevelocity = val;
 end
 
 % Update handles structure
@@ -1520,6 +1540,9 @@ function GUI_mmpixel_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_mmpixel_ed as a double
 handles = guidata(hObject);
 
+% Get the selected jobs, since we want to change this value for all of them
+filesSelected = get(handles.GUI_filelist_lb,'Value');
+
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
 strval = get(hObject,'String');
@@ -1527,11 +1550,13 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.postpro.mmpixel = handles.postpro.default.mmpixel;
-    set (handles.GUI_mmpixel_ed, 'String', handles.postpro.mmpixel);
+    handles.guiData.mmpixel = handles.defaultPostpro.mmpixel;
+    set (handles.GUI_mmpixel_ed, 'String', handles.guiData.mmpixel);
     return
 else
-    handles.postpro.mmpixel = val;
+    for iCount = 1:length(filesSelected)
+       handles.jobData(iCount).mmpixel = val;
+    end
 end
 
 % Update handles structure
@@ -1564,6 +1589,9 @@ function GUI_frameinterval_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_frameinterval_ed as a double
 handles = guidata(hObject);
 
+% Get the selected jobs, since we want to change this value for all of them
+filesSelected = get(handles.GUI_filelist_lb,'Value');
+
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
 strval = get(hObject,'String');
@@ -1571,11 +1599,13 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.postpro.timeperframe = handles.postpro.default.timeperframe;
-    set (handles.GUI_frameinterval_ed, 'String', handles.postpro.timeperframe);
+    handles.guiData.timeperframe = handles.defaultPostpro.timeperframe;
+    set (handles.GUI_frameinterval_ed, 'String', handles.guiData.timeperframe);
     return
 else
-    handles.postpro.timeperframe = val;
+    for iCount = 1:length(filesSelected)
+       handles.jobData(iCount).timeperframe = val;
+    end
 end
 
 % Update handles structure
@@ -2175,11 +2205,11 @@ end
 if length(fileNumber) > 0
    fileList(fileNumber) = [];
    
-   handles.jobData(fileNumber) = [];
-   handles.allMPM(fileNumber) = [];
-   handles.allCellProps(fileNumber) = [];
-   handles.allClusterProps(fileNumber) = [];
-   handles.allFrameProps(fileNumber) = [];
+%    handles.jobData(fileNumber) = [];
+%    handles.allMPM(fileNumber) = [];
+%    handles.allCellProps(fileNumber) = [];
+%    handles.allClusterProps(fileNumber) = [];
+%    handles.allFrameProps(fileNumber) = [];
 end
 
 % Put a standard string in the file list window if there are no files to show
@@ -2217,7 +2247,7 @@ if ~exist (pathString, 'dir')
    return
 end
 
-% Select an image filename or a file called 'jobvalues.mat' from a user selected directory
+% Select an setting file from a user selected directory
 [filename, directory] = uigetfile ({[pathString filesep '*.mat'], 'Setting Files'; '*.*', 'all files'}, ...
                                       'Please select a PP setting file');
 
@@ -2647,6 +2677,9 @@ radioButtons.movietypeqt = get (handles.GUI_movietype_qt_rb,'Value');
 % Get button that shows whether we should start counting from 1
 radioButtons.alwayscount1 = get (handles.GUI_alwayscount1_cb,'Value');
 
+% Get button for plotting the estimated function
+radioButtons.plotestimate = get (handles.GUI_plotestimate_cb,'Value');
+
 %--------------------------------------------------------------------
 
 % --- Executes on button press in GUI_notshowplots_cb.
@@ -2838,5 +2871,8 @@ function GUI_ripconfint_ed_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+function GUI_plotestimate_cb_Callback(hObject, eventdata, handles)
 
 

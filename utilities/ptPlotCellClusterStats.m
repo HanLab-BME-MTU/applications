@@ -133,9 +133,9 @@ if radioButtons.cellclusterplot_1
     % Save MAT files for amount of cells and perc. single cells
     save ([SaveDir filesep imageName '_amountAllCells.mat'],'cellAmount');
     
-    % Save CSV files for amount of cells and perc. single cells
+    % Save CSV files for amount of cells and amount single cells
     csvwrite ([SaveDir filesep imageName '_amountAllCells.csv'], [xAxis ; cellAmount]);
-    
+    csvwrite ([SaveDir filesep imageName '_amountSingleCells.csv'], [xAxis ; singleCellAmount]);
 end
 
 if radioButtons.cellclusterplot_2

@@ -110,7 +110,7 @@ if radioButtons.speedplot_2
         % Draw a subplot showing the avg velocity of a cluster
         ymax = max (avgClusteredVelocity) + 1;
         subplot (2,1,2); plot (xAxis, avgClusteredVelocity); 
-        
+
         if radioButtons.runningaverage
             hold on; plot (xAxis, raAvgClusteredVelocity, 'r'); hold off;
         end
