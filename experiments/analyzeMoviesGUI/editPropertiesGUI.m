@@ -514,6 +514,12 @@ function edit_OK_PB_Callback(hObject, eventdata, handles)
 
 handles = guidata(hObject);
 
+%if no filterprm, we can't go on
+if ~isfield(handles,'FILTERPRM')
+    errordlg('Set NA first! (In Image Acquisition)','Insufficient Information');
+    return
+end
+
 edit_readguidata(handles);
 
 figure(handles.amgHandles.AMG);

@@ -1,28 +1,50 @@
-function [data,label,legendText,selectedTags,stats] = adgui_calcPlotData_tagDiffusion(handles,anaDat,xyz,legendText,correction)
+function [data,label,legendText,selectedTags,stats,time] = adgui_calcPlotData_tagDiffusion(handles,anaDat,xyz,legendText,correction,dataProperties,verbose)
 %calculate diffusion data in the analyzeData framework. 
-%SYNOPSIS  [data,label,legendText,selectedTags,stats] = adgui_calcPlotData_tagDiffusion(handles,anaDat,xyz,legendText,correction)
 %
-%INPUT     handles: either handles to analyzeDataGUI, or handles.diffTag, handles.corrTag: numbers of tag to investigate
-% 	               and tag with which to correct position, respectively
-%	   anaDat: basic data structure, created with calcAnaDat
-%	   xyz: string ('x','y','z'), depending on which axis to plot in (can be empty)
-%	   lengendText: cell text array, containing legend text (can be empty)
-%          correction: how should tag positions be corrected? 
-%		0: no correction
-%		1: centroid correction
-%		2: tag correction
+% SYNOPSIS [data,label,legendText,selectedTags,stats] = adgui_calcPlotData_tagDiffusion(handles,anaDat,xyz,legendText,correction)
 %
-%OUTPUT    data: mean squared diffused distance (during 1,2,3 etc. timesteps)
-%	   label: data label
-%	   legendText: legend text
-%	   selectedTags: number of diffusing tag
-%	   stats: structure, stats.sigma gives precision for each measurement
+% INPUT    handles:     either handles to analyzeDataGUI, or vector, where
+%                       handles (1) is the number of the first tag and handles(2) is the
+%                       correction tag (if there's one)
+%	       anaDat:      basic data structure, created with calcAnaDat
+%	       xyz:         string ('x','y','z'), depending on which axis to plot in (can be empty)
+%	       lengendText: cell text array, containing legend text (can be empty)
+%          correction:  how should tag positions be corrected? 
+%		                0: no correction
+%		                1: centroid correction
+%		                2: tag correction
+%                       3: 1D-diffusion
+%          dataProperties: needed if you want to display time, else
+%                           optional
+%          verbose      whether or not to show popups (default 1, for analyzeDataGUI)
+%
+% OUTPUT    data:           mean squared diffused distance (during 1,2,3 etc. timesteps)
+%	        label:          data label
+%	        legendText:     legend text
+%	        selectedTags:   number of diffusing tag
+%	        stats:          structure, stats.sigma gives precision for each measurement
+%           time:           time associated with the respective deltas. if
+%                           this is returned, the code only gives
+%                           data, sigma, where there are no NaNs!
 %
 %c: 6/03, jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% test input
+if nargout > 5 & nargin < 6 | isempty(dataProperties)
+    error('Please specify dataProperties')
+end
+
+if nargin < 7 | isempty(verbose)
+    verbose = 1;
+end
+
 %get tag number
-eval(['tag1 = get(handles.',xyz,'TagHandles(1),''Value'')-1;']);
+if isstruct(handles)
+    eval(['tag1 = get(handles.',xyz,'TagHandles(1),''Value'')-1;']);
+else
+    tag1 = handles(1);
+end
 
 selectedTags = [tag1];
 
@@ -55,7 +77,12 @@ switch correction
         corrTag = anaDat(1).info.nTags + 1;
         
     case 2 %tag correction
-        corrTag = get(handles.cenHandles(2),'Value')-1;
+        
+        if isstruct(handles)
+            corrTag = get(handles.cenHandles(2),'Value')-1;
+        else
+            corrTag = handles(2);
+        end
         
         corrTagCoord = squeeze(coordList(corrTag,:,:))';
         
@@ -65,9 +92,15 @@ switch correction
         correctionString = [anaDat(1).info.labelColor{corrTag},' centered'];
         
     case 3 %1-D diffusion, tag corrected
-        corrTag = get(handles.cenHandles(2),'Value')-1;
         
-        %new tagCoord will be: [distance, 0, 0]
+        if isstruct(handles)
+            corrTag = get(handles.cenHandles(2),'Value')-1;
+        else
+            corrTag = handles(2);
+        end
+        
+        % new tagCoord will be: [distance, 0, 0], which will effectively
+        % turn this into a 1D-diffusion
         
         %get distance
         distanceMatrix=cat(3,anaDat.distanceMatrix);
@@ -88,9 +121,13 @@ end
 nDeltas = max(floor(length(timePoints)/2),length(timePoints)-21);
 %check that we have enough data
 if nDeltas<1
-    h = errordlg('not enough data points for diffusion measurement');
-    uiwait(h)
-    return
+    if verbose
+        h = errordlg('not enough data points for diffusion measurement');
+        uiwait(h)
+        return
+    else
+        error('not enough data points for diffusion measurement');
+    end
 end
 displacements = zeros(length(timePoints)-1,nDeltas);
 displacementSigma = displacements; %init sigmas the same way, so that both matrices have the same size!
@@ -102,15 +139,15 @@ deltas = displacements; %zeros, too
 for deltaT = 1:nDeltas
     %calculate displacements - then check for 0-displacements (can occur for fusions!)
     displacementVectors = tagCoord(1+deltaT:end,:) - tagCoord(1:end-deltaT,:);
-    displacementNorms = sum(displacementVectors.^2,2);
-    badVectors = find(displacementNorms==0);
+    displacementNorms2 = sum(displacementVectors.^2,2);
+    badVectors = find(displacementNorms2==0);
     
     %calculate sigmas first with all vectors, then discard bad data
-    nDisplacementVectorsAll = length(displacementNorms);
+    nDisplacementVectorsAll = length(displacementNorms2);
     
     %calculate sigmas
     displacementSigmaTmp =...
-        adgui_calcPlotData_distanceSigma(anaDat,selectedTags,displacementVectors,displacementNorms,corrTag,deltaT);
+        adgui_calcPlotData_distanceSigma(anaDat,selectedTags,displacementVectors,sqrt(displacementNorms2),corrTag,deltaT);
     
     %throw away bad data
     displacementSigmaTmp(badVectors) = [];
@@ -118,10 +155,10 @@ for deltaT = 1:nDeltas
     displacementVectors(badVectors,:) = [];
     
     %get number of good vectors
-    nDisplacementVectors = length(displacementNorms);
+    nDisplacementVectors = length(displacementNorms2);
     
     %store displacements.^2 
-    displacements(1:nDisplacementVectors,deltaT) = displacementNorms;
+    displacements(1:nDisplacementVectors,deltaT) = displacementNorms2;
     
     %store sigmas
     displacementSigma(1:nDisplacementVectors,deltaT) = displacementSigmaTmp;
@@ -158,9 +195,11 @@ end
 
 %test whether there is at least 1 good timepoint
 if all(isnan(meanDisplacement+sigmaDisplacement))
-    h = errordlg('there is not one valid data point (we need at least 20 measurements for one data point)');
-    uiwait(h)
-    %return does not work here, so we rethrow the error
+    if verbose
+        h = errordlg('there is not one valid data point (we need at least 20 measurements for one data point)');
+        uiwait(h)
+    end        
+    %return does not work here, so we rethrow the error (why??)
     error('no data to plot');
 end
 
@@ -172,5 +211,17 @@ label = ['Displacement [\mum^2]'];
 
 legendText = [legendText;{['Diffusion of ',anaDat(1).info.labelColor{tag1}, ' [microns^2] ',correctionString]}];
 
-%---add option distance diffusion
-%---return timesteps from here!!!
+%---return timesteps if asked for
+if nargout > 5
+    % timepoints2secondsFactor
+    timeFactor = dataProperties.timeLapse;
+    
+    % only return time, data, where there are actually values
+    timePoints = [1:length(data)];
+    nanIdx = find(isnan(data));
+    data(nanIdx) = []; %kill nans
+    stats.sigma(nanIdx) = []; %kill nans
+    timePoints(nanIdx) = [];
+    
+    time = timeFactor*timePoints;
+end

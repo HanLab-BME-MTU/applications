@@ -10,7 +10,7 @@ movieLength = str2double(get(handles.edit_movieLength_txt,'String'));
 
 %if no filterprm, no filtering/detecting is possible
 if ~isfield(handles,'FILTERPRM')
-    errordlg('Set NA first!','Insufficient Information');
+    errordlg('Set NA first!  (In Image Acquisition)','Insufficient Information');
     return
 end
 
