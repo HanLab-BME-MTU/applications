@@ -1,6 +1,6 @@
 function [gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag,...
     checkRoots)
-%RELAUTOCOV calculates the autocovariance function of an ARMA model. 
+%RELAUTOCOV calculates the autocovariance/(noise variance) of an ARMA model. 
 %
 %SYNOPSIS [gammaV,errFlag] = relAutoCov(arOrder,maOrder,arParam,maParam,maxLag,...
 %    checkRoots)
