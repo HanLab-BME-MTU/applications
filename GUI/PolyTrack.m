@@ -1223,7 +1223,7 @@ else
 end
 
 for projNum=1:howmanyjobs
-    
+        Increment = handles.jobs(projNum).increment;
 
 		possibleImg = handles.jobs(projNum).firstimage;
 		while (possibleImg+Increment) <= handles.jobs(projNum).lastimage
@@ -1241,12 +1241,12 @@ for projNum=1:howmanyjobs
 		clear jobvalues
 		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
-		try
+% 		try
            trackmater(hObject,projNum);
-		catch    
-           disp(['job number ',num2str(projNum),' had an error and could not be completed'])
-           disp(lasterr)
-		end
+% 		catch    
+%            disp(['job number ',num2str(projNum),' had an error and could not be completed'])
+%            disp(lasterr)
+% 		end
            
 end
 

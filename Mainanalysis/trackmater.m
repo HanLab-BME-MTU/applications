@@ -19,6 +19,7 @@ ImageName = handles.jobs(projNum).imagename;
 Increment = handles.jobs(projNum).increment;
 FirstImaNum = handles.jobs(projNum).firstimage;
 LastImaNum = handles.jobs(projNum).lastimage;
+ImageNamesList = handles.jobs(projNum).imagenameslist;
 
 
 
@@ -46,7 +47,7 @@ sizetemple = handles.jobs(projNum).sizetemplate;
 box_size_img = handles.jobs(projNum).boxsize;
 
 
-ErodeDiskSize = 10;
+ErodeDiskSize = 9;
 %how much the blobs found in halosfind shall be eroded. This is an indirect
 %size criteria for halosfind. Increase - minimal size of halos will be
 %increased, decrease - ... decreased
@@ -150,10 +151,10 @@ howManyImg = LastImaNum-FirstImaNum+1;
 levdiff_fi = abs(LevNuc_fi-LevBack_fi)*LevelChanger;
 levdiff_la = abs(LevNuc_la-LevBack_la)*LevelChanger;
 
-incr = (levdiff_la-levdiff_fi)/(howManyImg-1);
+incrDiff = (levdiff_la-levdiff_fi)/(howManyImg-1);
 incrback = (LevBack_la-LevBack_fi)/(howManyImg-1);
 incrhalo = (LevHalo_la-LevHalo_fi)/(howManyImg-1);
-
+incrNuc = (LevNuc_la-LevNuc_fi)/(howManyImg-1);
 
 
 
@@ -188,37 +189,36 @@ else
     %index is equal to the number of the image, countingloops keeps
     %track of the loops
     countingloops = 0
+    
+    
 	for jImageNum = FirstImaNum:Increment:LastImaNum
+        
         jImageNum;
         countingloops = countingloops+1
         
         cd(ImageDirectory)
-        
-        % Format
-		s=3; %s=length(num2str(no));
-		strg = sprintf('%%.%dd',s);
-		
-		% Create numerical jImageNum
-		indxStr = sprintf(strg,jImageNum);
-        
-        name = [bodyFileName indxStr ext]; 
-        
+		name = char(ImageNamesList(jImageNum));
         %get the current picture
         newImg = imreadnd2(name,0,handles.jobs(projNum).intensityMax);
-           
-               
-       [img_h,img_w] = size(newImg);
+              
+        [img_h,img_w] = size(newImg);
+        
+        
         
         
         
        if jImageNum == FirstImaNum
                          
+           
+                      
+                      [seg_img, obj_val] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', [LevNuc_fi;LevBack_fi;LevHalo_fi]);
+                      
                       BODYIMG = zeros(img_h,img_w);
 	                   
-                      [coordNuc,regmax] = findnucloitrack(newImg,levdiff_fi,MinSizeNuc,MaxSizeNuc);
+                      [coordNuc,regmax] = findnucloitrack(seg_img,levdiff_fi,MinSizeNuc,MaxSizeNuc);
 
                        HaloLevel = (LevHalo_fi-LevBack_fi)*2/3+LevBack_fi;
-                      [haloCoord,logihalo] = halosfind(newImg,ErodeDiskSize,HaloLevel);
+                      [haloCoord,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel);
 
                       
                       
@@ -231,7 +231,7 @@ else
                       
                       
                       PROPERTIES = [];
-                      [PROPERTIES,BODYIMG,labeled] = body(newImg,newCoord,regmax,logihalo,PlusMinus);
+                      [PROPERTIES,BODYIMG,labeled] = body(seg_img,newCoord,regmax,logihalo,PlusMinus);
                       
                       
                      
@@ -261,24 +261,26 @@ else
         
                     
                       %adjust level via increment
-                      levnucinterpol = levdiff_fi+(countingloops-1)*Increment*incr;
-                      lebainterpol = LevBack_fi+(countingloops-1)*Increment*incrback;
+                      levDiffInterpol = levdiff_fi+(countingloops-1)*Increment*incrDiff;
+                      levBaInterpol = LevBack_fi+(countingloops-1)*Increment*incrback;
                       halointerpol = LevHalo_fi+(countingloops-1)*Increment*incrhalo;
-                      HaloLevel = (halointerpol-lebainterpol)*2/3+lebainterpol;
-                      clear halointerpol
+                      levNucInterpol = LevNuc_fi+(countingloops-1)*Increment*incrNuc;
+                      
+                      HaloLevel = (halointerpol-levBaInterpol)*2/3+levBaInterpol;
+              
                       
                      
 
-                      
+                      [seg_img, obj_val] = imClusterSeg(newImg, 0, 'method','kmeans','k_cluster',3,'mu0', [levNucInterpol;levBaInterpol;halointerpol]);
                       
                       %find cells that look really dark and nasty
                       coordNuc = [];
-                      [coordNuc,regmax] = findnucloitrack(newImg,levnucinterpol,MinSizeNuc,MaxSizeNuc);
+                      [coordNuc,regmax] = findnucloitrack(seg_img,levDiffInterpol,MinSizeNuc,MaxSizeNuc);
                      
                       %find cells that look like the third eye (round, big spots of
                       %pure light). We do this because the pictures are of poor
                       %quality and display huge halos around certain cells
-                      [haloCoord,logihalo] = halosfind(newImg,ErodeDiskSize,HaloLevel);
+                      [haloCoord,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel);
                        
                       newCoord = checkMinimalCellCell(coordNuc,haloCoord,MinDistCellCell)  ;
                       
@@ -290,7 +292,7 @@ else
                                prope = [];
                                ero = [];
                               
-                               [prope,BODYIMG,labeled] =  body(newImg,newCoord,regmax,logihalo,PlusMinus);
+                               [prope,BODYIMG,labeled] =  body(seg_img,newCoord,regmax,logihalo,PlusMinus);
                              
                                
                                PROPERTIES(1:size(emptyprop,1),1:size(emptyprop,2),countingloops,1) = emptyprop;
@@ -454,7 +456,7 @@ else
                                                       %routine. It will return the found
                                                       %coordinates and the value of the
                                                       %corralation
-                                                      [newcoord,absmaxcorr] = templfindertrack(tempcoord,oldImg,newImg,lebainterpol,TempelCellMarker,NewCell,NewCelTempl,NewCelTempelMarker,percentbackground,sizetemple,box_size_img);
+                                                      [newcoord,absmaxcorr] = templfindertrack(tempcoord,oldImg,newImg,levBaInterpol,TempelCellMarker,NewCell,NewCelTempl,NewCelTempelMarker,percentbackground,sizetemple,box_size_img);
                                                       
                                                       if sqrt((tempcoord(1,1)-newcoord(1,1)).^2 + (tempcoord(1,2)-newcoord(1,2)).^2) > 2*MaxSearch
                                                           %the programm made a mistake

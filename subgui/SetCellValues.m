@@ -12,8 +12,8 @@ change=0;
 handles = guidata(hObject);
 
 projNum = get(handles.GUI_st_job_lb,'Value');
-imageDirectory=handles.jobs(projNum).imagedirectory;
-imageName=handles.jobs(projNum).imagename;
+ImageDirectory=handles.jobs(projNum).imagedirectory;
+ImageName=handles.jobs(projNum).imagename;
 FirstImageNum=handles.jobs(projNum).firstimage;
 LastImaNum=handles.jobs(projNum).lastimage;
 ImageNamesList = handles.jobs(projNum).imagenameslist

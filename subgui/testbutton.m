@@ -18,9 +18,7 @@ projNum = get(handles.GUI_st_job_lb,'Value');
 
 
 ImageDirectory = handles.jobs(projNum).imagedirectory;
-ImageName = handles.jobs(projNum).imagename;
-ext = ImageName(end-3:end);
-bodyfilename = ImageName(1:end-7);
+
 
 
 First = handles.jobs(projNum).firstimage;
@@ -75,25 +73,25 @@ else
 %         
 %         name = [bodyfilename indxStr ext]; 
         
-        name = char(ImageNamesList(1))
+        name = char(ImageNamesList(First))
         
         %get the current picture
         firstFrame = imreadnd2(name,0,handles.jobs(projNum).intensityMax);
            
         
-        
+
         [img_h,img_w] = size(firstFrame);
        
-    
+        [seg_img, obj_val] = imClusterSeg(firstFrame, 1, 'method','kmeans','k_cluster',3,'mu0', [levnuc_fi;levback_fi;levhalo_fi]);
 
         coordNuc = [];
         regmax = [];
-        [coordNuc,regmax] = findnucloitrack(firstFrame,levdiff_fi,minsizenuc,maxsizenuc);
+        [coordNuc,regmax] = findnucloitrack(seg_img,levdiff_fi,minsizenuc,maxsizenuc);
     
        
         HaloLevel = (levhalo_fi-levback_fi)*2/3+levback_fi;
         coordHalo = [];
-        [coordHalo,logihalo] = halosfind(firstFrame,ErodeDiskSize,HaloLevel);
+        [coordHalo,logihalo] = halosfind(seg_img,ErodeDiskSize,HaloLevel);
           
          
         %now follows a little something that will ensure a minimal

@@ -5,9 +5,9 @@ function [coor,regmax]= findnucloitrack(newImg,lev,minsizenuc,maxsizenuc)
 %newImg is the picture, lev was determined from values taken from the picture
 regmax = [];
 
-regmax = imextendedmin(newImg,lev);
-%figure, imshow(regmax);
+%regmax = imextendedmin(newImg,lev);
 
+regmax = newImg==1;
 
 img_labels = [];
 

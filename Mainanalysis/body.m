@@ -1,5 +1,5 @@
 
-function [PROPERTIES,ero,labeled]= body(image,coord,regmax,logihalo,plusminus)
+function [PROPERTIES,ero,labeled]= body(seg_img,coord,regmax,logihalo,plusminus)
 %f=figure;
 %ero is a binary picture of the whole area occupied by cells
 %belongsto 
@@ -16,12 +16,15 @@ helpcoord=[];
 
 helpcoord=round(coord);
 
-%first we kick out the background, 
-background = imopen(image,strel('disk',bodyDiskSize));
-I2 = imsubtract(image,background); 
-I3 = imadjust(I2, stretchlim(I2), [0 1]);
-balevel = graythresh(I3);
-ero = im2bw(I3,balevel)|regmax|logihalo; 
+% %first we kick out the background, 
+% background = imopen(image,strel('disk',bodyDiskSize));
+% I2 = imsubtract(image,background); 
+% I3 = imadjust(I2, stretchlim(I2), [0 1]);
+% balevel = graythresh(I3);
+% ero = im2bw(I3,balevel)|regmax|logihalo; 
+
+ero =(seg_img==1 | seg_img==3);
+
 
 %fill out the holes
 %ero = imfill(bw,'holes');
@@ -47,7 +50,7 @@ for i=1:length(helpcoord);
                 y_1=[]; 
                 y_2=[];
                 
-                [img_h,img_w]=size(image);
+                [img_h,img_w]=size(seg_img);
                 x_1= round(helpcoord(i,2) - plusminus);
 				x_2= round(helpcoord(i,2) + plusminus);
 				y_1= round(helpcoord(i,1) - plusminus);

@@ -1,18 +1,21 @@
-function [coor,halo]= halosfind(info,erodedisksize,halolevel)
+function [coor,halo]= halosfind(seg_Image,erodedisksize,halolevel)
 
 
 
+% 
+% index=[];
+% halo=zeros(size(info,1),size(info,2));
+% img_labels=[];
+% haloshlabel=[];
+% theones=[];
+% 
+% %look for pixels that are above a certain value
+% index=find(info >halolevel);
+% halo(index)=1;
+% clear index;
 
-index=[];
-halo=zeros(size(info,1),size(info,2));
-img_labels=[];
-haloshlabel=[];
-theones=[];
 
-%look for pixels that are above a certain value
-index=find(info >halolevel);
-halo(index)=1;
-clear index;
+halo = seg_Image==3;
 
 %close small gaps
 se = strel('disk',3);
