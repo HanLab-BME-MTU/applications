@@ -643,8 +643,8 @@ end
 
 % Check that it is a valid number
 if frameNr < handles.jobData(1).firstimg | frameNr > handles.jobData(1).lastimg
-    errorStr = ['Error: Please enter a number between ' handles.jobData(1).firstimg ...
-                ' and ' handles.jobData(1).lastimg '.'];
+    errorStr = ['Error: Please enter a number between ' num2str(handles.jobData(1).firstimg) ...
+                ' and ' num2str(handles.jobData(1).lastimg) '.'];
     h = errordlg(errorStr);
     uiwait(h);          % Wait until the user presses the OK button  
     return;

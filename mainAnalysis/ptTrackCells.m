@@ -459,7 +459,14 @@ else		% lastImaNum > firstImaNum
              if ~isempty (lostCells) & ~isempty (newCells)        
                 lostCellsToMatch = lostCells (find (lostCells (:,3) >= max ((mCount - timeStepSlide), 1)), :);
                 if ~isempty (lostCellsToMatch)
-                   matchedLostCells = ptTracker (lostCellsToMatch (:,1:2), newCells, maxSearch, maxSearch);
+                   if size(lostCellsToMatch,1) < size(newCells,1)
+                       matchedLostCells = ptTracker (newCells, lostCellsToMatch(:,1:2), maxSearch, maxSearch);
+                       matchedLostCellsTmp = matchedLostCells(:,3:4);
+                       matchedLostCells(:,3:4) = matchedLostCells(:,1:2);
+                       matchedLostCells(:,1:2) = matchedLostCellsTmp;
+                   else
+                       matchedLostCells = ptTracker (lostCellsToMatch(:,1:2), newCells, maxSearch, maxSearch);
+                   end
 
                    % Kick out all entries that have not been matched (they get a chance later)
                    matchedLostCells (find ((matchedLostCells (:,1) == 0 & matchedLostCells (:,2) == 0) | ...
