@@ -98,7 +98,7 @@ answer=fix(str2num(char(inputdlg(prompt,dlg_title,num_lines,def))));
 
 % Check the selected number
 if isempty(answer)
-    disp('Aborting.\n');
+    disp('Aborting.');
     return
 end
 
