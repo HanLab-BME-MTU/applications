@@ -1,4 +1,4 @@
-function [I0,sDN,GaussRatio]=fsmCalcNoiseParam(firstfilename,bitDepth,sigma)
+function [I0,sDN,GaussRatio,status]=fsmCalcNoiseParam(firstfilename,bitDepth,sigma,dataFile)
 % fsmCalcNoiseParam calculates three parameters for the noise model applied to speckle selection
 %
 % Run this funtion on a background region (non-speckled) cropped from an image stack 
@@ -21,16 +21,22 @@ function [I0,sDN,GaussRatio]=fsmCalcNoiseParam(firstfilename,bitDepth,sigma)
 %                         through an open dialog
 %          bitDepth     : bit depth of the camera for normalization
 %          sigma        : sigma for the gaussian kernel
+%          dataFile     : file name with complete path where to append the record 
+%                         if the file does not exist it will be created.
+%                         Set dataFile=[] to return to console.
 %
 % OUTPUT   I0           : average intensity
 %          sDN          : average standard deviation (sigmaDarkNoise)
 %          GaussRatio   : ratio std(image)/std(filtered_image)
+%          status       : 0   if the user passed dataFile=[];
+%                         1   if the parameters where successfully written to the file 'dataFile';
+%                         -1  if the function failed to write them to the file specified by the user.
 %
 % REMARK   fsmCalcNoiseParam loads all the selected images into memory. For this reason, 
 %          adapt image number and size to your machine's amount of memory.
 
 % Initialize return values
-I0=0; sDN=0; GaussRatio=0;
+I0=0; sDN=0; GaussRatio=0; status=0;
 
 % Store current directory
 currDir=cd;
@@ -162,19 +168,51 @@ GaussRatio=mean(GaussRatios);
 % Adapt beta to the selected bitdepth
 beta=2^(14-bitDepth)*2e-4;
 
-fprintf(1,'\nTo add this experiment to your database:\n');
-fprintf(1,'(1) Click on ''Edit experiment parameters'' in fsmCenter.\n');
-fprintf(1,'(2) Copy/paste this record at the end of your experiment settings file.\n');
-fprintf(1,'(3) Edit the LABEL and DESCRIPTION fields.\n');
-fprintf(1,'-------------------------------------------------------------------\n');
-fprintf(1,'LABEL\t\t\t"* * * Please change this * * *"\n');
-fprintf(1,'DESCRIPTION\t\t"* * * Please change this * * *"\n');
-fprintf(1,'BIT DEPTH\t\t"%s"\n',num2str(bitDepth));
-fprintf(1,'NOISE PARAMS\t"%1.8f %1.8f %1.8f"\n',sDN,beta,I0);
-fprintf(1,'GAUSS RATIO\t\t"%1.2f"\n',GaussRatio);
-fprintf(1,'#\n');
-fprintf(1,'-------------------------------------------------------------------\n');
-fprintf(1,'(Don''t forget the ''#'')\n');
+% Ask user to specify a LABEL and a DESCRIPTION
+prompt={'Experiment LABEL','Experiment DESCRIPTION:'};
+def={'* * * LABEL * * *','* * * DESCRIPTION * * *'};
+dlgTitle='Please enter a label and a description for the experiment';
+lineNo=1;
+answer=inputdlg(prompt,dlgTitle,lineNo,def);
+
+if isempty(dataFile) | ~exist(dataFile,'file')
+    fid=1;
+    fprintf(fid,'\nTo add this experiment to your database:\n');
+    fprintf(fid,'(1) Click on ''Edit experiment database'' in fsmCenter.\n');
+    fprintf(fid,'(2) Copy/paste this record at the end of your experiment database file.\n');
+    fprintf(fid,'(3) Edit the LABEL and DESCRIPTION fields.\n');
+    fprintf(fid,'-------------------------------------------------------------------\n');
+    if ~isempty(dataFile)
+        status=-1;
+    end
+else
+    % Try to open the file specified
+    fid=fopen(dataFile,'a');
+    if fid==-1
+        disp('The file cannot be found/created. Returning to console.');
+        fid=1;
+        status=-1
+    else
+        % The result will be written to the opened file with identifier fid.
+    end
+end
+
+fprintf(fid,'#\n');
+fprintf(fid,'LABEL\t\t\t"%s"\n',char(answer(1)));
+fprintf(fid,'DESCRIPTION\t\t"%s"\n',char(answer(2)));
+fprintf(fid,'BIT DEPTH\t\t"%s"\n',num2str(bitDepth));
+fprintf(fid,'NOISE PARAMS\t"%1.8f %1.8f %1.8f"\n',sDN,beta,I0);
+fprintf(fid,'GAUSS RATIO\t\t"%1.2f"\n',GaussRatio);
+fprintf(fid,'#\n');
+
+% Close file if necessary
+if fid~=1
+    fclose(fid);
+    status=1; % Parameters successfully written to file
+else
+    fprintf(fid,'-------------------------------------------------------------------\n');
+    fprintf(fid,'(Don''t forget the ''#'')\n');
+end
 
 % Back to old directory
 cd(currDir);

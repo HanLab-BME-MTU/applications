@@ -289,7 +289,22 @@ if isempty(area)
 end
 
 function pushCal_Callback(hObject, eventdata, handles)
-fsmCalcNoiseParam([],str2num(get(handles.editBitDepth,'string')),str2num(get(handles.editSigma,'string')));
+userDir=fsmCenter_getUserSettings;
+if ~isempty(userDir)
+    dataFile=[userDir,filesep,'fsmExpParams.txt'];
+else
+    edit('fsmExpParams.txt'); % Default fsmExpParams.txt file
+end
+[I0,sDN,GaussRatio,status]=fsmCalcNoiseParam([],str2num(get(handles.editBitDepth,'string')),str2num(get(handles.editSigma,'string')),dataFile);
+if status==-1
+    uiwait(msgbox('The noise parameters could not be saved to your user database. They were returned to the MATLAB console. Make sure that a file called ''fsmExpParams.txt'' exists in your user directory or in the root directory of the qFSM package. Click on ''User settings'' in fsmCenter and follow the instructions.','Info','modal'));
+elseif status==0
+    disp('Status zero means that the user requested display to console. This shouldn''t happen here. Please report this bug.');
+elseif status==1
+    uiwait(msgbox('The noise parameters were successfully added to your user database. They will be added to the ''Camera calibration'' popup menu the next time you''ll start SpeckTackle. If you need to modify the entered record, click on ''Edit experiment database'' in fsmCenter and scroll down to the end to the file.','Info','modal'));
+else
+    error('The function fsmCalcNoiseParam returned an invalid status.');
+end
 
 function editBitDepth_Callback(hObject, eventdata, handles)
 
