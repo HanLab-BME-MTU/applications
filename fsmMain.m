@@ -415,6 +415,13 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Mark modules up-to-date
+fsmParam=fsmMarkModuleUpToDate(fsmParam);
+
+% Add date and time of the last run
+dateFinished=datestr(now,0);
+fsmParam.specific.lastRun=dateFinished; 
+
 % Save fsmParam to disk
 eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
 
@@ -441,7 +448,7 @@ end
 % Write to file
 fprintf(fid,'\n\n****************************************************************************************\n');
 fprintf(fid,'*                                                                                      *\n');
-fprintf(fid,'*     Calculation finished: %s                                       *\n',datestr(now,0));
+fprintf(fid,'*     Calculation finished: %s                                       *\n',dateFinished);
 fprintf(fid,'*                                                                                      *\n');
 fprintf(fid,'****************************************************************************************\n\n\n');
 

@@ -59,8 +59,10 @@ fsmParam.prep.enhTriang=0;          % Delaunay triangulation can be made more st
 fsmParam.prep.autoPolygon=0;        % Automatic analisys of the image to extract cell boundaries  [ 0 : off, 1 : on ]
 % The user draws a ROI
 fsmParam.prep.drawROI=0;            % The user can draw a ROI on the image to restrict the analysis
+
 fsmParam.prep.gaussRatio=3.54;      % Gauss ratio
 fsmParam.prep.sigma=1;              % Sigma for low-pass filtering
+fsmParam.prep.uptodate=0;           % Up-to-date flag
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
@@ -86,6 +88,8 @@ fsmParam.track.grid=0;              % Specifies whether the interpolation of the
 % Correlation length for tracking
 fsmParam.track.corrLength=33;       % Correlation length in pixels
 
+fsmParam.track.uptodate=0;          % Up-to-date flag
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
 % BUILDER MODULE
@@ -94,6 +98,8 @@ fsmParam.track.corrLength=33;       % Correlation length in pixels
 
 % Enable module
 fsmParam.build.enable=1;            % Activates the BUILDER module [ 0 : off | 1 : on ]
+
+fsmParam.build.uptodate=0;          % Up-to-date flag
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
@@ -110,6 +116,8 @@ fsmParam.kin.bleachRed=0;           % Bleaching reduction filters out weak score
                                     %   1.45e-4  : ~1*mean(bleaching_scores in 161fix)
                                     %  2.175e-4 : ~1.5*mean(bleaching_scores in 161fix)
 
+fsmParam.kin.uptodate=0;          % Up-to-date flag
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
 % RESULT DISPLAY MODULE
@@ -118,6 +126,8 @@ fsmParam.kin.bleachRed=0;           % Bleaching reduction filters out weak score
 
 % Enable module
 fsmParam.disp.enable=1;             % Activates the  RESULT DISPLAY module [ 0 : off | 1 : on ]
+
+fsmParam.disp.uptodate=0;           % Up-to-date flag
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
@@ -134,3 +144,4 @@ fsmParam.specific.fileList='';      % All file names written in a (char) matrix;
 fsmParam.specific.intCorrFactors=0; % Intensity correction factors
 fsmParam.specific.firstIndex=0;     % Index of the first image
 fsmParam.specific.lastIndex=0;      % Index of the last image
+fsmParam.specific.lastRun='';       % Date and time of the last run
