@@ -72,10 +72,14 @@ lhs = weightsP*prevPoints;
 clear weightsP;
 
 %check matrix condition 
-condition = cond(lhs)
+%condition = cond(lhs)
+
+%covariance matrix
+arParamSigma = inv(lhs);
 
 %invert equation to get solution
-arParam = (lhs\rhs)';
+%arParam = (lhs\rhs)';
+arParam = (arParamSigma*rhs)';
 
 %check for causality of estimated model
 r = abs(roots([-arParam(end:-1:1) 1]));
@@ -89,5 +93,5 @@ epsilon = prevPoints*arParam' - traj(arOrder+1:end,1);
 %standard deviation of white noise
 noiseSigma = std(epsilon);
 
-%don't compute uncertainty in parameter estimates for now!
-arParamSigma = [];
+%uncertainty in estimated arParam
+arParamSigma = arParamSigma*sqrt((epsilon'*weights*epsilon)/2/(trajLength-arOrder));
