@@ -1,28 +1,30 @@
 function [oldVelMt1,oldVelMt2,velMt1,velMt2,oldCAngle1T,oldCAngle1TdT,oldCAngle2T,oldCAngle2TdT,cAngle1T,cAngle2T,cAngle1TdT,cAngle2TdT,sigmaMt1,sigmaMt2,stateMt1,stateMt2]=brMoviesComp
 
 
-load('WT_30C_Metaphase_Fast3_corr-data-05-Dec-2003-10-24-16.mat');
+path='/home/yloosli/MatlabSave/'
+
+load([path 'WT_30C_Metaphase_Fast3_corr-data-05-Dec-2003-10-24-16.mat']);
 idlisttrack3=idlisttrack_L;
 dataProperties3=dataProperties;
 lastResult3=lastResult;
 
 
-load('WT_30C_Metaphase_Fast5_corr-data-08-Dec-2003-11-36-23.mat');
+load([path 'WT_30C_Metaphase_Fast5_corr-data-08-Dec-2003-11-36-23.mat']);
 idlisttrack5=idlisttrack_L;
 dataProperties5=dataProperties;
 lastResult5=lastResult;
 
-load('WT_30C_Metaphase_Fast9_corr-data-08-Dec-2003-12-46-46.mat');
+load([path 'WT_30C_Metaphase_Fast9_corr-data-08-Dec-2003-12-46-46.mat']);
 idlisttrack9=idlisttrack_L;
 dataProperties9=dataProperties;
 lastResult9=lastResult;
 
-load('WT_30C_Metaphase_Fast11-data-05-Dec-2003-10-49-37.mat');
+load([path 'WT_30C_Metaphase_Fast11-data-05-Dec-2003-10-49-37.mat']);
 idlisttrack11=idlisttrack_L;
 dataProperties11=dataProperties;
 lastResult11=lastResult;
 
-load('WT_30C_Metaphase_Fast18_corr-data-05-Dec-2003-11-45-46.mat');
+load([path 'WT_30C_Metaphase_Fast18_corr-data-05-Dec-2003-11-45-46.mat']);
 idlisttrack18=idlisttrack_L;
 dataProperties18=dataProperties;
 lastResult18=lastResult;
@@ -64,7 +66,7 @@ stateMt2=[trajMatMt23(:,3) ; trajMatMt25(:,3) ; trajMatMt29(:,3) ; trajMatMt211(
 timeMt1=[trajMatMt13(:,6) ; trajMatMt15(:,6) ; trajMatMt19(:,6) ; trajMatMt111(:,6);trajMatMt118(:,6)];
 timeMt2=[trajMatMt23(:,6) ; trajMatMt25(:,6) ; trajMatMt29(:,6) ; trajMatMt211(:,6);trajMatMt218(:,6)];
 
-save('data5SecFull2','oldVelMt1','oldVelMt2','velMt1','velMt2','oldCAngle1T','oldCAngle1TdT','oldCAngle2T','oldCAngle2TdT','cAngle1T','cAngle2T','cAngle1TdT','cAngle2TdT','sigmaMt1','sigmaMt2','stateMt1','stateMt2');
+save([path 'data5SecFull2'],'oldVelMt1','oldVelMt2','velMt1','velMt2','oldCAngle1T','oldCAngle1TdT','oldCAngle2T','oldCAngle2TdT','cAngle1T','cAngle2T','cAngle1TdT','cAngle2TdT','sigmaMt1','sigmaMt2','stateMt1','stateMt2');
 
 sigma1Global=sigmaMt1./(timeMt1.^(0.5));
 sigma2Global=sigmaMt2./(timeMt2.^(0.5));
@@ -92,4 +94,4 @@ indexGG=intersect(find(velMt1>0&velMt2>0),indexOK);
 [weightedMeanMt1,weightedStdMt1]=brVelocityAnalyze(velMt1(indexGG),sigma1Global(indexGG),sigmaMt1(indexGG),1e-3,'Mt1 GG with discarding the \sigma/v > 0.45','k');
 
 
-save('data5SecFull2','oldVelMt1','oldVelMt2','velMt1','velMt2','oldCAngle1T','oldCAngle1TdT','oldCAngle2T','oldCAngle2TdT','cAngle1T','cAngle2T','cAngle1TdT','cAngle2TdT','sigmaMt1','sigmaMt2','stateMt1','stateMt2','indexOK');
+save([path 'data5SecFull2'],'oldVelMt1','oldVelMt2','velMt1','velMt2','oldCAngle1T','oldCAngle1TdT','oldCAngle2T','oldCAngle2TdT','cAngle1T','cAngle2T','cAngle1TdT','cAngle2TdT','sigmaMt1','sigmaMt2','stateMt1','stateMt2','indexOK');

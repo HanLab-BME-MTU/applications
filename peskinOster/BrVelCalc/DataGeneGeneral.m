@@ -3,44 +3,45 @@
 clear;
 
 delta=8e-3;
-v0=0.03;
 
 
-alpha1=9;
-betaG1=0.02;
-beta1=1.1 ; 
-gamma1=29;
+v0=0.9;
 
-alpha2=12;
-betaG2=0.08;
-beta2= 0.1;
-gamma2=36;
+alpha1=420;
+betaG1=0.2;
+beta1=38; 
+gamma1=281;
+
+alpha2=382;
+betaG2=0.9;
+beta2= 84;
+gamma2=528;
 
 p2=(beta2-(gamma2*delta*beta2)/v0)/gamma2+1;
 p1=(beta1-(gamma1*delta*beta1)/v0)/gamma1+1;
 
 xObj=[alpha1 betaG1 beta1 gamma1 p1 alpha2 betaG2 beta2 gamma2 p2];
 
-omega1=5*rand(300,1);
-omega2=5*rand(300,1);
+omega1=5*rand(150,1);
+omega2=5*rand(150,1);
 
 
-cAngle1=cos(0.01+(pi/2-0.01-0.01)*rand(300,1));
+cAngle1=cos(0.01+(pi/2-0.01-0.01)*rand(150,1));
 cAngle2=(omega1.*cAngle1)./omega2;
 % cAngle1=ones(300,1);
 % cAngle2=ones(300,1);
 % omega2=omega1;
 
 
-nbData=300;
+nbData=150;
 
 index=randperm(nbData);
 
 
-indexGG=index(1:75);
-indexSS=index(76:150);
-indexSG=index(151:225);
-indexGS=index(226:300);
+indexGG=index(1:30);
+indexSS=index(31:60);
+indexSG=index(61:105);
+indexGS=index(106:150);
 
 
 velData1(indexGG)=peskin(xObj(1:2),omega1(indexGG),delta);
@@ -62,6 +63,12 @@ x2=[xObj(1:4)'; xObj(6:9)' ;omega1.*cAngle1];
 xGS=[xObj(1:2)'; xObj(8:9)'; omega1(indexGS).*cAngle1(indexGS)];
 xSG=[xObj(3:4)'; xObj(6:7)'; omega1(indexSG).*cAngle1(indexSG)];
 
-save('velDataGeneral','velData1','velData2','omega1','omega2','indexSS','indexGG','indexSG','indexGS','cAngle1','cAngle2','vUnload','x','x2','xGS','xSG','delta','xObj');
+plot(omega1,velData1,'d');hold on;
+plot([0:0.01:5],0,'r');
+figure
+plot(omega2,velData2,'d');hold on;
+plot([0:0.01:5],0,'r');
+
+save('H:\MatlabSave\velDataGeneralGeneral','velData1','velData2','omega1','omega2','indexSS','indexGG','indexSG','indexGS','cAngle1','cAngle2','vUnload','x','x2','xGS','xSG','delta','xObj','v0');
 
 

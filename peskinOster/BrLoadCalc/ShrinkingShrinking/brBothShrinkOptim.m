@@ -3,6 +3,9 @@ function [fct]=brBothShrinkOptim(x,velData1,velData2,cAngle1,cAngle2,delta,vUnlo
 
 
 
+if ~isempty(find(velData1>0)) | ~isempty(find(velData2>0))
+    error('for the shrinkage case you have to input negative velocity');
+end
 
 
 switch pFixe
