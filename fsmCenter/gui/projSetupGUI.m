@@ -294,7 +294,7 @@ if isdir(projDir)
         projSettings.unix_imgDirList = imgDirList;
 
         if samdir(handles.unix_imgDrive,unix_imgDrive)
-           if isdir(handles.win_imgDrive)
+           if ~isempty(handles.win_imgDrive)
               projSettings.win_imgDirList = ...
                  dirUnix2PC(imgDirList,handles.win_imgDrive);
            end
@@ -303,7 +303,7 @@ if isdir(projDir)
     elseif ispc==1
         projSettings.win_imgDirList = imgDirList;
         if samdir(handles.win_imgDrive,win_imgDrive)
-           if isdir(handles.unix_imgDrive)
+           if ~isempty(handles.unix_imgDrive)
               projSettings.unix_imgDirList = ...
                  dirPC2Unix(imgDirList,handles.unix_imgDrive);
            end
