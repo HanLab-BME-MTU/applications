@@ -9,7 +9,12 @@ function [cands2] = candsToSubpixelN(img,cands,sigma)
 % bitdepth: necessary for image scaling, e.g. 12, 16
 % 
 % OUTPUT:
-% candsnew: new cands with double-precision pixel positions
+% cands2: new cands with double-precision pixel positions
+%
+% DEPENDENCiES   candsToSubpixelN uses fitMixModel
+%               candsToSubpixelN is used by fsmPrepMainSecondarySpeckles
+%
+% Dinah Loerke, Mar 1, 2005
 
 maxbitdepth=2^16;
 %pointer to significant speckles and fitting inputs
