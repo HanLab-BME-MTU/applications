@@ -9,7 +9,7 @@ if (length(velData1)~=length(velData2) | length(velData1)~=length(cAngle1) | len
     error('All the data input have not the same length');
 end
 
-if delta~=8e-3
+if delta~=8e-3 & ~strcmp(caseOptim,'GG')
     warning(' Your delta is not 8e^{-3} \mum');
 end
 

@@ -14,13 +14,13 @@ opts=optimset('Display','iter','MaxFunEvals',2000,'MaxIter',250,'TolFun',1e-7,'T
 indexGG=find(velData1>0 &velData2>0);
 indexSS=find(velData1<0 &velData2<0);
 x0=[0 0 0 0];
-[xResGG,objVal,exitFlag,outPut]=fminimax(@brBothGrowingOptimFct,x0,[],[],[],[],[1e-4 1e-4 1e-4 1e-4  ],[1000 100 1000 100],@brBothGrowingOptimFctConst,opts,velData1(indexGG),velData2(indexGG),cAngle1(indexGG),cAngle2(indexGG),delta);
+[xResGG,objVal,exitFlag,outPut]=fminimax(@brBothGrowingOptimFct,x0,[],[],[],[],[1e-4 1e-4 1e-4 1e-4  ],[1000 100 1000 100],@brBothGrowingOptimFctConst,opts,velData1(indexGG),velData2(indexGG),cAngle1(indexGG),cAngle2(indexGG),delta/13);
 
-x0=[10 100 10 100];
+x0=[1 1 20 100];
 [xResSS,objVal,exitFlag,outPut]=fmincon(@brBothShrinkOptim,x0,[],[],[],[],[1e-4 1e-4 1e-4 1e-4  ],[100 1000 100 1000 ],@brBothShrinkOptimConst,opts,velData1(indexSS),velData2(indexSS),cAngle1(indexSS),cAngle2(indexSS),delta,vUnload,'fixed');
 
-% x0=[419 0.2 38 281 382 0.9 84 528];
-% [xRes,objVal,exitFlag,outPut]=fmincon(@brGeneralOptim,x0,[],[],[],[],[1e-4 1e-4 1e-4 1e-4 1e-4 1e-4 1e-4 1e-4 ],[1000 100 100 3000 1000 100 100 3000],@brGeneralOptimConst,opts,velData1,velData2,cAngle1,cAngle2,delta,vUnload,'fixed');
+x0=[xResGG(1:2) xResSS(1:2) xResGG(3:4) xResSS(3:4)];
+[xRes,objVal,exitFlag,outPut]=fmincon(@brGeneralOptim,x0,[],[],[],[],[1e-4 1e-4 1e-4 1e-4 1e-4 1e-4 1e-4 1e-4 ],[1000 100 100 3000 1000 100 100 3000],@brGeneralOptimConst,opts,velData1,velData2,cAngle1,cAngle2,delta,vUnload,'fixed');
 
 % sGuess1=[1     1        1     1     ];
 % sGuess2=[20   100      20     100     ];
@@ -92,7 +92,7 @@ x0=[10 100 10 100];
 % fprintf(fid,'\n------------------------------------------ ----START-------------------------------------------------');
 % fclose(fid);
 % 
-% for i=1:61
+% for i=1:10
 %     x0=guess(i,:);
 %     opts=optimset('Display','iter','MaxFunEvals',2000,'MaxIter',250,'TolFun',1e-7,'TolX',1e-7,'TolCon',1e-5);%,'DiffMaxChange',1e-2,'DiffMinChange',1e-10);
 %     [xRes(i,:),objVal(i),exitFlag(i),outPut(i)]=fmincon(@brBothShrinkOptim,x0,[],[],[],[],[1e-4 1e-4 1e-4 1e-4  ],[100 1000 100 1000 ],@brBothShrinkOptimConst,opts,velData1(indexSS),velData2(indexSS),cAngle1(indexSS),cAngle2(indexSS),delta,vUnload,'fixed');

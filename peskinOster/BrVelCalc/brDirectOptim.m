@@ -6,7 +6,7 @@ if (length(velData1)~=length(velData2) | length(velData1)~=length(cAngle1) | len
     error('All the data input have not the same length');
 end
 
-if delta~=8e-3
+if (delta~=8e-3 && ~strcmp(caseOptim,'GG'))
     warning(' Your delta is not 8e^{-3} \mum');
 end
 
@@ -74,7 +74,7 @@ switch pFixe
         
     case 'fixed'
         if isempty(v0)
-            error('You choose the free option, but you enter [] for the unload velocity');
+            error('You choose the fixed option, but you enter [] for the unload velocity. If you are just in the GG case please set pFixe to free');
         end
         
 		if strcmp(caseOptim,'GG') & (length(x)-length(velData1))==4

@@ -36,8 +36,8 @@ switch pFixe
 				beta2=x(5);
 			
 				omega=[0:0.1:5];
-				v2=delta*(alpha2*exp(-omega)-beta2);
-                v2Max=delta*(alpha2-beta2);
+				v2=delta/13*(alpha2*exp(-omega)-beta2);
+                v2Max=delta/13*(alpha2-beta2);
                 
                 c=[c -v2 ];
 				
@@ -63,8 +63,8 @@ switch pFixe
 				beta1=x(2);
 			
 				omega=[0:0.1:5];
-                v1=delta*(alpha1*exp(-omega)-beta1);
-                v1Max=delta*(alpha1-beta1);
+                v1=delta/13*(alpha1*exp(-omega)-beta1);
+                v1Max=delta/13*(alpha1-beta1);
                 
                 c=[c -v1];
                 
@@ -97,8 +97,8 @@ switch pFixe
 				beta2=x(4);
 			
 				omega=[0:0.1:5];
-				v2=delta*(alpha2*exp(-omega)-beta2);
-                v2Max=delta*(alpha2-beta2);
+				v2=delta/13*(alpha2*exp(-omega)-beta2);
+                v2Max=delta/13*(alpha2-beta2);
                 c(4)=0.6*v2Max-max(velData2);
                 
                 c=[c -v2];
@@ -127,8 +127,8 @@ switch pFixe
 				beta1=x(2);
 			
 				omega=[0:0.1:5];
-                v1=delta*(alpha1*exp(-omega)-beta1);
-                v1Max=delta*(alpha1-beta1);
+                v1=delta/13*(alpha1*exp(-omega)-beta1);
+                v1Max=delta/13*(alpha1-beta1);
                 
                 c(4)=0.6*v1Max-max(velData1);
                 

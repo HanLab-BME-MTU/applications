@@ -30,7 +30,7 @@ end
 
 %------------------------------- GG case
 
-fctGG=brBothGrowingOptimFct([paramG1 paramG2],velData1(indexGG),velData2(indexGG),cAngle1(indexGG),cAngle2(indexGG),delta);
+fctGG=brBothGrowingOptimFct([paramG1 paramG2],velData1(indexGG),velData2(indexGG),cAngle1(indexGG),cAngle2(indexGG),delta/13);
 
 %------------------------------- SS case
 

@@ -27,7 +27,7 @@ switch pFixe
 end
 %------------------------------- GG case
 
-cGG=brBothGrowingOptimFctConst([paramG1 paramG2],velData1(indexGG),velData2(indexGG),cAngle1(indexGG),cAngle2(indexGG),delta);
+cGG=brBothGrowingOptimFctConst([paramG1 paramG2],velData1(indexGG),velData2(indexGG),cAngle1(indexGG),cAngle2(indexGG),delta/13);
 
 %------------------------------- SS case
 

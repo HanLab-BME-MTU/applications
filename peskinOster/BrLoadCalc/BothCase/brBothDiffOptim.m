@@ -38,7 +38,7 @@ switch pFixe
                 % Load calculation
                 velData1=abs(velData1);
                 [omega1(indiceVelOK),omegaHigh1(indiceVelOK),omegaLow1(indiceVelOK)] = brInvShrinkSpline(velData1(indiceVelOK),velDiscret1,omegaDiscret);
-                omega2(indiceVelOK)                                                  = peskinInv(velData2(indiceVelOK),x(4:5),delta);
+                omega2(indiceVelOK)                                                  = peskinInv(velData2(indiceVelOK),x(4:5),delta/13);
                 
                 if size(cAngle1(indiceVelOK))~=size(omega1(indiceVelOK))
                     cAngle1=cAngle1';
@@ -78,7 +78,7 @@ switch pFixe
             % Load calculation
             
             [omega2(indiceVelOK),omegaHigh2(indiceVelOK),omegaLow2(indiceVelOK)] = brInvShrinkSpline(velData2(indiceVelOK),velDiscret2,omegaDiscret);
-            omega1(indiceVelOK)                                                  = peskinInv(velData1(indiceVelOK),x(1:2),delta);
+            omega1(indiceVelOK)                                                  = peskinInv(velData1(indiceVelOK),x(1:2),delta/13);
             if size(cAngle1(indiceVelOK))~=size(omega1(indiceVelOK))
                 cAngle1=cAngle1';
             end
@@ -124,7 +124,7 @@ switch pFixe
                 % Load calculation
                 velData1=abs(velData1);
                 [omega1(indiceVelOK),omegaHigh1(indiceVelOK),omegaLow1(indiceVelOK)] = brInvShrinkSpline(velData1(indiceVelOK),velDiscret1,omegaDiscret);
-                omega2(indiceVelOK)                                                  = peskinInv(velData2(indiceVelOK),x(4:5),delta);
+                omega2(indiceVelOK)                                                  = peskinInv(velData2(indiceVelOK),x(4:5),delta/13);
                 
                 if size(cAngle1(indiceVelOK))~=size(omega1(indiceVelOK))
                     cAngle1=cAngle1';
@@ -167,7 +167,7 @@ switch pFixe
                 % Load calculation
                 
                 [omega2(indiceVelOK),omegaHigh2(indiceVelOK),omegaLow2(indiceVelOK)] = brInvShrinkSpline(velData2(indiceVelOK),velDiscret2,omegaDiscret);
-                omega1(indiceVelOK)                                                  = peskinInv(velData1(indiceVelOK),x(1:2),delta);
+                omega1(indiceVelOK)                                                  = peskinInv(velData1(indiceVelOK),x(1:2),delta/13);
                 
                 if size(cAngle1(indiceVelOK))~=size(omega1(indiceVelOK))
                     cAngle1=cAngle1';
