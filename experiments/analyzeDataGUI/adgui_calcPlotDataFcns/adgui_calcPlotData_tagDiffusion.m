@@ -113,12 +113,11 @@ switch correction
         correctionString = [anaDat(1).info.labelColor{corrTag},' centered (1-D)'];
 end
 
-%calculate avg displacement for deltaT = 1...N/2: not so fast to run,
+%calculate avg displacement for deltaT = 1...N/4: not so fast to run,
 %but fast to program
-%try to use at least 20 distance measurements per data point. If not
-%possible, use at least half the available measurements
+%do not use more than 1/4 of the data. See Saxton 1997, Biophys. J 
 %use length(timepoints), because there could be several tps missing!
-nDeltas = max(floor(length(timePoints)/2),length(timePoints)-21);
+nDeltas = floor(length(timePoints)/4);
 %check that we have enough data
 if nDeltas<1
     if verbose
