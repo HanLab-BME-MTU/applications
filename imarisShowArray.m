@@ -1,4 +1,4 @@
-function imarisApplication = imarisShowArray(array,imaApp)
+function imarisApplication = imarisShowArray(array,imaApp,pixelSize)
 %IMARISSHOWARRAY loads a 3D array into Imaris
 %
 % SYNOPSIS  imaApplication = imarisShowArray(array,imaApp)
@@ -8,6 +8,7 @@ function imarisApplication = imarisShowArray(array,imaApp)
 %         imaApp (opt): handle to the imaris application into which the array
 %                       should be loaded. If no handle is given, Imaris
 %                       will open a new session.
+%         pixelSize (opt): [x,y,z] of pixel lengths {[1,1,1]}
 %
 % OUTPUT  imarisApplication: Handle to the imaris Application
 %
@@ -23,6 +24,8 @@ function imarisApplication = imarisShowArray(array,imaApp)
 %=============
 % TEST INPUT
 %=============
+
+def_pixelSize = [1,1,1];
 
 % check dimensionality of input matrix
 if nargin < 1 || isempty(array)
@@ -50,6 +53,13 @@ else
     imaAppName = inputname(2);
 end
 
+% test which pixelsize to use
+if nargin < 3 || isempty(pixelSize)
+    pixelSize = def_pixelSize;
+else
+    pixelSize = returnRightVector(pixelSize, 3);
+end
+
 % name of the input variable
 varName = inputname(1);
 
@@ -66,12 +76,13 @@ imaDataSet = imaApp.mFactory.CreateDataSet;
 % store matlab data
 imaDataSet.SetData(single(array));
 
-% set xyz-coordinates from 1:n
-[imaDataSet.mExtendMinX,imaDataSet.mExtendMinY,imaDataSet.mExtendMinZ] = ...
-    deal(1);
-imaDataSet.mExtendMaxX = sizeArray(1);
-imaDataSet.mExtendMaxY = sizeArray(2);
-imaDataSet.mExtendMaxZ = sizeArray(3);
+% set xyz-coordinates from 1:n or pixelSize:n*pixelSize
+imaDataSet.mExtendMinX = pixelSize(1);
+imaDataSet.mExtendMinY = pixelSize(2);
+imaDataSet.mExtendMinZ = pixelSize(3);
+imaDataSet.mExtendMaxX = sizeArray(1) * pixelSize(1);
+imaDataSet.mExtendMaxY = sizeArray(2) * pixelSize(2);
+imaDataSet.mExtendMaxZ = sizeArray(3) * pixelSize(3);
 
 % do not set color table - is buggy
 

@@ -18,6 +18,11 @@ function imarisApplication = imarisPlot3(plotData,aspectRatio)
 %               - time (opt) : timepoint where the group should be plotted.
 %                    Can be set individually for each spot (like
 %                    spotRadius). Default: 1.
+%               - class (opt): name (string!) of the class the group
+%                    belongs to. Spot groups belonging to the same class
+%                    will be collected in a folder in Imaris.
+%                    If classes are used, ALL groups have to belong to a
+%                    class.
 %           aspectRatio (opt): Aspect ratio of the data. With the default,
 %                              [1,1,1], the plot box has the shape of a
 %                              cube. Specify [0,0,0] if a unit step should
@@ -30,8 +35,6 @@ function imarisApplication = imarisPlot3(plotData,aspectRatio)
 %              imarisApplication will be created in the workspace
 %          (2) Imaris can not handle doubles. All values will be converted
 %              to singles
-%          (3) Imaris currently needs at least two spots per group (bug).
-%              If only one spot is submitted, it will double it.
 %
 % c: jonas, 11/04
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -47,7 +50,7 @@ def_spotRadius = 0.25;
 def_color = [1,0,0,0]; % R/G/B/opacity
 def_nameStub = 'data_'; % stub to which number will be added
 def_aspectRatio = [1,1,1]; % aspect ratio
-def_maxImSize = 100000; % maximum number of pixels for a single image
+def_maxImSize = 1000; % maximum number of pixels for a single image
 
 % input arguments
 if nargin == 0 || isempty(plotData) || ~isstruct(plotData)
@@ -71,14 +74,6 @@ for i = 1:nGroups
     % test xyz
     plotData(i).XYZ = returnRightVector(plotData(i).XYZ,3);
 
-    %====
-    % bug-workaround
-    % currently, there can not be jut one spot. Therefore, we just double
-    % it
-    if size(plotData(i).XYZ,1)==1
-        plotData(i).XYZ = repmat(plotData(i).XYZ,[2,1]);
-    end
-    
     nCoords(i) = size(plotData(i).XYZ,1);
 
     % test spotSize
@@ -132,7 +127,32 @@ for i = 1:nGroups
         end
 
     end
+
+    % class
+    if ~isfield(plotData,'class')
+        plotData(i).class = 1;
+
+        % bad if there is something in class which is not a char
+    elseif ~isempty(plotData(i).class) && ~ischar(plotData(i).class)
+        error('class names have to be character arrays!')
+    end
 end
+
+% collect classes
+classNames = strvcat(plotData.class);
+if isempty(classNames)
+    nClasses = 0;
+else
+    % check whether there is a class assigned for every group
+    if ~isequal(size(classNames,1),nGroups)
+        error('every group needs to belong to a class if classes are assigned!')
+    else
+        % find unique classes
+        [classList,dummy,classIdx] = unique(classNames,'rows');
+        nClasses = size(classList,1);
+    end
+end
+
 
 % aspect ratio
 if nargin < 2 || isempty(aspectRatio)
@@ -194,10 +214,10 @@ if any(aspectRatio) == 0
     else
         % we need to adjust image size. However, by setting the image
         % extent, we will get the correct aspect ratio.
-        divImg = repmat((def_maxImSize/prod(bigExtent))^(1/3),[1,3]);
+        multImg = repmat((def_maxImSize/prod(bigExtent))^(1/3),[1,3]);
 
         % assign imSize
-        imSize = ceil(bigExtent./divImg) + imageDelta;
+        imSize = ceil(bigExtent .* multImg) + imageDelta;
         % this is a reasonable approximation
         deltaExtent = (bigExtent - dataRange);
         % origin does not need to be adjusted - this is done below
@@ -297,34 +317,85 @@ imaSSSpots = imaApp.mFactory.CreateDataContainer;
 imaSSSpots.mName = 'Spots';
 imaSurpassScene.AddChild(imaSSSpots);
 
-% loop through data and add spots
-for iGroup = 1:nGroups
+switch nClasses
 
-    % create spot object
-    imaSpots = imaApp.mFactory.CreateSpots;
+    case 0
 
-    % set spots
-    
-    if doTransform
-        coords = single((plotData(iGroup).XYZ - repmat(origin,[nCoords,1]) )...
-            ./ repmat(divideRange,[nCoords,1]));
-    else
-        coords = single(plotData(iGroup).XYZ);
-    end
-    imaSpots.Set(coords, single(plotData(iGroup).time-1),...
-        single(plotData(iGroup).spotRadius));
+        % loop through data and add spots
+        for iGroup = 1:nGroups
+
+            % create spot object
+            imaSpots = imaApp.mFactory.CreateSpots;
+
+            % set spots
+
+            if doTransform
+                coords = single((plotData(iGroup).XYZ - repmat(origin,[nCoords(iGroup),1]) )...
+                    ./ repmat(divideRange,[nCoords(iGroup),1]));
+            else
+                coords = single(plotData(iGroup).XYZ);
+            end
+            imaSpots.Set(coords, single(plotData(iGroup).time-1),...
+                single(plotData(iGroup).spotRadius));
 
 
-    % set color
-    color = single(plotData(iGroup).color);
-    imaSpots.SetColor(color(1),color(2),color(3),color(4));
+            % set color
+            color = single(plotData(iGroup).color);
+            imaSpots.SetColor(color(1),color(2),color(3),color(4));
 
-    % set name
-    imaSpots.mName = plotData(iGroup).name;
+            % set name
+            imaSpots.mName = plotData(iGroup).name;
 
-    imaSSSpots.AddChild(imaSpots);
+            imaSSSpots.AddChild(imaSpots);
 
-end
+        end
+
+    otherwise
+
+        % loop through classes, and add spots to each class
+
+        for iClass = 1:nClasses
+
+            % make new subdir
+            imaClass = imaApp.mFactory.CreateDataContainer;
+            % name it
+            imaClass.mName = classList(iClass,:);
+            % and add to spot folder
+            imaSSSpots.AddChild(imaClass);
+
+            % find spot groups belonging to class
+            % groupIdx points to entry in plotData
+            groupIdx = find(classIdx == iClass);
+
+            for iGroup = groupIdx'
+
+                % create spot object
+                imaSpots = imaApp.mFactory.CreateSpots;
+
+                % set spots
+
+                if doTransform
+                    coords = single((plotData(iGroup).XYZ - repmat(origin,[nCoords(iGroup),1]) )...
+                        ./ repmat(divideRange,[nCoords(iGroup),1]));
+                else
+                    coords = single(plotData(iGroup).XYZ);
+                end
+                imaSpots.Set(coords, single(plotData(iGroup).time-1),...
+                    single(plotData(iGroup).spotRadius));
+
+
+                % set color
+                color = single(plotData(iGroup).color);
+                imaSpots.SetColor(color(1),color(2),color(3),color(4));
+
+                % set name
+                imaSpots.mName = plotData(iGroup).name;
+
+                imaClass.AddChild(imaSpots);
+            end % for iGroup = groupdx'
+        end % for iClass = 1:nClasses
+
+end % switch
 
 %===========================
 
