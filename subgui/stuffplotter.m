@@ -1,5 +1,8 @@
 function stuffplotter(hObject)
 
+
+%We now want to rearrange certain data (PROPERTIES), so that we can plot it.  
+
 handles=guidata(hObject);
 
 
@@ -9,7 +12,7 @@ stop = floor((handles.postpro.anallastimg - handles.jobvalues.firstimage)/handle
 
 saveallpath=get(handles.GUI_fm_saveallpath_ed,'String');
 
- PROPPERIMG=zeros(6,start-stop+1);
+ NewProps=zeros(6,start-stop+1);
 
 
 
@@ -31,39 +34,58 @@ for pic=start:stop
         whatcells(:,:)=handles.MPM(:,2*pic-1:2*pic);
     end
     
-   whatcells=whatcells(find(whatcells(:,1)&whatcells(:,2)),:); 
+    %whatcells defines which cells will be taken into account. This is
+    %either defined by the user (PolyTrack_PP) or it will just be all cells
+    %within the current picture
+    
+    whatcells=whatcells(find(whatcells(:,1)&whatcells(:,2)),:); 
    
-   PROPPERIMG(6,pic)=size(whatcells,1);
+    NewProps(6,pic)=size(whatcells,1);
     
+    
+    %here we find all the rows of PROPERTIES that correspond to cells we are
+    %intersted in. PROPERTIES(:,1:2,pic) and whatcells are both [x,y]
+    %coordinates
     properRows= ismember(round(handles.PROPERTIES(:,1:2,pic)),round(whatcells),'rows');
+    takeIntoAccount=handles.PROPERTIES(properRows,:,pic);
     
-    takeintoaccount=handles.PROPERTIES(properRows,:,pic);
- 
+        
+	% REMINDER:
+	% one row of PROPERTIES gives information on one set of coordinates (one
+	% cell). takeIntoAccount has the same layout
+	% PROPERTIES=zeros(length(coord),6);
+	% PROPERTIES(:,1)=coord(:,1);
+	% PROPERTIES(:,2)=coord(:,2);
+	% PROPERTIES(:,3)=belongsto(:);  (number of cluster - label)
+	% PROPERTIES(:,4)=numberOfOccurences(:);  (how many cells in the cluster
+	%                                          this cell is in)
+	% PROPERTIES(:,5)=bodycount(:);  (area per cell)
+	% PROPERTIES(:,6)=perimdivare(:);  (cluster)
+        
     
-    %how many clusters
-    
-    Clusters=find(takeintoaccount(:,4)>1.1)
-    [uniqclust,rows,invert]=unique(takeintoaccount(Clusters,3));
-    PROPPERIMG(1,pic)=length(uniqclust);
+    %how many clusters. At least two members.
+    Clusters=find(takeIntoAccount(:,4)>1.5)
+    [uniqclust,uniCluRows,invert]=unique(takeIntoAccount(Clusters,3));
+    NewProps(1,pic)=length(uniqclust);
     
     
     %how many cells per cluster
-    PROPPERIMG(2,pic)=sum(takeintoaccount(Clusters(rows),4))/PROPPERIMG(1,pic);
+    NewProps(2,pic)=sum(takeIntoAccount(Clusters(uniCluRows),4))/NewProps(1,pic);
     
     %how big an area per cell
     
-    PROPPERIMG(3,pic)=sum(takeintoaccount(:,5))/PROPPERIMG(6,pic);
+    NewProps(3,pic)=sum(takeIntoAccount(:,5))/NewProps(6,pic);
     
     %how big an area per cluster
-    bridge=takeintoaccount(:,5).*(takeintoaccount(:,4));
-    PROPPERIMG(4,pic)=sum(bridge(Clusters(rows)))/length(rows);
+    bridge=takeIntoAccount(:,5).*(takeIntoAccount(:,4));
+    NewProps(4,pic)=sum(bridge(Clusters(uniCluRows)))/length(uniCluRows);
     
     %perimeter/area
-    uff=find(takeintoaccount(:,6));
-    PROPPERIMG(5,pic)=sum(takeintoaccount(uff,6))/length(uff);
+    uff=find(takeIntoAccount(:,6));
+    NewProps(5,pic)=sum(takeIntoAccount(uff,6))/length(uff);
     
     %percentage single cells
-    PROPPERIMG(7,pic)=(PROPPERIMG(6,pic)-length(Clusters))/PROPPERIMG(6,pic)
+    NewProps(7,pic)=(NewProps(6,pic)-length(Clusters))/NewProps(6,pic)
     
    
 end 
@@ -72,20 +94,20 @@ if get(handles.GUI_ad_numberofthings_rb,'Value')
     
         h_fig=figure,title(handles.jobvalues.imagename)
         
-        ymax=max(PROPPERIMG(1,:));
-        subplot(2,2,1);plot(PROPPERIMG(1,:)), title('how many clusters')
+        ymax=max(NewProps(1,:));
+        subplot(2,2,1);plot(NewProps(1,:)), title('how many clusters')
         xlabel('Frames')
         ylabel('# of clusters')
         axis([0 stop 0 ymax])
         
-        ymax=max(PROPPERIMG(2,:));
-        subplot(2,2,2);plot(PROPPERIMG(2,:)), title('how many cells per cluster')
+        ymax=max(NewProps(2,:));
+        subplot(2,2,2);plot(NewProps(2,:)), title('how many cells per cluster')
         xlabel('Frames')
         ylabel('cells per cluster')
         axis([0 stop 0 ymax])
  
-        ymax=max(PROPPERIMG(6,:));
-        subplot(2,2,3);plot(PROPPERIMG(6,:)), title('how many cells')
+        ymax=max(NewProps(6,:));
+        subplot(2,2,3);plot(NewProps(6,:)), title('how many cells')
         xlabel('Frames')
         ylabel('# of cell')
         axis([0 stop 0 ymax])
@@ -107,14 +129,14 @@ if get(handles.GUI_ad_areas_rb,'Value')
         
        h_fig=figure,title(handles.jobvalues.imagename)
         
-       ymax=max(PROPPERIMG(3,:));
-        subplot(1,2,1);plot(PROPPERIMG(3,:)), title('how big an area per cell')
+       ymax=max(NewProps(3,:));
+        subplot(1,2,1);plot(NewProps(3,:)), title('how big an area per cell')
         xlabel('Frames')
         ylabel('area per cell')
         axis([0 stop 0 ymax])
         
-        ymax=max(PROPPERIMG(4,:));
-        subplot(1,2,2); plot(PROPPERIMG(4,:)), title('how big an area per cluster')
+        ymax=max(NewProps(4,:));
+        subplot(1,2,2); plot(NewProps(4,:)), title('how big an area per cluster')
         xlabel('Frames')
         ylabel('area per cluster')
         axis([0 stop 0 ymax])
@@ -130,8 +152,8 @@ end
 if get(handles.GUI_ad_perimeter_rb,'Value')
         
         h_fig=figure,title(handles.jobvalues.imagename)
-        ymax=max(PROPPERIMG(5,:));
-        subplot(1,1,1); plot(PROPPERIMG(5,:)), title('perimeter/area of clusters')
+        ymax=max(NewProps(5,:));
+        subplot(1,1,1); plot(NewProps(5,:)), title('perimeter/area of clusters')
         xlabel('Frames')
         ylabel('perimeter/area')
         axis([0 stop 0 ymax])
@@ -146,8 +168,8 @@ if get(handles.GUI_ad_perimeter_rb,'Value')
 end
     
        h_fig=figure,title(handles.jobvalues.imagename)
-        ymax=max(PROPPERIMG(7,:));
-        subplot(1,1,1); plot(PROPPERIMG(7,:)), title('Percentage of single cells')
+        ymax=max(NewProps(7,:));
+        subplot(1,1,1); plot(NewProps(7,:)), title('Percentage of single cells')
         xlabel('Frames')
         ylabel('percentage of single cells')
         axis([0 stop 0 1])
@@ -159,7 +181,7 @@ end
 		
 
 cd(saveallpath)
-save('PROPPERIMG', 'PROPPERIMG')
+save('NewProps', 'NewProps')
 
 %     
 %       figure, plot(numbercells),title('number of cells')

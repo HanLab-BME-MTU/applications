@@ -1,6 +1,7 @@
 function fillFields(handles,activeJob)
 
-
+%all this program does, is fill values into the respective fields of
+%PolyTrack (GUI). No big deal
 set(handles.GUI_st_path_imagedirectory_ed,'String',activeJob.imagedirectory);
 set(handles.GUI_st_path_imagename_ed,'String',activeJob.imagename);
 set(handles.GUI_st_path_firstimage_ed,'String',num2str(activeJob.firstimage));

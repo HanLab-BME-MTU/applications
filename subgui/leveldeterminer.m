@@ -1,5 +1,11 @@
 function leveldeterminer(hObject)
 
+
+%This programm allows the user to specify the intensity values of his
+%images interactively. Values of interest are: background, nuclei, halos
+%each value get's specified for the first and the last frame of the current
+%analysis, so that for every frame the values can be interpolated
+
 handles = guidata(hObject);
 
 projNum = get(handles.GUI_st_job_lb,'Value');
@@ -9,25 +15,27 @@ FirstImaNum = handles.jobs(projNum).firstimage;
 LastImaNum = handles.jobs(projNum).lastimage;
 ImageNamesList = handles.jobs(projNum).imagenameslist
 
+
+
 cd(ImageDirectory);
 
-name = char(ImageNamesList(FirstImaNum));
 
+name = char(ImageNamesList(FirstImaNum));
 firstImage=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
+
+
+name = char(ImageNamesList(LastImaNum));
+lastImage=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 
 [img_h,img_w]=size(firstImage);
 
-
-name = char(ImageNamesList(LastImaNum));
-
-lastImage=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
-
-
-
 %get the intensity values of these pictures
 
-%first picture
+
+
+%%%%%%%%%%%%%%first picture%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %background
 backfirst = figure, imshow(firstImage,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
 
@@ -45,6 +53,8 @@ close
 clear X
 clear Y
 
+
+
 %nucloi
 nucfirst=figure, imshow(firstImage,[]), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
 [X,Y] = getpts(nucfirst);
@@ -60,6 +70,8 @@ handles.jobs(projNum).fi_nucleus= sum(intense)/length(intense);
 close
 clear X
 clear Y
+
+
 
 %halos
 halofirst=figure, imshow(firstImage,[]), title('Click on the halos(approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
@@ -80,9 +92,12 @@ clear Y
 
 
 
-%%%%%%%%%last picture
+
+%%%%%%%%%last picture%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %background
 backlast=figure, imshow(lastImage,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
+
+
 
 [X,Y] = getpts(backlast);
 intense=[];
@@ -97,6 +112,8 @@ handles.jobs(projNum).la_background= sum(intense)/length(intense);
 close
 clear X
 clear Y
+
+
 
 %nucloi
 nuclast=figure, imshow(lastImage,[]), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
@@ -114,6 +131,8 @@ handles.jobs(projNum).la_nucleus= sum(intense)/length(intense);
 close
 clear X
 clear Y
+
+
 
 %halos
 halolast=figure, imshow(lastImage,[]), title('Click on the halos (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');

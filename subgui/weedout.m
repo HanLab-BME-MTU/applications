@@ -31,8 +31,8 @@ handles.MPM=handles.MPM(firsts,:);
 for i=1:size(handles.MPM,1)
         onecell=handles.MPM(i,:);
         index=find(onecell);
-        beginn(i)=min(index);
-        nomore(i)=max(index);
+        appear(i)=min(index);
+        disappear(i)=max(index);
 end
 
 counter=0;
@@ -51,33 +51,33 @@ while counter < (size(handles.MPM,1)-0.3)
     
     %we look for tracks which begin only a few frames before our current
     %track stops and try to link 
-    near= find(  (nomore(counter)-beginn(counter+1:end)) < minusframes ...
-               & (nomore(counter)-beginn(counter+1:end)) > 0 ...
-               & (nomore(counter)-nomore(counter+1:end)) < plusframes ...
-               &  beginn(counter+1:end) > 1.1 ...
-               & (nomore(counter)+1.9) < size(handles.MPM,2)  );
+    near= find(  (disappear(counter)-appear(counter+1:end)) < minusframes ...
+               & (disappear(counter)-appear(counter+1:end)) > 0 ...
+               & (disappear(counter)-disappear(counter+1:end)) < plusframes ...
+               &  appear(counter+1:end) > 1.1 ...
+               & (disappear(counter)+1.9) < size(handles.MPM,2)  );
     
     if ~isempty (near)
     
-           [distance,chuck] = min( sqrt( ( handles.MPM(counter , nomore(counter)-1) - handles.MPM(near(:)+counter , nomore(counter)+1) ).^2 ... 
-                                           + ( handles.MPM(counter , nomore(counter)) - handles.MPM(near(:)+counter , nomore(counter)+2) ).^2  ) );
+           [distance,chuck] = min( sqrt( ( handles.MPM(counter , disappear(counter)-1) - handles.MPM(near(:)+counter , disappear(counter)+1) ).^2 ... 
+                                           + ( handles.MPM(counter , disappear(counter)) - handles.MPM(near(:)+counter , disappear(counter)+2) ).^2  ) );
          
             if distance < maxdistpostpro
                 
                 %add the found track to the current track
-                handles.MPM(counter , (nomore(counter)+1):end) = handles.MPM(near(chuck)+counter , (nomore(counter)+1):end);
+                handles.MPM(counter , (disappear(counter)+1):end) = handles.MPM(near(chuck)+counter , (disappear(counter)+1):end);
                 
                 %erase the redundant track
                 handles.MPM(near(chuck)+counter , :) = 0;
                 
                 %make sure the current track gets processed again, with the new stop location. Maybe we can find a new link there 
-                nomore(counter) = nomore(near(chuck)+counter);
+                disappear(counter) = disappear(near(chuck)+counter);
                 
                 %erase begin and stop location of our allocated track (now
                 %part of the current track and no longer an individual
                 %track)
-                nomore(near(chuck)+counter) = 0;
-                beginn(near(chuck)+counter) = 0;
+                disappear(near(chuck)+counter) = 0;
+                appear(near(chuck)+counter) = 0;
                 
                 counter = counter - 1;
                 
@@ -93,35 +93,35 @@ while counter < (size(handles.MPM,1)-0.3)
     %we look for tracks which begin two frames after our current
     %track stops and try to link
     if ~linked
-          gaps = find(  (nomore(counter)+3.9) < size(handles.MPM,1) ...
-                      & ((nomore(counter)-beginn(counter+1:end)) == -2) )
+          gaps = find(  (disappear(counter)+3.9) < size(handles.MPM,1) ...
+                      & ((disappear(counter)-appear(counter+1:end)) == -2) )
                     
           if ~isempty (gaps)
     
-                [distance,chuck] = min( sqrt( ( handles.MPM(counter , nomore(counter)-1) - handles.MPM(gaps(:)+counter , nomore(counter)+3) ).^2 ... 
-                                           + ( handles.MPM(counter , nomore(counter)) - handles.MPM(gaps(:)+counter , nomore(counter)+4) ).^2  ) );
+                [distance,chuck] = min( sqrt( ( handles.MPM(counter , disappear(counter)-1) - handles.MPM(gaps(:)+counter , disappear(counter)+3) ).^2 ... 
+                                           + ( handles.MPM(counter , disappear(counter)) - handles.MPM(gaps(:)+counter , disappear(counter)+4) ).^2  ) );
                 
                 if distance < maxdistpostpro
                         
                         %add the found track to the current track
-                        handles.MPM(counter , (nomore(counter)+3):end) = handles.MPM(gaps(chuck)+counter , (nomore(counter)+3):end);
+                        handles.MPM(counter , (disappear(counter)+3):end) = handles.MPM(gaps(chuck)+counter , (disappear(counter)+3):end);
                         
                         %fill in the gap
-                        handles.MPM(counter , nomore(counter)+1)=   handles.MPM(counter , nomore(counter)-1) +...
-                                                                    round( (handles.MPM(counter , nomore(counter)+3) - handles.MPM(counter , nomore(counter)-1))/2 );
-                        handles.MPM(counter , nomore(counter)+2)=   handles.MPM(counter , nomore(counter)) +...
-                                                                    round( (handles.MPM(counter , nomore(counter)+4) - handles.MPM(counter , nomore(counter)))/2 );
+                        handles.MPM(counter , disappear(counter)+1)=   handles.MPM(counter , disappear(counter)-1) +...
+                                                                    round( (handles.MPM(counter , disappear(counter)+3) - handles.MPM(counter , disappear(counter)-1))/2 );
+                        handles.MPM(counter , disappear(counter)+2)=   handles.MPM(counter , disappear(counter)) +...
+                                                                    round( (handles.MPM(counter , disappear(counter)+4) - handles.MPM(counter , disappear(counter)))/2 );
                         %erase the redundant track
                         handles.MPM(gaps(chuck)+counter , :) = 0;
                         
                         %make sure the current track gets processed again, with the new stop location. Maybe we can finf a new link there 
-                        nomore(counter) = nomore(gaps(chuck)+counter);
+                        disappear(counter) = disappear(gaps(chuck)+counter);
                         
                         %erase begin and stop location of our allocated track (now
                         %part of the current track and no longer an individual
                         %track)
-                        nomore(gaps(chuck)+counter) = 0;
-                        beginn(gaps(chuck)+counter) = 0;
+                        disappear(gaps(chuck)+counter) = 0;
+                        appear(gaps(chuck)+counter) = 0;
                         
                         counter = counter - 1;
                 end  

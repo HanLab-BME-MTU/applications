@@ -1,18 +1,28 @@
 function changeframe
 
 
+%this is the callback of the slider, created in manualpostpro
+%What we do here is:
+%- find out which frame the user currently wants to look at
+%- show this frame in the figure (created in manualpostpro)
+%- plot the coordinates of the cells into this picture
+%- plot the cell numbers (near the respective cells) with the 
+%  callback manrelink
+%if the user clicks on the number of the cell, manrelink comes into play.
+%Look there for more
+
+%delete the figure currently shown in the figure
 delete(gca)
 
+%look for objects needed for information
 pictureslideH=findall(0,'Tag','pictureslide');
 hObject=findall(0,'Tag','GUI_pp_jobbrowse_pb');
+piccount =findall(0,'Style','text','Tag','picturecount');
+
+
 handles=guidata(hObject);
 
-piccount =findall(0,'Style','text','Tag','picturecount');
-                        
-                        
-
-
-
+%the good old jobvalues... we need them once more                
 imagedirectory=handles.jobvalues.imagedirectory;
 imagename=handles.jobvalues.imagename;
 firstimage=handles.jobvalues.firstimage;
@@ -22,36 +32,49 @@ ma=handles.ma;
 ImageNamesList = handles.jobvalues.imagenameslist;
 
 
-
+%get the current value of the slider, so that we know which frame the user
+%wants
 slidervalue=get(pictureslideH,'Value');
 slidervalue=round(slidervalue*(ma-1)+1);
 
+%calculate the number of the frame
 whichpic=(slidervalue-1)*increment + firstimage;
 
+%write the current frame number in the little window above the slider
 set(piccount,'String',num2str(whichpic))
 
 
+%go get the frame
 cd(imagedirectory)
 
-
 name = char(ImageNamesList(whichpic));
-
-
-%get the current picture
 picnew=imreadnd2(name,0,handles.jobvalues.intensityMax);
 
+
+%show the frame
 hold on;
 imshow(picnew,[]), title(num2str(whichpic))
 
   
-         
+%get the cells corresponding to this frame. We create a third column
+%(first two being [x,y]) with the row indices of MPM. We are NOT interested in
+%the indices the cells will have in the vector cellsWithNums!!! Why?
+%because in MPM every cell has it's own row, so the row indices of MPM is
+%the actual number of the cell
+
+%identify the real cells (at least one coord different from zero)
 indRealCell=find(handles.MPM(:,2*slidervalue-1) | handles.MPM(:,2*slidervalue));
 
 cellsWithNums=zeros(size(handles.MPM,1),3);
+
+%row indices
 cellsWithNums(:,3)=[1:1:size(handles.MPM,1)]';
+
+%here we grab all rows in MPM, so that the row indices correspond to the cells
 cellsWithNums(:,1:2)=handles.MPM(:,2*slidervalue-1:2*slidervalue);
 
-
+%NOW we only take the cells identified as real cells (at least one coord
+%different from zero)
 plot(cellsWithNums(indRealCell,1),cellsWithNums(indRealCell,2),'r.');
 txt= text(cellsWithNums(indRealCell,1),cellsWithNums(indRealCell,2),num2str(cellsWithNums(indRealCell,3)),'Color','r');
 set(txt,'ButtonDownFcn','manrelink'); 

@@ -1,18 +1,35 @@
 function manrelink
+
+%this is the callback of the cell numbers in the shown image(look at
+%changeframe). 
 hObject=findall(0,'Tag','GUI_pp_jobbrowse_pb');
 handles=guidata(hObject);
 
+%first we have to find out which cell the user has clicked on
 whichcell=get(gco,'String')
 
-posi= get(gco,'Position');
-where1=posi(1);
-where2=posi(2);
 
-pospic=get(gcf,'Position');
-wherepic1=pospic(1);
-wherepic2=pospic(2);
+% posi= get(gco,'Position');
+% where1=posi(1);
+% where2=posi(2);
+% 
+% pospic=get(gcf,'Position');
+% wherepic1=pospic(1);
+% wherepic2=pospic(2);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%This program creates three objects:
+%- listbox(linklist) where the program keeps track of the cells you have selected for
+%  linkage. When you click on one of the listed cells, it will be linked to
+%  the current callback cell
+%- pushbutton (linkbutton). If you click on this, the current callback cell
+%  will be added to the list (in listbox)
+%- pushbutton (chuckout). If you click on this, the current callback cell
+%  will be erased
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%first we look if these three bjects already exist somewhere and, if that
+%should be the case, erase them.
 linklistH =findall(0,'Style','listbox','Tag','linklist');
 linkbuttonH =findall(0,'Style','pushbutton','Tag','linkbutton');
 chuckoutH =findall(0,'Style','pushbutton','Tag','chuckout');
@@ -28,14 +45,20 @@ if ~isempty(chuckoutH)
     delete(chuckoutH);
 end;
 
+
+
+%get the current list that should go into listbox
 listofcells=handles.listofcells;
+
+%find the position of the users click, so that we can create the objects
+%there
 figure(gcbf);
+%position whithin figure
 pos = get(gcf,'currentPoint')
-% if strcmp(get(gca,'Units'),'normalized')
-%     set(gca,'Units','pixels');
-% end
+%position of figure
 imgPos = get(gca,'Position');
-%adjust position of poplistbox so that its top is not outside current figure
+
+%calculate the position the objects should have
 lbPos = [pos(1)  pos(2) 60 60]
 linkaddbuttonpos=[pos(1)  pos(2)+60 60 30]
 delbuttonPos = [pos(1)  pos(2)+90 60 30]
@@ -55,6 +78,8 @@ delbuttonPos = [pos(1)  pos(2)+90 60 30]
 % % end
 % % 
 
+
+%create the objects with the respective callbacks
 
 linklistH = uicontrol('Style', 'listbox',...
     'Callback','linknow',...

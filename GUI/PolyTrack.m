@@ -199,10 +199,10 @@ else
 	
 	dirList=dir(imagedirectory);
 	
-    dirList = struct2cell(dirList)
-    dirList = dirList(1,:)
+    dirList = struct2cell(dirList);
+    dirList = dirList(1,:);
     ind = strmatch(handles.jobs(projNum).bodyname,dirList);
-    dirList = dirList(ind)'
+    dirList = dirList(ind)';
     handles.jobs(projNum).lastimage = length(dirList);
       
     for jRearange = 1:length(dirList)

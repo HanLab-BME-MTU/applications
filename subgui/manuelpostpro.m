@@ -1,6 +1,13 @@
 function manuelpostpro(hObject)
 
+% A routine that, together with it's subprograms, allows the user to
+% manually postprocess the results of the main analysis. 
+% This programm only opens a figure and puts a slider into it. 
+% The sliders callback is changeframe, so better look there if you want to
+% know more.
 
+%if the slider (and less important, the little windos with the number of
+%the current frame) already exist, delete them now.
 picturecountH =findall(0,'Style','text','Tag','picturecount');
 pictureslideH =findall(0,'Style','slider','Tag','pictureslide');
 
@@ -17,7 +24,7 @@ handles = guidata(hObject)
 handles.listofcells='...';
 
 
-
+%the good old jobvalues... we need them once more
 imagedirectory=handles.jobvalues.imagedirectory;
 imagename=handles.jobvalues.imagename;
 firstimage=handles.jobvalues.firstimage;

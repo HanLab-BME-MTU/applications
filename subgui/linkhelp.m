@@ -1,21 +1,26 @@
 function linkhelp
 
+%this is the callback of the linkbutton (manrelink). It adds the current
+%callback cell to the linklist, so that it can later be selected for
+%linkage
 
 hObject=findall(0,'Tag','GUI_pp_jobbrowse_pb');
 handles=guidata(hObject);
 
-
+%get the current list of cells to be linked
 linklisthelpingH =findall(0,'Style','listbox','Tag','linklist');
 whichcell= get(linklisthelpingH,'UserData');
-
 listofcells=handles.listofcells;
 
 
 piccount =findall(0,'Style','text','Tag','picturecount');
 whichpic =get(piccount,'String');
+%make a string containing the cell number and the frame number. This string
+%will be writen into the linklist. Later we can extract this data again
 detailslink=[whichcell,'/',whichpic];
 
 
+%add string to the existing list
 if ~iscell(listofcells)
     listofcells = cellstr(detailslink);
 else
@@ -28,7 +33,7 @@ else
     end
 end
 
-
+%save changed data
 handles.listofcells=listofcells;
 
 guidata(hObject,handles);

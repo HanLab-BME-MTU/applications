@@ -421,7 +421,8 @@ else
                        %will be marked (within the tracking via templates routine - called 
                        %templfindertrack). If they are old cells they will be
                        %marked as "old cells tracked via template", if they are new
-                       %cells as "new cells tracked via template"
+                       %cells as "new cells tracked via template". The
+                       %actual marker is a digit (fraction) behind the dot
                        trouble = [];
                        trouble = find(tmp(:,3)==0);
                            
@@ -441,7 +442,8 @@ else
                                              if abs(tempcoord(1,1))<MinEdge | abs(tempcoord(1,1)-img_w)<MinEdge | abs(tempcoord(1,2))<MinEdge | abs(tempcoord(1,2)-img_h)<MinEdge
                                                          
                                                        %one never knows what kind of data
-                                                       %somebody may wish to posses
+                                                       %somebody may wish
+                                                       %to possess
                                                        lostonedge = lostonedge+1;
                                                      
                                              else
@@ -586,7 +588,7 @@ else
                        %this is a quite elaborate and (if I may say so) sophisticated
                        %part of the programm, which basically changes the tracks of
                        %certain cells, based on an analysis of the various tracks of
-                       %cells over the last ? frames (defined in GUI_start). 
+                       %cells over the last ? frames (defined in PolyTrack (GUI)). 
                    
                        if countingloops > howmanytimestepsslide+1
                            
@@ -927,6 +929,8 @@ else
 		save('M', 'M')
 		save ('PROPERTIES', 'PROPERTIES')
 		cd ('body')
+        
+        
 		% Format
 		s=3; %s=length(num2str(no));
 		strg = sprintf('%%.%dd',s);
@@ -936,10 +940,11 @@ else
 		
 		nameClust = ['clusters' indxStr]; 
 		save(nameClust,'BODYIMG')
+        
+        
+        
 		%%    save (['lostonedge',date], 'lostonedge')
 		
-
-          
 	end
       
 	%it's all over now. All we have to do is change the format of the

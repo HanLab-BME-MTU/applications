@@ -1,5 +1,13 @@
 function SetCellValues(hObject,jobdeterminer)
 
+
+%this routine enables the user to specify:
+%-Minimal size of nuclei (1)
+%-Maximal size of nuclei (2)
+%-Minimal distance between two nuclei (3)
+%interactively. Which one of the three it is going to be, depends on the
+%value of jobdeterminer
+
 change=0;
 handles = guidata(hObject);
 
@@ -8,30 +16,25 @@ imageDirectory=handles.jobs(projNum).imagedirectory;
 imageName=handles.jobs(projNum).imagename;
 FirstImageNum=handles.jobs(projNum).firstimage;
 LastImaNum=handles.jobs(projNum).lastimage;
-
 ImageNamesList = handles.jobs(projNum).imagenameslist
+
+
 
 cd(ImageDirectory);
 
 name = char(ImageNamesList(FirstImaNum));
-
 firstImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
+name = char(ImageNamesList(LastImaNum)); 
+lastImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 [img_h,img_w]=size(firstImg);
 
-name = char(ImageNamesList(LastImaNum));
-    
-lastImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 
-
-%get the intensity values of these pictures
-
-%first picture
-%background
-if jobdeterminer==1
-    figure, imshow(firstImg),title('Make a polygon around the smallest nucloi, by clicking on its rimm, going around clock- or anticlockwise,then press ENTER') ; 
+%-Minimal size of nuclei (1)
+if jobdeterminer == 1
+    figure, imshow(firstImg),title('Make a polygon around the smallest nucleus, by clicking on its rimm, going around clock- or anticlockwise,then press ENTER') ; 
     BW =roipoly;
     close
     if ~length(find(BW))==0
@@ -40,8 +43,11 @@ if jobdeterminer==1
     end
 end
 
-if jobdeterminer==2
-    figure, imshow(firstImg), title('Make a polygon around the biggest nucloi, by clicking on its rimm, going around clock- or anticlockwise,then press ENTER') ;
+
+
+%-Maximal size of nuclei (2)
+if jobdeterminer == 2
+    figure, imshow(firstImg), title('Make a polygon around the biggest nucleus, by clicking on its rimm, going around clock- or anticlockwise,then press ENTER') ;
      BW =roipoly;
     close
     if ~length(find(BW))==0
@@ -51,7 +57,10 @@ if jobdeterminer==2
    
 end
   
-if jobdeterminer==3
+
+
+%-Minimal distance between two nuclei (3)
+if jobdeterminer == 3
     figure, imshow(firstImg), title('click on the centers of the two cells closest to each other, then press ENTER') ;
      [x,y] =getpts;
      close
@@ -63,16 +72,19 @@ if jobdeterminer==3
     
 end
 
+
+%change equals one, if anything has been specified by the user
 if change==1
-% Update handles structure
-guidata(hObject, handles);
-
-%%%%%%%%save altered values to disk%%%%%%%%%%%%
-cd(handles.jobs(projNum).savedirectory)
-jobvalues=handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-fillFields(handles,handles.jobs(projNum));
+	% Update handles structure
+	guidata(hObject, handles);
+	
+	%%%%%%%%save altered values to disk%%%%%%%%%%%%
+	cd(handles.jobs(projNum).savedirectory)
+	jobvalues=handles.jobs(projNum);
+	save ('jobvalues','jobvalues')
+	clear jobvalues
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	%now we update the value in PolyTrack
+	fillFields(handles,handles.jobs(projNum));
 end
