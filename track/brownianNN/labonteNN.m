@@ -8,20 +8,24 @@ function [M,conflict,options,v,w]=labonteNN(x,y,options)
 %            options  :   structure of parameters (optional)
 %                            options.r         : initial maximum distance under which a neuron can 
 %                                                be activated [ default: max found coordinate in {y,x} ]
+%                                                Pass options.r == 0 to have the function select a radius 
+%                                                based on the data (3x the mean minimal distance among particles)
 %                            options.rf        : difference of the criterion of two consecutive 
-%                                                iterations which stops the process [ default: 1e-5 ]
-%                            options.alpha     : initial learning rate [ default: 5e-3 ]
+%                                                iterations which stops the process [ default: 5e-3 ]
+%                            options.alpha     : initial learning rate [ default: 5e-4 ]
 %                            options.beta      : value by which .r is decreased and .alpha 
 %                                                is increased at each iteration [ default: 0.99 ]
 %                            options.threshold : max accepted distances between two particles in the 
-%                                                final result
+%                                                final result (not necessarily equal to the search radius)
+%                            options.maxiter   : maximum number of iterations; in case the algorithm gets stuck 
+%                                               [default: 1000]
 %                                                
 % OUTPUT     M        :   matrix of matched positions [y x y x]
 %            conflict :   matrix of still unresolved positions [y x y x]
 %                         (with repetitions)
 %            options  :   used options structure
-%            v        :   x coordinates as tranformed during the process
-%            w        :   y coordinates as tranformed during the process
+%            v        :   x coordinates as tranformed during the process (final weights)
+%            w        :   y coordinates as tranformed during the process (final weights)
 %
 % Should some positions fail to be resolved appropriately (this is a rare event if the options are 
 % set carefully), labonteNN returns the conflicting positions in a separate matrix ('conflict'), 
@@ -32,7 +36,7 @@ function [M,conflict,options,v,w]=labonteNN(x,y,options)
 %                                createSparseDistanceMatrix;
 %                                missingIndices;
 %                                repeatingIndices }
-%               fsmTrackMain is used by { fsmTrackTrackerA }
+%               fsmTrackMain is used by { fsmTrackTrackerBMTNN }
 %
 % REFERENCES 
 %
@@ -47,26 +51,33 @@ function [M,conflict,options,v,w]=labonteNN(x,y,options)
 % (3) Labonté G. (2000) "On a neural network that performs an enhanced nearest-neighbour matching"
 %     PATTERN ANALYSIS AND APPLICATIONS 3 (3): 267-278 2000
 %
-% Aaron Ponti, 2002
+% Aaron Ponti, 2002 - Major update 04/16/2004
 
-DEBUG=0;
+% FLAGS
+DEBUG=0;    % Plots the particles at every iteration to see convergence progress
+VERBOSE=1;  % Outputs some information about the current iteration (text only)
 
-% Define a constant
-nDim=size(x,2);     % Number of dimensions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% INPUT CHECK
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Set default options if none is passed
 if nargin==2
     options.r=max([max(x(:)) max(y(:))]);
-    options.rf=1e-5; 
-    options.alpha=0.005;
+    options.rf=5e-3; 
+    options.alpha=5e-4;
     options.beta=0.99;
     options.threshold=1;
+    options.maxiter=1000;
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Initialization
+% SOME OUTPUT
 %
-v=x;
-w=y;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if DEBUG==1
     
@@ -84,109 +95,138 @@ if DEBUG==1
     
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% SOME INITIALIZATIONS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Define a constant
+nDim=size(x,2);     % Number of dimensions
+
+% The initial weights are set to the particle positions
+v=x;
+w=y;
+
+% Initial search radius
 r=options.r;
+if r==0
+    % The user decided to let this function pick the initial search radius
+    r=3*mean(min(createDistanceMatrix(v,w),[],2));
+    % Check r, in case all particles in frame 1 have a perfect match at the exact same position in frame 2
+    if r==0
+        r=1;
+    end
+end
+
 alpha=options.alpha;
 
-% Initialize dw and dv
+% Initialize weight matrices dw and dv
 dw=zeros(size(w));
 dv=zeros(size(v));
 
-crit=options.r;
-lastCrit=0;
-while crit>options.rf
+% Initialize some values
+crit=1;          % Current criterion (initially set larger than the threshold)
+critThreshold=0; % Criterion threshold, set to zero (will be updated after the first iteration)
+lastCrit=0;      % Criterion of the previous iteration (initially zero)
 
-    % Reset dw and dv
+% Maximum number of iterations
+maxIter=options.maxiter;
+
+% Current iteration number 
+nIter=0;
+
+% Iterate
+while crit>critThreshold & nIter<maxIter
+    
+    % Reset current dw and dv
     dw=0*dw;
     dv=0*dv;
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
     % FEED NETWORK 1 WITH THE WEIGHTS FROM NETWORK 2
     %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % Calculate the distance of each neuron to all others
     d=createDistanceMatrix(v,w);
     
-    % Now go through all neurons from network 1 and find the winning neuron from 2
-    for i=1:size(d,1)
-        % Extract distances to all neurons in netowrk 2 corresponding to neuron i from d
-        cD=d(i,:);
-        % Find the winning neuron in network 2
-        vN=find(cD==min(cD)); % & cD<r);
-        % The winning neuron is the one (or one of the ones) having the smallest activation
-        if ~isempty(vN)
-            if length(vN)>1
-                vN=vN(1);
-            end
-            % alpha must be set to zero where the distance || v(i)-w || is > options.r
-            dist=v(i,:)-w(vN,:);
-            for j=1:nDim
-                dwi(1:size(w,1),j)=alpha*dist(j);
-            end
-            currDist=createDistanceMatrix(w,w(vN,:));
-            currDist=(currDist<r);
-            for k=2:nDim
-                currDist(:,k)=currDist(:,1);
-            end
-            dwi=dwi.*currDist;
-            % Update weight changes
-            dw=dw+dwi;
-        end
-        % No winner, no weight update 
-    end
+    % For all neurons from network 1 find the winning neurons in network 2
+    [minD,vN]=min(d,[],2);
     
+    % The winning neuron is the one (or one of the ones) having the smallest activation (distance)
+    distN=v-w(vN,:);
+
+    % Mark those neurons which have to be updated (distance criterion)
+    neuronsToUpdate=createSparseDistanceMatrix(w,w(vN,:),r)~=0;
     
+    % Calculate total weights for participating neurons in network 2 (it is just a matrix multiplication)
+    dw=(alpha*distN'*neuronsToUpdate')';
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
     % FEED NETWORK 2 WITH THE WEIGHTS FROM NETWORK 1
     %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    % Calculate the distance of each neuron to all others
+    % Calculate the distance of each neuron to all others (just the transpose of the previous)
     d=d';
     
-    % Now go through all neurons from network 2 and find the winning neuron from 1
-    for j=1:size(d,1)
-        % Extract distances to all neurons in network 1 corresponding to neuron j from d
-        cD=d(j,:);
-        % Find the winning neuron in network 1
-        vN=find(cD==min(cD)); % & cD<r);
-        % The winning neuron is the one (or one of the ones) having the smallest activation
-        if ~isempty(vN)
-            if length(vN)>1
-                vN=vN(1);
-            end
-            % alpha must be set to zero where the distance || v(i)-w || is > options.r
-            dist=w(j,:)-v(vN,:);
-            for i=1:nDim
-                dvj(1:size(v,1),i)=alpha*dist(i);
-            end
-            currDist=createDistanceMatrix(v,v(vN,:));
-            currDist=(currDist<r);
-            for k=2:nDim
-                currDist(:,k)=currDist(:,1);
-            end
-            dvj=dvj.*currDist;
-            % Update weight changes
-            dv=dv+dvj;
-        end
-        % No winner, no weight update 
-    end
+    % For all neurons from network 2 find the winning neurons in network 1
+    [minD,vN]=min(d,[],2);
+    
+    % The winning neuron is the one (or one of the ones) having the smallest activation (distance)
+    distN=w-v(vN,:);
+    
+    % Mark those neurons which have to be updated (distance criterion)
+    neuronsToUpdate=createSparseDistanceMatrix(v,v(vN,:),r)~=0;
+    
+    % Calculate total weights for participating neurons in network 1 (it is just a matrix multiplication)
+    dv=(alpha*distN'*neuronsToUpdate')';
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    % UPDATE WEIGHTS
+    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    %
-    % Update weights
-    %
- 
-    if ~isempty(dw)
-        w=w+dw;
-    end
-    if ~isempty(dv)
-        v=v+dv;
-    end
+    w=w+dw;
+    v=v+dv;
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
-    % Update time-dependent parameters
+    % UPDATE TIME-DEPENDENT PARAMETERS (AND ITERATION COUNTER)
     %
-    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     r=r*options.beta;
     alpha=alpha/options.beta;
+    
+    % Update iteration counter
+    nIter=nIter+1;
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    % CALCULATE CRITERION
+    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    % Calculate distance criterion (sum of squared distance differences)
+    minDist=min(createDistanceMatrix(v,w),[],2);
+    sqErr=sum(minDist.^2);
+    crit=abs(sqErr-lastCrit);
+    lastCrit=sqErr;
+    
+    % Use the criterion at iteration 2 to update the threshold
+    if nIter==2
+        critThreshold=crit*options.rf;
+    end
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    % SOME DEBUG INFO
+    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     if DEBUG==1
         mx=max([max(x(:)) max(y(:))])+0.001;
@@ -196,28 +236,29 @@ while crit>options.rf
         plot(w(:,1),w(:,2),'b*','MarkerSize',10);
         %     axis([0 mx 0 mx]);
         title('Convergence');
+        pause(0.001);
     end
     
-    % Calculate distance criterion (sum of squared distance differences)
-    minDist=min(createDistanceMatrix(v,w),[],2);
-    sqErr=sum(minDist.^2);
-    crit=abs(sqErr-lastCrit);
-    lastCrit=sqErr;
-    
-    if DEBUG==1
-        crit
-        pause(0.001);
+    if VERBOSE==1
+        fprintf(1,'Iteration number: %4.0d - Criterion: %5.5f - Threshold: %.5f - Current radius: %3.3f\n',nIter,crit,critThreshold,r);
     end
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% LOOK FOR CORRESPONDANCES IN THE RETURNED CONVERGED POSITIONS (THEY SHOULD BE UNIVOCALLY DETERMINED)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Build pairing matrix
 D=createDistanceMatrix(v,w); % We don't set a distance constraint here
-Dorig=createSparseDistanceMatrix(x,y,options.r); % Only in the original
-                                                         % distance matrix
+Dorig=createSparseDistanceMatrix(x,y,options.threshold); % Only in the original distance matrix
 
 % Initialize matrices E, F, and H
-E=[]; F=[]; H=[];
+E=zeros(size(D));
+F=E;
+H=E;
 
 % Row
 for i=1:size(D,1)
@@ -234,7 +275,7 @@ for i=1:size(D,2)
 end
 
 % Thresholding (on the distances between the original positions)
-H=Dorig~=0;%<=options.threshold;
+H=Dorig~=0;
       
 % Resulting selected distance matrix
 if ~isempty(E) % If E is empty, then also F and H are empty
@@ -243,11 +284,11 @@ else
     G=[];
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%555
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % BUILD M FOR UNIVOCALLY RESOLVED PAIRS
 %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%555
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Extract non-paired speckles
 [gy gx]=find(G);
@@ -269,7 +310,7 @@ matches=[gy gx];
 % More than one partner
 oneMatch=cat(2,r1,r2);
 conflictMatches=matches(oneMatch,:);  % In conflict
-matches(oneMatch,:)=[];        % Univocally assigned
+matches(oneMatch,:)=[];               % Univocally assigned
 
 % Add univocally assigned positions to M
 for c1=1:size(matches,1)
@@ -288,11 +329,11 @@ MNPJ=zeros(lenNPJ,4);
 MNPJ(1:lenNPJ,3:4)=nonPairedJ;
 M=cat(1,M,MNPJ);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%555
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % BUILD MATRIX conflict, CONTAINING THE POSITIONS STILL UNRESOLVED
 %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%555
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 conflict=[];
 if ~isempty(conflictMatches)
@@ -300,96 +341,6 @@ if ~isempty(conflictMatches)
         conflict(c1,1:4)=[x(conflictMatches(c1,1),:) y(conflictMatches(c1,2),:)];
     end
 end
-
-
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%555
-% %
-% % BUILD M FOR UNIVOCALLY RESOLVED PAIRS
-% %
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%555
-% 
-% % Extract non-paired speckles
-% [gy gx]=find(G);
-% m1=missingIndices(gy,size(G,1));
-% m2=missingIndices(gx,size(G,2));
-% nonPairedI=x(m1,:);      % Non paired 1->2
-% nonPairedJ=y(m2,:);      % Non paired 2->1
-% 
-% matches=[gy gx];
-% [r1,n1]=repeatingIndices(gy);
-% [r2,n2]=repeatingIndices(gx);
-% 
-% % More than one partner
-% oneMatch=cat(2,r1,r2);
-% conflict=matches(oneMatch,:);  % In conflict, to be returned
-% matches(oneMatch,:)=[];        % Univocally assigned
-% 
-% % Add univocally assigned positions to M
-% for c1=1:size(matches,1)
-%     M(c1,1:4)=[posI(matches(c1,1),:) posJ(matches(c1,2),:)];
-% end
-% 
-% % Add non-paired positions from frame 1
-% lenNPI=size(nonPairedI,1);
-% MNPI=zeros(lenNPI,4);
-% MNPI(1:lenNPI,1:2)=nonPairedI;
-% M=cat(1,M,MNPI);
-% 
-% % Add non-paired positions from frame 2
-% lenNPJ=size(nonPairedJ,1);
-% MNPJ=zeros(lenNPJ,4);
-% MNPJ(1:lenNPJ,3:4)=nonPairedJ;
-% M=cat(1,M,MNPJ);
-% 
-% 
-% 
-% % % Assign pairings
-% % pairsI=[]; c0=0; toBeAdded=[]; cCat=1;
-% % for c1=1:size(G,1)
-% %     pos=find(G(c1,:)); % Find matches 
-% %     if length(pos)==1
-% %         c0=c0+1;
-% %         pairsI(c0,1:4)=[x(c1,:) y(pos,:)];
-% %     elseif length(pos)==0
-% %         c0=c0+1;
-% %         pairsI(c0,1:4)=[x(c1,:) 0 0];
-% %     else
-% %         % More than one match found - this is a rare event
-% %         % Assign the one which was originarily closer
-% %         % and discard the other(s)
-% %         %
-% %         % Add first match
-% %         d=createDistanceMatrix(x(c1,:),y(pos,:));
-% %         posCloser=find(d==min(d));
-% %         if length(posCloser)>1      % If they were at the same distance 
-% %             posCloser=posCloser(1); % also in the beginning, just take one     
-% %         end
-% %         pairsI(c1,1:4)=[x(c1,:) y(pos(posCloser),:)];
-% %         % Remove assigned match
-% %         pos(posCloser)=[];
-% %         % Add the rest
-% %         for c2=0:length(pos)-1
-% %             toBeAdded(cCat+c2,1:4)=[0 0 y(pos(c2+1),:)];
-% %         end
-% %     end
-% % end
-% % % Check for non-paired speckles in frame 2
-% % pairsJ=[]; c0=0;
-% % for c1=1:size(G,2)
-% %     pos=find(G(:,c1)); % Find matches
-% %     if length(pos)==0
-% %         c0=c0+1;
-% %         pairsJ(c0,1:4)=[0 0 y(c1,:)];
-% %     end
-% %     % Other cases have already been treated in the check 
-% %     % for speckles in frame 1
-% % %     if length(pos)>1
-% % %         disp('One speckle in frame 2 with two candidates in 1');
-% % %     end
-% % end
-% % % Concatenate
-% % M=cat(1,pairsI,pairsJ);
-% % M=cat(1,M,toBeAdded);
 
 if DEBUG==1
     
