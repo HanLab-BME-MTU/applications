@@ -13,7 +13,7 @@ function M=fsmTrackTrackerBMTNN(I,J,radius)
 %                                           missingIndices ;
 %                                           repeatingIndices ;
 %                                           labonteNN }
-%               fsmPrepMain is used by { fsmTrackMain }
+%               fsmTrackTrackerBMTNN is used by { fsmTrackMain }
 %
 % Aaron Ponti, March 14th, 2003
 
