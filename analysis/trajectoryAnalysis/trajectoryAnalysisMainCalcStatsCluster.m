@@ -84,7 +84,7 @@ while ~done
         % #of clusters, relative weights, positions, covariances = 
         %       m4(speeds,min#ofClusters,max#ofClusters,regularize,threshold,some option,pp0,mu0,verbose)
         [bestk,bestpp,bestmu,bestcov] = mixtures4(indSpeeds',...
-            clustermin,clustermax,0,CLUSTERTOL,1,pp0,mu0,0);
+            clustermin,clustermax,eps,CLUSTERTOL,0,pp0,mu0,0);
         % and store: number of clusters, number of significant clusters,
         % means, variance, weight
         [means,muIdx] = sort(bestmu);
