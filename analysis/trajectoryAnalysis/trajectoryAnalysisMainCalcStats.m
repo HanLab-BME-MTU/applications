@@ -477,7 +477,7 @@ if nargout > 1
     distributionStruct.antipolewardSpeed = [];
     distributionStruct.polewardSpeed = [];
     distributionStruct.distance = [];
-    distributionStruct.pause = [];
+    distributionStruct.pauseTime = [];
     distributionStruct.growthTime = [];
     distributionStruct.shrinkageTime = [];
     
@@ -485,7 +485,7 @@ if nargout > 1
     
     
     if ~isempty(pauseIdx)
-        distributionStruct.pause = [pauseTimes,pauseTimeInterval,pauseTimeSigma];
+        distributionStruct.pauseTime = [pauseTimes,pauseTimeInterval,pauseTimeSigma];
     end
     
     
