@@ -1,13 +1,14 @@
-function neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,traj,available)
+function neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,trajectories)
 %ARMACOEFKALMANOBJ calculates -2ln(likelihood) of the fit of an ARMA model to time series which could have missing data points
 %
-%SYNOPSIS neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,traj,available)
+%SYNOPSIS neg2LnLikelihood = armaCoefKalmanObj(param,arOrder,trajectories)
 %
-%INPUT  param    : Set of ARMA coefficients.
-%       arOrder  : Order of autoregressive part of process.
-%       traj     : Observed trajectory (with measurement uncertainties).
-%                  Missing points should be indicated with NaN.
-%       available: Indices of available observations.
+%INPUT  param       : Set of ARMA coefficients.
+%       arOrder     : Order of autoregressive part of process.
+%       trajectories: Structure array containing trajectories to be modeled:
+%           .traj     : 2D array of measurements and their uncertainties.
+%                       Missing points should be indicated with NaN.
+%           .available: Indices of existing observations.
 %
 %OUTPUT neg2LnLikelihood: Value of -2ln(likelihood).
 %
@@ -32,9 +33,27 @@ end
 arParam = param(1:arOrder);
 maParam = param(arOrder+1:end);
 
-%get the innovations and their variances using Kalman prediction and filtering
-[innovation,innovationVar,errFlag] = armaKalmanInnov(traj,arParam,maParam);
+%go over all trajectories to get likelihood
+sum1 = 0;
+sum2 = 0;
+numAvail = 0;
+for i = 1:length(trajectories)
+    
+    %calculate the number of available points in this trajectory
+    available = trajectories(i).available;
+    numAvail = numAvail + length(available);
+    
+    %get the innovations, their variances and process white noise
+    %using Kalman prediction and filtering
+    [innovation,innovationVar,wnVector,errFlag] = ...
+        armaKalmanInnov(trajectories(i).traj,arParam,maParam);
+    
+    %1st sum in Eq. 3.15
+    sum1 = sum1 + sum(log(innovationVar(available)));
+    %2nd sum in Eq. 3.15
+    sum2 = sum2 + sum(innovation(available).^2./innovationVar(available));
+    
+end
 
 %construct -2ln(likelihood)
-neg2LnLikelihood = sum(log(innovationVar(available))) ...
-    + length(available)*log(sum(innovation(available).^2./innovationVar(available)));
+neg2LnLikelihood = sum1 + numAvail*log(sum2);

@@ -1,8 +1,9 @@
-function [innovation,innovationVar,errFlag] = armaKalmanInnov(traj,arParam,maParam);
+function [innovation,innovationVar,wnVector,errFlag] = ...
+    armaKalmanInnov(traj,arParam,maParam);
 %ARMAKALMANINNOV finds the innovations (and their variances) resulting from fitting an ARMA(p,q) model to a time series which could have missing data points using Kalman prediction and filtering.
 %
-%SYNOPSIS [innovation,innovationVar,errFlag] = armaKalmanInnov(traj,...
-%    arOrder,maOrder,arParam,maParam);
+%SYNOPSIS [innovation,innovationVar,wnVector,errFlag] = ...
+%    armaKalmanInnov(traj,arParam,maParam);
 %
 %INPUT  traj       : Trajectory to be modeled (with measurement uncertainties).
 %                    Missing points should be indicated with NaN.
@@ -11,6 +12,7 @@ function [innovation,innovationVar,errFlag] = armaKalmanInnov(traj,arParam,maPar
 %
 %OUTPUT innovation   : Vector of differences between predicted and observed data, or innovations.
 %       innovationVar: Vector of innovation variances.
+%       wnVector     : Estimated white noise in the process.
 %       errFlag      : 0 if function executes normally, 1 otherwise.
 %
 %REMARKS The algorithm implemented here is that presented in R. H. Jones,
@@ -26,6 +28,7 @@ function [innovation,innovationVar,errFlag] = armaKalmanInnov(traj,arParam,maPar
 %initialize output
 innovaton = [];
 innovationVar = [];
+wnVector = [];
 errFlag = 0;
 
 %check if correct number of arguments was used when function was called
@@ -70,9 +73,10 @@ stateVecT_T = zeros(maxOrder,1); %Z(0|0)
 [stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,procErrCov,...
     arOrder,maOrder,maxOrder); %P(0|0)
 
-%initialize innovations vector and its covariance matrix
-innovation = zeros(trajLength,1);
-innovationVar = zeros(trajLength,1);
+%initialize innovations vector, its covariance matrix and white noise vector
+innovation = NaN*ones(trajLength,1);
+innovationVar = NaN*ones(trajLength,1);
+wnVector = NaN*ones(trajLength,1);
 
 for timePoint = 1:trajLength
     
@@ -85,7 +89,7 @@ for timePoint = 1:trajLength
     observableP = stateVecT1_T(1); %y(t+1|t), Eq. 3.3
     
     if isnan(traj(timePoint,1)) %if observation at this time point is missing
-
+        
         %cannot modify state vector and its covariance matrix predicted 
         %from previous timepoint since there is no observation
         stateVecT_T = stateVecT1_T; %Z(t+1|t+1), Eq. 5.1
@@ -94,7 +98,7 @@ for timePoint = 1:trajLength
     else %if there is an observation
         
         %get innovation, dy(t+1) (Eq. 3.8)
-        innovation(timePoint) = traj(timePoint,1)-observableP; 
+        innovation(timePoint) = traj(timePoint,1) - observableP; 
         %and its variance, V(t+1) (Eq. 3.6 & 3.10)
         innovationVar(timePoint) = stateCovMatT1_T(1,1) + traj(timePoint,2)^2;
         
@@ -104,6 +108,10 @@ for timePoint = 1:trajLength
         stateVecT_T = stateVecT1_T + delta*innovation(timePoint); %Z(t+1|t+1), Eq. 3.4
         %update state covariance matrix
         stateCovMatT_T = stateCovMatT1_T - delta*observationVec*stateCovMatT1_T; %P(t+1|t+1), Eq. 3.7
+        
+        %calculate white noise at this time point using 
+        %wn(t+1) = x(t+1|t+1) - x(t+1|t) (Eq. 2.10 with j=1)
+        wnVector(timePoint) = stateVecT_T(1) - stateVecT1_T(1);
         
     end
     

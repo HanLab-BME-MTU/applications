@@ -1,11 +1,11 @@
-function [c,ceq] = armaCoefKalmanConst(param,arOrder,traj,available)
+function [c,ceq] = armaCoefKalmanConst(param,arOrder,traj)
 %ARMACOEFKALMANCONST imposes causality and invertibility constraints on ARMA coefficients
 %
-%SYNOPSIS [c,ceq] = armaCoefKalmanConst(param,arOrder,traj,available)
+%SYNOPSIS [c,ceq] = armaCoefKalmanConst(param,arOrder,traj)
 %
 %INPUT  param    : Set of parameters in ARMA model (concat. of arParam and maParam)
 %       arOrder  : Order of autoregressive part of process.
-%       traj     : Observed trajectory.
+%       traj     : Observed trajectories.
 %       available: Indices of available observations.
 %
 %OUTPUT c   : Constraint that roots should be larger than one.
