@@ -48,6 +48,7 @@ else
         %    set(handles.pathEdit,'String',fsmParam.main.path);
         %end
         fsmParam.main.path = currentPath;
+        set(handles.pathEdit,'String',currentPath);
     end
 end
 
