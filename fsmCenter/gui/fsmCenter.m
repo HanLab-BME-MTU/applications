@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 15-Sep-2004 11:53:53
+% Last Modified by GUIDE v2.5 10-Dec-2004 15:56:23
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -290,7 +290,13 @@ function pushBatchJobs_Callback(hObject, eventdata, handles)
 fsmBatchJobs;
 
 function pushImShow_Callback(hObject, eventdata, handles)
-figure;fsmCenterCB_loadNewImage;
+if get (handles.checkViewSequence,'Value')
+    figure;fsmCenterCB_loadNewSequence;
+else
+    figure;fsmCenterCB_loadNewImage;
+end
+
+function checkViewSequence_Callback(hObject, eventdata, handles)
 
 function pushEditExpParams_Callback(hObject, eventdata, handles)
 userDir=fsmCenter_getUserSettings;
@@ -506,7 +512,6 @@ function helpFsmCenter_Callback(hObject, eventdata, handles)
 function menuSpeckTackle_Callback(hObject, eventdata, handles)
 
 function menuTools_Callback(hObject, eventdata, handles)
-
 
 
 

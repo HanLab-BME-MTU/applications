@@ -81,8 +81,10 @@ matches(oneMatch,:)=[];               % Speckles univocally assigned
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-for c1=1:size(matches,1)
-    M(c1,1:4)=[posI(matches(c1,1),:) posJ(matches(c1,2),:)];
+if ~isempty (matches)
+   for c1=1:size(matches,1)
+      M(c1,1:4)=[posI(matches(c1,1),:) posJ(matches(c1,2),:)];
+   end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

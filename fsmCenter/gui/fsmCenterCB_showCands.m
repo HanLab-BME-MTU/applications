@@ -21,13 +21,15 @@ hFsm=findall(0,'Tag','fsmCenter','Name','fsmCenter');
 if ~isempty(hFsm)
     handles=guidata(hFsm);
     settings=get(handles.fsmCenter,'UserData');
-    pos=find(strncmp(settings.subProjects,'tack',4));
-    if ~isempty(pos)
-        tackPath=[settings.projDir,filesep,char(settings.subProjects{pos}),filesep,'cands'];
-    end
-    if ~isempty(tackPath)
-        if isdir(tackPath)
-            cd(tackPath);
+    if ~isempty(settings)
+        pos=find(strncmp(settings.subProjects,'tack',4));
+        if ~isempty(pos)
+            tackPath=[settings.projDir,filesep,char(settings.subProjects{pos}),filesep,'cands'];
+        end
+        if ~isempty(tackPath)
+            if isdir(tackPath)
+                cd(tackPath);
+            end
         end
     end
 end
