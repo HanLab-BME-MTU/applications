@@ -715,7 +715,8 @@ if isdir(projDir)
             else
                 unix_imgDrive = unix_imgDirList{1}(1:filesepInd(3)-1);
             end
-        elseif isfield(projSettings,'win_imgDirList')
+        end
+        if isfield(projSettings,'win_imgDirList')
             win_imgDirList = projSettings.win_imgDirList;
             colonInd       = findstr(':',win_imgDirList{1});
             win_imgDrive   = win_imgDirList{1}(1:colonInd(1));
