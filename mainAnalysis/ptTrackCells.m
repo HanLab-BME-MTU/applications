@@ -253,19 +253,21 @@ else		% lastImaNum > firstImaNum
           validFrames(1,mCount) = loopCount;
       
           % Calculate the amount of time (in secs) between this and the previous frame
+          % datenum gives back the difference in days (time is the
+          % fraction) which we have to convert back to seconds
           if loopCount > 1
-             julianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
-             frameTime = abs(julianTime - prevJulianTime);
+             julianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
+             frameTime = round(abs(julianTime - prevJulianTime) * 60 * 60 * 24);
          
              if frameTime >= 1  % 1 sec is the minimum we accept
-                validFrames(2,loopCount) = frameTime;
+                validFrames(2,mCount) = frameTime;
              else
-                validFrames(2,loopCount) = timePerFrameGUI;
+                validFrames(2,mCount) = timePerFrameGUI;
              end
          
              prevJulianTime = julianTime;
           else
-             prevJulianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
+             prevJulianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
           end 
           
           % Find all the cell nuclei coordinates
