@@ -252,7 +252,7 @@ else
        maxGreyValue = (2^handles.jobs(jobNumber).bitdepth);
     
        % Set the mouse pointer to busy
-       set(gcf,'Pointer','watch');
+       set(gcbf,'Pointer','watch');
     
        % Sort the images by successive numbers:
        % First we get all numbers and write them into a vector
@@ -289,7 +289,7 @@ else
       end   % for jRearrange
     
       % Set the mouse pointer to normal again
-      set(gcf,'Pointer','arrow');
+      set(gcbf,'Pointer','arrow');
     
       fprintf (1, 'All image files of job %d are correct!\n', jobNumber);
       

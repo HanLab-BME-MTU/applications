@@ -23,6 +23,11 @@ function ptMovieMaker (radioButtons, handles)
 % Andre Kerstens        Aug 04          Bug fix: forgot to close fig after addframe QT movie
 % Andre Kerstens        Sep 04          Rewrite for the new data structures
 
+% Make sure only 1 MPM is present
+if length(allMPM) > 1
+    return;
+end
+
 % Get the latest data from the handles
 MPM = handles.allMPM{1};    % We should have received only one MPM
 cellProps = handles.allCellProps;

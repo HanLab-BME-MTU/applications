@@ -300,7 +300,7 @@ end
 clear valuesToAverage;
 
 % Set the mouse pointer to busy
-set(gcf,'Pointer','watch');
+set(gcbf,'Pointer','watch');
 
 % Read all the csv files and store in matrix
 for iCount = 1 : length (fileList)
@@ -346,7 +346,7 @@ averageForCsv = [xAxisValues ; valuesToAverage ; averageValues];
 csvwrite (saveDirectory, averageForCsv);
 
 % Set the mouse pointer to normal again
-set(gcf,'Pointer','arrow');
+set(gcbf,'Pointer','arrow');
 
 % Tell the user that we have finished
 message = ['The average files have been written into ' saveDirectory];

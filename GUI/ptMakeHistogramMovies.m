@@ -262,7 +262,7 @@ else
 end
 
 % Set the mouse pointer to busy
-set(gcf,'Pointer','watch');
+set(gcbf,'Pointer','watch');
 
 filePath = {};
 basename = {};
@@ -372,7 +372,7 @@ movie = close(movie);
 %makeQTMovie ('finish');
 
 % Set the mouse pointer to normal again
-set(gcf,'Pointer','arrow');
+set(gcbf,'Pointer','arrow');
 
 % Tell the user that we have finished
 message = ['The movie has been written into ' saveDirectory];

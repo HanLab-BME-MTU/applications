@@ -89,7 +89,7 @@ set(hObject,'Color',[0,0,0.627]);
 guidata(hObject, handles);
 
 % Turn the resize and int conversion (matlab 7) warnings off
-iptsetpref ('TrueSizeWarning', 'off');
+%iptsetpref ('TrueSizeWarning', 'off');
 
 % For matlab 7 turn int conversion warnings off
 matlabVersion = version;
@@ -253,53 +253,6 @@ guidata(hObject, handles);
 % Do the manual postprocessing 
 ptManualPostProcessJob (hObject);
 
-
-
-
-
-
-
-% % Get the job list and the current job
-% fileList = get(handles.GUI_filelist_lb,'String');
-% filesSelected = get(handles.GUI_filelist_lb,'Value');
-% 
-% % We only can do manual postprocessing on one movie at a time
-% if length(filesSelected) > 1
-%    % Show an error dialog with an appropriate message and wait for the user to press a button
-%    h=errordlg ('Manual processing can only be done for one job at a time. Please select only one job from the list.');
-%    uiwait (h);
-%    return
-% else
-%    % Get the filepath
-%    filePath = fileList{filesSelected};
-%     
-%    % Retrieve the postpro structure for the selected job
-%    [handles, result] = ptRetrievePostproData (filePath, handles);
-%    
-%    % Check the result value (0 is good)
-%    if result == 1
-%       h = errordlg('An error occurred when retrieving postpro data. Please try again...');
-%       uiwait(h);          % Wait until the user presses the OK button 
-%       return;
-%    else
-%    
-%       % Set values on the GUI
-%       ptSetPostproGUIValues (handles);
-%    
-%       % This is to signal that the ptManualPostProcessJob function is called by the
-%       % GUI manual processing button
-%       handles.whichcallback = 1;
-%    
-%       % Update handles structure
-%       guidata(hObject, handles);
-% 
-%       % Do the manual postprocessing 
-%       ptManualPostProcessJob (hObject);
-%    end
-% end
-
-% Update handles structure
-%guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -700,7 +653,7 @@ if (~radioButtons.cellclusterplot & ~radioButtons.areaplot & ...
 else
    
    % These calculations can take a while so set the mouse pointer to busy
-   set(gcf,'Pointer','watch');
+   set(gcbf,'Pointer','watch');
       
    % Do the cell/cluster, area and perimeter plots
    if radioButtons.cellclusterplot | radioButtons.areaplot | radioButtons.perimeterplot
@@ -797,7 +750,7 @@ else
    end
    
    % Set the mouse pointer to normal again
-   set(gcf,'Pointer','arrow');
+   set(gcbf,'Pointer','arrow');
    
    % Show a message telling the user we've finished
    msgbox ('Finished generating plots and histograms. Press OK to continue...');
