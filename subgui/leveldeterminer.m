@@ -21,7 +21,7 @@ strg=sprintf('%%.%dd',s);
 
 indxStr=sprintf(strg,first);   
 name=[main indxStr ext]; 
-firstimg=imread(name);
+firstimg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 
 [img_h,img_w]=size(firstimg);
@@ -29,7 +29,7 @@ firstimg=imread(name);
 indxStr=sprintf(strg,last);
 name=[main indxStr ext]; 
     
-lastimg=imread(name);
+lastimg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 
 
@@ -37,51 +37,51 @@ lastimg=imread(name);
 
 %first picture
 %background
-backfirst=figure, imshow(firstimg), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
+backfirst=figure, imshow(firstimg,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
 
-[X,Y] = getpts(backfirst)
-intense=[]
+[X,Y] = getpts(backfirst);
+intense=[];
 for dots=1:size(X,1)
     
 	if X(dots) > 3 & X(dots) <img_w-3 & Y(dots) > 3 & Y(dots) <img_h-3  
       
-        intense(end+1)=sum(sum(firstimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49
+        intense(end+1)=sum(sum(firstimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49;
     end
 end
-handles.jobs(projNum).fi_background= round(sum(intense)/length(intense));
+handles.jobs(projNum).fi_background= sum(intense)/length(intense);
 close
 clear X
 clear Y
 
 %nucloi
-nucfirst=figure, imshow(firstimg), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
-[X,Y] = getpts(nucfirst)
-intense=[]
+nucfirst=figure, imshow(firstimg,[]), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
+[X,Y] = getpts(nucfirst);
+intense=[];
 for dots=1:size(X,1)
     
 	if X(dots) > 3 & X(dots) <img_w-3 & Y(dots) > 3 & Y(dots) <img_h-3  
       
-        intense(end+1)=sum(sum(firstimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49
+        intense(end+1)=sum(sum(firstimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49;
     end
 end
-handles.jobs(projNum).fi_nucleus= round(sum(intense)/length(intense));
+handles.jobs(projNum).fi_nucleus= sum(intense)/length(intense);
 close
 clear X
 clear Y
 
 %halos
-halofirst=figure, imshow(firstimg), title('Click on the halos(approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
+halofirst=figure, imshow(firstimg,[]), title('Click on the halos(approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
 
-[X,Y] = getpts(halofirst)
-intense=[]
+[X,Y] = getpts(halofirst);
+intense=[];
 for dots=1:size(X,1)
     
 	if X(dots) > 3 & X(dots) <img_w-3 & Y(dots) > 3 & Y(dots) <img_h-3  
       
-        intense(end+1)=sum(sum(firstimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49
+        intense(end+1)=sum(sum(firstimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49;
     end
 end
-handles.jobs(projNum).fi_halolevel= round(sum(intense)/length(intense));
+handles.jobs(projNum).fi_halolevel= sum(intense)/length(intense);
 close
 clear X
 clear Y
@@ -90,52 +90,52 @@ clear Y
 
 %%%%%%%%%last picture
 %background
-backlast=figure, imshow(lastimg), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
+backlast=figure, imshow(lastimg,[]), title('Click on the background (approx 8 times). Make sure your clicks are spread out evenly. Then press enter') ;
 
-[X,Y] = getpts(backlast)
-intense=[]
+[X,Y] = getpts(backlast);
+intense=[];
 for dots=1:size(X,1)
     
 	if X(dots) > 3 & X(dots) <img_w-3 & Y(dots) > 3 & Y(dots) <img_h-3  
       
-        intense(end+1)=sum(sum(lastimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49
+        intense(end+1)=sum(sum(lastimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49;
     end
 end
-handles.jobs(projNum).la_background= round(sum(intense)/length(intense));
+handles.jobs(projNum).la_background= sum(intense)/length(intense);
 close
 clear X
 clear Y
 
 %nucloi
-nuclast=figure, imshow(lastimg), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
+nuclast=figure, imshow(lastimg,[]), title('Click on the nucleoi (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
 
-[X,Y] = getpts(nuclast)
-intense=[]
+[X,Y] = getpts(nuclast);
+intense=[];
 for dots=1:size(X,1)
     
 	if X(dots) > 3 & X(dots) <img_w-3 & Y(dots) > 3 & Y(dots) <img_h-3  
       
-        intense(end+1)=sum(sum(lastimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49
+        intense(end+1)=sum(sum(lastimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49;
     end
 end
-handles.jobs(projNum).la_nucleus= round(sum(intense)/length(intense));
+handles.jobs(projNum).la_nucleus= sum(intense)/length(intense);
 close
 clear X
 clear Y
 
 %halos
-halolast=figure, imshow(lastimg), title('Click on the halos (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
+halolast=figure, imshow(lastimg,[]), title('Click on the halos (approx 8 times). Make sure your clicks on a lot of different ones. Then press enter');
 
-[X,Y] = getpts(halolast)
-intense=[]
+[X,Y] = getpts(halolast);
+intense=[];
 for dots=1:size(X,1)
     
 	if X(dots) > 3 & X(dots) <img_w-3 & Y(dots) > 3 & Y(dots) <img_h-3  
       
-        intense(end+1)=sum(sum(lastimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49
+        intense(end+1)=sum(sum(lastimg(Y(dots)-3:Y(dots)+3,X(dots)-3:X(dots)+3)))/49;
     end
 end
-handles.jobs(projNum).la_halolevel= round(sum(intense)/length(intense));
+handles.jobs(projNum).la_halolevel= sum(intense)/length(intense);
 close
 clear X
 clear Y

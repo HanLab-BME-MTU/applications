@@ -22,7 +22,7 @@ strg=sprintf('%%.%dd',s);
 
 indxStr=sprintf(strg,firstImageNum);   
 name=[main indxStr ext]; 
-firstImg=imread(name);
+firstImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 
 [img_h,img_w]=size(firstImg);
@@ -30,7 +30,7 @@ firstImg=imread(name);
 indxStr=sprintf(strg,last);
 name=[main indxStr ext]; 
     
-lastImg=imread(name);
+lastImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 
 

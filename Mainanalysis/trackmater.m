@@ -194,7 +194,7 @@ if ~Last > First
 else    
     
     
-    %while index is equal to the number of the image, countingloops keeps
+    %index is equal to the number of the image, countingloops keeps
     %track of the loops
     countingloops=0
 	for index=First:Increment:Last
@@ -213,7 +213,7 @@ else
         name=[bodyFileName indxStr ext]; 
         
         %get the current picture
-        newImg=imread(name);
+        newImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
            
                
        [img_h,img_w]=size(newImg);
@@ -463,6 +463,11 @@ else
                                                       %corralation
                                                       [newcoord,absmaxcorr]=templfindertrack(tempcoord,oldImg,newImg,lebainterpol,TempelCellMarker,NewCell,NewCelTempl,NewCelTempelMarker,percentbackground,sizetemple,box_size_img);
                                                       
+                                                      if sqrt((tempcoord(1,1)-newcoord(1,1)).^2 + (tempcoord(1,2)-newcoord(1,2)).^2) > 1.4*radius
+                                                          %the programm made a mistake
+                                                          break
+                                                      end
+                                                      
                                                       %of course we only accept the correlation, if it of a minimal
                                                       %quality. NOTE WELL: that within the routine the background (everything 
                                                       %that doesn't belong to a cell) of the template and of the searcharea
@@ -559,10 +564,10 @@ else
                       clear trouble;
                                        
                       %cosmetics
-                      raus=find(ismember(tmp(:,1:4),[0 0 0 0],'rows')-1);
-                      tmp=tmp(raus,:);
+                      stay=find(ismember(tmp(:,1:4),[0 0 0 0],'rows')-1);
+                      tmp=tmp(stay,:);
                       
-                      clear raus;
+                      clear stay;
                           
                           
                       
@@ -654,7 +659,7 @@ else
                                %corralate strongly, we replace the templatestuff (old cell) by the newly
                                %found cell
                              
-                                templateRow=find(ismember(MPMIdentCell(:,3:end),TempelCell*ones((howmanytimestepsslide-1)*2),'rows'));
+                                templateRow=find(ismember(MPMIdentCell(:,3:end),TempelCell*ones(1,length(MPMIdentCell(1,3:end))),'rows'));
                                
                                
                                if ~isempty(templateRow)
@@ -743,9 +748,9 @@ else
                                                                                               
                                                                                               %first we copy out the coordinates of
                                                                                               %the old cell, tracked by templates
-                                                                                              templateCoord=MPMslide(:,templateRow(indexTempRow));
+                                                                                              templateCoord=MPMslide(templateRow(indexTempRow),:);
                                                                                               %Now we erase the values from MPMslide, so that we won't by accident use them again
-                                                                                              MPMslide(:,templateRow(indexTempRow))=0;
+                                                                                              MPMslide(templateRow(indexTempRow),:)=0;
                                                                                            
                                                                                               %same procedure for the new cell we
                                                                                               %want to link to the old cell

@@ -67,6 +67,7 @@ regmax= imdilate(regmax,SE);
    
 img_labels= bwlabel(regmax);
 counter=0;
+membership=[];
 for group=1:lastgroup
      counter =counter+1;
      ranoutofvars=img_labels(find(labeledone==group));
@@ -87,13 +88,14 @@ for group=1:lastgroup
           counter=counter-1;
     end
 end
-
+if ~isempty(membership)
 membership=membership(find(membership));
 regmax=ismember(img_labels,membership);
 
  clear img_labels;
 img_labels= bwlabel(regmax);
 
+end
    Se=[];
 
    clear Se;

@@ -3,7 +3,7 @@ function [PROPERTIES,ero,labeled]= body(image,coord,regmax,logihalo,plusminus)
 %f=figure;
 %ero is a binary picture of the whole area occupied by cells
 %belongsto 
-
+bodyDiskSize=15;
 background =[]; 
 I2 =[]; 
 I3 =[];
@@ -17,7 +17,7 @@ helpcoord=[];
 helpcoord=round(coord);
 
 %first we kick out the background, 
-background = imopen(image,strel('disk',15));
+background = imopen(image,strel('disk',bodyDiskSize));
 I2 = imsubtract(image,background); 
 I3 = imadjust(I2, stretchlim(I2), [0 1]);
 balevel = graythresh(I3);

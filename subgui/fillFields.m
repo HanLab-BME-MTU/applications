@@ -8,12 +8,12 @@ set(handles.GUI_st_path_lastimage_ed,'String',num2str(activeJob.lastimage));
 set(handles.GUI_st_path_increment_ed,'String',num2str(activeJob.increment));
 set(handles.GUI_st_path_savedirectory_ed,'String',activeJob.savedirectory);
 
-set(handles.GUI_st_iq_fi_background_ed,'String',num2str(activeJob.fi_background));
-set(handles.GUI_st_iq_fi_nucleus_ed,'String',num2str(activeJob.fi_nucleus));
-set(handles.GUI_st_iq_fi_halolevel_ed,'String',num2str(activeJob.fi_halolevel));
-set(handles.GUI_st_iq_la_background_ed,'String',num2str(activeJob.la_background));
-set(handles.GUI_st_iq_la_nucleus_ed,'String',num2str(activeJob.la_nucleus));
-set(handles.GUI_st_iq_la_halolevel_ed,'String',num2str(activeJob.la_halolevel));
+set(handles.GUI_st_iq_fi_background_ed,'String',num2str(activeJob.fi_background,'%6.5f'));
+set(handles.GUI_st_iq_fi_nucleus_ed,'String',num2str(activeJob.fi_nucleus,'%6.5f'));
+set(handles.GUI_st_iq_fi_halolevel_ed,'String',num2str(activeJob.fi_halolevel,'%6.5f'));
+set(handles.GUI_st_iq_la_background_ed,'String',num2str(activeJob.la_background,'%6.5f'));
+set(handles.GUI_st_iq_la_nucleus_ed,'String',num2str(activeJob.la_nucleus,'%6.5f'));
+set(handles.GUI_st_iq_la_halolevel_ed,'String',num2str(activeJob.la_halolevel,'%6.5f'));
 
 set(handles.GUI_st_bp_maxsearch_ed,'String',num2str(activeJob.maxsearch));
 set(handles.GUI_st_bp_minsize_ed,'String',num2str(activeJob.minsize));
@@ -37,6 +37,9 @@ end
 if ~isempty(activeJob.timestepslide)
 set(handles.GUI_st_eo_timestepslide_pm,'String',num2str(activeJob.timestepslide));
 end
+
+val=round((activeJob.bitdepth-6)/2);
+set(handles.GUI_st_bitdepth_pm,'Value',val)
 
 
 

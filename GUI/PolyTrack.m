@@ -22,7 +22,7 @@ function varargout = PolyTrack(varargin)
 
 % Edit the above text to modify the response to help GUI_start
 
-% Last Modified by GUIDE v2.5 10-Feb-2004 10:57:27
+% Last Modified by GUIDE v2.5 17-Feb-2004 14:26:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -67,7 +67,7 @@ defaultjob=struct('imagedirectory',[],'imagename',[],'firstimage',[],'lastimage'
                    'minsize',300,'maxsize',1500,'minsdist',30,'fi_halolevel',[],'la_halolevel',[],...
                    'minedge',10,'sizetemplate',41,'boxsize',141,'noiseparameter',0.15,...
                    'mincorrqualtempl',0.2,'leveladjust',0.7,'timestepslide',5,'mintrackcorrqual',0.5,...
-                   'coordinatespicone',[]) ;
+                   'coordinatespicone',[],'intensityMax',4095,'bitdepth',12) ;
                
 handles.defaultjob=defaultjob;
 
@@ -1514,3 +1514,37 @@ function GUI_st_iq_la_halolevel_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_la_halolevel_ed as a double
 
 
+% --- Executes during object creation, after setting all properties.
+function GUI_st_bitdepth_pm_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_st_bitdepth_pm (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+% --- Executes on selection change in GUI_st_bitdepth_pm.
+function GUI_st_bitdepth_pm_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_st_bitdepth_pm (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns GUI_st_bitdepth_pm contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from GUI_st_bitdepth_pm
+handles = guidata(hObject)
+
+
+bitDepth=(get(hObject,'Value')*2)+6;
+
+%select current project
+projNum=get(handles.GUI_st_job_lb,'Value');
+
+handles.jobs(projNum).intensityMax= 2^bitDepth-1;
+handles.jobs(projNum).bitdepth=bitDepth;
+guidata(hObject, handles);
