@@ -34,6 +34,8 @@ function ptSetCellValues (hObject,objectChoice)
 % Andre Kerstens        Mar 04          Cleaned up source
 % Andre Kerstens        May 04          Renamed to ptSetCellValues.m
 % Andre Kerstens        Jul 04          Added parameters to ptGetProcessedImage
+% Andre Kerstens        Dec 04          Bugfix in imshow (added []) and
+%                                       added try/catch loops
 
 % Get the handles structure from the GUI and determine current job number
 handles = guidata (hObject);
@@ -64,7 +66,13 @@ if objectChoice == 1               % Minimal size of nuclei (1)
 
    % Get the polygon coordinates and store in polyImage (this is a binary image 
    % containing the selected region of firstImg)
-   polyImage = roipoly;
+   try
+      polyImage = roipoly;
+   catch
+      % Close figure
+      close;      
+      return; 
+   end
 
    % Close figure
    close;
@@ -77,12 +85,18 @@ if objectChoice == 1               % Minimal size of nuclei (1)
 
 elseif objectChoice == 2            % Maximal size of nuclei (2)
    % Show figure with first image
-   figure, imshow (firstImg);
+   figure, imshow (firstImg,[]);
    title('Draw a polygon around the biggest nucleus and press ENTER when finished.');
 
    % Get the polygon coordinates and store in polyImage (this is a binary image 
    % containing the selected region of firstImg)
-   polyImage = roipoly;
+   try
+      polyImage = roipoly;
+   catch
+      % Close figure
+      close;      
+      return;       
+   end
 
     % Close figure
    close;
@@ -95,11 +109,17 @@ elseif objectChoice == 2            % Maximal size of nuclei (2)
 
 elseif objectChoice == 3            % Minimal distance between two nuclei (3)
    % Show figure with first image
-   figure, imshow (firstImg);
+   figure, imshow (firstImg,[]);
    title('Click on the centerpoints of the two nuclei closest to each other and press ENTER.');
 
    % Get the coordinates of the pixels clicked by the user
-   [x,y] = getpts;
+   try
+      [x,y] = getpts;
+   catch
+      % Close figure
+      close;      
+      return;
+   end
 
    % Close figure
    close;
