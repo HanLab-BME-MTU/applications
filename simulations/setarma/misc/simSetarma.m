@@ -8,10 +8,10 @@
 %INPUT  vThresholds : Column vector of values of thresholds, sorted in increasing order.
 %       delay       : Time lag of value compared to vThresholds, set to [] if there is 
 %                     only 1 regime (i.e. 0 thresholds).
-%       arParam     : Matrix of autoregression parameters. Non-existing coefficients
-%                     should be indicated by zero.
-%       maPAram     : Matrix of moving average parameters. Non-existing coefficients
-%                     should be indicated by zero.
+%       arParam     : Matrix of autoregression parameters. Entries for coefficients
+%                     beyond AR order should be filled with NaN.
+%       maPAram     : Matrix of moving average parameters. Entries for coefficients
+%                     beyond MA order should be filled with NaN.
 %       noiseSigma  : Column vector of standard deviations of normally 
 %                     distributed white noise used in simulation (noise mean = 0).
 %       trajLength  : Length of trajectory to be simulated.
@@ -59,7 +59,7 @@ if ~isempty(arParam)
         errFlag = 1;
     else
         for i = 1:nThresholds+1
-            arOrder(i) = length(find(arParam(i,:)));
+            arOrder(i) = length(find(~isnan(arParam(i,:))));
             r = abs(roots([-arParam(i,arOrder(i):-1:1) 1]));
             if ~isempty(find(r<=1.00001))
                 disp('--simSetarma: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
@@ -78,7 +78,7 @@ if ~isempty(maParam)
         errFlag = 1;
     else
         for i = 1:nThresholds+1
-            maOrder(i) = length(find(maParam(i,:)));
+            maOrder(i) = length(find(~isnan(maParam(i,:))));
             r = abs(roots([maParam(i,maOrder(i):-1:1) 1]));
             if ~isempty(find(r<=1.00001))
                 disp('--simSetarma: Invertibility requires the polynomial defining the moving average part of the model not to have any zeros for z <= 1!');

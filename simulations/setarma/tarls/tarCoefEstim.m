@@ -74,7 +74,7 @@ else
 end
 dummy = length(tarOrder);
 if dummy ~= nThresholds + 1
-    disp('--tarCoefEstim: Wrong number of entries in "arOrder"!');
+    disp('--tarCoefEstim: Wrong number of entries in "tarOrder"!');
     errFlag = 1;
 else
     if min(tarOrder) < 1
@@ -161,8 +161,8 @@ clear temp indxClass;
 residuals = NaN*ones(trajLength,1);
 
 %reserve memory for tarParam and varCovMat
-tarParam = zeros(nThresholds+1,max(tarOrder));
-varCovMat = zeros(max(tarOrder),max(tarOrder),nThresholds+1);
+tarParam = NaN*ones(nThresholds+1,max(tarOrder));
+varCovMat = NaN*ones(max(tarOrder),max(tarOrder),nThresholds+1);
 
 %estimate parameters in each level
 for level = 1:nThresholds+1

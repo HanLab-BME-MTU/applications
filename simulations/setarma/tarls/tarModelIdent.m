@@ -1,23 +1,15 @@
 function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,vThresholds,...
-        aicV,errFlag] = tarOrderThreshDelayCoef(traj,vThreshTest,delayTest,...
-    tarOrderTest,method,tol)
-%TARORDERTHRESHDELAYCOEF fits a TAR model of specified segmentation (i.e. determines its AR orders, thresholds, delay parameter and coefficients) to a time series which could have missing data points.
+        aicV,errFlag] = tarModelIdent(traj,modelParam,method,tol)
+%TARMODELIDENT fits a TAR model, i.e. determines its segmentation, thresholds, delay parameter, AR orders and coefficients, to a time series which could have missing data points.
 %
 %SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,vThresholds,...
-%        errFlag] = tarOrderThreshDelayCoef(traj,vThreshTest,delayTest,...
-%    tarOrderTest,method,tol)
+%        aicV,errFlag] = tarModelIdent(traj,vThreshTest,delayTest,tarOrderTest,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainties).
 %                      Missing points should be indicated with NaN.
-%       vThreshTest  : Matrix containing possible values of thresholds, which are 
-%                      sorted in increasing order in a column for each threshold.
-%                      Note that the min of a threshold should be larger than the max 
-%                      of the previous threshold. Extra entries at the end of a 
-%                      column should be indicated with NaN.
-%       delayTest    : Row vector of possible values of delay parameter.
-%       tarOrderTest : Matrix of possible orders of proposed TAR model in each regime,
-%                      where each column corresponds to a different regime. Unnecessary 
-%                      entries at the end of a column should be indicated with NaN. 
+%       modelParam   : structure array of models to  be tested. Each entry consists of 
+%                      3 elements: vThreshTest, delayTest, tarOrderTest.
+%                      See "tarOrderThreshDelayCoef" for descriptions of these variables.
 %       method (opt) : Solution method: 'dir' (default) for direct least square 
 %                      minimization using the matlab "\", 'iter' for iterative 
 %                      refinement using the function "lsIterRefn".
@@ -38,10 +30,12 @@ function [tarParam,varCovMat,residuals,noiseSigma,fitSet,delay,vThresholds,...
 %
 %Khuloud Jaqaman, April 2004
 
+tic
+
 errFlag = 0;
 
 %check if correct number of arguments was used when function was called
-if nargin < 4
+if nargin < 2
     disp('--tarOrderThreshDelayCoef: Incorrect number of input arguments!');
     errFlag  = 1;
     tarParam = [];
@@ -56,7 +50,7 @@ if nargin < 4
 end
 
 %check optional parameters
-if nargin >= 5
+if nargin >= 3
     
     if ~strncmp(method,'dir',3) && ~strncmp(method,'iter',4) 
         disp('--tarOrderThreshDelayCoef: Warning: Wrong input for "method". "dir" assumed!');
@@ -79,32 +73,22 @@ else
     tol = [];
 end
 
-%get all possible combinations of AR orders
-nRegimes = size(tarOrderTest,2); %number of thresholds
-for i = 1:nRegimes %number of possible orders in each regime
-    numValues(i) = length(find(~isnan(tarOrderTest(:,i))));
-end
-numComb = prod(numValues); %number of combinations
-orderComb = zeros(numComb,nRegimes); %matrix of all combinations
-orderComb(:,1) = repeatEntries(tarOrderTest(1:numValues(1),1),numComb/prod(numValues(1))); %entries for 1st regime
-for i = 2:nRegimes %entries for rest of regimes
-    orderComb(:,i) = repmat(repeatEntries(tarOrderTest(1:numValues(i),i),...
-        numComb/prod(numValues(1:i))),prod(numValues(1:i-1)),1);
-end
-
 %initial value of Akaikes Information Criterion (AIC)
 aicV = 1e20; %ridiculously large number
 
-for i = 1:numComb %go over all order combinations
+for i = 1:length(modelParam) %go over all suggested models
     
-    %get orders for current run
-    tarOrder1 = orderComb(i,:)';
+    %get model characteristics
+    vThreshTest1 = modelParam(i).vThreshTest;
+    delayTest1 = modelParam(i).delayTest;
+    tarOrderTest1 = modelParam(i).tarOrderTest;
     
     %estimate coeffients, residuals, delay parameter and thresholds
-    [tarParam1,varCovMat1,residuals1,noiseSigma1,fitSet1,delay1,vThresholds1,errFlag] =...
-        tarThreshDelayCoef(traj,vThreshTest,delayTest,tarOrder1,method,tol);
+    [tarParam1,varCovMat1,residuals1,noiseSigma1,fitSet1,delay1,vThresholds1,...
+            aicV1,errFlag] = tarOrderThreshDelayCoef(traj,vThreshTest1,delayTest1,...
+        tarOrderTest1,method,tol);
     if errFlag
-        disp('--tarOrderThreshDelayCoef: tarThreshDelayCoef did not function properly!');
+        disp('--tarModelIdent: tarOrderThreshDelayCoef did not function properly!');
         tarParam = [];
         varCovMat = [];
         residuals = [];
@@ -112,14 +96,11 @@ for i = 1:numComb %go over all order combinations
         fitSet = [];
         delay = [];
         vThresholds = [];
-        aicV = []
+        aicV = [];
         return
     end
     
-    %calculate AIC
-    aicV1 = fitSet1(1,:)*noiseSigma1.^2 + sum(2*tarOrder1+2);
-    
-    %compare current AIC to AIC in previous orders trial
+    %compare current AIC to AIC in previous trials
     %if it is smaller, then update results
     if aicV1 < aicV
         tarParam = tarParam1;
@@ -129,16 +110,18 @@ for i = 1:numComb %go over all order combinations
         fitSet = fitSet1;
         delay = delay1;
         vThresholds = vThresholds1;
-        tarOrder = tarOrder1;
         aicV = aicV1;
     end
     
 end %(for i = 1:numComb)
 
 %check for causality of estimated model
-for level = 1:nRegimes
-    r = abs(roots([-tarParam(level,tarOrder(level):-1:1) 1]));
+for level = 1:length(vThresholds)+1
+    tarOrder = length(find(~isnan(tarParam(level,:))));
+    r = abs(roots([-tarParam(level,tarOrder:-1:1) 1]));
     if ~isempty(find(r<=1.00001))
         disp('--tarOrderThreshDelayCoef: Warning: Predicted model not causal!');
     end
 end
+
+toc
