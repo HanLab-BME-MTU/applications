@@ -49,8 +49,9 @@ handles.output = hObject;
 
 % Create a default postprocessing structure that defines all the fields used in the program
 defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, ...
-                        'dragtail', 6, 'dragtailfile', 'trackmovie.mov', 'figureSize', [], ...
-                        'multFrameVelocity', 1);
+                        'dragtail', 6, 'dragtailfile', 'trackmovie', 'figureSize', [], ...
+                        'multFrameVelocity', 1, 'binsize', 4, 'mmpixel', 0.639, 'timeperframe', 300, ...
+                        'movietype', 1);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -60,6 +61,15 @@ set(hObject,'Color',[0,0,0.627]);
 
 % Update handles structure
 guidata(hObject, handles);
+
+% Turn the resize and int conversion (matlab 7) warnings off
+iptsetpref ('TrueSizeWarning', 'off');
+
+% For matlab 7 turn int conversion warnings off
+matlabVersion = version;
+if (matlabVersion(1) == '7')
+  intwarning off;
+end
 
 %----------------------------------------------------------------------------
 
@@ -258,6 +268,15 @@ handles.postpro.imagename = handles.jobvalues.imagename;
 handles.postpro.imagenameslist = handles.jobvalues.imagenameslist;
 handles.postpro.intensitymax = handles.jobvalues.intensityMax;
 
+% These are new additions which won't be in the older jobs
+if exist (handles.jobvalues.timeperframe)
+   handles.postpro.timeperframe = handles.jobvalues.mmpixel ;
+end
+
+if exist (handles.jobvalues.mmpixel)
+   handles.postpro.mmpixel = handles.jobvalues.mmpixel;
+end
+
 % Update fields on the GUI with the latest values
 set (handles.GUI_pp_jobpath_ed, 'String', jobValPath);
 set (handles.GUI_pp_imagepath_ed, 'String', handles.postpro.imagepath);
@@ -273,9 +292,14 @@ set (handles.GUI_app_minimaltrack_ed, 'String', handles.postpro.minimaltrack);
 set (handles.GUI_fm_tracksince_ed, 'String', handles.postpro.dragtail);
 set (handles.GUI_fm_filename_ed, 'String', handles.postpro.dragtailfile);
 set (handles.multFrameVelocity, 'String', handles.postpro.multFrameVelocity);
+set (handles.GUI_ad_binsize_ed, 'String', handles.postpro.binsize);
 set (handles.pp_firstframe, 'String', handles.postpro.firstimg);
 set (handles.pp_lastframe, 'String', handles.postpro.lastimg);
 set (handles.pp_increment, 'String', handles.postpro.increment);
+set (handles.GUI_mmpixel_ed, 'String', handles.postpro.mmpixel);
+set (handles.GUI_frameinterval_ed, 'String', handles.postpro.timeperframe);
+set (handles.GUI_movietype_avi_rb, 'Value', 1);
+set (handles.GUI_movietype_qt_rb, 'Value', 0);
 
 % And update the gui handles struct
 guidata(hObject, handles);
@@ -733,6 +757,22 @@ if (~handles.postpro.cellclusterplot & ~handles.postpro.areaplot & ...
    uiwait(h);          % Wait until the user presses the OK button
    return;
 else
+%    if handles.postpro.cellclusterplot
+%       % Generate single cell and cluster plots if the users requested these
+%       ptPlotCellClusterStats (imageName, savePath, xAxis, cellAmount, clusterAmount, cellsPerCluster, ...
+%                               singleCellAmount, percentageSingleCells, percentageClusteredCells);
+%    end   
+%    
+%    if handles.postpro.areaplot
+%       % Generate area plots if the users requested these
+%       ptPlotAreaStats (imageName, savePath, xAxis, areaPerSingleCell, areaPerCluster);
+%    end
+% 
+%    if handles.postpro.perimeterplot
+%       % Generate perimater plots if the users requested these
+%       ptPlotPerimeterStats (imageName, savePath, xAxis, perimeterLength, perimeterDivArea);
+%    end
+
    % Here is where the bulk of the graphing work is done; we give it the
    % postpro structure and MPM matrix to work with
    if handles.postpro.cellclusterplot | handles.postpro.areaplot | handles.postpro.perimeterplot
@@ -744,10 +784,6 @@ else
       ptPlotSpeedValues (handles.postpro, handles.MPM);
    end
 end
-
-% This is a function which was done for the cell meeting poster
-% Temporary and has to be replaced by a more structured function
-%ptPoster (hObject);
 
 %----------------------------------------------------------------------------
 
@@ -862,13 +898,13 @@ function GUI_fm_incltracks_rb_Callback(hObject, eventdata, handles)
 
 %----------------------------------------------------------------------------
 
-% --- Executes on button press in GUI_fm_inclbody_rb.
-function GUI_fm_inclbody_rb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_fm_inclbody_rb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of GUI_fm_inclbody_rb
+% % --- Executes on button press in GUI_fm_inclbody_rb.
+% function GUI_fm_inclbody_rb_Callback(hObject, eventdata, handles)
+% % hObject    handle to GUI_fm_inclbody_rb (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % Hint: get(hObject,'Value') returns toggle state of GUI_fm_inclbody_rb
 
 %----------------------------------------------------------------------------
 
@@ -954,7 +990,7 @@ handles = guidata (hObject);
 
 if (handles.postpro.moviefirstimg < handles.postpro.firstimg) | ...
    (handles.postpro.movielastimg > handles.postpro.lastimg)
-   h = errordlg('Movie start and end frame value are out of range. Please reenter values...');
+   h = errordlg ('Movie start and end frame value are out of range. Please re-enter values...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
 end
@@ -1005,22 +1041,9 @@ guidata (hObject, handles);
 
 %----------------------------------------------------------------------------
 
-% % % % % % % 
-% % % % % % % % --- Executes on button press in GUI_app_autopostpro_cb.
-% % % % % % % function GUI_app_autopostpro_cb_Callback(hObject, eventdata, handles)
-% % % % % % % % hObject    handle to GUI_app_autopostpro_cb (see GCBO)
-% % % % % % % % eventdata  reserved - to be defined in a future version of MATLAB
-% % % % % % % % handles    structure with handles and user data (see GUIDATA)
-% % % % % % % 
-% % % % % % % % Hint: get(hObject,'Value') returns toggle state of GUI_app_autopostpro_cb
-% % % % % % % 
-% % % % % % % 
-
-%----------------------------------------------------------------------------
-
 % --- Executes during object creation, after setting all properties.
-function GUI_ad_mintimeclust_ed_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GUI_ad_mintimeclust_ed (see GCBO)
+function GUI_ad_binsize_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_ad_binsize_ed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -1034,20 +1057,33 @@ end
 
 %----------------------------------------------------------------------------
 
-function GUI_ad_mintimeclust_ed_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_ad_mintimeclust_ed (see GCBO)
+function GUI_ad_binsize_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_ad_binsize_ed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of GUI_ad_mintimeclust_ed as text
-%        str2double(get(hObject,'String')) returns contents of GUI_ad_mintimeclust_ed as a double
+% Hints: get(hObject,'String') returns contents of GUI_ad_binsize_ed as text
+%        str2double(get(hObject,'String')) returns contents of GUI_ad_binsize_ed as a double
 handles = guidata (hObject);
 
-% Get the value of the 'time to be a cluster' field
-num = get (hObject,'String');
-
-% Assign it to the postpro structure
-handles.postpro.mintimeclust = str2num(num);
+strval = get (hObject,'String');
+val = str2double (strval);
+if isnan (val)
+   h = errordlg('Sorry, this field has to contain a number.');
+   uiwait(h);          % Wait until the user presses the OK button
+   handles.postpro.binsize = 4;
+   set (handles.GUI_ad_binsize_ed, 'String', handles.postpro.binsize);
+   return
+else
+   if val >= 2   % binsize should be at least 2
+      handles.postpro.binsize = val;
+   else
+      h = errordlg('Sorry, the bin size should be at least 2.');
+      uiwait(h);          % Wait until the user presses the OK button
+      handles.postpro.binsize = 4;
+      set (handles.GUI_ad_binsize_ed, 'String', handles.postpro.binsize);
+   end
+end
 
 % Update handles structure
 guidata (hObject, handles);
@@ -1097,7 +1133,7 @@ function GUI_fm_filename_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_filename_ed as a double
 handles = guidata (hObject);
 
-% Get the value of 'Tracks from last...'
+% Get the value of 'movie filename'
 filename = get (hObject, 'String');
 
 % Assign it to the postpro structure
@@ -1214,8 +1250,6 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
-
 function pp_firstframe_Callback(hObject, eventdata, handles)
 % hObject    handle to pp_firstframe (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1238,8 +1272,6 @@ if ispc
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
-
-
 
 function pp_lastframe_Callback(hObject, eventdata, handles)
 % hObject    handle to pp_lastframe (see GCBO)
@@ -1275,3 +1307,172 @@ function pp_increment_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of pp_increment as a double
 
 
+
+function GUI_mmpixel_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_mmpixel_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of GUI_mmpixel_ed as text
+%        str2double(get(hObject,'String')) returns contents of GUI_mmpixel_ed as a double
+handles = guidata(hObject);
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get(hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.postpro.mmpixel = handles.postpro.default.mmpixel;
+    set (handles.GUI_mmpixel_ed, 'String', handles.postpro.mmpixel);
+    return
+else
+    handles.postpro.mmpixel = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function GUI_mmpixel_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_mmpixel_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function GUI_frameinterval_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_frameinterval_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of GUI_frameinterval_ed as text
+%        str2double(get(hObject,'String')) returns contents of GUI_frameinterval_ed as a double
+handles = guidata(hObject);
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get(hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.postpro.timeperframe = handles.postpro.default.timeperframe;
+    set (handles.GUI_frameinterval_ed, 'String', handles.postpro.timeperframe);
+    return
+else
+    handles.postpro.timeperframe = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function GUI_frameinterval_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_frameinterval_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function GUI_movietype_avi_rb_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_movietype_avi_rb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+% --- Executes on button press in GUI_movietype_avi_rb.
+function GUI_movietype_avi_rb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_movietype_avi_rb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hint: get(hObject,'Value') returns toggle state of GUI_movietype_avi_rb
+handles = guidata(hObject);
+
+val = get (hObject,'Value');
+
+if val == 1
+   % Button was clicked so should become 1
+   handles.postpro.movietype = 1;   % avi
+   set (handles.GUI_movietype_avi_rb, 'Value', 1);
+   
+   % The QT button should automatically become 0
+   set (handles.GUI_movietype_qt_rb, 'Value', 0);
+else
+   % Button was already selected, but make sure that movietype is set
+   % correctly
+   handles.postpro.movietype = 1;   % avi
+end
+
+fprintf (1, '%d\n', handles.postpro.movietype);
+
+% Update handles structure
+guidata(hObject, handles);   
+   
+%---------------------------------------------------------------------
+
+% --- Executes during object creation, after setting all properties.
+function GUI_movietype_qt_rb_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_movietype_qt_rb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+% --- Executes on button press in GUI_movietype_qt_rb.
+function GUI_movietype_qt_rb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_movietype_qt_rb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hint: get(hObject,'Value') returns toggle state of GUI_movietype_qt_rb
+handles = guidata(hObject);
+
+val = get (hObject,'Value');
+
+if val == 1
+   % Button was clicked so should become 2
+   handles.postpro.movietype = 2;   % qt
+   set (handles.GUI_movietype_qt_rb, 'Value', 1);
+   
+   % The QT button should automatically become 0
+   set (handles.GUI_movietype_avi_rb, 'Value', 0);
+else
+   % Button was already selected, but make sure that movietype is set
+   % correctly
+   handles.postpro.movietype = 2;   % qt
+end
+
+fprintf (1, '%d\n', handles.postpro.movietype);
+
+% Update handles structure
+guidata(hObject, handles);   

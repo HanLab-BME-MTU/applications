@@ -32,7 +32,9 @@ increment = ptPostpro.increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 cellProps = ptPostpro.cellProps;
 clusterProps = ptPostpro.clusterProps;
-binSize = 4;
+binSize = ptPostpro.binsize;
+frameInterval = round (ptPostpro.timeperframe / 60);    % In minutes
+pixelLength = ptPostpro.mmpixel;
 
 % In case the velocity over multiple frames is needed the following
 % variable should be used (AK: new GUI value?)
@@ -134,143 +136,273 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       displacement = sqrt ((coordinates(:,1) - coordinates(:,3)).^2 + ...
                            (coordinates(:,2) - coordinates(:,4)).^2);
                       
+      % Calculate true velocity in um/min for all cells
+      velocity = (displacement * pixelLength) / (multipleFrameVelocity * frameInterval);
+      
       % Calculate the displacement for single cells
       singleCellsDisplacement = sqrt ((singleCellCoords(:,1) - singleCellCoords(:,3)).^2 + ...
                                       (singleCellCoords(:,2) - singleCellCoords(:,4)).^2);
-                      
+      
+      % Calculate true velocity in um/min for all cells
+      singleCellVelocity = (singleCellsDisplacement * pixelLength) / (multipleFrameVelocity * frameInterval);                
+      
       % Calculate the displacement for clustered cells
       clusteredCellsDisplacement = sqrt ((clusteredCellCoords(:,1) - clusteredCellCoords(:,3)).^2 + ...
                                          (clusteredCellCoords(:,2) - clusteredCellCoords(:,4)).^2);   
-                                     
-      % Calculate the variance of the displacement for all cells
-      if ~isempty (displacement)
-         varDisplacement (iCount) = var (displacement);
+      
+      % Calculate true velocity in um/min for all cells
+      clusteredCellVelocity = (clusteredCellsDisplacement * pixelLength) / (multipleFrameVelocity * frameInterval);                               
+      
+      % Calculate the variance of the velocity for all cells
+      if ~isempty (velocity)
+         varVelocity (iCount) = var (velocity);
       else
-         varDisplacement (iCount) = 0;
+         varVelocity (iCount) = 0;
       end
       
-      % Calculate the variance of the displacement for single cells
-      if ~isempty (singleCellsDisplacement)
-         varSingleCellDisplacement (iCount) = var (singleCellsDisplacement);
+      % Calculate the variance of the velocity for single cells
+      if ~isempty (singleCellVelocity)
+         varSingleCellVelocity (iCount) = var (singleCellVelocity);
       else
-         varSingleCellDisplacement (iCount) = 0;
+         varSingleCellVelocity (iCount) = 0;
       end
       
-      % Calculate the variance of the displacement for clustered cells
-      if ~isempty (clusteredCellsDisplacement)
-         varClusteredCellDisplacement (iCount) = var (clusteredCellsDisplacement);
+      % Calculate the variance of the velocity for clustered cells
+      if ~isempty (clusteredCellVelocity)
+         varClusteredCellVelocity (iCount) = var (clusteredCellVelocity);
       else
-         varClusteredCellDisplacement (iCount) = 0;
+         varClusteredCellVelocity (iCount) = 0;
       end
                      
       % From this the average displacement for all cells can be calculated
       if length (displacement) > 0
-         %avgDisplacement (MPMCount-multipleFrameVelocity) = sum (displacement) / length (displacement);
          avgDisplacement (iCount) = sum (displacement) / length (displacement);
       else
-         %avgDisplacement (MPMCount-multipleFrameVelocity) = 0;
          avgDisplacement (iCount) = 0;
       end
 
       % From this the average displacement for single cells can be calculated
       if length (singleCellsDisplacement) > 0
-         %avgSingleDisplacement (MPMCount-multipleFrameVelocity) = sum (singleCellsDisplacement) / length (singleCellsDisplacement);
-         avgSingleDisplacement (iCount) = sum (singleCellsDisplacement) / length (singleCellsDisplacement);
+         avgSingleVelocity (iCount) = sum (singleCellsDisplacement) / length (singleCellsDisplacement);
       else
-         %avgSingleDisplacement (MPMCount-multipleFrameVelocity) = 0;
-         avgSingleDisplacement (iCount) = 0;
+         avgSingleVelocity (iCount) = 0;
       end
 
       % From this the average displacement for clustered cells can be calculated
       if length (clusteredCellsDisplacement) > 0
-         %avgClusteredDisplacement (MPMCount-multipleFrameVelocity) = sum (clusteredCellsDisplacement) / length (clusteredCellsDisplacement);
          avgClusteredDisplacement (iCount) = sum (clusteredCellsDisplacement) / length (clusteredCellsDisplacement);
       else
-         %avgClusteredDisplacement (MPMCount-multipleFrameVelocity) = 0;
          avgClusteredDisplacement (iCount) = 0;
       end
       
+      % From this the average velocity for all cells can be calculated
+      if length (displacement) > 0
+         avgVelocity (iCount) = sum (velocity) / length (velocity);
+      else
+         avgVelocity (iCount) = 0;
+      end
+
+      % From this the average velocity for single cells can be calculated
+      if length (singleCellsDisplacement) > 0
+         avgSingleVelocity (iCount) = sum (singleCellVelocity) / length (singleCellVelocity);
+      else
+         avgSingleVelocity (iCount) = 0;
+      end
+
+      % From this the average velocity for clustered cells can be calculated
+      if length (clusteredCellsDisplacement) > 0
+         avgClusteredVelocity (iCount) = sum (clusteredCellVelocity) / length (clusteredCellVelocity);
+      else
+         avgClusteredVelocity (iCount) = 0;
+      end
+      
+      % Calculate how many cells (of all cells) have a velocity higher or
+      % equal than the average single cell velocity (in percent)
+      if length (velocity) ~= 0
+         velAllCellsHigherThanAvgSingleCells (iCount) = (length (find (velocity >= avgSingleVelocity (iCount))) / ...
+                                                        length (velocity)) * 100.0;
+      else
+         velAllCellsHigherThanAvgSingleCells (iCount) = 0;
+      end
+      
       % Generate a displacement histogram
-      displacementHist (iCount,:) = hist (displacement, binSize);
+      displacementHist (:,iCount) = hist (displacement, binSize);
+      
+      % Generate a velocity histogram
+      velocityHist (:,iCount) = hist (velocity, binSize);
       
    end   % if MPMCount > multipleFrameVelocity 
       
 end   % for frameCount
 
 
-% Generate the avg displacement plot (all cells)
+% % Generate the avg displacement plot (all cells)
+% h_fig = figure; title (imageName);
+%    
+% % Draw a plot showing average displacement of all cells
+% ymax = max (avgDisplacement)+1;
+% plot (xAxis, avgDisplacement); 
+% title ('Avg Displacement All Cells');
+% xlabel ('Frames');
+% ylabel ('Displacement');
+% if length (xAxis) > 1
+%    axis ([xAxis(1) xAxis(end) 0 ymax]);
+% else
+%    axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+% end
+% 
+% % Save the figures in fig, eps and tif format        
+% hgsave (h_fig,[savePath filesep 'avgDisplacementAllCells.fig']);
+% print (h_fig, [savePath filesep 'avgDisplacementAllCells.eps'],'-depsc2','-tiff');
+% print (h_fig, [savePath filesep 'avgDisplacementAllCells.tif'],'-dtiff');      
+
+
+
+% % Generate the figure and title
+% h_fig = figure; title (imageName);
+%    
+% % Draw a subplot showing the avg displacement of a single cell    
+% ymax = max (avgSingleDisplacement)+1;
+% subplot (2,1,1); plot (xAxis, avgSingleDisplacement);
+% title ('Avg Single Cell Displacement');
+% xlabel ('Frames');
+% ylabel ('Displacement');
+% if length (xAxis) > 1
+%    axis ([xAxis(1) xAxis(end) 0 ymax]);
+% else
+%    axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+% end   
+% 
+% % Draw a subplot showing the avg displacement of a cluster
+% ymax = max (avgClusteredDisplacement)+1;
+% subplot (2,1,2); plot (xAxis, avgClusteredDisplacement); 
+% title ('Avg Clustered Cell Displacement');
+% xlabel ('Frames');
+% ylabel ('Displacement');
+% if length (xAxis) > 1
+%    axis ([xAxis(1) xAxis(end) 0 ymax]);
+% else
+%    axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+% end
+% 
+% % Save MAT files for avg all, single and clustered cell displacement
+% cd (savePath);
+% save ('avgCellDisplacement.mat','avgDisplacement');
+% save ('avgSingleCellDisplacement.mat','avgSingleDisplacement');
+% save ('avgClusteredCellDisplacement.mat','avgClusteredDisplacement');
+%    
+% % Save CSV files for avg all, single and clustered cell displacement
+% csvwrite ('avgCellDisplacement.csv', [xAxis ; avgDisplacement]);
+% csvwrite ('avgSingleCellDisplacement.csv', [xAxis ; avgSingleDisplacement]);
+% csvwrite ('avgClusteredCellDisplacement.csv', [xAxis ; avgClusteredDisplacement]);
+%    
+% % Save the figures in fig, eps and tif format     
+% hgsave (h_fig,[savePath filesep 'avgSingleAndClusterDisplacement.fig']);
+% print (h_fig, [savePath filesep 'avgSingleAndClusterDisplacement.eps'],'-depsc2','-tiff');
+% print (h_fig, [savePath filesep 'avgSingleAndClusterDisplacement.tif'],'-dtiff');
+
+
+% Generate the avg velocity plot (all cells)
 h_fig = figure; title (imageName);
    
-% Draw a plot showing average displacement of all cells
-ymax = max (avgDisplacement)+1;
-plot (xAxis, avgDisplacement); 
-title ('Avg Displacement All Cells');
+% Draw a plot showing average velocity of all cells
+ymax = max (avgVelocity) + 1;
+plot (xAxis, avgVelocity); 
+title ('Avg Velocity All Cells');
 xlabel ('Frames');
-ylabel ('Displacement');
+ylabel ('Velocity (um/min)');
 if length (xAxis) > 1
    axis ([xAxis(1) xAxis(end) 0 ymax]);
 else
    axis ([xAxis(1) xAxis(1)+1 0 ymax]);
 end
-        
-% Save the figures in fig, eps and tif format        
-hgsave (h_fig,[savePath filesep 'avgDisplacementAllCells.fig']);
-print (h_fig, [savePath filesep 'avgDisplacementAllCells.eps'],'-depsc2','-tiff');
-print (h_fig, [savePath filesep 'avgDisplacementAllCells.tif'],'-dtiff');      
 
+% Save the figures in fig, eps and tif format        
+hgsave (h_fig,[savePath filesep 'avgVelocityAllCells.fig']);
+print (h_fig, [savePath filesep 'avgVelocityAllCells.eps'],'-depsc2','-tiff');
+print (h_fig, [savePath filesep 'avgVelocityAllCells.tif'],'-dtiff');      
 
 
 % Generate the figure and title
 h_fig = figure; title (imageName);
    
-% Draw a subplot showing the avg displacement of a single cell    
-ymax = max (avgSingleDisplacement)+1;
-subplot (2,1,1); plot (xAxis, avgSingleDisplacement);
-title ('Avg Single Cell Displacement');
+% Draw a subplot showing the avg velocity of a single cell    
+ymax = max (avgSingleVelocity) + 1;
+subplot (2,1,1); plot (xAxis, avgSingleVelocity);
+title ('Avg Single Cell Velocity');
 xlabel ('Frames');
-ylabel ('Displacement');
+ylabel ('Velocity (um/min)');
 if length (xAxis) > 1
    axis ([xAxis(1) xAxis(end) 0 ymax]);
 else
    axis ([xAxis(1) xAxis(1)+1 0 ymax]);
 end   
 
-% Draw a subplot showing the avg displacement of a cluster
-ymax = max (avgClusteredDisplacement)+1;
-subplot (2,1,2); plot (xAxis, avgClusteredDisplacement); 
-title ('Avg Clustered Cell Displacement');
+% Draw a subplot showing the avg velocity of a cluster
+ymax = max (avgClusteredVelocity) + 1;
+subplot (2,1,2); plot (xAxis, avgClusteredVelocity); 
+title ('Avg Clustered Cell Velocity');
 xlabel ('Frames');
-ylabel ('Displacement');
+ylabel ('Velocity (um/min)');
 if length (xAxis) > 1
    axis ([xAxis(1) xAxis(end) 0 ymax]);
 else
    axis ([xAxis(1) xAxis(1)+1 0 ymax]);
 end
 
-% Save MAT files for avg all, single and clustered cell displacement
+% Save MAT files for avg all, single and clustered cell velocity
 cd (savePath);
-save ('avgCellDisplacement.mat','avgDisplacement');
-save ('avgSingleCellDisplacement.mat','avgSingleDisplacement');
-save ('avgClusteredCellDisplacement.mat','avgClusteredDisplacement');
+save ('avgCellVelocity.mat','avgVelocity');
+save ('avgSingleCellVelocity.mat','avgSingleVelocity');
+save ('avgClusteredCellVelocity.mat','avgClusteredVelocity');
    
-% Save CSV files for avg all, single and clustered cell displacement
-csvwrite ('avgCellDisplacement.csv','avgDisplacement');
-csvwrite ('avgSingleCellDisplacement.csv','avgSingleDisplacement');
-csvwrite ('avgClusteredCellDisplacement.csv','avgClusteredDisplacement');
+% Save CSV files for avg all, single and clustered cell velocity
+csvwrite ('avgCellVelocity.csv', [xAxis ; avgVelocity]);
+csvwrite ('avgSingleCellVelocity.csv', [xAxis ; avgSingleVelocity]);
+csvwrite ('avgClusteredCellVelocity.csv', [xAxis ; avgClusteredVelocity]);
    
 % Save the figures in fig, eps and tif format     
-hgsave (h_fig,[savePath filesep 'avgSingleAndClusterDisplacement.fig']);
-print (h_fig, [savePath filesep 'avgSingleAndClusterDisplacement.eps'],'-depsc2','-tiff');
-print (h_fig, [savePath filesep 'avgSingleAndClusterDisplacement.tif'],'-dtiff');
+hgsave (h_fig,[savePath filesep 'avgSingleAndClusterVelocity.fig']);
+print (h_fig, [savePath filesep 'avgSingleAndClusterVelocity.eps'],'-depsc2','-tiff');
+print (h_fig, [savePath filesep 'avgSingleAndClusterVelocity.tif'],'-dtiff');
+
+
+% Generate the plot that shows all cells velocity against single cell
+% velocity (in percent)
+h_fig = figure; title (imageName);
+   
+% Draw the plot
+ymax = max (velAllCellsHigherThanAvgSingleCells) + 1;
+plot (xAxis, velAllCellsHigherThanAvgSingleCells); 
+title ('% All Cells with Velocity higher than Average Single Cell Velocity');
+xlabel ('Frames');
+ylabel ('Percentage (%)');
+if length (xAxis) > 1
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
+else
+   axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+end
+
+% Save MAT files for percentage velocity higher than single cell speed
+cd (savePath);
+save ('velAllCellsHigherThanAvgSingleCells.mat','velAllCellsHigherThanAvgSingleCells');
+   
+% Save CSV files for percentage velocity higher than single cell speed
+csvwrite ('velAllCellsHigherThanAvgSingleCells.csv', [xAxis ; velAllCellsHigherThanAvgSingleCells]);
+
+% Save the figures in fig, eps and tif format        
+hgsave (h_fig,[savePath filesep 'velAllCellsHigherThanAvgSingleCells.fig']);
+print (h_fig, [savePath filesep 'velAllCellsHigherThanAvgSingleCells.eps'],'-depsc2','-tiff');
+print (h_fig, [savePath filesep 'velAllCellsHigherThanAvgSingleCells.tif'],'-dtiff');
 
 
 % Generate the figure and title for the variance plot
 h_fig = figure; title (['Variance' imageName]);
    
-% Draw a subplot showing the displacement variance of all cells    
-ymax = max (varDisplacement)+1;
-subplot (3,1,1); plot (xAxis, varDisplacement);
-title ('Variance Single Cell Displacement');
+% Draw a subplot showing the velocity variance of all cells    
+ymax = max (varVelocity)+1;
+subplot (3,1,1); plot (xAxis, varVelocity);
+title ('Variance Velocity All Cells');
 xlabel ('Frames');
 ylabel ('Variance');
 if length (xAxis) > 1
@@ -279,10 +411,10 @@ else
    axis ([xAxis(1) xAxis(1)+1 0 ymax]);
 end   
 
-% Draw a subplot showing the displacement variance of single cells
-ymax = max (varSingleCellDisplacement)+1;
-subplot (3,1,2); plot (xAxis, varDisplacement); 
-title ('Variance Clustered Cell Displacement');
+% Draw a subplot showing the velocity variance of single cells
+ymax = max (varSingleCellVelocity)+1;
+subplot (3,1,2); plot (xAxis, varSingleCellVelocity); 
+title ('Variance Single Cell Velocity');
 xlabel ('Frames');
 ylabel ('Variance');
 if length (xAxis) > 1
@@ -291,10 +423,10 @@ else
    axis ([xAxis(1) xAxis(1)+1 0 ymax]);
 end
 
-% Draw a subplot showing the displacement variance of clustered cells
-ymax = max (varClusteredCellDisplacement)+1;
-subplot (3,1,3); plot (xAxis, varDisplacement); 
-title ('Variance Clustered Cell Displacement');
+% Draw a subplot showing the velocity variance of clustered cells
+ymax = max (varClusteredCellVelocity)+1;
+subplot (3,1,3); plot (xAxis, varClusteredCellVelocity); 
+title ('Variance Clustered Cell Velocity');
 xlabel ('Frames');
 ylabel ('Variance');
 if length (xAxis) > 1
@@ -303,46 +435,60 @@ else
    axis ([xAxis(1) xAxis(1)+1 0 ymax]);
 end
 
-% Save MAT files for avg all, single and clustered cell displacement
+% Save MAT files for avg all, single and clustered cell variance
 cd (savePath);
-save ('varCellDisplacement.mat','avgDisplacement');
-save ('varSingleCellDisplacement.mat','avgSingleDisplacement');
-save ('varClusteredCellDisplacement.mat','avgClusteredDisplacement');
+save ('varCellVelocity.mat','varVelocity');
+save ('varSingleCellVelocity.mat','varSingleCellVelocity');
+save ('varClusteredCellVelocity.mat','varClusteredCellVelocity');
    
-% Save CSV files for avg all, single and clustered cell displacement
-csvwrite ('varCellDisplacement.csv','avgDisplacement');
-csvwrite ('varSingleCellDisplacement.csv','avgSingleDisplacement');
-csvwrite ('varClusteredCellDisplacement.csv','avgClusteredDisplacement');
+% Save CSV files for avg all, single and clustered cell variance
+csvwrite ('varCellVelocity.csv', [xAxis ; varVelocity]);
+csvwrite ('varSingleCellVelocity.csv', [xAxis ; varSingleCellVelocity]);
+csvwrite ('varClusteredCellVelocity.csv', [xAxis ; varClusteredCellVelocity]);
    
 % Save the figures in fig, eps and tif format     
-hgsave (h_fig,[savePath filesep 'varSingleAndClusterDisplacement.fig']);
-print (h_fig, [savePath filesep 'varSingleAndClusterDisplacement.eps'],'-depsc2','-tiff');
-print (h_fig, [savePath filesep 'varSingleAndClusterDisplacement.tif'],'-dtiff');
+hgsave (h_fig,[savePath filesep 'varSingleAndClusterVelocity.fig']);
+print (h_fig, [savePath filesep 'varSingleAndClusterVelocity.eps'],'-depsc2','-tiff');
+print (h_fig, [savePath filesep 'varSingleAndClusterVelocity.tif'],'-dtiff');
 
 
-%Generate a 3D velocity histogram using the surface function
-h_fig = figure;
-surf (displacementHist);
-title ('3D Velocity Histogram');
-
-% Save this figure to disk as fig, eps and tiff
-hgsave (h_fig, [savePath filesep '3dDisplacementHistogram.fig']);
-print (h_fig, [savePath filesep '3dDisplacementHistogram.eps'], '-depsc2', '-tiff');
-print (h_fig, [savePath filesep '3dDisplacementHistogram.tif'], '-dtiff');
-
-
-% % Generate a 3D velocity histogram using 3-d bars which is chopped up in bins with size binSize
+% %Generate a 3D velocity histogram using the surface function
 % h_fig = figure;
-% bar3 (displacementHist, 0.5, 'grouped');
-% title ('3D Displacement Histogram (binned)');
+% surf (displacementHist);
+% title ('3D Velocity Histogram');
 % 
 % % Save this figure to disk as fig, eps and tiff
-% hgsave (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.fig']);
-% print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.eps'], '-depsc2', '-tiff');
-% print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.tif'], '-dtiff');
+% hgsave (h_fig, [savePath filesep '3dDisplacementHistogram.fig']);
+% print (h_fig, [savePath filesep '3dDisplacementHistogram.eps'], '-depsc2', '-tiff');
+% print (h_fig, [savePath filesep '3dDisplacementHistogram.tif'], '-dtiff');
 
 
+% Generate a 3D velocity histogram using 3-d bars which is chopped up in bins with size binSize
 
+% Calculate the maximum displacement value
+maxDisp = max (max (displacementHist));
+
+% Generate the bin vector by using the GUI field binsize
+bin = [];
+for binCount = 1 : binSize
+   binCol = round (binCount * maxDisp / binSize);
+   bin = [bin binCol];
+end
+
+% Generate a 3D displacement histogram using 3-d bars which is chopped up in bins
+h_fig = figure;
+%bar3 (bin, displacementHist, 0.5, 'detached');
+bar3 (bin, displacementHist, 0.5, 'detached');
+title ('3D Displacement Histogram (binned)');
+
+% Save this figure to disk as fig, eps and tiff
+hgsave (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.fig']);
+print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.eps'], '-depsc2', '-tiff');
+print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.tif'], '-dtiff');
+
+
+% For all the figures we want to keep the xAxis as well 
+save ('xAxis-CellDisp.mat','xAxis');
 
 
 

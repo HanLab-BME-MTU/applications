@@ -1,23 +1,24 @@
-function ptPlotCellValues (ptPostpro)
-% ptPlotCellValues plots information gathered in cellProps and
+function ptCalculateCellStatistics (ptPostpro)
+% ptCalculateCellStatistics calculates statistics information gathered in cellProps and
 % clusterProps during the cell tracking (PolyTrack) 
 %
-% SYNOPSIS       ptPlotCellValues (ptPostpro)
+% SYNOPSIS       ptCalculateCellStatistics (ptPostpro)
 %
 % INPUT          ptPostpro : a structure which contains the information
 %                            from the GUI (see below)
 %                
-% OUTPUT         None (plots are directly shown on the screen) 
+% OUTPUT         None (values are saved on disk) 
 %
-% DEPENDENCIES   ptPlotCellValues.m  uses { nothing }
+% DEPENDENCIES   ptCalculateCellStatistics.m  uses { nothing }
 %                                  
-%                ptPlotCellValues.m is used by { PolyTrack_PP }
+%                ptCalculateCellStatistics.m is used by { PolyTrack_PP }
 %
 % Revision History
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
-% Colin Glass           Feb 04          Initial release
-% Andre Kerstens        Jun 04          Cleaned up source and renamed file
+% Andre Kerstens        Jun 04          Created new m-file that calculates
+%                                       the statistics before they are
+%                                       plotted
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -29,11 +30,6 @@ numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagename;
-
-% Get radio button values
-cellClusterPlot = ptPostpro.cellclusterplot;
-areaPlot = ptPostpro.areaplot;
-perimeterPlot = ptPostpro.perimeterplot;
 
 % Get the cell and cluster properties for all frames. These are in the format:
 %
@@ -48,9 +44,6 @@ perimeterPlot = ptPostpro.perimeterplot;
 %      clusterProps (:,3,:) = clusterArea (:);            (the area of this cluster)
 %      clusterProps (:,4,:) = clusterPerimeter (:);       (the length of the perimeter)
 %      clusterProps (:,5,:) = clusterPerimeterElements (:); (how many elements does the perimeter exist of)
-%
-% These matrices are filled up with zero rows to make them all the same
-% length (same principle as the M matrix)
 %
 cellProps = ptPostpro.cellProps;
 clusterProps = ptPostpro.clusterProps;
@@ -140,22 +133,27 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    end
 end 
 
-if cellClusterPlot
-   % Generate single cell and cluster plots if the users requested these
-   ptPlotCellClusterStats (imageName, savePath, xAxis, cellAmount, clusterAmount, cellsPerCluster, ...
-                           singleCellAmount, percentageSingleCells, percentageClusteredCells);
-end   
-if areaPlot
-   % Generate area plots if the users requested these
-   ptPlotAreaStats (imageName, savePath, xAxis, areaPerSingleCell, areaPerCluster);
-end
+% Save MAT files for amount of cells, amount of clusters, cells per
+% cluster, amount of single cells, amount of cells in clusters, perc.
+% single cells and perc. clustered cells
+cd (savePath);
+save ('amountAllCells.mat','cellAmount');
+save ('amountClusters.mat','clusterAmount');
+save ('amountSingleCells.mat','singleCellAmount');
+save ('cellsPerCluster.mat','cellsPerCluster');
+save ('amountClusteredCells.mat','sumCellsInCluster');
+save ('percentageClusteredCells.mat','percentageClusteredCells');
+save ('percentageSingleCells.mat','percentageSingleCells');
+save ('xAxis-CellStats.mat','xAxis');
 
-if perimeterPlot
-   % Generate perimater plots if the users requested these
-   ptPlotPerimeterStats (imageName, savePath, xAxis, perimeterLength, perimeterDivArea);
-end
+% Save CSV files for amount of cells and perc. single cells
+cd (savePath);
+csvwrite ('amountAllCells.csv', [xAxis ; cellAmount]);
+csvwrite ('percentageSingleCells.csv', [xAxis ; percentageSingleCells]);
 
-if cellClusterPlot | areaPlot | perimeterPlot
-   % For all the figures we want to keep the xAxis as well 
-   save ('xAxis-CellStats.mat','xAxis');
-end
+cellAmount, clusterAmount, cellsPerCluster, singleCellAmount, percentageSingleCells, percentageClusteredCells, sumCellsInCluster
+cellAndClusterAreaStats
+ptPlotPerimeterStats
+
+
+save ('xAxis-CellStats.mat','xAxis');

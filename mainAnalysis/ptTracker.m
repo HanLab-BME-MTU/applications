@@ -1,7 +1,7 @@
-function M=fsmTrackTrackerBMTNN(I,J,radius,influence)
-% fsmTrackTrackerBMTNN tracks particle postions resolving topological conflicts with neural networks
+function M=ptTracker (I,J,radius,influence)
+% ptTracker tracks particle postions resolving topological conflicts with neural networks
 %
-% SYNOPSIS   M=fsmTrackTrackerBMTNN(Lmax1,Lmax2,radius,influence)
+% SYNOPSIS   M = ptTracker (Lmax1,Lmax2,radius,influence)
 %
 % INPUT      I         :  matrix [y x I]n of speckle coordinates and intensities for frame 1
 %            J         :  matrix [y x I]n of speckle coordinates and intensities for frame 2
@@ -14,13 +14,14 @@ function M=fsmTrackTrackerBMTNN(I,J,radius,influence)
 %
 % OUTPUT     M         :  matrix of matches [y1(1) x1(1) y1(2) x1(2)]n 
 %
-% DEPENDENCES   fsmTrackTrackerBMTNN uses { createSparseDistanceMatrix ;
+% DEPENDENCES   ptTracker uses { createSparseDistanceMatrix ;
 %                                           missingIndices ;
 %                                           repeatingIndices ;
 %                                           labonteNN }
-%               fsmTrackTrackerBMTNN is used by { fsmTrackMain }
+%               ptTracker is used by { ptTrackCells }
 %
 % Aaron Ponti, March 14th, 2003
+% Andre Kerstens, June 2004 - copied from FSM project
 
 % Check input parameters
 if nargin~=4

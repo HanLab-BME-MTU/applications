@@ -34,9 +34,17 @@ imageDirectory = ptPostpro.imagepath;
 imageNameList = ptPostpro.imagenameslist;
 intensityMax = ptPostpro.intensitymax;
 figureSize = ptPostpro.figureSize;
+movieType = ptPostpro.movietype;
 
 % How many frames does the user wants to see the tracks of?
 dragTailLength = ptPostpro.dragtail;
+
+% We need enough frames to show the length of the dragtail
+if (movieEndFrame - movieStartFrame + 1) < dragTailLength
+   h = errordlg (['Not enough frames for dragtail length of ' num2str(dragTailLength) '. Exiting...']);
+   uiwait (h);
+   return
+end
 
 % What is the name of the movie
 dragTailFileName = ptPostpro.dragtailfile;
@@ -45,13 +53,20 @@ dragTailFileName = ptPostpro.dragtailfile;
 if ceil ((movieStartFrame - startFrame + 1) / increment) < dragTailLength + 1
     movieStartFrame = ((dragTailLength + 1) * increment) + 1;
 end
- 
+
 % Go to the directory where the image will be saved
 cd (savePath);
 
 % Initialize the movie
-makeQTMovie ('start', dragTailFileName);
-%mov = avifile ('dragtail.avi')
+if movieType == 1   % QT
+   mov = avifile ([dragTailFileName '.avi']);
+elseif movieType == 2   % AVI
+   makeQTMovie ('start', [dragTailFileName '.mov']);
+else
+   h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
+   uiwait (h);
+   return
+end
 
 % Initialize MPM counter
 MPMCount = ceil ((movieStartFrame - startFrame) / increment);
@@ -129,18 +144,30 @@ for movieStep = movieStartFrame : increment : movieEndFrame
    cd (savePath);
   
    % Add the current figure to the movie
-   makeQTMovie ('addaxes', gca);
-   %F = getframe (gca);
-   %mov = addframe (mov, F);
-   
-   % Close the figure
-   close;
-   
+   % Initialize the movie
+   if movieType == 1   % QT
+      F = getframe (gca);
+      mov = addframe (mov, F);
+      close;
+   elseif movieType == 2   % AVI
+      makeQTMovie ('addaxes', gca);
+   else
+      h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
+      uiwait (h);
+      return
+   end    
 end   % for movieStep
 
 % finalize the movie and write it to disk
-makeQTMovie ('finish');
-%mov = close(mov);
+if movieType == 1   % QT
+   mov = close(mov);
+elseif movieType == 2   % AVI
+   makeQTMovie ('finish');
+else
+   h = errordlg (['Unknown movie type. Please choose QT or AVI. Exiting...']);
+   uiwait (h);
+   return
+end
 
 % Let the user know we have finished
 fprintf (1, '\nptMovieMaker: finished generating movie.\n');

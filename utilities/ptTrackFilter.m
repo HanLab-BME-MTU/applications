@@ -203,8 +203,10 @@ minDistIndex = uniqueEntries (find (numberOfOccurences < minTrackLength*2-1));
 MPM(minDistIndex,:) = [];
 
 % Store the modified MPM matrix in the data* directory
-cd (savePath);
-save ('MPM.mat', 'MPM');
+if savePath ~= []
+   cd (savePath);
+   save ('MPM.mat', 'MPM');
+end
 
 % Tell the user that we've finished relinking
 fprintf (1, 'Filtering and relinking finished!\n');

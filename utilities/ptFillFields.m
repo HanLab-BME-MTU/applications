@@ -33,15 +33,11 @@ set (handles.GUI_st_bp_maxsize_ed,          'String', num2str (activeJob.maxsize
 set (handles.GUI_st_bp_minsdist_ed,         'String', num2str (activeJob.minsdist));
 set (handles.GUI_st_eo_minedge_ed,          'String', num2str (activeJob.minedge));
 set (handles.GUI_st_eo_sizetemplate_ed,     'String', num2str (activeJob.sizetemplate));
-set (handles.GUI_st_eo_mintrackcorrqual_ed, 'String', num2str (activeJob.mintrackcorrqual));
+set (handles.GUI_mintracklength_ed,         'String', num2str (activeJob.mintracklength));
 set (handles.GUI_st_eo_mincorrqualtempl_pm, 'String', num2str (activeJob.mincorrqualtempl));
 set (handles.GUI_st_eo_noiseparameter_pm,   'String', num2str (activeJob.noiseparameter));
 set (handles.GUI_st_path_timeperframe_ed,   'String', num2str (activeJob.timeperframe));
-
-% Set the microm-to-pixel popup menu
-if ~isempty (activeJob.mmpixel)
-   set (handles.GUI_st_bp_mmpixel_pm, 'Value', num2str (activeJob.mmpixel));
-end
+set (handles.GUI_st_bp_mmpixel_pm,          'String', num2str (activeJob.mmpixel));
 
 % Set the timestep slide popup menu
 if ~isempty (activeJob.timestepslide)
@@ -49,6 +45,6 @@ if ~isempty (activeJob.timestepslide)
 end
 
 % Set the bitdepth field
-if ~isempty (activeJob.timestepslide)
+if ~isempty (activeJob.bitdepth)
    set(handles.GUI_st_bitdepth_pm, 'Value', activeJob.bitdepth_index);
 end

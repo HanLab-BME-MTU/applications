@@ -49,7 +49,7 @@ function [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumb
 % 			timestepslide : hao many timesteps should retrospectively be analysed during programm execution
 % 			minedge : minimal distance to edge to still use templatesearch
 % 			mincorrqualtempl : minimal quality of correlation(template) 
-% 			mintrackcorrqual : minimal quality of correlation (track comparison)
+% 			mintracklength : minimal length of track in MPM
 %
 % Revision History
 % Name                  Date            Comment
@@ -77,7 +77,7 @@ maxSizeNuc           = ptJob.maxsize;
 intensityMax         = ptJob.intensityMax;
 minEdge              = ptJob.minedge;
 minimalQualityCorr   = ptJob.mincorrqualtempl;
-minTrackCorr         = ptJob.mintrackcorrqual;
+minTrackLength       = ptJob.mintracklength;
 minDistCellToCell    = ptJob.minsdist;
 timeStepSlide        = ptJob.timestepslide;
 distanceToCellArea   = round (minDistCellToCell / 2);
@@ -186,11 +186,16 @@ else		% lastImaNum > firstImaNum
       % Check whether we can find some more cells based on average cell size and cluster areas
       % that have no coordinates in them: if these are big enough we label them as cells
       [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (segmentedImage, newCoord, minSizeNuc);
-
+      
       % If we found any new cells add them to the already found ones
       if ~isempty (avgCoord)
-         newCoord = cat (1, newCoord, avgCoord);
+         newAvgCoord = cat (1, newCoord, avgCoord);
+      else
+         newAvgCoord = newCoord;
       end
+      
+      % Agian make sure the minimum cell to cell distance is valid
+      newCoord = ptCheckMinimalCellDistance (newAvgCoord, [], minDistCellToCell);
 
       % From frame 2 we should start matching coordinates
       if imageCount > startFrame
@@ -212,14 +217,14 @@ else		% lastImaNum > firstImaNum
                   
                   % Do the template matching
                   [templateCellCoord, correlation] = ptFindCellsByTemplate (unmatchedCellCoord, previousImage, ...
-                                                             newImage, backgroundLevel,percentBackground, ...
-                                                             sizeTemplate, boxSizeImage);
+                                                                            newImage, backgroundLevel,percentBackground, ...
+                                                                            sizeTemplate, boxSizeImage);
                                                                      
                   % Make sure that we only accept cells with a minimum correlation
 	              if correlation > minimalQualityCorr
                    
                      % Check that the newly found cell is far enough away from
-                     % other cells. If it is not disregard it.
+                     % other cells. If it is not, disregard it.
                      if (min(sqrt ((newCoord(:,1) - templateCellCoord(1,1)).^2 + ...
                                    (newCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell
 
@@ -258,8 +263,8 @@ else		% lastImaNum > firstImaNum
                                                                      
                % Make sure that we only accept cells with a minimum correlation
 	           if correlation > minimalQualityCorr
-                  if (min(sqrt ((newCoord(:,1) - templateCellCoord(1,1)).^2 + ...
-                                (newCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell   
+                  if (min(sqrt ((previousCoord(:,1) - templateCellCoord(1,1)).^2 + ...
+                                (previousCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell   
 
                      % Add these coordinates to the previously found ones
                      previousCoord (end+1,1) = templateCellCoord (1,1);
@@ -393,14 +398,23 @@ else		% lastImaNum > firstImaNum
    end   % for imageCount
 end % if ~(lastImaNum > firstImaNum)
 
-% Generate the cell and cluster properties. This function also takes
-% coordinates into account that have been generated to close gaps
-clusterDirectory = [saveDirectory filesep 'info'];
-[cellProps, clusterProps] = ptCalculateCellAreaWithM (M, distanceToCellArea, minSizeNuc, clusterDirectory, ...
-                                                      startFrame, endFrame, increment);
+% % Generate the cell and cluster properties. This function also takes
+% % coordinates into account that have been generated to close gaps
+% clusterDirectory = [saveDirectory filesep 'info'];
+% [cellProps, clusterProps] = ptCalculateCellAreaWithM (M, distanceToCellArea, minSizeNuc, clusterDirectory, ...
+%                                                       startFrame, endFrame, increment);
                                                   
 % Generate the MPM matrix as well so that it can be used from disk if needed
 MPM = ptTrackLinker (M);
+
+% Make sure the tracks have a minimum track length (specified on GUI)
+MPM = ptMinTrackLength (MPM, minTrackLength);
+
+% Generate the cell and cluster properties. This function also takes
+% coordinates into account that have been generated to close gaps
+clusterDirectory = [saveDirectory filesep 'info'];
+[cellProps, clusterProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNuc, clusterDirectory, ...
+                                                        startFrame, endFrame, increment);
 
 % Go to the save directory
 cd (saveDirectory);

@@ -1,6 +1,8 @@
 function newCoord = ptCheckMinimalCellDistance (nucleiCoord, extraNucCoord, minDistCellCell)
 % ptCheckMinimalCellDistance combines two lists of coordinates and ensures a
-% minimal distance between every combination of two cells
+% minimal distance between every combination of two cells or in case the
+% second list of coords is empty it ensures that there are no cells in the
+% first set that are too close together
 %
 % SYNOPSIS       newCoord = ptCheckMinimalCellDistance(nucleiCoord,haloCoord,minDistCellCell)   
 %

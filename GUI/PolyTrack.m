@@ -49,12 +49,12 @@ handles.output = hObject;
 
 % Create a default job structure that defines all the fields used in the program
 defaultjob = struct('imagedirectory', [], 'imagename', [], 'firstimage', 1, 'lastimage', [],...
-                   'increment', 1, 'savedirectory', [], 'maxsearch', 81, 'mmpixel', [], 'mmpixel_index', 1,...
-                   'minsize',200, 'maxsize', 4000, 'minsdist', 25, 'fi_halolevel', [], 'la_halolevel', [],...
+                   'increment', 1, 'savedirectory', [], 'maxsearch', 81, 'mmpixel', 0.639,...
+                   'minsize',250, 'maxsize', 4000, 'minsdist', 25, 'fi_halolevel', [], 'la_halolevel', [],...
                    'minedge', 10, 'sizetemplate', 41, 'boxsize', 141, 'noiseparameter', 0.15,...
-                   'mincorrqualtempl', 0.5, 'leveladjust', 0.7, 'timestepslide', 5, 'mintrackcorrqual', 0.5,...
+                   'mincorrqualtempl', 0.5, 'leveladjust', 0.7, 'timestepslide', 5, 'mintracklength', 2,...
                    'coordinatespicone', [], 'intensityMax', 4095, 'bitdepth', 12, 'bitdepth_index', 3, 'bodyname', [],...
-                   'imagenameslist', [], 'timeperframe', [], 'timestepslide_index', 2);
+                   'imagenameslist', [], 'timeperframe', 300, 'timestepslide_index', 2);
 
 % Assign the default job values to the GUI handle so it can be passed around
 handles.defaultjob = defaultjob;
@@ -65,9 +65,14 @@ set(hObject,'Color',[0,0,0.627]);
 % Update handles structure
 guidata(hObject, handles);
 
-% Let's turn the resize and int conversion (matlab 7) warnings off
+% Turn the resize and int conversion (matlab 7) warnings off
 iptsetpref ('TrueSizeWarning', 'off');
-%intwarning ('off');
+
+% For matlab 7 turn int conversion warnings off
+matlabVersion = version;
+if (matlabVersion(1) == 7)
+  intwarning ('off');
+end
 
 % UIWAIT makes GUI_start wait for user response (see UIRESUME)
 % uiwait(handles.polyTrack_mainwindow);
@@ -181,6 +186,13 @@ else
     handles.jobs(jobNumber) = handles.defaultjob;
     handles.jobs(jobNumber).imagedirectory = imagedirectory;
     handles.jobs(jobNumber).imagename = filename;
+    
+%     % Get the bitdepth from the gui just in case it is different from the
+%     % default
+%     val = get(handles.GUI_st_bitdepth_pm, 'Value');
+%     list = get(handles.GUI_st_bitdepth_pm, 'String');
+%     selected_val = list{val};
+%     handles.jobs(jobNumber).bitdepth = str2double(selected_val);
 	    
     % Now we have to do the following:
     % Find out what part of the filename describes the images and which part
@@ -195,8 +207,8 @@ else
     number = 0;
     countNum = 0;
     while ~isnan(number) & (countNum <3)
-         countNum = countNum+1;
-         number = str2num(filename(end-(4+countNum):end-4));
+       countNum = countNum+1;
+       number = str2num(filename(end-(4+countNum):end-4));
     end
 
     % Extract the body of the filename and store in handles struct
@@ -216,12 +228,56 @@ else
     dirList = dirList(ind)';
     handles.jobs(jobNumber).lastimage = length(dirList);
       
+    % Go to the directory where the images are stored
+    if ~exist (imagedirectory, 'dir')
+       h=errordlg(['Image directory ' imagedirectory ' does not exist. Please change path...']);
+       uiwait(h);
+       return
+    else 
+       cd (imagedirectory);
+    end
+   
+    % Test whether the max greyvalue per frame is not more than the
+    % bitdepth value specified on the gui
+    fprintf (1, 'Checking image files of job %d for correctness...\n', jobNumber);
+    
+    % Calculate the max posible grey value
+    maxGreyValue = (2^handles.jobs(jobNumber).bitdepth);
+    
+    % Set the mouse pointer to busy
+    set(gcf,'Pointer','watch');
+    
     % Sort the images by successive numbers:
     % First we get all numbers and write them into a vector
     for jRearange = 1:length(dirList)
-        tmpName = char(dirList(jRearange));
-        imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
+       tmpName = char(dirList(jRearange));
+       if max (max (imread(tmpName))) > maxGreyValue
+          % The frame contains a value higher than the bitdepth specified
+          errormsg = ['Image file ' tmpName ' contains a grey value bigger than ' ...
+                      num2str(maxGreyValue) ' (' num2str(max(max(imread(tmpName)))) ...
+                      '). Please correct before loading job...'];
+          h = errordlg (errormsg);
+          uiwait (h);
+          jobList(end) = [];
+          if isempty (jobList)
+             jobList = char('No project loaded');
+             set(handles.GUI_st_job_lb,'Value',1);
+          else
+             set(handles.GUI_st_job_lb,'Value', length(jobList));
+          end
+          set(handles.GUI_st_job_lb,'String',jobList);
+          handles.jobs(jobNumber) = [];
+          guidata(hObject, handles);
+          return
+       else
+          imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
+       end
     end
+    
+    % Set the mouse pointer to normal again
+    set(gcf,'Pointer','arrow');
+    
+    fprintf (1, 'All image files of job %d are correct!\n', jobNumber);
     
     % Then we sort that vector and sort the dirList accordingly
     [junk,indVec] = sort(imageNum);
@@ -237,7 +293,7 @@ else
         newdirname = [];
         newdirname = ['results', bodyname, num2str(counter)];
            
-        % Loop on untill we find an unoccupied new dirname
+        % Loop on until we find an unoccupied new dirname
         if exist (newdirname, 'dir') == 0
             mkdir (imagedirectory, newdirname);
             tempname = [imagedirectory, newdirname];
@@ -250,11 +306,13 @@ else
     end
 end
 
+% Store the modified job list back in the GUI handle
+set(handles.GUI_st_job_lb,'String',jobList);
+
 % Update GUI handle struct
 guidata(hObject, handles);
-%handles = guidata(hObject);
 
-% Last but not least make sure the text field on the GUI show the latest% values
+% Last but not least make sure the text field on the GUI show the latest values
 ptFillFields(handles, handles.jobs(jobNumber))
 
 %-------------------------------------------------------------------------------
@@ -264,9 +322,10 @@ function GUI_st_deletejob_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_st_deletejob_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-listnotfilled = [];
 handles = guidata(hObject);
+
+% Initialize list
+listnotfilled = [];
 
 % Get the job list and the current job
 jobList = get(handles.GUI_st_job_lb,'String');
@@ -279,7 +338,7 @@ if ~iscell(jobList)
     % for the user to press a button
     h=errordlg('Sorry, there are no jobs to delete.');
     uiwait(h);
-    return
+    return;
 end
 
 % Put a standard string in the job list window if there is no project to show
@@ -720,12 +779,19 @@ end
 % Select the current job
 jobNumber = get(handles.GUI_st_job_lb,'Value');
 
-% Get the value and index from the mm-pixel popup menu and assign to handles struct
-val = get(hObject, 'Value');
-list = get(hObject, 'String');
-selected_val = list{val};
-handles.jobs(jobNumber).mmpixel = str2double(selected_val);
-handles.jobs(jobNumber).mmpixel_index = val;
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get(hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.jobs (jobNumber).minsize = [];
+    ptFillFields (handles, handles.jobs (jobNumber))  % Revert the value back
+    return
+else
+    handles.jobs(jobNumber).mmpixel = val;
+end
 
 % Update handles structure
 guidata(hObject, handles);
@@ -1398,7 +1464,7 @@ for jobNumber = 1 : nrOfJobs
    try
       [M, clusterProps, cellProps, imageCount] = ptTrackCells (handles.jobs(jobNumber), jobNumber);
    catch    
-      fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
+      fprintf (1, '\nJob number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
   
      % Save M, cluster and cell data
      %cd (handles.jobs(jobNumber).savedirectory);
@@ -1413,7 +1479,7 @@ for jobNumber = 1 : nrOfJobs
    end
    
    % Final message for the user to mark the end
-   fprintf (1, '\nTracking finished...\n');
+   fprintf (1, '\nTracking finished...\n\n');
 end
 
 %-------------------------------------------------------------------------------
@@ -1485,8 +1551,8 @@ end
 %-------------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
-function GUI_st_eo_mintrackcorrqual_ed_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GUI_st_eo_mintrackcorrqual_ed (see GCBO)
+function GUI_mintracklength_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_mintracklength_ed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -1500,13 +1566,13 @@ end
 
 %-------------------------------------------------------------------------------
 
-function GUI_st_eo_mintrackcorrqual_ed_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_st_eo_mintrackcorrqual_ed (see GCBO)
+function GUI_mintracklength_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_mintracklength_ed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of GUI_st_eo_mintrackcorrqual_ed as text
-%        str2double(get(hObject,'String')) returns contents of GUI_st_eo_mintrackcorrqual_ed as a double
+% Hints: get(hObject,'String') returns contents of GUI_mintracklength_ed as text
+%        str2double(get(hObject,'String')) returns contents of GUI_mintracklength_ed as a double
 handles = guidata(hObject);
 
 % Get the list of jobs
@@ -1530,11 +1596,11 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(jobNumber).mintrackcorrqual = [];
+    handles.jobs(jobNumber).mintracklength = [];
     ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(jobNumber).mintrackcorrqual = val;
+    handles.jobs(jobNumber).mintracklength = val;
 end
 
 % Update handles structure
@@ -2016,159 +2082,7 @@ if ~isempty(handles.jobs(jobNumber).savedirectory)
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
-
-%-------------------------------------------------------------------------------
-
-% --- Executes on button press in GUI_st_eo_clustering_rb.
-function GUI_st_eo_clustering_rb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_st_eo_clustering_rb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of GUI_st_eo_clustering_rb
-handles = guidata(hObject);
-
-% Get the list of jobs
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% If the joblist has entries get the number of entries else return,
-% because there is really nothing to do
-if ~iscell(jobList)
-   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-   uiwait(h);
-   return
-end 
-
-% Get the value of the clustering radiobutton
-val = get(hObject,'Value');
-
-% Select the current job and store the radiobutton value
-jobNumber = get(handles.GUI_st_job_lb,'Value');
-handles.jobs(jobNumber).clustering = val;
-
-% Depending on the clustering value set the minmaxthreshold to the inverse
-if val
-    handles.jobs(jobNumber).minmaxthresh = 0;
-    handles.jobs(jobNumber).emclustering = 0;
-end
-    
-% And set the value on the gui
-set(handles.GUI_st_eo_minmaxthresh_rb,'Value',handles.jobs(jobNumber).minmaxthresh);
-set(handles.GUI_st_eo_emclustering_rb,'Value',handles.jobs(jobNumber).emclustering);
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
-
-%-------------------------------------------------------------------------------
-
-% --- Executes on button press in GUI_st_eo_minmaxthresh_rb.
-function GUI_st_eo_minmaxthresh_rb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_st_eo_minmaxthresh_rb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of GUI_st_eo_minmaxthresh_rb
-handles = guidata(hObject);
-
-% Get the list of jobs
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% If the joblist has entries get the number of entries else return,
-% because there is really nothing to do
-if ~iscell(jobList)
-   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-   uiwait(h);
-   return
-end 
-
-% Get the value of the clustering radiobutton
-val = get(hObject,'Value');
-
-% Select the current job and store value
-jobNumber = get(handles.GUI_st_job_lb,'Value');
-handles.jobs(jobNumber).minmaxthresh =  val;
-
-% Depending on the minmaxthreshold value set the clustering radiobutton to the inverse
-if val
-    handles.jobs(jobNumber).clustering = 0;
-    handles.jobs(jobNumber).emclustering = 0;
-end
-    
-% And set the value on the gui
-set(handles.GUI_st_eo_clustering_rb,'Value',handles.jobs(jobNumber).clustering);
-set(handles.GUI_st_eo_emclustering_rb,'Value',handles.jobs(jobNumber).emclustering);
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
-
-%-------------------------------------------------------------------------------
-
-% --- Executes on button press in em_clustering.
-function GUI_st_eo_emclustering_rb_Callback(hObject, eventdata, handles)
-% hObject    handle to em_clustering (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of em_clustering
-handles = guidata(hObject);
-
-% Get the list of jobs
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% If the joblist has entries get the number of entries else return,
-% because there is really nothing to do
-if ~iscell(jobList)
-   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-   uiwait(h);
-   return
-end 
-
-% Get the value of the em clustering radiobutton
-val = get(hObject,'Value');
-
-% Select the current job and store the radiobutton value
-jobNumber = get(handles.GUI_st_job_lb,'Value');
-handles.jobs(jobNumber).emclustering =  val;
-
-% Depending on the clustering value set the minmaxthreshold to the inverse
-if val
-    handles.jobs(jobNumber).clustering = 0;
-    handles.jobs(jobNumber).minmaxthresh = 0;
-end
-    
-% And set the value on the gui
-set(handles.GUI_st_eo_minmaxthresh_rb,'Value',handles.jobs(jobNumber).minmaxthresh);
-set(handles.GUI_st_eo_clustering_rb,'Value',handles.jobs(jobNumber).clustering);
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
-
-%-------------------------------------------------------------------------------
-
+ 
 %-------------------------------------------------------------------------------
 
 function File_menu_Callback(hObject, eventdata, handles)
