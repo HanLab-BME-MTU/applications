@@ -129,12 +129,15 @@ for i = max(max(tarOrder),delay)+1:trajLength
         (trajP(i-delay,1)<=vThresholds(2:end))) == 2);
 end
 
-%initialize variable indicating whether there are points switching regimes after an iteration
-levelChange = 1;
+%copy trajP into trajP2
+trajP2 = trajP;
+
+%initialize variable indicating whether another iteration should be performed
+doAgain = 1;
 
 if future
     
-    while levelChange
+    while doAgain
         
         i0 = 1; %variable to loop over missing points
         
@@ -200,7 +203,7 @@ if future
                 levelJ = level(varNum);
                 rhsVecMult = [-1 tarParam(levelJ,1:tarOrder(levelJ))];
                 rhsVec(j) = rhsVecMult*(available(varNum:-1:varNum-tarOrder(levelJ)).*...
-                    trajP(varNum:-1:varNum-tarOrder(levelJ),1));
+                    trajP2(varNum:-1:varNum-tarOrder(levelJ),1));
             end
             
             %get rid of equations that do not involve any unknowns (such a situation
@@ -217,17 +220,17 @@ if future
             NumEq = length(rowIndx); %update number of equations used in estimation
             
             %estimate missing data points
-            trajP(missCluster,1) = lhsMat\rhsVec;
+            trajP2(missCluster,1) = lhsMat\rhsVec;
             
             %get uncertainty in estimates. 
             %get vector of weighted residuals
-            epsilon = lhsMat*trajP(missCluster,1) - rhsVec;
+            epsilon = lhsMat*trajP2(missCluster,1) - rhsVec;
             
             %compute variance-covariance matrix
             varCovMat = inv(lhsMat'*lhsMat)*(epsilon'*epsilon/(numEq-numMiss));
             
             %get uncertainty in estimates using varCovMat
-            trajP(missCluster,2) = sqrt(diag(varCovMat));
+            trajP2(missCluster,2) = sqrt(diag(varCovMat));
             
             %update variable indicating beginning of cluster
             i0 = i + 1;
@@ -237,16 +240,25 @@ if future
         %assign a new level to each point
         levelP = NaN*ones(trajLength,1);
         for i = max(max(tarOrder),delay)+1:trajLength
-            levelP(i) = find(((trajP(i-delay,1)>vThresholds(1:end-1)) + ...
-                (trajP(i-delay,1)<=vThresholds(2:end))) == 2);
+            levelP(i) = find(((trajP2(i-delay,1)>vThresholds(1:end-1)) + ...
+                (trajP2(i-delay,1)<=vThresholds(2:end))) == 2);
+        end
+
+        %compare new estimates of missing points to old ones
+        diff = max(abs(trajP2(indx)-trajP(indx)));
+        if diff <= 0.001
+            doAgain = 0;
         end
         
         %compare new level assignments to old level assignments in order to determine whether algorithm converged
         diff = levelP-level; %calculate difference between 2 assignments
         diff = diff(find(~isnan(diff))); %get rid of NaNs from time points < max(tarOrder)
         if isempty(find(diff)) %if none have changed, exit
-            levelChange = 0;
+            doAgain = 0;
         end
+        
+        level = levelP;
+        trajP = trajP2;
         
     end %(while levelChange)
     
