@@ -26,9 +26,9 @@ fem = elModelUpdate(fem,'fn',fn,'fp',fp);
 if strcmp(bfDisplaySite,'grid') == 1
    bfDisplayPx = gridPx{1};
    bfDisplayPy = gridPy{1};
-elseif strcmp(bfDisplaySite,'data') == 1
-   bfDisplayPx = dataPx{1};
-   bfDisplayPy = dataPy{1};
+elseif strcmp(bfDisplaySite,'speckle') == 1
+   bfDisplayPy = speckleP{1}(:,1);
+   bfDisplayPx = speckleP{1}(:,2);
 end
 
 %Get the points that are inside the identification region.
@@ -101,10 +101,10 @@ for jj = 1:numTimeSteps
 
    %We only consider displacements that are above a threshold value. We call
    % these displacements the significant displacements.
-   % 'sigDispInd' : Index of the significant displacements.
-   sigDispInd = find(gridDispLen>=avgDispLen*sigDispThreshold);
-   smDispInd  = [1:length(gridDispLen)];
-   smDispInd(sigDispInd) = [];
+   % 'smDispInd' : Index of the significant displacements.
+   smDispInd = find(gridDispLen<avgDispLen*smDispThreshold);
+   bigDispInd  = [1:length(gridDispLen)];
+   bigDispInd(smDispInd) = [];
 
    %Normalize the displacement.
    %unitGridU1 = zeros(size(gridU1));
@@ -123,26 +123,34 @@ for jj = 1:numTimeSteps
    %gridADF = -gridBFLen;
    %gridADF(sigDispInd) = gridBFx(sigDispInd).*unitGridU1(sigDispInd) + ...
    %   gridBFy(sigDispInd).*unitGridU2(sigDispInd);
-   gridADF = gridBFx.*unitGridU1 + gridBFy.*unitGridU2;
+   %First comput the dot product between the force and the displacements.
+   dotProdBFU = gridBFx.*unitGridU1 + gridBFy.*unitGridU2;
 
-   % mcfInd : Indices where we assign the total body force to myosin
-   % contraction and zero to adhesion.
-   mcfInd = find(gridADF>=0);
-   gridADF(mcfInd) = 0;
-   gridADF = abs(gridADF);
-   
-   %Compute the dragging coefficient.
-   gridADF(smDispInd)  = gridADF(smDispInd)./(avgDispLen*sigDispThreshold);
-   gridADF(sigDispInd) = gridADF(sigDispInd)./gridDispLen(sigDispInd);
+   % mcfInd : Indices where we consider the total body force to be mainly 
+   %          myosin contraction.
+   % adfInd : Indices where we consider the total body force to be mainly 
+   %          adhesion.
+   mcfInd = find((dotProdBFU-gridBFLen*cos(mcfAngle))>=0);
+   adfInd = find((-dotProdBFU-gridBFLen*cos(adfAngle))>=0);
+   gridADF = zeros(size(gridBFLen));
+   gridMCF = gridADF;
 
-   gridMCF = zeros(size(gridBFLen));
-   gridMCF(sigDispInd) = abs(gridBFx(sigDispInd).*unitGridU2(sigDispInd) - ...
-      gridBFy(sigDispInd).*unitGridU1(sigDispInd));
+   %Significant myosin dragging force.
    gridMCF(mcfInd) = gridBFLen(mcfInd);
+   
+   %Compute the significant dragging coefficient.
+   gridADF(adfInd) = gridBFLen(adfInd)./gridDispLen(adfInd);
+   %gridADF(smDispInd) = gridBFLen(smDispInd)./(avgDispLen*smDispThreshold);
+   gridADF(smDispInd) = 0;
+
+   %gridMCF = zeros(size(gridBFLen));
+   %gridMCF(sigDispInd) = abs(gridBFx(sigDispInd).*unitGridU2(sigDispInd) - ...
+   %   gridBFy(sigDispInd).*unitGridU1(sigDispInd));
+   %gridMCF(mcfInd) = gridBFLen(mcfInd);
 
    %Interpolate 'gridMCF' and 'gridADF' to get the pp-form of the scores.
-   scoreMCF(gridIn) = gridMCF;
-   scoreADF(gridIn) = gridADF;
+   scoreMCF(gridIn) = gridMCF./max(gridMCF);
+   scoreADF(gridIn) = gridADF./max(gridADF);
    ppMCF{jj} = csape({gridy,gridx},scoreMCF);
    ppADF{jj} = csape({gridy,gridx},scoreADF);
    scoreMCF(:) = 0;

@@ -133,5 +133,5 @@ else
    save([resultPath 'AbfId'],'A');
 end
 
-fprintf(1,'   Total time spent : %f sec.\n', cputime-localStartTime);
+fprintf(1,'  Total time spent : %f sec.\n', cputime-localStartTime);
 

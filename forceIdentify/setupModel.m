@@ -92,31 +92,18 @@ end
 %Points where the forward computed displacements and raw displacements are
 %compared for optimal fit can be either the raw data points or the
 % interpolated grid points or both.
-dataPx = cell(numTimeSteps,1);
-dataPy = cell(numTimeSteps,1);
 dataU1 = cell(numTimeSteps,1);
 dataU2 = cell(numTimeSteps,1);
 if strcmp(forceToIdentify,'tf') == 1
    load([resultPath 'dispId']);
-   dataPx = rawDataPx;
-   dataPy = rawDataPy;
    dataU1 = dataUC1;
    dataU2 = dataUC2;
 elseif strcmp(dataToUse,'raw') == 1
-   dataPx = rawDataPx;
-   dataPy = rawDataPy;
    dataU1 = rawDataU1;
    dataU2 = rawDataU2;
 elseif strcmp(dataToUse,'smooth') == 1
-   dataPx = rawDataPx;
-   dataPy = rawDataPy;
    dataU1 = sDataU1;
    dataU2 = sDataU2;
-elseif strcmp(dataToUse,'grid') == 1
-   dataPx = gridPx;
-   dataPy = gridPy;
-   dataU1 = gridU1;
-   dataU2 = gridU2;
 elseif strcmp(dataToUse,'simul') == 1
    load([resultPath 'simField']);
    dataPx{:} = simDataPx;
