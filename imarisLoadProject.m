@@ -1,4 +1,4 @@
-function imarisLoadProject
+function imarisLoadProject(addOrReplace)
 %imarisLoadProject loads, transforms and displays chromdyn-data in imaris
 %
 % SYNOPSIS imarisLoadProject
@@ -10,103 +10,35 @@ function imarisLoadProject
 % c: 04/04 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%=============
+% TEST INPUT
+%=============
+replace = 1;
 
-
-%========================
-% LOAD DATA - make seperate function, replace in label_LoadSlist
-%========================
-
-%check if default biodata-dir exists and cd if exist
-mainDir = cdBiodata(2);
-
-%get project data file
-[fileName,pathName] = uigetfile({'*-data-??-???-????-??-??-??.mat','project data files'},'select project data file');
-
-if fileName==0;
-    % not defined yet
-    error('no data loaded')
-    return
+if nargin < 1 | isempty(addOrReplace)
+    % default
 else
-    cd(pathName);
-    data = load(fileName); %loads everything into the structure data
-    if ~isfield(data,'dataProperties')
-        error('No dataProperties in project data: corrupt data file');
-    else
-        dataProperties = data.dataProperties;
-    end
-    
-    %load projectProperties
-    if ~isfield(data,'projProperties')
-        error('No projProperties in project data!');
-        uiwait(h);
-        return %end evaluation here
-    else
-        projProperties = data.projProperties;
-    end
-    
-    
-    
-    %--------------try to load filtered movie
-    %try to find filenames in the path from which projectData has been loaded
-    filteredMovieName = chooseFile('filtered_movie',[],'new');
-    altFilteredMovieName = chooseFile('moviedat',[],'new');
-    if isempty(filteredMovieName)
-        if isempty(altFilteredMovieName) %to ensure compatibility with earlier versions
-            disp('no filtered movie found. load unfiltered movie instead')
-            if findstr(projProperties.dataPath(end-10:end),'crop')|findstr(projProperties.dataPath(end-10:end),'corr')
-                %cropped movie
-                moviename = chooseFile('.r3c');
-                filteredMovie  =  readmat(moviename);
+    switch addOrReplace
+        case 'add'
+            % check whether there is an imarisFigure open
+            imFigH = findall(0,'Name','Imaris figure');
+            if ~isempty(imFigH)
+                replace = 0;
             else
-                %normal movie
-                moviename = chooseFile('.r3d');
-                filteredMovie  =  r3dread(moviename);
+                warning('No imaris figure found to add to - launching new imaris')
             end
-        else
-            filteredMovie = readmat(altFilteredMovieName);
-        end
-    else 
-        filteredMovie = readmat(filteredMovieName);
-    end;
-    
-    %test if everything correctly loaded
-    if ~exist('filteredMovie','var')
-        error('no movie found')
-        return
-    end
-    %---let the user choose which idlist to load
-    
-    %find which idlists there are
-    dataFieldNames = fieldnames(data);
-    idnameListIdx = strmatch('idlist',dataFieldNames);
-    idnameList = dataFieldNames(idnameListIdx);
-    
-    %have the user choose, if there is more than one entry left
-    switch length(idnameList)
-        case 0 %no idlist loaded. continue w/o loading
-            
-            idname = '[]';
-            error('no idlist found in data')
-            
-        case 1 %only one idlist loaded. Continue
-            
-            idname = char(idnameList);
-            
-        otherwise %let the user choose
-            idSelect = chooseFileGUI(idnameList);
-            if isempty(idSelect)
-                idname = '';
-            else
-                idname = idnameList{idSelect};
-            end
+        case 'replace'
+            replace = 1;
+        otherwise
+            error('please specify either ''add'' or ''replace''!')
     end
 end
 
-if isempty(idname)
-    error('no idlist loaded')
-else
-    idlist = eval(['data.' idname ';']);
-end
+%========================
+% LOAD DATA
+%========================
+
+[idlist,dataProperties,projectProperties,dummy,filteredMovie] = loadProjectData;
 
 projectName = dataProperties.name;
 
@@ -199,9 +131,6 @@ end
 vImarisApplication = actxserver('Imaris.Application');
 
 
-
-% connect to Imaris - done at the beginning of the program
-
 vImarisDataSet = vImarisApplication.mDataSet;
 
 %--------- load movie into data 
@@ -231,9 +160,40 @@ vImarisDataSet.mExtendMaxZ = imarisMovieSize(3);
 
 
 %-------- create surpass scene
-vImarisSurpassScene = actxserver('Imaris.DataContainer');
-vImarisApplication.mSurpassScene = vImarisSurpassScene;
+if replace
+    vImarisSurpassScene = actxserver('Imaris.DataContainer');
+    vImarisApplication.mSurpassScene = vImarisSurpassScene;
+else
+    imFigHandles = guidata(imFigH);
+    vImarisSurpassScene = imFigHandles.vImarisSurpassScene;
+end
 
+% add light, frame if necessary
+if replace
+    vImarisLightSource = actxserver('Imaris.LightSource');
+    vImarisSurpassScene.AddChild(vImarisLightSource);
+end
+    vImarisFrame = actxserver('Imaris.Frame');
+    vImarisSurpassScene.AddChild(vImarisFrame);
+    
+% if ~replace
+%     % problem: if I add a second track the first frame gets weird -
+%     % therefore add a second (good) frame and delete the first one
+%     nKids = vImarisSurpassScene.GetNumberOfChildren;
+%     kid = nKids-2;
+%     frameDeleted = 0;
+%     vImarisTypeConvert = actxserver('Imaris.TypeConvert');
+%     while ~frameDeleted & kid >= 0
+%         
+%         k = vImarisSurpassScene.GetChild(kid);
+%         if vImarisTypeConvert.IsFrame(k)
+%             vImarisSurpassScene.RemoveChild(k);
+%             frameDeleted = 1;
+%         else
+%             kid = kid-1;
+%         end
+%     end
+% end
 %-------- load spots ---------
 % create a spots component
 vImarisSpots = actxserver('Imaris.Spots');
@@ -306,7 +266,11 @@ vImarisApplication.mViewer = 'eViewerSurpass';
 %=================================
 
 % launch figure
-imFigH = figure('Name','Imaris figure','NumberTitle','off');
+if replace
+    imFigH = findall(0,'Name','Imaris figure');
+    delete(imFigH)
+    imFigH = figure('Name','Imaris figure','NumberTitle','off');
+end
 
 % get handles
 imFigHandles = guidata(imFigH);
@@ -319,3 +283,7 @@ imFigHandles.projectData.dataProperties = dataProperties;
 % store imaris data
 imFigHandles.imarisData.spotList = spotList;
 imFigHandles.imarisData.edgeList = edgeList;
+
+imFigHandles.vImarisSurpassScene = vImarisSurpassScene;
+
+guidata(imFigH,imFigHandles)
