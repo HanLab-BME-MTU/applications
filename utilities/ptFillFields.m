@@ -27,12 +27,6 @@ set (handles.GUI_st_path_savedirectory_ed,  'String', activeJob.savedirectory);
 set (handles.GUI_st_path_firstimage_ed,     'String', num2str (activeJob.firstimage));
 set (handles.GUI_st_path_lastimage_ed,      'String', num2str (activeJob.lastimage));
 set (handles.GUI_st_path_increment_ed,      'String', num2str (activeJob.increment));
-set (handles.GUI_st_iq_fi_background_ed,    'String', num2str (activeJob.fi_background, '%6.5f'));
-set (handles.GUI_st_iq_fi_nucleus_ed,       'String', num2str (activeJob.fi_nucleus, '%6.5f'));
-set (handles.GUI_st_iq_fi_halolevel_ed,     'String', num2str (activeJob.fi_halolevel, '%6.5f'));
-set (handles.GUI_st_iq_la_background_ed,    'String', num2str (activeJob.la_background, '%6.5f'));
-set (handles.GUI_st_iq_la_nucleus_ed,       'String', num2str (activeJob.la_nucleus, '%6.5f'));
-set (handles.GUI_st_iq_la_halolevel_ed,     'String', num2str (activeJob.la_halolevel, '%6.5f'));
 set (handles.GUI_st_bp_maxsearch_ed,        'String', num2str (activeJob.maxsearch));
 set (handles.GUI_st_bp_minsize_ed,          'String', num2str (activeJob.minsize));
 set (handles.GUI_st_bp_maxsize_ed,          'String', num2str (activeJob.maxsize));
@@ -42,11 +36,7 @@ set (handles.GUI_st_eo_sizetemplate_ed,     'String', num2str (activeJob.sizetem
 set (handles.GUI_st_eo_mintrackcorrqual_ed, 'String', num2str (activeJob.mintrackcorrqual));
 set (handles.GUI_st_eo_mincorrqualtempl_pm, 'String', num2str (activeJob.mincorrqualtempl));
 set (handles.GUI_st_eo_noiseparameter_pm,   'String', num2str (activeJob.noiseparameter));
-set (handles.GUI_st_eo_leveladjust_pm,      'String', num2str (activeJob.leveladjust));
 set (handles.GUI_st_path_timeperframe_ed,   'String', num2str (activeJob.timeperframe));
-
-set (handles.GUI_st_eo_clustering_rb,       'Value', activeJob.clustering);
-set (handles.GUI_st_eo_minmaxthresh_rb,     'Value', activeJob.minmaxthresh);
 
 % Set the microm-to-pixel popup menu
 if ~isempty (activeJob.mmpixel)

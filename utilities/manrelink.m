@@ -13,13 +13,13 @@ function manrelink
 % SYNOPSIS       manrelink
 %
 % INPUT          none (gets data from the current object, which is the object with 
-%                      the callback manrelink (text made by changeframe))
+%                      the callback manrelink (text made by ptShowSlidingFrames))
 %
 % OUTPUT         none
 %
 % DEPENDENCIES   manrelink uses { nothing }
 %                                  
-%                manrelink is used by { changeframe (as a callback) }
+%                manrelink is used by { ptShowSlidingFrames (as a callback) }
 %
 % Revision History
 % Name                  Date            Comment

@@ -31,9 +31,8 @@ function [MPM, M] = ptTrackLinker (M)
 % Let the user know we're starting to link
 fprintf (1, 'ptTrackLinker: Starting track linkage process...\n');
 
-% Initialize counter and waitbar
+% Initialize counter
 counter = 0;
-tot = 2 * (size(M,3)-1);
 
 % Reorganize M
 for counter1 = 1 : size(M,3) - 1

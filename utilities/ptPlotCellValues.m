@@ -1,238 +1,133 @@
-function ptPlotCellValues.m(hObject)
-% ptPlotCellValues.m plots information gathered in cellProps. Certain details
-%              get derived from cellProps first
+function ptPlotCellValues (ptPostpro, MPM)
+% ptPlotCellValues plots information gathered in cellProps and
+% clusterProps during the cell tracking (PolyTrack) 
 %
-% SYNOPSIS       ptPlotCellValues.m(hObject)
+% SYNOPSIS       ptPlotCellValues (ptPostpro)
 %
-% INPUT          hObject : handle to an object within PolyTrack_PP
+% INPUT          ptPostpro : a structure which contains the information
+%                            from the GUI (see below)
+%                MPM       : matrix containing the cell tracks
 %                
-% OUTPUT         altered MPM          
+% OUTPUT         None (plots are directly shown on the screen) 
 %
-% DEPENDENCIES   ptPlotCellValues.m  uses {nothing}
+% DEPENDENCIES   ptPlotCellValues.m  uses { nothing }
 %                                  
 %                ptPlotCellValues.m is used by { PolyTrack_PP }
 %
-% Colin Glass, Feb 04
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Colin Glass           Feb 04          Initial release
+% Andre Kerstens        May 04          Cleaned up source and renamed file
 
+% First assign all the postpro fields to a meaningfull variable
+startFrame = ptPostpro.plotfirstimg;
+endFrame = ptPostpro.plotlastimg;
+savePath = ptPostpro.saveallpath;
+jobPath = ptPostpro.jobpath;
+imageName = ptPostpro.imagename;
 
-%We now want to rearrange certain data (cellProps), so that we can plot it.  
+% Get radio button values
+cellAreaPlot = ptPostpro.cellareaplot;
 
-handles=guidata(hObject);
+% Get the cell and cluster properties for all frames. These are in the format:
+%
+%    cellProps :
+%      cellProps (:,1,:) = coord (:,1);
+%	   cellProps (:,2,:) = coord (:,2);
+%	   cellProps (:,3,:) = clusterNr (:);  (number of cluster - label)
+%
+%    clusterProps :
+%      clusterProps (:,1,:) = uniqClusterNr (:);          (which cells are in this cluster)
+%      clusterProps (:,2,:) = numberOfCells (:);          (how many cells in this cluster)
+%      clusterProps (:,3,:) = clusterArea (:);            (the area of this cluster)
+%      clusterProps (:,4,:) = clusterPerimeter (:);       (the length of the perimeter)
+%      clusterProps (:,5,:) = clusterPerimeterElements (:); (how many elements does the perimeter exist of)
+%
+% These matrices are filled up with zero rows to make them all the same
+% length (same principle as the M matrix)
+%
+cellProps = ptPostpro.cellProps;
+clusterProps = ptPostpro.clusterProps;
 
-
-start = round((handles.postpro.analfirstimg- handles.jobvalues.firstimage)/handles.jobvalues.increment)+1;
-if start < 1
-    start = 1;
-end
-
-stop = floor((handles.postpro.anallastimg - handles.jobvalues.firstimage)/handles.jobvalues.increment+0.00001)+1;
-
-if stop > handles.jobvalues.lastimage
-    stop = handles.jobvalues.lastimage;
-end
-
-saveallpath=handles.postpro.saveallpath;
-
-
-NewProps=zeros(6,start-stop+1);
-
-
-%erase this information. it was calculated before we cleaned up the results
-handles.cellProps(:,4,:)=0;
-cellProps = handles.cellProps;
-
-
-  whatcells=[];
-    
-	if ~isempty(handles.selectedcells)
-        whatcells = zeros(size(handles.selectedcells,1),2);
-        handles.singlecells = zeros(size(handles.selectedcells,1),1)
-        handles.clustercells = zeros(size(handles.selectedcells,1),1)
-        
-	else
-        whatcells = zeros(size(handles.MPM,1),2);
-        handles.singlecells = zeros(size(handles.MPM,1),2);
-        handles.clustercells = zeros(size(handles.MPM,1),2);
-        
-	end
-
-    
-
-
-
-for pic=start:stop
- 
-    %now we quickly calculate the number of cells within a cluster. This
-    %may seem a little bit late to do so, but only now we know which cells
-    %are actually accepted by postprocessing
-    
-	belo = sort(handles.cellProps(:,3,pic));
-	[uniqueEntries, uniqueIdx] = unique(belo);
-	%uniqueIdx returns the last occurence of the respective unique entry
-	%having sorted m before, we can now count the number of occurences
-	if size(uniqueEntries,1) > size(uniqueEntries,2);
-            uniqueIdx = [0;uniqueIdx];
-	else
-            uniqueIdx = [0,uniqueIdx];
-	end 
-	numberOfOccurences = diff(uniqueIdx); 
-
-    %calculate the number of members for every cluster
-     for indUniEnt = 1:length(uniqueEntries)
-           order = ismember(handles.cellProps(:,3,pic),uniqueEntries(indUniEnt));
-           handles.cellProps(order ,4,pic) = numberOfOccurences(indUniEnt);
-     end
-     %done
-     
-     
-     
-    whatcells=[];
-    %if the user has selected certain cells, only use these
-	if ~isempty(handles.selectedcells)
-        whatcells = zeros(size(handles.selectedcells,1),2);
-      
-	else
-        whatcells = zeros(size(handles.MPM,1),2);
-       
-	end
-
-    
-    if ~isempty(handles.selectedcells) 
-        whatcells(:,:)=handles.MPM(handles.selectedcells,(2*pic-1):(2*pic));
-       % presentCells(:,:)=handles.MPM(:,(2*pic-1):(2*pic));
-        
-    else  
-        whatcells(:,:)=handles.MPM(:,(2*pic-1):(2*pic));
-       % presentCells(:,:)=handles.MPM(:,(2*pic-1):(2*pic));
-    end
-    
-    %whatcells defines which cells will be taken into account. This is
-    %either defined by the user (PolyTrack_PP) or it will just be all cells
-    %within the current picture
-    good = find(whatcells(:,1) | whatcells(:,2));
-    whatcells = whatcells(good,:); 
-
-    
-%     presentCells = presentCells(find(presentCells(:,1) & presentCells(:,2)),:); 
-%     properRows = ismember(round(handles.cellProps(:,1:2,pic)),round(presentCells),'rows');
-%     referenceAllCells = handles.cellProps(properRows,:,pic);
-%     
-%     clear properRows
-    
-
-
-    %here we find all the rows of cellProps that correspond to cells we are
-    %intersted in. cellProps(:,1:2,pic) and whatcells are both [x,y]
-    %coordinates
-    
-    [properRows,indWhatCells] = ismember(round(handles.cellProps(:,1:2,pic)),round(whatcells),'rows');
-    NewProps(6,pic) = size(find(properRows),1);
-    takeIntoAccount = handles.cellProps(properRows,:,pic);
-    
-    indWhatCells = indWhatCells(find(indWhatCells));
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	% REMINDER:
-	% one row of cellProps gives information on one set of coordinates (one
-	% cell). takeIntoAccount has the same layout
-	% cellProps=zeros(length(coord),6);
-	% cellProps(:,1)=coord(:,1);
-	% cellProps(:,2)=coord(:,2);
-	% cellProps(:,3)=belongsto(:);  (number of cluster - label)
-	% cellProps(:,4)=numberOfOccurences(:);  (how many cells in the cluster
-	%                                          this cell is in)
-	% cellProps(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
-	% cellProps(:,6)=perimdivare(:);  (cluster)
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
-    
-    %how many clusters. At least two members.
-    Clusters = find(takeIntoAccount(:,4)>1.5);
-    
-     handles.clustercells(1:length(Clusters),pic) = indWhatCells(Clusters);
-    
-    [uniqclust,uniCluRows,invert]=unique(takeIntoAccount(Clusters,3));
-    NewProps(1,pic)=length(uniqclust);
-    
-    
-    %how many cells per cluster
-    NewProps(2,pic)=sum(takeIntoAccount(Clusters(uniCluRows),4))/NewProps(1,pic);
-    
-    %how big an area per cell
-    bridge=takeIntoAccount(:,5)./takeIntoAccount(:,4);
-    NewProps(3,pic)=sum(bridge)/NewProps(6,pic);
-    
-    %how big an area per cluster
-  
-    NewProps(4,pic)=sum(takeIntoAccount(Clusters(uniCluRows),5))/length(uniCluRows);
-    
-    %perimeter/area
-    NewProps(5,pic)=sum(takeIntoAccount(Clusters(uniCluRows),6))/length(uniCluRows);
-    
-    %percentage single cells
-    indSingle = find(takeIntoAccount(:,4)==1);
-    
-    handles.singlecells (1:length(indSingle),pic) = indWhatCells(indSingle);
-    
-    NewProps(7,pic) = size(indSingle,1) / NewProps(6,pic);
-    
+% Calculate a number of statistics for every frame
+for frameCount = startFrame : endFrame
    
+   % Remove the zero rows from cellProps 
+   [notZeroEntryRows, notZeroEntryCols] = find (cellProps (:,:,frameCount));
+   notZeroEntryRows = unique (notZeroEntryRows);
+   cells = cellProps (notZeroEntryRows,:,frameCount);
+   
+   % Remove the zero rows from clusterProps 
+   [notZeroEntryRows, notZeroEntryCols] = find (clusterProps (:,:,frameCount));
+   notZeroEntryRows = unique (notZeroEntryRows);
+   clusters = clusterProps (notZeroEntryRows,:,frameCount);
+   
+   % Calculate the amount of clusters per frame (a cluster should contain at
+   % least 2 nuclei (and therefore we use > 1)
+   clusterAmount (frameCount) = size (clusters (find (clusters (:,2) > 1)), 1);
+   
+   % Calculate the average amount of cells per cluster
+   sumCellsInCluster (frameCount) = sum (clusters (find (clusters (:,2) > 1)));
+   cellsPerCluster (frameCount) = round ( sumCellsInCluster (frameCount) / clusterAmount (frameCount));
+   
+   % Calculate the amount of single cells per frame. This is in principle a
+   % cluster with only one nuclei
+   singleCellAmount (frameCount) = size (clusters (find (clusters (:,2) == 1)), 1);
 end 
 
-% if get(handles.GUI_ad_numberofthings_rb,'Value')
-%     
-%         h_fig=figure,title(handles.jobvalues.imagename);
-%         
-%         ymax=max(NewProps(1,:));
-%         subplot(2,2,1);plot(NewProps(1,:)), title('how many clusters');
-%         xlabel('Frames');
-%         ylabel('# of clusters');
-%         axis([0 stop 0 ymax]);
-%         
-%         ymax=max(NewProps(2,:));
-%         subplot(2,2,2);plot(NewProps(2,:)), title('how many cells per cluster');
-%         xlabel('Frames');
-%         ylabel('cells per cluster');
-%         axis([0 stop 0 ymax]);
-%  
-%         ymax=max(NewProps(6,:));
-%         subplot(2,2,3);plot(NewProps(6,:)), title('how many cells');
-%         xlabel('Frames');
-%         ylabel('# of cell');
-%         axis([0 stop 0 ymax]);
-% 
-%         
-%         
-% 
-% 
-% 		
-% 		hgsave(h_fig,[saveallpath filesep 'numberCellsClust.fig']);
-% 		print(h_fig, [saveallpath filesep 'numberCellsClust.eps'],'-depsc2','-tiff');
-% 		print(h_fig, [saveallpath filesep 'numberCellsClust.tif'],'-dtiff');
-% 		
-% 
-%         
-% end   
-%         
+% Generate area plots if the users requested these
+if cellAreaPlot
+    
+   % Generate the figure and title     
+   h_fig = figure; title (imageName);
+        
+   ymax = max (clusterAmount) + 1;
+   subplot(2,2,1); plot (clusterAmount); 
+   title ('Amount of clusters');
+   xlabel ('Frames');
+   ylabel ('# of clusters');
+   axis ([0 endFrame 0 ymax]);
+       
+   ymax = max (cellsPerCluster) + 1;
+   subplot (2,2,2); plot (cellsPerCluster); 
+   title ('Average amount of cells per cluster');
+   xlabel ('Frames');
+   ylabel ('# cells per cluster');
+   axis ([0 endFrame 0 ymax]);
+ 
+   ymax = max (singleCellAmount) + 1;
+   subplot (2,2,3); plot (singleCellAmount); 
+   title ('Amount of single cells');
+   xlabel ('Frames');
+   ylabel ('# of single cells');
+   axis ([0 endFrame 0 ymax]);
+	
+   hgsave (h_fig, [savePath filesep 'singleCellsAndClusterStats.fig']);
+   print (h_fig, [savePath filesep 'singleCellsAndClusterStats.eps'], '-depsc2', '-tiff');
+   print (h_fig, [savePath filesep 'singleCellsAndClusterStats.tif'], '-dtiff');         
+end   
+
 % if get(handles.GUI_ad_areas_rb,'Value')
 %         
 %        h_fig=figure,title(handles.jobvalues.imagename);
 %         
-%        ymax=max(NewProps(3,:));
-%         subplot(1,2,1);plot(NewProps(3,:)), title('how big an area per cell');
+%        ymax=max(newProps(3,:));
+%         subplot(1,2,1);plot(newProps(3,:)), title('how big an area per cell');
 %         xlabel('Frames');
 %         ylabel('area per cell');
-%         axis([0 stop 0 ymax]);
+%         axis([0 endFrame 0 ymax]);
 %         
-%         ymax=max(NewProps(4,:));
-%         subplot(1,2,2); plot(NewProps(4,:)), title('how big an area per cluster');
+%         ymax=max(newProps(4,:));
+%         subplot(1,2,2); plot(newProps(4,:)), title('how big an area per cluster');
 %         xlabel('Frames');
 %         ylabel('area per cluster');
-%         axis([0 stop 0 ymax]);
+%         axis([0 endFrame 0 ymax]);
 %         
 %         
-% 		hgsave(h_fig,[saveallpath filesep 'areas.fig']);
-% 		print(h_fig, [saveallpath filesep 'areas.eps'],'-depsc2','-tiff');
-% 		print(h_fig, [saveallpath filesep 'areas.tif'],'-dtiff');
+% 		hgsave(h_fig,[savePath filesep 'areas.fig']);
+% 		print(h_fig, [savePath filesep 'areas.eps'],'-depsc2','-tiff');
+% 		print(h_fig, [savePath filesep 'areas.tif'],'-dtiff');
 % 		
 %         
 % end
@@ -240,23 +135,21 @@ end
 % if get(handles.GUI_ad_perimeter_rb,'Value')
 %         
 %         h_fig=figure,title(handles.jobvalues.imagename);
-%         ymax=max(NewProps(5,:));
-%         subplot(1,1,1); plot(NewProps(5,:)), title('perimeter/area of clusters');
+%         ymax=max(newProps(5,:));
+%         subplot(1,1,1); plot(newProps(5,:)), title('perimeter/area of clusters');
 %         xlabel('Frames');
 %         ylabel('perimeter/area');
-%         axis([0 stop 0 ymax]);
+%         axis([0 endFrame 0 ymax]);
 %         
 %            
-% 		hgsave(h_fig,[saveallpath filesep 'areasPerim.fig']);
-% 		print(h_fig, [saveallpath filesep 'areasPerim.eps'],'-depsc2','-tiff');
-% 		print(h_fig, [saveallpath filesep 'areasPerim.tif'],'-dtiff');
+% 		hgsave(h_fig,[savePath filesep 'areasPerim.fig']);
+% 		print(h_fig, [savePath filesep 'areasPerim.eps'],'-depsc2','-tiff');
+% 		print(h_fig, [savePath filesep 'areasPerim.tif'],'-dtiff');
 % 		
 %         
 %         
 % end
 %     
-
-percentageSingle = NewProps(7,:);
 
 % h_fig=figure,title(handles.jobvalues.imagename);
 % ymax=max(percentageSingle);
@@ -265,17 +158,14 @@ percentageSingle = NewProps(7,:);
 % plot(percentageSingleFiltered, 'r');
 % xlabel('Frames');
 % ylabel('percentage of single cells');
-% axis([0 stop 0 1]);
+% axis([0 endFrame 0 1]);
 % hold off;
 %         
 %            
-% hgsave(h_fig,[saveallpath filesep 'percentSingle.fig']);
-% print(h_fig, [saveallpath filesep 'percentSingle.eps'],'-depsc2','-tiff');
-% print(h_fig, [saveallpath filesep 'percentSingle.tif'],'-dtiff');
-	
-        
-guidata(hObject, handles);
+% hgsave(h_fig,[savePath filesep 'percentSingle.fig']);
+% print(h_fig, [savePath filesep 'percentSingle.eps'],'-depsc2','-tiff');
+% print(h_fig, [savePath filesep 'percentSingle.tif'],'-dtiff');
 
-cd(saveallpath);
-save ('NewProps', 'NewProps');
-save ('percentageSingle','percentageSingle');
+% cd(savePath);
+% save ('newProps', 'newProps');
+% save ('percentageSingle','percentageSingle');

@@ -107,11 +107,20 @@ else
 
    % Find areas that look like round, big spots of pure light. We do this because sometimes
    % the pictures are of poor quality and display huge halos around certain cells
-   [coordHalo, wouldBeNucCoord, haloImage] = ptFindHalos (inputImage, minSizeNuc, maxSizeNuc);
+   [coordHalo, coordNewNuc, haloImage] = ptFindHalos (inputImage, minSizeNuc, maxSizeNuc);
    %figure; imshow (haloImage, []);
 
    % Ensure a minimal distance between two found cells
-   newCoord =  ptCheckMinimalCellDistance (coordNuc, wouldBeNucCoord, MinDistCellCell);           
+   newCoord =  ptCheckMinimalCellDistance (coordNuc, coordNewNuc, MinDistCellCell);
+   
+   % Check whether we can find some more cells based on average cell size and cluster areas
+   % that have no coordinates in them: if these are big enough we label them as cells
+   [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (segmentedImage, newCoord, minSizeNuc);
+
+   % If we found any new cells add them to the already found ones
+   if ~isempty (avgCoord)
+      newCoord = cat (1, newCoord, avgCoord);
+   end
 
    % Let the user manually fill in the missing cells and erase the wrong cells
    newCoord = ptUserCellProcessing (firstImage, newCoord);

@@ -12,12 +12,8 @@ function ptTrackCells (ptJob, jobNumber)
 %                M : described in ptTrackLinker
 %                cellProps : 
 %                  cellProps(:,1) = coord(:,1);
-%	 	   cellProps(:,2) = coord(:,2);
-%		   cellProps(:,3) = belongsto(:);  (number of cluster - label)
-%		   cellProps(:,4) = numberOfOccurences(:);  (how many cells in the cluster this cell is in)
-%		   cellProps(:,5) = bodycount(:);  (area of the cluster with the number given in belongsto)
-%		   cellProps(:,6) = perimdivare(:);  (cluster)
-%                nameClust : the binary images of the areas occupied by cells (per frame)
+%	 	           cellProps(:,2) = coord(:,2);
+%		           cellProps(:,3) = clustermember(:);
 %
 % DEPENDENCIES   ptTrackCells uses { imClusterSeg
 %				     ptTrackLinker
@@ -77,9 +73,12 @@ minEdge              = ptJob.minedge;
 minimalQualityCorr   = ptJob.mincorrqualtempl;
 minTrackCorr         = ptJob.mintrackcorrqual;
 minDistCellToCell    = ptJob.minsdist;
+timeStepSlide        = ptJob.timestepslide;
 approxDistance       = round (minDistCellToCell / 2);
 erodeDiskSize        = 15;
 emptyM               = zeros (1,4);      % All zeros M matrix entry
+emptyCell            = zeros (1,3);
+emptyCluster         = zeros (1,5);
 
 % Check that the first and last image numbers are actually the right way around
 if ~(lastImageNr > firstImageNr)
@@ -178,6 +177,16 @@ else		% lastImaNum > firstImaNum
       % Make sure the minimum cell to cell distance is valid
       newCoord = ptCheckMinimalCellDistance (nucCoord, wouldBeNucCoord, minDistCellToCell);
 
+      % Check whether we can find some more cells based on average cell size and cluster areas
+      % that have no coordinates in them: if these are big enough we label them as cells
+      [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (segmentedImage, newCoord, minSizeNuc);
+
+      % If we found any new cells add them to the already found ones
+      if ~isempty (avgCoord)
+         newCoord = cat (1, newCoord, avgCoord);
+      end
+
+      % From frame 2 we should start matching coordinates
       if imageCount > firstImageNr
          % Match the current coordinates with the ones found in the previous frame
          matchedCells = fsmTrackTrackerBMTNN (previousCoord, newCoord, maxSearch, maxSearch);
@@ -268,15 +277,15 @@ else		% lastImaNum > firstImaNum
          M (1 : size (matchedCells, 1), 1 : size (matchedCells, 2), loopCount - 1) = matchedCells;
 
          % There's one more thing to do: see if we can match lost cells in previous frames to any of
-         % the new ones found in this frame. Allow this for a max history of 1 frames.
+         % the new ones found in this frame. Allow this for a max history of 5 frames.
          newCells = matchedCells (find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0 & ...
                                         matchedCells (:,3) ~= 0 & matchedCells (:,4) ~= 0),3:4);
          if ~isempty (lostCells) & ~isempty (newCells)        
-            lostCellsToMatch = lostCells (find (lostCells (:,3) >= max ((imageCount - 1), 1)), :);
+            lostCellsToMatch = lostCells (find (lostCells (:,3) >= max ((imageCount - timeStepSlide), 1)), :);
             if ~isempty (lostCellsToMatch)
                matchedLostCells = fsmTrackTrackerBMTNN (lostCellsToMatch (:,1:2), newCells, maxSearch, maxSearch);
             
-               % Kick out all entries that have not been matched
+               % Kick out all entries that have not been matched (they get a chance later)
                matchedLostCells (find ((matchedLostCells (:,1) == 0 & matchedLostCells (:,2) == 0) | ...
                                        (matchedLostCells (:,3) == 0 & matchedLostCells (:,4) == 0)),:) = [];
             
@@ -293,29 +302,23 @@ else		% lastImaNum > firstImaNum
       end   % if imageCount > firstImageNr
 
       % Calculate single cell and cluster properties and generate binary and labeled images
-      [cellProps, clusterProps, clusterImage, labeled] = ptCalculateCellArea ...
-                                                        (segmentedImage, newCoord, imgNuclei, ...
-                                                         imgHalo, approxDistance, minSizeNuc, maxSizeNuc);
-
+      [cellProp, clusterProp] = ptCalculateCellArea (labeledCellImage, newCoord, approxDistance, minSizeNuc);
+      
+      % Accumulate the cell properties
+      cellProps (1 : size (emptyCell, 1), 1 : size (emptyCell, 2), imageCount) = emptyCell;
+      cellProps (1 : size (cellProp, 1), 1 : size (cellProp, 2), imageCount) = cellProp;
+   
+      % Accumulate the cluster properties
+      clusterProps (1 : size (emptyCluster, 1), 1 : size (emptyCluster, 2), imageCount) = emptyCluster;
+      clusterProps (1 : size (clusterProp, 1), 1 : size (clusterProp, 2), imageCount) = clusterProp;
+                                                  
       % Write segmented and cluster binary images, M and cell coordinates to disk
       if ~exist (saveDirectory, 'dir')
          fprintf (1, 'ptTrackCells: Save directory %s does not exist. Exiting...\n', saveDirectory);
          return;
       else
-         cd (saveDirectory);
-
-         % Save M matrix (tracks), cell and cluster properties
-         if exist ('M', 'var')
-	        save('M.mat', 'M');
-	     end
-	     if exist ('cellProps', 'var')
-            save ('cellProps.mat', 'cellProps')
-	     end
-	     if exist ('clusterProps', 'var')
-            save ('clusterProps.mat', 'clusterProps')
-	     end
-
-         % Now we go to the directory where the segmentation and cluster info
+          
+         % Go to the directory where the segmentation, cell and cluster info
          % is going to be saved. Create it first if it doesn't exist and cd into it
          infoDir = [saveDirectory filesep 'info'];
          if ~exist (infoDir)
@@ -329,16 +332,16 @@ else		% lastImaNum > firstImaNum
          clusterFile = ['clusters' indxStr];
          segmentFile = ['segmentedImg' indxStr];
          nucleiFile = ['imgNuclei' indxStr];
-
+         
          % Save as tiff as well
          if exist ('clusterImage', 'var')
-            save (clusterFile, 'clusterImage');
+            %save (clusterFile, 'clusterImage');
             imwrite (clusterImage, [saveDirectory filesep 'body' filesep clusterFile '.tif']);
          end
 
          % Do some processing on the segmented image first
          if exist ('segmentedImage', 'var')
-            save (segmentFile, 'segmentedImage');
+            %save (segmentFile, 'segmentedImage');
             procSegmImage = zeros (size (segmentedImage));
             procSegmImage (find (segmentedImage == 2)) = 0.5; procSegmImage (find (segmentedImage == 3)) = 1;
             imwrite (procSegmImage, [saveDirectory filesep 'body' filesep segmentFile '.tif']);
@@ -360,6 +363,24 @@ else		% lastImaNum > firstImaNum
    
    end   % for imageCount
 end % if ~(lastImaNum > firstImaNum)
+
+% Go to the save directory
+cd (saveDirectory);
+
+% Save M matrix (tracks)
+if exist ('M', 'var')
+   save('M.mat', 'M');
+end
+
+% Save cell properties
+if exist ('cellProps', 'var')
+   save ('cellProps.mat', 'cellProps');
+end
+
+% Save cluster properties
+if exist ('clusterProps', 'var')
+   save ('clusterProps.mat', 'clusterProps');
+end
 
 % Tell the user we've finished
 fprintf (1, 'Finished analysis of job number %d.\n', jobNumber);

@@ -1,24 +1,23 @@
-function changeframe
-% changeframe finds the rigth image and coordinates. These it shows in the
+function ptShowSlidingFrames
+% ptShowSlidingFrames finds the rigth image and coordinates. These it shows in the
 % figure opened by ptManualPostProcessJob
 %
-% SYNOPSIS       changeframe
+% SYNOPSIS       ptShowSlidingFrames
 %
-% INPUT          none (it gets values from the slider created in
-%                      ptManualPostProcessJob)
+% INPUT          none (it gets values from the slider created in ptManualPostProcessJob)
 %
-% OUTPUT         none
+% OUTPUT         none (it updates the handles object directly)
 %
-% DEPENDENCIES   changeframe uses {nothing}
+% DEPENDENCIES   ptShowSlidingFrames uses {nothing}
 %                                  
-%                changeframe is used by { ptManualPostProcessJob (as a callback) }
+%                ptShowSlidingFrames is used by { ptManualPostProcessJob }
 %
 % Revision History
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source
-
+% Andre Kerstens        May 04          Renamed to ptShowSlidingFrames.m
 
 
 % this is the callback of the slider, created in manualpostpro

@@ -1,23 +1,21 @@
-function MPM = ptTrackFilter (MPM, plusframes, minusframes, maxdistpostpro, minimaltrack, saveallpath)
+function MPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxRelinkDist, minTrackLength, savePath)
 % ptTrackFilter filters and relinks the tracks given in MPM
 %
-% SYNOPSIS       MPM = ptTrackFilter(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,saveallpath)
+% SYNOPSIS       MPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxRelinkDist, minTrackLength, savePath)
 %
 % INPUT          MPM        : Magic Position Matrix 
 %                               MPM = [ y  x  y  x  y  x ... ]
 %                                        t1    t2    t3
-%                plusframes : how many frames after the currently analysed
-%                             track stops must a candidate for linkage survive
-% 		  		 minusframes : how many frames (at most!) before the currently analysed
-%                              track stops can a candidate for linkage be
-%                              present
-% 				 maxdistpostpro : max distance for relinking
-% 				 minimaltrack : minimal length of tracks (ales they get
-% 			                	erased
-% 				 saveallpath : where shall the new MPM be saved
+%                plusFrames : how many frames after the currently analysed
+%                             track stops must a candidate for gap closing survive
+% 		  		 minusFrames : how many frames (at most!) before the currently analysed
+%                              track stops can a candidate for gap closing be present
+% 				 maxRelinkDist : max distance for relinking
+% 				 minTrackLength : minimal length of tracks (or else they get erased)
+% 				 savePath : where shall the new MPM be saved
 %
 %
-% OUTPUT         altered MPM          
+% OUTPUT         MPM : the modified MPM matrix
 %
 % DEPENDENCIES   ptTrackFilter  uses {nothing}
 %                                  
@@ -28,163 +26,185 @@ function MPM = ptTrackFilter (MPM, plusframes, minusframes, maxdistpostpro, mini
 % Write a message to the screen
 fprintf (1, 'Automatically filtering and relinking tracks using provided values...\n');
 
-% % % 
-% % % if get(handles.GUI_app_autopostpro_cb,'Value')==1
-% % %    set(handles.GUI_app_autopostpro_cb,'Value',0);
-% % % end
-% % %     
+% If there are totally empty rows in MPM, erase them
+% First find all unique rows unequal to zero
+[notZeroEntryRows, notZeroEntryCols] = find (MPM);
+notZeroEntryRows = unique (notZeroEntryRows);
 
-%if there are totally empty rows, erase them
-[firsts,cols]= find(MPM);
-firsts=unique(firsts);
-MPM=MPM(firsts,:);
+% Get these entries from MPM and throw away the rest
+MPM = MPM (notZeroEntryRows,:);
 
-
-
-
-
-%The goal of this little routine is to relink tracks
-%first we find (for every cell) the frame in which it appears and the frame
-%in which it disappears
-for i=1:size(MPM,1)
-        onecell=MPM(i,:);
-        index=find(onecell);
-        appear(i)=min(index);
-        disappear(i)=max(index);
+% First we find (for every cell/track) the frame in which it appears and the frame
+% in which it disappears
+for iCount = 1 : size (MPM,1)
+    
+   % Fetch one row of track coordinates from MPM
+   track = MPM (iCount,:);
+   
+   % Find out where in this track coordinates can be found
+   rowIndex = find (track);
+   
+   % Retrieve the start frame
+   trackStart (iCount) = min (rowIndex);
+   
+   % Retrieve the ending frame
+   trackEnd (iCount) = max (rowIndex);
 end
 
-counter=0;
-%loop over the number of cells. Note: the older the cell is, the lower 
-%it's row index. So we always try to add information of cells with higher
-%row index (newer cells) to ones with lower row index (older cells) and 
-%then erase the newer cell. 
-%in this way we reduce the likelyhood of asigning a new number to a cell
-%already found 
-while counter < (size(MPM,1)-0.3)
+% Initialize track counter
+trackCount = 0;
+
+% Loop over the number of tracks. Note: the older the track is, the lower 
+% it's row index. So we always try to link tracks with higher
+% row index (newer tracks) to ones with lower row index (older tracks) and 
+% subsequently erase the newer track. In this way the likelyhood of assigning 
+% a new number to a track already found is reduced
+while trackCount < (size (MPM,1) - 0.3)
+    
+   % Start out with no links made 
+   linked = 0;
+    
+   % Increase track counter
+   trackCount = trackCount + 1;
+    
+   % Look for tracks which begin only a few frames before our current
+   % track stops and try to link 
+   neighbours = find ( (trackEnd (trackCount) - trackStart (trackCount + 1:end)) < minusFrames & ...
+                      (trackEnd (trackCount) - trackStart (trackCount + 1:end)) > 0 & ...
+                      (trackEnd (trackCount) - trackEnd (trackCount + 1:end)) < plusFrames & ...
+                      (trackStart (trackCount + 1:end)) > 1.1 & ...
+                      (trackEnd (trackCount) + 1.9) < size (MPM,2) );
+    
+   % In case we find any neighbours tracks that are in the specified range do:
+   if ~isempty (neighbours)
        
-    linked = 0;
-    
-    counter=counter+1;
-    
-    
-    %we look for tracks which begin only a few frames before our current
-    %track stops and try to link 
-    near= find(  (disappear(counter)-appear(counter+1:end)) < minusframes ...
-               & (disappear(counter)-appear(counter+1:end)) > 0 ...
-               & (disappear(counter)-disappear(counter+1:end)) < plusframes ...
-               &  appear(counter+1:end) > 1.1 ...
-               & (disappear(counter)+1.9) < size(MPM,2)  );
-    
-    if ~isempty (near)
-    
-           [distance,chuck] = min( sqrt( ( MPM(counter , disappear(counter)-1) - MPM(near(:)+counter , disappear(counter)+1) ).^2 ... 
-                                           + ( MPM(counter , disappear(counter)) - MPM(near(:)+counter , disappear(counter)+2) ).^2  ) );
+      % Calculate the distance to all of these neighbours
+      distance = sqrt((MPM (trackCount , trackEnd (trackCount)-1) - ...
+                       MPM (neighbours(:) + trackCount , trackEnd(trackCount) + 1) ).^2 + ...
+                      (MPM (trackCount , trackEnd (trackCount)) - ...
+                       MPM (neighbours(:) + trackCount , trackEnd(trackCount) + 2) ).^2);
          
-            if distance < maxdistpostpro
+      % Take the smallest of these distances                        
+      [minDist, minDistIndex] = min (distance);                        
+      
+      % If this distance is smaller than the specified max dist on the GUI
+      if minDist < maxRelinkDist
                 
-                %add the found track to the current track
-                MPM(counter , (disappear(counter)+1):end) = MPM(near(chuck)+counter , (disappear(counter)+1):end);
+         % Add the found track to the current track
+         MPM (trackCount, (trackEnd (trackCount) + 1):end) = MPM (neighbours (minDistIndex) + trackCount, ...
+                                                                 (trackEnd (trackCount) + 1):end);
                 
-                %erase the redundant track
-                MPM(near(chuck)+counter , :) = 0;
+         % Erase the redundant track
+         MPM(neighbours(minDistIndex)+trackCount , :) = 0;
                 
-                %make sure the current track gets processed again, with the new stop location. Maybe we can find a new link there 
-                disappear(counter) = disappear(near(chuck)+counter);
+         % Make sure the current track gets processed again, with the new stop location. 
+         % Maybe we can link it to yet another track 
+         trackEnd(trackCount) = trackEnd(neighbours(minDistIndex)+trackCount);
                 
-                %erase begin and stop location of our allocated track (now
-                %part of the current track and no longer an individual
-                %track)
-                disappear(near(chuck)+counter) = 0;
-                appear(near(chuck)+counter) = 0;
+         % Erase begin and stop location of our allocated track (now
+         % part of the current track and no longer an individual track)
+         trackEnd(neighbours(minDistIndex)+trackCount) = 0;
+         trackStart(neighbours(minDistIndex)+trackCount) = 0;
                 
-                counter = counter - 1;
-                
-                linked = 1;
-                
-            end
+         % Since we erased a track, decrease the track counter
+         trackCount = trackCount - 1;
+              
+         % We linked two tracks together
+         linked = 1; 
+      end 
+   end
     
-    end
-    
-    distance=[];
-    chuck=[];
-    
-    %we look for tracks which begin two frames after our current
-    %track stops and try to link
-    if ~linked
-          gaps = find(  (disappear(counter)+3.9) < size(MPM,1) ...
-                      & ((disappear(counter)-appear(counter+1:end)) == -2) );
+   % If we still couldn't link any of the neighbours
+   if ~linked
+       
+      % Look for tracks which begin two frames after our current
+      % track stops and try to link 
+      gaps = find( (trackEnd (trackCount) + 3.9) < size(MPM,1) & ...
+                  ((trackEnd (trackCount) - trackStart (trackCount + 1:end)) == -2) );
                     
-          if ~isempty (gaps)
-    
-                [distance,chuck] = min( sqrt( ( MPM(counter , disappear(counter)-1) - MPM(gaps(:)+counter , disappear(counter)+3) ).^2 ... 
-                                           + ( MPM(counter , disappear(counter)) - MPM(gaps(:)+counter , disappear(counter)+4) ).^2  ) );
-                
-                if distance < maxdistpostpro
+      % If we do find any of these do:
+      if ~isempty (gaps)
+          
+         % Calculate the distance to these tracks
+         distance = sqrt((MPM (trackCount , trackEnd (trackCount)-1) - ...
+                          MPM (gaps(:) + trackCount , trackEnd(trackCount) + 3) ).^2 + ...
+                         (MPM (trackCount , trackEnd (trackCount)) - ...
+                          MPM (gaps(:) + trackCount , trackEnd(trackCount) + 4) ).^2);
+                      
+          % Take the smallest of these distances          
+         [minDist, minDistIndex] = min (distance);
+         
+         % If this distance is smaller than the specified max dist on the GUI       
+         if minDist < maxRelinkDist
                         
-                        %add the found track to the current track
-                        MPM(counter , (disappear(counter)+3):end) = MPM(gaps(chuck)+counter , (disappear(counter)+3):end);
+            % Add the found track to the current track
+            MPM (trackCount, (trackEnd (trackCount) + 3):end) = MPM (gaps (minDistIndex) + trackCount, ...
+                                                                    (trackEnd (trackCount) + 3):end);
+                      
+            % Fill in the gap
+            MPM (trackCount, trackEnd (trackCount) + 1) = MPM (trackCount, trackEnd (trackCount) - 1) + ...
+                                                          round ((MPM (trackCount, trackEnd (trackCount) + 3) - ...
+                                                          MPM (trackCount, trackEnd (trackCount) - 1)) / 2);
+            MPM (trackCount, trackEnd (trackCount) + 2) = MPM(trackCount , trackEnd(trackCount)) +...
+                                                          round ((MPM (trackCount, trackEnd (trackCount) + 4) - ...
+                                                          MPM (trackCount, trackEnd (trackCount))) / 2);
+            % Erase the redundant track
+            MPM (gaps (minDistIndex) + trackCount, :) = 0;
                         
-                        %fill in the gap
-                        MPM(counter , disappear(counter)+1)=   MPM(counter , disappear(counter)-1) +...
-                                                                    round( (MPM(counter , disappear(counter)+3) - MPM(counter , disappear(counter)-1))/2 );
-                        MPM(counter , disappear(counter)+2)=   MPM(counter , disappear(counter)) +...
-                                                                    round( (MPM(counter , disappear(counter)+4) - MPM(counter , disappear(counter)))/2 );
-                        %erase the redundant track
-                        MPM(gaps(chuck)+counter , :) = 0;
+            % Make sure the current track gets processed again, with the new stop location. 
+            % Maybe we can link it to yet another track
+            trackEnd (trackCount) = trackEnd (gaps (minDistIndex) + trackCount);
                         
-                        %make sure the current track gets processed again, with the new stop location. Maybe we can finf a new link there 
-                        disappear(counter) = disappear(gaps(chuck)+counter);
+            % Erase begin and end locations of our allocated track (now
+            % part of the current track and no longer an individual track)
+            trackEnd (gaps (minDistIndex) + trackCount) = 0;
+            trackStart (gaps (minDistIndex) + trackCount) = 0;
                         
-                        %erase begin and stop location of our allocated track (now
-                        %part of the current track and no longer an individual
-                        %track)
-                        disappear(gaps(chuck)+counter) = 0;
-                        appear(gaps(chuck)+counter) = 0;
-                        
-                        counter = counter - 1;
-                end  
-                        
-          end
-        
-     end
-        
-end
+            % Since we erased a track, decrease the track counter
+            trackCount = trackCount - 1;
+            
+         end   % if minDist < maxRelinkDist              
+      end   % if ~isempty (gaps)     
+   end   % if ~linked 
+end   % while trackCount
 
+% Just in case there are totally empty rows in MPM again, erase them
+% First find all unique rows unequal to zero
+[notZeroEntryRows, notZeroEntryCols] = find (MPM);
+notZeroEntryRows = unique (notZeroEntryRows);
 
-clear chuck;
+% Get these entries from MPM and throw away the rest
+MPM = MPM (notZeroEntryRows,:);
 
-%again erase all tracks with no entries at all
-clear firsts;
-[firsts,cols]= find(MPM);
-firsts=unique(firsts);
-MPM=MPM(firsts,:);
+% Next clear out tracks that are shorter than the min amount of frames
+% specified on the GUI
+[rows, cols] = find (MPM);
 
+sortedTracks = sort (rows);
+[uniqueEntries, uniqueIdx] = unique (sortedTracks);
 
-% here we chuck out cells that didn't stay longer than mintrack frames
-[rows,cols]=find(MPM);
+% uniqueIdx returns the last occurence of the respective unique entry
+% having sorted rows before, we can now count the number of occurences
 
-sorrows = sort(rows);
-[uniqueEntries, uniqueIdx] = unique(sorrows);
-%uniqueIdx returns the last occurence of the respective unique entry
-%having sorted rows before, we can now count the number of occurences\
-
-if size(uniqueEntries,1) > size(uniqueEntries,2);
-        uniqueIdx = [0;uniqueIdx];
+if size (uniqueEntries,1) > size (uniqueEntries,2);
+   uniqueIdx = [0;uniqueIdx];
 else
-        uniqueIdx = [0,uniqueIdx];
+   uniqueIdx = [0,uniqueIdx];
 end 
 
-numberOfOccurences = diff(uniqueIdx); 
-chuck = uniqueEntries(find(numberOfOccurences < minimaltrack*2-1));
-MPM(chuck,:) = [];
+% Get the number of tracks
+numberOfOccurences = diff (uniqueIdx); 
 
-%set(handles.GUI_app_autopostpro_cb,'Value',1);
+% Since MPM has x and y coordinates for every entry we should test against
+% (minTrackLength * 2 - 1)
+minDistIndex = uniqueEntries (find (numberOfOccurences < minTrackLength*2-1));
 
+% Clear these short tracks out of MPM
+MPM(minDistIndex,:) = [];
 
+% Store the modified MPM matrix in the data* directory
+cd (savePath);
+save ('MPM.mat', 'MPM');
 
-
-cd(saveallpath);
-save('MPM', 'MPM');
-
-% Tell the user that we've finished
+% Tell the user that we've finished relinking
 fprintf (1, 'Filtering and relinking finished!\n');

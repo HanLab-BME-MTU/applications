@@ -1,22 +1,23 @@
-function cellselect
-% cellselect saves a cell within handles as a selected cell for future use
+function ptMarkCell
+% ptMarkCell saves a cell within handles as a selected cell for future use
 %
-% SYNOPSIS       cellselect
+% SYNOPSIS       ptMarkCell
 %
 % INPUT          none (gets data from the current object, which is the object 
-%                      with the callback cellselect (text made by changeframe))
+%                      with the callback ptMarkCell (text made by ptShowSlidingFrames))
 %
 % OUTPUT         none (writes which cell has been selected into handles)
 %
-% DEPENDENCIES   cellselect uses { nothing }
+% DEPENDENCIES   ptMarkCell uses { nothing }
 %                                  
-%                cellselect is used by { changeframe (as a callback) }
+%                ptMarkCell is used by { ptShowSlidingFrames (as a callback) }
 %
 % Revision History
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source
+% Andre Kerstens        May 04          Renamed to ptMarkCell.m
 
 % Get the current handles structure by finding hObject
 hObject = findall (0, 'Tag', 'GUI_pp_jobbrowse_pb');

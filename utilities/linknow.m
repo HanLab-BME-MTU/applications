@@ -5,7 +5,7 @@ function linknow
 % SYNOPSIS       linknow
 %
 % INPUT          none (gets data from the current object, which is the object with 
-%                      the callback manrelink (text made by changeframe))
+%                      the callback manrelink (text made by ptShowSlidingFrames))
 %
 % OUTPUT         none
 %

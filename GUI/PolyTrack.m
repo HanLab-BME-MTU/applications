@@ -49,14 +49,12 @@ handles.output = hObject;
 
 % Create a default job structure that defines all the fields used in the program
 defaultjob = struct('imagedirectory', [], 'imagename', [], 'firstimage', 1, 'lastimage', [],...
-                   'increment', 1, 'savedirectory', [], 'fi_background', [], 'fi_nucleus', [],...
-                   'la_background', [], 'la_nucleus', [], 'maxsearch', 81, 'mmpixel', [], 'mmpixel_index', 1,...
-                   'minsize',300, 'maxsize', 2500, 'minsdist', 30, 'fi_halolevel', [], 'la_halolevel', [],...
+                   'increment', 1, 'savedirectory', [], 'maxsearch', 81, 'mmpixel', [], 'mmpixel_index', 1,...
+                   'minsize',200, 'maxsize', 4000, 'minsdist', 25, 'fi_halolevel', [], 'la_halolevel', [],...
                    'minedge', 10, 'sizetemplate', 41, 'boxsize', 141, 'noiseparameter', 0.15,...
-                   'mincorrqualtempl', 0.50, 'leveladjust', 0.7, 'timestepslide', 5, 'mintrackcorrqual', 0.5,...
+                   'mincorrqualtempl', 0.3, 'leveladjust', 0.7, 'timestepslide', 5, 'mintrackcorrqual', 0.5,...
                    'coordinatespicone', [], 'intensityMax', 4095, 'bitdepth', 12, 'bitdepth_index', 3, 'bodyname', [],...
-                   'imagenameslist', [], 'timeperframe', [], 'clustering', 1, 'minmaxthresh', 0, 'emclustering', 0, ...
-                   'timestepslide_index', 2);
+                   'imagenameslist', [], 'timeperframe', [], 'timestepslide_index', 2);
 
 % Assign the default job values to the GUI handle so it can be passed around
 handles.defaultjob = defaultjob;
@@ -554,321 +552,6 @@ end
 
 %-------------------------------------------------------------------------------
 
-% --- Executes on button press in GUI_st_iq_set_pb.
-function GUI_st_iq_set_pb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_st_iq_set_pb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get the currently selected job
-handles = guidata(hObject);
-
-% Get the list of jobs
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% Get the job number
-jobNumber = get(handles.GUI_st_job_lb,'Value');
-
-% If the joblist has entries get the number of entries else return,
-% because there is really nothing to do
-if iscell (jobList)
-   nrOfJobs = length (jobList); 
-else
-   h=errordlg ('At least one job should be loaded first, before thresholds can be determined.');
-   uiwait (h);
-   return
-end 
-
-% Determine the different thresholds of the images interactively
-[backLevelFirst, backLevelLast, nucLevelFirst, nucLevelLast, haloLevelFirst, haloLevelLast] = ptGetThresholds (handles.jobs(jobNumber), jobNumber);
-
-handles.jobs(jobNumber).fi_background = backLevelFirst;
-handles.jobs(jobNumber).la_background = backLevelLast;
-handles.jobs(jobNumber).fi_nucleus = nucLevelFirst;
-handles.jobs(jobNumber).la_nucleus = nucLevelLast;
-handles.jobs(jobNumber).fi_halolevel = haloLevelFirst;
-handles.jobs(jobNumber).la_halolevel = haloLevelLast;
-
-% Fill all the threshold input fields with the newly found values
-ptFillFields(handles,handles.jobs(jobNumber))
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
-
-%-------------------------------------------------------------------------------
-
-% --- Executes during object creation, after setting all properties.
-function GUI_st_iq_fi_background_ed_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GUI_st_iq_fi_background_ed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc
-    set(hObject,'BackgroundColor','white');
-else
-    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
-end
-
-%-------------------------------------------------------------------------------
-
-function GUI_st_iq_fi_background_ed_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_st_iq_fi_background_ed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of GUI_st_iq_fi_background_ed as text
-%        str2double(get(hObject,'String')) returns contents of GUI_st_iq_fi_background_ed as a double
-handles = guidata(hObject);
-
-% Get the list of jobs
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% If the joblist has entries get the number of entries else return,
-% because there is really nothing to do
-if ~iscell(jobList)
-   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-   uiwait(h);
-   return
-end 
-
-% Select the current job
-jobNumber = get(handles.GUI_st_job_lb,'Value');
-
-% Get number from the gui, convert it to a number and assign it to the handle;
-% If it is not an number, throw and error dialog and revert to the old number
-strval = get(hObject,'String');
-val = str2double(strval);
-if isnan (val)
-    h = errordlg('Sorry, this field has to contain a number.');
-    uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(jobNumber).fi_background = [];
-    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
-    return
-else
-    handles.jobs(jobNumber).fi_background = val;
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
-
-%-------------------------------------------------------------------------------
-
-% --- Executes during object creation, after setting all properties.
-function GUI_st_iq_fi_nucleus_ed_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GUI_st_iq_fi_nucleus_ed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc
-    set(hObject,'BackgroundColor','white');
-else
-    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
-end
-
-%-------------------------------------------------------------------------------
-
-function GUI_st_iq_fi_nucleus_ed_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_st_iq_fi_nucleus_ed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of GUI_st_iq_fi_nucleus_ed as text
-%        str2double(get(hObject,'String')) returns contents of GUI_st_iq_fi_nucleus_ed as a double
-handles = guidata(hObject);
-
-% Get the list of jobs
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% If the joblist has entries get the number of entries else return,
-% because there is really nothing to do
-if ~iscell(jobList)
-   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-   uiwait(h);
-   return
-end 
-
-% Select the current job
-jobNumber = get(handles.GUI_st_job_lb,'Value');
-
-% Get number from the gui, convert it to a number and assign it to the handle;
-% If it is not an number, throw and error dialog and revert to the old number
-strval = get(hObject,'String');
-val = str2double(strval);
-if isnan (val)
-    h = errordlg('Sorry, this field has to contain a number.');
-    uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(jobNumber).fi_nucleus = [];
-    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
-    return
-else
-    handles.jobs(jobNumber).fi_nucleus = val;
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
-
-%-------------------------------------------------------------------------------
-
-% --- Executes during object creation, after setting all properties.
-function GUI_st_iq_la_background_ed_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GUI_st_iq_la_background_ed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc
-    set(hObject,'BackgroundColor','white');
-else
-    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
-end
-
-%-------------------------------------------------------------------------------
-
-function GUI_st_iq_la_background_ed_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_st_iq_la_background_ed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of GUI_st_iq_la_background_ed as text
-%        str2double(get(hObject,'String')) returns contents of GUI_st_iq_la_background_ed as a double
-handles = guidata(hObject);
-
-% Get the list of jobs
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% If the joblist has entries get the number of entries else return,
-% because there is really nothing to do
-if ~iscell(jobList)
-   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-   uiwait(h);
-   return
-end 
-
-% Select the current job
-jobNumber = get(handles.GUI_st_job_lb,'Value');
-
-% Get number from the gui, convert it to a number and assign it to the handle;
-% If it is not an number, throw and error dialog and revert to the old number
-strval = get(hObject,'String');
-val = str2double(strval);
-if isnan (val)
-    h = errordlg('Sorry, this field has to contain a number.');
-    uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(jobNumber).la_background = [];
-    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
-    return
-else
-    handles.jobs(jobNumber).la_background = val;
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
-
-%-------------------------------------------------------------------------------
-
-% --- Executes during object creation, after setting all properties.
-function GUI_st_iq_la_nucleus_ed_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GUI_st_iq_la_nucleus_ed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc
-    set(hObject,'BackgroundColor','white');
-else
-    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
-end
-
-%-------------------------------------------------------------------------------
-
-function GUI_st_iq_la_nucleus_ed_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_st_iq_la_nucleus_ed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of GUI_st_iq_la_nucleus_ed as text
-%        str2double(get(hObject,'String')) returns contents of GUI_st_iq_la_nucleus_ed as a double
-handles = guidata(hObject);
-
-% Get the list of jobs
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% If the joblist has entries get the number of entries else return,
-% because there is really nothing to do
-if ~iscell(jobList)
-   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-   uiwait(h);
-   return
-end 
-
-% Select the current job
-jobNumber = get(handles.GUI_st_job_lb,'Value');
-
-% Get number from the gui, convert it to a number and assign it to the handle;
-% If it is not an number, throw and error dialog and revert to the old number
-strval = get(hObject,'String');
-val = str2double(strval);
-if isnan (val)
-    h = errordlg('Sorry, this field has to contain a number.');
-    uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(jobNumber).la_nucleus = [];
-    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
-    return
-else
-    handles.jobs(jobNumber).la_nucleus = val;
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
-
-%-------------------------------------------------------------------------------
-
 % --- Executes during object creation, after setting all properties.
 function GUI_st_bp_maxsearch_ed_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to GUI_st_bp_maxsearch_ed (see GCBO)
@@ -1273,7 +956,7 @@ if ~iscell(jobList)
    return
 end 
 
-SetCellValues(hObject,1);
+ptSetCellValues (hObject,1);
  
 %-------------------------------------------------------------------------------
 
@@ -1295,7 +978,7 @@ if ~iscell(jobList)
    return
 end 
 
-SetCellValues(hObject,2);
+ptSetCellValues (hObject,2);
 
 %-------------------------------------------------------------------------------
 
@@ -1317,7 +1000,7 @@ if ~iscell(jobList)
    return
 end 
 
-SetCellValues(hObject,3);
+ptSetCellValues (hObject,3);
 
 %-------------------------------------------------------------------------------
 
@@ -1658,73 +1341,6 @@ end
 
 % Update handles structure
 guidata(hObject, handles);
-
-%-------------------------------------------------------------------------------
-
-% --- Executes during object creation, after setting all properties.
-function GUI_st_eo_leveladjust_pm_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GUI_st_eo_leveladjust_pm (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc
-    set(hObject,'BackgroundColor','white');
-else
-    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
-end
-
-%-------------------------------------------------------------------------------
-
-% --- Executes on selection change in GUI_st_eo_leveladjust_pm.
-function GUI_st_eo_leveladjust_pm_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_st_eo_leveladjust_pm (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns GUI_st_eo_leveladjust_pm contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from GUI_st_eo_leveladjust_pm
-handles = guidata(hObject);
-
-% Get the list of jobs
-jobList = get(handles.GUI_st_job_lb,'String');
-
-% If the joblist has entries get the number of entries else return,
-% because there is really nothing to do
-if ~iscell(jobList)
-   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-   uiwait(h);
-   return
-end 
-
-% Select the current job
-jobNumber = get(handles.GUI_st_job_lb,'Value');
-
-% Get number from the gui, convert it to a number and assign it to the handle;
-% If it is not an number, throw and error dialog and revert to the old number
-strval = get(hObject,'String');
-val = str2double(strval);
-if isnan (val)
-    h = errordlg('Sorry, this field has to contain a number.');
-    uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(jobNumber).leveladjust = [];
-    ptFillFields(handles, handles.jobs(jobNumber))  % Revert the value back
-    return
-else
-    handles.jobs(jobNumber).leveladjust = val;
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
 
 %-------------------------------------------------------------------------------
 

@@ -23,35 +23,49 @@ imageNameList = handles.jobvalues.imagenameslist;
 % How many frames does the user wants to see the tracks of?
 dragTailLength = handles.postpro.dragtail;
 
-% Starting frame relativ to first frame analysed with polytrack
-startFrame = round ((handles.postpro.moviefirstimg - handles.jobvalues.firstimage) / ...
-             handles.jobvalues.increment) + 1;
+% What is the name of the movie
+dragTailFileName = handles.postpro.dragtailfile;
+
+% Starting frame for the movie
+startFrame = handles.postpro.moviefirstimg;
 
 % We need prior images for the dragTail movie
 if startFrame < dragTailLength + 2
     startFrame = dragTailLength + 2;
 end
 
-
-% Last frame relativ to first frame analysed with polytrack
-lastFrame = floor ((handles.postpro.movielastimg - handles.jobvalues.firstimage) / ...
-            handles.jobvalues.increment + 0.00001) + 1;
+% Last frame for the movie
+lastFrame = handles.postpro.movielastimg;
 
 % Make sure it doesn't go out of range
 if lastFrame > handles.jobvalues.lastimage
-    lastFrame = handles.jobvalues.lastimage;
-end
+   lastFrame = handles.jobvalues.lastimage;
+elseif lastFrame < startFrame
+   h = errordlg('First frame, last frame and dragtail length are not compatible! Please change these.');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+end;
 
 % Get image and save directory and go to save dir
-imagedirectory = handles.jobvalues.imagedirectory;
-saveallpath = handles.postpro.saveallpath;
-cd (saveallpath);
+imageDirectory = handles.jobvalues.imagedirectory;
+savePath = handles.postpro.saveallpath;
+cd (savePath);
 
 % Initialize the movie
-makeQTMovie ('start','trackmov.mov');
+makeQTMovie ('start', dragTailFileName);
+
+% Initialize counter
+frameCounter = startFrame - 1;
+
+% Let the user know we are starting
+fprintf (1, 'ptMovieMaker: starting to generate movie frames %d to %d...\n', startFrame, lastFrame);
 
 % Start doing the actual work to create the movie
 for movieStep = startFrame : lastFrame
+    
+   % counter
+   frameCounter = frameCounter + 1;
+   fprintf (1, 'ptMovieMaker: Creating movie frame # %d ...\n', frameCounter); 
     
    % Use only the cells chosen by the user
    if ~isempty (handles.selectedcells)
@@ -68,7 +82,7 @@ for movieStep = startFrame : lastFrame
      
    selectedCells = find (selectedCells(:,1) & selectedCells(:,2)); 
    
-   cd (imagedirectory);
+   cd (imageDirectory);
 
    name = char (imageNameList (movieStep)); 
    nowImgH = imreadnd2 (name, 0, handles.jobvalues.intensityMax);
@@ -86,38 +100,44 @@ for movieStep = startFrame : lastFrame
    hold on;
    % One colour per time step (dragTailLength tells you how many
    % timesteps there are
-   cmap = jet (dragTailLength + 1);
+   colorMap = jet (dragTailLength + 1);
 
-   counter=0;
+   % Initialize the dragtail counter
+   colorCount = 0;
         
-   % Loop through the previous pictures (for the tails)
-   for i = (2 * (movieStep - dragTailLength)) : 2 : (2 * movieStep)
-      counter = counter + 1;
-      vec = handles.MPM (selectedCells, i-3:i);
-      [rows,cols] = find (vec==0);
+   % Loop through the previous pictures to generate the dragtails
+   for iCount = (2 * (movieStep - dragTailLength)) : 2 : (2 * movieStep)
+      colorCount = colorCount + 1;
+      vec = handles.MPM (selectedCells, iCount-3 : iCount);
+      [rows, cols] = find (vec == 0);
       rows = unique (rows);
-      vec(rows,:) = 0;
+      vec (rows,:) = 0;
 
-      for h = 1 : size(vec,1)
-         if vec(h,1) ~= 0
-	    ph = [];
-	    ph = plot (vec (h, 1:2:3), vec (h, 2:2:4));
-	    set (ph, 'Color', cmap (counter,:));
-	    clear ph;
-         end
-      end
-   end
+      for hCount = 1 : size (vec,1)
+         if vec (hCount,1) ~= 0
+	        ph = [];
+	        ph = plot (vec (hCount, 1:2:3), vec (hCount, 2:2:4));
+	        set (ph, 'Color', colorMap (colorCount,:));
+	        clear ph;
+         end   % if vec
+      end   % for hCount
+   end   % for iCount
         
    % Plot the points that actually belong to the current picture
    plot (vec (:,3), vec (:,4), 'r.');
    hold off;
 
-   cd (saveallpath);
+   cd (savePath);
   
    % Add the current figure to the movie
    makeQTMovie ('addaxes', gca);
+   
+   % Close the figure
    close;
-end
+end   % for movieStep
 
 % finalize the movie and write it to disk
 makeQTMovie ('finish');
+
+% Let the user know we have finished
+fprintf (1, 'ptMovieMaker: finished generating movie.\n');

@@ -48,8 +48,8 @@ function GUI_postprocess_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % Create a default postprocessing structure that defines all the fields used in the program
-defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5,...
-                        'dragtail', 6, 'figureSize', []);
+defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, ...
+                        'dragtail', 6, 'dragtailfile', 'trackmovie.mov', 'figureSize', []);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -157,9 +157,20 @@ elseif strcmp (filename, 'jobvalues.mat')
    % Load the M.mat file which should be present
    if exist ('M.mat', 'file')
       load ('M.mat');
-      % Call up the track link function to generate the MPM matrix
-      MPM = ptTrackLinker(M);
-      handles.MPM = MPM;
+
+      % Call up the track linker function to generate the MPM matrix
+      MPM = ptTrackLinker (M);
+      
+      % If there are totally empty rows in MPM, erase them
+      % First find all unique rows unequal to zero
+      [notZeroEntryRows, notZeroEntryCols] = find (MPM);
+      notZeroEntryRows = unique (notZeroEntryRows);
+      
+      % Get these entries from MPM and keep them
+      cleanedMPM = MPM (notZeroEntryRows,:);
+
+      % Assign the loaded and cleaned up MPM to the handles struct
+      handles.MPM = cleanedMPM;
    else
       h = errordlg('The file M.mat does not exist. Please make sure it is present as well...');
       uiwait(h);          % Wait until the user presses the OK button
@@ -177,16 +188,26 @@ else
    return;
 end
 
-% Load the cell properties file if it exists (it should!)
+% Load the cell properties file if it exists
 if exist ('cellProps.mat','file')
    load('cellProps.mat');
    if exist('cellProps','var')
-      handles.cellProps = cellProps;
-   else
-      handles.cellProps = cellprops;
+      handles.postpro.cellProps = cellProps;
    end
 else
-   h = errordlg('The file cellProps.mat does not exist. Please make sure it is present as well...');
+   h = errordlg('The file cells.mat does not exist. Please make sure it is present...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+end
+
+% Load the cluster properties file if it exists
+if exist ('clusterProps.mat','file')
+   load('clusterProps.mat');
+   if exist('clusterProps','var')
+      handles.postpro.clusterProps = clusterProps;
+   end
+else
+   h = errordlg('The file clusters.mat does not exist. Please make sure it is present...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
 end
@@ -205,8 +226,8 @@ while 1
    newDirectoryName = ['data', num2str(counter)];
  
    % If it doesn't exist yet, create it in the results directory
-   if ~exist(newDirectoryName, 'dir')
-      mkdir(jobValPath, newDirectoryName);
+   if ~exist (newDirectoryName, 'dir')
+      mkdir (jobValPath, newDirectoryName);
         
       % Save it in the handles struct and tell the loop we're done
       handles.postpro.saveallpath = [jobValPath, newDirectoryName];
@@ -220,26 +241,30 @@ end
 % our previously found data and parameters
 handles.selectedcells = [];
 handles.postpro.imagepath = handles.jobvalues.imagedirectory;
+handles.postpro.increment = handles.jobvalues.increment;
 handles.postpro.maxdistpostpro = handles.jobvalues.maxsearch;
-handles.postpro.analfirstimg = handles.jobvalues.firstimage;
-handles.postpro.anallastimg = handles.jobvalues.lastimage;
+handles.postpro.plotfirstimg = handles.jobvalues.firstimage;
+handles.postpro.plotlastimg = handles.jobvalues.lastimage;
 handles.postpro.selectedcells = [];
 handles.postpro.moviefirstimg = handles.jobvalues.firstimage;
 handles.postpro.movielastimg = handles.jobvalues.lastimage;
+handles.postpro.jobpath = jobValPath;
+handles.postpro.imagename = handles.jobvalues.imagename;
 
 % Update fields on the GUI with the latest values
-set(handles.GUI_pp_jobpath_ed, 'String', jobValPath);
-set(handles.GUI_pp_imagepath_ed, 'String', handles.postpro.imagepath);
-set(handles.GUI_fm_saveallpath_ed, 'String', handles.postpro.saveallpath);
-set(handles.GUI_ad_firstimage_ed, 'String', handles.postpro.analfirstimg);
-set(handles.GUI_ad_lastimage_ed, 'String', handles.postpro.anallastimg);
-set(handles.GUI_fm_movieimgone_ed, 'String', handles.postpro.analfirstimg);
-set(handles.GUI_fm_movieimgend_ed, 'String', handles.postpro.anallastimg);
-set(handles.GUI_app_relinkdist_ed, 'String', handles.postpro.maxdistpostpro);
-set(handles.GUI_app_minusframes_ed, 'String', handles.postpro.minusframes);
-set(handles.GUI_app_plusframes_ed, 'String', handles.postpro.plusframes);
-set(handles.GUI_app_minimaltrack_ed, 'String', handles.postpro.minimaltrack);
-set(handles.GUI_fm_tracksince_ed, 'String', handles.postpro.dragtail);
+set (handles.GUI_pp_jobpath_ed, 'String', jobValPath);
+set (handles.GUI_pp_imagepath_ed, 'String', handles.postpro.imagepath);
+set (handles.GUI_fm_saveallpath_ed, 'String', handles.postpro.saveallpath);
+set (handles.GUI_ad_firstimage_ed, 'String', handles.postpro.plotfirstimg);
+set (handles.GUI_ad_lastimage_ed, 'String', handles.postpro.plotlastimg);
+set (handles.GUI_fm_movieimgone_ed, 'String', handles.postpro.moviefirstimg);
+set (handles.GUI_fm_movieimgend_ed, 'String', handles.postpro.movielastimg);
+set (handles.GUI_app_relinkdist_ed, 'String', handles.postpro.maxdistpostpro);
+set (handles.GUI_app_minusframes_ed, 'String', handles.postpro.minusframes);
+set (handles.GUI_app_plusframes_ed, 'String', handles.postpro.plusframes);
+set (handles.GUI_app_minimaltrack_ed, 'String', handles.postpro.minimaltrack);
+set (handles.GUI_fm_tracksince_ed, 'String', handles.postpro.dragtail);
+set (handles.GUI_fm_filename_ed, 'String', handles.postpro.dragtailfile);
 
 % And update the gui handles struct
 guidata(hObject, handles);
@@ -355,20 +380,19 @@ function GUI_app_minusframes_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_app_minusframes_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_app_minusframes_ed as a double
-
 handles = guidata(hObject);
 
+% Get the string value of 'frames before gap' from the GUI
+num = get (hObject, 'String');
 
-numb=get(hObject,'String');
-
-
-handles.postpro.minusframes= str2num(numb);
-
+% Convert this value to a number
+handles.postpro.minusframes = str2num (num);
 
 % Update handles structure
-guidata(hObject, handles);
+guidata (hObject, handles);
 
-set(handles.GUI_app_minusframes_ed,'String',handles.postpro.minusframes);
+% Update the field on the GUI
+set (handles.GUI_app_minusframes_ed, 'String', handles.postpro.minusframes);
 
 %----------------------------------------------------------------------------
 
@@ -395,20 +419,19 @@ function GUI_app_plusframes_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_app_plusframes_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_app_plusframes_ed as a double
+handles = guidata (hObject);
 
-handles = guidata(hObject);
+% Get the string value of 'frames after gap' from the GUI
+num = get (hObject, 'String');
 
-
-numb=get(hObject,'String');
-
-
-handles.postpro.plusframes= str2num(numb);
-
+% Convert this value to a number
+handles.postpro.plusframes = str2num (num);
 
 % Update handles structure
-guidata(hObject, handles);
+guidata (hObject, handles);
 
-set(handles.GUI_app_plusframes_ed,'String',handles.postpro.plusframes);
+% Update the field on the GUI
+set (handles.GUI_app_plusframes_ed, 'String', handles.postpro.plusframes);
 
 %----------------------------------------------------------------------------
 
@@ -435,21 +458,19 @@ function GUI_app_relinkdist_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_app_relinkdist_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_app_relinkdist_ed as a double
+handles = guidata (hObject);
 
+% Get the string value of 'maximum track distance' from the GUI
+num = get (hObject, 'String');
 
-handles = guidata(hObject);
-
-
-numb=get(hObject,'String');
-
-
-handles.postpro.maxdistpostpro= str2num(numb);
-
+% Convert this value to a number
+handles.postpro.maxdistpostpro = str2num (num);
 
 % Update handles structure
-guidata(hObject, handles);
+guidata (hObject, handles);
 
-set(handles.GUI_app_relinkdist_ed,'String',handles.postpro.maxdistpostpro);
+% Update the field on the GUI
+set (handles.GUI_app_relinkdist_ed, 'String', handles.postpro.maxdistpostpro);
 
 %----------------------------------------------------------------------------
 
@@ -476,21 +497,19 @@ function GUI_app_minimaltrack_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_app_minimaltrack_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_app_minimaltrack_ed as a double
+handles = guidata (hObject);
 
+% Get the string value of 'minimum track distance' from the GUI
+num = get(hObject,'String');
 
-handles = guidata(hObject);
-
-
-numb=get(hObject,'String');
-
-
-handles.postpro.minimaltrack= str2num(numb);
-
+% Convert this value to a number
+handles.postpro.minimaltrack = str2num (num);
 
 % Update handles structure
-guidata(hObject, handles);
+guidata (hObject, handles);
 
-set(handles.GUI_app_minimaltrack_ed,'String',handles.postpro.minimaltrack);
+% Update the field on the GUI
+set (handles.GUI_app_minimaltrack_ed, 'String', handles.postpro.minimaltrack);
 
 %----------------------------------------------------------------------------
 
@@ -502,22 +521,22 @@ function GUI_app_autopostpro_pb_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Get all the latest values from the GUI
-saveallpath = handles.postpro.saveallpath;
-minimaltrack = handles.postpro.minimaltrack;
-maxdistpostpro = handles.postpro.maxdistpostpro ;
-minusframes = handles.postpro.minusframes;
-plusframes = handles.postpro.plusframes;
+saveAllPath = handles.postpro.saveallpath;
+minTrackDistance = handles.postpro.minimaltrack;
+maxDistance = handles.postpro.maxdistpostpro;
+minusFrames = handles.postpro.minusframes;
+plusFrames = handles.postpro.plusframes;
 MPM = handles.MPM;
 
 % Get the latest MPM matrix and filter it using the values on the GUI (eg eliminating
-% tracks that are too short for example)
-updatedMPM = ptTrackFilter (MPM, plusframes, minusframes, maxdistpostpro, minimaltrack, saveallpath);
+% tracks that are too short)
+updatedMPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxDistance, minTrackDistance, saveAllPath);
 
 % Update the handles structure with the filtered MPM matrix
 handles.MPM = updatedMPM;
 
-% Update the GUI
-guidata(hObject, handles);
+% Update the handles structure
+guidata (hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -561,16 +580,6 @@ function GUI_ad_areas_rb_Callback(hObject, eventdata, handles)
 
 %----------------------------------------------------------------------------
 
-% --- Executes on button press in GUI_ad_undefined3_rb.
-function GUI_ad_undefined3_rb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_ad_undefined3_rb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of GUI_ad_undefined3_rb
-
-%----------------------------------------------------------------------------
-
 % --- Executes on button press in GUI_ad_perimeter_rb.
 function GUI_ad_perimeter_rb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_ad_perimeter_rb (see GCBO)
@@ -578,26 +587,6 @@ function GUI_ad_perimeter_rb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_perimeter_rb
-
-%----------------------------------------------------------------------------
-
-% --- Executes on button press in GUI_ad_undefined1_rb.
-function GUI_ad_undefined1_rb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_ad_undefined1_rb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of GUI_ad_undefined1_rb
-
-%----------------------------------------------------------------------------
-
-% --- Executes on button press in GUI_ad_undefined2_rb.
-function GUI_ad_undefined2_rb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_ad_undefined2_rb (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of GUI_ad_undefined2_rb
 
 %----------------------------------------------------------------------------
 
@@ -616,7 +605,8 @@ handles.whichcallback = 2;
 % Update handles structure
 guidata(hObject, handles);
 
-% Do the manual postprocessing
+% Call the function to select cells
+% AK: have to check whether this still works!
 ptManualPostProcessJob (hObject)
 
 %----------------------------------------------------------------------------
@@ -660,7 +650,7 @@ handles = guidata(hObject);
 num = get (hObject,'String');
 
 % Assign it to the postpro structure
-handles.postpro.firstlastimg = str2num (num);
+handles.postpro.plotfirstimg = str2num (num);
 
 % Update handles structure
 guidata (hObject, handles);
@@ -696,7 +686,7 @@ handles = guidata (hObject);
 num = get (hObject,'String');
 
 % Assign it to the postpro structure
-handles.postpro.anallastimg = str2num (num);
+handles.postpro.plotlastimg = str2num (num);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -710,17 +700,21 @@ function GUI_ad_analyze_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata (hObject);
 
-% Here is where the bulk of the graphing work is done
-ptPlotCellValues (hObject);
+% Assign the radiobutton values to the postpro struct
+handles.postpro.cellareaplot = get (handles.GUI_ad_numberofthings_rb,'Value');
+
+% Here is where the bulk of the graphing work is done; we give it the
+% postpro structure and MPM matrix to work with
+ptPlotCellValues (handles.postpro, handles.MPM);
 
 % Only if the 'speed of cells' radiobutton is selected, the speed graphs have to be done
-if get (handles.GUI_ad_speed_rb, 'Value')
-   ptPlotSpeedValues (hObject);
-end
+%if get (handles.GUI_ad_speed_rb, 'Value')
+%   ptPlotSpeedValues (hObject);
+%end
 
 % This is a function which was done for the cell meeting poster
 % Temporary and has to be replaced by a more structured function
-ptPoster (hObject);
+%ptPoster (hObject);
 
 %----------------------------------------------------------------------------
 
@@ -746,7 +740,16 @@ function GUI_fm_movieimgone_ed_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of GUI_fm_movieimgone_ed as text
-%        str2double(get(hObject,'String')) returns contents of GUI_fm_movieimgone_ed as a double
+handles = guidata (hObject);
+
+% Get the value of 'First Image'
+num = get (hObject, 'String');
+
+% Assign it to the postpro structure
+handles.postpro.moviefirstimg = str2num (num);
+
+% Update handles structure
+guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -773,6 +776,16 @@ function GUI_fm_movieimgend_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_fm_movieimgend_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_movieimgend_ed as a double
+handles = guidata (hObject);
+
+% Get the value of 'Last Image'
+num = get (hObject, 'String');
+
+% Assign it to the postpro structure
+handles.postpro.movielastimg = str2num (num);
+
+% Update handles structure
+guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -1001,4 +1014,41 @@ handles = guidata(hObject);
 
 % Destroy the GUI
 delete(handles.polyTrack_PP_mainwindow);
+
+%--------------------------------------------------------------------------
+
+% --- Executes during object creation, after setting all properties.
+function GUI_fm_filename_ed_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GUI_fm_filename_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+%--------------------------------------------------------------------------
+
+function GUI_fm_filename_ed_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_fm_filename_ed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of GUI_fm_filename_ed as text
+%        str2double(get(hObject,'String')) returns contents of GUI_fm_filename_ed as a double
+handles = guidata (hObject);
+
+% Get the value of 'Tracks from last...'
+filename = get (hObject, 'String');
+
+% Assign it to the postpro structure
+handles.postpro.dragtailfile = filename;
+
+% Update handles structure
+guidata(hObject, handles);
+
 

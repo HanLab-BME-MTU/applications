@@ -1,6 +1,6 @@
 function ptManualPostProcessJob (hObject)
 % ptManualPostProcessJob opens a figure and puts a slider into it; the callback belonging
-% to that slider (changeframe) takes care of showing the correct frame
+% to that slider (ptShowSlidingFrames) takes care of showing the correct frame
 %
 % SYNOPSIS       ptManualPostProcessJob (hObject)
 %
@@ -22,7 +22,7 @@ function ptManualPostProcessJob (hObject)
 % A routine that, together with it's subprograms, allows the user to
 % manually postprocess the results of the main analysis. 
 % This programm only opens a figure and puts a slider into it. 
-% The sliders callback is changeframe, so better look there if you want to
+% The sliders callback is ptShowSlidingFrames, so better look there if you want to
 % know more.
 
 % if the slider (and less important, the little windos with the number of
@@ -80,14 +80,14 @@ imageCounterHandle = uicontrol ('Style', 'text',...
 set (imageCounterHandle, 'String', num2str(firstImage));
 
 % Draw the slider in the figure; it is identified by the tag pictureslide and calls
-% the function changeframe when moved
+% the function ptShowSlidingFrames when moved
 sliderHandle = uicontrol ('Style', 'slider', ...
                           'Units', 'normalized', ... 
                           'Value', 1/(imageRange), ...
                           'Min', 1/(imageRange), ...
                           'Max', 1, ...
                           'SliderStep', slider_step, ...
-                          'Callback', 'changeframe', ...
+                          'Callback', 'ptShowSlidingFrames', ...
                           'Tag', 'pictureslide', ...
                           'Position', [0.02,0.02,0.05,0.9]);
 

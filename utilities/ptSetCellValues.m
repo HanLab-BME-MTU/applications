@@ -1,7 +1,7 @@
-function SetCellValues (hObject,objectChoice)
-% SetCellValues let's the user specify values of images
+function ptSetCellValues (hObject,objectChoice)
+% ptSetCellValues let's the user specify values of images
 %
-% SYNOPSIS       SetCellValues (hObject,objectChoice)
+% SYNOPSIS       ptSetCellValues (hObject,objectChoice)
 %
 % INPUT          hObject : handle to an object of GUI (PolyTrack)
 %                objectChoice : what kind of value interestes the user 
@@ -11,20 +11,20 @@ function SetCellValues (hObject,objectChoice)
 %
 % OUTPUT         none (results get written directly into handles)
 %
-% DEPENDENCIES   SetCellValues uses { nothing }
+% DEPENDENCIES   ptSetCellValues uses { nothing }
 %                                  
-%                SetCellValues is used by { PolyTrack }
+%                ptSetCellValues is used by { PolyTrack }
 %
-% REMARK         SetCellValues fetches directly in GUI PolyTrack:
-% 					jobNumber : current job
-%                   handles : structure with information used within GUI
-% 			      from  handles.jobs (jobNumber):
-% 					imagedirectory : where are the images 
-% 					imagename : what are the images called
-% 					imagenameslist : list of images within imagedirectory with imagename
-% 					firstimage : which images shall we start with (refers to imagenameslist)
-% 					lastimage : which images shall be the last one (refers to imagenameslist)
-% 					intensityMax : highest value image can have (calc from bitdepth)
+% REMARK         ptSetCellValues fetches directly in GUI PolyTrack:
+% 		 jobNumber : current job
+%                handles : structure with information used within GUI
+% 		   from  handles.jobs (jobNumber):
+% 		      imagedirectory : where are the images 
+% 		      imagename : what are the images called
+% 		      imagenameslist : list of images within imagedirectory with imagename
+% 		      firstimage : which images shall we start with (refers to imagenameslist)
+% 		      lastimage : which images shall be the last one (refers to imagenameslist)
+% 		      intensityMax : highest value image can have (calc from bitdepth)
 % 					
 %
 % Revision History
@@ -32,6 +32,7 @@ function SetCellValues (hObject,objectChoice)
 % --------------------- --------        --------------------------------------------------------
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source
+% Andre Kerstens        May 04          Renamed to ptSetCellValues.m
 
 % Get the handles structure from the GUI and determine current job number
 handles = guidata (hObject);

@@ -1,7 +1,7 @@
 function [haloCoord, extraNucCoord, imgHalo]= ptFindHalos (inputImage, haloMinSize, haloMaxSize)
-% ptFindHalos detects light areas and tries to fit calls into them
+% ptFindHalos detects light areas and tries to fit cells into them
 %
-% SYNOPSIS       [haloCoord,imgHalo] = ptFindHalos (inputImage, haloMinSize, haloMaxSize)
+% SYNOPSIS       [haloCoord, extraNucCoord, imgHalo] = ptFindHalos (inputImage, haloMinSize, haloMaxSize)
 %
 % INPUT          inputImage    : either original image or segmented image 
 %                haloMinSize : minimal size for halo
@@ -38,6 +38,7 @@ imgHaloLabeled = bwlabel (imgHalo);
 haloProperties = regionprops (imgHaloLabeled, 'Area', 'PixelList');
 
 % Find really small and big regions and temporarily store this info
+% Since the sizes are based on nuclei sizes, we'll make sure that the max size is a big bigger
 haloArea = [haloProperties.Area];
 haloMinMaxArea = find ((haloArea < haloMinSize) | (haloArea > haloMaxSize*2));
 tempProperties = haloProperties (haloMinMaxArea);
@@ -69,6 +70,12 @@ haloSmallEcc = find ((haloEccentricity < 0.5) & (haloEccentricity ~= 0) & ...
                      (haloMajorAxisLength < haloDiameter));
 tempProperties = haloProperties (haloSmallEcc);
 extraNucCoord = round (cat (1, tempProperties(:).Centroid));
+
+% To get some more info from the halos, we try to fit bouding boxes in them and 
+% see whether the area is small/big enough to be a cell.
+% First skeletonize the image to find all the halo lines
+haloImgThinned = bwmorph (imgHalo, 'skel', Inf);
+%figure,imshow (haloImgThinned,[]);
 
 % Really big areas also are likely to be nuclei, so let's find these now
 % First some morphological operations 
