@@ -722,6 +722,7 @@ set(handles.editFrameTN,'String',num2str(nAvg));
 % %  ASSIGN SPECKLES TO CLASSES
 % %
 % %     (and related callbacks)
+% %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -743,7 +744,7 @@ end
 
 % Check that the speckleArray is not in the old format
 if ~(length(speckleArray)==1 & length(speckleArray(1).timepoint)>1)
-    disp('This speckleArray structure is in the old format. Use ''Convert speckleArray'' in fsmPostProc to update it and then retry.');
+    disp('This speckleArray structure is in the old format. Use ''Convert speckleArray'' in fsmCenter to update it and then retry.');
     return
 end
 
@@ -796,9 +797,6 @@ switch choice,
     case 'No', return;
 end
 
-% DeleteFcn
-function fsmPostProc_DeleteFcn(hObject, eventdata, handles)
-% Do nothing
 
 % Menu
 function menuHelp_Callback(hObject, eventdata, handles)
