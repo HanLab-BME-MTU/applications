@@ -45,7 +45,7 @@ cd(imagedirectory)
 name=[bodyfilename indxStr ext]; 
 
 %get the current picture
-picnew=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
+picnew=imreadnd2(name,0,handles.jobvalues.intensityMax);
 
 hold on;
 imshow(picnew,[]), title(num2str(whichpic))

@@ -1192,24 +1192,36 @@ end
 
 for projNum=1:howmanyjobs
     
-%%%%% save the definite version of jobvalues %%%%
-cd(handles.jobs(projNum).savedirectory)
-jobvalues=handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    try
-	   trackmater(hObject,projNum);
-   catch    
-       disp(['job number ',num2str(projNum),' had an error and could not be completed'])
-       disp(lasterr)
-   end
-       
-       
+
+		possibleImg = handles.jobs(projNum).firstimage;
+		while (possibleImg+Increment) <= handles.jobs(projNum).lastimage
+              possibleImg = possibleImg+Increment;
+		end
+		if handles.jobs(projNum).lastimage > possibleImg
+		     handles.jobs(projNum).lastimage = possibleImg;
+        end
+
+            
+		%%%%% save the definite version of jobvalues %%%%
+		cd(handles.jobs(projNum).savedirectory)
+		jobvalues=handles.jobs(projNum);
+		save ('jobvalues','jobvalues')
+		clear jobvalues
+		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+		try
+           trackmater(hObject,projNum);
+		catch    
+           disp(['job number ',num2str(projNum),' had an error and could not be completed'])
+           disp(lasterr)
+		end
+           
 end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 % --- Executes on button press in pushbutton18.
 function pushbutton18_Callback(hObject, eventdata, handles)
@@ -1226,6 +1238,7 @@ guidata(hObject, handles);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 % --- Executes during object creation, after setting all properties.
 function GUI_st_eo_sizetemplate_ed_CreateFcn(hObject, eventdata, handles)
@@ -1269,6 +1282,7 @@ save ('jobvalues','jobvalues')
 clear jobvalues
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1301,7 +1315,7 @@ numb=get(hObject,'String');
 %select current project
 projNum=get(handles.GUI_st_job_lb,'Value');
 
-handles.jobs(projNum).mintrackcorrqual= str2num(numb);
+handles.jobs(projNum).mintrackcorrqual = str2num(numb);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -1399,8 +1413,10 @@ save ('jobvalues','jobvalues')
 clear jobvalues
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 % --- Executes during object creation, after setting all properties.
 function GUI_st_path_increment_ed_CreateFcn(hObject, eventdata, handles)
@@ -1445,8 +1461,10 @@ save ('jobvalues','jobvalues')
 clear jobvalues
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 % --- Executes on button press in pushbutton22.
 function GUI_st_test_pb_Callback(hObject, eventdata, handles)
@@ -1457,8 +1475,10 @@ testbutton(hObject);
 
 handles = guidata(hObject);
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 % --- Executes during object creation, after setting all properties.
 function GUI_st_iq_fi_halolevel_ed_CreateFcn(hObject, eventdata, handles)
@@ -1489,6 +1509,7 @@ function GUI_st_iq_fi_halolevel_ed_Callback(hObject, eventdata, handles)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 % --- Executes during object creation, after setting all properties.
 function GUI_st_iq_la_halolevel_ed_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to GUI_st_iq_la_halolevel_ed (see GCBO)
@@ -1512,6 +1533,10 @@ function GUI_st_iq_la_halolevel_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_st_iq_la_halolevel_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_la_halolevel_ed as a double
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1548,3 +1573,9 @@ projNum=get(handles.GUI_st_job_lb,'Value');
 handles.jobs(projNum).intensityMax= 2^bitDepth-1;
 handles.jobs(projNum).bitdepth=bitDepth;
 guidata(hObject, handles);
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

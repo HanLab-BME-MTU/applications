@@ -7,7 +7,7 @@ projNum = get(handles.GUI_st_job_lb,'Value');
 imageDirectory=handles.jobs(projNum).imagedirectory;
 imageName=handles.jobs(projNum).imagename;
 firstImageNum=handles.jobs(projNum).firstimage;
-last=handles.jobs(projNum).lastimage;
+LastImaNum=handles.jobs(projNum).lastimage;
 
 
 
@@ -27,7 +27,7 @@ firstImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
 
 [img_h,img_w]=size(firstImg);
 
-indxStr=sprintf(strg,last);
+indxStr=sprintf(strg,LastImaNum);
 name=[main indxStr ext]; 
     
 lastImg=imreadnd2(name,0,handles.jobs(projNum).intensityMax);
@@ -47,6 +47,7 @@ if jobdeterminer==1
         change=1;
     end
 end
+
 if jobdeterminer==2
     figure, imshow(firstImg), title('Make a polygon around the biggest nucloi, by clicking on its rimm, going around clock- or anticlockwise,then press ENTER') ;
      BW =roipoly;
