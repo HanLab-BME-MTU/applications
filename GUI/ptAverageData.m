@@ -22,7 +22,7 @@ function varargout = ptAverageData(varargin)
 
 % Edit the above text to modify the response to help ptAverageData
 
-% Last Modified by GUIDE v2.5 09-Jul-2004 18:07:55
+% Last Modified by GUIDE v2.5 12-Jul-2004 15:53:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -142,6 +142,9 @@ function GUI_st_add_result_pb_Callback(hObject, eventdata, handles)
 % Make sure the handles struct can be used in this function
 handles = guidata(hObject);
 
+% Assign the radiobutton value to the handles struct
+alwaysReadCsvFile = get (handles.GUI_always_read_csv_cb, 'Value');
+
 % Select an image filename or a file called 'jobvalues.mat' from a user selected directory
 [filename, directory] = uigetfile ({'*.csv', 'CSV-Files'; '*.*', 'all files'}, ...
                                       'Please select a CSV file with Polytrack Results');
@@ -173,26 +176,30 @@ else
       fileList = cellstr (filePath); 
    else   % The list already had some files in it
        
-      % Read the csv file
-      csvFile = csvread (filePath);
+      % Skip dimensions and x-axis test when user requests this
+      if ~alwaysReadCsvFile
+         % Read the csv file
+         csvFile = csvread (filePath);
        
-      % Make sure the new csv file has the same dimensions as the one
-      % read before
-      csvFilePrev = csvread (fileList{end});
+         % Read the previous csv file
+         csvFilePrev = csvread (fileList{end});
       
-      if size (csvFile,1) ~= size (csvFilePrev,1) | size (csvFile,2) ~= size (csvFilePrev,2)
-         errormsg = ['File ' filename ' has another dimension as the files already loaded. Please choose another file.']
-         h = errordlg (errormsg);
-         uiwait (h);
-         return
-      end
+         % Make sure the new csv file has the same dimensions as the one read before
+         if size (csvFile,1) ~= size (csvFilePrev,1) | size (csvFile,2) ~= size (csvFilePrev,2)
+            errormsg = ['File ' filename ' has another dimension as the files already loaded. Please choose another file.']
+            h = errordlg (errormsg);
+            uiwait (h);
+            return
+         end
+      
          
-      % Also make sure their X-axis are the same
-      if csvFile(1,:) ~= csvFilePrev(1,:)
-         errormsg = ['File ' filename ' has a different X-axis structure as the files loaded before. Please choose another file.']
-         h = errordlg (errormsg);
-         uiwait (h);
-         return
+         % Also make sure their X-axis are the same (unless the user requests not to)
+         if csvFile(1,:) ~= csvFilePrev(1,:)
+            errormsg = ['File ' filename ' has a different X-axis structure as the files loaded before. Please choose another file.']
+            h = errordlg (errormsg);
+            uiwait (h);
+            return
+         end
       end
       
       % Add the filename to the list
@@ -260,6 +267,9 @@ function GUI_st_average_results_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
+% Assign the radiobutton value to the handles struct
+alwaysReadCsvFile = get (handles.GUI_always_read_csv_cb, 'Value');
+
 % Retrieve the directory and filename where to save the result
 saveDirectory = handles.savedirectory;
 [pathString, filename, ext, version] = fileparts (saveDirectory);
@@ -289,26 +299,57 @@ if ~iscell(fileList)
 end
 
 % Prepare storage for the values to be averaged
-%valuesToAverage = zeros (length(fileList), size (csvread(fileList{1}),2));
+% valuesToAverage = zeros (length(fileList), size (csvread(fileList{1}),2)+1);
+clear valuesToAverage;
+
+% Set the mouse pointer to busy
+set(gcf,'Pointer','watch');
 
 % Read all the csv files and store in matrix
 for iCount = 1 : length (fileList)
    csvFile = csvread (fileList{iCount});
-   valuesToAverage(iCount,:) = csvFile(2,:);
+   
+   % In case csv files where selected without limit checking, we have to work
+   % with the shortest one and set the other ones to NaN at the end of the
+   % vector
+   if alwaysReadCsvFile
+      % Find the shortest vector (the -1 after 'size' is necessary for the
+      % rank we added to valuesToAverage)
+      if iCount > 1
+         if size(csvFile,2) > (size(valuesToAverage(iCount-1,:),2)-1)
+            % Shorten the current one
+            overshoot = size(csvFile,2) - (size(valuesToAverage(iCount-1,:),2)-1);
+            csvFile (end-overshoot:end) = NaN;
+            valuesToAverage(:, end+1:(size(csvFile,2)+1)) = NaN;
+         else
+            % Shorten the ones already stored
+            overshoot = (size(valuesToAverage(iCount-1,:),2)-1) - size(csvFile,2);
+            csvFile (:,end+1:(size(valuesToAverage(iCount-1,:),2)-1)) = NaN;
+            valuesToAverage(:, end-(overshoot-1):end) = NaN;
+         end
+      end
+   end
+   
+   % Add the csv row to the total
+   valuesToAverage(iCount,:) = [iCount csvFile(2,:)];
 end
 
 % Get the X-axis values from the last csv file read (any csv file is okay
 % since these are always the  same)
-xAxisValues = csvFile(1,:);
+xAxisValues = [NaN csvFile(1,:)];
 
 % Average the values
 averageValues = sum (valuesToAverage) / size (valuesToAverage,1);
+averageValues(1) = NaN;   % First one shoulden't be averaged since it is only a sequence number
 
 % Put it all back together
-averageForCsv = [xAxisValues ; averageValues];
+averageForCsv = [xAxisValues ; valuesToAverage ; averageValues];
 
 % Write the csv file to the specified save file
 csvwrite (saveDirectory, averageForCsv);
+
+% Set the mouse pointer to normal again
+set(gcf,'Pointer','arrow');
 
 % Tell the user that we have finished
 message = ['The average files have been written into ' saveDirectory];
@@ -397,4 +438,51 @@ handles = guidata(hObject);
 % Destroy the GUI
 delete(handles.ptAverageData_mainwindow);
 
-%-------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+
+% --- Executes on button press in GUI_always_read_csv_cb.
+function GUI_always_read_csv_cb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_always_read_csv_cb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hint: get(hObject,'Value') returns toggle state of GUI_always_read_csv_cb
+
+% Nothing to be done here
+
+%--------------------------------------------------------------------------
+
+% --- Executes on button press in GUI_browse_savepath_pb.
+function GUI_browse_savepath_pb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_browse_savepath_pb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Make sure the handles struct can be used in this function
+handles = guidata(hObject);
+
+% Get the directory path and name
+saveDirectory = handles.savedirectory;
+
+% Get the directory part of the string
+[pathString, filename, ext, version] = fileparts (saveDirectory);
+
+% Select a directory where the average csv file will be saved
+directory = uigetdir (pathString, 'Select Directory');
+
+% Do nothing in case the user doesn't select anything
+if directory == 0
+   return
+else
+   % this will be the new save directory
+   newDirectory = [directory filesep filename ext];
+   
+   % Update the edit field
+   set (handles.GUI_savepath_ed, 'String', newDirectory);
+
+   % Select the current job and store the directory name in the struct
+   handles.savedirectory =  newDirectory;
+end
+
+% Update GUI handles struct
+guidata (hObject,handles);
+

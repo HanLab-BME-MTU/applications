@@ -151,8 +151,12 @@ if ~strcmp(filename, 'jobvalues.mat') & ~strcmp(filename, 'MPM.mat')
    return
 end
 
+% Determine image file path from jobvalues path
+cd (jobValPath); cd ('..');
+imageFilePath = pwd;
+
 % Change directory to the selected path
-cd (jobValPath)
+cd (jobValPath);
 
 % Load MPM.mat file if selected from the gui and if it exists
 if strcmp (filename, 'MPM.mat')
@@ -256,7 +260,7 @@ while 1
 end
 
 % Store the size of the image
-cd (handles.jobvalues.imagedirectory);
+cd (imageFilePath);
 tempImage = imreadnd2 (handles.jobvalues.imagename, 0, handles.jobvalues.intensityMax);
 [rows, cols] = size (tempImage);
 handles.postpro.rowsize = rows;
@@ -265,7 +269,7 @@ handles.postpro.colsize = cols;
 % Now we have to fill up the rest of the postpro structure with
 % our previously found data and parameters
 handles.selectedcells = [];
-handles.postpro.imagepath = handles.jobvalues.imagedirectory;
+handles.postpro.imagepath = imageFilePath;
 handles.postpro.increment = handles.jobvalues.increment;
 handles.postpro.firstimg = handles.jobvalues.firstimage;
 handles.postpro.lastimg = handles.jobvalues.lastimage;
