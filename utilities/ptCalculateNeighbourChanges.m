@@ -54,8 +54,13 @@ pixelLength = jobData(1).mmpixel;
 % Initialize the avg neighbour change vector
 allAvgNbChange = zeros (1, numberOfFrames);
 
-% Initialize MPM counter (start with 0 if plotStartFrame=startFrame)
-MPMCount = ceil ((plotStartFrame - startFrame) / increment);
+% Initialize properties counter depending on radiobutton value
+alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
+if ~alwaysCountFrom1
+   MPMCount = ceil ((plotStartFrame - 1) / increment);
+else
+   MPMCount = ceil ((plotStartFrame - 1) / increment);
+end
 
 % Initialize X-axis vector
 xAxis = zeros (1, numberOfFrames-1);

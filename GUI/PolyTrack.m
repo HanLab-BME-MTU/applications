@@ -20,6 +20,7 @@ function varargout = PolyTrack(varargin)
 % Andre Kerstens        Jun 04          Changed default mincellsize to 300 (from 250)
 % Andre Kerstens        Jul 04          Image file check is only done if it hasn't be done before.
 % Andre Kerstens        Jul 04          Added frame properties matrix to ptTrackCells
+% Andre Kerstens        Oct 04          Implemented fix for renaming files
 
 % This is matlab stuff we should not touch.
 % Begin initialization code - DO NOT EDIT
@@ -193,23 +194,15 @@ if gotvals == 1
 else
     handles.jobs(jobNumber) = handles.defaultjob;
     handles.jobs(jobNumber).imagedirectory = imagedirectory;
-    handles.jobs(jobNumber).imagename = filename;
+    handles.jobs(jobNumber).imagename = lower(filename);
     
     % Now the image directory is known, let's rename all filenames to
     % lowercase to prevent problems later on (Metamorph sometimes names the
     % files with arbitrary upper and lowercase characters)
     renameImageFilesToLower (imagedirectory);
     	    
-    % Now we have to do the following:
     % Find out what part of the filename describes the images and which part
-    % is just counting them through.
-    % We beginn by starting from the rear end of filename (after cutting off
-    % the extension) and converting the last few elements (starting with
-    % only one and then adding on one each loop) from a string to a number.
-    % As soon as the answer of the conversion is NaN (not a number) we have struck the
-    % first letter. Furthermore we say that max three digits are considered
-    % as numbering.
-    
+    % is just counting them through.    
     number = 0;
     countNum = 0;
     while ~isnan(number) & (countNum <3)
@@ -218,7 +211,7 @@ else
     end
 
     % Extract the body of the filename and store in handles struct
-    handles.jobs(jobNumber).bodyname = filename(1:(end-(4+countNum)));
+    handles.jobs(jobNumber).bodyname = lower(filename(1:(end-(4+countNum))));
     bodyname = handles.jobs(jobNumber).bodyname;
      
     % Select the current project
@@ -282,16 +275,16 @@ else
            imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
          end
          
-         % Create a file that is used to skip the test next time
-         cd (imagedirectory);
-         filesChecked = 1;
-         save ('filesChecked.mat', 'filesChecked');
-         
       end   % for jRearrange
     
       % Set the mouse pointer to normal again
       set(gcbf,'Pointer','arrow');
-    
+ 
+      % Create a file that is used to skip the test next time
+      cd (imagedirectory);
+      filesChecked = 1;
+      save ('filesChecked.mat', 'filesChecked');   
+   
       fprintf (1, 'All image files of job %d are correct!\n', jobNumber);
       
     else
@@ -2177,13 +2170,8 @@ dirlist=dir(pathDir);
 dirlist=struct2cell(dirlist);
 dirlist=dirlist(1,:);
 
-% Make a temp directory (needed for movefile function)
-tmpDir = 'tmpAhGdjdS';
-if pathDir(end) == filesep
-   mkdir ([pathDir tmpDir]);
-else
-   mkdir ([pathDir filesep tmpDir]);  
-end
+% Make a temp file (needed to rename files to)
+tmpFile = 'tmpAhGdjdS';
 
 % Loop through the tif files and rename if necessary (renaming being moving
 % the file in this case
@@ -2194,17 +2182,9 @@ for i=1:length(dirlist)
      extension = lower(char(dirlist{i}(end-2:end))); 
      if ~strcmp(fileName,newFile) & ...
          (strcmp(extension,'tif') | strcmp(extension,'iff'))
-        movefile([pathDir filesep fileName],[pathDir tmpDir filesep newFile]);
-        if pathDir(end) == filesep
-           delete ([pathDir fileName]);
-        else
-           delete ([pathDir filesep fileName]); 
-        end
-        movefile([pathDir tmpDir filesep newFile],[pathDir filesep newFile]);
+        movefile([pathDir filesep fileName],[pathDir filesep tmpFile]);
+        movefile([pathDir filesep tmpFile],[pathDir filesep newFile]);
      end
   end
 end
-
-% Remove the temp dir
-rmdir ([pathDir tmpDir]);
 

@@ -50,8 +50,13 @@ numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
 pixelLength = jobData(1).mmpixel;
 
-% Initialize properties counter
-propCount = ceil ((plotStartFrame - startFrame) / increment);
+% Initialize properties counter depending on radiobutton value
+alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
+if ~alwaysCountFrom1
+   propCount = ceil ((plotStartFrame - startFrame) / increment);
+else
+   propCount = ceil ((plotStartFrame - 1) / increment);
+end
 
 % Initialize average distance 
 averageDist = zeros(1, numberOfFrames);

@@ -77,8 +77,13 @@ sumClusterArea = zeros(1, numberOfFrames);
 perimeterDivArea = zeros(1, numberOfFrames);
 convexHullData = zeros(3,numberOfFrames);
 
-% Initialize properties counter
-propCount = ceil ((plotStartFrame - startFrame) / increment);
+% Initialize properties counter depending on radiobutton value
+alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
+if ~alwaysCountFrom1
+   propCount = ceil ((plotStartFrame - startFrame) / increment);
+else
+   propCount = ceil ((plotStartFrame - 1) / increment);
+end
 
 % Initialize X-axis vector and counter
 xAxis = zeros (1, numberOfFrames);
@@ -180,7 +185,11 @@ for frameCount = plotStartFrame : increment : plotEndFrame
       tmpConvexHullData{jobCount}(2) = frameProps{jobCount}(1, 2, iCount) * (pixelLength^2);
    
       % Calculate the ratio area / convex-hull-area in percent
-      tmpConvexHullData{jobCount}(3) = (tmpConvexHullData{jobCount}(1) / tmpConvexHullData{jobCount}(2)) * 100;
+      if tmpConvexHullData{jobCount}(2) ~= 0
+         tmpConvexHullData{jobCount}(3) = (tmpConvexHullData{jobCount}(1) / tmpConvexHullData{jobCount}(2)) * 100;
+      else
+         tmpConvexHullData{jobCount}(3) = 0;
+      end
    end
    
    % Cat the results

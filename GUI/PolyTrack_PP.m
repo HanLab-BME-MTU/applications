@@ -691,7 +691,7 @@ end
 % Name used for plots is the current date and time in format YYYYMMDDThhmmss
 plotName = datestr(now,30);
 
-% Get window size for averaging
+% Get window size for running average
 windowSize = handles.guiData.windowsize;
 
 % Assign the radiobutton values to the radioButtons struct
@@ -699,7 +699,8 @@ radioButtons = getRadiobuttonValues (handles);
 
 if (~radioButtons.cellclusterplot & ~radioButtons.areaplot & ...
     ~radioButtons.perimeterplot & ~radioButtons.speedplot & ...
-    ~radioButtons.cellcelldistplot & ~radioButtons.neighbourplot)
+    ~radioButtons.cellcelldistplot & ~radioButtons.neighbourplot & ...
+    ~radioButtons.ripleyplot)
    h = errordlg ('No plots selected. Please select a plot first...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
@@ -802,16 +803,19 @@ else
       save ([savePath filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
    end
    
-%    if radioButtons.ripleyplot            
-%       if radioButtons.ripleyplot_1
-%           
-%           % Run the calculation
-%           [cpar,pvr,dpvr] = ClusterQuantRipley(mpm,imsizex,imsizey);
-%           
-%           % Do the plots
-%           %??????
-%       end
-%    end
+   if radioButtons.ripleyplot            
+      if radioButtons.ripleyplot_1
+          
+          % Run the calculation
+          [chaosStats, xAxis] = ptCalculateChaosStats (handles);
+          
+          % Do the plots
+          ptPlotChaosStats (radioButtons, plotName, savePath, xAxis, chaosStats, windowSize);
+      end
+      
+      % For these figures we want to keep the xAxis as well 
+      save ([savePath filesep plotName '_xAxis-Chaos.mat'],'xAxis');
+   end
    
    % Set the mouse pointer to normal again
    set(gcbf,'Pointer','arrow');
@@ -1986,12 +1990,25 @@ if result > 0
    return;
 end
 
-% Default plot and movie ranges will be made similar to the frame range
-handles.guiData.plotfirstimg = handles.jobData(filesSelected).firstimg;
-handles.guiData.plotlastimg = handles.jobData(filesSelected).lastimg;
-handles.guiData.moviefirstimg = handles.jobData(filesSelected).firstimg;
-handles.guiData.movielastimg = handles.jobData(filesSelected).lastimg;
+% Assign to handles struct
+handles.jobData = jobData;
 
+% Get radioButton values
+alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
+
+% Default plot and movie ranges will be made similar to the frame range
+if ~alwaysCountFrom1
+   handles.guiData.plotfirstimg = jobData(filesSelected).firstimg;
+   handles.guiData.plotlastimg = jobData(filesSelected).lastimg;
+else
+   handles.guiData.plotfirstimg = 1;
+   handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
+end
+
+% Set movie frame start and end
+handles.guiData.moviefirstimg = jobData(filesSelected).firstimg;
+handles.guiData.movielastimg = jobData(filesSelected).lastimg;
+   
 % Set values on the GUI
 ptSetPostproGUIValues (handles, filesSelected);
 
@@ -2075,12 +2092,22 @@ else
    % Get the values from the GUI
    [guiData] = ptRetrieveGUIData (handles);
    
-   % Default plot and movie ranges will be made similar to the frame range
-   guiData.plotfirstimg = jobData(length(fileList)).firstimg;
-   guiData.plotlastimg = jobData(length(fileList)).lastimg;
-   guiData.moviefirstimg = jobData(length(fileList)).firstimg;
-   guiData.movielastimg = jobData(length(fileList)).lastimg;
+   % Get radioButton values
+   alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
 
+   % Default plot ranges will be made similar to the frame range
+   if ~alwaysCountFrom1
+      guiData.plotfirstimg = jobData(end).firstimg;
+      guiData.plotlastimg = jobData(end).lastimg;
+   else
+      guiData.plotfirstimg = 1;
+      guiData.plotlastimg = jobData(end).lastimg - jobData(end).firstimg + 1;
+   end
+   
+   % Set movie frame start and end
+   guiData.moviefirstimg = jobData(end).firstimg;
+   guiData.movielastimg = jobData(end).lastimg;
+   
    % Assign all values to the handles struct
    handles.allMPM = allMPM;
    handles.allCellProps = allCellProps;
@@ -2217,13 +2244,22 @@ else
       % Get the values from the GUI
       [guiData] = ptRetrieveGUIData (handles);
    
-      % Default plot and movie ranges will be made similar to the frame
-      % range of the last job
-      guiData.plotfirstimg = jobData(length(fileList)).firstimg;
-      guiData.plotlastimg = jobData(length(fileList)).lastimg;
-      guiData.moviefirstimg = jobData(length(fileList)).firstimg;
-      guiData.movielastimg = jobData(length(fileList)).lastimg;
+      % Get radioButton values
+      alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
 
+      % Default plot and movie ranges will be made similar to the frame range
+      if ~alwaysCountFrom1
+         handles.guiData.plotfirstimg = jobData(filesSelected).firstimg;
+         handles.guiData.plotlastimg = jobData(filesSelected).lastimg;
+      else
+         handles.guiData.plotfirstimg = 1;
+         handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
+      end
+
+      % Set movie frame start and end
+      handles.guiData.moviefirstimg = jobData(filesSelected).firstimg;
+      handles.guiData.movielastimg = jobData(filesSelected).lastimg;
+      
       % Assign all values to the handles struct
       handles.allMPM = allMPM;
       handles.allCellProps = allCellProps;
@@ -2377,6 +2413,9 @@ end
 % Get the data from the GUI
 [guiData] = ptRetrieveGUIData (handles);
 
+% Get radioButton values
+alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
+
 % Check that the job and gui data fit together over movies
 for jobCount = 1 : length(allMPM)
 
@@ -2385,20 +2424,37 @@ for jobCount = 1 : length(allMPM)
     endFrame = jobData(jobCount).lastimg;
     increment = jobData(jobCount).increment;
     
-    % Make sure the start and end frames fit to the selected plot frames
-    if (guiData.plotfirstimg < startFrame)
-        errorStr = ['The selected plot start frame (' num2str(guiData.plotfirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
-        h = errordlg(errorStr);
-        uiwait(h);          % Wait until the user presses the OK button  
-        return;
+    % Default plot ranges should be tested if not started from 1
+    if ~alwaysCountFrom1
+        % Make sure the start and end frames fit to the selected plot frames
+        if (guiData.plotfirstimg < startFrame)
+            errorStr = ['The selected plot start frame (' num2str(guiData.plotfirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
+            h = errordlg(errorStr);
+            uiwait(h);          % Wait until the user presses the OK button  
+            return;
+        end
+        if (guiData.plotlastimg > endFrame)
+            errorStr = ['The selected plot end frame (' num2str(guiData.plotlastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
+            h = errordlg(errorStr);
+            uiwait(h);          % Wait until the user presses the OK button  
+            return;
+        end
+        
+        % Make sure the start and end frames fit to the selected movie frames
+        if (guiData.moviefirstimg < startFrame)
+            errorStr = ['The selected movie start frame (' num2str(guiData.moviefirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
+            h = errordlg(errorStr);
+            uiwait(h);          % Wait until the user presses the OK button  
+            return;
+        end
+        if (guiData.movielastimg > endFrame)
+            errorStr = ['The selected movie end frame (' num2str(guiData.movielastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
+            h = errordlg(errorStr);
+            uiwait(h);          % Wait until the user presses the OK button  
+            return;
+        end
     end
-    if (guiData.plotlastimg > endFrame)
-        errorStr = ['The selected plot end frame (' num2str(guiData.plotlastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
-        h = errordlg(errorStr);
-        uiwait(h);          % Wait until the user presses the OK button  
-        return;
-    end
-   
+    
     % Make sure increment is consistent over movies
     if jobCount == 1
         prevIncrement = increment;
@@ -2410,20 +2466,6 @@ for jobCount = 1 : length(allMPM)
             return;
         end
     end  % if jobCount == 1
-    
-    % Make sure the start and end frames fit to the selected movie frames
-    if (guiData.moviefirstimg < startFrame)
-        errorStr = ['The selected movie start frame (' num2str(guiData.moviefirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
-        h = errordlg(errorStr);
-        uiwait(h);          % Wait until the user presses the OK button  
-        return;
-    end
-    if (guiData.movielastimg > endFrame)
-        errorStr = ['The selected movie end frame (' num2str(guiData.movielastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
-        h = errordlg(errorStr);
-        uiwait(h);          % Wait until the user presses the OK button  
-        return;
-    end
     
     % Get frame interval and pixel length
     frameInterval = round (jobData(jobCount).timeperframe / 60);    % In minutes
@@ -2584,6 +2626,9 @@ radioButtons.movieincltracks = get (handles.GUI_fm_incltracks_rb,'Value');
 radioButtons.movietypeavi = get (handles.GUI_movietype_avi_rb,'Value');
 radioButtons.movietypeqt = get (handles.GUI_movietype_qt_rb,'Value');
 
+% Get button that shows whether we should start counting from 1
+radioButtons.alwayscount1 = get (handles.GUI_alwayscount1_cb,'Value');
+
 %--------------------------------------------------------------------
 
 % --- Executes on button press in GUI_notshowplots_cb.
@@ -2679,10 +2724,66 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+%--------------------------------------------------------------------
 
 function GUI_chaosstats_cb_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
 
+val = get (hObject,'Value');
+
+if val == 1
+   % Checkbox is selected, so select all children
+   set (handles.GUI_ripley_cb, 'Value', 1);
+else  % val == 0
+   % Checkbox was unselected so unselect all the children
+   set (handles.GUI_ripley_cb, 'Value', 0);
+end
+
+% Update handles structure
+guidata(hObject, handles); 
+
+%--------------------------------------------------------------------
 
 function GUI_ripley_cb_Callback(hObject, eventdata, handles)
+
+%--------------------------------------------------------------------
+
+function GUI_alwayscount1_cb_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
+
+% Get the job list and the current job
+fileList = get(handles.GUI_filelist_lb,'String');
+filesSelected = get(handles.GUI_filelist_lb,'Value');
+
+% GUI values can only be updated for 1 job at the time, so in case we have
+% more, do nothing
+if ischar(fileList) | length(filesSelected) > 1
+    return;
+end
+
+% Retrieve the data for the selected jobs
+[allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, 'all');
+
+% Get radioButton values
+alwaysCountFrom1 = get (hObject,'Value');
+
+% Default plot ranges will be made similar to the frame range
+if ~alwaysCountFrom1
+  handles.guiData.plotfirstimg = jobData(filesSelected).firstimg;
+  handles.guiData.plotlastimg = jobData(filesSelected).lastimg;
+else
+  handles.guiData.plotfirstimg = 1;
+  handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
+end
+
+% Set movie frame start and end
+handles.guiData.moviefirstimg = jobData(filesSelected).firstimg;
+handles.guiData.movielastimg = jobData(filesSelected).lastimg;
+
+% Set values on the GUI
+ptSetPostproGUIValues (handles, filesSelected);
+
+% Update handles structure
+guidata(hObject, handles); 
 
 

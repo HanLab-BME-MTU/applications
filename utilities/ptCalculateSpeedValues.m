@@ -80,6 +80,14 @@ xAxis = zeros (1, maxFrames-multipleFrameVelocity);
 % Initialize MPM counter
 MPMCount = ceil ((plotStartFrame - startFrame) / increment) + 1;
 
+% Initialize properties counter depending on radiobutton value
+alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
+if ~alwaysCountFrom1
+   MPMCount = ceil ((plotStartFrame - 1) / increment) + 1;
+else
+   MPMCount = ceil ((plotStartFrame - 1) / increment) + 1;
+end
+
 % Initialize counter for avg vectors
 iCount = 0;
 
