@@ -42,14 +42,14 @@ frameCounterHandle = findall (0, 'Style', 'text', 'Tag', 'picturecount');
 handles = guidata (hObject);
 
 % Fetch the jobvalues and image directory
-imageDirectory = handles.postpro.imagepath;
-imageName      = handles.jobvalues.imagename;
-firstImage     = handles.jobvalues.firstimage;
-lastImage      = handles.jobvalues.lastimage;
-increment      = handles.jobvalues.increment;
+imageDirectory = handles.jobData(1).imagefilepath;
+imageName      = handles.jobData(1).imagename;
+firstImage     = handles.jobData(1).firstimg;
+lastImage      = handles.jobData(1).lastimg;
+increment      = handles.jobData(1).increment;
 imageRange     = handles.ma;
-imageNameList  = handles.jobvalues.imagenameslist;
-intensityMax   = handles.jobvalues.intensityMax;
+imageNameList  = handles.jobData(1).imagenameslist;
+intensityMax   = handles.jobData(1).intensitymax;
 
 % Get the current value of the slider, so that we know which frame the user wants to process
 sliderValue = get (sliderHandle, 'Value');
@@ -77,14 +77,14 @@ imshow (image, []), title (num2str (imageNumber));
 % the actual number of the cell
 
 % Identify the real cells (at least one coord different from zero)
-realCellIndex = find (handles.MPM(:, 2 * sliderValue - 1) | handles.MPM(:, 2 * sliderValue));
+realCellIndex = find (handles.allMPM{1}(:, 2 * sliderValue - 1) | handles.allMPM{1}(:, 2 * sliderValue));
 
 % Find the row indices from a transposed MPM matrix
-cellsWithNums = zeros (size (handles.MPM, 1), 3);
-cellsWithNums(:,3) = [1:1:size(handles.MPM,1)]';
+cellsWithNums = zeros (size (handles.allMPM{1}, 1), 3);
+cellsWithNums(:,3) = [1:1:size(handles.allMPM{1},1)]';
 
 % Grab all rows in MPM, so that the row indices correspond to the cells
-cellsWithNums(:,1:2) = handles.MPM (:, 2 * sliderValue - 1 : 2 * sliderValue);
+cellsWithNums(:,1:2) = handles.allMPM{1}(:, 2 * sliderValue - 1 : 2 * sliderValue);
 
 % Now take the cells identified as real cells (at least one coord different from zero)
 % and plot those as red dots. The cell number is written as colored text on the current axes.

@@ -109,14 +109,14 @@ imshow (image, []), title (num2str (firstImage));
 % the actual number of the cell
 
 % Identify the real cells (at least one coord different from zero)
-realCellIndex = find (handles.MPM(:, 1) | handles.MPM(:, 2));
+realCellIndex = find (handles.allMPM{1}(:, 1) | handles.allMPM{1}(:, 2));
 
 % Find the row indices from a transposed MPM matrix
-cellsWithNums = zeros (size (handles.MPM, 1), 3);
-cellsWithNums(:,3) = [1:1:size(handles.MPM,1)]';
+cellsWithNums = zeros (size (handles.allMPM{1}, 1), 3);
+cellsWithNums(:,3) = [1:1:size(handles.allMPM{1},1)]';
 
 % Grab all rows in MPM, so that the row indices correspond to the cells
-cellsWithNums(:,1:2) = handles.MPM (:,1:2);
+cellsWithNums(:,1:2) = handles.allMPM{1}(:,1:2);
 
 % Now take the cells identified as real cells (at least one coord different from zero)
 % and plot those as red dots. The cell number is written as colored text on the current axes.

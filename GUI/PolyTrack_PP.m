@@ -2176,13 +2176,15 @@ else
       filesSelected = fileInfoPP.filesSelected;
       savePath = fileInfoPP.savePath;
 
-      % Get the job list and the current job
-      set (handles.GUI_filelist_lb, 'String', fileList);
-      set (handles.GUI_filelist_lb, 'Value', filesSelected);
-      
       % Set the GUI values for the first one
       filePath = fileList{1};
-   
+
+      if ~exist(filePath, 'dir')
+         h=errordlg('These job directories do not exist. Please load another set.');
+         uiwait(h);
+         return;
+      end
+      
       % Get the values from the job
       [allMPM, allCellProps, allClusterProps, allFrameProps, jobData, result] = ptRetrieveJobData (fileList, 'all');
 
@@ -2208,6 +2210,10 @@ else
       handles.jobData = jobData;
       handles.guiData = guiData;
 
+      % Update the GUI with the job list and the current job
+      set (handles.GUI_filelist_lb, 'String', fileList);
+      set (handles.GUI_filelist_lb, 'Value', filesSelected);
+      
       % Set values on the GUI
       ptSetPostproGUIValues (handles, length(fileList));
       
