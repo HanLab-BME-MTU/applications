@@ -128,7 +128,7 @@ else
 end
 
 % Search triangles
-triangles=tSearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
+triangles=tsearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
 
 if showInfo==1
 	% Plot loc min
