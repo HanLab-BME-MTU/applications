@@ -109,139 +109,186 @@ xAxis = zeros (1, numberOfFrames);
 iCount = 0;
 
 % Calculate a number of statistics for every frame
-for frameCount = plotStartFrame : increment : plotEndFrame
+%for frameCount = plotStartFrame : increment : plotEndFrame
+for frameCount = plotStartFrame : increment : plotEndFrame    
    
    % Update the properties counter
    propCount = propCount + 1;
     
-   % Update the x-axis vector and counter
-   iCount = iCount + 1;
-   if ~alwaysCountFrom1
-       xAxis(iCount) = frameCount;
-   else
-       xAxis(iCount) = iCount;
-   end
-    
+   % Initialize average sum counter
+   averageSum = 0;
+   
    for jobCount = 1 : length (cellProps)
-       % Remove the zero rows from cellProps 
-       [notZeroEntryRows, notZeroEntryCols] = find (cellProps{jobCount}(:,:,propCount));
-       notZeroEntryRows = unique (notZeroEntryRows);
-       cells{jobCount} = cellProps{jobCount}(notZeroEntryRows,:,propCount);
+       
+       % Find the index where this frame can be found
+       frameIndx = find(validFrames{jobCount}(1,:) == propCount);
+       
+       if isempty(frameIndx)
+           % Frame was bad and cannot be found in cellProps
+           cells{jobCount} = [];
+           clusters{jobCount} = [];
+       else
+           % Remove the zero rows from cellProps 
+           [notZeroEntryRows, notZeroEntryCols] = find (cellProps{jobCount}(:,:,frameIndx));
+           notZeroEntryRows = unique (notZeroEntryRows);
+           cells{jobCount} = cellProps{jobCount}(notZeroEntryRows,:,frameIndx);
 
-       % Remove the zero rows from clusterProps 
-       [notZeroEntryRows, notZeroEntryCols] = find (clusterProps{jobCount}(:,:,propCount));
-       notZeroEntryRows = unique (notZeroEntryRows);
-       clusters{jobCount} = clusterProps{jobCount}(notZeroEntryRows,:,propCount);
-   end
+           % Remove the zero rows from clusterProps 
+           [notZeroEntryRows, notZeroEntryCols] = find (clusterProps{jobCount}(:,:,frameIndx));
+           notZeroEntryRows = unique (notZeroEntryRows);
+           clusters{jobCount} = clusterProps{jobCount}(notZeroEntryRows,:,frameIndx);
+           
+           % Increase counter used later to calculate average
+           averageSum = averageSum + 1;
+       end  % if isempty(frameIndx)
+   end  % for jobCount = 1 : length (cellProps)
    
-   % Cat all the matrices that we found together
-   allCells = cat(1,cells{:});
-   allClusters = cat(1,clusters{:});
-   
-   % Calculate the amount of all cells per frame
-   cellAmount(iCount) = round(sum(allClusters(:, 2)) / length(cellProps));
+   if averageSum > 0   % Only go on if we have at least 1 good frame in the joblist
 
-   % Calculate the amount of clusters per frame (a cluster should contain at
-   % least 2 nuclei (and therefore we use > 1)
-   clusterAmount(iCount) = round(size(allClusters(find (allClusters(:,2) > 1)), 1) / length(cellProps));
-   
-   % Calculate the average amount of cells per cluster
-   sumCellsInCluster(iCount) = sum (allClusters (find (allClusters(:,2) > 1), 2));
-   if clusterAmount(iCount)
-      cellsPerCluster(iCount) = round (sumCellsInCluster(iCount) / clusterAmount(iCount));
-   else
-      cellsPerCluster(iCount) = 0;
-   end
-   
-   % Calculate the amount of single cells per frame. This is in principle a
-   % cluster with only one nuclei
-   singleCellAmount(iCount) = round(size(allClusters(find (allClusters (:,2) == 1)), 1) / length(cellProps));
-   
-   % Calculate the percentage of single cells
-   percentageSingleCells(iCount) = (singleCellAmount(iCount) / ...
-                                    (singleCellAmount(iCount) + sumCellsInCluster(iCount))) * 100.0;
-                                    
-   % Calculate the percentage of clustered cells
-   percentageClusteredCells(iCount) = 100.0 - percentageSingleCells(iCount);
-   
-   % Calculate the average area per cluster
-   sumClusterArea(iCount) = sum (allClusters (find (allClusters (:,2) > 1), 3));
-   if clusterAmount(iCount) ~= 0
-      areaPerCluster(iCount) = (sumClusterArea(iCount) / clusterAmount(iCount)) * (pixelLength^2);
-   else
-      areaPerCluster(iCount) = 0;
-   end
-   
-   % Calculate the average area per single cell
-   sumSingleCellArea(iCount) = sum (allClusters (find (allClusters (:,2) == 1), 3));
-   if singleCellAmount(iCount) ~= 0
-      areaPerSingleCell(iCount) = (sumSingleCellArea(iCount) / singleCellAmount(iCount)) * (pixelLength^2);
-   else
-      areaPerSingleCell(iCount) = 0;
-   end
-   
-   % Calculate area taken up by single and clustered cells together (in um^2)
-   totalAreaAllCells(iCount) = (sumSingleCellArea(iCount) + sumClusterArea(iCount)) * (pixelLength^2);
-   percentageAreaAllCells(iCount) = (totalAreaAllCells(iCount) / totalAreaFrame) * 100.0;
-   
-   % Calculate average perimeter length
-   sumClusterPerimeter(iCount) = sum (allClusters (find (allClusters (:,2) > 1), 4));
-   if clusterAmount(iCount) ~= 0 
-      perimeterLength(iCount) = sumClusterPerimeter(iCount) / clusterAmount(iCount);
-   else
-      perimeterLength(iCount) = 0;
-   end
-   
-   % Calculate perimeter / area for clusters
-   if sumClusterArea(iCount) ~= 0
-      perimeterDivArea(iCount) = sumClusterPerimeter(iCount) / sumClusterArea(iCount);
-   else
-      perimeterDivArea(iCount) = 0;
-   end
-   
-   % Initialize tmpConvexHullData
-   clear tmpConvexHullData catConvexHullData;
-   
-   for jobCount = 1 : length(frameProps)
-      % Calculate the area and convex-hull-area in um^2
-      tmpConvexHullData{jobCount}(1) = frameProps{jobCount}(1, 1, iCount) * (pixelLength^2);
-      tmpConvexHullData{jobCount}(2) = frameProps{jobCount}(1, 2, iCount) * (pixelLength^2);
-   
-      % Calculate the ratio area / convex-hull-area in percent
-      if tmpConvexHullData{jobCount}(2) ~= 0
-         tmpConvexHullData{jobCount}(3) = (tmpConvexHullData{jobCount}(1) / tmpConvexHullData{jobCount}(2)) * 100;
-      else
-         tmpConvexHullData{jobCount}(3) = 0;
-      end
-   end
-   
-   % Cat the results
-   catConvexHullData = cat(1, tmpConvexHullData{:});
-   
-   % Average data
-   convexHullData(1,iCount) = sum(catConvexHullData(:,1)) / length(frameProps);
-   convexHullData(2,iCount) = sum(catConvexHullData(:,2)) / length(frameProps);
-   convexHullData(3,iCount) = sum(catConvexHullData(:,3)) / length(frameProps);
-end 
+       % Update the x-axis vector and counter
+       iCount = iCount + 1;
+       if ~alwaysCountFrom1
+           xAxis(iCount) = propCount;
+       else
+           xAxis(iCount) = iCount;
+       end
+       
+       % Cat all the matrices that we found together
+       allCells = cat(1,cells{:});
+       allClusters = cat(1,clusters{:});
+
+       % Calculate the amount of all cells per frame
+       %cellAmount(iCount) = round(sum(allClusters(:, 2)) / length(cellProps));
+       cellAmount(iCount) = round(sum(allClusters(:, 2)) / averageSum);
+
+       % Calculate the amount of clusters per frame (a cluster should contain at
+       % least 2 nuclei (and therefore we use > 1)
+       %clusterAmount(iCount) = round(size(allClusters(find (allClusters(:,2) > 1)), 1) / length(cellProps));
+       clusterAmount(iCount) = round(size(allClusters(find (allClusters(:,2) > 1)), 1) / averageSum);
+
+       % Calculate the average amount of cells per cluster
+       sumCellsInCluster(iCount) = sum (allClusters (find (allClusters(:,2) > 1), 2));
+       if clusterAmount(iCount)
+          cellsPerCluster(iCount) = round (sumCellsInCluster(iCount) / clusterAmount(iCount));
+       else
+          cellsPerCluster(iCount) = 0;
+       end
+
+       % Calculate the amount of single cells per frame. This is in principle a
+       % cluster with only one nuclei
+       %singleCellAmount(iCount) = round(size(allClusters(find (allClusters (:,2) == 1)), 1) / length(cellProps));
+       singleCellAmount(iCount) = round(size(allClusters(find (allClusters (:,2) == 1)), 1) / averageSum);
+
+       % Calculate the percentage of single cells
+       percentageSingleCells(iCount) = (singleCellAmount(iCount) / ...
+                                        (singleCellAmount(iCount) + sumCellsInCluster(iCount))) * 100.0;
+
+       % Calculate the percentage of clustered cells
+       percentageClusteredCells(iCount) = 100.0 - percentageSingleCells(iCount);
+
+       % Calculate the average area per cluster
+       sumClusterArea(iCount) = sum (allClusters (find (allClusters (:,2) > 1), 3));
+       if clusterAmount(iCount) ~= 0
+          areaPerCluster(iCount) = (sumClusterArea(iCount) / clusterAmount(iCount)) * (pixelLength^2);
+       else
+          areaPerCluster(iCount) = 0;
+       end
+
+       % Calculate the average area per single cell
+       sumSingleCellArea(iCount) = sum (allClusters (find (allClusters (:,2) == 1), 3));
+       if singleCellAmount(iCount) ~= 0
+          areaPerSingleCell(iCount) = (sumSingleCellArea(iCount) / singleCellAmount(iCount)) * (pixelLength^2);
+       else
+          areaPerSingleCell(iCount) = 0;
+       end
+
+       % Calculate area taken up by single and clustered cells together (in um^2)
+       totalAreaAllCells(iCount) = (sumSingleCellArea(iCount) + sumClusterArea(iCount)) * (pixelLength^2);
+       percentageAreaAllCells(iCount) = (totalAreaAllCells(iCount) / totalAreaFrame) * 100.0;
+
+       % Calculate average perimeter length
+       sumClusterPerimeter(iCount) = sum (allClusters (find (allClusters (:,2) > 1), 4));
+       if clusterAmount(iCount) ~= 0 
+          perimeterLength(iCount) = sumClusterPerimeter(iCount) / clusterAmount(iCount);
+       else
+          perimeterLength(iCount) = 0;
+       end
+
+       % Calculate perimeter / area for clusters
+       if sumClusterArea(iCount) ~= 0
+          perimeterDivArea(iCount) = sumClusterPerimeter(iCount) / sumClusterArea(iCount);
+       else
+          perimeterDivArea(iCount) = 0;
+       end
+
+       % Initialize tmpConvexHullData
+       clear tmpConvexHullData catConvexHullData;
+
+       % Initialize average sum counter
+       averageSum = 0;
+       
+       for jobCount = 1 : length(frameProps)
+           
+          % Find the index where this frame can be found
+          frameIndx = find(validFrames{jobCount}(1,:) == propCount);
+           
+          if isempty(frameIndx)
+             % Frame was bad and cannot be found in cellProps
+             tmpConvexHullData{jobCount} = [];
+          else
+             % Calculate the area and convex-hull-area in um^2
+             tmpConvexHullData{jobCount}(1) = frameProps{jobCount}(1, 1, frameIndx) * (pixelLength^2);
+             tmpConvexHullData{jobCount}(2) = frameProps{jobCount}(1, 2, frameIndx) * (pixelLength^2);
+
+             % Calculate the ratio area / convex-hull-area in percent
+             if tmpConvexHullData{jobCount}(2) ~= 0
+                tmpConvexHullData{jobCount}(3) = (tmpConvexHullData{jobCount}(1) / tmpConvexHullData{jobCount}(2)) * 100;
+             else
+                tmpConvexHullData{jobCount}(3) = 0;
+             end
+             
+             % Increase average sum counter
+             averageSum = averageSum + 1;
+             
+          end  % 
+       end  % for jobCount = 1 : length(frameProps)
+
+       % Cat the results
+       catConvexHullData = cat(1, tmpConvexHullData{:});
+
+       % Average data
+       %convexHullData(1,iCount) = sum(catConvexHullData(:,1)) / length(frameProps);
+       %convexHullData(2,iCount) = sum(catConvexHullData(:,2)) / length(frameProps);
+       %convexHullData(3,iCount) = sum(catConvexHullData(:,3)) / length(frameProps);
+       convexHullData(1,iCount) = sum(catConvexHullData(:,1)) / averageSum;
+       convexHullData(2,iCount) = sum(catConvexHullData(:,2)) / averageSum;
+       convexHullData(3,iCount) = sum(catConvexHullData(:,3)) / averageSum;
+       
+   end  % if averageSum == 0
+end  % for frameCount = plotStartFrame : increment : plotEndFrame 
 
 % Put the convex hull data in a matrix
 %allConvexHullData = cat(1,convexHullData{:});
 
-% Store all calculated values in the cellClusterStats struct
-cellClusterStats.cellAmount = cellAmount;
-cellClusterStats.clusterAmount = clusterAmount;
-cellClusterStats.cellsPerCluster = cellsPerCluster;
-cellClusterStats.singleCellAmount = singleCellAmount;
-cellClusterStats.percentageSingleCells = percentageSingleCells;
-cellClusterStats.percentageClusteredCells = percentageClusteredCells;
+% Store all calculated values in the cellClusterStats struct (leave out the
+% zero entries at the end
+cellClusterStats.cellAmount = cellAmount(1:iCount);
+cellClusterStats.clusterAmount = clusterAmount(1:iCount);
+cellClusterStats.cellsPerCluster = cellsPerCluster(1:iCount);
+cellClusterStats.singleCellAmount = singleCellAmount(1:iCount);
+cellClusterStats.percentageSingleCells = percentageSingleCells(1:iCount);
+cellClusterStats.percentageClusteredCells = percentageClusteredCells(1:iCount);
 
 % Store all calculated values in the areaStats struct
-areaStats.areaPerSingleCell = areaPerSingleCell;
-areaStats.areaPerCluster = areaPerCluster;
-areaStats.totalAreaAllCells = totalAreaAllCells;
-areaStats.percentageAreaAllCells = percentageAreaAllCells;
-areaStats.convexHullData = convexHullData;
+areaStats.areaPerSingleCell = areaPerSingleCell(1:iCount);
+areaStats.areaPerCluster = areaPerCluster(1:iCount);
+areaStats.totalAreaAllCells = totalAreaAllCells(1:iCount);
+areaStats.percentageAreaAllCells = percentageAreaAllCells(1:iCount);
+areaStats.convexHullData = convexHullData(:,1:iCount);
 
 % Store all calculated values in the perimeterStats struct
-perimeterStats.perimeterLength = perimeterLength;
-perimeterStats.perimeterDivArea = perimeterDivArea;
+perimeterStats.perimeterLength = perimeterLength(1:iCount);
+perimeterStats.perimeterDivArea = perimeterDivArea(1:iCount);
+
+% Make sure the x-axis has the correct length
+xAxis = xAxis(1:iCount);

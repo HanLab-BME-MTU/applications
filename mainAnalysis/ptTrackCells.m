@@ -147,21 +147,21 @@ else		% lastImaNum > firstImaNum
       % Get the information on the image
       imageInfo = imfinfo (imageFilename, 'tif');
       
-      % Calculate the amount of time (in secs) between this and the previous frame
-      if loopCount > 1
-         julianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
-         frameTime = abs(julianTime - prevJulianTime);
-         
-         if frameTime >= 1  % 1 sec is the minimum we accept
-            validFrames(2,loopCount) = frameTime;
-         else
-            validFrames(2,loopCount) = timePerFrameGUI;
-         end
-         
-         prevJulianTime = julianTime;
-      else
-         prevJulianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
-      end
+%       % Calculate the amount of time (in secs) between this and the previous frame
+%       if loopCount > 1
+%          julianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
+%          frameTime = abs(julianTime - prevJulianTime);
+%          
+%          if frameTime >= 1  % 1 sec is the minimum we accept
+%             validFrames(2,loopCount) = frameTime;
+%          else
+%             validFrames(2,loopCount) = timePerFrameGUI;
+%          end
+%          
+%          prevJulianTime = julianTime;
+%       else
+%          prevJulianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
+%       end
 
       % Read the current image and normalize the intensity values to [0..1]
       tempImage = imreadnd2 (imageFilename, 0, intensityMax);
@@ -252,6 +252,22 @@ else		% lastImaNum > firstImaNum
           % We just processed a valid frame
           validFrames(1,mCount) = loopCount;
       
+          % Calculate the amount of time (in secs) between this and the previous frame
+          if loopCount > 1
+             julianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
+             frameTime = abs(julianTime - prevJulianTime);
+         
+             if frameTime >= 1  % 1 sec is the minimum we accept
+                validFrames(2,loopCount) = frameTime;
+             else
+                validFrames(2,loopCount) = timePerFrameGUI;
+             end
+         
+             prevJulianTime = julianTime;
+          else
+             prevJulianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
+          end 
+          
           % Find all the cell nuclei coordinates
           [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc);
 
@@ -328,7 +344,8 @@ else		% lastImaNum > firstImaNum
                          % cell: add it to the lost cell list. We might find it again later
                          % so that we can close the gap in the track
                          % The current M entry is different from the current frame nr: recalculate
-                         currentMEntry = ceil ((imageCount - startFrame) / increment);
+                         %currentMEntry = ceil ((imageCount - startFrame) / increment);
+                         currentMEntry = mCount-1;
                          if isempty (lostCells)
                             lostCells = [unmatchedCellCoord, currentMEntry];
                          else
@@ -411,9 +428,10 @@ else		% lastImaNum > firstImaNum
                    if ~isempty (matchedLostCells)
                       clusterDir = [saveDirectory filesep 'info'];
                       % The current M entry is different from the current frame nr: recalculate
-                      currentMEntry = ceil ((imageCount - startFrame) / increment);
+                      %currentMEntry = ceil ((imageCount - startFrame) / increment);
+                      currentMEntry = mCount-1;
                       [M, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, currentMEntry, ...
-                                                            startFrame, increment, clusterDir);   
+                                                            startFrame, increment, clusterDir, validFrames);   
                    end
                 end     % ~isempty (lostCellsToMatch)
              end    % ~isempty (lostCells) & ~isempty (newCells)

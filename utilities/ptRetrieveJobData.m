@@ -145,6 +145,7 @@ for iCount = 1 : fileNumbers
     jobData(iCount).jobpath = pathString;
     jobData(iCount).timeperframe = allJobvalues{iCount}.timeperframe;
     jobData(iCount).mmpixel = allJobvalues{iCount}.mmpixel;
+    jobData(iCount).nrbadframes = allValidFrames{iCount}(1,end)-length(allValidFrames{iCount}(1,:));
 end
 
 %-----------------------------------------------------------------------

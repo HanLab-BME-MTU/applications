@@ -27,6 +27,7 @@ MPM = handles.allMPM;
 cellProps = handles.allCellProps;
 clusterProps = handles.allClusterProps;
 frameProps = handles.allFrameProps;
+validFrames = handles.allValidFrames;
 jobData = handles.jobData;
 guiData = handles.guiData;
 
@@ -41,8 +42,9 @@ maxDistance = guiData.maxcellcelldist;
 %maxFrames = mpmLength / 2;
 
 % Determine the movie with the most frames
-[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
-minFrames = mpmLength / 2;
+%[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
+%minFrames = mpmLength / 2;
+[shortestMovie, minFrames] = ptMinMovieLength (validFrames);
 
 % Make sure we only process up to the shortest MPM else the averaging will
 % not work correctly
@@ -51,13 +53,17 @@ if plotEndFrame > minFrames
 end
 
 % Get start and end frames and increment value
-startFrame = jobData(1).firstimg;
-endFrame = jobData(shortestMPM).lastimg;
-increment = jobData(1).increment;
+% startFrame = jobData(1).firstimg;
+% endFrame = jobData(shortestMPM).lastimg;
+% increment = jobData(1).increment;
+% numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
+startFrame = jobData(shortestMovie).firstimg;
+endFrame = jobData(shortestMovie).lastimg;
+increment = jobData(shortestMovie).increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 
 % Get pixellength and frame interval
-frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
+%frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
 pixelLength = jobData(1).mmpixel;
 
 % Initialize properties counter depending on radiobutton value
@@ -78,94 +84,85 @@ iCount = 0;
 % Calculate a number of statistics for every frame
 for frameCount = plotStartFrame : increment : plotEndFrame
    
-   % Update the properties counter
-   propCount = propCount + 1;
+    % Update the properties counter
+    propCount = propCount + 1;
     
-   % Update the x-axis vector and counter
-   iCount = iCount + 1;
-   if ~alwaysCountFrom1
-       xAxis(iCount) = frameCount;
-   else
-       xAxis(iCount) = iCount;
-   end
+    % Initialize average sum counter
+    averageSum = 0;
 
-   for jobCount = 1 : length (cellProps)
+    for jobCount = 1 : length (cellProps)
+       
+       % Find the index where this frame can be found
+       frameIndx = find(validFrames{jobCount}(1,:) == propCount);
+
+       if isempty(frameIndx)
+           % Frame was bad and cannot be found in cellProps
+           cells{jobCount} = [];
+           distances{jobCount} = [];
+       else
  
-       % Remove the zero rows from cellProps 
-       [notZeroEntryRows, notZeroEntryCols] = find (cellProps{jobCount}(:,:,propCount));
-       notZeroEntryRows = unique (notZeroEntryRows);
-       cells{jobCount} = cellProps{jobCount}(notZeroEntryRows,:,propCount);
+           % Remove the zero rows from cellProps 
+           [notZeroEntryRows, notZeroEntryCols] = find (cellProps{jobCount}(:,:,frameIndx));
+           notZeroEntryRows = unique (notZeroEntryRows);
+           cells{jobCount} = cellProps{jobCount}(notZeroEntryRows,:,frameIndx);
 
-       % Remove the zero rows from clusterProps 
-       [notZeroEntryRows, notZeroEntryCols] = find (clusterProps{jobCount}(:,:,propCount));
-       notZeroEntryRows = unique (notZeroEntryRows);
-       clusters{jobCount} = clusterProps{jobCount}(notZeroEntryRows,:,propCount);
+           % Remove the zero rows from clusterProps 
+           %[notZeroEntryRows, notZeroEntryCols] = find (clusterProps{jobCount}(:,:,frameIndx));
+           %notZeroEntryRows = unique (notZeroEntryRows);
+           %clusters{jobCount} = clusterProps{jobCount}(notZeroEntryRows,:,frameIndx);
 
-       % Calculate all the distances between cells by doing a Delaunay
-       % triangulation
-       triangles = delaunay (cells{jobCount}(:,1), cells{jobCount}(:,2));
+           % Calculate all the distances between cells by doing a Delaunay
+           % triangulation
+           triangles = delaunay (cells{jobCount}(:,1), cells{jobCount}(:,2));
 
-       % Close the loop by copying the first coordinate set to a new column
-       triangles(:,4) = triangles(:,1);
+           % Close the loop by copying the first coordinate set to a new column
+           triangles(:,4) = triangles(:,1);
 
-       % Match pairs of points, describing one line (no longer three points, describing a
-       % triangle) and throw out the lines (between two points) that occur twice 
-       uniqTriang = cat (1, unique(triangles(:,1:2), 'rows'), ...
-                            unique(triangles(:,2:3), 'rows'), ...
-                            unique(triangles(:,3:4), 'rows'));
+           % Match pairs of points, describing one line (no longer three points, describing a
+           % triangle) and throw out the lines (between two points) that occur twice 
+           uniqTriang = cat (1, unique(triangles(:,1:2), 'rows'), ...
+                                unique(triangles(:,2:3), 'rows'), ...
+                                unique(triangles(:,3:4), 'rows'));
 
-       % Prepare storage for the distances
-       distances{jobCount} = zeros (length(uniqTriang), 1);
+           % Prepare storage for the distances
+           distances{jobCount} = zeros (length(uniqTriang), 1);
 
-       % Calculate the distances
-       for jCount = 1 : length(uniqTriang)   
-          distances{jobCount}(jCount) = sqrt ((cells{jobCount}(uniqTriang(jCount,1), 1) - ...
-                                               cells{jobCount}(uniqTriang(jCount,2), 1))^2 + ...
-                                              (cells{jobCount}(uniqTriang(jCount,1), 2) - ...
-                                               cells{jobCount}(uniqTriang(jCount,2), 2))^2);  
-       end
-   end  % jobCount = 1 : length (cellProps)
+           % Calculate the distances
+           for jCount = 1 : length(uniqTriang)   
+              distances{jobCount}(jCount) = sqrt ((cells{jobCount}(uniqTriang(jCount,1), 1) - ...
+                                                   cells{jobCount}(uniqTriang(jCount,2), 1))^2 + ...
+                                                  (cells{jobCount}(uniqTriang(jCount,1), 2) - ...
+                                                   cells{jobCount}(uniqTriang(jCount,2), 2))^2);  
+           end
+           
+           % Increase counter used later to calculate average
+           averageSum = averageSum + 1;
+       end  % if isempty(frameIndx)
+    end  % for jobCount = 1 : length (cellProps)
+
+    if averageSum > 0   % Only go on if we have at least 1 good frame in the joblist
    
-   % Cat all the matrices that we found together
-   allDistances = cat (1, distances{:});
-   allCells = cat (1, cells{:});
-   
-   % Calculate the average distance in micrometer
-   averageDist(iCount) = (sum (allDistances) / length (allDistances)) * pixelLength;
-   
-   % Calculate a distance histogram
-   %distanceHist (:,iCount) = hist (distances, binSize);
-   
-   
-%    if frameCount == plotStartFrame
-%       for kCount = 1 : size(cells,1)
-%          distAllCells = sqrt ((allCells(kCount,1) - allCells(:,1)).^2 + ...
-%                               (allCells(kCount,2) - allCells(:,2)).^2);
-%    
-%          % Kick out all the ones that are > maxDistance
-%          neighbours = distAllCells (find (distAllCells < (3*str2num(maxDistance))));
-%          
-%          % Sort the neighbours vector
-%          sortedNeighbours = sort(neighbours);
-%          
-%          % Kick out the zero entry (the one distanced with itself)
-%          sortedNeighbours(find (sortedNeighbours == 0)) = [];
-%          
-%          % Take the 3 nearest neighbours, but leave out the zero entry
-%          if length (sortedNeighbours) >= 3
-%             nearNeighbours (kCount,:) = sortedNeighbours(1:3);
-%          else
-%             nearNeighbours(kCount,:) = [0 , 0 , 0];
-%             if length (sortedNeighbours) > 0
-%                nearNeighbours (kCount,1: length(sortedNeighbours)) = sortedNeighbours;
-%             end
-%          end
-%       end
-%    elseif frameCount > plotStartFrame
-%       % Dummy
-%    end
-   
-end 
+        % Update the x-axis vector and counter
+        iCount = iCount + 1;
+        if ~alwaysCountFrom1
+           xAxis(iCount) = frameCount;
+        else
+           xAxis(iCount) = iCount;
+        end
+        
+        % Cat all the matrices that we found together
+        allDistances = cat (1, distances{:});
+        allCells = cat (1, cells{:});
+
+        % Calculate the average distance in micrometer
+        averageDist(iCount) = (sum (allDistances) / length (allDistances)) * pixelLength;
+        %averageDist(iCount) = (sum (allDistances) / averageSum) * pixelLength;
+
+    end  % if averageSum > 0
+end  % for frameCount = plotStartFrame : increment : plotEndFrame
 
 % Prepare output values
-cellCellDistStats.averageDist = averageDist;
+cellCellDistStats.averageDist = averageDist(1:iCount);
+
+% Make sure the x-axis has the correct length
+xAxis = xAxis(1:iCount);

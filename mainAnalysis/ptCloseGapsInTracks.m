@@ -1,9 +1,10 @@
-function [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, frameNr, startFrame, increment, clusterDirectory)
+function [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, frameNr, startFrame, increment, clusterDirectory, validFrames)
 % ptCloseGapsInTracks closes gaps in cell tracks based on lost cells that have been matched up with
 % new cells
 %
 % SYNOPSIS       [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, 
-%                                                         frameNr, startFrame, increment, clusterDirectory)
+%                                                         frameNr, startFrame, increment, 
+%                                                         clusterDirectory, validFrames)
 %
 % INPUT          M : M stack as returned by the tracker functions
 %                        M = [y x y x]   [y x y x]   [y x y x]
@@ -17,6 +18,8 @@ function [newM, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells
 %                startFrame: the startFrame of the movie (needed for M position calculation)
 %                increment: the rate of increment of the movie frames (needed for M position calculation)
 %                clusterDirectory : the directory where the binary cluster mat files can be found
+%                validFrames : the array that holds the frame numbers that
+%                              were correct (needed to find the cluster image)
 %
 % OUTPUT         M : a new M stack where gaps have been closed using linear interpolation
 %                lostCells : the updated matrix containing the cells that haven't been matched yet
@@ -72,7 +75,8 @@ for iCount = 1 : size (matchedCells,1)
       % First locate and load the correct binary cluster image
       cd (clusterDirectory);
       formatStr = sprintf ('%%.%dd', 3);
-      imageNr = sprintf (formatStr, frameLostCell + startFrame + jCount - 1);
+      curFrameNr = frameLostCell + startFrame + jCount - 1;
+      imageNr = sprintf (formatStr, validFrames(1,curFrameNr));
       clusterFile = ['clusters' imageNr];
       load (clusterFile);
 

@@ -46,3 +46,4 @@ set (handles.neighbour_dist_ed, 'String', handles.guiData.maxneighbourdist);
 set (handles.GUI_windowsize_ed, 'String', handles.guiData.windowsize);
 set (handles.GUI_maxcellcelldist_ed, 'String', handles.guiData.maxcellcelldist);
 set (handles.GUI_ripconfint_ed, 'String', handles.guiData.ripleyconfint);
+set (handles.pp_bad_frames,'String', handles.jobData(nr).nrbadframes);

@@ -2053,7 +2053,8 @@ if ~alwaysCountFrom1
 else
    handles.guiData.plotfirstimg = 1;
    %handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
-   handles.guiData.plotlastimg = length (allValidFrames{filesSelected}(1,:));
+   %handles.guiData.plotlastimg = length (allValidFrames{filesSelected}(1,:));
+   handles.guiData.plotlastimg = allValidFrames{filesSelected}(1,end) - allValidFrames{filesSelected}(1,1) + 1;
 end
 
 % Set movie frame start and end
@@ -2313,7 +2314,8 @@ else
          handles.guiData.plotlastimg = jobData(filesSelected).lastimg;
       else
          handles.guiData.plotfirstimg = 1;
-         handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
+         %handles.guiData.plotlastimg = jobData(filesSelected).lastimg - jobData(filesSelected).firstimg + 1;
+         handles.guiData.plotlastimg = allValidFrames{filesSelected}(1,end) - allValidFrames{filesSelected}(1,1) + 1;
       end
 
       % Set movie frame start and end
@@ -2839,7 +2841,7 @@ if ~alwaysCountFrom1
   handles.guiData.plotlastimg = allValidFrames{filesSelected}(1,end);
 else
   handles.guiData.plotfirstimg = 1;
-  handles.guiData.plotlastimg = length(allValidFrames{filesSelected}(1,:));
+  handles.guiData.plotlastimg = allValidFrames{filesSelected}(1,end) - allValidFrames{filesSelected}(1,1) + 1;
 end
 
 % Set movie frame start and end
@@ -2847,7 +2849,8 @@ handles.guiData.moviefirstimg = allValidFrames{filesSelected}(1,1);
 handles.guiData.movielastimg = allValidFrames{filesSelected}(1,end);
 
 % Set values on the GUI
-ptSetPostproGUIValues (handles, filesSelected);
+%ptSetPostproGUIValues (handles, filesSelected);
+ptSetPostproGUIValues (handles, 1);
 
 % Update handles structure
 guidata(hObject, handles); 
@@ -2887,7 +2890,22 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+%--------------------------------------------------------------------
 
 function GUI_plotestimate_cb_Callback(hObject, eventdata, handles)
+%--------------------------------------------------------------------
 
+function pp_bad_frames_Callback(hObject, eventdata, handles)
+
+%--------------------------------------------------------------------
+
+function pp_bad_frames_CreateFcn(hObject, eventdata, handles)
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+%--------------------------------------------------------------------
 

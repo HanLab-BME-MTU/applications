@@ -42,6 +42,7 @@ MPM = handles.allMPM;
 cellProps = handles.allCellProps;
 clusterProps = handles.allClusterProps;
 frameProps = handles.allFrameProps;
+validFrames = handles.allValidFrames;
 jobData = handles.jobData;
 guiData = handles.guiData;
 
@@ -56,8 +57,9 @@ multipleFrameVelocity = guiData.multframevelocity;
 %maxFrames = mpmLength / 2;
 
 % Determine the movie with the most frames
-[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
-minFrames = mpmLength / 2;
+%[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
+%minFrames = mpmLength / 2;
+[shortestMovie, minFrames] = ptMinMovieLength (validFrames);
 
 % Make sure we only process up to the shortest MPM else the averaging will
 % not work correctly
@@ -66,13 +68,18 @@ if plotEndFrame > minFrames
 end
 
 % Get start and end frames and increment value
-startFrame = jobData(1).firstimg;
-endFrame = jobData(shortestMPM).lastimg;
-increment = jobData(1).increment;
+% startFrame = jobData(1).firstimg;
+% endFrame = jobData(shortestMPM).lastimg;
+% increment = jobData(1).increment;
+% numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
+startFrame = jobData(shortestMovie).firstimg;
+endFrame = jobData(shortestMovie).lastimg;
+increment = jobData(shortestMovie).increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 
 % Get pixellength and frame interval
-frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
+% Note: we can get the framerate from the validFrames array
+%frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
 pixelLength = jobData(1).mmpixel;
 
 % Initialize the displacement and x-axis matrices
@@ -110,237 +117,271 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
    % Increase MPM counter
    MPMCount = MPMCount + 1;
 
+   % Initialize average sum counter
+   averageSum = 0;
+
    % If the velocity is calculated over multiple frames we should have
    % enough frames to do this
-   if MPMCount > multipleFrameVelocity
+   if MPMCount > find(validFrames{:}(1,:) == multipleFrameVelocity)
 
       % Increase counter
-      iCount = iCount + 1;
-
-      % Store x-Axis value
-      if ~alwaysCountFrom1
-          xAxis(iCount) = frameCount;
-      else
-          xAxis(iCount) = iCount;
-      end
+      %iCount = iCount + 1;
 
       for jobCount = 1 : length(MPM)
+
+          % Find the index where this frame can be found
+          frameIndx = find(validFrames{jobCount}(1,:) == MPMCount);
+
+          if isempty(frameIndx)
+              % Frame was bad and cannot be found in MPM
+              displacement{jobCount} = [];
+              velocity{jobCount} = [];
+              singleCellsDisplacement{jobCount} = [];
+              singleCellVelocity{jobCount} = [];
+              clusteredCellsDisplacement{jobCount} = [];
+              clusteredCellVelocity{jobCount} = [];
+          else
+              
+              % Increase counter
+              if jobCount == 1
+                 iCount = iCount + 1;
+              end
           
-          % Get the coordinates from the previous (dependent on the value of
-          % multipleFrameVelocity) and the current frame
-          prevCoordinates{jobCount} = MPM{jobCount}(:, 2*(MPMCount-multipleFrameVelocity)-1 : 2*(MPMCount-multipleFrameVelocity));
-          curCoordinates{jobCount} = MPM{jobCount}(:, 2*MPMCount-1 : 2*MPMCount);
-          coordinates{jobCount} = [prevCoordinates{jobCount} curCoordinates{jobCount}];
+              % Get the coordinates from the previous (dependent on the value of
+              % multipleFrameVelocity) and the current frame
+              %prevCoordinates{jobCount} = MPM{jobCount}(:, 2*(MPMCount-multipleFrameVelocity)-1 : 2*(MPMCount-multipleFrameVelocity));
+              %curCoordinates{jobCount} = MPM{jobCount}(:, 2*MPMCount-1 : 2*MPMCount);
+              %coordinates{jobCount} = [prevCoordinates{jobCount} curCoordinates{jobCount}];
+              prevCoordinates{jobCount} = MPM{jobCount}(:, 2*(frameIndx-multipleFrameVelocity)-1 : 2*(frameIndx-multipleFrameVelocity));
+              curCoordinates{jobCount} = MPM{jobCount}(:, 2*frameIndx-1 : 2*frameIndx);
+              coordinates{jobCount} = [prevCoordinates{jobCount} curCoordinates{jobCount}];
 
-          % If coordinates in the current frame have started a track or the
-          % ones in the previous frame ended a track, we cannot
-          % calculate a displacement so we should throw these out
-          coordinates{jobCount}(find ((coordinates{jobCount}(:,1) == 0 & coordinates{jobCount}(:,2) == 0) | ...
-                                      (coordinates{jobCount}(:,3) == 0 & coordinates{jobCount}(:,4) == 0)),:) = [];
+              % If coordinates in the current frame have started a track or the
+              % ones in the previous frame ended a track, we cannot
+              % calculate a displacement so we should throw these out
+              coordinates{jobCount}(find ((coordinates{jobCount}(:,1) == 0 & coordinates{jobCount}(:,2) == 0) | ...
+                                          (coordinates{jobCount}(:,3) == 0 & coordinates{jobCount}(:,4) == 0)),:) = [];
 
-          % From the cluster and cell properties we can find out which cells
-          % are single and which belong to a cluster. First initialize two
-          % matrices for this
-          singleCellIndex{jobCount} = zeros (size (coordinates{jobCount},1), 1);
-          clusteredCellIndex{jobCount} = zeros (size (coordinates{jobCount},1), 1);
+              % From the cluster and cell properties we can find out which cells
+              % are single and which belong to a cluster. First initialize two
+              % matrices for this
+              singleCellIndex{jobCount} = zeros (size (coordinates{jobCount},1), 1);
+              clusteredCellIndex{jobCount} = zeros (size (coordinates{jobCount},1), 1);
 
-          % Initialize single and clustered cell coordinates counters
-          singleCellCount = 0;
-          clusteredCellCount = 0;
+              % Initialize single and clustered cell coordinates counters
+              singleCellCount = 0;
+              clusteredCellCount = 0;
 
-          % Find the single cell and clustered coordinates and store these
-          for jCount = 1 : size (coordinates{jobCount},1) 
+              % Find the single cell and clustered coordinates and store these
+              for jCount = 1 : size (coordinates{jobCount},1) 
 
-             % Find the index of the cell in CellProps
-             cellIndex = find (cellProps{jobCount}(:,1,MPMCount) == coordinates{jobCount}(jCount,3) & ...
-                               cellProps{jobCount}(:,2,MPMCount) == coordinates{jobCount}(jCount,4));
+                 % Find the index of the cell in CellProps
+                 cellIndex = find (cellProps{jobCount}(:,1,frameIndx) == coordinates{jobCount}(jCount,3) & ...
+                                   cellProps{jobCount}(:,2,frameIndx) == coordinates{jobCount}(jCount,4));
 
-             % In case the cell wasn't found in cellProps (maybe it was on the background?)
-             % we can skip over this part
-             if ~isempty (cellIndex)
+                 % In case the cell wasn't found in cellProps (maybe it was on the background?)
+                 % we can skip over this part
+                 if ~isempty (cellIndex)
 
-                % Find this cluster in clusterProps
-                clusterIndex = find (clusterProps{jobCount}(:,1,MPMCount) == cellProps{jobCount}(cellIndex,3,MPMCount));
+                    % Find this cluster in clusterProps
+                    clusterIndex = find (clusterProps{jobCount}(:,1,frameIndx) == cellProps{jobCount}(cellIndex,3,frameIndx));
 
-                % Test whether this cell is in a cluster or not
-                if clusterProps{jobCount}(clusterIndex,2,MPMCount) == 1  % Single cell found
+                    % Test whether this cell is in a cluster or not
+                    if clusterProps{jobCount}(clusterIndex,2,frameIndx) == 1  % Single cell found
 
-                   % Increase the counter for the single cell matrix
-                   singleCellCount = singleCellCount + 1; 
+                       % Increase the counter for the single cell matrix
+                       singleCellCount = singleCellCount + 1; 
 
-                   % Store the coordinates
-                   singleCellIndex{jobCount}(singleCellCount,:) = jCount;
-                else    % The cell was in a cluster
+                       % Store the coordinates
+                       singleCellIndex{jobCount}(singleCellCount,:) = jCount;
+                    else    % The cell was in a cluster
 
-                   % Increase the counter for the clustered cell matrix
-                   clusteredCellCount = clusteredCellCount + 1; 
+                       % Increase the counter for the clustered cell matrix
+                       clusteredCellCount = clusteredCellCount + 1; 
 
-                   % Store the coordinates
-                   clusteredCellIndex{jobCount}(clusteredCellCount,:) = jCount;
-                end
-             end  % if ~isempty
-          end  % for jCount = 1 : size (coordinates,1)
+                       % Store the coordinates
+                       clusteredCellIndex{jobCount}(clusteredCellCount,:) = jCount;
+                    end
+                 end  % if ~isempty
+              end  % for jCount = 1 : size (coordinates,1)
 
-          % Remove all the zero entries in both matrices
-          singleCellIndex{jobCount}(find (singleCellIndex{jobCount}(:,1) == 0), :) = [];
-          clusteredCellIndex{jobCount}(find (clusteredCellIndex{jobCount}(:,1) == 0), :) = [];  
-          
-          % Calculate the displacement for all cells
-          displacement{jobCount} = sqrt ((coordinates{jobCount}(:,1) - coordinates{jobCount}(:,3)).^2 + ...
-                                         (coordinates{jobCount}(:,2) - coordinates{jobCount}(:,4)).^2);
-                                         
-          % Calculate true velocity in um/min for all cells
-          velocity{jobCount} = (displacement{jobCount} * pixelLength) / (multipleFrameVelocity * frameInterval);
-          
-          % Calculate the displacement for single cells
-          singleCellsDisplacement{jobCount} = displacement{jobCount}(singleCellIndex{jobCount},:);
+              % Remove all the zero entries in both matrices
+              singleCellIndex{jobCount}(find (singleCellIndex{jobCount}(:,1) == 0), :) = [];
+              clusteredCellIndex{jobCount}(find (clusteredCellIndex{jobCount}(:,1) == 0), :) = [];  
 
-          % Calculate true velocity in um/min for all cells
-          singleCellVelocity{jobCount} = velocity{jobCount}(singleCellIndex{jobCount},:);
+              % Calculate the displacement for all cells
+              displacement{jobCount} = sqrt ((coordinates{jobCount}(:,1) - coordinates{jobCount}(:,3)).^2 + ...
+                                             (coordinates{jobCount}(:,2) - coordinates{jobCount}(:,4)).^2);
 
-          % Calculate the displacement for clustered cells
-          clusteredCellsDisplacement{jobCount} = displacement{jobCount}(clusteredCellIndex{jobCount},:);
+              % Calculate true velocity in um/min for all cells; use the
+              % validFrames array for this
+              velocity{jobCount} = (displacement{jobCount} * pixelLength) / ...
+                                   (multipleFrameVelocity * (validFrames{jobCount}(2,frameIndx)/60));
 
-          % Calculate true velocity in um/min for all cells
-          clusteredCellVelocity{jobCount} = velocity{jobCount}(clusteredCellIndex{jobCount},:);
-      end
+              % Calculate the displacement for single cells
+              singleCellsDisplacement{jobCount} = displacement{jobCount}(singleCellIndex{jobCount},:);
+
+              % Calculate true velocity in um/min for all cells
+              singleCellVelocity{jobCount} = velocity{jobCount}(singleCellIndex{jobCount},:);
+
+              % Calculate the displacement for clustered cells
+              clusteredCellsDisplacement{jobCount} = displacement{jobCount}(clusteredCellIndex{jobCount},:);
+
+              % Calculate true velocity in um/min for all cells
+              clusteredCellVelocity{jobCount} = velocity{jobCount}(clusteredCellIndex{jobCount},:);
+              
+              % Increase counter used later to calculate average
+              averageSum = averageSum + 1;
+
+          end  % if isempty(frameIndx)
+      end  % for jobCount = 1 : length(MPM)
         
-      % Cat all the matrices that we found together
-      allDisplacement = cat(1,displacement{:});
-      allVelocity = cat(1, velocity{:});
-      allSingleCellsDisplacement = cat(1, singleCellsDisplacement{:});
-      allSingleCellVelocity = cat(1, singleCellVelocity{:});
-      allClusteredCellsDisplacement = cat(1, clusteredCellsDisplacement{:});
-      allClusteredCellVelocity = cat(1, clusteredCellVelocity{:});
+      if averageSum > 0   % Only go on if we have at least 1 good frame in the joblist
 
-      % Calculate histogram for velocity all cells
-      histVelAllCells{iCount} = hist (allVelocity, binSize);
-      %filename = [SaveDir filesep 'histVelAllCells_' num2str(iCount) '.mat'];
-      %save (filename, 'histVelAllCells');
-            
-      % Save the velocity hist for single cells
-      histVelSingleCells{iCount} = hist (allSingleCellVelocity, binSize);
-      %filename = [SaveDir filesep 'histVelSingleCells_' num2str(iCount) '.mat'];
-      %save (filename, 'histVelSingleCells');
-      
-      % Save the velocity hist for clustered cells
-      histVelClusteredCells{iCount} = hist (allClusteredCellVelocity, binSize);
-      %filename = [SaveDir filesep 'histVelClusteredCells_' num2str(iCount) '.mat'];
-      %save (filename, 'histVelClusteredCells');
-            
-      % Store max velocity of the frame
-      if ~isempty(allVelocity)
-         maxVelocity(iCount) = max (allVelocity);
-      else
-         maxVelocity(iCount) = 0;
-      end
-      
-      % Store max single cell velocity of the frame
-      if ~isempty(allSingleCellVelocity)
-         maxSingleCellVelocity(iCount) = max (allSingleCellVelocity);
-      else
-         maxSingleCellVelocity(iCount) = 0;
-      end
-      
-      % Store max clustered cell velocity of the frame
-      if ~isempty(allClusteredCellVelocity)
-         maxClusteredCellVelocity(iCount) = max (allClusteredCellVelocity);
-      else
-         maxClusteredCellVelocity(iCount) = 0;
-      end      
-      
-      % Calculate the variance of the velocity for all cells
-      if ~isempty (allVelocity)
-         varVelocity(iCount) = var (allVelocity);
-      else
-         varVelocity(iCount) = 0;
-      end
+          % Store x-Axis value
+          if ~alwaysCountFrom1
+              xAxis(iCount) = MPMCount;
+          else
+              xAxis(iCount) = iCount;
+          end
 
-      % Calculate the variance of the velocity for single cells
-      if ~isempty (allSingleCellVelocity)
-         varSingleCellVelocity(iCount) = var (allSingleCellVelocity);
-      else
-         varSingleCellVelocity(iCount) = 0;
-      end
+          % Cat all the matrices that we found together
+          allDisplacement = cat(1,displacement{:});
+          allVelocity = cat(1, velocity{:});
+          allSingleCellsDisplacement = cat(1, singleCellsDisplacement{:});
+          allSingleCellVelocity = cat(1, singleCellVelocity{:});
+          allClusteredCellsDisplacement = cat(1, clusteredCellsDisplacement{:});
+          allClusteredCellVelocity = cat(1, clusteredCellVelocity{:});
 
-      % Calculate the variance of the velocity for clustered cells
-      if ~isempty (allClusteredCellVelocity)
-         varClusteredCellVelocity(iCount) = var (allClusteredCellVelocity);
-      else
-         varClusteredCellVelocity(iCount) = 0;
-      end
+          % Calculate histogram for velocity all cells
+          histVelAllCells{iCount} = hist (allVelocity, binSize);
+          %filename = [SaveDir filesep 'histVelAllCells_' num2str(iCount) '.mat'];
+          %save (filename, 'histVelAllCells');
 
-      % From this the average displacement for all cells can be calculated
-      if length (allDisplacement) > 0
-         avgDisplacement(iCount) = sum (allDisplacement) / length (allDisplacement);
-      else
-         avgDisplacement(iCount) = 0;
-      end
+          % Save the velocity hist for single cells
+          histVelSingleCells{iCount} = hist (allSingleCellVelocity, binSize);
+          %filename = [SaveDir filesep 'histVelSingleCells_' num2str(iCount) '.mat'];
+          %save (filename, 'histVelSingleCells');
 
-      % From this the average displacement for single cells can be calculated
-      if length (allSingleCellsDisplacement) > 0
-         avgSingleDisplacement(iCount) = sum (allSingleCellsDisplacement) / length (allSingleCellsDisplacement);
-      else
-         avgSingleDisplacement(iCount) = 0;
-      end
+          % Save the velocity hist for clustered cells
+          histVelClusteredCells{iCount} = hist (allClusteredCellVelocity, binSize);
+          %filename = [SaveDir filesep 'histVelClusteredCells_' num2str(iCount) '.mat'];
+          %save (filename, 'histVelClusteredCells');
 
-      % From this the average displacement for clustered cells can be calculated
-      if length (allClusteredCellsDisplacement) > 0
-         avgClusteredDisplacement(iCount) = sum (allClusteredCellsDisplacement) / length (allClusteredCellsDisplacement);
-      else
-         avgClusteredDisplacement(iCount) = 0;
-      end
+          % Store max velocity of the frame
+          if ~isempty(allVelocity)
+             maxVelocity(iCount) = max (allVelocity);
+          else
+             maxVelocity(iCount) = 0;
+          end
 
-      % From this the average velocity for all cells can be calculated
-      if length (allVelocity) > 0
-         avgVelocity(iCount) = sum (allVelocity) / length (allVelocity);
-         avgVelocitySquared(iCount) = avgVelocity(iCount)^2;
-      else
-         avgVelocity(iCount) = 0;
-         avgVelocitySquared(iCount) = 0;
-      end
+          % Store max single cell velocity of the frame
+          if ~isempty(allSingleCellVelocity)
+             maxSingleCellVelocity(iCount) = max (allSingleCellVelocity);
+          else
+             maxSingleCellVelocity(iCount) = 0;
+          end
 
-      % From this the average velocity for single cells can be calculated
-      if length (allSingleCellsDisplacement) > 0
-         avgSingleVelocity (iCount) = sum (allSingleCellVelocity) / length (allSingleCellVelocity);
-      else
-         avgSingleVelocity (iCount) = 0;
-      end
+          % Store max clustered cell velocity of the frame
+          if ~isempty(allClusteredCellVelocity)
+             maxClusteredCellVelocity(iCount) = max (allClusteredCellVelocity);
+          else
+             maxClusteredCellVelocity(iCount) = 0;
+          end      
 
-      % From this the average velocity for clustered cells can be calculated
-      if length (allClusteredCellsDisplacement) > 0
-         avgClusteredVelocity(iCount) = sum (allClusteredCellVelocity) / length (allClusteredCellVelocity);
-      else
-         avgClusteredVelocity(iCount) = 0;
-      end
+          % Calculate the variance of the velocity for all cells
+          if ~isempty (allVelocity)
+             varVelocity(iCount) = var (allVelocity);
+          else
+             varVelocity(iCount) = 0;
+          end
 
-      % Calculate how many cells (of all cells) have a velocity higher or
-      % equal than the average single cell velocity (in percent)
-      if length (allVelocity) ~= 0
-         velAllCellsHigherThanAvgSingleCells(iCount) = (length (find (allVelocity >= avgSingleVelocity(iCount))) / ...
-                                                        length (allVelocity)) * 100.0;
-      else
-         velAllCellsHigherThanAvgSingleCells(iCount) = 0;
-      end     
-      
-      % Generate a velocity histogram
-      allVelocityHist (:,iCount) = hist (allVelocity, binSize);
-     
-   end   % if MPMCount > multipleFrameVelocity 
+          % Calculate the variance of the velocity for single cells
+          if ~isempty (allSingleCellVelocity)
+             varSingleCellVelocity(iCount) = var (allSingleCellVelocity);
+          else
+             varSingleCellVelocity(iCount) = 0;
+          end
+
+          % Calculate the variance of the velocity for clustered cells
+          if ~isempty (allClusteredCellVelocity)
+             varClusteredCellVelocity(iCount) = var (allClusteredCellVelocity);
+          else
+             varClusteredCellVelocity(iCount) = 0;
+          end
+
+          % From this the average displacement for all cells can be calculated
+          if length (allDisplacement) > 0
+             avgDisplacement(iCount) = sum (allDisplacement) / length (allDisplacement);
+          else
+             avgDisplacement(iCount) = 0;
+          end
+
+          % From this the average displacement for single cells can be calculated
+          if length (allSingleCellsDisplacement) > 0
+             avgSingleDisplacement(iCount) = sum (allSingleCellsDisplacement) / length (allSingleCellsDisplacement);
+          else
+             avgSingleDisplacement(iCount) = 0;
+          end
+
+          % From this the average displacement for clustered cells can be calculated
+          if length (allClusteredCellsDisplacement) > 0
+             avgClusteredDisplacement(iCount) = sum (allClusteredCellsDisplacement) / length (allClusteredCellsDisplacement);
+          else
+             avgClusteredDisplacement(iCount) = 0;
+          end
+
+          % From this the average velocity for all cells can be calculated
+          if length (allVelocity) > 0
+             avgVelocity(iCount) = sum (allVelocity) / length (allVelocity);
+             avgVelocitySquared(iCount) = avgVelocity(iCount)^2;
+          else
+             avgVelocity(iCount) = 0;
+             avgVelocitySquared(iCount) = 0;
+          end
+
+          % From this the average velocity for single cells can be calculated
+          if length (allSingleCellsDisplacement) > 0
+             avgSingleVelocity (iCount) = sum (allSingleCellVelocity) / length (allSingleCellVelocity);
+          else
+             avgSingleVelocity (iCount) = 0;
+          end
+
+          % From this the average velocity for clustered cells can be calculated
+          if length (allClusteredCellsDisplacement) > 0
+             avgClusteredVelocity(iCount) = sum (allClusteredCellVelocity) / length (allClusteredCellVelocity);
+          else
+             avgClusteredVelocity(iCount) = 0;
+          end
+
+          % Calculate how many cells (of all cells) have a velocity higher or
+          % equal than the average single cell velocity (in percent)
+          if length (allVelocity) ~= 0
+             velAllCellsHigherThanAvgSingleCells(iCount) = (length (find (allVelocity >= avgSingleVelocity(iCount))) / ...
+                                                            length (allVelocity)) * 100.0;
+          else
+             velAllCellsHigherThanAvgSingleCells(iCount) = 0;
+          end     
+
+          % Generate a velocity histogram
+          allVelocityHist (:,iCount) = hist (allVelocity, binSize);
+
+       end   % if averageSum  
+   end   % if MPMCount > multipleFrameVelocity
 end   % for frameCount
 
 % Store everything in a struct for easier handling outside of this function
-avgVelocityStats.avgVelocity = avgVelocity;
-avgVelocityStats.avgVelocitySquared = avgVelocitySquared;
-avgVelocityStats.avgSingleVelocity = avgSingleVelocity;
-avgVelocityStats.avgClusteredVelocity = avgClusteredVelocity;
-avgVelocityStats.avgSingleDisplacement = avgSingleDisplacement;
+avgVelocityStats.avgVelocity = avgVelocity(1:iCount);
+avgVelocityStats.avgVelocitySquared = avgVelocitySquared(1:iCount);
+avgVelocityStats.avgSingleVelocity = avgSingleVelocity(1:iCount);
+avgVelocityStats.avgClusteredVelocity = avgClusteredVelocity(1:iCount);
+avgVelocityStats.avgSingleDisplacement = avgSingleDisplacement(1:iCount);
 
-velocitySingleStats.velAllCellsHigherThanAvgSingleCells = velAllCellsHigherThanAvgSingleCells;
+velocitySingleStats.velAllCellsHigherThanAvgSingleCells = velAllCellsHigherThanAvgSingleCells(1:iCount);
 
-velocityVarStats.varVelocity = varVelocity;
-velocityVarStats.varSingleCellVelocity = varSingleCellVelocity;
-velocityVarStats.varClusteredCellVelocity = varClusteredCellVelocity;
+velocityVarStats.varVelocity = varVelocity(1:iCount);
+velocityVarStats.varSingleCellVelocity = varSingleCellVelocity(1:iCount);
+velocityVarStats.varClusteredCellVelocity = varClusteredCellVelocity(1:iCount);
 
 velocityHistStats.velocityHist = allVelocityHist;
 velocityHistStats.histVelAllCells = histVelAllCells;
@@ -351,3 +392,5 @@ velocityHistStats.maxSingleCellVelocity = maxSingleCellVelocity;
 velocityHistStats.maxClusteredCellVelocity = maxClusteredCellVelocity;
 velocityHistStats.binSize = guiData.binsize;
 
+% Make sure the x-axis has the correct length
+xAxis = xAxis(1:iCount);
