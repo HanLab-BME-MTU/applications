@@ -26,38 +26,43 @@ function [yPlot, est] = ptPlotEstimate (xdata, ydata, slope, subPlot)
 % Andre Kerstens        Oct 04          Initial version
 % Andre Kerstens        Dec 04          Added slope parameter to be able to
 %                                       handle pos and neg slopes
+% Andre Kerstens        Mar 05          Changed default fit function to
+%                                       tangens hyperbolicus (tanh) 
 
 % Initialize yPlot
 yPlot = [];
 
 % Calculate the estimate that best fits on the data
-[est, error] = ptFitCurve(xdata,ydata,35,slope);
+[est, error] = ptFitCurve(xdata, ydata, 35, slope);
 
 % Check whether a curve could be fitted at all. If not, do not plot
 if error   
    return;
 end
 
-if uint16(est(3)) > uint16(est(4))
-    fprintf(1,'ptPlotEstimate: Error - Estimated values cannot be used for plotting.\n');
-    return;
+% if uint16(est(3)) > uint16(est(4))
+%     fprintf(1,'ptPlotEstimate: Error - Estimated values cannot be used for plotting.\n');
+%     return;
+% end
+
+% Calculate function values using the tanh function
+xPlot = xdata;
+yPlot = est(1) + est(2) * tanh(est(3)*(xPlot-est(4)));
+
+% Calculate t0 and t1 (take t0 to be 5% less or more than the value of the
+% first plateau and t1 to be 5% less or more than the value of the second
+% plateau)
+if slope >= 0
+    crossMin = yPlot(1) + (yPlot(end) - yPlot(1))/20; % /20 makes 5%
+    crossMax = yPlot(end) - (yPlot(end) - yPlot(1))/20;
+    t0 = find(yPlot>crossMin,1,'first');
+    t1 = find(yPlot<crossMax,1,'last');
+else
+    crossMin = yPlot(1) - (yPlot(1) - yPlot(end))/20;
+    crossMax = yPlot(end) + (yPlot(1) - yPlot(end))/20;    
+    t0 = find(yPlot<crossMin,1,'first');
+    t1 = find(yPlot>crossMax,1,'last');
 end
-
-% Chop x-axis data up into the 3 estimated parts
-xLeft = xdata(1:int16(est(3))-1);
-xMiddle = xdata(int16(est(3)):int16(est(4))-1);
-xRight = xdata(int16(est(4)):end);
-
-% Put all the x values together again
-xPlot = [xLeft xMiddle xRight];
-
-% Chop y-axis data up into the 3 estimated lines
-yLeft = ones(1,length(xLeft))*est(1);
-yMiddle = ((est(2)-est(1))/(est(4)-est(3)))*(xMiddle-est(3)) + est(1);
-yRight = ones(1,length(xRight))*est(2);
-
-% Put the y values together
-yPlot = [yLeft yMiddle yRight];
 
 % Plot values on the graph currently open
 if ~isempty(subPlot)
@@ -72,14 +77,30 @@ else
 end
 
 % Put some text giving t0, t1 and the slope (a2-a1)/(t1-t0)
-[lineText, errmsg] = sprintf('t0 = %d\nt1 = %d\nslope = %f', int16(est(3)), ...
-                             int16(est(4)), ((est(2)-est(1))/(est(4)-est(3))));
+% To do this calculate some values first
 if slope > 0
+    maxValue = est(1)-est(2);   % value of the second plateau
+    minValue = 2*est(2)+(est(1)-est(2));  % value of the 1st plateau
+    
+    % Position of the text on the graph
     xValue = max(xdata)-max(xdata)*0.9; yValue = max(ydata);
-    horAlign = 'left'; vertAlign = 'top';
+    horAlign = 'left'; vertAlign = 'top';  % Alignment values
 else
+    maxValue = 2*est(2)+(est(1)-est(2));
+    minValue = est(1)-est(2);
     xValue = max(xdata)-max(xdata)*0.9; yValue = max(ydata)-max(ydata)*0.9;
     horAlign = 'left'; vertAlign = 'bottom';
 end
 
-text (xValue, yValue, lineText, 'HorizontalAlignment',horAlign,'VerticalAlignment',vertAlign);
+% Calculate slope value (a value 1 for est(3) is equal to pi/180, we scale
+% using est(2)
+slopeValue = (est(3)/(pi/180))/est(2);
+
+% Generate the text
+[lineText, errmsg] = sprintf('Min = %f\nMax = %f\nt0 = %d\nt1 = %d\nSlope = %f', ...
+                             minValue, maxValue, t0, t1, slopeValue);
+
+% Print the text on the graph
+if isempty(errmsg)
+   text (xValue, yValue, lineText, 'HorizontalAlignment',horAlign,'VerticalAlignment',vertAlign);
+end
