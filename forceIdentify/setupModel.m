@@ -188,17 +188,17 @@ for jj = 1:numTimeSteps
    for k = 1:numEdges
       edgeU{k}  = vectorFieldInterp(rawDispV{jj}, ...
          edgeP{k}(2:-1:1,:).',edgCorLen,[]);
-      edgeU1{jj}{k} = edgeU{k}(:,4) - edgeU{k}(:,2);
-      edgeU2{jj}{k} = edgeU{k}(:,3) - edgeU{k}(:,1);
+      edgeU1{jj,k} = edgeU{k}(:,4) - edgeU{k}(:,2);
+      edgeU2{jj,k} = edgeU{k}(:,3) - edgeU{k}(:,1);
 
       %For debugging:
-      %edgeU1{jj}{k} = edgeU1{jj}{k}/2; 
-      %edgeU2{jj}{k} = edgeU2{jj}{k}/2;
+      %edgeU1{jj,k} = edgeU1{jj,k}/2; 
+      %edgeU2{jj,k} = edgeU2{jj,k}/2;
 
       %Create spline interpolation of the edge displacement using arclength
       % parameter stored in 'msh.e(3:4,:)'.
-      edgePPx{jj}{k} = spline(edgeS{k}, edgeU1{jj}{k}.');
-      edgePPy{jj}{k} = spline(edgeS{k}, edgeU2{jj}{k}.');
+      edgePPx{jj,k} = spline(edgeS{k}, edgeU1{jj,k}.');
+      edgePPy{jj,k} = spline(edgeS{k}, edgeU2{jj,k}.');
    end
 end
 
