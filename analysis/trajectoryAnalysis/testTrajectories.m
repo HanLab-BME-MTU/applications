@@ -111,7 +111,7 @@ imshow(-log10(globCompare.speeds));
 set(uH,'Colormap',cmap);
 set(gca,'CLim',cLimits)
 for i=1:nGroups
-    for j=1:nGroups
+    for j=1:2
         text(j,i,sprintf('%3.3f',globCompare.speeds(i,j)),...
             'HorizontalAlignment','center')
     end
