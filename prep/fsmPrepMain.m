@@ -33,15 +33,15 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-userPath     = fsmParam.main.path;         % Working path
-imgNumber    = fsmParam.main.imgN;         % Number of image to be processed from the stack
-xmin         = fsmParam.main.normMin;      % Lower intensity bound for intensity normalization
-xmax         = fsmParam.main.normMax;      % Upper intensity bound for intensity normalization
-noiseParam   = fsmParam.main.noiseParam;   % Parameters for the noise model
-%alwaysAccept = fsmParam.main.alwaysAccept;% If 1, it assumes that the user always answer yes when prompted
-paramSpeckles= fsmParam.prep.paramSpeckles;% High-order speckle parameters 
-enhTriang    = fsmParam.prep.enhTriang;    % Enhanced triangulation flag
-autoPolygon  = fsmParam.prep.autoPolygon;  % Automatic analisys of the image to extract cell boundaries
+userPath     = fsmParam.main.path;          % Working path
+imgNumber    = fsmParam.main.imgN;          % Number of image to be processed from the stack
+xmin         = fsmParam.main.normMin;       % Lower intensity bound for intensity normalization
+xmax         = fsmParam.main.normMax;       % Upper intensity bound for intensity normalization
+noiseParam   = fsmParam.main.noiseParam;    % Parameters for the noise model
+paramSpeckles= fsmParam.prep.paramSpeckles; % High-order speckle parameters 
+enhTriang    = fsmParam.prep.enhTriang;     % Enhanced triangulation flag
+autoPolygon  = fsmParam.prep.autoPolygon;   % Automatic analisys of the image to extract cell boundaries
+drawROI      = fsmParam.prep.drawROI;       % The user draws a ROI to restrict analysis
 
 % Change to userPath
 cd(userPath);
@@ -120,6 +120,33 @@ if ~isfield(fsmParam,'batchJob')
     % factors=fsmPrepIntCorrFactors(outFileList,n,[xmin xmax]);
     factors=ones(1,n);   % The intensity correction has been removed; yet, the structure has been maintained
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    % ALLOW THE USER TO DRAW A ROI
+    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    if drawROI==1
+        
+        % Allow the user to draw a ROI
+        img=imreadnd2(char(outFileList(1,:)),xmin,xmax);
+        figure;
+        imshow(img,[]);
+        set(gcf,'Name','Please draw region of interest');
+        set(gcf,'NumberTitle','off');
+                
+        % Select region of interest
+        [userROIbw,x,y]=roipoly;
+        userROIpoly=[y x];
+        
+        % Close current figure
+        close(gcf);
+        
+        % Save polygon to disk
+        eval(['save ',userPath,filesep,'userROI.mat userROIbw userROIpoly;']);
+        
+    end
+    
 else
     
     % Remove the ''batchJob' field
@@ -179,7 +206,7 @@ for counter1=1:n
         img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)]);
         
         % Statistically test the local maxima to extract (significant) speckles 
-        fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,enhTriang);
+        fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,enhTriang,fsmParam);
         
     elseif fsmParam.prep.pstSpeckles==3
         

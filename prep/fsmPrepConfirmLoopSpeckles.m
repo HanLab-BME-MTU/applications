@@ -1,4 +1,4 @@
-function [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTriang,triMin,pMin,IG)
+function [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTriang,triMin,pMin,IG,userROIbw)
 
 % fsmPrepConfirmLoopSpeckles uses statistical tests to confirm the significance of detected speckles
 % of higher than one hierarchical level (in the main loop)
@@ -26,8 +26,17 @@ function [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTr
 %
 % Alexandre Matov, April 2nd, 2003
 
+if nargin==6
+    userROIbw=[];
+end
+
 % find the local maxima  
 Imax=locmax2d(Inew,[5,5]);
+
+if ~isempty(userROIbw)
+    % Mask Imax
+    Imax=Imax.*userROIbw;
+end
 
 % find the coordinates/positions of the initial local maxima before significance test (for comparision)
 [yi,xi]=find(ne(Imax,0));

@@ -117,6 +117,7 @@ end
 
 set(handles.TriangCheck,'Value',fsmParam.prep.enhTriang);
 set(handles.autoPolCheck,'Value',fsmParam.prep.autoPolygon);
+set(handles.drawROICheck,'Value',fsmParam.prep.drawROI);
 
 set(handles.orderEdit,'String',num2str(fsmParam.prep.paramSpeckles(1))); % Sets the order for 'higher-order speckles'
 set(handles.percEdit,'String',num2str(fsmParam.prep.paramSpeckles(2)));   % Sets the percentage for 'higher-order speckles'

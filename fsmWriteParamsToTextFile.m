@@ -95,6 +95,12 @@ if fsmParam.prep.enable==1
         otherwise
             error('Wrong value for fsmParam.prep.autoPolygon');
     end
+    switch fsmParam.prep.drawROI
+        case 1, fprintf(fid,'User-drawn ROI            : Yes\n');
+        case 0, fprintf(fid,'User-drawn ROI            : No\n');
+        otherwise
+            error('Wrong value for fsmParam.prep.autoPolygon');
+    end
     fprintf(fid,'Gauss ratio               : %1.2f\n',fsmParam.prep.gaussRatio);
     
 elseif fsmParam.prep.enable==0

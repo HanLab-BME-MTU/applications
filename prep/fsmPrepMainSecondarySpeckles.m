@@ -1,4 +1,4 @@
-function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,enhTriang)
+function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,enhTriang,fsmParam)
 
 % fsmPrepMainSecondarySpeckles is the main function of the fsmPrepSecondarySpeckles sub-module
 %
@@ -17,6 +17,7 @@ function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noisePar
 %                          (2) minimal increase in (%) of new speckles
 %                          (before stopping)
 %            enhTriang  :  turns on enhanced triangulation for Matlab Version < 6.5
+%            fsmParam   :  (optional) fsmParam structure for SpeckTackle
 %
 % OUTPUT     candsTot   :  augmented cands structure (see fsmPrepTestLocalMaxima.m)
 %            IMfinal    :  local maxima map
@@ -93,6 +94,27 @@ else
     DEBUG=0;
 end
 
+if nargin==6
+    fsmParam=[];
+    userROIbw=[];
+end
+
+if ~isempty(fsmParam)
+    if fsmParam.prep.drawROI==1
+        
+        % Load user-defined ROI from disk
+        ROIname=[fsmParam.main.path,filesep,'userROI.mat'];
+        if exist(ROIname)==2 % File found
+            tmp=load(ROIname);
+            userROIbw=tmp.userROIbw;
+            clear tmp;
+        else
+            userROIbw=[];
+        end
+    else
+        userROIbw=[];    
+    end
+end
 
 %SIG=1.88;% for the twice convolved image (or 1.77)
 SIG=1.60;
@@ -101,7 +123,7 @@ SIG=1.60;
 Imin=locmin2d(IG,[3,3]);
 
 % intial (filtered) image
-[yi,xi,y,x,Imax,candsP,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,enhTriang); % TO DO: update cands
+[yi,xi,y,x,Imax,candsP,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,enhTriang,userROIbw); % TO DO: update cands
 
 aux=length(candsP);
 for i=1:aux
@@ -117,7 +139,7 @@ HierLevel=2;
 while HierLevel<=Speckles(1) & length(candsS)>(Speckles(2)*length(candsTot)) & length(find([candsS.status]==1))>0
     
     [Inew,Imaxima,nmB]=fsmPrepSubstructMaxima(Inew,Imax,SIG,candsS); % prednite Cands
-    [yni,xni,yn,xn,Imax,candsS]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTriang,triMin,pMin,IG);
+    [yni,xni,yn,xn,Imax,candsS]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTriang,triMin,pMin,IG,userROIbw);
     %     [yni,xni,yn,xn,Imax,candsS]=fsmPrepConfirmSpeckles(Inew,Imin,noiseParam,enhTriang);
     
     aux=length(candsS);

@@ -58,6 +58,9 @@ fsmParam.main.imgN=str2num(get(handles.numberEdit,'String'));
 % Auto cell boundaries
 fsmParam.prep.autoPolygon=get(handles.autoPolCheck,'Value');
 
+% User draws a ROI
+fsmParam.prep.drawROI=get(handles.drawROICheck,'Value');
+
 % Gauss ratio
 fsmParam.prep.gaussRatio=str2num(get(handles.editGauss,'String'));
 
