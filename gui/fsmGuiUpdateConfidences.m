@@ -9,7 +9,7 @@ function fsmGuiUpdateConfidences(enable)
 %                         This is used to easily turn on/off the selection of confidence probabilities for 
 %                         non-optimized/optimized experimental settings.
 %
-% OUTPUT        nose
+% OUTPUT        none
 %
 % DEPENDENCES   fsmGuiUpdateConfidences uses { }
 %               fsmGuiUpdateCondifences is used by { fsmGuiMain

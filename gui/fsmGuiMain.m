@@ -697,7 +697,7 @@ else
 end
 
 function editZValue_Callback(hObject, eventdata, handles)
-fsmGuiUpdateConfidences(handles);
+fsmGuiUpdateConfidences(1);
 
 
 % --------------------------------------------------------------------
