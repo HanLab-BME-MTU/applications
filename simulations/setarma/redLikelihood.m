@@ -22,6 +22,17 @@ if nargin ~= nargin('redLikelihood')
     return
 end
 
+%check input data
+[nRow,nCol] = size(param);
+if nRow ~= 1
+    disp('--armaConst: "param" should be a row vector!');
+    errFlag = 1;
+end
+if nCol ~= arOrder+maOrder
+    disp('--armaConst: Wrong length of vector "param"!');
+    errFlag = 1;
+end
+
 %distribute parameters
 arParam = param(1:arOrder);
 maParam = param(arOrder+1:end);
@@ -38,10 +49,4 @@ end
 relError = (trajP-traj).^2./innovErr(1:end-1);
 
 %reduced likelihood
-if maOrder ~= 0
-    redLikeliV = log(mean(relError)) + mean(log(innovErr(1:end-1)));
-else
-    errLength = length(relError);
-    redLikeliV = log(sum(relError(1:arOrder))/errLength) + ...
-        sum(log(innovErr(1:arOrder)))/errLength;
-end
+redLikeliV = log(mean(relError)) + mean(log(innovErr(1:end-1)));

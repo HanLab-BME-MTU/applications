@@ -66,6 +66,10 @@ if maOrder < 0
     disp('--simSetarma: "maOrder" should be a nonnegative integer!');
     errFlag = 1;
 end
+if arOrder == 0 && maOrder == 0
+    disp('--simSetarma: Either "arOrder" or "maOrder" should be > 0!');
+    errFlag = 1;
+end
 if errFlag
     disp('--simSetarma: Please fix input data!');
     traj = [];
@@ -161,4 +165,5 @@ end
 %get rid of initial 10*shift time points
 traj = traj(10*shift+1:end);
 
+%shift trajectory so that it has zero mean
 traj = traj - mean(traj);

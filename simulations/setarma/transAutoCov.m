@@ -34,12 +34,12 @@ if nargin ~= nargin('transAutoCov')
 end
 
 %check input data
-if arOrder < 0
-    disp('--transAutoCov: "arOrder" should be a nonnegative integer!');
+if arOrder < 1
+    disp('--transAutoCov: "arOrder" should be >= 1!');
     errFlag = 1;
 end
-if maOrder < 0
-    disp('--transAutoCov: "maOrder" should be a nonnegative integer!');
+if maOrder < 1
+    disp('--transAutoCov: "maOrder" should be >= 1!');
     errFlag = 1;
 end
 if errFlag
@@ -47,27 +47,23 @@ if errFlag
     kappa = [];
     return
 end
-if arOrder ~= 0
-    [nRow,nCol] = size(arParam);
-    if nRow ~= 1
-        disp('--transAutoCov: "arParam" should be a row vector!');
-        errFlag = 1;
-    end
-    if nCol ~= arOrder
-        disp('--transAutoCov: Wrong length of "arParam"!');
-        errFlag = 1;
-    end
+[nRow,nCol] = size(arParam);
+if nRow ~= 1
+    disp('--transAutoCov: "arParam" should be a row vector!');
+    errFlag = 1;
 end
-if maOrder ~= 0
-    [nRow,nCol] = size(maParam);
-    if nRow ~= 1
-        disp('--transAutoCov: "maParam" should be a row vector!');
-        errFlag = 1;
-    end
-    if nCol ~= maOrder
-        disp('--transAutoCov: Wrong length of "maParam"!');
-        errFlag = 1;
-    end
+if nCol ~= arOrder
+    disp('--transAutoCov: Wrong length of "arParam"!');
+    errFlag = 1;
+end
+[nRow,nCol] = size(maParam);
+if nRow ~= 1
+    disp('--transAutoCov: "maParam" should be a row vector!');
+    errFlag = 1;
+end
+if nCol ~= maOrder
+    disp('--transAutoCov: Wrong length of "maParam"!');
+    errFlag = 1;
 end
 if maxLagI < 0
     disp('--transAutoCov: "maxLagI" should be a nonnegative integer!');

@@ -23,26 +23,29 @@ if nargin ~= nargin('armaConst')
     return
 end
 
+%check input data
+[nRow,nCol] = size(param);
+if nRow ~= 1
+    disp('--armaConst: "param" should be a row vector!');
+    errFlag = 1;
+end
+if nCol ~= arOrder+maOrder
+    disp('--armaConst: Wrong length of vector "param"!');
+    errFlag = 1;
+end
+
 %distribute parameters
 arParam = param(1:arOrder);
 maParam = param(arOrder+1:end);
 
 %roots of AR polynomial
-if arOrder ~= 0
-    rAr = abs(roots([-arParam(end:-1:1) 1]))';
-else
-    rAr = [];
-end
+rAr = abs(roots([-arParam(end:-1:1) 1]))';
 
 %roots of MA polynomial
-if maOrder ~= 0
-    rMa = abs(roots([maParam(end:-1:1) 1]))';
-else
-    rMa = [];
-end
+rMa = abs(roots([maParam(end:-1:1) 1]))';
 
 %nonlinear constraint (inequality)
 c = 1.001 - [rAr rMa];
 
-%nonlinear constrain equality
+%nonlinear constraint equality
 ceq = [];

@@ -37,6 +37,10 @@ if maOrder < 0
     disp('--arma2ma: "maOrder" should be a nonnegative integer!');
     errFlag = 1;
 end
+if arOrder == 0 && maOrder == 0
+    disp('--arma2ma: Either "arOrder" or "maOrder" should be > 0!');
+    errFlag = 1;
+end
 if errFlag
     disp('--arma2ma: Please fix input data!');
     maInfParam = [];

@@ -33,16 +33,12 @@ if nargin ~= nargin('innovPredict')
 end
 
 %check input data
-if arOrder < 0
-    disp('--innovPredict: "arOrder" should be a nonnegative integer!');
+if arOrder < 1
+    disp('--innovPredict: "arOrder" should be >= 1!');
     errFlag = 1;
 end
-if maOrder < 0
-    disp('--innovPredict: "maOrder" should be a nonnegative integer!');
-    errFlag = 1;
-end
-if arOrder == 0 && maOrder == 0
-    disp('--innovPredict: Either "arOrder" or "maOrder" should be nonzero!');
+if maOrder < 1
+    disp('--innovPredict: "maOrder" should be >= 1!');
     errFlag = 1;
 end
 if errFlag
@@ -52,41 +48,37 @@ if errFlag
     innovErr = [];
     return
 end
-if arOrder ~= 0
-    [nRow,nCol] = size(arParam);
-    if nRow ~= 1
-        disp('--innovPredict: "arParam" should be a row vector!');
+[nRow,nCol] = size(arParam);
+if nRow ~= 1
+    disp('--innovPredict: "arParam" should be a row vector!');
+    errFlag = 1;
+else
+    if nCol ~= arOrder
+        disp('--innovPredict: Wrong length of "arParam"!');
         errFlag = 1;
-    else
-        if nCol ~= arOrder
-            disp('--innovPredict: Wrong length of "arParam"!');
+    end
+    if checkRoots
+        r = abs(roots([-arParam(end:-1:1) 1]));
+        if ~isempty(find(r<=1))
+            disp('--innovPredict: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
             errFlag = 1;
-        end
-        if checkRoots
-            r = abs(roots([-arParam(end:-1:1) 1]));
-            if ~isempty(find(r<=1))
-                disp('--innovPredict: Causality requires the polynomial defining the autoregressive part of the model not to have any zeros for z <= 1!');
-                errFlag = 1;
-            end
         end
     end
 end
-if maOrder ~= 0
-    [nRow,nCol] = size(maParam);
-    if nRow ~= 1
-        disp('--innovPredict: "maParam" should be a row vector!');
+[nRow,nCol] = size(maParam);
+if nRow ~= 1
+    disp('--innovPredict: "maParam" should be a row vector!');
+    errFlag = 1;
+else
+    if nCol ~= maOrder
+        disp('--innovPredict: Wrong length of "maParam"!');
         errFlag = 1;
-    else
-        if nCol ~= maOrder
-            disp('--innovPredict: Wrong length of "maParam"!');
+    end
+    if checkRoots
+        r = abs(roots([maParam(end:-1:1) 1]));
+        if ~isempty(find(r<=1))
+            disp('--innovPredict: Invertibility requires the polynomial defining the moving average part of the model not to have any zeros for z <= 1!');
             errFlag = 1;
-        end
-        if checkRoots
-            r = abs(roots([maParam(end:-1:1) 1]));
-            if ~isempty(find(r<=1))
-                disp('--innovPredict: Invertibility requires the polynomial defining the moving average part of the model not to have any zeros for z <= 1!');
-                errFlag = 1;
-            end
         end
     end
 end
@@ -130,18 +122,7 @@ for n=1:maxOrder-1
 end
 
 %predict values between n=maxOrder and n=trajLength
-if maOrder == 0 %no MA, only AR
-    for n=maxOrder:trajLength-1
-        xPredicted(n+1) = arParam*xObserved(n:-1:n+1-arOrder);
-    end
-elseif arOrder == 0 %no AR, only MA
-    for n=maxOrder:trajLength-1
-        xPredicted(n+1) = innovCoef(n,1:maOrder)*...
-            (xObserved(n:-1:n+1-maOrder)-xPredicted(n:-1:n+1-maOrder));
-    end
-else %both AR and MA
-    for n=maxOrder:trajLength-1
-        xPredicted(n+1) = arParam*xObserved(n:-1:n+1-arOrder) + innovCoef(n,1:maOrder)*...
-            (xObserved(n:-1:n+1-maOrder)-xPredicted(n:-1:n+1-maOrder));
-    end
+for n=maxOrder:trajLength-1
+    xPredicted(n+1) = arParam*xObserved(n:-1:n+1-arOrder) + innovCoef(n,1:maOrder)*...
+        (xObserved(n:-1:n+1-maOrder)-xPredicted(n:-1:n+1-maOrder));
 end
