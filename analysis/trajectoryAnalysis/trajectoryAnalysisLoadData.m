@@ -173,8 +173,9 @@ else
             if lengthFNL == 1
                 if isempty(fileNameList{1}) || strcmp(fileNameList{1},'data_1');
                     dataStr = [repmat('data_',[lengthData,1]),num2str([1:lengthData]')]; %string data_  1 - data_999
+                    dataStr = cellstr(dataStr); % conversion here, because matlab7 regexprep does not work on string arrays
                     dataStr = regexprep(dataStr,' ','_'); %dataStr = data___1 - data_999
-                    fileNameList = cellstr(dataStr);
+                    fileNameList = dataStr;
                 else
                     fileNameList = repmat(fileNameList,[lengthData,1]);
                 end

@@ -1,9 +1,9 @@
-function [H,errFlag] = armaCoefComp(armaCoef1,varCovMat1,armaCoef2,...
-    varCovMat2,compOpt,significance)
+function [H,pValue,errFlag] = armaCoefComp(armaCoef1,varCovMat1,...
+    armaCoef2,varCovMat2,compOpt,significance)
 %ARMACOEFCOMP tests whether the the ARMA coefficients of 2 models are identical
 %
-%SYNOPSIS [H,errFlag] = armaCoefComp(armaCoef1,varCovMat1,armaCoef2,...
-%    varCovMat2,compOpt,significance)
+%SYNOPSIS [H,pValue,errFlag] = armaCoefComp(armaCoef1,varCovMat1,...
+%    armaCoef2,varCovMat2,compOpt,significance)
 %
 %INPUT  armaCoef1   : Structure containing ARMA coefficients of 1st model:
 %           .arParam: AR coefficients (row vector).
@@ -29,6 +29,9 @@ function [H,errFlag] = armaCoefComp(armaCoef1,varCovMat1,armaCoef2,...
 %       significance: Significance level of hypothesis test. Optional. Default: 0.05.
 %
 %OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
+%       pValue  : probability that difference between the two sets of
+%                 coefficients is >= difference observed assuming that the
+%                 null hypothesis is true.
 %       errFlag : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, September 2004
@@ -38,6 +41,7 @@ function [H,errFlag] = armaCoefComp(armaCoef1,varCovMat1,armaCoef2,...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 H = [];
+pValue = [];
 errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -307,15 +311,17 @@ switch compOpt
             testStatistic = diffM(1:arOrderL)*(diffV\diffM(1:arOrderL)')/arOrderL;
 
             %get the p-value of the test statistic assuming a chi2 distribution
-            pValue = 1 - chi2cdf(testStatistic,arOrderL);
+            pValue(1) = 1 - chi2cdf(testStatistic,arOrderL);
 
             %compare p-value to significance
-            if pValue < significance %if p-value is smaller than probability of type I error
+            if pValue(1) < significance %if p-value is smaller than probability of type I error
                 H(1) = 1; %reject null hypothesis that the two models are identical
             else %if p-value is larger than probability of type I error
                 H(1) = 0; %cannot reject null hypothesis
             end
             
+        else
+            pValue(1) = NaN;
         end
 
         %MA test
@@ -331,15 +337,17 @@ switch compOpt
                 arOrderL+1:end)')/maOrderL;
 
             %get the p-value of the test statistic assuming a chi2 distribution
-            pValue = 1 - chi2cdf(testStatistic,maOrderL);
+            pValue(2) = 1 - chi2cdf(testStatistic,maOrderL);
 
             %compare p-value to significance
-            if pValue < significance %if p-value is smaller than probability of type I error
+            if pValue(2) < significance %if p-value is smaller than probability of type I error
                 H(2) = 1; %reject null hypothesis that the two models are identical
             else %if p-value is larger than probability of type I error
                 H(2) = 0; %cannot reject null hypothesis
             end
 
+        else
+            pValue(2) = NaN;
         end
 
 end
