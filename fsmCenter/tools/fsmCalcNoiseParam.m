@@ -131,7 +131,7 @@ sDN=mean(S(:));
 % Calculate GaussRatio
 %
 % Calculate how many pixels have to be cropped from the borders
-border=2*fix(sigma)+1;
+border=3*fix(sigma)+1;
 
 % Initialize vector
 L=size(stack,3);
