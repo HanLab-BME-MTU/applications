@@ -67,6 +67,8 @@ analyzeOpt  = runInfo.analyzeOpt;
 if length(saveTraj) ~= maxNumSim
     disp('--analyzeHingeModel: The size of array saveTraj should be equal to maxNumSim!')
     errFlag = 1;
+    dataStats = [];
+    dataStats3 = [];
     return;
 end
 
@@ -115,6 +117,8 @@ if saveStats.saveOrNot ~= 0 && saveStats.saveOrNot ~= 1
 end
 if errFlag
     disp('--analyzeHingeModel: Please fix input data!');
+    dataStats = [];
+    dataStats3 = [];
     return;
 end
 

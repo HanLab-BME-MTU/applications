@@ -63,6 +63,7 @@ analyzeOpt  = runInfo.analyzeOpt;
 if length(saveTraj) ~= maxNumSim
     disp('--analyzeMtTrajectory: The size of array saveTraj should be equal to maxNumSim!')
     errFlag = 1;
+    dataStats = [];
     return;
 end
 
@@ -111,6 +112,7 @@ if saveStats.saveOrNot ~= 0 && saveStats.saveOrNot ~= 1
 end
 if errFlag
     disp('--analyzeMtTrajectory: Please fix input data!');
+    dataStats = [];
     return;
 end
 
@@ -186,7 +188,8 @@ for bigIter = 1:maxNumSim
 end
 
 %additional input variables for statistical analysis function
-ioOpt.verbose = 2; %display graphs
+ioOpt.verbose = 0; %display graphs
+% ioOpt.convergence = 1; %check descriptor convergence as a function of sample size
 ioOpt.saveTxt = 1;
 ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat0.txt'; %save results in file
 ioOpt.expOrSim = 's'; %specify that it is simulation data

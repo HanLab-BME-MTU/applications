@@ -1,13 +1,14 @@
-function [arParam,trajP,noiseSigma,errFlag] = arlsestim1(traj,arOrder,arParam0,noiseSigma0)
+function [arParam,trajP,noiseSigma,errFlag] = arlsestim1(traj,arOrder,arParam0,noiseSigma0,multi)
 %ARLSESTIM1 estimates parameters of an AR model when there are missing points
 %
-%SYNOPSIS [arParam,trajP,noiseSigma,errFlag] = arlsestim1(traj,arOrder,arParam0,noiseSigma0)
+%SYNOPSIS [arParam,trajP,noiseSigma,errFlag] = arlsestim1(traj,arOrder,arParam0,noiseSigma0,multi)
 %
 %INPUT  traj        : Trajectory to be modeled (with measurement uncertainty).
 %                     Missing points should be indicated with Inf.
 %       arOrder     : Order of proposed AR model.
 %       arParam0    : Initial value of parameters.
-%       noiseSigma0 : Initial guess for white noise standard deviation
+%       noiseSigma0 : Initial guess for white noise standard deviation.
+%       multi       : 0/1 if fmincon/fminimax are to be used, respectively.
 %
 %OUTPUT arParam   : Estimated parameters in model.
 %       trajP     : Measurement error-free predicted trajectory.
@@ -59,6 +60,10 @@ if noiseSigma0 < 0
     disp('--arlsestim1: White noise standard deviation should be nonnegative!');
     errFlag = 1;
 end
+if multi~=0 && multi~=1
+    disp('--arlsestim1: Variable "multi" should be 0 or 1!');
+    errFlag = 1;
+end
 if errFlag
     disp('--arlsestim1: please fix input data!');
     return
@@ -87,24 +92,31 @@ indx = find(traj(:,1)~=Inf);
 
 %lower limit of measurement error-free observation
 minVal = Inf*ones(trajLength,1);
-minVal([indx]) = traj([indx],1) - 3*traj([indx],2);
-minminVal = min(minVal([indx]));
-minVal(find(minVal==Inf)) = minminVal;
+minVal(indx) = traj(indx,1) - 3*traj(indx,2);
+dummy = min(minVal([indx]));
+minVal(find(minVal==Inf)) = dummy; %make the lower limit of missing point the minimum lower limit of observed points
 
 %upper limit of measurement error-free observation
 maxVal = -Inf*ones(trajLength,1);
-maxVal([indx]) = traj([indx],1) + 3*traj([indx],2);
-maxmaxVal = max(maxVal([indx]));
-maxVal(find(maxVal==-Inf)) = maxmaxVal;
+maxVal(indx) = traj(indx,1) + 3*traj(indx,2);
+dummy = max(maxVal([indx]));
+maxVal(find(maxVal==-Inf)) = dummy; %make the upper limit of missing points the maximum upper limit of observed points
 
 %define optimization options.
-options = optimset('Display','iter','MaxFunEvals',20000,'maxIter',500,...
-    'DerivativeCheck','on','TolFun',1e-3,'TolX',1e-3);
+options = optimset('Display','iter','MaxFunEvals',100000,'maxIter',1000,...
+    'TolCon',1e-8,'TolFun',1e-8,'TolX',1e-8);
+%,'DerivativeCheck','on');
 
 %minimize the sum of square errors to get best set of parameters.
-[unknowns,minFunc,exitFlag,output] = fmincon(@arlsestim1Obj,unknown0,[],[],[],[],...
-    [-10*ones(arOrder,1); minVal],[10*ones(arOrder,1); maxVal],...
-    @arlsestim1Const,options,arOrder,traj,noiseSigma0);
+if multi
+    unknowns = fminimax(@arlsestim1Obj,unknown0,[],[],[],[],...
+        [-10*ones(arOrder,1); minVal],[10*ones(arOrder,1); maxVal],...
+        @arlsestim1Const,options,arOrder,traj,noiseSigma0,multi);
+else
+    unknowns = fmincon(@arlsestim1Obj,unknown0,[],[],[],[],...
+        [-10*ones(arOrder,1); minVal],[10*ones(arOrder,1); maxVal],...
+        @arlsestim1Const,options,arOrder,traj,noiseSigma0,multi);
+end
 
 %assign parameters obtained through minimization
 arParam = unknowns(1:arOrder)';

@@ -19,6 +19,7 @@ if nargin ~= nargin('arlsestim0')
     disp('--arlsestim0: Incorrect number of input arguments!');
     errFlag  = 1;
     arParam = [];
+    noiseSigma = [];
     return
 end
 
@@ -38,6 +39,8 @@ if nCol ~= 2
 end
 if errFlag
     disp('--arlsestim0: please fix input data!');
+    arParam = [];
+    noiseSigma = [];
     return
 end
     
