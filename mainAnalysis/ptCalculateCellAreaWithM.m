@@ -38,7 +38,7 @@ function [cellProps, clusterProps] = ptCalculateCellAreaWithM (M, distanceToCell
 %                                       and general cleanup of code
 
 % Let the user know we're starting to calculate cell and cluster props
-fprintf (1, '\n     Generating cell and cluster properties...\n');
+fprintf (1, '\n     ptCalculateCellAreaWithM.m: Generating cell and cluster properties...\n');
 fprintf (1, '     Processing frame: ');
 
 % Use the size of the M matrix to determine how many frames we should process
@@ -233,4 +233,4 @@ for frameCount = startFrame : increment : endFrame
 end
 
 % Let the user know we've finished
-fprintf (1, '\n     Finished generating cell and cluster properties.\n');
+fprintf (1, '\n     ptCalculateCellAreaWithM.m: Finished generating cell and cluster properties.\n');

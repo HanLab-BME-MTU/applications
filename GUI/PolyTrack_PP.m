@@ -49,7 +49,8 @@ handles.output = hObject;
 
 % Create a default postprocessing structure that defines all the fields used in the program
 defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, ...
-                        'dragtail', 6, 'dragtailfile', 'trackmovie.mov', 'figureSize', []);
+                        'dragtail', 6, 'dragtailfile', 'trackmovie.mov', 'figureSize', [], ...
+                        'multFrameVelocity', 1);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -265,6 +266,7 @@ set (handles.GUI_app_plusframes_ed, 'String', handles.postpro.plusframes);
 set (handles.GUI_app_minimaltrack_ed, 'String', handles.postpro.minimaltrack);
 set (handles.GUI_fm_tracksince_ed, 'String', handles.postpro.dragtail);
 set (handles.GUI_fm_filename_ed, 'String', handles.postpro.dragtailfile);
+set (handles.multFrameVelocity, 'String', handles.postpro.multFrameVelocity);
 
 % And update the gui handles struct
 guidata(hObject, handles);
@@ -717,7 +719,7 @@ else
    % Here is where the bulk of the graphing work is done; we give it the
    % postpro structure and MPM matrix to work with
    if handles.postpro.cellclusterplot | handles.postpro.areaplot | handles.postpro.perimeterplot
-      ptPlotCellValues (handles.postpro, handles.MPM);
+      ptPlotCellValues (handles.postpro);
    end
    
    % Do the speed plots as well if the user wants it
@@ -1065,6 +1067,7 @@ handles.postpro.dragtailfile = filename;
 % Update handles structure
 guidata(hObject, handles);
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_clustercellstats.
 function checkbox_clustercellstats_Callback(hObject, eventdata, handles)
@@ -1074,6 +1077,7 @@ function checkbox_clustercellstats_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_clustercellstats
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_perimeter.
 function checkbox_perimeter_Callback(hObject, eventdata, handles)
@@ -1092,6 +1096,7 @@ function checkbox_speed_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_speed
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_cellcelldisthist.
 function checkbox_cellcelldisthist_Callback(hObject, eventdata, handles)
@@ -1101,6 +1106,7 @@ function checkbox_cellcelldisthist_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_cellcelldisthist
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_areastats.
 function checkbox_areastats_Callback(hObject, eventdata, handles)
@@ -1110,4 +1116,46 @@ function checkbox_areastats_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_areastats
 
+%--------------------------------------------------------------------------
 
+% --- Executes during object creation, after setting all properties.
+function multFrameVelocity_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to multFrameVelocity (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+%--------------------------------------------------------------------------
+
+function multFrameVelocity_Callback(hObject, eventdata, handles)
+% hObject    handle to multFrameVelocity (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of multFrameVelocity as text
+%        str2double(get(hObject,'String')) returns contents of multFrameVelocity as a double
+handles = guidata(hObject);
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get(hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.postpro.multFrameVelocity = 1;
+    set (handles.multFrameVelocity, 'String', handles.postpro.multFrameVelocity);
+    return
+else
+    handles.postpro.multFrameVelocity = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
