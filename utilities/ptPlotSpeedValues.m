@@ -170,7 +170,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       end
       
       % Generate a displacement histogram
-      displacementHist (:, iCount) = hist (displacement, binSize);
+      %displacementHist (:, iCount) = hist (displacement, binSize);
       
    end   % if MPMCount > multipleFrameVelocity 
       
@@ -244,25 +244,25 @@ print (h_fig, [savePath filesep 'avgSingleAndClusterDisplacement.tif'],'-dtiff')
 
 
 %Generate a 3D velocity histogram using the surface function
-h_fig = figure;
-surf (displacementHist);
-title ('3D Velocity Histogram');
-
-% Save this figure to disk as fig, eps and tiff
-hgsave (h_fig, [savePath filesep '3dDisplacementHistogram.fig']);
-print (h_fig, [savePath filesep '3dDisplacementHistogram.eps'], '-depsc2', '-tiff');
-print (h_fig, [savePath filesep '3dDisplacementHistogram.tif'], '-dtiff');
-
-
-% Generate a 3D velocity histogram using 3-d bars which is chopped up in bins with size binSize
-h_fig = figure;
-bar3 (binSize, displacementHist);
-title ('3D Displacement Histogram (binned)');
-
-% Save this figure to disk as fig, eps and tiff
-hgsave (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.fig']);
-print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.eps'], '-depsc2', '-tiff');
-print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.tif'], '-dtiff');
+% h_fig = figure;
+% surf (displacementHist);
+% title ('3D Velocity Histogram');
+% 
+% % Save this figure to disk as fig, eps and tiff
+% hgsave (h_fig, [savePath filesep '3dDisplacementHistogram.fig']);
+% print (h_fig, [savePath filesep '3dDisplacementHistogram.eps'], '-depsc2', '-tiff');
+% print (h_fig, [savePath filesep '3dDisplacementHistogram.tif'], '-dtiff');
+% 
+% 
+% % Generate a 3D velocity histogram using 3-d bars which is chopped up in bins with size binSize
+% h_fig = figure;
+% bar3 (binSize, displacementHist);
+% title ('3D Displacement Histogram (binned)');
+% 
+% % Save this figure to disk as fig, eps and tiff
+% hgsave (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.fig']);
+% print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.eps'], '-depsc2', '-tiff');
+% print (h_fig, [savePath filesep '3dBinnedDisplacementHistogram.tif'], '-dtiff');
 
 
 

@@ -1395,10 +1395,10 @@ for jobNumber = 1 : nrOfJobs
         
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
-   %try
+   try
       [M, clusterProps, cellProps, imageCount] = ptTrackCells (handles.jobs(jobNumber), jobNumber);
-      %catch    
-     %fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
+   catch    
+      fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
   
      % Save M, cluster and cell data
      %cd (handles.jobs(jobNumber).savedirectory);
@@ -1410,7 +1410,7 @@ for jobNumber = 1 : nrOfJobs
      %handles.jobs(jobNumber).firstimage = imageCount;
      %jobvalues = handles.jobs(jobNumber);
      %save ('jobvalues','jobvalues');
-     %end
+   end
    
    % Final message for the user to mark the end
    fprintf (1, '\nTracking finished...\n');
