@@ -45,7 +45,7 @@ if nargin==3
 end
 
 % Initialize outputs
-polyMap=[];depolyMap=[];img2C=[];outputdir=[];
+polyMap=[];depolyMap=[];kinMap2C=[];outputdir=[];
 
 % Check whether firstKinScore has been passed and, in case, whether it points to a file
 if isempty(firstKinScore) | exist(firstKinScore)~=2 % Not a file
