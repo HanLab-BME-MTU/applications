@@ -44,12 +44,6 @@ end
 % Initialize output
 outputdir=[];
 
-% Check input parameter n
-if mod(n,2)==0
-    errordlg('The number of frames for time averaging MUST BE ODD.','Error','modal');
-    return
-end
-
 % Load first image
 [fName,dirName] = uigetfile(...
     {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';

@@ -754,11 +754,6 @@ if isempty(nAvg)
 end
 if nAvg<0
     nAvg=1;
-elseif nAvg>0
-    if mod(nAvg,2)==0
-        warndlg('Please enter an ODD number of frames.','Warning','modal');
-        nAvg=1;
-    end
 end
 set(handles.editFrameSP,'String',num2str(nAvg));
 
@@ -1143,11 +1138,6 @@ if isempty(nAvg)
 end
 if nAvg<0
     nAvg=1;
-elseif nAvg>0
-    if mod(nAvg,2)==0
-        warndlg('Please enter an ODD number of frames.','Warning','modal');
-        nAvg=1;
-    end
 end
 set(handles.editFrameTN,'String',num2str(nAvg));
 
@@ -1636,11 +1626,6 @@ if isempty(nAvg)
 end
 if nAvg<0
     nAvg=1;
-elseif nAvg>0
-    if mod(nAvg,2)==0
-        warndlg('Please enter an ODD number of frames.','Warning','modal');
-        nAvg=1;
-    end
 end
 set(handles.editVectorAnalysis,'String',num2str(nAvg));
 

@@ -6,9 +6,9 @@ function fsmVectorAnalysis(nAvg,roi,displ,scale,d0,useDiv,output,displROI,invert
 % REMARK        Run fsmVectorAnalysis through the graphical user interface fsmCenter 
 %               ------------------------------------------------------------------
 %
-% INPUT                     nImages   : number of images to be analyzed 
-%                           nAvg     : number of frames for time averaging
-%                           roi      : [ 0|1 0|1 0|1]  
+% INPUT         nImages   : number of images to be analyzed 
+%               nAvg      : number of frames for time averaging
+%               roi       :  [ 0|1 0|1 0|1]  
 %                           roi(1)   : if 1, allows the user to draw a region of interest
 %                           roi(2)   : if 1, allows the user to load a saved region of interest
 %                           roi(3)   : if 1, saves the drawn region of interest
@@ -43,12 +43,6 @@ global uFirst uLast
 if nargin~=9
     error('9 input parameters expected');
 end
-
-if mod(nAvg,2)==0
-    errordlg('The number of frames for time averaging MUST BE ODD.','Error','modal');
-    return
-end
-    
 
 % Store current directory
 oldDir=cd;
