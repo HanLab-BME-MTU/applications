@@ -55,44 +55,52 @@ if fsmParam.track.init~=0
         
         case 1            
             
-            % Vectors provided by imKymoAnalysis - saved into /corr/vectors
+            % Flow provided by imKymoAnalysis - saved into /corr/flow
             initPath=fsmParam.track.initPath;
             if isempty(initPath)
                 error('This is a bug: fsmParam.track.init is different 0, still fsmParam.track.initPath is empty.');
             end
             
+        case 2
+            
+            % Flow provided by TFT - saved into /tack/flow
+            initPath=fsmParam.track.initPath;
+            if isempty(initPath)
+                error('This is a bug: fsmParam.track.init is different 0, still fsmParam.track.initPath is empty.');
+            end
+
         otherwise
             
             error('The requested initializer does not exist!');
     end
     
     % Read current vector field (initializer) from initPath
-    currentVectorField=[initPath,'vectors',imageNo,'.mat'];
-    if exist(currentVectorField,'file')==2
-        s=load(currentVectorField);
+    currentFlowField=[initPath,'flow',imageNo,'.mat'];
+    if exist(currentFlowField,'file')==2
+        s=load(currentFlowField);
         fields=fieldnames(s);
         if length(fields)~=1
-            errorMsg=['The vector fields found in ',initPath,' are not valid. Skipping initialization.'];
+            errorMsg=['The flow fields found in ',initPath,' are not valid. Skipping initialization.'];
             fprintf(1,'%s\n',errorMsg);
         end
-        if strcmp(fields,'vectors')==0
-            errorMsg=['The vector fields found in ',initPath,' are not valid. Skipping initialization.'];
+        if strcmp(fields,'flow')==0
+            errorMsg=['The flow fields found in ',initPath,' are not valid. Skipping initialization.'];
             fprintf(1,'%s\n',errorMsg);
         end
-        vectors=s.vectors;
-        if size(vectors,2)~=4
-            errorMsg=['The vector fields found in ',initPath,' are not valid. Skipping initialization.'];
+        flow=s.flow;
+        if size(flow,2)~=4
+            errorMsg=['The flow fields found in ',initPath,' are not valid. Skipping initialization.'];
             fprintf(1,'%s\n',errorMsg);
         end        
         
-        % Extract init vector field from vectors
-        initM=vectors(find(vectors(:,1)~=0 & vectors(:,3)~=0),:);
+        % Extract init flow vector field from vectors
+        initM=flow(find(flow(:,1)~=0 & flow(:,3)~=0),:);
         
         % Inform the user that the tracker will be initialized for this frame
         fprintf(1,'Frame %s: the tracker will be initialized for this frame.\n',imageNo);
         
     else
-        errorMsg=['Frame ',imageNo,': could not find a vector field in ',initPath,' to use as an initializer. Skipping initialization.'];
+        errorMsg=['Frame ',imageNo,': could not find a flow field in ',initPath,' to use as an initializer. Skipping initialization.'];
         fprintf(1,'%s\n',errorMsg);
         initM=[];
     end
@@ -182,7 +190,7 @@ if fsmParam.track.init~=0
     
     % Next frame's vector field
     indxStr=sprintf(strg,str2num(imageNo)+1); % Next frame
-    if exist([initPath,filesep,'vectors',indxStr,'.mat'],'file')~=2
+    if exist([initPath,filesep,'flow',indxStr,'.mat'],'file')~=2
         
         % Okay, we need to create the initializer for the next frame
             
@@ -197,19 +205,19 @@ if fsmParam.track.init~=0
         end
 
         % Average returned M to be used to propagate I again
-        vectors=vectorFieldAdaptInterp(raw,grid,d0,[],'strain');
+        flow=vectorFieldAdaptInterp(raw,grid,d0,[],'strain');
 
-        % Save averaged vectors to the initializer subdirecory
+        % Save averaged vectors to the initializer subdirectory
         indxStr=sprintf(strg,str2num(imageNo)+1); % Next frame
         try
-            eval(['save ',initPath,filesep,'vectors',indxStr,'.mat vectors;']);
+            eval(['save ',initPath,filesep,'flow',indxStr,'.mat flow;']);
         catch
-            fprintf(1,'Could not save vectors to disk. They won''t be used to initialize the tracker for the next frame pair.\n');
+            fprintf(1,'Could not save vector flow field to disk. It won''t be used to initialize the tracker for the next frame pair.\n');
         end
 
     else
    
-        % A vector field already exists - skipping
+        % A vector flow field already exists - skipping
 
     end
 

@@ -94,7 +94,12 @@ imgSize=fsmParam.specific.imgSize;
 if n(1)==-1
 
     % Select frames to be processed
-    [uFirst,uLast]=fsmTrackSelectFramesGUI(1,len,0,'Select frames to be processed:');
+    if len~=1
+        [uFirst,uLast]=fsmTrackSelectFramesGUI(1,len,0,'Select frames to be processed:');
+    else
+        uFirst=1;
+        uLast=1;
+    end
 
     if uFirst==-1
         return % The user closed the dialog

@@ -297,7 +297,11 @@ end
 
 % Write fsmParam.track information into gui
 if isfield(fsmParam.track,'init')
-    set(handles.checkTrackInit,'Value',fsmParam.track.init);
+    if fsmParam.track.init==0
+        set(handles.checkTrackInit,'Value',0);
+    else
+        set(handles.checkTrackInit,'Value',1);
+    end        
 else
     set(handles.checkTrackInit,'Value',0);
 end    
@@ -313,6 +317,11 @@ if isfield(fsmParam.track,'corrLength')
 else
     set(handles.editCorrLength,'String','33');
 end
+if isfield(fsmParam.track,'initRadius')
+    set(handles.editInitRadius,'String',num2str(fsmParam.track.initRadius));
+else
+    set(handles.editInfluence,'String',num2str(fsmParam.track.threshold));
+end    
 
 % Set enhanced checkbox
 set(handles.checkEnhTrack,'Value',fsmParam.track.enhanced);

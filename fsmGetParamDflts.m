@@ -88,9 +88,11 @@ fsmParam.prep.uptodate=0;           % Up-to-date flag
 
 % Enable module
 fsmParam.track.enable=1;            % Activates the TRACKER module [ 0 : off | 1 : on ]
-% Threshold
+% Radii
+fsmParam.track.initRadius=3;        % Defines the search radius for the tft initializer (pixels)
 fsmParam.track.threshold=3;         % Defines the search radius for the tracker (pixels)
 fsmParam.track.influence=3;         % Defines the radius of influence for the BMTNN tracker (pixels)
+
 % Initializer
 fsmParam.track.init=0;              % Turns on|off the initializer for the tracker [ 0 : off | 1,2,3,... initializer ]
 fsmParam.track.initPath='';         % Points to the path where vector fields to initialize the tracker are stored 

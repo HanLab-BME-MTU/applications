@@ -216,7 +216,7 @@ else
         return;
     else
         % Add an initial text
-        fwrite(fid,'Please use this file to store your comments, notes, descriptions of the project.');
+        fwrite(fid,'Please use this file to store your comments, notes, descriptions for the project.');
         fclose(fid);
         edit([projDir,filesep,'description.txt']);
     end

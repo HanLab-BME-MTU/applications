@@ -171,7 +171,12 @@ else
 end
 
 % Select frame pairs to be processed
-[uFirst,uLast]=fsmTrackSelectFramesGUI(1,frames,minN,'Select frame pairs to be processed:');
+if frames~=1
+    [uFirst,uLast]=fsmTrackSelectFramesGUI(1,frames,minN,'Select frame pairs to be processed:');
+else
+    uFirst=1;
+    uLast=1;
+end
 
 if uFirst==-1
     return % The user closed the dialog
@@ -291,7 +296,7 @@ indices=[str2num(indxStart):str2num(indxEnd)-n+1]+fix(n/2);
 imageFileList=imageFileList(indices-str2num(indxStart)+1,:);
 
 % Initializing waitbar
-h=waitbar(0,'Creating speed maps...');
+% h=waitbar(0,'Creating speed maps...');
 
 % Create a full bwMask (in case of failure of edge detection)
 bwMask=ones(size(img));
@@ -431,8 +436,9 @@ for c2=1:steps
     close(gcf);
     
     % Updating waitbar
-    waitbar(c2/steps,h);
+%     waitbar(c2/steps,h);
+fprintf(1,'Created map %d of %d.\n',c2,steps);
     
 end
 
-close(h);
+% close(h);

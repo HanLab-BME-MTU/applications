@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 09-Sep-2004 13:48:14
+% Last Modified by GUIDE v2.5 27-Sep-2004 15:01:12
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -622,7 +622,8 @@ if value==0
     set(handles.textTracker,'Enable','off');
     set(handles.popupTrackInit,'Enable','off');
     set(handles.checkTrackInit,'Enable','off');
-    set(handles.textTrackInitNote,'Enable','off');
+    set(handles.textInitRadius,'Enable','off');
+    set(handles.editInitRadius,'Enable','off');    
 else
     set(handles.textThreshold,'Enable','on');
     set(handles.editThreshold,'Enable','on');
@@ -636,7 +637,8 @@ else
     set(handles.textTracker,'Enable','on');
     set(handles.popupTrackInit,'Enable','on');
     set(handles.checkTrackInit,'Enable','on');
-    set(handles.textTrackInitNote,'Enable','on');
+    set(handles.textInitRadius,'Enable','on');
+    set(handles.editInitRadius,'Enable','on');    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1108,8 +1110,10 @@ function checkTrackInit_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkTrackInit
 if get(handles.checkTrackInit,'Value')==1
     set(handles.popupTrackInit,'Enable','on');
+    fsmGuiMain('popupTrackInit_Callback',handles.popupTrackInit,[],handles);
 else
     set(handles.popupTrackInit,'Enable','off');
+    fsmGuiMain('popupTrackInit_Callback',handles.popupTrackInit,[],handles);
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -1142,18 +1146,36 @@ if value==1
     fsmGuiMain('checkTrackInit_Callback',handles.checkTrackInit,[],handles); % Turns on|off Initializer
 end
 if value==2
+    if isunix
+        uiwait(warndlg('The Linear Programming tracker is available for Windows only.','Warning','modal'));
+        set(handles.popupTracker,'Value',1); % Unix not supported
+        fsmGuiMain('popupTracker_Callback',handles.popupTracker,[],handles);
+        return;
+    end
+    if get(handles.popupTrackInit,'Value')==1
+        uiwait(warndlg('The Linear Programming tracker does not support initialization by ''Correlation''.','Warning','modal'));
+        set(handles.popupTrackInit,'Value',2);
+        return;
+    end
     fsmGuiMain('toggleTrackModule',handles,0);
-    set(handles.textTracker,'Enable','on');
     set(handles.popupTracker,'Enable','on');
+    set(handles.checkTrackInit,'Enable','on');
+    set(handles.textTracker,'Enable','on');
     set(handles.textThreshold,'Enable','on');
-    set(handles.editThreshold,'Enable','on');
+    set(handles.editThreshold,'Enable','on');   
+    fsmGuiMain('checkTrackInit_Callback',handles.popupTrackInit,[],handles);
+    fsmGuiMain('popupTrackInit_Callback',handles.popupTrackInit,[],handles);    
 end
 if value==3
     fsmGuiMain('toggleTrackModule',handles,0);
     set(handles.textTracker,'Enable','on');
     set(handles.popupTracker,'Enable','on');
-    set(handles.textThreshold,'Enable','on');
-    set(handles.editThreshold,'Enable','on');
+    set(handles.popupTrackInit,'Value',2);
+    set(handles.checkTrackInit,'Enable','on');
+    set(handles.checkTrackInit,'Value',1);
+    fsmGuiMain('checkEnhTrack_Callback',handles.checkEnhTrack,[],handles); % Turns on|off gird depending on 'iterative'
+    fsmGuiMain('checkTrackInit_Callback',handles.checkTrackInit,[],handles); % Turns on|off Initializer
+    fsmGuiMain('popupTrackInit_Callback',handles.popupTrackInit,[],handles);
 end   
 
 % --- Executes on button press in checkInitKymo.
@@ -1188,7 +1210,30 @@ function popupTrackInit_Callback(hObject, eventdata, handles)
 
 % Hints: contents = get(hObject,'String') returns popupTrackInit contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupTrackInit
-
+value=get(handles.popupTrackInit,'Value');
+if value==1
+    if get(handles.popupTracker,'Value')==2
+        uiwait(warndlg('The Linear Programming tracker does not support initialization by ''Correlation''.','Warning','modal'));
+        set(handles.popupTrackInit,'Value',2)
+        return;
+    end
+    if get(handles.popupTracker,'Value')==3
+        set(handles.popupTracker,'Value',1)
+        fsmGuiMain('popupTracker_Callback',handles.checkTrackInit,[],handles)
+    end
+    set(handles.textInitRadius,'Enable','off');
+    set(handles.editInitRadius,'Enable','off');    
+elseif value==2
+    if get(handles.checkTrackInit,'Value')==1
+        set(handles.textInitRadius,'Enable','on');
+        set(handles.editInitRadius,'Enable','on');        
+    else
+        set(handles.textInitRadius,'Enable','off');
+        set(handles.editInitRadius,'Enable','off');                
+    end
+else
+    error('Impossible value');
+end
 
 % --- Executes on button press in loadROICheck.
 function loadROICheck_Callback(hObject, eventdata, handles)
@@ -1200,5 +1245,39 @@ function loadROICheck_Callback(hObject, eventdata, handles)
 if get(handles.loadROICheck,'Value')==1
     set(handles.drawROICheck,'Value',0);
 end
+
+
+% --- Executes during object creation, after setting all properties.
+function editInitRadius_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editInitRadius (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editInitRadius_Callback(hObject, eventdata, handles)
+% hObject    handle to editInitRadius (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editInitRadius as text
+%        str2double(get(hObject,'String')) returns contents of editInitRadius as a double
+
+
+% --- Executes on button press in checkTest.
+function checkTest_Callback(hObject, eventdata, handles)
+% hObject    handle to checkTest (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkTest
 
 

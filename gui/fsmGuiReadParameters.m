@@ -155,6 +155,7 @@ fsmParam.track.grid=get(handles.checkGrid,'Value');
 % Tracker's search radius
 fsmParam.track.threshold=str2num(get(handles.editThreshold,'String'));
 fsmParam.track.influence=str2num(get(handles.editInfluence,'String'));
+fsmParam.track.initRadius=str2num(get(handles.editInitRadius,'String'));
 
 % Tracker's correlation length
 fsmParam.track.corrLength=str2num(get(handles.editCorrLength,'String'));
@@ -167,12 +168,16 @@ else
     fsmParam.track.init=get(handles.popupTrackInit,'Value');
     switch fsmParam.track.init
         case 1,
-            % Vectors provided by imKymoAnalysis - saved into /corr/vectors
-            fsmParam.track.initPath=[fsmParam.project.path,filesep,fsmParam.project.corr,filesep,'vectors',filesep];
+            % Vectors provided by imKymoAnalysis - saved into /corr/flow
+            fsmParam.track.initPath=[fsmParam.project.path,filesep,fsmParam.project.corr,filesep,'flow',filesep];
+          
+        case 2,
+            % Vectors provided by TFT - saved into /tack/flow
+            fsmParam.track.initPath=[fsmParam.project.path,filesep,fsmParam.project.tack,filesep,'flow',filesep];
             
         otherwise
             
-            error('Only tracker initialization by imKymoAnalysis is supported right now.');
+            error('Only tracker initialization by imKymoAnalysis or TFT is supported right now.');
     end
 end
 

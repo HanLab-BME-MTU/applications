@@ -142,9 +142,9 @@ if fsmParam.track.enable==1
             uiwait(msgbox('At least 2 preprocessed images are needed for tracking. Please run the PREPROCESSING module again.','Error','error','modal'));
             return 
         end    
-    elseif fsmParam.track.tracker==3
+    elseif fsmParam.track.init==2
         if fsmParam.specific.imageNumber<3
-            uiwait(msgbox('At least 3 preprocessed images are needed for tracking. Please run the PREPROCESSING module again.','Error','error','modal'));
+            uiwait(msgbox('At least 3 preprocessed images are needed for the TFT initializer. Please run the PREPROCESSING module again.','Error','error','modal'));
             return
         end
     else

@@ -64,6 +64,18 @@ last=varargin{2};
 minN=varargin{3};
 titleGUI=char(varargin{4});
 
+% Store minN
+set(handles.pushOkay,'UserData',minN);
+
+% Check input
+if last-minN<first
+    error('Incompatible values for minimum, maximum, and step.');
+end
+if last==first
+    set(handles.SelectFramesGUI,'UserData',{first,last});
+    return
+end
+
 % Set up GUI with the passed data
 set(handles.editFirstFrame,'String',num2str(first));
 set(handles.editLastFrame,'String',num2str(last));
@@ -71,9 +83,6 @@ set(findobj('Tag','SelectFramesGUI'),'Name',titleGUI);
 sSteps=[1/(last-first) 1/(last-first)];
 set(handles.sliderFirstFrame,'SliderStep',sSteps,'Max',last,'Min',first,'Value',first);
 set(handles.sliderLastFrame,'SliderStep',sSteps,'Max',last,'Min',first,'Value',last);
-
-% Store minN
-set(handles.pushOkay,'UserData',minN);
 
 % UIWAIT makes fsmTrackSelectFramesGUI wait for user response (see UIRESUME)
 uiwait(handles.SelectFramesGUI);
