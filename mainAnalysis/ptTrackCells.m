@@ -61,6 +61,10 @@ function ptTrackCells (ptJob, jobNumber)
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source, make function independent of GUI handle
 
+% Tell the user that we've started
+fprintf (1, 'Starting analysis of job number %d:\n', jobNumber);
+
+% Assign all the job data to local variables
 imageDirectory       = ptJob.imagedirectory;
 imageName            = ptJob.imagename;
 increment            = ptJob.increment;
@@ -74,8 +78,7 @@ levNucLast           = ptJob.la_nucleus;
 levBackLast          = ptJob.la_background;
 levHaloLast          = ptJob.la_halolevel;      
 
-% Range in which direct assignement ,of found coordinates, from frame to
-% frame is accepted
+% Range in which direct assignement of found coordinates from frame to frame is accepted
 maxSearch            = ptJob.maxsearch;
 saveDirectory        = ptJob.savedirectory;
 percentBackground    = ptJob.noiseparameter;
@@ -108,10 +111,6 @@ minimalQualityCorr   = ptJob.mincorrqualtempl;
 minTrackCorr         = ptJob.mintrackcorrqual;
 segmentation         = ptJob.minmaxthresh;
 clustering           = ptJob.clustering;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% The following parameters should not be changed!
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % How much the blobs found in ptFindHalos shall be eroded. This is an indirect
 % size criteria for ptFindHalos. Increase - minimal size of halos will be
@@ -157,7 +156,7 @@ levDiffLast = abs (levNucLast - levBackLast) * levelAdjust;
 incrDiff = (levDiffLast - levDiffFirst) / (howManyImg - 1);
 incrBack = (levBackLast - levBackFirst) / (howManyImg - 1);
 incrHalo = (levHaloLast - levHaloFirst) / (howManyImg - 1);
-incrNuc = (levNucLast - levNucFirst) / (howManyImg - 1);
+incrNuc  = (levNucLast - levNucFirst) / (howManyImg - 1);
 
 i = 0;
 k = 0;
@@ -189,7 +188,7 @@ else
         
       % Let the user know where he/she is in the sequence by printing the number
       countLoops = countLoops + 1;
-      fprintf (1, 'Job number = %d, image number = %d\n', jobNumber, jImageNum);
+      fprintf (1, '      Image number = %d\n', jImageNum);
         
       % Make sure we start in the image directory
       cd (imageDirectory);
@@ -221,9 +220,8 @@ else
             % Find areas that are really dark and match cells into them
             [coordNuc, regmax] = ptFindNucloiTrack(seg_img, levDiffFirst, minSizeNuc, maxSizeNuc, 1);
                         
-            % Find cells that look like the third eye (round, big spots of
-            % pure light). We do this because the pictures are of poor
-            % quality and display huge halos around certain cells
+            % Find cells that look like round, big spots of pure light. We do this because sometimes 
+            % the pictures are of poor quality and display huge halos around certain cells
             [haloCoord, logihalo] = ptFindHalos(seg_img, erodeDiskSize, haloLevel, 1);
 	                   
          % Do the following when the segmentation algorithm has been selected (only
@@ -882,6 +880,9 @@ else
    %cd (saveDirectory)
    %MPM = ptTrackLinker(M);
 end
+
+% Tell the user we've finished
+fprintf (1, 'Finished analysis of job number %d.\n', jobNumber);
          
 % AK: the comments below are kept because Colin has worked so hard on them :-)
 

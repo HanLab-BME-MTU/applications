@@ -1,4 +1,4 @@
-function [coord] = ptInitializeJob (ptJob, jobNumber)
+function [newCoord] = ptInitializeJob (ptJob, jobNumber)
 % ptInitializeJob finds coordinates in an image
 %
 % SYNOPSIS       ptInitializeJob (ptJob, jobNumber)
@@ -8,13 +8,13 @@ function [coord] = ptInitializeJob (ptJob, jobNumber)
 %                jobNumber : which job is currently being dealt with. This is used to print
 %                            some status information on the matlab command line
 %                
-% OUTPUT         coord : list of coordinates manually checked and edited by user.
+% OUTPUT         newCoord : list of coordinates manually checked and edited by user.
 %
 % DEPENDENCIES   ptInitializeJob uses { imClusterSeg
 %				        ptTrackLinker
 %				        ptCheckMinimalCellDistance
 %				        ptFindNucloiTrack
-%				        takenkick
+%				        ptUserCellProcessing
 %				        ptFindHalos }
 %                                  
 %                ptInitializeJob is used by { PolyTrack }
@@ -34,7 +34,8 @@ function [coord] = ptInitializeJob (ptJob, jobNumber)
 %                       maxsize : maximal size of nucloi
 %                       minsdist : minimal distance between two cells
 %                       minmaxthresh : onoff - should minima and segmentation be used
-%                       clustering : onoff - should clustering be used
+%                       clustering : on off - should clustering be used
+%                       intensityMax : max intensity of the image
 %
 % Revision History
 % Name                  Date            Comment
@@ -43,7 +44,7 @@ function [coord] = ptInitializeJob (ptJob, jobNumber)
 % Andre Kerstens        Mar 04          Cleaned up source, make function independent of GUI handle
 
 % First tell the user we're busy initializing
-fprintf (1, 'Initializing phase has started for job number %d...\n', projNum);
+fprintf (1, 'Initializing phase has started for job number %d...\n', jobNumber);
 
 % Assign all the job data to local variables
 imageDirectory    = ptJob.imagedirectory;
@@ -66,8 +67,9 @@ MinDistCellCell   = ptJob.minsdist;
 
 % Get the maximum image intensity of the images in the job
 maxImageIntensity = ptJob.intensityMax;
-
 segmentation      = ptJob.minmaxthresh;
+
+% User selectable clustering method
 clustering        = ptJob.clustering;
 
 % Get the difference between nuclei and background intensity and adjust this
@@ -76,14 +78,14 @@ levDiffFirst = abs (levNucFirst - levBackFirst) * levelAdjust;
 % How much the blobs found in ptFindHalos shall be eroded. This is an indirect
 % size criteria for ptFindHalos. Increase - minimal size of halos will be
 % increased, decrease - ... decreased
-ErodeDiskSize = round((sqrt(minSizeNuc))/2) ;
+ErodeDiskSize = round ((sqrt (minSizeNuc)) / 2) ;
 
 % Go to the directory where the images are stored
 cd (imageDirectory)
 
 % Make sure the images are in correct sequence. If not throw an error
 if ~lastImageNr > firstImageNr
-   fprintf (1, 'Error: the last image # is before the first image # in job number %d\n', projNum);
+   fprintf (1, 'Error: the last image # is before the first image # in job number %d\n', jobNumber);
    return;
 else
    % Get the name of the first image in the list
@@ -131,8 +133,14 @@ else
    newCoord =  ptCheckMinimalCellDistance (coordNuc, coordHalo, MinDistCellCell);           
 
    % Let the user manually fill in the missing cells and erase the wrong cells
-   newCoord = takenkick (firstImage, newCoord);
+   newCoord = ptUserCellProcessing (firstImage, newCoord);
 
    % Round coordinates and return to the calling function
    newCoord = round (newCoord);
+
+   % Tell the user we've finished
+   fprintf (1, 'Finished Initializing phase for job number %d.\n', jobNumber);
+
+   return;
 end
+

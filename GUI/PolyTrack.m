@@ -2091,6 +2091,9 @@ handles = guidata(hObject);
 % Get the list of jobs
 jobList = get(handles.GUI_st_job_lb,'String');
 
+% Select the current job
+jobNumber = get(handles.GUI_st_job_lb,'Value');
+
 % If the joblist has entries get the number of entries else return,
 % because there is really nothing to do
 if iscell(jobList)
