@@ -309,7 +309,7 @@ else
     
     if abs(dataProperties.timeLapse - avgTimeLapse) > 0.11
         warning('CALCULATETRAJECTORYFROMIDLIST:wrongTime',...
-            'Possible source of error: timeLapse %f used instead of %f',avgTimeLapse,dataProperties.timeLapse);
+            'Possible source of error: timeLapse %f used instead of %f\n in %s',avgTimeLapse,dataProperties.timeLapse,dataProperties.name);
     end
 end
 
