@@ -288,6 +288,12 @@ if isdir(projDir)
    end
 
    if ~isempty(physiParam)
+      if length(physiParam) < length(firstImgList)
+          defPhysiParam = physiParam{end};
+          for k = length(physiParam)+1:length(firstImgList)
+             physiParam{k} = defPhysiParam;
+          end
+      end
       selPhysiParam = physiParam{selImgDir};
       physiParam{selImgDir} = physiParam{1};
       physiParam{1}         = selPhysiParam;
@@ -710,7 +716,7 @@ win_imgDrive  = [];
 noProblem = 0;
 if isdir(projDir)
     title = 'Platform dependent';
-    settingsMatFile = 'lastProjSettings.mat';
+    settingsMatFile = [projDir filesep 'lastProjSettings.mat'];
     if exist(settingsMatFile,'file') == 2
         s = load(settingsMatFile);
         projSettings = s.projSettings;

@@ -198,6 +198,9 @@ if nargin == 0  % LAUNCH GUI
         imageDir = settings.imageDir;
     end
     noProblem = 1;
+    if isempty(fsmParam.main.imagePath)
+        fsmParam.main.imagePath = imageDir;
+    end
     if ~samdir(fsmParam.main.imagePath,imageDir)
         if ~isdir(fsmParam.main.imagePath)
             %This could be a platform problem.
