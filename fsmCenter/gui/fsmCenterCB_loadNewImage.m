@@ -12,6 +12,17 @@ function fsmCentercb_loadNewImage
 %
 % Aaron Ponti, 11/18/2003
 
+% Current directory
+oldDir=cd;
+
+% Read current image path from fsmCenter
+hFsm=findall(0,'Tag','fsmCenter','Name','fsmCenter');
+handles=guidata(hFsm);
+imagePath=get(handles.textCurrentImage,'String');
+if ~isempty(imagePath)
+    cd(imagePath);
+end
+
 % Select image
 [fileName,dirName] = uigetfile(...
     {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
@@ -58,3 +69,6 @@ figure(gcf);
 hMenu=uimenu('Label','More Tools');
 uimenu(hMenu,'Label','Load image','Callback','fsmCenterCB_loadNewImage;','Accelerator','L');
 uimenu(hMenu,'Label','Find edges','Callback','fsmCenterCB_findEdges;','Accelerator','E','Separator','On');
+
+% Go back to old directory
+cd(oldDir);
