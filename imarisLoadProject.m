@@ -1,9 +1,12 @@
-function imarisLoadProject(addOrReplace)
+function imarisLoadProject(addOrReplace,centerOrNot)
 %imarisLoadProject loads, transforms and displays chromdyn-data in imaris
 %
 % SYNOPSIS imarisLoadProject
 %
 % INPUT    the code asks for project data and a filtered movie
+%          addOrReplace : whether to add to or replace the current surpass 
+%                           scene 
+%          center       : whether to center the data on the centroid [{0}/1]
 %
 % OUTPUT   the code will launch imaris and show the image data there
 %
@@ -14,6 +17,7 @@ function imarisLoadProject(addOrReplace)
 % TEST INPUT
 %=============
 replace = 1;
+center  = 0;
 
 if nargin < 1 | isempty(addOrReplace)
     % default
@@ -34,6 +38,18 @@ else
     end
 end
 
+if nargin < 1 || isempty(centerOrNot)
+    % default
+else
+    switch centerOrNot
+        case 1
+            center = 1;
+        case 0
+            center = 0;
+        otherwise
+            error('Please specify 1 or 0 for the second input variable centerOrNot')
+    end
+end
 %========================
 % LOAD DATA
 %========================
@@ -73,6 +89,7 @@ for t = 1:tMax
         % find list of spots
         spotNumVector = idlist(t).linklist(:,2);
         [spotNum, singleIdx] = unique(spotNumVector);
+        spotCtNew = spotCt + spotNum(end);
         
         
         
@@ -85,8 +102,12 @@ for t = 1:tMax
                     sum(idlist(t).linklist(find(spotNumVector==iSpot),8))];
         end
         
-        
-        
+        % center if selected: subtract the mean of the spots
+        if center
+            spotList(spotCt+1:spotCtNew,2:4) = spotList(spotCt+1:spotCtNew,2:4) - ...
+                repmat(mean(spotList(spotCt+1:spotCtNew,2:4),1),spotNum(end),1);
+        end
+
         % fill edgeList - [prevSpot,currentSpot], as ntpx2xntag array
         
         linkup = idlist(t).linklist(:,6);
@@ -114,12 +135,27 @@ for t = 1:tMax
         
         % count total # of spots including this frame
         spotCtOld = spotCt;
-        spotCt = spotCt + spotNum(end);
+        spotCt = spotCtNew;
         
        
     end
 end
 
+if center
+% create pseudo-movie if centered
+minMovieSizeUM = max(spotList(:,2:4),[],1)-min(spotList(:,2:4),[],1);
+
+% increase movie size by 10%
+movieSizeUM = minMovieSizeUM * 1.1;
+
+% calc in pixels
+movieSizePIX = ceil(movieSizeUM./oneVoxel);
+% one channel, ntp time points
+filteredMovie = zeros([movieSizePIX,1,size(filteredMovie,5)]);
+
+% shift zero of coordinates to center of movie
+spotList(:,2:4) = spotList(:,2:4) + repmat(movieSizeUM/2, spotCt, 1);
+end
 
 %================================
 
@@ -134,25 +170,35 @@ vImarisApplication = actxserver('Imaris.Application');
 vImarisDataSet = vImarisApplication.mDataSet;
 
 %--------- load movie into data 
-matlabMovieSize = size(filteredMovie);
+if center
+    imarisMovieSize = movieSizeUM;
+
+else
+    matlabMovieSize = size(filteredMovie);
 
 
-% convert every single frame to [0 1]
-for t = 1:matlabMovieSize(5)
-    currImg = filteredMovie(:,:,:,:,t);
-    currImg = currImg - min(currImg(:));
-    filteredMovie(:,:,:,:,t) = currImg/max(currImg(:));
+    % convert every single frame to [0 1]
+    for t = 1:matlabMovieSize(5)
+        currImg = filteredMovie(:,:,:,:,t);
+        currImg = currImg - min(currImg(:));
+        filteredMovie(:,:,:,:,t) = currImg/max(currImg(:));
+    end
+
+    % switch x,y
+    filteredMovie = permute(filteredMovie,[2,1,3,4,5]);
+
+    % calculate extent; do not forget to subtract 1!
+    imarisMovieSize = ...
+        (matlabMovieSize(1:3)-1) .* oneVoxel;
+
 end
 
-% convert double to single and switch x,y
-filteredMovie = permute(filteredMovie,[2,1,3,4,5]);
+% convert double to single and set
 vImarisDataSet.SetData(single(filteredMovie));
 
 
 
-% set extent of movie do not forget to subtract 1!
-imarisMovieSize = ...
-    [matlabMovieSize(1:3)-1] .* [dataProperties.PIXELSIZE_XY dataProperties.PIXELSIZE_XY dataProperties.PIXELSIZE_Z];
+% set extent of movie 
 
 vImarisDataSet.mExtendMaxX = imarisMovieSize(1);
 vImarisDataSet.mExtendMaxY = imarisMovieSize(2);
