@@ -252,10 +252,19 @@ guiH = handles.AMG;
 %are not the same, create subdirectory with projectname = moviename and move
 %movie and logfile
 
-[fileName,pathName] = uigetfile({'*.r3d;*.r3c','raw movie files'},'select project movie');
+[fileName,pathName] = uigetfile({'*.r3d;*.r3c;*R3D.dv;*r3d.dv','raw movie files'},'select project movie');
 
 %return if user has selected nothing
-if fileName==0 | ~strcmp(fileName(end-3:end-1),'.r3') %can be r3d or r3c
+if fileName==0 
+    return
+elseif strcmpi(fileName(end-6:end),'_R3D.dv')
+    % change fileName to *.r3d
+    destFileName = [fileName(1:end-7),'.r3d'];
+elseif strcmp(fileName(end-3:end-1),'.r3')
+    % we're happy
+    destFileName = fileName;
+else
+    %something is strange: return
     return
 end
 
@@ -276,10 +285,10 @@ end
 
 %if last part of pathname differs from moviename: create project directory
 %and move movie and logfile; else read projectName
-projName = fileName(1:end-4);
+projName = destFileName(1:end-4);
 
 %get extension of movie file
-fileExtension = fileName(end-3:end); %.r3d/.r3c
+fileExtension = destFileName(end-3:end); %.r3d/.r3c
 
 %get name of directory
 listSep = findstr(pathName,filesep);
@@ -296,11 +305,11 @@ else
     mkdir(projName);
     %store directory path
     fullPathName = [pathName,projName,filesep]; 
-    %move movie
+    %move movie and rename if necessary
     if ispc
-        movefile([pathName,fileName],fullPathName);
+        movefile([pathName,fileName],[fullPathName,destFileName]);
     else %there is a bug in linux with copying
-        system(['mv ' [pathName,fileName] ' ' fullPathName]);
+        system(['mv ' [pathName,fileName] ' ' [fullPathName,destFileName]]);
     end
     
     %move logfile
