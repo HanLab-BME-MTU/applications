@@ -455,6 +455,13 @@ fprintf(fid,'*******************************************************************
 % Close the file
 fclose(fid);
 
+% Save image information for other packages
+fsmImages.firstIndex = fsmParam.specific.firstIndex;
+fsmImages.firstName  = fsmParam.specific.fileList(1,:);
+fsmImages.lastIndex  = fsmParam.specific.lastIndex;
+fsmImages.lastName   = fsmParam.specific.fileList(end,:);
+save fsmImages.mat fsmImages;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   CHANGE BACK TO PREVIOUS DIRECTORY
