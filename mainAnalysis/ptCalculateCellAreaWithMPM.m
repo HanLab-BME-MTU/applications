@@ -74,17 +74,6 @@ for frameCount = validFrames(1,:)
       return;
    end
        
-   % To make sure that the frame we are reading from disk is valid we'll cycle through the
-   % validFrames array as long as needed and increase imageCount
-%    while find(validFrames(1,:) == imageCount) == []
-%        imageCount = imageCount + increment;
-%        
-%        % Check that we don't go past the endframe
-%        if imageCount > endFrame
-%           return;
-%        end
-%    end
-       
    % Where are we processing the movie?
    %fprintf (1, '%d ', imageCount);
    fprintf (1, '%d ', frameCount);

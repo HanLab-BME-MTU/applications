@@ -147,22 +147,6 @@ else		% lastImaNum > firstImaNum
       % Get the information on the image
       imageInfo = imfinfo (imageFilename, 'tif');
       
-%       % Calculate the amount of time (in secs) between this and the previous frame
-%       if loopCount > 1
-%          julianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
-%          frameTime = abs(julianTime - prevJulianTime);
-%          
-%          if frameTime >= 1  % 1 sec is the minimum we accept
-%             validFrames(2,loopCount) = frameTime;
-%          else
-%             validFrames(2,loopCount) = timePerFrameGUI;
-%          end
-%          
-%          prevJulianTime = julianTime;
-%       else
-%          prevJulianTime = datenum(imageInfo.FileModDate, 'dd-mmm-yyyy HH:MM:SS');
-%       end
-
       % Read the current image and normalize the intensity values to [0..1]
       tempImage = imreadnd2 (imageFilename, 0, intensityMax);
    
@@ -231,18 +215,7 @@ else		% lastImaNum > firstImaNum
             return;
          end
          
-         %if imageCount > startFrame
-            %M (1 : size (emptyM, 1), 1 : size (emptyM, 2), loopCount - 1) = emptyM;
-         %end
-         %clusterProps(:,:,loopCount) = []; 
-         %cellProps(:,:,loopCount) = [];
-         
-         %cellProps (1 : size (emptyCell, 1), 1 : size (emptyCell, 2), imageCount) = emptyCell;
-         %clusterProps (1 : size (emptyCluster, 1), 1 : size (emptyCluster, 2), imageCount) = emptyCluster;
-         %frameProps (1 : size (emptyFrame, 1), 1 : size (emptyFrame, 2), imageCount) = emptyFrame;
-         %return
-      else   % A good frame was found
-          
+      else   % A good frame was found         
           % Reset the bad frame counter
           badFrameCounter = 0;
              

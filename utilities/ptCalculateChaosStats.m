@@ -25,6 +25,23 @@ validFrames = handles.allValidFrames;
 jobData = handles.jobData;
 guiData = handles.guiData;
 
+% Check that all the images are available for all selected jobs, because we
+% need row and colsizes. If not available use a row and colsize calculated
+% from the coordinates in the MPM (max x and y values)
+for jobCount = 1 : length(MPM)
+    if ~isfield(jobData(jobCount),'rowsize') | ~isfield(jobData(jobCount),'colsize')
+        if ~jobData(jobCount).imagesavailable
+            % Split MPM in x (col) and y (row) values
+            xMPM = MPM{jobCount}(:,1:2:end);
+            yMPM = MPM{jobCount}(:,2:2:end);
+
+            % Find the max x value
+            jobData(jobCount).colsize = max(xMPM(:));
+            jobData(jobCount).rowsize = max(yMPM(:));
+        end
+    end
+end
+
 % Get values from the gui (these are used for all jobs)
 plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
@@ -170,3 +187,18 @@ chaosStats.ripleySlopeStart = avgripleyClustSlopePoint(1:lastEntry);
 
 % Also take valid xAxis entries
 xAxis = xAxis(1:lastEntry);
+
+
+%---------------------------------------------------------------------
+
+function [xMax,yMax] = calcMaxMPMValues(MPM)
+% This function calculates the maximum x and y values present in MPM (over
+% all frames)
+
+% Split MPM in x (col) and y (row) values
+xMPM = MPM(:,1:2:end);
+yMPM = MPM(:,2:2:end);
+
+% Find the max x value
+xMax = max(xMPM(:));
+yMax = max(yMPM(:));

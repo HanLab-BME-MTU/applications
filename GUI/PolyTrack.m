@@ -62,7 +62,8 @@ defaultjob = struct('imagedirectory', [], 'imagename', [], 'firstimage', 1, 'las
                    'minedge', 10, 'sizetemplate', 41, 'boxsize', 141, 'noiseparameter', 0.15,...
                    'mincorrqualtempl', 0.5, 'leveladjust', 0.7, 'timestepslide', 5, 'mintracklength', 2,...
                    'coordinatespicone', [], 'intensityMax', 4095, 'bitdepth', 12, 'bitdepth_index', 3, 'bodyname', [],...
-                   'imagenameslist', [], 'timeperframe', 300, 'timestepslide_index', 2);
+                   'imagenameslist', [], 'timeperframe', 300, 'timestepslide_index', 2, 'rowsize', 0, ...
+                   'colsize', 0);
 
 % Assign the default job values to the GUI handle so it can be passed around
 handles.defaultjob = defaultjob;
@@ -199,8 +200,13 @@ else
     % Now the image directory is known, let's rename all filenames to
     % lowercase to prevent problems later on (Metamorph sometimes names the
     % files with arbitrary upper and lowercase characters)
-    renameImageFilesToLower (imagedirectory);
+    %renameImageFilesToLower (imagedirectory);
     	    
+    % Store the size of the frames
+    imInfo = imfinfo([imagedirectory filesep filename]);
+    handles.jobs(jobNumber).rowsize = imInfo.Height;
+    handles.jobs(jobNumber).colsize = imInfo.Width;
+    
     % Find out what part of the filename describes the images and which part
     % is just counting them through.    
     number = 0;
@@ -327,6 +333,13 @@ set(handles.GUI_st_job_lb,'String',jobList);
 
 % Update GUI handle struct
 guidata(hObject, handles);
+
+% Store the latest data in jobvalues.mat in the specified save directory
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
+   save ([handles.jobs(jobNumber).savedirectory filesep 'jobvalues'],'jobvalues')
+   clear jobvalues
+end
 
 % Last but not least make sure the text field on the GUI show the latest values
 ptFillFields(handles, handles.jobs(jobNumber))

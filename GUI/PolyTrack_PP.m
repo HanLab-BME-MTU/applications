@@ -300,16 +300,23 @@ if length(handles.allMPM) > 1
     return;
 end
 
-% This is to signal that the ptManualPostProcessJob function is called by the
-% GUI manual processing button
-handles.whichcallback = 1;
+% Let's make sure images are available to make the movie
+if handles.jobData(1).imagesavailable == 1
+    % This is to signal that the ptManualPostProcessJob function is called by the
+    % GUI manual processing button
+    handles.whichcallback = 1;
 
-% Update handles structure
-guidata(hObject, handles);
+    % Update handles structure
+    guidata(hObject, handles);
 
-% Do the manual postprocessing 
-ptManualPostProcessJob (hObject);
-
+    % Do the manual postprocessing 
+    ptManualPostProcessJob (hObject);
+else
+    errorStr = ['No images available for this job to do manual postprocessing.'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
 
 %----------------------------------------------------------------------------
 
@@ -809,6 +816,8 @@ else
       save ([saveDir filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
    end
    
+   % Only do chaos stats calculations when image (and indirectly image
+   % size) are available
    if radioButtons.ripleyplot         
       if radioButtons.ripleyplot_1
           
@@ -1082,14 +1091,23 @@ end
 % Assign the radiobutton values to the radioButtons struct
 radioButtons = getRadiobuttonValues (handles);
 
-% Start the function that will create the dragtail movie
-result = ptMovieMaker (radioButtons, handles);
+% Let's make sure images are available to make the movie
+if handles.jobData(1).imagesavailable == 1
 
-% Show a message telling the user we've finished
-if result == 0
-   msgbox ('Finished generating movie. Press OK to continue...');
+    % Start the function that will create the dragtail movie
+    result = ptMovieMaker (radioButtons, handles);
+
+    % Show a message telling the user we've finished
+    if result == 0
+       msgbox ('Finished generating movie. Press OK to continue...');
+    end
+else
+    errorStr = ['No images available for this job to create movie.'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
 end
-   
+
 % Update handles structure
 guidata (hObject, handles);
 
@@ -2371,12 +2389,15 @@ fileInfoPP.saveDir = saveDir;
 % Ask the user where to save the file
 [filename,path] = uiputfile(saveDirectory, 'Save settings as');
 
-% Save to disk
-save ([path filename], 'fileInfoPP');
+% If user presses cancel, don't do anything
+if filename ~= 0
+    % Save to disk
+    save ([path filename], 'fileInfoPP');
 
-% Modify the GUI and handles as well
-handles.savepath = [path filename];
-set (handles.GUI_savesettingpath_ed, 'String', handles.savepath);
+    % Modify the GUI and handles as well
+    handles.savepath = [path filename];
+    set (handles.GUI_savesettingpath_ed, 'String', handles.savepath);
+end
 
 % Update GUI handles struct
 guidata (hObject,handles);
@@ -2454,137 +2475,139 @@ handles = guidata(hObject);
 fileList = get(handles.GUI_filelist_lb,'String');
 filesSelected = get(handles.GUI_filelist_lb,'Value');
 
-% Retrieve the data for the selected jobs
-[allMPM, allCellProps, allClusterProps, allFrameProps, allValidFrames, jobData, result] = ptRetrieveJobData (fileList, filesSelected);
+if ~strcmp(fileList,'No files loaded.')
+    % Retrieve the data for the selected jobs
+    [allMPM, allCellProps, allClusterProps, allFrameProps, allValidFrames, jobData, result] = ptRetrieveJobData (fileList, filesSelected);
 
-% Check the result value (0 is good)
-if result > 0
-   h=errordlg ('An error occured while fetching data for the selected files (ptRetrieveJobData).');
-   uiwait (h); 
-   return;
-end
-
-% Get the data from the GUI
-[guiData] = ptRetrieveGUIData (handles);
-
-% Get radioButton values
-alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
-
-% Check that the job and gui data fit together over movies
-for jobCount = 1 : length(allMPM)
-
-    % Get first and last frame numbers and increment
-    startFrame = jobData(jobCount).firstimg;
-    endFrame = jobData(jobCount).lastimg;
-    increment = jobData(jobCount).increment;
-    
-    % Default plot ranges should be tested if not started from 1
-    if ~alwaysCountFrom1
-        % Make sure the start and end frames fit to the selected plot frames
-        if (guiData.plotfirstimg < startFrame)
-            errorStr = ['The selected plot start frame (' num2str(guiData.plotfirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
-            h = errordlg(errorStr);
-            uiwait(h);          % Wait until the user presses the OK button  
-            return;
-        end
-        if (guiData.plotlastimg > endFrame)
-            errorStr = ['The selected plot end frame (' num2str(guiData.plotlastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
-            h = errordlg(errorStr);
-            uiwait(h);          % Wait until the user presses the OK button  
-            return;
-        end
-        
-        % Make sure the start and end frames fit to the selected movie frames
-        if (guiData.moviefirstimg < startFrame)
-            errorStr = ['The selected movie start frame (' num2str(guiData.moviefirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
-            h = errordlg(errorStr);
-            uiwait(h);          % Wait until the user presses the OK button  
-            return;
-        end
-        if (guiData.movielastimg > endFrame)
-            errorStr = ['The selected movie end frame (' num2str(guiData.movielastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
-            h = errordlg(errorStr);
-            uiwait(h);          % Wait until the user presses the OK button  
-            return;
-        end
+    % Check the result value (0 is good)
+    if result > 0
+       h=errordlg ('An error occured while fetching data for the selected files (ptRetrieveJobData).');
+       uiwait (h); 
+       return;
     end
-    
-    % Make sure increment is consistent over movies
-    if jobCount == 1
-        prevIncrement = increment;
-    else
-        if increment ~= prevIncrement
-            errorStr = ['The increment value is different between the ' length(allMPM) ' movies.'];
-            h = errordlg(errorStr);
-            uiwait(h);          % Wait until the user presses the OK button  
-            return;
-        end
-    end  % if jobCount == 1
-    
-    % Get frame interval and pixel length
-    frameInterval = round (jobData(jobCount).timeperframe / 60);    % In minutes
-    pixelLength = jobData(jobCount).mmpixel;
-    
-    % Check that values are consistent over movies
-    if jobCount == 1
-        prevFrameInterval = frameInterval;
-        prevPixelLength = pixelLength;
-    else
-        if frameInterval ~= prevFrameInterval
-            errorStr = ['The frame rate is different between the ' num2str(length(allMPM)) ' movies.'];
-            h = errordlg(errorStr);
-            uiwait(h);          % Wait until the user presses the OK button  
-            return;
-        end
-        if pixelLength ~= prevPixelLength
-            errorStr = ['The pixel length is different between the ' num2str(length(allMPM)) ' movies.'];
-            h = errordlg(errorStr);
-            uiwait(h);          % Wait until the user presses the OK button  
-            return;
-        end
-    end  % if jobCount == 1
-    
-    % Get row and colsizes
-    rowSize = jobData(jobCount).rowsize;
-    colSize = jobData(jobCount).colsize;
-    
-    % This is only needed for the convex hull calculations, so if these are
-    % not needed, do not test this
-    convexHullPlotNeeded = get (handles.checkbox_avg_convex_hull_area,'Value');
-    
-    % Make sure row and colsize is consistent over movies
-    if convexHullPlotNeeded
-        if jobCount == 1
-            prevRowSize = rowSize;
-            prevColSize = colSize;
-        else
-            if rowSize ~= prevRowSize
-                errorStr = ['The image row size is different between the ' num2str(length(allMPM)) ' movies.'];
+
+    % Get the data from the GUI
+    [guiData] = ptRetrieveGUIData (handles);
+
+    % Get radioButton values
+    alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
+
+    % Check that the job and gui data fit together over movies
+    for jobCount = 1 : length(allMPM)
+
+        % Get first and last frame numbers and increment
+        startFrame = jobData(jobCount).firstimg;
+        endFrame = jobData(jobCount).lastimg;
+        increment = jobData(jobCount).increment;
+
+        % Default plot ranges should be tested if not started from 1
+        if ~alwaysCountFrom1
+            % Make sure the start and end frames fit to the selected plot frames
+            if (guiData.plotfirstimg < startFrame)
+                errorStr = ['The selected plot start frame (' num2str(guiData.plotfirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
                 h = errordlg(errorStr);
                 uiwait(h);          % Wait until the user presses the OK button  
                 return;
             end
-            if colSize ~= prevColSize
-                errorStr = ['The image column size is different between the ' num2str(length(allMPM)) ' movies.'];
+            if (guiData.plotlastimg > endFrame)
+                errorStr = ['The selected plot end frame (' num2str(guiData.plotlastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
+                h = errordlg(errorStr);
+                uiwait(h);          % Wait until the user presses the OK button  
+                return;
+            end
+
+            % Make sure the start and end frames fit to the selected movie frames
+            if (guiData.moviefirstimg < startFrame)
+                errorStr = ['The selected movie start frame (' num2str(guiData.moviefirstimg) ') does not fit with the job start frame (' num2str(startFrame) ')'];
+                h = errordlg(errorStr);
+                uiwait(h);          % Wait until the user presses the OK button  
+                return;
+            end
+            if (guiData.movielastimg > endFrame)
+                errorStr = ['The selected movie end frame (' num2str(guiData.movielastimg) ') does not fit with the job end frame (' num2str(endFrame) ')'];
+                h = errordlg(errorStr);
+                uiwait(h);          % Wait until the user presses the OK button  
+                return;
+            end
+        end
+
+        % Make sure increment is consistent over movies
+        if jobCount == 1
+            prevIncrement = increment;
+        else
+            if increment ~= prevIncrement
+                errorStr = ['The increment value is different between the ' length(allMPM) ' movies.'];
                 h = errordlg(errorStr);
                 uiwait(h);          % Wait until the user presses the OK button  
                 return;
             end
         end  % if jobCount == 1
-    end   % if convexHullPlotNeeded
-end  % for jobCount = 1 : length(allMPM)
 
-% Assign all values to the handles struct
-handles.allMPM = allMPM;
-handles.allCellProps = allCellProps;
-handles.allClusterProps = allClusterProps;
-handles.allFrameProps = allFrameProps;
-handles.allValidFrames = allValidFrames;
-handles.jobData = jobData;
-handles.guiData = guiData;
+        % Get frame interval and pixel length
+        frameInterval = round (jobData(jobCount).timeperframe / 60);    % In minutes
+        pixelLength = jobData(jobCount).mmpixel;
 
-% Update GUI handles struct
-guidata (hObject,handles);
+        % Check that values are consistent over movies
+        if jobCount == 1
+            prevFrameInterval = frameInterval;
+            prevPixelLength = pixelLength;
+        else
+            if frameInterval ~= prevFrameInterval
+                errorStr = ['The frame rate is different between the ' num2str(length(allMPM)) ' movies.'];
+                h = errordlg(errorStr);
+                uiwait(h);          % Wait until the user presses the OK button  
+                return;
+            end
+            if pixelLength ~= prevPixelLength
+                errorStr = ['The pixel length is different between the ' num2str(length(allMPM)) ' movies.'];
+                h = errordlg(errorStr);
+                uiwait(h);          % Wait until the user presses the OK button  
+                return;
+            end
+        end  % if jobCount == 1
+
+        % Get row and colsizes
+        rowSize = jobData(jobCount).rowsize;
+        colSize = jobData(jobCount).colsize;
+
+        % This is only needed for the convex hull calculations, so if these are
+        % not needed, do not test this
+        convexHullPlotNeeded = get (handles.checkbox_avg_convex_hull_area,'Value');
+
+        % Make sure row and colsize is consistent over movies
+        if convexHullPlotNeeded
+            if jobCount == 1
+                prevRowSize = rowSize;
+                prevColSize = colSize;
+            else
+                if rowSize ~= prevRowSize
+                    errorStr = ['The image row size is different between the ' num2str(length(allMPM)) ' movies.'];
+                    h = errordlg(errorStr);
+                    uiwait(h);          % Wait until the user presses the OK button  
+                    return;
+                end
+                if colSize ~= prevColSize
+                    errorStr = ['The image column size is different between the ' num2str(length(allMPM)) ' movies.'];
+                    h = errordlg(errorStr);
+                    uiwait(h);          % Wait until the user presses the OK button  
+                    return;
+                end
+            end  % if jobCount == 1
+        end   % if convexHullPlotNeeded
+    end  % for jobCount = 1 : length(allMPM)
+
+    % Assign all values to the handles struct
+    handles.allMPM = allMPM;
+    handles.allCellProps = allCellProps;
+    handles.allClusterProps = allClusterProps;
+    handles.allFrameProps = allFrameProps;
+    handles.allValidFrames = allValidFrames;
+    handles.jobData = jobData;
+    handles.guiData = guiData;
+
+    % Update GUI handles struct
+    guidata (hObject,handles);
+end
 
 %--------------------------------------------------------------------
 

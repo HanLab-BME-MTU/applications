@@ -99,41 +99,50 @@ for iCount = 1 : fileNumbers
     if result == 1  % error
        return
     end
+    
     % Set image filename
     jobData(iCount).imagename = allJobvalues{iCount}.imagename;    
-        
+    
+    % Set image sizes
+    jobData(iCount).rowsize = allJobvalues{iCount}.rowsize;
+    jobData(iCount).colsize = allJobvalues{iCount}.colsize;
+    
     % Determine image file path from MPM path
     currentPath = pwd;
     cd (pathString); cd ('..');
+    
     if isempty(dir(jobData(iCount).imagename))
-       % No images found: let's try one more directory down
+       % Image not found: let's try one more directory down
        cd ('..');
     end
+    
     if isempty(dir(jobData(iCount).imagename))
-       % Still no images found
-       result = 1;
-       allMPM = [];
-       allCellProps = [];
-       allClusterProps = [];
-       allFrameProps = [];
-       allValidFrames = [];
-       jobData = [];
-       return;
-    end    
-    jobData(iCount).imagefilepath = pwd;
-    cd (currentPath);   % Reset the original path
-    
-    % Store the size of the image
-    info = imfinfo ([jobData(iCount).imagefilepath filesep jobData(iCount).imagename]);
-    jobData(iCount).rowsize = info.Height;
-    jobData(iCount).colsize = info.Width;
-    
-    % Figure size for movie generation
-    jobData(iCount).figuresize = [];
+        % Still no images found
+        % We continue loading, but certain functions like manual postpro
+        % will not be possible
+        jobData(iCount).imagefilepath = '';
+        jobData(iCount).imagesavailable = 0;
+    else   
+        jobData(iCount).imagefilepath = pwd;
+        jobData(iCount).imagesavailable = 1;
 
-    % Get the imagename without .tif
-    jobData(iCount).imagenamenotiff = regexprep(jobData(iCount).imagename, '.tif', '', 'ignorecase');
+        % Store the size of the image
+        if ~isfield(jobData(iCount),'rowsize') | ~isfield(jobData(iCount),'colsize')
+            info = imfinfo ([jobData(iCount).imagefilepath filesep jobData(iCount).imagename]);
+            jobData(iCount).rowsize = info.Height;
+            jobData(iCount).colsize = info.Width;
+        end
 
+        % Figure size for movie generation
+        jobData(iCount).figuresize = [];
+
+        % Get the imagename without .tif
+        jobData(iCount).imagenamenotiff = regexprep(jobData(iCount).imagename, '.tif', '', 'ignorecase');
+    end
+    
+    % Reset the original path
+    cd (currentPath);
+    
     % Now we have to fill up the rest of the jobData structure with
     % our previously found data and parameters
     jobData(iCount).selectedcells = [];

@@ -1,10 +1,10 @@
-function ptPlotAreaStats (radioButtons, imageName, SaveDir, xAxis, areaStats, windowSize)
+function ptPlotAreaStats (radioButtons, plotName, SaveDir, xAxis, areaStats, windowSize)
 % ptPlotAreaStats generates the plots for the cell and cluster area statistics
 %
-% SYNOPSIS       ptPlotAreaStats (radioButtons, imageName, SaveDir, xAxis, areaStats, windowSize)
+% SYNOPSIS       ptPlotAreaStats (radioButtons, plotName, SaveDir, xAxis, areaStats, windowSize)
 %
 % INPUT          radioButtons : struct containing the value of all gui radiobuttons
-%                imageName : name of the first image in the movie (used as title)
+%                plotName : name of the first image in the movie (used as title)
 %                SaveDir : name of the directory where the plots are saved in files
 %                xAxis : matrix with frame numbers (this should have the same length as
 %                        (all the other matrices that follow)
@@ -57,7 +57,7 @@ if radioButtons.areaplot_2
     if ~radioButtons.donotshowplots
 
         % Generate the figure and title      
-        h_fig = figure('Name', imageName);
+        h_fig = figure('Name', plotName);
 
         % Draw a subplot showing the avg area of a single cell    
         ymax = max (areaPerSingleCell) + 1;
@@ -94,9 +94,9 @@ if radioButtons.areaplot_2
         end
     
         % Save the figures in fig, eps and tif format     
-        hgsave(h_fig,[SaveDir filesep [imageName '_averageCellAndClusterArea.fig']]);
-        print(h_fig, [SaveDir filesep [imageName '_averageCellAndClusterArea.eps']],'-depsc2','-tiff');
-        print(h_fig, [SaveDir filesep [imageName '_averageCellAndClusterArea.tif']],'-dtiff');
+        hgsave(h_fig,[SaveDir filesep [plotName '_averageCellAndClusterArea.fig']]);
+        print(h_fig, [SaveDir filesep [plotName '_averageCellAndClusterArea.eps']],'-depsc2','-tiff');
+        print(h_fig, [SaveDir filesep [plotName '_averageCellAndClusterArea.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplots
 end
 
@@ -104,47 +104,52 @@ if radioButtons.areaplot_1
 
     if ~radioButtons.donotshowplots
 
-        % Generate the figure and title      
-        h_fig2 = figure('Name', imageName);
+        % We only shot plot this one if images are available for this job
+        % If images were not available all values in totalAreaAllCells are 0
+        if ~isempty(find(totalAreaAllCells))
+        
+            % Generate the figure and title      
+            h_fig2 = figure('Name', plotName);
 
-        % Draw a plot showing the total area taken up by all the cells
-        ymax = max (totalAreaAllCells) + 1;  % 100%
-        subplot (2,1,1); plot (xAxis, totalAreaAllCells); 
-        
-        if radioButtons.runningaverage
-            hold on; plot (xAxis, raTotalAreaAllCells, 'r'); hold off;
-        end
-        
-        title ('Total Area taken up by All Cells');
-        xlabel ('Frames');
-        ylabel ('Avg cell area (um^2)');
-        if length (xAxis) > 1
-           axis ([xAxis(1) xAxis(end) 0 ymax]);
-        else
-           axis ([xAxis(1) xAxis(1)+1 0 ymax]);
-        end
+            % Draw a plot showing the total area taken up by all the cells
+            ymax = max (totalAreaAllCells) + 1;  % 100%
+            subplot (2,1,1); plot (xAxis, totalAreaAllCells); 
 
-        % Draw a plot showing the percentage of the frame area taken up by all the cells
-        ymax = 100;  % 100%
-        subplot (2,1,2); plot (xAxis, percentageAreaAllCells); 
-         
-        if radioButtons.runningaverage
-            hold on; plot (xAxis, raPercentageAreaAllCells, 'r'); hold off;
+            if radioButtons.runningaverage
+                hold on; plot (xAxis, raTotalAreaAllCells, 'r'); hold off;
+            end
+
+            title ('Total Area taken up by All Cells');
+            xlabel ('Frames');
+            ylabel ('Avg cell area (um^2)');
+            if length (xAxis) > 1
+               axis ([xAxis(1) xAxis(end) 0 ymax]);
+            else
+               axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+            end
+
+            % Draw a plot showing the percentage of the frame area taken up by all the cells
+            ymax = 100;  % 100%
+            subplot (2,1,2); plot (xAxis, percentageAreaAllCells); 
+
+            if radioButtons.runningaverage
+                hold on; plot (xAxis, raPercentageAreaAllCells, 'r'); hold off;
+            end
+
+            title ('Percentage of Frame Area taken up by All Cells');
+            xlabel ('Frames');
+            ylabel ('Percentage All Cells');
+            if length (xAxis) > 1
+               axis ([xAxis(1) xAxis(end) 0 ymax]);
+            else
+               axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+            end
+
+            % Save the figures in fig, eps and tif format     
+            hgsave(h_fig2,[SaveDir filesep [plotName '_areaAllCells.fig']]);
+            print(h_fig2, [SaveDir filesep [plotName '_areaAllCells.eps']],'-depsc2','-tiff');
+            print(h_fig2, [SaveDir filesep [plotName '_areaAllCells.tif']],'-dtiff');
         end
-        
-        title ('Percentage of Frame Area taken up by All Cells');
-        xlabel ('Frames');
-        ylabel ('Percentage All Cells');
-        if length (xAxis) > 1
-           axis ([xAxis(1) xAxis(end) 0 ymax]);
-        else
-           axis ([xAxis(1) xAxis(1)+1 0 ymax]);
-        end
-    
-        % Save the figures in fig, eps and tif format     
-        hgsave(h_fig2,[SaveDir filesep [imageName '_areaAllCells.fig']]);
-        print(h_fig2, [SaveDir filesep [imageName '_areaAllCells.eps']],'-depsc2','-tiff');
-        print(h_fig2, [SaveDir filesep [imageName '_areaAllCells.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplotsend
 end
 
@@ -153,7 +158,7 @@ if radioButtons.areaplot_3
     if ~radioButtons.donotshowplots
 
         % Generate the figure and title      
-        h_fig3 = figure('Name', imageName);
+        h_fig3 = figure('Name', plotName);
 
         % Draw a plot showing the average cluster area
         ymax = 100;  % 100%
@@ -192,11 +197,11 @@ if radioButtons.areaplot_3
         end
     
         % Save the figures in fig, eps and tif format     
-        hgsave(h_fig3,[SaveDir filesep [imageName '_averageAreaAndRatio.fig']]);
-        print(h_fig3, [SaveDir filesep [imageName '_averageAreaAndRatio.eps']],'-depsc2','-tiff');
-        print(h_fig3, [SaveDir filesep [imageName '_averageAreaAndRatio.tif']],'-dtiff');
+        hgsave(h_fig3,[SaveDir filesep [plotName '_averageAreaAndRatio.fig']]);
+        print(h_fig3, [SaveDir filesep [plotName '_averageAreaAndRatio.eps']],'-depsc2','-tiff');
+        print(h_fig3, [SaveDir filesep [plotName '_averageAreaAndRatio.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplots
     
     % Save CSV files
-    csvwrite ([SaveDir filesep imageName '_averageAreaAndRatio.csv'], [xAxis ; areaRatio(3,:)]);
+    csvwrite ([SaveDir filesep plotName '_averageAreaAndRatio.csv'], [xAxis ; areaRatio(3,:)]);
 end

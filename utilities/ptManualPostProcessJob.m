@@ -22,7 +22,7 @@ function ptManualPostProcessJob (hObject)
 % A routine that, together with it's subprograms, allows the user to
 % manually postprocess the results of the main analysis. 
 % This programm only opens a figure and puts a slider into it. 
-% The sliders callback is ptShowSlidingFrames, so better look there if you want to
+% The sliders callback is ptShowSlidingFrames, so look there if you want to
 % know more.
 
 % if the slider (and less important, the little windos with the number of
@@ -51,6 +51,16 @@ lastImage      = handles.jobData(1).lastimg;
 increment      = handles.jobData(1).increment;
 imageNameList  = handles.jobData(1).imagenameslist;
 intensityMax   = handles.jobData(1).intensitymax;
+
+% Check that we actually have some images to show. If not, give an error
+% message
+checkName = [imageDirectory filesep char(imageNameList(firstImage))];
+if exist (checkName, 'file') ~= 2
+    errorStr = ['No images available in directory ' imageDirectory];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
 
 % Calculate the image range taking into account the increment between frames
 %imageRange = floor ((lastImage - firstImage + 1) / increment + 0.001);

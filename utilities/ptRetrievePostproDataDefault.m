@@ -33,7 +33,13 @@ else
    
     % Determine image file path from jobvalues path
     cd (pathString); cd ('..');
-    imageFilePath = pwd;
+    if isempty(dir('.' filesep '*.tif'))
+        imageFilePath = '';
+        jobData(iCount).imagesavailable = 0;
+    else
+        imageFilePath = pwd;
+        jobData(iCount).imagesavailable = 1;
+    end
 
     % Load MPM matrix and assign to handles struct
     load (filePath);

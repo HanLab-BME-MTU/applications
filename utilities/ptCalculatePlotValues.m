@@ -68,13 +68,19 @@ numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 frameInterval = round (jobData(1).timeperframe / 60);    % In minutes
 pixelLength = jobData(1).mmpixel;
 
-% Get row and colsizes for the convex hull calculation. These sizes should
-% be the same for all selected movies, therefore just take the first one.
-rowSize = jobData(1).rowsize;
-colSize = jobData(1).colsize;
-
-% Calculate the total area of the frame (in um^2)
-totalAreaFrame = (rowSize * colSize) * (pixelLength^2);
+if jobData(1).imagesavailable
+    % Get row and colsizes for the convex hull calculation. These sizes should
+    % be the same for all selected movies, therefore just take the first one.
+    rowSize = jobData(1).rowsize;
+    colSize = jobData(1).colsize;
+    
+    % Calculate the total area of the frame (in um^2)
+    totalAreaFrame = (rowSize * colSize) * (pixelLength^2);
+else
+    rowSize = [];
+    colSize = [];
+    totalAreaFrame = [];
+end
 
 % Initialize matrices
 cellAmount = zeros(1, numberOfFrames);
@@ -202,10 +208,15 @@ for frameCount = plotStartFrame : increment : plotEndFrame
           areaPerSingleCell(iCount) = 0;
        end
 
-       % Calculate area taken up by single and clustered cells together (in um^2)
-       totalAreaAllCells(iCount) = (sumSingleCellArea(iCount) + sumClusterArea(iCount)) * (pixelLength^2);
-       percentageAreaAllCells(iCount) = (totalAreaAllCells(iCount) / totalAreaFrame) * 100.0;
-
+       if ~isempty(totalAreaFrame)
+           % Calculate area taken up by single and clustered cells together (in um^2)
+           totalAreaAllCells(iCount) = (sumSingleCellArea(iCount) + sumClusterArea(iCount)) * (pixelLength^2);
+           percentageAreaAllCells(iCount) = (totalAreaAllCells(iCount) / totalAreaFrame) * 100.0;
+       else
+           totalAreaAllCells(iCount) = 0;
+           percentageAreaAllCells(iCount) = 0;
+       end
+       
        % Calculate average perimeter length
        sumClusterPerimeter(iCount) = sum (allClusters (find (allClusters (:,2) > 1), 4));
        if clusterAmount(iCount) ~= 0 

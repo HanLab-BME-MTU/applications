@@ -18,8 +18,11 @@ function ptSetPostproGUIValues (handles, nr)
 % Andre Kerstens        Aug 04          Initial Release
 
 % Update fields on the GUI with the latest values
-%set (handles.GUI_pp_jobpath_ed, 'String', jobValPath);
-set (handles.GUI_pp_imagepath_ed, 'String', handles.jobData(nr).imagefilepath);
+if handles.jobData(nr).imagesavailable == 1
+    set (handles.GUI_pp_imagepath_ed, 'String', handles.jobData(nr).imagefilepath);
+else
+    set (handles.GUI_pp_imagepath_ed, 'String', '');
+end
 set (handles.pp_firstframe, 'String', handles.jobData(nr).firstimg);
 set (handles.pp_lastframe, 'String', handles.jobData(nr).lastimg);
 set (handles.pp_increment, 'String', handles.jobData(nr).increment);
