@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 05-Feb-2004 11:48:15
+% Last Modified by GUIDE v2.5 16-Feb-2004 10:58:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1017,5 +1017,17 @@ function editSigmaTN_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editSigmaTN as text
 %        str2double(get(hObject,'String')) returns contents of editSigmaTN as a double
+
+
+% --- Executes on button press in pushCalReset.
+function pushCalReset_Callback(hObject, eventdata, handles)
+% hObject    handle to pushCalReset (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+set(handles.editCalY0,'String','');
+set(handles.editCalY,'String','');
+set(handles.editCalX0,'String','');
+set(handles.editCalX,'String','');
+
 
 
