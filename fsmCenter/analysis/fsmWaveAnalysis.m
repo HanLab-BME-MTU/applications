@@ -146,13 +146,21 @@ elseif roi=='r'
     try
         rect=getrect(h);
     catch
-        close;
+        close(h);
         uiwait(msgbox('No polygon was selected. Quitting.','Error','modal'));
         return
     end
     
     px=[rect(1) rect(1)+rect(3) rect(1)+rect(3) rect(1) rect(1)];
     py=[rect(2) rect(2) rect(2)+rect(4) rect(2)+rect(4) rect(2)];
+    
+    % Check
+    if px(4)-px(1)<1 & py(2)-py(1)<1
+        % The user just clicked once...
+        uiwait(msgbox('Please select a rectangle, not a point. Click and drag while holding the mouse button down. Quitting.','Error','modal'));
+        close(h);
+        return
+    end
     
     % Creating a b/w mask
     bwMask=ones(size(img));bwMask=roipoly(bwMask,px,py);
@@ -416,7 +424,42 @@ if moveROI==1
     end
 end
 
-% Concatenate scores
+% Remove windows with no scores over the whole movie
+c=0;
+indxRemovedWindows=[];
+for i=1:size(scores,1)
+    if ~any(scores(i,:)~=0)
+        % This windows has to be removed
+        c=c+1;
+        indxRemovedWindows(c)=i;
+    end
+end
+if c~=0
+    scores(indxRemovedWindows,:)=[];
+    fprintf(1,'Removed %d windows with no scores over the whole movie.\n',c);
+    
+    % Correct the number of windows
+    windows=windows-c;
+    
+    % Remove discarded windows from px, py, px0, py0
+    px(indxRemovedWindows,:)=[];
+    py(indxRemovedWindows,:)=[];
+    px0(indxRemovedWindows,:)=[];
+    py0(indxRemovedWindows,:)=[];
+    
+    % Remove discarded windows from xCM, yCM
+    xCM(indxRemovedWindows,:)=[];
+    yCM(indxRemovedWindows,:)=[];
+    
+end
+
+% Check that there are still windows left
+if windows==0
+    uiwait(msgbox('No valid windows left for analysis.','Error','modal'));
+    return
+end
+
+% Concatenate scores into one long vector
 allScores=zeros(1,prod(size(scores)));
 for i=1:windows
     allScores(1,(i-1)*last+1:i*last)=scores(i,:);
