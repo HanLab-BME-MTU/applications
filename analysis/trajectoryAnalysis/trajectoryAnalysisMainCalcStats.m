@@ -191,9 +191,17 @@ if ~isempty(growthIdx)
     indGrowthSpeedSigma = sigmaMax(growthIdx)./(abs(dataListG(growthIdx,4)).*sqrt(dataListG(growthIdx,7)));
     [growthSpeedMean, growthSpeedStd] = weightedStats(dataListG(growthIdx,4),...
         indGrowthSpeedSigma,'s');
+    [growthSpeedMeanPW, growthSpeedStdPW] = weightedStats(dataListG(growthIdx,4),...
+        sigmaMax(growthIdx),'s');
+    
+    growthSpeedMeanNW = mean(dataListG(growthIdx,4))*60;
+    growthSpeedStdNW = std(dataListG(growthIdx,4))*60/sqrt(length(growthIdx));
+    
     %transform to um/min
     growthSpeedMean = growthSpeedMean*60;
     growthSpeedStd  = growthSpeedStd *60;
+    growthSpeedMeanPW = growthSpeedMeanPW*60;
+    growthSpeedStdPW  = growthSpeedStdPW *60;
     
     %time (inv needed for frequencies, total for %undetermined)
     %rescue and catastrophe are considered poisson processes - hence the
@@ -249,7 +257,7 @@ end
 if ~isempty(shrinkageIdx)
     
     % old sigma - if used, change distributions below!!
-    %indShrinkageSpeedSigma = sigmaMax(growthIdx)./sqrt(dataListG(shrinkageIdx,7));
+    %indShrinkageSpeedSigma = sigmaMax(shrinkageIdx)./sqrt(dataListG(shrinkageIdx,7));
     % new sigma: less speed dep., better time dependence. (use relative sigma, weight with time)
     % We could multiply by shrinkageSpeedMean (we have to to plot distribution of individual
     % speeds!), but it does not change anything here: the Std is calculated
@@ -258,10 +266,17 @@ if ~isempty(shrinkageIdx)
 
     [shrinkageSpeedMean, shrinkageSpeedStd] = weightedStats(dataListG(shrinkageIdx,4),...
         indShrinkageSpeedSigma,'s');
+    [shrinkageSpeedMeanPW, shrinkageSpeedStdPW] = weightedStats(dataListG(shrinkageIdx,4),...
+        sigmaMax(shrinkageIdx),'s');
+    %non-weighted stats
+    shrinkageSpeedMeanNW = mean(dataListG(shrinkageIdx,4))*60;
+    shrinkageSpeedStdNW  = std(dataListG(shrinkageIdx,4))*60/sqrt(length(shrinkageIdx));
     
     %transform to um/min
     shrinkageSpeedMean = shrinkageSpeedMean*60;
     shrinkageSpeedStd  = shrinkageSpeedStd *60;
+    shrinkageSpeedMeanPW = shrinkageSpeedMeanPW*60;
+    shrinkageSpeedStdPW  = shrinkageSpeedStdPW *60;
     
     %time (inv needed for frequencies, total for %undetermined)
     %rescue and catastrophe are considered poisson processes - hence the
@@ -322,7 +337,11 @@ statisticsStruct = struct(...
     'sep2conFreq' ,             [invGrowthTimeMean , invGrowthTimeStd],...
     'con2sepFreq' ,             [invShrinkageTimeMean , invShrinkageTimeStd],...
     'separationSpeed' ,         [growthSpeedMean , growthSpeedStd],...
+    'separationSpeedNW',        [growthSpeedMeanNW , growthSpeedStdNW],...
+    'separationSpeedPW',        [growthSpeedMeanPW , growthSpeedStdPW],...
     'congressionSpeed' ,        [shrinkageSpeedMean , shrinkageSpeedStd],...
+    'congressionSpeedNW' ,      [shrinkageSpeedMeanNW , shrinkageSpeedStdNW],...
+    'congressionSpeedPW' ,      [shrinkageSpeedMeanPW , shrinkageSpeedStdPW],...
     'distanceMean',             [distanceMean,distanceStd],...
     'minDistance',              [minDistance , minDistanceStd],...
     'minDistanceM5' ,           [minDistanceM5 , minDistanceM5Std],...
@@ -382,8 +401,8 @@ if nargout > 1
     
     if any(verbose == 3)
         %plot without detail. Would cost too much memory
-        figure('Name','separation speed distribution'),area(growthSpeedDistX,growthSpeedDistY);
-        figure('Name','congression speed distribution'),area(shrinkageSpeedDistX,shrinkageSpeedDistY);
+        figure('Name','speed distribution'),plot(growthSpeedDistX,growthSpeedDistY/max(growthSpeedDistY),'-g',...
+            -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedsDistY),'-r');
         figure('Name','distance distribution'),area(distanceDistX,distanceDistY);
     end
         

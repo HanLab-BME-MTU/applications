@@ -7,8 +7,12 @@ function data = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,op
 %         dataProperties : the corresponding data properties
 %         tag1,2         : number (1:nTag) of first and second tag, OR string from labelcolor
 %         opt            : optional options structure 
-%                           .info: struct that should be returned in the
-%                                  output field info. 
+%                           .info :   struct that should be returned in the
+%                                     output field info. 
+%                           .calc2d : [{0}/1/2] depending on whether the
+%                                     normal 3D-data or the maxProjection
+%                                     or the in-focus-slice data should be
+%                                     used.
 %
 %OUTPUT   data           : structure containing trajectory data
 %                           .time       = [time in sec, sigmaTime]
@@ -35,11 +39,15 @@ end
 %check options structure
 %set defaults
 info = [];
+calc2d = 0;
 
 %go through fields of opt, change defaults with input values if they exist
 if nargin < 5 | isempty(opt)
     if isfield(opt,'info')
         info = opt.info;
+    end
+    if isfield(opt,'calc2d')
+        calc2d = opt.calc2d;
     end
 end
 
@@ -71,6 +79,20 @@ pix2muMat = blkdiag(p2mM,p2mM);
 
 %---END TEST INPUT--------
 
+
+%-------CALC 2D-CASE IF SELECTED
+switch calc2d
+    case 1 %maximum projection
+        [outputData3S,outputDataMP] = threeVsTwoD(idlist, dataProperties);
+        idlist = outputDataMP.idlist;
+    case 2 %in-focus slices
+        [outputData3S,outputDataMP] = threeVsTwoD(idlist, dataProperties);
+        idlist = outputData3S.idlist;
+    otherwise
+        %keep normal idlist
+end
+        
+%---END CALC 2D-CASE IF SELECTED
 
 
 %-------READ COORDS AND SIGMAZERO AND Q

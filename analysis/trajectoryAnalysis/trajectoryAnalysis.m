@@ -1,4 +1,4 @@
-function trajectoryDescription = trajectoryAnalysis(data,ioOpt,expOrSim)
+function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(data,ioOpt,testOpt)
 %TRAJECTORYANALYSIS analyzes experimental and simulated microtubule trajectories and returns appropriate statistical descriptors
 %
 %INPUT   data(1:n) (opt): structure containing n different trajectories with fields
@@ -32,11 +32,18 @@ function trajectoryDescription = trajectoryAnalysis(data,ioOpt,expOrSim)
 %                               if does not end with filesep, program
 %                               assumes it to include the filename!
 %                               otherwise the program asks for the save-path
-%           - fileNameList : list of fileNames/descriptions of the input
+%           - fileNameList  : list of fileNames/descriptions of the input
 %                               data
-%
-%        expOrSim: optional switch that tells whether data is from
-%                       experiment or simulation ['e'/'s']. def: 'x'
+%           - expOrSim      : switch that tells whether data is from
+%                               experiment or simulation ['e'/'s']. def: 'x'
+%           - calc2d        : [{0}/1/2] depending on whether the
+%                               normal 3D-data or the maxProjection
+%                               or the in-focus-slice data should be
+%                               used.
+%        testOpt: optional structure with the following optional fields
+%           - splitData     : [{0}/1] split data into two sets, returns two
+%                               output arguments
+%           - debug         : [{0}/1] turns on debug features
 %
 %OUTPUT  trajectoryDescription
 %           .individualStatistics(1:n)
@@ -62,14 +69,18 @@ saveTxtName = '';
 saveMat = 0;
 saveMatPath = '';
 saveMatName = '';
-verbose = [1,2,3]; 
-debug = 1;
+verbose = [1]; 
+debug = 0;
 fileNameList = {'data_1'};
+calculateTrajectoryOpt.calc2d = 0; %1 or 2 if MP/in-focus slices only
+expOrSim = 'x';
+splitData = 0; %whether or not to split the data into two sets (to check the homogenity of the sample)
 
 %defaults not in inputStructure (see also constants!)
 writeShortFileList = 1; %writes everything on one line.
 standardTag1 = 'spb1';
 standardTag2 = 'cen1';
+trajectoryDescription2 = []; %init
 
 
 constants.TESTPROBABILITY = 0.95;
@@ -228,6 +239,16 @@ else
             error('ioOpt.fileNameList has to be a cell array of strings!')
         end
     end
+    if isfield(ioOpt,'expOrSim')
+        if length(ioOpt.expOrSim>1) | ~isstr(ioOpt.expOrSim) | ~strfind('esx',ioOpt.expOrSim)
+            error('expOrSim has to be one letter (e, s, or x)');
+        else
+            expOrSim=ioOpt.expOrSim;
+        end
+    end
+    if isfield(ioOpt,'calc2d')
+        calc2d = ioOpt.calc2d;
+    end
 end
 
 %make sure that we have enough fileNames
@@ -255,14 +276,16 @@ if ~loadData %loading data we ourselves make sure it's ok
 end
     
 
-%check expOrSim
+%check testOpt
 
-%default: e
-if nargin < 3 | isempty(expOrSim)
-    expOrSim = 'x';
+if nargin < 3 | isempty(testOpt)
+    %do nothing
 else
-    if length(expOrSim>1) | ~isstr(expOrSim) | ~strfind('esx',expOrSim)
-        error('expOrSim has to be one letter (e, s, or x)');
+    if isfield(testOpt,'splitData')
+        splitData = testOpt.splitData;
+    end
+    if isfield(testOpt,'debug')
+        debug = testOpt.debug;
     end
 end
 
@@ -399,13 +422,13 @@ if loadData
         
         %store identifier
         if isempty(fileList(i).opt) | isempty(fileList(i).opt{1})
-            moreInfo.identifier = 'NONE';
+            calculateTrajectoryOpt.identifier = 'NONE';
         else
-            moreInfo.identifier = fileList(i).opt{1};
+            calculateTrajectoryOpt.identifier = fileList(i).opt{1};
         end
         
         %-----calculate trajectory
-        data(ct) = calculateTrajectoryFromIdlist(idlist2use,all.dataProperties,tag1,tag2,moreInfo);
+        data(ct) = calculateTrajectoryFromIdlist(idlist2use,all.dataProperties,tag1,tag2,calculateTrajectoryOpt);
         %-------------------------
         
         %remember fileName
@@ -521,13 +544,42 @@ if saveTxt
 end
 %----------END WRITE FILE-LIST--------
 
+%----------COMPARE TWO DATA SETS-----
+if splitData
+    nData = length(data);
+    if mod(nData,2)~=0
+        disp('warning: odd number of files, not taking into account last file')
+        nData = nData - 1;
+    end
+    % create two sets (thanks to Aaron for the idea!)
+    % get nData random numbers, sort, take the first nData/2 indices for
+    % the first half etc.
+    randomNumbers = rand(nData,1);
+    [dummy,rankList] = sort(randomNumbers);
+    dataSet1 = rankList(1:nData/2);
+    dataSet2 = rankList(nData/2+1:end);
+    
+    data2 = data(dataSet2);
+    data  = data(dataSet1); % use data for data1 - makes coding easier
+    fileNameList2 = fileNameList(dataSet2);
+    fileNameList  = fileNameList(dataSet1); % same as above
+end
+%------END COMPARE TWO DATA SETS-----
+
 
 %--------------CALCULATE---------
 if debug
     trajectoryDescription = trajectoryAnalysisMain(data,constants,showDetails,doConvergence,verbose,fileNameList);
+    if splitData % do the second set
+        trajectoryDescription2 = trajectoryAnalysisMain(data2,constants,showDetails,doConvergence,verbose,fileNameList2);
+    end
 else
     try
         trajectoryDescription = trajectoryAnalysisMain(data,constants,showDetails,doConvergence,verbose,fileNameList);
+        if splitData %do the second set
+            trajectoryDescription2 = trajectoryAnalysisMain(data2,constants,showDetails,doConvergence,verbose,fileNameList2);
+        end
+        
     catch
         fclose(fidTxt);
         error(lasterr)
@@ -541,10 +593,14 @@ end
 %----------------------------------------
 
 %-------------STORE DATA---------
+%splitData only works for saveMat
 
 %save mat file first, because it's less lines
 if saveMat
     save([saveMatPath,saveMatName],'trajectoryDescription');
+    if splitData
+        save([saveMatPath,[saveMatName,'_2']],'trajectoryDescription2');
+    end
 end
 
 %save text file

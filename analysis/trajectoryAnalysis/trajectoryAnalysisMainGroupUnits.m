@@ -13,7 +13,8 @@ STRATEGY = constants.STRATEGY;
 PROBOUTLIER = constants.PROBOUTLIER; %the lower the less accepted (the more outliers)
 PROBF = constants.PROBF;%constants.TESTPROBABILITY;
 
-DEBUG = [];%1,2,both
+DEBUG = constants.DEBUG;
+%DEBUG = [];%1,2,both
 
 %in the case we stop the evaluation: assign output already
 dataListG = dataList;
