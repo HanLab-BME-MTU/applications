@@ -2168,7 +2168,7 @@ function renameImageFilesToLower (pathDir)
 % lower case characters. Fix needed for metamorph.
 
 % Check that we got an input path
-if ~exist (pathDir, 'var')
+if ~exist ('pathDir', 'var')
     return
 end
 
@@ -2178,8 +2178,12 @@ dirlist=struct2cell(dirlist);
 dirlist=dirlist(1,:);
 
 % Make a temp directory (needed for movefile function)
-tmpDir = '/tmpAhGdjdS';
-mkdir ([pathDir tmpDir]);
+tmpDir = 'tmpAhGdjdS';
+if pathDir(end) == filesep
+   mkdir ([pathDir tmpDir]);
+else
+   mkdir ([pathDir filesep tmpDir]);  
+end
 
 % Loop through the tif files and rename if necessary (renaming being moving
 % the file in this case
@@ -2189,9 +2193,13 @@ for i=1:length(dirlist)
      newFile = lower(char(dirlist{i}));
      extension = lower(char(dirlist{i}(end-2:end))); 
      if ~strcmp(fileName,newFile) & ...
-         strcmp(extension,'tif')
+         (strcmp(extension,'tif') | strcmp(extension,'iff'))
         movefile([pathDir filesep fileName],[pathDir tmpDir filesep newFile]);
-        delete ([pathDir filesep fileName]);
+        if pathDir(end) == filesep
+           delete ([pathDir fileName]);
+        else
+           delete ([pathDir filesep fileName]); 
+        end
         movefile([pathDir tmpDir filesep newFile],[pathDir filesep newFile]);
      end
   end

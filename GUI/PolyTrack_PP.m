@@ -2424,24 +2424,30 @@ for jobCount = 1 : length(allMPM)
     rowSize = jobData(jobCount).rowsize;
     colSize = jobData(jobCount).colsize;
     
+    % This is only needed for the convex hull calculations, so if these are
+    % not needed, do not test this
+    convexHullPlotNeeded = get (handles.checkbox_avg_convex_hull_area,'Value');
+    
     % Make sure row and colsize is consistent over movies
-    if jobCount == 1
-        prevRowSize = rowSize;
-        prevColSize = colSize;
-    else
-        if rowSize ~= prevRowSize
-            errorStr = ['The image row size is different between the ' num2str(length(allMPM)) ' movies.'];
-            h = errordlg(errorStr);
-            uiwait(h);          % Wait until the user presses the OK button  
-            return;
-        end
-        if colSize ~= prevColSize
-            errorStr = ['The image column size is different between the ' num2str(length(allMPM)) ' movies.'];
-            h = errordlg(errorStr);
-            uiwait(h);          % Wait until the user presses the OK button  
-            return;
-        end
-    end  % if jobCount == 1
+    if convexHullPlotNeeded
+        if jobCount == 1
+            prevRowSize = rowSize;
+            prevColSize = colSize;
+        else
+            if rowSize ~= prevRowSize
+                errorStr = ['The image row size is different between the ' num2str(length(allMPM)) ' movies.'];
+                h = errordlg(errorStr);
+                uiwait(h);          % Wait until the user presses the OK button  
+                return;
+            end
+            if colSize ~= prevColSize
+                errorStr = ['The image column size is different between the ' num2str(length(allMPM)) ' movies.'];
+                h = errordlg(errorStr);
+                uiwait(h);          % Wait until the user presses the OK button  
+                return;
+            end
+        end  % if jobCount == 1
+    end   % if convexHullPlotNeeded
 end  % for jobCount = 1 : length(allMPM)
 
 % Assign all values to the handles struct
