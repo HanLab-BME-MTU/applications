@@ -26,11 +26,12 @@ end
 M=[];
 
 % Options for LabonteNN (Neural Network)
-options.r         = radius;
-options.rf        = 1e-4; % Original value: 1e-5
-options.alpha     = 5e-4; % Original value: 5e-4
-options.beta      = 0.99;
-options.threshold = 0.75*radius;
+options.r         = radius; % radius;
+options.rf        = 0.005; % 1e-4; % Original value: 1e-5
+options.alpha     = 5e-4; %5e-4; % Original value: 5e-4
+options.beta      = 0.99; % Original value: 0.99
+options.threshold = radius;
+options.maxiter   = 1000;
 
 % Extract speckle coordinates
 posI=I(:,1:2);
