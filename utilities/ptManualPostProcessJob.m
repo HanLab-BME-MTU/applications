@@ -1,16 +1,16 @@
-function manuelpostpro (hObject)
-% manuelpostpro opens a figure and puts a slider into it; the callback belonging
+function ptManualPostProcessJob (hObject)
+% ptManualPostProcessJob opens a figure and puts a slider into it; the callback belonging
 % to that slider (changeframe) takes care of showing the correct frame
 %
-% SYNOPSIS       manuelpostpro (hObject)
+% SYNOPSIS       ptManualPostProcessJob (hObject)
 %
-% INPUT          hObject : handle of an object of the GUI calling manuelpostpro
+% INPUT          hObject : handle of an object of the GUI calling ptManualPostProcessJob
 %
 % OUTPUT         none
 %
-% DEPENDENCIES   manuelpostpro uses {nothing}
+% DEPENDENCIES   ptManualPostProcessJob uses {nothing}
 %                                  
-%                manuelpostpro is used by { PolyTrack_PP }
+%                ptManualPostProcessJob is used by { PolyTrack_PP }
 %
 % Revision History
 % Name                  Date            Comment

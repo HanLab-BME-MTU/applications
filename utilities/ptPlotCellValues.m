@@ -1,16 +1,16 @@
-function stuffplotter(hObject)
-% stuffplotter plots information gathered in cellProps. Certain details
+function ptPlotCellValues.m(hObject)
+% ptPlotCellValues.m plots information gathered in cellProps. Certain details
 %              get derived from cellProps first
 %
-% SYNOPSIS       stuffplotter(hObject)
+% SYNOPSIS       ptPlotCellValues.m(hObject)
 %
 % INPUT          hObject : handle to an object within PolyTrack_PP
 %                
 % OUTPUT         altered MPM          
 %
-% DEPENDENCIES   stuffplotter  uses {nothing}
+% DEPENDENCIES   ptPlotCellValues.m  uses {nothing}
 %                                  
-%                stuffplotter is used by { PolyTrack_PP }
+%                ptPlotCellValues.m is used by { PolyTrack_PP }
 %
 % Colin Glass, Feb 04
 

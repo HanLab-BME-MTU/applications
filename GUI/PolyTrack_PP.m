@@ -178,41 +178,41 @@ else
 end
 
 % Load the cell properties file if it exists (it should!)
-if exist ('cellprops.mat','file')
-   load('cellprops.mat');
+if exist ('cellProps.mat','file')
+   load('cellProps.mat');
    if exist('cellProps','var')
       handles.cellProps = cellProps;
    else
       handles.cellProps = cellprops;
    end
 else
-   h = errordlg('The file cellprops.mat does not exist. Please make sure it is present as well...');
+   h = errordlg('The file cellProps.mat does not exist. Please make sure it is present as well...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
 end
 
-% Now that all the loading is done, we'll start the real stuff
+% Now that all the loading is done, we'll start the processing
 cd (jobValPath);
 
 % Counters to keep track of where we are
-done = 0;
 counter = 1;
 
 % Here is where a new data subdirectory has to be created. Since 
 % this has to be a unique name, a counter is used to find the
 % next available unique directory name
-while done == 0
-   newdirname=[];
-   newdirname=['data', num2str(counter)];
+while 1
+   % Initialize the new data dir name
+   newDirectoryName = ['data', num2str(counter)];
  
    % If it doesn't exist yet, create it in the results directory
-   if ~exist(newdirname, 'dir')
-      mkdir(jobValPath, newdirname);
+   if ~exist(newDirectoryName, 'dir')
+      mkdir(jobValPath, newDirectoryName);
         
       % Save it in the handles struct and tell the loop we're done
-      handles.postpro.saveallpath = [jobValPath, newdirname];
-      done = 1;
+      handles.postpro.saveallpath = [jobValPath, newDirectoryName];
+      break;
    end
+   % Else the directory existed already so we increase the counter
    counter = counter + 1;
 end
 
@@ -254,10 +254,10 @@ function GUI_pp_imagebrowse_pb_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Let the user browse for an image file and path
-[filename,jobValPath] = uigetfile ({'*.tif','TIFF-files'},'Please select an image');
+[filename, jobValPath] = uigetfile ({'*.tif','TIFF-files'},'Please select an image');
 
 % And store this in the postpro struct
-if exist('jobValPath', 'file')
+if exist ('jobValPath', 'file')
    cd (jobValPath);
 
    if ~exist('filename', 'file')
@@ -320,14 +320,15 @@ function GUI_pp_manuelpostpro_pb_Callback(hObject, eventdata, handles)
 
 handles = guidata(hObject);
 
-
+% This is to signal that the ptManualPostProcessJob function is called by the
+% GUI manual processing button
 handles.whichcallback = 1;
 
 % Update handles structure
 guidata(hObject, handles);
 
-% Do the manual postprocessing stuff
-manuelpostpro (hObject);
+% Do the manual postprocessing 
+ptManualPostProcessJob (hObject);
 
 %----------------------------------------------------------------------------
 
@@ -500,16 +501,22 @@ function GUI_app_autopostpro_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
+% Get all the latest values from the GUI
 saveallpath = handles.postpro.saveallpath;
 minimaltrack = handles.postpro.minimaltrack;
 maxdistpostpro = handles.postpro.maxdistpostpro ;
 minusframes = handles.postpro.minusframes;
 plusframes = handles.postpro.plusframes;
-
 MPM = handles.MPM;
-MPM = weedout (MPM, plusframes, minusframes, maxdistpostpro, minimaltrack, saveallpath);
-handles.MPM = MPM;
 
+% Get the latest MPM matrix and filter it using the values on the GUI (eg eliminating
+% tracks that are too short for example)
+updatedMPM = ptTrackFilter (MPM, plusframes, minusframes, maxdistpostpro, minimaltrack, saveallpath);
+
+% Update the handles structure with the filtered MPM matrix
+handles.MPM = updatedMPM;
+
+% Update the GUI
 guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
@@ -602,13 +609,15 @@ function GUI_ad_selectcells_pb_Callback(hObject, eventdata, handles)
 
 handles = guidata(hObject);
 
-
+% This is to signal that the function ptManualPostProcessJob is called by the
+% GUI select cells button
 handles.whichcallback = 2;
 
 % Update handles structure
 guidata(hObject, handles);
 
-manuelpostpro(hObject)
+% Do the manual postprocessing
+ptManualPostProcessJob (hObject)
 
 %----------------------------------------------------------------------------
 
@@ -647,14 +656,14 @@ function GUI_ad_firstimage_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_ad_firstimage_ed as a double
 handles = guidata(hObject);
 
-numb=get(hObject,'String');
+% Get the number of the first image
+num = get (hObject,'String');
 
-
-
-handles.postpro.firstlastimg= str2num(numb);
+% Assign it to the postpro structure
+handles.postpro.firstlastimg = str2num (num);
 
 % Update handles structure
-guidata(hObject, handles);
+guidata (hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -681,13 +690,13 @@ function GUI_ad_lastimage_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_ad_lastimage_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_ad_lastimage_ed as a double
-handles = guidata(hObject);
+handles = guidata (hObject);
 
-numb=get(hObject,'String');
+% Get the number of the last image
+num = get (hObject,'String');
 
-
-
-handles.postpro.anallastimg= str2num(numb);
+% Assign it to the postpro structure
+handles.postpro.anallastimg = str2num (num);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -699,15 +708,18 @@ function GUI_ad_analyze_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_ad_analyze_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata (hObject);
 
+% Here is where the bulk of the graphing work is done
+ptPlotCellValues (hObject);
 
-stuffplotter(hObject);
-
-handles = guidata(hObject);
-if get(handles.GUI_ad_speed_rb,'Value')
-    speed (hObject);
+% Only if the 'speed of cells' radiobutton is selected, the speed graphs have to be done
+if get (handles.GUI_ad_speed_rb, 'Value')
+   ptPlotSpeedValues (hObject);
 end
 
+% This is a function which was done for the cell meeting poster
+% Temporary and has to be replaced by a more structured function
 ptPoster (hObject);
 
 %----------------------------------------------------------------------------
@@ -837,12 +849,13 @@ function GUI_fm_tracksince_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_fm_tracksince_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_tracksince_ed as a double
+handles = guidata (hObject);
 
-handles = guidata(hObject);
+% Get the value of 'Tracks from last...'
+num = get (hObject, 'String');
 
-numb = get(hObject,'String');
-
-handles.postpro.dragtail= str2num(numb);
+% Assign it to the postpro structure
+handles.postpro.dragtail = str2num (num);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -872,15 +885,16 @@ function GUI_fm_saveallpath_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_fm_saveallpath_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_saveallpath_ed as a double
+handles = guidata (hObject);
 
-handles = guidata(hObject);
+% Get the value of the save directory
+path = get (hObject, 'String');
 
-path = get(hObject,'String');
-
-handles.postpro.saveallpath= path;
+% Assign it to the postpro structure
+handles.postpro.saveallpath = path;
 
 % Update handles structure
-guidata(hObject, handles);
+guidata (hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -890,7 +904,8 @@ function GUI_fm_universalstudios_pb_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-movieMaker(hObject) 
+% Start the function that will create the dragtail movie
+ptMovieMaker (hObject);
 
 %----------------------------------------------------------------------------
 
@@ -908,30 +923,17 @@ function GUI_fm_moviesize_pb_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-  viewPrepFigH = figure%('NumberTitle','off','Name','select view');
-%     plot3(allSpotCoords(:,1),allSpotCoords(:,2),allSpotCoords(:,3),'.','MarkerSize',16);
-%     line(allSpotCoords(:,1),allSpotCoords(:,2),allSpotCoords(:,3),'Color','k');
-%     set(gca,'XLim',axesXLim,'YLim',axesYLim,'ZLim',axesZLim,'Box','on','PlotBoxAspectRatio', boxAspectRatio);
-%     view(azimuth,elevation);
-%     
-    h = helpdlg('Please choose a figure size, THEN close this window. This size will be used for the movie');
-    %place dialogbox below figure
-    %...somehow I don't get it with the positioning of the figure
-    %     figPos = get(viewPrepFigH,'Position');
-    %     dlgPos = get(h,'Position');
-    %     dlgPos(2) = figPos(2) - dlgPos(4);
-    set(h,'Position',[320.2500  272.2500  297.7500   79.5000]);
-    uiwait(h);
-%     
-%     [azimuth,elevation] = view;
-%     if azimuth < 0
-%         azimuth = azimuth +360;
-%     end
-%     disp(['az and el in case you have to retry: ',num2str(azimuth),' ',num2str(elevation)])
-%     
-    handles.postpro.figureSize = get(viewPrepFigH,'Position');
+viewPrepFigH = figure;
+
+h = helpdlg ('Please resize the figure and close the figure window. The selected size will be used for the movie.');
+
+set (h, 'Position', [320.2500 272.2500 297.7500 79.5000]);
+
+uiwait (h);
+
+handles.postpro.figureSize = get (viewPrepFigH, 'Position');
     
-    close(viewPrepFigH);
+close (viewPrepFigH);
 
 %----------------------------------------------------------------------------
 
@@ -971,17 +973,16 @@ function GUI_ad_mintimeclust_ed_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of GUI_ad_mintimeclust_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_ad_mintimeclust_ed as a double
+handles = guidata (hObject);
 
+% Get the value of the 'time to be a cluster' field
+num = get (hObject,'String');
 
-
-handles = guidata(hObject);
-
-numb = get(hObject,'String');
-
-handles.postpro.mintimeclust= str2num(numb);
+% Assign it to the postpro structure
+handles.postpro.mintimeclust = str2num(num);
 
 % Update handles structure
-guidata(hObject, handles);
+guidata (hObject, handles);
 
 %----------------------------------------------------------------------------
 

@@ -1,8 +1,8 @@
-function speed(hObject)
-% speed plots information gathered in MPM. Certain details
+function ptPlotSpeedValues(hObject)
+% ptPlotSpeedValues plots information gathered in MPM. Certain details
 %              get derived from MPM first
 %
-% SYNOPSIS       speed(hObject)
+% SYNOPSIS       ptPlotSpeedValues(hObject)
 %
 % INPUT          hObject : handle to an object within PolyTrack_PP
 %                inputs are fetched directly from the GUI (PolyTrack_PP)
@@ -13,9 +13,9 @@ function speed(hObject)
 %
 % OUTPUT         saves plots and calc velocities to disk          
 %
-% DEPENDENCIES   speed  uses {nothing}
+% DEPENDENCIES   ptPlotSpeedValues  uses {nothing}
 %                                  
-%                speed is used by { PolyTrack_PP }
+%                ptPlotSpeedValues is used by { PolyTrack_PP }
 %
 % Colin Glass, Feb 04
 handles=guidata(hObject);

@@ -1,15 +1,15 @@
-function movieMaker (hObject) 
-% movieMaker makes movies from the information gathered in the analysis
+function ptMovieMaker (hObject) 
+% ptMovieMaker makes movies from the information gathered in the analysis
 %
-% SYNOPSIS       movieMaker (hObject)
+% SYNOPSIS       ptMovieMaker (hObject)
 %
 % INPUT          hObject : handle to an object within PolyTrack_PP
 %
 % OUTPUT         no function output: movies are saved to disk          
 %
-% DEPENDENCIES   movieMaker uses { nothing }
+% DEPENDENCIES   ptMovieMaker uses { nothing }
 %                                  
-%                movieMaker is used by { PolyTrack_PP }
+%                ptMovieMaker is used by { PolyTrack_PP }
 %
 % Colin Glass, Feb 04
 handles = guidata (hObject);

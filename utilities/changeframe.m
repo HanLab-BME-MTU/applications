@@ -1,17 +1,17 @@
 function changeframe
 % changeframe finds the rigth image and coordinates. These it shows in the
-% figure opened by manuelpostpro
+% figure opened by ptManualPostProcessJob
 %
 % SYNOPSIS       changeframe
 %
 % INPUT          none (it gets values from the slider created in
-%                      manuelpostpro)
+%                      ptManualPostProcessJob)
 %
 % OUTPUT         none
 %
 % DEPENDENCIES   changeframe uses {nothing}
 %                                  
-%                changeframe is used by { manuelpostpro (as a callback) }
+%                changeframe is used by { ptManualPostProcessJob (as a callback) }
 %
 % Revision History
 % Name                  Date            Comment

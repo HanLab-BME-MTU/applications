@@ -216,10 +216,12 @@ else		% lastImaNum > firstImaNum
                      % We didn't find a template match which means we lost the
                      % cell: add it to the lost cell list. We might find it again later
                      % so that we can close the gap in the track
+                     % The current M entry is different from the current frame nr: recalculate
+                     currentMEntry = imageCount - firstImageNr - 1;
                      if isempty (lostCells)
-                        lostCells = [unmatchedCellCoord, imageCount-1];
+                        lostCells = [unmatchedCellCoord, currentMEntry];
                      else
-                        lostCells = cat (1, lostCells, [unmatchedCellCoord, imageCount-1]);
+                        lostCells = cat (1, lostCells, [unmatchedCellCoord, currentMEntry]);
                      end
                   end   % if correlation
                end   % if abs (
@@ -282,7 +284,9 @@ else		% lastImaNum > firstImaNum
                % in the M matrix
                if ~isempty (matchedLostCells)
                   clusterDir = [saveDirectory filesep 'info'];
-                  [M, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, imageCount-1, clusterDir);   
+                  % The current M entry is different from the current frame nr: recalculate
+                  currentMEntry = imageCount - firstImageNr - 1;
+                  [M, lostCells] = ptCloseGapsInTracks (M, matchedLostCells, lostCells, currentMEntry, clusterDir);   
                end
             end     % ~isempty (lostCellsToMatch)
          end    % ~isempty (lostCells) & ~isempty (newCells)

@@ -1,8 +1,7 @@
-
-function MPM = weedout(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,saveallpath)
-% weedout filters and relinks the tracks given in MPM
+function MPM = ptTrackFilter (MPM, plusframes, minusframes, maxdistpostpro, minimaltrack, saveallpath)
+% ptTrackFilter filters and relinks the tracks given in MPM
 %
-% SYNOPSIS       MPM = weedout(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,saveallpath)
+% SYNOPSIS       MPM = ptTrackFilter(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,saveallpath)
 %
 % INPUT          MPM        : Magic Position Matrix 
 %                               MPM = [ y  x  y  x  y  x ... ]
@@ -20,9 +19,9 @@ function MPM = weedout(MPM,plusframes,minusframes,maxdistpostpro,minimaltrack,sa
 %
 % OUTPUT         altered MPM          
 %
-% DEPENDENCIES   weedout  uses {nothing}
+% DEPENDENCIES   ptTrackFilter  uses {nothing}
 %                                  
-%                weedout is used by { PolyTrack_PP }
+%                ptTrackFilter is used by { PolyTrack_PP }
 %
 % Colin Glass, Feb 04
 
