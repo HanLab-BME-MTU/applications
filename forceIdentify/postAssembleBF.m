@@ -106,6 +106,18 @@ for jj = 1:numTimeSteps
    %Identify the location of adhesion and contration and assign intensity
    % scores that approximately separate the two. It is based on the angle
    % between the force and the displacement.
+   %We first separate the two for forces on the display points.
+   recBFLen = sqrt(recBFx.^2+recBFy.^2);
+   recDispLen = sqrt(recDispU1.^2+recDispU2.^2);
+
+   unitRecU1 = recDispU1./recDispLen;
+   unitRecU2 = recDispU2./recDispLen;
+
+   dotProdBFRecU = recBFx.*unitRecU1 + recBFy.*unitRecU2;
+   mcfIndShow = find((dotProdBFRecU-recBFLen*cos(mcfAngle))>=0);
+   adfIndShow = find((-dotProdBFRecU-recBFLen*cos(adfAngle))>=0);
+
+   %We then do it on the grid points and assign intensity scores.
    %The force on grid points inside the identification region.
    gridXin = gridX(gridIn);
    gridYin = gridY(gridIn);
