@@ -1,22 +1,27 @@
-function tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,counter1,gridSize,d0,userPath,threshold,imgSize)
+function tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,counter1,gridSize,d0,userPath,threshold,influence,imgSize)
 % fsmTrackMain uses the interpolated vector field to refine the tracking
 %
-% SYNOPSIS   tmp=fsmTrackEnhancedTracker(tmp,img,img2,strg,counter1,gridSize,d0,userPath,threshold,imgSize)
+% SYNOPSIS   tmp=fsmTrackEnhancedTracker(tmp,img,img2,strg,counter1,gridSize,d0,userPath,threshold,influence,imgSize)
 %
-% INPUT      tmp      : M matrix returned by the tracker for the current frame pair
-%            I        : matrix [y x I]n of speckle coordinates and intensities for frame 1
-%            J        : matrix [y x I]n of speckle coordinates and intensities for frame 2
-%            strg     : format string for the correct numbering of files
-%            counter1 : number of the first frame
-%            gridSize : distance between two interpolation points on the grid [gy gx]
-%                       if gridSize is set equal to zero, the field is interpolated onto
-%                       the original vector positions
-%            d0       : correlation length or interpolation
-%            userPath : work directory (where the interpolated vector field is saved)
-%            threshold: radius of the region searched by the tracker for matching speckles
-%            imgSize  : image size [y x]
+% INPUT      tmp        : M matrix returned by the tracker for the current frame pair
+%            I          : matrix [y x I]n of speckle coordinates and intensities for frame 1
+%            J          : matrix [y x I]n of speckle coordinates and intensities for frame 2
+%            strg       : format string for the correct numbering of files
+%            counter1   : number of the first frame
+%            gridSize   : distance between two interpolation points on the grid [gy gx]
+%                         if gridSize is set equal to zero, the field is interpolated onto
+%                         the original vector positions
+%            d0         : correlation length or interpolation
+%            userPath   : work directory (where the interpolated vector field is saved)
+%            threshold  : radius of the region searched by the tracker for matching speckles
+%            influence :  radius of influence for the neural network tracker. This is the initial search
+%                         radius; the neural network can more effectively reconstruct flow if it can
+%                         search over larger areas and therefore take more particles into account. The final
+%                         matches will be constrained to have a maximum distance = 'radius', but initially 
+%                         a larger search radius ('influence') will be used.
+%            imgSize    : image size [y x]
 %
-% OUTPUT     tmp      : modified M matrix
+% OUTPUT     tmp        : modified M matrix
 %
 % DEPENDENCES   fsmTrackEnhancedTracker uses { framework ; vectorFieldDiv ; updateD0FromDiv;
 %                                              vectorFieldInterp ; fsmTrackPropSpecklePos ;
@@ -25,7 +30,7 @@ function tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,counter1,gridSize,d0,userPath,
 %
 % Aaron Ponti, January 14th, 2003
 
-if nargin~=10
+if nargin~=11
     error('Wrong number of input arguments');
 end
 
@@ -60,7 +65,7 @@ Itmp=sortrows(I,1:2);
 IP=cat(2,pSpPos,Itmp(:,3)); % Add original intensities to the propagated positions
 
 % Track again with the brownian motion tracker with neural network
-tmp2=fsmTrackTrackerBMTNN(IP,J,threshold);
+tmp2=fsmTrackTrackerBMTNN(IP,J,threshold,influence);
 
 % Create a copy of tmp2
 copyTmp2=tmp2;

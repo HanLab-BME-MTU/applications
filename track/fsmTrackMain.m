@@ -34,6 +34,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 threshold=fsmParam.track.threshold;
+influence=fsmParam.track.influence;
 userPath=fsmParam.main.path;
 TRACKER=fsmParam.track.tracker;
 enhanced=fsmParam.track.enhanced;
@@ -185,7 +186,7 @@ for counter1=1:lastImage
     switch TRACKER
     case 1
 %         [tmp,n1,n2,nc1,nc2]=fsmTrackTrackerA(img,img2,img,img2);
-        tmp=fsmTrackTrackerBMTNN(I,J,threshold);
+        tmp=fsmTrackTrackerBMTNN(I,J,threshold,influence);
     case 2
         tmp=fsmTrackTrackerP(img,img2,threshold);    
     case 3
@@ -203,12 +204,9 @@ for counter1=1:lastImage
     if enhanced==1
         
         % Call external function to perform enhanced tracking
-        tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,currentIndex,gridSize,d0,userPath,threshold,size(img));
+        tmp=fsmTrackEnhancedTracker(tmp,I,J,strg,currentIndex,gridSize,d0,userPath,threshold,influence,size(img));
         
     end
-    
-    % Check tmp
-    %tmp=fsmTrackCorrectM(tmp,sqrt(8));
     
     % Check for unsupported error
     if isempty(tmp)

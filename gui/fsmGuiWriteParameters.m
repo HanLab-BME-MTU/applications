@@ -169,10 +169,17 @@ if fsmParam.track.enable==1
     set(handles.radioTrackBrownian,'Enable','on');
     set(handles.radioTrackBrownian,'Enable','on');
     set(handles.radioEnhTrackBrownian,'Enable','on');
+    if fsmParam.track.tracker==1
+        set(handles.editInfluence,'Enable','on');
+    else
+        set(handles.editInfluence,'Enable','off');
+    end
+    
     if fsmParam.track.enhanced==1
         set(handles.checkGrid,'Enable','on');
     else
         set(handles.checkGrid,'Enable','off');
+        
     end               
 else
     set(handles.checkTrackModule,'Value',0);
@@ -183,9 +190,11 @@ else
     set(handles.editThreshold,'Enable','off');
     set(handles.checkEnhTrack,'Enable','off');
     set(handles.checkGrid,'Enable','off');
+    set(handles.editInfluence,'Enable','off');
 end
 % Default
 set(handles.editThreshold,'String',fsmParam.track.threshold);
+set(handles.editInfluence,'String',fsmParam.track.influence);
 set(handles.checkEnhTrack,'Value',fsmParam.track.enhanced);
 set(handles.checkGrid,'Value',fsmParam.track.grid);
 switch fsmParam.track.tracker

@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 19-Mar-2004 09:21:53
+% Last Modified by GUIDE v2.5 19-Apr-2004 14:43:30
 clc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -511,6 +511,8 @@ if value==0
     set(handles.editThreshold,'Enable','off');
     set(handles.checkEnhTrack,'Enable','off');
     set(handles.checkGrid,'Enable','off');
+    set(handles.textInfluence,'Enable','off');
+    set(handles.editInfluence,'Enable','off');
 else
     set(handles.radioTrackBrownian,'Enable','on');
     set(handles.radioEnhTrackBrownian,'Enable','on');
@@ -518,10 +520,13 @@ else
     set(handles.checkEnhTrack,'Enable','on');
     set(handles.textThreshold,'Enable','on');
     set(handles.editThreshold,'Enable','on');
+    set(handles.textInfluence,'Enable','on');
     if get(handles.checkEnhTrack,'Value')==1
-        set(handles.checkGrid,'Enable','on');
+        set(handles.checkGrid,'Enable','on');    
+        set(handles.editInfluence,'Enable','on');
     else
         set(handles.checkGrid,'Enable','off');
+        set(handles.editInfluence,'Enable','off');
     end               
 end    
 
@@ -537,8 +542,15 @@ function radioTrackBrownian_Callback(hObject, eventdata, handles)
 set(handles.radioTrackBrownian,'Value',1);
 set(handles.radioEnhTrackBrownian,'Value',0);
 set(handles.radioTrackFlow,'Value',0);
-% set(handles.textThreshold,'Enable','off');
-% set(handles.editThreshold,'Enable','off');
+set(handles.textInfluence,'Enable','on');
+set(handles.editInfluence,'Enable','on');
+set(handles.checkEnhTrack,'Enable','on');
+if get(handles.checkEnhTrack,'Value')==1
+    set(handles.checkGrid,'Enable','on');
+else
+    set(handles.checkGrid,'Enable','off');
+end
+
 
 function radioEnhTrackBrownian_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of radioEnhTrackBrownian
@@ -547,6 +559,10 @@ set(handles.radioEnhTrackBrownian,'Value',1);
 set(handles.radioTrackFlow,'Value',0);
 % set(handles.textThreshold,'Enable','on');
 % set(handles.editThreshold,'Enable','on');
+set(handles.textInfluence,'Enable','off');
+set(handles.editInfluence,'Enable','off');
+set(handles.checkEnhTrack,'Enable','off');
+set(handles.checkGrid,'Enable','off');
 
 % -------------------------------------------------------------------------
 
@@ -557,6 +573,10 @@ set(handles.radioEnhTrackBrownian,'Value',0);
 set(handles.radioTrackFlow,'Value',1);
 set(handles.textThreshold,'Enable','on');
 set(handles.editThreshold,'Enable','on');
+set(handles.textInfluence,'Enable','off');
+set(handles.editInfluence,'Enable','off');
+set(handles.checkEnhTrack,'Enable','off');
+set(handles.checkGrid,'Enable','off');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -920,5 +940,28 @@ function pushCalReload_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
+% --- Executes during object creation, after setting all properties.
+function editInfluence_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editInfluence (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editInfluence_Callback(hObject, eventdata, handles)
+% hObject    handle to editInfluence (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editInfluence as text
+%        str2double(get(hObject,'String')) returns contents of editInfluence as a double
 
 

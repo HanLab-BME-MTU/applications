@@ -67,7 +67,8 @@ fsmParam.prep.gaussRatio=3.54;      % Gauss ratio
 % Enable module
 fsmParam.track.enable=1;            % Activates the TRACKER module [ 0 : off | 1 : on ]
 % Threshold
-fsmParam.track.threshold='3';       % Defines the neighborhood of a speckle for the tracker
+fsmParam.track.threshold='3';       % Defines the search radius for the tracker
+fsmParam.track.influence='3';       % Defines the radius of influence for the BMTNN tracker
 % Tracker
 fsmParam.track.tracker=1;           % Specifies the tracker to be selected [1: BMTNN | 2: BMTG | 3: 3FT ]
 % Hierarchical tracking

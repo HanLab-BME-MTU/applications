@@ -50,10 +50,6 @@ end
 
 % Number of images
 fsmParam.main.imgN=str2num(get(handles.numberEdit,'String'));
-% if fsmParam.main.imgN>0 & fsmParam.main.imgN<3
-% 	uiwait(msgbox('The number must be either 0 or >2.','Number of images','modal'));
-% 	return
-% end
 
 % Auto cell boundaries
 fsmParam.prep.autoPolygon=get(handles.autoPolCheck,'Value');
@@ -131,6 +127,7 @@ fsmParam.track.grid=get(handles.checkGrid,'Value');
 
 % Tracker's search radius
 fsmParam.track.threshold=str2num(get(handles.editThreshold,'String'));
+fsmParam.track.influence=str2num(get(handles.editInfluence,'String'));
 
 % Set status to 1
 status=1;

@@ -1,13 +1,18 @@
-function M=fsmTrackTrackerBMTNN(I,J,radius)
+function M=fsmTrackTrackerBMTNN(I,J,radius,influence)
 % fsmTrackTrackerBMTNN tracks particle postions resolving topological conflicts with neural networks
 %
-% SYNOPSIS   M=fsmTrackTrackerBMTNN(Lmax1,Lmax2,radius)
+% SYNOPSIS   M=fsmTrackTrackerBMTNN(Lmax1,Lmax2,radius,influence)
 %
-% INPUT      I      :  matrix [y x I]n of speckle coordinates and intensities for frame 1
-%            J      :  matrix [y x I]n of speckle coordinates and intensities for frame 2
-%            radius :  search radius
+% INPUT      I         :  matrix [y x I]n of speckle coordinates and intensities for frame 1
+%            J         :  matrix [y x I]n of speckle coordinates and intensities for frame 2
+%            radius    :  search radius
+%            influence :  radius of influence for the neural network tracker. This is the initial search
+%                         radius; the neural network can more effectively reconstruct flow if it can
+%                         search over larger areas and therefore take more particles into account. The final
+%                         matches will be constrained to have a maximum distance = 'radius', but initially 
+%                         a larger search radius ('influence') will be used.
 %
-% OUTPUT     M      :  matrix of matches [y1(1) x1(1) y1(2) x1(2)]n 
+% OUTPUT     M         :  matrix of matches [y1(1) x1(1) y1(2) x1(2)]n 
 %
 % DEPENDENCES   fsmTrackTrackerBMTNN uses { createSparseDistanceMatrix ;
 %                                           missingIndices ;
@@ -18,15 +23,15 @@ function M=fsmTrackTrackerBMTNN(I,J,radius)
 % Aaron Ponti, March 14th, 2003
 
 % Check input parameters
-if nargin~=3
-    error('Three input parameters expected');
+if nargin~=4
+    error('Four input parameters expected');
 end
 
 % Initialize M
 M=[];
 
 % Options for LabonteNN (Neural Network)
-options.r         = radius; % radius;
+options.r         = influence;
 options.rf        = 0.005; % 1e-4; % Original value: 1e-5
 options.alpha     = 5e-4; %5e-4; % Original value: 5e-4
 options.beta      = 0.99; % Original value: 0.99

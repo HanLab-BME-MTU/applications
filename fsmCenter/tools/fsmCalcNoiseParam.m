@@ -159,15 +159,18 @@ close(h);
 % Calcaulate GaussRatio as the mean of the vector GaussRatios
 GaussRatio=mean(GaussRatios);
 
+% Adapt beta to the selected bitdepth
+beta=2^(14-bitDepth)*2e-4;
+
 fprintf(1,'\nTo add this experiment to your database:\n');
 fprintf(1,'(1) Click on ''Edit experiment parameters'' in fsmCenter.\n');
 fprintf(1,'(2) Copy/paste this record at the end of your experiment settings file.\n');
 fprintf(1,'(3) Edit the LABEL and DESCRIPTION fields.\n');
 fprintf(1,'-------------------------------------------------------------------\n');
-fprintf(1,'LABEL\t\t\t"Please change this"\n');
-fprintf(1,'DESCRIPTION\t\t"Please change this"\n');
+fprintf(1,'LABEL\t\t\t"* * * Please change this * * *"\n');
+fprintf(1,'DESCRIPTION\t\t"* * * Please change this * * *"\n');
 fprintf(1,'BIT DEPTH\t\t"%s"\n',num2str(bitDepth));
-fprintf(1,'NOISE PARAMS\t"%1.8f 2e-4 %1.8f"\n',sDN,I0);
+fprintf(1,'NOISE PARAMS\t"%1.8f %1.8f %1.8f"\n',sDN,beta,I0);
 fprintf(1,'GAUSS RATIO\t\t"%1.2f"\n',GaussRatio);
 fprintf(1,'#\n');
 fprintf(1,'-------------------------------------------------------------------\n');

@@ -218,10 +218,10 @@ if exist([outputdir,filesep,'eps'])~=7
     end
 end
 
-
 % Create vector of indices for file names
 indices=[uFirst:uLast-n+1]+fix(n/2);
 
+% Initializing waitbar
 h=waitbar(0,'Creating speed maps...');
 
 % Create a full bwMask (in case of failure of edge detection)

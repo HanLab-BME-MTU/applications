@@ -152,7 +152,7 @@ for i=1:total
         speckleClasses(count).dTime = speckleArray(i).timepoint-1; % Store actual death time (not of 'd' speckle)      
         speckleClasses(count).first = currentB;
         speckleClasses(count).last  = i;
-        speckleClasses(count).pos   = [speckleArray(currentB).spPos; speckleArray(i).spPos];
+        speckleClasses(count).pos   = [speckleArray(currentB).spPos; speckleArray(i).spPos]; %reshape([speckleArray(currentB:i).spPos],2,1+(i-currentB))'; 
         speckleClasses(count).class = class;
 
         % Mark last event as 'd'
@@ -179,7 +179,7 @@ for i=1:total
         speckleClasses(count).dTime = speckleArray(i).timepoint-1; % Store actual death time (not of 'd' speckle)      
         speckleClasses(count).first = currentB;
         speckleClasses(count).last  = i;
-        speckleClasses(count).pos   = [speckleArray(currentB).spPos; speckleArray(i).spPos];
+        speckleClasses(count).pos   = [speckleArray(currentB).spPos; speckleArray(i).spPos]; %reshape([speckleArray(currentB:i).spPos],2,1+(i-currentB))';
         speckleClasses(count).class = class;
         
         % Mark last event as 'l'
