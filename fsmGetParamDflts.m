@@ -78,6 +78,8 @@ fsmParam.prep.drawROI=0;            % The user can draw a ROI on the image to re
                                     % load a roi from the current or some other project
 fsmParam.prep.gaussRatio=3.54;      % Gauss ratio
 fsmParam.prep.sigma=1;              % Sigma for low-pass filtering
+fsmParam.prep.psfSigma=1;           % Sigma of point spread function
+fsmParam.prep.filterSigma=1;        % Sigma for low-pass filtering
 fsmParam.prep.uptodate=0;           % Up-to-date flag
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

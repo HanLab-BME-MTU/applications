@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 02-Feb-2005 11:18:57
+% Last Modified by GUIDE v2.5 11-Mar-2005 16:45:29
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -43,6 +43,7 @@ if nargin == 0  % LAUNCH GUI
         set(handles.fsmGuiMain,'Color',[0.701961 0.701961 0.701961]);
         set(handles.numberEdit,'BackgroundColor',[0.701961 0.701961 0.701961]);
         set(handles.bitDepthEdit,'BackgroundColor',[0.701961 0.701961 0.701961]);
+        %set(handles.textPsfSigma,'BackgroundColor',[0.701961 0.701961 0.701961]);
         set(handles.editThreshold,'BackgroundColor',[0.701961 0.701961 0.701961]);
         set(handles.expPopup,'BackgroundColor',[0.701961 0.701961 0.701961]);        
     end
@@ -72,7 +73,10 @@ if nargin == 0  % LAUNCH GUI
         %(Mar. 11, 2005) on, for backward compatiblity, I copy the old 'sigma'
         %to 'filterSigma'.
         if ~isfield(fsmParam.prep,'filterSigma')
-           fsmParam.prep.filterSimga = fsmParam.prep.sigma;
+           fsmParam.prep.filterSigma = fsmParam.prep.sigma;
+        end
+        if ~isfield(fsmParam.prep,'psfSigma')
+           fsmParam.prep.psfSigma = fsmParam.prep.sigma;
         end
 
         % Store default values in defaultFsmParam
@@ -1103,6 +1107,18 @@ function editSigma_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editSigma as text
 %        str2double(get(hObject,'String')) returns contents of editSigma as a double
 
+fsmParam = get(handles.start,'UserData');
+filterSigma = str2num(get(hObject,'String'));
+if isempty(filterSigma)
+   set(handles.editSigma,'String',num2str(fsmParam.prep.filterSigma));
+   errordlg('Not valid numerical value','Error','modal');
+   return;
+end
+
+fsmParam.prep.filterSigma = filterSigma;
+set(handles.start,'UserData',fsmParam);
+
+guidata(hObject,handles);
 
 % --- Executes during object creation, after setting all properties.
 function editCorrLength_CreateFcn(hObject, eventdata, handles)
@@ -1339,4 +1355,12 @@ function edgeBitDepth_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes during object creation, after setting all properties.
+function textPsfSigma_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to textPsfSigma (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
 

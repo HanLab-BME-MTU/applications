@@ -67,6 +67,9 @@ else
 end
 % Camera bit depth
 set(handles.bitDepthEdit,'String',num2str(log2(fsmParam.main.normMax+1)));
+% sigma of Point Spread Function.
+set(handles.textPsfSigma,'String',sprintf('%1.3f',fsmParam.prep.psfSigma));
+
 % Noise parameters
 set(handles.confOne,'Value',0);
 set(handles.confTwo,'Value',0);
