@@ -27,7 +27,8 @@ function [MPM,M]=trackLinker(M)
 % Initialize counter and waitbar
 counter=0;
 tot=2*(size(M,3)-1);
-h=waitbar(0,'Linking...');
+%h=waitbar(0,'Linking...');
+disp('Linking...');
 
 % Reorganize M
 for counter1=1:size(M,3)-1
@@ -109,7 +110,7 @@ for counter1=1:size(M,3)-1
     tM=zeros(size(tM));
     
     % Update wait bar
-    waitbar(counter/tot,h);   
+    %waitbar(counter/tot,h);   
     
 end
 
@@ -123,10 +124,10 @@ for counter3=2:size(M,3)
     MPM(:,(counter3-1)*2+(1:2))=M(:,1:2,counter3);
     
     % Update wait bar
-    waitbar(counter/tot,h);
+    %waitbar(counter/tot,h);
     
 end
 MPM(:,counter3*2+(1:2))=M(:,3:4,counter3);
 
 % Close waitbar
-close(h);
+%close(h);

@@ -6,27 +6,27 @@ function trackCells(hObject,projNum)
 % INPUT          hObject : a handle to the Gui which called the function
 %                projNum : which job is currently being dealt with
 %
-% OUTPUT         All outputs are either written directly to disk 
+% OUTPUT         All outputs are written directly to disk 
 %                M : described in trackLinker
 %                cellprops : cellprops(:,1)=coord(:,1);
-%	 	 cellprops(:,2)=coord(:,2);
-%		 cellprops(:,3)=belongsto(:);  (number of cluster - label)
-%		 cellprops(:,4)=numberOfOccurences(:);  (how many cells in the cluster this cell is in)
-%		 cellprops(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
-%		 cellprops(:,6)=perimdivare(:);  (cluster)
+%	 	             cellprops(:,2)=coord(:,2);
+%		             cellprops(:,3)=belongsto(:);  (number of cluster - label)
+%		             cellprops(:,4)=numberOfOccurences(:);  (how many cells in the cluster this cell is in)
+%		             cellprops(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
+%		             cellprops(:,6)=perimdivare(:);  (cluster)
 %                BODYIMG is the binary image of the areas occupied by cells                
 %
-% DEPENDENCIES   trackCells uses {imClusterSeg
-%				  trackLinker
-%				  checkMinimalCellCell
-%				  findnucloitrack
-%				  body
-%				  halosfind
-%				  templfindertrack }
+% DEPENDENCIES   trackCells uses { imClusterSeg
+%				   trackLinker
+%				   checkMinimalCellCell
+%				   findnucloitrack
+%				   body
+%				   halosfind
+%				   templfindertrack }
 %                                  
 %                trackCells is used by { PolyTrack }
 %
-% REMARK         trackCells fetches directly in GUI PolyTrack
+% REMARK         trackCells fetches directly in GUI PolyTrack:
 %                   handles : structure with information used within GUI
 % 				  from handles.jobs(projNum):
 % 					imagedirectory : where are the images 
@@ -56,17 +56,11 @@ function trackCells(hObject,projNum)
 %
 % Colin Glass, Feb 04
 
+%%%% NOTE: it might be a good idea to change the input from a guihandle and
+%%%% a number to a structure activejob, which includes the jobvalues
 
-%%%%NOTE: it might be a good idea to change the input from a guihandle and
-%%%%a number to a structure activejob, which includes the jobvalues
-
-
-% % % % % % % % % % % % % % set(handles.GUI_st_bp_mmpixel_pm,'String',num2str(activeJob.mmpixel));
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%fetch and extract values
-
+% Fetch and extract values from the 
 handles = guidata(hObject);
-
 
 ImageDirectory = handles.jobs(projNum).imagedirectory;
 ImageName = handles.jobs(projNum).imagename;
@@ -84,9 +78,9 @@ LevNuc_la = handles.jobs(projNum).la_nucleus;
 LevBack_la = handles.jobs(projNum).la_background;
 LevHalo_la = handles.jobs(projNum).la_halolevel;      
 
+% Range in which direct assignement ,of found coordinates, from frame to
+% frame is accepted
 MaxSearch = handles.jobs(projNum).maxsearch;
-%range in which direct assignement ,of found coordinates, from frame to
-%frame is accepted
 
 SaveDirectory = handles.jobs(projNum).savedirectory;
 
@@ -94,80 +88,58 @@ percentbackground = handles.jobs(projNum).noiseparameter;
 sizetemple = handles.jobs(projNum).sizetemplate;
 box_size_img = handles.jobs(projNum).boxsize;
 
-%minimal/maximal size of the black spot in the cells
+% Minimal/maximal size of the black spot in the cells
 MinSizeNuc = handles.jobs(projNum).minsize;
 MaxSizeNuc = handles.jobs(projNum).maxsize;
 
+% An educated guess of the minimal distance between neighbouring cells
+% (better to big than to small, for this value is used for the static
+% search. Searches with templates are more tolerant)
 MinDistCellCell = handles.jobs(projNum).minsdist;
-%an educated guess of the minimal distance between neighbouring cells
-%(better to big than to small, for this value is used for the static
-%search. Searches with templates are more tolerant.)
 
+% This value influences the level between the nucloi and the background, as
+% calculated from input (clicking in the pictures, which pop up shortly
+% after the programm starts rolling
 LevelChanger = handles.jobs(projNum).leveladjust;
-%this value influences the level between the nucloi and the background, as
-%calculated from input (clicking in the pictures, which pop up shortly
-%after the programm starts rolling
 
-%at least 4!!!
-howmanytimestepsslide = handles.jobs(projNum).timestepslide;
+% Minimum 4
+howManyTimeStepSlide = handles.jobs(projNum).timestepslide;
 
+% Minimal distance to edge for tracking with template
 MinEdge = handles.jobs(projNum).minedge;
-%minimal distance to edge for tracking with template
 
 MinimalQualityCorr = handles.jobs(projNum).mincorrqualtempl;
 MinTrackCorr = handles.jobs(projNum).mintrackcorrqual;
-  
+
 segmentation = handles.jobs(projNum).minmaxthresh;
 clustering = handles.jobs(projNum).clustering;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Parameters that aren't open to discussion
+% The following parameters should not be changed!
 
+% How much the blobs found in halosfind shall be eroded. This is an indirect
+% size criteria for halosfind. Increase - minimal size of halos will be
+% increased, decrease - ... decreased
 ErodeDiskSize = round((sqrt(MinSizeNuc))/2) ;
-%how much the blobs found in halosfind shall be eroded. This is an indirect
-%size criteria for halosfind. Increase - minimal size of halos will be
-%increased, decrease - ... decreased
 
+% Range within witch to look for corralations of tracks over several pics. 
 DistanceCorrel = MaxSearch*1.5; 
-%range within witch to look for corralations of tracks over several pics. 
 
+% Within which distance shall the programm body look for an area, to which
+% it can allocate a cell (coordinates of a cell)
 PlusMinus = round(MinDistCellCell/2);
-%Within which distance shall the programm body look for an area, to which
-%it can allocate a cell (coordinates of a cell)
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%DO NOT CHANGE THESE VALUES !!!!!!!!!!!
-%They have NOTHING to do with how the programm works!
-
-%PLEASE NOTE WELL:
-%by changing these values, 
-%you have nothing to gain.
-%no profit, no revenues,
-%only TROUBLE that will rain down on your brain.
-%By now, my friend, it should be quite plain:
-%If you change these values ... you are insane.
-
-
-%these markers identify the origins of coordinates. They get added to the
-%values of coordinates. Depending on how the coordinate got come by, a
-%certain marker will be added. In this way, the coordinates always carry
-%that information
-
-%If you wish, you can add others, to distinguish between more different
-%kinds of cells. (A weird phrase meaning: you can add a new CLASS of cells)
-%DO NOT USE 0.9 AS A MARKER!!! (x <= 0.8 is ok)
-%But you will have to add on the new marker to the right cells in the right 
-%spot and ,after retrieving them, do something worthwhile with them.
-
-%If you wish to mark cells with more then one property, I suggest you use
-%markers placed at the second digit (0.01 , 0.02 ...).
-
+% the following markers identify the origins of coordinates. They get added to the
+% values of coordinates. Depending on how the coordinate got come by, a
+% certain marker will be added. In this way, the coordinates always carry
+% that information.
+% If you wish, you can add others, to distinguish between more different
+% kinds of cells. (A weird phrase meaning: you can add a new CLASS of cells)
+% DO NOT USE 0.9 AS A MARKER!!! (x <= 0.8 is ok)
+% But you will have to add on the new marker to the right cells in the right 
+% spot and ,after retrieving them, do something worthwhile with them.
+% If you wish to mark cells with more then one property, I suggest you use
+% markers placed at the second digit (0.01 , 0.02 ...).
 GoodCellMarker = 0.1;
 GoodCell = round(GoodCellMarker*10);
 
@@ -180,16 +152,10 @@ NewCell = round(NewCellMarker*10);
 NewCelTempelMarker = 0.4;
 NewCelTempl = round(NewCelTempelMarker*10);
 
-%DO NOT CHANGE!!!!!!!!!!!!!!!!!!!!!!!!!
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 ext = ImageName(end-3:end);
 bodyFileName = ImageName(1:end-7);
 
-
 howManyImg = LastImaNum-FirstImaNum+1;
-
 
 levdiff_fi = abs(LevNuc_fi-LevBack_fi)*LevelChanger;
 levdiff_la = abs(LevNuc_la-LevBack_la)*LevelChanger;
@@ -198,9 +164,6 @@ incrDiff = (levdiff_la-levdiff_fi)/(howManyImg-1);
 incrback = (LevBack_la-LevBack_fi)/(howManyImg-1);
 incrhalo = (LevHalo_la-LevHalo_fi)/(howManyImg-1);
 incrNuc = (LevNuc_la-LevNuc_fi)/(howManyImg-1);
-
-
-
 
 i = 0;
 k = 0;
@@ -215,18 +178,17 @@ coord = [];
 
 emptyM = zeros(1,4);
 
+% Check that the first and last image numbers are actually the right way around
+% AK: maybe should do a check here that pops up a window in case the function
+% is called from the GUI; in all other cases it uses a disp.
 cd(ImageDirectory);
-
-
-
-if ~LastImaNum > FirstImaNum
-    disp('Fool, with these values (job#',num2str(projNum),') for the increment, the first and the last picture, not even one step is possible... Look again and choose more wisely');
+if ~ (LastImaNum > FirstImaNum)
+    disp ('Last image # is smaller than first image # in job #', num2str(projNum));
     return
-    
 else    
     
     
-    IRGENDWIE_USTUUUUUSCHE=[];
+    %IRGENDWIE_USTUUUUUSCHE=[];
     
     %index is equal to the number of the image, countingloops keeps
     %track of the loops
@@ -655,7 +617,7 @@ else
                        %certain cells, based on an analysis of the various tracks of
                        %cells over the last ? frames (defined in PolyTrack (GUI)). 
                    
-                       if countingloops > howmanytimestepsslide+1
+                       if countingloops > howManyTimeStepSlide+1
                            
                                templateRow = [];
                                MPMslide = [];
@@ -664,7 +626,7 @@ else
                                ytempl = [];
                          
                                
-                               MPMslide = trackLinker(M(:,:,(countingloops-howmanytimestepsslide+1):(countingloops-1)));
+                               MPMslide = trackLinker(M(:,:,(countingloops-howManyTimeStepSlide+1):(countingloops-1)));
                                %MPMslide is a matrix which gives the tracks of all cells over
                                %the last ? frames. It get's updated after every new frame.
                                
@@ -799,7 +761,7 @@ else
                                                                                               %not in MPMslide, but in M. Since M
                                                                                               %is not sorted, we have to always
                                                                                               %find the right spot
-                                                                                              IRGENDWIE_USTUUUUUSCHE = IRGENDWIE_USTUUUUUSCHE +1;
+                                                                                              %IRGENDWIE_USTUUUUUSCHE = IRGENDWIE_USTUUUUUSCHE +1;
                                                                                               templateCoord = [];
                                                                                               newCeCoord = [];
                                                                                                              
@@ -905,7 +867,7 @@ else
                                                                                                              %this is exactly the same procedure as above. I know it would be clever to make a function out of it
                                                                                                              %but there would be so many BIG matrices involved I decided to have it in here twice. Ah well. Anyway look above
                                                                                                              %(look for IRGENDWIE_USTUUUSCHE)
-                                                                                                             IRGENDWIE_USTUUUSCHE = IRGENDWIE_USTUUUSCHE +1
+                                                                                                             %IRGENDWIE_USTUUUSCHE = IRGENDWIE_USTUUUSCHE +1
                                                                                                              templateCoord = [];
                                                                                                              newCeCoord = [];
                                                                                                              
@@ -1036,12 +998,23 @@ else
 	end
       
     cd(SaveDirectory)
-    if ~isempty(IRGENDWIE_USTUUUUUSCHE)
-         save('IRGENDWIE_USTUUUUUSCHE', 'IRGENDWIE_USTUUUUUSCHE');
-    end
+    %if ~isempty(IRGENDWIE_USTUUUUUSCHE)
+    %     save('IRGENDWIE_USTUUUUUSCHE', 'IRGENDWIE_USTUUUUUSCHE');
+    %end
 	%it's all over now. All we have to do is change the format of the
 	%information we have painstakingly gathered over the last ??? lines
 	%MPM = fsmTrackLinker(M);
 
 end
          
+% AK: the comments below are kept because Colin has worked so hard on them :-)
+
+%PLEASE NOTE WELL:
+%by changing these values, 
+%you have nothing to gain.
+%no profit, no revenues,
+%only TROUBLE that will rain down on your brain.
+%By now, my friend, it should be quite plain:
+%If you change these values ... you are insane.
+
+
