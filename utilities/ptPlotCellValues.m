@@ -30,6 +30,7 @@ imageName = ptPostpro.imagename;
 % Get radio button values
 cellClusterPlot = ptPostpro.cellclusterplot;
 areaPlot = ptPostpro.areaplot;
+perimeterPlot = ptPostpro.perimeterplot;
 
 % Get the cell and cluster properties for all frames. These are in the format:
 %
@@ -80,10 +81,14 @@ for frameCount = startFrame : endFrame
    % cluster with only one nuclei
    singleCellAmount (frameCount) = size (clusters (find (clusters (:,2) == 1)), 1);
    
+   % Calculate the percentage of single cells
+   percentageSingleCells (frameCount) = (singleCellAmount (frameCount) / ...
+                                        (singleCellAmount (frameCount) + sumCellsInCluster (frameCount))) * 100.0;
+   
    % Calculate the average area per cluster
    sumClusterArea (frameCount) = sum (clusters (find (clusters (:,2) > 1), 3));
    if clusterAmount (frameCount) ~= 0
-      areaPerCluster (frameCount) = round ( sumClusterArea (frameCount) / clusterAmount (frameCount));
+      areaPerCluster (frameCount) = sumClusterArea (frameCount) / clusterAmount (frameCount);
    else
       areaPerCluster (frameCount) = 0;
    end
@@ -91,9 +96,17 @@ for frameCount = startFrame : endFrame
    % Calculate the average area per single cell
    sumSingleCellArea (frameCount) = sum (clusters (find (clusters (:,2) == 1), 3));
    if singleCellAmount (frameCount) ~= 0
-      areaPerSingleCell (frameCount) = round ( sumSingleCellArea (frameCount) / singleCellAmount (frameCount));
+      areaPerSingleCell (frameCount) = sumSingleCellArea (frameCount) / singleCellAmount (frameCount);
    else
       areaPerSingleCell (frameCount) = 0;
+   end
+   
+   % Calculate perimeter / area for clusters
+   sumClusterPerimeter (frameCount) = sum (clusters (find (clusters (:,2) > 1), 4));
+   if sumClusterPerimeter (frameCount) ~= 0
+      perimeterDivArea (frameCount) = sumClusterPerimeter (frameCount) / sumClusterArea (frameCount);
+   else
+      perimeterDivArea (frameCount) = 0;
    end
 end 
 
@@ -106,7 +119,7 @@ if cellClusterPlot
    % Draw a subplot showing the amount of clusters per frame
    ymax = max (clusterAmount) + 1;
    subplot(2,2,1); plot (clusterAmount); 
-   title ('Amount of clusters');
+   title ('Amount of Clusters');
    xlabel ('Frames');
    ylabel ('# of clusters');
    axis ([0 endFrame 0 ymax]);
@@ -114,7 +127,7 @@ if cellClusterPlot
    % Draw a subplot showing the amount of cells per cluster
    ymax = max (cellsPerCluster) + 1;
    subplot (2,2,2); plot (cellsPerCluster); 
-   title ('Average amount of cells per cluster');
+   title ('Average Amount of Cells per Cluster');
    xlabel ('Frames');
    ylabel ('# cells per cluster');
    axis ([0 endFrame 0 ymax]);
@@ -122,11 +135,19 @@ if cellClusterPlot
    % Draw a subplot showing the amount of single cells
    ymax = max (singleCellAmount) + 1;
    subplot (2,2,3); plot (singleCellAmount); 
-   title ('Amount of single cells');
+   title ('Amount of Single Cells');
    xlabel ('Frames');
    ylabel ('# of single cells');
    axis ([0 endFrame 0 ymax]);
-	
+   
+   % Draw a subplot showing the percentage of single cells
+   ymax = 100.0;   % 100% is the max we can get
+   subplot (2,2,4); plot (percentageSingleCells); 
+   title ('Percentage Single Cells');
+   xlabel ('Frames');
+   ylabel ('% single cells');
+   axis ([0 endFrame 0 ymax]);
+   
    % Save the figures in fig, eps and tif format
    hgsave (h_fig, [savePath filesep 'singleCellsAndClusterStats.fig']);
    print (h_fig, [savePath filesep 'singleCellsAndClusterStats.eps'], '-depsc2', '-tiff');
@@ -161,24 +182,25 @@ if areaPlot
    print(h_fig, [savePath filesep 'cellAndClusterAreaStats.tif'],'-dtiff');
 end
 
-% if get(handles.GUI_ad_perimeter_rb,'Value')
-%         
-%         h_fig=figure,title(handles.jobvalues.imagename);
-%         ymax=max(newProps(5,:));
-%         subplot(1,1,1); plot(newProps(5,:)), title('perimeter/area of clusters');
-%         xlabel('Frames');
-%         ylabel('perimeter/area');
-%         axis([0 endFrame 0 ymax]);
-%         
-%            
-% 		hgsave(h_fig,[savePath filesep 'areasPerim.fig']);
-% 		print(h_fig, [savePath filesep 'areasPerim.eps'],'-depsc2','-tiff');
-% 		print(h_fig, [savePath filesep 'areasPerim.tif'],'-dtiff');
-% 		
-%         
-%         
-% end
-%     
+if perimeterPlot
+        
+   % Generate the figure and title
+   h_fig = figure; title (imageName);
+   
+   % Draw a plot showing the perimeter of clusters divided by area
+   ymax = max (perimeterDivArea);
+   plot (perimeterDivArea); 
+   title ('Perimeter/Area of Clusters');
+   xlabel ('Frames');
+   ylabel ('Perimeter/Area');
+   axis ([0 endFrame 0 ymax]);
+        
+   % Save the figures in fig, eps and tif format        
+   hgsave(h_fig,[savePath filesep 'areasPerim.fig']);
+   print(h_fig, [savePath filesep 'areasPerim.eps'],'-depsc2','-tiff');
+   print(h_fig, [savePath filesep 'areasPerim.tif'],'-dtiff');     
+end
+    
 
 % h_fig=figure,title(handles.jobvalues.imagename);
 % ymax=max(percentageSingle);

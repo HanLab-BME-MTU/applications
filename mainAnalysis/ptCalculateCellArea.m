@@ -12,8 +12,8 @@ function [cellProps, clusterProps] = ptCalculateCellArea (imgLabeledCellArea, co
 %
 % OUTPUT       cellProps :
 %                 cellProps (:,1) = coord (:,1);
-%	          cellProps (:,2) = coord (:,2);
-%	          cellProps (:,3) = clusterNr (:);  (number of cluster - label)
+%	              cellProps (:,2) = coord (:,2);
+%	              cellProps (:,3) = clusterNr (:);  (number of cluster - label)
 %
 %              clusterProps :
 %                 clusterProps (:,1) = uniqClusterNr (:);          (which cells are in this cluster)

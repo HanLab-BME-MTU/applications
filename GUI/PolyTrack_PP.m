@@ -703,6 +703,7 @@ handles = guidata (hObject);
 % Assign the radiobutton values to the postpro struct
 handles.postpro.cellclusterplot = get (handles.GUI_ad_numberofthings_rb,'Value');
 handles.postpro.areaplot = get (handles.GUI_ad_areas_rb,'Value');
+handles.postpro.perimeterplot = get(handles.GUI_ad_perimeter_rb,'Value');
 
 % Here is where the bulk of the graphing work is done; we give it the
 % postpro structure and MPM matrix to work with
