@@ -1,4 +1,4 @@
-function [arParamK,maParamK,wnVariance,wnVector,aic,varCovMat,arParamL,maParamL,errFlag] ...
+function [arParamK,maParamK,wnVariance,wnVector,aic,varCovMat,arParamL,maParamL,aicVec,errFlag] ...
     = armaIdentKalman(trajectories,modelParam)
 %ARMAIDENTKALMAN uses Kalman prediction and filtering to determine the ARMA model (i.e. its order, coefficients and white noise variance) that best fits a time series which could have missing data points.
 %
@@ -59,6 +59,7 @@ end
 
 %assign initial value of AIC
 aic = 1e10; %(ridiculously large number)
+aicVec = [];
 
 %go over all suggested models
 for i = 1:length(modelParam)
@@ -80,6 +81,8 @@ for i = 1:length(modelParam)
         disp(num2str(i));
         aic1 = [];
     end
+    
+    aicVec = [aicVec; aic1];
     
     %compare current AIC to minimum AIC
     %if it is smaller, update results

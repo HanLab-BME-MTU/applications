@@ -105,8 +105,8 @@ for timePoint = 1:trajLength
 
         if innovationVar(timePoint) < 0
             disp('neg!');
-            errFlag = 1;
-            return
+%             errFlag = 1;
+%             return
         end
         
         %calculate delta

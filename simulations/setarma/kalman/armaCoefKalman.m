@@ -152,6 +152,7 @@ if exitFlag > 0
 
         %obtain available points in this trajectory
         available = trajectories(i).available;
+%         available = available(find(available>10));
 
         %get the innovations, their variances and the estimated white noise series
         %using Kalman prediction and filtering
