@@ -44,7 +44,7 @@ if nargin == 0  % LAUNCH GUI
         % Initialize fsmParam with default values
         fsmParam=fsmGetParamDflts;
     end
-
+    
     % Store default values in defaultFsmParam
     defaultFsmParam=fsmParam;
     
@@ -62,9 +62,20 @@ if nargin == 0  % LAUNCH GUI
     fsmGuiWriteParameters(defaultFsmParam,handles);
 
     % Read parameter experiments from fsmExpParams.txt
-    fsmExpParamPath=[pathOfFsmMain(1:indx),'fsmExpParams.txt'];
+    userDir=fsmCenter_getUserSettings;
+    if isempty(userDir)
+        fsmExpParamPath=[pathOfFsmMain(1:indx),'fsmExpParams.txt'];
+    else
+        fsmExpParamPath=[userDir,filesep,'fsmExpParams.txt'];
+        if exist(fsmExpParamPath)~=2
+            % No database found in user-defined directory
+            % Reverting to default database
+            fsmExpParamPath=[pathOfFsmMain(1:indx),'fsmExpParams.txt'];
+        end
+    end
     if exist(fsmExpParamPath)~=2
-        error('Could not find experiment database!');
+        uiwait(msgbox('Could not find experiment database! Get fsmExpParams.txt from the repository and restart SpeckTackle.','Error','modal'));
+        return
     end
     
     % Fill parameters structure

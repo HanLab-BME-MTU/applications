@@ -376,7 +376,7 @@ if ~mod(str2num(get(handles.editSpectrumSigma,'String')),2)
 end
 
 function pushUser_Callback(hObject, eventdata, handles)
-uiwait(msgbox('This option has not yet been implemented.','help','modal'));
+fsmCenter_setUserSettings;
 
 function pushVector_Callback(hObject, eventdata, handles)
 n=str2num(get(handles.editImageNumber,'String'));
@@ -450,7 +450,12 @@ function checkDisplayROI_Callback(hObject, eventdata, handles)
 function checkInvertROI_Callback(hObject, eventdata, handles)
 
 function pushEditExpParams_Callback(hObject, eventdata, handles)
-edit('fsmExpParams.txt');
+userDir=fsmCenter_getUserSettings;
+if ~isempty(userDir)
+    edit([userDir,filesep,'fsmExpParams.txt']);
+else
+    edit('fsmExpParams.txt'); % Default fsmExpParams.txt file
+end
 
 function editImageNumber_Callback(hObject, eventdata, handles)
 
@@ -1027,15 +1032,6 @@ set(handles.editCalY0,'String','');
 set(handles.editCalY,'String','');
 set(handles.editCalX0,'String','');
 set(handles.editCalX,'String','');
-
-
-
-% --- Executes on button press in pushbutton27.
-function pushbutton27_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton27 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
 
 % --------------------------------------------------------------------
 function menuHelp_Callback(hObject, eventdata, handles)

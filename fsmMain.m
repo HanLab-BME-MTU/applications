@@ -23,8 +23,7 @@ function fsmParam=fsmMain(fsmParam)
 %               fsmMain is used by { fsmMainRun }
 %
 % Aaron Ponti, October 2nd, 2002
-%
-% See Also fsmSpeedMaps
+
 
 if nargin~=1
     error('One parameter (fsmParam) expected');
