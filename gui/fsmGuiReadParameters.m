@@ -143,5 +143,8 @@ fsmParam.track.grid=get(handles.checkGrid,'Value');
 fsmParam.track.threshold=str2num(get(handles.editThreshold,'String'));
 fsmParam.track.influence=str2num(get(handles.editInfluence,'String'));
 
+% Tracker's correlation length
+fsmParam.track.corrLength=str2num(get(handles.editCorrLength,'String'));
+
 % Set status to 1
 status=1;

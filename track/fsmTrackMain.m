@@ -43,6 +43,7 @@ strg=fsmParam.specific.formString;
 n=fsmParam.specific.imageNumber;
 imgSize=fsmParam.specific.imgSize;
 firstIndex=fsmParam.specific.firstIndex;
+d0=fsmParam.track.corrLength;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -70,7 +71,7 @@ if enhanced==1
     end
     
     % Calculate d0 for interpolation
-    d0=3*max(gridSize);
+    %d0=3*max(gridSize);
     
     % If no grid is needed, gridSize has to be set to 0
     if grid==0

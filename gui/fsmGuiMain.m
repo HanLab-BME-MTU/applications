@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 10-May-2004 10:31:44
+% Last Modified by GUIDE v2.5 06-Aug-2004 13:57:14
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -1003,5 +1003,30 @@ function editSigma_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editSigma as text
 %        str2double(get(hObject,'String')) returns contents of editSigma as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function editCorrLength_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editCorrLength (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc
+    set(hObject,'BackgroundColor','white');
+else
+    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+end
+
+
+
+function editCorrLength_Callback(hObject, eventdata, handles)
+% hObject    handle to editCorrLength (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editCorrLength as text
+%        str2double(get(hObject,'String')) returns contents of editCorrLength as a double
 
 

@@ -328,6 +328,11 @@ else
     set(handles.editInfluence,'String',num2str(fsmParam.track.threshold));
 end    
 set(handles.checkGrid,'Value',fsmParam.track.grid);
+if isfield(fsmParam.track,'corrLength')
+    set(handles.editCorrLength,'String',num2str(fsmParam.track.corrLength));
+else
+    set(handles.editCorrLength,'String','33');
+end
 switch fsmParam.track.tracker
     case 1
         set(handles.radioTrackBrownian,'Value',1);
