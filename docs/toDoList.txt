@@ -1,9 +1,1 @@
 
-Aaron
-_____
-
-(1) fsmSpeedProfile and fsmKineticProfile are in the database but cannot yet be started from fsmCenter.
-
-(2) When loading an existing fsmParam.mat, not all gui fields are correctly filled.
-
-(3) Add the new "Two-channel overlays" display module to the SpeckTackle gui.
