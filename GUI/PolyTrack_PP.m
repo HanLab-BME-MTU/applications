@@ -664,6 +664,8 @@ function GUI_ad_plot_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata (hObject);
 
+guiData = ptRetrieveGUIData(handles);
+
 % Check that files have been selected before
 if ~isfield (handles, 'allMPM')
     errorStr = ['Jobs should be selected first by using the Select button!'];
@@ -673,7 +675,7 @@ if ~isfield (handles, 'allMPM')
 end
 
 % Get the path where plot data will be saved
-saveDir = handles.guiData.savedatapath;
+saveDir = guiData.savedatapath;
 
 % If it doesn't exist yet, create it in the results directory
 if ~exist (saveDir, 'dir')
@@ -692,7 +694,7 @@ end
 plotName = datestr(now,30);
 
 % Get window size for running average
-windowSize = handles.guiData.windowsize;
+windowSize = guiData.windowsize;
 
 % Assign the radiobutton values to the radioButtons struct
 radioButtons = getRadiobuttonValues (handles);
@@ -1012,6 +1014,7 @@ if ispc
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
+
 
 %----------------------------------------------------------------------------
 
