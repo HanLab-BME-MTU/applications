@@ -116,7 +116,7 @@ done = 0;
 toutDouxList = [-1;inputTypeList(:,1)];
 
 %tell the rules to the user
-h = helpdlg('please select the filetypes and the files you want to load. Once you are done, press ''cancel'' in the selection dialogue','RTFM made easy');
+h = helpdlg('please select the filetypes and the files you want to load. Once you are done, press ''cancel'' in the selection dialogue','');
 uiwait(h)
 
 %start while loop: loop until user does not want to load further data
