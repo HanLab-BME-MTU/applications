@@ -24,6 +24,12 @@ function ptPlotChaosStats (radioButtons, imageName, SaveDir, xAxis, chaosStats, 
 % Fetch the input data
 ripleyClustering = chaosStats.ripleyClustering;
 
+if radioButtons.ripleysimplot
+   simulationAvg = chaosStats.simulationAvg;
+   simulationMax = chaosStats.simulationMax;
+   simulationMin = chaosStats.simulationMin;
+end
+
 % Calculate average values if we have to
 if radioButtons.runningaverage    
     raRipleyClustering = movingAverage (ripleyClustering, windowSize, 'median');
@@ -36,11 +42,35 @@ if ~radioButtons.donotshowplots
     h_fig = figure('Name', imageName);
 
     % Draw a plot showing average velocity of all cells
-    ymax = max(ripleyClustering) + (0.1*max (ripleyClustering));
-    plot (xAxis, ripleyClustering); 
-        
+    ymax1 = max(ripleyClustering) + (0.1*max (ripleyClustering));
+    if radioButtons.ripleysimplot
+       ymax2 = max(simulationMax) + (0.1*max (simulationMax));
+    else
+       ymax2 = 0;
+    end
+    ymax = max([ymax1 ymax2]);
+
+    % Plot the running average
     if radioButtons.runningaverage
-        hold on; plot (xAxis, raRipleyClustering, 'r'); hold off;
+        plot (xAxis, ripleyClustering, 'c', xAxis, raRipleyClustering, 'r'); 
+        legend('Clust value','Avg clust value',3);
+    else
+        plot (xAxis, ripleyClustering, 'c'); 
+        legend('Clust value',3);
+    end
+    
+    % Plot the simulation results as well if the user wants this
+    if radioButtons.ripleysimplot
+       hold on; 
+       plot (xAxis, simulationAvg, 'g');
+       plot (xAxis, simulationMax, '--');
+       plot (xAxis, simulationMin, '.');  
+       if radioButtons.runningaverage
+          legend('Clust value','Avg clust value','Simulated avg','Simulated max','Simulated min',3);
+       else
+          legend('Clust value','Simulated avg','Simulated max','Simulated min',3);
+       end
+       hold off;
     end
         
     title ('Avg Clustering Paremeter Value');
@@ -60,4 +90,9 @@ end
 
 % Save CSV files
 csvwrite ([SaveDir filesep imageName '_avgRipleyClustering.csv'], [xAxis ; ripleyClustering]);
+
+if radioButtons.ripleysimplot
+    csvwrite ([SaveDir filesep imageName '_avgRipleySimulationValues.csv'], ...
+              [xAxis ; simulationAvg ; simulationMax ; simulationMin]);
+end
 

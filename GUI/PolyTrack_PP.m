@@ -59,7 +59,7 @@ defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, 'm
                         'dragtail', 6, 'dragtailfile', 'trackMovie', 'figureSize', [], ...
                         'multframevelocity', 1, 'binsize', 13, 'mmpixel', 0.639, 'timeperframe', 300, ...
                         'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81, 'windowsize', 5, ...
-                        'maxcellcelldist', 81);
+                        'maxcellcelldist', 81, 'ripconfint', 85);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -134,6 +134,10 @@ set (handles.neighbour_dist_ed, 'String', handles.guiData.maxneighbourdist);
 % Set max cellcell dist
 handles.guiData.maxcellcelldist = defaultPostPro.maxcellcelldist;
 set (handles.GUI_maxcellcelldist_ed, 'String', handles.guiData.maxcellcelldist);
+
+% Set ripley confidence interval
+handles.guiData.ripleyconfint = defaultPostPro.ripconfint;
+set (handles.GUI_ripconfint_ed, 'String', handles.guiData.ripleyconfint);
 
 % Set the color of the gui
 set(hObject,'Color',[0,0,0.627]);
@@ -805,11 +809,21 @@ else
       save ([saveDir filesep plotName '_xAxis-Neighbours.mat'],'xAxis');
    end
    
-   if radioButtons.ripleyplot            
+   if radioButtons.ripleyplot   
+      % Let's make sure we have the avg speeds as well since Ripley needs these
+      if ~radioButtons.speedplot   
+          [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis] = ...
+                               ptCalculateSpeedValues (handles);
+          
+          % Assign the velocity stats to the handles struct
+          handles.avgVelocityStats = avgVelocityStats;
+      end
+      
       if radioButtons.ripleyplot_1
           
           % Run the calculation
-          [chaosStats, xAxis] = ptCalculateChaosStats (handles);
+          radioButtons = getRadiobuttonValues (handles);
+          [chaosStats, xAxis] = ptCalculateChaosStats (handles, radioButtons);
           
           % Do the plots
           ptPlotChaosStats (radioButtons, plotName, saveDir, xAxis, chaosStats, windowSize);
@@ -2610,6 +2624,7 @@ radioButtons.neighbourplot = get(handles.checkbox_neighbourhood,'Value');
 % Get Ripley choas values
 radioButtons.ripleyplot = get(handles.GUI_ripley_cb,'Value');
    radioButtons.ripleyplot_1 = get(handles.GUI_chaosstats_cb,'Value');
+   radioButtons.ripleysimplot = get(handles.GUI_chaossim_cb,'Value');
    
 % Get histogram radiobutton values
 radioButtons.allcellshist = get (handles.GUI_vel_all_cells_cb,'Value');
@@ -2788,5 +2803,40 @@ ptSetPostproGUIValues (handles, filesSelected);
 
 % Update handles structure
 guidata(hObject, handles); 
+
+%--------------------------------------------------------------------
+
+function GUI_chaossim_cb_Callback(hObject, eventdata, handles)
+
+%--------------------------------------------------------------------
+
+function GUI_ripconfint_ed_Callback(hObject, eventdata, handles)
+handles = guidata (hObject);
+
+% Get number from the gui, convert it to a number and assign it to the handle;
+% If it is not an number, throw and error dialog and revert to the old number
+strval = get (hObject,'String');
+val = str2double(strval);
+if isnan (val)
+    h = errordlg('Sorry, this field has to contain a number.');
+    uiwait(h);          % Wait until the user presses the OK button
+    handles.guiData.ripleyconfint = handles.defaultPostPro.ripconfint;
+    set (handles.GUI_ripconfint_ed, 'String', num2str(handles.guiData.ripleyconfint));  % Revert the value back
+    return
+else
+    handles.guiData.ripleyconfint = val;
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+%--------------------------------------------------------------------
+
+function GUI_ripconfint_ed_CreateFcn(hObject, eventdata, handles)
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 

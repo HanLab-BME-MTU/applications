@@ -35,6 +35,9 @@ guiData.savedatapath = get(handles.GUI_fm_saveallpath_ed,'string');
 % Get value of window size (for averaging)
 guiData.windowsize = str2num(get(handles.GUI_windowsize_ed,'string'));
 
+% Get value of confidence interval (for ripley)
+guiData.ripleyconfint = str2num(get(handles.GUI_ripconfint_ed,'string'));
+
 % Values for auto post processing
 guiData.plusframes = str2num(get(handles.GUI_app_plusframes_ed, 'String'));
 guiData.minusframes = str2num(get(handles.GUI_app_minusframes_ed, 'String'));

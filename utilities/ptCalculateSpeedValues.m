@@ -334,6 +334,7 @@ avgVelocityStats.avgVelocity = avgVelocity;
 avgVelocityStats.avgVelocitySquared = avgVelocitySquared;
 avgVelocityStats.avgSingleVelocity = avgSingleVelocity;
 avgVelocityStats.avgClusteredVelocity = avgClusteredVelocity;
+avgVelocityStats.avgSingleDisplacement = avgSingleDisplacement;
 
 velocitySingleStats.velAllCellsHigherThanAvgSingleCells = velAllCellsHigherThanAvgSingleCells;
 
