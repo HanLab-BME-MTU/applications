@@ -220,7 +220,7 @@ function editLastFrame_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editLastFrame as text
 %        str2double(get(hObject,'String')) returns contents of editLastFrame as a double
 minN=get(handles.pushOkay,'UserData');
-value=str2num(handles.editLastFrame,'String');
+value=str2num(get(handles.editLastFrame,'String'));
 if ~isnumeric(value)
     return
 end
