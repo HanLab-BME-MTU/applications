@@ -168,8 +168,6 @@ if ~isempty(hFsmPostProc)
 end
 hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %
@@ -215,6 +213,11 @@ if isempty(area)
     end
 end
 
+
+function editCalY0_Callback(hObject, eventdata, handles)
+function editCalY_Callback(hObject, eventdata, handles)
+function editCalX0_Callback(hObject, eventdata, handles)
+function editCalX_Callback(hObject, eventdata, handles)
 
 function editBitDepth_Callback(hObject, eventdata, handles)
 
@@ -332,8 +335,6 @@ set(handles.editCalY0,'String','');
 set(handles.editCalY,'String','');
 set(handles.editCalX0,'String','');
 set(handles.editCalX,'String','');
-
-function editCalX_Callback(hObject, eventdata, handles)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
