@@ -1,13 +1,15 @@
-function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed,segment,bitDepth)
+function outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed,segment,bitDepth)
 % fsmSpeedMaps creates speed maps from the flow maps returned by the SpeckTackle package
 %
 % fsmSpeedMaps goes through the whole M (or Md) stack of s matrices (each matrix corresponds to the
 %    matches returned by the tracker for frames 2 consecutive frames) and creates t<=s speed maps
 %    each of which is the average over n frames [j-n/2:j+n/2] around frame j, j in [fix(n/2)+1:s-fix(n/2)]
 %   
-% SYNOPSIS      outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed)
+% SYNOPSIS      outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed,segment,bitDepth)
 %
-% INPUT         gridSize    : [y x], defines the grid on which the velocities are calculated   
+% INPUT         projDir     : string pointing to the project directory (where the fsmParam.mat file is 
+%                             located). Pass projDir=[] to manually select fsmParam.mat via a dialog.
+%               gridSize    : [y x], defines the grid on which the velocities are calculated   
 %               n           : number of frames for temporal averaging (must be odd).
 %                             If n==0, the whole stack is averaged into one speed map.
 %               d0_init     : correlation length (pixels)
@@ -37,63 +39,108 @@ function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,ov
 global uFirst uLast
 
 % Check input parameters
-if nargin~=11
-    error('11 input parameters expected');
+if nargin~=12
+    error('12 input parameters expected');
 end
 
 % Initialize output
 outputdir=[];
 
-% Load first image
-[fName,dirName] = uigetfile(...
-    {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
-    '*.tif','TIF files (*.tif)'
-    '*.tiff','TIFF files (*.tiff)'
-    '*.jpg;','JPG files (*.jpg)'
-    '*.jpeg;','JPEG files (*.jpeg)'
-    '*.*','All Files (*.*)'},...
-    'Select first image');
-if(isa(fName,'char') & isa(dirName,'char'))
-    img=nrm(imread([dirName,fName]),1);
-    % Store image size
-    imgSize=size(img);
-else
-    return 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% LOOK FOR AND CHECK fsmParam.mat
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[fsmParam,status]=fsmPostGetFsmParam(projDir);
+if status==0
+    return
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% GET THE LIST OF IMAGE FILE NAMES AND FIRST/LAST INDICES FROM fsmParam
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[imageFileList,imageFirstIndex,imageLastIndex,status]=fsmPostGetImageListFromFsmParam(fsmParam);
+if status==0
+    return
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% GET SOME IMAGE INFO
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Load first image
+img=imread(char(imageFileList(1,:)));
+
+% Store image size
+imgSize=size(img);
+
 % String format for extension
-[path,outputFileName,no,ext]=getFilenameBody([dirName,fName]);
+[path,outputFileName,no,ext]=getFilenameBody(char(imageFileList(1,:)));
 s=length(no);
 strg=sprintf('%%.%dd',s);
 
-% Read image file list
-outFileList=getFileStackNames([dirName,fName]);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% LOAD VECTOR FIELDS 
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% The user wants the raw vectors
 if loadMPM==1
     
-    % Load mpm.mat
-    [fName,dirName] = uigetfile(...
-        {'mpm.mat;','mpm.mat';
-        '*.*','All Files (*.*)'},...
-        'Select mpm.mat');
-    if ~(isa(fName,'char') & isa(dirName,'char'))
-        return 
+    % Check that the tracking module is up-to-date and load mpm.mat
+    
+    if isfield(fsmParam.track,'uptodate')
+
+        % Check that the tracking module is up-to-date
+        if fsmParam.track.uptodate==0
+            
+            % The tracking module is not up-to-date. Inform the user and return    
+            errordlg('The file ''mpm.mat'' is not up-to-date. Please re-run the Tracking module in SpeckTackle.','Error','modal');
+            return
+            
+        else
+            uptodate=1;    
+        end
+        
+    else
+        
+        % Old version of fsmParam.mat. Inform the user that he/she has to make sure that everything is up-to-date
+        uiwait(msgbox('Since ''fsmParam.mat'' has been created by an old version of SpeckTackle, I cannot make sure that ''mpm.mat'' is up-to-date. Continue at your own risk.','Warning'));
+        uptodate=-1;
+        
     end
-    load([dirName,fName]);
-    if ~exist('M')
-        % The user didn't pick a valid mpm.mat file
-        uiwait(msgbox('Invalid mpm.mat file chosen.','error','modal'));
+
+    % Load mpm.mat
+    if exist([projDir,filesep,'mpm.mat'],'file');
+        load([projDir,filesep,'mpm.mat']);
+        clear MPM;
+    else
+        errordlg('Could not find ''mpm.mat''.','Error','modal');
         return
     end
-    clear MPM;
+
+    % Check that the size of M matches the number of analyzed images
+    nImages=imageLastIndex-imageFirstIndex+1;
+    if size(M,3)+1~=nImages
+        if uptodate==-1
+            errordlg('The tracking module is not up-to-date. Please re-run the tracking module in SpeckTackle.','Error','modal');
+        else
+            errordlg('Even though the tracking module appears to be up-to-date, it is NOT. THIS IS A BUG. Please REPORT it.','Error','modal');
+            return
+        end
+    end
     
     % Toggle interpolation
     interp=1;
     
     % Number of frames
     frames=size(M,3);
-
-else
+    
+else % The user chose to load an already averaged stack of vector fields (Md)
     
     % Load Md.mat
     [fName,dirName] = uigetfile(...
@@ -106,16 +153,16 @@ else
     load([dirName,fName]);
     if ~exist('Md')
         % The user didn't pick a valid Md.mat file
-        uiwait(msgbox('Invalid Md###-###.mat file chosen.','error','modal'));
+        errordlg('Invalid Md###-###.mat file chosen.','Error','modal');
         return
     end
 
     % No interpolation
     interp=0;
-
+    
     % Number of frames
     frames=size(Md,3);
-
+    
 end
 
 % The minimum number of frames to be selected depends on the value assigned to n by the user
@@ -239,12 +286,12 @@ if exist([outputdir,filesep,'eps'])~=7
 end
 
 % Create vector of indices for file names
-[path,body,indxStart,ext]=getFilenameBody(char(outFileList(uFirst)));
-[path,body,indxEnd,ext]=getFilenameBody(char(outFileList(uLast)));
+[path,body,indxStart,ext]=getFilenameBody(char(imageFileList(uFirst,:)));
+[path,body,indxEnd,ext]=getFilenameBody(char(imageFileList(uLast,:)));
 indices=[str2num(indxStart):str2num(indxEnd)-n+1]+fix(n/2);
 
 % Update image file list
-outFileList=outFileList(indices-str2num(indxStart)+1);
+imageFileList=imageFileList(indices-str2num(indxStart)+1,:);
 
 % Initializing waitbar
 h=waitbar(0,'Creating speed maps...');
@@ -287,7 +334,7 @@ for c2=1:steps
     if segment==1
         % Find cell boundaries
         xmax=2^bitDepth-1;
-        img=imreadnd2(char(outFileList(c2)),0,xmax);
+        img=imreadnd2(char(imageFileList(c2,:)),0,xmax);
         try
             [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
         catch
