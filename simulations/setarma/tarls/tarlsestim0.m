@@ -1,15 +1,15 @@
-function [arParam,varCovMat,residuals,noiseSigma,errFlag] = tarlsestim0(...
-    traj,vThresholds,delay,arOrder,method,tol)
+function [tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarlsestim0(...
+    traj,vThresholds,delay,tarOrder,method,tol)
 %TARLSESTIM0 fits a TAR model to a trajectory (which could have missing data points) using least squares.
 %
-%SYNOPSIS [arParam,varCovMat,residuals,noiseSigma,errFlag] = tarlsestim0(...
-%    traj,vThresholds,delay,arOrder,method,tol)
+%SYNOPSIS [tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarlsestim0(...
+%    traj,vThresholds,delay,tarOrder,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainties).
 %                      Missing points should be indicated with NaN.
 %       vThresholds  : Column vector of thresholds, sorted in increasing order.
 %       delay        : Time lag of value compared to vThresholds.
-%       arOrder      : Order of proposed TAR model in each regime.
+%       tarOrder     : Order of proposed TAR model in each regime.
 %       method (opt) : Solution method: 'dir' (default) for direct least square 
 %                      minimization using the matlab "\", 'iter' for iterative 
 %                      refinement using the function "lsIterRefn".
@@ -17,10 +17,12 @@ function [arParam,varCovMat,residuals,noiseSigma,errFlag] = tarlsestim0(...
 %                      Needed only when method 'iter' is used. If not
 %                      supplied, 0.001 is assumed. 
 %
-%OUTPUT arParam      : Estimated parameters in each regime.
+%OUTPUT tarParam     : Estimated parameters in each regime.
 %       varCovMat    : Variance-covariance matrix of estimated parameters.
 %       residuals    : Difference between measurements and model predictions.
 %       noiseSigma   : Estimated standard deviation of white noise in each regime.
+%       fitSet       : Set of points used for data fitting. Each column in 
+%                      matrix corresponds to a certain regime. 
 %       errFlag      : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, April 2004
@@ -31,7 +33,7 @@ errFlag = 0;
 if nargin < 4
     disp('--tarlsestim0: Incorrect number of input arguments!');
     errFlag  = 1;
-    arParam = [];
+    tarParam = [];
     varCovMat = [];
     residuals = [];
     noiseSigma = [];
@@ -40,7 +42,7 @@ end
 
 %check input data
 [trajLength,nCol] = size(traj);
-if trajLength < max(arOrder)
+if trajLength < max(tarOrder)
     disp('--tarlsestim0: Length of trajectory should be larger than model order!');
     errFlag = 1;
 end
@@ -52,26 +54,37 @@ if nCol ~= 2
         errFlag = 1;
     end
 end
-[nThresholds,nCol] = size(vThresholds);
-if nCol ~= 1
-    disp('tarlsestim0: "vThresholds" should be a column vector!');
+if ~isempty(vThresholds)
+    [nThresholds,nCol] = size(vThresholds);
+    if nCol ~= 1
+        disp('tarlsestim0: "vThresholds" should be a column vector!');
+    else
+        if min(vThresholds(2:end)-vThresholds(1:end-1)) <= 0
+            disp('--tarlsestim0: Entries in "vThresholds" should be sorted in increasing order, with no two elements alike!');
+            errFlag = 1;
+        end
+    end
+    if delay <= 0
+        disp('--tarlsestim0: "delay" should be a positive integer!');
+        errFlag = 1;
+    end
 else
-    if min(vThresholds(2:end)-vThresholds(1:end-1)) <= 0
-        disp('--tarlsestim0: Entries in "vThresholds" should be sorted in increasing order, with no two elements alike!');
+    nThresholds = 0;
+    delay = 1;
+end
+dummy = length(tarOrder);
+if dummy ~= nThresholds + 1
+    disp('--tarlsestim0: Wrong number of entries in "arOrder"!');
+    errFlag = 1;
+else
+    if min(tarOrder) < 1
+        disp('--tarlsestim0: Variable "tarOrder" should be >= 1!');
         errFlag = 1;
     end
 end
-if delay <= 0
-    disp('--tarlsestim0: "delay" should be a positive integer!');
-    errFlag = 1;
-end
-if min(arOrder) < 1
-    disp('--tarlsestim0: Variable "arOrder" should be >= 1!');
-    errFlag = 1;
-end
 if errFlag
     disp('--tarlsestim0: Please fix input data!');
-    arParam = [];
+    tarParam = [];
     varCovMat = [];
     residuals = [];
     noiseSigma = [];
@@ -110,8 +123,9 @@ vThresholds = [-Inf; vThresholds; Inf];
 %1. get indices of available points
 indx = find(~isnan(traj(:,1)));
 
-%2. discard first max(arOrder) points
-indx2 = find(indx>max(arOrder));
+%2. discard first max(tarOrder) trajectory points
+indx2 = find(indx>max(tarOrder));
+indx2 = indx2(find(indx2>max(tarOrder)));
 
 %3. find all points whose "delay"-time-steps predecessors are available
 indx2 = indx2(find(indx(indx2)>delay));
@@ -130,11 +144,11 @@ indxClass = indxClass(1:max(fitLength),:);
 %delete variable indx2
 clear indx2;
 
-%5. find all points whose arOrder(level) previous points are available
+%5. find all points whose tarOrder(level) previous points are available
 fitSet = zeros(size(indxClass));
 for level = 1:nThresholds+1
-    temp = indx(indxClass(1:fitLength(level),level))-indx(indxClass(1:fitLength(level),level)-arOrder(level));
-    temp = indx(indxClass(find(temp==arOrder(level)),level));
+    temp = indx(indxClass(1:fitLength(level),level))-indx(indxClass(1:fitLength(level),level)-tarOrder(level));
+    temp = indx(indxClass(find(temp==tarOrder(level)),level));
     fitLength(level) = length(temp);
     fitSet(1:fitLength(level),level) = temp;
 end
@@ -146,16 +160,17 @@ clear temp indxClass;
 %initialize residuals vector (needed later)
 residuals = NaN*ones(trajLength,1);
 
-%reserve memory for arParam
-arParam = zeros(nThresholds+1,max(arOrder));
+%reserve memory for tarParam and varCovMat
+tarParam = zeros(nThresholds+1,max(tarOrder));
+varCovMat = zeros(max(tarOrder),max(tarOrder),nThresholds+1);
 
 %estimate parameters in each level
 for level = 1:nThresholds+1
     
     %construct weighted matrix of previous points multiplying AR coefficients (on LHS of equation)
-    %[size: fitLength by arOrder]
-    lhsMat = zeros(fitLength(level),arOrder(level));
-    for i=1:arOrder(level)
+    %[size: fitLength by tarOrder]
+    lhsMat = zeros(fitLength(level),tarOrder(level));
+    for i=1:tarOrder(level)
         lhsMat(:,i) = traj(fitSet(1:fitLength(level),level)-i,1)...
             ./traj(fitSet(1:fitLength(level),level),2);
     end
@@ -168,14 +183,14 @@ for level = 1:nThresholds+1
     %estimate AR coefficients
     switch method
         case 'dir' %use MATLAB "\"
-            arParam(level,1:arOrder(level)) = (lhsMat\rhsVec)';
+            tarParam(level,1:tarOrder(level)) = (lhsMat\rhsVec)';
         case 'iter' %use iterative refinement method
-            [arParam1,errFlag] = lsIterRefn(lhsMat,rhsVec,tol);
-            arParam(level,1:arOrder(level)) = arParam1';
+            [tarParam1,errFlag] = lsIterRefn(lhsMat,rhsVec,tol);
+            tarParam(level,1:tarOrder(level)) = tarParam1';
     end
     if errFlag
         disp('--tarlsestim0: "lsIterRefn" did not function normally!');
-        arParam = [];
+        tarParam = [];
         varCovMat = [];
         residuals = [];
         noiseSigma = [];
@@ -183,17 +198,18 @@ for level = 1:nThresholds+1
     end
     
     %check for causality of estimated model
-    r = abs(roots([-arParam(level,arOrder(level):-1:1) 1]));
+    r = abs(roots([-tarParam(level,tarOrder(level):-1:1) 1]));
     if ~isempty(find(r<=1.00001))
         disp('--tarlsestim0: Warning: Predicted model not causal!');
     end
     
     %get vector of weighted residuals
-    residuals(fitSet(1:fitLength(level),level)) = lhsMat*arParam(level,1:arOrder(level))' - rhsVec;
+    residuals(fitSet(1:fitLength(level),level)) = lhsMat*tarParam(level,1:tarOrder(level))' - rhsVec;
     
     %calculate variance-covariance matrix
-    varCovMat(:,:,level) = inv(lhsMat'*lhsMat)*(residuals(fitSet(1:arOrder(level),level))'...
-        *residuals(fitSet(1:arOrder(level),level))/(fitLength(level)-arOrder(level)));
+    varCovMat(1:tarOrder(level),1:tarOrder(level),level) = inv(lhsMat'*lhsMat)*...
+        (residuals(fitSet(1:fitLength(level),level))'...
+        *residuals(fitSet(1:fitLength(level),level))/(fitLength(level)-tarOrder(level)));
     
     %get nonweighted residuals
     residuals(fitSet(1:fitLength(level),level)) = residuals(fitSet(1:fitLength(level),level))...
@@ -203,3 +219,6 @@ for level = 1:nThresholds+1
     noiseSigma(level) = std(residuals(fitSet(1:fitLength(level),level)));
     
 end %(for levels=1:nThresholds+1)
+
+%add to the beginning of each column the number of data points in that regime
+fitSet = [fitLength; fitSet];
