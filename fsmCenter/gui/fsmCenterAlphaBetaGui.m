@@ -152,6 +152,10 @@ if exp==1
     uiwait(msgbox('Please select an experiment you want to optimize.','Error','modal'));
     return
 end
+% Discard the first line ("Select experiment")
+exp=exp-1;
+
+% Prepare input
 noiseParams=zeros(1,5);
 noiseParams(2:4)=fsmExpParam(exp).noiseParams; % [alpha beta I0]
 noiseParams(5)=str2num(get(handles.editQuantile,'String'));
@@ -202,11 +206,16 @@ end
 [noiseParameter,actualP]=fsmAlphaBetaOptimization1D(outFileList,noiseParams,prob,bitDepth);
 noiseParameter=noiseParams;
 
+% Inform user
+string=['Attained probability: ',num2str(100*actualP),'%'];
+uiwait(msgbox(string,'Info','modal'));
+
+% Print the result to console and ask the user to copy/paste the record into the database
 fprintf(1,'\n\nTo add this experiment to your database:\n');
 fprintf(1,'(1) Click on ''Edit experiment parameters'' in fsmCenter.\n');
 fprintf(1,'(2) Copy/paste this record at the end of your experiment settings file.\n');
 fprintf(1,'-------------------------------------------------------------------\n');
-newLabel=[fsmExpParam(exp).label,' - OPTIMIZED FOR QUANTILE = ',num2str(noiseParams(5))];
+newLabel=[fsmExpParam(exp).label,' - OPTIMIZED FOR PROBABILITY = ',num2str(100*prob),'% (QUANTILE = ',num2str(noiseParams(5)),')'];
 fprintf(1,'LABEL\t\t\t%s\n',newLabel);
 fprintf(1,'DESCRIPTION\t\t%s\n',fsmExpParam(exp).description);
 fprintf(1,'BIT DEPTH\t\t"%s"\n',num2str(bitDepth));
