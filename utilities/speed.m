@@ -90,29 +90,37 @@ for iFrame = startFrame : (stopFrame - 1)
 
    % The following is an experiment for the poster to the take the displacement
    % over 3 frames instead of 1 (x1 to x4)
+   % AK: This should be made a variable in the gui
+   % Since to calculate the average velocity we need the frame to frame
+   % displacement, we keep that as well
    curCoordinates1 = handles.MPM (whatCells, (2 * iFrame - 1):(2 * iFrame));
    curCoordinates2 = handles.MPM (whatCells, (2 * iFrame + 5):(2 * iFrame + 6));
    curCoordinates = [curCoordinates1 curCoordinates2];
+   curCoordinatesVel = handles.MPM (whatCells, (2 * iFrame - 1):(2 * iFrame + 2));
 
    % Find all the zeros in the curCoordinates matrix: these can then be filtered out
    % Note: We do not erase the rows with zeros in them. In this way,
    % the row index of displacement corresponds to the row index of MPM
    [zeroRows,cols] = find(curCoordinates == 0);
-
+   [zeroRowsVel,colsVel] = find(curCoordinatesVel == 0);
+   
    % Since we find row indexes for every colum (4 times the same) this has 
    % to be filtered a bit
    zeroRows = unique (zeroRows);
+   zeroRowsVel = unique (zeroRowsVel);
 
    % Now make sure all the rows with zeros have their colums zero'd out. We don't 
    % delete these since we want to keep curCoordinates the same size as MPM
    curCoordinates(zeroRows,:) = 0;
+   curCoordinatesVel(zeroRowsVel,:) = 0;
 
    % Calculate how many cells we have in this frame
    numberOfCells (iFrame,1) = (length(whatCells) - length(zeroRows));
 
    % Calculate the displacement the cells travelled from this frame to the next
    displacement (:,iFrame) = sqrt((curCoordinates(:,1)-curCoordinates(:,3)).^2 + (curCoordinates(:,2) - curCoordinates(:,4)).^2);
-
+   displacementVel (:,iFrame) = sqrt((curCoordinatesVel(:,1)-curCoordinatesVel(:,3)).^2 + (curCoordinatesVel(:,2) - curCoordinatesVel(:,4)).^2);
+   
    % Find the indexes of all rows in clustercells which are non-zero and
    % calculate the displacement of all the cells in those clusters
    realClusterRows = find (handles.clustercells(:,iFrame));
@@ -125,7 +133,7 @@ for iFrame = startFrame : (stopFrame - 1)
    
    % Calculate the average displacement for all selected cells (since we sum up, the zeros do not bother us) 
    if (length(whatCells) - length(zeroRows)) ~= 0
-      averageDisplacement (iFrame,1) = sum (displacement(:,iFrame)) / (length(whatCells) - length(zeroRows));
+      averageDisplacement (iFrame,1) = sum (displacementVel(:,iFrame)) / (length(whatCells) - length(zeroRowsVel));
    else
       averageDisplacement (iFrame,1) = 0;
    end
