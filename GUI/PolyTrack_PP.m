@@ -127,17 +127,28 @@ handles.postpro=handles.defaultpostpro;
 
 [filename,jobValPath]=uigetfile({'*.mat','mat-files'},'Please select a file named jobvalues.mat');
 
-if ~strcmp(filename,'jobvalues.mat')
+if ~strcmp(filename,'jobvalues.mat') &~ strcmp(filename,'MPM.mat')
    disp('select a file named jobvalues.mat!!!!!!!!!')
    return
 end
 
 cd(jobValPath)
+if strcmp(filename,'MPM.mat')
+    load('MPM.mat');
+    handles.MPM=MPM
+    cd ..
+    jobValPath=pwd;
+end
+    
 load('jobvalues.mat');
 handles.jobvalues=jobvalues;
-    
-load('M.mat');
-handles.MPM=alteredfsmTrackLinker(M);
+
+if strcmp(filename,'jobvalues.mat')
+	load('M.mat');
+	handles.MPM=alteredfsmTrackLinker(M);
+
+end
+
 
 load('PROPERTIES.mat');
 handles.PROPERTIES=PROPERTIES;

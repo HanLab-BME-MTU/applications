@@ -219,7 +219,7 @@ else
 	counter=1
 	while done==0
            newdirname=[];
-           newdirname=['results',num2str(counter)];
+           newdirname=['results',filename,num2str(counter)];
         
           if exist(newdirname,'dir')==0
              mkdir(imagedirectory,newdirname);
