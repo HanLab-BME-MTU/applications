@@ -748,6 +748,19 @@ function editFrameSP_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editFrameSP as text
 %        str2double(get(hObject,'String')) returns contents of editFrameSP as a double
+nAvg=fix(str2num(get(handles.editFrameSP,'String')));
+if isempty(nAvg)
+    nAvg=1;
+end
+if nAvg<0
+    nAvg=1;
+elseif nAvg>0
+    if mod(nAvg,2)==0
+        warndlg('Please enter an ODD number of frames.','Warning','modal');
+        nAvg=1;
+    end
+end
+set(handles.editFrameSP,'String',num2str(nAvg));
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1124,7 +1137,19 @@ function editFrameTN_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editFrameTN as text
 %        str2double(get(hObject,'String')) returns contents of editFrameTN as a double
-
+nAvg=fix(str2num(get(handles.editFrameTN,'String')));
+if isempty(nAvg)
+    nAvg=1;
+end
+if nAvg<0
+    nAvg=1;
+elseif nAvg>0
+    if mod(nAvg,2)==0
+        warndlg('Please enter an ODD number of frames.','Warning','modal');
+        nAvg=1;
+    end
+end
+set(handles.editFrameTN,'String',num2str(nAvg));
 
 % --- Executes during object creation, after setting all properties.
 function editSigmaTN_CreateFcn(hObject, eventdata, handles)
@@ -1605,11 +1630,19 @@ function editVectorAnalysis_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editVectorAnalysis as text
 %        str2double(get(hObject,'String')) returns contents of editVectorAnalysis as a double
-nAvg=str2num(get(handles.editVectorAnalysis,'String'));
-if mod(nAvg,2)==0
-    warndlg('Please enter an ODD number of frames.','Warning','modal');
-    set(handles.editVectorAnalysis,'String','1');
+nAvg=fix(str2num(get(handles.editVectorAnalysis,'String')));
+if isempty(nAvg)
+    nAvg=1;
 end
+if nAvg<0
+    nAvg=1;
+elseif nAvg>0
+    if mod(nAvg,2)==0
+        warndlg('Please enter an ODD number of frames.','Warning','modal');
+        nAvg=1;
+    end
+end
+set(handles.editVectorAnalysis,'String',num2str(nAvg));
 
 
 

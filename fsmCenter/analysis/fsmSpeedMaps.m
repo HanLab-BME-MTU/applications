@@ -8,7 +8,7 @@ function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,ov
 % SYNOPSIS      outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIbw,maxSpeed)
 %
 % INPUT         gridSize    : [y x], defines the grid on which the velocities are calculated   
-%               n           : number of frames for temporal averaging.
+%               n           : number of frames for temporal averaging (must be odd).
 %                             If n==0, the whole stack is averaged into one speed map.
 %               d0_init     : correlation length (pixels)
 %               loadMPM     : [ 0 | 1 ] - if 1 loads raw vectors from mpm.mat; if 0 loads
@@ -43,6 +43,12 @@ end
 
 % Initialize output
 outputdir=[];
+
+% Check input parameter n
+if mod(n,2)==0
+    errordlg('The number of frames for time averaging MUST BE ODD.','Error','modal');
+    return
+end
 
 % Load first image
 [fName,dirName] = uigetfile(...
