@@ -116,10 +116,25 @@ for k = 1:numSubProj
 end
 
 %Get handles to GUI objects.
-handles.projDirEH  = findobj('tag','projDirEdit');
-handles.imgDirMH   = findobj('tag','imgDirMenu');
-handles.imgDirEH   = findobj('tag','imgDirEdit');
-handles.firstImgTH = findobj('tag','firstImgText');
+handles.projDirEH  = findobj(hObject,'tag','projDirEdit');
+handles.imgDirMH   = findobj(hObject,'tag','imgDirMenu');
+handles.imgDirEH   = findobj(hObject,'tag','imgDirEdit');
+handles.firstImgTH = findobj(hObject,'tag','firstImgText');
+
+%To get the handle to those 'subProj' GUI objects.
+%Text Field Handle.
+subProjTFH = cell(size(subProjTags));
+%Menu Handle.
+subProjMH = cell(size(subProjTags));
+for k = 1:numSubProj
+   handles.subProjMH{k}  = findobj(hObject,'tag',[subProjTags{k} 'Suffix']);
+   handles.subProjTFH{k} = findobj(hObject,'tag',[subProjTags{k} 'SufNew']);
+end
+
+handles.subProjTags  = subProjTags;
+handles.numSubProj   = numSubProj;
+handles.subProjTitle = subProjTitle;
+handles.subProjNames = subProjNames;
 
 projDir = '';
 if nargin > 5
@@ -132,33 +147,9 @@ end
 
 selImgDir = 1;
 [imgDirList,firstImgList,subProjDir] = getProjSetting(projDir,subProjNames);
-if isempty(imgDirList)
-   imgDirList = {'-- New Image Directory (by selecting first image) --'};
-else
-   imgDirList{end+1} = '-- New Image Directory (by selecting first image) --';
-end
-set(handles.imgDirMH,'Value',selImgDir);
-set(handles.imgDirMH,'String',imgDirList);
-
-
-%To get the handle to those 'subProj' GUI objects.
-%Text Field Handle.
-subProjTFH = cell(size(subProjTags));
-%Menu Handle.
-subProjMH = cell(size(subProjTags));
-for k = 1:numSubProj
-   handles.subProjMH{k}  = findobj('tag',[subProjTags{k} 'Suffix']);
-   handles.subProjTFH{k} = findobj('tag',[subProjTags{k} 'SufNew']);
-end
-
-handles.subProjTags  = subProjTags;
-handles.numSubProj   = numSubProj;
-handles.subProjTitle = subProjTitle;
-handles.subProjNames = subProjNames;
-
-
 handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
    firstImgList,subProjDir);
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -213,12 +204,21 @@ else
    imgDir = imgDirList{selImgDir};
 end
 
-%Search for available results directories for each package and update popup
-% menu in the GUI.
+if isempty(imgDirList)
+   imgDirList = {'-- New Image Directory (by selecting first image) --'};
+else
+   imgDirList{end+1} = '-- New Image Directory (by selecting first image) --';
+end
+
+%Update popup menu in the GUI.
 set(handles.projDirEH,'string',projDir);
 set(handles.firstImgTH,'string',firstImg);
+set(handles.imgDirMH,'Value',1);
+set(handles.imgDirMH,'String',imgDirList);
+set(handles.imgDirMH,'Value',selImgDir);
 set(handles.imgDirEH,'string',imgDir);
 
+%Search for available results directories for each package.
 projDirStruct=dir(projDir);
 subProjDirList = cell(size(subProjDir));
 for k = 1:numSubProj
@@ -435,10 +435,11 @@ end
 
 subProjNames = handles.subProjNames;
 if ~samdir(handles.projDir,projDir)
-    [imgDirList firstImgList subProjDir] = ...
-       getProjSetting(projDir,subProjNames);
-    handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
-       firstImgList,subProjDir);
+   selImgDir = 1;
+   [imgDirList firstImgList subProjDir] = ...
+      getProjSetting(projDir,subProjNames);
+   handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
+      firstImgList,subProjDir);
 end
 
 guidata(hObject,handles);
