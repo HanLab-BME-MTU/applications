@@ -300,6 +300,14 @@ if ~isempty(userDir)
     dataFile=[userDir,filesep,'fsmExpParams.txt'];
 else
     dataFile=which('fsmExpParams.txt'); % Default fsmExpParams.txt file
+    % Check
+    fsmMainPath=which('fsmMain.m');
+    [pathExpParams,fname,no,ext]=getFilenameBody(dataFile);
+    [pathFsmMain,fname,no,ext]=getFilenameBody(fsmMainPath);
+    if ~strcmp(pathExpParams,pathFsmMain)
+        uiwait(msgbox('Something is wrong with your configuration. Plase click on "User settings" in fsmCenter and follow the instructions. Then try again.','Error','modal'));
+        return
+    end
 end
 [I0,sDN,GaussRatio,status]=fsmCalcNoiseParam([],str2num(get(handles.editBitDepth,'string')),str2num(get(handles.editSigma,'string')),dataFile);
 if status==-1
