@@ -56,10 +56,10 @@ for i = 0:maxLag
     %remove all pairs with missing point(s)
     vecMult = vecMult(find(~isnan(vecMult)));
 
-    %calculare the autocorrelation function
+    %calculate autocorrelation function
     gamma(i+1) = mean(vecMult);
     
 end
 
-%normalize the autocorrelation function
+%normalize autocorrelation function
 gamma = gamma/gamma(1);

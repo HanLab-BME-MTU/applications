@@ -27,17 +27,18 @@ function [tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarCoefEstim
 %
 %Khuloud Jaqaman, April 2004
 
+%initialize output
 errFlag = 0;
+tarParam = [];
+varCovMat = [];
+residuals = [];
+noiseSigma = [];
+fitSet = [];
 
 %check if correct number of arguments was used when function was called
 if nargin < 4
     disp('--tarCoefEstim: Incorrect number of input arguments!');
     errFlag  = 1;
-    tarParam = [];
-    varCovMat = [];
-    residuals = [];
-    noiseSigma = [];
-    fitSet = [];
     return
 end
 
@@ -73,23 +74,22 @@ else
     nThresholds = 0;
     delay = 1;
 end
-dummy = length(tarOrder);
+[dummy,nCol] = size(tarOrder);
+if nCol ~= 1
+    disp('--tarCoefEstim: tarOrder should be a column vector!');
+    errFlag = 1;
+end
 if dummy ~= nThresholds + 1
     disp('--tarCoefEstim: Wrong number of entries in "tarOrder"!');
     errFlag = 1;
 else
     if min(tarOrder) < 1
-        disp('--tarCoefEstim: Variable "tarOrder" should be >= 1!');
+        disp('--tarCoefEstim: All entries in "tarOrder" should be >= 1!');
         errFlag = 1;
     end
 end
 if errFlag
     disp('--tarCoefEstim: Please fix input data!');
-    tarParam = [];
-    varCovMat = [];
-    residuals = [];
-    noiseSigma = [];
-    fitSet = [];
     return
 end
 
@@ -120,7 +120,7 @@ end
 vThresholds = [-Inf; vThresholds; Inf];
 
 %find data points to be used in fitting and classify them in the different
-%regimes (steps 1-5)
+%regimes (steps 1-6)
 
 %1. get indices of available points
 indx = find(~isnan(traj(:,1)));
@@ -159,6 +159,13 @@ fitSet = fitSet(1:max(fitLength),:);
 %delete variable temp
 clear temp indxClass;
 
+%exit if any of the levels does not have a sufficient number of point
+if ~isempty(find(fitLength <= tarOrder'))
+    disp('--tarCoefEstim: Bad segmentation of data - cannot determine coefficients!');
+    errFlag = 1;
+    return
+end
+
 %initialize residuals vector (needed later)
 residuals = NaN*ones(trajLength,1);
 
@@ -192,11 +199,6 @@ for level = 1:nThresholds+1
     end
     if errFlag
         disp('--tarCoefEstim: "lsIterRefn" did not function normally!');
-        tarParam = [];
-        varCovMat = [];
-        residuals = [];
-        noiseSigma = [];
-        fitSet = [];
         return
     end
     

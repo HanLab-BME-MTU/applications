@@ -38,20 +38,21 @@ function [vThresholds,delay,tarParam,varCovMat,residuals,noiseSigma,fitSet,...
 %
 %Khuloud Jaqaman, April 2004
 
+%initialize output
 errFlag = 0;
+vThresholds = [];
+delay = [];
+tarParam = [];
+varCovMat = [];
+residuals = [];
+noiseSigma = [];
+fitSet = [];
+aicV = [];
 
 %check if correct number of arguments was used when function was called
 if nargin < 4
     disp('--tarOrderThreshDelayCoef: Incorrect number of input arguments!');
     errFlag  = 1;
-    vThresholds = [];
-    delay = [];
-    tarParam = [];
-    varCovMat = [];
-    residuals = [];
-    noiseSigma = [];
-    fitSet = [];
-    aicV = []
     return
 end
 
@@ -105,14 +106,6 @@ for i = 1:numComb %go over all order combinations
         tarThreshDelayCoef(traj,vThreshTest,delayTest,tarOrder1,method,tol);
     if errFlag
         disp('--tarOrderThreshDelayCoef: tarThreshDelayCoef did not function properly!');
-        vThresholds = [];
-        delay = [];
-        tarParam = [];
-        varCovMat = [];
-        residuals = [];
-        noiseSigma = [];
-        fitSet = [];
-        aicV = []
         return
     end
     

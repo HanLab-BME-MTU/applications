@@ -14,13 +14,14 @@ function [aicV,errFlag] = tarAic(traj,vThresholds,delay,tarParam)
 %
 %Khuloud Jaqaman, April 2004
 
+%initialize output
 errFlag = 0;
+aicV = [];
 
 %check if correct number of arguments was used when function was called
 if nargin ~= nargin('tarAic')
     disp('--tarAic: Incorrect number of input arguments!');
     errFlag  = 1;
-    aicV = [];
     return
 end
 
@@ -71,7 +72,6 @@ end
 %exit if there are problems in input data
 if errFlag
     disp('--tarAic: Please fix input data!');
-    aicV = [];
     return
 end
 

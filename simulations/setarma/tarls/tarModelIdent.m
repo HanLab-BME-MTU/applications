@@ -32,20 +32,21 @@ function [vThresholds,delay,tarParam,varCovMat,residuals,noiseSigma,fitSet,...
 
 tic
 
+%initialize output
 errFlag = 0;
+vThresholds = [];
+delay = [];
+tarParam = [];
+varCovMat = [];
+residuals = [];
+noiseSigma = [];
+fitSet = [];
+aicV = [];
 
 %check if correct number of arguments was used when function was called
 if nargin < 2
     disp('--tarModelIdent: Incorrect number of input arguments!');
     errFlag  = 1;
-    vThresholds = [];
-    delay = [];
-    tarParam = [];
-    varCovMat = [];
-    residuals = [];
-    noiseSigma = [];
-    fitSet = [];
-    aicV = []
     return
 end
 
@@ -89,14 +90,6 @@ for i = 1:length(modelParam) %go over all suggested models
         tarOrderTest1,method,tol);
     if errFlag
         disp('--tarModelIdent: tarOrderThreshDelayCoef did not function properly!');
-        vThresholds = [];
-        delay = [];
-        tarParam = [];
-        varCovMat = [];
-        residuals = [];
-        noiseSigma = [];
-        fitSet = [];
-        aicV = [];
         return
     end
     
@@ -165,22 +158,36 @@ end %(for level = 1:nThresholds)
 
 %find new orders in new regimes. When levels are combined, give the new
 %level an order equal to the smallest order of the combined levels.
-newOrder(1) = min(tarOrder(1:newThresh(1)));
-for i=2:length(newThresh)
-    newOrder(i) = min(tarOrder(newThresh(i-1)+1:newThresh(i)));
+if isempty(newThresh) %if all levels are merged
+    newOrder(1) = min(tarOrder);
+else %if there are at least 2 levels
+    newOrder(1) = min(tarOrder(1:newThresh(1)));
+    for i=2:length(newThresh)
+        newOrder(i) = min(tarOrder(newThresh(i-1)+1:newThresh(i)));
+    end
+    i = length(newThresh); %if there is only 1 threshold (in which case loop is skipped)
+    newOrder(end+1) = min(tarOrder(newThresh(i)+1:end));
 end
-i = length(newThresh); %must do this in case there is only 1 threshold (and thus loop is skipped)
-newOrder(end+1) = min(tarOrder(newThresh(i)+1:end));
 
-%assign new thresholds and orders
+%assign new thresholds
 vThresholds = vThresholds(newThresh);
-tarOrder = newOrder;
-nThresholds = length(vThresholds);
+nThresholdsN = length(vThresholds);
 
-%estimate the coefficients one last time using the new thresholds and
-%orders, plus the previously obtained delay parameter
-[tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarCoefEstim(...
-    traj,vThresholds,delay,tarOrder,method,tol);
+if nThresholdsN < nThresholds %if some levels were merged
+    
+    %assign new orders
+    nThresholds = nThresholdsN;
+    tarOrder = newOrder';
+    
+    %estimate the coefficients one last time using the new thresholds and
+    %orders, plus the previously obtained delay parameter
+    [tarParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] = tarCoefEstim(...
+        traj,vThresholds,delay,tarOrder,method,tol);
+    
+    %get the new model's AIC value
+    [aicV,errFlag] = tarAic(traj(:,1),vThresholds,delay,tarParam);
+    
+end
 
 %check for causality of estimated model
 for level = 1:nThresholds+1
@@ -189,8 +196,5 @@ for level = 1:nThresholds+1
         disp('--tarModelIdent: Warning: Predicted model not causal!');
     end
 end
-
-%get the model's AIC value
-[aicV,errFlag] = tarAic(traj(:,1),vThresholds,delay,tarParam);
 
 toc

@@ -18,13 +18,14 @@ function [trajP,errFlag] = missPointTARPred(traj,vThresholds,delay,tarParam,futu
 %Khuloud Jaqaman, April 2004
 %check if correct number of arguments were used when function was called
 
+%initialize output
 errFlag = 0;
+trajP = [];
 
 %check if correct number of arguments were used when function was called
 if nargin ~= nargin('missPointTARPred')
     disp('--missPointTARPred: Incorrect number of input arguments!');
     errFlag  = 1;
-    trajP = []
     return
 end
 
@@ -82,7 +83,6 @@ end
 %exit if there are problems in input data
 if errFlag
     disp('--missPointTARPred: Please fix input data!');
-    trajP = [];
     return
 end
 
@@ -98,7 +98,6 @@ if ~isempty(indx)
         disp('--missPointTARPred: There are missing points for time points <= max(max(tarOrder),delay)!');
         disp('  Please fix input data such that all those time points are available!');
         errFlag = 1;
-        trajP = [];
         return
     end
 end

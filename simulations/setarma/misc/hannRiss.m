@@ -1,7 +1,7 @@
-function [arParam,maParam,noiseSigma,errFlag] = hannRiss(traj,arOrder,maOrder)
-%HANNRISS estimates the parameters of an ARMA process using the Hannan-Rissanen Algorithm
+function [arParam,maParam,residuals,noiseSigma,errFlag] = hannRiss(traj,arOrder,maOrder)
+%HANNRISS estimates the parameters of an ARMA process using the Hannan-Rissanen algorithm
 %
-%SYNOPSIS [arParam,maParam,noiseSigma,errFlag] = hannRiss(traj,arOrder,maOrder)
+%SYNOPSIS [arParam,maParam,residuals,noiseSigma,errFlag] = hannRiss(traj,arOrder,maOrder)
 %
 %INPUT  traj   : Trajectory to be modeled.
 %       arOrder: Order of AR part of proposed model.
@@ -9,6 +9,7 @@ function [arParam,maParam,noiseSigma,errFlag] = hannRiss(traj,arOrder,maOrder)
 %
 %OUTPUT arParam   : Estimated AR parameters in model.
 %       maParam   : Estimated MA parameters in model.
+%       residuals : Estimation residuals.
 %       noiseSigma: Estimated standard deviation of white noise.
 %       errFlag   : 0 if function executes normally, 1 otherwise.
 %
@@ -46,8 +47,8 @@ end
 
 %STEP 1: Estimate noise by fitting to a high-order AR model
 
-%get order of initial AR model
-arOrderI = 5*maxOrder;
+%assign order of initial AR model
+arOrderI = 50;
 
 %get parameters of initial AR model
 [arParamI,noiseSigmaI,errFlag] = yuleWalker(traj,arOrderI);
@@ -79,8 +80,11 @@ param = (prevPoints'*prevPoints)\(prevPoints'*traj(combOrder+1:end));
 arParam = param(1:arOrder)';
 maParam = param(arOrder+1:end)';
 
-%get sum of square error
-sqErr = sum((traj(combOrder+1:end)-prevPoints*param).^2);
+%get residuals
+residuals = traj(combOrder+1:end) - prevPoints*param;
+
+%compute sum of squared residuals
+sqErr = sum(residuals.^2);
 
 %estimate of white noise standard deviation
 noiseSigma = sqrt(sqErr/(trajLength-combOrder));

@@ -1,9 +1,9 @@
 function [arParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] =...
-    arlsestim0(traj,arOrder,method,tol)
-%ARLSESTIM0 fits an AR model to a trajectory (which could have missing data points) using least squares.
+    arCoefEstim(traj,arOrder,method,tol)
+%ARCOEFESTIM uses least squares to fit an AR model of specified order (i.e. determines its coefficients) to a time series which could have missing data points.
 %
 %SYNOPSIS [arParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] =...
-%    arlsestim0(traj,arOrder,method,tol)
+%    arCoefEstim(traj,arOrder,method,tol)
 %
 %INPUT  traj         : Trajectory to be modeled (with measurement uncertainty).
 %                      Missing points should be indicated with NaN.
@@ -24,16 +24,17 @@ function [arParam,varCovMat,residuals,noiseSigma,fitSet,errFlag] =...
 %
 %Khuloud Jaqaman, April 2004
 
+%initialize output
 errFlag = 0;
+arParam = [];
+varCovMat = [];
+residuals = [];
+noiseSigma = [];
 
 %check if correct number of arguments was used when function was called
 if nargin < 2
     disp('--arlsestim0: Incorrect number of input arguments!');
     errFlag  = 1;
-    arParam = [];
-    varCovMat = [];
-    residuals = [];
-    noiseSigma = [];
     return
 end
 
@@ -57,10 +58,6 @@ if arOrder < 1
 end
 if errFlag
     disp('--arlsestim0: Please fix input data!');
-    arParam = [];
-    varCovMat = [];
-    residuals = [];
-    noiseSigma = [];
     return
 end
 
@@ -115,10 +112,6 @@ switch method
 end
 if errFlag
     disp('--arlsestim0: "lsIterRefn" did not function normally!');
-    arParam = [];
-    varCovMat = [];
-    residuals = [];
-    noiseSigma = [];
     return
 end
 
