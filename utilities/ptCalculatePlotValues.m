@@ -37,13 +37,7 @@ guiData = handles.guiData;
 plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
 
-% Determine the movie with the most frames
-%[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
-%maxFrames = mpmLength / 2;
-
-% Determine the movie with the most frames
-%[shortestMPM, mpmLength] = ptMinMPMLength (MPM);
-%minFrames = mpmLength / 2;
+% Determine the movie with the minimum amount of frames
 [shortestMovie, minFrames] = ptMinMovieLength (validFrames);
 
 % Make sure we only process up to the shortest MPM else the averaging will
@@ -53,14 +47,10 @@ if plotEndFrame > minFrames
 end
 
 % Get start and end frames and increment value
-%startFrame = jobData(1).firstimg;
 startFrame = jobData(shortestMovie).firstimg;
-%endFrame = jobData(shortestMPM).lastimg;
 endFrame = jobData(shortestMovie).lastimg;
-%increment = jobData(1).increment;
 increment = jobData(shortestMovie).increment;
 numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
-%numberOfFrames = length (validFrames{shortestMovie}(1,;));
 
 % Get pixellength and frame interval; These values should
 % be the same for all selected movies, therefore just take the first one.

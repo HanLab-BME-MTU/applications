@@ -617,13 +617,8 @@ selectedCells = ptUserCellSelection(frameNr,handles);
 % If it's empty we have to initialize it as well
 if isempty(handles.jobData(1).selectedcells)
     handles.jobData(1).selectedcells = fillSelectedCellsMatrix (selectedCells, handles.allMPM{1}, frameNr, 1, []);
-    %handles.jobData(1).selectedcells = zeros(size(handles.allMPM{1}));
-    %handles.jobData(1).selectedcells = zeros(size(handles.allMPM{1},1),size(handles.allMPM{1},2)/2);
-    %handles.jobData(1).selectedcells(1:size(selectedCells,1),(2*frameNr-1):(2*frameNr)) = selectedCells;
-    %handles.jobData(1).selectedcells(1:size(selectedCells,1),frameNr) = selectedCells;
 else
     handles.jobData(1).selectedcells = fillSelectedCellsMatrix (selectedCells, handles.allMPM{1}, frameNr, 0, handles.jobData(1).selectedcells);
-    %handles.jobData(1).selectedcells(1:size(selectedCells,1),(2*frameNr-1):(2*frameNr)) = selectedCells;
 end
 
 % Update handles structure

@@ -2208,4 +2208,57 @@ function renameImageFilesToLower (pathDir)
 
 function GUI_saveintresults_cb_Callback(hObject, eventdata, handles)
 
+% --------------------------------------------------------------------
+
+function GUI_st_bp_usesettingsalljobs_pb_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
+
+% Get the current job list
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be applied...');
+   uiwait(h);
+   return;
+end 
+
+% Get the current job number 
+jobNumber = get(handles.GUI_st_job_lb,'Value');
+
+% If more than 1 job is selected return
+if length(jobNumber) > 1
+    h=errordlg('Settings can only be duplicated from one job at a time. Please select only one job.');
+   uiwait(h);
+   return;
+end 
+
+% Remove the selected job number from the job number list
+fullList = [1:length(jobList)];
+fullList(find(fullList == jobNumber)) = [];
+
+% Apply settings of the selected job to all other jobs
+for iCount = fullList
+    handles.jobs(iCount).maxsearch = handles.jobs(jobNumber).maxsearch;
+    handles.jobs(iCount).minsize = handles.jobs(jobNumber).minsize;
+    handles.jobs(iCount).maxsize = handles.jobs(jobNumber).maxsize;
+    handles.jobs(iCount).minsdist = handles.jobs(jobNumber).minsdist;
+    handles.jobs(iCount).minedge = handles.jobs(jobNumber).minedge;
+    handles.jobs(iCount).sizetemplate = handles.jobs(jobNumber).sizetemplate;
+    handles.jobs(iCount).mintracklength = handles.jobs(jobNumber).mintracklength;
+    handles.jobs(iCount).mincorrqualtempl = handles.jobs(jobNumber).mincorrqualtempl;
+    handles.jobs(iCount).noiseparameter = handles.jobs(jobNumber).noiseparameter;
+    handles.jobs(iCount).timestepslide_index = handles.jobs(jobNumber).timestepslide_index;
+    handles.jobs(iCount).bitdepth_index = handles.jobs(jobNumber).bitdepth_index;
+end
+
+% Let the user know we've done the job
+message = ['Settings of job ' num2str(jobNumber) ' have been applied to all other jobs.'];
+msgbox(message);
+
+% Update handles structure
+guidata(hObject, handles);
+
+% --------------------------------------------------------------------
 
