@@ -145,10 +145,9 @@ if ~isdir(projDir)
    projDir = pwd;
 end
 
-selImgDir = 1;
-[imgDirList,firstImgList,subProjDir] = getProjSetting(projDir,subProjNames);
-handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
-   firstImgList,subProjDir);
+handles.selImgDir = 1;
+handles = getProjSetting(handles,projDir,subProjNames);
+handles = updateGUI(handles);
 
 handles.figH = hObject;
 
@@ -179,19 +178,20 @@ if ~isempty(selDir)
     end
 end
 
-function handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
-   firstImgList,subProjDir)
+function handles = updateGUI(handles)
 
 numSubProj  = handles.numSubProj;
 subProjTags = handles.subProjTags;
 subProjMH   = handles.subProjMH;
 subProjTFH  = handles.subProjTFH;
 
-handles.projDir      = projDir;
-handles.imgDirList   = imgDirList;
-handles.firstImgList = firstImgList;
-
-handles.selImgDir = selImgDir;
+projDir       = handles.projDir;
+imgDirList    = handles.imgDirList;
+firstImgList  = handles.firstImgList;
+unix_imgDrive = handles.unix_imgDrive;
+win_imgDrive  = handles.win_imgDrive;
+subProjDir    = handles.subProjDir;
+selImgDir     = handles.selImgDir;
 
 if selImgDir > length(imgDirList) | isempty(firstImgList)
    firstImg = '';
@@ -228,7 +228,6 @@ for k = 1:numSubProj
       subProjDir{k},subProjTags{k});
 end
 
-handles.subProjDir = subProjDir;
 
 % --- Outputs from this function are returned to the command line.
 function varargout = projSetupGUI_OutputFcn(hObject, eventdata, handles)
@@ -256,28 +255,70 @@ numSubProj   = handles.numSubProj;
 subProjDir   = handles.subProjDir;
 subProjTitle = handles.subProjTitle;
 
-%Write image path to a file named 'lastProjSetting.txt'.
-if isdir(projDir) 
+unix_imgDrive = [];
+win_imgDrive  = [];
+%Write image path to a file named 'lastProjSetting.mat'.
+if isdir(projDir)
+   if ~isempty(imgDirList)
+      %Switch so that the first img dir is always the selected one.
+      imgDir = imgDirList{selImgDir};
+      imgDirList{selImgDir} = imgDirList{1};
+      imgDirList{1}         = imgDir;
+
+      if isunix == 1
+         filesepInd = findstr('/',imgDir);
+         mntInd = findstr('/mnt/',imgDir);
+         if isempty(mntInd)
+            unix_imgDrive = imgDir(1:filesepInd(3)-1);
+         else
+            unix_imgDrive = imgDir(1:filesepInd(2)-1);
+         end
+      elseif ispc == 1
+         colonInd = findstr(':',imgDir);
+         win_imgDrive = imgDir(1:colonInd(1));
+      end
+   end
+
+   if ~isempty(firstImgList)
+      %Switch so that the first img dir is always the selected one.
+      firstImg = firstImgList{selImgDir};
+      firstImgList{selImgDir} = firstImgList{1};
+      firstImgList{1}         = firstImg;
+   end
+
+
+    projSettings.projDir         = projDir;
+
+    settingsMatFile = 'lastProjSettings.mat';
     if isunix==1
+        projSettings.unix_imgDirList = imgDirList;
+
+        if samdir(handles.win_imgDrive,win_imgDrive)
+           projSettings.win_imgDirList = dirUnix2PC(imgDirList,win_imgDrive);
+        end
         settingsFileName='lastProjSettings_unix.txt';
     elseif ispc==1
+        projSettings.win_imgDirList = imgDirList;
+        if samdir(handles.unix_imgDrive,unix_imgDrive)
+           projSettings.unix_imgDirList = dirPC2Unix(imgDirList,unix_imgDrive);
+        end
         settingsFileName='lastProjSettings_win.txt';
     else
         error('Platform not supported.');
     end
+    projSettings.firstImgList    = firstImgList;
+    projSettings.subProjDir      = subProjDir;
+    
+    save(settingsMatFile,'projSettings');
+    
+    %We also save a text file of the project settings.
     fid = fopen([handles.projDir filesep settingsFileName],'w');
     if fid ~= -1
        %Write image path.
        if isempty(imgDirList)
           fprintf(fid,'%s\n',['    Image Path: ']);
        else
-          imgDir = imgDirList{selImgDir};
-
-          %Switch so that the first img dir is always the selected one.
-          imgDirList{selImgDir} = imgDirList{1};
-          imgDirList{1}         = imgDir;
-
-          fprintf(fid,'%s\n',['    Image Path: ' imgDir]);
+          fprintf(fid,'%s\n',['    Image Path: ' imgDirList{1}]);
           for k = 2:length(imgDirList)
              fprintf(fid,'%s\n',['              : ' imgDirList{k}]);
           end
@@ -286,12 +327,7 @@ if isdir(projDir)
        if isempty(firstImgList)
           fprintf(fid,'%s\n',['   First Image: ']);
        else
-          firstImg = firstImgList{selImgDir};
-          %Switch so that the first img dir is always the selected one.
-          firstImgList{selImgDir} = firstImgList{1};
-          firstImgList{1}         = firstImg;
-
-          fprintf(fid,'%s\n',['   First Image: ' firstImg]);
+          fprintf(fid,'%s\n',['   First Image: ' firstImgList{1}]);
           for k = 2:length(imgDirList)
              fprintf(fid,'%s\n',['              : ' firstImgList{k}]);
           end
@@ -436,11 +472,9 @@ end
 
 subProjNames = handles.subProjNames;
 if ~samdir(handles.projDir,projDir)
-   selImgDir = 1;
-   [imgDirList firstImgList subProjDir] = ...
-      getProjSetting(projDir,subProjNames);
-   handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
-      firstImgList,subProjDir);
+   handles.selImgDir = 1;
+   handles = getProjSetting(handles,projDir,subProjNames);
+   handles = updateGUI(handles);
 end
 
 guidata(hObject,handles);
@@ -461,10 +495,8 @@ end
 
 subProjNames = handles.subProjNames;
 if ~samdir(handles.projDir,projDir)
-    [imgDirList firstImgList subProjDir] = ...
-       getProjSetting(projDir,subProjNames);
-    handles = updateGUI(handles,projDir,imgDirList,selImgDir, ...
-       firstImgList,subProjDir);
+    handles = getProjSetting(handles,projDir,subProjNames);
+    handles = updateGUI(handles);
 end
 
 guidata(hObject,handles);
@@ -643,8 +675,7 @@ guidata(hObject,handles);
 
 
 
-function [imgDirList,firstImgList,subProjDir] =  ...
-   getProjSetting(projDir,subProjNames)
+function handles = getProjSetting(handles,projDir,subProjNames)
 
 numSubProj = length(subProjNames);
 
@@ -655,119 +686,212 @@ end
 imgDirList   = {};
 firstImgList = {};
 
+unix_imgDrive = [];
+win_imgDrive  = [];
+
 %Read last project setting in the selected project path.
 noProblem = 0;
 if isdir(projDir)
-    if isunix==1
-        settingsFileName='lastProjSettings_unix.txt';
-    elseif ispc==1
-        settingsFileName='lastProjSettings_win.txt';
-    else
-        error('Platform not supported.');
-    end
-    fid = fopen([projDir filesep settingsFileName],'r');
-    if fid ~= -1
-        noProblem = 1;
-        textL     = fgetl(fid);
-        lineNo    = 1;
-        imgLineNo = -1;
-        while noProblem & ischar(textL)
-            k = findstr(':',textL);
-            if isempty(k) | k == 1
-                noProblem = 0;
+    title = 'Platform dependent';
+    settingsMatFile = 'lastProjSettings.mat';
+    if exist(settingsMatFile,'file') == 2
+        s = load(settingsMatFile);
+        projSettings = s.projSettings;
+        subProjDir   = projSettings.subProjDir;
+        firstImgList = projSettings.firstImgList;
+        
+        if isfield(projSettings,'unix_imgDirList')
+            unix_imgDirList = projSettings.unix_imgDirList;
+            filesepInd = findstr('/',unix_imgDirList{1});
+            mntInd = findstr('/mnt/',unix_imgDirList{1});
+            if isempty(mntInd)
+                unix_imgDrive = unix_imgDirList{1}(1:filesepInd(3)-1);
             else
-                %Use 'sscanf' to remove space.
-                headStr = sscanf(textL(1:k-1),'%s');
-                if strcmp(headStr,'ImagePath')
-                   imgLineNo = lineNo;
-                   if k ~= length(textL)
-                      imgDir = sscanf(textL(k+1:end),'%s');
-                      if isempty(imgDir)
-                         numImgDirs = 0;
-                         imgDirList = {};
-                      else
-                         numImgDirs = 1;
-                         imgDirList{numImgDirs} = imgDir;
-                      end
-                   end
-                   lastHead = headStr; 
-                elseif strcmp(headStr,'FirstImage')
-                   if strcmp(lastHead,'ImagePath') 
-                      %The first image has to be written next to image path.
-                      if k ~= length(textL)
-                         imgName = sscanf(textL(k+1:end),'%s');
-                      else
-                         imgName = '';
-                      end
-
-                      if isempty(imgDirList) 
-                         if ~isempty(imgName)
-                            noProblem = 0;
-                         else
-                            firstImgList = {};
-                         end
-                      else
-                         numImgDirs = 1;
-                         firstImgList{numImgDirs} = imgName;
-                      end
-                   else
-                      noProblem = 0;
-                   end
-                   lastHead = headStr; 
-                elseif isempty(headStr) 
-                   if strcmp(lastHead,'ImagePath') 
-                      if isempty(imgDirList)
-                         noProblem = 0;
-                      elseif k ~= length(textL)
-                         %Get next image path
-                         imgDir = sscanf(textL(k+1:end),'%s');
-                      else
-                         imgDir = '';
-                      end
-
-                      if isempty(imgDir)
-                         noProblem = 0;
-                      else
-                         numImgDirs = numImgDirs+1;
-                         imgDirList{numImgDirs} = imgDir;
-                      end
-                   elseif strcmp(lastHead,'FirstImage') 
-                      if k ~= length(textL)
-                         %Get next first image name.
-                         imgName = sscanf(textL(k+1:end),'%s');
-                      else
-                         imgName = '';
-                      end
-                      numImgDirs = numImgDirs+1;
-
-                      if numImgDirs > length(imgDirList)
-                         noProblem = 0;
-                      else
-                         firstImgList{numImgDirs} = imgName;
-                      end
-                   else
-                      noProblem = 0;
-                   end
-                else
-                   j1 = strmatch(headStr,subProjNames,'exact');
-                   if isempty(j1)
-                      noProblem = 0;
-                   elseif k ~= length(textL)
-                      subProjDir{j1} = sscanf(textL(k+1:end),'%s');
-                   end
-                   lastHead = headStr; 
-                end
+                unix_imgDrive = unix_imgDirList{1}(1:filesepInd(2)-1);
             end
-            
-            textL  = fgetl(fid);
-            lineNo = lineNo+1;
+        elseif isfield(projSettings,'win_imgDirList')
+            win_imgDirList = projSettings.win_imgDirList;
+            colonInd       = findstr(':',win_imgDirList{1});
+            win_imgDrive   = win_imgDirList{1}(1:colonInd(1));
         end
-        if ~noProblem
-           warnH = warndlg(['Project setting file is corrupted ' ...
-              'and will be ignored.'],'Warning','modal'); 
+        if isunix == 1
+            if ~isempty(unix_imgDrive)
+                imgDirList   = unix_imgDirList;
+                
+                noProblem = 1;
+            elseif ~isempty(win_imgDrive)                
+                tryAgain = 'Yes';
+                prompt = ['Last project is set up in Windows. ' ...
+                    'The image drive letter is ' win_imgDrive  '.' ...
+                    'Please enter image drive name in Unix format:'];
+                while strcmp(tryAgain,'Yes')
+                    answer = inputdlg(prompt,'title',1,'');
+                    unix_imgDrive = answer;
+
+                    %Convert image directories to Unix format.
+                    imgDirList = dirPC2Unix(win_imgDirList,unix_imgDrive);
+                    if ~isdir(imgDirList{1})
+                        question = ['Invalid drive name. Do you want to try again? ' ...
+                            'If no, the old image directories will be removed. ' ...
+                            'Be cautious!!!'];
+                        tryAgain = questdlg(question,'Alert','Yes','No','Yes');
+                    else
+                        projSettings.unix_imgDirList = imgDirList;
+                        noProblem = 1;
+                        tryAgain  = 'No';
+                    end
+                end
+            else
+                error('The project setting file is corrupted. You need to reset project.');
+            end
+        elseif ispc == 1
+            if ~isempty(win_imgDrive)
+                imgDirList = win_imgDirList;
+            elseif ~isempty(unix_imgDrive)
+                tryAgain = 'Yes';
+                prompt = ['Last project is set up in Unix platform. ' ...
+                    'The image drive name is ' unix_imgDrive  '.' ...
+                    'Please enter image drive letter in PC format:'];
+                while strcmp(tryAgain,'Yes')
+                    answer = inputdlg(prompt,'title',1,'');
+                    win_imgDrive = answer;
+
+                    %Convert image directories to Unix format.
+                    imgDirList = dirUnix2PC(win_imgDirList,win_imgDrive);
+                    if ~isdir(imgDirList{1})
+                        question = ['Invalid drive letter. Do you want to try again? ' ...
+                            'If no, the old image directories will be removed. ' ...
+                            'Be cautious!!!'];
+                        tryAgain = questdlg(question,'Alert','Yes','No','Yes');
+                    else
+                        projSettings.win_imgDirList = imgDirList;
+                        noProblem = 1;
+                        tryAgain  = 'No';
+                    end
+                end
+            else
+                error('The project setting file is corrupted. You need to reset project.');
+            end
+        else
+             error('Platform not supported.');
+        end       
+    else
+        %The project setting used to be saved in text files and it is not
+        %convinient for coding. For backward compatibility, we transfer all
+        %the old setting file to mat file.
+        if isunix==1
+            settingsFileName='lastProjSettings_unix.txt';
+        elseif ispc==1
+            settingsFileName='lastProjSettings_win.txt';
+        else
+            error('Platform not supported.');
         end
-        fclose(fid);
+        fid = fopen([projDir filesep settingsFileName],'r');
+        if fid ~= -1
+            noProblem = 1;
+            textL     = fgetl(fid);
+            lineNo    = 1;
+            imgLineNo = -1;
+            while noProblem & ischar(textL)
+                k = findstr(':',textL);
+                if isempty(k) | k == 1
+                    noProblem = 0;
+                else
+                    %Use 'sscanf' to remove space.
+                    headStr = sscanf(textL(1:k-1),'%s');
+                    if strcmp(headStr,'ImagePath')
+                        imgLineNo = lineNo;
+                        if k ~= length(textL)
+                            imgDir = sscanf(textL(k+1:end),'%s');
+                            if isempty(imgDir)
+                                numImgDirs = 0;
+                                imgDirList = {};
+                            else
+                                numImgDirs = 1;
+                                imgDirList{numImgDirs} = imgDir;
+                            end
+                        end
+                        lastHead = headStr;
+                    elseif strcmp(headStr,'FirstImage')
+                        if strcmp(lastHead,'ImagePath')
+                            %The first image has to be written next to image path.
+                            if k ~= length(textL)
+                                imgName = sscanf(textL(k+1:end),'%s');
+                            else
+                                imgName = '';
+                            end
+
+                            if isempty(imgDirList)
+                                if ~isempty(imgName)
+                                    noProblem = 0;
+                                else
+                                    firstImgList = {};
+                                end
+                            else
+                                numImgDirs = 1;
+                                firstImgList{numImgDirs} = imgName;
+                            end
+                        else
+                            noProblem = 0;
+                        end
+                        lastHead = headStr;
+                    elseif isempty(headStr)
+                        if strcmp(lastHead,'ImagePath')
+                            if isempty(imgDirList)
+                                noProblem = 0;
+                            elseif k ~= length(textL)
+                                %Get next image path
+                                imgDir = sscanf(textL(k+1:end),'%s');
+                            else
+                                imgDir = '';
+                            end
+
+                            if isempty(imgDir)
+                                noProblem = 0;
+                            else
+                                numImgDirs = numImgDirs+1;
+                                imgDirList{numImgDirs} = imgDir;
+                            end
+                        elseif strcmp(lastHead,'FirstImage')
+                            if k ~= length(textL)
+                                %Get next first image name.
+                                imgName = sscanf(textL(k+1:end),'%s');
+                            else
+                                imgName = '';
+                            end
+                            numImgDirs = numImgDirs+1;
+
+                            if numImgDirs > length(imgDirList)
+                                noProblem = 0;
+                            else
+                                firstImgList{numImgDirs} = imgName;
+                            end
+                        else
+                            noProblem = 0;
+                        end
+                    else
+                        j1 = strmatch(headStr,subProjNames,'exact');
+                        if isempty(j1)
+                            noProblem = 0;
+                        elseif k ~= length(textL)
+                            subProjDir{j1} = sscanf(textL(k+1:end),'%s');
+                        end
+                        lastHead = headStr;
+                    end
+                end
+
+                textL  = fgetl(fid);
+                lineNo = lineNo+1;
+            end
+            if ~noProblem
+                warnH = warndlg(['Project setting file is corrupted ' ...
+                    'and will be ignored.'],'Warning','modal');
+            end
+            fclose(fid);
+        end
     end
+else
+   projDir = '';
 end
 
 if noProblem == 1 & length(firstImgList) ~= length(imgDirList)
@@ -786,4 +910,11 @@ if ~noProblem
       subProjDir{k} = '';
    end
 end
+
+handles.projDir       = projDir;
+handles.imgDirList    = imgDirList;
+handles.firstImgList  = firstImgList;
+handles.unix_imgDrive = unix_imgDrive;
+handles.win_imgDrive  = win_imgDrive;
+handles.subProjDir    = subProjDir;
 
