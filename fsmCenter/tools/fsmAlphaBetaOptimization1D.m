@@ -1,4 +1,4 @@
-function [noiseParameter, actualP] = fsmAlphaBetaOptimization1D(imageNameList, noiseParameter, confidenceP, bitDepth)
+function [noiseParameter, actualP, Lmax_ratio] = fsmAlphaBetaOptimization1D(imageNameList, noiseParameter, confidenceP, bitDepth)
 % Function alphaBetaOptimization1D optimizes noise parameters alpha & beta based on their given initial values
 % such that the speckle detection result best matches user-specified confidence probability. The optimization
 % search is performed in a 1D fashion, namely first with respect to beta, then with respect to alpha.
@@ -71,6 +71,14 @@ h = msgbox('Now starting optimization search');
 pause(2);
 close(h);
 
+total_area = imHeight * imWidth;
+roi_area = sum(sum(bw))
+non_roi_area = total_area - roi_area;
+
+% fprintf('Percentage of roi area is %f\n', roi_area/total_area *100);
+% pause;
+% pause;
+
 % Step 2: --------------------------------------------------------
 % Setting ROI through user input. Compute Gauss filtered image
 % stack, local_max stack, local_min stack and cands stack
@@ -117,7 +125,13 @@ for m = 1 : beta_num
 end
 close(h);
 
-Lmax_ratio = beta_ROI_LmaxNum ./ beta_LmaxNum;
+Lmax_ratio = zeros(beta_num, 1)
+for i = 1 : beta_num
+    temp1 = beta_ROI_LmaxNum(i) / roi_area;
+    temp2 = (beta_LmaxNum(i) - beta_ROI_LmaxNum(i)) / non_roi_area;
+    Lmax_ratio(i) = temp1 / (temp1 + temp2);
+end
+%Lmax_ratio = Lmax_ratio * 
 
 [temp_dif, temp_index] = min(abs(Lmax_ratio - confidenceP)); % Find the beta that gives the ratio closest to confidenceP
 
@@ -149,7 +163,13 @@ for n = 1 : alpha_num
 end
 close(h);
 
-Lmax_ratio = alpha_ROI_LmaxNum ./ alpha_LmaxNum;
+%Lmax_ratio = alpha_ROI_LmaxNum ./ alpha_LmaxNum;
+Lmax_ratio = zeros(alpha_num, 1)
+for i = 1 : alpha_num
+    temp1 = alpha_ROI_LmaxNum(i) / roi_area;
+    temp2 = (alpha_LmaxNum(i) - alpha_ROI_LmaxNum(i)) / non_roi_area;
+    Lmax_ratio(i) = temp1 / (temp1 + temp2);
+end
 
 [temp_dif, temp_index] = min(abs(Lmax_ratio - confidenceP)); % Find the beta that gives the ratio closest to confidenceP
 noiseParameter(2) = alphaGrid(temp_index); % set the beta to the value found
