@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 11-Mar-2004 17:08:54
+% Last Modified by GUIDE v2.5 15-Mar-2004 15:37:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1172,3 +1172,12 @@ function fsmCenter_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to fsmCenter (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function helpFsmCenter_Callback(hObject, eventdata, handles)
+% hObject    handle to helpFsmCenter (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+

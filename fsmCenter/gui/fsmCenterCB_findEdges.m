@@ -28,7 +28,6 @@ try
     img=img/(2^bitdepth-1);
     
     [ans,img_edge,img_bg,edge_pixel,length_edge,frame_pos]=imFindCellEdge(double(img),'',0,'filter_image',1,'img_sigma',1,'bit_depth',2^bitdepth-1);
-%     [ans,img_edge,img_bg,edge_pixel,length_edge,frame_pos]=imFindCellEdge(double(img),'',0,'filter_image',1,'bit_depth',bitdepth);
     figure(gcf);
     hold on
     plot(edge_pixel(:,1),edge_pixel(:,2),'y-');
