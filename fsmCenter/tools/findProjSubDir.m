@@ -6,6 +6,14 @@ function dirList = findProjSubDir(parDir,dirSpec)
 %    Search in 'parDir' all directories that meet the name specification in
 %    'dirSpec' and return a cell array of directories. If 'parDir' does not
 %    exit or is empty, an empty array is returned.
+%    Alternatively, parDir can already be a structure returned by the DIR command. 
+%    Since MATLAB's DIR is slow, this can speed up functions which call FINDPROJSUBDIR
+%    many times.
+%    In this case, parDir is a structure with fields:
+%       name
+%       date
+%       bytes
+%       isdir
 %
 % INPUT :
 %    parDir  : A string that specifies the parent directory. Use '.' for the 
@@ -15,14 +23,40 @@ function dirList = findProjSubDir(parDir,dirSpec)
 
 dirList = {};
 
-if isempty(parDir) | ~isdir(parDir)
+if isempty(parDir)
    return;
+end
+
+% Default
+readDir=1;
+
+if isstruct(parDir)
+    % Check fields
+    fields=fieldnames(parDir);
+    if ~ ( strcmp(char(fields(1)),'name') & ...
+            strcmp(char(fields(2)),'date') & ...
+            strcmp(char(fields(3)),'bytes') & ...
+            strcmp(char(fields(4)),'isdir') )
+        error('Invalid structure parDir (should be a structure as returned by the MATLAB command DIR.)');
+    end
+    readDir=0;
+else
+    % Check that parDir is a string pointing to an existing directory
+    if ~strcmp(class(parDir),'char')
+        error('parDir is not a valid string.');
+    else
+        if ~isdir(parDir)
+            error('parDir is not pointing to a valid directory.');
+        end
+    end
 end
 
 dirSpecLen = length(dirSpec);
 
-wholeList = dir(parDir);
-allDirList = {wholeList(find([wholeList.isdir])).name};
+if readDir==1
+    parDir = dir(parDir);
+end
+allDirList = {parDir(find([parDir.isdir])).name};
 
 for k = 1:length(allDirList)
    if length(allDirList{k}) >= dirSpecLen

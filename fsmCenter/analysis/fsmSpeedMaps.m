@@ -1,11 +1,11 @@
-function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIbw,maxSpeed,segment,bitDepth)
+function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed,segment,bitDepth)
 % fsmSpeedMaps creates speed maps from the flow maps returned by the SpeckTackle package
 %
 % fsmSpeedMaps goes through the whole M (or Md) stack of s matrices (each matrix corresponds to the
 %    matches returned by the tracker for frames 2 consecutive frames) and creates t<=s speed maps
 %    each of which is the average over n frames [j-n/2:j+n/2] around frame j, j in [fix(n/2)+1:s-fix(n/2)]
 %   
-% SYNOPSIS      outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIbw,maxSpeed)
+% SYNOPSIS      outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed)
 %
 % INPUT         gridSize    : [y x], defines the grid on which the velocities are calculated   
 %               n           : number of frames for temporal averaging (must be odd).
@@ -17,8 +17,8 @@ function outputdir=fsmSpeedMaps(gridSize,n,d0_init,loadMPM,sampling,pixelSize,ov
 %               sampling    : movie sampling size (s)
 %               pixelSize   : pixel size in the image domain (nm)
 %               overlayVect : [ 0 | 1 ] overlays vector field to speed map
-%               userROIbw   : black and white mask (0,1)-matrix used to mask parts of the image. 
-%                             Pass userROIbw=[] if you don't want to mask the map.
+%               userROIpoly   : [y x]n polygon, drawn by the user when he/she run SpeckTackle. 
+%                             Pass userROIpoly=[] if you don't want to mask the map.
 %               maxSpeed    : [ 0 | n ] maximum expected speed (to set the same color scaling for all frames)
 %                             Set it to 0 to turn off rescaling (the function will set this value to 110% 
 %                             of the maximum velocity from frame 1) or to any velocity n in nm/min.
@@ -252,6 +252,11 @@ h=waitbar(0,'Creating speed maps...');
 % Create a full bwMask (in case of failure of edge detection)
 bwMask=ones(size(img));
 
+% If needed, create a user mask
+if ~isempty(userROIpoly)
+    userROIbw=roipoly(bwMask,userROIpoly(:,2),userROIpoly(:,1));
+end
+
 % Calculate average vector fields
 steps=size(Md,3)-n+1;
 for c2=1:steps
@@ -295,11 +300,8 @@ for c2=1:steps
     end
     
     % If needed apply the userROI as well
-    if ~isempty(userROIbw)
-        % Check size
-        if size(speedMap)==size(userROIbw)
-            speedMap=speedMap.*userROIbw;
-        end
+    if ~isempty(userROIpoly)
+        speedMap=speedMap.*userROIbw;
     end
     
     % Display
@@ -312,10 +314,16 @@ for c2=1:steps
     if overlayVect==1
         
         % Remove vectors outside the mask
+        if isempty(userROIpoly)
+            bwMaskVectors=bwMask;               % Only mask recovered by automatic segmentation
+        else
+            bwMaskVectors=bwMask.*userROIbw;    % Also mask passed by the user     
+        end
+        
         toBeDispl=[];
         counter=0;
         for i=1:size(Mav,1)
-            if bwMask(Mav(i,1),Mav(i,2))==1
+            if bwMaskVectors(Mav(i,1),Mav(i,2))==1
                 counter=counter+1;
                 toBeDispl(counter)=i;
             end
@@ -324,7 +332,7 @@ for c2=1:steps
         
         % Scale factor
         if c2==1
-            scaleFactor=fix(min(gridSize)/mean(sqrt((Mav(:,3)-Mav(:,1)).^2+(Mav(:,4)-Mav(:,2)).^2)));
+            scaleFactor=fix(min(gridSize)/mean(sqrt((MavDisp(:,3)-MavDisp(:,1)).^2+(MavDisp(:,4)-MavDisp(:,2)).^2)));
         end
         
         % Plot vectors on top of speed map

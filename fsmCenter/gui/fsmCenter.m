@@ -634,7 +634,7 @@ if get(handles.checkSMMask,'Value')==1
     if ~(isa(fName,'char') & isa(dirName,'char'))
         choice=questdlg('You didn''t pick any file.','Error','Continue without ROI','Exit','Exit');
         switch choice,
-            case 'Continue without ROI'; userROIbw=[]; filePicked=0;
+            case 'Continue without ROI'; userROIpoly=[]; filePicked=0;
             case 'Exit', return;
         end % switch
     else
@@ -644,15 +644,15 @@ if get(handles.checkSMMask,'Value')==1
         % Load the file
         load([dirName,fName]);
     end
-    if filePicked==1 & exist('userROIbw')~=1
+    if filePicked==1 & exist('userROIpoly')~=1
         choice=questdlg('The loaded file does not seem to contain a valid ROI.','Error','Continue without ROI','Exit','Exit');
         switch choice,
-            case 'Continue without ROI', userROIbw=[];
+            case 'Continue without ROI', userROIpoly=[];
             case 'Exit', return;
         end % switch
     end
 else
-    userROIbw=[];
+    userROIpoly=[];
 end
 gridSize=[str2num(get(handles.editYSP,'string')) str2num(get(handles.editXSP,'string'))];
 n=str2num(get(handles.editFrameSP,'string'));
@@ -664,7 +664,7 @@ pixelSize=str2num(get(handles.editSMPixel,'string'));
 maxSpeed=str2num(get(handles.editSMMax,'string'));
 segment=get(handles.checkSMSegment,'value');
 bitDepth=str2num(get(handles.editSMBitDepth,'String'));
-outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIbw,maxSpeed,segment,bitDepth);
+outputdir=fsmSpeedMaps(gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIpoly,maxSpeed,segment,bitDepth);
 if ~isempty(outputdir)
     % Maps have been saved to disk
     msg=['Speed maps have been saved to ',outputdir,'.'];

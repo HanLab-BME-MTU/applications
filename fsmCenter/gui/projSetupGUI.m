@@ -64,6 +64,13 @@ handles.postDir = '';
 handles.edgeDir = '';
 handles.mergDir = '';
 handles.corrDir = '';
+projDir=[];
+imgDir=[];
+
+if nargin==3
+    projDir=[];
+    resDirList={};
+end
 
 if nargin > 5
    projDir = varargin{3};
@@ -81,12 +88,15 @@ if isempty(projDir)
 end
 
 handles.projDir = projDir;
-handles.tackDir = resDirList{1};
-handles.lplaDir = resDirList{2};
-handles.postDir = resDirList{3};
-handles.edgeDir = resDirList{4};
-handles.mergDir = resDirList{5};
-handles.corrDir = resDirList{6};
+if ~isempty(resDirList)
+    handles.tackDir = resDirList{1};
+    handles.lplaDir = resDirList{2};
+    handles.postDir = resDirList{3};
+    handles.edgeDir = resDirList{4};
+    handles.mergDir = resDirList{5};
+    handles.corrDir = resDirList{6};
+end
+
 
 %Get handles to GUI objects.
 handles.projDirTFH = findobj('tag','projDir');
@@ -163,12 +173,14 @@ corrDir = handles.corrDir;
 %edgeDirList = {};
 %mergDirList = {};
 %corrDirList = {};
-tackDirList = findProjSubDir(projDir,'tack');
-lplaDirList = findProjSubDir(projDir,'lpla');
-postDirList = findProjSubDir(projDir,'post');
-edgeDirList = findProjSubDir(projDir,'edge');
-mergDirList = findProjSubDir(projDir,'merg');
-corrDirList = findProjSubDir(projDir,'corr');
+
+projDirStruct=dir(projDir);
+tackDirList = findProjSubDir(projDirStruct,'tack');
+lplaDirList = findProjSubDir(projDirStruct,'lpla');
+postDirList = findProjSubDir(projDirStruct,'post');
+edgeDirList = findProjSubDir(projDirStruct,'edge');
+mergDirList = findProjSubDir(projDirStruct,'merg');
+corrDirList = findProjSubDir(projDirStruct,'corr');
 
 set(handles.projDirTFH,'string',projDir);
 %if ~isempty(projDir)
