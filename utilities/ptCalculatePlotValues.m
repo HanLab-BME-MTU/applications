@@ -174,18 +174,18 @@ end
 
 if cellClusterPlot
    % Generate single cell and cluster plots if the users requested these
-   ptPlotCellClusterStats (imageName, savePath, xAxis, cellAmount, clusterAmount, cellsPerCluster, ...
+   ptPlotCellClusterStats (ptPostpro, imageName, savePath, xAxis, cellAmount, clusterAmount, cellsPerCluster, ...
                            singleCellAmount, percentageSingleCells, percentageClusteredCells);
 end   
 if areaPlot
    % Generate area plots if the users requested these
-   ptPlotAreaStats (imageName, savePath, xAxis, areaPerSingleCell, areaPerCluster, totalAreaAllCells, ...
+   ptPlotAreaStats (ptPostpro, imageName, savePath, xAxis, areaPerSingleCell, areaPerCluster, totalAreaAllCells, ...
                     percentageAreaAllCells, convexHullData);
 end
 
 if perimeterPlot
    % Generate perimater plots if the users requested these
-   ptPlotPerimeterStats (imageName, savePath, xAxis, perimeterLength, perimeterDivArea);
+   ptPlotPerimeterStats (ptPostpro, imageName, savePath, xAxis, perimeterLength, perimeterDivArea);
 end
 
 if cellClusterPlot | areaPlot | perimeterPlot

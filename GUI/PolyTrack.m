@@ -247,7 +247,7 @@ else
     % Test whether the max greyvalue per frame is not more than the
     % bitdepth value specified on the gui
     % But do this only if it hasn't be done before (filesChecked matfile)
-    if (exist ('filesChecked.mat', 'file') ~= 2)
+    if (exist ('filesChecked.mat', 'file') == 2)
        fprintf (1, 'Checking image files of job %d for correctness...\n', jobNumber);
     
        % Calculate the max posible grey value

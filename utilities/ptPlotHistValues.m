@@ -130,29 +130,25 @@ for frameCount = plotStartFrame : increment : plotEndFrame
       % Dummy
    end
    
-   
-   
-   
-   
-   
-   
 end 
 
-% Generate the figure and title     
-h_fig = figure('Name', imageName);
-   
-% Draw a plot showing the avg distance between nuclei per frame
-ymax = max (averageDist) + 1;
-plot (xAxis, averageDist); 
-title ('Average Distance between Cells (Delaunay triangulated)');
-xlabel ('Frames');
-ylabel ('Avg distance (um)');
-if length (xAxis) > 1
-   axis ([xAxis(1) xAxis(end) 0 ymax]);
-else
-   axis ([xAxis(1) xAxis(1)+1 0 ymax]);
-end
+if ptPostpro.cellcelldistplot_1
 
+    % Generate the figure and title     
+    h_fig = figure('Name', imageName);
+
+    % Draw a plot showing the avg distance between nuclei per frame
+    ymax = max (averageDist) + 1;
+    plot (xAxis, averageDist); 
+    title ('Average Distance between Cells (triangulated)');
+    xlabel ('Frames');
+    ylabel ('Avg distance (um)');
+    if length (xAxis) > 1
+       axis ([xAxis(1) xAxis(end) 0 ymax]);
+    else
+       axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+    end
+end
 
 % % Calculate the maximum distance value
 % maxDist = max (max (distanceHist));

@@ -89,6 +89,7 @@ backgroundImage = coeff(1).*(xi.^2) + coeff(2).*(xi.*yi) + coeff(3).*(yi.^2) + c
 
 % The average background level is approx. equal to the constant in the equation
 backgroundLevel = coeff(4);
+%backgroundLevel = min(min(backgroundImage)) + ((max(max(backgroundImage)) - min(min(backgroundImage))) / 2);
 
 % Now we only have to subtract the background from the image and we're done
 outImage = inputImage - reshape(backgroundImage,size(inputImage));

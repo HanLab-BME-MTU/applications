@@ -758,9 +758,9 @@ guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
 
-% --- Executes on button press in GUI_ad_analyze_pb.
-function GUI_ad_analyze_pb_Callback(hObject, eventdata, handles)
-% hObject    handle to GUI_ad_analyze_pb (see GCBO)
+% --- Executes on button press in GUI_ad_plot_pb.
+function GUI_ad_plot_pb_Callback(hObject, eventdata, handles)
+% hObject    handle to GUI_ad_plot_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata (hObject);
@@ -775,10 +775,23 @@ end
 
 % Assign the radiobutton values to the postpro struct
 handles.postpro.cellclusterplot = get (handles.checkbox_clustercellstats,'Value');
+   handles.postpro.cellclusterplot_1 = get (handles.checkbox_amount_cells,'Value');
+   handles.postpro.cellclusterplot_2 = get (handles.checkbox_percentage_cells,'Value');
+   
 handles.postpro.areaplot = get (handles.checkbox_areastats,'Value');
+   handles.postpro.areaplot_1 = get (handles.checkbox_total_area,'Value');
+   handles.postpro.areaplot_2 = get (handles.checkbox_single_cluster_area,'Value');
+   handles.postpro.areaplot_3 = get (handles.checkbox_avg_convex_hull_area,'Value');
+  
 handles.postpro.perimeterplot = get(handles.checkbox_perimeter,'Value');
+
 handles.postpro.speedplot = get(handles.checkbox_speed,'Value');
+   handles.postpro.speedplot_1 = get(handles.checkbox_all_to_single_speed,'Value');
+   handles.postpro.speedplot_2 = get(handles.checkbox_average_speed,'Value');
+   handles.postpro.speedplot_3 = get(handles.checkbox_speed_variance,'Value');
+   
 handles.postpro.cellcelldistplot = get(handles.checkbox_cellcelldisthist,'Value');
+   handles.postpro.cellcelldistplot_1 = get(handles.checkbox_avg_distance_cells,'Value');
 
 if (~handles.postpro.cellclusterplot & ~handles.postpro.areaplot & ...
     ~handles.postpro.perimeterplot & ~handles.postpro.speedplot & ...
@@ -1187,6 +1200,22 @@ function checkbox_clustercellstats_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_clustercellstats
+handles = guidata(hObject);
+
+val = get (hObject,'Value');
+
+if val == 1
+   % Checkbox is selected, so select all children
+   set (handles.checkbox_amount_cells, 'Value', 1);
+   set (handles.checkbox_percentage_cells, 'Value', 1);
+else  % val == 0
+   % Checkbox was unselected so unselect all the children
+   set (handles.checkbox_amount_cells, 'Value', 0);
+   set (handles.checkbox_percentage_cells, 'Value', 0);
+end
+
+% Update handles structure
+guidata(hObject, handles);   
 
 %--------------------------------------------------------------------------
 
@@ -1197,7 +1226,24 @@ function checkbox_perimeter_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_perimeter
+% handles = guidata(hObject);
+% 
+% val = get (hObject,'Value');
+% 
+% if val == 1
+%    % Checkbox is selected, so select all children
+%    set (handles.checkbox_amount_cells, 'Value', 1);
+%    set (handles.checkbox_percentage_cells, 'Value', 1);
+% else  % val == 0
+%    % Checkbox was unselected so unselect all the children
+%    set (handles.checkbox_amount_cells, 'Value', 0);
+%    set (handles.checkbox_percentage_cells, 'Value', 0);
+% end
+% 
+% % Update handles structure
+% guidata(hObject, handles); 
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in checkbox_speed.
 function checkbox_speed_Callback(hObject, eventdata, handles)
@@ -1206,6 +1252,24 @@ function checkbox_speed_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_speed
+handles = guidata(hObject);
+
+val = get (hObject,'Value');
+
+if val == 1
+   % Checkbox is selected, so select all children
+   set (handles.checkbox_all_to_single_speed, 'Value', 1);
+   set (handles.checkbox_average_speed, 'Value', 1);
+   set (handles.checkbox_speed_variance, 'Value', 1);
+else  % val == 0
+   % Checkbox was unselected so unselect all the children
+   set (handles.checkbox_all_to_single_speed, 'Value', 0);
+   set (handles.checkbox_average_speed, 'Value', 0);
+   set (handles.checkbox_speed_variance, 'Value', 0);   
+end
+
+% Update handles structure
+guidata(hObject, handles); 
 
 %--------------------------------------------------------------------------
 
@@ -1216,6 +1280,20 @@ function checkbox_cellcelldisthist_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_cellcelldisthist
+handles = guidata(hObject);
+
+val = get (hObject,'Value');
+
+if val == 1
+   % Checkbox is selected, so select all children
+   set (handles.checkbox_avg_distance_cells, 'Value', 1);
+else  % val == 0
+   % Checkbox was unselected so unselect all the children
+   set (handles.checkbox_avg_distance_cells, 'Value', 0);
+end
+
+% Update handles structure
+guidata(hObject, handles); 
 
 %--------------------------------------------------------------------------
 
@@ -1226,6 +1304,24 @@ function checkbox_areastats_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_areastats
+handles = guidata(hObject);
+
+val = get (hObject,'Value');
+
+if val == 1
+   % Checkbox is selected, so select all children
+   set (handles.checkbox_total_area, 'Value', 1);
+   set (handles.checkbox_avg_convex_hull_area, 'Value', 1);
+   set (handles.checkbox_single_cluster_area, 'Value', 1);
+else  % val == 0
+   % Checkbox was unselected so unselect all the children
+   set (handles.checkbox_total_area, 'Value', 0);
+   set (handles.checkbox_avg_convex_hull_area, 'Value', 0);
+   set (handles.checkbox_single_cluster_area, 'Value', 0);
+end
+
+% Update handles structure
+guidata(hObject, handles); 
 
 %--------------------------------------------------------------------------
 
@@ -1508,3 +1604,86 @@ end
 
 % Update handles structure
 guidata(hObject, handles);   
+
+
+% --- Executes on button press in checkbox_speed_variance.
+function checkbox_speed_variance_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_speed_variance (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_speed_variance
+
+
+% --- Executes on button press in checkbox_average_speed.
+function checkbox_average_speed_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_average_speed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_average_speed
+
+
+% --- Executes on button press in checkbox_all_to_single_speed.
+function checkbox_all_to_single_speed_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_all_to_single_speed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_all_to_single_speed
+
+
+% --- Executes on button press in checkbox_avg_distance_cells.
+function checkbox_avg_distance_cells_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_avg_distance_cells (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_avg_distance_cells
+
+
+% --- Executes on button press in checkbox_avg_convex_hull_area.
+function checkbox_avg_convex_hull_area_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_avg_convex_hull_area (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_avg_convex_hull_area
+
+
+% --- Executes on button press in checkbox_total_area.
+function checkbox_total_area_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_total_area (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_total_area
+
+
+% --- Executes on button press in checkbox_single_cluster_area.
+function checkbox_single_cluster_area_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_single_cluster_area (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_single_cluster_area
+
+
+% --- Executes on button press in checkbox_amount_cells.
+function checkbox_amount_cells_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_amount_cells (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_amount_cells
+
+
+% --- Executes on button press in checkbox_percentage_cells.
+function checkbox_percentage_cells_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_percentage_cells (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_percentage_cells
+
+

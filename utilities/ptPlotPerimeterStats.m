@@ -1,9 +1,10 @@
-function ptPlotPerimeterStats (imageName, savePath, xAxis, perimeterLength, perimeterDivArea)
+function ptPlotPerimeterStats (ptPostpro, imageName, savePath, xAxis, perimeterLength, perimeterDivArea)
 % ptPlotPerimeterStats generates the plots for the cell and cluster perimeter statistics
 %
-% SYNOPSIS       ptPlotPerimeterStats (imageName, savePath, xAxis, perimeterLength, perimeterDivArea)
+% SYNOPSIS       ptPlotPerimeterStats (ptPostpro, imageName, savePath, xAxis, perimeterLength, perimeterDivArea)
 %
-% INPUT          imageName : name of the first image in the movie (used as title)
+% INPUT          ptPostpro : postprocessing structure
+%                imageName : name of the first image in the movie (used as title)
 %                savePath : name of the directory where the plots are saved in files
 %                xAxis : matrix with frame numbers (this should have the same length as
 %                        (all the other matrices that follow)

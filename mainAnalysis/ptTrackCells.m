@@ -64,6 +64,7 @@ function [M, clusterProps, cellProps, frameProps, imageCount] = ptTrackCells (pt
 % Andre Kerstens        Jul 04          In case of too many bad segmentations, the function will return 
 %                                       and give up on the job
 % Andre Kerstens        Jul 04          Added frame properties to functions
+% Andre Kerstens        Jul 04          Segmentation function now uses precalculated mu0 values
 
 % Tell the user that we've started
 fprintf (1, 'Starting analysis of job number %d:\n', jobNumber);
@@ -146,12 +147,14 @@ else		% lastImaNum > firstImaNum
 
          % Calculate the variation for mu0 in case we segment more than once
          % The second time start with the initial mu0
-         if escapeCount == 0
+         if (escapeCount == 0) & (loopCount == 1)
             imageMinimum = min (min (newImage));
             nucleusLevel = imageMinimum + abs(0.1 * imageMinimum);
             imageMaximum = max (max (newImage));
             haloLevel = imageMaximum - abs(0.1 * imageMaximum);
             mu0 = [nucleusLevel ; backgroundLevel ; haloLevel];
+         elseif (escapeCount == 0) & (loopCount > 1)
+            mu0 = mu0Calc;
          else
             fprintf (1, 'ptTrackCells: Bad segmentation: adjusting mu0 parameter: %d %d %d\n', mu0(1), mu0(2), mu0(3));
             mu0 = mu0 + [0.03 ; -0.02 ; -0.03];
