@@ -445,15 +445,10 @@ if nargout > 1
     distributionStruct.congressionSpeedDistribution = [];
     distributionStruct.distanceDistribution = [];
     
-    clusterStruct.separationK = [];
-    clusterStruct.separationMeans = [];
-    clusterStruct.separationWeight = [];
-    clusterStruct.separationVariance = [];
-    
-    clusterStruct.congressionK = [];
-    clusterStruct.congressionMeans = [];
-    clusterStruct.congressionWeight = [];
-    clusterStruct.congressionVariance = [];
+    clusterStruct(1:constants.MAXCLUSTER) = struct(...
+        'separationBestK',[],'separationClusters',[],...
+        'congressionBestK',[],'congressionClusters',[]);
+
     
     if ~isempty(growthIdx)
         [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
@@ -466,10 +461,20 @@ if nargout > 1
             [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(60*dataListG(growthIdx,4)',...
                 constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-4,1,[],[],any(verbose==4));
             % and strore
-            clusterStruct.separationK = gbestk;
-            clusterStruct.separationMeans = gbestmu;
-            clusterStruct.separationWeight = gbestpp;
-            clusterStruct.separationVariance = gbestcov;
+            clusterStruct(1).separationBestK = (gbestk); 
+            
+            %find results for every cluster
+            for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
+                % force EM to return data only for selected k of means
+                [gbestk,gbestpp,gbestmu,gbestcov] = mixtures4(60*dataListG(growthIdx,4)',...
+                    kCluster,kCluster,0,1e-4,1,[],[],any(verbose==4));
+                
+                [separationMeans,muIdx] = sort(gbestmu);
+                separationWeight = gbestpp(muIdx);
+                separationVariance = gbestcov(:,:,muIdx);
+                
+                clusterStruct(kCluster).separationClusters = [separationMeans',separationWeight',squeeze(separationVariance)];
+            end
         end
     else
         growthSpeedDistY = [];
@@ -486,10 +491,20 @@ if nargout > 1
             [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(60*dataListG(shrinkageIdx,4)',...
                 constants.MINCLUSTER,constants.MAXCLUSTER,0,1e-4,1,[],[],any(verbose==4));
             % store cluster data
-            clusterStruct.congressionK = sbestk;
-            clusterStruct.congressionMeans = sbestmu;
-            clusterStruct.congressionWeight = sbestpp;
-            clusterStruct.congressionVariance = sbestcov;
+            clusterStruct(1).congressionBestK = (sbestk);
+            
+            %find results for every cluster
+            for kCluster = constants.MINCLUSTER:constants.MAXCLUSTER
+                % force EM to return data only for selected k of means
+                [sbestk,sbestpp,sbestmu,sbestcov] = mixtures4(60*dataListG(shrinkageIdx,4)',...
+                    kCluster,kCluster,0,1e-4,1,[],[],any(verbose==4));
+                
+                [congressionMeans,muIdx] = sort(sbestmu);
+                congressionWeight = sbestpp(muIdx);
+                congressionVariance = sbestcov(:,:,muIdx);
+                
+                clusterStruct(kCluster).congressionClusters = [congressionMeans',congressionWeight',squeeze(congressionVariance)];
+            end
         end
     else
         shrinkageSpeedDistY = [];
