@@ -90,5 +90,5 @@ ratio = round(aveInterval/dt);          %ratio of averaging interval to
                                                       
 trajectories = trajectories(1:ratio,:); %real interval that is averaged over.
                                                      
-mtLengthAve = mean(trajectories)';      %average lengthof MT at each interval
-mtLengthSD  = std(trajectories,1)';     %stand. dev. of MT length at each interval
+mtLengthAve = mean(trajectories)';     %average lengthof MT at each interval
+mtLengthSD  = max(1e-15,abs(std(trajectories)')); %stand. dev. of MT length at each interval

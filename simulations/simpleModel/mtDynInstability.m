@@ -1,5 +1,5 @@
 function [mtLength,jump,errFlag] = mtDynInstability(modelParam,initialState,...
-                totalTime,dt,timeEps)
+                totalTime,dt,timeEps,saveTraj)
 %MTDYNINSTABILITY sim. the dyn. instabil. of a microtubule, free or in G1 yeast
 %
 %It uses a simple model where a microtubule is treated as a sequence of "units",
@@ -11,7 +11,7 @@ function [mtLength,jump,errFlag] = mtDynInstability(modelParam,initialState,...
 %simulation proceeds.
 %
 %SYNOPSIS [mtLength,jump,errFlag] = mtDynInstability(modelParam,initialState,...
-%               totalTime,dt,timeEps)
+%               totalTime,dt,timeEps,saveTraj)
 %
 %INPUT  modelParam  : Structure containing model parameters:
 %           .minLength   : minimum length of microtubule, in micrometers.
@@ -36,6 +36,15 @@ function [mtLength,jump,errFlag] = mtDynInstability(modelParam,initialState,...
 %       dt          : Time step used for time discretization. 
 %       timeEps     : Value of the product of time step and maximum rate
 %                     constant.
+%       saveTraj    : Structure defining whether and where results will be
+%                     saved.
+%           .saveOrNot   : 1 if user wants to save, 0 if not.
+%           .fileName    : name (including location) of file where results 
+%                          will be saved. If empty and saveOrNot is 1, the name
+%                          is chosen automatically to be
+%                          "mtTraj-day-month-year-hour-minute-second",
+%                          and the data is saved in directory where
+%                          function is called from
 %       
 %OUTPUT mtLength    : length of the microtubule throughout the simulation.
 %       jump        : instances throughout the simulation where MT dies or is rescued.
@@ -117,6 +126,10 @@ if timeEps > 1
 end
 if max([kOnElongEff kOffElong kOnShrinkEff kOffShrink])*dt > 1.001*timeEps
     disp('--mtDynInstability: Time step too large!');
+    errFlag = 1;
+end
+if saveTraj.saveOrNot ~= 0 && saveTraj.saveOrNot ~= 1
+    disp('--analyzeMtTrajectory: "saveTraj.saveOrNot" should be 0 or 1!');
     errFlag = 1;
 end
 if errFlag
@@ -215,4 +228,11 @@ counter = counter + 1;                      %end of simulation
 jump(counter) = length(mtLength);           %total number of iterations in simulation
                                             %store even if MT did not reach
                                             %min. length in the end.
-% save(['mtTraj-',nowString],'mtLength');
+%save data if user wants to
+if saveTraj.saveOrNot
+    if isempty(saveTraj.fileName)
+        save(['mtTraj-',nowString],'mtLength'); %save in file
+    else
+        save(saveTraj.fileName,'mtLength'); %save in file (directory specified through name)
+    end
+end

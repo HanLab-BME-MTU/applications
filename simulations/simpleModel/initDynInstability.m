@@ -1,10 +1,13 @@
-function [initialState,modelParam,runInfo] = initDynInstability
+function [initialState,modelParam,runInfo,saveTraj,saveStats] = initDynInstability
 
-initialState = struct('mtLength0',0.44,'mtState0',1,'free',1,'unitConc',10);
+initialState = struct('mtLength0',0.44,'mtState0',1,'free',1,'unitConc',20);
 
-modelParam = struct('minLength',-10000,'kOnElong',0.6,'kOffElong',4,...
-    'kOnShrink',0.2,'kOffShrink',3);
+modelParam = struct('minLength',-10000,'kOnElong',0.3,'kOffElong',5,'kOnShrink',0.5,'kOffShrink',11);
 
-runInfo = struct('maxNumSim',1,'totalTime',100,'simTimeStep',0.001,...
-    'timeEps',0.5,'expTimeStep',1,'aveInterval',0.6);
+runInfo = struct('maxNumSim',1,'totalTime',10000,'simTimeStep',0.01,'timeEps',0.5,'expTimeStep',1,'aveInterval',0.6,'analyzeOpt',1);
 
+for i=1:100
+    saveTraj(i) = struct('saveOrNot',0);
+end
+    
+saveStats = struct('saveOrNot',0);

@@ -135,7 +135,7 @@ for bigIter = 1:maxNumSim
         case 1
             [mtLength1,forcedRescue,errFlag] = mtDynInstability(...
                 modelParam,initialState,totalTime+expTimeStep,...
-                simTimeStep,timeEps);
+                simTimeStep,timeEps,saveTraj(bigIter));
             if errFlag
                 return;
             end
@@ -149,7 +149,7 @@ for bigIter = 1:maxNumSim
             end
             mtLength(:,bigIter) = mtLength1;
             capSize(:,bigIter) = capSize1;
-    otherwise
+        otherwise
             disp('--analyzeMtTrajectory: The variable "model" should be either 1 or 2!');
             errFlag = 1;
             return;
@@ -189,8 +189,8 @@ end
 
 %additional input variables for statistical analysis function
 ioOpt.verbose = 0; %display graphs
-% ioOpt.convergence = 1; %check descriptor convergence as a function of sample size
-ioOpt.saveTxt = 1;
+ioOpt.convergence = 0; %check descriptor convergence as a function of sample size
+ioOpt.saveTxt = 0;
 ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat0.txt'; %save results in file
 ioOpt.expOrSim = 's'; %specify that it is simulation data
 
