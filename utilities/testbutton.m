@@ -94,7 +94,7 @@ ErodeDiskSize = round((sqrt(MinSizeNuc))/2) ;
 %increased, decrease - ... decreased
 
 
-cd(ImageDirectory)
+cd (ImageDirectory)
 
 
 if ~Last > First

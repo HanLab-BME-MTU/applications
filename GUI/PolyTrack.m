@@ -115,11 +115,11 @@ function GUI_st_job_lb_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Get the number of the currently selected project in the list
-projNum = get(hObject,'Value');
+jobNumber = get(hObject,'Value');
 
 % Use the values of this project to select the correct job and fill the
 % text fields of the GUI
-fillFields(handles,handles.jobs(projNum))
+fillFields(handles,handles.jobs(jobNumber))
 
 %-------------------------------------------------------------------------------
 
@@ -168,17 +168,17 @@ end
 set(handles.GUI_st_job_lb,'String',jobList);
 
 % Get the last job in the job list
-projNum = length(jobList); 
+jobNumber = length(jobList); 
 
 % In case a jobvalues.mat file was read, store this in the handle
 if gotvals == 1
-    handles.jobs(projNum) = jobvalues;
+    handles.jobs(jobNumber) = jobvalues;
     clear jobvalues
 % else start using the default job values and do some more
 else
-    handles.jobs(projNum) = handles.defaultjob;
-    handles.jobs(projNum).imagedirectory = imagedirectory;
-    handles.jobs(projNum).imagename = filename;
+    handles.jobs(jobNumber) = handles.defaultjob;
+    handles.jobs(jobNumber).imagedirectory = imagedirectory;
+    handles.jobs(jobNumber).imagename = filename;
 	    
     % Now we have to do the following:
     % Find out what part of the filename describes the images and which part
@@ -198,11 +198,11 @@ else
     end
 
     % Extract the body of the filename and store in handles struct
-    handles.jobs(projNum).bodyname = filename(1:(end-(4+countNum)));
-    bodyname = handles.jobs(projNum).bodyname;
+    handles.jobs(jobNumber).bodyname = filename(1:(end-(4+countNum)));
+    bodyname = handles.jobs(jobNumber).bodyname;
      
     % Select the current project
-    set(handles.GUI_st_job_lb, 'Value', projNum);
+    set(handles.GUI_st_job_lb, 'Value', jobNumber);
 	
     % Create a list of files present in the image directory selected by the user
     dirList = dir(imagedirectory);
@@ -210,20 +210,20 @@ else
     dirList = dirList(1,:);
     
     % Find all files within this directory with the same name as the selected filename
-    ind = strmatch(handles.jobs(projNum).bodyname, dirList);
+    ind = strmatch(handles.jobs(jobNumber).bodyname, dirList);
     dirList = dirList(ind)';
-    handles.jobs(projNum).lastimage = length(dirList);
+    handles.jobs(jobNumber).lastimage = length(dirList);
       
     % Sort the images by successive numbers:
     % First we get all numbers and write them into a vector
     for jRearange = 1:length(dirList)
         tmpName = char(dirList(jRearange));
-        imageNum(jRearange) = str2num(tmpName(length(handles.jobs(projNum).bodyname)+1:end-4));
+        imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
     end
     
     % Then we sort that vector and sort the dirList accordingly
     [junk,indVec] = sort(imageNum);
-    handles.jobs(projNum).imagenameslist = dirList(indVec);
+    handles.jobs(jobNumber).imagenameslist = dirList(indVec);
         
     % Create a directory to save the details and results of this job
     % Note: we call the directory results + bodyname + seq number
@@ -241,7 +241,7 @@ else
             tempname = [imagedirectory, newdirname];
             mkdir(tempname,'body');
              
-            handles.jobs(projNum).savedirectory = [imagedirectory, newdirname];
+            handles.jobs(jobNumber).savedirectory = [imagedirectory, newdirname];
             done = 1;
         end
         counter = counter + 1;
@@ -253,7 +253,7 @@ guidata(hObject, handles);
 %handles = guidata(hObject);
 
 % Last but not least make sure the text field on the GUI show the latest% values
-fillFields(handles, handles.jobs(projNum))
+fillFields(handles, handles.jobs(jobNumber))
 
 %-------------------------------------------------------------------------------
 
@@ -268,7 +268,7 @@ handles = guidata(hObject);
 
 % Get the job list and the current job
 jobList = get(handles.GUI_st_job_lb,'String');
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Joblist will only then be a cell, if there are jobs in it.
 % Otherwise it is a string (No project loaded)
@@ -286,7 +286,7 @@ if length(jobList) == 1
     jobList = char('No project loaded');
     listnotfilled = 1;
 else
-    jobList(projNum) = [];
+    jobList(jobNumber) = [];
 end
 
 % Set the list to the first project to be on the safe side
@@ -295,7 +295,7 @@ set(handles.GUI_st_job_lb,'Value',1);
 set(handles.GUI_st_job_lb,'String',jobList);
 
 % Store job data
-handles.jobs(projNum) = [];
+handles.jobs(jobNumber) = [];
 guidata(hObject,handles);
 
 % Show the data of the first job in the list, or if no job is present, 
@@ -356,16 +356,16 @@ if ~exist(imagedir, 'file')
 end
 
 % Retrieve the current job number and assign it the image directory value
-projNum = get(handles.GUI_st_job_lb,'Value');
-handles.jobs(projNum).imagedirectory =  imagedir;
+jobNumber = get(handles.GUI_st_job_lb,'Value');
+handles.jobs(jobNumber).imagedirectory =  imagedir;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -402,17 +402,17 @@ function GUI_st_path_imagename_ed_Callback(hObject, eventdata, handles)
 % imagename = get(hObject,'String');
 % 
 % % Select the current job
-% projNum = get(handles.GUI_st_job_lb,'Value');
+% jobNumber = get(handles.GUI_st_job_lb,'Value');
 % 
-% handles.jobs(projNum).imagename =  imagename;
+% handles.jobs(jobNumber).imagename =  imagename;
 % 
 % 
 % % Update handles structure
 % guidata(hObject, handles);
 % 
 % %%%%%%%%save altered values to disk%%%%%%%%%%%%
-% cd (handles.jobs(projNum).savedirectory)
-% jobvalues = handles.jobs(projNum);
+% cd (handles.jobs(jobNumber).savedirectory)
+% jobvalues = handles.jobs(jobNumber);
 % save ('jobvalues','jobvalues')
 % clear jobvalues
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -456,7 +456,7 @@ if ~iscell(jobList)
 end 
 
 % Get the currently selected project
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -465,20 +465,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).firstimage = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).firstimage = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).firstimage = val;
+    handles.jobs(jobNumber).firstimage = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -522,7 +522,7 @@ if ~iscell(jobList)
 end 
 
 % Get the currently selected project
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -531,20 +531,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).lastimage = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).lastimage = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).lastimage = val;
+    handles.jobs(jobNumber).lastimage = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -564,7 +564,7 @@ jobList = get(handles.GUI_st_job_lb,'String');
 % If the joblist has entries get the number of entries else return,
 % because there is really nothing to do
 if iscell(jobList)
-   nrofjobs = length(jobList); 
+   nrOfJobs = length(jobList); 
 else
    h=errordlg('At least one job should be loaded first, before thresholds can be determined.');
    uiwait(h);
@@ -576,18 +576,18 @@ leveldeterminer(hObject);
 
 % Get the currently selected job
 handles = guidata(hObject);
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Fill all the threshold input fields with the newly found values
-fillFields(handles,handles.jobs(projNum))
+fillFields(handles,handles.jobs(jobNumber))
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -631,7 +631,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -640,20 +640,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).fi_background = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).fi_background = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).fi_background = val;
+    handles.jobs(jobNumber).fi_background = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -697,7 +697,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -706,20 +706,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).fi_nucleus = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).fi_nucleus = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).fi_nucleus = val;
+    handles.jobs(jobNumber).fi_nucleus = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -763,7 +763,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -772,20 +772,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).la_background = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).la_background = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).la_background = val;
+    handles.jobs(jobNumber).la_background = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -829,7 +829,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -838,20 +838,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).la_nucleus = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).la_nucleus = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).la_nucleus = val;
+    handles.jobs(jobNumber).la_nucleus = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -895,7 +895,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -904,20 +904,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).maxsearch = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).maxsearch = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).maxsearch = val;
+    handles.jobs(jobNumber).maxsearch = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -963,22 +963,22 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get the value and index from the timestepslide popup menu and assign to handles struct
 val = get(hObject, 'Value');
 list = get(hObject, 'String');
 selected_val = list{val};
-handles.jobs(projNum).timestepslide = str2double(selected_val);
-handles.jobs(projNum).timestepslide_index = val;
+handles.jobs(jobNumber).timestepslide = str2double(selected_val);
+handles.jobs(jobNumber).timestepslide_index = val;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1023,22 +1023,22 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get the value and index from the mm-pixel popup menu and assign to handles struct
 val = get(hObject, 'Value');
 list = get(hObject, 'String');
 selected_val = list{val};
-handles.jobs(projNum).mmpixel = str2double(selected_val);
-handles.jobs(projNum).mmpixel_index = val;
+handles.jobs(jobNumber).mmpixel = str2double(selected_val);
+handles.jobs(jobNumber).mmpixel_index = val;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1082,7 +1082,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -1091,20 +1091,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).minsize = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).minsize = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).minsize = val;
+    handles.jobs(jobNumber).minsize = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1148,7 +1148,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -1157,11 +1157,11 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).maxsize = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).maxsize = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).maxsize = val;
+    handles.jobs(jobNumber).maxsize = val;
 end
 
 % Update handles structure
@@ -1169,9 +1169,9 @@ guidata(hObject, handles);
 
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1215,7 +1215,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -1224,20 +1224,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).minsdist = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).minsdist = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).minsdist = val;
+    handles.jobs(jobNumber).minsdist = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1347,7 +1347,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -1356,20 +1356,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).minedge = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).minedge = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).minedge = val;
+    handles.jobs(jobNumber).minedge = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1414,7 +1414,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -1423,20 +1423,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).noiseparameter = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).noiseparameter = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).noiseparameter = val;
+    handles.jobs(jobNumber).noiseparameter = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1481,7 +1481,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -1490,20 +1490,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).mincorrqualtempl = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).mincorrqualtempl = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).mincorrqualtempl = val;
+    handles.jobs(jobNumber).mincorrqualtempl = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1528,14 +1528,14 @@ if ~iscell(jobList)
    return
 else
    % Select the current job
-   projNum = get(handles.GUI_st_job_lb,'Value');
+   jobNumber = get(handles.GUI_st_job_lb,'Value');
 
-   imgDir = handles.jobs(projNum).imagedirectory;
-   imgNam = handles.jobs(projNum).imagename;
-   firstImg = handles.jobs(projNum).firstimage;
-   lastImg = handles.jobs(projNum).lastimage;
-   increment = handles.jobs(projNum).increment;
-   savedirectory = handles.jobs(projNum).savedirectory;
+   imgDir = handles.jobs(jobNumber).imagedirectory;
+   imgNam = handles.jobs(jobNumber).imagename;
+   firstImg = handles.jobs(jobNumber).firstimage;
+   lastImg = handles.jobs(jobNumber).lastimage;
+   increment = handles.jobs(jobNumber).increment;
+   savedirectory = handles.jobs(jobNumber).savedirectory;
 
    cd (handles.jobs(1).savedirectory);
 
@@ -1550,16 +1550,16 @@ else
    % Load the jobvalues into the jobs struct of the current job
    cd (jobValPath)
    load ('jobvalues.mat');
-   handles.jobs(projNum) = jobvalues;
+   handles.jobs(jobNumber) = jobvalues;
 
-   handles.jobs(projNum).imagedirectory = imgDir;
-   handles.jobs(projNum).imagename = imgNam;
-   handles.jobs(projNum).firstimage = firstImg;
-   handles.jobs(projNum).lastimage = lastImg;
-   handles.jobs(projNum).increment = increment;
-   handles.jobs(projNum).savedirectory = savedirectory;
+   handles.jobs(jobNumber).imagedirectory = imgDir;
+   handles.jobs(jobNumber).imagename = imgNam;
+   handles.jobs(jobNumber).firstimage = firstImg;
+   handles.jobs(jobNumber).lastimage = lastImg;
+   handles.jobs(jobNumber).increment = increment;
+   handles.jobs(jobNumber).savedirectory = savedirectory;
 
-   fillFields(handles,handles.jobs(projNum))
+   fillFields(handles,handles.jobs(jobNumber))
 end
 
 % Update handles structure
@@ -1585,12 +1585,12 @@ if ~iscell(jobList)
    return
 else
    % Select the current job
-   projNum = get(handles.GUI_st_job_lb,'Value');
+   jobNumber = get(handles.GUI_st_job_lb,'Value');
 
    % Store the latest data in jobvalues.mat in the specified save directory
-   if ~isempty(handles.jobs(projNum).savedirectory)
-      cd (handles.jobs(projNum).savedirectory)
-      jobvalues = handles.jobs(projNum);
+   if ~isempty(handles.jobs(jobNumber).savedirectory)
+      cd (handles.jobs(jobNumber).savedirectory)
+      jobvalues = handles.jobs(jobNumber);
       save ('jobvalues','jobvalues')
       clear jobvalues
    end
@@ -1620,29 +1620,29 @@ if ~iscell(jobList)
    return
 else
    % Select the current job
-   projNum = get(handles.GUI_st_job_lb,'Value');
+   jobNumber = get(handles.GUI_st_job_lb,'Value');
 
    % Store the fields that shouldn't be defaulted in temp vars
-   imgDir = handles.jobs(projNum).imagedirectory;
-   imgNam = handles.jobs(projNum).imagename;
-   firstImg = handles.jobs(projNum).firstimage;
-   lastImg = handles.jobs(projNum).lastimage;
-   increment = handles.jobs(projNum).increment;
-   savedirectory = handles.jobs(projNum).savedirectory;
+   imgDir = handles.jobs(jobNumber).imagedirectory;
+   imgNam = handles.jobs(jobNumber).imagename;
+   firstImg = handles.jobs(jobNumber).firstimage;
+   lastImg = handles.jobs(jobNumber).lastimage;
+   increment = handles.jobs(jobNumber).increment;
+   savedirectory = handles.jobs(jobNumber).savedirectory;
 
    % Set the default values to all fields
-   handles.jobs(projNum) = handles.defaultjob;
+   handles.jobs(jobNumber) = handles.defaultjob;
 
    % Retrieve the values that we temporarily stored before
-   handles.jobs(projNum).imagedirectory = imgDir;
-   handles.jobs(projNum).imagename = imgNam;
-   handles.jobs(projNum).firstimage = firstImg;
-   handles.jobs(projNum).lastimage = lastImg;
-   handles.jobs(projNum).increment = increment;
-   handles.jobs(projNum).savedirectory = savedirectory;
+   handles.jobs(jobNumber).imagedirectory = imgDir;
+   handles.jobs(jobNumber).imagename = imgNam;
+   handles.jobs(jobNumber).firstimage = firstImg;
+   handles.jobs(jobNumber).lastimage = lastImg;
+   handles.jobs(jobNumber).increment = increment;
+   handles.jobs(jobNumber).savedirectory = savedirectory;
 
    % Update all the fields on the gui
-   fillFields(handles,handles.jobs(projNum))
+   fillFields(handles,handles.jobs(jobNumber))
 end 
 
 % Update handles structure
@@ -1688,7 +1688,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -1697,20 +1697,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).leveladjust = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).leveladjust = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).leveladjust = val;
+    handles.jobs(jobNumber).leveladjust = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1730,9 +1730,9 @@ jobList = get(handles.GUI_st_job_lb,'String');
 % If the joblist has entries get the number of entries else return,
 % because there is really nothing to do
 if iscell(jobList)
-   % nrofjobs is basically equal to the last entry nr in the job list which
+   % nrOfJobs is basically equal to the last entry nr in the job list which
    % again is equal to the length of the list
-   nrofjobs = length(jobList); 
+   nrOfJobs = length(jobList); 
 else
    h=errordlg('A job should be loaded first, before a run can be started.');
    uiwait(h);
@@ -1740,27 +1740,27 @@ else
 end
 
 % Loop through all the jobs in the joblist
-for projNum = 1:nrofjobs
+for jobNumber = 1 : nrOfJobs
 
    % Get the image to image increment step
-   Increment = handles.jobs(projNum).increment;
+   Increment = handles.jobs(jobNumber).increment;
 
    % Get the first image number
-   possibleImg = handles.jobs(projNum).firstimage;
-   while (possibleImg + Increment) <= handles.jobs(projNum).lastimage
+   possibleImg = handles.jobs(jobNumber).firstimage;
+   while (possibleImg + Increment) <= handles.jobs(jobNumber).lastimage
       possibleImg = possibleImg + Increment;
    end
 
    % Make sure the last image nr fits with the last image found in the previous loop
    % If these are not the same, adjust last image number
-   if handles.jobs(projNum).lastimage > possibleImg
-      handles.jobs(projNum).lastimage = possibleImg;
+   if handles.jobs(jobNumber).lastimage > possibleImg
+      handles.jobs(jobNumber).lastimage = possibleImg;
    end
 
    % Save the definite version of jobvalues
-   if ~isempty(handles.jobs(projNum).savedirectory)
-      cd (handles.jobs(projNum).savedirectory)
-      jobvalues = handles.jobs(projNum);
+   if ~isempty(handles.jobs(jobNumber).savedirectory)
+      cd (handles.jobs(jobNumber).savedirectory)
+      jobvalues = handles.jobs(jobNumber);
       save ('jobvalues','jobvalues')
       clear jobvalues
    end
@@ -1768,11 +1768,10 @@ for projNum = 1:nrofjobs
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
    try
-      ptTrackCells (hObject,projNum);
+      %ptTrackCells (hObject,jobNumber);
+      ptTrackCells (handles.jobs(jobNumber), jobNumber);
    catch    
-     %h=errordlg(['job number ', num2str(projNum), ' had an error and could not be completed', lasterr]);
-     %uiwait(h);
-     fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', projNum, lasterr);
+     fprintf (1, 'Job number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
    end
    
    % Final message for the user to mark the end
@@ -1818,7 +1817,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -1827,20 +1826,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).sizetemplate = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).sizetemplate = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).sizetemplate = val;
+    handles.jobs(jobNumber).sizetemplate = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1884,7 +1883,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -1893,11 +1892,11 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).mintrackcorrqual = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).mintrackcorrqual = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).mintrackcorrqual = val;
+    handles.jobs(jobNumber).mintrackcorrqual = val;
 end
 
 % Update handles structure
@@ -1905,9 +1904,9 @@ guidata(hObject, handles);
 
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -1965,16 +1964,16 @@ savedirectory = get(hObject,'String');
 
 % Select the current job and store the directory name in the struct
 % AK: Shouldn't some sort of validity check be done here??
-projNum = get(handles.GUI_st_job_lb,'Value');
-handles.jobs(projNum).savedirectory =  savedirectory;
+jobNumber = get(handles.GUI_st_job_lb,'Value');
+handles.jobs(jobNumber).savedirectory =  savedirectory;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -2000,16 +1999,16 @@ end
 set(handles.GUI_st_path_savedirectory_ed,'String',savedirectory);
 
 % And store the directory in the handle struct
-projNum = get(handles.GUI_st_job_lb,'Value');
-handles.jobs(projNum).savedirectory =  savedirectory;
+jobNumber = get(handles.GUI_st_job_lb,'Value');
+handles.jobs(jobNumber).savedirectory =  savedirectory;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -2053,7 +2052,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -2062,20 +2061,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).increment = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).increment = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).increment = val;
+    handles.jobs(jobNumber).increment = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -2095,7 +2094,7 @@ jobList = get(handles.GUI_st_job_lb,'String');
 % If the joblist has entries get the number of entries else return,
 % because there is really nothing to do
 if iscell(jobList)
-   nrofjobs = length(jobList); 
+   nrOfJobs = length(jobList); 
 else
    h=errordlg('At least one job should be loaded first, before test and initialization can be started.');
    uiwait(h);
@@ -2144,7 +2143,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -2153,20 +2152,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).fi_halolevel = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).fi_halolevel = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).fi_halolevel = val;
+    handles.jobs(jobNumber).fi_halolevel = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -2210,7 +2209,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -2219,20 +2218,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).la_halolevel = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).la_halolevel = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).la_halolevel = val;
+    handles.jobs(jobNumber).la_halolevel = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -2277,27 +2276,27 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get the value and index from the bitdepth  popup menu and assign to handles struct
 val = get(hObject, 'Value');
 list = get(hObject, 'String');
 selected_val = list{val};
-handles.jobs(projNum).bitdepth = str2double(selected_val);
-handles.jobs(projNum).bitdepth_index = val;
+handles.jobs(jobNumber).bitdepth = str2double(selected_val);
+handles.jobs(jobNumber).bitdepth_index = val;
 
 % Calculate the maximal value of the image, depending on it's bitdepth and
 % store this info in the handles struct
 bitdepth = str2double(selected_val);
-handles.jobs(projNum).intensityMax =  2^bitdepth - 1;
+handles.jobs(jobNumber).intensityMax =  2^bitdepth - 1;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -2342,7 +2341,7 @@ if ~iscell(jobList)
 end 
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get number from the gui, convert it to a number and assign it to the handle;
 % If it is not an number, throw and error dialog and revert to the old number
@@ -2351,20 +2350,20 @@ val = str2double(strval);
 if isnan (val)
     h = errordlg('Sorry, this field has to contain a number.');
     uiwait(h);          % Wait until the user presses the OK button
-    handles.jobs(projNum).timeperframe = [];
-    fillFields(handles, handles.jobs(projNum))  % Revert the value back
+    handles.jobs(jobNumber).timeperframe = [];
+    fillFields(handles, handles.jobs(jobNumber))  % Revert the value back
     return
 else
-    handles.jobs(projNum).timeperframe = val;
+    handles.jobs(jobNumber).timeperframe = val;
 end
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -2395,26 +2394,26 @@ end
 val = get(hObject,'Value');
 
 % Select the current job and store the radiobutton value
-projNum = get(handles.GUI_st_job_lb,'Value');
-handles.jobs(projNum).clustering =  val;
+jobNumber = get(handles.GUI_st_job_lb,'Value');
+handles.jobs(jobNumber).clustering =  val;
 
 % Depending on the clustering value set the minmaxthreshold to the inverse
 if val
-    handles.jobs(projNum).minmaxthresh = 0;
+    handles.jobs(jobNumber).minmaxthresh = 0;
 else
-    handles.jobs(projNum).minmaxthresh = 1;
+    handles.jobs(jobNumber).minmaxthresh = 1;
 end
     
 % And set the value on the gui
-set(handles.GUI_st_eo_minmaxthresh_rb,'Value',handles.jobs(projNum).minmaxthresh);
+set(handles.GUI_st_eo_minmaxthresh_rb,'Value',handles.jobs(jobNumber).minmaxthresh);
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -2445,26 +2444,26 @@ end
 val = get(hObject,'Value');
 
 % Select the current job and store value
-projNum = get(handles.GUI_st_job_lb,'Value');
-handles.jobs(projNum).minmaxthresh =  val;
+jobNumber = get(handles.GUI_st_job_lb,'Value');
+handles.jobs(jobNumber).minmaxthresh =  val;
 
 % Depending on the minmaxthreshold value set the clustering radiobutton to the inverse
 if val
-    handles.jobs(projNum).clustering = 0;
+    handles.jobs(jobNumber).clustering = 0;
 else
-    handles.jobs(projNum).clustering = 1;
+    handles.jobs(jobNumber).clustering = 1;
 end
     
 % And set the value on the gui
-set(handles.GUI_st_eo_clustering_rb,'Value',handles.jobs(projNum).clustering);
+set(handles.GUI_st_eo_clustering_rb,'Value',handles.jobs(jobNumber).clustering);
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end
@@ -2488,12 +2487,12 @@ function exit_menuitem_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Select the current job
-projNum = get(handles.GUI_st_job_lb,'Value');
+jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(projNum).savedirectory)
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
+if ~isempty(handles.jobs(jobNumber).savedirectory)
+   cd (handles.jobs(jobNumber).savedirectory)
+   jobvalues = handles.jobs(jobNumber);
    save ('jobvalues','jobvalues')
    clear jobvalues
 end

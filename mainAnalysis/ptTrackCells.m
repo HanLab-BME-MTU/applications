@@ -1,120 +1,113 @@
-function ptTrackCells(hObject,projNum)
+function ptTrackCells (ptJob, jobNumber)
 % ptTrackCells finds and links coordinates in a serie of phase contrast images 
 %
-% SYNOPSIS       ptTrackCells(hObject,projNum)
+% SYNOPSIS       ptTrackCells (ptJob, jobNumber)
 %
-% INPUT          hObject : a handle to the Gui which called the function
-%                projNum : which job is currently being dealt with
+% INPUT          ptJob : a structure which contains the data for the job to process. See below 
+%                        for the exact structure details
+%                jobNumber : which job is currently being dealt with. This is used to print
+%                            some status information on the matlab command line
 %
 % OUTPUT         All outputs are written directly to disk 
 %                M : described in ptTrackLinker
-%                cellProps : cellProps(:,1)=coord(:,1);
-%	 	             cellProps(:,2)=coord(:,2);
-%		             cellProps(:,3)=belongsto(:);  (number of cluster - label)
-%		             cellProps(:,4)=numberOfOccurences(:);  (how many cells in the cluster this cell is in)
-%		             cellProps(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
-%		             cellProps(:,6)=perimdivare(:);  (cluster)
-%                binaryImage is the binary image of the areas occupied by cells                
+%                cellProps : 
+%                  cellProps(:,1) = coord(:,1);
+%	 	   cellProps(:,2) = coord(:,2);
+%		   cellProps(:,3) = belongsto(:);  (number of cluster - label)
+%		   cellProps(:,4) = numberOfOccurences(:);  (how many cells in the cluster this cell is in)
+%		   cellProps(:,5) = bodycount(:);  (area of the cluster with the number given in belongsto)
+%		   cellProps(:,6) = perimdivare(:);  (cluster)
+%                nameClust : the binary images of the areas occupied by cells (per frame)
 %
 % DEPENDENCIES   ptTrackCells uses { imClusterSeg
-%				   ptTrackLinker
-%				   ptCheckMinimalCellDistance
-%				   ptFindNucloiTrack
-%				   ptCalculateCellArea
-%				   ptFindHalos
-%				   ptFindTemplateTracks }
+%				     ptTrackLinker
+%				     ptCheckMinimalCellDistance
+%				     ptFindNucloiTrack
+%				     ptCalculateCellArea
+%				     ptFindHalos
+%				     ptFindTemplateTracks }
 %                                  
 %                ptTrackCells is used by { PolyTrack }
 %
-% REMARK         ptTrackCells fetches directly in GUI PolyTrack:
-%                   handles : structure with information used within GUI
-% 				  from handles.jobs(projNum):
-% 					imagedirectory : where are the images 
-% 					imagename : what are the images called
-% 					imagenameslist : list of images within imagedirectory with imagename
-% 					firstimage : which images shall we start with (refers to imagenameslist)
-% 					lastimage : which images shall be the last one (refers to imagenameslist)
-% 					intensityMax : highest value image can have (calc from bitdepth)
-% 					fi_nucleus / la_nucleus : nucloi intensity first / last image
-% 					fi_background / la_background : background intensity first / last image
-% 					fi_halolevel / la_halolevel : halo intensity first image
-% 					leveladjust : factor to adjust intensity difference nucloi/ background
-% 					minsize : minimal size of nucloi 
-% 					maxsize : maximal size of nucloi
-% 					minsdist : minimal distance between two cells
-% 					minmaxthresh : onoff - should minima and segmentation be used 
-% 					clustering : onoff - should clustering be used
-% 					increment : image to image increment (imagenameslist)
-% 					noiseparameter : used to calculate threshold whithin ptFindTemplateTracks for ignoring certain pixels
-% 					savedirectory : where shall calculated data be saved to
-% 					sizetemplate : what size should a template have
-% 					boxsize : what size should the searcharea(template matching) have
-% 					timestepslide : hao many timesteps should retrospectively be analysed during programm execution
-% 					minedge : minimal distance to edge to still use templatesearch
-% 					mincorrqualtempl : minimal quality of correlation(template) 
-% 					mintrackcorrqual : minimal quality of correlation (track comparison)
+% REMARK         the ptJobs structure looks as follows:
+% 			imagedirectory : where are the images located
+% 			imagename : what are the images called (sort of a template)
+% 			imagenameslist : list of images within imagedirectory with imagename
+% 			firstimage : which images shall we start with (refers to imagenameslist)
+% 			lastimage : which images shall be the last one (refers to imagenameslist)
+% 			intensitymax : highest value image can have (calc from bitdepth)
+% 			fi_nucleus / la_nucleus : nucloi intensity first / last image
+% 			fi_background / la_background : background intensity first / last image
+% 			fi_halolevel / la_halolevel : halo intensity first image
+% 			leveladjust : factor to adjust intensity difference nucloi/ background
+% 			minsize : minimal size of nucloi 
+% 			maxsize : maximal size of nucloi
+% 			minsdist : minimal distance between two cells
+% 			minmaxthresh : onoff - should minima and segmentation be used 
+% 			clustering : onoff - should clustering be used
+% 			increment : image to image increment (imagenameslist)
+% 			noiseparameter : used to calculate threshold within ptFindTemplateTracks for ignoring certain pixels
+% 			savedirectory : where shall calculated data be saved to
+% 			sizetemplate : what size should a template have
+% 			boxsize : what size should the searcharea(template matching) have
+% 			timestepslide : hao many timesteps should retrospectively be analysed during programm execution
+% 			minedge : minimal distance to edge to still use templatesearch
+% 			mincorrqualtempl : minimal quality of correlation(template) 
+% 			mintrackcorrqual : minimal quality of correlation (track comparison)
 %
-% Colin Glass, Feb 04
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Colin Glass           Feb 04          Initial release
+% Andre Kerstens        Mar 04          Cleaned up source, make function independent of GUI handle
 
-%%%% NOTE: it might be a good idea to change the input from a guihandle and
-%%%% a number to a structure activejob, which includes the jobvalues
-
-% Fetch and extract values from the 
-handles = guidata(hObject);
-
-imageDirectory = handles.jobs(projNum).imagedirectory;
-imageName = handles.jobs(projNum).imagename;
-
-increment = handles.jobs(projNum).increment;
-firstImaNum = handles.jobs(projNum).firstimage;
-lastImaNum = handles.jobs(projNum).lastimage;
-imageNamesList = handles.jobs(projNum).imagenameslist;
-
-levNucFirst = handles.jobs(projNum).fi_nucleus;
-levBackFirst = handles.jobs(projNum).fi_background;
-levHaloFirst = handles.jobs(projNum).fi_halolevel;      
-
-levNucLast = handles.jobs(projNum).la_nucleus;
-levBackLast = handles.jobs(projNum).la_background;
-levHaloLast = handles.jobs(projNum).la_halolevel;      
+imageDirectory       = ptJob.imagedirectory;
+imageName            = ptJob.imagename;
+increment            = ptJob.increment;
+firstImaNum          = ptJob.firstimage;
+lastImaNum           = ptJob.lastimage;
+imageNamesList       = ptJob.imagenameslist;
+levNucFirst          = ptJob.fi_nucleus;
+levBackFirst         = ptJob.fi_background;
+levHaloFirst         = ptJob.fi_halolevel;      
+levNucLast           = ptJob.la_nucleus;
+levBackLast          = ptJob.la_background;
+levHaloLast          = ptJob.la_halolevel;      
 
 % Range in which direct assignement ,of found coordinates, from frame to
 % frame is accepted
-maxSearch = handles.jobs(projNum).maxsearch;
-
-saveDirectory = handles.jobs(projNum).savedirectory;
-
-percentBackground = handles.jobs(projNum).noiseparameter;
-sizeTemplate = handles.jobs(projNum).sizetemplate;
-boxSizeImage = handles.jobs(projNum).boxsize;
-
+maxSearch            = ptJob.maxsearch;
+saveDirectory        = ptJob.savedirectory;
+percentBackground    = ptJob.noiseparameter;
+sizeTemplate         = ptJob.sizetemplate;
+boxSizeImage         = ptJob.boxsize;
+ 
 % Minimal/maximal size of the black spot in the cells
-minSizeNuc = handles.jobs(projNum).minsize;
-maxSizeNuc = handles.jobs(projNum).maxsize;
+minSizeNuc           = ptJob.minsize;
+maxSizeNuc           = ptJob.maxsize;
 
 % Get the maximum image intensity of the images in the job
-maxImageIntensity = handles.jobs(projNum).intensityMax;
+maxImageIntensity    = ptJob.intensityMax;
 
 % An educated guess of the minimal distance between neighbouring cells
 % (better to big than to small, for this value is used for the static
 % search. Searches with templates are more tolerant)
-minDistCellToCell = handles.jobs(projNum).minsdist; 
-% This value influences the level between the nucloi and the background, as
+minDistCellToCell    = ptJob.minsdist; 
+
+% This value influences the level between the nuclei and the background, as
 % calculated from input (clicking in the pictures, which pop up shortly
-% after the programm starts rolling
-levelChanger = handles.jobs(projNum).leveladjust;
+% after the program starts
+levelChanger         = ptJob.leveladjust;
 
 % Minimum 4
-howManyTimeStepSlide = handles.jobs(projNum).timestepslide;
+howManyTimeStepSlide = ptJob.timestepslide;
 
 % Minimal distance to edge for tracking with template
-minEdge = handles.jobs(projNum).minedge;
-
-minimalQualityCorr = handles.jobs(projNum).mincorrqualtempl;
-minTrackCorr = handles.jobs(projNum).mintrackcorrqual;
-
-segmentation = handles.jobs(projNum).minmaxthresh;
-clustering = handles.jobs(projNum).clustering;
+minEdge              = ptJob.minedge;
+minimalQualityCorr   = ptJob.mincorrqualtempl;
+minTrackCorr         = ptJob.mintrackcorrqual;
+segmentation         = ptJob.minmaxthresh;
+clustering           = ptJob.clustering;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % The following parameters should not be changed!
@@ -123,7 +116,7 @@ clustering = handles.jobs(projNum).clustering;
 % How much the blobs found in ptFindHalos shall be eroded. This is an indirect
 % size criteria for ptFindHalos. Increase - minimal size of halos will be
 % increased, decrease - ... decreased
-erodeDiskSize = round((sqrt(minSizeNuc))/2) ;
+erodeDiskSize = round ((sqrt (minSizeNuc)) / 2) ;
 
 % Range within witch to look for correlations of tracks over several pics. 
 distanceCorrel = maxSearch * 1.5; 
@@ -184,7 +177,7 @@ cd (imageDirectory);
 
 % Check that the first and last image numbers are actually the right way around
 if ~ (lastImaNum > firstImaNum)
-   fprintf (1, 'Last image # is smaller than first image # in job %s\n', projNum);
+   fprintf (1, 'Last image # is smaller than first image # in job %s\n', jobNumber);
    return
 else    
    % Index is equal to the number of the image, countLoops keeps
@@ -196,7 +189,7 @@ else
         
       % Let the user know where he/she is in the sequence by printing the number
       countLoops = countLoops + 1;
-      fprintf (1, 'Image number = %d, job number = %d\n', jImageNum, projNum);
+      fprintf (1, 'Job number = %d, image number = %d\n', jobNumber, jImageNum);
         
       % Make sure we start in the image directory
       cd (imageDirectory);
@@ -248,18 +241,23 @@ else
             return
          end
                       
-         if ~isempty(handles.jobs(projNum).coordinatespicone);
-            newCoord = handles.jobs(projNum).coordinatespicone;
+         if ~isempty (ptJob.coordinatespicone);
+            newCoord = ptJob.coordinatespicone;
          else 
-            newCoord = ptCheckMinimalCellDistance(coordNuc,haloCoord,minDistCellToCell);           
+            newCoord = ptCheckMinimalCellDistance (coordNuc, haloCoord, minDistCellToCell);           
          end
+         %if ~isempty(handles.jobs(jobNumber).coordinatespicone);
+         %   newCoord = handles.jobs(jobNumber).coordinatespicone;
+         %else 
+         %   newCoord = ptCheckMinimalCellDistance(coordNuc,haloCoord,minDistCellToCell);           
+         %end
                       
          cellProps = [];
                      
          if clustering
-            [cellProps,binaryImage,labeled] = ptCalculateCellArea(seg_img,newCoord,regmax,logihalo,approxDistance,1);
+            [cellProps,binaryImage,labeled] = ptCalculateCellArea (seg_img, newCoord, regmax, logihalo, approxDistance, 1);
          elseif segmentation
-            [cellProps,binaryImage,labeled] = ptCalculateCellArea(newImg,newCoord,regmax,logihalo,approxDistance,2);
+            [cellProps,binaryImage,labeled] = ptCalculateCellArea (newImg, newCoord, regmax, logihalo, approxDistance, 2);
          end
                      
          clear regmax;

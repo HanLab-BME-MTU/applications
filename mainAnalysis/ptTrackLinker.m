@@ -1,4 +1,4 @@
-function [MPM,M]=ptTrackLinker(M)
+function [MPM, M] = ptTrackLinker (M)
 % ptTrackLinker creates the magic position matrix MPM from M
 %
 % SYNOPSIS      [MPM,M]=ptTrackLinker(M)
@@ -23,6 +23,12 @@ function [MPM,M]=ptTrackLinker(M)
 % the changes in this code result in the fact, that MPM returns only one
 % tracked thing per row. Original code can return more than one per row,
 % seperated by zeros
+% Revision History
+% Name                  Date            Comment
+% --------------------- --------        --------------------------------------------------------
+% Aaron Ponti           2002            Initial release for FSM
+% Colin Glass           Feb 04          Adapted Aaron's function for use in Polytrack
+% Andre Kerstens        Mar 04          Cleaned up source; made output viable for command line
 
 % Let the user know we're starting to link
 fprintf (1, 'Starting track linkage process...\n');
