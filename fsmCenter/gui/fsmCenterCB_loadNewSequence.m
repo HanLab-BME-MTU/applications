@@ -91,7 +91,7 @@ if(isa(fileName,'char') & isa(dirName,'char'))
     % Find out what the first image number is   
     number = 0;
     countNum = 0;
-    while ~isnan(number) & (countNum < 3)
+    while ~isnan(number) & (countNum < 2)
        countNum = countNum + 1;
        number = str2num(firstImageFile(end-(4+countNum):end-4));
     end
