@@ -153,6 +153,13 @@ if TRACKER==1 | TRACKER ==3
                 % Load speckle information for the FIRST image from cands###.mat
                 indxStr=sprintf(strg,currentIndex);
                 eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
+%                 % load from cands###_spa.mat if subpixel accuracy is
+%                 % determined
+%                 if fsmParam.prep.subpixel==1
+%                     eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat;']);
+%                     cands=candsSP;
+%                 end
+                
                 
                 % Create speckle map
                 [I,img]=fsmTrackFillSpeckleList(cands,imgSize);
@@ -164,6 +171,12 @@ if TRACKER==1 | TRACKER ==3
                 % Load speckle information for the SECOND image from cands###.mat
                 indxStr=sprintf(strg,currentIndex+1);
                 eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
+%                 % load from cands###_spa.mat if subpixel accuracy is
+%                 % determined
+%                 if fsmParam.prep.subpixel==1
+%                     eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat;']);
+%                     cands=candsSP;
+%                 end
                 
                 % Create speckle map
                 [J,img2]=fsmTrackFillSpeckleList(cands,imgSize);
@@ -175,7 +188,13 @@ if TRACKER==1 | TRACKER ==3
                 % Load speckle information for the THIRD image from cands###.mat
                 indxStr=sprintf(strg,currentIndex+2);
                 eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
-                    
+%                 % load from cands###_spa.mat if subpixel accuracy is
+%                 % determined
+%                 if fsmParam.prep.subpixel==1
+%                     eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat;']);
+%                     cands=candsSP;
+%                 end
+                
                 % Create speckle map
                 [K,img3]=fsmTrackFillSpeckleList(cands,imgSize);
                 if isempty(K)
@@ -194,7 +213,13 @@ if TRACKER==1 | TRACKER ==3
                 % Load only speckle information for the THIRD image from cands###.mat
                 indxStr=sprintf(strg,currentIndex+2);
                 eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
-                    
+                % load from cands###_spa.mat if subpixel accuracy is
+                % determined
+                if fsmParam.prep.subpixel==1
+                    eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat;']);
+                    cands=candsSP;
+                end
+                
                 % Create speckle map
                 [K,img3]=fsmTrackFillSpeckleList(cands,imgSize);
                 clear cands;
@@ -267,6 +292,12 @@ if TRACKER==1 | TRACKER ==3
                 % Load speckle information for the FIRST image from cands###.mat
                 indxStr=sprintf(strg,currentIndex);
                 eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
+                % load from cands###_spa.mat if subpixel accuracy is
+                % determined
+                if fsmParam.prep.subpixel==1
+                    eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat;']);
+                    cands=candsSP;
+                end
                 
                 % Create speckle map
                 [I,img]=fsmTrackFillSpeckleList(cands,imgSize);
@@ -278,6 +309,12 @@ if TRACKER==1 | TRACKER ==3
                 % Load speckle information for the SECOND image from cands###.mat
                 indxStr=sprintf(strg,currentIndex+1);
                 eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
+                % load from cands###_spa.mat if subpixel accuracy is
+                % determined
+                if fsmParam.prep.subpixel==1
+                    eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat;']);
+                    cands=candsSP;
+                end
                 
                 % Create speckle map
                 [J,img2]=fsmTrackFillSpeckleList(cands,imgSize);
@@ -294,6 +331,12 @@ if TRACKER==1 | TRACKER ==3
                 % Load only speckle information for the third image from cands###.mat
                 indxStr=sprintf(strg,currentIndex+1);
                 eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
+                % load from cands###_spa.mat if subpixel accuracy is
+                % determined
+                if fsmParam.prep.subpixel==1
+                    eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat;']);
+                    cands=candsSP;
+                end
                 
                 % Create speckle map
                 [J,img2]=fsmTrackFillSpeckleList(cands,imgSize);
@@ -376,6 +419,11 @@ if TRACKER==2 % Linear assignment tracker
         
         indxStr=sprintf(strg,fsmParam.specific.firstIndex);
         candsFileList=getFileStackNames([userPath,filesep,'cands',filesep,'cands',indxStr,'.mat']);
+        % load from cands###_spa.mat if subpixel accuracy is
+        % determined
+        if fsmParam.prep.subpixel==1
+            candsFileList=getFileStackNames([userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat']);
+        end
         LAP_pointDataFileGeneration(tempFileName, candsFileList)
         
         tempFileName = 'intensityProfile.txt';
