@@ -94,26 +94,31 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
          % Find the index of the cell in CellProps
          cellIndex = find (cellProps (:,1,MPMCount) == coordinates (jCount,3) & ...
                            cellProps (:,2,MPMCount) == coordinates (jCount,4));
-             
-         % Find this cluster in clusterProps
-         clusterIndex = find (clusterProps (:,1,MPMCount) == cellProps (cellIndex,3,MPMCount));
          
-         % Test whether this cell is in a cluster or not
-         if clusterProps (clusterIndex,2,MPMCount) == 1  % Single cell found
+		 % In case the cell wasn't found in cellProps (maybe it was on the background?)
+         % we can skip over this part
+         if ~isempty (cellIndex)
+             
+            % Find this cluster in clusterProps
+            clusterIndex = find (clusterProps (:,1,MPMCount) == cellProps (cellIndex,3,MPMCount));
+         
+            % Test whether this cell is in a cluster or not
+            if clusterProps (clusterIndex,2,MPMCount) == 1  % Single cell found
             
-            % Increase the counter for the single cell matrix
-            singleCellCount = singleCellCount + 1; 
+               % Increase the counter for the single cell matrix
+               singleCellCount = singleCellCount + 1; 
             
-            % Store the coordinates
-            singleCellCoords (singleCellCount,:) = coordinates (jCount,:);
-         else    % The cell was in a cluster
+               % Store the coordinates
+               singleCellCoords (singleCellCount,:) = coordinates (jCount,:);
+            else    % The cell was in a cluster
             
-            % Increase the counter for the clustered cell matrix
-            clusteredCellCount = clusteredCellCount + 1; 
+               % Increase the counter for the clustered cell matrix
+               clusteredCellCount = clusteredCellCount + 1; 
             
-            % Store the coordinates
-            clusteredCellCoords (clusteredCellCount,:) = coordinates (jCount,:);
-         end
+               % Store the coordinates
+               clusteredCellCoords (clusteredCellCount,:) = coordinates (jCount,:);
+            end
+         end  % if ~isempty
       end  % for jCount = 1 : size (coordinates,1)
       
       % Remove all the zero entries in both matrices
@@ -137,10 +142,26 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       clusteredCellsDisplacement = sqrt ((clusteredCellCoords(:,1) - clusteredCellCoords(:,3)).^2 + ...
                                          (clusteredCellCoords(:,2) - clusteredCellCoords(:,4)).^2);   
                                      
-      % Calculate the variance of the displacement for all, single and clustered cells
-      varDisplacement (iCount) = var (displacement);
-      varSingleCellDisplacement (iCount) = var (singleCellsDisplacement);
-      varClusteredCellDisplacement (iCount) = var (clusteredCellsDisplacement);
+      % Calculate the variance of the displacement for all cells
+      if ~isempty (displacement)
+         varDisplacement (iCount) = var (displacement);
+      else
+         varDisplacement (iCount) = 0;
+      end
+      
+      % Calculate the variance of the displacement for single cells
+      if ~isempty (singleCellsDisplacement)
+         varSingleCellDisplacement (iCount) = var (singleCellsDisplacement);
+      else
+         varSingleCellDisplacement (iCount) = 0;
+      end
+      
+      % Calculate the variance of the displacement for clustered cells
+      if ~isempty (clusteredCellsDisplacement)
+         varClusteredCellDisplacement (iCount) = var (clusteredCellsDisplacement);
+      else
+         varClusteredCellDisplacement (iCount) = 0;
+      end
                      
       % From this the average displacement for all cells can be calculated
       if length (displacement) > 0
@@ -170,7 +191,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
       end
       
       % Generate a displacement histogram
-      %displacementHist (:, iCount) = hist (displacement, binSize);
+      displacementHist (iCount,:) = hist (displacement, binSize);
       
    end   % if MPMCount > multipleFrameVelocity 
       
@@ -243,20 +264,76 @@ print (h_fig, [savePath filesep 'avgSingleAndClusterDisplacement.eps'],'-depsc2'
 print (h_fig, [savePath filesep 'avgSingleAndClusterDisplacement.tif'],'-dtiff');
 
 
+% Generate the figure and title for the variance plot
+h_fig = figure; title (['Variance' imageName]);
+   
+% Draw a subplot showing the displacement variance of all cells    
+ymax = max (varDisplacement)+1;
+subplot (3,1,1); plot (xAxis, varDisplacement);
+title ('Variance Single Cell Displacement');
+xlabel ('Frames');
+ylabel ('Variance');
+if length (xAxis) > 1
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
+else
+   axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+end   
+
+% Draw a subplot showing the displacement variance of single cells
+ymax = max (varSingleCellDisplacement)+1;
+subplot (3,1,2); plot (xAxis, varDisplacement); 
+title ('Variance Clustered Cell Displacement');
+xlabel ('Frames');
+ylabel ('Variance');
+if length (xAxis) > 1
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
+else
+   axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+end
+
+% Draw a subplot showing the displacement variance of clustered cells
+ymax = max (varClusteredCellDisplacement)+1;
+subplot (3,1,3); plot (xAxis, varDisplacement); 
+title ('Variance Clustered Cell Displacement');
+xlabel ('Frames');
+ylabel ('Variance');
+if length (xAxis) > 1
+   axis ([xAxis(1) xAxis(end) 0 ymax]);
+else
+   axis ([xAxis(1) xAxis(1)+1 0 ymax]);
+end
+
+% Save MAT files for avg all, single and clustered cell displacement
+cd (savePath);
+save ('varCellDisplacement.mat','avgDisplacement');
+save ('varSingleCellDisplacement.mat','avgSingleDisplacement');
+save ('varClusteredCellDisplacement.mat','avgClusteredDisplacement');
+   
+% Save CSV files for avg all, single and clustered cell displacement
+csvwrite ('varCellDisplacement.csv','avgDisplacement');
+csvwrite ('varSingleCellDisplacement.csv','avgSingleDisplacement');
+csvwrite ('varClusteredCellDisplacement.csv','avgClusteredDisplacement');
+   
+% Save the figures in fig, eps and tif format     
+hgsave (h_fig,[savePath filesep 'varSingleAndClusterDisplacement.fig']);
+print (h_fig, [savePath filesep 'varSingleAndClusterDisplacement.eps'],'-depsc2','-tiff');
+print (h_fig, [savePath filesep 'varSingleAndClusterDisplacement.tif'],'-dtiff');
+
+
 %Generate a 3D velocity histogram using the surface function
-% h_fig = figure;
-% surf (displacementHist);
-% title ('3D Velocity Histogram');
-% 
-% % Save this figure to disk as fig, eps and tiff
-% hgsave (h_fig, [savePath filesep '3dDisplacementHistogram.fig']);
-% print (h_fig, [savePath filesep '3dDisplacementHistogram.eps'], '-depsc2', '-tiff');
-% print (h_fig, [savePath filesep '3dDisplacementHistogram.tif'], '-dtiff');
-% 
-% 
+h_fig = figure;
+surf (displacementHist);
+title ('3D Velocity Histogram');
+
+% Save this figure to disk as fig, eps and tiff
+hgsave (h_fig, [savePath filesep '3dDisplacementHistogram.fig']);
+print (h_fig, [savePath filesep '3dDisplacementHistogram.eps'], '-depsc2', '-tiff');
+print (h_fig, [savePath filesep '3dDisplacementHistogram.tif'], '-dtiff');
+
+
 % % Generate a 3D velocity histogram using 3-d bars which is chopped up in bins with size binSize
 % h_fig = figure;
-% bar3 (binSize, displacementHist);
+% bar3 (displacementHist, 0.5, 'grouped');
 % title ('3D Displacement Histogram (binned)');
 % 
 % % Save this figure to disk as fig, eps and tiff
