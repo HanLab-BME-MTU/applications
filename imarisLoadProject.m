@@ -282,6 +282,12 @@ end
 % now load all the connections & name them
 % Make connections from tag 4 to tags 1-3,
 % from tag 3 to 1-2 and from 2 to 1
+
+% put connectors into a separate group
+imaSSConnectors = imaApplication.mFactory.CreateDataContainer;
+imaSSConnectors.mName = 'connectors';
+imaSurpassScene.AddChild(imaSSConnectors);
+
 connCt = 0;
 for iTag = nTags-1:-1:1
     tagNum1 = iTag + 1;
@@ -303,7 +309,7 @@ for iTag = nTags-1:-1:1
         end
         
         % finally, add connection to surpass scene
-        imaSurpassScene.AddChild(imaTrack);
+        imaSSConnectors.AddChild(imaTrack);
         
     end
     connCt = connCt + tagNum1;
