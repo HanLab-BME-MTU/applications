@@ -221,7 +221,7 @@ for iProject = 1:size(listOfDataFiles,1)
         end
         
         %------delete tmpDataProperties - wildcard prevents warning
-        delete([currentDir 'tmpDataProperties*']);
+        %delete([currentDir 'tmpDataProperties*']);
         
         %-------------------------------------------
         

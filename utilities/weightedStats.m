@@ -79,7 +79,8 @@ numCols = size(data,2);
 %calculate weights if necessary
 if nargin == 2 | ~(strcmp(sw,'w')|strcmp(sw,'s'))
     sw = 's';
-elseif strcmp(sw,'s')
+end
+if strcmp(sw,'s')
     %w = 1/sigma^2
     if any(weights == 0)
         warning('WEIGHTEDSTATS:sigma==0','At least one sigma == 0; set to eps');

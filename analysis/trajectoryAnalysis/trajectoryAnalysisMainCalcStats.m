@@ -1,4 +1,4 @@
-function [statisticsStruct, distributionStruct, clusterStruct] = trajectoryAnalysisMainCalcStats(dataListG,distance,time,verbose,fileName,constants,individualMeanDistances)
+function [statisticsStruct, addedStats, distributionStruct, clusterStruct] = trajectoryAnalysisMainCalcStats(dataListG,distance,time,verbose,fileName,constants,individualMeanDistances)
 %TRAJECTORYANALYSISMAINCALCSTATS calculates statistics for trajectoryAnalysis
 %
 % OUTPUT statistics structure with fields
@@ -185,60 +185,12 @@ dlgSize = size(dataListG);
 %single events, a second that indicates groups of events (i.e. ggpg as one g)
 
 %---growth---
-growthIdx = find(dataListG(:,3)==1);
-
-%growth belonging to the same phase are either direcly one after the other
-%or separated by a pause -> make list of ones and zeros and find the groups
-
-
-%try to find groups
-gGroups = findGroups(dataListG(:,3),1);
-
-%search where the groups are separated by just one other unit
-%then check whether these are pauses
-%then look through the list and fuse entries
-
-gGroupsDiff  = gGroups(2:end,2)-gGroups(1:end-1,1);
-gGroupsDiff2 = find(gGroupsDiff==2);
-
-%lookfor pauses (gpgStates points to gGroupsDiff2, which points to gGroups, which points to dataListG)
-gpgStates = find(dataListG(gGroups(gGroupsDiff2,2)+1,3)==3);
-
-%take again list for growthIdx
-stateListGrowth = dataListG(:,3);
-%change pauses to growth
-stateListGrowth(gGroups(gGroupsDiff2(gpgStates),2)+1) = 1;
-
-%find groups again
-growthGroups = findGroups(stateListGrowth,1);
-
+[growthIdx,growthGroups] = trajectoryAnalysisMainCalcStatsFindGroups(dataListG,1);
 
 %---shrinkage---
-shrinkageIdx = find(dataListG(:,3)==2);
+[shrinkageIdx,shrinkageGroups] = trajectoryAnalysisMainCalcStatsFindGroups(dataListG,2);
 
-%shrinkage belonging to the same phase are either direcly one after the other
-%or separated by a pause -> make list of ones and zeros and find the groups
-
-%try to find groups
-sGroups = findGroups(dataListG(:,3),2);
-
-%search where the groups are separated by just one other unit
-%then check whether these are pauses
-%then look through the list and fuse entries
-
-sGroupsDiff  = sGroups(2:end,2)-sGroups(1:end-1,1);
-sGroupsDiff2 = find(sGroupsDiff==2);
-
-%lookfor pauses (spsStates points to sGroupsDiff2, which points to sGroups, which points to dataListG)
-spsStates = find(dataListG(sGroups(sGroupsDiff2,2)+1,3)==3);
-
-%take again list for shrinkageIdx
-stateListShrinkage = dataListG(:,3);
-%change pauses to shrinkage
-stateListShrinkage(sGroups(sGroupsDiff2(spsStates),2)+1) = 2;
-
-%find groups again
-shrinkageGroups = findGroups(stateListShrinkage,2);
+%------------
 
 %pause & undetermined & deleted
 pauseIdx = find(dataListG(:,3)==3);
@@ -289,12 +241,12 @@ if ~isempty(growthIdx)
     %rescue and catastrophe are considered poisson processes - hence the
     %catastrophe rate (="half life" of a growing MT) is the inverse mean growth time
     %time is calculated with groups
-    deltaT = time(dataListG(growthGroups(:,2),2),1) - time(dataListG(growthGroups(:,1),1),1);
+    growthGroupsDeltaT = time(dataListG(growthGroups(:,2),2),1) - time(dataListG(growthGroups(:,1),1),1);
     
-    invGrowthTimeMean = 1/mean(deltaT);
+    invGrowthTimeMean = 1/mean(growthGroupsDeltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
-    invGrowthTimeStd = (std(deltaT)/sqrt(size(growthGroups,1)))*invGrowthTimeMean^2;
-    growthTimeTotal = sum(deltaT);
+    invGrowthTimeStd = (std(growthGroupsDeltaT)/sqrt(size(growthGroups,1)))*invGrowthTimeMean^2;
+    growthTimeTotal = sum(growthGroupsDeltaT);
     
     %distance - again, use groups. unfortunately, we need the loop
     groupDist = zeros(size(growthGroups));
@@ -348,12 +300,12 @@ if ~isempty(shrinkageIdx)
     %rescue and catastrophe are considered poisson processes - hence the
     %catastrophe rate (="half life" of a growing MT) is the inverse mean shrinkage time
     %time is calculated with groups
-    deltaT = time(dataListG(shrinkageGroups(:,2),2),1) - time(dataListG(shrinkageGroups(:,1),1),1);
+    shrinkageGroupsDeltaT = time(dataListG(shrinkageGroups(:,2),2),1) - time(dataListG(shrinkageGroups(:,1),1),1);
     
-    invShrinkageTimeMean = 1/mean(deltaT);
+    invShrinkageTimeMean = 1/mean(shrinkageGroupsDeltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
-    invShrinkageTimeStd = (std(deltaT)/sqrt(size(shrinkageGroups,1)))*invShrinkageTimeMean^2;
-    shrinkageTimeTotal = sum(deltaT);
+    invShrinkageTimeStd = (std(shrinkageGroupsDeltaT)/sqrt(size(shrinkageGroups,1)))*invShrinkageTimeMean^2;
+    shrinkageTimeTotal = sum(shrinkageGroupsDeltaT);
     
     %distance - again, use groups. unfortunately, we need the loop
     groupDist = zeros(size(shrinkageGroups));
@@ -547,7 +499,7 @@ if nargout > 1
 end
 %-------------end calc dist
 % if requested and possible, cluster speeds
-if nargout > 2 
+if nargout > 3 
     % init cluster, make sure we get the right size (i.e. do we need 1 or 5 fields?)
     initRange = [1:(constants.CLUSTERIND)*constants.CLUSTERMAX+1];
     clusterStruct(initRange) = struct(...
@@ -571,6 +523,11 @@ if nargout > 2
     end
     
 end
+
+%======================
+% additional statistics
+
+addedStats = [];
 
 %don't forget to turn the warnings back on
 warning(warningState);
