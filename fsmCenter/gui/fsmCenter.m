@@ -443,7 +443,7 @@ function pushBatchJobs_Callback(hObject, eventdata, handles)
 fsmBatchJobs;
 
 function pushImShow_Callback(hObject, eventdata, handles)
-figure;fsmCentercb_loadNewImage;
+figure;fsmCenterCB_loadNewImage;
 
 function checkDisplayROI_Callback(hObject, eventdata, handles)
 
