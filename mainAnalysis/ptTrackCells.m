@@ -210,8 +210,14 @@ else		% lastImaNum > firstImaNum
          % Increase bad frame counter
          badFrameCounter = badFrameCounter + 1;
          
-         if badFrameCounter > 5   % Stop since we wouldn't be able to track anymore
-            fprintf (1, '     ptTrackCells: Too many (>5) bad frames in a row. Exiting...\n');
+         if badFrameCounter > 10   % Stop since we wouldn't be able to track anymore
+            fprintf (1, '     ptTrackCells: Too many (>10) bad frames in a row. Exiting...\n');
+            M = [];
+            clusterProps = [];
+            cellProps = [];
+            frameProps = [];
+            imageCount = [];
+            validFrames = [];
             return;
          end
          

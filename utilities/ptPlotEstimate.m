@@ -29,6 +29,11 @@ yPlot = [];
 % Calculate the estimate that best fits on the data
 [est, error] = ptFitCurve(xdata,ydata,35,slope);
 
+if uint16(est(3)) > uint16(est(4))
+    fprintf(1,'ptPlotEstimate: Error - Estimated values cannot be used for plotting.\n');
+    return;
+end
+
 % Check whether a curve could be fitted at all. If not, do not plot
 if error   
    return;
