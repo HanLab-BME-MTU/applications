@@ -17,13 +17,12 @@ function [coor]= takenkick(info,coor)
 %
 % Colin Glass, Feb 04
 
+% The goal of this programm is to manually add or substract coordinates.
+% So a picture will pop up whilst running the programm and the user clicks on
+% marks missed or faulty coordinates
 
-% the goal of this programm is to manually add or substract coordinates.
-%So a picture will pop up whilst running the programm and the user clicks on
-%marks missed or faulty coordinates
 
-
-taken=figure, imshow(info,[]), title('LEFT klick on the UNMARKED(!!!!!) nucloi /// RIGHT klick on (or close to) the FALSELY marked nucs ///  press ENTER when finished /// repeats as long as you klick on something, between to sucsessive presses on ENTER...');
+taken = figure, imshow(info,[]), title('Left-klick on the unmarked nuclei, right-klick on the falsely marked nuclei /// Press ENTER twice when finished.');
 hold on;
 
 plot(coor(:,1),coor(:,2),'r.');

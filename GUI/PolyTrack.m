@@ -48,18 +48,20 @@ function GUI_start_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % Create a default job structure that defines all the fields used in the program
-defaultjob = struct('imagedirectory',[],'imagename',[],'firstimage',1,'lastimage',[],...
-                   'increment',1,'savedirectory',[],'fi_background',[],'fi_nucleus',[],...
-                   'la_background',[],'la_nucleus',[],'maxsearch',48,'mmpixel',[],...
-                   'minsize',300,'maxsize',1500,'minsdist',30,'fi_halolevel',[],'la_halolevel',[],...
-                   'minedge',10,'sizetemplate',41,'boxsize',141,'noiseparameter',0.15,...
-                   'mincorrqualtempl',0.2,'leveladjust',0.7,'timestepslide',5,'mintrackcorrqual',0.5,...
-                   'coordinatespicone',[],'intensityMax',4095,'bitdepth',12,'bodyname',[],'imagenameslist',[]...
-                   ,'timeperframe',[],'clustering',1,'minmaxthresh',0) ;
+defaultjob = struct('imagedirectory', [], 'imagename', [], 'firstimage', 1, 'lastimage', [],...
+                   'increment', 1, 'savedirectory', [], 'fi_background', [], 'fi_nucleus', [],...
+                   'la_background', [], 'la_nucleus', [], 'maxsearch', 48, 'mmpixel', [], 'mmpixel_index', 1,...
+                   'minsize',300, 'maxsize', 1500, 'minsdist', 30, 'fi_halolevel', [], 'la_halolevel', [],...
+                   'minedge', 10, 'sizetemplate', 41, 'boxsize', 141, 'noiseparameter', 0.15,...
+                   'mincorrqualtempl', 0.2, 'leveladjust', 0.7, 'timestepslide', 5, 'mintrackcorrqual', 0.5,...
+                   'coordinatespicone', [], 'intensityMax', 4095, 'bitdepth', 12, 'bitdepth_index', 3, 'bodyname', [],...
+                   'imagenameslist', [], 'timeperframe', [], 'clustering', 1, 'minmaxthresh', 0,...
+                   'timestepslide_index', 2);
 
 % Assign the default job values to the GUI handle so it can be passed around
 handles.defaultjob = defaultjob;
 
+% Set the colors of the gui
 set(hObject,'Color',[0,0,0.627]);
 
 % Update handles structure
@@ -143,10 +145,10 @@ if filename == 0
 end
 
 % Else go on and check whether a file called 'jobvalues.mat' has been selected
-gotvals = 0
+gotvals = 0;
 if strcmp(filename,'jobvalues.mat')
-    cd(imagedirectory)
-    load jobvalues.mat
+    cd (imagedirectory);
+    load jobvalues.mat;
     filename = jobvalues.imagename;
     gotvals = 1;
 end
@@ -169,7 +171,7 @@ set(handles.GUI_st_job_lb,'String',jobList);
 projNum = length(jobList); 
 
 % In case a jobvalues.mat file was read, store this in the handle
-if gotvals==1
+if gotvals == 1
     handles.jobs(projNum) = jobvalues;
     clear jobvalues
 % else start using the default job values and do some more
@@ -194,6 +196,7 @@ else
          countNum = countNum+1;
          number = str2num(filename(end-(4+countNum):end-4));
     end
+
     % Extract the body of the filename and store in handles struct
     handles.jobs(projNum).bodyname = filename(1:(end-(4+countNum)));
     bodyname = handles.jobs(projNum).bodyname;
@@ -247,7 +250,7 @@ end
 
 % Update GUI handle struct
 guidata(hObject, handles);
-handles = guidata(hObject);
+%handles = guidata(hObject);
 
 % Last but not least make sure the text field on the GUI show the latest% values
 fillFields(handles, handles.jobs(projNum))
@@ -332,6 +335,17 @@ function GUI_st_path_imagedirectory_ed_Callback(hObject, eventdata, handles)
 % Retrieve handle data from the gui
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Get the image directory name
 imagedir = get(hObject,'String');
 
@@ -343,12 +357,12 @@ handles.jobs(projNum).imagedirectory =  imagedir;
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-% Clear this stuff out of memory as well
-% AK: is this needed???
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -424,6 +438,17 @@ function GUI_st_path_firstimage_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_path_firstimage_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Get the currently selected project
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -445,10 +470,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -477,6 +504,17 @@ function GUI_st_path_lastimage_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_path_lastimage_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Get the currently selected project
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -498,10 +536,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -539,10 +579,12 @@ fillFields(handles,handles.jobs(projNum))
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -571,6 +613,17 @@ function GUI_st_iq_fi_background_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_fi_background_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -592,10 +645,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -624,6 +679,17 @@ function GUI_st_iq_fi_nucleus_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_fi_nucleus_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -645,10 +711,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -677,6 +745,17 @@ function GUI_st_iq_la_background_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_la_background_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -698,10 +777,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -730,6 +811,17 @@ function GUI_st_iq_la_nucleus_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_la_nucleus_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -751,10 +843,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -783,6 +877,17 @@ function GUI_st_bp_maxsearch_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_bp_maxsearch_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -804,10 +909,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -838,17 +945,37 @@ function GUI_st_eo_timestepslide_pm_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from GUI_st_eo_timestepslide_pm
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
+
+% Get the value and index from the timestepslide popup menu and assign to handles struct
+val = get(hObject, 'Value');
+list = get(hObject, 'String');
+selected_val = list{val};
+handles.jobs(projNum).timestepslide = str2double(selected_val);
+handles.jobs(projNum).timestepslide_index = val;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -878,17 +1005,37 @@ function GUI_st_bp_mmpixel_pm_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from GUI_st_bp_mmpixel_pm
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
+
+% Get the value and index from the mm-pixel popup menu and assign to handles struct
+val = get(hObject, 'Value');
+list = get(hObject, 'String');
+selected_val = list{val};
+handles.jobs(projNum).mmpixel = str2double(selected_val);
+handles.jobs(projNum).mmpixel_index = val;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -917,6 +1064,17 @@ function GUI_st_bp_minsize_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_bp_minsize_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -938,10 +1096,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -970,6 +1130,17 @@ function GUI_st_bp_maxsize_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_bp_maxsize_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -992,10 +1163,12 @@ guidata(hObject, handles);
 
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1024,6 +1197,17 @@ function GUI_st_bp_minsdist_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_bp_minsdist_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1045,10 +1229,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1057,6 +1243,18 @@ function GUI_st_bp_setminsize_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_st_bp_setminsize_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
 
 SetCellValues(hObject,1);
  
@@ -1067,7 +1265,18 @@ function GUI_st_bp_setmaxsize_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_st_bp_setmaxsize_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
 
 SetCellValues(hObject,2);
 
@@ -1078,7 +1287,18 @@ function GUI_st_bp_setmindist_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_st_bp_setmindist_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
 
 SetCellValues(hObject,3);
 
@@ -1109,6 +1329,17 @@ function GUI_st_eo_minedge_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_eo_minedge_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1130,10 +1361,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1163,6 +1396,17 @@ function GUI_st_eo_noiseparameter_pm_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from GUI_st_eo_noiseparameter_pm
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1184,10 +1428,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1217,6 +1463,17 @@ function GUI_st_eo_mincorrqualtempl_pm_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from GUI_st_eo_mincorrqualtempl_pm
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1238,10 +1495,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1319,11 +1578,16 @@ if ~iscell(jobList)
    uiwait(h);
    return
 else
+   % Select the current job
+   projNum = get(handles.GUI_st_job_lb,'Value');
+
    % Store the latest data in jobvalues.mat in the specified save directory
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
+   if ~isempty(handles.jobs(projNum).savedirectory)
+      cd (handles.jobs(projNum).savedirectory)
+      jobvalues = handles.jobs(projNum);
+      save ('jobvalues','jobvalues')
+      clear jobvalues
+   end
 end
 
 % Update handles structure
@@ -1406,6 +1670,17 @@ function GUI_st_eo_leveladjust_pm_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from GUI_st_eo_leveladjust_pm
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1427,10 +1702,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1475,10 +1752,12 @@ for projNum = 1:nrofjobs
    end
 
    % Save the definite version of jobvalues
-   cd (handles.jobs(projNum).savedirectory)
-   jobvalues = handles.jobs(projNum);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
+   if ~isempty(handles.jobs(projNum).savedirectory)
+      cd (handles.jobs(projNum).savedirectory)
+      jobvalues = handles.jobs(projNum);
+      save ('jobvalues','jobvalues')
+      clear jobvalues
+   end
         
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
@@ -1519,6 +1798,17 @@ function GUI_st_eo_sizetemplate_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_eo_sizetemplate_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1540,10 +1830,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1572,6 +1864,17 @@ function GUI_st_eo_mintrackcorrqual_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_eo_mintrackcorrqual_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1594,10 +1897,12 @@ guidata(hObject, handles);
 
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1626,24 +1931,41 @@ function GUI_st_path_savedirectory_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_path_savedirectory_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
 
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
+% Get the directory path and name
 savedirectory = get(hObject,'String');
 
-% Select the current job
+%if ~exist(savedirectory, 'file')
+%  h=errordlg('The selected save directory does not exist. I will create it first...');
+%  uiwait(h);
+%  mkdir (savedirectory);
+%end
+
+% Select the current job and store the directory name in the struct
+% AK: Shouldn't some sort of validity check be done here??
 projNum = get(handles.GUI_st_job_lb,'Value');
-
 handles.jobs(projNum).savedirectory =  savedirectory;
-
 
 % Update handles structure
 guidata(hObject, handles);
 
-%%%%%%%%save altered values to disk%%%%%%%%%%%%
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1654,30 +1976,31 @@ function GUI_st_path_savedirectory_browse_pb_Callback(hObject, eventdata, handle
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-handles = guidata(hObject);
-
+% Using the gui browser, select a directory name
 savedirectory = uigetdir;
 
-if savedirectory== 0
+% If nothing has been selected, do nothing
+if savedirectory == 0
     return
 end
 
+% Update the savedirectory field on the gui as well
 set(handles.GUI_st_path_savedirectory_ed,'String',savedirectory);
 
+% And store the directory in the handle struct
 projNum = get(handles.GUI_st_job_lb,'Value');
-
 handles.jobs(projNum).savedirectory =  savedirectory;
-
-
 
 % Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1706,6 +2029,17 @@ function GUI_st_path_increment_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_path_increment_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1727,10 +2061,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1754,6 +2090,7 @@ else
    return
 end 
 
+% Start the test and initialization process
 testbutton(hObject);
 
 %-------------------------------------------------------------------------------
@@ -1783,6 +2120,17 @@ function GUI_st_iq_fi_halolevel_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_fi_halolevel_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1804,10 +2152,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1836,6 +2186,17 @@ function GUI_st_iq_la_halolevel_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_st_iq_la_halolevel_ed as a double
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1857,10 +2218,12 @@ end
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1890,23 +2253,42 @@ function GUI_st_bitdepth_pm_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from GUI_st_bitdepth_pm
 handles = guidata(hObject);
 
-%bitdepth depending on what the user chooses from the list
-bitDepth = (get(hObject,'Value')*2)+6;
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
 
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
-%calculate the maximal value of the image, depending on it's bitdepth
-handles.jobs(projNum).intensityMax =  2^bitDepth-1;
-handles.jobs(projNum).bitdepth = bitDepth;
+% Get the value and index from the bitdepth  popup menu and assign to handles struct
+val = get(hObject, 'Value');
+list = get(hObject, 'String');
+selected_val = list{val};
+handles.jobs(projNum).bitdepth = str2double(selected_val);
+handles.jobs(projNum).bitdepth_index = val;
 
+% Calculate the maximal value of the image, depending on it's bitdepth and
+% store this info in the handles struct
+bitdepth = str2double(selected_val);
+handles.jobs(projNum).intensityMax =  2^bitdepth - 1;
+
+% Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1936,6 +2318,17 @@ function GUI_st_path_timeperframe_ed_Callback(hObject, eventdata, handles)
 
 handles = guidata(hObject);
 
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
+
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
 % Select the current job
 projNum = get(handles.GUI_st_job_lb,'Value');
 
@@ -1953,13 +2346,16 @@ else
     handles.jobs(projNum).timeperframe = val;
 end
 
+% Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -1972,28 +2368,44 @@ function GUI_st_eo_clustering_rb_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of GUI_st_eo_clustering_rb
 handles = guidata(hObject);
 
-numb = get(hObject,'Value');
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
 
-% Select the current job
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
+% Get the value of the clustering radiobutton
+val = get(hObject,'Value');
+
+% Select the current job and store the radiobutton value
 projNum = get(handles.GUI_st_job_lb,'Value');
+handles.jobs(projNum).clustering =  val;
 
-handles.jobs(projNum).clustering =  numb;
-
-if numb
+% Depending on the clustering value set the minmaxthreshold to the inverse
+if val
     handles.jobs(projNum).minmaxthresh = 0;
 else
     handles.jobs(projNum).minmaxthresh = 1;
 end
     
+% And set the value on the gui
 set(handles.GUI_st_eo_minmaxthresh_rb,'Value',handles.jobs(projNum).minmaxthresh);
 
+% Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -2004,31 +2416,46 @@ function GUI_st_eo_minmaxthresh_rb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_st_eo_minmaxthresh_rb
-
 handles = guidata(hObject);
 
-numb = get(hObject,'Value');
+% Get the list of jobs
+jobList = get(handles.GUI_st_job_lb,'String');
 
-% Select the current job
+% If the joblist has entries get the number of entries else return,
+% because there is really nothing to do
+if ~iscell(jobList)
+   h=errordlg('At least one job should be loaded first, before any settings can be changed...');
+   uiwait(h);
+   return
+end 
+
+% Get the value of the clustering radiobutton
+val = get(hObject,'Value');
+
+% Select the current job and store value
 projNum = get(handles.GUI_st_job_lb,'Value');
+handles.jobs(projNum).minmaxthresh =  val;
 
-handles.jobs(projNum).minmaxthresh =  numb;
-
-if numb
+% Depending on the minmaxthreshold value set the clustering radiobutton to the inverse
+if val
     handles.jobs(projNum).clustering = 0;
 else
     handles.jobs(projNum).clustering = 1;
 end
     
+% And set the value on the gui
 set(handles.GUI_st_eo_clustering_rb,'Value',handles.jobs(projNum).clustering);
 
+% Update handles structure
 guidata(hObject, handles);
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 %-------------------------------------------------------------------------------
 
@@ -2052,10 +2479,12 @@ handles = guidata(hObject);
 projNum = get(handles.GUI_st_job_lb,'Value');
 
 % Store the latest data in jobvalues.mat in the specified save directory
-cd (handles.jobs(projNum).savedirectory)
-jobvalues = handles.jobs(projNum);
-save ('jobvalues','jobvalues')
-clear jobvalues
+if ~isempty(handles.jobs(projNum).savedirectory)
+   cd (handles.jobs(projNum).savedirectory)
+   jobvalues = handles.jobs(projNum);
+   save ('jobvalues','jobvalues')
+   clear jobvalues
+end
 
 % Destroy the GUI
 delete(handles.polyTrack_mainwindow);

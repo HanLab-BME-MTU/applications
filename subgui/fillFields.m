@@ -52,16 +52,17 @@ set(handles.GUI_st_eo_minmaxthresh_rb,'Value',activeJob.minmaxthresh);
 
 set(handles.GUI_st_path_timeperframe_ed,'String',num2str(activeJob.timeperframe));
 
-% Set the microm-to-pixel listbox
+% Set the microm-to-pixel popup menu
 if ~isempty(activeJob.mmpixel)
-   set(handles.GUI_st_bp_mmpixel_pm,'String',num2str(activeJob.mmpixel));
+   set(handles.GUI_st_bp_mmpixel_pm,'Value',num2str(activeJob.mmpixel));
 end
 
-% Set the timestep slide listbox
+% Set the timestep slide popup menu
 if ~isempty(activeJob.timestepslide)
-   set(handles.GUI_st_eo_timestepslide_pm,'String',num2str(activeJob.timestepslide));
+   set(handles.GUI_st_eo_timestepslide_pm,'Value',activeJob.timestepslide_index);
 end
 
 % Set the bitdepth field
-val = round((activeJob.bitdepth-6)/2);
-set(handles.GUI_st_bitdepth_pm,'Value',val);
+if ~isempty(activeJob.timestepslide)
+   set(handles.GUI_st_bitdepth_pm,'Value',activeJob.bitdepth_index);
+end

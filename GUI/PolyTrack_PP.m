@@ -1,29 +1,20 @@
 function varargout = PolyTrack_PP(varargin)
-% GUI_POSTPROCESS M-file for GUI_postprocess.fig
-%      GUI_POSTPROCESS, by itself, creates a new GUI_POSTPROCESS or raises the existing
-%      singleton*.
+% PolyTrack_PP M-file for PolyTrack_PP.fig
 %
-%      H = GUI_POSTPROCESS returns the handle to a new GUI_POSTPROCESS or the handle to
-%      the existing singleton*.
+% PolyTrack_PP  contains the callback functions for the Polytrack Post Processing 
+%               (PP) GUI. Next to Matlab standard initialization code and functions, 
+%               a number of callbacks have been implemented that control the 
+%               post processing of the data files created by the Polytrack program.
 %
-%      GUI_POSTPROCESS('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in GUI_POSTPROCESS.M with the given input arguments.
+% SYNOPSIS      varargout = PolyTrack_PP(varargin)
 %
-%      GUI_POSTPROCESS('Property','Value',...) creates a new GUI_POSTPROCESS or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before GUI_postprocess_OpeningFunction gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to GUI_postprocess_OpeningFcn via varargin.
+% INPUT         varargin (optional)
 %
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
+% OUTPUT        varargout
 %
-% See also: GUIDE, GUIDATA, GUIHANDLES
+% Last Modified by A. Kerstens 09-Mar-2004
 
-% Edit the above text to modify the response to help GUI_postprocess
-
-% Last Modified by GUIDE v2.5 23-Feb-2004 14:48:27
-
+% All kinds of matlab initialization stuff; leave as is...
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -43,9 +34,7 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%----------------------------------------------------------------------------
 
 % --- Executes just before GUI_postprocess is made visible.
 function GUI_postprocess_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -58,21 +47,20 @@ function GUI_postprocess_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for GUI_postprocess
 handles.output = hObject;
 
+% Create a default postprocessing structure that defines all the fields used in the program
+defaultpostpro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5,...
+                        'dragtail', 6, 'figureSize', []);
 
-defaultpostpro=struct('minusframes',5,'plusframes',2,'minimaltrack',5,'dragtail',6,'figureSize',[]);
-handles.defaultpostpro=defaultpostpro;
+% Assign the default postprocessing values to the GUI handle so it can be passed around
+handles.defaultpostpro = defaultpostpro;
 
-
+% Set the color of the gui
 set(hObject,'Color',[0,0,0.627]);
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes GUI_postprocess wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Outputs from this function are returned to the command line.
 function varargout = GUI_postprocess_OutputFcn(hObject, eventdata, handles)
@@ -84,8 +72,7 @@ function varargout = GUI_postprocess_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_pp_jobpath_ed_CreateFcn(hObject, eventdata, handles)
@@ -101,7 +88,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_pp_jobpath_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_pp_jobpath_ed (see GCBO)
@@ -111,8 +98,7 @@ function GUI_pp_jobpath_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_pp_jobpath_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_pp_jobpath_ed as a double
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_pp_jobbrowse_pb.
 function GUI_pp_jobbrowse_pb_Callback(hObject, eventdata, handles)
@@ -121,65 +107,87 @@ function GUI_pp_jobbrowse_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % Update handles structure
 handles = guidata(hObject);
+
+% Start with the default post processing structure
 handles.postpro=handles.defaultpostpro;
 
+% Use the gui to let the user select a jobvalues.mat filename
+[filename,jobValPath]=uigetfile({'*.mat','mat-files'},'Select jobvalues.mat or MPM.mat');
 
-
-[filename,jobValPath]=uigetfile({'*.mat','mat-files'},'Please select a file named jobvalues.mat');
-
-if ~strcmp(filename,'jobvalues.mat') &~ strcmp(filename,'MPM.mat')
-   disp('select a file named jobvalues.mat  or MPM.mat !!!!!!!!!')
+% Check that the user actually selected a valid file
+if ~strcmp(filename, 'jobvalues.mat') & ~strcmp(filename, 'MPM.mat')
+   h = errordlg('Please select a file named jobvalues.mat or MPM.mat...');
+   uiwait(h);          % Wait until the user presses the OK button
    return
 end
 
-cd(jobValPath)
-if strcmp(filename,'MPM.mat')
-    load('MPM.mat');
-    handles.MPM=MPM
-    cd ..
-    jobValPath=pwd;
+% Change directory to the selected path
+cd (jobValPath)
+
+% Load MPM.mat file if selected from the gui and if it exists
+if strcmp(filename, 'MPM.mat')
+   if exist('MPM.mat', 'file')
+      load(filename);
+      handles.MPM = MPM;
+   else
+      h = errordlg('The file MPM.mat does not exist...');
+      uiwait(h);          % Wait until the user presses the OK button
+      return;
+   end
+   
+   % Step back one directory
+   cd ..
+   jobValPath = pwd;
+elseif strcmp(filename, 'jobvalues.mat')
+   % Load the M.mat file which should be present
+   if exist('M.mat', 'file')
+      load('M.mat');
+      % Call up the track link function and retrieve the MPM matrix
+      handles.MPM = trackLinker(M);
+   else
+      h = errordlg('The file M.mat does not exist...');
+      uiwait(h);          % Wait until the user presses the OK button
+      return;
+   end
 end
     
-load('jobvalues.mat');
-handles.jobvalues=jobvalues;
-
-if strcmp(filename,'jobvalues.mat')
-	load('M.mat');
-	handles.MPM=alteredfsmTrackLinker(M);
-
+% Load the jobvalues file
+if exist('jobvalues.mat', 'file')
+   load('jobvalues.mat');
+   handles.jobvalues = jobvalues;
+else
+   h = errordlg('The file jobvalues.mat does not exist...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
 end
 
+% Load the cell properties file if it exists
+if exist ('cellprops.mat','file')
+   load('cellprops.mat');
+   handles.cellprops = cellprops;
+else
+   h = errordlg('The file cellprops.mat does not exist...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+end
 
-load('PROPERTIES.mat');
-handles.PROPERTIES=PROPERTIES;
-
-% load('PROPERTIES.Mat');
-% handles.PROPERTIES=PROPERTIES;
-
-cd(jobValPath)
-done=0;
-counter=1
-while done==0
-       newdirname=[];
-       newdirname=['data',num2str(counter)];
-    
-      if exist(newdirname,'dir')==0
-         mkdir(jobValPath,newdirname);
-        
-         handles.postpro.saveallpath=[jobValPath, newdirname];
-         done=1;
-     end
-     counter=counter+1;
- end
+cd (jobValPath)
+done = 0;
+counter = 1;
+while done == 0
+   newdirname=[];
+   newdirname=['data', num2str(counter)];
  
+   if exist(newdirname, 'dir') == 0
+      mkdir(jobValPath, newdirname);
+        
+      handles.postpro.saveallpath = [jobValPath, newdirname];
+      done = 1;
+   end
+   counter = counter + 1;
+end
 
-
-
-
-
-handles.selectedcells=[];
-
-
+handles.selectedcells = [];
 handles.postpro.imagepath = handles.jobvalues.imagedirectory;
 handles.postpro.maxdistpostpro = handles.jobvalues.maxsearch;
 handles.postpro.analfirstimg = handles.jobvalues.firstimage;
@@ -187,7 +195,6 @@ handles.postpro.anallastimg = handles.jobvalues.lastimage;
 handles.postpro.selectedcells = [];
 handles.postpro.moviefirstimg = handles.jobvalues.firstimage;
 handles.postpro.movielastimg = handles.jobvalues.lastimage;
-
 
 guidata(hObject, handles);
 
@@ -205,10 +212,9 @@ set(handles.GUI_app_plusframes_ed,'String',handles.postpro.plusframes);
 set(handles.GUI_app_minimaltrack_ed,'String',handles.postpro.minimaltrack);
 set(handles.GUI_fm_tracksince_ed,'String',handles.postpro.dragtail);
 
-
 guidata(hObject, handles);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_pp_imagebrowse_pb.
 function GUI_pp_imagebrowse_pb_Callback(hObject, eventdata, handles)
@@ -224,7 +230,7 @@ handles.postpro.imagepath= jobValPath;
 % Update handles structure
 guidata(hObject, handles);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_pp_imagepath_ed_CreateFcn(hObject, eventdata, handles)
@@ -240,7 +246,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_pp_imagepath_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_pp_imagepath_ed (see GCBO)
@@ -260,7 +266,7 @@ handles.postpro.imagepath= path;
 % Update handles structure
 guidata(hObject, handles);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_pp_manuelpostpro_pb.
 function GUI_pp_manuelpostpro_pb_Callback(hObject, eventdata, handles)
@@ -280,7 +286,7 @@ guidata(hObject, handles);
 
 manuelpostpro(hObject)
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_app_minusframes_ed_CreateFcn(hObject, eventdata, handles)
@@ -296,7 +302,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_app_minusframes_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_app_minusframes_ed (see GCBO)
@@ -319,7 +325,8 @@ handles.postpro.minusframes= str2num(numb);
 guidata(hObject, handles);
 
 set(handles.GUI_app_minusframes_ed,'String',handles.postpro.minusframes);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_app_plusframes_ed_CreateFcn(hObject, eventdata, handles)
@@ -335,7 +342,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_app_plusframes_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_app_plusframes_ed (see GCBO)
@@ -358,7 +365,8 @@ handles.postpro.plusframes= str2num(numb);
 guidata(hObject, handles);
 
 set(handles.GUI_app_plusframes_ed,'String',handles.postpro.plusframes);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_app_relinkdist_ed_CreateFcn(hObject, eventdata, handles)
@@ -374,7 +382,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_app_relinkdist_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_app_relinkdist_ed (see GCBO)
@@ -399,8 +407,7 @@ guidata(hObject, handles);
 
 set(handles.GUI_app_relinkdist_ed,'String',handles.postpro.maxdistpostpro);
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_app_minimaltrack_ed_CreateFcn(hObject, eventdata, handles)
@@ -416,7 +423,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_app_minimaltrack_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_app_minimaltrack_ed (see GCBO)
@@ -441,9 +448,7 @@ guidata(hObject, handles);
 
 set(handles.GUI_app_minimaltrack_ed,'String',handles.postpro.minimaltrack);
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_app_autopostpro_pb.
 function GUI_app_autopostpro_pb_Callback(hObject, eventdata, handles)
@@ -464,7 +469,7 @@ handles.MPM = MPM
 
 guidata(hObject, handles);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_speed_rb.
 function GUI_ad_speed_rb_Callback(hObject, eventdata, handles)
@@ -474,8 +479,7 @@ function GUI_ad_speed_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_speed_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_trianghist_rb.
 function GUI_ad_trianghist_rb_Callback(hObject, eventdata, handles)
@@ -485,8 +489,7 @@ function GUI_ad_trianghist_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_trianghist_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_numberofthings_rb.
 function GUI_ad_numberofthings_rb_Callback(hObject, eventdata, handles)
@@ -496,8 +499,7 @@ function GUI_ad_numberofthings_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_numberofthings_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_areas_rb.
 function GUI_ad_areas_rb_Callback(hObject, eventdata, handles)
@@ -507,8 +509,7 @@ function GUI_ad_areas_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_areas_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_undefined3_rb.
 function GUI_ad_undefined3_rb_Callback(hObject, eventdata, handles)
@@ -518,8 +519,7 @@ function GUI_ad_undefined3_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_undefined3_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_perimeter_rb.
 function GUI_ad_perimeter_rb_Callback(hObject, eventdata, handles)
@@ -529,8 +529,7 @@ function GUI_ad_perimeter_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_perimeter_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_undefined1_rb.
 function GUI_ad_undefined1_rb_Callback(hObject, eventdata, handles)
@@ -540,8 +539,7 @@ function GUI_ad_undefined1_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_undefined1_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_undefined2_rb.
 function GUI_ad_undefined2_rb_Callback(hObject, eventdata, handles)
@@ -551,8 +549,7 @@ function GUI_ad_undefined2_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_undefined2_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_selectcells_pb.
 function GUI_ad_selectcells_pb_Callback(hObject, eventdata, handles)
@@ -570,8 +567,7 @@ guidata(hObject, handles);
 
 manuelpostpro(hObject)
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_selected_cb.
 function GUI_ad_selected_cb_Callback(hObject, eventdata, handles)
@@ -581,8 +577,7 @@ function GUI_ad_selected_cb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_ad_selected_cb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_ad_firstimage_ed_CreateFcn(hObject, eventdata, handles)
@@ -598,7 +593,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_ad_firstimage_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_ad_firstimage_ed (see GCBO)
@@ -618,8 +613,7 @@ handles.postpro.firstlastimg= str2num(numb);
 % Update handles structure
 guidata(hObject, handles);
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_ad_lastimage_ed_CreateFcn(hObject, eventdata, handles)
@@ -635,7 +629,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_ad_lastimage_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_ad_lastimage_ed (see GCBO)
@@ -655,8 +649,7 @@ handles.postpro.anallastimg= str2num(numb);
 % Update handles structure
 guidata(hObject, handles);
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_ad_analyze_pb.
 function GUI_ad_analyze_pb_Callback(hObject, eventdata, handles)
@@ -672,9 +665,7 @@ if get(handles.GUI_ad_speed_rb,'Value')
     speed(hObject);
 end
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_fm_movieimgone_ed_CreateFcn(hObject, eventdata, handles)
@@ -690,7 +681,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_fm_movieimgone_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_fm_movieimgone_ed (see GCBO)
@@ -700,8 +691,7 @@ function GUI_fm_movieimgone_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_fm_movieimgone_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_movieimgone_ed as a double
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_fm_movieimgend_ed_CreateFcn(hObject, eventdata, handles)
@@ -717,7 +707,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_fm_movieimgend_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_fm_movieimgend_ed (see GCBO)
@@ -727,8 +717,7 @@ function GUI_fm_movieimgend_ed_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of GUI_fm_movieimgend_ed as text
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_movieimgend_ed as a double
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_fm_incloriginal_rb.
 function GUI_fm_incloriginal_rb_Callback(hObject, eventdata, handles)
@@ -738,8 +727,7 @@ function GUI_fm_incloriginal_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_fm_incloriginal_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_fm_inclcentromers_rb.
 function GUI_fm_inclcentromers_rb_Callback(hObject, eventdata, handles)
@@ -749,8 +737,7 @@ function GUI_fm_inclcentromers_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_fm_inclcentromers_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_fm_inclundefined_rb.
 function GUI_fm_inclundefined_rb_Callback(hObject, eventdata, handles)
@@ -760,8 +747,7 @@ function GUI_fm_inclundefined_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_fm_inclundefined_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_fm_incltracks_rb.
 function GUI_fm_incltracks_rb_Callback(hObject, eventdata, handles)
@@ -771,8 +757,7 @@ function GUI_fm_incltracks_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_fm_incltracks_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_fm_inclbody_rb.
 function GUI_fm_inclbody_rb_Callback(hObject, eventdata, handles)
@@ -782,8 +767,7 @@ function GUI_fm_inclbody_rb_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of GUI_fm_inclbody_rb
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_fm_tracksince_ed_CreateFcn(hObject, eventdata, handles)
@@ -799,7 +783,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_fm_tracksince_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_fm_tracksince_ed (see GCBO)
@@ -818,9 +802,7 @@ handles.postpro.dragtail= str2num(numb);
 % Update handles structure
 guidata(hObject, handles);
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_fm_saveallpath_ed_CreateFcn(hObject, eventdata, handles)
@@ -836,7 +818,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_fm_saveallpath_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_fm_saveallpath_ed (see GCBO)
@@ -855,7 +837,7 @@ handles.postpro.saveallpath= path;
 % Update handles structure
 guidata(hObject, handles);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_fm_universalstudios_pb.
 function GUI_fm_universalstudios_pb_Callback(hObject, eventdata, handles)
@@ -863,10 +845,9 @@ function GUI_fm_universalstudios_pb_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
 movieMaker(hObject) 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_fm_browsesaveallpath_pb.
 function GUI_fm_browsesaveallpath_pb_Callback(hObject, eventdata, handles)
@@ -874,8 +855,7 @@ function GUI_fm_browsesaveallpath_pb_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------
 
 % --- Executes on button press in GUI_fm_moviesize_pb.
 function GUI_fm_moviesize_pb_Callback(hObject, eventdata, handles)
@@ -907,7 +887,8 @@ function GUI_fm_moviesize_pb_Callback(hObject, eventdata, handles)
     handles.postpro.figureSize = get(viewPrepFigH,'Position');
     
     close(viewPrepFigH);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------
 
 % % % % % % % 
 % % % % % % % % --- Executes on button press in GUI_app_autopostpro_cb.
@@ -920,9 +901,7 @@ function GUI_fm_moviesize_pb_Callback(hObject, eventdata, handles)
 % % % % % % % 
 % % % % % % % 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
+%----------------------------------------------------------------------------
 
 % --- Executes during object creation, after setting all properties.
 function GUI_ad_mintimeclust_ed_CreateFcn(hObject, eventdata, handles)
@@ -938,7 +917,7 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
+%----------------------------------------------------------------------------
 
 function GUI_ad_mintimeclust_ed_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_ad_mintimeclust_ed (see GCBO)
@@ -959,8 +938,21 @@ handles.postpro.mintimeclust= str2num(numb);
 % Update handles structure
 guidata(hObject, handles);
 
+%----------------------------------------------------------------------------
 
+function file_menu_Callback(hObject, eventdata, handles)
+% hObject    handle to file_menu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+%----------------------------------------------------------------------------
 
+function exit_item_Callback(hObject, eventdata, handles)
+% hObject    handle to Untitled_2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Destroy the GUI
+delete(handles.polyTrack_PP_mainwindow);
+

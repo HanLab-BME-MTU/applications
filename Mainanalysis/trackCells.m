@@ -7,17 +7,17 @@ function trackCells(hObject,projNum)
 %                projNum : which job is currently being dealt with
 %
 % OUTPUT         All outputs are either written directly to disk 
-%                M : described in alteredfsmTrackLinker
-%                PROPERTIES : PROPERTIES(:,1)=coord(:,1);
-%	 	 PROPERTIES(:,2)=coord(:,2);
-%		 PROPERTIES(:,3)=belongsto(:);  (number of cluster - label)
-%		 PROPERTIES(:,4)=numberOfOccurences(:);  (how many cells in the cluster this cell is in)
-%		 PROPERTIES(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
-%		 PROPERTIES(:,6)=perimdivare(:);  (cluster)
+%                M : described in trackLinker
+%                cellprops : cellprops(:,1)=coord(:,1);
+%	 	 cellprops(:,2)=coord(:,2);
+%		 cellprops(:,3)=belongsto(:);  (number of cluster - label)
+%		 cellprops(:,4)=numberOfOccurences(:);  (how many cells in the cluster this cell is in)
+%		 cellprops(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
+%		 cellprops(:,6)=perimdivare(:);  (cluster)
 %                BODYIMG is the binary image of the areas occupied by cells                
 %
 % DEPENDENCIES   trackCells uses {imClusterSeg
-%				  alteredfsmTrackLinker
+%				  trackLinker
 %				  checkMinimalCellCell
 %				  findnucloitrack
 %				  body
@@ -209,7 +209,7 @@ lostonedge = 0;
 
 newImg = [];
 MPM = [];
-PROPERTIES = [];
+cellprops = [];
 M = [];
 coord = [];
 
@@ -230,13 +230,13 @@ else
     
     %index is equal to the number of the image, countingloops keeps
     %track of the loops
-    countingloops = 0
+    countingloops = 0;
     
     
 	for jImageNum = FirstImaNum:Increment:LastImaNum
         
         jImageNum;
-        countingloops = countingloops+1
+        countingloops = countingloops+1;
         
         cd(ImageDirectory)
 		name = char(ImageNamesList(jImageNum));
@@ -297,13 +297,13 @@ else
                       end
                       
                       
-                      PROPERTIES = [];
+                      cellprops = [];
                       
                       if clustering
                           
-                           [PROPERTIES,BODYIMG,labeled] = body(seg_img,newCoord,regmax,logihalo,PlusMinus,1);
+                           [cellprops,BODYIMG,labeled] = body(seg_img,newCoord,regmax,logihalo,PlusMinus,1);
                       elseif segmentation
-                           [PROPERTIES,BODYIMG,labeled] = body(newImg,newCoord,regmax,logihalo,PlusMinus,2);
+                           [cellprops,BODYIMG,labeled] = body(newImg,newCoord,regmax,logihalo,PlusMinus,2);
                       end
                       
                      
@@ -313,7 +313,7 @@ else
                       clear namesnumbers;
                       clear uff;
                     
-                      emptyprop = zeros(1,size(PROPERTIES,2));
+                      emptyprop = zeros(1,size(cellprops,2));
                       
                    
                       %now we mark these coordinates as good coordinates, meaning their
@@ -664,7 +664,7 @@ else
                                ytempl = [];
                          
                                
-                               MPMslide = alteredfsmTrackLinker(M(:,:,(countingloops-howmanytimestepsslide+1):(countingloops-1)));
+                               MPMslide = trackLinker(M(:,:,(countingloops-howmanytimestepsslide+1):(countingloops-1)));
                                %MPMslide is a matrix which gives the tracks of all cells over
                                %the last ? frames. It get's updated after every new frame.
                                
@@ -993,9 +993,9 @@ else
                                    [prope,BODYIMG,labeled] = body(newImg,oldCoord,regmax,logihalo,PlusMinus,2);
                                end
                               
-                               PROPERTIES(1:size(emptyprop,1),1:size(emptyprop,2),countingloops,1) = emptyprop;
+                               cellprops(1:size(emptyprop,1),1:size(emptyprop,2),countingloops,1) = emptyprop;
                                %store this information in a stack
-                               PROPERTIES(1:size(prope,1),1:size(prope,2),countingloops,1) = prope;
+                               cellprops(1:size(prope,1),1:size(prope,2),countingloops,1) = prope;
                                
                                clear prope;
                                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1014,7 +1014,7 @@ else
 		cd(SaveDirectory)
 		
 		save('M', 'M')
-		save ('PROPERTIES', 'PROPERTIES')
+		save ('cellprops', 'cellprops')
         
 		cd ('body')
         

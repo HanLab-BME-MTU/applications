@@ -1,9 +1,9 @@
 
-function [PROPERTIES,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)       
+function [cellprops,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)       
 % body  determins what areas of an image are occupied by cells and
 %       calculates image properties
 %
-% SYNOPSIS       [PROPERTIES,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)
+% SYNOPSIS       [cellprops,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus,methodDeterm)
 %
 % INPUT          seg_img : either original image or segmented image
 %                          (depends on method)
@@ -16,13 +16,13 @@ function [PROPERTIES,ero,labeled] = body(seg_img,coord,regmax,logihalo,plusminus
 %                               segmentation has been applied applied
 %                               (changes what body actually does)
 %
-% OUTPUT         PROPERTIES : PROPERTIES(:,1)=coord(:,1);
-%						 	  PROPERTIES(:,2)=coord(:,2);
-%							  PROPERTIES(:,3)=belongsto(:);  (number of cluster - label)
-%							  PROPERTIES(:,4)=numberOfOccurences(:);  (how many cells in the cluster
+% OUTPUT         cellprops : cellprops(:,1)=coord(:,1);
+%						 	  cellprops(:,2)=coord(:,2);
+%							  cellprops(:,3)=belongsto(:);  (number of cluster - label)
+%							  cellprops(:,4)=numberOfOccurences(:);  (how many cells in the cluster
 %							                                           this cell is in)
-%							  PROPERTIES(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
-%							  PROPERTIES(:,6)=perimdivare(:);  (cluster)
+%							  cellprops(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
+%							  cellprops(:,6)=perimdivare(:);  (cluster)
 %                ero : is the binary image of the areas occupied by cells                
 %                labeled : bwlabeled ero
 %
@@ -229,23 +229,23 @@ hell(:,4)=perimdivare(:);
 hell(noSensibleInf,:)=[];
 
     
-%one row of PROPERTIES gives all information for one set of coordinates
-PROPERTIES=zeros(length(coord),6);
-PROPERTIES(:,1)=coord(:,1);
-PROPERTIES(:,2)=coord(:,2);
-PROPERTIES(:,3)=belongsto(:);
+%one row of cellprops gives all information for one set of coordinates
+cellprops=zeros(length(coord),6);
+cellprops(:,1)=coord(:,1);
+cellprops(:,2)=coord(:,2);
+cellprops(:,3)=belongsto(:);
 
 f=0;
 
 noSensibleProp=[];
-%fill the right information into the right spots of PROPERTIES, via belongsto(now PROPERTIES(:,3)) (PROPERTIES<->hell)
+%fill the right information into the right spots of cellprops, via belongsto(now cellprops(:,3)) (cellprops<->hell)
 for i=1:length(coord);
         f=[];
-        f= find (PROPERTIES(i,3)==hell(:,1));
+        f= find (cellprops(i,3)==hell(:,1));
         if ~isempty(f)
-            PROPERTIES(i,4)=hell(f,2);
-            PROPERTIES(i,5)=hell(f,3);
-            PROPERTIES(i,6)=hell(f,4);
+            cellprops(i,4)=hell(f,2);
+            cellprops(i,5)=hell(f,3);
+            cellprops(i,6)=hell(f,4);
             
         else
             noSensibleProp(end+1,1)=i;
@@ -253,7 +253,7 @@ for i=1:length(coord);
         
 end 
 
-PROPERTIES(noSensibleProp,:)=[];
+cellprops(noSensibleProp,:)=[];
 clear f;
 
 %avarea is the average area of all cells

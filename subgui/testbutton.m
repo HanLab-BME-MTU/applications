@@ -10,7 +10,7 @@ function testbutton(hObject)
 %                             
 %
 % DEPENDENCIES   testbutton uses {imClusterSeg
-%								 alteredfsmTrackLinker
+%								 trackLinker
 %								 checkMinimalCellCell
 %								 findnucloitrack
 %								 takenkick
@@ -65,7 +65,7 @@ levnuc_fi = handles.jobs(projNum).fi_nucleus;
 levback_fi = handles.jobs(projNum).fi_background;
 levhalo_fi = handles.jobs(projNum).fi_halolevel;
 ImageNamesList = handles.jobs(projNum).imagenameslist
-leveladjust = handles.jobs(projNum).leveladjust
+leveladjust = handles.jobs(projNum).leveladjust;
 
 %minimal/maximal size of the black spot in the cells
 MinSizeNuc = handles.jobs(projNum).minsize;
@@ -102,7 +102,7 @@ if ~Last > First
     
 else    
 
-        name = char(ImageNamesList(First))
+        name = char(ImageNamesList(First));
         
         %get the current picture
         firstFrame = imreadnd2(name,0,handles.jobs(projNum).intensityMax);

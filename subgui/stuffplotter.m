@@ -1,6 +1,6 @@
 function stuffplotter(hObject)
-% stuffplotter plots information gathered in PROPERTIES. Certain details
-%              get derived from PROPERTIES first
+% stuffplotter plots information gathered in cellprops. Certain details
+%              get derived from cellprops first
 %
 % SYNOPSIS       stuffplotter(hObject)
 %
@@ -15,7 +15,7 @@ function stuffplotter(hObject)
 % Colin Glass, Feb 04
 
 
-%We now want to rearrange certain data (PROPERTIES), so that we can plot it.  
+%We now want to rearrange certain data (cellprops), so that we can plot it.  
 
 handles=guidata(hObject);
 
@@ -38,8 +38,8 @@ NewProps=zeros(6,start-stop+1);
 
 
 %erase this information. it was calculated before we cleaned up the results
-handles.PROPERTIES(:,4,:)=0;
-PROPERTIES = handles.PROPERTIES
+handles.cellprops(:,4,:)=0;
+cellprops = handles.cellprops
 
 
   whatcells=[];
@@ -66,7 +66,7 @@ for pic=start:stop
     %may seem a little bit late to do so, but only now we know which cells
     %are actually accepted by postprocessing
     
-	belo = sort(handles.PROPERTIES(:,3,pic));
+	belo = sort(handles.cellprops(:,3,pic));
 	[uniqueEntries, uniqueIdx] = unique(belo);
 	%uniqueIdx returns the last occurence of the respective unique entry
 	%having sorted m before, we can now count the number of occurences
@@ -79,8 +79,8 @@ for pic=start:stop
 
     %calculate the number of members for every cluster
      for indUniEnt = 1:length(uniqueEntries)
-           order = ismember(handles.PROPERTIES(:,3,pic),uniqueEntries(indUniEnt))
-           handles.PROPERTIES(order ,4,pic) = numberOfOccurences(indUniEnt);
+           order = ismember(handles.cellprops(:,3,pic),uniqueEntries(indUniEnt))
+           handles.cellprops(order ,4,pic) = numberOfOccurences(indUniEnt);
      end
      %done
      
@@ -114,35 +114,35 @@ for pic=start:stop
 
     
 %     presentCells = presentCells(find(presentCells(:,1) & presentCells(:,2)),:); 
-%     properRows = ismember(round(handles.PROPERTIES(:,1:2,pic)),round(presentCells),'rows');
-%     referenceAllCells = handles.PROPERTIES(properRows,:,pic);
+%     properRows = ismember(round(handles.cellprops(:,1:2,pic)),round(presentCells),'rows');
+%     referenceAllCells = handles.cellprops(properRows,:,pic);
 %     
 %     clear properRows
     
 
 
-    %here we find all the rows of PROPERTIES that correspond to cells we are
-    %intersted in. PROPERTIES(:,1:2,pic) and whatcells are both [x,y]
+    %here we find all the rows of cellprops that correspond to cells we are
+    %intersted in. cellprops(:,1:2,pic) and whatcells are both [x,y]
     %coordinates
     
-    [properRows,indWhatCells] = ismember(round(handles.PROPERTIES(:,1:2,pic)),round(whatcells),'rows');
+    [properRows,indWhatCells] = ismember(round(handles.cellprops(:,1:2,pic)),round(whatcells),'rows');
     NewProps(6,pic) = size(find(properRows),1);
-    takeIntoAccount = handles.PROPERTIES(properRows,:,pic);
+    takeIntoAccount = handles.cellprops(properRows,:,pic);
     
     indWhatCells = indWhatCells(find(indWhatCells));
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% REMINDER:
-	% one row of PROPERTIES gives information on one set of coordinates (one
+	% one row of cellprops gives information on one set of coordinates (one
 	% cell). takeIntoAccount has the same layout
-	% PROPERTIES=zeros(length(coord),6);
-	% PROPERTIES(:,1)=coord(:,1);
-	% PROPERTIES(:,2)=coord(:,2);
-	% PROPERTIES(:,3)=belongsto(:);  (number of cluster - label)
-	% PROPERTIES(:,4)=numberOfOccurences(:);  (how many cells in the cluster
+	% cellprops=zeros(length(coord),6);
+	% cellprops(:,1)=coord(:,1);
+	% cellprops(:,2)=coord(:,2);
+	% cellprops(:,3)=belongsto(:);  (number of cluster - label)
+	% cellprops(:,4)=numberOfOccurences(:);  (how many cells in the cluster
 	%                                          this cell is in)
-	% PROPERTIES(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
-	% PROPERTIES(:,6)=perimdivare(:);  (cluster)
+	% cellprops(:,5)=bodycount(:);  (area of the cluster with the number given in belongsto)
+	% cellprops(:,6)=perimdivare(:);  (cluster)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
     
     %how many clusters. At least two members.
