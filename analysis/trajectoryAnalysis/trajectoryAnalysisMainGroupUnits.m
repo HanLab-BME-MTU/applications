@@ -238,8 +238,16 @@ switch STRATEGY
                         
                         %create functional matries A=dF/dU, B=Y, V=sigmaY^2
                         A = ones(ntp,2); %allocate A
-                        A(:,2) = time(dataIdxFit,1); %fill in time
-                        B = distance(dataIdxFit,1);
+                        
+                        
+                        % shift the problem to start at [0,0] to make it
+                        % more stable
+                        time0 = time(dataIdxFit(1),1);
+                        A(:,2) = time(dataIdxFit,1) - time0; % fill in time
+                        
+                        distance0 = distance(dataIdxFit(1),1)
+                        B = distance(dataIdxFit,1)-distance0; % fill in distance
+                        
                         Qllii = distance(dataIdxFit,2).^2; %diagonal elements of the covariance matrix
                         V = diag(Qllii); %covariance matrix (inverse of the weights for myLscov!)
                         weightMatrix = diag(1./Qllii); %weight matrix
@@ -247,6 +255,10 @@ switch STRATEGY
                         
                         %calculate linear fit. a0+a1*x=y
                         [X,XSigma,XSigmaZeroH] = myLscov(A,B,V);
+                        
+%                         if XSigma(2) == 0
+%                             keyboard
+%                         end
                         
                         %calculate weighted mean if testpause
                         if testPause
@@ -299,7 +311,10 @@ switch STRATEGY
                                     %pValue = tcdf(res./sqrt(Qvvii),ntp-2);
                                     maxOutlier4T = max(res./abs(sqrt(Qvvii)));
                                     
-                                    meanOrIntercept = A(1,:)*X;
+                                    % meanOrIntercept is the distance where
+                                    % we have to start drawing the line -
+                                    % add distance0!
+                                    meanOrIntercept = A(1,:)*X + distance0;
                                     
                                     
                                 case 1 %test mean (pause)
@@ -313,7 +328,10 @@ switch STRATEGY
                                     %pValue = tcdf(resMean./sqrt(Qvvii),ntp-1);
                                     maxOutlier4T = max(res./abs(sqrt(Qvvii)));
                                     
-                                    meanOrIntercept = weightedMean;
+                                    % meanOrIntercept is the distance where
+                                    % we have to start drawing the line -
+                                    % add distance0!
+                                    meanOrIntercept = weightedMean + distance0;
                                     
                                     
                             end
