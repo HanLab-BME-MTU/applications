@@ -48,7 +48,7 @@ end
 %STEP 1: Estimate noise by fitting to a high-order AR model
 
 %assign order of initial AR model
-arOrderI = 50;
+arOrderI = 100;
 
 %get parameters of initial AR model
 [arParamI,noiseSigmaI,errFlag] = yuleWalker(traj,arOrderI);

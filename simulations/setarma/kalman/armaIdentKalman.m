@@ -1,9 +1,11 @@
 function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
-    wnVector,aic,errFlag] = armaIdentKalman(trajectories,modelParam,minOpt)
+    wnVector,selectCrit,errFlag] = armaIdentKalman(trajectories,...
+    modelParam,minOpt)
 %ARMAIDENTKALMAN determines the ARMA model (i.e. its order, coefficients and white noise variance) that best fits a time series which could have missing data points.
 %
 %SYNOPSIS [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
-%    wnVector,aic,errFlag] = armaIdentKalman(trajectories,modelParam,minOpt)
+%    wnVector,selectCrit,errFlag] = armaIdentKalman(trajectories,...
+%    modelParam,minOpt)
 %
 %INPUT  trajectories: Observations of time series to be fitted. Either an 
 %                     array of structures traj(1:nTraj).observations, or a
@@ -32,7 +34,10 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %       wnVector    : Structure array containing the field:
 %           .observations: Estimated white noise series in corresponding 
 %                          trajectory.
-%       aic         : Akaike's Information Criterion.
+%       selectCrit  : Model selection criterion. Contains 3 fields:
+%            .aic        : Akaike's Information Criterion.
+%            .aicc       : Bias-Corrected Akaike's Information Criterion.
+%            .bic        : Bayesian Information Criterion.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %REMARKS Data is fitted using "armaCoefKalman" beginning with the different
@@ -53,7 +58,7 @@ maParamL = [];
 varCovMat = [];
 wnVariance = [];
 wnVector = [];
-aic = [];
+selectCrit = [];
 errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -81,11 +86,12 @@ else
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Comparison of ARMA models
+%Estimation of coefficients and 
+%comparison of ARMA models
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%assign initial value of AIC
-aic = 1e10; %(ridiculously large number)
+%assign initial value of BIC
+selectCrit.bic = 1e10; %(ridiculously large number)
 
 %go over all suggested models
 for i = 1:length(modelParam)
@@ -97,20 +103,24 @@ for i = 1:length(modelParam)
     %estimate ARMA coeffients and white noise variance
     try
         [arParamK1,maParamK1,arParamL1,maParamL1,varCovMat1,wnVariance1,...
-            wnVector1,aic1,errFlag] = armaCoefKalman(trajectories,...
+            wnVector1,selectCrit1,errFlag] = armaCoefKalman(trajectories,...
             arParamP0,maParamP0,minOpt);
         if errFlag
-            aic1 = [];
+            selectCrit1.aic =[];
+            selectCrit1.aicc = [];
+            selectCrit1.bic = [];
         end
     catch
         disp(['--armaIdentKalman: armaCoefkalman could not be executed for model #' num2str(i)]);
-        aic1 = [];
+        selectCrit1.aic =[];
+        selectCrit1.aicc = [];
+        selectCrit1.bic = [];
     end
-    
-    %look for model with minimum AIC
-    if isreal(aic1) %do not consider models that yield a complex AIC 
-                    %(i.e. where minimization messed up)
-        if aic1 < aic %if current AIC is smaller than minimum AIC so far
+
+    %look for model with minimum BIC
+    if isreal(selectCrit1.bic) %do not consider models that yield a complex BIC
+        %(i.e. where minimization messed up)
+        if selectCrit1.bic < selectCrit.bic %if current BIC is smaller than minimum BIC found so far
             arParamK = arParamK1; %update model
             maParamK = maParamK1;
             arParamL = arParamL1;
@@ -118,11 +128,11 @@ for i = 1:length(modelParam)
             varCovMat = varCovMat1;
             wnVariance = wnVariance1;
             wnVector = wnVector1;
-            aic = aic1;
+            selectCrit = selectCrit1;
         end
     else
-        disp(['complex aic for model #' num2str(i) '!']);
-    end %(if isreal(aic1))
+        disp(['complex bic for model #' num2str(i) '!']);
+    end %(if isreal(selectCrit1.bic))
 
 end %(for i = 1:length(modelParam))
 

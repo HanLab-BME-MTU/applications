@@ -1,7 +1,7 @@
-function [H,errFlag] = rankTest(traj,significance)
+function [H,pValue,errFlag] = rankTest(traj,significance)
 %RANKTEST tests the hypothesis that a time series is IID by checking whether it has any linear trend.
 %
-%SYNOPSIS [H,errFlag] = rankTest(traj,significance)
+%SYNOPSIS [H,pValue,errFlag] = rankTest(traj,significance)
 %
 %INPUT  traj        : Observations of time series to be tested. Either an 
 %                     array of structures traj(1:nTraj).observations, or 
@@ -10,6 +10,8 @@ function [H,errFlag] = rankTest(traj,significance)
 %       significance: Significance level of hypothesis test. Default: 0.05.
 %
 %OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
+%       pValue  : Probability of obtaining a test statistic >= observed
+%                 value assuming that null hypothesis is true.
 %       errFlag : 0 if function executes normally, 1 otherwise.
 %
 %REMARK This test is taken from Brockwell and Davis, "Introduction to Time
@@ -27,6 +29,7 @@ function [H,errFlag] = rankTest(traj,significance)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 H = [];
+pValue = [];
 errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

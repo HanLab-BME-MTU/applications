@@ -165,6 +165,9 @@ traj = zeros(tempL,1);
 noise = zeros(tempL,1);
 
 %enter values of first few time steps
+%note that I do not go from 1 to max(arOrder,delay) but go the other way
+%around (starting at shift) since maOrder might be larger than arOrder and
+%delay
 traj(shift:-1:shift-max([arOrder delay])+1) = trajInit(end:-1:1);
 
 %obtain trajectory
@@ -174,7 +177,7 @@ if nThresholds == 0 %if there is only one regime
         noise(i) = noiseSigma*randn(1);
         traj(i) = arParam(1:arOrder)*traj(i-1:-1:i-arOrder)... %AR
             + maParam(1:maOrder)*noise(i-1:-1:i-maOrder)...    %MA
-            + noise(i);                                        %noise
+            + noise(i);                             %noise
     end
 
 else %if there is more than one regime

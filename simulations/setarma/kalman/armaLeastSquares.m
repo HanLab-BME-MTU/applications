@@ -36,8 +36,8 @@ errFlag = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check if correct number of arguments was used when function was called
-if nargin < nargin('armaVarCovLS')
-    disp('--armaVarCovLS: Incorrect number of input arguments!');
+if nargin < nargin('armaLeastSquares')
+    disp('--armaLeastSquares: Incorrect number of input arguments!');
     errFlag = 1;
     return
 end
@@ -67,7 +67,7 @@ for i=1:length(trajectories);
     end
 end
 if errFlag
-    disp('--armaVarCovLS: Please fix input data!');
+    disp('--armaLeastSquares: Please fix input data!');
     return
 end
 

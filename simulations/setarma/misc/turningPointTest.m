@@ -1,7 +1,7 @@
-function [H,errFlag] = turningPointTest(traj,significance)
+function [H,pValue,errFlag] = turningPointTest(traj,significance)
 %TURNINGPOINTTEST tests the hypothesis that a time series is IID by looking at the number of turning points in it.
 %
-%SYNOPSIS [H,errFlag] = turningPointTest(traj,significance)
+%SYNOPSIS [H,pValue,errFlag] = turningPointTest(traj,significance)
 %
 %INPUT  traj        : Observations of time series to be tested. Either an 
 %                     array of structures traj(1:nTraj).observations, or 
@@ -9,8 +9,10 @@ function [H,errFlag] = turningPointTest(traj,significance)
 %                     points should be indicated with NaN.
 %       significance: Significance level of hypothesis test. Default: 0.05.
 %
-%OUTPUT H           : 1 if hypothesis can be rejected, 0 otherwise.
-%       errFlag     : 0 if function executes normally, 1 otherwise.
+%OUTPUT H       : 1 if hypothesis can be rejected, 0 otherwise.
+%       pValue  : Probability of obtaining a test statistic >= observed
+%                 value assuming that null hypothesis is true.
+%       errFlag : 0 if function executes normally, 1 otherwise.
 %
 %REMARK This test is taken from Brockwell and Davis, "Introduction to Time
 %       Series and Forecasting", p.36. 
@@ -31,6 +33,7 @@ function [H,errFlag] = turningPointTest(traj,significance)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 H = [];
+pValue = [];
 errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

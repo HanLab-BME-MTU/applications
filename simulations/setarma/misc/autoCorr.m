@@ -4,9 +4,9 @@ function [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %SYNOPSIS [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %
 %INPUT  traj   : Observations of time series to be tested. Either an 
-%                array of structures traj(1:nTraj).observations, or 
-%                a column representing one single trajectory. Missing 
-%                points should be indicated with NaN.
+%                array of structures traj(1:nTraj).observations, or a 2D
+%                array (value + std) representing a single trajectory. 
+%                Missing points should be indicated with NaN.
 %       maxLag : Maximum lag at which autocorrelation function is calculated.
 %       correct: (optional) Switch for correction of trends:
 %                  -1 :if no correction.
@@ -73,7 +73,7 @@ numTraj = length(traj);
 trajLength = zeros(numTraj,1);
 for i=1:numTraj    
     [trajLength(i),nCol] = size(traj(i).observations); %length of each trajectory
-    if nCol > 1
+    if nCol > 2
         disp('--autoCorr: Each trajectory should be a column vector!');
         errFlag = 1;
     end
@@ -106,15 +106,18 @@ for i=1:numTraj
     switch correct
         case -1
             %remember mean
-            trajMean(i) = nanmean(traj(i).observations);
+            trajMean(i) = nanmean(traj(i).observations(:,1));
         case 0
             %remove trend with linear fit
-            traj(i).observations = removeLinearTrend(traj(i).observations);
+            traj(i).observations = removeLinearTrend(traj(i).observations(:,1));
             trajMean(i) = 0;
         otherwise %remove trend with differencing at specified lag
-            traj(i).observations = traj(i).observations(correct+1:end) ...
-                - traj(i).observations(1:end-correct);
-            trajMean(i) = nanmean(traj(i).observations);
+            tmp1 = traj(i).observations(correct+1:end,1) - ...
+                traj(i).observations(1:end-correct,1);
+            tmp2 = sqrt(traj(i).observations(correct+1:end,2).^2 + ...
+                traj(i).observations(1:end-correct,2).^2);
+            traj(i).observations = [tmp1 tmp2];
+            trajMean(i) = nanmean(traj(i).observations(:,1));
             %modify trajectory length
             trajLength(i) = trajLength(i) - correct;
     end
@@ -134,8 +137,8 @@ for lag = 0:maxLag %for each lag
         if trajLength(j) > lag %which are longer than lag
 
             %find pairs of points to be used in calculation
-            vec1 = traj(j).observations(1:end-lag);
-            vec2 = traj(j).observations(lag+1:end);
+            vec1 = traj(j).observations(1:end-lag,1);
+            vec2 = traj(j).observations(lag+1:end,1);
 
             %multiply mean-subtracted vectors
             vecMult = [vecMult; (vec1-trajMean(j)).*(vec2-trajMean(j))];
