@@ -134,13 +134,15 @@ if exitFlag > 0
     %check for causality and invertibility of estimated model
     r = abs(roots([-arParam(end:-1:1) 1]));
     if ~isempty(find(r<=1.00001))
-        disp('--armaCoefKalman: Warning: Predicted model not causal!');
-        keyboard;
+        disp('--armaCoefKalman: Predicted model not causal!');
+        errFlag = 1;
+        return
     end
     r = abs(roots([maParam(end:-1:1) 1]));
     if ~isempty(find(r<=1.00001))
-        disp('--armaCoefKalman: Warning: Predicted model not invertible!');
-        keyboard;
+        disp('--armaCoefKalman: Predicted model not invertible!');
+        errFlag = 1;
+        return
     end
 
     %obtain likelihood, white noise sequence and white noise variance
@@ -156,6 +158,7 @@ if exitFlag > 0
         [innovation,innovationVar,wnVector(i).series,errFlag] = ...
             armaKalmanInnov(trajectories(i).observations,arParam,maParam);
         if errFlag
+            disp('--armaCoefKalman: "armaKalmanInnov" did not function properly!');
             return
         end
 
