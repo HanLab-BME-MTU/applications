@@ -1,6 +1,14 @@
-function [weightedMean,weightedStd]=brvelocityAnalyze(vel,sigmaGlobal,sigma,step,name,dispVal)
-
-
+function [weightedMean,weightedStd]=brvelocityAnalyze(vel,tps,sigma,step,name,dispVal)
+%BRVELOCITYANALYZE return the mean values and plot the distribution 
+%Input
+%      vel    :  vect, velocity dsitribution
+%      tps    :  vect ,time that the velocity reamin in smae state
+%      sigma  :  vect ,standart deviation of the velocity at a given time point
+%      step   :  int, size of the discrezation for the distribution
+%      name   :  str, name for the graph
+%Output
+%      weightedMean : mean value of vel. wieghted by the time
+%      weightedStd  : std of the mean value of vel. wieghted by the time
 discret=[0:step:max(vel)+step];
 
 nvel = [];
@@ -11,8 +19,8 @@ sigMoy=zeros(length(discret)-1,1);
 for i=1:length(discret)-1
     if length((find(vel>discret(i)&vel<discret(i+1))))>=2
         nvel(i)=length(find(vel>discret(i)&vel<discret(i+1)));
-        [meanvel,dummy,stdTemp] = weightedStats(vel(find(vel>discret(i)&vel<discret(i+1))), sigmaGlobal(find(vel>discret(i)&vel<discret(i+1))),'w'); 
-        [meanStd,dummy,stdTemp] = weightedStats(sigma(find(vel>discret(i)&vel<discret(i+1))), sigmaGlobal(find(vel>discret(i)&vel<discret(i+1))),'w');
+        
+        [meanStd] = mean(sigma(find(vel>discret(i)&vel<discret(i+1))));
         sigMoy(i)=meanStd;%/length(find(vel>discret(i)&vel<discret(i+1)));
     elseif length((find(vel>discret(i)&vel<discret(i+1))))==1 
         a=find(vel>discret(i)&vel<discret(i+1));
@@ -37,6 +45,10 @@ set(H2,'LineStyle',':');
 
     
 
-weightedStd  = weightedStats(sigma, sigmaGlobal,'w');
-weightedMean = weightedStats(vel, sigmaGlobal,'w');
+weightedStd  = weightedStats(sigma, tps,'w');
+weightedMean = weightedStats(vel, tps,'w');
+
+
+
+
  

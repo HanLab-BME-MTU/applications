@@ -1,6 +1,20 @@
 function [fct]=brBothDiffOptim(x,velData1,velData2,cAngle1,cAngle2,delta,vUnload,pFixe);
-
-% Looking which mt is growing
+% brBothDiffOptim generate the obj. fct for the growth-shrink or
+% shrink-grwth case
+% INPUT
+%     x         :  paramters of pol/depol, input in the correct way: GS first pol
+%                  then depol for SG first depol then pol
+%     velData1  :  velocity of the MT1 with sign if GS>0 if SG <0
+%     velData2  :  velocity of MT2 with sign
+%     cAngle1   :  cosines of angle between MT1 and inter-centromere axis
+%     cAngle2   :  cosines of angle between MT2 and inter-centromere axis
+%     delta     :  1/13 of subunit length
+%     vUnload   :  unload velocity of the shrink case
+%     pFixe     :  fixed or free regarding if you optimize with p or
+%     without
+% OUPUT 
+%     fct       :  objective function
+% COMMENT : the free case is not always update
 
 if length(find(velData1<0))==length(velData1) & length(find(velData2>0))==length(velData2)
     state='SG';

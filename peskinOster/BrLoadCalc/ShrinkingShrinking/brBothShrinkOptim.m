@@ -1,6 +1,18 @@
 function [fct]=brBothShrinkOptim(x,velData1,velData2,cAngle1,cAngle2,delta,vUnload,pFixe);
 %brBothShrinkOptim return the fct to optimize in both shrink MT case 
-
+% INPUT
+%     x         :  paramters of depol
+%     velData1  :  velocity of the MT1 <0
+%     velData2  :  velocity of MT2 <0
+%     cAngle1   :  cosines of angle between MT1 and inter-centromere axis
+%     cAngle2   :  cosines of angle between MT2 and inter-centromere axis
+%     delta     :  1/13 of subunit length
+%     vUnload   :  unload velocity of the shrink case
+%     pFixe     :  fixed or free regarding if you optimize with p or
+%     without
+% OUPUT 
+%     fct       :  objective function
+% COMMENT : the free case is not always update
 
 
 if ~isempty(find(velData1>0)) | ~isempty(find(velData2>0))
@@ -96,6 +108,12 @@ switch pFixe
 		velMin2=min(velDiscret2);
 		
 		
+        %debug
+        if isempty(velDiscret1)|isempty(velDiscret2)
+            disp('connard');
+        end
+        
+        
 		%looking for the shrink velocties in the good range
 		
 		

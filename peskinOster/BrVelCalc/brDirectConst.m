@@ -174,7 +174,11 @@ v2=peskin(paramG2,omega2(indexMt2Growth),delta);
 if ~isempty(v1) |~isempty(v2)
 	omegaEff1=x(end-length(velData1)+1:end)./cAngle1;
 	omegaEff2=x(end-length(velData1)+1:end)./cAngle2;
-	cG= [-v1; -v2; -omegaEff1 ; omegaEff1-5;-omegaEff2 ; omegaEff2-5];
+    deltaOmega11=omega1-1.2*peskinInv(velData1,x(1:2),delta);
+    deltaOmega12=omega2-1.2*peskinInv(velData2,x(3:4),delta);
+    deltaOmega21=(peskinInv(velData1,x(1:2),delta)-1.2*omega1);
+    deltaOmega22=(peskinInv(velData2,x(3:4),delta)-1.2*omega2);
+	cG= [-v1; -v2; -omegaEff1 ; omegaEff1-5;-omegaEff2 ; omegaEff2-5;deltaOmega11;deltaOmega12;deltaOmega21;deltaOmega22];
 	cG= [cG ;(paramG1(1)*ones(size(omega1))-max(v1)*1.15./(delta*(1-exp(-omega1)))); (paramG2(1)*ones(size(omega2))-max(v2)*1.15./(delta*(1-exp(-omega2))))]; 
 	clear v1 v2;
 else

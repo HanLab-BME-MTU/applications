@@ -1,7 +1,26 @@
 function [trajectoryDescription,data,mt1Velocity,frameNb,mt1VelCons,frameCons]=brGetAnaDataG1(idlisttrack,dataProperties,lastResult)
+%BRGETANADAT put the data in the needed format for the optimzation for 2
+%tag
 
-
-
+%SYNOPSIS
+%[trajectoryDescription,data,mt1Velocity,frameNb,mt1VelCons,frameCons]=brGetAnaDataG1(idlisttrack,dataProperties,lastResult)
+%    
+%
+%INPUT 
+%       idlisttrack     : list from jonas tracking program
+%       dataProperties  : properties from jonas tracking program
+%       lastResult      : last result from jonas tracking program
+%
+%OUTPUT
+%       trajectoryDescription      : matrix returning all the info about the
+%                                    of the first MT see trajectoryAnalysis.m for more information.
+%       data                       : matrix returning all the info about
+%                                    the trajectory from
+%                                    calculateTrajectoryFromIdlist.m
+%       mt1Velocity                : vector with the velocities
+%       frameNb                    : number of frame analyzed
+%       mt1VelCons                 : vector of consequtive velocities
+%       frame Cons                 : vector of consequtive frames
 
 %-------- tag-name link---------------
 

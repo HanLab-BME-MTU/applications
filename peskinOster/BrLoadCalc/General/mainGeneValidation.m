@@ -6,17 +6,18 @@ close all;
 
 delta=8e-3;
 
-load('h:\MatlabSave\velDataGeneralGeneral');
+load([getenv('HOME'),filesep,'MatlabSave',filesep,'velDataGeneralGeneral.mat']);
 v0=vUnload;
 
 
 opts=optimset('Display','iter','MaxFunEvals',2000,'MaxIter',250,'TolFun',1e-7,'TolX',1e-7,'TolCon',1e-5);%,'DiffMaxChange',1e-2,'DiffMinChange',1e-10);
 indexGG=find(velData1>0 &velData2>0);
-indexSS=find(velData1<0 &velData2<0);
+indexSS=find(velData1<0 &velData2<0);x0=[80 0.02 382 0.9];
+[c,ceq]=brBothGrowingOptimFctConst(x0,velData1(indexGG),velData2(indexGG),cAngle1(indexGG),cAngle2(indexGG),delta/13);
 x0=[0 0 0 0];
 [xResGG,objVal,exitFlag,outPut]=fminimax(@brBothGrowingOptimFct,x0,[],[],[],[],[1e-4 1e-4 1e-4 1e-4  ],[1000 100 1000 100],@brBothGrowingOptimFctConst,opts,velData1(indexGG),velData2(indexGG),cAngle1(indexGG),cAngle2(indexGG),delta/13);
 
-x0=[1 1 20 100];
+x0=[0 0 0 0];
 [xResSS,objVal,exitFlag,outPut]=fmincon(@brBothShrinkOptim,x0,[],[],[],[],[1e-4 1e-4 1e-4 1e-4  ],[100 1000 100 1000 ],@brBothShrinkOptimConst,opts,velData1(indexSS),velData2(indexSS),cAngle1(indexSS),cAngle2(indexSS),delta,vUnload,'fixed');
 
 x0=[xResGG(1:2) xResSS(1:2) xResGG(3:4) xResSS(3:4)];

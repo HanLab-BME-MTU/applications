@@ -1,6 +1,14 @@
 function [fct]=brBothGrowingOptimFct(x,velData1,velData2,cAngle1,cAngle2,delta);
-
-
+% brBothGrowingOptimFct generate the obj. fct for the growth-growth case
+% INPUT
+%     x         :  paramters of pol
+%     velData1  :  velocity of the MT1 w>0
+%     velData2  :  velocity of MT2 >0
+%     delta     :  1/13 of subunit length
+%     without
+% OUPUT 
+%     fct       :  objective function
+% COMMENT : the free case is not always update
 
 
         

@@ -1,6 +1,30 @@
-function [mt1State,mt2State,mt1Velocity,mt2Velocity,cAngle1,cAngle2,trajMatMt1,trajMatMt2]=brGetAnaData(idlisttrack,dataProperties,lastResult)
+function [mt1State,mt2State,mt1Velocity,mt2Velocity,cAngle1,cAngle2,trajMatMt1,trajMatMt2,dataSpb]=brGetAnaData(idlisttrack,dataProperties,lastResult)
+%BRGETANADAT put the data in the needed format for the optimzation for 4
+%tags
 
-
+%SYNOPSIS
+%[mt1State,mt2State,mt1Velocity,mt2Velocity,cAngle1,cAngle2,trajMatMt1,trajMatMt2,dataSpb]=brGetAnaData(idlisttrack,dataProperties,lastResult)
+%    
+%
+%INPUT 
+%       idlisttrack     : list from jonas tracking program
+%       dataProperties  : properties from jonas tracking program
+%       lastResult      : last result from jonas tracking program
+%
+%OUTPUT
+%       mt1Velocity     : vector with the velocity for first MT
+%       mt2Velocity     : vector with the velocity for second MT
+%       cAngle1         : vector with the cosinus of the angle between the
+%                         first MT and the inter-centromere axis
+%       cAngle2         : vector with the cosinus of the angle between the
+%                         second MT and the inter-centromere axis
+%       tarjMatMt1      : matrix returning all the info about the
+%                         of the first MT see trajectoryAnalysis.m for more information.
+%       tarjMatMt2      : matrix returning all the info about the trajectory
+%                         of the second MT see trajectoryAnalysis.m for more information.
+%       dataSpb         : matrix returning all the info about the trajectory
+%                         of the spindle pole body axis see trajectoryAnalysis.m for more information.
+%COMMENTS: 
 
 
 
@@ -27,6 +51,9 @@ ioOpt.clusterData=0;
 trajectoryDescriptionMt1 = trajectoryAnalysis(dataMt1,ioOpt,[]);
 
 dataMt2 = calculateTrajectoryFromIdlist(idlisttrack,dataProperties,cen2Tag,spb2Tag,[]);
+
+dataSpb = calculateTrajectoryFromIdlist(idlisttrack,dataProperties,spb1Tag,spb2Tag,[]);
+
 
 trajectoryDescriptionMt2 = trajectoryAnalysis(dataMt2,ioOpt,[]);
 close all;
@@ -130,6 +157,9 @@ dotVect1=(sum((mt1Coord.*cenCoord)')');
 normCen=sum((cenCoord.*cenCoord)').^0.5;
 normMt1=sum((mt1Coord.*mt1Coord)').^0.5;
 normVects1=(normCen.*normMt1)';
+
+normVects1(find(normVects1==0))=NaN;
+
 cAngle1=dotVect1./normVects1;
 
 
@@ -137,6 +167,7 @@ dotVect2=sum((mt2Coord.*(-cenCoord))')';
 normCen=sum((cenCoord.*cenCoord)').^0.5;
 normMt2=sum((mt2Coord.*mt2Coord)').^0.5;
 normVects2=(normCen.*normMt2)';
+normVects2(find(normVects2==0))=NaN;
 cAngle2=dotVect2./normVects2;
 
 

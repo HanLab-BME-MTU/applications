@@ -1,6 +1,23 @@
 function [mt1Vel,cAngle1T,mt2Vel,cAngle2T]=brDataFormating(idlisttrack,dataProperties,lastResult,stateWanted);
+%BRFORMATING put the data in the needed format for the optimzation
 
-
+%SYNOPSIS
+%[mt1Vel,cAngle1T,mt2Vel,cAngle2T]=brDataFormating(idlisttrack,dataProperties,lastResult,stateWanted)
+%    
+%
+%INPUT 
+%       idlisttrack     : list from jonas tracking program
+%       dataProperties  : properties from jonas tracking program
+%       lastResult      : last result from jonas tracking program
+%       sateWanted      : sting, GG growth-growth case, SS SG or GS
+%OUTPUT
+%       mt1Vel          : vector with the velocity for first MT
+%       mt2Vel          : vector with the velocity for second MT
+%       cAngle1T        : vector with the cosinus of the angle between the
+%                         first MT and the inter-centromere axis
+%       cAngle2T        : vector with the cosinus of the angle between the
+%                         second MT and the inter-centromere axis
+%COMMENTS: Not anymore used in the latest version
 
 
 

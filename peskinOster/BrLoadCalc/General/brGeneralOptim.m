@@ -1,6 +1,18 @@
 function fct=brGeneralOptim(x,velData1,velData2,cAngle1,cAngle2,delta,vUnload,pFixe);
-
-
+% brBothShrinkOptim resuturn a obj fct for genral case
+% INPUT
+%     x         :  paramters of depol [pol depol pol depol]
+%     velData1  :  velocity of the MT1 with sign
+%     velData2  :  velocity of MT2 with sign
+%     cAngle1   :  cosines of angle between MT1 and inter-centromere axis
+%     cAngle2   :  cosines of angle between MT2 and inter-centromere axis
+%     delta     :  1/13 of subunit length
+%     vUnload   :  unload velocity of the shrink case
+%     pFixe     :  fixed or free regarding if you optimize with p or
+%     without
+% OUPUT 
+%     fct       :  objective function
+% COMMENT : the free case is not always update
 
 %DEBUG
 if isempty(find(x<0))==0

@@ -1,5 +1,21 @@
 function [c,ceq]=brBothDiffOptimConst(x,velData1,velData2,cAngle1,cAngle2,delta,vUnload,pFixe);
+% brBothDiffOptimConst generate the constraint for the growth-shrink or
+% shrink-grwth case
+% INPUT
+%     x         :  paramters of pol/depol, input in the correct way: GS first pol
+%                  then depol for SG first depol then pol
+%     velData1  :  velocity of the MT1 with sign if GS>0 if SG <0
+%     velData2  :  velocity of MT2 with sign
+%     cAngle1   :  cosines of angle between MT1 and inter-centromere axis
+%     cAngle2   :  cosines of angle between MT2 and inter-centromere axis
+%     delta     :  1/13 of subunit length
+%     vUnload   :  unload velocity of the shrink case
+%     pFixe     :  fixed or free regarding if you optimize with p or
+%     without
+% OUTPUT
+%     c         : conatraint inequality in the form for fminimax or fmincon 
 
+% COMMENT : the free case is not always update
 if length(find(velData1<0))==length(velData1) & length(find(velData2>0))==length(velData2)
     state='SG';
 elseif length(find(velData1>0))==length(velData1) & length(find(velData2<0))==length(velData2)

@@ -1,11 +1,23 @@
 function [omega,omegaHigh,omegaLow]=brInvShrinkSpline(velData,velDiscret,omegaDiscret);
 % brInvShrinkSpline return omega for MT depoly. according to peskin & oster 1995
+%INPUT:
+%     velData     :    vect, velocity from a data base
+%     velDiscret  :    vect, dicretizied velocity all over the interval
+%     omegaDiscret:    vect, dicretizied load all over the interval
+%OUTPUT:
+%     omega       :    load for the data velocity if the function is only
+%                      decreasing
+%     omegaHigh   :    load of the upper curve
+%     omegaLow    :    load of the lower curve
+%COMMENT  : return NaN is the load is not difined
 
 
 
 maxIndice=find(velDiscret==max(velDiscret));
 
-
+omega=NaN;
+omegaHigh=NaN;
+omegaLow=NaN;
 
 % 2 main case monotonic or not
 %if monotonic, velmax @ 1
@@ -39,6 +51,11 @@ elseif maxIndice>1
         omegaHigh=ppval(polynomeHigh,velData);
     end
 end
+
+if isnan(omega)&isnan(omegaHigh)&isnan(omegaLow)
+    disp('hello');
+end
+
 
     
     

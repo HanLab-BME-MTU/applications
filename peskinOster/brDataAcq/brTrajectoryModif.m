@@ -1,6 +1,11 @@
 function [newTrajMat,trajMat]=brTrajectoryModif(trajectoryDescription);
 % Reshape the interpolation by recopying the values over the numb of frame
 % with similar value
+% Input :   
+%         trajectoryDescription    :   matrix return by joans soft
+% Output
+%         newTrajMat               :   matrix reshape by recopying the
+%                                      value for onterpolated frames
 
 
 
