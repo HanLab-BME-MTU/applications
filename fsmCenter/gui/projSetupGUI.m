@@ -56,50 +56,16 @@ function projSetupGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for projSetupGUI
 %handles.output = hObject;
 
-handles.projDir = '';
-handles.imgDir  = '';
-handles.tackDir = '';
-handles.lplaDir = '';
-handles.postDir = '';
-handles.edgeDir = '';
-handles.mergDir = '';
-handles.fadhDir = '';
-handles.corrDir = '';
-projDir=[];
-imgDir=[];
-resDirList={};
-    
-% if nargin==3
-%     projDir=[];
-%     resDirList={};
-% end
-
+projDir = '';
 if nargin > 5
-    projDir = varargin{3};
-end
-if nargin > 6
-    imgDir = varargin{4};
-end
-if nargin > 7 
-    resDirList = varargin{5};
+   projDir = varargin{3};
 end
 
-if isempty(projDir)
-    %Use the current directory.
-    projDir = pwd;
+if ~isdir(projDir)
+   projDir = pwd;
 end
 
-handles.projDir = projDir;
-if ~isempty(resDirList)
-    handles.tackDir = resDirList{1};
-    handles.lplaDir = resDirList{2};
-    handles.postDir = resDirList{3};
-    handles.edgeDir = resDirList{4};
-    handles.mergDir = resDirList{5};
-    handles.fadhDir = resDirList{6};
-    handles.corrDir = resDirList{7};
-end
-
+[imgDir,resDirList] = getProjSetting(projDir);
 
 %Get handles to GUI objects.
 handles.projDirTFH = findobj('tag','projDir');
@@ -119,13 +85,7 @@ handles.fadhDirTFH = findobj('tag','fadhSufNew');
 handles.corrDirMH  = findobj('tag','corrSuffix');
 handles.corrDirTFH = findobj('tag','corrSufNew');
 
-handles = getProjSetting(handles);
-
-updateGUI(hObject,handles);
-
-if ~isempty(imgDir)
-    set(handles.imgDirTFH,'string',imgDir);
-end
+handles = updateGUI(handles,projDir,imgDir,resDirList);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -147,38 +107,35 @@ if ~isempty(selDir)
     tmpInd = find(strcmp(dirList,selDir));
     if ~isempty(tmpInd)
         set(dirMH,'value',tmpInd+1);
-        %else
-        %   if length(selDir) < 4 | strcmp(selDir(1:4),dirName) == 0
-        %      error(['The first 4 characters of ' dirName ' directiory has to ' ...
-        %         'be ''' dirName '''.']);
-        %   else
-        %      if length(selDir) > 4
-        %         set(dirTFH,'string',selDir(5:end));
-        %      end
-        %   end
+     else
+        if length(selDir) > 4
+           set(dirTFH,'String',selDir(5:end));
+        end
     end
 end
 
-function updateGUI(hObject,handles)
+function handles = updateGUI(handles,projDir,imgDir,resDirList)
+
+handles.projDir = projDir;
+handles.imgDir  = imgDir;
 
 %Search for available results directories for each package and update popup
 % menu in the GUI.
-projDir = handles.projDir;
-imgDir  = handles.imgDir;
-tackDir = handles.tackDir;
-lplaDir = handles.lplaDir;
-postDir = handles.postDir;
-edgeDir = handles.edgeDir;
-mergDir = handles.mergDir;
-fadhDir = handles.fadhDir;
-corrDir = handles.corrDir;
+tackDir = resDirList{1};
+lplaDir = resDirList{2};
+postDir = resDirList{3};
+edgeDir = resDirList{4};
+mergDir = resDirList{5};
+fadhDir = resDirList{6};
+corrDir = resDirList{7};
 
-%tackDirList = {};
-%lplaDirList = {};
-%postDirList = {};
-%edgeDirList = {};
-%mergDirList = {};
-%corrDirList = {};
+handles.tackDir = tackDir;
+handles.lplaDir = lplaDir;
+handles.postDir = postDir;
+handles.edgeDir = edgeDir;
+handles.mergDir = mergDir;
+handles.fadhDir = fadhDir;
+handles.corrDir = corrDir;
 
 projDirStruct=dir(projDir);
 tackDirList = findProjSubDir(projDirStruct,'tack');
@@ -190,31 +147,6 @@ fadhDirList = findProjSubDir(projDirStruct,'fadh');
 corrDirList = findProjSubDir(projDirStruct,'corr');
 
 set(handles.projDirTFH,'string',projDir);
-%if ~isempty(projDir)
-%if isdir(projDir)
-%dirList = dir(projDir);
-%dirNameList = {dirList(find([dirList.isdir])).name};
-%for k = 1:length(dirNameList)
-%   if length(dirNameList{k}) >= 4
-%      if strcmp(dirNameList{k}(1:4),'tack') == 1
-%         tackDirList = {tackDirList{:} dirNameList{k}};
-%      elseif strcmp(dirNameList{k}(1:4),'lpla') == 1
-%         lplaDirList = {lplaDirList{:} dirNameList{k}};
-%      elseif strcmp(dirNameList{k}(1:4),'post') == 1
-%         postDirList = {postDirList{:} dirNameList{k}};
-%      elseif strcmp(dirNameList{k}(1:4),'edge') == 1
-%         edgeDirList = {edgeDirList{:} dirNameList{k}};
-%      elseif strcmp(dirNameList{k}(1:4),'merg') == 1
-%         mergDirList = {mergDirList{:} dirNameList{k}};
-%      elseif strcmp(dirNameList{k}(1:4),'corr') == 1
-%         corrDirList = {corrDirList{:} dirNameList{k}};
-%      end
-%   end
-%end
-%   end
-%   set(handles.projDirTFH,'string',projDir);
-%end
-
 set(handles.imgDirTFH,'string',imgDir);
 
 updateDirList(handles.tackDirMH,handles.tackDirTFH,tackDirList,tackDir,'tack');
@@ -224,11 +156,6 @@ updateDirList(handles.edgeDirMH,handles.edgeDirTFH,edgeDirList,edgeDir,'edge');
 updateDirList(handles.mergDirMH,handles.mergDirTFH,mergDirList,mergDir,'merg');
 updateDirList(handles.fadhDirMH,handles.fadhDirTFH,fadhDirList,fadhDir,'fadh');
 updateDirList(handles.corrDirMH,handles.corrDirTFH,corrDirList,corrDir,'corr');
-
-
-
-% Update handles structure
-guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -293,9 +220,6 @@ function cancel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.projDir = '';
-handles.imgDir  = '';
-handles.tackDir = '';
-handles.corrDir = '';
 
 % Update handles structure
 guidata(hObject, handles);
@@ -449,12 +373,13 @@ if isnumeric(projDir) & projDir == 0
     return;
 end
 
-set(handles.projDirTFH,'string',projDir);
-handles.projDir = projDir;
+if ~samdir(handles.projDir,projDir)
+    [imgDir resDirList] = getProjSetting(projDir);
+    handles = updateGUI(handles,projDir,imgDir,resDirList);
+end
 
-handles = getProjSetting(handles);
+guidata(hObject,handles);
 
-updateGUI(hObject,handles);
 
 % --- Executes on return projDir text field.
 function projDir_Callback(hObject, eventdata, handles)
@@ -464,11 +389,19 @@ function projDir_Callback(hObject, eventdata, handles)
 
 projDir = get(handles.projDirTFH,'string');
 
-if ~samdir(handles.projDir,projDir)
-    handles.projDir = projDir;
-    handles = getProjSetting(handles);
-    updateGUI(hObject,handles);
+if ~isdir(projDir)
+   errordlg('The entered path is not a directory.','Input error','modal');
+   return;
 end
+
+if ~samdir(handles.projDir,projDir)
+    [imgDir resDirList] = getProjSetting(projDir);
+    handles = updateGUI(handles,projDir,imgDir,resDirList);
+end
+
+guidata(hObject,handles);
+
+
 
 % --- Executes on button press on Browse.
 function imgDirBrowse_Callback(hObject, eventdata, handles)
@@ -476,7 +409,12 @@ function imgDirBrowse_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-imgDir = uigetdir('','Please select your image directory');
+if isdir(handles.imgDir)
+   imgDir = uigetdir([handles.imgDir filesep '..'], ...
+      'Please select your image directory');
+else
+   imgDir = uigetdir('','Please select your image directory');
+end
 
 if isnumeric(imgDir) & imgDir == 0
     return;
@@ -485,20 +423,41 @@ end
 set(handles.imgDirTFH,'string',imgDir);
 handles.imgDir = imgDir;
 
+guidata(hObject,handles);
 
 
-function handles = getProjSetting(handles)
+function imgDir_Callback(hObject, eventdata, handles)
+% hObject    handle to imgDir (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
-projDir = handles.projDir;
-tackDir = '';
-lplaDir = '';
-postDir = '';
-edgeDir = '';
-mergDir = '';
-fadhDir = '';
-corrDir = '';
+imgDir = get(handles.imgDirTFH,'string');
+
+if ~isdir(imgDir)
+   errordlg('The entered path is not a directory.','Input error','modal');
+   return;
+end
+
+if ~samdir(handles.imgDir,imgDir)
+    handles.imgDir = imgDir;
+end
+
+guidata(hObject,handles);
+
+
+function [imgDir,resDirList] = getProjSetting(projDir)
+
+%projDir = handles.projDir;
+%tackDir = handles.tackDir;
+%lplaDir = handles.lplaDir;
+%postDir = handles.postDir;
+%edgeDir = handles.edgeDir;
+%mergDir = handles.mergDir;
+%fadhDir = handles.fadhDir;
+%corrDir = handles.corrDir;
 
 %Read last project setting in the selected project path.
+noProblem = 0;
 if isdir(projDir)
     if isunix==1
         settingsFileName='lastProjSettings_unix.txt';
@@ -577,29 +536,22 @@ if isdir(projDir)
             textL = fgetl(fid);
         end
         if ~noProblem
-            warnH = warndlg(['Project setting file is corrupted ' ...
-                    'and will be ignored.'],'Warning','modal');
-            
-            handles.imgDir  = '';
-            handles.tackDir = '';
-            handles.lplaDir = '';
-            handles.postDir= '';
-            handles.edgeDir= '';
-            handles.mergDir= '';
-            handles.fadhDir= '';
-            handles.corrDir= '';
-        else
-            handles.imgDir  = imgDir;
-            handles.tackDir = tackDir;
-            handles.lplaDir = lplaDir;
-            handles.postDir = postDir;
-            handles.edgeDir = edgeDir;
-            handles.mergDir = mergDir;
-            handles.fadhDir = fadhDir;
-            handles.corrDir = corrDir;
+           warnH = warndlg(['Project setting file is corrupted ' ...
+              'and will be ignored.'],'Warning','modal'); 
         end
         fclose(fid);
     end
 end
 
+if ~noProblem
+   imgDir  = '';
+   tackDir = '';
+   lplaDir = '';
+   postDir= '';
+   edgeDir= '';
+   mergDir= '';
+   fadhDir= '';
+   corrDir= '';
+end
 
+resDirList = {tackDir,lplaDir,postDir,edgeDir,mergDir,fadhDir,corrDir};
