@@ -39,7 +39,10 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %           - calc2d        : [{0}/1/2] depending on whether the
 %                               normal 3D-data or the maxProjection
 %                               or the in-focus-slice data should be
-%                               used.
+%                               used. Works only if data is being loaded by
+%                               the program. Otherwise, you have to specify
+%                               this option in
+%                               calculateTrajectoryFromIdlist
 %        testOpt: optional structure with the following optional fields
 %           - splitData     : [{0}/1] split data into two sets, returns two
 %                               output arguments
@@ -70,7 +73,7 @@ saveMat = 0;
 saveMatPath = '';
 saveMatName = '';
 verbose = [1]; 
-debug = 0;
+DEBUG = []; %[1,2] for groupUnits
 fileNameList = {'data_1'};
 calculateTrajectoryOpt.calc2d = 0; %1 or 2 if MP/in-focus slices only
 expOrSim = 'x';
@@ -80,7 +83,6 @@ splitData = 0; %whether or not to split the data into two sets (to check the hom
 writeShortFileList = 1; %writes everything on one line.
 standardTag1 = 'spb1';
 standardTag2 = 'cen1';
-trajectoryDescription2 = []; %init
 
 
 constants.TESTPROBABILITY = 0.95;
@@ -90,6 +92,7 @@ constants.PROBF = 0.7; %probability for whether linear fit is better than pause.
 constants.STRATEGY = 1; %fitting strategy
 constants.MINLENGTH = 2; %minimum length of a unit
 constants.MAXDELETED = 0; %max number of deleted frames between two timepoints that is accepted
+constants.DEBUG = DEBUG; 
 
 %build list of possible identifiers
 %HOME/BIODATA/SIMDATA (also: NONE/NOFILE)
@@ -240,14 +243,14 @@ else
         end
     end
     if isfield(ioOpt,'expOrSim')
-        if length(ioOpt.expOrSim>1) | ~isstr(ioOpt.expOrSim) | ~strfind('esx',ioOpt.expOrSim)
+        if length(ioOpt.expOrSim)>1 | ~isstr(ioOpt.expOrSim) | isempty(strfind('esx',ioOpt.expOrSim))
             error('expOrSim has to be one letter (e, s, or x)');
         else
             expOrSim=ioOpt.expOrSim;
         end
     end
     if isfield(ioOpt,'calc2d')
-        calc2d = ioOpt.calc2d;
+        calculateTrajectoryOpt.calc2d = ioOpt.calc2d;
     end
 end
 
@@ -285,7 +288,8 @@ else
         splitData = testOpt.splitData;
     end
     if isfield(testOpt,'debug')
-        debug = testOpt.debug;
+        DEBUG = testOpt.debug;
+        constants.DEBUG = DEBUG;
     end
 end
 
@@ -293,6 +297,7 @@ end
 
 %----------assign output---
 trajectoryDescription = [];
+trajectoryDescription2 = [];
 %--------------------------
 
 
@@ -411,7 +416,7 @@ if loadData
         %choose tags
         %check whether there is a non-empty field opt, else just use spb1
         %and cen1
-        flopt = fileList(i).opt; %increase readabilitz
+        flopt = fileList(i).opt; %increase readability
         if isempty(flopt) | length(flopt)<3  | isempty(flopt{2}) | isempty(flopt{3})%there could be more options in the future!
             tag1 = 'spb1';
             tag2 = 'cen1';
@@ -568,7 +573,7 @@ end
 
 
 %--------------CALCULATE---------
-if debug
+if DEBUG
     trajectoryDescription = trajectoryAnalysisMain(data,constants,showDetails,doConvergence,verbose,fileNameList);
     if splitData % do the second set
         trajectoryDescription2 = trajectoryAnalysisMain(data2,constants,showDetails,doConvergence,verbose,fileNameList2);

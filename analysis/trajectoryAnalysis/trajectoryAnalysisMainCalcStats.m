@@ -402,7 +402,7 @@ if nargout > 1
     if any(verbose == 3)
         %plot without detail. Would cost too much memory
         figure('Name','speed distribution'),plot(growthSpeedDistX,growthSpeedDistY/max(growthSpeedDistY),'-g',...
-            -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedsDistY),'-r');
+            -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedDistY),'-r');
         figure('Name','distance distribution'),area(distanceDistX,distanceDistY);
     end
         
