@@ -363,7 +363,13 @@ if TRACKER==1 | TRACKER ==3
             
         end
         
-        %Delete any saved
+        %Delete any saved temporary 'tackFlow'.
+        initPath=fsmParam.track.initPath;
+        tackAvgFlowField = [initPath filesep 'tackFlow.mat'];
+        if exist(tackAvgFlowField,'file') == 2
+            delete(tackAvgFlowField);
+        end
+        
         % Close waitbar
         close(h);
         
