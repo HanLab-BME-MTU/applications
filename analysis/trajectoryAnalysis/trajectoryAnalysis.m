@@ -74,20 +74,52 @@ function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %           - downsample    : [{1}/n] takes only every nth point, returns n
 %                               times more trajctories
 %
-% OUTPUT trajectoryDescription
-%           .individualStatistics(1:n)
-%               .statistics
-%               .details (opt)
-%                    .dataListG
-%                    .dataListS
-%                    .distributions
-%           .overallStatistics
+% OUTPUT trajectoryDescription   nRuns by 1 structure with fields
+%           .individualStatistics(1:n)  statistics of individual trajectory
+%               .statistics             statistics (fieldnames: see below)
+%               .details (opt)         
+%                    .dataListGroup     fits to the trajectory
+%                    .dataListSeed      single-interval classification
+%                    .distributions     ## will be discontinued ##
+%           .overallStatistics          mean over all trajectories in run
 %               OR
-%           .convergenceStatistics
-%           .overallDistribution
-%           .info
+%           .convergenceStatistics(1:n) mean over first i trajectories     
+%           .overallDistribution        ## will be discontinued ##  
+%           .info                       only in first element of trajDes:
+%                                       info on statistics and lists
+%                                       ## not implemented yet ##
 %
-%           to get all the fieldnames of the statistics struct, type "help trajectoryAnalysisMainCalcStats"
+%        columns of dataLists
+%           1:startIdx, 2:endIdx, 3:state, 4:slope, 5:slopeSigma, 6:slopeSigmaAPR,
+%           7:deltaT, 8:(deltaTSigma), 9:deltaD, 10:deltaDSigma, 11:startDistance
+%
+%        fields of statistics-structure 
+%           SEM: standard error of the mean
+%           STD: standard deviation of the sample (SEM*sqrt(n))
+%
+%     'ap2tpFreq__cat' ,        catastrophe frequency (m,sem,n; [s^-1])
+%     'tp2apFreq__res' ,        rescue frequency      (m,sem,n; [s^-1])
+%     'antipolewardSpeed' ,     growth speed          (m,sem,n; [um/min])
+%     'polewardSpeed' ,         shrinkage speed       (m,sem,n; [um/min])
+%     'distanceMean',           mean spb-cen distance (m,sem; [um])
+%     'distanceStd'             std of distance       (m,sem; [um])
+%           for individual statistics, there can be no sem
+%     'minDistance',            global minimum distance (m,std; [um])
+%     'minDistanceM5' ,         mean of 5 smallest distances (m,sem; [um])
+%     'maxDistance' ,           global maximum distance (m,std; [um])  
+%     'maxDistanceM5' ,         mean of 5 largest distances (m,sem; [um])
+%     'pauseNumber',            number of pause events
+%     'avgApDistance' ,         mean distance per growth event (m,sem; [um])
+%     'avgTpDistance' ,         mean distance per shrinkage event (m,sem; [um])
+%     'avgUndetDistance' ,      avg of absolute distance in undet. intervals (m,sem; [um])
+%     'antipolewardTime' ,      total AP time [s]; % of total traj. time     
+%     'polewardTime' ,          total TP time [s]; % of total traj. time
+%     'pauseTime' ,             total pause time [s]; % of total traj. time 
+%     'undeterminedTime' ,      total undet. time [s]; % of total traj. time 
+%     'deletedTime' ,           total not analyzed time [s] - not counting
+%                               deletion at the end of the trajectory
+%     'nTimepoints',            number of total timepoints; avg per trajectory
+%        
 %
 %c: 11/03 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -492,7 +524,8 @@ loadOptions = struct('standardTags', {standardTags},...
     'randomize', randomize,...
     'calculateTrajectoryOpt',calculateTrajectoryOpt);
 
-[run, fileNameListSave] = trajectoryAnalysisLoadData(inputLoaded, constants, inputData, fileNameList, loadOptions);
+[run, fileNameListSave] = trajectoryAnalysisLoadData(...
+    inputLoaded, constants, inputData, fileNameList, loadOptions);
 %===================================================
 
 cd(oldDir);
@@ -588,7 +621,8 @@ if saveTxt
         end %check for identifier and restOfFilename
         
         %now write everything to file
-        fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'], identifier, tagList{1}, tagList{2}, restOfFileName);
+        fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
+            identifier, tagList{1}, tagList{2}, restOfFileName);
         
         
     end %for nFile = 1:length(fileNameList)
@@ -611,12 +645,16 @@ end
 
 if ~isempty(DEBUG) || ~saveTxt % if no file, we do not care
     for iRun = 1:length(run)
-        trajectoryDescription(iRun) = trajectoryAnalysisMain(run(iRun).data,constants,showDetails,doConvergence,verbose,run(iRun).fileNameList);
+        trajectoryDescription(iRun,1) =...
+            trajectoryAnalysisMain(run(iRun).data,...
+            constants,showDetails,doConvergence,verbose,run(iRun).fileNameList);
     end
 else
     try
         for iRun = 1:length(run)
-            trajectoryDescription(iRun) = trajectoryAnalysisMain(run(iRun).data,constants,showDetails,doConvergence,verbose,run(iRun).fileNameList);
+            trajectoryDescription(iRun,1) =...
+                trajectoryAnalysisMain(run(iRun).data,...
+                constants,showDetails,doConvergence,verbose,run(iRun).fileNameList);
         end
     catch
         if ~isempty(fidTxt) 

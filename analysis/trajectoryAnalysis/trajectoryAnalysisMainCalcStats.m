@@ -2,30 +2,34 @@ function [statisticsStruct, addedStats, distributionStruct, clusterStruct] = tra
 %TRAJECTORYANALYSISMAINCALCSTATS calculates statistics for trajectoryAnalysis
 %
 % OUTPUT statistics structure with fields
-%     'ap2tpFreq' ,             catastrophe frequency
-%     'tp2apFreq' ,             rescue frequency
-%     'antipolewardSpeed' ,         growth speed
-%     'polewardSpeed' ,        shrinkage speed
-%           for individual stats
-%     'distanceMean',             std is std of sample!
-%           for overall stats
-%     'distanceMean' mean +/- std
-%     'distanceStd' mean of sample stds +/- std
-%     'minDistance',              
-%     'minDistanceM5' ,           mean of 5 smallest distances
-%     'maxDistance' ,             
-%     'maxDistanceM5' ,           mean of 5 largest distances
-%     'antipolewardDistance' ,      mean distance per growth event
-%     'antipolewardDistanceTotal' , 
-%     'polewardDistance' ,     mean distance per shrinkage event
-%     'polewardDistanceTotal', 
-%     'undeterminedDistance' ,    
-%     'antipolewardTime' ,          
-%     'polewardTime' ,         
-%     'pauseTime' ,               
-%     'undeterminedTime' ,        
-%     'deletedTime' ,             
-%     'nTimepoints', 
+%        fields of statistics-structure 
+%           SEM: standard error of the mean
+%           STD: standard deviation of the sample (SEM*sqrt(n))
+%
+%     'ap2tpFreq__cat' ,        catastrophe frequency (m,sem,n; [s^-1])
+%     'tp2apFreq__res' ,        rescue frequency      (m,sem,n; [s^-1])
+%     'antipolewardSpeed' ,     growth speed          (m,sem,n; [um/min])
+%     'polewardSpeed' ,         shrinkage speed       (m,sem,n; [um/min])
+%     'distanceMean',           mean spb-cen distance (m,sem; [um])
+%     'distanceStd'             std of distance       (m,sem; [um])
+%           for individual statistics, there can be no sem
+%     'minDistance',            global minimum distance (m,std; [um])
+%     'minDistanceM5' ,         mean of 5 smallest distances (m,sem; [um])
+%     'maxDistance' ,           global maximum distance (m,std; [um])  
+%     'maxDistanceM5' ,         mean of 5 largest distances (m,sem; [um])
+%     'pauseNumber',            number of pause events
+%     'avgApDistance' ,         mean distance per growth event (m,sem; [um])
+%     'avgTpDistance' ,         mean distance per shrinkage event (m,sem; [um])
+%     'avgUndetDistance' ,      avg of absolute distance in undet. intervals (m,sem; [um])
+%     'antipolewardTime' ,      total AP time [s]; % of total traj. time     
+%     'polewardTime' ,          total TP time [s]; % of total traj. time
+%     'pauseTime' ,             total pause time [s]; % of total traj. time 
+%     'undeterminedTime' ,      total undet. time [s]; % of total traj. time 
+%     'deletedTime' ,           total not analyzed time [s] - not counting
+%                               deletion at the end of the trajectory
+%     'nTimepoints',            number of total timepoints; avg per trajectory
+%        
+%
 %
 %      and distribution structure with distributions from contHisto for
 %      both speeds and the distance
@@ -397,7 +401,6 @@ statisticsStruct = struct(...
     'avgApDistance' ,             [growthDistanceMean , growthDistanceStd],...
     'avgTpDistance' ,             [shrinkageDistanceMean , shrinkageDistanceStd],...
     'avgUndetDistance' ,          [undeterminedDistanceMean , undeterminedDistanceStd],...
-    'jAndLVerdeEtAl',             [jVerdeEtAl , lVerdeEtAl],...
     'antipolewardTime' ,          [growthTimeTotal,growthTimeRatio],...
     'polewardTime' ,              [shrinkageTimeTotal,shrinkageTimeRatio],...
     'pauseTime' ,                 [pauseTimeTotal,pauseTimeRatio],...
