@@ -294,8 +294,8 @@ writeResults(stats,1);
 
 if writeToFile==1
 
-    % Open file 'settings.log'
-	fid=fopen('settings.log','a');
+    % Open file 'log.txt'
+	fid=fopen('log.txt','a');
 	
 	% Could the file be opened successfully?
 	if fid==-1

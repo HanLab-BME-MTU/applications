@@ -37,6 +37,24 @@ end
 
 tic;
 
+% Write as well to 'log.txt'
+fid=fopen([fsmParam.main.path,filesep,'log.txt'],'a');
+
+% Could the file be opened successfully?
+if fid==-1
+	error('Couldn''t open the file.');
+end
+
+% Write to file
+fprintf(fid,'****************************************************************************************\n');
+fprintf(fid,'*                                                                                      *\n');
+fprintf(fid,'*     Calculation started: %s                                        *\n',datestr(now,0));
+fprintf(fid,'*                                                                                      *\n');
+fprintf(fid,'****************************************************************************************\n');
+
+% Close the file
+fclose(fid);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   CREATE WORK DIRECTORY
@@ -386,5 +404,28 @@ eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fprintf(1,'All done! Elapsed time: %d seconds.\n',round(toc));
+% Store elapsed time
+elapsedTime=toc;
+
+% Write to console
+fprintf(1,'All done! Elapsed time: %d seconds.\n',round(elapsedTime));
+
+% Write as well to 'parameters.txt'
+fid=fopen('log.txt','a');
+
+% Could the file be opened successfully?
+if fid==-1
+	error('Couldn''t open the file.');
+end
+
+% Write to file
+fprintf(fid,'\n\n****************************************************************************************\n');
+fprintf(fid,'*                                                                                      *\n');
+fprintf(fid,'*     Calculation finished: %s                                       *\n',datestr(now,0));
+fprintf(fid,'*                                                                                      *\n');
+fprintf(fid,'****************************************************************************************\n\n\n');
+
+% Close the file
+fclose(fid);
+
 

@@ -654,8 +654,8 @@ end
 % Close waitbar
 close(h);
 
-% Write info to console and 'settings.log'
-fid=fopen('settings.log','a');
+% Write info to console and 'log.txt'
+fid=fopen('log.txt','a');
 
 % Could the file be opened successfully?
 if fid==-1
