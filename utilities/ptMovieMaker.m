@@ -69,10 +69,10 @@ else
 end
 
 % How many frames does the user wants to see the tracks of?
-dragTailLength = guiData.dragtaillength;
+dragTailLength = guiData.dragtail;
 
 % We need enough frames to show the length of the dragtail
-if (movieEndFrame - movieStartFrame + 1) < dragTailLength
+if (movieEndFrame - startFrame + 1) < dragTailLength
    h = errordlg (['Not enough frames for dragtail length of ' num2str(dragTailLength) '. Exiting...']);
    uiwait (h);
    result = 1;
@@ -209,7 +209,7 @@ for movieStep = movieStartFrame : increment : movieEndFrame
                 ph = plot (selectedFrames (hCount, 1:2:3), selectedFrames (hCount, 2:2:4));
 
                 % Mark the tails as tails
-                set (ph, 'Color', colorMap(colorCount,:),'Tag','tails');
+                set (ph, 'Color', colorMap(colorCount,:),'Tag','tails','LineWidth',2);
                 %clear ph;
              end   % if selectedFrames
           end   % for hCount

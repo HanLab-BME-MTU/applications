@@ -38,7 +38,7 @@ set (handles.GUI_app_relinkdist_ed, 'String', handles.guiData.relinkdistance);
 set (handles.GUI_app_minusframes_ed, 'String', handles.guiData.minusframes);
 set (handles.GUI_app_plusframes_ed, 'String', handles.guiData.plusframes);
 set (handles.GUI_app_minimaltrack_ed, 'String', handles.guiData.mintrackdistance);
-set (handles.GUI_fm_tracksince_ed, 'String', handles.guiData.dragtaillength);
+set (handles.GUI_fm_tracksince_ed, 'String', handles.guiData.dragtail);
 set (handles.GUI_fm_filename_ed, 'String', handles.guiData.dragtailfile);
 set (handles.multFrameVelocity, 'String', handles.guiData.multframevelocity);
 set (handles.GUI_ad_binsize_ed, 'String', handles.guiData.binsize);

@@ -108,8 +108,8 @@ handles.guiData.mintrackdistance = defaultPostPro.minimaltrack;
 set (handles.GUI_app_minimaltrack_ed, 'String', handles.guiData.mintrackdistance);
 
 % Set dragtail length
-handles.guiData.dragtaillength = defaultPostPro.dragtail;
-set (handles.GUI_fm_tracksince_ed, 'String', handles.guiData.dragtaillength);
+handles.guiData.dragtail = defaultPostPro.dragtail;
+set (handles.GUI_fm_tracksince_ed, 'String', handles.guiData.dragtail);
 
 % Set the movie type
 set (handles.GUI_movietype_avi_rb, 'Value', 1);
@@ -1004,11 +1004,17 @@ function GUI_fm_tracksince_ed_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of GUI_fm_tracksince_ed as a double
 handles = guidata (hObject);
 
-% Get the value of 'Tracks from last...'
-num = get (hObject, 'String');
-
-% Assign it to the guiData structure
-handles.guiData.dragtail = str2num (num);
+strval = get (hObject,'String');
+val = str2double (strval);
+if isnan (val)
+   h = errordlg('Sorry, this field has to contain a number.');
+   uiwait(h);          % Wait until the user presses the OK button
+   handles.guiData.dragtail = 6;
+   set (handles.GUI_fm_tracksince_ed, 'String', handles.guiData.dragtail);
+   return
+else
+   handles.guiData.dragtail = val;
+end
 
 % Update handles structure
 guidata(hObject, handles);
