@@ -43,14 +43,14 @@ handles = guidata(hObject);
 % Initialize the list of cells that will be linked manually (... means empty list)
 handles.listofcells='...';
 
-% Fetch the jobvalues and image directory
-imageDirectory = handles.postpro.imagepath;
-imageName      = handles.jobvalues.imagename;
-firstImage     = handles.jobvalues.firstimage;
-lastImage      = handles.jobvalues.lastimage;
-increment      = handles.jobvalues.increment;
-imageNameList  = handles.jobvalues.imagenameslist;
-intensityMax   = handles.jobvalues.intensityMax;
+% Fetch the jobvalues
+imageDirectory = handles.jobData(1).imagefilepath;
+imageName      = handles.jobData(1).imagename;
+firstImage     = handles.jobData(1).firstimg;
+lastImage      = handles.jobData(1).lastimg;
+increment      = handles.jobData(1).increment;
+imageNameList  = handles.jobData(1).imagenameslist;
+intensityMax   = handles.jobData(1).intensitymax;
 
 % Calculate the image range taking into account the increment between frames
 %imageRange = floor ((lastImage - firstImage + 1) / increment + 0.001);

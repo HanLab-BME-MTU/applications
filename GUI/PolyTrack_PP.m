@@ -227,44 +227,76 @@ function GUI_pp_manuelpostpro_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-% Get the job list and the current job
-fileList = get(handles.GUI_filelist_lb,'String');
-filesSelected = get(handles.GUI_filelist_lb,'Value');
-
-% We only can do manual postprocessing on one movie at a time
-if length(filesSelected) > 1
-   % Show an error dialog with an appropriate message and wait for the user to press a button
-   h=errordlg ('Manual processing can only be done for one job at a time. Please select only one job from the list.');
-   uiwait (h);
-   return
-else
-   % Get the filepath
-   filePath = fileList{filesSelected};
-    
-   % Retrieve the postpro structure for the selected job
-   [handles, result] = ptRetrievePostproData (filePath, handles);
-   
-   % Check the result value (0 is good)
-   if result == 1
-      h = errordlg('An error occurred when retrieving postpro data. Please try again...');
-      uiwait(h);          % Wait until the user presses the OK button 
-      return;
-   else
-   
-      % Set values on the GUI
-      ptSetPostproGUIValues (handles);
-   
-      % This is to signal that the ptManualPostProcessJob function is called by the
-      % GUI manual processing button
-      handles.whichcallback = 1;
-   
-      % Update handles structure
-      guidata(hObject, handles);
-
-      % Do the manual postprocessing 
-      ptManualPostProcessJob (hObject);
-   end
+% Check that files have been selected before
+if ~isfield (handles, 'allMPM')  
+    errorStr = ['Jobs should be selected first by using the Select button!'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
 end
+
+% Make sure only 1 job is selected
+if length(handles.allMPM) > 1
+    errorStr = ['Manual processing can only be done for one job at a time. Please select only one job from the list.'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% This is to signal that the ptManualPostProcessJob function is called by the
+% GUI manual processing button
+handles.whichcallback = 1;
+
+% Update handles structure
+guidata(hObject, handles);
+
+% Do the manual postprocessing 
+ptManualPostProcessJob (hObject);
+
+
+
+
+
+
+
+% % Get the job list and the current job
+% fileList = get(handles.GUI_filelist_lb,'String');
+% filesSelected = get(handles.GUI_filelist_lb,'Value');
+% 
+% % We only can do manual postprocessing on one movie at a time
+% if length(filesSelected) > 1
+%    % Show an error dialog with an appropriate message and wait for the user to press a button
+%    h=errordlg ('Manual processing can only be done for one job at a time. Please select only one job from the list.');
+%    uiwait (h);
+%    return
+% else
+%    % Get the filepath
+%    filePath = fileList{filesSelected};
+%     
+%    % Retrieve the postpro structure for the selected job
+%    [handles, result] = ptRetrievePostproData (filePath, handles);
+%    
+%    % Check the result value (0 is good)
+%    if result == 1
+%       h = errordlg('An error occurred when retrieving postpro data. Please try again...');
+%       uiwait(h);          % Wait until the user presses the OK button 
+%       return;
+%    else
+%    
+%       % Set values on the GUI
+%       ptSetPostproGUIValues (handles);
+%    
+%       % This is to signal that the ptManualPostProcessJob function is called by the
+%       % GUI manual processing button
+%       handles.whichcallback = 1;
+%    
+%       % Update handles structure
+%       guidata(hObject, handles);
+% 
+%       % Do the manual postprocessing 
+%       ptManualPostProcessJob (hObject);
+%    end
+% end
 
 % Update handles structure
 %guidata(hObject, handles);
@@ -434,46 +466,32 @@ function GUI_app_autopostpro_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-% Get the job list and the current job
-fileList = get(handles.GUI_filelist_lb,'String');
-filesSelected = get(handles.GUI_filelist_lb,'Value');
-
-% We only can do automatic postprocessing on one movie at a time
-if length(filesSelected) > 1
-   % Show an error dialog with an appropriate message and wait for the user to press a button
-   h=errordlg ('Linking can only be done for one job at a time. Please select only one job from the list.');
-   uiwait (h);
-   return
-else
-   % Get the filepath
-   filePath = fileList{filesSelected};
-    
-   % Retrieve the postpro structure for the selected job
-   [handles, result] = ptRetrievePostproData (filePath, handles);
-   
-   % Set values on the GUI
-   ptSetPostproGUIValues (handles);
-   
-   % Check the result value (0 is good)
-   if result == 1
-       return;
-   end
-   
-   % Get all the latest values from the GUI
-   saveAllPath = handles.saveallpath;
-   minTrackDistance = handles.postpro.minimaltrack;
-   maxDistance = handles.postpro.maxdistpostpro;
-   minusFrames = handles.postpro.minusframes;
-   plusFrames = handles.postpro.plusframes;
-   MPM = handles.MPM;
-
-   % Get the latest MPM matrix and filter it using the values on the GUI (eg eliminating
-   % tracks that are too short)
-   updatedMPM = ptTrackFilter (MPM, plusFrames, minusFrames, maxDistance, minTrackDistance, saveAllPath);
-
-   % Update the handles structure with the filtered MPM matrix
-   handles.MPM = updatedMPM;
+% Check that files have been selected before
+if ~isfield (handles, 'allMPM')  
+    errorStr = ['Jobs should be selected first by using the Select button!'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
 end
+
+% Assign the radiobutton values to the radioButtons struct
+radioButtons = getRadiobuttonValues (handles);
+
+% Get the needed GUI data
+plusFrames = handles.guiData.plusframes;
+minusFrames = handles.guiData.minusframes;
+maxDistance = handles.guiData.relinkdistance;
+minTrackDistance = handles.guiData.mintrackdistance;
+savePath = handles.guiData.savedatapath;
+
+% Process all the MPMs in the list
+for iCount = 1 : length (handles.allMPM)
+   updatedMPM = ptTrackFilter(handles.allMPM{iCount}, plusFrames, minusFrames, maxDistance, minTrackDistance, savePath);
+   handles.allMPM{iCount} = updatedMPM;
+end
+
+% Show a message telling the user we've finished
+msgbox ('Finished auto-processing MPMs. Press OK to continue...');
 
 % Update handles structure
 guidata(hObject, handles);

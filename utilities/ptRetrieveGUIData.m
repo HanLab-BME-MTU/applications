@@ -40,3 +40,9 @@ guiData.savedatapath = get(handles.GUI_fm_saveallpath_ed,'string');
 
 % Get value of window size (for averaging)
 guiData.windowsize = str2num(get(handles.GUI_windowsize_ed,'string'));
+
+% Values for auto post processing
+guiData.plusframes = str2num(get(handles.GUI_app_plusframes_ed, 'String'));
+guiData.minusframes = str2num(get(handles.GUI_app_minusframes_ed, 'String'));
+guiData.relinkdistance = str2num(get(handles.GUI_app_relinkdist_ed, 'String'));
+guiData.mintrackdistance = str2num(get(handles.GUI_app_minimaltrack_ed, 'String'));
