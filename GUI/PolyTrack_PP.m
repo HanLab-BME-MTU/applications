@@ -59,7 +59,7 @@ defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, 'm
                         'dragtail', 6, 'dragtailfile', 'trackMovie', 'figureSize', [], ...
                         'multframevelocity', 1, 'binsize', 13, 'mmpixel', 0.639, 'timeperframe', 300, ...
                         'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81, 'windowsize', 5, ...
-                        'maxcellcelldist', 81, 'ripconfint', 85);
+                        'maxcellcelldist', 81, 'ripconfint', 85, 'fulltracks', 0, 'dragtracks', 1);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -112,8 +112,12 @@ handles.guiData.dragtail = defaultPostPro.dragtail;
 set (handles.GUI_fm_tracksince_ed, 'String', handles.guiData.dragtail);
 
 % Set the movie type
-set (handles.GUI_movietype_avi_rb, 'Value', 1);
-set (handles.GUI_movietype_qt_rb, 'Value', 0);
+set (handles.GUI_movietype_avi_rb, 'Value', 0);
+set (handles.GUI_movietype_qt_rb, 'Value', 1);
+
+% Set track type
+set (handles.GUI_fm_incltracks_rb, 'Value', 1);
+set (handles.GUI_fm_fulltracks_cb, 'Value', 0);
 
 % Set window size
 handles.guiData.windowsize = defaultPostPro.windowsize;
@@ -1005,8 +1009,27 @@ function GUI_fm_incltracks_rb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_fm_incltracks_rb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 
-% Hint: get(hObject,'Value') returns toggle state of GUI_fm_incltracks_rb
+val = get (hObject,'Value');
+
+if val == 1
+   % Button was clicked so should become 1
+   handles.guiData.dragtracks = 1;
+   set (handles.GUI_fm_incltracks_rb, 'Value', 1);
+   
+   % The QT button should automatically become 0
+   set (handles.GUI_fm_fulltracks_cb, 'Value', 0);
+   handles.guiData.fulltracks = 0;
+else
+   % Button was already selected, but make sure that movietype is set
+   % correctly
+   %handles.guiData.fulltracks = 0;
+   handles.guiData.dragtracks = 0;
+end
+
+% Update handles structure
+guidata(hObject, handles); 
 
 %----------------------------------------------------------------------------
 
@@ -3014,7 +3037,7 @@ else
     selectedCellsMatrix = prevSelectedCells;
 end
 
-% Start adding cells to selectedCellsMatrix and for this we have to find
+% Start adding cells to selectedCellsMatrix: for this we have to find
 % the first free row
 freeCount = 1;
 freeRow = find(selectedCellsMatrix(freeCount,:));
@@ -3028,10 +3051,11 @@ for iCount = freeCount : freeCount+length(selectedCells)-1
 
     % Find out which parts of the MPM we can throw away (we only want the
     % tracks of the selected cells
-    firstRow = find(MPM(frameNr*2)) + selectedCells(iCount-freeCount+1) - 1;
+    %firstRow = find(MPM(frameNr*2)) + selectedCells(iCount-freeCount+1) - 1;
 
     % Cut out that part of the MPM
-    tempMPM = MPM(firstRow,:);
+    %tempMPM = MPM(firstRow,:);
+    tempMPM = MPM(selectedCells,:);
 
     % Figure out where the first whole block of coordinates is
     zeroIndx = find(tempMPM == 0);
@@ -3051,10 +3075,30 @@ for iCount = freeCount : freeCount+length(selectedCells)-1
     end
 end
 
-
 %--------------------------------------------------------------------
 
+function GUI_fm_fulltracks_cb_Callback(hObject, eventdata, handles)
+handles = guidata(hObject);
 
+val = get (hObject,'Value');
 
+if val == 1
+   % Button was clicked so should become 1
+   handles.guiData.fulltracks = 1;
+   set (handles.GUI_fm_fulltracks_cb, 'Value', 1);
+   
+   % The QT button should automatically become 0
+   set (handles.GUI_fm_incltracks_rb, 'Value', 0);
+   handles.guiData.dragtracks = 0;
+else
+   % Button was already selected, but make sure that movietype is set
+   % correctly
+   handles.guiData.fulltracks = 0;
+   %handles.guiData.dragtracks = 0;
+end
 
+% Update handles structure
+guidata(hObject, handles); 
+
+%--------------------------------------------------------------------
 

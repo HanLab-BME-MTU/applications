@@ -43,7 +43,7 @@ cellCoord = cellCoord(find (cellCoord(:,1) & cellCoord(:,2)),:);
 % Get already selected cells from MPM
 if exist('prevSelectedCellsIndx','var')
    prevSelectedCells = handles.allMPM{1}(:, (2*frameNr-1):(2*frameNr));
-   prevSelectedCells(find(prevSelectedCells(:,1) == 0 & prevSelectedCells(:,2) == 0),:) = [];
+   %prevSelectedCells(find(prevSelectedCells(:,1) == 0 & prevSelectedCells(:,2) == 0),:) = [];
    prevSelectedCells = prevSelectedCells(prevSelectedCellsIndx,:);
 end
 

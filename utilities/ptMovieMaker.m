@@ -73,7 +73,7 @@ if radioButtons.movietypeavi
 elseif radioButtons.movietypeqt
    movieType = 2; % QT
 else
-   movieType = 1; % AVI
+   movieType = 2; % QT (default)
 end
 
 % How many frames does the user wants to see the tracks of?
@@ -92,9 +92,9 @@ dragTailPath = guiData.dragtailfile;
 [dir,dragTailFile,dummy,ext] = fileparts(dragTailPath);
 
 % We need prior images for the dragTail movie
-if ceil ((movieStartFrame - startFrame + 1) / increment) < dragTailLength + 1
-    movieStartFrame = ((dragTailLength + 1) * increment) + movieStartFrame;
-end
+% if ceil ((movieStartFrame - startFrame + 1) / increment) < dragTailLength + 1
+%     movieStartFrame = ((dragTailLength + 1) * increment) + movieStartFrame;
+% end
 
 % Get save path
 SaveDir = guiData.savedatapath;
@@ -192,62 +192,34 @@ for movieStep = movieStartFrame : increment : movieEndFrame
    if ~isempty(currentH)
       delete(currentH);
    end
+
+   % Check whether there are already tracks plotted and if yes delete them
+   currentH=findall(gca,'Tag','tracks');
+   if ~isempty(currentH)
+      delete(currentH);
+   end
    
    % Hold on the figure for the dragtail drawing
    hold on;
    
-   if get(handles.GUI_fm_incltracks_rb,'Value') == 1
-   
-       % One colour per time step (dragTailLength tells you how many
-       % timesteps there are)
-       colorMap = jet (dragTailLength + 1);
-
-       % Initialize the dragtail counter
-       colorCount = 0;
-
-       % Loop through the previous frames to generate the dragtails
-       for iCount = (2 * (MPMCount - dragTailLength)) : 2 : (2 * MPMCount)
-
-          % Increase dragtail counter
-          colorCount = colorCount + 1;
-
-          % Get the needed frames from MPM
-          selectedFrames = MPM (:, iCount-3 : iCount);
-          selectedFrames = selectedFrames(selectedCells,:);
-
-          % Find the ones that contain zeros and make the whole row 0
-          [rows, cols] = find (selectedFrames == 0);
-          rows = unique (rows);
-          selectedFrames (rows,:) = 0;
-
-          % Overlay the dragtails on the figure; each with its own color
-          for hCount = 1 : size (selectedFrames,1)
-             if selectedFrames (hCount,1) ~= 0
-                ph = plot (selectedFrames (hCount, 1:2:3), selectedFrames (hCount, 2:2:4));
-
-                % Mark the tails as tails
-                set (ph, 'Color', colorMap(colorCount,:),'Tag','tails','LineWidth',2);
-             end   % if selectedFrames
-          end   % for hCount
-       end   % for iCount
-   end  % get(handles.GUI_fm_incltracks_rb,'Value') == 1
-   
-%    if get(handles.GUI_fm_fulltracks_rb,'Value') == 1
+%    if get(handles.GUI_fm_incltracks_rb,'Value') == 1
 %    
-%        % One colour per cell track
-%        colorMap = jet(length(selectedCells) + 1);
+%        % One colour per time step (dragTailLength tells you how many
+%        % timesteps there are)
+%        colorMap = jet (dragTailLength + 1);
 % 
-%        % Initialize the color counter
+%        % Initialize the dragtail counter
 %        colorCount = 0;
 % 
-%        % Loop through the previous frames to generate the tracks up to now
-%        for iCount = size (selectedFrames,1)
+%        % Loop through the previous frames to generate the dragtails
+%        for iCount = (2 * (MPMCount - dragTailLength)) : 2 : (2 * MPMCount)
 % 
 %           % Increase dragtail counter
 %           colorCount = colorCount + 1;
 % 
 %           % Get the needed frames from MPM
-%           selectedFrames = MPM(iCount,:);
+%           selectedFrames = MPM (:, iCount-3 : iCount);
+%           selectedFrames = selectedFrames(selectedCells,:);
 % 
 %           % Find the ones that contain zeros and make the whole row 0
 %           [rows, cols] = find (selectedFrames == 0);
@@ -265,6 +237,98 @@ for movieStep = movieStartFrame : increment : movieEndFrame
 %           end   % for hCount
 %        end   % for iCount
 %    end  % get(handles.GUI_fm_incltracks_rb,'Value') == 1
+   
+   if get(handles.GUI_fm_incltracks_rb,'Value') == 1
+   
+       % One colour per cell track
+       colorMap = jet(dragTailLength + 1);
+
+       % Loop through all the cells
+       for iCount = selectedCells'
+
+          % Initialize the color counter
+          colorCount = 0;
+           
+          % Get the needed frames from MPM
+          selectedFrames = MPM(iCount,:);
+
+          % Loop through the previous frames to generate the tracks
+          % First get the current coordinates
+          startPoint = movieStep;
+          
+          if startPoint > 1   % start should be at least at second frame
+              xyCoord = selectedFrames((2*startPoint)-1:(2*startPoint));
+              prevXYCoord = selectedFrames((2*startPoint)-3:(2*startPoint)-2);
+
+              % Then walk back until the first frame or the first 'zero'
+              % coordinates (0,0) come up
+              while startPoint > max((movieStep-dragTailLength),2) & ...
+                    startPoint > 2 & ...
+                    (xyCoord(1) ~= 0 & xyCoord(2) ~= 0 & ...
+                     prevXYCoord(1) ~= 0 & prevXYCoord(2) ~= 0)
+
+                 % Plot tracks
+                 ph = plot([prevXYCoord(1) xyCoord(1)], [prevXYCoord(2) xyCoord(2)]);
+
+                 % Increase dragtail counter
+                 colorCount = colorCount + 1;
+
+                 % Mark the tracks as tracks
+                 set (ph, 'Color', colorMap(colorCount,:),'Tag','tracks','LineWidth',2);
+
+                 % Get the next coordinates
+                 startPoint = startPoint - 1;
+                 xyCoord = selectedFrames((2*startPoint)-1:(2*startPoint));
+                 prevXYCoord = selectedFrames((2*startPoint)-3:(2*startPoint)-2);
+              end   % while startPoint
+          end   % if startPoint > 1
+       end   % for iCount
+   end  % get(handles.GUI_fm_incltracks_rb,'Value') == 1
+   
+   if get(handles.GUI_fm_fulltracks_cb,'Value') == 1
+   
+       % One colour per cell track
+       colorMap = jet(length(selectedCells) + 1);
+
+       % Initialize the color counter
+       colorCount = 0;
+
+       % Loop through all the cells
+       for iCount = selectedCells'
+
+          % Increase dragtail counter
+          colorCount = colorCount + 1;
+
+          % Get the needed frames from MPM
+          selectedFrames = MPM(iCount,:);
+
+          % Loop through the previous frames to generate the tracks
+          % First get the current coordinates
+          startPoint = movieStep;
+          
+          if startPoint > 1   % start should be at least at second frame
+              xyCoord = selectedFrames((2*startPoint)-1:(2*startPoint));
+              prevXYCoord = selectedFrames((2*startPoint)-3:(2*startPoint)-2);
+
+              % Then walk back until the first frame or the first 'zero'
+              % coordinates (0,0) come up
+              while startPoint > 2 & (xyCoord(1) ~= 0 & xyCoord(2) ~= 0 & ...
+                                      prevXYCoord(1) ~= 0 & prevXYCoord(2) ~= 0)
+
+                 % Plot tracks
+                 ph = plot([prevXYCoord(1) xyCoord(1)], [prevXYCoord(2) xyCoord(2)]);
+
+                 % Mark the tracks as tracks
+                 set (ph, 'Color', colorMap(colorCount,:),'Tag','tracks','LineWidth',2);
+
+                 % Get the next coordinates
+                 startPoint = startPoint - 1;
+                 xyCoord = selectedFrames((2*startPoint)-1:(2*startPoint));
+                 prevXYCoord = selectedFrames((2*startPoint)-3:(2*startPoint)-2);
+              end   % while startPoint
+          end   % startPoint > 1   % start should be at least at second frame
+       end   % for iCount
+   end  % get(handles.GUI_fm_fulltracks_cb,'Value') == 1
    
    if get(handles.GUI_fm_inclcentromers_rb,'Value') == 1       
        % Plot the nuclei coordinates on the figure (red dots) and mark them
