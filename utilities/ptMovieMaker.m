@@ -42,6 +42,14 @@ guiData = handles.guiData;
 % Get values from the gui (these are used for all jobs)
 movieStartFrame = guiData.moviefirstimg;
 movieEndFrame = guiData.movielastimg;
+
+if isempty(movieStartFrame) | isempty(movieEndFrame)
+   h = errordlg (['Please enter values for movie start and end frame.']);
+   uiwait (h);
+   result = 1;
+   return;
+end
+
 if movieEndFrame > jobData(1).lastimg
     movieEndFrame = jobData(1).lastimg;
 end
@@ -126,15 +134,24 @@ for movieStep = movieStartFrame : increment : movieEndFrame
    % Increase MPM counter
    MPMCount = MPMCount + 1;
     
-   selectedCells = zeros(size (MPM, 1), 2);
-   selectedCells(:,:) = MPM(:, (2 * MPMCount - 1):(2 * MPMCount));
-   
-   % Store the coordinates for later
-   selectedDots = selectedCells; 
-   selectedDots(find(selectedDots(:,1) == 0 & selectedDots(:,2) == 0),:) = [];
-   
+   if isfield(jobData(1),'selectedcells') & ~isempty(jobData(1).selectedcells)
+       selectedCells = jobData(1).selectedcells(:,movieStep);
+   else
+       selectedCells = zeros(size(MPM, 1),2);
+       selectedCells(:,:) = MPM(:, (2*MPMCount-1):(2*MPMCount));
+       %selectedCells(find(selectedCells(:,1) == 0 & selectedCells(:,2) == 0),:) = [];
+   end
+      
    % Remove the zero rows
-   selectedCells = find (selectedCells(:,1) & selectedCells(:,2)); 
+   if size(selectedCells,2) == 2
+       selectedCells = find(selectedCells(:,1) & selectedCells(:,2)); 
+   else
+       selectedCells = selectedCells(find(selectedCells)); 
+   end
+      
+   % Fetch the coordinates of the selected cells
+   selectedDots = MPM(:, (2*MPMCount-1):(2*MPMCount));
+   selectedDots = selectedDots(selectedCells,:);
    
    % Go the image directory and fetch the current frame
    cd (imageDirectory);
@@ -195,7 +212,8 @@ for movieStep = movieStartFrame : increment : movieEndFrame
           colorCount = colorCount + 1;
 
           % Get the needed frames from MPM
-          selectedFrames = MPM (selectedCells, iCount-3 : iCount);
+          selectedFrames = MPM (:, iCount-3 : iCount);
+          selectedFrames = selectedFrames(selectedCells,:);
 
           % Find the ones that contain zeros and make the whole row 0
           [rows, cols] = find (selectedFrames == 0);
@@ -205,16 +223,48 @@ for movieStep = movieStartFrame : increment : movieEndFrame
           % Overlay the dragtails on the figure; each with its own color
           for hCount = 1 : size (selectedFrames,1)
              if selectedFrames (hCount,1) ~= 0
-                %ph = [];
                 ph = plot (selectedFrames (hCount, 1:2:3), selectedFrames (hCount, 2:2:4));
 
                 % Mark the tails as tails
                 set (ph, 'Color', colorMap(colorCount,:),'Tag','tails','LineWidth',2);
-                %clear ph;
              end   % if selectedFrames
           end   % for hCount
        end   % for iCount
    end  % get(handles.GUI_fm_incltracks_rb,'Value') == 1
+   
+%    if get(handles.GUI_fm_fulltracks_rb,'Value') == 1
+%    
+%        % One colour per cell track
+%        colorMap = jet(length(selectedCells) + 1);
+% 
+%        % Initialize the color counter
+%        colorCount = 0;
+% 
+%        % Loop through the previous frames to generate the tracks up to now
+%        for iCount = size (selectedFrames,1)
+% 
+%           % Increase dragtail counter
+%           colorCount = colorCount + 1;
+% 
+%           % Get the needed frames from MPM
+%           selectedFrames = MPM(iCount,:);
+% 
+%           % Find the ones that contain zeros and make the whole row 0
+%           [rows, cols] = find (selectedFrames == 0);
+%           rows = unique (rows);
+%           selectedFrames (rows,:) = 0;
+% 
+%           % Overlay the dragtails on the figure; each with its own color
+%           for hCount = 1 : size (selectedFrames,1)
+%              if selectedFrames (hCount,1) ~= 0
+%                 ph = plot (selectedFrames (hCount, 1:2:3), selectedFrames (hCount, 2:2:4));
+% 
+%                 % Mark the tails as tails
+%                 set (ph, 'Color', colorMap(colorCount,:),'Tag','tails','LineWidth',2);
+%              end   % if selectedFrames
+%           end   % for hCount
+%        end   % for iCount
+%    end  % get(handles.GUI_fm_incltracks_rb,'Value') == 1
    
    if get(handles.GUI_fm_inclcentromers_rb,'Value') == 1       
        % Plot the nuclei coordinates on the figure (red dots) and mark them

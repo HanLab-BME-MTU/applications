@@ -570,19 +570,60 @@ function GUI_ad_selectcells_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to GUI_ad_selectcells_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 handles = guidata(hObject);
 
-% This is to signal that the function ptManualPostProcessJob is called by the
-% GUI select cells button
-handles.whichcallback = 2;
+% Check that files have been selected before
+if ~isfield (handles, 'allMPM')  
+    errorStr = ['Jobs should be selected first by using the Select button!'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% Make sure only 1 job is selected
+if length(handles.allMPM) > 1
+    errorStr = ['Selecting cells can only be done for one job at a time. Please select only one job from the list.'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% Ask the user which frame he wants to see
+frameNr = str2double(inputdlg('Provide the frame number:'));
+if frameNr == NaN
+    errorStr = ['Error: Please enter a numeric value for the frame.'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% Check that it is a valid number
+if frameNr < handles.jobData(1).firstimg | frameNr > handles.jobData(1).lastimg
+    errorStr = ['Error: Please enter a number between ' handles.jobData(1).firstimg ...
+                ' and ' handles.jobData(1).lastimg '.'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% Let the user select their cells
+selectedCells = ptUserCellSelection(frameNr,handles);
+
+% Fill the selected cells matrix in the jobdata handles
+% If it's empty we have to initialize it as well
+if isempty(handles.jobData(1).selectedcells)
+    handles.jobData(1).selectedcells = fillSelectedCellsMatrix (selectedCells, handles.allMPM{1}, frameNr, 1, []);
+    %handles.jobData(1).selectedcells = zeros(size(handles.allMPM{1}));
+    %handles.jobData(1).selectedcells = zeros(size(handles.allMPM{1},1),size(handles.allMPM{1},2)/2);
+    %handles.jobData(1).selectedcells(1:size(selectedCells,1),(2*frameNr-1):(2*frameNr)) = selectedCells;
+    %handles.jobData(1).selectedcells(1:size(selectedCells,1),frameNr) = selectedCells;
+else
+    handles.jobData(1).selectedcells = fillSelectedCellsMatrix (selectedCells, handles.allMPM{1}, frameNr, 0, handles.jobData(1).selectedcells);
+    %handles.jobData(1).selectedcells(1:size(selectedCells,1),(2*frameNr-1):(2*frameNr)) = selectedCells;
+end
 
 % Update handles structure
 guidata(hObject, handles);
-
-% Call the function to select cells
-% AK: have to check whether this still works!
-ptManualPostProcessJob (hObject)
 
 %----------------------------------------------------------------------------
 
@@ -2928,7 +2969,92 @@ end
 
 %--------------------------------------------------------------------
 
-
 function GUI_fm_saveastiff_rb_Callback(hObject, eventdata, handles)
+
+%--------------------------------------------------------------------
+
+function GUI_selectallcells_pb_Callback(hObject, eventdata, handles)
+handles = guidata (hObject);
+
+% Check that files have been selected before
+if ~isfield (handles, 'allMPM')  
+    errorStr = ['Jobs should be selected first by using the Select button!'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% Make sure only 1 job is selected
+if length(handles.allMPM) > 1
+    errorStr = ['Selecting cells can only be done for one job at a time. Please select only one job from the list.'];
+    h = errordlg(errorStr);
+    uiwait(h);          % Wait until the user presses the OK button  
+    return;
+end
+
+% To select all cells we have to set the selectedcells field to []
+handles.jobData(1).selectedcells = [];
+
+% Let the user know
+msgbox('All cells have been selected.');
+
+% Update handles structure
+guidata(hObject, handles);
+
+%--------------------------------------------------------------------
+
+function selectedCellsMatrix = fillSelectedCellsMatrix (selectedCells, MPM, frameNr, initMatrix, prevSelectedCells)
+% This function filles the matrix for selected cells based on the cells
+% that have been selected from one frame in the movie
+
+% Check whether a new matrix has to be created
+if initMatrix
+    selectedCellsMatrix = zeros(size(MPM,1),size(MPM,2)/2);
+else
+    selectedCellsMatrix = prevSelectedCells;
+end
+
+% Start adding cells to selectedCellsMatrix and for this we have to find
+% the first free row
+freeCount = 1;
+freeRow = find(selectedCellsMatrix(freeCount,:));
+while ~isempty(freeRow)
+    freeCount = freeCount + 1;
+    freeRow = find(selectedCellsMatrix(freeCount,:));
+end
+
+% Walk through the selected cells and find tracks in all frames
+for iCount = freeCount : freeCount+length(selectedCells)-1
+
+    % Find out which parts of the MPM we can throw away (we only want the
+    % tracks of the selected cells
+    firstRow = find(MPM(frameNr*2)) + selectedCells(iCount-freeCount+1) - 1;
+
+    % Cut out that part of the MPM
+    tempMPM = MPM(firstRow,:);
+
+    % Figure out where the first whole block of coordinates is
+    zeroIndx = find(tempMPM == 0);
+    nonZeroIndx = find(tempMPM);
+    zeroIndx = zeroIndx(find(zeroIndx > nonZeroIndx(1)));
+    %tempMPM = tempMPM(nonZeroIndx(2):2:zeroIndx(1)-1);
+
+    % Loop through this row of coordinates and fill the selectedCellsMatrix
+    if ~isempty(zeroIndx)
+        for jCount = nonZeroIndx(2) : 2 : zeroIndx(1)-1
+            selectedCellsMatrix(iCount,jCount/2) = selectedCells(iCount-freeCount+1);
+        end
+    else
+        for jCount = nonZeroIndx(2) : 2 : nonZeroIndx(end)
+            selectedCellsMatrix(iCount,jCount/2) = selectedCells(iCount-freeCount+1);
+        end
+    end
+end
+
+
+%--------------------------------------------------------------------
+
+
+
 
 

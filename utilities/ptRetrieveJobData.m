@@ -146,7 +146,7 @@ for iCount = 1 : fileNumbers
     
     % Reset the original path
     cd (currentPath);
-    
+        
     % Now we have to fill up the rest of the jobData structure with
     % our previously found data and parameters
     jobData(iCount).selectedcells = [];
