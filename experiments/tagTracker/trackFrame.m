@@ -358,9 +358,7 @@ if iterCt<MAXITER
             %             end;
             tcoord=[tcoord(2) tcoord(1) tcoord(3)].*p2m(1,:);
             nsl.linklist(s,9:11)=tcoord;
-            if optimmethod==1
-                nsl.info.trackQ_Pix=blkdiag(model.QMatrix);
-            end;
+            
             if DEBUG
                 nsl.linklist(s,:);   % for DEBUG
             end;
@@ -379,6 +377,12 @@ if iterCt<MAXITER
             else
                 nsl.linklist(s,2)=nsl.linklist(fusionIdx(1),2);
             end;
+        end;
+        
+        if optimmethod==1
+            % assign Q-matrix for each spot. If a spot appears twice, its
+            % Q-matrix will be used twice
+            nsl.info.trackQ_Pix=blkdiag(model(nsl.linklist(:,2)).QMatrix);
         end;
     end;
 else
