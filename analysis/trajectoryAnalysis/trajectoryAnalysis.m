@@ -1,5 +1,5 @@
 function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(data,ioOpt,testOpt)
-%TRAJECTORYANALYSIS analyzes experimental and simulated microtubule trajectories and returns appropriate statistical descriptors
+%TRAJECTORYANALYSIS analyzes experimental and simulated microtubule trajectories and returns corresponding statistical descriptors
 %
 %INPUT   data(1:n) (opt): structure containing n different trajectories with fields
 %           - distance   tx2 array [distance, sigmaDistance] in microns
@@ -52,11 +52,16 @@ function [trajectoryDescription,trajectoryDescription2] = trajectoryAnalysis(dat
 %           .individualStatistics(1:n)
 %               .statistics
 %               .details (opt)
+%                    .dataListG
+%                    .dataListS
+%                    .distributions
 %           .overallStatistics
 %               OR
 %           .convergenceStatistics
 %           .overallDistribution
 %           .info
+%
+%           to get all the fieldnames of the statistics struct, type "help trajectoryAnalysisMainCalcStats"
 %
 %c: 11/03 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,7 +77,7 @@ saveTxtName = '';
 saveMat = 0;
 saveMatPath = '';
 saveMatName = '';
-verbose = [1]; 
+verbose = [1,2]; 
 DEBUG = []; %[1,2] for groupUnits
 fileNameList = {'data_1'};
 calculateTrajectoryOpt.calc2d = 0; %1 or 2 if MP/in-focus slices only

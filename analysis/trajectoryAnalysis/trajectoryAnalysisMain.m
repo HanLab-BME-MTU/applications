@@ -1,9 +1,21 @@
 function trajectoryDescription = trajectoryAnalysisMain(data,constants,showDetails,doConvergence,verbose,fileNameList);
-%main computation function for trajectoryAnalysis
+%TRAJECTORYANALYSISMAIN calls the individual programs to analyze the trajectories
 %
-%add more help here...
+% The trajectory is first scanned for significant inidividual changes of
+% the distance between the two tags. This creates dataListS. Then, the
+% software looks for pauses and eventually for longer-than-1-interval
+% growth and shrinkabe/separation and congression events, by trying to get
+% the longest possible fits. This yields dataListG. Finally, the statistics
+% are calculated.
 %
+% for the output structure, type help trajectoryAnalysisMainCalcStats.
 %
+% dataList has the following cols
+%     1:startIdx, 2:endIdx, 3:state, 4:slope, 5:slopeSigma, 6:slopeSigmaAPR,
+%     7:deltaT, 8:(deltaTSigma), 9:deltaD, 10:deltaDSigma, 11:startDistance
+%
+% c: 1/04 jonas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %init dataListAll
 tpAll = cat(1,data.timePoints);
@@ -14,6 +26,9 @@ distanceAll = cat(1,data.distance);
 timeAll = cat(1,data.time);
 tpInd = 0;
 dlaLength = 0;
+
+%for plotting: calc extreme coords
+yAxisLimits = [0,max(sum(distanceAll,2))];
 
 %--------LOOP THROUGH EVERYTHING
 for numData = 1:length(data)
@@ -67,8 +82,8 @@ for numData = 1:length(data)
     %---------PLOT
     if any(verbose == 2)
         plotFigH = figure('Name',fileNameList{numData});
+        axes('NextPlot','add','YLim',yAxisLimits);
         plot(timePoints(:,1),distance(:,1),'-dk');
-        hold on;
         myErrorbar(timePoints(:,1),distance(:,1),distance(:,2));
         
         %---plot deleted intervals with '--w' here

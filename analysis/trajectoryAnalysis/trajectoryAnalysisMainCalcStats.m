@@ -1,7 +1,37 @@
 function [statisticsStruct, distributionStruct] = trajectoryAnalysisMainCalcStats(dataListG,distance,time,verbose,fileName,constants)
+%TRAJECTORYANALYSISMAINCALCSTATS calculates statistics for trajectoryAnalysis
 %
-%...add help here
+% OUTPUT statistics structure with fields
+%     'sep2conFreq' ,             catastrophe frequency
+%     'con2sepFreq' ,             rescue frequency
+%     'separationSpeed' ,         growth speed
+%     'separationSpeedNW',        
+%     'separationSpeedPW',        
+%     'congressionSpeed' ,        shrinkage speed
+%     'congressionSpeedNW' ,      
+%     'congressionSpeedPW' ,      
+%     'distanceMean',             std is std of sample!
+%     'minDistance',              
+%     'minDistanceM5' ,           mean of 5 smallest distances
+%     'maxDistance' ,             
+%     'maxDistanceM5' ,           mean of 5 largest distances
+%     'separationDistance' ,      mean distance per growth event
+%     'separationDistanceTotal' , 
+%     'congressionDistance' ,     mean distance per shrinkage event
+%     'congressionDistanceTotal', 
+%     'undeterminedDistance' ,    
+%     'separationTime' ,          
+%     'congressionTime' ,         
+%     'pauseTime' ,               
+%     'undeterminedTime' ,        
+%     'deletedTime' ,             
+%     'nTimepoints',              
 %
+%      and distribution structure with distributions from contHisto for
+%      both speeds and the distance
+%
+% c: 1/04 jonas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 distributionStruct = [];
 

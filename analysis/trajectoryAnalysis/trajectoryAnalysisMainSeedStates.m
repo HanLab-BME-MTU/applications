@@ -1,6 +1,8 @@
 function dataList = trajectoryAnalysisMainSeedStates(dataList,distance,time,timePoints,constants)
-%does the first fit & classification of trajectory
+%TRAJECTORYANALYSISMAINSEEDSTATES does an initial cassification of trajectories based on individual significant distance changes
 %
+% c: 1/04 jonas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 groupLength = constants.MINLENGTH;
 PROB2SIDES = constants.PROB2SIDES;
