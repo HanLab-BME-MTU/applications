@@ -1,11 +1,13 @@
-function [trajP,errFlag] = missPointARPred(traj,arParam)
+function [trajP,errFlag] = missPointARPred(traj,arParam,numFuture)
 %MISSPOINTARPRED estimates values of missing points in a trajectory assuming it is an AR(p) process
 %
 %SYNOPSIS [trajP,errFlag] = missPointARPred(traj,arParam)
 %
-%INPUT  traj    : Trajectory to be modeled (with measurement uncertainty).
-%                 Missing points should be indicated with NaN.
-%       arParam : Coefficients of AR model.
+%INPUT  traj     : Trajectory to be modeled (with measurement uncertainty).
+%                  Missing points should be indicated with NaN.
+%       arParam  : Coefficients of AR model.
+%       numFuture: Number of future time points to be used in prediction of
+%                  a missing point.
 %
 %OUTPUT trajP       : Trajectory with estimates of missing points and their uncertainties.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
@@ -45,22 +47,23 @@ if ~isempty(find(r<=1.00001))
     disp('--missPointARPred: Input model must be causal!');
     errFlag = 1;
 end
+if numFuture > arOrder
+    disp('--missPointARPred: numFuture should be <= model order!');
+    errFlag = 1;
+end
 
 %exit if there are problems in input data
 if errFlag
-    disp('--missPointARPred: please fix input data!');
+    disp('--missPointARPred: Please fix input data!');
     trajP = [];
     return
 end
 
-%assign zeros to missing data points and ones to existing measurements.
+%assign zeros to missing data points and ones to available measurements.
 available = ~isnan(traj(:,1));
 
 %get indices of missing points
 indx = find(~available);
-
-%get indices of available points
-indxP = find(available); 
 
 %check indx - algorithm cannot proceed if there are missing points for time < arOrder.
 if ~isempty(indx)
@@ -88,8 +91,8 @@ while i0 <= length(indx) %go over all missing points
     missCluster(i) = indx(i); %first missing point in cluster
     
     if i0 ~= length(indx) %if first missing point in cluster is not last missing point in trajectory,
-        while indx(i+1)-indx(i) <= arOrder %check next missing point to see if it is less 
-            i = i + 1;                     %than or equal to arOrder points away.
+        while indx(i+1)-indx(i) <= numFuture %check next missing point to see if it is less 
+            i = i + 1;                       %than or equal to numFuture points away.
             missCluster(i) = indx(i); %in that case, put next point in same cluster
             if i == length(indx)
                 break
@@ -102,13 +105,15 @@ while i0 <= length(indx) %go over all missing points
     numMiss = i-i0+1; 
     
     %number of equation to be used in determining missing points
-    numEq = indx(i)-indx(i0)+1+arOrder;
+    numEq = indx(i)-indx(i0)+1+numFuture;
     
     %construct matrix on LHS multiplying unknowns
     %[size: numEq by numMiss]
     lhsMat = zeros(numEq,numMiss);
     for j = 1:numMiss %for each column
-        lhsMat(:,j) = [zeros(1,indx(j+i0-1)-indx(i0)) 1 -arParam zeros(1,indx(i)-indx(j+i0-1))]';
+        start = indx(j+i0-1)-indx(i0)+1;
+        finish = min(start+arOrder,numEq);
+        lhsMat(start:finish,j) = [1 -arParam(1:finish-start)]';
     end
     
     %evaluate vector on RHS
@@ -121,28 +126,37 @@ while i0 <= length(indx) %go over all missing points
             break
         end
         rhsVec(j) = rhsVecMult*(available(varNum:-1:varNum-arOrder).*...
-            traj(varNum:-1:varNum-arOrder,1));
+            trajP(varNum:-1:varNum-arOrder,1));
     end
     
-    %in case end of trajectory is reached and less than the expected number of equation
-    if j ~= numEq
-        lhsMat = lhsMat(1:j-1,:); %is available, truncate lhsMat 
+    %in case end of trajectory is reached and less than the expected number
+    if j ~= numEq %of equations is available, 
+        lhsMat = lhsMat(1:j-1,:); %truncate lhsMat 
         rhsVec = rhsVec(1:j-1); %and rhsVec accordingly
     end
     
     %estimate missing data points
     trajP(missCluster,1) = lhsMat\rhsVec;
     
-    %get vector of weighted residuals
-    epsilon = lhsMat*trajP(missCluster,1) - rhsVec;
+    %get uncertainty in estimates. This is not possible if numFuture = 0
+    %(since all we have is one equation in one unknown)
+    if numFuture ~= 0
+        
+        %get vector of weighted residuals
+        epsilon = lhsMat*trajP(missCluster,1) - rhsVec;
+        
+        %compute variance-covariance matrix
+        varCovMat = inv(lhsMat'*lhsMat)*(epsilon'*epsilon/(numEq-numMiss));
+        
+        %get uncertainty in estimates using varCovMat
+        trajP(missCluster,2) = sqrt(diag(varCovMat));
     
-    %compute variance-covariance matrix
-    varCovMat = inv(lhsMat'*lhsMat)*(epsilon'*epsilon/(numEq-numMiss));
-
-    %get uncertainty in estimates using varCovMat
-    trajP(missCluster,2) = sqrt(diag(varCovMat));
+    end
     
     %update variable indicating beginning of cluster
     i0 = i + 1;
+    
+    %update list of "available" points
+    available(missCluster) = 1;
     
 end

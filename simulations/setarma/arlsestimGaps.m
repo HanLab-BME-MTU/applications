@@ -66,7 +66,7 @@ end
 
 %exit if there are problems in input data
 if errFlag
-    disp('--arlsestimGaps: please fix input data!');
+    disp('--arlsestimGaps: Please fix input data!');
     arParam0 = [];
     varCovMat0 = [];
     noiseSigma0 = [];
@@ -165,11 +165,19 @@ if ~isempty(indx) %if there are missing data points
     while arParamDiff > arTol %loop until required tolerance is reached
         
         %predict missing points using proposed AR model
-%         [trajP,errFlag] = missPointARPred(traj,arParam);
-        trajP = traj;
-        for i = indx'
-            trajP(i,1) = arParam*trajP(i-1:-1:i-arOrder,1);
+        [trajP,errFlag] = missPointARPred(traj,arParam);
+        if errFlag
+            disp('--arlsestimGaps: Function missPointARPred could not estimate missin points!');
+            arParam = [];
+            varCovMat = [];
+            noiseSigma = [];
+            trajP = [];
+            return
         end
+%         trajP = traj;
+%         for i = indx'
+%             trajP(i,1) = arParam*trajP(i-1:-1:i-arOrder,1);
+%         end
         
         %construct weighted matrix of previous points multiplying AR coefficients (on LHS of equation)
         %[size: fitLength by arOrder]
