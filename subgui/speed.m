@@ -2,6 +2,7 @@ function speed(hObject)
 
 handles=guidata(hObject);
 
+bins=[0:1:80];
 
 [numrows,numcols]=size(handles.MPM)
 
@@ -23,11 +24,27 @@ for i=1:2:numcols-3
         realdist=dist(find(dist(:,(i+1)/2)),(i+1)/2);
         speedvar((i+1)/2)=var(realdist);
          
-         
+        velHist(:,(i+1)/2)=hist(realdist,bins)';
+        
     end
+       
     
-    
+        h_fig=figure
+        surf(velHist)
+        hgsave(h_fig,[saveallpath filesep '3dSpeedHistBar.fig']);
+		print(h_fig, [saveallpath filesep '3dSpeedHistBar.eps'],'-depsc2','-tiff');
+		print(h_fig, [saveallpath filesep '3dSpeedHistBar.tif'],'-dtiff');
 		
+       
+        h_fig=figure
+        bar3(bins,velHist)
+		hgsave(h_fig,[saveallpath filesep '3dSpeedHistBar.fig']);
+		print(h_fig, [saveallpath filesep '3dSpeedHistBar.eps'],'-depsc2','-tiff');
+		print(h_fig, [saveallpath filesep '3dSpeedHistBar.tif'],'-dtiff');
+		
+        
+        
+        
 		h_fig=figure,plot(numbercells),title('number of cells')
 		xlabel('Frames')
 		ylabel('# cells')

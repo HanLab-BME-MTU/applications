@@ -62,6 +62,9 @@ for pic=start:stop
     uff=find(takeintoaccount(:,6));
     PROPPERIMG(5,pic)=sum(takeintoaccount(uff,6))/length(uff);
     
+    %percentage single cells
+    PROPPERIMG(7,pic)=(PROPPERIMG(6,pic)-length(Clusters))/PROPPERIMG(6,pic)
+    
    
 end 
 
@@ -142,7 +145,18 @@ if get(handles.GUI_ad_perimeter_rb,'Value')
         
 end
     
-
+       h_fig=figure,title(handles.jobvalues.imagename)
+        ymax=max(PROPPERIMG(7,:));
+        subplot(1,1,1); plot(PROPPERIMG(7,:)), title('Percentage of single cells')
+        xlabel('Frames')
+        ylabel('percentage of single cells')
+        axis([0 stop 0 1])
+        
+           
+		hgsave(h_fig,[saveallpath filesep 'percentSingle.fig']);
+		print(h_fig, [saveallpath filesep 'percentSingle.eps'],'-depsc2','-tiff');
+		print(h_fig, [saveallpath filesep 'percentSingle.tif'],'-dtiff');
+		
 
 cd(saveallpath)
 save('PROPPERIMG', 'PROPPERIMG')

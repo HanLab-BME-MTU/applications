@@ -1198,11 +1198,12 @@ jobvalues=handles.jobs(projNum);
 save ('jobvalues','jobvalues')
 clear jobvalues
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- %   try
+    try
 	   trackmater(hObject,projNum);
-       %  catch    
-  %     disp(['job number ',num2str(projNum),' had an error and could not be completed'])
-       %  end
+   catch    
+       disp(['job number ',num2str(projNum),' had an error and could not be completed'])
+       disp(lasterr)
+   end
        
        
 end
