@@ -43,7 +43,7 @@ end
 %suppress maxFunEvalWarning
 options = optimset('Display','off');
 
-%linear fit (not scaled with real time)
+%linear fit (not scaled with real time) - discontinued
 parameters.xdata=goodRows-1; %frame1=time0
 parameters.ydata=ampList(goodRows);
 uLin0=[parameters.xdata,ones(length(goodRows),1)]\ampList(goodRows);
@@ -55,11 +55,16 @@ uExp0(2)=median((parameters.xdata(end-5+[1:5])-parameters.xdata(1:5))./(log(para
 [uExp,sigmaExp,ssqExp]=leastMedianSquare('(ydata-(u(1)*exp(-xdata/u(2)))).^2',uExp0,options,parameters);
 sigmaExp0=sqrt(sum((uExp0(1)*exp(-parameters.xdata/uExp0(2))-parameters.ydata).^2)/(length(parameters.xdata)-1));
 
-%sliding window (uses the same starting values as exp fit)
+% sliding window (uses the same starting values as exp fit)
+% first estimate an exponential fit (done above). Then calculate a sliding
+% window that goes from expFit-1*sigma via tangent point to exp fit to
+% expFit-1*sigma. If the tangent is not lower than expFit-1*sigma at start
+% (yExp1S) or end (yExpNS), we take the first or the last point as
+% start/end for the window. Else we have to use fzero to calculate the ends
 
-yExpi=uExp0(1)*exp(-parameters.xdata/uExp0(2));
-yExpip=-uExp0(1)/uExp0(2)*exp(-parameters.xdata/uExp0(2));
-yExp1S=uExp0(1)-sigmaExp0;
+yExpi=uExp0(1)*exp(-parameters.xdata/uExp0(2)); %exponential init fit
+yExpip=-uExp0(1)/uExp0(2)*exp(-parameters.xdata/uExp0(2)); % exponential init slope
+yExp1S=uExp0(1)*exp(-parameters.xdata(1)/uExp0(2))-sigmaExp0; % xData does not necessarily start with 1!
 yExpNS=uExp0(1)*exp(-parameters.xdata(end)/uExp0(2))-sigmaExp0;
 tStart=zeros(size(parameters.xdata));
 tStartT=zeros(size(parameters.xdata));
@@ -73,7 +78,7 @@ waitbarHandle=mywaitbar(0,[],length(parameters.xdata),'fitting intensities...');
 try
     for ti=1:length(parameters.xdata)
         %find tStart
-        if yExpi(ti)-(parameters.xdata(ti)-parameters.xdata(1))*yExpip(ti)<yExp1S*0.95 %to make sure
+        if yExpi(ti)-(parameters.xdata(ti)-parameters.xdata(1))*yExpip(ti)<yExp1S % *0.95 %to make sure 
             tStartT(ti)=fzero(inline('uExp(1)*((-(t-ti)/uExp(2)+1)*exp(-ti/uExp(2))-exp(-t/uExp(2)))+sigmaExp','t','ti','uExp','sigmaExp'),...
                 [parameters.xdata(1),parameters.xdata(ti)],options,parameters.xdata(ti),uExp0,sigmaExp0);
             [dummy,tStart(ti)]=min(abs(parameters.xdata-tStartT(ti)));
@@ -82,7 +87,7 @@ try
             tStart(ti)=1;
         end
         %find tEnd
-        if yExpi(ti)+(parameters.xdata(end)-parameters.xdata(ti))*yExpip(ti)<yExpNS*(1-sign(yExpNS)*0.05) %to make sure
+        if yExpi(ti)+(parameters.xdata(end)-parameters.xdata(ti))*yExpip(ti)<yExpNS % *(1-sign(yExpNS)*0.05) %to make sure
             tEndT(ti)=fzero(inline('uExp(1)*((-(t-ti)/uExp(2)+1)*exp(-ti/uExp(2))-exp(-t/uExp(2)))+sigmaExp','t','ti','uExp','sigmaExp'),...
                 [parameters.xdata(ti),parameters.xdata(end)],options,parameters.xdata(ti),uExp0,sigmaExp0);
             [dummy,tEnd(ti)]=min(abs(parameters.xdata-tEndT(ti)));
