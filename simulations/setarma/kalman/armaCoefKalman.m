@@ -1,6 +1,6 @@
 function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
-    wnVector,selectCrit,errFlag] = armaCoefKalman(trajectories,arParamP0,...
-    maParamP0,minOpt)
+    wnVector,selectCrit,pValuePort,errFlag] = armaCoefKalman(trajectories,...
+    arParamP0,maParamP0,minOpt)
 %ARMACOEFKALMAN fits an ARMA(p,q) model to a time series which could have missing data points.
 %
 %SYNOPSIS [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
@@ -72,6 +72,7 @@ varCovMat = [];
 wnVariance = [];
 wnVector = [];
 selectCrit = [];
+pValuePort = [];
 errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -171,143 +172,152 @@ totAvail = sum(numAvail); %calculate total number of available points
 %Maximum likelihood estimation of model
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-switch minOpt
+if arOrder + maOrder ~= 0
 
-    case 'ml' %local minimization using Matlab's fmincon
+    switch minOpt
 
-        %define optimization options.
-        options = optimset('Display','final','DiffMaxChange',1e-3,...
-            'DiffMinChange',1e-8,'TolFun',1e-4,'TolX',1e-4,...
-            'maxFunEvals',4000,'maxIter',3000);
+        case 'ml' %local minimization using Matlab's fmincon
 
-        %define structure containing additional parameters
-        %note that it's written in Tomlab notation for convenience
-        prob.user.arOrder = arOrder;
-        prob.user.trajectories = trajectories;
-        prob.user.numAvail = totAvail;
+            %define optimization options.
+            options = optimset('Display','final','DiffMaxChange',1e-3,...
+                'DiffMinChange',1e-8,'TolFun',1e-4,'TolX',1e-4,...
+                'maxFunEvals',4000,'maxIter',3000);
 
-        %initial parameter values
-        param0 = [arParamP0 maParamP0];
+            %define structure containing additional parameters
+            %note that it's written in Tomlab notation for convenience
+            prob.user.arOrder = arOrder;
+            prob.user.trajectories = trajectories;
+            prob.user.numAvail = totAvail;
 
-        %minimize -2ln(likelihood) using fmincon
-        [params,fval,exitFlag] = fmincon(@neg2LnLikelihood,param0,[],...
-            [],[],[],-0.99*ones(1,arOrder+maOrder),0.99*ones(1,...
-            arOrder+maOrder),[],options,prob);
+            %initial parameter values
+            param0 = [arParamP0 maParamP0];
 
-        %proceed if minimization was successful
-        if exitFlag > 0
-            proceed = 1;
-        else
-            proceed = 0;
-        end
+            %minimize -2ln(likelihood) using fmincon
+            [params,fval,exitFlag] = fmincon(@neg2LnLikelihood,param0,[],...
+                [],[],[],-0.99*ones(1,arOrder+maOrder),0.99*ones(1,...
+                arOrder+maOrder),[],options,prob);
 
-    case 'tl' %local minimization using Tomlab's ucSolve
+            %proceed if minimization was successful
+            if exitFlag > 0
+                proceed = 1;
+            else
+                proceed = 0;
+            end
 
-        %initial parameter values
-        param0 = [arParamP0 maParamP0];
+        case 'tl' %local minimization using Tomlab's ucSolve
 
-        %define local minimizaton problem
-        prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
-            arOrder+maOrder),0.99*ones(1,arOrder+maOrder),'locMinNegLik',...
-            param0);
-        prob.PriLevOpt = 1;
-        prob.optParam.MaxFunc = 4000;
-        prob.optParam.MaxIter = 4000;
-        %         prob.optParam.IterPrint = 1;
-        prob.user.arOrder = arOrder;
-        prob.user.trajectories = trajectories;
-        prob.user.numAvail = totAvail;
-        %         prob.Solver.Alg = 1;
+            %initial parameter values
+            param0 = [arParamP0 maParamP0];
 
-        %minimize -2ln(likelihood) using Tomlab's ucSolve
-        result = tomRun('ucSolve',prob,[],2);
+            %define local minimizaton problem
+            prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
+                arOrder+maOrder),0.99*ones(1,arOrder+maOrder),'locMinNegLik',...
+                param0);
+            prob.PriLevOpt = 1;
+            prob.optParam.MaxFunc = 4000;
+            prob.optParam.MaxIter = 4000;
+            %         prob.optParam.IterPrint = 1;
+            prob.user.arOrder = arOrder;
+            prob.user.trajectories = trajectories;
+            prob.user.numAvail = totAvail;
+            %         prob.Solver.Alg = 1;
 
-        %proceed if minimization was successful
-        if result.ExitFlag == 0
-            params = result.x_k';
-            proceed = 1;
-        else
-            proceed = 0;
-        end
+            %minimize -2ln(likelihood) using Tomlab's ucSolve
+            result = tomRun('ucSolve',prob,[],2);
 
-    case 'tg' %global minimization using Tomlab's glbFast and ucSolve
+            %proceed if minimization was successful
+            if result.ExitFlag == 0
+                params = result.x_k';
+                proceed = 1;
+            else
+                proceed = 0;
+            end
 
-        %initial parameter values
-        param0 = [arParamP0 maParamP0];
+        case 'tg' %global minimization using Tomlab's glbFast and ucSolve
 
-        %define global minimization problem
-        prob = glcAssign('neg2LnLikelihood',-0.99*ones(1,arOrder+maOrder),...
-            0.99*ones(1,arOrder+maOrder),'globMinNegLik',[],[],[],[],[],...
-            [],param0);
+            %initial parameter values
+            param0 = [arParamP0 maParamP0];
 
-        prob.PriLevOpt = 1;
-        prob.optParam.MaxFunc = 300;
-        prob.optParam.MaxIter = 300;
-        %         prob.optParam.IterPrint = 1;
-        prob.user.arOrder = arOrder;
-        prob.user.trajectories = trajectories;
-        prob.user.numAvail = totAvail;
+            %define global minimization problem
+            prob = glcAssign('neg2LnLikelihood',-0.99*ones(1,arOrder+maOrder),...
+                0.99*ones(1,arOrder+maOrder),'globMinNegLik',[],[],[],[],[],...
+                [],param0);
 
-        %find global minimum of -2ln(likelihood) using Tomlab's glbFast
-        result = tomRun('glbFast',prob,[],2);
+            prob.PriLevOpt = 1;
+            prob.optParam.MaxFunc = 300;
+            prob.optParam.MaxIter = 300;
+            %         prob.optParam.IterPrint = 1;
+            prob.user.arOrder = arOrder;
+            prob.user.trajectories = trajectories;
+            prob.user.numAvail = totAvail;
 
-        if result.ExitFlag == 0 %if global minimization was successful
-            paramI = result.x_k(:,1)'; %use its results as initial guess for local minimization
-        else %if global minimization failed
-            paramI = param0; %use user's initial guess as initial guess for local minimization
-        end
+            %find global minimum of -2ln(likelihood) using Tomlab's glbFast
+            result = tomRun('glbFast',prob,[],2);
 
-        %define local minimizaton problem
-        prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
-            arOrder+maOrder),0.99*ones(1,arOrder+maOrder),'locMinNegLik',...
-            paramI);
-        prob.PriLevOpt = 1;
-        prob.optParam.MaxFunc = 1000;
-        prob.optParam.MaxIter = 1000;
-        %         prob.optParam.IterPrint = 1;
-        prob.user.arOrder = arOrder;
-        prob.user.trajectories = trajectories;
-        prob.user.numAvail = totAvail;
+            if result.ExitFlag == 0 %if global minimization was successful
+                paramI = result.x_k(:,1)'; %use its results as initial guess for local minimization
+            else %if global minimization failed
+                paramI = param0; %use user's initial guess as initial guess for local minimization
+            end
 
-        %refine minimum using ucSolve
-        result = tomRun('ucSolve',prob,[],2);
+            %define local minimizaton problem
+            prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
+                arOrder+maOrder),0.99*ones(1,arOrder+maOrder),'locMinNegLik',...
+                paramI);
+            prob.PriLevOpt = 1;
+            prob.optParam.MaxFunc = 1000;
+            prob.optParam.MaxIter = 1000;
+            %         prob.optParam.IterPrint = 1;
+            prob.user.arOrder = arOrder;
+            prob.user.trajectories = trajectories;
+            prob.user.numAvail = totAvail;
 
-        %proceed if minimization was successful
-        if result.ExitFlag == 0
-            params = result.x_k';
-            proceed = 1;
-        else
-            proceed = 0;
-        end
+            %refine minimum using ucSolve
+            result = tomRun('ucSolve',prob,[],2);
 
-    case 'nag' %local minimization using NAG's E04JAF
+            %proceed if minimization was successful
+            if result.ExitFlag == 0
+                params = result.x_k';
+                proceed = 1;
+            else
+                proceed = 0;
+            end
 
-        %define structure containing parameters required for function
-        %evaluation; they are written in Tomlab notation for convenience
-        prob.user.arOrder = arOrder;
-        prob.user.trajectories = trajectories;
-        prob.user.numAvail = totAvail;
+        case 'nag' %local minimization using NAG's E04JAF
 
-        %save "prob" in file "funct1Input" so that funct1 loads the
-        %variables when called.
-        save('funct1Input','prob');
-        
-        %initial parameter values
-        params = [arParamP0 maParamP0];
+            %define structure containing parameters required for function
+            %evaluation; they are written in Tomlab notation for convenience
+            prob.user.arOrder = arOrder;
+            prob.user.trajectories = trajectories;
+            prob.user.numAvail = totAvail;
 
-        [params,fval,lowerB,upperB,exitFlag] = ...
-            e04jaf(params,[-0.99*ones(1,arOrder+maOrder)],...
-            [0.99*ones(1,arOrder+maOrder)],0);
+            %save "prob" in file "funct1Input" so that funct1 loads the
+            %variables when called.
+            save('funct1Input','prob');
 
-        %proceed if minimization was successful
-        if (exitFlag == 0 || exitFlag == 5 || exitFlag == 6)
-            params = params';
-            proceed = 1;
-        else
-            proceed = 0;
-        end
+            %initial parameter values
+            params = [arParamP0 maParamP0];
 
-end %(switch minOpt)
+            [params,fval,lowerB,upperB,exitFlag] = ...
+                e04jaf(params,[-0.99*ones(1,arOrder+maOrder)],...
+                [0.99*ones(1,arOrder+maOrder)],0);
+
+            %proceed if minimization was successful
+            if (exitFlag == 0 || exitFlag == 5 || exitFlag == 6)
+                params = params';
+                proceed = 1;
+            else
+                proceed = 0;
+            end
+
+    end %(switch minOpt)
+
+else %(if arOrder + maOrder ~= 0)
+    
+    params = [];
+    proceed = 1;
+    
+end
 
 %if minimization was successful
 if proceed
@@ -412,43 +422,41 @@ end %(if proceed)
 %Post-processing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% %check if parameters found through least squares fitting are statistically
-% %equivalent to those found through maximum likelihood estimation with
-% %Kalman filtering. If they are not equivalent, then results cannot be
-% %trusted and model is skipped
-% 
-% %prepare input
-% armaCoef1.arParam = arParamK(1,:);
-% armaCoef1.maParam = maParamK(1,:);
-% armaCoef2.arParam = arParamL;
-% armaCoef2.maParam = maParamL;
-% 
-% %compare parameters
-% [H,errFlag] = armaCoefComp(armaCoef1,varCovMat,armaCoef2,varCovMat,...
-%     'global',0.005);
-% 
-% %report failure of fit and do not consider results if coefficients are significantly different
-% if H == 1
-%     disp('--armaCoefKalman: Discrepency beween least squares and maximum likelihood!')
-%     errFlag = 1;
-%     return
-% end
-% 
-% %check whether residuals are white noise. If not, then fit is not good
-% %enough and model is skipped
-% 
-% %portmanteau test
-% [H,errFlag] = portmanteau(wnVector,20,0.005);
-% 
-% %report failure of fit and do not consider results if residuals are not white noise
-% if H == 1
-%     disp('--armaCoefKalman: Residuals did not pass portmanteau test!')
-%     errFlag = 1;
-%     return
-% end
-% 
+%check if parameters found through least squares fitting are statistically
+%equivalent to those found through maximum likelihood estimation with
+%Kalman filtering. If they are not equivalent, then results cannot be
+%trusted and model is skipped
+
+%prepare input
+armaCoef1.arParam = arParamK(1,:);
+armaCoef1.maParam = maParamK(1,:);
+armaCoef2.arParam = arParamL;
+armaCoef2.maParam = maParamL;
+
+%compare parameters
+[H,errFlag] = armaCoefComp(armaCoef1,varCovMat,armaCoef2,varCovMat,...
+    'global');
+
+%report failure of fit and do not consider results if coefficients are significantly different
+if H == 1
+    disp('--armaCoefKalman: Discrepency between least squares and maximum likelihood!')
+    errFlag = 1;
+end
+
+%check whether residuals are white noise. If not, then fit is not good
+%enough and model is skipped
+
+%portmanteau test
+[H,pValuePort,errFlag] = portmanteau(wnVector,5,0.01);
+
+%report failure of fit and do not consider results if residuals are not white noise
+if H == 1
+    disp('--armaCoefKalman: Residuals did not pass portmanteau test!')
+    errFlag = 1;
+end
+
 % %turning point test
-% [H,errFlag] = turningPointTest(wnVector,0.005);
+% [H,pValue,errFlag] = turningPointTest(wnVector,0.005);
 % 
 % %report failure of fit and do not consider results if residuals are not white noise
 % if H == 1
@@ -458,7 +466,7 @@ end %(if proceed)
 % end
 % 
 % %difference sign test
-% [H,errFlag] = differenceSignTest(wnVector,0.005);
+% [H,pValue,errFlag] = differenceSignTest(wnVector,0.005);
 % 
 % %report failure of fit and do not consider results if residuals are not white noise
 % if H == 1
@@ -466,5 +474,9 @@ end %(if proceed)
 %     errFlag = 1;
 %     return
 % end
+
+if errFlag
+    return
+end
 
 %%%%% ~~ the end ~~ %%%%%

@@ -80,6 +80,12 @@ if nargin < 3
     significance = 0.05;
 end
 
+%exit if there are problems with input data
+if errFlag
+    disp('--portmanteau: Please fix input data!');
+    return
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Testing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
