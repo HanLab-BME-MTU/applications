@@ -34,15 +34,20 @@ if isempty(currentPath)
     set(handles.pathEdit,'String',fsmParam.main.path);
 else
     if strcmp(fsmParam.main.path,get(handles.pathEdit,'String'))==0
-        if ~isempty(fsmParam.main.path)
-        
-            infoPathString=['The loaded fsmParam.mat file contains stored path information [',fsmParam.main.path,'] which does not match the SpeckTackle subproject path [',currentPath,']. THE SUBPROJECT PATH WILL BE USED - if you need to move your files from the old location to the new one, please do this before you click on ''OK''.'];
-            uiwait(warndlg(infoPathString,'Warning','modal'));
-            set(handles.pathEdit,'String',currentPath);
-        else
-            % No path specified yet
-            set(handles.pathEdit,'String',fsmParam.main.path);
-        end
+        %Added by Lin: Actually, if you think of it, there is no need to
+        %check weather the stored project path match the current specified
+        %one. This checking causes problem when the project is shared between
+        %two platforms.
+        %if ~isempty(fsmParam.main.path)
+        %
+        %    infoPathString=['The loaded fsmParam.mat file contains stored path information [',fsmParam.main.path,'] which does not match the SpeckTackle subproject path [',currentPath,']. THE SUBPROJECT PATH WILL BE USED - if you need to move your files from the old location to the new one, please do this before you click on ''OK''.'];
+        %    uiwait(warndlg(infoPathString,'Warning','modal'));
+        %    set(handles.pathEdit,'String',currentPath);
+        %else
+        %    % No path specified yet
+        %    set(handles.pathEdit,'String',fsmParam.main.path);
+        %end
+        fsmParam.main.path = currentPath;
     end
 end
 

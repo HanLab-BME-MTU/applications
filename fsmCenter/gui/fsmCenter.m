@@ -142,6 +142,17 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushFSM_Callback(hObject, eventdata, handles)
+settings = get(handles.fsmCenter,'UserData');
+if isempty(settings)
+    errordlg('Please set up project first','Error','modal');
+    return;
+elseif ~isfield(settings,'projDir')
+    errordlg('Please set up project first','Error','modal');
+    return;
+elseif isempty(settings.projDir)
+    errordlg('Please set up project first','Error','modal');
+    return;
+end
 fsmGuiMain;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
