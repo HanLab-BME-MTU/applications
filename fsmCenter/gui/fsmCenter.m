@@ -22,7 +22,7 @@ function varargout = fsmCenter(varargin)
 
 % Edit the above text to modify the response to help fsmCenter
 
-% Last Modified by GUIDE v2.5 07-Sep-2004 11:16:28
+% Last Modified by GUIDE v2.5 07-Sep-2004 11:59:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -155,10 +155,15 @@ fsmGuiMain;
 function pushOpenProject_Callback(hObject, eventdata, handles)
 projDir=get(handles.textCurrentProject,'String');
 [projDir,imageDir,subProjects]=projSetupGUI('a','b',projDir);
-if ~isempty(projDir)
-    set(handles.textCurrentProject,'String',projDir);
-    set(handles.textCurrentImage,'String',imageDir);
+if isempty(projDir)
+    % Nothing to do here - the user just canceled
+    return
 end
+
+% Update project info in fsmCenter
+set(handles.textCurrentProject,'String',projDir);
+set(handles.textCurrentImage,'String',imageDir);
+
 % Add projDir, imageDir and subProjects to the userData of fsmCenter
 settings.projDir=projDir;
 settings.imageDir={imageDir}; % This is a cell (n-channel movies)
