@@ -74,7 +74,7 @@ extraNucCoord = round (cat (1, tempProperties(:).Centroid));
 % To get some more info from the halos, we try to fit bouding boxes in them and 
 % see whether the area is small/big enough to be a cell.
 % First skeletonize the image to find all the halo lines
-haloImgThinned = bwmorph (imgHalo, 'skel', Inf);
+%haloImgThinned = bwmorph (imgHalo, 'skel', Inf);
 %figure,imshow (haloImgThinned,[]);
 
 % Really big areas also are likely to be nuclei, so let's find these now

@@ -1,8 +1,8 @@
-function [cellProps, clusterProps] = ptCalculateCellAreaUsingVariance (edgeImageLabeled, coord, distanceToCellArea, minSizeNucleus, edgeKernelSize)
+function [cellProps, clusterProps, frameProps] = ptCalculateCellAreaUsingVariance (edgeImageLabeled, coord, distanceToCellArea, minSizeNucleus, edgeKernelSize)
 % ptCalculateCellAreaUsingVariance  determines what areas of an image are occupied by cells and
 %                                   calculates image properties
 %
-% SYNOPSIS     [cellProps, clusterProps] = ptCalculateCellAreaUsingVariance (edgeImage, 
+% SYNOPSIS     [cellProps, clusterProps, frameProps] = ptCalculateCellAreaUsingVariance (edgeImage, 
 %                                          coord, distanceToCellArea, minSizeNucleus, edgeKernelSize)
 %
 % INPUT    edgeImageLabeled : a labeled binary image showing the area of cells and clusters
@@ -23,6 +23,12 @@ function [cellProps, clusterProps] = ptCalculateCellAreaUsingVariance (edgeImage
 %                 clusterProps (:,4) = clusterPerimeter (:);       (the length of the perimeter)
 %                 clusterProps (:,5) = clusterPerimeterElements (:); (how many elements does the perimeter exist of)
 %
+%              frameProps :
+%                 frameProps (:,1) = average area all cells/clusters
+%                 frameProps (:,2) = average area convex hull around clusters
+%                 frameProps (:,3) = average ratio area/convex-hull-area of clusters
+%
+%
 % DEPENDENCIES ptCalculateCellAreaUsingVariance uses {nothing}
 %
 %              ptCalculateCellAreaUsingVariance is used by { ptTrackCells }
@@ -35,19 +41,7 @@ function [cellProps, clusterProps] = ptCalculateCellAreaUsingVariance (edgeImage
 % Andre Kerstens        May 04          Changed name from body to ptCalculateCellArea
 %                                       and general cleanup of code
 % Andre Kerstens        Jun 04          Calculations are done based on edges found in variance image
-
-% % Process the edge image so that we end up with a labeled image of areas
-% % First remove the white edge that was created during convolution
-% edgeImageNoEdge = edgeImage(edgeKernelSize:end-edgeKernelSize, edgeKernelSize:end-edgeKernelSize);
-% 
-% % Some morphological operations to increase cluster quality
-% edgeImageOpened = bwareaopen (edgeImageNoEdge, minSizeNucleus);
-% edgeImageClosed = imfill (edgeImageOpened, 'holes');
-% edgeImageBridged = bwmorph (edgeImageClosed,'bridge');
-% edgeImageFilled = imfill (edgeImageBridged, 'holes');
-% 
-% % Label the image
-% edgeImageLabeled = bwlabel (edgeImageFilled);
+% Andre Kerstens        Jul 04          Added calculations for frame properties
 
 % Prepare a matrix for the grouping of coordinates to objects
 clusterNr = zeros (length (coord), 1);
@@ -171,8 +165,35 @@ for iCount = 1 : length (uniqClusterNr)
    % To find the number of perimeter elements of the object take the max
    % label nr
    clusterPerimeterElements (iCount) = max (max (clusterInvLabel));
+   
+   % Calculate ratio area/convex_hull_area for all cells and clusters
+   labelCluster = bwlabel (cluster);
+   regionProps = regionprops (labelCluster, 'Area', 'ConvexArea');
+   area(iCount) = regionProps(1).Area;
+   convexArea(iCount) = regionProps(1).ConvexArea;
+   Solidity(iCount) = area(iCount) / convexArea(iCount);
 end
    
+% % Calculate ratio area/convex_hull_area for all cells and clusters
+% regionProps = regionprops (edgeImageLabeled, 'Area', 'ConvexArea');
+% for jCount = 1 : size (regionProps, 1)
+%    area(jCount) = regionProps(jCount).Area;
+%    convexArea(jCount) = regionProps(jCount).ConvexArea;
+%    Solidity(jCount) = area(jCount) / convexArea(jCount);
+% end
+
+% Calculate average ratios for the frame
+avgSolidity = sum(Solidity) / length(Solidity);
+avgArea = sum(area) / length(area);
+avgConvexArea = sum(convexArea) / length(convexArea);
+
+% Properties for the whole frame are stored in frameProps
+% Keep some space for later values as well
+frameProps = zeros (1,5);
+frameProps (1,1) = avgArea;
+frameProps (1,2) = avgConvexArea;
+frameProps (1,3) = avgSolidity;
+
 % One row of clusterProps is equivalent to the properties of one cluster
 clusterProps = zeros (length (uniqClusterNr), 5);
 clusterProps (:,1) = uniqClusterNr (:);
@@ -183,6 +204,6 @@ clusterProps (:,5) = clusterPerimeterElements (:);
     
 % One row of cellProps gives all information for one set of coordinates
 cellProps = zeros (length (coord), 3);
-cellProps(:,1) = coord(:,1);
-cellProps(:,2) = coord(:,2);
-cellProps(:,3) = clusterNr(:);
+cellProps (:,1) = coord(:,1);
+cellProps (:,2) = coord(:,2);
+cellProps (:,3) = clusterNr(:);

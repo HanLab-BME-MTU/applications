@@ -29,6 +29,8 @@ function [outImage, backgroundLevel, binImageEdge] = ptGetProcessedImage (vararg
 % Andre Kerstens        Apr 04          Initial release
 % Andre Kerstens        May 04          Function now uses automatic thresholding to find the background
 % Andre Kerstens        Jun 04          Added edge image to output of function
+% Andre Kerstens        Jul 04          Fixed bug where imMinimumThreshold for the edge images was 
+%                                       provided the var image for bg's
 
 % Test the number of input variables
 if nargin < 4
@@ -41,7 +43,7 @@ greyMax      = varargin{2};
 kernelSizeBg = varargin{3};
 kernelSizeEdge = varargin{4};
 
-% Calculate variance images useful for background subtraction and for edge
+% Calculate variance images used for background subtraction and for edge
 % detection
 varImageBg = imVarianceImage (inputImage, kernelSizeBg);
 varImageEdge = imVarianceImage (inputImage, kernelSizeEdge);
@@ -49,7 +51,7 @@ varImageEdge = imVarianceImage (inputImage, kernelSizeEdge);
 % Calculate the optimum thresholds to segment this image (bg subtraction
 % and edge thresholds)
 [thresholdBg, JBg] = imMinimumThreshold (varImageBg, greyMax);
-[thresholdEdge, JEdge] = imMinimumThreshold (varImageBg, greyMax);
+[thresholdEdge, JEdge] = imMinimumThreshold (varImageEdge, greyMax);
 
 % Get the binary image where all of the background is 1
 binImageBg = ~im2bw (varImageBg, thresholdBg);

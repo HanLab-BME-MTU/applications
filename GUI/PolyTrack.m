@@ -19,6 +19,7 @@ function varargout = PolyTrack(varargin)
 % Colin Glass           Feb 04          Initial version
 % Andre Kerstens        Jun 04          Changed default mincellsize to 300 (from 250)
 % Andre Kerstens        Jul 04          Image file check is only done if it hasn't be done before.
+% Andre Kerstens        Jul 04          Added frame properties matrix to ptTrackCells
 
 % This is matlab stuff we should not touch.
 % Begin initialization code - DO NOT EDIT
@@ -246,7 +247,7 @@ else
     % Test whether the max greyvalue per frame is not more than the
     % bitdepth value specified on the gui
     % But do this only if it hasn't be done before (filesChecked matfile)
-    if ~exist ('filesChecked.mat', 'file')
+    if (exist ('filesChecked.mat', 'file') ~= 2)
        fprintf (1, 'Checking image files of job %d for correctness...\n', jobNumber);
     
        % Calculate the max posible grey value
@@ -1484,22 +1485,17 @@ for jobNumber = 1 : nrOfJobs
         
    % Here's where the real tracking process starts for the selected job
    % AK: the try-catch should be uncommented as soon as testing is done!!!
-   try
-      [M, clusterProps, cellProps, imageCount] = ptTrackCells (handles.jobs(jobNumber), jobNumber);
-   catch    
-      fprintf (1, '\nJob number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
+   %try
+      [M, clusterProps, cellProps, frameProps, imageCount] = ptTrackCells (handles.jobs(jobNumber), jobNumber);
+   %catch    
+      %fprintf (1, '\nJob number %d  had an error and could not be completed: %s\n', jobNumber, lasterr);
   
      % Save M, cluster and cell data
      %cd (handles.jobs(jobNumber).savedirectory);
      %save ('M','M');
      %save ('clusterProps','clusterProps');
      %save ('cellProps','cellProps');
-     
-     % Make sure the jobvalues for this job are adjusted
-     %handles.jobs(jobNumber).firstimage = imageCount;
-     %jobvalues = handles.jobs(jobNumber);
-     %save ('jobvalues','jobvalues');
-   end
+   %end
    
    % Final message for the user to mark the end
    fprintf (1, '\nTracking finished...\n\n');

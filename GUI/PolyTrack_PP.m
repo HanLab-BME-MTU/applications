@@ -18,6 +18,7 @@ function varargout = PolyTrack_PP(varargin)
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file
 % Andre Kerstens        Jul 04          Added size of movie to ptPostpro
+% Andre Kerstens        Jul 04          Added area/convex-hull-area plot
 
 % All kinds of matlab initialization stuff; leave as is...
 % Begin initialization code - DO NOT EDIT
@@ -217,7 +218,7 @@ if exist ('cellProps.mat','file')
       handles.postpro.cellProps = cellProps;
    end
 else
-   h = errordlg('The file cells.mat does not exist. Please make sure it is present...');
+   h = errordlg('The file cellProps.mat does not exist. Please make sure it is present...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
 end
@@ -229,7 +230,19 @@ if exist ('clusterProps.mat','file')
       handles.postpro.clusterProps = clusterProps;
    end
 else
-   h = errordlg('The file clusters.mat does not exist. Please make sure it is present...');
+   h = errordlg('The file clusterProps.mat does not exist. Please make sure it is present...');
+   uiwait(h);          % Wait until the user presses the OK button
+   return;
+end
+
+% Load the frame properties file if it exists
+if exist ('frameProps.mat','file')
+   load('frameProps.mat');
+   if exist('frameProps','var')
+      handles.postpro.frameProps = frameProps;
+   end
+else
+   h = errordlg('The file frameProps.mat does not exist. Please make sure it is present...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
 end

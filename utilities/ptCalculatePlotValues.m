@@ -19,6 +19,7 @@ function ptCalculatePlotValues (ptPostpro)
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Jun 04          Cleaned up source and renamed file
 % Andre Kerstens        Jul 04          Added pixelarea all cells percentage
+% Andre Kerstens        Jul 04          Added plots for area/convex-hull-area
 
 % First assign all the postpro fields to a meaningfull variable
 startFrame = ptPostpro.firstimg;
@@ -30,11 +31,12 @@ numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 savePath = ptPostpro.saveallpath;
 jobPath = ptPostpro.jobpath;
 imageName = ptPostpro.imagename;
+pixelLength = ptPostpro.mmpixel;
 rowSize = ptPostpro.rowsize;
 colSize = ptPostpro.colsize;
 
-% Calculate the total area of the frame
-totalAreaFrame = rowSize * colSize;
+% Calculate the total area of the frame (in um^2)
+totalAreaFrame = (rowSize * colSize) * (pixelLength^2);
 
 % Get radio button values
 cellClusterPlot = ptPostpro.cellclusterplot;
@@ -55,14 +57,23 @@ perimeterPlot = ptPostpro.perimeterplot;
 %      clusterProps (:,4,:) = clusterPerimeter (:);       (the length of the perimeter)
 %      clusterProps (:,5,:) = clusterPerimeterElements (:); (how many elements does the perimeter exist of)
 %
-% These matrices are filled up with zero rows to make them all the same
-% length (same principle as the M matrix)
-%
 cellProps = ptPostpro.cellProps;
 clusterProps = ptPostpro.clusterProps;
 
+% Also get the frame properties. These are in the format:
+%
+%    frameProps :
+%      frameProps (:,1,:) = average area all cells/clusters
+%      frameProps (:,2,:) = average area convex hull around clusters
+%      frameProps (:,3,:) = average ratio area/convex-hull-area of clusters
+%
+frameProps = ptPostpro.frameProps;
+
 % Initialize properties counter
 propCount = ceil ((plotStartFrame - startFrame) / increment);
+
+% Initialize areaRatio matrix
+areaRatio = zeros (numberOfFrames,3);
 
 % Initialize X-axis vector and counter
 xAxis = zeros (1, numberOfFrames);
@@ -117,7 +128,7 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    % Calculate the average area per cluster
    sumClusterArea (iCount) = sum (clusters (find (clusters (:,2) > 1), 3));
    if clusterAmount (iCount) ~= 0
-      areaPerCluster (iCount) = sumClusterArea (iCount) / clusterAmount (iCount);
+      areaPerCluster (iCount) = (sumClusterArea (iCount) / clusterAmount (iCount)) * (pixelLength^2);
    else
       areaPerCluster (iCount) = 0;
    end
@@ -125,13 +136,13 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    % Calculate the average area per single cell
    sumSingleCellArea (iCount) = sum (clusters (find (clusters (:,2) == 1), 3));
    if singleCellAmount (iCount) ~= 0
-      areaPerSingleCell (iCount) = sumSingleCellArea (iCount) / singleCellAmount (iCount);
+      areaPerSingleCell (iCount) = (sumSingleCellArea (iCount) / singleCellAmount (iCount)) * (pixelLength^2);
    else
       areaPerSingleCell (iCount) = 0;
    end
    
-   % Calculate area taken up by single and clustered cells together
-   totalAreaAllCells (iCount) = sumSingleCellArea (iCount) + sumClusterArea (iCount);
+   % Calculate area taken up by single and clustered cells together (in um^2)
+   totalAreaAllCells (iCount) = (sumSingleCellArea (iCount) + sumClusterArea (iCount)) * (pixelLength^2);
    percentageAreaAllCells (iCount) = (totalAreaAllCells (iCount) / totalAreaFrame) * 100.0;
    
    % Calculate average perimeter length
@@ -148,7 +159,18 @@ for frameCount = plotStartFrame : increment : plotEndFrame
    else
       perimeterDivArea (iCount) = 0;
    end
+   
+   % Calculate the area and convex-hull-area in um^2
+   convexHullData (frameCount,1) = frameProps(1, 1, frameCount) * (pixelLength^2);
+   convexHullData (frameCount,2) = frameProps(1, 2, frameCount) * (pixelLength^2);
+   
+   % Calculate the ratio area / convex-hull-area in percent
+   convexHullData (frameCount,3) = (convexHullData(frameCount,1) / convexHullData(frameCount,2)) * 100;
 end 
+
+
+% Here's where the plotting itself starts
+% ---------------------------------------
 
 if cellClusterPlot
    % Generate single cell and cluster plots if the users requested these
@@ -157,7 +179,8 @@ if cellClusterPlot
 end   
 if areaPlot
    % Generate area plots if the users requested these
-   ptPlotAreaStats (imageName, savePath, xAxis, areaPerSingleCell, areaPerCluster, percentageAreaAllCells);
+   ptPlotAreaStats (imageName, savePath, xAxis, areaPerSingleCell, areaPerCluster, totalAreaAllCells, ...
+                    percentageAreaAllCells, convexHullData);
 end
 
 if perimeterPlot

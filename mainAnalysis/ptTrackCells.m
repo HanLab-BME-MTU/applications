@@ -1,4 +1,4 @@
-function [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumber)
+function [M, clusterProps, cellProps, frameProps, imageCount] = ptTrackCells (ptJob, jobNumber)
 % ptTrackCells finds and links coordinates in a serie of phase contrast images 
 %
 % SYNOPSIS       [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumber)
@@ -19,6 +19,10 @@ function [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumb
 %                  clusterProps (:,3) = clusterArea (:);            (the area of this cluster)
 %                  clusterProps (:,4) = clusterPerimeter (:);       (the length of the perimeter)
 %                  clusterProps (:,5) = clusterPerimeterElements (:); (how many elements does the perimeter exist of)
+%                frameProps :
+%                  frameProps (:,1) = average area all cells/clusters
+%                  frameProps (:,2) = average area convex hull around clusters
+%                  frameProps (:,3) = average ratio area/convex-hull-area of clusters
 %                imageCount : the last image that was processed (also needed in case of crashes)
 %
 % DEPENDENCIES   ptTrackCells uses { imClusterSeg
@@ -59,6 +63,7 @@ function [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumb
 % Andre Kerstens        Jun 04          Modification necessary because of extra parameter ptGetProcessedImage
 % Andre Kerstens        Jul 04          In case of too many bad segmentations, the function will return 
 %                                       and give up on the job
+% Andre Kerstens        Jul 04          Added frame properties to functions
 
 % Tell the user that we've started
 fprintf (1, 'Starting analysis of job number %d:\n', jobNumber);
@@ -90,6 +95,7 @@ edgeKernel           = 5;
 emptyM               = zeros (1,4);      % All zeros M matrix entry
 emptyCell            = zeros (1,3);
 emptyCluster         = zeros (1,5);
+emptyFrame           = zeros (1,5);
 
 % Check that the first and last image numbers are actually the right way around
 if ~(endFrame > startFrame)
@@ -362,9 +368,8 @@ else		% lastImaNum > firstImaNum
       end   % if imageCount > startFrame
 
       % Calculate single cell and cluster properties and generate binary and labeled images
-      %[cellProp, clusterProp] = ptCalculateCellArea (labeledCellImage, newCoord, distanceToCellArea, minSizeNuc);
-      [cellProp, clusterProp] = ptCalculateCellAreaUsingVariance (labeledCellImage, newCoord, ...
-                                                                  distanceToCellArea, minSizeNuc, edgeKernel);
+      [cellProp, clusterProp, frameProp] = ptCalculateCellAreaUsingVariance (labeledCellImage, newCoord, ...
+                                                               distanceToCellArea, minSizeNuc, edgeKernel);
       
       % Accumulate the cell properties
       cellProps (1 : size (emptyCell, 1), 1 : size (emptyCell, 2), imageCount) = emptyCell;
@@ -373,6 +378,10 @@ else		% lastImaNum > firstImaNum
       % Accumulate the cluster properties
       clusterProps (1 : size (emptyCluster, 1), 1 : size (emptyCluster, 2), imageCount) = emptyCluster;
       clusterProps (1 : size (clusterProp, 1), 1 : size (clusterProp, 2), imageCount) = clusterProp;
+      
+      % Accumulate the frame properties
+      frameProps (1 : size (emptyFrame, 1), 1 : size (emptyFrame, 2), imageCount) = emptyFrame;
+      frameProps (1 : size (frameProp, 1), 1 : size (frameProp, 2), imageCount) = frameProp;
                                                   
       % Write segmented and cluster binary images, M and cell coordinates to disk
       if ~exist (saveDirectory, 'dir')
@@ -442,12 +451,6 @@ else		% lastImaNum > firstImaNum
    
    end   % for imageCount
 end % if ~(lastImaNum > firstImaNum)
-
-% % Generate the cell and cluster properties. This function also takes
-% % coordinates into account that have been generated to close gaps
-% clusterDirectory = [saveDirectory filesep 'info'];
-% [cellProps, clusterProps] = ptCalculateCellAreaWithM (M, distanceToCellArea, minSizeNuc, clusterDirectory, ...
-%                                                       startFrame, endFrame, increment);
                                                   
 % Generate the MPM matrix as well so that it can be used from disk if needed
 MPM = ptTrackLinker (M);
@@ -460,8 +463,8 @@ MPM = ptMinTrackLength (MPM, minTrackLength);
 % Generate the cell and cluster properties. This function also takes
 % coordinates into account that have been generated to close gaps
 clusterDirectory = [saveDirectory filesep 'info'];
-[cellProps, clusterProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNuc, clusterDirectory, ...
-                                                        startFrame, endFrame, increment);
+[cellProps, clusterProps, frameProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNuc, clusterDirectory, ...
+                                                                    startFrame, endFrame, increment);
 
 % Go to the save directory
 cd (saveDirectory);
@@ -484,6 +487,11 @@ end
 % Save cluster properties
 if exist ('clusterProps', 'var')
    save ('clusterProps.mat', 'clusterProps');
+end
+
+% Save cluster properties
+if exist ('frameProps', 'var')
+   save ('frameProps.mat', 'frameProps');
 end
 
 % Tell the user we've finished

@@ -1,10 +1,9 @@
-function [cellProps, clusterProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNucleus, clusterDirectory, startFrame, endFrame, increment)
+function [cellProps, clusterProps, frameProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNucleus, clusterDirectory, startFrame, endFrame, increment)
 % ptCalculateCellAreaMPM  determines what areas of an image are occupied by cells and
 % calculates image properties
 %
-% SYNOPSIS     [cellProps, clusterProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNucleus,
-%                                                                      clusterDirectory, startFrame, endFrame, 
-%                                                                      increment)
+% SYNOPSIS     [cellProps, clusterProps, frameProps] = ptCalculateCellAreaWithMPM (MPM, distanceToCellArea, minSizeNucleus,
+%                                                         clusterDirectory, startFrame, endFrame, increment)
 %
 % INPUT    MPM : the magic position matrix
 %          distanceToCellArea : distance a set of coordinates may have to an cell area and still belong to it
@@ -25,6 +24,10 @@ function [cellProps, clusterProps] = ptCalculateCellAreaWithMPM (MPM, distanceTo
 %                 clusterProps (:,3) = clusterArea (:);            (the area of this cluster)
 %                 clusterProps (:,4) = clusterPerimeter (:);       (the length of the perimeter)
 %                 clusterProps (:,5) = clusterPerimeterElements (:); (how many elements does the perimeter exist of)
+%              frameProps :
+%                 frameProps (:,1) = average area all cells/clusters
+%                 frameProps (:,2) = average area convex hull around clusters
+%                 frameProps (:,3) = average ratio area/convex-hull-area of clusters
 %
 % DEPENDENCIES ptCalculateCellAreaMPM uses {nothing}
 %
@@ -36,6 +39,7 @@ function [cellProps, clusterProps] = ptCalculateCellAreaWithMPM (MPM, distanceTo
 % --------------------- ----------      -----------------------------------------------
 % Andre Kerstens        Jun 04          Created new function which
 %                                       calculates cell and cluster properties based on MPM
+% Andre Kerstens        Jul 04          Added frame properties matrix to the output
 
 % Let the user know we're starting to calculate cell and cluster props
 fprintf (1, '\n     ptCalculateCellAreaWithMPM.m: Generating cell and cluster properties...\n');
@@ -50,6 +54,7 @@ mCount = 0;
 % Initialize empty cell and cluster rows
 emptyCell            = zeros (1,3);
 emptyCluster         = zeros (1,5);
+emptyFrame           = zeros (1,5);
 
 % Initialize the coordinate matrix
 coord = [];
@@ -195,7 +200,34 @@ for frameCount = startFrame : increment : endFrame
       % To find the number of perimeter elements of the object take the max
       % label nr
       clusterPerimeterElements (iCount) = max (max (clusterInvLabel));
+      
+      % Calculate ratio area/convex_hull_area for all cells and clusters
+      labelCluster = bwlabel (cluster);
+      regionProps = regionprops (labelCluster, 'Area', 'ConvexArea');
+      area(iCount) = regionProps(1).Area;
+      convexArea(iCount) = regionProps(1).ConvexArea;
+      Solidity(iCount) = area(iCount) / convexArea(iCount);
    end
+   
+%    % Calculate ratio area/convex_hull_area for all cells and clusters
+%    regionProps = regionprops (edgeImageLabeled, 'Area', 'ConvexArea');
+%    for jCount = 1 : size (regionProps, 1)
+%       area(jCount) = regionProps(jCount).Area;
+%       convexArea(jCount) = regionProps(jCount).ConvexArea;
+%       Solidity(jCount) = area(jCount) / convexArea(jCount);
+%    end
+
+   % Calculate average ratios for the frame
+   avgSolidity = sum(Solidity) / length(Solidity);
+   avgArea = sum(area) / length(area);
+   avgConvexArea = sum(convexArea) / length(convexArea);
+
+   % Properties for the whole frame are stored in frameProps
+   % Keep some space for later values as well
+   frameProp = zeros (1,5);
+   frameProp (1,1) = avgArea;
+   frameProp (1,2) = avgConvexArea;
+   frameProp (1,3) = avgSolidity;
    
    % One row of clusterProps is equivalent to the properties of one cluster
    clusterProp = zeros (length (uniqClusterNr), 5);
@@ -219,11 +251,15 @@ for frameCount = startFrame : increment : endFrame
    clusterProps (1 : size (emptyCluster, 1), 1 : size (emptyCluster, 2), mCount) = emptyCluster;
    clusterProps (1 : size (clusterProp, 1), 1 : size (clusterProp, 2), mCount) = clusterProp;
    
+   % Accumulate the frame properties
+   frameProps (1 : size (emptyFrame, 1), 1 : size (emptyFrame, 2), frameCount) = emptyFrame;
+   frameProps (1 : size (frameProp, 1), 1 : size (frameProp, 2), frameCount) = frameProp;
+   
    % clear temporary variables
    clear onBackGround;
    clear cluster; clear clusterArea; clear clusterPerimeter; clear clusterInv;
    clear clusterInvLabel; clear clusterPerimeterElements;
-   clear clusterProp; clear cellProp;
+   clear clusterProp; clear cellProp; clear frameProp;
 end
 
 % Let the user know we've finished
