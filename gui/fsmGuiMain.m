@@ -3,7 +3,7 @@ function varargout = fsmGuiMain(varargin)
 %    FIG = fsmGuiMain launch fsmGuiMain GUI.
 %    fsmGuiMain('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 13-Feb-2004 12:13:54
+% Last Modified by GUIDE v2.5 11-Mar-2004 17:18:11
 clc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -793,7 +793,9 @@ function checkGrid_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkGrid
-
+if get(handles.checkGrid,'Value')==1
+    uiwait(msgbox('Use this field only in case of OUT OF MEMORY problems during tracking.','Not recommended','help','modal'));
+end
 
 % --- Executes on button press in radioDispModeOrig.
 function radioDispModeOrig_Callback(hObject, eventdata, handles)
@@ -821,5 +823,20 @@ function drawROICheck_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of drawROICheck
+
+
+% --- Executes when user attempts to close fsmGuiMain.
+function fsmGuiMain_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to fsmGuiMain (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+fsmGMH=findall(0,'Tag','fsmGuiMain'); % Get the handle of fsmGuiMain
+choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
+switch choice,
+    case 'Yes', delete(fsmGMH);
+    case 'No', return;
+end % switch
 
 
