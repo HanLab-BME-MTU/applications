@@ -493,7 +493,7 @@ if nargout > 1
         
         distributionStruct.antipolewardSpeed = [60*dataListG(growthIdx,4),...
             diff(dataListG(growthIdx,[1,2]),1,2),indGrowthSpeedSigma];
-        distributionStruct.growthTime(:,[1,3]) = [growthGroupsDeltaT,growthGroupsDeltaTsigma];
+        distributionStruct.growthTime = [growthGroupsDeltaT,growthGroupsDeltaTsigma];
     end
 %         % calculate distributions
 %         [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
@@ -507,7 +507,7 @@ if nargout > 1
     if ~isempty(shrinkageIdx)
         distributionStruct.polewardSpeed = [60*dataListG(shrinkageIdx,4),...
             diff(dataListG(shrinkageIdx,[1,2]),1,2),indShrinkageSpeedSigma];
-        distributionStruct.shrinkageTime(:,[1,3]) = [shrinkageGroupsDeltaT,shrinkageGroupsDeltaTsigma];
+        distributionStruct.shrinkageTime = [shrinkageGroupsDeltaT,shrinkageGroupsDeltaTsigma];
     end
     
   
