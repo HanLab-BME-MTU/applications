@@ -12,8 +12,14 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %                     2D array representing one single trajectory. 
 %           .observations: 2D array of measurements and their uncertainties.
 %                     Missing points should be indicated with NaN.
-%       arParamP0   : Initial guess of partial autoregressive coefficients (row vector).
-%       maParamP0   : Initial guess of partial moving average coefficients (row vector).
+%       arParamP0   : Initial guess of parameters determining the AR coef. (row vector).
+%                     They are related to the partial AR coef by the
+%                     equation: partial AR coef. =
+%                     (1-exp(arParamP0))/(1+exp(arParamP0))
+%       maParamP0   : Initial guess of parameters derermining the MA coef. (row vector).
+%                     They are related to the partial MA coef by the
+%                     equation: partial MA coef. =
+%                     (1-exp(maParamP0))/(1+exp(maParamP0))
 %       constParam  : Set of constrained parameters. Constains 2 fields:
 %           .ar     : 2D array. 1st column is AR parameter number and
 %                     2nd column is parameter value. No need to input if
@@ -73,7 +79,8 @@ function [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
 %        is done.
 %
 %        THE 'ml', 'tg' AND 'nag' MINIMIZATION OPTIONS SHOULD BE MODIFIED
-%        TO ACCOUNT FOR CONSTRAINTS! ONLY 'tl' DOES RIGHT NOW!
+%        TO ACCOUNT FOR CONSTRAINTS AND FOR NEW MINIMIZATION PARAMETERS! 
+%        ONLY 'tl' DOES RIGHT NOW!
 %
 %Khuloud Jaqaman, July 2004
 
@@ -111,7 +118,7 @@ if ~isstruct(trajectories)
     trajectories.observations = tmp;
     clear tmp
 elseif ~isfield(trajectories,'observations')
-    disp('--autoCorr: Please input the trajectories in fields ''observations''')
+    disp('--armaCoefKalman: Please input the trajectories in fields ''observations''!')
     errFlag = 1;
     return
 end
@@ -132,28 +139,20 @@ for i=1:length(trajectories);
     trajectories(i).observations = traj;
 end
 
-%get arOrder and check partial AR coefficients
+%get arOrder
 [nRow,arOrder] = size(arParamP0);
 if ~isempty(arParamP0)
     if nRow ~= 1
         disp('--armaCoefKalman: "arParamP0" should be a row vector!');
         errFlag = 1;
     end
-    if ~isempty(find(abs(arParamP0)>=1))
-        disp('--armaCoefKalman: All entries in "arParamP0" should be smaller than 1 in magnitude!');
-        errFlag = 1;
-    end
 end
 
-%get maOrder and check partial MA coefficients
+%get maOrder
 [nRow,maOrder] = size(maParamP0);
 if ~isempty(maParamP0)
     if nRow ~= 1
         disp('--armaCoefKalman: "maParamP0" should be a row vector!');
-        errFlag = 1;
-    end
-    if ~isempty(find(abs(maParamP0)>=1))
-        disp('--armaCoefKalman: All entries in "maParamP0" should be smaller than 1 in magnitude!');
         errFlag = 1;
     end
 end
@@ -259,9 +258,7 @@ if arOrder + maOrder ~= 0
 
             if isempty(constParam) %if there are no constraints
 
-                %define local minimizaton problem
-                prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
-                    arOrder+maOrder),0.99*ones(1,arOrder+maOrder),...
+                prob = conAssign('neg2LnLikelihood',[],[],[],[],[],...
                     'locMinNegLik',param0);
                 prob.PriLevOpt = 1;
                 prob.optParam.MaxFunc = 4000;
@@ -276,8 +273,7 @@ if arOrder + maOrder ~= 0
             else %if there are constraints
 
                 %define local minimizaton problem with constraints
-                prob = conAssign('neg2LnLikelihood',[],[],[],-0.99*ones(1,...
-                    arOrder+maOrder),0.99*ones(1,arOrder+maOrder),...
+                prob = conAssign('neg2LnLikelihood',[],[],[],[],[],...
                     'locMinNegLik',param0,[],[],[],[],[],'minKalmanConstraint',...
                     [],[],[],[constParam.ar(:,2);constParam.ma(:,2)],...
                     [constParam.ar(:,2);constParam.ma(:,2)]);
@@ -382,12 +378,12 @@ if arOrder + maOrder ~= 0
 
     end %(switch minOpt)
 
-else %(if arOrder + maOrder ~= 0)
+else %if arOrder+maOrder=0
     
     params = [];
     proceed = 1;
     
-end
+end %(if arOrder + maOrder ~= 0)
 
 %if minimization was successful
 if proceed
@@ -415,13 +411,11 @@ if proceed
     if ~isempty(find(r<=1))
         disp('--armaCoefKalman: Predicted model not causal!');
         errFlag = 1;
-        return
     end
     r = abs(roots([maParamK(end:-1:1) 1]));
     if ~isempty(find(r<=1))
         disp('--armaCoefKalman: Predicted model not invertible!');
         errFlag = 1;
-        return
     end
 
     %obtain likelihood, white noise sequence and white noise variance
@@ -438,7 +432,7 @@ if proceed
             return
         end
 
-        %calculate white noise variance of current trajectory
+        %calculate variance of white noise in current trajectory
         wnVarianceSamp(i) = nanmean(innovation.^2./innovationVar);
 
         %1st sum in Eq. 3.15
@@ -447,7 +441,7 @@ if proceed
         sum2 = sum2 + nansum(innovation.^2./innovationVar);
 
     end %(for i = 1:length(trajectories))
-
+    
     %calculate -2ln(likelihood)
     neg2LnLikelihoodV = sum1 + totAvail*log(sum2);
 
@@ -457,7 +451,6 @@ if proceed
     %get number of parameters estimated: arOrder AR coefficients, maOrder MA
     %coefficients and white noise variance
     numParam = arOrder + maOrder + 1;
-    %         numParam = arOrder + maOrder + 2;
 
     %evaluate Akaike's Information Criterion
     selectCrit.aic = neg2LnLikelihoodV + 2*numParam;
@@ -523,8 +516,5 @@ if H == 1
     errFlag = 1;
 end
 
-if errFlag
-    return
-end
 
 %%%%% ~~ the end ~~ %%%%%

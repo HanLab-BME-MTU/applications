@@ -10,8 +10,8 @@ function [selectCrit,errFlag] = selectCritKalman(trajectories,arParam,...
 %                     2D array representing one single trajectory. 
 %           .observations: 2D array of measurements and their uncertainties.
 %                     Missing points should be indicated with NaN.
-%       arParam     : Initial guess of autoregressive coefficients (row vector).
-%       maParam     : Initial guess of moving average coefficients (row vector).
+%       arParam     : Autoregressive coefficients in model (row vector).
+%       maParam     : Moving average coefficients in model (row vector).
 %
 %OUTPUT selectCrit  : Model selection criterion. Contains 3 fields:
 %            .aic        : Akaike's Information Criterion.
@@ -20,7 +20,7 @@ function [selectCrit,errFlag] = selectCritKalman(trajectories,arParam,...
 %
 %REMARKS All equation numbers used here refer to R. H. Jones, "Maximum 
 %        Likelihood Fitting of ARMA Models to Time Series with Missing
-%         Observations", Technometrics 22: 389-395 (1980). 
+%        Observations", Technometrics 22: 389-395 (1980). 
 %
 %Khuloud Jaqaman, October 2004
 

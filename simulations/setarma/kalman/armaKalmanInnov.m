@@ -81,16 +81,15 @@ observationVec(1) = 1;
 
 %initialize state vector and its covariance matrix
 stateVecT_T = zeros(maxOrder,1); %Z(0|0)
-% [stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,procErrCov,...
-%     arOrder,maOrder,maxOrder); %P(0|0)
-stateCovMatT_T = 1e3*ones(maxOrder);
+[stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,procErrCov,...
+    arOrder,maOrder,maxOrder); %P(0|0)
 
 %initialize innovations vector, its covariance matrix and white noise vector
 innovation = NaN*ones(trajLength,1);
 innovationVar = NaN*ones(trajLength,1);
 wnVector = NaN*ones(trajLength,1);
 
-%got over all points in trajectory
+%go over all points in trajectory
 for timePoint = 1:trajLength
     
     %predict state at time T+1 given state at time T
@@ -98,6 +97,8 @@ for timePoint = 1:trajLength
     %obtain the predicted state's covariance matrix
     stateCovMatT1_T = transitionMat*stateCovMatT_T*transitionMat' ...
         + procErrCov*procErrCov'; %P(t+1|t), Eq. 3.2
+    %make sure that matrix is symmetric
+    stateCovMatT1_T = (stateCovMatT1_T+stateCovMatT1_T')/2;
     %predict observable at time T+1
     observableP = stateVecT1_T(1); %y(t+1|t), Eq. 3.3
     
@@ -115,18 +116,20 @@ for timePoint = 1:trajLength
         %and its variance, V(t+1) (Eq. 3.6 & 3.10)
         innovationVar(timePoint) = stateCovMatT1_T(1,1) + traj(timePoint,2)^2;
 
+        %check whether innovation variance is negative (which it should not be!)
         if innovationVar(timePoint) < 0
-            disp('neg!');
-%             errFlag = 1;
-%             return
+            disp('neg!')
+            errFlag = 1;
         end
-        
+
         %calculate delta
         delta = stateCovMatT1_T*observationVec'/innovationVar(timePoint); %delta(t+1), Eq. 3.5
         %modify state vector prediction using observation
         stateVecT_T = stateVecT1_T + delta*innovation(timePoint); %Z(t+1|t+1), Eq. 3.4
         %update state covariance matrix
         stateCovMatT_T = stateCovMatT1_T - delta*observationVec*stateCovMatT1_T; %P(t+1|t+1), Eq. 3.7
+        %make sure that matrix is symmetric
+        stateCovMatT_T = (stateCovMatT_T+stateCovMatT_T')/2;
         
         %calculate white noise at this time point using 
         %wn(t+1) = x(t+1|t+1) - x(t+1|t) (Eq. 2.10 with j=1)

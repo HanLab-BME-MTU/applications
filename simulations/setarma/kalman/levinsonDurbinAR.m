@@ -3,7 +3,9 @@ function [arParam,errFlag] = levinsonDurbinAR(arParamP)
 %
 %SYNOPSIS [arParam,errflag] = LevinsonDurbinAR(arParamP)
 %
-%INPUT  arParamP : Partial autoregressive coefficients (row vector).
+%INPUT  arParamP : Parameters (row vector) from which partial AR 
+%                  coefficients are obtained via the equation
+%                  partial AR coef. = (1-exp(arParamP))/(1+exp(arParamP))
 %
 %OUTPUT arParam     : autoregressive coefficients (row vector).
 %       errFlag     : 0 if function executes normally, 1 otherwise.
@@ -21,6 +23,10 @@ errFlag = [];
 %get AR order
 arOrder = length(arParamP);
 
+%convert parameters to partial AR coefficients
+arParamP = (1-exp(arParamP))./(1+exp(arParamP));
+
+%compute AR coefficients from partial AR coefficients
 temp = [];
 for i=1:arOrder
     temp = [temp zeros(2,1)];

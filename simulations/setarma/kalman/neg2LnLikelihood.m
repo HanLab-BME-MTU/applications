@@ -3,7 +3,7 @@ function neg2LnLikelihoodV = neg2LnLikelihood(param,prob)
 %
 %SYNOPSIS neg2LnLikelihoodV = neg2LnLikelihood(param,prob)
 %
-%INPUT  param       : Set of partial ARMA coefficients.
+%INPUT  param       : Set of parameters related to partial ARMA coefficients.
 %       prob        : structure in Tomlab format containing variables
 %                     needed for calculations.
 %          .user.arOrder     : Order of autoregressive part of process.
@@ -84,20 +84,17 @@ sum2 = 0; %2nd sum in Eq. 3.15
 
 %go over all trajectories to get innovations and their variances
 for i = 1:length(trajectories)
-        
+
     %get the innovations, their variances and process white noise
     %using Kalman prediction and filtering
     [innovation,innovationVar,wnVector,errFlag] = ...
         armaKalmanInnov(trajectories(i).observations,arParam,maParam);
-    if errFlag
-        return
-    end
-        
+
     %1st sum in Eq. 3.15
     sum1 = sum1 + nansum(log(innovationVar));
     %2nd sum in Eq. 3.15
     sum2 = sum2 + nansum(innovation.^2./innovationVar);
-    
+
 end
 
 %construct -2ln(likelihood)
