@@ -20,4 +20,5 @@ uimenu(hMenu,'Label','Filter image','Callback','fsmCenterCB_filterImage;','Accel
 % uimenu(hMenu,'Label','Auto contrast','Callback','fsmCenterCB_autoContrast;','Accelerator','T');
 % uimenu(hMenu,'Label','Show speckle selection','Callback','fsmCenterCB_showCands;','Accelerator','K','Separator','On');
 uimenu(hMenu,'Label','Invert image','Callback','fsmCenterCB_invertImage;','Accelerator','I');
+uimenu(hMenu,'Label','Show speckle selection','Callback','fsmCenterCB_showCands;','Accelerator','K');
 

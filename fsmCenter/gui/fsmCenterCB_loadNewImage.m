@@ -1,4 +1,4 @@
-function fsmCentercb_loadNewImage(img)
+function fsmCentercb_loadNewImage
 % fsmCentercb_loadNewImage
 %
 % This function is a callback for the "More Tools" menu in the figure
@@ -55,6 +55,5 @@ figure(gcf);
 hMenu=uimenu('Label','More Tools');
 uimenu(hMenu,'Label','Load image','Callback','fsmCenterCB_loadNewImage;','Accelerator','L');
 uimenu(hMenu,'Label','Find edges','Callback','fsmCenterCB_findEdges;','Accelerator','E','Separator','On');
-uimenu(hMenu,'Label','Show speckle selection','Callback','fsmCenterCB_showCands;','Accelerator','K');
 
 
