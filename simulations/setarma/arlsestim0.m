@@ -8,7 +8,7 @@ function [arParam,noiseSigma,arParamSigma,errFlag] = arlsestim0(traj,arOrder)
 %
 %OUTPUT arParam     : Estimated parameters in model.
 %       noiseSigma  : Estimated standard deviation of white noise.
-%       arParamSigma: Uncertainty in estimated AR coefficients.
+%       arParamSIgma: Uncertainty in estimated AR coefficients.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, February 2004
@@ -21,6 +21,7 @@ if nargin ~= nargin('arlsestim0')
     errFlag  = 1;
     arParam = [];
     noiseSigma = [];
+    arParamSigma = [];
     return
 end
 
@@ -42,6 +43,7 @@ if errFlag
     disp('--arlsestim0: please fix input data!');
     arParam = [];
     noiseSigma = [];
+    arParamSigma = [];
     return
 end
     
@@ -71,15 +73,11 @@ lhs = weightsP*prevPoints;
 %clear variable
 clear weightsP;
 
-%check matrix condition 
-%condition = cond(lhs)
+%variance-covariance matrix
+varCovarMat = inv(lhs);
 
-%covariance matrix
-arParamSigma = inv(lhs);
-
-%invert equation to get solution
-%arParam = (lhs\rhs)';
-arParam = (arParamSigma*rhs)';
+%solution
+arParam = (varCovarMat*rhs)';
 
 %check for causality of estimated model
 r = abs(roots([-arParam(end:-1:1) 1]));
@@ -93,5 +91,5 @@ epsilon = prevPoints*arParam' - traj(arOrder+1:end,1);
 %standard deviation of white noise
 noiseSigma = std(epsilon);
 
-%uncertainty in estimated arParam
-arParamSigma = arParamSigma*sqrt((epsilon'*weights*epsilon)/2/(trajLength-arOrder));
+%variance-covariance matrix
+arParamSigma = varCovarMat*sqrt((epsilon'*weights*epsilon)/(trajLength-2*arOrder));
