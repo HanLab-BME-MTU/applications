@@ -495,8 +495,8 @@ end
 %idlist=projectData(idlist);
 SetUserData(imgFigureH,idlist,1);
 
-delete(handles.reLinkGUI);
-labelgui('refresh');
+% delete(handles.reLinkGUI);
+% labelgui('refresh');
 
 
 % --------------------------------------------------------------------
