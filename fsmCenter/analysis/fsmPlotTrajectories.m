@@ -28,8 +28,6 @@ function fsmPlotTrajectories(projDir,method,colorCode)
 %
 % Aaron Ponti, January 22th, 2004
 
-global uFirst uLast
-
 if nargin==1
     colorCode=0;
 end
@@ -101,16 +99,9 @@ else
     minDistFrame=0;
     clear M; % Not needed
 end
-guiH=fsmTrackSelectFramesGUI; ch=get(guiH,'Children');
-set(findobj('Tag','pushOkay'),'UserData',minDistFrame); % Sets the min distance allowed between the sliders
-title='Plot trajectories within frames:';
-set(findobj('Tag','editFirstFrame'),'String',num2str(first));
-set(findobj('Tag','editLastFrame'),'String',num2str(last));
-set(findobj('Tag','SelectFramesGUI'),'Name',title);
-sSteps=[1/(last-first) 1/(last-first)];
-set(findobj('Tag','sliderFirstFrame'),'SliderStep',sSteps,'Max',last,'Min',first,'Value',first);
-set(findobj('Tag','sliderLastFrame'),'SliderStep',sSteps,'Max',last,'Min',first,'Value',last);
-waitfor(guiH); % The function waits for the dialog to close (and to return values for uFirst and uLast)
+
+% Select frames
+[uFirst,uLast]=fsmTrackSelectFramesGUI(first,last,minDistFrame,'Plot trajectories within frames:');
 
 % Check whether the dialog was closed (_CloseRequestFcn)
 if uFirst==-1

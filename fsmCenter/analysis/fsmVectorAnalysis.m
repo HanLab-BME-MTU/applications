@@ -40,8 +40,6 @@ function fsmVectorAnalysis(projDir,nAvg,roi,displ,scale,d0,useDiv,output,displRO
 %
 % Aaron Ponti, May 15th, 2003
 
-global uFirst uLast
-
 if nargin~=10
     error('10 input parameters expected');
 end
@@ -185,16 +183,8 @@ else
     minN=nAvg-1;
 end
 
-guiH=fsmTrackSelectFramesGUI; ch=get(guiH,'Children');
-set(findobj('Tag','pushOkay'),'UserData',minN); % At least n-1 frames must be considered
-titleDlg='Select frame pairs to be processed:';
-set(findobj('Tag','editFirstFrame'),'String',num2str(1));
-set(findobj('Tag','editLastFrame'),'String',num2str(nImages-1));
-set(findobj('Tag','SelectFramesGUI'),'Name',titleDlg);
-sSteps=[1/((nImages-1)-1) 1/((nImages-1)-1)];
-set(findobj('Tag','sliderFirstFrame'),'SliderStep',sSteps,'Max',nImages-1,'Min',1,'Value',1);
-set(findobj('Tag','sliderLastFrame'),'SliderStep',sSteps,'Max',nImages-1,'Min',1,'Value',nImages-1);
-waitfor(guiH); % The function waits for the dialog to close (and to return values for uFirst and uLast)
+% Frame pairs to be processed
+[uFirst,uLast]=fsmTrackSelectFramesGUI(1,nImages-1,minN,'Select frame pairs to be processed:');
 
 if uFirst==-1
     return % The user closed the dialog

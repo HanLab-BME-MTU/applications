@@ -24,8 +24,6 @@ function varargout = fsmTrackSelectFramesGUI(varargin)
 
 % Last Modified by GUIDE v2.5 12-Jan-2004 09:31:42
 
-global uFirst uLast
-
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -60,8 +58,26 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
+% Read input parameters
+first=varargin{1};
+last=varargin{2};
+minN=varargin{3};
+titleGUI=char(varargin{4});
+
+% Set up GUI with the passed data
+set(handles.editFirstFrame,'String',num2str(first));
+set(handles.editLastFrame,'String',num2str(last));
+set(findobj('Tag','SelectFramesGUI'),'Name',titleGUI);
+sSteps=[1/(last-first) 1/(last-first)];
+set(handles.sliderFirstFrame,'SliderStep',sSteps,'Max',last,'Min',first,'Value',first);
+set(handles.sliderLastFrame,'SliderStep',sSteps,'Max',last,'Min',first,'Value',last);
+
+% Store minN
+set(handles.pushOkay,'UserData',minN);
+
 % UIWAIT makes fsmTrackSelectFramesGUI wait for user response (see UIRESUME)
-% uiwait(handles.SelectFramesGUI);
+uiwait(handles.SelectFramesGUI);
+
 
 % --- Outputs from this function are returned to the command line.
 function varargout = fsmTrackSelectFramesGUI_OutputFcn(hObject, eventdata, handles)
@@ -71,8 +87,10 @@ function varargout = fsmTrackSelectFramesGUI_OutputFcn(hObject, eventdata, handl
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.output;
-
+selection=get(handles.SelectFramesGUI,'UserData');
+varargout{1}=selection{1};
+varargout{2}=selection{2};
+delete(hObject);
 
 % --- Executes during object creation, after setting all properties.
 function sliderFirstFrame_CreateFcn(hObject, eventdata, handles)
@@ -98,14 +116,14 @@ function sliderFirstFrame_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-frames=get(findobj('Tag','pushOkay'),'UserData');
-valueSlider1=fix(get(findobj('Tag','sliderFirstFrame'),'Value'));
-valueSlider2=fix(get(findobj('Tag','sliderLastFrame'),'Value'));
-if valueSlider1>(valueSlider2-frames)
-    valueSlider1=valueSlider2-frames;    
+minN=get(handles.pushOkay,'UserData');
+valueSlider1=fix(get(handles.sliderFirstFrame,'Value'));
+valueSlider2=fix(get(handles.sliderLastFrame,'Value'));
+if valueSlider1>(valueSlider2-minN)
+    valueSlider1=valueSlider2-minN;    
 end
-set(findobj('Tag','sliderFirstFrame'),'Value',valueSlider1);
-set(findobj('Tag','editFirstFrame'),'String',num2str(valueSlider1));
+set(handles.sliderFirstFrame,'Value',valueSlider1);
+set(handles.editFirstFrame,'String',num2str(valueSlider1));
 
 % --- Executes during object creation, after setting all properties.
 function editFirstFrame_CreateFcn(hObject, eventdata, handles)
@@ -130,18 +148,18 @@ function editFirstFrame_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editFirstFrame as text
 %        str2double(get(hObject,'String')) returns contents of editFirstFrame as a double
-frames=get(findobj('Tag','pushOkay'),'UserData');
-value=str2num(get(findobj('Tag','editFirstFrame'),'String'));
+minN=get(handles.pushOkay,'UserData');
+value=str2num(get(handles.editFirstFrame,'String'));
 if ~isnumeric(value)
     return
 end
-valueSlider1=get(findobj('Tag','sliderFirstFrame'),'Value');
-valueSlider2=get(findobj('Tag','sliderLastFrame'),'Value');
-if value<get(findobj('Tag','sliderFirstFrame'),'Min') | value>(valueSlider2-frames) | value>get(findobj('Tag','sliderFirstFrame'),'Max')
+valueSlider1=get(handles.sliderFirstFrame,'Value');
+valueSlider2=get(handles.sliderLastFrame,'Value');
+if value<get(handles.sliderFirstFrame,'Min') | value>(valueSlider2-minN) | value>get(handles.sliderFirstFrame,'Max')
     value=valueSlider1;    
 end
-set(findobj('Tag','sliderFirstFrame'),'Value',value);
-set(findobj('Tag','editFirstFrame'),'String',num2str(value));
+set(handles.sliderFirstFrame,'Value',value);
+set(handles.editFirstFrame,'String',num2str(value));
 
 
 % --- Executes during object creation, after setting all properties.
@@ -168,14 +186,14 @@ function sliderLastFrame_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-frames=get(findobj('Tag','pushOkay'),'UserData');
-valueSlider1=fix(get(findobj('Tag','sliderFirstFrame'),'Value'));
-valueSlider2=fix(get(findobj('Tag','sliderLastFrame'),'Value'));
-if valueSlider2<(valueSlider1+frames)
-    valueSlider2=valueSlider1+frames;    
+minN=get(handles.pushOkay,'UserData');
+valueSlider1=fix(get(handles.sliderFirstFrame,'Value'));
+valueSlider2=fix(get(handles.sliderLastFrame,'Value'));
+if valueSlider2<(valueSlider1+minN)
+    valueSlider2=valueSlider1+minN;    
 end
-set(findobj('Tag','sliderLastFrame'),'Value',valueSlider2);
-set(findobj('Tag','editLastFrame'),'String',num2str(valueSlider2));
+set(handles.sliderLastFrame,'Value',valueSlider2);
+set(handles.editLastFrame,'String',num2str(valueSlider2));
 
 
 % --- Executes during object creation, after setting all properties.
@@ -201,18 +219,18 @@ function editLastFrame_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editLastFrame as text
 %        str2double(get(hObject,'String')) returns contents of editLastFrame as a double
-frames=get(findobj('Tag','pushOkay'),'UserData');
-value=str2num(get(findobj('Tag','editLastFrame'),'String'));
+minN=get(handles.pushOkay,'UserData');
+value=str2num(handles.editLastFrame,'String');
 if ~isnumeric(value)
     return
 end
-valueSlider1=get(findobj('Tag','sliderFirstFrame'),'Value');
-valueSlider2=get(findobj('Tag','sliderLastFrame'),'Value');
-if value<get(findobj('Tag','sliderLastFrame'),'Min') | value<(valueSlider1+frames) | value>get(findobj('Tag','sliderLastFrame'),'Max')
+valueSlider1=get(handles.sliderFirstFrame,'Value');
+valueSlider2=get(handles.sliderLastFrame,'Value');
+if value<get(handles.sliderLastFrame,'Min') | value<(valueSlider1+minN) | value>get(handles.sliderLastFrame,'Max')
     value=valueSlider2;    
 end
-set(findobj('Tag','sliderLastFrame'),'Value',value);
-set(findobj('Tag','editLastFrame'),'String',num2str(value));
+set(handles.sliderLastFrame,'Value',value);
+set(handles.editLastFrame,'String',num2str(value));
 
 
 % --- Executes on button press in pushOkay.
@@ -222,10 +240,10 @@ function pushOkay_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % assignin('caller','uFirst',first);
 % assignin('caller','uLast',last);
-global uFirst uLast
-uFirst=get(findobj('Tag','sliderFirstFrame'),'Value');
-uLast=get(findobj('Tag','sliderLastFrame'),'Value');
-closereq;
+uFirst=get(handles.sliderFirstFrame,'Value');
+uLast=get(handles.sliderLastFrame,'Value');
+set(handles.SelectFramesGUI,'UserData',{uFirst,uLast});
+uiresume(handles.SelectFramesGUI);
 
 
 % --- Executes when user attempts to close SelectFramesGUI.
@@ -234,10 +252,7 @@ function SelectFramesGUI_CloseRequestFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: delete(hObject) closes the figure
-global uFirst uLast
-uFirst=-1;
-uLast=-1;
-delete(hObject);
-
+% Set output to {-1, -1} (-1 means failure - this is what will be passed back if the gui is closed)
+set(handles.SelectFramesGUI,'UserData',{-1,-1});
+uiresume(handles.SelectFramesGUI);
 

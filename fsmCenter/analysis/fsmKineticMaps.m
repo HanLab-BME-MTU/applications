@@ -32,8 +32,6 @@ function [polyMap,depolyMap,kinMap2C,outputdir]=fsmKineticMaps(projDir,n,sigma)
 %
 % Aaron Ponti, September 2th, 2003
 
-global uFirst uLast
-
 if nargin<2 | nargin>3
     error('Two or three input parameters expected');
 end
@@ -94,19 +92,10 @@ imgSize=fsmParam.specific.imgSize;
 
 % User input asked
 if n(1)==-1
-    
-    % Select range of frames for which to create maps
-    guiH=fsmTrackSelectFramesGUI;
-    set(findall(0,'Tag','pushOkay'),'UserData',0); % Minimum range 
-    title='Select frames to be processed:';
-    set(findall(0,'Tag','editFirstFrame'),'String',num2str(1));
-    set(findall(0,'Tag','editLastFrame'),'String',num2str(len));
-    set(findall(0,'Tag','SelectFramesGUI'),'Name',title);
-    sSteps=[1/(len-1) 1/(len-1)];
-    set(findall(0,'Tag','sliderFirstFrame'),'SliderStep',sSteps,'Max',len,'Min',1,'Value',1);
-    set(findall(0,'Tag','sliderLastFrame'),'SliderStep',sSteps,'Max',len,'Min',1,'Value',len);
-    waitfor(guiH); % The function waits for the dialog to close (and to return values for uFirst and uLast)
-    
+
+    % Select frames to be processed
+    [uFirst,uLast]=fsmTrackSelectFramesGUI(1,len,0,'Select frames to be processed:');
+
     if uFirst==-1
         return % The user closed the dialog
     end

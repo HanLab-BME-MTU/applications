@@ -50,9 +50,6 @@ if DEBUG~=0 & DEBUG~=1
     DEBUG=0;
 end
 
-% Global variable
-global uFirst uLast
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % INPUTS, OUTPUTS AND PARAMETERS
@@ -208,16 +205,7 @@ first=str2num(firstKinScoreIndex);
 last=str2num(lastKinScoreIndex);
 
 % Select range of frames
-guiH=fsmTrackSelectFramesGUI;
-set(findall(0,'Tag','pushOkay'),'UserData',n-1); % Minimum range 
-title='Select images to be processed:';
-set(findall(0,'Tag','editFirstFrame'),'String',num2str(first));
-set(findall(0,'Tag','editLastFrame'),'String',num2str(last));
-set(findall(0,'Tag','SelectFramesGUI'),'Name',title);
-sSteps=[1/(last-first) 1/(last-first)];
-set(findall(0,'Tag','sliderFirstFrame'),'SliderStep',sSteps,'Max',last,'Min',first,'Value',first);
-set(findall(0,'Tag','sliderLastFrame'),'SliderStep',sSteps,'Max',last,'Min',first,'Value',last);
-waitfor(guiH); % The function waits for the dialog to close (and to return values for uFirst and uLast)
+[uFirst,uLast]=fsmTrackSelectFramesGUI(first,last,n-1,'Select images to be processed:');
 
 if uFirst==-1
     return % The user closed the dialog

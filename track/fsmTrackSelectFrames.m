@@ -13,8 +13,6 @@ function [fsmParam,status]=fsmTrackSelectFrames(fsmParam)
 %
 % Aaron Ponti, January 7th, 2004
 
-global uFirst uLast
-
 % Set initial status to failure
 status=0;
 
@@ -80,16 +78,9 @@ if length(outFileList)<(frames+1)
     end
 end
 
-guiH=fsmTrackSelectFramesGUI; ch=get(guiH,'Children');
-set(findobj('Tag','pushOkay'),'UserData',frames); % Store the tracker in use
-title=['Processed frames (first contiguous series): ',firstIndex,' to ',lastIndex];
-set(findobj('Tag','editFirstFrame'),'String',num2str(first));
-set(findobj('Tag','editLastFrame'),'String',num2str(last));
-set(findobj('Tag','SelectFramesGUI'),'Name',title);
-sSteps=[1/(last-first) 1/(last-first)];
-set(findobj('Tag','sliderFirstFrame'),'SliderStep',sSteps,'Max',last,'Min',first,'Value',first);
-set(findobj('Tag','sliderLastFrame'),'SliderStep',sSteps,'Max',last,'Min',first,'Value',last);
-waitfor(guiH); % The function waits for the dialog to close (and to return values for uFirst and uLast)
+% Select frame pairs to be processed
+titleGUI=['Processed frames (first contiguous series): ',firstIndex,' to ',lastIndex];
+[uFirst,uLast]=fsmTrackSelectFramesGUI(first,last,frames,titleGUI);
 
 % Check whether the dialog was closed (_CloseRequestFcn)
 if uFirst==-1

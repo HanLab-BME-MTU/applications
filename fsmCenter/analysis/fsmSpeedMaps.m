@@ -36,8 +36,6 @@ function outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixe
 %
 % Aaron Ponti, January 16th, 2004
 
-global uFirst uLast
-
 % Check input parameters
 if nargin~=12
     error('12 input parameters expected');
@@ -172,16 +170,8 @@ else
     minN=n-1;
 end
 
-guiH=fsmTrackSelectFramesGUI; ch=get(guiH,'Children');
-set(findobj('Tag','pushOkay'),'UserData',minN); % At least n-1 frames must be considered
-title='Select frame pairs to be processed:';
-set(findobj('Tag','editFirstFrame'),'String',num2str(1));
-set(findobj('Tag','editLastFrame'),'String',num2str(frames));
-set(findobj('Tag','SelectFramesGUI'),'Name',title);
-sSteps=[1/(frames-1) 1/(frames-1)];
-set(findobj('Tag','sliderFirstFrame'),'SliderStep',sSteps,'Max',frames,'Min',1,'Value',1);
-set(findobj('Tag','sliderLastFrame'),'SliderStep',sSteps,'Max',frames,'Min',1,'Value',frames);
-waitfor(guiH); % The function waits for the dialog to close (and to return values for uFirst and uLast)
+% Select frame pairs to be processed
+[uFirst,uLast]=fsmTrackSelectFramesGUI(1,frames,minN,'Select frame pairs to be processed:');
 
 if uFirst==-1
     return % The user closed the dialog
