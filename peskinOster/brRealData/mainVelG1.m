@@ -58,6 +58,7 @@ sigmaGS=sigmaS./(timeS.^(0.5));
 dataVel=[velS,0.001*ones(size(velS))];
 
 [velMeanS,weightedStd]=brVelocityAnalyze(velS,sigmaGS,sigmaS,1e-3,'G1 Shrinkage case','o');
+[velMeanS2,weightedStd]=brVelocityAnalyze(velS,sigmaS,sigmaS,1e-3,'G1 Shrinkage case','o');
 
 velG = velocity(stateGIndex);
 sigmaG =sigma(stateGIndex);
@@ -66,6 +67,7 @@ timeG=time(stateGIndex);
 sigmaGG=sigmaG./(timeG.^(0.5));
 
 [velMeanG,weightedStd]=brVelocityAnalyze(velG,sigmaGG,sigmaG,1e-3,'G1 growing case','o');
+[velMeanG2,weightedStd]=brVelocityAnalyze(velG,sigmaG,sigmaG,1e-3,'G1 growing case','o');
  
 
 

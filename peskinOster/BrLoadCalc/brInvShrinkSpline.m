@@ -30,10 +30,14 @@ elseif maxIndice>1
     end
     %DEBUG
     if length(velDiscret(maxIndice:end))<3
-        disp('merse');
+        omegHigh=NaN;
+        omegaLow=NaN;
+        polynome=spline(velDiscret,omegaDiscret);
+        omega=ppval(polynome,velData);
+    else
+        polynomeHigh=spline(velDiscret(maxIndice:end),omegaDiscret(maxIndice:end));  
+        omegaHigh=ppval(polynomeHigh,velData);
     end
-    polynomeHigh=spline(velDiscret(maxIndice:end),omegaDiscret(maxIndice:end));  
-    omegaHigh=ppval(polynomeHigh,velData);
 end
 
     

@@ -15,6 +15,9 @@ cen1Tag=find(strcmp('cen1',idlisttrack(1).stats.labelcolor)==1);
 
 data = calculateTrajectoryFromIdlist(idlisttrack,dataProperties,cen1Tag,spb1Tag,[]);
 ioOpt.verbose = 1;
+ioOpt.saveTxt=0;
+ioOpt.saveMat=0;
+ioOpt.clusterData=0;
 trajectoryDescription = trajectoryAnalysis(data,ioOpt,[]);
 
 if (isempty(spb1Tag)|isempty(cen1Tag))

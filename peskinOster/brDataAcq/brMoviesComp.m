@@ -1,7 +1,7 @@
 function [oldVelMt1,oldVelMt2,velMt1,velMt2,oldCAngle1T,oldCAngle1TdT,oldCAngle2T,oldCAngle2TdT,cAngle1T,cAngle2T,cAngle1TdT,cAngle2TdT,sigmaMt1,sigmaMt2,stateMt1,stateMt2]=brMoviesComp
 
 
-path='/home/yloosli/MatlabSave/'
+path='H:\MatlabSave\'
 
 load([path 'WT_30C_Metaphase_Fast3_corr-data-05-Dec-2003-10-24-16.mat']);
 idlisttrack3=idlisttrack_L;

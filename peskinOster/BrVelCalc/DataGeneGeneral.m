@@ -44,17 +44,17 @@ indexSG=index(61:105);
 indexGS=index(106:150);
 
 
-velData1(indexGG)=peskin(xObj(1:2),omega1(indexGG),delta);
-velData2(indexGG)=peskin(xObj(6:7),omega2(indexGG),delta);
+velData1(indexGG)=peskin(xObj(1:2),omega1(indexGG),delta/13);
+velData2(indexGG)=peskin(xObj(6:7),omega2(indexGG),delta/13);
 
 velData1(indexSS)=-brShrinkDirect(xObj(3:5),omega1(indexSS),delta);
 velData2(indexSS)=-brShrinkDirect(xObj(8:10),omega2(indexSS),delta);
 
-velData1(indexGS)=peskin(xObj(1:2),omega1(indexGS),delta);
+velData1(indexGS)=peskin(xObj(1:2),omega1(indexGS),delta/13);
 velData2(indexGS)=-brShrinkDirect(xObj(8:10),omega2(indexGS),delta);
 
 velData1(indexSG)=-brShrinkDirect(xObj(3:5),omega1(indexSG),delta);
-velData2(indexSG)=peskin(xObj(6:7),omega2(indexSG),delta);
+velData2(indexSG)=peskin(xObj(6:7),omega2(indexSG),delta/13);
 
 vUnload=v0;
 

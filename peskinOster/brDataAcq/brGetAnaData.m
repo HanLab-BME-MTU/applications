@@ -21,10 +21,13 @@ cen2Tag=find(strcmp('cen2',idlisttrack(1).stats.labelcolor)==1);
 
 dataMt1 = calculateTrajectoryFromIdlist(idlisttrack,dataProperties,cen1Tag,spb1Tag,[]);
 ioOpt.verbose = 1;
+ioOpt.saveTxt=0;
+ioOpt.saveMat=0;
+ioOpt.clusterData=0;
 trajectoryDescriptionMt1 = trajectoryAnalysis(dataMt1,ioOpt,[]);
 
 dataMt2 = calculateTrajectoryFromIdlist(idlisttrack,dataProperties,cen2Tag,spb2Tag,[]);
-ioOpt.verbose = 1;
+
 trajectoryDescriptionMt2 = trajectoryAnalysis(dataMt2,ioOpt,[]);
 close all;
 
