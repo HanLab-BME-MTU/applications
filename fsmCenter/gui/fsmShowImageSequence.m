@@ -49,7 +49,8 @@ imageNumber = (sliderValue - 1) + firstImage;
 set (hFsmCounter, 'String', num2str (imageNumber));
 
 % Read the image frame from disk
-fileName = char(imageNameList(imageNumber));
+imgListNr = sliderValue;
+fileName = char(imageNameList(imgListNr));
 image = double(imread([imageDirectory,fileName]));
 
 % Get a handle to the figure
@@ -88,25 +89,13 @@ else
    iImg = fImg;
 end
 
-% Show the frame on the screen in the current figure
-% hold on;
-% if strcmp(get(hFiltMenu, 'Checked'),'on') %| strcmp(get(hInvMenu, 'Checked'),'on')
-%    imshow(iImg,[bMin bMax]);
-% else
-%    imshow(iImg,[]);
-% end
-% hold off;
-
 % Delete the axes currently shown in the figure on the screen
 imgPtr=findall(gca,'Type','Image');
-%delete (gca);
-%delete (imgPtr); 
 
 % Update figure
 set(imgPtr,'CData',iImg);
 set(imgPtr,'CDataMapping','scaled')
 set(gca,'CLimMode','auto');
-%set(gca,'CLim',[0 1]);
 refresh;
 
 % Make sure the axis are correct
@@ -163,12 +152,18 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
     candsBody = handles.imageSeq.candsBody;
     candsExt = handles.imageSeq.candsExt;
     candsNo = handles.imageSeq.candsNo;
+    candsSpa = handles.imageSeq.candsSpa;
     
     formatStr = sprintf ('%%.%dd', length(candsNo));
     imageNr = sprintf (formatStr, imageNumber);
 
-    candsName = [candsPath candsBody imageNr candsExt];
-
+    if ~isempty(candsSpa)
+        % A sub pixel speckle file has been selected
+        candsName = [candsPath candsBody imageNr '_spa' candsExt];
+    else
+        candsName = [candsPath candsBody imageNr candsExt];
+    end
+    
     if ~exist(candsName)
         uiwait(errordlg(['Cands file ' candsName ' does not exist.'],'Error','modal'));
         %set(hSpeckleMenu, 'Checked', 'off');
@@ -181,12 +176,15 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
 
         return
     end
-
     
     % Load the correct cands file
     try
         s=load(candsName);
-        cands=s.cands;
+        if ~isempty(candsSpa)
+            cands=s.candsSP;
+        else
+            cands=s.cands;
+        end
     catch
         uiwait(errordlg('Invalid cands file.','Error','modal'));
         set(hSpeckleMenu, 'Checked', 'off');

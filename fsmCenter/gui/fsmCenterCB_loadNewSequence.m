@@ -64,7 +64,6 @@ if(isa(fileName,'char') & isa(dirName,'char'))
     % Find all files within this directory with the same name as the selected filename
     ind = strmatch(bodyName, dirList);
     dirList = dirList(ind)';
-    firstImage = 1;
 
     % If images do not exist then exit
     if isempty(dirList)
@@ -85,10 +84,24 @@ if(isa(fileName,'char') & isa(dirName,'char'))
     end  % for jRearange
     [dummy,imageNumInd] = sort(imageNum);
     imageNameList = dirList(imageNumInd);
-    lastImage = length(dirList);
     
+    % Find out what the first image nr is (not necessarily 1)
+    firstImageFile = char(imageNameList(1));
+    
+    % Find out what the first image number is   
+    number = 0;
+    countNum = 0;
+    while ~isnan(number) & (countNum < 3)
+       countNum = countNum + 1;
+       number = str2num(firstImageFile(end-(4+countNum):end-4));
+    end
+    firstImage = number;
+        
     % Calculate the image range
-    imageRange = lastImage;
+    imageRange = length(dirList);
+
+    % Calculate the last image nr
+    lastImage = firstImage + imageRange - 1;
 
     % Generate the slider step values for the uicontrol
     % First the arrow slide step (1):
@@ -101,7 +114,7 @@ if(isa(fileName,'char') & isa(dirName,'char'))
     imageCounterHandle = uicontrol ('Style', 'text',...
                                     'Units', 'normalized',...
                                     'Tag', 'pictureCount',...
-                                    'Position', [0.02,0.93,0.05,0.06]);
+                                    'Position', [0.02,0.93,0.06,0.06]);
 
     % Set the frame counter to the first image number
     set (imageCounterHandle, 'String', num2str(firstImage));
@@ -116,11 +129,11 @@ if(isa(fileName,'char') & isa(dirName,'char'))
                               'SliderStep', slider_step, ...
                               'Callback', 'fsmShowImageSequence', ...
                               'Tag', 'pictureSlide', ...
-                              'Position', [0.02,0.02,0.05,0.9]);
+                              'Position', [0.02,0.02,0.06,0.9]);
 
     % Read the image frame from disk
     %cd (imageDirectory);
-    fileName = char(imageNameList(firstImage));
+    fileName = char(imageNameList(1));
     image = double(imread([imageDirectory,fileName]));
     
     % Get a handle to the figure

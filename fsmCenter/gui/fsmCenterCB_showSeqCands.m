@@ -80,12 +80,24 @@ else
         'Select cands###.mat file');
     if(isa(fileName,'char') & isa(dirName,'char'))
         
+        % Check whather a subpixel speckle file is selected
+        spa = strfind(fileName, '_spa');
+        if ~isempty(spa)
+            % Remove the _spa extension
+            fileName(spa:spa+3) = [];
+        end
+        
         [path,body,no,ext]=getFilenameBody([dirName,filesep,fileName]);
         
         formatStr = sprintf ('%%.%dd', length(no));
         imageNr = sprintf (formatStr, imageNumber);
         
-        candsName = [path body imageNr ext];
+        if ~isempty(spa)
+            % A sub pixel speckle file has been selected
+            candsName = [path body imageNr '_spa' ext];
+        else
+            candsName = [path body imageNr ext];
+        end
         
         if ~exist(candsName)
             uiwait(errordlg(['Cands file ' candsName ' does not exist.'],'Error','modal'));
@@ -96,7 +108,11 @@ else
         % Load the correct cands file
         try
             s=load(candsName);
-            cands=s.cands;
+            if ~isempty(spa)
+                cands=s.candsSP;
+            else
+                cands=s.cands;
+            end
         catch
             uiwait(errordlg('Invalid cands file.','Error','modal'));
             set(hMenu, 'Checked', 'off');
@@ -163,6 +179,7 @@ else
     handles.imageSeq.candsBody = body;
     handles.imageSeq.candsExt = ext;
     handles.imageSeq.candsNo = no;
+    handles.imageSeq.candsSpa = spa;
     
     % Update the handles struct
     guidata(hFsm, handles);
