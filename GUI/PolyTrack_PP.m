@@ -269,11 +269,11 @@ handles.postpro.imagenameslist = handles.jobvalues.imagenameslist;
 handles.postpro.intensitymax = handles.jobvalues.intensityMax;
 
 % These are new additions which won't be in the older jobs
-if exist (handles.jobvalues.timeperframe)
-   handles.postpro.timeperframe = handles.jobvalues.mmpixel ;
+if ~isempty (handles.jobvalues.timeperframe)
+   handles.postpro.timeperframe = handles.jobvalues.timeperframe;
 end
 
-if exist (handles.jobvalues.mmpixel)
+if ~isempty (handles.jobvalues.mmpixel)
    handles.postpro.mmpixel = handles.jobvalues.mmpixel;
 end
 

@@ -70,7 +70,7 @@ iptsetpref ('TrueSizeWarning', 'off');
 
 % For matlab 7 turn int conversion warnings off
 matlabVersion = version;
-if (matlabVersion(1) == 7)
+if (matlabVersion(1) == '7')
   intwarning ('off');
 end
 
