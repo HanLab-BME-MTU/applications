@@ -147,7 +147,7 @@ function fem = elModelAssemble(geom,mesh,options,fn,fp,ind,bndInd)
 %       the empty matrix, [], to distinguish it from a function name.
 
 if isempty(geom)
-   if isempty(mesh) | ~isstruct(mesh)
+   if isempty(mesh) | ~isa(mesh,'struct')
       error(['When the first argument,''geom'' is empty, ' ...
          'the second argument, ''mesh'' must be a complete predefined ' ...
          'MESH structure of FEMLAB.']);
@@ -155,7 +155,7 @@ if isempty(geom)
       fem.geom = mesh;
    end
 else
-   if ~isempty(mesh) & ~isstruct(mesh) & ~iscell(mesh)
+   if ~isempty(mesh) & ~isa(mesh,'struct') & ~iscell(mesh)
       error(['The second argument ''mesh'' has to be either the ' ...
          'empty matrix, [], or a cell array of meshing arguments, ' ...
          'or the completely defined MESH structure.']); 
@@ -196,7 +196,7 @@ fem = varDefine(fem);
 
 %Define constants that can be used by FEMLAB to get constant coefficients in 
 % the PDE.
-fem.const = constDefine(fem);
+fem = constDefine(fem);
 
 %Get the name list for each variable from 'fem.varNames' for easy access.
 % Therefore, instead of getting the name of the variable from
@@ -317,7 +317,7 @@ if isempty(mesh)
    fem.mesh = meshinit(fem);
    fem.mesh = meshrefine(fem);
    fem.mesh = meshrefine(fem);
-elseif isstruct(mesh)
+elseif isa(mesh,'struct')
    fem.mesh = mesh;
    fem.geom = mesh;
 else 

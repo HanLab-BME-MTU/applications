@@ -4,9 +4,6 @@ fprintf(1,'Solving the linear system : ');
 
 localStartTime = cputime;
 
-%Regularization parameter for 'solveLS'.
-sigma = 1e6; %1e6;
-
 coef = zeros(2*dimBF,numTimeSteps);
 for jj = 1:numTimeSteps
    [m,n] = size(A{jj});

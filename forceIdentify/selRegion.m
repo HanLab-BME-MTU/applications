@@ -6,25 +6,37 @@
 figure(gcf); hold off;
 
 load([resultPath 'dispField']);
-imshow(rawI,[]); hold on;
+imshow(rawI{1},[]); hold on;
 
 %Plot the raw data points and displacements and the filtered displacements.
-quiver(rawDataPx,rawDataPy,rawDataU1*5,rawDataU2*5,0,'y'); 
-quiver(rawDataPx,rawDataPy,sDataU1*15,sDataU2*15,0,'b'); 
+quiver(rawDataPx{1},rawDataPy{1},rawDataU1{1}*2,rawDataU2{1}*2,0,'y'); 
+quiver(rawDataPx{1},rawDataPy{1},sDataU1{1}*2,sDataU2{1}*2,0,'r'); 
+plot(fieldPGx,fieldPGy,'go');
+plot(fieldPGx,fieldPGy,'b');
 
 %Choose the region for identification.
 choice = input(['What is the region for identification?\n' ...
    '  ''0'': keep the old choice.\n' ...
-   '  ''1'': draw a new polygon.\n' ...
+   '  ''1'': the current polygon.\n' ...
+   '  ''2'': draw a new polygon.\n' ...
    'Your answer: ']);
 
-if choice == 1
+if choice == 2
    [bw,recPGx,recPGy] = roipoly;
    plot(recPGx,recPGy,'b');
+   plot(recPGx(1),recPGy(1),'go');
+elseif choice == 1
+   recPGx = fieldPGx;
+   recPGy = fieldPGy;
+elseif choice == 0
+   load([resultPath 'recGeom']);
+   plot(recPGx,recPGy,'b');
+end
+
+if choice == 1 | choice == 2
    for k = 1:length(recPGx)
       text(recPGx(k),recPGy(k),num2str(k),'color','r');
    end
-   plot(recPGx(1),recPGy(1),'go');
 
    %Ask for the indices of the other three vertices of the polygon, 'recPG'  
    % when it is viewed as a deformed rectangle. The first vertex is always 1.
@@ -36,9 +48,6 @@ if choice == 1
    plot(recPGx(recPGVI),recPGy(recPGVI),'go');
 
    save([resultPath 'recGeom'],'recPGx','recPGy','recPGVI');
-elseif choice == 0
-   load([resultPath 'recGeom']);
-   plot(recPGx,recPGy,'b');
 end
 
 %Draw the four edges.

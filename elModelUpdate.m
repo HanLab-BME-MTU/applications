@@ -222,6 +222,6 @@ end
 if strcmp(fnChanged,'yes') == 1 | strcmp(fpChanged,'yes') == 1
    fem = inputsCheck(fem,options,fn,fp,ind,bndInd);
    fem = varDefine(fem);
-   fem.const = constDefine(fem);
+   fem= constDefine(fem);
    fem.xmesh = meshextend(fem);
 end

@@ -211,4 +211,4 @@ end
 save([resultPath 'edgeDisp'],'numEdges','edgePPx','edgePPy', ...
    'edgeS','edgeP','edgeU1','edgeU2');
 
-fprintf(1,'%f sec.', cputime-localStartTime);
+fprintf(1,'%f sec.\n', cputime-localStartTime);

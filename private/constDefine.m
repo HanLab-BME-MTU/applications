@@ -1,8 +1,9 @@
-function const = constDefine(fem)
+function fem = constDefine(fem)
 %This function defines constants that can be used in FEMLAB for fields of 'fn'
 % that are constant numerical values.
 
 const = cell(0);
+%var   = cell(0);
 
 names = fem.fn.FieldNames;
 for k = 1:length(names)
@@ -40,6 +41,7 @@ for k = 1:length(names)
                   if ~isempty(fpValue) & ~isempty(fpValue{j}) & ...
                      ~isempty(fpValue{j}{2})
                      const = {const{:} [nameList{j} 'Arg'] fpValue{j}{2}}; 
+                     %var = {var{:} [nameList{j} 'Arg'] fpValue{j}{2}}; 
                   end
                end
             end
@@ -49,8 +51,12 @@ for k = 1:length(names)
          % so that it can be referenced in FEMLAB solver.
          if ~isempty(fpValue) & ~isempty(fpValue{2})
             const = {const{:} [nameList{1} 'Arg'] fpValue{2}}; 
+            %var = {var{:} [nameList{1} 'Arg'] fpValue{2}}; 
          end
       end
    end
 end
+
+fem.const = const;
+%fem.var   = var;
 

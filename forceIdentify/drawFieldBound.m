@@ -3,11 +3,13 @@
 % deformed rectangle.
 
 %Get the image of the cell.
-rawI = imread(imgFile);
+for jj = 1:length(imgFile)
+   rawI{jj} = imread(imgFile{jj});
+end
 
 %Show the image 
 figure(gcf); hold off;
-imshow(rawI,[]); axis on; hold on;
+imshow(rawI{1},[]); axis on; hold on;
 
 %Draw the boundary of the field.
 choice = input(['Draw the boundary of the field:\n' ...

@@ -89,7 +89,7 @@ for jj = 1:numTimeSteps
       [gridX(gridIn) gridY(gridIn)].');
 
    %The displacements on grid points.
-   [gridU1,gridU2] = postinterp(fem,'f1','f2', ...
+   [gridU1,gridU2] = postinterp(fem,'u1','u2', ...
       [gridX(gridIn) gridY(gridIn)].');
 
    %Compute the length of the body force.
@@ -103,12 +103,16 @@ for jj = 1:numTimeSteps
    % these displacements the significant displacements.
    % 'sigDispInd' : Index of the significant displacements.
    sigDispInd = find(gridDispLen>=avgDispLen*sigDispThreshold);
+   smDispInd  = [1:length(gridDispLen)];
+   smDispInd(sigDispInd) = [];
 
    %Normalize the displacement.
-   unitGridU1 = zeros(size(gridU1));
-   unitGridU2 = zeros(size(gridU2));
-   unitGridU1(sigDispInd) = gridU1(sigDispInd)./gridDispLen(sigDispInd);
-   unitGridU2(sigDispInd) = gridU2(sigDispInd)./gridDispLen(sigDispInd);
+   %unitGridU1 = zeros(size(gridU1));
+   %unitGridU2 = zeros(size(gridU2));
+   %unitGridU1(sigDispInd) = gridU1(sigDispInd)./gridDispLen(sigDispInd);
+   %unitGridU2(sigDispInd) = gridU2(sigDispInd)./gridDispLen(sigDispInd);
+   unitGridU1 = gridU1./gridDispLen;
+   unitGridU2 = gridU2./gridDispLen;
    
    %Calculate the intensity scores for contraction and adhesion.
    % 'gridMCF' : Score for Myosin Contractile Force.
@@ -116,15 +120,20 @@ for jj = 1:numTimeSteps
    %The sign of the dot product between the force and the displacement tells
    % if the angle between the force and the displacment is less or greater than
    % pi/2.
-   gridADF = -gridBFLen;
-   gridADF(sigDispInd) = gridBFx(sigDispInd).*unitGridU1(sigDispInd) + ...
-      gridBFy(sigDispInd).*unitGridU2(sigDispInd);
+   %gridADF = -gridBFLen;
+   %gridADF(sigDispInd) = gridBFx(sigDispInd).*unitGridU1(sigDispInd) + ...
+   %   gridBFy(sigDispInd).*unitGridU2(sigDispInd);
+   gridADF = gridBFx.*unitGridU1 + gridBFy.*unitGridU2;
 
    % mcfInd : Indices where we assign the total body force to myosin
    % contraction and zero to adhesion.
    mcfInd = find(gridADF>=0);
    gridADF(mcfInd) = 0;
    gridADF = abs(gridADF);
+   
+   %Compute the dragging coefficient.
+   gridADF(smDispInd)  = gridADF(smDispInd)./(avgDispLen*sigDispThreshold);
+   gridADF(sigDispInd) = gridADF(sigDispInd)./gridDispLen(sigDispInd);
 
    gridMCF = zeros(size(gridBFLen));
    gridMCF(sigDispInd) = abs(gridBFx(sigDispInd).*unitGridU2(sigDispInd) - ...
@@ -150,7 +159,9 @@ for jj = 1:numTimeSteps
    residueDisp{jj} = (dataUC1{jj}-dataU1{jj}).^2 + (dataUC2{jj}-dataU2{jj}).^2;
 
    %Calculate the residue of the regularized force.
-   residueBF{jj} = sigma*coef(:,jj).*coef(:,jj);
+   %residueBF{jj} = sigma*coef(:,jj).*coef(:,jj);
+   residueBF{jj} = sigma*(coefBFx(:,jj).*coefBFx(:,jj) + ...
+      coefBFy(:,jj).*coefBFy(:,jj));
 
    %The displacement on the edge to be compared with 'edgeU1' etc.
    for k = 1:numEdges

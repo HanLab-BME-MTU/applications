@@ -2,7 +2,7 @@
 % operator for the body force. It can only run after running 'setupModel' and 
 % 'calFwdOpBF' or loading data.
 
-fprintf(1,'\nCalculating the forward operator for the Body Force :\n');
+fprintf(1,'Calculating the forward operator for the Body Force :\n');
 
 localStartTime = cputime;
 
