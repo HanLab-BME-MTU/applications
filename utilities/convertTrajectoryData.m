@@ -5,7 +5,7 @@ function convertedData = convertTrajectoryData(data,join)
 %
 % INPUT    data: either trajectoryAnalysis data structure with fields distance (ntpx2), time(ntpx2),
 %                timepoints (ntpx1) or simulation data structure with fields
-%                distance (timeIntx2), timeInterval (1x1)
+%                distance (timeIntx2), timeInterval (timeIntx2)
 %          join: (opt) whether to join the individual elements of the struct
 %                array data. Default is 0
 %          
@@ -62,7 +62,7 @@ switch dataType*2 + join
         end
         
         % init array. Thanks to the nanCell, it already has the right size
-        convertedData = struct('distance',nanCell,'timeInterval',0);
+        convertedData = struct('distance',nanCell,'timeInterval',nanCell);
         
         % now loop through data and fill in distance and calculate average
         % time interval
@@ -71,12 +71,14 @@ switch dataType*2 + join
             % read distance into output
             convertedData(iData).distance(data(iData).timePoints,:) = data(iData).distance;
             
-            % find mean time by finding where we had just one timepoint
-            % difference
-            timeAndTp = [data(iData).time,data(iData).timePoints];
-            deltaTaT = diff(timeAndTp,1,1);
-            
-            convertedData(iData).timeInterval = mean(deltaTaT(find(deltaTaT(:,3)==1),1));
+%             % find mean time by finding where we had just one timepoint
+%             % difference
+%             timeAndTp = [data(iData).time,data(iData).timePoints];
+%             deltaTaT = diff(timeAndTp,1,1);
+%            convertedData(iData).timeInterval = mean(deltaTaT(find(deltaTaT(:,3)==1),1));
+
+            % read time into output
+            convertedData(iData).timeInterval(data(iData).timePoints,:) = data(iData).time;
             
         end %for iData = 1:numData
         
@@ -91,6 +93,7 @@ switch dataType*2 + join
         % since we will not need to loop to collect the distances, cat
         % already now
         allDist = cat(1,data.distance);
+        allTime = cat(1,data.time);
         
         %--- find the number of timepoints and prepare output data
         nanNum = -1;
@@ -112,18 +115,20 @@ switch dataType*2 + join
         end
         
         % init array. Thanks to the nanCell, it already has the right size
-        convertedData = struct('distance',repmat(NaN,[nanNum,2]),'timeInterval',0);
+        nanList = repmat(NaN,[nanNum,2]);
+        convertedData = struct('distance',nanList,'timeInterval',nanList);
         
         
-        % read distance into output
+        % read distance and time into output
         convertedData.distance(tpList,:) = allDist;
+        convertedData.timeInterval(tpList,:) = allTime;
         
-        % find mean time by finding where we had just one timepoint
-        % difference
-        timeAndTp = [cat(1,data.time),cat(1,data.timePoints)];
-        deltaTaT = diff(timeAndTp,1,1);
-        
-        convertedData.timeInterval = mean(deltaTaT(find(deltaTaT(:,3)==1),1));
+%         % find mean time by finding where we had just one timepoint
+%         % difference
+%         timeAndTp = [cat(1,data.time),cat(1,data.timePoints)];
+%         deltaTaT = diff(timeAndTp,1,1);
+%         
+%         convertedData.timeInterval = mean(deltaTaT(find(deltaTaT(:,3)==1),1));
         
         
         %END CASE 2

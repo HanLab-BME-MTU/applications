@@ -22,7 +22,9 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked] 
 %                                       rounded time
 %
 %OUTPUT   data           : structure containing trajectory data
-%                           .time       = [time in sec, sigmaTime]
+%                           .time       = [time in sec, sigmaTime] -
+%                           sigmaTime is 1/4 the time between the first and
+%                           the last slice in a frame
 %                           .timePoints = corresponding timepoint in raw data movie
 %                           .distance   = [distance in um (tag1-tag2), distanceSigma]
 %                           .info: substructure with fields helping to
@@ -298,8 +300,8 @@ timePoints(badTpIdx) = [];
 if realTime
 timeAll = dataProperties.frameTime;
 time = mean(timeAll(timePoints,:),2);
-%timeSigma is half the time between (lastCol - firstCol of frameTime)
-timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/2;
+%timeSigma is one fourth the time between (lastCol - firstCol of frameTime)
+timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/4;
 
 else
     % start at t=1*rounded timeLapse

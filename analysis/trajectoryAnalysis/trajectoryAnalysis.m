@@ -64,6 +64,9 @@ function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %                               of speeds. 1 clusters only at the end, 2
 %                               will additionaly cluster for the convergence
 %                               statistics, and 3 will cluster all
+%           - realTime      : [0/{1}] whether or not to use the real
+%                               timestamp. If 0, the intervals will be
+%                               rounded to entire seconds.
 %                               
 %        testOpt: optional structure with the following optional fields
 %           - splitData     : [{0}/1] split inputData into two sets, returns two
@@ -122,6 +125,7 @@ function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %     'deletedTime' ,           total not analyzed time [s] - not counting
 %                               deletion at the end of the trajectory
 %     'nTimepoints',            number of total timepoints; avg per trajectory
+%     'averageTime',            average timeLapse [s], std
 %        
 %
 %c: 11/03 jonas
@@ -148,6 +152,7 @@ calculateTrajectoryOpt.calc2d = 0; %1 or 2 if MP/in-focus slices only
 expOrSim = 'x';
 clusterData = 0;
 loadData = 0;
+realTime = 1;
 
 % test opt
 DEBUG = []; %[1,2] for groupUnits
@@ -361,6 +366,9 @@ else
             loadData = 1;
         end
     end
+    if isfield(ioOpt,'realTime')
+        realTime = ioOpt.realTime;
+    end
 end
 
 % == decide load data. If one of them is 1, load.
@@ -525,7 +533,8 @@ loadOptions = struct('standardTags', {standardTags},...
     'downsample', downsample,...
     'splitData', splitData,...
     'randomize', randomize,...
-    'calculateTrajectoryOpt',calculateTrajectoryOpt);
+    'calculateTrajectoryOpt',calculateTrajectoryOpt,...
+    'realTime',realTime);
 
 [run, fileNameListSave] = trajectoryAnalysisLoadData(...
     inputLoaded, constants, inputData, fileNameList, loadOptions);

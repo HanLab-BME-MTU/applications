@@ -34,6 +34,9 @@ function [run,fileNameListSave] = trajectoryAnalysisLoadData(fileListStruct,cons
 %                                     normal 3D-data or the maxProjection
 %                                     or the in-focus-slice data should be
 %                                     used.
+%               - realTime     [0/{1}] whether or not to use the real
+%                              timestamp. If 0, the intervals will be
+%                              rounded to entire seconds.
 %
 %
 % OUTPUT   run(1:nRun): structure with data for every individual run with
@@ -62,6 +65,8 @@ subset     = [1 1];
 standardTag1 = 'spb1';
 standardTag2 = 'cen1';
 standardFileName = {'data_1'};
+realTime = 1;
+
 
 
 %============
@@ -116,6 +121,9 @@ else
     end
     if isfield(loadOptions,'randomize')
         randomize = loadOptions.randomize;
+    end
+    if isfield(loadOptions,'realTime')
+        realTime = loadOptions.realTime;
     end
         
 end
@@ -272,6 +280,7 @@ for iRun = 1:length(fileListStruct)
             else
                 calculateTrajectoryOpt.identifier = fileList(iFile).opt{1};
             end
+            calculateTrajectoryOpt.realTime = realTime;
             
             %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
             data(dataCt) = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);

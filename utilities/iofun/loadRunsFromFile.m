@@ -35,6 +35,7 @@ function run = loadRunsFromFile(nRunsOrFileList,varargin)
 %                                 timeInterval instead of
 %                                 time/timePoints. Default: 0
 %                               idlist   entire idlist      0
+%                               realTime use real timestamp 1
 %                        
 %                            
 %
@@ -73,6 +74,7 @@ addSnr  = 0;
 addIsT  = 0;
 convDist= 0;
 addIdlist = 0;
+useRealTime = 1;
 
 
 if nargin == 0 || isempty(nRunsOrFileList)
@@ -140,9 +142,11 @@ for in = 1:length(varargin)
             convDist = newValue;
         case 'idlist'
             addIdlist = newValue;
+        case 'realTime'
+            useRealTime = newValue;
          
         otherwise
-            warning('Option %i for loadRunsFromFile not recognized',in);
+            warning('Option %i (''%s'') for loadRunsFromFile not recognized',in,arg2check);
     end
 end
 
@@ -279,6 +283,9 @@ for iRun = 1:nRuns
             if convDist
                 calculateTrajectoryOpt.nanList = 1;
             end
+            
+            % realTime switch
+            calculateTrajectoryOpt.realTime = useRealTime;
             
             if calcTraj
             %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!

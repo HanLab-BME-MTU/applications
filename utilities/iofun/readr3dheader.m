@@ -15,7 +15,19 @@ DV_MAGIC = -16224;
 HEADER_SIZE = 1024;
 
 % add filenameextension if neccessary
-if isempty(findstr(fname,'.'))
+if nargin < 1 || isempty(fname)
+    [filename, pathname, filterindex] = uigetfile( ...
+       {'*.r3d;*R3D.dv', 'DeltaVision File';
+        '*.mrc',  'Sedat scope file'; ...
+        '*.*',  'All Files (*.*)'}, ...
+        'Pick a file');
+    if isequal(filename,0)
+        error('no movie selected')
+    else
+        fname = [pathname,filesep,filename];
+    end
+% add filenameextension if neccessary
+elseif isempty(findstr(fname,'.'))
 	fname=[fname,'.r3d'];
 end;
 
