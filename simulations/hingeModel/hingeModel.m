@@ -113,8 +113,8 @@ if free     %free rotation, no diffusion constraints
         iter = iter + 1;    %update iteration number
         time = time + dt;   %update time
         
-        theta = rand*pi;    %new theta
-        phi = rand*2*pi;    %new phi
+        theta = acos(2*rand-1); %new theta
+        phi = 2*pi*rand;        %new phi
         
         tagPos(iter,1) = radius*sin(theta)*cos(phi);    %new position in Cartesian coordinates
         tagPos(iter,2) = radius*sin(theta)*sin(phi);

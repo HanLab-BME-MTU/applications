@@ -122,6 +122,8 @@ if errFlag
     return;
 end
 
+load temp.mat;
+
 %in case a non-integer value is assigned to maxNumSim,
 maxNumSim = round(maxNumSim); %round it to nearest integer
 
@@ -130,55 +132,55 @@ if simTimeStep > aveInterval/2
     simTimeStep = aveInterval/2;
 end
 
-%get maxNumSim trajectories of totalTime seconds each 
-for bigIter = 1:maxNumSim
-    
-    %get MT trajectory (stored in mtLength) under current conditions.
-    %forcedRescue: stores time points at which rescue is forced in model #1.
-    %capSize: stores number of GTP-"units" making up cap at every time step
-    %in model #2.
-    switch model
-        case 1
-            [mtLength1,forcedRescue,errFlag] = mtDynInstability(...
-                modelParam,initialState,totalTime+expTimeStep,...
-                simTimeStep,timeEps);
-            if errFlag
-                return;
-            end
-            mtLength(:,bigIter) = mtLength1;
-        case 2
-            [mtLength1,capSize1,errFlag] = mtGTPCapLDepK(modelParam,...
-                initialState,totalTime+expTimeStep,simTimeStep,...
-                timeEps,saveTraj(bigIter));
-            if errFlag
-                return;
-            end
-            mtLength(:,bigIter) = mtLength1;
-            capSize(:,bigIter) = capSize1;
-    otherwise
-            disp('--analyzeHingeModel: The variable "model" should be either 1 or 2!');
-            errFlag = 1;
-            return;
-    end
-    
-    %shift the whole trajectory to make it positive in case there are unphysical
-    %negative lengths of MT.
-    minminLength(bigIter) = min(mtLength(:,bigIter));
-    if minminLength(bigIter) < 0
-        mtLength(:,bigIter) = mtLength(:,bigIter) - 1.1*minminLength(bigIter);
-    else
-        minminLength(bigIter) = 0;
-    end
-    
-    %get position of tag relative to microtubule tip
-    [tagPos,errFlag] = hingeModel(hingeParam,hingeInit,totalTime+expTimeStep,simTimeStep);
-    
-    %get SPB to Tag distance
-    SPBToTag(:,1,bigIter) = mtLength(:,bigIter) + tagPos(:,1);
-    SPBToTag(:,2,bigIter) = tagPos(:,2);
-    SPBToTag(:,3,bigIter) = tagPos(:,3);
-    
-end
+% %get maxNumSim trajectories of totalTime seconds each 
+% for bigIter = 1:maxNumSim
+%     
+%     %get MT trajectory (stored in mtLength) under current conditions.
+%     %forcedRescue: stores time points at which rescue is forced in model #1.
+%     %capSize: stores number of GTP-"units" making up cap at every time step
+%     %in model #2.
+%     switch model
+%         case 1
+%             [mtLength1,forcedRescue,errFlag] = mtDynInstability(...
+%                 modelParam,initialState,totalTime+expTimeStep,...
+%                 simTimeStep,timeEps);
+%             if errFlag
+%                 return;
+%             end
+%             mtLength(:,bigIter) = mtLength1;
+%         case 2
+%             [mtLength1,capSize1,errFlag] = mtGTPCapLDepK(modelParam,...
+%                 initialState,totalTime+expTimeStep,simTimeStep,...
+%                 timeEps,saveTraj(bigIter));
+%             if errFlag
+%                 return;
+%             end
+%             mtLength(:,bigIter) = mtLength1;
+%             capSize(:,bigIter) = capSize1;
+%     otherwise
+%             disp('--analyzeHingeModel: The variable "model" should be either 1 or 2!');
+%             errFlag = 1;
+%             return;
+%     end
+%     
+%     %shift the whole trajectory to make it positive in case there are unphysical
+%     %negative lengths of MT.
+%     minminLength(bigIter) = min(mtLength(:,bigIter));
+%     if minminLength(bigIter) < 0
+%         mtLength(:,bigIter) = mtLength(:,bigIter) - 1.1*minminLength(bigIter);
+%     else
+%         minminLength(bigIter) = 0;
+%     end
+%     
+%     %get position of tag relative to microtubule tip
+%     [tagPos,errFlag] = hingeModel(hingeParam,hingeInit,totalTime+expTimeStep,simTimeStep);
+%     
+%     %get SPB to Tag distance
+%     SPBToTag(:,1,bigIter) = mtLength(:,bigIter) + tagPos(:,1);
+%     SPBToTag(:,2,bigIter) = tagPos(:,2);
+%     SPBToTag(:,3,bigIter) = tagPos(:,3);
+%     
+% end
 
 %sample trajectory at instances of experimental measurement (expTimeStep). 
 %Use the average value of the position and its standard deviation in 
@@ -210,8 +212,8 @@ end
 
 %additional input variables for statistical analysis function
 ioOpt.verbose = 2; %display graphs
-ioOpt.saveTxt = 1;
-ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat1D.txt'; %save results in file
+ioOpt.saveTxt = 0;
+%ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat1D.txt'; %save results in file
 ioOpt.expOrSim = 's'; %specify that it is simulation data
 
 %perform Jonas' statistical analysis and get restults in dataStats
@@ -226,7 +228,7 @@ for bigIter = 1:maxNumSim
 end
 
 %additional input variables for statistical analysis function
-ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat3D.txt'; %save results in file
+%ioOpt.saveTxtPath = '/home/kjaqaman/matlab/chromdyn/simulations/hingeModel/stat3D.txt'; %save results in file
 
 %perform Jonas' statistical analysis and get restults in dataStats3
 dataStats3 = trajectoryAnalysis(data,ioOpt);
