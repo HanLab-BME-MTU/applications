@@ -222,16 +222,19 @@ if ~isempty(growthIdx)
     % We could multiply by growthSpeedMean (we have to to plot distribution of individual
     % speeds!), but it does not change anything here: the Std is calculated
     % for the difference between values, not for the individual stds!
+    %
+    % For weighting, I now only use time, because some of the sigmas were
+    % just way too low. For the sake of completeness, I still do the
+    % relative standard deviation thing, though
     
-    % 2/23: Do not use sigma-weighting any more: too unstable!
-    % indGrowthSpeedSigma = sigmaMax(growthIdx)./(abs(dataListG(growthIdx,4)).*sqrt(dataListG(growthIdx,7)));
+    indGrowthSpeedSigma = sigmaMax(growthIdx)./(abs(dataListG(growthIdx,4)).*sqrt(dataListG(growthIdx,7)));
     %     [growthSpeedMean, growthSpeedStd] = weightedStats(dataListG(growthIdx,4),...
     %         indGrowthSpeedSigma,'s');
     %     [growthSpeedMeanPW, growthSpeedStdPW] = weightedStats(dataListG(growthIdx,4),...
     %         sigmaMax(growthIdx),'s');
     
+    % 2/23: Do not use sigma-weighting any more: too unstable!
     % use normal mean, weigh only with time
-    indGrowthSpeedSigma = 1./dataListG(growthIdx,7);
     [growthSpeedMeanNW,growthSpeedStdNW] = weightedStats(dataListG(growthIdx,4)*60,dataListG(growthIdx,7),'w');
     
     %transform to um/min
@@ -245,6 +248,7 @@ if ~isempty(growthIdx)
     %catastrophe rate (="half life" of a growing MT) is the inverse mean growth time
     %time is calculated with groups
     growthGroupsDeltaT = time(dataListG(growthGroups(:,2),2),1) - time(dataListG(growthGroups(:,1),1),1);
+    growthGroupsDeltaTsigma = sqrt(time(dataListG(growthGroups(:,2),2),2).^2 + time(dataListG(growthGroups(:,1),1),2).^2);
     
     invGrowthTimeMean = 1/mean(growthGroupsDeltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
@@ -280,17 +284,20 @@ if ~isempty(shrinkageIdx)
     % We could multiply by shrinkageSpeedMean (we have to to plot distribution of individual
     % speeds!), but it does not change anything here: the Std is calculated
     % for the difference between values, not for the individual stds!
+     %
+    % For weighting, I now only use time, because some of the sigmas were
+    % just way too low. For the sake of completeness, I still do the
+    % relative standard deviation thing, though
     
-    % 2/23: Do not use sigma-weighting any more: too unstable!
-    % indShrinkageSpeedSigma = sigmaMax(shrinkageIdx)./(abs(dataListG(shrinkageIdx,4)).*sqrt(dataListG(shrinkageIdx,7)));
+    indShrinkageSpeedSigma = sigmaMax(shrinkageIdx)./(abs(dataListG(shrinkageIdx,4)).*sqrt(dataListG(shrinkageIdx,7)));
     % 
     %     [shrinkageSpeedMean, shrinkageSpeedStd] = weightedStats(dataListG(shrinkageIdx,4),...
     %         indShrinkageSpeedSigma,'s');
     %     [shrinkageSpeedMeanPW, shrinkageSpeedStdPW] = weightedStats(dataListG(shrinkageIdx,4),...
     %         sigmaMax(shrinkageIdx),'s');
     
-    %non-weighted stats
-    indShrinkageSpeedSigma = 1./dataListG(shrinkageIdx,7);
+    % 2/23: Do not use sigma-weighting any more: too unstable!
+    % use normal mean, weigh only with time
     [shrinkageSpeedMeanNW,shrinkageSpeedStdNW] = weightedStats(dataListG(shrinkageIdx,4)*60,dataListG(shrinkageIdx,7),'w');
     
     %transform to um/min
@@ -304,6 +311,7 @@ if ~isempty(shrinkageIdx)
     %catastrophe rate (="half life" of a growing MT) is the inverse mean shrinkage time
     %time is calculated with groups
     shrinkageGroupsDeltaT = time(dataListG(shrinkageGroups(:,2),2),1) - time(dataListG(shrinkageGroups(:,1),1),1);
+    shrinkageGroupsDeltaTsigma = sqrt(time(dataListG(shrinkageGroups(:,2),2),2).^2 + time(dataListG(shrinkageGroups(:,1),1),2).^2);
     
     invShrinkageTimeMean = 1/mean(shrinkageGroupsDeltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
@@ -341,7 +349,10 @@ end
 %PAUSE
 if ~isempty(pauseIdx)
     %time
-    pauseTimeTotal = sum(dataListG(pauseIdx,7));
+    pauseTimes = dataListG(pauseIdx,7);
+    pauseTimeSigma = dataListG(pauseIdx,8);
+    pauseTimeInterval = diff(dataListG(pauseIdx,[1,2]),1,2);
+    pauseTimeTotal = sum(pauseTimes);
     % number
     pauseNumber = length(pauseIdx);
 end
@@ -455,62 +466,86 @@ end
 
 
 %--------------CALCULATE DISTRIBUTIONS
+%
+% Distribution data: first col - values
+%                    seciond col - number of repetition
+%                    third col - std
+%
+
 if nargout > 1
     % initialize to avoid problems with empty indexLists
-    distributionStruct.antipolewardSpeedDistribution = [];
-    distributionStruct.polewardSpeedDistribution = [];
-    distributionStruct.distanceDistribution = [];
+    distributionStruct.antipolewardSpeed = [];
+    distributionStruct.polewardSpeed = [];
+    distributionStruct.distance = [];
+    distributionStruct.pause = [];
+    distributionStruct.growthTime = [];
+    distributionStruct.shrinkageTime = [];
     
     
+    
+    
+    if ~isempty(pauseIdx)
+        distributionStruct.pause = [pauseTimes,pauseTimeInterval,pauseTimeSigma];
+    end
     
     
     if ~isempty(growthIdx)
         
-        % calculate distributions
-        [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
-                indGrowthSpeedSigma],'norm',1,0); %indGrowthSpeedSigma*growthSpeedMeanNW
-        
-    else
-        growthSpeedDistY = [];
-        growthSpeedDistX = [];
+        distributionStruct.antipolewardSpeed = [60*dataListG(growthIdx,4),...
+            diff(dataListG(growthIdx,[1,2]),1,2),indGrowthSpeedSigma];
+        distributionStruct.growthTime(:,[1,3]) = [growthGroupsDeltaT,growthGroupsDeltaTsigma];
+    end
+%         % calculate distributions
+%         [growthSpeedDistY,growthSpeedDistX] = contHisto([60*dataListG(growthIdx,4),...
+%                 indGrowthSpeedSigma],'norm',1,0); %indGrowthSpeedSigma*growthSpeedMeanNW
+%         
+%     else
+%         growthSpeedDistY = [];
+%         growthSpeedDistX = [];
+%     end
+%     
+    if ~isempty(shrinkageIdx)
+        distributionStruct.polewardSpeed = [60*dataListG(shrinkageIdx,4),...
+            diff(dataListG(shrinkageIdx,[1,2]),1,2),indShrinkageSpeedSigma];
+        distributionStruct.shrinkageTime(:,[1,3]) = [shrinkageGroupsDeltaT,shrinkageGroupsDeltaTsigma];
     end
     
-    if ~isempty(shrinkageIdx)
-        
-        % calculate distributions
-        [shrinkageSpeedDistY,shrinkageSpeedDistX] = contHisto([60*dataListG(shrinkageIdx,4),...
-                indShrinkageSpeedSigma],'norm',1,0); % indShrinkageSpeedSigma*abs(shrinkageSpeedMeanNW)
-        
-        
-    else
-        shrinkageSpeedDistY = [];
-        shrinkageSpeedDistX = [];
-    end
+  
+%         % calculate distributions
+%         [shrinkageSpeedDistY,shrinkageSpeedDistX] = contHisto([60*dataListG(shrinkageIdx,4),...
+%                 indShrinkageSpeedSigma],'norm',1,0); % indShrinkageSpeedSigma*abs(shrinkageSpeedMeanNW)
+%         
+%         
+%     else
+%         shrinkageSpeedDistY = [];
+%         shrinkageSpeedDistX = [];
+%     end
     
     % there will always be distance...
-    [distanceDistY,distanceDistX] = contHisto(distance,'norm',1,0);
+    distributionStruct.distance = distance;
+%     [distanceDistY,distanceDistX] = contHisto(distance,'norm',1,0);
     
-    % plot without detail. Would cost too much memory
-    switch any(verbose == 3)*(~isempty(growthIdx)+2*~isempty(shrinkageIdx))
-        case 1 % only growth
-            figure('Name','speed distribution'),plot(growthSpeedDistX,growthSpeedDistY/max(growthSpeedDistY),'-g'...
-                );
-        case 2 % only shrinkage
-            figure('Name','speed distribution'),plot(...
-                -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedDistY),'-r');
-        case 3 % both growth and shrinkage
-            figure('Name','speed distribution'),plot(growthSpeedDistX,growthSpeedDistY/max(growthSpeedDistY),'-g',...
-                -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedDistY),'-r');
-        otherwise % don't plot
-    end
-    if any(verbose == 3) % don't forget distance!!
-        figure('Name','distance distribution'),area(distanceDistX,distanceDistY);
-    end
-    
-    
-    distributionStruct.antipolewardSpeedDistribution = [growthSpeedDistX,growthSpeedDistY];
-    distributionStruct.polewardSpeedDistribution = [shrinkageSpeedDistX,shrinkageSpeedDistY];
-    distributionStruct.distanceDistribution = [distanceDistX,distanceDistY];
+%     % plot without detail. Would cost too much memory
+%     switch any(verbose == 3)*(~isempty(growthIdx)+2*~isempty(shrinkageIdx))
+%         case 1 % only growth
+%             figure('Name','speed distribution'),plot(growthSpeedDistX,growthSpeedDistY/max(growthSpeedDistY),'-g'...
+%                 );
+%         case 2 % only shrinkage
+%             figure('Name','speed distribution'),plot(...
+%                 -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedDistY),'-r');
+%         case 3 % both growth and shrinkage
+%             figure('Name','speed distribution'),plot(growthSpeedDistX,growthSpeedDistY/max(growthSpeedDistY),'-g',...
+%                 -shrinkageSpeedDistX,shrinkageSpeedDistY/max(shrinkageSpeedDistY),'-r');
+%         otherwise % don't plot
+%     end
+%     if any(verbose == 3) % don't forget distance!!
+%         figure('Name','distance distribution'),area(distanceDistX,distanceDistY);
+%     end
+%     
+%     
+%     distributionStruct.antipolewardSpeedDistribution = [growthSpeedDistX,growthSpeedDistY];
+%     distributionStruct.polewardSpeedDistribution = [shrinkageSpeedDistX,shrinkageSpeedDistY];
+%     distributionStruct.distanceDistribution = [distanceDistX,distanceDistY];
 end
 %-------------end calc dist
 % if requested and possible, cluster speeds

@@ -26,8 +26,9 @@ function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %                             commandline or not. (vector)
 %                             Verbose = 1 writes to commandline
 %                             Verbose = 2 shows trajectories
-%                             Verbose = 3 shows distributions
-%                             Verboes = 4 shows clustering result
+%                             Verbose = 3 shows distributions 
+%                                           (currently not supported)
+%                             Verbose = 4 shows clustering result
 %                             Verbose = 5 shows time distribution
 %                             Verbose = [1,2,3,4,5] shows all
 %                             Verbose = [] or [0] does not show anything.
@@ -87,11 +88,15 @@ function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %               .details (opt)         
 %                    .dataListGroup     fits to the trajectory
 %                    .dataListSeed      single-interval classification
-%                    .distributions     ## will be discontinued ##
+%                    .distributions     list of antipoleward&poleward
+%                                       speeds, growt&shrinkage times,
+%                                       distances, pause times.
+%                                       [value,number of repeats,sigma]
 %           .overallStatistics          mean over all trajectories in run
 %               OR
 %           .convergenceStatistics(1:n) mean over first i trajectories     
-%           .overallDistribution        ## will be discontinued ##  
+%           .overallDistribution        catenation of individual
+%                                       distributions
 %           .info                       only in first element of trajDes:
 %                                       info on statistics and lists
 %                                       ## not implemented yet ##
