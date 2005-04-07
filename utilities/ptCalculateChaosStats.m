@@ -87,7 +87,7 @@ for jobCount = 1 : length(MPM)
 
     % Initialize cropped MPM
     %ripMPM = zeros (size(MPM{jobCount},1),numberOfFrames*2);
-    ripMPM = zeros(size(MPM{jobCount},1), 2*length(validFrames{jobCount}(1,:)));
+    ripMPM = zeros(size(MPM{jobCount},1), 2*length(validFrames{jobCount}(1,plotStartFrame:plotEndFrame)));
     
     % Initialize X-axis vector and iCount
     xAxis = zeros (1, numberOfFrames);

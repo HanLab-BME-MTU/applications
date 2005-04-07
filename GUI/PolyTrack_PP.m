@@ -801,7 +801,13 @@ if (~radioButtons.cellclusterplot & ~radioButtons.areaplot & ...
    uiwait(h);          % Wait until the user presses the OK button
    return;
 else
-   
+
+   % Disable estimation function if not the whole plotrange is selected
+   if guiData.plotfirstimg ~= 1 | guiData.plotlastimg ~= handles.jobData(1).firstimg
+       set (handles.GUI_plotestimate_cb,'Value',0);
+       radioButtons.plotestimate = 0;
+   end
+    
    % These calculations can take a while so set the mouse pointer to busy
    set(gcbf,'Pointer','watch');
       
@@ -929,7 +935,7 @@ else
    % size) are available
    if radioButtons.ripleyplot         
       if radioButtons.ripleyplot_1
-          try
+          %try
               % Run the calculation
               radioButtons = getRadiobuttonValues (handles);
               [chaosStats, xAxis] = ptCalculateChaosStats (handles, radioButtons);
@@ -937,9 +943,9 @@ else
               % Do the plots
               ptPlotChaosStats (radioButtons, plotName, saveDir, xAxis, chaosStats, windowSize, ...
                                 drugTimepoint);
-          catch
-              disp('An error occured: the ripley plots cannot be completed.');
-          end
+          %catch
+          %    disp('An error occured: the ripley plots cannot be completed.');
+          %end
       end
       
       try
