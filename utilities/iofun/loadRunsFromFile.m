@@ -303,7 +303,10 @@ for iRun = 1:nRuns
                 data(dataCt).distance = tmpData.distance;
             end
             if convDist
-                data(dataCt).timeInterval = tmpData.timeInterval;
+                %                 data(dataCt).timeInterval = tmpData.timeInterval;
+                % something is wrong here. This is just a patch until Jonas takes a look at
+                % this
+                data(dataCt).timeInterval = tmpData.time;
             else
                 if addTime
                     data(dataCt).time     = tmpData.time;

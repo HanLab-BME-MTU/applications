@@ -179,7 +179,7 @@ if nThresholds == 0 %if there is only one regime
     %get white noise vector
     noise(shift+1:tempL) = noiseSigma*randn(tempL-shift,1);
 
-    %     dumdum = rand(20099,1);
+    %     dumdum = rand(length(wnNotNormalDistr),1);
     %     [dumdum,randIndx] = sort(dumdum);
     %     noise(shift+1:tempL) = noiseSigma*wnNotNormalDistr(randIndx(1:tempL-shift));
 
