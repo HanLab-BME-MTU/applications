@@ -803,9 +803,10 @@ if (~radioButtons.cellclusterplot & ~radioButtons.areaplot & ...
 else
 
    % Disable estimation function if not the whole plotrange is selected
-   if guiData.plotfirstimg ~= 1 | guiData.plotlastimg ~= handles.jobData(1).firstimg
+   if guiData.plotfirstimg ~= 1 | guiData.plotlastimg ~= handles.jobData(1).lastimg
        set (handles.GUI_plotestimate_cb,'Value',0);
        radioButtons.plotestimate = 0;
+       warndlg('Curve estimation has been disabled since not the whole plot range is selected.');
    end
     
    % These calculations can take a while so set the mouse pointer to busy
@@ -920,7 +921,7 @@ else
              ptPlotNeighbourChanges (radioButtons, plotName, saveDir, xAxis, neighChangeStats, windowSize, ...
                                      drugTimepoint);
          catch
-             disp('An error occured: the neighborhood changes plot cannot be completed.');
+             %disp('An error occured: the neighborhood changes plot cannot be completed.');
          end
       end
       

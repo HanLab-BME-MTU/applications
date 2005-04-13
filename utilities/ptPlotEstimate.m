@@ -160,31 +160,31 @@ else
 end
 
 % Formatting related stuff
-if t0 == 0
-    t0 = 'N/A';
-    t0Format = '%s';
-else
-    t0Format = '%d';
-end
-if t1 == 0
-    t1 = 'N/A';
-    t1Format = '%s';
-else
-    t1Format = '%d'; 
-end
-if slopeValue == 0
-    slopeValue = 'N/A';
-    slopeFormat = '%s';
-else
-    slopeFormat = '%f';
-end
+% if t0 == 0
+%     t0 = 'N/A';
+%     t0Format = '%s';
+% else
+     t0Format = '%d';
+% end
+% if t1 == 0
+%     t1 = 'N/A';
+%     t1Format = '%s';
+% else
+     t1Format = '%d'; 
+% end
+% if slopeValue == 0
+%     slopeValue = 'N/A';
+%     slopeFormat = '%s';
+% else
+     slopeFormat = '%f';
+% end
 
 % Generate the text
 [lineText, errmsg] = sprintf(['Min = %f\nMax = %f\nt0 = ' t0Format '\nt1 = ' ...
                               t1Format '\nSlope = ' slopeFormat '\nSigma = %f\n'], ...
                               minValue, maxValue, t0, t1, slopeValue, sigma);    
 
-% Put the estimates in a vector
+% Put the estimates in a cell
 estimates = [minValue; maxValue; t0; t1; slopeValue];                          
                               
 % Print the text on the graph

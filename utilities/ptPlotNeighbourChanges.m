@@ -76,7 +76,3 @@ if radioButtons.plotestimate
     end
 end
 
-   csvwrite ([SaveDir filesep imageName '_fittedCurveNeighbourChange.csv'], [xAxis ; yPlot]);
-   csvwrite ([SaveDir filesep imageName '_curveEstimatesNeighbourChange.csv'], est);
-end
-
