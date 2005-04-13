@@ -69,8 +69,12 @@ end
 csvwrite ([SaveDir filesep imageName '_avgNeighbourTrajLength.csv'], [xAxis ; avgTrajFrame]);
 
 if radioButtons.plotestimate
-   if ~radioButtons.donotshowplots 
-       csvwrite ([SaveDir filesep imageName '_fittedCurveNeighbourTraj.csv'], [xAxis ; yPlot]);
-       csvwrite ([SaveDir filesep imageName '_curveEstimatesNeighbourTraj.csv'], est);
+   if ~radioButtons.donotshowplots
+       if ~isempty(yPlot)
+           csvwrite ([SaveDir filesep imageName '_fittedCurveNeighbourTraj.csv'], [xAxis ; yPlot]);
+       end
+       if ~isempty(est)
+           csvwrite ([SaveDir filesep imageName '_curveEstimatesNeighbourTraj.csv'], est);
+       end
    end
 end

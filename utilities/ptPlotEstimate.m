@@ -33,6 +33,7 @@ function [yPlot, estimates] = ptPlotEstimate (xdata, ydata, slope, subPlot, drug
 
 % Initialize yPlot
 yPlot = [];
+estimates = [];
 
 % Calculate the tanh estimate that best fits on the data
 [est, dataUsed, sigma, error] = ptFitCurve(xdata, ydata, drugTimepoint, slope);

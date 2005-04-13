@@ -71,8 +71,12 @@ csvwrite ([SaveDir filesep imageName '_avgNeighbourInteractionChange.csv'], [xAx
 
 if radioButtons.plotestimate
     if ~radioButtons.donotshowplots 
-        csvwrite ([SaveDir filesep imageName '_fittedCurveNeighbourChange.csv'], [xAxis ; yPlot]);
-        csvwrite ([SaveDir filesep imageName '_curveEstimatesNeighbourChange.csv'], est);
+        if ~isempty(yPlot)
+             csvwrite ([SaveDir filesep imageName '_fittedCurveNeighbourChange.csv'], [xAxis ; yPlot]);
+        end
+        if ~isempty(est)
+             csvwrite ([SaveDir filesep imageName '_curveEstimatesNeighbourChange.csv'], est);
+        end
     end
 end
 

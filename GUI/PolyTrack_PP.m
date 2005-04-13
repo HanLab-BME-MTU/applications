@@ -899,16 +899,16 @@ else
    if radioButtons.neighbourplot            
       if radioButtons.neighbourplot_1
                     
-         try
+         %try
              % Run one iteration of the calculation
              [neighTrajStats, xAxis] = ptCalculateNeighbourTraj (handles); 
 
              % Do the plots   
              ptPlotNeighbourTraj (radioButtons, plotName, saveDir, xAxis, neighTrajStats, windowSize, ...
                                   drugTimepoint);
-         catch
-             disp('An error occured: the neighborhood trajectory plot cannot be completed.');
-         end
+         %catch
+         %    disp('An error occured: the neighborhood trajectory plot cannot be completed.');
+         %end
       end
             
       if radioButtons.neighbourplot_2
