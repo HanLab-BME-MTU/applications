@@ -153,11 +153,11 @@ else
 end
 
 % Adjust the t1 guess if < length(ydata)-tDrug
-% if ind(end) < length(ydata)-tDrug
-%    tDrugEnd = ind(end);
-% else
-%    tDrugEnd = length(ydata)-tDrug;
-% end
+if ind(end) < length(ydata)-tDrug
+   tDrugEnd = ind(end);
+else
+   tDrugEnd = length(ydata)-tDrug;
+end
 
 % If tDrugEnd < tDrug there is something wrong and we'll error 
 if tDrugEnd <= tDrug
