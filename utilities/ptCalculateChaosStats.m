@@ -151,8 +151,8 @@ nrJobs = length(MPM);
 loopCount = 0;
 
 % Initialize the avg ripley vectors
-avgRipleyClust = zeros (length(MPM), numberOfFrames);
-avgRipleyClustSlopePoint = zeros (length(MPM), numberOfFrames);
+avgRipleyClust = zeros (1, numberOfFrames);
+avgRipleyClustSlopePoint = zeros (1, numberOfFrames);
 
 % Start summing and averaging frames
 for frameCount = plotStartFrame : increment : plotEndFrame
@@ -163,7 +163,8 @@ for frameCount = plotStartFrame : increment : plotEndFrame
     % Initialize sums
     ripleyClustSum = 0;
     ripleyClustSlopePointSum = 0;
-    sumCount = 0;
+    sumCountStart = 0;
+    sumCountSlope = 0;
     
     % Go through all the jobs
     for jobCount = 1 : nrJobs
@@ -171,17 +172,30 @@ for frameCount = plotStartFrame : increment : plotEndFrame
         % Find the frame in validFrames for this job
         frameIndx = find(validFrames{jobCount}(1,:) == loopCount);
         
-        if ~isempty(frameIndx)
+        if ~isempty(frameIndx) & ~isnan(ripleyClust(jobCount,frameIndx))
             ripleyClustSum = ripleyClustSum + ripleyClust(jobCount,frameIndx);
+            
+            sumCountStart = sumCountStart + 1;
+        end
+        
+        if ~isempty(frameIndx) & ~isnan(ripleyClustSlopePoint(jobCount,frameIndx))
             ripleyClustSlopePointSum = ripleyClustSlopePointSum + ripleyClustSlopePoint(jobCount,frameIndx);
             
-            sumCount = sumCount + 1;
+            sumCountSlope = sumCountSlope + 1;
         end
     end
 
     % Average the summed up values
-    avgRipleyClust(loopCount) = ripleyClustSum / sumCount;
-    avgripleyClustSlopePoint(loopCount) = ripleyClustSlopePointSum / sumCount;     
+    if sumCountStart > 0
+        avgRipleyClust(loopCount) = ripleyClustSum / sumCountStart;
+    else
+        avgRipleyClust(loopCount) = NaN;
+    end
+    if sumCountSlope > 0
+        avgripleyClustSlopePoint(loopCount) = ripleyClustSlopePointSum / sumCountSlope;  
+    else
+        avgripleyClustSlopePoint(loopCount) = NaN;
+    end
 end
 
 % Prepare output data
