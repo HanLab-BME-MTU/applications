@@ -113,7 +113,8 @@ image = imreadnd2 (fileName, 0, intensityMax);
 
 % Show the frame on the screen in the current figure
 hold on;
-imshow (image, []), title (num2str (firstImage));
+%imshow (image, []), title (num2str (firstImage));
+imshow (image, [min(image(:)) max(median(image(:)))*2]), title(num2str(firstImage));
 hold off;
 
 % Make sure the axis are correct
