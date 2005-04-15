@@ -97,7 +97,8 @@ subProjTags = {'tack', ...
                'edge', ...
                'merg', ...
                'fadh', ...
-               'corr'};
+               'corr', ...
+               'mech'};
 
 subProjTitle = {'   speckTackle', ...
                 'fsm Transition', ...
@@ -105,7 +106,8 @@ subProjTitle = {'   speckTackle', ...
                 '  Edge Tracker', ...
                 '        Merger', ...
                 'Focal Adhesion', ...
-                '   corrTracker'};
+                '   corrTracker', ...
+                '   Cont. Mech.'};
 
 numSubProj = length(subProjTags);
 
@@ -146,7 +148,7 @@ if ~isdir(projDir)
 end
 
 handles.selImgDir = 1;
-handles = getProjSetting(handles,projDir,subProjNames);
+handles = getProjSetting(handles,projDir,subProjNames,subProjTags);
 handles = updateGUI(handles);
 
 handles.figH = hObject;
@@ -486,9 +488,10 @@ if isnumeric(projDir) & projDir == 0
 end
 
 subProjNames = handles.subProjNames;
+subProjTags  = handles.subProjTags;
 if ~samdir(handles.projDir,projDir)
    handles.selImgDir = 1;
-   handles = getProjSetting(handles,projDir,subProjNames);
+   handles = getProjSetting(handles,projDir,subProjNames,subProjTags);
    handles = updateGUI(handles);
 end
 
@@ -509,8 +512,9 @@ if ~isdir(projDir)
 end
 
 subProjNames = handles.subProjNames;
+subProjTags  = handles.subProjTags;
 if ~samdir(handles.projDir,projDir)
-    handles = getProjSetting(handles,projDir,subProjNames);
+    handles = getProjSetting(handles,projDir,subProjNames,subProjTags);
     handles = updateGUI(handles);
 end
 
@@ -679,7 +683,7 @@ guidata(hObject,handles);
 
 
 
-function handles = getProjSetting(handles,projDir,subProjNames)
+function handles = getProjSetting(handles,projDir,subProjNames,subProjTags)
 
 numSubProj = length(subProjNames);
 
@@ -933,6 +937,22 @@ if ~noProblem
    win_imgDrive  = [];
    unix_imgDrive = [];
    physiParam    = [];
+else
+   %Check whether we can find all the subprojects in the loaded last
+   %project settings. We do this check because there might be new
+   %subprojects added.
+   lastSubProjDir = subProjDir;
+   for k = 1:numSubProj
+      ind = strmatch(subProjTags{k},lastSubProjDir);
+      if isempty(ind)
+         subProjDir{k} = '';
+      elseif length(ind) == 1
+         subProjDir{k} = lastSubProjDir{ind};
+      else
+         error(['There are multiple directories for the same subproject. ' ...
+            'The last project setting file is likely corruppted.']);
+      end
+   end
 end
 
 handles.projDir       = projDir;
