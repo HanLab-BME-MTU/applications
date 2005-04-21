@@ -109,13 +109,20 @@ tempList = get(handles.edit_temperature_PD,'String');
 %read r3d extended header
 cd(mainDir);
 cd(myJob.projProperties.dataPath);
-if strcmp(myJob.fileExtension(end),'c')
-    load('r3dMovieHeader.mat');
+if exist('r3dMovieHeader.mat')
+    load('r3dMovieHeader.mat')
     if ~exist('r3dMovieHeader','var')
         error('can''t find movie header')
     end
     header = r3dMovieHeader;
-    movieName = [myJob.projName,'.r3c'];
+    movieName = [myJob.projName,'.r3d'];
+    % make sure there are no problems with synth movies
+    if ~exist(movieName)
+        movieName(end) = 'c';
+        if ~exist(movieName)
+            error('movie not found!');
+        end
+    end
 else
     movieName = [myJob.projName,'.r3d'];
     header = readr3dheader(movieName);

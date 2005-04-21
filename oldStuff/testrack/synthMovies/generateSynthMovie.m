@@ -36,10 +36,10 @@ function [synthMovie, r3dMovieHeader, dataProperties, inputSlist, background] = 
 % maxMem: maximum size of a frame. Currently, 500MB
 MAXMEM = 524288000;
 % whether to resample or not
-resample =1;
+resample =0;
 
-def_pixelSize = [0.05, 0.05, 0.05]; % [0.048, 0.048, 0.2]
-def_movieSize = [10, 10, 30, 1]; % [64, 64, 18, 10]
+def_pixelSize = [0.048, 0.048, 0.2]
+def_movieSize = [64, 64, 18, 10]
 def_sampling = 0.001;
 
 %-------------------test input and assign defaults-------------------
@@ -308,9 +308,13 @@ end % if calcSlist
 
 %snr
 if nargin<3 | isempty(SNR)
-    SNR = 10;
-elseif SNR<1
+    SNR = repmat(10,[movieLength,1]);
+elseif any(SNR<1)
     error('snr below 1')
+elseif length(SNR) == 1
+    SNR = repmat(SNR,[movieLength,1]);
+else
+    error('wrong size of snr vector')
 end
 
 if exist('synthMovie')
@@ -339,6 +343,8 @@ noisevar=DYNAMICRANGE^2/(SNR^2);
 %psf size (size where psf is 5% maxVal)
 psfSze=roundOddOrEven(2*sqrt(-2*dataProperties.FILTERPRM(1:3).^2*log(0.05)),'odd','inf');
 hPsf=floor(psfSze/2);
+
+if any(jobList == 1)
 
 switch resample
     case 1
@@ -396,6 +402,7 @@ if options.psf == 2
     psfob=psf(NA,magnification,wvl*1000,10000,1,psfparms(1),psfparms(2));
 end
 
+end
 
 %loop time points
 for t=1:movieLength
@@ -481,7 +488,7 @@ for t=1:movieLength
 if any(jobList == 2)
     %add noise
     nbd=synthMovie(:,:,:,1,t);
-    nbd = nbd + sqrt(noisevar)*randn(size(nbd));
+    nbd = nbd + sqrt(noisevar(t))*randn(size(nbd));
     synthMovie(:,:,:,1,t)=nbd;
 end
 

@@ -201,26 +201,7 @@ if nargout > 4
     
     %--------------try to load filtered movie
     %try to find filenames in the path from which projectData has been loaded
-    filteredMovieName = chooseFile('filtered_movie',pathName,'new');
-    altFilteredMovieName = chooseFile('moviedat',pathName,'new');
-    if isempty(filteredMovieName)
-        if isempty(altFilteredMovieName) %to ensure compatibility with earlier versions
-            disp('no filtered movie found. load unfiltered movie instead')
-            if findstr(projProperties.dataPath(end-10:end),'crop')|findstr(projProperties.dataPath(end-10:end),'corr')
-                %cropped movie
-                moviename = chooseFile('.r3c');
-                filteredMovie  =  readmat(moviename);
-            else
-                %normal movie
-                moviename = chooseFile('.r3d');
-                filteredMovie  =  r3dread(moviename);
-            end
-        else
-            filteredMovie = readmat([pathName filesep altFilteredMovieName]);
-        end
-    else 
-        filteredMovie = readmat([pathName filesep filteredMovieName]);
-    end;
+    filteredMovie = cdLoadMovie('latest',pathName);
     
     %test if everything correctly loaded
     if ~exist('filteredMovie','var')

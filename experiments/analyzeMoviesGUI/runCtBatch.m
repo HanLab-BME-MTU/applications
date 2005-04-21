@@ -120,77 +120,81 @@ try
                                 try
                                     fprintf(fid,[nowString,' filter movie\n']);
                                     
-                                    %read movie
-                                    if strcmp(job(i).fileExtension,'.r3c')
-                                        %cropped/corrected movie
-                                        moviename = [job(i).projName,'.r3c'];
-                                        fprintf(fidJob,[nowString,' movie  =  readmat(%s);\n'],moviename);
-                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n',moviename]);
-                                        movie  =  readmat(moviename);
-                                    else
-                                        %normal movie: correct if necessary
-                                        moviename = [job(i).projName,'.r3d'];
-                                        [movie,moviename] = correctBackground(moviename,job(i).correctBackground,[],fidJob,fid);
-                                        if ~isempty(job(i).correctBackground)
-                                            job(i).correctBackground = [];
-                                            job(i).projName = moviename(1:end-4);
-                                            job(i).fileExtension = moviename(end-3:end);
-                                            job(i).dataProperties.name = job(i).projName;
-                                            
-                                            %remove old projectData-file and write a new one
-                                            oldProjData = chooseFile('-data-',[],'new','log');
-                                            fprintf(fidJob,[nowString,' delete(%s);\n'],oldProjData);
-                                            fprintf(fid, [nowString,' delete old project data %s\n'],oldProjData);
-                                            delete(oldProjData);
-                                            
-                                            %create new projectData-file
-                                            projData = [job(i).projName,'-data-',nowString];
-                                            dataProperties = job(i).dataProperties;
-                                            fprintf(fidJob,[nowString,' create %s\n'],projData);
-                                            save(projData,'dataProperties');
-                                            
-                                            %save updated project properties
-                                            projProperties = job(i).projProperties;
-                                            projProperties.projName = job(i).projName;
-                                            projProperties.datafileName = projData;
-                                            fprintf(fidJob,[nowString,' save project properties\n']);
-                                            job(i).projProperties = projProperties;
-                                            save(projData,'projProperties','-append');
-                                            
-                                            job(i).projData = [projData,'.mat'];
-                                            job(i).createNew = 0;
-                                            
-                                            %open new log file
-                                            fprintf(fidJob,[nowString,' fid = fopen(%s.log,''a+'');\n'],job(i).projData);
-                                            fid2 = fopen([job(i).projData,'.log'],'a+');
-                                            fprintf(fid,['\n-----------------\n\n',nowString,' opening new log file\n']);
-                                            
-                                            %copy old log file
-                                            fprintf(fidJob,[nowString,' copy old log file to new log file\n'],job(i).projData);
-                                            fprintf(fid2,['---begin copy old logfile---\n']);
-                                            
-                                            %close and reopen old logfile first
-                                            fclose(fid);
-                                            fid = fopen([oldProjData,'.log']);
-                                            
-                                            %copy log file line by line
-                                            while ~feof(fid)
-                                                line = fgetl(fid);
-                                                fprintf(fid2,'%s\n',line);
-                                            end
-                                            
-                                            fprintf(fid2,['---end copy old logfile---\n']);
-                                            
-                                            %delete old logfile
-                                            fclose(fid);
-                                            fprintf(fidJob,[nowString,' delete(%s);\n'],[oldProjData,'.log']);
-                                            fprintf(fid2, [nowString,' delete old logfile %s \n'],[oldProjData,'.log']);
-                                            delete([oldProjData,'.log']);
-                                            
-                                            %rename file handle
-                                            fid = fid2;
-                                        end
-                                    end
+                                    %read movie. Correct background if
+                                    %necessary
+                                    [movie,moviename] = correctBackground(moviename,job(i).correctBackground,[],fidJob,fid);
+                                    
+                                    
+%                                     if strcmp(job(i).fileExtension,'.r3c')
+%                                         %cropped/corrected movie
+%                                         moviename = [job(i).projName,'.r3c'];
+%                                         fprintf(fidJob,[nowString,' movie  =  readmat(%s);\n'],moviename);
+%                                         fprintf(fid,[nowString,' load unfiltered movie: (%s)\n',moviename]);
+%                                         movie  =  readmat(moviename);
+%                                     else
+%                                         %normal movie: correct if necessary
+%                                         moviename = [job(i).projName,'.r3d'];
+%                                         [movie,moviename] = correctBackground(moviename,job(i).correctBackground,[],fidJob,fid);
+%                                         if ~isempty(job(i).correctBackground)
+%                                             job(i).correctBackground = [];
+%                                             job(i).projName = moviename(1:end-4);
+%                                             job(i).fileExtension = moviename(end-3:end);
+%                                             job(i).dataProperties.name = job(i).projName;
+%                                             
+%                                             %remove old projectData-file and write a new one
+%                                             oldProjData = chooseFile('-data-',[],'new','log');
+%                                             fprintf(fidJob,[nowString,' delete(%s);\n'],oldProjData);
+%                                             fprintf(fid, [nowString,' delete old project data %s\n'],oldProjData);
+%                                             delete(oldProjData);
+%                                             
+%                                             %create new projectData-file
+%                                             projData = [job(i).projName,'-data-',nowString];
+%                                             dataProperties = job(i).dataProperties;
+%                                             fprintf(fidJob,[nowString,' create %s\n'],projData);
+%                                             save(projData,'dataProperties');
+%                                             
+%                                             %save updated project properties
+%                                             projProperties = job(i).projProperties;
+%                                             projProperties.projName = job(i).projName;
+%                                             projProperties.datafileName = projData;
+%                                             fprintf(fidJob,[nowString,' save project properties\n']);
+%                                             job(i).projProperties = projProperties;
+%                                             save(projData,'projProperties','-append');
+%                                             
+%                                             job(i).projData = [projData,'.mat'];
+%                                             job(i).createNew = 0;
+%                                             
+%                                             %open new log file
+%                                             fprintf(fidJob,[nowString,' fid = fopen(%s.log,''a+'');\n'],job(i).projData);
+%                                             fid2 = fopen([job(i).projData,'.log'],'a+');
+%                                             fprintf(fid,['\n-----------------\n\n',nowString,' opening new log file\n']);
+%                                             
+%                                             %copy old log file
+%                                             fprintf(fidJob,[nowString,' copy old log file to new log file\n'],job(i).projData);
+%                                             fprintf(fid2,['---begin copy old logfile---\n']);
+%                                             
+%                                             %close and reopen old logfile first
+%                                             fclose(fid);
+%                                             fid = fopen([oldProjData,'.log']);
+%                                             
+%                                             %copy log file line by line
+%                                             while ~feof(fid)
+%                                                 line = fgetl(fid);
+%                                                 fprintf(fid2,'%s\n',line);
+%                                             end
+%                                             
+%                                             fprintf(fid2,['---end copy old logfile---\n']);
+%                                             
+%                                             %delete old logfile
+%                                             fclose(fid);
+%                                             fprintf(fidJob,[nowString,' delete(%s);\n'],[oldProjData,'.log']);
+%                                             fprintf(fid2, [nowString,' delete old logfile %s \n'],[oldProjData,'.log']);
+%                                             delete([oldProjData,'.log']);
+%                                             
+%                                             %rename file handle
+%                                             fid = fid2;
+%                                         end
+%                                     end
                                     
                                     %filter movie
                                     fprintf(fidJob,[nowString,' filteredMovie = filtermovie(movie,dataProperties.FILTERPRM);\n']);
@@ -289,20 +293,11 @@ try
                                 try
                                     fprintf(fid,[nowString,' detect spots\n']);
                                     
-                                    %read movie
-                                    if strcmp(job(i).fileExtension,'.r3c')
-                                        %cropped/corrected movie
-                                        moviename = [job(i).projName,'.r3c'];
-                                        fprintf(fidJob,[nowString,' movie  =  readmat(%s);\n'],moviename);
-                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n'],moviename);
-                                        movie  =  readmat(moviename);
-                                    else
-                                        %normal movie
-                                        moviename = [job(i).projName,'.r3d'];
-                                        fprintf(fidJob,[nowString,' movie  =  r3dread(%s);\n'],moviename);
-                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n'],moviename);
-                                        movie  =  r3dread(moviename);
-                                    end
+                                    % load movie (corrected if available)
+                                    fprintf(fidJob,[nowString,' movie  =  cdLoadMovie(''corr/raw'');\n']);
+                                    fprintf(fid,[nowString,' load raw/corrected movie\n']);
+                                    movie  =  cdLoadMovie('corr/raw');
+
                                     
                                      %load filtered movie
                                      filteredMovieName = chooseFile('filtered_movie',[],'new');
@@ -504,19 +499,10 @@ try
                                     fprintf(fid,[nowString,' ',idname,' loaded\n']);
                                     
                                     %read movie
-                                    if strcmp(job(i).fileExtension,'.r3c')
-                                        %cropped/corrected movie
-                                        moviename = [job(i).projName,'.r3c'];
-                                        fprintf(fidJob,[nowString,' movie  =  readmat(%s);\n'],moviename);
-                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n'],moviename);
-                                        movie  =  readmat(moviename);
-                                    else
-                                        %normal movie
-                                        moviename = [job(i).projName,'.r3d'];
-                                        fprintf(fidJob,[nowString,' movie  =  r3dread(%s);\n'],moviename);
-                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n',moviename]);
-                                        movie  =  r3dread(moviename);
-                                    end
+                                     % load movie (corrected if available)
+                                    fprintf(fidJob,[nowString,' movie  =  cdLoadMovie(''corr/raw'');\n']);
+                                    fprintf(fid,[nowString,' load raw/corrected movie\n']);
+                                    movie  =  cdLoadMovie('corr/raw');
 
                                     %run tracktags
                                     fprintf(fidJob,[nowString,' idlisttrack = trackTags(movie,idlist,dataProperties);\n']);
@@ -632,36 +618,11 @@ try
                         load(projData,'dataProperties');
                         load(projData,'projProperties');
                         
-                        %try to load filtered movie
-                        filteredMovieName = chooseFile('filtered_movie',[],'new');
-                        altFilteredMovieName = chooseFile('moviedat',[],'new');
-                        if isempty(filteredMovieName)
-                            if isempty(altFilteredMovieName) %to ensure compatibility with earlier versions
-                                fprintf(fidJob,[nowString,' no filtered movie found. load unfiltered movie instead\n']);
-                                fprintf(fid,[nowString,'no filtered movie found. load unfiltered movie instead\n']);
-                                %read movie
-                                    if strcmp(job(i).fileExtension,'.r3c')
-                                        %cropped/corrected movie
-                                        moviename = [job(i).projName,'.r3c'];
-                                        fprintf(fidJob,[nowString,' movie  =  readmat(%s);\n'],moviename);
-                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n',moviename]);
-                                        filteredMovie  =  readmat(moviename);
-                                    else
-                                        %normal movie
-                                        moviename = [job(i).projName,'.r3d'];
-                                        fprintf(fidJob,[nowString,' movie  =  readmat(%s);\n'],moviename);
-                                        fprintf(fid,[nowString,' load unfiltered movie: (%s)\n',moviename]);
-                                        filteredMovie  =  r3dread(moviename);
-                                    end
-                            else
-                                fprintf(fidJob,[nowString,' filteredMovie  =  readmat(%s);\n'],altFilteredMovieName);
-                                filteredMovie  = readmat(altFilteredMovieName);
-                            end
-                        else 
-                            fprintf(fidJob,[nowString,' filteredMovie  =  readmat(%s);\n'],filteredMovieName);
-                            filteredMovie  = readmat(filteredMovieName);
-                        end
-                        
+                        % try to load filtered movie. If no filtered movie,
+                        % we have a huge problem, anyway
+                        [movie, dummy, infoStruct] = cdLoadMovie('filtered');
+                        filteredMovieName = infoStruct.movieName;
+                       
                         %idlist
                         fprintf(fidJob,[nowString,' load(',projData,',',lastResult,');\n']);
                         load(projData,lastResult); %loads idlist (tracker/linker)

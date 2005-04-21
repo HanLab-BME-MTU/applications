@@ -30,10 +30,12 @@ if nargin==0|isempty(varargin{1}) %no (load-all&exist projectData)
     cd(fpath);
     filename = [fpath fname];
     
-    if isempty(findstr(fname,'.r3d'))
-        [mv,stat] = readmat(filename); %works for *.fim and *.r3c and moviedat
+    if isempty(findstr(fname,'.r3'))
+        % filtered movie
+        mv = cdLoadMovie('filtered',fpath);
     else
-        [mv] = r3dread(filename);
+        % will always load corrected movie if possible
+        mv = cdLoadMovie('corr/raw',fpath);
     end;
 else %filtered movie is being passed down
     mv = varargin{1};

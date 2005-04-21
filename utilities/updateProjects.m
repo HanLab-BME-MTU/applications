@@ -32,6 +32,7 @@ pixelsizeOld(1) = 0.0515;
 pixelsizeOld(2) = 0.0720;
 pixelsizeNew = 0.04803126;
 cleanupFiles = 0;
+removeCorrectedMovies = 0;
 
 %========================
 % TEST INPUT
@@ -63,6 +64,11 @@ end
 if any(strmatch('cleanupFiles',varargin,'exact'))
     cleanupFiles = 1;
     actionString = [actionString,' & cleanup old files'];
+end
+
+if any(strmatch('removeCorrectedMovies',varargin,'exact'))
+    removeCorrectedMovies = 1;
+    actionString = [actionString,' & removeCorrectedMovies'];
 end
 
 if isempty(actionString)
@@ -503,6 +509,48 @@ for iProject = 1:size(listOfDataFiles,1)
         % save
         eval(['save([currentDir,listOfDataFiles{iProject,1}],''' changedVariables{i} ''', ''-append'' );']);
         
+    end
+    
+    %=========================
+    % REMOVE CORRECTED MOVIES
+    %=========================
+    
+    if removeCorrectedMovies
+    
+    % here, we need to perform three tasks
+    % 1) remove the r3c-movie, if there is an r3d movie and a
+    %    correctionData.mat - file
+    % 2) remove "_corr" from the -data- file
+    % 3) update projProperties.datafileName in the -data- file 
+    
+    % remove movie, if there's a r3d-movie and a correctionData - file
+    if ~isempty(dir([currentDir, '*.r3d'])) && ~isempty(dir([currentDir,'correctionData.mat']))
+        delete([currentDir, '*.r3c']);
+    end
+    
+    % find new name of data/log file
+    fileNames = chooseFile('-data-',currentDir,'all');
+    % regexprep replaces a regular expression in a string
+    newFileNames = regexprep(fileNames,'_corr','');
+    for i=size(fileNames,1):-1:1
+        dataFileIdx = isempty(findstr(fileNames{i},'log'));
+    end
+    
+    % update projProperties.datafileName
+    for i=1:length(dataFileIdx)
+        % load projProperties
+        load([currentDir fileNames{dataFileIdx(i)}],'projProperties');
+        
+        projProperties.datafileName = newFileNames{dataFileIdx(i)};
+        
+        save([currentDir,fileNames{dataFileIdx(i)}],'projProperties','-append');
+    end
+    
+    % now rename the files
+    for i=1:size(fileNames,1)
+        movefile([currentDir fileNames{i}],[currentDir newFileNames{i}]);
+    end
+    
     end
     
 end % for iProject = 1:size(listOfDataFiles,1)

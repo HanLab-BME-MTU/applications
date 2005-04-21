@@ -19,7 +19,8 @@ function [idlist,intList]=spotID(slist,opt,dataProperties,projName)
 %                 idlist.spot.color
 %                 idlist.spot.background
 %                 idlist.linklist: for each time t: 
-%                       time/#of spot/color of spot/color of marker/flag/linkup/linkdown/intensity
+%                       time/#of spot/color of spot/color of
+%                       marker/flag/linkup/linkdown/intensity/local noise
 %
 %
 % DEPENDS ON: spotID_mappoints, spotID_findStats, bsum2bvec, visualize data with

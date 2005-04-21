@@ -128,7 +128,7 @@ amgHandles.job(activeJobNum).eraseAllPrev = get(handles.edit_check_eraseAllPrevD
 
 %write name of file/project
 amgHandles.job(activeJobNum).projName = handles.previewData.movieName(1:end-4);
-amgHandles.job(activeJobNum).fileExtension = handles.previewData.movieName(end-3:end);
+%amgHandles.job(activeJobNum).fileExtension = handles.previewData.movieName(end-3:end);
 amgHandles.job(activeJobNum).dataProperties.name = amgHandles.job(activeJobNum).projName;
 
 %update amg-list-entry

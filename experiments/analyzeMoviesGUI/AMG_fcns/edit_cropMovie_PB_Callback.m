@@ -1,6 +1,11 @@
 function edit_cropMovie_PB_Callback(hObject, eventdata, handles)
 %callback to allow cropping of movie in editPropertiesGUI
 
+
+h = errordlg('sorry, cropping has been discontinued')
+uiwait(h)
+return
+
 %-----------display figure-----------------
 
 %init coords and filteredMovie

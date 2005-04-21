@@ -213,35 +213,14 @@ if ask4image
     h = helpdlg('Please load an image file. If you do not want to, press cancel','load idlist/trajectory');
     uiwait(h);
     
-    %let the user choose. filterIdx will return 0 if cancel
-    [fileName,pathName,filterIdx] = uigetfile({'*.r3c;*.fim;*.r3d','movie files'},... 
-        'load image file');
+    % let the user choose a movie
+    [image] = cdLoadMovie('ask');
     
-    switch filterIdx
-        case 0
-            %no image
-            doImage = 0;
-            
-        case 1
-            
-            cd(pathName);
-            
-            %load movie file
-            try
-                if isempty(findstr(fileName,'.r3d'))
-                    [image] = readmat([pathName,fileName]); %works for *.fim and *.r3c and moviedat
-                else
-                    [image] = r3dread([pathName,fileName]);
-                end
-                doImage = 1;
-            catch
-                h = errordlg(['no file loaded - ',lasterr]);
-                uiwait(h);
-                doImage = 0
-            end
-            
-    end %switch filterIdx
-    
+    if image == 0
+        % no image
+        doImage = 0;
+    end
+        
 end %ask4image
 
 if ask4pixelSize

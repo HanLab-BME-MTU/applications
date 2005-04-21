@@ -1,5 +1,8 @@
 function [newDataMovie,newDataMovieName,newOldCorrectionInfo] = correctBackground(dataMovieName,correctionInfo,oldCorrectionInfo,fid1,fid2)
-%correctBackground makes a subtraction of the background from the dataMovie according to correctionInfo. 
+% correctBackground creates a file correctionData.mat in the current path
+% if necessary and then loads the movie.
+
+
 
 %load dataMovie. We're already in the correct directory, and the user can not
 %change it due to the waitfor command
@@ -44,8 +47,11 @@ if strcmp(dataMovieName(end),'c')
             return
         end
     else
-        %this is some strange moviename - not supported
-        error('check dataMovieName!')
+        % we assume it's a synthetic movie
+        newDataMovie = readmat(dataMovieName);
+        newDataMovieName = dataMovieName;
+            newOldCorrectionInfo = oldCorrectionInfo;
+            return
     end
 end
 
@@ -54,16 +60,17 @@ if fid1
     fprintf(fid2,[nowString,' load unfiltered movie: (%s)\n'],dataMovieName);
 end
 
-%read original movie
-dataMovie = r3dread(dataMovieName);
+% %read original movie
+% dataMovie = r3dread(dataMovieName);
 
 %assign newOldCorrectionInfo
 newOldCorrectionInfo = correctionInfo;
 
 %make sure there is a correctionInfo
 if isempty(correctionInfo)
+    
     %there is no correctionInfo: return r3d-movie
-    newDataMovie = dataMovie;
+    newDataMovie = r3dread(dataMovieName);
     newDataMovieName = dataMovieName;
     newOldCorrectionInfo = oldCorrectionInfo;
     return
@@ -106,8 +113,7 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
         
         %return to movieDir
         cd(oldDir);
-        %get movieSize
-        movieSize = size(dataMovie);
+        
         
     case 0 %correction with firs/last X frames
         %cut first X and last Y frames (this command also works if one entry of cF is 0)
@@ -117,9 +123,13 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
             fprintf(fid2,[nowString,' extract correction frames: first %i, last %i)\n'],correctionInfo.correctFrames(1),correctionInfo.correctFrames(2));
         end
         
-        corrFrames = dataMovie(:,:,:,:,[1:correctionInfo.correctFrames(1),end-correctionInfo.correctFrames(2)+1:end]);
-        %shorten dataMovie
-        dataMovie = dataMovie(:,:,:,:,correctionInfo.correctFrames(1)+1:end-correctionInfo.correctFrames(2));
+        % read only the correction frames
+        corrFrames = cat(5, readmat(dataMovieName, 1, correctionInfo.correctFrames(1)),...
+            readmat(dataMovieName, ...
+            correctionInfo.header.numTimepoints-correctionInfo.correctFrames(2),...
+            correctionInfo.correctFrames(2)));
+        
+       
         %calculate corrImg
         corrImg = squeeze(mean(corrFrames,5));
         
@@ -128,7 +138,11 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
         
         %correct header.time. Since it is a 1 by numzSlices*numTimepoints
         %vector, we have to calculate from where to where to take it
-        movieSize = size(dataMovie);
+        movieSize = [correctionInfo.header.numRows,...
+            correctionInfo.header.numCols,...
+            correctionInfo.header.numZSlices,...
+            correctionInfo.header.numWvl,...
+            correctionInfo.header.numTimepoints];
         firstNum = (correctionInfo.correctFrames(1))*movieSize(3)+1; 
         lastNum = (movieSize(5)+correctionInfo.correctFrames(1))*movieSize(3); %ms5+cF1+cF2-cF2
         hTime = correctionInfo.header.Time(firstNum:lastNum);
@@ -155,40 +169,6 @@ save('correctionData','correctionData');
 numTimepoints = movieSize(5);
 numZSlices = movieSize(3);
 
-%make a correctionMovie
-correctionMovie = repmat(corrImg,[1,1,numZSlices,1,numTimepoints]);
-
-%create new DataMovie
-newDataMovie = dataMovie-correctionMovie;
-
-clear correctionMovie;
-
-%make sure there are no negative values in the movie
-newDataMovie = newDataMovie - min(newDataMovie(:));
-
-% %normalize Movie to camera data range (12-bit-data!)
-% newDataMovie = newDataMovie/MOVIERANGE;
-
-%create new fileName
-newDataMovieName = [dataMovieName(1:end-4),'_corr.r3c'];
-
-%make sure there is not already a corrected movie
-if exist(newDataMovieName)
-    if fid1
-        fprintf(fid1,[nowString,' delete(%s);\n'],newDataMovieName);
-        fprintf(fid2,[nowString,' remove old corrected movie %s\n'],newDataMovieName);
-    end
-    delete(newDataMovieName);
-end
-
-if fid1
-    fprintf(fid1,[nowString,' writemat(%s, newDataMovie);\n'],newDataMovieName);
-    fprintf(fid2,[nowString,' save movie %s\n'],newDataMovieName);
-end
-
-%write newDataMovie to file
-writemat(newDataMovieName, newDataMovie);
-
 %read header
 r3dMovieHeader = correctionInfo.header;
 
@@ -207,4 +187,9 @@ end
 
 %save movieHeader
 save('r3dMovieHeader','r3dMovieHeader');
+
+% load corrected moive
+[newDataMovie, dummy, infoStruct] = cdLoadMovie('corrected');
+newDataMovieName = infoStruct.movieName;
+
 

@@ -268,28 +268,28 @@ else
     return
 end
 
-%make sure user has not inadvertedly selected the r3d instead of the r3c
-if strcmp(fileName(end),'d')&exist([pathName,fileName(1:end-4),'_corr.r3c'])
-    ans = questdlg('Are you sure you want to load the uncorrected movie?','','load uncorrected','load corrected','cancel','load corrected');
-    switch ans
-        case 'load uncorrected'
-            %leave everything as is
-        case 'load corrected'
-            %change fileName
-            fileName = [fileName(1:end-4),'_corr.r3c'];
-            destFileName = fileName;
-        otherwise
-            %cancel or []
-            return
-    end
-end
+% %make sure user has not inadvertedly selected the r3d instead of the r3c
+% if strcmp(fileName(end),'d')&exist([pathName,fileName(1:end-4),'_corr.r3c'])
+%     ans = questdlg('Are you sure you want to load the uncorrected movie?','','load uncorrected','load corrected','cancel','load corrected');
+%     switch ans
+%         case 'load uncorrected'
+%             %leave everything as is
+%         case 'load corrected'
+%             %change fileName
+%             fileName = [fileName(1:end-4),'_corr.r3c'];
+%             destFileName = fileName;
+%         otherwise
+%             %cancel or []
+%             return
+%     end
+% end
 
 %if last part of pathname differs from moviename: create project directory
 %and move movie and logfile; else read projectName
 projName = destFileName(1:end-4);
 
 %get extension of movie file
-fileExtension = destFileName(end-3:end); %.r3d/.r3c
+%fileExtension = destFileName(end-3:end); %.r3d/.r3c
 
 %get name of directory
 listSep = findstr(pathName,filesep);
@@ -366,7 +366,7 @@ handles.job(projNum).createNew = 1; %default
 handles.job(projNum).lastName = [];
 handles.job(projNum).mainDir = [];
 handles.job(projNum).mainSaveDir = [];
-handles.job(projNum).fileExtension = fileExtension;
+%handles.job(projNum).fileExtension = fileExtension;
 handles.job(projNum).correctBackground = [];
 
 %save data

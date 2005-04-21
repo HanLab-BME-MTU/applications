@@ -1,5 +1,13 @@
 function [mov,stat]=readmat(fname,tPoints)
 %READMAT reads selected time steps from movie
+%
+% SYNOPSIS [mov,stat]=readmat(fname,tPoints)
+%
+% INPUT    fname (opt)   : filename. If omitted, a dialog will open
+%          tPoints (opt) : list of timepoints to be loaded
+%
+% OUTPUT   mov           : movie file
+%          stat          : fopen error
 
 %c: 10/08/01 dT
 
@@ -7,11 +15,12 @@ stat=[];
 
 %if no filename, open file selection dialog
 if(nargin==0 | isempty(fname))
-   [fname,path]=uigetfile({'moviedat*;*.fim;*.r3c',  'Filtered movies'},'select movie file');
+   [fname,path]=uigetfile({'moviedat*;*.fim;*.r3c',  'movie files'},'select movie file');
    if(fname(1)==0)
        mov=[];
        image=[];
        fname=[];
+       stat = 'no movie loaded';
       return;
    end;
   % cd(path);

@@ -43,34 +43,41 @@ else
     
     
     
-    %--------------try to load filtered movie
-    %try to find filenames in the path from which projectData has been loaded
-    filteredMovieName = chooseFile('filtered_movie',[],'new');
-    altFilteredMovieName = chooseFile('moviedat',[],'new');
-    if isempty(filteredMovieName)
-        if isempty(altFilteredMovieName) %to ensure compatibility with earlier versions
-            disp('no filtered movie found. load unfiltered movie instead')
-            if findstr(projProperties.dataPath(end-10:end),'crop')|findstr(projProperties.dataPath(end-10:end),'corr')
-                %cropped movie
-                moviename = chooseFile('.r3c');
-                filteredMovie  =  readmat(moviename);
-            else
-                %normal movie
-                moviename = chooseFile('.r3d');
-                filteredMovie  =  r3dread(moviename);
-            end
-        else
-            filteredMovie = readmat(altFilteredMovieName);
+    %--------------try to load filtered movie 
+    % use cdLoadMovie
+        [filteredMovie,dummy,loadStruct] = cdLoadMovie('latest');
+        if ~strcmp(loadStruct.movieType,'filtered')
+            warning(sprintf('filtered movie not found. Loading %s movie instead',loadStruct.movieType));
         end
-    else 
-        filteredMovie = readmat(filteredMovieName);
-    end;
-    
-    %test if everything correctly loaded
-    if ~exist('filteredMovie','var')
-        error('no movie found')
-        return
-    end
+        movieName = loadStruct.movieName;
+        
+%     %try to find filenames in the path from which projectData has been loaded
+%     filteredMovieName = chooseFile('filtered_movie',[],'new');
+%     altFilteredMovieName = chooseFile('moviedat',[],'new');
+%     if isempty(filteredMovieName)
+%         if isempty(altFilteredMovieName) %to ensure compatibility with earlier versions
+%             disp('no filtered movie found. load unfiltered movie instead')
+%             if findstr(projProperties.dataPath(end-10:end),'crop')|findstr(projProperties.dataPath(end-10:end),'corr')
+%                 %cropped movie
+%                 moviename = chooseFile('.r3c');
+%                 filteredMovie  =  readmat(moviename);
+%             else
+%                 %normal movie
+%                 moviename = chooseFile('.r3d');
+%                 filteredMovie  =  r3dread(moviename);
+%             end
+%         else
+%             filteredMovie = readmat(altFilteredMovieName);
+%         end
+%     else 
+%         filteredMovie = readmat(filteredMovieName);
+%     end;
+%     
+%     %test if everything correctly loaded
+%     if ~exist('filteredMovie','var')
+%         error('no movie found')
+%         return
+%     end
     %---let the user choose which idlist to load
     
     %find which idlists there are
