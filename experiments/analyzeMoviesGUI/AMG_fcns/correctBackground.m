@@ -108,8 +108,8 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
             corrImg = squeeze(mean(cat(4,corrImg,corrImgTmp),4));
             
         end
-        %store only one slice
-        corrImg = mean(corrImg,3);
+        %store only one frame
+        corrImg = repmat(mean(corrImg,3),[1,1,correctionInfo.header.numZSlices]);
         
         %return to movieDir
         cd(oldDir);
@@ -124,8 +124,8 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
         end
         
         % read only the correction frames
-        corrFrames = cat(5, readmat(dataMovieName, 1, correctionInfo.correctFrames(1)),...
-            readmat(dataMovieName, ...
+        corrFrames = cat(5, r3dread(dataMovieName, 1, correctionInfo.correctFrames(1)),...
+            r3dread(dataMovieName, ...
             correctionInfo.header.numTimepoints-correctionInfo.correctFrames(2),...
             correctionInfo.correctFrames(2)));
         
@@ -133,18 +133,18 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
         %calculate corrImg
         corrImg = squeeze(mean(corrFrames,5));
         
-        %store only one slice
-        corrImg = mean(corrImg,3);
+        %store only one frame
+        corrImg = repmat(mean(corrImg,3),[1,1,correctionInfo.header.numZSlices]);
         
         %correct header.time. Since it is a 1 by numzSlices*numTimepoints
         %vector, we have to calculate from where to where to take it
         movieSize = [correctionInfo.header.numRows,...
             correctionInfo.header.numCols,...
             correctionInfo.header.numZSlices,...
-            correctionInfo.header.numWvl,...
+            correctionInfo.header.numWvs,...
             correctionInfo.header.numTimepoints];
         firstNum = (correctionInfo.correctFrames(1))*movieSize(3)+1; 
-        lastNum = (movieSize(5)+correctionInfo.correctFrames(1))*movieSize(3); %ms5+cF1+cF2-cF2
+        lastNum = (movieSize(5)-correctionInfo.correctFrames(2))*movieSize(3); %ms5+cF1+cF2-cF2
         hTime = correctionInfo.header.Time(firstNum:lastNum);
         
     otherwise

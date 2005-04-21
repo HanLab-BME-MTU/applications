@@ -122,6 +122,7 @@ try
                                     
                                     %read movie. Correct background if
                                     %necessary
+                                    moviename = [job(i).projName,'.r3d'];
                                     [movie,moviename] = correctBackground(moviename,job(i).correctBackground,[],fidJob,fid);
                                     
                                     

@@ -317,7 +317,12 @@ else
     loadStruct.movieName = movieInfo.name;
     loadStruct.movieType = goodTypes{type};
     if ~isempty(correctionData)
-        loadStruct.correctionData.image = correctionData.image;
+        % check if we have stored an image or just a slice
+        if ndims(correctionData.image)==2
+            loadStruct.correctionData.image = repmat(correctionData.image,[1,1,r3dMovieHeader.numZSlices]);
+        else
+            loadStruct.correctionData.image = correctionData.image;
+        end
     else
         loadStruct.correctionData = [];
     end
