@@ -532,9 +532,12 @@ for iProject = 1:size(listOfDataFiles,1)
     fileNames = chooseFile('-data-',currentDir,'all');
     % regexprep replaces a regular expression in a string
     newFileNames = regexprep(fileNames,'_corr','');
+    
+    % find index of data file
     for i=size(fileNames,1):-1:1
-        dataFileIdx = isempty(findstr(fileNames{i},'log'));
+        dataFileIdx(i) = isempty(findstr(fileNames{i},'log'));
     end
+    dataFileIdx = find(dataFileIdx);
     
     % update projProperties.datafileName
     for i=1:length(dataFileIdx)
