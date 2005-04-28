@@ -129,6 +129,11 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
             correctionInfo.header.numTimepoints-correctionInfo.correctFrames(2),...
             correctionInfo.correctFrames(2)));
         
+        % update header
+        correctionInfo.header.numTimepoints = ...
+            correctionInfo.header.numTimepoints - ...
+            sum(correctionInfo.correctFrames);
+        
        
         %calculate corrImg
         corrImg = squeeze(mean(corrFrames,5));
@@ -144,8 +149,10 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
             correctionInfo.header.numWvs,...
             correctionInfo.header.numTimepoints];
         firstNum = (correctionInfo.correctFrames(1))*movieSize(3)+1; 
-        lastNum = (movieSize(5)-correctionInfo.correctFrames(2))*movieSize(3); %ms5+cF1+cF2-cF2
+        lastNum = (movieSize(5) + correctionInfo.correctFrames(1))*movieSize(3); %ms5+cF1+cF2-cF2
         hTime = correctionInfo.header.Time(firstNum:lastNum);
+        
+        
         
     otherwise
         error('movie header is missing')
