@@ -621,7 +621,7 @@ try
                         
                         % try to load filtered movie. If no filtered movie,
                         % we have a huge problem, anyway
-                        [movie, dummy, infoStruct] = cdLoadMovie('filtered');
+                        [filteredMovie, dummy, infoStruct] = cdLoadMovie('filtered');
                         filteredMovieName = infoStruct.movieName;
                        
                         %idlist

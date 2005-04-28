@@ -69,8 +69,8 @@ newOldCorrectionInfo = correctionInfo;
 %make sure there is a correctionInfo
 if isempty(correctionInfo)
     
-    %there is no correctionInfo: return r3d-movie
-    newDataMovie = r3dread(dataMovieName);
+    %there is no correctionInfo: return r3d-movie (corrected, if possible)
+    newDataMovie = cdLoadMovie('corr/raw');
     newDataMovieName = dataMovieName;
     newOldCorrectionInfo = oldCorrectionInfo;
     return
