@@ -108,8 +108,8 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
             corrImg = squeeze(mean(cat(4,corrImg,corrImgTmp),4));
             
         end
-        %store only one frame
-        corrImg = repmat(mean(corrImg,3),[1,1,correctionInfo.header.numZSlices]);
+        %store only one slice
+        corrImg = mean(corrImg,3);
         
         %return to movieDir
         cd(oldDir);
@@ -133,8 +133,8 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
         %calculate corrImg
         corrImg = squeeze(mean(corrFrames,5));
         
-        %store only one frame
-        corrImg = repmat(mean(corrImg,3),[1,1,correctionInfo.header.numZSlices]);
+        %store only one slice
+        corrImg = mean(corrImg,3);
         
         %correct header.time. Since it is a 1 by numzSlices*numTimepoints
         %vector, we have to calculate from where to where to take it
