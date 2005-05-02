@@ -3,7 +3,7 @@ function varargout = labelgui(varargin)
 %    FIG = LABELGUI launch labelgui GUI.
 %    LABELGUI('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 21-Oct-2003 14:27:29
+% Last Modified by GUIDE v2.5 01-May-2005 16:50:28
 
 if nargin == 0  % LAUNCH GUI
     
@@ -571,5 +571,12 @@ end;
 %do not update with refresh, but with the timepointSlider, because the
 %image has to be calculated again
 labelgui('slider3_Callback',handles.slider3, eventdata, handles);
+
+
+% --------------------------------------------------------------------
+function removeFusions_Callback(hObject, eventdata, handles)
+% hObject    handle to removeFusions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
 
