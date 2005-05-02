@@ -10,7 +10,7 @@ end
 if ~isUpdate
     %is item checked
     isChecked = get(hObject,'Checked');
-    
+
     %check whether menuItem is checked or not only if original call
     if strcmp(isChecked,'on') %uncheck, close all windows
         set(hObject,'Checked','off');
@@ -22,7 +22,7 @@ if ~isUpdate
             SetUserData(labelPanelList(i),[],1,'disFigH');
         end
         return
-        
+
     else %check and open figure
         set(hObject,'Checked','on');
     end
@@ -80,7 +80,7 @@ nTags = anaDat(1).info.nTags;
 legendText = {};
 
 switch nTags
-    case 1 
+    case 1
         %only one tag. Makes no point to draw, but let's do it - we can,
         %after all
         [yData,yLabel,legendText,dummy,yStats] =...
@@ -91,20 +91,20 @@ switch nTags
         %2 tags. calculate tag centered displacement
         [yData,yLabel,legendText,dummy,yStats] =...
             adgui_calcPlotData_tagDisplacementCorrected([],anaDat,'y',legendText,dataProperties,2,[2,1]);
-        
+
         %set figure title
         title(['displacement of tag ',anaDat(1).info.labelColor{1}, ' relative to tag ',anaDat(1).info.labelColor{2}]);
-        
+
     otherwise
         %more tags. calculate centroid centered displacement
         for i = 1:nTags
             [yData(:,i),yLabel,legendText,dummy,yStats(i)] =...
                 adgui_calcPlotData_tagDisplacementCorrected([],anaDat,'y',legendText,dataProperties,1,i);
         end
-        
+
         %set figure title
         title(['displacement of all tags relative to centroid']);
-        
+
 end
 
 %calculate time
@@ -134,7 +134,7 @@ yData = yData./repmat(numTimePointsBF,1,size(yData,2));
 %replace (the default), high-level functions like plot reset the ColorOrder
 %property before determining the colors to use. If you want MATLAB to use a
 %ColorOrder that is different from the default, set NextPlot to
-%replacechildren. You can also specify your own default ColorOrder.     
+%replacechildren. You can also specify your own default ColorOrder.
 
 %get colormap
 cMap=GetUserData(labelguiH,'cMap');
@@ -143,8 +143,8 @@ cMapFact=size(cMap,1)/idlist(1).stats.maxColor;
 colorOrder = cMap([1:nTags]*cMapFact,:);
 
 axH = gca;
-set(axH,'NextPlot','replacechildren','ColorOrder',colorOrder);
-            
+set(axH,'NextPlot','add','ColorOrder',colorOrder);
+
 %plot data without errorbars (for now)
 
 lineH = plot(xData,yData,'-d');
@@ -163,11 +163,38 @@ axesH = gca;
 %if not update: we add the refresh button (same as intFigureUpdateButton)
 if ~isUpdate
     uh = uicontrol('Style','pushbutton',...
-        'Tag','updateIntFig_PB',...
+        'Tag','updateDisFig_PB',...
         'Position',[5,5,120,23],...
-        'Callback','label_showDisplacementFigure(gcbo,[],guidata(openfig(''labelgui'',''reuse'')),1)','String','update displacements');
-end
+        'Callback','label_showDisplacementFigure(gcbo,[],guidata(openfig(''labelgui'',''reuse'')),1)',...
+        'String','update displacements');
+    % add showTimeButton
+    uh2 = uicontrol('Style','togglebutton',...
+        'Tag','showTimeDisFig_PB',...
+        'Position',[130,5,60,23],...
+        'Callback','label_showDisplacementFigure(gcbo,[],guidata(openfig(''labelgui'',''reuse'')),1)',...
+        'String','show time');
+else
+    % we are updating. Try to find showTimeButton
+    childH = get(disFigH,'Children');
+    showTimeIdx = strmatch('showTime',get(childH,'Tag'));
+    % find button status
+    showTime = get(childH(showTimeIdx),'Value');
 
+    % draw line only if button active. There is no need to delete lines,
+    % because there is a cla command above
+    if showTime
+        % plot new line from yMin to yMax. Therefore, read currentTime and
+        % yLimits of axes
+        currentTime = get(findall(labelguiH,'Tag','slider3'),'Value');
+        yLims = get(gca,'YLim');
+        % plot red line
+        lineH(end+1,1) = plot([currentTime,currentTime],yLims,'-r');
+        % arrange timeLine so that it appears below everything
+        c=get(gca,'Children');
+        set(gca,'Children',c([2:end,1]));
+
+    end
+end
 %set buttonDownFcn for axes and lines
 set([lineH;axesH],'ButtonDownFcn','label_gotoFrame_BDFCN');
 

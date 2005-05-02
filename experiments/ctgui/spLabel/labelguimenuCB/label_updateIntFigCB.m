@@ -111,6 +111,35 @@ end
 set(spotIntLineH,'ButtonDownFcn','label_gotoFrame_BDFCN');
 set(frameIntH,'ButtonDownFcn','label_gotoFrame_BDFCN');
 
+% show current time if necessary
+% Check toggle status
+showTime = get(handles.showTimeH(1),'Value');
+% remove old line if necessary
+if handles.showTimeH(2)
+    % we don't want to delete 0!
+    delete(handles.showTimeH(2))
+end
+if showTime
+    % plot new line from yMin to yMax. Therefore, read currentTime and
+    % yLimits of axes
+    currentTime = get(findall(labelGuiH,'Tag','slider3'),'Value');
+    yLims = get(gca,'YLim');
+    % plot red line
+    handles.showTimeH(2) = plot([currentTime,currentTime],yLims,'-r');
+    % arrange timeLine so that it appears below everything
+    c=get(gca,'Children');
+    set(gca,'Children',c([2:end,1]));
+    
+    % set buttonDownFcn for timeLine
+    set(handles.showTimeH(2),'ButtonDownFcn','label_gotoFrame_BDFCN');
+else
+    % remember that there should be no showTimeH(2), and don't set BDFCN
+    handles.showTimeH(2) = 0;
+end
+
+
+
+
 %save new line data
 handles.spotIntLineH = spotIntLineH;
 guidata(h,handles);
