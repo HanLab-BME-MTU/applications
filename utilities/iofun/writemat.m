@@ -1,7 +1,18 @@
 function stat=writemat(fname,mov)
-%EXPORTMAT creates a new moviefile or appends images if movie exists
+%WRITEMAT writes (or appends) double binary file to disk
+%
+% SYNOPSIS stat=writemat(fname,mov)
+%
+% INPUT    fname  fileName. If the file exists in the current path, it will
+%                 be appended.
+%          mov    data to be written
+%
+% OUTPUT   stat   errormessage
+%
 
 %c: 10/08/01 dT
+
+stat = [];
 
 %open to write or create
 if (exist([pwd filesep fname],'file'))

@@ -9,6 +9,14 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                           "corr/raw" will do the same, but without trying
 %                           to load the filtered movie.
 %                           "ask" will let the user choose the movie
+%                           For synthetic movies, specify "raw"
+%                           
+%                           Alternatively, if the filename is known,
+%                           movieType can be a 1-by-2 cell array with 
+%                           {movieName, movieType}, where movieType is
+%                           either "raw", "corrected", "filtered", or
+%                           "synth"
+%
 %           dirName (opt): directory name in which the movie can be found.
 %                          If empty, current directory will be used
 %           loadOpt (opt): Load options
@@ -50,13 +58,23 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %=========================
 goodTypes = {'raw';'corrected';'filtered';'latest';'corr/raw';'ask'};
 synthType = length(goodTypes) + 1; % *.r3c-movie. Still used for synth movie
-if nargin < 1 || isempty(movieType) || ~ischar(movieType)
+knownType = length(goodTypes) + 2; % known movieName
+
+if nargin < 1 || isempty(movieType) || ~(ischar(movieType) || iscell(movieType))
     error('cdLoadMovie needs a movieType as first input argument!')
 end
-% find movieType
-type = find(strcmpi(goodTypes,movieType));
-if isempty(type)
-    error('movieType not recognized. Possible types are: ''raw'', ''corrected'', ''filtered'', ''latest'', ''corr/raw'', or ''ask''!');
+
+if ischar(movieType)
+    % find movieType
+    type = find(strcmpi(goodTypes,movieType));
+    if isempty(type)
+        error('movieType not recognized. Possible types are: ''raw'', ''corrected'', ''filtered'', ''latest'', ''corr/raw'', or ''ask''!');
+    end
+else % movieType is a cell
+    if length(movieType) ~= 2
+        error('if known movieName: Please supply a cell array with {movieName, movieType}')
+    end
+    movieType = knownType; % assign everything later
 end
 
 if nargin < 2 || isempty(dirName)
@@ -219,7 +237,38 @@ else
         end
     end % type == 1 || type == 2 || type == 4 || type == 5
 
-
+    % handle known moviename
+    if type == knownType
+        % we just assume that we actually know what the movie is called
+        movieInfo = dir(movieType{1}); % store all info for part-loading
+        
+        % load whatever necessary depending on movieData
+        type = find(strcmpi([goodTypes(1:3);{'synth'}]));
+        
+        if isempty(type)
+            error('unrecognized movie type!')
+        end
+        
+        switch type
+            case 1 % raw
+                r3dMovieHeader = readr3dheader(movieInfo.name);
+                correctionData = [];
+            case 2 % corrected
+                load r3dMovieHeader
+                load correctionData
+            case 3 % filtered
+                load r3dMovieHeader
+                correctionData = [];
+            case 4 % synthetic - don't forget to adjust the type
+                type = synthType;
+                load r3dMovieHeader
+                correctionData = [];
+        end
+    end % if type == knownType
+        
+        
+    
+    
     % if this is a corrected movie, and it is corrected via the first/last few
     % frames, we have to adjust frames2load (no problem with numTimepoints,
     % though - they are adjusted already)
