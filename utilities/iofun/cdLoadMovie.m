@@ -96,15 +96,17 @@ end
 if type == 6
     [movieName, dirName, chooseIdx] = ...
         uigetfile({'*.fim;moviedat*','filtered movie';...
-        '*.r3d;*.r3c','corrected movie';...
-        '*.r3d;*.r3c','raw movie'},...
+        '*.r3d;*.r3c;*R3D.dv','corrected movie';...
+        '*.r3d;*.r3c;*R3D.dv','raw movie'},...
         'Please choose movie type and location!');
     if movieName == 0
         % user aborted
         warning('No movie loaded');
-        movie = 0;
-        movieHeader = 0;
-        loadStruct = 0;
+        if nargout > 0
+            movie = 0;
+            movieHeader = 0;
+            loadStruct = 0;
+        end
         return
     else
         % translate type
@@ -163,14 +165,20 @@ else
             else
                 % continue search below
             end
-
+            
         else % assign movieInfo etc
             movieInfo = allFileNames(i);
-
+            
             % load movie header and assign correctionData
-            load r3dMovieHeader
+            if exist('r3dMovieHeader.mat','file')
+                load r3dMovieHeader
+            else
+                % read header from file
+                rawMovie = dir('*.r3d');
+                r3dMovieHeader = readr3dheader(rawMovie.name);
+            end
             correctionData = [];
-
+            
             % reset type 4
             type = 3;
         end
@@ -181,8 +189,9 @@ else
         i=1;
         % search for raw movie file
         while numFiles >= i && ...
-                isempty(findstr(fileNameList{i},'.r3d')) || ...
-                ~isempty(findstr(fileNameList{i},'.log'))
+                ((isempty(findstr(fileNameList{i},'.r3d')) &&...
+                isempty(findstr(fileNameList{i},'R3D.dv'))) || ...
+                ~isempty(findstr(fileNameList{i},'.log')))
             i = i + 1;
         end
 
@@ -192,8 +201,8 @@ else
             i=1;
             % search for raw movie file
             while numFiles >= i && ...
-                    isempty(findstr(fileNameList{i},'.r3c')) || ...
-                    ~isempty(findstr(fileNameList{i},'.log'))
+                    (isempty(findstr(fileNameList{i},'.r3c')) || ...
+                    ~isempty(findstr(fileNameList{i},'.log')))
                 i = i + 1;
             end
             if i > numFiles
