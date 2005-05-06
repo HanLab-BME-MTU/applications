@@ -7,7 +7,7 @@ function label_loadslistCB(varargin);
 labelguiH = openfig('labelgui','reuse');
 imgFigureH = GetUserData(openfig('labelgui','reuse'),'currentWindow');
 if isempty(imgFigureH)
-    error('no movie loaded.');
+    errordlg('no movie loaded.');
     return;
 end;
 

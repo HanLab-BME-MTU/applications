@@ -89,7 +89,7 @@ else
     switch length(idnameList)
         case 0 %no idlist loaded. continue w/o loading
             
-             idname = '[]';
+             idname = '';
             h = warndlg('No idlist found in project data','Warning!');
             uiwait(h);
             

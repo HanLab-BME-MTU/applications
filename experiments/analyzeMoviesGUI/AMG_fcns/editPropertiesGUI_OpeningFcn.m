@@ -163,7 +163,7 @@ set(handles.edit_pixel_xy_txt,'String',pixelX);
 set(handles.edit_pixel_z_txt,'String',pixelZ);
 set(handles.edit_lensID_txt,'String',header.lensID);
 switch header.lensID
-    case {12003,10002,10612} %do like this until we can look it up somewhere
+    case {12003,10002,10612,10006} %do like this until we can look it up somewhere
         NA = 1.4;
         set(handles.edit_NA_txt,'String',1.4); 
     otherwise
