@@ -1,6 +1,6 @@
 function [H,pValue,errFlag] = armaCoefComp(armaCoef1,armaCoef2,...
     varCovMat1,varCovMat2,compOpt,significance)
-%ARMACOEFCOMP tests whether the the ARMA coefficients of 2 models are identical
+%ARMACOEFCOMP tests whether the ARMA coefficients of 2 models are different
 %
 %SYNOPSIS [H,pValue,errFlag] = armaCoefComp(armaCoef1,armaCoef2,...
 %    varCovMat1,varCovMat2,compOpt,significance)
@@ -272,14 +272,16 @@ switch compOpt
         diffM = armaParam1 - armaParam2;
 
         %calculate variance-covariance matrix of difference vector
-        diffV = [eye(combOrder) -eye(combOrder)]*[varCovMatT1 zeros(combOrder); ...
-            zeros(combOrder) varCovMatT2]*[eye(combOrder) -eye(combOrder)]';
+        diffV = varCovMatT1 + varCovMatT2;
+        %         diffV = [eye(combOrder) -eye(combOrder)]*[varCovMatT1 zeros(combOrder); ...
+        %             zeros(combOrder) varCovMatT2]*[eye(combOrder) -eye(combOrder)]';
+        %the above is the analytical simplification of this formula!!!
 
         %compute testStatistic
         testStatistic = diffM*(diffV\diffM')/combOrder;
 
-        %get the p-value of the test statistic assuming a chi2 distribution
-        pValue = 1 - chi2cdf(testStatistic,combOrder);
+        %get the p-value of the test statistic assuming a Fisher distribution
+        pValue = 1 - fcdf(testStatistic,combOrder,2000);
 
         %compare p-value to significance
         if pValue < significance %if p-value is smaller than probability of type I error
@@ -300,12 +302,10 @@ switch compOpt
 
         %calculate the test statistic
         testStatistic = diffM./sqrt(diffV);
-        %         testStatistic = diffM.^2./diffV;
 
         %get the p-value assuming that each elemenet in testStatistic
         %is normally distributed with mean zero and variance 1
         pValue = 1 - normcdf(abs(testStatistic),0,1);
-        %         pValue = 1 - chi2cdf(testStatistic,1);
 
         %compare p-value to significance
         for i=1:length(pValue)
@@ -326,17 +326,16 @@ switch compOpt
 
         %AR test
         if arOrderL ~= 0
-            
+
             %calculate variance-covariance matrix of AR difference vector
-            diffV = [eye(arOrderL) -eye(arOrderL)]*[varCovMatT1(1:arOrderL,...
-                1:arOrderL) zeros(arOrderL); zeros(arOrderL) varCovMatT2(...
-                1:arOrderL,1:arOrderL)]*[eye(arOrderL) -eye(arOrderL)]';
+            diffV = varCovMatT1(1:arOrderL,1:arOrderL) + ...
+                varCovMatT2(1:arOrderL,1:arOrderL);
 
             %compute testStatistic
             testStatistic = diffM(1:arOrderL)*(diffV\diffM(1:arOrderL)')/arOrderL;
 
-            %get the p-value of the test statistic assuming a chi2 distribution
-            pValue(1) = 1 - chi2cdf(testStatistic,arOrderL);
+            %get the p-value of the test statistic assuming a Fisher distribution
+            pValue = 1 - fcdf(testStatistic,arOrderL,2000);
 
             %compare p-value to significance
             if pValue(1) < significance %if p-value is smaller than probability of type I error
@@ -344,7 +343,7 @@ switch compOpt
             else %if p-value is larger than probability of type I error
                 H(1) = 0; %cannot reject null hypothesis
             end
-            
+
         else
             pValue(1) = NaN;
         end
@@ -353,16 +352,15 @@ switch compOpt
         if maOrderL ~= 0
 
             %calculate variance-covariance matrix of MA difference vector
-            diffV = [eye(maOrderL) -eye(maOrderL)]*[varCovMatT1(1+arOrderL:end,...
-                1+arOrderL:end) zeros(maOrderL); zeros(maOrderL) varCovMatT2(...
-                1+arOrderL:end,1+arOrderL:end)]*[eye(maOrderL) -eye(maOrderL)]';
+            diffV = varCovMatT1(1+arOrderL:end,1+arOrderL:end) + ...
+                varCovMatT2(1+arOrderL:end,1+arOrderL:end);
 
             %compute testStatistic
             testStatistic = diffM(arOrderL+1:end)*(diffV\diffM(...
                 arOrderL+1:end)')/maOrderL;
 
-            %get the p-value of the test statistic assuming a chi2 distribution
-            pValue(2) = 1 - chi2cdf(testStatistic,maOrderL);
+            %get the p-value of the test statistic assuming a Fisher distribution
+            pValue(2) = 1 - fcdf(testStatistic,maOrderL,2000);
 
             %compare p-value to significance
             if pValue(2) < significance %if p-value is smaller than probability of type I error
