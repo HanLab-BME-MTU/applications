@@ -63,31 +63,28 @@ opt.weight=weightVector;
 opt.save=0;
 opt.verbose=0;
 
-slist(1:totalNumOfFrames)=struct('amp',[],'xyz',[],'deltAmp',[],'sigma',[],'goodTime',[],'nspots',[]);
-%read statistics
-slist(1).deltAmp=idlist(1).stats.deltAmp;
-slist(1).sigma=idlist(1).stats.sigma;
+% calculate full slist
+[slist, nSpots] = idlist2slist(idlist);
 
-nspots=zeros(totalNumOfFrames,1);
-goodTime=zeros(totalNumOfFrames,1);
-CoMList=zeros(totalNumOfFrames,3);
+% since we only want slist from timeStart, with all tags as individual
+% spots in the first frame, we delete the first few frames of the slist and
+% change slist(timeStart)
 
-%build spotlist from idlist.linklist
-%find first timepoint
-t1=timeStart;
-if isempty(idlist(t1).linklist)
-    %lookfor first good frame
-    while isempty(idlist(t1).linklist);
-        t1=t1+1;
-    end
-end
+
+%find first good timepoint
+t1 = min(find(nSpots(timeStart:end))) + timeStart - 1;
+
+% remove slist-entries
+slist(1:t1) = struct('amp',[],'xyz',[],'detectQ',[],...
+    'noise',[],'trackQ',[]);
+nSpots(1:t1) = 0;
 
 %first timepoint: do spotNumber according to colors
 [sLinklist,sortIdx]=sortrows(idlist(t1).linklist,4);
 slist(t1).xyz=sLinklist(:,9:11);
 slist(t1).amp=sLinklist(:,8);
-nspots(t1)=size(idlist(t1).linklist,1);
-CoMList(t1,:)=idlist(t1).centroid;
+nSpots(t1)=size(idlist(t1).linklist,1);
+
 slist(t1).detectQ=idlist(t1).info.detectQ_Pix;
 slist(t1).trackQ=idlist(t1).info.trackQ_Pix;
 %get chi^2 back from linklist (we cannot trust the old "noise"-field)
@@ -103,46 +100,16 @@ if isfield(idlist(t1).info,'trackerMessage')
     slist(t1).trackerMessage = idlist(t1).info.trackerMessage;
 end
 
-%all other timepoints: reconstruct spot coordinates&amplitudes
-for t=t1+1:totalNumOfFrames
-    if ~isempty(idlist(t).linklist)
-        nspots(t)=max(idlist(t).linklist(:,2));
-        
-        detQ = [];
-        nse = [];
-        traQ = [];
-        for i=1:nspots(t) %readout each spot separately
-            rowIdx=find(idlist(t).linklist(:,2)==i);
-            slist(t).xyz(i,:)=idlist(t).linklist(rowIdx(1),9:11);
-            slist(t).amp(i)=sum(idlist(t).linklist(rowIdx,8));
-            CoMList(t,:)=idlist(t).centroid;
-            
-            %restore QMatrix (sorted by spot)
-            detQ = blkdiag(detQ,idlist(t).info.detectQ_Pix( (rowIdx(1)-1)*3+1:rowIdx(1)*3,(rowIdx(1)-1)*3+1:rowIdx(1)*3 ) );
-            if ~isempty(idlist(t).info.trackQ_Pix)
-                traQ = blkdiag(traQ,idlist(t).info.trackQ_Pix( (rowIdx(1)-1)*3+1:rowIdx(1)*3,(rowIdx(1)-1)*3+1:rowIdx(1)*3 ) );
-            end
-            
-            %get chi^2 back from linklist (we cannot trust the old "noise"-field)
-            if size(idlist(t).linklist,2)>11
-                nse = [nse,idlist(t).linklist(rowIdx(1),12)];
-            end
-        end
-        
-        slist(t).detectQ=detQ;
-        slist(t).noise=nse;        
-        slist(t).trackQ=traQ;
-        if isfield(idlist(t).info,'trackerMessage')
-            slist(t).trackerMessage = idlist(t).info.trackerMessage;
-        end
-        
-    else
-        %nspots stays zero
-        slist(t).amp=[];
-    end
-end
+%store statistics
+slist(1).deltAmp=idlist(1).stats.deltAmp;
+slist(1).sigma=idlist(1).stats.sigma;
 
-
+% add more data
+goodTime(find(nSpots~=0))=1;
+slist(1).goodTime=goodTime;
+slist(1).CoMList=zeros(totalNumOfFrames,3);
+slist(1).CoMList(find(goodTime),:) = cat(1,idlist.centroid);
+slist(1).nspots=nSpots;
 
 if recover
     recoverTime = recoverSlist.time;
@@ -155,14 +122,11 @@ if recover
     else
         slist(recoverTime).noise = [];
     end
-    nspots(recoverTime) = recoverSlist.nspots;
-    CoMList(recoverTime,:) = recoverSlist.CoM;
+    slist(1).nSpots(recoverTime) = recoverSlist.nSpots;
+    slist(1).CoMList(recoverTime,:) = recoverSlist.CoM;
 end
 
-goodTime(find(nspots~=0))=1;
-slist(1).goodTime=goodTime;
-slist(1).CoMList=CoMList;
-slist(1).nspots=nspots;
+
 
 %--------------run spotID-------------------
 idlistNew=spotID(slist,opt,dataProperties);

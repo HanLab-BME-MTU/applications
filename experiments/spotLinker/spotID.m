@@ -139,11 +139,15 @@ if isfield(slist(1),'sp')
 else %input came from recalcIdlist
     spots=slist;
     nspots=slist(1).nspots;
+    if isfield(slist,'deltAmp') && ~isempty(slist(1).deltAmp)
     doFindStats=0;
     deltamp=slist(1).deltAmp;
     sigma=slist(1).sigma;
     goodTime=slist(1).goodTime;
     CoMList=slist(1).CoMList;
+    else
+        doFindStats = 1;
+    end
 end
 
 %test if Dom accidentially cut slist so that first frame is a rejected one

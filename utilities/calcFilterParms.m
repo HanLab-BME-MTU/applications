@@ -10,7 +10,7 @@ function [sizeXY, sizeZ] = calcFilterParms(wvl, NA, n, gaussOrBessel, corr, pixe
 %          gaussOrBessel : (opt) whether to calculate gaussian or bessel
 %                           psf. {'gauss'} / 'bessel'
 %          corr : (opt) [corrXY, corrZ]. Correction factors. {1,1}
-%          pixelSize : (opt) [sizeX, sizeY]. If size is given, the
+%          pixelSize : (opt) [sizeX, sizeZ]. If size is given, the
 %                            psf-width is returned in pixel
 %
 % OUTPUT   siyeXY, sizeZ: Size of psf in microns or pixels

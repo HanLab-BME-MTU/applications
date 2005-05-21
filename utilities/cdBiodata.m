@@ -1,7 +1,7 @@
-function mainDir=cdBiodata(option)
+function [mainDir,oldDir]=cdBiodata(option)
 %change to biodata/home if not in a biodata-dir/home-dir already
 %
-%SYNOPSIS   mainDir=cdBiodata(option)
+%SYNOPSIS  [mainDir,oldDir]=cdBiodata(option)
 %
 %INPUT      option: 0 always cd biodata
 %                   1 if in a biodata directory: don't do anything
@@ -9,7 +9,8 @@ function mainDir=cdBiodata(option)
 %                   3 as 2, but if not in biodata directory: do not change to it
 %                   4 do not change dir at all, just return mainDir
 %
-%OUTPUT     BIODATA - directory
+%OUTPUT     mainDir BIODATA - directory
+%           oldDir  previous directory
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 mainDir=getenv('BIODATA');

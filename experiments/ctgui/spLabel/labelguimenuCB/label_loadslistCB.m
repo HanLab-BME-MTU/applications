@@ -24,7 +24,7 @@ if nargin==0|isempty(varargin{1}) %no (load-all&exist projectData)
     %try to load dataProperties: look for data file with the same name as directoryName
     fSeps = findstr(loadPath,filesep);
     projName = loadPath(fSeps(end-1)+1:fSeps(end)-1);
-    dataFile = chooseFile([projName,'-data'],[],'GUI','log');
+    dataFile = chooseFile([projName,'-data-'],[],'GUI','log');
     if ~isempty(dataFile)
         load(dataFile,'dataProperties');
         SetUserData(imgFigureH,dataProperties,1);
@@ -37,7 +37,14 @@ if nargin==0|isempty(varargin{1}) %no (load-all&exist projectData)
             SetUserData(imgFigureH,dataProperties,1);
             set(imgFigureH,'Name',dataProperties.name);
         else
+            altDataFile2 = chooseFile('dataProperties',[],'new');
+        if ~isempty(altDataFile2)
+            load(altDataFile2);
+            SetUserData(imgFigureH,dataProperties,1);
+            set(imgFigureH,'Name',dataProperties.name);
+        else
             error('no dataProperties found!')
+        end
         end
     end
     

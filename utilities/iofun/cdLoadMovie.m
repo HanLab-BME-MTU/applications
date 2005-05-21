@@ -56,9 +56,8 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %=========================
 % TEST INPUT
 %=========================
-goodTypes = {'raw';'corrected';'filtered';'latest';'corr/raw';'ask'};
-synthType = length(goodTypes) + 1; % *.r3c-movie. Still used for synth movie
-knownType = length(goodTypes) + 2; % known movieName
+goodTypes = {'raw';'corrected';'filtered';'latest';'corr/raw';'ask';'synth'};
+knownType = length(goodTypes) + 1; % known movieName
 
 if nargin < 1 || isempty(movieType) || ~(ischar(movieType) || iscell(movieType))
     error('cdLoadMovie needs a movieType as first input argument!')
@@ -74,7 +73,7 @@ else % movieType is a cell
     if length(movieType) ~= 2
         error('if known movieName: Please supply a cell array with {movieName, movieType}')
     end
-    movieType = knownType; % assign everything later
+    type = knownType; % assign everything later
 end
 
 if nargin < 2 || isempty(dirName)
@@ -209,10 +208,10 @@ else
                 error('no movie found!')
             else
                 % set everything for synth movie
-                movieInfo = allFileNames{i};
+                movieInfo = allFileNames(i);
                 load r3dMovieHeader
                 correctionData = [];
-                type = synthType;
+                type = 7;
             end
         else
 
@@ -232,7 +231,7 @@ else
                 % reset type 4
                 type = 1;
 
-            elseif type ~= synthType
+            elseif type ~= 7
 
                 % load movie header and correctionData
                 load r3dMovieHeader
@@ -252,7 +251,7 @@ else
         movieInfo = dir(movieType{1}); % store all info for part-loading
         
         % load whatever necessary depending on movieData
-        type = find(strcmpi([goodTypes(1:3);{'synth'}]));
+        type = find(strcmpi([goodTypes],movieType{2}));
         
         if isempty(type)
             error('unrecognized movie type!')
@@ -268,8 +267,7 @@ else
             case 3 % filtered
                 load r3dMovieHeader
                 correctionData = [];
-            case 4 % synthetic - don't forget to adjust the type
-                type = synthType;
+            case 7 % synthetic - don't forget to adjust the type
                 load r3dMovieHeader
                 correctionData = [];
         end
@@ -500,7 +498,7 @@ switch type
         % readmat
         movie = readmat(loadStruct.movieName,loadList);
 
-    case synthType
+    case 7
         % readmat
         movie = readmat(loadStruct.movieName,loadList);
 end
