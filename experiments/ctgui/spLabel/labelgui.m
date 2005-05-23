@@ -3,12 +3,12 @@ function varargout = labelgui(varargin)
 %    FIG = LABELGUI launch labelgui GUI.
 %    LABELGUI('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 01-May-2005 16:50:28
+% Last Modified by GUIDE v2.5 23-May-2005 14:27:18
 
 if nargin == 0  % LAUNCH GUI
     
     fig = openfig(mfilename,'reuse');
-    
+        
     % Use system color scheme for figure:
     set(fig,'Color',get(0,'defaultUicontrolBackgroundColor'));
     
