@@ -523,37 +523,47 @@ for iProject = 1:size(listOfDataFiles,1)
     % 2) remove "_corr" from the -data- file
     % 3) update projProperties.datafileName in the -data- file 
     
-    % remove movie, if there's a r3d-movie and a correctionData - file
-    if ~isempty(dir([currentDir, '*.r3d'])) && ~isempty(dir([currentDir,'correctionData.mat']))
+    % remove movie, if there's a r3d-movie and a correctionData - file, and
+    % if nothing is cropped
+    % if no corrected movie has been deleted, there is nothing to do here
+    if ~isempty(dir([currentDir, '*.r3d'])) &&...
+            ~isempty(dir([currentDir,'correctionData.mat'])) &&...
+            isempty(dir([currentDir,'*crop*']))
+        
         delete([currentDir, '*.r3c']);
+
+
+        % find new name of data/log file
+        fileNames = chooseFile('-data-',currentDir,'all');
+        % regexprep replaces a regular expression in a string
+        newFileNames = regexprep(fileNames,'_corr','');
+
+        % find index of data file
+        for i=size(fileNames,1):-1:1
+            dataFileIdx(i) = isempty(findstr(fileNames{i},'log'));
+        end
+        dataFileIdx = find(dataFileIdx);
+
+        % update projProperties.datafileName
+        for i=1:length(dataFileIdx)
+            % load projProperties
+            load([currentDir fileNames{dataFileIdx(i)}],'projProperties');
+
+            projProperties.datafileName = newFileNames{dataFileIdx(i)};
+
+            save([currentDir,fileNames{dataFileIdx(i)}],'projProperties','-append');
+        end
+
+        % now rename the files if necessary
+        for i=1:size(fileNames,1)
+            if  ~strcmp(fileNames{i},newFileNames{i})
+                movefile([currentDir fileNames{i}],[currentDir newFileNames{i}]);
+            end
+        end
+
     end
-    
-    % find new name of data/log file
-    fileNames = chooseFile('-data-',currentDir,'all');
-    % regexprep replaces a regular expression in a string
-    newFileNames = regexprep(fileNames,'_corr','');
-    
-    % find index of data file
-    for i=size(fileNames,1):-1:1
-        dataFileIdx(i) = isempty(findstr(fileNames{i},'log'));
-    end
-    dataFileIdx = find(dataFileIdx);
-    
-    % update projProperties.datafileName
-    for i=1:length(dataFileIdx)
-        % load projProperties
-        load([currentDir fileNames{dataFileIdx(i)}],'projProperties');
-        
-        projProperties.datafileName = newFileNames{dataFileIdx(i)};
-        
-        save([currentDir,fileNames{dataFileIdx(i)}],'projProperties','-append');
-    end
-    
-    % now rename the files
-    for i=1:size(fileNames,1)
-        movefile([currentDir fileNames{i}],[currentDir newFileNames{i}]);
-    end
-    
+
+
     end
     
 end % for iProject = 1:size(listOfDataFiles,1)
