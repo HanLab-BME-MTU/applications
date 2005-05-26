@@ -1,13 +1,20 @@
-function [cord, mnp] = spotfind(fImg,dataProperties)
+function [cord, mnp] = spotfind(fImg,dataProperties,verbose)
 %SPOTFIND locates fluorescent tags in 3D data
 %
 % SYNOPSIS cord = spotfind(img)
 %
 % INPUT img   : stack time series
+%       dataProperties: structure with movie properties
+%       verbose : (optional) If 1 (default), waitbar is displayed
 %
-% OUTPUT cord : center coordinates 
+% OUTPUT cord : center coordinates
 
 % c: 5/3/01	dT
+
+% optional input arguments
+if nargin < 3 || isempty(verbose)
+    verbose = 1;
+end
 
 %CONST DEFINITIONS
 %global PATCHSIZE;
@@ -16,12 +23,15 @@ FILTERSIZE = dataProperties.FILTERPRM(4:6);
 PATCHSIZE = FILTERSIZE;
 
 % init vars
-d=floor(PATCHSIZE/2); 
+d=floor(PATCHSIZE/2);
 inTestD = floor(FILTERSIZE/2); %number of pixels a spot has to be away from the border to be accepted
 
 %wb_hdl=waitbar(0,'Finding spots...');
 tsteps=size(fImg,5);
-h= mywaitbar(0,[],tsteps,'Finding spots...');
+
+if verbose
+    h= mywaitbar(0,[],tsteps,'Finding spots...');
+end
 
 %loop through all time points
 for t=1:tsteps
@@ -38,10 +48,10 @@ for t=1:tsteps
 
     %norm to 0..1
     pt=100*pt/max(pt(:));
-    
+
     %find all local max
     b=loc_max3Df(fImg(:,:,:,1,t),[3 3 3]);
-    
+
     [FXX,FXY,FXZ,FYX,FYY,FYZ,FZX,FZY,FZZ]=hessian(pt); % hessian matrix of full intensity dist.
 
     %loop through all local maxs
@@ -49,15 +59,15 @@ for t=1:tsteps
         %ignore pixels close to border
         if(all((b(i,:)-inTestD)>0) & all((b(i,:)+inTestD)...
                 <=[size(pt,1) size(pt,2) size(pt,3)]))
-            
+
             %cut pixels belonging to this local maximum
             patch=pt(b(i,1)-d(1):b(i,1)+d(1),b(i,2)-d(2):b(i,2)+d(2),b(i,3)-d(3):b(i,3)+d(3));
-            
+
             %curvature filter
             %k(ct)=curvature3D(patch,[d d d]+1);
             k(ct)=det([FXX(b(i,1),b(i,2),b(i,3)) FXY(b(i,1),b(i,2),b(i,3)) FXZ(b(i,1),b(i,2),b(i,3));...
-                            FYX(b(i,1),b(i,2),b(i,3)) FYY(b(i,1),b(i,2),b(i,3)) FYZ(b(i,1),b(i,2),b(i,3));...
-                            FZX(b(i,1),b(i,2),b(i,3)) FZY(b(i,1),b(i,2),b(i,3)) FZZ(b(i,1),b(i,2),b(i,3))]);
+                FYX(b(i,1),b(i,2),b(i,3)) FYY(b(i,1),b(i,2),b(i,3)) FYZ(b(i,1),b(i,2),b(i,3));...
+                FZX(b(i,1),b(i,2),b(i,3)) FZY(b(i,1),b(i,2),b(i,3)) FZZ(b(i,1),b(i,2),b(i,3))]);
 
             % only convex shapes allowed
             if k(ct) < 0
@@ -68,7 +78,7 @@ for t=1:tsteps
             end;
         end;
     end;
-    
+
     %cumulative histogram spot separation
     %run only if more than 2 max found
     if length(find(mnp(:,t))) > 2
@@ -89,15 +99,18 @@ for t=1:tsteps
             spots(t).sp(i).cord=lst(i,:);
             spots(t).sp(i).mnint=mnplist(i);
             % include curvature
-                    %spots(t).sp(i).k=k(i);
+            %spots(t).sp(i).k=k(i);
         end;
     else
         spots(t).sp=[];
     end
     spots(t).mnint=mn(t);
-    
-    mywaitbar(t/tsteps,h,tsteps);
-    %waitbar(t/tsteps,wb_hdl);
+
+    if verbose
+        mywaitbar(t/tsteps,h,tsteps);
+    end
 end;
 cord=spots;
-close(h);
+if verbose
+    close(h);
+end
