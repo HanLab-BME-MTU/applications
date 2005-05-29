@@ -38,6 +38,7 @@ for i=1:(nspots-1)
         tvalue=distance/sigD(i,j);
         %keep only coords that pass as nonzero distance
         if tvalue<tinv(1-(T_TEST_PROB/2),1);
+            disp(sprintf('removed spot in testdistance.m'))
             % spot i from multi check, remove it
             if cord.sp(i).mult    
                 rElem=i;

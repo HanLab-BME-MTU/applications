@@ -32,6 +32,7 @@ cordOut(1:tsteps) = struct('sp',[],'mnint',[],'statistics',[],'parms',[]);
 
 for t=1:tsteps
     Q=[];
+    qAmp = [];
     chi=[];
     snr=[];
     ct=1;
@@ -93,6 +94,7 @@ for t=1:tsteps
                     statistics.chi=[];
                     statistics.Qxx=[];
                     statistics.snr=[];
+                    statistics.qAmp=[];
                 end;
                 %define new cordLst
                 tempidx=1:size(cordList,1);
@@ -102,6 +104,7 @@ for t=1:tsteps
 
                 % add Q of spot(s)
                 Q=blkdiag(Q,statistics.Qxx);
+                qAmp = blkdiag(qAmp,statistics.qAmp);
                 snr=[snr statistics.snr];
 
                 %insert coordinates
@@ -129,6 +132,9 @@ for t=1:tsteps
             cordOut(t).mnint=cord(t).mnint;
             if ~isempty(Q)
                 cordOut(t) = testdistance(cordOut(t),Q,chi,snr,dataProperties);
+                % just add qAmp for the moment; don't check for removed
+                % spots
+                cordOut(t).statistics.qAmp = qAmp;
             else
                 % the if and else here  is only because the nspots>=MAXSPOTS
                 cordOut(t).parms=[];

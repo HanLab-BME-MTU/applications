@@ -145,9 +145,11 @@ end %while redoN
 
 %index to postion values
 posIdx=sort([1:4:(4*nsp) 2:4:(4*nsp) 3:4:(4*nsp)]);
+ampIdx=[4:4:(4*(nsp))];
 
 %read new Qcord, ncordList
 Q=QAll(posIdx,posIdx);
+qAmp = QAll(ampIdx,ampIdx)
 ncordList=reshape(parms(posIdx),3,nsp)';
 
 %sprintf('%05.3f \n',parms)
@@ -226,6 +228,7 @@ if nsp>0 %do N+1-fit only if there are any spots left!
     
     %read Q, coordinates and amplitudes
     Q=QAll(posIdx,posIdx);
+    qAmp = QAll(ampIdx,ampIdx);
     ncordList=reshape(parms(posIdx),3,nsp+nCt-1)';
     ampList=parms(ampIdx);
     
@@ -245,6 +248,7 @@ if nsp>0 %do N+1-fit only if there are any spots left!
     
     
     statistics.Qxx=Q;
+    statistics.qAmp = qAmp;
     numDist=nsp+nCt-1;
     %shift coords back
     ncordList=ncordList+ones(size(ncordList,1),1)*shiftC;
