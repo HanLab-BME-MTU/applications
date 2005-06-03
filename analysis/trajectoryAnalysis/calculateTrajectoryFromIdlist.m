@@ -18,7 +18,7 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked] 
 %                                     form of nanList (converted with convertTrajectoryData)
 %                           .oldIdlist: if specified, the program
 %                                       calculates snrMax
-%                           .realTime : [{0}/1] whether to use real time or
+%                           .realTime : [0/{1}] whether to use real time or
 %                                       rounded time
 %
 %OUTPUT   data           : structure containing trajectory data
