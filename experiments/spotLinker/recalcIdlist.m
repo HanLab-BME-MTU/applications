@@ -105,10 +105,11 @@ slist(1).deltAmp=idlist(1).stats.deltAmp;
 slist(1).sigma=idlist(1).stats.sigma;
 
 % add more data
+goodTime = zeros(length(slist),1);
 goodTime(find(nSpots~=0))=1;
 slist(1).goodTime=goodTime;
 slist(1).CoMList=zeros(totalNumOfFrames,3);
-slist(1).CoMList(find(goodTime),:) = cat(1,idlist.centroid);
+slist(1).CoMList(find(goodTime),:) = cat(1,idlist(find(goodTime)).centroid);
 slist(1).nspots=nSpots;
 
 if recover

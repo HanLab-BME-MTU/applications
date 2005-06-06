@@ -163,7 +163,7 @@ switch what2del
                     %nse = [nse;idlist(curr_time).info.noise(i)];
                 end
                 if ~isempty(idlist(t).info.trackQ_Pix) 
-                    for j=1:nTags
+                    for j=1:size(idlist(t).linklist,1)
                         i = sortIdx(j);
                         traQ = blkdiag(traQ,idlist(t).info.trackQ_Pix( (i-1)*3+1:i*3,(i-1)*3+1:i*3 ) );
                     end
