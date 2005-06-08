@@ -76,7 +76,7 @@ t1 = min(find(nSpots(timeStart:end))) + timeStart - 1;
 
 % remove slist-entries
 slist(1:t1) = struct('amp',[],'xyz',[],'detectQ',[],...
-    'noise',[],'trackQ',[]);
+    'noise',[],'trackQ',[],'trackerMessage',[]);
 nSpots(1:t1) = 0;
 
 %first timepoint: do spotNumber according to colors
