@@ -33,6 +33,12 @@ if verbose
     h= mywaitbar(0,[],tsteps,'Finding spots...');
 end
 
+%preassign mnp. provide for 100 points
+mnpRows = 100;
+mnpRowIncrement = 100;
+mnp = zeros(mnpRows,tsteps);
+
+
 %loop through all time points
 for t=1:tsteps
 
@@ -71,6 +77,17 @@ for t=1:tsteps
 
             % only convex shapes allowed
             if k(ct) < 0
+                if ct > mnpRows
+                    % reassign mnp-matrix
+                    mnpTmp = mnp;
+                    newMnpRows = mnpRows + mnpIncrement;
+                    mnp = zeros(newMnpRows,tsteps);
+                    mnp(1:mnpRows,:) = mnpTmp;
+                    mnpRows = newMnpRows;
+                    
+                    clear mnpTmp newMnpRows
+                end
+                
                 mnp(ct,t)=-k(ct)*mean(patch(:));
                 centp(ct,:)=centroid3D(patch);
                 lm(ct,:)=b(i,:);

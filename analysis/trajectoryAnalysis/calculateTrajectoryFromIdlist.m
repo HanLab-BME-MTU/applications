@@ -340,7 +340,7 @@ data.timePoints = timePoints;
 data.info       = info;
 data.info.tags  = tags;
 
-if nanList
+if nanList && length(timePoints)>0
     data = convertTrajectoryData(data);
 end
     

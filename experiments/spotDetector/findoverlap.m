@@ -18,6 +18,10 @@ end
 %CONST DEFINITIONS
 MAXSPOTS=dataProperties.MAXSPOTS;
 
+% turn off singularMatrix warning
+warningState = warning;
+warning off MATLAB:nearlySingularMatrix
+
 maxNumSpots = 99999; % maximum number of spots that can be fitted simultaneously
 maxNumCoords = 99999; % maximum number of coordinates that can be checked by discernspots
 tsteps=size(data,5);
@@ -156,6 +160,8 @@ for t=1:tsteps
         mywaitbar(t/tsteps,h,tsteps);
     end
 end; % loop time
+
+warning(warningState)
 
 if verbose
     close(h);

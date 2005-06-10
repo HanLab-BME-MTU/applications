@@ -149,7 +149,7 @@ ampIdx=[4:4:(4*(nsp))];
 
 %read new Qcord, ncordList
 Q=QAll(posIdx,posIdx);
-qAmp = QAll(ampIdx,ampIdx)
+qAmp = QAll(ampIdx,ampIdx);
 ncordList=reshape(parms(posIdx),3,nsp)';
 
 %sprintf('%05.3f \n',parms)
