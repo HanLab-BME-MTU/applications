@@ -80,7 +80,7 @@ for t=1:tsteps
                 if ct > mnpRows
                     % reassign mnp-matrix
                     mnpTmp = mnp;
-                    newMnpRows = mnpRows + mnpIncrement;
+                    newMnpRows = mnpRows + mnpRowIncrement;
                     mnp = zeros(newMnpRows,tsteps);
                     mnp(1:mnpRows,:) = mnpTmp;
                     mnpRows = newMnpRows;
@@ -105,6 +105,14 @@ for t=1:tsteps
     else
         cps = find(mnp(:,t)>100); %as in cutcumhist: spottiness has to be at least 100
     end
+    
+%     % attempt to take a fixed number of tags - one test movie, bad results    
+%     [mnpList,sortIdx] = sort(mnp(:,t),1,'descend');
+%     disp(sprintf('%i - %i - %1.2f %1.2f %1.2f %1.2f %1.2f', t,length(cps),mnpList(1:5)));
+%     cps = sortIdx(1:5);
+%     cps(~find(mnp(cps,t))) = [];
+    
+    
     if cps~=0
         lst=[lm(cps,2) lm(cps,1) lm(cps,3)]-ones(length(cps),1)*(d+1)+centp(cps,:);
         mnplist=mnp(cps,t);

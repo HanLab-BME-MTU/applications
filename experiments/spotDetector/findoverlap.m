@@ -11,7 +11,7 @@ function cordOut=findoverlap(data,cord,dataProperties,verbose)
 % c: 18/6/01	dT
 
 % optional input
-if nargin < 3 || isempty(verbose)
+if nargin < 4 || isempty(verbose)
     verbose = 1;
 end
 
