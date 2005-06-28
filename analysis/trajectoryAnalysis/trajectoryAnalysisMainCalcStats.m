@@ -256,13 +256,17 @@ if ~isempty(growthIdx)
     invGrowthTimeMean = 1/mean(growthGroupsDeltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
     invGrowthTimeStd = (std(growthGroupsDeltaT)/sqrt(size(growthGroups,1)))*invGrowthTimeMean^2;
-    growthTimeTotal = sum(growthGroupsDeltaT);
+    
+    % for total growth time: use real time for consistency
+    %growthTimeTotal = sum(growthGroupsDeltaT);
     
     %distance - again, use groups. unfortunately, we need the loop
     groupDist = zeros(size(growthGroups));
+    growthTimeTotal = 0;
     for i = 1:size(growthGroups,1)
         groupDist(i,1) = sum(dataListG(growthGroups(i,1):growthGroups(i,2),9));
         groupDist(i,2) = sqrt(sum(dataListG(growthGroups(i,1):growthGroups(i,2),10)));
+        growthTimeTotal = growthTimeTotal + sum(dataListG(growthGroups(i,1):growthGroups(i,2),7));
     end
     [growthDistanceMean, growthDistanceStd] = weightedStats(groupDist(:,1),groupDist(:,2),'s');
     growthDistanceTotal = sum(groupDist(:,1));
@@ -322,13 +326,17 @@ if ~isempty(shrinkageIdx)
     invShrinkageTimeMean = 1/mean(shrinkageGroupsDeltaT);
     %std from gauss (sigma = sqrt((df/dm*sigmaM)^2))
     invShrinkageTimeStd = (std(shrinkageGroupsDeltaT)/sqrt(size(shrinkageGroups,1)))*invShrinkageTimeMean^2;
-    shrinkageTimeTotal = sum(shrinkageGroupsDeltaT);
+    
+    % for total shrinkage time: use real time for consistency
+    %shrinkageTimeTotal = sum(shrinkageGroupsDeltaT);
     
     %distance - again, use groups. unfortunately, we need the loop
     groupDist = zeros(size(shrinkageGroups));
+    shrinkageTimeTotal = 0;
     for i = 1:size(shrinkageGroups,1)
         groupDist(i,1) = sum(dataListG(shrinkageGroups(i,1):shrinkageGroups(i,2),9));
         groupDist(i,2) = sqrt(sum(dataListG(shrinkageGroups(i,1):shrinkageGroups(i,2),10)));
+        shrinkageTimeTotal = shrinkageTimeTotal + sum(dataListG(shrinkageGroups(i,1):shrinkageGroups(i,2),7));
     end
     [shrinkageDistanceMean, shrinkageDistanceStd] = weightedStats(groupDist(:,1),groupDist(:,2),'s');
     shrinkageDistanceTotal = sum(groupDist(:,1));

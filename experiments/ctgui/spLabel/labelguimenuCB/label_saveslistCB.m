@@ -61,7 +61,8 @@ else %normal save
         save([dataFile.path,dataFile.name],'lastResult','-append');
         
         %save outside dataFile
-        save([dataFile.path,idSaveName,nowString],idname);
+        fname = [idSaveName,nowString];
+        save([dataFile.path,fname],idname);
         
     else
         if ~strcmp(idname(end-1:end),'_L')
@@ -81,6 +82,7 @@ else %normal save
         save([pathName fname],idname_L);
     end
 end
+disp(sprintf('%s saved',fname));
 
 
 

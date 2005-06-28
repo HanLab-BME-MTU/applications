@@ -24,7 +24,7 @@ function [sizeXY, sizeZ] = calcFilterParms(wvl, NA, n, gaussOrBessel, corr, pixe
 
 def_wvl = 0.525;
 def_NA  = 1.4;
-def_n   = 1.51;
+def_n   = 1.518;
 def_gob = [0.21, 0.66];
 def_corr= [1,1];
 def_pix = [1,1];
@@ -44,8 +44,11 @@ if nargin < 4 || isempty(gaussOrBessel)
 else
     switch lower(gaussOrBessel)
         case 'gauss'
+            % multiplication factor for Gauss fitted to Bessel (see Dom's
+            % first JM paper)
             gob = [0.21, 0.66];
         case 'bessel'
+            % multiplication factor for Bessel (see any microscopy book)
             gob = [0.61, 2];
         otherwise
             error('non recognized option for ''gaussOrBessel''')

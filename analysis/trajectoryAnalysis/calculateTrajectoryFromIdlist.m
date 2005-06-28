@@ -1,15 +1,17 @@
-function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
+function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked,rayleighLimit] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
 %CALCULATETRAJECTORYFORMIDLIST calculates distance trajectories from an idlist
 %
-%SYNOPSIS [data, orientation, positions] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
+%SYNOPSIS [data, orientation, positions, sigmaZero,dataProperties,...
+%           snrMax,isTracked,rayleighLimit] = ...
+%           calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
 %
 %INPUT    idlist         : any type of idlist
 %         dataProperties : the corresponding data properties
 %         tag1,2         : number (1:nTag) of first and second tag, OR string from labelcolor
 %   if the first four arguments are omitted, the user is asked for input
-%         opt            : optional options structure 
+%         opt            : optional options structure
 %                           .info :   struct that should be returned in the
-%                                     output field info. 
+%                                     output field info.
 %                           .calc2d : [{0}/1/2] depending on whether the
 %                                     normal 3D-data or the maxProjection
 %                                     or the in-focus-slice data should be
@@ -33,7 +35,7 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked] 
 %                                       calculate the trajectory {'tag1';'tag2'}
 %
 %         orientation    : 1-by-n matrix of angles [rad] from the xy-plane
-%       
+%
 %         positions      : 1-by-2 struct with fields
 %           .coordinates : ntp-by-3 array of coordinates. Deleted frames
 %                           are replaced by NaNs
@@ -44,8 +46,10 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked] 
 %         dataProperties : dataProperties
 %
 %         snrMax         : SNR of the higher intensity tag
-%          
+%
 %         isTracked      : whether the frame has been tracked or not
+%
+%         rayleighLimit  : Rayleigh limit calculated from the orientation
 %
 %
 %REMARKS  fusions will not be considered as valid timepoints
@@ -59,28 +63,28 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked] 
 
 %=========================
 %check nargin (we do not really check for correct idlist, dataProperties)
-if nargin < 2 || isempty(idlist) || isempty(dataProperties) 
-     [idlist,dataProperties] = loadProjectData;
-     
- end
- 
- if nargin < 4 || isempty(tag1) || isempty(tag2)
-        
-        % get tags
-        tagList = idlist(1).stats.labelcolor;
-        
-        h = helpdlg('Please choose first tag','');
-        uiwait(h);
-        tagNum1 = chooseFileGUI(tagList);
-        tag1 = tagList{tagNum1};
-        tagList(tagNum1)=[];
-        
-        h = helpdlg('Please choose second tag','');
-        uiwait(h);
-        tagNum2 = chooseFileGUI(tagList);
-        tag2 = tagList{tagNum2};
-        
-        clear tagNum1 tagNum2 tagList
+if nargin < 2 || isempty(idlist) || isempty(dataProperties)
+    [idlist,dataProperties] = loadProjectData;
+
+end
+
+if nargin < 4 || isempty(tag1) || isempty(tag2)
+
+    % get tags
+    tagList = idlist(1).stats.labelcolor;
+
+    h = helpdlg('Please choose first tag','');
+    uiwait(h);
+    tagNum1 = chooseFileGUI(tagList);
+    tag1 = tagList{tagNum1};
+    tagList(tagNum1)=[];
+
+    h = helpdlg('Please choose second tag','');
+    uiwait(h);
+    tagNum2 = chooseFileGUI(tagList);
+    tag2 = tagList{tagNum2};
+
+    clear tagNum1 tagNum2 tagList
 end
 %=========================
 
@@ -163,7 +167,7 @@ end
 if isempty(idlist)
     error('can not calculate trajectory: idlist is empty')
 end
-        
+
 %=========================
 %---END CALC 2D-CASE IF SELECTED
 %=========================
@@ -205,9 +209,9 @@ for t = timePoints'
         % tracked frame. Add covariance of source and target
         sourceT = str2double(idlist(t).info.trackerMessage.source);
         covariance1(:,:,t) = pix2muMat*(idlist(t).info.trackQ_Pix(tagIdxList1,tagIdxList1)+...
-            idlist(sourceT).info.detectQ_Pix(tagIdxList1,tagIdxList1))*pix2muMat;  
+            idlist(sourceT).info.detectQ_Pix(tagIdxList1,tagIdxList1))*pix2muMat;
         covariance2(:,:,t) = pix2muMat*(idlist(t).info.trackQ_Pix(tagIdxList2,tagIdxList2)+...
-            idlist(sourceT).info.detectQ_Pix(tagIdxList2,tagIdxList2))*pix2muMat; 
+            idlist(sourceT).info.detectQ_Pix(tagIdxList2,tagIdxList2))*pix2muMat;
         isT(t) = 1;
     else
         % only detected
@@ -215,9 +219,9 @@ for t = timePoints'
         covariance2(:,:,t) = pix2muMat*(idlist(t).info.detectQ_Pix(tagIdxList2,tagIdxList2))*pix2muMat;
         isT(t) = 0;
     end
-    
-    
-    
+
+
+
     if fillSigma
         sigma0(t,:) = idlist(t).info.noise([tag1,tag2]);
     end
@@ -252,9 +256,9 @@ if ~isempty(oldIdlist)
     % decide for a tag
     meanInt = nanmean(intData);
     higherInt = 1 + (meanInt(1) < meanInt(2));
-    
+
     snrMax = intData(timePoints,higherInt)./sqrt(sigma0(:,higherInt));
-    
+
 else
     snrMax = [];
 end
@@ -298,17 +302,17 @@ timePoints(badTpIdx) = [];
 %=========================
 
 if realTime
-timeAll = dataProperties.frameTime;
-time = mean(timeAll(timePoints,:),2);
-%timeSigma is one fourth the time between (lastCol - firstCol of frameTime)
-timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/4;
+    timeAll = dataProperties.frameTime;
+    time = mean(timeAll(timePoints,:),2);
+    %timeSigma is one fourth the time between (lastCol - firstCol of frameTime)
+    timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/4;
 
 else
     % start at t=1*rounded timeLapse
     avgTimeLapse = round(dataProperties.timeLapse);
     time = (timePoints) * avgTimeLapse;
     timeSigma = zeros(size(time));
-    
+
     if abs(dataProperties.timeLapse - avgTimeLapse) > 0.11
         warning('CALCULATETRAJECTORYFROMIDLIST:wrongTime',...
             'Possible source of error: timeLapse %f used instead of %f\n in %s',avgTimeLapse,dataProperties.timeLapse,dataProperties.name);
@@ -322,11 +326,19 @@ end
 
 
 %=========================
-% ORIENTATION   
+% ORIENTATION & RL
 %=========================
 if nargout > 1
     %orientation: [-pi/2...pi/2]. calculate from vN*[0 0 1]
     orientation = pi/2-acos(normedVectors(:,3));
+
+    % calculate Rayleigh limit only if there is an orientation
+    if nargout > 7
+        [ralXY, ralZ] = calcFilterParms([],[],[],'bessel');
+
+        rayleighLimit = sqrt(1./ (cos(orientation).^2 / ralXY^2 + ...
+            sin(orientation).^2 / ralZ^2) );
+    end
 else
     orientation = [];
 end
@@ -343,6 +355,6 @@ data.info.tags  = tags;
 if nanList && length(timePoints)>0
     data = convertTrajectoryData(data);
 end
-    
+
 
 %---END ASSIGN OUTPUT

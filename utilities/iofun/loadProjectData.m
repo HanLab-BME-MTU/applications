@@ -7,7 +7,7 @@ function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadPro
 %                       GUI mode
 %          pathName  (opt) name of path for data file. If fileName, but no
 %                       pathName is specified, currentDir is used
-%          idname    (opt) name of idlist to be loaded.
+%          idname    (opt) name of idlist to be loaded. Can be "last"
 %
 % OUTPUT   idlist           user selected idlist if several possible
 %          dataProperties   
@@ -107,7 +107,14 @@ idnameList = dataFieldNames(idnameListIdx);
 
 idIdx = [];
 if ~isempty(idname)
-    idIdx = find(strcmp(idnameList,idname));
+    if strcmp(idname,'last')
+        idIdx = find(strcmp(idnameList,data.lastResult));
+        if ~isempty(idIdx)
+        idname = idnameList{idIdx};
+        end
+    else
+        idIdx = find(strcmp(idnameList,idname));
+    end
 end
 
 if isempty(idIdx)
@@ -144,7 +151,7 @@ if isempty(idname)
         error('file not found')
     end
 else
-    idlist = eval(['data.' idname ';']);
+    idlist = data.(idname);
 end
 
 

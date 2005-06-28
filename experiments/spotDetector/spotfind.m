@@ -21,6 +21,7 @@ end
 %PATCHSIZE=dataProperties.PATCHSIZE;
 FILTERSIZE = dataProperties.FILTERPRM(4:6);
 PATCHSIZE = FILTERSIZE;
+DEBUG = 0;
 
 % init vars
 d=floor(PATCHSIZE/2);
@@ -38,6 +39,9 @@ mnpRows = 100;
 mnpRowIncrement = 100;
 mnp = zeros(mnpRows,tsteps);
 
+if DEBUG
+    figure
+end
 
 %loop through all time points
 for t=1:tsteps
@@ -106,11 +110,15 @@ for t=1:tsteps
         cps = find(mnp(:,t)>100); %as in cutcumhist: spottiness has to be at least 100
     end
     
+    if DEBUG
 %     % attempt to take a fixed number of tags - one test movie, bad results    
-%     [mnpList,sortIdx] = sort(mnp(:,t),1,'descend');
-%     disp(sprintf('%i - %i - %1.2f %1.2f %1.2f %1.2f %1.2f', t,length(cps),mnpList(1:5)));
+     [mnpList,sortIdx] = sort(mnp(:,t),1,'descend');
+     hold on,plot(mnpList(find(mnpList)),'+')
+     plot(sort(mnp(cps,t),1,'descend'),'+r')
+%      disp(sprintf('%i - %i - %1.2f %1.2f %1.2f %1.2f %1.2f', t,length(cps),mnpList(1:5)));
 %     cps = sortIdx(1:5);
 %     cps(~find(mnp(cps,t))) = [];
+    end
     
     
     if cps~=0
