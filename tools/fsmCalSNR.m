@@ -1,9 +1,9 @@
-function [avgSNR,varargout] = calSNR(img,bitDepth,sDN,mask,fSize,roi,nGridY,nGridX)
+function [avgSNR,varargout] = fsmCalSNR(img,bitDepth,sDN,mask,fSize,roi,nGridY,nGridX)
 %calSNR: Calculate the signal to noise ratio of an image.
 %
 % SYNOPSIS:
-%    avgSNR = calSNR(img,bitDepth,sDN,mask);
-%    [avgSNR,snr,y,x] = calSNR(img,bitDepth,sDN,mask,fSize,roi,nGridY,nGridX);
+%    avgSNR = fsmCalSNR(img,bitDepth,sDN,mask);
+%    [avgSNR,snr,y,x] = fsmCalSNR(img,bitDepth,sDN,mask,fSize,roi,nGridY,nGridX);
 %
 % INPUT:
 %    img      : The input image.
