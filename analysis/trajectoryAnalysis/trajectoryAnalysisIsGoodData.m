@@ -109,7 +109,7 @@ for iRun = 1:length(run)
             error(errorMsg)
         end
         
-        if any(diff(run(iRun).data(iData).time)<=0) | any(diff(run(iRun).data(iData).timePoints)<=0)
+        if any(diff(run(iRun).data(iData).time,1,1)<=0) | any(diff(run(iRun).data(iData).timePoints,1,1)<=0)
             errorMsg = sprintf('run(%i).data(%i).time or .timePoints is not strictly increasing!',iRun,iData);
             error(errorMsg)
         end
