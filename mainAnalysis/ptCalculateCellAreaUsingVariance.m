@@ -146,6 +146,12 @@ end
 numberOfCells = diff (uniqClusterIndex); 
 
 % Calculate cluster properties
+clusterArea = [];
+clusterPerimeter = [];
+clusterPerimeterElements = [];
+totalArea = [];
+convexArea = [];
+Solidity = [];
 for iCount = 1 : length (uniqClusterNr)
    % Get the area of the next cluster in the labeled image
    cluster = edgeImageLabeled == uniqClusterNr (iCount);
@@ -170,15 +176,15 @@ for iCount = 1 : length (uniqClusterNr)
    % Calculate ratio area/convex_hull_area for all cells and clusters
    labelCluster = bwlabel (cluster);
    regionProps = regionprops (labelCluster, 'Area', 'ConvexArea');
-   area(iCount) = regionProps(1).Area;
+   totalArea(iCount) = regionProps(1).Area;
    convexArea(iCount) = regionProps(1).ConvexArea;
-   Solidity(iCount) = area(iCount) / convexArea(iCount);
+   Solidity(iCount) = totalArea(iCount) / convexArea(iCount);
 end
    
 % % Calculate ratio area/convex_hull_area for all cells and clusters
 % regionProps = regionprops (edgeImageLabeled, 'Area', 'ConvexArea');
 % for jCount = 1 : size (regionProps, 1)
-%    area(jCount) = regionProps(jCount).Area;
+%    totalArea(jCount) = regionProps(jCount).Area;
 %    convexArea(jCount) = regionProps(jCount).ConvexArea;
 %    Solidity(jCount) = area(jCount) / convexArea(jCount);
 % end
@@ -189,8 +195,8 @@ if exist('Solidity') & length(Solidity) > 0
 else
    avgSolidity = 0;
 end
-if exist('area') & length(area)
-   avgArea = sum(area) / length(area);
+if exist('totalArea') & length(totalArea)
+   avgArea = sum(totalArea) / length(totalArea);
 else
    avgArea = 0;
 end
@@ -211,12 +217,16 @@ frameProps (1,3) = avgSolidity;
 clusterProps = zeros (length (uniqClusterNr), 5);
 clusterProps (:,1) = uniqClusterNr (:);
 clusterProps (:,2) = numberOfCells (:);
-clusterProps (:,3) = clusterArea (:);
+classclusterProps (:,3) = clusterArea (:);
 clusterProps (:,4) = clusterPerimeter (:);
 clusterProps (:,5) = clusterPerimeterElements (:);
     
 % One row of cellProps gives all information for one set of coordinates
-cellProps = zeros (length (coord), 3);
-cellProps (:,1) = coord(:,1);
-cellProps (:,2) = coord(:,2);
-cellProps (:,3) = clusterNr(:);
+if ~isempty(coord)
+   cellProps = zeros (length (coord), 3);
+   cellProps (:,1) = coord(:,1);
+   cellProps (:,2) = coord(:,2);
+   cellProps (:,3) = clusterNr(:);
+else
+   cellProps = [];
+end

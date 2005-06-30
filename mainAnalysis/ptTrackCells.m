@@ -109,6 +109,8 @@ emptyM               = zeros (1,4);      % All zeros M matrix entry
 emptyCell            = zeros (1,3);
 emptyCluster         = zeros (1,5);
 emptyFrame           = zeros (1,5);
+clustSize            = 3;
+clustBinSize         = 4;
 
 % Created info directory if needed
 if saveIntResults
@@ -199,7 +201,7 @@ else		% lastImaNum > firstImaNum
              end
 
              % Segment the image again
-             [segmentedImage, dummy, mu0Calc] = imClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', 3, 'mu0', mu0);
+             [segmentedImage, dummy, mu0Calc] = imClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', clustSize, 'binning', clustBinSize, 'mu0', mu0);
 
              % The number of pixels in the nuclei should be relatively small compared to all the pixels in the image.
              % If large, something went wrong and we'll have to do the clustering again. Build in some sort

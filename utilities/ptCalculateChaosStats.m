@@ -192,15 +192,15 @@ for frameCount = plotStartFrame : increment : plotEndFrame
         avgRipleyClust(loopCount) = NaN;
     end
     if sumCountSlope > 0
-        avgripleyClustSlopePoint(loopCount) = ripleyClustSlopePointSum / sumCountSlope;  
+        avgRipleyClustSlopePoint(loopCount) = ripleyClustSlopePointSum / sumCountSlope;  
     else
-        avgripleyClustSlopePoint(loopCount) = NaN;
+        avgRipleyClustSlopePoint(loopCount) = NaN;
     end
 end
 
 % Prepare output data
 chaosStats.ripleySlopeInclin = avgRipleyClust(1:lastEntry);
-chaosStats.ripleySlopeStart = avgripleyClustSlopePoint(1:lastEntry);
+chaosStats.ripleySlopeStart = avgRipleyClustSlopePoint(1:lastEntry);
 
 % Also take valid xAxis entries
 xAxis = xAxis(1:lastEntry);
