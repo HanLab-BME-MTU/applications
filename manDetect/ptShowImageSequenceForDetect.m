@@ -90,8 +90,8 @@ else
 
     % Get image size
     imInfo = imfinfo([imageDirectory filesep fileName]);
-    rowSize = imInfo.Height
-    colSize = imInfo.Width
+    rowSize = imInfo.Height;
+    colSize = imInfo.Width;
     
     % Show the frame on the screen in the current figure
     hold on;
@@ -101,16 +101,20 @@ else
     % Make sure the axis are correct
     axis([1 size(image,2) 1 size(image,1)]);
 
-    % Get points from the image
-    [x,y] = getpts(h);
-    coords = [x y];
-    roundCoords = round(coords);
+    msgStr = ['Do you want to click on cells?'];
+    answer = questdlg(msgStr, 'Detect cells', 'Yes', 'No', 'Yes');
+    if strcmp(answer,'Yes')
+        % Get points from the image
+        [x,y] = getpts(h);
+        coords = [x y];
+        coords = round(coords);
 
-    % Save if any points were clicked
-    if ~isempty(coords)
-        save([saveDirectory filesep 'manDetectResults_' bodyName(1:end-2) '_' ...
-             num2str(firstImage) '.mat'], 'roundCoords');
-    end
+        % Save if any points were clicked
+        if ~isempty(coords)
+            save([saveDirectory filesep 'manDetectResults_' bodyName(1:end-2) '_' ...
+                 num2str(firstImage) '.mat'], 'coords');
+        end
+    end    
     
     % create structure of handles
     handlesNew = guihandles(sliderHandle); 

@@ -82,19 +82,21 @@ else
     % Make sure the axis are correct
     axis([1 size(image,2) 1 size(image,1)]);
     
-    % Get points from the image
-    h = findall(0,'Tag','ptSequenceFigure');
-    [x,y] = getpts(h);
-    coords = [x y];
-    roundCoords = round(coords);
+    msgStr = ['Do you want to click on cells?'];
+    answer = questdlg(msgStr, 'Detect cells', 'Yes', 'No', 'Yes');
+    if strcmp(answer,'Yes')
+        % Get points from the image
+        h = findall(0,'Tag','ptSequenceFigure');
+        [x,y] = getpts(h);
+        coords = [x y];
+        coords = round(coords);
 
-    % Save if any points were clicked
-    if ~isempty(coords)
-        save([saveDirectory filesep 'manDetectResults_' bodyName(1:end-2) '_' ...
-             num2str(imageNumber) '.mat'], 'roundCoords');
-        save([saveDirectory filesep 'manDetectResults_' bodyName(1:end-2) '_' ...
-             num2str(imageNumber) '_coord.mat'], 'coords'); 
-    end
+        % Save if any points were clicked
+        if ~isempty(coords)
+            save([saveDirectory filesep 'manDetectResults_' bodyName(1:end-2) '_' ...
+                 num2str(imageNumber) '.mat'], 'coords');
+        end
+    end    
 
     % That's it: wait for the next user action
 end
