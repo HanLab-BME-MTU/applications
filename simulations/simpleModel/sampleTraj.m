@@ -46,7 +46,7 @@ numTP = floor(totalTime/sampInt);
 samplingTime = [0:numTP]'*sampInt;
 
 %get index in traj0 that corresponds to the transition points just before
-%the each sampling time point.
+%each sampling time point.
 indxTran = 0;
 for i=1:length(traj0)
     indxTran = indxTran + (samplingTime-traj0(i,1)>=0);

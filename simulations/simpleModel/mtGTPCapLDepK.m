@@ -1,321 +1,238 @@
 function [mtLength,capSize,errFlag] = mtGTPCapLDepK(modelParam,initialState,...
     totalTime,dt,timeEps,saveTraj)
-%MTGTPCAPLDEPK: GTP-cap model with length-dependent k's of microtubule DI
+%MTGTPCAPLDEPK: GTP-cap model of MTDI with length-dependent k's
 %
-%It uses a simple model where a microtubule is treated as a sequence of "units",
-%which can be thought of as rings of 13 tubulin dimers. These units attach to and 
-%detach from its plus end, while the minus end is fixed. "units" attached to the 
-%microtubule may get hydrolyzed, if the "unit" preceding them is. Generally, the 
-%microtubule grows when there is a GTP cap and shrinks when the GDP cap is
-%lost. In order to limit MT lengths to a certain range, the rate of GTP-"unit" 
-%addition to GTP-end is reduced as MT grows and the rate of GDP-"unit" loss
-%is reduced as MT shrinks. 
+%It uses a simple model where a microtubule is treated as a sequence of units,
+%which can be thought of as rings of 13 tubulin dimers. These units attach to and
+%detach from its plus end, while the minus end is fixed. A Unit attached to the
+%microtubule may get hydrolyzed if the unit preceding it is. Generally, the
+%microtubule grows when there is a GTP cap and shrinks when the GTP cap is
+%lost due to hydrolysis. All rates can be length-dependent.
 %
 %SYNOPSIS [mtLength,capSize,errFlag] = mtGTPCapLDepK(modelParam,initialState,...
 %    totalTime,dt,timeEps,saveToFile)
 %
 %INPUT  modelParam  : Structure containing model parameters:
-%           .minLength   : minimum length of microtubules, in micrometers.
-%           .maxLength   : maximum length of microtubules, in micrometers.
-%           .kTOnT = kTOnTFree - addAmpT*{tanh[addWidT*(mtLength-addLenT)]+1}/2.
-%                        : Rate constant of GTP-"unit" addition to GTP-"unit"
-%                          at + end, in (micromolar*s)^-1. Units:
-%                            [kTOnTFree],[addAmpT] = (micromolar*s)^-1.
-%                            [addWidT] = (micrometers)^-1.
-%                            [addLenT] = micrometers.
-%           .kTOff       : Rate constant of GTP-"unit" loss from + end, in s^-1.
-%           .kTOnD       : Rate constant of GTP-"unit" addition to GDP-"unit"
-%                          at + end, in (micromolar*s)^-1.
-%           .kDOff = kDOffFree + addAmpD*{tanh[addWidD*(mtLength-addLenD)]-1}/2.
-%                        : Rate constant of GDP-"unit" loss from + end, in s^-1.
-%                            [kDOffFree],[addAmpD] = s^-1.
-%                            [addWidD] = (micrometers)^-1.
-%                            [addLenD] = micrometers.
-%           .kHydrolysis : Rate constant of hydrolysis of GTP-"units" to
-%                          GDP-"units" in microtubule.
+%           .kTOnT    : Rate constant of GTP-unit addition to GTP-end
+%                       [(micromolar*s)^-1].
+%           .kHydr    : Rate constant of hydrolysis of GTP-units in MT [s^-1].
+%           .kTOff    : Rate constant of GTP-unit loss from end [s^-1].
+%           .kTOnD    : Rate constant of GTP-unit addition to GDP-end
+%                       [(micromolar*s)^-1].
+%           .kDOff    : Rate constant of GDP-unit loss from end [s^-1].
+%
+%           All rate constants have the following subfields:
+%               .lDepend : +1 if rate increases with MT length;
+%                          -1 if rate decreases with MT length;
+%                           0 if rate does not depend on length.
+%                           If rate is not length dependent, only kmax
+%                           must be specified.
+%               .kmax    : Maximum value that rate constant can have.
+%               .kmin    : Minimum value that rate constant can have.
+%               .lmin    : MT length where changes "start" [microns].
+%               .lmax    : MT length where changes "stop" [microns].
+%           In addition, kHydr has the subfield
+%               .coupled : 1 if hydrolysis is coupled to unit addition 
+%                          (only the last added unit might have GTP); 
+%                          0 if hydrolysis is not directly coupled to
+%                          addition (more than one unit at the + end might 
+%                          have GTP).
 %
 %       initialState: Structure containing information on initial state of system:
-%           .mtLength0   : Initial length of microtubule, in micrometers.
-%           .capSize0    : Initial number of "units" forming GTP-cap.
-%           .unitConc    : Concentration of free GTP-tubulin "units", in micromolar,
-%                          assumed constant throughout the simulation.
+%           .mtLength0: Initial length of microtubule [microns].
+%           .capSize0 : Initial number of "units" forming GTP-cap [units].
+%           .unitConc : Concentration of free GTP-tubulin units [microns].
+%                          Assumed constant throughout the simulation.
 %
-%       totalTime   : Total time of simulation in seconds.
-%       dt          : Time step used for time discretization. 
+%       totalTime   : Total simulation time [s].
+%       dt          : Time step used for time discretization [s].
 %       timeEps     : Value of the product of time step and maximum rate
-%                     constant.
+%                     constant. Optional. Default: 0.5. Use [] for default.
 %
-%       saveTraj    : Structure defining whether and where results will be
-%                     saved.
-%           .saveOrNot   : 1 if user wants to save, 0 if not.
-%           .fileName    : name (including location) of file where results 
-%                          will be saved. If empty and saveOrNot is 1, the name
-%                          is chosen automatically to be
-%                          "mtTraj-day-month-year-hour-minute-second",
-%                          and the data is saved in directory where
-%                          function is called from
-%       
-%OUTPUT mtLength    : Length of the microtubule throughout the simulation.
-%       capSize     : Number of units forming GTP-cap throughout the simulation.
+%       saveTraj    : Structure defining whether and where results are
+%                     saved. Optional. Default: no saving.
+%           .saveOrNot: 1 if user wants to save, 0 if not.
+%           .fileName : name (including location) of file where results
+%                       will be saved. If empty and saveOrNot is 1, the name
+%                       is chosen automatically to be
+%                       "mtTraj-day-month-year-hour-minute-second",
+%                       and the data is saved in directory where function
+%                       is called from.
+%
+%OUTPUT mtLength    : MT length at simulation time points [microns].
+%       capSize     : GTP-cap length at simulation time points [units].
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
-%Khuloud Jaqaman, 10/2003
+%Khuloud Jaqaman, 10/2003. Major updates: 6/2005
 
-errFlag = 0;                    %logical variable used to indicate whether 
-                                %there is an error in input data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%check if correct number of arguments were used when function was called
-if nargin ~= nargin('mtGTPCapLDepK');
+mtLength = [];
+capSize = [];
+errFlag = 0;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%check if correct number of arguments was used when function was called
+if nargin < 4
     disp('--mtGTPCapLDepK: Incorrect number of input arguments!');
     errFlag = 1;
     return;
 end
 
+%get simulation parameters
 mtLength0 = initialState.mtLength0;
 capSize0  = initialState.capSize0;
 unitConc  = initialState.unitConc;
-minLength = modelParam.minLength;
-maxLength = modelParam.maxLength;
-kTOnTFree = modelParam.kTOnTFree;
-addAmpT = modelParam.addAmpT;
-addWidT = modelParam.addWidT;
-addLenT = modelParam.addLenT;
+kTOnT = modelParam.kTOnT;
+kHydr = modelParam.kHydr;
 kTOff = modelParam.kTOff;
 kTOnD = modelParam.kTOnD;
-kDOffFree = modelParam.kDOffFree;
-addAmpD = modelParam.addAmpD;
-addWidD = modelParam.addWidD;
-addLenD = modelParam.addLenD;
-kHydrolysis = modelParam.kHydrolysis;
+kDOff = modelParam.kDOff;
 
-%check for error in input
-if minLength < 0
-    disp('--mtGTPCapLDepK: Minimum length should be positive!');
-    errFlag = 1;
-    return;
+%use default if timeEps is not given
+if nargin < 5 | isempty(timeEps)
+    timeEps = 0.5;
 end
-if maxLength <= minLength
-    disp('--mtGTPCapLDepK: Maximum length should be positive and larger than minimum length!');
-    errFlag = 1;
-    return;
+
+%use default if saveTraj is not given
+if nargin < 6
+    saveTraj.saveOrNot = 0;
 end
-if addWidT < 6/(maxLength-minLength)
-    disp('--mtGTPCapLDepK: addWidT is too small!');
-    errFlag = 1;
-    return;
-end
-if addWidD < 6/(maxLength-minLength)
-    disp('--mtGTPCapLDepK: addWidD is too small!');
-    errFlag = 1;
-    return;
-end
-if mtLength0 <= minLength || mtLength0 >= maxLength 
-    disp('--mtGTPCapLDepK: Initial length of microtubule should be');
-    disp(sprintf('  between %f and %f micrometers!',minLength,maxLength));
-    errFlag = 1;
-end
-if capSize0 < 0
-    disp('--mtGTPCapLDepK: capSize0 cannot be negative!');
-    errFlag = 1;
-end
-if unitConc <= 0
-    disp('--mtGTPCapLDepK: Tubulin concentration should be positive!');
-    errFlag = 1;
-end
-if kTOnTFree < 0
-    disp('--mtGTPCapLDepK: kTOnTFree cannot be negative!');
-    errFlag = 1;
-end
-if addAmpT < 0 || addAmpT > kTOnTFree
-    disp('--mtGTPCapLDepK: addAmpT should be positive and smaller than or equal to kTOnTFree!');
-    errFlag = 1;
-end
-if addLenT < minLength + 3/addWidT || addLenT > maxLength - 3/addWidT
-    disp('--mtGTPCapLDepK: addLenT is not within acceptable range!');
-    errFlag = 1;
-end
-if kTOff < 0
-    disp('--mtGTPCapLDepK: kTOff cannot be negative!');
-    errFlag = 1;
-end
-if kTOnD < 0
-    disp('--mtGTPCapLDepK: kTOnD cannot be negative!');
-    errFlag = 1;
-end
-if kDOffFree < 0
-    disp('--mtGTPCapLDepK: kDOff cannot be negative!');
-    errFlag = 1;
-end
-if addAmpD < 0 || addAmpD > kDOffFree
-    disp('--mtGTPCapLDepK: addAmpD should be positive and smaller than or equal to kDOffFree!');
-    errFlag = 1;
-end
-if kHydrolysis < 0
-    disp('--mtGTPCapLDepK: kHydrolysis cannot be negative!');
-    errFlag = 1;
-end 
-if totalTime <= 0
-    disp('--mtGTPCapLDepK: Total time should be positive!');
-    errFlag = 1;
-end
-if timeEps > 1
-    disp('--mtGTPCapLDepK: The product of the time step and maximum rate');
-    disp('  constant should be smaller than 1!');
-    errFlag = 1;
-end
-kTOnTFreeEff = kTOnTFree*unitConc;   %effective rate constants of "unit" addition
-addAmpTEff = addAmpT*unitConc;       %(s^-1)
-kTOnDEff = kTOnD*unitConc;
-if max([kTOnTFreeEff kTOff kTOnDEff kDOffFree kHydrolysis])*dt > timeEps
+
+%make sure that simulation time step is not too large
+kMax = max([kTOnT.kmax*unitConc kHydr.kmax kTOff.kmax kTOnD.kmax*unitConc ...
+    kDOff.kmax]);
+if kMax*dt > timeEps
     disp('--mtGTPCapLDepK: Time step too large!');
     errFlag = 1;
 end
-if saveTraj.saveOrNot ~= 0 && saveTraj.saveOrNot ~= 1
-    disp('--analyzeMtTrajectory: "saveTraj.saveOrNot" should be 0 or 1!');
-    errFlag = 1;
-end
+
+%exit if there are problems in input
 if errFlag
     disp('--mtGTPCapLDepK: Please fix input data!');
-    mtLength = [];
-    capSize = [];
     return;
 end
 
-%initialize random number generator
-rand('state',sum(100*clock));
+%assign unit length [microns]
+unitLength = 0.008;
 
-unitLength = 0.008;   %length, in micrometers, of a tubulin "unit"
+%get initial number of units in MT and assign mtLength0 making sure that it
+%has an integer number of units
+mtIndex = round(mtLength0/unitLength);
+mtLength0 = unitLength*mtIndex;
 
-mtIndex = round(mtLength0/unitLength); %number of "units" in microtubule
-currentLength = mtIndex*unitLength;    %length of microtubule
-if capSize0 > mtIndex                  %size of cap cannot be larger than number 
-    capSize0 = mtIndex;                %of units in MT
-end
-capSizeT = capSize0;                   %initial number of units in GTP-cap
-
-%first run a 2000 second simulation to get rid of any artifacts in the
-%initial data, namely the size of the GTP-cap.
-
-time = 0;
-while time < 2000        %iterate for required "equilibration time"
-    
-    if capSizeT == 0     %mtState = +1 if there is GTP cap
-        mtState = -1;    %and -1 if there isn't
-    else
-        mtState = +1;
-    end
-    
-    time = time + dt;    %update time
-    
-    %determine whether a "unit" will be added or removed from the
-    %microtubule + end, or whether no action will take place. 
-    %also determine whether the "unit" at the edge of the GTP-cap, if it
-    %exists, will get hydrolyzed.
-    switch mtState
-        case +1                           %use parameters when there is GTP-cap
-            kTOnTEff = kTOnTFreeEff - addAmpTEff*...
-                (tanh(addWidT*(currentLength-addLenT))+1)/2;
-            pOn = kTOnTEff*dt;
-            pOff = kTOff*dt;
-            pHyd = kHydrolysis*dt;
-        case -1                           %use parameters when there is no GTP-cap
-            kDOff = kDOffFree + addAmpD*...
-                (tanh(addWidD*(currentLength-addLenD))-1)/2;
-            pOn = kTOnDEff*dt;
-            pOff = kDOff*dt;
-            pHyd = NaN;
-        otherwise
-            disp('--mtGTPCapLDepK: mtState is neither +1 nor -1!');
-            errFlag = 1;
-            return;
-    end
-    
-    randomNumber = rand;   %get a random number between 0 and 1 and compare it to pOn
-    smallerOn = randomNumber < pOn;
-    
-    randomNumber = rand;   %get a random number between 0 and 1 and compare it to pOff
-    smallerOff = randomNumber < pOff;
-    
-    randomNumber = rand;   %get a random number between 0 and 1 and compare it to pHyd
-    smallerHyd = randomNumber < pHyd;
-    
-    increment = smallerOn - smallerOff;   %determine whether a unit is added or
-                                          %removed, or whether there's a pause,
-    
-    mtIndex = mtIndex + increment;                      %update number of units in MT
-    capSizeT = max(0,capSizeT-smallerHyd+increment);    %and in cap
-
-    currentLength = mtIndex*unitLength;       %store new length of microtubule
-        
+%make sure that # units in cap <= # units in MT
+if capSize0 > mtIndex
+    capSize0 = mtIndex;
 end
 
-%Now do the actual simulation
+%calculate all parameters specifying length dependence of rate constants
+kTOnT = deriveParam(kTOnT);
+kHydr = deriveParam(kHydr);
+kTOff = deriveParam(kTOff);
+kTOnD = deriveParam(kTOnD);
+kDOff = deriveParam(kDOff);
 
-vecLength = floor(totalTime/dt);   %approximate length of mtLength and capSize 
-mtLength = zeros(vecLength,1);     %allocate memory for arrays mtLength
-capSize = zeros(vecLength,1);      %and capSize
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Simulation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-mtLength(1) = currentLength;       %initial length of microtubule
-capSize(1) = capSizeT;             %initial number of units in GTP-cap
+%Simulation is done for "totalTime + 100s", where in the end the first 100 s
+%are removed to eliminate any artifacts in the initial data
 
-time = 0;                          %time of simulation, in seconds
-iter = 1;                          %number of iterations
+%length of mtLength and capSize
+vecLengthI = round(100/dt);
+vecLength = vecLengthI + round(totalTime/dt);
 
-while time < totalTime             %iterate until totalTime is reached
+%allocate memory for mtLength and capSize
+mtLength = zeros(vecLength,1);
+capSize = zeros(vecLength,1);
+
+%assign initial MT length and cap size
+mtLength(1) = mtLength0;
+mtLengthT = mtLength0;
+capSize(1) = capSize0;
+capSizeT = capSize0;
+
+%choose random numbers for Monte Carlo simulation
+rand('state',sum(100*clock)); %initialization
+randNum = rand(vecLength,3);
+
+%iterate until "totalTime + 100" is reached
+for iter = 2:vecLength
     
-    if capSize(iter) == 0          %mtState = +1 if there is GTP cap
-        mtState = -1;              %and -1 if there isn't
-    else
-        mtState = +1;
+    if capSizeT == 0 %shrinkage state
+
+        %get rates based on current MT length        
+        kTOnDEff = kTOnD.kmin + (kTOnD.kmax-kTOnD.kmin)*...
+            (kTOnD.lDepend*(tanh(kTOnD.coef*(mtLengthT-kTOnD.shift)))+1)/2;
+        kDOffEff = kDOff.kmin + (kDOff.kmax-kDOff.kmin)*...
+            (kDOff.lDepend*(tanh(kDOff.coef*(mtLengthT-kDOff.shift)))+1)/2;
+
+        %assign probability of each event taking place
+        pOn = kTOnDEff*unitConc*dt;
+        pOff = kDOffEff*dt;
+        pHyd = NaN;
+
+    else %growth state
+
+        %get rates based on current MT length
+        kTOnTEff = kTOnT.kmin + (kTOnT.kmax-kTOnT.kmin)*...
+            (kTOnT.lDepend*(tanh(kTOnT.coef*(mtLengthT-kTOnT.shift)))+1)/2;
+        kHydrEff = kHydr.kmin + (kHydr.kmax-kHydr.kmin)*...
+            (kHydr.lDepend*(tanh(kHydr.coef*(mtLengthT-kHydr.shift)))+1)/2;
+        kTOffEff = kTOff.kmin + (kTOff.kmax-kTOff.kmin)*...
+            (kTOff.lDepend*(tanh(kTOff.coef*(mtLengthT-kTOff.shift)))+1)/2;
+
+        %assign probability of each event taking place
+        pOn = kTOnTEff*unitConc*dt;
+        pHyd = kHydrEff*dt;
+        pOff = kTOffEff*dt;
+
     end
-    currentLength = mtLength(iter);
+
+    %using these 3 random numbers, decide which events take place
+    addUnit = randNum(iter,1) < pOn; %unit addition
+    remUnit = randNum(iter,2) < pOff; %unit loss
+    hydUnit = randNum(iter,3) < pHyd; %unit hydrolysis
+
+    %find net unit addition or loss
+    increment = addUnit - remUnit;
+
+    %update MT length
+    mtLengthT = mtLengthT + unitLength*increment;
     
-    iter = iter + 1;               %update iteration numer
-    time = time + dt;              %update time
-    
-    %determine whether a "unit" will be added or removed from the
-    %microtubule + end, or whether no action will take place. 
-    %also determine whether the "unit" at the edge of the GTP-cap, if it
-    %exists, will get hydrolyzed.
-    switch mtState
-        case +1                           %use parameters when there is GTP-cap
-            kTOnTEff = kTOnTFreeEff - addAmpTEff*...
-                (tanh(addWidT*(currentLength-addLenT))+1)/2;
-            pOn = kTOnTEff*dt;
-            pOff = kTOff*dt;
-            pHyd = kHydrolysis*dt;
-        case -1                           %use parameters when there is no GTP-cap
-            kDOff = kDOffFree + addAmpD*...
-                (tanh(addWidD*(currentLength-addLenD))-1)/2;
-            pOn = kTOnDEff*dt;
-            pOff = kDOff*dt;
-            pHyd = NaN;
-        otherwise
-            disp('--mtGTPCapLDepK: mtState is neither +1 nor -1!');
-            errFlag = 1;
-            return;
+    %update GTP cap size
+    if ~kHydr.coupled %hydrolysis not coupled to addition
+        capSizeT = max(0,capSizeT-hydUnit+increment);
+    else %hydrolysis coupled to addition
+        if capSizeT == 0 %when in shrinkage state
+            capSizeT = max(0,increment);
+        else %when in growth state
+            if increment == -1
+                capSizeT = 0;
+            elseif increment == 0
+                capSizeT = 1 - hydUnit;
+            end
+        end
     end
     
-    randomNumber = rand;   %get a random number between 0 and 1 and compare it to pOn
-    smallerOn = randomNumber < pOn;
-    
-    randomNumber = rand;   %get a random number between 0 and 1 and compare it to pOff
-    smallerOff = randomNumber < pOff;
-    
-    randomNumber = rand;   %get a random number between 0 and 1 and compare it to pHyd
-    smallerHyd = randomNumber < pHyd;
-    
-    increment = smallerOn - smallerOff;   %determine whether a unit is added or
-                                          %removed, or whether there's a pause,
-    
-    mtIndex = mtIndex + increment;                %update number of units in MT
-    capSize(iter) = max(0,capSize(iter-1)-smallerHyd+increment);    %and in cap
+    %save MT length and cap size in arrays
+    mtLength(iter) = mtLengthT;
+    capSize(iter) = capSizeT;
 
-    mtLength(iter) = mtIndex*unitLength;       %store new length of microtubule
-    
 end
 
-%save data if user wants to
+%remove first 100 seconds
+mtLength = mtLength(vecLengthI+1:end);
+capSize = capSize(vecLengthI+1:end);
+
+%save data if requested
 if saveTraj.saveOrNot
     if isempty(saveTraj.fileName)
         save(['mtTraj-',nowString],'mtLength','capSize'); %save in file
@@ -323,3 +240,25 @@ if saveTraj.saveOrNot
         save(saveTraj.fileName,'mtLength','capSize'); %save in file (directory specified through name)
     end
 end
+
+
+%%%%% ~~ the end ~~ %%%%%
+
+%subfunction called by mtGTPCapLDepK
+
+function y = deriveParam(x);
+%derives a few parameters
+
+y = x;
+
+if y.lDepend == 0
+    y.kmin = y.kmax;
+    y.lmin = -1;
+    y.lmax = 1;
+end
+y.shift = mean([y.lmin y.lmax]);
+y.coef = 4.6/(y.lmax-y.lmin);
+
+
+%%%%% ~~ the end ~~ %%%%%
+
