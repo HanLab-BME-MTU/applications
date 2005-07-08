@@ -1,6 +1,8 @@
 function [globCompare, globStats]=testTrajectories(trajectoryData)
 %TESTTRAJECTORIES produces discrimination matrices for the comparison of trajectoryData
 %
+% SYNOPSIS [globCompare, globStats]=testTrajectories(trajectoryData)
+%
 % INPUT trajectoryData: Structure with multiple runs from trajectoryAnalysis
 %
 % OUTPUT globCompare: discrimination matrices with p-values

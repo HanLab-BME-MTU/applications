@@ -251,14 +251,19 @@ for iRun = 1:length(fileListStruct)
         
         try
             %load all
-            try
-            allDat = load(fileList(iFile).file);
-            catch
-                % maybe the file has an _corr too much in its name
-                fileList(iFile).file = regexprep(fileList(iFile).file,'_corr','');
-                allDat = load(fileList(iFile).file);
-                % if this still doesn't work, we fall into the normal catch
-            end
+            
+            % don't use this anymore. Since there should not be a valid
+            % _corr-file, '_corr' is automatically removed from the
+            % fileName in loadFileList.m
+            
+%             try
+             allDat = load(fileList(iFile).file);
+%             catch
+%                 % maybe the file has an _corr too much in its name
+%                 fileList(iFile).file = regexprep(fileList(iFile).file,'_corr','');
+%                 allDat = load(fileList(iFile).file);
+%                 % if this still doesn't work, we fall into the normal catch
+%             end
             
             %load the idlist specified in lastResult
             eval(['idlist2use = allDat.',allDat.lastResult,';']);
