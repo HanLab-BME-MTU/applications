@@ -262,8 +262,10 @@ for s = 1:nextStoreIdx - 1
 
                     opt = {};
                     separatorIdx = findstr(firstLine,'#');
-                    if separatorIdx(end) == length(firstLine);
-                        separatorIdx = separatorIdx(1:end-1);
+                    % to have all identifiers: If the list does not end
+                    % with a separator, add an imaginary separator.
+                    if ~(separatorIdx(end) == length(firstLine))
+                        separatorIdx(end) = length(firstLine)+1;
                     end
 
                     if isempty(separatorIdx)
@@ -277,7 +279,7 @@ for s = 1:nextStoreIdx - 1
 
                         %loop through all separators and read the
                         %respective options
-                        for sn = 1:length(separatorIdx)
+                        for sn = 1:length(separatorIdx)-1
                             opt{sn+1} = firstLine(separatorIdx(sn)+1:separatorIdx(sn+1)-1);
                         end
 
@@ -330,7 +332,7 @@ for s = 1:nextStoreIdx - 1
                         % automatically remove '_corr' from the fileName.
                         % If the file would really be '_corr', then it's
                         % high time the file was updated!
-                        fileList(iFile).file = regexprep(fileList(iFile).file,'_corr','');
+                        file = regexprep(file,'_corr','');
                         % store the file
                         fileListOutTmp(nextFileIdx).file = file;
                         fileListOutTmp(nextFileIdx).type = store(s).type;
