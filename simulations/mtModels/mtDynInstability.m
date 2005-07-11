@@ -1,4 +1,4 @@
-function [mtLength,jump,errFlag] = mtDynInstability(modelParam,initialState,...
+function [traj,jump,errFlag] = mtDynInstability(modelParam,initialState,...
                 totalTime,dt,timeEps,saveTraj)
 %MTDYNINSTABILITY sim. the dyn. instabil. of a microtubule, free or in G1 yeast
 %
@@ -10,7 +10,7 @@ function [mtLength,jump,errFlag] = mtDynInstability(modelParam,initialState,...
 %if it's in G1 yeast. In the free case, a new microtubule is created and the 
 %simulation proceeds.
 %
-%SYNOPSIS [mtLength,jump,errFlag] = mtDynInstability(modelParam,initialState,...
+%SYNOPSIS [traj,jump,errFlag] = mtDynInstability(modelParam,initialState,...
 %               totalTime,dt,timeEps,saveTraj)
 %
 %INPUT  modelParam  : Structure containing model parameters:
@@ -46,7 +46,8 @@ function [mtLength,jump,errFlag] = mtDynInstability(modelParam,initialState,...
 %                          and the data is saved in directory where
 %                          function is called from
 %       
-%OUTPUT mtLength    : length of the microtubule throughout the simulation.
+%OUTPUT traj        : 2 column vector, where first column is time (s) and
+%                     second column is MT length (microns)
 %       jump        : instances throughout the simulation where MT dies or is rescued.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
@@ -144,14 +145,14 @@ time = 0;                          %time of simulation, in seconds
 iter = 1;                          %number of iterations
 counter = 1;                       %number of times a MT dies or is rescued
 
-vecLength = floor(totalTime/dt);   %approximate length of mtLength
-mtLength = zeros(vecLength,1);     %allocate memory for array mtLength 
+vecLength = floor(totalTime/dt);   %approximate length of traj
+traj = zeros(vecLength,2);         %allocate memory for array traj 
 mtStateTemp = zeros(vecLength,1); 
 
 unitLength = 0.008;                %length, in micrometers, of a tubulin "unit"
 mtIndex0 = round(mtLength0/unitLength); %initial number of "units" in microtubule
 
-mtLength(1) = mtIndex0*unitLength; %initial length of microtubule
+traj(1,:) = [0 mtIndex0*unitLength]; %initial time and MT length
 
 mtIndex = mtIndex0;                %current # of units = initial # of units 
 mtState = mtState0;                %current state = initial state
@@ -195,10 +196,10 @@ while time < totalTime             %iterate until totalTime is reached
         mtState = -1;
     end
     
-    mtIndex = mtIndex + increment;          %get new number of "units" in MT
-    mtLength(iter) = mtIndex*unitLength;    %store new length of microtubule
+    mtIndex = mtIndex + increment;           %get new number of "units" in MT
+    traj(iter,:) = [time mtIndex*unitLength];%store new length of microtubule
     
-    if mtLength(iter) <= minLength          %if microtubule reaches min length
+    if traj(iter,2) <= minLength            %if microtubule reaches min length
         
         counter = counter + 1;              %increment counter by 1
         jump(counter) = iter;               %iter. # where min. length was reached
@@ -209,12 +210,12 @@ while time < totalTime             %iterate until totalTime is reached
         if free
             %start new microtubule
             mtIndex = mtIndex0;
-            mtLength(iter) = mtIndex*unitLength;
+            traj(iter,2) = mtIndex*unitLength;
             mtState = mtState0;
         else
             %force a rescue
             mtIndex = mtIndex + 1;
-            mtLength(iter) = mtIndex*unitLength;
+            traj(iter,2) = mtIndex*unitLength;
             mtState = +1;
         end
         
@@ -225,14 +226,14 @@ end
 mtStateTemp(iter) = mtState;
 
 counter = counter + 1;                      %end of simulation
-jump(counter) = length(mtLength);           %total number of iterations in simulation
+jump(counter) = size(traj,1);               %total number of iterations in simulation
                                             %store even if MT did not reach
                                             %min. length in the end.
 %save data if user wants to
 if saveTraj.saveOrNot
     if isempty(saveTraj.fileName)
-        save(['mtTraj-',nowString],'mtLength'); %save in file
+        save(['mtTraj-',nowString],'traj'); %save in file
     else
-        save(saveTraj.fileName,'mtLength'); %save in file (directory specified through name)
+        save(saveTraj.fileName,'traj'); %save in file (directory specified through name)
     end
 end

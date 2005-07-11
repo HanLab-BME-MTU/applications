@@ -1,24 +1,19 @@
-function [mtLengthAve,mtLengthSD,errFlag] = averageMtTraj(mtLength,dt,...
-    expTimeStep,aveInterval)
-%AVERAGEMTTRAJ finds the average and stad. dev. of MT positions over experimental intervals
+function [trajAve,errFlag] = averageMtTraj(traj,expTimeStep,aveInterval)
+%AVERAGEMTTRAJ samples a trajectory (known at uniformly spaced time points) with averaging
 %
 %The function takes the value of MT length at every simulation time step, 
 %determines the appropriate intervals that must be averaged over to get
-%values corresponding to experimental data, then get the average and standard
+%values corresponding to experimental data, then gets the average and standard
 %deviation of microtubule length at experimental time points.
 %
-%Synopsis [mtLengthAve,mtLengthSD,errFlag] = averageMtTraj(mtLength,dt,...
-%    expTimeStep,aveInterval)
+%Synopsis [trajAve,errFlag] = averageMtTraj(traj,expTimeStep,aveInterval)
 %
-%INPUT  mtLength    : Length of microtubule as a function of time.
-%       dt          : Time step used in Monte Carlo simulation.
+%INPUT  traj        : 2 column vector of time [s] and length [microns].
 %       expTimeStep : Time step used in experimental measurements.
 %       aveInterval : Interval used for averaging (<=expTimeStep).
 %
-%OUTPUT mtLengthAve : Average length of microtubule at experimental time
-%                     points.
-%       mtLengthSD  : Standard deviation of microtubule length in interval
-%                     used for averaging about time points.
+%OUTPUT trajAve     : 3 column vector of time [s], sampled and averaged 
+%                     length [microns], and length std [microns].
 %       errFlag     : 0 if function runs normally, 1 otherwise.
 %
 %Khuloud Jaqaman, 09/03

@@ -1,4 +1,4 @@
-function [mtLength,capSize,errFlag] = mtGTPCapLDepK(modelParam,initialState,...
+function [traj,errFlag] = mtGTPCapLDepK(modelParam,initialState,...
     totalTime,dt,timeEps,saveTraj)
 %MTGTPCAPLDEPK: GTP-cap model of MTDI with length-dependent k's
 %
@@ -9,7 +9,7 @@ function [mtLength,capSize,errFlag] = mtGTPCapLDepK(modelParam,initialState,...
 %microtubule grows when there is a GTP cap and shrinks when the GTP cap is
 %lost due to hydrolysis. All rates can be length-dependent.
 %
-%SYNOPSIS [mtLength,capSize,errFlag] = mtGTPCapLDepK(modelParam,initialState,...
+%SYNOPSIS [traj,errFlag] = mtGTPCapLDepK(modelParam,initialState,...
 %    totalTime,dt,timeEps,saveToFile)
 %
 %INPUT  modelParam  : Structure containing model parameters:
@@ -59,8 +59,10 @@ function [mtLength,capSize,errFlag] = mtGTPCapLDepK(modelParam,initialState,...
 %                       and the data is saved in directory where function
 %                       is called from.
 %
-%OUTPUT mtLength    : MT length at simulation time points [microns].
-%       capSize     : GTP-cap length at simulation time points [units].
+%OUTPUT traj        : 3-column vector:
+%                       1st column: time [s];
+%                       2nd column: MT length [microns];
+%                       3rd column: cap size [rings].
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, 10/2003. Major updates: 6/2005
@@ -69,8 +71,7 @@ function [mtLength,capSize,errFlag] = mtGTPCapLDepK(modelParam,initialState,...
 %Output
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-mtLength = [];
-capSize = [];
+traj = [];
 errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -145,19 +146,18 @@ kDOff = deriveParam(kDOff);
 %Simulation is done for "totalTime + 100s", where in the end the first 100 s
 %are removed to eliminate any artifacts in the initial data
 
-%length of mtLength and capSize
+%length of traj
 vecLengthI = round(100/dt);
 vecLength = vecLengthI + round(totalTime/dt);
 
-%allocate memory for mtLength and capSize
-mtLength = zeros(vecLength,1);
-capSize = zeros(vecLength,1);
+%allocate memory for traj
+traj = zeros(vecLength,3);
 
-%assign initial MT length and cap size
-mtLength(1) = mtLength0;
+%assign initial time, MT length and cap size
+time = 0;
 mtLengthT = mtLength0;
-capSize(1) = capSize0;
 capSizeT = capSize0;
+traj(1,:) = [time mtLengthT capSizeT];
 
 %choose random numbers for Monte Carlo simulation
 rand('state',sum(100*clock)); %initialization
@@ -165,6 +165,8 @@ randNum = rand(vecLength,3);
 
 %iterate until "totalTime + 100" is reached
 for iter = 2:vecLength
+    
+    time = time + dt;
     
     if capSizeT == 0 %shrinkage state
 
@@ -223,21 +225,20 @@ for iter = 2:vecLength
     end
     
     %save MT length and cap size in arrays
-    mtLength(iter) = mtLengthT;
-    capSize(iter) = capSizeT;
+    traj(iter) = [time mtLengthT capSizeT];
 
 end
 
 %remove first 100 seconds
-mtLength = mtLength(vecLengthI+1:end);
-capSize = capSize(vecLengthI+1:end);
+traj = traj(vecLengthI+1:end,:);
+traj(:,1) = traj(:,1) - traj(1,1);
 
 %save data if requested
 if saveTraj.saveOrNot
     if isempty(saveTraj.fileName)
-        save(['mtTraj-',nowString],'mtLength','capSize'); %save in file
+        save(['mtTraj-',nowString],'traj'); %save in file
     else
-        save(saveTraj.fileName,'mtLength','capSize'); %save in file (directory specified through name)
+        save(saveTraj.fileName,'traj'); %save in file (directory specified through name)
     end
 end
 
