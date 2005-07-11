@@ -37,12 +37,17 @@ if nargin < 3
     avgInt = 0;
 end
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Sampling
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %store original sampling interval
 sampIntOrig = sampInt;
+
+%shift time to start at 0
+timeInit = traj0(1,1);
+traj0(:,1) = traj0(:,1) - timeInit;
 
 %in case of averaging, if the time step is not uniform or not small
 %enough for averaging, determine an appropriate "pre-sampling" interval
@@ -149,6 +154,8 @@ else %if there is no averaging
 
 end
 
+%shift starting time back to what was given in input
+trajSamp(:,1) = trajSamp(:,1) + timeInit;
 
 %%%%% ~~ the end ~~ %%%%%
 
