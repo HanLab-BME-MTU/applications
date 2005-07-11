@@ -1,9 +1,9 @@
-function [tagPos,errFlag] = hingeModel(hingeParam,coordInit,totalTime,dt);
-%HINGEMODEL performs the free/diffusive rotation of tag about MT tip.
+function [tagPos,errFlag] = cenTagMotion(modelParam,coordInit,totalTime,dt);
+%CENTAGMOTION performs the free/diffusive rotation of tag about MT tip.
 %
-%SYNOPSIS [tagPos,errFlag] = hingeModel(hingeParam,coordInit,totalTime,dt);
+%SYNOPSIS [tagPos,errFlag] = cenTagMotion(modelParam,coordInit,totalTime,dt);
 %
-%INPUT  hingeParam : Parameters used in the model:
+%INPUT  modelParam : Parameters used in the model:
 %           free        : 0 if diffusive rotation, 1 if free rotation.
 %           diffConst   : Rotational diffusion constant of chromosome about
 %                         its centromere.
@@ -11,71 +11,71 @@ function [tagPos,errFlag] = hingeModel(hingeParam,coordInit,totalTime,dt);
 % % % %           chromS      : Short semi-axis of chromosome (microns).
 % % % %           viscosity   : viscosity of medium inside the nucleus (Pa*s).
 % % % %           temperature : Absolute temperature of system (K).
-%       coordInit  : Initial position of hinge tip, in Cartesian
+%       coordInit  : Initial position of tag center, in Cartesian
 %                    coordinates, entered as a row vector (microns).
 %       totalTime  : Total time of simulation in seconds.
 %       dt         : Time step used for time discretization. 
 %
-%OUTPUT tagPos  : position of hinge tip at every time step.
+%OUTPUT tagPos  : position of tag center at every time step.
 %       errFlag : 0 if function executes normally, 1 otherwise.
 %
-%COMMENTS For now, radius is assumed constant. So the hinge only rotates. 
+%COMMENTS For now, radius is assumed constant. So the tag only rotates. 
 %
 %Khuloud Jaqaman, 12/03
 
 errFlag = 0;
 
 %check if correct number of arguments were used when function was called
-if nargin ~= nargin('hingeModel');
-    disp('--hingeModel: Incorrect number of input arguments!');
+if nargin ~= nargin('cenTagMotion');
+    disp('--cenTagMotion: Incorrect number of input arguments!');
     errFlag = 1;
     return;
 end
 
-free = hingeParam.free;
+free = modelParam.free;
 if ~free
-    %     chromL = hingeParam.chromL;
-    %     chromS = hingeParam.chromS;
-    %     viscosity = hingeParam.viscosity;
-    %     temperature = hingeParam.temperature;
-    diffConst = hingeParam.diffConst;
+    %     chromL = modelParam.chromL;
+    %     chromS = modelParam.chromS;
+    %     viscosity = modelParam.viscosity;
+    %     temperature = modelParam.temperature;
+    diffConst = modelParam.diffConst;
 end
 
 %check for error in input
 if free ~= 0 && free ~= 1
-    disp('--hingeModel: The variable free should be wither 0 or 1');
+    disp('--cenTagMotion: The variable free should be wither 0 or 1');
     tagPos = [];
     errFlag = 1;
     return;
 end
 % if ~free
 %     %     if isempty(chromL) || chromL < 0
-%     %         disp('--hingeModel: Large radius of chromosome should be positive!');
+%     %         disp('--cenTagMotion: Large radius of chromosome should be positive!');
 %     %         errFlag = 1;
 %     %     end
 %     %     if isempty(chromS) || chromS < 0
-%     %         disp('--hingeModel: Small radius of chromosome should be positive!');
+%     %         disp('--cenTagMotion: Small radius of chromosome should be positive!');
 %     %         errFlag = 1;
 %     %     end
 %     %     if isempty(viscosity) || viscosity < 0
-%     %         disp('--hingeModel: Viscosity should be positive!');
+%     %         disp('--cenTagMotion: Viscosity should be positive!');
 %     %         errFlag = 1;
 %     %     end
 %     %     if isempty(temperature) || temperature < 0
-%     %         disp('--hingeModel: temperature should be positive!');
+%     %         disp('--cenTagMotion: temperature should be positive!');
 %     %         errFlag = 1;
 %     %     end
 % end
 if totalTime <= 0
-    disp('--hingeModel: Total time should be positive!');
+    disp('--cenTagMotion: Total time should be positive!');
     errFlag = 1;
 end
 if dt <= 0
-    disp('--hingeModel: Time step should be positive!');
+    disp('--cenTagMotion: Time step should be positive!');
     errFlag = 1;
 end
 if errFlag
-    disp('--hingeModel: Please fix input data!');
+    disp('--cenTagMotion: Please fix input data!');
     tagPos = [];
     return;
 end
@@ -103,7 +103,7 @@ radius = sqrt(sum(coordInit.^2));
 vecLength = floor(totalTime/dt);   %approximate length of tagPos 
 tagPos = zeros(vecLength,3);       %allocate memory for array tagPos
 
-tagPos(1,:) = coordInit;   %initial position of hinge tip in Cartesian coordinates
+tagPos(1,:) = coordInit;   %initial position of tag center in Cartesian coordinates
 
 time = 0;   %initialization of loop
 iter = 1;
