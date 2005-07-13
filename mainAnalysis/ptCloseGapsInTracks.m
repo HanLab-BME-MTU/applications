@@ -81,7 +81,7 @@ for iCount = 1 : size (matchedCells,1)
       % First locate and load the correct binary cluster image
       cd (clusterDirectory);
       formatStr = sprintf ('%%.%dd', 3);
-      curFrameNr = validFrames(1,frameLostCell+jCount-1) + startFrame;
+      curFrameNr = validFrames(1,frameLostCell+jCount) -1 + startFrame;
       imageNr = sprintf (formatStr, curFrameNr);
       clusterFile = ['clusters' imageNr];
       load (clusterFile);

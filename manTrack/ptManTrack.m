@@ -103,6 +103,7 @@ end
 handles.movieDirectory = movieDirectory;
 set (handles.edit_moviepath_ptmt, 'String', movieDirectory);
 
+
 % There should be at least one result dir available to get the coordinates
 % from (MPM). If more are available ask the user
 dirList = dir(movieDirectory);
@@ -116,8 +117,9 @@ if isempty(dirList)
     h = errordlg(msgStr);
     uiwait(h);
     return;
-elseif length(dirList) == 1
-    handles.resultsDirectory = char(dirList(1));
+% elseif length(dirList) == 1
+%    resultsDirectory = char(dirList(1));
+%    handles.resultsDirectory = char(dirList(1));
 else
     % Let the user browse for a result directory
     resultsDirectory = uigetdir(movieDirectory,'Select results directory');

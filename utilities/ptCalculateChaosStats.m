@@ -17,6 +17,11 @@ function [chaosStats, xAxis] = ptCalculateChaosStats (handles, radioButtons)
 % Name                  Date            Comment
 % --------------------- --------        --------------------------------------------------------
 % Andre Kerstens        Oct 04          Initial version
+% Johan de Rooij        jun 05          removing ripMPM mistake and
+%                                       changing averaging strategie.
+%                                       NB: increment = 1
+%                                       user input is not used.
+%                                       Has to be implemented.
 
 % Get the latest data from the handles
 MPM = handles.allMPM;
@@ -45,19 +50,23 @@ end
 % Get values from the gui (these are used for all jobs)
 plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
-%increment = jobData(1).increment;
-%numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
+% increment = jobData(1).increment;
+% NB!! here we cheat, because down below, only increment = 1 will work!!
+increment = 1;
+numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 
-% Determine the movie with the most frames
+%% !! forget about the following untill after averaging!
+
+% Determine the movie with the most frames (que? least frames?)
 % [shortestMPM, mpmLength] = ptMinMPMLength (MPM);
 % minFrames = mpmLength / 2;
-[shortestMovie, minFrames] = ptMinMovieLength (validFrames);
+%[shortestMovie, minFraceilmes] = ptMinMovieLength (validFrames);
 
 % Make sure we only process up to the shortest MPM else the averaging will
 % not work correctly
-if plotEndFrame > minFrames
-    plotEndFrame = minFrames;
-end
+% if plotEndFrame > minFrames
+%    plotEndFrame = minFrames;
+% end
 
 % Get drugtime point
 drugTimepoint = guiData.drugtimepoint;
@@ -66,16 +75,18 @@ drugTimepoint = guiData.drugtimepoint;
 [mpmNr, maxLength] = ptMaxMPMLength(MPM);
 
 % Initialize the ripley clustering vectors
-ripleyClust = zeros (length(MPM), ceil(maxLength/2));
-ripleyClustSlopePoint = zeros (length(MPM), ceil(maxLength/2));
-
+ripleyClust = zeros (length(MPM)+1, ceil((plotEndFrame-plotStartFrame)/increment)+1);
+ripleyClustSlopePoint = zeros (length(MPM)+1, ceil((plotEndFrame-plotStartFrame)/increment)+1);
+% put the frame numbers desired in the first row:
+ripleyClust(1,:) = (plotStartFrame:increment:plotEndFrame);
+ripleyClustSlopePoint(1,:) = (plotStartFrame:increment:plotEndFrame);
 for jobCount = 1 : length(MPM) 
 
     % Get start and end frames and increment value
     startFrame = jobData(jobCount).firstimg;
     endFrame = jobData(jobCount).lastimg;
-    increment = jobData(jobCount).increment;
-    numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
+    % increment = jobData(jobCount).increment;
+    % numberOfFrames = ceil((plotEndFrame - plotStartFrame) / increment) + 1;
 
     % Initialize properties counter depending on radiobutton value
     alwaysCountFrom1 = get (handles.GUI_alwayscount1_cb, 'Value');
@@ -84,41 +95,56 @@ for jobCount = 1 : length(MPM)
     else
        MPMCount = ceil ((plotStartFrame - 1) / increment);
     end
-
-    % Initialize cropped MPM
-    %ripMPM = zeros (size(MPM{jobCount},1),numberOfFrames*2);
-    ripMPM = zeros(size(MPM{jobCount},1), 2*length(validFrames{jobCount}(1,plotStartFrame:plotEndFrame)));
     
-    % Initialize X-axis vector and iCount
-    xAxis = zeros (1, numberOfFrames);
-    %xAxis = zeros (1, minFrames);
-    iCount = 0;
-
-    % Go through every frame of the set to get x-axis and MPM values
-    for frameCount = plotStartFrame : increment : plotEndFrame
-      
-       % Increase MPM counter
-       MPMCount = MPMCount + 1;
-      
-       frameIndx = find(validFrames{jobCount}(1,:) == MPMCount);
-       
-       if isempty(frameIndx)
-          continue;
+    % now you need to know whether the frame you wish to start from
+    % actually was valid. because otherwise you cannot use it in ripley.
+    MPMCount = MPMCount + 1;
+    checkStartFrame = find(validFrames{jobCount}(1,:) == MPMCount);
+    
+    % if it was not valid, increase MPMCount and try the next frame.
+    if isempty(checkStartFrame);
+       while isempty (checkStartFrame);
+           MPMCount = MPMCount + 1;
+           checkStartFrame = find(validFrames{jobCount}(1,:) == MPMCount);
        end
-
-       % Store the frame number for display on the x-axis
-       iCount = iCount + 1;
-       if ~alwaysCountFrom1
-           xAxis(iCount) = frameCount;
-       else
-           xAxis(iCount) = iCount;
-       end
-
-       % Since the ripley function doesn't know how to handle plot start
-       % and end frames, we have to crop the MPM first
-       ripMPM(:,2*iCount-1:2*iCount) = MPM{jobCount}(:,2*frameIndx-1 : 2*frameIndx);
-
-    end   % for frameCount
+       disp(['For Job  ',num2str(jobCount)]);
+       disp(['NB!! Due to missing or non-segmentable frames,']); 
+       disp(['starting ripley-clustering at frame ',num2str(MPMCount)]);
+    end
+    
+    %same story for the end frame, but decrease counter?!
+    Countert = plotEndFrame;
+    checkEndFrame = find(validFrames{jobCount}(1,:) == Countert);
+    if isempty(checkEndFrame);
+        while isempty(checkEndFrame);
+            Countert = Countert - 1;
+            checkEndFrame = find(validFrames{jobCount}(1,:) == Countert);
+        end
+        disp(['For Job  ',num2str(jobCount)]);
+        disp(['NB!! Due to missing or non-segmentable frames,']); 
+        disp (['ending ripley-clustering at frame ',num2str(Countert)]);
+    end
+    
+    % NB!!! here we need to add something that allows checking frames when
+    % increment is not 1!! to get the right coordinates form the MPM and
+    % store the right xAxis values as well!! for now, omly increment = 1
+    % will work!! change also line 49 then!!
+    
+    % now get the Rip input matrix:
+    ripMPM = MPM{jobCount}(:,(checkStartFrame*2)-1:checkEndFrame*2);
+            
+    
+    % Initialize cropped MPM (not needed in johans code.)
+    % ripMPM = zeros (size(MPM{jobCount},1),numberOfFrames*2);
+    % ripMPM = zeros(size(MPM{jobCount},1), 2*length(validFrames{jobCount}(1,plotStartFrame:plotEndFrame)));
+    
+    % get xAxis values.
+    xAxis = validFrames{jobCount}(1,checkStartFrame:checkEndFrame);
+   
+    
+    % Since the ripley function doesn't know how to handle plot start
+    % and end frames, we have to crop the MPM first
+    % ripMPM = MPM{jobCount};
     
     % Get row and colsizes
     rowSize = jobData(jobCount).rowsize;
@@ -129,82 +155,110 @@ for jobCount = 1 : length(MPM)
     fprintf (1, 'Performing Ripley clustering job %d...\n', jobCount);
     [cpar,pvr,dpvr,cpar2] = ClusterQuantRipley (ripMPM, colSize, rowSize, drugTimepoint);
     
-    % Store cpar value
-    ripleyClust(jobCount,1:length(cpar)) = cpar;
-    
-    ripleyClustSlopePoint(jobCount,1:length(cpar2)) = cpar2;
-    
+    % Store cpar value in the right columns of the ripley vectors:
+    for counterrows = 1 : length(xAxis);
+        RipRow = find(ripleyClust(1,:) == xAxis(counterrows));
+        ripleyClust(jobCount+1,RipRow) = cpar(1,counterrows);
+        ripleyClustSlopePoint(jobCount+1,RipRow) = cpar2(1,counterrows);
+    end
+    % now we can use this SlopeStartPoint to calculate a derivative per job
+    % and also per frame..
+    DerTemp = ripleyClustSlopePoint(jobCount+1,:);
+    findZeros = find(DerTemp<0.001);
+    DerTemp(findZeros) = NaN;
+    for framecount = 1:(length(DerTemp)-1);
+        DeltaRipStart(jobCount,framecount) = (abs(DerTemp(framecount+1) - DerTemp(framecount))/increment);
+    end    
 end  % for jobCount = 1 : length(MPM) 
 
-% Determine the last entry in xAxis
-xIndex = find(xAxis);
-lastEntry = xIndex(end);
 
-% Get the nr of jobs
-nrJobs = length(MPM);
+% now, average all frames in the big ripley matrices, ignoring all zero
+% entries in slopepoint, because they come from invalid frames.
+% have to check this with Dinah!!, no slope = NaN right?? (not zero..)
 
-% Calculate the average values over all MPMs
-%avgRipleyClust = sum(ripleyClust,1) / nrJobs;
-%avgripleyClustSlopePoint = sum(ripleyClustSlopePoint,1) / nrJobs;
+findZeros = find(ripleyClustSlopePoint<0.001);
+ripleyClustSlopePoint(findZeros) = NaN;
+ripleyClust(findZeros) = NaN;
 
-% Set up the loop counter;
-loopCount = 0;
 
-% Initialize the avg ripley vectors
-avgRipleyClust = zeros (1, numberOfFrames);
-avgRipleyClustSlopePoint = zeros (1, numberOfFrames);
+nrOfJobs = length(MPM);
 
-% Start summing and averaging frames
-for frameCount = plotStartFrame : increment : plotEndFrame
-    
-    % Increase loop counter
-    loopCount = loopCount + 1;
-    
-    % Initialize sums
-    ripleyClustSum = 0;
-    ripleyClustSlopePointSum = 0;
-    sumCountStart = 0;
-    sumCountSlope = 0;
-    
-    % Go through all the jobs
-    for jobCount = 1 : nrJobs
-        
-        % Find the frame in validFrames for this job
-        frameIndx = find(validFrames{jobCount}(1,:) == loopCount);
-        
-        if ~isempty(frameIndx) & ~isnan(ripleyClust(jobCount,frameIndx))
-            ripleyClustSum = ripleyClustSum + ripleyClust(jobCount,frameIndx);
-            
-            sumCountStart = sumCountStart + 1;
-        end
-        
-        if ~isempty(frameIndx) & ~isnan(ripleyClustSlopePoint(jobCount,frameIndx))
-            ripleyClustSlopePointSum = ripleyClustSlopePointSum + ripleyClustSlopePoint(jobCount,frameIndx);
-            
-            sumCountSlope = sumCountSlope + 1;
-        end
-    end
+if nrOfJobs > 1;
+    % take out the y values (row 1 is just framenr)
+    ripClustSlopeTemp = ripleyClustSlopePoint(2:nrOfJobs+1,:);
+    ripClustTemp = ripleyClust(2:nrOfJobs+1,:);
 
-    % Average the summed up values
-    if sumCountStart > 0
-        avgRipleyClust(loopCount) = ripleyClustSum / sumCountStart;
-    else
-        avgRipleyClust(loopCount) = NaN;
-    end
-    if sumCountSlope > 0
-        avgRipleyClustSlopePoint(loopCount) = ripleyClustSlopePointSum / sumCountSlope;  
-    else
-        avgRipleyClustSlopePoint(loopCount) = NaN;
-    end
+    % average, use nanmean to ignore NaNs. Is that OK in Clust? it is slightly
+    % cheating in ClustDeltaRipStartSlopePoint.. Have to correct that!
+    avgripleyClustSlopePoint = nanmean(ripClustSlopeTemp);
+    avgripleyClust = nanmean(ripClustTemp);
+else
+    avgripleyClustSlopePoint = ripleyClustSlopePoint(2,:);
+    avgripleyClust = ripleyClust(2,:);
 end
 
+% now we need to get rid of frames that have NaN and get the right xAxis
+% values!
+
+% first put frames and values back together:
+ripStartTemp2 = zeros (2,numberOfFrames);
+ripClustTemp2 = zeros (2,numberOfFrames);
+
+ripStartTemp2(1,:) = ripleyClust(1,:);
+ripClustTemp2(1,:) = ripleyClust(1,:);
+
+ripStartTemp2(2,:) = avgripleyClustSlopePoint;
+ripClustTemp2(2,:) = avgripleyClust;
+
+% now take out the columns of these new matrices that have NaN for value.
+% we could also choose to leave them in, but when there are not too many
+% bad frames in a row, this will be better for the derivatie calculation!
+
+findNaNStart = find(isnan(avgripleyClustSlopePoint));
+findNaNClust = find(isnan(avgripleyClust));
+
+for counterNaNs = 1 : length(findNaNStart);
+    invalidrow = findNaNStart(counterNaNs);
+    ripStartTemp2(:,invalidrow+1-counterNaNs) = [];
+end
+
+for counterNaNs = 1 : length(findNaNClust);
+    invalidrow = findNaNClust(counterNaNs);
+    ripClustTemp2(:,invalidrow+1-counterNaNs) = [];
+end
+    
+% now separate xAxis and values again (for ptPlotChaosStats)
+% and put them in a structure directly
+chaosStats.ripleySlopeInclin = ripClustTemp2(2,:);
+chaosStats.ripleySlopeStart = ripStartTemp2(2,:);
+
+xAxis.Start = ripStartTemp2(1,:);
+xAxis.Slope = ripClustTemp2(1,:);
+
+% now for the derivative..a nrofjobs by nrofframes matrix..
+if nrOfJobs > 1;
+    AvgDRSTemp = nanmean(DeltaRipStart);
+else
+    AvgDRSTemp = DeltaRipStart;
+end
+
+% adding an xAxis to it:
+AvgDRSTemp2 = zeros(2,length(AvgDRSTemp));
+AvgDRSTemp2(1,:) = ripleyClustSlopePoint(1,1:length(AvgDRSTemp));
+AvgDRSTemp2(2,:) = AvgDRSTemp;
+% taking out the non-valid entries
+findDerNaNs = find(isnan(AvgDRSTemp));
+for DerNaNCount = 1 : length(findDerNaNs);
+    badrow = findDerNaNs(DerNaNCount);
+    AvgDRSTemp2(:,badrow+1-DerNaNCount) = [];
+end
+% running average, also: not correct, because it runs over non-consec
+% frames. only for cleaner output purposes..
+AvgDRS = filter(ones(1,5)/5,1,AvgDRSTemp2(2,:));
+
 % Prepare output data
-chaosStats.ripleySlopeInclin = avgRipleyClust(1:lastEntry);
-chaosStats.ripleySlopeStart = avgRipleyClustSlopePoint(1:lastEntry);
-
-% Also take valid xAxis entries
-xAxis = xAxis(1:lastEntry);
-
+chaosStats.AvgDRS = AvgDRS;
+xAxis.Der = AvgDRSTemp2(1,:);
 
 %---------------------------------------------------------------------
 

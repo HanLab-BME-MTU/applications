@@ -31,7 +31,7 @@ function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptT
 %
 % DEPENDENCIES   ptTrackCells uses { imClusterSeg
 %				     ptTrackLinker
-%				     ptCheckMinimalCellDistance
+%				     ptCheckMinimalCelptTrackCellslDistance
 %				     ptFindNuclei
 %				     ptCalculateCellArea
 %				     ptFindHalos
@@ -67,8 +67,15 @@ function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptT
 % Andre Kerstens        Jun 04          Modification necessary because of extra parameter ptGetProcessedImage
 % Andre Kerstens        Jul 04          In case of too many bad segmentations, the function will return 
 %                                       and give up on the job
-% Andre Kerstens        Jul 04          Added frame properties to functions
+% Andre Kerstens        Jul 04         ptTrackCells Added frame properties to functions
 % Andre Kerstens        Jul 04          Segmentation function now uses precalculated mu0 values
+% Johan de Rooij        May 05          added binning to imClusterSeg
+%                                       needs to be added to GUI!!
+%                                       use ptImClusterSeg now!!
+%                                       set at line 118 now, default = 2.
+% Johan de Rooij        Jul 05          bugfix: restart muO calc after bad
+%                                       frames. needs revision, but works.
+
 
 % Get a pointer to the chromdynMain gui
 hPtMain = findall(0,'Tag','polyTrack_mainwindow','Name','PolyTrack');
@@ -110,7 +117,7 @@ emptyCell            = zeros (1,3);
 emptyCluster         = zeros (1,5);
 emptyFrame           = zeros (1,5);
 clustSize            = 3;
-clustBinSize         = 4;
+clustBinSize         = 2;
 
 % Created info directory if needed
 if saveIntResults
@@ -133,7 +140,7 @@ else		% lastImaNum > firstImaNum
    % Set up the loop and M counters
    loopCount = 0;
    mCount = 0;
-
+     
    % Initialize the storage for lost cells
    lostCells = [];
    
@@ -149,6 +156,7 @@ else		% lastImaNum > firstImaNum
       % Increase the loop counter
       loopCount = loopCount + 1;
       
+          
       % Read the image to be processed from disk using ptGetProcessedImage
       % Go to the directory where the images are
       if ~exist (imageDirectory, 'dir')
@@ -187,13 +195,25 @@ else		% lastImaNum > firstImaNum
 
              % Calculate the variation for mu0 in case we segment more than once
              % The second time start with the initial mu0
-             if (escapeCount == 0) & (loopCount == 1)
+             % NB Johan has added the badFrameCounter as a check, because
+             % after a bad frame segmentation of the next never worked, so
+             % I wanted to start fresh!!
+             if (escapeCount == 0) & (loopCount == 1) & (badFrameCounter == 0);
                 imageMinimum = min (min (newImage));
                 nucleusLevel = imageMinimum + abs(0.1 * imageMinimum);
                 imageMaximum = max (max (newImage));
                 haloLevel = imageMaximum - abs(0.1 * imageMaximum);
                 mu0 = [nucleusLevel ; backgroundLevel ; haloLevel];
-             elseif (escapeCount == 0) & (loopCount > 1)
+                %my stuffs starts here
+             elseif (escapeCount == 0) & (loopCount > 1) & (badFrameCounter > 0);
+                imageMinimum = min (min (newImage));
+                nucleusLevel = imageMinimum + abs(0.1 * imageMinimum);
+                imageMaximum = max (max (newImage));
+                haloLevel = imageMaximum - abs(0.1 * imageMaximum);
+                mu0 = [nucleusLevel ; backgroundLevel ; haloLevel];
+                %end ends here, to delete: take out the badFrameCounters
+                %here!
+             elseif (escapeCount == 0) & (loopCount > 1) & (badFrameCounter == 0);
                 mu0 = mu0Calc;
              else
                 fprintf (1, '       ptTrackCells: Bad segmentation: adjusting mu0 parameter: %d %d %d\n', mu0(1), mu0(2), mu0(3));
@@ -201,7 +221,9 @@ else		% lastImaNum > firstImaNum
              end
 
              % Segment the image again
-             [segmentedImage, dummy, mu0Calc] = imClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', clustSize, 'binning', clustBinSize, 'mu0', mu0);
+
+             [segmentedImage, dummy, mu0Calc] = ptImClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', clustSize, 'binning', clustBinSize, 'mu0', mu0);
+
 
              % The number of pixels in the nuclei should be relatively small compared to all the pixels in the image.
              % If large, something went wrong and we'll have to do the clustering again. Build in some sort
@@ -217,7 +239,7 @@ else		% lastImaNum > firstImaNum
              % Increase the counter so that we eventually come out of the loop
              escapeCount = escapeCount + 1;
           end   % while 
-      end  % if varImage < 0.005
+      end  % if varImage > 0.005
        
       % In case we found a bad frame, mark it in the valid frame array
       if varImage <= 0.005 | escapeCount >= maxCount
