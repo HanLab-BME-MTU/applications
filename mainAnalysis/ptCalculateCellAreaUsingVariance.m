@@ -43,12 +43,13 @@ function [cellProps, clusterProps, frameProps] = ptCalculateCellAreaUsingVarianc
 % Andre Kerstens        Jun 04          Calculations are done based on edges found in variance image
 % Andre Kerstens        Jul 04          Added calculations for frame properties
 % Andre Kerstens        Aug 04          Added test for existence of variables
+% Johan de Rooij        Jul 05          bugfix in line 49 and 52.
 
 % Prepare a matrix for the grouping of coordinates to objects
-clusterNr = zeros (length (coord), 1);
+clusterNr = zeros (length (coord(:,1)), 1);
 
 % Determine to which group each set of coordinates belongs
-for iCount = 1 : length (coord)          % process all rows in coord
+for iCount = 1 : length (coord(:,1))          % process all rows in coord
 
    % Store the coordinates
    x = coord(iCount,2);

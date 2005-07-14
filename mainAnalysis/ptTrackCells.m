@@ -75,6 +75,8 @@ function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptT
 %                                       set at line 118 now, default = 2.
 % Johan de Rooij        Jul 05          bugfix: restart muO calc after bad
 %                                       frames. needs revision, but works.
+% Johan de Rooij        Jul 05          Improve segmentation by using
+%                                       edgeImage for background loss.
 
 
 % Get a pointer to the chromdynMain gui
@@ -179,7 +181,7 @@ else		% lastImaNum > firstImaNum
       % shutter was completely closed)
       varImage = max(var(tempImage));
       
-      if varImage > 0.005
+      if varImage > 0.001
 
           % Process the image: subtract background, increase contrast between halos and nuclei
           [newImage, backgroundLevel, edgeImage] = ptGetProcessedImage (tempImage, intensityMax, ...
@@ -190,8 +192,9 @@ else		% lastImaNum > firstImaNum
 
           % Segment the image; if necessary multiple times
           nucleiArea = 1;
+          equality = 0.1;
           escapeCount = 0; maxCount = 3;
-          while ((nucleiArea > 0.5) || (haloArea > 0.5)) && (escapeCount < maxCount)
+          while ((nucleiArea > 0.5) || (haloArea > 0.5) || (equality < 0.8)) && (escapeCount < maxCount) 
 
              % Calculate the variation for mu0 in case we segment more than once
              % The second time start with the initial mu0
@@ -223,8 +226,34 @@ else		% lastImaNum > firstImaNum
              % Segment the image again
 
              [segmentedImage, dummy, mu0Calc] = ptImClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', clustSize, 'binning', clustBinSize, 'mu0', mu0);
-
-
+             % I might as well do this here: get rid of background that
+             % ends up in the nuclei segment, by using the edge image for
+             % correction:
+             % but if segmentation becomes bad, uncomment!
+             segmentedImage = segmentedImage .* edgeImage;
+             segmentedImage(find(segmentedImage == 0)) = 2;
+             % we may need a little check here, to make sure that we are
+             % not finding bulshit further down the line, because this
+             % resulted in black dots at the wrong spots.
+             % therefore we quickly determine the nuclei it finds in the
+             % segmented image:
+             [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc);
+             
+             % now we compare this frame to the previous (if there was one)
+             if mCount > 0
+                 testImage = imgNuclei - previmgNuclei;
+                 % if they are equal, than the difference between the two
+                 % should be quite small, so many zeros in the resulting
+                 % matrix.
+                 equality = length(find(testImage == 0))/numel(segmentedImage);
+                 % I think it should be over 80% equal..this stringency can
+                 % be increased later!
+             else
+                 equality = 1;
+             end
+             % and store for comparison with the next frame:
+             previmgNuclei = imgNuclei;
+            
              % The number of pixels in the nuclei should be relatively small compared to all the pixels in the image.
              % If large, something went wrong and we'll have to do the clustering again. Build in some sort
              % of mechanism that we don't hang in here forever.
@@ -238,11 +267,12 @@ else		% lastImaNum > firstImaNum
 
              % Increase the counter so that we eventually come out of the loop
              escapeCount = escapeCount + 1;
-          end   % while 
-      end  % if varImage > 0.005
+          end   % while              
+          
+      end  % if varImage > 0.001
        
       % In case we found a bad frame, mark it in the valid frame array
-      if varImage <= 0.005 | escapeCount >= maxCount
+      if varImage <= 0.001 | escapeCount >= maxCount
          fprintf (1, '       ptTrackCells: Bad frame %d: continue with next.\n', imageCount);
          
          % Increase bad frame counter
@@ -292,7 +322,8 @@ else		% lastImaNum > firstImaNum
           end 
           
           % Find all the cell nuclei coordinates
-          [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc);
+          % we did this already!!
+          % [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc);
 
           % Store the nuclei coords as intermediate result
           if saveIntResults
@@ -342,7 +373,7 @@ else		% lastImaNum > firstImaNum
           end
           
           % From frame 2 we should start matching coordinates
-          if imageCount > startFrame
+          if mCount > 1
 
              % Match the current coordinates with the ones found in the previous frame
              matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
@@ -617,7 +648,7 @@ else		% lastImaNum > firstImaNum
           previousCoord = newCoord;
           previousImage = newImage;
           
-      end  % if varImage <= 0.005 | escapeCount >= maxCount
+      end  % if varImage <= 0.001 | escapeCount >= maxCount
    end   % for imageCount
 end % if ~(lastImaNum > firstImaNum)
 
