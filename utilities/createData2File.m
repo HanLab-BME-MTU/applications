@@ -38,7 +38,7 @@ end
 extension = findstr('movieName','.');
 if ~isempty(extension)
     % check if it's really an extension
-    if extension == length(movieName)-3
+    if extension(end) == length(movieName)-3
         movieName = movieName(1:end-4);
     else
         error('Potentially improper movieName!')
@@ -49,12 +49,15 @@ data2FileName = [movieName,'-data2-',nowString,'.mat'];
 data2LogFileName = [movieName,'-data2-',nowString,'.mat.log'];
 
 % these are all the fields I can think of right now. 
+% history does not contain nowString - we do that in the log file
 data2File = struct('dataProperties','',...
     'r3dMovieHeader','','correctionData','',...
     'movieName','','filteredMovieName','',...
     'slist','','idlist','','idlist_L','',...
     'idlisttrack','','idlisttrack_L','',...
-    'lastResult','','synthIdlist','','synthSlist','');
+    'lastResult','','synthIdlist','','synthSlist','',...
+    'history',{{now,[directory,filesep,data2FileName]}},...
+    'slistList',{{}},'idlistList',{{}},'idlisttrackList',{{}});
 
 % make files
 oldDir = cd(directory);
