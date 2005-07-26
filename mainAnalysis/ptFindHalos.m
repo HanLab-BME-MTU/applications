@@ -23,13 +23,12 @@ function [haloCoord, extraNucCoord, imgHalo]= ptFindHalos (inputImage, haloMinSi
 % Andre Kerstens        Mar 04          Cleaned up source
 
 % The input image is already segmented, so take the pixels with value 3 
-imgHalo = inputImage == 3;
+imgHalo = inputImage == 5;
 
 % Let's do some morphological ops now to clean the image up
-imgHalo = imerode (imgHalo, strel ('disk', 2));
-imgHalo = imdilate (imgHalo, strel ('disk', 2));
-imgHalo = imopen (imgHalo, strel ('disk', 3));
-imgHalo = imclose (imgHalo, strel ('disk', 2));
+imgHalo = imfill (imgHalo, 'holes');
+imgHalo = imerode (imgHalo, strel ('disk', 3));
+imgHalo = bwareaopen (imgHalo, haloMinSize*2);
 
 % Label groups
 imgHaloLabeled = bwlabel (imgHalo);

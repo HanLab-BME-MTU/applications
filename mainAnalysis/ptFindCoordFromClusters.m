@@ -26,20 +26,27 @@ function [newCoord, imgClusterArea, labeledClusterImage] = ptFindCoordFromCluste
 %                                       on average cell size
 % Andre Kerstens        Jun 04          Calculations are done based on edges found in variance image
 % Andre Kerstens        Aug 04          Fixed 'divide by zero' warning
+% Johan de Rooij        Jul 05          changed morphops
 
 % Process the edge image so that we end up with a labeled image of areas
 % % First remove the white edge that was created during convolution
 % edgeImageNoEdge = edgeImage(edgeKernelSize:end-edgeKernelSize, edgeKernelSize:end-edgeKernelSize);
 
 % Some morphological operations to increase cluster quality
-edgeImageOpened = bwareaopen (edgeImage, minSizeNucleus);
+edgeImageOpened = imerode (edgeImage, strel ('disk', 1));
 edgeImageClosed = imfill (edgeImageOpened, 'holes');
-edgeImageBridged = bwmorph (edgeImageClosed,'bridge');
-edgeImageFilled = imfill (edgeImageBridged, 'holes');
+% edgeImageBridged = bwmorph (edgeImageClosed,'bridge');
+% edgeImageFilled = imfill (edgeImageBridged, 'holes');
+% my little change..(JR)
+imgClusterArea = imerode (edgeImageClosed, strel ('disk', 2));
+imgClusterArea = bwareaopen (imgClusterArea, minSizeNucleus*2);
+imgClusterArea = imerode (imgClusterArea, strel ('disk', 2));
+imgClusterArea = imdilate (imgClusterArea, strel ('disk', 2));
+
 
 % Label the image
-edgeImageLabeled = bwlabel (edgeImageFilled);
-imgClusterArea = edgeImageFilled;
+% edgeImageLabeled = bwlabel (edgeImageFilled);
+% imgClusterArea = edgeImageFilled;
 
 % % The binary image is an or-function of the input image where pixels are 1 (nuclei) and the
 % % input image where pixels are 3 (halos)
@@ -58,11 +65,13 @@ imgClusterArea = edgeImageFilled;
 % imgClusterArea = bwareaopen (imgClusterArea, minSizeNucleus);
 % 
 % % Label the objects in imgCellArea: 0 = background, 1 = first object, 2 = second object, etc
-% labeledClusterImage = bwlabel (imgClusterArea);
 
-labeledClusterImage = edgeImageLabeled;
+labeledClusterImage = bwlabel (imgClusterArea);
+
+% labeledClusterImage = edgeImageLabeled;
 
 % Find the number of clusters in the image
+% I don't see how this works!!
 maxClusterNr = max (max (labeledClusterImage));
 
 % Get the area and centroids of all the clusters in the image

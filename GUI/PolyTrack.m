@@ -1552,6 +1552,9 @@ for jobNumber = 1 : nrOfJobs
    
    % Final message for the user to mark the end
    fprintf (1, '\nTracking finished...\n\n');
+   
+   %johan added this, be careful, but the tracker didn't get out of this f-ing loop!!
+   jobNumber = jobNumber + 1;
 end
 
 %-------------------------------------------------------------------------------

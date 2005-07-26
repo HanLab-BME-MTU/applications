@@ -204,34 +204,47 @@ else		% lastImaNum > firstImaNum
              if (escapeCount == 0) & (loopCount == 1) & (badFrameCounter == 0);
                 imageMinimum = min (min (newImage));
                 nucleusLevel = imageMinimum + abs(0.1 * imageMinimum);
+                BetwNucAndBackgr = (backgroundLevel + imageMinimum)/2;
                 imageMaximum = max (max (newImage));
                 haloLevel = imageMaximum - abs(0.1 * imageMaximum);
-                mu0 = [nucleusLevel ; backgroundLevel ; haloLevel];
+                BetwHaloAndBackgr = (backgroundLevel + imageMaximum)/2;
+                mu0 = [nucleusLevel ; BetwNucAndBackgr ; backgroundLevel ; BetwHaloAndBackgr ; haloLevel];
                 %my stuffs starts here
              elseif (escapeCount == 0) & (loopCount > 1) & (badFrameCounter > 0);
                 imageMinimum = min (min (newImage));
                 nucleusLevel = imageMinimum + abs(0.1 * imageMinimum);
+                BetwNucAndBackgr = (backgroundLevel + imageMinimum)/2;
                 imageMaximum = max (max (newImage));
                 haloLevel = imageMaximum - abs(0.1 * imageMaximum);
+                BetwHaloAndBackgr = (backgroundLevel + imageMaximum)/2;
                 mu0 = [nucleusLevel ; backgroundLevel ; haloLevel];
+                mu0 = [nucleusLevel ; BetwNucAndBackgr ; backgroundLevel ; BetwHaloAndBackgr ; haloLevel];
                 %end ends here, to delete: take out the badFrameCounters
                 %here!
              elseif (escapeCount == 0) & (loopCount > 1) & (badFrameCounter == 0);
                 mu0 = mu0Calc;
              else
-                fprintf (1, '       ptTrackCells: Bad segmentation: adjusting mu0 parameter: %d %d %d\n', mu0(1), mu0(2), mu0(3));
-                mu0 = mu0 + [0.03 ; -0.02 ; -0.03];
+                fprintf (1, '       ptTrackCells: Bad segmentation: adjusting mu0 parameter: %d %d %d\n', mu0(1), mu0(2), mu0(3), mu0(4), mu0(5));
+                mu0 = mu0 + [0.03; 0.02 ; -0.01 ; -0.02 ; -0.03];
              end
 
-             % Segment the image again
-
-             [segmentedImage, dummy, mu0Calc] = ptImClusterSeg (newImage, 0, 'method', 'kmeans', 'k_cluster', clustSize, 'binning', clustBinSize, 'mu0', mu0);
-             % I might as well do this here: get rid of background that
-             % ends up in the nuclei segment, by using the edge image for
-             % correction:
-             % but if segmentation becomes bad, uncomment!
-             segmentedImage = segmentedImage .* edgeImage;
-             segmentedImage(find(segmentedImage == 0)) = 2;
+             % Segment the image (again)
+             
+             % first substract background from image:
+             %calculate background:
+             edgeImageOpened = imerode (edgeImage, strel ('disk', 1));
+             edgeImageClosed = imfill (edgeImageOpened, 'holes');
+             edgeImageSeg = imerode (edgeImageClosed, strel ('disk', 5));
+             edgeImageSeg = bwareaopen (edgeImageSeg, minSizeNuc);
+             
+             % now determine the input vector for segmentation:
+             segVec = newImage(find(edgeImageSeg));
+             % and do the segmentation on just this vector!!
+             [segmentedVec, dummy, mu0Calc] = ptImClusterSeg (segVec, 0, 'method', 'kmeans', 'k_cluster', 5, 'mu0', mu0);
+             segmentedImage = zeros(size(edgeImageSeg));
+             segmentedImage(find(edgeImageSeg)) = segmentedVec;
+             segmentedImage(find(edgeImageSeg == 0)) = 3;
+                         
              % we may need a little check here, to make sure that we are
              % not finding bulshit further down the line, because this
              % resulted in black dots at the wrong spots.
@@ -262,7 +275,7 @@ else		% lastImaNum > firstImaNum
              nucleiArea = bwarea (bwNuclei) / (size (segmentedImage, 1) * size (segmentedImage, 2));
              % Do the same for the halos since the total area shouldn't be to big as well
              bwHalo = zeros (size (segmentedImage));
-             bwHalo (find (segmentedImage == 3)) = 1;
+             bwHalo (find (segmentedImage == 5)) = 1;
              haloArea = bwarea (bwHalo) / (size (segmentedImage, 1) * size (segmentedImage, 2));
 
              % Increase the counter so that we eventually come out of the loop
@@ -302,23 +315,36 @@ else		% lastImaNum > firstImaNum
           % Calculate the amount of time (in secs) between this and the previous frame
           % datenum gives back the difference in days (time is the
           % fraction) which we have to convert back to seconds
+          try
+              DateTime = imageInfo.DateTime;
+          catch
+              % Tell the user there is no time-info in files
+              fprintf (1, 'these tiffs have no timestamp, job: %d.\n', jobNumber);
+          end
           if mCount > 1
-             % There might be several formats of storing the date; let's
-             % try a couple of them
-             julianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
-             %julianTime = datenum(imageInfo.DateTime, 'mmm dd yy HH:MM:SS');
-             frameTime = round(abs(julianTime - prevJulianTime) * 60 * 60 * 24);
+              %some images don't come with this piece of information..
+             if exist ('DateTime') == 1;
+                 % There might be several formats of storing the date; let's
+                 % try a couple of them
+                 julianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
+                %julianTime = datenum(imageInfo.DateTime, 'mmm dd yy HH:MM:SS');
+                frameTime = round(abs(julianTime - prevJulianTime) * 60 * 60 * 24);
          
-             if frameTime >= 1  % 1 sec is the minimum we accept
+                if frameTime >= 1  % 1 sec is the minimum we accept
                 validFrames(2,mCount) = frameTime;
-             else
-                validFrames(2,mCount) = timePerFrameGUI;
-             end
+                else
+                    validFrames(2,mCount) = timePerFrameGUI;
+                end
          
              prevJulianTime = julianTime;
+             else
+                 validFrames(2,mCount) = timePerFrameGUI;
+             end
           else
-             prevJulianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
-             %prevJulianTime = datenum(imageInfo.DateTime, 'mmm dd yy HH:MM:SS');
+              if exist ('DateTime') == 1;
+                 prevJulianTime = datenum(imageInfo.DateTime, 'yyyy:mm:dd HH:MM:SS');
+                 %prevJulianTime = datenum(imageInfo.DateTime, 'mmm dd yy HH:MM:SS');
+              end
           end 
           
           % Find all the cell nuclei coordinates
@@ -616,6 +642,7 @@ else		% lastImaNum > firstImaNum
              clusterFile = ['clusters' indxStr];
              segmentFile = ['segmentedImg' indxStr];
              nucleiFile = ['imgNuclei' indxStr];
+             haloFile = ['imgHalo' indxStr];
 
              % Save as tiff as well
              if exist ('clusterImage', 'var')
@@ -629,7 +656,11 @@ else		% lastImaNum > firstImaNum
                  if exist ('segmentedImage', 'var')
                     %save (segmentFile, 'segmentedImage');
                     procSegmImage = zeros (size (segmentedImage));
-                    procSegmImage (find (segmentedImage == 2)) = 0.5; procSegmImage (find (segmentedImage == 3)) = 1;
+                    procSegmImage (find (segmentedImage == 1)) = 0.2; 
+                    procSegmImage (find (segmentedImage == 2)) = 0.4;
+                    procSegmImage (find (segmentedImage == 3)) = 0.6; 
+                    procSegmImage (find (segmentedImage == 4)) = 0.8;
+                    procSegmImage (find (segmentedImage == 5)) = 1;
                     imwrite (procSegmImage, [saveDirectory filesep 'body' filesep segmentFile '.tif']);
                  end
 
@@ -637,7 +668,13 @@ else		% lastImaNum > firstImaNum
                  if exist ('imgNuclei', 'var')
                     imwrite (imgNuclei, [saveDirectory filesep 'body' filesep nucleiFile '.tif']);
                  end
-             
+
+                 % Save Halo image
+                 if exist ('imgHalo', 'var')
+                    imwrite (imgHalo, [saveDirectory filesep 'body' filesep haloFile '.tif']);
+                 end
+                 
+                 
                  % Save coordinates in ascii file
                  coordinatesFile = ['coordinates' indxStr];
                  save ([saveDirectory filesep 'body' filesep coordinatesFile '.txt'], 'newCoord', '-ASCII');

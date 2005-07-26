@@ -20,14 +20,13 @@ function [nucCoord, imgNuclei] = ptFindNuclei (inputImage, nucleiMinSize, nuclei
 % --------------------- --------        --------------------------------------------------------
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source
+% Johan de Rooij        jul 05          changed morhops
 
 imgNuclei = inputImage == 1;
 
 % Let's do some morphological ops now to clean the image up
-imgNuclei = imerode (imgNuclei, strel ('disk', 2));
-imgNuclei = imdilate (imgNuclei, strel ('disk', 2));
-imgNuclei = imopen (imgNuclei, strel ('disk', 3));
-imgNuclei = imclose (imgNuclei, strel ('disk', 3));
+imgNuclei = bwareaopen (imgNuclei, nucleiMinSize);
+imgNuclei = imfill (imgNuclei, 'holes');
 
 % Label the image
 imgNucleiLabeled = bwlabel (imgNuclei);
