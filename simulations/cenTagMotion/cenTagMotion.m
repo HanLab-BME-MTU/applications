@@ -16,7 +16,7 @@ function [tagPos,errFlag] = cenTagMotion(modelParam,coordInit,totalTime,dt);
 %       totalTime  : Total time of simulation in seconds.
 %       dt         : Time step used for time discretization. 
 %
-%OUTPUT tagPos  : position of tag center at every time step.
+%OUTPUT tagPos  : time + position of tag center at every time step.
 %       errFlag : 0 if function executes normally, 1 otherwise.
 %
 %COMMENTS For now, radius is assumed constant. So the tag only rotates. 
@@ -147,3 +147,6 @@ else       %diffusion limited rotation
         
     end
 end
+
+%add time column
+tagPos = [[0:length(tagPos(:,1))-1]'*dt tagPos];
