@@ -153,12 +153,12 @@ for jobCount = 1 : length(MPM)
     
     % Calculate clustering parameter values
     fprintf (1, 'Performing Ripley clustering job %d...\n', jobCount);
-    [cpar,pvr,dpvr,cpar2] = ClusterQuantRipley (ripMPM, colSize, rowSize, drugTimepoint);
+    [cpar1, cpar2,cpar3,pvr,dpvr] = ClusterQuantRipleyMC (ripMPM, colSize, rowSize, drugTimepoint,3);
     
     % Store cpar value in the right columns of the ripley vectors:
     for counterrows = 1 : length(xAxis);
         RipRow = find(ripleyClust(1,:) == xAxis(counterrows));
-        ripleyClust(jobCount+1,RipRow) = cpar(1,counterrows);
+        ripleyClust(jobCount+1,RipRow) = cpar3(1,counterrows);
         ripleyClustSlopePoint(jobCount+1,RipRow) = cpar2(1,counterrows);
     end
     % now we can use this SlopeStartPoint to calculate a derivative per job
@@ -175,6 +175,8 @@ end  % for jobCount = 1 : length(MPM)
 % now, average all frames in the big ripley matrices, ignoring all zero
 % entries in slopepoint, because they come from invalid frames.
 % have to check this with Dinah!!, no slope = NaN right?? (not zero..)
+% Dinah's comment: In the new Ripley function, for completely scattered
+% distributions (cpar3 < 0) cpar2 is automatically set to nan
 
 findZeros = find(ripleyClustSlopePoint<0.001);
 ripleyClustSlopePoint(findZeros) = NaN;
