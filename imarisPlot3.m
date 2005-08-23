@@ -1,4 +1,4 @@
-function imarisApplication = imarisPlot3(plotData,aspectRatio)
+function imarisApplication = imarisPlot3(plotData,aspectRatio,image)
 %IMARISPLOT3 generates a 3D data plot
 %
 % SYNOPSIS imarisApplication = imarisPlot3(plotData)
@@ -23,10 +23,16 @@ function imarisApplication = imarisPlot3(plotData,aspectRatio)
 %                    will be collected in a folder in Imaris.
 %                    If classes are used, ALL groups have to belong to a
 %                    class.
+%
 %           aspectRatio (opt): Aspect ratio of the data. With the default,
 %                              [1,1,1], the plot box has the shape of a
 %                              cube. Specify [0,0,0] if a unit step should
 %                              be the same in every direction.
+%
+%           image (opt): array underlying the spots. The array needs to
+%                   have at least the size of the N-dimensional bounding
+%                   box around the spots. AspectRatio is forced to [0,0,0]
+
 %
 % OUTPUT  imarisApplication: Handle to the imaris Application
 %
@@ -159,6 +165,12 @@ if nargin < 2 || isempty(aspectRatio)
     aspectRatio = def_aspectRatio;
 end
 
+if nargin < 3 || isempty(image)
+    imageIsSupplied = 0;
+else
+    imageIsSupplied = 1;
+end
+
 %=========================================
 
 
@@ -172,7 +184,12 @@ end
 % 2) Calculate coordinate transformation
 %       This has to be done, in case the aspect ratio is fixed. Otherwise,
 %       we just adjust the image extent.
-% 3) Later: join same colors, make 3D-histogram
+%
+% If we do 3D-histogram (i.e. an image is supplied), we have to do
+% everything differently:
+% 1a) Find extent of image, test if data falls within the image, and that's
+%       it already
+
 
 % find extent. make sure we have enough space to place a sphere
 allData = cat(1,plotData.XYZ);
@@ -186,81 +203,115 @@ dataRange = dataExtent(2,:) - dataExtent(1,:);
 allTime = cat(1,plotData.time);
 maxTime = max(allTime);
 
-
-% imageDelta takes into account that the pixel coordinates are at the
-% center of the pixel. Therefore, if we want to go from 0 to 10, we need 11
-% pixels.
-imageDelta = [1, 1, 1];
-
-% select size of image - consider aspect ratio
-if any(aspectRatio) == 0
-    % use dataRange as image size
-
-    % we do not need to make any kind of coordinate transformation
-    doTransform = 0;
-
-    % test for max image size
-    bigExtent = ceil(dataRange);
-    if prod(bigExtent) < def_maxImSize
+if ~imageIsSupplied
 
 
-        % assign imageSize - correct with imageDelta
-        imSize = bigExtent + imageDelta;
+    % imageDelta takes into account that the pixel coordinates are at the
+    % center of the pixel. Therefore, if we want to go from 0 to 10, we need 11
+    % pixels.
+    imageDelta = [1, 1, 1];
 
-        % find origin of image (coord - radius - some round-off delta)
-        deltaExtent = bigExtent - dataRange;
-        origin = dataExtent(1,:) - deltaExtent/2;
+    % select size of image - consider aspect ratio
+    if any(aspectRatio) == 0
+        % use dataRange as image size
 
-    else
-        % we need to adjust image size. However, by setting the image
-        % extent, we will get the correct aspect ratio.
-        multImg = repmat((def_maxImSize/prod(bigExtent))^(1/3),[1,3]);
 
-        % assign imSize
-        imSize = ceil(bigExtent .* multImg) + imageDelta;
-        % this is a reasonable approximation
-        deltaExtent = (bigExtent - dataRange);
-        % origin does not need to be adjusted - this is done below
-        origin = dataExtent(1,:) - deltaExtent/2;
+        % we do not need to make any kind of coordinate transformation
+        doTransform = 0;
+
+        % test for max image size
+        bigExtent = ceil(dataRange);
+        if prod(bigExtent) < def_maxImSize
+
+
+            % assign imageSize - correct with imageDelta
+            imSize = bigExtent + imageDelta;
+
+            % find origin of image (coord - radius - some round-off delta)
+            deltaExtent = bigExtent - dataRange;
+            origin = dataExtent(1,:) - deltaExtent/2;
+
+        else
+            % we need to adjust image size. However, by setting the image
+            % extent, we will get the correct aspect ratio.
+            multImg = repmat((def_maxImSize/prod(bigExtent))^(1/3),[1,3]);
+
+            % assign imSize
+            imSize = ceil(bigExtent .* multImg) + imageDelta;
+            % this is a reasonable approximation
+            deltaExtent = (bigExtent - dataRange);
+            % origin does not need to be adjusted - this is done below
+            origin = dataExtent(1,:) - deltaExtent/2;
+
+        end
+
+        % set extends of image
+        extendMin = (origin - ((imageDelta-1)/2));
+        extendMax = (bigExtent + origin + ((imageDelta-1)/2));
+
+        % store data for axis labels
+        stepSize = (extendMax - extendMin)./(imSize-imageDelta); % one less steps that pix
+        plotBoxData = [extendMin-stepSize/2; extendMax+stepSize/2; stepSize]';
+
+
+
+    else % use aspect ratio
+
+        % we need to transform the ranges onto [0...10].*aspectRatio
+        doTransform = 1;
+
+        % to transform coordinates: subtract origin, divide by range to make data
+        % going from 0 to 10
+        origin = dataExtent(1,:);
+
+        % "inner image": 10x10x10*aspectRatio
+        imSize = ([10,10,10]).* aspectRatio + imageDelta;
+
+
+        % we will divide the coordinates by divideRange -> multiply by imSize
+        divideRange = dataRange ./ (imSize - imageDelta);
+
+        % the extends of the image will be imSize - 1;
+        extendMin = zeros(1,3);
+        extendMax = imSize - 1;
+
+        % store data for axis labels
+        stepSize = divideRange;
+        plotBoxData = [origin - divideRange/2;...
+            origin + dataExtent(2,:) + divideRange/2; stepSize]';
+
 
     end
-
-    % set extends of image
-    extendMin = (origin - ((imageDelta-1)/2));
-    extendMax = (bigExtent + origin + ((imageDelta-1)/2));
-
-    % store data for axis labels
-    stepSize = (extendMax - extendMin)./(imSize-imageDelta); % one less steps that pix
-    plotBoxData = [extendMin-stepSize/2; extendMax+stepSize/2; stepSize]';
-
-
-
-else % use aspect ratio
-
-    % we need to transform the ranges onto [0...10].*aspectRatio
-    doTransform = 1;
-
-    % to transform coordinates: subtract origin, divide by range to make data
-    % going from 0 to 10
-    origin = dataExtent(1,:);
-
-    % "inner image": 10x10x10*aspectRatio
-    imSize = ([10,10,10]).* aspectRatio + imageDelta;
-
-
-    % we will divide the coordinates by divideRange -> multiply by imSize
-    divideRange = dataRange ./ (imSize - imageDelta);
-
-    % the extends of the image will be imSize - 1;
-    extendMin = zeros(1,3);
-    extendMax = imSize - 1;
-
-    % store data for axis labels
-    stepSize = divideRange;
-    plotBoxData = [origin - divideRange/2;...
-        origin + dataExtent(2,:) + divideRange/2; stepSize]';
-
-
+    image = (zeros([imSize,1,maxTime]));
+else
+    % an image has been supplied
+    % The image will go from 1 to size(image) to be Matlab-compatible
+    
+    imSize = [0,0,0];
+    [imSize(1),imSize(2),imSize(3),imTime] = size(image);
+    % make sure data is within image. (at some point: test whether this
+    % would be a problem at all
+    % Histogram:
+    % add 0.5 to the allowable extent: if our bins go from 1 to 10, the
+    % data actually stretches from 0.5 to 10.5, because the pixel centers
+    % are the bin centers!
+    if any(dataExtent(1,:) < 0.5-maxRadius) || ...
+            any(dataExtent(2,:) > imSize+0.5+maxRadius) || ...
+            maxTime > imTime 
+        error('data is not within image!')
+    end
+    
+    % extendMin, extendMax are just the edges of the image
+    extendMin = [1,1,1];
+    extendMax = imSize;
+    
+    % the origin is equivalent to extendMin
+    doTransform = 0;
+    origin = [1,1,1];
+    divideRange = [1,1,1];
+    
+    % plotBoxData is nothing but the image again
+    plotBoxData = [extendMin',extendMax',ones(3,1)];
 end
 
 %========================================
@@ -270,21 +321,19 @@ end
 % PUT SPOTS INTO IMARIS
 %========================================
 
-% 1) start Imaris, set 10-by-10-by-10 matrix (later used for histo)
+% 1) start Imaris, set image
 % 2) loop through plotData, put points into Surpass
 
 % start new imaris
 imaApp = imarisStartNew;
 % insert a pause. 0.2 seconds works, too, but I want to avoid a crash on
 % slower machines.
-pause(0.5)
-
-
-
+% pause(0.5)
+% should be no problem anymore thanks to Christoph's patch!
 
 % make dataSet and put into imaris
 imaDataSet = imaApp.mFactory.CreateDataSet;
-imaDataSet.SetData(single((zeros([imSize,1,maxTime]))));
+imaDataSet.SetData(single(image));
 % image starts at imageDelta/2 pixels left of origin - divide to ensure
 % aspect ratio!
 imaDataSet.mExtendMinX =  extendMin(1);

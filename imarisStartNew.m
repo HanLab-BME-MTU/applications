@@ -21,7 +21,7 @@ if evalin('base','exist(''imarisApplication'',''var'')')
     end
     imaAppName = [imaAppName, num2str(num)];
 end
-
+imarisApplication.mVisible = 1;
 assignin('base',imaAppName,imarisApplication);
 sprintf('The handle to the current imaris is ''%s''\nDelete it to close this session of Imaris',imaAppName)
 
