@@ -82,6 +82,8 @@ end
 
 if nargin < 3
     loadOpt = [];
+elseif isstruct(loadOpt) && isfield(loadOpt,'moviePath')
+    dirName = loadOpt.moviePath;
 end
 
 %==========================
@@ -95,8 +97,8 @@ end
 if type == 6
     [movieName, dirName, chooseIdx] = ...
         uigetfile({'*.fim;moviedat*','filtered movie';...
-        '*.r3d;*.r3c;*R3D.dv','corrected movie';...
-        '*.r3d;*.r3c;*R3D.dv','raw movie'},...
+        '*.r3d;*.r3c;*3D.dv','corrected movie';...
+        '*.r3d;*.r3c;*3D.dv','raw movie'},...
         'Please choose movie type and location!');
     if movieName == 0
         % user aborted
@@ -189,7 +191,7 @@ else
         % search for raw movie file
         while numFiles >= i && ...
                 ((isempty(findstr(fileNameList{i},'.r3d')) &&...
-                isempty(findstr(fileNameList{i},'R3D.dv'))) || ...
+                isempty(findstr(fileNameList{i},'3D.dv'))) || ...
                 ~isempty(findstr(fileNameList{i},'.log')))
             i = i + 1;
         end
@@ -372,6 +374,7 @@ else
     % fill in loadStruct
     loadStruct.movieName = movieInfo.name;
     loadStruct.movieType = goodTypes{type};
+    loadStruct.moviePath = dirName;
     if ~isempty(correctionData)
         % check if we have stored an image or just a slice
         if ndims(correctionData.image)==2

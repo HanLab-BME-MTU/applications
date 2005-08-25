@@ -162,14 +162,14 @@ pixelZ = sprintf('%0.4f',header.pixelZ);
 set(handles.edit_pixel_xy_txt,'String',pixelX);
 set(handles.edit_pixel_z_txt,'String',pixelZ);
 set(handles.edit_lensID_txt,'String',header.lensID);
-switch header.lensID
-    case {12003,10002,10612,10006} %do like this until we can look it up somewhere
-        NA = 1.4;
-        set(handles.edit_NA_txt,'String',1.4); 
-    otherwise
-        NA = [];
-        set(handles.edit_NA_txt,'String','','Style','edit');
+% try to find lensID. If not in list, ask.
+NA = naFromLensID(header.lensID,1);
+if isempty(NA)
+    set(handles.edit_NA_txt,'String','','Style','edit');
+else
+    set(handles.edit_NA_txt,'String',NA);
 end
+    
 set(handles.edit_wavelength_txt,'String',header.wvl(1));
 set(handles.edit_exposureTime_txt,'String',header.expTime);
 set(handles.edit_movieLength_txt,'String',header.numTimepoints);

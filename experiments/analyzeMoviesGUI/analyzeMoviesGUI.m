@@ -251,21 +251,21 @@ guiH = handles.AMG;
 %get project name. If the name of the movie and the name of the directory
 %are not the same, create subdirectory with projectname = moviename and move
 %movie and logfile
+movieNames = searchFiles('(.r3[cd]|[dr]3d.dv)','(log|part|bad)','ask');
+selectedIdx = listSelectGUI(movieNames(:,1));
+nSelected = length(selectedIdx);
+movieNames = movieNames(selectedIdx,:);
 
-[fileName,pathName] = uigetfile({'*.r3d;*.r3c;*R3D.dv;*r3d.dv','raw movie files'},'select project movie');
-
-%return if user has selected nothing
-if fileName==0 
-    return
-elseif strcmpi(fileName(end-6:end),'_R3D.dv')
+% if there are any movieNames, we loop, otherwise, we automatically return
+for iMovie = 1:nSelected
+    fileName = movieNames{iMovie,1};
+    pathName = movieNames{iMovie,2};
+if strcmpi(fileName(end-6:end),'3D.dv')
     % change fileName to *.r3d
     destFileName = [fileName(1:end-7),'.r3d'];
 elseif strcmp(fileName(end-3:end-1),'.r3')
     % we're happy
     destFileName = fileName;
-else
-    %something is strange: return
-    return
 end
 
 % %make sure user has not inadvertedly selected the r3d instead of the r3c
@@ -293,9 +293,15 @@ projName = destFileName(1:end-4);
 
 %get name of directory
 listSep = findstr(pathName,filesep);
-lastSep = listSep(end-1); %with uigetfile, the path ends with a filesep!
-dirName = pathName(lastSep+1:end-1); %ditto
+% lastSep = listSep(end-1); %with uigetfile, the path ends with a filesep!
+% dirName = pathName(lastSep+1:end-1); %ditto
+% with the new search/list, there are no trailing fileseps anymore
+dirName = pathName(listSep(end)+1:end);
 
+if strcmpi(dirName(end-2:end),'bad')
+    % then don't do any calculations
+    disp(sprintf('%s is labelled ''bad'' - will not be analyzed',fileName))
+else
 if strcmp(projName,dirName)|strcmp(projName,[dirName,'_corr'])
     %projName==dirName or projName==dirName_corr
     fullPathName = pathName; %leave filesep for now...
@@ -326,8 +332,8 @@ end
 cd(fullPathName);
 
 %see if project is in mainDir, do it case-unsensitive
-if strcmpi(fullPathName(1:length(mainDir)+1),[mainDir,filesep])==1
-    relPathName = fullPathName(length(mainDir)+2:end-1); %begins without filesep, ends with none
+if strcmpi(fullPathName(1:length(mainDir)),[mainDir])==1
+    relPathName = fullPathName(length(mainDir)+2:end); %begins without filesep, ends with none
 else
     ans = questdlg('moviefile is not in main file structure or you have no env-var BIODATA. There will be problems sharing your data',...
         'WARNING','Continue','Cancel','Cancel');
@@ -374,6 +380,10 @@ guidata(gcbo,handles);
 
 %launch property window
 editProperties(handles);
+end % check 'bad'
+end % end loop movies
+
+%-----------------------------------------------------------
 
 % --- Executes on button press in amg_run_PB.
 function amg_run_PB_Callback(hObject, eventdata, handles)
