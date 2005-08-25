@@ -304,10 +304,14 @@ if strcmpi(dirName(end-2:end),'bad')
 else
 if strcmp(projName,dirName)|strcmp(projName,[dirName,'_corr'])
     %projName==dirName or projName==dirName_corr
-    fullPathName = pathName; %leave filesep for now...
+    fullPathName = pathName; 
 else
     %projName~=dirName
     cd(pathName);
+    % add filesep to pathName
+    if ~strcmp(pathName(end),filesep)
+        pathName = [pathName,filesep];
+    end
     %create new directory
     mkdir(projName);
     %store directory path
