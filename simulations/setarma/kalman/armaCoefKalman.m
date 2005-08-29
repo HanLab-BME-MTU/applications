@@ -314,7 +314,7 @@ if arOrder + maOrder ~= 0
                 prob.user.numAvail = totAvail;
 
                 %find global minimum of -2ln(likelihood) using Tomlab's glbFast
-                result = tomRun('glbFast',prob,[],2);
+                result = tomRun('glbDirect',prob,[],2);
 
             else
 

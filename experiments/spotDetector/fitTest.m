@@ -125,6 +125,8 @@ while redoN
     
     if ~isempty(deletedSpotNumber)
         nsp = nsp - length(deletedSpotNumber);
+        % update number of degrees of freedom
+        degFree=4*nsp+1;
         %send the data through another fitting loop
         if nsp>0
             redoN = 1;
@@ -184,7 +186,7 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         
         %calc chi and Q-matrix
         Res2= nGaussFit(gIdxList)-data;
-        chi2= sum(Res2(:).^2)/(length(Res2(:))-9);
+        chi2= sum(Res2(:).^2)/(length(Res2(:))-ndegFree);
         nQAll=(nGaussGrad'*nGaussGrad)^-1;
         
         if DEBUG
