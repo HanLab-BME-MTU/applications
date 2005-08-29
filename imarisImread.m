@@ -196,6 +196,8 @@ if launchGUI
         error('no movie loaded - User abort')
     end
     
+else
+    filterIdx = 1;    
 end
 
 % load movie into imaris
