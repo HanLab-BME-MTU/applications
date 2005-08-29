@@ -1,14 +1,17 @@
-function imarisApplication = imarisShowArray(array,imaApp,pixelSize)
+function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC)
 %IMARISSHOWARRAY loads a 3D array into Imaris
 %
-% SYNOPSIS  imaApplication = imarisShowArray(array,imaApp)
+% SYNOPSIS  imaApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC)
 %
 % INPUT   array: Data to display. Usually 3D, but dimension can be lower.
 %                It can be up to 5D - x,y,z,t,channel (this order).  
 %         imaApp (opt): handle to the imaris application into which the array
 %                       should be loaded. If no handle is given, Imaris
 %                       will open a new session.
-%         pixelSize (opt): [x,y,z] of pixel lengths {[1,1,1]}
+%         pixelSize (opt) : [x,y,z] of pixel lengths {[1,1,1]}
+%         equalizeTC (opt): [eqT, eqC] - switches indicating whether to
+%                           equalize values along the 4th and/or 5th
+%                           dimension. {[0,0]}
 %
 % OUTPUT  imarisApplication: Handle to the imaris Application
 %
@@ -26,6 +29,7 @@ function imarisApplication = imarisShowArray(array,imaApp,pixelSize)
 %=============
 
 def_pixelSize = [1,1,1];
+def_equalize = [0,0];
 
 % check dimensionality of input matrix
 if nargin < 1 || isempty(array)
@@ -60,10 +64,58 @@ else
     pixelSize = returnRightVector(pixelSize, 3);
 end
 
+if nargin < 4 || isempty(equalizeTC)
+    equalizeTC = def_equalize;
+else
+    if length(equalizeTC) == 1
+        equalizeTC = [equalizeTC, equalizeTC];
+    end   
+end
+
 % name of the input variable
 varName = inputname(1);
-
 %=============
+
+%======================
+% EQUALIZE IF SELECTED
+%======================
+
+switch sum(find(equalizeTC == 1))
+    % loop to avoid memory problems
+    case 1 % only t
+        for t=1:sizeArray(4)
+            frame = array(:,:,:,t,:);
+            frameVec = frame(:);
+            minFrame = nanmin(frameVec);
+            maxFrame = nanmax(frameVec);
+            array(:,:,:,t,:) = ...
+                (frame - minFrame) / (maxFrame-minFrame);
+        end
+            
+    case 2 % only c
+        for c=1:sizeArray(5)
+            frame = array(:,:,:,:,c);
+            frameVec = frame(:);
+            minFrame = nanmin(frameVec);
+            maxFrame = nanmax(frameVec);
+            array(:,:,:,:,c) = ...
+                (frame - minFrame) / (maxFrame-minFrame);
+        end
+    case 3 % t and c
+        for c=1:sizeArray(5)
+            for t=1:sizeArray(4)
+                frame = array(:,:,:,t,c);
+            frameVec = frame(:);
+            minFrame = nanmin(frameVec);
+            maxFrame = nanmax(frameVec);
+            array(:,:,:,t,c) = ...
+                (frame - minFrame) / (maxFrame-minFrame);
+            end
+        end
+        
+    otherwise % don't equalize
+        
+end
 
 
 %===============
