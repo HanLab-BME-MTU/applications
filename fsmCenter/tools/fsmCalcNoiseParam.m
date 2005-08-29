@@ -128,10 +128,28 @@ stack=(stack-mn)/(mx-mn);
 I0=mean(stack(:));
 
 % Standard deviation
-S=std(stack,1,3);
 
-% Get a mean value for the standard deviation over time
-sDN=mean(S(:));
+%(Aaron calculates the sDN by taking the std over time for each pixel, and
+%then averaging over all pixels in the chosen part of the background. This
+%does not work if you give the software just one image (not a movie), and is 
+%probably quite inaccurate for movies that have a small number of time points. 
+%So I changed it such that, if the number of images in a movie is less than 5, 
+%the sDN is calculated as the std of all pixels in the chosen part at all
+%time points. -KJ)
+
+if n < 5
+
+    sDN = std(stack(:),1);
+
+else
+
+    % Standard deviation over time
+    S=std(stack,1,3);
+
+    % Get a mean value for the standard deviation over time
+    sDN=mean(S(:));
+
+end
 
 %
 % Calculate GaussRatio
