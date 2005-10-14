@@ -20,12 +20,12 @@ function [numDist,ncordList,ampList,bg,statistics,debugData]=fitTest(data,cordLi
 % c: 7/6/01 dT
 
 %CONST DEFINITIONS
-F_TEST_PROB=dataProperties.F_TEST_PROB;
+F_TEST_PROB = dataProperties.F_TEST_PROB;
 
-MAX_POS_DELTA= [7 7 7];
+MAX_POS_DELTA = dataProperties.FILTERPRM(4:6);
 
 %init debug parameters
-if nargin < 7 | isempty(DEBUG)
+if nargin < 7 || isempty(DEBUG)
     DEBUG = 0;
 else
     debugData = struct('exitflag',[],'output',[]);
@@ -159,10 +159,24 @@ ncordList=reshape(parms(posIdx),3,nsp)';
 
 if nsp>0 %do N+1-fit only if there are any spots left!
     %--------------------------------------FIT N+1-------------------------------------
-    nCt=1;
+    
+    % nCt counts the number of new tags
+    nCt=0;
+    
+    % local image is the image of the jointly fitted tags
+    localImage = reshape(data,dataSize);
+    subImageSize = MAX_POS_DELTA;
+    
+    % loop through all the jointly fitted spots
     for i = 1:nsp
+        % loop for every spot while new spots are being found
+        failedTest = 0;
+        newIdx = [];
+        while ~failedTest
+        
+        
         %boundary
-        intensIdx=i*4;
+        intensIdx=(i+nCt)*4;
         
         %transform amplitudes again (parms only, because lb and ub have not been transformed back!)
         parms(ampAndBGIdx) =  parms(ampAndBGIdx)*TRANSFACT;
@@ -170,9 +184,21 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         nlb=[ncordList(i,:) - MAX_POS_DELTA 2*estNoise lb];
         nub=[ncordList(i,:)+MAX_POS_DELTA 50000 ub];
         nlb(intensIdx+4*nCt)=0.2*parms(intensIdx);
-        % --- shouldn't we try 2-3 times with random init?
-        nparms=[ncordList(i,:)+(2-4*rand(1,3)) 0.5*parms(intensIdx) parms];
-        nlb(intensIdx+4*nCt)=0.5*parms(intensIdx);
+        % as first guess for the new parameter we take the centroid of the
+        % subimage around the spot. If we are in the second iteration, the
+        % patch center will be in between the old and the new spot. This of
+        % course assumes that tags will always be arranged in some kind of
+        % a triangle, and never in a line with the brightest in the center,
+        % but for these cases there's the tracker.
+        oldCenter = mean(ncordList([i+nCt,newIdx],:));
+        subImage = stamp3D(localImage,subImageSize,oldCenter);
+        centroid = centroid3D(subImage);
+        % actually we take twice the distance from the spot to the
+        % centroid, because the spot will "attract" the centroid
+        centerShift = 2*(centroid - subImageSize/2)/2;
+        % keep 0.5*intensity for the new spot
+        nparms = [oldCenter + centerShift 0.5*parms(intensIdx) parms];
+        
         
         [nparms,resnorm,dummy,exitflag,output] = lsqnonlin(@distTestError,nparms,nlb,nub,options,transData,gIdxList,mskDataSize,dataProperties);
         
@@ -213,13 +239,19 @@ if nsp>0 %do N+1-fit only if there are any spots left!
                 parms=nparms;
                 ampAndBGIdx = nAmpAndBGIdx;
                 nCt=nCt+1;
-            else %transform back parms
+                posIdx=sort([1:4:(4*(nsp+nCt)) 2:4:(4*(nsp+nCt)) 3:4:(4*(nsp+nCt))]);
+                ncordList=reshape(parms(posIdx),3,(nsp+nCt))';
+                newIdx = [newIdx, 0] + 1;
+            else %transform back parms and quit loop
+                failedTest = 1;
                 parms(ampAndBGIdx) = parms(ampAndBGIdx)/TRANSFACT;
             end
             
         else %transform back parms
+            failedTest = 1;
             parms(ampAndBGIdx) = parms(ampAndBGIdx)/TRANSFACT;
         end
+        end % while-loop
     end %for-loop
     
     

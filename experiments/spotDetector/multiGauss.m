@@ -49,7 +49,7 @@ for i=1:nGs
 
         gaussgrad(:,(i-1)*GAUSS_PARMS+1:i*GAUSS_PARMS)=...
             [xc(:)/sigma(1), yc(:)/sigma(2), zc(:)/sigma(3),...
-            xc(:).^2/sigma(1) +yc(:).^2/sigma(2), zc(:).^2/sigma(3), sca/weight ].*tg;
+            xc(:).^2/sigma(1), yc(:).^2/sigma(2), zc(:).^2/sigma(3), sca/weight ].*tg;
 
     end
 end
