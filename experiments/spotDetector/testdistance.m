@@ -72,9 +72,13 @@ for i=valid
     ct=ct+1;
     Qtemp=blkdiag(Qtemp,Q((i-1)*3+1:(i-1)*3+3,(i-1)*3+1:(i-1)*3+3));
 end;
+
+% careful: we've created a new structure, and assign it into an old one.
+% Therefore, the order of the fields needs to be exactly the same!
 ncord.mnint=cord.mnint;
 ncord.statistics.sigD=sigD(valid,valid);
 ncord.statistics.chi=chi(valid);
 ncord.statistics.snr=snr(valid);
 ncord.statistics.Q=Qtemp;
 ncord.parms=cord.parms;
+ncord.COM = cord.COM;

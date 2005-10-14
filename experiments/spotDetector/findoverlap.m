@@ -32,7 +32,8 @@ end
 % init cordOut. Code changed to no longer overwrite input cord, but to
 % build a new structure from scratch. This could potentially be a problem
 % with huge structures, but it is much less error-prone
-cordOut(1:tsteps) = struct('sp',[],'mnint',[],'statistics',[],'parms',[]);
+cordOut(1:tsteps) = struct('sp',[],'mnint',{cord.mnint},...
+    'statistics',[],'parms',[],'COM',{cord.COM});
 
 for t=1:tsteps
     Q=[];
@@ -42,6 +43,7 @@ for t=1:tsteps
     ct=1;
     cord(t).statistics=[];
     cord(t).parms=[];
+    
 
     %======DEBUG
     %         t;
@@ -68,8 +70,8 @@ for t=1:tsteps
 
             imgStk=data(:,:,:,1,t);
             %resize data if necessary (odd size)
-            idx=~rem(size(imgStk),2);
-            imgStk=imgStk(1:end-idx(1),1:end-idx(2),1:end-idx(3));
+            %idx=~rem(size(imgStk),2);
+            %=imgStk(1:end-idx(1),1:end-idx(2),1:end-idx(3));
 
             while (~isempty(cordList))
                 discerned = 0;
@@ -86,7 +88,8 @@ for t=1:tsteps
                 %             anymore - fitTest should be able to remove the respective tags!
                 %             if nspots<1.5*MAXSPOTS
                 mskData=imgStk(idxList);
-                [numDist,ncordList,ampList,bg,statistics]=fitTest(mskData,cordList(spotsidx,:),idxList,size(imgStk),dataProperties);
+                estNoise = imNoiseEstim(imgStk);
+                [numDist,ncordList,ampList,bg,statistics]=fitTest(mskData,cordList(spotsidx,:),idxList,size(imgStk),dataProperties,estNoise);
                 %             else
                 %                 numDist=length(spotsidx);
                 %                 ncordList=cordList(spotsidx,:);
@@ -133,7 +136,7 @@ for t=1:tsteps
 
             % test for zero distance
             cordOut(t).parms=statistics.parms;
-            cordOut(t).mnint=cord(t).mnint;
+            
             if ~isempty(Q)
                 cordOut(t) = testdistance(cordOut(t),Q,chi,snr,dataProperties);
                 % just add qAmp for the moment; don't check for removed

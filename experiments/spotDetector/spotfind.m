@@ -26,9 +26,8 @@ DEBUG = 0;
 % init vars
 d=floor(PATCHSIZE/2);
 inTestD = floor(FILTERSIZE/2); %number of pixels a spot has to be away from the border to be accepted
-
-%wb_hdl=waitbar(0,'Finding spots...');
-tsteps=size(fImg,5);
+movieSize = size(fImg);
+tsteps=movieSize(5);
 
 if verbose
     h= mywaitbar(0,[],tsteps,'Finding spots...');
@@ -68,7 +67,7 @@ for t=1:tsteps
     for i=1:size(b,1)
         %ignore pixels close to border
         if(all((b(i,:)-inTestD)>0) & all((b(i,:)+inTestD)...
-                <=[size(pt,1) size(pt,2) size(pt,3)]))
+                <=[movieSize(1:3)]))
 
             %cut pixels belonging to this local maximum
             patch=pt(b(i,1)-d(1):b(i,1)+d(1),b(i,2)-d(2):b(i,2)+d(2),b(i,3)-d(3):b(i,3)+d(3));
@@ -100,25 +99,27 @@ for t=1:tsteps
         end;
     end;
 
-    %cumulative histogram spot separation
-    %run only if more than 2 max found
-    if length(find(mnp(:,t))) > 2
-        cps=cutcumhist(mnp,t,dataProperties);
-    elseif isempty(mnp)
-        cps = 0;
-    else
-        cps = find(mnp(:,t)>100); %as in cutcumhist: spottiness has to be at least 100
-    end
+    % NEW: Use dataProperties.MAXSPOTS number of points. Because I don't
+    % want to go into the editPropertiesGUI at the moment (and because
+    % we're not working with mammalian stuff right now), I'll just use the
+    % default 5. Later, I'll use something like ceil(maxSpots * 1.3).
     
-    if DEBUG
-%     % attempt to take a fixed number of tags - one test movie, bad results    
-     [mnpList,sortIdx] = sort(mnp(:,t),1,'descend');
-     hold on,plot(mnpList(find(mnpList)),'+')
-     plot(sort(mnp(cps,t),1,'descend'),'+r')
-%      disp(sprintf('%i - %i - %1.2f %1.2f %1.2f %1.2f %1.2f', t,length(cps),mnpList(1:5)));
-%     cps = sortIdx(1:5);
-%     cps(~find(mnp(cps,t))) = [];
-    end
+    [mnpSorted,sortIdx] = sort(mnp(:,t),1,'descend');
+    % cut at either MAXSPOTS or how many we have if it's less
+    cps = sortIdx(1:min(dataProperties.MAXSPOTS,length(sortIdx)));
+    
+    
+%     %cumulative histogram spot separation
+%     %run only if more than 2 max found
+%     if length(find(mnp(:,t))) > 2
+%         cps=cutcumhist(mnp,t,dataProperties);
+%     elseif isempty(mnp)
+%         cps = 0;
+%     else
+%         cps = find(mnp(:,t)>100); %as in cutcumhist: spottiness has to be at least 100
+%     end
+    
+   
     
     
     if cps~=0
@@ -138,6 +139,20 @@ for t=1:tsteps
         spots(t).sp=[];
     end
     spots(t).mnint=mn(t);
+    
+    %== ADDED FOR NEW LINKER ==
+    % Find the "center of gravity" of the image
+    % use int^10 to get good results (maybe we need more for mammalian
+    % cells with their bigger frames?)
+    [x,y,z] = meshgrid(1:movieSize(1),1:movieSize(2),1:movieSize(3));
+    pt10 = pt(:).^10;
+    sumFrame = sum(pt10);
+    centerX = x(:)'*pt10/sumFrame;
+    centerY = y(:)'*pt10/sumFrame;
+    centerZ = z(:)'*pt10/sumFrame;
+    
+    spots(t).COM = [centerX, centerY, centerZ];
+    
 
     if verbose
         mywaitbar(t/tsteps,h,tsteps);

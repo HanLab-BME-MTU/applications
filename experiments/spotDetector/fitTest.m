@@ -1,4 +1,4 @@
-function [numDist,ncordList,ampList,bg,statistics,debugData]=fitTest(data,cordList,idxList,dataSize,dataProperties,DEBUG)
+function [numDist,ncordList,ampList,bg,statistics,debugData]=fitTest(data,cordList,idxList,dataSize,dataProperties,estNoise,DEBUG)
 %FITTEST 
 %
 %SYNOPSIS : [numDist,ncordList,statistics]=fitTest(data,cordList,idxList,dataSize)
@@ -25,7 +25,7 @@ F_TEST_PROB=dataProperties.F_TEST_PROB;
 MAX_POS_DELTA= [7 7 7];
 
 %init debug parameters
-if nargin < 6 | isempty(DEBUG)
+if nargin < 7 | isempty(DEBUG)
     DEBUG = 0;
 else
     debugData = struct('exitflag',[],'output',[]);
@@ -166,10 +166,11 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         
         %transform amplitudes again (parms only, because lb and ub have not been transformed back!)
         parms(ampAndBGIdx) =  parms(ampAndBGIdx)*TRANSFACT;
-        
-        nlb=[ncordList(i,:) - MAX_POS_DELTA 0.2*parms(intensIdx) lb];
+        % for lower bound intensity: use estimated image noise*2
+        nlb=[ncordList(i,:) - MAX_POS_DELTA 2*estNoise lb];
         nub=[ncordList(i,:)+MAX_POS_DELTA 50000 ub];
         nlb(intensIdx+4*nCt)=0.2*parms(intensIdx);
+        % --- shouldn't we try 2-3 times with random init?
         nparms=[ncordList(i,:)+(2-4*rand(1,3)) 0.5*parms(intensIdx) parms];
         nlb(intensIdx+4*nCt)=0.5*parms(intensIdx);
         
