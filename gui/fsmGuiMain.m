@@ -1284,28 +1284,26 @@ function popupTracker_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from popupTracker
 value=get(handles.popupTracker,'Value');
 if value==1
+    % that is the Neural Network Tracker
     fsmGuiMain('toggleTrackModule',handles,1);
     fsmGuiMain('checkEnhTrack_Callback',handles.checkEnhTrack,[],handles); % Turns on|off gird depending on 'iterative'
     fsmGuiMain('checkTrackInit_Callback',handles.checkTrackInit,[],handles); % Turns on|off Initializer
 end
 if value==2
-    if isunix
-        uiwait(warndlg('The Linear Programming tracker is available for Windows only.','Warning','modal'));
-        set(handles.popupTracker,'Value',1); % Unix not supported
-        fsmGuiMain('popupTracker_Callback',handles.popupTracker,[],handles);
-        return;
-    end
-    if get(handles.popupTrackInit,'Value')==1
-        uiwait(warndlg('The Linear Programming tracker does not support initialization by ''Correlation''.','Warning','modal'));
-        set(handles.popupTrackInit,'Value',2);
-        return;
-    end
+    % that is Ge's Linear Assignment Tracker Lap
+    % matthias changes October
     fsmGuiMain('toggleTrackModule',handles,0);
+    set(handles.checkEnhTrack,'Enable','on');
+    set(handles.textCorrLength,'Enable','on');
+    set(handles.editCorrLength,'Enable','on');
+    set(handles.textThreshold,'Enable','on');
+    set(handles.editThreshold,'Enable','on');
     set(handles.popupTracker,'Enable','on');
     set(handles.checkTrackInit,'Enable','on');
     set(handles.textTracker,'Enable','on');
     set(handles.textThreshold,'Enable','on');
     set(handles.editThreshold,'Enable','on');   
+    set(handles.checkGrid,'Enable','on');   
     fsmGuiMain('checkTrackInit_Callback',handles.popupTrackInit,[],handles);
     fsmGuiMain('popupTrackInit_Callback',handles.popupTrackInit,[],handles);    
 end
@@ -1355,11 +1353,12 @@ function popupTrackInit_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from popupTrackInit
 value=get(handles.popupTrackInit,'Value');
 if value==1
-    if get(handles.popupTracker,'Value')==2
-        uiwait(warndlg('The Linear Programming tracker does not support initialization by ''Correlation''.','Warning','modal'));
-        set(handles.popupTrackInit,'Value',2)
-        return;
-    end
+    % correlation
+%     if get(handles.popupTracker,'Value')==2
+%         uiwait(warndlg('The Linear Programming tracker does not support initialization by ''Correlation''.','Warning','modal'));
+%         set(handles.popupTrackInit,'Value',2)
+%         return;
+%     end
     if get(handles.popupTracker,'Value')==3
         set(handles.popupTracker,'Value',1)
         fsmGuiMain('popupTracker_Callback',handles.checkTrackInit,[],handles)
@@ -1367,6 +1366,7 @@ if value==1
     set(handles.textInitRadius,'Enable','off');
     set(handles.editInitRadius,'Enable','off');    
 elseif value==2
+    % TFT 
     if get(handles.checkTrackInit,'Value')==1
         set(handles.textInitRadius,'Enable','on');
         set(handles.editInitRadius,'Enable','on');        
@@ -1378,88 +1378,35 @@ else
     error('Impossible value');
 end
 
-% --- Executes on button press in loadROICheck.
-function loadROICheck_Callback(hObject, eventdata, handles)
-% hObject    handle to loadROICheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of loadROICheck
+function loadROICheck_Callback(hObject, eventdata, handles)
 if get(handles.loadROICheck,'Value')==1
     set(handles.drawROICheck,'Value',0);
 end
 
-
-% --- Executes during object creation, after setting all properties.
 function editInitRadius_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editInitRadius (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc
     set(hObject,'BackgroundColor','white');
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-
-
 function editInitRadius_Callback(hObject, eventdata, handles)
-% hObject    handle to editInitRadius (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of editInitRadius as text
-%        str2double(get(hObject,'String')) returns contents of editInitRadius as a double
-
-
-% --- Executes on button press in checkTest.
 function checkTest_Callback(hObject, eventdata, handles)
-% hObject    handle to checkTest (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of checkTest
-
-
-% --- Executes on button press in subpixel.
 function subpixel_Callback(hObject, eventdata, handles)
-% hObject    handle to subpixel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of subpixel
-
-
-% --- Executes on selection change in edgeBitDepth.
 function edgeBitDepth_Callback(hObject, eventdata, handles)
-% hObject    handle to edgeBitDepth (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns edgeBitDepth contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from edgeBitDepth
 
 
-% --- Executes during object creation, after setting all properties.
 function edgeBitDepth_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edgeBitDepth (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
 
-% --- Executes during object creation, after setting all properties.
 function textPsfSigma_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to textPsfSigma (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+
 
 

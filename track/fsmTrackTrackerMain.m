@@ -1,4 +1,4 @@
-function M=fsmTrackTrackerBMTNNMain(I,J,threshold,influence,fsmParam,counter,gridSize)
+function M=fsmTrackTrackerMain(I,J,threshold,influence,fsmParam,counter, TRACKER, gridSize)
 % fsmTrackMain uses the interpolated vector field to refine the tracking
 %
 % SYNOPSIS   currentM=fsmTrackEnhancedTracker(I,J,threshold,influence,fsmParam,counter,gridSize)
@@ -16,19 +16,20 @@ function M=fsmTrackTrackerBMTNNMain(I,J,threshold,influence,fsmParam,counter,gri
 %            gridSize   : (optional, default = 0) distance between two interpolation points on the grid [gy gx]
 %                         if gridSize is set equal to zero, the field is interpolated onto
 %                         the original vector positions
+%            TRACKER    : indicator for the type of tracker 
 %
 % OUTPUT     M          : matrix of matches [y1(1) x1(1) y1(2) x1(2)]n 
 %
-% DEPENDENCES   fsmTrackTrackerBMTNNMain uses { framework ; vectorFieldAdaptInterp ; fsmTrackPropSpecklePos }
-%               fsmTrackTrackerBMTNNMain is used by { fsmTrackMain }
+% DEPENDENCES   fsmTrackTrackerMain uses { framework ; vectorFieldAdaptInterp ; fsmTrackPropSpecklePos }
+%               fsmTrackTrackerMain is used by { fsmTrackMain }
 %
 % Aaron Ponti, September 8th, 2004
 
-if nargin<6 | nargin>7
+if nargin<7 | nargin>8
     error('Six or seven input parameter expected.');
 end
 
-if nargin==6
+if nargin==7
     gridSize=0;
 end
 
@@ -149,7 +150,7 @@ end
 
 % Track with initM as an initializer
 if ~isempty(initM)
-    M=fsmTrackTrackerBMTNNIterative(initM,I,J,threshold,influence,initCorLen);
+    M=fsmTrackTrackerIterative(initM,I,J,threshold,influence,TRACKER, initCorLen);
 else
     M=[];
 end
@@ -168,7 +169,7 @@ if fsmParam.track.enhanced==1
     
     % M is empty if the first tracking with the initializer was NOT run
     if isempty(M)
-        M=fsmTrackTrackerBMTNNIterative([],I,J,threshold,influence);
+        M=fsmTrackTrackerIterative([],I,J,threshold,influence, TRACKER);
     end
 
     % Extract vector field from M (discard non-matched speckles)
@@ -204,13 +205,13 @@ if fsmParam.track.enhanced==1
     end
 
     % Track with vectors as an initializer
-    M=fsmTrackTrackerBMTNNIterative(vectors,I,J,threshold,influence);
+    M=fsmTrackTrackerIterative(vectors,I,J,threshold,influence, TRACKER);
 
 end
 
 % If none of the above was run, simply track once with no propagation
 if fsmParam.track.init==0 & fsmParam.track.enhanced==0
-    M=fsmTrackTrackerBMTNNIterative([],I,J,threshold,influence);
+    M=fsmTrackTrackerIterative([],I,J,threshold,influence, TRACKER);
 end
 
 % At this point, if the initializer is used (fsmParam.track.init~=0), and NO vector field has been created for 

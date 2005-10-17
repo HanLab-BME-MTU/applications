@@ -88,11 +88,12 @@ emptyM=zeros(1,4);
 %                                                                                                                             %
 %    init = 0: no tracker initialization                                                                                      %
 %    init = 1: initialization through imKymoAnalysis - the user must have run imKymoAnalysis before SpeckTackle               %
-%        TRACKER = 1: fsmTrackTrackerBMTNNMain takes care of checking that the files exists                                   %
-%        TRACKER = 2: LAP does not support correlation - this combination should not be possible                              %
-%    init = 2: initialization through TFT - this can be run here                                                              %
-%       TRACKER = 1: tft will be run independently of whether initialization files already exist or not                       %
-%       TRACKER = 2: LAP will call TFT internally                                                                             %
+%    init = 2: initialization through TFT - this can be run here                                                              %                        
+%                                                                                                                             %
+%    TRACKER = 1: fsmTrackTrackerMain takes care of checking that the files exists                                            %
+%    TRACKER = 2: LAP                                                                                                         %
+%    TRACKER = 3: no tracking                                                                                                 %                   
+%                                                                                                                             %                                                                                                                             %
 %                                                                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -106,7 +107,7 @@ emptyM=zeros(1,4);
 %  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if TRACKER==1 | TRACKER ==3
+if TRACKER==1 | TRACKER==2 | TRACKER ==3
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %                                                                                                                        %
@@ -117,7 +118,7 @@ if TRACKER==1 | TRACKER ==3
     if init==1
     
         % Nothing to do here. 
-        % The neural network tracker will make sure that the init files will be loaded correctly.
+        % The tracker will make sure that the init files will be loaded correctly.
         % If 'no tracker', one can quit here.
         
     end
@@ -128,7 +129,7 @@ if TRACKER==1 | TRACKER ==3
     %                                                                                                                        % 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    if init==2 % TFT has to be run BEFORE the neural network tracker
+    if init==2 % TFT has to be run BEFORE the tracker
         
         % Number of images to be used for TFT
         lastImage=n-2;
@@ -260,7 +261,7 @@ if TRACKER==1 | TRACKER ==3
         % Close waitbar
         close(h);
         
-    end
+    end  % if init==2 % TFT has to be run BEFORE the neural network tracker
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %                               %
@@ -268,7 +269,7 @@ if TRACKER==1 | TRACKER ==3
     %                               %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
-    if TRACKER==1 % If needed, run the Neural Network tracker
+    if TRACKER==1 | TRACKER==2  % If needed, run the Neural Network tracker
         
         % Number of images to be used for the Nural Network tracker
         lastImage=n-1;
@@ -346,8 +347,9 @@ if TRACKER==1 | TRACKER ==3
                 clear cands;
             end
             
-            % Track with the Neural Network tracker
-            tmp=fsmTrackTrackerBMTNNMain(I,J,threshold,influence,fsmParam,counter1,gridSize);
+            %%%%%%%%%%%%% Track %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            tmp=fsmTrackTrackerMain(I,J,threshold,influence,fsmParam,counter1,TRACKER, gridSize);
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             % Check for unsupported error
             if isempty(tmp)
@@ -373,7 +375,7 @@ if TRACKER==1 | TRACKER ==3
         % Close waitbar
         close(h);
         
-    end
+    end  % if TRACKER==1
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %                                                                                                                        %
@@ -388,80 +390,83 @@ if TRACKER==1 | TRACKER ==3
         
     end
     
-end
+end % if TRACKER==1 | TRACKER ==3
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
-%  %                                                                                                                        % %
-%  %                                   THE SELECTED TRACKER IS THE LINEAR ASSIGNMENT TRACKER                                % % 
-%  %                                                                                                                        % % 
-%  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Matthias changes: obsolete, there is now a better Lap inside of
+% fsmTrackTrackerIterative
 
-if TRACKER==2 % Linear assignment tracker
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %                                                                                                                        %
-    %                                   THE SELECTED INITIALIZER IS 'Correlation'                                            % 
-    %                                                                                                                        % 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-    if init==1
-    
-        error('The LAP tracker cannot be initialized by ''Correlation''. This is a bug. Please report it.');
-        
-    end
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %                                                                                                                        %
-    %                                   THE SELECTED INITIALIZER IS 'TFT'                                                    % 
-    %                                                                                                                        % 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    if init==2
-        
-        % LAP can call TFT internally
-        tempFileName = 'pointData.txt';
-        tempFileName = [userPath, filesep, 'pointFiles', filesep, tempFileName];
-        
-        indxStr=sprintf(strg,fsmParam.specific.firstIndex);
-        candsFileList=getFileStackNames([userPath,filesep,'cands',filesep,'cands',indxStr,'.mat']);
-        % load from cands###_spa.mat if subpixel accuracy is
-        % determined
-        if fsmParam.prep.subpixel==1
-            candsFileList=getFileStackNames([userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat']);
-        end
-        LAP_pointDataFileGeneration(tempFileName, candsFileList)
-        
-        tempFileName = 'intensityProfile.txt';
-        tempFileName = [userPath, filesep, 'pointFiles', filesep, tempFileName];
-        LAP_intensityProfileGeneration(tempFileName, candsFileList);
-        
-        tempFileName = 'LAPconfig.txt';
-        tempFileName = [userPath, filesep, 'pointFiles', filesep, tempFileName];
-        
-        % By passing smParam.track.init as input parameter, tft will be turned on or off depending on its value
-        LAP_configurationFileGeneration(tempFileName, userPath, fsmParam.specific.imgSize(1), fsmParam.specific.imgSize(2), lastImage+1, threshold, fsmParam.track.init);
-        
-        LAPpath = which('LAPTrack65');
-        indxSep=findstr(LAPpath,filesep);
-        LAPpath=LAPpath(1:indxSep(end));
-        
-        LAP_batchFileGeneration(tempFileName, userPath, LAPpath)
-        
-        msg=['Please manually start the batch file ''lapbatch.bat'' in ',userPath,filesep,'pointFiles, and click on OK when the tracking is done.'];
-        uiwait(msgbox(msg));
-        
-        tempFileName = 'LAPconfig_track.txt';
-        tempFileName = [userPath, filesep, 'pointFiles', filesep, tempFileName];
-        track = trackReadAll(tempFileName)
-        
-        % convert to M
-        M = LAPtrack2M(track, lastImage+1);
-        
-    end
-    
-end
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
+% %  %                                                                                                                        % %
+% %  %                                   THE SELECTED TRACKER IS THE LINEAR ASSIGNMENT TRACKER                                % % 
+% %  %                                                                                                                        % % 
+% %  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% if TRACKER==2 % Linear assignment tracker
+% 
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %                                                                                                                        %
+%     %                                   THE SELECTED INITIALIZER IS 'Correlation'                                            % 
+%     %                                                                                                                        % 
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     
+%     if init==1
+%     
+%         error('The LAP tracker cannot be initialized by ''Correlation''. This is a bug. Please report it.');
+%         
+%     end
+% 
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %                                                                                                                        %
+%     %                                   THE SELECTED INITIALIZER IS 'TFT'                                                    % 
+%     %                                                                                                                        % 
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+%     if init==2
+%         
+%         % LAP can call TFT internally
+%         tempFileName = 'pointData.txt';
+%         tempFileName = [userPath, filesep, 'pointFiles', filesep, tempFileName];
+%         
+%         indxStr=sprintf(strg,fsmParam.specific.firstIndex);
+%         candsFileList=getFileStackNames([userPath,filesep,'cands',filesep,'cands',indxStr,'.mat']);
+%         % load from cands###_spa.mat if subpixel accuracy is
+%         % determined
+%         if fsmParam.prep.subpixel==1
+%             candsFileList=getFileStackNames([userPath,filesep,'cands',filesep,'cands',indxStr,'_spa.mat']);
+%         end
+%         LAP_pointDataFileGeneration(tempFileName, candsFileList)
+%         
+%         tempFileName = 'intensityProfile.txt';
+%         tempFileName = [userPath, filesep, 'pointFiles', filesep, tempFileName];
+%         LAP_intensityProfileGeneration(tempFileName, candsFileList);
+%         
+%         tempFileName = 'LAPconfig.txt';
+%         tempFileName = [userPath, filesep, 'pointFiles', filesep, tempFileName];
+%         
+%         % By passing smParam.track.init as input parameter, tft will be turned on or off depending on its value
+%         LAP_configurationFileGeneration(tempFileName, userPath, fsmParam.specific.imgSize(1), fsmParam.specific.imgSize(2), lastImage+1, threshold, fsmParam.track.init);
+%         
+%         LAPpath = which('LAPTrack65');
+%         indxSep=findstr(LAPpath,filesep);
+%         LAPpath=LAPpath(1:indxSep(end));
+%         
+%         LAP_batchFileGeneration(tempFileName, userPath, LAPpath)
+%         
+%         msg=['Please manually start the batch file ''lapbatch.bat'' in ',userPath,filesep,'pointFiles, and click on OK when the tracking is done.'];
+%         uiwait(msgbox(msg));
+%         
+%         tempFileName = 'LAPconfig_track.txt';
+%         tempFileName = [userPath, filesep, 'pointFiles', filesep, tempFileName];
+%         track = trackReadAll(tempFileName)
+%         
+%         % convert to M
+%         M = LAPtrack2M(track, lastImage+1);
+%         
+%     end % if init==2
+%     
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
@@ -509,7 +514,8 @@ cM=M>0; [i j k]=find(cM); M=M(1:max(i),:,:,:);
 
 if size(M,3)>1 % In case only two frames have been tracked, no gaps can be closed
     
-    if TRACKER~=2 % No gap closer for the Linear Assignment tracker
+    %if TRACKER~=2 % No gap closer for the Linear Assignment tracker
+    % Matthias: why not? That should work
         
         % Not running the gapCloser, no gapList files will be saved. This will allow next time to create them.
         if enhanced==1
@@ -519,7 +525,7 @@ if size(M,3)>1 % In case only two frames have been tracked, no gaps can be close
             % Close gaps in M
             closedGap=0; [M,closedGap]=fsmTrackGapCloser(M,threshold,strg,userPath,firstIndex);
         end
-    end
+    %end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %                               %
