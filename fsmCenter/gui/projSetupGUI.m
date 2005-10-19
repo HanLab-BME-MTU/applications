@@ -964,7 +964,7 @@ if isdir(projDir)
               end
               prompt = sprintf(['Last project is set up or modified in Windows. \n' ...
                  'The multi-channel image drive letters are \n   ' ...
-                 winImgDriveNameList  '.\n' ...
+                 winImgDriveNameList  '.\n\n' ...
                  'Please enter the corresponding image drive names \n' ...
                  'under Unix based platform. \n\n' ...
                  'Enter one name if they are the same. ' ...
@@ -973,11 +973,16 @@ if isdir(projDir)
               pat = '(/(\w+/*)+),*\s*';
               while strcmp(tryAgain,'Yes')
                  answer = inputdlg(prompt,'title',1,{''});
+                 if isempty(answer)
+                    tryAgain  = 'No';
+                    noProblem = 0;
+                    break;
+                 end
                  unix_imgDrive = regexp(answer{1},pat,'tokens');
                  unix_imgDrive = [unix_imgDrive{:}];
                 
                  if length(unix_imgDrive) ~= 1 && ...
-                    length(unix_imgDrive) ~= length(unix_imgDirList)
+                    length(unix_imgDrive) ~= length(win_imgDirList)
                     noProblem = 0;
                  else
                     %Extract unix mount root from 'unix_imgDrive'.
@@ -993,7 +998,8 @@ if isdir(projDir)
                     else
                        noProblem = 1;
                     end
-
+                   
+                    k = 1;
                     while k <= length(imgDirList) && noProblem
                        noProblem = isdir(imgDirList{k});
                        k = k+1;
@@ -1050,7 +1056,7 @@ if isdir(projDir)
               end
               prompt = {sprintf(['Last project is set up or modified in Unix based platform. \n' ...
                  'The auto-detected image drive names are \n   ' ...
-                 unixImgDriveNameList  '.\n' ...
+                 unixImgDriveNameList  '.\n\n' ...
                  'If it is not correct, please enter the correct image drive names: ']),
                  sprintf(['Please also enter the corresponding image drive letters ' ...
                  'under PC platform. \n\nEnter one name if they are the same. ' ...
@@ -1060,6 +1066,11 @@ if isdir(projDir)
               winPat  = '(\w+:?),*\s*';
               while strcmp(tryAgain,'Yes')
                  answer = inputdlg(prompt,'title',2,{unixImgDriveNameList,''});
+                 if isempty(answer)
+                    tryAgain  = 'No';
+                    noProblem = 0;
+                    retrun;
+                 end
                  unix_imgDrive = regexp(answer{1},unixPat,'tokens');
                  win_imgDrive  = regexp(answer{2},winPat,'tokens');
                  unix_imgDrive = [unix_imgDrive{:}];
@@ -1082,6 +1093,7 @@ if isdir(projDir)
                        noProblem = 1;
                     end
 
+                    k = 1;
                     while k <= length(imgDirList) && noProblem
                        noProblem = isdir(imgDirList{k});
                        k = k+1;
