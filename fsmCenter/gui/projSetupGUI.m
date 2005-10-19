@@ -293,37 +293,37 @@ if isdir(projDir)
       imgDir = imgDirList{selImgDir};
       imgDirList{selImgDir} = imgDirList{1};
       imgDirList{1}         = imgDir;
-   end
    
-   if ~isempty(unix_imgDrive)
-      imgDrive = unix_imgDrive{selImgDir};
-      unix_imgDrive{selImgDir} = unix_imgDrive{1};
-      unix_imgDrive{1}         = imgDrive;
-   end
-   
-   if ~isempty(win_imgDrive)
-      imgDrive = win_imgDrive{selImgDir};
-      win_imgDrive{selImgDir} = win_imgDrive{1};
-      win_imgDrive{1}         = imgDrive;
-   end
-   
-   if ~isempty(lastUnix_imgDrive)
-      imgDrive = lastUnix_imgDrive{selImgDir};
-      lastUnix_imgDrive{selImgDir} = lastUnix_imgDrive{1};
-      lastUnix_imgDrive{1}         = imgDrive;
-   end
-   
-   if ~isempty(lastWin_imgDrive)
-      imgDrive = lastWin_imgDrive{selImgDir};
-      lastWin_imgDrive{selImgDir} = lastWin_imgDrive{1};
-      lastWin_imgDrive{1}         = imgDrive;
-   end
+      if length(unix_imgDrive) == length(imgDirList)
+         imgDrive = unix_imgDrive{selImgDir};
+         unix_imgDrive{selImgDir} = unix_imgDrive{1};
+         unix_imgDrive{1}         = imgDrive;
+      end
 
-   if ~isempty(firstImgList)
-      %Switch so that the first img dir is always the selected one.
-      firstImg = firstImgList{selImgDir};
-      firstImgList{selImgDir} = firstImgList{1};
-      firstImgList{1}         = firstImg;
+      if length(win_imgDrive) == length(imgDirList)
+         imgDrive = win_imgDrive{selImgDir};
+         win_imgDrive{selImgDir} = win_imgDrive{1};
+         win_imgDrive{1}         = imgDrive;
+      end
+
+      if length(lastUnix_imgDrive) == length(imgDirList)
+         imgDrive = lastUnix_imgDrive{selImgDir};
+         lastUnix_imgDrive{selImgDir} = lastUnix_imgDrive{1};
+         lastUnix_imgDrive{1}         = imgDrive;
+      end
+
+      if length(lastWin_imgDrive) == length(imgDirList)
+         imgDrive = lastWin_imgDrive{selImgDir};
+         lastWin_imgDrive{selImgDir} = lastWin_imgDrive{1};
+         lastWin_imgDrive{1}         = imgDrive;
+      end
+
+      if ~isempty(firstImgList)
+         %Switch so that the first img dir is always the selected one.
+         firstImg = firstImgList{selImgDir};
+         firstImgList{selImgDir} = firstImgList{1};
+         firstImgList{1}         = firstImg;
+      end
    end
 
    projSettings.unixMntRoot   = unixMntRoot;
@@ -332,10 +332,10 @@ if isdir(projDir)
 
    if ~isempty(physiParam)
       if length(physiParam) < length(firstImgList)
-          defPhysiParam = physiParam{end};
-          for k = length(physiParam)+1:length(firstImgList)
-             physiParam{k} = defPhysiParam;
-          end
+         defPhysiParam = physiParam{end};
+         for k = length(physiParam)+1:length(firstImgList)
+            physiParam{k} = defPhysiParam;
+         end
       end
       selPhysiParam = physiParam{selImgDir};
       physiParam{selImgDir} = physiParam{1};
@@ -343,106 +343,106 @@ if isdir(projDir)
    end
 
 
-    projSettings.projDir    = projDir;
-    projSettings.subProjDir = subProjDir;
-    projSettings.physiParam = physiParam;
+   projSettings.projDir    = projDir;
+   projSettings.subProjDir = subProjDir;
+   projSettings.physiParam = physiParam;
 
-    settingsMatFile = [projDir filesep 'lastProjSettings.mat'];
-    if isunix==1
-        projSettings.unix_imgDirList = imgDirList;
+   settingsMatFile = [projDir filesep 'lastProjSettings.mat'];
+   if isunix==1
+      projSettings.unix_imgDirList = imgDirList;
 
-        if ~iscell(lastUnix_imgDrive)
-           samUnixImgDrive = 0;
-        elseif length(lastUnix_imgDrive) ~= length(unix_imgDrive)
-           samUnixImgDrive = 0;
-        else
-           samUnixImgDrive = 1;
-        end
+      if ~iscell(lastUnix_imgDrive)
+         samUnixImgDrive = 0;
+      elseif length(lastUnix_imgDrive) ~= length(unix_imgDrive)
+         samUnixImgDrive = 0;
+      else
+         samUnixImgDrive = 1;
+      end
 
-        k = 1;
-        while k <= length(unix_imgDrive) && samUnixImgDrive
-           samUnixImgDrive = samdir(lastUnix_imgDrive{k},unix_imgDrive{k});
-           k = k+1;
-        end
+      k = 1;
+      while k <= length(unix_imgDrive) && samUnixImgDrive
+         samUnixImgDrive = samdir(lastUnix_imgDrive{k},unix_imgDrive{k});
+         k = k+1;
+      end
 
-        if samUnixImgDrive
-           if length(lastWin_imgDrive) == length(imgDirList)
-              projSettings.win_imgDirList = ...
-                 dirUnix2PC(imgDirList,lastWin_imgDrive,unix_imgDrive);
-              projSettings.win_imgDrive = lastWin_imgDrive;
-           else
-              projSettings.win_imgDrive   = {};
-              projSettings.win_imgDirList = {};
-           end
-        else
-           projSettings.win_imgDrive   = {};
-           projSettings.win_imgDirList = {};
-        end
-        settingsFileName='lastProjSettings_unix.txt';
-    elseif ispc==1
-        projSettings.win_imgDirList = imgDirList;
-        if ~iscell(lastWin_imgDrive)
-           samWinImgDrive = 0;
-        elseif length(lastWin_imgDrive) ~= length(win_imgDrive)
-           samWinImgDrive = 0;
-        else
-           samWinImgDrive = 1;
-        end
+      if samUnixImgDrive
+         if length(lastWin_imgDrive) == length(imgDirList)
+            projSettings.win_imgDirList = ...
+               dirUnix2PC(imgDirList,lastWin_imgDrive,unix_imgDrive);
+            projSettings.win_imgDrive = lastWin_imgDrive;
+         else
+            projSettings.win_imgDrive   = {};
+            projSettings.win_imgDirList = {};
+         end
+      else
+         projSettings.win_imgDrive   = {};
+         projSettings.win_imgDirList = {};
+      end
+      settingsFileName='lastProjSettings_unix.txt';
+   elseif ispc==1
+      projSettings.win_imgDirList = imgDirList;
+      if ~iscell(lastWin_imgDrive)
+         samWinImgDrive = 0;
+      elseif length(lastWin_imgDrive) ~= length(win_imgDrive)
+         samWinImgDrive = 0;
+      else
+         samWinImgDrive = 1;
+      end
 
-        k = 1;
-        while k <= length(win_imgDrive) && samWinImgDrive
-           samWinImgDrive = samdir(lastWin_imgDrive{k},win_imgDrive{k});
-           k = k+1;
-        end
+      k = 1;
+      while k <= length(win_imgDrive) && samWinImgDrive
+         samWinImgDrive = samdir(lastWin_imgDrive{k},win_imgDrive{k});
+         k = k+1;
+      end
 
-        if samWinImgDrive
-           if length(lastUnix_imgDrive) == length(imgDirList)
-              projSettings.unix_imgDirList = ...
-                 dirPC2Unix(imgDirList,lastUnix_imgDrive);
-              projSettings.unix_imgDrive = lastUnix_imgDrive;
-           else
-              projSettings.unix_imgDrive   = {};
-              projSettings.unix_imgDirList = {};
-           end
-        else
-           projSettings.unix_imgDrive   = {};
-           projSettings.unix_imgDirList = {};
-        end
-        settingsFileName='lastProjSettings_win.txt';
-    else
-        error('Platform not supported.');
-    end
-    projSettings.firstImgList = firstImgList;
-    
-    save(settingsMatFile,'projSettings');
-    
-    %We also save a text file of the project settings.
-    fid = fopen([handles.projDir filesep settingsFileName],'w');
-    if fid ~= -1
-       %Write image path.
-       if isempty(imgDirList)
-          fprintf(fid,'%s\n',['    Image Path: ']);
-       else
-          fprintf(fid,'%s\n',['    Image Path: ' imgDirList{1}]);
-          for k = 2:length(imgDirList)
-             fprintf(fid,'%s\n',['              : ' imgDirList{k}]);
-          end
-       end
-       %Write first image name.
-       if isempty(firstImgList)
-          fprintf(fid,'%s\n',['   First Image: ']);
-       else
-          fprintf(fid,'%s\n',['   First Image: ' firstImgList{1}]);
-          for k = 2:length(imgDirList)
-             fprintf(fid,'%s\n',['              : ' firstImgList{k}]);
-          end
-       end
+      if samWinImgDrive
+         if length(lastUnix_imgDrive) == length(imgDirList)
+            projSettings.unix_imgDirList = ...
+               dirPC2Unix(imgDirList,lastUnix_imgDrive);
+            projSettings.unix_imgDrive = lastUnix_imgDrive;
+         else
+            projSettings.unix_imgDrive   = {};
+            projSettings.unix_imgDirList = {};
+         end
+      else
+         projSettings.unix_imgDrive   = {};
+         projSettings.unix_imgDirList = {};
+      end
+      settingsFileName='lastProjSettings_win.txt';
+   else
+      error('Platform not supported.');
+   end
+   projSettings.firstImgList = firstImgList;
 
-       for k = 1:numSubProj
-          fprintf(fid,'%s\n',[subProjTitle{k} ': ' subProjDir{k}]);
-       end
-       fclose(fid);
-    end
+   save(settingsMatFile,'projSettings');
+
+   %We also save a text file of the project settings.
+   fid = fopen([handles.projDir filesep settingsFileName],'w');
+   if fid ~= -1
+      %Write image path.
+      if isempty(imgDirList)
+         fprintf(fid,'%s\n',['    Image Path: ']);
+      else
+         fprintf(fid,'%s\n',['    Image Path: ' imgDirList{1}]);
+         for k = 2:length(imgDirList)
+            fprintf(fid,'%s\n',['              : ' imgDirList{k}]);
+         end
+      end
+      %Write first image name.
+      if isempty(firstImgList)
+         fprintf(fid,'%s\n',['   First Image: ']);
+      else
+         fprintf(fid,'%s\n',['   First Image: ' firstImgList{1}]);
+         for k = 2:length(imgDirList)
+            fprintf(fid,'%s\n',['              : ' firstImgList{k}]);
+         end
+      end
+
+      for k = 1:numSubProj
+         fprintf(fid,'%s\n',[subProjTitle{k} ': ' subProjDir{k}]);
+      end
+      fclose(fid);
+   end
 end
 
 if isempty(imgDirList)
@@ -627,9 +627,29 @@ end
 
 imgDirList(selImgDir)        = [];
 if isunix
+   if length(win_imgDrive) == length(unix_imgDrive)
+      win_imgDrive(selImgDir) = [];
+   end
+   
+   if length(lastWin_imgDrive) == length(unix_imgDrive)
+      lastWin_imgDrive(selImgDir) = [];
+   end
+   
    unix_imgDrive(selImgDir)     = [];
    lastUnix_imgDrive(selImgDir) = [];
+   
+   if length(win_imgDrive) == length(unix_imgDrive)
+      win_imgDrive(selImgDir) = [];
+   end
 elseif ispc
+   if length(unix_imgDrive) == length(win_imgDrive)
+      unix_imgDrive(selImgDri) = [];
+   end
+   
+   if length(lastUnix_imgDrive) == length(win_imgDrive)
+      lastUnix_imgDrive(selImgDri) = [];
+   end
+   
    win_imgDrive(selImgDir)      = [];
    lastWin_imgDrive(selImgDir)  = [];
 end
@@ -776,11 +796,17 @@ else
       handles.unix_imgDrive{end+1} = unix_imgDrive;
       handles.lastUnix_imgDrive{end+1} = '';
       
+      handles.win_imgDrive   = {};
+      handles.win_imgDirList = {};
+      
       set(handles.unixMntRootMH,'Value',handles.unixMntRootMI);
    elseif ispc
       win_imgDrive = autoExtractWinDriveLetter(pathName);
       handles.win_imgDrive{end+1}  = win_imgDrive;
       handles.lastWin_imgDrive{end+1}  = '';
+      
+      handles.unix_imgDrive  = {};
+      handles.unix_imgDirList = {};
    end
 end
 firstImgList{selImgDir} = firstImgFileName;
@@ -968,10 +994,9 @@ if isdir(projDir)
                        noProblem = 1;
                     end
 
-                    for k = 1:length(imgDirList)
-                       if ~isdir(imgDirList{k})
-                          noProblem = 0;
-                       end
+                    while k <= length(imgDirList) && noProblem
+                       noProblem = isdir(imgDirList{k});
+                       k = k+1;
                     end
                  end
 
@@ -1056,10 +1081,9 @@ if isdir(projDir)
                        noProblem = 1;
                     end
 
-                    for k = 1:length(imgDirList)
-                       if ~isdir(imgDirList{k})
-                          noProblem = 0;
-                       end
+                    while k <= length(imgDirList) && noProblem
+                       noProblem = isdir(imgDirList{k});
+                       k = k+1;
                     end
                  end
 
