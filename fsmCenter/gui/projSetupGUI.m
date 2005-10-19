@@ -153,8 +153,10 @@ set(handles.unixMntRootMH,'String',handles.unixMntRootMenu);
 set(handles.unixMntRootMH,'Value',handles.unixMntRootMI);
 if isunix
    set(handles.unixMntRootMH,'Enable','on');
+   set(handles.platformTH,'String','Unix Based');
 else
    set(handles.unixMntRootMH,'Enable','off');
+   set(handles.platformTH,'String','Windows PC Based');
 end
 
 projDir = '';
@@ -368,8 +370,12 @@ if isdir(projDir)
               projSettings.win_imgDirList = ...
                  dirUnix2PC(imgDirList,lastWin_imgDrive,unix_imgDrive);
               projSettings.win_imgDrive = lastWin_imgDrive;
+           else
+              projSettings.win_imgDrive   = {};
+              projSettings.win_imgDirList = {};
            end
         else
+           projSettings.win_imgDrive   = {};
            projSettings.win_imgDirList = {};
         end
         settingsFileName='lastProjSettings_unix.txt';
@@ -384,17 +390,23 @@ if isdir(projDir)
         end
 
         k = 1;
-        while k <= length(win_imgDrive) & samWinImgDrive
-           samWinImgDrive = samdir(lastWin_imgDrive{k},win_imgDrive{k})
+        while k <= length(win_imgDrive) && samWinImgDrive
+           samWinImgDrive = samdir(lastWin_imgDrive{k},win_imgDrive{k});
            k = k+1;
         end
 
         if samWinImgDrive
-           if ~isempty(lastUnix_imgDrive)
+           if length(lastUnix_imgDrive) == length(imgDirList)
               projSettings.unix_imgDirList = ...
                  dirPC2Unix(imgDirList,lastUnix_imgDrive);
               projSettings.unix_imgDrive = lastUnix_imgDrive;
+           else
+              projSettings.unix_imgDrive   = {};
+              projSettings.unix_imgDirList = {};
            end
+        else
+           projSettings.unix_imgDrive   = {};
+           projSettings.unix_imgDirList = {};
         end
         settingsFileName='lastProjSettings_win.txt';
     else
@@ -938,38 +950,50 @@ if isdir(projDir)
                  unix_imgDrive = regexp(answer{1},pat,'tokens');
                  unix_imgDrive = [unix_imgDrive{:}];
                 
-
-                 %Extract unix mount root from 'unix_imgDrive'.
-                 [unixMntRoot,handles.unixMntRootMI] = ...
-                    autoExtractUnixMntRoot(unix_imgDrive{1},handles.unixMntRootMenu);
-
-                 %Convert image directories to Unix format.
-                 imgDirList = dirPC2Unix(win_imgDirList,unix_imgDrive); 
-
-                 %Check conversion.
-                 if isempty(imgDirList)
+                 if length(unix_imgDrive) ~= 1 && ...
+                    length(unix_imgDrive) ~= length(unix_imgDirList)
                     noProblem = 0;
                  else
-                    noProblem = 1;
-                 end
+                    %Extract unix mount root from 'unix_imgDrive'.
+                    [unixMntRoot,handles.unixMntRootMI] = ...
+                       autoExtractUnixMntRoot(unix_imgDrive{1},handles.unixMntRootMenu);
 
-                 for k = 1:length(imgDirList)
-                    if ~isdir(imgDirList{k})
+                    %Convert image directories to Unix format.
+                    imgDirList = dirPC2Unix(win_imgDirList,unix_imgDrive);
+
+                    %Check conversion.
+                    if isempty(imgDirList)
                        noProblem = 0;
+                    else
+                       noProblem = 1;
+                    end
+
+                    for k = 1:length(imgDirList)
+                       if ~isdir(imgDirList{k})
+                          noProblem = 0;
+                       end
                     end
                  end
 
                  if ~noProblem
-                    question = ['Invalid unix drive name or ' ...
+                    question = ['Invalid or insufficient unix drive names or ' ...
                        'the saved project setting file is corrupted or ' ...
                        'image directories have changed since the last ' ...
-                       'project is saved. Do you want to try again? ' ...
-                       'Please check the cause before you answer.' ...
+                       'project is saved.' ...
+                       'Please check the cause before you answer the following question.' ...
+                       'Do you want to try again? ' ...
                        'If no, the old image directories will be removed. ' ...
                        'Be cautious!!!'];
                     tryAgain = questdlg(question,'Alert','Yes','No','Yes');
                  else
                     projSettings.unix_imgDirList = imgDirList;
+                    if length(unix_imgDrive) == 1
+                       imgDrive = unix_imgDrive{1};
+                       unix_imgDrive = cell(size(imgDirList));
+                       for k = 1:length(imgDirList)
+                          unix_imgDrive{k} = imgDrive;
+                       end
+                    end
                     noProblem = 1;
                     tryAgain  = 'No';
                  end
@@ -996,13 +1020,15 @@ if isdir(projDir)
            elseif ~isempty(unix_imgDirList)
               tryAgain = 'Yes';
               unixImgDriveNameList = unix_imgDrive{1};
-              for k = 2:length(win_imgDrive)
+              for k = 2:length(unix_imgDrive)
                  unixImgDriveNameList = [unixImgDriveNameList ', ' unix_imgDrive{k}];
               end
               prompt = {sprintf(['Last project is set up in Unix based platform. \n' ...
                  'The auto-detected image drive names are ' unixImgDriveNameList  '.\n' ...
-                 'If it is not correct, please enter the correct image drive name: ']),
-                 'Please enter the corresponding image drive letter under PC platform:'};
+                 'If it is not correct, please enter the correct image drive names: ']),
+                 ['Please enter the corresponding image drive letters ' ...
+                 'under PC platform. Enter one name if they are the same. ' ...
+                 'Otherwise, separate by comma.']};
 
               unixPat = '(/(\w+/*)+),*\s*';
               winPat  = '(\w+:?),*\s*';
@@ -1013,33 +1039,55 @@ if isdir(projDir)
                  unix_imgDrive = [unix_imgDrive{:}];
                  win_imgDrive  = [win_imgDrive{:}];
 
-                 %Convert image directories to PC format.
-                 imgDirList = dirUnix2PC(unix_imgDirList,win_imgDrive,unix_imgDrive);
-
-                 %Check conversion.
-                 if isempty(imgDirList)
+                 if length(win_imgDrive) ~= 1 && ...
+                    length(win_imgDrive) ~= length(unix_imgDirList)
+                    noProlbem = 0;
+                 elseif length(unix_imgDrive) ~= 1 && ...
+                    length(unix_imgDrive) ~= length(unix_imgDirList)
                     noProblem = 0;
                  else
-                    noProblem = 1;
-                 end
+                    %Convert image directories to PC format.
+                    imgDirList = dirUnix2PC(unix_imgDirList,win_imgDrive,unix_imgDrive);
 
-                 for k = 1:length(imgDirList)
-                    if ~isdir(imgDirList{k})
+                    %Check conversion.
+                    if isempty(imgDirList)
                        noProblem = 0;
+                    else
+                       noProblem = 1;
+                    end
+
+                    for k = 1:length(imgDirList)
+                       if ~isdir(imgDirList{k})
+                          noProblem = 0;
+                       end
                     end
                  end
 
                  if ~noProblem
-                    question = ['Invalid PC drive letter or unix drive name ' ... 
+                    question = ['Invalid or insufficient PC drive letters or unix drive names ' ... 
                        'or the saved project setting file is corrupted or last ' ...
                        'saved image directories have changed. ' ...
+                       'Please check the cause before answer the following question.' ...
                        'Do you want to try again? ' ...
-                       'Please check the cause before answer.' ...
                        'If no, the old image directories will be removed. ' ...
                        'Be cautious!!!'];
                     tryAgain = questdlg(question,'Alert','Yes','No','Yes');
                  else
                     projSettings.win_imgDirList = imgDirList;
+                    if length(unix_imgDrive) == 1
+                       imgDrive = unix_imgDrive{1};
+                       unix_imgDrive = cell(size(imgDirList));
+                       for k = 1:length(imgDirList)
+                          unix_imgDrive{k} = imgDrive;
+                       end
+                    end
+                    if length(win_imgDrive) == 1
+                       imgDrive = win_imgDrive{1};
+                       win_imgDrive = cell(size(imgDirList));
+                       for k = 1:length(imgDirList)
+                          win_imgDrive{k} = imgDrive;
+                       end
+                    end
                     noProblem = 1;
                     tryAgain  = 'No';
                  end
@@ -1192,8 +1240,8 @@ if ~noProblem
       subProjDir{k} = '';
    end
 
-   win_imgDrive  = '';
-   unix_imgDrive = '';
+   win_imgDrive  = {};
+   unix_imgDrive = {};
    physiParam    = [];
 else
    %Check whether we can find all the subprojects in the loaded last
@@ -1211,13 +1259,6 @@ else
             'The last project setting file is likely corruppted.']);
       end
    end
-end
-
-if ~iscell(unix_imgDrive) || length(unix_imgDrive) < length(imgDirList)
-   unix_imgDrive = {};
-end
-if ~iscell(win_imgDrive) || length(win_imgDrive) < length(imgDirList)
-   win_imgDrive = {};
 end
 
 handles.projDir           = projDir;
