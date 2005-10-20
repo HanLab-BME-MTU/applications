@@ -260,12 +260,16 @@ movieNames = movieNames(selectedIdx,:);
 for iMovie = 1:nSelected
     fileName = movieNames{iMovie,1};
     pathName = movieNames{iMovie,2};
-if strcmpi(fileName(end-6:end),'3D.dv')
+if strcmpi(fileName(end-5:end),'3D.dv')
     % change fileName to *.r3d
     destFileName = [fileName(1:end-7),'.r3d'];
 elseif strcmp(fileName(end-3:end-1),'.r3')
     % we're happy
     destFileName = fileName;
+else
+    h=errordlg('This file extension is not recognized. Please notify the authorities')
+    uiwait(h);
+    return
 end
 
 % %make sure user has not inadvertedly selected the r3d instead of the r3c
