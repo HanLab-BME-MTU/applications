@@ -22,7 +22,7 @@ function varargout = fsmPostProc(varargin)
 
 % Edit the above text to modify the response to help fsmPostProc
 
-% Last Modified by GUIDE v2.5 10-Sep-2004 18:26:27
+% Last Modified by GUIDE v2.5 18-Oct-2005 19:21:23
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -988,5 +988,12 @@ else
     set(handles.popupCurrentExp,'Enable','on');
 end
 
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over pushAssignSpecklesToClasses.
+function pushAssignSpecklesToClasses_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to pushAssignSpecklesToClasses (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
 

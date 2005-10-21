@@ -103,6 +103,10 @@ end
 % Select frames
 [uFirst,uLast]=fsmTrackSelectFramesGUI(first,last,minDistFrame,'Plot trajectories within frames:');
 
+% make sure that values are integers!!!
+uFirst = int16(uFirst);
+uLast  = int16(uLast);
+
 % Check whether the dialog was closed (_CloseRequestFcn)
 if uFirst==-1
     return % This will return an error (status=0)
@@ -119,7 +123,7 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load first image
-img=double(imread(char(imageFileList(uFirst,:))));
+img=double(imread(char(imageFileList(int16(uFirst),:))));
 
 % Store image size
 imgSize=size(img);
