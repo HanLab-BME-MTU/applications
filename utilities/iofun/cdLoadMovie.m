@@ -95,11 +95,14 @@ end
 
 % find movie file if necessary
 if type == 6
+    oldDir = cd(dirName);
     [movieName, dirName, chooseIdx] = ...
         uigetfile({'*.fim;moviedat*','filtered movie';...
         '*.r3d;*.r3c;*3D.dv','corrected movie';...
         '*.r3d;*.r3c;*3D.dv','raw movie'},...
         'Please choose movie type and location!');
+    cd(oldDir);
+    
     if movieName == 0
         % user aborted
         warning('No movie loaded');
@@ -116,13 +119,14 @@ if type == 6
 else
     % we want to use movieName below - assing empty here
     movieName = [];
+    
 end
-
-
-
 
 % goto movie directory
 oldDir = cd(dirName);
+
+
+
 
 % if we're in a loop, there is no point in loading the header all the time.
 % Therefore, we return it empty

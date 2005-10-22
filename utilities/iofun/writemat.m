@@ -1,11 +1,12 @@
-function stat=writemat(fname,mov)
+function stat=writemat(fname,mov,append)
 %WRITEMAT writes (or appends) double binary file to disk
 %
-% SYNOPSIS stat=writemat(fname,mov)
+% SYNOPSIS stat=writemat(fname,mov,append)
 %
-% INPUT    fname  fileName. If the file exists in the current path, it will
-%                 be appended.
+% INPUT    fname  fileName. 
 %          mov    data to be written
+%          append (opt, default: 0) : if 1 and file exists already, data
+%                   will be appended
 %
 % OUTPUT   stat   errormessage
 %
@@ -13,10 +14,13 @@ function stat=writemat(fname,mov)
 %c: 10/08/01 dT
 
 stat = [];
+if nargin < 3 || isempty(append)
+    append = 0;
+end
 
 %open to write or create
-if (exist([pwd filesep fname],'file'))
-    [fid errmsg] = fopen(fname,'r+','b');
+if append
+    [fid errmsg] = fopen(fname,'a+','b');
 else
     [fid errmsg] = fopen(fname,'w','b');
 end;

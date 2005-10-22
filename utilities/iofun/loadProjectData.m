@@ -4,13 +4,14 @@ function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadPro
 % SYNOPSIS [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname)
 %
 % INPUT    fileName  (opt) name of data file. if 1, the program will load
-%                       GUI mode
+%                       GUI mode. If empty, the program will attempt to
+%                       load a dataFile from the current or specified path
 %          pathName  (opt) name of path for data file. If fileName, but no
 %                       pathName is specified, currentDir is used
 %          idname    (opt) name of idlist to be loaded. Can be "last"
 %
 % OUTPUT   idlist           user selected idlist if several possible
-%          dataProperties   
+%          dataProperties
 %          projectProperties
 %          slist
 %          filteredMovie
@@ -22,9 +23,11 @@ function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadPro
 % TEST INPUT
 %===================
 
-if nargin == 0 || isempty(fileName)
+if nargin == 0
     loadData = 1;
     GUI = 0;
+elseif isempty(fileName)
+    loadData = 2;
 else
     if fileName == 1
         loadData = 1;
@@ -53,40 +56,55 @@ end
 % FIND FILE IF NECESSARY
 %========================
 
-if loadData
-    oldDir = pwd;
-    
-    %check if default biodata-dir exists and cd if exist
-    mainDir = cdBiodata(2);
-    
-    %get project data file
-    [fileName,pathName] = uigetfile({'*-data-??-???-????-??-??-??.mat','project data files'},'select project data file');
-    
-    
-    
-    
-    if fileName==0
-        if GUI
-            h = errordlg('no data loaded')
-            uiwait(h)
-            return
-        else
-            error('no data loaded')
+switch loadData
+    case 0 % check that the file exists
+        if ~exist(fileName) && ~ exist([pathName,fileName])
+            if GUI
+                h = errordlg('file not found')
+                uiwait(h)
+                return
+            else
+                error('file not found')
+            end
         end
-    end
-    
-else
-    
-    if ~exist(fileName) && ~ exist([pathName,fileName])
-        if GUI
-            h = errordlg('file not found')
-            uiwait(h)
-            return
-        else
-            error('file not found')
+
+    case 1 % launch GUI
+        oldDir = pwd;
+
+        %check if default biodata-dir exists and cd if exist
+        mainDir = cdBiodata(2);
+
+        %get project data file
+        [fileName,pathName] = uigetfile({'*-data-??-???-????-??-??-??.mat','project data files'},'select project data file');
+
+
+
+
+        if fileName==0
+            if GUI
+                h = errordlg('no data loaded')
+                uiwait(h)
+                return
+            else
+                error('no data loaded')
+            end
         end
-    end
-    
+
+    case 2 % assume we are (or are pointed) to the right directory
+        f = searchFiles('.*-data-\d\d-.*\.mat','log',pathName);
+        if isempty(f)
+            if GUI
+                h = errordlg('file not found')
+                uiwait(h)
+                return
+            else
+                error('file not found')
+            end
+        end
+        fileName = f{1};
+
+
+
 end
 
 %=======================
@@ -110,7 +128,7 @@ if ~isempty(idname)
     if strcmp(idname,'last')
         idIdx = find(strcmp(idnameList,data.lastResult));
         if ~isempty(idIdx)
-        idname = idnameList{idIdx};
+            idname = idnameList{idIdx};
         end
     else
         idIdx = find(strcmp(idnameList,idname));
@@ -153,7 +171,8 @@ if isempty(idname)
 else
     idlist = data.(idname);
 end
-
+% store idname in idlist
+idlist(1).stats.idname = idname;
 
 %------------ dataProperties ------------------
 if nargout > 1
@@ -205,11 +224,11 @@ end
 %--------- movie
 
 if nargout > 4
-    
+
     %--------------try to load filtered movie
     %try to find filenames in the path from which projectData has been loaded
     filteredMovie = cdLoadMovie('latest',pathName);
-    
+
     %test if everything correctly loaded
     if ~exist('filteredMovie','var')
         if GUI
@@ -222,6 +241,6 @@ if nargout > 4
         error('no movie found')
         return
     end
-    
+
 end
 

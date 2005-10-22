@@ -46,7 +46,14 @@ if( nargin<2 | tPoints==0 )
 end;
 
 % remove time Points larger than movie
-tPoints=tPoints(find(tPoints<=fullMovSze(headerSze)));
+tooLate = tPoints > fullMovSze(headerSze);
+if any(tooLate)
+    tPoints(tooLate) = [];
+    warning('READMAT:notEnoughTimePoints',...
+        sprintf(['There are only %i frames in %s!\n '...
+        '%i frames fewer than requested (%i) will be returned'], ...
+        fullMovSze(headerSze), fname, nnz(tooLate), length(tPoints)));
+end
 
 %one time point size
 tpSze=prod(fullMovSze(1:headerSze-1));

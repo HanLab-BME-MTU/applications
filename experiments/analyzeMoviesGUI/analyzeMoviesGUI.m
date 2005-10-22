@@ -27,11 +27,11 @@ function varargout = analyzeMoviesGUI(varargin)
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @analyzeMoviesGUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @analyzeMoviesGUI_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @analyzeMoviesGUI_OpeningFcn, ...
+    'gui_OutputFcn',  @analyzeMoviesGUI_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin & isstr(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -126,22 +126,22 @@ load(jobFile);
 cd(oldPath);
 
 if isfield(job,'jobs2run')
-    
+
     %ensure portability of jobfiles between windows and linux
     nJobs = length(job);
-        for i = 1:nJobs
-            fileSepIdx = [findstr(job(i).projProperties.dataPath,'\'),...
-                findstr(job(i).projProperties.dataPath,'/')];
-            job(i).projProperties.dataPath(fileSepIdx) = filesep;
-        end
-    
+    for i = 1:nJobs
+        fileSepIdx = [findstr(job(i).projProperties.dataPath,'\'),...
+            findstr(job(i).projProperties.dataPath,'/')];
+        job(i).projProperties.dataPath(fileSepIdx) = filesep;
+    end
+
     %find strings for dirList
     jobCell = struct2cell(job);
     jobNames = fieldnames(job);
     nameIdx = strmatch('projName',jobNames);
     nameList = jobCell(nameIdx,:)';
     set(handles.dirListBox,'Value',1);
-    
+
     dirList = get(handles.dirListBox,'String');
     if ~iscell(dirList)
         set(handles.dirListBox,'String',nameList);
@@ -163,12 +163,12 @@ if isfield(job,'jobs2run')
     set(handles.dirListBox,'Value',dirListSelect);
     dirListLength = size(get(handles.dirListBox,'String'),1);
     guidata(hObject,handles);
-    
+
     ans = questdlg('Do you want to update properties?','','yes','no','yes');
     if strcmp(ans,'yes')
         editProperties(handles,[dirListSelect:dirListLength]);
     end
-    
+
 end
 
 % --- Executes on button press in amg_editProp_PB.
@@ -260,135 +260,135 @@ movieNames = movieNames(selectedIdx,:);
 for iMovie = 1:nSelected
     fileName = movieNames{iMovie,1};
     pathName = movieNames{iMovie,2};
-if strcmpi(fileName(end-4:end),'3D.dv')
-    % change fileName to *.r3d
-    destFileName = [fileName(1:end-6),'.r3d'];
-elseif strcmp(fileName(end-3:end-1),'.r3')
-    % we're happy
-    destFileName = fileName;
-else
-    h=errordlg('This file extension is not recognized. Please notify the authorities')
-    uiwait(h);
-    return
-end
-
-% %make sure user has not inadvertedly selected the r3d instead of the r3c
-% if strcmp(fileName(end),'d')&exist([pathName,fileName(1:end-4),'_corr.r3c'])
-%     ans = questdlg('Are you sure you want to load the uncorrected movie?','','load uncorrected','load corrected','cancel','load corrected');
-%     switch ans
-%         case 'load uncorrected'
-%             %leave everything as is
-%         case 'load corrected'
-%             %change fileName
-%             fileName = [fileName(1:end-4),'_corr.r3c'];
-%             destFileName = fileName;
-%         otherwise
-%             %cancel or []
-%             return
-%     end
-% end
-
-%if last part of pathname differs from moviename: create project directory
-%and move movie and logfile; else read projectName
-projName = destFileName(1:end-4);
-
-%get extension of movie file
-%fileExtension = destFileName(end-3:end); %.r3d/.r3c
-
-%get name of directory
-listSep = findstr(pathName,filesep);
-% lastSep = listSep(end-1); %with uigetfile, the path ends with a filesep!
-% dirName = pathName(lastSep+1:end-1); %ditto
-% with the new search/list, there are no trailing fileseps anymore
-dirName = pathName(listSep(end)+1:end);
-
-if strcmpi(dirName(end-2:end),'bad')
-    % then don't do any calculations
-    disp(sprintf('%s is labelled ''bad'' - will not be analyzed',fileName))
-else
-if strcmp(projName,dirName)|strcmp(projName,[dirName,'_corr'])
-    %projName==dirName or projName==dirName_corr
-    fullPathName = pathName; 
-else
-    %projName~=dirName
-    cd(pathName);
-    % add filesep to pathName
-    if ~strcmp(pathName(end),filesep)
-        pathName = [pathName,filesep];
-    end
-    %create new directory
-    mkdir(projName);
-    %store directory path
-    fullPathName = [pathName,projName,filesep]; 
-    %move movie and rename if necessary
-    if ispc
-        movefile([pathName,fileName],[fullPathName,destFileName]);
-    else %there is a bug in linux with copying
-        system(['mv ' [pathName,fileName] ' ' [fullPathName,destFileName]]);
-    end
-    
-    %move logfile
-    logfileName = [pathName,fileName,'.log'];
-    if exist(logfileName)
-        if ispc
-            movefile([pathName,fileName,'.log'],fullPathName);
-        else
-            system(['mv ' [pathName,fileName,'.log'] ' ' fullPathName]);
-        end
-    end
-end
-cd(fullPathName);
-
-%see if project is in mainDir, do it case-unsensitive
-if strcmpi(fullPathName(1:length(mainDir)),[mainDir])==1
-    relPathName = fullPathName(length(mainDir)+2:end); %begins without filesep, ends with none
-else
-    ans = questdlg('moviefile is not in main file structure or you have no env-var BIODATA. There will be problems sharing your data',...
-        'WARNING','Continue','Cancel','Cancel');
-    if strcmp(ans,'Cancel')
-        return %end evaluation here
+    if strcmpi(fileName(end-4:end),'3D.dv')
+        % change fileName to *.r3d
+        destFileName = [fileName(1:end-7),'.r3d'];
+    elseif strcmp(fileName(end-3:end-1),'.r3')
+        % we're happy
+        destFileName = fileName;
     else
-        relPathName = fullPathName(1:end-1); %eliminate last filesep
+        h=errordlg('This file extension is not recognized. Please notify the authorities')
+        uiwait(h);
+        return
     end
-end
+
+    % %make sure user has not inadvertedly selected the r3d instead of the r3c
+    % if strcmp(fileName(end),'d')&exist([pathName,fileName(1:end-4),'_corr.r3c'])
+    %     ans = questdlg('Are you sure you want to load the uncorrected movie?','','load uncorrected','load corrected','cancel','load corrected');
+    %     switch ans
+    %         case 'load uncorrected'
+    %             %leave everything as is
+    %         case 'load corrected'
+    %             %change fileName
+    %             fileName = [fileName(1:end-4),'_corr.r3c'];
+    %             destFileName = fileName;
+    %         otherwise
+    %             %cancel or []
+    %             return
+    %     end
+    % end
+
+    %if last part of pathname differs from moviename: create project directory
+    %and move movie and logfile; else read projectName
+    projName = destFileName(1:end-4);
+
+    %get extension of movie file
+    %fileExtension = destFileName(end-3:end); %.r3d/.r3c
+
+    %get name of directory
+    listSep = findstr(pathName,filesep);
+    % lastSep = listSep(end-1); %with uigetfile, the path ends with a filesep!
+    % dirName = pathName(lastSep+1:end-1); %ditto
+    % with the new search/list, there are no trailing fileseps anymore
+    dirName = pathName(listSep(end)+1:end);
+
+    if strcmpi(dirName(end-2:end),'bad')
+        % then don't do any calculations
+        disp(sprintf('%s is labelled ''bad'' - will not be analyzed',fileName))
+    else
+        if strcmp(projName,dirName)|strcmp(projName,[dirName,'_corr'])
+            %projName==dirName or projName==dirName_corr
+            fullPathName = pathName;
+        else
+            %projName~=dirName
+            cd(pathName);
+            % add filesep to pathName
+            if ~strcmp(pathName(end),filesep)
+                pathName = [pathName,filesep];
+            end
+            %create new directory
+            mkdir(projName);
+            %store directory path
+            fullPathName = [pathName,projName,filesep];
+            %move movie and rename if necessary
+            if ispc
+                movefile([pathName,fileName],[fullPathName,destFileName]);
+            else %there is a bug in linux with copying
+                system(['mv ' [pathName,fileName] ' ' [fullPathName,destFileName]]);
+            end
+
+            %move logfile
+            logfileName = [pathName,fileName,'.log'];
+            if exist(logfileName)
+                if ispc
+                    movefile([pathName,fileName,'.log'],fullPathName);
+                else
+                    system(['mv ' [pathName,fileName,'.log'] ' ' fullPathName]);
+                end
+            end
+        end
+        cd(fullPathName);
+
+        %see if project is in mainDir, do it case-unsensitive
+        if strcmpi(fullPathName(1:length(mainDir)),[mainDir])==1
+            relPathName = fullPathName(length(mainDir)+2:end); %begins without filesep, ends with none
+        else
+            ans = questdlg('moviefile is not in main file structure or you have no env-var BIODATA. There will be problems sharing your data',...
+                'WARNING','Continue','Cancel','Cancel');
+            if strcmp(ans,'Cancel')
+                return %end evaluation here
+            else
+                relPathName = fullPathName(1:end-1); %eliminate last filesep
+            end
+        end
 
 
-%write project name into listbox
-dirList = get(handles.dirListBox,'String');
-if ~iscell(dirList)
-    dirList = cellstr(projName);
-else
-    dirList(end+1) = cellstr(projName);
-end
-set(handles.dirListBox,'String',dirList);
+        %write project name into listbox
+        dirList = get(handles.dirListBox,'String');
+        if ~iscell(dirList)
+            dirList = cellstr(projName);
+        else
+            dirList(end+1) = cellstr(projName);
+        end
+        set(handles.dirListBox,'String',dirList);
 
-%number of already selected projects
-projNum = length(dirList); 
+        %number of already selected projects
+        projNum = length(dirList);
 
-%select current project
-set(handles.dirListBox,'Value',projNum);
+        %select current project
+        set(handles.dirListBox,'Value',projNum);
 
 
-%write job data
-%handles.job(projNum).dirName = directoryName; 
-handles.job(projNum).projName = projName;
-handles.job(projNum).projProperties.dataPath = relPathName;
-handles.job(projNum).projProperties.datafileName = [];
-handles.job(projNum).projProperties.status = 0;
-handles.job(projNum).dataProperties = []; %to be defined in editPropertiesGUI
-handles.job(projNum).createNew = 1; %default
-handles.job(projNum).lastName = [];
-handles.job(projNum).mainDir = [];
-handles.job(projNum).mainSaveDir = [];
-%handles.job(projNum).fileExtension = fileExtension;
-handles.job(projNum).correctBackground = [];
+        %write job data
+        %handles.job(projNum).dirName = directoryName;
+        handles.job(projNum).projName = projName;
+        handles.job(projNum).projProperties.dataPath = relPathName;
+        handles.job(projNum).projProperties.datafileName = [];
+        handles.job(projNum).projProperties.status = 0;
+        handles.job(projNum).dataProperties = []; %to be defined in editPropertiesGUI
+        handles.job(projNum).createNew = 1; %default
+        handles.job(projNum).lastName = [];
+        handles.job(projNum).mainDir = [];
+        handles.job(projNum).mainSaveDir = [];
+        %handles.job(projNum).fileExtension = fileExtension;
+        handles.job(projNum).correctBackground = [];
 
-%save data
-guidata(gcbo,handles);
+        %save data
+        guidata(gcbo,handles);
 
-%launch property window
-editProperties(handles);
-end % check 'bad'
+        %launch property window
+        editProperties(handles);
+    end % check 'bad'
 end % end loop movies
 
 %-----------------------------------------------------------
@@ -434,36 +434,36 @@ job(1).mainSaveDir = [];
 ans = questdlg('run and/or save job?','choose wisely!','run only','save&run','save only','run only');
 switch ans
     case ''
-       %do nothing
-       return
-   case 'run only'
-       %no problemo
-   case 'save&run'
-       cd(mainDir);
-       [fileName,pathName] = uiputfile('job-*','save jobfile'); %careful: pathName includes filesep
-       if ~strcmp(pathName,[mainDir,filesep])
-           ans2 = questdlg('do you want to store your jobdata in this folder, too?','','yes','no','no');
-           if strcmp(ans2, 'yes')
-               job(1).mainSaveDir = pathName(1:end-1);
-           end
-       end
-       if pathName == 0
-           return
-       end
-       save([pathName,fileName],'job');
-       
-   case 'save only'
-       cd(mainDir);
-       [fileName,pathName] = uiputfile('job-*','save jobfile'); %careful: pathName includes filesep
-       if ~strcmp(pathName,[mainDir,filesep])
-           ans2 = questdlg('do you want to store your jobdata in this folder, too?','','yes','no','no');
-           if strcmp(ans2, 'yes')
-               job(1).mainSaveDir = pathName(1:end-1);
-               mainDir = pathName(1:end-1);
-           end
-       end
-       save([pathName,fileName],'job');
-       return %do not run job
+        %do nothing
+        return
+    case 'run only'
+        %no problemo
+    case 'save&run'
+        cd(mainDir);
+        [fileName,pathName] = uiputfile('job-*','save jobfile'); %careful: pathName includes filesep
+        if ~strcmp(pathName,[mainDir,filesep])
+            ans2 = questdlg('do you want to store your jobdata in this folder, too?','','yes','no','no');
+            if strcmp(ans2, 'yes')
+                job(1).mainSaveDir = pathName(1:end-1);
+            end
+        end
+        if pathName == 0
+            return
+        end
+        save([pathName,fileName],'job');
+
+    case 'save only'
+        cd(mainDir);
+        [fileName,pathName] = uiputfile('job-*','save jobfile'); %careful: pathName includes filesep
+        if ~strcmp(pathName,[mainDir,filesep])
+            ans2 = questdlg('do you want to store your jobdata in this folder, too?','','yes','no','no');
+            if strcmp(ans2, 'yes')
+                job(1).mainSaveDir = pathName(1:end-1);
+                mainDir = pathName(1:end-1);
+            end
+        end
+        save([pathName,fileName],'job');
+        return %do not run job
 end
 
 
@@ -526,7 +526,7 @@ switch nargin
         else
             handles.acceptAll = 0;
         end
-        
+
         while i<=dirListVector(end)&done~=1
             %set current job to update
             set(handles.dirListBox,'Value',i);
@@ -540,7 +540,7 @@ switch nargin
             handles.job(i).dataProperties.crop = cropInfo;
             handles.job(i).jobs2run = 0;
             handles.job(i).createNew = 0;
-            
+
             guidata(handles.AMG,handles);
             epH = editPropertiesGUI;
             switch handles.acceptAll %if acceptAll: do not need to show GUI
@@ -555,9 +555,9 @@ switch nargin
                 case 1
                     editPropertiesGUI('edit_OK_PB_Callback',epH,[],guidata(epH));
             end
-            
+
             handles = guidata(handles.AMG);
-            
+
             %check if quit loop to set current for all
             if handles.apply2all>0
                 handles.acceptAll = 1;
@@ -569,17 +569,17 @@ end
 handles = guidata(handles.AMG);
 
 if handles.apply2all>0 %could be 1 or 2
-    
+
     % read the properties of myJob, and apply it to all the other projects. If
     % they are not as far as myJob yet, they will have to do the catching
     % up with the default parameters. If they are further advanced, the
     % concerned jobs are rerun. (It all depends on what job settings the user wants
     % to apply to all!)
-    
+
     myJobNum = get(handles.dirListBox,'Value');
     myJob = handles.job(myJobNum);
     myJobs2run = bsum2bvec(myJob.jobs2run);
-    
+
     % get individual job properties of myJob
     myFieldNames = '';
     if any(myJobs2run == 1) %filter movie. Copy correct background
@@ -591,30 +591,30 @@ if handles.apply2all>0 %could be 1 or 2
     if any(myJobs2run==4)
         myFieldNames = [myFieldNames;{'dataProperties.IDopt'}];
     end
-%     if any(myJobs2run==16)
-%         myFieldNames = [myFieldNames];
-%     end
+    %     if any(myJobs2run==16)
+    %         myFieldNames = [myFieldNames];
+    %     end
     if handles.apply2all==2 %update movie properties, too
         myFieldNames = [myFieldNames;{'dataProperties.cellCycle';...
-                                      'dataProperties.strains';...
-                                      'dataProperties.drugs';...
-                                      'dataProperties.temperature'}];
+            'dataProperties.strains';...
+            'dataProperties.drugs';...
+            'dataProperties.temperature'}];
     end
-    
+
     %set job properties
     for i = 1:dirListLength
         if i~=myJobNum
-            
+
             % run the same jobs as in myJob; if there has been any previous
             % analysis, discard those results!
             handles.job(i).jobs2run = myJob.jobs2run;
-            
+
             % check if project is "ready" to run jobs
             % or whether we have to run some jobs first, before we get to
             % the point where the current project would start
-            
+
             statVec = bsum2bvec(handles.job(i).projProperties.status);
-            if isempty(statVec) 
+            if isempty(statVec)
                 statVec = 0; % I do not want to risk changing bsum2bvec for this
             end
             if ~isempty(myJobs2run) %only look at jobs2run if there is any
@@ -624,11 +624,11 @@ if handles.apply2all>0 %could be 1 or 2
                     handles.job(i).jobs2run = handles.job(i).jobs2run+jobi;
                 end
                 % check whether we have to force createNew
-                if myJob.createNew & myJobs2run(1)<=2 
+                if myJob.createNew & myJobs2run(1)<=2
                     handles.job(i).createNew = 1;
                 end
             end
-            
+
             % set all the necessary job properties
             handles.job(i).eraseAllPrev = myJob.eraseAllPrev;
             for j = 1:size(myFieldNames,1)
