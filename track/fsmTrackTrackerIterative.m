@@ -44,11 +44,14 @@ elseif TRACKER == 2
     
 
     % Extract speckle coordinates
-    posI=I(:,1:2);
-    posJ=J(:,1:2);
+    posI(:,1)=I(:,1);
+    posI(:,2)=I(:,2);
+    posJ(:,1)=J(:,1);
+    posJ(:,2)=J(:,2);
     % create cost matrix for the linear assignment code
     % in the most general case that is equal to the distance matrix 
     cc = createSparseDistanceMatrix(posI, posJ, threshold);
+    %cc = createDistanceMatrix(posI, posJ);
     [all_links_1, all_links_2] = lap(cc, NONLINK_MARKER, extendedTesting, augmentCC);
     
     I_N = length(posI);
