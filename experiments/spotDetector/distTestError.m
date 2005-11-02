@@ -9,11 +9,6 @@ function [res,jac]=distTestError(parms,data,gIdxList,mskDataSize,dataProperties)
 % OUTPUT res  : residual of model
 %                jac  : jacobian of model
 
-if(nargin==2)
-    dataSize=size(data);
-    idxList=[];
-%    mask=ones(dataSize);
-end;
 % create model with current parms
 [gaussFit, mgrad] = multiGaussFit(mskDataSize,parms,dataProperties);
 % return residual and jacobian

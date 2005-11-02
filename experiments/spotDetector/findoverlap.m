@@ -46,11 +46,11 @@ for t=1:tsteps
     
 
     %======DEBUG
-    %         t;
-    %         if any(t == [999])
-    %             disp('press dbstep to continue!')
-    %             keyboard
-    %         end
+          
+%             if any(t == [8])
+%                 disp('press dbstep to continue!')
+%                 keyboard
+%             end
     %======DEBUG
 
     % if there are too many local maxima, the code could crash
@@ -67,7 +67,7 @@ for t=1:tsteps
             cordList(:,1)=tc2;
 
             nspots=size(cordList,1);
-
+            disp(sprintf('t : %i nsp : %i', t,nspots));
             imgStk=data(:,:,:,1,t);
             %resize data if necessary (odd size)
             %idx=~rem(size(imgStk),2);
@@ -84,17 +84,13 @@ for t=1:tsteps
                     error(sprintf('too many spots (%i) - Matlab will run out of memory!',length(spotsidx)));
                 end
                 idxList=find(mask);
-                %             % less than 1.5*MAXSPOTS spots found -- do not do that
-                %             anymore - fitTest should be able to remove the respective tags!
-                %             if nspots<1.5*MAXSPOTS
                 mskData=imgStk(idxList);
-                estNoise = imNoiseEstim(imgStk);
-                [numDist,ncordList,ampList,bg,statistics]=fitTest(mskData,cordList(spotsidx,:),idxList,size(imgStk),dataProperties,estNoise);
-                %             else
-                %                 numDist=length(spotsidx);
-                %                 ncordList=cordList(spotsidx,:);
-                %                 ampList=zeros(numDist,1);
-                %                 bg=0;
+                
+                % do the mixture-model fitting
+                [numDist,ncordList,ampList,bg,statistics]=...
+                    fitTest(mskData,cordList(spotsidx,:),idxList,...
+                    size(imgStk),dataProperties);
+
                 if isempty(ncordList)
                     statistics.parms=[];
                     statistics.multi=0;

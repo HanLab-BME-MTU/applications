@@ -45,6 +45,8 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                              .movieName: filename to load
 %                              .movieType: if movieType was "latest" or
 %                               "corr/raw": type which was chosen.
+%                              .loadedFrames (output only): List of the
+%                               frames that have just been loaded
 %
 % OUTPUT    movie        : 5D movie file (x,y,z,wavelenghth, time)
 %           movieHeader  : header of movie
@@ -515,7 +517,9 @@ end
 % ASSIGN OUTPUT
 %============================
 
-% remove the first entry of files2load
+% move the first entry of files2load
+% into the list of loaded frames
+loadStruct.loadedFrames = loadStruct.frames2load(1);
 loadStruct.frames2load(1) = [];
 
 % rename header

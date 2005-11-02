@@ -47,8 +47,15 @@ while(~isempty(trackPairs))  % no for loop through list, such that the trackPair
     if ~isempty(nsl(trackPairs(1,1)).linklist)
         tcsl(1)=nsl(trackPairs(1,1));
     end;
+    
+    % load movieFrames if entire movie isn't already loaded
+    if iscell(mov)     
+        movieFrames = cdLoadMovie(mov,[],trackPairs(1,:));
+    else
+        movieFrames = mov(:,:,:,:,trackPairs(1,:));
+    end
     msg{1}=['Tracking: ' num2str(trackPairs(1,1)) ' -> ' num2str(trackPairs(1,2))];
-    [tempnsl, status]=trackFrame(mov(:,:,:,:,trackPairs(1,:)),tcsl,dataProperties);
+    [tempnsl, status]=trackFrame(movieFrames,tcsl,dataProperties);
     
     ctidx=ctidx+1;
     mywaitbar(ctidx/maxWaitbar,waitbarHandle,maxWaitbar);

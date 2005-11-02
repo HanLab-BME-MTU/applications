@@ -1,4 +1,4 @@
-function [numDist,ncordList,ampList,bg,statistics,debugData]=fitTest(data,cordList,idxList,dataSize,dataProperties,estNoise,DEBUG)
+function [numDist,ncordList,ampList,bg,statistics,debugData]=fitTest(data,cordList,idxList,dataSize,dataProperties,DEBUG)
 %FITTEST 
 %
 %SYNOPSIS : [numDist,ncordList,statistics]=fitTest(data,cordList,idxList,dataSize)
@@ -25,7 +25,7 @@ F_TEST_PROB = dataProperties.F_TEST_PROB;
 MAX_POS_DELTA = dataProperties.FILTERPRM(4:6);
 
 %init debug parameters
-if nargin < 7 || isempty(DEBUG)
+if nargin < 6 || isempty(DEBUG)
     DEBUG = 0;
 else
     debugData = struct('exitflag',[],'output',[]);
@@ -38,13 +38,10 @@ bg = [];
 statistics = [];
 
 
-%shift coords to center
-cent=ceil(dataSize/2);
-%cordList=cordList-ones(size(cordList,1),1)*cent;
-
-% optim options
+% optim options. We want to terminate the algorithm when it is within 0.001
+% pixel.
 numDist = 0;
-options = optimset('Jacobian','on','Display','off','TolFun',1e-6,'TolX',1e-6);
+options = optimset('Jacobian','on','Display','off','TolFun',1e-20,'TolX',1e-3);
 
 % find minimal box for gaussian fit
 [ig jg kg]=ind2sub(dataSize,idxList);
@@ -54,13 +51,19 @@ minV=[min(ig) min(jg) min(kg)];
 maxV=[max(ig) max(jg) max(kg)];
 mskDataSize=maxV-minV+1;
 
-%make odd size
+% %make odd size. This is some relic from earlier times, when everything
+% had to be odd size to work properly. At least, this time the image is not
+% made smaller, so I don't mess with it.
 mo=~rem(mskDataSize,2);
 mskDataSize=mskDataSize+mo;
 gIdxList=sub2ind(mskDataSize, ig-minV(1)+1, jg-minV(2)+1, kg-minV(3)+1);
 
-%shift coord
-shiftC=([minV(1)-1, minV(2)-1, minV(3)-1]+ceil(mskDataSize/2));
+
+% shift coord. ShiftC is the coordinate of the lower left corner of the
+% localImage plus the distance from the lower left corner of the localImage
+% to the center of the localImage
+localShift = ceil(mskDataSize/2);
+shiftC=([minV(1)-1, minV(2)-1, minV(3)-1] + localShift);
 cordList=cordList-ones(size(cordList,1),1)*shiftC;
 
 %-------------------------------------- FIT N ------------------------------------
@@ -72,7 +75,7 @@ degFree=4*nsp+1;
 %setup parms and boundaries
 lb=[  0];                         %lb of background
 %chJ ub=[255];                      %ub        "
-ub = [1]; %-> intensities are transformed onto [0 100]
+ub = [1]; %-> intensities are transformed onto [0 1]
 
 %get maxData for transform
 maxData = max(data(:));
@@ -81,15 +84,21 @@ maxData = max(data(:));
 TRANSFACT = 1/maxData;
 transData = data*TRANSFACT;
 
+
 bg=min(transData(:));
 
-sca=(max(transData(:))-min(transData(:)));
+sca=(max(transData(:))-bg);
 parms=[bg];
 
 %position       intensity scaling     rest
+% lower bound for intensity: 0. Using the estimate noise seemed to be a
+% good idea until I found that if lsqnonlin hits a boundary, it still gives
+% some kind of reasonable fit - with the lowerbound as amplitude! Of
+% course, the artificially high amplitude will pass the statistical tests.
+% upper bound for intensity: 1.1 (b/c data is on 0/1)
 for i=1:nsp
-    lb=[cordList(i,:)-MAX_POS_DELTA           0   lb];
-    ub=[cordList(i,:)+MAX_POS_DELTA 50000  ub];
+    lb=[cordList(i,:)-MAX_POS_DELTA, 0,   lb];
+    ub=[cordList(i,:)+MAX_POS_DELTA, 1.1,  ub];
     parms=[cordList(i,:) sca parms];
 end;
 
@@ -163,9 +172,14 @@ if nsp>0 %do N+1-fit only if there are any spots left!
     % nCt counts the number of new tags
     nCt=0;
     
-    % local image is the image of the jointly fitted tags
-    localImage = reshape(data,dataSize);
-    subImageSize = MAX_POS_DELTA;
+    % local image is the image of the jointly fitted tags. Put NaNs
+    % wherever there is no data
+    localImage = repmat(NaN,mskDataSize);
+    localImage(gIdxList) = data;
+    [subImageGridY,subImageGridX,subImageGridZ] = ndgrid(...
+        [-MAX_POS_DELTA(1):MAX_POS_DELTA(1)],...
+     [-MAX_POS_DELTA(2):MAX_POS_DELTA(2)],...
+     [-MAX_POS_DELTA(3):MAX_POS_DELTA(3)]);
     
     % loop through all the jointly fitted spots
     for i = 1:nsp
@@ -175,29 +189,41 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         while ~failedTest
         
         
-        %boundary
-        intensIdx=(i+nCt)*4;
+        %boundaries and starting values.
         
+        intensIdx=(i+nCt)*4;
         %transform amplitudes again (parms only, because lb and ub have not been transformed back!)
         parms(ampAndBGIdx) =  parms(ampAndBGIdx)*TRANSFACT;
-        % for lower bound intensity: use estimated image noise*2
-        nlb=[ncordList(i,:) - MAX_POS_DELTA 2*estNoise lb];
-        nub=[ncordList(i,:)+MAX_POS_DELTA 50000 ub];
-        nlb(intensIdx+4*nCt)=0.2*parms(intensIdx);
+        % for lower bound intensity: be very low: we don't want to
+        % introduce artefacts
+        nlb=[ncordList(i,:) - MAX_POS_DELTA 0 lb];
+        nub=[ncordList(i,:)+MAX_POS_DELTA 2 ub];
         % as first guess for the new parameter we take the centroid of the
         % subimage around the spot. If we are in the second iteration, the
         % patch center will be in between the old and the new spot. This of
         % course assumes that tags will always be arranged in some kind of
         % a triangle, and never in a line with the brightest in the center,
-        % but for these cases there's the tracker.
-        oldCenter = mean(ncordList([i+nCt,newIdx],:));
-        subImage = stamp3D(localImage,subImageSize,oldCenter);
-        centroid = centroid3D(subImage);
-        % actually we take twice the distance from the spot to the
-        % centroid, because the spot will "attract" the centroid
-        centerShift = 2*(centroid - subImageSize/2)/2;
+        % but for these cases there's the tracker. 
+        
+        % for subimage: interpolate around patchCenter. This is slower than
+        % cutting out an image via stamp3D, but easier to understand
+        patchCenter = mean(ncordList([i+nCt,newIdx],:),1) + localShift;
+        % interpolate. Put NaN wherever we get out of range
+        subImage = interp3(localImage,subImageGridX + patchCenter(2),...
+            subImageGridY + patchCenter(1),...
+            subImageGridZ + patchCenter(3),...
+            '*linear',NaN);
+        centroid = centroid3D(subImage.^10);
+        % careful: centroid works in imageCoords - this code is written in
+        % matrix-coords, though.
+        centroid = centroid([2,1,3]);
+        % (centroid - (maxPosDelta + 1)) is the shift relative to the
+        % subImage-center. Since especially in the case of kinetochores
+        % being eaten by SPBs the centroid is "attracted" by the brighter
+        % tag, we go 5x the centerShift.
+        centerShift = 5*(centroid - MAX_POS_DELTA - 1);
         % keep 0.5*intensity for the new spot
-        nparms = [oldCenter + centerShift 0.5*parms(intensIdx) parms];
+        nparms = [patchCenter + centerShift - localShift 0.5*parms(intensIdx) parms];
         
         
         [nparms,resnorm,dummy,exitflag,output] = lsqnonlin(@distTestError,nparms,nlb,nub,options,transData,gIdxList,mskDataSize,dataProperties);
@@ -207,9 +233,11 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         nAmpAndBGIdx = [4:4:nlp,nlp];
         nparms(nAmpAndBGIdx) = nparms(nAmpAndBGIdx)/TRANSFACT;
         
+        % recalc residuals and gradient
         [nGaussFit, nGaussGrad] = multiGaussFit(mskDataSize,nparms,dataProperties);
         
-        ndegFree=4*(nsp+nCt)+1;
+        % new number of degrees of freedom
+        ndegFree=4*(nsp+nCt+1)+1;
         
         %calc chi and Q-matrix
         Res2= nGaussFit(gIdxList)-data;
@@ -226,10 +254,11 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         %test the fit if significantly improved
         fValue=(chi1/degFree)/(chi2/ndegFree);
         prob=fcdf(fValue,degFree,ndegFree);
-        
+        disp(sprintf('%1.4f',prob));
         if (prob>F_TEST_PROB)
             %test again whether the spots are significant
-            [nparms,nQAll,deletedSpotNumber] = testDistanceAndAmplitudes(nparms,nQAll,chi2,dataProperties,1);
+            [nparms,nQAll,deletedSpotNumber] = ...
+                testDistanceAndAmplitudes(nparms,nQAll,chi2,dataProperties,1);
             %if we had to delete anything this time, we do not accept the N+1-fit
             
             if isempty(deletedSpotNumber)
@@ -242,6 +271,10 @@ if nsp>0 %do N+1-fit only if there are any spots left!
                 posIdx=sort([1:4:(4*(nsp+nCt)) 2:4:(4*(nsp+nCt)) 3:4:(4*(nsp+nCt))]);
                 ncordList=reshape(parms(posIdx),3,(nsp+nCt))';
                 newIdx = [newIdx, 0] + 1;
+                % make sure we compare to the last good fit, not to the
+                % initial one
+                degFree = ndegFree;
+                chi1 = chi2;
             else %transform back parms and quit loop
                 failedTest = 1;
                 parms(ampAndBGIdx) = parms(ampAndBGIdx)/TRANSFACT;
@@ -258,17 +291,17 @@ if nsp>0 %do N+1-fit only if there are any spots left!
     %read out parameters - only if nsp>0
     
     %index to postion values
-    posIdx=sort([1:4:(4*(nsp+nCt-1)) 2:4:(4*(nsp+nCt-1)) 3:4:(4*(nsp+nCt-1))]);
-    ampIdx=[4:4:(4*(nsp+nCt-1))];
+    posIdx=sort([1:4:(4*(nsp+nCt)) 2:4:(4*(nsp+nCt)) 3:4:(4*(nsp+nCt))]);
+    ampIdx=[4:4:(4*(nsp+nCt))];
     
     %read Q, coordinates and amplitudes
     Q=QAll(posIdx,posIdx);
     qAmp = QAll(ampIdx,ampIdx);
-    ncordList=reshape(parms(posIdx),3,nsp+nCt-1)';
+    ncordList=reshape(parms(posIdx),3,nsp+nCt)';
     ampList=parms(ampIdx);
     
     
-    if nCt>1
+    if nCt>0
         statistics.parms=parms;
         statistics.multi=1;
         statistics.chi=chi2;
@@ -284,7 +317,7 @@ if nsp>0 %do N+1-fit only if there are any spots left!
     
     statistics.Qxx=Q;
     statistics.qAmp = qAmp;
-    numDist=nsp+nCt-1;
+    numDist=nsp+nCt;
     %shift coords back
     ncordList=ncordList+ones(size(ncordList,1),1)*shiftC;
 end

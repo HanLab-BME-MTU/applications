@@ -195,8 +195,10 @@ end
 %save movieHeader
 save('r3dMovieHeader','r3dMovieHeader');
 
-% load corrected moive
+if nargout > 0
+% load corrected moive if asked for
 [newDataMovie, dummy, infoStruct] = cdLoadMovie('corrected');
 newDataMovieName = infoStruct.movieName;
+end
 
 
