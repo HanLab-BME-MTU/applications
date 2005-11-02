@@ -105,8 +105,8 @@ for t=1:tsteps
     % default 5. Later, I'll use something like ceil(maxSpots * 1.3).
     
     [mnpSorted,sortIdx] = sort(mnp(:,t),1,'descend');
-    % cut at either MAXSPOTS or how many we have if it's less
-    cps = sortIdx(1:min(dataProperties.MAXSPOTS,length(sortIdx)));
+    % cut at either MAXSPOTS+1 or how many we have if it's less
+    cps = sortIdx(1:min(dataProperties.MAXSPOTS+1,length(sortIdx)));
     
     
 %     %cumulative histogram spot separation

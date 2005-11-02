@@ -22,7 +22,7 @@ function varargout = editPropertiesGUI(varargin)
 
 % Edit the above text to modify the response to help editPropertiesGUI
 
-% Last Modified by GUIDE v2.5 02-Jul-2003 08:43:21
+% Last Modified by GUIDE v2.5 02-Nov-2005 11:55:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -564,7 +564,7 @@ handles.status = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % --- Executes during object creation, after setting all properties.
-function edit_maxslope_txt_CreateFcn(hObject, eventdata, handles)
+function edit_maxNumSpots_txt_CreateFcn(hObject, eventdata, handles)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ispc
@@ -575,7 +575,7 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function edit_maxslope_txt_Callback(hObject, eventdata, handles)
+function edit_maxNumSpots_txt_Callback(hObject, eventdata, handles)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if isnan(str2double(get(hObject,'String')))
@@ -1364,13 +1364,12 @@ function edit_check_analyzeSelected_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of edit_check_analyzeSelected
 
-function edit_startTime_txt_CreateFcn(hObject, eventdata, handles)
+function edit_maxSize_txt_CreateFcn(hObject, eventdata, handles)
 
-function edit_startTime_txt_Callback(hObject, eventdata, handles)
-
-function edit_endTime_txt_CreateFcn(hObject, eventdata, handles)
-
-function edit_endTime_txt_Callback(hObject, eventdata, handles)
+function edit_maxSize_txt_Callback(hObject, eventdata, handles)
+if isnan(str2double(get(hObject,'String')))
+    set(hObject,'String','');
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % --- Executes during object creation, after setting all properties.

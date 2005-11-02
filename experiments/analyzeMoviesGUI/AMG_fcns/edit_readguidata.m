@@ -44,11 +44,13 @@ amgHandles.job(activeJobNum).dataProperties.temperature = tempList(get(handles.e
 %write cropInfo (isempty if no cropping)
 amgHandles.job(activeJobNum).dataProperties.crop = handles.header.cropInfo;
 
-
+% maxSize. Multiply by 2e20 to get bytes 
+maxSize = str2double(get(handles.edit_maxSize_txt,'String'))*2e20;
+amgHandles.job(activeJobNum).dataProperties.maxSize = maxSize;
 
 %set detector properties
-CH_MAXSLOPE = str2double(get(handles.edit_maxslope_txt,'String'));
-amgHandles.job(activeJobNum).dataProperties.CH_MAXSLOPE = CH_MAXSLOPE; %   1 pt/0.5 grayvalue (max. slope)
+MAXSPOTS = str2double(get(handles.edit_maxNumSpots_txt,'String'));
+amgHandles.job(activeJobNum).dataProperties.MAXSPOTS = MAXSPOTS; 
 F_TEST_PROB = str2double(get(handles.edit_ftest_prob_txt,'String'));
 amgHandles.job(activeJobNum).dataProperties.F_TEST_PROB = F_TEST_PROB;    % min probability that there are two spots in a distribution
 
@@ -118,7 +120,6 @@ amgHandles.job(activeJobNum).dataProperties.FILTERPRM = handles.FILTERPRM;
 amgHandles.job(activeJobNum).dataProperties.split.set = 0;
 amgHandles.job(activeJobNum).dataProperties.split.TIMEPTS_IN_MEM =  10;
 
-amgHandles.job(activeJobNum).dataProperties.MAXSPOTS =  5;       % only check for multiple spots if less than MAXSPOTS found
 amgHandles.job(activeJobNum).dataProperties.T_TEST_PROB =  0.05;    % min prob. that distance is zero
 
 amgHandles.job(activeJobNum).projData = handles.projData; %name of data-file
