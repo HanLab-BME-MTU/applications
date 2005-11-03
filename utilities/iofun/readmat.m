@@ -31,6 +31,7 @@ end;
 [fid errmsg] = fopen(fname,'r','b');
 %error?
 if(fid==-1)
+    mov = [];
     stat=errmsg;
     return;
 end;

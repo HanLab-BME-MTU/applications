@@ -401,7 +401,7 @@ else
 
             % we need to load the entire movie (possibly in parts),
             % subtract the background and then find the minimum
-            if isstruct(loadOpt) && isfield(loadOpt.maxSize)
+            if isstruct(loadOpt) && isfield(loadOpt,'maxSize')
                 % account for the possibility that we have size limits
                 testStruct.maxSize = loadOpt.maxSize;
             else
@@ -425,7 +425,9 @@ else
                     cdLoadMovie('raw',[],testLoadStruct);
                 testMovie = testMovie - ...
                     repmat(correctionData.image,...
-                    [1,1,1,size(testMovie,4),size(testMovie,5)]);
+                    [1,1,...
+                    size(testMovie,3)/size(correctionData.image,3),...
+                    size(testMovie,4),size(testMovie,5)]);
                 minimumIntensity = min(min(testMovie(:)),minimumIntensity);
             end
             

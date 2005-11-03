@@ -127,6 +127,10 @@ try
                                     % that in a cdLoadMovie loop
                                     correctBackground(moviename,job(i).correctBackground,[],fidJob,fid);
 
+                                    %compose filteredMovieName
+                                    filteredMovieName = 'filtered_movie_';
+                                    filteredMovieName=[filteredMovieName, dataProperties.name,'.fim'];
+
                                     %check wheter another movie already
                                     %exists (within the loading loop, we
                                     %want to append!)
@@ -142,34 +146,33 @@ try
 
                                     % load first part
                                     [movie, movieHeader, loadStruct] = ...
-                                        cdLoadMovie('corrected',[],loadStruct);
+                                        cdLoadMovie('corr/raw',[],loadStruct);
 
                                     % loop with movie-chunks
-                                    done = 0;
-                                    while ~done
+                                    loopDone = 0;
+                                    while ~loopDone
 
                                         %filter movie
+                                        lf = loadStruct.loadedFrames{1};
                                         fprintf(fidJob,[nowString,' filteredMovie = filtermovie(movie,dataProperties.FILTERPRM);\n']);
-                                        fprintf(fid,[nowString,' filtermovie\n']);
+                                        fprintf(fid,sprintf('%s, filtermovie frames %i:%i\n',nowString,lf(1),lf(end)));
                                         filteredMovie = filtermovie(movie,dataProperties.FILTERPRM);
 
-                                        %compose filteredMovieName
-                                        filteredMovieName = 'filtered_movie_';
-                                        filteredMovieName=[filteredMovieName, dataProperties.name,'.fim'];
+
 
                                         %now save. Writemat appends to an
                                         %existing file
                                         fprintf(fidJob,[nowString,' writemat(%s,filteredMovie);\n'],filteredMovieName);
                                         fprintf(fid,[nowString,' save filtered movie\n']);
-                                        writemat(filteredMovieName,filteredMovie);
+                                        writemat(filteredMovieName,filteredMovie,1);
 
                                         clear('filteredMovie'); %to prevent memory problems
 
-                                        if ~isempty(loadStruct.frames2load
+                                        if ~isempty(loadStruct.frames2load)
                                             [movie, movieHeader, loadStruct] = ...
                                                 cdLoadMovie('corrected',[],loadStruct);
                                         else
-                                            done = 1;
+                                            loopDone = 1;
                                         end
 
                                     end % while loop
@@ -246,9 +249,10 @@ try
                                     % load movie (corrected if available)
                                     fprintf(fidJob,[nowString,' movie  =  cdLoadMovie(''corr/raw'');\n']);
                                     fprintf(fid,[nowString,' load raw/corrected movie\n']);
-                                    
+
                                     % generate loadStruct for loading in
                                     % chunks
+                                    loadStruct = [];
                                     loadStruct.maxSize = ...
                                         dataProperties.maxSize;
 
@@ -261,56 +265,48 @@ try
                                         cdLoadMovie('filtered',[],loadStruct);
 
                                     % loop with movie-chunks
-                                    done = 0;
+                                    loopDone = 0;
                                     slist(1:movieHeader.numTimepoints) = ...
                                         struct('sp',[],...
                                         'mnint',[],...
                                         'statistics',[],...
                                         'parms',[],...
                                         'COM',[]);
-                                    
-                                    while ~done
-                                        
-                                    
-                                    %run detect spots
-                                    fprintf(fidJob,[nowString,' cord = spotfind(filteredMovie,dataProperties);\n']);
-                                    fprintf(fid,[nowString,' find spots\n']);
 
-                                    % find spots
-                                    cord = spotfind(filteredMovie,dataProperties);  
-                                    %load filtered movie
-                                    filteredMovieName = chooseFile('filtered_movie',[],'new');
-                                    if ~isempty(filteredMovieName)
-                                        fprintf(fidJob,[nowString,' filteredMovie  =  readmat(%s);\n'],filteredMovieName);
-                                        fprintf(fid,[nowString,' load  filtered movie\n']);
-                                        [filteredMovie,stat] = readmat(filteredMovieName);
-                                    else
-                                        error(['no valid filtered movie found in ',pwd,'\n filter the raw data first'])
-                                    end
+                                    while ~loopDone
 
 
-                                    
-                                    fprintf(fidJob,[nowString,' slist=findoverlap(movie,cord,dataProperties);\n']);
-                                    fprintf(fid,[nowString,' find overlapping spots\n']);
+                                        %run detect spots
+                                        fprintf(fidJob,[nowString,' cord = spotfind(filteredMovie,dataProperties);\n']);
+                                        fprintf(fid,[nowString,' find spots\n']);
 
-                                    % find overlapping spots
-                                    slist(loadStructR.framesLoaded{1})=...
-                                        findoverlap(movie,cord,dataProperties);
+                                        % find spots
+                                        cord = spotfind(filteredMovie,dataProperties);
 
-                                    clear('filteredMovie');
-                                    clear('movie'); %to prevent memory problems
-                                    
-                                    if ~isempty(loadStructR.frames2load)
-                                        [movie, movieHeader, loadStructR] = ...
-                                        cdLoadMovie('corrected',[],loadStructR);
-                                    [filteredMovie, movieHeader, loadStructF] = ...
-                                        cdLoadMovie('filtered',[],loadStructF);
-                                    else
-                                        done = 1;
-                                    end
-                                    
+
+
+
+                                        fprintf(fidJob,[nowString,' slist=findoverlap(movie,cord,dataProperties);\n']);
+                                        fprintf(fid,[nowString,' find overlapping spots\n']);
+
+                                        % find overlapping spots
+                                        slist(loadStructR.loadedFrames{1})=...
+                                            findoverlap(movie,cord,dataProperties);
+
+                                        clear('filteredMovie');
+                                        clear('movie'); %to prevent memory problems
+
+                                        if ~isempty(loadStructR.frames2load)
+                                            [movie, movieHeader, loadStructR] = ...
+                                                cdLoadMovie('corrected',[],loadStructR);
+                                            [filteredMovie, movieHeader, loadStructF] = ...
+                                                cdLoadMovie('filtered',[],loadStructF);
+                                        else
+                                            loopDone = 1;
+                                        end
+
                                     end % while ~done
-                                    
+
                                     clear('filteredMovie');
                                     clear('movie'); %to prevent memory problems
 
@@ -494,12 +490,12 @@ try
                                         dataProperties.maxSize;
                                     [movie, movieHeader, loadStruct] = ...
                                         cdLoadMovie('corr/raw',[],loadStruct);
-                                    
-                                        if ~isempty(frames2load)
-                                            movie = {loadStruct.movieName...
-                                                loadStruct.movieType};
-                                        end
-                                    
+
+                                    if ~isempty(loadStruct.frames2load)
+                                        movie = {loadStruct.movieName...
+                                            loadStruct.movieType};
+                                    end
+
 
                                     %run tracktags
                                     fprintf(fidJob,[nowString,' idlisttrack = trackTags(movie,idlist,dataProperties);\n']);

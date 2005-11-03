@@ -74,15 +74,8 @@ handles.drugH = [handles.edit_check_drugs_nocodazole;...
         handles.edit_check_drugs_hydroxyurea;...
         handles.edit_check_drugs_alphaFactor];
 
-handles.imgH = [handles.edit_check_split;...
-        handles.edit_timeptsInMem_txt];
-
-handles.subsetH = [handles.edit_check_analyzeSelected;...
-        handles.edit_startTime_txt;...
-        handles.edit_endTime_txt];
-
 handles.detectH = [handles.edit_ftest_prob_txt;...
-        handles.edit_maxslope_txt];
+        handles.edit_maxNumSpots_txt];
 
 handles.linkH = [handles.edit_IDopt_checkIntensity_PD;...
         handles.edit_IDopt_verbose_PD;...
@@ -242,10 +235,6 @@ if ~isempty(myJob.dataProperties)&isfield(myJob.dataProperties,'IDopt')
         set(handles.edit_temperature_PD,'Value',strmatch(myJob.dataProperties.temperature,tempList));
     end
     
-    %     if isfield(myJob.dataProperties,'analyzeSubset')
-    %         if myJob.dataProperties.analyzeSubset(1)~=1|myJob.dataProperties.analyzeSubset(2)~=header.numTimepoints
-    %             set(handles.subsetH(1),'Value',1);
-    %         end
     
     if myJob.projProperties.status>0
         setGreen = bsum2lvec(myJob.projProperties.status);
@@ -279,7 +268,7 @@ if ~isempty(myJob.dataProperties)&isfield(myJob.dataProperties,'IDopt')
     end
     
     %set autospfinder properties
-    set(handles.edit_maxslope_txt,'String',myJob.dataProperties.CH_MAXSLOPE); %   1 pt/0.5 grayvalue (max. slope)
+    set(handles.edit_maxNumSpots_txt,'String',myJob.dataProperties.MAXSPOTS); %   1 pt/0.5 grayvalue (max. slope)
     set(handles.edit_ftest_prob_txt,'String',myJob.dataProperties.F_TEST_PROB);    % min probability that there are two spots in a distribution
     
     %set spotID properties
@@ -290,6 +279,11 @@ if ~isempty(myJob.dataProperties)&isfield(myJob.dataProperties,'IDopt')
     end
     %
     % more 2 come
+    if isfield(myJob.dataProperties,'maxSize')
+        set(handles.edit_maxSize_txt,'String',myJob.dataProperties.maxSize);
+        else
+            set(handles.edit_maxSize_txt,'String','200');
+        end
     %
 else
     handles.projData = projData;
@@ -338,7 +332,7 @@ else
         myJob.createNew = 0;
         
         %set autospfinder properties
-        set(handles.edit_maxslope_txt,'String',dataProperties.CH_MAXSLOPE); %   1 pt/0.5 grayvalue (max. slope)
+        set(handles.edit_maxNumSpots_txt,'String',dataProperties.MAXSPOTS); %   1 pt/0.5 grayvalue (max. slope)
         set(handles.edit_ftest_prob_txt,'String',dataProperties.F_TEST_PROB);    % min probability that there are two spots in a distribution
         
         %set spotID properties
@@ -349,7 +343,11 @@ else
         end
         %
         %set other properties, too
-        %
+        if isfield(dataProperties,'maxSize')
+        set(handles.edit_maxSize_txt,'String',dataProperties.maxSize);
+        else
+            set(handles.edit_maxSize_txt,'String','200');
+        end
         
     else 
         myJob.createNew = 1; %if no dataProperties-file: create new anyway

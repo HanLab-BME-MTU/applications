@@ -45,7 +45,7 @@ amgHandles.job(activeJobNum).dataProperties.temperature = tempList(get(handles.e
 amgHandles.job(activeJobNum).dataProperties.crop = handles.header.cropInfo;
 
 % maxSize. Multiply by 2e20 to get bytes 
-maxSize = str2double(get(handles.edit_maxSize_txt,'String'))*2e20;
+maxSize = str2double(get(handles.edit_maxSize_txt,'String'))*2^20;
 amgHandles.job(activeJobNum).dataProperties.maxSize = maxSize;
 
 %set detector properties
