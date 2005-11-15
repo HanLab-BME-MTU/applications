@@ -280,7 +280,7 @@ if ~isempty(myJob.dataProperties)&isfield(myJob.dataProperties,'IDopt')
     %
     % more 2 come
     if isfield(myJob.dataProperties,'maxSize')
-        set(handles.edit_maxSize_txt,'String',myJob.dataProperties.maxSize);
+        set(handles.edit_maxSize_txt,'String',myJob.dataProperties.maxSize/2^20);
         else
             set(handles.edit_maxSize_txt,'String','200');
         end
@@ -344,7 +344,7 @@ else
         %
         %set other properties, too
         if isfield(dataProperties,'maxSize')
-        set(handles.edit_maxSize_txt,'String',dataProperties.maxSize);
+        set(handles.edit_maxSize_txt,'String',dataProperties.maxSize/2^20);
         else
             set(handles.edit_maxSize_txt,'String','200');
         end

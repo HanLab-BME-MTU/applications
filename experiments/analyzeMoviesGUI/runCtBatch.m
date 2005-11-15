@@ -274,23 +274,26 @@ try
                                         'COM',[]);
 
                                     while ~loopDone
-
+                                        
+                                        
+                                
 
                                         %run detect spots
+                                        lf = loadStructF.loadedFrames{1};
                                         fprintf(fidJob,[nowString,' cord = spotfind(filteredMovie,dataProperties);\n']);
-                                        fprintf(fid,[nowString,' find spots\n']);
+                                        fprintf(fid,sprintf('%s, find spots frames %i:%i\n',nowString,lf(1),lf(end)));
 
                                         % find spots
                                         cord = spotfind(filteredMovie,dataProperties);
 
 
 
-
+                                        lf = loadStructR.loadedFrames{1};
                                         fprintf(fidJob,[nowString,' slist=findoverlap(movie,cord,dataProperties);\n']);
-                                        fprintf(fid,[nowString,' find overlapping spots\n']);
+                                        fprintf(fid,sprintf('%s, MMF frames %i:%i\n',nowString,lf(1),lf(end)));
 
                                         % find overlapping spots
-                                        slist(loadStructR.loadedFrames{1})=...
+                                        slist(loadStructF.loadedFrames{1})=...
                                             findoverlap(movie,cord,dataProperties);
 
                                         clear('filteredMovie');
