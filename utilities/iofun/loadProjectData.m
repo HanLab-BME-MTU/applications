@@ -1,4 +1,4 @@
-function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname)
+function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname,GUI)
 %LOADPROJECTDATA loads experimental Chromdyn data from file
 %
 % SYNOPSIS [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname)
@@ -23,9 +23,12 @@ function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadPro
 % TEST INPUT
 %===================
 
+if nargin < 4 || isempty(GUI)
+    GUI = 0;
+end
+
 if nargin == 0
     loadData = 1;
-    GUI = 0;
 elseif isempty(fileName)
     loadData = 2;
 else
@@ -34,7 +37,6 @@ else
         GUI = 1;
     else
         loadData = 0;
-        GUI = 0;
     end
 end
 
@@ -58,9 +60,9 @@ end
 
 switch loadData
     case 0 % check that the file exists
-        if ~exist(fileName) && ~ exist([pathName,fileName])
+        if ~exist(fileName,'file') && ~ exist([pathName,fileName],'file')
             if GUI
-                h = errordlg('file not found')
+                h = errordlg('file not found');
                 uiwait(h)
                 return
             else
@@ -75,15 +77,18 @@ switch loadData
         mainDir = cdBiodata(2);
 
         %get project data file
-        [fileName,pathName] = uigetfile({'*-data-??-???-????-??-??-??.mat','project data files'},'select project data file');
+        [fileName,pathName] = uigetfile(...
+            {'*-data-??-???-????-??-??-??.mat','project data files'},...
+            'select project data file');
 
 
 
 
         if fileName==0
             if GUI
-                h = errordlg('no data loaded')
+                h = errordlg('no data loaded');
                 uiwait(h)
+                idlist = [];
                 return
             else
                 error('no data loaded')
@@ -94,8 +99,9 @@ switch loadData
         f = searchFiles('.*-data-\d\d-.*\.mat','log',pathName);
         if isempty(f)
             if GUI
-                h = errordlg('file not found')
+                h = errordlg('file not found');
                 uiwait(h)
+                idlist = [];
                 return
             else
                 error('file not found')
@@ -141,7 +147,7 @@ if isempty(idIdx)
         case 0 %no idlist loaded. if GUI, continue w/o loading
 
             if GUI
-                h = warndlg('no idlist found in data')
+                h = warndlg('no idlist found in data');
                 uiwait(h);
                 idname = '';
             else
@@ -163,16 +169,20 @@ if isempty(idIdx)
 end
 if isempty(idname)
     if GUI
-        % continue loading
+        % continue loading if more than just idlist
         idlist = [];
+        if nargout == 1
+            return
+        end
     else
         error('file not found')
     end
 else
     idlist = data.(idname);
-end
-% store idname in idlist
+    % store idname in idlist
 idlist(1).stats.idname = idname;
+end
+
 
 %------------ dataProperties ------------------
 if nargout > 1
@@ -209,7 +219,7 @@ end
 if nargout > 3
     if ~isfield(data,'slist')
         if GUI
-            h = errordlg('No slist in project data!')
+            h = errordlg('No slist in project data!');
             uiwait(h)
             return
         else
@@ -232,14 +242,12 @@ if nargout > 4
     %test if everything correctly loaded
     if ~exist('filteredMovie','var')
         if GUI
-            h = errordlg('file not found')
+            h = errordlg('no movie found');
             uiwait(h)
             return
         else
-            error('file not found')
+            error('no movie found')
         end
-        error('no movie found')
-        return
     end
 
 end

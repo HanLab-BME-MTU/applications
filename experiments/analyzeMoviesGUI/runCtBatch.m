@@ -153,7 +153,7 @@ try
                                     while ~loopDone
 
                                         %filter movie
-                                        lf = loadStruct.loadedFrames{1};
+                                        lf = loadStruct.loadedFrames;
                                         fprintf(fidJob,[nowString,' filteredMovie = filtermovie(movie,dataProperties.FILTERPRM);\n']);
                                         fprintf(fid,sprintf('%s, filtermovie frames %i:%i\n',nowString,lf(1),lf(end)));
                                         filteredMovie = filtermovie(movie,dataProperties.FILTERPRM);
@@ -170,7 +170,7 @@ try
 
                                         if ~isempty(loadStruct.frames2load)
                                             [movie, movieHeader, loadStruct] = ...
-                                                cdLoadMovie('corrected',[],loadStruct);
+                                                cdLoadMovie(loadStruct.movieType,[],loadStruct);
                                         else
                                             loopDone = 1;
                                         end
@@ -301,7 +301,7 @@ try
 
                                         if ~isempty(loadStructR.frames2load)
                                             [movie, movieHeader, loadStructR] = ...
-                                                cdLoadMovie('corrected',[],loadStructR);
+                                                cdLoadMovie(loadStruct.movieType,[],loadStructR);
                                             [filteredMovie, movieHeader, loadStructF] = ...
                                                 cdLoadMovie('filtered',[],loadStructF);
                                         else
@@ -495,7 +495,7 @@ try
                                         cdLoadMovie('corr/raw',[],loadStruct);
 
                                     if ~isempty(loadStruct.frames2load)
-                                        movie = {loadStruct.movieName...
+                                        movie = {loadStruct.movieName,...
                                             loadStruct.movieType};
                                     end
 

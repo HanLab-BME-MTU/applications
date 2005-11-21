@@ -22,7 +22,7 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %           loadOpt (opt): Load options
 %                            - array with a vector of timepoints to be
 %                              loaded (e.g. [startFrame:endFrame])
-%                            - jobProperties structure with field .maxSize
+%                            - structure with field .maxSize
 %                              indicating maximum array size in bytes. If
 %                              the movie is bigger than maxSize, only the
 %                              first few frames will be loaded. With the
@@ -30,6 +30,12 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                              be called in a loop so that eventually, all
 %                              frames of the movies will have been
 %                              analyzed.
+%                              If .maxSize = 'check', cdLoadMovie will
+%                              attempt to load dataProperties and find a
+%                              field maxSize there to find maxSize. If
+%                              there is no variable dataProperties (or
+%                              tmpDataproperties), or no field .maxSize,
+%                              the entire movie will be loaded.
 %                              If the structure contains an additonal field
 %                              .frames2load, the program will load the
 %                              appropriate number of frames from the list
@@ -306,7 +312,26 @@ else
         if ~isfield(loadOpt,'maxSize')
             error('loadOpt-structure has no known fields!')
         end
-
+        
+        if ischar(loadOpt.maxSize) && strcmp(loadOpt.maxSize,'check')
+            % go and look for dataProperties.maxSize
+            if ~isempty(dir('dataProperties.mat'))
+                load dataProperties
+                if isfield(dataProperties,'maxSize')
+                    loadOpt.maxSize = dataProperties.maxSize;
+                end
+            elseif ~isempty(dir('tmpDataProperties.mat'))
+                load tmpDataProperties
+                if isfield(dataProperties,'maxSize')
+                    loadOpt.maxSize = dataProperties.maxSize;
+                end
+            end
+            % if we still don't know the size, go for defaultDataProperties
+            if strcmp(loadOpt.maxSize,'check')
+                dataProperties = defaultDataProperties;
+                loadOpt.maxSize = dataProperties.maxSize;
+            end
+        end
         maxSize = loadOpt.maxSize;
         movieSize = movieInfo.bytes;
 
@@ -359,7 +384,7 @@ else
 
     elseif isnumeric(loadOpt) && ~isempty(loadOpt)
 
-        if min(loadOpt) < 1  | max(loadOpt) > r3dMovieHeader.numTimepoints
+        if min(loadOpt) < 1  || max(loadOpt) > r3dMovieHeader.numTimepoints
             error('Start frame or end frame out of range!')
         end
 
@@ -521,7 +546,7 @@ end
 
 % move the first entry of files2load
 % into the list of loaded frames
-loadStruct.loadedFrames = loadStruct.frames2load(1);
+loadStruct.loadedFrames = loadStruct.frames2load{1};
 loadStruct.frames2load(1) = [];
 
 % rename header
