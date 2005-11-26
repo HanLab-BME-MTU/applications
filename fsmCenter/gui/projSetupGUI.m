@@ -336,6 +336,8 @@ if isdir(projDir)
          for k = length(physiParam)+1:length(firstImgList)
             physiParam{k} = defPhysiParam;
          end
+      elseif length(physiParam) > length(firstImgList)
+         physiParam(length(firstImgList)+1:length(physiParam)) = [];
       end
       selPhysiParam = physiParam{selImgDir};
       physiParam{selImgDir} = physiParam{1};
@@ -661,6 +663,11 @@ end
 
 if selImgDir > length(imgDirList)
    selImgDir = selImgDir-1;
+end
+
+%Remove the corresponding physical parameter
+if selImgDir > 0 && selImgDir <= length(handles.physiParam)
+   handles.physiParam(selImgDir) = [];
 end
 
 if selImgDir == 0
