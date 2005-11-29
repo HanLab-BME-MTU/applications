@@ -638,11 +638,7 @@ if isunix
    end
    
    unix_imgDrive(selImgDir)     = [];
-   lastUnix_imgDrive(selImgDir) = [];
-   
-   if length(win_imgDrive) == length(unix_imgDrive)
-      win_imgDrive(selImgDir) = [];
-   end
+   lastUnix_imgDrive(selImgDir) = [];   
 elseif ispc
    if length(unix_imgDrive) == length(win_imgDrive)
       unix_imgDrive(selImgDir) = [];
