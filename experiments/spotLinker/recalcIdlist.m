@@ -75,6 +75,12 @@ opt.verbose=0;
 t1 = min(find(nSpots(timeStart:end))) + timeStart - 1;
 
 % remove slist-entries
+if ~isfield(slist,'trackerMessage')
+    slist(1).trackerMessage = [];
+    removeTrackerMessage = 1;
+else
+    removeTrackerMessage = 0;
+end
 slist(1:t1) = struct('amp',[],'xyz',[],'detectQ',[],...
     'noise',[],'trackQ',[],'trackerMessage',[]);
 nSpots(1:t1) = 0;
@@ -127,7 +133,10 @@ if recover
     slist(1).CoMList(recoverTime,:) = recoverSlist.CoM;
 end
 
-
+% remove field trackerMessage if necessary
+if removeTrackerMessage
+    slist = rmfield(slist,'trackerMessage');
+end
 
 %--------------run spotID-------------------
 idlistNew=spotID(slist,opt,dataProperties);

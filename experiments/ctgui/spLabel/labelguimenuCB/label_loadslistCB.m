@@ -84,13 +84,13 @@ if exist('idlist','var')|exist('idlisttrack','var')
     %check version
     latestVersionDate = GetUserData(labelguiH,'latestChange');
     latestVersionNum = datenum(latestVersionDate);
-    if ~isfield(idlist(1).stats,'created')
-        error('sorry, you loaded too old an idlist. run the newest version of spotID first')
-        return
-    elseif latestVersionNum>datenum(idlist(1).stats.created)
-        error('sorry, you loaded too old an idlist. run the newest version of spotID first')
-        return
-    end
+%     if ~isfield(idlist(1).stats,'created')
+%         error('sorry, you loaded too old an idlist. run the newest version of spotID first')
+%         return
+%     elseif latestVersionNum>datenum(idlist(1).stats.created)
+%         error('sorry, you loaded too old an idlist. run the newest version of spotID first')
+%         return
+%     end
     SetUserData(imgFigureH,idlist,1);
     SetUserData(imgFigureH,idlist,1,'idlist_old'); %store 2nd copy of idlist for reverting
     SetUserData(imgFigureH,idname,1);%write name of idlist

@@ -274,12 +274,12 @@ try
                                         'COM',[]);
 
                                     while ~loopDone
-                                        
-                                        
-                                
+
+
+
 
                                         %run detect spots
-                                        lf = loadStructF.loadedFrames{1};
+                                        lf = loadStructF.loadedFrames;
                                         fprintf(fidJob,[nowString,' cord = spotfind(filteredMovie,dataProperties);\n']);
                                         fprintf(fid,sprintf('%s, find spots frames %i:%i\n',nowString,lf(1),lf(end)));
 
@@ -288,12 +288,12 @@ try
 
 
 
-                                        lf = loadStructR.loadedFrames{1};
+                                        lf = loadStructR.loadedFrames;
                                         fprintf(fidJob,[nowString,' slist=findoverlap(movie,cord,dataProperties);\n']);
                                         fprintf(fid,sprintf('%s, MMF frames %i:%i\n',nowString,lf(1),lf(end)));
 
                                         % find overlapping spots
-                                        slist(loadStructF.loadedFrames{1})=...
+                                        slist(loadStructF.loadedFrames)=...
                                             findoverlap(movie,cord,dataProperties);
 
                                         clear('filteredMovie');
@@ -492,18 +492,45 @@ try
                                     loadStruct.maxSize = ...
                                         dataProperties.maxSize;
                                     [movie, movieHeader, loadStruct] = ...
-                                        cdLoadMovie('corr/raw',[],loadStruct);
+                                        cdLoadMovie('corrected',[],loadStruct);
 
                                     if ~isempty(loadStruct.frames2load)
-                                        movie = {loadStruct.movieName,...
+                                        [movie,loadStruct] = {loadStruct.movieName,...
                                             loadStruct.movieType};
                                     end
 
+                                    % loop with movie-chunks
+                                    loopDone = 0;
+                                    idFieldNames = fieldnames(idlist);
+                                    nFields = length(idFieldNames);
+                                    idlisttrack(1:movieHeader.numTimepoints) = ...
+                                        cell2struct(cell(nFields,1),...
+                                        idFieldNames);
 
-                                    %run tracktags
-                                    fprintf(fidJob,[nowString,' idlisttrack = trackTags(movie,idlist,dataProperties);\n']);
-                                    fprintf(fid,[nowString,' start trackTags\n']);
-                                    idlisttrack = trackTags(movie,idlist,job(i).dataProperties);
+                                    while ~loopDone
+
+                                        % find which frames have been loaded
+                                        lf = loadStruct.loadedFrames;
+                                        %run tracktags
+                                        fprintf(fidJob,sprintf(...
+                                            '%s idlisttrack(%i:%i)=trackTags(movie,idlist,dataProperties);\n',...
+                                            nowString,lf(1),lf(end)));
+
+                                        fprintf(fid,sprintf(...
+                                            '%s idlisttrack(%i:%i)=trackTags(movie,idlist,dataProperties);\n',...
+                                            nowString,lf(1),lf(end)));
+                                        idlisttrack(lf) = trackTags(movie,idlist,job(i).dataProperties);
+
+                                        clear('movie'); %to prevent memory problems
+
+                                        if ~isempty(loadStruct.frames2load)
+                                            [movie, movieHeader, loadStruct] = ...
+                                                cdLoadMovie(loadStruct.movieType,[],loadStructR);
+                                        else
+                                            loopDone = 1;
+                                        end
+
+                                    end % loop movie-chunks
 
                                     %clear movie from memory
                                     clear('movie');

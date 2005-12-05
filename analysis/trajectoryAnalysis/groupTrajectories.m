@@ -49,7 +49,7 @@ pValues(10,:) = individualComparisons.shrinkageTimes(upperIndices)';
 
 % use only comparison of means - distributions need more data to make
 % sense!
-pValues = pValues([1,3,5,7,9],:);
+pValues = pValues([1,3,7,9],:);
 
 % large difference = small p-value. Take 1-p for distances
 pValues = 1-pValues;

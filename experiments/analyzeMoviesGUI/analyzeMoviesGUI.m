@@ -348,7 +348,12 @@ for iMovie = 1:nSelected
             if strcmp(ans,'Cancel')
                 return %end evaluation here
             else
+                if strcmp(fullPathName(end),filesep)
                 relPathName = fullPathName(1:end-1); %eliminate last filesep
+                else
+                    relPathName = fullPathName;
+                end
+                
             end
         end
 
