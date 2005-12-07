@@ -15,6 +15,8 @@ function [finalComparison, clusterIdxOut, links] = groupData(data,experiment)
 %               new experiment to the list here:
 %                1: find groups of trajectories within one condition
 %                   for the chromdyn project
+%                2: find groups of trajectories within one condition for
+%                   chromdyn project. Use instantaneous velocities
 %
 % OUTPUT   finalComparison: discrimination matrix for the comparison of the
 %               significant clusters
@@ -39,6 +41,8 @@ end
 switch experiment
     case 1
         significanceLevel = 0.05;
+    case 2
+        significanceLevel = 0.01;
     otherwise
         error('experiment %i is not defined yet!',experiment)
 end
@@ -59,7 +63,7 @@ end
 % does the transformation.
 
 switch experiment
-    case {1} % if you use the subfunction: add your experimentID to the cell
+    case {1,2} % if you use the subfunction: add your experimentID to the cell
         compStruct = readDataIntoCompStruct(data,experiment);
     otherwise
         compStruct = data;
@@ -115,7 +119,7 @@ clusterConversion = clusterIdx; % they are the same only for the first element!
 
 % links
 links = zeros(nComparisons,4);
-
+tic
 % --- loop
 for iComparison = 1:nComparisons
 
@@ -123,23 +127,32 @@ for iComparison = 1:nComparisons
     currentNComparisons = nComparisons - iComparison + 1;
     % upper/lowerIndices are indices to the p-values in the comparison
     % matrices
-    upperIndices = find(triu(ones(currentNComparisons),1));
-    lowerIndices = find(tril(ones(currentNComparisons),-1));
+    upperIndices = find(triu(ones(currentNComparisons+1),1));
+    lowerIndices = find(tril(ones(currentNComparisons+1),-1));
     % upper/lowerComparisons are the indices of the groups that are
     % compared at upperIndices. For example, upperComparisons(:,1) = [1;2],
-    % while lowerComparisons(:,1) = [2;1]. Since comparing a with b is the
-    % same as comparing b with a, we only need the one list of
-    % comparisonIndices!
-    [rows, cols] = ndgrid(1:currentNComparisons);
-    % upperComparisons = [rows(upperIndices);cols(upperIndices)];
-    % lowerComparisons = [rows(lowerIndices);cols(lowerIndices)];
-    comparisonIndices = [rows(upperIndices);cols(upperIndices)];
+    % while lowerComparisons(:,1) = [2;1]. Careful, though: the indices are
+    % ordered differently
+    [rows, cols] = ndgrid(1:currentNComparisons+1);
+    upperComparisons = [rows(upperIndices)';cols(upperIndices)'];
+    lowerComparisons = [rows(lowerIndices)';cols(lowerIndices)'];
+    % to compensate for the different ordering, we sort here
+    [dummy,upperSortIdx] = ...
+        ismember(lowerComparisons',upperComparisons([2,1],:)','rows');
+    upperIndices = upperIndices(upperSortIdx);
+    upperComparisons = upperComparisons(:,upperSortIdx);
+    % now, upperIndices and lowerIndices are still different, but upper and
+    % lower comparisons are the same, which is good. Assign them to
+    % comparisonIndices
+    comparisonIndices = upperComparisons;
+    
 
     % compare data
     switch experiment
-        case 1
+        case {1,2}
+            % default comparison: ttest for means, kstest for distributions
             comparison(iComparison) = ...
-                discriminationMatrix(compStruct(iComparison));
+                discriminationMatrix(compStruct);
     end
 
     % create distance list (as from pDist.m) - store as variable "distance"
@@ -154,54 +167,106 @@ for iComparison = 1:nComparisons
             % tests reports a difference. Don't use distributions if less
             % than 5 trajectories grouped, don't compare single
             % trajectories at all
+            pValuesUpper = ones(nFields,length(upperIndices));
+            pValuesLower = ones(nFields,length(lowerIndices));
 
             % read pValues
-            for iField=nFields:-1:1 % counting down requires no preassignment
+            for iField = 1:nFields % counting down requires no preassignment
                 pValuesLower(iField,:) = ...
                     comparison(iComparison).(compNames{iField})(lowerIndices);
+            end
+            for iField = 1:2
                 pValuesUpper(iField,:) = ...
-                    comparison(iComparison).(compNames{iField})(lowerIndices);
+                    comparison(iComparison).(compNames{iField})(upperIndices);
             end
             % calculate distance on comparisons of the means only
-            distance = sqrt(sum((1-pValuesLower).^2,1));
+            distance = sqrt(sum((1-pValuesLower(1:2,:)).^2,1));
 
             % find whether all are different.
-
-            % mask comparisons with single entries by setting p=0 (making
-            % them significant no matter what)
-
-            % uniqueEntries = 1:currentNComparisons
+            
+             % uniqueEntries = 1:currentNComparisons
             [uniqueEntries,numberOfOccurences] = ...
                 countEntries(clusterIdx{iComparison});
-            % singleIndices: uniqueEntries where numberOfOccurences = 1
-            singleEntries = uniqueEntries(numberOfOccurences == 1);
-            singleIndicesUpper =...
-                find(sum(ismember(comparisonIndices,singleEntries),1));
-            singleIndicesLower =...
-                find(sum(ismember(comparisonIndices,singleEntries),1));
-            pValuesUpper(:,singleIndicesUpper) = 0;
-            pValuesLower(:,singleIndicesLower) = 0;
-
+            
             % mask uppers (distribution comparison) wherever there are less
             % than five trajectories - set 1, because these don't count for
-            % check whether significant
+            % check whether significant.
             notFiveEntries = uniqueEntries(numberOfOccurences < 5);
             notFiveIndicesUpper = ...
                 find(sum(ismember(upperComparisons,notFiveEntries),1));
             pValuesUpper(:,notFiveIndicesUpper) = 1;
 
+            % mask comparisons with single entries by setting p=0 (making
+            % them significant no matter what)
+
+            % singleIndices: uniqueEntries where numberOfOccurences = 1
+            singleEntries = uniqueEntries(numberOfOccurences == 1);
+            singleIndicesUpper =...
+                find(sum(ismember(upperComparisons,singleEntries),1));
+            singleIndicesLower =...
+                find(sum(ismember(lowerComparisons,singleEntries),1));
+            pValuesUpper(:,singleIndicesUpper) = 0;
+            pValuesLower(:,singleIndicesLower) = 0;
+
+            
+
             % check whether all are different
             allDifferent = all(...
-                pValuesUpper < significanceLevel ||...
-                pValuesLower < significanceLevel,1);
+                any(...
+                pValuesUpper < significanceLevel |...
+                pValuesLower < significanceLevel,1));
+        case 2
+            % use p-values for means AND distributions for everything
+             pValuesUpper = ones(nFields,length(upperIndices));
+            pValuesLower = ones(nFields,length(lowerIndices));
 
+            % read pValues
+            for iField = 1:nFields % counting down requires no preassignment
+                pValuesLower(iField,:) = ...
+                    comparison(iComparison).(compNames{iField})(lowerIndices);
+            end
+            for iField = 1:nFields
+                pValuesUpper(iField,:) = ...
+                    comparison(iComparison).(compNames{iField})(upperIndices);
+            end
+            % calculate distance on comparisons of the means only
+            distance = sqrt(sum((1-[pValuesLower;pValuesUpper]).^2,1));
+
+            % find whether all are different.
+            
+             % uniqueEntries = 1:currentNComparisons
+            [uniqueEntries,numberOfOccurences] = ...
+                countEntries(clusterIdx{iComparison});
+            
+
+            % mask comparisons with single entries by setting p=0 (making
+            % them significant no matter what)
+
+            % singleIndices: uniqueEntries where numberOfOccurences = 1
+            singleEntries = uniqueEntries(numberOfOccurences == 1);
+            singleIndicesUpper =...
+                find(sum(ismember(upperComparisons,singleEntries),1));
+            singleIndicesLower =...
+                find(sum(ismember(lowerComparisons,singleEntries),1));
+            pValuesUpper(:,singleIndicesUpper) = 0;
+            pValuesLower(:,singleIndicesLower) = 0;
+
+            
+
+            % check whether all are different
+            allDifferent = all(...
+                any(...
+                pValuesUpper < significanceLevel |...
+                pValuesLower < significanceLevel,1));
+        otherwise           
+           
     end % switch for distances and allDifferent
 
     %--- write links
     [smallestDistance,smallestDistanceIdx] = min(distance);
     linkedGroups = comparisonIndices(:,smallestDistanceIdx);
     cc = clusterConversion{iComparison};
-    links = [cc(linkedGroups(1)),...
+    links(iComparison,:) = [cc(linkedGroups(1)),...
         cc(linkedGroups(2)),...
         smallestDistance,...
         allDifferent];
@@ -219,13 +284,13 @@ for iComparison = 1:nComparisons
     % subtracted, depending on wheter no, one, or two of the linkedGroups
     % had smaller indices.
     switch experiment
-        case 1
+        case {1,2}
             % for trajectories, joining is simple
             % (we're reassigning compStruct here. Since we only need to
             % reassign once per big loop, the loss of time should not be
             % severe)
             for iField = 1:nFields
-                compStruct(end+1).(compNames{iField}) = ...
+                compStruct(currentNComparisons + 2).(compNames{iField}) = ...
                     [compStruct(linkedGroups(1)).(compNames{iField});...
                     compStruct(linkedGroups(1)).(compNames{iField})];
             end
@@ -249,6 +314,8 @@ for iComparison = 1:nComparisons
     ci(notLinkedIdx) = ci(notLinkedIdx) - delta;
     clusterIdx{iComparison + 1} = ci;
 
+    
+    toc
 end % loop iComparisons: cluster data
 
 %================================
@@ -273,11 +340,11 @@ end
 % assign output
 clusterIdxOut = clusterIdx{lastGoodLink + 1};
 finalComparison = comparison(lastGoodLink + 1);
-links = links(:,1:3);
+%links = links(:,1:3);
 
 % plot
 figure;
-h = dendrogram(links,0);
+h = dendrogram(links(:,1:3),0);
 set(h(lastGoodLink + 1 : end),'Color','r')
 
 
@@ -288,47 +355,66 @@ function compStruct = readDataIntoCompStruct(data,experiment)
 %====================================================================
 switch experiment
     case 1
-        nTrajectories = length(data);
+        nTrajectories = length(data.individualStatistics);
         % collect growth speeds, shrinkage speeds and distanceSigma
         % (abs(dist-mean))
         compStruct(1:nTrajectories) = struct('growthSpeeds',[],'shrinkageSpeeds',[],...
-            'distanceSigma',[]);
+            'growthTimes',[],'shrinkageTimes',[]);
 
         for ti = 1:nTrajectories
             % read data. Calculate indices first, though
             [growthIdx,growthGroupIdx] = ...
                 trajectoryAnalysisMainCalcStatsFindGroups(...
-                trajectoryData.individualStatistics(ti).dataListGroup,1);
+                data.individualStatistics(ti).dataListGroup,1);
             [shrinkageIdx,shrinkageGroupIdx] = ...
                 trajectoryAnalysisMainCalcStatsFindGroups(...
-                trajectoryData.individualStatistics(ti).dataListGroup,2);
+                data.individualStatistics(ti).dataListGroup,2);
 
 
             % speeds. Speeds persisting over longer periods of time are
             % repeated per interval
             if ~isempty(growthIdx)
-                compStruct(ti).growthSpeeds = repeatEntries(trajectoryData.individualStatistics(ti).dataListGroup(...
-                    growthIdx,4), diff(trajectoryData.individualStatistics(ti).dataListGroup(...
+                compStruct(ti).growthSpeeds = repeatEntries(data.individualStatistics(ti).dataListGroup(...
+                    growthIdx,4), diff(data.individualStatistics(ti).dataListGroup(...
                     growthIdx,[1:2]),1,2))*60;
             end
             if ~isempty(shrinkageIdx)
-                compStruct(ti).shrinkageSpeeds = repeatEntries(trajectoryData.individualStatistics(ti).dataListGroup(...
-                    shrinkageIdx,4), diff(trajectoryData.individualStatistics(ti).dataListGroup(...
+                compStruct(ti).shrinkageSpeeds = repeatEntries(data.individualStatistics(ti).dataListGroup(...
+                    shrinkageIdx,4), diff(data.individualStatistics(ti).dataListGroup(...
                     shrinkageIdx,[1:2]),1,2))*60;
             end
 
             if ~isempty(growthGroupIdx)
-                compStruct(ti).growthTimes = diff([trajectoryData.individualStatistics(ti).dataListGroup(...
-                    growthGroupIdx(:,1),1),trajectoryData.individualStatistics(ti).dataListGroup(...
+                compStruct(ti).growthTimes = diff([data.individualStatistics(ti).dataListGroup(...
+                    growthGroupIdx(:,1),1),data.individualStatistics(ti).dataListGroup(...
                     growthGroupIdx(:,2),2)],1,2);
             end
 
             if ~isempty(shrinkageGroupIdx)
-                compStruct(ti).shrinkageTimes = diff([trajectoryData.individualStatistics(ti).dataListGroup(...
-                    shrinkageGroupIdx(:,1),1),trajectoryData.individualStatistics(ti).dataListGroup(...
+                compStruct(ti).shrinkageTimes = diff([data.individualStatistics(ti).dataListGroup(...
+                    shrinkageGroupIdx(:,1),1),data.individualStatistics(ti).dataListGroup(...
                     shrinkageGroupIdx(:,2),2)],1,2);
             end
         end
+    case 2
+        nTrajectories = length(data.individualStatistics);
+        % collect growth speeds, shrinkage speeds (inst. velocities)
+        compStruct(1:nTrajectories) = struct('growthSpeeds',[],'shrinkageSpeeds',[]);
+        
+        for ti = 1:nTrajectories
+            % read delta distance
+            deltaDistance = data.individualStatistics(ti).dataListSeed(:,9);
+            % remove deleted frames
+            deltaDistance(...
+                data.individualStatistics(ti).dataListSeed(:,3) < 0) = [];
+            % put positive delta into growthSpeeds, negative into shrinkage
+            compStruct(ti).growthSpeeds = ...
+                deltaDistance(deltaDistance > 0);
+            compStruct(ti).shrinkageSpeeds = ...
+                deltaDistance(deltaDistance < 0);
+            
+        end
+        
     otherwise
         error('reading data not defined')
 end

@@ -252,9 +252,7 @@ try
 
                                     % generate loadStruct for loading in
                                     % chunks
-                                    loadStruct = [];
-                                    loadStruct.maxSize = ...
-                                        dataProperties.maxSize;
+                                    loadStruct = struct('maxSize',dataProperties.maxSize);
 
                                     % load first parts. There will be the
                                     % same number of frames because the
@@ -266,6 +264,7 @@ try
 
                                     % loop with movie-chunks
                                     loopDone = 0;
+                                    slist = [];
                                     slist(1:movieHeader.numTimepoints) = ...
                                         struct('sp',[],...
                                         'mnint',[],...
@@ -489,16 +488,15 @@ try
                                     % load movie (corrected if available)
                                     fprintf(fidJob,[nowString,' movie  =  cdLoadMovie(''corr/raw'');\n']);
                                     fprintf(fid,[nowString,' load raw/corrected movie\n']);
-                                    loadStruct.maxSize = ...
-                                        dataProperties.maxSize;
+                                    loadStruct = struct('maxSize',dataProperties.maxSize);
                                     [movie, movieHeader, loadStruct] = ...
                                         cdLoadMovie('corrected',[],loadStruct);
+                                    
+                                    % getting rid of some previous sins
+                                    idlist = ...
+                                        idlist(1:movieHeader.numTimepoints);
 
-                                    if ~isempty(loadStruct.frames2load)
-                                        [movie,loadStruct] = {loadStruct.movieName,...
-                                            loadStruct.movieType};
-                                    end
-
+                                   
                                     % loop with movie-chunks
                                     loopDone = 0;
                                     idFieldNames = fieldnames(idlist);
@@ -511,6 +509,7 @@ try
 
                                         % find which frames have been loaded
                                         lf = loadStruct.loadedFrames;
+                                        
                                         %run tracktags
                                         fprintf(fidJob,sprintf(...
                                             '%s idlisttrack(%i:%i)=trackTags(movie,idlist,dataProperties);\n',...
@@ -519,6 +518,10 @@ try
                                         fprintf(fid,sprintf(...
                                             '%s idlisttrack(%i:%i)=trackTags(movie,idlist,dataProperties);\n',...
                                             nowString,lf(1),lf(end)));
+                                        % correct for 5 correction frames
+                                        if ~isempty(movieHeader.correctInfo.correctFrames)
+                                            lf = lf - movieHeader.correctInfo.correctFrames(1);
+                                        end
                                         idlisttrack(lf) = trackTags(movie,idlist,job(i).dataProperties);
 
                                         clear('movie'); %to prevent memory problems
@@ -533,7 +536,7 @@ try
                                     end % loop movie-chunks
 
                                     %clear movie from memory
-                                    clear('movie');
+                                    clear('movie','idlist','idlist_L');
 
                                     %save idlisttrack and lastResult
                                     fprintf(fidJob,[nowString,' save(%s,''idlisttrack'',''-append'');\n'],projData);
@@ -658,6 +661,10 @@ try
                         if ~exist('idlist','var')&~exist('idlisttrack','var')
                             idlist = [];
                             error('No idlist found in project data'); %there must be something really wrong for this to happen
+                        end
+                        % correct for previous sins
+                        if exist('idlisttrack','var') && length(idlisttrack) == (dataProperties.movieSize(4) +5)
+                            idlisttrack = idlisttrack(6:end);
                         end
 
                         %launch "wait-figure" and GUI
