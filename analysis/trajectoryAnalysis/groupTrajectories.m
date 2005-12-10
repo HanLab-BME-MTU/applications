@@ -1,4 +1,4 @@
-function [nClusters,clusterList,comparison] = groupTrajectories(trajectoryData)
+function [nClusters,clusterList,comparison,dendrogramHandles] = groupTrajectories(trajectoryData)
 %GROUPTRAJECTORIES tries to find groups of trajectories within a condition
 %
 % SYNOPSIS
@@ -8,6 +8,7 @@ function [nClusters,clusterList,comparison] = groupTrajectories(trajectoryData)
 % OUTPUT nClusters : number of different clusters
 %        clusterList : for every trajectory: which cluster it belongs to
 %        comparison : discrimination matrices
+%        dendrogramHandles : handles to the lines in the dendrogram
 %
 % c: jonas 11/05
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -67,7 +68,7 @@ minDist = min(pDistance);
 maxDist = max(pDistance);
 uiViewPanel,imshow(-z,[-maxDist,-minDist]);
 figure
-[h,t,p]=dendrogram(links,0);
+[dendrogramHandles,t,p]=dendrogram(links,0);
 uiViewPanel,imshow(-z(p,p),[-maxDist,-minDist]);
 
 % cluster into two groups. Check for difference

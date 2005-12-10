@@ -25,22 +25,22 @@ inputType = 0;
 if nargin == 1 && isstruct(varargin{1})
     % structure
     inputStruct = varargin{1};
-    
+
     % dataProperties or movieHeader?
     if isfield(inputStruct,'pixelX') && isfield(inputStruct,'numCols')
         inputType = 2;
     else
         inputType = 1;
     end
-    
+
 elseif isEven(nargin) && nargin > 0
-    
-   % we assume that there are name/value pairs. They will be sorted out
-   % later
-   inputType = 3;
-   
+
+    % we assume that there are name/value pairs. They will be sorted out
+    % later
+    inputType = 3;
+
 else
-    
+
     % inputType stays 0;
 end
 
@@ -76,7 +76,7 @@ switch inputType
         for i = 1:length(fn)
             dataProperties.(fn{i}) = inputStruct.(fn{i});
         end
-        
+
     case 2
         % movieHeader
         dataProperties.PIXELSIZE_XY = inputStruct.pixelX;
@@ -91,14 +91,20 @@ switch inputType
         dataProperties.movieSize(3) = inputStruct.numZSlices;
         dataProperties.movieSize(4) = inputStruct.numTimepoints;
         dataProperties.WVL = inputStruct.wvl;
-        dataProperties.frameTime = reshape(inputStruct.Time,...
-            dataProperties.movieSize(3:4));
-        dataProperties.expTime = inputStruct.expTime;
-        dataProperties.NDfilter = inputStruct.ndFilter;
+        if isfield(inputStruct, 'Time')
+            dataProperties.frameTime = reshape(inputStruct.Time,...
+                dataProperties.movieSize(3:4));
+        end
+        if isfield(inputStruct,'expTime')
+            dataProperties.expTime = inputStruct.expTime;
+        end
+        if isfield(inputStruct,'ndFilter')
+            dataProperties.NDfilter = inputStruct.ndFilter;
+        end
         if isfield(inputStruct,'cropInfo')
             dataProperties.crop = inputStruct.cropInfo
         end
-        
+
     case 3
         % nave/value pairs
         for i = 1:2:nargin
@@ -107,7 +113,7 @@ switch inputType
                 dataProperties.(propertyName) = varargin{i+1};
             end
         end
-        
+
 end
 
 % calculate filterparms

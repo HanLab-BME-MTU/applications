@@ -157,6 +157,9 @@ for t=1:tsteps
     if verbose
         mywaitbar(t/tsteps,h,tsteps);
     end
+    
+    clear FXX FXY FXZ FYX FYY FYZ FZX FZY FZZ
+    
 end;
 cord=spots;
 if verbose
