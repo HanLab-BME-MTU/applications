@@ -328,7 +328,7 @@ end
 imaApp = imarisStartNew;
 % insert a pause. 0.2 seconds works, too, but I want to avoid a crash on
 % slower machines.
-% pause(0.5)
+pause(1)
 % should be no problem anymore thanks to Christoph's patch!
 
 % make dataSet and put into imaris
