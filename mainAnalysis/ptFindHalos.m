@@ -1,4 +1,4 @@
-function [haloCoord, extraNucCoord, imgHalo]= ptFindHalos (inputImage, haloMinSize, haloMaxSize)
+function [haloCoord, extraNucCoord, imgHalo]= ptFindHalos (inputImage, haloMinSize, haloMaxSize, SegmentNumber)
 % ptFindHalos detects light areas and tries to fit cells into them
 %
 % SYNOPSIS       [haloCoord, extraNucCoord, imgHalo] = ptFindHalos (inputImage, haloMinSize, haloMaxSize)
@@ -22,8 +22,8 @@ function [haloCoord, extraNucCoord, imgHalo]= ptFindHalos (inputImage, haloMinSi
 % Colin Glass           Feb 04          Initial release
 % Andre Kerstens        Mar 04          Cleaned up source
 
-% The input image is already segmented, so take the pixels with value 3 
-imgHalo = inputImage == 5;
+% The input image is already segmented 
+imgHalo = inputImage == SegmentNumber;
 
 % Let's do some morphological ops now to clean the image up
 imgHalo = imfill (imgHalo, 'holes');

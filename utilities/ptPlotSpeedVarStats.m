@@ -98,8 +98,8 @@ if radioButtons.speedplot_3
 
         % Save the figures in fig, eps and tif format     
         hgsave (h_fig4,[SaveDir filesep [imageName '_varSingleAndClusterVelocity.fig']]);
-        print (h_fig4, [SaveDir filesep [imageName '_varSingleAndClusterVelocity.eps']],'-depsc2','-tiff');
-        print (h_fig4, [SaveDir filesep [imageName '_varSingleAndClusterVelocity.tif']],'-dtiff');
+        % print (h_fig4, [SaveDir filesep [imageName '_varSingleAndClusterVelocity.eps']],'-depsc2','-tiff');
+        % print (h_fig4, [SaveDir filesep [imageName '_varSingleAndClusterVelocity.tif']],'-dtiff');
     end   % if ~radioButtons.donotshowplots
     
     % Save MAT files for avg all, single and clustered cell variance

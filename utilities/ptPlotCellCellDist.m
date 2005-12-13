@@ -58,7 +58,7 @@ if radioButtons.cellcelldistplot_1
 
         % Save the figures in fig, eps and tif format     
         hgsave (h_fig,[SaveDir filesep [imageName '_AvgDistanceBetweenCells.fig']]);
-        print (h_fig, [SaveDir filesep [imageName '_AvgDistanceBetweenCells.eps']],'-depsc2','-tiff');
-        print (h_fig, [SaveDir filesep [imageName '_AvgDistanceBetweenCells.tif']],'-dtiff');
+        % print (h_fig, [SaveDir filesep [imageName '_AvgDistanceBetweenCells.eps']],'-depsc2','-tiff');
+        % print (h_fig, [SaveDir filesep [imageName '_AvgDistanceBetweenCells.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplots    
 end

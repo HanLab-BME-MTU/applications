@@ -78,6 +78,6 @@ if ~radioButtons.donotshowplots
 
     % Save the figures in fig, eps and tif format        
     hgsave(h_fig,[SaveDir filesep [imageName '_areaPerimStats.fig']]);
-    print(h_fig, [SaveDir filesep [imageName '_areaPerimStats.eps']],'-depsc2','-tiff');
-    print(h_fig, [SaveDir filesep [imageName '_areaPerimStats.tif']],'-dtiff');     
+    % print(h_fig, [SaveDir filesep [imageName '_areaPerimStats.eps']],'-depsc2','-tiff');
+    % print(h_fig, [SaveDir filesep [imageName '_areaPerimStats.tif']],'-dtiff');     
 end  % if ~radioButtons.donotshowplots

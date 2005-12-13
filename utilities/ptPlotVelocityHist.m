@@ -48,8 +48,8 @@ if radioButtons.speedplot_4
 
         % Save this figure to disk as fig, eps and tiff
         hgsave (h_fig, [SaveDir filesep [imageName '_3dBinnedVelocityHistogram.fig']]);
-        print (h_fig, [SaveDir filesep [imageName '_3dBinnedVelocityHistogram.eps']], '-depsc2', '-tiff');
-        print (h_fig, [SaveDir filesep [imageName '_3dBinnedVelocityHistogram.tif']], '-dtiff');
+        % print (h_fig, [SaveDir filesep [imageName '_3dBinnedVelocityHistogram.eps']], '-depsc2', '-tiff');
+        % print (h_fig, [SaveDir filesep [imageName '_3dBinnedVelocityHistogram.tif']], '-dtiff');
     end  % if ~radioButtons.donotshowplots
 end
 

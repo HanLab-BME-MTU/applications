@@ -62,8 +62,8 @@ if ~radioButtons.donotshowplots
 
     % Save the figures in fig, eps and tif format  
     hgsave (h_fig2,[SaveDir filesep [imageName '_avgNeighbourInteractionChange.fig']]);
-    print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourInteractionChange.eps']],'-depsc2','-tiff');
-    print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourInteractionChange.tif']],'-dtiff'); 
+    % print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourInteractionChange.eps']],'-depsc2','-tiff');
+    % print (h_fig2, [SaveDir filesep [imageName '_avgNeighbourInteractionChange.tif']],'-dtiff'); 
 end
 
 % Save CSV files
