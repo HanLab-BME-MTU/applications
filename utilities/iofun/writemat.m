@@ -43,9 +43,9 @@ fpos=ftell(fid);
 %first time write dim info. If the file has actually more than ndims
 %dimensions, make the header longer.
 if dimension
-    header = ones(1,dimension + 1);
+    header = ones(1,dimension+1);
     header(1) = dimension;
-    header(2:ndims(mov)) = movSize;
+    header(2:ndims(mov)+1) = movSize;
 else
     header=[ndims(mov) movSize];
 end
@@ -66,7 +66,7 @@ if (fpos~=0)
             error('dimension mismatch');
         else
             % pad movie size with ones
-            movSize(end+1:headerSize) = 1;
+            movSize(end+1:headerSze) = 1;
         end
         if any(datSize(1:headerSze-1)~=movSize(1:headerSze-1))
             fclose(fid);
@@ -79,7 +79,7 @@ if (fpos~=0)
     %go to pos 0 and add # timesteps
     %fseek(fid,5*4,-1);
     datSize(headerSze)=datSize(headerSze)+movSize(headerSze);
-    header=[ndims(mov) datSize];
+    header=[length(datSize) datSize];
 end;
 %go to bof
 fseek(fid,0,-1);
