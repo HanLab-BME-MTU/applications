@@ -14,9 +14,9 @@ function [mainDir,oldDir]=cdBiodata(option)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 mainDir=getenv('BIODATA');
-if isempty(mainDir)
+if isempty(mainDir) || ~isdir(mainDir)
     mainDir=getenv('HOME');
-    if isempty(mainDir)
+    if isempty(mainDir) || ~isdir(mainDir)
         h=errordlg('Set environment variables HOME and BIODATA for your matlab home directory and the directory where you store the movies, respectively');
         uiwait(h)
         return

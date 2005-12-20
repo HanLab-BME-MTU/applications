@@ -89,8 +89,10 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
             cd(correctionInfo.correctFiles{i,1});
             
             if fid1
-                fprintf(fid1,[nowString,' corrMov  =  r3dread(%s\%s);\n'],correctionInfo.correctFiles{i,1},correctionInfo.correctFiles{i,2});
-                fprintf(fid2,[nowString,' load correction movie: (%s\%s)\n'],dataMovieName);
+                fprintf(fid1,[nowString,' corrMov  =  r3dread(%s',filesep,filesep,'%s);\n'],...
+                    correctionInfo.correctFiles{i,1},correctionInfo.correctFiles{i,2});
+                fprintf(fid2,[nowString,' load correction movie: (%s',filesep,filesep,'%s)\n'],...
+                    correctionInfo.correctFiles{i,1},correctionInfo.correctFiles{i,2});
             end
             
             %read correctionMovie
@@ -110,6 +112,13 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
         end
         %store only one slice
         corrImg = mean(corrImg,3);
+        
+        % read movieSize. No correction necessary
+        movieSize = [correctionInfo.header.numRows,...
+            correctionInfo.header.numCols,...
+            correctionInfo.header.numZSlices,...
+            correctionInfo.header.numWvs,...
+            correctionInfo.header.numTimepoints];
         
         %return to movieDir
         cd(oldDir);

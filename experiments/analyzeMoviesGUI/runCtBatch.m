@@ -106,8 +106,13 @@ try
                         %update data properties
                         fprintf(fidJob,[nowString,' save(',projData,',''dataProperties/projProperties'',''-append'');\n']);
                         fprintf(fid,[nowString,' update dataProperties&projProperties\n']);
+                        if exist(projData,'file')
                         save(projData,'dataProperties','-append');
-                        save(projData,'projProperties','-append')
+                        save(projData,'projProperties','-append');
+                        else
+                            save(projData,'dataProperties');
+                        save(projData,'projProperties','-append');
+                        end
                     end
 
 
@@ -164,7 +169,7 @@ try
                                         %existing file
                                         fprintf(fidJob,[nowString,' writemat(%s,filteredMovie);\n'],filteredMovieName);
                                         fprintf(fid,[nowString,' save filtered movie\n']);
-                                        writemat(filteredMovieName,filteredMovie,1);
+                                        writemat(filteredMovieName,filteredMovie,1,5);
 
                                         clear('filteredMovie'); %to prevent memory problems
 
@@ -259,12 +264,17 @@ try
                                     % movies (when double) have the same size
                                     [movie, movieHeader, loadStructR] = ...
                                         cdLoadMovie('corrected',[],loadStruct);
+                                    % make sure we load the same number of
+                                    % frames as for the raw movie!!
                                     [filteredMovie, movieHeader, loadStructF] = ...
-                                        cdLoadMovie('filtered',[],loadStruct);
+                                        cdLoadMovie('filtered',[],loadStructR.loadedFrames);
+                                    % update frames2load with whatever we
+                                    % get for the raw movie
+                                    loadStructF.frames2load = loadStructR.frames2load;
 
                                     % loop with movie-chunks
                                     loopDone = 0;
-                                    slist = [];
+                                    clear slist %make sure there isn't any slist from a previous job
                                     slist(1:movieHeader.numTimepoints) = ...
                                         struct('sp',[],...
                                         'mnint',[],...
@@ -274,11 +284,8 @@ try
 
                                     while ~loopDone
 
-
-
-
                                         %run detect spots
-                                        lf = loadStructF.loadedFrames;
+                                        lf = loadStructR.loadedFrames;
                                         fprintf(fidJob,[nowString,' cord = spotfind(filteredMovie,dataProperties);\n']);
                                         fprintf(fid,sprintf('%s, find spots frames %i:%i\n',nowString,lf(1),lf(end)));
 
@@ -501,6 +508,7 @@ try
                                     loopDone = 0;
                                     idFieldNames = fieldnames(idlist);
                                     nFields = length(idFieldNames);
+                                    clear idlisttrack %make sure there isn't any old idlsittrack around
                                     idlisttrack(1:movieHeader.numTimepoints) = ...
                                         cell2struct(cell(nFields,1),...
                                         idFieldNames);
