@@ -70,7 +70,7 @@ cordList=cordList-ones(size(cordList,1),1)*shiftC;
 % FIT N (N=number of cluster spots found in loc max)
 nsp=size(cordList,1);
 % free params:
-degFree=4*nsp+1;
+numFreeParms=4*nsp+1;
 
 %setup parms and boundaries
 lb=[  0];                         %lb of background
@@ -118,7 +118,8 @@ while redoN
     [gaussFit, gaussgrad] = multiGaussFit(mskDataSize,parms,dataProperties);
     
     Res1=gaussFit(gIdxList)-data;
-    chi1= sum(Res1(:).^2)/(length(Res1(:))-degFree);
+    degreesOfFreedom = (length(Res1(:))-numFreeParms);
+    chi1= sum(Res1(:).^2)/degreesOfFreedom;
     
     QAll=(gaussgrad'*gaussgrad)^-1;
     
@@ -130,12 +131,14 @@ while redoN
     %still try mixture model
     
     %testDistanceandAmplitudes will return new parms, Q.
-    [parms,QAll,deletedSpotNumber,rmIdx] = testDistanceAndAmplitudes(parms,QAll,chi1,dataProperties,0);
+    [parms,QAll,deletedSpotNumber,rmIdx] = testDistanceAndAmplitudes(...
+        parms,QAll,chi1,dataProperties,0,degreesOfFreedom);
     
     if ~isempty(deletedSpotNumber)
         nsp = nsp - length(deletedSpotNumber);
-        % update number of degrees of freedom
-        degFree=4*nsp+1;
+        % update number of free parameters. Degrees of Freedom will be
+        % updated after the fitting
+        numFreeParms=4*nsp+1;
         %send the data through another fitting loop
         if nsp>0
             redoN = 1;
@@ -226,7 +229,9 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         nparms = [patchCenter + centerShift - localShift 0.5*parms(intensIdx) parms];
         
         
-        [nparms,resnorm,dummy,exitflag,output] = lsqnonlin(@distTestError,nparms,nlb,nub,options,transData,gIdxList,mskDataSize,dataProperties);
+        [nparms,resnorm,dummy,exitflag,output] = ...
+            lsqnonlin(@distTestError,nparms,nlb,nub,...
+            options,transData,gIdxList,mskDataSize,dataProperties);
         
         %transform back parms
         nlp = length(nparms);
@@ -236,12 +241,13 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         % recalc residuals and gradient
         [nGaussFit, nGaussGrad] = multiGaussFit(mskDataSize,nparms,dataProperties);
         
-        % new number of degrees of freedom
-        ndegFree=4*(nsp+nCt+1)+1;
+        % new number of free parameters
+        newNumFreeParms=4*(nsp+nCt+1)+1;
         
         %calc chi and Q-matrix
         Res2= nGaussFit(gIdxList)-data;
-        chi2= sum(Res2(:).^2)/(length(Res2(:))-ndegFree);
+        newDegreesOfFreedom = (length(Res2(:))-newNumFreeParms);
+        chi2= sum(Res2(:).^2)/newDegreesOfFreedom;
         nQAll=(nGaussGrad'*nGaussGrad)^-1;
         
         if DEBUG
@@ -252,13 +258,14 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         end
         
         %test the fit if significantly improved
-        fValue=(chi1/degFree)/(chi2/ndegFree);
-        prob=fcdf(fValue,degFree,ndegFree);
+        fValue=(chi1)/(chi2);
+        prob=fcdf(fValue,degreesOfFreedom,newDegreesOfFreedom);
         disp(sprintf('%1.4f',prob));
         if (prob>F_TEST_PROB)
             %test again whether the spots are significant
             [nparms,nQAll,deletedSpotNumber] = ...
-                testDistanceAndAmplitudes(nparms,nQAll,chi2,dataProperties,1);
+                testDistanceAndAmplitudes(...
+                nparms,nQAll,chi2,dataProperties,1,newDegreesOfFreedom);
             %if we had to delete anything this time, we do not accept the N+1-fit
             
             if isempty(deletedSpotNumber)
@@ -273,7 +280,7 @@ if nsp>0 %do N+1-fit only if there are any spots left!
                 newIdx = [newIdx, 0] + 1;
                 % make sure we compare to the last good fit, not to the
                 % initial one
-                degFree = ndegFree;
+                numFreeParms = newNumFreeParms;
                 chi1 = chi2;
             else %transform back parms and quit loop
                 failedTest = 1;

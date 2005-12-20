@@ -1,4 +1,4 @@
- function [nParms,nQAll,flag,rmIdx] = testDistanceAndAmplitudes(parms,QAll,chi,dataProperties,isNplus1)
+function [nParms,nQAll,flag,rmIdx] = testDistanceAndAmplitudes(parms,QAll,chi,dataProperties,isNplus1,degreesOfFreedom)
 % TESTDISTANCE tests whether the distances between the spots and their amplitudes are significant
 %
 % SYNOPSIS [nParms,nQAll,flag,rmIdx] = testDistanceAndAmplitudes(coord,QAll,chi,amp,dataProperties,isNplus1)
@@ -8,6 +8,7 @@
 %         chi     : chi squared of fitted model (=sigmaZeroHat)
 %         dataProperties: constant definitions for project
 %         isNplus1: whether this is a N+1-fit (the new spot would be in the first position)
+%         degreesOfFreedom: degrees of freedom of the fit
 %
 % OUTPUT nParms : significant parameters
 %        n*     : other parameters of significant coordinates
@@ -44,8 +45,10 @@ for i = 1:nSpots
     %testValue = amplitude/sqrt(Qa*sigmaZeroHat)
     testValue = amp(i)/sqrt(Qa(i,i)*chi);
     
+    disp(sprintf('%f, %f, %f', testValue, tinv(1-(T_TEST_PROB),1),tinv(1-(T_TEST_PROB),76)))
+    
     %if H0 accepted, we throw the spot out (we don't want spots with zero amplitude!)
-    if testValue < tinv(1-(T_TEST_PROB),1) %one-sided test (amp is not going to be < 0)
+    if testValue < tinv(1-(T_TEST_PROB),degreesOfFreedom) %one-sided test (amp is not going to be < 0)
         flag = [flag;i];
         snr = amp(i)/sqrt(chi);
     else
@@ -65,6 +68,7 @@ end
 
 %store the indistinguishable pairs
 indistinguishable = [];
+sigD = repmat(NaN,[nSpots,nSpots]);
 
 for i=1:(nSpots-1) %test 1 against 2,3,4; 2 against 3,4; 3 against 4
     if ~any(i == flag) %don't test a spot that has been deleted already
@@ -90,7 +94,10 @@ for i=1:(nSpots-1) %test 1 against 2,3,4; 2 against 3,4; 3 against 4
                 %H1: nonzero distance (positive->one-sided test)
                 %keep only coords that pass as nonzero distance
                 
-                if testValue<tinv(1-(T_TEST_PROB),1) %one-sided
+                % degrees of freedom stays constant even though we delete
+                % individual spots: The df for the test are the ones used
+                % in the fitting
+                if testValue<tinv(1-(T_TEST_PROB),degreesOfFreedom) %one-sided
                     indistinguishable = [indistinguishable,[i;j]];
                 end
             end
