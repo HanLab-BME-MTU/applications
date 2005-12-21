@@ -258,8 +258,12 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         end
         
         %test the fit if significantly improved
-        fValue=(chi1)/(chi2);
-        prob=fcdf(fValue,degreesOfFreedom,newDegreesOfFreedom);
+        % df???
+%         fValue=(chi1)/(chi2);
+%         prob=fcdf(fValue,degreesOfFreedom,newDegreesOfFreedom);
+        fValue=(chi1/numFreeParms)/(chi2/newNumFreeParms);
+        prob=fcdf(fValue,numFreeParms,newNumFreeParms);
+
         disp(sprintf('%1.4f',prob));
         if (prob>F_TEST_PROB)
             %test again whether the spots are significant

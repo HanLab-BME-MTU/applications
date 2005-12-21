@@ -10,6 +10,9 @@ function [nParms,nQAll,flag,rmIdx] = testDistanceAndAmplitudes(parms,QAll,chi,da
 %         isNplus1: whether this is a N+1-fit (the new spot would be in the first position)
 %         degreesOfFreedom: degrees of freedom of the fit
 %
+% --> I do not know why, but the software performs well when I use the old
+%       df = 1. I therefore use this instead of the "true"(?) df
+%
 % OUTPUT nParms : significant parameters
 %        n*     : other parameters of significant coordinates
 %        flag   : indices of deleted spots
@@ -20,6 +23,8 @@ function [nParms,nQAll,flag,rmIdx] = testDistanceAndAmplitudes(parms,QAll,chi,da
 
 %CONST DEFINITIONS
 T_TEST_PROB=dataProperties.T_TEST_PROB;
+
+degreesOfFreedom = 1;
 
 %init parameters
 nSpots=floor(length(parms)/4); %number of spots (last parm is bg)
