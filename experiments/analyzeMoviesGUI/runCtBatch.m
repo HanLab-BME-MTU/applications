@@ -265,9 +265,14 @@ try
                                     [movie, movieHeader, loadStructR] = ...
                                         cdLoadMovie('corrected',[],loadStruct);
                                     % make sure we load the same number of
-                                    % frames as for the raw movie!!
+                                    % frames as for the raw movie. Since
+                                    % there might be leading darkframes, we
+                                    % need to know from which frame on we
+                                    % should load
+                                    deltaFrames = min(loadStructR.loadedFrames) - 1;
                                     [filteredMovie, movieHeader, loadStructF] = ...
-                                        cdLoadMovie('filtered',[],loadStructR.loadedFrames);
+                                        cdLoadMovie('filtered',[],...
+                                        loadStructR.loadedFrames - deltaFrames);
                                     % update frames2load with whatever we
                                     % get for the raw movie
                                     loadStructF.frames2load = loadStructR.frames2load;
@@ -285,7 +290,7 @@ try
                                     while ~loopDone
 
                                         %run detect spots
-                                        lf = loadStructR.loadedFrames;
+                                        lf = loadStructF.loadedFrames;
                                         fprintf(fidJob,[nowString,' cord = spotfind(filteredMovie,dataProperties);\n']);
                                         fprintf(fid,sprintf('%s, find spots frames %i:%i\n',nowString,lf(1),lf(end)));
 
@@ -293,8 +298,11 @@ try
                                         cord = spotfind(filteredMovie,dataProperties);
 
 
-
-                                        lf = loadStructR.loadedFrames;
+                                        % read loaded frames from filtered
+                                        % movie, even though we're using
+                                        % the raw one - there could be
+                                        % correctionFrames
+                                        lf = loadStructF.loadedFrames;
                                         fprintf(fidJob,[nowString,' slist=findoverlap(movie,cord,dataProperties);\n']);
                                         fprintf(fid,sprintf('%s, MMF frames %i:%i\n',nowString,lf(1),lf(end)));
 
@@ -309,7 +317,7 @@ try
                                             [movie, movieHeader, loadStructR] = ...
                                                 cdLoadMovie(loadStruct.movieType,[],loadStructR);
                                             [filteredMovie, movieHeader, loadStructF] = ...
-                                                cdLoadMovie('filtered',[],loadStructF);
+                                                cdLoadMovie('filtered',[],loadStructR.loadedFrames - deltaFrames);
                                         else
                                             loopDone = 1;
                                         end
