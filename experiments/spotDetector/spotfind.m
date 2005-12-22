@@ -27,7 +27,7 @@ DEBUG = 0;
 d=floor(PATCHSIZE/2);
 inTestD = floor(FILTERSIZE/2); %number of pixels a spot has to be away from the border to be accepted
 movieSize = size(fImg);
-tsteps=movieSize(5);
+tsteps=size(fImg,5); % just in case there's only one frame loaded
 
 if verbose
     h= mywaitbar(0,[],tsteps,'Finding spots...');

@@ -263,7 +263,7 @@ try
                                     % same number of frames because the
                                     % movies (when double) have the same size
                                     [movie, movieHeader, loadStructR] = ...
-                                        cdLoadMovie('corrected',[],loadStruct);
+                                        cdLoadMovie('corr/raw',[],loadStruct);
                                     % make sure we load the same number of
                                     % frames as for the raw movie. Since
                                     % there might be leading darkframes, we
@@ -315,7 +315,7 @@ try
 
                                         if ~isempty(loadStructR.frames2load)
                                             [movie, movieHeader, loadStructR] = ...
-                                                cdLoadMovie(loadStruct.movieType,[],loadStructR);
+                                                cdLoadMovie(loadStructR.movieType,[],loadStructR);
                                             [filteredMovie, movieHeader, loadStructF] = ...
                                                 cdLoadMovie('filtered',[],loadStructR.loadedFrames - deltaFrames);
                                         else
@@ -505,7 +505,7 @@ try
                                     fprintf(fid,[nowString,' load raw/corrected movie\n']);
                                     loadStruct = struct('maxSize',dataProperties.maxSize);
                                     [movie, movieHeader, loadStruct] = ...
-                                        cdLoadMovie('corrected',[],loadStruct);
+                                        cdLoadMovie('corr/raw',[],loadStruct);
                                     
                                     % getting rid of some previous sins
                                     idlist = ...
@@ -535,16 +535,17 @@ try
                                             '%s idlisttrack(%i:%i)=trackTags(movie,idlist,dataProperties);\n',...
                                             nowString,lf(1),lf(end)));
                                         % correct for 5 correction frames
-                                        if ~isempty(movieHeader.correctInfo.correctFrames)
+                                        if ~isempty(movieHeader) && ...
+                                                ~isempty(movieHeader.correctInfo.correctFrames)
                                             lf = lf - movieHeader.correctInfo.correctFrames(1);
                                         end
-                                        idlisttrack(lf) = trackTags(movie,idlist,job(i).dataProperties);
+                                        idlisttrack(lf) = trackTags(movie,idlist(lf),job(i).dataProperties);
 
                                         clear('movie'); %to prevent memory problems
 
                                         if ~isempty(loadStruct.frames2load)
                                             [movie, movieHeader, loadStruct] = ...
-                                                cdLoadMovie(loadStruct.movieType,[],loadStructR);
+                                                cdLoadMovie(loadStruct.movieType,[],loadStruct);
                                         else
                                             loopDone = 1;
                                         end

@@ -50,7 +50,7 @@ for i = 1:nSpots
     %testValue = amplitude/sqrt(Qa*sigmaZeroHat)
     testValue = amp(i)/sqrt(Qa(i,i)*chi);
     
-    disp(sprintf('%f, %f, %f', testValue, tinv(1-(T_TEST_PROB),1),tinv(1-(T_TEST_PROB),76)))
+    %disp(sprintf('%f, %f, %f', testValue, tinv(1-(T_TEST_PROB),1),tinv(1-(T_TEST_PROB),76)))
     
     %if H0 accepted, we throw the spot out (we don't want spots with zero amplitude!)
     if testValue < tinv(1-(T_TEST_PROB),degreesOfFreedom) %one-sided test (amp is not going to be < 0)
