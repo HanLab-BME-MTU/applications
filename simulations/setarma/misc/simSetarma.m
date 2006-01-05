@@ -1,5 +1,5 @@
 function [traj,errFlag] = simSetarma(vThresholds,delay,arParam,maParam,...
-    noiseSigma,trajLength,trajInit)%,wnNotNormalDistr)
+    noiseSigma,trajLength,trajInit)
 %SIMSETARMA generates a Self Exciting Threshold Autoregressive Moving Average trajectory
 %
 %SYNOPSIS [traj,errFlag] = simSetarma(vThresholds,delay,arParam,maParam,...
@@ -178,10 +178,6 @@ if nThresholds == 0 %if there is only one regime
 
     %get white noise vector
     noise(shift+1:tempL) = noiseSigma*randn(tempL-shift,1);
-
-    %     dumdum = rand(length(wnNotNormalDistr),1);
-    %     [dumdum,randIndx] = sort(dumdum);
-    %     noise(shift+1:tempL) = noiseSigma*wnNotNormalDistr(randIndx(1:tempL-shift));
 
     %construct trajectory
     for i = shift+1:tempL

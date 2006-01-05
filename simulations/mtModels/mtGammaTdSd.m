@@ -1,5 +1,5 @@
 function [simTraj,errFlag] = mtGammaTdSd(modelParam,length0,totalTime)
-%MTGAMMATDSD simulates an MT trajectory assuming that phase duration is gamma-distributed and speed is normally-distributed
+%MTGAMMATDSD simulates an MT trajectory assuming that phase duration and speed are gamma-distributed
 %
 %SYNOPSIS [simTraj,errFlag] = mtGammaTdSd(modelParam,length0,totalTime)
 %

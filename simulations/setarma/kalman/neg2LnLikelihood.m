@@ -100,5 +100,11 @@ end
 %construct -2ln(likelihood)
 neg2LnLikelihoodV = (sum1 + numAvail*log(sum2))/1000;
 
+% %write input and output to file
+% fid = fopen('inOutFile.txt','a');
+% fprintf(fid,'%12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %15.10f\n',...
+%     param,neg2LnLikelihoodV);
+% fclose(fid);
+
 
 %%%%% ~~ the end ~~ %%%%%

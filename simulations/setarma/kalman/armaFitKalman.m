@@ -100,10 +100,17 @@ else %if models or model order were supplied
 
     if isstruct(modelParamOrder) %if initial guesses were input
 
+        %assign model parameters
         modelParam = modelParamOrder;
+        
+        %indicate that initial guess was supplied
+        suppliedIG = 1;
 
     else %if range of AR and MA orders was input
 
+        %indicate that initial guess was not supplied
+        suppliedIG = 0;
+        
         %check size of matrix
         [nRow,nCol] = size(modelParamOrder);
         if nRow ~= 2 || nCol ~= 2
@@ -115,8 +122,10 @@ else %if models or model order were supplied
                 for j=modelParamOrder(2,1):modelParamOrder(2,2)
                     i1 = i - modelParamOrder(1,1) + 1;
                     j1 = j - modelParamOrder(2,1) + 1;
-                    modelParam(i1,j1).arParamP0 = 4*rand(1,i) - 2;
-                    modelParam(i1,j1).maParamP0 = 4*rand(1,j) - 2;
+                    for k=1:3
+                        modelParam(i1,j1,k).arParamP0 = 4*rand(1,i) - 2;
+                        modelParam(i1,j1,k).maParamP0 = 4*rand(1,j) - 2;
+                    end
                 end
             end
         end
@@ -151,14 +160,53 @@ end
 for i=1:size(modelParam,1)
     for j=1:size(modelParam,2)
 
-        %assign model data
-        arParamP0 = modelParam(i,j).arParamP0;
-        maParamP0 = modelParam(i,j).maParamP0;
+        if minOpt == 'tg' | suppliedIG %if global minimization of if initial guess was supplied
 
-        %estimate ARMA coeffients and white noise variance
-        [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
-            wnVector,selectCrit,pVCompKL,pVPort,errFlag] = ...
-            armaCoefKalman(trajectories,arParamP0,maParamP0,[],minOpt);
+            %assign model data
+            arParamP0 = modelParam(i,j,1).arParamP0;
+            maParamP0 = modelParam(i,j,1).maParamP0;
+
+            %estimate ARMA coeffients and white noise variance
+            [arParamK,maParamK,arParamL,maParamL,varCovMat,wnVariance,...
+                wnVector,selectCrit,pVCompKL,pVPort,errFlag] = ...
+                armaCoefKalman(trajectories,arParamP0,maParamP0,[],minOpt);
+
+        else %if local minimization and initial guess was not supplied
+
+            neg2LL = 10^20;
+            for k=1:3
+
+                %assign model data
+                arParamP0 = modelParam(i,j,k).arParamP0;
+                maParamP0 = modelParam(i,j,k).maParamP0;
+
+                %estimate ARMA coeffients and white noise variance
+                [arParamK1,maParamK1,arParamL1,maParamL1,varCovMat1,wnVariance1,...
+                    wnVector1,selectCrit1,pVCompKL1,pVPort1,errFlag1] = ...
+                    armaCoefKalman(trajectories,arParamP0,maParamP0,[],minOpt);
+
+                if ~isempty(selectCrit1)
+                    neg2LL1 = selectCrit1.aic - 2*(length([arParamP0 maParamP0])+1);
+                end
+
+                if neg2LL1 < neg2LL
+                    neg2LL = neg2LL1;
+                    arParamK = arParamK1;
+                    maParamK = maParamK1;
+                    arParamL = arParamL1;
+                    maParamL = maParamL1;
+                    varCovMat = varCovMat1;
+                    wnVariance = wnVariance1;
+                    wnVector = wnVector1;
+                    selectCrit = selectCrit1;
+                    pVCompKL = pVCompKL1;
+                    pVPort = pVPort1;
+                    errFlag = errFlag1;
+                end
+
+            end
+
+        end
 
         %write output as fields in fitResults
         fitResults(i,j) = struct('arParamP0',arParamP0,'maParamP0',...
