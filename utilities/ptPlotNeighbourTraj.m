@@ -61,8 +61,8 @@ if ~radioButtons.donotshowplots
 
     % Save the figures in fig, eps and tif format        
     hgsave (h_fig,[SaveDir filesep [imageName '_avgNeighbourTrajLength.fig']]);
-    % print (h_fig, [SaveDir filesep [imageName '_avgNeighbourTrajLength.eps']],'-depsc2','-tiff');
-    % print (h_fig, [SaveDir filesep [imageName '_avgNeighbourTrajLength.tif']],'-dtiff');      
+    print (h_fig, [SaveDir filesep [imageName '_avgNeighbourTrajLength.eps']],'-depsc2','-tiff');
+    print (h_fig, [SaveDir filesep [imageName '_avgNeighbourTrajLength.tif']],'-dtiff');      
 end
 
 % Save CSV files

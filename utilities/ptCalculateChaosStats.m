@@ -78,9 +78,8 @@ drugTimepoint = guiData.drugtimepoint;
 ripleyClust = zeros (length(MPM)+1, ceil((plotEndFrame-plotStartFrame)/increment)+1);
 ripleyClustSlopePoint = zeros (length(MPM)+1, ceil((plotEndFrame-plotStartFrame)/increment)+1);
 % put the frame numbers desired in the first row:
-% ripleyClust(1,:) = (plotStartFrame:increment:plotEndFrame);
-% ripleyClustSlopePoint(1,:) = (plotStartFrame:increment:plotEndFrame);
-MPMCount=0;
+ripleyClust(1,:) = (plotStartFrame:increment:plotEndFrame);
+ripleyClustSlopePoint(1,:) = (plotStartFrame:increment:plotEndFrame);
 for jobCount = 1 : length(MPM) 
 
     % Get start and end frames and increment value
@@ -154,32 +153,51 @@ for jobCount = 1 : length(MPM)
     
     % Calculate clustering parameter values
     fprintf (1, 'Performing Ripley clustering job %d...\n', jobCount);
-    %in case you want to use jacco's (JvR) ripley:
-    % [cpar1, cpar2,cpar3,pvr,dpvr,RememberIndividualRipleys] = JvRClusterQuantRipleyMC (ripMPM, colSize, rowSize, drugTimepoint,1);
-    fileseps=findstr(filesep, jobData(1,jobCount).jobpath); 
-    savepathparent=jobData(1,jobCount).jobpath(1:fileseps(end)); 
-    [RememberIndividualRipleys, jrVar, jrIntegral]=JvRclusterQuantRipleyMCtotalnew(ripMPM,colSize, rowSize, savepathparent);
-    % in case you want to use dinahs:
-    %[cpar3,pvr,dpvr,cpar2,RememberIndividualRipleys] = ClusterQuantRipley (ripMPM, colSize, rowSize, drugTimepoint,3);
-
-    % if you want to see the individual ripley curves, than use the below
-    % function. if you don't please comment!!
-    % if you want to save them as well:
-    % [RememberIndividualRipleys] = plotripleys (RememberIndividualRipleys);
-    fileseps=findstr(filesep, jobData(1,jobCount).jobpath);
-    savepathparent=jobData(1,jobCount).jobpath(1:fileseps(end));
-    savedir=[savepathparent 'ripsperframejacco'];
-    mkdir(savedir);
-    try
-        NameStruc=findstr('_', jobData(1,jobCount).imagename);
-        NameNr=jobData(1,jobCount).imagename((NameStruc(1)+2):(NameStruc(end)-1));
-    catch
-        NameNr=jobCount
+    [cpar1, cpar2,cpar3,pvr,dpvr] = ClusterQuantRipleyMC (ripMPM, colSize, rowSize, drugTimepoint,3);
+    
+    % Store cpar value in the right columns of the ripley vectors:
+    for counterrows = 1 : length(xAxis);
+        RipRow = find(ripleyClust(1,:) == xAxis(counterrows));
+        ripleyClust(jobCount+1,RipRow) = cpar3(1,counterrows);
+        ripleyClustSlopePoint(jobCount+1,RipRow) = cpar2(1,counterrows);
     end
-    save ([savedir filesep 'ripsperframe' num2str(NameNr)],'RememberIndividualRipleys');
-
+    % now we can use this SlopeStartPoint to calculate a derivative per job
+    % and also per frame..
+    DerTemp = ripleyClustSlopePoint(jobCount+1,:);
+    findZeros = find(DerTemp<0.001);
+    DerTemp(findZeros) = NaN;
+    for framecount = 1:(length(DerTemp)-1);
+        DeltaRipStart(jobCount,framecount) = (abs(DerTemp(framecount+1) - DerTemp(framecount))/increment);
+    end    
 end  % for jobCount = 1 : length(MPM) 
 
+
+% now, average all frames in the big ripley matrices, ignoring all zero
+% entries in slopepoint, because they come from invalid frames.
+% have to check this with Dinah!!, no slope = NaN right?? (not zero..)
+% Dinah's comment: In the new Ripley function, for completely scattered
+% distributions (cpar3 < 0) cpar2 is automatically set to nan
+
+findZeros = find(ripleyClustSlopePoint<0.001);
+ripleyClustSlopePoint(findZeros) = NaN;
+ripleyClust(findZeros) = NaN;
+
+
+nrOfJobs = length(MPM);
+
+if nrOfJobs > 1;
+    % take out the y values (row 1 is just framenr)
+    ripClustSlopeTemp = ripleyClustSlopePoint(2:nrOfJobs+1,:);
+    ripClustTemp = ripleyClust(2:nrOfJobs+1,:);
+
+    % average, use nanmean to ignore NaNs. Is that OK in Clust? it is slightly
+    % cheating in ClustDeltaRipStartSlopePoint.. Have to correct that!
+    avgripleyClustSlopePoint = nanmean(ripClustSlopeTemp);
+    avgripleyClust = nanmean(ripClustTemp);
+else
+    avgripleyClustSlopePoint = ripleyClustSlopePoint(2,:);
+    avgripleyClust = ripleyClust(2,:);
+end
 
 % now we need to get rid of frames that have NaN and get the right xAxis
 % values!
@@ -188,12 +206,28 @@ end  % for jobCount = 1 : length(MPM)
 ripStartTemp2 = zeros (2,numberOfFrames);
 ripClustTemp2 = zeros (2,numberOfFrames);
 
-ripStartTemp2(1,:) = xAxis(1,:);
-ripClustTemp2(1,:) = xAxis(1,:);
+ripStartTemp2(1,:) = ripleyClust(1,:);
+ripClustTemp2(1,:) = ripleyClust(1,:);
 
-ripStartTemp2(2,:) = jrVar;
-ripClustTemp2(2,:) = jrIntegral;
+ripStartTemp2(2,:) = avgripleyClustSlopePoint;
+ripClustTemp2(2,:) = avgripleyClust;
 
+% now take out the columns of these new matrices that have NaN for value.
+% we could also choose to leave them in, but when there are not too many
+% bad frames in a row, this will be better for the derivatie calculation!
+
+findNaNStart = find(isnan(avgripleyClustSlopePoint));
+findNaNClust = find(isnan(avgripleyClust));
+
+for counterNaNs = 1 : length(findNaNStart);
+    invalidrow = findNaNStart(counterNaNs);
+    ripStartTemp2(:,invalidrow+1-counterNaNs) = [];
+end
+
+for counterNaNs = 1 : length(findNaNClust);
+    invalidrow = findNaNClust(counterNaNs);
+    ripClustTemp2(:,invalidrow+1-counterNaNs) = [];
+end
     
 % now separate xAxis and values again (for ptPlotChaosStats)
 % and put them in a structure directly
@@ -203,6 +237,30 @@ chaosStats.ripleySlopeStart = ripStartTemp2(2,:);
 xAxis.Start = ripStartTemp2(1,:);
 xAxis.Slope = ripClustTemp2(1,:);
 
+% now for the derivative..a nrofjobs by nrofframes matrix..
+if nrOfJobs > 1;
+    AvgDRSTemp = nanmean(DeltaRipStart);
+else
+    AvgDRSTemp = DeltaRipStart;
+end
+
+% adding an xAxis to it:
+AvgDRSTemp2 = zeros(2,length(AvgDRSTemp));
+AvgDRSTemp2(1,:) = ripleyClustSlopePoint(1,1:length(AvgDRSTemp));
+AvgDRSTemp2(2,:) = AvgDRSTemp;
+% taking out the non-valid entries
+findDerNaNs = find(isnan(AvgDRSTemp));
+for DerNaNCount = 1 : length(findDerNaNs);
+    badrow = findDerNaNs(DerNaNCount);
+    AvgDRSTemp2(:,badrow+1-DerNaNCount) = [];
+end
+% running average, also: not correct, because it runs over non-consec
+% frames. only for cleaner output purposes..
+AvgDRS = filter(ones(1,5)/5,1,AvgDRSTemp2(2,:));
+
+% Prepare output data
+chaosStats.AvgDRS = AvgDRS;
+xAxis.Der = AvgDRSTemp2(1,:);
 
 %---------------------------------------------------------------------
 

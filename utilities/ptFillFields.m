@@ -39,8 +39,6 @@ set (handles.GUI_st_eo_noiseparameter_pm,   'String', num2str (activeJob.noisepa
 set (handles.GUI_st_path_timeperframe_ed,   'String', num2str (activeJob.timeperframe));
 set (handles.GUI_st_bp_mmpixel_pm,          'String', num2str (activeJob.mmpixel));
 set (handles.GUI_drugtimepoint_ed,          'String', num2str (activeJob.drugtimepoint));
-set (handles.GUI_st_txtBinSize_txNew,       'String', num2str (activeJob.binSize));
-set (handles.GUI_st_txtNumberKclustere,     'String', num2str (activeJob.Kcluster)); 
 
 % Set the timestep slide popup menu
 if ~isempty (activeJob.timestepslide)

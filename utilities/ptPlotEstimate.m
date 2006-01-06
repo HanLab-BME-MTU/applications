@@ -123,7 +123,7 @@ if ~isempty(subPlot)
         subplot (subPlot(1),subPlot(2),subPlot(3)); 
         plot(xPlot, yPlot,'r-');
     else
-        f% printf(1,'ptPlotEstimate: estimate can not be plotted in subplot.\n');
+        fprintf(1,'ptPlotEstimate: estimate can not be plotted in subplot.\n');
     end
 else
     plot(xPlot, yPlot, 'r-');
@@ -181,14 +181,14 @@ end
 % end
 
 % Generate the text
-[lineText, errmsg] =  printf(['Min = %f\nMax = %f\nt0 = ' t0Format '\nt1 = ' ...
+[lineText, errmsg] = sprintf(['Min = %f\nMax = %f\nt0 = ' t0Format '\nt1 = ' ...
                               t1Format '\nSlope = ' slopeFormat '\nSigma = %f\n'], ...
                               minValue, maxValue, t0, t1, slopeValue, sigma);    
 
 % Put the estimates in a cell
 estimates = [minValue; maxValue; t0; t1; slopeValue];                          
                               
-% % print the text on the graph
+% Print the text on the graph
 if isempty(errmsg)
    %text (xValue, yValue, lineText, 'HorizontalAlignment',horAlign,'VerticalAlignment',vertAlign);
 end

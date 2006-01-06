@@ -126,8 +126,8 @@ if radioButtons.cellclusterplot_1
         
         % Save the figures in fig, eps and tif format
         hgsave (h_fig, [SaveDir filesep [imageName '_amountAllCells.fig']]);
-        % % print (h_fig, [SaveDir filesep [imageName '_amountAllCells.eps']], '-depsc2', '-tiff');
-        % print (h_fig, [SaveDir filesep [imageName '_amountAllCells.tif']], '-dtiff', '-zbuffer'); 
+        print (h_fig, [SaveDir filesep [imageName '_amountAllCells.eps']], '-depsc2', '-tiff');
+        print (h_fig, [SaveDir filesep [imageName '_amountAllCells.tif']], '-dtiff'); 
     end  % if ~radioButtons.donotshowplots
     
     % Save MAT files for amount of cells and perc. single cells
@@ -181,8 +181,8 @@ if radioButtons.cellclusterplot_2
         
         % Save the figures in fig, eps and tif format
         hgsave (h_fig2, [SaveDir filesep [imageName '_percentageSingleClusteredCells.fig']]);
-        % print (h_fig2, [SaveDir filesep [imageName '_percentageSingleClusteredCells.eps']], '-depsc2', '-tiff');
-        % print (h_fig2, [SaveDir filesep [imageName '_percentageSingleClusteredCells.tif']], '-dtiff'); 
+        print (h_fig2, [SaveDir filesep [imageName '_percentageSingleClusteredCells.eps']], '-depsc2', '-tiff');
+        print (h_fig2, [SaveDir filesep [imageName '_percentageSingleClusteredCells.tif']], '-dtiff'); 
     end  % if ~radioButtons.donotshowplots
     
     % Save MAT files for amount of cells and perc. single cells

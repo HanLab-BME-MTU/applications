@@ -24,9 +24,6 @@ function varargout = PolyTrack(varargin)
 % Andre Kerstens        Mar 05          Multiple image files can now be
 %                                       selected at once (using ctrl and
 %                                       shift keys)
-% JvR                   Sep 05          Image files with different names
-%                                       can be loaded (e.g. image001.tif, but also imageT142_s001_z001.tif in
-%                                       which s001 is the time stamper.
 
 % This is matlab stuff we should not touch.
 % Begin initialization code - DO NOT EDIT
@@ -59,18 +56,17 @@ function GUI_start_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to GUI_start (see VARARGIN)
 
 % Choose default command line output for GUI_start
-handles.output = hObject; 
+handles.output = hObject;
 
 % Create a default job structure that defines all the fields used in the program
 defaultjob = struct('imagedirectory', [], 'imagename', [], 'firstimage', 1, 'lastimage', [],...
                    'increment', 1, 'savedirectory', [], 'maxsearch', 81, 'mmpixel', 0.639,...
-                   'minsize',15, 'maxsize', 500, 'minsdist', 15, 'fi_halolevel', [], 'la_halolevel', [],...
+                   'minsize',400, 'maxsize', 3000, 'minsdist', 25, 'fi_halolevel', [], 'la_halolevel', [],...
                    'minedge', 10, 'sizetemplate', 41, 'boxsize', 141, 'noiseparameter', 0.15,...
                    'mincorrqualtempl', 0.5, 'leveladjust', 0.7, 'timestepslide', 5, 'mintracklength', 2,...
                    'coordinatespicone', [], 'intensityMax', 4095, 'bitdepth', 12, 'bitdepth_index', 3, 'bodyname', [],...
                    'imagenameslist', [], 'timeperframe', 300, 'timestepslide_index', 2, 'rowsize', 0, ...
-                   'colsize', 0, 'drugtimepoint', 30, 'Kcluster', 5, 'binSize',1);
-
+                   'colsize', 0, 'drugtimepoint', 30);
 
 % Assign the default job values to the GUI handle so it can be passed around
 handles.defaultjob = defaultjob;
@@ -179,11 +175,10 @@ listhandle = handles.GUI_st_job_lb;
 % Start at the polytrack directory (POLYDATA)
 currentDir = pwd;
 cd (handles.polyDataDirectory);
+
 % Select an image filename or a file called 'jobvalues.mat' from a user selected directory
 [selectedFile,imagedirectory] = uigetfile({'*_t1.tif;*_T1.TIF;*_t1.tiff;*_T1.TIFF','TIFF-files';'jobvalues.mat','Saved Values';'*.*','all files'},...
                                       'Please select a TIFF image file or jobvalues.mat file','MultiSelect','on');
-
-handles.polyDataDirectory=imagedirectory;
 
 % Do nothing in case the user doesn't select anything
 if ~iscell(selectedFile)
@@ -244,21 +239,8 @@ for fileCount = 1 : nrOfFiles
     else
         handles.jobs(jobNumber) = handles.defaultjob;
         handles.jobs(jobNumber).imagedirectory = imagedirectory;
-        handles.jobs(jobNumber).imagename = filename; %JvR delete lower
-        % Read the current image and normalize the intensity values to [0..1]
-        % We need this later on at the end of this function to find out the
-        % bit value
-        tempImage = imread ([imagedirectory, filename]);
-        HighestValue=max(tempImage);
-        HighestValue=max(HighestValue);
-        tempImage=[];
-        
-        
-        %JvR: correct for binning
-        % handles.jobs(jobNumber).mmpixel=
-        % handles.defaultjob/str2num(get(handles.GUI_st_txtBinSize_txnew,'String'))
-        handles.jobs(jobNumber).mmpixel=handles.defaultjob.mmpixel;
-        
+        handles.jobs(jobNumber).imagename = lower(filename);
+
         % Now the image directory is known, let's rename all filenames to
         % lowercase to prevent problems later on (Metamorph sometimes names the
         % files with arbitrary upper and lowercase characters)
@@ -269,49 +251,17 @@ for fileCount = 1 : nrOfFiles
         handles.jobs(jobNumber).rowsize = imInfo.Height;
         handles.jobs(jobNumber).colsize = imInfo.Width;
 
-        %handles.jobs(jobNumber).bitdepth_index=BitDepthIndex;
-        
-%        set(h,'Callback',{GUI_st_bitdepth_pm_callback,handles})
-                
         % Find out what part of the filename describes the images and which part
         % is just counting them through.    
         number = 0;
         countNum = 0;
-        JvRendNum=0;
-        %JvRbutton is the output of the questdlg which ask the user whether the time stemper is OK 
-        JvRbutton=0;
-        
-        % JvR: Here search the image counter and ask the user whether this
-        % is the right one. This is necessary since some image names contain
-        % more numbers which do not represent the time.
-        while JvRbutton<1
-          number=0;
-          while number<1 %JvR: search the first number
-             countNum = countNum+1;
-             DumNum=(filename((end-countNum)));
-             number= strcmp(DumNum, '0')+strcmp(DumNum, '1')+strcmp(DumNum, '2')+strcmp(DumNum, '3')+strcmp(DumNum, '4')+strcmp(DumNum, '5')+strcmp(DumNum, '6')+strcmp(DumNum, '7')+strcmp(DumNum, '8')+strcmp(DumNum, '9');          
-             if countNum>length(filename) then % an escape if the filename does not contain a number
-                 return; 
-             end
-          end
-          JvRendNum=countNum;
-          while number>0  %JvR: search till it the first letter
-             countNum = countNum+1;
-             DumNum=(filename((end-countNum)));
-             number= strcmp(DumNum, '0')+strcmp(DumNum, '1')+strcmp(DumNum, '2')+strcmp(DumNum, '3')+strcmp(DumNum, '4')+strcmp(DumNum, '5')+strcmp(DumNum, '6')+strcmp(DumNum, '7')+strcmp(DumNum, '8')+strcmp(DumNum, '9');                
-             if countNum>length(filename) then % an escape if the filename does not contain a number
-                 return; 
-             end
-          end
-          JvRanswer=questdlg((['Is ' , (filename(end-(countNum):end-JvRendNum)) , ' the the right time stamper?']), 'Arnoud friendly software' ,'Yes'); 
-          JvRbutton=strcmp(JvRanswer, 'Yes'); %strcmp has a 0 or 1 as output
-         if strcmp(JvRanswer,'Cancel') 
-                return
-         end
-        end    
-        
+        while ~isnan(number) & (countNum <3)
+           countNum = countNum+1;
+           number = str2num(filename(end-(4+countNum):end-4));
+        end
+
         % Extract the body of the filename and store in handles struct
-        handles.jobs(jobNumber).bodyname = (filename(1:(end-(countNum)))); %JvR: I have delete lower because Linux is case sensitive
+        handles.jobs(jobNumber).bodyname = lower(filename(1:(end-(4+countNum))));
         bodyname = handles.jobs(jobNumber).bodyname;
 
         % Select the current project
@@ -320,7 +270,7 @@ for fileCount = 1 : nrOfFiles
         % Create a list of files present in the image directory selected by the user
         dirList = dir(imagedirectory);
         dirList = struct2cell(dirList);
-        dirList = dirList(1,:); 
+        dirList = dirList(1,:);
 
         % Find all files within this directory with the same name as the selected filename
         ind = strmatch(handles.jobs(jobNumber).bodyname, dirList);
@@ -350,7 +300,7 @@ for fileCount = 1 : nrOfFiles
 
            % Sort the images by successive numbers:
            % First we get all numbers and write them into a vector
-           for jRearange = 1:handles.jobs(jobNumber).lastimage 
+           for jRearange = 1:length(dirList)
              tmpName = char(dirList(jRearange));
              if max (max (imread(tmpName))) > maxGreyValue
                 % The frame contains a value higher than the bitdepth specified
@@ -370,9 +320,9 @@ for fileCount = 1 : nrOfFiles
                 handles.jobs(jobNumber) = [];
                 guidata(hObject, handles);
                 return
-             else   
+             else  
                % Add the job to the list
-               imageNum(jRearange) = str2num((tmpName((length(handles.jobs(jobNumber).bodyname)+1):(end-JvRendNum))));
+               imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
              end
 
           end   % for jRearrange
@@ -391,7 +341,7 @@ for fileCount = 1 : nrOfFiles
           % Do the sorting without the greyvalue check
           for jRearange = 1:length(dirList)
             tmpName = char(dirList(jRearange));
-            imageNum(jRearange) = str2num((tmpName((length(handles.jobs(jobNumber).bodyname)+1):(end-JvRendNum))));
+            imageNum(jRearange) = str2num(tmpName(length(handles.jobs(jobNumber).bodyname)+1:end-4));
           end  % for jRearange
         end  % if exist ('filesChecked.mat', 'file')
 
@@ -438,53 +388,6 @@ for fileCount = 1 : nrOfFiles
     % Last but not least make sure the text field on the GUI show the latest values
     ptFillFields(handles, handles.jobs(jobNumber))
 end
-
-
-% HighestValue contains the highest value in an image. now we can see which
-% bitdepth it really is. The images are always 16 bit, but the camera can
-% be between 8 and 16 bits. The camera will store all values in 16 bit
-% images so we can't just read the bitdepth of the image to know the real
-% bitdepth of the values in the image
-jrBits=log(double(HighestValue))/log(2); %2^x=Y  =====  x=Log(y)/Log(2)
-if jrBits<=8 
-    jrBits=8; 
-end
-if jrBits>8 &jrBits<=10
-    jrBits=10;
-end
-if jrBits>10 &jrBits<=12 
-    jrBits=12;
-end
-if jrBits>12 &jrBits<=14
-    jrBits=14;
-end
-if jrBits>14 &jrBits<=16 
-    jrBits=16;
-end
-% Get the value and index from the bitdepth  popup menu and assign to handles struct
-handles.jobs(jobNumber).bitdepth=jrBits;
-% JvR: (BitDepth-6)/2 will result in the index number 8bits=1, 12bits=2 etc
-BitDepthIndex=(jrBits-6)/2;
-
-set(handles.GUI_st_bitdepth_pm,'Value',BitDepthIndex);
-% Get the list of jobs
-handles.jobs(jobNumber).bitdepth_index = BitDepthIndex;
-handles.jobs(jobNumber).bitdepth=jrBits;
-% Calculate the maximal value of the image, depending on it's bitdepth and
-% store this info in the handles struct
-handles.jobs(jobNumber).intensityMax =  2^((jrBits)) - 1;
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Store the latest data in jobvalues.mat in the specified save directory
-if ~isempty(handles.jobs(jobNumber).savedirectory)
-   cd (handles.jobs(jobNumber).savedirectory)
-   jobvalues = handles.jobs(jobNumber);
-   save ('jobvalues','jobvalues')
-   clear jobvalues
-end
-
 
 %-------------------------------------------------------------------------------
 
@@ -1650,8 +1553,7 @@ for jobNumber = 1 : nrOfJobs
    % Final message for the user to mark the end
    fprintf (1, '\nTracking finished...\n\n');
    
-   %johan added this, be careful, but the tracker didn't get out of this
-   %f-ing loop!! JvR: Why do you do this???
+   %johan added this, be careful, but the tracker didn't get out of this f-ing loop!!
    jobNumber = jobNumber + 1;
 end
 
@@ -2168,8 +2070,7 @@ jobNumber = get(handles.GUI_st_job_lb,'Value');
 
 % Get the value and index from the bitdepth  popup menu and assign to handles struct
 val = get(hObject, 'Value');
-
-list = get(hObject, 'String'); 
+list = get(hObject, 'String');
 selected_val = list{val};
 handles.jobs(jobNumber).bitdepth = str2double(selected_val);
 handles.jobs(jobNumber).bitdepth_index = val;
@@ -2550,199 +2451,5 @@ function GUI_drugtimepoint_ed_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
-% --- Executes when polyTrack_mainwindow is resized.
-function polyTrack_mainwindow_ResizeFcn(hObject, eventdata, handles)
-% hObject    handle to polyTrack_mainwindow (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%% JvR: For Num K-clusters slider %%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    % --- Executes on slider movement.
-    function GUI_st_NumberKcluster_sl_Callback(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_NumberKcluster_sl (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-
-    % Hints: get(hObject,'Value') returns position of slider
-    %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-    handles = guidata(hObject);
-   
-    % Get the list of jobs
-    jobList = get(handles.GUI_st_job_lb,'String');
-
-    % If the joblist has entries get the number of entries else return,
-    % because there is really nothing to do
-    if ~iscell(jobList)
-       h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-       uiwait(h);
-       return
-    end 
-
-    % Select the current job
-    jobNumber = get(handles.GUI_st_job_lb,'Value');
-
-    set(handles.GUI_st_txtNumberKclustere,'String',num2str(get(hObject, 'Value'))); 
-    
-    handles.jobs(jobNumber).Kcluster = get(hObject, 'Value');
-
-    % Update handles structure
-    guidata(hObject, handles);
-
-    % Store the latest data in jobvalues.mat in the specified save directory
-    if ~isempty(handles.jobs(jobNumber).savedirectory)
-       cd (handles.jobs(jobNumber).savedirectory)
-       jobvalues = handles.jobs(jobNumber);
-       save ('jobvalues','jobvalues')
-       clear jobvalues
-    end
-
-    % --- Executes during object creation, after setting all properties.
-    function GUI_st_NumberKcluster_sl_CreateFcn(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_NumberKcluster_sl (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    empty - handles not created until after all CreateFcns called
-
-    % Hint: slider controls usually have a light gray background.
-    if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor',[.9 .9 .9]);
-    end
-
-    function GUI_st_txtNumberKclustere_Callback(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_txtNumberKclustere (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-
-    % Hints: get(hObject,'String') returns contents of GUI_st_txtNumberKclustere as text
-    %        str2double(get(hObject,'String')) returns contents of GUI_st_txtNumberKclustere as a double
-
-
-    % --- Executes during object creation, after setting all properties.
-    function GUI_st_txtNumberKclustere_CreateFcn(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_txtNumberKclustere (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    empty - handles not created until after all CreateFcns called
-
-    % Hint: edit controls usually have a white background on Windows.
-    %       See ISPC and COMPUTER.
-    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor','white');
-    end
-    
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%% JvR: End Num K-clusters slider %%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-    function GUI_st_CurrentFileLocation_tx_Callback(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_CurrentFileLocation_tx (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-
-    % Hints: get(hObject,'String') returns contents of GUI_st_CurrentFileLocation_tx as text
-    %        str2double(get(hObject,'String')) returns contents of GUI_st_CurrentFileLocation_tx as a double
-
-
-    % --- Executes during object creation, after setting all properties.
-    function GUI_st_CurrentFileLocation_tx_CreateFcn(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_CurrentFileLocation_tx (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    empty - handles not created until after all CreateFcns called
-
-    % Hint: edit controls usually have a white background on Windows.
-    %       See ISPC and COMPUTER.
-    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor','white');
-    end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%% JvR: For Bin slider %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    function GUI_st_txtBinSize_txNew_Callback(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_txtBinSize_txNew (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-
-    % Hints: get(hObject,'String') returns contents of GUI_st_txtBinSize_txNew as text
-    %        str2double(get(hObject,'String')) returns contents of GUI_st_txtBinSize_txNew as a double
-   
-    % --- Executes during object creation, after setting all properties.
-    function GUI_st_txtBinSize_txNew_CreateFcn(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_txtBinSize_txNew (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    empty - handles not created until after all CreateFcns called
-
-    % Hint: edit controls usually have a white background on Windows.
-    %       See ISPC and COMPUTER.
-    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor','white');
-    end
-
-    % --- Executes during object creation, after setting all properties.
-    function GUI_st_slBinSize_slNew_CreateFcn(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_slBinSize_slNew (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    empty - handles not created until after all CreateFcns called
-
-    % Hint: slider controls usually have a light gray background.
-    if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor',[.9 .9 .9]);
-    end
-
-    % --- Executes on slider movement.
-    function GUI_st_slBinSize_slNew_Callback(hObject, eventdata, handles)
-    % hObject    handle to GUI_st_slBinSize_slNew (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-
-    % Hints: get(hObject,'Value') returns position of slider
-    %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-    handles = guidata(hObject);
-    
-    % Get the list of jobs
-    jobList = get(handles.GUI_st_job_lb,'String');
-
-    % If the joblist has entries get the number of entries else return,
-    % because there is really nothing to do
-    if ~iscell(jobList)
-       h=errordlg('At least one job should be loaded first, before any settings can be changed...');
-       uiwait(h);
-       return
-    end 
-
-    % Select the current job
-    jobNumber = get(handles.GUI_st_job_lb,'Value');
-    
-    set(handles.GUI_st_txtBinSize_txNew,'String',num2str(get(hObject, 'Value')));
-    
-    handles.jobs(jobNumber).binSize = get(hObject, 'Value');
-
-    % Update handles structure
-    guidata(hObject, handles);
-
-    % Store the latest data in jobvalues.mat in the specified save directory
-    if ~isempty(handles.jobs(jobNumber).savedirectory)
-       cd (handles.jobs(jobNumber).savedirectory)
-       jobvalues = handles.jobs(jobNumber);
-       save ('jobvalues','jobvalues')
-       clear jobvalues
-    end
-
-    JvRanswer=questdlg((['Do not forget to change the cell properties!']), 'Arnoud friendly software' ,'Yes'); 
-    if ~strcmp(JvRanswer, 'Yes')==1; %strcmp has a 0 or 1 as output
-        msgbox('Moron')
-    end 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%% JvR: End Bin slider %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
 
 

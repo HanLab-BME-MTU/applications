@@ -1,4 +1,4 @@
-function [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis, finalPersistence] = ptCalculateSpeedValues (handles)
+function [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis] = ptCalculateSpeedValues (handles)
 % ptPlotSpeedValues plots speed information gathered in MPM. 
 %
 % SYNOPSIS       [avgVelocityStats, velocitySingleStats, velocityVarStats, velHistStats, xAxis] = 
@@ -36,7 +36,6 @@ function [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistS
 % Andre Kerstens        Aug 04          Fixed bug in velocity squared and made loop more 
 %                                       effective (less calculations)
 % Andre Kerstens        Sep 04          Complete rewrite of plot functionality
-% JvR                   Sep 05          Included the migration persistence
 
 % Get the latest data from the handles
 MPM = handles.allMPM;
@@ -47,18 +46,11 @@ validFrames = handles.allValidFrames;
 jobData = handles.jobData;
 guiData = handles.guiData;
 
-% make finalPeristence global sothat the user can still manipulate the data
-% in ptPlotSpeedStats
-global finalPersistence
-global xAxis
-
 % Get values from the gui (these are used for all jobs)
 plotStartFrame = guiData.plotfirstimg;
 plotEndFrame = guiData.plotlastimg;
 binSize = guiData.binsize;
 multipleFrameVelocity = guiData.multframevelocity;
-PersistanceSmallSteps=str2double(get(handles.PersistenceSmallSteps,'String'));
-PersistanceBigSteps=str2double(get(handles.PersistenceBigSteps,'String'));
 
 % Determine the movie with the most frames
 %[longestMPM, mpmLength] = ptMaxMPMLength (MPM);
@@ -92,7 +84,6 @@ pixelLength = jobData(1).mmpixel;
 
 % Initialize the displacement and x-axis matrices
 avgDisplacement = zeros (1, numberOfFrames-multipleFrameVelocity);
-avgPersistence=zeros(1,numberOfFrames- PersistanceSmallSteps);
 avgSingleDisplacement = zeros (1, numberOfFrames-multipleFrameVelocity);
 avgClusteredDisplacement = zeros (1, numberOfFrames-multipleFrameVelocity);
 avgVelocity = zeros (1, numberOfFrames-multipleFrameVelocity);
@@ -128,11 +119,11 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
 
    % Initialize average sum counter
    averageSum = 0;
-     
+
    % If the velocity is calculated over multiple frames we should have
    % enough frames to do this
-   
-   if MPMCount > find(validFrames{shortestMovie}(1,:) == multipleFrameVelocity) & MPMCount > PersistanceSmallSteps
+   if MPMCount > find(validFrames{shortestMovie}(1,:) == multipleFrameVelocity)
+
       % Increase counter
       %iCount = iCount + 1;
 
@@ -140,29 +131,15 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
 
           % Find the index where this frame can be found
           frameIndx = find(validFrames{jobCount}(1,:) == MPMCount);
-         
-          % JvR: if multipleFrameVelocity (MFV) >1 then two timepoint should be deleted 
-          if MPMCount-multipleFrameVelocity>0              
-              frameIndxMinusMFV= find(validFrames{jobCount}(1,:) == MPMCount-multipleFrameVelocity);
-          end  
-          
-          % JvR: if PersistanceSmallSteps (PSS) >1 then two timepoint should be deleted 
-          if MPMCount-PersistanceSmallSteps>0              
-              frameIndxMinusPSS= find(validFrames{jobCount}(1,:) == MPMCount-PersistanceSmallSteps);
-          end  
-            
-          if isempty(frameIndx) | frameIndx > length(cellProps{jobCount}) | isempty(frameIndxMinusMFV)| isempty(frameIndxMinusPSS)
+
+          if isempty(frameIndx) | frameIndx > length(cellProps{jobCount})
               % Frame was bad and cannot be found in MPM
               displacement{jobCount} = [];
               velocity{jobCount} = [];
               singleCellsDisplacement{jobCount} = [];
-              singleCellsPersistence{jobCount} = [];
               singleCellVelocity{jobCount} = [];
               clusteredCellsDisplacement{jobCount} = [];
               clusteredCellVelocity{jobCount} = [];
-              PersistenceDisplacementSmallSteps{jobCount}=[]; %initialize
-              PersistenceDisplacementBigSteps{jobCount}=[]; %initialize
-              Persistence{jobCount}=[]; %initialize
           else
               
               % Increase counter
@@ -179,36 +156,13 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
               curCoordinates{jobCount} = MPM{jobCount}(:, 2*frameIndx-1 : 2*frameIndx);
               coordinates{jobCount} = [prevCoordinates{jobCount} curCoordinates{jobCount}];
 
-              
-              PersistenceCoordinates{jobCount}= MPM{jobCount}(:, 2*frameIndx-1 : 2*frameIndx);
-              TempSize=size(PersistenceCoordinates{jobCount});
-              for i=1 : 1 : PersistanceSmallSteps
-                if MPMCount-PersistanceSmallSteps>0              
-                   frameIndxMinusPSS= find(validFrames{jobCount}(1,:) == MPMCount-i);
-                end  
-                if ~isempty(frameIndxMinusPSS)
-                    DumPersistenceCoord=MPM{jobCount}(:, 2*(frameIndx-i)-1 : 2*(frameIndx-i));
-                    PersistenceCoordinates{jobCount}=[DumPersistenceCoord PersistenceCoordinates{jobCount}];
-                else
-                    DumPersistenceCoord=ones(TempSize);
-                    PersistenceCoordinates{jobCount}=[DumPersistenceCoord PersistenceCoordinates{jobCount}];
-                end
-              end
-              
-              
-              % PersistenceCoordinates{jobCount}=MPM{jobCount}(:, 2*(frameIndx-PersistanceSmallSteps)-1 : 2*frameIndx);
-              
               % If coordinates in the current frame have started a track or the
               % ones in the previous frame ended a track, we cannot
               % calculate a displacement so we should throw these out
               coordinates{jobCount}(find ((coordinates{jobCount}(:,1) == 0 & coordinates{jobCount}(:,2) == 0) | ...
                                           (coordinates{jobCount}(:,3) == 0 & coordinates{jobCount}(:,4) == 0)),:) = [];
-                                      
-              for i=1 : 2: ((PersistanceSmallSteps+1)*2)
-                 PersistenceCoordinates{jobCount}(find ((PersistenceCoordinates{jobCount}(:,i) == 0 & PersistenceCoordinates{jobCount}(:,(i+1)) == 0)),:) = [];
-              end
-                                      
-                                      % From the cluster and cell properties we can find out which cells
+
+              % From the cluster and cell properties we can find out which cells
               % are single and which belong to a cluster. First initialize two
               % matrices for this
               singleCellIndex{jobCount} = zeros (size (coordinates{jobCount},1), 1);
@@ -264,42 +218,7 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
               % Calculate the displacement for all cells
               displacement{jobCount} = sqrt ((coordinates{jobCount}(:,1) - coordinates{jobCount}(:,3)).^2 + ...
                                              (coordinates{jobCount}(:,2) - coordinates{jobCount}(:,4)).^2);
-              % For the persistance of migration, first calculate the distance of x steps
-              % (PersistanceSmallSteps), and then of one big step.
-              FrameMissingCounter=0; %initialize
 
-              PersistenceDisplacementSmallSteps{jobCount} =0;
-              for i=1 : 2: ((PersistanceSmallSteps)*2)
-                if PersistenceCoordinates{jobCount}(1,i)>1 & PersistenceCoordinates{jobCount}(1,i+2) >1
-                  PersistenceDisplacementSmallSteps{jobCount} =PersistenceDisplacementSmallSteps{jobCount}+ ... 
-                                               sqrt ((PersistenceCoordinates{jobCount}(:,i) - PersistenceCoordinates{jobCount}(:,i+2)).^2 + ...
-                                               (PersistenceCoordinates{jobCount}(:,i+1) - PersistenceCoordinates{jobCount}(:,i+3)).^2);
-                                         
-                else
-                  FrameMissingCounter=FrameMissingCounter+1;
-                end
-              end
-              %JvR: correct for missing coordinates
-              CorrectionFactor=(PersistanceSmallSteps-(FrameMissingCounter))/PersistanceSmallSteps;
-              PersistenceDisplacementSmallSteps{jobCount}=PersistenceDisplacementSmallSteps{jobCount}./CorrectionFactor;
-              
-              PersistenceDisplacementBigSteps{jobCount} = sqrt ((PersistenceCoordinates{jobCount}(:,1) - PersistenceCoordinates{jobCount}(:,((2*(PersistanceSmallSteps+1))-1))).^2 + ...
-                                             (PersistenceCoordinates{jobCount}(:,2) - PersistenceCoordinates{jobCount}(:,((2*(PersistanceSmallSteps+1))))).^2);
-              
-              % for persistence divide the total distance of small steps by the distance of the large step
-              TempPersistence=(PersistenceDisplacementBigSteps{jobCount}./PersistenceDisplacementSmallSteps{jobCount});
-              
-              %Store the raw Persistence values sothat these can be manipulated
-              %latter on by the user.
-              AlmostfinalPersistence.Speed=PersistenceDisplacementSmallSteps{jobCount};
-              AlmostfinalPersistence.SpeedLong=PersistenceDisplacementBigSteps{jobCount};
-              AlmostfinalPersistence.Persis=TempPersistence;
-              
-              %find out whether there was no division by 0 which results in
-              %NaN
-              Temp=(find(TempPersistence<=1 & TempPersistence>0));
-              Persistence{jobCount}=TempPersistence(Temp);           
-              
               % Calculate true velocity in um/min for all cells; use the
               % validFrames array for this
               velocity{jobCount} = (displacement{jobCount} * pixelLength) / ...
@@ -308,12 +227,6 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
               % Calculate the displacement for single cells
               singleCellsDisplacement{jobCount} = displacement{jobCount}(singleCellIndex{jobCount},:);
 
-              % Calculate the persitence for a single cell
-              try
-               singleCellPersistence{jobCount}= Persistence{jobCount}(singleCellIndex{jobCount},:);
-              catch
-                singleCellPersistence{jobCount}=TempPersistence(Temp);  
-              end 
               % Calculate true velocity in um/min for all cells
               singleCellVelocity{jobCount} = velocity{jobCount}(singleCellIndex{jobCount},:);
 
@@ -325,12 +238,11 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
               
               % Increase counter used later to calculate average
               averageSum = averageSum + 1;
-              
-              
+
           end  % if isempty(frameIndx)
       end  % for jobCount = 1 : length(MPM)
         
-      if averageSum > 0   % Only go on if we have at least 1 good frame in the joblist 
+      if averageSum > 0   % Only go on if we have at least 1 good frame in the joblist
 
           % Store x-Axis value
           if ~alwaysCountFrom1
@@ -338,19 +250,11 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
           else
               xAxis(iCount) = iCount;
           end
-          
-          %Store the Persistence values sothat these can be manipulated
-          %latter on by the user.
-          finalPersistence{iCount}.Speed=AlmostfinalPersistence.Speed;
-          finalPersistence{iCount}.SpeedLong=AlmostfinalPersistence.SpeedLong;
-          finalPersistence{iCount}.Persis=AlmostfinalPersistence.Persis;
-          
+
           % Cat all the matrices that we found together
           allDisplacement = cat(1,displacement{:});
-          allPersistence=cat(1,Persistence{:});
           allVelocity = cat(1, velocity{:});
           allSingleCellsDisplacement = cat(1, singleCellsDisplacement{:});
-          allSingleCellsPersistence = cat(1, singleCellPersistence{:});
           allSingleCellVelocity = cat(1, singleCellVelocity{:});
           allClusteredCellsDisplacement = cat(1, clusteredCellsDisplacement{:});
           allClusteredCellVelocity = cat(1, clusteredCellVelocity{:});
@@ -426,20 +330,6 @@ for frameCount = plotStartFrame+increment : increment : plotEndFrame
              avgSingleDisplacement(iCount) = 0;
           end
 
-          % From this the average persistence for all cells can be calculated
-          if length (allPersistence) > 0
-             avgPersistence(iCount) = sum (allPersistence) / length (allPersistence);
-          else
-             avgPersistence(iCount) = 0;
-          end
-
-          % From this the average persistence for single cells can be calculated
-          if length (allSingleCellsPersistence) > 0
-             avgSinglePersistence(iCount) = sum (allSingleCellsPersistence) / length (allSingleCellsPersistence);
-          else
-             avgSinglePersistence(iCount) = 0;
-          end
-
           % From this the average displacement for clustered cells can be calculated
           if length (allClusteredCellsDisplacement) > 0
              avgClusteredDisplacement(iCount) = sum (allClusteredCellsDisplacement) / length (allClusteredCellsDisplacement);
@@ -492,8 +382,6 @@ avgVelocityStats.avgVelocitySquared = avgVelocitySquared(1:iCount);
 avgVelocityStats.avgSingleVelocity = avgSingleVelocity(1:iCount);
 avgVelocityStats.avgClusteredVelocity = avgClusteredVelocity(1:iCount);
 avgVelocityStats.avgSingleDisplacement = avgSingleDisplacement(1:iCount);
-avgVelocityStats.avgPersistence=avgPersistence(1:iCount);
-avgVelocityStats.avgSinglePersistence=avgSinglePersistence(1:iCount);
 
 velocitySingleStats.velAllCellsHigherThanAvgSingleCells = velAllCellsHigherThanAvgSingleCells(1:iCount);
 
@@ -511,4 +399,4 @@ velocityHistStats.maxClusteredCellVelocity = maxClusteredCellVelocity;
 velocityHistStats.binSize = guiData.binsize;
 
 % Make sure the x-axis has the correct length
-xAxis = xAxis(1:iCount); 
+xAxis = xAxis(1:iCount);

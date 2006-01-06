@@ -60,8 +60,8 @@ if radioButtons.speedplot_1
 
         % Save the figures in fig, eps and tif format        
         hgsave (h_fig3,[SaveDir filesep [imageName '_velAllCellsHigherThanAvgSingleCells.fig']]);
-        % print (h_fig3, [SaveDir filesep [imageName '_velAllCellsHigherThanAvgSingleCells.eps']],'-depsc2','-tiff');
-        % print (h_fig3, [SaveDir filesep [imageName '_velAllCellsHigherThanAvgSingleCells.tif']],'-dtiff');
+        print (h_fig3, [SaveDir filesep [imageName '_velAllCellsHigherThanAvgSingleCells.eps']],'-depsc2','-tiff');
+        print (h_fig3, [SaveDir filesep [imageName '_velAllCellsHigherThanAvgSingleCells.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplots
     
     % Save MAT files for percentage velocity higher than single cell speed

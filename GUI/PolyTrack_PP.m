@@ -20,7 +20,6 @@ function varargout = PolyTrack_PP(varargin)
 % Andre Kerstens        Jul 04          Added size of movie to ptPostpro
 % Andre Kerstens        Jul 04          Added area/convex-hull-area plot
 % Andre Kerstens        Aug 04          Complete redesign to be able to handle multiple movies
-% JvR                   Sept05          Add migration persistence
 
 % All kinds of matlab initialization stuff; leave as is...
 % Begin initialization code - DO NOT EDIT
@@ -58,10 +57,10 @@ handles.output = hObject;
 % Create a default postprocessing structure that defines all the fields used in the program
 defaultPostPro = struct('minusframes', 5, 'plusframes', 2, 'minimaltrack', 5, 'maxsearch', 81, ...
                         'dragtail', 6, 'dragtailfile', 'trackMovie', 'figureSize', [], ...
-                        'multframevelocity', 1,'PersistenceBigSteps',1,'PersistenceSmallSteps',5, 'binsize', 13,...
-                        'mmpixel',0.639, 'timeperframe', 300, 'movietype', 1, 'nrtrajectories', 5,...
-                        'neighbourdist', 81, 'windowsize', 5, 'maxcellcelldist', 81, 'ripconfint', 85, ...
-                        'fulltracks', 0, 'dragtracks', 1, 'drugtimepoint', 30);
+                        'multframevelocity', 1, 'binsize', 13, 'mmpixel', 0.639, 'timeperframe', 300, ...
+                        'movietype', 1, 'nrtrajectories', 5, 'neighbourdist', 81, 'windowsize', 5, ...
+                        'maxcellcelldist', 81, 'ripconfint', 85, 'fulltracks', 0, 'dragtracks', 1, ...
+                        'drugtimepoint', 30);
 
 % Assign the default postprocessing values to the GUI handle so it can be passed around
 handles.defaultPostPro = defaultPostPro;
@@ -163,14 +162,6 @@ set (handles.GUI_windowsize_ed, 'String', handles.guiData.windowsize);
 % Set multiple frame velocity
 handles.guiData.multframevelocity = defaultPostPro.multframevelocity;
 set (handles.multFrameVelocity, 'String', handles.guiData.multframevelocity);
-
-% Set multiple persistence big Steps
-handles.guiData.PersistenceBigSteps = defaultPostPro.PersistenceBigSteps;
-set (handles.PersistenceBigSteps, 'String', handles.guiData.PersistenceBigSteps);
-
-% Set multiple persistence small Steps
-handles.guiData.PersistenceSmallSteps = defaultPostPro.PersistenceSmallSteps;
-set (handles.PersistenceSmallSteps, 'String', handles.guiData.PersistenceSmallSteps);
 
 % Set neighbourhood traj length
 handles.guiData.nrtrajectories = defaultPostPro.nrtrajectories;
@@ -805,7 +796,7 @@ radioButtons = getRadiobuttonValues (handles);
 if (~radioButtons.cellclusterplot & ~radioButtons.areaplot & ...
     ~radioButtons.perimeterplot & ~radioButtons.speedplot & ...
     ~radioButtons.cellcelldistplot & ~radioButtons.neighbourplot & ...
-    ~radioButtons.ripleyplot & ~radioButtons.persistenceplot)
+    ~radioButtons.ripleyplot)
    h = errordlg ('No plots selected. Please select a plot first...');
    uiwait(h);          % Wait until the user presses the OK button
    return;
@@ -872,15 +863,14 @@ else
        
       try
           % Run the calculation for the velocity stats
-          [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis, finalPersistence] = ...
+          [avgVelocityStats, velocitySingleStats, velocityVarStats, velocityHistStats, xAxis] = ...
                                    ptCalculateSpeedValues (handles);
 
-          handles.StoreResults.finalPersis=finalPersistence;
           % Here's where the plotting itself starts
-          if radioButtons.speedplot_2 
+          if radioButtons.speedplot_2
              % Generate avg velocity plots if the users requested these
               ptPlotSpeedStats (radioButtons, plotName, saveDir, xAxis, avgVelocityStats, windowSize, ...
-                                drugTimepoint, finalPersistence);
+                                drugTimepoint);
           end   
           if radioButtons.speedplot_1
              % Generate vel. single cell plots if the users requested these
@@ -900,7 +890,7 @@ else
 
           % For all the figures we want to keep the xAxis as well 
           save ([saveDir filesep plotName '_xAxis-Velocity.mat'],'xAxis');
-      catch 
+      catch
           disp('An error occured: the velocity plots cannot be completed.');
       end
    end
@@ -952,8 +942,8 @@ else
               [chaosStats, xAxis] = ptCalculateChaosStats (handles, radioButtons);
 
               % Do the plots
-            %  ptPlotChaosStats (radioButtons, plotName, saveDir, xAxis, chaosStats, windowSize, ...
-              %                  drugTimepoint);
+              ptPlotChaosStats (radioButtons, plotName, saveDir, xAxis, chaosStats, windowSize, ...
+                                drugTimepoint);
           %catch
           %    disp('An error occured: the ripley plots cannot be completed.');
           %end
@@ -972,9 +962,6 @@ else
    % Show a message telling the user we've finished
    msgbox ('Finished generating plots and histograms. Press OK to continue...');
 end
-
-% Update handles structure
-guidata(hObject, handles);
 
 %----------------------------------------------------------------------------
 
@@ -1231,7 +1218,7 @@ function GUI_fm_universalstudios_pb_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % Check that the plot frame values provided are in range
-handles = guidata (hObject); 
+handles = guidata (hObject);
 
 % Check that files have been selected before
 if ~isfield (handles, 'allMPM')  
@@ -1620,79 +1607,6 @@ end
 
 % Update handles structure
 guidata(hObject, handles);
-
-%--------------------------------------------------------------------------
-
-function PersistenceBigSteps_Callback(hObject, eventdata, handles)
-% hObject    handle to PersistenceBigSteps (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of PersistenceBigSteps as text
-%        str2double(get(hObject,'String')) returns contents of PersistenceBigSteps as a double
-handles = guidata(hObject);
-
-% Get number from the gui, convert it to a number and assign it to the handle;
-% If it is not an number, throw and error dialog and revert to the old number
-strval = get(hObject,'String');
-val = str2double(strval);
-if isnan (val)
-    h = errordlg('Sorry, this field has to contain a number.');
-    uiwait(h);          % Wait until the user presses the OK button
-    handles.guiData.PersistenceBigSteps = 1;
-    set (handles.PersistenceBigSteps, 'String', handles.guiData.PersistenceBigSteps);
-    return
-else
-    if val>= (handles.guiData.PersistenceSmallSteps)
-      h = errordlg('Sorry, this value must be smaller then the value in the other textbox.');
-      uiwait(h);          % Wait until the user presses the OK button
-      handles.guiData.PersistenceBigSteps = 1;
-      set (handles.PersistenceBigSteps, 'String', handles.guiData.PersistenceBigSteps);
-    else
-      handles.guiData.PersistenceBigSteps = val;
-    end
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
-%--------------------------------------------------------------------------
-
-function PersistenceSmallSteps_Callback(hObject, eventdata, handles)
-% hObject    handle to PersistenceSmallSteps (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of PersistenceSmallSteps as text
-%        str2double(get(hObject,'String')) returns contents of
-%        PersistenceSmallSteps as a double
-
-handles = guidata(hObject);
-
-% Get number from the gui, convert it to a number and assign it to the handle;
-% If it is not an number, throw and error dialog and revert to the old number
-strval = get(hObject,'String');
-val = str2double(strval);
-if isnan (val)
-    h = errordlg('Sorry, this field has to contain a number.');
-    uiwait(h);          % Wait until the user presses the OK button
-    handles.guiData.PersistenceSmallSteps = 5;
-    set (handles.PersistenceSmallSteps, 'String', handles.guiData.PersistenceSmallSteps);
-    return
-else
-    if val<= (handles.guiData.PersistenceBigSteps)
-      h = errordlg('Sorry, this value must be smaller then the value in the other textbox.');
-      uiwait(h);          % Wait until the user presses the OK button
-      handles.guiData.PersistenceSmallSteps =handles.guiData.PersistenceBigSteps + 1;
-      set (handles.PersistenceSmallSteps, 'String', handles.guiData.PersistenceSmallSteps);
-    else
-      handles.guiData.PersistenceSmallSteps = val;
-    end 
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
 
 %--------------------------------------------------------------------------
 
@@ -2913,9 +2827,6 @@ radioButtons.speedplot = get(handles.checkbox_speed,'Value');
    radioButtons.speedplot_3 = get(handles.checkbox_speed_variance,'Value');
    radioButtons.speedplot_4 = get(handles.checkbox_speed_histogram,'Value');
    
-% Get migration persistence values
-radioButtons.persistenceplot = get(handles.chkPersistence,'Value');
-   
 % Get cell/cell distance values
 radioButtons.cellcelldistplot = get(handles.checkbox_cellcelldisthist,'Value');
    radioButtons.cellcelldistplot_1 = get(handles.checkbox_avg_distance_cells,'Value');
@@ -3464,437 +3375,4 @@ h = msgbox(['Successfully wrote CSV file ' handles.guiData.savedatapath filesep 
 % Update handles structure
 guidata(hObject, handles);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%% JvR: Show fucntions Analysis & plot%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    % --- Executes on button press in pb_ShowClusterAndCellStat.
-    function pb_ShowClusterAndCellStat_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowClusterAndCellStat (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showStatboxes(1,handles)
-
-    % --- Executes on button press in pb_ShowAreaStat.
-    function pb_ShowAreaStat_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowAreaStat (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showStatboxes(2,handles)
-
-    % --- Executes on button press in pb_ShowPerimeterStat.
-    function pb_ShowPerimeterStat_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowPerimeterStat (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showStatboxes(3,handles)
-
-    % --- Executes on button press in pb_ShowNeigborhoodStat.
-    function pb_ShowNeigborhoodStat_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowNeigborhoodStat (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showStatboxes(4,handles)
-
-    % --- Executes on button press in pb_ShowVelocityStats.
-    function pb_ShowVelocityStats_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowVelocityStats (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showStatboxes(5,handles)
-
-    % --- Executes on button press in pb_ShowMigrationPersistence.
-    function pb_ShowMigrationPersistence_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowMigrationPersistence (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showStatboxes(6,handles)
-
-    % --- Executes on button press in pb_ShowchaosStats.
-    function pb_ShowchaosStats_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowchaosStats (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showStatboxes(7,handles)
-
-
-    function showStatboxes(number, handles)
-    % showStateoxes function makes check boxes of plot and analysis visible
-    % or invisible
-   
-    % INPUT              number:   Represent check boxes which should be
-    %                               visiualized:
-    %                               1: pb_ShowClusterAndCellStat
-    %                               2: etc
-    %                    handles : the gui handles struct
-    
-    
-    % Revision History
-    % Name                  Date            Comment
-    % --------------------- --------        --------------------------------------------------------
-    % JvR                   Sep 05          Initial release
-    
-    if number>0& number<2
-       set(handles.checkbox_clustercellstats,'Visible','on')
-       set(handles.checkbox_amount_cells,'Visible','on')
-       set(handles.checkbox_percentage_cells,'Visible','on')
-       set(handles.GUI_ad_text2,'Visible','on')
-       set(handles.GUI_ad_firstimage_ed,'Visible','on')
-       set(handles.GUI_ad_text3,'Visible','on')
-       set(handles.GUI_ad_lastimage_ed,'Visible','on')
-       set(handles.pb_ShowClusterAndCellStat,'BackgroundColor',[0.38 0.906 0.459])
-    else
-       set(handles.checkbox_clustercellstats,'Visible','off')
-       set(handles.checkbox_amount_cells,'Visible','off')
-       set(handles.checkbox_percentage_cells,'Visible','off')
-       set(handles.GUI_ad_text2,'Visible','off')
-       set(handles.GUI_ad_firstimage_ed,'Visible','off')  
-       set(handles.GUI_ad_text3,'Visible','off')
-       set(handles.GUI_ad_lastimage_ed,'Visible','off')
-       set(handles.pb_ShowClusterAndCellStat,'BackgroundColor',[0.69 0.725 0.914])
-    end
-
-    if number>1& number<3
-       set(handles.checkbox_areastats,'Visible','on')
-       set(handles.checkbox_total_area,'Visible','on')
-       set(handles.checkbox_single_cluster_area,'Visible','on')
-       set(handles.checkbox_avg_convex_hull_area,'Visible','on')
-       set(handles.GUI_ad_text5,'Visible','on')
-       set(handles.GUI_ad_binsize_ed,'Visible','on')
-       set(handles.pb_ShowAreaStat,'BackgroundColor',[0.38 0.906 0.459])
-    else
-       set(handles.checkbox_areastats,'Visible','off')
-       set(handles.checkbox_total_area,'Visible','off')
-       set(handles.checkbox_single_cluster_area,'Visible','off')
-       set(handles.checkbox_avg_convex_hull_area,'Visible','off')
-       set(handles.GUI_ad_text5,'Visible','off')
-       set(handles.GUI_ad_binsize_ed,'Visible','off') 
-       set(handles.pb_ShowAreaStat,'BackgroundColor',[0.69 0.725 0.914])
-    end
-
-
-    if number>2& number<4
-       set(handles.checkbox_perimeter,'Visible','on')
-       set(handles.checkbox_cellcelldisthist,'Visible','on')
-       set(handles.checkbox_avg_distance_cells,'Visible','on')
-       set(handles.text43,'Visible','on')
-       set(handles.GUI_maxcellcelldist_ed,'Visible','on')
-       set(handles.text44,'Visible','on')
-       set(handles.pb_ShowPerimeterStat,'BackgroundColor',[0.38 0.906 0.459])
-    else
-       set(handles.checkbox_perimeter,'Visible','off')
-       set(handles.checkbox_cellcelldisthist,'Visible','off')
-       set(handles.checkbox_avg_distance_cells,'Visible','off')
-       set(handles.text43,'Visible','off')
-       set(handles.GUI_maxcellcelldist_ed,'Visible','off')
-       set(handles.text44,'Visible','off')
-       set(handles.pb_ShowPerimeterStat,'BackgroundColor',[0.69 0.725 0.914])
-    end
-
-    if number>3& number<5
-       set(handles.checkbox_neighbourhood,'Visible','on')
-       set(handles.checkbox_nb_trajectories,'Visible','on')
-       set(handles.nr_traj_ed,'Visible','on')
-       set(handles.text34,'Visible','on')
-       set(handles.checkbox_nb_interact,'Visible','on')
-       set(handles.text38,'Visible','on')
-       set(handles.neighbour_dist_ed,'Visible','on')
-       set(handles.text39,'Visible','on')
-       set(handles.text35,'Visible','on')
-       set(handles.pb_ShowNeigborhoodStat,'BackgroundColor',[0.38 0.906 0.459])
-    else
-       set(handles.checkbox_neighbourhood,'Visible','off')
-       set(handles.checkbox_nb_trajectories,'Visible','off')
-       set(handles.nr_traj_ed,'Visible','off')
-       set(handles.text34,'Visible','off')
-       set(handles.checkbox_nb_interact,'Visible','off')
-       set(handles.text38,'Visible','off')
-       set(handles.neighbour_dist_ed,'Visible','off')
-       set(handles.text39,'Visible','off') 
-       set(handles.text35,'Visible','off')
-       set(handles.pb_ShowNeigborhoodStat,'BackgroundColor',[0.69 0.725 0.914])
-    end
-
-    if number>4& number<6
-       set(handles.checkbox_speed,'Visible','on')
-       set(handles.checkbox_average_speed,'Visible','on')
-       set(handles.checkbox_all_to_single_speed,'Visible','on')
-       set(handles.checkbox_speed_variance,'Visible','on')
-       set(handles.checkbox_speed_histogram,'Visible','on')
-       set(handles.GUI_vel_all_cells_cb,'Visible','on')
-       set(handles.GUI_vel_single_cells_cb,'Visible','on')
-       set(handles.GUI_vel_clust_cells_cb,'Visible','on')
-       set(handles.GUI_ad_text6,'Visible','on')
-       set(handles.multFrameVelocity,'Visible','on')
-       set(handles.GUI_ad_text7,'Visible','on')
-       set(handles.chkPersistence,'Visible','on')
-       set(handles.PersistenceSmallSteps,'Visible','on')
-       set(handles.pushbutton26,'Visible','on')
-       set(handles.PersistenceBigSteps,'Visible','on')
-       set(handles.pb_ShowVelocityStats,'BackgroundColor',[0.38 0.906 0.459])
-    else
-       set(handles.checkbox_speed,'Visible','off')
-       set(handles.checkbox_average_speed,'Visible','off')
-       set(handles.checkbox_all_to_single_speed,'Visible','off')
-       set(handles.checkbox_speed_variance,'Visible','off')
-       set(handles.checkbox_speed_histogram,'Visible','off')
-       set(handles.GUI_vel_all_cells_cb,'Visible','off')
-       set(handles.GUI_vel_single_cells_cb,'Visible','off')
-       set(handles.GUI_vel_clust_cells_cb,'Visible','off')
-       set(handles.GUI_ad_text6,'Visible','off')
-       set(handles.multFrameVelocity,'Visible','off')
-       set(handles.GUI_ad_text7,'Visible','off')    
-       set(handles.chkPersistence,'Visible','off')
-       set(handles.PersistenceSmallSteps,'Visible','off')
-       set(handles.pushbutton26,'Visible','off')
-       set(handles.PersistenceBigSteps,'Visible','off')
-       set(handles.pb_ShowVelocityStats,'BackgroundColor',[0.69 0.725 0.914])
-    end
-
-    if number>6& number<8
-       set(handles.GUI_chaosstats_cb,'Visible','on')
-       set(handles.GUI_ripley_cb,'Visible','on')
-       set(handles.GUI_ripconfint_ed,'Visible','on')
-       set(handles.text46,'Visible','on')
-       set(handles.pb_ShowchaosStats,'BackgroundColor',[0.38 0.906 0.459])
-    else
-       set(handles.GUI_chaosstats_cb,'Visible','off')
-       set(handles.GUI_ripley_cb,'Visible','off')
-       set(handles.GUI_ripconfint_ed,'Visible','off')
-       set(handles.text46,'Visible','off')
-       set(handles.pb_ShowchaosStats,'BackgroundColor',[0.69 0.725 0.914])
-    end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%% JvR: Show fucntions Analysis & plot%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%% JvR: Show fucntions %%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    % --- Executes on button press in pb_CellSelection.
-    function pb_CellSelection_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_CellSelection (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showRestboxes(1,handles)
-
-    % --- Executes on button press in pb_ShowMovies.
-    function pb_ShowMovies_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowMovies (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showRestboxes(2,handles)
-
-    % --- Executes on button press in pb_ShowPath.
-    function pb_ShowPath_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowPath (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showRestboxes(3,handles)
-
-    % --- Executes on button press in pb_ShowLinktrack.
-    function pb_ShowLinktrack_Callback(hObject, eventdata, handles)
-    % hObject    handle to pb_ShowLinktrack (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-    handles = guidata(hObject);
-    showRestboxes(4,handles)
-    
-    
-    function showRestboxes(number, handles)
-    % showRestboxes (Show all other boxes) function makes check boxes of plot and analysis visible
-    % or invisible
-   
-    % INPUT              number:   Represent check boxes which should be
-    %                               visiualized:
-    %                               1: pb_CellSelection
-    %                               2: etc
-    %                    handles : the gui handles struct
-    
-    
-    % Revision History
-    % Name                  Date            Comment
-    % --------------------- --------        --------------------------------------------------------
-    % JvR                   Sep 05          Initial release
-    
-    if number>0& number<2
-        set(handles.text48,'Visible','on')
-        set(handles.text51,'Visible','on')
-        set(handles.GUI_ad_selectcells_pb,'Visible','on')
-        set(handles.GUI_selectallcells_pb,'Visible','on')
-        set(handles.GUI_log_coordinates_pb,'Visible','on')
-        set(handles.pb_CellSelection,'BackgroundColor',[0.38 0.906 0.459])
-    else
-        set(handles.text48,'Visible','off')
-        set(handles.text51,'Visible','off')
-        set(handles.GUI_ad_selectcells_pb,'Visible','off')
-        set(handles.GUI_selectallcells_pb,'Visible','off')
-        set(handles.GUI_log_coordinates_pb,'Visible','off')
-        set(handles.pb_CellSelection,'BackgroundColor',[0.69 0.725 0.914])
-    end 
-    
-    if number>1& number<3
-        set(handles.GUI_fm_text2,'Visible','on')
-        set(handles.GUI_fm_text3,'Visible','on')
-        set(handles.GUI_movietype_text,'Visible','on')
-        set(handles.GUI_fm_movieimgone_ed,'Visible','on')
-        set(handles.GUI_fm_movieimgend_ed,'Visible','on')
-        set(handles.GUI_movietype_avi_rb,'Visible','on')
-        set(handles.GUI_movietype_qt_rb,'Visible','on')
-        set(handles.GUI_fm_inclcentromers_rb,'Visible','on')
-        set(handles.GUI_fm_incltracks_rb,'Visible','on')
-        set(handles.GUI_fm_tracksince_ed,'Visible','on')
-        set(handles.GUI_fm_text4,'Visible','on')
-        set(handles.GUI_fm_fulltracks_cb,'Visible','on')
-        set(handles.GUI_fm_saveastiff_rb,'Visible','on')
-        set(handles.text24,'Visible','on')
-        set(handles.GUI_fm_filename_ed,'Visible','on')
-        set(handles.GUI_moviebrowse_pb,'Visible','on')
-        set(handles.GUI_fm_universalstudios_pb,'Visible','on')
-        set(handles.GUI_fm_moviesize_pb,'Visible','on')
-        set(handles.pb_ShowMovies,'BackgroundColor',[0.38 0.906 0.459])
-    else
-        set(handles.GUI_fm_text2,'Visible','off')
-        set(handles.GUI_fm_text3,'Visible','off')
-        set(handles.GUI_movietype_text,'Visible','off')
-        set(handles.GUI_fm_movieimgone_ed,'Visible','off')
-        set(handles.GUI_fm_movieimgend_ed,'Visible','off')
-        set(handles.GUI_movietype_avi_rb,'Visible','off')
-        set(handles.GUI_movietype_qt_rb,'Visible','off')
-        set(handles.GUI_fm_inclcentromers_rb,'Visible','off')
-        set(handles.GUI_fm_incltracks_rb,'Visible','off')
-        set(handles.GUI_fm_tracksince_ed,'Visible','off')
-        set(handles.GUI_fm_text4,'Visible','off')
-        set(handles.GUI_fm_fulltracks_cb,'Visible','off')
-        set(handles.GUI_fm_saveastiff_rb,'Visible','off')
-        set(handles.text24,'Visible','off')
-        set(handles.GUI_fm_filename_ed,'Visible','off')
-        set(handles.GUI_moviebrowse_pb,'Visible','off')
-        set(handles.GUI_fm_universalstudios_pb,'Visible','off')
-        set(handles.GUI_fm_moviesize_pb,'Visible','off')
-        set(handles.pb_ShowMovies,'BackgroundColor',[0.69 0.725 0.914])
-    end 
-      
-    if number>2& number<4
-        set(handles.text31,'Visible','on')
-        set(handles.GUI_pp_text3,'Visible','on')
-        set(handles.pp_firstframe,'Visible','on')
-        set(handles.GUI_mmpixel_ed,'Visible','on')
-        set(handles.GUI_pp_text4,'Visible','on')
-        set(handles.pp_lastframe,'Visible','on')
-        set(handles.text32,'Visible','on')
-        set(handles.GUI_pp_text5,'Visible','on')
-        set(handles.pp_increment,'Visible','on')
-        set(handles.GUI_frameinterval_ed,'Visible','on')
-        set(handles.GUI_pp_text_badframes,'Visible','on')
-        set(handles.pp_bad_frames,'Visible','on')
-        set(handles.text50,'Visible','on')
-        set(handles.GUI_drugtimepoint_ed,'Visible','on')
-        set(handles.GUI_pp_text2,'Visible','on')
-        set(handles.GUI_pp_imagepath_ed,'Visible','on')
-        set(handles.GUI_pp_imagebrowse_pb,'Visible','on')
-        set(handles.GUI_fm_text5,'Visible','on')
-        set(handles.GUI_fm_saveallpath_ed,'Visible','on')
-        set(handles.GUI_fm_browsesaveallpath_pb,'Visible','on')
-        set(handles.static_polydatadir_ptpp,'Visible','on')
-        set(handles.text_polydatadir_ptpp,'Visible','on')
-        set(handles.pb_polydatabrowse_ptpp,'Visible','on')
-        set(handles.pb_ShowPath,'BackgroundColor',[0.38 0.906 0.459])
-    else
-        set(handles.text31,'Visible','off')
-        set(handles.GUI_pp_text3,'Visible','off')
-        set(handles.pp_firstframe,'Visible','off')
-        set(handles.GUI_mmpixel_ed,'Visible','off')
-        set(handles.GUI_pp_text4,'Visible','off')
-        set(handles.pp_lastframe,'Visible','off')
-        set(handles.text32,'Visible','off')
-        set(handles.GUI_pp_text5,'Visible','off')
-        set(handles.pp_increment,'Visible','off')
-        set(handles.GUI_frameinterval_ed,'Visible','off')
-        set(handles.GUI_pp_text_badframes,'Visible','off')
-        set(handles.pp_bad_frames,'Visible','off')
-        set(handles.text50,'Visible','off')
-        set(handles.GUI_drugtimepoint_ed,'Visible','off')
-        set(handles.GUI_pp_text2,'Visible','off')
-        set(handles.GUI_pp_imagepath_ed,'Visible','off')
-        set(handles.GUI_pp_imagebrowse_pb,'Visible','off')
-        set(handles.GUI_fm_text5,'Visible','off')
-        set(handles.GUI_fm_saveallpath_ed,'Visible','off')
-        set(handles.GUI_fm_browsesaveallpath_pb,'Visible','off')
-        set(handles.static_polydatadir_ptpp,'Visible','off')
-        set(handles.text_polydatadir_ptpp,'Visible','off')
-        set(handles.pb_polydatabrowse_ptpp,'Visible','off') 
-        set(handles.pb_ShowPath,'BackgroundColor',[0.69 0.725 0.914])
-    end 
-    
-    if number>3& number<5
-        set(handles.GUI_app_text6,'Visible','on')
-        set(handles.GUI_app_minimaltrack_ed,'Visible','on')
-        set(handles.GUI_app_text2,'Visible','on')
-        set(handles.GUI_app_text3,'Visible','on')
-        set(handles.GUI_app_minusframes_ed,'Visible','on')
-        set(handles.GUI_app_text4,'Visible','on')
-        set(handles.GUI_app_plusframes_ed,'Visible','on')
-        set(handles.GUI_app_text5,'Visible','on')
-        set(handles.GUI_app_relinkdist_ed,'Visible','on')
-        set(handles.GUI_app_autopostpro_pb,'Visible','on')
-        set(handles.pb_ShowLinktrack,'BackgroundColor',[0.38 0.906 0.459])
-    else
-        set(handles.GUI_app_text6,'Visible','off')
-        set(handles.GUI_app_minimaltrack_ed,'Visible','off')
-        set(handles.GUI_app_text2,'Visible','off')
-        set(handles.GUI_app_text3,'Visible','off')
-        set(handles.GUI_app_minusframes_ed,'Visible','off')
-        set(handles.GUI_app_text4,'Visible','off')
-        set(handles.GUI_app_plusframes_ed,'Visible','off')
-        set(handles.GUI_app_text5,'Visible','off')
-        set(handles.GUI_app_relinkdist_ed,'Visible','off')
-        set(handles.GUI_app_autopostpro_pb ,'Visible','off')
-        set(handles.pb_ShowLinktrack,'BackgroundColor',[0.69 0.725 0.914])
-    end 
-    
-%--------------------------------------------------------------------------
-%--------------------------------------------------------------------------
-     % This is a function when the slider is pressed for SliderMin
-     function Slider1_callback(src, eventdata) 
-    % JvR Oct 2005
-    % save data in handles. Because we are in a figure and not in a GUI we use guihandles instead of guidata 
-        handles = guihandles(src);
-        % Read the slider
-        SliderValue=get(handles.SliderMin, 'Value');
-        SliderValue=num2str(SliderValue);
-        %Fill in the txtbox
-        set(handles.TxtMin, 'String',SliderValue)
-%--------------------------------------------------------------------------
-
-     % This is a function when the slider is pressed for SliderMin
-     function Slider2_callback(src, eventdata) 
-    % JvR Oct 2005
-    % save data in handles. Because we are in a figure and not in a GUI we use guihandles instead of guidata 
-        handles = guihandles(src);
-        % Read the slider
-        SliderValue=get(handles.SliderMax, 'Value');
-        SliderValue=num2str(SliderValue);
-        %Fill in the txtbox
-        set(handles.TxtMax, 'String',SliderValue)
-%--------------------------------------------------------------------------
-
-     % This is a function when the slider is pressed for SliderMin
-     function cmdGo_callback(src, eventdata) 
-     % JvR Oct 2005
-     % save data in handles. Because we are in a figure and not in a GUI we use guihandles instead of guidata 
-     handles = guihandles(src);
-     handles.StoreResults.finalPersis; 

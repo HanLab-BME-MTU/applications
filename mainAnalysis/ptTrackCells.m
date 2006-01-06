@@ -26,10 +26,10 @@ function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptT
 %                  frameProps (:,2) = average area convex hull around clusters
 %                  frameProps (:,3) = average ratio area/convex-hull-area of clusters
 %                imageCount : the last image that was processed (also needed in case of crashes)
-%             imreadnd2   validFrames: an array showing which frames were processed (1) and which frames 
+%                validFrames: an array showing which frames were processed (1) and which frames 
 %                             were bad and therefore not processed (0)
 %
-% DEPENDENCIES   ptTrackCells uses { imClusterSeg 
+% DEPENDENCIES   ptTrackCells uses { imClusterSeg
 %				     ptTrackLinker
 %				     ptCheckMinimalCelptTrackCellslDistance
 %				     ptFindNuclei
@@ -118,8 +118,8 @@ emptyM               = zeros (1,4);      % All zeros M matrix entry
 emptyCell            = zeros (1,3);
 emptyCluster         = zeros (1,5);
 emptyFrame           = zeros (1,5);
-clustSize            = str2num(get(handles.GUI_st_txtNumberKclustere,'String'));
-clustBinSize         = 1/str2num(get(handles.GUI_st_txtBinSize_txNew,'String')); %1/binSize, because the image must be binSize smaller
+clustSize            = 3;
+clustBinSize         = 2;
 
 % Created info directory if needed
 if saveIntResults
@@ -167,34 +167,26 @@ else		% lastImaNum > firstImaNum
       end
       cd (imageDirectory);
 
-      % Get the filename of the image with number jImageNum %JvR: do you
-      % mean imageCount instead of jImageNum?
+      % Get the filename of the image with number jImageNum
       imageFilename = char(imageNameList(imageCount));
       
       % Get the information on the image
       imageInfo = imfinfo (imageFilename, 'tif');
-               
+      
       % Read the current image and normalize the intensity values to [0..1]
       tempImage = imreadnd2 (imageFilename, 0, intensityMax);
-       
-      %JvR; Binning if necessary
-      if clustBinSize<1
-        tempImage = imresize(tempImage, clustBinSize, 'bicubic');
-      end
-      
+   
       % Check the variance of the whole image. If it's a very small value
-      % (< 0.005 %JvR: Johan changed in to <0.001 because in our images we get small variance as well) 
-      %it will be a bad frame (lots of black pixels when the
+      % (< 0.005) it will be a bad frame (lots of black pixels when the
       % shutter was completely closed)
-      varImage = max(var(tempImage)); 
+      varImage = max(var(tempImage));
       
-      if varImage >0.0001    % 0.001
+      if varImage > 0.001
+
           % Process the image: subtract background, increase contrast between halos and nuclei
           [newImage, backgroundLevel, edgeImage] = ptGetProcessedImage (tempImage, intensityMax, ...
                                                                         bgKernel, edgeKernel);
-            
-          tempImage=[]; %JvR Delete tempImage, this matrix will not be used anymore
-               
+
           % Calculate the size of the image
           [imgHeight, imgWidth] = size (newImage);
 
@@ -202,98 +194,98 @@ else		% lastImaNum > firstImaNum
           nucleiArea = 1;
           equality = 0.1;
           escapeCount = 0; maxCount = 3;
-         %%%% while ((nucleiArea > 0.5) || (haloArea > 0.5) || (equality < 0.8)) && (escapeCount < maxCount) 
-                
+          while ((nucleiArea > 0.5) || (haloArea > 0.5) || (equality < 0.8)) && (escapeCount < maxCount) 
+
+             % Calculate the variation for mu0 in case we segment more than once
+             % The second time start with the initial mu0
+             % NB Johan has added the badFrameCounter as a check, because
+             % after a bad frame segmentation of the next never worked, so
+             % I wanted to start fresh!!
+             if (escapeCount == 0) & (loopCount == 1) & (badFrameCounter == 0);
+                imageMinimum = min (min (newImage));
+                nucleusLevel = imageMinimum + abs(0.1 * imageMinimum);
+                BetwNucAndBackgr = (backgroundLevel + imageMinimum)/2;
+                imageMaximum = max (max (newImage));
+                haloLevel = imageMaximum - abs(0.1 * imageMaximum);
+                BetwHaloAndBackgr = (backgroundLevel + imageMaximum)/2;
+                mu0 = [nucleusLevel ; BetwNucAndBackgr ; backgroundLevel ; BetwHaloAndBackgr ; haloLevel];
+                %my stuffs starts here
+             elseif (escapeCount == 0) & (loopCount > 1) & (badFrameCounter > 0);
+                imageMinimum = min (min (newImage));
+                nucleusLevel = imageMinimum + abs(0.1 * imageMinimum);
+                BetwNucAndBackgr = (backgroundLevel + imageMinimum)/2;
+                imageMaximum = max (max (newImage));
+                haloLevel = imageMaximum - abs(0.1 * imageMaximum);
+                BetwHaloAndBackgr = (backgroundLevel + imageMaximum)/2;
+                mu0 = [nucleusLevel ; backgroundLevel ; haloLevel];
+                mu0 = [nucleusLevel ; BetwNucAndBackgr ; backgroundLevel ; BetwHaloAndBackgr ; haloLevel];
+                %end ends here, to delete: take out the badFrameCounters
+                %here!
+             elseif (escapeCount == 0) & (loopCount > 1) & (badFrameCounter == 0);
+                mu0 = mu0Calc;
+             else
+                fprintf (1, '       ptTrackCells: Bad segmentation: adjusting mu0 parameter: %d %d %d\n', mu0(1), mu0(2), mu0(3), mu0(4), mu0(5));
+                mu0 = mu0 + [0.03; 0.02 ; -0.01 ; -0.02 ; -0.03];
+             end
+
              % Segment the image (again)
-             % JvR:
-             % First we would like to divide the image in cell and
-             % background. Then the dust and noise pixels the background as well
-             % as for the cells must be deleted which is done by the bwareaopen function is used.
-              
+             
              % first substract background from image:
-             % calculate background:
+             %calculate background:
              edgeImageOpened = imerode (edgeImage, strel ('disk', 1));
              edgeImageClosed = imfill (edgeImageOpened, 'holes');
              edgeImageSeg = imerode (edgeImageClosed, strel ('disk', 5));
              edgeImageSeg = bwareaopen (edgeImageSeg, minSizeNuc);
              
-             
-             %JvR code: should work but the minSizeNuc is not a good
-             %criterea
-             %edgeImage=imerode(edgeImage,strel('disk',1));
-             %edgeImageSeg=(edgeImage-1).^2; %reverse the 0 and 1 in the matrix
-             %edgeImageSeg = bwareaopen (edgeImageSeg, round(((minSizeNuc)^2)*3.14)); %Delete small dust from the cells
-             %edgeImageSeg=(edgeImageSeg-1).^2; %reverse the 0 and 1 in the matrix
-             %edgeImageSeg = bwareaopen (edgeImageSeg, round(((minSizeNuc)^2)*3.14)); %Delete small dust from background 
-             
-             H = fspecial('disk',2);
-             BlurImage = imfilter(newImage,H,'replicate');
-
-             % noBlurImagew determine the input vector for segmentation:
-             segVec = BlurImage(find(edgeImageSeg)); 
-             newImage=[]; 
+             % now determine the input vector for segmentation:
+             segVec = newImage(find(edgeImageSeg));
              % and do the segmentation on just this vector!!
-             % JvR: the number of segmentations is now the variable
-             % clustersize which is set by a slider of the Number of
-             % K-clusters
-             % JvR; Ive added the binning option, which is set by the
-             % Binning slider
-             [segmentedVec, dummy, mu0Calc] = ptImClusterSeg (segVec, 0, 'k_cluster', clustSize);
-             if isempty(segmentedVec) % if the segmentation did not work then go out of the loop and make the frame invalid
-               varImage=1;
+             [segmentedVec, dummy, mu0Calc] = ptImClusterSeg (segVec, 0, 'method', 'kmeans', 'k_cluster', 5, 'mu0', mu0);
+             segmentedImage = zeros(size(edgeImageSeg));
+             segmentedImage(find(edgeImageSeg)) = segmentedVec;
+             segmentedImage(find(edgeImageSeg == 0)) = 3;
+                         
+             % we may need a little check here, to make sure that we are
+             % not finding bulshit further down the line, because this
+             % resulted in black dots at the wrong spots.
+             % therefore we quickly determine the nuclei it finds in the
+             % segmented image:
+             [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc);
+             
+             % now we compare this frame to the previous (if there was one)
+             if mCount > 0
+                 testImage = imgNuclei - previmgNuclei;
+                 % if they are equal, than the difference between the two
+                 % should be quite small, so many zeros in the resulting
+                 % matrix.
+                 equality = length(find(testImage == 0))/numel(segmentedImage);
+                 % I think it should be over 80% equal..this stringency can
+                 % be increased later!
              else
-                 segmentedImage = zeros(size(edgeImageSeg)); 
-                 segmentedImage(find(edgeImageSeg)) = segmentedVec;
-                 DumbackgroundNumber=ceil((clustSize/2)+0.5);
-                 segmentedImage(find(edgeImageSeg == 0)) = DumbackgroundNumber;
-                 edgeImageSeg=[]; % JvR; Delete the image out of the memory   
-                 segVec=[]; % JvR; Delete the array out of the memory 
-                 segmentedVec=[]; % JvR; Delete the array out of the memory
+                 equality = 1;
+             end
+             % and store for comparison with the next frame:
+             previmgNuclei = imgNuclei;
+            
+             % The number of pixels in the nuclei should be relatively small compared to all the pixels in the image.
+             % If large, something went wrong and we'll have to do the clustering again. Build in some sort
+             % of mechanism that we don't hang in here forever.
+             bwNuclei = zeros (size (segmentedImage));
+             bwNuclei (find (segmentedImage == 1)) = 1;
+             nucleiArea = bwarea (bwNuclei) / (size (segmentedImage, 1) * size (segmentedImage, 2));
+             % Do the same for the halos since the total area shouldn't be to big as well
+             bwHalo = zeros (size (segmentedImage));
+             bwHalo (find (segmentedImage == 5)) = 1;
+             haloArea = bwarea (bwHalo) / (size (segmentedImage, 1) * size (segmentedImage, 2));
 
-                 % we may need a little check here, to make sure that we are
-                 % not finding bulshit further down the line, because this
-                 % resulted in black dots at the wrong spots.
-                 % therefore we quickly determine the nuclei it finds in the
-                 % segmented image: 
-                 [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc); 
-
-                 % now we compare this frame to the previous (if there was one)
-                 if mCount > 0
-                     testImage = imgNuclei - previmgNuclei;
-                     % if they are equal, than the difference between the two
-                     % should be quite small, so many zeros in the resulting
-                     % matrix.
-                     equality = length(find(testImage == 0))/numel(segmentedImage);
-                     % I think it should be over 80% equal..this stringency can
-                     % be increased later!
-                 else
-                     equality = 1;
-                 end
-                 % and store for comparison with the next frame:
-                 testImage=[]; %JvR: Delete testImage out of memory
-                 previmgNuclei=[]; %JvR: Delete testImage out of memory
-
-                 % The number of pixels in the nuclei should be relatively small compared to all the pixels in the image.
-                 % If large, something went wrong and we'll have to do the clustering again. Build in some sort
-                 % of mechanism that we don't hang in here forever.
-                 bwNuclei = zeros (size (segmentedImage));
-                 bwNuclei (find (segmentedImage == 1)) = 1;
-                 nucleiArea = bwarea (bwNuclei) / (size (segmentedImage, 1) * size (segmentedImage, 2));
-                 bwNuclei=[]; %jvR: Delete bwNuclei matrix out of memory
-                 % Do the same for the halos since the total area shouldn't be to big as well
-                 bwHalo = zeros (size (segmentedImage));
-                 bwHalo (find (segmentedImage == clustSize )) = 1; %standart clusterSize=5
-                 haloArea = bwarea (bwHalo) / (size (segmentedImage, 1) * size (segmentedImage, 2));
-                 bwHalo=[]; %jvR: Delete bwNuclei matrix out of memory
-
-                 % Increase the counter so that we eventually come out of the loop
-                 escapeCount = escapeCount + 1;
-             %%%% end   % while              
-             end           
+             % Increase the counter so that we eventually come out of the loop
+             escapeCount = escapeCount + 1;
+          end   % while              
+          
       end  % if varImage > 0.001
        
       % In case we found a bad frame, mark it in the valid frame array
-      if varImage <= 0.0001 | escapeCount >= maxCount
+      if varImage <= 0.001 | escapeCount >= maxCount
          fprintf (1, '       ptTrackCells: Bad frame %d: continue with next.\n', imageCount);
          
          % Increase bad frame counter
@@ -376,7 +368,7 @@ else		% lastImaNum > firstImaNum
           end
 
           % Find all the halo coordinates
-          [haloCoord, wouldBeNucCoord, imgHalo] = ptFindHalos (segmentedImage, minSizeNuc, maxSizeNuc,clustSize);
+          [haloCoord, wouldBeNucCoord, imgHalo] = ptFindHalos (segmentedImage, minSizeNuc, maxSizeNuc);
 
           % Make sure the minimum cell to cell distance is valid
           newCoord = ptCheckMinimalCellDistance (nucCoord, wouldBeNucCoord, minDistCellToCell);
@@ -390,8 +382,7 @@ else		% lastImaNum > firstImaNum
           % that have no coordinates in them: if these are big enough we label them as cells
           [avgCoord, clusterImage, labeledCellImage] = ptFindCoordFromClusters (edgeImage, newCoord, ...
                                                                                 minSizeNuc, edgeKernel);
-          
-          edgeImage=[]; %JvR: Delete edgeImage out of memory
+
           % If we found any new cells add them to the already found ones
           if ~isempty (avgCoord)
              newAvgCoord = cat (1, newCoord, avgCoord);
@@ -411,11 +402,8 @@ else		% lastImaNum > firstImaNum
           if mCount > 1
 
              % Match the current coordinates with the ones found in the previous frame
-             if isempty(newCoord) %JvR if newCoord is empty, it should have a dimention of 2!!
-               newCoord=[0 0]; 
-             end
              matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
-             
+
              % Use template matching to find cells that where not found in the BMTNN match
              if ~isempty(matchedCells)
                  unmatchedCells = find (matchedCells (:,3) == 0 & matchedCells (:,4) == 0);
@@ -441,6 +429,100 @@ else		% lastImaNum > firstImaNum
                  end   
              end
              
+% AK: commented the following code to test how algoritm performs without
+% template matching:
+%
+%              if ~isempty (unmatchedCells)
+%                 couldNotMatch = [];
+%                 for jCount =  1 : size (unmatchedCells, 1)
+%                    unmatchedCellCoord = unmatchedCellsCoord(jCount,:);
+%                    % Check whether the lost cell was near the edge of the image (specified by minEdge)
+%                    % in this case we assume it wandered out of sight and we don't try to template match it
+%                    if abs (unmatchedCellCoord(1,1)) > minEdge & abs (unmatchedCellCoord(1,1) - imgHeight) > minEdge & ...
+%                       abs (unmatchedCellCoord(1,2)) > minEdge & abs (unmatchedCellCoord(1,2) - imgWidth) > minEdge
+% 
+%                       % Do the template matching
+%                       [templateCellCoord, correlation] = ptFindCellsByTemplate (unmatchedCellCoord, previousImage, ...
+%                                                                                 newImage, backgroundLevel,percentBackground, ...
+%                                                                                 sizeTemplate, boxSizeImage);
+% 
+%                       % Make sure that we only accept cells with a minimum correlation
+%                       if correlation > minimalQualityCorr
+% 
+%                          % Check that the newly found cell is far enough away from
+%                          % other cells. If it is not, disregard it.
+%                          if (min(sqrt ((newCoord(:,1) - templateCellCoord(1,1)).^2 + ...
+%                                        (newCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell
+% 
+%                             % Update the newCoord array (since we found a new cell after all)
+%                             newCoord (end+1,1) = templateCellCoord (1,1);
+%                             newCoord (end,2) = templateCellCoord (1,2);
+%                          end
+%                       else
+%                          % We didn't find a template match which means we lost the
+%                          % cell: add it to the lost cell list. We might find it again later
+%                          % so that we can close the gap in the track
+%                          % The current M entry is different from the current frame nr: recalculate
+%                          %currentMEntry = ceil ((imageCount - startFrame) / increment);
+%                          currentMEntry = mCount-1;
+%                          if isempty (lostCells)
+%                             lostCells = [unmatchedCellCoord, currentMEntry];
+%                          else
+%                             lostCells = cat (1, lostCells, [unmatchedCellCoord, currentMEntry]);
+%                          end
+%                       end   % if correlation
+%                    end   % if abs (
+%                 end   % for jCount
+%              end   % if ~isempty (unmatchedCells)
+% 
+%              % Ofcourse we can do this the other way around as well: find old cells by template
+%              unmatchedNewCells = find (matchedCells (:,1) == 0 & matchedCells (:,2) == 0);
+%              unmatchedNewCellsCoord = matchedCells (unmatchedNewCells,3:4);
+% 
+%              % Initialize the matrix for previous coordinates that we find,
+%              % these will be added to M later on
+%              foundPrevCells (1,:) = [0 0 0 0]; 
+% 
+%              % Start the template matching process if needed
+%              if ~isempty (unmatchedNewCells)
+%                 couldNotMatch = []; 
+%                 for jCount =  1 : size (unmatchedNewCells, 1)
+%                    unmatchedNewCellCoord = unmatchedNewCellsCoord(jCount,:);
+%                    [templateCellCoord, correlation] = ptFindCellsByTemplate (unmatchedNewCellCoord, newImage, ...
+%                                                                              previousImage, backgroundLevel, ...
+%                                                                              percentBackground, sizeTemplate, ...
+%                                                                              boxSizeImage);
+% 
+%                    % Make sure that we only accept cells with a minimum correlation
+%                    if correlation > minimalQualityCorr
+%                       if (min(sqrt ((previousCoord(:,1) - templateCellCoord(1,1)).^2 + ...
+%                                     (previousCoord(:,2) - templateCellCoord(1,2)).^2))) > minDistCellToCell   
+% 
+%                          % Add these coordinates to the previously found ones
+%                          previousCoord (end+1,1) = templateCellCoord (1,1);
+%                          previousCoord (end,2) = templateCellCoord (1,2);
+% 
+%                          % Store these as well so that we can modify previous
+%                          % M-entries later on
+%                          foundPrevCells (end+1,:) = [0 0 templateCellCoord(1,1) templateCellCoord(1,2)];
+%                       end
+%                    end   % if correlation
+%                 end   % for jCount
+%              end   % if ~isempty (unmatchedCells)
+% 
+%              % Make sure the cells in newCoord and previousCoord are far enough
+%              % away from each other
+%              newCoord = ptCheckMinimalCellDistance (newCoord, [], minDistCellToCell);
+%              previousCoord = ptCheckMinimalCellDistance (previousCoord, [], minDistCellToCell);
+% 
+%              % Store the nuclei coords incl template ones as intermediate result
+%              if saveIntResults
+%                  save([saveDirectory filesep 'info' filesep 'nucleiCoord_pass4_' num2str(imageCount) '.mat'],'newCoord');
+%              end
+%              
+%              % Now that we have new newCoord and new PreviousCoord coordinates, we can do a renewed match
+%              matchedCells = ptTracker (previousCoord, newCoord, maxSearch, maxSearch);
+% 
              % Add a number of zero rows to the matchedCells matrix to make
              % space for the coordinates that we later will calculate to close
              % tracks and to add any previous coords we found
@@ -510,12 +592,12 @@ else		% lastImaNum > firstImaNum
           % Calculate single cell and cluster properties and generate binary and labeled images
           [cellProp, clusterProp, frameProp] = ptCalculateCellAreaUsingVariance (labeledCellImage, newCoord, ...
                                                                    distanceToCellArea, minSizeNuc, edgeKernel);
-          labeledCellImage=[]; % JvR: Delete matrix out of memory
+
           % Accumulate the cell properties
           cellProps (1 : size (emptyCell, 1), 1 : size (emptyCell, 2), imageCount) = emptyCell;
           cellProps (1 : size (cellProp, 1), 1 : size (cellProp, 2), imageCount) = cellProp;
-   
-           % Accumulate the cluster properties
+
+          % Accumulate the cluster properties
           clusterProps (1 : size (emptyCluster, 1), 1 : size (emptyCluster, 2), imageCount) = emptyCluster;
           clusterProps (1 : size (clusterProp, 1), 1 : size (clusterProp, 2), imageCount) = clusterProp;
 
@@ -551,7 +633,7 @@ else		% lastImaNum > firstImaNum
              infoDir = [saveDirectory filesep 'info'];
              if ~exist (infoDir)
                 mkdir (saveDirectory, 'info');
-             end 
+             end
              cd (infoDir);
 
              % Create numerical index to number the files
@@ -573,7 +655,12 @@ else		% lastImaNum > firstImaNum
                  % Do some processing on the segmented image first
                  if exist ('segmentedImage', 'var')
                     %save (segmentFile, 'segmentedImage');
-                    procSegmImage = segmentedImage/clustSize ;
+                    procSegmImage = zeros (size (segmentedImage));
+                    procSegmImage (find (segmentedImage == 1)) = 0.2; 
+                    procSegmImage (find (segmentedImage == 2)) = 0.4;
+                    procSegmImage (find (segmentedImage == 3)) = 0.6; 
+                    procSegmImage (find (segmentedImage == 4)) = 0.8;
+                    procSegmImage (find (segmentedImage == 5)) = 1;
                     imwrite (procSegmImage, [saveDirectory filesep 'body' filesep segmentFile '.tif']);
                  end
 
@@ -596,7 +683,7 @@ else		% lastImaNum > firstImaNum
 
           % Save the previous coordinates and image for the next run through the loop
           previousCoord = newCoord;
-          previmgNuclei= imgNuclei;
+          previousImage = newImage;
           
       end  % if varImage <= 0.001 | escapeCount >= maxCount
    end   % for imageCount
@@ -606,6 +693,7 @@ end % if ~(lastImaNum > firstImaNum)
 tempValidFrames = validFrames (:, find (validFrames(1,:) ~= 0));
 validFrames = tempValidFrames;
                                                   
+% Generate the MPM matrix as well so that it can be used from disk if needed
 MPM = ptTrackLinker (M);
 
 save ('MPMBeforeProcessing.mat', 'MPM');
@@ -620,7 +708,7 @@ clusterDirectory = [saveDirectory filesep 'info'];
                                                                     startFrame, endFrame, increment, validFrames);
 
 % Go to the save directory
-cd (saveDirectory); 
+cd (saveDirectory);
 
 % Save M matrix 
 if exist ('M', 'var')
@@ -629,8 +717,7 @@ end
 
 % Save MPM matrix
 if exist ('MPM', 'var')
-   MPM=MPM./clustBinSize; %JvR and Johan: to resize according to binning
-    save ('MPM.mat', 'MPM');
+   save ('MPM.mat', 'MPM');
 end
 
 % Save cell properties

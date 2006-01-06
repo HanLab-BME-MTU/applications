@@ -43,7 +43,6 @@ function [cellProps, clusterProps, frameProps] = ptCalculateCellAreaWithMPM (MPM
 %                                       calculates cell and cluster properties based on MPM
 % Andre Kerstens        Jul 04          Added frame properties matrix to the output
 
-
 % Let the user know we're starting to calculate cell and cluster props
 fprintf (1, '\n     ptCalculateCellAreaWithMPM.m: Generating cell and cluster properties...\n');
 fprintf (1, '     Processing frame: ');
@@ -99,7 +98,6 @@ for frameCount = validFrames(1,:)
    % Prepare a matrix for the grouping of coordinates to objects
    clusterNr = zeros (length (coord), 1);
 
-   try %JvR: error during experiment
    % Determine to which group each set of coordinates belongs
    for iCount = 1 : length (coord)          % process all rows in tempCoord
 
@@ -231,8 +229,6 @@ for frameCount = validFrames(1,:)
 %       Solidity(jCount) = area(jCount) / convexArea(jCount);
 %    end
 
-
-
    % Calculate average ratios for the frame
    avgSolidity = sum(Solidity) / length(Solidity);
    avgArea = sum(area) / length(area);
@@ -278,8 +274,7 @@ for frameCount = validFrames(1,:)
    clear cluster; clear clusterArea; clear clusterPerimeter; clear clusterInv;
    clear clusterInvLabel; clear clusterPerimeterElements;
    clear clusterProp; clear cellProp; clear frameProp;
-catch
-end
+
 end  %  for frameCount = startFrame : increment : endFrame
 
 % Let the user know we've finished

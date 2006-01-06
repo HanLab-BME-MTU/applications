@@ -95,8 +95,8 @@ if radioButtons.areaplot_2
     
         % Save the figures in fig, eps and tif format     
         hgsave(h_fig,[SaveDir filesep [plotName '_averageCellAndClusterArea.fig']]);
-        % print(h_fig, [SaveDir filesep [plotName '_averageCellAndClusterArea.eps']],'-depsc2','-tiff');
-        % print(h_fig, [SaveDir filesep [plotName '_averageCellAndClusterArea.tif']],'-dtiff');
+        print(h_fig, [SaveDir filesep [plotName '_averageCellAndClusterArea.eps']],'-depsc2','-tiff');
+        print(h_fig, [SaveDir filesep [plotName '_averageCellAndClusterArea.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplots
 end
 
@@ -147,8 +147,8 @@ if radioButtons.areaplot_1
 
             % Save the figures in fig, eps and tif format     
             hgsave(h_fig2,[SaveDir filesep [plotName '_areaAllCells.fig']]);
-            % print(h_fig2, [SaveDir filesep [plotName '_areaAllCells.eps']],'-depsc2','-tiff');
-            % print(h_fig2, [SaveDir filesep [plotName '_areaAllCells.tif']],'-dtiff');
+            print(h_fig2, [SaveDir filesep [plotName '_areaAllCells.eps']],'-depsc2','-tiff');
+            print(h_fig2, [SaveDir filesep [plotName '_areaAllCells.tif']],'-dtiff');
         end
     end  % if ~radioButtons.donotshowplotsend
 end
@@ -198,8 +198,8 @@ if radioButtons.areaplot_3
     
         % Save the figures in fig, eps and tif format     
         hgsave(h_fig3,[SaveDir filesep [plotName '_averageAreaAndRatio.fig']]);
-        % print(h_fig3, [SaveDir filesep [plotName '_averageAreaAndRatio.eps']],'-depsc2','-tiff');
-        % print(h_fig3, [SaveDir filesep [plotName '_averageAreaAndRatio.tif']],'-dtiff');
+        print(h_fig3, [SaveDir filesep [plotName '_averageAreaAndRatio.eps']],'-depsc2','-tiff');
+        print(h_fig3, [SaveDir filesep [plotName '_averageAreaAndRatio.tif']],'-dtiff');
     end  % if ~radioButtons.donotshowplots
     
     % Save CSV files
