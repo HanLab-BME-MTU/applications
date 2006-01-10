@@ -1,8 +1,8 @@
-function [fitResults,errFlag] = armaFitKalman(trajectories,modelParamOrder,...
+function [fitResults,errFlag] = armaFitKalman(trajectories,modelParamOrOrder,...
     minOpt)
 %ARMAFITKALMAN fits a number of ARMA models (i.e. determines their coefficients and white noise variance) to a time series which could have missing data points.
 %
-%SYNOPSIS [fitResults,errFlag] = armaFitKalman(trajectories,modelParamOrder,...
+%SYNOPSIS [fitResults,errFlag] = armaFitKalman(trajectories,modelParamOrOrder,...
 %    minOpt)
 %
 %INPUT  trajectories   : Observations of time series to be fitted. Either an 
@@ -10,7 +10,7 @@ function [fitResults,errFlag] = armaFitKalman(trajectories,modelParamOrder,...
 %                        2D array representing one single trajectory. 
 %               .observations: 2D array of measurements and their uncertainties.
 %                        Missing points should be indicated with NaN.
-%       modelParamOrder: Either
+%       modelParamOrOrder: Either
 %                        (1)2x2 matrix indicating range of orders of models to fit:
 %                           [lowest AR order   highest AR order
 %                            lowest MA order   highest MA order]
@@ -86,7 +86,7 @@ elseif ~isfield(trajectories,'observations')
 end
 
 %check models to be tested
-if nargin < 2 || isempty(modelParamOrder) %if no models to fit were input
+if nargin < 2 || isempty(modelParamOrOrder) %if no models to fit were input
 
     %randomly generate initial parameter guesses for AR and MA orders from 0:5
     for i=0:5
@@ -98,10 +98,10 @@ if nargin < 2 || isempty(modelParamOrder) %if no models to fit were input
 
 else %if models or model order were supplied
 
-    if isstruct(modelParamOrder) %if initial guesses were input
+    if isstruct(modelParamOrOrder) %if initial guesses were input
 
         %assign model parameters
-        modelParam = modelParamOrder;
+        modelParam = modelParamOrOrder;
         
         %indicate that initial guess was supplied
         suppliedIG = 1;
@@ -112,16 +112,16 @@ else %if models or model order were supplied
         suppliedIG = 0;
         
         %check size of matrix
-        [nRow,nCol] = size(modelParamOrder);
+        [nRow,nCol] = size(modelParamOrOrder);
         if nRow ~= 2 || nCol ~= 2
             disp('--armaFitKalman: Matrix indicating range of AR and MA order should be a 2x2 matrix!');
             errFlag = 1;
         else
             %generate random initial parameter guesses for the order range specified
-            for i=modelParamOrder(1,1):modelParamOrder(1,2)
-                for j=modelParamOrder(2,1):modelParamOrder(2,2)
-                    i1 = i - modelParamOrder(1,1) + 1;
-                    j1 = j - modelParamOrder(2,1) + 1;
+            for i=modelParamOrOrder(1,1):modelParamOrOrder(1,2)
+                for j=modelParamOrOrder(2,1):modelParamOrOrder(2,2)
+                    i1 = i - modelParamOrOrder(1,1) + 1;
+                    j1 = j - modelParamOrOrder(2,1) + 1;
                     for k=1:3
                         modelParam(i1,j1,k).arParamP0 = 4*rand(1,i) - 2;
                         modelParam(i1,j1,k).maParamP0 = 4*rand(1,j) - 2;
@@ -132,7 +132,7 @@ else %if models or model order were supplied
 
     end
 
-end %(if nargin < 2 || isempty(modelParamOrder))
+end %(if nargin < 2 || isempty(modelParamOrOrder))
 
 %check minimization option
 if nargin < 3 || isempty(minOpt) %if minimization option was not input
@@ -160,7 +160,7 @@ end
 for i=1:size(modelParam,1)
     for j=1:size(modelParam,2)
 
-        if minOpt == 'tg' | suppliedIG %if global minimization of if initial guess was supplied
+        if minOpt == 'tg' | suppliedIG %if global minimization or if initial guess was supplied
 
             %assign model data
             arParamP0 = modelParam(i,j,1).arParamP0;

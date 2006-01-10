@@ -119,7 +119,7 @@ for i = 1:length(trajectories)
 
     %get the innovations, their variances and the estimated white noise series
     %using Kalman prediction and filtering
-    [innovation,innovationVar,wnVector(i).observations,errFlag] = ...
+    [innovation,innovationVar,wnVector(i).observations,dummy1,dummy2,errFlag] = ...
         armaKalmanInnov(trajectories(i).observations,arParam,maParam);
     if errFlag
         disp('--selectCritKalman: "armaKalmanInnov" did not function properly!');

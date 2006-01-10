@@ -124,7 +124,7 @@ end
 
 %get number of trajectories and add column for observational error if not input
 trajOriginal = trajectories;
-for i=1:length(trajectories);
+for i=1:length(trajectories)
     traj = trajectories(i).observations;
     [trajLength,nCol] = size(traj);
     if nCol ~= 2
@@ -240,11 +240,11 @@ if arOrder + maOrder ~= 0
             try
 
                 %minimize -2ln(likelihood) using fmincon
-                %             [params,fval,exitFlag] = fmincon(@neg2LnLikelihood,param0,[],...
-                %                 [],[],[],-10*ones(1,arOrder+maOrder),10*ones(1,...
-                %                 arOrder+maOrder),[],options,prob);
-                [params,fval,exitFlag] = fminunc(@neg2LnLikelihood,param0,...
-                    options,prob);
+                [params,fval,exitFlag] = fmincon(@neg2LnLikelihood,param0,[],...
+                    [],[],[],-10*ones(1,arOrder+maOrder),10*ones(1,...
+                    arOrder+maOrder),[],options,prob);
+%                 [params,fval,exitFlag] = fminunc(@neg2LnLikelihood,param0,...
+%                     options,prob);
 
             catch
 
@@ -433,7 +433,7 @@ if proceed
 
         %get the innovations, their variances and the estimated white noise series
         %using Kalman prediction and filtering
-        [innovation,innovationVar,wnVector(i).observations,errFlag] = ...
+        [innovation,innovationVar,wnVector(i).observations,dummy1,dummy2,errFlag] = ...
             armaKalmanInnov(trajectories(i).observations,arParamK,maParamK);
         if errFlag
             disp('--armaCoefKalman: "armaKalmanInnov" did not function properly!');

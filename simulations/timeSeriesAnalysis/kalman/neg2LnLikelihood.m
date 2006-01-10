@@ -87,7 +87,7 @@ for i = 1:length(trajectories)
 
     %get the innovations, their variances and process white noise
     %using Kalman prediction and filtering
-    [innovation,innovationVar,wnVector,errFlag] = ...
+    [innovation,innovationVar,wnVector,dummy1,dummy2,errFlag] = ...
         armaKalmanInnov(trajectories(i).observations,arParam,maParam);
 
     %1st sum in Eq. 3.15

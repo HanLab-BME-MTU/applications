@@ -1,8 +1,8 @@
-function [innovation,innovationVar,wnVector,errFlag] = ...
+function [innovation,innovationVar,wnVector,stateVec,stateCov,errFlag] = ...
     armaKalmanInnov(traj,arParam,maParam);
 %ARMAKALMANINNOV finds the innovations (and their variances) resulting from fitting an ARMA(p,q) model to a time series which could have missing data points using Kalman prediction and filtering.
 %
-%SYNOPSIS [innovation,innovationVar,wnVector,errFlag] = ...
+%SYNOPSIS [innovation,innovationVar,wnVector,stateVec,stateCov,errFlag] = ...
 %    armaKalmanInnov(traj,arParam,maParam);
 %
 %INPUT  traj       : Trajectory to be modeled (with measurement uncertainties).
@@ -13,6 +13,8 @@ function [innovation,innovationVar,wnVector,errFlag] = ...
 %OUTPUT innovation   : Vector of differences between predicted and observed data, or innovations.
 %       innovationVar: Vector of innovation variances.
 %       wnVector     : Estimated white noise in the process.
+%       stateVec     : Predicted state vector at missing time points.
+%       stateCov     : Predicted covariance matrix at missing time points.
 %       errFlag      : 0 if function executes normally, 1 otherwise.
 %
 %REMARKS The algorithm implemented here is that presented in R. H. Jones,
@@ -32,6 +34,8 @@ function [innovation,innovationVar,wnVector,errFlag] = ...
 innovaton = [];
 innovationVar = [];
 wnVector = [];
+stateVec = [];
+stateCov = [];
 errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -45,8 +49,9 @@ if nargin < nargin('armaKalmanInnov')
     return
 end
 
-%find trajectory length, arOrder and maOrder
+%find trajectory length, number of missing observations, AR order and MA order
 trajLength = size(traj,1);
+numMissing = length(find(isnan(traj(:,1))));
 arOrder = length(arParam);
 maOrder = length(maParam);
 
@@ -84,10 +89,15 @@ stateVecT_T = zeros(maxOrder,1); %Z(0|0)
 [stateCovMatT_T,errFlag] = covKalmanInit(arParam,maParam,procErrCov,...
     arOrder,maOrder,maxOrder); %P(0|0)
 
-%initialize innovations vector, its covariance matrix and white noise vector
+%initialize outpu variables
 innovation = NaN*ones(trajLength,1);
 innovationVar = NaN*ones(trajLength,1);
 wnVector = NaN*ones(trajLength,1);
+stateVec = NaN*ones(maxOrder,numMissing);
+stateCov = NaN*ones(maxOrder,maxOrder,numMissing);
+
+%initialize index keeping track of missing observations
+indxMiss = 0;
 
 %go over all points in trajectory
 for timePoint = 1:trajLength
@@ -108,6 +118,11 @@ for timePoint = 1:trajLength
         %from previous timepoint since there is no observation
         stateVecT_T = stateVecT1_T; %Z(t+1|t+1), Eq. 5.1
         stateCovMatT_T = stateCovMatT1_T; %P(t+1|t+1), Eq. 5.2
+        
+        %store values of forward-predicted state vector and its covariance matrix 
+        indxMiss = indxMiss + 1;
+        stateVec(:,indxMiss) = stateVecT_T;
+        stateCov(:,:,indxMiss) = stateCovMatT_T;
         
     else %if there is an observation
         
