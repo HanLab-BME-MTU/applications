@@ -31,7 +31,7 @@ if nargin == 0  % LAUNCH GUI
     guidata(fig, handles);
     
     %initialize colormap
-    cMap=hsv(64); %minimal length of cMap: 2*maxColor
+    cMap=hsv(128); %minimal length of cMap: 2*maxColor
     try
         SetUserData(fig,cMap,0);
     catch
@@ -375,14 +375,14 @@ if ~isempty(idlist(timepoint).linklist)
                 labelColor(1,:)=cMap(cList*cMapFact,:);
                 set(pH,'MarkerEdgeColor',labelColor);
                 type=char(idlist(1).stats.labelcolor(log2(cList)+1));
-                 disp(sprintf('%f %f %f',labelColor))
+                 
             else
                 %plot all spots making up this one
                 for j=length(cList):-1:1
                     pH=plot(coord(1),coord(2),'o','MarkerSize',4+4*(j-1));
                     labelColor(j,:)=cMap(cList(j)*cMapFact,:);
                     set(pH,'MarkerEdgeColor',labelColor(j,:));
-                    disp(sprintf('%f %f %f',labelColor(j,:)))
+                  
                 end
                 labelColor=mean(labelColor,1);
                 type='fus';
@@ -398,7 +398,6 @@ if ~isempty(idlist(timepoint).linklist)
         end;
     end;  
 end;
-1
 
 %and hide the figure again
 set(imgFigureH,'HandleVisibility','callback');
