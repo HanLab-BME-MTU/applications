@@ -129,8 +129,10 @@ if recover
     else
         slist(recoverTime).noise = [];
     end
-    slist(1).nSpots(recoverTime) = recoverSlist.nSpots;
+    slist(1).nspots(recoverTime) = recoverSlist.nspots;
     slist(1).CoMList(recoverTime,:) = recoverSlist.CoM;
+    % make recoverTime a goodTime, otherwise nothing will happen!
+    slist(1).goodTime(recoverTime) = 1;
 end
 
 % remove field trackerMessage if necessary
@@ -218,10 +220,14 @@ switch firstT == t1
         %linkup (linkdown is already correct)
         idlistNew(t2).linklist(:,6) = col2;
         
-        %overwrite idlist, but keep old stats
+        %overwrite idlist, but keep some old stats
         stats = idlist(1).stats;
         idlist = idlistNew;
-        idlist(1).stats = stats;
+        % keep labelcolor (1:numOldTags) - done below
+        % keep original status, created
+        idlist(1).stats.created = stats.created;
+        idlist(1).stats.status  = stats.status;
+    
 end
     
 %adjust centroid of timeStart

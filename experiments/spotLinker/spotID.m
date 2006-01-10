@@ -79,7 +79,8 @@ elseif nargin==2|nargin==3|nargin==4
     if isfield(opt,'checkIntensity')
         findGoodTime=opt.checkIntensity;
     else
-        findGoodTime=1;
+        % default: 0
+        findGoodTime=0;
     end
 
 elseif nargin==1
@@ -210,9 +211,9 @@ t1=tStart; %number of first of two frames to compare
 nspotsPure(t1)=size(id(t1).linklist,1);
 try
     for t2=tStart+1:size(spots,2) %number of second of two frames to compare
-        %%%%%%%%%---No mapping if nothing detected at all/if detector did not like the result/if there are more than MAXSPOT-1 spots/if intensity is ok
-        %change here to add flags
-        if ~isempty(spots(t2).amp)&(spots(t2).amp~=0)&(nspots(t2)<MAXSPOTS)&goodTime(t2)
+        %%%%%%%%%---No mapping if nothing detected at all/if detector did not like the result/if intensity is ok
+        % -- discontinued: /if there are more than MAXSPOT-1 spots
+        if ~isempty(spots(t2).amp)&(spots(t2).amp~=0)&goodTime(t2)
             
             spots2map=[];
             
