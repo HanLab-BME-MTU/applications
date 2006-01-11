@@ -164,23 +164,22 @@ else
 
     % find moviename. If type == 4, try until something is found
     if type == 3 || type == 4
-        i=1;
-        % search for filtered movie file
-        while numFiles >= i && ...
-                isempty(findstr(fileNameList{i},'.fim')) && ...
-                isempty(findstr(fileNameList{i},'moviedat'))
-            i = i + 1;
-        end
-
-        if i > numFiles
+        
+        % find via regexpr
+        regCell = regexp(fileNameList,'fim$|moviedat');
+        % find index where there is something
+        idx = find(~cellfun('isempty',regCell));
+        
+        % check whether there is a problem
+        if isempty(idx)
             if type == 3
-                error('no filtered movie found!')
+                    error('no filtered movie found!')
             else
                 % continue search below
             end
             
-        else % assign movieInfo etc
-            movieInfo = allFileNames(i);
+        else
+            movieInfo = allFileNames(idx);
             
             % load movie header and assign correctionData
             if exist('r3dMovieHeader.mat','file')
@@ -199,39 +198,49 @@ else
 
     % if no filtered movie found, type 4 still exists. Continue searching
     if type == 1 || type == 2 || type == 4 || type == 5
-        i=1;
-        % search for raw movie file
-        while numFiles >= i && ...
-                ((isempty(findstr(fileNameList{i},'.r3d')) &&...
-                isempty(findstr(fileNameList{i},'3D.dv'))) || ...
-                ~isempty(findstr(fileNameList{i},'.log')))
-            i = i + 1;
-        end
-
-        if i > numFiles
+        
+        % find via regexpr - $ searches at end of name only - no problem
+        % with .log
+        regCell = regexp(fileNameList,'r3d$|3D.dv$');
+        % find index where there is something
+        idx = find(~cellfun('isempty',regCell));
+        
+        if isempty(idx)
             % we might not have found the movie, because it is a
             % simulation. Look for *r3c movie
             i=1;
             % search for raw movie file
-            while numFiles >= i && ...
-                    (isempty(findstr(fileNameList{i},'.r3c')) || ...
-                    ~isempty(findstr(fileNameList{i},'.log')))
-                i = i + 1;
-            end
-            if i > numFiles
+            regCell = regexp(fileNameList,'r3c$');
+            % find index where there is something
+            idx = find(~cellfun('isempty',regCell));
+
+            if isempty(idx)
                 error('no movie found!')
             else
                 % set everything for synth movie
-                movieInfo = allFileNames(i);
+                movieInfo = allFileNames(idx);
                 load r3dMovieHeader
                 correctionData = [];
                 type = 7;
             end
         else
+            % check whether there are multiple files. If yes, and one of
+            % them is a DIC, then we take the other. If no DIC, we error.
+            if length(idx) > 1
+                regCell = regexp(fileNameList(idx),'DIC');
+                % idxIdx is an index into idx
+                idxIdx = find(~cellfun('isempty',regCell));
+                if ~isempty(idxIdx) && (length(idxIdx) == length(idx) - 1)
+                    % remove DIC-indices
+                    idx(idxIdx) = [];
+                else
+                    error('multiple movies found in directory!')
+                end
+            end
 
             % if no problems, assign movieInfo and look for header and
             % correctionData
-            movieInfo = allFileNames(i);
+            movieInfo = allFileNames(idx);
 
             if type == 1 || ((type == 4 || type == 5) && ...
                     ~exist('correctionData.mat','file'))

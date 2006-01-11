@@ -50,9 +50,11 @@ region=[];
 for s=1:nspCur
     region(s).center=coordsCurPix(s,:);
     region(s).amp=spotAmp(sl(1).linklist(uniqSpotIdx(s),2));
-    gm=gaussMaskThres(region(s).amp,FT_SIGMA,fSze,coordsCurPix(s,:),maxDynRange/50);
+    % 1/10/06: make all masks the same size (crash if spots differ by a
+    % factor of 50!!)
+    gm=gaussMaskThres(1,FT_SIGMA,fSze,coordsCurPix(s,:),1/50);
     region(s).coords=gm(:,1);
-    region(s).gauss=gm(:,2);
+    region(s).gauss=gm(:,2) * region(s).amp;
     %check for overlap with previous masks
     region(s).ovlp=[s];
     for i=1:length(region)-1
