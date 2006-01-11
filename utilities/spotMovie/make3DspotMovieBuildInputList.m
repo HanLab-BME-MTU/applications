@@ -219,6 +219,8 @@ if ask4image
     if image == 0
         % no image
         doImage = 0;
+    else
+        doImage = 1;
     end
         
 end %ask4image
