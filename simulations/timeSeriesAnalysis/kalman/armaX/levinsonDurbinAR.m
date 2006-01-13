@@ -38,3 +38,6 @@ for i=1:arOrder
 end
 
 arParam = temp(2,:);
+
+
+%%%%% ~~ the end ~~ %%%%%

@@ -7,22 +7,23 @@ function [innovation,innovationVar,wnVector,errFlag] = ...
 %
 %INPUT  trajOut: Trajectory to be modeled (with measurement uncertainties).
 %                Missing points should be indicated with NaN.
-%       trajIn : Input series. Missing points should be indicated with NaN. 
+%       trajIn : Input series. Missing points should be indicated with NaN.
+%                Enter [] if there is no input series.
 %       arParam: Autoregressive coefficients (row vector).
 %       maParam: Moving average coefficients (row vector).
-%       xParam : Coefficients indicating dependence on input.
+%       xParam : Coefficients indicating dependence on input (row vector).
 %
 %OUTPUT innovation   : Vector of differences between predicted and observed data, or innovations.
 %       innovationVar: Vector of innovation variances.
 %       wnVector     : Estimated white noise in the process.
 %       errFlag      : 0 if function executes normally, 1 otherwise.
 %
-%REMARKS The algorithm implemented here is that presented in R. H. Jones,
-%        "Maximum Likelihood Fitting of ARMA Models to Time Series with
-%        Missing Observations", Technometrics 22: 389-395 (1980). All
-%        equation numbers used here are those in that paper. The main
-%        difference is that I do not estimate the observational error
-%        variance, but use that obtained from experimental data or
+%REMARKS The algorithm implemented here is an ARMAX generalized version of
+%        the algorithm presented in R. H. Jones,"Maximum Likelihood Fitting 
+%        of ARMA Models to Time Series with Missing Observations", 
+%        Technometrics 22: 389-395 (1980). All equation numbers used are 
+%        those in the paper. However, I do not estimate the observational 
+%        error variance, but use that obtained from experimental data or
 %        simulated trajectories (and is thus time-dependent).
 %
 %Khuloud Jaqaman, January 2006
@@ -51,10 +52,12 @@ end
 trajLength = size(trajOut,1);
 
 %make sure that input and output series have the same length
-if size(trajIn,1)~=trajLength
-    disp('--armaXKalmanInnov: Input and output series must have the same length!');
-    errFlag  = 1;
-    return
+if ~isempty(trajIn)
+    if size(trajIn,1)~=trajLength
+        disp('--armaXKalmanInnov: Input and output series must have the same length!');
+        errFlag  = 1;
+        return
+    end
 end
 
 %find arOrder, maOrder and xOrder
@@ -62,7 +65,7 @@ arOrder = length(arParam);
 maOrder = length(maParam);
 xOrder  = length(xParam) - 1;
 
-%get maxOrder to determine size of matrices in Eq. 2.15 - 2.17
+%get maxOrder to determine size of matrices and vectors in Eq. 2.15 - 2.17
 maxOrder = max(arOrder,maOrder+1);
 
 %add zeros to ends of arParam and maParam to get vectors of length maxOrder
@@ -76,11 +79,11 @@ trajIn = [trajIn; zeros(maxOrder,2)];
 %Calculation of innovations
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%construct matrix F (Eq. 2.15, 2.16)
+%construct matrix F (Eqs. 2.15, 2.16)
 transitionMat = diag(ones(maxOrder-1,1),1);
 transitionMat(end,:) = arParamMod(end:-1:1); 
 
-%construct column vector G (Eq. 2.15, 2.16) using the recursions in Eq. 2.13
+%construct column vector G (Eqs. 2.15, 2.16) using the recursions in Eq. 2.13
 %note that procErrCov(i) is the covariance of the process at time t 
 %with the white noise at time t+i-1, normalized by the white noise variance
 %(Eqs. 4.2, 4.3 and 4.4)
@@ -104,19 +107,21 @@ innovation = NaN*ones(trajLength,1);
 innovationVar = NaN*ones(trajLength,1);
 wnVector = NaN*ones(trajLength,1);
 
-%initialize vector with contributions from input
+%initialize vector of contributions from input
 inputContr = zeros(maxOrder,1);
 
 %go over all points in trajectory
-%note that in the iterations T+1 = timePoint, T = timePoint-1
+%note that in the iterations t+1 = timePoint, t = timePoint-1
 for timePoint = 1:trajLength
 
-    %calculate contribution of input series
-    modXOrder = timePoint - 1 + maxOrder - max(1,timePoint-1+maxOrder-xOrder);
-    inputContr(end) = xParam(1:modXOrder+1)*...
-        trajIn(timePoint-1+maxOrder:-1:timePoint-1+maxOrder-modXOrder,1);
-
-    %predict state at time T+1 given state at time T
+    %calculate contribution of input series (See my notes for derivation)
+    if ~isempty(xOrder)
+        modXOrder = timePoint - 1 + maxOrder - max(1,timePoint-1+maxOrder-xOrder);
+        inputContr(end) = xParam(1:modXOrder+1)*...
+            trajIn(timePoint-1+maxOrder:-1:timePoint-1+maxOrder-modXOrder,1);
+    end
+        
+    %predict state at time t+1 given state at time t
     stateVecT1_T = transitionMat*stateVecT_T + inputContr; %Z(t+1|t), Eq. 3.1
     
     %obtain the predicted state's covariance matrix
@@ -126,7 +131,7 @@ for timePoint = 1:trajLength
     %make sure that matrix is symmetric
     stateCovMatT1_T = (stateCovMatT1_T+stateCovMatT1_T')/2;
     
-    %predict observable at time T+1
+    %predict observable at time t+1
     observableP = stateVecT1_T(1); %y(t+1|t), Eq. 3.3
     
     if isnan(trajOut(timePoint,1)) %if observation at this time point is missing
@@ -143,12 +148,6 @@ for timePoint = 1:trajLength
         
         %and its variance, V(t+1) (Eq. 3.6 & 3.10)
         innovationVar(timePoint) = stateCovMatT1_T(1,1) + trajOut(timePoint,2)^2;
-
-%         %check whether innovation variance is negative (which it should not be!)
-%         if innovationVar(timePoint) < 0
-%             disp('neg!')
-%             errFlag = 1;
-%         end
 
         %calculate delta
         delta = stateCovMatT1_T*observationVec'/innovationVar(timePoint); %delta(t+1), Eq. 3.5

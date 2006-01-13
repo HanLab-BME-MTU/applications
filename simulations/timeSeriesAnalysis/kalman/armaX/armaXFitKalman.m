@@ -5,28 +5,38 @@ function [fitResults,errFlag] = armaXFitKalman(trajOut,trajIn,modelParamOrOrder,
 %SYNOPSIS [fitResults,errFlag] = armaXFitKalman(trajOut,trajIn,modelParamOrOrder,...
 %    minOpt)
 %
-%INPUT  trajOut          : Observations of output time series to be fitted. Either an 
+%INPUT
+%   Mandatory
+%       trajOut          : Observations of output time series to be fitted. Either an 
 %                          array of structures trajOut(1:nTraj).observations, or a
 %                          2D array representing one single trajectory. 
 %               .observations: 2D array of measurements and their uncertainties.
 %                          Missing points should be indicated with NaN.
+%   Optional
 %       trajIn           : Observations of input time series to be fitted. Either an 
 %                          array of structures trajIn(1:nTraj).observations, or a
 %                          2D array representing one single trajectory. 
 %               .observations: 2D array of measurements and their uncertainties.
 %                          Missing points should be indicated with NaN.
+%                          Enter as [] if there is no input series.
+%                          Default: [].
 %       modelParamOrOrder: Either
-%                          (1)3x2 matrix indicating range of orders of models to fit:
+%                          (1)3x2 matrix indicating range of orders of models:
 %                             [lowest AR order   highest AR order
 %                              lowest MA order   highest MA order
 %                              lowest X  order   highest X  order]
+%                             Use 0, 0 and -1 for arOrder, maOrder and xOrder,
+%                             respectively, to indicate the lack of any depedence.
 %                          Or
-%                          (2)1D or 2D structure array of models to be tested, 
+%                          (2)1, 2 or 3D structure array of models to be tested, 
 %                             where each entry consists of 3 elements (row vectors):
-%               .arParamP0   : Initial guess of parameters related to partial AR coefficients.
-%               .maParamP0   : Initial guess of parameters related to partial MA coefficients.
+%               .arParamP0   : Initial guess of parameters related to 
+%                              partial AR coefficients.
+%               .maParamP0   : Initial guess of parameters related to 
+%                              partial MA coefficients.
 %               .xParam0     : Initial guess of X coefficients.
-%                          Optional. Default: order range [0 3; 0 3; 0 3] with 
+%                          Default: order range with input [0 3; 0 3; -1 3],
+%                          order range without input [0 3; 0 3; -1 -1], with
 %                          initial guesses of parameters picked randomly.
 %       minOpt           : Minimization option: 
 %                          -'ml' for Matlab local minimizer "fmincon";
@@ -34,7 +44,7 @@ function [fitResults,errFlag] = armaXFitKalman(trajOut,trajIn,modelParamOrOrder,
 %                          -'tg' for Tomlab global minimizer "glbFast"' followed
 %                           by Tomlab local minimizer "ucSolve";
 %                          -'nag' for NAG's local minimizerE04JAF.
-%                          Optional. Default: 'ml'.
+%                          Default: 'ml'.
 %
 %OUTPUT fitResults: Structure array containing fitting results. 
 %                   Will have same dimensions as modelParam. 
@@ -65,7 +75,7 @@ function [fitResults,errFlag] = armaXFitKalman(trajOut,trajIn,modelParamOrOrder,
 %           .success   : 1 if fitting executed normally, 0 otherwise.
 %       errFlag   : 0 if function executes normally, 1 otherwise.
 %
-%REMARKS Data is fitted using "armaCoefKalman" beginning with the different
+%REMARKS Data is fitted using "armaXCoefKalman" beginning with the different
 %        input models.
 %
 %Khuloud Jaqaman, January 2006
@@ -81,18 +91,12 @@ errFlag = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check whether correct number of input arguments was used
-if nargin < 2
-    disp('--armaXFitKalman: You should AT LEAST supply the input and output series!');
+if nargin < 1
+    disp('--armaXFitKalman: You should AT LEAST supply the output series!');
     errFlag = 1;
     fitResults = [];
     return
 end
-
-%assign default values of optional variables
-minOrder_def = 0;  %minimum AR, MA and X orders
-maxOrder_def = 3;  %maximum AR, MA and X orders
-minOpt_def = 'ml'; %minimization option
-repeat_def = 5;    %number of times to repeat local minim. if initial guess not supplied
 
 %check "trajOut" and turn into struct if necessary
 if ~isstruct(trajOut)
@@ -106,39 +110,72 @@ elseif ~isfield(trajOut,'observations')
 end
 
 %check "trajIn" and turn into struct if necessary
-if ~isstruct(trajIn)
-    tmp = trajIn;
-    clear trajIn
-    trajIn.observations = tmp;
-    clear tmp
-elseif ~isfield(trajIn,'observations')
-    disp('--armaXFitKalman: Please input trajIn in fields ''observations''!')
-    errFlag = 1;
+if nargin < 2 || isempty(trajIn)
+    trajIn = [];
+else
+    if ~isstruct(trajIn)
+        tmp = trajIn;
+        clear trajIn
+        trajIn.observations = tmp;
+        clear tmp
+    elseif ~isfield(trajIn,'observations')
+        disp('--armaXFitKalman: Please input trajIn in fields ''observations''!')
+        errFlag = 1;
+    end
 end
+
+%assign default values of optional variables
+orderValArma_def = [0:3]; %AR and MA order values
+if isempty(trajIn)
+    orderValX_def = -1; %X order values
+else
+    orderValX_def = [-1:3]; %X order values
+end
+repeat_def = 5; %times to repeat local minimization if initial guess not supplied
+minOpt_def = 'ml'; %minimization option
 
 %check models to be tested
 if nargin < 3 || isempty(modelParamOrOrder) %if no models to fit were input
 
-    %randomly generate initial parameter guesses for AR, MA and X orders from 0:5
-    for i=maxOrder_def:-1:minOrder_def
-        for j=maxOrder_def:-1:minOrder_def
-            for k=maxOrder_def:-1:minOrder_def
-                modelParam(i+1,j+1,k+1).arParamP0 = 4*rand(1,i) - 2;
-                modelParam(i+1,j+1,k+1).maParamP0 = 4*rand(1,j) - 2;
-                modelParam(i+1,j+1,k+1).xParam0   = 4*rand(1,k) - 2;
+    %indicate that initial guess was not supplied
+    suppliedIG = 0;
+
+    %randomly generate initial ARMAX parameter guesses
+    for l=1:repeat_def
+        for k=1:length(orderValX_def)
+            for j=1:length(orderValArma_def)
+                for i=1:length(orderValArma_def)
+                    modelParam(i,j,k,l).arParamP0 = 4*rand(1,orderValArma_def(i)) - 2;
+                    modelParam(i,j,k,l).maParamP0 = 4*rand(1,orderValArma_def(j)) - 2;
+                    modelParam(i,j,k,l).xParam0 = 4*rand(1,orderValX_def(k)+1) - 2;
+                end
             end
         end
     end
         
-else %if models or model order were supplied
+else %if models or model orders were supplied
 
     if isstruct(modelParamOrOrder) %if initial guesses were input
 
+        %indicate that initial guess was supplied
+        suppliedIG = 1;
+        
         %assign model parameters
         modelParam = modelParamOrOrder;
         
-        %indicate that initial guess was supplied
-        suppliedIG = 1;
+        %get size of modelParam
+        [size1,size2,size3] = size(modelParam);
+        
+        %place [] in fields not provided
+        if ~isfield(modelParam,'arParamP0')
+            modelParam(1).arParamP0 = [];
+        end
+        if ~isfield(modelParam,'maParamP0')
+            modelParam(1).maParamP0 = [];
+        end
+        if ~isfield(modelParam,'xParam0')
+            modelParam(1).xParam0 = [];
+        end
 
     else %if range of AR and MA orders was input
 
@@ -151,19 +188,19 @@ else %if models or model order were supplied
             disp('--armaXFitKalman: Matrix indicating range of AR, MA and X orders should be a 3x2 matrix!');
             errFlag = 1;
         else
+            
             %generate random initial parameter guesses for the order range specified
-            for i=modelParamOrOrder(1,1):modelParamOrOrder(1,2)
+            for k=modelParamOrOrder(3,1):modelParamOrOrder(3,2)
+                k1 = k - modelParamOrOrder(3,1) + 1;
                 for j=modelParamOrOrder(2,1):modelParamOrOrder(2,2)
-                    for k=modelParamOrOrder(3,1):modelParamOrOrder(3,2)
-                        
+                    j1 = j - modelParamOrOrder(2,1) + 1;
+                    for i=modelParamOrOrder(1,1):modelParamOrOrder(1,2)
                         i1 = i - modelParamOrOrder(1,1) + 1;
-                        j1 = j - modelParamOrOrder(2,1) + 1;
-                        k1 = k - modelParamOrOrder(3,1) + 1;
 
                         for l=1:repeat_def
                             modelParam(i1,j1,k1,l).arParamP0 = 4*rand(1,i) - 2;
                             modelParam(i1,j1,k1,l).maParamP0 = 4*rand(1,j) - 2;
-                            modelParam(i1,j1,k1,l).xParam0   = 4*rand(1,k) - 2;
+                            modelParam(i1,j1,k1,l).xParam0 = 4*rand(1,k+1) - 2;
                         end
 
                     end
@@ -198,9 +235,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %go over all suggested models
-for i=1:size(modelParam,1)
+for k=1:size(modelParam,3)
     for j=1:size(modelParam,2)
-        for k=1:size(modelParam,3)
+        for i=1:size(modelParam,1)
 
             if strcmp(minOpt,'tg') || suppliedIG %if global minimization or if initial guess was supplied
 
@@ -253,17 +290,28 @@ for i=1:size(modelParam,1)
                         errFlag    = errFlag1;
                     end
 
-                end
+                end %(for l=1:repeat_def)
 
-            end
+            end %(if strcmp(minOpt,'tg') || suppliedIG ... else ...)
 
             %write output as fields in fitResults
-            fitResults(i,j,k) = struct('arParamP0',arParamP0,'maParamP0',maParamP0,...
-                'xParam0',xParam0,'arParamK',arParamK,'maParamK',maParamK,...
-                'xParamK',xParamK,'arParamL',arParamL,'maParamL',maParamL,...
-                'xParamL',xParamL,'varCovMat',varCovMat,'wnVariance',wnVariance,...
-                'wnVector',wnVector,'selectCrit',selectCrit,'pVCompKL',pVCompKL,...
-                'pVPort',pVPort,'success',1-errFlag);
+            fitResults(i,j,k) = struct(...
+                'arParamP0',arParamP0,...
+                'maParamP0',maParamP0,...
+                'xParam0',xParam0,...
+                'arParamK',arParamK,...
+                'maParamK',maParamK,...
+                'xParamK',xParamK,...
+                'arParamL',arParamL,...
+                'maParamL',maParamL,...
+                'xParamL',xParamL,...
+                'varCovMat',varCovMat,...
+                'wnVariance',wnVariance,...
+                'wnVector',wnVector,...
+                'selectCrit',selectCrit,...
+                'pVCompKL',pVCompKL,...
+                'pVPort',pVPort,...
+                'success',1-errFlag);
 
         end %(for k=1:size(modelParam,3))
     end %(for j=1:size(modelParam,2))

@@ -20,7 +20,7 @@ function [stateCovMat00,errFlag] = covKalmanInit(arParam,maParam,procErrCov,...
 %REMARKS The algorithm implemented here is that presented in R. H. Jones,
 %        "Maximum Likelihood Fitting of ARMA Models to Time Series with
 %        Missing Observations", Technometrics 22: 389-395 (1980), Section 4.
-%        All equation numbers used here are those in that paper.
+%        All equation numbers used are those in Jones' paper.
 %
 %Khuloud Jaqaman, July 2004
 
@@ -85,3 +85,6 @@ for i = 2:maxOrder
     end
 end
 stateCovMat00 = stateCovMat00 + stateCovMat00' - diag(diag(stateCovMat00));
+
+
+%%%%% ~~ the end ~~ %%%%%

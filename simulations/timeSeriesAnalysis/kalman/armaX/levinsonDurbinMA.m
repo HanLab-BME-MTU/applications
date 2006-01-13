@@ -38,3 +38,6 @@ for i=1:maOrder
 end
 
 maParam = temp(2,:);
+
+
+%%%%% ~~ the end ~~ %%%%%

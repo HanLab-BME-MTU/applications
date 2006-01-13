@@ -9,19 +9,18 @@ function neg2LnLikelihoodV = neg2LnLikelihoodX(param,prob)
 %          .user.arOrder   : Order of AR part of process.
 %          .user.maOrder   : Order of MA part of process.
 %          .user.trajOut   : Observations of time series to be fitted. 
-%                            Either an array of structures 
+%                            An array of structures 
 %                            trajOut(1:nTraj).observations, where 
 %                            "observations" is a 2D array of measurements
-%                            and uncertainties, or a 2D array representing
-%                            one single trajectory. 
-%                            Missing points should be indicated with NaN.
+%                            and uncertainties. Missing points should be 
+%                            indicated with NaN.
 %          .user.trajIn    : Observations of input time series. 
-%                            Either an array of structures 
+%                            An array of structures 
 %                            trajIn(1:nTraj).observations, where 
 %                            "observations" is a 2D array of measurements
-%                            and uncertainties, or a 2D array representing
-%                            one single trajectory. 
-%                            Missing points should be indicated with NaN.
+%                            and uncertainties. Missing points should be 
+%                            indicated with NaN. Enter [] in "observations" 
+%                            field if there is no input series.
 %          .user.numAvail  : Total number of available observations.
 %          .user.constParam: Parameters to be constrained. Structure with
 %                            2 fields:
@@ -30,10 +29,11 @@ function neg2LnLikelihoodV = neg2LnLikelihoodX(param,prob)
 %
 %OUTPUT neg2LnLikelihoodV: Value of -2ln(likelihood).
 %
-%REMARKS The algorithm implemented here is that presented in R. H. Jones,
-%        "Maximum Likelihood Fitting of ARMA Models to Time Series with
-%        Missing Observations", Technometrics 22: 389-395 (1980). All
-%        equation numbers used here are those in that paper.
+%REMARKS The algorithm implemented here is an ARMAX generalized version of
+%        the algorithm presented in R. H. Jones,"Maximum Likelihood Fitting 
+%        of ARMA Models to Time Series with Missing Observations", 
+%        Technometrics 22: 389-395 (1980). All equation numbers used are 
+%        those in the paper.
 %
 %
 %Khuloud Jaqaman, January 2006
@@ -60,28 +60,6 @@ maOrder  = prob.user.maOrder;
 trajOut  = prob.user.trajOut;
 trajIn   = prob.user.trajIn;
 numAvail = prob.user.numAvail;
-
-%check "trajOut" and turn it into struct if necessary
-if ~isstruct(trajOut)
-    tmp = trajOut;
-    clear trajOut
-    trajOut.observations = tmp;
-    clear tmp
-elseif ~isfield(trajOut,'observations')
-    disp('--neg2LnLikelihoodX: Please input trajOut in fields ''observations''!')
-    errFlag = 1;
-end
-
-%check "trajIn" and turn into struct if necessary
-if ~isstruct(trajIn)
-    tmp = trajIn;
-    clear trajIn
-    trajIn.observations = tmp;
-    clear tmp
-elseif ~isfield(trajIn,'observations')
-    disp('--neg2LnLikelihoodX: Please input trajIn in fields ''observations''!')
-    errFlag = 1;
-end
 
 %assign parameters
 arParamP = param(1:arOrder);
@@ -123,8 +101,8 @@ for i = 1:length(trajOut)
 
 end
 
-%construct -2ln(likelihood)
-neg2LnLikelihoodV = (sum1 + numAvail*log(sum2))/1000;
+%construct -2ln(likelihood) (Eq. 3.15)
+neg2LnLikelihoodV = (sum1 + numAvail*log(sum2));
 
 
 %%%%% ~~ the end ~~ %%%%%

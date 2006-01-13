@@ -35,8 +35,8 @@ constParamV = [];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check if correct number of input arguments are used
-if nargin ~= nargin('neg2LnLikelihood')
-    disp('--neg2LnLikelihood: Incorrect number of input arguments!');
+if nargin ~= nargin('minKalmanConstraint')
+    disp('--minKalmanConstraint: Incorrect number of input arguments!');
     return
 end
 
