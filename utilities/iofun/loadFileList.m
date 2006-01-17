@@ -96,12 +96,12 @@ if nargin < 3 | isempty(fileListFile)
         error('if the first two input arguments are empty, fileListFile has to be specified')
     end
 else
-    if ~exist(fileListFile)
+    if ~exist(fileListFile,'file')
         error('can not find fileListFile')
     end
 end
 
-if nargin < 4 | isempty(helpTitle) | ~isstr(helpTitle)
+if nargin < 4 | isempty(helpTitle) | ~ischar(helpTitle)
     helpTitle = '';
 end
 
@@ -125,75 +125,106 @@ choiceSequence = [1:size(inputTypeList,1)];
 inputChoicesNow = inputChoicesCell;
 
 %tell the rules to the user
-h = helpdlg(...
-    ['please select the filetypes and the files you want to load.',...
-    ' Once you are done, press ''cancel'' in the selection dialogue'], helpTitle);
-uiwait(h)
+% h = helpdlg(...
+%     ['please select the filetypes and the files you want to load.',...
+%     ' Once you are done, press ''cancel'' in the selection dialogue'], helpTitle);
+% uiwait(h)
+ans = myQuestDlg(['Please select the trajectories (via project data ',...
+    'files) or the trajectory collections (''result'' or .mte files) ',...
+    'you want to load for this analysis. Once you have collected the ',...
+    'data you want to load, press ''cancel'' in the file selection ',...
+    'dialogue. If you want, you can also directly create a .mte file ',...
+    'at this point (individual loading is not recommended for metaphase',...
+    'movies).'],helpTitle,...
+    'Continue and load','Make .mte file','Cancel','Continue and load');
 
-% remember where we were
-oldPath = pwd;
+switch ans
+    case 'Continue and load'
 
-%start while loop: loop until user does not want to load further data
-while ~done
+        % remember where we were
+        oldPath = pwd;
 
-    %get file and entry number of typeList filterIndex returns the
-    %choice or 0 if cancel
-    [fileName,pathName,filterIdx] = uigetfile(inputChoicesNow,'select file or cancel!');
+        %start while loop: loop until user does not want to load further data
+        while ~done
 
-    %lookup the choice
-    whatToutDoux = toutDouxList(filterIdx+1); %filterIdx could be 0 if cancel
+            %get file and entry number of typeList filterIndex returns the
+            %choice or 0 if cancel
+            [fileName,pathName,filterIdx] = uigetfile(inputChoicesNow,'select file or cancel!');
 
-    %switch according to the choice
-    switch whatToutDoux
-        %possible cases
-        %-1: done = 1
-        % 1: store file
-        % 2: read files from list
+            %lookup the choice
+            whatToutDoux = toutDouxList(filterIdx+1); %filterIdx could be 0 if cancel
 
-        case -1
-            %cancelled by user
-            done = 1;
+            %switch according to the choice
+            switch whatToutDoux
+                %possible cases
+                %-1: done = 1
+                % 1: store file
+                % 2: read files from list
 
-        case {1,2}
-            %store the file. We will load files from the list later
-            store(nextStoreIdx).file = [pathName, fileName];
-            store(nextStoreIdx).type = inputTypeList(filterIdx,2);
-            store(nextStoreIdx).toutDoux = whatToutDoux;
+                case -1
+                    %cancelled by user
+                    done = 1;
+
+                case {1,2}
+                    %store the file. We will load files from the list later
+                    store(nextStoreIdx).file = [pathName, fileName];
+                    store(nextStoreIdx).type = inputTypeList(filterIdx,2);
+                    store(nextStoreIdx).toutDoux = whatToutDoux;
 
 
-            %update nextOutIdx
-            nextStoreIdx = nextStoreIdx + 1;
+                    %update nextOutIdx
+                    nextStoreIdx = nextStoreIdx + 1;
 
-            %make sure we do not go over lenght of output
-            if nextStoreIdx > storeLength
-                storeLength = storeLength + INITSTORELENGTH;
-                tmp = store;
-                store(1:storeLength) = struct('file','','type',[],'toutDoux',[]);
-                store(1:storeLength-INITSTORELENGTH) = tmp;
+                    %make sure we do not go over lenght of output
+                    if nextStoreIdx > storeLength
+                        storeLength = storeLength + INITSTORELENGTH;
+                        tmp = store;
+                        store(1:storeLength) = struct('file','','type',[],'toutDoux',[]);
+                        store(1:storeLength-INITSTORELENGTH) = tmp;
+                    end
+
+                    % change to the new directory, and go up if project dir (allow for nonBiodata)
+                    cd(pathName);
+                    cdBiodata(3);
+
+                otherwise
+                    error('bad entry in chooseFileType was not correctly detected during input check')
             end
 
-            % change to the new directory, and go up if project dir (allow for nonBiodata)
-            cd(pathName);
-            cdBiodata(3);
+            % rearrange the input choices, so that the last selection is topmost
+            if ~done
+                % user chose choice#filteridx. copy #1 to that position and the
+                % choice to position 1
+                newTopChoice = choiceSequence(filterIdx);
+                choiceSequence(filterIdx) = choiceSequence(1);
+                choiceSequence(1) = newTopChoice;
 
-        otherwise
-            error('bad entry in chooseFileType was not correctly detected during input check')
-    end
+                % rearrange lists
+                inputChoicesNow = inputChoicesCell(choiceSequence,:);
+                toutDouxList = [-1;inputTypeList(choiceSequence,1)];
+            end
 
-    % rearrange the input choices, so that the last selection is topmost
-    if ~done
-        % user chose choice#filteridx. copy #1 to that position and the
-        % choice to position 1
-        newTopChoice = choiceSequence(filterIdx);
-        choiceSequence(filterIdx) = choiceSequence(1);
-        choiceSequence(1) = newTopChoice;
+        end %while ~done
 
-        % rearrange lists
-        inputChoicesNow = inputChoicesCell(choiceSequence,:);
-        toutDouxList = [-1;inputTypeList(choiceSequence,1)];
-    end
+    case 'Make .mte file'
 
-end %while ~done
+        % remember where we were
+        oldPath = pwd;
+
+        % make a mte file
+        mteFileName = makeMteFile;
+
+        % store
+        store(1).file = mteFileName;
+        store(1).type = 2; % results file
+        store(1).toutDoux = 2; % we will need to read files from a list
+        nextStoreIdx = 2;
+
+    otherwise
+        % user cancelled - die
+        fileListOut = [];
+        return
+end
 
 % go back to old path
 cd(oldPath);
@@ -265,7 +296,7 @@ for s = 1:nextStoreIdx - 1
                     % to have all identifiers: If the list does not end
                     % with a separator, add an imaginary separator.
                     if ~(separatorIdx(end) == length(firstLine))
-                        separatorIdx(end) = length(firstLine)+1;
+                        separatorIdx(end+1) = length(firstLine)+1;
                     end
 
                     if isempty(separatorIdx)

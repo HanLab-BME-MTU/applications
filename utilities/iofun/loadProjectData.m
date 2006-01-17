@@ -41,9 +41,16 @@ else
 end
 
 if nargin < 2 || isempty(pathName)
+    % if fileName already contains the path, we don't need to add pathName
+    % in the beginning
+    if ~isempty(strfind(fileName,filesep))
+        pathName = [];
+    else
     pathName = pwd;
+    end
 end
-if ~strcmp(pathName(end),filesep)
+% if pathName is empty, we don't need to add filesep, of course
+if ~isempty(pathName) && ~strcmp(pathName(end),filesep)
     pathName = [pathName,filesep];
 end
 
@@ -120,7 +127,7 @@ end
 % LOAD DATA FILE AND ASSIGN INDIVIDUAL VARIABLES
 %=================================================
 
-data = load([pathName,filesep,fileName]); %loads everything into the structure data
+data = load([pathName,fileName]); %loads everything into the structure data
 
 
 % -------- load idlist -------------

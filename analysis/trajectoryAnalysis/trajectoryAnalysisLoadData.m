@@ -257,7 +257,7 @@ for iRun = 1:length(fileListStruct)
             % fileName in loadFileList.m
             
 %             try
-             allDat = load(fileList(iFile).file);
+%              allDat = load(fileList(iFile).file);
 %             catch
 %                 % maybe the file has an _corr too much in its name
 %                 fileList(iFile).file = regexprep(fileList(iFile).file,'_corr','');
@@ -266,7 +266,10 @@ for iRun = 1:length(fileListStruct)
 %             end
             
             %load the idlist specified in lastResult
-            eval(['idlist2use = allDat.',allDat.lastResult,';']);
+%             eval(['idlist2use = allDat.',allDat.lastResult,';']);
+
+% load idlist, dataProperties
+[idlist, dataProperties] = loadProjectData(fileList(iFile).file,[],'last');
             
             
             %---prepare calculate trajectory
@@ -294,7 +297,7 @@ for iRun = 1:length(fileListStruct)
             calculateTrajectoryOpt.realTime = realTime;
             
             %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
-            data(dataCt) = calculateTrajectoryFromIdlist(idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
+            data(dataCt) = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,calculateTrajectoryOpt);
             %-------------------------
             
             % test whether we want to keep this
