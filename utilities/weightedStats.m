@@ -97,12 +97,12 @@ weights = abs(weights);
 
 %calc weightedMean : each dataPoint is multiplied by the corresponding weight, the sum is divided
 %by the sum of the weights
-sumWeights = sum(weights,1);
-weightedMean = sum(weights.*data,1)./sumWeights;
+sumWeights = nansum(weights,1);
+weightedMean = nansum(weights.*data,1)./sumWeights;
 
 %---calc weightedStd---
 squareDiffs = (data-repmat(weightedMean,numRows,1)).^2;
-weightedSSQ = sum(squareDiffs.*weights,1);
+weightedSSQ = nansum(squareDiffs.*weights,1);
 
 
 switch sw
@@ -114,6 +114,9 @@ switch sw
         
         %get divisor (nnz is not defined for matrices)
         for i=1:numCols
+            % set NaN-weights to 0
+            nanWeights = isnan(weights(:,i));
+            weights(isnan,i) = 0;
             nnzw = nnz(weights(:,i));
             divisor(1,i) = (nnzw-1)/nnzw*sumWeights(i);
         end
@@ -134,8 +137,9 @@ switch sw
         %general, the true sigma is to be max(sigma1,sigma2)
 
         
-        %sigma1
-        divisor = (numRows-1)*sumWeights;
+        %sigma1. Correct number of observations
+        numRows = sum(~isnan(data) & ~isnan(weights),1);
+        divisor = (numRows-1).*sumWeights;
         sigma1 = sqrt(weightedSSQ./divisor);
         
         %sigma2
@@ -144,7 +148,7 @@ switch sw
         %assign output
         %weightedStdOfMean = max(sigma1,sigma2);
         weightedStdOfMean = sigma1;
-        weightedStdOfSample = sigma1*sqrt(numRows);
+        weightedStdOfSample = sigma1.*sqrt(numRows);
         
         
 end
