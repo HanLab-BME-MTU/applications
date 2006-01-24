@@ -408,7 +408,13 @@ movie = zeros(diff(includeArray,1,1)+1);
 for t = 1:includeArray(2,5)-includeArray(1,5)+1
     for c = 1:includeArray(2,4)-includeArray(1,4)+1
         for z = 1:includeArray(2,3)-includeArray(1,3)+1
-            tmpSlice = vImarisDataSet.GetDataSlice(z-1,c-1,t-1);
+            % tmpSlice: read from includeArray, which we have to get.
+            % if we start with, say, tp 5, then we have to read #4 in
+            % imaris, but t will be 1, so we have to subtract 2.
+            tmpSlice = vImarisDataSet.GetDataSlice(...
+                includeArray(1,3)+z-2,...
+                includeArray(1,4)+c-2,...
+                includeArray(1,5)+t-2);
             movie(:,:,z,c,t) = tmpSlice(includeArray(1,1):includeArray(2,1),includeArray(1,2):includeArray(2,2));
         end
     end
