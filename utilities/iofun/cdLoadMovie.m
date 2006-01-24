@@ -271,7 +271,12 @@ else
     % handle known moviename
     if type == knownType
         % we just assume that we actually know what the movie is called
-        movieInfo = dir(movieType{1}); % store all info for part-loading
+        movieName = movieType{1};
+        movieInfo = dir(movieName); % store all info for part-loading
+        
+        % get correct directory
+        dirName  = movieName(1:end-length(movieInfo.name)-1);
+        oldDir = cd(dirName);
         
         % load whatever necessary depending on movieData
         type = find(strcmpi([goodTypes],movieType{2}));

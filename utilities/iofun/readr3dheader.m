@@ -20,7 +20,7 @@ if nargin < 1 || isempty(fname)
        {'*.r3d;*3D.dv', 'DeltaVision File';
         '*.mrc',  'Sedat scope file'; ...
         '*.*',  'All Files (*.*)'}, ...
-        'Pick a file');
+        'Pick a file to read movieHeader from');
     if isequal(filename,0)
         error('no movie selected')
     else
