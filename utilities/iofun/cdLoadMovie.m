@@ -10,9 +10,9 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                           to load the filtered movie.
 %                           "ask" will let the user choose the movie
 %                           For synthetic movies, specify "raw"
-%                           
+%
 %                           Alternatively, if the filename is known,
-%                           movieType can be a 1-by-2 cell array with 
+%                           movieType can be a 1-by-2 cell array with
 %                           {movieName, movieType}, where movieType is
 %                           either "raw", "corrected", "filtered", or
 %                           "synth"
@@ -34,7 +34,8 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                              attempt to load dataProperties and find a
 %                              field maxSize there to find maxSize. If
 %                              there is no variable dataProperties (or
-%                              tmpDataproperties), or no field .maxSize,
+%                              tmpDataproperties), default dataProperties
+%                              will be used; if there's no field .maxSize,
 %                              the entire movie will be loaded.
 %                              If the structure contains an additonal field
 %                              .frames2load, the program will load the
@@ -110,10 +111,10 @@ if type == 6
         '*.r3d;*.r3c;*3D.dv','raw movie'},...
         'Please choose movie type and location!');
     cd(oldDir);
-    
+
     if movieName == 0
         % user aborted
-        warning('No movie loaded');
+        warning('CDLOADMOVIE:UserAbort','No movie loaded');
         if nargout > 0
             movie = 0;
             movieHeader = 0;
@@ -127,7 +128,7 @@ if type == 6
 else
     % we want to use movieName below - assing empty here
     movieName = [];
-    
+
 end
 
 % goto movie directory
@@ -164,33 +165,27 @@ else
 
     % find moviename. If type == 4, try until something is found
     if type == 3 || type == 4
-        
+
         % find via regexpr
         regCell = regexp(fileNameList,'fim$|moviedat');
         % find index where there is something
         idx = find(~cellfun('isempty',regCell));
-        
+
         % check whether there is a problem
         if isempty(idx)
             if type == 3
-                    error('no filtered movie found!')
+                error('no filtered movie found!')
             else
                 % continue search below
             end
-            
+
         else
             movieInfo = allFileNames(idx);
-            
+
             % load movie header and assign correctionData
-            if exist('r3dMovieHeader.mat','file')
-                load r3dMovieHeader
-            else
-                % read header from file
-                rawMovie = dir('*.r3d');
-                r3dMovieHeader = readr3dheader(rawMovie.name);
-            end
+            r3dMovieHeader = loadMovieHeader(movieInfo.name);
             correctionData = [];
-            
+
             % reset type 4
             type = 3;
         end
@@ -198,17 +193,17 @@ else
 
     % if no filtered movie found, type 4 still exists. Continue searching
     if type == 1 || type == 2 || type == 4 || type == 5
-        
+
         % find via regexpr - $ searches at end of name only - no problem
         % with .log
         regCell = regexp(fileNameList,'r3d$|3D.dv$');
         % find index where there is something
         idx = find(~cellfun('isempty',regCell));
-        
+
         if isempty(idx)
             % we might not have found the movie, because it is a
             % simulation. Look for *r3c movie
-            i=1;
+
             % search for raw movie file
             regCell = regexp(fileNameList,'r3c$');
             % find index where there is something
@@ -273,18 +268,18 @@ else
         % we just assume that we actually know what the movie is called
         movieName = movieType{1};
         movieInfo = dir(movieName); % store all info for part-loading
-        
+
         % get correct directory
         dirName  = movieName(1:end-length(movieInfo.name)-1);
         oldDir = cd(dirName);
-        
+
         % load whatever necessary depending on movieData
         type = find(strcmpi([goodTypes],movieType{2}));
-        
+
         if isempty(type)
             error('unrecognized movie type!')
         end
-        
+
         switch type
             case 1 % raw
                 r3dMovieHeader = readr3dheader(movieInfo.name);
@@ -293,17 +288,17 @@ else
                 load r3dMovieHeader
                 load correctionData
             case 3 % filtered
-                load r3dMovieHeader
+                r3dMovieHeader = loadMovieHeader(movieInfo.name);
                 correctionData = [];
             case 7 % synthetic - don't forget to adjust the type
                 load r3dMovieHeader
                 correctionData = [];
         end
     end % if type == knownType
-        
-        
-    
-    
+
+
+
+
     % if this is a corrected movie, and it is corrected via the first/last few
     % frames, we have to adjust frames2load (no problem with numTimepoints,
     % though - they are adjusted already)
@@ -326,7 +321,7 @@ else
         if ~isfield(loadOpt,'maxSize')
             error('loadOpt-structure has no known fields!')
         end
-        
+
         if ischar(loadOpt.maxSize) && strcmp(loadOpt.maxSize,'check')
             % go and look for dataProperties.maxSize
             if ~isempty(dir('dataProperties.mat'))
@@ -446,10 +441,10 @@ else
             else
                 testStruct = [1:r3dMovieHeader.numTimepoints];
             end
-            
+
             % load movie
             [testMovie,dummy,testLoadStruct] = cdLoadMovie('raw',[],testStruct);
-            
+
             % subtract background. The computer has to be able to handle
             % two variables of maxSize
             testMovie = testMovie - ...
@@ -457,7 +452,7 @@ else
                 [1,1,1,size(testMovie,4),size(testMovie,5)]);
 
             minimumIntensity = min(testMovie(:));
-            
+
             % loop in case we haven't loaded everything yet
             while ~isempty(testLoadStruct.frames2load)
                 [testMovie,dummy,testLoadStruct] = ...
@@ -469,13 +464,13 @@ else
                     size(testMovie,4),size(testMovie,5)]);
                 minimumIntensity = min(min(testMovie(:)),minimumIntensity);
             end
-            
+
             % assign minimumIntensity and save correctionData
             loadStruct.correctionData.minimumIntensity = ...
                 minimumIntensity;
             correctionData.minimumIntensity = minimumIntensity;
             save('correctionData','correctionData')
-            
+
             % try to free some space
             clear testMovie
 
@@ -572,3 +567,75 @@ end
 
 % go back to old dir
 cd(oldDir);
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%   SUBFUNCTIONS   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% loadMovieHeader
+function movieHeader = loadMovieHeader(movieName)
+
+% this subfunction was written to be able to handle "misteli"-movies that
+% are multi-color metamorph stacks. Since there are two movieHeaders in a
+% directory, we need to be able to load the correct one.
+
+% movieHeader is the movieHeader corresponding to movieName
+
+% find movieHeaders in the current directory. Be careful for
+% capitalizations!
+movieHeaderNames = dir('*ovieHeader*');
+
+% switch on the number of movieHeaders we find: if there is none, we go and
+% look for an r3d-file (if unsucessful, too, we die).
+% If there's one header: load it.
+% If there are multiple headers: There will be an identifier between
+% "Header" and ".mat". Find this part for every header and doublecheck with
+% the movieName.
+nMovieHeaders = length(movieHeaderNames);
+switch nMovieHeaders
+    case 0 % no r3dMovieHeader. Read from original file
+        try
+            rawMovie = dir('*.r3d');
+            movieHeader = readr3dheader(rawMovie.name);
+        catch
+            error('No movie header found for %s in %s',movieName,pwd)
+        end
+    case 1 % only one header. If only if was always that easy
+        % just to be sure: allow movieHeaders named any way
+        file = load(movieHeaderNames.name);
+        fn = fieldnames(file);
+        movieHeader = file.(fn{1});
+    otherwise % multiple headers.
+        % find identifier in filenames
+        movieHeaderNameList{1:nMovieHeaders} = deal(movieHeaderNames.name);
+        identifiers = ...
+            regexpi(movieHeaderNameList,'\w*header(.*).mat','tokens');
+        % since the output is very inconveniently packed into cells, we
+        % loop here until we find the correct header
+        found = 0;
+        headerIdx = 0;
+        while ~done && headerIdx < nMovieHeaders
+            headerIdx = headerIdx + 1;
+            currentID = identifiers{headerIdx};
+            currentID = currentID{1};
+
+            % find currentID in movieName
+            if isempty(regexpi(movieName,currentID))
+                % continue loop
+            else
+                found = 1;
+            end
+        end
+
+        % check if we found anything
+        if ~found
+            error('No movie header found for %s in %s',movieName,pwd)
+        else
+            file = load(movieHeaderNames(headerIdx).name);
+            fn = fieldnames(file);
+            movieHeader = file.(fn{1});
+        end
+
+end % switch on number of headers found
