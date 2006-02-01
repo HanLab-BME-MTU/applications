@@ -249,6 +249,7 @@ iteration = 1;
     end %of function F
        
     close(fh);
+    pause(0.01);
     
 %output    %output of fit, to check for errors
 %disp(exitflag);
