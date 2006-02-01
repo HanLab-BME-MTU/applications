@@ -107,9 +107,9 @@ start_point = [mspos msdeltaI];
 lowbound=[mspos-2 0.8*msdeltaI]; 
 upbound=[mspos+2 1.2*msdeltaI];  
 
-options = optimset('TolFun',1e-4,'TolX',1e-3,'Display','final','MaxIter',15,'Jacobian','on');
+options = optimset('TolFun',1e-4,'TolX',1e-3,'Display','off','MaxIter',15,'Jacobian','on');
 
-fh = waitbar(0,'fitting');
+fh = waitbar(0,'fitting mixture model');
 iteration = 1;
 
 [estimates,renorm,residual,exitflag,output]= lsqnonlin(@Gauss2Dfun, start_point, lowbound, upbound, options);
