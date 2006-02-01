@@ -1,12 +1,14 @@
-function [estimates] = fitMixModel(image, xyvec, sig, amps, b)
-% fit mixture model to image with Jacobian, using info from cands as start
-% INPUT: image
-%        xyvec: (numspec x 2) vector containing startpoints for x,y, 
-%               coordinates of speckles 
-%       sig: sigma of Guassian, corresponding to (1/3)*PSF width
-%       amps: amplitudes (deltaI) vector
-%       b; background value
-
+function [estimates] = fitMixModelN3(image, xyvec, sig, amps, b)
+% fit mixture model to image with Jacobian to retrieve subpixel vlaues for
+% speckle positions, using info from cands as start point
+% INPUT:    image
+%           xyvec: (numspec x 2) vector containing startpoints for x,y, 
+%                   coordinates of speckles 
+%           sig:    sigma of Guassian, corresponding to (1/3)*PSF width
+%           amps:   amplitudes (deltaI) vector
+%           b:      background value
+% OUTPUT: estimates
+% UPDATED January 31/2006 Dinah Loerke
 
 [xs,ys]=size(image);
 [numspec,nn]=size(xyvec);
@@ -25,12 +27,8 @@ mssigma=sig;
 % i.e., the ones SURROUNDING SPECKLES 
 % make mask of image with value 1 in a (3*sig radius) circle around 
 % speckles and value 0 elsewhere
-% step 1: mat1=xs*ys x 2 matrix with x,y coordinates of all consecutive
-% pixels in image
-mat1=zeros(xs*ys,2);
-[mat1(:,1),mat1(:,2)]=ind2sub([xs,ys],1:(xs*ys));
-mat2=mat1;
-mat3=zeros(xs*ys,1);
+% an additional calculation is made using 6*sig, to provide the templates
+% for the superposition of single-speckle contributions to the the fit
 
 %mask is copy of image with 1 for speckle vicinity; max projection of all 
 %single mat3's (calculated in loop below)
@@ -38,24 +36,70 @@ mask=zeros(xs*ys,1);
 %masksin = sparse matrix with 1/0 values for coordinates; each speckle is
 %one column
 masksin=sparse(xs*ys,numspec);
+
+% radius for speckle spot calculation
+rad = ceil(6*sig);
+len = 2*rad+1;
+[miniImX, miniImY] = ndgrid(-rad:rad,-rad:rad);
+miniDist = sqrt(miniImX.^2 + miniImY.^2);
+%inside pixels
+[XinPix, YinPix] = find(miniDist<=(3*sig));
+XinPix = XinPix-(rad+1);
+YinPix = YinPix-(rad+1);
+
+% same for larger radius
+[XinPixLar, YinPixLar] = find(miniDist<=(6*sig));
+XinPixLar = XinPixLar-(rad+1);
+YinPixLar = YinPixLar-(rad+1);
+
+singleSpecLarPositions = cell(numspec,1);
+singleSpecSmalPositions = cell(numspec,1);
+GlobalCoordMask = [];
+
+hm = waitbar(0,'generating sparse mask');
 for n=1:numspec
-    mat2(:,1:2)=[mat1(:,1)-mspos(n,1) mat1(:,2)-mspos(n,2)];
-    mat3=sqrt( ( mat2(:,1).^2 + (mat2(:,2)).^2 ));
-    % set=1 for distances below 3*sig, 0 for greater distances
-    % masksinmasksin=sparse matrix with val>0 in mat3 defined
-    mat3(mat3>(3*sig))=0;
-    mat3(mat3>0)=1;
-%     imshow(reshape(mat3,xs,ys),[]);
-%     pause(0.001);
-    masksin(find(mat3),n)=1;
-    mask=mask+mat3;
+   
+    %mspos are successive speckle positions
+    SmalCoorX = mspos(n,1)+XinPix;
+    SmalCoorY = mspos(n,2)+YinPix;
+    % bad posititons = those outside the image
+    goodPos = find( (SmalCoorX>=1) & (SmalCoorY>=1) & (SmalCoorX<=xs) & (SmalCoorY<=ys) );
+    badPos = find( (SmalCoorX<1) | (SmalCoorY<1) | (SmalCoorX>xs) | (SmalCoorY>ys) );
+    subIndGoodPos = sub2ind([xs ys],SmalCoorX(goodPos),SmalCoorY(goodPos));
+    masksin(subIndGoodPos,n)=1;
+    SmalCoorX(badPos)=nan;
+    SmalCoorY(badPos)=nan;
+    %SmalCoorI() enter into matrix if desired to save time in the Jacobian
+    %later ======>
+    GlobalCoordMat(:,:,n) = [SmalCoorX SmalCoorY];
+    
+    %mspos are successive speckle positions
+    LarCoorX = mspos(n,1)+XinPixLar;
+    LarCoorY = mspos(n,2)+YinPixLar;
+    % bad posititons = those outside the image
+    goodPos = find( (LarCoorX>=1) & (LarCoorY>=1) & (LarCoorX<=xs) & (LarCoorY<=ys) );
+    %subIndLarPos = sub2ind([xs ys],LarCoorX(goodPos),LarCoorY(goodPos));
+    singleSpecLarPositions{n} = [LarCoorX(goodPos),LarCoorY(goodPos),sub2ind([xs ys],LarCoorX(goodPos),LarCoorY(goodPos))];
+    
+    waitbar( n / numspec );
 end
 
-%all positions in masksin where value is nonzero
-nonzMaskVec=find(masksin);
-valVec=nonzMaskVec;
-valVec(:)=1;
-mask(mask>0)=1;
+close(hm);
+pause(0.1);
+
+%all positions in coordinates 
+allX = GlobalCoordMat(:,1,:);
+allY = GlobalCoordMat(:,2,:);
+
+totalmasklist = sub2ind([xs ys],allX(:),allY(:));
+% toss out doubles
+masklist = unique(totalmasklist);
+nanPos = isnan(masklist);
+% toss out nans
+masklist(nanPos) = [];
+[xm, ym] = ind2sub([xs ys],masklist);
+mask(masklist)=1;
+
 
 % startpoint for fit
 start_point = [mspos msdeltaI];
@@ -63,9 +107,10 @@ start_point = [mspos msdeltaI];
 lowbound=[mspos-2 0.8*msdeltaI]; 
 upbound=[mspos+2 1.2*msdeltaI];  
 
-options = optimset('TolFun',1e-3,'TolX',1e-3,'Display','iter','MaxIter',15,'Jacobian','on');
-checker=0;
-checker2=0;
+options = optimset('TolFun',1e-4,'TolX',1e-3,'Display','final','MaxIter',15,'Jacobian','on');
+
+fh = waitbar(0,'fitting');
+iteration = 1;
 
 [estimates,renorm,residual,exitflag,output]= lsqnonlin(@Gauss2Dfun, start_point, lowbound, upbound, options);
 
@@ -83,28 +128,35 @@ checker2=0;
         A = params(:,3);
         w0 = mssigma;
         [ix,iy]=size(params);
-        % mat 1 is defined above (i.e. outside the function) and contains the x,y-
-        % coordinates of all (:)-consecutive pixels in the image
-        imxyvar=mat1;
+        
+        %disp(['x0= ',num2str(x0(1)),'  y0 = ',num2str(y0(1)),'  A = ',num2str(A(1))]);
+
+        %initialize fitimage
+        Fitimage=image; Fitimage(:)=0;
+        
         %loop over number of speckles
         for z=1:ix
-            zz=( (imxyvar(:,1)-x0(z)).^2 + (imxyvar(:,2)-y0(z)).^2 );
-            FittedCurveS = A(z) * exp( -(1/(2*(w0^2))) *  zz );
-            if(z==1)
-                FittedCurve=FittedCurveS;
-            else
-                FittedCurve=FittedCurve+FittedCurveS;
-            end
+            %relevant 6*sig-distance positions of this speckle
+            xyloc = singleSpecLarPositions{z}(:,1:2);
+            iloc = singleSpecLarPositions{z}(:,3);
+            zz=( (xyloc(:,1)-x0(z)).^2 + (xyloc(:,2)-y0(z)).^2 );
+            % single speckle contribution
+            FittedCurveSin = A(z) * exp( -(1/(2*(w0^2))) *  zz );
+            % contribution is added to Fitimage at appropriate position
+            Fitimage(iloc) = Fitimage(iloc)+ FittedCurveSin;
         end
 
         % multiply by mask (also pre-defined outside the actual fitting
         % function to save time) in order to take into account for the fit
         % only the relevant areas around speckles
         % and not try to fit unspecific background
-        F = (FittedCurve(:)+bav(1)).*mask(:) - image(:).*mask(:);
-        
-        checker2=checker2+1;
-        
+        F = (Fitimage(:)+bav(1)).*mask(:) - image(:).*mask(:);
+%         disp(num2str(sum(sum(F))));
+%         testimage=reshape(F,xs,ys);
+%         testimage = testimage(101:200,1:100);
+%         imshow(testimage,[]);
+%         pause(0.1);
+                
         % now calculate the Jacobian matrix!!
         
         if (nargout>1)
@@ -167,6 +219,7 @@ checker2=0;
                 timageright=varright-nonzeros(image(:).*v) + bav(1);
                 %central difference image x (left-right)
                 diff1=(-timageright+timageleft)/2;
+                
                 J(vind,s)=diff1;
                 
                 %up-shifted image of speckle s
@@ -185,14 +238,19 @@ checker2=0;
                 zzamp=( (xx-x0(s)).^2 + (yy-y0(s)).^2 );
                 diff3=exp( -(1/(2*(w0^2))) * ( zzamp) );
                 J(vind,s+2*numspec)=diff3;
-                                
+                                 
             end  %of for s=1:numspec
-                       
+             
         end % of if (nargout>1)
+        iteration = iteration +1;
+        waitbar( iteration / 15 );
+        pause(0.01);
         
     end %of function F
-
-output    %output of fit, to check for errors
-disp(exitflag);
+       
+    close(fh);
+    
+%output    %output of fit, to check for errors
+%disp(exitflag);
 
 end  %of function  
