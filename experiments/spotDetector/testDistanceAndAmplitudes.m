@@ -1,4 +1,4 @@
-function [nParms,nQAll,flag,rmIdx] = testDistanceAndAmplitudes(parms,QAll,chi,dataProperties,isNplus1,degreesOfFreedom)
+function [nParms,nQAll,flag,rmIdx,debugData] = testDistanceAndAmplitudes(parms,QAll,chi,dataProperties,isNplus1,degreesOfFreedom)
 % TESTDISTANCE tests whether the distances between the spots and their amplitudes are significant
 %
 % SYNOPSIS [nParms,nQAll,flag,rmIdx] = testDistanceAndAmplitudes(coord,QAll,chi,amp,dataProperties,isNplus1)
@@ -17,9 +17,14 @@ function [nParms,nQAll,flag,rmIdx] = testDistanceAndAmplitudes(parms,QAll,chi,da
 %        n*     : other parameters of significant coordinates
 %        flag   : indices of deleted spots
 %        rmIdx  : indices of entries in ub,lb to remove
+%        debugData : optional output
 %
 %c: 11/03 jonas (based on testdistance by dT)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% debug
+DEBUG = 1;
+debugData = [];
 
 %CONST DEFINITIONS
 T_TEST_PROB=dataProperties.T_TEST_PROB;
@@ -32,6 +37,7 @@ endList = 4*nSpots;
 
 flag = []; %init flag
 
+
 %read amps and coords
 coordIdx = sort([1:4:endList 2:4:endList 3:4:endList]);
 ampIdx = [4:4:endList];
@@ -43,6 +49,7 @@ amp   = parms( ampIdx );
 Qc = QAll(coordIdx,coordIdx);
 Qa = QAll(ampIdx,ampIdx);
 
+
 %---------FIRST TEST: test every spot in nCoord for zero amplitude
 for i = 1:nSpots
     %null-hypothesis: the amplitude = 0
@@ -50,7 +57,11 @@ for i = 1:nSpots
     %testValue = amplitude/sqrt(Qa*sigmaZeroHat)
     testValue = amp(i)/sqrt(Qa(i,i)*chi);
     
-    %disp(sprintf('%f, %f, %f', testValue, tinv(1-(T_TEST_PROB),1),tinv(1-(T_TEST_PROB),76)))
+    if DEBUG
+        debugData(i) = testValue;
+        %disp(sprintf('%f, %f, %f', testValue,
+        %tinv(1-(T_TEST_PROB),1),tinv(1-(T_TEST_PROB),76)))
+    end
     
     %if H0 accepted, we throw the spot out (we don't want spots with zero amplitude!)
     if testValue < tinv(1-(T_TEST_PROB),degreesOfFreedom) %one-sided test (amp is not going to be < 0)

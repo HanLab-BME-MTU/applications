@@ -1,4 +1,4 @@
-function cordOut=findoverlap(data,cord,dataProperties,verbose)
+function [cordOut, debugData]=findoverlap(data,cord,dataProperties,verbose)
 %FINDOVERLAP locates fluorescent tags in 3D data
 %
 % SYNOPSIS cords=findoverlap(data,cord)
@@ -14,6 +14,8 @@ function cordOut=findoverlap(data,cord,dataProperties,verbose)
 if nargin < 4 || isempty(verbose)
     verbose = 1;
 end
+
+debugData = [];
 
 %CONST DEFINITIONS
 MAXSPOTS=dataProperties.MAXSPOTS;
@@ -87,9 +89,19 @@ for t=1:tsteps
                 mskData=imgStk(idxList);
                 
                 % do the mixture-model fitting
-                [numDist,ncordList,ampList,bg,statistics]=...
+                [numDist,ncordList,ampList,bg,statistics,debugDataFitTest]=...
                     fitTest(mskData,cordList(spotsidx,:),idxList,...
                     size(imgStk),dataProperties);
+                
+                % debug: Collect testValues of intensity-ttest
+                if ~isempty(debugDataFitTest) && isfield(debugDataFitTest,'testValue')
+                    tv = cat(2,debugDataFitTest.testValue);
+                    if ~isfield(debugData,'testValue')
+                        debugData.testValue = cell(tsteps,1);
+                    end
+                    debugData.testValue{t} = ...
+                        [debugData.testValue{t};ones(length(tv),1)*t,tv(:)];
+                end
 
                 if isempty(ncordList)
                     statistics.parms=[];

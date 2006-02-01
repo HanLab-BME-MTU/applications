@@ -27,12 +27,13 @@ MAX_POS_DELTA = dataProperties.FILTERPRM(4:6);
 %init debug parameters
 if nargin < 6 || isempty(DEBUG)
     DEBUG = 0;
+    debugData = [];
 else
     debugData = struct('exitflag',[],'output',[]);
 end
 
 %init output (could remain empty!)
-nCordList = [];
+ncordList = [];
 ampList = [];
 bg = [];
 statistics = [];
@@ -131,7 +132,8 @@ while redoN
     %still try mixture model
     
     %testDistanceandAmplitudes will return new parms, Q.
-    [parms,QAll,deletedSpotNumber,rmIdx] = testDistanceAndAmplitudes(...
+    [parms,QAll,deletedSpotNumber,rmIdx,...
+        debugData(end+1).testValue] = testDistanceAndAmplitudes(...
         parms,QAll,chi1,dataProperties,0,degreesOfFreedom);
     
     if ~isempty(deletedSpotNumber)
@@ -267,7 +269,7 @@ if nsp>0 %do N+1-fit only if there are any spots left!
         disp(sprintf('%1.4f',prob));
         if (prob>F_TEST_PROB)
             %test again whether the spots are significant
-            [nparms,nQAll,deletedSpotNumber] = ...
+            [nparms,nQAll,deletedSpotNumber,dummy,debugData(end+1).testValue] = ...
                 testDistanceAndAmplitudes(...
                 nparms,nQAll,chi2,dataProperties,1,newDegreesOfFreedom);
             %if we had to delete anything this time, we do not accept the N+1-fit
