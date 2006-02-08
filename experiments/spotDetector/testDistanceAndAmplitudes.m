@@ -10,9 +10,6 @@ function [nParms,nQAll,flag,rmIdx,debugData] = testDistanceAndAmplitudes(parms,Q
 %         isNplus1: whether this is a N+1-fit (the new spot would be in the first position)
 %         degreesOfFreedom: degrees of freedom of the fit
 %
-% --> I do not know why, but the software performs well when I use the old
-%       df = 1. I therefore use this instead of the "true"(?) df
-%
 % OUTPUT nParms : significant parameters
 %        n*     : other parameters of significant coordinates
 %        flag   : indices of deleted spots
@@ -26,10 +23,9 @@ function [nParms,nQAll,flag,rmIdx,debugData] = testDistanceAndAmplitudes(parms,Q
 DEBUG = 1;
 debugData = [];
 
-%CONST DEFINITIONS
-T_TEST_PROB=dataProperties.T_TEST_PROB;
-
-degreesOfFreedom = 1;
+% test cutoff values
+tTestCutoff = tinv(dataProperties.T_TEST_PROB,degreesOfFreedom);
+amplitudeCutoff = dataProperties.amplitudeCutoff;
 
 %init parameters
 nSpots=floor(length(parms)/4); %number of spots (last parm is bg)
@@ -64,9 +60,10 @@ for i = 1:nSpots
     end
     
     %if H0 accepted, we throw the spot out (we don't want spots with zero amplitude!)
-    if testValue < tinv(1-(T_TEST_PROB),degreesOfFreedom) %one-sided test (amp is not going to be < 0)
+    if testValue < amplitudeCutoff
         flag = [flag;i];
-        snr = amp(i)/sqrt(chi);
+        % snr for debug purposes
+        % snr = amp(i)/sqrt(chi);
     else
         %all is good
     end
@@ -92,7 +89,8 @@ for i=1:(nSpots-1) %test 1 against 2,3,4; 2 against 3,4; 3 against 4
             if ~any(j == flag) %don't test a spot that has been deleted already
                 
                 %read corresponding Q-matrix entries
-                Qxx=blkdiag(Qc((i-1)*3+1:(i-1)*3+3,(i-1)*3+1:(i-1)*3+3), Qc((j-1)*3+1:(j-1)*3+3,(j-1)*3+1:(j-1)*3+3));
+                Qxx=blkdiag(Qc((i-1)*3+1:(i-1)*3+3,(i-1)*3+1:(i-1)*3+3),...
+                    Qc((j-1)*3+1:(j-1)*3+3,(j-1)*3+1:(j-1)*3+3));
                 
                 %do the standard gaussian error propagation to get Qdd
                 difference=(coord(i,:)-coord(j,:));
@@ -113,8 +111,9 @@ for i=1:(nSpots-1) %test 1 against 2,3,4; 2 against 3,4; 3 against 4
                 % degrees of freedom stays constant even though we delete
                 % individual spots: The df for the test are the ones used
                 % in the fitting
-                if testValue<tinv(1-(T_TEST_PROB),degreesOfFreedom) %one-sided
+                if testValue<tTestCutoff %one-sided
                     indistinguishable = [indistinguishable,[i;j]];
+                    disp(sprintf('removed spot b/c of distance'))
                 end
             end
         end

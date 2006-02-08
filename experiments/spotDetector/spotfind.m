@@ -1,4 +1,4 @@
-function [cord, mnp] = spotfind(fImg,dataProperties,verbose)
+function spots = spotfind(fImg,dataProperties,verbose)
 %SPOTFIND locates fluorescent tags in 3D data
 %
 % SYNOPSIS cord = spotfind(img)
@@ -7,7 +7,11 @@ function [cord, mnp] = spotfind(fImg,dataProperties,verbose)
 %       dataProperties: structure with movie properties
 %       verbose : (optional) If 1 (default), waitbar is displayed
 %
-% OUTPUT cord : center coordinates
+% OUTPUT spots : nTimepoints-by-1 structure with fields
+%                .sp  structure with fields
+%                   .cord coordinates
+%                   .mnint spottiness
+%                .COM center of mass of image
 
 % c: 5/3/01	dT
 
@@ -42,18 +46,20 @@ if DEBUG
     figure
 end
 
+% preassign spots
+spots(1:tsteps,1) = struct('sp',[],'COM',[]);
+
 %loop through all time points
 for t=1:tsteps
 
     %intialize counter
     ct=1;
     % current time point:
-    mnplist=[];    %'spotiness'
+    mnplist=[];    %'spottiness'
     lst=[];            % list of local maxs
     k=[];             % curvature of local maxs
 
     pt=fImg(:,:,:,1,t);
-    mn(t)=mean(pt(:));
 
     %norm to 0..1
     pt=100*pt/max(pt(:));
@@ -91,6 +97,11 @@ for t=1:tsteps
                     clear mnpTmp newMnpRows
                 end
                 
+                % mnp, the spottiness criterion, is the product of
+                % curvature and mean intensity of the local mask.
+                % The cutoff might be a bit nicer if we transformed
+                % curvature and intensity to [0,1] first, but I leave it
+                % for the moment.
                 mnp(ct,t)=-k(ct)*mean(patch(:));
                 centp(ct,:)=centroid3D(patch);
                 lm(ct,:)=b(i,:);
@@ -99,46 +110,30 @@ for t=1:tsteps
         end;
     end;
 
-    % NEW: Use dataProperties.MAXSPOTS number of points. Because I don't
-    % want to go into the editPropertiesGUI at the moment (and because
-    % we're not working with mammalian stuff right now), I'll just use the
-    % default 5. Later, I'll use something like ceil(maxSpots * 1.3).
+    % Take MAXNUMSPOTS plus a few spots - we want to be sure that we don't
+    % accidentially throw out a good spot, and we need a few bad apples to
+    % make the amplitude cutoff work fine. We take between 2 and 10 more
+    % spots, depending on MAXNUMSPOTS.
+    additionalSpots = dataProperties.MAXSPOTS * 0.2;
+    additionalSpots = max(additionalSpots,3);
+    additionalSpots = min(additionalSpots,10);
+    numberOfSpots = dataProperties.MAXSPOTS + additionalSpots;
     
     [mnpSorted,sortIdx] = sort(mnp(:,t),1,'descend');
     % cut at either MAXSPOTS+1 or how many we have if it's less
-    cps = sortIdx(1:min(dataProperties.MAXSPOTS+1,length(sortIdx)));
-    
-    
-%     %cumulative histogram spot separation
-%     %run only if more than 2 max found
-%     if length(find(mnp(:,t))) > 2
-%         cps=cutcumhist(mnp,t,dataProperties);
-%     elseif isempty(mnp)
-%         cps = 0;
-%     else
-%         cps = find(mnp(:,t)>100); %as in cutcumhist: spottiness has to be at least 100
-%     end
-    
-   
+    cps = sortIdx(1:min(numberOfSpots,length(sortIdx)));
     
     
     if cps~=0
         lst=[lm(cps,2) lm(cps,1) lm(cps,3)]-ones(length(cps),1)*(d+1)+centp(cps,:);
         mnplist=mnp(cps,t);
-        %    lst=[lst(:,2) lst(:,1) lst(:,3)];
         for i=1:size(lst,1)
-            %initalize and store info in struct
-            spots(t).sp(i).type='';
-            spots(t).sp(i).mult=0;
+            % store coordinates and spottiness
             spots(t).sp(i).cord=lst(i,:);
             spots(t).sp(i).mnint=mnplist(i);
-            % include curvature
-            %spots(t).sp(i).k=k(i);
         end;
-    else
-        spots(t).sp=[];
     end
-    spots(t).mnint=mn(t);
+%     spots(t).mnint=mn(t);
     
     %== ADDED FOR NEW LINKER ==
     % Find the "center of gravity" of the image
@@ -158,10 +153,11 @@ for t=1:tsteps
         mywaitbar(t/tsteps,h,tsteps);
     end
     
+    % clean memory
     clear FXX FXY FXZ FYX FYY FYZ FZX FZY FZZ
     
 end;
-cord=spots;
+
 if verbose
     close(h);
 end

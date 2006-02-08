@@ -82,6 +82,7 @@ else % movieType is a cell
     if length(movieType) ~= 2
         error('if known movieName: Please supply a cell array with {movieName, movieType}')
     end
+    % read dirName
     type = knownType; % assign everything later
 end
 
@@ -270,7 +271,10 @@ else
         movieInfo = dir(movieName); % store all info for part-loading
 
         % get correct directory
-        dirName  = movieName(1:end-length(movieInfo.name)-1);
+        tmpDirName  = fileparts(movieName);
+        if ~isempty(tmpDirName)
+            dirName = tmpDirName;
+        end
         oldDir = cd(dirName);
 
         % load whatever necessary depending on movieData
@@ -285,7 +289,7 @@ else
                 r3dMovieHeader = readr3dheader(movieInfo.name);
                 correctionData = [];
             case 2 % corrected
-                load r3dMovieHeader
+                r3dMovieHeader = loadMovieHeader(movieInfo.name);
                 load correctionData
             case 3 % filtered
                 r3dMovieHeader = loadMovieHeader(movieInfo.name);
@@ -293,6 +297,22 @@ else
             case 7 % synthetic - don't forget to adjust the type
                 load r3dMovieHeader
                 correctionData = [];
+
+            case 5
+                % if we weren't quite sure initially whether the movie was
+                % corrected, case 5 occurs
+                if exist(fullfile(dirName,'correctionData.mat'),'file')
+                    % corrected movie
+                    type = 2;
+                    r3dMovieHeader = loadMovieHeader(movieInfo.name);
+                    load correctionData
+                else
+                    % raw movie
+                    r3dMovieHeader = readr3dheader(movieInfo.name);
+                    correctionData = [];
+                end
+            otherwise
+                error('current type cannot be handled!')
         end
     end % if type == knownType
 

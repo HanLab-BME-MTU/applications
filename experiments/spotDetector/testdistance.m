@@ -1,25 +1,26 @@
 function ncord = testdistance(cord,Q,chi,snr,dataProperties)
-% TESTDISTANCE test the distance if signifcantly larger than zero
+% TESTDISTANCE test the distance if significantly larger than zero
 %
 % SYNOPSIS ncord = testdistance(cord,Q,chi,snr)
 %
 % INPUT   cord   : list of all coordinates
 %              Q       : Q matrix of fitted model
-%              chi     : chi squared of fitted model 
+%              chi     : chi squared of fitted model
 %              snr    :  snr of spots
 %
-% OUTPUT ncord : significant coordinates 
-
+% OUTPUT ncord : significant coordinates
 
 %c: 04/07/01 dT
 
-%CONST DEFINITIONS
-T_TEST_PROB=dataProperties.T_TEST_PROB;
+% definition of cutoff value. Use normal distribution, because in this
+% test, the number of pixels contributing is large.
+nTestCutoff = norminv(dataProperties.T_TEST_PROB);
 
 % crosscheck every pair for zero distance
-% statistical t-test 
+% statistical t-test
 nspots=length(cord.sp);
 valid=[1:nspots];
+sigD = zeros(nspots-1,nspots);
 for i=1:(nspots-1)
     for j=(i+1):nspots
         % distinguish between evtl. overlapped spots and separated spots
@@ -28,7 +29,7 @@ for i=1:(nspots-1)
         else
             Qxx=blkdiag(Q((i-1)*3+1:(i-1)*3+3,(i-1)*3+1:(i-1)*3+3), Q((j-1)*3+1:(j-1)*3+3,(j-1)*3+1:(j-1)*3+3));
         end;
-       % dif=(cord.sp(i).cord-cord.sp(j).cord).*[PIXELSIZE_XY PIXELSIZE_XY PIXELSIZE_Z];
+        % dif=(cord.sp(i).cord-cord.sp(j).cord).*[PIXELSIZE_XY PIXELSIZE_XY PIXELSIZE_Z];
         dif=(cord.sp(i).cord-cord.sp(j).cord);
         distance=sqrt(sum(dif.^2));
         H=1/distance*[dif -dif];
@@ -37,10 +38,10 @@ for i=1:(nspots-1)
         sigD(i,j)=sqrt(Qdd*chiT);
         tvalue=distance/sigD(i,j);
         %keep only coords that pass as nonzero distance
-        if tvalue<tinv(1-(T_TEST_PROB/2),1);
+        if tvalue<nTestCutoff;
             disp(sprintf('removed spot in testdistance.m'))
             % spot i from multi check, remove it
-            if cord.sp(i).mult    
+            if cord.sp(i).mult
                 rElem=i;
                 ind=find(valid==rElem);
             elseif cord.sp(j).mult
@@ -49,7 +50,7 @@ for i=1:(nspots-1)
             else
                 ind=[];
             end;
-            
+
             if ~isempty(ind)
                 valid=[valid(1:ind-1) valid((ind+1):end)];
             end;
@@ -75,7 +76,9 @@ end;
 
 % careful: we've created a new structure, and assign it into an old one.
 % Therefore, the order of the fields needs to be exactly the same!
-ncord.mnint=cord.mnint;
+if isfield(cord,'mnint') % backwards compatibility
+    ncord.mnint=cord.mnint;
+end
 ncord.statistics.sigD=sigD(valid,valid);
 ncord.statistics.chi=chi(valid);
 ncord.statistics.snr=snr(valid);
