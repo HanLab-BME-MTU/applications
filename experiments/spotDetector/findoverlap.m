@@ -34,7 +34,7 @@ end
 % init cordOut. Code changed to no longer overwrite input cord, but to
 % build a new structure from scratch. This could potentially be a problem
 % with huge structures, but it is much less error-prone
-cordOut(1:tsteps) = struct('sp',[],'mnint',{cord.mnint},...
+cordOut(1:tsteps) = struct('sp',[],...
     'statistics',[],'parms',[],'COM',{cord.COM});
 
 %===================
@@ -66,6 +66,12 @@ for t = 1:tsteps
             cordList(:,1)=tc2;
             
             imgStk=data(:,:,:,1,t);
+            
+            % preassign current testRatios
+            nSpots = size(cordList,1);
+            testRatios{t} = zeros(nSpots,2);
+            spotIdxList = 1:nSpots;
+            
             while (~isempty(cordList))
                 discerned = 0;
                 if length(cordList) >= maxNumCoords
@@ -75,6 +81,8 @@ for t = 1:tsteps
                 end
                 [spotsidx mask] = ...
                     discernspots(cordList,size(imgStk),dataProperties);
+                currentSpots = spotIdxList(spotsidx);
+                
                 discerned = 1;
                 if length(spotsidx) >= maxNumSpots
                     error('MATLAB:nomem',...
@@ -88,12 +96,17 @@ for t = 1:tsteps
                 testValue =...
                     fitTestFirstRound(mskData,cordList(spotsidx,:),idxList,...
                     size(imgStk),dataProperties);
-                % collect testValues
-                testRatios{t} = [testRatios{t};...
-                    ones(length(testValue),1)*t,testValue(:)];
+                % collect testValues. Be careful:
+                % - discernspots picks groups that can be any combination
+                % - fitTest reverses the order of the spots
+                currentRatios = testRatios{t};
+                currentRatios(currentSpots(end:-1:1),:) = ...
+                    [ones(length(testValue),1)*t,testValue(:)];
+                testRatios{t} = currentRatios;
                 
                 % remove spots from cordList
                 cordList(spotsidx,:)=[];
+                spotIdxList(spotsidx) = [];
 
             end
         catch
@@ -107,6 +120,9 @@ for t = 1:tsteps
                 else
                     maxNumCoords = min(maxNumCoords,length(cordList));
                 end
+                
+                % remove the spots that have already been analyzed
+                testRatios{t} = [];
 
                 disp(sprintf('MMF aborted in frame %i:\n%s',t,err.message))
             else
@@ -151,7 +167,7 @@ zeroVals = fnval(sp,zeroList);
 % one to the left (don't forget that between two minima there will
 % always be a maximum!)
 indexList = (closestIdx-2):(closestIdx + 4);
-indexList(indexList < 1 | indexList > length(indexList)) = [];
+indexList(indexList < 1 | indexList > length(zeroVals)) = [];
 
 % find lowest
 [dummy, cutIdx] = min(zeroVals(indexList));
