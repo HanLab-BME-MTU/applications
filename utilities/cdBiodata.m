@@ -8,6 +8,7 @@ function [mainDir,oldDir]=cdBiodata(option)
 %                   2 if in a biodata directory and if there are r3d-files: move up one level
 %                   3 as 2, but if not in biodata directory: do not change to it
 %                   4 do not change dir at all, just return mainDir
+%                   5 goto tmpData/misteli (only works in LCCB)
 %
 %OUTPUT     mainDir BIODATA - directory
 %           oldDir  previous directory
@@ -54,4 +55,11 @@ switch option
         end
     case 4
         % do not do anything - just return mainDir
+    case 5
+        % go to tmpData/misteli
+        
+        % cd Biodata
+        cdBiodata(0);
+        cd ../tmpData/misteli
+        mainDir = pwd;
 end

@@ -157,7 +157,7 @@ else
         allFileNames = dir(dirName);
         allFileNames(1:2) = [];
     else
-        allFileNames = dir([dirName movieName]);
+        allFileNames = dir(fullfile(dirName, movieName));
     end
 
     % get list of filenames
@@ -629,14 +629,14 @@ switch nMovieHeaders
         movieHeader = file.(fn{1});
     otherwise % multiple headers.
         % find identifier in filenames
-        movieHeaderNameList{1:nMovieHeaders} = deal(movieHeaderNames.name);
+        [movieHeaderNameList{1:nMovieHeaders}] = deal(movieHeaderNames.name);
         identifiers = ...
             regexpi(movieHeaderNameList,'\w*header(.*).mat','tokens');
         % since the output is very inconveniently packed into cells, we
         % loop here until we find the correct header
         found = 0;
         headerIdx = 0;
-        while ~done && headerIdx < nMovieHeaders
+        while ~found && headerIdx < nMovieHeaders
             headerIdx = headerIdx + 1;
             currentID = identifiers{headerIdx};
             currentID = currentID{1};

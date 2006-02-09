@@ -116,7 +116,7 @@ switch sw
         for i=1:numCols
             % set NaN-weights to 0
             nanWeights = isnan(weights(:,i));
-            weights(isnan,i) = 0;
+            weights(nanWeights,i) = 0;
             nnzw = nnz(weights(:,i));
             divisor(1,i) = (nnzw-1)/nnzw*sumWeights(i);
         end

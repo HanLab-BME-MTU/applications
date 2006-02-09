@@ -39,7 +39,7 @@ bg = [];
 statistics = [];
 
 
-% optim options. We want to terminate the algorithm when it is within 0.001
+% optim options. We want to terminate the algorithm when it is within 0.01
 % pixel.
 numDist = 0;
 options = optimset('Jacobian','on','Display','off','TolFun',1e-20,'TolX',1e-3);
