@@ -18,7 +18,7 @@ function imarisHandle = imarisSetMovie
 
 
 % set maxSize to 100 MB
-loadOpt.maxSize = 10000000;
+loadOpt.maxSize = 100000000;
 
 % load movie
 [movie, movieHeader, loadStruct] = ...
