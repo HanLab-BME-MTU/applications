@@ -27,32 +27,38 @@ loadOpt.maxSize = 100000000;
 % launch Imaris
 imarisHandle = imarisStartNew;
 
-% assign size of movie
-imaDataSet = imarisHandle.mFactory.CreateDataSet;
+% create dataSet - set empty movie
+imarisHandle.mDataSet.Create(3,movieHeader.numRows,movieHeader.numCols,...
+    movieHeader.numZSlices,movieHeader.numWvs,movieHeader.numTimepoints);
 
-imaDataSet.mSizeX = movieHeader.numCols;
-imaDataSet.mSizeY = movieHeader.numRows;
-imaDataSet.mSizeZ = movieHeader.numZSlices;
-imaDataSet.mSizeC = movieHeader.numWvl;
-imaDataSet.mSizeT = movieHeader.numTimepoints;
+
+
+% % assign size of movie
+% imaDataSet = imarisHandle.mFactory.CreateDataSet;
+% 
+% imaDataSet.mSizeX = movieHeader.numCols;
+% imaDataSet.mSizeY = movieHeader.numRows;
+% imaDataSet.mSizeZ = movieHeader.numZSlices;
+% imaDataSet.mSizeC = movieHeader.numWvs;
+% imaDataSet.mSizeT = movieHeader.numTimepoints;
 
 % assign pixelsize (when will they allow that directly??)
 % set xyz-coordinates 0:n*pixelSize
-imaDataSet.mExtendMinX = 0;
-imaDataSet.mExtendMinY = 0;
-imaDataSet.mExtendMinZ = 0;
-imaDataSet.mExtendMaxX = imaDataSet.mSizeX * movieHeader.pixelX;
-imaDataSet.mExtendMaxY = imaDataSet.mSizeY * movieHeader.pixelY;
-imaDataSet.mExtendMaxZ = imaDataSet.mSizeZ * movieHeader.pixelZ;
+imarisHandle.mDataSet.mExtendMinX = 0;
+imarisHandle.mDataSet.mExtendMinY = 0;
+imarisHandle.mDataSet.mExtendMinZ = 0;
+imarisHandle.mDataSet.mExtendMaxX = imarisHandle.mDataSet.mSizeX * movieHeader.pixelX;
+imarisHandle.mDataSet.mExtendMaxY = imarisHandle.mDataSet.mSizeY * movieHeader.pixelY;
+imarisHandle.mDataSet.mExtendMaxZ = imarisHandle.mDataSet.mSizeZ * movieHeader.pixelZ;
 
 % now loop through movie and set volumes into DataSet
 done = 0;
 while ~done
 
-    for t = 1:loadStruct.loadedFrames
+    for t = loadStruct.loadedFrames
         for c = 1:1 % make color work later
-            % put volume
-            imaDataSet.SetVolume(single(movie(:,:,:,c,t)),c-1,t-1);
+            % put volume            
+            imarisHandle.mDataSet.SetDataVolume(single(movie(:,:,:,c,t)),c-1,t-1);
         end % color
     end % time
 
@@ -68,8 +74,5 @@ end
 
 % finish
 
-% show in imaris
-imaApp.mDataSet = imaDataSet;
-
 % name the imaris session
-imaApp.mDataSet.SetParameter('Image', 'Name', loadStruct.movieName);
+imarisHandle.mDataSet.SetParameter('Image', 'Name', loadStruct.movieName);

@@ -1,4 +1,4 @@
-function [movie,movieSize,movieName,moviePath,movieProperties,imarisHandle,loadStruct] = imarisImread(multiArgument,pathName,cropIdx,maxSize)
+function [movie,movieSize,movieName,moviePath,movieProperties,imarisHandle,loadStruct] = imarisImread(multiArgument,pathName,cropIdx,maxSize,noMovie)
 %IMARISIMREAD will launch imaris to read a movie (or any parts of it) from disk
 %
 % SYNOPSIS [movie,movieSize,movieName,moviePath,movieProperties,imarisHandle,loadStruct] = imarisImread(multiArgument,pathName,cropIdx,maxSize)
@@ -38,6 +38,10 @@ function [movie,movieSize,movieName,moviePath,movieProperties,imarisHandle,loadS
 %                                 the cropping in x,y,z, and c will be
 %                                 taken into account. The movie will be
 %                                 split along z.
+
+%          noMovie         : (opt) [{0}/1] if 1, the movie will be loaded
+%                                 into Imaris, the first output argument
+%                                 will be returned empty.
 %
 % OUTPUT   movie              : the image file
 %          movieSize          : original size of movie [x y z c t]
@@ -125,7 +129,7 @@ checkSize = 0;
 
 
 % first argument
-if nargin == 0 | isempty(multiArgument)
+if nargin == 0 || isempty(multiArgument)
 
     % no first argument, so all is normal
 
@@ -133,15 +137,13 @@ elseif isnumeric(multiArgument)
     % filterIdx
 
     % make sure we have reasonable filter choices
-    if max(multiArgument) <= numFilters & min(multiArgument) > 0
+    if max(multiArgument) <= numFilters && min(multiArgument) > 0
         filterChoice = multiArgument;
     else
         error(['there are only' num2str(numFilters) 'possible choices for filters, starting at 1'])
     end
 
-    filterChoice = multiArgument;
-
-elseif isstr(multiArgument)
+elseif ischar(multiArgument)
     % fileName
 
     launchGUI = 0;
@@ -158,6 +160,9 @@ elseif strcmp(class(multiArgument),'COM.Imaris_Application')
     launchImaris = 0;
     launchGUI    = 0;
     vImarisApplication = multiArgument;
+    
+    % get movieName
+    movieName = vImarisApplication.mDataSet.GetParameter('Image','Name');
     % in the future, we could test here whether a movie has been loaded
 
 elseif isstruct(multiArgument)
@@ -206,7 +211,7 @@ if ~ isempty(moviePath) & ~strcmp(moviePath(end),filesep)
 end
 
 % third argument
-if nargin < 3 | isempty(cropIdx)
+if nargin < 3 || isempty(cropIdx)
 
     % no crop
     cropIdx = [];
@@ -226,6 +231,10 @@ else
     checkSize = 1;
     % initialize loadStruct
     loadStruct = [];
+end
+
+if nargin < 5 || isempty(noMovie)
+    noMovie = 0;
 end
 
 %=============================
@@ -264,6 +273,8 @@ end
 if launchImaris
     % load movie into imaris
     vImarisApplication.FileOpen([moviePath movieName], filterList{filterIdx,3});
+    % set name
+    vImarisApplication.mDataSet.SetParameter('Image','Name',movieName);
 end
 
 % and get all the corresponding properties
@@ -348,8 +359,14 @@ if checkSize
     % now that we have loadStruct either from input or from just being
     % created, take cropIdx, update frames2load and loadedFrames
     cropIdx = loadStruct.frames2load{1};
-    loadStruct.frames2load(1) = [];
-    loadStruct.loadedFrames = cropIdx(1,5):cropIdx(2,5);
+    if noMovie
+        % don't shorten frames2load
+        % no loadedFrames
+        laodStruct.loadedFrames = [];
+    else
+        loadStruct.frames2load(1) = [];
+        loadStruct.loadedFrames = cropIdx(1,5):cropIdx(2,5);
+    end
     movieName = loadStruct.movieName;
     moviePath = loadStruct.moviePath;
 
@@ -368,6 +385,44 @@ else
     loadStruct.movieName = movieName;
 end
 
+%========================
+% MOVIE PROPERTIES
+%========================
+
+% read according to manufacturer.
+% so far, use field names you would get from readr3dheader
+movieType = vImarisApplication.mDataSet.GetParameter('Image','ManufactorString');
+switch movieType
+    case 'MetaMorph'
+        movieProperties.pixelX= str2double(...
+            vImarisApplication.mDataSet.GetParameter('Metamorph STK','XCalibration'));
+        movieProperties.pixelY= str2double(...
+            vImarisApplication.mDataSet.GetParameter('Metamorph STK','YCalibration'));
+        movieProperties.pixelZ = str2double(...
+            vImarisApplication.mDataSet.GetParameter('Metamorph STK','DeltaZ'));
+        movieProperties.lensID = 0;
+        movieProperties.numCols = movieSize(2);
+        movieProperties.numRows = movieSize(1);
+        movieProperties.numZSlices = movieSize(3);
+        movieProperties.numTimepoints = movieSize(5);
+        movieProperties.numWvs = movieSize(4);
+        % wvl in um!!
+        movieProperties.wvl = str2double(...
+            vImarisApplication.mDataSet.GetParameter('Metamorph STK','WaveLength'))/1000;
+    otherwise
+        warning('no property reader defined for %s',movieType);
+        movieProperties = [];
+end
+
+
+%==========================
+
+% stop here if no movie should be loaded
+if noMovie
+    imarisHandle = vImarisApplication;
+    movie = [];
+    return
+end
 
 %==========================
 % READ MOVIE FROM IMARIS
@@ -423,34 +478,7 @@ end
 
 %=======================
 
-%========================
-% MOVIE PROPERTIES
-%========================
 
-% read according to manufacturer.
-% so far, use field names you would get from readr3dheader
-movieType = vImarisApplication.mDataSet.GetParameter('Image','ManufactorString');
-switch movieType
-    case 'MetaMorph'
-        movieProperties.pixelX= str2double(...
-            vImarisApplication.mDataSet.GetParameter('Metamorph STK','XCalibration'));
-        movieProperties.pixelY= str2double(...
-            vImarisApplication.mDataSet.GetParameter('Metamorph STK','YCalibration'));
-        movieProperties.pixelZ = str2double(...
-            vImarisApplication.mDataSet.GetParameter('Metamorph STK','DeltaZ'));
-        movieProperties.lensID = 0;
-        movieProperties.numCols = movieSize(2);
-        movieProperties.numRows = movieSize(1);
-        movieProperties.numZSlices = movieSize(3);
-        movieProperties.numTimepoints = movieSize(5);
-        movieProperties.numWvs = movieSize(4);
-        % wvl in um!!
-        movieProperties.wvl = str2double(...
-            vImarisApplication.mDataSet.GetParameter('Metamorph STK','WaveLength'))/1000;
-    otherwise
-        warning('no property reader defined for %s',movieType);
-        movieProperties = [];
-end
         
 
 
