@@ -18,7 +18,7 @@ function imarisHandle = imarisSetMovie
 
 
 % set maxSize to 100 MB
-loadOpt.maxSize = 100000000;
+loadOpt.maxSize = 10000000;
 
 % load movie
 [movie, movieHeader, loadStruct] = ...
@@ -55,20 +55,21 @@ imarisHandle.mDataSet.mExtendMaxZ = imarisHandle.mDataSet.mSizeZ * movieHeader.p
 done = 0;
 while ~done
 
-    for t = loadStruct.loadedFrames
+    for t = 1:length(loadStruct.loadedFrames)
+        currentTime = loadStruct.loadedFrames(t);
         for c = 1:1 % make color work later
             % put volume            
-            imarisHandle.mDataSet.SetDataVolume(single(movie(:,:,:,c,t)),c-1,t-1);
+            imarisHandle.mDataSet.SetDataVolume(single(movie(:,:,:,c,t)),c-1,currentTime-1);
         end % color
     end % time
 
     % load move movie
-    if ~isempty(loadStruct.frames2load)
+    if isempty(loadStruct.frames2load)
         done = 1;
     else
         movie = [];
         [movie, movieHeader, loadStruct] = ...
-            cdLoadMovie(loadStruct);
+            cdLoadMovie(loadStruct.movieType,[],loadStruct);
     end
 end
 
