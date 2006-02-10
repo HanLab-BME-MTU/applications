@@ -152,7 +152,7 @@ elseif isstr(multiArgument)
         error('Please specify the path in the second input argument')
     end
 
-elseif strcmp(class(multiArgument),'COM.imaris.application')
+elseif strcmp(class(multiArgument),'COM.Imaris_Application')
     % imarisHandle
 
     launchImaris = 0;
