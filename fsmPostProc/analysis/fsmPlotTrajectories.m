@@ -114,7 +114,10 @@ end
 
 if colorCode==1
     % Initialize colormap
-    cmap=colormap(winter(uLast-uFirst+1));close(gcf);
+    n_colors = int16(uLast-uFirst+1);
+    cmap=colormap(winter(n_colors));
+    close(gcf);
+    %cmap=colormap(jet(156));close(gcf);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

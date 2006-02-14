@@ -587,6 +587,9 @@ for c1=1:nImages %firstMatrix:lastMatrix
             fname=[outputdir,filesep,'flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
             print(gcf,'-dtiffnocompression',fname);
             
+            fname2=[outputdir,filesep,'flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.fig'];
+            hgsave(gcf,fname2);
+            
             % Close image
             close(h);
         end
@@ -679,6 +682,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
                 indxStr=sprintf(strg,imageIndices(c1));
                 fname=[outputdir,filesep,'matchMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
                 print(gcf,'-dtiffnocompression',fname);
+               
                 
                 % Close image
                 close(h);
