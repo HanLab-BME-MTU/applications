@@ -171,6 +171,8 @@ dataProperties.MAXSPOTS=5;
 dataProperties.T_TEST_PROB=0.0500;
 dataProperties.help=['synthMovie'];
 dataProperties.maxSize = 200 * 2^20; % 200 Mb
+dataProperties.amplitudeCutoff = 0; % undefined
+dataProperties.fitNPlusOne = 1; % super-resolution fitting
 
 
 

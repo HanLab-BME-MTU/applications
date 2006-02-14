@@ -144,12 +144,14 @@ emptyHeader = 0;
 
 % if there is a loadStruct, we know the movie already. Otherwise, use type
 % to decide on filename (*.r3d or *.fim)
-if isstruct(loadOpt) && isfield(loadOpt,'movieName')
+if isstruct(loadOpt) && isfield(loadOpt,'movieName') ...
+        && isfield(loadOpt,'frames2load')
     loadStruct = loadOpt;
     emptyHeader = 1;
 else
     % generate loadStruct
-    loadStruct(1) = struct('movieName',[],'frames2load',[],'correctionData',[], 'movieType',[]);
+    loadStruct(1) = struct('movieName',[],...
+        'frames2load',[],'correctionData',[], 'movieType',[]);
 
     % get all files in the directory. If we know the file already, this
     % is a lot faster!
@@ -308,6 +310,7 @@ else
                     load correctionData
                 else
                     % raw movie
+                    type = 1;
                     r3dMovieHeader = readr3dheader(movieInfo.name);
                     correctionData = [];
                 end
@@ -566,6 +569,9 @@ switch type
     case 7
         % readmat
         movie = readmat(loadStruct.movieName,loadList);
+        
+    otherwise 
+        error('type %i not handled!',type)
 end
 
 

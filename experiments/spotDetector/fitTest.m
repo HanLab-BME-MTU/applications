@@ -170,8 +170,16 @@ ncordList=reshape(parms(posIdx),3,nsp)';
 
 %sprintf('%05.3f \n',parms)
 
+% check whether we should fit n plus one
+fitNPlusOne = 1;
+if isfield(dataProperties,'fitNPlusOne')
+    fitNPlusOne = dataProperties.fitNPlusOne;
+end
+if nsp == 0
+    fitNPlusOne = 0;
+end
 
-if nsp>0 %do N+1-fit only if there are any spots left!
+if fitNPlusOne %do N+1-fit only if there are any spots left!
     %--------------------------------------FIT N+1-------------------------------------
     
     % nCt counts the number of new tags
@@ -269,7 +277,7 @@ if nsp>0 %do N+1-fit only if there are any spots left!
 %         fValue=(chi1/numFreeParms)/(chi2/newNumFreeParms);
 %         prob=fcdf(fValue,numFreeParms,newNumFreeParms);
 
-        disp(sprintf('%1.4f',prob));
+        %disp(sprintf('%1.4f',prob));
         if (prob>F_TEST_PROB)
             %test again whether the spots are significant
             [nparms,nQAll,deletedSpotNumber,dummy,debugData(end+1).testValue] = ...

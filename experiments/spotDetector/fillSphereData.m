@@ -1,4 +1,5 @@
 function m=fillSphereData(radius,rto);
+%FILLSPHEREDATA is a helper function to create a mask with ones inside an ellipsoid and zeros everywhere else.
 
 if nargin==1
     rto=1;

@@ -9,6 +9,7 @@ function [mainDir,oldDir]=cdBiodata(option)
 %                   3 as 2, but if not in biodata directory: do not change to it
 %                   4 do not change dir at all, just return mainDir
 %                   5 goto tmpData/misteli (only works in LCCB)
+%                   6 goto tmpData/jason (only works in LCCB)
 %
 %OUTPUT     mainDir BIODATA - directory
 %           oldDir  previous directory
@@ -61,5 +62,12 @@ switch option
         % cd Biodata
         cdBiodata(0);
         cd ../tmpData/misteli
+        mainDir = pwd;
+    case 6
+        % go to tmpData/jason
+        
+        % cd Biodata
+        cdBiodata(0);
+        cd ../tmpData/jason
         mainDir = pwd;
 end
