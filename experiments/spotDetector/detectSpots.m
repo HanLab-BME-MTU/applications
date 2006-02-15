@@ -1,7 +1,7 @@
-function [slist, dataProperties, optData] = detectSpots(rawMovieName, filteredMovieName, dataProperties, verbose, options)
+function [slist, dataProperties, testRatios, optData] = detectSpots(rawMovieName, filteredMovieName, dataProperties, verbose, options)
 %DETECTSPOTS is a wrapper for the static segmentation in the chromdyn package
 %
-% SYNOPSIS: [slist, optData] = detectSpots(rawMovieName, filteredMovieName, dataProperties, options)
+% SYNOPSIS: [slist, dataProperties, testRatios, optData] = detectSpots(rawMovieName, filteredMovieName, dataProperties, options)
 %
 % INPUT rawMovieName:       filename of raw movie or handle to an imaris
 %                           session where the raw movie has been loaded
@@ -21,6 +21,8 @@ function [slist, dataProperties, optData] = detectSpots(rawMovieName, filteredMo
 %                           amplitudes, uncertainties of detected spots
 %        dataProperties     dataProperties structure with added field
 %                           "amplitudeCutoff"
+%        testRatios         nTimepoints-by-1 cell with the testRatios for
+%                           the amplitudes of the fitted spots
 %        optData:           additional data for debugging
 %
 % REMARKS
@@ -249,11 +251,17 @@ while ~done
 
     % prepare data for mixture model fitting
     loadedFrames = loadStruct.loadedFrames-deltaFrames;
+    
+    if ~isempty(testRatios)
+        tr = testRatios(loadedFrames);
+    else
+        tr = [];
+    end
 
     % do fitting
     slist(loadedFrames) = ...
         detectSpots_MMF_main(rawMovie,coordinates(loadedFrames),...
-        dataProperties,testRatios(loadedFrames),verbose);
+        dataProperties,tr,verbose);
 
     % load more
     if isempty(loadStruct.frames2load)

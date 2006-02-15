@@ -262,7 +262,7 @@ try
                                         fullfile(filteredMovieNameList{1,2},filteredMovieNameList{1,1});
                                     
                                     
-                                    [slist, dataProperties] = ...
+                                    [slist, dataProperties,testRatios] = ...
                                         detectSpots(rawMovieName, ...
                                         filteredMovieName, ...
                                         dataProperties, 2);
@@ -358,6 +358,9 @@ try
                                     %save last result
                                     lastResult = 'slist';
                                     save(projData,'lastResult','-append');
+                                    
+                                    % save testRatios
+                                    save('testRatios','testRatios');
 
                                     %update data properties
                                     fprintf(fidJob,[nowString,' save(%s,''projProperties'',''-append'');\n'],projData);
