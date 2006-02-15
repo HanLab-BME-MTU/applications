@@ -53,6 +53,9 @@ MAXSPOTS = str2double(get(handles.edit_maxNumSpots_txt,'String'));
 amgHandles.job(activeJobNum).dataProperties.MAXSPOTS = MAXSPOTS; 
 F_TEST_PROB = str2double(get(handles.edit_ftest_prob_txt,'String'));
 amgHandles.job(activeJobNum).dataProperties.F_TEST_PROB = F_TEST_PROB;    % min probability that there are two spots in a distribution
+% amplitudeCutoff
+        amplitudeCutoff = str2double(get(handles.edit_amplitudeCutoff,'String'));
+        amgHandles.job(activeJobNum).dataProperties.amplitudeCutoff = amplitudeCutoff;
 
 %set spotID properties
 opt.weight = str2double(get(handles.edit_IDopt_weight_txt,'String'));

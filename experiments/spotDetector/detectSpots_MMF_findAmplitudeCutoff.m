@@ -193,12 +193,18 @@ end % while loop
 % get cutoff. Transform cell to matrix and read out ratios only
 tmp = cat(1,testRatios{:});
 ratios = tmp(:,2);
+times = tmp(:,1);
 clear tmp
 
 % remove very small values from ratios. If there are multiple almost zeros,
 % for example, there will be a peak at 0 that will screw up
-% cutFirstHistMode.
-ratios(ratios < 1e-3) = [];
+% cutFirstHistMode
+badIdx = ratios < 1e-3;
+if sum(badIdx) > 0
+    disp(sprintf('findAmpCutoff: %i low int spots',sum(badIdx)))
+times(badIdx) = [];
+ratios(badIdx) = [];
+end
 
 % find cutoff
 
@@ -230,13 +236,18 @@ cutValue = zeroList(indexList(cutIdx));
 % plot cutoff
 if verbose > 1
     figure('Name',sprintf('cutoff for %s',dataProperties.name)),
-    axesH(1)=subplot(1,2,1);
-    plot(ratios,'+'),
-    axesH(2)=subplot(1,2,2);
+    axesH(1)=subplot(2,1,1);
+    t1idx = ismember(times,1:3:nTimepoints);
+    t2idx = ismember(times,2:3:nTimepoints);
+    t3idx = ismember(times,3:3:nTimepoints);
+    plot(times(t1idx),ratios(t1idx),'+r',...
+        times(t2idx),ratios(t2idx),'+g',...
+        times(t3idx),ratios(t3idx),'+b'),
+    axesH(2)=subplot(2,1,2);
     cutFirstHistMode(axesH(2),ratios);
     set(axesH(1),'NextPlot','add');
-    plot(axesH(1),[1,length(ratios)],[cutVal,cutVal],'g')
-    plot(axesH(1),[1,length(ratios)],[cutValue,cutValue],'r')
+    plot(axesH(1),[1,nTimepoints],[cutVal,cutVal],'g')
+    plot(axesH(1),[1,nTimepoints],[cutValue,cutValue],'r')
     set(axesH(2),'NextPlot','add');
     plot(axesH(2),[cutVal,cutVal],[0,100],'g',...
         [cutValue,cutValue],[0,100],'r')

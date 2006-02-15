@@ -271,6 +271,13 @@ if ~isempty(myJob.dataProperties)&isfield(myJob.dataProperties,'IDopt')
     set(handles.edit_maxNumSpots_txt,'String',myJob.dataProperties.MAXSPOTS); %   1 pt/0.5 grayvalue (max. slope)
     set(handles.edit_ftest_prob_txt,'String',myJob.dataProperties.F_TEST_PROB);    % min probability that there are two spots in a distribution
     
+    % amplitudeCutoff
+    if isfield(myJob.dataProperties,'amplitudeCutoff')
+        set(handles.edit_amplitudeCutoff,'String',sprintf('%1.2f',myJob.dataProperties.amplitudeCutoff));
+    else
+        set(handles.edit_amplitudeCutoff,'String',0);
+    end
+    
     %set spotID properties
     if isfield(myJob.dataProperties,'IDopt') %prevent conflict with older versions
         set(handles.edit_IDopt_weight_txt,'String',myJob.dataProperties.IDopt.weight);
@@ -302,6 +309,12 @@ else
             set(handles.edit_temperature_PD,'Value',strmatch(myJob.dataProperties.temperature,tempList));
         end
         
+        % amplitudeCutoff
+    if isfield(myJob.dataProperties,'amplitudeCutoff')
+        set(handles.edit_amplitudeCutoff,'String',sprintf('%1.2f',myJob.dataProperties.amplitudeCutoff));
+    else
+        set(handles.edit_amplitudeCutoff,'String',0);
+    end
         
         
         %mark jobs already done
