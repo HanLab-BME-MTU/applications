@@ -62,67 +62,68 @@ try
             switch done(i)
                 %job to do
                 case 0
-                    todoList = bsum2bvec(job(i).jobs2run);
-                    %create/find logfile
-                    if job(i).createNew==1
-                        projData = [job(i).projName,'-data-',nowString];
-                        dataProperties = job(i).dataProperties;
-                        fprintf(fidJob,[nowString,' create %s\n'],projData);
-                        save(projData,'dataProperties');
-
-                        %save project properties
-                        projProperties = job(i).projProperties;
-                        projProperties.projName = job(i).projName;
-                        projProperties.datafileName = projData;
-                        fprintf(fidJob,[nowString,' save project properties\n']);
-                        job(i).projProperties = projProperties;
-                        save(projData,'projProperties','-append');
-
-                        job(i).projData = [projData,'.mat'];
-                        job(i).createNew = 0;
-
-                        update = 0;
-                        dataFileCreated(i) = 1;
-                    else
-                        %there is no new file being created, analysis
-                        %continues.
-                        projData = job(i).projData;
-                        dataProperties = job(i).dataProperties;
-                        projProperties = job(i).projProperties;
-                        projProperties.projName = job(i).projName;
-                        projProperties.datafileName = projData;
-                        job(i).projProperties = projProperties;
-                        %save updated data properties
-                        update = 1;
-
-                    end
-
-                    %open/create logfile
-                    fprintf(fidJob,[nowString,' fid = fopen(%s.log,''a+'');\n'],job(i).projData);
-                    fid = fopen([job(i).projData,'.log'],'a+');
-                    fprintf(fid,['\n-----------------\n\n',nowString,' start calculations(%s)\n'],lastName);
-
-                    if update
-                        %update data properties
-                        fprintf(fidJob,[nowString,' save(',projData,',''dataProperties/projProperties'',''-append'');\n']);
-                        fprintf(fid,[nowString,' update dataProperties&projProperties\n']);
-                        if exist(projData,'file')
-                        save(projData,'dataProperties','-append');
-                        save(projData,'projProperties','-append');
-                        else
+                    try
+                        todoList = bsum2bvec(job(i).jobs2run);
+                        %create/find logfile
+                        if job(i).createNew==1
+                            projData = [job(i).projName,'-data-',nowString];
+                            dataProperties = job(i).dataProperties;
+                            fprintf(fidJob,[nowString,' create %s\n'],projData);
                             save(projData,'dataProperties');
-                        save(projData,'projProperties','-append');
+
+                            %save project properties
+                            projProperties = job(i).projProperties;
+                            projProperties.projName = job(i).projName;
+                            projProperties.datafileName = projData;
+                            fprintf(fidJob,[nowString,' save project properties\n']);
+                            job(i).projProperties = projProperties;
+                            save(projData,'projProperties','-append');
+
+                            job(i).projData = [projData,'.mat'];
+                            job(i).createNew = 0;
+
+                            update = 0;
+                            dataFileCreated(i) = 1;
+                        else
+                            %there is no new file being created, analysis
+                            %continues.
+                            projData = job(i).projData;
+                            dataProperties = job(i).dataProperties;
+                            projProperties = job(i).projProperties;
+                            projProperties.projName = job(i).projName;
+                            projProperties.datafileName = projData;
+                            job(i).projProperties = projProperties;
+                            %save updated data properties
+                            update = 1;
+
                         end
-                    end
+
+                        %open/create logfile
+                        fprintf(fidJob,[nowString,' fid = fopen(%s.log,''a+'');\n'],job(i).projData);
+                        fid = fopen([job(i).projData,'.log'],'a+');
+                        fprintf(fid,['\n-----------------\n\n',nowString,' start calculations(%s)\n'],lastName);
+
+                        if update
+                            %update data properties
+                            fprintf(fidJob,[nowString,' save(',projData,',''dataProperties/projProperties'',''-append'');\n']);
+                            fprintf(fid,[nowString,' update dataProperties&projProperties\n']);
+                            if exist(projData,'file')
+                                save(projData,'dataProperties','-append');
+                                save(projData,'projProperties','-append');
+                            else
+                                save(projData,'dataProperties');
+                                save(projData,'projProperties','-append');
+                            end
+                        end
 
 
-                    j = 1;
-                    %loop through todoList
-                    while j<=length(todoList)&done(i)==0
-                        %switch according to which job is to be done
-                        switch todoList(j)
-                            case 1 %filter movie
-                                try
+                        j = 1;
+                        %loop through todoList
+                        while j<=length(todoList)&done(i)==0
+                            %switch according to which job is to be done
+                            switch todoList(j)
+                                case 1 %filter movie
+                                    %                                 try
                                     fprintf(fid,[nowString,' filter movie\n']);
 
                                     %read movie. Correct background if
@@ -208,49 +209,50 @@ try
                                     delete([delStr,'.mat']);
                                     lastName = newName;
 
-                                catch %if any error: come here
-                                    %log lasterr
-                                    %if lasterr is from aborted waitbar: make more explicative
+                                    %                                 catch %if any error: come here
+                                    %                                     %log lasterr
+                                    %                                     %if lasterr is from aborted waitbar: make more explicative
+                                    %
+                                    %                                     err = lasterr;
+                                    %                                     if findstr(err,['Error using ==> get',char(10),'Invalid handle'])
+                                    %                                         %if aborted waitbar:
+                                    %                                         %ask for complete interruption
+                                    %                                         err = 'filtering aborted by user';
+                                    %                                         button = questdlg('Do you want to abort...','Evaluation interrupted by user!','This job','All','All');
+                                    %                                         if strcmp(button,'All')
+                                    %                                             fprintf(fid,[nowString,' error',err,'\n']);
+                                    %                                             if dataFileCreated(i)
+                                    %                                                 delStr = [projData]; %we're already in the correct dir
+                                    %                                                 delete([delStr,'.mat']);
+                                    %                                                 %currently, the log file is not deleted
+                                    %                                             end
+                                    %                                             fclose(fid);
+                                    %                                             error(err);
+                                    %                                         end
+                                    %                                     end
+                                    %
+                                    %                                     fprintf(fidJob,[nowString,' error:',err,'\n']);
+                                    %                                     fprintf(fid,[nowString,' error',err,'\n']);
+                                    %                                     disp(['job-',num2str(i),' ',err,' during filtering']);
+                                    %                                     %do not continue execution
+                                    %                                     done(i) = 1;
+                                    %                                     %if a dataFile has been created: delete
+                                    %                                     %(prevent empty data files)
+                                    %                                     if dataFileCreated(i)
+                                    %                                         delStr = [projData]; %we're already in the correct dir
+                                    %                                         delete([delStr,'.mat']);
+                                    %                                         %currently, the log file is not deleted
+                                    %                                     end
+                                    %                                     %close any open waitbars
+                                    %                                     h = findall(0,'Tag','TMWWaitbar');
+                                    %                                     close(h);
+                                    %                                 end
 
-                                    err = lasterr;
-                                    if findstr(err,['Error using ==> get',char(10),'Invalid handle'])
-                                        %if aborted waitbar:
-                                        %ask for complete interruption
-                                        err = 'filtering aborted by user';
-                                        button = questdlg('Do you want to abort...','Evaluation interrupted by user!','This job','All','All');
-                                        if strcmp(button,'All')
-                                            fprintf(fid,[nowString,' error',err,'\n']);
-                                            if dataFileCreated(i)
-                                                delStr = [projData]; %we're already in the correct dir
-                                                delete([delStr,'.mat']);
-                                                %currently, the log file is not deleted
-                                            end
-                                            fclose(fid);
-                                            error(err);
-                                        end
-                                    end
-
-                                    fprintf(fidJob,[nowString,' error:',err,'\n']);
-                                    fprintf(fid,[nowString,' error',err,'\n']);
-                                    disp(['job-',num2str(i),' ',err,' during filtering']);
-                                    %do not continue execution
-                                    done(i) = 1;
-                                    %if a dataFile has been created: delete
-                                    %(prevent empty data files)
-                                    if dataFileCreated(i)
-                                        delStr = [projData]; %we're already in the correct dir
-                                        delete([delStr,'.mat']);
-                                        %currently, the log file is not deleted
-                                    end
-                                    %close any open waitbars
-                                    h = findall(0,'Tag','TMWWaitbar');
-                                    close(h);
-                                end
-
-                            case 2 %spotDetector
-                                try
+                                case 2 %spotDetector
+                                    %                                 try
                                     fprintf(fid,[nowString,' detect spots\n']);
                                     
+
                                     % find raw movie name
                                     rawMovieNameList = ...
                                         searchFiles('r3d$|3D.dv$','','',0);
@@ -260,95 +262,95 @@ try
                                         fullfile(rawMovieNameList{1,2},rawMovieNameList{1,1});
                                     filteredMovieName = ...
                                         fullfile(filteredMovieNameList{1,2},filteredMovieNameList{1,1});
-                                    
-                                    
+
+
                                     [slist, dataProperties,testRatios] = ...
                                         detectSpots(rawMovieName, ...
                                         filteredMovieName, ...
                                         dataProperties, 2);
 
-%                                     % load movie (corrected if available)
-%                                     fprintf(fidJob,[nowString,' movie  =  cdLoadMovie(''corr/raw'');\n']);
-%                                     fprintf(fid,[nowString,' load raw/corrected movie\n']);
-% 
-%                                     % generate loadStruct for loading in
-%                                     % chunks
-%                                     loadStruct = struct('maxSize',dataProperties.maxSize);
-% 
-%                                     % load first parts. There will be the
-%                                     % same number of frames because the
-%                                     % movies (when double) have the same size
-%                                     [movie, movieHeader, loadStructR] = ...
-%                                         cdLoadMovie('corr/raw',[],loadStruct);
-%                                     % make sure we load the same number of
-%                                     % frames as for the raw movie. Since
-%                                     % there might be leading darkframes, we
-%                                     % need to know from which frame on we
-%                                     % should load
-%                                     deltaFrames = min(loadStructR.loadedFrames) - 1;
-%                                     [filteredMovie, movieHeader, loadStructF] = ...
-%                                         cdLoadMovie('filtered',[],...
-%                                         loadStructR.loadedFrames - deltaFrames);
-%                                     % update frames2load with whatever we
-%                                     % get for the raw movie
-%                                     loadStructF.frames2load = loadStructR.frames2load;
-% 
-%                                     % loop with movie-chunks
-%                                     loopDone = 0;
-%                                     clear slist %make sure there isn't any slist from a previous job
-%                                     slist(1:movieHeader.numTimepoints) = ...
-%                                         struct('sp',[],...
-%                                         'mnint',[],...
-%                                         'statistics',[],...
-%                                         'parms',[],...
-%                                         'COM',[]);
-% 
-%                                     while ~loopDone
-% 
-%                                         %run detect spots
-%                                         lf = loadStructF.loadedFrames;
-%                                         fprintf(fidJob,[nowString,' cord = spotfind(filteredMovie,dataProperties);\n']);
-%                                         fprintf(fid,sprintf('%s, find spots frames %i:%i\n',nowString,lf(1),lf(end)));
-% 
-%                                         % find spots
-%                                         cord = spotfind(filteredMovie,dataProperties);
-% 
-% 
-%                                         % read loaded frames from filtered
-%                                         % movie, even though we're using
-%                                         % the raw one - there could be
-%                                         % correctionFrames
-%                                         lf = loadStructF.loadedFrames;
-%                                         fprintf(fidJob,[nowString,' slist=findoverlap(movie,cord,dataProperties);\n']);
-%                                         fprintf(fid,sprintf('%s, MMF frames %i:%i\n',nowString,lf(1),lf(end)));
-% 
-%                                         % find overlapping spots
-%                                         slist(loadStructF.loadedFrames)=...
-%                                             findoverlap(movie,cord,dataProperties);
-% 
-%                                         clear('filteredMovie');
-%                                         clear('movie'); %to prevent memory problems
-% 
-%                                         if ~isempty(loadStructR.frames2load)
-%                                             [movie, movieHeader, loadStructR] = ...
-%                                                 cdLoadMovie(loadStructR.movieType,[],loadStructR);
-%                                             [filteredMovie, movieHeader, loadStructF] = ...
-%                                                 cdLoadMovie('filtered',[],loadStructR.loadedFrames - deltaFrames);
-%                                         else
-%                                             loopDone = 1;
-%                                         end
-% 
-%                                     end % while ~done
-% 
-%                                     clear('filteredMovie');
-%                                     clear('movie'); %to prevent memory problems
+                                    %                                     % load movie (corrected if available)
+                                    %                                     fprintf(fidJob,[nowString,' movie  =  cdLoadMovie(''corr/raw'');\n']);
+                                    %                                     fprintf(fid,[nowString,' load raw/corrected movie\n']);
+                                    %
+                                    %                                     % generate loadStruct for loading in
+                                    %                                     % chunks
+                                    %                                     loadStruct = struct('maxSize',dataProperties.maxSize);
+                                    %
+                                    %                                     % load first parts. There will be the
+                                    %                                     % same number of frames because the
+                                    %                                     % movies (when double) have the same size
+                                    %                                     [movie, movieHeader, loadStructR] = ...
+                                    %                                         cdLoadMovie('corr/raw',[],loadStruct);
+                                    %                                     % make sure we load the same number of
+                                    %                                     % frames as for the raw movie. Since
+                                    %                                     % there might be leading darkframes, we
+                                    %                                     % need to know from which frame on we
+                                    %                                     % should load
+                                    %                                     deltaFrames = min(loadStructR.loadedFrames) - 1;
+                                    %                                     [filteredMovie, movieHeader, loadStructF] = ...
+                                    %                                         cdLoadMovie('filtered',[],...
+                                    %                                         loadStructR.loadedFrames - deltaFrames);
+                                    %                                     % update frames2load with whatever we
+                                    %                                     % get for the raw movie
+                                    %                                     loadStructF.frames2load = loadStructR.frames2load;
+                                    %
+                                    %                                     % loop with movie-chunks
+                                    %                                     loopDone = 0;
+                                    %                                     clear slist %make sure there isn't any slist from a previous job
+                                    %                                     slist(1:movieHeader.numTimepoints) = ...
+                                    %                                         struct('sp',[],...
+                                    %                                         'mnint',[],...
+                                    %                                         'statistics',[],...
+                                    %                                         'parms',[],...
+                                    %                                         'COM',[]);
+                                    %
+                                    %                                     while ~loopDone
+                                    %
+                                    %                                         %run detect spots
+                                    %                                         lf = loadStructF.loadedFrames;
+                                    %                                         fprintf(fidJob,[nowString,' cord = spotfind(filteredMovie,dataProperties);\n']);
+                                    %                                         fprintf(fid,sprintf('%s, find spots frames %i:%i\n',nowString,lf(1),lf(end)));
+                                    %
+                                    %                                         % find spots
+                                    %                                         cord = spotfind(filteredMovie,dataProperties);
+                                    %
+                                    %
+                                    %                                         % read loaded frames from filtered
+                                    %                                         % movie, even though we're using
+                                    %                                         % the raw one - there could be
+                                    %                                         % correctionFrames
+                                    %                                         lf = loadStructF.loadedFrames;
+                                    %                                         fprintf(fidJob,[nowString,' slist=findoverlap(movie,cord,dataProperties);\n']);
+                                    %                                         fprintf(fid,sprintf('%s, MMF frames %i:%i\n',nowString,lf(1),lf(end)));
+                                    %
+                                    %                                         % find overlapping spots
+                                    %                                         slist(loadStructF.loadedFrames)=...
+                                    %                                             findoverlap(movie,cord,dataProperties);
+                                    %
+                                    %                                         clear('filteredMovie');
+                                    %                                         clear('movie'); %to prevent memory problems
+                                    %
+                                    %                                         if ~isempty(loadStructR.frames2load)
+                                    %                                             [movie, movieHeader, loadStructR] = ...
+                                    %                                                 cdLoadMovie(loadStructR.movieType,[],loadStructR);
+                                    %                                             [filteredMovie, movieHeader, loadStructF] = ...
+                                    %                                                 cdLoadMovie('filtered',[],loadStructR.loadedFrames - deltaFrames);
+                                    %                                         else
+                                    %                                             loopDone = 1;
+                                    %                                         end
+                                    %
+                                    %                                     end % while ~done
+                                    %
+                                    %                                     clear('filteredMovie');
+                                    %                                     clear('movie'); %to prevent memory problems
 
                                     %save slist
                                     fprintf(fidJob,[nowString,' save(%s,''slist'',''-append'');\n'],projData);
                                     fprintf(fid,[nowString,' save slist\n']);
                                     save(projData,'slist','-append');
                                     save(['slist-',nowString],'slist'); %save to disk, too
-                                    
+
                                     %save dataProperties
                                     fprintf(fidJob,[nowString,' save(%s,''dataProperties'',''-append'');\n'],projData);
                                     fprintf(fid,[nowString,' save dataProperties\n']);
@@ -358,7 +360,7 @@ try
                                     %save last result
                                     lastResult = 'slist';
                                     save(projData,'lastResult','-append');
-                                    
+
                                     % save testRatios
                                     save('testRatios','testRatios');
 
@@ -384,48 +386,48 @@ try
                                     delete([delStr,'.mat']);
                                     lastName = newName;
 
-                                catch %if any error: come here
-                                    %log lasterr
-                                    %if lasterr is from aborted waitbar: make more explicative
+                                    %                                 catch %if any error: come here
+                                    %                                     %log lasterr
+                                    %                                     %if lasterr is from aborted waitbar: make more explicative
+                                    %
+                                    %                                     err = lasterr;
+                                    %                                     if findstr(err,['Error using ==> get',char(10),'Invalid handle'])
+                                    %                                         %if aborted waitbar:
+                                    %                                         %ask for complete interruption
+                                    %                                         err = 'evaluation of autospfinder aborted by user';
+                                    %                                         button = questdlg('Do you want to abort...','Evaluation interrupted by user!','This job','All','All');
+                                    %                                         if strcmp(button,'All')
+                                    %                                             fprintf(fid,[nowString,' error',err,'\n']);
+                                    %                                             if dataFileCreated(i)
+                                    %                                                 delStr = [projData]; %we're already in the correct dir
+                                    %                                                 delete([delStr,'.mat']);
+                                    %                                                 %currently, the log file is not deleted
+                                    %                                             end
+                                    %                                             fclose(fid);
+                                    %                                             error(err);
+                                    %                                         end
+                                    %                                     end
+                                    %
+                                    %                                     fprintf(fidJob,[nowString,' error:',err,'\n']);
+                                    %                                     fprintf(fid,[nowString,' error',err,'\n']);
+                                    %                                     disp(['job-',num2str(i),' ',err,' in spotdetection']);
+                                    %
+                                    %                                     %do not continue execution
+                                    %                                     done(i) = 1;
+                                    %                                     %if a dataFile has been created: delete
+                                    %                                     %(prevent empty data files)
+                                    %                                     if dataFileCreated(i)
+                                    %                                         delStr = [projData]; %we're already in the correct dir
+                                    %                                         delete([delStr,'.mat']);
+                                    %                                         %currently, the log file is not deleted
+                                    %                                     end
+                                    %                                     %close any open waitbars
+                                    %                                     h = findall(0,'Tag','TMWWaitbar');
+                                    %                                     close(h);
+                                    %                                 end
 
-                                    err = lasterr;
-                                    if findstr(err,['Error using ==> get',char(10),'Invalid handle'])
-                                        %if aborted waitbar:
-                                        %ask for complete interruption
-                                        err = 'evaluation of autospfinder aborted by user';
-                                        button = questdlg('Do you want to abort...','Evaluation interrupted by user!','This job','All','All');
-                                        if strcmp(button,'All')
-                                            fprintf(fid,[nowString,' error',err,'\n']);
-                                            if dataFileCreated(i)
-                                                delStr = [projData]; %we're already in the correct dir
-                                                delete([delStr,'.mat']);
-                                                %currently, the log file is not deleted
-                                            end
-                                            fclose(fid);
-                                            error(err);
-                                        end
-                                    end
-
-                                    fprintf(fidJob,[nowString,' error:',err,'\n']);
-                                    fprintf(fid,[nowString,' error',err,'\n']);
-                                    disp(['job-',num2str(i),' ',err,' in spotdetection']);
-
-                                    %do not continue execution
-                                    done(i) = 1;
-                                    %if a dataFile has been created: delete
-                                    %(prevent empty data files)
-                                    if dataFileCreated(i)
-                                        delStr = [projData]; %we're already in the correct dir
-                                        delete([delStr,'.mat']);
-                                        %currently, the log file is not deleted
-                                    end
-                                    %close any open waitbars
-                                    h = findall(0,'Tag','TMWWaitbar');
-                                    close(h);
-                                end
-
-                            case 4 %spotID
-                                try
+                                case 4 %spotID
+                                    %                                 try
                                     fprintf(fid,[nowString,' link spots\n']);
 
                                     %read slist
@@ -467,39 +469,39 @@ try
                                     delete([delStr,'.mat']);
                                     lastName = newName;
 
-                                catch %if any error: come here
-                                    %log lasterr
-                                    %if lasterr is from aborted waitbar: make more explicative
+                                    %                                 catch %if any error: come here
+                                    %                                     %log lasterr
+                                    %                                     %if lasterr is from aborted waitbar: make more explicative
+                                    %
+                                    %                                     err = lasterr;
+                                    %                                     if findstr(err,['Error using ==> get',char(10),'Invalid handle'])
+                                    %                                         %if aborted waitbar:
+                                    %                                         %ask for complete interruption
+                                    %                                         err = 'spot linking aborted by user';
+                                    %                                         button = questdlg('Do you want to abort...','Evaluation interrupted by user!','This job','All','All');
+                                    %                                         if strcmp(button,'All')
+                                    %                                             fprintf(fid,[nowString,' error',err,'\n']);
+                                    %                                             fclose(fid);
+                                    %                                             error(err);
+                                    %                                         end
+                                    %                                     end
+                                    %
+                                    %                                     fprintf(fidJob,[nowString,' error:',err,'\n']);
+                                    %                                     fprintf(fid,[nowString,' error',err,'\n']);
+                                    %                                     disp(['job-',num2str(i),' ',err,' in spotlinker']);
+                                    %
+                                    %                                     %do not continue execution
+                                    %                                     done(i) = 1;
+                                    %                                     %close any open waitbars
+                                    %                                     h = findall(0,'Tag','TMWWaitbar');
+                                    %                                     close(h);
+                                    %                                 end
 
-                                    err = lasterr;
-                                    if findstr(err,['Error using ==> get',char(10),'Invalid handle'])
-                                        %if aborted waitbar:
-                                        %ask for complete interruption
-                                        err = 'spot linking aborted by user';
-                                        button = questdlg('Do you want to abort...','Evaluation interrupted by user!','This job','All','All');
-                                        if strcmp(button,'All')
-                                            fprintf(fid,[nowString,' error',err,'\n']);
-                                            fclose(fid);
-                                            error(err);
-                                        end
-                                    end
-
-                                    fprintf(fidJob,[nowString,' error:',err,'\n']);
-                                    fprintf(fid,[nowString,' error',err,'\n']);
-                                    disp(['job-',num2str(i),' ',err,' in spotlinker']);
-
-                                    %do not continue execution
-                                    done(i) = 1;
-                                    %close any open waitbars
-                                    h = findall(0,'Tag','TMWWaitbar');
-                                    close(h);
-                                end
-
-                            case 8 %labelgui
-                                %do not do anything yet; do other jobs first
-                                done(i) = 2;
-                            case 16 %trackTags
-                                try
+                                case 8 %labelgui
+                                    %do not do anything yet; do other jobs first
+                                    done(i) = 2;
+                                case 16 %trackTags
+                                    %                                 try
                                     fprintf(fid,[nowString,' track tags\n']);
 
                                     %find out whether to use idlist or idlist_L
@@ -531,12 +533,12 @@ try
                                     loadStruct = struct('maxSize',dataProperties.maxSize);
                                     [movie, movieHeader, loadStruct] = ...
                                         cdLoadMovie('corr/raw',[],loadStruct);
-                                    
+
                                     % getting rid of some previous sins
                                     idlist = ...
                                         idlist(1:movieHeader.numTimepoints);
 
-                                   
+
                                     % loop with movie-chunks
                                     loopDone = 0;
                                     idFieldNames = fieldnames(idlist);
@@ -550,7 +552,7 @@ try
 
                                         % find which frames have been loaded
                                         lf = loadStruct.loadedFrames;
-                                        
+
                                         %run tracktags
                                         fprintf(fidJob,sprintf(...
                                             '%s idlisttrack(%i:%i)=trackTags(movie,idlist,dataProperties);\n',...
@@ -608,50 +610,87 @@ try
                                     delete([delStr,'.mat']);
                                     lastName = newName;
 
-                                catch %if any error: come here
-                                    %log lasterr
-                                    %if lasterr is from aborted waitbar: make more explicative
+                                    %                                 catch %if any error: come here
+                                    %                                     %log lasterr
+                                    %                                     %if lasterr is from aborted waitbar: make more explicative
+                                    %
+                                    %                                     err = lasterr;
+                                    %                                     if findstr(err,['Error using ==> get',char(10),'Invalid handle'])
+                                    %                                         %if aborted waitbar:
+                                    %                                         %ask for complete interruption
+                                    %                                         err = 'tracking aborted by user';
+                                    %                                         button = questdlg('Do you want to abort...','Evaluation interrupted by user!','This job','All','All');
+                                    %                                         if strcmp(button,'All')
+                                    %                                             fprintf(fid,[nowString,' error',err,'\n']);
+                                    %                                             fclose(fid);
+                                    %                                             error(err);
+                                    %                                         end
+                                    %                                     end
+                                    %
+                                    %                                     fprintf(fidJob,[nowString,' error:',err,'\n']);
+                                    %                                     fprintf(fid,[nowString,' error',err,'\n']);
+                                    %                                     disp(['job-',num2str(i),' ',err,' in tracker']);
+                                    %
+                                    %                                     %do not continue execution
+                                    %                                     done(i) = 1;
+                                    %                                     %close any open waitbars
+                                    %                                     h = findall(0,'Tag','TMWWaitbar');
+                                    %                                     close(h);
+                                    %                                     %close any open messageboxes
+                                    %                                     h = findall(0,'Tag','MessageBox');
+                                    %                                     close(h);
+                                    %                                 end
 
-                                    err = lasterr;
-                                    if findstr(err,['Error using ==> get',char(10),'Invalid handle'])
-                                        %if aborted waitbar:
-                                        %ask for complete interruption
-                                        err = 'tracking aborted by user';
-                                        button = questdlg('Do you want to abort...','Evaluation interrupted by user!','This job','All','All');
-                                        if strcmp(button,'All')
-                                            fprintf(fid,[nowString,' error',err,'\n']);
-                                            fclose(fid);
-                                            error(err);
-                                        end
-                                    end
+                                case 32 %labelgui2
+                                    %do not do anything yet; do other jobs first
+                                    done(i) = 2;
+                                case 64 %analysis 1
+                                    done(i) = 1; %not implemented yet
+                                case 128 %analysis 2
+                                    done(i) = 1; %not implemented yet
+                            end %todoSwitch
+                            j = j+1;
+                        end %todoLoop
+                        if done(i)==0 %if all jobs done and no wait -> done = 1
+                            done(i) = 1;
+                        end
 
-                                    fprintf(fidJob,[nowString,' error:',err,'\n']);
-                                    fprintf(fid,[nowString,' error',err,'\n']);
-                                    disp(['job-',num2str(i),' ',err,' in tracker']);
+                    catch %if any error: come here
+                        %log lasterr
+                        %if lasterr is from aborted waitbar: make more explicative
 
-                                    %do not continue execution
-                                    done(i) = 1;
-                                    %close any open waitbars
-                                    h = findall(0,'Tag','TMWWaitbar');
-                                    close(h);
-                                    %close any open messageboxes
-                                    h = findall(0,'Tag','MessageBox');
-                                    close(h);
-                                end
+                        err = lasterror;
+                        if findstr(err.message,['Error using ==> get',char(10),'Invalid handle'])
+                            %if aborted waitbar:
+                            %ask for complete interruption
+                            err = 'tracking aborted by user';
+                            button = questdlg('Do you want to abort...','Evaluation interrupted by user!','This job','All','All');
+                            if strcmp(button,'All')
+                                fprintf(fid,[nowString,' error',err,'\n']);
+                                fclose(fid);
+                                error(err);
+                            end
+                        end
 
-                            case 32 %labelgui2
-                                %do not do anything yet; do other jobs first
-                                done(i) = 2;
-                            case 64 %analysis 1
-                                done(i) = 1; %not implemented yet
-                            case 128 %analysis 2
-                                done(i) = 1; %not implemented yet
-                        end %todoSwitch
-                        j = j+1;
-                    end %todoLoop
-                    if done(i)==0 %if all jobs done and no wait -> done = 1
+                        fprintf(fidJob,[nowString,' error:',err.message,'\n']);
+                        fprintf(fid,[nowString,' error',err.message,'\n']);
+                        disp(['job-',num2str(i),' ',err.message]);
+
+                        for iErr = 1:length(err.stack)
+                            disp(sprintf( 'in %s at %i',...
+                                err.stack(iErr).name,err.stack(iErr).line))
+                        end
+
+                        %do not continue execution
                         done(i) = 1;
+                        %close any open waitbars
+                        h = findall(0,'Tag','TMWWaitbar');
+                        close(h);
+                        %close any open messageboxes
+                        h = findall(0,'Tag','MessageBox');
+                        close(h);
                     end
+
                     %close current logfile
                     fprintf(fid,'closing logfile...\n');
                     fclose(fid);
