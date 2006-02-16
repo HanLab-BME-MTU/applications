@@ -322,7 +322,11 @@ for iMovie = 1:nSelected
             fullPathName = [pathName,projName,filesep];
             %move movie and rename if necessary
             if ispc
-                movefile([pathName,fileName],[fullPathName,destFileName]);
+                % problem with linux server: get permission denied.
+                % Therefore uses system command
+                f1 = [pathName,fileName];
+                f2 = [fullPathName,destFileName];
+                eval(sprintf('!move %s %s',f1,f2))
             else %there is a bug in linux with copying
                 system(['mv ' [pathName,fileName] ' ' [fullPathName,destFileName]]);
             end

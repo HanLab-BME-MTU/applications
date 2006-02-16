@@ -268,14 +268,14 @@ if fitNPlusOne %do N+1-fit only if there are any spots left!
         end
         
         %test the fit if significantly improved
-        fValue=(chi1)/(chi2);
-        prob=fcdf(fValue,degreesOfFreedom,newDegreesOfFreedom);
+%         fValue=(chi1)/(chi2);
+%         prob=fcdf(fValue,degreesOfFreedom,newDegreesOfFreedom);
         % Below is Dom's test. It's incorrect IMHO, but maybe we need to
         % adjust the F-test probability a bit with the newer one. Quick
         % testing indicates that the correct version just makes the
         % differences more extreme, which is good.
-%         fValue=(chi1/numFreeParms)/(chi2/newNumFreeParms);
-%         prob=fcdf(fValue,numFreeParms,newNumFreeParms);
+        fValue=(chi1/numFreeParms)/(chi2/newNumFreeParms);
+        prob=fcdf(fValue,numFreeParms,newNumFreeParms);
 
         %disp(sprintf('%1.4f',prob));
         if (prob>F_TEST_PROB)
