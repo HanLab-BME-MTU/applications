@@ -146,13 +146,10 @@ try
                                         delete(filteredMovieName);
                                     end
 
-                                    % generate loadStruct
-                                    loadStruct.maxSize = ...
-                                        dataProperties.maxSize;
 
                                     % load first part
                                     [movie, movieHeader, loadStruct] = ...
-                                        cdLoadMovie('corr/raw',[],loadStruct);
+                                        cdLoadMovie('corr/raw',[],dataProperties);
 
                                     % loop with movie-chunks
                                     loopDone = 0;
@@ -530,9 +527,8 @@ try
                                     % load movie (corrected if available)
                                     fprintf(fidJob,[nowString,' movie  =  cdLoadMovie(''corr/raw'');\n']);
                                     fprintf(fid,[nowString,' load raw/corrected movie\n']);
-                                    loadStruct = struct('maxSize',dataProperties.maxSize);
                                     [movie, movieHeader, loadStruct] = ...
-                                        cdLoadMovie('corr/raw',[],loadStruct);
+                                        cdLoadMovie('corr/raw',[],dataProperties);
 
                                     % getting rid of some previous sins
                                     idlist = ...
@@ -674,7 +670,7 @@ try
 
                         fprintf(fidJob,[nowString,' error:',err.message,'\n']);
                         fprintf(fid,[nowString,' error',err.message,'\n']);
-                        disp(['job-',num2str(i),' ',err.message]);
+                        disp(['job-',num2str(i),' error: ',err.message]);
 
                         for iErr = 1:length(err.stack)
                             disp(sprintf( 'in %s at %i',...
