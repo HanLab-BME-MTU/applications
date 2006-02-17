@@ -18,9 +18,9 @@ function neg2LnLikelihoodV = neg2LnLikelihoodX(param,prob)
 %                            An array of structures 
 %                            trajIn(1:nTraj).observations, where 
 %                            "observations" is a 2D array of measurements
-%                            and uncertainties. Missing points should be 
-%                            indicated with NaN. Enter [] in "observations" 
-%                            field if there is no input series.
+%                            and uncertainties. Must not have any missing
+%                            points. Enter [] in "observations" field if 
+%                            there is no input series.
 %          .user.numAvail  : Total number of available observations.
 %          .user.constParam: Parameters to be constrained. Structure with
 %                            2 fields:
@@ -62,9 +62,9 @@ trajIn   = prob.user.trajIn;
 numAvail = prob.user.numAvail;
 
 %assign parameters
-arParamP = param(1:arOrder);
-maParamP = param(arOrder+1:arOrder+maOrder);
-xParam   = param(arOrder+maOrder+1:end);
+arParamP = param(1:arOrder)';
+maParamP = param(arOrder+1:arOrder+maOrder)';
+xParam   = param(arOrder+maOrder+1:end)';
 
 %get AR and MA coefficients from the partial AR and MA coefficients, respectively
 if ~isempty(arParamP)
@@ -90,7 +90,7 @@ for i = 1:length(trajOut)
 
     %get the innovations, their variances and process white noise
     %using Kalman prediction and filtering
-    [innovation,innovationVar,wnVector,errFlag] = ...
+    [innovation,innovationVar,wnVector,dummy1,dummy2,errFlag] = ...
         armaXKalmanInnov(trajOut(i).observations,trajIn(i).observations,...
         arParam,maParam,xParam);
 

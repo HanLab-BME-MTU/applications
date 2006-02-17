@@ -274,8 +274,8 @@ elseif xOrderDiff > 0
 end
 
 %combine AR, MA and X coefficients for each model
-armaParam1 = [armaXCoef1.arParam armaXCoef1.maParam armaXCoef1.xParam];
-armaParam2 = [armaXCoef2.arParam armaXCoef2.maParam armaXCoef2.xParam];
+armaXParam1 = [armaXCoef1.arParam armaXCoef1.maParam armaXCoef1.xParam];
+armaXParam2 = [armaXCoef2.arParam armaXCoef2.maParam armaXCoef2.xParam];
 
 %get new variance-covariance matrices, if needed
 if ~isempty(constMat1)
@@ -306,7 +306,7 @@ switch compOpt
     case 'global' %compare all coefficients at the same time
 
         %calculate vector of differences in coefficients
-        diffM = armaParam1 - armaParam2;
+        diffM = armaXParam1 - armaXParam2;
 
         %calculate variance-covariance matrix of difference vector
         diffV = varCovMatT1 + varCovMatT2;
@@ -330,7 +330,7 @@ switch compOpt
     case 'element' %compare one coefficient at a time
 
         %calculate vector of differences in coefficients
-        diffM = armaParam1 - armaParam2;
+        diffM = armaXParam1 - armaXParam2;
 
         %calculate variance-covariance matrix of difference vector
         varVec1 = diag(varCovMatT1)';
@@ -356,12 +356,11 @@ switch compOpt
 
     case 'AR/MA/X' %compare AR, MA and X coefficients alone
      
-        %%% FIX !!! %%%
-        
         H = NaN*ones(1,3);
+        pValue = H;
         
         %calculate vector of differences in coefficients
-        diffM = armaParam1 - armaParam2;
+        diffM = armaXParam1 - armaXParam2;
 
         %AR test
         if arOrderL ~= 0
@@ -374,7 +373,7 @@ switch compOpt
             testStatistic = diffM(1:arOrderL)*(diffV\diffM(1:arOrderL)')/arOrderL;
 
             %get the p-value of the test statistic assuming a Fisher distribution
-            pValue = 1 - fcdf(testStatistic,arOrderL,2000);
+            pValue(1) = 1 - fcdf(testStatistic,arOrderL,2000);
 
             %compare p-value to significance
             if pValue(1) < significance %if p-value is smaller than probability of type I error
@@ -383,20 +382,20 @@ switch compOpt
                 H(1) = 0; %cannot reject null hypothesis
             end
 
-        else
-            pValue(1) = NaN;
         end
 
         %MA test
         if maOrderL ~= 0
 
             %calculate variance-covariance matrix of MA difference vector
-            diffV = varCovMatT1(1+arOrderL:end,1+arOrderL:end) + ...
-                varCovMatT2(1+arOrderL:end,1+arOrderL:end);
+            diffV = varCovMatT1(arOrderL+1:arOrderL+maOrderL,...
+                arOrderL+1:arOrderL+maOrderL) + ...
+                varCovMatT2(arOrderL+1:arOrderL+maOrderL,...
+                arOrderL+1:arOrderL+maOrderL);
 
             %compute testStatistic
-            testStatistic = diffM(arOrderL+1:end)*(diffV\diffM(...
-                arOrderL+1:end)')/maOrderL;
+            testStatistic = diffM(arOrderL+1:arOrderL+maOrderL)*...
+                (diffV\diffM(arOrderL+1:arOrderL+maOrderL)')/maOrderL;
 
             %get the p-value of the test statistic assuming a Fisher distribution
             pValue(2) = 1 - fcdf(testStatistic,maOrderL,2000);
@@ -408,8 +407,31 @@ switch compOpt
                 H(2) = 0; %cannot reject null hypothesis
             end
 
-        else
-            pValue(2) = NaN;
+        end
+
+        %X test
+        if xOrderL ~= -1
+
+            %calculate variance-covariance matrix of X difference vector
+            diffV = varCovMatT1(arOrderL+maOrderL+1:end,...
+                arOrderL+maOrderL+1:end) + ...
+                varCovMatT2(arOrderL+maOrderL+1:end,...
+                arOrderL+maOrderL+1:end);
+
+            %compute testStatistic
+            testStatistic = diffM(arOrderL+maOrderL+1:end)*...
+                (diffV\diffM(arOrderL+maOrderL+1:end)')/(xOrderL+1);
+
+            %get the p-value of the test statistic assuming a Fisher distribution
+            pValue(3) = 1 - fcdf(testStatistic,xOrderL+1,2000);
+
+            %compare p-value to significance
+            if pValue(3) < significance %if p-value is smaller than probability of type I error
+                H(3) = 1; %reject null hypothesis that the two models are identical
+            else %if p-value is larger than probability of type I error
+                H(3) = 0; %cannot reject null hypothesis
+            end
+
         end
 
 end

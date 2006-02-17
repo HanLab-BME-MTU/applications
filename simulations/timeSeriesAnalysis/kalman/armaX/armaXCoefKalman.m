@@ -1,13 +1,15 @@
-function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMat,...
-    wnVariance,wnVector,selectCrit,pVCompKL,pVPort,errFlag] = armaXCoefKalman(...
-    trajOut,trajIn,arParamP0,maParamP0,xParam0,constParam,minOpt)
+function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
+    varCovMatF,wnVariance,wnVector,selectCrit,pVCompKL,pVPort,errFlag] ...
+    = armaXCoefKalman(trajOut,trajIn,arParamP0,maParamP0,xParam0,...
+    constParam,minOpt)
 %ARMAXCOEFKALMAN fits an ARMAX model to a time series which could depend on another series.
 %
-%SYNOPSIS [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMat,...
-%    wnVariance,wnVector,selectCrit,pVCompKL,pVPort,errFlag] = armaXCoefKalman(...
-%    trajOut,trajIn,arParamP0,maParamP0,xParam0,constParam,minOpt)
+%SYNOPSIS [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatLS,...
+%    varCovMatFI,wnVariance,wnVector,selectCrit,pVCompKL,pVPort,errFlag] ...
+%    = armaXCoefKalman(trajOut,trajIn,arParamP0,maParamP0,xParam0,...
+%    constParam,minOpt)
 %
-%INPUT  
+%INPUT
 %   Mandatory
 %       trajOut   : Observations of output time series to be fitted. Either an
 %                   array of structures trajOut(1:nTraj).observations, or a
@@ -18,7 +20,7 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMat,...
 %                   array of structures trajIn(1:nTraj).observations, or a
 %                   2D array representing one single trajectory.
 %           .observations: 2D array of measurements and their uncertainties.
-%                   Missing points should be indicated with NaN.
+%                   Must not have any missing points.
 %                   Enter as [] if there is no input series.
 %       arParamP0 : Initial guess of parameters determining the AR coef. (row vector).
 %                   They are related to the partial AR coef by the
@@ -51,7 +53,7 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMat,...
 %                   -'nag' for NAG's local minimizerE04JAF.
 %                   Default: 'ml'
 %
-%OUTPUT arParamK  : Estimated AR coefficients (1st row) and parameters related 
+%OUTPUT arParamK  : Estimated AR coefficients (1st row) and parameters related
 %                   to partial AR coefficients (2nd row) using likelihood maximization.
 %       maParamK  : Estimated MA coefficients (1st row) and parameters related
 %                   to partial MA coefficients (2nd row) using likelihood maximization.
@@ -60,10 +62,12 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMat,...
 %       arParamL  : Estimated AR coefficients using least squares fitting.
 %       maParamL  : Estimated MA coefficients using least squares fitting.
 %       xParamL   : Estimated X coefficients using least squares fitting.
-%       varCovMat : Variance-covariance matrix of ARMAX coefficients,
+%       varCovMatL: Variance-covariance matrix of ARMAX coefficients,
 %                   estimated via least squares fitting:
 %           .cofactorMat  : Cofactor matrix.
 %           .posterioriVar: A posteriori estimate of residuals' variance.
+%       varCovMatF: Variance-covariance matrix of ARMAX coefficients,
+%                   estimated via the Fisher Information Matrix.
 %       wnVariance: Estimated variance of white noise in process.
 %       wnVector  : Structure array containing the field:
 %           .observations : Estimated white noise series in corresponding
@@ -79,17 +83,17 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMat,...
 %       errFlag   : 0 if function executes normally, 1 otherwise.
 %
 %REMARKS The Kalman filter & likelihood maximization algorithm implemented
-%        here is an ARMAX generalization of the algorithm presented in 
-%        R. H. Jones, "Maximum Likelihood Fitting of ARMA Models to Time 
+%        here is an ARMAX generalization of the algorithm presented in
+%        R. H. Jones, "Maximum Likelihood Fitting of ARMA Models to Time
 %        Series with Missing Observations," Technometrics 22: 389-395
 %        (1980). The ARMAX generalization is based on material in C. K.
 %        Chui and G. Chen, "Kalman Filtering with Real-Time Applications,"
 %        3rd ed. (1999), Ch. 2.
 %
-%        Equation numbers used are those in the Jones paper. 
+%        Equation numbers used are those in the Jones paper.
 %
 %        One main difference between this algorithm and that in the paper
-%        is that I do not estimate the observational error variance, 
+%        is that I do not estimate the observational error variance,
 %        but use that obtained via image analysis in the case of
 %        experimental data or simulated in the case of simulated data.
 %
@@ -98,12 +102,13 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMat,...
 %        represent. Thus Eqs. 3.14 and 3.15 in the paper are modified
 %        accordingly.
 %
-%        Then the problem is re-formulated as a least squares problem in 
-%        order to obtain the variance-covariance matrix of the estimated 
-%        coefficients. The output is regressed onto its past values, the 
+%        Then the problem is re-formulated as a least squares problem in
+%        order to obtain the variance-covariance matrix of the estimated
+%        coefficients. The output is regressed onto its past values, the
 %        white noise series estimated above, and the input series.
 %
 %        CONSTRAINED MINIMIZATION MUST BE UPDATED. DON'T USE!
+%        CURRENTLY I SUBTRACT THE MEAN. THINK ABOUT IT!
 %
 %Khuloud Jaqaman, January 2006
 
@@ -117,7 +122,8 @@ xParamK    = [];
 arParamL   = [];
 maParamL   = [];
 xParamL    = [];
-varCovMat  = [];
+varCovMatL = [];
+varCovMatF = [];
 wnVariance = [];
 wnVector   = [];
 selectCrit = [];
@@ -156,6 +162,14 @@ end
 %get number of trajectories supplied
 numTraj = length(trajOut);
 
+%shift trajectories so that each trajectory's mean = 0
+for i=1:numTraj
+    traj = trajOut(i).observations(:,1);
+    traj = traj - nanmean(traj);
+    trajOut(i).observations(:,1) = traj;
+%     trajOriginal(i).observations = traj;
+end
+
 %add column for observational error of output if not provided
 trajOriginal = trajOut; %needed for least squares
 for i=1:numTraj
@@ -172,16 +186,16 @@ for i=1:numTraj
     trajOut(i).observations = traj;
 end
 
-%check "trajIn", turn into struct if necessary and add column for 
+%check "trajIn", turn into struct if necessary and add column for
 %observational error if not provided
 if isempty(trajIn) %if there is no input
-    
+
     for i=1:numTraj
         trajIn(i).observations = [];
     end
-    
+
 else %if there is an input series
-    
+
     if ~isstruct(trajIn) %turn into struct
         tmp = trajIn;
         clear trajIn
@@ -191,7 +205,7 @@ else %if there is an input series
         disp('--armaXCoefKalman: Please input trajIn in fields ''observations''!')
         errFlag = 1;
     end
-    
+
     for i=1:numTraj %check for observational error
         traj = trajIn(i).observations;
         [trajLength,nCol] = size(traj);
@@ -220,7 +234,7 @@ end
 %get maOrder
 if nargin < 4 || isempty(maParamP0)
     maOrder = 0;
-    maOrderP0 = [];
+    maParamP0 = maParamP0_def;
 else
     [nRow,maOrder] = size(maParamP0);
     if nRow ~= 1
@@ -228,11 +242,11 @@ else
         errFlag = 1;
     end
 end
-    
+
 %get xOrder
 if nargin < 5 || isempty(xParam0)
     xOrder = -1;
-    xParam0 = [];
+    xParam0 = xParam0_def;
 else
     if isempty(trajIn)
         disp('--armaXCoefKalman: "xParam0" is supplied but there is no "trajIn"!');
@@ -284,11 +298,9 @@ end %(nargin < 6 || isempty(constParam) ... else ...)
 if nargin < 7 || isempty(minOpt)
     minOpt = minOpt_def;
 else
-%     if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
-%             && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
-%        disp('--armaXCoefKalman: "minOpt" should be either "ml", "tl", "tg" or ''nag''!');
-    if ~strcmp(minOpt,'ml')
-        disp('--armaXCoefKalman: "minOpt" can only be "ml" at the moment!');
+    if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
+            && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
+        disp('--armaXCoefKalman: "minOpt" should be either "ml", "tl", "tg" or ''nag''!');
         errFlag = 1;
     end
 end
@@ -302,11 +314,10 @@ end
 %obtain number of available observations, per trajectory and total
 numAvail = zeros(1,numTraj);
 for i=1:numTraj
-    traj = trajOut(i).observations;
-    numAvail(i) = length(find(~isnan(traj(:,1)))); %get # of available points
-    trajOut(i).observations = traj;
+    traj = trajOut(i).observations(:,1);
+    numAvail(i) = length(find(~isnan(traj)));
 end
-totAvail = sum(numAvail); %calculate total number of available points
+totAvail = sum(numAvail);
 
 %get an initial estimate of the white noise variance
 tmp = vertcat(trajOut.observations);
@@ -318,16 +329,19 @@ wnVariance = 0.8*wnVariance0; %variance from "current" iteration
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %since in Jones' algorithm the variance of the observational error must be
-%divided by the unknown variance of the white noise, the minimization is 
-%done iteratively until the white noise variance does not change 
+%divided by the unknown variance of the white noise, the minimization is
+%done iteratively until the white noise variance does not change
 %significantly between iterations.
+
+%assign initial guess of parameters to paramT
+paramT = [arParamP0 maParamP0 xParam0];
 
 %while the variance changes by more than 5% from one iteration to the next
 while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
 
     %update wnVariance0
     wnVariance0 = wnVariance;
-    
+
     %divide the observational error by the standard deviation of the white
     %noise in all trajectories
     trajOut2 = trajOut;
@@ -335,6 +349,9 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
     for i=1:numTraj
         trajOut2(i).observations(:,2) = trajOut2(i).observations(:,2)/wnStd;
     end
+
+    %get initial guess of parameters
+    param0 = paramT;
     
     %if there are coefficients to determine
     if arOrder + maOrder ~= 0 || ~isempty(xParam0)
@@ -356,22 +373,19 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
                 prob.user.trajIn  = trajIn;
                 prob.user.numAvail = totAvail;
 
-                %initial parameter values
-                param0 = [arParamP0 maParamP0 xParam0];
-
                 try
-                    
+
                     %assign lower and upper bounds of variables
                     boundLow  = [-10*ones(1,arOrder+maOrder) -2*ones(1,xOrder+1)];
                     boundHigh = [10*ones(1,arOrder+maOrder) 2*ones(1,xOrder+1)];
 
-                    %minimize -2ln(likelihood) using fmincon
-                    [params,fval,exitFlag] = fmincon(@neg2LnLikelihoodX,param0,...
-                        [],[],[],[],boundLow,boundHigh,[],options,prob);
+                    %                     %minimize -2ln(likelihood) using fmincon
+                    %                     [params,fval,exitFlag] = fmincon(@neg2LnLikelihoodX,param0,...
+                    %                         [],[],[],[],boundLow,boundHigh,[],options,prob);
 
                     %minimize -2ln(likelihood) using fminunc
-                    %                 [params,fval,exitFlag] = fminunc(@neg2LnLikelihoodX,param0,...
-                    %                     options,prob);
+                    [params,fval,exitFlag] = fminunc(@neg2LnLikelihoodX,param0,...
+                        options,prob);
 
                 catch
 
@@ -383,6 +397,52 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
                 if exitFlag > 0 %successful
                     proceed = 1;
                 else %not successful
+                    proceed = 0;
+                end
+
+            case 'tl' %local minimization using Tomlab's ucSolve
+
+                %                 if isempty(constParam) %if there are no constraints
+
+                prob = conAssign('neg2LnLikelihoodX',[],[],[],...
+                    [-10*ones(1,arOrder+maOrder) -2*ones(1,xOrder+1)],...
+                    [10*ones(1,arOrder+maOrder) 2*ones(1,xOrder+1)],...
+                    'locMinNegLik',param0);
+                prob.PriLevOpt = 0;
+                prob.user.arOrder = arOrder;
+                prob.user.maOrder = maOrder;
+                prob.user.trajOut = trajOut2;
+                prob.user.trajIn  = trajIn;
+                prob.user.numAvail = totAvail;
+
+                %minimize -2ln(likelihood) using Tomlab's ucSolve
+                result = tomRun('ucSolve',prob,[],2);
+
+                %                 else %if there are constraints
+                %
+                %                     %define local minimizaton problem with constraints
+                %                     prob = conAssign('neg2LnLikelihood',[],[],[],...
+                %                         -9*ones(1,arOrder+maOrder),9*ones(1,arOrder+maOrder),...
+                %                         'locMinNegLik',param0,[],[],[],[],[],'minKalmanConstraint',...
+                %                         [],[],[],[constParam.ar(:,2);constParam.ma(:,2)],...
+                %                         [constParam.ar(:,2);constParam.ma(:,2)]);
+                %                     prob.PriLevOpt = 0;
+                %                     prob.user.arOrder = arOrder;
+                %                     prob.user.trajectories = trajectories;
+                %                     prob.user.numAvail = totAvail;
+                %                     prob.user.constParam.ar = constParam.ar(:,1);
+                %                     prob.user.constParam.ma = constParam.ma(:,1);
+                %
+                %                     %minimize -2ln(likelihood) using Tomlab's conSolve
+                %                     result = tomRun('conSolve',prob,[],2);
+                %
+                %                 end
+
+                %proceed if minimization was successful
+                if result.ExitFlag == 0
+                    params = result.x_k';
+                    proceed = 1;
+                else
                     proceed = 0;
                 end
 
@@ -398,6 +458,10 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
     %if minimization was successful
     if proceed
 
+        %assign parameter values to paramT to use them as starting guess in
+        %next iteration
+        paramT = params;
+        
         %assign parameters obtained through minimization
         arParamP = params(1:arOrder);
         maParamP = params(arOrder+1:arOrder+maOrder);
@@ -423,9 +487,9 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
 
             %get the innovations, their variances and the estimated white noise series
             %using Kalman prediction and filtering
-            [innovation,innovationVar,wnVector(i).observations,errFlag] = ...
-                armaXKalmanInnov(trajOut(i).observations,trajIn(i).observations,...
-                arParamK,maParamK,xParamK);
+            [innovation,innovationVar,wnVector(i).observations,dummy1,...
+                dummy2,errFlag] = armaXKalmanInnov(trajOut2(i).observations,...
+                trajIn(i).observations,arParamK,maParamK,xParamK);
             if errFlag
                 disp('--armaXCoefKalman: "armaXKalmanInnov" did not function properly!');
                 return
@@ -479,9 +543,24 @@ end %(while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05)
 
 %reformulate the problem as a least squares fitting and obtain the
 %variance-covariance matrix of the estimated ARMA coefficients
-[varCovMat,arParamL,maParamL,xParamL,errFlag] = armaLeastSquares(...
+[varCovMatL,arParamL,maParamL,xParamL,errFlag] = armaXLeastSquares(...
     trajOriginal,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,...
     wnVariance);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Estimation of variance-covariance matrix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if ~isempty([arParamK(1,:) maParamK(1,:) xParamK(1,:)])
+
+    %calculate the model's Fisher information matrix
+    [fishInfoMat,errFlag] = armaXFisherInfoMatrix(trajOut,trajIn,...
+        arParamK(1,:),maParamK(1,:),xParamK,wnVariance);
+
+    %get the variance-covariance matrix of the ARMA coefficients
+    varCovMatF = inv(fishInfoMat/totAvail)/totAvail;
+
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Post-processing
@@ -492,25 +571,27 @@ end %(while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05)
 %Kalman filtering. If they are not equivalent, then results cannot be
 %trusted and model is discarded
 
-% %prepare input
-% armaCoef1.arParam = arParamK(1,:);
-% armaCoef1.maParam = maParamK(1,:);
-% armaCoef2.arParam = arParamL;
-% armaCoef2.maParam = maParamL;
-% 
-% %compare parameters
-% [H,pVCompKL,errFlag] = armaCoefComp(armaCoef1,armaCoef2,varCovMat,varCovMat,...
-%     'global');
-% if errFlag
-%     pVCompKL = 0;
-% end
-% 
+%prepare input
+armaXCoef1.arParam = arParamK(1,:);
+armaXCoef1.maParam = maParamK(1,:);
+armaXCoef1.xParam = xParamK;
+armaXCoef2.arParam = arParamL;
+armaXCoef2.maParam = maParamL;
+armaXCoef2.xParam = xParamL;
+
+%compare parameters
+[H,pVCompKL,errFlag] = armaXCoefComp(armaXCoef1,armaXCoef2,varCovMatL,varCovMatL,...
+    'global');
+if errFlag
+    pVCompKL = 0;
+end
+
 % %report failure of fit and do not consider results if coefficients are significantly different
 % if H == 1
 %     %     disp('--armaXCoefKalman: Discrepency between least squares and maximum likelihood!')
 %     errFlag = 1;
 % end
-% 
+
 %use the portmanteau test to check whether residuals are white noise.
 [H,pVPort,errFlag] = portmanteau(wnVector,10,0.01);
 
@@ -527,59 +608,13 @@ end
 %THESE ARE THE OTHER ALGORITHMS THAT IN PRINCIPLE CAN BE USED FOR
 %OPTIMIZATION!
 %
-%         case 'tl' %local minimization using Tomlab's ucSolve
-% 
-%             %initial parameter values
-%             param0 = [arParamP0 maParamP0];
-% 
-%             if isempty(constParam) %if there are no constraints
-% 
-%                 prob = conAssign('neg2LnLikelihood',[],[],[],...
-%                     -10*ones(1,arOrder+maOrder),10*ones(1,arOrder+maOrder),...
-%                     'locMinNegLik',param0);
-%                 prob.PriLevOpt = 0;
-%                 prob.user.arOrder = arOrder;
-%                 prob.user.trajectories = trajectories;
-%                 prob.user.numAvail = totAvail;
-% 
-%                 %minimize -2ln(likelihood) using Tomlab's ucSolve
-%                 result = tomRun('ucSolve',prob,[],2);
-% 
-%             else %if there are constraints
-% 
-%                 %define local minimizaton problem with constraints
-%                 prob = conAssign('neg2LnLikelihood',[],[],[],...
-%                     -9*ones(1,arOrder+maOrder),9*ones(1,arOrder+maOrder),...
-%                     'locMinNegLik',param0,[],[],[],[],[],'minKalmanConstraint',...
-%                     [],[],[],[constParam.ar(:,2);constParam.ma(:,2)],...
-%                     [constParam.ar(:,2);constParam.ma(:,2)]);
-%                 prob.PriLevOpt = 0;
-%                 prob.user.arOrder = arOrder;
-%                 prob.user.trajectories = trajectories;
-%                 prob.user.numAvail = totAvail;
-%                 prob.user.constParam.ar = constParam.ar(:,1);
-%                 prob.user.constParam.ma = constParam.ma(:,1);
-% 
-%                 %minimize -2ln(likelihood) using Tomlab's conSolve
-%                 result = tomRun('conSolve',prob,[],2);
-% 
-%             end
-% 
-%             %proceed if minimization was successful
-%             if result.ExitFlag == 0
-%                 params = result.x_k';
-%                 proceed = 1;
-%             else
-%                 proceed = 0;
-%             end
-% 
 %         case 'tg' %global minimization using Tomlab's glbFast and ucSolve
-% 
+%
 %             %initial parameter values
 %             param0 = [arParamP0 maParamP0];
-% 
+%
 %             if ~isempty(param0)
-% 
+%
 %                 %define global minimization problem
 %                 prob = glcAssign('neg2LnLikelihood',-9*ones(1,arOrder+maOrder),...
 %                     9*ones(1,arOrder+maOrder),'globMinNegLik');
@@ -588,23 +623,23 @@ end
 %                 prob.user.arOrder = arOrder;
 %                 prob.user.trajectories = trajectories;
 %                 prob.user.numAvail = totAvail;
-% 
+%
 %                 %find global minimum of -2ln(likelihood) using Tomlab's glbFast
 %                 result = tomRun('glbFast',prob,[],2);
-% 
+%
 %             else
-% 
+%
 %                 %avoid global minimization if ARMA(0,0) is being "optimized"!
 %                 result.ExitFlag = 1;
-% 
+%
 %             end
-% 
+%
 %             if result.ExitFlag == 0 %if global minimization was successful
 %                 paramI = result.x_k(:,1)'; %use its results as initial guess for local minimization
 %             else %if global minimization failed
 %                 paramI = param0; %use user's initial guess as initial guess for local minimization
 %             end
-% 
+%
 %             %define local minimizaton problem
 %             prob = conAssign('neg2LnLikelihood',[],[],[],...
 %                 -10*ones(1,arOrder+maOrder),10*ones(1,arOrder+maOrder),...
@@ -613,10 +648,10 @@ end
 %             prob.user.arOrder = arOrder;
 %             prob.user.trajectories = trajectories;
 %             prob.user.numAvail = totAvail;
-% 
+%
 %             %refine minimum using ucSolve
 %             result = tomRun('ucSolve',prob,[],2);
-% 
+%
 %             %proceed if minimization was successful
 %             if result.ExitFlag == 0
 %                 params = result.x_k';
@@ -624,26 +659,26 @@ end
 %             else
 %                 proceed = 0;
 %             end
-% 
+%
 %         case 'nag' %local minimization using NAG's E04JAF
-% 
+%
 %             %define structure containing parameters required for function
 %             %evaluation; they are written in Tomlab notation for convenience
 %             prob.user.arOrder = arOrder;
 %             prob.user.trajectories = trajectories;
 %             prob.user.numAvail = totAvail;
-% 
+%
 %             %save "prob" in file "funct1Input" so that funct1 loads the
 %             %variables when called.
 %             save('funct1Input','prob');
-% 
+%
 %             %initial parameter values
 %             params = [arParamP0 maParamP0];
-% 
+%
 %             [params,fval,lowerB,upperB,exitFlag] = ...
 %                 e04jaf(params,[-0.99*ones(1,arOrder+maOrder)],...
 %                 [0.99*ones(1,arOrder+maOrder)],0);
-% 
+%
 %             %proceed if minimization was successful
 %             if (exitFlag == 0 || exitFlag == 5 || exitFlag == 6)
 %                 params = params';

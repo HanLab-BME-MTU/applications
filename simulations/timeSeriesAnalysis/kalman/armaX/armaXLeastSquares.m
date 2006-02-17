@@ -16,7 +16,7 @@ function [varCovMat,arParam,maParam,xParam,errFlag] = armaXLeastSquares(...
 %                   array of structures trajIn(1:nTraj).observations, or a
 %                   2D array representing one single trajectory.
 %           .observations: 2D array of measurements and their uncertainties.
-%                   Missing points should be indicated with NaN.
+%                   Must not have any missing points.
 %                   Enter as [] if there is no input series.
 %       wnVector  : White noise series associated with a trajectory. Either
 %                   an array of structures wnVector(1:nTraj).observations,
@@ -87,22 +87,6 @@ end
 
 %get number of trajectories supplied
 numTraj = length(trajOut);
-
-%add/modify column for observational error of output
-for i=1:numTraj
-    [trajLength,nCol] = size(trajOut(i).observations);
-    switch nCol
-        case 1 %if no error is supplied, add a column of ones
-            trajOut(i).observations = [trajOut(i).observations ...
-                ones(trajLength,1)]; %assume that there is no observational error
-        case 2 %if there is observational error, modify it with WN variance
-            trajOut(i).observations(:,2) = ...
-                sqrt(trajOut(i).observations(:,2).^2+wnVariance);
-        otherwise
-            disp('--armaXLeastSquares: "trajOut.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
-            errFlag = 1;
-    end
-end
 
 %check trajIn and turn it into struct if necessary
 if isempty(trajIn) %if there is no input
@@ -211,6 +195,20 @@ else
     end
 end
 
+%add/modify column for observational error of output
+for i=1:numTraj
+    [trajLength,nCol] = size(trajOut(i).observations);
+    if nCol ~= 2
+        if nCol == 1 %if no error is supplied, add a column of ones
+            trajOut(i).observations = [trajOut(i).observations ...
+                ones(trajLength,1)]; %assume that there is no observational error
+        else % if there is more than 2 columns
+            disp('--armaXLeastSquares: "trajOut.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+            errFlag = 1;
+        end
+    end
+end
+
 %exit if there are problems in input data
 if errFlag
     disp('--armaXLeastSquares: Please fix input data!');
@@ -254,8 +252,8 @@ for i = 1:numTraj
         prevPoints1(:,j) = wnVector(i).observations(fitSet-j+arOrder,1)...
             ./trajOut(i).observations(fitSet,2);
     end
-    for j = arOder+maOrder+1:sumOrder
-        prePoints(:,j) = trajIn(i).observations(fitSet-j+arOrder+maOrder+1,1)...
+    for j = arOrder+maOrder+1:sumOrder
+        prevPoints1(:,j) = trajIn(i).observations(fitSet-j+arOrder+maOrder+1,1)...
             ./trajOut(i).observations(fitSet,2);
     end
         

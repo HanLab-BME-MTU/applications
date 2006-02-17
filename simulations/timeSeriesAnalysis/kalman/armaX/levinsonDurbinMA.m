@@ -17,7 +17,7 @@ function [maParam,errFlag] = levinsonDurbinMA(maParamP)
 %Khuloud Jaqaman, July 2004
 
 %initialize output
-arParam = [];
+maParam = [];
 errFlag = [];
 
 %get MA order

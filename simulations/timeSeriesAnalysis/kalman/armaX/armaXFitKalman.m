@@ -17,7 +17,7 @@ function [fitResults,errFlag] = armaXFitKalman(trajOut,trajIn,modelParamOrOrder,
 %                          array of structures trajIn(1:nTraj).observations, or a
 %                          2D array representing one single trajectory. 
 %               .observations: 2D array of measurements and their uncertainties.
-%                          Missing points should be indicated with NaN.
+%                          Must not have any missing points.
 %                          Enter as [] if there is no input series.
 %                          Default: [].
 %       modelParamOrOrder: Either
@@ -125,13 +125,13 @@ else
 end
 
 %assign default values of optional variables
-orderValArma_def = [0:3]; %AR and MA order values
+orderValArma_def = 0:3; %AR and MA order values
 if isempty(trajIn)
     orderValX_def = -1; %X order values
 else
-    orderValX_def = [-1:3]; %X order values
+    orderValX_def = -1:3; %X order values
 end
-repeat_def = 5; %times to repeat local minimization if initial guess not supplied
+repeat_def = 3; %times to repeat local minimization if initial guess not supplied
 minOpt_def = 'ml'; %minimization option
 
 %check models to be tested
@@ -142,9 +142,9 @@ if nargin < 3 || isempty(modelParamOrOrder) %if no models to fit were input
 
     %randomly generate initial ARMAX parameter guesses
     for l=1:repeat_def
-        for k=1:length(orderValX_def)
-            for j=1:length(orderValArma_def)
-                for i=1:length(orderValArma_def)
+        for k=length(orderValX_def):-1:1
+            for j=length(orderValArma_def):-1:1
+                for i=length(orderValArma_def):-1:1
                     modelParam(i,j,k,l).arParamP0 = 4*rand(1,orderValArma_def(i)) - 2;
                     modelParam(i,j,k,l).maParamP0 = 4*rand(1,orderValArma_def(j)) - 2;
                     modelParam(i,j,k,l).xParam0 = 4*rand(1,orderValX_def(k)+1) - 2;
@@ -162,9 +162,6 @@ else %if models or model orders were supplied
         
         %assign model parameters
         modelParam = modelParamOrOrder;
-        
-        %get size of modelParam
-        [size1,size2,size3] = size(modelParam);
         
         %place [] in fields not provided
         if ~isfield(modelParam,'arParamP0')
@@ -235,9 +232,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %go over all suggested models
-for k=1:size(modelParam,3)
-    for j=1:size(modelParam,2)
-        for i=1:size(modelParam,1)
+for k=size(modelParam,3):-1:1
+    for j=size(modelParam,2):-1:1
+        for i=size(modelParam,1):-1:1
 
             if strcmp(minOpt,'tg') || suppliedIG %if global minimization or if initial guess was supplied
 
@@ -248,13 +245,29 @@ for k=1:size(modelParam,3)
 
                 %estimate ARMA coeffients and white noise variance
                 [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,...
-                    varCovMat,wnVariance,wnVector,selectCrit,pVCompKL,...
-                    pVPort,errFlag] = armaXCoefKalman(trajOut,trajIn,...
-                    arParamP0,maParamP0,xParam0,[],minOpt);
+                    varCovMatL,varCovMatF,wnVariance,wnVector,selectCrit,...
+                    pVCompKL,pVPort,errFlag] = armaXCoefKalman(trajOut,...
+                    trajIn,arParamP0,maParamP0,xParam0,[],minOpt);
 
             else %if local minimization and initial guess was not supplied
 
+                %anitialize output
                 neg2LL = 10^20;
+                arParamK   = [];
+                maParamK   = [];
+                xParamK    = [];
+                arParamL   = [];
+                maParamL   = [];
+                xParamL    = [];
+                varCovMatL = [];
+                varCovMatF = [];
+                wnVariance = [];
+                wnVector   = [];
+                selectCrit = [];
+                pVCompKL   = [];
+                pVPort     = [];
+                errFlag    = [];
+
                 for l=1:repeat_def
 
                     %assign model data
@@ -264,30 +277,37 @@ for k=1:size(modelParam,3)
 
                     %estimate ARMA coeffients and white noise variance
                     [arParamK1,maParamK1,xParamK1,arParamL1,maParamL1,...
-                        xParamL1,varCovMat1,wnVariance1,wnVector1,selectCrit1,...
-                        pVCompKL1,pVPort1,errFlag1] = armaXCoefKalman(trajOut,...
-                        trajIn,arParamP0,maParamP0,xParam0,[],minOpt);
+                        xParamL1,varCovMatL1,varCovMatF1,wnVariance1,...
+                        wnVector1,selectCrit1,pVCompKL1,pVPort1,errFlag1]...
+                        = armaXCoefKalman(trajOut,trajIn,arParamP0,...
+                        maParamP0,xParam0,[],minOpt);
 
                     if ~isempty(selectCrit1)
+
+                        %get -2ln(likelihood) of estimated model
                         neg2LL1 = selectCrit1.aic - ...
                             2*(length([arParamP0 maParamP0 xParam0])+1);
-                    end
 
-                    if neg2LL1 < neg2LL
-                        neg2LL     = neg2LL1;
-                        arParamK   = arParamK1;
-                        maParamK   = maParamK1;
-                        xParamK    = xParamK1;
-                        arParamL   = arParamL1;
-                        maParamL   = maParamL1;
-                        xParamL    = xParamL1;
-                        varCovMat  = varCovMat1;
-                        wnVariance = wnVariance1;
-                        wnVector   = wnVector1;
-                        selectCrit = selectCrit1;
-                        pVCompKL   = pVCompKL1;
-                        pVPort     = pVPort1;
-                        errFlag    = errFlag1;
+                        %choose this as the best model if its
+                        %-2ln(likelihood) is the smallest so far
+                        if neg2LL1 < neg2LL
+                            neg2LL     = neg2LL1;
+                            arParamK   = arParamK1;
+                            maParamK   = maParamK1;
+                            xParamK    = xParamK1;
+                            arParamL   = arParamL1;
+                            maParamL   = maParamL1;
+                            xParamL    = xParamL1;
+                            varCovMatL = varCovMatL1;
+                            varCovMatF = varCovMatF1;
+                            wnVariance = wnVariance1;
+                            wnVector   = wnVector1;
+                            selectCrit = selectCrit1;
+                            pVCompKL   = pVCompKL1;
+                            pVPort     = pVPort1;
+                            errFlag    = errFlag1;
+                        end
+
                     end
 
                 end %(for l=1:repeat_def)
@@ -305,7 +325,8 @@ for k=1:size(modelParam,3)
                 'arParamL',arParamL,...
                 'maParamL',maParamL,...
                 'xParamL',xParamL,...
-                'varCovMat',varCovMat,...
+                'varCovMatL',varCovMatL,...
+                'varCovMatF',varCovMatF,...
                 'wnVariance',wnVariance,...
                 'wnVector',wnVector,...
                 'selectCrit',selectCrit,...
