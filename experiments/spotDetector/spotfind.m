@@ -29,7 +29,8 @@ DEBUG = 0;
 
 % init vars
 d=floor(PATCHSIZE/2);
-inTestD = floor(FILTERSIZE/2); %number of pixels a spot has to be away from the border to be accepted
+% inTestD = floor(FILTERSIZE/2); %number of pixels a spot has to be away from the border to be accepted
+inTestD = [3,3,1];
 movieSize = size(fImg);
 tsteps=size(fImg,5); % just in case there's only one frame loaded
 
@@ -76,7 +77,8 @@ for t=1:tsteps
                 <=[movieSize(1:3)]))
 
             %cut pixels belonging to this local maximum
-            patch=pt(b(i,1)-d(1):b(i,1)+d(1),b(i,2)-d(2):b(i,2)+d(2),b(i,3)-d(3):b(i,3)+d(3));
+            patch = stamp3d(pt,PATCHSIZE,b(i,:),0);
+%             patch=pt(b(i,1)-d(1):b(i,1)+d(1),b(i,2)-d(2):b(i,2)+d(2),b(i,3)-d(3):b(i,3)+d(3));
 
             %curvature filter
             %k(ct)=curvature3D(patch,[d d d]+1);
@@ -138,15 +140,8 @@ for t=1:tsteps
     %== ADDED FOR NEW LINKER ==
     % Find the "center of gravity" of the image
     % use int^10 to get good results (maybe we need more for mammalian
-    % cells with their bigger frames?)
-    [x,y,z] = meshgrid(1:movieSize(1),1:movieSize(2),1:movieSize(3));
-    pt10 = pt(:).^10;
-    sumFrame = sum(pt10);
-    centerX = x(:)'*pt10/sumFrame;
-    centerY = y(:)'*pt10/sumFrame;
-    centerZ = z(:)'*pt10/sumFrame;
-    
-    spots(t).COM = [centerX, centerY, centerZ];
+    % cells with their bigger frames?) 
+    spots(t).COM = centroid3D(pt,10);
     
 
     if verbose
