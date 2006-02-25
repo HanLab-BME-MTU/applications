@@ -1,4 +1,4 @@
-function spots = spotfind(fImg,dataProperties,verbose)
+function spots = spotfind(fImg,dataProperties,verbose,loadedFrames)
 %SPOTFIND locates fluorescent tags in 3D data
 %
 % SYNOPSIS cord = spotfind(img)
@@ -6,6 +6,7 @@ function spots = spotfind(fImg,dataProperties,verbose)
 % INPUT img   : stack time series
 %       dataProperties: structure with movie properties
 %       verbose : (optional) If 1 (default), waitbar is displayed
+%       loadedFrames: list of loaded frames for improved waitbar
 %
 % OUTPUT spots : nTimepoints-by-1 structure with fields
 %                .sp  structure with fields
@@ -18,6 +19,9 @@ function spots = spotfind(fImg,dataProperties,verbose)
 % optional input arguments
 if nargin < 3 || isempty(verbose)
     verbose = 1;
+end
+if nargin < 4
+    loadedFrames = [];
 end
 
 %CONST DEFINITIONS
@@ -35,7 +39,13 @@ movieSize = size(fImg);
 tsteps=size(fImg,5); % just in case there's only one frame loaded
 
 if verbose
+    if isempty(loadedFrames)
     h= mywaitbar(0,[],tsteps,'Finding spots...');
+    else
+        h= mywaitbar(0,[],tsteps,...
+            sprintf('Finding spots in frames (%i:%i)',...
+            loadedFrames(1),loadedFrames(end)));
+    end
 end
 
 %preassign mnp. provide for 100 points

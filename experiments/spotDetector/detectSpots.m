@@ -1,7 +1,7 @@
-function [slist, dataProperties, testRatios, optData] = detectSpots(rawMovieName, filteredMovieName, dataProperties, verbose, options)
+function [slist, dataProperties, testRatios, debugData] = detectSpots(rawMovieName, filteredMovieName, dataProperties, verbose, options)
 %DETECTSPOTS is a wrapper for the static segmentation in the chromdyn package
 %
-% SYNOPSIS: [slist, dataProperties, testRatios, optData] = detectSpots(rawMovieName, filteredMovieName, dataProperties, options)
+% SYNOPSIS: [slist, dataProperties, testRatios, debugData] = detectSpots(rawMovieName, filteredMovieName, dataProperties, options)
 %
 % INPUT rawMovieName:       filename of raw movie or handle to an imaris
 %                           session where the raw movie has been loaded
@@ -23,7 +23,7 @@ function [slist, dataProperties, testRatios, optData] = detectSpots(rawMovieName
 %                           "amplitudeCutoff"
 %        testRatios         nTimepoints-by-1 cell with the testRatios for
 %                           the amplitudes of the fitted spots
-%        optData:           additional data for debugging
+%        debugData:         additional data for debugging
 %
 % REMARKS
 %
@@ -38,6 +38,11 @@ function [slist, dataProperties, testRatios, optData] = detectSpots(rawMovieName
 % TEST INPUT
 %=================
 
+% debug. 
+% 1: return F-test values for old and new degrees of freedom
+% 2: ...
+debug = 0;
+
 
 % check number of input arguments
 if nargin < 3
@@ -50,6 +55,10 @@ end
 % make debug optional
 if nargin < 5 || isempty(options)
     options = [];
+else
+    if isfield(options,'debug')
+        debug = options.debug;
+    end
 end
 
 % check for the existence of raw and filtered movies. Also check whether
@@ -89,8 +98,8 @@ if ~isstruct(dataProperties)
     error('dataProperties must be a structuer')
 end
 
-% assign optData
-optData = [];
+% assign debugData
+debugData = [];
 
 %====================
 
@@ -174,7 +183,7 @@ while ~done
 
     % find local maxima
     coordinates(loadStruct.loadedFrames - deltaFrames) = ...
-        spotfind(filteredMovie,dataProperties);
+        spotfind(filteredMovie,dataProperties,1,loadStruct.loadedFrames);
     clear filteredMovie
 
     % load more
@@ -245,6 +254,11 @@ slist(1:movieHeader.numTimepoints) = ...
     'parms',[],...
     'COM',[]);
 
+% take care of debug1
+if debug == 1
+    debugData.fStats = cell(movieHeader.numTimepoints);
+end
+
 
 done = 0;
 while ~done
@@ -259,9 +273,13 @@ while ~done
     end
 
     % do fitting
-    slist(loadedFrames) = ...
+    [slist(loadedFrames), dbTmp] = ...
         detectSpots_MMF_main(rawMovie,coordinates(loadedFrames),...
-        dataProperties,tr,verbose);
+        dataProperties,tr,verbose,debug);
+    
+    if debug == 1
+        debugData.fStats(loadedFrames) = dbTmp.fStats;
+    end
 
     % load more
     if isempty(loadStruct.frames2load)

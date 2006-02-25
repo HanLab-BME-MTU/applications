@@ -29,7 +29,7 @@ if nargin < 6 || isempty(DEBUG)
     DEBUG = 0;
     debugData = [];
 else
-    debugData = struct('exitflag',[],'output',[]);
+    debugData = struct('exitflag',[],'output',[],'fStats',[]);
 end
 
 %init output (could remain empty!)
@@ -276,6 +276,15 @@ if fitNPlusOne %do N+1-fit only if there are any spots left!
         % differences more extreme, which is good.
         fValue=(chi1/numFreeParms)/(chi2/newNumFreeParms);
         prob=fcdf(fValue,numFreeParms,newNumFreeParms);
+        
+        % collect fStats for debug
+        if DEBUG
+            % fStats: pDom, chiDom, df1, df2, pJonas, chiJonas, df1, df2
+            debugData(end).fStats = ...
+                [prob, fValue, numFreeParms, newNumFreeParms,...
+                fcdf(chi1/chi2, degreesOfFreedom, newDegreesOfFreedom),...
+                chi1/chi2, degreesOfFreedom, newDegreesOfFreedom];
+        end
 
         %disp(sprintf('%1.4f',prob));
         if (prob>F_TEST_PROB)

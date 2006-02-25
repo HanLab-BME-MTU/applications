@@ -1,4 +1,4 @@
-function [slist, optData] = detectSpots_MMF_main(rawMovie,cord,dataProperties,testRatios,verbose,options)
+function [slist, debugData] = detectSpots_MMF_main(rawMovie,cord,dataProperties,testRatios,verbose,debug)
 %DETECTSPOTS_MMF_MAIN is the main function of the mixture model fitting
 %
 % SYNOPSIS: [slist, optData] = detectSpots_MMF_main(rawMovie,cord,dataProperties,testRatio,verbose,options)
@@ -9,11 +9,11 @@ function [slist, optData] = detectSpots_MMF_main(rawMovie,cord,dataProperties,te
 %		testRatio: output of detectSpots_MMF_findAmplitudeCutoff. Can be
 %                  empty
 %		verbose: 0: no window, 1: waitbar
-%		options: potential additional options
+%		debug: debug status
 %
 % OUTPUT slist: nTimepoints-by-1 structure with fields:
 %			.sp spots structure with fields...
-%			optData: optional additional output
+%			debugData: optional additional output
 %
 % REMARKS
 %
@@ -31,12 +31,12 @@ function [slist, optData] = detectSpots_MMF_main(rawMovie,cord,dataProperties,te
 if nargin < 5 || isempty(verbose)
     verbose = 1;
 end
-if nargin < 6 || isempty(options)
-    options = [];
+if nargin < 6 || isempty(debug)
+    debug = 0;
 end
 
-% preassign optOut
-optData = [];
+% preassign debugData
+debugData = [];
 
 %=========================
 
@@ -89,6 +89,13 @@ end
 % MIXTURE MODEL FITTING LOOP
 %==============================
 
+% init debug
+% 1: collect fStats
+if debug == 1
+    debugData.fStats = cell(nTimepoints,1);
+end
+
+
 % loop through time
 for t=goodTimes'
     Q=[];
@@ -136,9 +143,15 @@ for t=goodTimes'
             mskData=currentFrame(idxList);
 
             % do the mixture-model fitting
-            [numDist,ncordList,ampList,bg,statistics]=...
+            [numDist,ncordList,ampList,bg,statistics, dbTmp]=...
                 fitTest(mskData,cordList(spotsidx,:),idxList,...
-                frameSize,dataProperties);
+                frameSize,dataProperties, debug);
+            
+            % read debugData
+            if debug == 1
+                debugData.fStats{t} = ...
+                    [debugData.fStats{t};cat(1,dbTmp.fStats)];
+            end
 
             if isempty(ncordList)
                 statistics.parms=[];
