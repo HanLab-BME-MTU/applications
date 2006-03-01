@@ -228,6 +228,10 @@ zeroVals = fnval(sp,zeroList);
 indexList = (closestIdx-2):(closestIdx + 4);
 indexList(indexList < 1 | indexList > length(zeroVals)) = [];
 
+% also, never allow going left of the highest maximum!
+[dummy,maxValIdx] = max(zeroVals);
+indexList(indexList < maxValIdx) = [];
+
 % find lowest
 [dummy, cutIdx] = min(zeroVals(indexList));
 % and determine break value
