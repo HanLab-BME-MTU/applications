@@ -287,7 +287,7 @@ else
         end
 
         switch type
-            case 1 % raw
+            case 1 % raw - read header from movie itself!
                 r3dMovieHeader = readr3dheader(movieInfo.name);
                 correctionData = [];
             case 2 % corrected

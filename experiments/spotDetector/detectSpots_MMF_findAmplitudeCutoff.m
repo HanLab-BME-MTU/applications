@@ -58,6 +58,12 @@ switch movieLoader
             moviePath,movieHeader,imarisHandle,loadStruct] = ...
             imarisImread(rawMovieName,[],[],loadOptions.maxSize);
         deltaFrames = 0;
+    case 'none'
+        % entire movie is being passed down as 'rawMovieName'
+        rawMovie = rawMovieName;
+        loadStruct.loadedFrames = 1:size(rawMovie,5);
+        loadStruct.frames2load = [];
+        deltaFrames = 0;
 end
 
 %===================

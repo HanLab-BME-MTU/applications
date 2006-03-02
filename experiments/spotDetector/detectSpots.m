@@ -25,7 +25,8 @@ function [slist, dataProperties, testRatios, debugData] = detectSpots(rawMovieNa
 %                           the amplitudes of the fitted spots
 %        debugData:         additional data for debugging
 %
-% REMARKS
+% REMARKS  It is also possible to pass the raw (and maybe filtered) movie
+%          instead of the names. This is not recommended, however.
 %
 % created with MATLAB ver.: 7.1.0.246 (R14) Service Pack 3 on Windows_NT
 %
@@ -67,6 +68,11 @@ if strcmp(class(rawMovieName),'COM.Imaris_Application')
     % load movie via imaris
     movieLoader = 'imaris';
     imarisHandle = rawMovieName;
+
+    % check for rawMovie instead of rawMovieName
+elseif isnumeric(rawMovieName)
+    % set movieLoader to none. Don't assign rawMovie.
+    movieLoader = 'none';
 elseif ~exist(rawMovieName,'file')
     error('rawMovie (''%s'') not found',rawMovieName)
 else
@@ -75,10 +81,25 @@ end
 
 % check for filteredMovie. If '.new', we want to filter
 if isempty(filteredMovieName)
-    error(['if there is no filtered movie yet, specify a moviename'...
-        'with full extension ending in ''.new''!'])
+    % only die if no numeric raw movie
+    if strcmp(movieLoader,'none')
+        doFilter = 1;
+    else
+        error(['if there is no filtered movie yet, specify a moviename'...
+            'with full extension ending in ''.new''!'])
+    end
 end
-if strcmp(filteredMovieName(end-3:end),'.new')
+if isnumeric(filteredMovieName)
+    % for now, filteredMovie can only be numeric if the rawMovie is
+    % numeric, too.
+    if strcmp(movieLoader,'none')
+        % all is good.
+        doFilter = 0;
+    else
+        error('It is not permitted to pass the filtered movie if the raw movie is passed by filename')
+    end
+        
+elseif strcmp(filteredMovieName(end-3:end),'.new')
     % make a new filteredMovie
     doFilter = 1;
     filteredMovieName = filteredMovieName(1:end-4);
@@ -116,20 +137,21 @@ else
 end
 
 % check for path in rawMovieName
-if strcmp(movieLoader,'cdLoadMovie')
-[moviePath,movieName,extension] = fileparts(rawMovieName);
-if isempty(moviePath)
-    moviePath = pwd;
-    rawMovieName = fullfile(moviePath, [movieName, extension]);
+if ~strcmp(movieLoader,'none')
+    if strcmp(movieLoader,'cdLoadMovie')
+        [moviePath,movieName,extension] = fileparts(rawMovieName);
+        if isempty(moviePath)
+            moviePath = pwd;
+            rawMovieName = fullfile(moviePath, [movieName, extension]);
+        end
+    end
+    % check for pathName
+    [fmoviePath,fmovieName,fextension] = fileparts(filteredMovieName);
+    if isempty(fmoviePath)
+        fmoviePath = pwd;
+        filteredMovieName = fullfile(fmoviePath, [fmovieName, fextension]);
+    end
 end
-end
-% check for pathName
-[fmoviePath,fmovieName,fextension] = fileparts(filteredMovieName);
-if isempty(fmoviePath)
-    fmoviePath = pwd;
-    filteredMovieName = fullfile(fmoviePath, [fmovieName, fextension]);
-end
-
 
 %=================================
 
@@ -150,19 +172,32 @@ if doFilter
             [rawMovie, movieHeader, loadStruct] = ...
                 cdLoadMovie({rawMovieName,'corr/raw'}, [], loadOptions);
             % check if there are any leading darkframes we need to subtract
-        deltaFrames = loadStruct.loadedFrames(1) - 1;
+            deltaFrames = loadStruct.loadedFrames(1) - 1;
         case 'imaris'
             [rawMovie,movieSize,movieName,...
                 moviePath,movieHeader,imarisHandle,loadStruct] = ...
                 imarisImread(imarisHandle,[],[],loadOptions.maxSize);
             deltaFrames = 0;
+        case 'none'
+            % read raw movie, set loadStruct and deltaFrames
+            rawMovie = rawMovieName;
+            loadStruct.loadedFrames = 1:size(rawMovie,5);
+            loadStruct.frames2loade = [];
+            deltaFrames = 0;
     end
 
 else
+    if strcmp(movieLoader,'none')
+        filteredMovie = filteredMovieName;
+        loadStruct.loadedFrames = 1:size(filteredMovie,5);
+            loadStruct.frames2load = [];
+            deltaFrames = 0;
+    else
     % load filtered movie
     [filteredMovie, movieHeader, loadStruct] = ...
         cdLoadMovie({filteredMovieName,'filtered'}, [], loadOptions);
     deltaFrames = 0;
+    end
 
 end
 
@@ -176,9 +211,14 @@ while ~done
         filteredMovie = filtermovie(rawMovie,dataProperties.FILTERPRM);
         clear rawMovie
 
-        % save filtered movie to file
-        writemat(filteredMovieName,...
-            filteredMovie,1,5);
+        if strcmp(movieLoader,'none')
+            % save filteredMovie as variable 'filteredMovieName'
+            filteredMovieName = filteredMovie;
+        else
+            % save filtered movie to file
+            writemat(filteredMovieName,...
+                filteredMovie,1,5);
+        end
     end
 
     % find local maxima
@@ -245,6 +285,13 @@ switch movieLoader
             moviePath,movieHeader,imarisHandle,loadStruct] = ...
             imarisImread(imarisHandle,[],[],loadOptions.maxSize);
         deltaFrames = 0;
+    case 'none'
+        % read raw movie, set loadStruct and deltaFrames
+        rawMovie = rawMovieName;
+        loadStruct.loadedFrames = 1:size(rawMovie,5);
+        loadStruct.frames2load = [];
+        deltaFrames = 0;
+        movieHeader.numTimepoints = size(rawMovie,5);
 end
 
 % preassign slist
@@ -265,7 +312,7 @@ while ~done
 
     % prepare data for mixture model fitting
     loadedFrames = loadStruct.loadedFrames-deltaFrames;
-    
+
     if ~isempty(testRatios)
         tr = testRatios(loadedFrames);
     else
@@ -285,7 +332,7 @@ while ~done
     if isempty(loadStruct.frames2load)
         done = 1;
     else
-        
+
         switch movieLoader
             case 'cdLoadMovie'
                 [rawMovie, movieHeader, loadStruct] = ...
@@ -295,7 +342,7 @@ while ~done
                     dummy,dummy,dummy,loadStruct] = ...
                     imarisImread(loadStruct);
         end
-    
+
     end % load more
 
 end % while loop find spots
