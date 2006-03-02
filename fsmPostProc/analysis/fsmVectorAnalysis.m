@@ -160,15 +160,16 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 nImages=imageLastIndex-imageFirstIndex+1;
-if size(M,3)+1~=nImages
-    if uptodate==-1
-        errordlg('The tracking module is not up-to-date. Please re-run the tracking module in SpeckTackle.','Error','modal');
-        return
-    else
-        errordlg('Even though the tracking module appears to be up-to-date, it is NOT. THIS IS A BUG. Please REPORT it.','Error','modal');
-        return
-    end
-end
+% taken out by Matthias. I am not know why we need that
+% if size(M,3)+1~=nImages
+%     if uptodate==-1
+%         errordlg('The tracking module is not up-to-date. Please re-run the tracking module in SpeckTackle.','Error','modal');
+%         return
+%     else
+%         errordlg('Even though the tracking module appears to be up-to-date, it is NOT. THIS IS A BUG. Please REPORT it.','Error','modal');
+%         return
+%     end
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -536,59 +537,65 @@ for c1=1:nImages %firstMatrix:lastMatrix
     end
     
     if any([RAW_DISPLAY INTERP_DISPLAY NOISE_DISPLAY])==1
-        
-        % Set axes
-        axis([1 imgSize(2) 1 imgSize(1)]);
-        
+
         % Draw polygon
         if POLYGON_DISPLAY==1
             hold on;
             plot(x,y,'r-');
         end
         
-        % Add title
-        if displ(5)==1
-            colors={'yellow','red','blue'};
-        else
-            colors={'black','red','blue'};
-        end
-        
-        str=['Scaled ',num2str(scale),'x'];
-        if RAW_DISPLAY==1
-            str=[str,', ',char(colors(1)),' -> raw']; % Color 1 used for raw
-            if INTERP_DISPLAY==1
-                str=[str,', ',char(colors(2)),' -> averaged']; % Color 2 used for averaged
-                if NOISE_DISPLAY==1
-                    str=[str,', ',char(colors(3)),' -> noise']; % Color 3 used for averaged
+        if 0
+            % Set axes
+            axis([1 imgSize(2) 1 imgSize(1)]);
+
+            % Add title
+            if displ(5)==1
+                colors={'yellow','red','blue'};
+            else
+                colors={'black','red','blue'};
+            end
+
+            str=['Scaled ',num2str(scale),'x'];
+            if RAW_DISPLAY==1
+                str=[str,', ',char(colors(1)),' -> raw']; % Color 1 used for raw
+                if INTERP_DISPLAY==1
+                    str=[str,', ',char(colors(2)),' -> averaged']; % Color 2 used for averaged
+                    if NOISE_DISPLAY==1
+                        str=[str,', ',char(colors(3)),' -> noise']; % Color 3 used for averaged
+                    end
+                else
+                    if NOISE_DISPLAY==1
+                        str=[str,', ',char(colors(2)),' -> noise']; % Color 2 used for averaged
+                    end
                 end
             else
-                if NOISE_DISPLAY==1
-                    str=[str,', ',char(colors(2)),' -> noise']; % Color 2 used for averaged
+                if INTERP_DISPLAY==1
+                    str=[str,', ',char(colors(1)),' -> averaged'];
+                    if NOISE_DISPLAY==1
+                        str=[str,', ',char(colors(2)),' -> noise']; % Color 2 used for averaged
+                    end
+                else
+                    if NOISE_DISPLAY==1
+                        str=[str,', ',char(colors(1)),' -> noise']; % Color 1 used for averaged
+                    end
+
                 end
             end
-        else
-            if INTERP_DISPLAY==1
-                str=[str,', ',char(colors(1)),' -> averaged'];
-                if NOISE_DISPLAY==1
-                    str=[str,', ',char(colors(2)),' -> noise']; % Color 2 used for averaged
-                end
-            else
-                if NOISE_DISPLAY==1
-                    str=[str,', ',char(colors(1)),' -> noise']; % Color 1 used for averaged
-                end
-                
-            end      
+            title(str);
         end
-        title(str);
         
         % Save the image to disk if needed
         if nImages>1
             indxStr=sprintf(strg,imageIndices(c1));
             fname=[outputdir,filesep,'flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
-            print(gcf,'-dtiffnocompression',fname);
+            F = getframe(gca);
+            imwrite(F.cdata,fname);
+            %print(gcf,'-dtiffnocompression',fname);
             
-            fname2=[outputdir,filesep,'flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.fig'];
-            hgsave(gcf,fname2);
+            
+            
+            %fname2=[outputdir,filesep,'flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.fig'];
+            %hgsave(gcf,fname2);
             
             % Close image
             close(h);
