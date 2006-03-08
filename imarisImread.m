@@ -38,7 +38,7 @@ function [movie,movieSize,movieName,moviePath,movieProperties,imarisHandle,loadS
 %                                 the cropping in x,y,z, and c will be
 %                                 taken into account. The movie will be
 %                                 split along z.
-
+%
 %          noMovie         : (opt) [{0}/1] if 1, the movie will be loaded
 %                                 into Imaris, the first output argument
 %                                 will be returned empty.
