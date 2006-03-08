@@ -406,9 +406,29 @@ switch movieType
         movieProperties.numZSlices = movieSize(3);
         movieProperties.numTimepoints = movieSize(5);
         movieProperties.numWvs = movieSize(4);
-        % wvl in um!!
-        movieProperties.wvl = str2double(...
-            vImarisApplication.mDataSet.GetParameter('Metamorph STK','WaveLength'))/1000;
+        
+        % wavelength, time are general properties - make available for all
+        % in the future
+        for w = 1:movieSize(4)
+            movieProperties.wvl(w) = ...
+                str2double(vImarisApplication.mDataSet.GetParameter(...
+                sprintf('Channel %i',w-1),'LSMEmissionWavelength');
+        end
+         % wvl in um!!
+        movieProperties.wvl = movieProperties.wvl/1000;
+        
+        
+        % read frameTime (this is a general 
+        frameTimeC = cell(movieSize(5),1);
+        
+        for t = 1:movieSize(5)
+            frameTimeC{t} = vImarisApplication.mDataSet.GetParameter(...
+                'TimeInfo',sprintf('TimePoint%i',t));
+        end
+        % change strings into seconds, then subtract first time
+        frameTime = cellfun(@(x)(datenum(x,'yyyy-mm-dd HH.MM.SS'),frameTime);
+        frameTime = frameTime - frameTime(1);
+        dataProperties.frameTime = frameTime;
     otherwise
         warning('no property reader defined for %s',movieType);
         movieProperties = [];
