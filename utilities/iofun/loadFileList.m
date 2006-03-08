@@ -295,7 +295,7 @@ for s = 1:nextStoreIdx - 1
                     separatorIdx = findstr(firstLine,'#');
                     % to have all identifiers: If the list does not end
                     % with a separator, add an imaginary separator.
-                    if ~(separatorIdx(end) == length(firstLine))
+                    if ~isempty(separatorIdx) && ~(separatorIdx(end) == length(firstLine))
                         separatorIdx(end+1) = length(firstLine)+1;
                     end
 

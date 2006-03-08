@@ -141,6 +141,13 @@ for iFile = 1:size(fileNameList,1)
         restOfFileName = fileName;
 
     end %check for identifier and restOfFilename
+    
+    % check resOfFilename for spaces
+    if any(regexp(restOfFileName,'\s'))
+        fclose(fidTxt)
+        delete(saveTxtFile)
+        error('filenames and pathnames can''t contain spaces!')
+    end
 
 
 
@@ -171,6 +178,14 @@ for iFile = 1:size(fileNameList,1)
                 % calculate 2 trajectories, anyway
                 spbIdx = strmatch('spb',labelcolor);
                 cenIdx = strmatch('cen',labelcolor);
+                % check the indices. There could also be 1 spb, 2 cen
+                if length(spbIdx) == 1 && length(cenIdx) == 2
+                    tmp = cenIdx;
+                    cenIdx = spbIdx;
+                    spbIdx = tmp;
+                elseif length(spbIdx) + length(cenIdx) ~= 3
+                    error('bad labeling!')
+                end
                 fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
                     identifier, labelcolor{spbIdx(1)}, labelcolor{cenIdx}, restOfFileName);
                 fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...

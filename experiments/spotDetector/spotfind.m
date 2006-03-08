@@ -131,7 +131,7 @@ for t=1:tsteps
     additionalSpots = min(additionalSpots,10);
     numberOfSpots = dataProperties.MAXSPOTS + additionalSpots;
     
-    [mnpSorted,sortIdx] = sort(mnp(:,t),1,'descend');
+    [mnpSorted,sortIdx] = sort(mnp(1:ct-1,t),1,'descend');
     % cut at either MAXSPOTS+1 or how many we have if it's less
     cps = sortIdx(1:min(numberOfSpots,length(sortIdx)));
     

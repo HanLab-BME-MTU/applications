@@ -64,15 +64,13 @@ end
 
 % check for the existence of raw and filtered movies. Also check whether
 % the rawMovieName is not actually an imaris handle
-if strcmp(class(rawMovieName),'COM.Imaris_Application')
+if isnumeric(rawMovieName)
+    % set movieLoader to none. Don't assign rawMovie.
+    movieLoader = 'none';
+elseif strcmp(class(rawMovieName),'COM.Imaris_Application')
     % load movie via imaris
     movieLoader = 'imaris';
     imarisHandle = rawMovieName;
-
-    % check for rawMovie instead of rawMovieName
-elseif isnumeric(rawMovieName)
-    % set movieLoader to none. Don't assign rawMovie.
-    movieLoader = 'none';
 elseif ~exist(rawMovieName,'file')
     error('rawMovie (''%s'') not found',rawMovieName)
 else
@@ -174,9 +172,12 @@ if doFilter
             % check if there are any leading darkframes we need to subtract
             deltaFrames = loadStruct.loadedFrames(1) - 1;
         case 'imaris'
+            if ~isfield(dataProperties,'cropInfo')
+                dataProperties.cropInfo = [];
+            end
             [rawMovie,movieSize,movieName,...
                 moviePath,movieHeader,imarisHandle,loadStruct] = ...
-                imarisImread(imarisHandle,[],[],loadOptions.maxSize);
+                imarisImread(imarisHandle,[],dataProperties.cropInfo,loadOptions.maxSize);
             deltaFrames = 0;
         case 'none'
             % read raw movie, set loadStruct and deltaFrames
@@ -281,9 +282,12 @@ switch movieLoader
         % check if there are any leading darkframes we need to subtract
         deltaFrames = loadStruct.loadedFrames(1) - 1;
     case 'imaris'
+        if ~isfield(dataProperties,'cropInfo')
+                dataProperties.cropInfo = [];
+            end
         [rawMovie,movieSize,movieName,...
             moviePath,movieHeader,imarisHandle,loadStruct] = ...
-            imarisImread(imarisHandle,[],[],loadOptions.maxSize);
+            imarisImread(imarisHandle,[],dataProperties.cropInfo,loadOptions.maxSize);
         deltaFrames = 0;
     case 'none'
         % read raw movie, set loadStruct and deltaFrames
