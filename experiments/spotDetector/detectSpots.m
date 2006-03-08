@@ -171,13 +171,10 @@ if doFilter
                 cdLoadMovie({rawMovieName,'corr/raw'}, [], loadOptions);
             % check if there are any leading darkframes we need to subtract
             deltaFrames = loadStruct.loadedFrames(1) - 1;
-        case 'imaris'
-            if ~isfield(dataProperties,'cropInfo')
-                dataProperties.cropInfo = [];
-            end
+        case 'imaris'            
             [rawMovie,movieSize,movieName,...
                 moviePath,movieHeader,imarisHandle,loadStruct] = ...
-                imarisImread(imarisHandle,[],dataProperties.cropInfo,loadOptions.maxSize);
+                imarisImread(imarisHandle,[],dataProperties.crop,loadOptions.maxSize);
             deltaFrames = 0;
         case 'none'
             % read raw movie, set loadStruct and deltaFrames
@@ -282,12 +279,12 @@ switch movieLoader
         % check if there are any leading darkframes we need to subtract
         deltaFrames = loadStruct.loadedFrames(1) - 1;
     case 'imaris'
-        if ~isfield(dataProperties,'cropInfo')
-                dataProperties.cropInfo = [];
+        if ~isfield(dataProperties,'crop')
+                dataProperties.crop = [];
             end
         [rawMovie,movieSize,movieName,...
             moviePath,movieHeader,imarisHandle,loadStruct] = ...
-            imarisImread(imarisHandle,[],dataProperties.cropInfo,loadOptions.maxSize);
+            imarisImread(imarisHandle,[],dataProperties.crop,loadOptions.maxSize);
         deltaFrames = 0;
     case 'none'
         % read raw movie, set loadStruct and deltaFrames

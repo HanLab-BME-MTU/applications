@@ -53,13 +53,10 @@ switch movieLoader
             cdLoadMovie({rawMovieName,'corr/raw'}, [], loadOptions);
         % check if there are any leading darkframes we need to subtract
         deltaFrames = loadStruct.loadedFrames(1) - 1;
-    case 'imaris'
-        if ~isfield(dataProperties,'cropInfo')
-                dataProperties.cropInfo = [];
-            end
+    case 'imaris'        
         [rawMovie,movieSize,movieName,...
             moviePath,movieHeader,imarisHandle,loadStruct] = ...
-            imarisImread(rawMovieName,[],dataProperties.cropInfo,loadOptions.maxSize);
+            imarisImread(rawMovieName,[],dataProperties.crop,loadOptions.maxSize);
         deltaFrames = 0;
     case 'none'
         % entire movie is being passed down as 'rawMovieName'
