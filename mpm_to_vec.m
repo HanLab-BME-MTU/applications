@@ -1,14 +1,18 @@
 clear
 %mpm_variable = load('mpm_org.mat');
 %mpm_variable = load('mpm_frommlg');
-mpm_variable = load('mpm_yx_Feb24');
-
+%mpm_variable = load('mpm_yx_Feb24');
+mpm_variable = load('mpm');
 
 a=char(fieldnames(mpm_variable));
-MPM = mpm_variable.(a);
+if size(a,1) > 1
+    MPM = mpm_variable.(a(2,:));
+else
+    MPM = mpm_variable.(a);
+end
 clear mpm_variable 
 
-img_h = 779;
+%img_h = 779;
 
 % trace MPM
 t_n =1;

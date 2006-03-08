@@ -115,7 +115,7 @@ end
 if colorCode==1
     % Initialize colormap
     nc = uint16(uLast-uFirst+1);
-    cmap=colormap(jet(103));
+    cmap=colormap(jet(122));
     close(gcf);
     %cmap=colormap(jet(156));close(gcf);
 end
