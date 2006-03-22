@@ -3,15 +3,12 @@ function varargout = labelgui(varargin)
 %    FIG = LABELGUI launch labelgui GUI.
 %    LABELGUI('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 23-May-2005 14:27:18
+% Last Modified by GUIDE v2.5 22-Mar-2006 09:09:39
 
 if nargin == 0  % LAUNCH GUI
     
     fig = openfig(mfilename,'reuse');
-        
-    % Use system color scheme for figure:
-    set(fig,'Color',get(0,'defaultUicontrolBackgroundColor'));
-    
+            
     %set shortcuts
     loadAllH = findall(fig,'Tag','label_load');
     set(loadAllH,'Accelerator','L');
@@ -575,11 +572,5 @@ end;
 %image has to be calculated again
 labelgui('slider3_Callback',handles.slider3, eventdata, handles);
 
-
-% --------------------------------------------------------------------
-function removeFusions_Callback(hObject, eventdata, handles)
-% hObject    handle to removeFusions (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 
