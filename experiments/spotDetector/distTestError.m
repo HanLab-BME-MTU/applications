@@ -14,3 +14,5 @@ function [res,jac]=distTestError(parms,data,gIdxList,mskDataSize,dataProperties)
 % return residual and jacobian
 res=data-gaussFit(gIdxList);
 jac=-mgrad(gIdxList,:);
+
+%disp(sprintf(['parms ',repmat('%1.4f ',1,length(parms))],parms))

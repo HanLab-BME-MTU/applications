@@ -3,11 +3,14 @@ function bilobeData = bilobedDistribution
 %
 % SYNOPSIS bilobeData = bilobedDistribution
 %
+% INPUT  none
+%
 % OUTPUT bilobeData:  structure array. Contains for every idlist used:
 %                       .spindleLength  ntp-by-1. Spindle length in microns
 %                       .cenPositions   ntp-by-2. Relative cen position
 %                       .time           ntp-by-1. Timepoints
 %                       .name           char. directory name
+%
 %
 %
 %
@@ -53,7 +56,7 @@ for iFile = 1:nFiles
         tmp=load(dataFileName,lastResult);
         idlist = tmp.(lastResult);
         % check labelcolor: min. 3 tags? No '?'?
-        if length(idlist(1).stats.labelcolor) > 3 && isempty(strmatch('?',idlist(1).stats.labelcolor))
+        if length(idlist(1).stats.labelcolor) > 2 && isempty(strmatch('?',idlist(1).stats.labelcolor)) 
             % store idlist
             idlistList{idlistCt,1} = idlist;
             % store directoryName

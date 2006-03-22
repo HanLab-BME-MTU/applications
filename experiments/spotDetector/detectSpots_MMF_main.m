@@ -91,7 +91,7 @@ end
 
 % init debug
 % 1: collect fStats
-if debug == 1
+if any(debug) == 1
     debugData.fStats = cell(nTimepoints,1);
 end
 

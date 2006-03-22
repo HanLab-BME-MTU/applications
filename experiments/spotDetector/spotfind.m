@@ -126,7 +126,8 @@ for t=1:tsteps
     % accidentially throw out a good spot, and we need a few bad apples to
     % make the amplitude cutoff work fine. We take between 2 and 10 more
     % spots, depending on MAXNUMSPOTS.
-    additionalSpots = dataProperties.MAXSPOTS * 0.2;
+    additionalSpots = dataProperties.MAXSPOTS * 0.3;
+    additionalSpots = ceil(additionalSpots);
     additionalSpots = max(additionalSpots,3);
     additionalSpots = min(additionalSpots,10);
     numberOfSpots = dataProperties.MAXSPOTS + additionalSpots;

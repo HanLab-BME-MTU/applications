@@ -1,22 +1,8 @@
-function [testRatios]=fitTestFirstRound(data,cordList,idxList,dataSize,dataProperties,DEBUG)
+function [testRatios,residualImage,resAndGauss]=fitTestFirstRound(data,cordList,idxList,dataSize,dataProperties)
 %FITTESTFIRSTROUND fits the data to find the cutoff for the amplitude test.
 % It's a combination of fitTest and testDistanceAndAmplitudes
 
 MAX_POS_DELTA = dataProperties.FILTERPRM(4:6);
-
-% %init debug parameters
-% if nargin < 6 || isempty(DEBUG)
-%     DEBUG = 0;
-%     debugData = [];
-% else
-%     debugData = struct('exitflag',[],'output',[]);
-% end
-
-% %init output (could remain empty!)
-% ncordList = [];
-% ampList = [];
-% bg = [];
-% statistics = [];
 
 
 % optim options. We want to terminate the algorithm when it is within 0.001
@@ -48,8 +34,36 @@ shiftC=([minV(1)-1, minV(2)-1, minV(3)-1] + localShift);
 cordList=cordList-ones(size(cordList,1),1)*shiftC;
 
 %-------------------------------------- FIT N ------------------------------------
-% FIT N (N=number of cluster spots found in loc max)
+%tic
+% set up initial parameters
 nsp=size(cordList,1);
+% initialBackground = min(data(:));
+% initialAmplitude = max(data(:)-initialBackground);
+% initialParms = zeros(nsp,8);
+% initialParms(:,4) = initialAmplitude;
+% initialParms(:,5:7) = repmat(dataProperties.FT_SIGMA,nsp,1);
+% initialParms(:,8) = initialBackground;
+% initialParms(:,1:3) = cordList;
+% % cl should be killed later - like the local shift
+% cl =[ig-minV(1)+1 - localShift(1), jg-minV(2)+1 - localShift(2), ...
+%     kg-minV(3)+1 - localShift(3)];
+% 
+% 
+% 
+% if nargout == 1
+%     [parms,sigmaParameters,Q,chiSquared,degreesOfFreedom] = ...
+%         GaussFitND(data, cl, {'X1','X2','X3','A','B'}, ...
+%         initialParms);
+% else
+%     % also return residual image
+%     [parms1,sigmaParameters,Q,chiSquared,degreesOfFreedom,residualImage,resAndGauss] = ...
+%         GaussFitND(data, cl, {'X1','X2','X3','A','B'}, ...
+%         initialParms);
+% end
+% toc
+% tic
+% FIT N (N=number of cluster spots found in loc max)
+
 % free params:
 numFreeParms=4*nsp+1;
 
@@ -84,6 +98,7 @@ for i=1:nsp
 end;
 
 
+
 %calculate the fit, return exitflag, output for debugging
 parms = lsqnonlin(@distTestError,parms,lb,ub,options,transData,gIdxList,mskDataSize,dataProperties);
 
@@ -100,7 +115,7 @@ degreesOfFreedom = (length(Res1(:))-numFreeParms);
 chi1= sum(Res1(:).^2)/degreesOfFreedom;
 
 QAll=(gaussgrad'*gaussgrad)^-1;
-
+% toc
 %----------- get amplitude ratio and return
 %init parameters
 nSpots=floor(length(parms)/4); %number of spots (last parm is bg)

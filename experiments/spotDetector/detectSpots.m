@@ -39,9 +39,9 @@ function [slist, dataProperties, testRatios, debugData] = detectSpots(rawMovieNa
 % TEST INPUT
 %=================
 
-% debug. 
+% debug vector with:
 % 1: return F-test values for old and new degrees of freedom
-% 2: ...
+% 2: return residual images
 debug = 0;
 
 
@@ -262,9 +262,9 @@ if ~isfield(dataProperties,'amplitudeCutoff') || ...
         dataProperties.amplitudeCutoff == 0
 
     % if we load from imaris, rawMovieName is the imaris handle
-    [dataProperties, testRatios] = ...
+    [dataProperties, testRatios, dbTmp] = ...
         detectSpots_MMF_findAmplitudeCutoff(...
-        rawMovieName, coordinates, dataProperties, movieLoader, verbose);
+        rawMovieName, coordinates, dataProperties, movieLoader, verbose, any(debug==2));
 else
     % set testRatios to []
     testRatios = [];
@@ -303,7 +303,7 @@ slist(1:movieHeader.numTimepoints) = ...
     'COM',[]);
 
 % take care of debug1
-if debug == 1
+if any(debug) == 1
     debugData.fStats = cell(movieHeader.numTimepoints);
 end
 

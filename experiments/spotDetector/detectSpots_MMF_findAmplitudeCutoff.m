@@ -1,7 +1,7 @@
-function [dataProperties, testRatios] = detectSpots_MMF_findAmplitudeCutoff(rawMovieName, coordinates, dataProperties,movieLoader,verbose)
+function [dataProperties, testRatios, debugData] = detectSpots_MMF_findAmplitudeCutoff(rawMovieName, coordinates, dataProperties,movieLoader,verbose,debug)
 %DETECTSPOTS_MMF_FINDAMPLITUDECUTOFF finds the cutoff that distinguishes the amplitude of true spots from noise
 %
-% SYNOPSIS: [dataProperties, testRatios] = detectSpots_MMF_findAmplitudeCutoff(rawMovieName, coordinates, dataProperties,movieLoader,verbose)
+% SYNOPSIS: [dataProperties, testRatios] = detectSpots_MMF_findAmplitudeCutoff(rawMovieName, coordinates, dataProperties,movieLoader,verbose,debug)
 %
 % INPUT rawMovieName: full name of raw movie file or imaris handle
 %		coordinates: coordinates of local maxima from spotfind
@@ -32,6 +32,10 @@ function [dataProperties, testRatios] = detectSpots_MMF_findAmplitudeCutoff(rawM
 % assign default movieLoader
 if nargin < 4 || isempty(movieLoader)
     movieLoader = 'cdLoadMovie';
+end
+
+if nargin < 5 || isempty(debug)
+    debug = 0;
 end
 
 % find maximum allowed data size
@@ -66,6 +70,8 @@ switch movieLoader
         deltaFrames = 0;
 end
 
+debugData = [];
+
 %===================
 % FIND CUTOFF
 %===================
@@ -79,6 +85,13 @@ end
 % define store variable for testRatios
 nTimepoints = dataProperties.movieSize(4);
 testRatios = cell(nTimepoints,1);
+if debug
+    debugData.residualImages = cell(nTimepoints*(dataProperties.MAXSPOTS+3),1);
+    debugData.resAndGauss = cell(nTimepoints*(dataProperties.MAXSPOTS+3),1);
+    imCt = 1;
+end
+
+
 
 if verbose
     h= mywaitbar(0,[],nTimepoints,'Finding amplitude cutoff...');
@@ -134,9 +147,16 @@ while ~done
                     mskData=imgStk(idxList);
 
                     % do the maximum fitting
+                    if debug
+                        [testValue debugData.residualImages{imCt},debugData.resAndGauss{imCt}]=...
+                        fitTestFirstRound(mskData,cordList(spotsidx,:),idxList,...
+                        size(imgStk),dataProperties);
+                    imCt = imCt+1;
+                    else
                     testValue =...
                         fitTestFirstRound(mskData,cordList(spotsidx,:),idxList,...
                         size(imgStk),dataProperties);
+                    end
 
                     % collect testValues. Be careful:
                     % - discernspots picks groups that can be any combination
@@ -196,11 +216,29 @@ while ~done
     end % load more
 end % while loop
 
+%==================================
+% GET CUTOFF
+%==================================
+
+
 % get cutoff. Transform cell to matrix and read out ratios only
 tmp = cat(1,testRatios{:});
 ratios = tmp(:,2);
 times = tmp(:,1);
 clear tmp
+
+% if there's only one timepoint, there'll be trouble. Just take maxspots
+% points
+if nTimepoints < 2
+    % get testRatios
+    ratios = -sort(-ratios);
+    nRatios = length(ratios);
+    % cut at MAXSPOTS
+    cutIdx = min(nRatios,dataProperties.MAXSPOTS);
+    cutValue = ratios(cutIdx);
+
+        
+else
 
 % remove very small values from ratios. If there are multiple almost zeros,
 % for example, there will be a peak at 0 that will screw up
@@ -261,6 +299,8 @@ if verbose > 1
     set(axesH(2),'NextPlot','add');
     plot(axesH(2),[cutVal,cutVal],[0,100],'g',...
         [cutValue,cutValue],[0,100],'r')
+end
+
 end
 
 % clean up
