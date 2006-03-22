@@ -359,7 +359,9 @@ try
                                     save(projData,'lastResult','-append');
 
                                     % save testRatios
-                                    save('testRatios','testRatios');
+                                    if ~isempty(testRatios)
+                                    save(sprintf('testRatios_%s',dataProperties.name),'testRatios');
+                                    end
 
                                     %update data properties
                                     fprintf(fidJob,[nowString,' save(%s,''projProperties'',''-append'');\n'],projData);
