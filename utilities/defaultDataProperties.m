@@ -106,7 +106,7 @@ switch inputType
         end
 
     case 3
-        % nave/value pairs
+        % name/value pairs
         for i = 1:2:nargin
             propertyName = varargin{i};
             if ~isempty(propertyName) && ischar(propertyName)
@@ -173,6 +173,12 @@ dataProperties.help=['synthMovie'];
 dataProperties.maxSize = 200 * 2^20; % 200 Mb
 dataProperties.amplitudeCutoff = 0; % undefined
 dataProperties.fitNPlusOne = 1; % super-resolution fitting
+
+% linker properties
+dataProperties.linker_relativeMaxDistance = -1;
+dataProperties.linker_absoluteMaxDistance=-1;
+dataProperties.linker_relAmpWeight=1/1.5;
+dataProperties.linker_useCOM = 1;
 
 
 
