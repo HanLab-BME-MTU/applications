@@ -32,8 +32,8 @@ function [I0,sDN,GaussRatio]=calcNoiseParam(firstfilename,bitDepth,sigma,beta,fl
 %          adapt image number and size to your machine's amount of memory.
 
 if nargin == 3
-    beta = 2;
-    disp('No value for "beta" entered, 2e-4 assumed');
+    beta = 0;
+    disp('No value for "beta" entered, 0 assumed');
 end
 beta = beta*1e-4;
 

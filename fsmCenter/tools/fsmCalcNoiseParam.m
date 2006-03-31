@@ -184,7 +184,11 @@ close(h);
 GaussRatio=mean(GaussRatios);
 
 % Adapt beta to the selected bitdepth
-beta=2^(14-bitDepth)*2e-4;
+%beta=2^(14-bitDepth)*2e-4;
+% that was the old beta value found for the camera in zurich
+% since we do not know the value for other cameras we neglect
+% shot noise and set beta to zero
+beta = 0;
 
 % Ask user to specify a LABEL and a DESCRIPTION
 prompt={'Experiment LABEL','Experiment DESCRIPTION:'};

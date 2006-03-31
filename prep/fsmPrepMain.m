@@ -370,11 +370,14 @@ for counter1=1:n
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
                 %fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
                 fprintf(1,'Edge mask file for frame %s is missing.\n',num2str(currentIndex));
+                fprintf(1,'Run edge tracker to generate this mask.\n');
             end
             
             % Save it to disk
-            indxStr=sprintf(strg,currentIndex);
-            eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask
+            % matthias: that is not needed since we store it in
+            % edge/cell_mask already
+            %indxStr=sprintf(strg,currentIndex);
+            %eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask
             
             % Multiply image with mask (to set background to 0)
             img=img.*bwMask;
@@ -428,11 +431,14 @@ for counter1=1:n
                 bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
             %    fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
                 fprintf(1,'Edge mask file for frame %s is missing.\n',num2str(currentIndex));
+                fprintf(1,'Run edge tracker to generate this mask.\n');
             end
             
             % Save it to disk
-            indxStr=sprintf(strg,currentIndex);
-            eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask
+            % matthias: that is not needed since we store it in
+            % edge/cell_mask already
+            %indxStr=sprintf(strg,currentIndex);
+            %eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask
             
             % Multiply image with mask (to set background to 0)
             img=img.*bwMask;
