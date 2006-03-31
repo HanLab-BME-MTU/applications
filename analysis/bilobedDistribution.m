@@ -1,9 +1,13 @@
-function bilobeData = bilobedDistribution
+function bilobeData = bilobedDistribution(correct4Tag)
 %BIOLOBEDDISTRIBUTION collects and plots tag positions along the spindle axis
 %
-% SYNOPSIS bilobeData = bilobedDistribution
+% SYNOPSIS bilobeData = bilobedDistribution(kinetochcorrect4TagoreCorrection)
 %
-% INPUT  none
+% INPUT  correct4Tag : (opt) correction for the distance between the
+%                              kinetochore and the tag 
+%                              {0} No correction
+%                               1  Correction by 0.1 um
+%                               any other number: correction (in um)
 %
 % OUTPUT bilobeData:  structure array. Contains for every idlist used:
 %                       .spindleLength  ntp-by-1. Spindle length in microns
@@ -11,17 +15,27 @@ function bilobeData = bilobedDistribution
 %                       .time           ntp-by-1. Timepoints
 %                       .name           char. directory name
 %
-%
-%
-%
 % MATLAB VERSION (originally written on): 7.1.0.246 (R14) Service Pack 3 Windows_NT
-%
 %
 %
 % USERNAME: Jonas Dorn
 % DATE: 14-Jan-2006
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% test input
+if nargin < 1 || isempty(correct4Tag)
+    correct4Tag = 0;
+end
+switch correct4Tag
+    case 0
+        tagCorrection = 0;
+    case 1
+        tagCorrection = 0.1;
+    otherwise
+        tagCorrection = correct4Tag;
+end
+
 
 %========================
 % LOAD DATA
@@ -140,6 +154,16 @@ for iIdlist = 1:nIdlists
 
     % normalize spindleVector
     [n_spindleVector, e_spindleVector] = normList(spindleVector);
+    
+    % In case we want to correct for the centromere, we need to have the
+    % sxcx vectors normed, too
+    [n_s1c1Vector, e_s1c1Vector] = normList(s1c1Vector);
+    [n_s2c2Vector, e_s2c2Vector] = normList(s2c2Vector);
+    
+    % correct - but don't make the length negative!
+    s1c1Vector = s1c1Vector - repmat(min(tagCorrection,n_s1c1Vector-0.08),1,3) .* e_s1c1Vector;
+    s2c2Vector = s2c2Vector - repmat(min(tagCorrection,n_s2c2Vector-0.08),1,3) .* e_s2c2Vector;
+    
 
     % project spb-cen vectors. Distance from spb1
     cen1Dist = dot(s1c1Vector, e_spindleVector, 2);
