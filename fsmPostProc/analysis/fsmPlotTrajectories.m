@@ -82,7 +82,7 @@ end
 % Load mpm.mat
 if exist([projDir,filesep,'mpm.mat'],'file');
     load([projDir,filesep,'mpm.mat']);
-    clear MPM;
+    %clear MPM;
 else
     errordlg('Could not find ''mpm.mat''.','Error','modal');
     return

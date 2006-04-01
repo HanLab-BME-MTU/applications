@@ -130,7 +130,7 @@ hgsave(h, 'track_analysis/lifeTime_velocity_colorplot.fig');
 % end
 % figure,imshow(track_map,[]);
 
-threshold = 20;
+threshold = 10;
 track_data_short = track_data(track_data(:,3) <= threshold,:);
 track_data_short = track_data_short(track_data_short(:,3) >  2,:);
 track_data_long  = track_data(track_data(:,3) > threshold, :);
@@ -151,7 +151,7 @@ imwrite(track_map_long,'track_analysis/track_map_long.tif','tif');
 
 
 
-vel_thresh  = 2;
+vel_thresh  = 4;
 track_map_slow = zeros(max(track_data(:,1)),max(track_data(:,2)));
 track_map_fast = zeros(max(track_data(:,1)),max(track_data(:,2)));
 
