@@ -131,7 +131,7 @@ if isempty(trajIn)
 else
     orderValX_def = -1:3; %X order values
 end
-repeat_def = 3; %times to repeat local minimization if initial guess not supplied
+repeat_def = 10; %times to repeat local minimization if initial guess not supplied
 minOpt_def = 'ml'; %minimization option
 
 %check models to be tested

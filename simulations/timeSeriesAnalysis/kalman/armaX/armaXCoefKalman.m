@@ -167,7 +167,6 @@ for i=1:numTraj
     traj = trajOut(i).observations(:,1);
     traj = traj - nanmean(traj);
     trajOut(i).observations(:,1) = traj;
-%     trajOriginal(i).observations = traj;
 end
 
 %add column for observational error of output if not provided
@@ -541,11 +540,11 @@ end %(while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05)
 %Least squares fitting
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% %reformulate the problem as a least squares fitting and obtain the
-% %variance-covariance matrix of the estimated ARMA coefficients
-% [varCovMatL,arParamL,maParamL,xParamL,errFlag] = armaXLeastSquares(...
-%     trajOriginal,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,...
-%     wnVariance);
+%reformulate the problem as a least squares fitting and obtain the
+%variance-covariance matrix of the estimated ARMA coefficients
+[varCovMatL,arParamL,maParamL,xParamL,errFlag] = armaXLeastSquares(...
+    trajOriginal,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,...
+    wnVariance);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Estimation of variance-covariance matrix
@@ -566,31 +565,31 @@ end
 %Post-processing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% %check if parameters found through least squares fitting are statistically
-% %equivalent to those found through maximum likelihood estimation with
-% %Kalman filtering. If they are not equivalent, then results cannot be
-% %trusted and model is discarded
-% 
-% %prepare input
-% armaXCoef1.arParam = arParamK(1,:);
-% armaXCoef1.maParam = maParamK(1,:);
-% armaXCoef1.xParam = xParamK;
-% armaXCoef2.arParam = arParamL;
-% armaXCoef2.maParam = maParamL;
-% armaXCoef2.xParam = xParamL;
-% 
-% %compare parameters
-% [H,pVCompKL,errFlag] = armaXCoefComp(armaXCoef1,armaXCoef2,varCovMatL,varCovMatL,...
-%     'global');
-% if errFlag
-%     pVCompKL = 0;
-% end
+%check if parameters found through least squares fitting are statistically
+%equivalent to those found through maximum likelihood estimation with
+%Kalman filtering. If they are not equivalent, then results cannot be
+%trusted and model is discarded
 
-% %report failure of fit and do not consider results if coefficients are significantly different
-% if H == 1
-%     %     disp('--armaXCoefKalman: Discrepency between least squares and maximum likelihood!')
-%     errFlag = 1;
-% end
+%prepare input
+armaXCoef1.arParam = arParamK(1,:);
+armaXCoef1.maParam = maParamK(1,:);
+armaXCoef1.xParam = xParamK;
+armaXCoef2.arParam = arParamL;
+armaXCoef2.maParam = maParamL;
+armaXCoef2.xParam = xParamL;
+
+%compare parameters
+[H,pVCompKL,errFlag] = armaXCoefComp(armaXCoef1,armaXCoef2,varCovMatL,varCovMatL,...
+    'global');
+if errFlag
+    pVCompKL = 0;
+end
+
+%report failure of fit and do not consider results if coefficients are significantly different
+if H == 1
+    %     disp('--armaXCoefKalman: Discrepency between least squares and maximum likelihood!')
+    errFlag = 1;
+end
 
 %use the portmanteau test to check whether residuals are white noise.
 [H,pVPort,errFlag] = portmanteau(wnVector,10,0.01);

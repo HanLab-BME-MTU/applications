@@ -376,7 +376,8 @@ for s = 1:nextStoreIdx - 1
                         if nextFileIdx > fileListLength
                             fileListLength = fileListLength + INITSTORELENGTH;
                             tmp = fileListOutTmp;
-                            fileListOutTmp(1:fileListLength) = struct('file','','type',[],'opt',{});
+                            clear fileListOutTmp
+                            fileListOutTmp(1:fileListLength) = struct('file','','type',[],'opt',[]);
                             fileListOutTmp(1:fileListLength-INITSTORELENGTH) = tmp;
                         end
                         %                         else
