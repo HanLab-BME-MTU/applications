@@ -353,6 +353,21 @@ if fitNPlusOne %do N+1-fit only if there are any spots left!
     numDist=nsp+nCt;
     %shift coords back
     ncordList=ncordList+ones(size(ncordList,1),1)*shiftC;
+    
+elseif nsp> 0
+    % fill statistics even if we did not go for a MMF-round!
+    ncordList=ncordList+ones(size(ncordList,1),1)*shiftC;
+    statistics.parms = parms;
+    statistics.multi = 0;
+    statistics.chi = chi1;
+    statistics.Qxx = Q;
+    statistics.qAmp = qAmp;
+    statistics.snr=parms(ampIdx)/sqrt(statistics.chi);
+    numDist = nsp;
+    ampList = parms(ampIdx);
+else
+    numDist = 0;
+    ncordList = [];
 end
 
 %we can always assign the background...

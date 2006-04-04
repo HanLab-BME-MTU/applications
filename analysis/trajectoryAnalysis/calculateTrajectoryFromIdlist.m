@@ -1,4 +1,4 @@
-function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked,rayleighLimit] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
+function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked,rayleighLimit,fusedTag] = calculateTrajectoryFromIdlist(idlist,dataProperties,tag1,tag2,opt)
 %CALCULATETRAJECTORYFORMIDLIST calculates distance trajectories from an idlist
 %
 %SYNOPSIS [data, orientation, positions, sigmaZero,dataProperties,...
@@ -50,6 +50,9 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked,r
 %         isTracked      : whether the frame has been tracked or not
 %
 %         rayleighLimit  : Rayleigh limit calculated from the orientation
+%
+%         fusedTag       : Whether any of the two tags is fused to another
+%                          tag. 
 %
 %
 %REMARKS  fusions will not be considered as valid timepoints
@@ -204,6 +207,7 @@ end
 % read Q-Matrices, isTracked
 [covariance1,covariance2] = deal(repmat(NaN,[3,3,maxTime]));
 isT = repmat(NaN,maxTime,1);
+fusedTag = zeros(maxTime,1);
 for t = timePoints'
     if isfield(idlist(t).info,'trackQ_Pix') & ~isempty(idlist(t).info.trackQ_Pix) & isfield(idlist(t).info,'trackerMessage')
         % tracked frame. Add covariance of source and target
@@ -225,6 +229,9 @@ for t = timePoints'
     if fillSigma
         sigma0(t,:) = idlist(t).info.noise([tag1,tag2]);
     end
+    
+    % check whether the tag is fused
+    
 end
 
 % fill coords and sigmaZero with NaNs for deleted times

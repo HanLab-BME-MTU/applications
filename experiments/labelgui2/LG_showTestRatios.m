@@ -22,11 +22,13 @@ nTimepoints = max(times);
 t1idx = ismember(times,1:3:nTimepoints);
 t2idx = ismember(times,2:3:nTimepoints);
 t3idx = ismember(times,3:3:nTimepoints);
-plot(times(t1idx),ratios(t1idx),'+r',...
+h1=plot(times(t1idx),ratios(t1idx),'+r',...
     times(t2idx),ratios(t2idx),'+g',...
-    times(t3idx),ratios(t3idx),'+b'),
+    times(t3idx),ratios(t3idx),'+b');
 
 % plot cutoff
 hold on
-plot([1,nTimepoints],[cutValue,cutValue],'r')
+h2=plot([1,nTimepoints],[cutValue,cutValue],'r');
   
+% allow navigating to individual frames by click
+set([h1;h2;gca],'ButtonDownFcn','LG_gotoFrameWithClick');
