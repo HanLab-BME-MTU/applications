@@ -59,10 +59,15 @@ else
     % find good times from testRatio
     goodTimes = find(~cellfun('isempty',testRatios));
 
+    if ~isempty(goodTimes)
     % find which timepoints we're actually analyzing
     tmp = cat(1,testRatios{:});
     trueTime(2) = max(tmp(:,1));
     trueTime(1) = min(tmp(:,1));
+    else
+        % set trueTime to -99 and  continue. There will be an empty slist
+        trueTime = [-99,-99];
+    end
 end
 
 

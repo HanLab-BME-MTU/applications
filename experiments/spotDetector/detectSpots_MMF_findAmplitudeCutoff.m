@@ -281,6 +281,11 @@ indexList(indexList < maxValIdx) = [];
 % and determine break value
 cutValue = zeroList(indexList(cutIdx));
 
+% if there is no tag that could possibly be accepted: use cutVal.
+if nnz(ratios > cutValue) < 3
+    cutValue = cutVal;
+end
+
 % plot cutoff
 if verbose > 1
     figure('Name',sprintf('cutoff for %s',dataProperties.name)),
