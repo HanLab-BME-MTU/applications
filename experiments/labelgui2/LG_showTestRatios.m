@@ -1,6 +1,8 @@
-function figureHandle = LG_showTestRatios(testRatios, dataProperties,figurePosition)
+function [figureHandle,objectHandles] = LG_showTestRatios(testRatios, dataProperties,figurePosition)
 %LG_showTestRatios is the routine to display testRatios and the current cutoff
 % figurePosition is optional
+% objectHandles: handles of axes and plotted objects to allow navigation by
+% click on figure.
 
 % read amplitude cutoff
 cutValue = dataProperties.amplitudeCutoff;
@@ -30,5 +32,5 @@ h1=plot(times(t1idx),ratios(t1idx),'+r',...
 hold on
 h2=plot([1,nTimepoints],[cutValue,cutValue],'r');
   
-% allow navigating to individual frames by click
-set([h1;h2;gca],'ButtonDownFcn','LG_gotoFrameWithClick');
+% allow navigating to individual frames by click - save objectHandles
+objectHandles = [h1;h2;gca];
