@@ -1,4 +1,4 @@
-function vector = mpm_to_vec(MPM, result_Dir)
+function mpm_to_vec(MPM, result_Dir)
 
 if isempty(MPM)
     %mpm_variable = load('mpm_org.mat');

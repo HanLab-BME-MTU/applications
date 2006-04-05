@@ -1,17 +1,19 @@
-clear
-mpm_variable = load('mpm.mat');
+function track_length_plotter(MPM, result_Dir)
+%mpm_variable = load('mpm.mat');
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% determine if ther is MPM and M variable
-% stored or only MPM
-a=char(fieldnames(mpm_variable));
-if size(a,1) > 1
-    MPM = mpm_variable.(a(2,:));
-else
-    MPM = mpm_variable.(a);
+if isempty(MPM)
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % determine if ther is MPM and M variable
+    % stored or only MPM
+    a=char(fieldnames(mpm_variable));
+    if size(a,1) > 1
+        MPM = mpm_variable.(a(2,:));
+    else
+        MPM = mpm_variable.(a);
+    end
+    clear mpm_variable
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
-clear mpm_variable 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % trace MPM
 t_n =1;
@@ -73,17 +75,7 @@ end
 % remove
 track_data(find(~track_data(:,1)),:) = [];
 
-mkdir('track_analysis');
-
-% plot life time - velocity scatter plot
-h=figure;
-plot(track_data(:,3),track_data(:,4),'.');
-xlabel('Life time (frames)');
-ylabel('Velocity (pixel/frame)');
-print(h, 'track_analysis/lifeTime_velocity.tif','-dtiff');
-hgsave(h, 'track_analysis/lifeTime_velocity.fig');
-
-
+%mkdir('track_analysis');
 
 life_time_bins = 0.5:20.5;
 velocity_bins  = 0:0.25:7;
@@ -105,10 +97,16 @@ set(h,'FaceColor','interp');
 xlabel('Velocity (pixel/frame)');
 ylabel('Life time (frames)');
 view(2)
-hgsave(h, 'track_analysis/lifeTime_velocity_colorplot.fig');
+hgsave(h, [result_Dir filesep 'lifeTime_velocity_colorplot.fig']);
 %figure,surface(num_sp);
 
-
+% plot life time - velocity scatter plot
+h=figure;
+plot(track_data(:,3),track_data(:,4),'.');
+xlabel('Life time (frames)');
+ylabel('Velocity (pixel/frame)');
+print(h, [result_Dir filesep 'lifeTime_velocity.tif'],'-dtiff');
+hgsave(h, [result_Dir filesep 'lifeTime_velocity.fig']);
 
 
 
@@ -130,7 +128,10 @@ hgsave(h, 'track_analysis/lifeTime_velocity_colorplot.fig');
 % end
 % figure,imshow(track_map,[]);
 
-threshold = 10;
+output = cytoTrackAnalysisDlg;
+
+
+threshold = output.life_time_thresh;
 track_data_short = track_data(track_data(:,3) <= threshold,:);
 track_data_short = track_data_short(track_data_short(:,3) >  2,:);
 track_data_long  = track_data(track_data(:,3) > threshold, :);
@@ -145,13 +146,15 @@ for i=1:size(track_data_long,1)
      track_map_long(track_data_long(i,1),track_data_long(i,2),3) = 1;
 end
 figure,imshow(track_map_short,[]);
-imwrite(track_map_short,'track_analysis/track_map_short.tif','tif');
+title(['Short tracks. Life time <= ' num2str(threshold) ' frames']);
+imwrite(track_map_short,[result_Dir filesep 'track_map_short.tif'],'tif');
 figure,imshow(track_map_long,[]);
-imwrite(track_map_long,'track_analysis/track_map_long.tif','tif');
+title(['Long tracks. Life time > ' num2str(threshold) ' frames']);
+imwrite(track_map_long,[result_Dir filesep 'track_map_long.tif'],'tif');
 
 
 
-vel_thresh  = 4;
+vel_thresh  = output.speed_thresh;
 track_map_slow = zeros(max(track_data(:,1)),max(track_data(:,2)));
 track_map_fast = zeros(max(track_data(:,1)),max(track_data(:,2)));
 
@@ -168,21 +171,23 @@ for i=1:size(track_data_fast,1)
      track_map_fast(track_data_fast(i,1),track_data_fast(i,2),3) = 1;
 end
 figure,imshow(track_map_slow,[]);
-imwrite(track_map_slow,'track_analysis/track_map_slow.tif','tif');
+title(['Slow tracks. Speed <= ' num2str(vel_thresh) ' (pixel/frames)']);
+imwrite(track_map_slow,[result_Dir filesep 'track_map_slow.tif'],'tif');
 figure,imshow(track_map_fast,[]);
-imwrite(track_map_fast,'track_analysis/track_map_fast.tif','tif');
+title(['Fast tracks. Speed > ' num2str(vel_thresh) ' (pixel/frames)']);
+imwrite(track_map_fast,[result_Dir filesep 'track_map_fast.tif'],'tif');
 
 
 % save all data
-save('track_analysis/track_data','track_data');
+save([result_Dir filesep 'track_data'],'track_data');
 slow_sores = ones(size(track_data_slow));
 fast_sores = ones(size(track_data_fast));
 slow_scores(:,2:3) = track_data_slow(:,1:2);
 slow_scores(:,4)   = track_data_slow(:,4);
-save('track_analysis/slow_scores','slow_scores');
+save([result_Dir filesep 'slow_scores'],'slow_scores');
 fast_scores(:,2:3) = track_data_fast(:,1:2);
 fast_scores(:,4)   = track_data_fast(:,4);
-save('track_analysis/fast_scores','fast_scores');
+save([result_Dir filesep 'fast_scores'],'fast_scores');
 
 
 t_n
