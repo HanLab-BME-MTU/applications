@@ -57,12 +57,12 @@ amgHandles.job(activeJobNum).dataProperties.F_TEST_PROB = F_TEST_PROB;    % min 
         amplitudeCutoff = str2double(get(handles.edit_amplitudeCutoff,'String'));
         amgHandles.job(activeJobNum).dataProperties.amplitudeCutoff = amplitudeCutoff;
 
-%set spotID properties
-opt.weight = str2double(get(handles.edit_IDopt_weight_txt,'String'));
-opt.checkIntensity = 2-get(handles.edit_IDopt_checkIntensity_PD,'Value');
-opt.verbose = get(handles.edit_IDopt_verbose_PD,'Value')-1;
-opt.save = 1; %you can not change that in the GUI
-amgHandles.job(activeJobNum).dataProperties.IDopt = opt;
+% %set spotID properties
+% opt.weight = str2double(get(handles.edit_IDopt_weight_txt,'String'));
+% opt.checkIntensity = 2-get(handles.edit_IDopt_checkIntensity_PD,'Value');
+% opt.verbose = get(handles.edit_IDopt_verbose_PD,'Value')-1;
+% opt.save = 1; %you can not change that in the GUI
+% amgHandles.job(activeJobNum).dataProperties.IDopt = opt;
 
 
 %write jobs to do

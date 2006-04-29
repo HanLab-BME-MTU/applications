@@ -43,54 +43,57 @@ set(handles.EPGUI,'Name',['Edit properties for: ',char(activeJobName)]);
 
 %get the checkbox handles and store them in a vector
 handles.checkH = [handles.edit_check_filter;...
-        handles.edit_check_detect;...
-        handles.edit_check_link;...
-        handles.edit_check_labelgui;...
-        handles.edit_check_track;...
-        handles.edit_check_labelgui2;...
-        handles.edit_check_analysis1;...
-        handles.edit_check_analysis2];
+    handles.edit_check_detect;...
+    handles.edit_check_link;...
+    handles.edit_check_labelgui;...
+    handles.edit_check_track;...
+    handles.edit_check_labelgui2;...
+    handles.edit_check_analysis1;...
+    handles.edit_check_analysis2];
 
 handles.cellCycleH = [handles.edit_check_CC_G1;...
-        handles.edit_check_CC_Start;...
-        handles.edit_check_CC_SPhase;...
-        handles.edit_check_CC_G2;...
-        handles.edit_check_CC_Meta;...
-        handles.edit_check_CC_Ana;...
-        handles.edit_check_CC_Telo];
+    handles.edit_check_CC_Start;...
+    handles.edit_check_CC_SPhase;...
+    handles.edit_check_CC_G2;...
+    handles.edit_check_CC_Meta;...
+    handles.edit_check_CC_Ana;...
+    handles.edit_check_CC_Telo];
 
 handles.strainH = [handles.edit_check_strain_WT;...
-        handles.edit_check_strain_dam1_1;...
-        handles.edit_check_strain_dam1_11;...
-        handles.edit_check_strain_ipl1_321;...
-        handles.edit_check_strain_ipl1_1;...
-        handles.edit_check_strain_ndc10_1;...
-        handles.edit_check_strain_ndc80_1;...
-        handles.edit_check_strain_bik1;...
-        handles.edit_check_strain_bim1];
+    handles.edit_check_strain_dam1_1;...
+    handles.edit_check_strain_dam1_11;...
+    handles.edit_check_strain_ipl1_321;...
+    handles.edit_check_strain_ipl1_1;...
+    handles.edit_check_strain_ndc10_1;...
+    handles.edit_check_strain_ndc80_1;...
+    handles.edit_check_strain_bik1;...
+    handles.edit_check_strain_bim1];
 
 handles.drugH = [handles.edit_check_drugs_nocodazole;...
-        handles.edit_check_drugs_benomyl;...
-        handles.edit_check_drugs_hydroxyurea;...
-        handles.edit_check_drugs_alphaFactor];
+    handles.edit_check_drugs_benomyl;...
+    handles.edit_check_drugs_hydroxyurea;...
+    handles.edit_check_drugs_alphaFactor];
 
 handles.detectH = [handles.edit_ftest_prob_txt;...
-        handles.edit_maxNumSpots_txt];
+    handles.edit_maxNumSpots_txt];
 
 handles.linkH = [handles.edit_IDopt_checkIntensity_PD;...
-        handles.edit_IDopt_verbose_PD;...
-        handles.edit_IDopt_weight_txt];
+    handles.edit_IDopt_verbose_PD;...
+    handles.edit_IDopt_weight_txt];
+
+% turn off linker handles - not used
+set(handles.linkH,'Enable','off');
 
 handles.backgroundH = [handles.edit_check_correctBG;...
-        handles.edit_RB_standardBG;...
-        handles.edit_standardMovie1_PD;...
-        handles.edit_standardMovie2_PD;...
-        handles.edit_RB_firstAndLast;...
-        handles.edit_txt_useFirst;...
-        handles.edit_txt_useLast;...
-        handles.bgText1;...
-        handles.bgText2];
-        
+    handles.edit_RB_standardBG;...
+    handles.edit_standardMovie1_PD;...
+    handles.edit_standardMovie2_PD;...
+    handles.edit_RB_firstAndLast;...
+    handles.edit_txt_useFirst;...
+    handles.edit_txt_useLast;...
+    handles.bgText1;...
+    handles.bgText2];
+
 
 %get list of possible temperatures
 tempList = get(handles.edit_temperature_PD,'String');
@@ -162,7 +165,7 @@ if isempty(NA)
 else
     set(handles.edit_NA_txt,'String',NA);
 end
-    
+
 set(handles.edit_wavelength_txt,'String',header.wvl(1));
 set(handles.edit_exposureTime_txt,'String',header.expTime);
 set(handles.edit_movieLength_txt,'String',header.numTimepoints);
@@ -216,8 +219,8 @@ handles.pixelsizeXYZ = [header.pixelX,header.pixelZ];
 projData = chooseFile([myJob.projName,'-data'],[],'GUI','log');
 
 
-if ~isempty(myJob.dataProperties)&isfield(myJob.dataProperties,'IDopt')
-    
+if ~isempty(myJob.dataProperties)
+
     %if several projData and user cancelled: take job-projData
     if isempty(projData)
         handles.projData = myJob.projData;
@@ -226,7 +229,7 @@ if ~isempty(myJob.dataProperties)&isfield(myJob.dataProperties,'IDopt')
         handles.projData = projData;
         createNew = 0;
     end
-    
+
     %there is already data for this project
     if isfield(myJob.dataProperties,'cellCycle')
         set(handles.cellCycleH(find(bsum2lvec(myJob.dataProperties.cellCycle))),'Value',1);
@@ -234,30 +237,30 @@ if ~isempty(myJob.dataProperties)&isfield(myJob.dataProperties,'IDopt')
         set(handles.drugH(find(bsum2lvec(myJob.dataProperties.drugs))),'Value',1);
         set(handles.edit_temperature_PD,'Value',strmatch(myJob.dataProperties.temperature,tempList));
     end
-    
-    
+
+
     if myJob.projProperties.status>0
         setGreen = bsum2lvec(myJob.projProperties.status);
         set(handles.checkH(find(setGreen)),'BackgroundColor',[0,1,0]);
         set(handles.checkH,'Value',0);
     end
-    
+
     %store status
     handles.status = myJob.projProperties.status;
-    
+
     %mark jobs2run
     if isfield(myJob,'jobs2run')
         jobs2run = bsum2lvec(myJob.jobs2run);
         set(handles.checkH(find(jobs2run)),'Value',1);
     end
-    
+
     %set eraseAllPrev
     if isfield(myJob,'eraseAllPrev')
         if ~isempty(myJob.eraseAllPrev)
             set(handles.edit_check_eraseAllPrevData,'Value',myJob.eraseAllPrev);
         end
     end
-    
+
     %make sure createNew is not empty
     if isfield(myJob,'createNew')
         if isempty(myJob.createNew) %if it's not empty, user already has decided on something
@@ -266,31 +269,31 @@ if ~isempty(myJob.dataProperties)&isfield(myJob.dataProperties,'IDopt')
     else
         myJob.createNew = createNew;
     end
-    
+
     %set autospfinder properties
     set(handles.edit_maxNumSpots_txt,'String',myJob.dataProperties.MAXSPOTS); %   1 pt/0.5 grayvalue (max. slope)
     set(handles.edit_ftest_prob_txt,'String',myJob.dataProperties.F_TEST_PROB);    % min probability that there are two spots in a distribution
-    
+
     % amplitudeCutoff
     if isfield(myJob.dataProperties,'amplitudeCutoff')
         set(handles.edit_amplitudeCutoff,'String',sprintf('%1.2f',myJob.dataProperties.amplitudeCutoff));
     else
         set(handles.edit_amplitudeCutoff,'String',0);
     end
-    
-    %set spotID properties
-    if isfield(myJob.dataProperties,'IDopt') %prevent conflict with older versions
-        set(handles.edit_IDopt_weight_txt,'String',myJob.dataProperties.IDopt.weight);
-        set(handles.edit_IDopt_checkIntensity_PD,'Value',2-myJob.dataProperties.IDopt.checkIntensity);
-        set(handles.edit_IDopt_verbose_PD,'Value',myJob.dataProperties.IDopt.verbose+1);
-    end
+
+    %     %set spotID properties
+    %     if isfield(myJob.dataProperties,'IDopt') %prevent conflict with older versions
+    %         set(handles.edit_IDopt_weight_txt,'String',myJob.dataProperties.IDopt.weight);
+    %         set(handles.edit_IDopt_checkIntensity_PD,'Value',2-myJob.dataProperties.IDopt.checkIntensity);
+    %         set(handles.edit_IDopt_verbose_PD,'Value',myJob.dataProperties.IDopt.verbose+1);
+    %     end
     %
     % more 2 come
     if isfield(myJob.dataProperties,'maxSize')
         set(handles.edit_maxSize_txt,'String',myJob.dataProperties.maxSize/2^20);
-        else
-            set(handles.edit_maxSize_txt,'String','200');
-        end
+    else
+        set(handles.edit_maxSize_txt,'String','200');
+    end
     %
 else
     handles.projData = projData;
@@ -300,7 +303,7 @@ else
         myJob.dataProperties = dataProperties;
         load([projData],'projProperties');
         myJob.projProperties = projProperties;
-        
+
         %if this file exists, the respective fields exist, too
         if isfield(myJob.dataProperties,'cellCycle')
             set(handles.cellCycleH(find(bsum2lvec(myJob.dataProperties.cellCycle))),'Value',1);
@@ -308,15 +311,15 @@ else
             set(handles.drugH(find(bsum2lvec(myJob.dataProperties.drugs))),'Value',1);
             set(handles.edit_temperature_PD,'Value',strmatch(myJob.dataProperties.temperature,tempList));
         end
-        
+
         % amplitudeCutoff
-    if isfield(myJob.dataProperties,'amplitudeCutoff')
-        set(handles.edit_amplitudeCutoff,'String',sprintf('%1.2f',myJob.dataProperties.amplitudeCutoff));
-    else
-        set(handles.edit_amplitudeCutoff,'String',0);
-    end
-        
-        
+        if isfield(myJob.dataProperties,'amplitudeCutoff')
+            set(handles.edit_amplitudeCutoff,'String',sprintf('%1.2f',myJob.dataProperties.amplitudeCutoff));
+        else
+            set(handles.edit_amplitudeCutoff,'String',0);
+        end
+
+
         %mark jobs already done
         if projProperties.status==0&myJob.projProperties.status==1
             projProperties.status = 1;
@@ -326,13 +329,13 @@ else
             set(handles.checkH(find(setGreen)),'BackgroundColor',[0,1,0]);
             set(handles.checkH,'Value',0);
         end
-        
+
         %mark jobs2run
         if isfield(myJob,'jobs2run')
             jobs2run = bsum2lvec(myJob.jobs2run);
             set(handles.checkH(find(jobs2run)),'Value',1);
         end
-        
+
         %set eraseAllPrev
         if isfield(myJob,'eraseAllPrev')
             if isempty(myJob.eraseAllPrev)
@@ -340,29 +343,29 @@ else
             end
             set(handles.edit_check_eraseAllPrevData,'Value',myJob.eraseAllPrev);
         end
-        
+
         handles.status = projProperties.status;
         myJob.createNew = 0;
-        
+
         %set autospfinder properties
         set(handles.edit_maxNumSpots_txt,'String',dataProperties.MAXSPOTS); %   1 pt/0.5 grayvalue (max. slope)
         set(handles.edit_ftest_prob_txt,'String',dataProperties.F_TEST_PROB);    % min probability that there are two spots in a distribution
-        
-        %set spotID properties
-        if isfield(dataProperties,'IDopt')
-            set(handles.edit_IDopt_weight_txt,'String',dataProperties.IDopt.weight);
-            set(handles.edit_IDopt_checkIntensity_PD,'Value',2-dataProperties.IDopt.checkIntensity);
-            set(handles.edit_IDopt_verbose_PD,'Value',dataProperties.IDopt.verbose+1);
-        end
+
+        %         %set spotID properties
+        %         if isfield(dataProperties,'IDopt')
+        %             set(handles.edit_IDopt_weight_txt,'String',dataProperties.IDopt.weight);
+        %             set(handles.edit_IDopt_checkIntensity_PD,'Value',2-dataProperties.IDopt.checkIntensity);
+        %             set(handles.edit_IDopt_verbose_PD,'Value',dataProperties.IDopt.verbose+1);
+        %         end
         %
         %set other properties, too
         if isfield(dataProperties,'maxSize')
-        set(handles.edit_maxSize_txt,'String',dataProperties.maxSize/2^20);
+            set(handles.edit_maxSize_txt,'String',dataProperties.maxSize/2^20);
         else
             set(handles.edit_maxSize_txt,'String','200');
         end
-        
-    else 
+
+    else
         myJob.createNew = 1; %if no dataProperties-file: create new anyway
         handles.status = myJob.projProperties.status;
         %mark jobs already done
@@ -370,7 +373,7 @@ else
             set(handles.checkH(1),'BackgroundColor',[0,1,0]);
             set(handles.checkH,'Value',0);
         end
-        
+
         %if a movie has been "edited" before, there should be new defaults: set
         if isfield(amgHandles,'epguiDefaults')
             set(handles.cellCycleH,{'Value'},amgHandles.epguiDefaults.movieProperties.cellCycle);
@@ -380,6 +383,20 @@ else
         end
     end
 end
+
+%--- Check whether we have a new or an old linklist
+if handles.status > 4
+    % check idlist
+    if ~isempty(projData)
+        [idlist] = loadProjectData(projData,[],'last',0,1);
+        if isequal(idlist,-1)
+            % if there's only old stuff: Turn entries in AMG red, set "to
+            % do"
+            set(handles.checkH(3:6),'BackgroundColor',[1,0,0],'Value',1);
+        end
+    end
+end
+
 
 %init crop-field and set crop status
 myJob.dataProperties.crop = handles.header.cropInfo; %empty, if r3dreadheader was called (r3d-movie)
@@ -449,7 +466,7 @@ if ~isempty(ci)
         set(handles.backgroundH(5),'Value',0);
         set(handles.backgroundH(2),'Value',1);
     end %~isempty(ci.correctFrames)
-    
+
     ci.header = handles.header;
     handles.currentBGState = ci;
     handles.oldBGState = ci;
@@ -460,20 +477,20 @@ set(handles.edit_check_createNew,'Value',myJob.createNew);
 if ~myJob.createNew
     if myJob.projProperties.status>0
         statVec = bsum2bvec(myJob.projProperties.status);
-        
+
         if any(statVec==2)
             set(handles.detectH,'Enable','off');
         end
-        
+
         if any(statVec==4)
             set(handles.linkH,'Enable','off');
         end
-        
+
         %if there is a filtered movie: do not allow change of background, but set values
         %(if exist)
         if any(statVec == 1)
             set(handles.backgroundH,'Enable','off');
-            
+
         end %if any(statVec == 1)
     end %if myJob.projProperties.status>0
 end %~myJob.createNew
