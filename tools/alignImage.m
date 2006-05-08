@@ -86,6 +86,9 @@ numAlignFrames = length(alignFrame);
 % Align images in the model channel of 'alignImgPath' list to the reference image 'refImg'. The
 % calculated shift for alignment is recorded for the other channels.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+L = length(num2str(numAlignFrames));
+strForm = sprintf('%%.%dd',L);
+fprintf(1,['Aligning frame (total: ' strForm '): '],numAlignFrames);
 if modelChannel == 0
    %Each channel align by itself in this case.
    alignShift = zeros(numAlignFrames,2,numImgChannels);
@@ -103,10 +106,18 @@ else
    alignShift = zeros(numAlignFrames,2);
    for ii = 1:numAlignFrames
       jj = alignFrame(ii);
+      procStatusStr = sprintf(strForm,jj);
+      fprintf(1,procStatusStr);
+
       imgToAlign = imread(alignImgFileList{modelChannel}{jj});
       alignShift(ii,:) = calAlignShift(refImg,imgToAlign,markerROI, ...
          maxXShift,maxYShift);
+
+      for k = 1:length(procStatusStr)
+         fprintf(1,'\b');
+      end
    end
+   fprintf(1,[strForm '\n'],alignFrame(end));
 end
 
 
