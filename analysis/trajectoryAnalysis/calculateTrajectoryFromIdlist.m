@@ -45,7 +45,8 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked,r
 %
 %         dataProperties : dataProperties
 %
-%         snrMax         : SNR of the higher intensity tag
+%         snrMax         : SNR of the higher intensity tag (not supported
+%                           for idlist2 yet)
 %
 %         isTracked      : whether the frame has been tracked or not
 %
@@ -56,19 +57,19 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked,r
 %
 %
 %REMARKS  fusions will not be considered as valid timepoints
+%         Warning: the length of fusedTag etc will be 
 %
 %c: 11/03 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %=========================
-%-------TEST INPUT--------
+%% ------TEST INPUT--------
 %=========================
 
 %=========================
 %check nargin (we do not really check for correct idlist, dataProperties)
 if nargin < 2 || isempty(idlist) || isempty(dataProperties)
     [idlist,dataProperties] = loadProjectData;
-
 end
 
 if nargin < 4 || isempty(tag1) || isempty(tag2)
@@ -100,7 +101,7 @@ oldIdlist = [];
 realTime = 1; % if zero, time is rounded
 
 %go through fields of opt, change defaults with input values if they exist
-if nargin < 5 | isempty(opt)
+if nargin < 5 || isempty(opt)
     % keep defaults
 else
     if isfield(opt,'info')
@@ -112,7 +113,7 @@ else
     if isfield(opt,'nanList')
         nanList = opt.nanList;
     end
-    if isfield(opt,'oldIdlist') & nargout > 5
+    if isfield(opt,'oldIdlist') && nargout > 5
         oldIdlist = opt.oldIdlist;
     end
     if isfield(opt,'realTime')
@@ -123,13 +124,13 @@ end
 %check tags and convert to numbers
 try
     labelcolor = idlist(1).stats.labelcolor;
-    if isstr(tag1)
+    if ischar(tag1)
         tag1 = find(strcmp(tag1,labelcolor));
     end
-    if isstr(tag2)
+    if ischar(tag2)
         tag2 = find(strcmp(tag2,labelcolor));
     end
-    if isempty(tag1)|isempty(tag2)|any([tag1;tag2]>length(labelcolor))
+    if isempty(tag1)||isempty(tag2)||any([tag1;tag2]>length(labelcolor))
         error('no tags found')
     else
         tags = idlist(1).stats.labelcolor([tag1,tag2],1);
@@ -150,11 +151,8 @@ pix2muMat = diag([dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,dataPr
 %---END TEST INPUT--------
 %=========================
 
-
-
-
 %=========================
-%-------CALC 2D-CASE IF SELECTED
+%% CALC 2D-CASE IF SELECTED
 %=========================
 switch calc2d
     case 1 %maximum projection
@@ -176,11 +174,101 @@ end
 %=========================
 
 
+%===================================
+%% CALCULATE PARAMETERS FROM IDLIST
+%===================================
+
+if checkIdlist(idlist,1)
+    % calculate from new idlist
+    [distance, distanceVectors, dummy, dummy, dummy, idxLists] = ...
+        idlist2distMat(idlist,dataProperties);
+else
+    % calculate from old idlist
+    [distanceN, distanceSigma, normedVectors, timePoints, snrMax, isTracked, fusedTag] = ...
+        calculateFromOldIdlist;
+end
+    
+
+
+
 
 
 
 %=========================
-%-------READ COORDS AND SIGMAZERO AND Q
+%% ------READ TIME AND TIMESIGMA
+%=========================
+
+if realTime
+    timeAll = dataProperties.frameTime;
+    time = mean(timeAll(timePoints,:),2);
+    %timeSigma is one fourth the time between (lastCol - firstCol of frameTime)
+    timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/4;
+
+else
+    % start at t=1*rounded timeLapse
+    avgTimeLapse = round(dataProperties.timeLapse);
+    time = (timePoints) * avgTimeLapse;
+    timeSigma = zeros(size(time));
+
+    if abs(dataProperties.timeLapse - avgTimeLapse) > 0.11
+        warning('CALCULATETRAJECTORYFROMIDLIST:wrongTime',...
+            'Possible source of error: timeLapse %f used instead of %f\n in %s',avgTimeLapse,dataProperties.timeLapse,dataProperties.name);
+    end
+end
+
+
+%=========================
+%---END READ TIME AND TIMESIGMA
+%=========================
+
+
+%=========================
+%% ORIENTATION & RL
+%=========================
+if nargout > 1
+    %orientation: [-pi/2...pi/2]. calculate from vN*[0 0 1]
+    orientation = pi/2-acos(normedVectors(:,3));
+
+    % calculate Rayleigh limit only if there is an orientation
+    if nargout > 7
+        [ralXY, ralZ] = calcFilterParms([],[],[],'bessel');
+
+        rayleighLimit = sqrt(1./ (cos(orientation).^2 / ralXY^2 + ...
+            sin(orientation).^2 / ralZ^2) );
+    end
+else
+    orientation = [];
+end
+
+%=========================
+%% -------ASSIGN OUTPUT
+%=========================
+data.distance   = [distanceN,distanceSigma];
+data.time       = [time,timeSigma];
+data.timePoints = timePoints;
+data.info       = info;
+data.info.tags  = tags;
+
+if nanList && length(timePoints)>0
+    data = convertTrajectoryData(data);
+end
+
+
+%---END ASSIGN OUTPUT
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Begin nested function
+function [distanceN, distanceSigma, normedVectors, timePoints, snrMax, isTracked, fusedTag] = calculateFromOldIdlist
+
+
+
+
+
+
+
+%=========================
+%% READ COORDS AND SIGMAZERO AND Q
 %=========================
 
 %cat linklist and extract coords, chi2, timePoints
@@ -190,9 +278,33 @@ linkLists = cat(3,idlist.linklist);
 % coords
 coords = linkLists([tag1,tag2],9:11,:);
 
+
+
+% check for fused tags. Distinguish which tag is a fusion tag, and remember
+% whether they are fused to each other
+nTags = size(linkLists,1);
+for t = size(coords,3):-1:1
+    removeFusedTag(t,1) = isequal(coords(1,:,t),coords(2,:,t));
+    
+    fusedTag1(t,1) = any(any(repmat(coords(1,:,t),nTags,1) == linkLists(:,9:11,t),2));
+    fusedTag2(t,1) = any(any(repmat(coords(2,:,t),nTags,1) == linkLists(:,9:11,t),2));
+    
+end
+
+% remove entries where tags are fused to each other from coords and
+% linkLists. FusedTags is 0,1,2,3 depending on whether there is no fusion,
+% fusion of tag 1 or fusion of tag 2, or fusion of both (to different
+% tags!)
+linkLists(:,:,removeFusedTag) = [];
+coords(:,:,removeFusedTag) = [];
+fusedTag1(removeFusedTag) = [];
+fusedTag2(removeFusedTag) = [];
+fusedTag = fusedTag1 + 2*fusedTag2;
+
 % timepoints
 timePoints = squeeze(linkLists(1,1,:));
 maxTime = max(timePoints);
+
 
 % sigmaZero (be backward compatible)
 if size(linkLists,2)<12
@@ -207,9 +319,8 @@ end
 % read Q-Matrices, isTracked
 [covariance1,covariance2] = deal(repmat(NaN,[3,3,maxTime]));
 isT = repmat(NaN,maxTime,1);
-fusedTag = zeros(maxTime,1);
 for t = timePoints'
-    if isfield(idlist(t).info,'trackQ_Pix') & ~isempty(idlist(t).info.trackQ_Pix) & isfield(idlist(t).info,'trackerMessage')
+    if isfield(idlist(t).info,'trackQ_Pix') && ~isempty(idlist(t).info.trackQ_Pix) && isfield(idlist(t).info,'trackerMessage')
         % tracked frame. Add covariance of source and target
         sourceT = str2double(idlist(t).info.trackerMessage.source);
         covariance1(:,:,t) = pix2muMat*(idlist(t).info.trackQ_Pix(tagIdxList1,tagIdxList1)+...
@@ -278,7 +389,7 @@ end
 
 
 %=========================
-%-------CALC DISTANCE & DISTANCESIGMA
+%% CALC DISTANCE & DISTANCESIGMA
 %=========================
 
 % prepare data for distance calculation
@@ -294,7 +405,7 @@ distanceSigma(badIdx) = [];
 normedVectors(badIdx,:) = [];
 
 % if no zero distance, all badIdx are not in timePoints
-badTpIdx = find(ismember(timePoints,badIdx));
+badTpIdx = (ismember(timePoints,badIdx));
 timePoints(badTpIdx) = [];
 
 
@@ -302,66 +413,6 @@ timePoints(badTpIdx) = [];
 %---END CALC DISTANCE AND DISTANCESIGMA
 %=========================
 
+end % subfunction
 
-
-%=========================
-%-------READ TIME AND TIMESIGMA
-%=========================
-
-if realTime
-    timeAll = dataProperties.frameTime;
-    time = mean(timeAll(timePoints,:),2);
-    %timeSigma is one fourth the time between (lastCol - firstCol of frameTime)
-    timeSigma = (timeAll(timePoints,end)-timeAll(timePoints,1))/4;
-
-else
-    % start at t=1*rounded timeLapse
-    avgTimeLapse = round(dataProperties.timeLapse);
-    time = (timePoints) * avgTimeLapse;
-    timeSigma = zeros(size(time));
-
-    if abs(dataProperties.timeLapse - avgTimeLapse) > 0.11
-        warning('CALCULATETRAJECTORYFROMIDLIST:wrongTime',...
-            'Possible source of error: timeLapse %f used instead of %f\n in %s',avgTimeLapse,dataProperties.timeLapse,dataProperties.name);
-    end
-end
-
-
-%=========================
-%---END READ TIME AND TIMESIGMA
-%=========================
-
-
-%=========================
-% ORIENTATION & RL
-%=========================
-if nargout > 1
-    %orientation: [-pi/2...pi/2]. calculate from vN*[0 0 1]
-    orientation = pi/2-acos(normedVectors(:,3));
-
-    % calculate Rayleigh limit only if there is an orientation
-    if nargout > 7
-        [ralXY, ralZ] = calcFilterParms([],[],[],'bessel');
-
-        rayleighLimit = sqrt(1./ (cos(orientation).^2 / ralXY^2 + ...
-            sin(orientation).^2 / ralZ^2) );
-    end
-else
-    orientation = [];
-end
-
-%=========================
-%-------ASSIGN OUTPUT
-%=========================
-data.distance   = [distanceN,distanceSigma];
-data.time       = [time,timeSigma];
-data.timePoints = timePoints;
-data.info       = info;
-data.info.tags  = tags;
-
-if nanList && length(timePoints)>0
-    data = convertTrajectoryData(data);
-end
-
-
-%---END ASSIGN OUTPUT
+end % main function

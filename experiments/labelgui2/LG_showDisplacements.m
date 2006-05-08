@@ -41,7 +41,7 @@ end
 nTimepoints = length(idlist);
 
 % calculate distances
-[dummy,dummy,displacements] = idlist2distMat(idlist, dataProperties);
+[dummy,dummy,displacements,dummy,idlist] = idlist2distMat(idlist, dataProperties);
 % don't remember sigma
 displacements = displacements(:,:,1);
 

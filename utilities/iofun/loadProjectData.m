@@ -1,4 +1,4 @@
-function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname,GUI)
+function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname,GUI,forceNew)
 %LOADPROJECTDATA loads experimental Chromdyn data from file
 %
 % SYNOPSIS [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname)
@@ -9,6 +9,9 @@ function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadPro
 %          pathName  (opt) name of path for data file. If fileName, but no
 %                       pathName is specified, currentDir is used
 %          idname    (opt) name of idlist to be loaded. Can be "last"
+%          GUI       (opt) whether to show different idlist choices in GUI
+%          forceNew  (opt) if 1, loadProjectData will only look for idX2.
+%                       If there aren't any, idlist will be -1.
 %
 % OUTPUT   idlist           user selected idlist if several possible
 %          dataProperties
@@ -57,6 +60,11 @@ end
 if nargin < 3 || isempty(idname)
     idname = [];
 end
+
+if nargin < 4 || isempty(forceNew)
+    forceNew = 0;
+end
+
 
 %=================
 
@@ -136,6 +144,26 @@ dataFieldNames = fieldnames(data);
 idnameListIdx = strmatch('idlist',dataFieldNames);
 idnameList = dataFieldNames(idnameListIdx);
 
+% check whether we want to forceNew
+if forceNew
+    % look for '2' in name, remove all that don't have any. If idlist
+    % becomes empty, return idlist=-1.
+    twoCell = regexp(idnameList,'2');
+    noTwoIdx = cellfun(@isempty,twoCell);
+    idnameList(noTwoIdx) = [];
+
+    if isempty(idnameList)
+        continueLoadIdlist = 0;
+        idlist = -1;
+    else
+        continueLoadIdlist = 1;
+    end
+else
+    continueLoadIdlist = 1;
+end
+
+if continueLoadIdlist    
+
 idIdx = [];
 if ~isempty(idname)
     if strcmp(idname,'last')
@@ -188,6 +216,8 @@ else
     idlist = data.(idname);
     % store idname in idlist
 idlist(1).stats.idname = idname;
+end
+
 end
 
 

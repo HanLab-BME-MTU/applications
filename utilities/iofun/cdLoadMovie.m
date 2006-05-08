@@ -22,6 +22,8 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %           loadOpt (opt): Load options
 %                            - array with a vector of timepoints to be
 %                              loaded (e.g. [startFrame:endFrame])
+%                            - if -1: empty movie, will be returned, but
+%                              complete movieHeader and loadStruct
 %                            - structure with field .maxSize
 %                              indicating maximum array size in bytes. If
 %                              the movie is bigger than maxSize, only the
@@ -41,6 +43,9 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                              .frames2load, the program will load the
 %                              appropriate number of frames from the list
 %                              in .frames2load{1}.
+%                              If there is an additional field .noMovie
+%                              that is 1, no movie will be loaded, but
+%                              everything else will be returned
 %                            - loadStruct structure with fields
 %                              .frames2load, a cell array containing the
 %                               vectors with the timepoints to load. If
@@ -95,6 +100,19 @@ if nargin < 3
 elseif isstruct(loadOpt) && isfield(loadOpt,'moviePath')
     dirName = loadOpt.moviePath;
 end
+
+% take care of noMovie
+if isequal(loadOpt,-1)
+    noMovie = 1;
+    loadOpt = [];
+else
+    noMovie = 0;
+end
+
+if isstruct(loadOpt) && isfield(loadOpt, 'noMovie')
+    noMovie = loadOpt.noMovie;
+end
+
 
 %==========================
 
@@ -514,64 +532,72 @@ end %if isstruct(loadOpt) && isfield(loadOpt,'movieName')
 % LOAD MOVIE
 %===============================
 
-% first: check if the loadList is continuous (for type 1,2).
-loadList = loadStruct.frames2load{1};
-loadListLength = length(loadList);
-dll = diff(loadList);
-if isempty(dll) || all(dll==1)
-    isContinuous = 1;
+% load only if necessary
+if noMovie
+    % don't load
+    movie = [];
 else
-    isContinuous = 0;
-end
 
-switch type
-    case 1
-        if isContinuous
-            % load all at once
-            % r3dread: filename, start, numFrames
-            movie = r3dread(loadStruct.movieName,loadList(1), ...
-                loadListLength);
-        else
-            % load movie timepoint by timepoint
-            for t = loadListLength:-1:1
-                movie(:,:,:,:,t) = r3dread(loadStruct.movieName,...
-                    loadList(t),1);
+    % first: check if the loadList is continuous (for type 1,2).
+    loadList = loadStruct.frames2load{1};
+    loadListLength = length(loadList);
+    dll = diff(loadList);
+    if isempty(dll) || all(dll==1)
+        isContinuous = 1;
+    else
+        isContinuous = 0;
+    end
+
+    switch type
+        case 1
+            if isContinuous
+                % load all at once
+                % r3dread: filename, start, numFrames
+                movie = r3dread(loadStruct.movieName,loadList(1), ...
+                    loadListLength);
+            else
+                % load movie timepoint by timepoint
+                for t = loadListLength:-1:1
+                    movie(:,:,:,:,t) = r3dread(loadStruct.movieName,...
+                        loadList(t),1);
+                end
             end
-        end
 
-    case 2
-        if isContinuous
-            % load all at once
-            % r3dread: filename, start, numFrames
-            movie = r3dread(loadStruct.movieName,loadList(1), ...
-                loadListLength);
-        else
-            % load movie timepoint by timepoint
-            for t = loadListLength:-1:1
-                movie(:,:,:,:,t) = r3dread(loadStruct.movieName,...
-                    loadList(t),1);
+        case 2
+            if isContinuous
+                % load all at once
+                % r3dread: filename, start, numFrames
+                movie = r3dread(loadStruct.movieName,loadList(1), ...
+                    loadListLength);
+            else
+                % load movie timepoint by timepoint
+                for t = loadListLength:-1:1
+                    movie(:,:,:,:,t) = r3dread(loadStruct.movieName,...
+                        loadList(t),1);
+                end
             end
-        end
 
-        % subtract background. If the computer cannot cope with two
-        % matrices of maxSize, all is lost, anyway.
-        movie = movie - ...
-            repmat(loadStruct.correctionData.image,...
-            [1,1,1,size(movie,4),size(movie,5)]) - ...
-            loadStruct.correctionData.minimumIntensity;
-
+            % subtract background. If the computer cannot cope with two
+            % matrices of maxSize, all is lost, anyway.
+            movie = movie - ...
+                repmat(loadStruct.correctionData.image,...
+                [1,1,1,size(movie,4),size(movie,5)]) - ...
+                loadStruct.correctionData.minimumIntensity;
 
 
-    case 3
-        % readmat
-        movie = readmat(loadStruct.movieName,loadList);
 
-    case 7
-        % readmat
-        movie = readmat(loadStruct.movieName,loadList);
-        
-    otherwise 
-        error('type %i not handled!',type)
+        case 3
+            % readmat
+            movie = readmat(loadStruct.movieName,loadList);
+
+        case 7
+            % readmat
+            movie = readmat(loadStruct.movieName,loadList);
+
+        otherwise
+            error('type %i not handled!',type)
+    end
+
 end
 
 
@@ -581,8 +607,12 @@ end
 
 % move the first entry of files2load
 % into the list of loaded frames
-loadStruct.loadedFrames = loadStruct.frames2load{1};
-loadStruct.frames2load(1) = [];
+if noMovie
+    loadStruct.loadesFrames = [];
+else
+    loadStruct.loadedFrames = loadStruct.frames2load{1};
+    loadStruct.frames2load(1) = [];
+end
 
 % rename header
 if emptyHeader

@@ -36,7 +36,7 @@ end
 nTimepoints = length(idlist);
 
 % calculate distances
-distances = idlist2distMat(idlist, dataProperties);
+[distances,dummy,dummy,dummy,idlist] = idlist2distMat(idlist, dataProperties);
 
 % check for number of tags. We can display up to 5, above that, user has to
 % select

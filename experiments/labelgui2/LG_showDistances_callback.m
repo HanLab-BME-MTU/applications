@@ -47,7 +47,7 @@ set(figureHandle,'UserData','LG_navi_menuShowDistances')
 set(figureHandle,'CloseRequestFcn','LG_figureCloseReq(gcf)');
 
 % store figureHandle
-movieWindowHandles.otherWindows.LG_intensityFigure = figureHandle;
+movieWindowHandles.otherWindows.LG_distanceFigure = figureHandle;
 
 % save movieWindowHandles
 guidata(movieWindowHandles.LG_movieWindow,movieWindowHandles);

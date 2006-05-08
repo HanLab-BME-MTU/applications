@@ -48,7 +48,7 @@ set(figureHandle,'UserData','LG_navi_menuShowDisplacements')
 set(figureHandle,'CloseRequestFcn','LG_figureCloseReq(gcf)');
 
 % store figureHandle
-movieWindowHandles.otherWindows.LG_intensityFigure = figureHandle;
+movieWindowHandles.otherWindows.LG_displacementFigure = figureHandle;
 
 % save movieWindowHandles
 guidata(movieWindowHandles.LG_movieWindow,movieWindowHandles);

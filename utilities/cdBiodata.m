@@ -61,7 +61,10 @@ switch option
         
         % cd Biodata
         cdBiodata(0);
+        try
         cd ../tmpData/misteli
+        catch
+        end
         mainDir = pwd;
     case 6
         % go to tmpData/jason
