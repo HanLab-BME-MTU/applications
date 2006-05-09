@@ -1,4 +1,4 @@
-function [nClusters,clusterList,comparison,dendrogramHandles] = groupTrajectories(trajectoryData)
+function [nClusters,clusterList,comparison,dendrogramHandles] = groupTrajectories(trajectoryData,weight)
 %GROUPTRAJECTORIES tries to find groups of trajectories within a condition
 %
 % SYNOPSIS
@@ -15,6 +15,19 @@ function [nClusters,clusterList,comparison,dendrogramHandles] = groupTrajectorie
 tic
 % constants
 significanceLevel = 0.05;
+
+if ~isstruct(trajectoryData)
+    if nargin == 1 || isempty(weight)
+        weight = [1,1];
+    end
+    nTrajectories = length(trajectoryData);
+    upperIndices = find(triu(ones(nTrajectories),1));
+lowerIndices = find(tril(ones(nTrajectories),-1));
+pValues = zeros(2,length(upperIndices));
+pValues(1,:) = trajectoryData(lowerIndices)'/weight(1);
+pValues(2,:) = trajectoryData(upperIndices)'/weight(2);
+
+else
 
 % count individual trajectories
 nTrajectories = length(trajectoryData.individualStatistics);
@@ -52,8 +65,10 @@ pValues(10,:) = individualComparisons.shrinkageTimes(upperIndices)';
 % sense!
 pValues = pValues([1,3,7,9],:);
 
+end
+
 % large difference = small p-value. Take 1-p for distances
-pValues = 1-pValues;
+pValues = max(max(pValues(:)),1)-pValues;
 
 
 % calculate euclidean distance

@@ -95,6 +95,10 @@ switch inputType
             dataProperties.frameTime = reshape(inputStruct.Time,...
                 dataProperties.movieSize(3:4));
         end
+        % time could also be per frame only (metamorph)
+        if isfield(inputStruct,'frameTime')
+            dataProperties.frameTime = inputStruct.frameTime;
+        end
         if isfield(inputStruct,'expTime')
             dataProperties.expTime = inputStruct.expTime;
         end

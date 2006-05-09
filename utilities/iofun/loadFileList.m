@@ -339,6 +339,23 @@ for s = 1:nextStoreIdx - 1
                     if isNofile
                         disp(['file ',secondPath,' not loaded: data was not saved']);
                     end
+                    
+                    % ---- hack ----
+                    % in linux, people sometimes put /mit/yeastData instead
+                    % of /mnt/mit/yeastData. Therefore, check for
+                    % /mit/yeastData, convert it into BIODATA, and load
+                    if isNone && ispc && any(strmatch('/mnt/mit/yeastData',secondPath)==1)
+                        % find biodata
+                        biodataDir = getenv('BIODATA');
+                        % if there is biodata, remove first part of second
+                        % path, assign firstPath.
+                        if ~isempty(biodataDir) && isdir(biodataDir)
+                            firstPath = biodataDir;
+                            secondPath = secondPath(19:end);
+                            identifier = 'BIODATA';
+                            isNone = 0;
+                        end
+                    end
 
                     %if there was a valid identifier, we start with
                     %an filesep, else there is no point in changing

@@ -59,13 +59,17 @@ switch option
     case 5
         % go to tmpData/misteli
         
-        % cd Biodata
+       
+        
+        % cd Biodata and then misteli
         cdBiodata(0);
         try
         cd ../tmpData/misteli
         catch
         end
         mainDir = pwd;
+        
+       
     case 6
         % go to tmpData/jason
         
@@ -73,4 +77,23 @@ switch option
         cdBiodata(0);
         cd ../tmpData/jason
         mainDir = pwd;
+        
+    case 7
+        % go to tmpData/misteli, but stay if there already
+        
+        % if we're already there, go maybe one dir up
+        if any(findstr(oldDir,'misteli'))
+            % check whether we're in a movieDir
+            if isempty(dir('*.STK'))
+                % we're fine
+                mainDir = pwd;
+            else
+                cd ..
+                mainDir = pwd;
+            end
+        else
+            cdBiodata(0);
+        cd ../tmpData/misteli
+        mainDir = pwd;
+        end
 end
