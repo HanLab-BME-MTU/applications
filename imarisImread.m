@@ -151,7 +151,18 @@ elseif ischar(multiArgument)
     movieName = multiArgument;
 
     if any(findstr(movieName,filesep))
-        error('Please specify the path in the second input argument')
+        % redo moviePath
+        
+        % check for input movie path
+        if nargin < 2 || isempty(moviePath)
+            fullName = movieName;
+        else
+            fullName = fullfile(moviePath, movieName);
+        end
+        
+        % find moviePath
+        [moviePath,tmp1,tmp2] = fileparts(fullName);
+        movieName = [tmp1,tmp2];
     end
 
 elseif strcmp(class(multiArgument),'COM.Imaris_Application')
@@ -206,7 +217,7 @@ else
     moviePath = pathName;
 end
 
-if ~ isempty(moviePath) & ~strcmp(moviePath(end),filesep)
+if ~ isempty(moviePath) && ~strcmp(moviePath(end),filesep)
     moviePath = [moviePath,filesep];
 end
 
@@ -248,6 +259,10 @@ if launchImaris
     % get handle to imaris or launch, if necessary
     vImarisApplication = actxserver('Imaris.Application');
 end
+
+% if we want no movie: make imaris visible
+vImarisApplication.mVisible = noMovie;
+
 
 % select filterchoice from list
 filterList = filterList(filterChoice,:);
@@ -362,7 +377,7 @@ if checkSize
     if noMovie
         % don't shorten frames2load
         % no loadedFrames
-        laodStruct.loadedFrames = [];
+        loadStruct.loadedFrames = [];
     else
         loadStruct.frames2load(1) = [];
         loadStruct.loadedFrames = cropIdx(1,5):cropIdx(2,5);
@@ -412,23 +427,24 @@ switch movieType
         for w = 1:movieSize(4)
             movieProperties.wvl(w) = ...
                 str2double(vImarisApplication.mDataSet.GetParameter(...
-                sprintf('Channel %i',w-1),'LSMEmissionWavelength');
+                sprintf('Channel %i',w-1),'LSMEmissionWavelength'));
         end
          % wvl in um!!
         movieProperties.wvl = movieProperties.wvl/1000;
         
         
-        % read frameTime (this is a general 
+        % read frameTime
         frameTimeC = cell(movieSize(5),1);
         
         for t = 1:movieSize(5)
-            frameTimeC{t} = vImarisApplication.mDataSet.GetParameter(...
-                'TimeInfo',sprintf('TimePoint%i',t));
+            frameTimeC{t} = vImarisApplication.mDataSet.GetTimePoint(t-1);
         end
-        % change strings into seconds, then subtract first time
-        frameTime = cellfun(@(x)(datenum(x,'yyyy-mm-dd HH.MM.SS'),frameTime);
-        frameTime = frameTime - frameTime(1);
-        dataProperties.frameTime = frameTime;
+        % change strings into seconds, then subtract first time.
+        frameTime = cellfun(@(x)(datenum(x,'yyyy-mm-dd HH:MM:SS.FFF')),frameTimeC);
+        % since dateNum gives fractions of days, we have to multiply by the
+        % number of seconds per day
+        frameTime = (frameTime - frameTime(1)) * 86400;
+        movieProperties.frameTime = frameTime;
     otherwise
         warning('no property reader defined for %s',movieType);
         movieProperties = [];
