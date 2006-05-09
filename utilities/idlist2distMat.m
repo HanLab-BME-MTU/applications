@@ -29,12 +29,18 @@ function [distance, distanceUnitVectors, displacement, displacementUnitVectors, 
 %               displacements
 %        idlist: idlist without "bad" tags (= no single occurences)
 %        idxLists: structure of lists with fields:
-%                   - estimatedTags: nTimepoints x nTags array with 1
-%                     wherever a tag has been estimated 
+%                   - estimatedTag: nTimepoints x nTags array with 1
+%                      wherever a tag has been estimated 
 %                   - goodTimes: list of timePoints of non-deleted frames
-%                   - isTracked: nTimepoints x 1 vector with 1 if one or
-%                      several tags have been found through tracking
-%                   - isFusion : 
+%                   - isGoodTime: nTimepoints x 1 array with ones wherever
+%                      there are goodTimes (goodTimes = find(isGoodTime))
+%                   - isTracked: nTimepoints x nTags array with 1 for
+%                       tracked tags
+%                   - isFusion : nTimepoints x nTags array with tag numbers
+%                      indicating to which other tag the current tag is
+%                      fused. !!!! Currently, this doesn't support multiple
+%                      fusions, and it doesn't distinguish between primary
+%                      and secondary fusions.
 %
 % REMARKS Estimated spots, deleted frames are all converted into NaNs!
 %           (I know that displacements could be packed in the diagonal of
@@ -76,7 +82,6 @@ end
 nTimepoints = length(idlist);
 linklists = cat(3,idlist.linklist);
 goodTimes = squeeze(linklists(1,1,:));
-nTags = length(idlist(1).stats.labelcolor);
 centroids = cat(1,idlist.centroid);
 
 % remove bad tags - also from the Q-matrices
@@ -131,8 +136,11 @@ displacementUnitVectors = repmat(NaN,[nTimepoints-1, nTags, 3]);
 coco = repmat(NaN, [nTimepoints, 3]);
 points([1,2]) = struct('coordinates',coco,'covariances',coco);
 
-% preassign idxList
-idxList = false(nTimepoints, nTags);
+% preassign idxLists
+idxLists = struct('estimatedTag',false(nTimepoints, nTags),...
+    'isTracked',false(nTimepoints,nTags), 'goodTimes',goodTimes,...
+    'fusedTag',zeros(nTimepoints,nTags), ...
+    'isGoodTime',false(nTimepoints,1));
 
 
 % loop. First: calculate displacement. Then assign other tag and calculate
@@ -148,13 +156,17 @@ for tag1 = 1:nTags
     points(1).covariances = ...
         squeeze(qMatrixDiags(:,tag1,:));
 
-    % remove estimated entries if requested
+    % remove estimated entries if requested, and store data in idxLists
     estimatedIdx = goodTimes(linklists(tag1,3,:) == 1);
-    idxList(estimatedIdx,tag1) = true;
+    idxLists.estimatedTag(estimatedIdx,tag1) = true;
     if ~allowEstimatedTags
         points(1).coordinates(estimatedIdx,:) = NaN;
         points(1).covariances(estimatedIdx,:) = NaN;
     end
+    
+    % check for tracked tags
+    isTrackedIdx = goodTimes(linklists(tag1,3,:) == 3);
+    idxLists.isTracked(isTrackedIdx,tag1) = true;
 
     % don't calculate displacement quite yet - we might want to correct
     % the positions!
@@ -210,4 +222,19 @@ for tag1 = 1:nTags
 
 end
 
+%==============================
+%% COLLECT INDICES
+%==============================
 
+% estimatedTag, goodTimes has already been collected. Also isTracked
+
+% for fusedTag: Loop through distanceMatrices, and find zero distance. I
+% don't quite know what the uncertainty will be. Therefore, I check for
+% every whether row or col has a zero.
+for i=1:nTags
+    [t,tagNum] = find(squeeze(distance(i,:,:) == 3) | squeeze(distance(:,i,:) == 3));
+    idxLists.fusedTag(t,i) = tagNum;
+end
+
+% isGoodTime is a logical representation of goodTimes
+idxLists.isGoodTime(goodTimes) = true;

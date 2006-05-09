@@ -57,7 +57,8 @@ function [data,orientation,positions,sigmaZero,dataProperties,snrMax,isTracked,r
 %
 %
 %REMARKS  fusions will not be considered as valid timepoints
-%         Warning: the length of fusedTag etc will be 
+%         Warning: the length of fusedTag etc will be equal to the length
+%         of timepoints 
 %
 %c: 11/03 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -133,7 +134,8 @@ try
     if isempty(tag1)||isempty(tag2)||any([tag1;tag2]>length(labelcolor))
         error('no tags found')
     else
-        tags = idlist(1).stats.labelcolor([tag1,tag2],1);
+        % read 'tags'
+        tags = labelcolor([tag1,tag2]);
     end
     %define indexList for indexing Q-matrix
     tagIdxList1 = [(tag1-1)*3+1:tag1*3];
@@ -179,9 +181,52 @@ end
 %===================================
 
 if checkIdlist(idlist,1)
-    % calculate from new idlist
+    % calculate data from new idlist
     [distance, distanceVectors, dummy, dummy, dummy, idxLists] = ...
         idlist2distMat(idlist,dataProperties);
+    
+    % remove any fusions to each other, and estimated tags from the
+    % list
+    
+    % isGoodTime has ones wherever there is a good time
+    isGoodTime = idxLists.isGoodTime;
+    
+    % estimatedIdx has ones wherever there is an estimated tag
+    estimatedIdx = ...
+        idxLists.estimatedTag(:, tag1) | idxLists.estimatedTag(:, tag2);
+    
+    % ownFusion has ones wherever the tags are fused to each other
+    ownFusion = idxLists.fusedTag(:,tag1) == tag2 & ...
+        idxLists.fusedTag(:,tag2) == tag1;
+    fusedTag1 = idxLists.fusedTag(:,tag1) ~= 0;
+    fusedTag2 = idxLists.fusedTag(:,tag2) ~= 0;
+    
+    % create list of good timepoints by removing timepoints with deleted
+    % frames, with one or both tags estimated, or both tags fused one
+    % another
+    timePoints = find(isGoodTime & ~estimatedIdx & ~ownFusion);
+    
+    % correct fusedTag
+    fusedTag = fusedTag1(timePoints) + 2*fusedTag2(timePoints);
+    
+    
+    % now read distance into old variables. Careful with the order of tags
+    tagHigh = max(tag1,tag2);
+    tagLow = min(tag1,tag2);
+    distanceN = squeeze(distance(tagHigh, tagLow, timePoints));
+    distanceSigma = squeeze(distance(tagLow, tagHigh, timePoints));
+    normedVectors = squeeze(distanceVectors(tagHigh, tagLow, timePoints, :));
+    
+    % snrMax is not returned by idlist2distMat yet. I'll add that should I
+    % ever need it.
+    snrMax = [];
+    positions = []; % you can get all the relevant info from idlist2distMat
+    sigmaZero = [];
+    
+    % isTracked will be 1 if any of the two tags has been found by the
+    % tracker
+    isTracked = idxLists.isTracked(:,tag1) | idxLists.isTracked(:,tag2);
+   
 else
     % calculate from old idlist
     [distanceN, distanceSigma, normedVectors, timePoints, snrMax, isTracked, fusedTag] = ...
