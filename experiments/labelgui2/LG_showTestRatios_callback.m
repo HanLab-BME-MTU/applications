@@ -17,6 +17,14 @@ if strcmp(isChecked,'on')
     
     return
 else
+    
+    % close figure (will uncheck)
+    figureHandle = movieWindowHandles.otherWindows.LG_testRatiosFigure;
+    if ~isempty(figureHandle)
+    LG_figureCloseReq(figureHandle);
+    [naviHandles, movieWindowHandles] = LG_getNaviHandles;
+    end
+    
     % set checkmark
     set(naviHandles.LG_navi_menuShowTestRatios,'checked','on')
 end

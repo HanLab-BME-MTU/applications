@@ -12,7 +12,10 @@ if ~isfield(idlist(goodTimes(1)).info,'detectQ_Pix')
 else
 
     for t = goodTimes';
-        % read spotNumber, spotIdx
+        % read spotNumber, spotIdx. Make sure that we get the correct Q
+        % with fusions
+        spotList = idlist(t).linklist(:,2);
+        spotList(idlist(t).linklist(:,3) == 4) = 0;
         [spotNumber, spotIdx] = unique(idlist(t).linklist(:,2));
 
         % find if tracked or detected

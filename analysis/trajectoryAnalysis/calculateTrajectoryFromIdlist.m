@@ -211,11 +211,11 @@ if checkIdlist(idlist,1)
     
     
     % now read distance into old variables. Careful with the order of tags
-    tagHigh = max(tag1,tag2);
-    tagLow = min(tag1,tag2);
-    distanceN = squeeze(distance(tagHigh, tagLow, timePoints));
-    distanceSigma = squeeze(distance(tagLow, tagHigh, timePoints));
-    normedVectors = squeeze(distanceVectors(tagHigh, tagLow, timePoints, :));
+    tagRow = max(tag1,tag2);
+    tagCol = min(tag1,tag2);
+    distanceN = squeeze(distance(tagRow, tagCol, timePoints));
+    distanceSigma = squeeze(distance(tagCol, tagRow, timePoints));
+    normedVectors = squeeze(distanceVectors(tagRow, tagCol, timePoints, :));
     
     % snrMax is not returned by idlist2distMat yet. I'll add that should I
     % ever need it.
@@ -271,16 +271,9 @@ end
 %% ORIENTATION & RL
 %=========================
 if nargout > 1
-    %orientation: [-pi/2...pi/2]. calculate from vN*[0 0 1]
-    orientation = pi/2-acos(normedVectors(:,3));
-
-    % calculate Rayleigh limit only if there is an orientation
-    if nargout > 7
-        [ralXY, ralZ] = calcFilterParms([],[],[],'bessel');
-
-        rayleighLimit = sqrt(1./ (cos(orientation).^2 / ralXY^2 + ...
-            sin(orientation).^2 / ralZ^2) );
-    end
+    [rayleighLimit, orientation] =...
+        rayleighFromOri(normedVectors, ...
+        dataProperties.wvl, dataProperties.NA, []);
 else
     orientation = [];
 end
@@ -305,11 +298,6 @@ end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Begin nested function
 function [distanceN, distanceSigma, normedVectors, timePoints, snrMax, isTracked, fusedTag] = calculateFromOldIdlist
-
-
-
-
-
 
 
 %=========================

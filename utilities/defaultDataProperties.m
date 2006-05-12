@@ -183,6 +183,7 @@ dataProperties.linker_relativeMaxDistance = -1;
 dataProperties.linker_absoluteMaxDistance=-1;
 dataProperties.linker_relAmpWeight=1/1.5;
 dataProperties.linker_useCOM = 1;
+dataProperties.linker_fuseRatio = 1.5;
 
 
 

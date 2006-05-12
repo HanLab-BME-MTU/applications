@@ -16,6 +16,10 @@ for i = 1:maxTagIdx
     goodTagIdx = find(timeAmpPos(:,2));
     badTagIdx  = ~timeAmpPos(:,2); % badTagIdx is logical
 
+    % use goodTagIdxPos to estimate positions (take fusions into account!)
+    goodTagIdxPos = find(timeAmpPos(:,3));
+    badTagIdxPos =  ~timeAmpPos(:,3); % badTagIdx is logical
+
     % Fit the amplitudes. We already know the time constant, and only need
     % to find the multiplier. Therefore, we can use robustMean.
     % We will replace the amplitudes of outliers with their fitted amps.
@@ -75,15 +79,20 @@ for i = 1:maxTagIdx
         factor * ...
         exp(timeAmpPos(badTagIdx,1) * idlist(1).stats.intFit.xFit(end));
 
+    % because of fusions, we write amplitudes separately
+    for t = 1:length(badTagIdx)
+        idlist(timeAmpPos(t,1)).linklist(i,8) = timeAmpPos(t,2);
+    end
+
 
     % find improved sigmaPos, if there are enough tag positions
     % -- later --
     % subtract COM
-    timeAmpPos(goodTagIdx,3:5) = timeAmpPos(goodTagIdx,3:5) - ...
-        cat(1,idlist(timeAmpPos(goodTagIdx,1)).centroid) * constants.useCOM;
+    timeAmpPos(goodTagIdxPos,3:5) = timeAmpPos(goodTagIdxPos,3:5) - ...
+        cat(1,idlist(timeAmpPos(goodTagIdxPos,1)).centroid) * constants.useCOM;
 
     % bwlabel badTagIdx, so that we identify interruptions
-    badGroups = bwlabel(badTagIdx);
+    badGroups = bwlabel(badTagIdxPos);
 
     % loop through interruptions. Find first and last frame (and good frame
     % before and/or after). Then loop through frames and fill in estimated
@@ -111,29 +120,26 @@ for i = 1:maxTagIdx
                     tIdlist = timeAmpPos(tapIdx,1);
                     tau1 = tIdlist - startT;
 
-                    % if the current tag is fused, we only need the
-                    % amplitude estimate
-                    if idlist(tIdlist).linklist(i,3) == 3
-                        idlist(tIdlist).linklist(i,8) = ...
-                            timeAmpPos(tapIdx,2);
-                    else
 
-                        % calculate position and fill linklist. Remember to add
-                        % COM back again. Also, write lostChi2
-                        newPos = (pos1*(deltaT-tau1) + pos2*tau1)/deltaT + ...
-                            idlist(tIdlist).centroid .* constants.useCOM;
-                        idlist(tIdlist).linklist(i,8:12) = ...
-                            [timeAmpPos(tapIdx,2),newPos, constants.lostChi2];
-                        % flag spot as estimated position
+
+                    % calculate position and fill linklist. Remember to add
+                    % COM back again. Also, write lostChi2
+                    newPos = (pos1*(deltaT-tau1) + pos2*tau1)/deltaT + ...
+                        idlist(tIdlist).centroid .* constants.useCOM;
+                    idlist(tIdlist).linklist(i,9:12) = ...
+                        [newPos, constants.lostChi2];
+                    % flag spot as estimated position
+                    if idlist(tIdlist).linklist(i,3) == 0
                         idlist(tIdlist).linklist(i,3) = 1;
-                        % calculate delta for searchRadius. Convert to pixels
-                        searchRadius = constants.diffusionFactor * ...
-                            idlist(1).stats.sigmaXyzS * ...
-                            sqrt(tau1-tau1^2/deltaT) ./ constants.pix2mu;
-                        idlist(tIdlist).trackInit = ...
-                            [idlist(tIdlist).trackInit;...
-                            i, searchRadius];
                     end
+                    % calculate delta for searchRadius. Convert to pixels
+                    searchRadius = constants.diffusionFactor * ...
+                        idlist(1).stats.sigmaXyzS * ...
+                        sqrt(tau1-tau1^2/deltaT) ./ constants.pix2mu;
+                    idlist(tIdlist).trackInit = ...
+                        [idlist(tIdlist).trackInit;...
+                        i, searchRadius];
+
                 end
             case 1 % only end (at beginning of movie)
                 pos2 = timeAmpPos(startEnd(2),3:5);
@@ -145,64 +151,58 @@ for i = 1:maxTagIdx
                     tIdlist = timeAmpPos(tapIdx,1);
                     tau2 = deltaT - tIdlist;
 
-                    % if the current tag is fused, we only need the
-                    % amplitude estimate
-                    if idlist(tIdlist).linklist(i,3) == 3
-                        idlist(tIdlist).linklist(i,8) = ...
-                            timeAmpPos(tapIdx,2);
-                    else
 
-                        % We keep pos2. Remember to add
-                        % COM back again
-                        newPos = pos2 + ...
-                            idlist(tIdlist).centroid .* constants.useCOM;
-                        idlist(tIdlist).linklist(i,8:12) = ...
-                            [timeAmpPos(tapIdx,2),newPos, constants.lostChi2];
-                        % flag spot as estimated position
+
+                    % We keep pos2. Remember to add
+                    % COM back again
+                    newPos = pos2 + ...
+                        idlist(tIdlist).centroid .* constants.useCOM;
+                    idlist(tIdlist).linklist(i,9:12) = ...
+                        [newPos, constants.lostChi2];
+                    % flag spot as estimated position
+                    if idlist(tIdlist).linklist(i,3) == 0
                         idlist(tIdlist).linklist(i,3) = 1;
-                        % calculate delta for searchRadius. Convert to pixels
-                        searchRadius = constants.diffusionFactor * ...
-                            idlist(1).stats.sigmaXyzS * ...
-                            sqrt(tau2) ./ constants.pix2mu;
-                        idlist(tIdlist).trackInit = ...
-                            [idlist(tIdlist).trackInit;...
-                            i, searchRadius];
                     end
+                    % calculate delta for searchRadius. Convert to pixels
+                    searchRadius = constants.diffusionFactor * ...
+                        idlist(1).stats.sigmaXyzS * ...
+                        sqrt(tau2) ./ constants.pix2mu;
+                    idlist(tIdlist).trackInit = ...
+                        [idlist(tIdlist).trackInit;...
+                        i, searchRadius];
+
                 end
             case 2 % only start (at end of movie)
                 pos1 = timeAmpPos(startEnd(1),3:5);
 
                 startT = timeAmpPos(startEnd(1),1);
                 %deltaT = max(goodTimes) - startT;
-                
+
                 % loop through interruptions. Calculate stuff
                 for tapIdx = startEnd(1)+1:size(timeAmpPos,1)
                     tIdlist = timeAmpPos(tapIdx,1);
                     tau1 = tIdlist - startT;
 
-                    % if the current tag is fused, we only need the
-                    % amplitude estimate
-                    if idlist(tIdlist).linklist(i,3) == 3
-                        idlist(tIdlist).linklist(i,8) = ...
-                            timeAmpPos(tapIdx,2);
-                    else
 
-                        % Only pos1. Remember to add
-                        % COM back again
-                        newPos = pos1 + ...
-                            idlist(tIdlist).centroid .* constants.useCOM;
-                        idlist(tIdlist).linklist(i,8:12) = ...
-                            [timeAmpPos(tapIdx,2),newPos, constants.lostChi2];
-                        % flag spot as estimated position
+
+                    % Only pos1. Remember to add
+                    % COM back again
+                    newPos = pos1 + ...
+                        idlist(tIdlist).centroid .* constants.useCOM;
+                    idlist(tIdlist).linklist(i,9:12) = ...
+                        [newPos, constants.lostChi2];
+                    % flag spot as estimated position
+                    if idlist(tIdlist).linklist(i,3) == 0
                         idlist(tIdlist).linklist(i,3) = 1;
-                        % calculate delta for searchRadius. Convert to pixels
-                        searchRadius = constants.diffusionFactor * ...
-                            idlist(1).stats.sigmaXyzS * ...
-                            sqrt(tau1) ./ constants.pix2mu;
-                        idlist(tIdlist).trackInit = ...
-                            [idlist(tIdlist).trackInit;...
-                            i, searchRadius];
                     end
+                    % calculate delta for searchRadius. Convert to pixels
+                    searchRadius = constants.diffusionFactor * ...
+                        idlist(1).stats.sigmaXyzS * ...
+                        sqrt(tau1) ./ constants.pix2mu;
+                    idlist(tIdlist).trackInit = ...
+                        [idlist(tIdlist).trackInit;...
+                        i, searchRadius];
+
                 end
             otherwise
                 error('One-frame-movie or major bug in linker')

@@ -14,7 +14,7 @@ function LG_showDistances_callback
 isChecked = get(naviHandles.LG_navi_menuShowDistances,'checked');
 if strcmp(isChecked,'on')
     % close figure (will uncheck)
-    figureHandle = movieWindowHandles.otherWindows.LG_intensityFigure;
+    figureHandle = movieWindowHandles.otherWindows.LG_distanceFigure;
     LG_figureCloseReq(figureHandle);
     
     % uncheck again, just to make sure (in case there's no figure, for
@@ -23,6 +23,14 @@ if strcmp(isChecked,'on')
     
     return
 else
+    
+    % close figure (will uncheck)
+    figureHandle = movieWindowHandles.otherWindows.LG_distanceFigure;
+    if ~isempty(figureHandle)
+    LG_figureCloseReq(figureHandle);
+    [naviHandles, movieWindowHandles] = LG_getNaviHandles;
+    end
+    
     % set checkmark
     set(naviHandles.LG_navi_menuShowDistances,'checked','on')
 end
@@ -33,7 +41,7 @@ idlist = movieWindowHandles.idlist;
 dataProperties = movieWindowHandles.dataProperties;
 
 % check navigator for figure position
-figurePosition = naviHandles.positions.LG_intensityFigure;
+figurePosition = naviHandles.positions.LG_distanceFigure;
 
 % plot testRatios
 [figureHandle,objectHandles] = LG_showDistances(idlist,dataProperties,figurePosition);

@@ -56,9 +56,9 @@ for t = goodTimes'
     switch recalc
         case 0 % do everything
 
-            % remove all non-named spots and all fusions
+            % remove all non-named spots and all secondary fusions
             ll = idlist(t).linklist;
-            badRows = ll(:,2) == 0 | ll(:,3) == 3;
+            badRows = ll(:,2) == 0 | ll(:,3) == 4;
             ll(badRows,:) = [];
             ll(:,[3:7,12]) = 0;
             idlist(t).linklist = ll;
@@ -71,7 +71,7 @@ for t = goodTimes'
             % remove all non-named spots, but retain tag-indices. also
             % keep linkup, linkdown
             ll = idlist(t).linklist;
-            badRows = ll(:,2) == 0 | ll(:,3) == 3;
+            badRows = ll(:,2) == 0 | ll(:,3) == 4;
             ll(badRows,:) = [];
             ll(:,[3,5,12]) = 0;
             idlist(t).linklist = ll;
@@ -87,9 +87,9 @@ for t = goodTimes'
             ll = idlist(t).linklist;
             estIdx = ll(:,3) == 1;
             ll(estIdx,[8:11]) = 0;
-            fusIdx = ll(:,3) == 3;
+            fusIdx = ll(:,3) == 4;
             ll(fusIdx,8) = 0;
-            ll(:,[3,5,12]) = 0;
+            ll(:,12) = 0;
             idlist(t).linklist = ll;
             
 

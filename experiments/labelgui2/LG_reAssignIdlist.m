@@ -1,4 +1,4 @@
-function [idlist, success, dataProperties] = LG_reAssignIdlist(idlist,currentTime, goodTimes, pdValues, assignFuture, recalc,dataProperties);
+function [idlist, success, dataProperties] = LG_reAssignIdlist(idlist,currentTime, goodTimes, pdValues, assignFuture, recalc,dataProperties)
 %LG_reAssignIdlist reassigns the tags in the idlist
 %
 % SYNOPSIS    [idlist, success, dataProperties] = ...
@@ -9,9 +9,8 @@ function [idlist, success, dataProperties] = LG_reAssignIdlist(idlist,currentTim
 %        currentTime: frame where assignment is changed
 %        goodTimes:   list of non-deleted frames
 %        pdValues:    matrix indicating what should be reassigned
-%                     colunm 1: indices to good tags in idlist, i.e. of all
-%                     that are not estimates of single occurrences or
-%                     secondary fusions.
+%                     colunm 1: row-indices to good spots in idlist, i.e.
+%                     of all that are not estimates or secondary fusions.
 %                     column 2: tag numbers that should be at the positions
 %                     determined by column 1
 %                     column 3: tag numbers that should be secondary
@@ -19,7 +18,7 @@ function [idlist, success, dataProperties] = LG_reAssignIdlist(idlist,currentTim
 %
 %        assignFuture: 1 if not only currentTime, but also subsequent ones
 %                      should be changed
-%        recalc:      wheter to recalculate idlist or not
+%        recalc:      wheter to recalculate idlist or not. If 2, estimate.
 %        dataProperties: dataProperties
 %
 % OUTPUT  idlist:     changed idlist
@@ -31,120 +30,124 @@ function [idlist, success, dataProperties] = LG_reAssignIdlist(idlist,currentTim
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 success = 0;
-suggestRecalc = 0;
-nTimepoints = length(idlist);
+% suggestRecalc = 0; 
+% nTimepoints = length(idlist);
 
-% loop through tags of linklist and reassign idlist
+
+% first, loop through the good spots and assign tags. Set to estimated spot
+% if necessary. Also, mark if primary fusion
+% Then, loop through all tags. If they haven't been assigned yet, try to
+% put them into the row they were before, otherwise search for where they
+% were exchanged.
+% Finally, re-estimate positions.
+
+
+
+% remember old linklist
 oldLinklist = idlist(currentTime).linklist;
 newLinklist = oldLinklist;
 % assign no tags, except for the ones that don't appear in this frame - the
 % estimates of the single occurences
-newLinklist((oldLinklist(:,5)~=3),4) = 0;
+newLinklist(oldLinklist(:,5)~=3,4) = 0;
 
 
 
-% loop through pdValues. Assign primary tags. Then, loop through pdValues
-% again and assign secondary tags (if any). All non-5/3 tags have to be
-% present in the pdValues, so there shouldn't be a risk of missing a tag.
-
-% pdValues(:,1) are the indices in oldLinklist of the good spots (all
-% except secondary fusions and estimates of single occurences)
-
-% loop through primary tags
+% loop through primary spots
 for i = 1:size(pdValues,1)
 
     newTag = pdValues(i,2);
     newSpotIdx = pdValues(i,1);
 
-    % if newTag is 0, delete the spot
+    % if newTag is 0, mark spot as estimate. We'll assign a tag to it later
     if newTag == 0
-        newLinklist(newSpotIdx,2) = -1;
+        newLinklist(newSpotIdx,2) = 0;
+        newLinklist(newSpotIdx,3) = 1;
     else
         % replace primary tag - we always do that, because secondary
         % fusions are not among the spotIndices
 
-        % assign new tag. Everything else stays the same
+        % assign new tag.
         newLinklist(newSpotIdx,4) = newTag;
+        
+        % check for fusion/tracked tag
+        if pdValues(i,3)
+            if any(newLinklist(newSpotIdx,3) == [2,5])
+            newLinklist(newSpotIdx,3) = 5;
+            else
+                newLinklist(newSpotIdx,3) = 3;
+            end
+        else
+            if any(newLinklist(newSpotIdx,3) == [2,5])
+                newLinklist(newSpotIdx,3) = 2;
+            else
+                newLinklist(newSpotIdx,3) = 0;
+            end            
+        end
     end
 
 end % primary tag loop
 
-% loop through secondary tags
-for i = 1:size(pdValues,1)
 
-    newTag = pdValues(i,3);
+% in case a spot disappeared: set correct spot numbers
+spotIdx = newLinklist(:,2) > 0;
+[dummy, newSpotNumbers] = sort(newLinklist(spotIdx,2));
+newLinklist(spotIdx,2) = newSpotNumbers;
 
-    % if newTag is 0, we just continue
-    if newTag == 0
-        % do nothing
+
+% loop through remaining tags (in fact, loop through all) and try to assign
+% them to a row
+
+for iTag = 1:size(oldLinklist,1)
+    
+    % skip if tag has already been assigned to good spot
+    if any(newLinklist(:,4) == iTag)
+        % skip
     else
-        % there are three possibilities where to assign a fusion:
-        % 1) this spot was a fusion before, so we just put the tag there
-        % 2) the former tag position is still available - make it into a
-        %    fusion by copying from the primary spot
-        % 3) the tag was moved to a fusion spot, and its original position
-        %    has been taken over by another tag - assign the fusion tag
-        %    in a row where no tag has been assigned yet. In this case, we
-        %    should not continue this for future tags
-
-        % Careful: All this is based on the assumption that there can't be
-        % a triple fusion.
-
-        newSpotIdx = pdValues(i,1);
-        % find row
-        spotRow = find(oldLinklist(:,2) == oldLinklist(newSpotIdx,2));
-
-        if length(spotRow) > 1
-            % spot used to be a fusion
-
-            % find good row
-            newTagRow = spotRow(oldLinkList(spotRow,3) == 3);
-
-            % assignment is simple
-            newLinklist(newTagRow, 4) = newTag;
-
-
-        elseif newLinklist(newTag,4) == 0
-            % old position is still available
-
-            % assign row
-            newTagRow = newTag;
-
-            % since we know the spot already, we can go ahead and assign
-            % the new line. Don't forget to correct cols 3 and 4!
-            newLinklist(newTagRow,:) = newLinklist(spotRow,:);
-            newLinklist(newTagRow,[3,4]) = [3, newTag];
-
-
-        else
-            % find a 'random' position for assignment
-            zeroCol4 = find(~newLinklist(:,4));
-
-            % assign row
-            newTagRow = zeroCol4(1);
-
-            % copy spot row and rewrite cols 3 and 4
-            newLinklist(newTagRow,:) = newLinklist(spotRow,:);
-            newLinklist(newTagRow,[3,4]) = [3, newTag];
-
-            % set assignFuture to 0. Warn if it actually changes the value
-            if assignFuture == 1
-                ans = questdlg(...
-                    'Cannot reassign future with shifted fusions',...
-                    'Error','Continue','Cancel');
-                if ~strcmp(ans,'Continue')
-                    success = 0;
-                    return
-                end
+        % find a row to place the tag. With a strictly limited number of
+        % possible tags, there will always be some kind of circular
+        % rearrangement between tags. Therefore, go and look in original
+        % tag row. If it's occupied, check the row the occupying tag came
+        % from. Continue until an empty row is found
+        newTagRow = 0;
+        possibleTagRow = iTag;
+        while ~newTagRow
+            if newLinklist(possibleTagRow,4) == 0
+                newTagRow = possibleTagRow;
             else
-                assignFuture = 0;
+                possibleTagRow = newLinklist(possibleTagRow,4);
             end
-
         end
+        
+        % assing tag
+        newLinklist(newTagRow,4) = iTag;
+        
+        % check for fusion
+        fusionIdx = pdValues(:,3) == iTag;
+        if any(fusionIdx)
+            % read position, spotNumber, chi2 (not amplitude!)
+            newLinklist(newTagRow,[2,9:12]) = ...
+                newLinklist(pdValues(fusionIdx,1),[2,9:12]);
+            % make secondary fusion
+            newLinklist(newTagRow,3) = 4;
+        else
+            % just make estimated spot
+            newLinklist(newTagRow,[2,3]) = [0,1];
+        end
+        
+    end % if ~skip
+end % loop remaining tags
 
-    end % if newTag == 0
+% debug
+if any(newLinklist,4) == 0
+    error('exception not handled in LG_reAssignIdlist')
+end
 
-end % secondary tag loop
+
+% assing linklist
+idlist(currentTime).linklist = newLinklist;
+
+
+
 
 % loop through idlist and redo Q-matrices and trackInits (trackInits and
 % amplitudes might be quite off, but that's what happens if you don't
@@ -156,9 +159,6 @@ end % secondary tag loop
 % In the loop we first read the order of the old spots, and we assign the
 % new list of tags. Then, we update the Q-matrices and the trackInits.
 
-% find number of tags
-nTags = size(oldLinklist,1);
-
 
 % loop. If no future, only reassign current time. (linkup, linkdown need a
 % seperate loop)
@@ -168,7 +168,8 @@ if assignFuture
 else
     endTimeIdx = currentTimeIdx;
 end
-currentTimeIsFirst = currentTimeIdx == 1;
+%currentTimeIsFirst = currentTimeIdx == 1;
+
 
 
 % revert and write Q separately, because in the meantime, we might be
@@ -176,16 +177,9 @@ currentTimeIsFirst = currentTimeIdx == 1;
 [idlist, goodTimes] = linkerRevertQmatrices(idlist,goodTimes);
 
 newTagList = newLinklist(:,4);
-qNames = {'detectQ_Pix','trackQ_Pix'};
-
-
 
 for t = goodTimes(currentTimeIdx : endTimeIdx)'
 
-    if t == currentTime
-        % store newLinklist
-        idlist(t).linklist = newLinklist;
-    end
     % add new tagList
     idlist(t).linklist(:,4) = newTagList;
 

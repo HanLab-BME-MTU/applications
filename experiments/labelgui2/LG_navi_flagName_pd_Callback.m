@@ -1,6 +1,17 @@
 function LG_navi_flagName_pd_Callback(doPlot)
 %LG_navi_flagName_pd_Callback is the callback for the flag-pulldown
 
+% {'All Frames',         -1;...
+%     'Flagged Frames',       0;...
+%     'Estimated Spots',      1;...
+%     'Tracked Spots',        2;...
+%     'Fusion Spots',         3;...
+%     'Single Occurences',   12;...
+%     'Deleted Frames',      21;...
+%     'Adjusted Intensities',11;...
+%     'Non-flagged Frames',  -2;...
+%     };
+
 if nargin == 0 || isempty(doPlot)
     doPlot = 1;
 end
@@ -20,10 +31,16 @@ switch currentFlag
     case -2 % non-flagged frames
         flaggedFrameList = find(all(flagList==0,2));
     case -1 % all frames
-        flaggedFrameList = [1:size(flagList,1)];
+        flaggedFrameList = 1:size(flagList,1);
     case 0 % all flagged frames (no deleted frames)
         flaggedFrameList = find(any(flagList > 0,2) & all(flagList < 21,2));
-    case {1,2,3,11,12,13,21} % particular flags
+    case 2 % all tracked frames
+        flaggedFrameList = find(any(flagList == 2 | flagList == 5,2));
+    case 3 % all fusion frames
+        % primary fusions can be 3 or 5; secondary fusions are always there
+        % too, and always 4
+        flaggedFrameList = find(any(flagList == 4, 2));
+    case {1,11,12,13,21} % particular flags
         flaggedFrameList = find(any(flagList == currentFlag,2));
     otherwise
         h = errordlg('Flag option not considered','Incomplete code');

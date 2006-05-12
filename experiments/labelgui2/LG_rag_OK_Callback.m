@@ -14,6 +14,7 @@ dataProperties = movieWindowHandles.dataProperties;
 % read handle-values from GUI
 pdValues = LG_rag_getPdValues(reAssignHandles.pdHandles);
 goodSpotsIdx = reAssignHandles.goodSpotsIdx;
+goodTagIdx = reAssignHandles.goodTagIdx;
 
 % find if assignFuture
 assignFuture = get(reAssignHandles.LG_rag_futureFrames_rb,'Value');
@@ -23,21 +24,15 @@ if all(pdValues == reAssignHandles.originalPdValues)
     return
 end
 
-% check if all tags are assigned. Return if not. I haven't found a good way
-% to deal with both tag deletions and reassignments at the same time
-originalValues = unique(reAssignHandles.originalPdValues);
-currentValues = unique(pdValues);
-if ~all(ismember(originalValues,currentValues))
-    h = errordlg(...
-        'This tool cannot be used to remove tags. Please assign them all',...
-        'Error');
-    uiwait(h);
-    return
-end
-
 % Change pdValues to tagIndices
-gsi = [0;goodSpotsIdx];
-pdValues = [gsi(pdValues)];
+gti = [0;goodTagIdx];
+pdValues = [gti(pdValues)];
+
+% check if all tags have been assigned. If not (and no recalc), set recalc
+% to 1
+if ~all(any(pdValues,2)) && doRecalc == 0
+    doRecalc = 1;
+end
 
 % if tag2 has been assigned but not tag1, swap
 swapRows = pdValues(:,1) == 0 & pdValues(:,2) ~= 0;

@@ -1,4 +1,4 @@
-function LG_showTestRatios_callback
+function LG_showDisplacements_callback
 % callback to show Displacements in labelgui2
 
 % for 'update'-button: run this callback with a switch (we need to set the
@@ -14,7 +14,7 @@ function LG_showTestRatios_callback
 isChecked = get(naviHandles.LG_navi_menuShowDisplacements,'checked');
 if strcmp(isChecked,'on')
     % close figure (will uncheck)
-    figureHandle = movieWindowHandles.otherWindows.LG_intensityFigure;
+    figureHandle = movieWindowHandles.otherWindows.LG_displacementFigure;
     LG_figureCloseReq(figureHandle);
     
     % uncheck again, just to make sure (in case there's no figure, for
@@ -23,6 +23,14 @@ if strcmp(isChecked,'on')
     
     return
 else
+    
+    % close figure (will uncheck)
+    figureHandle = movieWindowHandles.otherWindows.LG_displacementFigure;
+    if ~isempty(figureHandle)
+    LG_figureCloseReq(figureHandle);
+    [naviHandles, movieWindowHandles] = LG_getNaviHandles;
+    end
+    
     % set checkmark
     set(naviHandles.LG_navi_menuShowDisplacements,'checked','on')
 end
@@ -34,7 +42,7 @@ dataProperties = movieWindowHandles.dataProperties;
 colorMap = movieWindowHandles.colorMap;
 
 % check navigator for figure position
-figurePosition = naviHandles.positions.LG_intensityFigure;
+figurePosition = naviHandles.positions.LG_displacementFigure;
 
 % plot testRatios
 [figureHandle,objectHandles] = LG_showDisplacements(idlist,dataProperties,figurePosition,colorMap);

@@ -24,7 +24,7 @@ for t = 1:nTimepoints
         
         % count nSpots. Account for fusions
         nSpots(t) = ...
-            nnz(idlist(t).linklist(:,2) > 0 & idlist(t).linklist(:,3)~=3);
+            nnz(idlist(t).linklist(:,2) > 0 & idlist(t).linklist(:,3)~=4);
         
         % collect flags. 
         flags1 = idlist(t).linklist(:,3);

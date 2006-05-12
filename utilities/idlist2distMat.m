@@ -1,10 +1,11 @@
-function [distance, distanceUnitVectors, displacement, displacementUnitVectors, idlist, idxLists] = idlist2distMat(idlist, dataProperties, correctDisplacement, allowEstimatedTags)
+function [distance, distanceUnitVectors, displacement, displacementUnitVectors, idlist, idxLists, intensity] = idlist2distMat(idlist, dataProperties, correctDisplacement, allowEstimatedTags)
 %IDLIST2DISTMAT calculates distance matrices for idlists.
 %
 % SYNOPSIS: [distance, sigmaDistance, unitVectors,...
 %               displacement, displacementSigma, displacementUnitVectors...
-%               idlist, idxList, goodTimes] ...
-%               = idlist2distMat(idlist, dataProperties, correctDisplacement)
+%               idlist, idxLists, intensity] ...
+%               = idlist2distMat(idlist, dataProperties, ...
+%                   correctDisplacement, allowEstimatedTags)
 %
 % INPUT idlist: idlist2
 %       dataProperties: dataProperties-structure (see defaultDataProperties
@@ -41,6 +42,9 @@ function [distance, distanceUnitVectors, displacement, displacementUnitVectors, 
 %                      fused. !!!! Currently, this doesn't support multiple
 %                      fusions, and it doesn't distinguish between primary
 %                      and secondary fusions.
+%                   - goodTagIdx : index into the tags that have been used
+%                      to calculate distances
+%        intensity: list of tag intensities
 %
 % REMARKS Estimated spots, deleted frames are all converted into NaNs!
 %           (I know that displacements could be packed in the diagonal of
@@ -84,8 +88,9 @@ linklists = cat(3,idlist.linklist);
 goodTimes = squeeze(linklists(1,1,:));
 centroids = cat(1,idlist.centroid);
 
-% remove bad tags - also from the Q-matrices
+% remove bad tags - also from the Q-matrices. Remember goodTagIdx
 badTagIdx = find(ismember(linklists(:,5,1),[2,3]));
+goodTagIdx = missingIndices(badTagIdx,size(linklists,1));
 linklists(badTagIdx,:,:) = [];
 
 idlist = LG_deleteTag(idlist, badTagIdx, goodTimes);
@@ -116,9 +121,11 @@ for t = goodTimes'
         pix2mu2,[1,nTags,3]);
 end
 
+
+% read intensity
+intensity = squeeze(linklists(:,8,:))';
+
 %===============================
-
-
 
 %===============================
 %% CALCULATE DISTANCE MATRIX
@@ -140,7 +147,8 @@ points([1,2]) = struct('coordinates',coco,'covariances',coco);
 idxLists = struct('estimatedTag',false(nTimepoints, nTags),...
     'isTracked',false(nTimepoints,nTags), 'goodTimes',goodTimes,...
     'fusedTag',zeros(nTimepoints,nTags), ...
-    'isGoodTime',false(nTimepoints,1));
+    'isGoodTime',false(nTimepoints,1),...
+    'goodTagIdx',goodTagIdx);
 
 
 % loop. First: calculate displacement. Then assign other tag and calculate
@@ -165,7 +173,7 @@ for tag1 = 1:nTags
     end
     
     % check for tracked tags
-    isTrackedIdx = goodTimes(linklists(tag1,3,:) == 3);
+    isTrackedIdx = goodTimes(ismember(linklists(tag1,3,:),[2,5]));
     idxLists.isTracked(isTrackedIdx,tag1) = true;
 
     % don't calculate displacement quite yet - we might want to correct
@@ -232,7 +240,7 @@ end
 % don't quite know what the uncertainty will be. Therefore, I check for
 % every whether row or col has a zero.
 for i=1:nTags
-    [t,tagNum] = find(squeeze(distance(i,:,:) == 3) | squeeze(distance(:,i,:) == 3));
+    [tagNum,t] = find(squeeze(distance(i,:,:) == 0) | squeeze(distance(:,i,:) == 0));
     idxLists.fusedTag(t,i) = tagNum;
 end
 
