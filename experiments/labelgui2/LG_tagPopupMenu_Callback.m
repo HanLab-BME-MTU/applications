@@ -1,5 +1,5 @@
 function LG_tagPopupMenu_Callback
-% this is the callback that is executed just before the tagPopupMenu is launched 
+% this is the callback that is executed just before the tagPopupMenu is launched
 
 % Here, we add the submenu with the tagNames and enable/disable menu items
 % if necessary
@@ -46,11 +46,11 @@ end
 if linklist(tagIdx,5) == 2
     setGoodTagH = tagPopupMenuItemH(end-1);
     set(setGoodTagH, 'Label','&set good tag',...
-    'Callback','LG_setGoodTag_callback(true)');
+        'Callback','LG_setGoodTag_callback(true)');
 else
     setGoodTagH = tagPopupMenuItemH(end-1);
     set(setGoodTagH, 'Label','&set bad tag',...
-    'Callback','LG_setGoodTag_callback(false)');
+        'Callback','LG_setGoodTag_callback(false)');
 end
 
 
@@ -62,34 +62,28 @@ end
 parentH = get(objectH,'Parent');
 parentIsAxes = strcmp(get(parentH,'Type'),'axes');
 
-isFusion = (linklist(tagIdx,2) > 0 & ...
-    nnz(linklist(tagIdx,2)==linklist(:,2)) > 1);
+isFusion = any(linklist(tagIdx,3) == [3,4,5]);
 deleteSpotH = tagPopupMenuItemH(end-4);
-        deleteTagH = tagPopupMenuItemH(end-3);
-        % we already know renameTagH
+deleteTagH = tagPopupMenuItemH(end-3);
+% we already know renameTagH
 
-switch isFusion + 2 * parentIsAxes
-    % 0,2: no fusion
-    % 1: parent is window
-    % 3: parent is axes
-    case {0,2} % good spot/tag
-             
-        % make all visible
-        set([deleteSpotH;deleteTagH; renameTagH; setGoodTagH],'Visible','on');
-        
-    case 1 % parent is window
-        
-        % hide deleteSpot
-        set(deleteSpotH,'Visible','off');
-        set([deleteTagH; renameTagH; setGoodTagH],'Visible','on');
-        
-    case 3 % parent is axes
-        
+if parentIsAxes
+    if isFusion
         % hide rename, deleteTag
         set(deleteSpotH,'Visible','on');
         set([deleteTagH; renameTagH; setGoodTagH],'Visible','off');
-        
+    else
+        % make all visible
+        set([deleteSpotH;deleteTagH; renameTagH; setGoodTagH],'Visible','on');
+    end
+else % parent is window
+
+    % hide deleteTag
+    set(deleteTagH,'Visible','off');
+    set([deleteSpotH; renameTagH; setGoodTagH],'Visible','on');
 end
+
+
 
 % check whether it's an estimated spot - no deleteSpot!
 if linklist(tagIdx,3) == 1
@@ -97,6 +91,5 @@ if linklist(tagIdx,3) == 1
 else
     set(deleteSpotH,'Visible','on');
 end
-        
-        
-        
+
+

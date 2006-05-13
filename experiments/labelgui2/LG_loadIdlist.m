@@ -87,7 +87,8 @@ movieWindowHandles.idlistData = idlistData;
 
 
 % write context menu
-movieWindowHandles = LG_createTagPopupMenu(movieWindowHandles);
+movieWindowHandles = LG_createTagPopupMenu(movieWindowHandles,...
+    movieWindowHandles.LG_movieWindow);
 
 
 % Flag. If replace, we set to all frames. Otherwise, keep current flag
@@ -96,7 +97,7 @@ flagNames = LG_getFlagNames(idlistData.flagList);
 movieWindowHandles.flagData.flagNames = flagNames;
 
 if replace
-    flaggedFrameList = [1:movieWindowHandles.dataProperties.movieSize(4)]';
+    flaggedFrameList = (1:movieWindowHandles.dataProperties.movieSize(4))';
     flagIdx = LG_getCurrentTime;
 
     % set flag-PD

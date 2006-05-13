@@ -126,7 +126,9 @@ for r=nOptions:-1:3
 end
 
 % add 10 to recalcOptions{1} in case we fuse tags
-recalcOptions{1} = recalcOptions{1} + 10 * (recalcOptions{2}>0);
+if length(recalcOptions) > 1
+    recalcOptions{1} = recalcOptions{1} + 10 * (recalcOptions{2}>0);
+end
 
 % now that all is hopefully good, recalcIdlist
 idlist(1).stats.recalc = recalcOptions(1);

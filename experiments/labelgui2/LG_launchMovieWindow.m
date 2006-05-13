@@ -112,7 +112,7 @@ movieWindowHandles.flagData = [];
 % !! if you're adding a field here, add it in labelgui2-OpeningFcn, too
 % Important: Assign movieWindow last!!
 movieWindowHandles.otherWindows.LG_reAssignGUI = [];
-movieWindowHandles.otherWindows.LG_movieDataWindow = [];
+movieWindowHandles.otherWindows.LG_movieDataFigure = [];
 movieWindowHandles.otherWindows.LG_testRatiosFigure = [];
 movieWindowHandles.otherWindows.LG_intensityFigure = [];
 movieWindowHandles.otherWindows.LG_distanceFigure = [];

@@ -139,8 +139,12 @@ end
 set(movieWindowHandles.LG_movieWindow,'HandleVisibility','on');
 LG_plot(movieFrame, idlist, axesH, frameSizeMu, pixelSize, plotOptions);
 
+
 % make windows visible, restrict handle visibility
 set(movieWindowHandles.LG_movieWindow,'Visible','on','HandleVisibility','Callback');
+
+% update movieWindow
+LG_showMovieData_callback(1);
 
 % store changes to movieWindowHandles
 guidata(movieWindowHandles.LG_movieWindow,movieWindowHandles);

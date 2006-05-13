@@ -24,7 +24,7 @@ function varargout = labelgui2(varargin)
 
 % Edit the above text to modify the response to help labelgui2
 
-% Last Modified by GUIDE v2.5 28-Apr-2006 09:10:24
+% Last Modified by GUIDE v2.5 12-May-2006 18:29:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,7 +63,7 @@ handles.currentDir = [];
 % if you're adding fields here, please don't forget to update
 % LG_launchMovieWindow
 handles.positions.LG_movieWindow = [];
-handles.positions.LG_movieDataWindow = [];
+handles.positions.LG_movieDataFigure = [];
 handles.positions.LG_reAssignGUI = [];
 handles.positions.LG_testRatiosFigure = [];
 handles.positions.LG_intensityFigure = [];
@@ -342,6 +342,15 @@ function LG_menuView_Callback(hObject, eventdata, handles)
 % --------------------------------------------------------------------
 function LG_navi_menuShowDisplacements_Callback(hObject, eventdata, handles)
 % hObject    handle to LG_navi_menuShowDisplacements (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+
+
+% --------------------------------------------------------------------
+function LG_navi_menuShowMovieData_Callback(hObject, eventdata, handles)
+% hObject    handle to LG_navi_menuShowMovieData (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 

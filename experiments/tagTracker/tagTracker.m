@@ -876,13 +876,13 @@ end % while ~isempty trackingStrategy
 
 % since all A-matrices are the same, we can find the failIdx on a single
 % one
-failIdx = find(all(~fittingMatrices(1).A(:,:,1),1));
+failIdx = (all(~fittingMatrices(1).A(:,:,1),1));
 goodIdx = [1:nTimepoints]';
 goodIdx(failIdx) = [];
 
 % because of the way the new lscov is coded, it cannot cope with zero-rows
 % anymore -> remove them
-failIdx = find(all(~fittingMatrices(1).A(:,:,1),2));
+failIdx = (all(~fittingMatrices(1).A(:,:,1),2));
 goodRows = 1:size(fittingMatrices(1).A,1);
 goodRows(failIdx) = [];
 
@@ -963,9 +963,13 @@ for t = [goodTimes';NaN,goodTimes(1:end-1)']
         % write new Q-matrices
         newQdiag = outputQmatrixDiag(t(1),:,:);
         idlisttrack(t(1)).info.totalQ_Pix = diag(newQdiag(:));
+        
+        % write list of sources
+        idlisttrack(t(1)).info.sourceList = ...
+            goodRows(fittingMatrices(1).A(:,t(1),1) == 1);
 
         % write new spotNum
-        idlisttrack(t(1)).linklist(:,2) = [1:nTags]';
+        idlisttrack(t(1)).linklist(:,2) = (1:nTags)';
 
         % update flags: Wherever we had a 1 in ll-3, there should be a 2
         % now, since we tracked all the estimated spots

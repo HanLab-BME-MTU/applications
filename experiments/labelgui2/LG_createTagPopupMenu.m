@@ -1,7 +1,7 @@
-function movieWindowHandles = LG_createTagPopupMenu(movieWindowHandles)
+function windowHandles = LG_createTagPopupMenu(windowHandles,figureHandle)
 %LG_createTagPopupMenu creates a popup-menu for tag properties
 
-if isempty(movieWindowHandles)
+if ~ishandle(figureHandle)
     h = errordlg('movieWindow has been closed','Handle not found');
     uiwait(h);
     return
@@ -14,7 +14,7 @@ end
 % menu. Create this by copying.
 % Actually, it's more flexible to just adjust the menu with the callback
 tagPopupMenuH = uicontextmenu('Parent',...
-    movieWindowHandles.LG_movieWindow,'Callback','LG_tagPopupMenu_Callback');
+    figureHandle,'Callback','LG_tagPopupMenu_Callback');
 
 % create submenus
 % - rename tag (LG_renameTag) 
@@ -41,10 +41,6 @@ uimenu(tagPopupMenuH,'Label','re&link tags',...
 uimenu(tagPopupMenuH,'Label','delete &tag',...
     'Callback','LG_deleteTag_callback');
 
-% %--- delete spot is only for some of the menus: Therefore copy menu now
-% tagPopupMenuNoSpH = copyobj(tagPopupMenuH,...
-%     movieWindowHandles.LG_movieWindow);
-
 
 % delete spot
 uimenu(tagPopupMenuH,'Label','delete &spot',...
@@ -55,6 +51,4 @@ uimenu(tagPopupMenuH,'Label','delete &frame',...
     'Callback','LG_deleteFrame_callback','Separator','on');
 
 % store handles
-movieWindowHandles.tagPopupMenuH = tagPopupMenuH;
-%movieWindowHandles.tagPopupMenuNoSpH = tagPopupMenuNoSpH;
-guidata(movieWindowHandles.LG_movieWindow,movieWindowHandles);
+windowHandles.tagPopupMenuH = tagPopupMenuH;
