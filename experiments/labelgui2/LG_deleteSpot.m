@@ -13,8 +13,10 @@ t2dIdx = find(idlist(currentTime).linklist(spot2deleteIdx,5) == 2);
 tag2deleteIdx = spot2deleteIdx(t2dIdx);
 spot2deleteIdx(t2dIdx) = [];
 % if we delete a tag, indices may change!
+if ~isempty(tag2deleteIdx)
 spGreaterTagIdx = spot2deleteIdx > tag2deleteIdx;
 spot2deleteIdx(spGreaterTagIdx) = spot2deleteIdx(spGreaterTagIdx) -1;
+end
 
 if ~isempty(tag2deleteIdx)
     idlist = LG_deleteTag(idlist, tag2deleteIdx, goodTimes);
@@ -56,7 +58,7 @@ if ~isempty(spot2deleteIdx)
         end
 
         % remove spotNumber
-        oldSpotNumber = idlist(currentTime).linklist(spot2deleteIdx,2);
+        oldSpotNumber = idlist(currentTime).linklist(spot2deleteIdx(1),2);
         idlist(currentTime).linklist(spot2deleteIdx,2) = 0;
 
         % also remove entries in Q-matrix, change spot numbers of tags and

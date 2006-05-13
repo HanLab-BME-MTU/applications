@@ -294,7 +294,8 @@ end
 %=======================
 
 % add help, start history, expand Q-matrices
-finishIdlist
+finishIdlist;
+
 
 
 

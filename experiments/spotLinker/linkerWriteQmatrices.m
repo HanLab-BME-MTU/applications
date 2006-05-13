@@ -23,6 +23,11 @@ isTracked = isfield(idlist(t).info,'QT') && ~isempty(idlist(t).info.QT);
         idlist(t).info.(qNames{q}) = sparse(blkdiag(qCellList{:}));
     end
     
+    % write back chi2
+    spotIdx = idlist(t).linklist(:,2)>0 & idlist(t).linklist(3) ~= 4;
+    idlist(t).linklist(spotIdx,12) = ...
+        idlist(t).info.chi(idlist(t).linklist(spotIdx,2));
+    
     % remove fields
     info = idlist(t).info;
     info = rmfield(info,{QNames{1:1+isTracked}});

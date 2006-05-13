@@ -12,14 +12,12 @@ if isempty(movieWindowHandles) || isempty(movieWindowHandles.idlist)
     set(naviHandles.LG_navi_menuDeleteFrame,'Enable','off')
     set(naviHandles.LG_navi_menuDeleteFrameList,'Enable','off')
     set(naviHandles.LG_navi_menuRecalcIdlist,'Enable','off')
-    set(naviHandles.LG_navi_menuShowTestRatios,'Enable','off')
-    set(naviHandles.LG_navi_menuShowIntensities,'Enable','off')
+    
 else
     % disable revert, save, enable load
     set(naviHandles.LG_navi_relinkTags,'Enable','on')
     set(naviHandles.LG_navi_menuDeleteFrame,'Enable','on')
     set(naviHandles.LG_navi_menuDeleteFrameList,'Enable','on')
     set(naviHandles.LG_navi_menuRecalcIdlist,'Enable','on')
-    set(naviHandles.LG_navi_menuShowTestRatios,'Enable','on')
-    set(naviHandles.LG_navi_menuShowIntensities,'Enable','on')
+    
 end

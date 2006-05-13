@@ -29,6 +29,10 @@ function LG_gotoFlag(direction)
 % get handles
 [naviHandles, movieWindowHandles] = LG_getNaviHandles;
 
+if isempty(movieWindowHandles)
+    return
+end
+
 % get flag data
 flaggedFrameList = movieWindowHandles.flagData.flaggedFrameList;
 

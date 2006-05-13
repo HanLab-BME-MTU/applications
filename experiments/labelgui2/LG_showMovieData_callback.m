@@ -75,6 +75,15 @@ if update
     if ~ishandle(figureHandleOrPos)
         figureHandleOrPos = naviHandles.positions.LG_movieDataFigure;
         update = 0;
+
+    elseif getappdata(figureHandleOrPos,'maxSpots') ~= maxSpots
+        % also restart if there was a change in # of spots
+        LG_figureCloseReq(figureHandle);
+            [naviHandles, movieWindowHandles] = LG_getNaviHandles;
+            set(naviHandles.LG_navi_menuShowMovieData,'checked','on')
+        
+        figureHandleOrPos = naviHandles.positions.LG_movieDataFigure;
+        update = 0;
     else
         fHandles = guidata(figureHandleOrPos);
         tagPopupMenuH = fHandles.tagPopupMenuH;
@@ -90,7 +99,7 @@ figureHandle = LG_showMovieData(...
 
 if ~update
     % set closerequest for figure, remember name of menuItem
-    set(figureHandle,'Tag','LG_testRatiosFigure');
+    set(figureHandle,'Tag','LG_movieDataFigure');
     set(figureHandle,'UserData','LG_navi_menuShowMovieData')
     set(figureHandle,'CloseRequestFcn','LG_figureCloseReq(gcf)');
 

@@ -56,7 +56,7 @@ end
 naviHandles.movieWindowH = [];
 % reset title
 set(naviHandles.LG_navi_movieName_txt,'String','no movie loaded');
-set(naviHandles.LG_navi_flagName_pd,'String','no idlist loaded');
+set(naviHandles.LG_navi_flagName_pd,'String','no idlist loaded','Value',1);
 
 % save naviHandles
 guidata(naviHandles.LG_navigator,naviHandles);
