@@ -41,6 +41,9 @@ for i=1:size(labellist,1)
         set(uih,'Checked','on')
     end
 end
+% add option -new-
+uimenu(renameTagH,'Label','-new-',...
+    'Callback','LG_renameTag_callback(''-new-'')');
 
 % check whether the tag is already a 'good' tag. If yes, allow to set bad
 % tag

@@ -16,7 +16,7 @@ function success = LG_loadIdlist(idlist, replace, idname, idlistDir, dataFileNam
 % labelcolor
 % labellist
 % flagList
-idlistData = LG_readIdlistData(idlist);
+idlistData = LG_readIdlistData(idlist,movieWindowHandles.dataProperties);
 
 if replace
     % now that we know the maximum number of tags, we can set a colormap. The
@@ -141,8 +141,12 @@ if strcmp(get(naviHandles.LG_navi_menuShowTestRatios,'checked'),'on');
     LG_showTestRatios_callback;
 end
 if strcmp(get(naviHandles.LG_navi_menuShowIntensities,'checked'),'on');
+    if replace      
     set(naviHandles.LG_navi_menuShowIntensities,'checked','off');
     LG_showIntensities_callback;
+    else
+        LG_showIntensities_callback(1);
+    end
 end
 if strcmp(get(naviHandles.LG_navi_menuShowDistances,'checked'),'on');
     set(naviHandles.LG_navi_menuShowDistances,'checked','off');

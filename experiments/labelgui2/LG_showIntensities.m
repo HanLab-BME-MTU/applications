@@ -6,7 +6,8 @@ function [figureHandle,objectHandles] = LG_showIntensities(idlist,idlistData,col
 % INPUT     idlist - idlist
 %           idlistData - (opt) idlistData generated with LG_readIdlist
 %           colorMap - (opt) colorOrder of the tags
-%           figurePosition - (opt) requested figure position
+%           figurePosition - (opt) requested figure position (if it's a
+%                   figure handle, plot will be into existing axes)
 %
 % OUTPUT    figureHandle - handle to the intensity figure
 %
@@ -51,11 +52,17 @@ end
 % LAUNCH FIGURE
 %==================
 
-figureHandle = figure('Name',sprintf('Intensities for %s',idlist(1).stats.name));
-% place correctly if there is a remembered position
-if  ~isempty(figurePosition)
-    set(figureHandle,'Position',figurePosition);
+% only launch figure if necessary
+if isempty(figurePosition) || length(figurePosition) > 1 || ~ishandle(figurePosition)
+    figureHandle = figure('Name',sprintf('Intensities for %s',idlist(1).stats.name));
+    % place correctly if there is a remembered position
+    if  ~isempty(figurePosition)
+        set(figureHandle,'Position',figurePosition);
+    end
+else
+    figureHandle = figurePosition;
 end
+figure(figureHandle);
 
 %==================
 

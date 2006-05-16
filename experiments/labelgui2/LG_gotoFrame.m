@@ -49,8 +49,6 @@ if ~isempty(movieWindowHandles.flagData)
     end
 end
 
-% check for dataFigureHandles in movieWindowHandles and update
-% TBD
 
 % get the data: Read the full frame, idlist(t)
 % if there is a nonempty loadMovieStruct, load another movie-chunk if
@@ -148,6 +146,7 @@ set(movieWindowHandles.LG_movieWindow,'Visible','on','HandleVisibility','Callbac
 
 % update movieWindow
 LG_showMovieData_callback(1);
+
 
 % store changes to movieWindowHandles
 guidata(movieWindowHandles.LG_movieWindow,movieWindowHandles);

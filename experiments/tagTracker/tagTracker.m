@@ -19,7 +19,7 @@ function [idlisttrack,debugData] = tagTracker(movie,idlist,dataProperties,verbos
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %==================
-% TEST INPUT
+%% TEST INPUT
 %==================
 
 % currently, all three input arguments are needed, and the dataProperties
@@ -101,7 +101,7 @@ constants.trackerRadiusMultiplicator = ...
 
 
 %=====================
-% INITIALIZE TRACKING
+%% INITIALIZE TRACKING
 %=====================
 
 % here, we read everything we need from idlist - we'll reconstruct it later
@@ -307,7 +307,7 @@ end
 
 
 %================================
-% TRACKING LOOP
+%% TRACKING LOOP
 %================================
 
 % loop through the source/target pairs in trackingStrategy. For every
@@ -866,7 +866,7 @@ end % while ~isempty trackingStrategy
 
 
 %====================================
-% CALCULATE POSITIONS
+%% CALCULATE POSITIONS
 %====================================
 
 % at this point, we basically just have to run myLscov to get the
@@ -903,8 +903,8 @@ end
 % estimate is better than the output. In other words, we claim that the
 % sigma zero is better estimated by detector and tracker than by the
 % fitting, so we divide the output variance by sigma zero (mse).
-outputQmatrixDiag(goodIdx,:) = ...
-    outputQmatrixDiag(goodIdx,:).^2./mse(goodIdx,:);
+outputQmatrixDiag(goodIdx,:,:) = ...
+    outputQmatrixDiag(goodIdx,:,:).^2./mse(goodIdx,:,:);
 
 % figure,plot(outputQmatrixDiag);
 % hold on, plot(squeeze(inputQmatrixDiag),'.')
@@ -934,7 +934,7 @@ end
 %===================================
 
 %===================================
-% WRITE OUT IDLISTTRACK
+%% WRITE OUT IDLISTTRACK
 %===================================
 
 % loop through idlist. Fill in the new coords and q-matrices. Keep the old
@@ -964,6 +964,9 @@ for t = [goodTimes';NaN,goodTimes(1:end-1)']
         newQdiag = outputQmatrixDiag(t(1),:,:);
         idlisttrack(t(1)).info.totalQ_Pix = diag(newQdiag(:));
         
+        % write sigma0
+        % idlisttrack(t(1)).linklist(:,12) = 
+        
         % write list of sources
         idlisttrack(t(1)).info.sourceList = ...
             goodRows(fittingMatrices(1).A(:,t(1),1) == 1);
@@ -992,7 +995,7 @@ end
 
 %=========================================================================
 
-% Subfunction gradients
+%% Subfunction gradients
 function constants = gradients(constants,dataProperties)
 
 

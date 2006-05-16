@@ -73,7 +73,7 @@ colorMap = movieWindowHandles.colorMap;
 tagPopupMenuH = [];
 if update
     figureHandleOrPos = movieWindowHandles.otherWindows.LG_movieDataFigure;
-    if ~ishandle(figureHandleOrPos)
+    if isempty(figureHandleOrPos) || ~ishandle(figureHandleOrPos)
         figureHandleOrPos = naviHandles.positions.LG_movieDataFigure;
         update = 0;
 
@@ -93,7 +93,7 @@ else
     figureHandleOrPos = naviHandles.positions.LG_movieDataFigure;
 end
 
-% plot testRatios
+% plot movieData
 figureHandle = LG_showMovieData(...
     idlist, dataProperties, currentTime, loadedFrames, maxSpots,...
     figureHandleOrPos, tagPopupMenuH, colorMap);

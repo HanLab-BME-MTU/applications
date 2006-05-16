@@ -1,4 +1,4 @@
-function idlistData = LG_readIdlistData(idlist)
+function idlistData = LG_readIdlistData(idlist,dataProperties)
 %LG_readIdlistData reads basic statistics from the idlist for labelgui2
 % IdlistData has the fields:
 % nSpots;
@@ -12,7 +12,8 @@ function idlistData = LG_readIdlistData(idlist)
 
 nTimepoints = length(idlist);
 [nSpots,goodIdx] = deal(zeros(nTimepoints,1));
-% there are 6 different flags at the moment: 3 spotFlags, 3 tagFlags
+% there are 6 different flags at the moment: 3 spotFlags, 3 tagFlags,
+% one for close to border
 % add one more flag for deleted frame
 flagList = zeros(nTimepoints,6);
 
@@ -20,7 +21,7 @@ for t = 1:nTimepoints
     if ~isempty(idlist(t).linklist)
         
         % remember good
-        goodIdx(t) = 1;
+        goodIdx(t) = true;
         
         % count nSpots. Account for fusions
         nSpots(t) = ...
@@ -41,6 +42,21 @@ for t = 1:nTimepoints
     end
 end
 
+goodTimes = find(goodIdx);
+
+% flag 22: position close to border (within two psf-widths)
+lowerBorder = 1.5*dataProperties.FT_SIGMA.*[dataProperties.PIXELSIZE_XY,...
+    dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_Z];
+upperBorder = [dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_XY,...
+    dataProperties.PIXELSIZE_Z].* (dataProperties.movieSize(1:3)+1)...
+    - lowerBorder;
+pos = catStruct(3,'idlist.linklist(:,9:11)');
+closeIdx = any(any(pos(:,1,:) < lowerBorder(1) | pos(:,1,:) > upperBorder(1) | ...
+    pos(:,2,:) < lowerBorder(2) | pos(:,2,:) > upperBorder(2) | ...
+    pos(:,3,:) < lowerBorder(3) | pos(:,3,:) > upperBorder(3),1),2);
+flagList(goodTimes(closeIdx),end+1) = 22;
+
+
 % Remove superfluous columns
 zeroCols = all(flagList==0,1);
 if all(zeroCols)
@@ -50,7 +66,7 @@ end
 flagList(:,zeroCols) = [];
 
 idlistData.nSpots = nSpots;
-idlistData.goodTimes = find(goodIdx);
+idlistData.goodTimes = goodTimes;
 idlistData.maxSpots = max(nSpots);
 idlistData.maxTags = idlist(1).stats.maxColor;
 idlistData.labelcolor = idlist(1).stats.labelcolor;
