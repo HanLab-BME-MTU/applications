@@ -1,7 +1,7 @@
-function LG_plot(movieFrame, idlist, axesH, frameSizeMu, pixelSize, plotOptions)
+function LG_plot(movieFrame, idlist, axesH, imageH, frameSizeMu, pixelSize, plotOptions)
 %LG_plot plots data for labelgui2
 
-% defaults
+%% defaults
 signList = 'o*h';
 if ~isempty(idlist)
     colorMap = plotOptions.colorMap;
@@ -15,6 +15,8 @@ warning off Images:imshow:obsoleteSyntaxXY
 % For less typing: We loop through the axesH (xy, yz, xz), generate the
 % image and the positions. Then plot. This works well with additional
 % windows.
+
+%% read data
 
 for ix = 1:length(axesH)
 
@@ -43,22 +45,6 @@ for ix = 1:length(axesH)
                 plotData = [];
             end
 
-            % remove old children
-            currentAxes = axesH(ix);
-            axesHandles = get(currentAxes);
-            if ~isempty(axesHandles.Children)
-                delete(axesHandles.Children);
-            end
-            
-            axes(currentAxes);
-            h = imshow([0,frameSizeMu(2)]+0.5*pixelSize(1),...
-                [0,frameSizeMu(1)]+0.5*pixelSize(1),plotImage,[]);
-            set(h,'Parent',currentAxes)
-            axis image
-            set(currentAxes,'NextPlot','add');
-            
-
-            
 
         case 2 % yz window
 
@@ -74,20 +60,6 @@ for ix = 1:length(axesH)
             else
                 plotData = [];
             end
-
-            % remove old children
-            currentAxes = axesH(ix);
-            axesHandles = get(currentAxes);
-            if ~isempty(axesHandles.Children)
-                delete(axesHandles.Children);
-            end
-            
-            axes(currentAxes);
-            h = imshow([0,frameSizeMu(3)]+0.5*pixelSize(2),...
-                [0,frameSizeMu(1)]+0.5*pixelSize(1),plotImage,[]);
-            set(h,'Parent',currentAxes)
-            axis image
-            set(currentAxes,'NextPlot','add');
             
           
         case 3 % xz window
@@ -106,26 +78,18 @@ for ix = 1:length(axesH)
                 plotData = [];
             end
 
-            % remove old children
-            currentAxes = axesH(ix);
-            axesHandles = get(currentAxes);
-            if ~isempty(axesHandles.Children)
-                delete(axesHandles.Children);
-            end
-            
-            axes(currentAxes);
-            h = imshow([0,frameSizeMu(2)]+0.5*pixelSize(1),...
-                [0,frameSizeMu(3)]+0.5*pixelSize(2),plotImage,[]);
-            set(h,'Parent',currentAxes)
-            axis image
-            %
-    set(currentAxes,'NextPlot','add');
-
     end % switch
 
-    % plot
+    %% plot
+    
+    % remove old children by removing overlay
+    delete(findall(axesH(ix),'Tag','overlay'));
+
+    % change CData of image to plot new image
+    set(imageH(ix),'CData',plotImage);
 
     % show plotImage
+    currentAxes = axesH(ix);
     axes(currentAxes);
     
     % plot rectangles
@@ -141,16 +105,14 @@ for ix = 1:length(axesH)
     % plot tags
     if ~isempty(plotData)
         
-        fusionIdx = plotData(:,4) == 3;
-    allFusionIdx = ismember(plotData(:,3),plotData(fusionIdx,3));
-    plotData(allFusionIdx,4) = 3 * sign(fusionIdx(allFusionIdx)-0.5);
+        
         
         for iTag = 1:nTags
             % if it's a genuine tag, plot first sign. If lost, plot second.
             % If single occurence, third
             switchNum = (plotData(iTag,3) > 0) + ...
                 2*(plotData(iTag,5) == 2 || plotData(iTag,5) == 3) + ...
-                4*(abs(plotData(iTag,4)) == 3);
+                4*(any(plotData(iTag,4) == [3,4]));
                 % 0: lost tag, not single occurence
                 % 1: good spot, goodTag
                 % 2: lost tag, single occurence
@@ -160,29 +122,29 @@ for ix = 1:length(axesH)
                 case 0 % lost tag, not from single occurence. Plot with parenthesis
                     ph = plot(currentAxes,...
                         plotData(iTag,1),plotData(iTag,2),...
-                        signList(2),'MarkerSize',6);
+                        signList(2),'MarkerSize',6,...
+                        'LineWidth',1);
                     th = text(...
                         'Position',...
                         [plotData(iTag,1)+0.2,plotData(iTag,2),0],...
-                        'String',...
-                        sprintf('%s',plotOptions.labelColor{iTag}),...
-                        'Background',[0.2,0.2,0.2],...
+                        'FontWeight','bold','String',...
+                        sprintf('%s',plotOptions.labelColor{iTag}),...'Background',[0.2,0.2,0.2],...
                         'Parent',currentAxes);
                     set([th,ph],'uicontextmenu',popup,...
-                        'Color',colorMap(iTag,:),'UserData',iTag);
+                        'Color',colorMap(iTag,:),'UserData',iTag,'Tag','overlay');
 
                 case 1 % good spot, good tag
                     ph = plot(currentAxes,...
                         plotData(iTag,1),plotData(iTag,2),...
-                        signList(1),'MarkerSize',6);
-                    th = text('Parent',currentAxes,...
-                        'Background',[0.2,0.2,0.2],...
+                        signList(1),'MarkerSize',6,...
+                        'LineWidth',1);
+                    th = text('Parent',currentAxes,...'Background',[0.2,0.2,0.2],...
                         'Position',...
                         [plotData(iTag,1)+0.2,plotData(iTag,2),0],...
-                        'String',...
+                        'FontWeight','bold','String',...
                         sprintf('%s',plotOptions.labelColor{iTag}));
                     set([th,ph],'uicontextmenu',popup,...
-                        'Color',colorMap(iTag,:),'UserData',iTag);
+                        'Color',colorMap(iTag,:),'UserData',iTag,'Tag','overlay');
 
                 case 2 % lost tag, single occurence. don't plot
                     ph = [];
@@ -190,39 +152,40 @@ for ix = 1:length(axesH)
                 case 3 % single occurence
                     ph = plot(currentAxes,...
                         plotData(iTag,1),plotData(iTag,2),...
-                        signList(3),'MarkerSize',6);
+                        signList(3),'MarkerSize',6,...
+                        'LineWidth',1);
                     th = text(...
                         'Position',...
-                        [plotData(iTag,1)+0.2,plotData(iTag,2),0],...
-                        'Background',[0.2,0.2,0.2],...
-                        'String',...
+                        [plotData(iTag,1)+0.2,plotData(iTag,2),0],...%'Background',[0.2,0.2,0.2],...
+                        'FontWeight','bold','String',...
                         sprintf('%s',plotOptions.labelColor{iTag}),...
                         'Parent',currentAxes);
                     set([th,ph],'uicontextmenu',popup,...
-                        'Color',colorMap(iTag,:),'UserData',iTag);
+                        'Color',colorMap(iTag,:),'UserData',iTag,'Tag','overlay');
                 case 5 % fusion. 
                     % sign of plotData(iTag,4) tells whether it's primary
                     % or secondary (the latter, if positive)
-                    if sign(plotData(iTag,4)) > 0
+                    if plotData(iTag,5) == 4
                         % secondary fusion. No text
                         ph = plot(currentAxes,...
                         plotData(iTag,1),plotData(iTag,2),...
-                        signList(1),'MarkerSize',8);
+                        signList(1),'MarkerSize',8,...
+                        'LineWidth',1);
                         th = [];
                     else
                         ph = plot(currentAxes,...
                         plotData(iTag,1),plotData(iTag,2),...
-                        signList(1),'MarkerSize',4);
+                        signList(1),'MarkerSize',4,...
+                        'LineWidth',1);
                     th = text(...
                         'Position',...
-                        [plotData(iTag,1)+0.2,plotData(iTag,2),0],...
-                        'Background',[0.2,0.2,0.2],...
-                        'String',...
+                        [plotData(iTag,1)+0.2,plotData(iTag,2),0],...'Background',[0.2,0.2,0.2],...
+                        'FontWeight','bold','String',...
                         'fusion',...
-                        'Parent',currentAxes);
+                        'Parent',currentAxes,'Color',colorMap(iTag,:));
                     end
                     set([th,ph],'uicontextmenu',popup,...
-                        'Color',colorMap(iTag,:),'UserData',iTag);
+                        'UserData',iTag,'Tag','overlay');
                     
                 otherwise
                     h = errordlg('unknown plot option','error in LG_plot');

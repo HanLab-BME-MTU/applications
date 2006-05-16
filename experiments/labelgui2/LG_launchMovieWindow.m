@@ -54,33 +54,55 @@ end
 
 
 % --- create axes --- 
+
+% to make the rectangle-zoom: take this part into a new function, start by
+% clearing the children of the current figure!
+
 % calculate frame size in microns to use for imshow later.
 frameSizeMu = [dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_XY,...
     dataProperties.PIXELSIZE_Z] .*...
     dataProperties.movieSize(1:3);
 % the two axes only cover 0.85 of the figure
-relAxesSize(1,1:2) = frameSizeMu([1,3])/sum(frameSizeMu([1,3])) * 0.94;
-relAxesSize(2,1:2) = frameSizeMu([2,3])/sum(frameSizeMu([2,3])) * 0.94;
+% relAxesSize(1,1:2) = frameSizeMu([1,3])/sum(frameSizeMu([1,3])) * 0.94;
+% relAxesSize(2,1:2) = frameSizeMu([2,3])/sum(frameSizeMu([2,3])) * 0.94;
 % relAxesSize = frameSizeMu./sum(frameSizeMu) * 0.94
 [dummy,mxyi]=max(frameSizeMu(1:2));
 relAxesSize = frameSizeMu/sum(frameSizeMu([mxyi,3])) * 0.94;
 
-% We set the aspect ratios already. Imshow doesn't respect them, however,
-% so we have to store them and use them for plotting
+% Set aspect ratios, and initialize image so that we later just replace the
+% image values.
 xyAxesH = ...
     axes('Position',[0.02, 0.04+relAxesSize(3),...
     relAxesSize(2), relAxesSize(1)]);
 set(xyAxesH,'PlotBoxAspectRatio',[relAxesSize(2),relAxesSize(1),1],...
-    'NextPlot','replaceChildren');
+    'NextPlot','add','Visible','off');
+xyImageH = imagesc([0,frameSizeMu(2)]+0.5*dataProperties.PIXELSIZE_XY,...
+    [0,frameSizeMu(1)]+0.5*dataProperties.PIXELSIZE_XY,...
+    rand(dataProperties.movieSize([1,2])));
+axis image
+
 yzAxesH = ...
     axes('Position',[0.04+relAxesSize(2), 0.04+relAxesSize(3), ...
     relAxesSize(3), relAxesSize(1)],...
-    'NextPlot','replaceChildren');
+    'NextPlot','add','Visible','off');
+yzImageH = imagesc([0,frameSizeMu(3)]+0.5*dataProperties.PIXELSIZE_Z,...
+    [0,frameSizeMu(1)]+0.5*dataProperties.PIXELSIZE_XY,...
+    rand(dataProperties.movieSize([1,3])));
+axis image
+
 set(yzAxesH,'PlotBoxAspectRatio',[relAxesSize(3),relAxesSize(1),1]);
 xzAxesH = ...
     axes('Position',[0.02, 0.02, relAxesSize(2),relAxesSize(3)]);
 set(xzAxesH,'PlotBoxAspectRatio',[relAxesSize(2),relAxesSize(3),1],...
-    'NextPlot','replaceChildren');
+    'NextPlot','add','Visible','off');
+xzImageH = imagesc([0,frameSizeMu(2)]+0.5*dataProperties.PIXELSIZE_XY,...
+    [0,frameSizeMu(3)]+0.5*dataProperties.PIXELSIZE_Z,...
+    rand(dataProperties.movieSize([3,2])));
+axis image
+
+colormap('gray')
+
+
 
 % now that the axes have been created, we make the figure handle invisible
 set(movieWindowH,'HandleVisibility','callback');
@@ -92,6 +114,9 @@ movieWindowHandles = guidata(movieWindowH);
 movieWindowHandles.xyAxesH = xyAxesH;
 movieWindowHandles.yzAxesH = yzAxesH;
 movieWindowHandles.xzAxesH = xzAxesH;
+movieWindowHandles.xyImageH = xyImageH;
+movieWindowHandles.yzImageH = yzImageH;
+movieWindowHandles.xzImageH = xzImageH;
 movieWindowHandles.frameSizeMu = frameSizeMu;
 movieWindowHandles.movie = movie;
 movieWindowHandles.movieDir = movieDir;

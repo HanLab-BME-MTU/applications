@@ -119,6 +119,9 @@ end
 axesH = [movieWindowHandles.xyAxesH; ...
     movieWindowHandles.yzAxesH; ...
     movieWindowHandles.xzAxesH];
+imageH = [movieWindowHandles.xyImageH; ...
+    movieWindowHandles.yzImageH; ...
+    movieWindowHandles.xzImageH];
 frameSizeMu = movieWindowHandles.frameSizeMu;
 pixelSize = [movieWindowHandles.dataProperties.PIXELSIZE_XY,...
     movieWindowHandles.dataProperties.PIXELSIZE_Z];
@@ -137,7 +140,7 @@ end
 % plot data. Make movieWindowHandle visible, because LG_plot is not a
 % callback
 set(movieWindowHandles.LG_movieWindow,'HandleVisibility','on');
-LG_plot(movieFrame, idlist, axesH, frameSizeMu, pixelSize, plotOptions);
+LG_plot(movieFrame, idlist, axesH, imageH, frameSizeMu, pixelSize, plotOptions);
 
 
 % make windows visible, restrict handle visibility

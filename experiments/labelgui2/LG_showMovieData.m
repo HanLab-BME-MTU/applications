@@ -1,4 +1,4 @@
-function figureHandle = LG_showMovieData(idlist, dataProperties, currentTime, loadedFrames, maxSpots, figureHandleOrPos, tagPopupMenuH)
+function figureHandle = LG_showMovieData(idlist, dataProperties, currentTime, loadedFrames, maxSpots, figureHandleOrPos, tagPopupMenuH, colorMap)
 %LG_SHOWMOVIEDATA shows the movieData for labelgui2
 %
 % SYNOPSIS: figureHandle = LG_showMovieData(idlist, dataProperties, currentTime, loadedFrames, maxSpots, figureHandleOrPos)
@@ -10,6 +10,7 @@ function figureHandle = LG_showMovieData(idlist, dataProperties, currentTime, lo
 %       maxSpots: maximum number of spots loaded into memory
 %		figureHandleOrPosition: if empty, or figurePosition, a new window will be opened.
 %       tagPopupMenuH: handle to contextmenu of tags.
+%       colorMap: colorMap used to plot tags
 %
 % OUTPUT figureHandle: handle to movieDataFigure
 %
@@ -19,6 +20,8 @@ function figureHandle = LG_showMovieData(idlist, dataProperties, currentTime, lo
 %
 % created by: Jonas Dorn
 % DATE: 12-May-2006
+%
+% called by: LG_showMovieData_callback
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -278,7 +281,8 @@ for iSpot = 1:nSpots
     % first line
     set(th.spotName(iSpot),'String',spotInfo(iSpot).name,...
         'uicontextmenu',tagPopupMenuH,...
-        'UserData',spotInfo(iSpot).tagNumber);
+        'UserData',spotInfo(iSpot).tagNumber,... 'BackgroundColor',[0.2,0.2,0.2],
+        'ForegroundColor',colorMap(spotInfo(iSpot).tagNumber,:));
     set(th.spotAmp(iSpot),'String',sprintf(...
         [repmat('%s ',length(spotInfo(iSpot).flag)),...
         ' SNR %3.2f  Amp %3.3f'],...

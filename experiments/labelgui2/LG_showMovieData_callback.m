@@ -18,8 +18,8 @@ isChecked = get(naviHandles.LG_navi_menuShowMovieData,'checked');
 if update
     if strcmp(isChecked,'off')
         % close figure
-        figureHandle = movieWindowHandles.otherWindows.LG_movieDataFigure;
-        LG_figureCloseReq(figureHandle);
+        figureHandleOrPos = movieWindowHandles.otherWindows.LG_movieDataFigure;
+        LG_figureCloseReq(figureHandleOrPos);
 
         % uncheck again, just to make sure (in case there's no figure, for
         % example)
@@ -30,8 +30,8 @@ if update
 else
     if strcmp(isChecked,'on')
         % close figure (will uncheck)
-        figureHandle = movieWindowHandles.otherWindows.LG_movieDataFigure;
-        LG_figureCloseReq(figureHandle);
+        figureHandleOrPos = movieWindowHandles.otherWindows.LG_movieDataFigure;
+        LG_figureCloseReq(figureHandleOrPos);
 
         % uncheck again, just to make sure (in case there's no figure, for
         % example)
@@ -41,9 +41,9 @@ else
     else
 
         % close figure (will uncheck)
-        figureHandle = movieWindowHandles.otherWindows.LG_movieDataFigure;
-        if ~isempty(figureHandle)
-            LG_figureCloseReq(figureHandle);
+        figureHandleOrPos = movieWindowHandles.otherWindows.LG_movieDataFigure;
+        if ~isempty(figureHandleOrPos)
+            LG_figureCloseReq(figureHandleOrPos);
             [naviHandles, movieWindowHandles] = LG_getNaviHandles;
         end
 
@@ -64,6 +64,7 @@ else
 loadedFrames = movieWindowHandles.loadMovieStruct.loadedFrames;
 end
 maxSpots = max(movieWindowHandles.idlistData.nSpots);
+colorMap = movieWindowHandles.colorMap;
 
 
 
@@ -78,7 +79,7 @@ if update
 
     elseif getappdata(figureHandleOrPos,'maxSpots') ~= maxSpots
         % also restart if there was a change in # of spots
-        LG_figureCloseReq(figureHandle);
+        LG_figureCloseReq(figureHandleOrPos);
             [naviHandles, movieWindowHandles] = LG_getNaviHandles;
             set(naviHandles.LG_navi_menuShowMovieData,'checked','on')
         
@@ -95,7 +96,7 @@ end
 % plot testRatios
 figureHandle = LG_showMovieData(...
     idlist, dataProperties, currentTime, loadedFrames, maxSpots,...
-    figureHandleOrPos, tagPopupMenuH);
+    figureHandleOrPos, tagPopupMenuH, colorMap);
 
 if ~update
     % set closerequest for figure, remember name of menuItem

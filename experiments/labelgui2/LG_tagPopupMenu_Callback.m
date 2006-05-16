@@ -9,6 +9,7 @@ function LG_tagPopupMenu_Callback
 % careful! Changes we make to the menu will persist!
 % menuOrder (reversed)
 % - rename tag (LG_renameTag) -- end
+% - change color (LG_changeColor)
 % - set good tag (LG_setGoodTag)
 % - reassign tags (LG_reAssignGUI)
 % - delete tag (LG_deleteTag)
@@ -44,11 +45,11 @@ end
 % check whether the tag is already a 'good' tag. If yes, allow to set bad
 % tag
 if linklist(tagIdx,5) == 2
-    setGoodTagH = tagPopupMenuItemH(end-1);
+    setGoodTagH = tagPopupMenuItemH(end-2);
     set(setGoodTagH, 'Label','&set good tag',...
         'Callback','LG_setGoodTag_callback(true)');
 else
-    setGoodTagH = tagPopupMenuItemH(end-1);
+    setGoodTagH = tagPopupMenuItemH(end-2);
     set(setGoodTagH, 'Label','&set bad tag',...
         'Callback','LG_setGoodTag_callback(false)');
 end
@@ -63,8 +64,8 @@ parentH = get(objectH,'Parent');
 parentIsAxes = strcmp(get(parentH,'Type'),'axes');
 
 isFusion = any(linklist(tagIdx,3) == [3,4,5]);
-deleteSpotH = tagPopupMenuItemH(end-4);
-deleteTagH = tagPopupMenuItemH(end-3);
+deleteSpotH = tagPopupMenuItemH(end-5);
+deleteTagH = tagPopupMenuItemH(end-4);
 % we already know renameTagH
 
 if parentIsAxes

@@ -7,17 +7,18 @@ if ~ishandle(figureHandle)
     return
 end
 
-% create a context menu. It has to be stored as a child of the movieWindow,
-% which makes it slightly inaccessible. Therefore, we'll store the handle
-% also in the guidata structure.
+% create a context menu. It has to be stored as a child of the respective,
+% which makes it slightly inaccessible. 
 % Since for e.g. lost tags, we can't delete the spot, we need a second
 % menu. Create this by copying.
 % Actually, it's more flexible to just adjust the menu with the callback
 tagPopupMenuH = uicontextmenu('Parent',...
-    figureHandle,'Callback','LG_tagPopupMenu_Callback');
+    figureHandle,'Callback','LG_tagPopupMenu_Callback',...
+    'SelectionHighlight','on');
 
 % create submenus
-% - rename tag (LG_renameTag) 
+% - rename tag (LG_renameTag)
+% - change color (LG_setTagColor)
 % - set good tag (LG_setGoodTag)
 % - reassign tags (LG_reAssignGUI)
 % - delete tag (LG_deleteTag)
@@ -25,11 +26,15 @@ tagPopupMenuH = uicontextmenu('Parent',...
 % - delete frame (LG_deleteFrame)
 
 % make submenus via callback to tagPopupMenu
-renameTagH = uimenu(tagPopupMenuH,'Label','re&name tag');
+uimenu(tagPopupMenuH,'Label','re&name tag');
+
+% change color
+uimenu(tagPopupMenuH,'Label','change &color',...
+    'Callback','LG_changeTagColor');
 
 % set good tag
-setGoodTagH = uimenu(tagPopupMenuH,'Label','&set good tag',...
-    'Callback','LG_setGoodTag_callback(1)');
+uimenu(tagPopupMenuH,'Label','&set good tag',...
+    'Callback','LG_setGoodTag_callback(1)','Separator','on');
 
 % reAssign
 uimenu(tagPopupMenuH,'Label','re&link tags',...
