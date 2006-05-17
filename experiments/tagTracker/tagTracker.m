@@ -81,8 +81,7 @@ else
     end
 end
 
-% fitting options
-% 'tomlab'
+% fitting options (tomlab is too slow)
 % 'lsqnonlin'
 % 'dom'
 constants.fittingFcn = 'dom';
@@ -371,9 +370,9 @@ while ~isempty(trackPairs)
         iTry = 0;
     end
 
-    if currentTarget == 40
-        1
-    end
+%     if currentTarget == 40
+%         1
+%     end
 
 
     % loop through currentStrategy until it is empty or we have found
@@ -476,91 +475,6 @@ while ~isempty(trackPairs)
                     % store exitflag
                     exitFlag(currentTarget,iTry,1) = xfl;
                 end
-            case 'tomlab'
-                %                 % we do two runs: First we try a global optimization, then
-                %                 % a local one.
-                %                 % in case target is source, we don't want to do the lengthy
-                %                 % global optimization
-                %
-                %                if ~targetIsSource
-                %
-                %                     lowerBound = initialParameters - radius;
-                %                     upperBound = initialParameters + radius;
-                %
-                %                     % global optimization: glbfast
-                %                     % glcAssign(f, x_L, x_U, Name, A, b_L, b_U, ...
-                %                     %  c, c_L, c_U, x_0, setupFile, nProblem, ...
-                %                     %  IntVars, VarWeight, KNAPSACK, fIP, xIP, ...
-                %                     %  fLowBnd, x_min, x_max, f_opt, x_opt);
-                %                     problem = glcAssign('track_tomlabFitFcn',...
-                %                         lowerBound, upperBound, 'trackFcnGlobal');
-                %                     problem.PriLevOpt = 2;
-                %                     problem.optParam.MaxFunc = 100;
-                %                     problem.user.sourceInfo = sourceInfo(currentSource,:);
-                %                     problem.user.targetInfo = targetInfo;
-                %                     problem.user.movieFrame = movieFrame;
-                %                     problem.user.constants = constants;
-                %
-                %
-                %                     result = tomRun('glbFast',problem,[],2);
-                %
-                %                     % if global minimization was successful
-                %                     if result.ExitFlag == 0
-                %                         % use its results as initial guess for local
-                %                         % minimization
-                %                         initialParameters = result.x_k;
-                %                     else
-                %                         % use old initial parms
-                %                     end
-                %
-                %                 end
-                %
-                %                 % use matlab lsqnonlin to solve local problem
-                %
-                %                 %no bounds for lsqnonlin
-                %                 lowerBound = [];
-                %                 upperBound = [];
-                %
-                %                 % set options
-                %                 if constants.verbose > 1
-                %                     options = optimset('Jacobian','on',...
-                %                         'Display','on','TolX',1E-2,'TolFun',1E-20);
-                %                 else
-                %                     options = optimset('Jacobian','on',...
-                %                         'Display','off','TolX',1E-2,'TolFun',1E-20);
-                %                 end
-                %                 % generate anonymous function of parameters calling
-                %                 % track_lsqnonlinFitFcn
-                %                 optimFcn = @(parameters) (track_lsqnonlinFitFcn(...
-                %                     parameters,sourceInfo(currentSource,:),targetInfo,movieFrame,constants));
-                %                 [parameters,resnorm,residuals,xfl] = ...
-                %                     lsqnonlin(optimFcn ,initialParameters,...
-                %                     lowerBound,upperBound,options);
-                %                 if debug
-                %                     % store exitflag
-                %                     exitFlag(currentTarget,iTry,1) = xfl;
-                %                 end
-                %
-                %                 %                 %define local minimizaton problem
-                %                 %                 problem = conAssign('track_tomlabFitFcn',[],[],[],...
-                %                 %                     lowerBound,upperBound,...
-                %                 %                     'trackFcnLocal',initialParameters);
-                %                 %                 problem.PriLevOpt = 0;
-                %                 %                 problem.user.sourceInfo = sourceInfo(currentSource,:);
-                %                 %                 problem.user.targetInfo = targetInfo;
-                %                 %                 problem.user.movieFrame = movieFrame;
-                %                 %                 problem.user.constants = constants;
-                %                 %
-                %                 %                 %refine minimum using ucSolve
-                %                 %                 result = tomRun('ucSolve',problem,[],2);
-                %                 %
-                %                 %                 parameters = result.x_k;
-                %                 %
-                %                 %                 if result.ExitFlag == 0
-                %                 %                     xfl = 1;
-                %                 %                 else
-                %                 %                     xfl = 0;
-                %                 %                 end
 
             case 'dom'
                 % use simple optimization which calculates parms

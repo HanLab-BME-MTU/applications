@@ -142,6 +142,9 @@ if ~isfield(dataProperties,'frameTime')
     frameTime = repmat(meanTime,1,stackSize(3))+repmat(stackTime,movieLength,1);
     %frameTime starts with 0
     dataProperties.frameTime = frameTime-frameTime(1);
+    
+    % also calculate timeLapse
+    dataProperties.timeLapse = mean(diff(mean(frameTime,2)));
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

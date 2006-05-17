@@ -70,20 +70,21 @@ if ~isempty(movieWindowHandles.loadMovieStruct)
         % if endFrame = maxFrame + 1, we have to subtract 1 from startFrame.
         % There will NEVER be more nFrames than dataProperties.movieSize(4)
         if endFrame > maxFrame
-            startFrame = startFrame - endFrame + maxFrame;
+            startFrame = max(startFrame - endFrame + maxFrame,minFrame);
             endFrame = maxFrame;
         end
         if startFrame < minFrame
-            endFrame = endFrame + startFrame - minFrame;
+            % startFrame is negative!
+            endFrame = min(endFrame - startFrame - minFrame,maxFrame);
             startFrame = minFrame;
         end
 
         % warn the user of loading
         mHandle=myMessageBox([],...
             sprintf(...
-            'Please wait \nwhile labelgui2 loads\n frames %i:%i',...
+            'Please wait while labelgui2 loads frames %i:%i',...
             startFrame,endFrame),'Busy');
-        
+        pause(0.1)
         % load the necessary frames
         movieWindowHandles.movie = ...
             cdLoadMovie(loadMovieStruct.loadInfo,[],[startFrame:endFrame]);
@@ -144,12 +145,12 @@ LG_plot(movieFrame, idlist, axesH, imageH, frameSizeMu, pixelSize, plotOptions);
 % make windows visible, restrict handle visibility
 set(movieWindowHandles.LG_movieWindow,'Visible','on','HandleVisibility','Callback');
 
-% update movieWindow
-LG_showMovieData_callback(1);
-
 
 % store changes to movieWindowHandles
 guidata(movieWindowHandles.LG_movieWindow,movieWindowHandles);
+
+% update movieWindow (so that it gets to read the latest info correctly!)
+LG_showMovieData_callback(1);
 
 % make navigator active
 figure(naviHandles.LG_navigator);
