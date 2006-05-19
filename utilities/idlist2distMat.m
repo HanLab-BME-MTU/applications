@@ -194,7 +194,7 @@ for tag1 = 1:nTags
         % remove estimated entries if necessary. We don't update idxList
         % here, because in the first loop, we go through all tags already
         if ~allowEstimatedTags
-            estimatedIdx = goodTimes(linklists(tag2,3) == 1);
+            estimatedIdx = goodTimes(linklists(tag2,3,:) == 1);
             points(2).coordinates(estimatedIdx,:) = NaN;
             points(2).covariances(estimatedIdx,:) = NaN;
         end
