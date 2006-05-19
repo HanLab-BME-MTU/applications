@@ -24,9 +24,10 @@ if all(pdValues == reAssignHandles.originalPdValues)
     return
 end
 
-% Change pdValues to tagIndices
+% Change pdValues to tagIndices. Make sure that size of pdValues remains
+% constant
 gti = [0;goodTagIdx];
-pdValues = [gti(pdValues)];
+pdValues(:) = [gti(pdValues)];
 
 % check if all tags have been assigned. If not (and no recalc), set recalc
 % to 1

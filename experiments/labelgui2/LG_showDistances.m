@@ -36,7 +36,7 @@ end
 nTimepoints = length(idlist);
 
 % calculate distances
-[distances,dummy,dummy,dummy,idlist] = idlist2distMat(idlist, dataProperties);
+[distances,dummy,dummy,dummy,idlist,idxLists] = idlist2distMat(idlist, dataProperties,0,1);
 
 % check for number of tags. We can display up to 5, above that, user has to
 % select
@@ -86,18 +86,31 @@ dist2plot = zeros(nTimepoints,nPairs);
 for i=1:nPairs
     dist2plot(:,i) = squeeze(distances(tagIdx(pairIdx(i,1)),...
         tagIdx(pairIdx(i,2)),:));
+    estimatedIdx(:,i) = any(idxLists.estimatedTag(:,tagIdx(pairIdx(i,:))),2);
 end
-maxDist = nanmax(dist2plot(:));
+maxDist = nanmax(dist2plot(~estimatedIdx(:)));
 
 % loop through tags and plot
-objectHandles = zeros(2*nPairs);
+objectHandles = zeros(4*nPairs);
 
 for i=1:nPairs
     % make axes
     ah = subplot(subAxes(1),subAxes(2),i);
-    objectHandles((i-1)*2+1) = ah;
+    objectHandles((i-1)*4+1) = ah;
     % plot distance
-    objectHandles(i*2) = plot(dist2plot(:,i),'d-');
+    x = (1:nTimepoints)';
+    y = dist2plot(:,i);
+    % plot a broken line everywhere, then add a solid line for good
+    % distances.
+    xGood = x;
+    xGood(estimatedIdx(:,i)) = NaN;
+    yGood = y;
+    yGood(estimatedIdx(:,i)) = NaN;
+    objectHandles((i-1)*4+2) = plot(x,y,'--');
+    hold on
+    objectHandles((i-1)*4+3) = plot(xGood, yGood,'-o');
+    objectHandles((i-1)*4+4) = plot(x(estimatedIdx(:,i)),y(estimatedIdx(:,i)),'*');
+    
     % write title
     set(get(ah,'Title'),'Interpreter','none','String',...
         sprintf('%s - %s',tagList{tagIdx(pairIdx(i,1))},tagList{tagIdx(pairIdx(i,2))}));

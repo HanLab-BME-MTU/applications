@@ -824,10 +824,10 @@ outputQmatrixDiag(goodIdx,:,:) = ...
 % hold on, plot(squeeze(inputQmatrixDiag),'.')
 % sa=squeeze(sum(abs(fittingMatrices.A),1));
 % hold on, plot(outputQmatrixDiag.*sqrt(sa),'o' );
-for iTag = 1:nTags
-    sa=repmat((sum(abs(fittingMatrices(iTag).A),1))',[1,3]);
-    outputQmatrixDiag(:,:,iTag) = outputQmatrixDiag(:,:,iTag) .* sqrt(sa);
-end
+% for iTag = 1:nTags
+%     sa=repmat((sum(abs(fittingMatrices(iTag).A),1))',[1,3]);
+%     outputQmatrixDiag(:,:,iTag) = outputQmatrixDiag(:,:,iTag) .* (sa);
+% end
 
 % if debug: shorten the matrices so that it isn't insanely big
 if nargout > 1
@@ -874,16 +874,20 @@ for t = [goodTimes';NaN,goodTimes(1:end-1)']
         idlisttrack(t(1)).linklist(:,[10,9,11]) = ...
             permute(newCoords,[2,3,1]).*p2m;
 
-        % write new Q-matrices
-        newQdiag = outputQmatrixDiag(t(1),:,:);
+        % write new Q-matrices. Divide the covariance matrix by the old
+        % sigma0, so that we get the correct covariance once we multiply,
+        % and so that we conserve the sigma0 to get the correct intensities
+        newQdiag = squeeze(outputQmatrixDiag(t(1),:,:))./repmat(idlisttrack(t(1)).linklist(:,12),[1,3])';
         idlisttrack(t(1)).info.totalQ_Pix = diag(newQdiag(:));
         
-        % write sigma0
-        % idlisttrack(t(1)).linklist(:,12) = 
+        % write sigma0 of the tracker. Since it differs depending on the
+        % dimension, we have to add cols 13:15
+        idlisttrack(t(1)).linklist(:,13:15) = squeeze(mse(t(1),:,:))'; 
         
         % write list of sources
-        idlisttrack(t(1)).info.sourceList = ...
-            goodRows(fittingMatrices(1).A(:,t(1),1) == 1);
+        targetIdx=fittingMatrices(1).A(:,t(1),1) == 1;
+[dummy, sourceList]=find(fittingMatrices(1).A(targetIdx,:,1)==-1);
+        idlisttrack(t(1)).info.sourceList = sourceList;
 
         % write new spotNum
         idlisttrack(t(1)).linklist(:,2) = (1:nTags)';
