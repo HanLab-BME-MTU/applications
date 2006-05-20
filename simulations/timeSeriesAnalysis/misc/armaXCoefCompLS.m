@@ -1,8 +1,8 @@
-function [H,pValue,errFlag] = armaXCoefComp(armaXCoef1,armaXCoef2,...
+function [H,pValue,errFlag] = armaXCoefCompLS(armaXCoef1,armaXCoef2,...
     varCovMat1,varCovMat2,compOpt,significance)
 %ARMAXCOEFCOMP tests whether the ARMA coefficients of 2 models are different
 %
-%SYNOPSIS [H,pValue,errFlag] = armaXCoefComp(armaXCoef1,armaXCoef2,...
+%SYNOPSIS [H,pValue,errFlag] = armaXCoefCompLS(armaXCoef1,armaXCoef2,...
 %    varCovMat1,varCovMat2,compOpt,significance)
 %
 %INPUT  
@@ -57,7 +57,7 @@ errFlag = 0;
 
 %check input data
 if nargin < 1 || isempty(armaXCoef1) %if 1st model was not input
-    disp('--armaXCoefComp: You must input at least 1 set of ARMA coefficients!');
+    disp('--armaXCoefCompLS: You must input at least 1 set of ARMA coefficients!');
     errFlag = 1;
     return
 end
@@ -70,7 +70,7 @@ significance_def = 0.05;
 if ~isempty(armaXCoef1.arParam)
     [nRow,arOrder1] = size(armaXCoef1.arParam);
     if nRow ~= 1
-        disp('--armaXCoefComp: armaXCoef1.arParam should be a row vector!');
+        disp('--armaXCoefCompLS: armaXCoef1.arParam should be a row vector!');
         errFlag = 1;
     end
 else
@@ -79,7 +79,7 @@ end
 if ~isempty(armaXCoef1.maParam)
     [nRow,maOrder1] = size(armaXCoef1.maParam);
     if nRow ~= 1
-        disp('--armaXCoefComp: armaXCoef1.maParam should be a row vector!');
+        disp('--armaXCoefCompLS: armaXCoef1.maParam should be a row vector!');
         errFlag = 1;
     end
 else
@@ -88,7 +88,7 @@ end
 if ~isempty(armaXCoef1.xParam)
     [nRow,xOrder1] = size(armaXCoef1.xParam);
     if nRow ~= 1
-        disp('--armaXCoefComp: armaXCoef1.xParam should be a row vector!');
+        disp('--armaXCoefCompLS: armaXCoef1.xParam should be a row vector!');
         errFlag = 1;
     end
     xOrder1 = xOrder1 - 1;
@@ -96,7 +96,7 @@ else
     xOrder1 = -1;
 end
 if arOrder1 == 0 && maOrder1 == 0 && xOrder1 == 0 %exit if no model is of order 0
-    disp('--armaXCoefComp: Input for armaXCoef1 not valid!');
+    disp('--armaXCoefCompLS: Input for armaXCoef1 not valid!');
     errFlag = 1;
     return
 end
@@ -117,7 +117,7 @@ else %if user specified a 2nd model
     if ~isempty(armaXCoef2.arParam)
         [nRow,arOrder2] = size(armaXCoef2.arParam);
         if nRow ~= 1
-            disp('--armaXCoefComp: armaXCoef2.arParam should be a row vector!');
+            disp('--armaXCoefCompLS: armaXCoef2.arParam should be a row vector!');
             errFlag = 1;
         end
     else
@@ -126,7 +126,7 @@ else %if user specified a 2nd model
     if ~isempty(armaXCoef2.maParam)
         [nRow,maOrder2] = size(armaXCoef2.maParam);
         if nRow ~= 1
-            disp('--armaXCoefComp: armaXCoef2.maParam should be a row vector!');
+            disp('--armaXCoefCompLS: armaXCoef2.maParam should be a row vector!');
             errFlag = 1;
         end
     else
@@ -135,7 +135,7 @@ else %if user specified a 2nd model
     if ~isempty(armaXCoef2.xParam)
         [nRow,xOrder2] = size(armaXCoef2.xParam);
         if nRow ~= 1
-            disp('--armaXCoefComp: armaXCoef2.xParam should be a row vector!');
+            disp('--armaXCoefCompLS: armaXCoef2.xParam should be a row vector!');
             errFlag = 1;
         end
         xOrder2 = xOrder2 - 1;
@@ -160,11 +160,11 @@ else %if user specified a var-cov matrix for 1st model
 
     [nRow,nCol] = size(varCovMat1.cofactorMat);
     if nRow ~= nCol || nRow ~= combOrder
-        disp('--armaXCoefComp: varCovMat1.cofactorMat should be a square matrix of side length equal to largest AR order + largest MA order!');
+        disp('--armaXCoefCompLS: varCovMat1.cofactorMat should be a square matrix of side length equal to largest AR order + largest MA order!');
         errFlag = 1;
     end
     if varCovMat1.posterioriVar <= 0
-        disp('--armaXCoefComp: varCovMat1.posterioriVar should be positive!');
+        disp('--armaXCoefCompLS: varCovMat1.posterioriVar should be positive!');
         errFlag = 1;
     end
 
@@ -179,11 +179,11 @@ else %if user specified a var-cov matrix for 2nd model
 
     [nRow,nCol] = size(varCovMat2.cofactorMat);
     if nRow ~= nCol || nRow ~= combOrder
-        disp('--armaXCoefComp: varCovMat2.cofactorMat should be a square matrix of side length equal to largest AR order + largest MA order!');
+        disp('--armaXCoefCompLS: varCovMat2.cofactorMat should be a square matrix of side length equal to largest AR order + largest MA order!');
         errFlag = 1;
     end
     if varCovMat2.posterioriVar <= 0
-        disp('--armaXCoefComp: varCovMat2.posterioriVar should be positive!');
+        disp('--armaXCoefCompLS: varCovMat2.posterioriVar should be positive!');
         errFlag = 1;
     end
 
@@ -198,7 +198,7 @@ else %if user specified compOpt
     %check that it's a valid option
     if ~strcmp(compOpt,'global') && ~strcmp(compOpt,'element') && ...
             ~strcmp(compOpt,'AR/MA/X')
-        disp('--armaXCoefComp: "compOpt" should be either "global", "element" or "AR/MA/X"!');
+        disp('--armaXCoefCompLS: "compOpt" should be either "global", "element" or "AR/MA/X"!');
         errFlag = 1;
     end
 
@@ -212,7 +212,7 @@ else %if user specified significance level
     
     %check that it's in the correct range
     if significance < 0 || significance > 1
-        disp('--armaXCoefComp: "significance level should be between 0 and 1!');
+        disp('--armaXCoefCompLS: "significance level should be between 0 and 1!');
         errFlag = 1;
     end
 
@@ -220,7 +220,7 @@ end %(if nargin < 6 || isempty(significance) ... else ...)
 
 %exit if there are problems in input data
 if errFlag
-    disp('--armaXCoefComp: Please fix input data!');
+    disp('--armaXCoefCompLS: Please fix input data!');
     return
 end
 

@@ -1,13 +1,13 @@
-function [maParam,errFlag] = levinsonDurbinMA(maParamP)
-%LEVINSONDURBINMA determines MA coefficients from partial MA coefficients using Levinson-Durbin recursions.
+function [maParam,errFlag] = levinsonDurbinExpoMA(maParamP)
+%LEVINSONDURBINEXPOMA determines MA coefficients from "partial MA coefficients" using Levinson-Durbin recursions.
 %
-%SYNOPSIS [maParam,errFlag] = levinsonDurbinMA(maParamP)
+%SYNOPSIS [maParam,errFlag] = levinsonDurbinExpoMA(maParamP)
 %
 %INPUT  maParamP: Parameters (row vector) from which partial MA 
 %                 coefficients are obtained via the equation
 %                 partial MA coef. = (1-exp(maParamP))/(1+exp(maParamP))
 %
-%OUTPUT arParam : moving average coefficients (row vector).
+%OUTPUT maParam : moving average coefficients (row vector).
 %       errFlag : 0 if function executes normally, 1 otherwise.
 %
 %REMARKS The recursion used is that presented in R. H. Jones,

@@ -1,7 +1,7 @@
-function [rho,errFlag] = relDeterminability(varCovMat)
+function [rho,errFlag] = determinabilityGruen(varCovMat)
 %RELDETERMINABILITY calculates the determinability of parameters in a model
 %
-%SYNOPSIS [rho,errFlag] = relDeterminability(varCovMat)
+%SYNOPSIS [rho,errFlag] = determinabilityGruen(varCovMat)
 %
 %INPUT  varCovMat: Variance-covariance matrix of estimated parameters.
 %
@@ -26,7 +26,7 @@ errFlag = 0;
 
 %check input data
 if nargin ~= 1
-    disp('--relDeterminability: Wrong number of input arguments!');
+    disp('--determinabilityGruen: Wrong number of input arguments!');
     errFlag = 1;
     return
 end
@@ -34,13 +34,13 @@ end
 %check size of varCovMat
 [numParam,dummy] = size(varCovMat);
 if dummy ~= numParam
-    disp('--relDeterminability: varCovMat should be a square matrix!');
+    disp('--determinabilityGruen: varCovMat should be a square matrix!');
     errFlag = 1;
 end
 
 %exit is there are problems with input data
 if errFlag
-    disp('--relDeterminability: Please fix input data!');
+    disp('--determinabilityGruen: Please fix input data!');
     return
 end
 

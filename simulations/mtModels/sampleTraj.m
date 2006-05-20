@@ -62,7 +62,7 @@ else
     presample = 0;
 end
 
-%if there is no averaging or presampling is needed, sample with specified 
+%if there no averaging or presampling is needed, sample with specified 
 %interval without averaging
 if avgInt == 0 || presample == 1
 

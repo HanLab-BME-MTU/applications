@@ -30,14 +30,14 @@ gamma = [];
 
 %check if correct number of arguments were used when function was called
 if nargin < 2 || nargin > 3
-    disp('--autoCorr: Incorrect number of input arguments!');
+    disp('--crossCorr: Incorrect number of input arguments!');
     errFlag  = 1;
     return
 end
 
 %check input data
 if maxLag <= 0
-    disp('--autoCorr: Variable "maxLag" should be a positive integer!');
+    disp('--crossCorr: Variable "maxLag" should be a positive integer!');
     errFlag = 1;
 end
 
@@ -48,7 +48,7 @@ if ~isstruct(traj)
     traj.observations = tmp;
     clear tmp
 elseif ~isfield(traj,'observations')
-    disp('--autoCorr: Please input the trajectories in fields ''observations''')
+    disp('--crossCorr: Please input the trajectories in fields ''observations''')
     errFlag = 1;
     return
 end
@@ -67,23 +67,23 @@ trajLength = zeros(numTraj,1);
 for i=1:numTraj
     [trajLength(i),nCol] = size(traj(i).observations); %length of each trajectory
     if nCol > 2
-        disp('--autoCorr: Each trajectory should be a column vector!');
+        disp('--crossCorr: Each trajectory should be a column vector!');
         errFlag = 1;
     end
 end
 
 %ad-hoc criterion to ensure that there are enough data points
 if sum(trajLength((trajLength>maxLag))-maxLag) < 3*maxLag
-    disp('--autoCorr: Trajectories not long enough! Increase trajectories or reduce maxLag');
+    disp('--crossCorr: Trajectories not long enough! Increase trajectories or reduce maxLag');
     errFlag = 1;
 end
 
 if errFlag
     if nargout == 2
-        disp('--autoCorr: Please fix input data!');
+        disp('--crossCorr: Please fix input data!');
         return
     else
-        error('--autoCorr: Please fix input data!')
+        error('--crossCorr: Please fix input data!')
     end
 end
 

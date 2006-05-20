@@ -132,7 +132,7 @@ else
     orderValX_def = -1:3; %X order values
 end
 repeat_def = 10; %times to repeat local minimization if initial guess not supplied
-minOpt_def = 'ml'; %minimization option
+minOpt_def = 'tl'; %minimization option
 
 %check models to be tested
 if nargin < 3 || isempty(modelParamOrOrder) %if no models to fit were input

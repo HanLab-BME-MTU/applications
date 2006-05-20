@@ -338,7 +338,7 @@ end
 %init parms
 
 %noise variance
-noisevar=DYNAMICRANGE^2/(SNR^2);
+noisevar=DYNAMICRANGE^2./(SNR.^2);
 
 %psf size (size where psf is 5% maxVal)
 psfSze=roundOddOrEven(2*sqrt(-2*dataProperties.FILTERPRM(1:3).^2*log(0.05)),'odd','inf');

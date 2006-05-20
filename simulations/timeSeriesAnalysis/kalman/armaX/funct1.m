@@ -8,7 +8,7 @@ function fc = funct1(n,xc)
 %
 %OUTPUT fc: -2ln(likelihood) evaluated at given set of parameters.
 %
-%Khuloud Jaqaman, Septermber 2004
+%Khuloud Jaqaman, September 2004
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Output
@@ -34,7 +34,7 @@ end
 load funct1Input;
 
 %evaluate -2ln(likelihood)
-fc = neg2LnLikelihood(xc,prob);
+fc = neg2LnLikelihoodX(xc,prob);
 
 
 %%%%% ~~ the end ~~ %%%%%

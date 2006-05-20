@@ -98,31 +98,36 @@ end
 %Trend correction
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-trajMean = zeros(numTraj,1);
-
 for i=1:numTraj
 
-    %correct trajectories if necessary and remember the mean
+    %correct trajectories if necessary
     switch correct
         case -1
-            %remember mean
-            trajMean(i) = nanmean(traj(i).observations(:,1));
+            %don't do anything
         case 0
             %remove trend with linear fit
             traj(i).observations = removeLinearTrend(traj(i).observations(:,1));
-            trajMean(i) = 0;
         otherwise %remove trend with differencing at specified lag
             tmp1 = traj(i).observations(correct+1:end,1) - ...
                 traj(i).observations(1:end-correct,1);
             tmp2 = sqrt(traj(i).observations(correct+1:end,2).^2 + ...
                 traj(i).observations(1:end-correct,2).^2);
             traj(i).observations = [tmp1 tmp2];
-            trajMean(i) = nanmean(traj(i).observations(:,1));
             %modify trajectory length
             trajLength(i) = trajLength(i) - correct;
     end
 
+    %get trajectory mean
+    trajMean(i) = nanmean(traj(i).observations(:,1));
+
 end
+
+% %shift trajectories so that the overall compound trajectory has a mean = 0
+% meanAll = nanmean(vertcat(traj.observations));
+% meanAll = meanAll(1);
+% for i=1:numTraj
+%     trajMean(i) = meanAll;
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Autocorrelation function calculation

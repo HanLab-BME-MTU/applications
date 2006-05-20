@@ -30,13 +30,16 @@ function [varCovMat,arParam,maParam,xParam,errFlag] = armaXLeastSquares(...
 %       xOrder    : Order of X part of process. Enter -1 if no X part.
 %                   Default: -1.
 %       constParam: Set of constrained parameters. Constains 2 fields:
-%               .ar : 2D array. 1st column is AR parameter number and
-%                     2nd column is parameter value. No need to input if
-%                     there are no constraints on AR parameters.
-%               .ma : 2D array. 1st column is MA parameter number and
-%                     2nd column is parameter value.No need to input if
-%                     there are no constraints on MA parameters.
-%                   Optional. Default: [].
+%           .ar      : 2D array. 1st column is AR parameter number and
+%                      2nd column is parameter value. No need to input if
+%                      there are no constraints on AR parameters.
+%           .ma      : 2D array. 1st column is MA parameter number and
+%                      2nd column is parameter value. No need to input if
+%                      there are no constraints on MA parameters.
+%           .x       : 2D array. 1st column is X parameter number and
+%                      2nd column is parameter value. No need to input if
+%                      there are no contraints on X parameters.
+%                   Default: []
 %       wnVariance: Estimated variance of white noise in process.
 %                   Optional. Default: Zero.
 %
@@ -183,6 +186,20 @@ else
     else
         constParam.ma = zeros(0,2);
     end
+    if isfield(constParam,'x')
+        nCol = size(constParam.x,2);
+        if nCol ~= 2
+            disp('--armaXLeastSquares: constParam.x should have 2 columns!');
+            errFlag = 1;
+        else
+            if min(constParam.x(:,1)) < 0 || max(constParam.x(:,1)) > maOrder
+                disp('--armaXLeastSquares: Wrong X parameter numbers in constraint!');
+                errFlag = 1;
+            end
+        end
+    else
+        constParam.x = zeros(0,2);
+    end
 end %(nargin < 7 || isempty(constParam) ... else ...)
 
 %check white noise variance
@@ -207,6 +224,10 @@ for i=1:numTraj
             errFlag = 1;
         end
     end
+end
+
+for i=1:numTraj
+    trajOut(i).observations(:,2) = sqrt(wnVariance + trajOut(i).observations(:,2).^2);
 end
 
 %exit if there are problems in input data
@@ -259,24 +280,23 @@ for i = 1:numTraj
         
     %put points from all trajectories together in 1 matrix
     prevPoints = [prevPoints; prevPoints1];
-    
+
     %form vector of weighted observations
     observations = [observations; trajOut(i).observations(fitSet,1)...
-            ./trajOut(i).observations(fitSet,2)];
-    
-    %form vector of weighted errors
-    epsilon = [epsilon; wnVector(i).observations(fitSet)...
-            ./trajOut(i).observations(fitSet,2)];
-    
+        ./trajOut(i).observations(fitSet,2)];
+
 end %(for i = 1:numTraj)
 
 if isempty(constParam) %if minimization in unconstrained
 
-    %estimate ARMA coefficients
-    xParam = (prevPoints\observations)';
-    arParam = xParam(1:arOrder);
-    maParam = xParam(arOrder+1:arOrder+maOrder);
-    xParam = xParam(arOrder+maOrder+1:end);
+    %estimate ARMAX coefficients
+    armaXCoef = (prevPoints\observations)';
+    arParam = armaXCoef(1:arOrder);
+    maParam = armaXCoef(arOrder+1:arOrder+maOrder);
+    xParam  = armaXCoef(arOrder+maOrder+1:end);
+
+    %get vector of weighted residuals
+    epsilon = observations - prevPoints*armaXCoef';
 
     %calculate variance-covariance matrix
     varCovMat.cofactorMat = inv(prevPoints'*prevPoints);
@@ -284,38 +304,45 @@ if isempty(constParam) %if minimization in unconstrained
 
 else %if minimization is constrained
 
-%     %get cofactor matrix of unconstrained problem
-%     ucCofactMat = inv(prevPoints'*prevPoints);
-% 
-%     %get number of constraints
-%     numConst = length(constParam.ar(:,1)) + length(constParam.ma(:,1));
-%     constIndx = [constParam.ar(:,1); constParam.ma(:,1)+arOrder];
-% 
-%     %construct matrix of constraints
-%     constMat = zeros(numConst,sumOrder);
-%     for i=1:numConst
-%         constMat(i,constIndx(i)) = 1;
-%     end
-% 
-%     %construct cofactor matrix of contrained problem
-%     dummy = inv(constMat*ucCofactMat*constMat');
-%     conCofactMat = [(ucCofactMat-ucCofactMat*constMat'*dummy*constMat* ...
-%         ucCofactMat) (ucCofactMat*constMat'*dummy); ...
-%         (dummy*constMat*ucCofactMat) (-dummy)];
-% 
-%     %combine observations vector with constraints
-%     observationsConst = [prevPoints'*observations; constParam.ar(:,2); ...
-%         constParam.ma(:,2)];
-% 
-%     %compute solution
-%     lagrangeMult = (conCofactMat*observationsConst)';
-%     arParam = lagrangeMult(1:arOrder);
-%     maParam = lagrangeMult(arOrder+1:sumOrder);
-%     lagrangeMult = lagrangeMult(sumOrder+1:end);
-% 
-%     %calculate variance-covariance matrix
-%     varCovMat.cofactorMat = conCofactMat(1:sumOrder,1:sumOrder);
-%     varCovMat.posterioriVar = epsilon'*epsilon/(fitLength-sumOrder);
+    %get cofactor matrix of unconstrained problem
+    ucCofactMat = inv(prevPoints'*prevPoints);
+
+    %get number of constraints
+    numConst = length(constParam.ar(:,1)) + length(constParam.ma(:,1)) + ...
+        length(constParam.x(:,1));
+    constIndx = [constParam.ar(:,1); constParam.ma(:,1)+arOrder; ...
+        constParam.x(:,1)+arOrder+maOrder+1];
+
+    %construct matrix of constraints
+    constMat = zeros(numConst,sumOrder);
+    for i=1:numConst
+        constMat(i,constIndx(i)) = 1;
+    end
+
+    %construct cofactor matrix of contrained problem
+    dummy = inv(constMat*ucCofactMat*constMat');
+    conCofactMat = [(ucCofactMat-ucCofactMat*constMat'*dummy*constMat* ...
+        ucCofactMat) (ucCofactMat*constMat'*dummy); ...
+        (dummy*constMat*ucCofactMat) (-dummy)];
+
+    %combine observations vector with constraints
+    observationsConst = [prevPoints'*observations; constParam.ar(:,2); ...
+        constParam.ma(:,2); constParam.x(:,2)];
+
+    %get solution
+    lagrangeMult = (conCofactMat*observationsConst)';
+    arParam = lagrangeMult(1:arOrder);
+    maParam = lagrangeMult(arOrder+1:arOrder+maOrder);
+    xParam = lagrangeMult(arOrder+maOrder+1:sumOrder);
+    lagrangeMult = lagrangeMult(sumOrder+1:end);
+
+    %get vector of weighted residuals
+    armaXCoef = [arParam maParam xParam]';
+    epsilon = observations - prevPoints*armaXCoef;
+
+    %calculate variance-covariance matrix
+    varCovMat.cofactorMat = conCofactMat(1:sumOrder,1:sumOrder);
+    varCovMat.posterioriVar = epsilon'*epsilon/(fitLength-sumOrder);
 
 end
 

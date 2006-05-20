@@ -1,7 +1,7 @@
-function [arParam,errFlag] = levinsonDurbinAR(arParamP)
-%LEVINSONDURBINAR determines AR coefficients from partial AR coefficients using Levinson-Durbin recursions.
+function [arParam,errFlag] = levinsonDurbinExpoAR(arParamP)
+%LEVINSONDURBINEXPOAR determines AR coefficients from "partial AR coefficients" using Levinson-Durbin recursions.
 %
-%SYNOPSIS [arParam,errflag] = LevinsonDurbinAR(arParamP)
+%SYNOPSIS [arParam,errflag] = LevinsonDurbinExpoAR(arParamP)
 %
 %INPUT  arParamP : Parameters (row vector) from which partial AR 
 %                  coefficients are obtained via the equation

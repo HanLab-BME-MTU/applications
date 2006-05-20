@@ -1,9 +1,9 @@
-function neg2LnLikelihoodV = neg2LnLikelihoodX(param,prob)
-%NEG2LNLIKELIHOODX calculates -2ln(likelihood) of the fit of an ARMAX model to time series.
+function constParamV = minKalmanConstraint(param,prob)
+%MINKALMANCONSTRAINT determines the values of the parameters to be constrained
 %
-%SYNOPSIS neg2LnLikelihoodV = neg2LnLikelihoodX(param,prob)
+%SYNOPSIS constParamV = minKalmanConstraint(param,prob)
 %
-%INPUT  param       : Set of parameters related to ARMAX coefficients.
+%INPUT  param       : Set of partial ARMA coefficients.
 %       prob        : structure in Tomlab format containing variables
 %                     needed for calculations.
 %          .user.arOrder   : Order of AR part of process.
@@ -28,44 +28,41 @@ function neg2LnLikelihoodV = neg2LnLikelihoodX(param,prob)
 %                         .ma: MA parameters.
 %                         .x : X parameters.
 %
-%OUTPUT neg2LnLikelihoodV: Value of -2ln(likelihood).
+%OUTPUT constParamV : Vector of Values of constrained parameters.
 %
-%REMARKS The algorithm implemented here is an ARMAX generalized version of
-%        the algorithm presented in R. H. Jones,"Maximum Likelihood Fitting 
-%        of ARMA Models to Time Series with Missing Observations", 
-%        Technometrics 22: 389-395 (1980). All equation numbers used are 
-%        those in the paper.
-%
-%
-%Khuloud Jaqaman, January 2006
+%Khuloud Jaqaman, January 2005
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Output
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-neg2LnLikelihoodV = [];
+constParamV = [];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check if correct number of input arguments are used
-if nargin ~= nargin('neg2LnLikelihoodX')
-    disp('--neg2LnLikelihoodX: Incorrect number of input arguments!');
+if nargin ~= nargin('minKalmanConstraint')
+    disp('--minKalmanConstraint: Incorrect number of input arguments!');
     return
 end
 
 %get variables from structure "prob"
-arOrder  = prob.user.arOrder;
-maOrder  = prob.user.maOrder;
-trajOut  = prob.user.trajOut;
-trajIn   = prob.user.trajIn;
-numAvail = prob.user.numAvail;
+arOrder = prob.user.arOrder;
+maOrder = prob.user.maOrder;
+constArIndx = prob.user.constParam.ar;
+constMaIndx = prob.user.constParam.ma;
+constXIndx  = prob.user.constParam.x;
 
 %assign parameters
-arParamP = param(1:arOrder)';
-maParamP = param(arOrder+1:arOrder+maOrder)';
-xParam   = param(arOrder+maOrder+1:end)';
+arParamP = param(1:arOrder);
+maParamP = param(arOrder+1:arOrder+maOrder);
+xParam   = param(arOrder+maOrder+1:end);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Parameter extraction
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %get AR and MA coefficients from the partial AR and MA coefficients, respectively
 if ~isempty(arParamP)
@@ -79,31 +76,8 @@ else
     maParam = [];
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Likelihood calculation
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-sum1 = 0; %1st sum in Eq. 3.15
-sum2 = 0; %2nd sum in Eq. 3.15
-
-%go over all trajectories to get innovations and their variances
-for i = 1:length(trajOut)
-
-    %get the innovations, their variances and process white noise
-    %using Kalman prediction and filtering
-    [innovation,innovationVar,wnVector,dummy1,dummy2,errFlag] = ...
-        armaXKalmanInnov(trajOut(i).observations,trajIn(i).observations,...
-        arParam,maParam,xParam);
-
-    %1st sum in Eq. 3.15
-    sum1 = sum1 + nansum(log(innovationVar));
-    %2nd sum in Eq. 3.15
-    sum2 = sum2 + nansum(innovation.^2./innovationVar);
-
-end
-
-%construct -2ln(likelihood) (Eq. 3.15)
-neg2LnLikelihoodV = (sum1 + numAvail*log(sum2));
+%get current values of constrained parameters
+constParamV = [arParam(constArIndx) maParam(constMaIndx) xParam(constXIndx+1)]';
 
 
 %%%%% ~~ the end ~~ %%%%%

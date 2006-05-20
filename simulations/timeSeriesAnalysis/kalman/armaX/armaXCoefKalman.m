@@ -38,12 +38,15 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
 %                   Enter as [] if there is no dependence on input.
 %                   Default: [].
 %       constParam: Set of constrained parameters. Constains 2 fields:
-%           .ar          : 2D array. 1st column is AR parameter number and
-%                          2nd column is parameter value. No need to input if
-%                          there are no constraints on AR parameters.
-%           .ma          : 2D array. 1st column is MA parameter number and
-%                          2nd column is parameter value.No need to input if
-%                          there are no constraints on MA parameters.
+%           .ar      : 2D array. 1st column is AR parameter number and
+%                      2nd column is parameter value. No need to input if
+%                      there are no constraints on AR parameters.
+%           .ma      : 2D array. 1st column is MA parameter number and
+%                      2nd column is parameter value. No need to input if
+%                      there are no constraints on MA parameters.
+%           .x       : 2D array. 1st column is X parameter number and
+%                      2nd column is parameter value. No need to input if
+%                      there are no contraints on X parameters.
 %                   Default: []
 %       minOpt    : Minimization option:
 %                   -'ml' for Matlab local minimizer "fmincon";
@@ -169,6 +172,15 @@ for i=1:numTraj
     trajOut(i).observations(:,1) = traj;
 end
 
+% %shift trajectories so that the overall compound trajectory has a mean = 0
+% meanAll = nanmean(vertcat(trajOut.observations));
+% meanAll = meanAll(1);
+% for i=1:numTraj
+%     traj = trajOut(i).observations(:,1);
+%     traj = traj - meanAll;
+%     trajOut(i).observations(:,1) = traj;
+% end
+
 %add column for observational error of output if not provided
 trajOriginal = trajOut; %needed for least squares
 for i=1:numTraj
@@ -291,6 +303,20 @@ else
     else
         constParam.ma = zeros(0,2);
     end
+    if isfield(constParam,'x')
+        nCol = size(constParam.x,2);
+        if nCol ~= 2
+            disp('--armaXCoefKalman: constParam.x should have 2 columns!');
+            errFlag = 1;
+        else
+            if min(constParam.x(:,1)) < 0 || max(constParam.x(:,1)) > maOrder
+                disp('--armaXCoefKalman: Wrong X parameter numbers in constraint!');
+                errFlag = 1;
+            end
+        end
+    else
+        constParam.x = zeros(0,2);
+    end
 end %(nargin < 6 || isempty(constParam) ... else ...)
 
 %check whether minOpt has one of the required values
@@ -401,45 +427,79 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
 
             case 'tl' %local minimization using Tomlab's ucSolve
 
-                %                 if isempty(constParam) %if there are no constraints
+                if isempty(constParam) %if there are no constraints
 
-                prob = conAssign('neg2LnLikelihoodX',[],[],[],...
-                    [-10*ones(1,arOrder+maOrder) -2*ones(1,xOrder+1)],...
-                    [10*ones(1,arOrder+maOrder) 2*ones(1,xOrder+1)],...
-                    'locMinNegLik',param0);
-                prob.PriLevOpt = 0;
+                    prob = conAssign('neg2LnLikelihoodX',[],[],[],...
+                        [-10*ones(1,arOrder+maOrder) -2*ones(1,xOrder+1)],...
+                        [10*ones(1,arOrder+maOrder) 2*ones(1,xOrder+1)],...
+                        'locMinNegLik',param0);
+                    prob.PriLevOpt = 0;
+                    prob.user.arOrder = arOrder;
+                    prob.user.maOrder = maOrder;
+                    prob.user.trajOut = trajOut2;
+                    prob.user.trajIn  = trajIn;
+                    prob.user.numAvail = totAvail;
+
+                    %minimize -2ln(likelihood) using Tomlab's ucSolve
+                    result = tomRun('ucSolve',prob,[],2);
+
+                else %if there are constraints
+
+                    %define local minimizaton problem with constraints
+                    prob = conAssign('neg2LnLikelihoodX',[],[],[],...
+                        [-10*ones(1,arOrder+maOrder) -2*ones(1,xOrder+1)],...
+                        [10*ones(1,arOrder+maOrder) 2*ones(1,xOrder+1)],...
+                        'locMinNegLik',param0,[],[],[],[],[],'minKalmanConstraint',...
+                        [],[],[],...
+                        [constParam.ar(:,2);constParam.ma(:,2);constParam.x(:,2)],...
+                        [constParam.ar(:,2);constParam.ma(:,2);constParam.x(:,2)]);
+                    prob.PriLevOpt = 0;
+                    prob.user.arOrder = arOrder;
+                    prob.user.maOrder = maOrder;
+                    prob.user.trajOut = trajOut2;
+                    prob.user.trajIn = trajIn;
+                    prob.user.numAvail = totAvail;
+                    prob.user.constParam.ar = constParam.ar(:,1);
+                    prob.user.constParam.ma = constParam.ma(:,1);
+                    prob.user.constParam.x  = constParam.x(:,1);
+
+                    %minimize -2ln(likelihood) using Tomlab's conSolve
+                    result = tomRun('conSolve',prob,[],2);
+
+                end
+
+                %proceed if minimization was successful
+                if result.ExitFlag == 0
+                    params = result.x_k';
+                    proceed = 1;
+                else
+                    proceed = 0;
+                end
+
+            case 'nag' %local minimization using NAG's E04JAF
+                
+                %define structure containing parameters required for function
+                %evaluation; they are written in Tomlab notation for convenience
                 prob.user.arOrder = arOrder;
                 prob.user.maOrder = maOrder;
                 prob.user.trajOut = trajOut2;
                 prob.user.trajIn  = trajIn;
                 prob.user.numAvail = totAvail;
 
-                %minimize -2ln(likelihood) using Tomlab's ucSolve
-                result = tomRun('ucSolve',prob,[],2);
+                %save "prob" in file "funct1Input" so that funct1 loads the
+                %variables when called.
+                save('funct1Input','prob');
 
-                %                 else %if there are constraints
-                %
-                %                     %define local minimizaton problem with constraints
-                %                     prob = conAssign('neg2LnLikelihood',[],[],[],...
-                %                         -9*ones(1,arOrder+maOrder),9*ones(1,arOrder+maOrder),...
-                %                         'locMinNegLik',param0,[],[],[],[],[],'minKalmanConstraint',...
-                %                         [],[],[],[constParam.ar(:,2);constParam.ma(:,2)],...
-                %                         [constParam.ar(:,2);constParam.ma(:,2)]);
-                %                     prob.PriLevOpt = 0;
-                %                     prob.user.arOrder = arOrder;
-                %                     prob.user.trajectories = trajectories;
-                %                     prob.user.numAvail = totAvail;
-                %                     prob.user.constParam.ar = constParam.ar(:,1);
-                %                     prob.user.constParam.ma = constParam.ma(:,1);
-                %
-                %                     %minimize -2ln(likelihood) using Tomlab's conSolve
-                %                     result = tomRun('conSolve',prob,[],2);
-                %
-                %                 end
+                %assign lower and upper bounds of variables
+                boundLow  = [-10*ones(1,arOrder+maOrder) -2*ones(1,xOrder+1)];
+                boundHigh = [10*ones(1,arOrder+maOrder) 2*ones(1,xOrder+1)];
+
+                [params,fval,lowerB,upperB,exitFlag] = ...
+                    e04jaf(param0,boundLow,boundHigh,0);
 
                 %proceed if minimization was successful
-                if result.ExitFlag == 0
-                    params = result.x_k';
+                if (exitFlag == 0 || exitFlag == 5 || exitFlag == 6)
+                    params = params';
                     proceed = 1;
                 else
                     proceed = 0;
@@ -468,12 +528,12 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
 
         %get AR and MA coefficients from the partial AR and MA coefficients, respectively
         if ~isempty(arParamP)
-            [arParamK,errFlag] = levinsonDurbinAR(arParamP);
+            [arParamK,errFlag] = levinsonDurbinExpoAR(arParamP);
         else
             arParamK = [];
         end
         if ~isempty(maParamP)
-            [maParamK,errFlag] = levinsonDurbinMA(maParamP);
+            [maParamK,errFlag] = levinsonDurbinExpoMA(maParamP);
         else
             maParamK = [];
         end
@@ -570,26 +630,26 @@ end
 %Kalman filtering. If they are not equivalent, then results cannot be
 %trusted and model is discarded
 
-%prepare input
-armaXCoef1.arParam = arParamK(1,:);
-armaXCoef1.maParam = maParamK(1,:);
-armaXCoef1.xParam = xParamK;
-armaXCoef2.arParam = arParamL;
-armaXCoef2.maParam = maParamL;
-armaXCoef2.xParam = xParamL;
-
-%compare parameters
-[H,pVCompKL,errFlag] = armaXCoefComp(armaXCoef1,armaXCoef2,varCovMatL,varCovMatL,...
-    'global');
-if errFlag
-    pVCompKL = 0;
-end
-
-%report failure of fit and do not consider results if coefficients are significantly different
-if H == 1
-    %     disp('--armaXCoefKalman: Discrepency between least squares and maximum likelihood!')
-    errFlag = 1;
-end
+% %prepare input
+% armaXCoef1.arParam = arParamK(1,:);
+% armaXCoef1.maParam = maParamK(1,:);
+% armaXCoef1.xParam = xParamK;
+% armaXCoef2.arParam = arParamL;
+% armaXCoef2.maParam = maParamL;
+% armaXCoef2.xParam = xParamL;
+% 
+% %compare parameters
+% [H,pVCompKL,errFlag] = armaXCoefComp(armaXCoef1,armaXCoef2,varCovMatL,varCovMatL,...
+%     'global');
+% if errFlag
+%     pVCompKL = 0;
+% end
+% 
+% %report failure of fit and do not consider results if coefficients are significantly different
+% if H == 1
+%     %     disp('--armaXCoefKalman: Discrepency between least squares and maximum likelihood!')
+%     errFlag = 1;
+% end
 
 %use the portmanteau test to check whether residuals are white noise.
 [H,pVPort,errFlag] = portmanteau(wnVector,10,0.01);
@@ -659,29 +719,3 @@ end
 %                 proceed = 0;
 %             end
 %
-%         case 'nag' %local minimization using NAG's E04JAF
-%
-%             %define structure containing parameters required for function
-%             %evaluation; they are written in Tomlab notation for convenience
-%             prob.user.arOrder = arOrder;
-%             prob.user.trajectories = trajectories;
-%             prob.user.numAvail = totAvail;
-%
-%             %save "prob" in file "funct1Input" so that funct1 loads the
-%             %variables when called.
-%             save('funct1Input','prob');
-%
-%             %initial parameter values
-%             params = [arParamP0 maParamP0];
-%
-%             [params,fval,lowerB,upperB,exitFlag] = ...
-%                 e04jaf(params,[-0.99*ones(1,arOrder+maOrder)],...
-%                 [0.99*ones(1,arOrder+maOrder)],0);
-%
-%             %proceed if minimization was successful
-%             if (exitFlag == 0 || exitFlag == 5 || exitFlag == 6)
-%                 params = params';
-%                 proceed = 1;
-%             else
-%                 proceed = 0;
-%             end

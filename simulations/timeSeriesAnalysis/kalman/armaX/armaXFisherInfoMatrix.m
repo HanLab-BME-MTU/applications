@@ -32,7 +32,6 @@ function [fishInfoMat,errFlag] = armaXFisherInfoMatrix(trajOut,trajIn,...
 %        in the model. Then the i,jth element of J is given by
 %        J(i,j) = sum(over t=1...N) {(dV(t)/da(i))*(dV(t)/da(j))/(2V(t)^2)
 %                                    +(dx(t)/da(i))*(dx(t)/da(j))/V(t)}
-%        CURRENTLY IT'S ONLY FOR ARMA!
 %
 %MATLAB VERSION (originally written on): 7.0.4.352 (R14) Service Pack 2 
 %
