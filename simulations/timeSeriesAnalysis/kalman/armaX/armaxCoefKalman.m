@@ -1,12 +1,12 @@
 function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
     varCovMatF,wnVariance,wnVector,selectCrit,pVCompKL,pVPort,errFlag] ...
-    = armaXCoefKalman(trajOut,trajIn,arParamP0,maParamP0,xParam0,...
+    = armaxCoefKalman(trajOut,trajIn,arParamP0,maParamP0,xParam0,...
     constParam,minOpt)
 %ARMAXCOEFKALMAN fits an ARMAX model to a time series which could depend on another series.
 %
 %SYNOPSIS [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatLS,...
 %    varCovMatFI,wnVariance,wnVector,selectCrit,pVCompKL,pVPort,errFlag] ...
-%    = armaXCoefKalman(trajOut,trajIn,arParamP0,maParamP0,xParam0,...
+%    = armaxCoefKalman(trajOut,trajIn,arParamP0,maParamP0,xParam0,...
 %    constParam,minOpt)
 %
 %INPUT
@@ -140,7 +140,7 @@ errFlag    =  0;
 
 %check whether all mandatory input variables were supplied
 if nargin < 3
-    disp('--armaXCoefKalman: The function requires at least 3 input variables!');
+    disp('--armaxCoefKalman: The function requires at least 3 input variables!');
     errFlag  = 1;
     return
 end
@@ -158,7 +158,7 @@ if ~isstruct(trajOut)
     trajOut.observations = tmp;
     clear tmp
 elseif ~isfield(trajOut,'observations')
-    disp('--armaXCoefKalman: Please input trajOut in fields ''observations''!')
+    disp('--armaxCoefKalman: Please input trajOut in fields ''observations''!')
     errFlag = 1;
 end
 
@@ -190,7 +190,7 @@ for i=1:numTraj
         if nCol == 1 %if no error is supplied, it is assumed that there is no observational error
             traj = [traj zeros(trajLength,1)];
         else
-            disp('--armaXCoefKalman: "trajOut.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+            disp('--armaxCoefKalman: "trajOut.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
             errFlag = 1;
         end
     end
@@ -213,7 +213,7 @@ else %if there is an input series
         trajIn.observations = tmp;
         clear tmp
     elseif ~isfield(trajIn,'observations')
-        disp('--armaXCoefKalman: Please input trajIn in fields ''observations''!')
+        disp('--armaxCoefKalman: Please input trajIn in fields ''observations''!')
         errFlag = 1;
     end
 
@@ -224,7 +224,7 @@ else %if there is an input series
             if nCol == 1 %if no error is supplied, assign it the value 0
                 traj = [traj zeros(trajLength,1)];
             else
-                disp('--armaXCoefKalman: "trajIn.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+                disp('--armaxCoefKalman: "trajIn.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
                 errFlag = 1;
             end
         end
@@ -237,7 +237,7 @@ end
 [nRow,arOrder] = size(arParamP0);
 if ~isempty(arParamP0)
     if nRow ~= 1
-        disp('--armaXCoefKalman: "arParamP0" should be a row vector!');
+        disp('--armaxCoefKalman: "arParamP0" should be a row vector!');
         errFlag = 1;
     end
 end
@@ -249,7 +249,7 @@ if nargin < 4 || isempty(maParamP0)
 else
     [nRow,maOrder] = size(maParamP0);
     if nRow ~= 1
-        disp('--armaXCoefKalman: "maParamP0" should be a row vector!');
+        disp('--armaxCoefKalman: "maParamP0" should be a row vector!');
         errFlag = 1;
     end
 end
@@ -260,12 +260,12 @@ if nargin < 5 || isempty(xParam0)
     xParam0 = xParam0_def;
 else
     if isempty(trajIn)
-        disp('--armaXCoefKalman: "xParam0" is supplied but there is no "trajIn"!');
+        disp('--armaxCoefKalman: "xParam0" is supplied but there is no "trajIn"!');
         errFlag = 1;
     end
     [nRow,xOrder] = size(xParam0);
     if nRow ~= 1
-        disp('--armaXCoefKalman: "xParam0" should be a row vector!');
+        disp('--armaxCoefKalman: "xParam0" should be a row vector!');
         errFlag = 1;
     end
     xOrder = xOrder - 1;
@@ -278,11 +278,11 @@ else
     if isfield(constParam,'ar')
         nCol = size(constParam.ar,2);
         if nCol ~= 2
-            disp('--armaXCoefKalman: constParam.ar should have 2 columns!');
+            disp('--armaxCoefKalman: constParam.ar should have 2 columns!');
             errFlag = 1;
         else
             if min(constParam.ar(:,1)) < 1 || max(constParam.ar(:,1)) > arOrder
-                disp('--armaXCoefKalman: Wrong AR parameter numbers in constraint!');
+                disp('--armaxCoefKalman: Wrong AR parameter numbers in constraint!');
                 errFlag = 1;
             end
         end
@@ -292,11 +292,11 @@ else
     if isfield(constParam,'ma')
         nCol = size(constParam.ma,2);
         if nCol ~= 2
-            disp('--armaXCoefKalman: constParam.ma should have 2 columns!');
+            disp('--armaxCoefKalman: constParam.ma should have 2 columns!');
             errFlag = 1;
         else
             if min(constParam.ma(:,1)) < 1 || max(constParam.ma(:,1)) > maOrder
-                disp('--armaXCoefKalman: Wrong MA parameter numbers in constraint!');
+                disp('--armaxCoefKalman: Wrong MA parameter numbers in constraint!');
                 errFlag = 1;
             end
         end
@@ -306,11 +306,11 @@ else
     if isfield(constParam,'x')
         nCol = size(constParam.x,2);
         if nCol ~= 2
-            disp('--armaXCoefKalman: constParam.x should have 2 columns!');
+            disp('--armaxCoefKalman: constParam.x should have 2 columns!');
             errFlag = 1;
         else
             if min(constParam.x(:,1)) < 0 || max(constParam.x(:,1)) > maOrder
-                disp('--armaXCoefKalman: Wrong X parameter numbers in constraint!');
+                disp('--armaxCoefKalman: Wrong X parameter numbers in constraint!');
                 errFlag = 1;
             end
         end
@@ -325,14 +325,14 @@ if nargin < 7 || isempty(minOpt)
 else
     if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
             && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
-        disp('--armaXCoefKalman: "minOpt" should be either "ml", "tl", "tg" or ''nag''!');
+        disp('--armaxCoefKalman: "minOpt" should be either "ml", "tl", "tg" or ''nag''!');
         errFlag = 1;
     end
 end
 
 %exit if there are problems in input data
 if errFlag
-    disp('--armaXCoefKalman: Please fix input data!');
+    disp('--armaxCoefKalman: Please fix input data!');
     return
 end
 
@@ -547,10 +547,10 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
             %get the innovations, their variances and the estimated white noise series
             %using Kalman prediction and filtering
             [innovation,innovationVar,wnVector(i).observations,dummy1,...
-                dummy2,errFlag] = armaXKalmanInnov(trajOut2(i).observations,...
+                dummy2,errFlag] = armaxKalmanInnov(trajOut2(i).observations,...
                 trajIn(i).observations,arParamK,maParamK,xParamK);
             if errFlag
-                disp('--armaXCoefKalman: "armaXKalmanInnov" did not function properly!');
+                disp('--armaxCoefKalman: "armaxKalmanInnov" did not function properly!');
                 return
             end
 
@@ -600,11 +600,11 @@ end %(while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05)
 %Least squares fitting
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%reformulate the problem as a least squares fitting and obtain the
-%variance-covariance matrix of the estimated ARMA coefficients
-[varCovMatL,arParamL,maParamL,xParamL,errFlag] = armaXLeastSquares(...
-    trajOriginal,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,...
-    wnVariance);
+% %reformulate the problem as a least squares fitting and obtain the
+% %variance-covariance matrix of the estimated ARMA coefficients
+% [varCovMatL,arParamL,maParamL,xParamL,errFlag] = armaxLeastSquares(...
+%     trajOriginal,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,...
+%     wnVariance);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Estimation of variance-covariance matrix
@@ -613,7 +613,7 @@ end %(while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05)
 if ~isempty([arParamK(1,:) maParamK(1,:) xParamK(1,:)])
 
     %calculate the model's Fisher information matrix
-    [fishInfoMat,errFlag] = armaXFisherInfoMatrix(trajOut,trajIn,...
+    [fishInfoMat,errFlag] = armaxFisherInfoMatrix(trajOut,trajIn,...
         arParamK(1,:),maParamK(1,:),xParamK,wnVariance);
 
     %get the variance-covariance matrix of the ARMA coefficients
@@ -631,15 +631,15 @@ end
 %trusted and model is discarded
 
 % %prepare input
-% armaXCoef1.arParam = arParamK(1,:);
-% armaXCoef1.maParam = maParamK(1,:);
-% armaXCoef1.xParam = xParamK;
-% armaXCoef2.arParam = arParamL;
-% armaXCoef2.maParam = maParamL;
-% armaXCoef2.xParam = xParamL;
+% armaxCoef1.arParam = arParamK(1,:);
+% armaxCoef1.maParam = maParamK(1,:);
+% armaxCoef1.xParam = xParamK;
+% armaxCoef2.arParam = arParamL;
+% armaxCoef2.maParam = maParamL;
+% armaxCoef2.xParam = xParamL;
 % 
 % %compare parameters
-% [H,pVCompKL,errFlag] = armaXCoefComp(armaXCoef1,armaXCoef2,varCovMatL,varCovMatL,...
+% [H,pVCompKL,errFlag] = armaxCoefComp(armaxCoef1,armaxCoef2,varCovMatL,varCovMatL,...
 %     'global');
 % if errFlag
 %     pVCompKL = 0;
@@ -647,7 +647,7 @@ end
 % 
 % %report failure of fit and do not consider results if coefficients are significantly different
 % if H == 1
-%     %     disp('--armaXCoefKalman: Discrepency between least squares and maximum likelihood!')
+%     %     disp('--armaxCoefKalman: Discrepency between least squares and maximum likelihood!')
 %     errFlag = 1;
 % end
 
@@ -656,7 +656,7 @@ end
 
 %report failure of fit and do not consider results if residuals are not white noise
 if H == 1
-    %     disp('--armaXCoefKalman: Residuals did not pass portmanteau test!')
+    %     disp('--armaxCoefKalman: Residuals did not pass portmanteau test!')
     errFlag = 1;
 end
 

@@ -1,8 +1,8 @@
-function [fishInfoMat,errFlag] = armaXFisherInfoMatrix(trajOut,trajIn,...
+function [fishInfoMat,errFlag] = armaxFisherInfoMatrix(trajOut,trajIn,...
     arParam,maParam,xParam,wnVariance)
 %ARMAXFISHERINFOMATRIX calculates the Fisher information of an ARMAX model estimated by likelihood maximization
 %
-%SYNOPSIS [fishInfoMat,errFlag] = armaXFisherInfoMatrix(trajOut,trajIn,...
+%SYNOPSIS [fishInfoMat,errFlag] = armaxFisherInfoMatrix(trajOut,trajIn,...
 %    arParam,maParam,xParam,wnVariance)
 %
 %INPUT  trajout   : Observations of output time series to be fitted. Either an
@@ -50,7 +50,7 @@ errFlag = 0;
 
 %check whether all input variables were supplied
 if nargin < 6
-    disp('--armaXFisherInfoMatrix: The function requires 6 input arguments!');
+    disp('--armaxFisherInfoMatrix: The function requires 6 input arguments!');
     errFlag  = 1;
     return
 end
@@ -62,7 +62,7 @@ if ~isstruct(trajOut)
     trajOut.observations = tmp;
     clear tmp
 elseif ~isfield(trajOut,'observations')
-    disp('--armaXFisherInfoMatrix: Please input trajOut in fields ''observations''!')
+    disp('--armaxFisherInfoMatrix: Please input trajOut in fields ''observations''!')
     errFlag = 1;
 end
 
@@ -77,7 +77,7 @@ for i=1:numTraj
         if nCol == 1 %if no error is supplied, it is assumed that there is no observational error
             traj = [traj zeros(trajLength,1)];
         else
-            disp('--armaXFisherInfoMatrix: "trajOut.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+            disp('--armaxFisherInfoMatrix: "trajOut.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
             errFlag = 1;
         end
     end
@@ -100,7 +100,7 @@ else %if there is an input series
         trajIn.observations = tmp;
         clear tmp
     elseif ~isfield(trajIn,'observations')
-        disp('--armaXFisherInfoMatrix: Please input trajIn in fields ''observations''!')
+        disp('--armaxFisherInfoMatrix: Please input trajIn in fields ''observations''!')
         errFlag = 1;
     end
     
@@ -112,7 +112,7 @@ else %if there is an input series
                 if nCol == 1 %if no error is supplied, assign it the value 0
                     traj = [traj zeros(trajLength,1)];
                 else
-                    disp('--armaXFisherInfoMatrix: "trajIn.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+                    disp('--armaxFisherInfoMatrix: "trajIn.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
                     errFlag = 1;
                 end
             end
@@ -124,7 +124,7 @@ end
 
 %exit if there are problems in input data
 if errFlag
-    disp('--armaXFisherInfoMatrix: Please fix input data!');
+    disp('--armaxFisherInfoMatrix: Please fix input data!');
     return
 end
 

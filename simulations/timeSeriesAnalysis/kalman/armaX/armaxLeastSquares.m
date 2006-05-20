@@ -1,8 +1,8 @@
-function [varCovMat,arParam,maParam,xParam,errFlag] = armaXLeastSquares(...
+function [varCovMat,arParam,maParam,xParam,errFlag] = armaxLeastSquares(...
     trajOut,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,wnVariance)
 %ARMAXLEASTSQUARES estimates the ARMA coefficients and their variance-covariance matrix of a trajectory whose residuals are known.
 %
-%SYNOPSIS [varCovMat,arParam,maParam,xParam,errFlag] = armaXLeastSquares(...
+%SYNOPSIS [varCovMat,arParam,maParam,xParam,errFlag] = armaxLeastSquares(...
 %    trajOut,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,wnVariance)
 %
 %INPUT  
@@ -71,7 +71,7 @@ errFlag = 0;
 
 %check if all mandatory input arguments were provided
 if nargin < 4
-    disp('--armaXLeastSquares: Incorrect number of input arguments!');
+    disp('--armaxLeastSquares: Incorrect number of input arguments!');
     errFlag = 1;
     return
 end
@@ -83,7 +83,7 @@ if ~isstruct(trajOut)
     trajOut.observations = tmp;
     clear tmp
 elseif ~isfield(trajOut,'observations')
-    disp('--armaXLeastSquares: Please input the trajOut in fields "observations"')
+    disp('--armaxLeastSquares: Please input the trajOut in fields "observations"')
     errFlag = 1;
     return
 end
@@ -103,7 +103,7 @@ else %if there is an input series
         trajIn.observations = tmp;
         clear tmp
     elseif ~isfield(trajIn,'observations')
-        disp('--armaXLeastSquares: Please input trajIn in fields ''observations''!')
+        disp('--armaxLeastSquares: Please input trajIn in fields ''observations''!')
         errFlag = 1;
     end
 end
@@ -120,13 +120,13 @@ else %if there is an input series
         wnVector.observations = tmp;
         clear tmp
     elseif ~isfield(wnVector,'observations')
-        disp('--armaXLeastSquares: Please input wnVector in fields ''observations''!')
+        disp('--armaxLeastSquares: Please input wnVector in fields ''observations''!')
         errFlag = 1;
     end
 end
 
 if arOrder < 0
-    disp('--armaXLeastSquares: arOrder should be >= 0!');
+    disp('--armaxLeastSquares: arOrder should be >= 0!');
     errFlag = 1;
 end
 
@@ -134,10 +134,10 @@ if nargin < 5 || isempty(maOrder)
     maOrder = 0;
 else
     if maOrder < 0
-        disp('--armaXLeastSquares: maOrder should be >= 0!');
+        disp('--armaxLeastSquares: maOrder should be >= 0!');
         errFlag = 1;
     elseif maOrder > 0 && isempty(wnVector)
-        disp('--armaXLeastSquares: maOrder > 0 but there is no wnVector!');
+        disp('--armaxLeastSquares: maOrder > 0 but there is no wnVector!');
         errFlag = 1;
     end
 end
@@ -146,10 +146,10 @@ if nargin < 6 || isempty(xOrder)
     xOrder = -1;
 else
     if xOrder < -1
-        disp('--armaXLeastSquares: xOrder should be >= -1!');
+        disp('--armaxLeastSquares: xOrder should be >= -1!');
         errFlag = 1;
     elseif xOrder > -1 && isempty(trajIn)
-        disp('--armaXLeastSquares: xOrder > -1 but there is no trajIn!');
+        disp('--armaxLeastSquares: xOrder > -1 but there is no trajIn!');
         errFlag = 1;
     end
 end
@@ -161,11 +161,11 @@ else
     if isfield(constParam,'ar')
         nCol = size(constParam.ar,2);
         if nCol ~= 2
-            disp('--armaXLeastSquares: constParam.ar should have 2 columns!');
+            disp('--armaxLeastSquares: constParam.ar should have 2 columns!');
             errFlag = 1;
         else
             if min(constParam.ar(:,1)) < 1 || max(constParam.ar(:,1)) > arOrder
-                disp('--armaXLeastSquares: Wrong AR parameter numbers in constraint!');
+                disp('--armaxLeastSquares: Wrong AR parameter numbers in constraint!');
                 errFlag = 1;
             end
         end
@@ -175,11 +175,11 @@ else
     if isfield(constParam,'ma')
         nCol = size(constParam.ma,2);
         if nCol ~= 2
-            disp('--armaXLeastSquares: constParam.ma should have 2 columns!');
+            disp('--armaxLeastSquares: constParam.ma should have 2 columns!');
             errFlag = 1;
         else
             if min(constParam.ma(:,1)) < 1 || max(constParam.ma(:,1)) > maOrder
-                disp('--armaXLeastSquares: Wrong MA parameter numbers in constraint!');
+                disp('--armaxLeastSquares: Wrong MA parameter numbers in constraint!');
                 errFlag = 1;
             end
         end
@@ -189,11 +189,11 @@ else
     if isfield(constParam,'x')
         nCol = size(constParam.x,2);
         if nCol ~= 2
-            disp('--armaXLeastSquares: constParam.x should have 2 columns!');
+            disp('--armaxLeastSquares: constParam.x should have 2 columns!');
             errFlag = 1;
         else
             if min(constParam.x(:,1)) < 0 || max(constParam.x(:,1)) > maOrder
-                disp('--armaXLeastSquares: Wrong X parameter numbers in constraint!');
+                disp('--armaxLeastSquares: Wrong X parameter numbers in constraint!');
                 errFlag = 1;
             end
         end
@@ -207,7 +207,7 @@ if nargin < 8 || isempty(wnVariance) %if no white noise variance was entered
     wnVariance = 0;
 else
     if wnVariance < 0
-        disp('--armaXLeastSquares: White Noise Variance should be nonnegative!');
+        disp('--armaxLeastSquares: White Noise Variance should be nonnegative!');
         errFlag = 1;
     end
 end
@@ -220,7 +220,7 @@ for i=1:numTraj
             trajOut(i).observations = [trajOut(i).observations ...
                 ones(trajLength,1)]; %assume that there is no observational error
         else % if there is more than 2 columns
-            disp('--armaXLeastSquares: "trajOut.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
+            disp('--armaxLeastSquares: "trajOut.observations" should have either 1 column for measurements, or 2 columns: 1 for measurements and 1 for measurement uncertainties!');
             errFlag = 1;
         end
     end
@@ -232,7 +232,7 @@ end
 
 %exit if there are problems in input data
 if errFlag
-    disp('--armaXLeastSquares: Please fix input data!');
+    disp('--armaxLeastSquares: Please fix input data!');
     return
 end
 
@@ -290,13 +290,13 @@ end %(for i = 1:numTraj)
 if isempty(constParam) %if minimization in unconstrained
 
     %estimate ARMAX coefficients
-    armaXCoef = (prevPoints\observations)';
-    arParam = armaXCoef(1:arOrder);
-    maParam = armaXCoef(arOrder+1:arOrder+maOrder);
-    xParam  = armaXCoef(arOrder+maOrder+1:end);
+    armaxCoef = (prevPoints\observations)';
+    arParam = armaxCoef(1:arOrder);
+    maParam = armaxCoef(arOrder+1:arOrder+maOrder);
+    xParam  = armaxCoef(arOrder+maOrder+1:end);
 
     %get vector of weighted residuals
-    epsilon = observations - prevPoints*armaXCoef';
+    epsilon = observations - prevPoints*armaxCoef';
 
     %calculate variance-covariance matrix
     varCovMat.cofactorMat = inv(prevPoints'*prevPoints);
@@ -337,8 +337,8 @@ else %if minimization is constrained
     lagrangeMult = lagrangeMult(sumOrder+1:end);
 
     %get vector of weighted residuals
-    armaXCoef = [arParam maParam xParam]';
-    epsilon = observations - prevPoints*armaXCoef;
+    armaxCoef = [arParam maParam xParam]';
+    epsilon = observations - prevPoints*armaxCoef;
 
     %calculate variance-covariance matrix
     varCovMat.cofactorMat = conCofactMat(1:sumOrder,1:sumOrder);

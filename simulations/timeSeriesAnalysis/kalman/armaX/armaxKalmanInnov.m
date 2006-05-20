@@ -1,9 +1,9 @@
 function [innovation,innovationVar,wnVector,stateVec,stateCov,errFlag] = ...
-    armaXKalmanInnov(trajOut,trajIn,arParam,maParam,xParam,wnVariance)
+    armaxKalmanInnov(trajOut,trajIn,arParam,maParam,xParam,wnVariance)
 %ARMAXKALMANINNOV does forward Kalman prediction and filtering of a time series using an ARMAX model
 %
 %SYNOPSIS [innovation,innovationVar,wnVector,stateVec,stateCov,errFlag] = ...
-%    armaXKalmanInnov(trajOut,trajIn,arParam,maParam,xParam,wnVariance)
+%    armaxKalmanInnov(trajOut,trajIn,arParam,maParam,xParam,wnVariance)
 %
 %INPUT  trajOut   : Trajectory to be modeled (with measurement uncertainties).
 %                   Missing points should be indicated with NaN.
@@ -48,7 +48,7 @@ errFlag = 0;
 
 %check if correct number of arguments was used when function was called
 if nargin < 5
-    disp('--armaXKalmanInnov: Incorrect number of input arguments!');
+    disp('--armaxKalmanInnov: Incorrect number of input arguments!');
     errFlag = 1;
     return
 end
@@ -60,7 +60,7 @@ numMissing = length(find(isnan(trajOut(:,1))));
 %make sure that input and output series have the same length
 if ~isempty(trajIn)
     if size(trajIn,1)~=trajLength
-        disp('--armaXKalmanInnov: Input and output series must have the same length!');
+        disp('--armaxKalmanInnov: Input and output series must have the same length!');
         errFlag = 1;
         return
     end

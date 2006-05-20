@@ -1,8 +1,8 @@
-function [fitResults,errFlag] = armaXFitKalman(trajOut,trajIn,modelParamOrOrder,...
+function [fitResults,errFlag] = armaxFitKalman(trajOut,trajIn,modelParamOrOrder,...
     minOpt)
 %ARMAXFITKALMAN fits a number of ARMAX models to a time series which could depend on another time series.
 %
-%SYNOPSIS [fitResults,errFlag] = armaXFitKalman(trajOut,trajIn,modelParamOrOrder,...
+%SYNOPSIS [fitResults,errFlag] = armaxFitKalman(trajOut,trajIn,modelParamOrOrder,...
 %    minOpt)
 %
 %INPUT
@@ -43,11 +43,11 @@ function [fitResults,errFlag] = armaXFitKalman(trajOut,trajIn,modelParamOrOrder,
 %                          -'tl' for Tomlab local minimizer "ucSolve";
 %                          -'tg' for Tomlab global minimizer "glbFast"' followed
 %                           by Tomlab local minimizer "ucSolve";
-%                          -'nag' for NAG's local minimizerE04JAF.
-%                          Default: 'ml'.
+%                          -'nag' for NAG's local minimizer E04JAF.
+%                          Default: 'tl'.
 %
 %OUTPUT fitResults: Structure array containing fitting results. 
-%                   Will have same dimensions as modelParam. 
+%                   Will have the dimensions indicated in modelParamOrOrder. 
 %                   Contains the fields:
 %           .arParamP0 : Initial guess of parameters related to partial AR coefficients.
 %           .maParamP0 : Initial guess of parameters related to partial MA coefficients.
@@ -62,20 +62,27 @@ function [fitResults,errFlag] = armaXFitKalman(trajOut,trajIn,modelParamOrOrder,
 %           .arParamL  : Estimated AR coefficients using least squares fitting.
 %           .maParamL  : Estimated MA coefficients using least squares fitting.
 %           .xParamL   : Estimated X coefficients using least squares fitting.
-%           .varCovMat : Variance-covariance matrix of ARMAX coefficients, 
+%           .varCovMatL: Variance-covariance matrix of ARMAX coefficients, 
 %                        estimated via least squares fitting.
+%           .varCovMatF: Variance-covariance matrix of ARMAX coefficients,
+%                        estimated via the Fisher Information Matrix.
 %           .wnVariance: Estimated variance of white noise in process.
 %           .wnVector  : Structure array containing the field:
 %               .observations: Estimated white noise series in corresponding 
 %                              trajectory.
 %           .selectCrit: Model selection criterion. Contains 3 fields:
-%               .aic         : Akaike's Information Criterion.
-%               .aicc        : Bias-Corrected Akaike's Information Criterion.
-%               .bic         : Bayesian Information Criterion.
+%               .aic      : Akaike's Information Criterion.
+%               .aicc     : Bias-Corrected Akaike's Information Criterion.
+%               .bic      : Bayesian Information Criterion.
+%           .pVCompKL  : P-value for comparing maximum likelihood estimate
+%                        with least squares estimate.
+%           .pVPort    : P-value from portmanteau test of the uncorrelatedness
+%                        of the white noise series.
+%           .numObserve: Number of observations used in estimation.
 %           .success   : 1 if fitting executed normally, 0 otherwise.
 %       errFlag   : 0 if function executes normally, 1 otherwise.
 %
-%REMARKS Data is fitted using "armaXCoefKalman" beginning with the different
+%REMARKS Data is fitted using armaxCoefKalman beginning with the different
 %        input models.
 %
 %Khuloud Jaqaman, January 2006
@@ -92,7 +99,7 @@ errFlag = 0;
 
 %check whether correct number of input arguments was used
 if nargin < 1
-    disp('--armaXFitKalman: You should AT LEAST supply the output series!');
+    disp('--armaxFitKalman: You should AT LEAST supply the output series!');
     errFlag = 1;
     fitResults = [];
     return
@@ -105,7 +112,7 @@ if ~isstruct(trajOut)
     trajOut.observations = tmp;
     clear tmp
 elseif ~isfield(trajOut,'observations')
-    disp('--armaXFitKalman: Please input trajOut in fields ''observations''!')
+    disp('--armaxFitKalman: Please input trajOut in fields ''observations''!')
     errFlag = 1;
 end
 
@@ -119,7 +126,7 @@ else
         trajIn.observations = tmp;
         clear tmp
     elseif ~isfield(trajIn,'observations')
-        disp('--armaXFitKalman: Please input trajIn in fields ''observations''!')
+        disp('--armaxFitKalman: Please input trajIn in fields ''observations''!')
         errFlag = 1;
     end
 end
@@ -182,7 +189,7 @@ else %if models or model orders were supplied
         %check size of matrix
         [nRow,nCol] = size(modelParamOrOrder);
         if nRow ~= 3 || nCol ~= 2
-            disp('--armaXFitKalman: Matrix indicating range of AR, MA and X orders should be a 3x2 matrix!');
+            disp('--armaxFitKalman: Matrix indicating range of AR, MA and X orders should be a 3x2 matrix!');
             errFlag = 1;
         else
             
@@ -215,14 +222,14 @@ if nargin < 4 || isempty(minOpt) %if minimization option was not input
 else %if minimization option was input, check its value
     if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
             && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
-        disp('--armaXFitKalman: "minOpt" should be either "ml", "tl", "tg" or "nag"!');
+        disp('--armaxFitKalman: "minOpt" should be either "ml", "tl", "tg" or "nag"!');
         errFlag = 1;
     end
 end
 
 %exit if there are problems in input data
 if errFlag
-    disp('--armaXFitKalman: Please fix input data!');
+    disp('--armaxFitKalman: Please fix input data!');
     fitResults = [];
     return
 end
@@ -246,7 +253,7 @@ for k=size(modelParam,3):-1:1
                 %estimate ARMA coeffients and white noise variance
                 [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,...
                     varCovMatL,varCovMatF,wnVariance,wnVector,selectCrit,...
-                    pVCompKL,pVPort,errFlag] = armaXCoefKalman(trajOut,...
+                    pVCompKL,pVPort,errFlag] = armaxCoefKalman(trajOut,...
                     trajIn,arParamP0,maParamP0,xParam0,[],minOpt);
 
             else %if local minimization and initial guess was not supplied
@@ -279,7 +286,7 @@ for k=size(modelParam,3):-1:1
                     [arParamK1,maParamK1,xParamK1,arParamL1,maParamL1,...
                         xParamL1,varCovMatL1,varCovMatF1,wnVariance1,...
                         wnVector1,selectCrit1,pVCompKL1,pVPort1,errFlag1]...
-                        = armaXCoefKalman(trajOut,trajIn,arParamP0,...
+                        = armaxCoefKalman(trajOut,trajIn,arParamP0,...
                         maParamP0,xParam0,[],minOpt);
 
                     if ~isempty(selectCrit1)
@@ -314,6 +321,10 @@ for k=size(modelParam,3):-1:1
 
             end %(if strcmp(minOpt,'tg') || suppliedIG ... else ...)
 
+            %get number of observations used in parameter estimation
+            tmp = vertcat(wnVector.observations);
+            numObserve = length(find(~isnan(tmp(:,1))));
+
             %write output as fields in fitResults
             fitResults(i,j,k) = struct(...
                 'arParamP0',arParamP0,...
@@ -332,6 +343,7 @@ for k=size(modelParam,3):-1:1
                 'selectCrit',selectCrit,...
                 'pVCompKL',pVCompKL,...
                 'pVPort',pVPort,...
+                'numObserve',numObserve,...
                 'success',1-errFlag);
 
         end %(for k=1:size(modelParam,3))

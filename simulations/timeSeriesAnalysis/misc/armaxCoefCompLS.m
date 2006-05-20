@@ -1,18 +1,18 @@
-function [H,pValue,errFlag] = armaXCoefCompLS(armaXCoef1,armaXCoef2,...
+function [H,pValue,errFlag] = armaxCoefCompLS(armaxCoef1,armaxCoef2,...
     varCovMat1,varCovMat2,compOpt,significance)
 %ARMAXCOEFCOMP tests whether the ARMA coefficients of 2 models are different
 %
-%SYNOPSIS [H,pValue,errFlag] = armaXCoefCompLS(armaXCoef1,armaXCoef2,...
+%SYNOPSIS [H,pValue,errFlag] = armaxCoefCompLS(armaxCoef1,armaxCoef2,...
 %    varCovMat1,varCovMat2,compOpt,significance)
 %
 %INPUT  
 %   Mandatory
-%       armaXCoef1  : Structure containing ARMAX coefficients of 1st model:
+%       armaxCoef1  : Structure containing ARMAX coefficients of 1st model:
 %           .arParam      : AR coefficients (row vector).
 %           .maParam      : MA coefficients (row vector).
 %           .xParam       : X coefficients (row vector).
 %   Optional
-%       armaXCoef2  : Same as armaXCoef1, but for 2nd model. If it's a vector
+%       armaxCoef2  : Same as armaxCoef1, but for 2nd model. If it's a vector
 %                     of zeros (i.e. if comparing 1st model to zero), it
 %                     can be entered as []. Default: vector of zeros
 %       varCovMat1  : Variance-covariance matrix corresponding to 1st model:
@@ -56,8 +56,8 @@ errFlag = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check input data
-if nargin < 1 || isempty(armaXCoef1) %if 1st model was not input
-    disp('--armaXCoefCompLS: You must input at least 1 set of ARMA coefficients!');
+if nargin < 1 || isempty(armaxCoef1) %if 1st model was not input
+    disp('--armaxCoefCompLS: You must input at least 1 set of ARMA coefficients!');
     errFlag = 1;
     return
 end
@@ -67,28 +67,28 @@ compOpt_def = 'global';
 significance_def = 0.05;
 
 %check 1st model
-if ~isempty(armaXCoef1.arParam)
-    [nRow,arOrder1] = size(armaXCoef1.arParam);
+if ~isempty(armaxCoef1.arParam)
+    [nRow,arOrder1] = size(armaxCoef1.arParam);
     if nRow ~= 1
-        disp('--armaXCoefCompLS: armaXCoef1.arParam should be a row vector!');
+        disp('--armaxCoefCompLS: armaxCoef1.arParam should be a row vector!');
         errFlag = 1;
     end
 else
     arOrder1 = 0;
 end
-if ~isempty(armaXCoef1.maParam)
-    [nRow,maOrder1] = size(armaXCoef1.maParam);
+if ~isempty(armaxCoef1.maParam)
+    [nRow,maOrder1] = size(armaxCoef1.maParam);
     if nRow ~= 1
-        disp('--armaXCoefCompLS: armaXCoef1.maParam should be a row vector!');
+        disp('--armaxCoefCompLS: armaxCoef1.maParam should be a row vector!');
         errFlag = 1;
     end
 else
     maOrder1 = 0;
 end
-if ~isempty(armaXCoef1.xParam)
-    [nRow,xOrder1] = size(armaXCoef1.xParam);
+if ~isempty(armaxCoef1.xParam)
+    [nRow,xOrder1] = size(armaxCoef1.xParam);
     if nRow ~= 1
-        disp('--armaXCoefCompLS: armaXCoef1.xParam should be a row vector!');
+        disp('--armaxCoefCompLS: armaxCoef1.xParam should be a row vector!');
         errFlag = 1;
     end
     xOrder1 = xOrder1 - 1;
@@ -96,46 +96,46 @@ else
     xOrder1 = -1;
 end
 if arOrder1 == 0 && maOrder1 == 0 && xOrder1 == 0 %exit if no model is of order 0
-    disp('--armaXCoefCompLS: Input for armaXCoef1 not valid!');
+    disp('--armaxCoefCompLS: Input for armaxCoef1 not valid!');
     errFlag = 1;
     return
 end
 
-if nargin < 2 || isempty(armaXCoef2) %if 2nd model was not input
+if nargin < 2 || isempty(armaxCoef2) %if 2nd model was not input
 
     %assign 2nd model to zero (same order as 1st model)
     arOrder2 = arOrder1;
     maOrder2 = maOrder1;
     xOrder2 = xOrder1;
-    armaXCoef2.arParam = zeros(1,arOrder1);
-    armaXCoef2.maParam = zeros(1,maOrder1);
-    armaXCoef2.xParam = zeros(1,xOrder1+1);
+    armaxCoef2.arParam = zeros(1,arOrder1);
+    armaxCoef2.maParam = zeros(1,maOrder1);
+    armaxCoef2.xParam = zeros(1,xOrder1+1);
 
 else %if user specified a 2nd model
     
     %check 2nd model
-    if ~isempty(armaXCoef2.arParam)
-        [nRow,arOrder2] = size(armaXCoef2.arParam);
+    if ~isempty(armaxCoef2.arParam)
+        [nRow,arOrder2] = size(armaxCoef2.arParam);
         if nRow ~= 1
-            disp('--armaXCoefCompLS: armaXCoef2.arParam should be a row vector!');
+            disp('--armaxCoefCompLS: armaxCoef2.arParam should be a row vector!');
             errFlag = 1;
         end
     else
         arOrder2 = 0;
     end
-    if ~isempty(armaXCoef2.maParam)
-        [nRow,maOrder2] = size(armaXCoef2.maParam);
+    if ~isempty(armaxCoef2.maParam)
+        [nRow,maOrder2] = size(armaxCoef2.maParam);
         if nRow ~= 1
-            disp('--armaXCoefCompLS: armaXCoef2.maParam should be a row vector!');
+            disp('--armaxCoefCompLS: armaxCoef2.maParam should be a row vector!');
             errFlag = 1;
         end
     else
         maOrder2 = 0;
     end
-    if ~isempty(armaXCoef2.xParam)
-        [nRow,xOrder2] = size(armaXCoef2.xParam);
+    if ~isempty(armaxCoef2.xParam)
+        [nRow,xOrder2] = size(armaxCoef2.xParam);
         if nRow ~= 1
-            disp('--armaXCoefCompLS: armaXCoef2.xParam should be a row vector!');
+            disp('--armaxCoefCompLS: armaxCoef2.xParam should be a row vector!');
             errFlag = 1;
         end
         xOrder2 = xOrder2 - 1;
@@ -143,7 +143,7 @@ else %if user specified a 2nd model
         xOrder2 = -1;
     end
 
-end %(if nargin < 2 || isempty(armaXCoef2) ... else ...)
+end %(if nargin < 2 || isempty(armaxCoef2) ... else ...)
 
 %get largest orders
 arOrderL = max(arOrder1,arOrder2);
@@ -160,11 +160,11 @@ else %if user specified a var-cov matrix for 1st model
 
     [nRow,nCol] = size(varCovMat1.cofactorMat);
     if nRow ~= nCol || nRow ~= combOrder
-        disp('--armaXCoefCompLS: varCovMat1.cofactorMat should be a square matrix of side length equal to largest AR order + largest MA order!');
+        disp('--armaxCoefCompLS: varCovMat1.cofactorMat should be a square matrix of side length equal to largest AR order + largest MA order!');
         errFlag = 1;
     end
     if varCovMat1.posterioriVar <= 0
-        disp('--armaXCoefCompLS: varCovMat1.posterioriVar should be positive!');
+        disp('--armaxCoefCompLS: varCovMat1.posterioriVar should be positive!');
         errFlag = 1;
     end
 
@@ -179,11 +179,11 @@ else %if user specified a var-cov matrix for 2nd model
 
     [nRow,nCol] = size(varCovMat2.cofactorMat);
     if nRow ~= nCol || nRow ~= combOrder
-        disp('--armaXCoefCompLS: varCovMat2.cofactorMat should be a square matrix of side length equal to largest AR order + largest MA order!');
+        disp('--armaxCoefCompLS: varCovMat2.cofactorMat should be a square matrix of side length equal to largest AR order + largest MA order!');
         errFlag = 1;
     end
     if varCovMat2.posterioriVar <= 0
-        disp('--armaXCoefCompLS: varCovMat2.posterioriVar should be positive!');
+        disp('--armaxCoefCompLS: varCovMat2.posterioriVar should be positive!');
         errFlag = 1;
     end
 
@@ -198,7 +198,7 @@ else %if user specified compOpt
     %check that it's a valid option
     if ~strcmp(compOpt,'global') && ~strcmp(compOpt,'element') && ...
             ~strcmp(compOpt,'AR/MA/X')
-        disp('--armaXCoefCompLS: "compOpt" should be either "global", "element" or "AR/MA/X"!');
+        disp('--armaxCoefCompLS: "compOpt" should be either "global", "element" or "AR/MA/X"!');
         errFlag = 1;
     end
 
@@ -212,7 +212,7 @@ else %if user specified significance level
     
     %check that it's in the correct range
     if significance < 0 || significance > 1
-        disp('--armaXCoefCompLS: "significance level should be between 0 and 1!');
+        disp('--armaxCoefCompLS: "significance level should be between 0 and 1!');
         errFlag = 1;
     end
 
@@ -220,7 +220,7 @@ end %(if nargin < 6 || isempty(significance) ... else ...)
 
 %exit if there are problems in input data
 if errFlag
-    disp('--armaXCoefCompLS: Please fix input data!');
+    disp('--armaxCoefCompLS: Please fix input data!');
     return
 end
 
@@ -236,11 +236,11 @@ constMat2 = [];
 %matrices to update variance-covariance matrix
 arOrderDiff = arOrder2 - arOrder1;
 if arOrderDiff < 0
-    armaXCoef2.arParam = [armaXCoef2.arParam zeros(1,-arOrderDiff)];
+    armaxCoef2.arParam = [armaxCoef2.arParam zeros(1,-arOrderDiff)];
     constMat2 = [zeros(-arOrderDiff,arOrder2) eye(-arOrderDiff) ...
         zeros(-arOrderDiff,maOrderL+xOrderL+1)];
 elseif arOrderDiff > 0
-    armaXCoef1.arParam = [armaXCoef1.arParam zeros(1,arOrderDiff)];
+    armaxCoef1.arParam = [armaxCoef1.arParam zeros(1,arOrderDiff)];
     constMat1 = [zeros(arOrderDiff,arOrder1) eye(arOrderDiff) ...
         zeros(arOrderDiff,maOrderL+xOrderL+1)];
 end
@@ -249,12 +249,12 @@ end
 %matrices to update variance-covariance matrix
 maOrderDiff = maOrder2 - maOrder1;
 if maOrderDiff < 0
-    armaXCoef2.maParam = [armaXCoef2.maParam zeros(1,-maOrderDiff)];
+    armaxCoef2.maParam = [armaxCoef2.maParam zeros(1,-maOrderDiff)];
     constMat2 = [constMat2; zeros(-maOrderDiff,arOrderL) ...
         zeros(-maOrderDiff,maOrder2) eye(-maOrderDiff) ...
         zeros(-maOrderDiff,xOrderL)];
 elseif maOrderDiff > 0
-    armaXCoef1.maParam = [armaXCoef1.maParam zeros(1,maOrderDiff)];
+    armaxCoef1.maParam = [armaxCoef1.maParam zeros(1,maOrderDiff)];
     constMat1 = [constMat1; zeros(maOrderDiff,arOrderL) ...
         zeros(maOrderDiff,maOrder1) eye(maOrderDiff) ...
         zeros(maOrderDiff,xOrderL)];
@@ -264,18 +264,18 @@ end
 %matrices to update variance-covariance matrix
 xOrderDiff = xOrder2 - xOrder1;
 if xOrderDiff < 0
-    armaXCoef2.xParam = [armaXCoef2.xParam zeros(1,-xOrderDiff)];
+    armaxCoef2.xParam = [armaxCoef2.xParam zeros(1,-xOrderDiff)];
     constMat2 = [constMat2; zeros(-xOrderDiff,arOrderL+maOrderL) ...
         zeros(-xOrderDiff,xOrder2+1) eye(-xOrderDiff)];
 elseif xOrderDiff > 0
-    armaXCoef1.xParam = [armaXCoef1.xParam zeros(1,xOrderDiff)];
+    armaxCoef1.xParam = [armaxCoef1.xParam zeros(1,xOrderDiff)];
     constMat1 = [constMat1; zeros(xOrderDiff,arOrderL+maOrderL) ...
         zeros(xOrderDiff,xOrder1+1) eye(xOrderDiff)];
 end
 
 %combine AR, MA and X coefficients for each model
-armaXParam1 = [armaXCoef1.arParam armaXCoef1.maParam armaXCoef1.xParam];
-armaXParam2 = [armaXCoef2.arParam armaXCoef2.maParam armaXCoef2.xParam];
+armaxParam1 = [armaxCoef1.arParam armaxCoef1.maParam armaxCoef1.xParam];
+armaxParam2 = [armaxCoef2.arParam armaxCoef2.maParam armaxCoef2.xParam];
 
 %get new variance-covariance matrices, if needed
 if ~isempty(constMat1)
@@ -306,7 +306,7 @@ switch compOpt
     case 'global' %compare all coefficients at the same time
 
         %calculate vector of differences in coefficients
-        diffM = armaXParam1 - armaXParam2;
+        diffM = armaxParam1 - armaxParam2;
 
         %calculate variance-covariance matrix of difference vector
         diffV = varCovMatT1 + varCovMatT2;
@@ -330,7 +330,7 @@ switch compOpt
     case 'element' %compare one coefficient at a time
 
         %calculate vector of differences in coefficients
-        diffM = armaXParam1 - armaXParam2;
+        diffM = armaxParam1 - armaxParam2;
 
         %calculate variance-covariance matrix of difference vector
         varVec1 = diag(varCovMatT1)';
@@ -360,7 +360,7 @@ switch compOpt
         pValue = H;
         
         %calculate vector of differences in coefficients
-        diffM = armaXParam1 - armaXParam2;
+        diffM = armaxParam1 - armaxParam2;
 
         %AR test
         if arOrderL ~= 0
