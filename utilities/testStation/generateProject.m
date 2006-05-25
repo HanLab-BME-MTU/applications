@@ -1,21 +1,29 @@
-function [synthMovie, slist, idlist, dataProperties,storeDir,data2FileName] = generateProject(projectNumber, positions, inputDataProperties)
+function [synthMovie, slist, idlist, dataProperties,storeDir,...
+    data2FileName] = generateProject(projectNumber, positions, ...
+    inputDataProperties, moveBetweenSlices)
 %GENERATEPROJECT is a utility to generate a synthetic project directory
 %
 % INPUT projectNumber: number/name of movie (moviename: trackTest_#)
 %       positions    : positions (and amplitudes) of tags;
-%                       nTimepoints-by-4-by-nTags array. 
+%                       nTimepoints-by-4-by-nTags array.
 %                       Identical tag positions will lead to a fusion spot.
 %       inputDataProperties : (opt) dataProperties structure with the
 %                               fields you want to have changed.
+%       moveBetweenSlices: (opt) 1 if motion from 1 z-slice to the next is
+%                          considered, 0 otherwise. Default: 0.
 %
 % jonas 3/05
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if nargin < 4 || isempty(moveBetweenSlices)
+    moveBetweenSlices = 0;
+end
 
 % outline
 % 1) check computer, and decide where the data could be found
 % 2) check if the data is already there
 % 3) if yes: load data, return
-% 4) if no: 
+% 4) if no:
 %       - calculate slist, idlist from position array
 %       - generate movie (noise-free)
 %       - save all to file
@@ -59,10 +67,10 @@ else
 end
 
 try
-    
+
     % try to cd to the directory. If not found, we will create a project
     storeDir = [dataPath filesep 'testMovie_' projectString];
-    
+
     % check whether we have a variant. If yes and directory exists, go
     % there directly. If yes and no directory exists, we copy the whole
     % diretory.
@@ -73,31 +81,31 @@ try
         end
         storeDir = storeDirV;
     end
-            
+
     oldDir = cd(storeDir);
-    
-    
+
+
     % find data2-file
     listOfFiles = searchFiles('-data2-','log',pwd,0,'new');
-    
+
     % load data2-file
     data2FileName = listOfFiles{1};
     load(data2FileName);
-    
+
     % load idlist, dataProperties, slist, rawMovie
-    load(data2File.synthIdlist); 
+    load(data2File.synthIdlist);
     load(data2File.synthSlist);
     load(data2File.dataProperties);
     synthMovie = cdLoadMovie({data2File.movieName,'synth'});
-    
+
     cd(oldDir)
-    
+
     % we're done here. return
     return
-    
+
 catch
     [errormsg, msgID] = lasterr;
-    
+
     if strcmp(msgID,'MATLAB:cd:NonExistentDirectory') ||  ~isdir(storeDir)...
             || strcmp(msgID,'MATLAB:load:couldNotReadFile')
         % we continue
@@ -105,7 +113,7 @@ catch
         % something else went wrong
         rethrow(lasterror);
     end
-    
+
 end
 
 %===================
@@ -118,13 +126,15 @@ end
 sptmp = size(positions);
 sp = ones(1,3);
 sp(1:length(sptmp)) = sptmp;
-inputDataProperties.movieSize(4) = sp(1);
+if ~moveBetweenSlices
+    inputDataProperties.movieSize(4) = sp(1);
+end
 
 % assign and possibly update dataProperties
 dataProperties = defaultDataProperties(inputDataProperties);
 
 % make a movie based on the positions (noise free)
-synthMovie = quickSynthMovie(positions, dataProperties);
+synthMovie = quickSynthMovie(positions, dataProperties, moveBetweenSlices);
 % make movie header from data properties
 r3dMovieHeader = getMovieHeader(dataProperties);
 
@@ -135,9 +145,13 @@ pixelSize = repmat([dataProperties.PIXELSIZE_XY,...
 positions(:,1:3,:) = positions(:,1:3,:) .* pixelSize;
 
 % now use positions to create a "pseudo"-slist and an idlist
+if ~moveBetweenSlices
 idlist = positions2Idlist(positions);
 slist  = idlist2slist(idlist);
-
+else
+    idlist = [];
+    slist = [];
+end
 
 
 %==================================
@@ -240,34 +254,42 @@ for t = 1:nTimepoints
         idlist(t).linklist(:,6) = idlist(t-1).linklist(:,3);
         idlist(t-1).linklist(:,7) = idlist(t).linklist(:,3);
     end
-    
+
     % do chi^2=1 and capture all the uncertainty in the q-matrix
     idlist(t).linklist(:,12)=1;
-    
+
     % we can't write in the local noise variance, because there is no noise
     % in the movie yet!
-    
+
     % centroid
     idlist(t).centroid = mean(idlist(t).linklist(:,9:11),1);
-    
+
     % Q-matrices: put 1 here, change according to noise of movie
     qdiag = repmat(1,[1,3*nTags]);
     idlist(t).info.detectQ_Pix = diag(qdiag);
     idlist(t).info.trackQ_Pix = [];
-    
+
 end
 
 %=========================================================================
 
-function synthMovie = quickSynthMovie(positions, dataProperties)
+function synthMovie = quickSynthMovie(positions, dataProperties, moveBetweenSlices)
 %QUICKSYNTHMOVIE calculates a synthetic Gaussian movie
+
+if nargin < 3 || isempty(moveBetweenSlices)
+    moveBetweenSlices = 0;
+end
 
 % collect info
 nTags = size(positions,3);
 
 % preassign movie
 frameSize = dataProperties.movieSize(1:3);
-nTimepoints = size(positions,1);
+if moveBetweenSlices
+    nTimepoints = size(positions,1)/frameSize(3);
+else
+    nTimepoints = size(positions,1);
+end
 synthMovie = zeros([frameSize,1,nTimepoints]);
 
 % calculate size of psf-patch - it has to be at least large enough to
@@ -276,33 +298,79 @@ psfSize = roundOddOrEven(...
     2*sqrt(-2*dataProperties.FILTERPRM(1:3).^2*log(0.01)),'odd','inf');
 hPsf=floor(psfSize/2);
 
-% Loop through timepoints, then through spots. Calculate PSF-patch (we need
-% to because of sub-pixel shift), and put into frame
-for t = 1:nTimepoints
-    for i = 1:nTags
-        
-         % read position, transform to pix
+%if motion between slices is to be considered
+if moveBetweenSlices
+
+    for t = 1:nTimepoints %for all time points
+        for i = 1:nTags %for all tags
+            for j=1:frameSize(3) %for all z-slices
+
+                %read position
+                pos = positions((t-1)*frameSize(3)+j,1:3,i);
+                
+                %determine region where PSF has a significant contribution
+                xCoordMin = max(1,floor(pos(1)-hPsf(1)));
+                xCoordMax = min(frameSize(1),ceil(pos(1)+hPsf(1)));
+                yCoordMin = max(1,floor(pos(2)-hPsf(2)));
+                yCoordMax = min(frameSize(2),ceil(pos(2)+hPsf(2)));
+                zCoordMin = max(1,floor(pos(3)-hPsf(3)));
+                zCoordMax = min(frameSize(3),ceil(pos(3)+hPsf(3)));
+
+                if j >= zCoordMin && j <= zCoordMax
+
+                    %get pixel coordinates in current slice to add intensity to
+                    xCoord = repmat([xCoordMin:xCoordMax]',yCoordMax-yCoordMin+1,1);
+                    yCoord = repmat([yCoordMin:yCoordMax],xCoordMax-xCoordMin+1,1);
+                    yCoord = yCoord(:);
+                    coordList = [xCoord yCoord j*ones(length(xCoord),1)];
+
+                    %make gaussPatch for current slice
+                    psfData = GaussListND(coordList,dataProperties.FILTERPRM(1:3),...
+                        pos)*positions(t,4,i);
+                    psfData = reshape(psfData,xCoordMax-xCoordMin+1,...
+                        yCoordMax-yCoordMin+1);
+
+                    %put into movie - add onto existing intensities
+                    synthMovie(:,:,:,:,t) = ...
+                        pushstamp3d(synthMovie(:,:,:,:,t),...
+                        psfData, [(xCoordMin+xCoordMax)/2 (yCoordMin+yCoordMax)/2 j], 0, 1);
+
+                end
+
+            end
+        end
+    end
+
+else %if motion between slices is not considered
+
+    % Loop through timepoints, then through spots. Calculate PSF-patch (we need
+    % to because of sub-pixel shift), and put into frame
+    for t = 1:nTimepoints
+        for i = 1:nTags
+
+            % read position, transform to pix
             pos = positions(t,1:3,i);
 
             % calculate position within pixel
             posfullpix = floor(pos);
-            
+
             % [0,0,0] is in the center of the center pixel
             subpixelShift = pos - posfullpix;
-            
+
             % make gaussPatch and multiply by amplitude
-             psfData = GaussMask3D(...
-                 dataProperties.FILTERPRM(1:3),psfSize,subpixelShift) *...
-             positions(t,4,i);
-             
+            psfData = GaussMask3D(...
+                dataProperties.FILTERPRM(1:3),psfSize,subpixelShift) *...
+                positions(t,4,i);
+
             % put into movie - add onto existing intensities
             synthMovie(:,:,:,:,t) = ...
                 pushstamp3d(synthMovie(:,:,:,:,t),...
                 psfData, posfullpix, 0, 1);
-            
-    end % loop tags
-end % loop time
 
+        end % loop tags
+    end % loop time
+
+end %(if moveBetweenSlices ... else ...)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % DEFAULTS

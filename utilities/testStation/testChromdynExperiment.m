@@ -21,7 +21,7 @@ function varargout = testChromdynExperiment(test,subTest,localDir)
 %         initial guesses. The movie will be analyzed once with Gaussian,
 %         and once with Posson noise and return movie(1:2).detectorFstats,
 %         movie(1:2).trackerFstats
-%        
+%
 
 
 if nargout
@@ -66,11 +66,11 @@ for currentTest = test
             positions(:,4,:) = 1;
             maxAmplitude = 1;
             minAmplitude = 1;
-% projectNumber = 101;
-% positions(1:2:end,4,:) = 1.1;
-% positions(2:2:end,4,:) = 0.9;
-%             maxAmplitude = 1.1;
-%             minAmplitude = 0.7;
+            % projectNumber = 101;
+            % positions(1:2:end,4,:) = 1.1;
+            % positions(2:2:end,4,:) = 0.9;
+            %             maxAmplitude = 1.1;
+            %             minAmplitude = 0.7;
 
             % load or generate data
             inputDataProperties.movieSize = [64,64,16,13];
@@ -85,11 +85,11 @@ for currentTest = test
 
             % perturb idlist. All frames are separated, but shifted around
             % by 0.1 pixel
-%             nTimepoints = length(idlist);
-%             fuse = [];
+            %             nTimepoints = length(idlist);
+            %             fuse = [];
             %fuse = [[4:nTimepoints]',repmat([2,1],nTimepoints-3,1)];
-%             perturbation = 0; % in pixels - 5/20 nm;
-%             idlist_P = perturbIdlist(idlist,fuse,perturbation, dataProperties);
+            %             perturbation = 0; % in pixels - 5/20 nm;
+            %             idlist_P = perturbIdlist(idlist,fuse,perturbation, dataProperties);
 
             %             labelguiH = labelgui;
             %             label_loadmovieCB(snrMovie,dataProperties.name,pwd);
@@ -97,7 +97,7 @@ for currentTest = test
             %             SetUserData(labelPanelH,dataProperties,1);
             %             label_loadslistCB(idlist_P,'idlist',slist);
             %             uiwait(labelPanelH)
-            
+
             % instead of faking something: make slist, idlist
             filteredMovie = filtermovie(snrMovie,dataProperties.FILTERPRM);
 
@@ -112,7 +112,7 @@ for currentTest = test
             uiwait(labelguiH);
             % theoretically we could read the idlist now
             idlist = LG_readIdlistFromOutside;
-            
+
             if isempty(idlist)
                 return
             end
@@ -120,8 +120,8 @@ for currentTest = test
 
             % run tagTracker
             [idlisttrack,debugData] = tagTracker(snrMovie,idlist,dataProperties,1,struct('fStats',[],'objectiveFunction',1));
-            idlisttrack(1).info.randomState = randomState; 
-            
+            idlisttrack(1).info.randomState = randomState;
+
             labelguiH = LG_loadAllFromOutside(snrMovie,[],[],dataProperties,idlisttrack,'idlisttrack');
 
             % assign output
@@ -426,10 +426,10 @@ for currentTest = test
             [idlistList, sortNumbers] = ...
                 readSynthXlist('idl', dataPath, '_S([\d.]+)_i([\d]+)', [-1,2]);
             idlistList = struct2cell(idlistList);
-            
+
             goodSnrIdx = ismember(sortNumbers(:,1),snrList);
             idlistList = idlistList(goodSnrIdx);
-            
+
             % rows: snr, cols: repeats
             idlistList = reshape(idlistList,nRepeats,nSNR)';
             % goto local dir
@@ -449,12 +449,12 @@ for currentTest = test
             % loop through noise/repeats: run tracker
             [deltaCoord,sigmaPos] = deal(zeros(18,36,length(snrList),nRepeats));
             fitList(1:nSNR,1:nRepeats) = struct('fittingMatrices',[]);
-            
+
             % deltaStartEnd: nTp, nDim+2, nFits, 2 (=start/end), nSnr, nRepeats
             deltaStartEnd = zeros(216,3+2,5,2,length(snrList),nRepeats);
             % exitflag: nTp, nFits, [exitflag, isSuccess]
             exitFlag = zeros(216,5,2,length(snrList),nRepeats);
-            
+
 
             nTotal = nSNR * nRepeats;
             disp(sprintf('time since start: %f',toc));
@@ -463,19 +463,19 @@ for currentTest = test
                 nDone = (iSNR-1) * nRepeats;
                 snr = snrList(iSNR);
                 for k = 1:nRepeats
-                    
+
                     % display status
                     time = toc;
                     if strmatch('6.5',version)
                         nCurrent = nDone + k;
                         disp(sprintf(['snr:%2.1f,'...
-                                ' #:%i, %i/%i, time elapsed at start %f'],...
+                            ' #:%i, %i/%i, time elapsed at start %f'],...
                             snr,k,nCurrent,nTotal,toc));
                     else
                         timeStr = datestr(datenum(num2str(time),'SS'),13);
                         nCurrent = nDone + k;
                         disp(sprintf(['snr:%2.1f,'...
-                                ' #:%i, %i/%i, time elapsed at start %s'],...
+                            ' #:%i, %i/%i, time elapsed at start %s'],...
                             snr,k,nCurrent,nTotal,timeStr));
                     end
 
@@ -587,11 +587,11 @@ for currentTest = test
                     generateProject(movieNumber, positions,inputDataProperties);
 
                 % goto dataPath (we have the right amp already!) to load idlists
-                
+
                 [slistList, sortNumbers] = ...
-            readSynthXlist('slist', [dataPath],...
-            '_A([\d.]+)_S([\d.]+)_i([\d]+)',[1,-2,3]);
-                
+                    readSynthXlist('slist', [dataPath],...
+                    '_A([\d.]+)_S([\d.]+)_i([\d]+)',[1,-2,3]);
+
                 % reshape idlist so that every col is another SNR
                 slistList = struct2cell(slistList);
                 slistList = reshape(slistList,nRepeats,nSNR);
@@ -633,7 +633,7 @@ for currentTest = test
                         % track tags. Use default nSources. No verbosity
                         [idlisttrack,fitList(iSNR,k).fittingMatrices]...
                             = tagTracker(snrMovie,currentIdlist,dataProperties,-1);
-                        
+
                         %LG_loadAllFromOutside(snrMovie,dataPath,[],dataProperties,idlisttrack,'idlisttrack')
 
 
@@ -1010,7 +1010,7 @@ for currentTest = test
 
             nTotal = nSNR * nRepeats;
             tic
-            
+
             fitList(1:nSNR,1:nRepeats) = struct('fittingMatrices',[]);
 
             for iSNR = 1:nSNR
@@ -1085,7 +1085,7 @@ for currentTest = test
             timeStr = datestr(datenum(num2str(time),'SS'),13);
             disp(sprintf(['done. total time elapsed %s'],timeStr));
 
-case 10
+        case 10
             %===load or generate raw movie
 
             % project number 10: in-plane straight approach, equal tag
@@ -1104,64 +1104,161 @@ case 10
             inputDataProperties.movieSize = [64,64,16,41];
             [rawMovie, dummy, dummy, dataProperties] = ...
                 generateProject(projectNumber, positions,inputDataProperties);
-            
+
             % ==========
-            
+
             % check subTest
-            
+
 
             % snr=10
             snr = 10;
-            
+
             out(1:2) = struct('detectorFstats',[],'trackerFstats',[]);
-            
+
             % loop noise
             %for iNoise = 1:2
             for iNoise = 1
-            % 1: gaussian noise
-            % 2: poisson noise
-            [snrMovie,randomState] = addNoise(rawMovie,snr,maxAmplitude,[],iNoise-1);
+                % 1: gaussian noise
+                % 2: poisson noise
+                [snrMovie,randomState] = addNoise(rawMovie,snr,maxAmplitude,[],iNoise-1);
+
+                % instead of faking something: make slist, idlist
+                filteredMovie = filtermovie(snrMovie,dataProperties.FILTERPRM);
+
+                % run spotDetection - get back fStats
+                dataProperties.MAXSPOTS = 2;
+                [slist, dummy, dummy, debugData] = ...
+                    detectSpots(snrMovie, filteredMovie, dataProperties,2,struct('debug',1));
+                % remember fStats
+                out(iNoise).detectorFstats = debugData.fStats;
+
+                idlist = linker(slist,dataProperties,1);
+                idlist(1).info.randomState = randomState;
+
+                labelguiH = LG_loadAllFromOutside(snrMovie,[],[],dataProperties,idlist,'idlist');
+                uiwait(labelguiH);
+                % theoretically we could read the idlist now
+                idlist = LG_readIdlistFromOutside;
+
+                if isempty(idlist)
+                    return
+                end
+                %close(labelguiH);
+
+                % run tagTracker
+                [idlisttrack] = tagTracker(snrMovie,idlist,dataProperties,1);
+
+                %[idlisttrack,debugData] = tagTracker(snrMovie,idlist,dataProperties,1,struct('fStats',[],'objectiveFunction',1));
+                idlisttrack(1).info.randomState = randomState;
+                out(iNoise).trackerFstats = debugData.fStats;
+                out(iNoise).idlisttrack = idlisttrack;
+                out(iNoise).idlist = idlist;
+                out(iNoise).snrMovie = snrMovie;
+                out(iNoise).dataProperties = dataProperties;
+                out(iNoise).filteredMovie = filteredMovie;
+
+            end % for iNoise = 1:2
+
+            % assign output
+            varargout{1} = out;
+            %varargout{3} = idlist_P;
+
+            %==========================================================================
+
+        case 100 %Khuloud's
+            
+            %assign ...
+            projectNumber = 1000; %project number
+            movieLength = 5; %length of movie (in seconds)
+            numZSlices = 16; %number of z-slices
+            timePerSlice = 0.6/numZSlices; %exposure time per z-slice (in seconds)
+            pixelSizeXY = 0.010; %pixel size in x and y (in micrometers)
+            numPixelXY = 70; %number of pixels in x and y
+            
+            %determine number of time points in generated MT length trajectory
+            numPointsIn1s = ceil(1/timePerSlice);
+            numTimePoints = movieLength*numPointsIn1s;
+            
+            %assign simulation parameter values
+            modelParam.growthSpeed = [4 0.3]; %micrometers/minute
+            modelParam.shrinkageSpeed = [4 0.3]; %micrometers/minute
+            modelParam.growthTime = [0.8 0.3]; %seconds
+            modelParam.shrinkageTime = [0.8 0.3]; %seconds
+            
+            %generate MT length trajectory (in micrometers)
+            mtLength0 = mtGammaTdSd(modelParam,0.3,movieLength);
+            
+            %sample trajectory every timePerSlice seconds
+            mtLength = sampleTraj(mtLength0,timePerSlice);
+            mtLength = mtLength(1:numTimePoints,2);
+            
+            %remove from trajectory time points that are not observed
+            mtLength = reshape(mtLength,numPointsIn1s,movieLength);
+            mtLength = mtLength(1:numZSlices,:);
+            mtLength = reshape(mtLength,numZSlices*movieLength,1);
+            numTimePoints = length(mtLength);
+
+            %get SPB and CEN positions (in micrometers)
+            posSpb = zeros(numTimePoints,3); %spindle pole body position
+            posCen = posSpb + [mtLength.*cos(pi/4) ...
+                mtLength.*sin(pi/4) zeros(numTimePoints,1)]; %centromere position
+
+            %             %put SPB and CEN in imaging area (coordinates in pixels)
+            %             scaleMat = [1/pixelSizeXY*ones(numTimePoints,2) ...
+            %                 1/0.2*ones(numTimePoints,1)];
+            %             translateMat = repmat(floor([numPixelXY/3 numPixelXY/3 numZSlices/3]),...
+            %                 numTimePoints,1);
+            %             posSpb = posSpb.*scaleMat + translateMat;
+            %             posCen = posCen.*scaleMat + translateMat;
+
+            %             %put positions and amplitudes in one array
+            %             positions(:,:,1) = [posSpb ones(numTimePoints,1)];
+            %             positions(:,:,2) = [posCen ones(numTimePoints,1)];
+            %             maxAmplitude = 1;
+            %             minAmplitude = 1;
+
+            %put CEN in imaging area (coordinates in pixels)
+            scaleMat = [1/pixelSizeXY*ones(numTimePoints,2) ...
+                1/0.2*ones(numTimePoints,1)];
+            translateMat = repmat(floor([numPixelXY/2 numPixelXY/2 ...
+                numZSlices/2]),numTimePoints,1);
+            posCen = (posCen-repmat(posCen(1,:),numTimePoints,1))...
+                .*scaleMat + translateMat;
+
+            %put positions and amplitudes in one array
+            positions(:,:,1) = [posCen ones(numTimePoints,1)];
+            maxAmplitude = 1;
+            minAmplitude = 1;
+
+            %generate raw movie
+            inputDataProperties.movieSize = [numPixelXY,numPixelXY,...
+                numZSlices,movieLength];
+            inputDataProperties.PIXELSIZE_XY = pixelSizeXY;
+            [rawMovie, slist, idlist, dataProperties] = ...
+                generateProject(projectNumber,positions,inputDataProperties,1);
+
+            snr = 100;
+            % poisson noise
+            [snrMovie,randomState] = addNoise(rawMovie,snr,maxAmplitude);
             
             % instead of faking something: make slist, idlist
-            filteredMovie = filtermovie(snrMovie,dataProperties.FILTERPRM);
+            %             filteredMovie = filtermovie(snrMovie,dataProperties.FILTERPRM);
+            filteredMovie = snrMovie;
 
-            % run spotDetection - get back fStats
+            % run spotDetection
             dataProperties.MAXSPOTS = 2;
-            [slist, dummy, dummy, debugData] = ...
-                detectSpots(snrMovie, filteredMovie, dataProperties,2,struct('debug',1));
-            % remember fStats
-            out(iNoise).detectorFstats = debugData.fStats;
+            [slist] = detectSpots(snrMovie, filteredMovie, dataProperties,2);
 
-            idlist = linker(slist,dataProperties,1);
+            idlist = linker(slist,dataProperties,0);
             idlist(1).info.randomState = randomState;
 
             labelguiH = LG_loadAllFromOutside(snrMovie,[],[],dataProperties,idlist,'idlist');
             uiwait(labelguiH);
             % theoretically we could read the idlist now
             idlist = LG_readIdlistFromOutside;
-            
-            if isempty(idlist)
-                return
-            end
-            %close(labelguiH);
 
-            % run tagTracker
-            [idlisttrack] = tagTracker(snrMovie,idlist,dataProperties,1);
+            varargout{1} = idlist;
 
-            %[idlisttrack,debugData] = tagTracker(snrMovie,idlist,dataProperties,1,struct('fStats',[],'objectiveFunction',1));
-            idlisttrack(1).info.randomState = randomState; 
-            out(iNoise).trackerFstats = debugData.fStats;
-            out(iNoise).idlisttrack = idlisttrack;
-            out(iNoise).idlist = idlist;
-            out(iNoise).snrMovie = snrMovie;
-            out(iNoise).dataProperties = dataProperties;
-            out(iNoise).filteredMovie = filteredMovie;
-            
-            end % for iNoise = 1:2
-
-            % assign output
-            varargout{1} = out;
-            %varargout{3} = idlist_P;
         otherwise
             disp(sprintf('test %i is not defined',currentTest))
     end
@@ -1189,17 +1286,17 @@ if nargin < 5 || isempty(poisson)
 end
 
 if poisson
-    % Have sigma depend on amplitude. 
+    % Have sigma depend on amplitude.
     % var(noise) = var(Gauss) + beta*(I-I0)
     % sigma(noise) = maxAmplitude/SNR
     % In the speckle software, beta is 0.5.
     % Try to choose var(Gauss) so that SNRmovie is equal to SNR where the
     % amplitude is 0.5*maxAmplitude.
-    % Thus: 
+    % Thus:
     sigmaNoise = ...
         sqrt( ((maxAmplitude/snr)^2 - 0.25*maxAmplitude) + 0.5 * rawMovie);
 else
-    % use uniform gaussian noise    
+    % use uniform gaussian noise
     sigmaNoise = maxAmplitude/snr;
 end
 
