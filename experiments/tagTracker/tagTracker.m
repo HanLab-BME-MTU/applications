@@ -505,9 +505,9 @@ while ~isempty(trackPairs)
                     % since we did a subtraction of two noisy signals, the
                     % noise should increase by sqrt(2)
                     % potential improvement: calculate robust second moment
-                    %sigmaResidual2(iTag,iter+1) = (sum(residuals.^2)/(dof*2));
-                    sigmaResidual2init(iTag,1) = (sum(residuals.^2)/(dof*2));
-                    fRatioInit(iTag,1) = sigmaResidual2init(iTag)/movieNoise(currentTarget)^2;
+                    %sigmaResidual2(iTag,iter+1) = (sum(residuals.^2)/(dof));
+                    sigmaResidual2init(iTag,1) = (sum(residuals.^2)/(dof));
+                    fRatioInit(iTag,1) = (sigmaResidual2init(iTag)/2)/movieNoise(currentTarget)^2;
                     fProbInit(iTag,1)  = fcdf(fRatioInit(iTag,1),dof,numel(movieFrame)/2);
 
 %                     %f-test
@@ -647,8 +647,10 @@ while ~isempty(trackPairs)
         % I don't have a good idea on a good way to get individual
         % residuals for the tags, so I just calculate targetInfo again.
         % Also calculate gradient of difference image
+        % !!!! get the jacobian that is actually used during calculation of
+        % the parameters (=filtered)
         [dummy,targetInfo] = extractIntensities(sourceInfo(currentSource,:),...
-            targetInfo,movieFrame,constants,parameters,2);
+            targetInfo,movieFrame,constants,parameters,constants.gradientOption);
 
         % loop. If any one of the tags is bad, we do not keep the frame
         % Future: also check whether the lsqnonlin-optimization came to a
@@ -670,10 +672,10 @@ while ~isempty(trackPairs)
                 % since we did a subtraction of two noisy signals, the
                 % noise should increase by sqrt(2)
                 % potential improvement: calculate robust second moment
-                sigmaResidual2(iTag) = (sum(residuals.^2)/(dof(iTag)*2));
+                sigmaResidual2(iTag) = (sum(residuals.^2)/(dof(iTag)));
 
                 % f-test
-                fRatio(iTag,1) = sigmaResidual2(iTag)/movieNoise(currentTarget)^2;
+                fRatio(iTag,1) = (sigmaResidual2(iTag)/2)/movieNoise(currentTarget)^2;
                 fProb(iTag,1)  = fcdf(fRatio(iTag),dof(iTag),numel(movieFrame)/2);
                 isSuccess = (fProb(iTag) < 0.95) && isSuccess;
 
@@ -897,6 +899,11 @@ for t = [goodTimes';NaN,goodTimes(1:end-1)']
         estimateIdx = idlisttrack(t(1)).linklist(:,3) == 1;
         idlisttrack(t(1)).linklist(estimateIdx,3) = 2;
 
+    else
+    
+    % fill linklist 13-15 with zeros if necessary
+    idlisttrack(t(1)).linklist(:,13:15) = zeros(nTags,3);
+    
     end
 
 

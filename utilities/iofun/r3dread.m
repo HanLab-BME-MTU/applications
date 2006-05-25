@@ -24,23 +24,23 @@ HEADER_SIZE = 1024;
 %test input and assign defaults
 
 %set start to 1 if not exist
-if nargin < 2 | isempty(start)
+if nargin < 2 || isempty(start)
     start=1;
 end
 
 %assign nTimes below, after movie has been read an # of tp are known
 
 %assume 12-bit movie
-if nargin<4 | isempty(MOVIERANGE)
+if nargin<4 || isempty(MOVIERANGE)
     MOVIERANGE = 2^12;
 end
 
 %if no filename, open file selection dialog
-if(nargin==0 | isempty(filename))
+if(nargin==0 || isempty(filename))
    [fname,path]=uigetfile('*.r3d','select image file');
    if(fname(1)==0)
        image=[];
-       fname=[];
+       filename=[];
       return;
    end;
    cd(path);
@@ -92,6 +92,10 @@ firstImage = block(24);
 %skip values to number of time points
 fseek(file,180,-1);
 numTimes=fread(file,1,'short'); 
+% imagesequence is not used at the moment (it's used in readr3dheader).
+% imagesequence can be 0,1,2. If it isn't 2, the code won't read the data
+% properly!
+% imagesequence=fread(fid,1,'short');
 
 % set to all images if not exist
 if nargin < 3 | isempty(nTimes)
