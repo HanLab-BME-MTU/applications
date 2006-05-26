@@ -34,7 +34,7 @@ end
 
 % colormap: because of possible tag selection, we can't assign default here
 if nargin < 4 
-    colorMap = []
+    colorMap = [];
 end
 
 % get idlist info

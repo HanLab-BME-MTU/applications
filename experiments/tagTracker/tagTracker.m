@@ -63,20 +63,51 @@ if nargin < 5 || isempty(dbOpt)
 else
     debug = 1;
     if isstruct(dbOpt)
+        % set number of sources (-to be moved into dataProperties)
         if isfield(dbOpt,'nSources')
             constants.numSources = dbOpt.nSources;
         end
+        % set perturbation of starting positions -> better perturb outside
         if isfield(dbOpt,'deltaInitPos')
             dbDeltaInitPos = dbOpt.deltaInitPos;
         end
+        % set gradient option -> move into dataProperties
         if isfield(dbOpt,'gradientOption')
             constants.gradientOption = dbOpt.gradientOption;
         end
+        % data for the analysis of F-statistics:
+        % structure array (nSources x nTags x nTargets)
+        % .residuals  vector of residuals
+        % .resImSize  size of residual image
+        % .initResiduals  vector of residuals of initial guess
+        % .initResImSize  size of initial residual image
+        % .source     source image
+        % .sourceImSize size of source image
+        % .sigma0     ssq of residuals
+        % .fProb      p-value of f-test
+        % .noise      estimated noise
+        % .df         [n1, n2] degrees of freedom
+        % .info   ct, sourceT, targetT, exitflag, success
         if isfield(dbOpt,'fStats')
             debugData.fStats = [];
         end
+        % tbd
         if isfield(dbOpt,'objectiveFunction')
             debugData.objectiveFunction = 1;
+        end
+        % track results:
+        % structure array (nSources x nTags x nTargets)
+        % .startEndDelta 2x3 array with start delta, end delta
+        % .sigma0 2x1 vector with start/end ssq of residuals
+        % .info   ct, sourceT, targetT, exitflag, success
+        % (in caller: add fields like deltaStartEndDelta as comparison to
+        % reality)
+        if isfield(dbOpt,'trackResults')
+            debugData.trackResults = [];
+        end
+        % fitting matrices, Qout, mse
+        if isfield(dbOpt,'fitStats')
+            debugData.fitStats = [];
         end
     end
 end
@@ -318,25 +349,61 @@ fittingIdx = sourceList(end);
 
 
 % DEBUG
-if debug
-    % startEndDelta remembers the starting and the end position, and the
-    % frames used
-    startEndDelta = zeros(nTimepoints, 3*nTags + 2, constants.numSources,2);
-    % extiFlag remembers the exit flags.
-    exitFlag = repmat(NaN,[nTimepoints,constants.numSources,2]);
-else
-    startEndDelta = [];
+if debug && isfield(debugData,'trackResults')
+
+    % track results:
+    % structure array (nSources x nTags x nTargets)
+    % .startEndDelta 2x3 array with start delta, end delta
+    % .sigma0 2x1 vector with start/end ssq of residuals
+    % .info   ct, sourceT, targetT, exitflag, success
+    % (in caller: add fields like deltaStartEndDelta as comparison to
+    % reality)
+
+    tmp(1:nSources,1:nTags,1:constants.numSources) = ...
+        struct('startEndDelta',zeros(2,3),'sigma0',zeros(2,1),...
+        'info',zeros(1,5));
+    debugData.trackResults = tmp;
+    clear tmp
+end
+if debug && isfield(debugData,'fStats')
+
+    % data for the analysis of F-statistics:
+    % structure array (nSources x nTags x nTargets)
+    % .residuals  vector of residuals
+    % .resImGoodIdx
+    % .initResiduals  vector of residuals of initial guess
+    % .initResGoodIdx
+    % .source     source image
+    % .sourceImSize size of source image
+    % .statistics  fprob, sigma0, targetNoise, n1, n2
+    % .initStatistics  fprob, sigma0, targetNoise, n1, n2
+    % .info   ct, sourceT, targetT, exitflag, success
+
+    tmp(1:nSources,1:nTags,1:constants.numSources) = ...
+        struct('residuals',[],'resImGoodIdx',[],'initResiduals',[],...
+        'initResImGoodIdx',[],'source',[],'sourceImSize',[],...
+        'sigma0',[],'statistics',zeros(1,5),...
+        'initStatistics',zeros(1,5),'info',zeros(1,5));
+    debugData.fStats = tmp;
+    clear tmp
+
+    % fill source images
+    [debugData.fStats(:,:,1).source] = ...
+        deal(sourceInfo(sourceList,:).intList);
+    [debugData.fStats(:,:,1).sourceImSize] = ...
+        deal(sourceInfo(sourceList,:).size);
+
 end
 
-% also debug
-if isfield(debugData,'fStats')
-    debugData.fStats=cell(nTrackPairs,1);
-end
 
+% initialize counter for tracking (needed for debugging and display)
 ct = 0;
+
+movieFrameSize = prod(dataProperties.movieSize(1:3));
+
+% loop through trackPairs. Use the ~isempty approach in case we switch to
+% tracking until we find a match or something similar
 while ~isempty(trackPairs)
-
-
 
     % select the part in the strategy which tracks the same target
     currentTarget = trackPairs(1,2);
@@ -362,31 +429,22 @@ while ~isempty(trackPairs)
         targetInfo(1).backgroundVariance = movieNoise(currentTarget)^2;
     end
 
-    % prepare loop
+    % prepare loop.
     successfulFits = 0;
 
     if debug
-        % iTry counts the number of attempts made to track this target
-        iTry = 0;
+        % sourceIdx is needed for fStats and trackResults
+        targetIdx = 0;
     end
-
-%     if currentTarget == 40
-%         1
-%     end
-
 
     % loop through currentStrategy until it is empty or we have found
     % enough sources
     while ~isempty(currentStrategy) && ...
             (constants.numSources - targetIsSource - successfulFits > 0)
 
-        % have a counter for trackPairs - oops, there is already one.
-        % Whatever.
+        % count the track pair
         ct = ct + 1;
 
-        if debug
-            iTry = iTry +1;
-        end
 
         % get current source
         currentSource = currentStrategy(1,1);
@@ -396,10 +454,14 @@ while ~isempty(trackPairs)
             disp(trackingMsg)
         end
 
-        % even though we don't need an initial guess for global
-        % optimization, we calculate it to get the lower and upper bounds
-        % (detected tag: delta to detected pos +/- 5 * sigma
-        %  lost tag: delta to estimated pos +/- diffusion-radius)
+        if debug
+            % sourceIdx is needed for fStats and trackResults
+            sourceIdx = currentSource == sourceList;
+            targetIdx = targetIdx + 1;
+        end
+
+        % read initial parameters, and search radius
+        % - search radius is not used right now
 
         [initialParameters, radius] = ...
             deal(zeros(3 * nTags,1));
@@ -414,16 +476,8 @@ while ~isempty(trackPairs)
                 targetInfo(iTag).searchRadius;
         end
 
-
-
-        if debug
-            % store initalParameters
-            startEndDelta(currentTarget,:,iTry,1) = ...
-                [initialParameters', currentTarget, currentSource];
-        end
-
         Jacobian = [];
-        
+
         % initial sigmaResidual2 for each tag - calculate here in the
         % future
         [sigmaResidual2init,fRatioInit,fProbInit] = deal(zeros(nTags,1));
@@ -447,30 +501,21 @@ while ~isempty(trackPairs)
                         'Display','off','TolX',1E-3,'TolFun',1E-20,...
                         'TolPCG',0.01);
                 end
-                % generate anonymous function of parameters calling
-                % track_lsqnonlinFitFcn
-
-                %                 % debug - make movie of convergence
-                %                 if ~evalin('base','exist(''ct'',''var'')')
-                %                     assignin('base','ct',0);
-                %                 end
-                %                 evalin('base','ct = ct + 1;');
-                %                 ct = evalin('base','ct');
-                %                 disp(sprintf('%i',ct))
 
 
                 % debug still:
                 constants.movieNoise = movieNoise;
                 constants.currentTarget = currentTarget;
-                constants.gradientOption = 2;
 
+                % generate anonymous function of parameters calling
+                % track_lsqnonlinFitFcn
                 optimFcn = @(parameters) (track_lsqnonlinFitFcn(...
                     parameters,sourceInfo(currentSource,:),targetInfo,movieFrame,constants));
                 [parameters,resnorm,residuals,xfl,output,lambda,Jacobian] = ...
                     lsqnonlin(optimFcn ,initialParameters,...
                     lowerBound,upperBound,options);
                 % set Jacobian to [] to use the unfiltered gradient
-                Jacobian = [];
+                % Jacobian = [];
                 if debug
                     % store exitflag
                     exitFlag(currentTarget,iTry,1) = xfl;
@@ -481,8 +526,8 @@ while ~isempty(trackPairs)
                 % individually for each tag
 
                 % loop settings
-                maxIter = 100;
-                maxDelta = 0.01;
+                maxIter = 100; % maximum number of iterations
+                maxDelta = 0.01; % if the tags move less than this, quit
 
                 % prepare fitting loop
                 parameters = initialParameters;
@@ -492,43 +537,46 @@ while ~isempty(trackPairs)
                 xfl = 0; % exitflag. 0=no convergence
 
                 %%%%%%%%%%%%%%%%%%%%%
-                % debug
+                %  mostly debug
                 %
-                % get latest targetInfo
+                % get initial targetInfo
                 [sourceInfo(currentSource,:), targetInfo] = ...
                     extractIntensities(sourceInfo(currentSource,:), targetInfo,...
                     movieFrame, constants, parameters, constants.gradientOption);
+
+                % find ssq of residuals to later compare to tracking
+                % result
                 for iTag = 1:nTags
                     residuals = ...
                         targetInfo(iTag).deltaInt(targetInfo(iTag).goodIdx);
-                    dof = length(residuals)-length(parameters);
+                    dofInit(iTag,1) = length(residuals)-length(parameters);
                     % since we did a subtraction of two noisy signals, the
                     % noise should increase by sqrt(2)
                     % potential improvement: calculate robust second moment
-                    %sigmaResidual2(iTag,iter+1) = (sum(residuals.^2)/(dof));
-                    sigmaResidual2init(iTag,1) = (sum(residuals.^2)/(dof));
+                    sigmaResidual2init(iTag,1) = (sum(residuals.^2)/(dofInit(iTag,1)));
                     fRatioInit(iTag,1) = (sigmaResidual2init(iTag)/2)/movieNoise(currentTarget)^2;
-                    fProbInit(iTag,1)  = fcdf(fRatioInit(iTag,1),dof,numel(movieFrame)/2);
+                    fProbInit(iTag,1)  = fcdf(fRatioInit(iTag,1),dofInit(iTag,1),movieFrameSize);
 
-%                     %f-test
-%                     fRatio = sigmaResidual2(iTag,iter+1)/movieNoise(currentTarget)^2;
-%                     fProb  = fcdf(fRatio,dof,numel(movieFrame)/2);
-%                     isSuccess(iTag) = fProb < 0.95;
+                    %                     %f-test
+                    %                     fRatio = sigmaResidual2(iTag,iter+1)/movieNoise(currentTarget)^2;
+                    %                     fProb  = fcdf(fRatio,dof,movieFrameSize/2);
+                    %                     isSuccess(iTag) = fProb < 0.95;
+
+                    % debug
+                    if debug && isfield(debugData,'fStats')
+
+                        % store init - stuff
+                        debugData.fStats(sourceIdx,iTag,targetIdx).initResiduals = residuals;
+                        debugData.fStats(sourceIdx,iTag,targetIdx).initResImGoodIdx = targetInfo(iTag).goodIdx;
+                        debugData.fStats(sourceIdx,iTag,targetIdx).initStatistics = ...
+                            [fProbInit(iTag), sigmaResidual2Init(iTag), movieNoise(currentTarget).^2,...
+                            dofInit(iTag),movieFrameSize];
+
+                    end
 
                 end
-%                 %                 disp(sprintf(['isSuccess ',...
-%                 %                     repmat('%i ',1,nTags+1), ...
-%                 %                     repmat('%f ',1,nTags)],...
-%                 %                     isSuccess,all(isSuccess),sigmaResidual2(:,iter+1)))
-%                 %
-%                 %                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                 %
-%                 %
-%                 %                 disp(sprintf(['%i: parameters =',...
-%                 %                     repmat(' %1.4f',1,length(parameters(:)))],iter,initialParameters'+cat(2,sourceInfo(currentSource,:).centerCoord))
-%                 disp(sprintf(['%3.0f: res =',repmat(' %1.4E',1,nTags),...
-%                     ' (%i%i), xyz =',...
-%                     repmat(' %1.4f',1,length(parameters(:)))],iter,sigmaResidual2(:,iter+1),isSuccess,parameters'+cat(2,sourceInfo(currentSource,:).centerCoord)))
+
+                %                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
                 % Loop until either 100 iterations, or no tag moved by more than 0.05 pix
@@ -581,67 +629,24 @@ while ~isempty(trackPairs)
                         % one.
                         xfl = iter - convergeIdx(end) + 1;
                     end
+                end % Dom optimization loop
 
 
+        end % switch tracking algorithm
 
-%                     % --- debug
-%                     [sourceInfo(currentSource,:), targetInfo] = ...
-%                         extractIntensities(sourceInfo(currentSource,:), targetInfo,...
-%                         movieFrame, constants, parameters, constants.gradientOption);
-%                     for iTag = 1:nTags
-%                         residuals = ...
-%                             targetInfo(iTag).deltaInt(targetInfo(iTag).goodIdx);
-%                         dof = length(residuals)-length(parameters);
-%                         % since we did a subtraction of two noisy signals, the
-%                         % noise should increase by sqrt(2)
-%                         % potential improvement: calculate robust second moment
-%                         sigmaResidual2(iTag,iter+1) = (sum(residuals.^2)/(dof*2));
-% 
-%                         % f-test
-%                         fRatio = sigmaResidual2(iTag,iter+1)/movieNoise(currentTarget)^2;
-%                         fProb  = fcdf(fRatio,dof,numel(movieFrame)/2);
-%                         isSuccess(iTag) = fProb < 0.95;
-% 
-%                     end
-% 
-%                     % store movie in base
-%                     %trackerDebugMakeMovie(sourceInfo(currentSource,:),targetInfo)
-%                     % debug
-%                     disp(sprintf(['%3.0f: res =',repmat(' %1.4E',1,nTags),...
-%                         ' (%i%i), xyz =',...
-%                         repmat(' %1.4f',1,length(parameters(:)))],iter,...
-%                         sigmaResidual2(:,iter+1),isSuccess,...
-%                         parameters'+cat(2,sourceInfo(currentSource,:).centerCoord)))
-% 
-%                     %                     disp(sprintf(['isSuccess ',...
-                    %                         repmat('%i ',1,nTags+1), ...
-                    %                         repmat('%f ',1,nTags)],...
-                    %                         isSuccess,all(isSuccess),sigmaResidual2(:,iter+1)))
-                end
 
-        end
-
-        %         figure('Name',trackingMsg),subplot(1,2,1),plot(sigmaResidual2');
-        %         subplot(1,2,2),plot(oldParameters(:,1:iter)');
-                %if isfield(debugData,'objectiveFunction') && debugData.objectiveFunction == 1
-        
-%                 trackerObjectiveFunction(...
-%                     movieFrame,sourceInfo(currentSource,:),targetInfo,...
-%                     initialParameters,constants,parameters,movieNoise(currentTarget));
-%                 set(gcf,'Name',sprintf('Optim %i',ct));
-                %end
+        %                 trackerObjectiveFunction(...
+        %                     movieFrame,sourceInfo(currentSource,:),targetInfo,...
+        %                     initialParameters,constants,parameters,movieNoise(currentTarget));
+        %                 set(gcf,'Name',sprintf('Optim %i',ct));
+        %end
 
         %         if any(ct == [185,195,225,505])
         %         trackerObjectiveFunctionBig(...
         %             movieFrame,sourceInfo(currentSource,:),targetInfo,...
         %             initialParameters,constants,parameters,movieNoise(currentTarget));
         %         end
-        if debug
-            % store startEndDelta - even if it won't be accepted
-            % eventually. But that's what exitFlag is useful for.
-            startEndDelta(currentTarget,:,iTry,2) =...
-                [parameters',0,0];
-        end
+
 
         % check output
         % I don't have a good idea on a good way to get individual
@@ -658,13 +663,13 @@ while ~isempty(trackPairs)
         % xfl: current exitFlag
         sigmaResidual2 = zeros(nTags,1);
         if xfl > 0
-            
+
             dof = zeros(nTags,1);
             isSuccess = 1;
             iTag = 0;
             %             while isSuccess && iTag < nTags
-            while iTag < nTags
-                iTag = iTag + 1;
+            for iTag = 1:nTags
+
                 % use only residuals of Gauss!
                 residuals = ...
                     targetInfo(iTag).deltaInt(targetInfo(iTag).goodIdx);
@@ -676,21 +681,23 @@ while ~isempty(trackPairs)
 
                 % f-test
                 fRatio(iTag,1) = (sigmaResidual2(iTag)/2)/movieNoise(currentTarget)^2;
-                fProb(iTag,1)  = fcdf(fRatio(iTag),dof(iTag),numel(movieFrame)/2);
+                fProb(iTag,1)  = fcdf(fRatio(iTag),dof(iTag),movieFrameSize); %removed /2 for n-noise
                 isSuccess = (fProb(iTag) < 0.95) && isSuccess;
 
-                %isSuccess = acceptMatch(...
-                %    movieNoise(currentTarget),sigmaResidual,dof);
-            end
+                % debug
+                if debug && isfield(debugData,'fStats')
+
+                    debugData.fStats(sourceIdx,iTag,targetIdx).residuals = residuals;
+                    debugData.fStats(sourceIdx,iTag,targetIdx).resImGoodIdx = targetInfo(iTag).goodIdx;
+                    debugData.fStats(sourceIdx,iTag,targetIdx).statistics = ...
+                        [fProb(iTag), sigmaResidual2(iTag), movieNoise(currentTarget).^2,...
+                        dof(iTag),movieFrameSize];
+
+                end
 
 
-            if isfield(debugData,'fStats')
-                % collect f-statistics
-                % fprob, fratio, df1, df2, movieNoise
-                debugData.fStats{ct} = [fProb, fRatio, dof, ...
-                    repmat([numel(movieFrame)/2 , ...
-                    movieNoise(currentTarget)],nTags,1)];
             end
+
 
 
         else
@@ -698,22 +705,46 @@ while ~isempty(trackPairs)
             fProb = -1;
         end
 
+
+        % debug
+        if debug && isfield(debugData,'trackResults')
+            for iTag = 1:nTags
+                debugData.trackResults(sourceIdx,iTag,targetIdx).startEndDelta =...
+                    [initialParameters((iTag-1)*3+1:iTag*3);...
+                    parameters((iTag-1)*3+1:iTag*3)];
+                debugData.trackResults(sourceIdx,iTag,targetIdx).sigma0(1) = ...
+                    sigmaResidual2Init(iTag);
+
+                if isSuccess
+                    debugData.trackResults(sourceIdx,iTag,targetIdx).sigma0(2) = ...
+                        sigmaResidual2(iTag);
+                end
+            end
+
+        end
+
+
         % !!!!!!!!!!!!!!!!!!!!
-        % set success to 1
-        isSuccess = 1;
-        
+
         % set success to 1 if the sum of sigmaResidual2 has been lowered
         if (sum(sigmaResidual2) < sum(sigmaResidual2init)) && all(fProb > 0)
             isSuccess = 1;
         else
             isSuccess = 0;
         end
-        
 
-        %         if debug
-        %             % store pValue - negative if no success
-        %             exitFlag(currentTarget,iTry,2) = sign(isSuccess-0.5)*max(fProb);
-        %         end
+        % debug - store .info
+        if debug
+            if isfield(debugData,'trackResults')
+                debugData.trackResults(sourceIdx,iTag,targetIdx).info = ...
+                    [ct, currentSource,currentTarget, xfl, success];
+            end
+            if isfield(debugData,'fStats')
+                debugData.fStats(sourceIdx,iTag,targetIdx).info = ...
+                    [ct, currentSource,currentTarget, xfl, success];
+            end
+        end
+
 
         if constants.verbose > 0
             disp(sprintf(['init =',repmat(' %1.4f',1,length(parameters(:))),...
@@ -722,12 +753,12 @@ while ~isempty(trackPairs)
                 initialParameters'+cat(2,sourceInfo(currentSource,:).centerCoord),...
                 sigmaResidual2init',...
                 fProbInit'))
-disp(sprintf(['end  =',repmat(' %1.4f',1,length(parameters(:))),...
+            disp(sprintf(['end  =',repmat(' %1.4f',1,length(parameters(:))),...
                 ' res =',repmat(' %1.4E',1,nTags),...
                 ' prob =',repmat(' %1.4f',1,nTags)],...
                 parameters'+cat(2,sourceInfo(currentSource,:).centerCoord),...
                 sigmaResidual2',...
-                fProb'))        
+                fProb'))
         end
         if constants.verbose > -1
             ans ={'no success', 'success'};
@@ -793,7 +824,7 @@ end % while ~isempty trackingStrategy
 % since all A-matrices are the same, we can find the failIdx on a single
 % one
 failIdx = (all(~fittingMatrices(1).A(:,:,1),1));
-goodIdx = [1:nTimepoints]';
+goodIdx = (1:nTimepoints)';
 goodIdx(failIdx) = [];
 
 % because of the way the new lscov is coded, it cannot cope with zero-rows
@@ -832,19 +863,23 @@ outputQmatrixDiag(goodIdx,:,:) = ...
 % end
 
 % if debug: shorten the matrices so that it isn't insanely big
-if nargout > 1
+if debug && isfield(debugData,'fitStats')
     for iTag=1:nTags
         fittingMatrices(iTag).A = ...
-            sparse(fittingMatrices(iTag).A(1:fittingIdx,:,:));
+            sparse(fittingMatrices(iTag).A(goodRows,:,1));
         fittingMatrices(iTag).B = ...
-            fittingMatrices(iTag).B(1:fittingIdx,:,:);
+            fittingMatrices(iTag).B(goodRows,:,:);
         fittingMatrices(iTag).V = ...
-            fittingMatrices(iTag).V(1:fittingIdx,:,:);
+            fittingMatrices(iTag).V(goodRows,:,:);
     end
     % all A-matrices are identical
     for iTag=2:nTags
         fittingMatrices(iTag).A = [];
     end
+    debugData.fitStats.fittingMatrices = fittingMatrices;
+    debugData.fitStats.mse = mse;
+    debugData.fitStats.outputQmatrixDiags = outputQmatrixDiags;
+    debugData.fitStats.goodIdx = goodIdx;
 end
 
 %===================================
@@ -857,7 +892,6 @@ end
 % entry wherever we had a lasting problem
 
 idlisttrack = idlist;
-lastGoodTime = [];
 
 for t = [goodTimes';NaN,goodTimes(1:end-1)']
     if any(t(1)==goodIdx)
@@ -881,14 +915,14 @@ for t = [goodTimes';NaN,goodTimes(1:end-1)']
         % and so that we conserve the sigma0 to get the correct intensities
         newQdiag = squeeze(outputQmatrixDiag(t(1),:,:))./repmat(idlisttrack(t(1)).linklist(:,12),[1,3])';
         idlisttrack(t(1)).info.totalQ_Pix = diag(newQdiag(:));
-        
+
         % write sigma0 of the tracker. Since it differs depending on the
         % dimension, we have to add cols 13:15
-        idlisttrack(t(1)).linklist(:,13:15) = squeeze(mse(t(1),:,:))'; 
-        
+        idlisttrack(t(1)).linklist(:,13:15) = squeeze(mse(t(1),:,:))';
+
         % write list of sources
         targetIdx=fittingMatrices(1).A(:,t(1),1) == 1;
-[dummy, sourceList]=find(fittingMatrices(1).A(targetIdx,:,1)==-1);
+        [dummy, sourceList]=find(fittingMatrices(1).A(targetIdx,:,1)==-1);
         idlisttrack(t(1)).info.sourceList = sourceList;
 
         % write new spotNum
@@ -900,10 +934,10 @@ for t = [goodTimes';NaN,goodTimes(1:end-1)']
         idlisttrack(t(1)).linklist(estimateIdx,3) = 2;
 
     else
-    
-    % fill linklist 13-15 with zeros if necessary
-    idlisttrack(t(1)).linklist(:,13:15) = zeros(nTags,3);
-    
+
+        % fill linklist 13-15 with zeros if necessary
+        idlisttrack(t(1)).linklist(:,13:15) = zeros(nTags,3);
+
     end
 
 

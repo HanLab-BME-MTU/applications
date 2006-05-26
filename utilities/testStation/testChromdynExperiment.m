@@ -963,6 +963,8 @@ for currentTest = test
             % - positions
             % - movie (generateProject)
             projectNumber = 102;
+            
+            error('can''t use test9')
 
             % load 10 positions
             positions = loadPositions(projectNumber);
@@ -1162,6 +1164,117 @@ for currentTest = test
             % assign output
             varargout{1} = out;
             %varargout{3} = idlist_P;
+            
+        case 11 
+            
+            % 16 spots, all independent, moving within 1/8th of a voxel 
+            % Do at 5 SNRs: 50,15,10,5,2.5
+
+            % load project stuff (902) - movie is 80x80x10x216
+            % - positions
+            % - movie (generateProject)
+            projectNumber = 902;
+            
+           
+            % load positions
+            positions = loadPositions(projectNumber);
+
+            % leave amplitudes at 1
+            maxAmplitude = 1;
+
+            % generate/load movie. Don't forget to supply movieSize
+            inputDataProperties.movieSize = [80,80,10,216];
+            [rawMovie, dummy, dummy, dataProperties, dataPath, data2Name] = ...
+                generateProject(projectNumber, positions,inputDataProperties);
+            cd(dataPath);
+            micron2pixel = 1./[dataProperties.PIXELSIZE_XY,...
+                dataProperties.PIXELSIZE_XY,...
+                dataProperties.PIXELSIZE_Z];
+
+            % define SNR, repeats, nSources
+            snrList = [50,15,10,5,2.5];
+            if nargin > 1 && ~isempty(subTest) && subTest > 0
+                snrList = snrList(subTest);
+            end
+            nSNR = length(snrList);
+            
+            % goto local dir
+            if ~isempty(localDir)
+                cd(localDir)
+                copyfile([dataPath, filesep, data2Name]);
+            else
+                cd(dataPath);
+            end
+
+            nRepeats = 1;
+            nTotal = nSNR;
+            tic
+            
+            
+            for iSNR = 1:nSNR
+                % calculate number of already done evaluations
+                nDone = (iSNR-1) * nRepeats;
+                snr = snrList(iSNR);
+                for k = 1:nRepeats
+
+                    % display status
+                    time = toc;
+                    timeStr = datestr(datenum(num2str(time),'SS'),13);
+                    nCurrent = nDone + k;
+                    disp(sprintf(['snr:%2.1f,'...
+                        ' #:%i, %i/%i, time elapsed at start %s'],...
+                        snr,k,nCurrent,nTotal,timeStr));
+
+                    % add noise
+                    [snrMovie,randomState] = addNoise(rawMovie,snr,...
+                        maxAmplitude);
+                    
+                    % instead of faking something: make slist, idlist
+                filteredMovie = filtermovie(snrMovie,dataProperties.FILTERPRM);
+
+                % run spotDetection - get back fStats
+                dataProperties.MAXSPOTS = 16;
+                [slist] = ...
+                    detectSpots(snrMovie, filteredMovie, dataProperties,0);
+                idlist = linker(slist,dataProperties,0);
+                idlist(1).info.randomState = randomState;
+
+labelguiH = LG_loadAllFromOutside(snrMovie,[],[],dataProperties,idlist,'idlist');
+                uiwait(labelguiH);
+                % theoretically we could read the idlist now
+                idlist = LG_readIdlistFromOutside;
+
+                    % track tags. Use default nSources
+                    dbOpt.fStats = [];
+                    dbOpt.fitStats = [];
+                    dbOpt.trackResults = [];
+                    [idlisttrack, debugData] =...
+                        tagTracker(snrMovie,idlist,...
+                        dataProperties,0,dbOpt);
+                    
+                   
+
+                    % save idlisttrack in data2-List as
+                    % idlisttrack_NS#_S#_i#.mat (# sources, snr, iteration)
+                    idlisttrackName = sprintf('idlisttrack_NS%i_S%1.2f_i%i.mat', 5, snr, k);
+                    idlisttrack(1).info.randomState = randomState;
+                    saveData2(data2Name,idlisttrackName,idlisttrack);
+                    
+                    debugDataName = sprintf('debugData_P%i_S%1.2f.mat',projectNumber,snr);
+                    save(debugDataName,debugData);
+
+                end % loop 1x
+            end % loop SNR
+
+           
+            % move everything to dataPath
+            if ~isempty(localDir)
+                movefile([localDir,filesep,'*'],dataPath,'f');
+            end
+
+            time = toc;
+            timeStr = datestr(datenum(num2str(time),'SS'),13);
+            disp(sprintf(['done. total time elapsed %s'],timeStr));
 
             %==========================================================================
 

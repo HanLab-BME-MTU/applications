@@ -98,6 +98,38 @@ switch projectNumber
         end
 
         positions = cat(3,spbPosition,cenPosition);
+        
+    case 902
+        
+       % 16 spots, all far from each other. Positions randomly assume one
+       % of the 216 points on the 1/8th voxel grid
+       % 80x80x10x216 movie
+       
+       % remember random state
+       randomState = rand('state');
+       
+       % set random state to 1
+       rand('state',1);
+       
+       % find sub-voxel positions. Z will always be around 5
+       [x,y,z]=ndgrid(0:0.1:0.5,0:0.1:0.5,5:0.1:5.5);
+       
+       % position matrix is 216 x 4 x 16
+       positions = [zeros(216,3,16),ones(216,1,16)];
+       
+       % centers are at 10, 30, 50, and 70 pixels
+       [u,v]=ndgrid(10:20:70);
+       
+       % loop through 16 spots and place
+       for i=1:16
+           positions(:,1,i) = x(randperm(216)') + u(i);
+           positions(:,2,i) = y(randperm(216)') + v(i);
+           positions(:,3,i) = z(randperm(216)');
+       end
+       
+       % set random state back to where it was
+       rand('state',randomState);
+       
 
     otherwise
         disp(sprintf('project number %i is not defined',currentTest))

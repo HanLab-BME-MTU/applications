@@ -1,5 +1,15 @@
 function idlist = LG_deleteSpot(idlist,currentTime,spotNumber,dataProperties,goodTimes)
 %LG_deleteSpot deletes individual spots within labelgui2
+% 
+% SYNOPSIS  idlist = LG_deleteSpot(idlist,currentTime,spotNumber,dataProperties,goodTimes)
+%
+% INPUT     idlist - idlist
+%           currentTime - time where a spot is to be deleted
+%           spotNumber - # of spot to be deleted (2nd col of linklist)
+%           dataProperties - dataProperties structure
+%           goodTimes - list of non-deleted frames
+%
+% OUTPUT    idlist with re-estimated positions
 
 % find out whether we delete the spot (and recalc to estimate new position
 % and amplitude), or whether we simply remove the tag (if single occurence)
