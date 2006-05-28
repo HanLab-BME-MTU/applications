@@ -1,6 +1,23 @@
 function [idlist,dataProperties, dataPropertiesHasChanged] = LG_setGoodTag(idlist,goodTimes,tagIdx,dataProperties,setGood)
 %LG_setGoodTag is the function that turns one-time appearance-tags into
 %good tags or vice versa
+%
+% SYNOPSIS [idlist,dataProperties, dataPropertiesHasChanged] =...
+%       LG_setGoodTag(idlist,goodTimes,tagIdx,dataProperties,setGood)
+% 
+% INPUT    idlist
+%          goodTimes  indices of non-deleted linklists in idlist
+%          tagIdx     idx of tag to turn good or bad
+%          dataProperties
+%          setGood    1 if make good tag, 0 if make bad tag
+%
+% OUTPUT   idlist
+%          dataProperties
+%          dataPropertiesHasChanged 1 if the maximum number of good tags
+%               has changed
+%
+% 5/06 help added by jonas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if setGood
     % remove flags

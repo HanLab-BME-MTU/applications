@@ -1234,15 +1234,31 @@ for currentTest = test
 
                 % run spotDetection - get back fStats
                 dataProperties.MAXSPOTS = 16;
+                dataProperties.amplitudeCutoff = 6.5;
                 [slist] = ...
                     detectSpots(snrMovie, filteredMovie, dataProperties,0);
+                
+                % set dataProperties for linker
+                dataProperties.linker_relAmpWeight = 0.01;
+                dataProperties.linker_useCOM = 0;
+                
                 idlist = linker(slist,dataProperties,0);
                 idlist(1).info.randomState = randomState;
+                
+                % label tags
+                idlist = testing_labelTags(idlist,positions,dataProperties);
 
-labelguiH = LG_loadAllFromOutside(snrMovie,[],[],dataProperties,idlist,'idlist');
-                uiwait(labelguiH);
-                % theoretically we could read the idlist now
-                idlist = LG_readIdlistFromOutside;
+                % for testing: labelgui
+%                 labelguiH = LG_loadAllFromOutside(snrMovie,[],[],dataProperties,idlist,'idlist');
+%                 uiwait(labelguiH);
+%                 % theoretically we could read the idlist now
+%                 idlist = LG_readIdlistFromOutside;
+                
+                % save idlist in data2-List as
+                    % idlist_NS#_S#_i#.mat (# sources, snr, iteration)
+                    idlistName = sprintf('idlist_NS%i_S%1.2f_i%i.mat', 5, snr, k);
+                    idlist(1).info.randomState = randomState;
+                    saveData2(data2Name,idlistName,idlist);
 
                     % track tags. Use default nSources
                     dbOpt.fStats = [];
@@ -1260,7 +1276,8 @@ labelguiH = LG_loadAllFromOutside(snrMovie,[],[],dataProperties,idlist,'idlist')
                     idlisttrack(1).info.randomState = randomState;
                     saveData2(data2Name,idlisttrackName,idlisttrack);
                     
-                    debugDataName = sprintf('debugData_P%i_S%1.2f.mat',projectNumber,snr);
+                    
+                    debugDataName = sprintf('debugData_P%i_S%1.2f_i%i.mat',projectNumber,snr,k);
                     save(debugDataName,debugData);
 
                 end % loop 1x
