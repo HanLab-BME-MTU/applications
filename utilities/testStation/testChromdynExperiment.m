@@ -1193,7 +1193,7 @@ for currentTest = test
 
             % define SNR, repeats, nSources
             snrList = [50,15,10,5,2.5];
-            if nargin > 1 && ~isempty(subTest) && subTest > 0
+            if nargin > 1 && ~isempty(subTest) && all(subTest) > 0
                 snrList = snrList(subTest);
             end
             nSNR = length(snrList);
