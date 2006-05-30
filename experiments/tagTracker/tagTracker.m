@@ -720,11 +720,11 @@ while ~isempty(trackPairs)
         if debug
             if isfield(debugData,'trackResults')
                 debugData.trackResults(currentTarget,1,targetCt+targetIsSource).info = ...
-                    [ct, targetIsSource, currentSource,currentTarget, xfl, isSuccess];
+                    [ct, targetIsSource, currentSource,currentTarget, xfl, iter, isSuccess];
             end
             if isfield(debugData,'fStats')
                 debugData.fStats(currentTarget,1,targetCt+targetIsSource).info = ...
-                    [ct, targetIsSource, currentSource,currentTarget, xfl, isSuccess];
+                    [ct, targetIsSource, currentSource,currentTarget, xfl, iter, isSuccess];
             end
         end
 
@@ -785,7 +785,7 @@ while ~isempty(trackPairs)
         % debug - fill trackResults here, b/c of Q
         if debug && isfield(debugData,'trackResults')
             for iTag = 1:nTags
-                debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).startEndDelta(2,:) =...
+                debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).startEndDelta =...
                     [initialParameters((iTag-1)*3+1:iTag*3);...
                     parameters((iTag-1)*3+1:iTag*3)];
                 debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).sigma0(1) = ...

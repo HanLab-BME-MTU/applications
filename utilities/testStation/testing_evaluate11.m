@@ -40,13 +40,13 @@ nTimepoints = length(idlisttrack);
 
 % deltaPos
 % t, iTag, tSource, delta, trueDelta, sourceSubPixel, targetSubPixel, deltaDelta,
-% sqrt(deltaVar)
+% sqrt(deltaVar), iter, success
 
 % trackPos
 % t, iTag, nSources, pos, true pos (subpixel), deltaPos, sqrt(var)
 
 sourcePos = zeros(nTimepoints * nTags,14);
-deltaPos = zeros(nTimepoints * nTags * numSources,22);
+deltaPos = zeros(nTimepoints * nTags * numSources,24);
 trackPos = zeros(nTimepoints * nTags,15);
 sourceCt = 0;
 deltaCt = 0;
@@ -61,12 +61,9 @@ for t=1:nTimepoints
 
             truePos = positions(t,:,i);
             
-            source1 = ~isempty(debugData.trackResults(t,1,1).info) &&...
-                debugData.trackResults(t,iTag,1).info(2) == 1;
-            source2 = ~isempty(debugData.trackResults(t,end,1).info) &&...
-                debugData.trackResults(t,iTag,1).info(2) == 1;
 
-            if source1 || source2
+            if isempty(debugData.trackResults(t,1,1).info) ||...
+                debugData.trackResults(t,1,1).info(2) == 1;
                 % it's a source
                 sourceCt = sourceCt + 1;
 
@@ -90,18 +87,27 @@ for t=1:nTimepoints
                 deltaPos(deltaCt,1) = t;
                 deltaPos(deltaCt,2) = iTag;
 
+                % if clause for error correction
+                if size(debugData.trackResults(t,iTag,s).startEndDelta,2) == 6
+                    deltaPos(deltaCt,4:6) = debugData.trackResults(t,iTag,s).startEndDelta(2,4:6);
+                else
                 deltaPos(deltaCt,4:6) = debugData.trackResults(t,iTag,s).startEndDelta(2,:);
+                end
                 deltaPos(deltaCt,19:21) = sqrt(debugData.trackResults(t,iTag,s).deltaVar);
 
-                sourceT = debugData.trackResults(t,iTag,s).info(3);
+                sourceT = debugData.trackResults(t,1,s).info(3);
                 deltaPos(deltaCt,3) = sourceT;
 
                 truePosS = positions(sourceT,:,i);
 
-                deltaPos(deltaCt,7:9) = truePosT - truePosS;
+                deltaPos(deltaCt,7:9) = truePos - truePosS;
                 deltaPos(deltaCt,10:12) = truePosS - floor(truePosS);
                 deltaPos(deltaCt,13:15) = truePos - floor(truePos);
                 deltaPos(deltaCt,16:18) = deltaPos(deltaCt,7:9)-deltaPos(deltaCt,4:6);
+                
+                % remember iter,success (better at beginning, but I don't want
+                % to change all the indices now
+                deltaPos(deltaCt,23:24) = debugData.trackResults(t,1,s).info(6:7);
             end
 
             % read idlisttrack if not estimated tag
@@ -116,7 +122,7 @@ for t=1:nTimepoints
                 trackPos(trackCt,7:9) = truePos - floor(truePos);
 
 
-                trackPos(trackCt,13:15) = trackQDiag( (iTag-1)*3:iTag*3 );
+                trackPos(trackCt,13:15) = trackQDiag( (iTag-1)*3+1:iTag*3 );
 
             end
         end
