@@ -1278,9 +1278,11 @@ for currentTest = test
                     
                     
                     debugDataName = sprintf('debugData_P%i_S%1.2f_i%i.mat',projectNumber,snr,k);
-                    save(debugDataName,debugData);
+                    save(debugDataName,'debugData');
 
                 end % loop 1x
+                clear snrMovie
+                clear debugData
             end % loop SNR
 
            

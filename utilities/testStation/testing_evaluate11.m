@@ -26,7 +26,7 @@ nTags = size(positions,3);
 
 id2posIdx = zeros(nTags,1);
 for i=1:nTags
-    id2posIdx(i) = str2double(idlist(1).stats.labelcolor{i});
+    id2posIdx(i) = str2double(idlisttrack(1).stats.labelcolor{i});
 end
 
 
@@ -60,8 +60,13 @@ for t=1:nTimepoints
             iTag = id2posIdx(i);
 
             truePos = positions(t,:,i);
+            
+            source1 = ~isempty(debugData.trackResults(t,1,1).info) &&...
+                debugData.trackResults(t,iTag,1).info(2) == 1;
+            source2 = ~isempty(debugData.trackResults(t,end,1).info) &&...
+                debugData.trackResults(t,iTag,1).info(2) == 1;
 
-            if debugData.trackResults(t,iTag,1).info(2) == 1
+            if source1 || source2
                 % it's a source
                 sourceCt = sourceCt + 1;
 
@@ -119,5 +124,5 @@ for t=1:nTimepoints
 end
 
 % plot
-
+figure
 
