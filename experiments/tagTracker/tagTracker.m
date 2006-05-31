@@ -75,6 +75,9 @@ else
         if isfield(dbOpt,'gradientOption')
             constants.gradientOption = dbOpt.gradientOption;
         end
+        if isfield(dbOpt,'gradientOptionQ')
+            constants.gradientOptionQ = dbOpt.gradientOptionQ;
+        end
         % data for the analysis of F-statistics:
         % see below
         if isfield(dbOpt,'fStats')
@@ -652,8 +655,14 @@ while ~isempty(trackPairs)
         % Also calculate gradient of difference image
         % !!!! get the jacobian that is actually used during calculation of
         % the parameters (=filtered)
+        if isfield(constants,'gradientOptionQ')
+            % allow setting which gradient is used by testing function. 
+            [dummy,targetInfo] = extractIntensities(sourceInfo(currentSource,:),...
+            targetInfo,movieFrame,constants,parameters,constants.gradientOptionQ);
+        else
         [dummy,targetInfo] = extractIntensities(sourceInfo(currentSource,:),...
             targetInfo,movieFrame,constants,parameters,constants.gradientOption);
+        end
 
         % loop. If any one of the tags is bad, we do not keep the frame
         % Future: also check whether the lsqnonlin-optimization came to a
@@ -790,10 +799,11 @@ while ~isempty(trackPairs)
                     parameters((iTag-1)*3+1:iTag*3)];
                 debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).sigma0(1) = ...
                     sigmaResidual2init(iTag);
+                debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).sigma0(2) = ...
+                        sigmaResidual2(iTag);
 
                 if isSuccess
-                    debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).sigma0(2) = ...
-                        sigmaResidual2(iTag);
+                    
                     debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).deltaVar(:) = ...
                         fittingMatrices(iTag).V(fittingIdx,1,:);
                 end

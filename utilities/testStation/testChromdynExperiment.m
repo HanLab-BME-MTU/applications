@@ -953,6 +953,7 @@ for currentTest = test
             disp(sprintf(['done. total time elapsed %s'],timeStr));
 
             %==========================================================================
+%% test 9
         case 9 % test tracker convergence:
             % 6 frames, always same spot position, synthetically very large
             % uncertainty from detector to not influence the result. Run
@@ -1086,7 +1087,7 @@ for currentTest = test
             time = toc;
             timeStr = datestr(datenum(num2str(time),'SS'),13);
             disp(sprintf(['done. total time elapsed %s'],timeStr));
-
+%% test 10
         case 10
             %===load or generate raw movie
 
@@ -1164,7 +1165,7 @@ for currentTest = test
             % assign output
             varargout{1} = out;
             %varargout{3} = idlist_P;
-            
+%% test 11            
         case 11 
             
             % 16 spots, all independent, moving within 1/8th of a voxel 
@@ -1215,6 +1216,7 @@ for currentTest = test
                 % calculate number of already done evaluations
                 nDone = (iSNR-1) * nRepeats;
                 snr = snrList(iSNR);
+                for iGrad = 1:2
                 for k = 1:nRepeats
 
                     % display status
@@ -1264,6 +1266,7 @@ for currentTest = test
                     dbOpt.fStats = [];
                     dbOpt.fitStats = [];
                     dbOpt.trackResults = [];
+                    dbOpt.gradientOptionQ = iGrad;
                     [idlisttrack, debugData] =...
                         tagTracker(snrMovie,idlist,...
                         dataProperties,0,dbOpt);
@@ -1272,17 +1275,18 @@ for currentTest = test
 
                     % save idlisttrack in data2-List as
                     % idlisttrack_NS#_S#_i#.mat (# sources, snr, iteration)
-                    idlisttrackName = sprintf('idlisttrack_NS%i_S%1.2f_i%i.mat', 5, snr, k);
+                    idlisttrackName = sprintf('idlisttrack_NS%i_S%1.2f_G%i_i%i.mat', 5, snr, iGrad, k);
                     idlisttrack(1).info.randomState = randomState;
                     saveData2(data2Name,idlisttrackName,idlisttrack);
                     
                     
-                    debugDataName = sprintf('debugData_P%i_S%1.2f_i%i.mat',projectNumber,snr,k);
+                    debugDataName = sprintf('debugData_P%i_S%1.2f_G%i_i%i.mat',projectNumber,snr,iGrad,k);
                     save(debugDataName,'debugData');
 
                 end % loop 1x
                 clear snrMovie
                 clear debugData
+                end % loop gradient
             end % loop SNR
 
            
@@ -1296,7 +1300,7 @@ for currentTest = test
             disp(sprintf(['done. total time elapsed %s'],timeStr));
 
             %==========================================================================
-
+%% KJ
         case 100 %Khuloud's
             
             %assign ...
