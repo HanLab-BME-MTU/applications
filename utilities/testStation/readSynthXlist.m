@@ -4,8 +4,8 @@ function [xlistList, sortNumbers] = readSynthXlist(listID, path, sortExpression,
 % the output structure is sorted according to sortExpression and sortOrder,
 % which are both optional
 %
-% listID is either "s" or "slist" or "idl" or "idlist" or "idt" or 
-% "idlisttrack" It is assumed that the filenames are of the form 
+% listID is either "s" or "slist" or "idl" or "idlist" or "idt" or
+% "idlisttrack" It is assumed that the filenames are of the form
 % Xlist_?#_?# etc, where ? is a letter and # is a double
 %
 % sortexpression for slists with amplitude, SNR, and iteration:
@@ -59,7 +59,7 @@ end
 
 % if required, files are sorted
 if sortExpression
-    
+
     % read numbers with sortExpression
     if strmatch('6.5',version) % ensure backwards compatibility
         [dummy,dummy,idxList] = regexp(fileList(:,1),sortExpression);
@@ -69,28 +69,28 @@ if sortExpression
             return
         end
         for i=length(idxList):-1:1
-             tokenList = idxList{i};
-             tokenList = tokenList{1};
-             currentFile = fileList{i,1};
-             for j=size(tokenList,1):-1:1
-                 sortNumbers(i,j) = ...
-                     str2double(currentFile(tokenList(j,1):tokenList(j,2)));
-             end
-         end
-           % sort
-    if ~sortOrder
-        sortOrder = 1:size(sortNumbers,2);
-    end
-    % sortrows doesn't accept negative numbers in the sortOrder in 6.51
-    sig = repmat(sign(sortOrder),size(sortNumbers,1),1);
-    sortNumbers = sortNumbers .* sig;
-    [sortNumbers,rowIdx] = sortrows(sortNumbers,abs(sortOrder));
-    sortNumbers = sortNumbers.* sig;
-      
-                 
+            tokenList = idxList{i};
+            tokenList = tokenList{1};
+            currentFile = fileList{i,1};
+            for j=size(tokenList,1):-1:1
+                sortNumbers(i,j) = ...
+                    str2double(currentFile(tokenList(j,1):tokenList(j,2)));
+            end
+        end
+        % sort
+        if ~sortOrder
+            sortOrder = 1:size(sortNumbers,2);
+        end
+        % sortrows doesn't accept negative numbers in the sortOrder in 6.51
+        sig = repmat(sign(sortOrder),size(sortNumbers,1),1);
+        sortNumbers = sortNumbers .* sig;
+        [sortNumbers,rowIdx] = sortrows(sortNumbers,abs(sortOrder));
+        sortNumbers = sortNumbers.* sig;
+
+
     else
         sortNumbers = regexp(fileList(:,1),sortExpression,'tokens');
-        
+
         % transform strings to doubles. This requires that the same number of
         % elements are found for every filename
         % quit if empty
@@ -103,14 +103,14 @@ if sortExpression
         sortNumbers = cat(1,sortNumbers{:});
         sortNumbers = str2double(sortNumbers);
         % sort
-    if ~sortOrder
-        sortOrder = 1:size(sortNumbers,2);
-    end
-    [sortNumbers,rowIdx] = sortrows(sortNumbers,sortOrder);
+        if ~sortOrder
+            sortOrder = 1:size(sortNumbers,2);
+        end
+        [sortNumbers,rowIdx] = sortrows(sortNumbers,sortOrder);
 
     end
 
-    
+
     % reorder fileList
     fileList = fileList(rowIdx,:);
 

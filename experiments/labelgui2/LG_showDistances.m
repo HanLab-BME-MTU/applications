@@ -57,7 +57,8 @@ switch nTags
     case {0,1}
         error('no tags for plotting!')
     case {2,3,4,5}
-        subAxes = [max(nTags-2,1),nTags-1];
+        subAxes(2) = ceil(sqrt(nTags));
+        subAxes(1) = ceil(nTags/subAxes(2));
     otherwise
         error('too many tags!')
 end
@@ -109,10 +110,14 @@ for i=1:nPairs
     objectHandles((i-1)*4+2) = plot(x,y,'--');
     hold on
     objectHandles((i-1)*4+3) = plot(xGood, yGood,'-o');
-    objectHandles((i-1)*4+4) = plot(x(estimatedIdx(:,i)),y(estimatedIdx(:,i)),'*');
+    if any(estimatedIdx(:,i))
+    objectHandles((i-1)*4+4) = plot(x(estimatedIdx(:,i)),y(estimatedIdx(:,i)),'r*');
+    end
     
     % write title
     set(get(ah,'Title'),'Interpreter','none','String',...
         sprintf('%s - %s',tagList{tagIdx(pairIdx(i,1))},tagList{tagIdx(pairIdx(i,2))}));
     ylim([0,maxDist]);
 end
+
+objectHandles(~objectHandles) = [];
