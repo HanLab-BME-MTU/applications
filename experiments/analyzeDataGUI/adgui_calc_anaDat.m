@@ -90,12 +90,12 @@ anaDat(gT).timePoint = startT;
 %info and stats are the other way round in idlist, but this is more logical.
 %QMatrices are already calculated in microns, as for all subsequent analysis we
 %calculate in that space (and transformation of distance is non-linear!)
-if isfield(idlist(startT).info,'trackQ_Pix') & ~isempty(idlist(startT).info.trackQ_Pix)
+if isfield(idlist(startT).info,'totalQ_Pix') && ~isempty(idlist(startT).info.totalQ_Pix)
     %tracker gives only relative tracking error. do squared addition of
     %source error with relative tracking error -> will crash if multiple
     %sources are being used
     sourceT = str2double(idlist(startT).info.trackerMessage.source);
-    anaDat(gT).stats.qMatrix = pix2muMat*(idlist(startT).info.trackQ_Pix+idlist(sourceT).info.detectQ_Pix)*pix2muMat; 
+    anaDat(gT).stats.qMatrix = pix2muMat*(idlist(startT).info.totalQ_Pix)*pix2muMat; 
 else
     anaDat(gT).stats.qMatrix = pix2muMat*idlist(startT).info.detectQ_Pix*pix2muMat;
 end
