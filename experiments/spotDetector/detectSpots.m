@@ -74,7 +74,11 @@ elseif strcmp(class(rawMovieName),'COM.Imaris_Application')
 elseif ~exist(rawMovieName,'file')
     error('rawMovie (''%s'') not found',rawMovieName)
 else
+    if isfield(dataProperties,'movieType') && strcmp(dataProperties.movieType,'sedat')
+        movieLoader = 'sedat';
+    else
     movieLoader = 'cdLoadMovie';
+    end
 end
 
 % check for filteredMovie. If '.new', we want to filter
@@ -176,11 +180,18 @@ if doFilter
                 moviePath,movieHeader,imarisHandle,loadStruct] = ...
                 imarisImread(imarisHandle,[],dataProperties.crop,loadOptions.maxSize);
             deltaFrames = 0;
+        case 'sedat'
+            % load one frame
+            rawMovie = sedatLoadRaw(1,rawMovieName,dataProperties);
+            loadStruct.loadedFrames = 1;
+            loadStruct.frames2load = 2:dataProperties.movieSize(4);
+            deltaFrames = 0;
+            
         case 'none'
             % read raw movie, set loadStruct and deltaFrames
             rawMovie = rawMovieName;
             loadStruct.loadedFrames = 1:size(rawMovie,5);
-            loadStruct.frames2loade = [];
+            loadStruct.frames2load = [];
             deltaFrames = 0;
     end
 
@@ -237,6 +248,12 @@ while ~done
                     [rawMovie,dummy,dummy,...
                         dummy,dummy,dummy,loadStruct] = ...
                         imarisImread(loadStruct);
+                case 'sedat'
+                    % load one more frame
+                    rawMovie = sedatLoadRaw(loadStruct.frames2load(1),rawMovieName,dataProperties);
+                    loadStruct.loadedFrames = loadStruct.frames2load(1);
+                    loadStruct.frames2load = loadStruct.frames2load(2:end);
+
             end
         else
             [filteredMovie, movieHeader, loadStruct] = ...
@@ -280,18 +297,29 @@ switch movieLoader
         deltaFrames = loadStruct.loadedFrames(1) - 1;
     case 'imaris'
         if ~isfield(dataProperties,'crop')
-                dataProperties.crop = [];
-            end
+            dataProperties.crop = [];
+        end
         [rawMovie,movieSize,movieName,...
             moviePath,movieHeader,imarisHandle,loadStruct] = ...
             imarisImread(imarisHandle,[],dataProperties.crop,loadOptions.maxSize);
         deltaFrames = 0;
+        
+        case 'sedat'
+            % load one frame
+            rawMovie = sedatLoadRaw(1,rawMovieName,dataProperties);
+            loadStruct.loadedFrames = 1;
+            loadStruct.frames2load = 2:dataProperties.movieSize(4);
+            deltaFrames = 0;
+            % set numTimepoints in movieHeader
+            movieHeader.numTimepoints = dataProperties.movieSize(4);
+        
     case 'none'
         % read raw movie, set loadStruct and deltaFrames
         rawMovie = rawMovieName;
         loadStruct.loadedFrames = 1:size(rawMovie,5);
         loadStruct.frames2load = [];
         deltaFrames = 0;
+        % need movieHeader for timepoints
         movieHeader.numTimepoints = size(rawMovie,5);
 end
 
@@ -342,6 +370,12 @@ while ~done
                 [rawMovie,dummy,dummy,...
                     dummy,dummy,dummy,loadStruct] = ...
                     imarisImread(loadStruct);
+                
+                case 'sedat'
+                    % load one more frame
+                    rawMovie = sedatLoadRaw(loadStruct.frames2load(1),rawMovieName,dataProperties);
+                    loadStruct.loadedFrames = loadStruct.frames2load(1);
+                    loadStruct.frames2load = loadStruct.frames2load(2:end);
         end
 
     end % load more

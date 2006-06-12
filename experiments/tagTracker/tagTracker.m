@@ -304,7 +304,11 @@ movieNoise = zeros(nTimepoints,1);
 for t = sourceList'
 
     if iscell(movie)
+        if stcmp(movie{2},'sedat')
+            movieFrame = sedatLoadRaw(t,movie{1},dataProperties);
+        else
         movieFrame = cdLoadMovie(movie,'',t);
+        end
     else
         movieFrame = movie(:,:,:,:,t);
     end
@@ -420,7 +424,11 @@ while ~isempty(trackPairs)
 
     % load the movie frame for this target
     if iscell(movie)
-        movieFrame = cdLoadMovie(movie,'',currentTarget);
+        if stcmp(movie{2},'sedat')
+            movieFrame = sedatLoadRaw(t,movie{1},dataProperties);
+        else
+            movieFrame = cdLoadMovie(movie,'',t);
+        end
     else
         movieFrame = movie(:,:,:,:,currentTarget);
     end
@@ -795,8 +803,8 @@ while ~isempty(trackPairs)
         if debug && isfield(debugData,'trackResults')
             for iTag = 1:nTags
                 debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).startEndDelta =...
-                    [initialParameters((iTag-1)*3+1:iTag*3);...
-                    parameters((iTag-1)*3+1:iTag*3)];
+                    [initialParameters((iTag-1)*3+1:iTag*3)';...
+                    parameters((iTag-1)*3+1:iTag*3)'];
                 debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).sigma0(1) = ...
                     sigmaResidual2init(iTag);
                 debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).sigma0(2) = ...

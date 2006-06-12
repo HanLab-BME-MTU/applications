@@ -92,8 +92,10 @@ switch inputType
         dataProperties.movieSize(4) = inputStruct.numTimepoints;
         dataProperties.WVL = inputStruct.wvl;
         if isfield(inputStruct, 'Time')
-            dataProperties.frameTime = reshape(inputStruct.Time,...
-                dataProperties.movieSize(3:4));
+            % if there are multiple wavelengths: Make it a numZ x numT x
+            % numW array
+            dataProperties.frameTime = permute(reshape(inputStruct.Time,...
+                [inputStruct.numWvs,dataProperties.movieSize(3:4)]),[2,3,1]);
         end
         % time could also be per frame only (metamorph)
         if isfield(inputStruct,'frameTime')
@@ -176,17 +178,19 @@ dataProperties.sigmaCorrection=[1 1];
 dataProperties.split=[];
 dataProperties.MAXSPOTS=5;
 dataProperties.T_TEST_PROB=0.0500;
-dataProperties.help=['synthMovie'];
-dataProperties.maxSize = 200 * 2^20; % 200 Mb
+dataProperties.maxSize = 100 * 2^20; % 100 Mb
 dataProperties.amplitudeCutoff = 0; % undefined
-dataProperties.fitNPlusOne = 1; % super-resolution fitting
+dataProperties.fitNPlusOne = 1; % super-resolution fitting in detector
+dataProperties.waveIdx = 1; % current wavelength
+dataProperties.movieType = 'sorger'; % also: 'sedat', 'misteli', 'synth'
+dataProperties.name = '';
 
 % linker properties
-dataProperties.linker_relativeMaxDistance = -1;
-dataProperties.linker_absoluteMaxDistance=-1;
-dataProperties.linker_relAmpWeight=1/1.5;
-dataProperties.linker_useCOM = 1;
-dataProperties.linker_fuseRatio = 1.5;
+dataProperties.linker_relativeMaxDistance = -1; % don't use
+dataProperties.linker_absoluteMaxDistance=-1; % don't use
+dataProperties.linker_relAmpWeight=1/1.5; % weighs distance more
+dataProperties.linker_useCOM = 1; % use center of mass to correct
+dataProperties.linker_fuseRatio = 1.5; % fuse if less than 1.5 RL separated
 
 
 

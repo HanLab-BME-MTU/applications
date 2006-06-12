@@ -7,7 +7,7 @@ function [dataProperties, testRatios, debugData] = detectSpots_MMF_findAmplitude
 %		coordinates: coordinates of local maxima from spotfind
 %		dataProperties: dataProperties structure
 %		movieLoader: (opt) function for loading the movie
-%               ['imaris'/{'cdLoadMovie'}]
+%               ['imaris'/{'cdLoadMovie'}/'sedat']
 %       verbose: (opt)  0: nothing at all.
 %                      {1} show waitbar.
 %                       2: show waitbar and cutoff-plot
@@ -57,10 +57,16 @@ switch movieLoader
             cdLoadMovie({rawMovieName,'corr/raw'}, [], loadOptions);
         % check if there are any leading darkframes we need to subtract
         deltaFrames = loadStruct.loadedFrames(1) - 1;
-    case 'imaris'        
+    case 'imaris'
         [rawMovie,movieSize,movieName,...
             moviePath,movieHeader,imarisHandle,loadStruct] = ...
             imarisImread(rawMovieName,[],dataProperties.crop,loadOptions.maxSize);
+        deltaFrames = 0;
+    case 'sedat'
+        % load one frame
+        rawMovie = sedatLoadRaw(1,rawMovieName,dataProperties);
+        loadStruct.loadedFrames = 1;
+        loadStruct.frames2load = 2:dataProperties.movieSize(4);
         deltaFrames = 0;
     case 'none'
         % entire movie is being passed down as 'rawMovieName'
@@ -212,6 +218,11 @@ while ~done
                 [rawMovie,dummy,dummy,...
                     dummy,dummy,dummy,loadStruct] = ...
                     imarisImread(loadStruct);
+                case 'sedat'
+                    % load one more frame
+                    rawMovie = sedatLoadRaw(loadStruct.frames2load(1),rawMovieName,dataProperties);
+                    loadStruct.loadedFrames = loadStruct.frames2load(1);
+                    loadStruct.frames2load = loadStruct.frames2load(2:end);
         end
     end % load more
 end % while loop
