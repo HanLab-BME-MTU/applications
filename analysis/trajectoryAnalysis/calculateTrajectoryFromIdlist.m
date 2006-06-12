@@ -273,7 +273,7 @@ end
 if nargout > 1
     [rayleighLimit, orientation] =...
         rayleighFromOri(normedVectors, ...
-        dataProperties.wvl, dataProperties.NA, []);
+        dataProperties.WVL, dataProperties.NA, []);
 else
     orientation = [];
 end
