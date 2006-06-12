@@ -238,7 +238,7 @@ switch compOpt
             varCovMatT1,varCovMatT2);
         
         %get the p-value of the test statistic assuming an F-distribution
-        pValueCoef = 1 - fcdf(testStatistic,numParamMax,numDegFreeMin);
+        pValueCoef = fcdf(1/testStatistic,numDegFreeMin,numParamMax);
 
     case 'element' %compare one coefficient at a time
 
@@ -324,11 +324,14 @@ end
 testStatistic = fitResults1.wnVariance/fitResults2.wnVariance;
 
 if testStatistic > 1
-    pValueVar = 1 - fcdf(testStatistic,numDegFree1,numDegFree2);
+    pValueVar = fcdf(1/testStatistic,numDegFree2,numDegFree1);
 else
     pValueVar = fcdf(testStatistic,numDegFree1,numDegFree2);
 end
 
+if pValueVar==0
+    disp('');
+end
 
 %%%%% ~~ the end ~~ %%%%%
 

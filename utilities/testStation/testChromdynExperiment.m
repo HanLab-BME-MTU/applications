@@ -1305,29 +1305,29 @@ for currentTest = test
             
             %assign ...
             projectNumber = 1000; %project number
-            movieLength = 5; %length of movie (in seconds)
+            movieLength = 1000; %length of movie (in seconds)
             numZSlices = 16; %number of z-slices
             timePerSlice = 0.6/numZSlices; %exposure time per z-slice (in seconds)
-            pixelSizeXY = 0.010; %pixel size in x and y (in micrometers)
-            numPixelXY = 70; %number of pixels in x and y
+            pixelSizeXY = 0.050; %pixel size in x and y (in micrometers)
+            numPixelXY = 60; %number of pixels in x and y
             
             %determine number of time points in generated MT length trajectory
             numPointsIn1s = ceil(1/timePerSlice);
             numTimePoints = movieLength*numPointsIn1s;
             
             %assign simulation parameter values
-            modelParam.growthSpeed = [4 0.3]; %micrometers/minute
-            modelParam.shrinkageSpeed = [4 0.3]; %micrometers/minute
-            modelParam.growthTime = [0.8 0.3]; %seconds
-            modelParam.shrinkageTime = [0.8 0.3]; %seconds
-            
+            modelParam.growthSpeed = [8 0.6]; %micrometers/minute
+            modelParam.shrinkageSpeed = [8 0.6]; %micrometers/minute
+            modelParam.growthTime = [0.08 0.03]; %seconds
+            modelParam.shrinkageTime = [0.08 0.03]; %seconds
+
             %generate MT length trajectory (in micrometers)
             mtLength0 = mtGammaTdSd(modelParam,0.3,movieLength);
-            
+
             %sample trajectory every timePerSlice seconds
             mtLength = sampleTraj(mtLength0,timePerSlice);
             mtLength = mtLength(1:numTimePoints,2);
-            
+
             %remove from trajectory time points that are not observed
             mtLength = reshape(mtLength,numPointsIn1s,movieLength);
             mtLength = mtLength(1:numZSlices,:);
@@ -1373,16 +1373,18 @@ for currentTest = test
             [rawMovie, slist, idlist, dataProperties] = ...
                 generateProject(projectNumber,positions,inputDataProperties,1);
 
-            snr = 100;
+            snr = 5;
             % poisson noise
             [snrMovie,randomState] = addNoise(rawMovie,snr,maxAmplitude);
             
             % instead of faking something: make slist, idlist
             %             filteredMovie = filtermovie(snrMovie,dataProperties.FILTERPRM);
-            filteredMovie = snrMovie;
+            filteredMovie = rawMovie;
 
             % run spotDetection
-            dataProperties.MAXSPOTS = 2;
+            dataProperties.MAXSPOTS = 1;
+            dataProperties.amplitudeCutoff = 6.5;
+            dataProperties.fitNPlusOne = 0;
             [slist] = detectSpots(snrMovie, filteredMovie, dataProperties,2);
 
             idlist = linker(slist,dataProperties,0);
@@ -1393,7 +1395,21 @@ for currentTest = test
             % theoretically we could read the idlist now
             idlist = LG_readIdlistFromOutside;
 
+            %output idlist
             varargout{1} = idlist;
+            
+            %output theoretical positions
+            varargout{2} = positions;
+            
+            %output positions and their uncertainty from detection
+            tmp = vertcat(idlist.linklist);
+            pos = tmp(:,9)/pixelSizeXY;
+            sigmaHat2 = tmp(:,12);
+            for i=1:movieLength
+                unc(i,1) = idlist(i).info.detectQ_Pix(1);
+            end
+            unc = sqrt(sigmaHat2.*unc);
+            varargout{3} = [pos unc];
 
         otherwise
             disp(sprintf('test %i is not defined',currentTest))
