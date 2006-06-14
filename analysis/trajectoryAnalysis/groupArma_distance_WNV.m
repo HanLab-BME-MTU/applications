@@ -24,11 +24,6 @@ function [distance, associatedInfo, data, parameters] = groupArma_distance_WNV(d
 %               initialF (created here) - variance ratios of the first
 %                           comparison
 %               initialProbIdx (created here) - index into intialProb
-%               mode (input) - distance that will be used to group data
-%                       1  1-pValue (high p-value=short distance)
-%                       2  -log(pValue)
-%                       3  fcdf(1-pValue, 2000,2000)
-%                       4  variance ratios
 %               
 %
 % OUTPUT distance - vector containing the distance between the
@@ -37,18 +32,10 @@ function [distance, associatedInfo, data, parameters] = groupArma_distance_WNV(d
 %                       refer to the order of sets in data (newly joined
 %                       sets will be added at the end)
 %        associatedInfo - array with additional data for each pair in cols
-%                       1: prob
-%                       2: logProb
-%                       3: fStat
-%                       4: variance ratio
-%                       5: minProb of individual sets
-%                       6: maxProb of individual sets
-%                       7: minLogProb of individual sets
-%                       8: maxLogProb of individual sets
-%                       9: minFStat of individual sets
-%                      10: maxFStat of individual sets
-%                      11: minDirectF of individual sets
-%                      12: maxDirectF of individual sets
+%                       1: -log10(prob)
+%                       2: minLogProb of individual sets
+%                       3: maxLogProb of individual sets
+%                       4: 1 if extrapolated log
 %        data - the (updated) input data with appended variances and n's
 %        parameters - parameter structure. 
 %
@@ -100,9 +87,7 @@ else
     
 end
 
-% turn off log0-warning
-w=warning;
-warning('off','MATLAB:log:logOfZero');
+
 %======================
 
 
@@ -116,7 +101,7 @@ warning('off','MATLAB:log:logOfZero');
 
 nSets = length(parameters.distanceOrder);
 nComparisons = (nSets-1)*nSets/2;
-associatedInfo = zeros(nComparisons,12);
+associatedInfo = zeros(nComparisons,4);
 ct = 0;
 
 if isInit
@@ -136,30 +121,18 @@ for i = 1:nSets-1
         ct = ct + 1;
         
         % calculate probability. We want the one where we divide the
-        % larger variance over the smaller variance (slightly more
-        % numerically stable than the other, we eventually need it
-        % for the distance criterion). Since that's annoying    
-        % because of the index-shuffling involved, we just divide one by
-        % the other and then make sure that p>=0.5
+        % smaller variance over the larger (slightly more
+        % numerically stable than the other). 
+        % Unfortunately, the numerical stability is not sufficient - at
+        % very low ratios, p is set to zero, making it meaningless.
+        % In these cases, we extrapolate the values. To avoid problems with
+        % realmin, we directly use the negative log of the probability
         F = data(iIdx).wnVariance/data(jIdx).wnVariance;
-        associatedInfo(ct,1) = fcdf(...
+        [associatedInfo(ct,1),associatedInfo(ct,4)] = fcdfExtrapolateLog(...
             F,...
             data(iIdx).numObserve - sum(data(iIdx).orderLen),...
             data(jIdx).numObserve - sum(data(jIdx).orderLen));
-        if associatedInfo(ct,1) < 0.5
-            associatedInfo(ct,1) = 1-associatedInfo(ct,1);
-        end
-        
-        % don't calculate log, fStat yet - we do that in parallel at the
-        % end
-        
-        % store variance ratio
-        if F<1
-            associatedInfo(ct,4) = 1/F;
-        else
-            associatedInfo(ct,4) = F;
-        end
-        
+       
         
         % if not init, find distances between groups.
         if isInit
@@ -168,8 +141,8 @@ for i = 1:nSets-1
             
             % min/max probabilities are the same as the actual
             % probabilities
-            associatedInfo(ct,5:6) = associatedInfo(ct,1);
-            associatedInfo(ct,11:12) = associatedInfo(ct,4);
+            associatedInfo(ct,2:3) = associatedInfo(ct,1);
+            
             
         else
             % read from initialProb
@@ -185,16 +158,10 @@ for i = 1:nSets-1
                 any(ismember(parameters.initialProbIdx,iSets),2) &...
                 any(ismember(parameters.initialProbIdx,jSets),2);
             
-            associatedInfo(ct,5) = ...
+            associatedInfo(ct,2) = ...
                 min(parameters.initialProb(comparisonIdx));
-            associatedInfo(ct,6) = ...
+            associatedInfo(ct,3) = ...
                 max(parameters.initialProb(comparisonIdx));
-            
-            % do the same for variance ratios
-            associatedInfo(ct,11) = ...
-                min(parameters.initialF(comparisonIdx));
-            associatedInfo(ct,12) = ...
-                max(parameters.initialF(comparisonIdx));
             
         end % if isInit
         
@@ -206,22 +173,14 @@ end % loop i
 %% finish up
 %=======================
 
-% fill up associatedInfo, fill in distance, and, if necessary, initialProb
-
-% -logProb. pValue is already 1-p
-associatedInfo(:,[2,7,8]) = -log10(1-associatedInfo(:,[1,5,6]));
-
-% fStats
-associatedInfo(:,[3,9,10]) = finv(associatedInfo(:,[1,5,6]),2000,2000);
+%   * there used to be alternatives to -log(p) here. Go back to older
+%   revisions to check them out if needed *
 
 % read distance
-distance = associatedInfo(:,parameters.mode);
+distance = associatedInfo(:,1);
 
 % store initialProb
 if isInit
     parameters.initialProb = associatedInfo(:,1);
-    parameters.initialF = associatedInfo(:,4);
 end
 
-% reset warnings
-warning(w);

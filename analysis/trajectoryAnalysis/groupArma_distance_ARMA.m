@@ -42,18 +42,10 @@ function [distance, associatedInfo, data, parameters] = groupArma_distance_ARMA(
 %                       refer to the order of sets in data (newly joined
 %                       sets will be added at the end)
 %        associatedInfo - array with additional data for each pair in cols
-%                       1: prob
-%                       2: logProb
-%                       3: fStat
-%                       4: test statistic
-%                       5: minProb of individual sets
-%                       6: maxProb of individual sets
-%                       7: minLogProb of individual sets
-%                       8: maxLogProb of individual sets
-%                       9: minFStat of individual sets
-%                      10: maxFStat of individual sets
-%                      11: minDirectF of individual sets
-%                      12: maxDirectF of individual sets
+%                       1: -log10(prob)
+%                       2: minLogProb of individual sets
+%                       3: maxLogProb of individual sets
+%                       4: 1 if extrapolated log
 %        parameters - updated parameter structure. 
 %
 % REMARKS
@@ -88,9 +80,6 @@ else
     % do here    
 end
 
-% turn off log0-warning
-w=warning;
-warning('off','MATLAB:log:logOfZero');
 %======================
 
 
@@ -104,7 +93,7 @@ warning('off','MATLAB:log:logOfZero');
 
 nSets = length(parameters.distanceOrder);
 nComparisons = (nSets-1)*nSets/2;
-associatedInfo = zeros(nComparisons,12);
+associatedInfo = zeros(nComparisons,3);
 ct = 0;
 
 if isInit
@@ -135,29 +124,34 @@ for i = 1:nSets-1
             [data(iIdx).paramVec,data(jIdx).paramVec,...
                 data(iIdx).varCovMat,data(jIdx).varCovMat] = ...
                 armaxOrderMatch(data(iIdx),data(jIdx));
-            associatedInfo(ct,4) = globalCoefTestStat(...
+            
+            fRatio = globalCoefTestStat(...
                 data(iIdx).paramVec, data(jIdx).paramVec,...
                 data(iIdx).varCovMat, data(jIdx).varCovMat);
+          
             
             % fTest
             parameters.initialM(ct,1) = ...
                 max(sum(data(iIdx).orderLen),sum(data(jIdx).orderLen));
             parameters.initialM(ct,2) = ...
-                min(data(iIdx).numObserve - sum(data(iIdx).orderLen),...
+                max(data(iIdx).numObserve - sum(data(iIdx).orderLen),...
                 data(jIdx).numObserve - sum(data(jIdx).orderLen));
             
-            associatedInfo(ct,1) = fcdf(associatedInfo(ct,4),...
+            
+            % directly calculate -log10(p)
+            [associatedInfo(ct,1),associatedInfo(ct,4)] =...
+                 fcdfExtrapolateLog(fRatio,...
                 parameters.initialM(ct,1),parameters.initialM(ct,2));
             
             % min/max probabilities are the same as the actual
             % probabilities
-            associatedInfo(ct,5:6) = associatedInfo(ct,1);
-            associatedInfo(ct,11:12) = associatedInfo(ct,4);
+            associatedInfo(ct,2:3) = associatedInfo(ct,1);
             
-            % do -log, fStats below.
             
             % remember test 
             parameters.initialProbIdx(ct,:) = [i,j];
+            % store initial fRatios to save time below
+            parameters.initialF(ct,1) = fRatio;
             
         else
             
@@ -178,25 +172,23 @@ for i = 1:nSets-1
                 any(ismember(parameters.initialProbIdx,jSets),2);
             
             % weighted mean
-            associatedInfo(ct,4) = sum(...
+            fRatio = sum(...
                 parameters.initialF(comparisonIdx).*...
                 parameters.initialM(comparisonIdx,1))/...
                 sum(parameters.initialM(comparisonIdx,1));
             
             % test
-            associatedInfo(ct,1) = fcdf(associatedInfo(ct,4),...
-                parameters.initialM(ct,1),parameters.initialM(ct,2));
+            [associatedInfo(ct,1),associatedInfo(ct,4)] =...
+                fcdfExtrapolateLog(fRatio,...
+                mean(parameters.initialM(comparisonIdx,1)),...
+                max(parameters.initialM(comparisonIdx,2)));
             
             % min/max
-            associatedInfo(ct,5) = ...
+            associatedInfo(ct,2) = ...
                 min(parameters.initialProb(comparisonIdx));
-            associatedInfo(ct,6) = ...
+            associatedInfo(ct,3) = ...
                 max(parameters.initialProb(comparisonIdx));
-            
-            associatedInfo(ct,11) = ...
-                min(parameters.initialF(comparisonIdx));
-            associatedInfo(ct,12) = ...
-                max(parameters.initialF(comparisonIdx));
+    
             
         end % if isInit
         
@@ -208,22 +200,15 @@ end % loop i
 %% finish up
 %=======================
 
-% fill up associatedInfo, fill in distance, and, if necessary, initialProb
+%   * there used to be alternatives to -log(p) here. Go back to older
+%   revisions to check them out if needed *
 
-% -logProb. pValue is already 1-p
-associatedInfo(:,[2,7,8]) = -log10(1-associatedInfo(:,[1,5,6]));
-
-% fStats
-associatedInfo(:,[3,9,10]) = finv(associatedInfo(:,[1,5,6]),2,2000);
 
 % read distance
-distance = associatedInfo(:,parameters.mode);
+distance = associatedInfo(:,1);
 
 % store initialProb
 if isInit
     parameters.initialProb = associatedInfo(:,1);
-    parameters.initialF = associatedInfo(:,4);
 end
 
-% reset warnings
-warning(w);
