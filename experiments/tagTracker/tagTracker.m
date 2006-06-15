@@ -304,7 +304,7 @@ movieNoise = zeros(nTimepoints,1);
 for t = sourceList'
 
     if iscell(movie)
-        if stcmp(movie{2},'sedat')
+        if strcmp(movie{2},'sedat')
             movieFrame = sedatLoadRaw(t,movie{1},dataProperties);
         else
         movieFrame = cdLoadMovie(movie,'',t);
@@ -424,7 +424,7 @@ while ~isempty(trackPairs)
 
     % load the movie frame for this target
     if iscell(movie)
-        if stcmp(movie{2},'sedat')
+        if strcmp(movie{2},'sedat')
             movieFrame = sedatLoadRaw(t,movie{1},dataProperties);
         else
             movieFrame = cdLoadMovie(movie,'',t);
