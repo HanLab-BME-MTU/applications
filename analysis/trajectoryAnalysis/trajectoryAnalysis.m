@@ -68,7 +68,9 @@ function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %                               statistics, and 3 will cluster all
 %           - realTime      : [0/{1}] whether or not to use the real
 %                               timestamp. If 0, the intervals will be
-%                               rounded to entire seconds.
+%                               rounded to entire seconds. Warning: this
+%                               will NOT affect how frequencies are being
+%                               calculated!
 %                               
 %        testOpt: optional structure with the following optional fields
 %           - splitData     : [{0}/1] split inputData into two sets, returns two
@@ -109,8 +111,10 @@ function [trajectoryDescription] = trajectoryAnalysis(inputData,ioOpt,testOpt)
 %           SEM: standard error of the mean
 %           STD: standard deviation of the sample (SEM*sqrt(n))
 %
-%     'ap2tpFreq__cat' ,        catastrophe frequency (m,sem,n; [s^-1])
-%     'tp2apFreq__res' ,        rescue frequency      (m,sem,n; [s^-1])
+%       WARNING: FREQUENCIES ARE CALCULATED AS PER TIMEPOINT. TO GET
+%       FREQUENCIES PER SECOND, DIVIDE BY THE SAMPLING RATE IN SECONDS
+%     'ap2tpFreq__cat' ,        catastrophe frequency (m,sem,n; [-])
+%     'tp2apFreq__res' ,        rescue frequency      (m,sem,n; [-])
 %     'antipolewardSpeed' ,     growth speed          (m,sem,n; [um/min])
 %     'polewardSpeed' ,         shrinkage speed       (m,sem,n; [um/min])
 %     'distanceMean',           mean spb-cen distance (m,sem; [um])
