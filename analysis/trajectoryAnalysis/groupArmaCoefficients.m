@@ -26,7 +26,7 @@ out = [];
 
 % default cutoffs. Negative integers are number of groups, postitive reals
 % are probability cutoffs
-def_options.wnv1 = [];
+def_options.wnv1 = -2;
 def_options.arma = -2; %5e-5;
 def_options.wnv2 = 1e-12;
 
