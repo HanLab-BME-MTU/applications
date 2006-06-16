@@ -1,16 +1,16 @@
 function taInput = annConvertData(annData,micronsPerPixel, uncertainty)
 %ANNCONVERTDATA converts Ann's data so that trajectoryAnalysis can use it as first input argument
 %
-% SYNOPSIS: taInput = annConvertData(annData, micronsPerPixel)
+% SYNOPSIS: taInput = annConvertData(annData, micronsPerPixel, uncertainty)
 %
 % INPUT annData: n-by-4 array (further columns optional, but not considered)
 %           C1: MT number
 %           C2: x (pix)
 %           C3: y (pix)
 %           C4: sampling intervall (s) 
-%       micronsPerPixel : pixelsize in microns
+%       micronsPerPixel (opt): pixelsize in microns. Default: 0.11
 %       uncertainty (opt): uncertainty of the position measurements in
-%                          pixels. Default: 1
+%                          pixels. Default: 2
 %
 % OUTPUT taInput: data structure to be used as first input argument in
 %        trajectoryAnalysis 
@@ -37,11 +37,17 @@ function taInput = annConvertData(annData,micronsPerPixel, uncertainty)
 %% TEST INPUT
 %===========================
 
-% default: uncertainty of 1 pixel
-def_uncertainty = 1;
+% default: uncertainty of 2 pixels, pixelsize 0.11um
+def_micronsPerPixel = 0.11;
+def_uncertainty = 2;
 
-if nargin < 2 || isempty(annData) || isempty(micronsPerPixel)
-    error('annConvertData requires two non-empty input arguments')
+
+if nargin < 1 || isempty(annData)
+    error('annConvertData requires a non-empty input arguments!')
+end
+
+if nargin < 2 || isempty(micronsPerPixel);
+    micronsPerPixel = def_micronsPerPixel;
 end
 
 if nargin < 3 || isempty(uncertainty);
