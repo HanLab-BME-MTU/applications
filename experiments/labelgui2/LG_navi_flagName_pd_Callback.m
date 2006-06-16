@@ -33,8 +33,8 @@ switch currentFlag
         flaggedFrameList = find(all(flagList==0,2));
     case -1 % all frames
         flaggedFrameList = 1:size(flagList,1);
-    case 0 % all flagged frames (no deleted frames)
-        flaggedFrameList = find(any(flagList > 0,2) & all(flagList < 21,2));
+    case 0 % all flagged frames [tracked, fusions, single occ., close to border]
+        flaggedFrameList = find(any(flagList == 2 | flagList == 3 | flagList == 12 | flagList == 22, 2))
     case 2 % all tracked frames
         flaggedFrameList = find(any(flagList == 2 | flagList == 5,2));
     case 3 % all fusion frames

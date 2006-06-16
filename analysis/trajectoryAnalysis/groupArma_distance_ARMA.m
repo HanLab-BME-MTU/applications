@@ -131,6 +131,9 @@ for i = 1:nSets-1
           
             
             % fTest
+            
+            % get degrees of freedom. Use maximum for both to get strict
+            % test
             parameters.initialM(ct,1) = ...
                 max(sum(data(iIdx).orderLen),sum(data(jIdx).orderLen));
             parameters.initialM(ct,2) = ...
@@ -177,10 +180,12 @@ for i = 1:nSets-1
                 parameters.initialM(comparisonIdx,1))/...
                 sum(parameters.initialM(comparisonIdx,1));
             
-            % test
+            % test. Use maximum (not sum) for degrees of freedom -
+            % otherwise, we are favoring single-to-group linkage over
+            % group-to-group
             [associatedInfo(ct,1),associatedInfo(ct,4)] =...
                 fcdfExtrapolateLog(fRatio,...
-                mean(parameters.initialM(comparisonIdx,1)),...
+                max(parameters.initialM(comparisonIdx,1)),...
                 max(parameters.initialM(comparisonIdx,2)));
             
             % min/max

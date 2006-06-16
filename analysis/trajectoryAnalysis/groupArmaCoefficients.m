@@ -21,34 +21,32 @@ function [groupedData] = groupArmaCoefficients(data,options)
 %% Test Input / Load Data
 %============================
 
-out = [];
+groupedData = [];
 %def_mode = 4;
 
 % default cutoffs. Negative integers are number of groups, postitive reals
-% are probability cutoffs
+% are probability cutoffs. Now that -log10(prob) is being used for
+% clustering, you have to specify the log of the cutoff probability
 def_options.wnv1 = -2;
-def_options.arma = -2; %5e-5;
-def_options.wnv2 = 1e-12;
+def_options.arma = -2;%-log10(5e-5); %-2
+def_options.wnv2 = -log10(1e-12);
 
 % tbd: test input, check options, set defaults
 
 if nargin == 0 || isempty(data)
-    % load data
-    [fname1, pname1] = uigetfile('*.*','Load ARMA data');
-    oldDir = cd(pname1);
-    [fname2, pname2] = uigetfile('*.*','Load strain info');
-    cd(oldDir);
-    if any(fname1 == 0) || any(fname2 == 0)
+    % load data. have user select list of strains
+    [strainFile, dataPath] = uigetfile('strains_*.mat','Load strain list!');
+    if any(strainFile == 0)
         disp('--groupArmaCoefficients aborted')
         return
     end
-
-    % armaData is a collection of many files, while strainInfo is already
-    % the correct structure that contains the optimal model for each
-    armaData = load(fullfile(pname1,fname1));
-    strainInfo = load(fullfile(pname2,fname2));
-
-    % strainInfo is a structure in itself
+    
+    % read strainInfo so that user may select the files to be analyzed
+    % directly without having to wait for the data to be read from the
+    % server
+    strainInfo = load(fullfile(dataPath,strainFile));
+    
+     % strainInfo is a structure in itself
     fn = fieldnames(strainInfo);
     strainInfo = strainInfo.(fn{1});
 
@@ -61,6 +59,27 @@ if nargin == 0 || isempty(data)
         disp('--groupArmaCoefficients aborted')
         return
     end
+    
+    
+   
+    
+    % read armaData, lengthData. StrainInfo is a structure with
+    % the dataFile-names, while armaData and lengthData are collections of
+    % files that are labeled according to the dataFile-names.
+     dataSuffix = regexp(strainFile,'strains_([\w]+).mat','tokens');
+    dataSuffix = char(dataSuffix{1});
+    % armaData is a collection of many files, while strainInfo is already
+    % the correct structure that contains the optimal model for each
+    armaData = load(fullfile(dataPath,sprintf('resFitVelAndLen_%s',dataSuffix)));
+    
+    % try load length file
+    try
+        lengthData = load(fullfile(dataPath,sprintf('lengthSeries_%s',dataSuffix)));
+    catch
+        lengthData = [];
+    end
+
+   
 
 
     % get number of data
@@ -76,7 +95,7 @@ if nargin == 0 || isempty(data)
                 goodIdx(i) = [];
             end
         else
-            % group data
+            % reorder data fields, in case there is a change in field-order in the future
             %             if exist('data','var')
             %             data = orderfields(armaData.(sprintf('fitLen%s',strainInfo(selectionIdx(i)).name))...
             %             (strainInfo(selectionIdx(i)).orderLen(1)+1,strainInfo(selectionIdx(i)).orderLen(2)+1),data);
@@ -95,6 +114,16 @@ if nargin == 0 || isempty(data)
     % read strainInfo into data
     [data.name] = deal(strainInfo(selectionIdx(goodIdx)).name);
     [data.orderLen] = deal(strainInfo(selectionIdx(goodIdx)).orderLen);
+    
+    % read length into data (if there is any). We can't do this above,
+    % because filling up the structure requires the fields to be the same
+    if ~isempty(lengthData)
+        % we already know what part of the selection is good
+        for i=selectionIdx(goodIdx)'
+            data(i).lengthSeries = ...
+                lengthData.(sprintf('length%s',strainInfo(selectionIdx(i)).name));
+        end
+    end
 
 end
 
@@ -133,7 +162,7 @@ set(groupedData.plotHandles.figureH,'Name','WNV - Round 1');
 %===========================
 
 %options.mode = 2;
-groupingOptions.cutoff = -log10(5e-5);%-2;%%
+groupingOptions.cutoff = options.arma;
 
 nGroups = length(groupedData.collectedData);
 
@@ -170,7 +199,7 @@ end
 %===========================
 
 %options.mode = 2;
-groupingOptions.cutoff = -log10(options.wnv2);
+groupingOptions.cutoff = options.wnv2;
 
 
 for iGroup = 1:nGroups
