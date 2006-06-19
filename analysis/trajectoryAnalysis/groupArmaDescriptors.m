@@ -1,11 +1,57 @@
-function [groupedData] = groupArmaCoefficients(data,options)
-%GROUPARMACOEFFICIENTS groups models according to similarity of their ARMA coefficients
+function groupedData = groupArmaDescriptors(data,options)
+%GROUPARMADESCRIPTORS groups models according to similarity of their ARMA coefficients
 %
-% SYNOPSIS: [out] = groupArmaCoefficients(data,options)
+% SYNOPSIS: groupedData = groupArmaDescriptors(data,options)
 %
-% INPUT
+% INPUT     data (opt): structure similar to the output of armaXFitKalman, with
+%                 two additional fields: orderLen (number of fit
+%                 parameters), name (name of the dataSet). If empty, the
+%                 code will ask for a file called strain_???.mat, an then
+%                 look for a file called resFitVelAndLen_???.mat, and,
+%                 possibly, lengthSeries_???.mat
+%           options (opt): Structure with options for grouping data sets
+%                 (### = wnv1, arma, or wnv2 for the first round of
+%                 clustering according to white noise variance, clustering
+%                 according to arma coefficients, and the second round of
+%                 clustering according to white noise variance,
+%                 respectively.
+%                 ###_cutoff - if negative integer: fixed number of groups
+%                              into which to split data. 
+%                              if positive real number (0...1): p-value
+%                              indicating significant differences
+%                 ###_mode -   two-element vector describing how individual
+%                              data sets should be combined
+%                              [0,0] - no recalculation of ARMA descriptors
+%                              [1,p] - recalculation until a threshold p is reached
+%                              [2,0] - recalculation for all groups
 %
-% OUTPUT
+% OUTPUT    groupedData : output structure with fields
+%                .collectedData(1:n) groups of data as divided according to
+%                    options.###_cutoff with fields
+%                   .data : original data sets belonging to this group
+%                   .dataIdx : index of data into input data order
+%                   .links : links between data sets within the group (as
+%                            returned by linkage.m)
+%                   .linkData : additional data describing the links. Cols
+%                       1: separate groups according to cutoff?
+%                       2: -log10(prob)
+%                       3: Fratio
+%                       4: n1
+%                       5: n2
+%                       6: minLogProb between individual sets
+%                       7: maxLogProb between individual sets
+%                       8: 1 if extrapolated log
+%                   .groupIdx : nSets-by-(nSets-1) array describing the
+%                       coalescence of data sets into groups
+%                   .subGroups : groupedData of subgroups as determined by
+%                       cutoff
+%                .collectedGrouping : links array of the relation between
+%                    the n groups of collectedData
+%                .plotHandles : structure with handles to the figures
+%                   .figureH : figure handle
+%                   .axesH   : axes handle
+%                   .lineH   : handles to the lines of the dendrogram
+%                   
 %
 % REMARKS
 %
@@ -20,23 +66,23 @@ function [groupedData] = groupArmaCoefficients(data,options)
 %============================
 %% Test Input / Load Data
 %============================
-
-groupedData = [];
-%def_mode = 4;
+if nargout > 0
+    groupedData = [];
+end
 
 % default cutoffs. Negative integers are number of groups, postitive reals
 % are probability cutoffs. 
-% mode describes whether the individual data sets should be recombined, and
+% mode describes whether the individual data sets should be combined, and
 % to what level of difference. 
 % [0,0] - no recalculation of ARMA descriptors
 % [1,p] - recalculation until a threshold p is reached
 % [2,0] - recalculation for all groups
 def_options.wnv1_cutoff = -2;
-def_options.wnv1_mode = [0,0];
+def_options.wnv1_mode = [1,1e-12];
 def_options.arma_cutoff = -2;%5e-5;
-def_options.arma_mode = [0, 1e-5];
+def_options.arma_mode = [1, 5e-5];
 def_options.wnv2_cutoff = 1e-12;
-def_options.wnv2_mode = [0,1e-12];
+def_options.wnv2_mode = [1,1e-12];
 def_options.plot = 1; % plot results
 
 % tbd: test input, check options, set defaults

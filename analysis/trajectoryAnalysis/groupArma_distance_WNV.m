@@ -121,25 +121,7 @@ else
 
     if recalc
 
-        % make new length series
-        data(ijk(3)).lenghtSeries = ...
-            [data(ijk(1)).lengthSeries,data(ijk(2)).lengthSeries];
-
-        % set initial guesses for new data. Take from set with more
-        % observations (if ijk2 has more, idx into ijk will become 2
-        initialIdx = ijk((data(ijk(2)).numObserve > data(ijk(1)).numObserve)+1);
-        % ar, ma Param have transformed values in the first col
-        initialGuess.arParamP0 = data(initialIdx).arParamK(2,:);
-        initialGuess.maParamP0 = data(initialIdx).maParamK(2,:);
-        initialGuess.xParamP0 = data(initialIdx).xParamK;
-
-        % recalculate
-        fitResults = armaXFitKalman(data(ijk(3)).lengthSeries,[],initialGuess);
-
-        % assign to data
-        for fn=fieldnames(fitResults)'
-            data(ijk(3)).(char(fn)) = fitResults.(char(fn));
-        end
+        data = groupArma_recalcArma(data,ijk);
 
     else
 

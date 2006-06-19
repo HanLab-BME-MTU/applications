@@ -126,25 +126,9 @@ else
     
     if recalc
 
-        % make new length series
-        data(ijk(3)).lengthSeries = ...
-            [data(ijk(1)).lengthSeries,data(ijk(2)).lengthSeries];
-
-        % set initial guesses for new data. Take from set with more
-        % observations (if ijk2 has more, idx into ijk will become 2
-        initialIdx = ijk((data(ijk(2)).numObserve > data(ijk(1)).numObserve)+1);
-        % ar, ma Param have transformed values in the first col
-        initialGuess.arParamP0 = data(initialIdx).arParamK(2,:);
-        initialGuess.maParamP0 = data(initialIdx).maParamK(2,:);
-        initialGuess.xParamP0 = data(initialIdx).xParamK;
-
-        % recalculate
-        fitResults = armaXFitKalman(data(ijk(3)).lengthSeries,[],initialGuess);
-
-        % assign to data
-        for fn=fieldnames(fitResults)'
-            data(ijk(3)).(char(fn)) = fitResults.(char(fn));
-        end
+        % combine data into a new length series, then calculate ARMA
+        % descriptors again
+        data = groupArma_recalcArma(data,ijk);
 
     end
 end
@@ -170,7 +154,7 @@ if isInit || recalc
     
     parameters.initialM = zeros(nComparisons,2);
     parameters.initialF = zeros(nComparisons,1);
-    parametres.initialFIdx = zeros(nComparisons,2);
+    parameters.initialFIdx = zeros(nComparisons,2);
     
     
     % last recalc is what we'll use to make the recalc-groups
@@ -181,7 +165,7 @@ if isInit || recalc
     parameters.initialProb = zeros(nComparisons,1);
     parameters.lastRecalc = 1;
     else
-        parameters.lastRecalc = find(parameters.groupIdx(1,:),1,'last')+1;
+        parameters.lastRecalc = find(parameters.groupIdx(1,:),1,'last');
     end
        
 else
@@ -240,7 +224,7 @@ for i = 1:nSets-1
             
             % min/max probabilities are the same as the actual
             % probabilities if init
-            associatedInfo(ct,2:3) = associatedInfo(ct,1);
+            associatedInfo(ct,6:7) = associatedInfo(ct,2);
             
             else
                 % min/max have to be found from initialProb
@@ -248,6 +232,9 @@ for i = 1:nSets-1
                 % find comparisons between elements in iSets and jSets. Take if
             % in a row of initialProbIdx there is an entery of iSets and
             % an entry of jSets
+            groupIdx = parameters.groupIdx(:,[1,find(parameters.groupIdx(1,:),1,'last')]);
+            iSets = groupIdx(groupIdx(:,2) == iIdx,1);
+            jSets = groupIdx(groupIdx(:,2) == jIdx,1);
             comparisonIdx = ...
                 any(ismember(parameters.initialProbIdx,iSets),2) &...
                 any(ismember(parameters.initialProbIdx,jSets),2);
@@ -263,7 +250,7 @@ for i = 1:nSets-1
             % store fRatios, n1, n2, corresponding index
             parameters.initialF(ct,1) = fRatio;
             parameters.initialM(ct,:) = [n1, n2];
-            parameters.initialFIdx(ct,:) = [i,j];
+            parameters.initialFIdx(ct,:) = [iIdx,jIdx];
             
         else
             
