@@ -7,14 +7,16 @@ function [links, groupIdx, optData, linkData] = groupData(data, distanceFunction
 % INPUT data: data that is recognized by the distance function you specify
 %
 %       distanceFunction: name of the function that calculates the
-%               distance between the objects you want to group.
+%               distance between the objects you want to group. This
+%               function also determines at what level the tree is to be
+%               cut.
 %               The distance function has to have the following inputs and
 %               outputs:
 %               [distance, associatedInfo, data, parameters] = distanceFunction(...
 %                   data, parameters)
 %               In: data - input data to groupData
 %                   parameters - structure that contains at least the
-%                   fields (created by groupData!)
+%                    fields (created by groupData!)
 %                      .group - either [], if the distance function has to be
 %                           calculated for the entire data set, or [i,j,k],
 %                           if sets i and j are grouped into a new set, k.
@@ -25,19 +27,26 @@ function [links, groupIdx, optData, linkData] = groupData(data, distanceFunction
 %                           distanceOrder will be empty, too!
 %                      .groupIdx - as in output, but with zeros where no
 %                           data is yet availale
+%                      .groupInfo - associatedInfo for the current group
 %                   any other parameters that are required for the
 %                   operation of the distanceFunction can be passed as the
-%                   structure distanceFunctionParameters
+%                   structure distanceFunctionParameters. Importantly, the
+%                   cutoff criterion has to be passed with this structure.
 %
 %               Out: distance - vector containing the distance between the
 %                       sets. Element 1 is the distance between 1 and
-%                       2, element 2 between 1 and 3 etc., where 1,2,3,
+%                         2, element 2 between 1 and 3 etc., where 1,2,3,
 %                       refer to the order of sets in data (newly joined
 %                       sets will be added at the end)
 %                    associatedInfo - array with the same number of rows as
 %                       distance contains elements. Place additional
 %                       information about the potential links into the
-%                       columns; they will be read into linkData
+%                       columns; they will be read into linkData.
+%                       !! The first column of associatedInfo is 1 if the
+%                       two grouped datasets are to be considered different
+%                       (either because the distance is above a certain
+%                       threshold, or because you want to cut off the tree
+%                       at a specified level). Therefore
 %                    data - the (updated) input data (this allows you to
 %                       save calculations)
 %                    parameters - same as input parameters
@@ -45,9 +54,6 @@ function [links, groupIdx, optData, linkData] = groupData(data, distanceFunction
 %       groupingOptions: optional structure with options for groupData
 %               .verbose - whether or not to plot a dendrogram [{1}/0]
 %               .labels  - cell array with labels for every data set
-%               .cutoff  - if a negative integer -n, the tree will be cut
-%                          so that there are n groups. Else it's considered
-%                          to be the cutoff distance criterion. 
 %
 %		distanceFunctionParameters: optional argument that will be passed to the distance function
 %
@@ -56,9 +62,9 @@ function [links, groupIdx, optData, linkData] = groupData(data, distanceFunction
 %			entries the group it belongs to at level m. Indices of level 1
 %			are 1:n.
 %        optData: additional output data depending on the groupingOptions
-%           .collectedData(1:nGroups)  [empty if no cutoff specified]
+%           .collectedData(1:nGroups)
 %                  .data(1:nData) - input data grouped according to the
-%                       cutoff criterion 
+%                       cutoff criterion
 %                  .dataIdx(1:nData) - for every data set: index into
 %                       original data
 %           .collectedGrouping - how collectedData is grouped beyond the
@@ -87,7 +93,6 @@ function [links, groupIdx, optData, linkData] = groupData(data, distanceFunction
 
 % defaults
 defaultOptions.verbose = true; % plot dendrogram
-defaultOptions.cutoff = []; % no cutoff
 defaultOptions.labels = []; % no labels
 
 if nargin < 2 || isempty(data) || isempty(distanceFunction)
@@ -134,6 +139,7 @@ parameters = distanceFunctionParameters;
 parameters.group = [];
 parameters.distanceOrder = [];
 parameters.groupIdx = [];
+parameters.associatedInfo = [];
 [distance, associatedInfo, data, parameters] = ...
     feval(distanceFunction, data, parameters);
 
@@ -152,16 +158,16 @@ parameters.groupIdx(:,1) = (1:nSets)';
 
 
 % read number of associatedInfo
-if isempty(associatedInfo)
-    addInfo = false;
-    linkData = [];
-else
-    addInfo = true;
-    if size(associatedInfo,1) ~= nDistances
-        error('associatedInfo has to have as many rows as there are distances')
-    end
-    linkData = zeros(nLinks, size(associatedInfo,2));
+% if isempty(associatedInfo)
+%     addInfo = false;
+%     linkData = [];
+% else
+%     addInfo = true;
+if size(associatedInfo,1) ~= nDistances
+    error('associatedInfo has to have as many rows as there are distances')
 end
+linkData = zeros(nLinks, size(associatedInfo,2));
+% end
 
 
 %==========================
@@ -195,9 +201,9 @@ for i = 1:nLinks
     % store minimum distance, group
     newGroup = distanceIdx(minDistIdx,:);
     links(i,:) = [newGroup,minDist];
-    if addInfo
-        linkData(i,:) = associatedInfo(minDistIdx,:);
-    end
+    %if addInfo
+    linkData(i,:) = associatedInfo(minDistIdx,:);
+    %end
 
     % if we aren't done yet: Update everything.
     if i < nLinks
@@ -213,6 +219,7 @@ for i = 1:nLinks
 
         % call distance function
         parameters.group = [newGroup,newGroupNumber];
+        parameters.associatedInfo = linkData(i,:);
         [distance, associatedInfo, data, parameters] = ...
             feval(distanceFunction, data, parameters);
 
@@ -229,87 +236,103 @@ groupIdx = parameters.groupIdx;
 %% CUTOFF
 %=====================
 
-% check whether to cutoff at all
-if ~isempty(groupingOptions.cutoff)
-    % check whether to cut according to distance criterion, or whether to
-    % make a set number of groups
-    if round(groupingOptions.cutoff) == -abs(groupingOptions.cutoff)
-        % take a given number of groups
-        nGroups = -groupingOptions.cutoff;
-        
-        % get a pseudo-threshold
-        threshold = mean(links(end-nGroups+(1:2),3));
+% check whether to cutoff at all - removed
+%if ~isempty(groupingOptions.cutoff)
+% check whether to cut according to distance criterion, or whether to
+% make a set number of groups -- moved into distance function
+%     if round(groupingOptions.cutoff) == -abs(groupingOptions.cutoff)
+%         % take a given number of groups
+%         nGroups = -groupingOptions.cutoff;
+%
+%         % get a pseudo-threshold
+%         threshold = mean(links(end-nGroups+(1:2),3));
+%
+%     else
+%         % read threshold
+%         threshold = groupingOptions.cutoff;
+%
+%         % find nGroups
+%         aboveThresholdIdx = links(:,3)>threshold;
+%         nGroups = sum(aboveThresholdIdx) + 1;
+%     end
 
-    else
-        % read threshold
-        threshold = groupingOptions.cutoff;
-        
-        % find nGroups
-        aboveThresholdIdx = links(:,3)>threshold;
-        nGroups = sum(aboveThresholdIdx) + 1;
-    end
-    
-    if nGroups > 1
-    % find n labels of groups
-        groupLabels = unique(groupIdx(:,end-nGroups+2));
-        
-        % cut links
-        optData.collectedGrouping = links(end-nGroups+2:end,:);
-
-        % collectedData : puts data into nGroups groups by reading from groupIdx
-        for iGroup = 1:nGroups
-            % find which data we're putting into the group
-            optData.collectedData(iGroup).dataIdx = ...
-                find(groupIdx(:,end-nGroups+2) == groupLabels(iGroup));
-            % collect the data
-            optData.collectedData(iGroup).data = ...
-                originalData(optData.collectedData(iGroup).dataIdx);
-            
-            % replace groupLabel with iGroup in groupLinks
-            optData.collectedGrouping(...
-                optData.collectedGrouping == groupLabels(iGroup)) = ...
-                iGroup;
-        end
-    else
-        % only one group
-        optData.collectedData.dataIdx = 1:nSets;
-        optData.collectedData.data = originalData;
-        optData.collectedGrouping = [];
-    end
-        
-
-    
+% find number of links that are to be cut. If there is a non-cut link in
+% between cut ones, consider that link cut, too.
+cutIdx = find(linkData(:,1),1,'first');
+if isempty(cutIdx)
+    % if no significant difference, everything belongs to the same group
+    nGroups = 1;
 else
-    % define threshold for dendrogram
-    threshold = -1;
-    
-    % only one group
-        optData.collectedData.dataIdx = 1:nSets;
-        optData.collectedData.data = originalData;
-        optData.collectedGrouping = [];
-
+    % if 10 data sets, there are 9 links, and if the very last one is
+    % significant, there are two groups
+    nGroups = nLinks - cutIdx + 2;
 end
+
+
+if nGroups > 1
+    % find n labels of groups
+    groupLabels = unique(groupIdx(:,end-nGroups+2));
+
+    % cut links
+    optData.collectedGrouping = links(end-nGroups+2:end,:);
+
+    % collectedData : puts data into nGroups groups by reading from groupIdx
+    for iGroup = 1:nGroups
+        % find which data we're putting into the group
+        optData.collectedData(iGroup).dataIdx = ...
+            find(groupIdx(:,end-nGroups+2) == groupLabels(iGroup));
+        % collect the data
+        optData.collectedData(iGroup).data = ...
+            originalData(optData.collectedData(iGroup).dataIdx);
+
+        % replace groupLabel with iGroup in groupLinks
+        optData.collectedGrouping(...
+            optData.collectedGrouping == groupLabels(iGroup)) = ...
+            iGroup;
+    end
+    % color-threshold: look up smallest cut distance
+    threshold = links(cutIdx,3);
+else
+    % only one group
+    optData.collectedData.dataIdx = 1:nSets;
+    optData.collectedData.data = originalData;
+    optData.collectedGrouping = [];
+    threshold = -1;
+end
+
+
+% removed because we can always attempt to groups
+% else
+%     % define threshold for dendrogram
+%     threshold = -1;
+%
+%     % only one group
+%         optData.collectedData.dataIdx = 1:nSets;
+%         optData.collectedData.data = originalData;
+%         optData.collectedGrouping = [];
+%
+% end
 
 
 % show dendrogram if selected
 if groupingOptions.verbose
     optData.plotHandles.figureH = figure;
     if ~isempty(links)
-    if isempty(groupingOptions.labels)
-        optData.plotHandles.lineH = dendrogram(links,0,...
-        'orientation','right',...
-        'COLORTHRESHOLD',threshold);
-    else
-    optData.plotHandles.lineH = dendrogram(links,0,...
-        'labels',groupingOptions.labels,'orientation','right',...
-        'COLORTHRESHOLD',threshold);
-    end
+        if isempty(groupingOptions.labels)
+            optData.plotHandles.lineH = dendrogram(links,0,...
+                'orientation','right',...
+                'COLORTHRESHOLD',threshold);
+        else
+            optData.plotHandles.lineH = dendrogram(links,0,...
+                'labels',groupingOptions.labels,'orientation','right',...
+                'COLORTHRESHOLD',threshold);
+        end
     end
     optData.plotHandles.axesH = gca;
 end
 
 
-    
+
 
 
 

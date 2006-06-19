@@ -7,24 +7,48 @@ function [distance, associatedInfo, data, parameters] = groupArma_distance_WNV(d
 %              numObserve - nuber of observations
 %              wnVariance - white noise variance
 %              orderLen - [ar,ma] order length
+%            if grouping by combination of trajectories, data also need the
+%            fields
+%               xParamK
+%               arParamK
+%               maParamK
+%               lengthSeries
+%
 %       parameters - structure with fields
 %               group (required by groupData) - either [], if the distance
-%                           function has to be 
+%                           function has to be
 %                           calculated for the entire data set, or [i,j,k],
 %                           if sets i and j are grouped into a new set, k.
 %               distanceOrder (req. by groupData) - ordered indices of
-%                           active groups. If 
+%                           active groups. If
 %                           the last two of six data sets have been
 %                           grouped (group = [5,6,7]), distanceOrder will
 %                           be [1,2,3,4,7]. If group is empty, then
 %                           distanceOrder will be empty, too!
-%               groupIdx (req. by groupData) 
+%               groupIdx (req. by groupData)
+%               associatedInfo (required by groupData)
+%
+%               cutoff - (passed down from groupArmaDescriptors)
+%                        either a negative integer indicating how many
+%                        groups to make, or a positive double with the
+%                        cutoff probability
+%               groupingMode - (passed down from groupArmaDescriptors)
+%                        two-element array [mode, criterion]
+%                        mode indicates which way the data should be
+%                        grouped. 0: no recombinateion of data. 1:
+%                        recombination up to a certain level of difference.
+%                        2: recombination (=recalculating ARMA) all the way
+%                        through.
+%                        criterion: specifies the exact level until which
+%                        the data should be grouped.
+%
 %               initialProb (created here) - probabilities of the first
 %                           comparison (1-pValue)
 %               initialF (created here) - variance ratios of the first
 %                           comparison
 %               initialProbIdx (created here) - index into intialProb
-%               
+%
+%
 %
 % OUTPUT distance - vector containing the distance between the
 %                       sets. Element 1 is the distance between 1 and
@@ -32,12 +56,17 @@ function [distance, associatedInfo, data, parameters] = groupArma_distance_WNV(d
 %                       refer to the order of sets in data (newly joined
 %                       sets will be added at the end)
 %        associatedInfo - array with additional data for each pair in cols
-%                       1: -log10(prob)
-%                       2: minLogProb of individual sets
-%                       3: maxLogProb of individual sets
-%                       4: 1 if extrapolated log
+%                       1: link incompatible according to cutoff? (required
+%                           by groupData)
+%                       2: -log10(prob)
+%                       3: Fstat
+%                       4: n1
+%                       5: n2
+%                       6: minLogProb of individual sets
+%                       7: maxLogProb of individual sets
+%                       8: 1 if extrapolated log
 %        data - the (updated) input data with appended variances and n's
-%        parameters - parameter structure. 
+%        parameters - parameter structure.
 %
 % REMARKS
 %
@@ -61,30 +90,75 @@ if isInit
     % initialize
     nData = length(data);
     parameters.distanceOrder = 1:nData;
-    
+
     % augment data now
     data(2*nData-1).wnVariance = [];
-    
+
 else
     % we need to combine two sets
     ijk = parameters.group;
-    
-    % the new variance is the weighted mean of the two individual variances
-    % n: number of observations
-    % m: number of fixed parameters (vector in the original data, but from
-    % then on, all we use is the sum!)
-    % nu: number of degrees of freedom
-    n(1) = data(ijk(1)).numObserve;
-    n(2) = data(ijk(2)).numObserve;
-    m(1) = sum(data(ijk(1)).orderLen);
-    m(2) = sum(data(ijk(2)).orderLen);
-    nu(1) = n(1) - m(1);
-    nu(2) = n(2) - m(2);
-    data(ijk(3)).wnVariance = nu(1)/sum(nu) * data(ijk(1)).wnVariance + ...
-        nu(2)/sum(nu) * data(ijk(2)).wnVariance;
-    data(ijk(3)).numObserve = sum(n);
-    data(ijk(3)).orderLen = sum(m);
-    
+
+    % check for groupingMode
+    switch parameters.mode(1)
+        case 0
+            % don't recalc
+            recalc = false;
+        case 1
+            % recalc only if last p-value was below threshold
+            if parameters.associatedInfo(2) < -log10(parameters.mode(2))
+                recalc = true;
+            else
+                recalc = false;
+            end
+        case 2
+            % recalc all the time
+            recalc = true;
+    end
+
+    % if recalc, we're creating a new data set
+    % if not, we're taking the weighted mean of the two individual
+    % variances
+
+    if recalc
+
+        % make new length series
+        data(ijk(3)).lenghtSeries = ...
+            [data(ijk(1)).lengthSeries,data(ijk(2)).lengthSeries];
+
+        % set initial guesses for new data. Take from set with more
+        % observations (if ijk2 has more, idx into ijk will become 2
+        initialIdx = ijk((data(ijk(2)).numObserve > data(ijk(1)).numObserve)+1);
+        % ar, ma Param have transformed values in the first col
+        initialGuess.arParamP0 = data(initialIdx).arParamK(2,:);
+        initialGuess.maParamP0 = data(initialIdx).maParamK(2,:);
+        initialGuess.xParamP0 = data(initialIdx).xParamK;
+
+        % recalculate
+        fitResults = armaXFitKalman(data(ijk(3)).lengthSeries,[],initialGuess);
+
+        % assign to data
+        for fn=fieldnames(fitResults)'
+            data(ijk(3)).(char(fn)) = fitResults.(char(fn));
+        end
+
+    else
+
+        % the new variance is the weighted mean of the two individual variances
+        % n: number of observations
+        % m: number of fixed parameters (vector in the original data, but from
+        % then on, all we use is the sum!)
+        % nu: number of degrees of freedom
+        n(1) = data(ijk(1)).numObserve;
+        n(2) = data(ijk(2)).numObserve;
+        m(1) = sum(data(ijk(1)).orderLen);
+        m(2) = sum(data(ijk(2)).orderLen);
+        nu(1) = n(1) - m(1);
+        nu(2) = n(2) - m(2);
+        data(ijk(3)).wnVariance = nu(1)/sum(nu) * data(ijk(1)).wnVariance + ...
+            nu(2)/sum(nu) * data(ijk(2)).wnVariance;
+        data(ijk(3)).numObserve = sum(n);
+        data(ijk(3)).orderLen = sum(m);
+    end
 end
 
 
@@ -97,17 +171,17 @@ end
 
 % double-loop through the data and compare. If the code becomes too slow
 % here, remember all the old distances, and only update the necessary
-% distances! 
+% distances!
 
 nSets = length(parameters.distanceOrder);
 nComparisons = (nSets-1)*nSets/2;
-associatedInfo = zeros(nComparisons,4);
+associatedInfo = zeros(nComparisons,8);
 ct = 0;
 
 if isInit
     % save the distanceIdx
     parameters.initialProbIdx = zeros(nComparisons,2);
-    
+
 else
     % find the latest groupIdx
     lastIdx = find(parameters.groupIdx(1,:),1,'last');
@@ -119,52 +193,53 @@ for i = 1:nSets-1
     for j = i+1:nSets
         jIdx = parameters.distanceOrder(j);
         ct = ct + 1;
-        
+
         % calculate probability. We want the one where we divide the
         % smaller variance over the larger (slightly more
-        % numerically stable than the other). 
+        % numerically stable than the other).
         % Unfortunately, the numerical stability is not sufficient - at
         % very low ratios, p is set to zero, making it meaningless.
         % In these cases, we extrapolate the values. To avoid problems with
         % realmin, we directly use the negative log of the probability
-        F = data(iIdx).wnVariance/data(jIdx).wnVariance;
-        [associatedInfo(ct,1),associatedInfo(ct,4)] = fcdfExtrapolateLog(...
-            F,...
-            data(iIdx).numObserve - sum(data(iIdx).orderLen),...
-            data(jIdx).numObserve - sum(data(jIdx).orderLen));
-       
         
+        F = data(iIdx).wnVariance/data(jIdx).wnVariance;
+        n1 = data(iIdx).numObserve - sum(data(iIdx).orderLen);
+        n2 = data(jIdx).numObserve - sum(data(jIdx).orderLen);
+        
+        [logP,isExtrapolated] = fcdfExtrapolateLog(F,n1,n2);
+        associatedInfo(ct,[2:5,8]) = [logP, F, n1, n2, isExtrapolated];
+
         % if not init, find distances between groups.
         if isInit
             % remember distanceIdx
             parameters.initialProbIdx(ct,:) = [i,j];
-            
+
             % min/max probabilities are the same as the actual
             % probabilities
-            associatedInfo(ct,2:3) = associatedInfo(ct,1);
-            
-            
+            associatedInfo(ct,6:7) = associatedInfo(ct,1);
+
+
         else
             % read from initialProb
-            
+
             % find sets (original data sets that belong to groups i and j
             iSets = groupIdx(groupIdx(:,2) == iIdx,1);
             jSets = groupIdx(groupIdx(:,2) == jIdx,1);
-            
+
             % find comparisons between elements in iSets and jSets. Take if
             % in a row of initialProbIdx there is an entery of iSets and
             % an entry of jSets
             comparisonIdx = ...
                 any(ismember(parameters.initialProbIdx,iSets),2) &...
                 any(ismember(parameters.initialProbIdx,jSets),2);
-            
-            associatedInfo(ct,2) = ...
+
+            associatedInfo(ct,6) = ...
                 min(parameters.initialProb(comparisonIdx));
-            associatedInfo(ct,3) = ...
+            associatedInfo(ct,7) = ...
                 max(parameters.initialProb(comparisonIdx));
-            
+
         end % if isInit
-        
+
     end % loop j
 end % loop i
 
@@ -177,10 +252,25 @@ end % loop i
 %   revisions to check them out if needed *
 
 % read distance
-distance = associatedInfo(:,1);
+distance = associatedInfo(:,2);
+
+% check whether compatible pairs
+if ~isempty(parameters.cutoff)
+    % check whether we cutoff according to probability or according to
+    % number of groups
+    if parameters.cutoff == -abs(round(parameters.cutoff))
+        % negative integer: cut number of groups
+        if nSets <= -parameters.cutoff
+            % all are different if there are only -cutoff sets around
+            associatedInfo(:,1) = 1;
+        end
+    else
+        associatedInfo(:,1) = associatedInfo(:,2) > -log10(parameters.cutoff);
+    end
+end
 
 % store initialProb
 if isInit
-    parameters.initialProb = associatedInfo(:,1);
+    parameters.initialProb = associatedInfo(:,2);
 end
 

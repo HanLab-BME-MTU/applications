@@ -25,11 +25,19 @@ groupedData = [];
 %def_mode = 4;
 
 % default cutoffs. Negative integers are number of groups, postitive reals
-% are probability cutoffs. Now that -log10(prob) is being used for
-% clustering, you have to specify the log of the cutoff probability
-def_options.wnv1 = -2;
-def_options.arma = -2;%-log10(5e-5); %-2
-def_options.wnv2 = -log10(1e-12);
+% are probability cutoffs. 
+% mode describes whether the individual data sets should be recombined, and
+% to what level of difference. 
+% [0,0] - no recalculation of ARMA descriptors
+% [1,p] - recalculation until a threshold p is reached
+% [2,0] - recalculation for all groups
+def_options.wnv1_cutoff = -2;
+def_options.wnv1_mode = [0,0];
+def_options.arma_cutoff = -2;%5e-5;
+def_options.arma_mode = [0, 1e-5];
+def_options.wnv2_cutoff = 1e-12;
+def_options.wnv2_mode = [0,1e-12];
+def_options.plot = 1; % plot results
 
 % tbd: test input, check options, set defaults
 
@@ -145,9 +153,12 @@ end
 %% Group according to WNV
 %============================
 
-groupingOptions.cutoff = options.wnv1;
 groupingOptions.labels = strvcat(data.name);
-[links, groupIdx, groupedData, linkData] = groupData(data,'groupArma_distance_WNV',groupingOptions);
+distanceFunctionParameters.cutoff = options.wnv1_cutoff;
+distanceFunctionParameters.mode = options.wnv1_mode;
+[links, groupIdx, groupedData, linkData] = ...
+    groupData(data,'groupArma_distance_WNV',...
+    groupingOptions,distanceFunctionParameters);
 
 % label axis
 set(get(groupedData.plotHandles.axesH,'XLabel'),'String','-^1^0log(probability)')
@@ -162,7 +173,8 @@ set(groupedData.plotHandles.figureH,'Name','WNV - Round 1');
 %===========================
 
 %options.mode = 2;
-groupingOptions.cutoff = options.arma;
+distanceFunctionParameters.cutoff = options.arma_cutoff;
+distanceFunctionParameters.mode = options.arma_mode;
 
 nGroups = length(groupedData.collectedData);
 
@@ -179,7 +191,8 @@ for iGroup = 1:nGroups
     groupingOptions.labels = strvcat(groupedData.collectedData(iGroup).data.name);
     [groupedData.collectedData(iGroup).links,groupedData.collectedData(iGroup).groupIdx,...
         groupedData.collectedData(iGroup).subGroups,groupedData.collectedData(iGroup).linkData] = groupData(...
-        groupedData.collectedData(iGroup).data,'groupArma_distance_ARMA',groupingOptions);
+        groupedData.collectedData(iGroup).data,'groupArma_distance_ARMA',...
+        groupingOptions,distanceFunctionParameters);
 
     % steal all we can from the figure
     ah = groupedData.collectedData(iGroup).subGroups.plotHandles.axesH;
@@ -199,7 +212,8 @@ end
 %===========================
 
 %options.mode = 2;
-groupingOptions.cutoff = options.wnv2;
+distanceFunctionParameters.cutoff = options.wnv2_cutoff;
+distanceFunctionParameters.mode = options.wnv2_mode;
 
 
 for iGroup = 1:nGroups
@@ -222,7 +236,8 @@ for iGroup = 1:nGroups
                 groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).groupIdx,...
                 groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups,...
                 groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).linkData] = groupData(...
-                groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).data,'groupArma_distance_WNV',groupingOptions);
+                groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).data,...
+                'groupArma_distance_WNV',groupingOptions,distanceFunctionParameters);
             xlabel('-^1^0log(probability)')
         end
 
