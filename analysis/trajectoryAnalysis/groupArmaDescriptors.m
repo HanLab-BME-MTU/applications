@@ -3,7 +3,7 @@ function groupedData = groupArmaDescriptors(data,options)
 %
 % SYNOPSIS: groupedData = groupArmaDescriptors(data,options)
 %
-% INPUT     data (opt): structure similar to the output of armaXFitKalman, with
+% INPUT     data (opt): structure similar to the output of armaxFitKalman, with
 %                 two additional fields: orderLen (number of fit
 %                 parameters), name (name of the dataSet). If empty, the
 %                 code will ask for a file called strain_???.mat, an then
@@ -79,7 +79,7 @@ end
 % [2,0] - recalculation for all groups
 def_options.wnv1_cutoff = -2;
 def_options.wnv1_mode = [1,1e-12];
-def_options.arma_cutoff = -2;%5e-5;
+def_options.arma_cutoff = 5e-5;
 def_options.arma_mode = [1, 5e-5];
 def_options.wnv2_cutoff = 1e-12;
 def_options.wnv2_mode = [1,1e-12];
@@ -113,19 +113,19 @@ if nargin == 0 || isempty(data)
         disp('--groupArmaCoefficients aborted')
         return
     end
-    
-    
-   
-    
+
+
+
+
     % read armaData, lengthData. StrainInfo is a structure with
     % the dataFile-names, while armaData and lengthData are collections of
     % files that are labeled according to the dataFile-names.
-     dataSuffix = regexp(strainFile,'strains_([\w]+).mat','tokens');
+    dataSuffix = regexp(strainFile,'strains_([\w]+).mat','tokens');
     dataSuffix = char(dataSuffix{1});
     % armaData is a collection of many files, while strainInfo is already
     % the correct structure that contains the optimal model for each
     armaData = load(fullfile(dataPath,sprintf('resFitVelAndLen_%s',dataSuffix)));
-    
+
     % try load length file
     try
         lengthData = load(fullfile(dataPath,sprintf('lengthSeries_%s',dataSuffix)));
@@ -173,9 +173,10 @@ if nargin == 0 || isempty(data)
     % because filling up the structure requires the fields to be the same
     if ~isempty(lengthData)
         % we already know what part of the selection is good
-        for i=selectionIdx(goodIdx)'
+        goodIdx = find(goodIdx);
+        for i=1:length(goodIdx)
             data(i).lengthSeries = ...
-                lengthData.(sprintf('length%s',strainInfo(selectionIdx(i)).name));
+                lengthData.(sprintf('length%s',strainInfo(selectionIdx(goodIdx(i))).name));
         end
     end
 
