@@ -345,6 +345,7 @@ try
                                         idlist = idlist_L2;
                                         idname = 'idlist_L2';
                                     else
+                                        idlist = idlist2;
                                         idname = 'idlist2';
                                     end
 
