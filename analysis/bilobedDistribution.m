@@ -45,46 +45,9 @@ end
 % from listSelectGUI. Load lastResult. If idlist* and if no ? in
 % labelcolor, write file into list
 
-% select top-directory
-topDir = uigetdir(cdBiodata(4));
-
-% find all -data- files
-fileList = searchFiles('-data-','log',topDir,1);
-
-% launch listSelectGUI
-selectIdx = listSelectGUI(fileList(:,1),[],'move');
-% shorten fileList
-fileList = fileList(selectIdx,:);
-
-% loop through selected files
-nFiles = length(fileList);
-idlistList = cell(nFiles,2); % idlist, dirName
-idlistCt = 1;
-for iFile = 1:nFiles
-    dataFileName = fullfile(fileList{iFile,2},fileList{iFile,1});
-    % load lastResult
-    load(dataFileName,'lastResult');
-    % check if idlist
-    if strfind(lastResult,'idlist')
-        % if yes: load it
-        tmp=load(dataFileName,lastResult);
-        idlist = tmp.(lastResult);
-        % check labelcolor: min. 3 tags? No '?'?
-        if length(idlist(1).stats.labelcolor) > 2 && isempty(strmatch('?',idlist(1).stats.labelcolor)) 
-            % store idlist
-            idlistList{idlistCt,1} = idlist;
-            % store directoryName
-            dirName = fileList{iFile,2};
-            fileSepIdx = strfind(dirName,filesep);
-            idlistList{idlistCt,2} = dirName(fileSepIdx(end)+1:end);
-
-            % update counter
-            idlistCt = idlistCt + 1;
-        end
-    end
-end
-% remove empty entries
-idlistList(idlistCt:end,:) = [];
+% condition: min. 3 tags, no '?'
+idlistList = loadIdlistList(cdBiodata(4),...
+    'length(idlist(1).stats.labelcolor) > 2 && isempty(strmatch(''?'',idlist(1).stats.labelcolor)) ');
 
 %========================
 % CALCULATE PROJECTION
@@ -100,7 +63,7 @@ bilobeData(1:nIdlists) = struct('spindleLength',[],...
 
 for iIdlist = 1:nIdlists
 
-    idlist = idlistList{iIdlist,1};
+    idlist = idlistList(iIdlist).idlist;
 
     % find indices of spb, cen
     spb1idx = find(strcmpi(idlist(1).stats.labelcolor,'spb1'));
@@ -176,7 +139,7 @@ for iIdlist = 1:nIdlists
     bilobeData(iIdlist).spindleLength = n_spindleVector;
     bilobeData(iIdlist).cenPosition = cenPosNorm;
     bilobeData(iIdlist).time = find(goodTime);
-    bilobeData(iIdlist).name = idlistList{iIdlist,2};
+    bilobeData(iIdlist).name = idlistList(iIdlist).name;
 
     %-------------------
     % individual plots

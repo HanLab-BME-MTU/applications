@@ -63,7 +63,11 @@ if isempty(movieWindowHandles.loadMovieStruct)
 else
 loadedFrames = movieWindowHandles.loadMovieStruct.loadedFrames;
 end
+if ~isempty(idlist)
 maxSpots = max(movieWindowHandles.idlistData.nSpots);
+else
+    maxSpots = 0;
+end
 colorMap = movieWindowHandles.colorMap;
 
 

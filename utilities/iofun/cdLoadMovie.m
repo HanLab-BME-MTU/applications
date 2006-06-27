@@ -170,9 +170,10 @@ else
     % generate loadStruct
     loadStruct(1) = struct('movieName',[],...
         'frames2load',[],'correctionData',[], 'movieType',[]);
-
+if type < knownType
     % get all files in the directory. If we know the file already, this
-    % is a lot faster!
+    % is a lot faster! (of course, it's even better if we don't have to
+    % search at all)
     if isempty(movieName)
         allFileNames = dir(dirName);
         allFileNames(1:2) = [];
@@ -183,7 +184,7 @@ else
     % get list of filenames
     fileNameList = {allFileNames.name}';
     numFiles = length(allFileNames);
-
+end
     % find moviename. If type == 4, try until something is found
     if type == 3 || type == 4
 

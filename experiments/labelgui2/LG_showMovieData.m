@@ -57,6 +57,9 @@ sampling = dataProperties.timeLapse;
 % status
 isDeleted = 0;
 isTracked = 0;
+if isempty(idlist)
+    status = 'No idlist loaded';
+else
 if isempty(idlist(currentTime).linklist)
     status = 'Frame Deleted';
     isDeleted = 1;
@@ -74,13 +77,14 @@ elseif isfield(idlist(currentTime).info,'totalQ_Pix') && ...
 else
     status = '';
 end
+end
 
 % loop through tags that belong to spots in current idlist to make
 % movieInfo
 
 
-linklist = idlist(currentTime).linklist;
-if ~isDeleted
+if ~isempty(idlist) && ~isDeleted
+    linklist = idlist(currentTime).linklist;
     nSpots = max(linklist(:,2));
     spotInfo(1:nSpots) = struct('name','','SNR','','amp','','flag','',...
         'x','','sx','','y','','sy','','z','','sz','',...
@@ -273,9 +277,11 @@ set(th.time,'String',sprintf(...
 set(th.status,'String',status);
 
 % spot info. First, clear all. Then write
+if isfield(th,'spotName')
 set([th.spotName;th.spotAmp;th.spotPos],'String','',...
         'uicontextmenu',[],...
         'UserData',[],'Visible','off');
+end
    
 
 for iSpot = 1:nSpots

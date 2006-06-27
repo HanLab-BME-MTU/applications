@@ -86,7 +86,7 @@ end
 nTimepoints = length(idlist);
 linklists = cat(3,idlist.linklist);
 goodTimes = squeeze(linklists(1,1,:));
-centroids = cat(1,idlist.centroid);
+centroids = cat(1,idlist(goodTimes).centroid);
 
 % remove bad tags - also from the Q-matrices. Remember goodTagIdx
 badTagIdx = find(ismember(linklists(:,5,1),[2,3]));
@@ -206,12 +206,13 @@ for tag1 = 1:nTags
         distance(tag1, tag2, :) = permute(d,[2,3,1]);
         distance(tag2, tag1, :) = permute(sigmaD,[2,3,1]);
         distanceUnitVectors(tag1, tag2,:,:) = permute(unitVector,[3,4,1,2]);
+        distanceUnitVectors(tag2, tag1,:,:) = - distanceUnitVectors(tag1,tag2,:,:);
     end
 
     % correct Pos1
     switch correctDisplacement
         case 1 % COM
-            points(1).coordinates = points(1).coordinates - centroids;
+            points(1).coordinates(goodTimes,:) = points(1).coordinates(goodTimes,:) - centroids;
         case 0
             % don't correct
         otherwise

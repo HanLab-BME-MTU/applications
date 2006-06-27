@@ -393,10 +393,11 @@ for iMovie = 1:nSelected
         handles.job(projNum).correctBackground = [];
 
         %save data
-        guidata(gcbo,handles);
+        guidata(handles.AMG,handles);
 
         %launch property window
         editProperties(handles);
+        handles = guidata(handles.AMG);
     end % check 'bad'
 end % end loop movies
 
@@ -595,14 +596,17 @@ if handles.apply2all>0 %could be 1 or 2
         myFieldNames = [myFieldNames;{'correctBackground'}];
     end
     if any(myJobs2run==2)
-        myFieldNames = [myFieldNames;{'dataProperties.CH_MAXSLOPE';'dataProperties.F_TEST_PROB'}];
+        myFieldNames = [myFieldNames;{'dataProperties.MAXSPOTS';'dataProperties.F_TEST_PROB'}];
     end
     if any(myJobs2run==4)
-        myFieldNames = [myFieldNames;{'dataProperties.IDopt'}];
+        myFieldNames = [myFieldNames;{'dataProperties.MAXSPOTS'}];
     end
     %     if any(myJobs2run==16)
     %         myFieldNames = [myFieldNames];
     %     end
+    
+    % add maxSize
+    myFieldNames =  [myFieldNames;{'dataProperties.maxSize'}];
     if handles.apply2all==2 %update movie properties, too
         myFieldNames = [myFieldNames;{'dataProperties.cellCycle';...
             'dataProperties.strains';...

@@ -427,7 +427,7 @@ while ~isempty(trackPairs)
         if strcmp(movie{2},'sedat')
             movieFrame = sedatLoadRaw(t,movie{1},dataProperties);
         else
-            movieFrame = cdLoadMovie(movie,'',t);
+            movieFrame = cdLoadMovie(movie,'',currentTarget);
         end
     else
         movieFrame = movie(:,:,:,:,currentTarget);

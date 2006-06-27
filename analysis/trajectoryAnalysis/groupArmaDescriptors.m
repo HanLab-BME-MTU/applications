@@ -78,11 +78,11 @@ end
 % [1,p] - recalculation until a threshold p is reached
 % [2,0] - recalculation for all groups
 def_options.wnv1_cutoff = -2;
-def_options.wnv1_mode = [1,1e-12];
+def_options.wnv1_mode = [0,1e-12];
 def_options.arma_cutoff = 5e-5;
-def_options.arma_mode = [1, 5e-5];
+def_options.arma_mode = [0, 5e-5];
 def_options.wnv2_cutoff = 1e-12;
-def_options.wnv2_mode = [1,1e-12];
+def_options.wnv2_mode = [0,1e-12];
 def_options.plot = 1; % plot results
 
 % tbd: test input, check options, set defaults

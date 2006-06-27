@@ -22,7 +22,7 @@ vector1Length = squeeze(distanceMatrix(tag1,tag2,:));
 projVector = ((vector1Length .* dot(vector1,vector2,2)) * ones(1,3)) .* vector2;
 
 %calculate perpendicular vector
-perpVector = vector1 - projVector;
+perpVector = vector1.*(vector1Length*ones(1,3)) - projVector;
 
 %calculate length
 perpDistance = normList(perpVector);

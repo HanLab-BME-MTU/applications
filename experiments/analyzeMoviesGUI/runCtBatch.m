@@ -227,7 +227,7 @@ try
                                     [slist, dataProperties,testRatios] = ...
                                         detectSpots(rawMovieName, ...
                                         filteredMovieName, ...
-                                        dataProperties, 2);
+                                        dataProperties, 1);
 
 
                                     %save slist
@@ -288,7 +288,7 @@ try
                                     fprintf(fid,[nowString,' idlist2 = linker(slist,dataProperties);\n']);
                                     %opt = job(i).dataProperties.IDopt;
                                     %idlist = spotID(slist,opt,job(i).dataProperties,job(i).projName);
-                                    idlist2 = linker(slist,dataProperties);
+                                    idlist2 = linker(slist,dataProperties,0);
 
                                     %save idlist and lastResult
                                     fprintf(fidJob,[nowString,' save(%s,''idlist2'',''-append'');\n'],projData);

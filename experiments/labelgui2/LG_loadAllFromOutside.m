@@ -32,7 +32,7 @@ if ~success
 end
 
 % load idlist
-success = LG_loadIdlist(idlist, 0, idname, movieDir, []);
+success = LG_loadIdlist(idlist, 1, idname, movieDir, []);
 
 if ~success
     error('error loading idlist into labelgui2')
