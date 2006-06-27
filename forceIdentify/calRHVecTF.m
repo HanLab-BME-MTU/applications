@@ -9,53 +9,117 @@
 % It can only run after running 'setupModel' and loading data and after the
 % body force is identified.
 
-fprintf(1,'\nConstructing the right-hand vector : ');
+fprintf(1,'Constructing the right-hand vector:\n');
 
-localStartTime = cputime;
+startTime = cputime;
 
 %Set the body force.
-load([resultPath 'bfId']);
-fn.BodyFx = 'spMyoDFx';
-fn.BodyFy = 'spMyoDFy';
-fp.BodyFx = {{'x' 'y'} {fs coefBF(1:end/2)}};
-fp.BodyFy = {{'x' 'y'} {fs coefBF(end/2+1:end)}};
+%load([reslDir filesep 'bfId']);
+%load([reslDir filesep 'coefBFId']);
+fn.BodyFx = 'femBodyF';
+fn.BodyFy = 'femBodyF';
+fn.MyoDragFx = 0;
+fn.MyoDragFy = 0;
 
-for k = 1:numEdges
-   BCTypes{k}     = 'Dirichlet';
-   fn.BndDispx{k} = 'bndDisp';
-   fn.BndDispy{k} = 'bndDisp';
-   fp.BndDispx{k} = {{'s'} {edgePPx{k}}};
-   fp.BndDispy{k} = {{'s'} {edgePPy{k}}};
-
-   fn.BndTracFx{k} = 0;
-   fn.BndTracFy{k} = 0;
+ans = input('Select time steps (0 for all):');
+if isempty(ans) || ans == 0
+   selTimeSteps = 1:numDTimePts;
+else
+   selTimeSteps = ans;
 end
 
-rightU  = cell(numEdges,1);
-for k = 1:numEdges
-   BCTypes{k} = 'Neumann';
-   options    = elOptionsSet(options,'BCType',BCTypes);
+for ii = 1:length(selTimeSteps)
+   jj = selTimeSteps(ii);
 
-   fem = elModelUpdate(fem,'options',options,'fn',fn,'fp',fp);
-   fem = elasticSolve(fem,[]);
+   localStartTime = cputime;
+   fprintf(1,'   Time step %d ... ',jj);
+   imgIndex = imgIndexOfDTimePts(jj);
 
-   %Substract the solution from the data to get the right hand vector.
-   [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
+   forceFieldFile = [forceFieldDir filesep 'forceField' ...
+      sprintf(imgIndexForm,imgIndex) '.mat'];
 
-   rightU{k} = zeros(2*numDP,1);
-   rightU{k}(1:numDP) = dataU1-bspU1;
-   rightU{k}(numDP+1:2*numDP) = dataU2-bspU2;
+   iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+   iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
 
-   BCTypes{k} = 'Dirichlet';
+   s = load(forceFieldFile);
+   forceField = s.forceField;
 
-   %For debugging, calculate the boundary displacements to compare with 'edgeU1'
-   % and 'edgeU2'.
-   for j = 1:numEdges
-      [edgeUC1{j} edgeUC2{j}] = postinterp(fem,'u1','u2',edgeP{k});
+   dataP  = forceField.p.';
+   coefBF = forceField.coefBF;
+
+   s = load(iDispFieldFile);
+   iDispField = s.iDispField;
+
+   numDP   = iDispField.numDP;
+   iInMesh = iDispField.iInMesh;
+   edgD    = iDispField.edgD;
+   dataUC1 = iDispField.rv(:,1);
+   dataUC2 = iDispField.rv(:,2);
+
+   if strcmp(isFieldBndFixed,'yes')
+      femModelFile = [femModelDir filesep 'femModel' sprintf(imgIndexForm,0) '.mat'];
+   else
+      [femModelFile,femModelImgIndex] = getFemModelFile(femModelDir,imgIndex,imgIndexForm);
+   end
+   s = load(femModelFile);
+   femModel = s.femModel;
+   fem      = femModel.fem;
+   fs       = femModel.fs;
+   numEdges = femModel.numEdges;
+
+   fp.BodyFx = {{'x' 'y'} {fs.fem coefBF(:,1)}};
+   fp.BodyFy = {{'x' 'y'} {fs.fem coefBF(:,2)}};
+   for k = 1:numEdges
+      BCTypes{k}     = 'Dirichlet';
+      fn.BndDispx{k} = 'bndDisp';
+      fn.BndDispy{k} = 'bndDisp';
+      fp.BndDispx{k} = {{'s'} {edgD(k).ppU1}};
+      fp.BndDispy{k} = {{'s'} {edgD(k).ppU2}};
+
+      fn.BndTracFx{k} = 0;
+      fn.BndTracFy{k} = 0;
    end
 
-   fprintf(1,'   Edge %d (out of %d) finished.  %f sec.\n', ...
-      k,numEdges,cputime-localStartTime);
+   procStr = '';
+   rightU  = cell(numEdges,1);
+   for k = 1:numEdges
+      BCTypes{k} = 'Neumann';
+      options    = elOptionsSet(options,'BCType',BCTypes);
+
+      fem = elModelUpdate(fem,'options',options,'fn',fn,'fp',fp);
+      fem = elasticSolve(fem,[]);
+
+      %Substract the solution from the data to get the right hand vector.
+      [bspU1 bspU2] = postinterp(fem,'u1','u2',dataP);
+
+      rightU{k} = zeros(2*numDP,1);
+      rightU{k}(1:numDP) = dataUC1-bspU1.';
+      rightU{k}(numDP+1:2*numDP) = dataUC2-bspU2.';
+
+      BCTypes{k} = 'Dirichlet';
+
+      %For debugging, calculate the body force. It is supposed to equal 'recBFx' and 'recBFy'.
+      [tfRecBFx,tfRecBFy] = postinterp(fem,'f1','f2',dataP);
+
+      %For debugging, calculate the boundary displacements to compare with 'edgeU1'
+      % and 'edgeU2'.
+      %for j = 1:numEdges
+      %   [edgeUC1{j} edgeUC2{j}] = postinterp(fem,'u1','u2',edgeP{j});
+      %end
+
+      for ik = 1:length(procStr)
+         fprintf(1,'\b');
+      end
+      procStr = sprintf('   Edge %d (out of %d) finished in %5.3f sec.', ...
+         k,numEdges,cputime-localStartTime);
+      fprintf(1,procStr);
+   end
+   fprintf(1,'\n');
+
+   iDispField.tfRHU = rightU;
+
+   %Save the modified 'iDispField' with calculated right hand U.
+   save(iDispFieldFile,'iDispField');
 end
 
-fprintf(1,'Total time spent : %f sec.\n', cputime-localStartTime);
+fprintf(1,'Total time spent : %5.3f sec.\n', cputime-startTime);

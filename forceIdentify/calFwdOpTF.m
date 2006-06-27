@@ -13,104 +13,199 @@
 %A         : The matrix respresentation of the forward operator for the
 %            boundary Traction Force.
 
-fprintf(1,['\nConstructing the matrix A for the boundary ' ...
-   'traction force :\n');
+fprintf(1,['\nCalculating the forward operator for the boundary ' ...
+   'traction force :\n']);
 
-localStartTime = cputime;
+startTime = cputime;
 
-edgBrksTF  = cell(numEdges,1);
-edgKnotsTF = cell(numEdges,1);
-dimTF      = zeros(numEdges,1); 
-bspTF      = cell(numEdges,1);
-coefTF     = cell(numEdges,1);
-A          = cell(numEdges,1);
-sol        = cell(numEdges,1);
+if strcmp(tfFwdOpComputed,'none') == 1
+   localStartTime = cputime;
 
-for k = 1:numEdges
-   numEdgBrksTF  = floor(edgArcLen(k)/edgBrkDistTF);
-   edgBrksTF{k}  = linspace(0,edgArcLen(k),numEdgeBrksTF);
-   edgKnotsTF{k} = augknt(edgBrksTF{k},bspOrderTF);
-   dimTF(k)      = length(edgKnotsTF{k})-bspOrderTF;
+   %Load 'femModel' that contains the field geometry, fem model and domain force function space.
+   [modelFileList,modelImgIndex] = getFemModelFile(femModelDir);
+   if isempty(modelFileList)
+      fprintf(1,'Fem model has not been set up and saved yet. Run setupModel first.\n');
+      return;
+   end
 
-   coefTF{k} = zeros(1,dimTF(k));
-   bspTF{k}  = cell(dimTF(k),1);
+   ans = input('Select Model fields (0 for all):');
+   if isempty(ans) || ans == 0
+      selFields = 1:length(modelFileList);
+   else
+      selFields = ans;
+   end
+
+   for ii = 1:length(selFields)
+      jj = selFields(ii);
+
+      localStartTime = cputime;
+
+      imgIndex = modelImgIndex(jj);
+
+      procStr = '';
+      fprintf(1,'  Field %d: ',jj);
+
+      s = load(modelFileList{jj});
+      femModel = s.femModel;
+      numEdges = femModel.numEdges;
+      edge     = femModel.edge;
+      fem      = femModel.fem;
+
+      DTDir = ['DT' sprintf(imgIndexForm,imgIndex)]; 
+      if ~isdir([femSolBasisTFDir filesep DTDir])
+         [success,msg,msgId] = mkdir(femSolBasisTFDir,DTDir);
+         if ~success
+            error('Trouble making directory for ''femSolBasisTF''.');
+         end
+      end
+      solTFIdFile = [femSolBasisTFDir filesep DTDir filesep 'solId'];
+      %fsBndFile   = [femSolBasisTFDir filesep DTDir filesep 'fsBnd.mat'];
+
+      for k = 1:numEdges
+         numEdgBrksTF  = floor(edge(k).arcLen/edgBrkDistTF);
+
+         fsBnd(k).edgBrks  = linspace(0,edge(k).arcLen,numEdgBrksTF);
+         fsBnd(k).edgKnots = augknt(fsBnd(k).edgBrks,bspOrderTF);
+         fsBnd(k).dim      = length(fsBnd(k).edgKnots)-bspOrderTF;
+
+         %coefTF{k} = zeros(1,fsBnd(k).dim);
+         %bspTF{k}  = cell(dimTF(k),1);
+      end
+      femModel.fsBnd = fsBnd;
+      save(modelFileList{jj},'femModel');
+
+      for k = 1:numEdges
+         %Construct the sequence of breaks according to 'EdgBrkDistTF', the
+         % distance between the breaks.
+         sol{k} = cell(2*fsBnd(k).dim,1);
+
+         BCTypes{k} = 'Neumann';
+         options    = elOptionsSet(options,'BCType',BCTypes);
+
+         fem = elModelUpdate(fem,'options',options);
+
+         coefTF = zeros(1,fsBnd(k).dim);
+         for j = 1:fsBnd(k).dim
+            coefTF(j) = 1;
+            bspTF = spmak(fsBnd(k).edgKnots,coefTF);
+            coefTF(j) = 0;
+
+            fp.BndTracFx{k} = {{'s'} {bspTF}};
+            fp.BndTracFy{k} = {{'s'} {0}};
+            fem = elModelUpdate(fem,'fp',fp);
+            fem = elasticSolve(fem,[]);
+            sol{k}{2*j-1} = fem.sol;
+
+            %'bspU1' and 'bspU2' is used to temporarily store the solution at the
+            % data points.
+            %[bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx{jj} dataPy{jj}].');
+            %A{k}(:,1,j,1)  = bspU1.';
+            %A{k}(:,2,j,1)  = bspU2.';
+
+            fp.BndTracFx{k} = {{'s'} {0}};
+            fp.BndTracFy{k} = {{'s'} {bspTF}};
+            fem = elModelUpdate(fem,'fp',fp);
+            fem = elasticSolve(fem,[]);
+            sol{k}{2*j} = fem.sol;
+
+            %'bspU1' and 'bspU2' is used to temporarily store the solution at the
+            % data points.
+            %[bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx{jj} dataPy{jj}].');
+            %A{k}(:,1,j,2)  = bspU1.';
+            %A{k}(:,2,j,2)  = bspU2.';
+         end
+         for kk = 1:length(procStr)
+            fprintf(1,'\b');
+         end
+         procStr = sprintf('   Edge %d (out of %d) finished in %5.3f sec.', ...
+            k,numEdges,cputime-localStartTime);
+         fprintf(1,procStr);
+
+         BCTypes{k} = 'Dirichlet';
+      end
+      fprintf(1,'\n');
+
+      %save([reslDir filesep 'AtfId'],'A');
+      %save([mechDir filesep 'solTFId'],'sol');
+      save(solTFIdFile,'sol');
+   end
 end
 
-if strcmp(fwdOpComputed,'none') == 1
-   for k = 1:numEdges
-      %Construct the sequence of breaks according to 'EdgBrkDistTF', the
-      % distance between the breaks.
-      A{k}   = zeros(numDP,2,dimTF{k},2);
-      sol{k} = cell(2*dimTF(k),1);
-
-      BCTypes{k} = 'Neumann';
-      options    = elOptionsSet(options,'BCType',BCTypes);
-
-      fem = elModelUpdate(fem,'options',options);
-      for j = 1:dimTF(k)
-         coefTF{k}(j) = 1;
-         bspTF{k}{j} = spmak(knotS{k},coefTF{k});
-         coefTF{k}(j) = 0;
-
-         fp.BndTracFx{k} = {{'s'} {bspTF{k}{j}}};
-         fp.BndTracFy{k} = {{'s'} {0}};
-         fem = elModelUpdate(fem,'fp',fp);
-         fem = elasticSolve(fem,[]);
-         sol{k}{2*j-1} = fem.sol;
-
-         %'bspU1' and 'bspU2' is used to temporarily store the solution at the
-         % data points.
-         [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
-         A{k}(:,1,j,1)  = bspU1.';
-         A{k}(:,2,j,1)  = bspU2.';
-
-         fp.BndTracFx{k} = {{'s'} {0}};
-         fp.BndTracFy{k} = {{'s'} {bspTF{k}{j}}};
-         fem = elModelUpdate(fem,'fp',fp);
-         fem = elasticSolve(fem,[]);
-         sol{k}{2*j} = fem.sol;
-
-         %'bspU1' and 'bspU2' is used to temporarily store the solution at the
-         % data points.
-         [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
-         A{k}(:,1,j,2)  = bspU1.';
-         A{k}(:,2,j,2)  = bspU2.';
-      end
-      fprintf(1,'   Edge %d (out of %d) finished.  %f sec.\n', ...
-         k,numEdges,cputime-localStartTime);
-
-      BCTypes{k} = 'Dirichlet';
+if ~strcmp(tfFwdOpComputed,'A') || ~strcmp(tfFwdOpComputed,'all')
+   ans = input('Select time steps (0 for all):');
+   if isempty(ans) || ans == 0
+      selTimeSteps = 1:numDTimePts;
+   else
+      selTimeSteps = ans;
    end
 
-   save([resultPath 'AtfId'],'A');
-   save([modelPath 'solTFId'],'sol');
-elseif strcmp(fwdOpComputed,'fem') == 1
-   load([modelPath 'solTFId'],'sol');
-   for k = 1:numEdges
-      %Construct the sequence of breaks according to 'EdgBrkDistTF', the
-      % distance between the breaks.
-      A{k}    = zeros(numDP,2,dimTF{k},2);
+   fprintf(1,'Constructing the matrix A for boundary force:\n');
+   clear A;
+   for ii = 1:length(selTimeSteps)
+      jj = selTimeSteps(ii);
 
-      for j = 1:dimTF(k)
-         %'bspU1' and 'bspU2' is used to temporarily store the solution at the
-         % data points.
-         fem.sol = sol{k}{2*j-1};
-         [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
-         A{k}(:,1,j,1) = bspU1.';
-         A{k}(:,2,j,1) = bspU2.';
+      procStr = '';
+      fprintf(1,'  Time step %d: ', jj);
+      localStartTime = cputime;
 
-         fem.sol = sol{k}{2*j};
-         [bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx dataPy].');
-         A{k}(:,1,j,2)  = bspU1.';
-         A{k}(:,2,j,2)  = bspU2.';
+      imgIndex = imgIndexOfDTimePts(jj);
+      iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+      iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
+      s = load(iDispFieldFile);
+      iDispField = s.iDispField;
+
+      numDP = iDispField.numDP;
+
+      if strcmp(isFieldBndFixed,'yes')
+         femModelFile = [femModelDir filesep 'femModel' sprintf(imgIndexForm,0) '.mat'];
+         DTDir = ['DT' sprintf(imgIndexForm,0)];
+      else
+         [femModelFile,femModelImgIndex] = getFemModelFile(femModelDir,imgIndex,imgIndexForm);
+         DTDir = ['DT' sprintf(imgIndexForm,femModelImgIndex)]; 
       end
-      fprintf(1,'   Edge %d (out of %d) finished.  %f sec.\n', ...
-         k,numEdges,cputime-localStartTime);
-   end
+      s = load(femModelFile);
+      femModel = s.femModel;
 
-   save([resultPath 'AtfId'],'A');
-elseif strcmp(fwdOpComputed,'A') == 1
-   load([resultPath 'AtfId'],'A');
+      fsBnd = femModel.fsBnd;
+      fem   = femModel.fem;
+
+      solTFIdFile = [femSolBasisTFDir filesep DTDir filesep 'solId'];
+      %fsBndFile   = [femSolBasisTFDir filesep DTDir filesep 'fsBnd.mat'];
+
+      s = load(solTFIdFile,'sol');
+      sol = s.sol;
+      for k = 1:numEdges
+         %Construct the sequence of breaks according to 'EdgBrkDistTF', the
+         % distance between the breaks.
+         A{k}    = zeros(numDP,2,fsBnd(k).dim,2);
+
+         dataP = iDispField.p(iDispField.iInMesh,:).';
+         for j = 1:fsBnd(k).dim
+            %'bspU1' and 'bspU2' is used to temporarily store the solution at the
+            % data points.
+            fem.sol = sol{k}{2*j-1};
+            [bspU1 bspU2] = postinterp(fem,'u1','u2',dataP);
+            A{k}(:,1,j,1) = bspU1.';
+            A{k}(:,2,j,1) = bspU2.';
+
+            fem.sol = sol{k}{2*j};
+            %[bspU1 bspU2] = postinterp(fem,'u1','u2',[dataPx{jj} dataPy{jj}].');
+            [bspU1 bspU2] = postinterp(fem,'u1','u2',dataP);
+            A{k}(:,1,j,2)  = bspU1.';
+            A{k}(:,2,j,2)  = bspU2.';
+         end
+         for kk = 1:length(procStr)
+            fprintf(1,'\b');
+         end
+         procStr = sprintf('   Edge %d (out of %d) finished in %5.3f sec.', ...
+            k,numEdges,cputime-localStartTime);
+         fprintf(1,procStr);
+      end
+      fprintf(1,'\n');
+
+      fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+      save(fwdMapTFFile,'A');
+   end
 end
 
 

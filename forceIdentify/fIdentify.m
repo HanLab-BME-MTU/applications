@@ -1,9 +1,6 @@
 %Set up monitor of the computation time.
 startTime = cputime;
 
-%Get the cell image
-cellImg = imread(imgFile{1});
-
 %Set up the model including the geometry, the mesh, the coefficient functions
 % in the equation and the boundary condition.
 setupModel;
@@ -17,8 +14,14 @@ setupModel;
 if strcmp(forceToIdentify,'bf') == 1
    calFwdOpBF;
    calRHVecBF;
-   solveLSBF;
-   postAssembleBF;
+   if exist('bfConstraint') == 1 & strcmp(bfConstraint,'adhLocation') == 1
+      solveAdhLConstrnBF;
+      postAssembleBF;
+      postAdhLConstrnBF;
+   else
+      solveLSBF;
+      postAssembleBF;
+   end
 elseif strcmp(forceToIdentify,'tf') == 1
    calFwdOpTF;
    calRHVecTF;

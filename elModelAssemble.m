@@ -157,16 +157,18 @@ function fem = elModelAssemble(geom,mesh,options,fn,fp,ind,bndInd)
 
 %Check if 'geom' and 'mesh' are consistant.
 if isempty(geom)
-   if isempty(mesh) | ~isa(mesh,'struct')
+   if isempty(mesh) || (~isa(mesh,'struct') && ~isa(mesh,'femmesh'))
       error(['When the first argument,''geom'' is empty, ' ...
          'the second argument, ''mesh'' must be a complete predefined ' ...
          'MESH structure of FEMLAB.']);
    end
 else
-   if ~isempty(mesh) & ~isa(mesh,'struct') & ~iscell(mesh)
-      error(['The second argument ''mesh'' has to be either the ' ...
-         'empty matrix, [], or a cell array of meshing arguments, ' ...
-         'or the completely defined MESH structure.']); 
+   if ~isempty(mesh) 
+      if ~isa(mesh,'struct') && ~isa(mesh,'femmesh') && ~iscell(mesh)
+         error(['The second argument ''mesh'' has to be either the ' ...
+            'empty matrix, [], or a cell array of meshing arguments, ' ...
+            'or the completely defined MESH structure.']); 
+      end
    end
 end
 
@@ -325,7 +327,7 @@ if isempty(mesh)
    fem.mesh = meshinit(fem);
    fem.mesh = meshrefine(fem);
    fem.mesh = meshrefine(fem);
-elseif isa(mesh,'struct') 
+elseif isa(mesh,'struct') || isa(mesh,'femmesh')
    fem.mesh = mesh;
    if isempty(geom)
       fem.geom = mesh;

@@ -19,19 +19,19 @@ function val = elImgParFun(varargin)
 %    The image can also be filtered with the following methods:
 %
 %    method : A string that specifies the interpolation method to use.
-%       'spap2'   : Least square B-Spline.
-%       'spaps'   : Smoothing spline.
-%       'Gausian' : Convolution with Gausian kernel.
-%       'ppform'  : The pp- or B-form of the spline interpolation of the image
+%       'spap2'    : Least square B-Spline.
+%       'spaps'    : Smoothing spline.
+%       'Gaussian' : Convolution with Gausian kernel.
+%       'ppform'   : The pp- or B-form of the spline interpolation of the image
 %                   have already been given.
 %    par1,...,parm : Parameters that are needed for the various interpolation
 %       methods.
 %        method        (par1,...,parm)
 %       ------------------------------------
-%       'spap2'   : ({knots1,knots2}, [k1 k2])
-%       'spaps;   : (tol)
-%       'Gausian' : (corLen)
-%       'ppform'  : The pp- or B-form of the spline interpolation.
+%       'spap2'    : ({knots1,knots2}, [k1 k2])
+%       'spaps;    : (tol)
+%       'Gaussian' : (corLen)
+%       'ppform'   : The pp- or B-form of the spline interpolation.
 %
 %    See help imInterp.
 %
@@ -48,7 +48,7 @@ end
 
 x   = varargin{1};
 y   = varargin{2};
-imI = varargin{3};
+imI = double(varargin{3});
 A   = varargin{4};
 V   = varargin{5};
 
@@ -72,9 +72,11 @@ else
    val = imInterp(imI,[y x]);
 end
 
+threshold = 0;
 if nargin >= 6 & ~isempty(varargin{6})
    threshold = varargin{6};
-   val(find(val<max(abs(val(:)))*threshold)) = 0;
 end
+val = (val-threshold)*V;
+val(find(val<0)) = 0;
 
-val = A + V*reshape(val,xySZ);
+val = A + reshape(val,xySZ);

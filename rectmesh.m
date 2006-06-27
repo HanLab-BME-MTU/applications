@@ -35,10 +35,10 @@ function msh = rectmesh(curvL,curvT,curvR,curvB,hIn,vIn)
 
 %Label the 4 side curves according to the edge labels of the femlab 
 % rectangular mesh.
-curve{1} = curvL;
-curve{2} = curvT;
-curve{3} = curvR;
-curve{4} = curvB;
+curve{1} = curvL(:,end:-1:1);
+curve{2} = curvB(:,end:-1:1);
+curve{3} = curvR(:,end:-1:1);
+curve{4} = curvT(:,end:-1:1);
 
 %Compute the curve parameters for the data points on each curve using the
 % chord length between each data points. The curve parameter runs from 0 to 1.
@@ -71,10 +71,10 @@ hScale = max(cL(2),cL(4));
 vScale = max(cL(1),cL(3));
 
 %The four sides of the rectangle.
-rect{1} = [zeros(1,size(curvL,2));ss{1}*vScale];
-rect{2} = [ss{2}*hScale;vScale*ones(1,size(curvT,2));];
-rect{3} = [hScale*ones(1,size(curvR,2));(1-ss{3})*vScale];
-rect{4} = [(1-ss{4})*hScale;zeros(1,size(curvB,2));];
+rect{1} = [zeros(1,size(curve{1},2));ss{1}*vScale];
+rect{2} = [ss{2}*hScale;vScale*ones(1,size(curve{2},2));];
+rect{3} = [hScale*ones(1,size(curve{3},2));(1-ss{3})*vScale];
+rect{4} = [(1-ss{4})*hScale;zeros(1,size(curve{4},2));];
 
 %The displacements of the four sides stretched to match the four curves.
 dispx = cell(4,1);
@@ -84,8 +84,11 @@ for j = 1:4
    dispy{j} = curve{j}(2,:)-rect{j}(2,:);
 
    %Interpolating the displacements.
-   ppx{j} = spline(ss{j},dispx{j});
-   ppy{j} = spline(ss{j},dispy{j});
+   ssKnot = augknt(ss{j},2);
+   ppx{j} = spapi(ssKnot,ss{j},dispx{j});
+   ppy{j} = spapi(ssKnot,ss{j},dispy{j});
+   %ppx{j} = spline(ss{j},dispx{j});
+   %ppy{j} = spline(ss{j},dispy{j});
 end
 
 ind = 1;
@@ -95,7 +98,7 @@ options = elOptionsSet('EPType','YModulPRatio','BCType', ...
    {'Dirichlet','Dirichlet','Dirichlet','Dirichlet'});
 
 fn.YModul = 1;
-fn.PRatio = 0.3;
+fn.PRatio = 0.01;
 
 %fn.VDragCoef = 0;
 %fn.TimeStep  = 1;
@@ -155,73 +158,79 @@ for k = 1:4
    [edgeS1,sortI] = sort(edgeS1);
    arcLen = edgeS1(end);
 
-   edgeUx1 = ppval(ppx{k},edgeS1/arcLen);
-   edgeUy1 = ppval(ppy{k},edgeS1/arcLen);
+   %The corresponding boundary points.
+   %edgePx = msh.p(1,msh.e(1,bndEI));
+   %edgePy = msh.p(2,msh.e(1,bndEI));
+   %edgePx = edgePx(sortI(1:end-1));
+   %edgePy = edgePy(sortI(1:end-1));
 
-   edgeS2  = (edgeS1(1:end-1)+edgeS1(2:end))/2;
-   edgeUx2 = (edgeUx1(1:end-1)+edgeUx1(2:end))/2;
-   edgeUy2 = (edgeUy1(1:end-1)+edgeUy1(2:end))/2;
-
+   edgeS2 = (edgeS1(1:end-1)+edgeS1(2:end))/2;
    edgeS  = zeros(1,length(edgeS1)+length(edgeS2));
-   edgeUx = zeros(1,length(edgeUx1)+length(edgeUx2));
-   edgeUy = zeros(1,length(edgeUy1)+length(edgeUy2));
+   edgeS(1:2:end) = edgeS1;
+   edgeS(2:2:end) = edgeS2;
+   edgeUx = spval(ppx{k},edgeS/arcLen);
+   edgeUy = spval(ppy{k},edgeS/arcLen);
 
-   edgeS(1:2:end)    = edgeS1;
-   edgeS(2:2:end-1)  = edgeS2;
-   edgeUx(1:2:end)   = edgeUx1;
-   edgeUx(2:2:end-1) = edgeUx2;
-   edgeUy(1:2:end)   = edgeUy1;
-   edgeUy(2:2:end-1) = edgeUy2;
+   %edgeUx1 = spval(ppx{k},edgeS1/arcLen);
+   %edgeUy1 = spval(ppy{k},edgeS1/arcLen);
 
-   ppx{k} = spline(edgeS/arcLen,edgeUx);
-   ppy{k} = spline(edgeS/arcLen,edgeUy);
-end
-
-[gridH3,gridV3] = meshgrid(smplH2,smplV1);
-[gridH4,gridV4] = meshgrid(smplH1,smplV2);
-
-msh2.p = [msh.p [reshape(gridH3,1,prod(size(gridH3))) ...
-   reshape(gridH4,1,prod(size(gridH4))); ...
-   reshape(gridV3,1,prod(size(gridV3))) ...
-   reshape(gridV4,1,prod(size(gridV4)))]];
-
-msh2 = meshenrich(msh2);
-
-for j = 4:-1:1
-   k = 5-j;
-   bndEI = find(msh2.e(5,:)==k);
-   edgeS1 = [0 msh2.e(4,bndEI)];
-   [edgeS1,sortI] = sort(edgeS1);
-   arcLen = edgeS1(end);
-
-   edgeUx1 = ppval(ppx{j},1-edgeS1/arcLen);
-   edgeUy1 = ppval(ppy{j},1-edgeS1/arcLen);
-
-   edgeS2  = (edgeS1(1:end-1)+edgeS1(2:end))/2;
-   edgeUx2 = (edgeUx1(1:end-1)+edgeUx1(2:end))/2;
-   edgeUy2 = (edgeUy1(1:end-1)+edgeUy1(2:end))/2;
-
-   edgeS  = zeros(1,length(edgeS1)+length(edgeS2));
-   edgeUx = zeros(1,length(edgeUx1)+length(edgeUx2));
-   edgeUy = zeros(1,length(edgeUy1)+length(edgeUy2));
-
-   edgeS(1:2:end)    = edgeS1;
-   edgeS(2:2:end-1)  = edgeS2;
-   edgeUx(1:2:end)   = edgeUx1;
-   edgeUx(2:2:end-1) = edgeUx2;
-   edgeUy(1:2:end)   = edgeUy1;
-   edgeUy(2:2:end-1) = edgeUy2;
-
-   pp2x{k} = spline(edgeS,edgeUx);
-   pp2y{k} = spline(edgeS,edgeUy);
+   %Note: ppx{k} (or ppy{k}) was interpolated to parameter between 0 and 1. We need to change it to
+   % boundary parameter edgeS.
+   edgeSKnt = augknt(edgeS,2);
+   ppx{k} = spapi(edgeSKnt,edgeS,edgeUx);
+   ppy{k} = spapi(edgeSKnt,edgeS,edgeUy);
 
    fn.BndDispx{k} = 'bndDisp';
    fn.BndDispy{k} = 'bndDisp';
-   fp.BndDispx{k} = {{'s'} {pp2x{k}}};
-   fp.BndDispy{k} = {{'s'} {pp2y{k}}};
+   fp.BndDispx{k} = {{'s'} {ppx{k}}};
+   fp.BndDispy{k} = {{'s'} {ppy{k}}};
 end
 
-fem = elModelAssemble([],msh2,options,fn,fp,ind,bndInd);
+%[gridH3,gridV3] = meshgrid(smplH2,smplV1);
+%[gridH4,gridV4] = meshgrid(smplH1,smplV2);
+%
+%msh2.p = [msh.p [reshape(gridH3,1,prod(size(gridH3))) ...
+%   reshape(gridH4,1,prod(size(gridH4))); ...
+%   reshape(gridV3,1,prod(size(gridV3))) ...
+%   reshape(gridV4,1,prod(size(gridV4)))]];
+%
+%msh2 = meshenrich(msh2);
+%
+%for j = 4:-1:1
+%   k = 5-j;
+%   bndEI = find(msh2.e(5,:)==k);
+%   edgeS1 = [0 msh2.e(4,bndEI)];
+%   [edgeS1,sortI] = sort(edgeS1);
+%   arcLen = edgeS1(end);
+%
+%   edgeUx1 = spval(ppx{j},1-edgeS1/arcLen);
+%   edgeUy1 = spval(ppy{j},1-edgeS1/arcLen);
+%
+%   edgeS2  = (edgeS1(1:end-1)+edgeS1(2:end))/2;
+%   edgeUx2 = (edgeUx1(1:end-1)+edgeUx1(2:end))/2;
+%   edgeUy2 = (edgeUy1(1:end-1)+edgeUy1(2:end))/2;
+%
+%   edgeS  = zeros(1,length(edgeS1)+length(edgeS2));
+%   edgeUx = zeros(1,length(edgeUx1)+length(edgeUx2));
+%   edgeUy = zeros(1,length(edgeUy1)+length(edgeUy2));
+%
+%   edgeS(1:2:end)    = edgeS1;
+%   edgeS(2:2:end-1)  = edgeS2;
+%   edgeUx(1:2:end)   = edgeUx1;
+%   edgeUx(2:2:end-1) = edgeUx2;
+%   edgeUy(1:2:end)   = edgeUy1;
+%   edgeUy(2:2:end-1) = edgeUy2;
+%
+%   pp2x{k} = spline(edgeS,edgeUx);
+%   pp2y{k} = spline(edgeS,edgeUy);
+%
+%   fn.BndDispx{k} = 'bndDisp';
+%   fn.BndDispy{k} = 'bndDisp';
+%   fp.BndDispx{k} = {{'s'} {pp2x{k}}};
+%   fp.BndDispy{k} = {{'s'} {pp2y{k}}};
+%end
+
+fem = elModelAssemble([],msh,options,fn,fp,ind,bndInd);
 fem = elasticSolve(fem,[]);
 [dispU1,dispU2] = postinterp(fem,'u1','u2',msh.p);
 

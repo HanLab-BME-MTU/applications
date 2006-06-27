@@ -4,17 +4,29 @@
 % deformed rectangle.
 
 %Get the image of the cell.
-cellImg = imread(imgFile{1});
+cellImg = imread(imgFileList{1}{1});
 
-figure(gcf); hold off;
+figure;
 imshow(cellImg,[]); hold on;
 
-load([modelPath 'fieldGeom']);
-load([resultPath 'dispField']);
+if exist([mechDir filesep 'fieldGeom.mat'],'file')
+   s = load([mechDir filesep 'fieldGeom.mat']);
+   fieldPGx = s.fieldPGx;
+   fieldPGy = s.fieldPGy;
+else
+   fprintf(1,'Field boundary has not been drawn and saved yet. Run drawFieldBound first.\n');
+   return;
+end
+if exist([reslDir filesep 'dispField.mat'])
+   load([reslDir filesep 'dispField.mat']); 
+else
+   fprintf(1,'The displacement field has not been calculated yet. Run calDispField first.\n');
+   return;
+end
 
 %Plot the raw data points and displacements and the filtered displacements.
-quiver(dataPx{1},dataPy{1},rawDataU1{1}*2,rawDataU2{1}*2,0,'y'); 
-quiver(dataPx{1},dataPy{1},sDataU1{1}*15,sDataU2{1}*15,0,'r'); 
+%quiver(iDataPx{1},iDataPy{1},iDataU1{1}*dispScale,iDataU2{1}*dispScale,0,'y'); 
+quiver(iDataPx{1},iDataPy{1},sDataU1{1}*dispScale,sDataU2{1}*dispScale,0,'r'); 
 plot(fieldPGx,fieldPGy,'go');
 plot(fieldPGx,fieldPGy,'b');
 
@@ -33,7 +45,7 @@ elseif choice == 1
    recPGx = fieldPGx;
    recPGy = fieldPGy;
 elseif choice == 0
-   load([resultPath 'recGeom']);
+   load([mechDir filesep 'recGeom']);
    plot(recPGx,recPGy,'b');
 end
 
@@ -51,14 +63,14 @@ if choice == 1 | choice == 2
       'enter the other three by going clockwise:']);
    plot(recPGx(recPGVI),recPGy(recPGVI),'go');
 
-   save([resultPath 'recGeom'],'recPGx','recPGy','recPGVI');
+   save([mechDir filesep 'recGeom'],'recPGx','recPGy','recPGVI');
 end
 
 %Draw the four edges.
 curvL = [recPGx(recPGVI(1):recPGVI(2)) recPGy(recPGVI(1):recPGVI(2))].';
 curvB = [recPGx(end:-1:recPGVI(4)) recPGy(end:-1:recPGVI(4))].';
 curvR = [recPGx(recPGVI(4):-1:recPGVI(3)) ...
-recPGy(recPGVI(4):-1:recPGVI(3))].';
+         recPGy(recPGVI(4):-1:recPGVI(3))].';
 curvT = [recPGx(recPGVI(2):recPGVI(3)) recPGy(recPGVI(2):recPGVI(3))].';
 plot(curvL(1,:),curvL(2,:),'g');
 plot(curvT(1,:),curvT(2,:),'g');
@@ -99,6 +111,6 @@ elseif choice == 2
    %[bfDomPGx,bfDomPGy] = rotate2D(angle,bfDomPGx-ctrX,-bfDomPGy+ctrY);
 end
 
-save([modelPath 'recGeom'],'recPGx','recPGy','recPGVI', ...
+save([mechDir filesep 'recGeom'],'recPGx','recPGy','recPGVI', ...
    'bfDomPGx','bfDomPGy','bfDomPGVI');
 hold off;
