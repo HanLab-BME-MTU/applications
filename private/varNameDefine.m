@@ -53,11 +53,21 @@ for k = 1:length(names)
    if isfield(fn,names{k})
       fnValue = getfield(fn,names{k});
       if ~isempty(fnValue)
-         if ischar(fnValue) | isa(fnValue,'function_handle') | ...
-            (length(fnValue) == 1 & ...
-            ((iscell(fnValue) & ~isempty(fnValue{1})) | isnumeric(fnValue)))
+         if ischar(fnValue) || isa(fnValue,'function_handle')
             for j = 1:listLen
                nameList{j} = [names{k}];
+            end
+         elseif length(fnValue) == 1
+            if  isnumeric(fnValue)
+               for j = 1:listLen
+                  nameList{j} = [names{k}];
+               end
+            elseif iscell(fnValue)
+               if ~isempty(fnValue{1})
+                  for j = 1:listLen
+                     nameList{j} = [names{k}];
+                  end
+               end
             end
          elseif isnumeric(fnValue)
             for j = 1:listLen

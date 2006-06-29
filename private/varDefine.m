@@ -40,11 +40,11 @@ for k = 1:length(names)
    if isfield(fn,names{k})
       fnValue = getfield(fn,names{k});
       fpValue = [];
-      if ~isempty(fp) & isfield(fp,names{k}) 
+      if ~isempty(fp) && isfield(fp,names{k}) 
          fpValue = getfield(fp,names{k});
       end
 
-      if ~isnumeric(fnValue) & ~isempty(fnValue) 
+      if ~isnumeric(fnValue) && ~isempty(fnValue) 
          %'nameList' is the current list of variable names. For example,
          % namelist = {'lambda1' 'lambda2'}.
          nameList = getfield(varNames,names{k});
@@ -61,8 +61,8 @@ for k = 1:length(names)
          % array whose length equals the number of subdomains:
          % Case 3:     fn.VDragCoef = {'viscCoef1' 4 'viscCoef2' []}
          %
-         if iscell(fnValue) & length(fnValue) == 1
-            if ~isempty(fnValue{1}) & ~isnumeric(fnValue{1})
+         if iscell(fnValue) && length(fnValue) == 1
+            if ~isempty(fnValue{1}) && ~isnumeric(fnValue{1})
                %Case 1:
                if isempty(fpValue)
                   expr = {expr{:} nameList{1} exprCreate(nameList{1}, ...
@@ -72,7 +72,7 @@ for k = 1:length(names)
                   fnValue{1},fpValue{1})};
                end
             end
-         elseif ischar(fnValue) | isa(fnValue,'function_handle')
+         elseif ischar(fnValue) || isa(fnValue,'function_handle')
             %Case 2:
             expr = {expr{:} nameList{1} exprCreate(nameList{1}, ...
                fnValue,fpValue)};
@@ -110,16 +110,44 @@ function varExpr = exprCreate(varName,fnValue,fpValue)
 %       in 'fnValue'. When it is empty, it means that 'fnValue' is an evaluation
 %       string.
 
-if ischar(fnValue) & isempty(fpValue)
-   %'fnValue' is an evaluation string.
-   varExpr = fnValue;
-else
-   if isa(fnValue,'function_handle')
-      fnValue = func2str(fnValue);
-   end
+if ischar(fnValue)
+   fnName = fnValue;
+elseif isa(fnValue,'function_handle')
+   fnName = func2str(fnValue);
+end
 
+if isempty(fpValue)
+   %'fnValue' is an evaluation string.
+   varExpr = fnName;
+   return;
+end
+
+%The parameter function we are trying to call need a call wrap function if it has
+% argments other than single numerics. So, first determin whether this is the
+% case.
+needCallback = 0;
+if length(fpValue) > 1
+   if ~isempty(fpValue{2})
+      if ~iscell(fpValue)
+         error('Definition of ''fp'' is incorrect. See help elModelAssemble.');
+      end
+
+      jj = 1;
+      while ~needCallback && jj <= length(fpValue{2})
+         if ~isnumeric(fpValue{2}{jj}) && ~ischar(fpValue{2}{jj})
+            needCallback = 1;
+         elseif isnumeric(fpValue{2}{jj}) && length(fpValue{2}{jj}) > 1
+            needCallback = 1;
+         end
+         jj = jj+1;
+      end
+   end
+end
+
+if ~needCallback
    %varExpr = ['feval(@' fnValue];
-   varExpr = [fnValue '('];
+   %Start the expression.
+   varExpr = [fnName '('];
 
    %Add group 1 parameters that is FEMLAB recogonizable variables.
    for jj = 1:length(fpValue{1})
@@ -129,13 +157,60 @@ else
    %Add group 2 parameters that is the rest.
    argName = [];
    if ~isempty(fpValue{2})
-      argName = [varName 'Arg{:}'];
+      for kk = 1:length(fpValue{2})
+         argName = [argName varName 'Arg' num2str(kk) ','];
+      end
    end
 
-   if isempty(argName)
+   if ~isempty(argName)
+      varExpr = [varExpr argName];
+   end
+
+   if strcmp(varExpr(end),',')
+      varExpr(end) = [];
+   end
+
+   %Closing the expression with ')'.
+   varExpr = [varExpr ')'];
+else
+   fnNameStr = ['''' fnName '''']; %First argument to 'femParFunCallback'.
+   varExpr = ['femParFunCallback(' fnNameStr ','];
+
+   %Get string of group 1 parameters that is FEMLAB recogonizable variables.
+   femArgList = '';
+   for jj = 1:length(fpValue{1})
+      femArgList = [femArgList fpValue{1}{jj} ','];
+   end
+   if ~isempty(femArgList)
+      %Remove ',' at the end.
+      femArgList(end) = [];
+   end
+   femArgListStr = ['''' femArgList ''''];
+
+   varExpr = [varExpr femArgListStr ','];
+
+   %Add name of group 2 arguments that are user defined. Some of them are exported to
+   % base work space and will be evaluated and accessed in 'femParFunCallback'. It is
+   % the reason why we need 'femParFunCallback'.
+   usrArgStrList = '';
+   for jj = 1:length(fpValue{2})
+      if (~isnumeric(fpValue{2}{jj}) && ~ischar(fpValue{2}{jj})) || ...
+         (isnumeric(fpValue{2}{jj}) && length(fpValue{2}{jj}) >1)
+         argName = ['femGlobal_' fnName '_'];
+      else
+         argName = '';
+      end
+      argNameStr = ['''' argName varName 'Arg' num2str(jj) ''''];
+      usrArgStrList = [usrArgStrList argNameStr ','];
+   end
+
+   if isempty(usrArgStrList)
+      %Replace ',' with ')'.
       varExpr(end) = ')';
    else
-      varExpr = [varExpr argName ')'];
+      %Remove ',' at the end.
+      usrArgStrList(end) = [];
+      varExpr = [varExpr usrArgStrList ')'];
    end
 end
 
