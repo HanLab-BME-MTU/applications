@@ -52,22 +52,26 @@ else
     tagIdx = 1:nTags;
 end
 
-% select plot distribution
-switch nTags
-    case {0,1}
-        error('no tags for plotting!')
-    case {2,3,4,5}
-        subAxes(2) = ceil(sqrt(nTags));
-        subAxes(1) = ceil(nTags/subAxes(2));
-    otherwise
-        error('too many tags!')
-end
-
 % make pair index. 
 [u,v] = ndgrid(1:nTags,1:nTags);
 idx = find(tril(u,-1));
 pairIdx = [u(idx) v(idx)];
-nPairs = length(idx);
+nPairs = length(idx); % = nTags(nTags-1)/2
+
+% select plot distribution
+switch nPairs
+    case {0}
+        error('no tags for plotting!')
+    case {1,2,3,4,5,6}
+        
+        subAxes(2) = ceil(sqrt(nPairs));
+        subAxes(1) = ceil(nPairs/subAxes(2));
+    otherwise
+        % with more than 6 tags (16 distances), we would need to select the
+        % pairs to plot. Do that when it becomes necessary.
+        error('too many tags!')
+end
+
 
 %===============================
 

@@ -16,6 +16,10 @@ if ~isempty(movieWindowHandles)
         % success remains 0. Die silently.
         return
     end
+    
+    % get navi-handles again, because the positions may have been stored
+    [naviHandles] = LG_getNaviHandles;
+    
 end
 
 % make new figure. We will set the handleVisibility to callback after
