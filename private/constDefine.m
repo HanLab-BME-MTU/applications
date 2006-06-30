@@ -90,10 +90,10 @@ for k = 1:length(names)
       elseif ischar(fnValue) || isa(fnValue,'function_handle')
          %Define the argument list to this function to be a constant 
          % so that it can be referenced in FEMLAB solver.
-         if ischar(fnValue{j})
-            fnName = fnValue{j};
+         if ischar(fnValue)
+            fnName = fnValue;
          else
-            fnName = func2str(fnValue{j});
+            fnName = func2str(fnValue);
          end
 
          if ~isempty(fpValue) 

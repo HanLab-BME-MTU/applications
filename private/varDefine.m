@@ -185,7 +185,7 @@ else
       %Remove ',' at the end.
       femArgList(end) = [];
    end
-   femArgListStr = ['''' femArgList ''''];
+   femArgListStr = ['{' femArgList '}'];
 
    varExpr = [varExpr femArgListStr ','];
 
