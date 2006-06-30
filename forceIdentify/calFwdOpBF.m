@@ -14,11 +14,13 @@ if strcmp(bfFwdOpComputed,'none') == 1
       return;
    end
 
-   ans = input('Select Model fields (0 for all):');
-   if isempty(ans) || ans == 0
+   answer = input('Select Model fields (0 for all):');
+   if isempty(answer)
+      selFields = 1:length(modelFileList);
+   elseif length(answer) == 1 && answer == 0
       selFields = 1:length(modelFileList);
    else
-      selFields = ans;
+      selFields = answer;
    end
 
    for ii = 1:length(selFields)
@@ -55,12 +57,32 @@ if strcmp(bfFwdOpComputed,'none') == 1
       %sol = cell(2*dimBF,1); 
       sol = cell(numBSolsPerFile,1); 
 
+      DTDir = ['DT' sprintf(imgIndexForm,imgIndex)]; 
+
       %col : goes from 1 to 2*dimBF
       %ll  : goes from 1 to numBSolsPerFile.
       col = 0;
       ll  = 0;
       startCol = 1;
-      for j = 1:dimBF
+      j = 1;
+      while j <= dimBF
+         %Check if the basis solution has been calculated and saved before.
+         if isdir([femSolBasisBFDir filesep DTDir]) && strcmp(overwriteBSolBF,'no')
+            endCol = min(2*dimBF, startCol+numBSolsPerFile-1);
+            solBFIdFile = [femSolBasisBFDir filesep DTDir filesep 'solId' ...
+               sprintf(solFileIndexForm,startCol) '_' ...
+               sprintf(solFileIndexForm,endCol) '.mat'];
+
+            if exist(solBFIdFile,'file') == 2
+               j        = j+(endCol-startCol+1)/2;
+               startCol = endCol+1;
+               ll       = 0;
+               col      = endCol;
+
+               continue;
+            end
+         end
+
          %'k' is the index of 'coefFS' whose corresponding basis function is zero
          % on the boundary.
          k = indDomDOF(j);
@@ -90,9 +112,8 @@ if strcmp(bfFwdOpComputed,'none') == 1
             fprintf(1,procStr);
          end
 
-         if ll == numBSolsPerFile | col == 2*dimBF
+         if ll == numBSolsPerFile || col == 2*dimBF
             endCol = col;
-            DTDir = ['DT' sprintf(imgIndexForm,imgIndex)]; 
             if ~isdir([femSolBasisBFDir filesep DTDir])
                success = mkdir(femSolBasisBFDir,DTDir);
                if ~success
@@ -101,7 +122,7 @@ if strcmp(bfFwdOpComputed,'none') == 1
             end
             solBFIdFile = [femSolBasisBFDir filesep DTDir filesep 'solId' ...
                sprintf(solFileIndexForm,startCol) '_' ...
-               sprintf(solFileIndexForm,endCol)];
+               sprintf(solFileIndexForm,endCol) '.mat'];
             save(solBFIdFile,'sol');
 
             %Restart the counting of 'll'.
@@ -109,7 +130,8 @@ if strcmp(bfFwdOpComputed,'none') == 1
             sol = cell(numBSolsPerFile,1);
             startCol = endCol+1;
          end
-      end
+         j = j+1;
+      end %Of j<= dimBF.
 
       fprintf(1,'\n');
       %elseif strcmp(bfFwdOpComputed,'fem') == 1
@@ -185,7 +207,7 @@ if ~strcmp(bfFwdOpComputed,'A') && ~strcmp(bfFwdOpComputed,'all')
 
          solBFIdFile = [femSolBasisBFDir filesep DTDir filesep 'solId' ...
             sprintf(solFileIndexForm,startCol) '_' ...
-            sprintf(solFileIndexForm,endCol)];
+            sprintf(solFileIndexForm,endCol) '.mat'];
 
          s = load(solBFIdFile,'sol');
          sol = s.sol;

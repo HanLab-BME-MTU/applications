@@ -93,6 +93,8 @@
 % numBSolsPerFile: Because of memory issue, we save the solutions for basis functions in
 %                  a number of files. Each file contains 'numBSolsPerFile'. It should be an
 %                  even number.
+% overwriteBSolBF: 'yes' (default) or 'no'. Whether overwrite previously calculated and saved basis
+%                  solution for reconstructing body force.
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Some parameters for displaying vector field, image and force color map.
@@ -195,6 +197,7 @@ bfSigma           = 1e5;
 tfSigma           = 1e2;
 testTimeStep      = 1;
 numBSolsPerFile   = 100;
+overwriteBSolBF   = 'yes';
 bfScale           = 2e5/10;
 tfScale           = 1e3/2;
 dispScale         = 15/2;
@@ -250,6 +253,7 @@ param.bfSigma           = bfSigma;
 param.tfSigma           = tfSigma;
 param.testTimeStep      = testTimeStep;
 param.numBSolsPerFile   = numBSolsPerFile;
+param.overwriteBSolBF   = overwriteBSolBF;
 param.bfScale           = bfScale;
 param.tfScale           = tfScale;
 param.dispScale         = dispScale;
