@@ -62,10 +62,10 @@ for k = 1:length(names)
                               %It has to be a cell array of arguments.
                               for kk = 1:length(fpValue{j}{2})
                                  if ischar(fpValue{j}{2}{kk}) || ...
-                                    (isnumeric(fpValue{j}{2}{kk}) && length(fpValue{j}{2}{kk}) == 1)
+                                    (isnumeric(fpValue{j}{2}{kk}) && length(fpValue{j}{2}{kk}) <= 1)
                                     const = [const ...
                                        [nameList{j} 'Arg' num2str(kk)] ...
-                                       fpValue{j}{2}{kk}]; 
+                                       {fpValue{j}{2}{kk}}]; 
                                  else
                                     %Define this argument to be global variable so that it can be
                                     % accessed from the corresponding parameter function. This is
@@ -101,8 +101,8 @@ for k = 1:length(names)
                if iscell(fpValue{2})
                   for kk = 1:length(fpValue{2})
                      if ischar(fpValue{2}{kk}) || ...
-                        (isnumeric(fpValue{2}{kk}) && length(fpValue{2}{kk}) == 1)
-                        const = [const [nameList{1} 'Arg' num2str(kk)] fpValue{2}{kk}]; 
+                        (isnumeric(fpValue{2}{kk}) && length(fpValue{2}{kk}) <= 1)
+                        const = [const [nameList{1} 'Arg' num2str(kk)] {fpValue{2}{kk}}]; 
                      else
                         globalVarName = ['femGlobal_' fnName '_' ...
                            nameList{1} 'Arg' num2str(kk)];
