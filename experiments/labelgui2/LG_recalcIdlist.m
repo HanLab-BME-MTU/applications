@@ -130,6 +130,10 @@ if length(recalcOptions) > 1
     recalcOptions{1} = recalcOptions{1} + 10 * (recalcOptions{2}>0);
 end
 
+if ~iscell(recalcOptions)
+    recalcOptions = {recalcOptions};
+end
+
 % now that all is hopefully good, recalcIdlist
 idlist(1).stats.recalc = recalcOptions(1);
 idlist = linker(idlist, dataProperties);

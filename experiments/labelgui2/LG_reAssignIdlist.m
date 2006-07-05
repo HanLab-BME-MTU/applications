@@ -229,10 +229,14 @@ for t = goodTimes'
 end
 
 % if selected, recalc idlist
-if recalc
+switch recalc
+    case 1
     [idlist,dataProperties,success] = ...
         LG_recalcIdlist(idlist,dataProperties);
-else
+    case 2
+        [idlist,dataProperties,success] = ...
+        LG_recalcIdlist(idlist,dataProperties,2);
+    otherwise
     success = 1;
 end
 

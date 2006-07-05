@@ -8,7 +8,8 @@ nTimepoints = length(idlist);
 maxTagIdx = idlist(1).stats.maxColor;
 
 % allocate arrays
-[ampList, nSpots, goodIdx] = deal(zeros(nTimepoints,1));
+[ampList, nSpots] = deal(zeros(nTimepoints,1));
+goodIdx = false(nTimepoints,1);
 [tagIndices,intList] = deal([]);
 
 % switch according to idlist(1).stats.recalc
@@ -32,7 +33,7 @@ recalc = mod(idlist(1).stats.recalc{1},10);
 % find goodIdx
 for t = 1:nTimepoints
     if ~isempty(idlist(t).linklist)
-        goodIdx(t) = 1;
+        goodIdx(t) = true;
         % count spots
         nSpots(t) = max(idlist(t).linklist(:,2));
         % find unique spotIndices and calcuate sum of amplitudes
@@ -42,7 +43,8 @@ for t = 1:nTimepoints
     end
 end
 
-goodIdx = logical(goodIdx);
+% make sure there are no frames with zero spots in here
+goodIdx(nSpots == 0) = false;
 goodTimes = find(goodIdx);
 
 % revert Q-matrices

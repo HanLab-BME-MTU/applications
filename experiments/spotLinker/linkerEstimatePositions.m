@@ -6,6 +6,8 @@ function [idlist] = linkerEstimatePositions(idlist, maxTagIdx, goodTimes, consta
 % interruptions. Find start and end (if exist). Estimate XYZ-position and
 % set search radius for every frame and fill in.
 
+idlist(1).stats.intFit.tagFactor = zeros(1,maxTagIdx);
+
 for i = 1:maxTagIdx
 
     % collect timepoint-#, amplitude and positions

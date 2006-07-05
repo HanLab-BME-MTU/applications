@@ -7,9 +7,13 @@ function LG_rag_OK_Callback(reAssignHandles,doRecalc)
 
 % get idlist etc
 idlist = movieWindowHandles.idlist;
-currentTime = LG_getCurrentTime;
 goodTimes = movieWindowHandles.idlistData.goodTimes;
 dataProperties = movieWindowHandles.dataProperties;
+
+% current time is not current labelgui time, but time that is displayed on
+% RAG
+currentTime = reAssignHandles.currentTime;
+
 
 % read handle-values from GUI
 pdValues = LG_rag_getPdValues(reAssignHandles.pdHandles);
@@ -42,10 +46,10 @@ pdValues(swapRows,[1,2]) = pdValues(swapRows,[2,1]);
 % add spotIdx as first column to pdValues
 pdValues = [goodSpotsIdx,pdValues];
 
-% reAssign idlist
+% reAssign idlist. Always re-estimate
 [idlist,success,dataProperties] =...
     LG_reAssignIdlist(idlist,currentTime, goodTimes, ...
-    pdValues, assignFuture, doRecalc,dataProperties);
+    pdValues, assignFuture, 2-doRecalc,dataProperties);
 % if all went well, store idlist
 if success == 1
     if ~isempty(dataProperties)

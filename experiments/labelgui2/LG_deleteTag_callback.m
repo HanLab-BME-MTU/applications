@@ -17,7 +17,7 @@ tagIdx = get(gco,'UserData');
 ans = myQuestdlg(...
     sprintf('Do you really want to remove tag ''%s''?',...
     idlist(1).stats.labelcolor{tagIdx}),'Careful!','Yes','No','Yes');
-if ~isempty(strmatch(ans,'Yes'))
+if isempty(strmatch(ans,'Yes'))
     % if user doesn't agree: return
     return
 end

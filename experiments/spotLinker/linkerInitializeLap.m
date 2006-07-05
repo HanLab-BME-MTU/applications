@@ -31,32 +31,17 @@ function [idlist, goodTimesM, t1t2, intAx] = linkerInitializeLap(idlist, nSpots,
 % "one-column" for every n.
 % Unique makes sure that there is no zero-column and we also don't want to
 % have entries for n=0
-A = [nSpots(goodIdx) * (1./[unique(nSpots(goodIdx))]') == 1, [find(goodIdx)]];
-B = log(ampList(goodIdx));
-W = ampList(goodIdx);
+A = [nSpots(goodIdx) * (1./unique(nSpots(goodIdx))') == 1, find(goodIdx)];
+[xFit, stdX, goodRows, intAx] = robustExponentialFit2(ampList(goodIdx),A,1);
 
-[xFit, stdX, goodRows] = linearLeastMedianSquares(A,B,1./W);
 tBleach = xFit(end);
 badRows = setdiff(1:nTimepoints,goodRows);
 
 if verbose
-    figure('Name',['IntFit, ', constants.name]);
-    t = 1:nTimepoints;
-    colorOrder = get(gca,'ColorOrder');
-    yFit=exp(xFit(1:end-1))*exp(xFit(end)*t);
-    plot(t,yFit);
-    hold on
-    for i = 1:size(A,2)-1
-        pIdx = find(A(:,i));
-        plot(t(pIdx),ampList(pIdx),'.','Color',colorOrder(wraparound(i,[1;size(colorOrder,1)]),:))
-
-    end
-    
-    hold on, plot(badRows,ampList(badRows),'*r');
-    intAx = gca;
-else
-    intAx = [];
+    set(get(intAx,'Parent'),...
+        'Name',sprintf('Amplitude fit for %s',constants.name));
 end
+
 
 % store stuff so that we can recreate the int-Figure at a later time
 idlist(1).stats.intFit.xFit = xFit; % xFit(2) is the time constant (in 1/s)

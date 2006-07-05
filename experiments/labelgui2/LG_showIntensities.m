@@ -5,6 +5,8 @@ function [figureHandle,objectHandles] = LG_showIntensities(idlist,idlistData,col
 %
 % INPUT     idlist - idlist
 %           idlistData - (opt) idlistData generated with LG_readIdlist
+%                              if no idlistData, supply dataProperties here
+%                              instead
 %           colorMap - (opt) colorOrder of the tags
 %           figurePosition - (opt) requested figure position (if it's a
 %                   figure handle, plot will be into existing axes)
@@ -31,8 +33,10 @@ end
 
 % read idlistdata if necessary. It will calculate lots of unnecessary data,
 % but it's reasonably fast
-if nargin < 2 || isempty(idlistData)
-    idlistData = LG_readIdlistData(idlist);
+if nargin < 2 || isempty(idlistData) 
+    error('please specify idlistData or dataProperties as second input argument')
+elseif ~isfield(idlistData,'nSpots')
+    idlistData = LG_readIdlistData(idlist, idlistData);
 end
 
 % colormap: allow empty
@@ -77,7 +81,13 @@ ah(1,1) = subplot(2,1,1,'replace');
 % get data
 time = 1:length(idlist);
 fitParms = idlist(1).stats.intFit.xFit;
+% we used to have first fitParms as log, therefore ensure backwards
+% compatibility
+if any(fitParms(1:end-1) < 0)
 yFit = exp(fitParms(1:end-1)) * exp(fitParms(end) * time);
+else
+    yFit = (fitParms(1:end-1)) * exp(fitParms(end) * time);
+end
 yFit = yFit';
 
 nSpotList = unique(idlistData.nSpots);
@@ -119,7 +129,7 @@ badTagIdx = find(idlist(idlistData.goodTimes(1)).linklist(:,5) > 1);
 % make second axes, make colors in case we don't get them passed down.
 ah(2,1) = subplot(2,1,2,'replace');
 if isempty(colorMap)
-    colorMap = hsv(maxTags);
+    colorMap = hsv(idlistData.maxTags);
 end
 set(ah(2),'NextPlot','add');
 hold on

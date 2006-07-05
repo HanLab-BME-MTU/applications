@@ -78,10 +78,10 @@ if ~update
 set(figureHandle,'Tag','LG_intensityFigure');
 set(figureHandle,'UserData','LG_navi_menuShowIntensities')
 set(figureHandle,'CloseRequestFcn','LG_figureCloseReq(gcf)');
+end
 
 % store figureHandle
 movieWindowHandles.otherWindows.LG_intensityFigure = figureHandle;
 
 % save movieWindowHandles
 guidata(movieWindowHandles.LG_movieWindow,movieWindowHandles);
-end

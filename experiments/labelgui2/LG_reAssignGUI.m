@@ -72,13 +72,12 @@ idlist = movieWindowHandles.idlist;
 linklist = idlist(currentTime).linklist;
 
 
-% if no linklist for current time: Quit
+% if no linklist for current time: Don't quit. Instead, open the GUI
+% without tags.
 if isempty(linklist)
-    h = errordlg(sprintf('No tags in frame %i!',currentTime),'Can''t open GUI');
-    uiwait(h)
-    % kill GUI
-    close(reAssignH)
-    return
+    noTags = true;
+else
+    noTags = false;
 end
 
 % gui-dependent defaults
@@ -87,6 +86,9 @@ def_pd1Pos = [16,0,15,1.7];
 def_pd2Pos = [33,0,15,1.7];
 def_minY = 12;
 
+if noTags
+    nGoodSpots = 0;
+else
 % read idlist
 idlistData = movieWindowHandles.idlistData;
 
@@ -98,6 +100,7 @@ nGoodSpots = length(goodSpotsIdx);
 
 % good tags include fusion tags!
 goodTagIdx = find(linklist(:,5) ~= 3);
+end
 
 
 % in case there weren't any good spots, we could delete the frame here
@@ -119,6 +122,9 @@ newPosition = oldPosition;
 newPosition([2,4]) = [oldPosition(2) + oldHeight - newHeight, newHeight];
 % assign new position
 set(reAssignH,'Position',newPosition)
+
+
+if ~noTags
 
 % prepare writing the lines of the GUI
 lc = idlistData.labelcolor(goodTagIdx);
@@ -221,6 +227,16 @@ handles.oldPdValues = pdValues;
 handles.originalPdValues = pdValues;
 handles.goodSpotsIdx = goodSpotsIdx;
 handles.goodTagIdx = goodTagIdx;
+else
+    % assign pdValues, originalPdValues in case someone hits 'ok'
+    handles.pdValues = 0;
+    handles.originalPdValues = 0;
+    
+end % if ~noTags
+
+% store currentTime
+handles.currentTime = LG_getCurrentTime;
+
 % Update handles structure
 guidata(reAssignH, handles);
 % Remember handle in movieWindowHandles
@@ -241,8 +257,11 @@ function varargout = LG_reAssignGUI_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
+if ~isempty(handles)
 varargout{1} = handles.output;
-
+else
+    varargout{1} = [];
+end
 
 % --- Executes on button press in LG_rag_cancel_pb.
 function LG_rag_cancel_pb_Callback(hObject, eventdata, handles)
@@ -294,35 +313,5 @@ myValue = get(hObject,'Value');
 set(handles.LG_rag_futureFrames_rb,'Value',1-myValue)
 
 
-
-
-% --- Executes when user attempts to close LG_reAssignGUI.
-function LG_reAssignGUI_CloseRequestFcn(hObject, eventdata, handles)
-% hObject    handle to LG_reAssignGUI (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% careful! hObject is not necessarily a handle of the reAssignGUI - the
-% close function can be called from elsewhere!
-
-% --- use general figureCloseReq
-
-% % store position, remove handle from movieWindowHandles
-% [naviHandles,movieWindowHandles] = LG_getNaviHandles;
-% if ~isempty(naviHandles)
-%     reAssignH = movieWindowHandles.otherWindows.LG_reAssignGUI;
-%     naviHandles.positions.LG_reAssignGUI = get(reAssignH,'Position');
-%     guidata(naviHandles.LG_navigator, naviHandles);
-%     movieWindowHandles.otherWindows.LG_reAssignGUI = [];
-%     guidata(movieWindowHandles.LG_movieWindow,movieWindowHandles);
-% else
-%     % of course, without any other window, this function can only be called
-%     % by the right gui.
-%     reAssignH = hObject;
-% end
-%
-%
-% % Hint: delete(hObject) closes the figure
-% delete(reAssignH);
 
 
