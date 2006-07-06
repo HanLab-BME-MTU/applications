@@ -13,8 +13,17 @@ gridy    = linspace(1,numPixelsY,numGridY);
 gridX = reshape(gridX,length(gridX(:)),1);
 gridY = reshape(gridY,length(gridY(:)),1);
 
+answer = input('Select time steps (0 for all):');
+if isempty(answer) | answer == 0
+   selTimeSteps = 1:numDTimePts;
+else
+   selTimeSteps = answer;
+end
+
 figH = [];
-for jj = 1:numDTimePts
+for ii = 1:length(selTimeSteps)
+   jj = selTimeSteps(ii);
+
    imgIndex = imgIndexOfDTimePts(jj);
    %Identify the file where the raw displacement field is stored.
    rawDispFieldFileName = ['rawDispField' sprintf(imgIndexForm,imgIndex) '.mat'];

@@ -148,11 +148,11 @@ end
 %   load([reslDir filesep  'AbfId'],'A');
 %else
 if ~strcmp(bfFwdOpComputed,'A') && ~strcmp(bfFwdOpComputed,'all')
-   ans = input('Select time steps (0 for all):');
-   if isempty(ans) || ans == 0
+   answer = input('Select time steps (0 for all):');
+   if isempty(answer) | answer == 0
       selTimeSteps = 1:numDTimePts;
    else
-      selTimeSteps = ans;
+      selTimeSteps = answer;
    end
 
    fprintf(1,'Constructing the matrix A for domain force:\n');

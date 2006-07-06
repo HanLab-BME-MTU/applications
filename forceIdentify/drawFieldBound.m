@@ -10,16 +10,23 @@
 %   'Your answer: '],jj));
 
 if strcmp(isFieldBndFixed,'yes')
-   numPotFieldBnds = 1; %Number of potential field boundaries.
+   selTimeSteps = 1; %Number of potential field boundaries.
 else
-   numPotFieldBnds = numDTimePts;
+   answer = input('Select time steps (0 for all):');
+   if isempty(answer) | answer == 0
+      selTimeSteps = 1:numDTimePts;
+   else
+      selTimeSteps = answer;
+   end
 end
 
 %rawDispFieldDir = [mechDir filesep 'rawDispField'];
 
 figH = [];
 numFieldBndsDrawn = 0;
-for jj = 1:numPotFieldBnds
+for ii = 1:length(selTimeSteps)
+   jj = selTimeSteps(ii);
+
    imgIndex = imgIndexOfDTimePts(jj);
    rawDispFieldFileName = ['rawDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
    rawDispFieldFile     = [rawDispFieldDir filesep rawDispFieldFileName];

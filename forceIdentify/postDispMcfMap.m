@@ -87,10 +87,17 @@ forceField = s.forceField;
 
 bfDisplayPx = forceField.p(:,1);
 bfDisplayPy = forceField.p(:,2);
-recDispU1   = forceField.rv(:,1);
-recDispU2   = forceField.rv(:,2);
 recBFx      = forceField.f(:,1);
 recBFy      = forceField.f(:,2);
+
+iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
+s = load(iDispFieldFile);
+iDispField = s.iDispField;
+
+recDispU1 = iDispField.rv(:,1);
+recDispU2 = iDispField.rv(:,2);
+
 if strcmp(showFlowVec,'yes')
    quiver(bfDisplayPx,bfDisplayPy, ...
       recDispU1*dispScale,recDispU2*dispScale,0,'y');

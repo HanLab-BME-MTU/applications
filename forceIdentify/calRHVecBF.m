@@ -22,11 +22,11 @@ fp.BodyFy = {{'x' 'y'} {[] 0}};
 %end
 %fem = elModelUpdate(fem,'fn',fn,'fp',fp);
 
-ans = input('Select time steps (0 for all):');
-if isempty(ans) || ans == 0
+answer = input('Select time steps (0 for all):');
+if isempty(ans) || answer == 0
    selTimeSteps = 1:numDTimePts;
 else
-   selTimeSteps = ans;
+   selTimeSteps = answer;
 end
 
 for ii = 1:length(selTimeSteps)

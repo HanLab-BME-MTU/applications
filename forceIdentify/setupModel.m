@@ -23,8 +23,19 @@ if strcmp(bfFwdOpComputed,'none') == 1
       return;
    end
 
+   answer = input('Select Model fields (0 for all):');
+   if isempty(answer)
+      selFields = 1:length(modelFileList);
+   elseif length(answer) == 1 && answer == 0
+      selFields = 1:length(modelFileList);
+   else
+      selFields = answer;
+   end
+
    procStr = '';
-   for jj = 1:length(modelFileList)
+   for ii = 1:length(selFields)
+      jj = selFields(ii);
+
       %for kk = 1:length(procStr)
       %   fprintf(1,'\b');
       %end
@@ -247,8 +258,17 @@ end
 %Get preprocessed experimental data such as calculating boundary displacement. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 localStartTime = cputime;
-fprintf(1,'Calculating boundary displacement ... ');
-for jj = 1:numDTimePts
+fprintf(1,'Calculating boundary displacement ... \n');
+answer = input('Select time steps (0 for all):');
+if isempty(answer) | answer == 0
+   selTimeSteps = 1:numDTimePts;
+else
+   selTimeSteps = answer;
+end
+
+for ii = 1:length(selTimeSteps)
+   jj = selTimeSteps(ii);
+
    imgIndex = imgIndexOfDTimePts(jj);
    % Load the raw field
    rawDispFieldFileName = ['rawDispField' sprintf(imgIndexForm,imgIndex) '.mat'];

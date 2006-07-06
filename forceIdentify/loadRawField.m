@@ -9,7 +9,16 @@ if strcmp(trackMethod,'speck')
    load(dataFile);
 end
 
-for jj = 1:numDTimePts
+answer = input('Select time steps (0 for all):');
+if isempty(answer) | answer == 0
+   selTimeSteps = 1:numDTimePts;
+else
+   selTimeSteps = answer;
+end
+
+for ii = 1:length(selTimeSteps)
+   jj = selTimeSteps(ii);
+
    if strcmp(trackMethod,'speck')
       frame1 = imgIndexOfDTimePts(jj)-firstImgIndex+1;
       frame2 = frame1+numAvgFrames-1;
