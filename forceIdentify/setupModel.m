@@ -36,6 +36,40 @@ if strcmp(bfFwdOpComputed,'none') == 1
    for ii = 1:length(selFields)
       jj = selFields(ii);
 
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      %Specify elasticity. We define the elasticity (Young's modulus)
+      % to be proportional to the image intensity if inhomogeneous elasticity 
+      % is chosen.
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      if exist('YModulVariation','var') && strcmp(YModulVariation,'inhomo')
+         %First, get the image. We use the stacked image in the time average
+         % window.
+         startFrmNo = imgIndexOfDTimePts(jj)-firstImgIndex+1;
+         if length(numAvgFrames) == numDTimePts
+            curNumAvgFrames = numAvgFrames(jj);
+         else
+            curNumAvgFrames = numAvgFrames;
+         end
+
+         %Get the stacked images of the actin channel, pressumably the first channel.
+         actImg = double(imread(imgFileList{1}{startFrmNo}));
+         for k = 1:curNumAvgFrames-1
+            actImg = actImg + double(imread(imgFileList{1}{k+startFrmNo}));
+         end
+         actImg = actImg/curNumAvgFrames;
+
+
+         maxImgI = max(actImg(:));
+         minImgI = min(actImg(:));
+         if minImgI < maxImgI
+            actImg = actImg/maxImgI;
+
+            %Cut off a bright spot of very high intensity.
+            fn.YModul = 'elImgParFun';
+            fp.YModul = {{'x' 'y'} {actImg 1.5 2 0.1 'Gaussian' 5}};
+         end
+      end
+
       %for kk = 1:length(procStr)
       %   fprintf(1,'\b');
       %end

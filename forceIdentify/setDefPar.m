@@ -10,6 +10,10 @@
 % isFieldBndFixed: For dynamic force reconstruction, specify whether the field boundary 
 %                  is fixed or not. Possible values: 'yes'(default) or 'no'.
 %
+% YModulVariation: Specify whether homogeneous ('homo' default) or inhomogeneous ('inhomo') Young's
+%                  modulus is used. When it is 'inhomo', Young's modulus is proportional to image
+%                  intensity.
+%
 % The following are parameters used for filtering and interpolation of raw data to grid points. 
 %    corLen   : Used for a faithful interpolation with minimum filtering. Unit, pixels.
 %    sCorLen  : Used to calculate smoothly interpolated field. Unit, pixels.
@@ -173,6 +177,7 @@
 
 trackMethod       = 'corr'; 
 isFieldBndFixed   = 'yes';
+YModulVariation   = 'homo';
 corLen            = 5; %It is supposed to be small and no filtering. Unit, pixels.
 sCorLen           = 10; %40; % Used to calculate smoothly interpolated field. Unit, pixels.
 gridDx            = 10;  %The grid size (in pixels) in the x-direction.

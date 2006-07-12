@@ -43,6 +43,13 @@ if strcmp(showMixZone,'no')
    adfMap(mixZoneInd) = NaN;
 end
 
+iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
+s = load(iDispFieldFile);
+iDispField = s.iDispField;
+
+gridX = iDispField.gridX;
+gridY = iDispField.gridY;
 %cMap = [[zeros(10,1) linspace(0,0.95,10).' linspace(1,0.05,10).']]; %Blue
 %cMap = [cMap; [ones(30,1) linspace(1,0,30).' zeros(30,1)]]; %Yellow to red.
 numColors = 128;
@@ -87,11 +94,6 @@ bfDisplayPx = forceField.p(:,1);
 bfDisplayPy = forceField.p(:,2);
 recBFx      = forceField.f(:,1);
 recBFy      = forceField.f(:,2);
-
-iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
-iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
-s = load(iDispFieldFile);
-iDispField = s.iDispField;
 
 recDispU1   = iDispField.rv(:,1);
 recDispU2   = iDispField.rv(:,2);

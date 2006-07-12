@@ -64,7 +64,7 @@ y = reshape(y,length(y(:)),1);
 
 if nargin > 6
    if strcmp(varargin{7},'ppform') == 1
-      val = fnval(varargin{7},[y x].');
+      val = fnval(varargin{8},[y x].');
    else
       val = imInterp(imI,[y x],varargin{7:end});
    end

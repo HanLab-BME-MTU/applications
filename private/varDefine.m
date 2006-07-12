@@ -194,12 +194,7 @@ else
    % the reason why we need 'femParFunCallback'.
    usrArgStrList = '';
    for jj = 1:length(fpValue{2})
-      if (~isnumeric(fpValue{2}{jj}) && ~ischar(fpValue{2}{jj})) || ...
-         (isnumeric(fpValue{2}{jj}) && length(fpValue{2}{jj}) >1)
-         argName = ['femGlobal_' fnName '_'];
-      else
-         argName = '';
-      end
+      argName = ['femGlobal_' fnName '_'];
       argNameStr = ['''' argName varName 'Arg' num2str(jj) ''''];
       usrArgStrList = [usrArgStrList argNameStr ','];
    end

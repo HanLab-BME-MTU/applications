@@ -66,16 +66,15 @@ for k = 1:length(names)
                                     const = [const ...
                                        [nameList{j} 'Arg' num2str(kk)] ...
                                        {fpValue{j}{2}{kk}}]; 
-                                 else
-                                    %Define this argument to be global variable so that it can be
-                                    % accessed from the corresponding parameter function. This is
-                                    % a work around for new femlab version (> 2.3). The naming of
-                                    % the global variable has the format
-                                    % "femGlobal_functionName_argName".
-                                    globalVarName = ['femGlobal_' fnName '_' ...
-                                       nameList{j} 'Arg' num2str(kk)];
-                                    assignin('base',globalVarName,fpValue{j}{2}{kk});
                                  end
+                                 %Also define this argument to be global variable so that it can be
+                                 % accessed from the corresponding parameter function. This is
+                                 % a work around for new femlab version (> 2.3). The naming of
+                                 % the global variable has the format
+                                 % "femGlobal_functionName_argName".
+                                 globalVarName = ['femGlobal_' fnName '_' ...
+                                    nameList{j} 'Arg' num2str(kk)];
+                                 assignin('base',globalVarName,fpValue{j}{2}{kk});
                               end
                            else
                               error(['''fp'' is not correctly defined. See help ' ...
@@ -103,11 +102,10 @@ for k = 1:length(names)
                      if ischar(fpValue{2}{kk}) || ...
                         (isnumeric(fpValue{2}{kk}) && length(fpValue{2}{kk}) <= 1)
                         const = [const [nameList{1} 'Arg' num2str(kk)] {fpValue{2}{kk}}]; 
-                     else
-                        globalVarName = ['femGlobal_' fnName '_' ...
-                           nameList{1} 'Arg' num2str(kk)];
-                        assignin('base',globalVarName,fpValue{2}{kk});
                      end
+                     globalVarName = ['femGlobal_' fnName '_' ...
+                        nameList{1} 'Arg' num2str(kk)];
+                     assignin('base',globalVarName,fpValue{2}{kk});
                   end
                end
             end

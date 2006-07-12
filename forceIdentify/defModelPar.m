@@ -12,15 +12,9 @@ if strcmp(bFunType,'femShape')
    bfDomVin = 20;
 end
 
-%Specify elasticity
-%fn.lambda  = 3;
-%fn.mu      = 1;
-%Add some variation to 'fn.YModul'.
-%modulA = 2; %Average of modul.
-%modulV = 0; %Magnitude of variation.
-%varT   = 200; %Period of variation in pixels.
-%fn.YModul = [modelPath 'YModulSine'];
-%fp.YModul = { {'x'} {modulA,modulV,varT} };
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Specify default elasticity which is constant.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fn.YModul = 2;
 fn.PRatio = 0.3;
 fp.YModul = [];
