@@ -115,6 +115,21 @@ if length(goodTimes) > 2
     while length(goodTimesM) < 2
         goodTimesM = find(nSpots == maxNumSpots-delta);
         delta = delta + 1;
+        % make sure we don't get into an infinite loop!
+        % Without this clause, this would occur if MAXSPOTS is smaller than
+        % max(nSpots), and MAXSPOTS is never found.
+        if delta == maxNumSpots 
+            if maxNumSpots < max(nSpots)
+                currentN = maxNumSpots;
+                while currentN < max(nSpots) && length(goodTimesM) < 2
+                    currentN = currentN + 1;
+                    goodTimesM = find(nSpots == currentN);
+                end
+            else
+                error('there seem to be no spots found at all!')
+            end
+        end
+            
     end
 else
     [dummy,goodTimesM] = max(nSpots);

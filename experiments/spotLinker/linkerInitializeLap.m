@@ -32,7 +32,7 @@ function [idlist, goodTimesM, t1t2, intAx] = linkerInitializeLap(idlist, nSpots,
 % Unique makes sure that there is no zero-column and we also don't want to
 % have entries for n=0
 A = [nSpots(goodIdx) * (1./unique(nSpots(goodIdx))') == 1, find(goodIdx)];
-[xFit, stdX, goodRows, intAx] = robustExponentialFit2(ampList(goodIdx),A,1);
+[xFit, stdX, goodRows, intAx] = robustExponentialFit2(ampList(goodIdx),A,verbose);
 
 tBleach = xFit(end);
 badRows = setdiff(1:nTimepoints,goodRows);
