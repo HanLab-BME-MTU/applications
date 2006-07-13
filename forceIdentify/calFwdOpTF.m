@@ -28,11 +28,11 @@ if strcmp(tfFwdOpComputed,'none') == 1
       return;
    end
 
-   ans = input('Select Model fields (0 for all):');
-   if isempty(ans) || ans == 0
+   answer = input('Select Model fields (0 for all):');
+   if isempty(answer) | answer == 0
       selFields = 1:length(modelFileList);
    else
-      selFields = ans;
+      selFields = answer;
    end
 
    for ii = 1:length(selFields)
@@ -132,11 +132,11 @@ if strcmp(tfFwdOpComputed,'none') == 1
 end
 
 if ~strcmp(tfFwdOpComputed,'A') || ~strcmp(tfFwdOpComputed,'all')
-   ans = input('Select time steps (0 for all):');
-   if isempty(ans) || ans == 0
+   answer = input('Select time steps (0 for all):');
+   if isempty(answer) | answer == 0
       selTimeSteps = 1:numDTimePts;
    else
-      selTimeSteps = ans;
+      selTimeSteps = answer;
    end
 
    fprintf(1,'Constructing the matrix A for boundary force:\n');

@@ -17,7 +17,7 @@ end
 
 %Identify the optimal range of regularization parameter using L-curve.
 if strcmp(answer,'n')
-   answer = input(sprintf('   Choose your sigma in this range (last saved: %3.2f):', ...
+   answer = input(sprintf('   Choose your regularization parameter in this range (last saved: %3.2f):', ...
    regParam.selBFSigma),'s');
    if strcmp(answer,'')
       selBFSigma = regParam.selBFSigma;
@@ -30,7 +30,7 @@ if strcmp(answer,'n')
    return;
 end
 
-fprintf(1,'   Identifying optimal sigma range using L-curve ...\n');
+fprintf(1,'   Identifying optimal regularization parameter range using L-curve ...\n');
 isBFSigmaRangeIdentified = 'no';
 
 fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
@@ -97,9 +97,10 @@ while strcmp(isBFSigmaRangeIdentified,'no')
    end
 end
 
-fprintf(1,'Optimal sigma range: (%3.2f,%3.2f).\n', regParam.minBFSigma,regParam.maxBFSigma);
+fprintf(1,'Optimal regularization parameter range: (%3.2f,%3.2f).\n', ...
+   regParam.minBFSigma,regParam.maxBFSigma);
 answer = input(sprintf('Choose your regularization parameter in this range (last saved: %3.2f):', ...
-regParam.selBFSigma),'s');
+   regParam.selBFSigma),'s');
 if strcmp(answer,'')
    selBFSigma = regParam.selBFSigma;
 else

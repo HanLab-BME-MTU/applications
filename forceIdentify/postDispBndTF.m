@@ -55,6 +55,11 @@ figure; hold off;
 imshow(bdfImg,[]); hold on;
 
 if strcmp(markMixZone,'yes')
+   %Load the saved mix zone force map.
+   mixfMapFile = [reslDir filesep 'mixfMap' filesep 'mixfMap' indexStr '.mat'];
+   load(mixfMapFile);
+   mixZoneInd = find(~isnan(mixfMap));
+
    mixBW = zeros(size(mixfMap));
    mixBW(mixZoneInd) = 1;
    mixZoneBnd = bwboundaries(mixBW);
@@ -76,15 +81,21 @@ forceField = s.forceField;
 
 bfDisplayPx = forceField.p(:,1);
 bfDisplayPy = forceField.p(:,2);
-recDispU1   = forceField.rv(:,1);
-recDispU2   = forceField.rv(:,2);
+
+iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
+s = load(iDispFieldFile);
+iDispField = s.iDispField;
+
+recDispU1   = iDispField.rv(:,1);
+recDispU2   = iDispField.rv(:,2);
 if strcmp(showFlowVec,'yes')
    quiver(bfDisplayPx,bfDisplayPy, ...
       recDispU1*dispScale,recDispU2*dispScale,0,'y');
 end
 
 bndF = forceField.bndF;
-for k = 1:length(bndP)
+for k = 1:length(bndF)
    quiver(bndF(k).p(1,:),bndF(k).p(2,:),bndF(k).fx*tfScale,bndF(k).fy*tfScale,0,'r');
 end
 

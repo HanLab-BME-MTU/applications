@@ -2,16 +2,32 @@
 % 'calRHVecTF' for the identification of the boundary traction force.
 fprintf(1,'Solving the linear system: \n');
 
+regParamFile = [reslDir filesep 'lastSavedRegParam.mat'];
+if exist(regParamFile,'file') ~= 2
+   fprintf(1,['Regularization parameter has not been identified yet.\n' ...
+      'Please run ''calOptRegParTF'' first.\n']);
+   return;
+end
+
+s = load(regParamFile);
+regParam = s.regParam;
+
+if ~isfield(regParam,'selTFSigma')
+   fprintf(1,'Regularization parameter has not been identified yet.\n',regParam.selTFSigma);
+   return;
+end
+
+fprintf(1,'   Regularization parameter: %5.3f.\n',regParam.selTFSigma);
 startTime = cputime;
 
 %Regularization parameter for 'solveLS'.
 %sigma = 1;
 
-ans = input('Select time steps (0 for all):');
-if isempty(ans) || ans == 0
+answer = input('Select time steps (0 for all):');
+if isempty(answer) | answer == 0
    selTimeSteps = 1:numDTimePts;
 else
-   selTimeSteps = ans;
+   selTimeSteps = answer;
 end
 
 for ii = 1:length(selTimeSteps)
@@ -55,7 +71,7 @@ for ii = 1:length(selTimeSteps)
       A{k} = reshape(A{k},2*numDP,2*fsBnd(k).dim);
       [m,n] = size(A{k});
 
-      forceField.coefTF{k} = (A{k}.'*A{k}+tfSigma*eye(n))\(A{k}.'*rightU{k});
+      forceField.coefTF{k} = (A{k}.'*A{k}+regParam.selTFSigma*eye(n))\(A{k}.'*rightU{k});
       for kk = 1:length(procStr)
          fprintf(1,'\b');
       end

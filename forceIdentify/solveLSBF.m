@@ -5,14 +5,14 @@ fprintf(1,'Solving the linear system: \n');
 regParamFile = [reslDir filesep 'lastSavedRegParam.mat'];
 if exist(regParamFile,'file') ~= 2
    fprintf(1,['Regularization parameter has not been identified yet.\n' ...
-      'Please run ''calOptRegPar'' first.\n']);
+      'Please run ''calOptRegParBF'' first.\n']);
    return;
 end
 
-fprintf(1,'   Regularization parameter: %5.3f.\n',regParam.selBFSigma);
 s = load(regParamFile);
 regParam = s.regParam;
 
+fprintf(1,'   Regularization parameter: %5.3f.\n',regParam.selBFSigma);
 startTime = cputime;
 
 %fwdMapBFDir = [reslDir filesep 'fwdMapBF'];
