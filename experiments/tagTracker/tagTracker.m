@@ -49,8 +49,10 @@ constants.trackAll = 1;
 % interpolation/objective function options
 % interpolation {scheme, correctOrNot}
 constants.interpolation = {'*cubic',1};
-constants.gaussPixOnly = 1;
+constants.gaussPixOnly = true;
 constants.gradientOption = 1; % 1: filter, 2: don't filter
+constants.correctBleaching = false;
+constants.linearVariances = true; %whether or not to require a linear dependence of varXY on varZ from the detector
 
 % debug options
 % set defaults first
@@ -88,7 +90,7 @@ else
             debugData.objectiveFunction = 1;
         end
         % track results:
-       % see below
+        % see below
         if isfield(dbOpt,'trackResults')
             debugData.trackResults = [];
         end
@@ -152,7 +154,11 @@ p2m = repmat(constants.pixel2micron,[nTags,1]);
 coords4Source = zeros(nTimepoints, 3*nTags);
 searchRadius4Source = zeros(nTimepoints, 3*nTags);
 
-
+% refit tag intensities to make sure we have the correct number of tags.
+% Only overwrite intFit in the idlist!
+idlist(1).stats.recalc = {2}; % only estimate
+idTmp = linker(idlist,dataProperties);
+idlist(1).stats.intFit = idTmp(1).stats.intFit;
 
 
 for t = goodTimes'
@@ -193,7 +199,10 @@ for t = goodTimes'
     inputCoords(t,:,:) = ...
         reshape(coords,[1,nTags,3]); %[1, nTags, 3]
     coords4Source(t,:) = reshape(coords',[1,3*nTags]);
-    inputAmp(t,:,:) = reshape(idlist(t).linklist(:,8),[1,nTags,1]);
+    %     inputAmp(t,:,:) = reshape(idlist(t).linklist(:,8),[1,nTags,1]);
+    % use "theoretical" intensities
+    inputAmp(t,:,1) = idlist(1).stats.intFit.tagFactor .* ...
+        exp(idlist(1).stats.intFit.xFit(end) * t);
 
 end % loop nTimepoints
 
@@ -231,7 +240,8 @@ fittingMatrices(1:nTags) = struct(...
     'B',zeros(nSources+nTrackPairs,1,3),...
     'V',zeros(nSources+nTrackPairs,1,3));
 
-% fill in source data
+% fill in source data - this will produce zero-rows and cols in the fitting
+% matrices. We will later remove them.
 for iSource = sourceList'
     for iTag = 1:nTags
         fittingMatrices(iTag).A(iSource,iSource,1) = 1;
@@ -296,13 +306,17 @@ sourceInfo(1:nTimepoints,1:nTags) = struct(...
 
 % loop and fill in source info
 movieNoise = zeros(nTimepoints,1);
+% remember randomState to keep analysis reproducible
+randomState = rand('state');
+rand('state',2756);
+residualList = zeros(nTimepoints,nTags);
 for t = sourceList'
 
     if iscell(movie)
         if strcmp(movie{2},'sedat')
             movieFrame = sedatLoadRaw(t,movie{1},dataProperties);
         else
-        movieFrame = cdLoadMovie(movie,'',t);
+            movieFrame = cdLoadMovie(movie,'',t);
         end
     else
         movieFrame = movie(:,:,:,:,t);
@@ -317,7 +331,49 @@ for t = sourceList'
 
     sourceInfo(t,:) = extractIntensities(sourceInfo(t,:),[],movieFrame,constants);
 
+    %---------- get the residuals of "bad" fits
+    %
+    % shift detected tags by 0.5*psf randomly along x,y,and z
+    randomShift = rand(nTags*2,3);
+    randomShift = (randomShift > 0.33) + (randomShift > 0.66) - 1;
+    randomShift(all(randomShift == 0,2),:) = [];
+    randomShift = randomShift(1:nTags,:);
+    % shift by 3*gaussWidth which is approximately rayleigh
+    randomShift = ...
+        randomShift * 1 .* repmat(dataProperties.FT_SIGMA,nTags,1);
+    % make parameter-vector
+    randomShift = randomShift';
+    randomShift = randomShift(:);
+
+    % get residuals. no gradient
+    [dummy,tmpInfo] = extractIntensities(sourceInfo(t,:), sourceInfo(t,:),...
+        movieFrame, constants, randomShift, 0);
+
+    for iTag = 1:nTags
+        % if the position is outside the image, goodIdx is empty.
+        % In that case, the residual is NaN.
+        % Use sigmaResidual^2 instead of mean(residual)
+        tmp = nansum(tmpInfo(iTag).deltaInt(tmpInfo(iTag).goodIdx).^2)/...
+            (length(goodIdx)-nTags*3);
+        residualList(t,iTag) = tmp;
+
+    end
 end
+clear tmp % clear, b/c we want to make tmp into a structure below!
+rand('state',randomState);
+
+% the residuals will change with bleaching. Therefore, estimate the
+% threshold using the intensity fit from the linker. Don't forget that
+% we're looking at intensity^2! (background should not play a role here)
+expValues = exp((1:nTimepoints)' * idlist(1).stats.intFit.xFit(end) * 2);
+for iTag=1:nTags
+    goodIdx = ~isnan(residualList(sourceList,iTag));
+    expFactor = linearLeastMedianSquares(expValues(sourceList(goodIdx)),...
+        residualList(sourceList(goodIdx),iTag),[],max(residualList(:,iTag)));
+    % fill in residualList
+    residualList(:,iTag) = expFactor * expValues;
+end
+
 
 %================================
 
@@ -332,6 +388,7 @@ end
 % fittingIdx indicates the line where we will continue to write the fitting
 % matrices
 fittingIdx = sourceList(end);
+fittingIdx0 = fittingIdx; % 0th fitting idx
 
 
 % DEBUG
@@ -340,7 +397,7 @@ if debug && isfield(debugData,'trackResults')
     % track results:
     % structure array (nTimepoints x nTags x numSources)
     % .startEndDelta 2x3 array with start delta, end delta
-    % .sigma0 2x1 vector with start/end ssq of residuals
+    % .sigma0 1x2 vector with start/end ssq of residuals
     % .sourcePos 1x3 array of source position
     % .sourceVar 1x3 array of variance of source position
     % .deltaVar  1x3 array of variance of delta
@@ -355,14 +412,14 @@ if debug && isfield(debugData,'trackResults')
         'info',[]);
     debugData.trackResults = tmp;
     clear tmp
-    
+
     % fill source pos, var
     [debugData.trackResults(sourceList,:,1).sourcePos] = ...
         deal(sourceInfo(sourceList,:).centerCoord);
     for t=sourceList'
         for j=1:nTags
-        debugData.trackResults(t,j,1).sourceVar(:) = ...
-            inputQmatrixDiag(t,j,:);
+            debugData.trackResults(t,j,1).sourceVar(:) = ...
+                inputQmatrixDiag(t,j,:);
         end
     end
 end
@@ -395,6 +452,12 @@ if debug && isfield(debugData,'fStats')
         deal(sourceInfo(sourceList,:).size);
 
 end
+
+% initialize array for sigmaZero to estimate whether the residuals of the
+% fit are acceptable. AmpRatio is purely for debugging purposes
+% nFits x [s, t, sigmaResInit, sigmaRes, sigmaResInitEst, ampRatio] x nTags
+collectedResiduals = zeros(nTimepoints*constants.numSources, 6, nTags);
+
 
 
 % initialize counter for tracking (needed for debugging and display)
@@ -460,7 +523,7 @@ while ~isempty(trackPairs)
         end
 
         if debug
-            % update targetCt 
+            % update targetCt
             targetCt = targetCt + 1;
         end
 
@@ -659,12 +722,12 @@ while ~isempty(trackPairs)
         % !!!! get the jacobian that is actually used during calculation of
         % the parameters (=filtered)
         if isfield(constants,'gradientOptionQ')
-            % allow setting which gradient is used by testing function. 
+            % allow setting which gradient is used by testing function.
             [dummy,targetInfo] = extractIntensities(sourceInfo(currentSource,:),...
-            targetInfo,movieFrame,constants,parameters,constants.gradientOptionQ);
+                targetInfo,movieFrame,constants,parameters,constants.gradientOptionQ);
         else
-        [dummy,targetInfo] = extractIntensities(sourceInfo(currentSource,:),...
-            targetInfo,movieFrame,constants,parameters,constants.gradientOption);
+            [dummy,targetInfo] = extractIntensities(sourceInfo(currentSource,:),...
+                targetInfo,movieFrame,constants,parameters,constants.gradientOption);
         end
 
         % loop. If any one of the tags is bad, we do not keep the frame
@@ -716,7 +779,7 @@ while ~isempty(trackPairs)
         end
 
 
-        
+
 
 
         % !!!!!!!!!!!!!!!!!!!!
@@ -791,9 +854,28 @@ while ~isempty(trackPairs)
                 fittingMatrices(iTag).V(fittingIdx,1,:) = qMatDiag(:);
             end
 
+            % store sigmaResidual2, sigmaResidual2Init for later estimation
+            % of good fits
+            % careful: collectIdx is used below to discard excess rows
+            collectIdx = fittingIdx - fittingIdx0;
+            collectedResiduals(collectIdx, 1, :) = currentSource;
+            collectedResiduals(collectIdx, 2, :) = currentTarget;
+            collectedResiduals(collectIdx, 3, :) = ...
+                reshape(sigmaResidual2init,[1,1,nTags]);
+            collectedResiduals(collectIdx, 4, :) = ...
+                reshape(sigmaResidual2,[1,1,nTags]);
+            % for debugging purposes, store ampRatio
+            if debug
+                for iTag = 1:nTags
+                    collectedResiduals(collectIdx, 6, iTag) = ...
+                        targetInfo(1,iTag).amp/...
+                        sourceInfo(currentSource,iTag).amp;
+                end
+            end
+
         end %if isSuccess
-        
-        
+
+
         % debug - fill trackResults here, b/c of Q
         if debug && isfield(debugData,'trackResults')
             for iTag = 1:nTags
@@ -803,17 +885,17 @@ while ~isempty(trackPairs)
                 debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).sigma0(1) = ...
                     sigmaResidual2init(iTag);
                 debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).sigma0(2) = ...
-                        sigmaResidual2(iTag);
+                    sigmaResidual2(iTag);
 
                 if isSuccess
-                    
+
                     debugData.trackResults(currentTarget,iTag,targetCt+targetIsSource).deltaVar(:) = ...
                         fittingMatrices(iTag).V(fittingIdx,1,:);
                 end
             end
 
         end
-        
+
 
         % whether it was successful or not, we remove the current s/t pair
         % from the strategy
@@ -828,6 +910,140 @@ end % while ~isempty trackingStrategy
 %====================================
 
 
+%====================================
+%% REFINE TRACKING RESULTS
+%====================================
+
+% First, check for good trackings: Are the residuals reasonably low?
+% (Fit collected initial residuals, then remove all whose residuals are
+% higher than expected)
+% Secondly, transform the precision so that the measurements from the
+% detector have weight 1 - theoretically, this means to divide Var(xy) by
+% Mean(Var(xy)), and the same for z; instead we just set all to 1. Take the
+% robust mean and kick out the observations from the detector that are
+% considered to be outliers. Then, divide the Variances from the tracker by
+% the mean precision from the detector. This will set sigma0(detector) to
+% pixel, and it will give a meaning to the output MSE.
+
+% 1) estimate the expected sum of residuals
+
+% remove excess entries
+collectedResiduals(collectIdx+1:end,:,:) = [];
+
+% read sigmaResidual2Init
+Y = sum(collectedResiduals(:,3,:),3);
+% construct A. Put ones wherever sigma corresponds to that tag
+%oneZero = (mat2cell(ones(collectIdx,nTags),collectIdx,ones(1,nTags)));
+A = [ones(size(Y)),collectedResiduals(:,2,1)];
+[xFit,sigmaX] = robustExponentialFit2(Y,A,1);
+
+% estimatedResiduals are A*X
+estimatedResiduals = exp(A * [log(xFit(1));xFit(end)]);
+%collectedResiduals(:,5,1) = reshape(estimatedResiduals,[collectIdx,1,nTags]);
+
+% if sigmaResidualEnd is above the estimatedResiduals + 10%, don't count
+% (this will remove quite a number of s-s trackings. However, these are
+% probably not very good, anyway)
+highResidualIdx = find(sum(collectedResiduals(:,4,:),3) > estimatedResiduals * 1.1);
+hold on, plot(A(:,end),estimatedResiduals * 1.1, 'r')
+hold on,plot(A(highResidualIdx,end),Y(highResidualIdx),'og')
+highResidualIdx = highResidualIdx + fittingIdx0;
+
+% remove rows below (where we also remove other rows)
+
+
+% 2) transform precision
+
+% find mena detectorPrecision in XY and in Z. Detect very high
+% uncertainties
+% !!! fit precision with exponential - uncertainties increase with
+% decreasing intensity. Remove outliers
+detectorPrecisionXY = catStruct(4,'fittingMatrices.V(:,:,1:2)');
+detectorPrecisionXY = squeeze(detectorPrecisionXY(1:fittingIdx0,:,:,:));
+detectorPrecisionZ = catStruct(4,'fittingMatrices.V(:,:,3)');
+detectorPrecisionZ = squeeze(detectorPrecisionZ(1:fittingIdx0,:,:,:));
+% dp* is now a nTimepoints by nDims by nTags array. Since we're fitting
+% for each tag individually, we will calculate an estimated precision for
+% each tag.
+for iTag=1:nTags
+    % varXY and varZ show a very strong linear dependence. Therefore, we
+    % can fit both with the same exponential.
+    varX = detectorPrecisionXY(:,1,iTag);
+    varY = detectorPrecisionXY(:,2,iTag);
+    varZ = detectorPrecisionZ(:,iTag);
+    t = (1:fittingIdx0)'; % t is equivalent to row for the detected spots
+
+    % remove zero - entries
+    zeroIdx = ~varX;
+    varX(zeroIdx) = [];
+    varY(zeroIdx) = [];
+    varZ(zeroIdx) = [];
+    t(zeroIdx) = [];
+
+    % find frames where the dependence between varXY and varZ is linear
+    % Problem: the linear dependence is so excellent that there are a lot
+    % of frames removed
+
+    if constants.linearVariances
+        [x,dummy,goodRows] = linearLeastMedianSquares([[varX;varY],ones(2*length(t),1)],[varZ;varZ]);
+        aa=[[varX;varY],ones(2*length(t),1)];bb=[varZ;varZ];
+        figure,
+        subplot(2,1,1)
+        plot(aa(:,1),bb,'.')
+        hold on, plot(aa(:,1),aa*x,'r')
+        badIdx = setdiff(1:2*length(t),goodRows);
+        hold on, plot(aa(badIdx,1),bb(badIdx),'or')
+
+
+
+        % remove bad data
+        rejectIdx=unique((mod(badIdx-1,length(t))+1));
+
+        subplot(2,1,2)
+        plot(repmat(t,2,1),[varX;varY],'.b',t,varZ,'.g')
+        hold on, plot(repmat(t(rejectIdx),3,1),[varX(rejectIdx);varY(rejectIdx);varZ(rejectIdx)],'or')
+
+        varX(rejectIdx) = [];
+        varY(rejectIdx) = [];
+        varZ(rejectIdx) = [];
+        t(rejectIdx) = [];
+
+
+    else
+        % don't do anything
+    end
+
+    % exponential fit
+    A = [blkdiag(ones(length(t)*2,1),ones(size(t))),repmat(t,3,1)];
+    B = [varX;varY;varZ];
+    [xFit, dummy, goodRows] = robustExponentialFit2(B,A,1);
+
+    % get goodTime
+    varianceEstimators{iTag} = xFit;
+    goodDetection{iTag} = t(unique((mod(goodRows-1,length(t))+1)));
+    badDetection{iTag} = setdiff(1:nTimepoints,goodDetection{iTag})';
+
+
+    % write estimated errors. Divide by the estimated detection error at
+    % t=1 for both detected and tracked tags. This sets weight 1 for the
+    % detection in the first frame.
+    fittingMatrices(iTag).V(goodDetection{iTag},iTag,1) = ...
+        xFit(1) * exp(xFit(end) * goodDetection{iTag});
+    fittingMatrices(iTag).V(goodDetection{iTag},iTag,2) = ...
+        xFit(1) * exp(xFit(end) * goodDetection{iTag});
+    fittingMatrices(iTag).V(goodDetection{iTag},iTag,3) = ...
+        xFit(2) * exp(xFit(end) * goodDetection{iTag});
+
+    fittingMatrices(iTag).V(:,iTag,1:2) = ...
+        fittingMatrices(iTag).V(:,iTag,1:2) ./ xFit(1) * exp(xFit(end));
+    fittingMatrices(iTag).V(:,iTag,3) = ...
+        fittingMatrices(iTag).V(:,iTag,3) ./ xFit(2) * exp(xFit(end));
+
+end
+
+%====================================
+
+
 
 %====================================
 %% CALCULATE POSITIONS
@@ -838,17 +1054,26 @@ end % while ~isempty trackingStrategy
 % before, we need to remove the empty cols in A, though. These will make up
 % the list of frames that could not be tracked.
 
-% since all A-matrices are the same, we can find the failIdx on a single
-% one
-failIdx = (all(~fittingMatrices(1).A(:,:,1),1));
-goodIdx = (1:nTimepoints)';
-goodIdx(failIdx) = [];
+
 
 % because of the way the new lscov is coded, it cannot cope with zero-rows
-% anymore -> remove them
+% anymore -> remove them. If we're removing detected spots, then goodRows
+% can be different for different tags
 failIdx = (all(~fittingMatrices(1).A(:,:,1),2));
-goodRows = 1:size(fittingMatrices(1).A,1);
-goodRows(failIdx) = [];
+clear goodRows
+[goodRows{1:nTags}] = deal(1:size(fittingMatrices(1).A,1));
+for iTag = 1:nTags
+    goodRows{iTag}([find(failIdx);highResidualIdx;badDetection{iTag}]) = [];
+end
+
+% since all A-matrices are the same, we can find the failIdx on a single
+% one
+clear goodIdx
+[goodIdx{1:nTags}] = deal((1:nTimepoints)');
+for iTag = 1:nTags
+failIdx = find(all(~fittingMatrices(1).A(goodRows{iTag},:,1),1));
+goodIdx{iTag}(failIdx) = [];
+end
 
 % prepare "output"
 outputCoords = zeros(nTimepoints,nTags,3);
@@ -857,9 +1082,9 @@ outputCoords = zeros(nTimepoints,nTags,3);
 % loop through dimensions and fit
 for iTag = 1:nTags
     for dim=1:3
-        [outputCoords(goodIdx,iTag,dim), outputQmatrixDiag(goodIdx,dim,iTag), mse(goodIdx,dim,iTag)] = ...
-            myLscov(fittingMatrices(iTag).A(goodRows,goodIdx,1),...
-            fittingMatrices(iTag).B(goodRows,1,dim),fittingMatrices(iTag).V(goodRows,1,dim));
+        [outputCoords(goodIdx{iTag},iTag,dim), outputQmatrixDiag(goodIdx{iTag},dim,iTag), mse(goodIdx{iTag},dim,iTag)] = ...
+            myLscov(fittingMatrices(iTag).A(goodRows{iTag},goodIdx{iTag},1),...
+            fittingMatrices(iTag).B(goodRows{iTag},1,dim),fittingMatrices(iTag).V(goodRows{iTag},1,dim));
     end
 end
 
@@ -896,7 +1121,7 @@ if debug && isfield(debugData,'fitStats')
     for iTag=2:nTags
         debugData.fitStats.fittingMatrices(iTag).A = [];
     end
-    
+
     debugData.fitStats.mse = mse;
     debugData.fitStats.outputQmatrixDiags = outputQmatrixDiag;
     debugData.fitStats.goodIdx = goodIdx;

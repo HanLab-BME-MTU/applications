@@ -281,9 +281,20 @@ if makeTarget
         % deltaInt: intensity difference between source and target image.
         % We subtract the full images, even if they have been wrapped
         % around
+        % CORRECT FOR BLEACHING: adjust intensities of source according to
+        % the estimated bleaching. Amplitudes are not the actual (noisy)
+        % spot intensities from the dector, but the estimates from the
+        % exponential bleaching curve.
+        if constants.correctBleaching
+        bleachingCorrection = targetInfo(iTag).amp/sourceInfo(iTag).amp;
+        else
+            bleachingCorrection = 1;
+        end
         targetInfo(iTag).deltaInt = ...
             targetInfo(iTag).intList - ...
-            sourceInfo(iTag).intList;
+            sourceInfo(iTag).intList * bleachingCorrection;
+        
+        
 
         % ADD CORRECTION TO RESIDUALS - SEE CORRECTRESIDUALS FOR DETAILS
         % (preserve sign of deltaIntensity)
@@ -292,7 +303,8 @@ if makeTarget
                 sign(targetInfo(iTag).deltaInt).*...
                 sqrt(...
                 targetInfo(iTag).deltaInt.^2 + ...
-                sourceInfo(iTag).interpCorr + targetInfo(iTag).interpCorr);
+                sourceInfo(iTag).interpCorr * bleachingCorrection^2 ...
+                + targetInfo(iTag).interpCorr);
         end
 
         % gradient: gradient of difference image - should not be affected
