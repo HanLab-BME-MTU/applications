@@ -38,6 +38,8 @@ for ii = 1:length(selTimeSteps)
    end
    s = load(femModelFile);
    femModel = s.femModel;
+   edge     = femModel.edge;
+   fem      = femModel.fem;
    fsBnd    = femModel.fsBnd;
 
    forceFieldFile = [forceFieldDir filesep 'forceField' ...

@@ -8,24 +8,38 @@
 %    'adhesion' : We can also use the adhesion intesity movies to add
 %       viscosity dragging coefficient in the forward model to see if the
 %       adhesion site can be identified.
+%
+% AUTHOR: Lin Ji
+% DATE  : July 17, 2006
 
 if isempty(simuDir) || ~isdir(simuDir)
    fprintf(1,'Please setup the simulation directory first by ''setupForceProj''.');
    return;
 end
 
-if exist([simuDir filesep 'simField.mat'],'file') == 2
-   ans = input(['A previously simulated flow field is found.\n' ...
-      'Do you want to load it? (y/n):'],'s');
-   if strcmp(ans,'y')
-      load([simuDir filesep 'simuField.mat']);
+if exist([simuDir filesep 'sDispField.mat'],'file') == 2
+   answer = input(['A previously simulated flow field is found.\n' ...
+      'Do you want to overwrite it? (y/n):'],'s');
+   if strcmp(answer,'n')
       return;
    end
 end
 
+imgIndex = imgIndexOfDTimePts(curDTimePt);
+
 %Load the 'fem' structure used to identify the force. This provides the same
 % elasticity and boundary condtions.
-load([mechDir filesep 'femId']);
+if strcmp(isFieldBndFixed,'yes')
+   femModelFile = [femModelDir filesep 'femModel' sprintf(imgIndexForm,0) '.mat'];
+else
+   [femModelFile,femModelImgIndex] = getFemModelFile(femModelDir,imgIndex,imgIndexForm);
+end
+s = load(femModelFile);
+femModel = s.femModel;
+fem      = femModel.fem;
+fs       = femModel.fs;
+numEdges = femModel.numEdges;
+
 fn = fem.fn;
 fp = fem.fp;
 
@@ -58,13 +72,10 @@ for k = 1:numEdges
 end
 
 %Load the identified body force and boundary force.
-load([reslDir filesep 'coefBFId']);
-load([reslDir filesep 'bfId']);
-load([reslDir filesep 'tfId']);
-
-%Load the boundary displacements.
-load([reslDir filesep 'edgeDisp']);
-load([reslDir filesep 'dispId']);
+forceFieldFile = [forceFieldDir filesep 'forceField' ...
+   sprintf(imgIndexForm,imgIndex) '.mat'];
+s = load(forceFieldFile);
+forceField = s.forceField;
 
 fn.MyoDragFx = 0;
 fn.MyoDragFy = 0;
@@ -73,18 +84,13 @@ fn.VDragCoef = 0;
 fn.BodyFx = 0;
 fn.BodyFy = 0;
 
-%fn.BodyFx = 'femBodyF';
-%fn.BodyFy = 'femBodyF';
-%fp.BodyFx = {{'x' 'y'} {fs coefBFx(:,testTimeStep)}};
-%fp.BodyFy = {{'x' 'y'} {fs coefBFy(:,testTimeStep)}};
-
 if strcmp(forceToSimu,'mcfOnly') == 1 || ...
    strcmp(forceToSimu,'mcfAndBnd') == 1 || ...
    strcmp(forceToSimu,'mcfAndAdf') == 1 || ...
    strcmp(forceToSimu,'all') == 1
    %Draw contraction region.
-   ans = input('Do you want to draw a region of contraction? (y/n):','s');
-   if strcmp(ans,'y')
+   answer = input('Do you want to draw a region of contraction? (y/n):','s');
+   if strcmp(answer,'y')
       [BW,mcfROIXi,mcfROIYi] = roipoly;
    else
       mcfROIXi = [];
@@ -92,21 +98,24 @@ if strcmp(forceToSimu,'mcfOnly') == 1 || ...
    end
 
    %Separate myosin contraction.
-   mcfFx = recMCFx;
-   mcfFy = recMCFy;
-   nanInd = find(isnan(recMCFx) | isnan(recMCFy));
+   mcfPx = forceField.p(:,1);
+   mcfPy = forceField.p(:,2);
+   mcfFx = forceField.mcf(:,1);
+   mcfFy = forceField.mcf(:,2);
+   nanInd = find(isnan(mcfFx) | isnan(mcfFy));
    mcfFx(nanInd) = 0;
    mcfFy(nanInd) = 0;
 
-   %Calculate the DOF of the myosin dragging force in the fem stucture, 'fs'.
-   coefMyo  = calFemDOFCoef(fs,[bfDisplayPx bfDisplayPy].',[mcfFx;mcfFy],1e-6);
+   %Calculate the DOF of the myosin dragging force in the fem stucture, 'fs.fem'.
+   %coefMyo  = calFemDOFCoef(fs,[bfDisplayPx bfDisplayPy].',[mcfFx;mcfFy],1e-6);
+   coefMyo  = calFemDOFCoef(fs.fem,[mcfPx mcfPy].',[mcfFx;mcfFy],1e-6);
    coefMyox = coefMyo(1,:).';
    coefMyoy = coefMyo(2,:).';
 
    fn.MyoDragFx = 'femBodyF';
    fn.MyoDragFy = 'femBodyF';
-   fp.MyoDragFx = { {'x' 'y'} {fs coefMyox mcfROIXi mcfROIYi} };
-   fp.MyoDragFy = { {'x' 'y'} {fs coefMyoy mcfROIXi mcfROIYi} };
+   fp.MyoDragFx = { {'x' 'y'} {fs.fem coefMyox mcfROIXi mcfROIYi} };
+   fp.MyoDragFy = { {'x' 'y'} {fs.fem coefMyoy mcfROIXi mcfROIYi} };
 
    fn.BodyFx = 0;
    fn.BodyFy = 0;
@@ -116,6 +125,7 @@ if strcmp(forceToSimu,'mcfOnly') == 1 || ...
    %fp.BodyFy = {{'x' 'y'} {fs coefBFy(:,testTimeStep) mcfROIXi mcfROIYi}};
 end
 
+bndfEdgNo = [];
 if strcmp(forceToSimu,'bndOnly') == 1 || ...
    strcmp(forceToSimu,'adfAndBnd') == 1 || ...
    strcmp(forceToSimu,'mcfAndBnd') == 1 || ...
@@ -125,15 +135,17 @@ if strcmp(forceToSimu,'bndOnly') == 1 || ...
       '   1. Free edge.\n' '   2. Identified boundary force.\n']);
    for ii = 1:length(bndfEdgNo)
       k = bndfEdgNo(ii);
+      bndF = forceField.bndF(k);
+
       BCTypes{k} = 'Neumann';
 
-      ans = input(['Edge No. ' sprintf('%d',k) ': ']);
-      if ans == 1
+      answer = input(['Edge No. ' sprintf('%d',k) ': ']);
+      if answer == 1
          fp.BndTracFx{k} = {{'s'} {0}};
          fp.BndTracFy{k} = {{'s'} {0}};
-      elseif ans == 2
-         fp.BndTracFx{k} = {{'s'} {spTFx{k}}};
-         fp.BndTracFy{k} = {{'s'} {spTFy{k}}};
+      elseif answer == 2
+         fp.BndTracFx{k} = {{'s'} {bndF.spx}};
+         fp.BndTracFy{k} = {{'s'} {bndF.spy}};
       end
    end
    options = elOptionsSet(options,'BCType',BCTypes);
@@ -145,10 +157,26 @@ if strcmp(forceToSimu,'adfOnly') == 1 || ...
    strcmp(forceToSimu,'all') == 1
 
    %Load adhesion coefficients map.
-   indexStr = sprintf(indexForm,imgIndexOfDTimePts(jj));
+   indexStr = sprintf(indexForm,imgIndexOfDTimePts(curDTimePt));
    adcMapFile = [reslDir filesep 'adcMap' filesep 'adcMap' indexStr '.mat'];
    load(adcMapFile);
 
+   %Draw contraction region.
+   answer = input('Do you want to draw a region of adhesion? (y/n):','s');
+   if strcmp(answer,'y')
+      [BW,adcROIXi,adcROIYi] = roipoly;
+   else
+      adcROIXi = [];
+      adcROIYi = [];
+   end
+
+   imgHeight = size(adcMap,1);
+   imgWidth  = size(adcMap,2);
+   [pixX pixY] = meshgrid([1:imgWidth],[1:imgHeight]);
+   in = inpolygon(pixX(:),pixY(:),adcROIXi,adcROIYi);
+   iIn = find(in==1);
+   adcMap(iIn) = 0;
+   
    nanInd = find(isnan(adcMap));
    adcMap(nanInd) = 0;
    maxADC = max(adcMap(:));
@@ -161,26 +189,20 @@ fem = elasticSolve(fem,[]);
 
 %Load the data points used to identify the force. We shall compute the 
 % simulated displacements there.
-simDataPx = dataPx{testTimeStep};
-simDataPy = dataPy{testTimeStep};
-[simU1 simU2] = postinterp(fem,'u1','u2', ...
-   [simDataPx simDataPy].');
+[simU1 simU2]   = postinterp(fem,'u1','u2', forceField.p.');
 [simBFx simBFy] = postinterp(fem,'f1','f2',[simDataPx simDataPy].');
 
-[simDispU1 simDispU2]     = postinterp(fem,'u1','u2',[bfDisplayPx bfDisplayPy].');
-[simDispBFx simDispBFy]   = postinterp(fem,'f1','f2',[bfDisplayPx bfDisplayPy].');
+sDispField.p   = forceField.p;
+sDispField.v   = [simuU1;simuU2].';
+sDispField.f   = [simuBFx;simuBFy].';
+sDispField.fem = fem;
 
-for k = 1:numEdges
-   %[simBndFx{k} simBndFy{k}] = postinterp(fem,'g1','g2',edgeS{k},'edim',1,'dom',k);
-   simBndFx{k} = fnval(spTFx{k},edgeS{k});
-   simBndFy{k} = fnval(spTFy{k},edgeS{k});
+sDispField.bndfEdgNo = bndfEdgNo;
+if ~isempty(bndfEdgNo)
+   sDispField.bndF = forceField.bndF(bndfEdgNo);
 end
 
-save([simuDir filesep 'simField'], 'fem','bfDisplayPx','bfDisplayPy', ...
-   'simDispU1','simDispU2','simDispBFx','simDispBFy', ...
-   'edgeP','simBndFx','simBndFy','simU1','simU2', ...
-   'simDataPx','simDataPy','simBFx','simBFy');
-
+save([simuDir filesep 'sDispField.mat'],'sDispField');
 
 
 %%%% Some old code %%%%%%%%
