@@ -52,7 +52,7 @@ constants.interpolation = {'*cubic',1};
 constants.gaussPixOnly = true;
 constants.gradientOption = 1; % 1: filter, 2: don't filter
 constants.correctBleaching = false;
-constants.linearVariances = true; %whether or not to require a linear dependence of varXY on varZ from the detector
+constants.linearVariances = false; %whether or not to require a linear dependence of varXY on varZ from the detector
 
 % debug options
 % set defaults first
@@ -131,7 +131,12 @@ nTimepoints = length(idlist);
 
 % remove first all single-occurence tags, so that we're only left with good
 % ones. LG_deleteTag needs goodTimes, so we do a quick loop first
-goodTimes = catStruct(1,'idlist.linklist(1,1)');
+for t = nTimepoints:-1:1
+    if ~isempty(idlist(t).linklist)
+        goodIdx(t,1) = 1;
+    end
+end
+goodTimes = find(goodIdx);
 
 % since tags are good or bad over the entire movie, just check the first
 % good time
@@ -178,14 +183,15 @@ for t = goodTimes'
         [3,nTags])',[1,nTags,3]);
     qMatDiag = qMatDiag(1,:,[2,1,3]);
     inputQmatrixDiag(t,:,:) = qMatDiag;
+    % DONT USE SEARCHRADIUS ANYMORE
     % searchRadius: sqrt of Q * factor or from idlist.trackInit
-    searchRadius = sqrt(reshape(squeeze(qMatDiag)',[3,nTags])') *...
-        constants.trackerRadiusMultiplicator;
-    if ~isempty(idlist(t).trackInit)
-        searchRadius(idlist(t).trackInit(:,1),:) = ...
-            idlist(t).trackInit(:,2:end);
-    end
-    searchRadius4Source(t,:) = reshape(searchRadius',[1,3*nTags]);
+%     searchRadius = sqrt(reshape(squeeze(qMatDiag)',[3,nTags])') *...
+%         constants.trackerRadiusMultiplicator;
+%     if ~isempty(idlist(t).trackInit)
+%         searchRadius(idlist(t).trackInit(:,1),:) = ...
+%             idlist(t).trackInit(:,2:end);
+%     end
+%     searchRadius4Source(t,:) = reshape(searchRadius',[1,3*nTags]);
 
 
     % for estimated tags: use trackInit
@@ -936,6 +942,7 @@ Y = sum(collectedResiduals(:,3,:),3);
 %oneZero = (mat2cell(ones(collectIdx,nTags),collectIdx,ones(1,nTags)));
 A = [ones(size(Y)),collectedResiduals(:,2,1)];
 [xFit,sigmaX] = robustExponentialFit2(Y,A,1);
+set(gcf,'Name','total ssq of residuals vs. target frame');
 
 % estimatedResiduals are A*X
 estimatedResiduals = exp(A * [log(xFit(1));xFit(end)]);
@@ -945,9 +952,14 @@ estimatedResiduals = exp(A * [log(xFit(1));xFit(end)]);
 % (this will remove quite a number of s-s trackings. However, these are
 % probably not very good, anyway)
 highResidualIdx = find(sum(collectedResiduals(:,4,:),3) > estimatedResiduals * 1.1);
+
+% plot and save
 hold on, plot(A(:,end),estimatedResiduals * 1.1, 'r')
-hold on,plot(A(highResidualIdx,end),Y(highResidualIdx),'og')
+hold on,plot(A(highResidualIdx,end),Y(highResidualIdx),'og'),
+fh = gcf;
+saveas(fh,'ssqVsTarget.fig')
 highResidualIdx = highResidualIdx + fittingIdx0;
+
 
 % remove rows below (where we also remove other rows)
 
@@ -987,13 +999,15 @@ for iTag=1:nTags
     if constants.linearVariances
         [x,dummy,goodRows] = linearLeastMedianSquares([[varX;varY],ones(2*length(t),1)],[varZ;varZ]);
         aa=[[varX;varY],ones(2*length(t),1)];bb=[varZ;varZ];
-        figure,
-        subplot(2,1,1)
+        fh = figure('Name',sprintf('Variances %s',idlist(1).stats.labelcolor{iTag}));
+        ah=subplot(2,1,1);
         plot(aa(:,1),bb,'.')
         hold on, plot(aa(:,1),aa*x,'r')
         badIdx = setdiff(1:2*length(t),goodRows);
         hold on, plot(aa(badIdx,1),bb(badIdx),'or')
+        set(get(ah,'Title'),'String',sprintf('%f ',x))
 
+        saveas(fh,sprintf('DetectorVariance_tag%i.fig',iTag));
 
 
         % remove bad data
@@ -1001,7 +1015,10 @@ for iTag=1:nTags
 
         subplot(2,1,2)
         plot(repmat(t,2,1),[varX;varY],'.b',t,varZ,'.g')
+        % rejected: red circles
         hold on, plot(repmat(t(rejectIdx),3,1),[varX(rejectIdx);varY(rejectIdx);varZ(rejectIdx)],'or')
+        % cyan/magenta dots for source/target
+        plot(sourceList,zeros(size(sourceList)),'.c')
 
         varX(rejectIdx) = [];
         varY(rejectIdx) = [];
@@ -1027,17 +1044,17 @@ for iTag=1:nTags
     % write estimated errors. Divide by the estimated detection error at
     % t=1 for both detected and tracked tags. This sets weight 1 for the
     % detection in the first frame.
-    fittingMatrices(iTag).V(goodDetection{iTag},iTag,1) = ...
+    fittingMatrices(iTag).V(goodDetection{iTag},1,1) = ...
         xFit(1) * exp(xFit(end) * goodDetection{iTag});
-    fittingMatrices(iTag).V(goodDetection{iTag},iTag,2) = ...
+    fittingMatrices(iTag).V(goodDetection{iTag},1,2) = ...
         xFit(1) * exp(xFit(end) * goodDetection{iTag});
-    fittingMatrices(iTag).V(goodDetection{iTag},iTag,3) = ...
+    fittingMatrices(iTag).V(goodDetection{iTag},1,3) = ...
         xFit(2) * exp(xFit(end) * goodDetection{iTag});
 
-    fittingMatrices(iTag).V(:,iTag,1:2) = ...
-        fittingMatrices(iTag).V(:,iTag,1:2) ./ xFit(1) * exp(xFit(end));
-    fittingMatrices(iTag).V(:,iTag,3) = ...
-        fittingMatrices(iTag).V(:,iTag,3) ./ xFit(2) * exp(xFit(end));
+    fittingMatrices(iTag).V(:,1,1:2) = ...
+        fittingMatrices(iTag).V(:,1,1:2) ./ xFit(1) * exp(xFit(end));
+    fittingMatrices(iTag).V(:,1,3) = ...
+        fittingMatrices(iTag).V(:,1,3) ./ xFit(2) * exp(xFit(end));
 
 end
 
@@ -1079,6 +1096,18 @@ end
 outputCoords = zeros(nTimepoints,nTags,3);
 [outputQmatrixDiag,mse] = deal(zeros(nTimepoints,3,nTags));
 
+for iTag=1:nTags,
+    aa=fittingMatrices(iTag).A(goodRows{iTag},goodIdx{iTag},1);
+    if any(sum(abs(aa),1)==0) 
+        11
+        keyboard
+    end
+    if any(sum(abs(aa),2)==0),
+        22
+    keyboard
+    end
+end
+
 % loop through dimensions and fit
 for iTag = 1:nTags
     for dim=1:3
@@ -1088,12 +1117,45 @@ for iTag = 1:nTags
     end
 end
 
+fh=figure('Name',sprintf('MSE %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
+for dim=1:3,
+    for iTag=1:nTags,
+        ah=subplot(3,nTags,(dim-1)*nTags+iTag);
+        plot(mse(:,dim,iTag),'.'),
+        set(get(ah,'Title'),'String',sprintf('s0 %f',varianceEstimators{iTag}(floor(dim/3)+1)));
+    end,
+end
+saveas(fh,'mse.fig')
+
+fh=figure('Name',sprintf('Qout %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
+for dim=1:3,
+    for iTag=1:nTags,
+        subplot(3,nTags,(dim-1)*nTags+iTag);
+        plot(goodIdx{iTag},outputQmatrixDiag(goodIdx{iTag},dim,iTag).^2,'.'),
+        
+    end,
+end
+saveas(fh,'varOut.fig');
+
+fh=figure('Name',sprintf('V input %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
+for dim=1:3,
+    for iTag=1:nTags,subplot(3,nTags,(dim-1)*nTags+iTag),
+        plot(fittingMatrices(iTag).V(:,1,dim),'.')
+        hold on, plot(goodRows{iTag},fittingMatrices(iTag).V(goodRows{iTag},1,dim),'or'),
+    end,
+end
+saveas(fh,'varIn.fig');
+
 % !!! Adjust the variance matrix. For whatever reason, the input error
 % estimate is better than the output. In other words, we claim that the
 % sigma zero is better estimated by detector and tracker than by the
 % fitting, so we divide the output variance by sigma zero (mse).
-outputQmatrixDiag(goodIdx,:,:) = ...
-    outputQmatrixDiag(goodIdx,:,:).^2./mse(goodIdx,:,:);
+for iTag = 1:nTags
+outputQmatrixDiag(goodIdx{iTag},:,iTag) = ...
+    outputQmatrixDiag(goodIdx{iTag},:,iTag).^2; % removed division by mse 7/14
+end
+% figure('Name',sprintf('MSE %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
+% for dim=1:3,for iTag=1:nTags,subplot(3,nTags,(dim-1)*nTags+iTag),plot(outputQmatrixDiag(:,dim,iTag),'.'),end,end
 
 % figure,plot(outputQmatrixDiag);
 % hold on, plot(squeeze(inputQmatrixDiag),'.')
@@ -1138,8 +1200,15 @@ end
 
 idlisttrack = idlist;
 
+% merge goodIdx into a single list of indices with frames where all
+% tracking succeeded
+goodIdxAll = [1:nTimepoints]';
+for i=1:nTags
+    goodIdxAll = intersect(goodIdxAll,goodIdx{iTag});
+end
+
 for t = [goodTimes';NaN,goodTimes(1:end-1)']
-    if any(t(1)==goodIdx)
+    if any(t(1)==goodIdxAll)
 
         % write new coords
         newCoords = outputCoords(t(1),:,:);
