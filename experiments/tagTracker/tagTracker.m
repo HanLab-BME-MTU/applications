@@ -941,8 +941,8 @@ Y = sum(collectedResiduals(:,3,:),3);
 % construct A. Put ones wherever sigma corresponds to that tag
 %oneZero = (mat2cell(ones(collectIdx,nTags),collectIdx,ones(1,nTags)));
 A = [ones(size(Y)),collectedResiduals(:,2,1)];
-[xFit,sigmaX] = robustExponentialFit2(Y,A,1);
-set(gcf,'Name','total ssq of residuals vs. target frame');
+[xFit,sigmaX] = robustExponentialFit2(Y,A,constants.verbose > 0);
+
 
 % estimatedResiduals are A*X
 estimatedResiduals = exp(A * [log(xFit(1));xFit(end)]);
@@ -953,11 +953,14 @@ estimatedResiduals = exp(A * [log(xFit(1));xFit(end)]);
 % probably not very good, anyway)
 highResidualIdx = find(sum(collectedResiduals(:,4,:),3) > estimatedResiduals * 1.1);
 
+if constants.verbose > 0
 % plot and save
+set(gcf,'Name','total ssq of residuals vs. target frame');
 hold on, plot(A(:,end),estimatedResiduals * 1.1, 'r')
 hold on,plot(A(highResidualIdx,end),Y(highResidualIdx),'og'),
 fh = gcf;
 saveas(fh,'ssqVsTarget.fig')
+end
 highResidualIdx = highResidualIdx + fittingIdx0;
 
 
@@ -999,26 +1002,27 @@ for iTag=1:nTags
     if constants.linearVariances
         [x,dummy,goodRows] = linearLeastMedianSquares([[varX;varY],ones(2*length(t),1)],[varZ;varZ]);
         aa=[[varX;varY],ones(2*length(t),1)];bb=[varZ;varZ];
+        badIdx = setdiff(1:2*length(t),goodRows);
+        % remove bad data
+        rejectIdx=unique((mod(badIdx-1,length(t))+1));
+        
+        if constants.verbose > 0
         fh = figure('Name',sprintf('Variances %s',idlist(1).stats.labelcolor{iTag}));
         ah=subplot(2,1,1);
         plot(aa(:,1),bb,'.')
         hold on, plot(aa(:,1),aa*x,'r')
-        badIdx = setdiff(1:2*length(t),goodRows);
+        
         hold on, plot(aa(badIdx,1),bb(badIdx),'or')
         set(get(ah,'Title'),'String',sprintf('%f ',x))
-
         saveas(fh,sprintf('DetectorVariance_tag%i.fig',iTag));
-
-
-        % remove bad data
-        rejectIdx=unique((mod(badIdx-1,length(t))+1));
-
         subplot(2,1,2)
         plot(repmat(t,2,1),[varX;varY],'.b',t,varZ,'.g')
         % rejected: red circles
-        hold on, plot(repmat(t(rejectIdx),3,1),[varX(rejectIdx);varY(rejectIdx);varZ(rejectIdx)],'or')
+        hold on, plot(repmat(t(rejectIdx),3,1),...
+            [varX(rejectIdx);varY(rejectIdx);varZ(rejectIdx)],'or')
         % cyan/magenta dots for source/target
         plot(sourceList,zeros(size(sourceList)),'.c')
+        end
 
         varX(rejectIdx) = [];
         varY(rejectIdx) = [];
@@ -1096,17 +1100,6 @@ end
 outputCoords = zeros(nTimepoints,nTags,3);
 [outputQmatrixDiag,mse] = deal(zeros(nTimepoints,3,nTags));
 
-for iTag=1:nTags,
-    aa=fittingMatrices(iTag).A(goodRows{iTag},goodIdx{iTag},1);
-    if any(sum(abs(aa),1)==0) 
-        11
-        keyboard
-    end
-    if any(sum(abs(aa),2)==0),
-        22
-    keyboard
-    end
-end
 
 % loop through dimensions and fit
 for iTag = 1:nTags
@@ -1117,6 +1110,7 @@ for iTag = 1:nTags
     end
 end
 
+if constants.verbose > -1
 fh=figure('Name',sprintf('MSE %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
 for dim=1:3,
     for iTag=1:nTags,
@@ -1126,7 +1120,9 @@ for dim=1:3,
     end,
 end
 saveas(fh,'mse.fig')
+end
 
+if constants.verbose > 0
 fh=figure('Name',sprintf('Qout %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
 for dim=1:3,
     for iTag=1:nTags,
@@ -1145,7 +1141,7 @@ for dim=1:3,
     end,
 end
 saveas(fh,'varIn.fig');
-
+end
 % !!! Adjust the variance matrix. For whatever reason, the input error
 % estimate is better than the output. In other words, we claim that the
 % sigma zero is better estimated by detector and tracker than by the
