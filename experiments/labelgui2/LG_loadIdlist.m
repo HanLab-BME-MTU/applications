@@ -141,12 +141,8 @@ if strcmp(get(naviHandles.LG_navi_menuShowTestRatios,'checked'),'on');
     LG_showTestRatios_callback;
 end
 if strcmp(get(naviHandles.LG_navi_menuShowIntensities,'checked'),'on');
-    if ~replace      
     set(naviHandles.LG_navi_menuShowIntensities,'checked','off');
-    LG_showIntensities_callback;
-    else
-        LG_showIntensities_callback(1);
-    end
+    LG_showIntensities_callback;   
 end
 if strcmp(get(naviHandles.LG_navi_menuShowDistances,'checked'),'on');
     set(naviHandles.LG_navi_menuShowDistances,'checked','off');
