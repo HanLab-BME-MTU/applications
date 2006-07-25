@@ -16,7 +16,7 @@ function groupedData = groupArmaDescriptors(data,options)
 %                 clustering according to white noise variance,
 %                 respectively.
 %                 ###_cutoff - if negative integer: fixed number of groups
-%                              into which to split data. 
+%                              into which to split data.
 %                              if positive real number (0...1): p-value
 %                              indicating significant differences
 %                 ###_mode -   two-element vector describing how individual
@@ -51,7 +51,7 @@ function groupedData = groupArmaDescriptors(data,options)
 %                   .figureH : figure handle
 %                   .axesH   : axes handle
 %                   .lineH   : handles to the lines of the dendrogram
-%                   
+%
 %
 % REMARKS
 %
@@ -71,13 +71,13 @@ if nargout > 0
 end
 
 % default cutoffs. Negative integers are number of groups, postitive reals
-% are probability cutoffs. 
+% are probability cutoffs.
 % mode describes whether the individual data sets should be combined, and
-% to what level of difference. 
+% to what level of difference.
 % [0,0] - no recalculation of ARMA descriptors
 % [1,p] - recalculation until a threshold p is reached
 % [2,0] - recalculation for all groups
-def_options.wnv1_cutoff = -2;
+def_options.wnv1_cutoff = -1;
 def_options.wnv1_mode = [0,1e-12];
 def_options.arma_cutoff = 5e-5;
 def_options.arma_mode = [0, 5e-5];
@@ -88,21 +88,51 @@ def_options.plot = 1; % plot results
 % tbd: test input, check options, set defaults
 
 if nargin == 0 || isempty(data)
-    % load data. have user select list of strains
-    [strainFile, dataPath] = uigetfile('strains_*.mat','Load strain list!');
-    if any(strainFile == 0)
+    % load data. have user select list of strains. Allow selection of
+    % multiple files in the same directory (with while-loop like in
+    % trajectoryAnalysis, it could be extended to span multiple
+    % directories, or maybe Matlab imporves uigetfile)
+    [strainFile, dataPath] = uigetfile('strains_*.mat','Load strain list(s)!','MultiSelect','on');
+    if ~iscell(strainFile) && any(strainFile == 0)
         disp('--groupArmaCoefficients aborted')
         return
     end
-    
+
+    % make strainFile into a cell, so that we can use the code for
+    % multiSelections with one selection.
+    if ~iscell(strainFile)
+        strainFile = {strainFile};
+    end
+
     % read strainInfo so that user may select the files to be analyzed
     % directly without having to wait for the data to be read from the
     % server
-    strainInfo = load(fullfile(dataPath,strainFile));
-    
-     % strainInfo is a structure in itself
+
+
+    % load data in loop. This is, unfortunately, sensitive to changes in the
+    % list and ordering of fields. One possible solution would be to
+    % define the key list of fields above, and to only read those
+
+    % load first strainInfo, then add the rest to the list, so that we
+    % automatically get the proper list of fieldnames
+
+    strainInfo = load(fullfile(dataPath,strainFile{1}));
+    % strainInfo is a structure in itself
     fn = fieldnames(strainInfo);
     strainInfo = strainInfo.(fn{1});
+
+    % loop for all the other files. If one file, the loop isn't executed
+    for iFile = 2:length(strainFile)
+        strainInfoTmp = load(fullfile(dataPath,strainFile{iFile}));
+        fnTmp = fieldnames(strainInfoTmp);
+        strainInfoTmp = strainInfoTmp.(fnTmp{1});
+        % reorder fields, so that we're at least insensitive to that
+        strainInfoTmp = orderfields(strainInfoTmp,strainInfo);
+        strainInfo = [strainInfo(:);strainInfoTmp(:)];
+    end
+
+
+
 
 
     % let the user select the strains
@@ -120,20 +150,39 @@ if nargin == 0 || isempty(data)
     % read armaData, lengthData. StrainInfo is a structure with
     % the dataFile-names, while armaData and lengthData are collections of
     % files that are labeled according to the dataFile-names.
-    dataSuffix = regexp(strainFile,'strains_([\w]+).mat','tokens');
-    dataSuffix = char(dataSuffix{1});
-    % armaData is a collection of many files, while strainInfo is already
-    % the correct structure that contains the optimal model for each
-    armaData = load(fullfile(dataPath,sprintf('resFitVelAndLen_%s',dataSuffix)));
 
-    % try load length file
-    try
-        lengthData = load(fullfile(dataPath,sprintf('lengthSeries_%s',dataSuffix)));
-    catch
-        lengthData = [];
+    % loop through potential list of files
+    armaData = struct;
+    lengthData = struct;
+
+    for iFile = 1:length(strainFile)
+
+        dataSuffix = regexp(strainFile{iFile},'strains_([\w]+).mat','tokens');
+        dataSuffix = char(dataSuffix{1});
+        % armaData is a collection of many files, while strainInfo is already
+        % the correct structure that contains the optimal model for each
+        armaDataTmp = load(fullfile(dataPath,sprintf('resFitVelAndLen_%s',dataSuffix)));
+
+        % this would be really annoying without a loop
+        fn = fieldnames(armaDataTmp);
+        for i=1:length(fn)
+            armaData.(fn{i}) = armaDataTmp.(fn{i});
+        end
+
+        % try load length file
+        try
+            lengthDataTmp = load(fullfile(dataPath,sprintf('lengthSeries_%s',dataSuffix)));
+        catch
+            lengthDataTmp = struct;
+        end
+        fn = fieldnames(lengthDataTmp);
+        for i=1:length(fn)
+            lengthData.(fn{i}) = lengthDataTmp.(fn{i});
+        end
+
+
     end
 
-   
 
 
     % get number of data
@@ -168,7 +217,7 @@ if nargin == 0 || isempty(data)
     % read strainInfo into data
     [data.name] = deal(strainInfo(selectionIdx(goodIdx)).name);
     [data.orderLen] = deal(strainInfo(selectionIdx(goodIdx)).orderLen);
-    
+
     % read length into data (if there is any). We can't do this above,
     % because filling up the structure requires the fields to be the same
     if ~isempty(lengthData)
@@ -180,7 +229,7 @@ if nargin == 0 || isempty(data)
         end
     end
 
-end
+end % load data
 
 if nargin < 2 || isempty(options)
     options = struct;
