@@ -17,11 +17,57 @@ if isempty(simuDir) || ~isdir(simuDir)
    return;
 end
 
-if exist([simuDir filesep 'sDispField.mat'],'file') == 2
+if ~isdir([simuDir filesep 'rawDispField'])
+   success = mkdir(simuDir,'rawDispField');
+   if ~success
+      error('Trouble making directory.');
+   end
+end
+
+if ~isdir([simuDir filesep 'forceField'])
+   success = mkdir(simuDir,'forceField');
+   if ~success
+      error('Trouble making directory.');
+   end
+end
+
+numNoiseLevels = length(simRelNoiseLevel);
+simIndexForm  = sprintf('%%.%dd',max(length(num2str(numNoiseLevels)),2));
+
+sDispFieldDir = [simuDir filesep 'rawDispField'];
+sForceFieldDir = [simuDir filesep 'forceField'];
+
+if exist([sDispFieldDir filesep 'rawDispField.mat'],'file') == 2
    answer = input(['A previously simulated flow field is found.\n' ...
-      'Do you want to overwrite it? (y/n):'],'s');
+      'Do you want to redo the simulation? (y/n):'],'s');
    if strcmp(answer,'n')
+      s = load([sDispFieldDir filesep 'rawDispField.mat']); 
+      rawDispField = s.rawDispField;
+      addSimNoise(rawDispField,sDispFieldDir,simAbsNoiseLevel,simRelNoiseLevel);
       return;
+   end
+end
+
+if exist('rawDispField','var')
+   clear rawDispField;
+end
+
+if exist('ROI','var')
+   clear ROI;
+end
+
+ROI.bndfEdgNo = [];
+ROI.mcfXi  = [];
+ROI.mcfYi  = [];
+ROI.adcXi  = [];
+ROI.adcYi  = [];
+
+if exist([simuDir filesep 'ROI.mat'],'file') == 2
+   answer = input(['A previously drawn ROI is found.\n' ...
+      'Do you want to load it? (y/n):'],'s');
+   if strcmp(answer,'y')
+      s = load([simuDir filesep 'ROI.mat']); 
+      ROI = s.ROI;
    end
 end
 
@@ -37,6 +83,7 @@ end
 s = load(femModelFile);
 femModel = s.femModel;
 fem      = femModel.fem;
+options  = femModel.options;
 fs       = femModel.fs;
 numEdges = femModel.numEdges;
 
@@ -64,12 +111,16 @@ for k = 1:numEdges
 
    %Specify the type of boundary conditions.
    BCTypes{k} = 'Dirichlet';
-
-   %fn.BndDispx{k} = 'bndDisp';
-   %fn.BndDispy{k} = 'bndDisp';
-   %fp.BndDispx{k} = {{'s'} {edgePPx{testTimeStep,k}}};
-   %fp.BndDispy{k} = {{'s'} {edgePPy{testTimeStep,k}}};
 end
+
+%Load the displacement field used to reconstruct the force we are going to modify for simulation.
+% The flow field of the 'rawDispField' structure, v, will be replaced by the simulated flow. And,
+% the smoothed flow field, sv will be removed. Some new fields will be added to the structure
+% especially the simulation force field, f.
+rawDispFieldFileName = ['rawDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+rawDispFieldFile     = [rawDispFieldDir filesep rawDispFieldFileName];
+s = load(rawDispFieldFile);
+rawDispField = s.rawDispField;
 
 %Load the identified body force and boundary force.
 forceFieldFile = [forceFieldDir filesep 'forceField' ...
@@ -88,48 +139,74 @@ if strcmp(forceToSimu,'mcfOnly') == 1 || ...
    strcmp(forceToSimu,'mcfAndBnd') == 1 || ...
    strcmp(forceToSimu,'mcfAndAdf') == 1 || ...
    strcmp(forceToSimu,'all') == 1
+
+   cellImg = imread(imgFileList{imgChannel}{imgIndex});
+   figure; imshow(cellImg,[]); hold on;
+   quiver(forceField.p(:,1),forceField.p(:,2),forceField.f(:,1)*bfScale, ...
+      forceField.f(:,2)*bfScale,0,'r');
+
+   if ~isempty(ROI.mcfXi)
+      for kk = 1:length(ROI.mcfXi)
+         plot(ROI.mcfXi{kk},ROI.mcfYi{kk},'w-.');
+      end
+   end
+
    %Draw contraction region.
-   answer = input('Do you want to draw a region of contraction? (y/n):','s');
+   answer = input('Do you want to redraw regions of contraction? (y/n):','s');
    if strcmp(answer,'y')
-      [BW,mcfROIXi,mcfROIYi] = roipoly;
-   else
-      mcfROIXi = [];
-      mcfROIYi = [];
+      ROI.mcfXi = [];
+      ROI.mcfYi = [];
+      numMCFROIs = input('How many regions do you want to draw?: ');
+      if numMCFROIs> 0
+         for kk = 1:numMCFROIs
+            [BW,mcfXi,mcfYi] = roipoly;
+            ROI.mcfXi = [ROI.mcfXi {mcfXi}];
+            ROI.mcfYi = [ROI.mcfYi {mcfYi}];
+            plot(mcfXi,mcfYi,'g-.');
+         end
+      end
+      save([simuDir filesep 'ROI.mat'],'ROI');
    end
 
    %Separate myosin contraction.
    mcfPx = forceField.p(:,1);
    mcfPy = forceField.p(:,2);
-   mcfFx = forceField.mcf(:,1);
-   mcfFy = forceField.mcf(:,2);
+   mcfFx = simMCFMagFactor*forceField.mcf(:,1);
+   mcfFy = simMCFMagFactor*forceField.mcf(:,2);
    nanInd = find(isnan(mcfFx) | isnan(mcfFy));
-   mcfFx(nanInd) = 0;
-   mcfFy(nanInd) = 0;
+   mcfPx(nanInd) = [];
+   mcfPy(nanInd) = [];
+   mcfFx(nanInd) = [];
+   mcfFy(nanInd) = [];
 
    %Calculate the DOF of the myosin dragging force in the fem stucture, 'fs.fem'.
    %coefMyo  = calFemDOFCoef(fs,[bfDisplayPx bfDisplayPy].',[mcfFx;mcfFy],1e-6);
-   coefMyo  = calFemDOFCoef(fs.fem,[mcfPx mcfPy].',[mcfFx;mcfFy],1e-6);
+   coefMyo  = calFemDOFCoef(fs.fem,[mcfPx mcfPy].',[mcfFx mcfFy].',1e-6);
    coefMyox = coefMyo(1,:).';
    coefMyoy = coefMyo(2,:).';
 
    fn.MyoDragFx = 'femBodyF';
    fn.MyoDragFy = 'femBodyF';
-   fp.MyoDragFx = { {'x' 'y'} {fs.fem coefMyox mcfROIXi mcfROIYi} };
-   fp.MyoDragFy = { {'x' 'y'} {fs.fem coefMyoy mcfROIXi mcfROIYi} };
+   fp.MyoDragFx = { {'x' 'y'} {fs.fem coefMyox ROI.mcfXi ROI.mcfYi} };
+   fp.MyoDragFy = { {'x' 'y'} {fs.fem coefMyoy ROI.mcfXi ROI.mcfYi} };
 
    fn.BodyFx = 0;
    fn.BodyFy = 0;
 
    %Modify the body force.
-   %fp.BodyFx = {{'x' 'y'} {fs coefBFx(:,testTimeStep) mcfROIXi mcfROIYi}};
-   %fp.BodyFy = {{'x' 'y'} {fs coefBFy(:,testTimeStep) mcfROIXi mcfROIYi}};
+   %fp.BodyFx = {{'x' 'y'} {fs coefBFx(:,testTimeStep) mcfXi mcfYi}};
+   %fp.BodyFy = {{'x' 'y'} {fs coefBFy(:,testTimeStep) mcfXi mcfYi}};
 end
 
-bndfEdgNo = [];
 if strcmp(forceToSimu,'bndOnly') == 1 || ...
    strcmp(forceToSimu,'adfAndBnd') == 1 || ...
    strcmp(forceToSimu,'mcfAndBnd') == 1 || ...
    strcmp(forceToSimu,'all') == 1
+
+   if ~isempty(ROI.bndfEdgNo)
+      fprintf(1,'Previously chosen edges: %d.\n',ROI.bndfEdgNo);
+   end
+
    bndfEdgNo = input('Please choose the edges that you want to apply force to:\n');
    fprintf(1,['Specify forces:\n' ...
       '   1. Free edge.\n' '   2. Identified boundary force.\n']);
@@ -148,6 +225,10 @@ if strcmp(forceToSimu,'bndOnly') == 1 || ...
          fp.BndTracFy{k} = {{'s'} {bndF.spy}};
       end
    end
+
+   ROI.bndfEdgNo = bndfEdgNo;
+   save([simuDir filesep 'ROI.mat'],'ROI');
+
    options = elOptionsSet(options,'BCType',BCTypes);
 end
 
@@ -157,28 +238,50 @@ if strcmp(forceToSimu,'adfOnly') == 1 || ...
    strcmp(forceToSimu,'all') == 1
 
    %Load adhesion coefficients map.
-   indexStr = sprintf(indexForm,imgIndexOfDTimePts(curDTimePt));
+   indexStr = sprintf(imgIndexForm,imgIndex);
    adcMapFile = [reslDir filesep 'adcMap' filesep 'adcMap' indexStr '.mat'];
    load(adcMapFile);
 
-   %Draw contraction region.
-   answer = input('Do you want to draw a region of adhesion? (y/n):','s');
+   if ~isempty(ROI.adcXi)
+      for kk = 1:length(ROI.adcXi)
+         plot(ROI.adcXi{kk},ROI.adcYi{kk},'w-.');
+      end
+   end
+
+   %Draw adhesion region.
+   answer = input('Do you want to redraw regions of adhesion? (y/n):','s');
    if strcmp(answer,'y')
-      [BW,adcROIXi,adcROIYi] = roipoly;
-   else
-      adcROIXi = [];
-      adcROIYi = [];
+      ROI.adcXi = [];
+      ROI.adcYi = [];
+      numADCROIs = input('How many regions do you want to draw?: ');
+      if numADCROIs> 0
+         for kk = 1:numADCROIs
+            [BW,adcXi,adcYi] = roipoly;
+            ROI.adcXi = [ROI.adcXi {adcXi}];
+            ROI.adcYi = [ROI.adcYi {adcYi}];
+            plot(adcXi,adcYi,'g-.');
+         end
+      end
+      save([simuDir filesep 'ROI.mat'],'ROI');
    end
 
    imgHeight = size(adcMap,1);
    imgWidth  = size(adcMap,2);
    [pixX pixY] = meshgrid([1:imgWidth],[1:imgHeight]);
-   in = inpolygon(pixX(:),pixY(:),adcROIXi,adcROIYi);
-   iIn = find(in==1);
-   adcMap(iIn) = 0;
+   if ~isempty(ROI.adcXi)
+      iOut = 1:length(pixX(:));
+      for kk = 1:length(ROI.adcXi)
+         in  = inpolygon(pixX(:),pixY(:),ROI.adcXi{kk},ROI.adcYi{kk});
+         iIn = find(in==1);
+         iOut(iIn) = 0;
+      end
+      iOut(find(iOut==0)) = [];
+      adcMap(iOut) = 0;
+   end
    
    nanInd = find(isnan(adcMap));
    adcMap(nanInd) = 0;
+   adcMap = adcMap*simADCMagFactor;
    maxADC = max(adcMap(:));
    fn.VDragCoef = 'elImgParFun';
    fp.VDragCoef = { {'x' 'y'} {adcMap,0,maxADC,0,'Gaussian',2} };
@@ -189,25 +292,220 @@ fem = elasticSolve(fem,[]);
 
 %Load the data points used to identify the force. We shall compute the 
 % simulated displacements there.
-[simU1 simU2]   = postinterp(fem,'u1','u2', forceField.p.');
-[simBFx simBFy] = postinterp(fem,'f1','f2',[simDataPx simDataPy].');
+%First, get data points that are inside the mesh.
+[is,pe] = postinterp(fem,rawDispField.p.');
+rawDispField.p(pe,:) = [];
 
-sDispField.p   = forceField.p;
-sDispField.v   = [simuU1;simuU2].';
-sDispField.f   = [simuBFx;simuBFy].';
-sDispField.fem = fem;
+[simU1 simU2]     = postinterp(fem,'u1','u2', rawDispField.p.');
+[simMCFx simMCFy] = postinterp(fem,'f1','f2', rawDispField.p.');
 
-sDispField.bndfEdgNo = bndfEdgNo;
-if ~isempty(bndfEdgNo)
-   sDispField.bndF = forceField.bndF(bndfEdgNo);
+%Calculate adhesion resistance force.
+VDragCoef = postinterp(fem,'VDragCoef',rawDispField.p.');
+simADFx   = -VDragCoef.*simU1/fn.TimeStep;
+simADFy   = -VDragCoef.*simU2/fn.TimeStep;
+
+simU   = [simU1;simU2].';
+simSpd = sqrt(sum(simU.^2,2));
+medSpd = median(simSpd);
+
+rawDispField.v      = simU;
+rawDispField.medSpd = medSpd;
+rawDispField.mcf    = [simMCFx;simMCFy].';
+rawDispField.adf    = [simADFx;simADFy].';
+rawDispField.f      = rawDispField.mcf + rawDispField.adf;
+rawDispField.fem    = fem;
+
+%Calculate edge displacement.
+numEdges = femModel.numEdges;
+edge     = femModel.edge;
+
+for kk = 1:numEdges
+   %[simBndU1 simBndU2] = postinterp(fem,'u1','u2',bndS,'edim',1,'dom',kk);
+   [simBndU1 simBndU2] = postinterp(fem,'u1','u2',forceField.bndF(kk).p,'Ext',1);
+   numInd = find(~isnan(simBndU1) & ~isnan(simBndU2));
+   edgD(kk).U1 = simBndU1(numInd).';
+   edgD(kk).U2 = simBndU2(numInd).';
+   edgD(kk).p  = forceField.bndF(kk).p(:,numInd);
+
+   %Create spline interpolation of the edge displacement using arclength
+   % parameter stored in 'msh.e(3:4,:)'.
+   edgD(kk).s    = forceField.bndF(kk).s(numInd);
+   edgD(kk).sKnt = augknt(edgD(kk).s,2);
+   edgD(kk).ppU1 = spapi(edgD(kk).sKnt,edgD(kk).s,edgD(kk).U1.');
+   edgD(kk).ppU2 = spapi(edgD(kk).sKnt,edgD(kk).s,edgD(kk).U2.');
+end
+rawDispField.edgD = edgD;
+
+if ~isempty(ROI.bndfEdgNo)
+   rawDispField.bndF = forceField.bndF(bndfEdgNo);
+else
+   rawDispField.bndF = [];
 end
 
-save([simuDir filesep 'sDispField.mat'],'sDispField');
+%Save the flow field without noise.
+rawDispField.absNoiseLevel = 0;
+rawDispField.relNoiseLevel = 0;
+sDispFieldFile = [sDispFieldDir filesep 'rawDispField.mat'];
+save(sDispFieldFile,'rawDispField');
 
+addSimNoise(rawDispField,sDispFieldDir,simAbsNoiseLevel,simRelNoiseLevel);
+
+%Calculate forces on grid points so that color map of the true force can be produced.
+iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
+s = load(iDispFieldFile);
+iDispField = s.iDispField;
+
+gridx = iDispField.gridx;
+gridy = iDispField.gridy;
+gridX = iDispField.gridX;
+gridY = iDispField.gridY;
+
+[is,pe]    = postinterp(fem,[gridX gridY].');
+gridIn     = 1:length(gridX);
+gridIn(pe) = [];
+gridXin    = gridX(gridIn);
+gridYin    = gridY(gridIn);
+
+gridMCF = NaN*ones(length(gridy)*length(gridx),1);
+gridADF = NaN*ones(length(gridy)*length(gridx),1);
+gridSpd = NaN*ones(length(gridy)*length(gridx),1);
+
+[gridU1,gridU2]     = postinterp(fem,'u1','u2',[gridXin gridYin].');
+[gridMCFx,gridMCFy] = postinterp(fem,'f1','f2',[gridXin gridYin].');
+
+VDragCoef = postinterp(fem,'VDragCoef',[gridXin gridYin].');
+gridADFx = -VDragCoef.*gridU1/fn.TimeStep;
+gridADFy = -VDragCoef.*gridU2/fn.TimeStep;
+
+gridMCF(gridIn) = sqrt(gridMCFx.^2 + gridMCFy.^2);
+gridADF(gridIn) = sqrt(gridADFx.^2 + gridADFy.^2);
+gridSpd(gridIn) = sqrt(gridU1.^2 + gridU2.^2);
+
+gridMCF = reshape(gridMCF,length(gridy),length(gridx));
+gridADF = reshape(gridADF,length(gridy),length(gridx));
+gridSpd = reshape(gridSpd,length(gridy),length(gridx));
+gridBDF = gridMCF + gridADF;
+
+%Get the mask of cell from 'edgeDir'. It will be used in creating data map.
+cellMask = [];
+if isdir(edgeDir)
+   maskDir = [edgeDir filesep 'cell_mask'];
+   if isdir(maskDir)
+      [maskFileList maskIndex] = getNamedFiles(maskDir,'mask_');
+
+      thisMaskIndex = find(maskIndex==imgIndex);
+      if ~isempty(thisMaskIndex)
+         cellMaskFile = maskFileList{thisMaskIndex(1)};
+         cellMask = imread([maskDir filesep cellMaskFile]);
+      end
+   end
+end
+
+if isempty(cellMask)
+   bdfMap = imDataMap(size(cellImg),{gridy,gridx},gridBDF,'bnd',[bfDomPGx bfDomPGy]);
+else
+   bdfMap = imDataMap(size(cellImg),{gridy,gridx},gridBDF,'mask',cellMask);
+end
+
+if isempty(cellMask)
+   mcfMap  = imDataMap(size(cellImg),{gridy,gridx},gridMCF,'bnd',[bfDomPGx bfDomPGy]);
+else
+   mcfMap  = imDataMap(size(cellImg),{gridy,gridx},gridMCF,'mask',cellMask);
+end
+
+if isempty(cellMask)
+   adfMap  = imDataMap(size(cellImg),{gridy,gridx},gridADF,'bnd',[bfDomPGx bfDomPGy]);
+else
+   adfMap  = imDataMap(size(cellImg),{gridy,gridx},gridADF,'mask',cellMask);
+end
+
+if isempty(cellMask)
+   spdMap  = imDataMap(size(cellImg),{gridy,gridx},gridSpd,'bnd',[bfDomPGx bfDomPGy]);
+else
+   spdMap  = imDataMap(size(cellImg),{gridy,gridx},gridSpd,'mask',cellMask);
+end
+
+bdfMap(find(bdfMap<0)) = 0;
+mcfMap(find(mcfMap<0)) = 0;
+adfMap(find(adfMap<0)) = 0;
+spdMap(find(spdMap<0)) = 0;
+
+mixfMap = NaN*ones(size(adfMap));
+
+%Save the data map of true forces.
+indexStr = sprintf(simIndexForm,[]);
+bdfMapFile  = [simuDir filesep 'bdfMap' filesep 'bdfMap' indexStr '.mat'];
+mcfMapFile  = [simuDir filesep 'mcfMap' filesep 'mcfMap' indexStr '.mat'];
+adfMapFile  = [simuDir filesep 'adfMap' filesep 'adfMap' indexStr '.mat'];
+spdMapFile  = [simuDir filesep 'spdMap' filesep 'spdMap' indexStr '.mat'];
+mixfMapFile = [simuDir filesep 'mixfMap' filesep 'mixfMap' indexStr '.mat'];
+
+if ~exist('bdfMap','dir')
+   [success msg msgID] = mkdir(simuDir,'bdfMap');
+   if ~success
+      error('Trouble making directory ''bdfMap''.');
+   end
+end
+if ~exist('mcfMap','dir')
+   [success msg msgID] = mkdir(simuDir,'mcfMap');
+   if ~success
+      error('Trouble making directory ''mcfMap''.');
+   end
+end
+if ~exist('adfMap','dir')
+   [success msg msgID] = mkdir(simuDir,'adfMap');
+   if ~success
+      error('Trouble making directory ''adfMap''.');
+   end
+end
+if ~exist('spdMap','dir')
+   [success msg msgID] = mkdir(simuDir,'spdMap');
+   if ~success
+      error('Trouble making directory ''spdMap''.');
+   end
+end
+if ~exist('mixfMap','dir')
+   [success msg msgID] = mkdir(simuDir,'mixfMap');
+   if ~success
+      error('Trouble making directory ''mixfMap''.');
+   end
+end
+
+save(bdfMapFile,'bdfMap');
+save(mcfMapFile,'mcfMap');
+save(adfMapFile,'adfMap');
+save(spdMapFile,'spdMap');
+save(mixfMapFile,'mixfMap');
+
+sForceField.p       = forceField.p;
+sForceField.f       = rawDispField.f;
+sForceField.gridIn  = forceField.gridIn;
+sForceField.mcf     = rawDispField.mcf;
+sForceField.adf     = rawDispField.adf;
+sForceField.gridMCF = gridMCF;
+sForceField.gridBDF = gridBDF;
+sForceField.gridADF = gridADF;
+sForceField.gridSpd = gridSpd;
+
+forceField = sForceField;
+sForceFieldFile = [sForceFieldDir filesep 'forceField.mat'];
+save(sForceFieldFile,'forceField');
+
+sDispField.p  = iDispField.p;
+sDispField.rv = rawDispField.v;
+sDispField.gridx = iDispField.gridx;
+sDispField.gridy = iDispField.gridy;
+sDispField.gridX = iDispField.gridX;
+sDispField.gridY = iDispField.gridY;
+
+iDispField = sDispField;
+sDispFieldFile = [simuDir filesep 'iDispField' filesep 'iDispField.mat'];
+save(sDispFieldFile,'iDispField');
 
 %%%% Some old code %%%%%%%%
-%if strcmp(forceToSimu,'adfOnly') == 1 || ...
-%   strcmp(forceToSimu,'adfAndBnd') == 1 || ...
+   %if strcmp(forceToSimu,'adfOnly') == 1 || ...
+   %   strcmp(forceToSimu,'adfAndBnd') == 1 || ...
 %   strcmp(forceToSimu,'mcfAndAdf') == 1 || ...
 %   strcmp(forceToSimu,'all') == 1
 %   %Get the image of the adhesion intensity map that corresponds to the

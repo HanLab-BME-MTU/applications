@@ -262,6 +262,7 @@ if strcmp(bfFwdOpComputed,'none') == 1
 
       femModel.fem      = fem;
       femModel.fs       = fs;
+      femModel.options  = options;
       femModel.fn       = fn;
       femModel.fp       = fp;
       femModel.curvL    = curvL;
@@ -344,93 +345,43 @@ for ii = 1:length(selTimeSteps)
    s = load(iDispFieldFile);
    iDispField = s.iDispField;
 
-   %Points where the forward computed displacements and raw displacements are
-   %compared for optimal fit can be either the raw data points or the
-   % interpolated grid points or both.
-   %dataPx = iDataPx;
-   %dataPy = iDataPy;
-   %dataU1 = cell(numDTimePts,1);
-   %dataU2 = cell(numDTimePts,1);
-   %if strcmp(forceToIdentify,'tf') == 1
-   %   load([reslDir filesep  'dispId']);
-   %   dataU1 = dataUC1;
-   %   dataU2 = dataUC2;
-   %elseif strcmp(dataToUse,'interp') == 1
-      %dataU1 = iDataU1;
-      %dataU2 = iDataU2;
-   %elseif strcmp(dataToUse,'smooth') == 1
-      %dataU1 = sDataU1;
-      %dataU2 = sDataU2;
-   %elseif strcmp(dataToUse,'simul') == 1
-   %   load([reslDir filesep  'simField']);
-   %   dataPx{:} = simDataPx;
-   %   dataPy{:} = simDataPy;
-
-      %simulU1 = simulU1.*(1+noiseA*randn(size(simulU1)));
-      %simulU2 = simulU2.*(1+noiseA*randn(size(simulU2)));
-   %   numRealization = 50;
-   %   nDataU1 = zeros(length(simulU1),numRealization);
-   %   nDataU2 = zeros(length(simulU2),numRealization);
-
-   %   dataU1{:} = (zeros(size(simulU1))).';
-   %   dataU2{:} = (zeros(size(simulU2))).';
-
-   %   simulUL = sqrt(simulU1.^2+simulU2.^2);
-   %   for k = 1:numRealization
-   %      nDataU1(:,k) = (simulU1+noiseA*simulUL.*randn(size(simulU1))).';
-   %      nDataU2(:,k) = (simulU2+noiseA*simulUL.*randn(size(simulU2))).';
-   %      dataU1{:} = dataU1{:}+nDataU1(:,k); 
-   %      dataU2{:} = dataU2{:}+nDataU2(:,k); 
-   %   end
-   %   dataU1{:} = dataU1{:}/numRealization;
-   %   dataU2{:} = dataU2{:}/numRealization;
-   %else
-   %   error('Unknown value for ''dataToUse''.');
-   %end
-
-   %The data points must also be inside the meshed recovery region.
-   %numDP = zeros(numDTimePts,1);
-   %[is,pe] = postinterp(fem,[dataPx{jj} dataPy{jj}].');
    [is,pe] = postinterp(fem,iDispField.p.');
    iDispField.iOutMesh    = pe; % 'pe': index of points outside 'msh'.
    iDispField.iInMesh     = 1:size(iDispField.p,1);
    iDispField.iInMesh(pe) = [];
    iDispField.numDP       = length(iDispField.iInMesh);
 
-   %dataPx{jj}(pe) = []; % 'pe': index of points outside 'msh'.
-   %dataPy{jj}(pe) = [];
-   %dataU1{jj}(pe) = [];
-   %dataU2{jj}(pe) = [];
-
-   %numDP(jj) = length(dataPx{jj});
-
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %Calculate the displacements of the boundary edges given by 'msh'. See
    % 'help meshinit' for information about the MESH structure in FEMLAB.
-   edgCorLen = iDispField.edgCorLen;
-   for k = 1:numEdges
-      rawDispV = [rawDispField.p(:,2:-1:1) rawDispField.p(:,2:-1:1)+rawDispField.v(:,2:-1:1)];
-      edgD(k).dispV  = vectorFieldSparseInterp(rawDispV, ...
-         edge(k).bndP(2:-1:1,:).',2*edgCorLen,edgCorLen,[]);
-      %edgeU{k}  = vectorFieldInterp(rawDispV{jj}, ...
-      %   edgeP{k}(2:-1:1,:).',edgCorLen,[]);
-      edgD(k).U1 = edgD(k).dispV(:,4) - edgD(k).dispV(:,2);
-      edgD(k).U2 = edgD(k).dispV(:,3) - edgD(k).dispV(:,1);
+   if strcmp(trackMethod,'simu')
+      edgD = rawDispField.edgD;
+   else
+      edgCorLen = iDispField.edgCorLen;
+      for k = 1:numEdges
+         rawDispV = [rawDispField.p(:,2:-1:1) rawDispField.p(:,2:-1:1)+rawDispField.v(:,2:-1:1)];
+         edgD(k).dispV  = vectorFieldSparseInterp(rawDispV, ...
+            edge(k).bndP(2:-1:1,:).',2*edgCorLen,edgCorLen,[]);
+         %edgeU{k}  = vectorFieldInterp(rawDispV{jj}, ...
+         %   edgeP{k}(2:-1:1,:).',edgCorLen,[]);
+         edgD(k).U1 = edgD(k).dispV(:,4) - edgD(k).dispV(:,2);
+         edgD(k).U2 = edgD(k).dispV(:,3) - edgD(k).dispV(:,1);
 
-      %For debugging:
-      %edgeU1{jj,k} = edgeU1{jj,k}/2; 
-      %edgeU2{jj,k} = edgeU2{jj,k}/2;
+         %For debugging:
+         %edgeU1{jj,k} = edgeU1{jj,k}/2; 
+         %edgeU2{jj,k} = edgeU2{jj,k}/2;
 
-      %Create spline interpolation of the edge displacement using arclength
-      % parameter stored in 'msh.e(3:4,:)'.
-      numInd = find(~isnan(edgD(k).U1));
-      bndSKnt = augknt(edge(k).bndS(numInd),2);
-      edgD(k).ppU1 = spapi(bndSKnt,edge(k).bndS(numInd), edgD(k).U1(numInd).');
-      %edgD(k).ppU1 = spline(edge(k).bndS(numInd), edgD(k).U1(numInd).');
-      numInd = find(~isnan(edgD(k).U2));
-      bndSKnt = augknt(edge(k).bndS(numInd),2);
-      edgD(k).ppU2 = spapi(bndSKnt,edge(k).bndS(numInd), edgD(k).U2(numInd).');
-      %edgD(k).ppU2 = spline(edge(k).bndS(numInd), edgD(k).U2(numInd).');
+         %Create spline interpolation of the edge displacement using arclength
+         % parameter stored in 'msh.e(3:4,:)'.
+         numInd = find(~isnan(edgD(k).U1));
+         bndSKnt = augknt(edge(k).bndS(numInd),2);
+         edgD(k).ppU1 = spapi(bndSKnt,edge(k).bndS(numInd), edgD(k).U1(numInd).');
+         %edgD(k).ppU1 = spline(edge(k).bndS(numInd), edgD(k).U1(numInd).');
+         numInd = find(~isnan(edgD(k).U2));
+         bndSKnt = augknt(edge(k).bndS(numInd),2);
+         edgD(k).ppU2 = spapi(bndSKnt,edge(k).bndS(numInd), edgD(k).U2(numInd).');
+         %edgD(k).ppU2 = spline(edge(k).bndS(numInd), edgD(k).U2(numInd).');
+      end
    end
 
    %Save the edge mesh information and displacements data.

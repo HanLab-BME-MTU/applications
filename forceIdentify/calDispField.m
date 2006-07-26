@@ -55,7 +55,12 @@ for ii = 1:length(selTimeSteps)
    end
 
    %Get the image of the cell.
-   relFrameNo = imgIndexOfDTimePts(jj)+relDispImgFrmNo-firstImgIndex;
+   if strcmp(trackMethod,'simu')
+      relFrameNo = 1;
+   else
+      relFrameNo = imgIndexOfDTimePts(jj)+relDispImgFrmNo-firstImgIndex;
+   end
+
    overlaidImg = double(imread(imgFileList{1}{relFrameNo}));
    for kk = 1:numAvgFrames(jj)-1
       overlaidImg = overlaidImg+double(imread(imgFileList{1}{relFrameNo+kk}));
@@ -128,7 +133,8 @@ for ii = 1:length(selTimeSteps)
       %Extract data points and the raw displamenents on the data points.
       iDispField.p = dataDispV(:,2:-1:1);
       iDispField.v = dataDispV(:,4:-1:3)-dataDispV(:,2:-1:1);
-   elseif strcmp(trackMethod,'corr') || strcmp(trackMethod,'dArray')
+   elseif strcmp(trackMethod,'corr') || strcmp(trackMethod,'dArray') || ...
+      strcmp(trackMethod,'simu')
       if strcmp(dataSite,'grid')
          iDispField.p = [gridPx gridPy];
          dataDispV = vectorFieldSparseInterp(rawDispV, ...

@@ -5,15 +5,6 @@ fprintf(1,'Post assemble of the identified boundary traciton force:\n');
 
 startTime = cputime;
 
-%Specify boundary condition.
-for k = 1:numEdges
-   fn.BndDispx{k} = 'bndDisp';
-   fn.BndDispy{k} = 'bndDisp';
-end
-
-fn.BodyFx = 'femBodyF';
-fn.BodyFy = 'femBodyF';
-
 ans = input('Select time steps (0 for all):');
 if isempty(ans) || ans == 0
    selTimeSteps = 1:numDTimePts;
@@ -39,7 +30,10 @@ for ii = 1:length(selTimeSteps)
    s = load(femModelFile);
    femModel = s.femModel;
    edge     = femModel.edge;
+   numEdges = femModel.numEdges;
    fem      = femModel.fem;
+   fn       = femModel.fn;
+   fp       = femModel.fp;
    fsBnd    = femModel.fsBnd;
 
    forceFieldFile = [forceFieldDir filesep 'forceField' ...
@@ -64,10 +58,18 @@ for ii = 1:length(selTimeSteps)
       bndF.numDispPt = numEdgDispPt;
       bndF.s = linspace(0,edge(k).arcLen,numEdgDispPt);
       bndF.p = [fnval(edge(k).ppX,bndF.s); ...
-                    fnval(edge(k).ppY,bndF.s)];
+                fnval(edge(k).ppY,bndF.s)];
 
       coefTFx = forceField.coefTF{k}(1:fsBnd(k).dim).';
       coefTFy = forceField.coefTF{k}(fsBnd(k).dim+1:end).';
+
+      %The corner between two edges poses a singular point for boundary force reconstruction.
+      % We cut off e.g. 2 segments.
+      edgCornerSegCut = 4;
+      coefTFx(1:edgCornerSegCut) = 0;
+      coefTFy(1:edgCornerSegCut) = 0;
+      coefTFx(end-edgCornerSegCut:end) = 0;
+      coefTFy(end-edgCornerSegCut:end) = 0;
       bndF.spx = spmak(fsBnd(k).edgKnots,coefTFx);
       bndF.spy = spmak(fsBnd(k).edgKnots,coefTFy);
 
@@ -90,11 +92,16 @@ for ii = 1:length(selTimeSteps)
       %Set the body force.
       coefBFx = forceField.coefBF(:,1);
       coefBFy = forceField.coefBF(:,2);
+
+      fn.BodyFx = 'femBodyF';
+      fn.BodyFy = 'femBodyF';
       fp.BodyFx = {{'x' 'y'} {fs.fem coefBFx}};
       fp.BodyFy = {{'x' 'y'} {fs.fem coefBFy}};
 
       %Specify boundary condition.
       for k = 1:numEdges
+         fn.BndDispx{k} = 'bndDisp';
+         fn.BndDispy{k} = 'bndDisp';
          fp.BndDispx{k} = {{'s'} {edgD(k).ppU1}};
          fp.BndDispy{k} = {{'s'} {edgD(k).ppU2}};
 

@@ -31,15 +31,6 @@ elseif strcmp(spdUnit,'nmPerSec')
    spdUnitStr        = 'nm/sec';
 end
 
-%Specify boundary condition.
-for k = 1:numEdges
-   fn.BndDispx{k} = 'bndDisp';
-   fn.BndDispy{k} = 'bndDisp';
-end
-
-fn.BodyFx = 'femBodyF';
-fn.BodyFy = 'femBodyF';
-
 answer = input('Select time steps (0 for all):');
 if isempty(answer) | answer == 0
    selTimeSteps = 1:numDTimePts;
@@ -54,14 +45,15 @@ for ii = 1:length(selTimeSteps)
 
    fprintf(1,'   Time step %d ... ',jj);
 
-   %Get one cell image
    imgIndex = imgIndexOfDTimePts(jj);
-   dispImgIndex  = imgIndex + relDispImgFrmNo - 1;
+
+   %Get one cell image
+   dispImgIndex  = max(firstImgIndex,imgIndex) + relDispImgFrmNo - 1;
    curRelFrmNo   = dispImgIndex-firstImgIndex+1;
    dispImg = imread(imgFileList{imgChannel}{curRelFrmNo});
 
    %Get the stacked cell image in the averaging range.
-   frameNo = imgIndex-firstImgIndex+1;
+   frameNo = max(firstImgIndex,imgIndex)-firstImgIndex+1;
    if length(numAvgFrames) == numDTimePts
       curNumAvgFrames = numAvgFrames(curDTimePt);
    else
@@ -90,7 +82,19 @@ for ii = 1:length(selTimeSteps)
    s = load(femModelFile);
    femModel = s.femModel;
    fem      = femModel.fem;
+   numEdges = femModel.numEdges;
+   fn       = femModel.fn;
+   fp       = femModel.fp;
    fs       = femModel.fs;
+
+   %Specify boundary condition.
+   for k = 1:numEdges
+      fn.BndDispx{k} = 'bndDisp';
+      fn.BndDispy{k} = 'bndDisp';
+   end
+
+   fn.BodyFx = 'femBodyF';
+   fn.BodyFy = 'femBodyF';
 
    iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
    iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
@@ -102,32 +106,8 @@ for ii = 1:length(selTimeSteps)
    s = load(rawDispFieldFile);
    rawDispField = s.rawDispField;
 
-   %load([mechDir filesep 'femId']);
-   %load([reslDir filesep 'dispField']);
-   %load([reslDir filesep 'dataDisp']);
-   %load([reslDir filesep 'edgeDisp']);
-   %load([reslDir filesep 'coefBFId']);
-
    %For debugging : Solve the elastic equation with the identified force and
    % compare the computed displacement with the measured displacement data.
-
-   fem = elModelUpdate(fem,'fn',fn);
-
-   %Set the points where the identified force is to be calculated for
-   % demonstration.
-   %if strcmp(bfDisplaySite,'grid') == 1
-   %   bfDisplayPx = iDispField.gridPx;
-   %   bfDisplayPy = iDispField.gridPy;
-   %elseif strcmp(bfDisplaySite,'original') == 1
-   %   bfDisplayPx = rawDispField.p(:,1);
-   %   bfDisplayPy = rawDispField.p(:,2);
-   %elseif strcmp(bfDisplaySite,'everyOther') == 1
-   %   bfDisplayPx = rawDispField.p(1:2:end,1);
-   %   bfDisplayPy = rawDispField.p(1:2:end,2);
-   %elseif strcmp(bfDisplaySite,'dataSite') == 1
-   %   bfDisplayPx = iDispField.p(:,1);
-   %   bfDisplayPy = iDispField.p(:,2);
-   %end
 
    %Get the mask of cell from 'edgeDir'. It will be used in creating data map.
    cellMask = [];
@@ -169,7 +149,7 @@ for ii = 1:length(selTimeSteps)
    %   fp.BndDispy{k} = {{'s'} {edgePPy{jj,k}}};
    %end
 
-   fem = elModelUpdate(fem,'fp',fp);
+   fem = elModelUpdate(fem,'fn',fn,'fp',fp);
    fem = elasticSolve(fem,[]);
 
    %The data points must also be inside the target recovery region.
@@ -316,8 +296,8 @@ for ii = 1:length(selTimeSteps)
        recMCFx(mixIndShow(k)) = projM(1,2)*pC(2);
        recMCFy(mixIndShow(k)) = projM(2,2)*pC(2);
    end
-   forceField.adf = [recADFx recADFy];
-   forceField.mcf = [recMCFx recMCFy];
+   forceField.adf = [recADFx; recADFy].';
+   forceField.mcf = [recMCFx; recMCFy].';
    
    %%%%%%% We then do it on the grid points and assign intensity scores.
    % The force on grid points inside the identification region.

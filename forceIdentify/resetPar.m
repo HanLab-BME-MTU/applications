@@ -69,6 +69,25 @@ switch trackMethod
          endImgIndex   = corrEndImgIndex(end); 
          numAvgFrames  = corrEndImgIndex-imgIndexOfDTimePts+1;
       end
+   case 'simu'
+      curDTimePt = 2;
+
+      %Get all the simulated flow data files.
+      sDispFieldDir = [reslDir filesep 'rawDispField'];
+      [simFlowFile,imgIndexOfDTimePts] = ...
+         getNamedFiles(sDispFieldDir,'rawDispField');
+
+      if isempty(imgIndexOfDTimePts)
+         fprintf(1,'No simulated flow data is available.\n');
+         dataFile = [];
+      else
+         for k = 1:length(simFlowFile)
+            dataFile{k} = [sDispFieldDir filesep simFlowFile{k}];
+         end
+         startImgIndex = imgIndexOfDTimePts(2); 
+         endImgIndex   = imgIndexOfDTimePts(end); 
+         numAvgFrames  = ones(size(imgIndexOfDTimePts));
+      end
 end
 
 if ~isempty(dataFile)
@@ -76,7 +95,7 @@ if ~isempty(dataFile)
    DTIndexForm = sprintf('%%.%dd',max(2,length(num2str(numDTimePts))));
 
    %Get the first image of the cell.
-   relFrameNo = imgIndexOfDTimePts(1)-firstImgIndex+1;
+   relFrameNo = max(1,imgIndexOfDTimePts(1)-firstImgIndex+1);
    firstDTImg = imread(imgFileList{1}{relFrameNo});
 else
    numDTimePts = 0;

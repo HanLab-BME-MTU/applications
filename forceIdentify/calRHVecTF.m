@@ -64,6 +64,9 @@ for ii = 1:length(selTimeSteps)
    s = load(femModelFile);
    femModel = s.femModel;
    fem      = femModel.fem;
+   options  = femModel.options;
+   fn       = femModel.fn;
+   fp       = femModel.fp;
    fs       = femModel.fs;
    numEdges = femModel.numEdges;
 

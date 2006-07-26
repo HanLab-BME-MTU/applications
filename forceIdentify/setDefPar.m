@@ -167,6 +167,16 @@
 %    'bndOnly'  : Simulate only boundary force.
 %    'all'      : All three types of forces: contraction, adhesion and
 %                 boundary.
+% simMCFMagFactor : The magnification factor over the recovered myosin 
+%                   contraction force used in the simulation.
+% simADCMagFactor : The magnification factor over the recovered adhesion
+%                   coefficient used in the simulation.
+% simAbsNoiseLevel: Absolute noise level added to the simulated flow field.
+%                   The standard deviation of the noise is this level 
+%                   (which is a percentage) of the median speed.
+% simRelNoiseLevel: Relative noise level added to the simulated flow field.
+%                   The standard deviation of the noise added to each flow vector 
+%                   is this level (which is a percentage) of flow vector length.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -230,6 +240,10 @@ showSpdCBar       = 'yes';
 showYModCBar      = 'yes';
 spdUnit           = 'umPerMin';
 forceToSimu       = 'mcfOnly';
+simMCFMagFactor   = 2;
+simADCMagFactor   = 2;
+simAbsNoiseLevel  = [0 0.00 0.0 0.05 0.10 0.10 0.10 0.10 0.1];
+simRelNoiseLevel  = [0 0.05 0.1 0.10 0.10 0.15 0.20 0.25 0.3];
 debugMode         = 'off';
 
 param.trackMethod       = trackMethod;
@@ -286,4 +300,8 @@ param.showSpdCBar       = showSpdCBar;
 param.showYModCBar      = showYModCBar;
 param.spdUnit           = spdUnit;
 param.forceToSimu       = forceToSimu;
+param.simAbsNoiseLevel  = simAbsNoiseLevel;
+param.simRelNoiseLevel  = simRelNoiseLevel;
+param.simMCFMagFactor   = simMCFMagFactor;
+param.simADCMagFactor   = simADCMagFactor;
 param.debugMode         = debugMode;

@@ -28,6 +28,13 @@ end
 pixelX = [1:size(stackedImg,2)];
 pixelY = [1:size(stackedImg,1)];
 
+iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
+s = load(iDispFieldFile);
+iDispField = s.iDispField;
+
+gridY = iDispField.gridY;
+gridX = iDispField.gridX;
 %Load the saved body force map.
 indexStr = sprintf(imgIndexForm,imgIndex);
 bdfMapFile = [reslDir filesep 'bdfMap' filesep 'bdfMap' indexStr '.mat'];
@@ -81,11 +88,6 @@ forceField = s.forceField;
 
 bfDisplayPx = forceField.p(:,1);
 bfDisplayPy = forceField.p(:,2);
-
-iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
-iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
-s = load(iDispFieldFile);
-iDispField = s.iDispField;
 
 recDispU1   = iDispField.rv(:,1);
 recDispU2   = iDispField.rv(:,2);

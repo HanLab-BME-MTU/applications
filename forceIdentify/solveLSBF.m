@@ -12,7 +12,6 @@ end
 s = load(regParamFile);
 regParam = s.regParam;
 
-fprintf(1,'   Regularization parameter: %5.3f.\n',regParam.selBFSigma);
 startTime = cputime;
 
 %fwdMapBFDir = [reslDir filesep 'fwdMapBF'];
@@ -31,7 +30,23 @@ for ii = 1:length(selTimeSteps)
 
    localStartTime = cputime;
 
-   fprintf(1,'   Time step %d ...',jj);
+   fprintf(1,'Time step %d ...',jj);
+
+   if isnan(regParam.selBFSigma(jj))
+      %Find the closest time step whose 'selBFSigma' is not NaN.
+      iSigma = min(abs(jj-find(~isnan(regParam.selBFSigma))));
+      if isempty(iSigma)
+         fprintf(1,['   Regularization parameter has not been identified yet.\n' ...
+            '   Please run ''calOptRegParBF'' first.\n']);
+         return;
+      end
+
+      selBFSigma = regParam.selBFSigma(iSigma);
+   else
+      selBFSigma = regParam.selBFSigma(jj);
+   end
+
+   fprintf(1,'   Regularization parameter: %5.3f.\n',selBFSigma);
    imgIndex = imgIndexOfDTimePts(jj);
 
    fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
@@ -64,9 +79,11 @@ for ii = 1:length(selTimeSteps)
    B0 = A.'*A;
    b  = A.'*rightU;
 
-   B = B0 + regParam.selBFSigma*eye(n);
+   B = B0 + selBFSigma*eye(n);
    coef = B\b;
    %coef = (A{jj}.'*A{jj}+bfSigma*eye(n))\(A{jj}.'*rightU{jj});
+
+   clear forceField;
 
    forceField.coefBF = zeros(dimFS,2);
    forceField.coefBF(indDomDOF,1) = coef(1:dimBF);

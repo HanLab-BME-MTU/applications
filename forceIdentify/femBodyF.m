@@ -23,9 +23,19 @@ y  = reshape(y,1,prod(sz));
 f(pe) = 0;
 
 if ~isempty(roiXi)
-   in = inpolygon(x,y,roiXi,roiYi);
-   outID = find(in == 0);
-   f(outID) = 0;
+   if ~iscell(roiXi)
+      in = inpolygon(x,y,roiXi,roiYi);
+      iOut = find(in ~= 1);
+   else
+      iOut = 1:length(x);
+      for kk = 1:length(roiXi)
+         in  = inpolygon(x,y,roiXi{kk},roiYi{kk});
+         iIn = find(in==1);
+         iOut(iIn) = 0;
+      end
+      iOut(find(iOut==0)) = [];
+   end
+   f(iOut) = 0;
 end
 
 f = reshape(f,sz);

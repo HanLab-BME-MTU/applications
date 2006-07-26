@@ -36,6 +36,18 @@ for ii = 1:length(selTimeSteps)
    fprintf(1,'   Time step %d ... ',jj);
    imgIndex = imgIndexOfDTimePts(jj);
 
+   if strcmp(isFieldBndFixed,'yes')
+      femModelFile = [femModelDir filesep 'femModel' sprintf(imgIndexForm,0) '.mat'];
+   else
+      [femModelFile,femModelImgIndex] = getFemModelFile(femModelDir,imgIndex,imgIndexForm);
+   end
+   s = load(femModelFile);
+   femModel = s.femModel;
+   fem      = femModel.fem;
+   fn       = femModel.fn;
+   fp       = femModel.fp;
+   numEdges = femModel.numEdges;
+
    iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
    iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
 
@@ -52,16 +64,6 @@ for ii = 1:length(selTimeSteps)
       dataU1 = iDispField.sv(iInMesh,1);
       dataU2 = iDispField.sv(iInMesh,2);
    end
-
-   if strcmp(isFieldBndFixed,'yes')
-      femModelFile = [femModelDir filesep 'femModel' sprintf(imgIndexForm,0) '.mat'];
-   else
-      [femModelFile,femModelImgIndex] = getFemModelFile(femModelDir,imgIndex,imgIndexForm);
-   end
-   s = load(femModelFile);
-   femModel = s.femModel;
-   fem      = femModel.fem;
-   numEdges = femModel.numEdges;
 
    for k = 1:numEdges
       fn.BndDispx{k} = 'bndDisp';

@@ -1,11 +1,22 @@
 %This is a script file that displays the colormap of identified forces 
 % overlayed on the original cell image.
 
-imgIndex = imgIndexOfDTimePts(curDTimePt);
+if curDTimePt == 0
+   imgIndex = [];
+   dispImgIndex = firstImgIndex;
+else
+   imgIndex = imgIndexOfDTimePts(curDTimePt);
+   dispImgIndex = max(firstImgIndex,imgIndex);
+end
 
-frameNo = imgIndexOfDTimePts(curDTimePt)-firstImgIndex+1;
+
+frameNo = dispImgIndex-firstImgIndex+1;
 if length(numAvgFrames) == numDTimePts
-   curNumAvgFrames = numAvgFrames(curDTimePt);
+   if curDTimePt == 0
+      curNumAvgFrames = numAvgFrames(1);
+   else
+      curNumAvgFrames = numAvgFrames(curDTimePt);
+   end
 else
    curNumAvgFrames = numAvgFrames;
 end

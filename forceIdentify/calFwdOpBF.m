@@ -172,7 +172,6 @@ if ~strcmp(bfFwdOpComputed,'A') && ~strcmp(bfFwdOpComputed,'all')
       iDispField = s.iDispField;
 
       numDP = iDispField.numDP;
-      A = zeros(numDP,2,dimBF,2);
 
       if strcmp(isFieldBndFixed,'yes')
          femModelFile = [femModelDir filesep 'femModel' sprintf(imgIndexForm,0) '.mat'];
@@ -199,6 +198,8 @@ if ~strcmp(bfFwdOpComputed,'A') && ~strcmp(bfFwdOpComputed,'all')
       else
          numSolFiles = ceil(2*dimBF/numBSolsPerFile);
       end
+
+      A = zeros(numDP,2,dimBF,2);
 
       startCol = 1;
       ll  = 0;
