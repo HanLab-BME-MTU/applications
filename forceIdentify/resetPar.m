@@ -70,7 +70,7 @@ switch trackMethod
          numAvgFrames  = corrEndImgIndex-imgIndexOfDTimePts+1;
       end
    case 'simu'
-      curDTimePt = 2;
+      curDTimePt = 1;
 
       %Get all the simulated flow data files.
       sDispFieldDir = [reslDir filesep 'rawDispField'];

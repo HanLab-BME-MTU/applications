@@ -19,7 +19,7 @@ end
 for ii = 1:length(selTimeSteps)
    jj = selTimeSteps(ii);
 
-   fprintf(1,'Time Step %d: ',ii);
+   fprintf(1,'Time Step %d: ',jj);
 
    if exist(regParamFile,'file') == 2
       fprintf(1,'\n');
@@ -32,10 +32,15 @@ for ii = 1:length(selTimeSteps)
          regParam.selBFSigma = regParam.selBFSigma*ones(1,length(imgIndexOfDTimePts));
       end
 
-      if ~isnan(regParam.minBFSigma(jj))
+      if ~isfield(regParam,'bfSigma')
+         regParam.bfSigma = bfSigma*ones(1,length(imgIndexOfDTimePts));
+      end
+
+      if ~isnan(regParam.minBFSigma(min(jj,length(regParam.minBFSigma))))
          answer = input(sprintf(['   Last saved optimal range of regularization parameter: ' ...
             '(%3.2f,%3.2f)\n' '   Do you want to reidentify it using L-curve? (y/n):'], ...
-            regParam.minBFSigma(jj),regParam.maxBFSigma(jj)),'s');
+            regParam.minBFSigma(min(jj,length(regParam.minBFSigma))), ...
+            regParam.maxBFSigma(min(jj,length(regParam.minBFSigma)))),'s');
       else
          answer = 'yes';
       end
@@ -52,6 +57,20 @@ for ii = 1:length(selTimeSteps)
       end
       continue;
    end
+
+   if isfield(regParam,'bfSigma')
+      answer = input(sprintf(['   Please select a new center of test range ' ...
+         '(last saved: %5.2f): '],regParam.bfSigma(jj)),'s');
+   else
+      answer = input('   Please select a new center of test range:','s');
+   end
+
+   if ~isempty(answer)
+      regParam.bfSigma(jj) = str2num(answer);
+   end
+
+   bfSigma = regParam.bfSigma(jj);
+   isBFSigmaRangeIdentified = 'no';
 
    imgIndex = imgIndexOfDTimePts(jj);
    fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
@@ -86,7 +105,7 @@ for ii = 1:length(selTimeSteps)
 
    while strcmp(isBFSigmaRangeIdentified,'no')
       %Calculate the L-curve.
-      bfSigmaCandidate = bfSigma*[1e-4 1e-3 1e-2 1e-1 1 1e1 1e2 1e3 1e4];
+      bfSigmaCandidate = bfSigma*[1e-5 1e-4 1e-3 1e-2 1e-1 1 1e1 1e2 1e3 1e4 1e5];
       coefNorm    = zeros(1,length(bfSigmaCandidate));
       residueNorm = zeros(1,length(bfSigmaCandidate));
       for kk = 1:length(bfSigmaCandidate)
@@ -112,7 +131,8 @@ for ii = 1:length(selTimeSteps)
          isBFSigmaRangeIdentified = 'yes';
          save(regParamFile,'regParam');
       else
-         answer = input('   Please select a new center of test range:','s');
+         answer = input(sprintf(['   Please select a new center of test range ' ...
+            '(last used: %5.2f): '],bfSigma),'s');
          bfSigma = str2num(answer);
          isBFSigmaRangeIdentified = 'no';
       end
