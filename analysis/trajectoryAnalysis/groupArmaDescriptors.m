@@ -95,11 +95,11 @@ if nargin == 0 || isempty(data)
     % 07/28/06 - there's a bug in Matlab/Linux. Since we're limited to one
     % directory at the moment, use the listSelectGUI to load strains
     if ispc
-    [strainFile, dataPath] = uigetfile('strains_*.mat','Load strain list(s)!','MultiSelect','on');
-    if ~iscell(strainFile) && any(strainFile == 0)
-        disp('--groupArmaCoefficients aborted')
-        return
-    end
+        [strainFile, dataPath] = uigetfile('strains_*.mat','Load strain list(s)!','MultiSelect','on');
+        if ~iscell(strainFile) && any(strainFile == 0)
+            disp('--groupArmaCoefficients aborted')
+            return
+        end
     else
         dataPath = uigetdir('Coose directory of strain list(s)');
         strainFile = searchFiles('strains_','',dataPath,0);
@@ -109,6 +109,15 @@ if nargin == 0 || isempty(data)
         end
         % only remember the fileNames
         strainFile = strainFile(:,1);
+
+        % have the user choose
+        [selectionIdx] = listSelectGUI(strainFile);
+        if isempty(selectionIdx)
+            disp('--groupArmaCoefficients aborted')
+            return
+        else
+            strainFile = strainFile(selectionIdx);
+        end
     end
 
     % make strainFile into a cell, so that we can use the code for
