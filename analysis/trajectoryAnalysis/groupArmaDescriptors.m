@@ -92,10 +92,23 @@ if nargin == 0 || isempty(data)
     % multiple files in the same directory (with while-loop like in
     % trajectoryAnalysis, it could be extended to span multiple
     % directories, or maybe Matlab imporves uigetfile)
+    % 07/28/06 - there's a bug in Matlab/Linux. Since we're limited to one
+    % directory at the moment, use the listSelectGUI to load strains
+    if ispc
     [strainFile, dataPath] = uigetfile('strains_*.mat','Load strain list(s)!','MultiSelect','on');
     if ~iscell(strainFile) && any(strainFile == 0)
         disp('--groupArmaCoefficients aborted')
         return
+    end
+    else
+        dataPath = uigetdir('Coose directory of strain list(s)');
+        strainFile = searchFiles('strains_','',dataPath,0);
+        if isempty(strainFile)
+            disp('--groupArmaCoefficients: no strains_* file found')
+            return
+        end
+        % only remember the fileNames
+        strainFile = strainFile(:,1);
     end
 
     % make strainFile into a cell, so that we can use the code for
