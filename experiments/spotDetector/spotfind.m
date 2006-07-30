@@ -53,10 +53,6 @@ mnpRows = 100;
 mnpRowIncrement = 100;
 mnp = zeros(mnpRows,tsteps);
 
-if DEBUG
-    figure
-end
-
 % preassign spots
 spots(1:tsteps,1) = struct('sp',[],'COM',[]);
 
@@ -72,8 +68,10 @@ for t=1:tsteps
 
     pt=fImg(:,:,:,1,t);
 
-    %norm to 0..1
+    %norm to 0..100
     pt=100*pt/max(pt(:));
+    
+    
 
     %find all local max
     b=loc_max3Df(fImg(:,:,:,1,t),[3 3 3]);
@@ -89,6 +87,7 @@ for t=1:tsteps
             %cut pixels belonging to this local maximum
             patch = stamp3d(pt,PATCHSIZE,b(i,:),0);
 %             patch=pt(b(i,1)-d(1):b(i,1)+d(1),b(i,2)-d(2):b(i,2)+d(2),b(i,3)-d(3):b(i,3)+d(3));
+
 
             %curvature filter
             %k(ct)=curvature3D(patch,[d d d]+1);
@@ -107,6 +106,7 @@ for t=1:tsteps
                     mnpRows = newMnpRows;
                     
                     clear mnpTmp newMnpRows
+                    
                 end
                 
                 % mnp, the spottiness criterion, is the product of
@@ -118,14 +118,17 @@ for t=1:tsteps
                 centp(ct,:)=centroid3D(patch);
                 lm(ct,:)=b(i,:);
                 ct=ct+1;
+                
+                
             end;
         end;
     end;
-
+        
     % Take MAXNUMSPOTS plus a few spots - we want to be sure that we don't
     % accidentially throw out a good spot, and we need a few bad apples to
     % make the amplitude cutoff work fine. We take between 2 and 10 more
-    % spots, depending on MAXNUMSPOTS.
+    % spots, depending on MAXNUMSPOTS
+    
     additionalSpots = dataProperties.MAXSPOTS * 0.3;
     additionalSpots = ceil(additionalSpots);
     additionalSpots = max(additionalSpots,3);

@@ -8,11 +8,7 @@ function [slist, dataProperties, testRatios, debugData] = detectSpots(rawMovieNa
 %                           already. Please load the movie into imaris
 %                           outside of DETECTSPOTS if it can't be read by
 %                           cdLoadMovie.
-%		filteredMovieName:  (opt) filename of filtered movie. If
-%                           filteredMovie ends in ".new", movie will be
-%                           filtered and saved under the given name minus
-%                           the ".new". (filtered movies should have the
-%                           extension ".fim"!)
+%		filteredMovieName:  filename of filtered movie.
 %		dataProperties:     dataProperties-structure describing the movie
 %       verbose:            (opt) 0: none / {1} just waitbar / 2 more output
 %		options:            optional input for debugging or extensions
@@ -62,6 +58,9 @@ else
     end
 end
 
+% update dataProperties
+dataProperties = defaultDataProperties(dataProperties);
+
 % check for the existence of raw and filtered movies. Also check whether
 % the rawMovieName is not actually an imaris handle
 if isnumeric(rawMovieName)
@@ -77,42 +76,24 @@ else
     if isfield(dataProperties,'movieType') && strcmp(dataProperties.movieType,'sedat')
         movieLoader = 'sedat';
     else
-    movieLoader = 'cdLoadMovie';
+        movieLoader = 'cdLoadMovie';
     end
 end
 
-% check for filteredMovie. If '.new', we want to filter
+% check for filteredMovie.
 if isempty(filteredMovieName)
-    % only die if no numeric raw movie
-    if strcmp(movieLoader,'none')
-        doFilter = 1;
-    else
-        error(['if there is no filtered movie yet, specify a moviename'...
-            'with full extension ending in ''.new''!'])
-    end
+    error('please supply a filtered movie')
 end
 if isnumeric(filteredMovieName)
     % for now, filteredMovie can only be numeric if the rawMovie is
     % numeric, too.
     if strcmp(movieLoader,'none')
         % all is good.
-        doFilter = 0;
     else
         error('It is not permitted to pass the filtered movie if the raw movie is passed by filename')
     end
-        
-elseif strcmp(filteredMovieName(end-3:end),'.new')
-    % make a new filteredMovie
-    doFilter = 1;
-    filteredMovieName = filteredMovieName(1:end-4);
-    % make sure we get the right extension
-    if ~strcmp(filteredMovieName(end-3:end),'.fim')
-        filteredMovieName = [filteredMovieName,'.fim'];
-    end
 elseif ~exist(filteredMovieName,'file')
     error('filteredMovie (''%s'') not found',filteredMovieName)
-else
-    doFilter = 0;
 end
 
 
@@ -166,102 +147,51 @@ end
 coordinates(1:dataProperties.movieSize(4),1) = ...
     struct('sp',[],'COM',[]);
 
-% load movie. If there isn't a filtered movie already, load the raw movie
-if doFilter
-    % load raw movie
-    switch movieLoader
-        case 'cdLoadMovie'
-            [rawMovie, movieHeader, loadStruct] = ...
-                cdLoadMovie({rawMovieName,'corr/raw'}, [], loadOptions);
-            % check if there are any leading darkframes we need to subtract
-            deltaFrames = loadStruct.loadedFrames(1) - 1;
-        case 'imaris'            
-            [rawMovie,movieSize,movieName,...
-                moviePath,movieHeader,imarisHandle,loadStruct] = ...
-                imarisImread(imarisHandle,[],dataProperties.crop,loadOptions.maxSize);
-            deltaFrames = 0;
-        case 'sedat'
-            % load one frame
-            rawMovie = sedatLoadRaw(1,rawMovieName,dataProperties);
-            loadStruct.loadedFrames = 1;
-            loadStruct.frames2load = 2:dataProperties.movieSize(4);
-            deltaFrames = 0;
-            
-        case 'none'
-            % read raw movie, set loadStruct and deltaFrames
-            rawMovie = rawMovieName;
-            loadStruct.loadedFrames = 1:size(rawMovie,5);
-            loadStruct.frames2load = [];
-            deltaFrames = 0;
-    end
 
-else
-    if strcmp(movieLoader,'none')
-        filteredMovie = filteredMovieName;
-        loadStruct.loadedFrames = 1:size(filteredMovie,5);
-            loadStruct.frames2load = [];
-            deltaFrames = 0;
-    else
-    % load filtered movie
-    [filteredMovie, movieHeader, loadStruct] = ...
-        cdLoadMovie({filteredMovieName,'filtered'}, [], loadOptions);
-    deltaFrames = 0;
-    end
 
-end
+% find local maxima
+switch dataProperties.detector_spotfind
+    case 1 % standard spotfind
 
-% loop through the movie to collect local maxima
-done = 0;
-while ~done
-
-    % filter first if necessary
-    if doFilter
-        % filter movie
-        filteredMovie = filtermovie(rawMovie,dataProperties.FILTERPRM);
-        clear rawMovie
-
+        % load filtered movie
         if strcmp(movieLoader,'none')
-            % save filteredMovie as variable 'filteredMovieName'
-            filteredMovieName = filteredMovie;
+            filteredMovie = filteredMovieName;
+            loadStruct.loadedFrames = 1:size(filteredMovie,5);
+            loadStruct.frames2load = [];
+            deltaFrames = 0;
         else
-            % save filtered movie to file
-            writemat(filteredMovieName,...
-                filteredMovie,1,5);
-        end
-    end
-
-    % find local maxima
-    coordinates(loadStruct.loadedFrames - deltaFrames) = ...
-        spotfind(filteredMovie,dataProperties,1,loadStruct.loadedFrames);
-    clear filteredMovie
-
-    % load more
-    if isempty(loadStruct.frames2load)
-        done = 1;
-    else
-        if doFilter
-            switch movieLoader
-                case 'cdLoadMovie'
-                    [rawMovie, movieHeader, loadStruct] = ...
-                        cdLoadMovie(loadStruct.movieType, [], loadStruct);
-                case 'imaris'
-                    [rawMovie,dummy,dummy,...
-                        dummy,dummy,dummy,loadStruct] = ...
-                        imarisImread(loadStruct);
-                case 'sedat'
-                    % load one more frame
-                    rawMovie = sedatLoadRaw(loadStruct.frames2load(1),rawMovieName,dataProperties);
-                    loadStruct.loadedFrames = loadStruct.frames2load(1);
-                    loadStruct.frames2load = loadStruct.frames2load(2:end);
-
-            end
-        else
+            % load filtered movie
             [filteredMovie, movieHeader, loadStruct] = ...
-                cdLoadMovie(loadStruct.movieType, [], loadStruct);
+                cdLoadMovie({filteredMovieName,'filtered'}, [], loadOptions);
+            deltaFrames = 0;
         end
-    end % load more
 
-end % while loop find local max
+        % loop through the movie to collect local maxima
+        done = 0;
+        while ~done
+
+            coordinates(loadStruct.loadedFrames - deltaFrames) = ...
+                spotfind(filteredMovie,dataProperties,verbose,loadStruct.loadedFrames);
+
+            clear filteredMovie
+
+            % load more
+            if isempty(loadStruct.frames2load)
+                done = 1;
+            else
+
+                [filteredMovie, movieHeader, loadStruct] = ...
+                    cdLoadMovie(loadStruct.movieType, [], loadStruct);
+            end % load more
+
+        end % while loop find local max
+
+    case 2
+        % mammalian spotfind with changed cutoff
+        % need to load movie within function
+        coordinates = ...
+            spotfind_mammalian(filteredMovieName,dataProperties,verbose,movieLoader);
+end
 
 %===========================================
 
@@ -303,16 +233,16 @@ switch movieLoader
             moviePath,movieHeader,imarisHandle,loadStruct] = ...
             imarisImread(imarisHandle,[],dataProperties.crop,loadOptions.maxSize);
         deltaFrames = 0;
-        
-        case 'sedat'
-            % load one frame
-            rawMovie = sedatLoadRaw(1,rawMovieName,dataProperties);
-            loadStruct.loadedFrames = 1;
-            loadStruct.frames2load = 2:dataProperties.movieSize(4);
-            deltaFrames = 0;
-            % set numTimepoints in movieHeader
-            movieHeader.numTimepoints = dataProperties.movieSize(4);
-        
+
+    case 'sedat'
+        % load one frame
+        rawMovie = sedatLoadRaw(1,rawMovieName,dataProperties);
+        loadStruct.loadedFrames = 1;
+        loadStruct.frames2load = 2:dataProperties.movieSize(4);
+        deltaFrames = 0;
+        % set numTimepoints in movieHeader
+        movieHeader.numTimepoints = dataProperties.movieSize(4);
+
     case 'none'
         % read raw movie, set loadStruct and deltaFrames
         rawMovie = rawMovieName;
@@ -352,7 +282,7 @@ while ~done
     [slist(loadedFrames), dbTmp] = ...
         detectSpots_MMF_main(rawMovie,coordinates(loadedFrames),...
         dataProperties,tr,verbose,debug);
-    
+
     if debug == 1
         debugData.fStats(loadedFrames) = dbTmp.fStats;
     end
@@ -370,12 +300,12 @@ while ~done
                 [rawMovie,dummy,dummy,...
                     dummy,dummy,dummy,loadStruct] = ...
                     imarisImread(loadStruct);
-                
-                case 'sedat'
-                    % load one more frame
-                    rawMovie = sedatLoadRaw(loadStruct.frames2load(1),rawMovieName,dataProperties);
-                    loadStruct.loadedFrames = loadStruct.frames2load(1);
-                    loadStruct.frames2load = loadStruct.frames2load(2:end);
+
+            case 'sedat'
+                % load one more frame
+                rawMovie = sedatLoadRaw(loadStruct.frames2load(1),rawMovieName,dataProperties);
+                loadStruct.loadedFrames = loadStruct.frames2load(1);
+                loadStruct.frames2load = loadStruct.frames2load(2:end);
         end
 
     end % load more

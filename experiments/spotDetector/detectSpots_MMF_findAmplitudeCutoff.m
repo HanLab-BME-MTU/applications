@@ -34,7 +34,11 @@ if nargin < 4 || isempty(movieLoader)
     movieLoader = 'cdLoadMovie';
 end
 
-if nargin < 5 || isempty(debug)
+if nargin < 5 || isempty(verbose)
+    verbose = 1;
+end
+
+if nargin < 6 || isempty(debug)
     debug = 0;
 end
 

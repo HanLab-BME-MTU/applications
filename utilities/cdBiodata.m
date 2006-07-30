@@ -75,7 +75,12 @@ switch option
         
         % cd Biodata
         cdBiodata(0);
-        cd ../tmpData/jason
+        try
+        cd ../tmpData/jason       
+        catch
+            % we're on the laptop
+            cd c:\tmp
+        end
         mainDir = pwd;
         
     case 7

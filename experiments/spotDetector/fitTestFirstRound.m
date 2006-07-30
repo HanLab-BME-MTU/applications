@@ -3,6 +3,8 @@ function [testRatios,residualImage,resAndGauss]=fitTestFirstRound(data,cordList,
 % It's a combination of fitTest and testDistanceAndAmplitudes
 
 MAX_POS_DELTA = dataProperties.FILTERPRM(4:6);
+residualImage = [];
+resAndGauss = [];
 
 
 % optim options. We want to terminate the algorithm when it is within 0.001

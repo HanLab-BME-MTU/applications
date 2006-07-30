@@ -192,6 +192,8 @@ dataProperties.linker_relAmpWeight=1/1.5; % weighs distance more
 dataProperties.linker_useCOM = 1; % use center of mass to correct
 dataProperties.linker_fuseRatio = 1.5; % fuse if less than 1.5 RL separated
 
+% detector properties
+dataProperties.detector_spotfind = 1; %1: standard 2: mammalian
 
 
 

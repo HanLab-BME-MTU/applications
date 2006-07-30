@@ -56,7 +56,7 @@ else
 
         % die if there's a problem
         if isempty(dataPropertiesIdx)
-            h = errordlg('no valid dataProperties')
+            h = errordlg('no valid dataProperties');
             uiwait(h)
             return
         end

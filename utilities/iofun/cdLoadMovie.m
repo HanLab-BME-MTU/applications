@@ -32,20 +32,26 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                              be called in a loop so that eventually, all
 %                              frames of the movies will have been
 %                              analyzed.
-%                              If .maxSize = 'check', cdLoadMovie will
+%                              * If .maxSize = 'check', cdLoadMovie will
 %                              attempt to load dataProperties and find a
 %                              field maxSize there to find maxSize. If
 %                              there is no variable dataProperties (or
 %                              tmpDataproperties), default dataProperties
 %                              will be used; if there's no field .maxSize,
 %                              the entire movie will be loaded.
-%                              If the structure contains an additonal field
+%                              * If the structure contains an additonal field
 %                              .frames2load, the program will load the
 %                              appropriate number of frames from the list
 %                              in .frames2load{1}.
-%                              If there is an additional field .noMovie
+%                              * If there is an additional field .noMovie
 %                              that is 1, no movie will be loaded, but
 %                              everything else will be returned
+%                              * .waveOrder, .waveIdx: If there are
+%                              multiple wavelenghts, .waveOrder indicates
+%                              how wavelenght is ordered compared to
+%                              timepoints (see help r3dread). .waveIdx are
+%                              the indices into the list of wavelenghts
+%                              that should be loaded.
 %                            - loadStruct structure with fields
 %                              .frames2load, a cell array containing the
 %                               vectors with the timepoints to load. If
@@ -59,6 +65,8 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                               "corr/raw": type which was chosen.
 %                              .loadedFrames (output only): List of the
 %                               frames that have just been loaded
+%                              .waveOrder: [] if not otherwise specified
+%                              .waveIdx: [] if not otherwise specified
 %
 % OUTPUT    movie        : 5D movie file (x,y,z,wavelenghth, time)
 %           movieHeader  : header of movie
@@ -113,6 +121,14 @@ if isstruct(loadOpt) && isfield(loadOpt, 'noMovie')
     noMovie = loadOpt.noMovie;
 end
 
+if isstruct(loadOpt) && ~isfield(loadOpt, 'waveIdx')
+    loadOpt.waveIdx = [];
+end
+
+if isstruct(loadOpt) && ~isfield(loadOpt, 'waveOrder')
+    loadOpt.waveOrder = [];
+end
+
 
 %==========================
 
@@ -126,8 +142,8 @@ if type == 6
     oldDir = cd(dirName);
     [movieName, dirName, chooseIdx] = ...
         uigetfile({'*.fim;moviedat*','filtered movie';...
-        '*.r3d;*.r3c;*3D.dv','corrected movie';...
-        '*.r3d;*.r3c;*3D.dv','raw movie'},...
+        '*.r3d;*.r3c;*.dv','corrected movie';...
+        '*.r3d;*.r3c;*.dv','raw movie'},...
         'Please choose movie type and location!');
     cd(oldDir);
 
@@ -169,22 +185,23 @@ if isstruct(loadOpt) && isfield(loadOpt,'movieName') ...
 else
     % generate loadStruct
     loadStruct(1) = struct('movieName',[],...
-        'frames2load',[],'correctionData',[], 'movieType',[]);
-if type < knownType
-    % get all files in the directory. If we know the file already, this
-    % is a lot faster! (of course, it's even better if we don't have to
-    % search at all)
-    if isempty(movieName)
-        allFileNames = dir(dirName);
-        allFileNames(1:2) = [];
-    else
-        allFileNames = dir(fullfile(dirName, movieName));
-    end
+        'frames2load',[],'correctionData',[], 'movieType',[],...
+        'waveIdx',[],'waveOrder',[]);
+    if type < knownType
+        % get all files in the directory. If we know the file already, this
+        % is a lot faster! (of course, it's even better if we don't have to
+        % search at all)
+        if isempty(movieName)
+            allFileNames = dir(dirName);
+            allFileNames(1:2) = [];
+        else
+            allFileNames = dir(fullfile(dirName, movieName));
+        end
 
-    % get list of filenames
-    fileNameList = {allFileNames.name}';
-    numFiles = length(allFileNames);
-end
+        % get list of filenames
+        fileNameList = {allFileNames.name}';
+        numFiles = length(allFileNames);
+    end
     % find moviename. If type == 4, try until something is found
     if type == 3 || type == 4
 
@@ -353,6 +370,22 @@ end
         movieCorrection = 0;
     end
 
+    
+    % take care of wave-options. Remove fields from loadOpt to make sure
+    % that we don't accidently get in trouble below with a missing field
+    % "maxSize"
+    if isstruct(loadOpt)
+        loadStruct.waveIdx = loadOpt.waveIdx;
+        loadStruct.waveOrder = loadOpt.waveOrder;
+        loadOpt = rmfield(loadOpt,'waveIdx');
+        loadOpt = rmfield(loadOpt,'waveOrder');
+        
+        % check whether there are any fields left for loadOpt
+        if isempty(fieldnames(loadOpt))
+            loadOpt = [];
+        end
+    end
+
 
     % if jobPropertiesStruct: find size of movie, calculate minimum number of
     % divisions. Then generate loadStruct with frames2load
@@ -390,6 +423,12 @@ end
         % roughly 4 times smaller than doubles - correct
         if type == 1 || type == 2
             movieSize = movieSize * 4;
+        end
+        % if we're not loading all the wavelengths, the movieSize gets
+        % effectively smaller
+        if ~isempty(loadStruct.waveIdx)
+            movieSize = movieSize * ...
+                (length(loadStruct.waveIdx)/r3dMovieHeader.numWvs);
         end
 
         movieLength = r3dMovieHeader.numTimepoints;
@@ -432,7 +471,8 @@ end
                 frameList((i-1)*numFrames+1:min(i*numFrames,frameListLength))...
                 + correctFrame;
         end
-
+        
+        
     elseif isnumeric(loadOpt) && ~isempty(loadOpt)
 
         if min(loadOpt) < 1  || max(loadOpt) > r3dMovieHeader.numTimepoints
@@ -446,7 +486,7 @@ end
 
     else % no loadOpt, therefore, we want to load all
 
-        loadStruct.frames2load{1} = [1:r3dMovieHeader.numTimepoints] + ...
+        loadStruct.frames2load{1} = (1:r3dMovieHeader.numTimepoints) + ...
             correctFrame;
 
     end
@@ -483,6 +523,17 @@ end
             else
                 testStruct = [1:r3dMovieHeader.numTimepoints];
             end
+            
+            % add wave options
+            testStruct.waveIdx = loadStruct.waveIdx;
+            testStruct.waveOrder = loadStruct.waveOrder;
+            
+            % check whether this works at all (at the moment there is no
+            % possibility of using dark frame subtraction with multiple
+            % wavelengths
+            if length(testStruct.waveIdx) > 1
+                error('multicolor darkframes not implemented yet')
+            end
 
             % load movie
             [testMovie,dummy,testLoadStruct] = cdLoadMovie('raw',[],testStruct);
@@ -491,7 +542,7 @@ end
             % two variables of maxSize
             testMovie = testMovie - ...
                 repmat(loadStruct.correctionData.image,...
-                [1,1,1,size(testMovie,4),size(testMovie,5)]);
+                [1,1,1,1,size(testMovie,5)]);
 
             minimumIntensity = min(testMovie(:));
 
@@ -555,12 +606,12 @@ else
                 % load all at once
                 % r3dread: filename, start, numFrames
                 movie = r3dread(loadStruct.movieName,loadList(1), ...
-                    loadListLength);
+                    loadListLength,[],loadStruct.waveIdx,loadStruct.waveOrder);
             else
                 % load movie timepoint by timepoint
                 for t = loadListLength:-1:1
                     movie(:,:,:,:,t) = r3dread(loadStruct.movieName,...
-                        loadList(t),1);
+                        loadList(t),1,[],loadStruct.waveIdx,loadStruct.waveOrder);
                 end
             end
 
@@ -569,12 +620,12 @@ else
                 % load all at once
                 % r3dread: filename, start, numFrames
                 movie = r3dread(loadStruct.movieName,loadList(1), ...
-                    loadListLength);
+                    loadListLength,[],loadStruct.waveIdx,loadStruct.waveOrder);
             else
                 % load movie timepoint by timepoint
                 for t = loadListLength:-1:1
                     movie(:,:,:,:,t) = r3dread(loadStruct.movieName,...
-                        loadList(t),1);
+                        loadList(t),1,[],loadStruct.waveIdx,loadStruct.waveOrder);
                 end
             end
 
@@ -582,7 +633,7 @@ else
             % matrices of maxSize, all is lost, anyway.
             movie = movie - ...
                 repmat(loadStruct.correctionData.image,...
-                [1,1,1,size(movie,4),size(movie,5)]) - ...
+                [1,1,1,1,size(movie,5)]) - ...
                 loadStruct.correctionData.minimumIntensity;
 
 
