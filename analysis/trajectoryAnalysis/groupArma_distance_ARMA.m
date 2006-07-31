@@ -83,7 +83,7 @@ function [distance, associatedInfo, data, parameters] = groupArma_distance_ARMA(
 % Then, loop through all pairs and calculate the distance measures.
 
 %=============
-%% test Input
+%% test Input & initialize
 %=============
 isInit = ~isfield(parameters,'group') || isempty(parameters.group);
 
@@ -96,6 +96,14 @@ if isInit
     
     % init recalc
     recalc = false;
+    
+    % init data, so that we have a field numObserveIndividual everywhere
+    for iData = 1:nData
+        for iTraj = length(data(iData).lengthSeries):-1:1
+            data(iData).numObserveIndividual(iTraj,1) = ...
+                sum(~isnan(data(iData).lengthSeries(iTraj).observations(:,1)));
+        end
+    end
     
     
 else
@@ -120,6 +128,12 @@ else
         case 2
             % recalc all the time
             recalc = true;
+            
+        case 3          
+            % recalc, but only choose subset to keep size of data sets
+            % constant.
+            [data,recalc] = groupArma_combineWithSubsets(data,parameters,ijk);
+                            
     end
 
     % if recalc, we're creating a new data set

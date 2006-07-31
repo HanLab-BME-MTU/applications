@@ -113,6 +113,11 @@ else
         case 2
             % recalc all the time
             recalc = true;
+
+        case 3
+            % recalc, but only choose subset to keep size of data sets
+            % constant.
+            [data,recalc] = groupArma_combineWithSubsets(data,parameters,ijk);
     end
 
     % if recalc, we're creating a new data set
@@ -183,11 +188,11 @@ for i = 1:nSets-1
         % very low ratios, p is set to zero, making it meaningless.
         % In these cases, we extrapolate the values. To avoid problems with
         % realmin, we directly use the negative log of the probability
-        
+
         F = data(iIdx).wnVariance/data(jIdx).wnVariance;
         n1 = data(iIdx).numObserve - sum(data(iIdx).orderLen);
         n2 = data(jIdx).numObserve - sum(data(jIdx).orderLen);
-        
+
         [logP,isExtrapolated] = fcdfExtrapolateLog(F,n1,n2);
         associatedInfo(ct,[2:5,8]) = [logP, F, n1, n2, isExtrapolated];
 

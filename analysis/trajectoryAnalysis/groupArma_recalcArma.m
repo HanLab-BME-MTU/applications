@@ -17,9 +17,11 @@ function [data] = groupArma_recalcArma(data,ijk)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% make new length series
+% make new length series if necessary
+if ~isempty(data(ijk(3)).lengthSeries)
 data(ijk(3)).lengthSeries = ...
     [data(ijk(1)).lengthSeries,data(ijk(2)).lengthSeries];
+end
 
 % set initial guesses for new data. Take from set with more
 % observations (if ijk2 has more, idx into ijk will become 2
