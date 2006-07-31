@@ -24,6 +24,16 @@ function groupedData = groupArmaDescriptors(data,options)
 %                              [0,0] - no recalculation of ARMA descriptors
 %                              [1,p] - recalculation until a threshold p is reached
 %                              [2,0] - recalculation for all groups
+%                              [3,p,a] - recalculation until a threshold p
+%                              is reached (p==0 => recalc for all groups).
+%                              Use only a subset of movies from each group,
+%                              so that the total number of observations of
+%                              the recalculated group is the average of the
+%                              number of the observations of all the
+%                              combined sets. a==1 chooses roughly the same
+%                              number of timepoints from each set, a==2
+%                              takes timepoints according to the size of
+%                              the data sets.
 %
 % OUTPUT    groupedData : output structure with fields
 %                .collectedData(1:n) groups of data as divided according to
