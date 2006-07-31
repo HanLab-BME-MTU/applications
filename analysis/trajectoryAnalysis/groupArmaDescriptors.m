@@ -294,6 +294,7 @@ distanceFunctionParameters.mode = options.wnv1_mode;
     groupData(data,'groupArma_distance_WNV',...
     groupingOptions,distanceFunctionParameters);
 
+
 % label axis
 set(get(groupedData.plotHandles.axesH,'XLabel'),'String','-^1^0log(probability)')
 set(groupedData.plotHandles.figureH,'Name','WNV - Round 1');

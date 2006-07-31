@@ -33,7 +33,7 @@ initialGuess.maParamP0 = data(initialIdx).maParamK(2,:);
 initialGuess.xParamP0 = data(initialIdx).xParamK;
 
 % recalculate
-fitResults = armaXFitKalman(data(ijk(3)).lengthSeries,[],initialGuess);
+fitResults = armaxFitKalman(data(ijk(3)).lengthSeries,[],initialGuess);
 
 % assign to data
 for fn=fieldnames(fitResults)'
