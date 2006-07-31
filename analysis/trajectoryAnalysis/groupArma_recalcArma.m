@@ -18,7 +18,7 @@ function [data] = groupArma_recalcArma(data,ijk)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % make new length series if necessary
-if ~isempty(data(ijk(3)).lengthSeries)
+if length(data)<ijk(3) || isempty(data(ijk(3)).lengthSeries)
 data(ijk(3)).lengthSeries = ...
     [data(ijk(1)).lengthSeries,data(ijk(2)).lengthSeries];
 end

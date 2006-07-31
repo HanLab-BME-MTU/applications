@@ -47,18 +47,18 @@ if strcmp(movieLoader,'none')
     fImg = filteredMovieName;
     loadStruct.loadedFrames = 1:size(fImg,5);
     loadStruct.frames2load = [];
-    
+
 else
     % load filtered movie
     [fImg, movieHeader, loadStruct] = ...
         cdLoadMovie({filteredMovieName,'filtered'}, [], dataProperties);
-    
+
 end
 
 % preassign output
 % preassign spots
-    spots(1:dataProperties.movieSize(4),1) = struct('sp',[],'COM',[],...
-        'cutoffIntensity',[],'intensityList',[],'coordinateList',[]);
+spots(1:dataProperties.movieSize(4),1) = struct('sp',[],'COM',[],...
+    'cutoffIntensity',[],'intensityList',[],'coordinateList',[]);
 % loop through the movie to collect local maxima
 done = 0;
 while ~done
@@ -76,16 +76,16 @@ while ~done
         end
     end
 
-      
+
 
     %loop through all the loaded points
     for t=1:tsteps
-%preassign mnp. provide for 1000 points.
-    % cols: 1: medianIntensity 2-4: centroid within patch 5:7 centerPos of
-    % patch
-    mnpRows = 1000;
-    mnpRowIncrement = 1000;
-    mnp2 = zeros(mnpRows,7);
+        %preassign mnp. provide for 1000 points.
+        % cols: 1: medianIntensity 2-4: centroid within patch 5:7 centerPos of
+        % patch
+        mnpRows = 1000;
+        mnpRowIncrement = 1000;
+        mnp2 = zeros(mnpRows,7);
         %intialize counter
         ct=1;
         % current time point:
@@ -170,21 +170,21 @@ while ~done
         %     subplot(2,2,3),histogram(mnp(1:ct-1,t),'smooth');
         %     subplot(2,2,4),plot(squeeze(mnp2(1:ct-1,t,1)),mnp(1:ct-1,t),'.');
         currentData = mnp2(1:ct-1,1);
-        figure,%ah=subplot(1,2,1);
-        ah = gca;
-        cutValue = cutFirstHistMode_robust(currentData,[0,1],ah);
+        %         figure,%ah=subplot(1,2,1);
+        %         ah = gca;
+        cutValue = cutFirstHistMode_robust(currentData,[0,1],0);
         %ah=subplot(1,2,2);
         firstCut = currentData>cutValue;
-%         cutoffIntensity = cutFirstHistMode_robust(currentData(firstCut),[0,1],ah);
-cutoffIntensity = cutValue;
-        
+        %         cutoffIntensity = cutFirstHistMode_robust(currentData(firstCut),[0,1],ah);
+        cutoffIntensity = cutValue;
+
         %remember positins etc for the spots that have passed the first
         %cut only
-        spots(loadStruct.loadedFrames(t)).intensityList = mnp2(firstCut,1);
+        spots(loadStruct.loadedFrames(t)).intensityList = currentData(firstCut,1);
         spots(loadStruct.loadedFrames(t)).coordinateList = ...
             [mnp2(firstCut,6) mnp2(firstCut,5) mnp2(firstCut,7)]-ones(sum(firstCut),1)*(d+1)+mnp2(firstCut,2:4);
-        
-spots(t).cutoffIntensity = cutoffIntensity;
+
+        spots(loadStruct.loadedFrames(t)).cutoffIntensity = cutoffIntensity;
         % Take MAXNUMSPOTS plus a few spots - we want to be sure that we don't
         % accidentially throw out a good spot, and we need a few bad apples to
         % make the amplitude cutoff work fine. We take between 2 and 10 more
@@ -216,8 +216,8 @@ spots(t).cutoffIntensity = cutoffIntensity;
         % Find the "center of gravity" of the image
         % use int^10 to get good results (maybe we need more for mammalian
         % cells with their bigger frames?)
-        spots(t).COM = centroid3D(pt,10);
-        
+        spots(loadStruct.loadedFrames(t)).COM = centroid3D(pt,10);
+
 
         if verbose
             mywaitbar(t/tsteps,h,tsteps);
@@ -227,27 +227,28 @@ spots(t).cutoffIntensity = cutoffIntensity;
         %clear FXX FXY FXZ FYX FYY FYZ FZX FZY FZZ
 
     end % loop through loaded timesteps
-    
+
     % load more
-            if isempty(loadStruct.frames2load)
-                done = 1;
-            else
-                
-                    [filteredMovie, movieHeader, loadStruct] = ...
-                        cdLoadMovie(loadStruct.movieType, [], loadStruct);
-               
-            end % load more
-    
+    if isempty(loadStruct.frames2load)
+        done = 1;
+        if verbose
+            close(h);
+        end
+    else
+
+        [fImg, movieHeader, loadStruct] = ...
+            cdLoadMovie(loadStruct.movieType, [], loadStruct);
+
+    end % load more
+
 end % while ~done
 
 
 
-    % plot cutoffIntensity
-    ci = cat(1,spots.cutoffIntensity);
-    figure,plot(ci);
-    
-    
+% plot cutoffIntensity
+ci = cat(1,spots.cutoffIntensity);
+figure,plot(ci);
 
-    if verbose
-        close(h);
-    end
+
+
+  

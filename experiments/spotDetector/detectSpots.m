@@ -113,10 +113,10 @@ debugData = [];
 
 % find maximum allowed data size
 if isfield(dataProperties,'maxSize')
-    loadOptions.maxSize = dataProperties.maxSize;
+    % all is well
 else
     % set maximum size to 100 Mb
-    loadOptions.maxSize = 100000000;
+    dataProperties.maxSize = 100000000;
 end
 
 % check for path in rawMovieName
@@ -162,7 +162,7 @@ switch dataProperties.detector_spotfind
         else
             % load filtered movie
             [filteredMovie, movieHeader, loadStruct] = ...
-                cdLoadMovie({filteredMovieName,'filtered'}, [], loadOptions);
+                cdLoadMovie({filteredMovieName,'filtered'}, [], dataProperties);
             deltaFrames = 0;
         end
 
@@ -222,7 +222,7 @@ end
 switch movieLoader
     case 'cdLoadMovie'
         [rawMovie, movieHeader, loadStruct] = ...
-            cdLoadMovie({rawMovieName,'corr/raw'}, [], loadOptions);
+            cdLoadMovie({rawMovieName,'corr/raw'}, [], dataProperties);
         % check if there are any leading darkframes we need to subtract
         deltaFrames = loadStruct.loadedFrames(1) - 1;
     case 'imaris'
@@ -231,7 +231,7 @@ switch movieLoader
         end
         [rawMovie,movieSize,movieName,...
             moviePath,movieHeader,imarisHandle,loadStruct] = ...
-            imarisImread(imarisHandle,[],dataProperties.crop,loadOptions.maxSize);
+            imarisImread(imarisHandle,[],dataProperties.crop,dataProperties.maxSize);
         deltaFrames = 0;
 
     case 'sedat'
