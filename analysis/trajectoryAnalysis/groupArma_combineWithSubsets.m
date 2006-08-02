@@ -85,12 +85,12 @@ if parameters.mode(2) == 0 || parameters.associatedInfo(2) < -log10(parameters.m
         % now we have the sets we want from this group
         data(ijk(3)).lengthSeries = cat(2,...
             data(ijk(3)).lengthSeries,...
-            data(groupedSets(iSet)).lengthSeries(randomIdx(1:row,col)));
+            data(groupedSets(iSet)).lengthSeries(randomIdx(1:row(1),col(1))));
 
         % also store which of the series we have used
         data(ijk(3)).lengthSeriesInfo = cat(1,...
             data(ijk(3)).lengthSeriesInfo,...
-            [groupedSets(iSet)*ones(row,1),randomIdx(1:row,col)]);
+            [groupedSets(iSet)*ones(row(1),1),randomIdx(1:row(1),col(1))]);
     end % loop sets
 else
     recalc = false;

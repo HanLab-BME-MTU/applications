@@ -34,6 +34,11 @@ function groupedData = groupArmaDescriptors(data,options)
 %                              number of timepoints from each set, a==2
 %                              takes timepoints according to the size of
 %                              the data sets.
+%                 multiply     When grouping individual trajectories, set
+%                              this option to a positive integer n. The
+%                              individual trajectories will be repeated n
+%                              times to allow recalculation with
+%                              subsampling. Default: 0
 %
 % OUTPUT    groupedData : output structure with fields
 %                .collectedData(1:n) groups of data as divided according to
@@ -100,6 +105,19 @@ def_options.arma_mode = [3,5e-5,1];%[0, 5e-5];
 def_options.wnv2_cutoff = 1e-12;
 def_options.wnv2_mode = [0 1e-12];
 def_options.plot = 1; % plot results
+def_options.multiply = 0; % don't repeat data
+
+% set options now, because we might need them for loading data
+if nargin < 2 || isempty(options)
+    options = struct;
+end
+% assign default options
+defaultOptions = fieldnames(def_options);
+for fn = 1:length(defaultOptions)
+    if ~isfield(options,defaultOptions{fn}) || isempty(options.(defaultOptions{fn}))
+        options.(defaultOptions{fn}) = def_options.(defaultOptions{fn});
+    end
+end
 
 % tbd: test input, check options, set defaults
 
@@ -264,21 +282,16 @@ if nargin == 0 || isempty(data)
         for i=1:length(goodIdx)
             data(i).lengthSeries = ...
                 lengthData.(sprintf('length%s',strainInfo(selectionIdx(goodIdx(i))).name));
+            if options.multiply
+                data(i).lengthSeries = repmat(data(i).lengthSeries,[1,options.multiply]);
+                data(i).numObserve = data(i).numObserve * options.multiply;
+            end
         end
     end
 
 end % load data
 
-if nargin < 2 || isempty(options)
-    options = struct;
-end
-% assign default options
-defaultOptions = fieldnames(def_options);
-for fn = 1:length(defaultOptions)
-    if ~isfield(options,defaultOptions{fn}) || isempty(options.(defaultOptions{fn}))
-        options.(defaultOptions{fn}) = def_options.(defaultOptions{fn});
-    end
-end
+
 
 %============================
 
