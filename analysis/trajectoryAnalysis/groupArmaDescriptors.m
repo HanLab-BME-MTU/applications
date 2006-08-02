@@ -96,7 +96,7 @@ end
 def_options.wnv1_cutoff = -1;
 def_options.wnv1_mode = [0,1e-12];
 def_options.arma_cutoff = 5e-5;
-def_options.arma_mode = [3,0,1];%[0, 5e-5];
+def_options.arma_mode = [3,5e-5,1];%[0, 5e-5];
 def_options.wnv2_cutoff = 1e-12;
 def_options.wnv2_mode = [0,1e-12];
 def_options.plot = 1; % plot results

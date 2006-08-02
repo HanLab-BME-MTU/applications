@@ -22,7 +22,7 @@ function [data,recalc] = groupArma_combineWithSubsets(data,parameters,ijk)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % check whether we combine at all
-if parameters.mode(2) == 0 || parameters.associatedInfo(2) >= -log10(parameters.mode(2))
+if parameters.mode(2) == 0 || parameters.associatedInfo(2) < -log10(parameters.mode(2))
     % combine (mode2==0 means that there is no cutoff)
     recalc = true;
 
