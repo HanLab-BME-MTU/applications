@@ -600,11 +600,11 @@ end %(while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05)
 %Least squares fitting
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% %reformulate the problem as a least squares fitting and obtain the
-% %variance-covariance matrix of the estimated ARMA coefficients
-% [varCovMatL,arParamL,maParamL,xParamL,errFlag] = armaxLeastSquares(...
-%     trajOriginal,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,...
-%     wnVariance);
+%reformulate the problem as a least squares fitting and obtain the
+%variance-covariance matrix of the estimated ARMA coefficients
+[varCovMatL,arParamL,maParamL,xParamL,errFlag] = armaxLeastSquares(...
+    trajOriginal,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,...
+    wnVariance);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Estimation of variance-covariance matrix

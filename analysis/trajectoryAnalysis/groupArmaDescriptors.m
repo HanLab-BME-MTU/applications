@@ -93,12 +93,12 @@ end
 % the number of the observations of all the combined sets. a==1 chooses
 % roughly the same number of timepoints from each set, a==2 takes
 % timepoints according to the size of the data sets.
-def_options.wnv1_cutoff = -1;
-def_options.wnv1_mode = [0,1e-12];
+def_options.wnv1_cutoff = -2;
+def_options.wnv1_mode = [0 1e-12];
 def_options.arma_cutoff = 5e-5;
 def_options.arma_mode = [3,5e-5,1];%[0, 5e-5];
 def_options.wnv2_cutoff = 1e-12;
-def_options.wnv2_mode = [0,1e-12];
+def_options.wnv2_mode = [0 1e-12];
 def_options.plot = 1; % plot results
 
 % tbd: test input, check options, set defaults
