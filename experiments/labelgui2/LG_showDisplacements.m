@@ -53,7 +53,7 @@ nTags = length(tagList);
 if nTags > 25
     h = helpdlg('please select up to 25 tags between which the distance will be plotted');
     uiwait(h);
-    [tagIdx, tagList] = listSelectGUI(idlist(1).stats.labelcolor,5);
+    [tagIdx, tagList] = listSelectGUI(idlist(1).stats.labelcolor,25);
     nTags = length(tagIdx);
     if ~isempty(colorMap)
         colorMap = colorMap(tagIdx,:);

@@ -56,7 +56,7 @@ else
 end
 
 plotTime = round(linspace(1,dataProperties.movieSize(4),20));
-figure('Name',dataProperties.name);
+fh=figure('Name',dataProperties.name);
 
 % preassign output
 % preassign spots
@@ -178,6 +178,7 @@ while ~done
         %     subplot(2,2,4),plot(squeeze(mnp2(1:ct-1,t,1)),mnp(1:ct-1,t),'.');
         currentData = mnp2(:,1);
         if any(loadStruct.loadedFrames(t)==plotTime)
+            figure(fh);
             ah = subplot(4,5,find(loadStruct.loadedFrames(t)==plotTime));
         else
             ah = 0;
@@ -262,18 +263,24 @@ end % while ~done
 
 
 % plot cutoffIntensity
+% ci = cat(1,spots.cutoffIntensity);
+% figure,plot(ci);
+% % for the overall cutoff: take the average to avoid problems with bimodal
+% % distributions
+% mci = mean(ci);
+% hold on
+% plot([1,length(ci)],[mci,mci],'r');
+
+% while the noise intensity remains similar, the signal intensities
+% decrease over time. Thus, the cutoff will have to be set lower to catch
+% the good spots, and should be calculated via a robust exponential fit.
 ci = cat(1,spots.cutoffIntensity);
-figure,plot(ci);
-% for the overall cutoff: take the average to avoid problems with bimodal
-% distributions
-mci = mean(ci);
-hold on
-plot([1,length(ci)],[mci,mci],'r');
+xFit = robustExponentialFit(ci,[],verbose);
 
 nSpots = zeros(length(spots),1);
 
 for t = 1:length(spots)
-    goodIdx = spots(t).intensityList > mci;
+    goodIdx = spots(t).intensityList > xFit(1)*exp(xFit(2)*t);
     
     % fill sp
     spots(t).sp = struct(...
