@@ -275,7 +275,7 @@ end % while ~done
 % decrease over time. Thus, the cutoff will have to be set lower to catch
 % the good spots, and should be calculated via a robust exponential fit.
 ci = cat(1,spots.cutoffIntensity);
-xFit = robustExponentialFit(ci,[],verbose);
+xFit = robustExponentialFit2(ci,[],verbose);
 
 nSpots = zeros(length(spots),1);
 
