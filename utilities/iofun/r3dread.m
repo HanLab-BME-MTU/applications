@@ -48,7 +48,7 @@ end
 
 %if no filename, open file selection dialog
 if(nargin==0 || isempty(filename))
-    [fname,path]=uigetfile('*.r3d','select image file');
+    [fname,path]=uigetfile({'*.r3d','*.dv'},'select image file');
     if(fname(1)==0)
         image=[];
         filename=[];
@@ -137,7 +137,7 @@ if waveOrder == 1 || numWvl == 1
     % we either have only one wavelength, or the different colors are
     % interlaced. Loop normally.
     % The 2 is probably for 2 bytes per voxel
-    fseek(file,HEADER_SIZE+firstImage+(start-1)*numCol*numRow*numZ*2,-1);
+    fseek(file,HEADER_SIZE+firstImage+(start-1)*numCol*numRow*numZ*2*numWvl,-1);
     for t=1:nTimes
         for w=1:numWvl
             readIm(:)=fread(file,numCol*numRow*numZ,'int16');

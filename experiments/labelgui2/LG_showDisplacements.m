@@ -107,6 +107,6 @@ for i=1:nTags
     objectHandles(i*2) = plot(disp2plot(:,i),'d-','Color',colorMap(i,:));
     % write title
     set(get(ah,'Title'),'Interpreter','none','String',...
-        sprintf('%s',tagList{tagIdx(i)}));
+        sprintf('%s',tagList{(i)}));
     ylim([0,maxDisp]);
 end
