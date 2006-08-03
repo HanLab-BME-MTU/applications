@@ -250,7 +250,8 @@ while ~done
             close(h);
         end
     else
-
+        % free memory
+clear fImg
         [fImg, movieHeader, loadStruct] = ...
             cdLoadMovie(loadStruct.movieType, [], loadStruct);
 if verbose
