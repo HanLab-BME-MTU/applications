@@ -30,7 +30,7 @@ initialIdx = ijk(selectIdx);
 % ar, ma Param have transformed values in the first col
 initialGuess.arParamP0 = data(initialIdx).arParamK(2,:);
 initialGuess.maParamP0 = data(initialIdx).maParamK(2,:);
-initialGuess.xParamP0 = data(initialIdx).xParamK;
+initialGuess.xParam0 = data(initialIdx).xParamK;
 
 % recalculate
 fitResults = armaxFitKalman(data(ijk(3)).lengthSeries,[],initialGuess);
@@ -44,4 +44,4 @@ end
 data(ijk(3)).orderLen = data(ijk(selectIdx)).orderLen;
 % store name
 data(ijk(3)).name = sprintf('%s & %s',...
-    data(ijk(1)).name,data(ijk(1)).name);
+    data(ijk(1)).name,data(ijk(2)).name);
