@@ -99,13 +99,15 @@ nTags = length(idlist(1).stats.labelcolor);
 
 %% read Q-matrix diagonals
 
-% find which Q to use
+% find which Q to use. Have primary and secondary qName, in case there is a
+% frame that has not been successfully tracked from any source
 if isfield(idlist(goodTimes(1)).info,'totalQ_Pix') &&...
         ~isempty(idlist(goodTimes(1)).info.totalQ_Pix)
-    qName = 'totalQ_Pix';
+    qName{1} = 'totalQ_Pix';
 else
-    qName = 'detectQ_Pix';
+    qName{1} = 'detectQ_Pix';
 end
+qName{2} = 'detectQ_Pix'; % there's no alternative for detectQ
 
 % get pix2mu2 - squared conversion factor from pixels to microns. Repmat so
 % that we can directly multiply all Q-diag-entries at once
@@ -115,10 +117,18 @@ pix2mu2 = repmat([dataProperties.PIXELSIZE_XY,...
 % preassing qMatrixDiags so that we only have to loop through goodTimes
 qMatrixDiags = repmat(NaN,[nTimepoints,nTags,3]);
 for t = goodTimes'
+    if isfield(idlist(t).info,qName{1}) && ~isempty(idlist(t).info.(qName{1}))
     qMatrixDiags(t,:,:) = reshape(reshape(...
-        full(diag(idlist(t).info.(qName))) .*...
+        full(diag(idlist(t).info.(qName{1}))) .*...
         repeatEntries(idlist(t).linklist(:,12),3), [3,nTags])'.*...
         pix2mu2,[1,nTags,3]);
+    else
+        % if no qName1, use secondary Q
+        qMatrixDiags(t,:,:) = reshape(reshape(...
+        full(diag(idlist(t).info.(qName{2}))) .*...
+        repeatEntries(idlist(t).linklist(:,12),3), [3,nTags])'.*...
+        pix2mu2,[1,nTags,3]);
+    end
 end
 
 
