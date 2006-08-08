@@ -190,8 +190,9 @@ for i = 1:nSets-1
         % realmin, we directly use the negative log of the probability
 
         F = data(iIdx).wnVariance/data(jIdx).wnVariance;
-        n1 = data(iIdx).numObserve - sum(data(iIdx).orderLen);
-        n2 = data(jIdx).numObserve - sum(data(jIdx).orderLen);
+        % use orderLen+1 to remember that we also fit WNV!
+        n1 = data(iIdx).numObserve - sum(data(iIdx).orderLen + 1);
+        n2 = data(jIdx).numObserve - sum(data(jIdx).orderLen + 1);
 
         [logP,isExtrapolated] = fcdfExtrapolateLog(F,n1,n2);
         associatedInfo(ct,[2:5,8]) = [logP, F, n1, n2, isExtrapolated];

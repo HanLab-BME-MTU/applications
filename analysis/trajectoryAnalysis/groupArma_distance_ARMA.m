@@ -214,10 +214,13 @@ for i = 1:nSets-1
             % fTest
             
             % get degrees of freedom. Use maximum for both to get strict
-            % test
+            % test. OrderLen has to be increased by 1, because we are also
+            % fitting WNV. For n1, this is not necessary, because this
+            % parameter describes the size of the variance-covariance
+            % matrix
             n1 = max(sum(data(iIdx).orderLen),sum(data(jIdx).orderLen));
-            n2 = max(data(iIdx).numObserve - sum(data(iIdx).orderLen),...
-                data(jIdx).numObserve - sum(data(jIdx).orderLen));
+            n2 = max(data(iIdx).numObserve - sum(data(iIdx).orderLen + 1),...
+                data(jIdx).numObserve - sum(data(jIdx).orderLen + 1));
             
             
             % directly calculate -log10(p)

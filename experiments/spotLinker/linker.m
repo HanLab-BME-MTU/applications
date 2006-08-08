@@ -294,25 +294,9 @@ end
 %=======================
 
 % add help, start history, expand Q-matrices
-finishIdlist;
-
-
-
-
-% ADD SAVE OPTION HERE
-
-
-%=======================
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% NESTED SUBFUNCTIONS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    function finishIdlist
-
-        if recalc == -1
+% finishIdlist; % nested subfunctions are nice, but they make debugging
+% hell
+if recalc == -1
 
             % add help. Sort and expand Q-matrices where applicable. Remove unnecessary
             % fields
@@ -429,5 +413,137 @@ finishIdlist;
 
         end
 
-    end % nested function
-end % main function
+
+
+% ADD SAVE OPTION HERE
+
+
+%=======================
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% NESTED SUBFUNCTIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     function finishIdlist
+% 
+%         if recalc == -1
+% 
+%             % add help. Sort and expand Q-matrices where applicable. Remove unnecessary
+%             % fields
+%             %write explanation for linklist
+%             idlist(1).stats.help{1,1}='Columns of linklist:';
+%             idlist(1).stats.help{2,1}='1: timespot #';
+%             idlist(1).stats.help{3,1}='2: spot # (0: tag not found)';
+%             idlist(1).stats.help{4,1}='3: unused';
+%             idlist(1).stats.help{5,1}='4: tag color';
+%             idlist(1).stats.help{6,1}='5: flag';
+%             idlist(1).stats.help{7,1}='6: linkup to spot #';
+%             idlist(1).stats.help{8,1}='7: linkdown to spot #';
+%             idlist(1).stats.help{9,1}='8: intensity';
+%             idlist(1).stats.help{10,1}='9-11: x/y/z-coordinates in um (Image Coordinates!)';
+%             idlist(1).stats.help{11,1}='12: chi^2 of the spot on which the tag is located';
+%             idlist(1).stats.help{12,1}='';
+%             idlist(1).stats.help{13,1}='Flags in col 3:';
+%             idlist(1).stats.help{14,1}='1: estimated spot';
+%             idlist(1).stats.help{15,1}='2: MTM spot (found by tagTracker)';
+%             idlist(1).stats.help{16,1}='3/4: primary/secondary fusion spot';
+%             idlist(1).stats.help{17,1}='Flags in col 5:';
+%             idlist(1).stats.help{18,1}='1: adjusted intensity';
+%             idlist(1).stats.help{19,1}='2: only occurence of tag';
+%             idlist(1).stats.help{20,1}='3: estimated position of only occurence';
+% 
+%             %write labellist
+%             idlist(1).stats.labellist{1,1}='spb1';
+%             idlist(1).stats.labellist{2,1}='cen1';
+%             idlist(1).stats.labellist{3,1}='spb2';
+%             idlist(1).stats.labellist{4,1}='cen2';
+%         end
+% 
+%         if recalc == -1
+%             %write color<->label as all '?'
+%             idlist(1).stats.labelcolor(1:maxTagIdx,1)=cellstr('?');
+%         else
+%             % write color<->label and keep previous labels. MAXSPOTS could have
+%             % changed. If it increased, we will just remember another '?', if it
+%             % decreased, the good labels hopefully don't switch position
+%             oldLabels = ...
+%                 idlist(1).stats.labelcolor(1:min(dataProperties.MAXSPOTS,...
+%                 length(idlist(1).stats.labelcolor)));
+%             idlist(1).stats.labelcolor = {}; % necessary if maxspots decreased
+%             idlist(1).stats.labelcolor(1:maxTagIdx,1)=cellstr('?');
+%             idlist(1).stats.labelcolor(1:length(oldLabels)) = oldLabels;
+%         end
+% 
+% 
+%         % write maxColor (=maxIdx)
+%         idlist(1).stats.maxColor = maxTagIdx;
+% 
+%         if recalc == -1
+% 
+%             % write name, created, history
+%             idlist(1).stats.name = dataProperties.name;
+%             idlist(1).stats.created = date;
+%             idlist(1).stats.status = {[date ': idlist created']};
+%         else
+%             idlist(1).stats.status{end+1,1} = ...
+%                 sprintf('%s : recalc %i',date,recalc);
+%         end
+% 
+%         % remove unnecessary fields
+%         if ~DEBUG
+%             if isfield(idlist,'distMatAmp')
+%                 idlist = rmfield(idlist,...
+%                     {'distMatAmp','distMatXyz','distMat'});
+%                 if isfield(idlist,'sourceIdxList')
+%                     idlist = rmfield(idlist,'sourceIdxList');
+%                 end
+%             end
+%         end
+%         if isfield(idlist(1).stats,'recalc')
+%             stats = idlist(1).stats;
+%             stats = rmfield(stats, 'recalc');
+%             idlist(1).stats = stats;
+%         end
+% 
+% 
+% 
+% 
+% 
+%         % expand the Q-matrices. For the lost tags, add boundaries for tracker
+%         % (square them, so that we don't need to distinguish between lost tags and
+%         % found tags in the tracker). Since Q is diagonal, we could also make it a
+%         % sparse matrix
+% 
+% 
+% 
+%         for t=goodTimes'
+% 
+% 
+%             % write chi2 - account for possible fusions
+%             for i = 1:length(idlist(t).info.chi)
+%                 spotIdx = idlist(t).linklist(:,2)==i;
+%                 idlist(t).linklist(spotIdx,12) = idlist(t).info.chi(i);
+%             end
+% 
+%             % loop through trackInit and write boundaries (admittedly not the most
+%             % beautiful way, but it's Friday)
+%             for i=1:size(idlist(t).trackInit,1)
+%                 % read tagIdx
+%                 tagIdx = idlist(t).trackInit(i,1);
+%                 % fill Q-matrix with sqare of the boundary
+%                 idlist(t).info.detectQ_Pix(...
+%                     (tagIdx-1)*3+1:tagIdx*3,(tagIdx-1)*3+1:tagIdx*3) =...
+%                     diag(idlist(t).trackInit(i,2:end).^2);
+%             end
+% 
+%             % remove chi
+%             info = idlist(t).info;
+%             info = rmfield(info,{'chi'});
+%             idlist(t).info = info;
+% 
+%         end
+% 
+%     end % nested function
+% end % main function

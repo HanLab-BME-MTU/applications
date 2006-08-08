@@ -55,7 +55,7 @@ else
 
 end
 
-plotTime = round(linspace(1,dataProperties.movieSize(4),20));
+plotTime = round(linspace(1,dataProperties.movieSize(4),12));
 fh=figure('Name',dataProperties.name);
 
 % preassign output
@@ -167,7 +167,7 @@ while ~done
 
             end;
         end;
-        
+
         % remove superfluous rows from mnp2
         mnp2(ct:end,:) = [];
 
@@ -179,13 +179,13 @@ while ~done
         currentData = mnp2(:,1);
         if any(loadStruct.loadedFrames(t)==plotTime)
             figure(fh);
-            ah = subplot(4,5,find(loadStruct.loadedFrames(t)==plotTime));
+            ah = subplot(3,4,find(loadStruct.loadedFrames(t)==plotTime));
         else
             ah = 0;
         end
-%                 figure,%ah=subplot(1,2,1);
-%                 ah = gca;
-%ah = 0;
+        %                 figure,%ah=subplot(1,2,1);
+        %                 ah = gca;
+        %ah = 0;
         cutValue = cutFirstHistMode_robust(currentData,[0,2],ah);
         %ah=subplot(1,2,2);
         firstCut = currentData>cutValue;
@@ -251,10 +251,10 @@ while ~done
         end
     else
         % free memory
-clear fImg
+        clear fImg
         [fImg, movieHeader, loadStruct] = ...
             cdLoadMovie(loadStruct.movieType, [], loadStruct);
-if verbose
+        if verbose
             close(h);
         end
     end % load more
@@ -282,13 +282,25 @@ nSpots = zeros(length(spots),1);
 
 for t = 1:length(spots)
     goodIdx = spots(t).intensityList > xFit(1)*exp(xFit(2)*t);
-    
+
+    % count # of spots
+    nSpots(t) = sum(goodIdx);
+
+    % if there are more than MAXSPOTS, we remove the rest
+    if nSpots(t) > dataProperties.MAXSPOTS
+        [dummy,sortIdx] = sort(spots(t).intensityList(goodIdx));
+        sortIdx = sortIdx(1:dataProperties.MAXSPOTS);
+        nSpots(t) = dataProperties.MAXSPOTS;
+    else
+        sortIdx = (1:nSpots(t))';
+    end
+
     % fill sp
     spots(t).sp = struct(...
-        'cord',mat2cell(spots(t).coordinateList(goodIdx,:),double(goodIdx(goodIdx)),3),...
-        'mnint',mat2cell(spots(t).intensityList(goodIdx,:),double(goodIdx(goodIdx)),1));
-    nSpots(t) = sum(goodIdx);
-    
+        'cord',mat2cell(spots(t).coordinateList(goodIdx(sortIdx),:),double(goodIdx((sortIdx))),3),...
+        'mnint',mat2cell(spots(t).intensityList(goodIdx(sortIdx),:),double(goodIdx((sortIdx))),1));
+
+
 end
 
 % remove intensity list, coordinateList from spots
@@ -301,8 +313,8 @@ ah=subplot(2,1,1);
 histogram(ah,allInt);
 subplot(2,1,2);
 plot(1:length(spots),nSpots,'.');
-        
 
 
 
-  
+
+
