@@ -1198,8 +1198,8 @@ idlisttrack = idlist;
 
 % merge goodIdx into a single list of indices with frames where all
 % tracking succeeded
-goodIdxAll = [1:nTimepoints]';
-for i=1:nTags
+goodIdxAll = (1:nTimepoints)';
+for iTag=1:nTags
     goodIdxAll = intersect(goodIdxAll,goodIdx{iTag});
 end
 
