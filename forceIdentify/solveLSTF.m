@@ -17,7 +17,6 @@ if ~isfield(regParam,'selTFSigma')
    return;
 end
 
-fprintf(1,'   Regularization parameter: %5.3f.\n',regParam.selTFSigma);
 startTime = cputime;
 
 %Regularization parameter for 'solveLS'.
@@ -37,6 +36,23 @@ for ii = 1:length(selTimeSteps)
    localStartTime = cputime;
 
    fprintf(1,'   Time step %d ...',jj);
+   fprintf(1,'Regularization parameter: %5.3f.\n',regParam.selTFSigma(jj));
+
+   if isnan(regParam.selTFSigma(jj))
+      %Find the closest time step whose 'selTFSigma' is not NaN.
+      iSigma = min(abs(jj-find(~isnan(regParam.selTFSigma))));
+      if isempty(iSigma)
+         fprintf(1,['   Regularization parameter has not been identified yet.\n' ...
+            '   Please run ''calOptRegParTF'' first.\n']);
+         return;
+      end
+
+      selTFSigma = regParam.selTFSigma(iSigma);
+   else
+      selTFSigma = regParam.selTFSigma(jj);
+   end
+
+   fprintf(1,'   Regularization parameter: %5.3f.\n',selTFSigma);
    imgIndex = imgIndexOfDTimePts(jj);
 
    fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
@@ -71,7 +87,7 @@ for ii = 1:length(selTimeSteps)
       A{k} = reshape(A{k},2*numDP,2*fsBnd(k).dim);
       [m,n] = size(A{k});
 
-      forceField.coefTF{k} = (A{k}.'*A{k}+regParam.selTFSigma*eye(n))\(A{k}.'*rightU{k});
+      forceField.coefTF{k} = (A{k}.'*A{k}+selTFSigma*eye(n))\(A{k}.'*rightU{k});
       for kk = 1:length(procStr)
          fprintf(1,'\b');
       end

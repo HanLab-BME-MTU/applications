@@ -27,6 +27,16 @@ end
 pixelX = [1:size(stackedImg,2)];
 pixelY = [1:size(stackedImg,1)];
 
+numColors = 128;
+
+%Blue-Green to yellow.
+cMap = [linspace(0,1,numColors/2).' ...
+   linspace(0.5,1,numColors/2).' ...
+   linspace(0.5,0.05,numColors/2).'];
+%Yellow to red.
+cMap = [cMap; [ones(numColors/2,1) ...
+   linspace(1,0,numColors/2).' zeros(numColors/2,1)]];
+
 %Load adhesion coefficients map.
 indexStr = sprintf(imgIndexForm,imgIndexOfDTimePts(jj));
 adcMapFile = [reslDir filesep 'adcMap' filesep 'adcMap' indexStr '.mat'];
@@ -48,9 +58,6 @@ iDispField = s.iDispField;
 
 gridX = iDispField.gridX;
 gridY = iDispField.gridY;
-
-cMap = [[zeros(10,1) linspace(0,0.95,10).' linspace(1,0.05,10).']]; %Blue
-cMap = [cMap; [ones(30,1) linspace(1,0,30).' zeros(30,1)]]; %Yellow to red.
 
 numInd = find(~isnan(adcMap));
 maxADC = adfColorDispRange(2)*max(adcMap(numInd));

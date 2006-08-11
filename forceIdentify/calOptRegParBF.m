@@ -1,5 +1,5 @@
-%Identify the optimal regularization parameter range and choose the regularization parameter in this
-%range. We use time step 1.
+%Identify the optimal regularization parameter range and choose the regularization parameter
+% in thisrange.
 
 regParam.minBFSigma = NaN*ones(1,length(imgIndexOfDTimePts));
 regParam.maxBFSigma = NaN*ones(1,length(imgIndexOfDTimePts));
@@ -105,7 +105,11 @@ for ii = 1:length(selTimeSteps)
 
    while strcmp(isBFSigmaRangeIdentified,'no')
       %Calculate the L-curve.
-      bfSigmaCandidate = bfSigma*[1e-5 1e-4 1e-3 1e-2 1e-1 1 1e1 1e2 1e3 1e4 1e5];
+      bfSigmaRange2 = bfSigma*[1e-5 1e-4 1e-3 1e-2 1e-1 1 1e1 1e2 1e3 1e4 1e5];
+      bfSigmaRange1 = bfSigmaRange2/5;
+      bfSigmaRange3 = bfSigmaRange2*5;
+      bfSigmaCandidate = [bfSigmaRange1 bfSigmaRange2 bfSigmaRange3];
+      bfSigmaCandidate = sort(bfSigmaCandidate);
       coefNorm    = zeros(1,length(bfSigmaCandidate));
       residueNorm = zeros(1,length(bfSigmaCandidate));
       for kk = 1:length(bfSigmaCandidate)

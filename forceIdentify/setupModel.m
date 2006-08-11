@@ -292,7 +292,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Get preprocessed experimental data such as calculating boundary displacement. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-localStartTime = cputime;
 fprintf(1,'Calculating boundary displacement ... \n');
 answer = input('Select time steps (0 for all):');
 if isempty(answer) | answer == 0
@@ -303,6 +302,9 @@ end
 
 for ii = 1:length(selTimeSteps)
    jj = selTimeSteps(ii);
+
+   localStartTime = cputime;
+   fprintf(1,'   Time Step: %d ... ',jj);
 
    imgIndex = imgIndexOfDTimePts(jj);
    % Load the raw field
@@ -355,7 +357,21 @@ for ii = 1:length(selTimeSteps)
    %Calculate the displacements of the boundary edges given by 'msh'. See
    % 'help meshinit' for information about the MESH structure in FEMLAB.
    if strcmp(trackMethod,'simu')
+      smoothFactor = input('Select smooth factor (0-5): ');
+      if isempty(smoothFactor)
+         smoothFactor = 0;
+      end
+
       edgD = rawDispField.edgD;
+      for kk = 1:numEdges
+         edgS = linspace(edgD(kk).s(1),edgD(kk).s(end), ...
+            ceil(length(edgD(kk).s)/(smoothFactor+2)));
+         sKnot = augknt(edgS,4);
+         %sKnot = augknt(edgD(kk).s(1:2:end),4);
+         edgD(kk).ppU1 = spap2(sKnot,4,edgD(kk).s,edgD(kk).U1.');
+         edgD(kk).ppU2 = spap2(sKnot,4,edgD(kk).s,edgD(kk).U2.');
+         edgD(kk).smoothFactor = smoothFactor;
+      end
    else
       edgCorLen = iDispField.edgCorLen;
       for k = 1:numEdges
@@ -374,6 +390,7 @@ for ii = 1:length(selTimeSteps)
          %Create spline interpolation of the edge displacement using arclength
          % parameter stored in 'msh.e(3:4,:)'.
          numInd = find(~isnan(edgD(k).U1));
+         edgD(k).s = edge(k).bndS(numInd);
          bndSKnt = augknt(edge(k).bndS(numInd),2);
          edgD(k).ppU1 = spapi(bndSKnt,edge(k).bndS(numInd), edgD(k).U1(numInd).');
          %edgD(k).ppU1 = spline(edge(k).bndS(numInd), edgD(k).U1(numInd).');
@@ -387,8 +404,9 @@ for ii = 1:length(selTimeSteps)
    %Save the edge mesh information and displacements data.
    iDispField.edgD = edgD;
    save(iDispFieldFile,'iDispField');
+
+   fprintf(1,'Done in %5.3f sec.\n', cputime-localStartTime);
 end
-fprintf(1,'Done in %5.3f sec.\n', cputime-localStartTime);
 
 %Save the displacements on the boundary.
 %save([reslDir filesep  'edgeDisp'],'numEdges','edgePPx','edgePPy', ...

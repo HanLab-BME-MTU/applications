@@ -55,7 +55,7 @@ for ii = 1:length(selTimeSteps)
    %Get the stacked cell image in the averaging range.
    frameNo = max(firstImgIndex,imgIndex)-firstImgIndex+1;
    if length(numAvgFrames) == numDTimePts
-      curNumAvgFrames = numAvgFrames(curDTimePt);
+      curNumAvgFrames = numAvgFrames(jj);
    else
       curNumAvgFrames = numAvgFrames;
    end

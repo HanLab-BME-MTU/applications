@@ -144,6 +144,7 @@
 %   adfColorDispRange: Adhesion force.
 %   spdColorDispRange: Speed.
 %
+% showBdfCBar: Specify whether show color bar for the speed map.
 % showSpdCBar: Specify whether show color bar for the speed map.
 %
 % showYModCBar: Specify whether show color bar for the Young's modulus color map.
@@ -206,7 +207,7 @@ adfAngle          = pi/10;
 fixMcfProj        = 'yes';
 edgBrkDistTF      = 15;
 edgDispIntvLen    = 10;
-edgToDisplay      = 1;
+edgCornerSegCut   = 3;
 bspOrderTF        = 4;
 bfSigma           = 1e5;
 tfSigma           = 1e2;
@@ -236,6 +237,7 @@ bdfColorDispRange = [0 1]; %Full range.
 mcfColorDispRange = [0 1]; %Full range.
 adfColorDispRange = [0 1]; %Full range.
 spdColorDispRange = [0 1]; %Full range.
+showBdfCBar       = 'yes';
 showSpdCBar       = 'yes';
 showYModCBar      = 'yes';
 spdUnit           = 'umPerMin';
@@ -266,7 +268,7 @@ param.adfAngle          = adfAngle;
 param.fixMcfProj        = fixMcfProj;
 param.edgBrkDistTF      = edgBrkDistTF;
 param.edgDispIntvLen    = edgDispIntvLen;
-param.edgToDisplay      = edgToDisplay;
+param.edgCornerSegCut   = edgCornerSegCut;
 param.bspOrderTF        = bspOrderTF;
 param.bfSigma           = bfSigma;
 param.tfSigma           = tfSigma;
@@ -296,6 +298,7 @@ param.bdfColorDispRange = bdfColorDispRange;
 param.mcfColorDispRange = mcfColorDispRange;
 param.adfColorDispRange = adfColorDispRange;
 param.spdColorDispRange = spdColorDispRange;
+param.showBdfCBar       = showBdfCBar;
 param.showSpdCBar       = showSpdCBar;
 param.showYModCBar      = showYModCBar;
 param.spdUnit           = spdUnit;

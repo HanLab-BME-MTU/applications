@@ -6,7 +6,7 @@ fprintf(1,'Post assemble of the identified boundary traciton force:\n');
 startTime = cputime;
 
 ans = input('Select time steps (0 for all):');
-if isempty(ans) || ans == 0
+if isempty(ans) | ans == 0
    selTimeSteps = 1:numDTimePts;
 else
    selTimeSteps = ans;
@@ -65,7 +65,7 @@ for ii = 1:length(selTimeSteps)
 
       %The corner between two edges poses a singular point for boundary force reconstruction.
       % We cut off e.g. 2 segments.
-      edgCornerSegCut = 4;
+      %edgCornerSegCut = 4;
       coefTFx(1:edgCornerSegCut) = 0;
       coefTFy(1:edgCornerSegCut) = 0;
       coefTFx(end-edgCornerSegCut:end) = 0;
