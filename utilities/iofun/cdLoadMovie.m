@@ -261,7 +261,7 @@ else
             % check whether there are multiple files. If yes, and one of
             % them is a DIC, then we take the other. If no DIC, we error.
             if length(idx) > 1
-                regCell = regexp(fileNameList(idx),'DIC');
+                regCell = regexpi(fileNameList(idx),'^DIC_|^pre_|^post_');
                 % idxIdx is an index into idx
                 idxIdx = find(~cellfun('isempty',regCell));
                 if ~isempty(idxIdx) && (length(idxIdx) == length(idx) - 1)
