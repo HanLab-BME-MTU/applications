@@ -1167,7 +1167,7 @@ end
 % end
 
 % DEBUG
-save(sprintf('trackerWorkspace%s.mat',nowString));
+%save(sprintf('trackerWorkspace%s.mat',nowString));
 
 % if debug: shorten the matrices so that it isn't insanely big
 if debug && isfield(debugData,'fitStats')
