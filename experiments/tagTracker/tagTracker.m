@@ -57,7 +57,6 @@ constants.linearVariances = false; %whether or not to require a linear dependenc
 % debug options
 % set defaults first
 constants.numSources = 5;
-dbDeltaInitPos = [];
 debug = 0;
 debugData = [];
 if nargin < 5 || isempty(dbOpt)
@@ -68,10 +67,6 @@ else
         % set number of sources (-to be moved into dataProperties)
         if isfield(dbOpt,'nSources')
             constants.numSources = dbOpt.nSources;
-        end
-        % set perturbation of starting positions -> better perturb outside
-        if isfield(dbOpt,'deltaInitPos')
-            dbDeltaInitPos = dbOpt.deltaInitPos;
         end
         % set gradient option -> move into dataProperties
         if isfield(dbOpt,'gradientOption')
@@ -185,13 +180,13 @@ for t = goodTimes'
     inputQmatrixDiag(t,:,:) = qMatDiag;
     % DONT USE SEARCHRADIUS ANYMORE
     % searchRadius: sqrt of Q * factor or from idlist.trackInit
-%     searchRadius = sqrt(reshape(squeeze(qMatDiag)',[3,nTags])') *...
-%         constants.trackerRadiusMultiplicator;
-%     if ~isempty(idlist(t).trackInit)
-%         searchRadius(idlist(t).trackInit(:,1),:) = ...
-%             idlist(t).trackInit(:,2:end);
-%     end
-%     searchRadius4Source(t,:) = reshape(searchRadius',[1,3*nTags]);
+    %     searchRadius = sqrt(reshape(squeeze(qMatDiag)',[3,nTags])') *...
+    %         constants.trackerRadiusMultiplicator;
+    %     if ~isempty(idlist(t).trackInit)
+    %         searchRadius(idlist(t).trackInit(:,1),:) = ...
+    %             idlist(t).trackInit(:,2:end);
+    %     end
+    %     searchRadius4Source(t,:) = reshape(searchRadius',[1,3*nTags]);
 
 
     % for estimated tags: use trackInit
@@ -236,15 +231,15 @@ trackPairs = ...
 % for the code.
 
 sourceList = unique(trackPairs(:,1));
-nSources = length(sourceList);
+%nSources = length(sourceList);
 nTrackPairs = size(trackPairs,1);
 
 % A is the same for all three dimensions (it is also the same for all tags,
 % but might not in the future
 fittingMatrices(1:nTags) = struct(...
-    'A',zeros(nSources+nTrackPairs,nTimepoints,1),...
-    'B',zeros(nSources+nTrackPairs,1,3),...
-    'V',zeros(nSources+nTrackPairs,1,3));
+    'A',zeros(nTimepoints+nTrackPairs,nTimepoints,1),...
+    'B',zeros(nTimepoints+nTrackPairs,1,3),...
+    'V',zeros(nTimepoints+nTrackPairs,1,3));
 
 % fill in source data - this will produce zero-rows and cols in the fitting
 % matrices. We will later remove them.
@@ -602,7 +597,6 @@ while ~isempty(trackPairs)
                 % prepare fitting loop
                 parameters = initialParameters;
                 oldParameters = zeros(size(initialParameters,1),maxIter);
-                sigmaResidual2 = zeros(nTags,maxIter);
                 iter = 0;
                 xfl = 0; % exitflag. 0=no convergence
 
@@ -842,8 +836,9 @@ while ~isempty(trackPairs)
             % by sigmaResidual
             for iTag = 1:nTags
                 % parameters = target - source
-                fittingMatrices(iTag).A(fittingIdx,currentTarget,1) = 1;
-                fittingMatrices(iTag).A(fittingIdx,currentSource,1) = -1;
+                %fittingMatrices(iTag).A(fittingIdx,currentTarget,1) = 1;
+                %fittingMatrices(iTag).A(fittingIdx,currentSource,1) = -1;
+                fittingMatrices(iTag).A(fittingIdx,[currentSource,currentTarget],1) = [-1,1];
                 fittingMatrices(iTag).B(fittingIdx,1,:) = ...
                     targetInfo(iTag).deltaCoord(:);
                 % if we come from lsqnonlin: use its Jacobian
@@ -909,12 +904,18 @@ while ~isempty(trackPairs)
         currentStrategy(1,:) = [];
 
     end % loop currentStrategy
+    
+%     % debug
+%     if mod(collectIdx,10)==0
+%         save(sprintf('fittingMatrices_A_%i_%s.mat',collectIdx,nowString),'fittingMatrices');
+%     end
 
 
 end % while ~isempty trackingStrategy
 
 %====================================
 
+%save(sprintf('fittingMatrices_A_%s.mat',nowString),'fittingMatrices');
 
 %====================================
 %% REFINE TRACKING RESULTS
@@ -954,12 +955,12 @@ estimatedResiduals = exp(A * [log(xFit(1));xFit(end)]);
 highResidualIdx = find(sum(collectedResiduals(:,4,:),3) > estimatedResiduals * 1.1);
 
 if constants.verbose > 0
-% plot and save
-set(gcf,'Name','total ssq of residuals vs. target frame');
-hold on, plot(A(:,end),estimatedResiduals * 1.1, 'r')
-hold on,plot(A(highResidualIdx,end),Y(highResidualIdx),'og'),
-fh = gcf;
-saveas(fh,'ssqVsTarget.fig')
+    % plot and save
+    set(gcf,'Name','total ssq of residuals vs. target frame');
+    hold on, plot(A(:,end),estimatedResiduals * 1.1, 'r')
+    hold on,plot(A(highResidualIdx,end),Y(highResidualIdx),'og'),
+    fh = gcf;
+    saveas(fh,sprintf('ssqVsTarget_%s.fig',nowString))
 end
 highResidualIdx = highResidualIdx + fittingIdx0;
 
@@ -1005,23 +1006,23 @@ for iTag=1:nTags
         badIdx = setdiff(1:2*length(t),goodRows);
         % remove bad data
         rejectIdx=unique((mod(badIdx-1,length(t))+1));
-        
+
         if constants.verbose > 0
-        fh = figure('Name',sprintf('Variances %s',idlist(1).stats.labelcolor{iTag}));
-        ah=subplot(2,1,1);
-        plot(aa(:,1),bb,'.')
-        hold on, plot(aa(:,1),aa*x,'r')
-        
-        hold on, plot(aa(badIdx,1),bb(badIdx),'or')
-        set(get(ah,'Title'),'String',sprintf('%f ',x))
-        saveas(fh,sprintf('DetectorVariance_tag%i.fig',iTag));
-        subplot(2,1,2)
-        plot(repmat(t,2,1),[varX;varY],'.b',t,varZ,'.g')
-        % rejected: red circles
-        hold on, plot(repmat(t(rejectIdx),3,1),...
-            [varX(rejectIdx);varY(rejectIdx);varZ(rejectIdx)],'or')
-        % cyan/magenta dots for source/target
-        plot(sourceList,zeros(size(sourceList)),'.c')
+            fh = figure('Name',sprintf('Variances %s',idlist(1).stats.labelcolor{iTag}));
+            ah=subplot(2,1,1);
+            plot(aa(:,1),bb,'.')
+            hold on, plot(aa(:,1),aa*x,'r')
+
+            hold on, plot(aa(badIdx,1),bb(badIdx),'or')
+            set(get(ah,'Title'),'String',sprintf('%f ',x))
+            saveas(fh,sprintf('DetectorVariance_tag%i_%s.fig',iTag,nowString));
+            subplot(2,1,2)
+            plot(repmat(t,2,1),[varX;varY],'.b',t,varZ,'.g')
+            % rejected: red circles
+            hold on, plot(repmat(t(rejectIdx),3,1),...
+                [varX(rejectIdx);varY(rejectIdx);varZ(rejectIdx)],'or')
+            % cyan/magenta dots for source/target
+            plot(sourceList,zeros(size(sourceList)),'.c')
         end
 
         varX(rejectIdx) = [];
@@ -1037,7 +1038,10 @@ for iTag=1:nTags
     % exponential fit
     A = [blkdiag(ones(length(t)*2,1),ones(size(t))),repmat(t,3,1)];
     B = [varX;varY;varZ];
-    [xFit, dummy, goodRows] = robustExponentialFit2(B,A,1);
+    [xFit, dummy, goodRows] = robustExponentialFit2(B,A,constants.verbose>0);
+    if constants.verbose>0
+        set(gcf,'Name',sprintf('detector variance xy,z of tag %i',iTag))
+    end
 
     % get goodTime
     varianceEstimators{iTag} = xFit;
@@ -1092,8 +1096,8 @@ end
 clear goodIdx
 [goodIdx{1:nTags}] = deal((1:nTimepoints)');
 for iTag = 1:nTags
-failIdx = find(all(~fittingMatrices(1).A(goodRows{iTag},:,1),1));
-goodIdx{iTag}(failIdx) = [];
+    failIdx = find(all(~fittingMatrices(1).A(goodRows{iTag},:,1),1));
+    goodIdx{iTag}(failIdx) = [];
 end
 
 % prepare "output"
@@ -1111,44 +1115,44 @@ for iTag = 1:nTags
 end
 
 if constants.verbose > -1
-fh=figure('Name',sprintf('MSE %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
-for dim=1:3,
-    for iTag=1:nTags,
-        ah=subplot(3,nTags,(dim-1)*nTags+iTag);
-        plot(mse(:,dim,iTag),'.'),
-        set(get(ah,'Title'),'String',sprintf('s0 %f',varianceEstimators{iTag}(floor(dim/3)+1)));
-    end,
-end
-saveas(fh,'mse.fig')
+    fh=figure('Name',sprintf('MSE %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
+    for dim=1:3,
+        for iTag=1:nTags,
+            ah=subplot(3,nTags,(dim-1)*nTags+iTag);
+            plot(mse(:,dim,iTag),'.'),
+            set(get(ah,'Title'),'String',sprintf('s0 %f',varianceEstimators{iTag}(floor(dim/3)+1)));
+        end,
+    end
+    saveas(fh,sprintf('mse_%s.fig',nowString))
 end
 
 if constants.verbose > 0
-fh=figure('Name',sprintf('Qout %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
-for dim=1:3,
-    for iTag=1:nTags,
-        subplot(3,nTags,(dim-1)*nTags+iTag);
-        plot(goodIdx{iTag},outputQmatrixDiag(goodIdx{iTag},dim,iTag).^2,'.'),
-        
-    end,
-end
-saveas(fh,'varOut.fig');
+    fh=figure('Name',sprintf('Qout %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
+    for dim=1:3,
+        for iTag=1:nTags,
+            subplot(3,nTags,(dim-1)*nTags+iTag);
+            plot(goodIdx{iTag},outputQmatrixDiag(goodIdx{iTag},dim,iTag).^2,'.'),
 
-fh=figure('Name',sprintf('V input %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
-for dim=1:3,
-    for iTag=1:nTags,subplot(3,nTags,(dim-1)*nTags+iTag),
-        plot(fittingMatrices(iTag).V(:,1,dim),'.')
-        hold on, plot(goodRows{iTag},fittingMatrices(iTag).V(goodRows{iTag},1,dim),'or'),
-    end,
-end
-saveas(fh,'varIn.fig');
+        end,
+    end
+    saveas(fh,'varOut.fig');
+
+    fh=figure('Name',sprintf('V input %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
+    for dim=1:3,
+        for iTag=1:nTags,subplot(3,nTags,(dim-1)*nTags+iTag),
+            plot(fittingMatrices(iTag).V(:,1,dim),'.')
+            hold on, plot(goodRows{iTag},fittingMatrices(iTag).V(goodRows{iTag},1,dim),'or'),
+        end,
+    end
+    saveas(fh,'varIn.fig');
 end
 % !!! Adjust the variance matrix. For whatever reason, the input error
 % estimate is better than the output. In other words, we claim that the
 % sigma zero is better estimated by detector and tracker than by the
 % fitting, so we divide the output variance by sigma zero (mse).
 for iTag = 1:nTags
-outputQmatrixDiag(goodIdx{iTag},:,iTag) = ...
-    outputQmatrixDiag(goodIdx{iTag},:,iTag).^2; % removed division by mse 7/14
+    outputQmatrixDiag(goodIdx{iTag},:,iTag) = ...
+        outputQmatrixDiag(goodIdx{iTag},:,iTag).^2; % removed division by mse 7/14
 end
 % figure('Name',sprintf('MSE %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
 % for dim=1:3,for iTag=1:nTags,subplot(3,nTags,(dim-1)*nTags+iTag),plot(outputQmatrixDiag(:,dim,iTag),'.'),end,end
@@ -1161,6 +1165,9 @@ end
 %     sa=repmat((sum(abs(fittingMatrices(iTag).A),1))',[1,3]);
 %     outputQmatrixDiag(:,:,iTag) = outputQmatrixDiag(:,:,iTag) .* (sa);
 % end
+
+% DEBUG
+save(sprintf('trackerWorkspace%s.mat',nowString));
 
 % if debug: shorten the matrices so that it isn't insanely big
 if debug && isfield(debugData,'fitStats')
@@ -1275,8 +1282,8 @@ filterSizeXZ = roundOddOrEven(4*halfSigmaXZ,'odd','inf');
 
 % calculate four kernels for faster calculation of the derivative later
 
-x=([-filterSizeXZ(1)/2:filterSizeXZ(1)/2])./halfSigmaXZ(1);
-z=([-filterSizeXZ(2)/2:filterSizeXZ(2)/2])./halfSigmaXZ(2);
+x=(-filterSizeXZ(1)/2:filterSizeXZ(1)/2)./halfSigmaXZ(1);
+z=(-filterSizeXZ(2)/2:filterSizeXZ(2)/2)./halfSigmaXZ(2);
 % erf is integral of Gauss
 constants.GaussXY = diff(0.5 * erfc(-x./sqrt(2)));
 constants.GaussZ = diff(0.5 * erfc(-z./sqrt(2)));
