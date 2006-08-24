@@ -267,7 +267,7 @@ for iMovie = 1:nSelected
         % we're happy
         destFileName = fileName;
     else
-        h=errordlg('This file extension is not recognized. Please notify the authorities')
+        h=errordlg('This file extension is not recognized. Please notify the authorities');
         uiwait(h);
         return
     end
@@ -306,8 +306,10 @@ for iMovie = 1:nSelected
         % then don't do any calculations
         disp(sprintf('%s is labelled ''bad'' - will not be analyzed',fileName))
     else
-        if strcmp(projName,dirName)|strcmp(projName,[dirName,'_corr'])
-            %projName==dirName or projName==dirName_corr
+        if strcmp(projName,dirName)||strcmp(projName,[dirName,'_corr'])||...
+                ~isempty(dir(fullfile(pathName,'*.fim')))
+            % projName==dirName or projName==dirName_corr, or there is a
+            % filtered movie in the directory
             fullPathName = pathName;
         else
             %projName~=dirName
