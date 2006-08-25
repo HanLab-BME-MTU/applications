@@ -106,6 +106,8 @@ def_options.wnv2_cutoff = 1e-12;
 def_options.wnv2_mode = [0 1e-12];
 def_options.plot = 1; % plot results
 def_options.multiply = 0; % don't repeat data
+% remember system dialog setting
+sysDialogState = getappdata(0,'UseNativeSystemDialogs');
 
 % set options now, because we might need them for loading data
 if nargin < 2 || isempty(options)
@@ -407,3 +409,6 @@ for iGroup = 1:nGroups
         end
     end
 end
+
+%% CLEANUP
+setappdata(0,'UseNativeSystemDialogs',sysDialogState);
