@@ -231,25 +231,24 @@ trackPairs = ...
 % for the code.
 
 sourceList = unique(trackPairs(:,1));
-%nSources = length(sourceList);
+nSources = length(sourceList);
 nTrackPairs = size(trackPairs,1);
 
 % A is the same for all three dimensions (it is also the same for all tags,
 % but might not in the future
 fittingMatrices(1:nTags) = struct(...
-    'A',zeros(nTimepoints+nTrackPairs,nTimepoints,1),...
-    'B',zeros(nTimepoints+nTrackPairs,1,3),...
-    'V',zeros(nTimepoints+nTrackPairs,1,3));
+    'A',zeros(nSources+nTrackPairs,nTimepoints,1),...
+    'B',zeros(nSources+nTrackPairs,1,3),...
+    'V',zeros(nSources+nTrackPairs,1,3));
 
 % fill in source data - this will produce zero-rows and cols in the fitting
 % matrices. We will later remove them.
-for iSource = sourceList'
     for iTag = 1:nTags
-        fittingMatrices(iTag).A(iSource,iSource,1) = 1;
-        fittingMatrices(iTag).B(iSource,1,:) = inputCoords(iSource,iTag,:);
-        fittingMatrices(iTag).V(iSource,1,:) = inputQmatrixDiag(iSource,iTag,:);
+        fittingMatrices(iTag).A(1:nSources,sourceList,1) = 1;
+        fittingMatrices(iTag).B(1:nSources,1,:) = inputCoords(sourceList,iTag,:);
+        fittingMatrices(iTag).V(1:nSources,1,:) = inputQmatrixDiag(sourceList,iTag,:);
     end
-end
+
 
 % fill sourceInfo
 % sourceInfo (like targetInfo) is a structure containing all the
@@ -968,8 +967,9 @@ highResidualIdx = highResidualIdx + fittingIdx0;
 % remove rows below (where we also remove other rows)
 
 
-% 2) transform precision
+% 2) transform precision - only if more than 3 sources overall
 
+if nSources > 3
 % find mena detectorPrecision in XY and in Z. Detect very high
 % uncertainties
 % !!! fit precision with exponential - uncertainties increase with
@@ -981,7 +981,7 @@ detectorPrecisionZ = squeeze(detectorPrecisionZ(1:fittingIdx0,:,:,:));
 % dp* is now a nTimepoints by nDims by nTags array. Since we're fitting
 % for each tag individually, we will calculate an estimated precision for
 % each tag.
-for iTag=1:nTags
+for iTag=nTags:-1:1 % so that we don't need to preallocate
     % varXY and varZ show a very strong linear dependence. Therefore, we
     % can fit both with the same exponential.
     varX = detectorPrecisionXY(:,1,iTag);
@@ -1066,6 +1066,12 @@ for iTag=1:nTags
 
 end
 
+else
+   % if only 3 or fewer sources, we still need to fill in bad 
+   [badDetection{1:nTags}] = deal([]);
+   varianceEstimators = [];
+end
+
 %====================================
 
 
@@ -1088,7 +1094,7 @@ failIdx = (all(~fittingMatrices(1).A(:,:,1),2));
 clear goodRows
 [goodRows{1:nTags}] = deal(1:size(fittingMatrices(1).A,1));
 for iTag = 1:nTags
-    goodRows{iTag}([find(failIdx);highResidualIdx;badDetection{iTag}]) = [];
+    goodRows{iTag}([find(failIdx); highResidualIdx; badDetection{iTag}]) = [];
 end
 
 % since all A-matrices are the same, we can find the failIdx on a single
@@ -1115,6 +1121,9 @@ for iTag = 1:nTags
 end
 
 if constants.verbose > -1
+    if isempty(varianceEstimators)
+        % can't write the tilde on this keyboard...
+    else
     fh=figure('Name',sprintf('MSE %s x;y;z',sprintf('%s ',idlist(1).stats.labelcolor{:})));
     for dim=1:3,
         for iTag=1:nTags,
@@ -1124,6 +1133,7 @@ if constants.verbose > -1
         end,
     end
     saveas(fh,sprintf('mse_%s.fig',nowString))
+    end
 end
 
 if constants.verbose > 0

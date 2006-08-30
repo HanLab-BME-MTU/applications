@@ -123,10 +123,14 @@ for i = 1:nTarget %for each target frame
     % been taken care of when we removed difference 0
     numNewPairs = length(diff_index);
 
+    % with only one source at all, there is nothing that will track the
+    % source to itself, so there could be no new pairs
+    if numNewPairs > 0
     trackPairs(pairCt + 1:pairCt + numNewPairs, :) = ...
         [sourceIdx(diff_index(1:numNewPairs)),...
         repmat(targetIdx(i),[numNewPairs,1])]; %we will take this one!
     pairCt = pairCt + numNewPairs;
+    end
 
 end
 
