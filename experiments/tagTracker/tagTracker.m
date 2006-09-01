@@ -243,8 +243,9 @@ fittingMatrices(1:nTags) = struct(...
 
 % fill in source data - this will produce zero-rows and cols in the fitting
 % matrices. We will later remove them.
+idx4A = sub2ind([nSources+nTrackPairs,nTimepoints],1:nSources,sourceList');
     for iTag = 1:nTags
-        fittingMatrices(iTag).A(1:nSources,sourceList,1) = 1;
+        fittingMatrices(iTag).A(idx4A) = 1;
         fittingMatrices(iTag).B(1:nSources,1,:) = inputCoords(sourceList,iTag,:);
         fittingMatrices(iTag).V(1:nSources,1,:) = inputQmatrixDiag(sourceList,iTag,:);
     end
@@ -387,7 +388,7 @@ end
 
 % fittingIdx indicates the line where we will continue to write the fitting
 % matrices
-fittingIdx = sourceList(end);
+fittingIdx = nSources;
 fittingIdx0 = fittingIdx; % 0th fitting idx
 
 
