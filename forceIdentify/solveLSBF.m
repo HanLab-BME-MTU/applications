@@ -27,27 +27,76 @@ end
 
 for ii = 1:length(selTimeSteps)
    jj = selTimeSteps(ii);
+   imgIndex = imgIndexOfDTimePts(jj);
 
    localStartTime = cputime;
 
    fprintf(1,'Time step %d ...',jj);
 
-   if isnan(regParam.selBFSigma(jj))
-      %Find the closest time step whose 'selBFSigma' is not NaN.
-      iSigma = min(abs(jj-find(~isnan(regParam.selBFSigma))));
-      if isempty(iSigma)
-         fprintf(1,['   Regularization parameter has not been identified yet.\n' ...
-            '   Please run ''calOptRegParBF'' first.\n']);
-         return;
+   clear forceField;
+
+   forceFieldFile = [forceFieldDir filesep 'forceField' ...
+      sprintf(imgIndexForm,imgIndex) '.mat'];
+
+   selBFSigma = [];
+   if exist(forceFieldFile,'file') == 2
+      s = load(forceFieldFile);
+      forceField = s.forceField;
+
+      if isfield(forceField,'selBFSigma')
+         bfSigma    = forceField.bfSigma;
+         selBFSigma = forceField.selBFSigma;
+         minBFSigma = forceField.minBFSigma;
+         maxBFSigma = forceField.maxBFSigma;
+
+         regParam.bfSigma(jj)    = bfSigma;
+         regParam.selBFSigma(jj) = selBFSigma;
+         regParam.minBFSigma(jj) = minBFSigma;
+         regParam.maxBFSigma(jj) = maxBFSigma;
+
+         save(regParamFile,'regParam');
+      end
+   end
+
+   if isempty(selBFSigma) && jj > 1
+      %Try load the previous time point and use its regularization parameter.
+      preImgIndex = imgIndexOfDTimePts(jj-1);
+      preForceFieldFile = [forceFieldDir filesep 'forceField' ...
+         sprintf(imgIndexForm,preImgIndex) '.mat'];
+      if exist(preForceFieldFile,'file') == 2
+         s = load(preForceFieldFile);
+         preForceField = s.forceField;
+
+         if isfield(preForceField,'selBFSigma')
+            bfSigma    = preForceField.bfSigma;
+            selBFSigma = preForceField.selBFSigma;
+            minBFSigma = preForceField.minBFSigma;
+            maxBFSigma = preForceField.maxBFSigma;
+
+            forceField.bfSigma    = bfSigma;
+            forceField.selBFSigma = selBFSigma;
+            forceField.minBFSigma = minBFSigma;
+            forceField.maxBFSigma = maxBFSigma;
+
+            regParam.bfSigma(jj)    = bfSigma;
+            regParam.selBFSigma(jj) = selBFSigma;
+            regParam.minBFSigma(jj) = minBFSigma;
+            regParam.maxBFSigma(jj) = maxBFSigma;
+
+            save(forceFieldFile,'forceField');
+            save(regParamFile,'regParam');
+         end
       end
 
-      selBFSigma = regParam.selBFSigma(iSigma);
-   else
-      selBFSigma = regParam.selBFSigma(jj);
+   end
+
+   if isempty(selBFSigma)
+      fprintf(1,['   Regularization parameter has not been identified yet.\n' ...
+         '   Please run ''calOptRegParBF'' first.\n']);
+      return;
    end
 
    fprintf(1,'   Regularization parameter: %5.3f.\n',selBFSigma);
-   imgIndex = imgIndexOfDTimePts(jj);
 
    fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
    s = load(fwdMapBFFile);
@@ -83,15 +132,10 @@ for ii = 1:length(selTimeSteps)
    coef = B\b;
    %coef = (A{jj}.'*A{jj}+bfSigma*eye(n))\(A{jj}.'*rightU{jj});
 
-   clear forceField;
-
    forceField.coefBF = zeros(dimFS,2);
    forceField.coefBF(indDomDOF,1) = coef(1:dimBF);
    forceField.coefBF(indDomDOF,2) = coef(dimBF+1:2*dimBF);
 
-   %Save the coefficient.
-   forceFieldFile = [forceFieldDir filesep 'forceField' ...
-      sprintf(imgIndexForm,imgIndex) '.mat'];
    save(forceFieldFile,'forceField');
 
    fprintf(1,'   Done in %5.3f sec.\n',cputime-localStartTime);

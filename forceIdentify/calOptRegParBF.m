@@ -1,9 +1,11 @@
 %Identify the optimal regularization parameter range and choose the regularization parameter
 % in thisrange.
 
-regParam.minBFSigma = NaN*ones(1,length(imgIndexOfDTimePts));
-regParam.maxBFSigma = NaN*ones(1,length(imgIndexOfDTimePts));
-regParam.selBFSigma = NaN*ones(1,length(imgIndexOfDTimePts));
+%regParam.minBFSigma = NaN*ones(1,length(imgIndexOfDTimePts));
+%regParam.maxBFSigma = NaN*ones(1,length(imgIndexOfDTimePts));
+%regParam.selBFSigma = NaN*ones(1,length(imgIndexOfDTimePts));
+
+clear regParam;
 
 regParamFile = [reslDir filesep 'lastSavedRegParam.mat'];
 fprintf(1,'Identifying optimal regularization parameter range using L-curve ...\n');
@@ -16,63 +18,118 @@ else
    selTimeSteps = answer;
 end
 
+if exist(regParamFile,'file') == 2
+   s = load(regParamFile);
+   regParam = s.regParam;
+end
+
 for ii = 1:length(selTimeSteps)
    jj = selTimeSteps(ii);
 
    fprintf(1,'Time Step %d: ',jj);
+   imgIndex = imgIndexOfDTimePts(jj);
 
-   if exist(regParamFile,'file') == 2
-      fprintf(1,'\n');
-      s = load(regParamFile);
-      regParam = s.regParam;
+   clear forceField;
 
-      if length(regParam.minBFSigma) == 1
-         regParam.minBFSigma = regParam.minBFSigma*ones(1,length(imgIndexOfDTimePts));
-         regParam.maxBFSigma = regParam.maxBFSigma*ones(1,length(imgIndexOfDTimePts));
-         regParam.selBFSigma = regParam.selBFSigma*ones(1,length(imgIndexOfDTimePts));
+   forceFieldFile = [forceFieldDir filesep 'forceField' ...
+      sprintf(imgIndexForm,imgIndex) '.mat'];
+
+   selBFSigma = [];
+   if exist(forceFieldFile,'file') == 2
+      s = load(forceFieldFile);
+      forceField = s.forceField;
+
+      if isfield(forceField,'selBFSigma')
+         bfSigma    = forceField.bfSigma;
+         minBFSigma = forceField.minBFSigma;
+         maxBFSigma = forceField.maxBFSigma;
+         selBFSigma = forceField.selBFSigma;
+
+         %Synchronize between 'forceField' and 'regParam'.
+         regParam.bfSigma(jj)    = bfSigma;
+         regParam.selBFSigma(jj) = selBFSigma;
+         regParam.minBFSigma(jj) = minBFSigma;
+         regParam.maxBFSigma(jj) = maxBFSigma;
+
+         save(regParamFile,'regParam');
       end
+   end
 
-      if ~isfield(regParam,'bfSigma')
-         regParam.bfSigma = bfSigma*ones(1,length(imgIndexOfDTimePts));
-      end
+   if isempty(selBFSigma)
+      if exist(regParamFile,'file') == 2
+         fprintf(1,'\n');
+         s = load(regParamFile);
+         regParam = s.regParam;
 
-      if ~isnan(regParam.minBFSigma(min(jj,length(regParam.minBFSigma))))
-         answer = input(sprintf(['   Last saved optimal range of regularization parameter: ' ...
-            '(%3.2f,%3.2f)\n' '   Do you want to reidentify it using L-curve? (y/n):'], ...
-            regParam.minBFSigma(min(jj,length(regParam.minBFSigma))), ...
-            regParam.maxBFSigma(min(jj,length(regParam.minBFSigma)))),'s');
-      else
-         answer = 'yes';
+         if isfield(regParam,'bfSigma')
+            bfSigma = regParam.bfSigma(min(jj,length(regParam.bfSigma)));
+         end
+         minBFSigma = regParam.minBFSigma(min(jj,length(regParam.minBFSigma)));
+         maxBFSigma = regParam.maxBFSigma(min(jj,length(regParam.maxBFSigma)));
+         selBFSigma = regParam.selBFSigma(min(jj,length(regParam.selBFSigma)));
+
+         %Synchronize between 'forceField' and 'regParam'.
+         regParam.bfSigma(jj)    = bfSigma;
+         regParam.selBFSigma(jj) = selBFSigma;
+         regParam.minBFSigma(jj) = minBFSigma;
+         regParam.maxBFSigma(jj) = maxBFSigma;
+
+         forceField.bfSigma    = bfSigma;
+         forceField.minBFSigma = minBFSigma;
+         forceField.maxBFSigma = maxBFSigma;
+         forceField.selBFSigma = selBFSigma;
+
+         save(regParamFile,'regParam');
+         save(forceFieldFile,'forceField');
       end
+   end
+
+   if ~isempty(selBFSigma)
+      answer = input(sprintf(['   Last saved optimal range of regularization parameter: ' ...
+         '(%3.2f,%3.2f)\n' '   Do you want to reidentify it using L-curve? (y/n):'], ...
+         minBFSigma,maxBFSigma),'s');
+   else
+      answer = 'y';
    end
 
    %Identify the optimal range of regularization parameter using L-curve.
    if strcmp(answer,'n')
+      regParam.bfSigma(jj)    = bfSigma;
+      regParam.minBFSigma(jj) = minBFSigma;
+      regParam.maxBFSigma(jj) = maxBFSigma;
+
+      forceField.bfSigma    = bfSigma;
+      forceField.minBFSigma = minBFSigma;
+      forceField.maxBFSigma = maxBFSigma;
+
       answer = input(sprintf('   Choose your regularization parameter in this range (last saved: %3.2f):', ...
-      regParam.selBFSigma(jj)),'s');
+         selBFSigma),'s');
       if ~strcmp(answer,'')
          selBFSigma = str2num(answer);
-         regParam.selBFSigma(jj) = selBFSigma;
-         save(regParamFile,'regParam');
       end
+
+      regParam.selBFSigma(jj) = selBFSigma;
+      forceField.selBFSigma   = selBFSigma;
+
+      save(regParamFile,'regParam');
+      save(forceFieldFile,'forceField');
       continue;
    end
 
-   if isfield(regParam,'bfSigma')
-      answer = input(sprintf(['   Please select a new center of test range ' ...
-         '(last saved: %5.2f): '],regParam.bfSigma(jj)),'s');
-   else
-      answer = input('   Please select a new center of test range:','s');
-   end
+   answer = input(sprintf(['   Please select a new center of test range ' ...
+      '(last saved: %5.2f): '],bfSigma),'s');
 
    if ~isempty(answer)
-      regParam.bfSigma(jj) = str2num(answer);
+      bfSigma = str2num(answer);
    end
 
-   bfSigma = regParam.bfSigma(jj);
+   regParam.bfSigma(jj) = bfSigma;
+   forceField.bfSigma   = bfSigma;
+
+   save(regParamFile,'regParam');
+   save(forceFieldFile,'forceField');
    isBFSigmaRangeIdentified = 'no';
 
-   imgIndex = imgIndexOfDTimePts(jj);
    fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
    s = load(fwdMapBFFile);
    A = s.A;
@@ -129,11 +186,19 @@ for ii = 1:length(selTimeSteps)
       answer = input('   Do you see a corner of the curve? (yes/no):','s');
       if strcmp(answer,'yes')
          answer = input('   Please identify the corner:','s');
+         regParam.bfSigma(jj)    = bfSigma;
          regParam.selBFSigma(jj) = str2num(answer);
          regParam.minBFSigma(jj) = regParam.selBFSigma(jj)*1e-1;
          regParam.maxBFSigma(jj) = regParam.selBFSigma(jj)*1e1;
+
+         forceField.bfSigma    = bfSigma;
+         forceField.selBFSigma = str2num(answer);
+         forceField.minBFSigma = regParam.selBFSigma(jj)*1e-1;
+         forceField.maxBFSigma = regParam.selBFSigma(jj)*1e1;
+
          isBFSigmaRangeIdentified = 'yes';
          save(regParamFile,'regParam');
+         save(forceFieldFile,'forceField');
       else
          answer = input(sprintf(['   Please select a new center of test range ' ...
             '(last used: %5.2f): '],bfSigma),'s');
@@ -145,13 +210,15 @@ for ii = 1:length(selTimeSteps)
    isBFSigmaRangeIdentified = 'no';
 
    fprintf(1,'   Optimal regularization parameter range: (%3.2f,%3.2f).\n', ...
-      regParam.minBFSigma(jj),regParam.maxBFSigma(jj));
+      forceField.minBFSigma,forceField.maxBFSigma);
    answer = input(sprintf('   Choose your regularization parameter in this range (last saved: %3.2f):', ...
-      regParam.selBFSigma(jj)),'s');
+      forceField.selBFSigma),'s');
    if ~strcmp(answer,'')
       selBFSigma = str2num(answer);
       regParam.selBFSigma(jj) = selBFSigma;
+      forceField.selBFSigma   = selBFSigma;
       save(regParamFile,'regParam');
+      save(forceFieldFile,'forceField');
    end
 end
 

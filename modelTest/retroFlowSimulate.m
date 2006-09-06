@@ -480,6 +480,7 @@ save(mixfMapFile,'mixfMap');
 
 sForceField.p       = forceField.p;
 sForceField.f       = rawDispField.f;
+sForceField.bndF    = rawDispField.bndF;
 sForceField.gridIn  = forceField.gridIn;
 sForceField.mcf     = rawDispField.mcf;
 sForceField.adf     = rawDispField.adf;

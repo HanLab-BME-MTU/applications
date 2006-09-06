@@ -178,7 +178,7 @@ if ~strcmp(bfFwdOpComputed,'A') && ~strcmp(bfFwdOpComputed,'all')
          DTDir = ['DT' sprintf(imgIndexForm,0)]; 
       else
          [femModelFile,femModelImgIndex] = getFemModelFile(femModelDir,imgIndex,imgIndexForm);
-         DTDir = ['DT' sprintf(DTIndexForm,femModelImgIndex)]; 
+         DTDir = ['DT' sprintf(imgIndexForm,femModelImgIndex)]; 
       end
       s = load(femModelFile);
       femModel = s.femModel;

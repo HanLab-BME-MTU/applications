@@ -50,6 +50,9 @@ if strcmp(tfFwdOpComputed,'none') == 1
       numEdges = femModel.numEdges;
       edge     = femModel.edge;
       fem      = femModel.fem;
+      fn       = femModel.fn;
+      fp       = femModel.fp;
+      options  = femModel.options;
 
       DTDir = ['DT' sprintf(imgIndexForm,imgIndex)]; 
       if ~isdir([femSolBasisTFDir filesep DTDir])
@@ -74,6 +77,7 @@ if strcmp(tfFwdOpComputed,'none') == 1
       femModel.fsBnd = fsBnd;
       save(modelFileList{jj},'femModel');
 
+      BCTypes = options.BCType;
       for k = 1:numEdges
          %Construct the sequence of breaks according to 'EdgBrkDistTF', the
          % distance between the breaks.

@@ -81,7 +81,7 @@ for ii = 1:length(selTimeSteps)
       tBndF.fx).^2 + (bndF.fy-tBndF.fy).^2)./max(tBndFLen,tinyBndFThreshold));
 
    %Get the residue in matching displacement field.
-   dispLen          = sqrt(sum(iDispField.rv.^2,2));
+   dispLen           = sqrt(sum(iDispField.rv.^2,2));
    tinyDispThreshold = nanmean(dispLen)/2;
    errArray.vRelRes(ii) = nanmean(abs(sqrt(sum((iDispField.v-iDispField.rv).^2,2))./ ...
       max(tinyDispThreshold,dispLen)));

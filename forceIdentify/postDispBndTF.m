@@ -29,9 +29,9 @@ if isempty(answer) | answer == 0
       load(bdfMapFile);
       numInd = find(~isnan(bdfMap));
       maxF = max(maxF,max(bdfMap(numInd)));
-   end
 
-   selTimeSteps = [0 selTimeSteps];
+      selTimeSteps = [0 selTimeSteps];
+   end
 else
    selTimeSteps = answer;
    if selTimeSteps == -1
@@ -158,8 +158,8 @@ for ii = 1:length(selTimeSteps)
       linspace(1,0,numColors/2).' zeros(numColors/2,1)]];
 
    numInd = find(~isnan(bdfMap));
-   maxBDF = bdfColorDispRange(2)*max(bdfMap(numInd));
-   minBDF = bdfColorDispRange(1)*max(bdfMap(numInd));
+   maxBDF = bdfColorDispRange(2)*maxF;
+   minBDF = bdfColorDispRange(1)*maxF;
    bdfImg = imDataMapOverlay(stackedImg,bdfMap,[minBDF maxBDF],cMap);
 
    figure(figH); hold off;

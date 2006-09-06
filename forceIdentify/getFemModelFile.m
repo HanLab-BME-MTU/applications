@@ -65,11 +65,15 @@ else
    while kk <= length(modelFileImgIndex) && modelFileImgIndex(kk) < imgIndex
       kk = kk+1;
    end
-   if kk == 1 || modelFileImgIndex(kk) <= imgIndex
+   if kk > length(modelFileImgIndex)
+      femModelFile = [femModelDir filesep 'femModel' ...
+         sprintf(imgIndexForm,modelFileImgIndex(kk-1)) '.mat'];
+      femModelImgIndex = modelFileImgIndex(kk-1);
+   elseif kk == 1 || modelFileImgIndex(kk) <= imgIndex
       femModelFile = [femModelDir filesep 'femModel' ...
          sprintf(imgIndexForm,modelFileImgIndex(kk)) '.mat'];
       femModelImgIndex = modelFileImgIndex(kk);
-   elseif abs(modelFileImgIndex(kk-1)-imgIndex) <= abs(modelFileImgIndex(kk)-imgIndex)
+   else
       femModelFile = [femModelDir filesep 'femModel' ...
          sprintf(imgIndexForm,modelFileImgIndex(kk-1)) '.mat'];
       femModelImgIndex = modelFileImgIndex(kk-1);

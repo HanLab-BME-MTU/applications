@@ -29,9 +29,9 @@ if isempty(answer) | answer == 0
       load(bdfMapFile);
       numInd = find(~isnan(bdfMap));
       maxF = max(maxF,max(bdfMap(numInd)));
-   end
 
-   selTimeSteps = [0 selTimeSteps];
+      selTimeSteps = [0 selTimeSteps];
+   end
 else
    selTimeSteps = answer;
    if selTimeSteps == -1
@@ -123,6 +123,11 @@ for ii = 1:length(selTimeSteps)
       stackedImg(find(stackedImg<imgIRange(1))) = imgIRange(1);
    end
 
+   %Load the saved body force map.
+   indexStr = sprintf(imgIndexForm,imgIndex);
+   bdfMapFile = [reslDir filesep 'bdfMap' filesep 'bdfMap' indexStr '.mat'];
+   load(bdfMapFile);
+
    %Create color bar figure.
    if strcmp(showBdfCBar,'yes')
       bdfMap(1,1) = maxF;
@@ -136,11 +141,6 @@ for ii = 1:length(selTimeSteps)
    %Get the dimension of the cell image.
    pixelX = [1:size(stackedImg,2)];
    pixelY = [1:size(stackedImg,1)];
-
-   %Load the saved body force map.
-   indexStr = sprintf(imgIndexForm,imgIndex);
-   bdfMapFile = [reslDir filesep 'bdfMap' filesep 'bdfMap' indexStr '.mat'];
-   load(bdfMapFile);
 
    iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
    iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
@@ -245,8 +245,8 @@ for ii = 1:length(selTimeSteps)
          recBFx*bfScale,recBFy*bfScale,0,'r');
    end
 
-   titleStr = sprintf(['Domain Force\n' 'Time Step: %d Image Index: %d'], ...
-      jj,imgIndex);
+   titleStr = sprintf(['Domain Force\n' 'Time Step: %d Image Index: %d ' ...
+      'Residue: %5.2f'],jj,imgIndex,iDispField.vRelRes);
    title(titleStr);
    
    %Save the figure

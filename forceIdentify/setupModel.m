@@ -23,7 +23,7 @@ if strcmp(bfFwdOpComputed,'none') == 1
       return;
    end
 
-   answer = input('Select Model fields (0 for all):');
+   answer = input(sprintf('Select Model fields (0 for all:%d-%d):',1,length(modelFileList)));
    if isempty(answer)
       selFields = 1:length(modelFileList);
    elseif length(answer) == 1 && answer == 0

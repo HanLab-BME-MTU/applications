@@ -32,28 +32,79 @@ end
 for ii = 1:length(selTimeSteps)
    clear A;
    jj = selTimeSteps(ii);
+   imgIndex = imgIndexOfDTimePts(jj);
 
    localStartTime = cputime;
 
    fprintf(1,'   Time step %d ...',jj);
-   fprintf(1,'Regularization parameter: %5.3f.\n',regParam.selTFSigma(jj));
 
-   if isnan(regParam.selTFSigma(jj))
-      %Find the closest time step whose 'selTFSigma' is not NaN.
-      iSigma = min(abs(jj-find(~isnan(regParam.selTFSigma))));
+   clear forceField;
+
+   forceFieldFile = [forceFieldDir filesep 'forceField' ...
+      sprintf(imgIndexForm,imgIndex) '.mat'];
+
+   selTFSigma = [];
+   if exist(forceFieldFile,'file') == 2
+      s = load(forceFieldFile);
+      forceField = s.forceField;
+
+      if isfield(forceField,'selTFSigma')
+         bfSigma    = forceField.bfSigma;
+         selTFSigma = forceField.selTFSigma;
+         minTFSigma = forceField.minTFSigma;
+         maxTFSigma = forceField.maxTFSigma;
+
+         regParam.bfSigma(jj)    = bfSigma;
+         regParam.selTFSigma(jj) = selTFSigma;
+         regParam.minTFSigma(jj) = minTFSigma;
+         regParam.maxTFSigma(jj) = maxTFSigma;
+
+         save(regParamFile,'regParam');
+      end
+   end
+
+   if isempty(selTFSigma) && jj > 1
+      %Try load the previous time point and use its regularization parameter.
+      preImgIndex = imgIndexOfDTimePts(jj-1);
+      preForceFieldFile = [forceFieldDir filesep 'forceField' ...
+         sprintf(imgIndexForm,preImgIndex) '.mat'];
+      if exist(preForceFieldFile,'file') == 2
+         s = load(preForceFieldFile);
+         preForceField = s.forceField;
+
+         if isfield(preForceField,'selTFSigma')
+            bfSigma    = preForceField.bfSigma;
+            selTFSigma = preForceField.selTFSigma;
+            minTFSigma = preForceField.minTFSigma;
+            maxTFSigma = preForceField.maxTFSigma;
+
+            forceField.bfSigma    = bfSigma;
+            forceField.selTFSigma = selTFSigma;
+            forceField.minTFSigma = minTFSigma;
+            forceField.maxTFSigma = maxTFSigma;
+
+            regParam.bfSigma(jj)    = bfSigma;
+            regParam.selTFSigma(jj) = selTFSigma;
+            regParam.minTFSigma(jj) = minTFSigma;
+            regParam.maxTFSigma(jj) = maxTFSigma;
+
+            save(forceFieldFile,'forceField');
+            save(regParamFile,'regParam');
+         end
+      end
+
+   end
+
+   if isempty(selTFSigma)
       if isempty(iSigma)
          fprintf(1,['   Regularization parameter has not been identified yet.\n' ...
             '   Please run ''calOptRegParTF'' first.\n']);
          return;
       end
-
-      selTFSigma = regParam.selTFSigma(iSigma);
-   else
-      selTFSigma = regParam.selTFSigma(jj);
    end
 
+
    fprintf(1,'   Regularization parameter: %5.3f.\n',selTFSigma);
-   imgIndex = imgIndexOfDTimePts(jj);
 
    fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
    s = load(fwdMapTFFile);
@@ -75,11 +126,6 @@ for ii = 1:length(selTimeSteps)
    femModel = s.femModel;
    fem      = femModel.fem;
    fsBnd    = femModel.fsBnd;
-
-   forceFieldFile = [forceFieldDir filesep 'forceField' ...
-      sprintf(imgIndexForm,imgIndex) '.mat'];
-   s = load(forceFieldFile);
-   forceField = s.forceField;
 
    procStr = '';
    for k = 1:numEdges

@@ -22,7 +22,7 @@ fn.MyoDragFx = 0;
 fn.MyoDragFy = 0;
 
 ans = input('Select time steps (0 for all):');
-if isempty(ans) || ans == 0
+if isempty(ans) | ans == 0
    selTimeSteps = 1:numDTimePts;
 else
    selTimeSteps = ans;

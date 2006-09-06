@@ -124,6 +124,35 @@ for ii = 1:length(selTimeSteps)
       end
    end
 
+   %Create directory and file names for saving force vector fields in the format of
+   % [y0 x0 y1 x1] that is compatible with 'prMergePanel'.
+   indexStr = sprintf(imgIndexForm,imgIndexOfDTimePts(jj));
+
+   bdfVecFile  = [reslDir filesep 'bdfVecF' filesep 'bdfVecF' indexStr '.mat'];
+   mcfVecFile  = [reslDir filesep 'mcfVecF' filesep 'mcfVecF' indexStr '.mat'];
+   adfVecFile  = [reslDir filesep 'adfVecF' filesep 'adfVecF' indexStr '.mat'];
+   
+   if ~exist([reslDir filesep 'bdfVecF'],'dir')
+      [success msg msgID] = mkdir(reslDir,'bdfVecF');
+      if ~success
+         error('Trouble making directory ''bdfVecF''.');
+      end
+   end
+
+   if ~exist([reslDir filesep 'mcfVecF'],'dir')
+      [success msg msgID] = mkdir(reslDir,'mcfVecF');
+      if ~success
+         error('Trouble making directory ''mcfVecF''.');
+      end
+   end
+
+   if ~exist([reslDir filesep 'adfVecF'],'dir')
+      [success msg msgID] = mkdir(reslDir,'adfVecF');
+      if ~success
+         error('Trouble making directory ''adfVecF''.');
+      end
+   end
+
    dimBF     = fs.dimBF;
    dimFS     = fs.dimFS;
    indDomDOF = fs.indDomDOF;
@@ -167,6 +196,14 @@ for ii = 1:length(selTimeSteps)
       forceField.p.');
    forceField.f = [recBFx;recBFy].';
 
+   %Save the force field in the format [y0 x0 y1 x1] for processing by 'prMergePanel'.
+   bdfVec = [forceField.p(:,2:-1:1) forceField.p(:,2:-1:1)+forceField.f(:,2:-1:1)];
+
+   %Remove 'NaN'.
+   nanInd = find(isnan(bdfVec(:,3)) | isnan(bdfVec(:,4)));
+   bdfVec(nanInd,:) = [];
+   save(bdfVecFile,'bdfVec');
+
    %The displacements on the points where the force field is to be
    % demonstrated.
    %[recDispU1,recDispU2] = postinterp(fem,'u1','u2', ...
@@ -174,6 +211,12 @@ for ii = 1:length(selTimeSteps)
    [recDispU1,recDispU2] = postinterp(fem,'u1','u2', ...
       forceField.p.');
    iDispField.rv = [recDispU1;recDispU2].';
+
+   %Get the residue in matching displacement field.
+   dispLen           = sqrt(sum(iDispField.rv.^2,2));
+   tinyDispThreshold = nanmean(dispLen)/2;
+   iDispField.vRelRes = nanmean(abs(sqrt(sum((iDispField.v(iDispField.iInMesh,:)-iDispField.rv).^2,2))./ ...
+      max(tinyDispThreshold,dispLen)));
    %recDispU(:,:,jj) = [recDispU1;recDispU2].';
 
    %Get the grid points that are inside the identification region. They will be
@@ -299,6 +342,19 @@ for ii = 1:length(selTimeSteps)
    forceField.adf = [recADFx; recADFy].';
    forceField.mcf = [recMCFx; recMCFy].';
    
+   %Save the force field in the format [y0 x0 y1 x1] for processing by 'prMergePanel'.
+   adfVec = [forceField.p(:,2:-1:1) forceField.p(:,2:-1:1)+forceField.adf(:,2:-1:1)];
+   mcfVec = [forceField.p(:,2:-1:1) forceField.p(:,2:-1:1)+forceField.mcf(:,2:-1:1)];
+
+   %Remove NaN.
+   nanInd = find(isnan(adfVec(:,3)) | isnan(adfVec(:,4)));
+   adfVec(nanInd,:) = [];
+   nanInd = find(isnan(mcfVec(:,3)) | isnan(mcfVec(:,4)));
+   mcfVec(nanInd,:) = [];
+
+   save(adfVecFile,'adfVec');
+   save(mcfVecFile,'mcfVec');
+
    %%%%%%% We then do it on the grid points and assign intensity scores.
    % The force on grid points inside the identification region.
    %We calculate forces on grids for generating color map.
