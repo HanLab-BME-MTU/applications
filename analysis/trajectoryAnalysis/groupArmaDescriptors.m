@@ -1,4 +1,4 @@
-function groupedData = groupArmaDescriptors(data,options)
+function [groupIndex,groupedData] = groupArmaDescriptors(data,options)
 %GROUPARMADESCRIPTORS groups models according to similarity of their ARMA coefficients
 %
 % SYNOPSIS: groupedData = groupArmaDescriptors(data,options)
@@ -40,7 +40,9 @@ function groupedData = groupArmaDescriptors(data,options)
 %                              times to allow recalculation with
 %                              subsampling. Default: 0
 %
-% OUTPUT    groupedData : output structure with fields
+% OUTPUT    groupIndex : nData-by-3 array that indicates for every data set
+%                        how it was grouped at levels 1,2, and 3.
+%           groupedData : output structure with fields
 %                .collectedData(1:n) groups of data as divided according to
 %                    options.###_cutoff with fields
 %                   .data : original data sets belonging to this group
@@ -98,7 +100,7 @@ end
 % the number of the observations of all the combined sets. a==1 chooses
 % roughly the same number of timepoints from each set, a==2 takes
 % timepoints according to the size of the data sets.
-def_options.wnv1_cutoff = -2;
+def_options.wnv1_cutoff = -1;
 def_options.wnv1_mode = [0 1e-12];
 def_options.arma_cutoff = 5e-5;
 def_options.arma_mode = [3,5e-5,1];%[0, 5e-5];
@@ -317,6 +319,9 @@ distanceFunctionParameters.mode = options.wnv1_mode;
 set(get(groupedData.plotHandles.axesH,'XLabel'),'String','-^1^0log(probability)')
 set(groupedData.plotHandles.figureH,'Name','WNV - Round 1');
 
+% have the tree grow from the right
+set(groupedData.plotHandles.axesH,'XDir','reverse','YAxisLocation','right')
+
 
 %===========================
 
@@ -354,6 +359,8 @@ for iGroup = 1:nGroups
     % steal y-labels
     set(sh,'YTick',get(ah,'YTick'),'YTickLabel',get(ah,'YTickLabel'),'YLim',get(ah,'YLim'))
     set(get(sh,'XLabel'),'String','-^1^0log(probability)')
+    % grow tree from the right
+    set(sh,'XDir','reverse','YAxisLocation','right')
 
     % close figure
     delete(groupedData.collectedData(iGroup).subGroups.plotHandles.figureH);
@@ -404,11 +411,91 @@ for iGroup = 1:nGroups
             set(sh,'YTick',get(ah,'YTick'),'YTickLabel',get(ah,'YTickLabel'),'YLim',get(ah,'YLim'))
             set(get(sh,'XLabel'),'String','-^1^0log(probability)')
 
+            % grow tree from the right
+            set(sh,'XDir','reverse','YAxisLocation','right')
             % close figure
             delete(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups.plotHandles.figureH);
         end
     end
+
 end
 
+
+%=============================
+%% CREATE OUTPUT
+%=============================
+
+% the whole groupedData-thing is a tad complicated. Return a
+% groupIndex-list instead that has as many rows as data sets, and that has
+% a column for every grouping step that indicates to which group the data
+% belongs
+
+% counters of group-numbers already used
+jLevelCt = 0;
+kLevelCt = 0;
+
+groupIndex = zeros(nData,3);
+
+for iGroup = 1:length(groupedData.collectedData)
+
+    % check whether there are any subgroups
+    if isempty(groupedData.collectedData(iGroup).subGroups)
+        % all falls into the same group
+        jGroup = 1;
+        kGroup = 1;
+        % update kLevelCt here, too!
+        kLevelCt = kLevelCt + kGroup;
+
+        % fill i,j,k
+        groupIndex(groupedData.collectedData(iGroup).dataIdx,:) = ...
+            repmat([iGroup, jGroup+jLevelCt, kGroup+kLevelCt],...
+            length(groupedData.collectedData(iGroup).dataIdx),1);
+
+    else % there are subgroups
+
+        for jGroup = 1:length(groupedData.collectedData(iGroup).subGroups.collectedData)
+
+            % check whether there are any subgroups
+            if isempty(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups)
+                % all falls into the same group
+                kGroup = 1;
+
+                % fill i,j,k
+                dataIdx = groupedData.collectedData(iGroup).dataIdx(...
+                    groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).dataIdx);
+                groupIndex(dataIdx,:) = ...
+                    repmat([iGroup, jGroup+jLevelCt, kGroup+kLevelCt],...
+                    length(dataIdx),1);
+
+            else % there are subgroups
+
+                for kGroup = 1:length(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups.collectedData)
+                    
+                    % fill i,j,k
+                    dataIdx = groupedData.collectedData(iGroup).dataIdx(...
+                    groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).dataIdx(...
+                    groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups.collectedData(kGroup).dataIdx));
+                groupIndex(dataIdx,:) = ...
+                    repmat([iGroup, jGroup+jLevelCt, kGroup+kLevelCt],...
+                    length(dataIdx),1);
+                    
+                end
+
+            end
+
+            % update number of 2nd-level groups
+            kLevelCt = kLevelCt + kGroup;
+
+        end % loop 2nd level
+
+
+    end
+
+    % update number of 2nd-level groups
+    jLevelCt = jLevelCt + jGroup;
+
+end % loop 1st level=======
+
+%=============================
 %% CLEANUP
 setappdata(0,'UseNativeSystemDialogs',sysDialogState);
