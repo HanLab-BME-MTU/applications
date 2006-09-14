@@ -1,4 +1,4 @@
-function [groupIndex,groupedData] = groupArmaDescriptors(data,options)
+function [groupIndex,groupedData] = groupArmaDescriptors(data,options,verbose)
 %GROUPARMADESCRIPTORS groups models according to similarity of their ARMA coefficients
 %
 % SYNOPSIS: groupedData = groupArmaDescriptors(data,options)
@@ -39,6 +39,7 @@ function [groupIndex,groupedData] = groupArmaDescriptors(data,options)
 %                              individual trajectories will be repeated n
 %                              times to allow recalculation with
 %                              subsampling. Default: 0
+%           verbose : [0/{1}] whether or not to display figures
 %
 % OUTPUT    groupIndex : nData-by-3 array that indicates for every data set
 %                        how it was grouped at levels 1,2, and 3.
@@ -123,7 +124,10 @@ for fn = 1:length(defaultOptions)
     end
 end
 
-% tbd: test input, check options, set defaults
+% check verbose
+if nargin < 3 || isempty(verbose)
+    verbose = 1;
+end
 
 if nargin == 0 || isempty(data)
     % load data. have user select list of strains. Allow selection of
@@ -308,20 +312,21 @@ end % load data
 %============================
 
 groupingOptions.labels = strvcat(data.name);
+groupingOptions.verbose = verbose;
 distanceFunctionParameters.cutoff = options.wnv1_cutoff;
 distanceFunctionParameters.mode = options.wnv1_mode;
 [links, groupIdx, groupedData, linkData] = ...
     groupData(data,'groupArma_distance_WNV',...
     groupingOptions,distanceFunctionParameters);
 
+if verbose
+    % label axis
+    set(get(groupedData.plotHandles.axesH,'XLabel'),'String','-^1^0log(probability)')
+    set(groupedData.plotHandles.figureH,'Name','WNV - Round 1');
 
-% label axis
-set(get(groupedData.plotHandles.axesH,'XLabel'),'String','-^1^0log(probability)')
-set(groupedData.plotHandles.figureH,'Name','WNV - Round 1');
-
-% have the tree grow from the right
-set(groupedData.plotHandles.axesH,'XDir','reverse','YAxisLocation','right')
-
+    % have the tree grow from the right
+    set(groupedData.plotHandles.axesH,'XDir','reverse','YAxisLocation','right')
+end
 
 %===========================
 
@@ -337,34 +342,39 @@ distanceFunctionParameters.mode = options.arma_mode;
 nGroups = length(groupedData.collectedData);
 
 % plot
-plotRows = ceil(sqrt(nGroups));
-plotCols = ceil(nGroups/plotRows);
-fh = figure('Name','ARMA-clustering');
-
+if verbose
+    plotRows = ceil(sqrt(nGroups));
+    plotCols = ceil(nGroups/plotRows);
+    fh = figure('Name','ARMA-clustering');
+end
 
 for iGroup = 1:nGroups
-    figure(fh);
-    sh = subplot(plotRows,plotCols,iGroup);
+
     % group, find subgroups
     groupingOptions.labels = strvcat(groupedData.collectedData(iGroup).data.name);
+    groupingOptions.verbose = verbose;
+
     [groupedData.collectedData(iGroup).links,groupedData.collectedData(iGroup).groupIdx,...
         groupedData.collectedData(iGroup).subGroups,groupedData.collectedData(iGroup).linkData] = groupData(...
         groupedData.collectedData(iGroup).data,'groupArma_distance_ARMA',...
         groupingOptions,distanceFunctionParameters);
 
-    % steal all we can from the figure
-    ah = groupedData.collectedData(iGroup).subGroups.plotHandles.axesH;
-    % steal lines
-    copyobj(get(ah,'Children'),sh)
-    % steal y-labels
-    set(sh,'YTick',get(ah,'YTick'),'YTickLabel',get(ah,'YTickLabel'),'YLim',get(ah,'YLim'))
-    set(get(sh,'XLabel'),'String','-^1^0log(probability)')
-    % grow tree from the right
-    set(sh,'XDir','reverse','YAxisLocation','right')
+    if verbose
+        figure(fh);
+        sh = subplot(plotRows,plotCols,iGroup);
+        % steal all we can from the figure
+        ah = groupedData.collectedData(iGroup).subGroups.plotHandles.axesH;
+        % steal lines
+        copyobj(get(ah,'Children'),sh)
+        % steal y-labels
+        set(sh,'YTick',get(ah,'YTick'),'YTickLabel',get(ah,'YTickLabel'),'YLim',get(ah,'YLim'))
+        set(get(sh,'XLabel'),'String','-^1^0log(probability)')
+        % grow tree from the right
+        set(sh,'XDir','reverse','YAxisLocation','right')
 
-    % close figure
-    delete(groupedData.collectedData(iGroup).subGroups.plotHandles.figureH);
-
+        % close figure
+        delete(groupedData.collectedData(iGroup).subGroups.plotHandles.figureH);
+    end
 end
 
 %===========================
@@ -380,29 +390,38 @@ for iGroup = 1:nGroups
 
     nSubGroups = length(groupedData.collectedData(iGroup).subGroups.collectedData);
 
-    % plot
-    plotRows = ceil(sqrt(nSubGroups));
-    plotCols = ceil(nSubGroups/plotRows);
-    fh = figure('Name',sprintf('WNV - Round 2. Arma-Group %i',iGroup));
-
+    if verbose
+        % plot
+        plotRows = ceil(sqrt(nSubGroups));
+        plotCols = ceil(nSubGroups/plotRows);
+        fh = figure('Name',sprintf('WNV - Round 2. Arma-Group %i',iGroup));
+    end
 
     for jGroup = 1:nSubGroups
-        figure(fh);
-        sh = subplot(plotRows,plotCols,jGroup);
+
+        if verbose
+            figure(fh);
+            sh = subplot(plotRows,plotCols,jGroup);
+        end
+
         % group
         if length(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).data)>1
             groupingOptions.labels = strvcat(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).data.name);
+            groupingOptions.verbose = verbose;
+
             [groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).links,...
                 groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).groupIdx,...
                 groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups,...
                 groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).linkData] = groupData(...
                 groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).data,...
                 'groupArma_distance_WNV',groupingOptions,distanceFunctionParameters);
-            xlabel('-^1^0log(probability)')
+            if verbose
+                xlabel('-^1^0log(probability)')
+            end
         end
 
         if isfield(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup),'subGroups') &&...
-                ~isempty(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups)
+                ~isempty(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups) && verbose
             % steal all we can from the figure
             ah = groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups.plotHandles.axesH;
             % steal lines
@@ -439,7 +458,8 @@ groupIndex = zeros(nData,3);
 for iGroup = 1:length(groupedData.collectedData)
 
     % check whether there are any subgroups
-    if isempty(groupedData.collectedData(iGroup).subGroups)
+    if ~isfield(groupedData.collectedData(iGroup),'subGroups') || ...
+            isempty(groupedData.collectedData(iGroup).subGroups)
         % all falls into the same group
         jGroup = 1;
         kGroup = 1;
@@ -456,7 +476,8 @@ for iGroup = 1:length(groupedData.collectedData)
         for jGroup = 1:length(groupedData.collectedData(iGroup).subGroups.collectedData)
 
             % check whether there are any subgroups
-            if isempty(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups)
+            if ~isfield(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup),'subGroups') || ...
+                    isempty(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups)
                 % all falls into the same group
                 kGroup = 1;
 
@@ -470,15 +491,15 @@ for iGroup = 1:length(groupedData.collectedData)
             else % there are subgroups
 
                 for kGroup = 1:length(groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups.collectedData)
-                    
+
                     % fill i,j,k
                     dataIdx = groupedData.collectedData(iGroup).dataIdx(...
-                    groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).dataIdx(...
-                    groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups.collectedData(kGroup).dataIdx));
-                groupIndex(dataIdx,:) = ...
-                    repmat([iGroup, jGroup+jLevelCt, kGroup+kLevelCt],...
-                    length(dataIdx),1);
-                    
+                        groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).dataIdx(...
+                        groupedData.collectedData(iGroup).subGroups.collectedData(jGroup).subGroups.collectedData(kGroup).dataIdx));
+                    groupIndex(dataIdx,:) = ...
+                        repmat([iGroup, jGroup+jLevelCt, kGroup+kLevelCt],...
+                        length(dataIdx),1);
+
                 end
 
             end
