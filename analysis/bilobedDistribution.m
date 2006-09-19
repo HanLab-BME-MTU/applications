@@ -57,7 +57,7 @@ idlistList = loadIdlistList(cdBiodata(4),...
 % cenPositions, time (for plotting)
 % this part of the code is not very clean because it has been copied from
 % bilobeProjection.m
-nIdlists = idlistCt - 1;
+nIdlists = length(idlistList);
 bilobeData(1:nIdlists) = struct('spindleLength',[],...
     'cenPositions',[],'time',[],'name',[]);
 
@@ -150,7 +150,7 @@ for iIdlist = 1:nIdlists
 
     % data plots
     x=find(goodTime);
-    figure('Name',idlistList{iIdlist,2})
+    figure('Name',idlistList(iIdlist).name)
 
     % absolute projected position along the spindle
     subplot(2,2,2)
