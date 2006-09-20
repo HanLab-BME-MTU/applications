@@ -288,6 +288,8 @@ try
                                     fprintf(fid,[nowString,' idlist2 = linker(slist,dataProperties);\n']);
                                     %opt = job(i).dataProperties.IDopt;
                                     %idlist = spotID(slist,opt,job(i).dataProperties,job(i).projName);
+                                    % set useCOM to 0. This is a hack.                   
+                                    dataProperties.linker_useCOM = 0;
                                     idlist2 = linker(slist,dataProperties,0);
 
                                     %save idlist and lastResult

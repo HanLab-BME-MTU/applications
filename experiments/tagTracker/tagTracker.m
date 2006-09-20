@@ -1039,7 +1039,12 @@ for iTag=nTags:-1:1 % so that we don't need to preallocate
     % exponential fit
     A = [blkdiag(ones(length(t)*2,1),ones(size(t))),repmat(t,3,1)];
     B = [varX;varY;varZ];
-    [xFit, dummy, goodRows] = robustExponentialFit2(B,A,constants.verbose>0);
+    % the exponential fit relies on fminsearch, which can fail, so run it
+    % with only xy first, and then use the result as an initial guess for
+    % the constrained fit. 
+    x0 = robustExponentialFit2([varX;varY],A(1:length(t)*2,[1,3]),0);
+    x0 = x0([1,1,2]);
+    [xFit, dummy, goodRows] = robustExponentialFit2(B,A,constants.verbose>0,x0);
     if constants.verbose>0
         set(gcf,'Name',sprintf('detector variance xy,z of tag %i',iTag))
     end
