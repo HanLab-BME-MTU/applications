@@ -1036,8 +1036,8 @@ for iTag=nTags:-1:1 % so that we don't need to preallocate
         % don't do anything
     end
 
-    % exponential fit
-    A = [blkdiag(ones(length(t)*2,1),ones(size(t))),repmat(t,3,1)];
+    % exponential fit. t is just a row-index; time is defined by sourceList
+    A = [blkdiag(ones(length(t)*2,1),ones(size(t))),repmat(sourceList,3,1)];
     B = [varX;varY;varZ];
     % the exponential fit relies on fminsearch, which can fail, so run it
     % with only xy first, and then use the result as an initial guess for
@@ -1051,8 +1051,11 @@ for iTag=nTags:-1:1 % so that we don't need to preallocate
 
     % get goodTime
     varianceEstimators{iTag} = xFit;
+    % careful: t is not timepoints, but fit-indices of the source-rows
+    % goodRows is e.g. [1:30,1:30,1:30]. Therefore, use mod, assuming that
+    % if one dim is good, all are.
     goodDetection{iTag} = t(unique((mod(goodRows-1,length(t))+1)));
-    badDetection{iTag} = setdiff(1:nTimepoints,goodDetection{iTag})';
+    badDetection{iTag} = setdiff(t,goodDetection{iTag});
 
 
     % write estimated errors. Divide by the estimated detection error at
