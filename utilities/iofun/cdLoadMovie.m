@@ -220,6 +220,11 @@ else
 
         else
             movieInfo = allFileNames(idx);
+            
+            if length(movieInfo) > 1
+                warning('more than one filtered movie found. Loading the first')
+                movieInfo = movieInfo(1);
+            end
 
             % load movie header and assign correctionData
             r3dMovieHeader = loadMovieHeader(movieInfo.name);
@@ -277,7 +282,7 @@ else
             movieInfo = allFileNames(idx);
 
             if type == 1 || ((type == 4 || type == 5) && ...
-                    ~exist('correctionData.mat','file'))
+                    ~exist(fullfile(dirName,'correctionData.mat'),'file'))
 
                 % read movie header and assign empty correctionData
 
@@ -291,8 +296,8 @@ else
             elseif type ~= 7
 
                 % load movie header and correctionData
-                load r3dMovieHeader
-                load correctionData
+                load r3dMovieHeader 
+                load correctionData 
 
                 % reset type 4, 5
                 type = 2;

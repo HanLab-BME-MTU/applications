@@ -232,6 +232,15 @@ while ~done
         % use int^10 to get good results (maybe we need more for mammalian
         % cells with their bigger frames?)
         spots(loadStruct.loadedFrames(t)).COM = centroid3D(pt,10);
+        
+        % show result
+        if mod(loadStruct.loadedFrames(t),10)==0
+            figure('Name',sprintf('frame %i sc %1.1f',...
+                loadStruct.loadedFrames(t),dataProperties.sigmaCorrection(1)))
+            imshow(max(pt,[],3),[])
+            hold on, plot(spots(loadStruct.loadedFrames(t)).coordinateList(:,1),...
+                spots(loadStruct.loadedFrames(t)).coordinateList(:,2),'.')
+        end
 
 
         if verbose
@@ -277,28 +286,40 @@ end % while ~done
 % the good spots, and should be calculated via a robust exponential fit.
 ci = cat(1,spots.cutoffIntensity);
 xFit = robustExponentialFit2(ci,[],verbose);
+set(gcf,'Name',dataProperties.name);
 
 nSpots = zeros(length(spots),1);
 
 for t = 1:length(spots)
-    goodIdx = spots(t).intensityList > xFit(1)*exp(xFit(2)*t);
+    goodIdx = find(spots(t).intensityList > xFit(1)*exp(xFit(2)*t));
 
     % count # of spots
-    nSpots(t) = sum(goodIdx);
+    nSpots(t) = length(goodIdx);
 
     % if there are more than MAXSPOTS, we remove the rest
     if nSpots(t) > dataProperties.MAXSPOTS
-        [dummy,sortIdx] = sort(spots(t).intensityList(goodIdx));
+        [dummy,sortIdx] = sort(spots(t).intensityList(goodIdx),'descend');
         sortIdx = sortIdx(1:dataProperties.MAXSPOTS);
+        tmp = find(goodIdx);
+        sortIdx = tmp(sortIdx); %make it an index into goodIdx (this is so awful)
         nSpots(t) = dataProperties.MAXSPOTS;
     else
-        sortIdx = (1:nSpots(t))';
+        sortIdx = find(goodIdx);
     end
 
     % fill sp
     spots(t).sp = struct(...
-        'cord',mat2cell(spots(t).coordinateList(goodIdx(sortIdx),:),double(goodIdx((sortIdx))),3),...
-        'mnint',mat2cell(spots(t).intensityList(goodIdx(sortIdx),:),double(goodIdx((sortIdx))),1));
+        'cord',mat2cell(spots(t).coordinateList(goodIdx(sortIdx),:),ones(nSpots(t),1),3),...
+        'mnint',mat2cell(spots(t).intensityList(goodIdx(sortIdx),:),ones(nSpots(t),1),1));
+    
+   if mod(t,10)==0
+            fh = findall(0,'Name',sprintf('frame %i sc %1.1f',...
+                t,dataProperties.sigmaCorrection(1)));
+            figure(fh(1)); % recent handles are inserted at the top
+   
+            hold on, plot(spots(t).coordinateList(goodIdx(sortIdx),1),...
+                spots(t).coordinateList(goodIdx(sortIdx),2),'or')
+        end
 
 
 end

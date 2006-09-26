@@ -213,9 +213,10 @@ try
                                     fprintf(fid,[nowString,' detect spots\n']);
 
 
-                                    % find raw movie name
+                                    % find raw movie name. Don't load DIC
+                                    % movies
                                     rawMovieNameList = ...
-                                        searchFiles('r3d$|3D.dv$','','',0);
+                                        searchFiles('r3d$|3D.dv$','DIC','',0);
                                     filteredMovieNameList = ...
                                         searchFiles('fim$|moviedat','','',0);
                                     rawMovieName = ...
