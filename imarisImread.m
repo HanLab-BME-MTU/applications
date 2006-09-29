@@ -289,7 +289,7 @@ if launchImaris
     % load movie into imaris
     vImarisApplication.FileOpen([moviePath movieName], filterList{filterIdx,3});
     % set name
-    vImarisApplication.mDataSet.SetParameter('Image','Name',movieName);
+    %vImarisApplication.mDataSet.SetParameter('Image','Name',movieName);
 end
 
 % and get all the corresponding properties
