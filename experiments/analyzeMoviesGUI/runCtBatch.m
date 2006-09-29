@@ -223,7 +223,10 @@ try
                                         fullfile(rawMovieNameList{1,2},rawMovieNameList{1,1});
                                     filteredMovieName = ...
                                         fullfile(filteredMovieNameList{1,2},filteredMovieNameList{1,1});
-
+                                    % force-update fTest-probability
+                                    if dataProperties.F_TEST_PROB==0.9;
+                                        dataProperties.F_TEST_PROB=0.9990;
+                                    end
 
                                     [slist, dataProperties,testRatios] = ...
                                         detectSpots(rawMovieName, ...
@@ -289,7 +292,7 @@ try
                                     fprintf(fid,[nowString,' idlist2 = linker(slist,dataProperties);\n']);
                                     %opt = job(i).dataProperties.IDopt;
                                     %idlist = spotID(slist,opt,job(i).dataProperties,job(i).projName);
-                                    % set useCOM to 0. This is a hack.                   
+                                    % set useCOM to 0. This is a hack.
                                     dataProperties.linker_useCOM = 0;
                                     idlist2 = linker(slist,dataProperties,0);
 

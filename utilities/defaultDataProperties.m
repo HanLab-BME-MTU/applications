@@ -149,6 +149,11 @@ if ~isfield(dataProperties,'frameTime')
     dataProperties.timeLapse = mean(diff(mean(frameTime,2)));
 end
 
+% force-update dataProperties.F_TEST_PROB
+if dataProperties.F_TEST_PROB==0.9;
+    dataProperties.F_TEST_PROB=0.9990;
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function dataProperties = loadDefault
@@ -169,7 +174,7 @@ dataProperties.drugs=NaN;
 dataProperties.temperature={'Nan'};
 dataProperties.crop=[];
 dataProperties.maxSize=200*2e6;
-dataProperties.F_TEST_PROB=0.9000;
+dataProperties.F_TEST_PROB=0.9990;
 dataProperties.IDopt= [];
 dataProperties.PATCHSIZE=7;
 dataProperties.CH_MAXNUMINTERV=1000;
