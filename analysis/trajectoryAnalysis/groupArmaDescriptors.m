@@ -104,7 +104,7 @@ end
 def_options.wnv1_cutoff = -1;
 def_options.wnv1_mode = [0 1e-12];
 def_options.arma_cutoff = 5e-5;
-def_options.arma_mode = [3,5e-5,1];%[0, 5e-5];
+def_options.arma_mode = [1,5e-5];%[0, 5e-5];
 def_options.wnv2_cutoff = 1e-12;
 def_options.wnv2_mode = [0 1e-12];
 def_options.plot = 1; % plot results
@@ -276,9 +276,7 @@ if nargin == 0 || isempty(data)
             goodIdx(i) = true;
         end
     end
-    % reset nData
     data = data(:);
-    nData = length(data);
 
 
     % read strainInfo into data
@@ -302,6 +300,8 @@ if nargin == 0 || isempty(data)
 
 end % load data
 
+%get number of data sets
+nData = length(data);
 
 
 %============================

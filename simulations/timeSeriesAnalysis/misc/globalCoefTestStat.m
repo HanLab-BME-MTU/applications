@@ -30,7 +30,8 @@ diffM = armaxParam1 - armaxParam2;
 diffV = varCovMatT1 + varCovMatT2;
 
 %compute testStatistic
-testStatistic = diffM*(diffV\diffM')/length(diffM);
+% testStatistic = diffM*(diffV\diffM')/length(diffM);
+testStatistic = diffM*(diffV\diffM');
 
 
 %%%%% ~~ the end ~~ %%%%%

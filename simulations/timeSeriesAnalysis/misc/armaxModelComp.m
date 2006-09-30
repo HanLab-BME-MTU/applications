@@ -1,8 +1,8 @@
-function [pValueCoef,pValueVar,errFlag] = armaxModelComp(fitResults1,...
+function [mLogPValueCoef,mLogPValueVar,errFlag] = armaxModelComp(fitResults1,...
     fitResults2,compOpt)
 %ARMAXCOEFCOMP tests whether two ARMA models are different
 %
-%SYNOPSIS [pValueCoef,pValueVar,errFlag] = armaxModelComp(fitResults1,...
+%SYNOPSIS [mLogPValueCoef,mLogPValueVar,errFlag] = armaxModelComp(fitResults1,...
 %    fitResults2,compOpt)
 %
 %INPUT  
@@ -30,12 +30,12 @@ function [pValueCoef,pValueVar,errFlag] = armaxModelComp(fitResults1,...
 %                       but ignoring covariances between sets.
 %                     Default: 'global'.
 %
-%OUTPUT pValueCoef  : Probability that difference between coefficients is 
-%                     >= difference observed assuming that the null 
-%                     hypothesis is true.
-%       pValueVar   : Probability that difference between white noise
-%                     variances >= difference observed assuming that the
-%                     null hypothesis is true.
+%OUTPUT mLogPValueCoef: Probability that difference between coefficients is 
+%                       >= difference observed assuming that the null 
+%                       hypothesis is true.
+%       mLogPValueVar : Probability that difference between white noise
+%                       variances >= difference observed assuming that the
+%                       null hypothesis is true.
 %       errFlag : 0 if function executes normally, 1 otherwise.
 %
 %Khuloud Jaqaman, May 2006
@@ -44,9 +44,9 @@ function [pValueCoef,pValueVar,errFlag] = armaxModelComp(fitResults1,...
 %Output
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-pValueCoef = [];
-pValueVar  = [];
-errFlag    =  0;
+mLogPValueCoef = [];
+mLogPValueVar  = [];
+errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Input
@@ -63,19 +63,19 @@ end
 
 %check its ARMAX coefficients
 if isfield(fitResults1,'arParamK')
-    [nRow,arOrder1] = size(fitResults1.arParamK);
+    arOrder1 = size(fitResults1.arParamK,2);
 else
     disp('--armaxModelComp: fitResults1 must have the field arParamK!');
     errFlag = 1;
 end
 if isfield(fitResults1,'maParamK')
-    [nRow,maOrder1] = size(fitResults1.maParamK);
+    maOrder1 = size(fitResults1.maParamK,2);
 else
     disp('--armaxModelComp: fitResults1 must have the field maParamK!');
     errFlag = 1;
 end
 if isfield(fitResults1,'xParamK')
-    [nRow,xOrder1] = size(fitResults1.xParamK);
+    xOrder1 = size(fitResults1.xParamK,2);
     xOrder1 = xOrder1 - 1;
 else
     disp('--armaxModelComp: fitResults1 must have the field xParamK!');
@@ -145,19 +145,19 @@ else %if user specified a 2nd model
 
     %check its ARMAX coefficients
     if isfield(fitResults2,'arParamK')
-        [nRow,arOrder2] = size(fitResults2.arParamK);
+        arOrder2 = size(fitResults2.arParamK,2);
     else
         disp('--armaxModelComp: fitResults2 must have the field arParamK!');
         errFlag = 1;
     end
     if isfield(fitResults2,'maParamK')
-        [nRow,maOrder2] = size(fitResults2.maParamK);
+        maOrder2 = size(fitResults2.maParamK,2);
     else
         disp('--armaxModelComp: fitResults2 must have the field maParamK!');
         errFlag = 1;
     end
     if isfield(fitResults2,'xParamK')
-        [nRow,xOrder2] = size(fitResults2.xParamK);
+        xOrder2 = size(fitResults2.xParamK,2);
         xOrder2 = xOrder2 - 1;
     else
         disp('--armaxModelComp: fitResults2 must have the field xParamK!');
@@ -237,8 +237,9 @@ switch compOpt
         [testStatistic,errFlag] = globalCoefTestStat(armaxParam1,armaxParam2,...
             varCovMatT1,varCovMatT2);
         
-        %get the p-value of the test statistic assuming an F-distribution
-        pValueCoef = fcdf(1/testStatistic,numDegFreeMin,numParamMax);
+        %get -log10(p-value) of the test statistic assuming a chi-square distribution
+%         mLogPValueCoef = -log10(fcdf(1/testStatistic,numDegFreeMin,numParamMax));
+        mLogPValueCoef = chi2cdfExtrapolateLog(testStatistic,numParamMax);
 
     case 'element' %compare one coefficient at a time
 
@@ -251,15 +252,12 @@ switch compOpt
         %calculate the test statistic
         testStatistic = diffM./sqrt(diffV);
 
-        %get the p-value assuming that each elemenet in testStatistic
+        %get -log(p-value) assuming that each elemenet in testStatistic
         %follows a student t-distribution
-        pValueCoef = 1 - tcdf(abs(testStatistic),numDegFreeMin);
+        mLogPValueCoef = -log10(1-tcdf(abs(testStatistic),numDegFreeMin));
 
     case 'AR/MA/X' %compare AR, MA and X coefficients alone
      
-        H = NaN*ones(1,3);
-        pValueCoef = H;
-        
         %calculate vector of differences in coefficients
         diffM = armaxParam1 - armaxParam2;
 
@@ -271,10 +269,12 @@ switch compOpt
                 varCovMatT2(1:arOrderMax,1:arOrderMax);
 
             %compute testStatistic
-            testStatistic = diffM(1:arOrderMax)*(diffV\diffM(1:arOrderMax)')/arOrderMax;
-
-            %get the p-value of the test statistic assuming an F-distribution
-            pValueCoef(1) = 1 - fcdf(testStatistic,arOrderMax,numDegFreeMin);
+            testStatistic = diffM(1:arOrderMax)*(diffV\diffM(1:arOrderMax)');
+%             /arOrderMax;
+            
+            %get -log(p-value) of the test statistic assuming a chi-square distribution
+%             mLogPValueCoef(1) = -log10(fcdf(1/testStatistic,numDegFreeMin,arOrderMax));
+            mLogPValueCoef(1) = chi2cdfExtrapolateLog(testStatistic,arOrderMax);
 
         end
 
@@ -289,10 +289,12 @@ switch compOpt
 
             %compute testStatistic
             testStatistic = diffM(arOrderMax+1:arOrderMax+maOrderMax)*...
-                (diffV\diffM(arOrderMax+1:arOrderMax+maOrderMax)')/maOrderMax;
+                (diffV\diffM(arOrderMax+1:arOrderMax+maOrderMax)');
+%             /maOrderMax;
 
-            %get the p-value of the test statistic assuming an F-distribution
-            pValueCoef(2) = 1 - fcdf(testStatistic,maOrderMax,numDegFreeMin);
+            %get -log(p-value) of the test statistic assuming a chi-square distribution
+%             mLogPValueCoef(2) = -log10(fcdf(1/testStatistic,numDegFreeMin,maOrderMax));
+            mLogPValueCoef(2) = chi2cdfExtrapolateLog(testStatistic,maOrderMax);
 
         end
 
@@ -307,10 +309,12 @@ switch compOpt
 
             %compute testStatistic
             testStatistic = diffM(arOrderMax+maOrderMax+1:end)*...
-                (diffV\diffM(arOrderMax+maOrderMax+1:end)')/(xOrderMax+1);
+                (diffV\diffM(arOrderMax+maOrderMax+1:end)');
+%             /(xOrderMax+1);
 
-            %get the p-value of the test statistic assuming a Fisher distribution
-            pValueCoef(3) = 1 - fcdf(testStatistic,xOrderMax+1,numDegFreeMin);
+            %get -log(p-value) of the test statistic assuming a chi-square distribution
+%             mLogPValueCoef(3) = -log10(fcdf(1/testStatistic,numDegFreeMin,xOrderMax+1));
+            mLogPValueCoef(3) = chi2cdfExtrapolateLog(testStatistic,xOrderMax+1);
 
         end
 
@@ -323,15 +327,9 @@ end
 %calculate test-statistic
 testStatistic = fitResults1.wnVariance/fitResults2.wnVariance;
 
-if testStatistic > 1
-    pValueVar = fcdf(1/testStatistic,numDegFree2,numDegFree1);
-else
-    pValueVar = fcdf(testStatistic,numDegFree1,numDegFree2);
-end
+%get -log(p-value) of the test statistic assuming an F-distribution
+mLogPValueVar = fcdfExtrapolateLog(testStatistic,numDegFree1,numDegFree2);
 
-if pValueVar==0
-    disp('');
-end
 
 %%%%% ~~ the end ~~ %%%%%
 
