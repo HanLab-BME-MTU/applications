@@ -1001,40 +1001,40 @@ for iTag=nTags:-1:1 % so that we don't need to preallocate
     % Problem: the linear dependence is so excellent that there are a lot
     % of frames removed
 
-    if constants.linearVariances
-        [x,dummy,goodRows] = linearLeastMedianSquares([[varX;varY],ones(2*length(t),1)],[varZ;varZ]);
-        aa=[[varX;varY],ones(2*length(t),1)];bb=[varZ;varZ];
-        badIdx = setdiff(1:2*length(t),goodRows);
-        % remove bad data
-        rejectIdx=unique((mod(badIdx-1,length(t))+1));
-
-        if constants.verbose > 0
-            fh = figure('Name',sprintf('Variances %s',idlist(1).stats.labelcolor{iTag}));
-            ah=subplot(2,1,1);
-            plot(aa(:,1),bb,'.')
-            hold on, plot(aa(:,1),aa*x,'r')
-
-            hold on, plot(aa(badIdx,1),bb(badIdx),'or')
-            set(get(ah,'Title'),'String',sprintf('%f ',x))
-            saveas(fh,sprintf('DetectorVariance_tag%i_%s.fig',iTag,nowString));
-            subplot(2,1,2)
-            plot(repmat(t,2,1),[varX;varY],'.b',t,varZ,'.g')
-            % rejected: red circles
-            hold on, plot(repmat(t(rejectIdx),3,1),...
-                [varX(rejectIdx);varY(rejectIdx);varZ(rejectIdx)],'or')
-            % cyan/magenta dots for source/target
-            plot(sourceList,zeros(size(sourceList)),'.c')
-        end
-
-        varX(rejectIdx) = [];
-        varY(rejectIdx) = [];
-        varZ(rejectIdx) = [];
-        t(rejectIdx) = [];
-
-
-    else
-        % don't do anything
-    end
+%     if constants.linearVariances
+%         [x,dummy,goodRows] = linearLeastMedianSquares([[varX;varY],ones(2*length(t),1)],[varZ;varZ]);
+%         aa=[[varX;varY],ones(2*length(t),1)];bb=[varZ;varZ];
+%         badIdx = setdiff(1:2*length(t),goodRows);
+%         % remove bad data
+%         rejectIdx=unique((mod(badIdx-1,length(t))+1));
+% 
+%         if constants.verbose > 0
+%             fh = figure('Name',sprintf('Variances %s',idlist(1).stats.labelcolor{iTag}));
+%             ah=subplot(2,1,1);
+%             plot(aa(:,1),bb,'.')
+%             hold on, plot(aa(:,1),aa*x,'r')
+% 
+%             hold on, plot(aa(badIdx,1),bb(badIdx),'or')
+%             set(get(ah,'Title'),'String',sprintf('%f ',x))
+%             saveas(fh,sprintf('DetectorVariance_tag%i_%s.fig',iTag,nowString));
+%             subplot(2,1,2)
+%             plot(repmat(t,2,1),[varX;varY],'.b',t,varZ,'.g')
+%             % rejected: red circles
+%             hold on, plot(repmat(t(rejectIdx),3,1),...
+%                 [varX(rejectIdx);varY(rejectIdx);varZ(rejectIdx)],'or')
+%             % cyan/magenta dots for source/target
+%             plot(sourceList,zeros(size(sourceList)),'.c')
+%         end
+% 
+%         varX(rejectIdx) = [];
+%         varY(rejectIdx) = [];
+%         varZ(rejectIdx) = [];
+%         t(rejectIdx) = [];
+% 
+% 
+%     else
+%         % don't do anything
+%     end
 
     % exponential fit. t is just a row-index; time is defined by sourceList
     A = [blkdiag(ones(length(t)*2,1),ones(size(t))),repmat(sourceList,3,1)];
@@ -1099,11 +1099,11 @@ end
 % because of the way the new lscov is coded, it cannot cope with zero-rows
 % anymore -> remove them. If we're removing detected spots, then goodRows
 % can be different for different tags
-failIdx = (all(~fittingMatrices(1).A(:,:,1),2));
+failIdx = find(all(~fittingMatrices(1).A(:,:,1),2));
 clear goodRows
 [goodRows{1:nTags}] = deal(1:size(fittingMatrices(1).A,1));
 for iTag = 1:nTags
-    goodRows{iTag}([find(failIdx); highResidualIdx; badDetection{iTag}]) = [];
+    goodRows{iTag}([failIdx; highResidualIdx; badDetection{iTag}]) = [];
 end
 
 % since all A-matrices are the same, we can find the failIdx on a single
