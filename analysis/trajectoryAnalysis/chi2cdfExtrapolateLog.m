@@ -64,11 +64,11 @@ end
 % computational time
 bigNidx = n>10;
 
-% use linear approximation for small n
+% use linear approximation for large n
 x12(bigNidx) = 1.993*n(bigNidx) + 60.73;
 x13(bigNidx) = 2.032*n(bigNidx) + 65.5;
 
-% use cubic approximation for large n
+% use cubic approximation for small n
 x12(~bigNidx) = 0.0016*n(~bigNidx).^3-0.0939*n(~bigNidx).^2+3.8676*n(~bigNidx)+47.7630;
 x13(~bigNidx) = 0.0016*n(~bigNidx).^3-0.0956*n(~bigNidx).^2+3.9467*n(~bigNidx)+52.2160;
 

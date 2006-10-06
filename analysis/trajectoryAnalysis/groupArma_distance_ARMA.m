@@ -211,7 +211,7 @@ for i = 1:nSets-1
                 data(iIdx).varCovMat, data(jIdx).varCovMat);
           
             
-            % fTest
+            % fTest -- replaced by chi2
             
             % get degrees of freedom. Use maximum for both to get strict
             % test. OrderLen has to be increased by 1, because we are also
@@ -219,16 +219,16 @@ for i = 1:nSets-1
             % parameter describes the size of the variance-covariance
             % matrix
             n1 = max(sum(data(iIdx).orderLen),sum(data(jIdx).orderLen));
-            n2 = max(data(iIdx).numObserve - sum(data(iIdx).orderLen + 1),...
-                data(jIdx).numObserve - sum(data(jIdx).orderLen + 1));
+%             n2 = max(data(iIdx).numObserve - sum(data(iIdx).orderLen + 1),...
+%                 data(jIdx).numObserve - sum(data(jIdx).orderLen + 1));
             
             
             % directly calculate -log10(p)
             [logP,isExtrapolated] =...
-                 fcdfExtrapolateLog(fRatio,n1,n2);
+                 chi2cdfExtrapolateLog(fRatio,n1);
              
             % store associatedInfo
-            associatedInfo(ct,[2:5,8]) = [logP, fRatio, n1, n2, isExtrapolated];
+            associatedInfo(ct,[2:5,8]) = [logP, fRatio, n1, 0, isExtrapolated];
             
             
             % if init: store logP with associated idx. min/max is the same
@@ -266,7 +266,7 @@ for i = 1:nSets-1
             
             % store fRatios, n1, n2, corresponding index
             parameters.initialF(ct,1) = fRatio;
-            parameters.initialM(ct,:) = [n1, n2];
+            parameters.initialM(ct,:) = [n1, 0];
             parameters.initialFIdx(ct,:) = [iIdx,jIdx];
             
         else
@@ -293,15 +293,16 @@ for i = 1:nSets-1
                 parameters.initialM(comparisonIdx,1))/...
                 sum(parameters.initialM(comparisonIdx,1));
             n1= max(parameters.initialM(comparisonIdx,1));
-            n2 = max(parameters.initialM(comparisonIdx,2));
+            % n2 = max(parameters.initialM(comparisonIdx,2));
+            
             % test. Use maximum (not sum) for degrees of freedom -
             % otherwise, we are favoring single-to-group linkage over
             % group-to-group
             [logP,isExtrapolated] =...
-                fcdfExtrapolateLog(fRatio,n1,n2);
+                chi2cdfExtrapolateLog(fRatio,n1);
             
             % store associatedInfo
-            associatedInfo(ct,[2:5,8]) = [logP, fRatio, n1, n2, isExtrapolated];
+            associatedInfo(ct,[2:5,8]) = [logP, fRatio, n1, 0, isExtrapolated];
             
             % min/max
             % find sets (original data sets that belong to groups i and j
