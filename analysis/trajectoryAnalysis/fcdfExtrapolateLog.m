@@ -125,18 +125,20 @@ for i=extrapolatedIdx(:)'
     currentN1 = n1(i);
     currentN2 = n2(i);
     
-    ratioList = (currentRatio:0.001:1)';
+    % ratioList has to be the more finely spaced the closer to zero
+    % currentRatio is.
+    ratioList = [1:-0.0001:0.0002,1./(10000:1/currentRatio)]';
     pListLog = -log10(fcdf(ratioList,currentN1, currentN2));
     
-    % find the first two non-Nan elements
-    pIdx = find(isfinite(pListLog),3);
+    % find the first 5 non-Nan elements
+    pIdx = find(isfinite(pListLog),5,'last');
     
     % read associated probabilities and ratios. Careful with the indices,
     % because low ratioList-values correspond to high x-values!
-    lp1 = pListLog(pIdx(3));
-    lp2 = pListLog(pIdx(2));
-    x1 = 1/ratioList(pIdx(3));
-    x2 = 1/ratioList(pIdx(2));
+    lp1 = pListLog(pIdx(2));
+    lp2 = pListLog(pIdx(1));
+    x1 = 1/ratioList(pIdx(2));
+    x2 = 1/ratioList(pIdx(1));
     
     % calculate logProb
     logProb(i) = lp2 + ...

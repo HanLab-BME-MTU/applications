@@ -4,9 +4,11 @@ function [logProb, isExtrapolated] = chi2cdfExtrapolateLog(chi2, n)
 % SYNOPSIS: [logProb, isExtrapolated] = chi2cdfExtrapolateLog(chi2, n)
 %
 % INPUT chi: test statistic of the chi2-test (can be array)
-%		n: # of degrees of freedom.
+%		n: # of degrees of freedom (the extrapolation works for n up to
+%            2^25)
 %
-% OUTPUT logProb: -log10(1-p), where 1-p is the probability that chi2 is n. If p approaches 0, the logarithm will be extrapolated.
+% OUTPUT logProb: -log10(1-p), where 1-p is the probability that chi2 is n.
+%                   If p approaches 0, the logarithm will be extrapolated. 
 %			isExtrapolated: true if the value has been extrapolated
 %
 % REMARKS
@@ -62,11 +64,13 @@ end
 % check for small p - estimate the chi2-value corresponding to 1-p=1e-12.
 % since we're at it, do the same for 1e-13, too; it doesn't really increase
 % computational time
-bigNidx = n>10;
+bigNidx = n>6;
 
-% use linear approximation for large n
-x12(bigNidx) = 1.993*n(bigNidx) + 60.73;
-x13(bigNidx) = 2.032*n(bigNidx) + 65.5;
+% use linear approximation for large n (directly approximating the curve
+% will lead to too big a slope - manually reduced to make it fit
+% reasonably.
+x12(bigNidx) = 1.3*n(bigNidx) + 60;
+x13(bigNidx) = 1.4*n(bigNidx) + 62;
 
 % use cubic approximation for small n
 x12(~bigNidx) = 0.0016*n(~bigNidx).^3-0.0939*n(~bigNidx).^2+3.8676*n(~bigNidx)+47.7630;
