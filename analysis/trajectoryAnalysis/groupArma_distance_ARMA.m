@@ -290,8 +290,7 @@ for i = 1:nSets-1
             % weighted mean
             fRatio = sum(...
                 parameters.initialF(comparisonIdx).*...
-                parameters.initialM(comparisonIdx,1))/...
-                sum(parameters.initialM(comparisonIdx,1));
+                parameters.initialM(comparisonIdx,1));
             n1= max(parameters.initialM(comparisonIdx,1));
             % n2 = max(parameters.initialM(comparisonIdx,2));
             
