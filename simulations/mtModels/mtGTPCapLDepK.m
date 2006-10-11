@@ -225,7 +225,7 @@ for iter = 2:vecLength
     end
     
     %save MT length and cap size in arrays
-    traj(iter) = [time mtLengthT capSizeT];
+    traj(iter,:) = [time mtLengthT capSizeT];
 
 end
 

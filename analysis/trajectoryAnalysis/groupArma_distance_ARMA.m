@@ -218,7 +218,7 @@ for i = 1:nSets-1
             % fitting WNV. For n1, this is not necessary, because this
             % parameter describes the size of the variance-covariance
             % matrix
-            n1 = sum(sum(data(iIdx).orderLen),sum(data(jIdx).orderLen));
+            n1 = max(sum(data(iIdx).orderLen),sum(data(jIdx).orderLen));
 %             n2 = max(data(iIdx).numObserve - sum(data(iIdx).orderLen + 1),...
 %                 data(jIdx).numObserve - sum(data(jIdx).orderLen + 1));
             
@@ -289,9 +289,9 @@ for i = 1:nSets-1
             
             % with the chi2-test, the test statistic is the sum of all
             % pairwise test statistics
-            fRatio = sum(...
+            fRatio = mean(...
                 parameters.initialF(comparisonIdx));
-            n1= sum(parameters.initialM(comparisonIdx,1));
+            n1= round(mean(parameters.initialM(comparisonIdx,1)));
             % n2 = max(parameters.initialM(comparisonIdx,2));
             
             % test. Use maximum (not sum) for degrees of freedom -
