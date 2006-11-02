@@ -5,11 +5,15 @@ function [fishInfoMat,errFlag] = armaxFisherInfoMatrix(trajOut,trajIn,...
 %SYNOPSIS [fishInfoMat,errFlag] = armaxFisherInfoMatrix(trajOut,trajIn,...
 %    arParam,maParam,xParam,wnVariance)
 %
-%INPUT  trajout   : Observations of output time series to be fitted. Either an
-%                   array of structures trajOut(1:nTraj).observations, or a
-%                   2D array representing one single trajectory.
+%INPUT  trajOut   : Observations of output time series to be fitted. An 
+%                   array of structures with fields:
 %           .observations: 2D array of measurements and their uncertainties.
-%                   Missing points should be indicated with NaN.
+%                          Missing points should be indicated with NaN.
+%           .weight      : The weight with which each movie belongs to the
+%                          group. Optional. If field doesn't exist,
+%                          all weights will be taken as 1.
+%                   If there is only one series, it can also be input 
+%                   directly as a 2D array. In this case, its weight is 1.
 %       trajIn    : Observations of input time series. Either an
 %                   array of structures trajIn(1:nTraj).observations, or a
 %                   2D array representing one single trajectory.
@@ -60,14 +64,21 @@ if ~isstruct(trajOut)
     tmp = trajOut;
     clear trajOut
     trajOut.observations = tmp;
+    numTraj = 1; %number of trajectories supplied
+    trajOut.weight = 1; %weight indicating association with group
     clear tmp
-elseif ~isfield(trajOut,'observations')
-    disp('--armaxFisherInfoMatrix: Please input trajOut in fields ''observations''!')
-    errFlag = 1;
+else
+    if ~isfield(trajOut,'observations')
+        disp('--armaxFisherInfoMatrix: Please input trajOut in fields ''observations''!')
+        errFlag = 1;
+    end
+    numTraj = length(trajOut); %number of trajectories supplied
+    if ~isfield(trajOut,'weight') %assign default weights if not supplied
+        for i=1:numTraj
+            trajOut(i).weight = 1;
+        end
+    end
 end
-
-%get number of trajectories supplied
-numTraj = length(trajOut);
 
 %add column for observational error of output if not provided
 for i=1:numTraj
@@ -126,6 +137,23 @@ end
 if errFlag
     disp('--armaxFisherInfoMatrix: Please fix input data!');
     return
+end
+
+%obtain number of available observations, per trajectory and total
+numAvail = zeros(1,numTraj);
+for i=1:numTraj
+    traj = trajOut(i).observations(:,1);
+    numAvail(i) = length(find(~isnan(traj)));
+end
+totAvail = sum(numAvail);
+
+%calculate the normalization constant "weight0" for the weights, so that
+%sum_i=1^numTraj(weight(i)*numAvail(i)/weight0) = sum_i=1^numTraj(numAvail(i)) = totAvail
+weight0 = sum([trajOut.weight].*numAvail)/totAvail;
+
+%normalize the weight with weight0
+for i=1:numTraj
+    trajOut(i).weight = trajOut(i).weight/weight0;
 end
 
 %get orders and number of parameters
@@ -416,8 +444,9 @@ for i=1:numTraj
             stateCovMatDerivT_T = (stateCovMatDerivT_T+stateCovMatDerivT_T')/2;
             
             %update the Fisher information matrix
-            fishInfoMat = fishInfoMat + innovVarDeriv*innovVarDeriv'/...
-                innovationVar^2/2 + innovDeriv*innovDeriv'/innovationVar;
+            fishInfoMat = fishInfoMat + (innovVarDeriv*innovVarDeriv'/...
+                innovationVar^2/2 + innovDeriv*innovDeriv'/innovationVar)*...
+                trajOut(i).weight;
 
         end %(if isnan(trajOutI(j,1)) ... else ...)
 

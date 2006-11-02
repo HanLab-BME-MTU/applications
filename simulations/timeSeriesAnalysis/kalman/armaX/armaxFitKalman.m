@@ -7,11 +7,16 @@ function [fitResults,errFlag] = armaxFitKalman(trajOut,trajIn,modelParamOrOrder,
 %
 %INPUT
 %   Mandatory
-%       trajOut          : Observations of output time series to be fitted. Either an 
-%                          array of structures trajOut(1:nTraj).observations, or a
-%                          2D array representing one single trajectory. 
+%       trajOut          : Observations of output time series to be fitted. An 
+%                          array of structures with fields:
 %               .observations: 2D array of measurements and their uncertainties.
-%                          Missing points should be indicated with NaN.
+%                              Missing points should be indicated with NaN.
+%               .weight      : The weight with which each movie belongs to the
+%                              group. Optional. If field doesn't exist,
+%                              all weights will be taken as 1.
+%                          If there is only one series, it can also be
+%                          input directly as a 2D array. In this case, its
+%                          weight is 1.
 %   Optional
 %       trajIn           : Observations of input time series to be fitted. Either an 
 %                          array of structures trajIn(1:nTraj).observations, or a
@@ -110,10 +115,20 @@ if ~isstruct(trajOut)
     tmp = trajOut;
     clear trajOut
     trajOut.observations = tmp;
+    numTraj = 1; %number of trajectories supplied
+    trajOut.weight = 1; %weight indicating association with group
     clear tmp
-elseif ~isfield(trajOut,'observations')
-    disp('--armaxFitKalman: Please input trajOut in fields ''observations''!')
-    errFlag = 1;
+else
+    if ~isfield(trajOut,'observations')
+        disp('--armaxFitKalman: Please input trajOut in fields ''observations''!')
+        errFlag = 1;
+    end
+    numTraj = length(trajOut); %number of trajectories supplied
+    if ~isfield(trajOut,'weight') %assign default weights if not supplied
+        for i=1:numTraj
+            trajOut(i).weight = 1;
+        end
+    end
 end
 
 %check "trajIn" and turn into struct if necessary

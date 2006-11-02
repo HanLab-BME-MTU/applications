@@ -11,11 +11,17 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
 %
 %INPUT
 %   Mandatory
-%       trajOut   : Observations of output time series to be fitted. Either an
-%                   array of structures trajOut(1:nTraj).observations, or a
-%                   2D array representing one single trajectory.
-%           .observations: 2D array of measurements and their uncertainties.
-%                   Missing points should be indicated with NaN.
+%       trajOut   : Observations of output time series to be fitted. An 
+%                          array of structures with fields:
+%               .observations: 2D array of measurements and their uncertainties.
+%                              Missing points should be indicated with NaN.
+%               .weight      : The weight with which each movie belongs to the
+%                              group. Optional. If field doesn't exist,
+%                              all weights will be taken as 1.
+%                          If there is only one series, it can also be
+%                          input directly as a 2D array. In this case, its
+%                          weight is 1.
+%   Optional
 %       trajIn    : Observations of input time series. Either an
 %                   array of structures trajIn(1:nTraj).observations, or a
 %                   2D array representing one single trajectory.
@@ -27,7 +33,6 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
 %                   equation: partial AR coef. =
 %                   (1-exp(arParamP0))/(1+exp(arParamP0)).
 %                   Enter as [] if there is no AR part in model.
-%   Optional
 %       maParamP0 : Initial guess of parameters determining the MA coef. (row vector).
 %                   They are related to the partial MA coef by the
 %                   equation: partial MA coef. =
@@ -156,14 +161,21 @@ if ~isstruct(trajOut)
     tmp = trajOut;
     clear trajOut
     trajOut.observations = tmp;
+    numTraj = 1; %number of trajectories supplied
+    trajOut.weight = 1; %weight indicating association with group
     clear tmp
-elseif ~isfield(trajOut,'observations')
-    disp('--armaxCoefKalman: Please input trajOut in fields ''observations''!')
-    errFlag = 1;
+else
+    if ~isfield(trajOut,'observations')
+        disp('--armaxCoefKalman: Please input trajOut in fields ''observations''!')
+        errFlag = 1;
+    end
+    numTraj = length(trajOut); %number of trajectories supplied
+    if ~isfield(trajOut,'weight') %assign default weights if not supplied
+        for i=1:numTraj
+            trajOut(i).weight = 1;
+        end
+    end
 end
-
-%get number of trajectories supplied
-numTraj = length(trajOut);
 
 %shift trajectories so that each trajectory's mean = 0
 for i=1:numTraj
@@ -343,6 +355,15 @@ for i=1:numTraj
     numAvail(i) = length(find(~isnan(traj)));
 end
 totAvail = sum(numAvail);
+
+%calculate the normalization constant "weight0" for the weights, so that
+%sum_i=1^numTraj(weight(i)*numAvail(i)/weight0) = sum_i=1^numTraj(numAvail(i)) = totAvail
+weight0 = sum([trajOut.weight].*numAvail)/totAvail;
+
+%normalize the weight with weight0
+for i=1:numTraj
+    trajOut(i).weight = trajOut(i).weight/weight0;
+end
 
 %get an initial estimate of the white noise variance
 tmp = vertcat(trajOut.observations);
@@ -558,9 +579,9 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
             wnVarianceSamp(i) = nanmean(innovation.^2./innovationVar);
 
             %1st sum in Eq. 3.15
-            sum1 = sum1 + nansum(log(innovationVar));
+            sum1 = sum1 + trajOut2(i).weight*nansum(log(innovationVar));
             %2nd sum in Eq. 3.15
-            sum2 = sum2 + nansum(innovation.^2./innovationVar);
+            sum2 = sum2 + trajOut2(i).weight*nansum(innovation.^2./innovationVar);
 
         end %(for i = 1:numTraj)
 
@@ -568,7 +589,7 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
         neg2LnLikelihoodV = sum1 + totAvail*log(sum2);
 
         %calculate mean white noise variance of all trajectories (Eq. 3.14)
-        wnVariance = (numAvail*wnVarianceSamp)/totAvail;
+        wnVariance = (([trajOut2.weight].*numAvail)*wnVarianceSamp)/totAvail;
 
         %get number of parameters estimated: arOrder AR coefficients, maOrder MA
         %coefficients, xOrder+1``` X coefficients, and white noise variance
@@ -600,11 +621,11 @@ end %(while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05)
 %Least squares fitting
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%reformulate the problem as a least squares fitting and obtain the
-%variance-covariance matrix of the estimated ARMA coefficients
-[varCovMatL,arParamL,maParamL,xParamL,errFlag] = armaxLeastSquares(...
-    trajOriginal,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,...
-    wnVariance);
+% %reformulate the problem as a least squares fitting and obtain the
+% %variance-covariance matrix of the estimated ARMA coefficients
+% [varCovMatL,arParamL,maParamL,xParamL,errFlag] = armaxLeastSquares(...
+%     trajOriginal,trajIn,wnVector,arOrder,maOrder,xOrder,constParam,...
+%     wnVariance);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Estimation of variance-covariance matrix

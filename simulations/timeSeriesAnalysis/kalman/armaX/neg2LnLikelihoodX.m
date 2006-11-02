@@ -9,11 +9,12 @@ function neg2LnLikelihoodV = neg2LnLikelihoodX(param,prob)
 %          .user.arOrder   : Order of AR part of process.
 %          .user.maOrder   : Order of MA part of process.
 %          .user.trajOut   : Observations of time series to be fitted. 
-%                            An array of structures 
-%                            trajOut(1:nTraj).observations, where 
-%                            "observations" is a 2D array of measurements
-%                            and uncertainties. Missing points should be 
-%                            indicated with NaN.
+%                            An array of structures:
+%                    .observations: 2D array of measurements and
+%                                   uncertainties. Missing points should be 
+%                                   indicated with NaN.
+%                    .weight      : The weight with which each movie
+%                                   belongs to the group.
 %          .user.trajIn    : Observations of input time series. 
 %                            An array of structures 
 %                            trajIn(1:nTraj).observations, where 
@@ -96,9 +97,9 @@ for i = 1:length(trajOut)
         arParam,maParam,xParam);
 
     %1st sum in Eq. 3.15
-    sum1 = sum1 + nansum(log(innovationVar));
+    sum1 = sum1 + trajOut(i).weight*nansum(log(innovationVar));
     %2nd sum in Eq. 3.15
-    sum2 = sum2 + nansum(innovation.^2./innovationVar);
+    sum2 = sum2 + trajOut(i).weight*nansum(innovation.^2./innovationVar);
 
 end
 
