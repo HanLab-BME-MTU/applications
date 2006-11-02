@@ -330,6 +330,9 @@ testStatistic = fitResults1.wnVariance/fitResults2.wnVariance;
 %get -log(p-value) of the test statistic assuming an F-distribution
 mLogPValueVar = fcdfExtrapolateLog(testStatistic,numDegFree1,numDegFree2);
 
+%shift by -log2 in order to assign a distance of 0 to variances that are exactly the same
+mLogPValueVar = mLogPValueVar - log10(2);
+
 
 %%%%% ~~ the end ~~ %%%%%
 
