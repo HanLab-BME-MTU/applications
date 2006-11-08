@@ -48,7 +48,7 @@ end
 
 %if no filename, open file selection dialog
 if(nargin==0 || isempty(filename))
-    [fname,path]=uigetfile({'*.r3d','*.dv'},'select image file');
+    [fname,path]=uigetfile({'*.r3d;*.dv','DeltaVision files'},'select image file');
     if(fname(1)==0)
         image=[];
         filename=[];

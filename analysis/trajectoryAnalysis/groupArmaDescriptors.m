@@ -1,7 +1,7 @@
 function [groupIndex,groupedData] = groupArmaDescriptors(data,options,verbose)
 %GROUPARMADESCRIPTORS groups models according to similarity of their ARMA coefficients
 %
-% SYNOPSIS: groupedData = groupArmaDescriptors(data,options)
+% SYNOPSIS: [groupIndex,groupedData] = groupArmaDescriptors(data,options,verbose)
 %
 % INPUT     data (opt): structure similar to the output of armaxFitKalman, with
 %                 two additional fields: orderLen (number of fit

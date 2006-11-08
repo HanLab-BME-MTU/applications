@@ -195,6 +195,9 @@ for i = 1:nSets-1
         n2 = data(jIdx).numObserve - sum(data(jIdx).orderLen + 1);
 
         [logP,isExtrapolated] = fcdfExtrapolateLog(F,n1,n2);
+        % for two equal data sets, p=0.5. Correct, so that p goes from 0 to
+        % 1.
+        logP = logP - log10(2);
         associatedInfo(ct,[2:5,8]) = [logP, F, n1, n2, isExtrapolated];
 
         % if not init, find distances between groups.
