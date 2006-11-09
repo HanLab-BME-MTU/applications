@@ -1,7 +1,7 @@
-function [data] = groupArma_recalcArma(data,ijk,guess,weights,name)
+function [data,fitResults] = groupArma_recalcArma(data,ijk,guess,weights,name)
 %GROUPARMA_RECALCARMA is a utility to recalculate ARMA descriptors
 %
-% SYNOPSIS: [data] = groupArma_recalcArma(data,ijk)
+% SYNOPSIS: [data,fitResults] = groupArma_recalcArma(data,ijk,guess,weights,name)
 %
 % INPUT data: structure array with ARMA-fitResults
 %		ijk : 1-by-3 array with data sets (ij) that are grouped into a new
@@ -17,6 +17,7 @@ function [data] = groupArma_recalcArma(data,ijk,guess,weights,name)
 %       name : (opt) string with name for the new time series
 %
 % OUTPUT data: updated data
+%        fitResults: full fitResults (interesing if guess==2)
 %
 % REMARKS If the data in ijk(3) already contains a length series, the
 %         series aren't being updated!
@@ -96,6 +97,8 @@ end
 % recalculate
 fitResults = armaxFitKalman(data(ijk{2}).lengthSeries,[],initialGuess);
 
+
+
 % assign to data
 if guess == 2
     % there are multiple models in fitResults. Choose best one
@@ -104,19 +107,21 @@ if guess == 2
     % remove non-successes
     bic(success == 0) = NaN;
     [dummy,idx] = nanmin(bic);
-    fitResults = fitResults(idx);
+    fitResultsTmp = fitResults(idx);
+else
+    fitResultsTmp = fitResults;
 end
 
-for fn=fieldnames(fitResults)'
-    data(ijk{2}).(char(fn)) = fitResults.(char(fn));
+for fn=fieldnames(fitResultsTmp)'
+    data(ijk{2}).(char(fn)) = fitResultsTmp.(char(fn));
 end
 
 % store orderLen
 if guess == 1
 data(ijk{2}).orderLen = data(ijk{1}(selectIdx)).orderLen;
 else
-    data(ijk{2}).orderLen = [length(fitResults.arParamK) - 1,...
-        length(fitResults.maParamK) - 1];
+    data(ijk{2}).orderLen = [length(fitResultsTmp.arParamK) - 1,...
+        length(fitResultsTmp.maParamK) - 1];
 end
 % store name
 data(ijk{2}).name = name;
