@@ -38,7 +38,7 @@ function color = extendedColors(colorSwitch,drawTable,betaTable)
 %      v  violet    21                           
 %      z  zinc      22
 %      k  black     23
-%      w  white     24
+%      w  white     -1
 %
 % c: 04-03 jonas
 
@@ -76,7 +76,11 @@ if nargin == 1 & ~isempty(colorSwitch)
             end
             
             %take no chances with col num - make sure that there is no 0
-            colorNum = round(abs(rem(colorSwitch(1)-1,24)))+1;
+            if colorSwitch(1)>0
+            colorNum = round(abs(rem(colorSwitch(1)-1,23)))+1;
+            else
+                colorNum = -1;
+            end
             
     end %colorSwitch switch
 
@@ -96,7 +100,11 @@ end
 
 %assign color
 cn = LocalColorTable(0);
+if colorNum > 0
 color = cn(colorNum,:);
+else
+    color = cn(24,:);
+end
 
 %brighten
 if beta

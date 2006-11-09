@@ -97,7 +97,7 @@ switch isempty(correctionInfo.correctFrames)+2*isempty(correctionInfo.header)
             
             %read correctionMovie
             corrMovieName = correctionInfo.correctFiles{i,2};
-            if strcmp(corrMovieName(end),'d');
+            if strcmp(corrMovieName(end),'d') | strcmpi(corrMovieName(end-1:end),'dv');
                 corrMov = r3dread(corrMovieName);
             else
                 corrMov = readmat(corrMovieName);

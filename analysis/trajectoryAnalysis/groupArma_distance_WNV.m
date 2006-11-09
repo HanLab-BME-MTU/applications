@@ -135,16 +135,19 @@ else
         % m: number of fixed parameters (vector in the original data, but from
         % then on, all we use is the sum!)
         % nu: number of degrees of freedom
+        % changed 10/11/06 - only use n; don't subtract
         n(1) = data(ijk(1)).numObserve;
         n(2) = data(ijk(2)).numObserve;
         m(1) = sum(data(ijk(1)).orderLen);
         m(2) = sum(data(ijk(2)).orderLen);
-        nu(1) = n(1) - m(1);
-        nu(2) = n(2) - m(2);
+        %nu(1) = n(1) - m(1);
+        %nu(2) = n(2) - m(2);
+        nu = n;
         data(ijk(3)).wnVariance = nu(1)/sum(nu) * data(ijk(1)).wnVariance + ...
             nu(2)/sum(nu) * data(ijk(2)).wnVariance;
         data(ijk(3)).numObserve = sum(n);
-        data(ijk(3)).orderLen = sum(m);
+        %data(ijk(3)).orderLen = sum(m);
+        data(ijk(3)).orderLen = round(mean(m));
     end
 end
 
@@ -191,8 +194,9 @@ for i = 1:nSets-1
 
         F = data(iIdx).wnVariance/data(jIdx).wnVariance;
         % use orderLen+1 to remember that we also fit WNV!
-        n1 = data(iIdx).numObserve - sum(data(iIdx).orderLen + 1);
-        n2 = data(jIdx).numObserve - sum(data(jIdx).orderLen + 1);
+        % 10/11/06 don't subtract orderLen anymore
+        n1 = data(iIdx).numObserve; % - sum(data(iIdx).orderLen + 1);
+        n2 = data(jIdx).numObserve; % - sum(data(jIdx).orderLen + 1);
 
         [logP,isExtrapolated] = fcdfExtrapolateLog(F,n1,n2);
         % for two equal data sets, p=0.5. Correct, so that p goes from 0 to

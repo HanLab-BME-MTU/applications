@@ -714,10 +714,10 @@ if strcmp(pdString{currentSelection},'add new...')
     mainDir = cdBiodata(0);
     
     %find calibration movie
-    [fileName,pathName] = uigetfile({'*.r3d;*.r3c','raw movie files'},'select project movie');
+    [fileName,pathName] = uigetfile({'*.r3d;*.r3c;*R3D.dv','raw movie files'},'select project movie');
     
     %return if user has selected nothing
-    if fileName==0 | ~strcmp(fileName(end-3:end-1),'.r3') %can be r3d or r3c
+    if all(fileName==0) || ~(strcmp(fileName(end-3:end-1),'.r3') |  strcmp(fileName(end-2:end),'.dv'))  %can be r3d or r3c
         %change back to correct dir
         cd(oldDir);
         return

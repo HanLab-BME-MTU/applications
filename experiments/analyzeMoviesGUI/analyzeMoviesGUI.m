@@ -251,7 +251,7 @@ guiH = handles.AMG;
 %get project name. If the name of the movie and the name of the directory
 %are not the same, create subdirectory with projectname = moviename and move
 %movie and logfile
-movieNames = searchFiles('(.r3[cd]|[dr]3d.dv)','(log|part|bad)','ask');
+movieNames = searchFiles('(.r3[cd]|[dr]3d.dv)','(log|part|bad|^DIC)','ask');
 selectedIdx = listSelectGUI(movieNames(:,1));
 nSelected = length(selectedIdx);
 movieNames = movieNames(selectedIdx,:);
@@ -267,7 +267,7 @@ for iMovie = 1:nSelected
         % we're happy
         destFileName = fileName;
     else
-        h=errordlg('This file extension is not recognized. Please notify the authorities');
+        h=errordlg('This file extension is not recognized. Please notify support');
         uiwait(h);
         return
     end
@@ -335,11 +335,29 @@ for iMovie = 1:nSelected
 
             %move logfile
             logfileName = [pathName,fileName,'.log'];
-            if exist(logfileName)
+            if exist(logfileName,'file')
                 if ispc
                     movefile([pathName,fileName,'.log'],fullPathName);
                 else
                     system(['mv ' [pathName,fileName,'.log'] ' ' fullPathName]);
+                end
+            end
+            %move DIC
+            dicfileName = [pathName,'DIC_',fileName];
+            if exist(dicfileName,'file')
+                if ispc
+                    movefile(dicfileName,fullPathName);                    
+                else
+                    system(['mv ' dicfileName ' ' fullPathName]);
+                end
+            end
+            %move DIC-log
+            dicfileNameLog = [pathName,'DIC_',fileName,'.log'];
+            if exist(dicfileNameLog,'file')
+                if ispc
+                    movefile(dicfileNameLog,fullPathName);                    
+                else
+                    system(['mv ' dicfileNameLog ' ' fullPathName]);
                 end
             end
         end

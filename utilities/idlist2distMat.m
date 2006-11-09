@@ -1,4 +1,4 @@
-function [distance, distanceUnitVectors, displacement, displacementUnitVectors, idlist, idxLists, intensity] = idlist2distMat(idlist, dataProperties, correctDisplacement, allowEstimatedTags)
+function [distance, distanceUnitVectors, displacement, displacementUnitVectors, idlist, idxLists, intensity] = idlist2distMat(idlist, dataProperties, correctDisplacement, allowEstimatedTags, tagOrder)
 %IDLIST2DISTMAT calculates distance matrices for idlists.
 %
 % SYNOPSIS: [distance, sigmaDistance, unitVectors,...
@@ -17,6 +17,10 @@ function [distance, distanceUnitVectors, displacement, displacementUnitVectors, 
 %                       -1  don't correct
 %       allowEstimatedTags (opt): whether or not to include estimated tags
 %                       in the calculations. [{0}/1]
+%       tagOrder (opt): Because the output matrices contain both values
+%                       and variances, reordering will be difficult. Use
+%                       tagOrder to indicate how you want the tags to be
+%                       ordered in the output. Default: (1:nTags)
 %
 % OUTPUT distance: nTags x nTags x nTimepoints distance array (estimated
 %               spots will not be counted). Below the diagonal is the
@@ -97,6 +101,11 @@ idlist = LG_deleteTag(idlist, badTagIdx, goodTimes);
 % count tags only after deleting tags!!
 nTags = length(idlist(1).stats.labelcolor);
 
+% check tagOrder
+if nargin < 5 || isempty(tagOrder)
+    tagOrder = (1:nTags)';
+end
+
 %% read Q-matrix diagonals
 
 % find which Q to use. Have primary and secondary qName, in case there is a
@@ -132,8 +141,17 @@ for t = goodTimes'
 end
 
 
+
+% order tags
+linklists = linklists(tagOrder,:,:);
+qMatrixDiags = qMatrixDiags(:,tagOrder,:);
+
+
+
 % read intensity
 intensity = squeeze(linklists(:,8,:))';
+
+
 
 %===============================
 

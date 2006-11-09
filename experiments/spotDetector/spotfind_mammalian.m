@@ -234,13 +234,13 @@ while ~done
         spots(loadStruct.loadedFrames(t)).COM = centroid3D(pt,10);
         
         % show result
-        if mod(loadStruct.loadedFrames(t),10)==0
-            figure('Name',sprintf('frame %i sc %1.1f',...
-                loadStruct.loadedFrames(t),dataProperties.sigmaCorrection(1)))
-            imshow(max(pt,[],3),[])
-            hold on, plot(spots(loadStruct.loadedFrames(t)).coordinateList(:,1),...
-                spots(loadStruct.loadedFrames(t)).coordinateList(:,2),'.')
-        end
+%         if mod(loadStruct.loadedFrames(t),10)==0
+%             figure('Name',sprintf('frame %i sc %1.1f',...
+%                 loadStruct.loadedFrames(t),dataProperties.sigmaCorrection(1)))
+%             imshow(max(pt,[],3),[])
+%             hold on, plot(spots(loadStruct.loadedFrames(t)).coordinateList(:,1),...
+%                 spots(loadStruct.loadedFrames(t)).coordinateList(:,2),'.')
+%         end
 
 
         if verbose
