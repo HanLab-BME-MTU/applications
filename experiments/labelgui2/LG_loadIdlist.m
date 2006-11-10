@@ -5,6 +5,18 @@ function success = LG_loadIdlist(idlist, replace, idname, idlistDir, dataFileNam
 % idlistDir is optional if replace = 0
 % LG_loadIdlst will always plot at the end.
 
+% check idlist for problems
+[goodIdlist,errorMessage] = checkIdlist(idlist,2);
+if ~goodIdlist
+    h = errordlg([errorMessage, ...
+        ' Please report what you just did to cause the appearance',...
+        'of this error as a bug. It is possible that this message',...
+        'won''t reappear after recalculation of the idlist.',...
+        'In that case, it should be possible to continue working'],...
+        'Error found');
+    uiwait(h);
+end
+
 
 [naviHandles,movieWindowHandles] = LG_getNaviHandles;
 

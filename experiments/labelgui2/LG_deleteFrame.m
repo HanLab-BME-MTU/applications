@@ -1,4 +1,4 @@
-function [idlist,status] = LG_deleteFrame(idlist,dataProperties,currentTime,goodTimes,recalc);
+function [idlist] = LG_deleteFrame(idlist,dataProperties,currentTime,goodTimes,recalc)
 %LG_deleteFrame is the function that deletes a frame
 % currentFrame could also be a list of frames!
 

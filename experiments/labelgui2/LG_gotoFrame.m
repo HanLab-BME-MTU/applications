@@ -95,7 +95,7 @@ if ~isempty(movieWindowHandles.loadMovieStruct)
         end
         % and store the loadedFrames
         movieWindowHandles.loadMovieStruct.loadedFrames = ...
-            [startFrame:endFrame];
+            startFrame:endFrame;
     end
 end
 % correct currentFrame by the number of the first loaded frame before
@@ -113,6 +113,9 @@ idlist = movieWindowHandles.idlist;
 if ~isempty(idlist)
     idlist = idlist(currentFrame);
 end
+
+
+
 
 % get plot info: List of axes handles, pixelSizes, aspectRatios
 axesH = [movieWindowHandles.xyAxesH; ...
