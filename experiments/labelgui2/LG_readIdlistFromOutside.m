@@ -1,4 +1,4 @@
-function idlist = LG_readIdlistFromOutside
+function [idlist,dataProperties] = LG_readIdlistFromOutside
 %LG_READIDLISTFROMOUTSIDE reads the currently saved idlist from labelgui2
 
 % get handles
@@ -10,6 +10,7 @@ else
 
 % read idlist from movieWindowHandles and return
 idlist = movieWindowHandles.idlist;
+dataProperties = movieWindowhandles.dataProperties;
 end
 
 % that's it already.

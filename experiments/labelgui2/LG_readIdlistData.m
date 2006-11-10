@@ -51,9 +51,15 @@ upperBorder = [dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_XY,...
     dataProperties.PIXELSIZE_Z].* (dataProperties.movieSize(1:3)+1)...
     - lowerBorder;
 pos = catStruct(3,'idlist.linklist(:,9:11)');
-closeIdx = any(any(pos(:,1,:) < lowerBorder(1) | pos(:,1,:) > upperBorder(1) | ...
+closeIdx = any(pos(:,1,:) < lowerBorder(1) | pos(:,1,:) > upperBorder(1) | ...
     pos(:,2,:) < lowerBorder(2) | pos(:,2,:) > upperBorder(2) | ...
-    pos(:,3,:) < lowerBorder(3) | pos(:,3,:) > upperBorder(3),1),2);
+    pos(:,3,:) < lowerBorder(3) | pos(:,3,:) > upperBorder(3),2);
+% check for single occurences - estimated single occurences shouldn't count
+% as close to border!
+goodCheck = catStruct(3,'idlist.linklist(:,5)');
+badIdx = goodCheck == 3;
+closeIdx(badIdx) = false;
+closeIdx = any(closeIdx,1);
 flagList(goodTimes(closeIdx),end+1) = 22;
 
 

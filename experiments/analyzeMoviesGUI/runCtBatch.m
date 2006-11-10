@@ -314,6 +314,12 @@ try
                                     projProperties = job(i).projProperties;
                                     save(projData,'projProperties','-append');
 
+                                    %save dataProperties
+                                    fprintf(fidJob,[nowString,' save(%s,''dataProperties'',''-append'');\n'],projData);
+                                    fprintf(fid,[nowString,' save dataProperties\n']);
+                                    save(projData,'dataProperties','-append');
+                                    save('dataProperties','dataProperties'); %save to disk, too
+
                                     %update job file
                                     fprintf(fid,[nowString,' update job\n']);
                                     job(i).jobs2run = job(i).jobs2run-4;
@@ -372,48 +378,6 @@ try
                                     fprintf(fid,[nowString,' track tags\n']);
                                     idlisttrack2 = tagTracker(movieInfo,idlist,dataProperties);
 
-                                    %                                     % loop with movie-chunks
-                                    %                                     loopDone = 0;
-                                    %                                     idFieldNames = fieldnames(idlist);
-                                    %                                     nFields = length(idFieldNames);
-                                    %                                     clear idlisttrack %make sure there isn't any old idlsittrack around
-                                    %                                     idlisttrack(1:movieHeader.numTimepoints) = ...
-                                    %                                         cell2struct(cell(nFields,1),...
-                                    %                                         idFieldNames);
-                                    %
-                                    %                                     while ~loopDone
-                                    %
-                                    %                                         % find which frames have been loaded
-                                    %                                         lf = loadStruct.loadedFrames;
-                                    %
-                                    %                                         %run tracktags
-                                    %                                         fprintf(fidJob,sprintf(...
-                                    %                                             '%s idlisttrack(%i:%i)=trackTags(movie,idlist,dataProperties);\n',...
-                                    %                                             nowString,lf(1),lf(end)));
-                                    %
-                                    %                                         fprintf(fid,sprintf(...
-                                    %                                             '%s idlisttrack(%i:%i)=trackTags(movie,idlist,dataProperties);\n',...
-                                    %                                             nowString,lf(1),lf(end)));
-                                    %                                         % correct for 5 correction frames
-                                    %                                         if ~isempty(movieHeader) && ...
-                                    %                                                 ~isempty(movieHeader.correctInfo.correctFrames)
-                                    %                                             lf = lf - movieHeader.correctInfo.correctFrames(1);
-                                    %                                         end
-                                    %                                         idlisttrack(lf) = trackTags(movie,idlist(lf),job(i).dataProperties);
-                                    %
-                                    %                                         clear('movie'); %to prevent memory problems
-                                    %
-                                    %                                         if ~isempty(loadStruct.frames2load)
-                                    %                                             [movie, movieHeader, loadStruct] = ...
-                                    %                                                 cdLoadMovie(loadStruct.movieType,[],loadStruct);
-                                    %                                         else
-                                    %                                             loopDone = 1;
-                                    %                                         end
-                                    %
-                                    %                                     end % loop movie-chunks
-
-                                    %clear movie from memory
-                                    %clear('movie','idlist','idlist_L');
 
                                     %save idlisttrack and lastResult
                                     fprintf(fidJob,[nowString,' save(%s,''idlisttrack2'',''-append'');\n'],projData);
@@ -571,7 +535,7 @@ try
 
                         % read idlist_L2 or idlisttrack_L2
                         newIdName = [lastResult(1:end-1),'_L2'];
-                        eval(sprintf('%s = LG_readIdlistFromOutside;',newIdName));
+                        eval(sprintf('[%s,dataProperties] = LG_readIdlistFromOutside;',newIdName));
 
                         if isempty(eval(newIdName))
                             error('checking idlist aborted')
@@ -589,8 +553,15 @@ try
                         save(projData,lastResult,'-append');
                         save(projData,'lastResult','-append');
 
+                        %save dataProperties
+                        fprintf(fidJob,[nowString,' save(%s,''dataProperties'',''-append'');\n'],projData);
+                        fprintf(fid,[nowString,' save dataProperties\n']);
+                        save(projData,'dataProperties','-append');
+                        save('dataProperties','dataProperties'); %save to disk, too
+
                         % save idlist also outside of datafile
                         save(sprintf('%s_%s',lastResult,nowString),lastResult)
+                        save('tmpDataProperties','dataProperties');
 
                         %update data properties
                         fprintf(fidJob,[nowString,' save(%s,''projProperties'',''-append'');\n'],projData);
