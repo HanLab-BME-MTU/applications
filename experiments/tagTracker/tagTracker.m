@@ -1286,6 +1286,11 @@ for t = [goodTimes';NaN,goodTimes(1:end-1)']
 
 end
 
+% make sure idlist has no errors (such as superfluous estimations, for
+% example). Also, create fusions
+idlisttrack(1).stats.recalc = 12;
+idlisttrack = linker(idlisttrack,dataProperties);
+
 
 
 %=========================================================================

@@ -264,10 +264,10 @@ end % if isempty(goodTimesT)
 for t=[goodTimes';NaN,goodTimes(1:end-1)']
     ll = idlist(t(1)).linklist;
     idlist(t(1)).linklist = ...
-        [repmat(t(1),maxTagIdx,1),zeros(maxTagIdx,11)];
+        [repmat(t(1),maxTagIdx,1),zeros(maxTagIdx,size(ll,2)-1)];
     idlist(t(1)).linklist(ll(:,4),2:end) = ll(:,2:end);
     % write indices for all tags
-    idlist(t(1)).linklist(:,4) = [1:maxTagIdx]';
+    idlist(t(1)).linklist(:,4) = (1:maxTagIdx)';
     % keep spot number of all not-found tags at 0
 
     % linkup, linkdown are nothing else than the spot numbers in the

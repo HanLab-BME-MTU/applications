@@ -294,7 +294,7 @@ try
                                     %idlist = spotID(slist,opt,job(i).dataProperties,job(i).projName);
                                     % set useCOM to 0. This is a hack.
                                     dataProperties.linker_useCOM = 0;
-                                    idlist2 = linker(slist,dataProperties,0);
+                                    [idlist2,dataProperties] = linker(slist,dataProperties,0);
 
                                     %save idlist and lastResult
                                     fprintf(fidJob,[nowString,' save(%s,''idlist2'',''-append'');\n'],projData);
