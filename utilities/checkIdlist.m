@@ -60,7 +60,7 @@ switch check
         end
 
         for t = squeeze(linklists(1,1,:))'
-            if isfield(idlist(t),'trackInit') && ~all(ismember(idlist(t).trackInit(:,1),idlist(t).linklist(:,4)))
+            if isfield(idlist(t),'trackInit') && ~isempty(idlist(t).trackInit) && ~all(ismember(idlist(t).trackInit(:,1),idlist(t).linklist(:,4)))
                 errorMessage = 'TrackInit points to non-existent tag!';
                 break
             end
