@@ -16,13 +16,10 @@ if isempty(MPM)
 end
 
 % trace MPM
-t_n =1;
-track_length(1)=0;
-
 for t=1:2:size(MPM,2)-2
     nr=1;
     for i=1:size(MPM,1)
-        if MPM(i,t) ~= 0 & MPM(i,t+2) ~= 0
+        if MPM(i,t) ~= 0 && MPM(i,t+2) ~= 0
             vector(nr,:) = MPM(i,t:t+3);
             nr=nr+1;
         end

@@ -1,15 +1,15 @@
-clear
-%score_variable = load('SCORE');
-score_variable = load('slow_sores');
+function scores_to_vec(SCORES, result_Dir)
 
-a=char(fieldnames(score_variable));
-SCORE = score_variable.(a);
 
-clear mpm_variable 
+if isempty(SCORES)
+    %score_variable = load('SCORE');
+    score_variable = load('slow_sores');
 
-%img_h = 779;
+    a=char(fieldnames(score_variable));
+    SCORE = score_variable.(a);
+end
 
-% trace SCORE
+% trace SCORES
 t=1;
 current_t = 1;
 while t <= size(SCORE,1)
@@ -23,8 +23,8 @@ while t <= size(SCORE,1)
     current_t = current_t+1;
     if nr
         % save
-        num_ext = num2str(int8(current_t-1), '%03i')
-        save(['kinScore' num_ext],'kinScore');
+        num_ext = num2str(int8(current_t-1), '%03i');
+        save([result_Dir filesep 'kinScore' num_ext],'kinScore');
     else
         t=t+1
     end
