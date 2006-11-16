@@ -79,7 +79,7 @@ for t=idxLists.goodTimes'
         targetIntensities = expValue * ...
             idlist(1).stats.intFit.tagFactor(idxLists.goodTagIdx(targetIdx));
         % good target: intensity larger than expected intensity
-        goodTargets = intensity(t,targetIdx) > targetIntensities;
+        goodTargets = intensity(t==idxLists.goodTimes,targetIdx) > targetIntensities;
 
         % are there any good targets?
         if any(goodTargets)
@@ -99,7 +99,8 @@ for t=idxLists.goodTimes'
                 [minDistance, minTagIdx] = nanmin(allDist);
 
                 % check whether minTagIdx points to a good target (intensity-wise)
-                if goodTargets(minTagIdx)
+                % careful: goodTargets is relative to targetIdx
+                if goodTargets(minTagIdx==targetIdx)
 
                     % store stuff
                     rowIdx = max(estimatedIdx(i),minTagIdx);

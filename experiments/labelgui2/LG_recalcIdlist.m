@@ -70,7 +70,7 @@ if nargin < 3 || isempty(recalcOptions)
         if isempty(answerI) || isnan(answerI)
             emptyAnswer = 1;
         else
-            if i>1
+            if i>2
             % check whether there has been a change at all
             if isequalwithequalnans(defaultAnswer(i),answer(i))
                 recalcOptions{i} = NaN;

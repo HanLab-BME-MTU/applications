@@ -10,7 +10,9 @@ else
 
 % read idlist from movieWindowHandles and return
 idlist = movieWindowHandles.idlist;
-dataProperties = movieWindowhandles.dataProperties;
+if nargout > 1
+dataProperties = movieWindowHandles.dataProperties;
+end
 end
 
 % that's it already.
