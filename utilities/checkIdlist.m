@@ -54,7 +54,7 @@ switch check
         badTagIdx = find(ismember(linklists(:,5,1),[2,3]));
         goodTagIdx = missingIndices(badTagIdx,size(linklists,1));
         % compare to labelcolor
-        if length(goodTagIdx) ~= length(idlist(1).stats.labelcolor)
+        if size(linklists,1) ~= length(idlist(1).stats.labelcolor);%length(goodTagIdx) ~= length(idlist(1).stats.labelcolor)
             errorMessage = ...
                 'Inconsistency in idlist detected: wrong number of tag labels!';
         end
