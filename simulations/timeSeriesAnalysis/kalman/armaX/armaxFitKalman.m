@@ -124,9 +124,15 @@ else
         errFlag = 1;
     end
     numTraj = length(trajOut); %number of trajectories supplied
-    if ~isfield(trajOut,'weight') %assign default weights if not supplied
+    %assign default weights if not supplied
+    if ~isfield(trajOut,'weight')
+        [trajOut.weight] = deal(1);
+    else
+        % loop and check whether there are empty weights
         for i=1:numTraj
-            trajOut(i).weight = 1;
+            if isempty(trajOut(i).weight)
+               trajOut(i).weight = 1;
+            end
         end
     end
 end

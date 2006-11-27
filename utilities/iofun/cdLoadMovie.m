@@ -321,7 +321,7 @@ else
         oldDir = cd(dirName);
 
         % load whatever necessary depending on movieData
-        type = find(strcmpi([goodTypes],movieType{2}));
+        type = find(strcmpi(goodTypes,movieType{2}));
 
         if isempty(type)
             error('unrecognized movie type!')
@@ -526,7 +526,7 @@ else
                 % account for the possibility that we have size limits
                 testStruct.maxSize = loadOpt.maxSize;
             else
-                testStruct = [1:r3dMovieHeader.numTimepoints];
+                testStruct = 1:r3dMovieHeader.numTimepoints;
             end
             
             % add wave options
@@ -644,12 +644,20 @@ else
 
 
         case 3
-            % readmat
-            movie = readmat(loadStruct.movieName,loadList);
+            % readmat - check for single-frame movie
+            if r3dMovieHeader.numTimepoints == 1
+                movie = readmat(loadStruct.movieName);
+            else
+                movie = readmat(loadStruct.movieName,loadList);
+            end
 
         case 7
-            % readmat
-            movie = readmat(loadStruct.movieName,loadList);
+            % readmat - check for single-frame movie
+            if r3dMovieHeader.numTimepoints == 1
+                movie = readmat(loadStruct.movieName);
+            else
+                movie = readmat(loadStruct.movieName,loadList);
+            end
 
         otherwise
             error('type %i not handled!',type)

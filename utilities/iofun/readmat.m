@@ -8,6 +8,14 @@ function [mov,stat]=readmat(fname,tPoints)
 %
 % OUTPUT   mov           : movie file
 %          stat          : fopen error
+%
+% REMARKS  Timepoints will always be measured along the last dimension of
+%          the array. If you normally use 4-D arrays, but in one of the
+%          saved files, the length of the fourth dimension is 1, the code
+%          assumes that it's in fact a 3D array, and counts tPoints along
+%          the third dimension. 
+%          Therefore, if want to load tPoint 1 of a file with only 1
+%          tPoint, pass empty instead of 1.
 
 %c: 10/08/01 dT
 

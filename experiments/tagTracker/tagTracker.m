@@ -1129,7 +1129,7 @@ for iTag = 1:nTags
     end
 end
 
-if constants.verbose > -1
+if constants.verbose > 0
     if isempty(varianceEstimators)
         % can't write the tilde on this keyboard...
     else
@@ -1288,7 +1288,7 @@ end
 
 % make sure idlist has no errors (such as superfluous estimations, for
 % example). Also, create fusions
-idlisttrack(1).stats.recalc = 12;
+idlisttrack(1).stats.recalc = {12};
 idlisttrack = linker(idlisttrack,dataProperties);
 
 
