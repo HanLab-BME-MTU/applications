@@ -60,72 +60,79 @@ nGoodTags = length(idxLists.goodTagIdx);
 estimatedTagList = zeros(sum(idxLists.estimatedTag(:)),7);
 eIdx = 1; % index into estimatedTagList
 
-% get distances to estimated tags
-for t=idxLists.goodTimes'
+% run only if there's something to run
+if isempty(estimatedTagList)
+    % there's nothing to do here!
+    return
+else
 
-    % find all estimated tags for this frame
-    estimatedIdx = find(idxLists.estimatedTag(t,:));
-    nEstimates = length(estimatedIdx);
+    % get distances to estimated tags
+    for t=idxLists.goodTimes'
 
-    % read list of possible targets
-    targetIdx = missingIndices(estimatedIdx,nGoodTags);
+        % find all estimated tags for this frame
+        estimatedIdx = find(idxLists.estimatedTag(t,:));
+        nEstimates = length(estimatedIdx);
 
-    % are there targets?
-    if ~isempty(targetIdx)
+        % read list of possible targets
+        targetIdx = missingIndices(estimatedIdx,nGoodTags);
 
-        % for all targets: calculate actual and projected intensity, find good
-        % targets
-        expValue = exp(idlist(1).stats.intFit.xFit(end) * t);
-        targetIntensities = expValue * ...
-            idlist(1).stats.intFit.tagFactor(idxLists.goodTagIdx(targetIdx));
-        % good target: intensity larger than expected intensity
-        goodTargets = intensity(t==idxLists.goodTimes,targetIdx) > targetIntensities;
+        % are there targets?
+        if ~isempty(targetIdx) && nEstimates > 0
 
-        % are there any good targets?
-        if any(goodTargets)
+            % for all targets: calculate actual and projected intensity, find good
+            % targets
+            expValue = exp(idlist(1).stats.intFit.xFit(end) * t);
+            targetIntensities = expValue * ...
+                idlist(1).stats.intFit.tagFactor(idxLists.goodTagIdx(targetIdx));
+            % good target: intensity larger than expected intensity
+            goodTargets = intensity(t==idxLists.goodTimes,targetIdx) > targetIntensities;
 
-            % loop through estimated tags for distances
-            for i=1:nEstimates
-                % distance is a nGoodTags-by-nGoodTags array with distances below
-                % the diagonal and the corresponding variances above the diagonal
-                allDist1 = distance(estimatedIdx(i),:,t);
-                allDist1 = allDist1(:);
-                allDist2 = distance(:,estimatedIdx(i),t);
-                allDist = [allDist1(1:estimatedIdx(i)-1);NaN;...
-                    allDist2(estimatedIdx(i)+1:end)];
+            % are there any good targets?
+            if any(goodTargets)
 
-                % find the minimum distance. Mask estimated poitions, first
-                allDist(estimatedIdx) = NaN;
-                [minDistance, minTagIdx] = nanmin(allDist);
+                % loop through estimated tags for distances
+                for i=1:nEstimates
+                    % distance is a nGoodTags-by-nGoodTags array with distances below
+                    % the diagonal and the corresponding variances above the diagonal
+                    allDist1 = distance(estimatedIdx(i),:,t);
+                    allDist1 = allDist1(:);
+                    allDist2 = distance(:,estimatedIdx(i),t);
+                    allDist = [allDist1(1:estimatedIdx(i)-1);NaN;...
+                        allDist2(estimatedIdx(i)+1:end)];
 
-                % check whether minTagIdx points to a good target (intensity-wise)
-                % careful: goodTargets is relative to targetIdx
-                if goodTargets(minTagIdx==targetIdx)
+                    % find the minimum distance. Mask estimated poitions, first
+                    allDist(estimatedIdx) = NaN;
+                    [minDistance, minTagIdx] = nanmin(allDist);
 
-                    % store stuff
-                    rowIdx = max(estimatedIdx(i),minTagIdx);
-                    colIdx = min(estimatedIdx(i),minTagIdx);
-                    estimatedTagList(eIdx,:) = ...
-                        [t, estimatedIdx(i), minTagIdx, minDistance,...
-                        squeeze(distanceUnitVectors(rowIdx, colIdx, t, :))'];
-                    eIdx = eIdx + 1;
+                    % check whether minTagIdx points to a good target (intensity-wise)
+                    % careful: goodTargets is relative to targetIdx
+                    if goodTargets(minTagIdx==targetIdx)
+
+                        % store stuff
+                        rowIdx = max(estimatedIdx(i),minTagIdx);
+                        colIdx = min(estimatedIdx(i),minTagIdx);
+                        estimatedTagList(eIdx,:) = ...
+                            [t, estimatedIdx(i), minTagIdx, minDistance,...
+                            squeeze(distanceUnitVectors(rowIdx, colIdx, t, :))'];
+                        eIdx = eIdx + 1;
 
 
-                    % check "recursively" for same fusion target, and remove the one
-                    % with larger distance
-                    sameTarget = find(estimatedTagList(:,3) == ...
-                        estimatedIdx(i) & estimatedTagList(:,1) == t);
-                    if length(sameTarget) > 1
-                        % remove target with larger distance
-                        [dummy, maxIdx] = max(estimatedTagList(sameTarget,4));
-                        estimatedTagList(sameTarget(maxIdx),:) = [];
-                        eIdx = eIdx - 1;
-                    end
-                end % check whether we would fuse to a good target
-            end % loop through estimated tags
-        end % any good targets?
-    end % any targets?
-end % loop time
+                        % check "recursively" for same fusion target, and remove the one
+                        % with larger distance
+                        sameTarget = find(estimatedTagList(:,3) == ...
+                            estimatedIdx(i) & estimatedTagList(:,1) == t);
+                        if length(sameTarget) > 1
+                            % remove target with larger distance
+                            [dummy, maxIdx] = max(estimatedTagList(sameTarget,4));
+                            estimatedTagList(sameTarget(maxIdx),:) = [];
+                            eIdx = eIdx - 1;
+                        end
+                    end % check whether we would fuse to a good target
+                end % loop through estimated tags
+            end % any good targets?
+        end % any targets?
+    end % loop time
+end % any estimated tag in the movie at all?
 
 % remove empty entries in estimatedTagList
 estimatedTagList(eIdx:end,:) = [];
@@ -152,7 +159,7 @@ for i = fuseTags'
     primaryTag = estimatedTagList(i,3);
     % secondary tag: Tag which is fused to another
     secondaryTag = estimatedTagList(i,2);
-    
+
     % set fusion flag
     if idlist(t).linklist(primaryTag,3) == 2
         idlist(t).linklist(primaryTag,3) = 5;
@@ -160,21 +167,21 @@ for i = fuseTags'
         idlist(t).linklist(primaryTag,3) = 3;
     end
     idlist(t).linklist(secondaryTag,3) = 4;
-    
+
     % adjust position, chi2, of secondary tag
     idlist(t).linklist(secondaryTag,9:12) = ...
         idlist(t).linklist(primaryTag,9:12);
-    
+
     % set spotNumber
     idlist(t).linklist(secondaryTag,2) = ...
         idlist(t).linklist(primaryTag,2);
-    
+
     % remove trackInit
     trackInitIdx = idlist(t).trackInit(:,1) == secondaryTag;
     if any(trackInitIdx)
         idlist(t).trackInit(trackInitIdx,:) = [];
     end
-        
+
     % if verbose, plot 'F' over the fused intensity
     if verbose
         axes(intAx)
@@ -193,7 +200,7 @@ idlist = linkerWriteQmatrices(idlist,idxLists.goodTimes);
 %========================
 
 % the user should be able to see the difference between "too far away"-tags
-% and close tags. 
+% and close tags.
 % If we re-estimate now, we could fuse some more, etc.
 
 % % prepare idlist for recalc first
@@ -212,5 +219,5 @@ idlist = linkerWriteQmatrices(idlist,idxLists.goodTimes);
 
 
 
- 
+
 
