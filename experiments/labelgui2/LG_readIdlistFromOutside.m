@@ -5,14 +5,12 @@ function [idlist,dataProperties] = LG_readIdlistFromOutside
 [naviHandles, movieWindowHandles] = LG_getNaviHandles(0);
 
 if isempty(naviHandles)
-   idlist = [];
+    idlist = [];
+    dataProperties = [];
 else
-
-% read idlist from movieWindowHandles and return
-idlist = movieWindowHandles.idlist;
-if nargout > 1
-dataProperties = movieWindowHandles.dataProperties;
-end
+    % read idlist from movieWindowHandles and return
+    idlist = movieWindowHandles.idlist;
+    dataProperties = movieWindowHandles.dataProperties;
 end
 
 % that's it already.
