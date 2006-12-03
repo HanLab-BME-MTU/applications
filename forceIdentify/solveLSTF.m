@@ -96,17 +96,19 @@ for ii = 1:length(selTimeSteps)
    end
 
    if isempty(selTFSigma)
-      if isempty(iSigma)
-         fprintf(1,['   Regularization parameter has not been identified yet.\n' ...
-            '   Please run ''calOptRegParTF'' first.\n']);
-         return;
-      end
+      fprintf(1,['   Regularization parameter has not been identified yet.\n' ...
+         '   Please run ''calOptRegParTF'' first.\n']);
+      return;
    end
 
 
    fprintf(1,'   Regularization parameter: %5.3f.\n',selTFSigma);
 
-   fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+   if strcmp(isFieldBndFixed,'yes') && strcmp(isDataPosFixed,'yes')
+      fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,0) '.mat'];
+   else
+      fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+   end
    s = load(fwdMapTFFile);
    A = s.A;
 
@@ -126,6 +128,7 @@ for ii = 1:length(selTimeSteps)
    femModel = s.femModel;
    fem      = femModel.fem;
    fsBnd    = femModel.fsBnd;
+   numEdges = femModel.numEdges;
 
    procStr = '';
    for k = 1:numEdges

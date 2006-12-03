@@ -193,8 +193,15 @@ for ii = 1:length(selTimeSteps)
    bfDisplayPx = forceField.p(:,1);
    bfDisplayPy = forceField.p(:,2);
 
-   recDispU1   = iDispField.rv(:,1);
-   recDispU2   = iDispField.rv(:,2);
+   %We show the flow field calculated with the reconstructed domain force and the reconstructed
+   %boundary force on the first chosen edge where boundary force is to be displayed.
+   if jj == 0 | edgToDisplay == 0
+      edgNo = 1;
+   else
+      edgNo = edgToDisplay(1);
+   end
+   recDispU1   = iDispField.bndF_rv{edgNo}(:,1);
+   recDispU2   = iDispField.bndF_rv{edgNo}(:,2);
    if strcmp(showFlowVec,'yes')
       quiver(bfDisplayPx,bfDisplayPy, ...
          recDispU1*dispScale,recDispU2*dispScale,0,'y');

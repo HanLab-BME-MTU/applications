@@ -137,10 +137,16 @@ end
 
 if ~strcmp(tfFwdOpComputed,'A') || ~strcmp(tfFwdOpComputed,'all')
    answer = input('Select time steps (0 for all):');
-   if isempty(answer) | answer == 0
-      selTimeSteps = 1:numDTimePts;
+   if strcmp(isFieldBndFixed,'yes') && strcmp(isDataPosFixed,'yes')
+      %We only need to calculate 'A' once for all time points in this case.
+      selTimeSteps = 0;
    else
-      selTimeSteps = answer;
+      answer = input('Select time steps (0 for all):');
+      if isempty(answer) | answer == 0
+         selTimeSteps = 1:numDTimePts;
+      else
+         selTimeSteps = answer;
+      end
    end
 
    fprintf(1,'Constructing the matrix A for boundary force:\n');
@@ -148,11 +154,16 @@ if ~strcmp(tfFwdOpComputed,'A') || ~strcmp(tfFwdOpComputed,'all')
    for ii = 1:length(selTimeSteps)
       jj = selTimeSteps(ii);
 
-      procStr = '';
-      fprintf(1,'  Time step %d: ', jj);
       localStartTime = cputime;
+      procStr = '';
+      if jj == 0
+         fprintf(1,'  Both domain and data positions are fixed: for all time steps.\n');
+         imgIndex = imgIndexOfDTimePts(1);
+      else
+         fprintf(1,'  Time step %d: ', jj);
+         imgIndex = imgIndexOfDTimePts(jj);
+      end
 
-      imgIndex = imgIndexOfDTimePts(jj);
       iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
       iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
       s = load(iDispFieldFile);
@@ -170,8 +181,9 @@ if ~strcmp(tfFwdOpComputed,'A') || ~strcmp(tfFwdOpComputed,'all')
       s = load(femModelFile);
       femModel = s.femModel;
 
-      fsBnd = femModel.fsBnd;
-      fem   = femModel.fem;
+      fsBnd    = femModel.fsBnd;
+      numEdges = femModel.numEdges;
+      fem      = femModel.fem;
 
       solTFIdFile = [femSolBasisTFDir filesep DTDir filesep 'solId'];
       %fsBndFile   = [femSolBasisTFDir filesep DTDir filesep 'fsBnd.mat'];
@@ -207,7 +219,11 @@ if ~strcmp(tfFwdOpComputed,'A') || ~strcmp(tfFwdOpComputed,'all')
       end
       fprintf(1,'\n');
 
-      fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+      if jj == 0
+         fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,0) '.mat'];
+      else
+         fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+      end
       save(fwdMapTFFile,'A');
    end
 end

@@ -134,19 +134,37 @@ for ii = 1:length(selTimeSteps)
    gridX = iDispField.gridX;
    gridY = iDispField.gridY;
 
-   maxADF = adfColorDispRange(2)*maxF;
-   minADF = adfColorDispRange(1)*maxF;
+   if isinf(maxBDFToShow)
+      maxADF = adfColorDispRange(2)*maxF;
+   else
+      maxADF = maxBDFToShow;
+   end
+   if isinf(minBDFToShow)
+      minADF = adfColorDispRange(1)*maxF;
+   else
+      minADF = minBDFToShow;
+   end
    adfImg = imDataMapOverlay(stackedImg,adfMap,[minADF maxADF],cMap);
+   adfMapToShow = adfMap;
+   adfMapToShow(1,1) = maxF;
+   adfMapToShow(1,2) = 0;
+   adfMapToShow(find(adfMapToShow>maxADF)) = maxADF;
+   adfMapToShow(find(adfMapToShow<minADF)) = minADF;
 
    figure(figH); hold off;
+   imgH = imshow(adfMapToShow,[]); 
+   colormap(cMap); colorbar; hold on;
+   delete(imgH);
    imshow(adfImg,[]); hold on;
 
    if strcmp(markMixZone,'yes')
       mixBW = zeros(size(mixfMap));
       mixBW(mixZoneInd) = 1;
-      mixZoneBnd = bwboundaries(mixBW);
-      for k = 1:length(mixZoneBnd)
-         plot(mixZoneBnd{k}(:,2),mixZoneBnd{k}(:,1),'w','LineWidth',1);
+      if ~exist('markMixBnd','var') || (exist('markMixBnd','var') && strcmp(markMixBnd,'yes'))
+         mixZoneBnd = bwboundaries(mixBW);
+         for k = 1:length(mixZoneBnd)
+            plot(mixZoneBnd{k}(:,2),mixZoneBnd{k}(:,1),'w','LineWidth',1);
+         end
       end
 
       %Also draw some grey dots in the mixed region.
@@ -161,34 +179,70 @@ for ii = 1:length(selTimeSteps)
    s = load(forceFieldFile);
    forceField = s.forceField;
 
-   bfDisplayPx = forceField.p(:,1);
-   bfDisplayPy = forceField.p(:,2);
-   recBFx      = forceField.f(:,1);
-   recBFy      = forceField.f(:,2);
+   switch bfDisplaySite
+      case 'dataSite'
+         bfDisplayPx = forceField.p(:,1);
+         bfDisplayPy = forceField.p(:,2);
+         recADFx      = forceField.adf(:,1);
+         recADFy      = forceField.adf(:,2);
 
-   recDispU1   = iDispField.rv(:,1);
-   recDispU2   = iDispField.rv(:,2);
+         recDispU1 = iDispField.rv(:,1);
+         recDispU2 = iDispField.rv(:,2);
+      case 'everyOther'
+         bfDisplayPx = forceField.p(1:2:end,1);
+         bfDisplayPy = forceField.p(1:2:end,2);
+         recADFx      = forceField.adf(1:2:end,1);
+         recADFy      = forceField.adf(1:2:end,2);
+
+         recDispU1 = iDispField.rv(1:2:end,1);
+         recDispU2 = iDispField.rv(1:2:end,2);
+      case 'everyThird'
+         bfDisplayPx = forceField.p(1:3:end,1);
+         bfDisplayPy = forceField.p(1:3:end,2);
+         recADFx      = forceField.adf(1:3:end,1);
+         recADFy      = forceField.adf(1:3:end,2);
+
+         recDispU1 = iDispField.rv(1:3:end,1);
+         recDispU2 = iDispField.rv(1:3:end,2);
+      case 'everyFourth'
+         bfDisplayPx = forceField.p(1:4:end,1);
+         bfDisplayPy = forceField.p(1:4:end,2);
+         recADFx      = forceField.adf(1:4:end,1);
+         recADFy      = forceField.adf(1:4:end,2);
+
+         recDispU1 = iDispField.rv(1:4:end,1);
+         recDispU2 = iDispField.rv(1:4:end,2);
+   end
+
+%    bfDisplayPx = forceField.p(:,1);
+%    bfDisplayPy = forceField.p(:,2);
+%    recBFx      = forceField.f(:,1);
+%    recBFy      = forceField.f(:,2);
+% 
+%    recDispU1   = iDispField.rv(:,1);
+%    recDispU2   = iDispField.rv(:,2);
    if strcmp(showFlowVec,'yes')
       quiver(bfDisplayPx,bfDisplayPy, ...
          recDispU1*dispScale,recDispU2*dispScale,0,'y');
    end
 
    if strcmp(showAdfVec,'yes')
-      bfDisplayPxPix = round(bfDisplayPx);
-      bfDisplayPyPix = round(bfDisplayPy);
-      [m,n] = size(adfMap);
-      bfDisplayPxPix(find(bfDisplayPxPix>n)) = n;
-      bfDisplayPxPix(find(bfDisplayPxPix<1)) = 1;
-      bfDisplayPyPix(find(bfDisplayPyPix>m)) = m;
-      bfDisplayPyPix(find(bfDisplayPyPix<1)) = 1;
-      dispInd = sub2ind(size(adfMap),bfDisplayPyPix,bfDisplayPxPix);
-      adfVecInd = find(~isnan(adfMap(dispInd)));
-      quiver(bfDisplayPx(adfVecInd),bfDisplayPy(adfVecInd), ...
-         recBFx(adfVecInd)*bfScale,recBFy(adfVecInd)*bfScale,0,'r');
+%       bfDisplayPxPix = round(bfDisplayPx);
+%       bfDisplayPyPix = round(bfDisplayPy);
+%       [m,n] = size(adfMap);
+%       bfDisplayPxPix(find(bfDisplayPxPix>n)) = n;
+%       bfDisplayPxPix(find(bfDisplayPxPix<1)) = 1;
+%       bfDisplayPyPix(find(bfDisplayPyPix>m)) = m;
+%       bfDisplayPyPix(find(bfDisplayPyPix<1)) = 1;
+%       dispInd = sub2ind(size(adfMap),bfDisplayPyPix,bfDisplayPxPix);
+%       adfVecInd = find(~isnan(adfMap(dispInd)));
+%       quiver(bfDisplayPx(adfVecInd),bfDisplayPy(adfVecInd), ...
+%          recBFx(adfVecInd)*bfScale,recBFy(adfVecInd)*bfScale,0,'r');
+      quiver(bfDisplayPx,bfDisplayPy,recADFx*bfScale,recADFy*bfScale,0,'r');
    end
    
-   titleStr = sprintf(['Adhesion Force\n' 'Time Step: %d Image Index: %d'], ...
-      jj,imgIndex);
+   titleStr = sprintf(['Adhesion Force\n' 'Time Step: %d Image Index: %d ' ...
+      'Max Force: %f'],jj,imgIndex,maxF);
    title(titleStr);
    
    %Save the figure

@@ -39,7 +39,7 @@ for ii = 1:length(selTimeSteps)
       s = load(forceFieldFile);
       forceField = s.forceField;
 
-      if isfield(forceField,'selTFSigma')
+      if isfield(forceField,'selTFSigma') && isfield(forceField,'tfSigma')
          tfSigma    = forceField.tfSigma;
          minTFSigma = forceField.minTFSigma;
          maxTFSigma = forceField.maxTFSigma;
@@ -135,7 +135,11 @@ for ii = 1:length(selTimeSteps)
    save(forceFieldFile,'forceField');
    isTFSigmaRangeIdentified = 'no';
 
-   fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+   if strcmp(isFieldBndFixed,'yes') && strcmp(isDataPosFixed,'yes')
+      fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,0) '.mat'];
+   else
+      fwdMapTFFile = [fwdMapTFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+   end
    s = load(fwdMapTFFile);
    A = s.A;
 
@@ -155,6 +159,7 @@ for ii = 1:length(selTimeSteps)
    femModel = s.femModel;
    fem      = femModel.fem;
    fsBnd    = femModel.fsBnd;
+   numEdges = femModel.numEdges;
 
    while strcmp(isTFSigmaRangeIdentified,'no')
       tfSigmaRange2 = tfSigma*[1e-4 1e-3 1e-2 1e-1 1 1e1 1e2 1e3 1e4];

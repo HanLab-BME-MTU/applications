@@ -148,11 +148,16 @@ end
 %   load([reslDir filesep  'AbfId'],'A');
 %else
 if ~strcmp(bfFwdOpComputed,'A') && ~strcmp(bfFwdOpComputed,'all')
-   answer = input('Select time steps (0 for all):');
-   if isempty(answer) | answer == 0
-      selTimeSteps = 1:numDTimePts;
+   if strcmp(isFieldBndFixed,'yes') && strcmp(isDataPosFixed,'yes')
+      %We only need to calculate 'A' once for all time points in this case.
+      selTimeSteps = 0;
    else
-      selTimeSteps = answer;
+      answer = input('Select time steps (0 for all):');
+      if isempty(answer) | answer == 0
+         selTimeSteps = 1:numDTimePts;
+      else
+         selTimeSteps = answer;
+      end
    end
 
    fprintf(1,'Constructing the matrix A for domain force:\n');
@@ -160,11 +165,16 @@ if ~strcmp(bfFwdOpComputed,'A') && ~strcmp(bfFwdOpComputed,'all')
    for ii = 1:length(selTimeSteps)
       jj = selTimeSteps(ii);
 
-      procStr = '';
-      fprintf(1,'  Time step %d: ', jj);
       localStartTime = cputime;
+      procStr = '';
+      if jj == 0
+         fprintf(1,'  Both domain and data positions are fixed: for all time steps.\n');
+         imgIndex = imgIndexOfDTimePts(1);
+      else
+         fprintf(1,'  Time step %d: ', jj);
+         imgIndex = imgIndexOfDTimePts(jj);
+      end
 
-      imgIndex = imgIndexOfDTimePts(jj);
       %Load the interpolated displacement field.
       iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
       iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
@@ -251,7 +261,11 @@ if ~strcmp(bfFwdOpComputed,'A') && ~strcmp(bfFwdOpComputed,'all')
       %Reshape 'A';
       A = reshape(A,2*numDP,2*dimBF);
 
-      fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+      if jj == 0
+         fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,0) '.mat'];
+      else
+         fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+      end
       save(fwdMapBFFile,'A');
       %save([reslDir filesep  'AbfId'],'A');
    end

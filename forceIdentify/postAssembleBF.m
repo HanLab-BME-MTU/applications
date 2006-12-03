@@ -128,10 +128,18 @@ for ii = 1:length(selTimeSteps)
    % [y0 x0 y1 x1] that is compatible with 'prMergePanel'.
    indexStr = sprintf(imgIndexForm,imgIndexOfDTimePts(jj));
 
+   flowVecFile = [reslDir filesep 'flowVecF' filesep 'flowVecF' indexStr '.mat'];
    bdfVecFile  = [reslDir filesep 'bdfVecF' filesep 'bdfVecF' indexStr '.mat'];
    mcfVecFile  = [reslDir filesep 'mcfVecF' filesep 'mcfVecF' indexStr '.mat'];
    adfVecFile  = [reslDir filesep 'adfVecF' filesep 'adfVecF' indexStr '.mat'];
    
+   if ~exist([reslDir filesep 'flowVecF'],'dir')
+      [success msg msgID] = mkdir(reslDir,'flowVecF');
+      if ~success
+         error('Trouble making directory ''flowVecF''.');
+      end
+   end
+
    if ~exist([reslDir filesep 'bdfVecF'],'dir')
       [success msg msgID] = mkdir(reslDir,'bdfVecF');
       if ~success
@@ -150,6 +158,47 @@ for ii = 1:length(selTimeSteps)
       [success msg msgID] = mkdir(reslDir,'adfVecF');
       if ~success
          error('Trouble making directory ''adfVecF''.');
+      end
+   end
+
+   flowMagFile  = [reslDir filesep 'flowMag' filesep 'flowMag' indexStr '.mat'];
+   bdfMagFile  = [reslDir filesep 'bdfMag' filesep 'bdfMag' indexStr '.mat'];
+   mcfMagFile  = [reslDir filesep 'mcfMag' filesep 'mcfMag' indexStr '.mat'];
+   adfMagFile  = [reslDir filesep 'adfMag' filesep 'adfMag' indexStr '.mat'];
+   mcfPowFile  = [reslDir filesep 'mcfPow' filesep 'mcfPow' indexStr '.mat'];
+   
+   if ~exist([reslDir filesep 'flowMag'],'dir')
+      [success msg msgID] = mkdir(reslDir,'flowMag');
+      if ~success
+         error('Trouble making directory ''flowMag''.');
+      end
+   end
+
+   if ~exist([reslDir filesep 'bdfMag'],'dir')
+      [success msg msgID] = mkdir(reslDir,'bdfMag');
+      if ~success
+         error('Trouble making directory ''bdfMag''.');
+      end
+   end
+
+   if ~exist([reslDir filesep 'mcfMag'],'dir')
+      [success msg msgID] = mkdir(reslDir,'mcfMag');
+      if ~success
+         error('Trouble making directory ''mcfMag''.');
+      end
+   end
+
+   if ~exist([reslDir filesep 'adfMag'],'dir')
+      [success msg msgID] = mkdir(reslDir,'adfMag');
+      if ~success
+         error('Trouble making directory ''adfMag''.');
+      end
+   end
+
+   if ~exist([reslDir filesep 'mcfPow'],'dir')
+      [success msg msgID] = mkdir(reslDir,'mcfPow');
+      if ~success
+         error('Trouble making directory ''mcfPow''.');
       end
    end
 
@@ -198,11 +247,15 @@ for ii = 1:length(selTimeSteps)
 
    %Save the force field in the format [y0 x0 y1 x1] for processing by 'prMergePanel'.
    bdfVec = [forceField.p(:,2:-1:1) forceField.p(:,2:-1:1)+forceField.f(:,2:-1:1)];
+   bdfMag = [imgIndex*ones(size(forceField.p,1),1) forceField.p(:,2:-1:1) ...
+             sqrt(sum(forceField.f(:,2:-1:1).^2,2))];
 
    %Remove 'NaN'.
    nanInd = find(isnan(bdfVec(:,3)) | isnan(bdfVec(:,4)));
    bdfVec(nanInd,:) = [];
+   bdfMag(nanInd,:) = [];
    save(bdfVecFile,'bdfVec');
+   save(bdfMagFile,'bdfMag');
 
    %The displacements on the points where the force field is to be
    % demonstrated.
@@ -211,6 +264,18 @@ for ii = 1:length(selTimeSteps)
    [recDispU1,recDispU2] = postinterp(fem,'u1','u2', ...
       forceField.p.');
    iDispField.rv = [recDispU1;recDispU2].';
+
+   %Save the displacement field in the format [y0 x0 y1 x1] for processing by 'prMergePanel'.
+   flowVec = [forceField.p(:,2:-1:1) forceField.p(:,2:-1:1)+iDispField.rv(:,2:-1:1)];
+   flowMag = [imgIndex*ones(size(forceField.p,1),1) forceField.p(:,2:-1:1) ...
+             sqrt(sum(iDispField.rv(:,2:-1:1).^2,2))];
+
+   %Remove 'NaN'.
+   nanInd = find(isnan(flowVec(:,3)) | isnan(flowVec(:,4)));
+   flowVec(nanInd,:) = [];
+   flowMag(nanInd,:) = [];
+   save(flowVecFile,'flowVec');
+   save(flowMagFile,'flowMag');
 
    %Get the residue in matching displacement field.
    dispLen           = sqrt(sum(iDispField.rv.^2,2));
@@ -266,8 +331,11 @@ for ii = 1:length(selTimeSteps)
    recBFLen = sqrt(recBFx.^2+recBFy.^2);
    recDispLen = sqrt(recDispU1.^2+recDispU2.^2);
 
-   unitRecU1 = recDispU1./recDispLen;
-   unitRecU2 = recDispU2./recDispLen;
+   unitRecU1 = recDispU1;
+   unitRecU2 = recDispU2;
+   nzInd = find(recDispLen~=0);
+   unitRecU1(nzInd) = recDispU1(nzInd)./recDispLen(nzInd);
+   unitRecU2(nzInd) = recDispU2(nzInd)./recDispLen(nzInd);
 
    dotProdBFRecU = recBFx.*unitRecU1 + recBFy.*unitRecU2;
    mcfIndShow = find((dotProdBFRecU-recBFLen*cos(mcfAngle))>=0);
@@ -324,6 +392,7 @@ for ii = 1:length(selTimeSteps)
    adfUnitV2 = sin(rotAngle).*unitRecU1(mixIndShow) - ...
        cos(rotAngle).*unitRecU2(mixIndShow);
    
+   mcfDomMixI = [];
    for k = 1:length(mixIndShow)
        %'projM': The two columns of 'projM' are given by the vector
        %opposite the flow and the unit vector ((mcfUnitV1,mcfUnitV2) that
@@ -334,32 +403,55 @@ for ii = 1:length(selTimeSteps)
                adfUnitV2(k) mcfUnitV2(k)];
        %The amount of projection to the two vectors are given by
        pC = projM\[recBFx(mixIndShow(k));recBFy(mixIndShow(k))];
-       recADFx(mixIndShow(k)) = projM(1,1)*pC(1);
-       recADFy(mixIndShow(k)) = projM(2,1)*pC(1);
-       recMCFx(mixIndShow(k)) = projM(1,2)*pC(2);
-       recMCFy(mixIndShow(k)) = projM(2,2)*pC(2);
+       if pC(1) >= pC(2)
+          recADFx(mixIndShow(k)) = projM(1,1)*pC(1);
+          recADFy(mixIndShow(k)) = projM(2,1)*pC(1);
+          recMCFx(mixIndShow(k)) = projM(1,2)*pC(2);
+          recMCFy(mixIndShow(k)) = projM(2,2)*pC(2);
+       else
+          mcfDomMixI = [mcfDomMixI k];
+       end
    end
+   %We limit mixed zone to adhesion dominant region.
+   recMCFx(mixIndShow(mcfDomMixI)) = recBFx(mixIndShow(mcfDomMixI));
+   recMCFy(mixIndShow(mcfDomMixI)) = recBFy(mixIndShow(mcfDomMixI));
+   mixIndShow(mcfDomMixI) = [];
+   
    forceField.adf = [recADFx; recADFy].';
    forceField.mcf = [recMCFx; recMCFy].';
    
    %Save the force field in the format [y0 x0 y1 x1] for processing by 'prMergePanel'.
    adfVec = [forceField.p(:,2:-1:1) forceField.p(:,2:-1:1)+forceField.adf(:,2:-1:1)];
    mcfVec = [forceField.p(:,2:-1:1) forceField.p(:,2:-1:1)+forceField.mcf(:,2:-1:1)];
+   adfMag = [imgIndex*ones(size(forceField.p,1),1) forceField.p(:,2:-1:1) ...
+             sqrt(sum(forceField.adf(:,2:-1:1).^2,2))];
+   mcfMag = [imgIndex*ones(size(forceField.p,1),1) forceField.p(:,2:-1:1) ...
+             sqrt(sum(forceField.mcf(:,2:-1:1).^2,2))];
+   mcfPow = [imgIndex*ones(size(forceField.p,1),1) forceField.p(:,2:-1:1) ...
+             sqrt(sum(forceField.mcf.*iDispField.rv,2))];
 
    %Remove NaN.
    nanInd = find(isnan(adfVec(:,3)) | isnan(adfVec(:,4)));
    adfVec(nanInd,:) = [];
+   adfMag(nanInd,:) = [];
    nanInd = find(isnan(mcfVec(:,3)) | isnan(mcfVec(:,4)));
    mcfVec(nanInd,:) = [];
+   mcfMag(nanInd,:) = [];
+   nanInd = find(isnan(mcfPow(:,4)));
+   mcfPow(nanInd,:) = [];
 
    save(adfVecFile,'adfVec');
    save(mcfVecFile,'mcfVec');
+   save(adfMagFile,'adfMag');
+   save(mcfMagFile,'mcfMag');
+   save(mcfPowFile,'mcfPow');
 
    %%%%%%% We then do it on the grid points and assign intensity scores.
    % The force on grid points inside the identification region.
    %We calculate forces on grids for generating color map.
    gridBDF  = NaN*ones(length(gridy)*length(gridx),1);
    gridMCF  = gridBDF;
+   gridMCP  = gridBDF;
    gridADF  = gridBDF;
    gridADC  = gridBDF;
    gridMixF = gridBDF;
@@ -440,11 +532,6 @@ for ii = 1:length(selTimeSteps)
    gridInADFx(adfInd) = gridBFx(adfInd);
    gridInADFy(adfInd) = gridBFy(adfInd);
 
-   %Mixture of myosin and adhesion force.
-   gridInMixF(mixInd)  = gridBFLen(mixInd);
-   gridInMixFx(mixInd) = gridBFx(mixInd);
-   gridInMixFy(mixInd) = gridBFy(mixInd);
-
    %%%%%%% For mixed zone, we project the force into the opposite direction of
    % flow (adhesion force) and the direction that forms 'mcfAngle' with 
    % the flow (contraction force).
@@ -484,6 +571,7 @@ for ii = 1:length(selTimeSteps)
    adfUnitV2 = sin(rotAngle).*unitGridU1(mixInd) - ...
        cos(rotAngle).*unitGridU2(mixInd);
 
+   mcfDomMixI = [];
    for k = 1:length(mixInd)
        %'projM': The two columns of 'projM' are given by the vector
        %opposite the flow and the unit vector ((mcfUnitV1,mcfUnitV2) that
@@ -494,14 +582,27 @@ for ii = 1:length(selTimeSteps)
                adfUnitV2(k) mcfUnitV2(k)];
        %The amount of projection to the two vectors are given by
        pC = projM\[gridBFx(mixInd(k));gridBFy(mixInd(k))];
-       gridInADF(mixInd(k))  = pC(1);
-       gridInMCF(mixInd(k))  = pC(2);
-       gridInADFx(mixInd(k)) = projM(1,1)*pC(1);
-       gridInADFy(mixInd(k)) = projM(2,1)*pC(1);
-       gridInMCFx(mixInd(k)) = projM(1,2)*pC(2);
-       gridInMCFy(mixInd(k)) = projM(2,2)*pC(2);
+       if pC(1) >= pC(2)
+          gridInADF(mixInd(k))  = pC(1);
+          gridInMCF(mixInd(k))  = pC(2);
+          gridInADFx(mixInd(k)) = projM(1,1)*pC(1);
+          gridInADFy(mixInd(k)) = projM(2,1)*pC(1);
+          gridInMCFx(mixInd(k)) = projM(1,2)*pC(2);
+          gridInMCFy(mixInd(k)) = projM(2,2)*pC(2);
+       else
+          mcfDomMixI = [mcfDomMixI k];
+       end
    end
-   gridInADF(mixInd(find(gridInADF(mixInd)<gridInMCF(mixInd)))) = NaN;
+   %We limit mixed zone to adhesion dominant region.
+   gridInMCF(mixInd(mcfDomMixI)) = gridBFLen(mixInd(mcfDomMixI));
+   gridInMCFx(mixInd(mcfDomMixI)) = gridBFx(mixInd(mcfDomMixI));
+   gridInMCFy(mixInd(mcfDomMixI)) = gridBFy(mixInd(mcfDomMixI));
+   mixInd(mcfDomMixI) = [];
+
+   %Mixture of myosin and adhesion force.
+   gridInMixF(mixInd)  = gridBFLen(mixInd);
+   gridInMixFx(mixInd) = gridBFx(mixInd);
+   gridInMixFy(mixInd) = gridBFy(mixInd);
 
    %gridInMCF(mixInd)  = sqrt(gridInMCFx(mixInd).^2+gridInMCFy(mixInd).^2);
   %gridInMCF = zeros(size(gridBFLen));
@@ -521,6 +622,7 @@ for ii = 1:length(selTimeSteps)
    %Interpolate 'gridInMCF' and 'gridInADF' to get the pp-form of the scores.
    gridBDF(gridIn)  = gridBFLen;
    gridMCF(gridIn)  = gridInMCF;
+   gridMCP(gridIn)  = gridInMCFx.*gridU1 + gridInMCFy.*gridU2;
    gridADF(gridIn)  = gridInADF;
    gridADC(gridIn)  = gridInADC;
    gridMixF(gridIn) = gridInMixF;
@@ -528,6 +630,7 @@ for ii = 1:length(selTimeSteps)
 
    gridBDF  = reshape(gridBDF,length(gridy),length(gridx));
    gridMCF  = reshape(gridMCF,length(gridy),length(gridx));
+   gridMCP  = reshape(gridMCP,length(gridy),length(gridx));
    gridADF  = reshape(gridADF,length(gridy),length(gridx));
    gridADC  = reshape(gridADC,length(gridy),length(gridx));
    gridMixF = reshape(gridMixF,length(gridy),length(gridx));
@@ -536,6 +639,7 @@ for ii = 1:length(selTimeSteps)
 
    forceField.gridBDF  = gridBDF;
    forceField.gridMCF  = gridMCF;
+   forceField.gridMCP  = gridMCP;
    forceField.gridADF  = gridADF;
    forceField.gridADC  = gridADC;
    forceField.gridMixF = gridMixF;
@@ -552,6 +656,12 @@ for ii = 1:length(selTimeSteps)
       mcfMap  = imDataMap(size(stackedImg),{gridy,gridx},gridMCF,'bnd',[bfDomPGx bfDomPGy]);
    else
       mcfMap  = imDataMap(size(stackedImg),{gridy,gridx},gridMCF,'mask',cellMask);
+   end
+
+   if isempty(cellMask)
+      mcpMap  = imDataMap(size(stackedImg),{gridy,gridx},gridMCP,'bnd',[bfDomPGx bfDomPGy]);
+   else
+      mcpMap  = imDataMap(size(stackedImg),{gridy,gridx},gridMCP,'mask',cellMask);
    end
 
    if isempty(cellMask)
@@ -586,9 +696,10 @@ for ii = 1:length(selTimeSteps)
 
    bdfMap(find(bdfMap<0))   = 0;
    mcfMap(find(mcfMap<0))   = 0;
+   mcpMap(find(mcpMap<0))   = 0;
    adfMap(find(adfMap<0))   = 0;
    adcMap(find(adfMap<0))   = 0;
-   spdMap(find(bdfMap<0))   = 0;
+   spdMap(find(spdMap<0))   = 0;
    mixfMap(find(mixfMap<0)) = 0;
 
    %We only show forces that are above a threshold.
@@ -614,6 +725,17 @@ for ii = 1:length(selTimeSteps)
    end
    smMCFInd = numInd(find(mcfMap(numInd)<avgMCF*smForceThreshold));
    mcfMap(smMCFInd) = NaN;
+
+   numInd = find(~isnan(mcpMap));
+   if isempty(numInd)
+      maxMCP = 0;
+      avgMCP = 0;
+   else
+      maxMCP = max(mcpMap(numInd));
+      avgMCP = mean(mcpMap(numInd));
+   end
+   smMCPInd = numInd(find(mcpMap(numInd)<avgMCP*smForceThreshold));
+   mcpMap(smMCPInd) = NaN;
 
    numInd = find(~isnan(adfMap));
    if isempty(numInd)
@@ -665,6 +787,7 @@ for ii = 1:length(selTimeSteps)
    indexStr = sprintf(imgIndexForm,imgIndexOfDTimePts(jj));
    bdfMapFile  = [reslDir filesep 'bdfMap' filesep 'bdfMap' indexStr '.mat'];
    mcfMapFile  = [reslDir filesep 'mcfMap' filesep 'mcfMap' indexStr '.mat'];
+   mcpMapFile  = [reslDir filesep 'mcpMap' filesep 'mcpMap' indexStr '.mat'];
    adfMapFile  = [reslDir filesep 'adfMap' filesep 'adfMap' indexStr '.mat'];
    adcMapFile  = [reslDir filesep 'adcMap' filesep 'adcMap' indexStr '.mat'];
    mixfMapFile = [reslDir filesep 'mixfMap' filesep 'mixfMap' indexStr '.mat'];
@@ -681,6 +804,12 @@ for ii = 1:length(selTimeSteps)
       [success msg msgID] = mkdir(reslDir,'mcfMap');
       if ~success
          error('Trouble making directory ''mcfMap''.');
+      end
+   end
+   if ~exist('mcpMap','dir')
+      [success msg msgID] = mkdir(reslDir,'mcpMap');
+      if ~success
+         error('Trouble making directory ''mcpMap''.');
       end
    end
    if ~exist('adfMap','dir')
@@ -715,6 +844,7 @@ for ii = 1:length(selTimeSteps)
    end
    save(bdfMapFile,'bdfMap');
    save(mcfMapFile,'mcfMap');
+   save(mcpMapFile,'mcpMap');
    save(adfMapFile,'adfMap');
    save(adcMapFile,'adcMap');
    save(mixfMapFile,'mixfMap');

@@ -84,7 +84,7 @@ switch trackMethod
          for k = 1:length(simFlowFile)
             dataFile{k} = [sDispFieldDir filesep simFlowFile{k}];
          end
-         startImgIndex = imgIndexOfDTimePts(2); 
+         startImgIndex = imgIndexOfDTimePts(1); 
          endImgIndex   = imgIndexOfDTimePts(end); 
          numAvgFrames  = ones(size(imgIndexOfDTimePts));
       end

@@ -8,11 +8,17 @@
 %    'speck': specktackle particle tracking in FSM.
 %
 % isFieldBndFixed: For dynamic force reconstruction, specify whether the field boundary 
-%                  is fixed or not. Possible values: 'yes'(default) or 'no'.
+%                  is fixed or not. Possible values: 'yes'(default) or 'no'. When it is 'yes', we
+%                  only need to calculate the forward map for each basis function in the domain once
+%                  for all time points.
+% isDataPosFixed : For dynamic force reconstruction, specify whether the position of data points in
+%                  the field is fixed. Possible values: 'yes' or 'no' (default). This variable only
+%                  makes sense when 'isFieldBndFixed' is 'yes'. When it is 'yes', we only need to
+%                  calculate the forward operator matrix 'A' once for all time points.
 %
-% YModulVariation: Specify whether homogeneous ('homo' default) or inhomogeneous ('inhomo') Young's
-%                  modulus is used. When it is 'inhomo', Young's modulus is proportional to image
-%                  intensity.
+% YModulVariation: Specify whether homogeneous ('homo' default) or inhomogeneous ('inhomo' or 
+%                  'inhomoUser' (user defined)) Young's modulus is used. When it is 'inhomo', 
+%                  Young's modulus is proportional to image intensity.
 %
 % The following are parameters used for filtering and interpolation of raw data to grid points. 
 %    corLen   : Used for a faithful interpolation with minimum filtering. Unit, pixels.
@@ -188,6 +194,7 @@
 
 trackMethod       = 'corr'; 
 isFieldBndFixed   = 'yes';
+isDataPosFixed    = 'no';
 YModulVariation   = 'homo';
 corLen            = 5; %It is supposed to be small and no filtering. Unit, pixels.
 sCorLen           = 10; %40; % Used to calculate smoothly interpolated field. Unit, pixels.
@@ -233,8 +240,15 @@ showMixZone       = 'yes';
 markMixZone       = 'yes';
 mixfBndColor      = [0.721 0.721 0.721]; %grey.
 imgIRange         = [0 1];
+maxSPDToShow      = Inf;
+minSPDToShow      = -Inf;
+maxBDFToShow      = Inf;
+minBDFToShow      = -Inf;
+maxMCPToShow      = Inf;
+minMCPToShow      = -Inf;
 bdfColorDispRange = [0 1]; %Full range.
 mcfColorDispRange = [0 1]; %Full range.
+mcpColorDispRange = [0 1]; %Full range.
 adfColorDispRange = [0 1]; %Full range.
 spdColorDispRange = [0 1]; %Full range.
 showBdfCBar       = 'yes';
@@ -250,6 +264,7 @@ debugMode         = 'off';
 
 param.trackMethod       = trackMethod;
 param.isFieldBndFixed   = isFieldBndFixed;
+param.isDataPosFixed    = isDataPosFixed;
 param.corLen            = corLen;
 param.sCorLen           = sCorLen;
 param.gridDx            = gridDx;
@@ -294,8 +309,15 @@ param.showMixZone       = showMixZone;
 param.markMixZone       = markMixZone;
 param.mixfBndColor      = mixfBndColor;
 param.imgIRange         = imgIRange;
+param.maxSPDToShow      = maxSPDToShow;
+param.minSPDToShow      = minSPDToShow;
+param.maxBDFToShow      = maxBDFToShow;
+param.minBDFToShow      = minBDFToShow;
+param.maxMCPToShow      = maxMCPToShow;
+param.minMCPToShow      = minMCPToShow;
 param.bdfColorDispRange = bdfColorDispRange;
 param.mcfColorDispRange = mcfColorDispRange;
+param.mcpColorDispRange = mcpColorDispRange;
 param.adfColorDispRange = adfColorDispRange;
 param.spdColorDispRange = spdColorDispRange;
 param.showBdfCBar       = showBdfCBar;

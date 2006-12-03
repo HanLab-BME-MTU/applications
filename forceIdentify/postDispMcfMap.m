@@ -134,20 +134,39 @@ for ii = 1:length(selTimeSteps)
    gridX = iDispField.gridX;
    gridY = iDispField.gridY;
 
-   maxMCF = mcfColorDispRange(2)*maxF;
-   minMCF = mcfColorDispRange(1)*maxF;
+   if isinf(maxBDFToShow)
+      maxMCF = mcfColorDispRange(2)*maxF;
+   else
+      maxMCF = maxBDFToShow;
+   end
+   if isinf(minBDFToShow)
+      minMCF = mcfColorDispRange(1)*maxF;
+   else
+      minMCF = minBDFToShow;
+   end
    mcfImg = imDataMapOverlay(stackedImg,mcfMap,[minMCF maxMCF],cMap);
+   mcfMapToShow = mcfMap;
+   mcfMapToShow(1,1) = maxF;
+   mcfMapToShow(1,2) = 0;
+   mcfMapToShow(find(mcfMapToShow>maxMCF)) = maxMCF;
+   mcfMapToShow(find(mcfMapToShow<minMCF)) = minMCF;
 
    figure(figH); hold off;
+   imgH = imshow(mcfMapToShow,[]); 
+   colormap(cMap); colorbar; hold on;
+   delete(imgH);
    imshow(mcfImg,[]); hold on;
 
    if strcmp(markMixZone,'yes')
-      %identify the boundary of the mixed zone and draw it.
       mixBW = zeros(size(mixfMap));
       mixBW(mixZoneInd) = 1;
-      mixZoneBnd = bwboundaries(mixBW);
-      for k = 1:length(mixZoneBnd)
-         plot(mixZoneBnd{k}(:,2),mixZoneBnd{k}(:,1),'w','LineWidth',1);
+      
+      if ~exist('markMixBnd','var') || (exist('markMixBnd','var') && strcmp(markMixBnd,'yes'))
+         %identify the boundary of the mixed zone and draw it.
+         mixZoneBnd = bwboundaries(mixBW);
+         for k = 1:length(mixZoneBnd)
+            plot(mixZoneBnd{k}(:,2),mixZoneBnd{k}(:,1),'w','LineWidth',1);
+         end
       end
 
       %Also draw some grey dots in the mixed region.
@@ -162,13 +181,32 @@ for ii = 1:length(selTimeSteps)
    s = load(forceFieldFile);
    forceField = s.forceField;
 
-   bfDisplayPx = forceField.p(:,1);
-   bfDisplayPy = forceField.p(:,2);
-   recBFx      = forceField.f(:,1);
-   recBFy      = forceField.f(:,2);
+   switch bfDisplaySite
+      case 'dataSite'
+         bfDisplayPx = forceField.p(:,1);
+         bfDisplayPy = forceField.p(:,2);
+         recMCFx      = forceField.mcf(:,1);
+         recMCFy      = forceField.mcf(:,2);
 
-   recDispU1 = iDispField.rv(:,1);
-   recDispU2 = iDispField.rv(:,2);
+         recDispU1 = iDispField.rv(:,1);
+         recDispU2 = iDispField.rv(:,2);
+      case 'everyOther'
+         bfDisplayPx = forceField.p(1:2:end,1);
+         bfDisplayPy = forceField.p(1:2:end,2);
+         recMCFx      = forceField.mcf(1:2:end,1);
+         recMCFy      = forceField.mcf(1:2:end,2);
+
+         recDispU1 = iDispField.rv(1:2:end,1);
+         recDispU2 = iDispField.rv(1:2:end,2);
+   end
+
+%    bfDisplayPx = forceField.p(:,1);
+%    bfDisplayPy = forceField.p(:,2);
+%    recBFx      = forceField.f(:,1);
+%    recBFy      = forceField.f(:,2);
+% 
+%    recDispU1 = iDispField.rv(:,1);
+%    recDispU2 = iDispField.rv(:,2);
 
    if strcmp(showFlowVec,'yes')
       quiver(bfDisplayPx,bfDisplayPy, ...
@@ -176,20 +214,21 @@ for ii = 1:length(selTimeSteps)
    end
 
    if strcmp(showMcfVec,'yes')
-      bfDisplayPxPix = round(bfDisplayPx);
-      bfDisplayPyPix = round(bfDisplayPy);
-      [m,n] = size(mcfMap);
-      bfDisplayPxPix(find(bfDisplayPxPix>n)) = n;
-      bfDisplayPxPix(find(bfDisplayPxPix<1)) = 1;
-      bfDisplayPyPix(find(bfDisplayPyPix>m)) = m;
-      bfDisplayPyPix(find(bfDisplayPyPix<1)) = 1;
-      dispInd = sub2ind(size(mcfMap),bfDisplayPyPix,bfDisplayPxPix);
-      mcfVecInd = find(~isnan(mcfMap(dispInd)) & isnan(mixfMap(dispInd)));
-      quiver(bfDisplayPx(mcfVecInd),bfDisplayPy(mcfVecInd), ...
-         recBFx(mcfVecInd)*bfScale,recBFy(mcfVecInd)*bfScale,0,'r');
+%       bfDisplayPxPix = round(bfDisplayPx);
+%       bfDisplayPyPix = round(bfDisplayPy);
+%       [m,n] = size(mcfMap);
+%       bfDisplayPxPix(find(bfDisplayPxPix>n)) = n;
+%       bfDisplayPxPix(find(bfDisplayPxPix<1)) = 1;
+%       bfDisplayPyPix(find(bfDisplayPyPix>m)) = m;
+%       bfDisplayPyPix(find(bfDisplayPyPix<1)) = 1;
+%       dispInd = sub2ind(size(mcfMap),bfDisplayPyPix,bfDisplayPxPix);
+%       mcfVecInd = find(~isnan(mcfMap(dispInd)) & isnan(mixfMap(dispInd)));
+%       quiver(bfDisplayPx(mcfVecInd),bfDisplayPy(mcfVecInd), ...
+%          recBFx(mcfVecInd)*bfScale,recBFy(mcfVecInd)*bfScale,0,'r');
+      quiver(bfDisplayPx,bfDisplayPy,recMCFx*bfScale,recMCFy*bfScale,0,'r');
    end
-   titleStr = sprintf(['Contraction Force\n' 'Time Step: %d Image Index: %d'], ...
-      jj,imgIndex);
+   titleStr = sprintf(['Contraction Force\n' 'Time Step: %d Image Index: %d ' ...
+      'Max Force: %f'],jj,imgIndex,maxF);
    title(titleStr);
    
    %Save the figure

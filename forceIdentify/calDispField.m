@@ -93,7 +93,9 @@ for ii = 1:length(selTimeSteps)
 
    %We interpolate raw displacements to points which can be either the original data
    % position or the grid points.
+   %Collect raw displacement data.
    rawDispV = [rawDispField.p(:,2:-1:1) rawDispField.p(:,2:-1:1)+rawDispField.v(:,2:-1:1)];
+
    if strcmp(trackMethod,'speck')
       frame1 = imgIndexOfDTimePts(jj)-firstImgIndex+1;
       frame2 = frame1+numAvgFrames-1;
@@ -141,11 +143,13 @@ for ii = 1:length(selTimeSteps)
             iDispField.p(:,2:-1:1),2*corLen,corLen,[]); 
          iDispField.v = dataDispV(:,4:-1:3)-dataDispV(:,2:-1:1);
       elseif strcmp(dataSite,'original')
-         in  = inpolygon(rawDispField.p(:,1),rawDispField.p(:,2),fieldBnd.x,fieldBnd.y);
-         ind = find(in==1);
+         %in  = inpolygon(rawDispField.p(:,1),rawDispField.p(:,2),fieldBnd.x,fieldBnd.y);
+         %ind = find(in==1);
 
-         iDispField.p = rawDispField.p(ind,:);
-         iDispField.v = rawDispField.v(ind,:);
+         %iDispField.p = rawDispField.p(ind,:);
+         %iDispField.v = rawDispField.v(ind,:);
+         iDispField.p = rawDispField.p;
+         iDispField.v = rawDispField.v;
       elseif strcmp(dataSite,'everyOther')
          in  = inpolygon(rawDispField.p(:,1),rawDispField.p(:,2),fieldBnd.x,fieldBnd.y);
          ind = find(in==1);
@@ -167,9 +171,15 @@ for ii = 1:length(selTimeSteps)
 
    %We also calculate the interpolated displacements with a bigger correlation length.
    % They are considered smoothed displacements at the data points.
-   sDispV = vectorFieldSparseInterp(rawDispV, ...
-      iDispField.p(:,2:-1:1), 2*sCorLen,sCorLen,[fieldBnd.x fieldBnd.y]); 
-   iDispField.sv = sDispV(:,4:-1:3)-sDispV(:,2:-1:1);
+   %sDispV = vectorFieldSparseInterp(rawDispV, ...
+   %   iDispField.p(:,2:-1:1), 2*sCorLen,sCorLen,[fieldBnd.x fieldBnd.y]); 
+   if sCorLen >= 3
+      sDispV = vectorFieldSparseInterp(rawDispV, ...
+         iDispField.p(:,2:-1:1), 2*sCorLen,sCorLen,[]); 
+      iDispField.sv = sDispV(:,4:-1:3)-sDispV(:,2:-1:1);
+   else
+      iDispField.sv = iDispField.v;
+   end
 
    if strcmp(showSmooth,'yes')
       %the filtered displacements.

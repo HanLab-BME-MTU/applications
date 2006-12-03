@@ -292,7 +292,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Get preprocessed experimental data such as calculating boundary displacement. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fprintf(1,'Calculating boundary displacement ... \n');
+fprintf(1,'Identify domain data points and calculate boundary displacement ... \n');
 answer = input('Select time steps (0 for all):');
 if isempty(answer) | answer == 0
    selTimeSteps = 1:numDTimePts;
@@ -356,7 +356,7 @@ for ii = 1:length(selTimeSteps)
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %Calculate the displacements of the boundary edges given by 'msh'. See
    % 'help meshinit' for information about the MESH structure in FEMLAB.
-   if strcmp(trackMethod,'simu')
+   if strcmp(trackMethod,'simu') && ~strcmp(dataToUse,'smooth')
       smoothFactor = input('Select smooth factor (0-5): ');
       if isempty(smoothFactor)
          smoothFactor = 0;

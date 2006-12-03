@@ -98,7 +98,11 @@ for ii = 1:length(selTimeSteps)
 
    fprintf(1,'   Regularization parameter: %5.3f.\n',selBFSigma);
 
-   fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+   if strcmp(isFieldBndFixed,'yes') && strcmp(isDataPosFixed,'yes')
+      fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,0) '.mat'];
+   else
+      fwdMapBFFile = [fwdMapBFDir filesep 'A' sprintf(imgIndexForm,imgIndex) '.mat'];
+   end
    s = load(fwdMapBFFile);
    A = s.A;
 

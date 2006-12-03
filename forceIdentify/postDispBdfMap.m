@@ -24,6 +24,7 @@ answer = input('Select time steps (0 for all):');
 if isempty(answer) | answer == 0
    selTimeSteps = 1:numDTimePts;
 
+   %For simulated force field, 'bdfMap.mat' is the true force field.
    bdfMapFile = [reslDir filesep 'bdfMap' filesep 'bdfMap.mat'];
    if exist(bdfMapFile,'file')
       load(bdfMapFile);
@@ -35,14 +36,18 @@ if isempty(answer) | answer == 0
 else
    selTimeSteps = answer;
    if selTimeSteps == -1
+      %Choose the true force field.
       selTimeSteps = 0;
    end
 end
 
+%Find the maximum force from the selected time steps.
 for ii = 1:length(selTimeSteps)
    jj = selTimeSteps(ii);
    
    if jj == 0
+      %This corresponds to the true force field. We select the first image as the underlying image
+      % to display.
       imgIndex = [];
       dispImgIndex = firstImgIndex;
    else
@@ -57,6 +62,17 @@ for ii = 1:length(selTimeSteps)
    
    numInd = find(~isnan(bdfMap));
    maxF = max(maxF,max(bdfMap(numInd)));
+end
+
+if isinf(maxBDFToShow)
+   maxBDF = bdfColorDispRange(2)*maxF;
+else
+   maxBDF = maxBDFToShow;
+end
+if isinf(minBDFToShow)
+   minBDF = bdfColorDispRange(1)*maxF;
+else
+   minBDF = minBDFToShow;
 end
 
 %Creat color map
@@ -128,16 +144,6 @@ for ii = 1:length(selTimeSteps)
    bdfMapFile = [reslDir filesep 'bdfMap' filesep 'bdfMap' indexStr '.mat'];
    load(bdfMapFile);
 
-   %Create color bar figure.
-   if strcmp(showBdfCBar,'yes')
-      bdfMap(1,1) = maxF;
-      bdfMap(1,2) = 0;
-      figure(figH1);
-      imshow(bdfMap,[]); colormap(cMap); colorbar; hold on;
-      bdfCBarFile = [bdfFigDir filesep 'bdfCBar' sprintf(imgIndexForm,imgIndex) '.fig'];
-      saveas(figH1,bdfCBarFile,'fig');
-   end
-
    %Get the dimension of the cell image.
    pixelX = [1:size(stackedImg,2)];
    pixelY = [1:size(stackedImg,1)];
@@ -149,9 +155,20 @@ for ii = 1:length(selTimeSteps)
 
    gridX = iDispField.gridX;
    gridY = iDispField.gridY;
+  
+   %Create color bar figure.
+   if strcmp(showBdfCBar,'yes')
+      cBdfMap = bdfMap;
+      cBdfMap(1,1) = maxF;
+      cBdfMap(1,2) = 0;
+      cBdfMap(find(cBdfMap>=maxBDF)) = maxBDF;
+      cBdfMap(find(cBdfMap<=minBDF)) = minBDF;
+      figure(figH1);
+      imshow(cBdfMap,[]); colormap(cMap); colorbar; hold on;
+      bdfCBarFile = [bdfFigDir filesep 'bdfCBar' sprintf(imgIndexForm,imgIndex) '.fig'];
+      saveas(figH1,bdfCBarFile,'fig');
+   end
 
-   maxBDF = bdfColorDispRange(2)*maxF;
-   minBDF = bdfColorDispRange(1)*maxF;
    bdfImg = imDataMapOverlay(stackedImg,bdfMap,[minBDF maxBDF],cMap);
 
    figure(figH2); hold off;
@@ -236,17 +253,17 @@ for ii = 1:length(selTimeSteps)
    end
 
    if strcmp(showFlowVec,'yes')
-      quiver(bfDisplayPx,bfDisplayPy, ...
+      quiver('v6',bfDisplayPx,bfDisplayPy, ...
          recDispU1*dispScale,recDispU2*dispScale,0,'y');
    end
 
    if strcmp(showBdfVec,'yes')
-      quiver(bfDisplayPx,bfDisplayPy, ...
+      quiver('v6',bfDisplayPx,bfDisplayPy, ...
          recBFx*bfScale,recBFy*bfScale,0,'r');
    end
 
    titleStr = sprintf(['Domain Force\n' 'Time Step: %d Image Index: %d ' ...
-      'Residue: %5.2f'],jj,imgIndex,iDispField.vRelRes);
+      'Residue: %5.2f Max Force: %f'],jj,imgIndex,iDispField.vRelRes,maxF);
    title(titleStr);
    
    %Save the figure
@@ -256,10 +273,10 @@ for ii = 1:length(selTimeSteps)
    bdfTifFile = [bdfTifDir filesep 'bdfTif' indexStr '.tif'];
    print(figH2,'-dtiffnocompression',bdfTifFile);
    
-   rawDispFieldFileName = ['rawDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
-   rawDispFieldFile     = [rawDispFieldDir filesep rawDispFieldFileName];
-   s = load(rawDispFieldFile);
-   rawDispField = s.rawDispField;
+   %rawDispFieldFileName = ['rawDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+   %rawDispFieldFile     = [rawDispFieldDir filesep rawDispFieldFileName];
+   %s = load(rawDispFieldFile);
+   %rawDispField = s.rawDispField;
 end
 fprintf(1,'\n');
 

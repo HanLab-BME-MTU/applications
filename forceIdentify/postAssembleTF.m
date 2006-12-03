@@ -21,6 +21,7 @@ for ii = 1:length(selTimeSteps)
 
    %Get one cell image
    imgIndex = imgIndexOfDTimePts(jj);
+   indexStr = sprintf(imgIndexForm,imgIndex);
 
    if strcmp(isFieldBndFixed,'yes')
       femModelFile = [femModelDir filesep 'femModel' sprintf(imgIndexForm,0) '.mat'];
@@ -35,13 +36,13 @@ for ii = 1:length(selTimeSteps)
    fn       = femModel.fn;
    fp       = femModel.fp;
    fsBnd    = femModel.fsBnd;
+   options  = femModel.options;
 
-   forceFieldFile = [forceFieldDir filesep 'forceField' ...
-      sprintf(imgIndexForm,imgIndex) '.mat'];
+   forceFieldFile = [forceFieldDir filesep 'forceField' indexStr '.mat'];
    s = load(forceFieldFile);
    forceField = s.forceField;
 
-   iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
+   iDispFieldFileName = ['iDispField' indexStr '.mat'];
    iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
    s = load(iDispFieldFile);
    iDispField = s.iDispField;
@@ -50,6 +51,25 @@ for ii = 1:length(selTimeSteps)
 
    edgD = iDispField.edgD;
 
+   bndfVecFile  = [reslDir filesep 'bndfVecF' filesep 'bndfVecF' indexStr '.mat'];
+   bndfMagFile  = [reslDir filesep 'bndfMag' filesep 'bndfMag' indexStr '.mat'];
+   
+   if ~exist([reslDir filesep 'bndfVecF'],'dir')
+      [success msg msgID] = mkdir(reslDir,'bndfVecF');
+      if ~success
+         error('Trouble making directory ''bndfVecF''.');
+      end
+   end
+
+   if ~exist([reslDir filesep 'bndfMag'],'dir')
+      [success msg msgID] = mkdir(reslDir,'bndfMag');
+      if ~success
+         error('Trouble making directory ''bndfMag''.');
+      end
+   end
+   
+   bndfVec = [];
+   bndfMag = [];
    forceField.bndF = [];
    for k = 1:numEdges
       clear bndF;
@@ -79,59 +99,67 @@ for ii = 1:length(selTimeSteps)
       bndF.amp = sqrt(bndF.fx.^2+bndF.fy.^2);
       bndF.phs = angle(bndF.fx+i*bndF.fy);
 
+      bndfVec = [bndfVec; [bndF.p(2:-1:1,:); bndF.p(2:-1:1,:)+[bndF.fy; bndF.fx]].'];
+      bndfMag = [bndfMag; [imgIndex*ones(1,size(bndF.p,2)); bndF.p(2:-1:1,:); sqrt(bndF.fx.^2+bndF.fy.^2)].'];
       forceField.bndF = [forceField.bndF bndF];
    end
+   save(bndfVecFile,'bndfVec');
+   save(bndfMagFile,'bndfMag');
    save(forceFieldFile,'forceField');
 
-   if strcmp(debugMode,'on')
-      %For debugging : Solve the elastic equation with the identified force and
-      % compare the computed displacement with the measured displacement data.
-      fem = femModel.fem;
-      fs  = femModel.fs;
+   %Calculating the flow field given the reconstructed domain force and reconstructed boundary force
+   % on one edge at a time.
+   fem = femModel.fem;
+   fs  = femModel.fs;
+   fn  = femModel.fn;
+   fp  = femModel.fp;
 
-      %Set the body force.
-      coefBFx = forceField.coefBF(:,1);
-      coefBFy = forceField.coefBF(:,2);
+   %Set the body force.
+   coefBFx = forceField.coefBF(:,1);
+   coefBFy = forceField.coefBF(:,2);
 
-      fn.BodyFx = 'femBodyF';
-      fn.BodyFy = 'femBodyF';
-      fp.BodyFx = {{'x' 'y'} {fs.fem coefBFx}};
-      fp.BodyFy = {{'x' 'y'} {fs.fem coefBFy}};
+   fn.BodyFx = 'femBodyF';
+   fn.BodyFy = 'femBodyF';
+   fp.BodyFx = {{'x' 'y'} {fs.fem coefBFx}};
+   fp.BodyFy = {{'x' 'y'} {fs.fem coefBFy}};
 
-      %Specify boundary condition.
-      for k = 1:numEdges
-         fn.BndDispx{k} = 'bndDisp';
-         fn.BndDispy{k} = 'bndDisp';
-         fp.BndDispx{k} = {{'s'} {edgD(k).ppU1}};
-         fp.BndDispy{k} = {{'s'} {edgD(k).ppU2}};
+   %Specify boundary condition.
+   for k = 1:numEdges
+      fn.BndDispx{k} = 'bndDisp';
+      fn.BndDispy{k} = 'bndDisp';
+      fp.BndDispx{k} = {{'s'} {edgD(k).ppU1}};
+      fp.BndDispy{k} = {{'s'} {edgD(k).ppU2}};
 
-         bndF = forceField.bndF(k);
-         fn.BndTracFx{k} = 'spBndTF';
-         fn.BndTracFy{k} = 'spBndTF';
-         fp.BndTracFx{k} = {{'s'} {bndF.spx}};
-         fp.BndTracFy{k} = {{'s'} {bndF.spy}};
-      end
-
-      for k = 1:numEdges
-         BCTypes{k} = 'Neumann';
-         options    = elOptionsSet(options,'BCType',BCTypes);
-
-         fem = elModelUpdate(fem,'options',options,'fn',fn,'fp',fp);
-         fem = elasticSolve(fem,[]);
-
-         %The displacements computed with the identified force. To be compared with 
-         % 'dataU1' and 'dataU2'.
-
-         [edgeUC1 edgeUC2] = postinterp(fem,'u1','u2',edge(k).bndP);
-         iDispField.rEdgD{k} = [edgeUC1;edgeUC2].';
-
-         %The boundary traction force on the edge to be compared with 'TFxR' etc.
-         %[edgeFx edgeFy] = postinterp(fem,'g1','g2',edge(k).bndP);
-
-         BCTypes{k} = 'Dirichlet';
-      end
-      save(iDispFieldFile,'iDispField');
+      bndF = forceField.bndF(k);
+      fn.BndTracFx{k} = 'spBndTF';
+      fn.BndTracFy{k} = 'spBndTF';
+      fp.BndTracFx{k} = {{'s'} {bndF.spx}};
+      fp.BndTracFy{k} = {{'s'} {bndF.spy}};
    end
+
+   BCTypes = options.BCType;
+   for k = 1:numEdges
+      BCTypes{k} = 'Neumann';
+      options    = elOptionsSet(options,'BCType',BCTypes);
+
+      fem = elModelUpdate(fem,'options',options,'fn',fn,'fp',fp);
+      fem = elasticSolve(fem,[]);
+
+      %The displacements computed with the identified force. To be compared with 
+      % 'dataU1' and 'dataU2'.
+
+      [UC1 UC2] = postinterp(fem,'u1','u2',forceField.p.');
+      iDispField.bndF_rv{k} = [UC1;UC2].';
+
+      [edgeUC1 edgeUC2] = postinterp(fem,'u1','u2',edge(k).bndP);
+      iDispField.rEdgD{k} = [edgeUC1;edgeUC2].';
+
+      %The boundary traction force on the edge to be compared with 'TFxR' etc.
+      %[edgeFx edgeFy] = postinterp(fem,'g1','g2',edge(k).bndP);
+
+      BCTypes{k} = 'Dirichlet';
+   end
+   save(iDispFieldFile,'iDispField');
 
    fprintf(1,'Done in %5.3f sec.\n',cputime-localStartTime);
 end
