@@ -174,14 +174,14 @@ oldDir = cd(dirName);
 
 % if we're in a loop, there is no point in loading the header all the time.
 % Therefore, we return it empty
-emptyHeader = 0;
+emptyHeader = false;
 
 % if there is a loadStruct, we know the movie already. Otherwise, use type
 % to decide on filename (*.r3d or *.fim)
 if isstruct(loadOpt) && isfield(loadOpt,'movieName') ...
         && isfield(loadOpt,'frames2load')
     loadStruct = loadOpt;
-    emptyHeader = 1;
+    emptyHeader = true;
 else
     % generate loadStruct
     loadStruct(1) = struct('movieName',[],...
@@ -645,7 +645,7 @@ else
 
         case 3
             % readmat - check for single-frame movie
-            if r3dMovieHeader.numTimepoints == 1
+            if ~emptyHeader && r3dMovieHeader.numTimepoints == 1
                 movie = readmat(loadStruct.movieName);
             else
                 movie = readmat(loadStruct.movieName,loadList);
