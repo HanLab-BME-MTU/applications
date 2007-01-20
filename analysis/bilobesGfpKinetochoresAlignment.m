@@ -1,4 +1,4 @@
-function [spbCorrection,alignmentVectors] = bilobeSpindlesAlignment
+function [spbCorrection,alignmentVectors] = bilobesGfpKinetochoresAlignment
 %BILOBESPINDLES calculates the aligment between two channels
 %
 % SYNOPSIS: bilobeSpindlesAlignment

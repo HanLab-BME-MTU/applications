@@ -1,4 +1,4 @@
-function [resultList,plotData] = bilobeSpindles
+function [resultList,plotData] = bilobesGfpKinetochores
 %BILOBESPINDLES projects kinetochore signals onto the spindle axis in two-color images
 %
 % SYNOPSIS: bilobeSpindles
