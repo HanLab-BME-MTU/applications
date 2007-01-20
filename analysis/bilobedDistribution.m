@@ -1,4 +1,4 @@
-function [bilobeDataIdlist, bilobeDataSpindleLength] = bilobedDistribution(correct4Tag,spindleBins)
+function [bilobeDataIdlist, bilobeDataSpindleLength] = bilobedDistribution(correct4Tag,spindleEdges)
 %BIOLOBEDDISTRIBUTION collects and plots tag positions along the spindle axis
 %
 % SYNOPSIS bilobeDataIdlist = bilobedDistribution(kinetochcorrect4TagoreCorrection)
@@ -8,9 +8,9 @@ function [bilobeDataIdlist, bilobeDataSpindleLength] = bilobedDistribution(corre
 %                              {0} No correction
 %                               1  Correction by 0.1 um
 %                               any other number: correction (in um)
-%        spindleBins (opt) : vector of bin centers for spindle length.
-%                            Default : [1,1.25,1.5,1.75,2]
-%                            Edge bins include extreme data
+%        spindleEdges (opt) : vector of bin edges for spindle length.
+%                            Default : [1,1.2,1.4,1.6,2];
+%                            Edge bins exclude extreme data
 %
 % OUTPUT bilobeDataXX:  structure array.
 %                       XX indicates the grouping of the data - either
@@ -43,8 +43,8 @@ switch correct4Tag
     otherwise
         tagCorrection = correct4Tag;
 end
-if nargin < 2 || isempty(spindleBins)
-    spindleBins = 1:0.25:2;
+if nargin < 2 || isempty(spindleEdges)
+    spindleEdges = [1,1.2,1.4,1.6,2];
 end
 
 %========================
@@ -165,12 +165,20 @@ for iIdlist = 1:nIdlists
     % absolute projected position along the spindle
     subplot(2,2,2)
     plot(x,n_spindleVector,'-b.',x,cen1Dist,'-g.',x,cen2Dist,'-r.');
+    hold on
+    % plot lines for classification
+    plot(x([1,end]),[1,1],'-k',x([1,end]),[1.2,1.2],'-k',...
+        x([1,end]),[1.4,1.4],'-k',x([1,end]),[1.6,1.6],...
+        '-k',x([1,end]),[2,2],'-k')
+    ylim([0,2.5])
     title('absolute positions')
 
     % relative projected position along the spindle
     subplot(2,2,1)
     plot(x,ones(size(x)),'-b',x,cenPosNorm(:,1),'-g.',x,cenPosNorm(:,2),'-r.')
+    ylim([0,1])
     title('relative positions')
+    
 
     % histogram: cumulated positions
     ah = subplot(2,2,3);
@@ -204,7 +212,7 @@ for i=1:nIdlists
 end
 
 % make spindle edges
-spindleEdges = [-inf,(spindleBins(2:end)+spindleBins(1:end-1))/2,inf];
+spindleBins = (spindleEdges(2:end)+spindleEdges(1:end-1))/2;
 nBins = length(spindleBins);
 bilobeDataSpindleLength(1:nBins) = deal(bilobeDataIdlist(1));
 for i=1:nBins
@@ -222,6 +230,55 @@ end
 %========================
 % PLOT
 %========================
+
+% plot bilobes with shifting window of 0.2 um
+boundaries = [0.9:0.1:1.9;1.1:0.1:2.1];
+nBoundaries = size(boundaries,2);
+xall = zeros(26,nBoundaries);
+yall=zeros(26,nBoundaries);
+zall=zeros(26,nBoundaries);
+n = zeros(nBoundaries,1);
+yTickLabels = cell(nBoundaries,1);
+% figure, hold on
+for ct = 1:nBoundaries,
+    spindleIdx = (spindleLength>boundaries(1,ct) & spindleLength<boundaries(2,ct));
+    cenPosition = allCenPos(spindleIdx,:);
+    cenPosition(2:2:end,:) = 1-cenPosition(2:2:end,:);
+    [z,x]=histc(cenPosition(:),(-1/24:1/24:25/24));
+    x=(-1/48:1/24:49/48)';
+    z(end)=[];
+    % normalize histograms to equal total number of observations
+    n(ct) = numel(cenPosition);
+    z=z/n(ct);
+    %plot3(x,ct*ones(size(x)),z),
+    xall(:,ct)=x;yall(:,ct)=ct;zall(:,ct)=z;
+    yTickLabels{ct}=sprintf('%1.1f/%i/%i',mean(boundaries(:,ct)),...
+        nnz(spindleIdx),length(unique(time(spindleIdx))));
+end
+figure,surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
+axis tight
+set(gca,'yTickLabel',yTickLabels)
+ view([0 90])
+for ct = 1:nBoundaries,
+    spindleIdx = (spindleLength>boundaries(1,ct) & spindleLength<boundaries(2,ct));
+    cenPosition = allCenPos(spindleIdx,:);
+    cenPosition(2:2:end,:) = 1-cenPosition(2:2:end,:);
+    [z,x]=histc(cenPosition(:),(-1/24:1/24:25/24));
+    x=(-1/48:1/24:49/48)';
+    z(end)=[];
+    % normalize histograms to equal total number of observations
+    n(ct) = numel(cenPosition);
+    z=z/max(z);
+    %plot3(x,ct*ones(size(x)),z),
+    xall(:,ct)=x;yall(:,ct)=ct;zall(:,ct)=z;
+    yTickLabels{ct}=sprintf('%1.1f/%i/%i',mean(boundaries(:,ct)),...
+        nnz(spindleIdx),length(unique(time(spindleIdx))));
+end
+figure,surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
+axis tight
+set(gca,'yTickLabel',yTickLabels)
+ view([0 90])
+
 
 % first plot individual: Normalized and absolute positions,
 % smooth histograms of true and 50% flipped positions

@@ -121,13 +121,15 @@ end;
 if all(expTime(1)==expTime)
     header.expTime=expTime(1);
 else
-    warning('exposure time changed during acquisition');
+    warning('R3DREADHEADER:exposureTimeChanged',...
+        'exposure time changed during acquisition');
     header.expTime=expTime;
 end;
 if all(ndFilter(1)==ndFilter)
     header.ndFilter=ndFilter(1);
 else
-    warning('ndFilter changed during acquisition');
+    warning('R3DREADHEADER:ndFilterChanged',...
+        'ndFilter changed during acquisition');
     header.ndFilter=ndFilter;
 end;
 

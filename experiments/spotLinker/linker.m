@@ -153,8 +153,12 @@ end
 if nTimepoints < 2
     % add help, start history, expand Q-matrices
     maxTagIdx = nSpots; % every spot is a tag
+    if nSpots == 0
+        % keep idlist empty
+    else
     idlist(goodTimes).linklist(:,4) = idlist(goodTimes).linklist(:,2);
     idlist = linkerWriteQmatrices(idlist,goodTimes);
+    end
     % no debug possibility here
     %idlist = finishIdlist(idlist,maxTagIdx,dataProperties,goodTimes,recalc,0);
     finishIdlist;

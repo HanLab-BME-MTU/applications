@@ -44,7 +44,7 @@ if doRecalc
         recalcOpt = {0};
     end
     [idlist] = ...
-        LG_recalcIdlist(idlist,dataProperties,{0});
+        LG_recalcIdlist(idlist,dataProperties,recalcOpt);
 end
 
 % save idlist, idlistData - simply reload without replacing everything
