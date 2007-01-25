@@ -447,7 +447,13 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
                 end
 
             case 'tl' %local minimization using Tomlab's ucSolve
-
+                
+                % startup tomlab if necessary
+                success = startupTomlab;
+                if ~success
+                    error('Tomlab could not be launched!')
+                end
+                
                 if isempty(constParam) %if there are no constraints
 
                     prob = conAssign('neg2LnLikelihoodX',[],[],[],...
