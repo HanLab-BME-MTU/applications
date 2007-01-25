@@ -30,7 +30,7 @@ plotGrid = false; % imaris will plot the 3D-grid
 plotInt = false; % imaris will plot spb and ndc80
 redoAll = false; % if false, code will not redo analysis
 
-plotSigma = true; % plot also sigma of the intensities
+plotGallery = true; % plot gallery of projections
 useMax = true; % plot maximum intensity projection
 
 % search files
@@ -313,9 +313,12 @@ for iData = 1:nData
 
 
 
-            % make maximum, average projections
+            % make maximum, average projections, subtract minimum intensity
+            % (a rough estimate for the background intensity - could be improved)
             maxProj = nanmax(nanmax(interpImg,[],3),[],2)-min(interpImg(:));
             meanProj = nanmean(nanmean(interpImg,3),2)-min(interpImg(:));
+
+
 
             % store data
 
@@ -342,191 +345,254 @@ end
 % remove bad results
 resultList(status==-1)=[];
 
+% get spindle length
+spindleLength = cat(1,resultList.n_spb);
+[dummy,sortIdx] = sort(spindleLength);
 
-% plotData: data needed for plotting
-plotData(1:3) = struct('xall',[],'yall',[],'zall',[],'yTickLabels',[]);
+% show gallery if selected
+if plotGallery
+    nData = length(resultList);
+    nRows = floor(sqrt(nData));
+    nCols = ceil(nData/nRows);
+    proj = {'maximum projection. length--angle--idx','mean projection. length--angle--idx'};
+    for p=1:2
+        figure('Name',proj{p})
+        for d=sortIdx'
+            % gfp: green, spb: red
 
-% plot averages
-figureNames = {'asymmetric','a, max=1','symmetric','s, max=1'};
-for i=1:4
-
-    boundaries = [0.9:0.025:1.9;1.1:0.025:2.1];
-    meanBoundaries = mean(boundaries,1);
-    nBoundaries = size(boundaries,2);
-    nBins = length(xLabels)-4; %make compatible with bilobeDistribution
-    xall = zeros(nBins,nBoundaries);
-    yall=zeros(nBins,nBoundaries);
-    zall=zeros(nBins,nBoundaries);
-    zallS = zeros(nBins,nBoundaries);
-    yTickLabels = cell(nBoundaries,1);
-    nSpindles = zeros(nBoundaries,1);
-    spindleLength = cat(1,resultList.n_spb);
-    spindleIdx = cell(nBoundaries,1);
-
-    switch i
-        case {1,2}
-            if useMax
-                allMP = cat(2,resultList.maxProj);
-            else
-                allMP = cat(2,resultList.meanProj);
+            zeroSize= size(resultList(d).interpImg);
+            zeroImage = zeros(zeroSize(1:2));
+            switch p
+                case 1 %max
+                    red = nanmax(resultList(d).interpImgSpb,[],3);
+                case 2 %mean
+                    red = nanmean(resultList(d).interpImgSpb,3);
             end
-        otherwise
-            if useMax
-                allMP = cat(2,resultList.maxProj);
-            else
-                allMP = cat(2,resultList.meanProj);
+            red = red - nanmin(red(:));
+            red = red./nanmax(red(:));
+            switch p
+                case 1 %max
+                    green = nanmax(resultList(d).interpImg,[],3);
+                case 2 %mean
+                    green = nanmean(resultList(d).interpImg,3);
             end
-            allMP = (allMP+allMP(end:-1:1,:))/2;
-    end
-    switch i
-        case {4,2}
-            allMP = allMP./repmat(max(allMP,[],1),size(allMP,1),1);
-        case {1,3}
-            allMP = allMP./repmat(sum(allMP,1),size(allMP,1),1);
-    end
-
-    % figure, hold on
-    for ct = 1:nBoundaries,
-        spindleIdx{ct} = (spindleLength>boundaries(1,ct) & spindleLength<boundaries(2,ct));
-        if any(spindleIdx{ct})
-            % make weighted average - points 0.1um away have no weight
-            weights = (0.1-abs(spindleLength(spindleIdx{ct})-meanBoundaries(ct)))/0.1;
-            [averageMP,dummy,sigmaMP] = weightedStats(allMP(:,spindleIdx{ct})',...
-                weights,'w');
-            %old: averageMP = mean(allMP(:,spindleIdx{ct}),2);
-            switch i
-                case {4,2}
-                    sigmaMP = sigmaMP/max(averageMP);
-                    averageMP = averageMP/max(averageMP);
-
-                otherwise
-                    sigmaMP = sigmaMP/sum(averageMP);
-                    averageMP = averageMP/sum(averageMP);
-
-            end
-            %plot3(x,ct*ones(size(x)),z),
-            nSpindles(ct) = sum(weights);
-            %old: nSpindles(ct) = nnz(spindleIdx{ct});
-
-            zall(:,ct)=averageMP(3:end-2);
-            zallS(:,ct) = sigmaMP(3:end-2);
-        else
-            % there are no spindles this long
-            zall(:,ct) = NaN;
-            zallS(:,ct) = NaN;
-        end
-        xall(:,ct)=xLabels(3:end-2)/24;
-        yall(:,ct)=meanBoundaries(ct);
-        yTickLabels{ct}=sprintf('%1.1f/%1.2f', ...
-            meanBoundaries(ct),nSpindles(ct));
-
-    end
-
-    % check zallS for inf
-    zallS(~isfinite(zallS)) = NaN;
-
-    figure('Name',[overallName,' ',figureNames{i}])
-    if plotSigma
-        ah = subplot(1,2,1);
-    else
-        ah = gca;
-    end
-    contourf(xall,yall,zall,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
-    %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
-    %     axis tight
-    set(ah,'yTick',1:0.1:2,'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
-
-    switch i
-        case {4,2}
-            set(ah,'CLim',[0,1])
-        otherwise
-            set(ah,'CLim',[0,nanmax(zall(:))])
-    end
-    if ~plotSigma
-        colorbar('peer',ah)
-    end
-    % add lines
-    hold on
-    for d=0.2:0.2:0.8
-        line(d./meanBoundaries(meanBoundaries>=2*d),...
-            meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
-        line(1-d./meanBoundaries(meanBoundaries>=2*d),...
-            meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
-    end
-
-    if plotSigma
-        ah = subplot(1,2,2);
-        contourf(xall,yall,zallS,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
-        %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
-        %     axis tight
-        set(ah,'yTick',1:0.1:2,'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
-
-        switch i
-            case {4,2}
-                set(ah,'CLim',[0,1])
-            otherwise
-                set(ah,'CLim',[0,nanmax(zall(:))])
-        end
-        colorbar('peer',ah)
-        % add lines
-        hold on
-        for d=0.2:0.2:0.8
-            line(d./meanBoundaries(meanBoundaries>=2*d),...
-                meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
-            line(1-d./meanBoundaries(meanBoundaries>=2*d),...
-                meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
+            green = green - nanmin(green(:));
+            green = green./nanmax(green(:));
+            image = cat(3,red,...
+                green,...
+                zeroImage);
+            h=subplot(nRows,nCols,find(d==sortIdx));
+            subimage(image);
+            %subimage turns visibility on!
+            set(h,'XTickLabel','','YTickLabel','')
+            set(get(h,'Title'),'String',sprintf('%1.2f--%2.0f--%i',...
+                resultList(d).n_spb, ...
+                resultList(d).spbVectorAngle,d))
         end
     end
-
-
-    %     xlim([0,1])
-    %     ylim([1,2])
-    %view([0 90])
-    plotData(i).xall = xall;
-    plotData(i).yall = yall;
-    plotData(i).zall = zall;
-    plotData(i).zallS = zallS;
-    plotData(i).yTickLabels = yTickLabels;
-    plotData(i).spindleIdx = spindleIdx;
-
-
 end
 
-figure('Name',sprintf('%s individual; sum=1',overallName));
-[sortedSpindleLength,sortIdx]=sort(spindleLength);
-int = cat(2,resultList.maxProj);
-int = int(:,sortIdx)';
-int = int./repmat(sum(int,2),1,size(int,2));
-intSymm = 0.5*(int + int(:,end:-1:1));
-subplot(1,2,1),imshow([int,NaN(size(int,1),1),intSymm],[]),
-colormap jet,
-subplot(1,2,2),
-plot(sortedSpindleLength,length(sortIdx):-1:1,'-+')
 
-% loop to make histograms
-stages = [1,1.2,1.6,2];
+
+
 if useMax
-    allMP = cat(2,resultList.maxProj);
+    projectedIntensities = cat(2,resultList.maxProj);
 else
-    allMP = cat(2,resultList.meanProj);
+    projectedIntensities = cat(2,resultList.meanProj);
 end
-% allMP = (allMP+allMP(end:-1:1,:))/2;
-allMP = allMP./repmat(sum(allMP,1),size(allMP,1),1);
+% normalize projectedIntensities so that every movie has the same total
+% intensity
+projectedIntensities = projectedIntensities./...
+    repmat(sum(projectedIntensities,1),size(projectedIntensities,1),1);
 
-for ct = 1:length(stages)-1,
-    figure('Name',sprintf('%s %1.1f -> %1.1f',overallName, stages(ct:ct+1)));
-    sidx = find(spindleLength>stages(ct) & spindleLength<stages(ct+1));
-    averageMP = mean(allMP(:,sidx),2);
+bilobePlot({spindleLength,projectedIntensities(3:end-2,:)});
 
-    samp=sum(averageMP);
-    averageMP = averageMP/samp;
 
-    hold on
-    for i=1:length(sidx)
-        plot(xLabels(3:end-2)/24,allMP(3:end-2,sidx(i))/samp,'b');
-    end
-    plot(xLabels(3:end-2)/24,averageMP(3:end-2),'r','LineWidth',1.5)
-end
+% % plotData: data needed for plotting
+% plotData(1:3) = struct('xall',[],'yall',[],'zall',[],'yTickLabels',[]);
+%
+% % plot averages
+% figureNames = {'asymmetric','a, max=1','symmetric','s, max=1'};
+% for i=1:4
+%
+%     boundaries = [0.9:0.025:1.9;1.1:0.025:2.1];
+%     meanBoundaries = mean(boundaries,1);
+%     nBoundaries = size(boundaries,2);
+%     nBins = length(xLabels)-4; %make compatible with bilobeDistribution
+%     xall = zeros(nBins,nBoundaries);
+%     yall=zeros(nBins,nBoundaries);
+%     zall=zeros(nBins,nBoundaries);
+%     zallS = zeros(nBins,nBoundaries);
+%     yTickLabels = cell(nBoundaries,1);
+%     nSpindles = zeros(nBoundaries,1);
+%     spindleLength = cat(1,resultList.n_spb);
+%     spindleIdx = cell(nBoundaries,1);
+%
+%     switch i
+%         case {1,2}
+%             if useMax
+%                 allMP = cat(2,resultList.maxProj);
+%             else
+%                 allMP = cat(2,resultList.meanProj);
+%             end
+%         otherwise
+%             if useMax
+%                 allMP = cat(2,resultList.maxProj);
+%             else
+%                 allMP = cat(2,resultList.meanProj);
+%             end
+%             allMP = (allMP+allMP(end:-1:1,:))/2;
+%     end
+%     % normalize data.
+%     switch i
+%         case {4,2}
+%             allMP = allMP./repmat(max(allMP,[],1),size(allMP,1),1);
+%         case {1,3}
+%             allMP = allMP./repmat(sum(allMP,1),size(allMP,1),1);
+%     end
+%
+%     % figure, hold on
+%     for ct = 1:nBoundaries,
+%         spindleIdx{ct} = (spindleLength>boundaries(1,ct) & spindleLength<boundaries(2,ct));
+%         if any(spindleIdx{ct})
+%             % make weighted average - points 0.1um away have no weight
+%             weights = (0.1-abs(spindleLength(spindleIdx{ct})-meanBoundaries(ct)))/0.1;
+%             [averageMP,dummy,sigmaMP] = weightedStats(allMP(:,spindleIdx{ct})',...
+%                 weights,'w');
+%             %old: averageMP = mean(allMP(:,spindleIdx{ct}),2);
+%             switch i
+%                 case {4,2}
+%                     sigmaMP = sigmaMP/max(averageMP);
+%                     averageMP = averageMP/max(averageMP);
+%
+%                 otherwise
+%                     sigmaMP = sigmaMP/sum(averageMP);
+%                     averageMP = averageMP/sum(averageMP);
+%
+%             end
+%             %plot3(x,ct*ones(size(x)),z),
+%             nSpindles(ct) = sum(weights);
+%             %old: nSpindles(ct) = nnz(spindleIdx{ct});
+%
+%             zall(:,ct)=averageMP(3:end-2);
+%             zallS(:,ct) = sigmaMP(3:end-2);
+%         else
+%             % there are no spindles this long
+%             zall(:,ct) = NaN;
+%             zallS(:,ct) = NaN;
+%         end
+%         xall(:,ct)=xLabels(3:end-2)/24;
+%         yall(:,ct)=meanBoundaries(ct);
+%         yTickLabels{ct}=sprintf('%1.1f/%1.2f', ...
+%             meanBoundaries(ct),nSpindles(ct));
+%
+%     end
+%
+%     % check zallS for inf
+%     zallS(~isfinite(zallS)) = NaN;
+%
+%     figure('Name',[overallName,' ',figureNames{i}])
+%     if plotSigma
+%         ah = subplot(1,2,1);
+%     else
+%         ah = gca;
+%     end
+%     contourf(xall,yall,zall,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
+%     %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
+%     %     axis tight
+%     set(ah,'yTick',1:0.1:2,'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
+%
+%     switch i
+%         case {4,2}
+%             set(ah,'CLim',[0,1])
+%         otherwise
+%             set(ah,'CLim',[0,nanmax(zall(:))])
+%     end
+%     if ~plotSigma
+%         colorbar('peer',ah)
+%     end
+%     % add lines
+%     hold on
+%     for d=0.2:0.2:0.8
+%         line(d./meanBoundaries(meanBoundaries>=2*d),...
+%             meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
+%         line(1-d./meanBoundaries(meanBoundaries>=2*d),...
+%             meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
+%     end
+%
+%     if plotSigma
+%         ah = subplot(1,2,2);
+%         contourf(xall,yall,zallS,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
+%         %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
+%         %     axis tight
+%         set(ah,'yTick',1:0.1:2,'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
+%
+%         switch i
+%             case {4,2}
+%                 set(ah,'CLim',[0,1])
+%             otherwise
+%                 set(ah,'CLim',[0,nanmax(zall(:))])
+%         end
+%         colorbar('peer',ah)
+%         % add lines
+%         hold on
+%         for d=0.2:0.2:0.8
+%             line(d./meanBoundaries(meanBoundaries>=2*d),...
+%                 meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
+%             line(1-d./meanBoundaries(meanBoundaries>=2*d),...
+%                 meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
+%         end
+%     end
+%
+%
+%     %     xlim([0,1])
+%     %     ylim([1,2])
+%     %view([0 90])
+%     plotData(i).xall = xall;
+%     plotData(i).yall = yall;
+%     plotData(i).zall = zall;
+%     plotData(i).zallS = zallS;
+%     plotData(i).yTickLabels = yTickLabels;
+%     plotData(i).spindleIdx = spindleIdx;
+%
+%
+% end
+%
+% figure('Name',sprintf('%s individual; sum=1',overallName));
+% [sortedSpindleLength,sortIdx]=sort(spindleLength);
+% int = cat(2,resultList.maxProj);
+% int = int(:,sortIdx)';
+% int = int./repmat(sum(int,2),1,size(int,2));
+% intSymm = 0.5*(int + int(:,end:-1:1));
+% subplot(1,2,1),imshow([int,NaN(size(int,1),1),intSymm],[]),
+% colormap jet,
+% subplot(1,2,2),
+% plot(sortedSpindleLength,length(sortIdx):-1:1,'-+')
+%
+% % loop to make histograms
+% stages = [1,1.2,1.6,2];
+% if useMax
+%     allMP = cat(2,resultList.maxProj);
+% else
+%     allMP = cat(2,resultList.meanProj);
+% end
+% % allMP = (allMP+allMP(end:-1:1,:))/2;
+% allMP = allMP./repmat(sum(allMP,1),size(allMP,1),1);
+%
+% for ct = 1:length(stages)-1,
+%     figure('Name',sprintf('%s %1.1f -> %1.1f',overallName, stages(ct:ct+1)));
+%     sidx = find(spindleLength>stages(ct) & spindleLength<stages(ct+1));
+%     averageMP = mean(allMP(:,sidx),2);
+%
+%     samp=sum(averageMP);
+%     averageMP = averageMP/samp;
+%
+%     hold on
+%     for i=1:length(sidx)
+%         plot(xLabels(3:end-2)/24,allMP(3:end-2,sidx(i))/samp,'b');
+%     end
+%     plot(xLabels(3:end-2)/24,averageMP(3:end-2),'r','LineWidth',1.5)
+% end
 
 
 

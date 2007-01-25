@@ -14,51 +14,54 @@ function  [spotsidx, mask] = discernspots(cordList,mSize,dataProperties);
 %Define constants
 PIXELSIZE_XY=dataProperties.PIXELSIZE_XY;
 PIXELSIZE_Z=dataProperties.PIXELSIZE_Z;
-FT_SIGMA=dataProperties.FT_SIGMA;
+FILTERPRM=dataProperties.FILTERPRM;
+mask = [];
 
-%take first check distance to others 
+%take first check distance to others
 %dm=distMat(cordList,diag([PIXELSIZE_XY^2 PIXELSIZE_XY^2 PIXELSIZE_Z^2]));
 dmXY=distMat(cordList(:,1:2),diag([PIXELSIZE_XY^2 PIXELSIZE_XY^2]));
 dmZ=distMat(cordList(:,3),diag([PIXELSIZE_Z^2]));
 
-spotsidx=rec_find(dmXY,dmZ,1,PIXELSIZE_XY, PIXELSIZE_Z, FT_SIGMA);
+spotsidx=rec_find(dmXY,dmZ,1,PIXELSIZE_XY, PIXELSIZE_Z, FILTERPRM);
 
-% make mask for intensity-fit: An ellipsoid with radius 5*sigma. This
-% replaces Dom's old (and slightly wrong) fillSphereData
-ellipsoidRadius = 5*FT_SIGMA;
-maskSize = ceil(ellipsoidRadius);
-% for every pixel: calculate the distance from the origin as a function of
-% the radius of the ellipsoid
-[xx,yy,zz] = ndgrid(-maskSize(1):maskSize(1),...
-    -maskSize(2):maskSize(2),...
-    -maskSize(3):maskSize(3));
-distance = xx.^2/ellipsoidRadius(1)^2 + ...
-    yy.^2/ellipsoidRadius(2)^2 + ...
-    zz.^2/ellipsoidRadius(3)^2;
-% every pixel whose center is less than 1 radius from the origin will be
-% counted
-ellipsoid = distance < 1;
-
-
-
-% %create mask
-mask=zeros(mSize);
-% % default sphere
-% ellipsoid=fillSphereData(5*FT_SIGMA(1),1);
-
-for i = spotsidx
-    cen=round(cordList(i,:));
-    %      center=[cen(2) cen(1) cen(3)];
-    mask=mask | pushstamp3d(mask,ellipsoid,cen);
-end;
+if nargout > 1
+    % make mask for intensity-fit: An ellipsoid with radius 5*sigma. This
+    % replaces Dom's old (and slightly wrong) fillSphereData
+    ellipsoidRadius = 5*FILTERPRM(1:3);
+    maskSize = ceil(ellipsoidRadius);
+    % for every pixel: calculate the distance from the origin as a function of
+    % the radius of the ellipsoid
+    [xx,yy,zz] = ndgrid(-maskSize(1):maskSize(1),...
+        -maskSize(2):maskSize(2),...
+        -maskSize(3):maskSize(3));
+    distance = xx.^2/ellipsoidRadius(1)^2 + ...
+        yy.^2/ellipsoidRadius(2)^2 + ...
+        zz.^2/ellipsoidRadius(3)^2;
+    % every pixel whose center is less than 1 radius from the origin will be
+    % counted
+    ellipsoid = distance < 1;
 
 
-function spidx=rec_find(dMatrixXY,dMatrixZ,curIdxList,PIXELSIZE_XY, PIXELSIZE_Z, FT_SIGMA)
+
+    % %create mask
+    mask=zeros(mSize);
+    % % default sphere
+    % ellipsoid=fillSphereData(5*FT_SIGMA(1),1);
+
+    for i = spotsidx
+        cen=round(cordList(i,:));
+        %      center=[cen(2) cen(1) cen(3)];
+        mask=mask | pushstamp3d(mask,ellipsoid,cen);
+    end;
+
+end
+
+function spidx=rec_find(dMatrixXY,dMatrixZ,curIdxList,PIXELSIZE_XY, PIXELSIZE_Z, FILTERPRM)
 % recursive search for points which are separated by a distance smaller than MIN_DIST
 
-
-MIN_DIST_XY=7*FT_SIGMA(1)*PIXELSIZE_XY;
-MIN_DIST_Z=7*FT_SIGMA(3)*PIXELSIZE_Z;
+% use 7 sigma as minimum distance cutoff
+MIN_DIST_XY=7*FILTERPRM(1)*PIXELSIZE_XY;
+MIN_DIST_Z=7*FILTERPRM(3)*PIXELSIZE_Z;
 %if smaller than d add spot
 spidx=curIdxList;
 for i=1:size(dMatrixXY,2)

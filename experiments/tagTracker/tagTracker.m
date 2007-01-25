@@ -970,6 +970,16 @@ highResidualIdx = highResidualIdx + fittingIdx0;
 
 % 2) transform precision - only if more than 3 sources overall
 
+% Unfortunately, this doesn't go well enough. Removing outliers might
+% remove critical sources, which means that the fitting matrix becomes
+% singular, and the fitting fails. If we wanted to do that, we'd have to
+% kick out the "bad" spots at the beginning of the tracker, or at the end
+% of the detector.
+% However, assigning fitted uncertainties to both the good and the outlier
+% spots will give the potentially bad detections way too much weight.
+% Therefore, instead of kicking out the "bad" spots, we give them a 100x
+% higher variance than the normal tags.
+
 if nSources > 3
 % find mena detectorPrecision in XY and in Z. Detect very high
 % uncertainties
@@ -1056,7 +1066,7 @@ for iTag=nTags:-1:1 % so that we don't need to preallocate
     % if one dim is good, all are.
     goodDetection{iTag} = t(unique((mod(goodRows-1,length(t))+1)));
     badDetection{iTag} = setdiff(t,goodDetection{iTag});
-
+    
 
     % write estimated errors. Divide by the estimated detection error at
     % t=1 for both detected and tracked tags. This sets weight 1 for the
@@ -1068,6 +1078,14 @@ for iTag=nTags:-1:1 % so that we don't need to preallocate
     fittingMatrices(iTag).V(goodDetection{iTag},1,3) = ...
         xFit(2) * exp(xFit(end) * goodDetection{iTag});
 
+    % keep the "badDetection"s, but assign 100x higher variance
+    fittingMatrices(iTag).V(badDetection{iTag},1,1) = ...
+        xFit(1) * exp(xFit(end) * badDetection{iTag}) * 100;
+    fittingMatrices(iTag).V(badDetection{iTag},1,2) = ...
+        xFit(1) * exp(xFit(end) * badDetection{iTag}) * 100;
+    fittingMatrices(iTag).V(badDetection{iTag},1,3) = ...
+        xFit(2) * exp(xFit(end) * badDetection{iTag}) * 100;
+    
     fittingMatrices(iTag).V(:,1,1:2) = ...
         fittingMatrices(iTag).V(:,1,1:2) ./ xFit(1) * exp(xFit(end));
     fittingMatrices(iTag).V(:,1,3) = ...
@@ -1077,7 +1095,7 @@ end
 
 else
    % if only 3 or fewer sources, we still need to fill in bad 
-   [badDetection{1:nTags}] = deal([]);
+   % [badDetection{1:nTags}] = deal([]);
    varianceEstimators = [];
 end
 
@@ -1103,7 +1121,8 @@ failIdx = find(all(~fittingMatrices(1).A(:,:,1),2));
 clear goodRows
 [goodRows{1:nTags}] = deal(1:size(fittingMatrices(1).A,1));
 for iTag = 1:nTags
-    goodRows{iTag}([failIdx; highResidualIdx; badDetection{iTag}]) = [];
+    %goodRows{iTag}([failIdx; highResidualIdx; badDetection{iTag}]) = [];
+    goodRows{iTag}([failIdx; highResidualIdx]) = [];
 end
 
 % since all A-matrices are the same, we can find the failIdx on a single
@@ -1193,7 +1212,7 @@ if debug && isfield(debugData,'fitStats')
     debugData.fitStats.fittingMatrices = fittingMatrices;
     for iTag=1:nTags
         debugData.fitStats.fittingMatrices(iTag).A = ...
-            (fittingMatrices(iTag).A(goodRows,:,1));
+            (fittingMatrices(iTag).A(goodRows{iTag},:,1));
         debugData.fitStats.fittingMatrices(iTag).A = ...
             sparse(fittingMatrices(iTag).A);
         debugData.fitStats.fittingMatrices(iTag).B = ...
@@ -1201,11 +1220,7 @@ if debug && isfield(debugData,'fitStats')
         debugData.fitStats.fittingMatrices(iTag).V = ...
             fittingMatrices(iTag).V(goodRows,:,:);
     end
-    % all A-matrices are identical
-    for iTag=2:nTags
-        debugData.fitStats.fittingMatrices(iTag).A = [];
-    end
-
+    
     debugData.fitStats.mse = mse;
     debugData.fitStats.outputQmatrixDiags = outputQmatrixDiag;
     debugData.fitStats.goodIdx = goodIdx;
