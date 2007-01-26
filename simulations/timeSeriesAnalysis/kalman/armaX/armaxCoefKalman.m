@@ -468,7 +468,8 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
                     prob.user.numAvail = totAvail;
 
                     %minimize -2ln(likelihood) using Tomlab's ucSolve
-                    result = tomRun('ucSolve',prob,[],2);
+                    % -- 1/25/07 jonas: changed printLevel to 0
+                    result = tomRun('ucSolve',prob,0,2);
 
                 else %if there are constraints
 

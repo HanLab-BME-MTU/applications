@@ -259,6 +259,10 @@ end
 %Model fitting
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% turn off warning:divide by zero
+warningState = warning;
+warning('off','MATLAB:divideByZero');
+
 %go over all suggested models
 for k=size(modelParam,3):-1:1
     for j=size(modelParam,2):-1:1
@@ -370,6 +374,10 @@ for k=size(modelParam,3):-1:1
         end %(for k=1:size(modelParam,3))
     end %(for j=1:size(modelParam,2))
 end %(for i=1:size(modelParam,1))
+
+
+% put warnings back to what they were before
+warning(warningState);
 
 
 %%%%% ~~ the end ~~ %%%%%
