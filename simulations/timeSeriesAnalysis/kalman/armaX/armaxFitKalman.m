@@ -47,8 +47,8 @@ function [fitResults,errFlag] = armaxFitKalman(trajOut,trajIn,modelParamOrOrder,
 %                          -'ml' for Matlab local minimizer "fmincon";
 %                          -'tl' for Tomlab local minimizer "ucSolve";
 %                          -'tg' for Tomlab global minimizer "glbFast"' followed
-%                           by Tomlab local minimizer "ucSolve";
-%                          -'nag' for NAG's local minimizer E04JAF.
+%                           by Tomlab local minimizer "ucSolve"; -- DON'T USE
+%                          -'nag' for NAG's local minimizer E04JAF. -- DON'T USE
 %                          Default: 'tl'.
 %
 %OUTPUT fitResults: Structure array containing fitting results. 
@@ -241,9 +241,13 @@ end %(if nargin < 3 || isempty(modelParamOrOrder) ... else ...)
 if nargin < 4 || isempty(minOpt) %if minimization option was not input
     minOpt = minOpt_def; %assign default
 else %if minimization option was input, check its value
-    if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
-            && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
-        disp('--armaxFitKalman: "minOpt" should be either "ml", "tl", "tg" or "nag"!');
+%     if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
+%             && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
+%         disp('--armaxFitKalman: "minOpt" should be either "ml", "tl", "tg" or "nag"!');
+%         errFlag = 1;
+%     end
+    if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl'))
+        disp('--armaxFitKalman: "minOpt" should be either "ml" or "tl"!');
         errFlag = 1;
     end
 end

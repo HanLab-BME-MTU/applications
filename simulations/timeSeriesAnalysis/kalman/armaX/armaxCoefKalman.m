@@ -57,9 +57,9 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
 %                   -'ml' for Matlab local minimizer "fmincon";
 %                   -'tl' for Tomlab local minimizer "ucSolve";
 %                   -'tg' for Tomlab global minimizer "glbFast"' followed
-%                     by Tomlab local minimizer "ucSolve";
-%                   -'nag' for NAG's local minimizerE04JAF.
-%                   Default: 'ml'
+%                     by Tomlab local minimizer "ucSolve"; -- DON'T USE
+%                   -'nag' for NAG's local minimizerE04JAF. -- DON'T USE
+%                   Default: 'tl'
 %
 %OUTPUT arParamK  : Estimated AR coefficients (1st row) and parameters related
 %                   to partial AR coefficients (2nd row) using likelihood maximization.
@@ -154,7 +154,7 @@ end
 maParamP0_def  = [];
 xParam0_def    = [];
 constParam_def = [];
-minOpt_def     = 'ml';
+minOpt_def     = 'tl';
 
 %check "trajOut" and turn it into struct if necessary
 if ~isstruct(trajOut)
@@ -335,9 +335,13 @@ end %(nargin < 6 || isempty(constParam) ... else ...)
 if nargin < 7 || isempty(minOpt)
     minOpt = minOpt_def;
 else
-    if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
-            && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
-        disp('--armaxCoefKalman: "minOpt" should be either "ml", "tl", "tg" or ''nag''!');
+%     if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
+%             && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
+%         disp('--armaxCoefKalman: "minOpt" should be either "ml", "tl", "tg" or ''nag''!');
+%         errFlag = 1;
+%     end
+    if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl'))
+        disp('--armaxCoefKalman: "minOpt" should be either "ml" or "tl"!');
         errFlag = 1;
     end
 end
@@ -504,34 +508,11 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
                     proceed = 0;
                 end
 
-            case 'nag' %local minimization using NAG's E04JAF
-                
-                %define structure containing parameters required for function
-                %evaluation; they are written in Tomlab notation for convenience
-                prob.user.arOrder = arOrder;
-                prob.user.maOrder = maOrder;
-                prob.user.trajOut = trajOut2;
-                prob.user.trajIn  = trajIn;
-                prob.user.numAvail = totAvail;
+            otherwise %if wrong optimization option was input
 
-                %save "prob" in file "funct1Input" so that funct1 loads the
-                %variables when called.
-                save('funct1Input','prob');
-
-                %assign lower and upper bounds of variables
-                boundLow  = [-10*ones(1,arOrder+maOrder) -2*ones(1,xOrder+1)];
-                boundHigh = [10*ones(1,arOrder+maOrder) 2*ones(1,xOrder+1)];
-
-                [params,fval,lowerB,upperB,exitFlag] = ...
-                    e04jaf(param0,boundLow,boundHigh,0);
-
-                %proceed if minimization was successful
-                if (exitFlag == 0 || exitFlag == 5 || exitFlag == 6)
-                    params = params';
-                    proceed = 1;
-                else
-                    proceed = 0;
-                end
+                disp('--armaxCoefKalman: Wrong optimization option!');
+                errFlag = 1;
+                return
 
         end %(switch minOpt)
 
@@ -747,3 +728,32 @@ end
 %                 proceed = 0;
 %             end
 %
+%             case 'nag' %local minimization using NAG's E04JAF
+%                 
+%                 %define structure containing parameters required for function
+%                 %evaluation; they are written in Tomlab notation for convenience
+%                 prob.user.arOrder = arOrder;
+%                 prob.user.maOrder = maOrder;
+%                 prob.user.trajOut = trajOut2;
+%                 prob.user.trajIn  = trajIn;
+%                 prob.user.numAvail = totAvail;
+% 
+%                 %save "prob" in file "funct1Input" so that funct1 loads the
+%                 %variables when called.
+%                 save('funct1Input','prob');
+% 
+%                 %assign lower and upper bounds of variables
+%                 boundLow  = [-10*ones(1,arOrder+maOrder) -2*ones(1,xOrder+1)];
+%                 boundHigh = [10*ones(1,arOrder+maOrder) 2*ones(1,xOrder+1)];
+% 
+%                 [params,fval,lowerB,upperB,exitFlag] = ...
+%                     e04jaf(param0,boundLow,boundHigh,0);
+% 
+%                 %proceed if minimization was successful
+%                 if (exitFlag == 0 || exitFlag == 5 || exitFlag == 6)
+%                     params = params';
+%                     proceed = 1;
+%                 else
+%                     proceed = 0;
+%                 end
+% 
