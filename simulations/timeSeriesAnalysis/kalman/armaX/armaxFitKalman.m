@@ -111,6 +111,7 @@ if nargin < 1
 end
 
 %check "trajOut" and turn into struct if necessary
+weightZero = false; % remembers whether any output-trajectory was removed
 if ~isstruct(trajOut)
     tmp = trajOut;
     clear trajOut
@@ -134,6 +135,20 @@ else
                trajOut(i).weight = 1;
             end
         end
+        
+        % check for weight==0 and remove the data
+        weights = cat(1,trajOut.weight);
+        noWeightIdx = weights == 0;
+        if any(noWeightIdx)
+            weightZero = true;
+            trajOut(noWeightIdx) = [];
+            % make sure that there are trajectories left
+            if isempty(trajOut)
+                disp('--armaxFitKalman: All trajectories have weight 0!')
+                errFlag = 1;
+            end
+        end
+        
     end
 end
 
@@ -149,6 +164,11 @@ else
     elseif ~isfield(trajIn,'observations')
         disp('--armaxFitKalman: Please input trajIn in fields ''observations''!')
         errFlag = 1;
+    end
+    
+    % if there were output trajectories with zero weight: remove
+    if weightZero
+        trajIn(noWeightIdx) = [];
     end
 end
 

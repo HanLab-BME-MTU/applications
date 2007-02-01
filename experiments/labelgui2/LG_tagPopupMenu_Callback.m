@@ -31,6 +31,10 @@ renameTagH = tagPopupMenuItemH(end);
 labellist = movieWindowHandles.idlistData.labellist;
 linklist = movieWindowHandles.idlist(currentTime).linklist;
 
+if size(linklist,1) > 2
+    labellist{end+1} = 'cen1*';
+end
+
 % delete previous children first!
 delete(get(renameTagH, 'Children'))
 

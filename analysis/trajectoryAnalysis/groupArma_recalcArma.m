@@ -46,10 +46,11 @@ end
 % check for weights - set 1 if there aren't any
 if nargin < 4 || isempty(weights)
     % don't do anything
+    weights = [];
 else
     % add field .weight to every element in data
-    for i=length(weights)
-        data(ijk{1}(i)).weight = weights(i);
+    for i=1:length(weights)
+        data(ijk{1}(i)).lengthSeries.weight = weights(i);
     end
 end
 
@@ -84,6 +85,10 @@ end
 switch guess
     case 1
 numObserve = cat(1,data(ijk{1}).numObserve);
+if ~isempty(weights)
+    numObserve = numObserve.*weights;
+end
+    
 [dummy,selectIdx] = max(numObserve);
 initialIdx = ijk{1}(selectIdx);
 % ar, ma Param have transformed values in the first col

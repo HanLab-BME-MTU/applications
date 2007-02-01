@@ -76,7 +76,7 @@ switch option
         % cd Biodata
         cdBiodata(0);
         try
-        cd ../tmpData/jason       
+        cd ../kinetochore       
         catch
             % we're on the laptop
             cd c:\tmp

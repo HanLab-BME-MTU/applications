@@ -44,7 +44,7 @@ switch correct4Tag
         tagCorrection = correct4Tag;
 end
 if nargin < 2 || isempty(spindleEdges)
-    spindleEdges = [1,1.2,1.4,1.6,2];
+    spindleEdges = [0.8,1,1.2,1.4,1.6,1.8];
 end
 
 % if true, lower pole (at t=1) will be made spb1
@@ -220,10 +220,10 @@ spindleLength = cat(1,bilobeDataIdlist.spindleLength);
 allCenPos = cat(1,bilobeDataIdlist.cenPosition);
 time = cat(1,bilobeDataIdlist.time);
 tIdx = 0;
-for i=nIdlists:-1:1
+for i=1:nIdlists
     nTime(i) = length(bilobeDataIdlist(i).time);
-    time(tIdx+1:tIdx+nTime) = i;
-    tIdx = tIdx + nTime;
+    time(tIdx+1:tIdx+nTime(i)) = i;
+    tIdx = tIdx + nTime(i);
 end
 
 % make spindle edges

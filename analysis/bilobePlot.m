@@ -32,7 +32,7 @@ plotTrapezoid = true;
 xLabels = -1/48:1/24:49/48;
 
 % sample every 25 nanometer spindle length
-boundaries = [0.9:0.025:1.9;1.1:0.025:2.1];
+boundaries = [0.7:0.025:1.7;0.9:0.025:1.9];
 
 meanBoundaries = mean(boundaries,1);
 nBoundaries = size(boundaries,2);
@@ -148,7 +148,7 @@ for i=1:4
     contourf((xall-xSub).*xFactor,yall,zall,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
     %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
     %     axis tight
-    set(ah,'yTick',1:0.1:2,'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
+    set(ah,'yTick',meanBoundaries(1:4:end),'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
 
     switch i
         case {4,2}
@@ -179,7 +179,7 @@ for i=1:4
         contourf((xall-xSub).*xFactor,yall,zallS,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
         %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
         %     axis tight
-        set(ah,'yTick',1:0.1:2,'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
+        set(ah,'yTick',meanBoundaries(1:4:end),'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
 
         switch i
             case {4,2}
