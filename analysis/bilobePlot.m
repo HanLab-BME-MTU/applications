@@ -30,6 +30,7 @@ plotTrapezoid = true;
 
 % make 26 bins
 xLabels = -1/48:1/24:49/48;
+%xLabels = [xLabels(1:13),0.5,xLabels(14:end)];
 
 % sample every 25 nanometer spindle length
 boundaries = [0.7:0.025:1.7;0.9:0.025:1.9];
@@ -43,9 +44,14 @@ xall = repmat(xLabels',1,nBoundaries);
 % plotData: data needed for plotting
 % plotData(1:3) = struct('xall',[],'yall',[],'zall',[],'yTickLabels',[]);
 
+% map everything onto half-spindle
+spindleLength = repmat(spindleLength,2,1);
+
 % plot averages
-figureNames = {'asymmetric','a, max=1','symmetric','s, max=1'};
-for i=1:4
+ figureNames = {'asymmetric','a, max=1','symmetric','s, max=1'};
+ for i=3:4
+
+
 
     yall=zeros(nBins,nBoundaries);
     zall=zeros(nBins,nBoundaries);
@@ -61,18 +67,27 @@ for i=1:4
         % dist: bin, weight, movie
         dist = inputData(:,2:end);
     end
-    switch i
-        case {1,2}
-            % nothing to do
-        otherwise
-            if intensities
-                pInt = (pInt+pInt(end:-1:1,:))/2;
-            else
-                % reverse bins
-                dist(2:2:end,1) = 27-dist(2:2:end,1);
-            end
+%     switch i
+%         case {1,2}
+%             % nothing to do
+%         otherwise
+%             if intensities
+%                 pInt = (pInt+pInt(end:-1:1,:))/2;
+%             else
+%                 % reverse bins
+%                 dist(2:2:end,1) = 27-dist(2:2:end,1);
+%             end
+% 
+%     end
 
-    end
+
+
+if intensities
+    pInt = [pInt(1:13,:),pInt(26:-1:14,:)];
+else
+    otherSideIdx = dist(:,1)>13;
+    dist(otherSideIdx,1) = 27-dist(otherSideIdx,1);
+end
 
     % figure, hold on
     for ct = 1:nBoundaries,
@@ -92,15 +107,24 @@ for i=1:4
                 weights = (0.1-abs(spindleLength(spindleIdx{ct})-...
                     meanBoundaries(ct)))/0.1 .*...
                     dist(spindleIdx{ct},2);
-                for bin = 26:-1:1
+                for bin = 13:-1:1
                     % "average": sum the weights in each bin
                     averageMP(bin) = sum(weights(dist(spindleIdx{ct},1)==bin));
                     % potentially, we can extract distributions for
                     % individual movies, and average those to get a std in
                     % the future, for now, don't have std
-                    sigmaMP = NaN;
+                    
                 end
+                sigmaMP(1:13) = NaN;
             end
+            
+            % we will plot (avg,sigma) in two halves of the plot.
+            % Therefore remove the other half of both vectors so that we
+            % can directly stick them together afterwards
+            
+            averageMP = averageMP(1:13);
+            sigmaMP = sigmaMP(1:13);
+            
             switch i
                 case {4,2}
                     sigmaMP = sigmaMP/max(averageMP);
@@ -115,8 +139,8 @@ for i=1:4
             nSpindles(ct) = sum(weights);
             %old: nSpindles(ct) = nnz(spindleIdx{ct});
 
-            zall(:,ct)=averageMP;
-            zallS(:,ct) = sigmaMP;
+            zall(:,ct)=[averageMP,averageMP(end:-1:1)];
+            zallS(:,ct) = [sigmaMP,sigmaMP(end:-1:1)];
         else
             % there are no spindles this long
             zall(:,ct) = NaN;
@@ -128,8 +152,8 @@ for i=1:4
 
     end
 
-    % check zallS for inf
-    zallS(~isfinite(zallS)) = NaN;
+    % check zall for inf
+    zall(~isfinite(zallS)) = NaN;
 
     figure('Name',[dataName,' ',figureNames{i}])
     if plotSigma && intensities
@@ -162,7 +186,14 @@ for i=1:4
         colorbar('peer',ah)
     end
     if plotTrapezoid
-        % no lines yet
+        % add lines
+        hold on
+        for d=0.2:0.2:0.8
+            line(d - meanBoundaries(meanBoundaries>=2*d)/2,...
+                meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
+            line(-d + meanBoundaries(meanBoundaries>=2*d)/2,...
+                meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
+        end
     else
         % add lines
         hold on

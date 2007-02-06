@@ -1,9 +1,11 @@
-function [resultList,plotData] = bilobesGfpKinetochores
+function [resultList,plotData] = bilobesGfpKinetochores(project, normalize,doPlot)
 %BILOBESPINDLES projects kinetochore signals onto the spindle axis in two-color images
 %
 % SYNOPSIS: bilobeSpindles
 %
-% INPUT
+% INPUT project : type of projection: {'max'}/'sum'
+%       normalize : what to set to 1 {'sum'}/'max'
+%       doPlot : whether to plot or not {1}/0
 %
 % OUTPUT
 %
@@ -31,7 +33,19 @@ plotInt = false; % imaris will plot spb and ndc80
 redoAll = false; % if false, code will not redo analysis
 
 plotGallery = true; % plot gallery of projections
-useMax = true; % plot maximum intensity projection
+def_project = 'max'; % maximum intensity projection
+def_normalize = 'sum';
+def_doPlot = true;
+
+if nargin < 1 || isempty(project)
+    project = def_project;
+end
+if nargin < 2 || isempty(normalize)
+    normalize = def_normalize;
+end
+if nargin < 3 || isempty(doPlot)
+    doPlot = def_doPlot;
+end
 
 % search files
 cdBiodata;
@@ -395,17 +409,27 @@ end
 
 
 
-if useMax
-    projectedIntensities = cat(2,resultList.maxProj);
-else
-    projectedIntensities = cat(2,resultList.meanProj);
+switch project
+    case 'max'
+        projectedIntensities = cat(2,resultList.maxProj);
+    case 'sum'
+        projectedIntensities = cat(2,resultList.meanProj);
 end
 % normalize projectedIntensities so that every movie has the same total
 % intensity
-projectedIntensities = projectedIntensities./...
-    repmat(sum(projectedIntensities,1),size(projectedIntensities,1),1);
+switch normalize
+    case 'sum'
+        projectedIntensities = projectedIntensities./...
+            repmat(sum(projectedIntensities,1),size(projectedIntensities,1),1);
+    case 'max'
+        projectedIntensities = projectedIntensities./...
+            repmat(max(projectedIntensities,[],1),size(projectedIntensities,1),1);
+end
 
-bilobePlot({spindleLength,projectedIntensities(3:end-2,:)});
+plotData = {spindleLength,projectedIntensities(3:end-2,:)};
+if doPlot
+bilobePlot(plotData);
+end
 
 
 % % plotData: data needed for plotting

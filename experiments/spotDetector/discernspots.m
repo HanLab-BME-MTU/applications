@@ -68,7 +68,7 @@ for i=1:size(dMatrixXY,2)
     if (i~=curIdxList(end) & dMatrixXY(curIdxList(end),i)<MIN_DIST_XY & dMatrixZ(curIdxList(end),i)<MIN_DIST_Z)
         if (isempty(spidx) | ~any(spidx==i))
             spidx(end+1)=i;
-            spidx=rec_find(dMatrixXY,dMatrixZ,spidx,PIXELSIZE_XY, PIXELSIZE_Z, FT_SIGMA);
+            spidx=rec_find(dMatrixXY,dMatrixZ,spidx,PIXELSIZE_XY, PIXELSIZE_Z, FILTERPRM);
         end;
     end;
 end;
