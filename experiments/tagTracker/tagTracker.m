@@ -126,20 +126,14 @@ nTimepoints = length(idlist);
 
 % remove first all single-occurence tags, so that we're only left with good
 % ones. LG_deleteTag needs goodTimes, so we do a quick loop first
+goodIdx = false(nTimepoints,1);
 for t = nTimepoints:-1:1
     if ~isempty(idlist(t).linklist)
-        goodIdx(t,1) = 1;
+        goodIdx(t,1) = true;
     end
 end
 goodTimes = find(goodIdx);
-
-% since tags are good or bad over the entire movie, just check the first
-% good time
-tag2deleteIdx = find(ismember(idlist(goodTimes(1)).linklist(:,5),[2,3]));
-% remove bad tags
-if ~isempty(tag2deleteIdx)
-    idlist = LG_deleteTag(idlist, tag2deleteIdx, goodTimes);
-end
+idlist = LG_deleteSingleOccurences(idlist,goodTimes);
 
 % now we can read out number of tags and assign vars
 nTags = length(idlist(1).stats.labelcolor);

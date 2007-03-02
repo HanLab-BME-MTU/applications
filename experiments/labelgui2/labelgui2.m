@@ -24,7 +24,7 @@ function varargout = labelgui2(varargin)
 
 % Edit the above text to modify the response to help labelgui2
 
-% Last Modified by GUIDE v2.5 12-May-2006 18:29:31
+% Last Modified by GUIDE v2.5 02-Mar-2007 14:17:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
