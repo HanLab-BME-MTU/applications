@@ -1,10 +1,10 @@
-function [resultList,plotData] = bilobesGfpKinetochores(project, normalize,doPlot)
+function [resultList,plotData,plotStruct] = bilobesGfpKinetochores(project, normalize,doPlot,improveAlignment)
 %BILOBESPINDLES projects kinetochore signals onto the spindle axis in two-color images
 %
 % SYNOPSIS: bilobeSpindles
 %
 % INPUT project : type of projection: {'max'}/'sum'
-%       normalize : what to set to 1 {'sum'}/'max'
+%       normalize : what to set to 1 {'sum'}/'max'/'none'
 %       doPlot : whether to plot or not {1}/0
 %
 % OUTPUT
@@ -19,16 +19,27 @@ function [resultList,plotData] = bilobesGfpKinetochores(project, normalize,doPlo
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 spbCorrection_1 = [-0.0124 0.1647 0.2546]; % from diploid 1-7. CFP->GFP
+align_1=true;
+spbCorrection_2 = [-0.0029    0.3407    0.2784];
+align_2=true;
+%spbCorrection_2 = [-0.0480 0.3796 0.3398]; % January 2007
 
-spbCorrection_2 = [-0.0480 0.3796 0.3398]; % January 2007
+spbCorrection_3 = [-0.0417    0.1653    0.3145]; % February 2007 (2-7-7)
+align_3=true;
+spbCorrection_4 = [-0.0517    0.1898    0.3650]; % February 20 2007
+%spbCorrection_4 = spbCorrection_3;
+align_4=false;
 
+debug = false;
+alignmentTolerance = 0.3;
+maxIter = 10;
 
 % turn off exposure time/nd warnings
 warningState = warning;
 warning('off','R3DREADHEADER:exposureTimeChanged');
 warning('off','R3DREADHEADER:ndFilterChanged');
 
-plotGrid = false; % imaris will plot the 3D-grid
+plotGrid = false; % imaris will plot the 3D-grid over the aligned two-color data
 plotInt = false; % imaris will plot spb and ndc80
 redoAll = false; % if false, code will not redo analysis
 
@@ -36,6 +47,7 @@ plotGallery = true; % plot gallery of projections
 def_project = 'max'; % maximum intensity projection
 def_normalize = 'sum';
 def_doPlot = true;
+%def_improveAlignment = true;
 
 if nargin < 1 || isempty(project)
     project = def_project;
@@ -45,6 +57,13 @@ if nargin < 2 || isempty(normalize)
 end
 if nargin < 3 || isempty(doPlot)
     doPlot = def_doPlot;
+end
+if nargin < 4 || isempty(improveAlignment)
+    improveAlignment = [];
+end
+
+if nargout == 3
+    doPlot = true;
 end
 
 % search files
@@ -231,11 +250,13 @@ for iData=1:nData
                 [],dataProperties,idlist,'idlist');
             uiwait(lh)
             idlist_L = LG_readIdlistFromOutside;
+        elseif nSpots < 2
+            status(iData) = -1;
         else
             idlist_L = idlist;
         end
 
-        if ~isempty(idlist_L)
+        if ~isempty(idlist_L) && status(iData) > 0
             status(iData) = 4;
         end
 
@@ -255,8 +276,24 @@ for iData = 1:nData
         d=dir(nameList(iData).rawMovieName);
         if datenum(d.date) < datenum('1-Jan-2007 00:00:01')
             spbCorrection = spbCorrection_1;
-        else
+            if isempty(improveAlignment) 
+                improveAlignment = align_1;
+            end
+        elseif datenum(d.date) < datenum('1-Feb-2007 00:00:01')
             spbCorrection = spbCorrection_2;
+            if isempty(improveAlignment) 
+                improveAlignment = align_2;
+            end
+        elseif datenum(d.date) < datenum('20-Feb-2007 00:00:01')
+            spbCorrection = spbCorrection_3;
+            if isempty(improveAlignment) 
+                improveAlignment = align_3;
+            end
+        else
+            spbCorrection = spbCorrection_4;
+            if isempty(improveAlignment) 
+                improveAlignment = align_4;
+            end
         end
 
         % find coordinates of two spots - already correct for x/y. Sort
@@ -276,9 +313,11 @@ for iData = 1:nData
 
             % calculate angle from plane
             spbVectorAngle = 90 - acos(e_spb(3))*180/pi;
+            inPlaneAngle = atan2(e_spb(2),e_spb(1))*180/pi;
 
             % make perpendicular vector parallel to xy
-            e_perp = [-e_spb(2),e_spb(1),0]./sum(e_spb(1:2).^2);
+            e_perp = [-e_spb(2),e_spb(1),0];
+            e_perp = e_perp / sqrt(sum(e_perp.^2));
 
             % complete coordinate system
             e_3 = cross(e_spb,e_perp);
@@ -287,7 +326,7 @@ for iData = 1:nData
             load(nameList(iData).dataPropertiesName);
             pix2mu = [dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,...
                 dataProperties.PIXELSIZE_Z];
-            spbCoordNdc = (spbCoord + repmat(spbCorrection,2,1)) ./ repmat(pix2mu,2,1);
+            %spbCoordNdc = (spbCoord + repmat(spbCorrection,2,1)) ./ repmat(pix2mu,2,1);
             spbCoord = spbCoord ./repmat(pix2mu,2,1);
 
             % spb-vector: 1/24th of spindle length. Perpendicular vectors: 1 pix
@@ -302,35 +341,200 @@ for iData = 1:nData
             % axis (Gardner)
             % -> use a few more : 21 perp, bins from -3:27
             xLabels = -2.5:26.5;
-            [xGrid,yGrid,zGrid] = arbitraryGrid(e_spb, e_perp, e_3, spbCoordNdc(1,:),...
-                [xLabels(1) xLabels(end)], [-10 10], [-10 10], size(rawMovie));
+
+            % loop to find (somewhat) centered intensity distribution.
+            % Idea: in axis direction, the two lobes should decrease to
+            % "zero" symmetrically, in the perpendicular directions, the
+            % maximum should be in the center
+            ndcShift = spbCorrection./pix2mu;
+            
+            
+         
+            
+            shiftNorm = 99;
+            %fh1=figure;
+            %fh2=figure;
+            %             fh3=figure;
+            if debug
+                fh4 = figure;
+            end
+            %             ah = gca; hold on;cm=jet(9);
+            %             for i=1:9
+            
+            % improve alignment only on demand
+            if improveAlignment
+            ct = 1;
+            else
+                ct = 10; %run once only to get at intensities
+            end
+            done = false;
+            store = zeros(maxIter,3);
+            while  ~done % done if maxIter interations, shift<alignmentTolerance pix
+                % read intensity
+                spbCoordNdc = spbCoord + repmat(ndcShift,2,1);
+                [xGrid,yGrid,zGrid] = arbitraryGrid(e_spb, e_perp, e_3, spbCoordNdc(1,:),...
+                    [xLabels(1) xLabels(end)], [-10 10], [-10 10], size(rawMovie));
+                % interpolate ndc80
+                interpImg = interp3(rawMovie(:,:,:,2),yGrid,xGrid,zGrid,'*linear',NaN);
+
+                % estimate background: Median of all 12 edges
+                edgeMask = true(size(interpImg));
+                edgeMask(2:end-1,2:end-1,2:end-1) = false;
+                edgeMask(2:end-1,2:end-1,[1,end]) = false;
+                edgeMask(2:end-1,[1,end],2:end-1) = false;
+                edgeMask([1,end],2:end-1,2:end-1) = false;
+
+                edgeList = interpImg(edgeMask);
+                background = nanmedian(edgeList);
+
+                % make maximum, average projections
+                maxProj = nanmax(nanmax(interpImg,[],3),[],2)-background;
+                meanProj = nanmean(nanmean(interpImg,3),2)-background;
+
+                % make perpendicular projections
+                p_perp = squeeze(nanmean(interpImg,1))-background;
+
+                % plot - debug
+                %                 figure(fh1)
+                %                 subplot(3,3,i),imshow(p_perp,[]);
+                %                 figure(fh2)
+                %                 subplot(3,3,i),imshow(nanmean(interpImg,3),[]);
+                %                 plot(ah,xLabels,(meanProj-min(meanProj))/max(meanProj-min(meanProj)),'Color',cm(i,:))
+                if ct == 1 && debug
+                    figure(fh4)
+                    subplot(2,2,1),imshow(nanmean(interpImg,3),[]);
+                    subplot(2,2,2),imshow(p_perp,[]);
+                end
+
+
+                % in axis direction: Take average of 3 end points, find
+                % centroid - this is not stable
+                % c_spb = sum([meanProj(1:3)'.*xLabels(1:3),...
+                % meanProj(end-2:end)'.*xLabels(end-2:end)])/sum(meanProj([1:3,end-2:end]));
+                % find by how much we need to shift along the axis
+                %c_spb = (c_spb - 12)/2; % divide by 2 b/c of instability
+                % instead, check where the curve goes below 10% of the maximum intensity;
+                % count how many pixels below 10% are on either side
+                pp=csaps(xLabels,(meanProj-min(meanProj))/max(meanProj-min(meanProj))-0.1);
+                left=fnzeros(pp,xLabels([1,8]));
+                right=fnzeros(pp,xLabels([end-7,end]));
+                % there are 4 options
+                % - below 10% on both sides
+                % - below 10% on one side (2)
+                % - never below 10% on either side
+                % if below 10% on both sides, the center is right between
+                % the zero-crossings
+                % if below 10% on one side only, the center should be
+                % shifted by as if crossing was right beyond border
+                % if never below 10% at the borders, the center is at the
+                % centroid of the data
+                emptyLeft = isempty(left);
+                emptyRight = isempty(right);
+                switch emptyLeft + 2*emptyRight
+                    case 0
+                        % none empty
+                        c_spb = (max(left(:)) + min(right(:)))/2 - 12;
+                    case 1
+                        % only right
+                        c_spb = (xLabels(1)-1 + min(right(:)))/2 -12;
+                    case 2
+                        % only left
+                        c_spb = (max(left(:)) + xLabels(end)+1)/2 -12;
+                    case 3
+                        % both empty
+                        c_spb = sum(xLabels.*meanProj')/sum(meanProj) - 12;
+                end
+
+
+                % find centroid of perpendicular projection
+                c_perp = centroid2D(p_perp);
+                % find by how much we need to shift in the third dimension
+                c_perp = c_perp([2,1]) - [11,11];
+                store(ct,:) = [c_spb,c_perp];
+
+                if ct == maxIter-1
+                    % check for oscillation in the shift vector
+                    signVec = sign(store(6:9,:));
+                    for d=1:3
+                        if all((signVec(:,d)+signVec([end,1:3],d))==0)
+                            % update store. Difference/4 is half the amplitude
+                            store(ct,d) = (store(ct,d)-store(ct-1,d))/4;
+                        end
+                    end
+
+                end
+
+                % transform the correction
+                c_vec = [e_spb(:),e_perp(:),e_3(:)]*store(ct,:)';
+
+                shiftNorm = norm([c_spb,c_perp]);
+
+                % check if done (e.g. at ct=10, or very little shift)
+                if shiftNorm < alignmentTolerance || ct >= maxIter;
+                    done = true;
+                else
+
+                    % update ndc_shift
+                    ndcShift = ndcShift + c_vec';
+
+                    % debug
+                    if debug
+                        disp(sprintf('%1.3f -- %1.3f %1.3f %1.3f',shiftNorm,store(ct,:)))
+                    end
+
+                    % counter to make sure that we will exit the loop
+                    % eventually
+                    ct = ct + 1;
+                end
+
+            end
+
+            % debug
+            if debug
+                figure(fh4)
+                subplot(2,2,3),imshow(nanmean(interpImg,3),[]);
+                subplot(2,2,4),imshow(p_perp,[]);
+            end
+
+
 
             %     % show grid - (multiply by pix2mu for um)
             if plotGrid
-                %             d1 = spbCoordNdc(1,:) + 15 * e_spb;
-                %             d2 = spbCoordNdc(1,:) + 15 * e_perp;
-                %             d3 = spbCoordNdc(1,:) + 15 * e_3;
-                %pd(3).XYZ = [d1;d2;d3];pd(3).color = [0,0,1,0];pd(3).spotRadius =
-                %1;
-                pd(2).XYZ = [xGrid(:),yGrid(:),zGrid(:)];pd(2).color = [0,1,0,0];pd(2).spotRadius = 0.1;
-                pd(1).XYZ = spbCoordNdc;pd(1).color = [1,0,0,0];pd(1).spotRadius = 1;
-                imarisPlot3(pd,[],rawMovie(:,:,:,2))
+                %                             d1 = spbCoordNdc(1,:) + 15 * e_spb;
+                %                             d2 = spbCoordNdc(1,:) + 15 * e_perp;
+                %                             d3 = spbCoordNdc(1,:) + 15 * e_3;
+                %                 pd(3).XYZ = [d1;d2;d3];pd(3).color = [0,0,1,0];pd(3).spotRadius = 0.03;
+                [xGrid,yGrid,zGrid] = arbitraryGrid(e_spb, e_perp, e_3, spbCoordNdc(1,:),...
+                    [0.5,23.5], [-10 10], [-10 10], size(rawMovie));
+                % make grid-box
+                %                 xGrid(2:end-1,2:end-1,2:end-1) = NaN;
+                %                 yGrid(2:end-1,2:end-1,2:end-1) = NaN;
+                %                 zGrid(2:end-1,2:end-1,2:end-1) = NaN;
+
+                % make three grid-planes
+                xGrid(2:end,[1:10,12:end],[1:10,12:end]) = NaN;
+                yGrid(2:end,[1:10,12:end],[1:10,12:end]) = NaN;
+                zGrid(2:end,[1:10,12:end],[1:10,12:end]) = NaN;
+                xGrid = xGrid(~isnan(xGrid));
+                yGrid = yGrid(~isnan(yGrid));
+                zGrid = zGrid(~isnan(zGrid));
+                pd(2).XYZ = [xGrid(:)*pix2mu(1),yGrid(:)*pix2mu(2),zGrid(:)*pix2mu(3)];
+                pd(2).color = [0.6403, 0.6513, 0.6464, 0];pd(2).spotRadius = 0.012;
+                pd(1).XYZ = spbCoordNdc.*repmat(pix2mu,2,1);
+                pd(1).color = [1,0,0,0];pd(1).spotRadius = 0.05;
+                % shift the spb channel
+                [xx,yy,zz] = ndgrid((1:size(rawMovie,1))-ndcShift(1),...
+                    (1:size(rawMovie,2))-ndcShift(2),(1:size(rawMovie,3))-ndcShift(3));
+                im = interp3(rawMovie(:,:,:,1),yy,xx,zz,'*linear',NaN);
+                imarisPlot3(pd,pix2mu,cat(4,im,rawMovie(:,:,:,2)))
             end
-            % interpolate ndc80
-            interpImg = interp3(rawMovie(:,:,:,2),yGrid,xGrid,zGrid,'linear',NaN);
+
 
             % read intensities from spb image
             [xGrid,yGrid,zGrid] = arbitraryGrid(e_spb, e_perp, e_3, spbCoord(1,:),...
                 [xLabels(1) xLabels(end)], [-10 10], [-10 10], size(rawMovie));
-            interpImgSpb = interp3(rawMovie(:,:,:,1),yGrid,xGrid,zGrid,'linear',NaN);
+            interpImgSpb = interp3(rawMovie(:,:,:,1),yGrid,xGrid,zGrid,'*linear',NaN);
 
-
-
-
-            % make maximum, average projections, subtract minimum intensity
-            % (a rough estimate for the background intensity - could be improved)
-            maxProj = nanmax(nanmax(interpImg,[],3),[],2)-min(interpImg(:));
-            meanProj = nanmean(nanmean(interpImg,3),2)-min(interpImg(:));
 
 
 
@@ -346,7 +550,9 @@ for iData = 1:nData
             resultList(iData).e_3 = e_3;
             resultList(iData).n_spb = n_spb;
             resultList(iData).spbVectorAngle = spbVectorAngle;
+            resultList(iData).inPlaneAngle = inPlaneAngle;
             resultList(iData).name = nameList(iData).deconMovieName;
+            resultList(iData).ndcShiftPix = ndcShift;
 
             % show two plots
             if plotInt
@@ -362,15 +568,15 @@ resultList(status==-1)=[];
 % get spindle length
 spindleLength = cat(1,resultList.n_spb);
 [dummy,sortIdx] = sort(spindleLength);
-
+longestSpindle = max(spindleLength)*30/24;
 % show gallery if selected
 if plotGallery
     nData = length(resultList);
     nRows = floor(sqrt(nData));
     nCols = ceil(nData/nRows);
-    proj = {'maximum projection. length--angle--idx','mean projection. length--angle--idx'};
+    proj = {'maximum projection. length--angle(z/xy)--idx','mean projection. length--angle(z/xy)--idx'};
     for p=1:2
-        figure('Name',proj{p})
+        fh = figure('Name',proj{p});
         for d=sortIdx'
             % gfp: green, spb: red
 
@@ -396,12 +602,26 @@ if plotGallery
                 green,...
                 zeroImage);
             h=subplot(nRows,nCols,find(d==sortIdx));
-            subimage(image);
-            %subimage turns visibility on!
-            set(h,'XTickLabel','','YTickLabel','')
-            set(get(h,'Title'),'String',sprintf('%1.2f--%2.0f--%i',...
+            % turn the images to the right and center - it's easier on the eyes
+            subimage((-14.5:14.5)*norm(resultList(d).e_spb.*pix2mu),...
+                (-10:10)*dataProperties.PIXELSIZE_XY,permute(image,[2,1,3]));
+            set(h,'XLim',[-longestSpindle/2,longestSpindle/2])
+
+            %subimage turns visibility on - but we need it if we want to
+            %show title. Therefore, make everything the same color as
+            %figure
+            set(h,'XTickLabel','','YTickLabel','','Color',get(fh,'Color'),'XColor',get(fh,'Color'),'YColor',get(fh,'Color'))
+            movieName = resultList(d).name;
+            fsidx = findstr(movieName,filesep);
+            movieName = movieName(fsidx(end)+1:end); % later: replace _ with -, cut _R3D...
+            movieName = regexprep(movieName,'_','-');
+            endIdx = findstr(lower(movieName),'-r3');
+            movieName = movieName(1:endIdx-1);
+            title(h,{sprintf('%1.2f--%2.0f--%i',...
                 resultList(d).n_spb, ...
-                resultList(d).spbVectorAngle,d))
+                resultList(d).spbVectorAngle,...  %resultList(d).inPlaneAngle,...
+                d);...
+                sprintf('%s',movieName)});
         end
     end
 end
@@ -424,11 +644,15 @@ switch normalize
     case 'max'
         projectedIntensities = projectedIntensities./...
             repmat(max(projectedIntensities,[],1),size(projectedIntensities,1),1);
+    case 'none'
+        % normalize only so that the overall max is one
+        projectedIntensities = projectedIntensities/max(projectedIntensities(:));
 end
 
+% plot data
 plotData = {spindleLength,projectedIntensities(3:end-2,:)};
 if doPlot
-bilobePlot(plotData);
+    plotStruct = bilobePlot(plotData);
 end
 
 

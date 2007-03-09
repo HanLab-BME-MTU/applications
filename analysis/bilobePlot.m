@@ -1,4 +1,4 @@
-function bilobePlot(inputData, dataName)
+function out = bilobePlot(inputData, dataName)
 %BILOBEPLOT is a plotting function for the analysis of bilobe patterns
 %
 % INPUT inputData either n-by-4 array of [spindleLength, bin#, weight,
@@ -30,7 +30,6 @@ plotTrapezoid = true;
 
 % make 26 bins
 xLabels = -1/48:1/24:49/48;
-%xLabels = [xLabels(1:13),0.5,xLabels(14:end)];
 
 % sample every 25 nanometer spindle length
 boundaries = [0.7:0.025:1.7;0.9:0.025:1.9];
@@ -38,20 +37,19 @@ boundaries = [0.7:0.025:1.7;0.9:0.025:1.9];
 meanBoundaries = mean(boundaries,1);
 nBoundaries = size(boundaries,2);
 nBins = length(xLabels);
-
 xall = repmat(xLabels',1,nBoundaries);
 
 % plotData: data needed for plotting
-% plotData(1:3) = struct('xall',[],'yall',[],'zall',[],'yTickLabels',[]);
+out(1:2) = struct('xall',[],'yall',[],'zall',[],'yTickLabels',[]);
 
 % map everything onto half-spindle
-spindleLength = repmat(spindleLength,2,1);
+if intensities
+    spindleLength = repmat(spindleLength,2,1);
+end
 
 % plot averages
- figureNames = {'asymmetric','a, max=1','symmetric','s, max=1'};
- for i=3:4
-
-
+figureNames = {'no norm','sum = 1','max = 1'};
+for i=1:3
 
     yall=zeros(nBins,nBoundaries);
     zall=zeros(nBins,nBoundaries);
@@ -67,27 +65,13 @@ spindleLength = repmat(spindleLength,2,1);
         % dist: bin, weight, movie
         dist = inputData(:,2:end);
     end
-%     switch i
-%         case {1,2}
-%             % nothing to do
-%         otherwise
-%             if intensities
-%                 pInt = (pInt+pInt(end:-1:1,:))/2;
-%             else
-%                 % reverse bins
-%                 dist(2:2:end,1) = 27-dist(2:2:end,1);
-%             end
-% 
-%     end
 
-
-
-if intensities
-    pInt = [pInt(1:13,:),pInt(26:-1:14,:)];
-else
-    otherSideIdx = dist(:,1)>13;
-    dist(otherSideIdx,1) = 27-dist(otherSideIdx,1);
-end
+    if intensities
+        pInt = [pInt(1:13,:),pInt(26:-1:14,:)];
+    else
+        otherSideIdx = dist(:,1)>13;
+        dist(otherSideIdx,1) = 27-dist(otherSideIdx,1);
+    end
 
     % figure, hold on
     for ct = 1:nBoundaries,
@@ -109,28 +93,41 @@ end
                     dist(spindleIdx{ct},2);
                 for bin = 13:-1:1
                     % "average": sum the weights in each bin
-                    averageMP(bin) = sum(weights(dist(spindleIdx{ct},1)==bin));
+                    weightsList = weights(dist(spindleIdx{ct},1)==bin);
+%                     averageMP(bin) = sum(weightsList);
+%                     sigmaMP(bin) = NaN;
                     % potentially, we can extract distributions for
                     % individual movies, and average those to get a std in
                     % the future, for now, don't have std
-                    
+
+                    % two alternatives: (1) Calculate variance between four
+                    % areas of equal weight under the triangle filter -
+                    % this measures spatial heterogeneity
+                    % (2) Bootstrap the variance (take 1000 samples allowing
+                    % repetitions) - neat, but what would this really be
+                    % measuring?
+                    wDist = bootstrp(1000,'sum',weightsList);
+                    averageMP(bin) = mean(wDist);
+                    sigmaMP(bin) = std(wDist);
                 end
-                sigmaMP(1:13) = NaN;
+                
             end
-            
+
             % we will plot (avg,sigma) in two halves of the plot.
             % Therefore remove the other half of both vectors so that we
             % can directly stick them together afterwards
-            
+
             averageMP = averageMP(1:13);
             sigmaMP = sigmaMP(1:13);
-            
+
             switch i
-                case {4,2}
+                case {3}
                     sigmaMP = sigmaMP/max(averageMP);
                     averageMP = averageMP/max(averageMP);
+                case 1
+                    % no norming
 
-                otherwise
+                case 2
                     sigmaMP = sigmaMP/sum(averageMP);
                     averageMP = averageMP/sum(averageMP);
 
@@ -153,10 +150,13 @@ end
     end
 
     % check zall for inf
-    zall(~isfinite(zallS)) = NaN;
+    zall(~isfinite(zall)) = NaN;
+    zallS(~isfinite(zallS)) = NaN;
+    % check zall for <0
+    zall(zall<0) = 0;
 
     figure('Name',[dataName,' ',figureNames{i}])
-    if plotSigma && intensities
+    if plotSigma &&  ~all(isnan(zallS(:)))
         ah = subplot(1,2,1);
     else
         ah = gca;
@@ -172,15 +172,32 @@ end
     contourf((xall-xSub).*xFactor,yall,zall,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
     %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
     %     axis tight
-    set(ah,'yTick',meanBoundaries(1:4:end),'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
+    set(ah,'yTick',meanBoundaries(1:4:end),'yTickLabel',yTickLabels(1:4:end),'yGrid','on','Color',get(gcf,'Color'))
 
+    % set new colormap (see:
+    % http://www.research.ibm.com/people/l/lloydt/color/color.HTM;
+    % and:
+    % http://www.research.ibm.com/dx/proceedings/pravda/index.htm
+    % for details)
+    cm=hsl2rgb([repeatEntries([0.66;0.16],32),[linspace(0.8,0,32)';...
+        linspace(0,0.8,32)'],ones(64,1)*0.50]);
+    colormap(cm)
+    
     switch i
-        case {4,2}
+        case {3}
             set(ah,'CLim',[0,1])
-        otherwise
+        case 2
             set(ah,'CLim',[0,nanmax(zall(:))])
+        case 1
+            % here it depends how we normalized before. Implement later, do
+            % 01 for now
+            if nanmax(zall(:)) < 0.8 || nanmax(zall(:)) > 1
+                set(ah,'CLim',[0,nanmax(zall(:))])
+            else
+                set(ah,'CLim',[0,1])
+            end
     end
-    if plotSigma && intensities
+    if plotSigma &&  ~all(isnan(zallS(:)))
         % don't put the colorbar here already
     else
         colorbar('peer',ah)
@@ -205,23 +222,38 @@ end
         end
     end
 
-    if plotSigma && intensities
+    if plotSigma && ~all(isnan(zallS(:)))
         ah = subplot(1,2,2);
         contourf((xall-xSub).*xFactor,yall,zallS,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
         %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
         %     axis tight
-        set(ah,'yTick',meanBoundaries(1:4:end),'yTickLabel',yTickLabels(1:4:end),'yGrid','on')
+        set(ah,'yTick',meanBoundaries(1:4:end),'yTickLabel',yTickLabels(1:4:end),'yGrid','on','Color',get(gcf,'Color'))
 
         switch i
-            case {4,2}
+            case {3}
                 set(ah,'CLim',[0,1])
-            otherwise
+            case 2
                 set(ah,'CLim',[0,nanmax(zall(:))])
+            case 1
+                % here it depends how we normalized before. Implement later, do
+                % 01 for now
+                if nanmax(zall(:)) < 0.8 || nanmax(zall(:)) > 1
+                    set(ah,'CLim',[0,nanmax(zall(:))])
+                else
+                    set(ah,'CLim',[0,1])
+                end
         end
         colorbar('peer',ah)
         % add lines
         if plotTrapezoid
-            % no lines yet
+            % add lines
+            hold on
+            for d=0.2:0.2:0.8
+                line(d - meanBoundaries(meanBoundaries>=2*d)/2,...
+                    meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
+                line(-d + meanBoundaries(meanBoundaries>=2*d)/2,...
+                    meanBoundaries(meanBoundaries>=2*d),'Color','k','LineWidth',1);
+            end
         else
             hold on
             for d=0.2:0.2:0.8
@@ -234,74 +266,81 @@ end
     end
 
 
-    %     xlim([0,1])
-    %     ylim([1,2])
-    %view([0 90])
-    %     plotData(i).xall = xall;
-    %     plotData(i).yall = yall;
-    %     plotData(i).zall = zall;
-    %     plotData(i).zallS = zallS;
-    %     plotData(i).yTickLabels = yTickLabels;
-    %     plotData(i).spindleIdx = spindleIdx;
+    out(i).xall = xall;
+    out(i).yall = yall;
+    out(i).zall = zall;
+    out(i).zallS = zallS;
+    out(i).yTickLabels = yTickLabels;
+    out(i).spindleIdx = spindleIdx;
+    out(i).nSpindles = nSpindles;
 
 
 end
 
-if intensities
-    % adapt for positions later
-    figure('Name',sprintf('%s individual; sum=1',dataName));
-    [sortedSpindleLength,sortIdx]=sort(spindleLength);
-    int = inputData{2};
-    int = int(:,sortIdx)';
-    int = int./repmat(sum(int,2),1,size(int,2));
-    intSymm = 0.5*(int + int(:,end:-1:1));
-    subplot(1,2,1),imshow([int,NaN(size(int,1),1),intSymm],[]),
-    colormap jet,
-    subplot(1,2,2),
-    plot(sortedSpindleLength,length(sortIdx):-1:1,'-+')
+% plot distributions
+figure('Name','Distributions')
+hold on
+cmap = jet(nBoundaries);
+for i=1:nBoundaries
+    plot(out(1).xall(1:13,1).*out(1).yall(1:13,i),out(1).zall(1:13,i),'Color',cmap(i,:));
 end
 
-% loop to make histograms
-stages = [1,1.2,1.6,2];
 
-% read data. symmetrize distances
-if intensities
-    pInt = inputData{2};
-else
-    % dist: bin, weight, movie
-    dist = inputData(:,2:end);
-    % reverse bins
-    dist(2:2:end,1) = 27-dist(2:2:end,1);
-end
-% allMP = (allMP+allMP(end:-1:1,:))/2;
-
-for ct = 1:length(stages)-1,
-    figure('Name',sprintf('%s %1.1f -> %1.1f',dataName, stages(ct:ct+1)));
-    sidx = find(spindleLength>stages(ct) & spindleLength<stages(ct+1));
-    if intensities
-        averageMP = mean(pInt(:,sidx),2);
-    else
-        % for every bin, sum up the weights
-
-        % calculate all the weights already now - we need it
-        % for the calculatio of n later
-        weights = dist(spindleIdx{ct},2);
-        for bin = 26:-1:1
-            % "average": sum the weights in each bin
-            averageMP(i) = sum(weights(dist(spindleIdx{ct},1)==bin));
-        end
-    end
-
-    samp=sum(averageMP);
-    averageMP = averageMP/samp;
-
-    hold on
-    if intensities
-        for i=1:length(sidx)
-            plot(xLabels,pInt(:,sidx(i))/samp,'b');
-        end
-    else
-        % do individual movies later
-    end
-    plot(xLabels,averageMP,'r','LineWidth',1.5)
-end
+% if intensities
+%     % adapt for positions later
+%     figure('Name',sprintf('%s individual; sum=1',dataName));
+%     [sortedSpindleLength,sortIdx]=sort(inputData{1});
+%     int = inputData{2};
+%     int = int(:,sortIdx)';
+%     int = int./repmat(sum(int,2),1,size(int,2));
+%     intSymm = 0.5*(int + int(:,end:-1:1));
+%     subplot(1,2,1),imshow([int,NaN(size(int,1),1),intSymm],[]),
+%     colormap jet,
+%     subplot(1,2,2),
+%     plot(sortedSpindleLength,length(sortIdx):-1:1,'-+')
+% end
+%
+% % loop to make histograms
+% stages = [1,1.2,1.6,2];
+%
+% % read data. symmetrize distances
+% if intensities
+%     pInt = inputData{2};
+% else
+%     % dist: bin, weight, movie
+%     dist = inputData(:,2:end);
+%     % reverse bins
+%     dist(2:2:end,1) = 27-dist(2:2:end,1);
+% end
+% % allMP = (allMP+allMP(end:-1:1,:))/2;
+%
+% for ct = 1:length(stages)-1,
+%     figure('Name',sprintf('%s %1.1f -> %1.1f',dataName, stages(ct:ct+1)));
+%     sidx = find(spindleLength>stages(ct) & spindleLength<stages(ct+1));
+%     if intensities
+%         averageMP = mean(pInt(:,sidx),2);
+%     else
+%         % for every bin, sum up the weights
+%
+%         % calculate all the weights already now - we need it
+%         % for the calculatio of n later
+%         weights = dist(spindleIdx{ct},2);
+%         for bin = 26:-1:1
+%             % "average": sum the weights in each bin
+%             averageMP(i) = sum(weights(dist(spindleIdx{ct},1)==bin));
+%         end
+%     end
+%
+%     samp=sum(averageMP);
+%     averageMP = averageMP/samp;
+%
+%     hold on
+%     if intensities
+%         for i=1:length(sidx)
+%             plot(xLabels,pInt(:,sidx(i))/samp,'b');
+%         end
+%     else
+%         % do individual movies later
+%     end
+%     plot(xLabels,averageMP,'r','LineWidth',1.5)
+% end

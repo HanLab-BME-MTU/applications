@@ -1,4 +1,4 @@
-function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname,GUI,forceNew)
+function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname,GUI,forceNew,noMovie)
 %LOADPROJECTDATA loads experimental Chromdyn data from file
 %
 % SYNOPSIS [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadProjectData(fileName,pathName,idname)
@@ -12,8 +12,12 @@ function [idlist,dataProperties,projectProperties,slist,filteredMovie] = loadPro
 %          GUI       (opt) whether to show different idlist choices in GUI
 %          forceNew  (opt) if 1, loadProjectData will only look for idX2.
 %                       If there aren't any, idlist will be -1.
+%          noMovie   (opt) if 1, loadStruct for filtered movie will be
+%                       returned. If 2, loadStruct for corr/raw will be
+%                       returned. If 3, filteredMovie will be emtpy
 %
 % OUTPUT   idlist           user selected idlist if several possible
+%                           idlist(1).stats.idname contains current idname
 %          dataProperties
 %          projectProperties
 %          slist
@@ -49,7 +53,7 @@ if nargin < 2 || isempty(pathName)
     if ~isempty(strfind(fileName,filesep))
         pathName = [];
     else
-    pathName = pwd;
+        pathName = pwd;
     end
 end
 % if pathName is empty, we don't need to add filesep, of course
@@ -61,8 +65,14 @@ if nargin < 3 || isempty(idname)
     idname = [];
 end
 
-if nargin < 4 || isempty(forceNew)
+%input4: GUI
+
+if nargin < 5 || isempty(forceNew)
     forceNew = 0;
+end
+
+if nargin < 6 || isempty(noMovie)
+    noMovie = 0;
 end
 
 
@@ -162,61 +172,61 @@ else
     continueLoadIdlist = 1;
 end
 
-if continueLoadIdlist    
+if continueLoadIdlist
 
-idIdx = [];
-if ~isempty(idname)
-    if strcmp(idname,'last')
-        idIdx = find(strcmp(idnameList,data.lastResult));
-        if ~isempty(idIdx)
-            idname = idnameList{idIdx};
+    idIdx = [];
+    if ~isempty(idname)
+        if strcmp(idname,'last')
+            idIdx = find(strcmp(idnameList,data.lastResult));
+            if ~isempty(idIdx)
+                idname = idnameList{idIdx};
+            end
+        else
+            idIdx = find(strcmp(idnameList,idname));
+        end
+    end
+
+    if isempty(idIdx)
+        %have the user choose, if there is more than one entry left
+        switch length(idnameList)
+            case 0 %no idlist loaded. if GUI, continue w/o loading
+
+                if GUI
+                    h = warndlg('no idlist found in data');
+                    uiwait(h);
+                    idname = '';
+                else
+                    error('no idlist found in data')
+                end
+
+            case 1 %only one idlist loaded. Continue
+
+                idname = char(idnameList);
+
+            otherwise %let the user choose
+                idSelect = chooseFileGUI(idnameList);
+                if isempty(idSelect)
+                    idname = '';
+                else
+                    idname = idnameList{idSelect};
+                end
+        end
+    end
+    if isempty(idname)
+        if GUI
+            % continue loading if more than just idlist
+            idlist = [];
+            if nargout == 1
+                return
+            end
+        else
+            error('file not found')
         end
     else
-        idIdx = find(strcmp(idnameList,idname));
+        idlist = data.(idname);
+        % store idname in idlist
+        idlist(1).stats.idname = idname;
     end
-end
-
-if isempty(idIdx)
-    %have the user choose, if there is more than one entry left
-    switch length(idnameList)
-        case 0 %no idlist loaded. if GUI, continue w/o loading
-
-            if GUI
-                h = warndlg('no idlist found in data');
-                uiwait(h);
-                idname = '';
-            else
-                error('no idlist found in data')
-            end
-
-        case 1 %only one idlist loaded. Continue
-
-            idname = char(idnameList);
-
-        otherwise %let the user choose
-            idSelect = chooseFileGUI(idnameList);
-            if isempty(idSelect)
-                idname = '';
-            else
-                idname = idnameList{idSelect};
-            end
-    end
-end
-if isempty(idname)
-    if GUI
-        % continue loading if more than just idlist
-        idlist = [];
-        if nargout == 1
-            return
-        end
-    else
-        error('file not found')
-    end
-else
-    idlist = data.(idname);
-    % store idname in idlist
-idlist(1).stats.idname = idname;
-end
 
 end
 
@@ -272,19 +282,37 @@ end
 
 if nargout > 4
 
-    %--------------try to load filtered movie
-    %try to find filenames in the path from which projectData has been loaded
-    filteredMovie = cdLoadMovie('latest',pathName);
+    switch noMovie
+        case 0
 
-    %test if everything correctly loaded
-    if ~exist('filteredMovie','var')
-        if GUI
-            h = errordlg('no movie found');
-            uiwait(h)
-            return
-        else
-            error('no movie found')
-        end
+            %--------------try to load filtered movie
+            %try to find filenames in the path from which projectData has been loaded
+            filteredMovie = cdLoadMovie('latest',pathName);
+
+            %test if everything correctly loaded
+            if ~exist('filteredMovie','var')
+                if GUI
+                    h = errordlg('no movie found');
+                    uiwait(h)
+                    return
+                else
+                    error('no movie found')
+                end
+            end
+
+        case 1
+            % loadStruct for filtered movie
+            [dummy,dummy,loadStruct] = cdLoadMovie('filtered',pathName,-1);
+            filteredMovie = loadStruct;
+        case 2
+            % loadStruct for corr/raw
+            [dummy,dummy,loadStruct] = cdLoadMovie('corr/raw',pathName,-1);
+            filteredMovie = loadStruct;
+            
+        case 3
+            % return empty
+            filteredMovie = [];
+
     end
 
 end

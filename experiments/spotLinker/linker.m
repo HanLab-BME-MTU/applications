@@ -5,6 +5,7 @@ function [idlist,dataProperties] = linker(slist,dataProperties,verbose,DEBUG,max
 % OUTPUT idlist : 1-by-nTimepoints structure with fields:
 %          .linklist 1: time, 2: spot#, 3: spotFlag, 4: tagIdx, 5: tagFlag,
 %              6: linkup, 7: linkdown, 8: amp, 9-11: xyz, 12: sigma0
+%              13-15: s0x, s0y, s0z, 
 %                   spotFlags: 0: normal
 %                              1: estimated spot
 %                              2: found by tracker

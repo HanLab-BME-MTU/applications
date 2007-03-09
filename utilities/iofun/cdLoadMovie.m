@@ -22,7 +22,7 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %           loadOpt (opt): Load options
 %                            - array with a vector of timepoints to be
 %                              loaded (e.g. [startFrame:endFrame])
-%                            - if -1: empty movie, will be returned, but
+%                            - -1: empty movie, will be returned, but
 %                              complete movieHeader and loadStruct
 %                            - structure with field .maxSize
 %                              indicating maximum array size in bytes. If
@@ -45,7 +45,9 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                              in .frames2load{1}.
 %                              * If there is an additional field .noMovie
 %                              that is 1, no movie will be loaded, but
-%                              everything else will be returned
+%                              everything else will be returned (if this is
+%                              the only option you want to set, supply -1
+%                              for loadOpt instead; see above!)
 %                              * .waveOrder, .waveIdx: If there are
 %                              multiple wavelenghts, .waveOrder indicates
 %                              how wavelenght is ordered compared to
@@ -399,7 +401,7 @@ else
     if isstruct(loadOpt)
         % test if good structure
         if ~isfield(loadOpt,'maxSize')
-            error('loadOpt-structure has no known fields!')
+           error('loadOpt-structure has no known fields!') 
         end
 
         if ischar(loadOpt.maxSize) && strcmp(loadOpt.maxSize,'check')

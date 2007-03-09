@@ -151,8 +151,7 @@ for iData = 1:nData
         end
 
         if exist(nameList(iData).idlist_LName{iw},'file')
-            load(nameList(iData).idlist_LName{iw})
-            idlist = idlist_L;
+       
         else
 
             % make idlist, save
@@ -161,22 +160,38 @@ for iData = 1:nData
         end
 
 
-        % check idlist. Change to load both channels, spots in Imaris later
-        % if necessary
-        if ~isempty(idlist.linklist)
-            % if empty idlist, just don't save a idlist_L. 
-        lh = LG_loadAllFromOutside(filteredMovie,nameList(iData).dirName,...
-            [],dataProperties,idlist,'idlist');
-        uiwait(lh)
-        idlist_L = LG_readIdlistFromOutside;
-
-        % Remove these lines if we check for number of spots later
-        %         idlist_L = idlist;
-        save(nameList(iData).idlist_LName{iw},'idlist_L');
-        end
+        
 
     end
 
+end
+
+% check idlist. Change to load both channels, spots in Imaris later
+% if necessary
+for iData = 1:nData
+    for iw = 1:2
+        if exist(nameList(iData).idlist_LName{iw},'file')
+            load(nameList(iData).idlist_LName{iw})
+            idlist = idlist_L;
+        else
+
+            % load idlist
+
+            load(nameList(iData).idlistName{iw});
+        end
+        if ~isempty(idlist) && ~isempty(idlist.linklist)
+            % if empty idlist, just don't save a idlist_L.
+            filteredMovie = readmat(nameList(iData).filteredMovieName{iw});
+            lh = LG_loadAllFromOutside(filteredMovie,nameList(iData).dirName,...
+                [],dataProperties,idlist,'idlist');
+            uiwait(lh)
+            idlist_L = LG_readIdlistFromOutside;
+
+            % Remove these lines if we check for number of spots later
+            %         idlist_L = idlist;
+            save(nameList(iData).idlist_LName{iw},'idlist_L');
+        end
+    end
 end
 
 alignmentVectors = nan(nData*2,3);
@@ -211,7 +226,22 @@ for iData = 1:nData
 end % loop through data to find short vectors
 alignmentVectors(any(~isfinite(alignmentVectors),2),:) = [];
 % calculate spbCorrection
-spbCorrection = robustMean(alignmentVectors);
+[dummy,dummy,inlierIdx] = robustMean(alignmentVectors);
+
+mask = false(size(alignmentVectors));
+mask(inlierIdx) = true;
+badRow = ~all(mask,2);
+goodRow = all(mask,2);
+spbCorrection = mean(alignmentVectors(goodRow,:));
+
+figure,nVectors = size(alignmentVectors,1);
+quiver3(zeros(nVectors,1),zeros(nVectors,1),zeros(nVectors,1),...
+    alignmentVectors(:,1),alignmentVectors(:,2),alignmentVectors(:,3));
+hold on
+nBad = sum(badRow);
+quiver3(zeros(nBad,1),zeros(nBad,1),zeros(nBad,1),...
+    alignmentVectors(badRow,1),alignmentVectors(badRow,2),alignmentVectors(badRow,3),'g')
+quiver3(0,0,0,spbCorrection(1),spbCorrection(2),spbCorrection(3),'r')
 
 
 

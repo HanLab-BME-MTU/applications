@@ -25,6 +25,7 @@ for t=1:totalNumOfFrames
         detQ = [];
         nse = [];
         traQ = [];
+        totQ = [];
         for i=1:nSpots(t) %readout each spot separately
             rowIdx=find(idlist(t).linklist(:,2)==i);
             slist(t).xyz(i,:)=idlist(t).linklist(rowIdx(1),9:11);
@@ -33,8 +34,12 @@ for t=1:totalNumOfFrames
             
             %restore QMatrix (sorted by spot)
             detQ = blkdiag(detQ,idlist(t).info.detectQ_Pix( (rowIdx(1)-1)*3+1:rowIdx(1)*3,(rowIdx(1)-1)*3+1:rowIdx(1)*3 ) );
-            if ~isempty(idlist(t).info.trackQ_Pix)
+            if isfield(idlist(t).info,'totalQ_Pix')
+                totQ = blkdiag(traQ,idlist(t).info.totalQ_Pix( (rowIdx(1)-1)*3+1:rowIdx(1)*3,(rowIdx(1)-1)*3+1:rowIdx(1)*3 ) );
+            else
+                if ~isempty(idlist(t).info.trackQ_Pix)
                 traQ = blkdiag(traQ,idlist(t).info.trackQ_Pix( (rowIdx(1)-1)*3+1:rowIdx(1)*3,(rowIdx(1)-1)*3+1:rowIdx(1)*3 ) );
+                end
             end
             
             %get chi^2 back from linklist (we cannot trust the old "noise"-field)
@@ -46,6 +51,7 @@ for t=1:totalNumOfFrames
         slist(t).detectQ=detQ;
         slist(t).noise=nse;        
         slist(t).trackQ=traQ;
+        slist(t).totalQ=totQ;
         if isfield(idlist(t).info,'trackerMessage')
             slist(t).trackerMessage = idlist(t).info.trackerMessage;
         end

@@ -1,13 +1,23 @@
-function cellDataAll = measureSpindles(idlist,dicMaxProj)
+function cellDataAll = measureSpindles(idlist,dicMaxProj,doPlot)
 %MEASURESPINDLES groups tags from several cells and measures spindle length
 %
 % SYNOPSIS: measureSpindles
 %
 % INPUT
 %
-% OUTPUT
+% OUTPUT cellDataAll : nImages-by-3 cell array
+%           1st row: for every cell in the image:
+%               [nTags, spindleLength, smallest spb-cen-spb angle, 
+%                   are spb-amps more similar to each other than to
+%                   cen-amps?, mean(cenInt)/mean(spbInt),
+%                   delta(cenInt)/mean(cenInt), delta(spbInt)/mean(spbInt)
+%                   dist(spb-cen) x2, dist(cen1-cen2),
+%                   normed projections of dist(spb-cen) x2]
+%           2nd row: [#G1,#Pro,#M3,#M4]
+%           3rd row: first two cols of 1st row for metaphase cells -> make
+%                    into plotData for trapezoids
 %
-% REMARKS
+% REMARKS to add: cen-twist
 %
 % created with MATLAB ver.: 7.2.0.232 (R2006a) on Windows_NT
 %
@@ -22,21 +32,39 @@ warning off Images:initSize:adjustingMag
 warning off MATLAB:intConvertNonIntVal
 warning off MATLAB:divideByZero
 
+def_doPlot = true;
+
 
 if nargin == 0 || isempty(idlist)
     % load idlist
     idlistList = loadIdlistList([],[],true);
+    
+    % select files
+selection = listSelectGUI({idlistList.name});
+
+if isempty(selection)
+    cellDataAll = [];
+    return
+end
+
+% only keep selection
+idlistList = idlistList(selection);
+    
 else
     idlistList.idlist = idlist;
     idlistList.dirName = pwd;
 end
+
+
 
 nIdlists = length(idlistList);
 
 cellDataAll = cell(nIdlists,3);
 
 % init doPlot
-doPlot = true;
+if nargin < 3 || isempty(doPlot)
+doPlot = def_doPlot;
+end
 
 for iIdlist = 1:nIdlists
 
@@ -50,7 +78,7 @@ for iIdlist = 1:nIdlists
             % check for spindle image
             dicMaxProjName = dir(fullfile(idlistDir,'DIC_*.tif'));
             if ~isempty(dicMaxProjName)
-                dicMaxProj=imread(dicMaxProjName.name);
+                dicMaxProj=imread(fullfile(idlistDir,dicMaxProjName.name));
                 doPlot = 1;
             else
                 % try to find DIC
@@ -64,7 +92,7 @@ for iIdlist = 1:nIdlists
                     % max projection
                     dicMaxProj = max(dicImage,[],3);
                     % save maxprojection
-                    imwrite(dicMaxProj,[dicMaxProjName.name,'.tif'],'TIFF');
+                    imwrite(dicMaxProj,[idlistDir,filesep,dicMaxProjName.name,'.tif'],'TIFF');
                     clear dicImage
                     doPlot = 1;
                 end
@@ -83,18 +111,18 @@ for iIdlist = 1:nIdlists
 
     % cluster with complete linkage
     links = linkage(distList,'complete');
-    % make clusters if the longest distance between two points is less than 3
-    % microns
+    % make clusters if the longest distance between two points is less than
+    % 2 microns
     if doPlot
-        figure,dendrogram(links,0,'Colorthreshold',2.5);
+        figure,dendrogram(links,0,'Colorthreshold',2.2);
     end
-    labels = cluster(links,'cutoff',2.5,'criterion','distance');
+    labels = cluster(links,'cutoff',2.2,'criterion','distance');
 
     % for every "cell": find longest distance, number of points, angle opposite
     % the longest side, flag whether the intensities of the two tags associated
     % with the longest side are more similar than the other tag(s)
     nCells = max(labels);
-    cellData = zeros(nCells, 10);
+    cellData = zeros(nCells, 12);
 
     for c = 1:nCells
         % init vars
@@ -109,37 +137,59 @@ for iIdlist = 1:nIdlists
 
         minDist2Spb = [0,0];
         cenDist = 0;
+        cenPosNorm = [0,0];
         
 
 
         if nTags > 2
             % find which tags the maxDist belongs to
             [row,col]=find(tril(ones(nTags),-1));
+            % maxDistCidx: largest distance between tags - these are spbs
             maxDistCidx = cIdx([row(maxDistIdx);col(maxDistIdx)]);
+            % minDistCidx: all the other tags
             minDistCidx = setdiff(cIdx,maxDistCidx);
-
+            
+            % maxAmp: spb amp (max b/c of maxDist)
             maxAmp = idlist(1).linklist(maxDistCidx,8);
             deltaMaxAmp = diff(maxAmp);
+            % minAmp: cen-amp
             minAmp = idlist(1).linklist(minDistCidx,8);
             
+            % if there are more than 4 tags, remove centromere with the
+            % smallest amp
+            [dummy,sortIdx] = sort(minAmp);
+            killIdx = sortIdx(1:end-2);
+            % also remove the index
+            minDistCidx(killIdx) = [];
+            minAmp(killIdx) = [];
+            
+            v_spb = coords(maxDistCidx(1),:) - coords(maxDistCidx(2),:);
+            [n_spb,e_spb] = normList(v_spb);
 
             % for each minDistCidx: Find angle, similarAmplitude
             for i=length(minDistCidx):-1:1
-                % angle
-                v1 = coords(maxDistCidx(1),:)-coords(minDistCidx(i),:);
-                v2 = coords(maxDistCidx(2),:)-coords(minDistCidx(i),:);
-                angle(i) = 180/pi * acos(dot(v1,v2)/(norm(v1)*norm(v2)));
+                % angle - the angle spb1-cenX-spb2
+                v(1,:) = coords(maxDistCidx(1),:)-coords(minDistCidx(i),:);
+                v(2,:) = coords(maxDistCidx(2),:)-coords(minDistCidx(i),:);
+                n = normList(v);
+                angle(i) = 180/pi * acos(dot(v(1,:),v(2,:))/(n(1)*n(2)));
 
-                % amplitude
-                similarAmplitude(i) =  deltaMaxAmp < max(maxAmp-minAmp(i));
+                % amplitude: spb amplitudes are considered similar, if
+                % their difference is smaller than the difference between
+                % any spindle pole and the centromere.
+                similarAmplitude(i) =  deltaMaxAmp < max(abs(maxAmp-minAmp(i)));
                 
-                % distance to closest spb
-                minDist2Spb(i) = min(distMat2(coords(maxDistCidx,:),coords(minDistCidx(i),:)));
+                % distance to closest spb                
+                [minDist2Spb(i),closeIdx] = min(n);
+                
+                % don't know what direction the vectors are, and don't care
+                cenPosNorm(i) = abs(dot(v(closeIdx,:), e_spb, 2));
             end
-
+            
+            
             % cen relative to SPB, cenDelta rel to CEN
             relCenInt = mean(minAmp)/mean(maxAmp);
-            if nTags == 4
+            if nTags > 3
                 relCenDiff = diff(minAmp)/mean(minAmp);
                 cenDist = distMat(coords(minDistCidx,:));
                 cenDist = max(cenDist(:));
@@ -147,17 +197,20 @@ for iIdlist = 1:nIdlists
                 relCenDiff = 0;
             end
             relSpbDiff = diff(maxAmp)/mean(maxAmp);
+            
+            
+            
 
         else
             if nTags == 1
-                dist = 0;
+                n_spb = 0;
             end
             relCenInt = 0;
             relCenDiff = 0;
             relSpbDiff = 0;
         end
 
-        cellData(c,:) = [nTags,max(dist),min(angle),min(similarAmplitude),relCenInt,relCenDiff,relSpbDiff,minDist2Spb(1:2),cenDist];
+        cellData(c,:) = [nTags,n_spb,min(angle),min(similarAmplitude),relCenInt,relCenDiff,relSpbDiff,minDist2Spb(1:2),cenDist,cenPosNorm(1:2)];
 
     end
 
@@ -181,7 +234,7 @@ for iIdlist = 1:nIdlists
     proMetaIdxL = cellData(:,1) == 3 & ~metaIdxL;
     g1IdxL = cellData(:,1) <= 2;
     nM3 = sum(cellData(metaIdxL,1) == 3);
-    nM4 = sum(cellData(metaIdxL,1) == 4);
+    nM4 = sum(cellData(metaIdxL,1) > 3); % we only count 2 cens if nsp==5
     nPro = sum(proMetaIdxL);
     nG1 = sum(g1IdxL);
     nM = sum(metaIdxL);
@@ -198,7 +251,50 @@ for iIdlist = 1:nIdlists
     cellDataAll{iIdlist,1} = cellData;
     cellDataAll{iIdlist,2} = [nG1,nPro,nM3,nM4];
     if any(metaIdxL)
-        cellDataAll{iIdlist,3} = [cellData(metaIdxL,2),cellData(metaIdxL,1)];
+        % plotData: spindleLength, bin# of spb-cen distance, weight,
+        % movie#.cell#
+        
+        % collect lists
+        plotData = zeros(nM3+2*nM4,4);
+        metaIdx = find(metaIdxL);
+        pdCt = 1;
+        for idx=metaIdx';
+            currentCell = cellData(idx,:);
+            
+            % find bin#:  d(s-c)/d(s-s) mapped onto 26 1/24 bins from
+            % -1/24:0 to 24/24:25/24
+            bin =ceil((currentCell(11:12)/currentCell(2)+1/24)*24);
+            
+            % remove outside bins
+            if currentCell(1) == 3
+                bin(2) = [];
+            end
+            bin(bin == 0) = 1;
+            bin(bin < 1) = [];
+            bin(bin > 26) = [];
+            
+            % count
+            nBins = length(bin);
+            
+            % get movie/cell number - assume there will be below 1000 cells
+            cellIdx = iIdlist + idx/1000; % movie.cell
+            
+            % write plotData
+            endRange = pdCt + nBins - 1;
+            plotData(pdCt:endRange,1) = currentCell(2); % n_spb
+            plotData(pdCt:endRange,2) = bin(:); % bin
+            plotData(pdCt:endRange,3) = 1/nBins; % weight
+            plotData(pdCt:endRange,4) = cellIdx;
+            
+            % up counter
+            pdCt = endRange + 1;
+        end
+        
+        % remove superfluous entries
+        plotData(pdCt:end,:) = [];
+        
+        %cellDataAll{iIdlist,3} = [cellData(metaIdxL,2),cellData(metaIdxL,1)];
+        cellDataAll{iIdlist,3} = plotData;
     end
 
     % reset DIC-image

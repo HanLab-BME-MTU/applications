@@ -1,4 +1,4 @@
-function [bilobeDataIdlist, bilobeDataSpindleLength, plotData] = bilobedDistribution(correct4Tag,spindleEdges)
+function [bilobeDataIdlist, bilobeDataSpindleLength, plotData,plotStruct] = bilobedDistribution(correct4Tag,spindleEdges)
 %BIOLOBEDDISTRIBUTION collects and plots tag positions along the spindle axis
 %
 % SYNOPSIS bilobeDataIdlist = bilobedDistribution(kinetochcorrect4TagoreCorrection)
@@ -81,89 +81,13 @@ for iIdlist = 1:nIdlists
 
     idlist = idlistList(iIdlist).idlist;
 
-    % find indices of spb, cen
-    spb1idx = find(strcmpi(idlist(1).stats.labelcolor,'spb1'));
-    spb2idx = find(strcmpi(idlist(1).stats.labelcolor,'spb2'));
-    cen1idx = find(strcmpi(idlist(1).stats.labelcolor,'cen1'));
-    cen2idx = find(strcmpi(idlist(1).stats.labelcolor,'cen2'));
-    if isempty(cen2idx)
-        cen2idx = cen1idx;
-    end
-
-
-
-    % loop through idlist, find spb-axis, spb-cen vectors
-    tmax = length(idlist);
-    spindleVector = zeros(tmax,3);
-    s1c1Vector = zeros(tmax,3);
-    s2c2Vector = zeros(tmax,3);
-    s1s2c1c2int = zeros(tmax,4);
-    goodTime = zeros(tmax,1);
-
-    for t = 1:tmax
-        if ~isempty(idlist(t).linklist)
-
-            % find vector in direction of spindle
-            spindleVector(t,:) =...
-                diff(idlist(t).linklist([spb1idx, spb2idx],9:11));
-
-            % spb - cen vectors
-            s1c1Vector(t,:) = ...
-                diff(idlist(t).linklist([spb1idx, cen1idx],9:11));
-            s2c2Vector(t,:) = ...
-                diff(idlist(t).linklist([spb2idx, cen2idx],9:11));
-
-            % store intensities
-            s1s2c1c2int(t,:) = ...
-                idlist(t).linklist([spb1idx, spb2idx, cen1idx, cen2idx], 8)';
-
-            % remember goodTime
-            goodTime(t) = 1;
-
-        else
-            % do nothing
-        end
-    end % for t = 1:tmax
-
-    % shorten Vectors
-    spindleVector(~goodTime,:) = [];
-    s1c1Vector(~goodTime,:) = [];
-    s2c2Vector(~goodTime,:) = [];
-    s1s2c1c2int(~goodTime,:) = [];
-
-    % normalize spindleVector
-    [n_spindleVector, e_spindleVector] = normList(spindleVector);
-
-    % In case we want to correct for the centromere, we need to have the
-    % sxcx vectors normed, too
-    [n_s1c1Vector, e_s1c1Vector] = normList(s1c1Vector);
-    [n_s2c2Vector, e_s2c2Vector] = normList(s2c2Vector);
-
-    % correct - but don't make the length negative!
-    s1c1Vector = s1c1Vector - repmat(min(tagCorrection,n_s1c1Vector-0.08),1,3) .* e_s1c1Vector;
-    s2c2Vector = s2c2Vector - repmat(min(tagCorrection,n_s2c2Vector-0.08),1,3) .* e_s2c2Vector;
-
-
-    % project spb-cen vectors. Distance from spb1
-    cen1Dist = dot(s1c1Vector, e_spindleVector, 2);
-    cen2Dist = n_spindleVector + dot(s2c2Vector, e_spindleVector, 2);
-
-    % get normalized cen positions.
-    cenPosNorm = [cen1Dist./n_spindleVector, cen2Dist./n_spindleVector];
+[n_spindleVector, cenPosNorm, goodTimes, s1s2c1c2int] = ...
+    cdProjectPositions(idlist,tagCorrection,randomAssignment);
     
-    % potentially: make lower spb into spb1
-    if randomAssignment
-        lowerSpb2 = idlist(goodTime(1)).linklist(spb1idx,11) > ...
-            idlist(goodTime(1)).linklist(spb1idx,11);
-        if lowerSpb2
-            cenPosNorm = cenPosNorm(:,[2,1]);
-        end
-    end
-
     % store data
     bilobeDataIdlist(iIdlist).spindleLength = n_spindleVector;
     bilobeDataIdlist(iIdlist).cenPosition = cenPosNorm;
-    bilobeDataIdlist(iIdlist).time = find(goodTime);
+    bilobeDataIdlist(iIdlist).time = goodTimes;
     bilobeDataIdlist(iIdlist).name = idlistList(iIdlist).name;
 
     %-------------------
@@ -268,7 +192,7 @@ for t=1:nIdlists
 end
 
 % call bilobe-plotting function
-bilobePlot(plotData);
+plotStruct = bilobePlot(plotData);
 
 
 
