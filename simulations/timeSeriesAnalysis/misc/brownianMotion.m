@@ -1,19 +1,23 @@
 function [traj,errFlag] = brownianMotion(dimension,diffConst,totalTime,...
-    timeStep,constrained,cRadius)
+    timeStep,constrained,cRadius,driftVel)
 %BROWNIANMOTION simulates constrained/unconstrained Brownian motion in 1, 2 and 3D
 %
 %SYNOPSIS [traj,errFlag] = brownianMotion(dimension,diffConst,totalTime,...
-%    timeStep,constrained)
+%    timeStep,constrained,cRadius,driftVel)
 %
 %INPUT  dimension  : Dimension of space: 1, 2 or 3.
-%       diffConst  : Diffusion constant.
-%       totalTime  : Total time of simulation.
-%       timeStep   : Simulation time step. Optional. Default: 0.1/diffConst.
-%                    Use [] for default.
-%       constrained: 1 for constrained Brownian motion, 0 for uncontrained
-%                    motion. Optional. Default: 0. Use [] for default.
-%       cRadius    : Confinement radius. Needed only in case of constrained
-%                    motion.
+%       diffConst  : Diffusion constant [(space units)^2/(unit time)].
+%       totalTime  : Total time of simulation [time units].
+%       timeStep   : Simulation time step [time units].
+%                    Optional. Default: 0.1/diffConst.
+%       constrained: 1 for constrained Brownian motion, 0 for unconstrained
+%                    motion. Optional. Default: 0.
+%       cRadius    : Confinement radius [space units]. Optional. 
+%                    Needed only in case of constrained motion.
+%       driftVel   : Drift velocity in spherical polar coordinates. 
+%                    1D: v; 2D: v,theta; 3D: v,theta,phi.
+%                    v in [(space units)/(unit time)], theta & phi in
+%                    degrees. Optional. Default: 0.
 %
 %OUTPUT traj    : Trajectory of Brownian particle.
 %       errFlag : 0 if function executes normally, 1 otherwise.
@@ -39,7 +43,7 @@ if nargin < 3
 end
 
 %check dimensionality of space
-if dimension ~=1 && dimension ~= 2 && dimension ~= 3
+if ~any(dimension == [1 2 3])
     disp('--brownianMotion: Variable "dimension" should be 1, 2 or 3!');
     errFlag = 1;
     return
@@ -58,9 +62,7 @@ if totalTime <= 0
 end
 
 %check simulation time step
-if nargin < 4 %if "timeStep" is not provided by user
-    timeStep = 0.1/diffConst; %use default
-elseif isempty(timeStep) %if no value for timeStep is provided
+if nargin < 4 || isempty(timeStep) %if "timeStep" is not provided by user
     timeStep = 0.1/diffConst; %use default
 elseif timeStep <= 0
     disp('--brownianMotion: "timeStep" should be positive!');
@@ -68,23 +70,55 @@ elseif timeStep <= 0
 end
 
 %check whether motion is constrained
-if nargin < 5 %if "constrained" is not provided by user
+if nargin < 5 || isempty(constrained) %if "constrained" is not provided by user
     constrained = 0; %use default
-elseif isempty(constrained) %if not value is provided
-    constrained = 0; %use defatul
-elseif constrained ~= 0 && constrained ~= 1
-    disp('--brownianMotion: "constrained" should be 0 or 1!');
-    errFlag = 1;
-end
+else
 
-%check confinement radius if motion is constrained
-if constrained
-    if nargin < 6
+    if ~any(constrained == [0 1])
+        disp('--brownianMotion: "constrained" should be 0 or 1!');
+        errFlag = 1;
+    end
+
+    %check confinement radius if motion is constrained
+    if nargin < 6 || isempty(cRadius)
         disp('--brownianMotion: Confinement radius must be input for constrained motion!');
         errFlag = 1;
     elseif cRadius <= 0
         disp('--brownianMotion: Confinement radius must be positive!');
     end
+
+end
+
+%check drift velocity
+if nargin < 7 || isempty(driftVel) %if "driftVel" is not provided by user
+    driftVelCart = zeros(1,dimension); %use default
+else
+    
+    driftDim = length(driftVel);
+    if driftDim ~= dimension
+        disp('--brownianMotion: "driftVel" has wrong dimension!');
+        errFlag = 1;
+    end
+    
+    %write drift velocity in Cartesian coordinates
+    switch driftDim
+        case 1
+            driftVelCart = driftVel;
+        case 2
+            theta = driftVel(2)*pi/180;
+            driftVelCart = driftVel(1)*[cos(theta) sin(theta)];
+        case 3
+            theta = driftVel(2)*pi/180;
+            phi = driftVel(3)*pi/180;
+            driftVelCart = driftVel(1)*[cos(theta)*sin(phi) ...
+                sin(theta)*sin(phi) cos(phi)];
+    end
+    
+end
+
+if errFlag
+    disp('--brownianMotion: Please fix input variables!');
+    return
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -161,7 +195,8 @@ else %if motion is not constrained
     for i=2:numIterations %go over all time points
 
         %get particle's position at this time point
-        traj(i,:) = traj(i-1,:) + stepStd*randn(1,dimension);
+        traj(i,:) = traj(i-1,:) + driftVelCart*timeStep ...
+            + stepStd*randn(1,dimension);
 
     end %(for i=2:numIterations)
     
