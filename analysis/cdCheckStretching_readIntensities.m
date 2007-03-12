@@ -74,7 +74,7 @@ for t=goodTimes'
 
     % load movie
     if ~isnumeric(fitStruct.rawMovieName)
-        rawMovie = cdLoadMovie({fitStruct.rawMovieName,'corr/raw'}, [], t);
+        rawMovie = cdLoadMovie({fullfile(fitStruct.movieDir,fitStruct.rawMovieName),'corr/raw'}, [], t);
     else
         rawMovie = fitStruct.rawMovieName;
     end

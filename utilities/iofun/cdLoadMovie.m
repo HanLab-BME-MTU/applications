@@ -15,7 +15,7 @@ function [movie, movieHeader, loadStruct] = cdLoadMovie(movieType, dirName, load
 %                           movieType can be a 1-by-2 cell array with
 %                           {movieName, movieType}, where movieType is
 %                           either "raw", "corrected", "filtered", or
-%                           "synth"
+%                           "synth". MovieName should contain directory!
 %
 %           dirName (opt): directory name in which the movie can be found.
 %                          If empty, current directory will be used
