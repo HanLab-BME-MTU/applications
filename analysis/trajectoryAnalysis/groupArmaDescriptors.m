@@ -39,6 +39,8 @@ function [groupIndex,groupedData] = groupArmaDescriptors(data,options,verbose)
 %                              individual trajectories will be repeated n
 %                              times to allow recalculation with
 %                              subsampling. Default: 0
+%                 type         'Len' or 'Vel' - whether to group length or
+%                              velocity series. Default: 'Len'
 %           verbose : [0/{1}] whether or not to display figures
 %
 % OUTPUT    groupIndex : nData-by-3 array that indicates for every data set
@@ -108,6 +110,7 @@ def_options.arma_mode = [0,5e-4];
 def_options.wnv2_cutoff = 1e-12;
 def_options.wnv2_mode = [0 1e-12];
 def_options.plot = 1; % plot results
+def_options.type = 'Len'; % length series as default
 def_options.multiply = 0; % don't repeat data
 % remember system dialog setting
 sysDialogState = getappdata(0,'UseNativeSystemDialogs');
@@ -123,6 +126,11 @@ for fn = 1:length(defaultOptions)
         options.(defaultOptions{fn}) = def_options.(defaultOptions{fn});
     end
 end
+
+% check case of type
+options.type = lower(options.type);
+options.type(1) = upper(options.type(1));
+
 
 % check verbose
 if nargin < 3 || isempty(verbose)
@@ -258,7 +266,9 @@ if nargin == 0 || isempty(data)
 
     % read the correct model. If orderLen is [], skip.
     for i=nData:-1:1,
-        if isempty(strainInfo(selectionIdx(i)).orderLen)
+        % construct fieldname - length or velocity?
+        orderType = ['order',options.type];
+        if isempty(strainInfo(selectionIdx(i)).(orderType))
             % remove only if there is data already
             if exist('data','var')
                 data(i) = [];
@@ -267,12 +277,14 @@ if nargin == 0 || isempty(data)
         else
             % reorder data fields, in case there is a change in field-order in the future
             %             if exist('data','var')
-            %             data = orderfields(armaData.(sprintf('fitLen%s',strainInfo(selectionIdx(i)).name))...
+            %             data = orderfields(armaData.(sprintf('fit%s%s',options.type,strainInfo(selectionIdx(i)).name))...
             %             (strainInfo(selectionIdx(i)).orderLen(1)+1,strainInfo(selectionIdx(i)).orderLen(2)+1),data);
             %             end
+            
+            % read the "correct" ARMA model according to orderVel/orderLen
             data(i)=...
-                armaData.(sprintf('fitLen%s',strainInfo(selectionIdx(i)).name))...
-                (strainInfo(selectionIdx(i)).orderLen(1)+1,strainInfo(selectionIdx(i)).orderLen(2)+1);
+                armaData.(sprintf('fit%s%s',options.type,strainInfo(selectionIdx(i)).name))...
+                (strainInfo(selectionIdx(i)).(orderType)(1)+1,strainInfo(selectionIdx(i)).(orderType)(2)+1);
             goodIdx(i) = true;
         end
     end
@@ -281,7 +293,9 @@ if nargin == 0 || isempty(data)
 
     % read strainInfo into data
     [data.name] = deal(strainInfo(selectionIdx(goodIdx)).name);
-    [data.orderLen] = deal(strainInfo(selectionIdx(goodIdx)).orderLen);
+    % from now on, it will be called orderLen, even though it may be
+    % orderVel!!
+    [data.orderLen] = deal(strainInfo(selectionIdx(goodIdx)).(orderType));
 
     % read length into data (if there is any). We can't do this above,
     % because filling up the structure requires the fields to be the same
