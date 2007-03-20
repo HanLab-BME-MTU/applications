@@ -43,6 +43,12 @@ end
 if nargin < 3 || isempty(guess)
     guess = 1;
 end
+
+% read orderType - may be orderLen or orderVel
+orderType = ['order',data(1).type];
+seriesType = [lower(data(1).type),'Series'];
+
+
 % check for weights - set 1 if there aren't any
 if nargin < 4 || isempty(weights)
     % don't do anything
@@ -50,7 +56,7 @@ if nargin < 4 || isempty(weights)
 else
     % add field .weight to every element in data
     for i=1:length(weights)
-        data(ijk{1}(i)).lengthSeries.weight = weights(i);
+        data(ijk{1}(i)).(seriesType).weight = weights(i);
     end
 end
 
@@ -75,9 +81,9 @@ end
 %====================
 
 % make new length series if necessary
-if length(data)<ijk{2} || isempty(data(ijk{2}).lengthSeries)
-    data(ijk{2}).lengthSeries = ...
-        cat(2,data(ijk{1}).lengthSeries);
+if length(data)<ijk{2} || isempty(data(ijk{2}).(seriesType))
+    data(ijk{2}).(seriesType) = ...
+        cat(2,data(ijk{1}).(seriesType));
 end
 
 % set initial guesses for new data. Take from set with most
@@ -100,7 +106,7 @@ initialGuess.xParam0 = data(initialIdx).xParamK;
 end
 
 % recalculate
-fitResults = armaxFitKalman(data(ijk{2}).lengthSeries,[],initialGuess);
+fitResults = armaxFitKalman(data(ijk{2}).(seriesType),[],initialGuess);
 
 
 
@@ -121,11 +127,11 @@ for fn=fieldnames(fitResultsTmp)'
     data(ijk{2}).(char(fn)) = fitResultsTmp.(char(fn));
 end
 
-% store orderLen
+% store (orderType)
 if guess == 1
-data(ijk{2}).orderLen = data(ijk{1}(selectIdx)).orderLen;
+data(ijk{2}).(orderType) = data(ijk{1}(selectIdx)).(orderType);
 else
-    data(ijk{2}).orderLen = [length(fitResultsTmp.arParamK) - 1,...
+    data(ijk{2}).(orderType) = [length(fitResultsTmp.arParamK) - 1,...
         length(fitResultsTmp.maParamK) - 1];
 end
 % store name

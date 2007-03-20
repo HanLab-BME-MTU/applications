@@ -4,11 +4,15 @@ function [groupIndex,groupedData] = groupArmaDescriptors(data,options,verbose)
 % SYNOPSIS: [groupIndex,groupedData] = groupArmaDescriptors(data,options,verbose)
 %
 % INPUT     data (opt): structure similar to the output of armaxFitKalman, with
-%                 two additional fields: orderLen (number of fit
-%                 parameters), name (name of the dataSet). If empty, the
-%                 code will ask for a file called strain_???.mat, an then
-%                 look for a file called resFitVelAndLen_???.mat, and,
-%                 possibly, lengthSeries_???.mat
+%                 three additional fields: 
+%                   - orderLen OR orderVel (number of fit parameters), 
+%                   - type: 'Len' or 'Vel' depending on whether length or
+%                     velocities were fitted.
+%                   - name (name of the dataSet). 
+%                 If empty, the code will ask for a file called
+%                 strain_???.mat, an then look for a file called
+%                 resFitVelAndLen_???.mat, and, possibly,
+%                 lengthSeries_???.mat OR velocitySeries_???.mat
 %           options (opt): Structure with options for grouping data sets
 %                 (### = wnv1, arma, or wnv2 for the first round of
 %                 clustering according to white noise variance, clustering
@@ -87,6 +91,7 @@ function [groupIndex,groupedData] = groupArmaDescriptors(data,options,verbose)
 %% Test Input / Load Data
 %============================
 if nargout > 0
+    groupIndex = [];
     groupedData = [];
 end
 
@@ -138,184 +143,17 @@ if nargin < 3 || isempty(verbose)
 end
 
 if nargin == 0 || isempty(data)
-    % load data. have user select list of strains. Allow selection of
-    % multiple files in the same directory (with while-loop like in
-    % trajectoryAnalysis, it could be extended to span multiple
-    % directories, or maybe Matlab imporves uigetfile)
-    % 07/28/06 - there's a bug in Matlab/Linux. Since we're limited to one
-    % directory at the moment, use the listSelectGUI to load strains
-    % 08/10/06 - found workaround
-    if isunix
-        setappdata(0,'UseNativeSystemDialogs',false)
-    end
-    [strainFile, dataPath] = uigetfile('strains_*.mat','Load strain list(s)!','MultiSelect','on');
-    if ~iscell(strainFile) && any(strainFile == 0)
-        disp('--groupArmaCoefficients aborted')
-        return
-    end
-    %     else
-    %         dataPath = uigetdir('Coose directory of strain list(s)');
-    %         strainFile = searchFiles('strains_','',dataPath,0);
-    %         if isempty(strainFile)
-    %             disp('--groupArmaCoefficients: no strains_* file found')
-    %             return
-    %         end
-    %         % only remember the fileNames
-    %         strainFile = strainFile(:,1);
-    %
-    %         % have the user choose
-    %         [selectionIdx] = listSelectGUI(strainFile);
-    %         if isempty(selectionIdx)
-    %             disp('--groupArmaCoefficients aborted')
-    %             return
-    %         else
-    %             strainFile = strainFile(selectionIdx);
-    %         end
-    %     end
-
-    % make strainFile into a cell, so that we can use the code for
-    % multiSelections with one selection.
-    if ~iscell(strainFile)
-        strainFile = {strainFile};
-    end
-
-    % read strainInfo so that user may select the files to be analyzed
-    % directly without having to wait for the data to be read from the
-    % server
-
-
-    % load data in loop. This is, unfortunately, sensitive to changes in the
-    % list and ordering of fields. One possible solution would be to
-    % define the key list of fields above, and to only read those
-
-    % load first strainInfo, then add the rest to the list, so that we
-    % automatically get the proper list of fieldnames
-
-    strainInfo = load(fullfile(dataPath,strainFile{1}));
-    % strainInfo is a structure in itself
-    fn = fieldnames(strainInfo);
-    strainInfo = strainInfo.(fn{1});
-
-    % loop for all the other files. If one file, the loop isn't executed
-    for iFile = 2:length(strainFile)
-        strainInfoTmp = load(fullfile(dataPath,strainFile{iFile}));
-        fnTmp = fieldnames(strainInfoTmp);
-        strainInfoTmp = strainInfoTmp.(fnTmp{1});
-        % reorder fields, so that we're at least insensitive to that
-        strainInfoTmp = orderfields(strainInfoTmp,strainInfo);
-        strainInfo = [strainInfo(:);strainInfoTmp(:)];
-    end
-
-
-
-
-
-    % let the user select the strains
-    [nameList{1:length(strainInfo)}] = deal(strainInfo.name);
-    selectionIdx = listSelectGUI(nameList);
-
-    if isempty(selectionIdx)
-        disp('--groupArmaCoefficients aborted')
-        return
-    end
-
-
-
-
-    % read armaData, lengthData. StrainInfo is a structure with
-    % the dataFile-names, while armaData and lengthData are collections of
-    % files that are labeled according to the dataFile-names.
-
-    % loop through potential list of files
-    armaData = struct;
-    lengthData = struct;
-
-    for iFile = 1:length(strainFile)
-
-        dataSuffix = regexp(strainFile{iFile},'strains_([\w]+).mat','tokens');
-        dataSuffix = char(dataSuffix{1});
-        % armaData is a collection of many files, while strainInfo is already
-        % the correct structure that contains the optimal model for each
-        armaDataTmp = load(fullfile(dataPath,sprintf('resFitVelAndLen_%s',dataSuffix)));
-
-        % this would be really annoying without a loop
-        fn = fieldnames(armaDataTmp);
-        for i=1:length(fn)
-            armaData.(fn{i}) = armaDataTmp.(fn{i});
-        end
-
-        % try load length file
-        try
-            lengthDataTmp = load(fullfile(dataPath,sprintf('lengthSeries_%s',dataSuffix)));
-        catch
-            lengthDataTmp = struct;
-        end
-        fn = fieldnames(lengthDataTmp);
-        for i=1:length(fn)
-            lengthData.(fn{i}) = lengthDataTmp.(fn{i});
-        end
-
-
-    end
-
-
-
-    % get number of data
-    nData = length(selectionIdx);
-
-
-    % read the correct model. If orderLen is [], skip.
-    for i=nData:-1:1,
-        % construct fieldname - length or velocity?
-        orderType = ['order',options.type];
-        if isempty(strainInfo(selectionIdx(i)).(orderType))
-            % remove only if there is data already
-            if exist('data','var')
-                data(i) = [];
-                goodIdx(i) = [];
-            end
-        else
-            % reorder data fields, in case there is a change in field-order in the future
-            %             if exist('data','var')
-            %             data = orderfields(armaData.(sprintf('fit%s%s',options.type,strainInfo(selectionIdx(i)).name))...
-            %             (strainInfo(selectionIdx(i)).orderLen(1)+1,strainInfo(selectionIdx(i)).orderLen(2)+1),data);
-            %             end
-            
-            % read the "correct" ARMA model according to orderVel/orderLen
-            data(i)=...
-                armaData.(sprintf('fit%s%s',options.type,strainInfo(selectionIdx(i)).name))...
-                (strainInfo(selectionIdx(i)).(orderType)(1)+1,strainInfo(selectionIdx(i)).(orderType)(2)+1);
-            goodIdx(i) = true;
-        end
-    end
-    data = data(:);
-
-
-    % read strainInfo into data
-    [data.name] = deal(strainInfo(selectionIdx(goodIdx)).name);
-    % from now on, it will be called orderLen, even though it may be
-    % orderVel!!
-    [data.orderLen] = deal(strainInfo(selectionIdx(goodIdx)).(orderType));
-
-    % read length into data (if there is any). We can't do this above,
-    % because filling up the structure requires the fields to be the same
-    if ~isempty(lengthData)
-        % we already know what part of the selection is good
-        goodIdx = find(goodIdx);
-        for i=1:length(goodIdx)
-            data(i).lengthSeries = ...
-                lengthData.(sprintf('length%s',strainInfo(selectionIdx(goodIdx(i))).name));
-            if options.multiply
-                data(i).lengthSeries = repmat(data(i).lengthSeries,[1,options.multiply]);
-                data(i).numObserve = data(i).numObserve * options.multiply;
-            end
-        end
-    end
-
+    data = groupArma_loadData(options);
 end % load data
 
 %get number of data sets
 nData = length(data);
+
+if nData == 0
+    disp('--no data loaded. groupArmaDescriptors aborted')
+    return
+end
+    
 
 
 %============================

@@ -86,6 +86,10 @@ function [distance, associatedInfo, data, parameters] = groupArma_distance_WNV(d
 %=============
 isInit = ~isfield(parameters,'group') || isempty(parameters.group);
 
+% read orderType - may be orderLen or orderVel
+orderType = ['order',data(1).type];
+% seriesType = [lower(data(1).type),'Series'];
+
 if isInit
     % initialize
     nData = length(data);
@@ -138,16 +142,16 @@ else
         % changed 10/11/06 - only use n; don't subtract
         n(1) = data(ijk(1)).numObserve;
         n(2) = data(ijk(2)).numObserve;
-        m(1) = sum(data(ijk(1)).orderLen);
-        m(2) = sum(data(ijk(2)).orderLen);
+        m(1) = sum(data(ijk(1)).(orderType));
+        m(2) = sum(data(ijk(2)).(orderType));
         %nu(1) = n(1) - m(1);
         %nu(2) = n(2) - m(2);
         nu = n;
         data(ijk(3)).wnVariance = nu(1)/sum(nu) * data(ijk(1)).wnVariance + ...
             nu(2)/sum(nu) * data(ijk(2)).wnVariance;
         data(ijk(3)).numObserve = sum(n);
-        %data(ijk(3)).orderLen = sum(m);
-        data(ijk(3)).orderLen = round(mean(m));
+        %data(ijk(3)).(orderType) = sum(m);
+        data(ijk(3)).(orderType) = round(mean(m));
     end
 end
 
@@ -195,8 +199,8 @@ for i = 1:nSets-1
         F = data(iIdx).wnVariance/data(jIdx).wnVariance;
         % use orderLen+1 to remember that we also fit WNV!
         % 10/11/06 don't subtract orderLen anymore
-        n1 = data(iIdx).numObserve; % - sum(data(iIdx).orderLen + 1);
-        n2 = data(jIdx).numObserve; % - sum(data(jIdx).orderLen + 1);
+        n1 = data(iIdx).numObserve; % - sum(data(iIdx).(orderType) + 1);
+        n2 = data(jIdx).numObserve; % - sum(data(jIdx).(orderType) + 1);
 
         [logP,isExtrapolated] = fcdfExtrapolateLog(F,n1,n2);
         % for two equal data sets, p=0.5. Correct, so that p goes from 0 to

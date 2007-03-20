@@ -9,9 +9,9 @@ function [distance, associatedInfo, data, parameters] = groupArma_distance_ARMA(
 %              maParamK
 %              varCovarMatF
 %              numObserve - nuber of observations
-%              orderLen - [ar,ma] order length
-%              lengthSeries (if grouping by recalculating ARMA descriptors
-%                            is selected)
+%              orderLen/orderVel - [ar,ma] order length
+%              lenSeries (if grouping by recalculating ARMA descriptors
+%                            is selected) (or: velSeries)
 %
 %       parameters - structure with fields
 %               group (required by groupData) - either [], if the distance
@@ -87,6 +87,10 @@ function [distance, associatedInfo, data, parameters] = groupArma_distance_ARMA(
 %=============
 isInit = ~isfield(parameters,'group') || isempty(parameters.group);
 
+% read orderType - may be orderLen or orderVel
+orderType = ['order',data(1).type];
+seriesType = [lower(data(1).type),'Series'];
+
 if isInit
     % initialize
     nData = length(data);
@@ -99,9 +103,9 @@ if isInit
     
     % init data, so that we have a field numObserveIndividual everywhere
     for iData = 1:nData
-        for iTraj = length(data(iData).lengthSeries):-1:1
+        for iTraj = length(data(iData).(seriesType)):-1:1
             data(iData).numObserveIndividual(iTraj,1) = ...
-                sum(~isnan(data(iData).lengthSeries(iTraj).observations(:,1)));
+                sum(~isnan(data(iData).(seriesType)(iTraj).observations(:,1)));
         end
     end
     
@@ -214,13 +218,13 @@ for i = 1:nSets-1
             % fTest -- replaced by chi2
             
             % get degrees of freedom. Use maximum for both to get strict
-            % test. OrderLen has to be increased by 1, because we are also
+            % test. (orderType) has to be increased by 1, because we are also
             % fitting WNV. For n1, this is not necessary, because this
             % parameter describes the size of the variance-covariance
             % matrix
-            n1 = max(sum(data(iIdx).orderLen),sum(data(jIdx).orderLen));
-%             n2 = max(data(iIdx).numObserve - sum(data(iIdx).orderLen + 1),...
-%                 data(jIdx).numObserve - sum(data(jIdx).orderLen + 1));
+            n1 = max(sum(data(iIdx).(orderType)),sum(data(jIdx).(orderType)));
+%             n2 = max(data(iIdx).numObserve - sum(data(iIdx).(orderType) + 1),...
+%                 data(jIdx).numObserve - sum(data(jIdx).(orderType) + 1));
             
             
             % directly calculate -log10(p)
