@@ -24,7 +24,7 @@ function [fishInfoMat,errFlag] = armaxFisherInfoMatrix(trajOut,trajIn,...
 %                   if there is no AR part.
 %       maParam   : Moving average coefficients (row vector). Enter as []
 %                   if there is no MA part.
-%       XParam    : Coefficients of dependence on input (row vector). Enter
+%       xParam    : Coefficients of dependence on input (row vector). Enter
 %                   as [] if there is no X part.
 %       wnVariance: White noise variance.
 %

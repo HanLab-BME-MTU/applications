@@ -8,6 +8,7 @@ function neg2LnLikelihoodV = neg2LnLikelihoodX(param,prob)
 %                     needed for calculations.
 %          .user.arOrder   : Order of AR part of process.
 %          .user.maOrder   : Order of MA part of process.
+% % % % %          .user.xLag      : Lag in dependence on exogenous variable. (NOT USED CURRENTLY)
 %          .user.trajOut   : Observations of time series to be fitted. 
 %                            An array of structures:
 %                    .observations: 2D array of measurements and
@@ -59,6 +60,7 @@ end
 %get variables from structure "prob"
 arOrder  = prob.user.arOrder;
 maOrder  = prob.user.maOrder;
+% xLag     = prob.user.xLag;
 trajOut  = prob.user.trajOut;
 trajIn   = prob.user.trajIn;
 numAvail = prob.user.numAvail;
@@ -67,6 +69,9 @@ numAvail = prob.user.numAvail;
 arParamP = param(1:arOrder)';
 maParamP = param(arOrder+1:arOrder+maOrder)';
 xParam   = param(arOrder+maOrder+1:end)';
+% if ~isempty(xLag) && xLag ~= 0
+%     xParam = [zeros(xLag,1); xParam];
+% end
 
 %get AR and MA coefficients from the partial AR and MA coefficients, respectively
 if ~isempty(arParamP)

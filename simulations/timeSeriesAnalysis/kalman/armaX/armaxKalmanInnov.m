@@ -139,7 +139,8 @@ indxMiss = 0;
 
 %go over all points in trajectory
 %note that in the iterations t+1 = timePoint, t = timePoint-1
-for timePoint = 1:trajLength
+% % % % for timePoint = 1:trajLength
+for timePoint = max(xOrder+1,1):trajLength
 
     %get vector of inputs
     tmp = timePoint - 1 + maxOrder;

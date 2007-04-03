@@ -331,7 +331,9 @@ testStatistic = fitResults1.wnVariance/fitResults2.wnVariance;
 mLogPValueVar = fcdfExtrapolateLog(testStatistic,numDegFree1,numDegFree2);
 
 %shift by -log2 in order to assign a distance of 0 to variances that are exactly the same
-mLogPValueVar = mLogPValueVar - log10(2);
+%do not allow negative values, which happen due to numerical approximations
+%when variances are very, very close to each other.
+mLogPValueVar = max(0,mLogPValueVar-log10(2));
 
 
 %%%%% ~~ the end ~~ %%%%%

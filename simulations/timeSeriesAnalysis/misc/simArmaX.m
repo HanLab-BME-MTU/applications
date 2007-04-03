@@ -49,8 +49,8 @@ if ~isempty(arParam)
         end
     end
 else
-    arOrder = 1;
-    arParam = 0;
+    arOrder = 0;
+    arParam = zeros(1,0);
 end
 
 %check MA coefficients
@@ -67,8 +67,8 @@ if ~isempty(maParam)
         end
     end
 else
-    maOrder = 1;
-    maParam = 0;
+    maOrder = 0;
+    maParam = zeros(1,0);
 end
 
 %check X coefficients (indicating dependence on input)
@@ -80,8 +80,8 @@ if ~isempty(xParam)
     end
     xOrder = xOrder - 1;
 else
-    xOrder = 0;
-    xParam = 0;
+    xOrder = -1;
+    xParam = zeros(1,0);
 end
 
 %make sure that white noise standard deviation is not negative

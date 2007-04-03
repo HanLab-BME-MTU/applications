@@ -40,16 +40,21 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
 %                   Enter as [] if there is no MA part in model.
 %                   Default: [].
 %       xParam0   : Initial guess of coefficients of dependence on input.
+%                   Use leading zeros for coefficients before the lag (next variable).
 %                   Enter as [] if there is no dependence on input.
 %                   Default: [].
-%       constParam: Set of constrained parameters. Constains 2 fields:
-%           .ar      : 2D array. 1st column is AR parameter number and
+% % % % % DON'T HAVE THIS AT THE MOMENT
+% % % % %       xLag      : Lag in dependence on exogenous variable. 
+% % % % %                   Enter as [] if there is no lag. 
+% % % % %                   Default: -1.
+%       constParam: Set of constrained parameters. Constains 3 fields:
+%           .ar      : 2D array. 1st column is AR parameter index and
 %                      2nd column is parameter value. No need to input if
 %                      there are no constraints on AR parameters.
-%           .ma      : 2D array. 1st column is MA parameter number and
+%           .ma      : 2D array. 1st column is MA parameter index and
 %                      2nd column is parameter value. No need to input if
 %                      there are no constraints on MA parameters.
-%           .x       : 2D array. 1st column is X parameter number and
+%           .x       : 2D array. 1st column is X parameter index and
 %                      2nd column is parameter value. No need to input if
 %                      there are no contraints on X parameters.
 %                   Default: []
@@ -66,7 +71,8 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
 %       maParamK  : Estimated MA coefficients (1st row) and parameters related
 %                   to partial MA coefficients (2nd row) using likelihood maximization.
 %       xParamK   : Estimated X coefficients using likelihood maximization,
-%                   indicating dependence on input.
+%                   indicating dependence on input. Zero is used for
+%                   coefficients before the lag.
 %       arParamL  : Estimated AR coefficients using least squares fitting.
 %       maParamL  : Estimated MA coefficients using least squares fitting.
 %       xParamL   : Estimated X coefficients using least squares fitting.
@@ -115,8 +121,11 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
 %        coefficients. The output is regressed onto its past values, the
 %        white noise series estimated above, and the input series.
 %
-%        CONSTRAINED MINIMIZATION MUST BE UPDATED. DON'T USE!
-%        CURRENTLY I SUBTRACT THE MEAN. THINK ABOUT IT!
+%        *CONSTRAINED MINIMIZATION MIGHT NEED UPDATING. DON'T USE!
+%        *CURRENTLY I SUBTRACT THE MEAN ONLY WHEN NO X. THINK ABOUT IT!
+%        *MINIMIZATION OPTION 'ml' OUT OF DATE. DON'T USE!
+%        *STARTED USING A LAG THAT SPECIFIES WHERE X-DEPENDENCE STARTS, BUT
+%         CURRENTLY NOT IMPLEMENTED ALL THE WAY THROUGH AND COMMENTED OUT.
 %
 %Khuloud Jaqaman, January 2006
 
@@ -144,15 +153,17 @@ errFlag    =  0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check whether all mandatory input variables were supplied
-if nargin < 3
-    disp('--armaxCoefKalman: The function requires at least 3 input variables!');
+if nargin < 1
+    disp('--armaxCoefKalman: Not enough input!');
     errFlag  = 1;
     return
 end
 
 %assign default values of optional variables
+arParamP0_def  = [];
 maParamP0_def  = [];
 xParam0_def    = [];
+% xLag_def       = [];
 constParam_def = [];
 minOpt_def     = 'tl';
 
@@ -177,22 +188,6 @@ else
     end
 end
 
-%shift trajectories so that each trajectory's mean = 0
-for i=1:numTraj
-    traj = trajOut(i).observations(:,1);
-    traj = traj - nanmean(traj);
-    trajOut(i).observations(:,1) = traj;
-end
-
-% %shift trajectories so that the overall compound trajectory has a mean = 0
-% meanAll = nanmean(vertcat(trajOut.observations));
-% meanAll = meanAll(1);
-% for i=1:numTraj
-%     traj = trajOut(i).observations(:,1);
-%     traj = traj - meanAll;
-%     trajOut(i).observations(:,1) = traj;
-% end
-
 %add column for observational error of output if not provided
 trajOriginal = trajOut; %needed for least squares
 for i=1:numTraj
@@ -211,7 +206,7 @@ end
 
 %check "trajIn", turn into struct if necessary and add column for
 %observational error if not provided
-if isempty(trajIn) %if there is no input
+if nargin < 2 || isempty(trajIn) %if there is no input
 
     for i=1:numTraj
         trajIn(i).observations = [];
@@ -246,8 +241,11 @@ else %if there is an input series
 end
 
 %get arOrder
-[nRow,arOrder] = size(arParamP0);
-if ~isempty(arParamP0)
+if nargin < 3 || isempty(arParamP0)
+    arOrder = 0;
+    arParamP0 = arParamP0_def;
+else
+    [nRow,arOrder] = size(arParamP0);
     if nRow ~= 1
         disp('--armaxCoefKalman: "arParamP0" should be a row vector!');
         errFlag = 1;
@@ -282,6 +280,16 @@ else
     end
     xOrder = xOrder - 1;
 end
+
+% %check X-dependence lag
+% if nargin < 6 || isempty(xLag) %if no lag was input
+%     xLag = xLag_def;
+% else
+%     if xLag < 0 || xLag > xOrder
+%         disp('--armaxCoefKalman: xLag should be between zero and xOrder!');
+%         errFlag = 1;
+%     end
+% end
 
 %check parameter constraints
 if nargin < 6 || isempty(constParam) %if no constraints were entered
@@ -321,7 +329,7 @@ else
             disp('--armaxCoefKalman: constParam.x should have 2 columns!');
             errFlag = 1;
         else
-            if min(constParam.x(:,1)) < 0 || max(constParam.x(:,1)) > maOrder
+            if min(constParam.x(:,1)) < 0 || max(constParam.x(:,1)) > xOrder
                 disp('--armaxCoefKalman: Wrong X parameter numbers in constraint!');
                 errFlag = 1;
             end
@@ -335,11 +343,11 @@ end %(nargin < 6 || isempty(constParam) ... else ...)
 if nargin < 7 || isempty(minOpt)
     minOpt = minOpt_def;
 else
-%     if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
-%             && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
-%         disp('--armaxCoefKalman: "minOpt" should be either "ml", "tl", "tg" or ''nag''!');
-%         errFlag = 1;
-%     end
+    %     if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl') ...
+    %             && ~strcmp(minOpt,'tg') && ~strcmp(minOpt,'nag'))
+    %         disp('--armaxCoefKalman: "minOpt" should be either "ml", "tl", "tg" or ''nag''!');
+    %         errFlag = 1;
+    %     end
     if (~strcmp(minOpt,'ml') && ~strcmp(minOpt,'tl'))
         disp('--armaxCoefKalman: "minOpt" should be either "ml" or "tl"!');
         errFlag = 1;
@@ -352,6 +360,22 @@ if errFlag
     return
 end
 
+%remove leading zeros from xParam0 and determine effective number of X-parameters
+% if ~isempty(xParam0) && ~isempty(xLag)
+%     xParam0 = xParam0(xLag+1:end);
+% end
+numXParam = length(xParam0);
+
+%shift trajectories so that each trajectory's mean = 0
+%shift only if pure ARMA (no X)
+if xOrder == -1
+    for i=1:numTraj
+        traj = trajOut(i).observations(:,1);
+        traj = traj - nanmean(traj);
+        trajOut(i).observations(:,1) = traj;
+    end
+end
+    
 %obtain number of available observations, per trajectory and total
 numAvail = zeros(1,numTraj);
 for i=1:numTraj
@@ -461,12 +485,13 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
                 if isempty(constParam) %if there are no constraints
 
                     prob = conAssign('neg2LnLikelihoodX',[],[],[],...
-                        [-10*ones(1,arOrder+maOrder) -2*ones(1,xOrder+1)],...
-                        [10*ones(1,arOrder+maOrder) 2*ones(1,xOrder+1)],...
+                        [-10*ones(1,arOrder+maOrder) -2*ones(1,numXParam)],...
+                        [10*ones(1,arOrder+maOrder) 2*ones(1,numXParam)],...
                         'locMinNegLik',param0);
                     prob.PriLevOpt = 0;
                     prob.user.arOrder = arOrder;
                     prob.user.maOrder = maOrder;
+                    %                     prob.user.xLag = xLag;
                     prob.user.trajOut = trajOut2;
                     prob.user.trajIn  = trajIn;
                     prob.user.numAvail = totAvail;
@@ -488,6 +513,7 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
                     prob.PriLevOpt = 0;
                     prob.user.arOrder = arOrder;
                     prob.user.maOrder = maOrder;
+                    %                     prob.user.xLag = xLag;
                     prob.user.trajOut = trajOut2;
                     prob.user.trajIn = trajIn;
                     prob.user.numAvail = totAvail;
@@ -496,7 +522,7 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
                     prob.user.constParam.x  = constParam.x(:,1);
 
                     %minimize -2ln(likelihood) using Tomlab's conSolve
-                    result = tomRun('conSolve',prob,[],2);
+                    result = tomRun('conSolve',prob,0,2);
 
                 end
 
@@ -533,7 +559,10 @@ while abs(wnVariance-wnVariance0)/wnVariance0 > 0.05
         %assign parameters obtained through minimization
         arParamP = params(1:arOrder);
         maParamP = params(arOrder+1:arOrder+maOrder);
-        xParamK  = params(arOrder+maOrder+1:end);
+        xParamK = params(arOrder+maOrder+1:end);
+        %         if ~isempty(xLag) && xLag ~= 0
+        %             xParamK = [zeros(1,xLag) xParamK];
+        %         end
 
         %get AR and MA coefficients from the partial AR and MA coefficients, respectively
         if ~isempty(arParamP)

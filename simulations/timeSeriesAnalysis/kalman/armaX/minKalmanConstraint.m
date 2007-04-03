@@ -3,17 +3,18 @@ function constParamV = minKalmanConstraint(param,prob)
 %
 %SYNOPSIS constParamV = minKalmanConstraint(param,prob)
 %
-%INPUT  param       : Set of partial ARMA coefficients.
+%INPUT  param       : Set of ARMAX coefficients (ARMA coefficients as partial).
 %       prob        : structure in Tomlab format containing variables
 %                     needed for calculations.
 %          .user.arOrder   : Order of AR part of process.
 %          .user.maOrder   : Order of MA part of process.
 %          .user.trajOut   : Observations of time series to be fitted. 
-%                            An array of structures 
-%                            trajOut(1:nTraj).observations, where 
-%                            "observations" is a 2D array of measurements
-%                            and uncertainties. Missing points should be 
-%                            indicated with NaN.
+%                            An array of structures:
+%                    .observations: 2D array of measurements and
+%                                   uncertainties. Missing points should be 
+%                                   indicated with NaN.
+%                    .weight      : The weight with which each movie
+%                                   belongs to the group.
 %          .user.trajIn    : Observations of input time series. 
 %                            An array of structures 
 %                            trajIn(1:nTraj).observations, where 
