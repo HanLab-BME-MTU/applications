@@ -286,7 +286,7 @@ switch type
             g(g<0) = 0;
             figure,contourf(xMatrix,yMatrix,g,...
                 'LineStyle','none','LevelList',linspace(0,1,100));
-            cmg=hsl2rgb([linspace(0.3,0.4,64)',linspace(0.7,0.8,64)',linspace(0.1,1,64)']);
+            cmg=isomorphicColormap('green');
             colormap(cmg)
             set(gca,'Color','k')
 
@@ -295,7 +295,7 @@ switch type
             r(r<0) = 0;
             figure,contourf(xMatrix,yMatrix,r,...
                 'LineStyle','none','LevelList',linspace(0,1,100));
-            cmr=hsl2rgb([linspace(0,0.1,64)',linspace(0.7,0.8,64)',linspace(0.1,1,64)']);
+            cmr=isomorphicColormap('red');
             colormap(cmr)
             set(gca,'Color','k')
 
@@ -304,7 +304,7 @@ switch type
             w(w<0) = 0;
             figure,contourf(xMatrix,yMatrix,w,...
                 'LineStyle','none','LevelList',linspace(0,1,100));
-            cmw=hsl2rgb([linspace(0.5,0.6,64)',linspace(0.7,0.8,64)',linspace(0.1,1,64)']);
+            cmw=isomorphicColormap('blue');
             colormap(cmw)
             set(gca,'Color','k')
 

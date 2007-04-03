@@ -179,8 +179,7 @@ for i=1:3
     % and:
     % http://www.research.ibm.com/dx/proceedings/pravda/index.htm
     % for details)
-    cm=hsl2rgb([repeatEntries([0.66;0.16],32),[linspace(0.8,0,32)';...
-        linspace(0,0.8,32)'],ones(64,1)*0.50]);
+    cm = isomorphicColormap('b/y');
     colormap(cm)
     
     switch i
