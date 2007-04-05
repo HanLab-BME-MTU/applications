@@ -1,10 +1,40 @@
 function data = groupArma_loadData(options)
 %GROUPARMA_LOADDATA is a loader routine for the grouping of ARMA descriptors
+% 
+% SYNOSPSIS data = groupArma_loadData(options)
 %
-% options: need fields
-%   multiply
-%   type
-% see groupArmaDescriptors for more info
+% INPUT     options (opt): Structure with fields
+%               .multiply: if >1, series will be repeated. Default: 1
+%               .type: 'Len' or 'Vel', depending on whether lenght- or
+%                       velocity series are to be loaded
+%
+% OUTPUT    data: structure similar to the output of armaxFitKalman, with
+%                 three additional fields: 
+%                   - orderLen OR orderVel (number of fit parameters), 
+%                   - type: 'Len' or 'Vel' depending on whether length or
+%                     velocities were fitted. Default: 'Len'
+%                   - name (name of the dataSet). 
+%
+% c: jonas, 3/07
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% defaults
+def_options.multiply = 1;
+def_options.type = 'Len';
+
+% check for input
+if nargin < 1 || isempty(options)
+    options = struct;
+end
+% assign default options
+defaultOptions = fieldnames(def_options);
+for fn = 1:length(defaultOptions)
+    if ~isfield(options,defaultOptions{fn}) || isempty(options.(defaultOptions{fn}))
+        options.(defaultOptions{fn}) = def_options.(defaultOptions{fn});
+    end
+end
+
+
 
 if isunix
     oldDiag = getappdata(0,'UseNativeSystemDialogs');
@@ -171,8 +201,8 @@ if ~isempty(lengthData)
     for i=1:length(goodIdx)
         data(i).(seriesType) = ...
             lengthData.(sprintf('%s%s',longType,strainInfo(selectionIdx(goodIdx(i))).name));
-        if options.multiply
-            data(i).(seriesType) = repmat(data(i).lengthSeries,[1,options.multiply]);
+        if options.multiply > 1
+            data(i).(seriesType) = repmat(data(i).(seriesType),[1,options.multiply]);
             data(i).numObserve = data(i).numObserve * options.multiply;
         end
     end
