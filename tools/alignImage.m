@@ -1,13 +1,18 @@
-function alignShift = alignImage(refImgFile,alignImgPath,firstAlignImgFile,varargin)
+function alignShift = alignImage(img1,img2,firstAlignImgFile,varargin)
 %alignImage: This function aligns shifted images to the reference image according to markers in a
 %            cropped region.
 %
 % SYNOPSIS: 
-%    alignShift = alignImage(refImgFile,alignImgPath,firstAlignImgFile)
+%    alignShift = alignImage(imgDir1,imgDir2,firstAlignImgFile);
+%    alignShift = alignImage(refImgFile,alignImgPath,firstAlignImgFile);
 %    alignShift = alignImage(refImgFile,alignImgPath,firstAlignImgFile, ...
-%       'modelChannel',modelChannel,'markerROI',markerROI)
+%       'modelChannel',modelChannel,'markerROI',markerROI);
 %
 % INPUT:
+%    imgDir1
+%    imgDir2          : If two image directories are given, they will be aligned in a pairwise
+%                       fasion assumming the two directories contain the same number of images of
+%                       the same size.
 %    refImgFile       : The full path to the reference image file.
 %    alignImgPath     : A cell array of directories where multi-channel images to be aligned are 
 %                       stored. It can also be a string for single-channel images.
@@ -44,6 +49,21 @@ markerROI    = []; %The whole image is used for alignment.
 maxXShift    = 50; %Unit: pixels.
 maxYShift    = 50; %Unit: pixels.
 
+%Images can be aligned in two ways:
+% 'pairwise': Align between two image channels in a pairwise fashion.
+% 'refImage': Align against one reference image.
+alignOption = 'pairwise';
+
+if isdir(img1)
+   imgDir1 = img1;
+   imgDir2 = img2;
+else
+   alignOption = 'reference';
+   refImgFile   = img1;
+   alignImgPath = img2;
+
+end
+
 if nargin > 3
    for k = 1:2:nargin-3
       switch varargin{k}
@@ -60,6 +80,58 @@ if nargin > 3
       end
    end
 end
+
+if strcmp(alignOption,'pairwise')
+   alignShift = alignPairwise(imgDir1,imgDir2, firstAlignImgFile, ...
+      alignFrame, markerROI, maxXShift,maxYShift) 
+elseif strcmp(alignOption,'reference')
+   alignShift = alignToRefImg(refImgFile,alignImgPath,firstAlignImgFile, ...
+      modelChannel, alignFrame, markerROI, maxXShift,maxYShift) 
+end
+
+
+
+function alignShift = alignPairwise(imgDir1,imgDir2,firstAlignImgFile, ...
+   alignFrame, markerROI, maxXShift,maxYShift) 
+
+%Read image file list for the two image directories.
+numImgChannels = 2;
+alignImgFileList = cell(1,numImgChannels);
+numImages        = Inf;
+for k = 1:numImgChannels
+   alignImgFileList{k} = getFileStackNames([alignImgPath{k} filesep firstAlignImgFile{k}]);
+   numImages = min(numImages,length(alignImgFileList{k}));
+end
+if alignFrame == 0
+   alignFrame = 1:numImages;
+end
+numAlignFrames = length(alignFrame);
+
+L = length(num2str(numAlignFrames));
+strForm = sprintf('%%.%dd',L);
+fprintf(1,['Aligning frame (total: ' strForm '): '],numAlignFrames);
+
+alignShift = zeros(numAlignFrames,2);
+for ii = 1:numAlignFrames
+   jj = alignFrame(ii);
+   procStatusStr = sprintf(strForm,jj);
+   fprintf(1,procStatusStr);
+
+   refImg     = imread(alignImgFileList{1}{jj});
+   imgToAlign = imread(alignImgFileList{2}{jj});
+   alignShift(ii,:) = calAlignShift(refImg,imgToAlign,markerROI, ...
+      maxXShift,maxYShift);
+
+   for k = 1:length(procStatusStr)
+      fprintf(1,'\b');
+   end
+end
+fprintf(1,[strForm '\n'],alignFrame(end));
+
+
+function alignShift = alignToRefImg(refImgFile,alignImgPath,firstAlignImgFile, ...
+   modelChannel, alignFrame, markerROI, maxXShift,maxYShift) 
+
 %Read the reference image.
 refImg = imread(refImgFile);
 
@@ -88,22 +160,32 @@ numAlignFrames = length(alignFrame);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 L = length(num2str(numAlignFrames));
 strForm = sprintf('%%.%dd',L);
-fprintf(1,['Aligning frame (total: ' strForm '): '],numAlignFrames);
 if modelChannel == 0
    %Each channel align by itself in this case.
    alignShift = zeros(numAlignFrames,2,numImgChannels);
    for k = 1:numImgChannels
+      fprintf(1,['Aligning image channel %d: \n'],k);
+
       alignShift{k} = zeros(numAlignFrames,2);
+      fprintf(1,['   Frame (total: ' strForm '): '],numAlignFrames);
       for ii = 1:numAlignFrames
          jj = alignFrame(ii);
+         procStatusStr = sprintf(strForm,jj);
+         fprintf(1,procStatusStr);
+
          %Read each image in one channel and align it
          imgToAlign = imread(alignImgFileList{k}{jj});
          alignShift(ii,:,k) = calAlignShift(refImg,imgToAlign,markerROI, ...
             maxXShift,maxYShift);
+         for ic = 1:length(procStatusStr)
+            fprintf(1,'\b');
+         end
       end
+      fprintf(1,[strForm '\n'],alignFrame(end));
    end
 else
    alignShift = zeros(numAlignFrames,2);
+   fprintf(1,['Aligning frame (total: ' strForm '): '],numAlignFrames);
    for ii = 1:numAlignFrames
       jj = alignFrame(ii);
       procStatusStr = sprintf(strForm,jj);
