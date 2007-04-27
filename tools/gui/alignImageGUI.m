@@ -94,6 +94,14 @@ handles.alignShift        = [];
 handles.alignImgFigH = [];
 handles.refImgFigH   = [];
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Default parameters for 'image alignment option'
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+handles.imgAlignOption = 'single stack';
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 set(handles.refImageEdit,'String',handles.refImgFile);
 set(handles.alignFrameEdit,'String',handles.alignFrame);
 set(handles.alignImgPathMenu,'String',handles.alignImgPathList);
@@ -291,15 +299,29 @@ function startAlignPB_Callback(hObject, eventdata, handles)
 alignFrame = handles.alignFrame;
 
 if alignFrame == 0
-   handles.alignShift = alignImage(handles.refImgFile,handles.alignImgPathList, ...
-      handles.firstAlignImgFile,'modelChannel',handles.modelImgPathID, ...
-      'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
-      'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
+   if strcmp(handles.imgAlignOption,'single stack')
+      handles.alignShift = alignImage(handles.refImgFile,handles.alignImgPathList, ...
+         handles.firstAlignImgFile,'modelChannel',handles.modelImgPathID, ...
+         'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
+         'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
+   else
+      handles.alignShift = alignImage(handles.alignImgPathList{1},handles.alignImgPathList{2}, ...
+         handles.firstAlignImgFile, ...
+         'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
+         'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
+   end
 else
-   handles.alignShift(alignFrame,:) = alignImage(handles.refImgFile,handles.alignImgPathList, ...
-      handles.firstAlignImgFile,'modelChannel',handles.modelImgPathID, ...
-      'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
-      'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
+   if strcmp(handles.imgAlignOption,'single stack')
+      handles.alignShift(alignFrame,:) = alignImage(handles.refImgFile,handles.alignImgPathList, ...
+         handles.firstAlignImgFile,'modelChannel',handles.modelImgPathID, ...
+         'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
+         'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
+   else
+      handles.alignShift(alignFrame,:) = alignImage(handles.alignImgPathList{1},handles.alignImgPathList{2}, ...
+         handles.firstAlignImgFile, ...
+         'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
+         'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
+   end
 end
 
 guidata(hObject,handles);
@@ -520,4 +542,36 @@ end
 set(handles.alignImgPathMenu,'String',handles.alignImgPathList);
 
 guidata(hObject,handles);
+
+
+
+% -------------------------------------------------------------------------
+function single_stack_Callback(hObject, eventdata, handles)
+% hObject    handle to single_stack (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+set(handles.single_stack,'checked','on');
+set(handles.pairwise_stack,'checked','off');
+
+handles.imgAlignOption = 'single stack';
+
+guidata(hObject, handles);
+
+
+
+% -------------------------------------------------------------------------
+function pairwise_stack_Callback(hObject, eventdata, handles)
+% hObject    handle to pairwise_stack (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+set(handles.pairwise_stack,'checked','on');
+set(handles.single_stack,'checked','off');
+
+handles.imgkAlignOption = 'pairwise stack';
+
+guidata(hObject, handles);
+
+
 
