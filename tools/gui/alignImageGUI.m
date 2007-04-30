@@ -446,7 +446,7 @@ for k = startChannel:endChannel
       %Save the aligned image.
       [path,body,no,ext] = getFilenameBody(alignImgFileList{ii});
       saveAlignImgFile = [saveAlignImgPath filesep body '_align' no ext];
-      imwrite(alignedImg,saveAlignImgFile,'tiff');
+      imwrite(alignedImg,saveAlignImgFile,'tiff','compression','none');
 
       for jj = 1:length(procStr)
          fprintf(1,'\b');
