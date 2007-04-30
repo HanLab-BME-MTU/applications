@@ -367,8 +367,9 @@ if ~isempty(handles.alignShift)
    [msY,iY] = max(abs(handles.alignShift(:,2)));
    fprintf(1,'Maximum alignment shift: %d(x) %d(y)\n',handles.alignShift(iX,1), ...
       handles.alignShift(iY,2));
+   numInd = find(~isnan(handles.alignShift(:,1)) & ~isnan(handles.alignShift(:,2)));
    fprintf(1,'Number of frames of nonzero shift: %d\n', ...
-      length(find(handles.alignShift(:,1)~=0 | handles.alignShift(:,2)~=0)));
+      length(find(handles.alignShift(numInd,1)~=0 | handles.alignShift(numInd,2)~=0)));
 end
 
 if alignFrame == 0
