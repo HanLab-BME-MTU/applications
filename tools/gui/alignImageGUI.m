@@ -97,7 +97,7 @@ handles.refImgFigH   = [];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Default parameters for 'image alignment option'
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-handles.imgAlignOption = 'single stack';
+handles.imgAlignOption = 'refImage';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -224,7 +224,7 @@ alignImgFileList = getFileStackNames([handles.alignImgPathList{dispPath} filesep
 if handles.alignFrame == 0
    dispImgNo = 1;
 else
-   dispImgNo = handles.alignFrame;
+   dispImgNo = handles.alignFrame(1);
 end
 
 dispImg = imread(alignImgFileList{dispImgNo});
@@ -248,9 +248,12 @@ else
 end
 
 if ~isempty(alignShift) 
-   if ~isnan(alignShift(1))
-      plot(handles.markerROI(:,1)+alignShift(1),handles.markerROI(:,2)+alignShift(2),'w');
-      title(sprintf('Aligning Shift (pixels): (%d,%d)',alignShift(1),alignShift(2)));
+   if ~isnan(alignShift(1)) 
+      if ~isempty(handles.markerROI)
+         plot(handles.markerROI(:,1)+alignShift(1),handles.markerROI(:,2)+alignShift(2),'w');
+      end
+      title(sprintf('Frame No.: %d; Aligning Shift (x,y): (%d,%d) pixels', ...
+         dispImgNo,alignShift(1),alignShift(2)));
    else
       title(sprintf('Not Aligned'));
    end
@@ -296,29 +299,61 @@ function startAlignPB_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+if ~isempty(handles.alignShift)
+   handles.alignShift(:) = NaN;
+end
+
 alignFrame = handles.alignFrame;
 
+if handles.modelImgPathID == 1
+   k1 = 1;
+   k2 = 2;
+else
+   k1 = 2;
+   k2 = 1;
+end
+
+%Check if reference image and image stacks have been selected correctly.
+if strcmp(handles.imgAlignOption,'refImage')
+   if isempty(handles.refImgFile) || exist(handles.refImgFile,'file') ~= 2
+      warnH = warndlg('Reference Image is not selected or file does not exist.', ...
+         'Reference Image Warning.','modal');
+      return;
+   end
+   if isempty(handles.alignImgPathList)
+      warnH = warndlg('Image stack to be aligned has not been selected.', ...
+         'Image Stacks Warning.','modal');
+      return;
+   end
+else
+   if length(handles.alignImgPathList) < 2
+      warnH = warndlg('There must be at least two image stacks for pairwise alignment.', ...
+         'Image Stacks Warning.','modal');
+      return;
+   end
+end
+
 if alignFrame == 0
-   if strcmp(handles.imgAlignOption,'single stack')
+   if strcmp(handles.imgAlignOption,'refImage')
       handles.alignShift = alignImage(handles.refImgFile,handles.alignImgPathList, ...
          handles.firstAlignImgFile,'modelChannel',handles.modelImgPathID, ...
          'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
          'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
    else
-      handles.alignShift = alignImage(handles.alignImgPathList{1},handles.alignImgPathList{2}, ...
-         handles.firstAlignImgFile, ...
+      handles.alignShift = alignImage(handles.alignImgPathList{k1},handles.alignImgPathList{k2}, ...
+         handles.firstAlignImgFile([k1 k2]), ...
          'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
          'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
    end
 else
-   if strcmp(handles.imgAlignOption,'single stack')
+   if strcmp(handles.imgAlignOption,'refImage')
       handles.alignShift(alignFrame,:) = alignImage(handles.refImgFile,handles.alignImgPathList, ...
          handles.firstAlignImgFile,'modelChannel',handles.modelImgPathID, ...
          'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
          'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
    else
-      handles.alignShift(alignFrame,:) = alignImage(handles.alignImgPathList{1},handles.alignImgPathList{2}, ...
-         handles.firstAlignImgFile, ...
+      handles.alignShift(alignFrame,:) = alignImage(handles.alignImgPathList{k1},handles.alignImgPathList{k2}, ...
+         handles.firstAlignImgFile([k1 k2]), ...
          'alignFrame',handles.alignFrame,'markerROI',handles.markerROI, ...
          'maxXShift',handles.maxShift,'maxYShift',handles.maxShift);
    end
@@ -326,70 +361,97 @@ end
 
 guidata(hObject,handles);
 
+%Print out alignment shift statistics.
+if ~isempty(handles.alignShift)
+   [msX,iX] = max(abs(handles.alignShift(:,1)));
+   [msY,iY] = max(abs(handles.alignShift(:,2)));
+   fprintf(1,'Maximum alignment shift: %d(x) %d(y)\n',handles.alignShift(iX,1), ...
+      handles.alignShift(iY,2));
+   fprintf(1,'Number of frames of nonzero shift: %d\n', ...
+      length(find(handles.alignShift(:,1)~=0 | handles.alignShift(:,2)~=0)));
+end
+
 if alignFrame == 0
-   %For monitoring process status.
-   L = length(num2str(handles.totalNumImages));
-   strForm = sprintf('%%.%dd',L);
+   frameAligned = [1:size(handles.alignShift,1)];
+else
+   frameAligned = alignFrame;
+end
 
-   %Align all images and save them.
-   for k = 1:length(handles.alignImgPathList)
-      %Create the directory for saving the aligned images.
-      alignImgPath = handles.alignImgPathList{k};
+%For monitoring process status.
+L = length(num2str(handles.totalNumImages));
+strForm = sprintf('%%.%dd',L);
 
-      %Remove 'filesep' from the end.
-      while strcmp(alignImgPath(end),filesep)
-         alignImgPath(end) = '';
-      end
-
-      saveAlignImgPath = [alignImgPath '_align'];
-      if ~isdir(saveAlignImgPath)
-         success = mkdir(saveAlignImgPath);
-         if ~success
-            fprintf(1,'Trouble making directory. Aligned images not saved.\n');
-            return;
-         end
-      end
-
-      alignImgFileList = getFileStackNames([handles.alignImgPathList{k} filesep ...
-         handles.firstAlignImgFile{k}]);
-
-      %Align all images according to the calculated 'alignShift' and save it.
-      imgWidth  = handles.imgWidth;
-      imgHeight = handles.imgHeight;
-
-      fprintf(1,'Save aligned image: ');
-      for ii = 1:length(alignImgFileList)
-         procStr = sprintf(strForm,ii);
-         fprintf(1,procStr);
-
-         xOffSet = handles.alignShift(ii,1);
-         yOffSet = handles.alignShift(ii,2);
-
-         img2Align  = imread(alignImgFileList{ii});
-         alignedImg = img2Align;
-         alignedImg(:) = 0;
-         if xOffSet > 0
-            alignedImg(:,1:end-xOffSet) = img2Align(:,1+xOffSet:end);
-         else
-            alignedImg(:,1-xOffSet:end) = img2Align(:,1:end+xOffSet);
-         end
-         if yOffSet > 0
-            alignedImg(1:end-yOffSet,:) = alignedImg(1+yOffSet:end,:);
-         else
-            alignedImg(1-yOffSet:end,:) = alignedImg(1:end+yOffSet,:);
-         end
-
-         %Save the aligned image.
-         [path,body,no,ext] = getFilenameBody(alignImgFileList{ii});
-         saveAlignImgFile = [saveAlignImgPath filesep body '_align' no ext];
-         imwrite(alignedImg,saveAlignImgFile,'tiff');
-
-         for jj = 1:length(procStr)
-            fprintf(1,'\b');
-         end
-      end
-      fprintf(1,[strForm '\n'],handles.totalNumImages);
+%Align all images and save them.
+if strcmp(handles.imgAlignOption,'refImage')
+   startChannel = 1;
+   endChannel   = length(handles.alignImgPathList);
+else
+   if handles.modelImgPathID == 1
+      startChannel = 2;
+      endChannel   = 2;
+   else
+      startChannel = 1;
+      endChannel   = 1;
    end
+end
+for k = startChannel:endChannel
+   %Create the directory for saving the aligned images.
+   alignImgPath = handles.alignImgPathList{k};
+
+   %Remove 'filesep' from the end.
+   while strcmp(alignImgPath(end),filesep)
+      alignImgPath(end) = '';
+   end
+
+   saveAlignImgPath = [alignImgPath '_align'];
+   if ~isdir(saveAlignImgPath)
+      success = mkdir(saveAlignImgPath);
+      if ~success
+         fprintf(1,'Trouble making directory. Aligned images not saved.\n');
+         return;
+      end
+   end
+
+   alignImgFileList = getFileStackNames([handles.alignImgPathList{k} filesep ...
+   handles.firstAlignImgFile{k}]);
+
+   %Align all images according to the calculated 'alignShift' and save it.
+   imgWidth  = handles.imgWidth;
+   imgHeight = handles.imgHeight;
+
+   fprintf(1,'Save aligned image: ');
+   for ik = 1:length(frameAligned)
+      ii = frameAligned(ik);
+      procStr = sprintf(strForm,ii);
+      fprintf(1,procStr);
+
+      xOffSet = handles.alignShift(ii,1);
+      yOffSet = handles.alignShift(ii,2);
+
+      img2Align  = imread(alignImgFileList{ii});
+      alignedImg = img2Align;
+      alignedImg(:) = 0;
+      if xOffSet > 0
+         alignedImg(:,1:end-xOffSet) = img2Align(:,1+xOffSet:end);
+      else
+         alignedImg(:,1-xOffSet:end) = img2Align(:,1:end+xOffSet);
+      end
+      if yOffSet > 0
+         alignedImg(1:end-yOffSet,:) = alignedImg(1+yOffSet:end,:);
+      else
+         alignedImg(1-yOffSet:end,:) = alignedImg(1:end+yOffSet,:);
+      end
+
+      %Save the aligned image.
+      [path,body,no,ext] = getFilenameBody(alignImgFileList{ii});
+      saveAlignImgFile = [saveAlignImgPath filesep body '_align' no ext];
+      imwrite(alignedImg,saveAlignImgFile,'tiff');
+
+      for jj = 1:length(procStr)
+         fprintf(1,'\b');
+      end
+   end
+   fprintf(1,[strForm '\n'],length(frameAligned));
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -421,6 +483,8 @@ else
    handles.modelImgPathID = get(handles.alignImgPathMenu,'Value');
    set(handles.firstImgEdit,'String',handles.firstAlignImgFile{handles.modelImgPathID});
 end
+
+guidata(hObject,handles);
 
 % --- Executes during object creation, after setting all properties.
 function alignImgPathMenu_CreateFcn(hObject, eventdata, handles)
@@ -546,15 +610,15 @@ guidata(hObject,handles);
 
 
 % -------------------------------------------------------------------------
-function single_stack_Callback(hObject, eventdata, handles)
-% hObject    handle to single_stack (see GCBO)
+function refImage_Callback(hObject, eventdata, handles)
+% hObject    handle to refImage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.single_stack,'checked','on');
+set(handles.refImage,'checked','on');
 set(handles.pairwise_stack,'checked','off');
 
-handles.imgAlignOption = 'single stack';
+handles.imgAlignOption = 'refImage';
 
 guidata(hObject, handles);
 
@@ -567,9 +631,9 @@ function pairwise_stack_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 set(handles.pairwise_stack,'checked','on');
-set(handles.single_stack,'checked','off');
+set(handles.refImage,'checked','off');
 
-handles.imgkAlignOption = 'pairwise stack';
+handles.imgAlignOption = 'pairwise_stack';
 
 guidata(hObject, handles);
 

@@ -83,10 +83,10 @@ end
 
 if strcmp(alignOption,'pairwise')
    alignShift = alignPairwise(imgDir1,imgDir2, firstAlignImgFile, ...
-      alignFrame, markerROI, maxXShift,maxYShift) 
+      alignFrame, markerROI, maxXShift,maxYShift);
 elseif strcmp(alignOption,'reference')
    alignShift = alignToRefImg(refImgFile,alignImgPath,firstAlignImgFile, ...
-      modelChannel, alignFrame, markerROI, maxXShift,maxYShift) 
+      modelChannel, alignFrame, markerROI, maxXShift,maxYShift); 
 end
 
 
@@ -98,18 +98,18 @@ function alignShift = alignPairwise(imgDir1,imgDir2,firstAlignImgFile, ...
 numImgChannels = 2;
 alignImgFileList = cell(1,numImgChannels);
 numImages        = Inf;
-for k = 1:numImgChannels
-   alignImgFileList{k} = getFileStackNames([alignImgPath{k} filesep firstAlignImgFile{k}]);
-   numImages = min(numImages,length(alignImgFileList{k}));
-end
+
+alignImgFileList{1} = getFileStackNames([imgDir1 filesep firstAlignImgFile{1}]);
+alignImgFileList{2} = getFileStackNames([imgDir2 filesep firstAlignImgFile{2}]);
+numImages = length(alignImgFileList{1});
+
 if alignFrame == 0
    alignFrame = 1:numImages;
 end
 numAlignFrames = length(alignFrame);
 
 L = length(num2str(numAlignFrames));
-strForm = sprintf('%%.%dd',L);
-fprintf(1,['Aligning frame (total: ' strForm '): '],numAlignFrames);
+strForm = sprintf('%%.%dd',L); fprintf(1,['Aligning frame (total: ' strForm '): '],numAlignFrames);
 
 alignShift = zeros(numAlignFrames,2);
 for ii = 1:numAlignFrames
