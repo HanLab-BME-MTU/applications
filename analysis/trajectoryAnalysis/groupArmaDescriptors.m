@@ -111,11 +111,11 @@ end
 def_options.wnv1_cutoff = -2;
 def_options.wnv1_mode = [0 1e-12];
 def_options.arma_cutoff = 5e-4;
-def_options.arma_mode = [0,5e-4];
+def_options.arma_mode = [0 5e-4];
 def_options.wnv2_cutoff = 1e-12;
 def_options.wnv2_mode = [0 1e-12];
 def_options.plot = 1; % plot results
-def_options.type = 'Len'; % length series as default
+def_options.type = 'Vel'; % length series as default
 def_options.multiply = 0; % don't repeat data
 % remember system dialog setting
 sysDialogState = getappdata(0,'UseNativeSystemDialogs');

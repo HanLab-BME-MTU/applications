@@ -68,7 +68,8 @@ noFit = 0; % if 1, only estimation is done, but not actual fitting
 
 
 % nargin
-if nargin < 4 || isempty(fitParameters) || isempty(parameters) || isempty(coordList) || isempty(intensities)
+% if nargin < 4 || isempty(fitParameters) || isempty(parameters) || isempty(coordList) || isempty(intensities)
+if nargin < 4 || isempty(fitParameters) || isempty(parameters) || isempty(intensities)
     error('not enough input arguments for GaussFitND!')
 end
 
@@ -84,7 +85,7 @@ if isempty(coordList)
         % make coordList with eval to have n-dims
         inputString = sprintf('1:%i,',sizeInt);
         inputString = inputString(1:end-1);
-        eval(['[sprintf(''X%i '',1:nd)]=ndgrid(',inputString,');']);
+        eval(['[sprintf(''X%i '',1:nd)]=ndgrid(' inputString ');']);
         eval(['coordList=[sprintf(''X%i '',1:nd)];']);
     end
 end
