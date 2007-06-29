@@ -23,7 +23,7 @@ stat=[];
 
 %if no filename, open file selection dialog
 if(nargin==0 | isempty(fname))
-   [fname,path]=uigetfile({'moviedat*;*.fim;*.r3c',  'movie files'},'select movie file');
+   [fname,path]=uigetfile({'moviedat*;*.fim;*.r3c',  'movie files';'*.*','all files'},'select movie file');
    if(fname(1)==0)
        mov=[];
        image=[];

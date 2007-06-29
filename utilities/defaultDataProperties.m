@@ -1,4 +1,4 @@
-function dataProperties = defaultDataProperties(varargin);
+function dataProperties = defaultDataProperties(varargin)
 %DEFAULTDATAPROPERTIES loads default data properties and updates them
 %
 % SYNOPSIS dataProperties = defaultDataProperties(structure)
@@ -108,7 +108,7 @@ switch inputType
             dataProperties.NDfilter = inputStruct.ndFilter;
         end
         if isfield(inputStruct,'cropInfo')
-            dataProperties.crop = inputStruct.cropInfo
+            dataProperties.crop = inputStruct.cropInfo;
         end
 
     case 3
@@ -128,7 +128,8 @@ if isempty(dataProperties.NA)
         'Using default NA for calculating filter parameters!')
 end
 [FT_XY, FT_Z] = calcFilterParms(...
-    dataProperties.WVL(dataProperties.waveIdx),dataProperties.NA,1.51,'gauss',[], ...
+    dataProperties.WVL(dataProperties.waveIdx),dataProperties.NA,1.51,'gauss',...
+    dataProperties.sigmaCorrection, ...
     [dataProperties.PIXELSIZE_XY dataProperties.PIXELSIZE_Z]);
 patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
 dataProperties.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
