@@ -1,4 +1,4 @@
-function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC)
+function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC,assigninBase)
 %IMARISSHOWARRAY loads a 3D array into Imaris
 %
 % SYNOPSIS  imaApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC)
@@ -12,6 +12,8 @@ function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC)
 %         equalizeTC (opt): [eqT, eqC] - switches indicating whether to
 %                           equalize values along the 4th and/or 5th
 %                           dimension. {[0,0]}
+%         assigninBase (opt): whether to assign an ImarisHandle in the base
+%                               workspace {1}
 %
 % OUTPUT  imarisApplication: Handle to the imaris Application
 %
@@ -30,6 +32,7 @@ function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC)
 
 def_pixelSize = [1,1,1];
 def_equalize = [0,0];
+def_assigninBase = true;
 
 % check dimensionality of input matrix
 if nargin < 1 || isempty(array)
@@ -45,16 +48,17 @@ if length(sizeArray) > 5
     error('too many dimensions to display!')
 end
 
+if nargin < 5 || isempty(assigninBase)
+    assigninBase = def_assigninBase;
+end
 
 
 % check whether we have to start a new imaris
 if nargin < 2 || isempty(imaApp)
-    imaApp = imarisStartNew;
+    imaApp = imarisStartNew(assigninBase);
 else
     % make sure user did not accidentially close the window
     imaApp.mVisible = 1;
-    % we do not want to assign a new imaris handle - take the old one!
-    imaAppName = inputname(2);
 end
 
 % test which pixelsize to use
@@ -139,8 +143,8 @@ imaDataSet.mExtendMaxZ = sizeArray(3) * pixelSize(3);
 % do not set color table - is buggy
 
 % adjust color range to min/max
-minArray = min(array(:));
-maxArray = max(array(:));
+minArray = nanmin(array(:));
+maxArray = nanmax(array(:));
 
 for ch = 0:size(array,4)-1
     imaDataSet.SetChannelRange(ch,minArray,maxArray);

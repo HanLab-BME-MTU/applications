@@ -154,10 +154,10 @@ elseif ischar(multiArgument)
         % redo moviePath
         
         % check for input movie path
-        if nargin < 2 || isempty(moviePath)
+        if nargin < 2 || isempty(pathName)
             fullName = movieName;
         else
-            fullName = fullfile(moviePath, movieName);
+            fullName = fullfile(pathName, movieName);
         end
         
         % find moviePath

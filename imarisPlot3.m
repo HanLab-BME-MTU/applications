@@ -31,8 +31,10 @@ function imarisApplication = imarisPlot3(plotData,aspectRatio,image)
 %
 %           image (opt): array underlying the spots. The array needs to
 %                   have at least the size of the N-dimensional bounding
-%                   box around the spots. AspectRatio is forced to [0,0,0]
-
+%                   box around the spots. If you supply an image,
+%                   aspectRatio will be interpreted as voxel size
+%                   Image is of the form [x,y,z,c,t]
+%
 %
 % OUTPUT  imarisApplication: Handle to the imaris Application
 %
@@ -284,34 +286,62 @@ if ~imageIsSupplied
     end
     image = (zeros([imSize,1,maxTime]));
 else
-    % an image has been supplied
-    % The image will go from 1 to size(image) to be Matlab-compatible
-    
-    imSize = [0,0,0];
-    [imSize(1),imSize(2),imSize(3),imTime] = size(image);
-    % make sure data is within image. (at some point: test whether this
-    % would be a problem at all
-    % Histogram:
-    % add 0.5 to the allowable extent: if our bins go from 1 to 10, the
-    % data actually stretches from 0.5 to 10.5, because the pixel centers
-    % are the bin centers!
-    if any(dataExtent(1,:) < 0.5-maxRadius) || ...
-            any(dataExtent(2,:) > imSize+0.5+maxRadius) || ...
-            maxTime > imTime 
-        error('data is not within image!')
+
+    % if aspect ratio is not [0,0,0], pixelsize has been supplied
+
+    if all(aspectRatio == def_aspectRatio)
+
+        % an image has been supplied
+        % The image will go from 1 to size(image) to be Matlab-compatible
+
+        imSize = [0,0,0];
+        [imSize(1),imSize(2),imSize(3),imChannels,imTime] = size(image);
+        % make sure data is within image. (at some point: test whether this
+        % would be a problem at all
+        % Histogram:
+        % add 0.5 to the allowable extent: if our bins go from 1 to 10, the
+        % data actually stretches from 0.5 to 10.5, because the pixel centers
+        % are the bin centers!
+        if any(dataExtent(1,:) < 0.5-maxRadius) || ...
+                any(dataExtent(2,:) > imSize+0.5+maxRadius) || ...
+                maxTime > imTime
+            error('data is not within image!')
+        end
+
+        % extendMin, extendMax are just the edges of the image
+        extendMin = [1,1,1];
+        extendMax = imSize;
+
+        % the origin is equivalent to extendMin
+        doTransform = 0;
+        origin = [1,1,1];
+        divideRange = [1,1,1];
+
+        % plotBoxData is nothing but the image again
+        plotBoxData = [extendMin',extendMax',ones(3,1)];
+
+    else
+        % pixel size is given. Adjust image accordingly.
+        % read number of pixels in the dimensions
+        imSize = [0,0,0];
+        [imSize(1),imSize(2),imSize(3),imChannels,imTime] = size(image);
+        if maxTime > imTime
+            error('data not within range');
+        end
+
+        % we still start at 1 (test!!)
+        extendMin = [1,1,1].*aspectRatio;
+        extendMax = (imSize) .* aspectRatio;
+
+        % no transformation
+        doTransform = 0;
+        origin = [1,1,1];
+        divideRange = [1,1,1];
+
+        % plotBoxData is nothing but the image again
+        plotBoxData = [extendMin',extendMax',ones(3,1)];
     end
-    
-    % extendMin, extendMax are just the edges of the image
-    extendMin = [1,1,1];
-    extendMax = imSize;
-    
-    % the origin is equivalent to extendMin
-    doTransform = 0;
-    origin = [1,1,1];
-    divideRange = [1,1,1];
-    
-    % plotBoxData is nothing but the image again
-    plotBoxData = [extendMin',extendMax',ones(3,1)];
+
 end
 
 %========================================
@@ -355,7 +385,20 @@ imaLight = imaApp.mFactory.CreateLightSource;
 imaSurpassScene.AddChild(imaLight);
 imaFrame = imaApp.mFactory.CreateFrame;
 imaSurpassScene.AddChild(imaFrame);
-
+% if there was an image, add a volume
+if imageIsSupplied
+    imaVolume = imaApp.mFactory.CreateVolume;
+    imaSurpassScene.AddChild(imaVolume);
+    % imaris can't do display adjustment with NaNs. Make sure we set it all
+    % min/max
+    for ch = 1:imChannels
+        chIm = single(image(:,:,:,ch));
+        
+        color = single(extendedColors(ch));
+        imaApp.mDataSet.SetChannelColor(ch-1,color(1),color(2),color(3),0);
+        imaApp.mDataSet.SetChannelRange(ch-1,nanmin(chIm(:)),nanmax(chIm(:)));
+    end
+end
 
 % add surpass scene and set view
 imaApp.mSurpassScene = imaSurpassScene;

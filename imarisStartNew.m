@@ -1,15 +1,20 @@
-function imarisApplication = imarisStartNew
+function imarisApplication = imarisStartNew(assigninBase)
 %IMARISSTARTNEW starts a new Imaris and stores the handle in the workspace
 % naming it imarisApplication, or imarisApplication#, where # is a number
 %
 % SYNOPSIS imarisApplication = imarisStartNew
+%
+% INPUT    assigninBase (opt): true if Imaris should assign handle in base
+%                              Default: true
 %
 % OUTPUT   imarisApplication : Handle to the new imaris session
 %
 %c: jonas 11/04
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% no input to test, therefore start imaris
+if nargin == 0 || isempty(assigninBase)
+    assigninBase = true;
+end
 
 imarisApplication = actxserver('Imaris.Application');
 imaAppName = 'imarisApplication';
@@ -22,7 +27,8 @@ if evalin('base','exist(''imarisApplication'',''var'')')
     imaAppName = [imaAppName, num2str(num)];
 end
 imarisApplication.mVisible = 1;
-assignin('base',imaAppName,imarisApplication);
-disp(sprintf(['The handle to the current imaris is ''%s''\n',...
+if assigninBase
+    assignin('base',imaAppName,imarisApplication);
+    disp(sprintf(['The handle to the current imaris is ''%s''\n',...
     'Delete it to close this session of Imaris'],imaAppName));
-
+end
