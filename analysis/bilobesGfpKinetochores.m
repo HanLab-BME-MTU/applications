@@ -3,8 +3,10 @@ function [resultList,plotData,plotStruct] = bilobesGfpKinetochores(project, norm
 %
 % SYNOPSIS: bilobeSpindles
 %
-% INPUT project : type of projection: {'max'}/'sum'
+% INPUT project : type of projection: 'max'/{'sum'}
 %       normalize : what to set to 1 {'sum'}/'max'/'none'
+%           for kinetochores: project sum, norm sum
+%           for tubulin: project sum, norm max
 %       doPlot : whether to plot or not {1}/0
 %       improveAlignment : whether or not to improve alignment. Default:
 %                 true
@@ -52,7 +54,7 @@ plotInt = false; % imaris will plot spb and ndc80
 
 % PARAMETERS THAT CAN BE CHANGED FROM INPUT
 plotGallery = true; % plot gallery of projections
-def_project = 'max'; % maximum intensity projection
+def_project = 'sum'; % maximum intensity projection
 def_normalize = 'sum';
 def_doPlot = true;
 def_improveAlignment = true;
