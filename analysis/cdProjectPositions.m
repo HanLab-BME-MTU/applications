@@ -19,7 +19,11 @@ spb2idx = find(strcmpi(idlist(1).stats.labelcolor,'spb2'));
 cen1idx = find(strcmpi(idlist(1).stats.labelcolor,'cen1'));
 cen2idx = find(strcmpi(idlist(1).stats.labelcolor,'cen2'));
 if isempty(cen2idx)
-    cen2idx = cen1idx;
+    if isempty(cen1idx)
+        cen1idx = find(strcmpi(idlist(1).stats.labelcolor,'cen1*'));
+    else
+        cen2idx = cen1idx;
+    end
 end
 
 
@@ -28,7 +32,7 @@ end
 tmax = length(idlist);
 spindleVector = zeros(tmax,3);
 s1c1Vector = zeros(tmax,3);
-s2c2Vector = zeros(tmax,3);
+s2c2Vector = NaN(tmax,3);
 s1s2c1c2int = NaN(tmax,4);
 goodTimeL = false(tmax,1);
 
@@ -42,12 +46,19 @@ for t = 1:tmax
         % spb - cen vectors
         s1c1Vector(t,:) = ...
             diff(idlist(t).linklist([spb1idx, cen1idx],9:11));
+        if ~isempty(cen2idx)
         s2c2Vector(t,:) = ...
             diff(idlist(t).linklist([spb2idx, cen2idx],9:11));
+        end
 
         % store intensities
+        if ~isempty(cen2idx)
         s1s2c1c2int(t,:) = ...
             idlist(t).linklist([spb1idx, spb2idx, cen1idx, cen2idx], 8)';
+        else
+            s1s2c1c2int(t,1:3) = ...
+            idlist(t).linklist([spb1idx, spb2idx, cen1idx], 8)';
+        end
 
         % remember goodTime
         goodTimeL(t) = true;

@@ -1,4 +1,4 @@
-function [resultList,plotData,plotStruct] = bilobesGfpKinetochores(project, normalize,doPlot,improveAlignment)
+function [resultList,plotData,plotStruct] = bilobesGfpKinetochores(project, normalize,doPlot,improveAlignment,redoAll,zOrientation,movieType)
 %BILOBESPINDLES projects kinetochore signals onto the spindle axis in two-color images
 %
 % SYNOPSIS: bilobeSpindles
@@ -6,6 +6,13 @@ function [resultList,plotData,plotStruct] = bilobesGfpKinetochores(project, norm
 % INPUT project : type of projection: {'max'}/'sum'
 %       normalize : what to set to 1 {'sum'}/'max'/'none'
 %       doPlot : whether to plot or not {1}/0
+%       improveAlignment : whether or not to improve alignment. Default:
+%                 true
+%       redoAll : if 0, code will not perform detection if it has been done
+%                  before. Default: false
+%       zOrientation : orientation of the z-axis: {'perpendicular'} to the
+%                      other two/'parallel' to image-z
+%       moveType : {'raw'} or 'decon' (recommended for tub1)
 %
 % OUTPUT
 %
@@ -39,15 +46,20 @@ warningState = warning;
 warning('off','R3DREADHEADER:exposureTimeChanged');
 warning('off','R3DREADHEADER:ndFilterChanged');
 
+% PARAMETERS THAT CANNOT BE CHANGED FROM INPUT
 plotGrid = false; % imaris will plot the 3D-grid over the aligned two-color data
 plotInt = false; % imaris will plot spb and ndc80
-redoAll = false; % if false, code will not redo analysis
 
+
+% PARAMETERS THAT CAN BE CHANGED FROM INPUT
 plotGallery = true; % plot gallery of projections
 def_project = 'max'; % maximum intensity projection
 def_normalize = 'sum';
 def_doPlot = true;
-%def_improveAlignment = true;
+def_improveAlignment = true;
+def_zOrientation = 'para'; % perp(endicular) / par(allel)
+def_redoAll = false; % if false, code will not redo analysis
+def_movieType = 'raw'; % or 'decon'
 
 if nargin < 1 || isempty(project)
     project = def_project;
@@ -59,16 +71,24 @@ if nargin < 3 || isempty(doPlot)
     doPlot = def_doPlot;
 end
 if nargin < 4 || isempty(improveAlignment)
-    improveAlignment = [];
+    improveAlignment = def_improveAlignment;
 end
-
+if nargin < 5 || isempty(redoAll)
+    redoAll = def_redoAll;
+end
+if nargin < 6 || isempty(zOrientation)
+    zOrientation = def_zOrientation;
+end
+if nargin < 7 || isempty(movieType)
+    movieType = def_movieType;
+end
 if nargout == 3
     doPlot = true;
 end
 
 % search files
 cdBiodata;
-[fileList,tokens]=searchFiles('(\w+)_R3D\.dv','log|DIC','ask');
+[fileList,tokens]=searchFiles('(\w+)_R3D\.dv|(\w+)\.r3d','log|DIC','ask');
 
 % select files
 selection = listSelectGUI(tokens);
@@ -84,6 +104,15 @@ fileList = fileList(selection,:);
 tokens = tokens(selection);
 
 nData = length(selection);
+
+if nData > 1 && (plotInt || plotGrid)
+    selection = questdlg(sprintf(...
+        'You selected to plot %i images in Imaris. Do you want to cancel?',...
+        nData),'Warning','Continue','Cancel','Cancel');
+    if strcmp(selection,'Cancel')
+        error('cancelled by user')
+    end
+end
 
 % find what is common between all the names
 overallName = tokens{1};
@@ -144,8 +173,8 @@ for iData = 1:nData
     nameList(iData).dirName = fileList{iData,2};
 
     % check status
-
-    if exist(nameList(iData).deconMovieName,'file')
+    % no problem if no decon if we don't use it
+    if exist(nameList(iData).deconMovieName,'file') || strcmp(movieType,'raw')
         status(iData) = 0;
         if ~redoAll
             if exist(nameList(iData).filteredMovieName,'file')
@@ -171,6 +200,13 @@ for iData = 1:nData
             % load movie - use low-level r3dread
             rawMovie = r3dread(nameList(iData).rawMovieName);
             movieHeader = readr3dheader(nameList(iData).rawMovieName);
+            
+            % correct a small mistake of Eugenio - the software said that
+            % the lens was 10x
+            if movieHeader.lensID == 10105 && movieHeader.pixelX > 0.6
+                movieHeader.pixelX = movieHeader.pixelX/10;
+                movieHeader.pixelY = movieHeader.pixelY/10;
+            end
 
             % save movieHeader
             save(nameList(iData).movieHeaderName,'movieHeader');
@@ -276,22 +312,22 @@ for iData = 1:nData
         d=dir(nameList(iData).rawMovieName);
         if datenum(d.date) < datenum('1-Jan-2007 00:00:01')
             spbCorrection = spbCorrection_1;
-            if isempty(improveAlignment) 
+            if isempty(improveAlignment)
                 improveAlignment = align_1;
             end
         elseif datenum(d.date) < datenum('1-Feb-2007 00:00:01')
             spbCorrection = spbCorrection_2;
-            if isempty(improveAlignment) 
+            if isempty(improveAlignment)
                 improveAlignment = align_2;
             end
         elseif datenum(d.date) < datenum('20-Feb-2007 00:00:01')
             spbCorrection = spbCorrection_3;
-            if isempty(improveAlignment) 
+            if isempty(improveAlignment)
                 improveAlignment = align_3;
             end
         else
             spbCorrection = spbCorrection_4;
-            if isempty(improveAlignment) 
+            if isempty(improveAlignment)
                 improveAlignment = align_4;
             end
         end
@@ -320,7 +356,11 @@ for iData = 1:nData
             e_perp = e_perp / sqrt(sum(e_perp.^2));
 
             % complete coordinate system
-            e_3 = cross(e_spb,e_perp);
+            if strmatch(zOrientation,'perp')
+                e_3 = cross(e_spb,e_perp);
+            else
+                e_3 = [0,0,1];
+            end
 
             % convert spb coords in pixels
             load(nameList(iData).dataPropertiesName);
@@ -335,7 +375,12 @@ for iData = 1:nData
             e_3 = (e_3 * dataProperties.PIXELSIZE_XY)./pix2mu;
 
             % load image - deconvolved movie
-            rawMovie = r3dread(nameList(iData).deconMovieName);
+            switch movieType
+                case 'decon'
+                    rawMovie = r3dread(nameList(iData).deconMovieName);
+                case 'raw'
+                    rawMovie = r3dread(nameList(iData).rawMovieName);
+            end
 
             % arbitrary grid: 15 pix perpendicular, 24 bins parallel to spindle
             % axis (Gardner)
@@ -347,11 +392,11 @@ for iData = 1:nData
             % "zero" symmetrically, in the perpendicular directions, the
             % maximum should be in the center
             ndcShift = spbCorrection./pix2mu;
-            
-            
-         
-            
-            shiftNorm = 99;
+
+
+
+
+            %shiftNorm = 99;
             %fh1=figure;
             %fh2=figure;
             %             fh3=figure;
@@ -360,10 +405,10 @@ for iData = 1:nData
             end
             %             ah = gca; hold on;cm=jet(9);
             %             for i=1:9
-            
+
             % improve alignment only on demand
             if improveAlignment
-            ct = 1;
+                ct = 1;
             else
                 ct = 10; %run once only to get at intensities
             end

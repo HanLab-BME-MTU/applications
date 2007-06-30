@@ -94,8 +94,8 @@ for i=1:3
                 for bin = 13:-1:1
                     % "average": sum the weights in each bin
                     weightsList = weights(dist(spindleIdx{ct},1)==bin);
-%                     averageMP(bin) = sum(weightsList);
-%                     sigmaMP(bin) = NaN;
+                     averageMP(bin) = sum(weightsList);
+                     sigmaMP(bin) = NaN;
                     % potentially, we can extract distributions for
                     % individual movies, and average those to get a std in
                     % the future, for now, don't have std
@@ -106,10 +106,13 @@ for i=1:3
                     % (2) Bootstrap the variance (take 1000 samples allowing
                     % repetitions) - neat, but what would this really be
                     % measuring?
-                    wDist = bootstrp(1000,'sum',weightsList);
-                    averageMP(bin) = mean(wDist);
-                    sigmaMP(bin) = std(wDist);
+%                     wDist = bootstrp(1000,'sum',weightsList);
+%                     averageMP(bin) = mean(wDist);
+%                     sigmaMP(bin) = std(wDist);
                 end
+                
+                
+
                 
             end
 
@@ -146,6 +149,15 @@ for i=1:3
         yall(:,ct)=meanBoundaries(ct);
         yTickLabels{ct}=sprintf('%1.1f/%1.2f', ...
             meanBoundaries(ct),nSpindles(ct));
+        
+        % convolve with psf if not intensties
+        if ~intensities
+            dx=xall(2,1)-xall(1,1);
+            [FT_XY, FT_Z] = calcFilterParms(0.525,1.4,1.51,'gauss',[], [dx*yall(1,ct) dx*yall(1,ct)]);
+            g=gauss1d(-5:5,FT_XY);
+            zg=conv(zall(:,ct),g);
+            zall(:,ct)=zg(6:end-5);
+        end
 
     end
 
@@ -156,7 +168,7 @@ for i=1:3
     zall(zall<0) = 0;
 
     figure('Name',[dataName,' ',figureNames{i}])
-    if plotSigma &&  ~all(isnan(zallS(:)))
+    if plotSigma %&&  ~all(isnan(zallS(:)))
         ah = subplot(1,2,1);
     else
         ah = gca;
@@ -186,7 +198,8 @@ for i=1:3
         case {3}
             set(ah,'CLim',[0,1])
         case 2
-            set(ah,'CLim',[0,nanmax(zall(:))])
+            goodZ = nSpindles>1;
+            set(ah,'CLim',[0,nanmax(nanmax(zall(:,goodZ)))])
         case 1
             % here it depends how we normalized before. Implement later, do
             % 01 for now
@@ -196,7 +209,7 @@ for i=1:3
                 set(ah,'CLim',[0,1])
             end
     end
-    if plotSigma &&  ~all(isnan(zallS(:)))
+    if plotSigma %&&  ~all(isnan(zallS(:)))
         % don't put the colorbar here already
     else
         colorbar('peer',ah)
@@ -221,7 +234,7 @@ for i=1:3
         end
     end
 
-    if plotSigma && ~all(isnan(zallS(:)))
+    if plotSigma %&& ~all(isnan(zallS(:)))
         ah = subplot(1,2,2);
         contourf((xall-xSub).*xFactor,yall,zallS,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
         %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
@@ -232,7 +245,8 @@ for i=1:3
             case {3}
                 set(ah,'CLim',[0,1])
             case 2
-                set(ah,'CLim',[0,nanmax(zall(:))])
+                goodZ = nSpindles>1;
+                set(ah,'CLim',[0,nanmax(nanmax(zall(:,goodZ)))])
             case 1
                 % here it depends how we normalized before. Implement later, do
                 % 01 for now
@@ -278,11 +292,17 @@ end
 
 % plot distributions
 figure('Name','Distributions')
+subplot(2,2,1)
 hold on
 cmap = jet(nBoundaries);
 for i=1:nBoundaries
     plot(out(1).xall(1:13,1).*out(1).yall(1:13,i),out(1).zall(1:13,i),'Color',cmap(i,:));
 end
+for i=1:3
+subplot(2,2,i+1)
+plot(out(i).yall(13,:),out(i).zall(13,:))
+end
+
 
 
 % if intensities

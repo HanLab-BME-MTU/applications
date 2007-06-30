@@ -36,6 +36,7 @@ end
 
 if nargin == 0
     loadData = 1;
+    fileName = [];
 elseif isempty(fileName)
     loadData = 2;
 else

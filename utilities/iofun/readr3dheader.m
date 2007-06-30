@@ -164,6 +164,13 @@ if isRightLens & (isSmallPix | isLargePix)
     end
 end
 
+ % correct a small mistake of Eugenio - the software said that
+ % the lens was 10x
+ if header.lensID == 10105 && header.pixelX > 0.6
+     header.pixelX = header.pixelX/10;
+     header.pixelY = header.pixelY/10;
+ end
+
 %-------------------------------
 
 % header structure:

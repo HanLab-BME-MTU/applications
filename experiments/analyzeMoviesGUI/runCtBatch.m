@@ -119,7 +119,7 @@ try
 
                         j = 1;
                         %loop through todoList
-                        while j<=length(todoList)&done(i)==0
+                        while j<=length(todoList)&&done(i)==0
                             %switch according to which job is to be done
                             switch todoList(j)
                                 case 1 %filter movie

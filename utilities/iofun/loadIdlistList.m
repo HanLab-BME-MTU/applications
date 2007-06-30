@@ -73,7 +73,7 @@ for iFile = 1:nFiles
     
     % load files
     [idlist,dataProperties,projectProperties,slist,loadStruct] = ...
-        loadProjectData(fileList{iFile,1},fileList{iFile,2},'last',0,movie);
+        loadProjectData(fileList{iFile,1},fileList{iFile,2},'last',0,[],movie);
    
         % check condition
         if eval(condition)
