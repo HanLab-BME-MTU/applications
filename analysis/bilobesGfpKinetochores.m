@@ -34,7 +34,6 @@ align_2=true;
 spbCorrection_3 = [-0.0417    0.1653    0.3145]; % February 2007 (2-7-7)
 align_3=true;
 spbCorrection_4 = [-0.0517    0.1898    0.3650]; % February 20 2007
-%spbCorrection_4 = spbCorrection_3;
 align_4=false;
 
 debug = false;
