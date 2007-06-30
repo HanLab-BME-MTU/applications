@@ -15,6 +15,9 @@ function imarisApplication = imarisStartNew(assigninBase)
 if nargin == 0 || isempty(assigninBase)
     assigninBase = true;
 end
+if ~ispc
+    error('Imaris only runs under Windows!')
+end
 
 imarisApplication = actxserver('Imaris.Application');
 imaAppName = 'imarisApplication';
