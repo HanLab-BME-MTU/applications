@@ -28,7 +28,7 @@ warning off IMARISIMREAD:NOPROPERTYREADER
 switch jobType
     case 1
         % test jobs
-        jobPath = 'D:\makiTestData';
+        jobPath = uigetdir('D:\makiTestData');
         
 
         % find all .dv files in jobPath

@@ -25,7 +25,7 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if nargin < 2 || isempty(verbose)
-    verbose = 0;
+    verbose = 2;
 end
 
 %=========================
