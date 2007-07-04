@@ -105,8 +105,8 @@ while ~done
                 job(iJob).dataStruct.status(3) = 1;
                 job(iJob).dataStruct.statusHelp{3,2} = date;
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
-                % save dataStruct
-                makiSaveDataFile(job(iJob).dataStruct);
+                % save dataStruct. Do not overwrite older initCoord
+                makiSaveDataFile(job(iJob).dataStruct,'initCoord');
 
             end
 
@@ -177,8 +177,8 @@ while ~done
                 job(iJob).dataStruct.statusHelp{4,2} = date;
                 job(iJob).dataStruct.slist = slist;
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
-                % save dataStruct
-                makiSaveDataFile(job(iJob).dataStruct);
+                % save dataStruct. Do not overwrite previous slist
+                makiSaveDataFile(job(iJob).dataStruct,'slist');
 
             end
 

@@ -86,7 +86,7 @@ switch jobType
             end
 
             % crop if not cropped yet (do it here so that we can easily update
-            % dataProperties
+            % dataProperties.
             if dataStruct.status(1) < 1 && ispc
                 % load movie into Imaris
                 [dummy,dummy,dummy,...
@@ -106,7 +106,7 @@ switch jobType
                 % in principle, we could also allow cropping in Z. In
                 % practice, there is no need for that
                 announcement = warndlg(['Please crop this movie in xy so',...
-                    'that there are no kinetochores from other cells in the image.',...
+                    ' that there are no kinetochores from other cells in the image.',...
                     'Careful: Crop BEFORE clicking OK!'],'Cropping');
                 uiwait(announcement);
 

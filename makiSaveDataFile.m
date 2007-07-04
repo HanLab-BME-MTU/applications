@@ -1,9 +1,14 @@
-function success = makiSaveDataFile(dataStruct)
+function success = makiSaveDataFile(dataStruct,secureName)
 %MAKISAVEDATAFILE saves maki-data to disk
 %
 % SYNOPSIS: success = makiSaveDataFile(dataStruct)
 %
 % INPUT dataStruct: maki-data structure (see makiMakeDataStruct)
+%       secureName: fieldname of data item that should be saved via
+%                   secureSave, such as 'initCoord' if the initial
+%                   coordinate detection has just been performed.
+%                   SecureSave ensures that old data will not  
+%                   be overwritten
 %
 % OUTPUT success: 1 if successful save of data
 %
@@ -20,6 +25,9 @@ function success = makiSaveDataFile(dataStruct)
 if nargin == 0 || isempty(dataStruct) || ~isstruct(dataStruct)
     error('no dataStruct supplied')
 end
+if nargin < 2 || isempty(secureName)
+    secureName = 'noName';
+end
 
 try
     % save individual files, such as dataProperties
@@ -32,16 +40,16 @@ try
             eval([fn{i},'=dataStruct.',fn{i},';']);
 
             switch fn{i}
-                case {'dataProperties','movieHeader'}
-                    % overwrite, b/c these shouldn't change
-                    save(...
-                        fullfile(dataStruct.dataFilePath,dataStruct.(fileName)),fn{i});
-                otherwise
-                    % do not overwrite saved files!
+                case secureName
+                    % do not overwrite files we just changed
                     savedName = secureSave(...
                         fullfile(dataStruct.dataFilePath,dataStruct.(fileName)),fn{i});
                     % in case there was an older version, remember the name.
                     dataStruct.(fileName) = savedName;
+                otherwise
+                    % overwrite, b/c these didn't/shouldn't change
+                    save(...
+                        fullfile(dataStruct.dataFilePath,dataStruct.(fileName)),fn{i});                    
             end
             % empty the xxx-fields here to save space & time
             dataStruct.(fn{i}) = [];

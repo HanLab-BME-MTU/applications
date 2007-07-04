@@ -97,7 +97,7 @@ for t=1:nTimepoints
     initCoordTmp = sortrows(initCoordTmp,-4);
     % only take 500 highest amplitudes. This will leave plenty of noise
     % spots, but it will avoid huge arrays
-    initCoordTmp = initCoordTmp(1:dataProperties.MAXSPOTS,:);
+    initCoordTmp = initCoordTmp(1:min(dataProperties.MAXSPOTS,size(initCoordTmp,1)),:);
     initCoordRaw{t} = [initCoordTmp,...
         initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)),...
         initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)./max(initCoordTmp(:,4),eps))];
@@ -109,55 +109,77 @@ clear initCoordTmp
 allCoord = cat(1,initCoordRaw{:});
 
 % find cutoff based on amplitude/sqrt(noise/amp), though the others are
-% very similar
-cutoff1 = splitModes(allCoord(:,4)); % amplitude
-cutoff2 = splitModes(allCoord(:,6)); % amplitude/sqrt(nse) - dark noise
-cutoff3 = splitModes(allCoord(:,7)); % amplitude/sqrt(nse/amp) - poisson
+% very similar. Allow fallback if less than 25 spots per frame are found
+% (this indicates that cutFirstHistmode of splitModes failed)
+cutoff = zeros(3,1);
+cutoff(1) = splitModes(allCoord(:,4)); % amplitude
+cutoff(2) = splitModes(allCoord(:,6)); % amplitude/sqrt(nse) - dark noise
+cutoff(3) = splitModes(allCoord(:,7)); % amplitude/sqrt(nse/amp) - poisson
+minGood = 25*nTimepoints;
+    cutoffIdx = 1;
+    cutoffCol = 4;
+
+% if sum(allCoord(:,7)>cutoff(3)) > minGood
+%     cutoffIdx = 3;
+%     cutoffCol = 7;
+% elseif sum(allCoord(:,6)>cutoff(2)) > minGood
+%     cutoffIdx = 2;
+%     cutoffCol = 6;
+% elseif sum(allCoord(:,4)>cutoff(1)) > minGood
+%     cutoffIdx = 1;
+%     cutoffCol = 4;
+% else
+%     error('less than 25 spots per frame found. makiInitCoord failed')
+% end
+% remember the cutoff criterion used
+dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];
 
 % plot all
 if verbose == 2
     figure('Name',sprintf('cutoffs for %s',dataStruct.projectName))
     ah1 = subplot(3,1,1);
     set(ah1,'NextPlot','add')
-    plot(ah1,[1,nTimepoints],[cutoff1 cutoff1]);
+    plot(ah1,[1,nTimepoints],[cutoff(1) cutoff(1)]);
     ah2 = subplot(3,1,2);
     set(ah2,'NextPlot','add')
-    plot(ah2,[1,nTimepoints],[cutoff2 cutoff2]);
+    plot(ah2,[1,nTimepoints],[cutoff(2) cutoff(2)]);
     ah3 = subplot(3,1,3);
     set(ah3,'NextPlot','add')
-    plot(ah3,[1,nTimepoints],[cutoff3 cutoff3]);
+    plot(ah3,[1,nTimepoints],[cutoff(3) cutoff(3)]);
     for t=1:nTimepoints
         plot(ah1,t,initCoordRaw{t}(:,4),'+')
         plot(ah2,t,initCoordRaw{t}(:,6),'+')
         plot(ah3,t,initCoordRaw{t}(:,7),'+')
     end
-    figure('Name',sprintf('cutoff-comparison for %s',dataStruct.projectName))
-    minC = min(allCoord,[],1);
-    maxC = max(allCoord,[],1);
-    subplot(2,2,1)
-    plot(allCoord(:,4),allCoord(:,6),'.')
-    hold on, plot([minC(4),maxC(4)],[cutoff2,cutoff2])
-    hold on, plot([cutoff1, cutoff1],[minC(6),maxC(6)])
-    subplot(2,2,2)
-    plot(allCoord(:,7),allCoord(:,6),'.')
-    hold on, plot([minC(7),maxC(7)],[cutoff2,cutoff2])
-    hold on, plot([cutoff3, cutoff3],[minC(6),maxC(6)])
-    subplot(2,2,3)
-    plot(allCoord(:,4),allCoord(:,7),'.')
-    hold on, plot([minC(4),maxC(4)],[cutoff3,cutoff3])
-    hold on, plot([cutoff1, cutoff1],[minC(7),maxC(7)])
+    
+    % if we want to look at this, we should do scatterCloud!!
+%     figure('Name',sprintf('cutoff-comparison for %s',dataStruct.projectName))
+%     minC = min(allCoord,[],1);
+%     maxC = max(allCoord,[],1);
+%     subplot(2,2,1)
+%     plot(allCoord(:,4),allCoord(:,6),'.')
+%     hold on, plot([minC(4),maxC(4)],[cutoff2,cutoff2])
+%     hold on, plot([cutoff1, cutoff1],[minC(6),maxC(6)])
+%     subplot(2,2,2)
+%     plot(allCoord(:,7),allCoord(:,6),'.')
+%     hold on, plot([minC(7),maxC(7)],[cutoff2,cutoff2])
+%     hold on, plot([cutoff3, cutoff3],[minC(6),maxC(6)])
+%     subplot(2,2,3)
+%     plot(allCoord(:,4),allCoord(:,7),'.')
+%     hold on, plot([minC(4),maxC(4)],[cutoff3,cutoff3])
+%     hold on, plot([cutoff1, cutoff1],[minC(7),maxC(7)])
 end
 
 % loop and store only good locMax
 for t=1:nTimepoints
-    goodIdx = initCoordRaw{t}(:,7) > cutoff3;
+    goodIdx = initCoordRaw{t}(:,cutoffCol) > cutoff(cutoffIdx);
     dataStruct.initCoord{t} = initCoordRaw{t}(goodIdx,1:5);
     % store 2 spots above and below cutoff in case we want to get amplitude
     % cutoff for detector later. Note: the spots may be not exactly the two
     % above or below, since we sorted the data according to amplitudes
     % above.
-    twoAbove = find(initCoordRaw{t}(:,7) > cutoff3,2,'last');
-    twoBelow = find(initCoordRaw{t}(:,7) < cutoff3,2,'first');
+    twoAbove = find(initCoordRaw{t}(:,cutoffCol) > cutoff(cutoffIdx),2,'last');
+    twoBelow = find(initCoordRaw{t}(:,cutoffCol) < cutoff(cutoffIdx),2,'first');
     dataStruct.initCoord4MMF{t} = ...
         initCoordRaw{t}([twoAbove;twoBelow],1:4);
 end
