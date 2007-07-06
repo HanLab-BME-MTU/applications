@@ -8,7 +8,7 @@ function [slist, debugData] = detectSpots_MMF_main(rawMovie,cord,dataProperties,
 %		dataProperties: data properties structure
 %		testRatio: output of detectSpots_MMF_findAmplitudeCutoff. Can be
 %                  empty
-%		verbose: 0: no window, 1: waitbar
+%		verbose: 0: no window, 1: waitbar, 2 or string: progressText
 %		debug: debug status
 %
 % OUTPUT slist: nTimepoints-by-1 structure with fields:
@@ -30,6 +30,12 @@ function [slist, debugData] = detectSpots_MMF_main(rawMovie,cord,dataProperties,
 
 if nargin < 5 || isempty(verbose)
     verbose = 1;
+end
+if ischar(verbose)
+    progTxt = verbose;
+    verbose = 2;
+else
+    progTxt = '';
 end
 if nargin < 6 || isempty(debug)
     debug = 0;
@@ -60,10 +66,10 @@ else
     goodTimes = find(~cellfun('isempty',testRatios));
 
     if ~isempty(goodTimes)
-    % find which timepoints we're actually analyzing
-    tmp = cat(1,testRatios{:});
-    trueTime(2) = max(tmp(:,1));
-    trueTime(1) = min(tmp(:,1));
+        % find which timepoints we're actually analyzing
+        tmp = cat(1,testRatios{:});
+        trueTime(2) = max(tmp(:,1));
+        trueTime(1) = min(tmp(:,1));
     else
         % set trueTime to -99 and  continue. There will be an empty slist
         trueTime = [-99,-99];
@@ -81,10 +87,13 @@ warningState = warning;
 warning off MATLAB:nearlySingularMatrix
 
 
-if verbose
-    h= mywaitbar(0,[],nTimepoints,...
-        sprintf('Mixture Model Fitting, frames %i:%i',...
-        trueTime(1),trueTime(2)));
+switch verbose
+    case 1
+        h= mywaitbar(0,[],nTimepoints,...
+            sprintf('Mixture Model Fitting, frames %i:%i',...
+            trueTime(1),trueTime(2)));
+    case 2
+        progressText(0,progTxt);
 end
 
 %==========================
@@ -152,6 +161,13 @@ for t=goodTimes'
                 fitTest(mskData,cordList(spotsidx,:),idxList,...
                 frameSize,dataProperties, debug);
             
+            % DEBUG - STORE TESTSTAT IN BASE
+%             testStat = cat(2,dbTmp.testValue)';
+%             testStat = [ones(length(testStat),1)*t,testStat];
+%             ts = getappdata(0,'testStat');
+%             ts = [ts;testStat];
+%             setappdata(0,'testStat',ts)
+
             % read debugData
             if debug == 1
                 debugData.fStats{t} = ...
@@ -215,8 +231,11 @@ for t=goodTimes'
 
     end;
     % progressbar
-    if verbose
-        mywaitbar(t/nTimepoints,h,nTimepoints);
+    switch verbose
+        case 1
+            mywaitbar(t/nTimepoints,h,nTimepoints);
+        case 2
+            progressText(t/nTimepoints);
     end
 end; % loop time
 
@@ -228,7 +247,7 @@ end; % loop time
 
 warning(warningState)
 
-if verbose
+if verbose==1
     close(h);
 end
 

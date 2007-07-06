@@ -131,6 +131,20 @@ if isstruct(loadOpt) && ~isfield(loadOpt, 'waveOrder')
     loadOpt.waveOrder = [];
 end
 
+if isstruct(loadOpt) && ~isfield(loadOpt, 'crop')
+    loadOpt.crop = [];
+end
+if isstruct(loadOpt) 
+    if isempty(loadOpt.crop)
+        doCrop = false;
+    else
+        doCrop = true;
+    end
+else
+    doCrop = false;
+end
+
+
 
 %==========================
 
@@ -222,7 +236,7 @@ else
 
         else
             movieInfo = allFileNames(idx);
-            
+
             if length(movieInfo) > 1
                 warning('more than one filtered movie found. Loading the first')
                 movieInfo = movieInfo(1);
@@ -298,8 +312,8 @@ else
             elseif type ~= 7
 
                 % load movie header and correctionData
-                load r3dMovieHeader 
-                load correctionData 
+                load r3dMovieHeader
+                load correctionData
 
                 % reset type 4, 5
                 type = 2;
@@ -377,7 +391,7 @@ else
         movieCorrection = 0;
     end
 
-    
+
     % take care of wave-options. Remove fields from loadOpt to make sure
     % that we don't accidently get in trouble below with a missing field
     % "maxSize"
@@ -386,7 +400,9 @@ else
         loadStruct.waveOrder = loadOpt.waveOrder;
         loadOpt = rmfield(loadOpt,'waveIdx');
         loadOpt = rmfield(loadOpt,'waveOrder');
-        
+        loadStruct.crop = loadOpt.crop;
+        loadOpt = rmfield(loadOpt,'crop');
+
         % check whether there are any fields left for loadOpt
         if isempty(fieldnames(loadOpt))
             loadOpt = [];
@@ -401,7 +417,7 @@ else
     if isstruct(loadOpt)
         % test if good structure
         if ~isfield(loadOpt,'maxSize')
-           error('loadOpt-structure has no known fields!') 
+            error('loadOpt-structure has no known fields!')
         end
 
         if ischar(loadOpt.maxSize) && strcmp(loadOpt.maxSize,'check')
@@ -416,6 +432,15 @@ else
                 if isfield(dataProperties,'maxSize')
                     loadOpt.maxSize = dataProperties.maxSize;
                 end
+            else
+                dpName = dir('*dataProperties*.mat');
+                if ~isempty(dpName)
+                    load(dpName)
+                    if isfield(dataProperties,'maxSize')
+                        loadOpt.maxSize = dataProperties.maxSize;
+                    end
+                end
+
             end
             % if we still don't know the size, go for defaultDataProperties
             if strcmp(loadOpt.maxSize,'check')
@@ -436,6 +461,26 @@ else
         if ~isempty(loadStruct.waveIdx)
             movieSize = movieSize * ...
                 (length(loadStruct.waveIdx)/r3dMovieHeader.numWvs);
+        end
+        % if we're cropping, movieSize gets even smaller
+        if doCrop
+            isCrop = any(loadStruct.crop(:,1:3),1);
+            if any(isCrop)
+                croppedSize = diff(loadStruct.crop(:,1:3),1,1)+1;
+                frameSize = [r3dMovieHeader.numRows,...
+                    r3dMovieHeader.numCols, r3dMovieHeader.numZSlices];
+                croppedSize(1,~isCrop) = frameSize(1,~isCrop);
+                movieSize = movieSize * ...
+                    prod(croppedSize)/prod(frameSize);
+                % if we don't crop along one of the dimensions, we say we take
+                % from 1:end instead 
+                loadStruct.crop(1,~isCrop) = 1;
+                loadStruct.crop(2,~isCrop) = frameSize(1,~isCrop); 
+                loadStruct.crop = loadStruct.crop(:,1:3);
+            else
+                % don't crop if not necessary
+                doCrop = false;
+            end
         end
 
         movieLength = r3dMovieHeader.numTimepoints;
@@ -478,8 +523,8 @@ else
                 frameList((i-1)*numFrames+1:min(i*numFrames,frameListLength))...
                 + correctFrame;
         end
-        
-        
+
+
     elseif isnumeric(loadOpt) && ~isempty(loadOpt)
 
         if min(loadOpt) < 1  || max(loadOpt) > r3dMovieHeader.numTimepoints
@@ -530,11 +575,11 @@ else
             else
                 testStruct = 1:r3dMovieHeader.numTimepoints;
             end
-            
+
             % add wave options
             testStruct.waveIdx = loadStruct.waveIdx;
             testStruct.waveOrder = loadStruct.waveOrder;
-            
+
             % check whether this works at all (at the moment there is no
             % possibility of using dark frame subtraction with multiple
             % wavelengths
@@ -601,7 +646,7 @@ else
     loadList = loadStruct.frames2load{1};
     loadListLength = length(loadList);
     dll = diff(loadList);
-    if isempty(dll) || all(dll==1)
+    if (isempty(dll) || all(dll==1)) && ~doCrop
         isContinuous = 1;
     else
         isContinuous = 0;
@@ -617,8 +662,16 @@ else
             else
                 % load movie timepoint by timepoint
                 for t = loadListLength:-1:1
-                    movie(:,:,:,:,t) = r3dread(loadStruct.movieName,...
+                    tmp = r3dread(loadStruct.movieName,...
                         loadList(t),1,[],loadStruct.waveIdx,loadStruct.waveOrder);
+                    if doCrop
+                        movie(:,:,:,:,t) = tmp(loadStruct.crop(1,1):loadStruct.crop(2,1),...
+                            loadStruct.crop(1,2):loadStruct.crop(2,2),...
+                            loadStruct.crop(1,3):loadStruct.crop(2,3),:,:);
+                    else
+                        movie(:,:,:,:,t) = tmp;
+                    end
+
                 end
             end
 
@@ -631,17 +684,34 @@ else
             else
                 % load movie timepoint by timepoint
                 for t = loadListLength:-1:1
-                    movie(:,:,:,:,t) = r3dread(loadStruct.movieName,...
+                    tmp = r3dread(loadStruct.movieName,...
                         loadList(t),1,[],loadStruct.waveIdx,loadStruct.waveOrder);
+                    if doCrop
+                        movie(:,:,:,:,t) = tmp(loadStruct.crop(1,1):loadStruct.crop(2,1),...
+                            loadStruct.crop(1,2):loadStruct.crop(2,2),...
+                            loadStruct.crop(1,3):loadStruct.crop(2,3),:,:);
+                    else
+                        movie(:,:,:,:,t) = tmp;
+                    end
                 end
             end
 
             % subtract background. If the computer cannot cope with two
             % matrices of maxSize, all is lost, anyway.
-            movie = movie - ...
-                repmat(loadStruct.correctionData.image,...
-                [1,1,1,1,size(movie,5)]) - ...
-                loadStruct.correctionData.minimumIntensity;
+            if doCrop
+                movie = movie - ...
+                    repmat(loadStruct.correctionData.image(...
+                    loadStruct.crop(1,1):loadStruct.crop(2,1),...
+                    loadStruct.crop(1,2):loadStruct.crop(2,2),...
+                    loadStruct.crop(1,3):loadStruct.crop(2,3)),...
+                    [1,1,1,1,size(movie,5)]) - ...
+                    loadStruct.correctionData.minimumIntensity;
+
+                movie = movie - ...
+                    repmat(loadStruct.correctionData.image,...
+                    [1,1,1,1,size(movie,5)]) - ...
+                    loadStruct.correctionData.minimumIntensity;
+            end
 
 
 
@@ -649,6 +719,26 @@ else
             % readmat - check for single-frame movie
             if ~emptyHeader && r3dMovieHeader.numTimepoints == 1
                 movie = readmat(loadStruct.movieName);
+                if doCrop
+                    movie = movie(loadStruct.crop(1,1):loadStruct.crop(2,1),...
+                        loadStruct.crop(1,2):loadStruct.crop(2,2),...
+                        loadStruct.crop(1,3):loadStruct.crop(2,3),:,:);
+                end
+            elseif doCrop
+                for t = loadListLength:-1:1
+                    tmp = readmat(loadStruct.movieName,loadList(t));
+
+                    if all(diff(loadStruct.crop,1,1)+1 == size(tmp,1:3))
+                        % already cropped
+                        movie(:,:,:,:,t) = tmp;
+                    else
+
+                        movie(:,:,:,:,t) = tmp(loadStruct.crop(1,1):loadStruct.crop(2,1),...
+                            loadStruct.crop(1,2):loadStruct.crop(2,2),...
+                            loadStruct.crop(1,3):loadStruct.crop(2,3),:,:);
+                    end
+
+                end
             else
                 movie = readmat(loadStruct.movieName,loadList);
             end
@@ -657,6 +747,24 @@ else
             % readmat - check for single-frame movie
             if r3dMovieHeader.numTimepoints == 1
                 movie = readmat(loadStruct.movieName);
+                if doCrop
+                    movie = movie(loadStruct.crop(1,1):loadStruct.crop(2,1),...
+                        loadStruct.crop(1,2):loadStruct.crop(2,2),...
+                        loadStruct.crop(1,3):loadStruct.crop(2,3),:,:);
+                end
+            elseif doCrop
+                for t = loadListLength:-1:1
+                    tmp = readmat(loadStruct.movieName,loadList(t));
+                    if all(diff(loadStruct.crop,1,1)+1 == size(tmp,1:3))
+                        % already cropped
+                        movie(:,:,:,:,t) = tmp;
+                    else
+
+                        movie(:,:,:,:,t) = tmp(loadStruct.crop(1,1):loadStruct.crop(2,1),...
+                            loadStruct.crop(1,2):loadStruct.crop(2,2),...
+                            loadStruct.crop(1,3):loadStruct.crop(2,3),:,:);
+                    end
+                end
             else
                 movie = readmat(loadStruct.movieName,loadList);
             end
