@@ -42,23 +42,22 @@ end
 % displacement allowed is 500 nm
 
 % all dataProperties are the same
-pixelSize = [data(3).dataStruct.dataProperties.PIXELSIZE_XY,...
-    data(3).dataStruct.dataProperties.PIXELSIZE_XY,...
-    data(3).dataStruct.dataProperties.PIXELSIZE_Z];
 nData = 3;%length(data);
 for iData = nData:-1:1; % count backwards so that we have nSpots defined on time
     % get nSpots
     nTimepoints = length(data(iData).dataStruct.initCoord);
-    data(iData).nSpots = zeros(nTimepoints,4); %number, false pos, false neg, 100%
+    data(iData).nSpots = [...
+        catStruct(1,'data(iData).dataStruct.initCoord.nSpots'),...
+        zeros(nTimepoints,2)]; %number, false pos, false neg, 100%
     for t = 1:nTimepoints
-        data(iData).nSpots(t,1) = length(data(iData).dataStruct.initCoord{t});
+        
         % compare coordinates to #3
         if iData < 3
-            coordTest = data(iData).dataStruct.initCoord{t}(:,1:3);
-            coordTruth = data(3).dataStruct.initCoord{t}(:,1:3);
+            coordTest = data(iData).dataStruct.initCoord(t).allCoord(:,1:3);
+            coordTruth = data(3).dataStruct.initCoord(t).allCoord(:,1:3);
             
-            % finally, I can use the 'metric' option!
-            dm = distMat2(coordTest,coordTruth,pixelSize.^2);
+            % get distance
+            dm = createDistanceMatrix(coordTest,coordTruth);
             % cutoff at 1 um
             dm(dm>cutoff) = -1;
             % lap

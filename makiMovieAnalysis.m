@@ -56,6 +56,9 @@ if testMode
 
     job(1).jobPath = 'D:\makiTestData';
     job(1).jobName = sprintf('testJob-%s.mat',nowString);
+else
+    % revert job paths
+    job = makiMakeJobPlatformIndependent(job);
 end
 
 % collect status of all the jobs
@@ -109,11 +112,21 @@ while ~done
                 makiSaveDataFile(job(iJob).dataStruct,'initCoord');
 
             end
+            
+            % --- track
+            if any(jobs2do == 4)
+            end
+            % --- congression
+            if any(jobs2do == 5)
+            end
+            % --- identify sisters
+            if any(jobs2do == 6)
+            end
 
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %--------------- mixture model fitting ----------------
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            if any(jobs2do == 4)
+            if any(jobs2do == 7)
 
                 % write current job to log files
                 fprintf(1,'%s : mixture model fitting for %s\n',...
@@ -152,7 +165,6 @@ while ~done
 
                 while ~loopDone
 
-                    %filter movie
                     lf = loadStruct.loadedFrames;
                     fprintf(generalLog,sprintf('%s : MMF frames %i:%i\n',nowString,lf(1),lf(end)));
                     fprintf(individualLog,sprintf('%s : MMF frames %i:%i\n',nowString,lf(1),lf(end)));
@@ -173,8 +185,8 @@ while ~done
 
 
                 % save job
-                job(iJob).dataStruct.status(4) = 1;
-                job(iJob).dataStruct.statusHelp{4,2} = date;
+                job(iJob).dataStruct.status(7) = 1;
+                job(iJob).dataStruct.statusHelp{7,2} = date;
                 job(iJob).dataStruct.slist = slist;
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
                 % save dataStruct. Do not overwrite previous slist

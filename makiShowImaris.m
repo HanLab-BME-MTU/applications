@@ -82,10 +82,7 @@ for sw = select(:)'
             % make spots object: X,Y,Z,T,r
 
             nTimepoints = dataProperties.movieSize(end);
-            nSpots = zeros(nTimepoints,1);
-            for t=1:nTimepoints
-                nSpots(t) = size(initCoord{t},1);
-            end
+            nSpots = cat(1,initCoord.nSpots);
             spots = zeros(sum(nSpots),5);
             spots(:,5) = pixelSize(1)*2; % radius in micron
             goodTimes = find(nSpots);
@@ -93,9 +90,9 @@ for sw = select(:)'
             for t = goodTimes'
                 % calculate positions in microns. Subtract one voxel from
                 % the coords: Imaris starts counting at 0!
-                
+                % Use initCoord in pixels to avoid correction problems
                 spots(nSpotSum(t)+1:nSpotSum(t+1),1:4) = ...
-                    [(cat(1,initCoord{t}(:,[2,1,3]))-1 + ...
+                    [(initCoord(t).allCoordPix(:,[2,1,3])-1 + ...
                     repmat(crop(1,[2,1,3])-1,nSpots(t),1)).*...
                     repmat(pixelSize,nSpots(t),1) + ...
                     repmat(zeroOffset,nSpots(t),1),...

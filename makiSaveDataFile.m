@@ -62,7 +62,12 @@ try
     % or similar, replace that part with an identifier
     if strmatch(dataStruct.rawMoviePath,dataStruct.dataFilePath)
         dataStruct.rawMoviePath = [];
-    elseif false
+    else
+        try
+        % make platform independant, if possible
+        dataStruct.rawMoviePath = makiPathDef(dataStruct.rawMoviePath);
+        catch
+        end
     end
 
     % indicate that dataStruct has been saved in status (and last save)

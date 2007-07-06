@@ -83,9 +83,12 @@ dataStruct.dataFileName = dataFileName;
 % interpret rawMoviePath
 if isempty(dataStruct.rawMoviePath)
     dataStruct.rawMoviePath = dataStruct.dataFilePath;
-elseif false
-    % look for identifier here that can be assigned via environment vars or
-    % other possibilities (such as appdata(0))
+else
+    try
+    % remove identifier
+    dataStruct.rawMoviePath = makiPathDef(dataStruct.rawMoviePath);
+    catch
+    end
 end
 
 % check for rawMovie

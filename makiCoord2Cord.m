@@ -18,8 +18,15 @@ function cord = makiCoord2Cord(initCoord)
 
 nTimepoints = length(initCoord);
 
+% write sp, COM. Should anything more be necessary, check spotfind.m for
+% how the information is filled in
 cord(1:nTimepoints) = ...
     struct('sp',[],'COM',[]);
 for t=1:nTimepoints
-    cord(t).sp.cord = job(iJob).dataStruct.initCoord{t}(:,1:3);
+    for i=1:job(iJob).dataStruct.initCoord(t).nSpots
+        cord(t).sp(i).cord = ...
+            job(iJob).dataStruct.initCoord(t).allCoordPix(i,1:3);
+    end
+    cord(t).COM = ...
+        mean(job(iJob).dataStruct.initCoord(t).allCoordPix(i,1:3),1);
 end
