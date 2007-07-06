@@ -121,7 +121,7 @@ filterList = {'*.*',    'All Files (auto format detection) (*.*)',      'reader=
     '*.tif;*.tiff', 'Tiff (series) (*.tif;*.tiff)',                 'reader=''TiffSeries''';...
     '*.bmp',        'BMP (series) (*.bmp)',                         'reader=''BmpSeries'''};
 numFilters   = size(filterList,1);
-filterChoice = [1:numFilters];
+filterChoice = 1:numFilters;
 launchGUI    = 1;
 launchImaris = 1;
 checkSize = 0;
@@ -204,7 +204,7 @@ else
 end
 
 % second argument
-if nargin < 2 | isempty(pathName)
+if nargin < 2 || isempty(pathName)
 
     if ~launchGUI
         % only get pathName if we have to
@@ -290,6 +290,23 @@ if launchImaris
     vImarisApplication.FileOpen([moviePath movieName], filterList{filterIdx,3});
     % set name
     %vImarisApplication.mDataSet.SetParameter('Image','Name',movieName);
+    
+    % make top-level surpass scene
+    imaSurpassScene = vImarisApplication.mFactory.CreateDataContainer();
+
+    % fill surpass scene with light and frame and volume
+    imaLight = vImarisApplication.mFactory.CreateLightSource();
+    imaSurpassScene.AddChild(imaLight);
+    imaFrame = vImarisApplication.mFactory.CreateFrame();
+    imaSurpassScene.AddChild(imaFrame);
+    imaVolume = vImarisApplication.mFactory.CreateVolume();
+    imaSurpassScene.AddChild(imaVolume);
+
+    % add surpass scene and set view
+    vImarisApplication.mSurpassScene = imaSurpassScene;
+    vImarisApplication.mViewer = 'eViewerSurpass';
+
+    
 end
 
 % and get all the corresponding properties
@@ -348,18 +365,18 @@ if checkSize
         numFramesPerChunk = floor(maxSize/frameSizeBytes);
 
         if numFramesPerChunk == 0
-            warning('less than one frame fits into max chunk size - trying to load one');
+            warning('IMREAD:LARGEFRAME','less than one frame fits into max chunk size - trying to load one');
             numFramesPerChunk = 1;
         end
 
         % do this quick and dirty - it's one of those Fridays again
         numChunks = ceil(movieSize(end)/numFramesPerChunk);
-        startIdx = [1:numFramesPerChunk:movieSize(end)];
+        startIdx = 1:numFramesPerChunk:movieSize(end);
         endIdx  = unique(...
             [numFramesPerChunk:numFramesPerChunk:movieSize(end),movieSize(end)]);
         for iChunk = numChunks:-1:1
             includeArray(:,5) = [startIdx(iChunk);endIdx(iChunk)];
-            frames2load{iChunk,1} = includeArray;
+            frames2load{iChunk,1} = includeArray; %#ok<AGROW>
         end
 
         % fill loadStruct
@@ -446,7 +463,7 @@ switch movieType
         frameTime = (frameTime - frameTime(1)) * 86400;
         movieProperties.frameTime = frameTime;
     otherwise
-        warning('no property reader defined for %s',movieType);
+        warning('IMARISIMREAD:NOPROPERTYREADER','no property reader defined for %s',movieType);
         movieProperties = [];
 end
 
