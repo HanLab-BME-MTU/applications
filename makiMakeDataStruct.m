@@ -1,4 +1,4 @@
-function dataStruct = makiMakeDataStruct(rawMovieName, rawMoviePath, projectName, dataFilePath, rootPath)
+function dataStruct = makiMakeDataStruct(rawMovieName, rawMoviePath, projectName, dataFilePath)
 %MAKIMAKEDATASTRUCT creates the overall data structure for mammalian kinetochore analysis
 %
 % SYNOPSIS: dataStruct = makiMakeDataStruct
@@ -11,10 +11,6 @@ function dataStruct = makiMakeDataStruct(rawMovieName, rawMoviePath, projectName
 %           dataFilePath (opt): pathname for dataFile. Specify if the
 %                        dataFile stored in a different path from the
 %                        rawMovie 
-%           rootPath (opt): if rawMoviePath and dataFilePath are relative
-%                        paths, rootPath contains root of the path
-%                        (recommended if data should be accessible on both
-%                        Windows and Linux)
 %
 % OUTPUT dataStruct: Data structure with fields 
 %           projectName : identifier for the project. DataFileName will be
@@ -64,18 +60,6 @@ end
 if nargin < 4 || isempty(dataFilePath)
     dataFilePath = rawMoviePath;
 end
-if nargin < 5
-    rootPath = '';
-end
-
-% check whether dataFilePath exists
-fullDataFilePath = fullfile(rootPath,dataFilePath);
-if isdir(fullDataFilePath)
-    % all is well
-else
-    % create dataFilePath
-    mkdir(fullDataFilePath);
-end
 
 
 %====================
@@ -94,7 +78,7 @@ dataStruct = struct('projectName',projectName,...
     'rawMovieName',rawMovieName,...
     'rawMoviePath',rawMoviePath,...
     'dataFileName',[projectName,'-makiData-',nowString,'.mat'],...
-    'dataFilePath',fullDataFilePath,...
+    'dataFilePath',dataFilePath,...
     'dataPropertiesName',['dataProperties_',projectName,'.mat'],...
     'dataProperties',[],...
     'movieHeaderName',['movieHeader_',projectName,'.mat'],...

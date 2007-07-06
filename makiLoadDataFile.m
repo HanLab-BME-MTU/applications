@@ -84,22 +84,8 @@ dataStruct.dataFileName = dataFileName;
 if isempty(dataStruct.rawMoviePath)
     dataStruct.rawMoviePath = dataStruct.dataFilePath;
 else
-    try
     % remove identifier
     dataStruct.rawMoviePath = makiPathDef(dataStruct.rawMoviePath);
-    catch
-    end
-end
-
-% check for rawMovie
-if ~isdir(dataStruct.rawMoviePath) || ~exist(fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName),'file')
-    % check whether there is a movie in datafilePath
-    if exist(fullfile(dataStruct.dataFilePath,dataStruct.rawMovieName),'file')
-        dataStruct.rawMoviePath = dataStruct.dataFilePath;
-    else
-        error('%s does not exist or does not contain the raw movie %s',...
-            dataStruct.rawMoviePath,dataStruct.dataFilePath)
-    end
 end
         
 

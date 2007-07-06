@@ -5,12 +5,13 @@ function job = makiMakeJob(jobType,status,job)
 %
 % INPUT jobType: 1: test job (default)
 %                2: hercules run
+%                3: update existing job   
 %       status : status that you want to achieve, either as status vector,
 %                e.g. [1,1,1,0,1,0,0], or a list of jobs, e.g. [1,2,3,5]
 %                To force the job, set 2 in the status vector, or negative
 %                numbers in the list
 %       job    : job-struct as output from makiMakeJob (e.g. if you want to
-%                update it)
+%                update it). If empty, you can load via GUI
 %
 % OUTPUT job: job-struct (input to makiMovieAnalysis)
 %
@@ -111,7 +112,10 @@ switch jobType
                         dataFilePath);
                 end
                 % copy log file
-                
+                % get 'body' of movie name, e.g. from bla_crop1_xx.dv,
+                % extract bla
+                % search for bla*log
+                % copyfile log to dataFilePath
                 rawMoviePath = dataFilePath;
             end
 
@@ -141,6 +145,14 @@ switch jobType
                 % load dataFile
                 dataStruct = makiLoadDataFile(fullfile(dataFilePath,dataFile.name));
             end
+            
+            
+             % request jobs to be done
+            toDo = dataStruct.status<status;
+            dataStruct.status(toDo) = -1;
+
+           
+
 
             % crop if not cropped yet (do it here so that we can easily update
             % dataProperties, and that we can set up the job on windows and
@@ -180,6 +192,9 @@ switch jobType
                 %cropZmin = round((imarisHandle.mDataSet.mExtendMinZ-zeroOffsetZ)/dataStruct.dataProperties.PIXELSIZE_Z)+1;
                 %cropZmax = round((imarisHandle.mDataSet.mExtendMaxZ-zeroOffsetZ)/dataStruct.dataProperties.PIXELSIZE_Z)+1-1;
                 % check whether we're cropping at all
+                
+                % GAUDENZ:  check for negative
+                
                 if cropXmin == 1 && cropYmin == 1 && ...
                         cropXmax == dataStruct.dataProperties.movieSize(1) &&  ...
                         cropYmax == dataStruct.dataProperties.movieSize(2)
@@ -201,18 +216,15 @@ switch jobType
                 % imaris sessions will open at the same time)
                 clear imarisHandle
             end
-
-
-            % request jobs to be done
-            toDo = dataStruct.status<status;
-            dataStruct.status(toDo) = -1;
-
-            % store dataStruct - store success
+            
+             % store dataStruct - store success
             dataStruct.status(2) = makiSaveDataFile(dataStruct);
 
             % update job
             job(iJob).dataStruct = dataStruct;
 
+
+           
         end % loop jobs
     case 3
         % job file input
@@ -226,6 +238,8 @@ switch jobType
             else
             load(fullfile(pname,fname));
             end
+        else
+            fname = [];
         end
         
         % loop through job to reload dataStruct, and to change status
@@ -243,6 +257,10 @@ switch jobType
             
             % update job
             job(iJob).dataStruct = dataStruct;
+            if ~isempty(fname)
+                job(iJob).jobName = fname;
+                job(iJob).jobPath = pname;
+            end
             
         end % loop jobs
         

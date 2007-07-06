@@ -3,9 +3,9 @@ function makiShowImaris(dataStruct,select)
 %
 % SYNOPSIS: imarisHandle = makiShowImaris(dataStruct,select)
 %
-% INPUT dataStruct: data structure as described in makiMakeDataStruct
+% INPUT dataStruct: (opt) data structure as described in makiMakeDataStruct
 %                   if empty, guiLoad
-%		select: selection switch.
+%		select: (opt) selection switch.
 %               1: show initCoord (default)
 %
 % OUTPUT ---
