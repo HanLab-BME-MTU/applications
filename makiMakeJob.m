@@ -38,7 +38,7 @@ if length(status) < 7 || any(status > 2)
     tmp(abs(status(status<0))) = 2;
     status = tmp;
 end
-if nargin < 3
+if jobType == 3 && nargin < 3
     job = [];
 end
 
@@ -177,7 +177,7 @@ switch jobType
                 % practice, there is no need for that
                 announcement = warndlg(['Please crop this movie in xy so',...
                     ' that there are no kinetochores from other cells in the image.',...
-                    'Careful: Crop BEFORE clicking OK!'],'Cropping');
+                    'CAREFUL: Crop and WAIT till Imaris is done cropping BEFORE clicking OK!'],'Please read carefully');
                 uiwait(announcement);
 
                 % crop has to be corrected by zeroOffset. Round to avoid

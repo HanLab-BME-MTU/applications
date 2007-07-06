@@ -16,7 +16,7 @@ function pathOrId = makiPathDef(pathOrId)
 %
 % OUTPUT converted input
 %
-% REMARKS
+% REMARKS pathes must not end in a filesep
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -101,5 +101,5 @@ end
 function pathList = loadPathList
 % pathList is {id, winPath, linuxPath}
 pathList = {'$TESTDATA','D:\makiTestData','/data/home/kjaqaman/matlab/testData';...
-    '$HERCULES','O:\','INSERTMOUNTHERE';...
+    '$HERCULES','O:','INSERTMOUNTHERE';...
     };
