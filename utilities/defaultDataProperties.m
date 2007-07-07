@@ -139,16 +139,15 @@ dataProperties.FT_SIGMA = [FT_XY,FT_XY,FT_Z];
 if ~isfield(dataProperties,'frameTime')
     movieLength = dataProperties.movieSize(4);
     stackSize = dataProperties.movieSize(1:3);
-    meanTime = [1:movieLength]';
+    meanTime = (1:movieLength)';
     %center acquisition timepoints around the mean, allow 0.03 sec per slice
-    stackTime = ((stackSize(3)-1)/2-[stackSize(3)-1:-1:0])*0.03;
-    frameTime = repmat(meanTime,1,stackSize(3))+repmat(stackTime,movieLength,1);
-    %frameTime starts with 0
-    dataProperties.frameTime = frameTime-frameTime(1);
-    
-    % also calculate timeLapse
-    dataProperties.timeLapse = mean(diff(mean(frameTime,2)));
+    stackTime = ((stackSize(3)-1)/2-(stackSize(3)-1:-1:0))*0.03;
+    dataProperties.frameTime = repmat(meanTime,1,stackSize(3))+repmat(stackTime,movieLength,1);
 end
+%frameTime starts with 0
+dataProperties.frameTime = dataProperties.frameTime-dataProperties.frameTime(1);
+% also calculate timeLapse
+dataProperties.timeLapse = mean(diff(mean(dataProperties.frameTime,1)));
 
 % force-update dataProperties.F_TEST_PROB
 if dataProperties.F_TEST_PROB==0.9;
