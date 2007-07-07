@@ -118,6 +118,22 @@ while ~done
             end
             % --- congression
             if any(jobs2do == 5)
+                % write current job to log files
+                fprintf(1,'%s : metaphase plate fit %s\n',...
+                    nowString,job(iJob).dataStruct.projectName);
+                fprintf(generalLog,'%s : metaphase plate fit\n',nowString);
+                fprintf(individualLog,'%s : metaphase plate fit\n', nowString);
+
+                % pass and retrieve dataStruct
+                job(iJob).dataStruct = makiMovieAnalysis(job(iJob).dataStruct);
+
+
+                % save job
+                job(iJob).dataStruct.status(5) = 1;
+                job(iJob).dataStruct.statusHelp{5,2} = date;
+                save(fullfile(job(1).jobPath,job(1).jobName),'job');
+                % save dataStruct. Do not overwrite older initCoord
+                makiSaveDataFile(job(iJob).dataStruct,'planeFit');
             end
             % --- identify sisters
             if any(jobs2do == 6)

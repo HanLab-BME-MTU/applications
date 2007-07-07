@@ -7,6 +7,8 @@ function makiUpdateDataFile(update)
 %           1: add cropping
 %           2: reset cropping
 %           3: remove faulty underscore in initCoordName
+%           4: correct timeLapse in dataProperties
+%           5: add new fields to dataStruct
 %
 % OUTPUT
 %
@@ -59,7 +61,7 @@ for iFile = 1:nFiles
     %===========================
     %----- UPDATE --------------
     %===========================
-    
+
     % switch according to update
     switch update
         case 1
@@ -70,9 +72,29 @@ for iFile = 1:nFiles
         case 2
             % reset cropping
             dataStruct.status(1) = -1;
-            
+
         case 3
             dataStruct.initCoordName(end-4) = '';
+
+        case 4
+            % correct timeLapse in dataProperties
+            dataStruct.dataProperties = ...
+                defaultDataProperties(dataStruct.dataProperties);
+
+        case 5
+
+            % add fields
+            if ~isfield(dataStruct,'tracks')
+                projectName = dataStruct.projectName;
+                dataStruct.tracksName=['tracks_',projectName,'.mat'];
+                dataStruct.tracks=[];
+                dataStruct.planeFitName=['planeFit_',projectName,'.mat'];
+                dataStruct.planeFit=[];
+                dataStruct.sisterListName=['sisterList_',projectName,'.mat'];
+                dataStruct.sisterList=[];
+                dataStruct.status = [dataStruct.status;[0,0,0]'];
+                dataStruct.statusHelp = [dataStruct.statusHelp;cell(3,3)];
+            end
 
         otherwise
             % do nothing
