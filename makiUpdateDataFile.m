@@ -9,6 +9,7 @@ function makiUpdateDataFile(update)
 %           3: remove faulty underscore in initCoordName
 %           4: correct timeLapse in dataProperties
 %           5: add new fields to dataStruct
+%           6: swap track/planeFit in .statusHelp
 %
 % OUTPUT
 %
@@ -95,6 +96,11 @@ for iFile = 1:nFiles
                 dataStruct.status = [dataStruct.status;[0,0,0]'];
                 dataStruct.statusHelp = [dataStruct.statusHelp;cell(3,3)];
             end
+            
+        case 6
+            % swap statusHelp-entries
+            dataStruct.statusHelp = ...
+                dataStruct.statusHelp([1,2,3,5,4,6,7],:);
 
         otherwise
             % do nothing

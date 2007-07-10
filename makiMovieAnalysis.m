@@ -38,8 +38,10 @@ end
 % 1: crop
 % 2: dataFile
 % 3: initCoord
-% 4: slist
-% ???
+% 4: plane fit
+% 5: track
+% 6: identify sisters
+% 7: slist
 
 if testMode
 
@@ -113,11 +115,9 @@ while ~done
 
             end
             
-            % --- track
-            if any(jobs2do == 4)
-            end
+            
             % --- congression
-            if any(jobs2do == 5)
+            if any(jobs2do == 4)
                 % write current job to log files
                 fprintf(1,'%s : metaphase plate fit %s\n',...
                     nowString,job(iJob).dataStruct.projectName);
@@ -129,11 +129,15 @@ while ~done
 
 
                 % save job
-                job(iJob).dataStruct.status(5) = 1;
-                job(iJob).dataStruct.statusHelp{5,2} = date;
+                job(iJob).dataStruct.status(4) = 1;
+                job(iJob).dataStruct.statusHelp{4,2} = date;
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
                 % save dataStruct. Do not overwrite older initCoord
                 makiSaveDataFile(job(iJob).dataStruct,'planeFit');
+            end
+            
+            % --- track
+            if any(jobs2do == 5)
             end
             % --- identify sisters
             if any(jobs2do == 6)

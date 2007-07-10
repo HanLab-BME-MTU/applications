@@ -8,6 +8,8 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 %                     .rawMovieName
 %                     .rawMoviePath
 %                     .dataProperties
+%                   verbose: whether or not to plot cutoff plots 
+%                       (default: 0)
 %
 % OUTPUT dataStruct.initCoords: Structure of length nTimepoints with fields
 %                       .allCoord     [x y z sx sy sz] coords and sigmas in
