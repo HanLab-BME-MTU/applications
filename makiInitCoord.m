@@ -87,7 +87,7 @@ dataStruct.initCoord = tmp;
 %% MAIN LOOP
 %=====================
 
-% progressText;
+progressText;
 
 for t=1:nTimepoints
 
@@ -152,7 +152,7 @@ for t=1:nTimepoints
         initCoordRaw{t} = initCoordTmp;
 
     
-%     progressText(t/nTimepoints);
+    progressText(t/nTimepoints);
 end % loop timepoints
 
 clear initCoordTmp
