@@ -5,12 +5,13 @@ function makiShowImaris(dataStruct,select)
 %
 % INPUT dataStruct: (opt) data structure as described in makiMakeDataStruct
 %                   if empty, guiLoad
-%		select: (opt) selection switch.
-%               1: show initCoord (default)
+%		select: (opt) vector of analysis results to plot, in addition to
+%               spots (default)
+%               1st entry: tracks; 2nd entry: fitted plane. 
 %
 % OUTPUT ---
 %
-% REMARKS
+% REMARKS in plotting tracks, merges and splits cannot be plotted yet
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -30,6 +31,12 @@ if isempty(dataStruct)
     dataStruct = makiLoadDataFile;
 end
 
+if nargin < 2 || isempty(select)
+    select = [0 0];
+elseif length(select) < 2
+    select = [select(1) 0];
+end
+    
 % turn off property reader warning
 warningState = warning;
 warning off IMARISIMREAD:NOPROPERTYREADER
@@ -38,6 +45,7 @@ warning off IMARISIMREAD:NOPROPERTYREADER
 dataProperties = dataStruct.dataProperties;
 pixelSize = [dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,...
     dataProperties.PIXELSIZE_Z];
+
 % check for croppping
 if isempty(dataProperties.crop)
     dataProperties.crop = zeros(2,3);
@@ -47,91 +55,203 @@ isCrop = any(crop,1);
 crop(1,~isCrop) = 1;
 crop(2,~isCrop) = dataProperties.movieSize(find(~isCrop)); %#ok<FNDSB>
 
+% start imaris
+imarisApplication = imarisStartNew;
 
-% loop switches
+% load raw movie into imaris. We could do filtered movie, but
+% for this, we would have to load frame by frame and do all the
+% image properties stuff
+imarisApplication.FileOpen(...
+    fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName),...
+    'reader=''DeltaVision''');
 
-for sw = select(:)'
-    
-    % start imaris
-            imarisApplication = imarisStartNew;
-            % load raw movie into imaris. We could do filtered movie, but
-            % for this, we would have to load frame by frame and do all the
-            % image properties stuff
-            imarisApplication.FileOpen(...
-                fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName),...
-                'reader=''DeltaVision''');
-            
-            % check image properties: image should begin at -0.5 pix.
-            % It would be nice to be able to set the pixelSize to -0.5.
-            % Instead, we have to read the mins and calculate an offset
-            zeroOffsetX = imarisApplication.mDataSet.mExtendMinX + 0.5*pixelSize(1);
-            zeroOffsetY = imarisApplication.mDataSet.mExtendMinY + 0.5*pixelSize(2);
-            zeroOffsetZ = imarisApplication.mDataSet.mExtendMinZ + 0.5*pixelSize(3);
-            zeroOffset = [zeroOffsetX zeroOffsetY zeroOffsetZ];
-    
-    
-    switch sw
-        case 1
-            
-            
-            
-            % plot from initCoord
+% check image properties: image should begin at -0.5 pix.
+% It would be nice to be able to set the pixelSize to -0.5.
+% Instead, we have to read the mins and calculate an offset
+zeroOffsetX = imarisApplication.mDataSet.mExtendMinX + 0.5*pixelSize(1);
+zeroOffsetY = imarisApplication.mDataSet.mExtendMinY + 0.5*pixelSize(2);
+zeroOffsetZ = imarisApplication.mDataSet.mExtendMinZ + 0.5*pixelSize(3);
+zeroOffset = [zeroOffsetX zeroOffsetY zeroOffsetZ];
 
-            initCoord = dataStruct.initCoord;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%detected spots (initCoord)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            % make spots object: X,Y,Z,T,r
+%get coordinates
+initCoord = dataStruct.initCoord;
 
-            nTimepoints = dataProperties.movieSize(end);
-            nSpots = cat(1,initCoord.nSpots);
-            spots = zeros(sum(nSpots),5);
-            spots(:,5) = pixelSize(1)*2; % radius in micron
-            goodTimes = find(nSpots);
-            nSpotSum = [0;cumsum(nSpots)];
-            for t = goodTimes'
-                % calculate positions in microns. Subtract one voxel from
-                % the coords: Imaris starts counting at 0!
-                % Use initCoord in pixels to avoid correction problems
-                spots(nSpotSum(t)+1:nSpotSum(t+1),1:4) = ...
-                    [(initCoord(t).allCoordPix(:,[2,1,3])-1 + ...
-                    repmat(crop(1,[2,1,3])-1,nSpots(t),1)).*...
-                    repmat(pixelSize,nSpots(t),1) + ...
-                    repmat(zeroOffset,nSpots(t),1),...
-                    (t-1)*ones(nSpots(t),1)];
-            end
-
-            
-             
-            
-
-
-            % make top-level surpass scene
-            imaSurpassScene = imarisApplication.mFactory.CreateDataContainer();
-
-            % fill surpass scene with light and frame and volume
-            imaLight = imarisApplication.mFactory.CreateLightSource();
-            imaSurpassScene.AddChild(imaLight);
-            imaFrame = imarisApplication.mFactory.CreateFrame();
-            imaSurpassScene.AddChild(imaFrame);
-            imaVolume = imarisApplication.mFactory.CreateVolume();
-            imaSurpassScene.AddChild(imaVolume);
-
-            % add surpass scene and set view
-            imarisApplication.mSurpassScene = imaSurpassScene;
-            imarisApplication.mViewer = 'eViewerSurpass';
-
-            % create spots object
-            imaSpots = imarisApplication.mFactory.CreateSpots;
-
-            % set coords
-            imaSpots.Set(single(spots(:,1:3)),single(spots(:,4)),single(spots(:,5)));
-
-            % add to scene
-            imaSurpassScene.AddChild(imaSpots);
-
-        otherwise
-            fprintf(1,'selection %i not implemented yet',sw)
-    end
+% make spots object: X,Y,Z,T,r
+nTimepoints = dataProperties.movieSize(end);
+nSpots = cat(1,initCoord.nSpots);
+spots = zeros(sum(nSpots),5);
+spots(:,5) = pixelSize(1)*2; % radius in micron
+goodTimes = find(nSpots);
+nSpotSum = [0;cumsum(nSpots)];
+for t = goodTimes'
+    % calculate positions in microns. Subtract one voxel from
+    % the coords: Imaris starts counting at 0!
+    % Use initCoord in pixels to avoid correction problems
+    spots(nSpotSum(t)+1:nSpotSum(t+1),1:4) = ...
+        [(initCoord(t).allCoordPix(:,[2,1,3])-1 + ...
+        repmat(crop(1,[2,1,3])-1,nSpots(t),1)).*...
+        repmat(pixelSize,nSpots(t),1) + ...
+        repmat(zeroOffset,nSpots(t),1),...
+        (t-1)*ones(nSpots(t),1)];
 end
+
+% make top-level surpass scene
+imaSurpassScene = imarisApplication.mFactory.CreateDataContainer();
+
+% fill surpass scene with light and frame and volume
+imaLight = imarisApplication.mFactory.CreateLightSource();
+imaSurpassScene.AddChild(imaLight);
+imaFrame = imarisApplication.mFactory.CreateFrame();
+imaSurpassScene.AddChild(imaFrame);
+imaVolume = imarisApplication.mFactory.CreateVolume();
+imaSurpassScene.AddChild(imaVolume);
+
+% add surpass scene and set view
+imarisApplication.mSurpassScene = imaSurpassScene;
+imarisApplication.mViewer = 'eViewerSurpass';
+
+% create spots object
+imaSpots = imarisApplication.mFactory.CreateSpots;
+
+% set coords
+imaSpots.Set(single(spots(:,1:3)),single(spots(:,4)),single(spots(:,5)));
+
+% add to scene
+imaSurpassScene.AddChild(imaSpots);
+           
+%%%%%%%
+%tracks
+%%%%%%%
+
+if select(1)
+
+    %make spots plotted earlier invisible
+    imaSpots.mVisible = 0;
+    
+    %get tracks from dataStruct
+    tracksFinal = dataStruct.tracks;
+    
+    %find total number of tracks
+    numTracks = length(tracksFinal);
+    
+    %find track start and end times
+    trackSEL = getTrackSEL(tracksFinal);
+    
+    %find gaps in tracks
+    gapInfo = findTrackGaps(tracksFinal);
+
+    %create data container for tracks longer than 90% of movie
+    imaTrackGroup90to100 = imarisApplication.mFactory.CreateDataContainer;
+    imaTrackGroup90to100.mName = 'tracks with length 90-100%';
+
+    %create data container for tracks between 70% and 90% of movie
+    imaTrackGroup70to90 = imarisApplication.mFactory.CreateDataContainer;
+    imaTrackGroup70to90.mName = 'tracks with length 70-100%';
+
+    %create data container for tracks between 50% and 70% of movie
+    imaTrackGroup50to70 = imarisApplication.mFactory.CreateDataContainer;
+    imaTrackGroup50to70.mName = 'tracks with length 50-70%';
+
+    %create data container for tracks shorter than 50% of movie
+    imaTrackGroup0to50 = imarisApplication.mFactory.CreateDataContainer;
+    imaTrackGroup0to50.mName = 'tracks with length 0-50%';
+
+    for iTrack = 1 : numTracks
+
+        %create track object
+        imaTracks = imarisApplication.mFactory.CreateTrack;
+
+        %get spots belonging to this track, where index is per
+        %frame
+        spotsIndx = [ones(1,trackSEL(iTrack,1)-1) ...
+            tracksFinal(iTrack).tracksFeatIndxCG ...
+            ones(1,nTimepoints-trackSEL(iTrack,2))]';
+
+        %locate gaps in this track
+        gapsInTrack = gapInfo(gapInfo(:,1)==iTrack,:);
+
+        %calculate cumulative index of spots in order to get spot
+        %data from the variable "spots"
+        spotsIndx = spotsIndx + nSpotSum(1:end-1);
+
+        %get spot coordinates and sizes(some are wrong and will be corrected
+        %in the next couple of steps)
+        spotsCoord = spots(spotsIndx,1:3);
+        spotSize = pixelSize(1)*2*ones(nTimepoints,1);
+
+        %for frames before track starts, assign position as that at
+        %the start. Make spot size 0
+        spotsCoord(1:trackSEL(iTrack,1)-1,1) = spotsCoord(trackSEL(iTrack,1),1);
+        spotsCoord(1:trackSEL(iTrack,1)-1,2) = spotsCoord(trackSEL(iTrack,1),2);
+        spotsCoord(1:trackSEL(iTrack,1)-1,3) = spotsCoord(trackSEL(iTrack,1),3);
+        spotSize(1:trackSEL(iTrack,1)-1) = 0;
+
+        %for frames after track ends, assign position as that at
+        %the end. Make spot size 0
+        spotsCoord(trackSEL(iTrack,2)+1:end,1) = spotsCoord(trackSEL(iTrack,2),1);
+        spotsCoord(trackSEL(iTrack,2)+1:end,2) = spotsCoord(trackSEL(iTrack,2),2);
+        spotsCoord(trackSEL(iTrack,2)+1:end,3) = spotsCoord(trackSEL(iTrack,2),3);
+        spotSize(trackSEL(iTrack,2)+1:nTimepoints) = 0;
+
+        %in frames where there is a gap, use coordinate of last
+        %frame where object is detected. Make spot size half that of a
+        %detected spot
+        for iGap = 1 : size(gapsInTrack,1)
+            spotsCoord(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1,1) = spotsCoord(gapsInTrack(iGap,3)-1,1);
+            spotsCoord(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1,2) = spotsCoord(gapsInTrack(iGap,3)-1,2);
+            spotsCoord(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1,3) = spotsCoord(gapsInTrack(iGap,3)-1,3);
+            spotSize(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1) = pixelSize(1);
+        end
+
+        %set spot coordinates in imaris object
+        imaSpotsTrack = imarisApplication.mFactory.CreateSpots;
+        imaSpotsTrack.Set(single(spotsCoord),...
+            single(spots(spotsIndx,4)),single(spotSize));
+
+        %define track spots
+        imaTracks.SetSpots(imaSpotsTrack)
+        
+        %define track edges
+        imaTracks.SetEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
+
+        %add track to relevant data container
+        if trackSEL(iTrack,3) >= 0.9*nTimepoints
+            imaTracks.SetColor(single(1),single(0),single(0),single(0));
+            imaTrackGroup90to100.AddChild(imaTracks);
+        elseif trackSEL(iTrack,3) >= 0.7*nTimepoints
+            imaTracks.SetColor(single(0),single(1),single(0),single(0));
+            imaTrackGroup70to90.AddChild(imaTracks);
+        elseif trackSEL(iTrack,3) >= 0.5*nTimepoints
+            imaTracks.SetColor(single(0),single(0),single(1),single(0));
+            imaTrackGroup50to70.AddChild(imaTracks);
+        else
+            imaTracks.SetColor(single(1),single(0),single(1),single(0));
+            imaTrackGroup0to50.AddChild(imaTracks);
+        end
+        
+    end %(for iTrack = 1 : numTracks)
+
+    %add track groups to scene
+    imaSurpassScene.AddChild(imaTrackGroup90to100);
+    imaSurpassScene.AddChild(imaTrackGroup70to90);
+    imaSurpassScene.AddChild(imaTrackGroup50to70);
+    imaSurpassScene.AddChild(imaTrackGroup0to50);
+
+
+end %(if select(1))
+            
+%%%%%%%%%%%%%
+%fitted plane
+%%%%%%%%%%%%%
+
+if select(2)
+    disp('Sorry, plotting plane not implemented yet!');
+end
+
 
 % turn warnings back on
 warning(warningState)

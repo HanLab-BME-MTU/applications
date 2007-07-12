@@ -116,7 +116,9 @@ while ~done
             end
             
             
-            % --- congression
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %----------------- congression ------------------------
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
             if any(jobs2do == 4)
                 % write current job to log files
                 fprintf(1,'%s : metaphase plate fit %s\n',...
@@ -125,20 +127,40 @@ while ~done
                 fprintf(individualLog,'%s : metaphase plate fit\n', nowString);
 
                 % pass and retrieve dataStruct
-                job(iJob).dataStruct = makiMovieAnalysis(job(iJob).dataStruct);
-
+                job(iJob).dataStruct = makiFitPlane(job(iJob).dataStruct,0);
 
                 % save job
                 job(iJob).dataStruct.status(4) = 1;
                 job(iJob).dataStruct.statusHelp{4,2} = date;
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
-                % save dataStruct. Do not overwrite older initCoord
+                % save dataStruct. Do not overwrite older plane fits
                 makiSaveDataFile(job(iJob).dataStruct,'planeFit');
             end
             
-            % --- track
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %------------------- tracking -------------------------
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
             if any(jobs2do == 5)
+                
+                %write current job to log files
+                fprintf(1,'%s : generate tracks for %s\n',...
+                    nowString,job(iJob).dataStruct.projectName);
+                fprintf(generalLog,'%s : generate tracks\n',nowString);
+                fprintf(individualLog,'%s : generate tracks\n', nowString);
+
+                %pass and retrieve dataStruct
+                job(iJob).dataStruct = makiGenerateTracks(job(iJob).dataStruct);
+
+                %save job
+                job(iJob).dataStruct.status(5) = 1;
+                job(iJob).dataStruct.statusHelp{5,2} = date;
+                save(fullfile(job(1).jobPath,job(1).jobName),'job');
+                
+                %save dataStruct. Do not overwrite older tracks
+                makiSaveDataFile(job(iJob).dataStruct,'tracks');
+                
             end
+            
             % --- identify sisters
             if any(jobs2do == 6)
             end

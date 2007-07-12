@@ -1,3 +1,4 @@
+
 function dataStruct = makiInitCoord(dataStruct, verbose)
 %MAKIINITCOORD finds initial guesses for mammalian kinetochores
 %
@@ -14,7 +15,7 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 % OUTPUT dataStruct.initCoords: Structure of length nTimepoints with fields
 %                       .allCoord     [x y z sx sy sz] coords and sigmas in
 %                           microns, corrected for refocussing. Sigma is
-%                           0.5 pixels
+%                           0.25 pixels
 %                       .allCoordPix  same as coords, but in pixels and
 %                           without correction.
 %                       .correctionMu z-correction in microns
@@ -86,7 +87,7 @@ dataStruct.initCoord = tmp;
 %% MAIN LOOP
 %=====================
 
-progressText;
+% progressText;
 
 for t=1:nTimepoints
 
@@ -151,7 +152,7 @@ for t=1:nTimepoints
         initCoordRaw{t} = initCoordTmp;
 
     
-    progressText(t/nTimepoints);
+%     progressText(t/nTimepoints);
 end % loop timepoints
 
 clear initCoordTmp
@@ -237,7 +238,7 @@ for t=1:nTimepoints
     % store pixel coords. Uncertainty is 0.5 pix
     dataStruct.initCoord(t).allCoordPix = ...
         [initCoordRaw{t}(goodIdxL,1:3),...
-        0.5*ones(dataStruct.initCoord(t).nSpots,3)];
+        0.25*ones(dataStruct.initCoord(t).nSpots,3)];
     
     % store estimated amplitude and noise 
     dataStruct.initCoord(t).initAmp = initCoordRaw{t}(goodIdxL,4:5);

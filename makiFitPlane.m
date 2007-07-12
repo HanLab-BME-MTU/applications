@@ -45,7 +45,7 @@ function dataStruct = makiFitPlane(dataStruct,verbose)
 % REMARKS  - When the spots have been tracked, plane fit should be refined.
 %          - The last of the metaphaseFrames is automatically removed,
 %            because at least in WT cells, it is actually anaphase.
-% 
+%
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -105,8 +105,12 @@ goodFramesL = (eigenRatio(:,1)<1);
 % find this by using bwlabel and identify the largest group
 goodFramesLb = bwlabel(goodFramesL);
 [idx,cts] = countEntries(goodFramesLb);
-goodLabel = idx(find(cts(2:end)==max(cts(2:end)))+1);
-metaphaseFrames = find(goodFramesLb==goodLabel);
+if length(idx) > 1
+    goodLabel = idx(find(cts(2:end)==max(cts(2:end)))+1);
+    metaphaseFrames = find(goodFramesLb==goodLabel);
+else
+    metaphaseFrames = find(goodFramesL==1);
+end
 % remove last frames if requested
 metaphaseFrames = metaphaseFrames(1:end-removeLastFrames);
 
@@ -243,6 +247,73 @@ for t=[metaphaseFrames(1:end-1),metaphaseFrames(2:end)]'
         planeFit(t(2)).planeVectors(:,1))) *180/pi;
 end
 
+%% align frames wherever possible (i.e. in metaphase and anaphase) to get rid of overall rotation
+
+%calculate the average position of the center of all fitted planes
+originAll = vertcat(planeFit.planeOrigin);
+originAll = mean(originAll);
+
+%shift all coordinates such that the origin in all frames is at originAll
+tmpCoord = repmat(struct('allCoord',[]),nTimepoints,1);
+for iTime = 1 : nTimepoints
+    tmpCoord(iTime).allCoord = initCoord(iTime).allCoord;
+    tmpCoord(iTime).allCoord(:,1:3) = tmpCoord(iTime).allCoord(:,1:3) - ...
+        repmat(originAll,nSpots(iTime),1);
+end
+
+%get frames in metaphase and beyond
+firstMetaFrame = planeFit(1).metaphaseFrames(1);
+frames2Rotate = (firstMetaFrame+1:nTimepoints);
+
+%fetch the eigenvector representing the normal to the plane, and construct
+%the other two axes of the coordinate system
+coordSystem = zeros(3,3,nTimepoints);
+for iTime = 1 : nTimepoints
+    axis1 = planeFit(iTime).eigenVectors(:,1);
+    axis2 = [-axis1(2) axis1(1) 0]';
+    axis2 = axis2 / sqrt(axis2' * axis2);
+    axis3 = cross(axis1,axis2);
+    coordSystem(:,:,iTime) = [axis1 axis2 axis3];
+end
+
+%rotate coordinates and coordinate system in all frames such that the
+%coordiante system of the first frame labeled metaphase defines the 
+%new x, y and z axes
+%propagate errors to the new coordinates
+rotationMat = inv(coordSystem(:,:,firstMetaFrame)); %rotation matrix
+errorPropMat = rotationMat.^2;
+for iTime = 1 : nTimepoints
+    tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
+    tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
+    coordSystem(:,:,iTime) = rotationMat*coordSystem(:,:,iTime);
+end
+
+%rotate coordinates in frames after the first metaphase frame to align them
+%with that frame
+%propagate errors to the new coordinates
+for iTime = frames2Rotate
+    rotationMat = inv(coordSystem(:,:,iTime)); %rotation matrix
+    errorPropMat = rotationMat.^2;
+    tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
+    tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
+end
+
+%make all coordinates positive
+minCoord = vertcat(tmpCoord.allCoord);
+minCoord = min(minCoord);
+minCoord = minCoord - 10;
+for iTime = 1 : nTimepoints
+    tmpCoord(iTime).allCoord(:,1) = tmpCoord(iTime).allCoord(:,1) - minCoord(1);
+    tmpCoord(iTime).allCoord(:,2) = tmpCoord(iTime).allCoord(:,2) - minCoord(2);
+    tmpCoord(iTime).allCoord(:,3) = tmpCoord(iTime).allCoord(:,3) - minCoord(3);
+end
+
+%store rotated coordinates in planeFit structure
+for iTime = 1 : nTimepoints
+    planeFit(iTime).rotatedCoord = tmpCoord(iTime).allCoord;
+end
+
+%% output
 
 % assign out
 dataStruct.planeFit = planeFit;

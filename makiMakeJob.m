@@ -5,7 +5,7 @@ function job = makiMakeJob(jobType,status,job)
 %
 % INPUT jobType: 1: test job (default)
 %                2: hercules run
-%                3: update existing job   
+%                3: update existing job
 %       status : status that you want to achieve, either as status vector,
 %                e.g. [1,1,1,0,1,0,0], or a list of jobs, e.g. [1,2,3,5]
 %                To force the job, set 2 in the status vector, or negative
@@ -16,6 +16,8 @@ function job = makiMakeJob(jobType,status,job)
 % OUTPUT job: job-struct (input to makiMovieAnalysis)
 %
 % REMARKS This is a hack. Setting up jobs should be done via a GUI.
+%         Order of jobs so far: (1) cropping; (2) saving dataStruct;
+%         (3) initCoord; (4) plane fit; (5) tracking
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -42,11 +44,9 @@ if jobType == 3 && nargin < 3
     job = [];
 end
 
-
 % turn off property reader warning
 warningState = warning;
 warning off IMARISIMREAD:NOPROPERTYREADER
-
 
 switch jobType
     case {1,2}
@@ -81,7 +81,6 @@ switch jobType
         % store job path in all jobs, in case we want to pick out one
         job(1:nJobs) = struct('jobPath',jobPath,...
             'jobName',jobName,'dataStruct',[]);
-
 
         for iJob = 1:nJobs
             % for now: project name is rawMovieName minus extension
@@ -145,14 +144,10 @@ switch jobType
                 % load dataFile
                 dataStruct = makiLoadDataFile(fullfile(dataFilePath,dataFile.name));
             end
-            
-            
-             % request jobs to be done
+
+            % request jobs to be done
             toDo = dataStruct.status<status;
             dataStruct.status(toDo) = -1;
-
-           
-
 
             % crop if not cropped yet (do it here so that we can easily update
             % dataProperties, and that we can set up the job on windows and
@@ -192,9 +187,9 @@ switch jobType
                 %cropZmin = round((imarisHandle.mDataSet.mExtendMinZ-zeroOffsetZ)/dataStruct.dataProperties.PIXELSIZE_Z)+1;
                 %cropZmax = round((imarisHandle.mDataSet.mExtendMaxZ-zeroOffsetZ)/dataStruct.dataProperties.PIXELSIZE_Z)+1-1;
                 % check whether we're cropping at all
-                
+
                 % GAUDENZ:  check for negative
-                
+
                 if cropXmin == 1 && cropYmin == 1 && ...
                         cropXmax == dataStruct.dataProperties.movieSize(1) &&  ...
                         cropYmax == dataStruct.dataProperties.movieSize(2)
@@ -216,19 +211,71 @@ switch jobType
                 % imaris sessions will open at the same time)
                 clear imarisHandle
             end
-            
-             % store dataStruct - store success
+
+            %assign tracking parameters if tracking is requested
+            if dataStruct.status(5) < 0
+
+                %ask for some parameters from user
+                userEntryR = input('Enter 1 to use rotated coordinates in tracking. ');
+                if userEntryR ~= 1
+                    userEntryR = 0;
+                end
+                
+                disp('Please input - as a row vector - values for the maximum gap');
+                disp('(in frames), minimum search radius (in microns), maximum ');
+                disp('search radius (in microns), and maximum angle difference (in degrees)');
+                userEntry = input('');
+
+                %gap closing parameters
+                gapCloseParam.timeWindow = userEntry(1);
+                gapCloseParam.mergeSplit = 0;
+
+                %cost matrix parameters for linking spots between
+                %consecutive frames
+                costMatParam.minSearchRadiusL = userEntry(2);
+                costMatParam.maxSearchRadiusL = userEntry(3);
+                costMatParam.brownStdMultL = 3;
+                costMatParam.closestDistScaleL = 2;
+                costMatParam.maxStdMultL = 20;
+
+                %cost matrix parameters for closing gaps and (in principle)
+                %merging and splitting
+                costMatParam.minSearchRadiusCG = userEntry(2);
+                costMatParam.maxSearchRadiusCG = userEntry(3);
+                costMatParam.brownStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
+                costMatParam.linStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
+                costMatParam.timeReachConfB = gapCloseParam.timeWindow;
+                costMatParam.timeReachConfL = 1;
+                costMatParam.closestDistScaleCG = 2;
+                costMatParam.maxStdMultCG = 20;
+                costMatParam.lenForClassify = 10;
+                costMatParam.maxAngle = userEntry(4);
+                costMatParam.ampRatioLimitCG = [0.5000 2];
+
+                %parameters for using local density to expand search radius
+                useLocalDensity.link = 1;
+                useLocalDensity.cg = 1;
+                useLocalDensity.nnWindowL = gapCloseParam.timeWindow;
+                useLocalDensity.nnWindowCG = gapCloseParam.timeWindow;
+
+                %save tracking parameters in dataProperties
+                dataStruct.dataProperties.tracksParam.rotate = userEntryR;
+                dataStruct.dataProperties.tracksParam.gapCloseParam = gapCloseParam;
+                dataStruct.dataProperties.tracksParam.costMatParam = costMatParam;
+                dataStruct.dataProperties.tracksParam.useLocalDensity = useLocalDensity;
+
+            end %(if dataStruct.status(5) < 0)
+
+            % store dataStruct - store success
             dataStruct.status(2) = makiSaveDataFile(dataStruct);
 
             % update job
             job(iJob).dataStruct = dataStruct;
 
-
-           
         end % loop jobs
     case 3
         % job file input
-        
+
         % check input
         if isempty(job)
             [fname,pname] = uigetfile('*job*','select job file');
@@ -236,34 +283,34 @@ switch jobType
             if fname == 0
                 return
             else
-            load(fullfile(pname,fname));
+                load(fullfile(pname,fname));
             end
         else
             fname = [];
         end
-        
+
         % loop through job to reload dataStruct, and to change status
         job = makiMakeJobPlatformIndependent(job);
-        
+
         for iJob = 1:length(job)
             % reload dataStruct
             dataStruct = makiLoadDataFile(...
                 fullfile(job(iJob).dataStruct.dataFilePath,...
                 job(iJob).dataStruct.dataFileName));
-            
+
             % set status
             toDo = dataStruct.status<status;
             dataStruct.status(toDo) = -1;
-            
+
             % update job
             job(iJob).dataStruct = dataStruct;
             if ~isempty(fname)
                 job(iJob).jobName = fname;
                 job(iJob).jobPath = pname;
             end
-            
+
         end % loop jobs
-        
+
     otherwise
         error('job type %i not defined', jobType)
 end
