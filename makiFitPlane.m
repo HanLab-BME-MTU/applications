@@ -247,38 +247,53 @@ for t=[metaphaseFrames(1:end-1),metaphaseFrames(2:end)]'
         planeFit(t(2)).planeVectors(:,1))) *180/pi;
 end
 
-%% align frames wherever possible (i.e. in metaphase and anaphase) to get rid of overall rotation
+%% align frames wherever possible (i.e. in metaphase) to get rid of overall rotation
 
-%calculate the average position of the center of all fitted planes
-originAll = vertcat(planeFit.planeOrigin);
-originAll = mean(originAll);
-
-%shift all coordinates such that the origin in all frames is at originAll
+%shift the coordinates in each frame such that the center of the fitted 
+%plane in each frame is the origin
 tmpCoord = repmat(struct('allCoord',[]),nTimepoints,1);
 for iTime = 1 : nTimepoints
     tmpCoord(iTime).allCoord = initCoord(iTime).allCoord;
     tmpCoord(iTime).allCoord(:,1:3) = tmpCoord(iTime).allCoord(:,1:3) - ...
-        repmat(originAll,nSpots(iTime),1);
+        repmat(meanCoord(iTime,:),nSpots(iTime),1);
 end
 
-%get frames in metaphase and beyond
-firstMetaFrame = planeFit(1).metaphaseFrames(1);
-frames2Rotate = (firstMetaFrame+1:nTimepoints);
+%get frames in metaphase
+metaFrames = planeFit(1).metaphaseFrames;
+firstMetaFrame = metaFrames(1);
 
-%fetch the eigenvector representing the normal to the plane, and construct
-%the other two axes of the coordinate system
+%construct the coordinate system of each frame from the plane fit
 coordSystem = zeros(3,3,nTimepoints);
+axis1Old = planeFit(1).eigenVectors(:,1); %dummy for first iteration
 for iTime = 1 : nTimepoints
+
+    %fetch the eigenvector representing the normal to the plane
     axis1 = planeFit(iTime).eigenVectors(:,1);
+
+    %make sure that the rotation from the previous frame to this one is
+    %smooth, i.e. the dot product of the normal in this frame and the
+    %normal in the previous frame is positive. If it is negative, flip
+    %the normal vector
+    dotProdNormal = axis1' * axis1Old;
+    axis1 = sign(dotProdNormal) * axis1;
+    
+    %construct the second axis which is in the x,y-plane
     axis2 = [-axis1(2) axis1(1) 0]';
     axis2 = axis2 / sqrt(axis2' * axis2);
+    
+    %calculate the third axis
     axis3 = cross(axis1,axis2);
     coordSystem(:,:,iTime) = [axis1 axis2 axis3];
+    
+    %store axis perpendicular to the plane in this frame to form the dot
+    %product with the next frame
+    axis1Old = axis1;
+    
 end
 
-%rotate coordinates and coordinate system in all frames such that the
-%coordiante system of the first frame labeled metaphase defines the 
-%new x, y and z axes
+%rotate coordinates and coordinate systems in all frames such that the
+%coordinate system of the first frame labeled metaphase defines the 
+%new x, y and z axes for all frames
 %propagate errors to the new coordinates
 rotationMat = inv(coordSystem(:,:,firstMetaFrame)); %rotation matrix
 errorPropMat = rotationMat.^2;
@@ -288,12 +303,18 @@ for iTime = 1 : nTimepoints
     coordSystem(:,:,iTime) = rotationMat*coordSystem(:,:,iTime);
 end
 
-%rotate coordinates in frames after the first metaphase frame to align them
-%with that frame
+%rotate coordinates in metaphase frames to align them with the first metaphase frame
 %propagate errors to the new coordinates
-for iTime = frames2Rotate
+for iTime = metaFrames(2:end)'
     rotationMat = inv(coordSystem(:,:,iTime)); %rotation matrix
     errorPropMat = rotationMat.^2;
+    tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
+    tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
+end
+
+%rotate coordinates in all frames after metaphase with the rotation matrix
+%of the last metaphase frame
+for iTime = metaFrames(end) + 1 : nTimepoints
     tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
     tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
 end

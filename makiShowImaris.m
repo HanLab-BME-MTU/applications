@@ -5,9 +5,10 @@ function makiShowImaris(dataStruct,select)
 %
 % INPUT dataStruct: (opt) data structure as described in makiMakeDataStruct
 %                   if empty, guiLoad
-%		select: (opt) vector of analysis results to plot, in addition to
-%               spots (default)
-%               1st entry: tracks; 2nd entry: fitted plane. 
+%		select: (opt) vector of analysis results to plot. If not
+%               not inputed or empty, everything available will be plotted.
+%               1st entry: tracks; 2nd entry: fitted lane. Enter 1 for
+%               result to be plotted, 0 for result not to be plotted.
 %
 % OUTPUT ---
 %
@@ -15,7 +16,7 @@ function makiShowImaris(dataStruct,select)
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
-% created by: jdorn
+% created by: jdorn, modified heavily by kjaqaman
 % DATE: 29-Jun-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -31,7 +32,7 @@ end
 if nargin < 2 || isempty(select)
     select = [1 1];
 elseif length(select) < 2
-    select = [select(1) 0];
+    select = [select(1) 1];
 end
     
 % turn off property reader warning
@@ -248,7 +249,6 @@ end %(if select(1))
 if select(2)
     %disp('Sorry, plotting plane not implemented yet!');
 end
-
 
 % turn warnings back on
 warning(warningState)
