@@ -24,15 +24,13 @@ function makiShowImaris(dataStruct,select)
 if nargin < 1
     dataStruct = [];
 end
-if nargin < 2 || isempty(select)
-    select = 1;
-end
+
 if isempty(dataStruct)
     dataStruct = makiLoadDataFile;
 end
 
 if nargin < 2 || isempty(select)
-    select = [0 0];
+    select = [1 1];
 elseif length(select) < 2
     select = [select(1) 0];
 end
@@ -249,7 +247,7 @@ end %(if select(1))
 %%%%%%%%%%%%%
 
 if select(2)
-    disp('Sorry, plotting plane not implemented yet!');
+    %disp('Sorry, plotting plane not implemented yet!');
 end
 
 
