@@ -24,7 +24,6 @@ function makiShowImaris(dataStruct,select)
 if nargin < 1
     dataStruct = [];
 end
-
 if isempty(dataStruct)
     dataStruct = makiLoadDataFile;
 end
@@ -148,7 +147,7 @@ if select(1)
 
     %create data container for tracks between 70% and 90% of movie
     imaTrackGroup70to90 = imarisApplication.mFactory.CreateDataContainer;
-    imaTrackGroup70to90.mName = 'tracks with length 70-100%';
+    imaTrackGroup70to90.mName = 'tracks with length 70-90%';
 
     %create data container for tracks between 50% and 70% of movie
     imaTrackGroup50to70 = imarisApplication.mFactory.CreateDataContainer;
