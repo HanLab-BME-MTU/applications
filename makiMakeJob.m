@@ -222,8 +222,8 @@ switch jobType
                 end
                 
                 disp('Please input - as a row vector - values for the maximum gap');
-                disp('(in frames), minimum search radius (in microns), maximum ');
-                disp('search radius (in microns), and maximum angle difference (in degrees)');
+                disp('(in frames), minimum search radius (in microns) and maximum ');
+                disp('search radius (in microns).');
                 userEntry = input('');
 
                 %gap closing parameters
@@ -249,7 +249,7 @@ switch jobType
                 costMatParam.closestDistScaleCG = 2;
                 costMatParam.maxStdMultCG = 20;
                 costMatParam.lenForClassify = 10;
-                costMatParam.maxAngle = userEntry(4);
+                costMatParam.maxAngle = 10;
                 costMatParam.ampRatioLimitCG = [0.5000 2];
 
                 %parameters for using local density to expand search radius
