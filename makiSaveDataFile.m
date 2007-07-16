@@ -7,12 +7,14 @@ function success = makiSaveDataFile(dataStruct,secureName)
 %       secureName: fieldname of data item that should be saved via
 %                   secureSave, such as 'initCoord' if the initial
 %                   coordinate detection has just been performed.
-%                   SecureSave ensures that old data will not  
+%                   SecureSave ensures that old data will not
 %                   be overwritten
+%                   Pass multiple fieldNames as a cell array
 %
 % OUTPUT success: 1 if successful save of data
 %
-% REMARKS
+% REMARKS If the dataFilePath does not exist, makiSaveDataFile attempts to
+%         create it
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -28,6 +30,28 @@ end
 if nargin < 2 || isempty(secureName)
     secureName = 'noName';
 end
+if ischar(secureName)
+    secureName = {secureName};
+end
+
+% check for dataFilePath and create if necessarz
+if ~isdir(dataStruct.dataFilePath)
+    warning('MAKISAVEDATASTRUCT:PATHNOTFOUND',...
+        'path %s not found. Folder will be created.',...
+        dataStruct.dataFilePath)
+    try
+        mkdir(dataStruct.dataFilePath)
+    catch
+        warning('MAKISAVEDATASTRUCT:PATHNOTFOUND',...
+            'unable to create directory %s ',...
+            dataStruct.dataFilePath)
+        if nargout > 0
+            success = false;
+        end
+        return
+    end
+end
+
 
 try
     % save individual files, such as dataProperties
@@ -49,13 +73,13 @@ try
                 otherwise
                     % overwrite, b/c these didn't/shouldn't change
                     save(...
-                        fullfile(dataStruct.dataFilePath,dataStruct.(fileName)),fn{i});                    
+                        fullfile(dataStruct.dataFilePath,dataStruct.(fileName)),fn{i});
             end
             % empty the xxx-fields here to save space & time
             dataStruct.(fn{i}) = [];
         end
     end
-    
+
     % check rawMoviePath
     % if rawMoviePath is the same as dataFilePath, make it empty
     % if rawMoviePath contains some path stored in an environment variable
@@ -64,8 +88,8 @@ try
         dataStruct.rawMoviePath = [];
     else
         try
-        % make platform independant, if possible
-        dataStruct.rawMoviePath = makiPathDef(dataStruct.rawMoviePath);
+            % make platform independant, if possible
+            dataStruct.rawMoviePath = makiPathDef(dataStruct.rawMoviePath);
         catch
         end
     end
@@ -78,6 +102,8 @@ try
     save(fullfile(dataStruct.dataFilePath,dataStruct.dataFileName),'dataStruct');
 
 catch
+    err = lasterror;
+    warning('MAKISAVEDATAFILE:FAILEDSAVE',err.message);
     if nargout > 0
         success = false;
     end
