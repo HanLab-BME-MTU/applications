@@ -118,6 +118,9 @@ imaSpots = imarisApplication.mFactory.CreateSpots;
 % set coords
 imaSpots.Set(single(spots(:,1:3)),single(spots(:,4)),single(spots(:,5)));
 
+%assign name
+imaSpots.mName = ['Spots (avg: ' num2str(round(mean(nSpots))) ' / frame)'];
+
 % add to scene
 imaSurpassScene.AddChild(imaSpots);
            
@@ -136,28 +139,33 @@ if select(1)
     %find total number of tracks
     numTracks = length(tracksFinal);
     
-    %find track start and end times
+    %find track start times, end times and lifetimes
     trackSEL = getTrackSEL(tracksFinal);
     
     %find gaps in tracks
     gapInfo = findTrackGaps(tracksFinal);
-
+    
     %create data container for tracks longer than 90% of movie
     imaTrackGroup90to100 = imarisApplication.mFactory.CreateDataContainer;
-    imaTrackGroup90to100.mName = 'tracks with length 90-100%';
 
     %create data container for tracks between 70% and 90% of movie
     imaTrackGroup70to90 = imarisApplication.mFactory.CreateDataContainer;
-    imaTrackGroup70to90.mName = 'tracks with length 70-90%';
+    imaTrackGroup70to90.mName = 'tracks - length 70-90%';
 
     %create data container for tracks between 50% and 70% of movie
     imaTrackGroup50to70 = imarisApplication.mFactory.CreateDataContainer;
-    imaTrackGroup50to70.mName = 'tracks with length 50-70%';
+    imaTrackGroup50to70.mName = 'tracks - length 50-70%';
 
     %create data container for tracks shorter than 50% of movie
     imaTrackGroup0to50 = imarisApplication.mFactory.CreateDataContainer;
-    imaTrackGroup0to50.mName = 'tracks with length 0-50%';
+    imaTrackGroup0to50.mName = 'tracks - length 0-50%';
 
+    %initialize to zero number of tracks in each category
+    numTracks90to100 = 0;
+    numTracks70to90 = 0;
+    numTracks50to70 = 0;
+    numTracks0to50 = 0;
+    
     for iTrack = 1 : numTracks
 
         %create track object
@@ -215,30 +223,43 @@ if select(1)
         
         %define track edges
         imaTracks.SetEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
-
+        
         %add track to relevant data container
         if trackSEL(iTrack,3) >= 0.9*nTimepoints
             imaTracks.SetColor(single(1),single(0),single(0),single(0));
             imaTrackGroup90to100.AddChild(imaTracks);
+            numTracks90to100 = numTracks90to100 + 1;
         elseif trackSEL(iTrack,3) >= 0.7*nTimepoints
             imaTracks.SetColor(single(0),single(1),single(0),single(0));
             imaTrackGroup70to90.AddChild(imaTracks);
+            numTracks70to90 = numTracks70to90 + 1;
         elseif trackSEL(iTrack,3) >= 0.5*nTimepoints
             imaTracks.SetColor(single(0),single(0),single(1),single(0));
             imaTrackGroup50to70.AddChild(imaTracks);
+            numTracks50to70 = numTracks50to70 + 1;
         else
             imaTracks.SetColor(single(1),single(0),single(1),single(0));
             imaTrackGroup0to50.AddChild(imaTracks);
+            numTracks0to50 = numTracks0to50 + 1;
         end
-        
+
     end %(for iTrack = 1 : numTracks)
+
+    %give names to groups of tracks
+    imaTrackGroup90to100.mName = ['tracks length 90-100% (' ...
+        num2str(numTracks90to100) ')'];
+    imaTrackGroup70to90.mName = ['tracks length 70-90% (' ...;
+        num2str(numTracks70to90) ')'];
+    imaTrackGroup50to70.mName = ['tracks length 50-70% (' ...;
+        num2str(numTracks50to70) ')'];
+    imaTrackGroup0to50.mName = ['tracks length 0-50% (' ...;
+        num2str(numTracks0to50) ')'];
 
     %add track groups to scene
     imaSurpassScene.AddChild(imaTrackGroup90to100);
     imaSurpassScene.AddChild(imaTrackGroup70to90);
     imaSurpassScene.AddChild(imaTrackGroup50to70);
     imaSurpassScene.AddChild(imaTrackGroup0to50);
-
 
 end %(if select(1))
             

@@ -5,13 +5,13 @@ function makiFitPlanePlot(dataStruct)
 %
 % INPUT dataStruct: maki data structure (see makiMakeDataStruct for details)
 %
-% OUTPUT 
+% OUTPUT
 %
 % REMARKS
 %
 % created with MATLAB ver.: 7.3.0.267 (R2006b) on Windows_NT
 %
-% created by: Jonas Dorn
+% created by: Jonas Dorn, modified by: Khuloud Jaqaman
 % DATE: 10-Jul-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -30,26 +30,31 @@ nTimepoints = dataStruct.dataProperties.movieSize(end);
 planeFit = dataStruct.planeFit;
 eigenValues = cat(1,planeFit.eigenValues);
 
-% plot (ratio of) eigenvalues, boundaries of metaphase
+% plot (ratio of) eigenvalues
 figure('Name',sprintf('EigenRatio and distribution for %s',dataStruct.projectName))
-    time = (1:nTimepoints)'.*dataStruct.dataProperties.timeLapse/60; % time in minutes
-    subplot(2,1,1)
-    plot(time,10*eigenValues(:,1)./mean(eigenValues(:,2:3),2),'-ro',...
-        time,eigenValues(:,1),'--m',...
-        time,mean(eigenValues(:,2:3),2),'--b+',...
-        time,eigenValues(:,2),'.b',...
-        time,eigenValues(:,3),'.b');
-    legend('10x eigenRatio','different eigenValue','meanSimilar','similar1','similar2')
-    xMinMax = [0,(nTimepoints+1)*dataStruct.dataProperties.timeLapse/60];
-    xlim(xMinMax)
-    ylim([0 50])
-    xlabel('Time (min)')
-    hold on
-    % plot lines showing cutoff and mitosis
-    plot(xMinMax,[10 10],':k')
+time = (1:nTimepoints)'.*dataStruct.dataProperties.timeLapse/60; % time in minutes
+subplot(2,1,1)
+plot(time,10*eigenValues(:,1)./mean(eigenValues(:,2:3),2),'-ro',...
+    time,eigenValues(:,1),'--m',...
+    time,mean(eigenValues(:,2:3),2),'--b+',...
+    time,eigenValues(:,2),'.b',...
+    time,eigenValues(:,3),'.b');
+legend('10x eigenRatio','different eigenValue','meanSimilar','similar1','similar2')
+xMinMax = [0,(nTimepoints+1)*dataStruct.dataProperties.timeLapse/60];
+xlim(xMinMax)
+ylim([0 50])
+xlabel('Time (min)')
+hold on
+% plot lines showing cutoff
+plot(xMinMax,[10 10],':k')
+
+%plot further if there are metaphase frames
+if ~isempty(planeFit(1).metaphaseFrames)
+
+    %indicate which frames are in metaphase
     plot(planeFit(1).metaphaseFrames([1 1])*dataStruct.dataProperties.timeLapse/60,[0 20],'k',...
         planeFit(1).metaphaseFrames([end end])*dataStruct.dataProperties.timeLapse/60,[0 20],'k')
-    text(planeFit(1).metaphaseFrames(1)*dataStruct.dataProperties.timeLapse/60+1,13,'Mitosis')
+    text(planeFit(1).metaphaseFrames(1)*dataStruct.dataProperties.timeLapse/60+1,13,'Metaphase')
 
     % distribution parameters
     distParms = catStruct(3,'planeFit.distParms');
@@ -89,3 +94,7 @@ figure('Name',sprintf('EigenRatio and distribution for %s',dataStruct.projectNam
     imshow(z,[]),
     cm=isomorphicColormap('b');
     colormap(cm)
+
+end %(if ~isempty(planeFit(1).metaphaseFrames))
+
+

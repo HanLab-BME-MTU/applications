@@ -49,7 +49,7 @@ function dataStruct = makiFitPlane(dataStruct,verbose)
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
-% created by: jdorn
+% created by: jdorn, modified by: kjaqaman
 % DATE: 03-Jul-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -107,7 +107,7 @@ goodFramesLb = bwlabel(goodFramesL);
 [idx,cts] = countEntries(goodFramesLb);
 if length(idx) > 1
     goodLabel = idx(find(cts(2:end)==max(cts(2:end)))+1);
-    metaphaseFrames = find(goodFramesLb==goodLabel);
+    metaphaseFrames = find(goodFramesLb==goodLabel(1));
 else
     metaphaseFrames = find(goodFramesL==1);
 end
@@ -129,124 +129,128 @@ metaphaseFrames = metaphaseFrames(1:end-removeLastFrames);
 planeFit(1).metaphaseFrames = metaphaseFrames;
 
 % do only for good frames
-for t = metaphaseFrames'
-    done = false;
-    % initially: assume no bad spots. Allow for 10 iterations
-    badSpotIdxLOld = false(nSpots(t),10);
-    ct = 1;
+if ~isempty(metaphaseFrames)
+    for t = metaphaseFrames'
+        done = false;
+        % initially: assume no bad spots. Allow for 10 iterations
+        badSpotIdxLOld = false(nSpots(t),10);
+        ct = 1;
 
-    while ~done
+        while ~done
 
-        % get distance from plane, in-plane coordinates by transformation
-        % with inverse of in-plane vectors
-        normal = eigenVectors(:,1,t);
-        e_plane = zeros(3);
-        e_plane(:,1) = normal;
-        e_plane(:,2) = [-normal(2),normal(1),0]./sqrt(sum(normal(1:2).^2));
-        e_plane(:,3) = cross(e_plane(:,1),e_plane(:,2));
-        % planeCoord: [d,xplane,yplane]
-        planeFit(t).planeCoord = ...
-            (inv(e_plane)*...
-            (initCoord(t).allCoord(:,1:3)-repmat(meanCoord(t,:),nSpots(t),1))')';
+            % get distance from plane, in-plane coordinates by transformation
+            % with inverse of in-plane vectors
+            normal = eigenVectors(:,1,t);
+            e_plane = zeros(3);
+            e_plane(:,1) = normal;
+            e_plane(:,2) = [-normal(2),normal(1),0]./sqrt(sum(normal(1:2).^2));
+            e_plane(:,3) = cross(e_plane(:,1),e_plane(:,2));
+            % planeCoord: [d,xplane,yplane]
+            planeFit(t).planeCoord = ...
+                (inv(e_plane)*...
+                (initCoord(t).allCoord(:,1:3)-repmat(meanCoord(t,:),nSpots(t),1))')';
 
-        % find outliers
-        [dummy, dummy, goodSpotIdx] = robustMean(planeFit(t).planeCoord(:,1));
-        badSpotIdxL = true(initCoord(t).nSpots,1);
-        badSpotIdxL(goodSpotIdx) = false;
+            % find outliers
+            [dummy, dummy, goodSpotIdx] = robustMean(planeFit(t).planeCoord(:,1));
+            badSpotIdxL = true(initCoord(t).nSpots,1);
+            badSpotIdxL(goodSpotIdx) = false;
 
-        %         % DEBUG plot plane in matlab
-        %         pc=planeFit(t).planeCoord;
-        %         pos = pc(:,1)>0;
-        %         neg = pc(:,1)<0;
-        %         figure,plot3(pc(pos,1),pc(pos,2),pc(pos,3),'.k',...
-        %             pc(neg,1),pc(neg,2),pc(neg,3),'or',...
-        %             pc(badSpotIdxL,1),pc(badSpotIdxL,2),pc(badSpotIdxL,3),'+b')
+            %         % DEBUG plot plane in matlab
+            %         pc=planeFit(t).planeCoord;
+            %         pos = pc(:,1)>0;
+            %         neg = pc(:,1)<0;
+            %         figure,plot3(pc(pos,1),pc(pos,2),pc(pos,3),'.k',...
+            %             pc(neg,1),pc(neg,2),pc(neg,3),'or',...
+            %             pc(badSpotIdxL,1),pc(badSpotIdxL,2),pc(badSpotIdxL,3),'+b')
 
-        % check whether there was any change
-        if any(all(repmat(badSpotIdxL,1,10) == badSpotIdxLOld,1)) || ct == 10
-            % done. Fill information into planeFit-structure
+            % check whether there was any change
+            if any(all(repmat(badSpotIdxL,1,10) == badSpotIdxLOld,1)) || ct == 10
+                % done. Fill information into planeFit-structure
 
-            planeFit(t).plane = [normal',meanCoord(t,:)*normal];
-            planeFit(t).planeVectors = e_plane;
-            planeFit(t).eigenVectors = eigenVectors(:,:,t);
-            planeFit(t).eigenValues = eigenValues(t,:);
-            planeFit(t).planeOrigin = meanCoord(t,:);
+                planeFit(t).plane = [normal',meanCoord(t,:)*normal];
+                planeFit(t).planeVectors = e_plane;
+                planeFit(t).eigenVectors = eigenVectors(:,:,t);
+                planeFit(t).eigenValues = eigenValues(t,:);
+                planeFit(t).planeOrigin = meanCoord(t,:);
 
-            % lagging chromosomes are outliers (until we can identify pairs
-            planeFit(t).laggingIdx = find(badSpotIdxL);
-            planeFit(t).inlierIdx = goodSpotIdx;
+                % lagging chromosomes are outliers (until we can identify pairs
+                planeFit(t).laggingIdx = find(badSpotIdxL);
+                planeFit(t).inlierIdx = goodSpotIdx;
 
-            % distribution parameters (do for all unit directions -
-            % the second vector is also interesting, as it lies in the xy
-            % plane, in which the metaphase plate should not be cut off
-            % distribution parameters (rows):
-            % var
-            % skew
-            % kurtosis
-            % p for normal distribution (lilliefors test)
-            % correct all parameters for bias
-            planeFit(t).distParms = zeros(4,3);
-            planeFit(t).distParms(1,:) = var(planeFit(t).planeCoord(goodSpotIdx,:));
-            planeFit(t).distParms(2,:) = skewness(planeFit(t).planeCoord(goodSpotIdx,:),0);
-            planeFit(t).distParms(3,:) = kurtosis(planeFit(t).planeCoord(goodSpotIdx,:),0);
-            [dummy,planeFit(t).distParms(4,1)] = ...
-                lillietest(planeFit(t).planeCoord(goodSpotIdx,1));
-            [dummy,planeFit(t).distParms(4,2)] = ...
-                lillietest(planeFit(t).planeCoord(goodSpotIdx,2));
-            [dummy,planeFit(t).distParms(4,3)] = ...
-                lillietest(planeFit(t).planeCoord(goodSpotIdx,3));
+                % distribution parameters (do for all unit directions -
+                % the second vector is also interesting, as it lies in the xy
+                % plane, in which the metaphase plate should not be cut off
+                % distribution parameters (rows):
+                % var
+                % skew
+                % kurtosis
+                % p for normal distribution (lilliefors test)
+                % correct all parameters for bias
+                planeFit(t).distParms = zeros(4,3);
+                planeFit(t).distParms(1,:) = var(planeFit(t).planeCoord(goodSpotIdx,:));
+                planeFit(t).distParms(2,:) = skewness(planeFit(t).planeCoord(goodSpotIdx,:),0);
+                planeFit(t).distParms(3,:) = kurtosis(planeFit(t).planeCoord(goodSpotIdx,:),0);
+                [dummy,planeFit(t).distParms(4,1)] = ...
+                    lillietest(planeFit(t).planeCoord(goodSpotIdx,1));
+                [dummy,planeFit(t).distParms(4,2)] = ...
+                    lillietest(planeFit(t).planeCoord(goodSpotIdx,2));
+                [dummy,planeFit(t).distParms(4,3)] = ...
+                    lillietest(planeFit(t).planeCoord(goodSpotIdx,3));
 
-            % plot plane in matlab
-            if verbose > 1
-                [ygrid,zgrid] = meshgrid(...
-                    linspace(min(planeFit(t).planeCoord(:,2)),...
-                    max(planeFit(t).planeCoord(:,2)),5), ...
-                    linspace(min(planeFit(t).planeCoord(:,3)),...
-                    max(planeFit(t).planeCoord(:,3)),5));
-                xgrid = zeros(5,5);
-                pc=planeFit(t).planeCoord;
-                pos = pc(:,1)>0;
-                neg = pc(:,1)<0;
-                figure('Name',...
-                    sprintf('Metaphase plate frame %i for %s',...
-                    t,dataStruct.projectName))
-                plot3(pc(pos,1),pc(pos,2),pc(pos,3),'.k',...
-                    pc(neg,1),pc(neg,2),pc(neg,3),'or',...
-                    pc(badSpotIdxL,1),pc(badSpotIdxL,2),pc(badSpotIdxL,3),'+b')
-                hold on
-                mesh(xgrid,ygrid,zgrid,'EdgeColor',[0 0 1],'FaceAlpha',0);
-                grid on
+                % plot plane in matlab
+                if verbose > 1
+                    [ygrid,zgrid] = meshgrid(...
+                        linspace(min(planeFit(t).planeCoord(:,2)),...
+                        max(planeFit(t).planeCoord(:,2)),5), ...
+                        linspace(min(planeFit(t).planeCoord(:,3)),...
+                        max(planeFit(t).planeCoord(:,3)),5));
+                    xgrid = zeros(5,5);
+                    pc=planeFit(t).planeCoord;
+                    pos = pc(:,1)>0;
+                    neg = pc(:,1)<0;
+                    figure('Name',...
+                        sprintf('Metaphase plate frame %i for %s',...
+                        t,dataStruct.projectName))
+                    plot3(pc(pos,1),pc(pos,2),pc(pos,3),'.k',...
+                        pc(neg,1),pc(neg,2),pc(neg,3),'or',...
+                        pc(badSpotIdxL,1),pc(badSpotIdxL,2),pc(badSpotIdxL,3),'+b')
+                    hold on
+                    mesh(xgrid,ygrid,zgrid,'EdgeColor',[0 0 1],'FaceAlpha',0);
+                    grid on
+                end
+
+
+                done = true;
+
+            else
+                % re-"fit" the plane. Update eigenVectors etc.
+                [eigenVectors(:,:,t), eigenValues(t,:), meanCoord(t,:)] = ...
+                    eigenCalc(initCoord(t).allCoord(goodSpotIdx,1:3));
+                % count fit
+                ct = ct + 1;
+                % remember current bad spots
+                badSpotIdxLOld(:,ct) = badSpotIdxL;
+
             end
 
-
-            done = true;
-
-        else
-            % re-"fit" the plane. Update eigenVectors etc.
-            [eigenVectors(:,:,t), eigenValues(t,:), meanCoord(t,:)] = ...
-                eigenCalc(initCoord(t).allCoord(goodSpotIdx,1:3));
-            % count fit
-            ct = ct + 1;
-            % remember current bad spots
-            badSpotIdxLOld(:,ct) = badSpotIdxL;
-
         end
-
-    end
-end % loop good frames
-
-% loop to get the "between frames" - stuff
-for t=[metaphaseFrames(1:end-1),metaphaseFrames(2:end)]'
-    % p-value of distribution comparison
-    [dummy,planeFit(t(1)).deltaP] = kstest2(...
-        planeFit(t(1)).planeCoord(planeFit(t(1)).inlierIdx,1),...
-        planeFit(t(2)).planeCoord(planeFit(t(2)).inlierIdx,1));
-
-    % change in plane orientation
-    planeFit(t(1)).deltaAngle = acos(dot(planeFit(t(1)).planeVectors(:,1),...
-        planeFit(t(2)).planeVectors(:,1))) *180/pi;
+    end % loop good frames
 end
 
+% loop to get the "between frames" - stuff
+if length(metaphaseFrames) > 1
+    for t=[metaphaseFrames(1:end-1),metaphaseFrames(2:end)]'
+        % p-value of distribution comparison
+        [dummy,planeFit(t(1)).deltaP] = kstest2(...
+            planeFit(t(1)).planeCoord(planeFit(t(1)).inlierIdx,1),...
+            planeFit(t(2)).planeCoord(planeFit(t(2)).inlierIdx,1));
+
+        % change in plane orientation
+        planeFit(t(1)).deltaAngle = acos(dot(planeFit(t(1)).planeVectors(:,1),...
+            planeFit(t(2)).planeVectors(:,1))) *180/pi;
+    end
+end
+    
 %% align frames wherever possible (i.e. in metaphase) to get rid of overall rotation
 
 %shift the coordinates in each frame such that the center of the fitted 
@@ -260,64 +264,71 @@ end
 
 %get frames in metaphase
 metaFrames = planeFit(1).metaphaseFrames;
-firstMetaFrame = metaFrames(1);
 
-%construct the coordinate system of each frame from the plane fit
-coordSystem = zeros(3,3,nTimepoints);
-axis1Old = planeFit(1).eigenVectors(:,1); %dummy for first iteration
-for iTime = 1 : nTimepoints
+%if there are metaphase frames to align ...
+if length(metaFrames) > 1
 
-    %fetch the eigenvector representing the normal to the plane
-    axis1 = planeFit(iTime).eigenVectors(:,1);
+    %get first metaphase frame
+    firstMetaFrame = metaFrames(1);
 
-    %make sure that the rotation from the previous frame to this one is
-    %smooth, i.e. the dot product of the normal in this frame and the
-    %normal in the previous frame is positive. If it is negative, flip
-    %the normal vector
-    dotProdNormal = axis1' * axis1Old;
-    axis1 = sign(dotProdNormal) * axis1;
-    
-    %construct the second axis which is in the x,y-plane
-    axis2 = [-axis1(2) axis1(1) 0]';
-    axis2 = axis2 / sqrt(axis2' * axis2);
-    
-    %calculate the third axis
-    axis3 = cross(axis1,axis2);
-    coordSystem(:,:,iTime) = [axis1 axis2 axis3];
-    
-    %store axis perpendicular to the plane in this frame to form the dot
-    %product with the next frame
-    axis1Old = axis1;
-    
-end
+    %construct the coordinate system of each frame from the plane fit
+    coordSystem = zeros(3,3,nTimepoints);
+    axis1Old = planeFit(1).eigenVectors(:,1); %dummy for first iteration
+    for iTime = 1 : nTimepoints
 
-%rotate coordinates and coordinate systems in all frames such that the
-%coordinate system of the first frame labeled metaphase defines the 
-%new x, y and z axes for all frames
-%propagate errors to the new coordinates
-rotationMat = inv(coordSystem(:,:,firstMetaFrame)); %rotation matrix
-errorPropMat = rotationMat.^2;
-for iTime = 1 : nTimepoints
-    tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
-    tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
-    coordSystem(:,:,iTime) = rotationMat*coordSystem(:,:,iTime);
-end
+        %fetch the eigenvector representing the normal to the plane
+        axis1 = planeFit(iTime).eigenVectors(:,1);
 
-%rotate coordinates in metaphase frames to align them with the first metaphase frame
-%propagate errors to the new coordinates
-for iTime = metaFrames(2:end)'
-    rotationMat = inv(coordSystem(:,:,iTime)); %rotation matrix
+        %make sure that the rotation from the previous frame to this one is
+        %smooth, i.e. the dot product of the normal in this frame and the
+        %normal in the previous frame is positive. If it is negative, flip
+        %the normal vector
+        dotProdNormal = axis1' * axis1Old;
+        axis1 = sign(dotProdNormal) * axis1;
+
+        %construct the second axis which is in the x,y-plane
+        axis2 = [-axis1(2) axis1(1) 0]';
+        axis2 = axis2 / sqrt(axis2' * axis2);
+
+        %calculate the third axis
+        axis3 = cross(axis1,axis2);
+        coordSystem(:,:,iTime) = [axis1 axis2 axis3];
+
+        %store axis perpendicular to the plane in this frame to form the dot
+        %product with the next frame
+        axis1Old = axis1;
+
+    end
+
+    %rotate coordinates and coordinate systems in all frames such that the
+    %coordinate system of the first frame labeled metaphase defines the
+    %new x, y and z axes for all frames
+    %propagate errors to the new coordinates
+    rotationMat = inv(coordSystem(:,:,firstMetaFrame)); %rotation matrix
     errorPropMat = rotationMat.^2;
-    tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
-    tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
-end
+    for iTime = 1 : nTimepoints
+        tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
+        tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
+        coordSystem(:,:,iTime) = rotationMat*coordSystem(:,:,iTime);
+    end
 
-%rotate coordinates in all frames after metaphase with the rotation matrix
-%of the last metaphase frame
-for iTime = metaFrames(end) + 1 : nTimepoints
-    tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
-    tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
-end
+    %rotate coordinates in metaphase frames to align them with the first metaphase frame
+    %propagate errors to the new coordinates
+    for iTime = metaFrames(2:end)'
+        rotationMat = inv(coordSystem(:,:,iTime)); %rotation matrix
+        errorPropMat = rotationMat.^2;
+        tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
+        tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
+    end
+
+    %rotate coordinates in all frames after metaphase with the rotation matrix
+    %of the last metaphase frame
+    for iTime = metaFrames(end) + 1 : nTimepoints
+        tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
+        tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
+    end
+    
+end %if ~isempty(metaFrames)
 
 %make all coordinates positive
 minCoord = vertcat(tmpCoord.allCoord);

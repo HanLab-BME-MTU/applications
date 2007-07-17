@@ -99,8 +99,10 @@ for iFile = 1:nFiles
             
         case 6
             % swap statusHelp-entries
-            dataStruct.statusHelp = ...
-                dataStruct.statusHelp([1,2,3,5,4,6,7],:);
+            if strcmp(dataStruct.statusHelp{4,1},'tracks')
+                dataStruct.statusHelp = ...
+                    dataStruct.statusHelp([1,2,3,5,4,6,7],:);
+            end
 
         otherwise
             % do nothing

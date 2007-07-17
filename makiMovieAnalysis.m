@@ -12,7 +12,7 @@ function makiMovieAnalysis(job)
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
-% created by: jdorn
+% created by: jdorn, modified by: kjaqaman
 % DATE: 27-Jun-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -277,6 +277,9 @@ while ~done
         catch
         end
         individualLog = [];
+    
+        %save history in dataStruct
+        
     end % loop jobs
 
     % there is no redo for now
