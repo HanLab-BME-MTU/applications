@@ -131,6 +131,14 @@ switch jobType
                 dataStruct.dataProperties = defaultDataProperties(dataStruct.movieHeader);
                 dataStruct.dataProperties.sigmaCorrection = [1.5,1.5];
                 dataStruct.dataProperties.MAXSPOTS = 500; % number of locmax considered by initCoord
+
+                % add groupSisters - properties
+                groupSisters.maxDist = 4; % maximum average sister separation in um
+                groupSisters.goodTrackRatio = 0.75; % minimum relative track length for grouping
+                groupSisters.robust = false; % whether or not to use robust statistics for determining cost function parameters
+                groupSisters.costFunction = 'metaphase'; % cost function type.
+                dataStruct.dataProperties.groupSisters = groupSisters;
+
                 % run defDP again to get the correct filter parameters
                 dataStruct.dataProperties = defaultDataProperties(dataStruct.dataProperties);
 
@@ -220,7 +228,7 @@ switch jobType
                 if userEntryR ~= 1
                     userEntryR = 0;
                 end
-                
+
                 disp('Please input - as a row vector - values for the maximum gap');
                 disp('(in frames), minimum search radius (in microns) and maximum ');
                 disp('search radius (in microns).');
@@ -266,6 +274,11 @@ switch jobType
 
             end %(if dataStruct.status(5) < 0)
 
+            % allow to change settings (yadda yadda GUI yadda yadda)
+            if dataStruct.status(6) < 0
+                dataStruct = getGroupSisterInput(dataStruct);
+            end
+
             % store dataStruct - store success
             dataStruct.status(2) = makiSaveDataFile(dataStruct);
 
@@ -302,6 +315,11 @@ switch jobType
             toDo = dataStruct.status<status;
             dataStruct.status(toDo) = -1;
 
+            % ask for input for groupSisters if needed
+            if dataStruct.status(6) < 0
+                dataStruct = getGroupSisterInput(dataStruct);
+            end
+
             % update job
             job(iJob).dataStruct = dataStruct;
             if ~isempty(fname)
@@ -324,3 +342,35 @@ if ~isempty(job)
 end
 
 warning(warningState)
+
+
+
+% subfunction to ask for input for groupSisters
+function dataStruct = getGroupSisterInput(dataStruct)
+
+phases ={'prophase';'prometaphase';'metaphase';'anaphase'};
+defPhase = strmatch(...
+    dataStruct.dataProperties.groupSisters.costFunction,phases);
+groupStats = inputdlg(...
+    {sprintf(['Main cell cycle phase',...
+    '\n1: Prophase\n2: Prometaphase',...
+    '\n3: Metaphase\n4: Anaphase']),...
+    'distance cutoff (in microns)',...
+    'minimum track length relative to movie length',...
+    'use robust statistics'},...
+    'Grouping Sisters',1,{num2str(defPhase),...
+    num2str(dataStruct.dataProperties.groupSisters.maxDist),...
+    num2str(dataStruct.dataProperties.groupSisters.goodTrackRatio),...
+    num2str(dataStruct.dataProperties.groupSisters.robust)});
+if isempty(groupStats)
+    error('input aborted')
+end
+
+dataStruct.dataProperties.groupSisters.costFunction = ...
+    phases{str2double(groupStats{1})};
+dataStruct.dataProperties.groupSisters.maxDist = ...
+    str2double(groupStats{2});
+dataStruct.dataProperties.groupSisters.goodTrackRatio = ...
+    str2double(groupStats{3});
+dataStruct.dataProperties.groupSisters.robust = ...
+    str2double(groupStats{4});

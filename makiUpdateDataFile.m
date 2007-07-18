@@ -10,6 +10,7 @@ function makiUpdateDataFile(update)
 %           4: correct timeLapse in dataProperties
 %           5: add new fields to dataStruct
 %           6: swap track/planeFit in .statusHelp
+%           7: add defaults for groupSisters
 %
 % OUTPUT
 %
@@ -103,6 +104,14 @@ for iFile = 1:nFiles
                 dataStruct.statusHelp = ...
                     dataStruct.statusHelp([1,2,3,5,4,6,7],:);
             end
+            
+        case 7
+            % add groupSisters - properties
+                groupSisters.maxDist = 4; % maximum average sister separation in um
+                groupSisters.goodTrackRatio = 0.75; % minimum relative track length for grouping
+                groupSisters.robust = false; % whether or not to use robust statistics for determining cost function parameters
+                groupSisters.costFunction = 'metaphase'; % cost function type
+                dataStruct.dataProperties.groupSisters = groupSisters;
 
         otherwise
             % do nothing

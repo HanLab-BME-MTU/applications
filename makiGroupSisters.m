@@ -1,19 +1,37 @@
-function dataStruct = makiGroupSisters(dataStruct)
+function dataStruct = makiGroupSisters(dataStruct,verbose)
 %MAKIGROUPSISTERS groups sister kinetochores
 %
 % SYNOPSIS: dataStruct = makiGroupSisters(dataStruct)
 %
 % INPUT dataStruct: data structure as created by makiMakeDataStruct
+%       verbose (opt) : 0 - no output (default)
+%                       1 - plot 4 frames with sister assignment
+%                       2 - 1 & plot all tracks
 %
 % OUTPUT dataStruct: Same as input, but with field sisterList
+%              sisterList is a structure with length equal to the number of
+%              sister kinetochore pairs.
+%              sisterList(1).trackPairs is an nPairs-by-2 array with the
+%                   indices of the tracks as in dataStruct.tracks
+%              sisterList(iPair).distanceVectors is a nTimepoints-by-3 
+%                   array with the distance vectors between the tracks (use
+%                   normList to get distances and normed vectors). Wherever
+%                   the two tracks don't overlap or contain gaps,
+%                   distanceVectors contains NaNs
+%              sisterList(iPair).coords is a nTimepoints-by-3 array with
+%                   the coordinates of the first of the two tracks.
+%                   sisterList(i).coords + sisterList(i).distanceVectors
+%                   returns the coordinates of the other track.
 %
 % REMARKS The strategy is to first try and identify sister pairs among the
-%           tracks that span at least 75% of the movie, and then to
-%           successively try and group shorter tracks with the single
-%           sisters.
+%           tracks that span at least 75% of the movie
 %         Grouping is mainly based on the idea that within sister variance
 %           is smaller than between sisters variance. Additionally, there
-%           is a user-set distance cutoff above which pairs won't be linked
+%           is a user-set distance cutoff above which pairs won't be
+%           linked. In metaphase, the alignment of sisters with respect to
+%           the plane is taken into account.
+%         At the end of the code is a plotting function for the distance
+%           between the tracks for debugging
 %         The code cannot handle merged/splitted tracks!
 %
 %
@@ -24,20 +42,22 @@ function dataStruct = makiGroupSisters(dataStruct)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% defaults
-goodTrackRatio = 0.75;
-maxDist = 4; % max avg. distance in um, should be in dataProperties
-robust = false; % whether to use robust statistics to estimate variance, mean
+%====================================
+%% TEST INPUT & READ PARAMETERS
+%====================================
 
-
-% test input
 if nargin == 0 || isempty(dataStruct)
     dataStruct = makiLoadDataFile;
 end
+if nargin < 1 || isempty(verbose)
+    verbose = 0;
+end
 
-% check for tracks here in the future
-
-%---
+% read parameters. 
+goodTrackRatio = dataStruct.dataProperties.groupSisters.goodTrackRatio;
+maxDist = dataStruct.dataProperties.groupSisters.maxDist;
+robust = dataStruct.dataProperties.groupSisters.robust;
+costFunction = dataStruct.dataProperties.groupSisters.costFunction;
 
 % read movieLength
 nTimepoints = dataStruct.dataProperties.movieSize(4);
@@ -49,7 +69,6 @@ catch
     error('makiGroupSisters cannot handle merging/splitting')
 end
 
-
 % check for relative length of tracks
 relTrackLength = ...
     squeeze(trackStats(2,1,:)-trackStats(1,1,:)+1)./nTimepoints;
@@ -58,35 +77,37 @@ goodTracks = find(relTrackLength>=goodTrackRatio);
 % count
 nGoodTracks = length(goodTracks);
 
+
+
+%============================
+%% READ TRACK INFORMATION
+%============================
+
 % preassign distance/variance matrix. Set zeros here for sparse later
 [variances,distances,alignment] = deal(zeros(nGoodTracks));
 
 % read normals to plane - takes time, thus outside the loop
-        normals = catStruct(2,'dataStruct.planeFit.eigenVectors(:,1)')';
+normals = catStruct(2,'dataStruct.planeFit.eigenVectors(:,1)')';
 
 % loop through the good tracks, calculate for every pair median distance
 % and variance
-% DEBUG
-% figure
-% hold on
+if verbose == 2
+    figure
+    hold on
+end
 for jTrack = 1:nGoodTracks % loop cols
 
     % read index of track
     jIdx = goodTracks(jTrack);
 
-    % read track coordinates
-    colCoords = reshape(dataStruct.tracks(jIdx).tracksCoordAmpCG,8,[])';
-    colCoords = colCoords(:,1:3);
+    % read track coordinates etc.
+    [colCoords,colTime,colIdx] = trackData(jIdx,dataStruct,trackStats);
 
-    %     %DEBUG
-    % plot3(colCoords(:,1),colCoords(:,2),colCoords(:,3),'Color',extendedColors(jTrack))
-
-    % read timepoints of the track
-    colTime = (trackStats(1,1,jIdx):trackStats(2,1,jIdx))';
-    % remove gaps
-    colTime(all(isnan(colCoords),2)) = [];
-    % remember indices into colCoords that correspond to the timepoints
-    colIdx = colTime - trackStats(1,1,jIdx) + 1;
+    % plot individual tracks
+    if verbose == 2
+        plot3(colCoords(:,1),colCoords(:,2),colCoords(:,3),...
+            'Color',extendedColors(jTrack))
+    end
 
     for iTrack = jTrack+1:nGoodTracks % loop rows
 
@@ -94,15 +115,7 @@ for jTrack = 1:nGoodTracks % loop cols
         iIdx = goodTracks(iTrack);
 
         % read track coordinates
-        rowCoords = reshape(dataStruct.tracks(iIdx).tracksCoordAmpCG,8,[])';
-        rowCoords = rowCoords(:,1:3);
-        % read timepoints of the track
-        rowTime = (trackStats(1,1,iIdx):trackStats(2,1,iIdx))';
-        % remove gaps
-        rowTime(all(isnan(rowCoords),2)) = [];
-        % remember indices into colCoords that correspond to the timepoints
-        rowIdx = rowTime - trackStats(1,1,iIdx) + 1;
-
+        [rowCoords,rowTime,rowIdx] = trackData(iIdx,dataStruct,trackStats);
 
         % find common time
         [commonTime,ctColIdx,ctRowIdx] = intersect(colTime,rowTime);
@@ -110,24 +123,20 @@ for jTrack = 1:nGoodTracks % loop cols
         % calculate distance (microns)
         distanceVector = colCoords(colIdx(ctColIdx),:) -...
             rowCoords(rowIdx(ctRowIdx),:);
-        
-        
+
         % calculate alignment:
-        
+
         % retain commonTime-normals
         commonNormals = normals(commonTime,:);
         % cos(alpha) = dot(a,b)/(norm(a)*norm(b))
         [distance,distanceVectorN] = normList(distanceVector);
         alpha = acos(abs(dot(distanceVectorN',commonNormals')));
         % average alpha, rather than tan to be nice to pairs that will
-        % align eventually
+        % align eventually. Potentially this can be put under the control
+        % of the "robust" switch, too
         meanAlpha = mean(alpha);
-        
-        
-        
-        
+
         % get average distance, variance
-        % try robustStats
         if robust
             [rMean,rStd]=robustMean(distance);
         else
@@ -154,77 +163,65 @@ for jTrack = 1:nGoodTracks % loop cols
     end
 end
 
-% cutoff distances
+%=================================
+%% CREATE COST MATRIX & GROUP
+%=================================
 
-distCutoffIdx = distances>maxDist;
-distances(distCutoffIdx) = 0;
-variances(distCutoffIdx) = 0;
-alignment(distCutoffIdx) = 0;
-
-% make sparse cost matrix
-%costMat = sparse(variances);
-costMat = sparse(variances.*alignment);
-
-% lap costMat
-[r2c,c2r] = lap(costMat,-1,0,1);
-
-% shorten r2c. No link is nan
-r2c = double(r2c(1:nGoodTracks));
-r2c(r2c>nGoodTracks) = NaN;
-
-
-
-% find indices into matrix
-ind=sub2ind([nGoodTracks nGoodTracks],1:nGoodTracks,r2c(1:nGoodTracks)');
-ind(isnan(ind)) = [];
+[r2c,c2r,costMat,linkedIdx] = ...
+    linkTracks(distances,variances,alignment,...
+    nGoodTracks,maxDist,costFunction);
 
 % get cutoff for visualization
-% cutoff variances
-[dummy,cutoff]=cutFirstHistMode(full(costMat(ind)),0);
+% cutoff distances (b/c they'll be used for refinement
+[dummy,cutoffDistance]=cutFirstHistMode(distances(linkedIdx),verbose>0);
+if verbose
+    set(gcf,'Name',sprintf('Distance cutoff for %s',dataStruct.projectName))
+end
 
-% plot for one frame
-t=[5,15,25,35];
-plotGroupResults(t,r2c,nGoodTracks,goodTracks,dataStruct,costMat,cutoff)
-
-
-
-%% ----------- METAPHASE SISTER REFINEMENT -------------
-
-% distances turn out to be very tightly distributed in metaphase. Cutoff
-% and relink
-[dummy,cutoffDistance]=cutFirstHistMode(distances(ind),1);
-
-distCutoffIdx = distances > cutoffDistance;
-
-distances(distCutoffIdx) = 0;
-variances(distCutoffIdx) = 0;
-alignment(distCutoffIdx) = 0;
-
-% make non-sparse cost matrix. The problem is small, and the annoyance with
-% sparse costMat is large
-%costMat = sparse(variances);
-costMat = variances.*alignment;
-costMat(~costMat) = -1;
-
-% lap again
-[r2c,c2r] = lap(costMat,-1,0,1);
-
-% shorten r2c, c2r. No link is nan
-r2c = double(r2c(1:nGoodTracks));
-r2c(r2c>nGoodTracks) = NaN;
-c2r = double(c2r(1:nGoodTracks));
-c2r(c2r>nGoodTracks) = NaN;
-
-% find indices again
-ind=sub2ind([nGoodTracks nGoodTracks],...
-    1:nGoodTracks,r2c(1:nGoodTracks)');
-ind(isnan(ind)) = [];
-
-% check for good pairs (non-polygons)
 goodPairIdxL = r2c==c2r;
-r2cTmp = r2c;
-r2cTmp(~goodPairIdxL) = -r2cTmp(~goodPairIdxL);
-plotGroupResults(t,r2cTmp,nGoodTracks,goodTracks,dataStruct,costMat,cutoff)
+if verbose
+    % plot for 4 frames (that's about how many can be properly displayed)
+    deltaT = max(1,floor(nTimepoints/4));
+    tOffset = max(1,ceil(deltaT/2));
+    t=tOffset:deltaT:nTimepoints;
+    % highlight polygons
+    r2cTmp = r2c;
+    r2cTmp(~goodPairIdxL) = -r2cTmp(~goodPairIdxL);
+    plotGroupResults(t,r2cTmp,nGoodTracks,...
+        goodTracks,dataStruct,distances,cutoffDistance,...
+        sprintf('Initial grouping for %s. G/B-Cutoff=distance',...
+        dataStruct.projectName))
+end
+
+if ~strcmpi(costFunction,'anaphase')
+
+    % even in metaphase, sister distances seem to be small and tightly
+    % distributed. Thus, cutoff with distance and relink (this will not work in
+    % anaphase, of course).
+    [r2c,c2r,costMat,linkedIdx] = ...
+        linkTracks(distances,variances,alignment,...
+        nGoodTracks,cutoffDistance,costFunction);
+
+
+    % check for good pairs (non-polygons)
+    goodPairIdxL = r2c==c2r;
+    if verbose
+        % highlight polygons
+        r2cTmp = r2c;
+        r2cTmp(~goodPairIdxL) = -r2cTmp(~goodPairIdxL);
+        [dummy,cutoff]=cutFirstHistMode(costMat(linkedIdx),0);
+        plotGroupResults(t,r2cTmp,nGoodTracks,...
+            goodTracks,dataStruct,costMat,cutoff,...
+            sprintf('Refined grouping for %s. G/B-Cutoff=cost',...
+            dataStruct.projectName))
+    end
+end % if ~anaphase
+
+
+
+%=================================
+%% RESOLVE POLYGONS
+%=================================
 
 % identify polygons. Polygons have to be closed, thus, it should not matter
 % where we start. Also, since the distance between polygons and the rest is
@@ -243,13 +240,13 @@ while ~isempty(polygonIdx)
             % if yes, exit. The polygon is complete
             done = true;
         else
-            polyList(end+1) = nextCorner;
+            polyList(end+1) = nextCorner; %#ok<AGROW>
             % remove corner from polygonIdx
             polygonIdx(polygonIdx==nextCorner) = [];
         end
     end % identify polygon
-    
-    
+
+
     % within the polygon: find closest distance to identify first pair.
     % Remove it, and check for more pairs. This will potentially result in
     % more pairs than removal of large distances starting from a tetragon
@@ -266,10 +263,10 @@ while ~isempty(polygonIdx)
         r2c(polyList(idx2)) = polyList(idx1);
         c2r(polyList(idx1)) = polyList(idx2);
         c2r(polyList(idx2)) = polyList(idx1);
-        
+
         % check whether there are still tracks to link
         polyList([idx1,idx2]) = [];
-        
+
         if length(polyList) > 1
             % continue
         else
@@ -280,12 +277,58 @@ while ~isempty(polygonIdx)
             done = true;
         end
     end % resolve individual polygons
-    
+
 end % resolve all polygons
 
-plotGroupResults(t,r2c,nGoodTracks,goodTracks,dataStruct,costMat,cutoff)
+if verbose
+    % plot final version
+    plotGroupResults(t,r2cTmp,nGoodTracks,...
+        goodTracks,dataStruct,costMat,cutoff,...
+        sprintf('Final grouping for %s. G/B-Cutoff=cost',...
+        dataStruct.projectName))
+end
 
-            
+
+
+%=====================
+%% ASSIGN OUTPUT
+%=====================
+
+% sisterList:
+%   .trackPairs
+%   .coords
+%   .distanceVectors
+goodPairIdxL = r2c==c2r;
+nGoodPairs = sum(goodPairIdxL);
+sisterList(1:nGoodPairs/2,1) = ...
+    struct('trackPairs',[],'coords',NaN(nTimepoints,3),...
+    'distanceVectors',NaN(nTimepoints,3));
+
+% write trackPairs
+sisterList(1).trackPairs = ...
+    [goodTracks(goodPairIdxL),goodTracks(r2c(goodPairIdxL))];
+% remove redundancy
+sisterList(1).trackPairs = ...
+    unique(sort(sisterList(1).trackPairs,2),'rows');
+
+% loop trackPairs to get coords, distance
+for iPair = 1:nGoodPairs/2
+    [rowCoords,rowTime,rowIdx] = ...
+        trackData(sisterList(1).trackPairs(iPair,1),dataStruct,trackStats);
+    [colCoords,colTime,colIdx] = ...
+        trackData(sisterList(1).trackPairs(iPair,2),dataStruct,trackStats);
+
+    % find common time
+    [commonTime,ctColIdx,ctRowIdx] = intersect(colTime,rowTime);
+
+    % calculate distance (microns)
+    sisterList(iPair).distanceVectors(commonTime,:) =...
+        colCoords(colIdx(ctColIdx),:) -...
+        rowCoords(rowIdx(ctRowIdx),:);
+    sisterList(iPair).coords(commonTime,:) = rowCoords(rowIdx(ctRowIdx),:);
+end % loop goodPairs
+
+dataStruct.sisterList = sisterList;
 
 
 
@@ -294,10 +337,62 @@ plotGroupResults(t,r2c,nGoodTracks,goodTracks,dataStruct,costMat,cutoff)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% DEBUG HELPER FUNCTIONS
+%% SUBFUNCTIONS & DEBUG HELPER FUNCTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function plotGroupResults(tt,r2c,nGoodTracks,goodTracks,dataStruct,variances,cutoff)
+% link tracks
+function [r2c,c2r,costMat,linkedIdx] = linkTracks(distances,variances,alignment,nGoodTracks,maxDist,costFunction)
+% cutoff distances
+distCutoffIdx = distances>maxDist;
+distances(distCutoffIdx) = 0;
+variances(distCutoffIdx) = 0;
+alignment(distCutoffIdx) = 0;
+
+% make cost matrix
+switch costFunction
+    case 'prophase'
+        % variance should work here, too
+        costMat = distances;
+    case 'prometaphase'
+        costMat = variances;
+    case 'metaphase'
+        costMat = variances.*alignment;
+    case 'anaphase'
+        costMat = alignment;
+end
+% replace zeros with -1
+costMat(~costMat) = -1;
+
+% lap costMat
+[r2c,c2r] = lap(costMat,-1,0,1);
+
+% shorten r2c, c2r. No link is nan
+r2c = double(r2c(1:nGoodTracks));
+r2c(r2c>nGoodTracks) = NaN;
+c2r = double(c2r(1:nGoodTracks));
+c2r(c2r>nGoodTracks) = NaN;
+
+linkedIdx=sub2ind([nGoodTracks nGoodTracks],1:nGoodTracks,r2c(1:nGoodTracks)');
+linkedIdx(isnan(linkedIdx)) = [];
+
+
+
+% read track coordinates
+function [coords,time,coordIdx] = trackData(idx,dataStruct,trackStats)
+
+% read track coordinates for j
+coords = reshape(dataStruct.tracks(idx).tracksCoordAmpCG,8,[])';
+coords = coords(:,1:3);
+% read timepoints of the track
+time = (trackStats(1,1,idx):trackStats(2,1,idx))';
+% remove gaps
+time(all(isnan(coords),2)) = [];
+% remember indices into colCoords that correspond to the timepoints
+coordIdx = time - trackStats(1,1,idx) + 1;
+
+
+
+function plotGroupResults(tt,r2c,nGoodTracks,goodTracks,dataStruct,variances,cutoff,figureName)
 % plot sister-links for one frame. Number indicates goodTrackIdx
 % green: variance below cutoff
 % blue : variance above cutoff
@@ -306,7 +401,7 @@ function plotGroupResults(tt,r2c,nGoodTracks,goodTracks,dataStruct,variances,cut
 if nargin < 7 || isempty(cutoff)
     cutoff = inf;
 end
-figure,
+figure('Name',figureName)
 ntt = length(tt);
 rows = ceil(sqrt(ntt));
 cols = ceil(ntt/rows);
@@ -362,10 +457,11 @@ for p=1:ntt
     text(c2pb(1:3:end,1),c2pb(1:3:end,2),c2pb(1:3:end,3),num2str((1:nGoodTracks)'))
     text(c2pr(1:3:end,1),c2pr(1:3:end,2),c2pr(1:3:end,3),num2str((1:nGoodTracks)'))
     grid on
+    title(sprintf('Frame %i',t))
 end
 
 
-function distance = plotTrackDistance(iIdxT,jIdxT,goodTracks,dataStruct,trackStats)
+function distance = plotTrackDistance(iIdxT,jIdxT,goodTracks,dataStruct,trackStats) %#ok<DEFNU>
 % plots distance between two tracks vs. time; two connected tracks
 
 jIdx = goodTracks(jIdxT);
@@ -395,18 +491,6 @@ cc = reshape([colCoords(colIdx(ctColIdx),:),...
     rowCoords(rowIdx(ctRowIdx),:),nan(length(distance),3)]',3,[])';
 plot3(cc(:,1),cc(:,2),cc(:,3),'g')
 plot3(cc(1:2,1),cc(1:2,2),cc(1:2,3),'*')
-
-function [coords,time,coordIdx] = trackData(idx,dataStruct,trackStats)
-
-% read track coordinates for j
-coords = reshape(dataStruct.tracks(idx).tracksCoordAmpCG,8,[])';
-coords = coords(:,1:3);
-% read timepoints of the track
-time = (trackStats(1,1,idx):trackStats(2,1,idx))';
-% remove gaps
-time(all(isnan(coords),2)) = [];
-% remember indices into colCoords that correspond to the timepoints
-coordIdx = time - trackStats(1,1,idx) + 1;
 
 
 
