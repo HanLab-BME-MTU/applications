@@ -161,8 +161,28 @@ while ~done
                 
             end
             
-            % --- identify sisters
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %---------------- group sisters -----------------------
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
             if any(jobs2do == 6)
+                
+                %write current job to log files
+                fprintf(1,'%s : group sisters for %s\n',...
+                    nowString,job(iJob).dataStruct.projectName);
+                fprintf(generalLog,'%s : group sisters\n',nowString);
+                fprintf(individualLog,'%s : group sisters\n', nowString);
+
+                %pass and retrieve dataStruct
+                job(iJob).dataStruct = makiGroupSisters(job(iJob).dataStruct);
+
+                %save job
+                job(iJob).dataStruct.status(6) = 1;
+                job(iJob).dataStruct.statusHelp{6,2} = date;
+                save(fullfile(job(1).jobPath,job(1).jobName),'job');
+                
+                %save dataStruct. Do not overwrite older sisterLists
+                makiSaveDataFile(job(iJob).dataStruct,'sisterList');
+                
             end
 
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
