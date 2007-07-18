@@ -67,8 +67,8 @@ nGoodTracks = length(goodTracks);
 % loop through the good tracks, calculate for every pair median distance
 % and variance
 % DEBUG
-figure
-hold on
+% figure
+% hold on
 for jTrack = 1:nGoodTracks % loop cols
 
     % read index of track
@@ -79,7 +79,7 @@ for jTrack = 1:nGoodTracks % loop cols
     colCoords = colCoords(:,1:3);
 
     %     %DEBUG
-    plot3(colCoords(:,1),colCoords(:,2),colCoords(:,3),'Color',extendedColors(jTrack))
+    % plot3(colCoords(:,1),colCoords(:,2),colCoords(:,3),'Color',extendedColors(jTrack))
 
     % read timepoints of the track
     colTime = (trackStats(1,1,jIdx):trackStats(2,1,jIdx))';
@@ -165,15 +165,20 @@ alignment(distCutoffIdx) = 0;
 %costMat = sparse(variances);
 costMat = sparse(variances.*alignment);
 
-% lap variances only
-r2c = lap(costMat,-1,0,1);
+% lap costMat
+[r2c,c2r] = lap(costMat,-1,0,1);
 
-% get cutoff for visualization
+% shorten r2c. No link is nan
+r2c = double(r2c(1:nGoodTracks));
+r2c(r2c>nGoodTracks) = NaN;
+
+
 
 % find indices into matrix
-ind=sub2ind([nGoodTracks nGoodTracks],1:nGoodTracks,double(r2c(1:nGoodTracks))');
+ind=sub2ind([nGoodTracks nGoodTracks],1:nGoodTracks,r2c(1:nGoodTracks)');
+ind(isnan(ind)) = [];
 
-
+% get cutoff for visualization
 % cutoff variances
 [dummy,cutoff]=cutFirstHistMode(full(costMat(ind)),0);
 
@@ -182,20 +187,108 @@ t=[5,15,25,35];
 plotGroupResults(t,r2c,nGoodTracks,goodTracks,dataStruct,costMat,cutoff)
 
 
-% try: improve grouping by only considering 'good' variances - doesn't work
-% well
-%
-% varCutoffIdx = variances>v*1.5;
-% varOld = variances;
-% variances(varCutoffIdx) = -1;
-% r2c = lap(variances,-1,0,1);
-%
-% % plot for one frame
-% t=5;
-% plotGroupResults(t,r2c,nGoodTracks,goodTracks,dataStruct,variances)
+
+%% ----------- METAPHASE SISTER REFINEMENT -------------
+
+% distances turn out to be very tightly distributed in metaphase. Cutoff
+% and relink
+[dummy,cutoffDistance]=cutFirstHistMode(distances(ind),1);
+
+distCutoffIdx = distances > cutoffDistance;
+
+distances(distCutoffIdx) = 0;
+variances(distCutoffIdx) = 0;
+alignment(distCutoffIdx) = 0;
+
+% make non-sparse cost matrix. The problem is small, and the annoyance with
+% sparse costMat is large
+%costMat = sparse(variances);
+costMat = variances.*alignment;
+costMat(~costMat) = -1;
+
+% lap again
+[r2c,c2r] = lap(costMat,-1,0,1);
+
+% shorten r2c, c2r. No link is nan
+r2c = double(r2c(1:nGoodTracks));
+r2c(r2c>nGoodTracks) = NaN;
+c2r = double(c2r(1:nGoodTracks));
+c2r(c2r>nGoodTracks) = NaN;
+
+% find indices again
+ind=sub2ind([nGoodTracks nGoodTracks],...
+    1:nGoodTracks,r2c(1:nGoodTracks)');
+ind(isnan(ind)) = [];
+
+% check for good pairs (non-polygons)
+goodPairIdxL = r2c==c2r;
+r2cTmp = r2c;
+r2cTmp(~goodPairIdxL) = -r2cTmp(~goodPairIdxL);
+plotGroupResults(t,r2cTmp,nGoodTracks,goodTracks,dataStruct,costMat,cutoff)
+
+% identify polygons. Polygons have to be closed, thus, it should not matter
+% where we start. Also, since the distance between polygons and the rest is
+% hopefully fairly large, we don't care about neighborhood.
+polygonIdx = find(~goodPairIdxL);
+polyList = [];
+while ~isempty(polygonIdx)
+    polyList(1) = polygonIdx(1);
+    polygonIdx(1) = [];
+    done = false;
+    while ~done
+        % look up the row the last corner links to
+        nextCorner = r2c(polyList(end));
+        % check whether the new corner has already been used
+        if any(nextCorner == polyList)
+            % if yes, exit. The polygon is complete
+            done = true;
+        else
+            polyList(end+1) = nextCorner;
+            % remove corner from polygonIdx
+            polygonIdx(polygonIdx==nextCorner) = [];
+        end
+    end % identify polygon
+    
+    
+    % within the polygon: find closest distance to identify first pair.
+    % Remove it, and check for more pairs. This will potentially result in
+    % more pairs than removal of large distances starting from a tetragon
+    done = false;
+    while ~done
+        % read current cost matrix
+        currentCost = costMat(polyList,polyList);
+        currentCost(currentCost==-1) = inf;
+        % find pair with lowest cost
+        [v,minIdx] = min(currentCost(:));
+        [idx1,idx2] = ind2sub(size(currentCost),minIdx);
+        % write pair into r2c
+        r2c(polyList(idx1)) = polyList(idx2);
+        r2c(polyList(idx2)) = polyList(idx1);
+        c2r(polyList(idx1)) = polyList(idx2);
+        c2r(polyList(idx2)) = polyList(idx1);
+        
+        % check whether there are still tracks to link
+        polyList([idx1,idx2]) = [];
+        
+        if length(polyList) > 1
+            % continue
+        else
+            % clear polyList, write NaN into r2c, c2r
+            r2c(polyList) = NaN;
+            c2r(polyList) = NaN;
+            polyList = [];
+            done = true;
+        end
+    end % resolve individual polygons
+    
+end % resolve all polygons
+
+plotGroupResults(t,r2c,nGoodTracks,goodTracks,dataStruct,costMat,cutoff)
+
+            
 
 
-% check for
+
 
 
 
@@ -231,11 +324,11 @@ for p=1:ntt
             tIdx = t-dataStruct.tracks(idx1).seqOfEvents(1,1)+1;
             c1=dataStruct.tracks(idx1).tracksCoordAmpCG((tIdx-1)*8+1:(tIdx-1)*8+3);
         end
-        if r2c(i) > nGoodTracks
+        if isnan(r2c(i)) || abs(r2c(i)) > nGoodTracks
             c2=nan(1,3);
             v=NaN;
         else
-            idx2 = goodTracks(r2c(i));
+            idx2 = goodTracks(abs(r2c(i)));
             if t<dataStruct.tracks(idx2).seqOfEvents(1,1) || t>dataStruct.tracks(idx2).seqOfEvents(2,1)
                 c2 = nan(1,3);
             else
@@ -243,7 +336,11 @@ for p=1:ntt
                 tIdx = t-dataStruct.tracks(idx2).seqOfEvents(1,1)+1;
                 c2=dataStruct.tracks(idx2).tracksCoordAmpCG((tIdx-1)*8+1:(tIdx-1)*8+3);
             end
-            v = variances(i,r2c(i));
+            if r2c(i)<0
+                v = nan; % polygons are also red
+            else
+                v = variances(i,r2c(i));
+            end
         end
 
         if v < cutoff
