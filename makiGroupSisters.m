@@ -340,7 +340,9 @@ dataStruct.sisterList = sisterList;
 %% SUBFUNCTIONS & DEBUG HELPER FUNCTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% link tracks
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% link tracks
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [r2c,c2r,costMat,linkedIdx] = linkTracks(distances,variances,alignment,nGoodTracks,maxDist,costFunction)
 % cutoff distances
 distCutoffIdx = distances>maxDist;
@@ -376,8 +378,9 @@ linkedIdx=sub2ind([nGoodTracks nGoodTracks],1:nGoodTracks,r2c(1:nGoodTracks)');
 linkedIdx(isnan(linkedIdx)) = [];
 
 
-
-% read track coordinates
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% read track coordinates
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [coords,time,coordIdx] = trackData(idx,dataStruct,trackStats)
 
 % read track coordinates for j
@@ -390,8 +393,9 @@ time(all(isnan(coords),2)) = [];
 % remember indices into colCoords that correspond to the timepoints
 coordIdx = time - trackStats(1,1,idx) + 1;
 
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PLOT/DEBUG FUNCTIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function plotGroupResults(tt,r2c,nGoodTracks,goodTracks,dataStruct,variances,cutoff,figureName)
 % plot sister-links for one frame. Number indicates goodTrackIdx
 % green: variance below cutoff
@@ -460,7 +464,7 @@ for p=1:ntt
     title(sprintf('Frame %i',t))
 end
 
-
+%% PLOT DISTANCE BETWEEN TRACKS
 function distance = plotTrackDistance(iIdxT,jIdxT,goodTracks,dataStruct,trackStats) %#ok<DEFNU>
 % plots distance between two tracks vs. time; two connected tracks
 
