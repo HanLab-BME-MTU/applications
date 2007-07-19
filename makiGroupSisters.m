@@ -49,7 +49,7 @@ function dataStruct = makiGroupSisters(dataStruct,verbose)
 if nargin == 0 || isempty(dataStruct)
     dataStruct = makiLoadDataFile;
 end
-if nargin < 1 || isempty(verbose)
+if nargin < 2 || isempty(verbose)
     verbose = 0;
 end
 

@@ -7,12 +7,13 @@ function makiShowImaris(dataStruct,select)
 %                   if empty, guiLoad
 %		select: (opt) vector of analysis results to plot. If not
 %               not inputed or empty, everything available will be plotted.
-%               1st entry: tracks; 2nd entry: fitted lane. Enter 1 for
-%               result to be plotted, 0 for result not to be plotted.
+%               1st entry: tracks; 2nd entry: sisters, 3rd entry: fitted 
+%               plane. Enter 1 for result to be plotted, 0 for result not 
+%               to be plotted.
 %
 % OUTPUT ---
 %
-% REMARKS in plotting tracks, merges and splits cannot be plotted yet
+% REMARKS in plotting tracks, merges and splits cannot be plotted
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -21,7 +22,7 @@ function makiShowImaris(dataStruct,select)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% input
+%% input
 if nargin < 1
     dataStruct = [];
 end
@@ -30,9 +31,11 @@ if isempty(dataStruct)
 end
 
 if nargin < 2 || isempty(select)
-    select = [1 1];
+    select = [1 1 1];
 elseif length(select) < 2
-    select = [select(1) 1];
+    select = [select 1 1];
+elseif length(select) < 3
+    select = [select 1];
 end
     
 % turn off property reader warning
@@ -71,9 +74,7 @@ zeroOffsetY = imarisApplication.mDataSet.mExtendMinY + 0.5*pixelSize(2);
 zeroOffsetZ = imarisApplication.mDataSet.mExtendMinZ + 0.5*pixelSize(3);
 zeroOffset = [zeroOffsetX zeroOffsetY zeroOffsetZ];
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%detected spots (initCoord)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% detected spots (initCoord)
 
 %get coordinates
 initCoord = dataStruct.initCoord;
@@ -124,27 +125,25 @@ imaSpots.mName = ['Spots (avg: ' num2str(round(mean(nSpots))) ' / frame)'];
 % add to scene
 imaSurpassScene.AddChild(imaSpots);
            
-%%%%%%%
-%tracks
-%%%%%%%
+%% tracks
 
 if select(1)
 
     %make spots plotted earlier invisible
     imaSpots.mVisible = 0;
-    
+
     %get tracks from dataStruct
     tracksFinal = dataStruct.tracks;
-    
+
     %find total number of tracks
     numTracks = length(tracksFinal);
-    
+
     %find track start times, end times and lifetimes
     trackSEL = getTrackSEL(tracksFinal);
-    
+
     %find gaps in tracks
     gapInfo = findTrackGaps(tracksFinal);
-    
+
     %create data container for tracks longer than 90% of movie
     imaTrackGroup90to100 = imarisApplication.mFactory.CreateDataContainer;
 
@@ -165,7 +164,8 @@ if select(1)
     numTracks70to90 = 0;
     numTracks50to70 = 0;
     numTracks0to50 = 0;
-    
+
+    %plot unpaired tracks
     for iTrack = 1 : numTracks
 
         %create track object
@@ -184,8 +184,8 @@ if select(1)
         %data from the variable "spots"
         spotsIndx = spotsIndx + nSpotSum(1:end-1);
 
-        %get spot coordinates and sizes(some are wrong and will be corrected
-        %in the next couple of steps)
+        %get spot coordinates (some are wrong and will be corrected
+        %in the next couple of steps) and define spot sizes 
         spotsCoord = spots(spotsIndx,1:3);
         spotSize = pixelSize(1)*2*ones(nTimepoints,1);
 
@@ -216,14 +216,14 @@ if select(1)
         %set spot coordinates in imaris object
         imaSpotsTrack = imarisApplication.mFactory.CreateSpots;
         imaSpotsTrack.Set(single(spotsCoord),...
-            single(spots(spotsIndx,4)),single(spotSize));
+            single(0:nTimepoints-1),single(spotSize));
 
         %define track spots
-        imaTracks.SetSpots(imaSpotsTrack)
-        
+        imaTracks.SetSpots(imaSpotsTrack);
+
         %define track edges
         imaTracks.SetEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
-        
+
         %add track to relevant data container
         if trackSEL(iTrack,3) >= 0.9*nTimepoints
             imaTracks.SetColor(single(1),single(0),single(0),single(0));
@@ -242,7 +242,7 @@ if select(1)
             imaTrackGroup0to50.AddChild(imaTracks);
             numTracks0to50 = numTracks0to50 + 1;
         end
-
+        
     end %(for iTrack = 1 : numTracks)
 
     %give names to groups of tracks
@@ -262,12 +262,120 @@ if select(1)
     imaSurpassScene.AddChild(imaTrackGroup0to50);
 
 end %(if select(1))
-            
-%%%%%%%%%%%%%
-%fitted plane
-%%%%%%%%%%%%%
+
+%% sisters
 
 if select(2)
+
+    %make spots plotted earlier invisible
+    imaSpots.mVisible = 0;
+
+    %get tracks from dataStruct
+    tracksFinal = dataStruct.tracks;
+
+    %find track start times, end times and lifetimes
+    trackSEL = getTrackSEL(tracksFinal);
+
+    %find gaps in tracks
+    gapInfo = findTrackGaps(tracksFinal);
+
+    %get list of paired sisters from dataStruct
+    pairList = dataStruct.sisterList(1).trackPairs;
+
+    %determine number of pairs
+    numPairs = size(pairList,1);
+
+    %create data container for all sisters
+    imaTrackAllSisters = imarisApplication.mFactory.CreateDataContainer;
+    imaTrackAllSisters.mName = 'sister pairs';
+
+    %plot paired tracks
+    for iPair = 1 : numPairs
+
+        %go over both sisters
+        for iSister = 1 : 2
+
+            %get track index
+            iTrack = pairList(iPair,iSister);
+
+            %create track object
+            imaTracks = imarisApplication.mFactory.CreateTrack;
+            imaTracks.mName = [num2str(iPair) '_' num2str(iSister)];
+
+            %get spots belonging to this track, where index is per
+            %frame
+            spotsIndx = [ones(1,trackSEL(iTrack,1)-1) ...
+                tracksFinal(iTrack).tracksFeatIndxCG ...
+                ones(1,nTimepoints-trackSEL(iTrack,2))]';
+
+            %locate gaps in this track
+            gapsInTrack = gapInfo(gapInfo(:,1)==iTrack,:);
+
+            %calculate cumulative index of spots in order to get spot
+            %data from the variable "spots"
+            spotsIndx = spotsIndx + nSpotSum(1:end-1);
+
+            %get spot coordinates and sizes(some are wrong and will be corrected
+            %in the next couple of steps)
+            spotsCoord = spots(spotsIndx,1:3);
+            spotSize = pixelSize(1)*2*ones(nTimepoints,1);
+
+            %for frames before track starts, assign position as that at
+            %the start. Make spot size 0
+            spotsCoord(1:trackSEL(iTrack,1)-1,1) = spotsCoord(trackSEL(iTrack,1),1);
+            spotsCoord(1:trackSEL(iTrack,1)-1,2) = spotsCoord(trackSEL(iTrack,1),2);
+            spotsCoord(1:trackSEL(iTrack,1)-1,3) = spotsCoord(trackSEL(iTrack,1),3);
+            spotSize(1:trackSEL(iTrack,1)-1) = 0;
+
+            %for frames after track ends, assign position as that at
+            %the end. Make spot size 0
+            spotsCoord(trackSEL(iTrack,2)+1:end,1) = spotsCoord(trackSEL(iTrack,2),1);
+            spotsCoord(trackSEL(iTrack,2)+1:end,2) = spotsCoord(trackSEL(iTrack,2),2);
+            spotsCoord(trackSEL(iTrack,2)+1:end,3) = spotsCoord(trackSEL(iTrack,2),3);
+            spotSize(trackSEL(iTrack,2)+1:nTimepoints) = 0;
+
+            %in frames where there is a gap, use coordinate of last
+            %frame where object is detected. Make spot size half that of a
+            %detected spot
+            for iGap = 1 : size(gapsInTrack,1)
+                spotsCoord(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1,1) = spotsCoord(gapsInTrack(iGap,3)-1,1);
+                spotsCoord(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1,2) = spotsCoord(gapsInTrack(iGap,3)-1,2);
+                spotsCoord(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1,3) = spotsCoord(gapsInTrack(iGap,3)-1,3);
+                spotSize(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1) = pixelSize(1);
+            end
+
+            %set spot coordinates in imaris object
+            imaSpotsTrack = imarisApplication.mFactory.CreateSpots;
+            imaSpotsTrack.Set(single(spotsCoord),...
+                single(0:nTimepoints-1),single(spotSize));
+
+            %define track spots
+            imaTracks.SetSpots(imaSpotsTrack);
+
+            %define track edges
+            imaTracks.SetEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
+
+            %make track invisible
+            imaTracks.mVisible = 0;
+
+            %add track to the data container
+            imaTrackAllSisters.AddChild(imaTracks);
+
+        end %(for iSister = 1 : 2)
+        
+    end %(for iPair = 1 : numPairs)
+
+    %make sisters invisible
+    imaTrackAllSisters.mVisible = 0;
+
+    %add sisters to scene
+    imaSurpassScene.AddChild(imaTrackAllSisters);
+    
+end %(if select(2))
+
+%% fitted plane
+
+if select(3)
     %disp('Sorry, plotting plane not implemented yet!');
 end
 

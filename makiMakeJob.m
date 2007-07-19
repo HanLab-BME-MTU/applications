@@ -17,7 +17,8 @@ function job = makiMakeJob(jobType,status,job)
 %
 % REMARKS This is a hack. Setting up jobs should be done via a GUI.
 %         Order of jobs so far: (1) cropping; (2) saving dataStruct;
-%         (3) initCoord; (4) plane fit; (5) tracking
+%         (3) initCoord; (4) plane fit; (5) tracking; (6) sister
+%         identification
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %

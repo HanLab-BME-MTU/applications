@@ -292,7 +292,7 @@ end
 function cutValue = splitModes(data)
 % cut histogram where there is no data
 
-% first guess via cutFirstHistMode
+% first guess via cutFirstHistMode - put as 1 to see histograms
 [cutIdx, cutVal,sp] = cutFirstHistMode(data,0);
 
 % now check the local minima in the vicinity of the cutoff
