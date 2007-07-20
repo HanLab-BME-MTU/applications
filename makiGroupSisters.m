@@ -11,8 +11,16 @@ function dataStruct = makiGroupSisters(dataStruct,verbose)
 % OUTPUT dataStruct: Same as input, but with field sisterList
 %              sisterList is a structure with length equal to the number of
 %              sister kinetochore pairs.
-%              sisterList(1).trackPairs is an nPairs-by-2 array with the
-%                   indices of the tracks as in dataStruct.tracks
+%              sisterList(1).trackPairs is an nPairs-by-6 array with
+%                   [track1,track2,cost,avg.dist,variance,alignment], that
+%                   is sorted according to increasing cost.
+%                   track1,2: track indices as in dataStruct.tracks.
+%                   cost: cost of grouping
+%                   avg.dist: average distance between the two tracks
+%                   variance: variance of the distance between the tracks
+%                   alignment: f(tan(alpha)), where alpha is the average
+%                       angle between the distanceVector and the first
+%                       eigenVector of planeFit.eigenVectors
 %              sisterList(iPair).distanceVectors is a nTimepoints-by-3 
 %                   array with the distance vectors between the tracks (use
 %                   normList to get distances and normed vectors). Wherever
@@ -57,7 +65,7 @@ end
 goodTrackRatio = dataStruct.dataProperties.groupSisters.goodTrackRatio;
 maxDist = dataStruct.dataProperties.groupSisters.maxDist;
 robust = dataStruct.dataProperties.groupSisters.robust;
-costFunction = dataStruct.dataProperties.groupSisters.costFunction;
+costFunction = lower(dataStruct.dataProperties.groupSisters.costFunction);
 
 % read movieLength
 nTimepoints = dataStruct.dataProperties.movieSize(4);
@@ -193,7 +201,7 @@ if verbose
         dataStruct.projectName))
 end
 
-if ~strcmpi(costFunction,'anaphase')
+if ~strcmp(costFunction,'anaphase')
 
     % even in metaphase, sister distances seem to be small and tightly
     % distributed. Thus, cutoff with distance and relink (this will not work in
@@ -227,6 +235,8 @@ end % if ~anaphase
 % where we start. Also, since the distance between polygons and the rest is
 % hopefully fairly large, we don't care about neighborhood.
 polygonIdx = find(~goodPairIdxL);
+% remove the not-linked tracks
+polygonIdx(isnan(r2c(polygonIdx))) = [];
 polyList = [];
 while ~isempty(polygonIdx)
     polyList(1) = polygonIdx(1);
@@ -282,6 +292,8 @@ end % resolve all polygons
 
 if verbose
     % plot final version
+    r2cTmp = r2c;
+    r2cTmp(~goodPairIdxL) = -r2cTmp(~goodPairIdxL);
     plotGroupResults(t,r2cTmp,nGoodTracks,...
         goodTracks,dataStruct,costMat,cutoff,...
         sprintf('Final grouping for %s. G/B-Cutoff=cost',...
@@ -299,17 +311,22 @@ end
 %   .coords
 %   .distanceVectors
 goodPairIdxL = r2c==c2r;
+linkedIdx=sub2ind([nGoodTracks nGoodTracks],find(goodPairIdxL),r2c(goodPairIdxL));
 nGoodPairs = sum(goodPairIdxL);
 sisterList(1:nGoodPairs/2,1) = ...
     struct('trackPairs',[],'coords',NaN(nTimepoints,3),...
     'distanceVectors',NaN(nTimepoints,3));
 
-% write trackPairs
+% write trackPairs. Store: pair1,pair2,cost,dist,var,alignment
 sisterList(1).trackPairs = ...
-    [goodTracks(goodPairIdxL),goodTracks(r2c(goodPairIdxL))];
+    [goodTracks(goodPairIdxL),goodTracks(r2c(goodPairIdxL)),...
+    costMat(linkedIdx),distances(linkedIdx),variances(linkedIdx),...
+    alignment(linkedIdx)];
 % remove redundancy
 sisterList(1).trackPairs = ...
     unique(sort(sisterList(1).trackPairs,2),'rows');
+% sort according to cost
+sisterList(1).trackPairs = sortrows(sisterList(1).trackPairs,3);
 
 % loop trackPairs to get coords, distance
 for iPair = 1:nGoodPairs/2
