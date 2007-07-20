@@ -253,7 +253,8 @@ switch jobType
                 costMatParam.maxSearchRadiusCG = userEntry(3);
                 costMatParam.brownStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
                 costMatParam.linStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
-                costMatParam.timeReachConfB = gapCloseParam.timeWindow;
+%                 costMatParam.timeReachConfB = gapCloseParam.timeWindow;
+                costMatParam.timeReachConfB = min(2,gapCloseParam.timeWindow);
                 costMatParam.timeReachConfL = 1;
                 costMatParam.closestDistScaleCG = 2;
                 costMatParam.maxStdMultCG = 20;

@@ -323,8 +323,8 @@ sisterList(1).trackPairs = ...
     costMat(linkedIdx),distances(linkedIdx),variances(linkedIdx),...
     alignment(linkedIdx)];
 % remove redundancy
-sisterList(1).trackPairs = ...
-    unique(sort(sisterList(1).trackPairs,2),'rows');
+sisterList(1).trackPairs(:,1:2) = sort(sisterList(1).trackPairs(:,1:2),2);
+sisterList(1).trackPairs = unique(sisterList(1).trackPairs,'rows');
 % sort according to cost
 sisterList(1).trackPairs = sortrows(sisterList(1).trackPairs,3);
 
@@ -371,11 +371,11 @@ alignment(distCutoffIdx) = 0;
 switch costFunction
     case 'prophase'
         % variance should work here, too
-        costMat = distances;
+        costMat = distances.*variances;
     case 'prometaphase'
-        costMat = variances;
+        costMat = distances.*variances;
     case 'metaphase'
-        costMat = variances.*alignment;
+        costMat = distances.*variances.*alignment;
     case 'anaphase'
         costMat = alignment;
 end

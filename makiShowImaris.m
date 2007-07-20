@@ -17,7 +17,7 @@ function makiShowImaris(dataStruct,select)
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
-% created by: jdorn, modified heavily by kjaqaman
+% created by: jdorn, kjaqaman
 % DATE: 29-Jun-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -300,7 +300,11 @@ if select(2)
 
             %create track object
             imaTracks = imarisApplication.mFactory.CreateTrack;
-            imaTracks.mName = [num2str(iPair) '_' num2str(iSister)];
+            if iSister == 1
+                imaTracks.mName = [num2str(iPair) '_' num2str(iSister) '  (' num2str(pairList(iPair,3)) ')'];
+            else
+                imaTracks.mName = [num2str(iPair) '_' num2str(iSister)];
+            end
 
             %get spots belonging to this track, where index is per
             %frame
