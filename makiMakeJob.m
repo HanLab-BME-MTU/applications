@@ -10,6 +10,12 @@ function job = makiMakeJob(jobType,status,job)
 %                e.g. [1,1,1,0,1,0,0], or a list of jobs, e.g. [1,2,3,5]
 %                To force the job, set 2 in the status vector, or negative
 %                numbers in the list
+%               
+%                REMARK: this help page (and the code) freely mixes the
+%                terms 'job' and 'task'. A job contains a list of tasks
+%                that is applied to one movie. Thus, status effectively defines 
+%                a task list 
+%
 %       job    : job-struct as output from makiMakeJob (e.g. if you want to
 %                update it). If empty, you can load via GUI
 %
@@ -27,16 +33,24 @@ function job = makiMakeJob(jobType,status,job)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Make this compatble for future addition of tasks.
+% Currently only 6 tasks are documented in the help. 
+% The system semi-supports a 7th task, which is the mixture model fitting
+makiNumPossibleTasks = 7;
+
 if nargin < 1 || isempty(jobType)
     jobType = 1;
 end
 if nargin < 2 || isempty(status)
-    status = [0,0,1,0,0,0,0]'; % do only initCoord for now as standard
+    status = zeros(makiNumPossibleTasks,1);
+    status(3) = 1; % do only initCoord for now as standard
 else
     status = status(:);
 end
-if length(status) < 7 || any(status > 2)
-    tmp = zeros(7,1);
+
+% Handle the status input as a task list instead of a status vector
+if length(status) < makiNumPossibleTasks || any(status > 2)
+    tmp = zeros(makiNumPossibleTasks,1);
     tmp(abs(status)) = 1;
     tmp(abs(status(status<0))) = 2;
     status = tmp;
@@ -184,6 +198,9 @@ switch jobType
                     'CAREFUL: Crop and WAIT till Imaris is done cropping BEFORE clicking OK!'],'Please read carefully');
                 uiwait(announcement);
 
+                %%%%%%%%%%%%%%%%% THIS CROPPING WILL BE MODIFIED TO
+                %%%%%%%%%%%%%%%%% INTEGRATE TIME CROPPING AS WELL -- gd
+                
                 % crop has to be corrected by zeroOffset. Round to avoid
                 % .9999999 pixels
                 % Also, correct for the fact that the image is 0.5 pixel
