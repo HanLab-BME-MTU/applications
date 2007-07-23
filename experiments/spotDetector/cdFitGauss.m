@@ -1,4 +1,4 @@
-function [gaussFit,moreOutput] = cdFitGauss(inputStructure,fitList)
+function [gaussFit,moreOutput] = cdFitGauss(inputStructure,fitList,allowOverlapForSigma)
 %CDFITGAUSS fits Gaussians to idlist/slist data
 %
 % SYNOPSIS: [dataProperties,GaussWidth] = cdFitGauss(inputStructure)
@@ -10,6 +10,8 @@ function [gaussFit,moreOutput] = cdFitGauss(inputStructure,fitList)
 %       -movieDir
 %		-rawMovieName
 %       fitList: list of prarameters to fit (see GaussFitND)
+%       allowOverlapForSigma : Normally, this is set to 0. Thus, the code
+%           will not attempt to fit sigmas when the tags overlap.
 %
 % OUTPUT gaussFit: structure with the same size as slist with fields
 %         - coords: fitParameters (x,y,z,a,sxy (or sx,sy),b)
@@ -29,6 +31,10 @@ function [gaussFit,moreOutput] = cdFitGauss(inputStructure,fitList)
 
 % test inputStructure here
 
+% test nargin
+if nargin < 3 || isempty(allowOverlapForSigma)
+    allowOverlapForSigma = false;
+end
 
 % update slist with spot order from idlist
 if isfield(inputStructure,'idlist') && ~isempty(inputStructure.idlist)
@@ -75,6 +81,8 @@ checkB = regexpi(fitList,'b');
 if any([checkB{:}])
     nFitParms = nFitParms - 1;
 end
+% nParameters is 3 coord, 1 amp, 2 sigma, 1 bg
+nParameters = 7;
 
 
 % decide on movieLoader
@@ -117,8 +125,8 @@ end
 % loop through frames, then loop through spots in slist to fit sigmas
 
 nTimepoints = length(slist);
-gaussFit(1:nTimepoints) = struct('coords',[],'Q',[],'chi2',[]);
-moreOutput(1:nTimepoints) = struct('residualImage',[]);
+gaussFit(1:nTimepoints) = struct('coords',[],'Q',{{}},'chi2',[]);
+moreOutput(1:nTimepoints) = struct('residualImage',{{}});
 
 for t=1:nTimepoints
 
@@ -159,12 +167,15 @@ for t=1:nTimepoints
 
             nSpots2fit = length(spotsIdx);
 
-            if  nSpots2fit > 1 && sigmaFit
+            if  ~allowOverlapForSigma && (nSpots2fit > 1 && sigmaFit)
 
                 % don't fit - just write in NaN
-                gaussFit(t).coords(spotList(spotsIdx),:) = NaN;
-                [gaussFit(t).Q{spotList(spotsIdx)}] = deal(NaN);
-                [gaussFit(t).residualImage{spotList(spotsIdx)}]=deal(NaN);
+                gaussFit(t).coords(spotList(spotsIdx),:) = NaN(nSpots2fit,nParameters);
+                [gaussFit(t).Q{spotList(spotsIdx)}] = deal(NaN(nFitParms));
+                if nargout > 1
+                    [moreOutput(t).residualImage{spotList(spotsIdx)}]=...
+                        deal(NaN);
+                end
             else
                 % fit multiple spots (or single spot)
                 % read intensities, coordinates
@@ -188,7 +199,7 @@ for t=1:nTimepoints
                 for i=1:nSpots2fit
 
                     % store output - mind the xy-switch!!
-                    gaussFit(t).coords(spotList(spotsIdx(i)),:) = parameters(i,[2,1,3,4:size(parameters,2)]);
+                    gaussFit(t).coords(spotList(spotsIdx(i)),:) = parameters(i,[2,1,3,4:nParameters]);
                     gaussFit(t).Q{spotList(spotsIdx(i))} = Q((i-1)*nFitParms+1:i*nFitParms,(i-1)*nFitParms+1:i*nFitParms);
                     if any(strcmpi(fitList,'x1')) && any(strcmpi(fitList,'x2'))
                     gaussFit(t).Q{spotList(spotsIdx(i))}(1:2,1:2) = ...

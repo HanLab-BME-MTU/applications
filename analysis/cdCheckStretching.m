@@ -17,6 +17,8 @@ function cdCheckStretching(type)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+warningState = warning;
+warning off MATLAB:divideByZero
 
 % make list of idlists - don't use cen1*-movies
 idlistList = loadIdlistList([],'~any(strcmp(idlist(1).stats.labelcolor,''cen1*''))');
@@ -52,9 +54,29 @@ switch type
                 'dataProperties',idlistList(iIdlist).dataProperties,...
                 'movieDir',idlistList(iIdlist).dirName,...
                 'rawMovieName',loadStruct.movieName);
-            % since we fit idlisttrack, we simply want to adjust amplitude.
-            % Background should be ok from the detector - or is it??
-
+            
+            % for isolated spots, position should always be ok (and, in
+            % principle, amplitude, though it will depend on sigma). To get
+            % correct sigma, fit width of isolated spots first
+            sigmaCorrectionOld = fitStruct.dataProperties.sigmaCorrection;
+            done = false;
+            while ~done
+            gaussFit = cdFitGauss(fitStruct,{'a','sxy','s3','b'}); %#ok<NASGU>
+            s = catStruct(1,'gaussFit.coords(:,5:6)');
+            sigmaCorrection = robustMean(s(~isnan(s(:,1)),:));
+            disp(sigmaCorrection);
+            fitStruct.dataProperties.sigmaCorrection = ...
+                sigmaCorrection;
+            fitStruct.dataProperties = defaultDataProperties(...
+                fitStruct.dataProperties);
+            if all((abs(sigmaCorrection-sigmaCorrectionOld)./sigmaCorrectionOld)<0.05)
+                done = true;
+            else
+                sigmaCorrectionOld = sigmaCorrection;
+            end
+            end % while
+            
+            
             % check type. If we come from idlist_L, we want to adjust
             % positions, too
             if findstr(idlistList(iIdlist).idlist(1).stats.idname,'track_L')
@@ -114,7 +136,7 @@ switch type
             spotIntensities=cat(2,intensities.spotIntensities)';
             nSpotsMax = length(intensities(1).spotIntensities);
             tt = repmat((1:nTimepoints)',1,nSpotsMax);
-            [c{1:nSpotsMax}] = deal(ones(nTimepoints,1));
+            [c{1:nSpotsMax}] = deal(ones(nTimepoints,1)); %#ok<AGROW>
             A = [blkdiag(c{:}),tt(:)];
             Y = spotIntensities(:);
             goodRows = isfinite(Y) & Y>0;
@@ -431,7 +453,7 @@ end % switch bigImg vs movie
 %% READ INTENSITIES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+warning(warningState)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% idlist2slist
