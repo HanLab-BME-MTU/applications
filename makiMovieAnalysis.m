@@ -89,8 +89,23 @@ while ~done
 
             % get the numbers of the jobs to do
             jobs2do = find(status(:,iJob) == -1);
-
-
+            
+            if isfield(job(iJob).dataStruct,'history')
+                % increase the numRuns index in the history
+                job(iJob).dataStruct.history.numRuns = job(iJob).dataStruct.history.numRuns+1;
+                % set the current version of the data properties for
+                % this specific run
+                %
+                % ASSUMPTION: none of the jobs to be executed
+                % below writes new dataProperties -- gd/July-20/2007
+                job(iJob).dataStruct.history.dataProperties(job(iJob).dataStruct.history.numRuns)= ...
+                    getVersion(job(iJob).dataStruct.dataPropertiesName);
+            else
+                % exception handling for old data structures with no
+                % history
+                error('Job uses old data file format with no history. Run makiUpdateDataFile on this movie');
+            end
+            
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %--------------- initial coords -----------------------
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -111,83 +126,32 @@ while ~done
                 job(iJob).dataStruct.statusHelp{3,2} = date;
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
                 % save dataStruct. Do not overwrite older initCoord
-                makiSaveDataFile(job(iJob).dataStruct,'initCoord');
-
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'initCoord');
+                % set the current version of the initCoord
+                if success
+                    job(iJob).dataStruct.history.initCoord(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.initCoordName);
+                else
+                    error('unable to secure-save initial coordinates');
+                end
+            else
+                % write temporarily a NaN to history.initCoord
+                % Dependent on the jobs to follow, this field might be
+                % overwritten again
+                job(iJob).dataStruct.history.initCoord(job(iJob).dataStruct.history.numRuns)= NaN;
             end
             
-            
-            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            %----------------- congression ------------------------
-            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            if any(jobs2do == 4)
-                % write current job to log files
-                fprintf(1,'%s : metaphase plate fit %s\n',...
-                    nowString,job(iJob).dataStruct.projectName);
-                fprintf(generalLog,'%s : metaphase plate fit\n',nowString);
-                fprintf(individualLog,'%s : metaphase plate fit\n', nowString);
-
-                % pass and retrieve dataStruct
-                job(iJob).dataStruct = makiFitPlane(job(iJob).dataStruct,0);
-
-                % save job
-                job(iJob).dataStruct.status(4) = 1;
-                job(iJob).dataStruct.statusHelp{4,2} = date;
-                save(fullfile(job(1).jobPath,job(1).jobName),'job');
-                % save dataStruct. Do not overwrite older plane fits
-                makiSaveDataFile(job(iJob).dataStruct,'planeFit');
-            end
-            
-            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            %------------------- tracking -------------------------
-            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            if any(jobs2do == 5)
-                
-                %write current job to log files
-                fprintf(1,'%s : generate tracks for %s\n',...
-                    nowString,job(iJob).dataStruct.projectName);
-                fprintf(generalLog,'%s : generate tracks\n',nowString);
-                fprintf(individualLog,'%s : generate tracks\n', nowString);
-
-                %pass and retrieve dataStruct
-                job(iJob).dataStruct = makiGenerateTracks(job(iJob).dataStruct);
-
-                %save job
-                job(iJob).dataStruct.status(5) = 1;
-                job(iJob).dataStruct.statusHelp{5,2} = date;
-                save(fullfile(job(1).jobPath,job(1).jobName),'job');
-                
-                %save dataStruct. Do not overwrite older tracks
-                makiSaveDataFile(job(iJob).dataStruct,'tracks');
-                
-            end
-            
-            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            %---------------- group sisters -----------------------
-            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            if any(jobs2do == 6)
-                
-                %write current job to log files
-                fprintf(1,'%s : group sisters for %s\n',...
-                    nowString,job(iJob).dataStruct.projectName);
-                fprintf(generalLog,'%s : group sisters\n',nowString);
-                fprintf(individualLog,'%s : group sisters\n', nowString);
-
-                %pass and retrieve dataStruct
-                job(iJob).dataStruct = makiGroupSisters(job(iJob).dataStruct);
-
-                %save job
-                job(iJob).dataStruct.status(6) = 1;
-                job(iJob).dataStruct.statusHelp{6,2} = date;
-                save(fullfile(job(1).jobPath,job(1).jobName),'job');
-                
-                %save dataStruct. Do not overwrite older sisterLists
-                makiSaveDataFile(job(iJob).dataStruct,'sisterList');
-                
-            end
-
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %--------------- mixture model fitting ----------------
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            
+            %
+            % Although mixture model fitting has a task index 7, greater
+            % than plane fitting (4), tracking (5), and sister identification (6), this 
+            % taks msut be lined up here for future uses of mixture model
+            % fitting; tasks are executed one after the other; thus mixture
+            % model fitting must follow initial coordinates
+            %
             if any(jobs2do == 7)
 
                 % write current job to log files
@@ -252,9 +216,149 @@ while ~done
                 job(iJob).dataStruct.slist = slist;
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
                 % save dataStruct. Do not overwrite previous slist
-                makiSaveDataFile(job(iJob).dataStruct,'slist');
-
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'slist');
+                % set the current version of the initCoord
+                if success
+                    job(iJob).dataStruct.history.slist(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.slistName);
+                    % mixture model fitting depends on initial coordinates -- thus,
+                    % fill in the history.initCoord field as well
+                    job(iJob).dataStruct.history.initCoord(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.initCoordName);
+                else
+                    error('unable to secure-save mixture model coordinates');
+                end
+            else
+                % write temporarily a NaN to history.initCoord
+                % Dependent on the jobs to follow, this field might be
+                % overwritten again
+                job(iJob).dataStruct.history.slist(job(iJob).dataStruct.history.numRuns)= NaN;
             end
+            
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %----------------- congression ------------------------
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            if any(jobs2do == 4)
+                % write current job to log files
+                fprintf(1,'%s : metaphase plate fit %s\n',...
+                    nowString,job(iJob).dataStruct.projectName);
+                fprintf(generalLog,'%s : metaphase plate fit\n',nowString);
+                fprintf(individualLog,'%s : metaphase plate fit\n', nowString);
+
+                % pass and retrieve dataStruct
+                job(iJob).dataStruct = makiFitPlane(job(iJob).dataStruct,0);
+
+                % save job
+                job(iJob).dataStruct.status(4) = 1;
+                job(iJob).dataStruct.statusHelp{4,2} = date;
+                save(fullfile(job(1).jobPath,job(1).jobName),'job');
+                % save dataStruct. Do not overwrite older plane fits
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'planeFit');
+                % set the current version of the plane fit
+                if success
+                    job(iJob).dataStruct.history.planeFit(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.planeFitName);
+                    % plane fit depends on initial coordinates -- thus,
+                    % fill in the history.initCoord field as well
+                    job(iJob).dataStruct.history.initCoord(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.initCoordName);
+                else
+                    error('unable to secure-save plane fits');
+                end
+            else
+                % write temporarily a NaN to history.planeFit
+                % Dependent on the jobs to follow, this field might be
+                % overwritten again
+                job(iJob).dataStruct.history.planeFit(job(iJob).dataStruct.history.numRuns)= NaN;
+            end
+            
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %------------------- tracking -------------------------
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            if any(jobs2do == 5)
+                
+                %write current job to log files
+                fprintf(1,'%s : generate tracks for %s\n',...
+                    nowString,job(iJob).dataStruct.projectName);
+                fprintf(generalLog,'%s : generate tracks\n',nowString);
+                fprintf(individualLog,'%s : generate tracks\n', nowString);
+
+                %pass and retrieve dataStruct
+                job(iJob).dataStruct = makiGenerateTracks(job(iJob).dataStruct);
+
+                %save job
+                job(iJob).dataStruct.status(5) = 1;
+                job(iJob).dataStruct.statusHelp{5,2} = date;
+                save(fullfile(job(1).jobPath,job(1).jobName),'job');
+                
+                %save dataStruct. Do not overwrite older tracks
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'tracks');
+                % set the current version of the tracks
+                if success
+                    job(iJob).dataStruct.history.tracks(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.tracksName);
+                    % tracking depends on initial coordinates -- thus,
+                    % fill in the history.initCoord field as well
+                    job(iJob).dataStruct.history.initCoord(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.initCoordName);
+                    % if the tracking involves pre-rotation of the
+                    % coordinate system into the fitted plane, there is
+                    % dependency on planeFit as well -- thus,
+                    % fill in the history.planeFit field as well
+                    if job(iJob).dataStruct.dataProperties.tracksParam.rotate
+                        job(iJob).dataStruct.history.planeFit(job(iJob).dataStruct.history.numRuns)= ...
+                            getVersion(job(iJob).dataStruct.planeFitName);
+                    end;
+                else
+                    error('unable to secure-save tracks');
+                end
+            else
+                % write temporarily a NaN to history.tracks
+                % Dependent on the jobs to follow, this field might be
+                % overwritten again
+                job(iJob).dataStruct.history.tracks(job(iJob).dataStruct.history.numRuns)= NaN;
+            end
+            
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %---------------- group sisters -----------------------
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            if any(jobs2do == 6)
+                
+                %write current job to log files
+                fprintf(1,'%s : group sisters for %s\n',...
+                    nowString,job(iJob).dataStruct.projectName);
+                fprintf(generalLog,'%s : group sisters\n',nowString);
+                fprintf(individualLog,'%s : group sisters\n', nowString);
+
+                %pass and retrieve dataStruct
+                job(iJob).dataStruct = makiGroupSisters(job(iJob).dataStruct);
+
+                %save job
+                job(iJob).dataStruct.status(6) = 1;
+                job(iJob).dataStruct.statusHelp{6,2} = date;
+                save(fullfile(job(1).jobPath,job(1).jobName),'job');
+                
+                %save dataStruct. Do not overwrite older sisterLists
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'sisterList');
+                % set the current version of the initCoord
+                if success
+                    job(iJob).dataStruct.history.sisterList(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.sisterListName);
+                    % sister identification depends on tracks -- thus,
+                    % fill in the history.tracks field as well
+                    job(iJob).dataStruct.history.tracks(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.tracksName);
+                else
+                    error('unable to secure-save tracks');
+                end
+            else
+                % write temporarily a NaN to history.tracks
+                % Dependent on the jobs to follow, this field might be
+                % overwritten again
+                job(iJob).dataStruct.history.sisterList(job(iJob).dataStruct.history.numRuns)= NaN;
+            end
+
+            
 
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %--------------- THE END (of job-loop) ------------------
@@ -298,7 +402,8 @@ while ~done
         end
         individualLog = [];
     
-        %save history in dataStruct
+        %save history in dataStruct to the dataFile a last time
+        makiSaveDataFile(job(iJob).dataStruct);
         
     end % loop jobs
 
@@ -385,5 +490,20 @@ end
 %     makiSaveDataFile(job(iJob).dataStruct);
 % 
 % end % ------------ filter ---------------
+
+
+%% LOCAL FUNCTIONS 
+
+function v = getVersion(fName)
+% Service function to retrieve the current version from a filename in the
+% job data structure
+%
+% The function assumes that the version index is the last number before
+% '.mat' and is preceeded by an '_'; 
+%
+% for example: 'gaga_cpi11_anythingelse_23.mat' 
+% will generate a numerical value 23
+v = str2num(fName(regexp(fName,'_\d+\.mat')+1:regexp(fName,'.mat')-1));
+
 
 

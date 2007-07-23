@@ -1,7 +1,7 @@
 function job = makiMakeJob(jobType,status,job)
 %MAKIMAKEJOB is a hack to set up jobs from movies
 %
-% SYNOPSIS: makiMakeJob
+% SYNOPSIS: job = makiMakeJob(jobType,status,job)
 %
 % INPUT jobType: 1: test job (default)
 %                2: hercules run
@@ -299,8 +299,8 @@ switch jobType
             end
 
             % store dataStruct - store success
-            dataStruct.status(2) = makiSaveDataFile(dataStruct);
-
+            [dataStruct.status(2),dataStruct] = makiSaveDataFile(dataStruct,'dataProperties');
+            % dataStruct.status(2) = makiSaveDataFile(dataStruct,'dataProperties');       
             % update job
             job(iJob).dataStruct = dataStruct;
 

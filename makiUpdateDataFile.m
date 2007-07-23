@@ -11,6 +11,9 @@ function makiUpdateDataFile(update)
 %           5: add new fields to dataStruct
 %           6: swap track/planeFit in .statusHelp
 %           7: add defaults for groupSisters
+%           8: add _1 to data filenames in dataStruct
+%           9: update dataStruct to the actually lastest files in the directory
+%           10: add .history field to dataStruct in the data file
 %
 % OUTPUT
 %
@@ -33,6 +36,11 @@ end
 % ask for top directory
 topDir = uigetdir('','please select top directory');
 
+if isempty(topDir)
+    warning('No valid top directory selected');
+    return;
+end
+
 % lookfor maki files
 fileList = searchFiles('-makiData-','log',topDir,1);
 
@@ -43,19 +51,26 @@ for iFile = 1:nFiles
     % load the data file
     dataStruct = makiLoadDataFile(fullfile(fileList{iFile,2},fileList{iFile,1}));
 
-    % remove all the xxx/xxxName pair files so that we don't get into
-    % trouble with secureSave
-    fn = fieldnames(dataStruct);
-    for i=1:length(fn)
-        % load data files that exist. Rest will be empty
-        fileName = [fn{i},'Name'];
-        if any(strmatch(fileName,fn)) && ~isempty(dataStruct.(fn{i}))
-            try
-                delete(fullfile(dataStruct.dataFilePath,dataStruct.(fileName)));
 
-            catch
-                warning('couldn''t delete %s',...
-                    fullfile(dataStruct.dataFilePath,dataStruct.(fileName))); %#ok<WNTAG>
+    if update ~= 9
+        % remove all the xxx/xxxName pair files so that we don't get into
+        % trouble with secureSave
+        %
+        % update 9 relies on the original files to adjust the broken data
+        % structure -- thus do not delete
+        %
+        fn = fieldnames(dataStruct);
+        for i=1:length(fn)
+            % load data files that exist. Rest will be empty
+            fileName = [fn{i},'Name'];
+            if any(strmatch(fileName,fn)) && ~isempty(dataStruct.(fn{i}))
+                try
+                    delete(fullfile(dataStruct.dataFilePath,dataStruct.(fileName)));
+
+                catch
+                    warning('couldn''t delete %s',...
+                        fullfile(dataStruct.dataFilePath,dataStruct.(fileName))); %#ok<WNTAG>
+                end
             end
         end
     end
@@ -97,21 +112,120 @@ for iFile = 1:nFiles
                 dataStruct.status = [dataStruct.status;[0,0,0]'];
                 dataStruct.statusHelp = [dataStruct.statusHelp;cell(3,3)];
             end
-            
+
         case 6
             % swap statusHelp-entries
             if strcmp(dataStruct.statusHelp{4,1},'tracks')
                 dataStruct.statusHelp = ...
                     dataStruct.statusHelp([1,2,3,5,4,6,7],:);
             end
-            
+
         case 7
             % add groupSisters - properties
-                groupSisters.maxDist = 4; % maximum average sister separation in um
-                groupSisters.goodTrackRatio = 0.75; % minimum relative track length for grouping
-                groupSisters.robust = false; % whether or not to use robust statistics for determining cost function parameters
-                groupSisters.costFunction = 'metaphase'; % cost function type
-                dataStruct.dataProperties.groupSisters = groupSisters;
+            groupSisters.maxDist = 4; % maximum average sister separation in um
+            groupSisters.goodTrackRatio = 0.75; % minimum relative track length for grouping
+            groupSisters.robust = false; % whether or not to use robust statistics for determining cost function parameters
+            groupSisters.costFunction = 'metaphase'; % cost function type
+            dataStruct.dataProperties.groupSisters = groupSisters;
+
+        case 8
+            dataFn = {'dataPropertiesName', 'initCoordName', 'tracksName', ...
+                'planeFitName', 'sisterListName', 'slistName' };
+            for i=1:length(dataFn)
+                % get data filenames
+                projectName = dataStruct.projectName;
+                fieldName = dataStruct.(dataFn{i});
+                beginProjectName = regexp(fieldName,projectName);
+                beginExt = regexp(fieldName,'.mat');
+                if (beginProjectName + length(projectName)) == beginExt
+                    % the project name is the last token in the field name
+                    % Therefore '_1' needs to be added
+                    dataStruct.(dataFn{i}) = [fieldName(1:(beginProjectName + length(projectName)-1)),...
+                        '_1','.mat'];
+                end
+            end
+
+
+        case 9
+            dataFn = {'dataPropertiesName', 'initCoordName', 'tracksName', ...
+                'planeFitName', 'sisterListName', 'slistName' };
+            olddir = cd(dataStruct.dataFilePath);
+            for i = 1:length(dataFn)
+                searchString = dataFn{i};
+                searchString = searchString(1:end-4);
+                fileList = searchFiles(searchString);
+                if ~isempty(fileList)
+                    % there are data files in the directory
+                    fieldVersions = [];
+                    for j = 1:size(fileList,1)
+                        fieldVersionTmp = getVersion(fileList{j,1});
+                        if ~isempty(fieldVersionTmp)
+                            % this is a file with a correct version tag
+                            fieldVersions = [fieldVersions, fieldVersionTmp];
+                        else
+                            % this is a file with no version tag
+                            fieldVersions = [fieldVersions, 0];
+                        end
+                    end
+                    [maxVers,maxVersIndx]=max(fieldVersions);
+                    if maxVers > 0
+                        % adjust field names and load the corresponding
+                        % file into the data structure
+                        dataStruct.(dataFn{i}) = fileList{maxVersIndx,1};
+                        % fName = dataStruct.(dataFn{i});
+                        % tmp = load(fullfile(dataStruct.dataFilePath,fName{1}));
+                        tmp = load(fullfile(dataStruct.dataFilePath,dataStruct.(dataFn{i})));
+                        fnTmp = fieldnames(tmp);
+                        dataStruct.(searchString) = tmp.(fnTmp{1});
+                    else
+                        error(sprintf('%s is missing a version token. Use makiUpdateDataFile(8) first', searchString));
+                    end
+                else
+                    % there is no such data in the directory yet
+                    dataStruct.(dataFn{i}) = [dataFn{i}, dataStruct.projectName, '_1', '.mat'];
+                    dataStruct.(searchString) = [];
+                end
+            end
+            cd(olddir);
+
+        case 10
+            if ~isfield(dataStruct,'history')
+                dataFn = {'dataPropertiesName', 'initCoordName', 'planeFitName', ...
+                    'tracksName', 'sisterListName', 'slistName' };
+
+                if ~any(dataStruct.status(3:end)==1)
+                    % nothing has been run yet on this movie (except
+                    % cropping)
+                    dataStruct.history = struct('numRuns',0,...
+                        'dataProperties',[],...
+                        'initCoord',[],...
+                        'planeFit',[],...
+                        'tracks',[],...
+                        'sisterList',[],...
+                        'slist',[]);
+                else
+                    % get newest version for each data field
+                    dataStruct.history.numRuns = 1;
+                    for i=1:length(dataFn)
+                        % is there a data file for this field?
+                        fieldDataName = dataFn{i};
+                        fieldDataName = fieldDataName(1:end-4);
+                        if ~isempty(dataStruct.(fieldDataName))
+                            % get data filenames
+                            fieldFileName = dataStruct.(dataFn{i});
+                            fieldVersion = getVersion(fieldFileName);
+                            if ~isempty(fieldVersion)
+                                dataStruct.history.(fieldDataName)=fieldVersion;
+                            else
+                                error(sprintf('%s is missing a version token. Use makiUpdateDataFile(8) first', fieldName));
+                            end
+                        else
+                            % this task has no result yet
+                            dataStruct.history.(fieldDataName)=NaN;
+                        end
+                    end
+                end
+            end
 
         otherwise
             % do nothing
@@ -120,3 +234,18 @@ for iFile = 1:nFiles
     % save dataFile
     makiSaveDataFile(dataStruct);
 end
+
+%% LOCAL FUNCTIONS
+    function v = getVersion(fName)
+        % Service function to retrieve the current version from a filename in the
+        % job data structure
+        %
+        % The function assumes that the version index is the last number before
+        % '.mat' and is preceeded by an '_';
+        %
+        % for example: 'gaga_cpi11_anythingelse_23.mat'
+        % will generate a numerical value 23
+        v = str2num(fName(regexp(fName,'_\d+\.mat')+1:regexp(fName,'.mat')-1));
+
+            
+            

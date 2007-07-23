@@ -1,7 +1,7 @@
-function success = makiSaveDataFile(dataStruct,secureName)
+function [success,dataStructOut] = makiSaveDataFile(dataStruct,secureName)
 %MAKISAVEDATAFILE saves maki-data to disk
 %
-% SYNOPSIS: success = makiSaveDataFile(dataStruct)
+% SYNOPSIS: [success,dataStructOut] = makiSaveDataFile(dataStruct,secureName)
 %
 % INPUT dataStruct: maki-data structure (see makiMakeDataStruct)
 %       secureName: fieldname of data item that should be saved via
@@ -12,6 +12,8 @@ function success = makiSaveDataFile(dataStruct,secureName)
 %                   Pass multiple fieldNames as a cell array
 %
 % OUTPUT success: 1 if successful save of data
+%        dataStructOut: updated dataStruct -- which contains the secure-saved
+%                    filenames
 %
 % REMARKS If the dataFilePath does not exist, makiSaveDataFile attempts to
 %         create it
@@ -32,6 +34,18 @@ if nargin < 2 || isempty(secureName)
 end
 if ischar(secureName)
     secureName = {secureName};
+end
+
+if nargout == 2
+    % make a copy of the incoming dataStruct onto dataStructOut; 
+    % this is necessary because the incoming dataStruct is emptied of
+    % actual data so that only minimal information is saved to the data file on disk;
+    % however, functions, which retrieve dfrom this function a dataStruct with the
+    % updated secure-saved filenames, expect the full dataStruct returned.
+    returnUpdatedStruct = 1;
+    dataStructOut = dataStruct;
+else
+    returnUpdatedStruct = 0;
 end
 
 % check for dataFilePath and create if necessarz
@@ -68,8 +82,11 @@ try
                     % do not overwrite files we just changed
                     savedName = secureSave(...
                         fullfile(dataStruct.dataFilePath,dataStruct.(fileName)),fn{i});
-                    % in case there was an older version, remember the name.
+                    % in case there was an older version, update the name.
                     dataStruct.(fileName) = savedName;
+                    if returnUpdatedStruct
+                        dataStructOut.(fileName) = savedName;
+                    end
                 otherwise
                     % overwrite, b/c these didn't/shouldn't change
                     save(...
