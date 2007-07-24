@@ -39,6 +39,58 @@ else %original coordinates
     end
 end
     
+%get number of features in each frame
+if ~isfield(movieInfo,'num')
+    for iTime = 1 : nTimepoints
+        movieInfo(iTime).num = size(movieInfo(iTime).xCoord,1);
+    end
+end
+
+%collect coordinates and their std in one matrix in each frame
+if ~isfield(movieInfo,'allCoord')
+    for iTime = 1 : nTimepoints
+        movieInfo(iTime).allCoord = [movieInfo(iTime).xCoord ...
+            movieInfo(iTime).yCoord movieInfo(iTime).zCoord];
+    end
+end
+
+%calculate nearest neighbor distance for each feature in each frame
+if ~isfield(movieInfo,'nnDist')
+
+    for iTime = 1 : nTimepoints
+        
+        switch movieInfo(iTime).num
+
+            case 0 %if there are no features
+
+                %there are no nearest neighbor distances
+                nnDist = zeros(0,1);
+
+            case 1 %if there is only 1 feature
+
+                %assign nearest neighbor distance as 1000 pixels (a very big
+                %number)
+                nnDist = 1000;
+
+            otherwise %if there is more than 1 feature
+
+                %compute distance matrix
+                nnDist = createDistanceMatrix(movieInfo(iTime).allCoord(:,1:2:end),...
+                    movieInfo(iTime).allCoord(:,1:2:end));
+
+                %sort distance matrix and find nearest neighbor distance
+                nnDist = sort(nnDist,2);
+                nnDist = nnDist(:,3);
+
+        end
+
+        %store nearest neighbor distance
+        movieInfo(iTime).nnDist = nnDist;
+
+    end
+    
+end
+
 %get tracking parameters
 gapCloseParam = dataStruct.dataProperties.tracksParam.gapCloseParam;
 costMatParam = dataStruct.dataProperties.tracksParam.costMatParam;

@@ -99,7 +99,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % pathlist
 function pathList = loadPathList
+homeUser = getenv('HOME');
 % pathList is {id, winPath, linuxPath}
-pathList = {'$TESTDATA','D:\makiTestData','/data/home/gdanuser/matlab/testData';...
+pathList = {'$TESTDATA','D:\makiTestData',[homeUser '/testData'];...
     '$HERCULES','O:','/hercules';...
     };

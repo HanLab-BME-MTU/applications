@@ -124,7 +124,6 @@ metaphaseFrames = metaphaseFrames(1:end-removeLastFrames);
 % - identify potential outliers again (considering all points)
 % - if no change in the outliers, exit the loop. Otherwise, continue
 
-
 % store metaphaseFrames in pf1
 planeFit(1).metaphaseFrames = metaphaseFrames;
 

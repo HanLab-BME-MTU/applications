@@ -12,24 +12,27 @@ function dataStruct = makiGroupSisters(dataStruct,verbose)
 %              sisterList is a structure with length equal to the number of
 %              sister kinetochore pairs.
 %              sisterList(1).trackPairs is an nPairs-by-6 array with
-%                   [track1,track2,cost,avg.dist,variance,alignment], that
+%                   [track1,track2,cost,avg. dist,variance,alignment], that
 %                   is sorted according to increasing cost.
 %                   track1,2: track indices as in dataStruct.tracks.
 %                   cost: cost of grouping
-%                   avg.dist: average distance between the two tracks
+%                   avg. dist: average distance between the two tracks
 %                   variance: variance of the distance between the tracks
 %                   alignment: f(tan(alpha)), where alpha is the average
 %                       angle between the distanceVector and the first
 %                       eigenVector of planeFit.eigenVectors
-%              sisterList(iPair).distanceVectors is a nTimepoints-by-3 
-%                   array with the distance vectors between the tracks (use
-%                   normList to get distances and normed vectors). Wherever
-%                   the two tracks don't overlap or contain gaps,
-%                   distanceVectors contains NaNs
-%              sisterList(iPair).coords is a nTimepoints-by-3 array with
-%                   the coordinates of the first of the two tracks.
-%                   sisterList(i).coords + sisterList(i).distanceVectors
-%                   returns the coordinates of the other track.
+%              sisterList(iPair).coords1 is a nTimepoints-by-6 array with
+%                   the coordinates of the first of the two tracks and its
+%                   std.
+%              sisterList(iPair).coords2 is a nTimepoints-by-6 array with
+%                   the coordinates of the second of the two tracks and its
+%                   std.
+%              sisterList(iPair).sisterVectors is a nTimepoints-by-6 
+%                   array with the vector connecting the two sisters and
+%                   its std.
+%              sisterList(iPair).distances is a nTimepoints-by-2 array with
+%                   the distance between sisters and its std.
+
 %
 % REMARKS The strategy is to first try and identify sister pairs among the
 %           tracks that span at least 75% of the movie
@@ -45,14 +48,12 @@ function dataStruct = makiGroupSisters(dataStruct,verbose)
 %
 % created with MATLAB ver.: 7.3.0.267 (R2006b) on Windows_NT
 %
-% created by: Jonas Dorn
+% created by: Jonas Dorn, Khuloud Jaqaman
 % DATE: 16-Jul-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%====================================
 %% TEST INPUT & READ PARAMETERS
-%====================================
 
 if nargin == 0 || isempty(dataStruct)
     dataStruct = makiLoadDataFile;
@@ -62,7 +63,10 @@ if nargin < 2 || isempty(verbose)
 end
 
 % read parameters. 
-goodTrackRatio = dataStruct.dataProperties.groupSisters.goodTrackRatio;
+minOverlap = dataStruct.dataProperties.groupSisters.minOverlap;
+if minOverlap < 10
+    minOverlap = 10;
+end
 maxDist = dataStruct.dataProperties.groupSisters.maxDist;
 robust = dataStruct.dataProperties.groupSisters.robust;
 costFunction = lower(dataStruct.dataProperties.groupSisters.costFunction);
@@ -77,22 +81,20 @@ catch
     error('makiGroupSisters cannot handle merging/splitting')
 end
 
-% check for relative length of tracks
-relTrackLength = ...
-    squeeze(trackStats(2,1,:)-trackStats(1,1,:)+1)./nTimepoints;
+% check for length of tracks
+trackLength = ...
+    squeeze(trackStats(2,1,:)-trackStats(1,1,:)+1);
 % select above 0.75
-goodTracks = find(relTrackLength>=goodTrackRatio);
+goodTracks = find(trackLength>=minOverlap);
 % count
 nGoodTracks = length(goodTracks);
 
 
 
-%============================
 %% READ TRACK INFORMATION
-%============================
 
-% preassign distance/variance matrix. Set zeros here for sparse later
-[variances,distances,alignment] = deal(zeros(nGoodTracks));
+% preassign matrices
+[variances,distances,alignment] = deal(NaN(nGoodTracks));
 
 % read normals to plane - takes time, thus outside the loop
 normals = catStruct(2,'dataStruct.planeFit.eigenVectors(:,1)')';
@@ -108,7 +110,8 @@ for jTrack = 1:nGoodTracks % loop cols
     % read index of track
     jIdx = goodTracks(jTrack);
 
-    % read track coordinates etc.
+    % read track coordinates etc. (one could get the coordinate stds as
+    % well, but for now no need here)
     [colCoords,colTime,colIdx] = trackData(jIdx,dataStruct,trackStats);
 
     % plot individual tracks
@@ -122,58 +125,65 @@ for jTrack = 1:nGoodTracks % loop cols
         % read index of track
         iIdx = goodTracks(iTrack);
 
-        % read track coordinates
+        % read track coordinates (one could get the coordinate stds as
+        % well, but for now no need)
         [rowCoords,rowTime,rowIdx] = trackData(iIdx,dataStruct,trackStats);
 
         % find common time
         [commonTime,ctColIdx,ctRowIdx] = intersect(colTime,rowTime);
+        
+        %if the common time between the two tracks is at least minOveralp, 
+        %calculate parameters (otherwise, they stay as zero, which assigns 
+        %them -1 in linkTracks)
+        if length(commonTime) >= minOverlap
 
-        % calculate distance (microns)
-        distanceVector = colCoords(colIdx(ctColIdx),:) -...
-            rowCoords(rowIdx(ctRowIdx),:);
+            % calculate distance (microns)
+            distanceVector = colCoords(colIdx(ctColIdx),:) -...
+                rowCoords(rowIdx(ctRowIdx),:);
 
-        % calculate alignment:
+            % calculate alignment:
 
-        % retain commonTime-normals
-        commonNormals = normals(commonTime,:);
-        % cos(alpha) = dot(a,b)/(norm(a)*norm(b))
-        [distance,distanceVectorN] = normList(distanceVector);
-        alpha = acos(abs(dot(distanceVectorN',commonNormals')));
-        % average alpha, rather than tan to be nice to pairs that will
-        % align eventually. Potentially this can be put under the control
-        % of the "robust" switch, too
-        meanAlpha = mean(alpha);
+            % retain commonTime-normals
+            commonNormals = normals(commonTime,:);
+            
+            % cos(alpha) = dot(a,b)/(norm(a)*norm(b))
+            [distance,distanceVectorN] = normList(distanceVector);
+            alpha = acos(abs(dot(distanceVectorN',commonNormals')));
+            
+            % average alpha, rather than tan to be nice to pairs that will
+            % align eventually. Potentially this can be put under the control
+            % of the "robust" switch, too
+            meanAlpha = mean(alpha);
 
-        % get average distance, variance
-        if robust
-            [rMean,rStd]=robustMean(distance);
-        else
-            rMean=mean(distance);
-            rStd = std(distance);
-        end
-        distances(iTrack,jTrack) = rMean;
-        variances(iTrack,jTrack) = rStd^2;
-        distances(jTrack,iTrack) = rMean;
-        variances(jTrack,iTrack) = rStd^2;
-        % alignment: one up to about 30°, then increasing
-        %[alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
-        %    = deal(tan(meanAlpha)+1-meanAlpha);
-        % start at one, increase from the beginning (2 at 45°)
-        %[alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
-        %    = deal(tan(meanAlpha)+1);
-        % start at one, increase from the beginning (2 at 45°)
-        %[alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
-        %    = deal(tan(meanAlpha)+1);
-        % start at one, increase from the beginning (2 at 30°)
-        [alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
-            = deal(2*sqrt(3)*tan(meanAlpha)+1);
+            % get distance mean and standard deviation
+            if robust
+                [rMean,rStd]=robustMean(distance);
+            else
+                rMean=mean(distance);
+                rStd = std(distance);
+            end
 
-    end
-end
+            %assign distance mean for pair
+            distances(iTrack,jTrack) = rMean;
+            distances(jTrack,iTrack) = rMean;
 
-%=================================
+            %assign distance variance for pair
+            variances(jTrack,iTrack) = rStd^2;
+            variances(iTrack,jTrack) = rStd^2;
+            
+            %assign alignment for pair if the average angle is less than 60
+            %degrees. Otherwise, keep as NaN to prohibit the link
+            if meanAlpha < pi/3
+                [alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
+                    = deal(2*sqrt(3)*tan(meanAlpha)+1);
+            end
+
+        end %(if ~isempty(commonTime))
+        
+    end %(for iTrack = jTrack+1:nGoodTracks)
+end %(for jTrack = 1:nGoodTracks)
+
 %% CREATE COST MATRIX & GROUP
-%=================================
 
 [r2c,c2r,costMat,linkedIdx] = ...
     linkTracks(distances,variances,alignment,...
@@ -227,9 +237,7 @@ end % if ~anaphase
 
 
 
-%=================================
 %% RESOLVE POLYGONS
-%=================================
 
 % identify polygons. Polygons have to be closed, thus, it should not matter
 % where we start. Also, since the distance between polygons and the rest is
@@ -302,52 +310,126 @@ end
 
 
 
-%=====================
-%% ASSIGN OUTPUT
-%=====================
+%% assemble sister information
 
 % sisterList:
 %   .trackPairs
-%   .coords
-%   .distanceVectors
+%   .coords1
+%   .coords2
+%   .sisterVectors
+%   .distances
+
 goodPairIdxL = r2c==c2r;
 linkedIdx=sub2ind([nGoodTracks nGoodTracks],find(goodPairIdxL),r2c(goodPairIdxL));
 nGoodPairs = sum(goodPairIdxL);
 sisterList(1:nGoodPairs/2,1) = ...
-    struct('trackPairs',[],'coords',NaN(nTimepoints,3),...
-    'distanceVectors',NaN(nTimepoints,3));
+    struct('trackPairs',[],'coords1',NaN(nTimepoints,6),...
+    'coords2',NaN(nTimepoints,6),'sisterVectors',NaN(nTimepoints,6),...
+    'distances',NaN(nTimepoints,2));
 
 % write trackPairs. Store: pair1,pair2,cost,dist,var,alignment
 sisterList(1).trackPairs = ...
     [goodTracks(goodPairIdxL),goodTracks(r2c(goodPairIdxL)),...
     costMat(linkedIdx),distances(linkedIdx),variances(linkedIdx),...
     alignment(linkedIdx)];
+
 % remove redundancy
 sisterList(1).trackPairs(:,1:2) = sort(sisterList(1).trackPairs(:,1:2),2);
 sisterList(1).trackPairs = unique(sisterList(1).trackPairs,'rows');
+
 % sort according to cost
 sisterList(1).trackPairs = sortrows(sisterList(1).trackPairs,3);
 
-% loop trackPairs to get coords, distance
+% loop over trackPairs to get their coordinates and distances
 for iPair = 1:nGoodPairs/2
-    [rowCoords,rowTime,rowIdx] = ...
+    
+    %get information for first sister
+    [rowCoords,rowTime,rowIdx,rowCoordsStd] = ...
         trackData(sisterList(1).trackPairs(iPair,1),dataStruct,trackStats);
-    [colCoords,colTime,colIdx] = ...
+    
+    %get information for second sister
+    [colCoords,colTime,colIdx,colCoordsStd] = ...
         trackData(sisterList(1).trackPairs(iPair,2),dataStruct,trackStats);
 
-    % find common time
+    %find common time between them
     [commonTime,ctColIdx,ctRowIdx] = intersect(colTime,rowTime);
 
-    % calculate distance (microns)
-    sisterList(iPair).distanceVectors(commonTime,:) =...
-        colCoords(colIdx(ctColIdx),:) -...
-        rowCoords(rowIdx(ctRowIdx),:);
-    sisterList(iPair).coords(commonTime,:) = rowCoords(rowIdx(ctRowIdx),:);
+    %store the coordinates of the first sister
+    sisterList(iPair).coords1(commonTime,:) = [rowCoords(rowIdx(ctRowIdx),:) ...
+        rowCoordsStd(rowIdx(ctRowIdx),:)];
+
+    %store the coordinates of the second sister
+    sisterList(iPair).coords2(commonTime,:) = [colCoords(colIdx(ctColIdx),:) ...
+        colCoordsStd(colIdx(ctColIdx),:)];
+
+    %calculate the vector connecting the two sisters and its std (microns)
+    sisterVectors = [colCoords(colIdx(ctColIdx),:) - rowCoords(rowIdx(ctRowIdx),:) ...
+        sqrt(colCoordsStd(colIdx(ctColIdx),:).^2 + rowCoordsStd(rowIdx(ctRowIdx),:).^2)];
+    sisterList(iPair).sisterVectors(commonTime,:) = sisterVectors;
+    
+    %calculate the distance between the two sisters and its std (microns)
+    sisterDist = sqrt(sum(sisterVectors(:,1:3).^2,2));
+    sisterDistStd = sqrt(sum((sisterVectors(:,1:3)./repmat(sisterDist,1,3)).^2 .* ...
+        sisterVectors(:,4:6).^2,2));
+    sisterList(iPair).distances(commonTime,:) = [sisterDist sisterDistStd];
+    
 end % loop goodPairs
+
+%% remove extra large distances from sister pairing
+
+%put all sister distances in one vector
+sisterDist = vertcat(sisterList.distances);
+sisterDist = sisterDist(:,1);
+sisterDist = sisterDist(~isnan(sisterDist));
+
+%calculate median of distances
+medDistance = median(sisterDist);
+
+%get residuals, i.e. distance of observations from median
+residuals = sisterDist - medDistance;
+
+%square the residuals
+res2 = residuals .^ 2;
+
+%calculate the median of the residuals
+medRes2 = median(res2);
+
+%assign a res2 of zero to all distances smaller than the median because we
+%do not want to remove any of those
+res2(residuals < 0) = 0;
+
+%define parameters to remove outliers
+k = 3; %value important for calculation of sigma, see Danuser, 1992 or Rousseeuw & Leroy, 1987
+magicNumber2 = 1.4826^2; %see same publications
+
+%calculate testvalues to determine which observations are inliers and which
+%are outliers
+%distances smaller than median will automatically get a testValue of zero
+%so that they would be considered inliers
+testValue = res2 / (magicNumber2 * medRes2);
+
+%calculate the largest inlier distance
+maxSisterDist = max(sisterDist(testValue <= k^2));
+
+%remove all distances larger than this maximum distance
+for iPair = 1 : nGoodPairs/2
+    
+    %find indices of distances larger than maximum allowed
+    outlierIndx = find(sisterList(iPair).distances(:,1) > maxSisterDist);
+    
+    %remove those timepoints from the sister information
+    sisterList(iPair).coords1(outlierIndx,:) = NaN;
+    sisterList(iPair).coords2(outlierIndx,:) = NaN;
+    sisterList(iPair).sisterVectors(outlierIndx,:) = NaN;
+    sisterList(iPair).distances(outlierIndx,:) = NaN;
+    
+end %(for iPair = 1 : nGoodPairs/2)
+
+%% assign output to dataStruct
 
 dataStruct.sisterList = sisterList;
 
-
+%%
 
 
 
@@ -363,9 +445,9 @@ dataStruct.sisterList = sisterList;
 function [r2c,c2r,costMat,linkedIdx] = linkTracks(distances,variances,alignment,nGoodTracks,maxDist,costFunction)
 % cutoff distances
 distCutoffIdx = distances>maxDist;
-distances(distCutoffIdx) = 0;
-variances(distCutoffIdx) = 0;
-alignment(distCutoffIdx) = 0;
+distances(distCutoffIdx) = NaN;
+variances(distCutoffIdx) = NaN;
+alignment(distCutoffIdx) = NaN;
 
 % make cost matrix
 switch costFunction
@@ -380,7 +462,7 @@ switch costFunction
         costMat = alignment;
 end
 % replace zeros with -1
-costMat(~costMat) = -1;
+costMat(isnan(costMat)) = -1;
 
 % lap costMat
 [r2c,c2r] = lap(costMat,-1,0,1);
@@ -398,15 +480,19 @@ linkedIdx(isnan(linkedIdx)) = [];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% read track coordinates
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [coords,time,coordIdx] = trackData(idx,dataStruct,trackStats)
+function [coords,time,coordIdx,coordsStd] = trackData(idx,dataStruct,trackStats)
 
-% read track coordinates for j
-coords = reshape(dataStruct.tracks(idx).tracksCoordAmpCG,8,[])';
-coords = coords(:,1:3);
+% read track coordinates and their stds for idx
+coordsInfo = reshape(dataStruct.tracks(idx).tracksCoordAmpCG,8,[])';
+coords = coordsInfo(:,1:3);
+coordsStd = coordsInfo(:,5:7);
+
 % read timepoints of the track
 time = (trackStats(1,1,idx):trackStats(2,1,idx))';
+
 % remove gaps
 time(all(isnan(coords),2)) = [];
+
 % remember indices into colCoords that correspond to the timepoints
 coordIdx = time - trackStats(1,1,idx) + 1;
 
@@ -516,5 +602,15 @@ plot3(cc(1:2,1),cc(1:2,2),cc(1:2,3),'*')
 
 
 
+%% old code stuff, just to clean up
 
-
+% alignment: one up to about 30°, then increasing
+%[alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
+%    = deal(tan(meanAlpha)+1-meanAlpha);
+% start at one, increase from the beginning (2 at 45°)
+%[alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
+%    = deal(tan(meanAlpha)+1);
+% start at one, increase from the beginning (2 at 45°)
+%[alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
+%    = deal(tan(meanAlpha)+1);
+% start at one, increase from the beginning (2 at 30°)

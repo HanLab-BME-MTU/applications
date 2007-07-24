@@ -276,97 +276,149 @@ if select(2)
     %find track start times, end times and lifetimes
     trackSEL = getTrackSEL(tracksFinal);
 
-    %find gaps in tracks
-    gapInfo = findTrackGaps(tracksFinal);
-
-    %get list of paired sisters from dataStruct
-    pairList = dataStruct.sisterList(1).trackPairs;
-
+    %get sister list from dataStruct
+    sisterList = dataStruct.sisterList;
+    
     %determine number of pairs
-    numPairs = size(pairList,1);
+    numPairs = length(dataStruct.sisterList);
 
     %create data container for all sisters
     imaTrackAllSisters = imarisApplication.mFactory.CreateDataContainer;
-    imaTrackAllSisters.mName = 'sister pairs';
+    imaTrackAllSisters.mName = ['sister pairs (' num2str(numPairs) ')'];
 
     %plot paired tracks
     for iPair = 1 : numPairs
 
-        %go over both sisters
-        for iSister = 1 : 2
+        %create track object
+        imaTracks1 = imarisApplication.mFactory.CreateTrack;
+        imaTracks2 = imarisApplication.mFactory.CreateTrack;
 
-            %get track index
-            iTrack = pairList(iPair,iSister);
+        %name track objects
+        imaTracks1.mName = [num2str(iPair) '_' num2str(1) '  (' num2str(sisterList(1).trackPairs(iPair,3)) ')'];
+        imaTracks2.mName = [num2str(iPair) '_' num2str(2)];
 
-            %create track object
-            imaTracks = imarisApplication.mFactory.CreateTrack;
-            if iSister == 1
-                imaTracks.mName = [num2str(iPair) '_' num2str(iSister) '  (' num2str(pairList(iPair,3)) ')'];
-            else
-                imaTracks.mName = [num2str(iPair) '_' num2str(iSister)];
-            end
-
-            %get spots belonging to this track, where index is per
-            %frame
-            spotsIndx = [ones(1,trackSEL(iTrack,1)-1) ...
-                tracksFinal(iTrack).tracksFeatIndxCG ...
-                ones(1,nTimepoints-trackSEL(iTrack,2))]';
-
-            %locate gaps in this track
-            gapsInTrack = gapInfo(gapInfo(:,1)==iTrack,:);
-
-            %calculate cumulative index of spots in order to get spot
-            %data from the variable "spots"
-            spotsIndx = spotsIndx + nSpotSum(1:end-1);
-
-            %get spot coordinates and sizes(some are wrong and will be corrected
-            %in the next couple of steps)
-            spotsCoord = spots(spotsIndx,1:3);
-            spotSize = pixelSize(1)*2*ones(nTimepoints,1);
-
-            %for frames before track starts, assign position as that at
-            %the start. Make spot size 0
-            spotsCoord(1:trackSEL(iTrack,1)-1,1) = spotsCoord(trackSEL(iTrack,1),1);
-            spotsCoord(1:trackSEL(iTrack,1)-1,2) = spotsCoord(trackSEL(iTrack,1),2);
-            spotsCoord(1:trackSEL(iTrack,1)-1,3) = spotsCoord(trackSEL(iTrack,1),3);
-            spotSize(1:trackSEL(iTrack,1)-1) = 0;
-
-            %for frames after track ends, assign position as that at
-            %the end. Make spot size 0
-            spotsCoord(trackSEL(iTrack,2)+1:end,1) = spotsCoord(trackSEL(iTrack,2),1);
-            spotsCoord(trackSEL(iTrack,2)+1:end,2) = spotsCoord(trackSEL(iTrack,2),2);
-            spotsCoord(trackSEL(iTrack,2)+1:end,3) = spotsCoord(trackSEL(iTrack,2),3);
-            spotSize(trackSEL(iTrack,2)+1:nTimepoints) = 0;
-
-            %in frames where there is a gap, use coordinate of last
-            %frame where object is detected. Make spot size half that of a
-            %detected spot
-            for iGap = 1 : size(gapsInTrack,1)
-                spotsCoord(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1,1) = spotsCoord(gapsInTrack(iGap,3)-1,1);
-                spotsCoord(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1,2) = spotsCoord(gapsInTrack(iGap,3)-1,2);
-                spotsCoord(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1,3) = spotsCoord(gapsInTrack(iGap,3)-1,3);
-                spotSize(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1) = pixelSize(1);
-            end
-
-            %set spot coordinates in imaris object
-            imaSpotsTrack = imarisApplication.mFactory.CreateSpots;
-            imaSpotsTrack.Set(single(spotsCoord),...
-                single(0:nTimepoints-1),single(spotSize));
-
-            %define track spots
-            imaTracks.SetSpots(imaSpotsTrack);
-
-            %define track edges
-            imaTracks.SetEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
-
-            %make track invisible
-            imaTracks.mVisible = 0;
-
-            %add track to the data container
-            imaTrackAllSisters.AddChild(imaTracks);
-
-        end %(for iSister = 1 : 2)
+        %find NaNs in coordinates
+        nanCoord = isnan(sisterList(iPair).coords1(:,1));
         
+        %determine sister pair start time as the first frame where a zero appears
+        startTime = find(nanCoord==0,1,'first');
+        
+        %determine sister pair end time as the last frame where a zero appears
+        endTime = find(nanCoord==0,1,'last');
+        
+        %locate gaps in sister pair
+        missIndx = find(nanCoord==1);
+        missIndx = missIndx(missIndx > startTime & missIndx < endTime);
+        
+        %assign spot sizes (2 pixels in available frames, 1 pixel in
+        %missing frames, 0 pixels before and after track)
+        spotSize = pixelSize(1)*2*ones(nTimepoints,1);
+        spotSize(1:startTime-1) = 0;
+        spotSize(endTime+1:end) = 0;
+        spotSize(missIndx) = spotSize(missIndx)/2;
+
+        %for first sister ...
+        
+        %get spot indices to obtain positions
+        iTrack = sisterList(1).trackPairs(iPair,1);
+        shift = trackSEL(iTrack,1) - 1;
+        spotsIndx = [ones(1,startTime-1) ...
+            tracksFinal(iTrack).tracksFeatIndxCG(startTime-shift:endTime-shift) ...
+            ones(1,nTimepoints-endTime)]';
+
+        %calculate cumulative index of spots in order to get spot
+        %data from the variable "spots"
+        spotsIndx = spotsIndx + nSpotSum(1:end-1);
+
+        %get coordinates (some are wrong and will be corrected
+        %in the next couple of steps)
+        sisterCoord1 = spots(spotsIndx,1:3);
+
+        %for frames before track starts, assign position as that at
+        %the start.
+        sisterCoord1(1:startTime-1,1) = sisterCoord1(startTime,1);
+        sisterCoord1(1:startTime-1,2) = sisterCoord1(startTime,2);
+        sisterCoord1(1:startTime-1,3) = sisterCoord1(startTime,3);
+
+        %for frames after track ends, assign position as that at
+        %the end.
+        sisterCoord1(endTime+1:end,1) = sisterCoord1(endTime,1);
+        sisterCoord1(endTime+1:end,2) = sisterCoord1(endTime,2);
+        sisterCoord1(endTime+1:end,3) = sisterCoord1(endTime,3);
+
+        %in frames where there is a gap, use coordinate of last
+        %frame where object is detected.
+        for iMiss = missIndx'
+            sisterCoord1(iMiss,:) = sisterCoord1(iMiss-1,:);
+        end
+
+        %set spot coordinates in imaris object
+        imaSpotsTrack1 = imarisApplication.mFactory.CreateSpots;
+        imaSpotsTrack1.Set(single(sisterCoord1),...
+            single(0:nTimepoints-1),single(spotSize));
+
+        %define track spots
+        imaTracks1.SetSpots(imaSpotsTrack1);
+
+        %define track edges
+        imaTracks1.SetEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
+
+        %make track invisible
+        imaTracks1.mVisible = 0;
+
+        %for second sister ...
+
+        %get spot indices to obtain its positions
+        iTrack = sisterList(1).trackPairs(iPair,2);
+        shift = trackSEL(iTrack,1) - 1;
+        spotsIndx = [ones(1,startTime-1) ...
+            tracksFinal(iTrack).tracksFeatIndxCG(startTime-shift:endTime-shift) ...
+            ones(1,nTimepoints-endTime)]';
+
+        %calculate cumulative index of spots in order to get spot
+        %data from the variable "spots"
+        spotsIndx = spotsIndx + nSpotSum(1:end-1);
+
+        %get coordinates (some are wrong and will be corrected
+        %in the next couple of steps)
+        sisterCoord2 = spots(spotsIndx,1:3);
+
+        %for frames before track starts, assign position as that at
+        %the start.
+        sisterCoord2(1:startTime-1,1) = sisterCoord2(startTime,1);
+        sisterCoord2(1:startTime-1,2) = sisterCoord2(startTime,2);
+        sisterCoord2(1:startTime-1,3) = sisterCoord2(startTime,3);
+
+        %for frames after track ends, assign position as that at
+        %the end.
+        sisterCoord2(endTime+1:end,1) = sisterCoord2(endTime,1);
+        sisterCoord2(endTime+1:end,2) = sisterCoord2(endTime,2);
+        sisterCoord2(endTime+1:end,3) = sisterCoord2(endTime,3);
+
+        %in frames where there is a gap, use coordinate of last
+        %frame where object is detected.
+        for iMiss = missIndx'
+            sisterCoord2(iMiss,:) = sisterCoord2(iMiss-1,:);
+        end
+        
+        %set spot coordinates in imaris object
+        imaSpotsTrack2 = imarisApplication.mFactory.CreateSpots;
+        imaSpotsTrack2.Set(single(sisterCoord2),...
+            single(0:nTimepoints-1),single(spotSize));
+
+        %define track spots
+        imaTracks2.SetSpots(imaSpotsTrack2);
+
+        %define track edges
+        imaTracks2.SetEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
+
+        %make track invisible
+        imaTracks2.mVisible = 0;
+
+        %add tracks to the data container
+        imaTrackAllSisters.AddChild(imaTracks1);
+        imaTrackAllSisters.AddChild(imaTracks2);
+
     end %(for iPair = 1 : numPairs)
 
     %make sisters invisible

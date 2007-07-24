@@ -153,12 +153,12 @@ for iFile = 1:nFiles
             for i = 1:length(dataFn)
                 searchString = dataFn{i};
                 searchString = searchString(1:end-4);
-                fileList = searchFiles(searchString);
-                if ~isempty(fileList)
+                fileList2 = searchFiles(searchString);
+                if ~isempty(fileList2)
                     % there are data files in the directory
                     fieldVersions = [];
-                    for j = 1:size(fileList,1)
-                        fieldVersionTmp = getVersion(fileList{j,1});
+                    for j = 1:size(fileList2,1)
+                        fieldVersionTmp = getVersion(fileList2{j,1});
                         if ~isempty(fieldVersionTmp)
                             % this is a file with a correct version tag
                             fieldVersions = [fieldVersions, fieldVersionTmp];
@@ -171,7 +171,7 @@ for iFile = 1:nFiles
                     if maxVers > 0
                         % adjust field names and load the corresponding
                         % file into the data structure
-                        dataStruct.(dataFn{i}) = fileList{maxVersIndx,1};
+                        dataStruct.(dataFn{i}) = fileList2{maxVersIndx,1};
                         % fName = dataStruct.(dataFn{i});
                         % tmp = load(fullfile(dataStruct.dataFilePath,fName{1}));
                         tmp = load(fullfile(dataStruct.dataFilePath,dataStruct.(dataFn{i})));
