@@ -103,7 +103,11 @@ switch jobType
             rawMoviePath = fileList{iJob,2};
 
             % for the project name: remove _R3D
-            extIdx = regexp(rawMovieName,'(_R3D)?.dv');
+            % works only when _R3D is immediately before the extension
+            % At this point (July-24-2007), we have a number of files (and
+            % directories) which have the _R3D string in the middle of the
+            % name and thus will contain it also in the project name
+            extIdx = regexp(rawMovieName,'(_R3D)?\.dv');
             projectName = rawMovieName(1:extIdx-1);
 
             % make folder for file and movie if necessary
@@ -119,17 +123,77 @@ switch jobType
                 mkdir(dataFilePath);
                 % move everything that contains the project name (such as
                 % the log, or a projection)
-                files2move = searchFiles(projectName,'',rawMoviePath,0);
-                for iFile = 1:size(files2move,1)
+                % CORRECTION HERE: Since the _R3D and the crop identifier
+                % strings can occur in random positions, the project name
+                % sometimes is and sometimes is not the general file name body
+                % for the '.dv', '_PRJ.dv', and '.dv.log' files. Thus, the previous call  
+                % files2move =
+                % searchFiles(projectName,'(log)|(_PRJ)',rawMoviePath,0)
+                % resulted in either the moving of all, or of only the
+                % movie file. 
+                % For now, I restrict the moving to the movie file only,
+                % the _PRJ remains untouched, and the '.dv.log' file is
+                % dealt with specifically below. 
+                rawMovieFile = searchFiles(projectName,'(log)|(_PRJ)',rawMoviePath,0);
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OLD VERSION
+                %                 for iFile = 1:size(files2move,1)
+                %                     movefile(...
+                %                         fullfile(files2move{iFile,2},files2move{iFile,1}),...
+                %                         dataFilePath);
+                %                 end
+                if size(rawMovieFile,1) > 1
+                    errordlg(sprintf('%s is not a unique movie filename in the directory %s\nRename before continuing', ...
+                        rawMovieFile{1,1}, rawMovieFile{1,2}, ...
+                        'Non unique movie filename'));
+                    return;
+                else
                     movefile(...
-                        fullfile(files2move{iFile,2},files2move{iFile,1}),...
-                        dataFilePath);
+                        fullfile(rawMovieFile{1,2},rawMovieFile{1,1}),...
+                        dataFilePath)
                 end
-                % copy log file
-                % get 'body' of movie name, e.g. from bla_crop1_xx.dv,
-                % extract bla
+                
+                % NOW: copy log file
+
+                % get 'body' of movie name, e.g. from 'bla_crop1_xx.dv'
+                % extract 'bla'; or from 'bla_R3D_crop1.dv' extra 'bla'
+                cropIdx = regexp(projectName,'(_CPY)|(_cpy)|(_crop)|(_CROP)');
+                if ~isempty(cropIdx)
+                    % check if the project name still contains a _R3D
+                    r3dIdx = regexp(projectName,'(_R3D)');
+                    if ~isempty(r3dIdx)
+                        % the body of the project name is from 1 to 
+                        % either a '_R3D' or one of the crop strings
+                        logFileNameBody = projectName(1:min(cropIdx,r3dIdx)-1);
+                    else
+                        % the body of the project name is from 1 to 
+                        % one of the crop strings
+                        logFileNameBody = projectName(1:cropIdx-1);
+                    end
+                else
+                    logFileNameBody = projectName;
+                end;
                 % search for bla*log
-                % copyfile log to dataFilePath
+                logFile = searchFiles([logFileNameBody,'.*','\.log$'],'',rawMoviePath,0);
+                % copy file log to dataFilePath
+                if size(logFile,1) > 1
+                    errordlg(sprintf('%s is not a unique log filename in the directory %s\nRename before continuing', ...
+                        logFile{1,1}, logFile{1,2}, ...
+                        'Non unique log filename'));
+                else
+                    if ~isempty(logFile)
+                        copyfile(...
+                            fullfile(logFile{1,2},logFile{1,1}),...
+                            dataFilePath)
+                        % rename the log file in dataFilePath to
+                        % movieFileName.log
+                        movefile(fullfile(dataFilePath,logFile{1,1}),fullfile(dataFilePath,[rawMovieFile{1,1},'.log']));
+                    else
+                        warndlg(sprintf('No log filename matching movie %s in the directory %s\n', ...
+                            rawMovieFile{1,1}, rawMovieFile{1,2}), ...
+                            'Non unique log filename');
+                    end
+                end
+                
                 rawMoviePath = dataFilePath;
             end
 
