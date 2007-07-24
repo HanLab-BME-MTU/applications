@@ -28,12 +28,12 @@ function job = makiMakeJob(jobType,status,job)
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
-% created by: jdorn
+% created by: jdorn, kjaqaman, gdanuser
 % DATE: 29-Jun-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make this compatble for future addition of tasks.
+% Make this compatible for future addition of tasks.
 % Currently only 6 tasks are documented in the help. 
 % The system semi-supports a 7th task, which is the mixture model fitting
 makiNumPossibleTasks = 7;
@@ -147,13 +147,6 @@ switch jobType
                 dataStruct.dataProperties.sigmaCorrection = [1.5,1.5];
                 dataStruct.dataProperties.MAXSPOTS = 500; % number of locmax considered by initCoord
 
-                % add groupSisters - properties
-                groupSisters.maxDist = 4; % maximum average sister separation in um
-                groupSisters.goodTrackRatio = 0.75; % minimum relative track length for grouping
-                groupSisters.robust = false; % whether or not to use robust statistics for determining cost function parameters
-                groupSisters.costFunction = 'metaphase'; % cost function type.
-                dataStruct.dataProperties.groupSisters = groupSisters;
-
                 % run defDP again to get the correct filter parameters
                 dataStruct.dataProperties = defaultDataProperties(dataStruct.dataProperties);
 
@@ -238,62 +231,12 @@ switch jobType
                 clear imarisHandle
             end
 
-            %assign tracking parameters if tracking is requested
+            %assign tracking parameters
             if dataStruct.status(5) < 0
+                dataStruct = getTrackingInput(dataStruct);
+            end
 
-                %ask for some parameters from user
-                userEntryR = input('Enter 1 to use rotated coordinates in tracking. ');
-                if userEntryR ~= 1
-                    userEntryR = 0;
-                end
-
-                disp('Please input - as a row vector - values for the maximum gap');
-                disp('(in frames), minimum search radius (in microns) and maximum ');
-                disp('search radius (in microns).');
-                userEntry = input('');
-
-                %gap closing parameters
-                gapCloseParam.timeWindow = userEntry(1);
-                gapCloseParam.mergeSplit = 0;
-
-                %cost matrix parameters for linking spots between
-                %consecutive frames
-                costMatParam.minSearchRadiusL = userEntry(2);
-                costMatParam.maxSearchRadiusL = userEntry(3);
-                costMatParam.brownStdMultL = 3;
-                costMatParam.closestDistScaleL = 2;
-                costMatParam.maxStdMultL = 20;
-
-                %cost matrix parameters for closing gaps and (in principle)
-                %merging and splitting
-                costMatParam.minSearchRadiusCG = userEntry(2);
-                costMatParam.maxSearchRadiusCG = userEntry(3);
-                costMatParam.brownStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
-                costMatParam.linStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
-%                 costMatParam.timeReachConfB = gapCloseParam.timeWindow;
-                costMatParam.timeReachConfB = min(2,gapCloseParam.timeWindow);
-                costMatParam.timeReachConfL = 1;
-                costMatParam.closestDistScaleCG = 2;
-                costMatParam.maxStdMultCG = 20;
-                costMatParam.lenForClassify = 10;
-                costMatParam.maxAngle = 10;
-                costMatParam.ampRatioLimitCG = [0.5000 2];
-
-                %parameters for using local density to expand search radius
-                useLocalDensity.link = 1;
-                useLocalDensity.cg = 1;
-                useLocalDensity.nnWindowL = gapCloseParam.timeWindow;
-                useLocalDensity.nnWindowCG = gapCloseParam.timeWindow;
-
-                %save tracking parameters in dataProperties
-                dataStruct.dataProperties.tracksParam.rotate = userEntryR;
-                dataStruct.dataProperties.tracksParam.gapCloseParam = gapCloseParam;
-                dataStruct.dataProperties.tracksParam.costMatParam = costMatParam;
-                dataStruct.dataProperties.tracksParam.useLocalDensity = useLocalDensity;
-
-            end %(if dataStruct.status(5) < 0)
-
-            % allow to change settings (yadda yadda GUI yadda yadda)
+            %assign sister grouping parameters
             if dataStruct.status(6) < 0
                 dataStruct = getGroupSisterInput(dataStruct);
             end
@@ -364,8 +307,71 @@ warning(warningState)
 
 
 
-% subfunction to ask for input for groupSisters
+%% subfunction to ask for input for tracking
+function dataStruct = getTrackingInput(dataStruct)
+
+tracksParam = inputdlg(...
+    {'Use rotated coordinates',...
+    'Maximum gap to close (in frames)',...
+    'Minimum allowed search radius (in microns)',...
+    'Maximum allowed search radius (in microns)'},...
+    'Tracking parameters',1,{num2str(1),num2str(5),...
+    num2str(0.25),num2str(1)});
+if isempty(tracksParam)
+    error('input aborted')
+end
+
+%assign whether to use rotated coordinates or not
+dataStruct.dataProperties.tracksParam.rotate = ...
+    str2double(tracksParam{1});
+
+%assign gap closing parameters
+gapCloseParam.timeWindow = str2double(tracksParam{2}) + 1;
+gapCloseParam.mergeSplit = 0;
+
+%assign cost matrix parameters for linking spots between consecutive 
+%frames
+costMatParam.minSearchRadiusL = str2double(tracksParam{3});
+costMatParam.maxSearchRadiusL = str2double(tracksParam{4});
+costMatParam.brownStdMultL = 3;
+costMatParam.closestDistScaleL = 2;
+costMatParam.maxStdMultL = 20;
+
+%assign cost matrix parameters for closing gaps and (in principle) 
+%merging and splitting
+costMatParam.minSearchRadiusCG = str2double(tracksParam{3});
+costMatParam.maxSearchRadiusCG = str2double(tracksParam{4});
+costMatParam.brownStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
+costMatParam.linStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
+costMatParam.timeReachConfB = min(2,gapCloseParam.timeWindow);
+costMatParam.timeReachConfL = 1;
+costMatParam.closestDistScaleCG = 2;
+costMatParam.maxStdMultCG = 20;
+costMatParam.lenForClassify = 10;
+costMatParam.maxAngle = 10;
+costMatParam.ampRatioLimitCG = [0.5000 2];
+
+%assign parameters for using local density to expand search radius
+useLocalDensity.link = 1;
+useLocalDensity.cg = 1;
+useLocalDensity.nnWindowL = gapCloseParam.timeWindow;
+useLocalDensity.nnWindowCG = gapCloseParam.timeWindow;
+
+%save tracking parameters in dataProperties
+dataStruct.dataProperties.tracksParam.gapCloseParam = gapCloseParam;
+dataStruct.dataProperties.tracksParam.costMatParam = costMatParam;
+dataStruct.dataProperties.tracksParam.useLocalDensity = useLocalDensity;
+
+
+%% subfunction to ask for input for groupSisters
 function dataStruct = getGroupSisterInput(dataStruct)
+
+%assign default parameters
+groupSisters.maxDist = 1.5; % maximum average sister separation in um
+groupSisters.minOverlap = 10; % minimum overlap (in frames) between two tracks
+groupSisters.robust = false; % whether or not to use robust statistics for determining cost function parameters
+groupSisters.costFunction = 'metaphase'; % cost function type.
+dataStruct.dataProperties.groupSisters = groupSisters;
 
 phases ={'prophase';'prometaphase';'metaphase';'anaphase'};
 defPhase = strmatch(...
@@ -374,12 +380,12 @@ groupStats = inputdlg(...
     {sprintf(['Main cell cycle phase',...
     '\n1: Prophase\n2: Prometaphase',...
     '\n3: Metaphase\n4: Anaphase']),...
-    'distance cutoff (in microns)',...
-    'minimum track length relative to movie length',...
-    'use robust statistics'},...
+    'Maximum average distance between sisters (in microns)',...
+    'Minimum overlap between two tracks (>=10 frames)',...
+    'Use robust statistics'},...
     'Grouping Sisters',1,{num2str(defPhase),...
     num2str(dataStruct.dataProperties.groupSisters.maxDist),...
-    num2str(dataStruct.dataProperties.groupSisters.goodTrackRatio),...
+    num2str(dataStruct.dataProperties.groupSisters.minOverlap),...
     num2str(dataStruct.dataProperties.groupSisters.robust)});
 if isempty(groupStats)
     error('input aborted')
@@ -393,3 +399,4 @@ dataStruct.dataProperties.groupSisters.goodTrackRatio = ...
     str2double(groupStats{3});
 dataStruct.dataProperties.groupSisters.robust = ...
     str2double(groupStats{4});
+
