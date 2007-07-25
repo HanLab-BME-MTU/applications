@@ -196,6 +196,14 @@ switch type
             tmp = nan(size(cpn));
             tmp(goodTimes,:)=cpn;
             cpn = tmp;
+            
+            %% HACK
+            % remove from goodTimes frames with less than maxSpots
+            for t=goodTimes'
+                if sum(fitStruct.idlist(t).linklist(:,2)>0)<nSpotsMax
+                    goodTimes(goodTimes==t)=[];
+                end
+            end
 
             % make two kymographs. One for spotIntensities alone, one with
             % spotIntensities plus in-between intensities. Only do the
