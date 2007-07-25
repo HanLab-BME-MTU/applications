@@ -59,11 +59,18 @@ switch type
             % principle, amplitude, though it will depend on sigma). To get
             % correct sigma, fit width of isolated spots first
             sigmaCorrectionOld = fitStruct.dataProperties.sigmaCorrection;
+            originalSigma = fitStruct.dataProperties.FT_SIGMA([1,3])./sigmaCorrectionOld;
+            spotIdx = catStruct(1,'out.sp.idxL');
+            [dummy,spbIdx] = ismember({'spb1';'spb2'},idlistList(iIdlist).idlist(1).stats.labelcolor);
+            spbSpotIdxL = ismember(spotIdx,spbIdx);
             done = false;
             while ~done
             gaussFit = cdFitGauss(fitStruct,{'a','sxy','s3','b'}); %#ok<NASGU>
-            s = catStruct(1,'gaussFit.coords(:,5:6)');
-            sigmaCorrection = robustMean(s(~isnan(s(:,1)),:));
+            % only care about spb
+             
+             s = catStruct(1,'gaussFit.coords(:,5:6)'); 
+             s=s(spbSpotIdxL,:);
+            sigmaCorrection = robustMean(s(~isnan(s(:,1)),:))./originalSigma;
             disp(sigmaCorrection);
             fitStruct.dataProperties.sigmaCorrection = ...
                 sigmaCorrection;
@@ -146,7 +153,7 @@ switch type
 
             % correct spotIntensities for bleaching
             spotIntensitiesC = spotIntensities./repmat(exp(xFit(end)*(1:nTimepoints)'),1,nSpotsMax);
-            figure,
+            figure('Name',sprintf('Bleach-corr int for %s',fitStruct.dataProperties.name))
             if nSpotsMax == 4
                 colorOrder = [255 0 0;255 140 0;0 0 255;0 191 255]/255;
                 legendCell = {'spb1' 'cen1' 'spb2' 'cen2'};
@@ -157,18 +164,21 @@ switch type
             % plot corrected spotIntensities
             ah = subplot(2,1,1);
             set(ah,'ColorOrder',colorOrder,'NextPlot','add'),
-            ph=plot(spotIntensitiesC);
-            ylim([0,max(spotIntensitiesC(:))])
-            for i=1:length(ph)
-                set(ph(i),'DisplayName',legendCell{i});
-            end
-            ah = subplot(2,1,2);
-            set(ah,'ColorOrder',colorOrder,'NextPlot','add'),
-            ph=plot(spotIntensitiesC./repmat(sum(spotIntensitiesC(:,[1,3]),2)./2,1,nSpotsMax));
+            ph=plot(spotIntensitiesC./repmat(nanmedian(reshape(spotIntensitiesC(:,[1,3]),[],1)),nTimepoints,nSpotsMax));
             ylim([0,1.5])
             for i=1:length(ph)
                 set(ph(i),'DisplayName',legendCell{i});
             end
+            ah = subplot(2,1,2);
+            %ah = axes;
+            set(ah,'ColorOrder',colorOrder,'NextPlot','add'),
+            ph=plot(spotIntensitiesC./repmat((nanmean(spotIntensitiesC(:,[1,3]),2)),1,nSpotsMax));
+            ylim([0,1.5])
+            for i=1:length(ph)
+                set(ph(i),'DisplayName',legendCell{i});
+            end
+            title('above: normed by med spb int. Below: each frame normed by avg spb int')
+            legend toggle
 
             [n_spindleVector, cenPosNorm,goodTimes] = ...
                 cdProjectPositions(fitStruct.idlist);
@@ -196,7 +206,8 @@ switch type
             % for spots: make psf-size
             [gaussXY] = calcFilterParms(...
                 fitStruct.dataProperties.WVL,...
-                fitStruct.dataProperties.NA,1.51,'gauss');
+                fitStruct.dataProperties.NA,1.51,'gauss',...
+                fitStruct.dataProperties.sigmaCorrection);
 
             % make 10nm bins
             xMatrix = repmat(min(cpn(:,1))-0.1:0.01:max(cpn(:,3))+0.1,nTimepoints,1);
@@ -306,29 +317,35 @@ switch type
             g=green/maxRgb./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
             g(g==0) = NaN;
             g(g<0) = 0;
-            figure,contourf(xMatrix,yMatrix,g,...
+            figure('Name',...
+                sprintf('%s: theoretical int.',idlistList(iIdlist).dataProperties.name)),
+            contourf(xMatrix,yMatrix,g,...
                 'LineStyle','none','LevelList',linspace(0,1,100));
             cmg=isomorphicColormap('green');
             colormap(cmg)
+            set(gca,'Color','k')
+            
+            w=white/max(white(:))./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
+            w(w==0) = NaN;
+            w(w<0) = 0;
+            figure('Name',sprintf('%s: raw int.',idlistList(iIdlist).dataProperties.name)),
+            contourf(xMatrix,yMatrix,w,...
+                'LineStyle','none','LevelList',linspace(0,1,100));
+            cmw=isomorphicColormap('blue');
+            colormap(cmw)
             set(gca,'Color','k')
 
             r=red/maxRgb./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
             r(r==0) = NaN;
             r(r<0) = 0;
-            figure,contourf(xMatrix,yMatrix,r,...
+            figure('Name',sprintf('%s: residual int.',idlistList(iIdlist).dataProperties.name)),
+            contourf(xMatrix,yMatrix,r,...
                 'LineStyle','none','LevelList',linspace(0,1,100));
             cmr=isomorphicColormap('red');
             colormap(cmr)
             set(gca,'Color','k')
 
-            w=white/max(white(:))./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
-            w(w==0) = NaN;
-            w(w<0) = 0;
-            figure,contourf(xMatrix,yMatrix,w,...
-                'LineStyle','none','LevelList',linspace(0,1,100));
-            cmw=isomorphicColormap('blue');
-            colormap(cmw)
-            set(gca,'Color','k')
+           
 
             disp('stopping. Press key to continue')
             keyboard
@@ -481,6 +498,7 @@ for t=1:length(slist)
             out(t).sp(i).cord = idlist(t).linklist(spotIdx(i),9:11)./pix2mu;
             out(t).sp(i).amp = idlist(t).linklist(spotIdx(i),8);
             out(t).sp(i).bg = background;
+            out(t).sp(i).idxL = spotIdx(i); % row of idlist corresponding to the spot
         end
     end
 end

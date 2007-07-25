@@ -37,7 +37,7 @@ add2psf = -0.1; % subtract 100 nm from grid, 0.3; % add 300 nm to grid
 npix_2 = ceil((psfXY + add2psf/2)/pix2mu(1));
 
 
-storeRatio = 0.1; % [0...1] ratio of acceptable NaN-pixels
+storeRatio = 0.25; % [0...1] ratio of acceptable NaN-pixels
 nBackground = 3; % number of background pixels perpendicular to the axes
 
 % initialize output. Careful: s2c2 is measured from c2!!!
