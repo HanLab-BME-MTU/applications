@@ -14,6 +14,11 @@ function makiUpdateDataFile(update)
 %           8: add _1 to data filenames in dataStruct
 %           9: update dataStruct to the actually lastest files in the directory
 %           10: add .history field to dataStruct in the data file
+%           11: The old version of path 9 introduced wrong filenames into
+%           the data structure if the file does not exist; this generated
+%           files with wrong names in the directory. This patch fixes both,
+%           the filenames in the dataStruct __and__ renames wrong files in
+%           the working directory
 %
 % OUTPUT
 %
@@ -182,7 +187,7 @@ for iFile = 1:nFiles
                     end
                 else
                     % there is no such data in the directory yet
-                    dataStruct.(dataFn{i}) = [dataFn{i}, dataStruct.projectName, '_1', '.mat'];
+                    dataStruct.(dataFn{i}) = [searchString, '_', dataStruct.projectName, '_1', '.mat'];
                     dataStruct.(searchString) = [];
                 end
             end
@@ -226,7 +231,37 @@ for iFile = 1:nFiles
                     end
                 end
             end
-
+            
+        case 11
+            dataFn = {'dataPropertiesName', 'initCoordName', 'tracksName', ...
+                'planeFitName', 'sisterListName', 'slistName' };
+            for i=1:length(dataFn)
+                if strmatch(dataFn{i},dataStruct.(dataFn{i}))
+                    % the data filename wrongly contains the data field
+                    % name
+                    fileList2 = searchFiles(dataFn{i},'',dataStruct.dataFilePath);
+                    fileNameBody = dataFn{i};
+                    fileNameBody = fileNameBody(1:end-4);
+                    if ~isempty(fileList2)
+                        % one or more files in the data directory have the
+                        % wrong filename
+                        for i = 1:size(fileList2,1)
+                            % rename files in directory
+                            correctFileName = fileList2{i,1};
+                            correctFileName = [fileNameBody,'_',correctFileName(length(dataFn{i})+1:end)];
+                            moveFile(fullfile(dataStruct.dataFilePath,fileList2{i,1}), ...
+                                fullfile(dataStruct.dataFilePath,correctFileName));
+                        end;
+                    end
+                    % update filenanme in data filename field independent
+                    % of whether there was a file with the wrong filename
+                    % in the directory
+                    correctFileName = dataStruct.(dataFn{i});
+                    correctFileName = [fileNameBody,'_',correctFileName(length(dataFn{i})+1:end)];
+                    dataStruct.(dataFn{i}) = correctFileName;
+                end
+            end
+   
         otherwise
             % do nothing
     end
