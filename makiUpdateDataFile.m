@@ -245,11 +245,11 @@ for iFile = 1:nFiles
                     if ~isempty(fileList2)
                         % one or more files in the data directory have the
                         % wrong filename
-                        for i = 1:size(fileList2,1)
+                        for j = 1:size(fileList2,1)
                             % rename files in directory
-                            correctFileName = fileList2{i,1};
+                            correctFileName = fileList2{j,1};
                             correctFileName = [fileNameBody,'_',correctFileName(length(dataFn{i})+1:end)];
-                            moveFile(fullfile(dataStruct.dataFilePath,fileList2{i,1}), ...
+                            movefile(fullfile(dataStruct.dataFilePath,fileList2{j,1}), ...
                                 fullfile(dataStruct.dataFilePath,correctFileName));
                         end;
                     end
