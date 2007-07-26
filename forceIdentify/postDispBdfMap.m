@@ -75,6 +75,23 @@ else
    minBDF = minBDFToShow;
 end
 
+%Load detected cell edge files;
+edge_sp_array_x = [];
+edge_sp_array_y = [];
+pixel_edge      = [];
+if strcmp(markCellEdge,'yes') && isdir(edgeDir)
+   edge_splineFile = [edgeDir filesep 'edge_spline.mat'];
+   pixel_edgeFile  = [edgeDir filesep 'pixel_edge.mat'];
+   if exist(edge_splineFile,'file') && exist(pixel_edgeFile,'file')
+      s = load(edge_splineFile);
+      edge_sp_array_x = s.edge_sp_array_x;
+      edge_sp_array_y = s.edge_sp_array_y;
+
+      s = load(pixel_edgeFile);
+      pixel_edge = s.pixel_edge;
+   end
+end
+
 %Creat color map
 % cMap = colormap('jet');
 %cMap = [[zeros(10,1) linspace(0,0.95,10).' linspace(1,0.05,10).']]; %Blue
@@ -174,6 +191,13 @@ for ii = 1:length(selTimeSteps)
    figure(figH2); hold off;
    imshow(bdfImg,[]); hold on;
 
+   if ~isempty(pixel_edge)
+      %We use the middle frame of each moving time window for plotting
+      % the cell edge since the force represent the average over the time window.
+      edgeFrameID = ceil((2*frameNo+curNumAvgFrames-1)/2);
+      plot(pixel_edge{edgeFrameID}(:,1),pixel_edge{edgeFrameID}(:,2),cellEdgeColor);
+   end
+   
    if strcmp(markMcfBnd,'yes')
       %Load the saved mix zone force map.
       mcfMapFile = [reslDir filesep 'mcfMap' filesep 'mcfMap' indexStr '.mat'];

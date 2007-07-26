@@ -5,32 +5,6 @@ startTime = cputime;
 
 fprintf(1,'Post assemble of cellular domain force:\n');
 
-%Get some physical parameters.
-load([projDir filesep 'lastProjSettings.mat']);
-physiParam = projSettings.physiParam;
-
-actPixelSize  = 67; %Unit, nm.
-frameInterval = 10; %Unit, sec.
-if iscell(physiParam)
-   %We assume the actin is the 1st image channel.
-   actPixelSize  = physiParam{1}.pixelSize;
-   frameInterval = physiParam{1}.frameInterval;
-end
-
-if strcmp(spdUnit,'pixelPerFrame')
-   spdUnitConvFactor = 1;
-   spdUnitStr        = 'pixel/frame';
-elseif strcmp(spdUnit,'pixelPerMin')
-   spdUnitConvFactor = 60/frameInterval;
-   spdUnitStr        = 'pixel/min';
-elseif strcmp(spdUnit,'umPerMin')
-   spdUnitConvFactor = 60/frameInterval*actPixelSize/1000;
-   spdUnitStr        = 'um/min';
-elseif strcmp(spdUnit,'nmPerSec')
-   spdUnitConvFactor = 1/frameInterval*actPixelSize;
-   spdUnitStr        = 'nm/sec';
-end
-
 answer = input('Select time steps (0 for all):');
 if isempty(answer) | answer == 0
    selTimeSteps = 1:numDTimePts;
@@ -243,12 +217,13 @@ for ii = 1:length(selTimeSteps)
    %[bfxR,bfyR] = postinterp(fem,'f1','f2',fs.mesh.p);
    [recBFx,recBFy] = postinterp(fem,'f1','f2', ...
       forceField.p.');
-   forceField.f = [recBFx;recBFy].';
+   forceField.f    = [recBFx;recBFy].';
+   forceField.fMag = sqrt(sum(forceField.f.^2,2));
 
    %Save the force field in the format [y0 x0 y1 x1] for processing by 'prMergePanel'.
    bdfVec = [forceField.p(:,2:-1:1) forceField.p(:,2:-1:1)+forceField.f(:,2:-1:1)];
    bdfMag = [imgIndex*ones(size(forceField.p,1),1) forceField.p(:,2:-1:1) ...
-             sqrt(sum(forceField.f(:,2:-1:1).^2,2))];
+             forceField.fMag];
 
    %Remove 'NaN'.
    nanInd = find(isnan(bdfVec(:,3)) | isnan(bdfVec(:,4)));
@@ -337,7 +312,12 @@ for ii = 1:length(selTimeSteps)
    unitRecU1(nzInd) = recDispU1(nzInd)./recDispLen(nzInd);
    unitRecU2(nzInd) = recDispU2(nzInd)./recDispLen(nzInd);
 
+   %Calculate the angle between force and flow.
    dotProdBFRecU = recBFx.*unitRecU1 + recBFy.*unitRecU2;
+   dotProdBF_RecUPerp = recBFx.*unitRecU2 - recBFy.*unitRecU1;
+   forceField.angleFlowBF = sign(dotProdBF_RecUPerp).'.* ...
+      acos(dotProdBFRecU.'./forceField.fMag);
+
    mcfIndShow = find((dotProdBFRecU-recBFLen*cos(mcfAngle))>=0);
    adfIndShow = find((-dotProdBFRecU-recBFLen*cos(adfAngle))>=0);
    mixIndShow = find((dotProdBFRecU-recBFLen*cos(mcfAngle))<0 & ...
@@ -361,8 +341,7 @@ for ii = 1:length(selTimeSteps)
    % vector by 'mcfAngle'. The sign of rotation angle is given by the sign
    % of the dot product between 'force' and the orthogonal vector to the
    % flow.
-   dotProdBF_RecUPerp = recBFx.*unitRecU2 - recBFy.*unitRecU1;
-   
+   %
    %'(mcfAnglV1,mcfAnglV2)': the unit vector that forms 'mcfAngle' with
    % the unit flow vector.
    rotAngle = sign(dotProdBF_RecUPerp(mixIndShow))*mcfAngle;

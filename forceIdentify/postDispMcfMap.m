@@ -61,6 +61,23 @@ cMap = [linspace(0,1,numColors/2).' ...
 cMap = [cMap; [ones(numColors/2,1) ...
    linspace(1,0,numColors/2).' zeros(numColors/2,1)]];
 
+%Load detected cell edge files;
+edge_sp_array_x = [];
+edge_sp_array_y = [];
+pixel_edge      = [];
+if strcmp(markCellEdge,'yes') && isdir(edgeDir)
+   edge_splineFile = [edgeDir filesep 'edge_spline.mat'];
+   pixel_edgeFile  = [edgeDir filesep 'pixel_edge.mat'];
+   if exist(edge_splineFile,'file') && exist(pixel_edgeFile,'file')
+      s = load(edge_splineFile);
+      edge_sp_array_x = s.edge_sp_array_x;
+      edge_sp_array_y = s.edge_sp_array_y;
+
+      s = load(pixel_edgeFile);
+      pixel_edge = s.pixel_edge;
+   end
+end
+
 figH = figure;
 backStr = '';
 for ii = 1:length(selTimeSteps)
@@ -152,11 +169,18 @@ for ii = 1:length(selTimeSteps)
    mcfMapToShow(find(mcfMapToShow<minMCF)) = minMCF;
 
    figure(figH); hold off;
-   imgH = imshow(mcfMapToShow,[]); 
-   colormap(cMap); colorbar; hold on;
-   delete(imgH);
+%    imgH = imshow(mcfMapToShow,[]); 
+%    colormap(cMap); colorbar; hold on;
+%    delete(imgH);
    imshow(mcfImg,[]); hold on;
 
+   if ~isempty(pixel_edge)
+      %We use the middle frame of each moving time window for plotting
+      % the cell edge since the force represent the average over the time window.
+      edgeFrameID = ceil((2*frameNo+curNumAvgFrames-1)/2);
+      plot(pixel_edge{edgeFrameID}(:,1),pixel_edge{edgeFrameID}(:,2),cellEdgeColor);
+   end
+   
    if strcmp(markMixZone,'yes')
       mixBW = zeros(size(mixfMap));
       mixBW(mixZoneInd) = 1;

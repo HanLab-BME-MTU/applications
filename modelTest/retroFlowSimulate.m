@@ -1,21 +1,40 @@
-%This script file simulates the retrograde flow with the force identified from
-% real actin speckle movie. You have two options depending on the values of
-% 'forceToSimu':
-%    'bodyForce' : The body force can be modified to see how it affects
-%       the displacement field and the distorted displacement field 
-%       can then be fed back into the force identification program to 
-%       see if it can identify the modification we made on the force. 
-%    'adhesion' : We can also use the adhesion intesity movies to add
-%       viscosity dragging coefficient in the forward model to see if the
-%       adhesion site can be identified.
+function retroFlowSimulate(mechDir,edgeDir,reslDir,simuDir,cellImg,imgIndex,numImages)
+%retrFlowSimulate: This function simulates the retrograde flow with the force 
+%                  identified from real actin speckle movie but restricted to 
+%                  user defined ROI.
+%
+% We use 'forceToSimu' to specify the types of forces we want to simulate. 
+% 'forceToSimu' is defined in 'setPar.m'.
+%
+% SYNOPSIS:
+%    retroFlowSimulate(mechDir,edgeDir,reslDir,simuDir,cellImg,imgIndex,numImages);
+%
+% INPUT:
+%    mechDir    : Directory for the force reconstruction of the real movie.
+%    edgeDir    : Directory for edge tracking. It is used to get cell mask. 
+%    reslDir    : The result directory under 'mechDir'.
+%    simuDir    : Directory where the final force field used to generate the
+%                 simulated flow is stored.
+%    cellImg    : The underlying cell image.
+%    imgIndex   : Image index corresponding the reconstructed force field from
+%                 real movie.
+%    numImages  : The total number of images in the real movie. It is used to 
+%                 define 'imgIndexForm'.
+%
+% After simulation, the true force field is saved as 'forceField.mat' in
+% [simuDir filesep 'forceField'].
 %
 % AUTHOR: Lin Ji
 % DATE  : July 17, 2006
 
-if isempty(simuDir) || ~isdir(simuDir)
-   fprintf(1,'Please setup the simulation directory first by ''setupForceProj''.');
-   return;
-end
+load([reslDir filesep 'lastSavedParam.mat']);
+forceToSimu     = param.forceToSimu;
+bfScale         = param.bfScale;
+dispScale       = param.dispScale;
+simMCFMagFactor = param.simMCFMagFactor;
+simADCMagFactor = param.simADCMagFactor;
+
+imgIndexForm  = sprintf('%%.%dd',length(num2str(numImages)));
 
 if ~isdir([simuDir filesep 'rawDispField'])
    success = mkdir(simuDir,'rawDispField');
@@ -31,9 +50,18 @@ if ~isdir([simuDir filesep 'forceField'])
    end
 end
 
-numNoiseLevels = length(simRelNoiseLevel);
-simIndexForm  = sprintf('%%.%dd',max(length(num2str(numNoiseLevels)),2));
-
+if ~isdir([simuDir filesep 'rawDispField'])
+   success = mkdir(simuDir,'rawDispField');
+   if ~success
+      error('Trouble making directory.');
+   end
+end
+if ~isdir([simuDir filesep 'forceField'])
+   success = mkdir(simuDir,'forceField');
+   if ~success
+      error('Trouble making directory.');
+   end
+end
 sDispFieldDir = [simuDir filesep 'rawDispField'];
 sForceFieldDir = [simuDir filesep 'forceField'];
 
@@ -41,19 +69,8 @@ if exist([sDispFieldDir filesep 'rawDispField.mat'],'file') == 2
    answer = input(['A previously simulated flow field is found.\n' ...
       'Do you want to redo the simulation? (y/n):'],'s');
    if strcmp(answer,'n')
-      s = load([sDispFieldDir filesep 'rawDispField.mat']); 
-      rawDispField = s.rawDispField;
-      addSimNoise(rawDispField,sDispFieldDir,simAbsNoiseLevel,simRelNoiseLevel);
       return;
    end
-end
-
-if exist('rawDispField','var')
-   clear rawDispField;
-end
-
-if exist('ROI','var')
-   clear ROI;
 end
 
 ROI.bndfEdgNo = [];
@@ -71,15 +88,13 @@ if exist([simuDir filesep 'ROI.mat'],'file') == 2
    end
 end
 
-imgIndex = imgIndexOfDTimePts(curDTimePt);
-
-%Load the 'fem' structure used to identify the force. This provides the same
-% elasticity and boundary condtions.
-if strcmp(isFieldBndFixed,'yes')
+femModelDir = [mechDir filesep 'femModel'];
+if imgIndex == 0
    femModelFile = [femModelDir filesep 'femModel' sprintf(imgIndexForm,0) '.mat'];
 else
-   [femModelFile,femModelImgIndex] = getFemModelFile(femModelDir,imgIndex,imgIndexForm);
+   femModelFile = getFemModelFile(femModelDir,imgIndex,imgIndexForm);
 end
+
 s = load(femModelFile);
 femModel = s.femModel;
 fem      = femModel.fem;
@@ -117,12 +132,14 @@ end
 % The flow field of the 'rawDispField' structure, v, will be replaced by the simulated flow. And,
 % the smoothed flow field, sv will be removed. Some new fields will be added to the structure
 % especially the simulation force field, f.
+rawDispFieldDir = [reslDir filesep 'rawDispField'];
 rawDispFieldFileName = ['rawDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
 rawDispFieldFile     = [rawDispFieldDir filesep rawDispFieldFileName];
 s = load(rawDispFieldFile);
 rawDispField = s.rawDispField;
 
 %Load the identified body force and boundary force.
+forceFieldDir = [reslDir filesep 'forceField'];
 forceFieldFile = [forceFieldDir filesep 'forceField' ...
    sprintf(imgIndexForm,imgIndex) '.mat'];
 s = load(forceFieldFile);
@@ -140,7 +157,7 @@ if strcmp(forceToSimu,'mcfOnly') == 1 || ...
    strcmp(forceToSimu,'mcfAndAdf') == 1 || ...
    strcmp(forceToSimu,'all') == 1
 
-   cellImg = imread(imgFileList{imgChannel}{imgIndex});
+   %cellImg = imread(imgFileList{imgChannel}{imgIndex});
    figure; imshow(cellImg,[]); hold on;
    quiver(forceField.p(:,1),forceField.p(:,2),forceField.f(:,1)*bfScale, ...
       forceField.f(:,2)*bfScale,0,'r');
@@ -325,7 +342,7 @@ for kk = 1:numEdges
    numInd = find(~isnan(simBndU1) & ~isnan(simBndU2));
    edgD(kk).U1 = simBndU1(numInd).';
    edgD(kk).U2 = simBndU2(numInd).';
-   edgD(kk).p  = forceField.bndF(kk).p(:,numInd);
+   edgD(kk).p  = forceField.bndF(kk).p(:,numInd).';
 
    %Create spline interpolation of the edge displacement using arclength
    % parameter stored in 'msh.e(3:4,:)'.
@@ -333,6 +350,10 @@ for kk = 1:numEdges
    edgD(kk).sKnt = augknt(edgD(kk).s,2);
    edgD(kk).ppU1 = spapi(edgD(kk).sKnt,edgD(kk).s,edgD(kk).U1.');
    edgD(kk).ppU2 = spapi(edgD(kk).sKnt,edgD(kk).s,edgD(kk).U2.');
+
+   %Add edge displacement data to the raw displacement field.
+   rawDispField.p = [rawDispField.p; edgD(kk).p];
+   rawDispField.v = [rawDispField.v; [edgD(kk).U1 edgD(kk).U2]];
 end
 rawDispField.edgD = edgD;
 
@@ -348,9 +369,8 @@ rawDispField.relNoiseLevel = 0;
 sDispFieldFile = [sDispFieldDir filesep 'rawDispField.mat'];
 save(sDispFieldFile,'rawDispField');
 
-addSimNoise(rawDispField,sDispFieldDir,simAbsNoiseLevel,simRelNoiseLevel);
-
 %Calculate forces on grid points so that color map of the true force can be produced.
+iDispFieldDir = [reslDir filesep 'iDispField'];
 iDispFieldFileName = ['iDispField' sprintf(imgIndexForm,imgIndex) '.mat'];
 iDispFieldFile     = [iDispFieldDir filesep iDispFieldFileName];
 s = load(iDispFieldFile);
@@ -431,15 +451,14 @@ mcfMap(find(mcfMap<0)) = 0;
 adfMap(find(adfMap<0)) = 0;
 spdMap(find(spdMap<0)) = 0;
 
-mixfMap = NaN*ones(size(adfMap));
+%mixfMap = NaN*ones(size(adfMap));
 
 %Save the data map of true forces.
-indexStr = sprintf(simIndexForm,[]);
-bdfMapFile  = [simuDir filesep 'bdfMap' filesep 'bdfMap' indexStr '.mat'];
-mcfMapFile  = [simuDir filesep 'mcfMap' filesep 'mcfMap' indexStr '.mat'];
-adfMapFile  = [simuDir filesep 'adfMap' filesep 'adfMap' indexStr '.mat'];
-spdMapFile  = [simuDir filesep 'spdMap' filesep 'spdMap' indexStr '.mat'];
-mixfMapFile = [simuDir filesep 'mixfMap' filesep 'mixfMap' indexStr '.mat'];
+bdfMapFile  = [simuDir filesep 'bdfMap' filesep 'bdfMap.mat'];
+mcfMapFile  = [simuDir filesep 'mcfMap' filesep 'mcfMap.mat'];
+adfMapFile  = [simuDir filesep 'adfMap' filesep 'adfMap.mat'];
+spdMapFile  = [simuDir filesep 'spdMap' filesep 'spdMap.mat'];
+%mixfMapFile = [simuDir filesep 'mixfMap' filesep 'mixfMap' indexStr '.mat'];
 
 if ~exist('bdfMap','dir')
    [success msg msgID] = mkdir(simuDir,'bdfMap');
@@ -465,18 +484,18 @@ if ~exist('spdMap','dir')
       error('Trouble making directory ''spdMap''.');
    end
 end
-if ~exist('mixfMap','dir')
-   [success msg msgID] = mkdir(simuDir,'mixfMap');
-   if ~success
-      error('Trouble making directory ''mixfMap''.');
-   end
-end
+%if ~exist('mixfMap','dir')
+%   [success msg msgID] = mkdir(simuDir,'mixfMap');
+%   if ~success
+%      error('Trouble making directory ''mixfMap''.');
+%   end
+%end
 
 save(bdfMapFile,'bdfMap');
 save(mcfMapFile,'mcfMap');
 save(adfMapFile,'adfMap');
 save(spdMapFile,'spdMap');
-save(mixfMapFile,'mixfMap');
+%save(mixfMapFile,'mixfMap');
 
 sForceField.p       = forceField.p;
 sForceField.f       = rawDispField.f;
@@ -501,8 +520,14 @@ sDispField.gridX = iDispField.gridX;
 sDispField.gridY = iDispField.gridY;
 
 iDispField = sDispField;
-sDispFieldFile = [simuDir filesep 'iDispField' filesep 'iDispField.mat'];
-save(sDispFieldFile,'iDispField');
+if ~isdir([simuDir filesep 'iDispField'])
+   success = mkdir(simuDir,'iDispField');
+   if ~success
+      error('Trouble making directory.');
+   end
+end
+siDispFieldFile = [simuDir filesep 'iDispField' filesep 'iDispField.mat'];
+save(siDispFieldFile,'iDispField');
 
 %%%% Some old code %%%%%%%%
    %if strcmp(forceToSimu,'adfOnly') == 1 || ...

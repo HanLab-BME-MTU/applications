@@ -2,6 +2,12 @@
 %Parameters:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Imaging parameters: (acquired from 'lastProjSettings.mat')
+% actPixelSize: pixel size of actin channel in nm.
+% frameInterval: frame interval in seconds.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
 % trackMethod: Specify the source of flow data. 
 %    Possible values:
 %    'corr' : correlation tracking
@@ -138,6 +144,10 @@
 %
 % markMixZone: Specify whether mark (with dotts and boundary) the mixed zone of in the 
 %              separated contraction force and adhesion force map.
+% markCellEdge: Specify whether cell edges are displayed. It only works if
+%               edges have been detected and are saved in the corresponding
+%               edge directory.
+% cellEdgeColor: Specify the color of the displayed cell edge.
 %
 % mixfBndColor: Color of mixed region boundary.
 %
@@ -192,7 +202,21 @@
 %               will be calculated.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-trackMethod       = 'corr'; 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Extract imaging parameters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+s = load([projDir filesep 'lastProjSettings.mat']);
+physiParam = s.projSettings.physiParam;
+
+actPixelSize  = 67; %Unit, nm.
+frameInterval = 10; %Unit, sec.
+if iscell(physiParam)
+   %We assume the actin is the 1st image channel.
+   actPixelSize  = physiParam{1}.pixelSize;
+   frameInterval = physiParam{1}.frameInterval;
+end
+
+trackMethod       = 'corr';
 isFieldBndFixed   = 'yes';
 isDataPosFixed    = 'no';
 YModulVariation   = 'homo';
@@ -238,7 +262,9 @@ showMcfVec        = 'yes';
 showAdfVec        = 'yes';
 showMixZone       = 'yes';
 markMixZone       = 'yes';
+markCellEdge      = 'yes';
 mixfBndColor      = [0.721 0.721 0.721]; %grey.
+cellEdgeColor     = 'r';
 imgIRange         = [0 1];
 maxSPDToShow      = Inf;
 minSPDToShow      = -Inf;
@@ -262,6 +288,8 @@ simAbsNoiseLevel  = [0 0.00 0.0 0.05 0.10 0.10 0.10 0.10 0.1];
 simRelNoiseLevel  = [0 0.05 0.1 0.10 0.10 0.15 0.20 0.25 0.3];
 debugMode         = 'off';
 
+param.actPixelSize      = actPixelSize;
+param.frameInterval     = frameInterval;
 param.trackMethod       = trackMethod;
 param.isFieldBndFixed   = isFieldBndFixed;
 param.isDataPosFixed    = isDataPosFixed;
@@ -307,7 +335,9 @@ param.showMcfVec        = showMcfVec;
 param.showAdfVec        = showAdfVec;
 param.showMixZone       = showMixZone;
 param.markMixZone       = markMixZone;
+param.markCellEdge      = markCellEdge;
 param.mixfBndColor      = mixfBndColor;
+param.cellEdgeColor     = cellEdgeColor;
 param.imgIRange         = imgIRange;
 param.maxSPDToShow      = maxSPDToShow;
 param.minSPDToShow      = minSPDToShow;

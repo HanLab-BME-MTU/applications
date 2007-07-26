@@ -1,8 +1,22 @@
 %This is a script file that displays the colormap of the flow speed
 % overlaid to the original cell image.
 
-%Find the maximum speed.
-maxSpeed = 0;
+if strcmp(spdUnit,'pixelPerFrame')
+   spdUnitConvFactor = 1;
+   spdUnitStr        = 'pixel/frame';
+elseif strcmp(spdUnit,'pixelPerMin')
+   spdUnitConvFactor = 60/frameInterval;
+   spdUnitStr        = 'pixel/min';
+elseif strcmp(spdUnit,'umPerMin')
+   spdUnitConvFactor = 60/frameInterval*actPixelSize/1000;
+   spdUnitStr        = 'um/min';
+elseif strcmp(spdUnit,'nmPerSec')
+   spdUnitConvFactor = 1/frameInterval*actPixelSize;
+   spdUnitStr        = 'nm/sec';
+end
+
+%Find the maximum speed of the whole stack.
+globalMaxSpeed = 0;
 
 if ~isdir([reslDir filesep 'spdFig'])
    success = mkdir(reslDir,'spdFig');
@@ -27,7 +41,9 @@ else
    selTimeSteps = answer;
 end
 
-%Find the maximum speed from the selected time steps.
+%Find the maximum speed for each of the selected time steps and the overall
+% max speed..
+maxSpeed = zeros(1,length(selTimeSteps));
 for ii = 1:length(selTimeSteps)
    jj = selTimeSteps(ii);
    
@@ -41,23 +57,42 @@ for ii = 1:length(selTimeSteps)
    spdMap = s.spdMap;
    
    numInd = find(~isnan(spdMap));
-   maxSpeed = max(maxSpeed,max(spdMap(numInd)));
+   maxSpeed(ii) = max(spdMap(numInd));
 end
+globalMaxSpeed = max(maxSpeed);
 
 if isinf(maxSPDToShow)
-   maxSPD = spdColorDispRange(2)*maxSpeed;
+   maxDispSPD = spdColorDispRange(2)*globalMaxSpeed;
 else
-   maxSPD = maxSPDToShow;
+   maxDispSPD = maxSPDToShow;
 end
 if isinf(minSPDToShow)
-   minSPD = spdColorDispRange(1)*maxSpeed;
+   minDispSPD = spdColorDispRange(1)*globalMaxSpeed;
 else
-   minSPD = minSPDToShow;
+   minDispSPD = minSPDToShow;
 end
 
-maxSPD   = maxSPD*spdUnitConvFactor;
-minSPD   = minSPD*spdUnitConvFactor;
-maxSpeed = maxSpeed*spdUnitConvFactor;
+maxDispSPD     = maxDispSPD*spdUnitConvFactor;
+minDispSPD     = minDispSPD*spdUnitConvFactor;
+maxSpeed       = maxSpeed*spdUnitConvFactor;
+globalMaxSpeed = globalMaxSpeed*spdUnitConvFactor;
+
+%Load detected cell edge files;
+edge_sp_array_x = [];
+edge_sp_array_y = [];
+pixel_edge      = [];
+if strcmp(markCellEdge,'yes') && isdir(edgeDir)
+   edge_splineFile = [edgeDir filesep 'edge_spline.mat'];
+   pixel_edgeFile  = [edgeDir filesep 'pixel_edge.mat'];
+   if exist(edge_splineFile,'file') && exist(pixel_edgeFile,'file')
+      s = load(edge_splineFile);
+      edge_sp_array_x = s.edge_sp_array_x;
+      edge_sp_array_y = s.edge_sp_array_y;
+
+      s = load(pixel_edgeFile);
+      pixel_edge = s.pixel_edge;
+   end
+end
 
 %cMap = colormap('jet');
 %cMap = [[zeros(10,1) linspace(0,0.95,10).' linspace(1,0.05,10).']]; %Blue
@@ -142,17 +177,17 @@ for ii = 1:length(selTimeSteps)
    %Create color bar figure.
    if strcmp(showSpdCBar,'yes')
       cSpdMap = spdMap;
-      cSpdMap(1,1) = maxSpeed;
+      cSpdMap(1,1) = globalMaxSpeed;
       cSpdMap(1,2) = 0;
-      cSpdMap(find(cSpdMap>=maxSPD)) = maxSPD;
-      cSpdMap(find(cSpdMap<=minSPD)) = minSPD;
+      cSpdMap(find(cSpdMap>=maxDispSPD)) = maxDispSPD;
+      cSpdMap(find(cSpdMap<=minDispSPD)) = minDispSPD;
       figure(figH1);
       imshow(cSpdMap,[]); colormap(cMap); colorbar; hold on;
       spdCBarFile = [spdFigDir filesep 'spdCBar' sprintf(imgIndexForm,imgIndex) '.fig'];
       saveas(figH1,spdCBarFile,'fig');
    end
 
-   spdImg = imDataMapOverlay(stackedImg,spdMap,[minSPD maxSPD],cMap);
+   spdImg = imDataMapOverlay(stackedImg,spdMap,[minDispSPD maxDispSPD],cMap);
 
    figure(figH2); hold off;
    imshow(spdImg,[]); hold on;
@@ -247,7 +282,7 @@ for ii = 1:length(selTimeSteps)
 
    titleStr = sprintf(['Speed Map\n' 'Time Step: %d Image Index: %d ' ...
       'Residue: %5.2f Max Speed: %f (Unit: ' spdUnit ')'], ...
-      jj,imgIndex,iDispField.vRelRes,maxSpeed);
+      jj,imgIndex,iDispField.vRelRes,maxSpeed(ii));
    title(titleStr);
    
    %Save the figure
