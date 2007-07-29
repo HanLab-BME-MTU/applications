@@ -40,7 +40,7 @@ if nargout == 2
     % make a copy of the incoming dataStruct onto dataStructOut; 
     % this is necessary because the incoming dataStruct is emptied of
     % actual data so that only minimal information is saved to the data file on disk;
-    % however, functions, which retrieve dfrom this function a dataStruct with the
+    % however, functions, which retrieve from this function a dataStruct with the
     % updated secure-saved filenames, expect the full dataStruct returned.
     returnUpdatedStruct = 1;
     dataStructOut = dataStruct;
@@ -48,7 +48,7 @@ else
     returnUpdatedStruct = 0;
 end
 
-% check for dataFilePath and create if necessarz
+% check for dataFilePath and create if necessary
 if ~isdir(dataStruct.dataFilePath)
     warning('MAKISAVEDATASTRUCT:PATHNOTFOUND',...
         'path %s not found. Folder will be created.',...

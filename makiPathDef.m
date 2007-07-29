@@ -9,8 +9,8 @@ function pathOrId = makiPathDef(pathOrId)
 %                 Supported identifiers
 %                 $HERCULES - root path where the movies on hercules are
 %                             stored (works for linux or windows)
-%                 $TESTDATA - D:\makiTestData on WS022
-%                   for more, call makiPathDef without input argument
+%                 $TESTDATA - D:\makiTestData on windows and HOME/testdata
+%                             on linux
 %       if pathOrId is empty or omitted, makiPathDef returns the current
 %       path definition
 %

@@ -98,8 +98,48 @@ useLocalDensity = dataStruct.dataProperties.tracksParam.useLocalDensity;
 
 %call tracker
 try
+
+    %track the kinetochores
     tracks = trackCloseGapsKalman(movieInfo,costMatParam,...
         gapCloseParam,[],useLocalDensity,0,3,0);
+
+    %replace rotated coordinates in tracks by original ones if rotated 
+    %coordinates were used for tracking
+    if dataStruct.dataProperties.tracksParam.rotate == 1
+        
+        %go over all tracks
+        for iTrack = 1 : length(tracks)
+            
+            %store rotated coordinates in another field
+            tracks(iTrack).coordAmpRot = tracks(iTrack).tracksCoordAmpCG;
+            
+            %fetch the start and end time of this track
+            startTime = tracks(iTrack).seqOfEvents(1,1);
+            endTime = tracks(iTrack).seqOfEvents(2,1);
+            
+            %go over all frames where this track exists
+            for iFrame =  startTime : endTime 
+                
+                %get the feature making up this track in this frame
+                iFeature = tracks(iTrack).tracksFeatIndxCG(iFrame-startTime+1);
+                
+                %if there is a feature (not a gap)
+                if iFeature ~= 0
+                    
+                    %replace coordiantes and their stds
+                    tracks(iTrack).tracksCoordAmpCG(1,(iFrame-startTime)*8+1:...
+                        (iFrame-startTime)*8+3) = dataStruct.initCoord(iFrame).allCoord(iFeature,1:3);
+                    tracks(iTrack).tracksCoordAmpCG(1,(iFrame-startTime)*8+5:...
+                        (iFrame-startTime)*8+7) = dataStruct.initCoord(iFrame).allCoord(iFeature,4:6);
+                    
+                end
+                
+            end
+            
+        end %(for iTrack = 1 : numTracks)
+        
+    end %(if dataStruct.dataProperties.tracksParam.rotate == 1)
+
 catch
 end
 

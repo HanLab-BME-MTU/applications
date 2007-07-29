@@ -132,8 +132,8 @@ for jTrack = 1:nGoodTracks % loop cols
         % find common time
         [commonTime,ctColIdx,ctRowIdx] = intersect(colTime,rowTime);
         
-        %if the common time between the two tracks is at least minOveralp, 
-        %calculate parameters (otherwise, they stay as zero, which assigns 
+        %if the common time between the two tracks is at least minOverlap, 
+        %calculate parameters (otherwise, they stay as NaN, which assigns 
         %them -1 in linkTracks)
         if length(commonTime) >= minOverlap
 
