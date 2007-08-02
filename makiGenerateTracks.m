@@ -3,17 +3,20 @@ function dataStruct = makiGenerateTracks(dataStruct)
 %
 %SYNOPSIS dataStruct = makiGenerateTracks(dataStruct)
 %
-%INPUT dataStruct: dataStruct as in makimakeDataStruct with at least the
-%                   fields
-%                     .dataProperties
-%                     .planeFit
-%                     .initCoord
+%INPUT  dataStruct: dataStruct as in makiMakeDataStruct with at least the
+%                   fields "dataProperties", "planeFit" & "initCoord".
+%                   Optional. Loaded interactively if not input.
 %
-%OUTPUT dataStruct.tracks
+%OUTPUT dataStruct: Same as input, with added field "tracks"
 %
 %Khuloud Jaqaman, July 2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%load dataStruct if not input
+if nargin == 0 || isempty(dataStruct)
+    dataStruct = makiLoadDataFile;
+end
 
 %get number of time points in movie
 nTimepoints = dataStruct.dataProperties.movieSize(4);

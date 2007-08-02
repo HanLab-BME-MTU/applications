@@ -4,21 +4,29 @@ function makiUpdateDataFile(update)
 % SYNOPSIS: makiUpdateDataFile(update)
 %
 % INPUT update: type of update
-%           1: add cropping
-%           2: reset cropping
-%           3: remove faulty underscore in initCoordName
-%           4: correct timeLapse in dataProperties
-%           5: add new fields to dataStruct
-%           6: swap track/planeFit in .statusHelp
-%           7: add defaults for groupSisters
-%           8: add _1 to data filenames in dataStruct
-%           9: update dataStruct to the actually lastest files in the directory
-%           10: add .history field to dataStruct in the data file
+%           1: add cropping.
+%           2: reset cropping.
+%           3: remove faulty underscore in initCoordName.
+%           4: correct timeLapse in dataProperties.
+%           5: add new fields to dataStruct.
+%           6: swap track/planeFit in .statusHelp.
+%           7: add defaults for groupSisters.
+%           8: add _1 to data filenames in dataStruct.
+%           9: update dataStruct to the actually lastest files in the
+%              directory.
+%           10: add .history field to dataStruct in the data file.
 %           11: The old version of path 9 introduced wrong filenames into
-%           the data structure if the file does not exist; this generated
-%           files with wrong names in the directory. This patch fixes both,
-%           the filenames in the dataStruct __and__ renames wrong files in
-%           the working directory
+%               the data structure if the file does not exist; this generated
+%               files with wrong names in the directory. This patch fixes both,
+%               the filenames in the dataStruct __and__ renames wrong files in
+%               the working directory.
+%           12: Swap entries in status, statusHelp and history to put slist
+%               as 4th entry. Also add 8th entry for frameAlignment.
+%           13: Add 2 new fields to dataStruct for frame alignment and
+%               rearrange sequence of fields in dataStruct.
+%           14: remove field goodTrackRatio from
+%               dataStruct.dataProperties.groupSisters (basically I'm
+%               fixing a bug).
 %
 % OUTPUT
 %
@@ -57,7 +65,7 @@ for iFile = 1:nFiles
     dataStruct = makiLoadDataFile(fullfile(fileList{iFile,2},fileList{iFile,1}));
 
 
-    if update ~= 9
+    if update >= 9
         % remove all the xxx/xxxName pair files so that we don't get into
         % trouble with secureSave
         %
@@ -120,9 +128,9 @@ for iFile = 1:nFiles
 
         case 6
             % swap statusHelp-entries
-            if strcmp(dataStruct.statusHelp{4,1},'tracks')
+            if strcmp(dataStruct.statusHelp{5,1},'tracks')
                 dataStruct.statusHelp = ...
-                    dataStruct.statusHelp([1,2,3,5,4,6,7],:);
+                    dataStruct.statusHelp([1,2,3,4,6,5,7,8],:);
             end
 
         case 7
@@ -261,7 +269,106 @@ for iFile = 1:nFiles
                     dataStruct.(dataFn{i}) = correctFileName;
                 end
             end
-   
+            
+        case 12
+            %swap entries in status, statusHelp and history (entry 7 
+            %becomes 4, shift the rest by 1) and add 8th entry
+            
+            %status
+            tmpVar = dataStruct.status;
+            if length(tmpVar) == 7
+                tmpVar = [tmpVar(1:3); tmpVar(7); tmpVar(4:6); 0];
+                dataStruct.status = tmpVar;
+            end
+            clear tmpVar
+            
+            %statusHelp
+            tmpVar = dataStruct.statusHelp;
+            if size(tmpVar,1) == 7
+                tmpVar2 = cell(1,3);
+                tmpVar2{1,1} = 'frameAlignment';
+                tmpVar = [tmpVar(1:3,:); tmpVar(7,:); tmpVar(4:6,:); tmpVar2];
+                dataStruct.statusHelp = tmpVar;
+                clear tmpVar2
+            end
+            clear tmpVar
+            
+            %history - swap and replace NaNs with 0
+            tmpVar2 = dataStruct.history;
+            if ~isempty(tmpVar2)
+                tmpVar.numRuns = tmpVar2.numRuns; %numRuns
+                tmpVar3 = tmpVar2.dataProperties; %dataProperties
+                tmpVar3(isnan(tmpVar3)) = 0;
+                tmpVar.dataProperties = tmpVar3;
+                tmpVar3 = tmpVar2.initCoord; %initCoord
+                tmpVar3(isnan(tmpVar3)) = 0;
+                tmpVar.initCoord = tmpVar3;
+                tmpVar3 = tmpVar2.slist; %slist
+                tmpVar3(isnan(tmpVar3)) = 0;
+                tmpVar.slist = tmpVar3;
+                tmpVar3 = tmpVar2.planeFit; %planeFit
+                tmpVar3(isnan(tmpVar3)) = 0;
+                tmpVar.planeFit = tmpVar3;
+                tmpVar3 = tmpVar2.tracks; %tracks
+                tmpVar3(isnan(tmpVar3)) = 0;
+                tmpVar.tracks = tmpVar3;
+                tmpVar3 = tmpVar2.sisterList; %sisterList
+                tmpVar3(isnan(tmpVar3)) = 0;
+                tmpVar.sisterList = tmpVar3;
+                tmpVar.frameAlignment = zeros(1,tmpVar.numRuns); %frameAlignment
+                dataStruct.history = tmpVar;
+                clear tmpVar tmpVar3
+            end
+            clear tmpVar2
+            
+        case 13
+            %add 2 new fields to dataStruct for frame alignment
+            projectName = dataStruct.projectName;
+            if ~isfield(dataStruct,'frameAlignmentName')
+                dataStruct.frameAlignmentName = ['frameAlignment_' projectName '_1.mat'];
+                dataStruct.frameAlignment = [];
+            end
+            %rearrange sequence of fields in dataStruct
+            tmpVar = dataStruct;
+            clear dataStruct;
+            dataStruct.projectName = tmpVar.projectName;
+            dataStruct.rawMovieName = tmpVar.rawMovieName;
+            dataStruct.rawMoviePath = tmpVar.rawMoviePath;
+            dataStruct.dataFileName = tmpVar.dataFileName;
+            dataStruct.dataFilePath = tmpVar.dataFilePath;
+            dataStruct.dataPropertiesName = tmpVar.dataPropertiesName;
+            dataStruct.dataProperties = tmpVar.dataProperties;
+            dataStruct.movieHeaderName = tmpVar.movieHeaderName;
+            dataStruct.movieHeader = tmpVar.movieHeader;
+            dataStruct.initCoordName = tmpVar.initCoordName;
+            dataStruct.initCoord = tmpVar.initCoord;
+            dataStruct.slistName = tmpVar.slistName;
+            dataStruct.slist = tmpVar.slist;
+            dataStruct.planeFitName = tmpVar.planeFitName;
+            dataStruct.planeFit = tmpVar.planeFit;
+            dataStruct.tracksName = tmpVar.tracksName;
+            dataStruct.tracks = tmpVar.tracks;
+            dataStruct.sisterListName = tmpVar.sisterListName;
+            dataStruct.sisterList = tmpVar.sisterList;
+            dataStruct.frameAlignmentName = tmpVar.frameAlignmentName;
+            dataStruct.frameAlignment = tmpVar.frameAlignment;
+            dataStruct.status = tmpVar.status;
+            dataStruct.statusHelp = tmpVar.statusHelp;
+            dataStruct.history = tmpVar.history;
+            clear tmpVar
+            
+        case 14
+            %remove dataStruct.dataProperties.groupSisters.goodTrackRatio
+            
+            dataProperties = dataStruct.dataProperties;
+            if isfield(dataProperties,'groupSisters')
+                groupSisters = dataProperties.groupSisters;
+                if isfield(groupSisters,'goodTrackRatio')
+                    groupSisters = rmfield(groupSisters,'goodTrackRatio');
+                    dataStruct.dataProperties.groupSisters = groupSisters;
+                end
+            end
+                
         otherwise
             % do nothing
     end

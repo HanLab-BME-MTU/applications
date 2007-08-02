@@ -127,7 +127,7 @@ imaSurpassScene.AddChild(imaSpots);
            
 %% tracks
 
-if select(1)
+if select(1) && ~isempty(dataStruct.tracks)
 
     %make spots plotted earlier invisible
     imaSpots.mVisible = 0;
@@ -265,7 +265,7 @@ end %(if select(1))
 
 %% sisters
 
-if select(2)
+if select(2) && ~isempty(dataStruct.sisterList)
 
     %make spots plotted earlier invisible
     imaSpots.mVisible = 0;
@@ -431,7 +431,7 @@ end %(if select(2))
 
 %% fitted plane
 
-if select(3)
+if select(3) && ~isempty(dataStruct.planeFit)
     %disp('Sorry, plotting plane not implemented yet!');
 end
 

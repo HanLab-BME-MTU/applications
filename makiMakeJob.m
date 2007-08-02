@@ -7,8 +7,8 @@ function job = makiMakeJob(jobType,status,job)
 %                2: hercules run
 %                3: update existing job
 %       status : status that you want to achieve, either as status vector,
-%                e.g. [1,1,1,0,1,0,0], or a list of jobs, e.g. [1,2,3,5]
-%                To force the job, set 2 in the status vector, or negative
+%                e.g. [1,1,1,0,1,0,0,0], or a list of tasks, e.g. [1,2,3,5]
+%                To force a task, set 2 in the status vector, or negative
 %                numbers in the list
 %               
 %                REMARK: this help page (and the code) freely mixes the
@@ -23,8 +23,8 @@ function job = makiMakeJob(jobType,status,job)
 %
 % REMARKS This is a hack. Setting up jobs should be done via a GUI.
 %         Order of jobs so far: (1) cropping; (2) saving dataStruct;
-%         (3) initCoord; (4) plane fit; (5) tracking; (6) sister
-%         identification
+%         (3) initCoord; (4) mixture-model fitting; (5) plane fit;
+%         (6) tracking; (7) sister identification; (8) frame alignment.
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -34,9 +34,9 @@ function job = makiMakeJob(jobType,status,job)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make this compatible for future addition of tasks.
-% Currently only 6 tasks are documented in the help. 
-% The system semi-supports a 7th task, which is the mixture model fitting
-makiNumPossibleTasks = 7;
+% % % Currently only 6 tasks are documented in the help. 
+% % % The system semi-supports a 7th task, which is the mixture model fitting
+makiNumPossibleTasks = 8;
 
 if nargin < 1 || isempty(jobType)
     jobType = 1;
@@ -296,12 +296,12 @@ switch jobType
             end
 
             %assign tracking parameters
-            if dataStruct.status(5) < 0
+            if dataStruct.status(6) < 0
                 dataStruct = getTrackingInput(dataStruct);
             end
 
             %assign sister grouping parameters
-            if dataStruct.status(6) < 0
+            if dataStruct.status(7) < 0
                 dataStruct = getGroupSisterInput(dataStruct);
             end
 
@@ -342,7 +342,7 @@ switch jobType
             dataStruct.status(toDo) = -1;
 
             % ask for input for groupSisters if needed
-            if dataStruct.status(6) < 0
+            if dataStruct.status(7) < 0
                 dataStruct = getGroupSisterInput(dataStruct);
             end
 
@@ -459,7 +459,7 @@ dataStruct.dataProperties.groupSisters.costFunction = ...
     phases{str2double(groupStats{1})};
 dataStruct.dataProperties.groupSisters.maxDist = ...
     str2double(groupStats{2});
-dataStruct.dataProperties.groupSisters.goodTrackRatio = ...
+dataStruct.dataProperties.groupSisters.minOverlap = ...
     str2double(groupStats{3});
 dataStruct.dataProperties.groupSisters.robust = ...
     str2double(groupStats{4});
