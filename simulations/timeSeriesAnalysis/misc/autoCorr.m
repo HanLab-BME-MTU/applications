@@ -12,8 +12,8 @@ function [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %                  -1 :if no correction.
 %                   0 :if correcting via linear fit to data.
 %                   n :if correcting by taking the 1st difference at lag n
-%                (reduces traj length!).
-%                Default: -1.
+%                     (reduces traj length!).
+%                   Default: -1.
 %
 %OUTPUT gamma  : Unbiased autocorrelation function of series,
 %                where gamma(i) is the autocorrelation at lag i-1.
@@ -36,7 +36,7 @@ gamma = [];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check if correct number of arguments were used when function was called
-if nargin < 2 || nargin > 3
+if nargin < 2
     disp('--autoCorr: Incorrect number of input arguments!');
     errFlag  = 1;
     return
