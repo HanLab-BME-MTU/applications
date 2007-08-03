@@ -5,20 +5,81 @@ function [resultList,plotData,plotStruct] = bilobesGfpKinetochores(project, norm
 %
 % INPUT project : type of projection: 'max'/{'sum'}
 %       normalize : what to set to 1 {'sum'}/'max'/'none'
-%           for kinetochores: project sum, norm sum
-%           for tubulin: project sum, norm max
 %       doPlot : whether to plot or not {1}/0
 %       improveAlignment : whether or not to improve alignment. Default:
 %                 true
 %       redoAll : if 0, code will not perform detection if it has been done
 %                  before. Default: false
-%       zOrientation : orientation of the z-axis: {'perpendicular'} to the
-%                      other two/'parallel' to image-z
-%       moveType : {'raw'} or 'decon' (recommended for tub1)
+%       zOrientation : orientation of the z-axis: 'perpendicular' to the
+%                      other two/{'parallel'} to image-z
+%       movieType : {'raw'} or 'decon' (recommended for tub1)
 %
-% OUTPUT
+% OUTPUT resultList(1:nData) : Structure with fields
+%           interpImg - interpolated intensity from GFP channel (30x21x21)
+%           interpImgSpb - interpolated intensity from SPB channel
+%           maxProj - maximum projection of intensity onto pole axis
+%           meanProj - sum (not mean) projection of intensity 
+%           xLabels - center-of-bin labels along pole axis
+%           e_spb - unit vector along the pole axis
+%           e_perp - unit vector parallel to xy, perp to e_spb
+%           e_3 - third vector (see zOrientation)
+%           spbVectorAngle - angle between pole axis and xy plane
+%           inPlaneAngle - angle between x-axis and projection of pole axis
+%           name - name of movie
+%           ndcShiftPix - pixels you have to add to spb coordinates to
+%               align GFP images
+%       plotData : input to bilobePlot
+%       plotStruct : output from bilobePlot
+%               
 %
-% REMARKS
+% HOW TO USE: to analyze Ndc80-GFP images, call 
+%                 bilobesGfpKinetochores('sum','sum')
+%             to analyze tubulin-GFP images, call
+%                 bilobesGfpKinetochores('sum','max')
+%             The code will ask for a directory where the data files are
+%             stored. Then, it allows to make a selection among the data
+%             files found in the chosen directory and its subdirectories.
+%               Then, the spindle poles in every image are detected. A grid
+%             is drawn in 3D between the spindle poles. The grid divides
+%             the pole-to-pole axis in 24 segments, and adds 3 segments
+%             to each side of the axis. The second direction is
+%             perpendicular to the pole-to-pole axis and parallel to the
+%             xy-plane. The third direction is parallel to z (or
+%             perpendicular to the other two, depending on
+%             'zOrientation'). Along both the second and third dimension,
+%             the grid extends 10 image-pixels away from the axis for a
+%             final grid size of 30x21x21.
+%               The grid is fixed at the two spindle pole body coordinates.
+%             However, the spindle poles are labled spectrally different
+%             from the rest. Thus, the two channels need to be aligned.
+%             Because alignment can change from movie to movie, and is
+%             dependent on the 3D position of the objects, there has to be
+%             computational alignment of the Ndc80/tubulin intensity with
+%             respect to the spindle poles. The algorithm assumes that
+%             the intensity is low closest to the spindle poles, and tries
+%             to thus place it symmetrically between the poles. This works
+%             very well except if 100% of kinetochore intensity is placed
+%             close to one spindle pole only.
+%               Intensity is read from raw images (or decon, depending on
+%             movieType), and projected onto the pole-to-pole axis
+%             according to project, i.e. taking the sum of the intensities
+%             for the two suggestions above (this assumes that all pixels
+%             that are outside the frame only contain background intensity)
+%               The background, calculated as the median of the edges of
+%             grid, is subtracted, and then, the projections are normed.
+%             For Ndc80 images, the image is normed so that the sum is 1,
+%             because the total amount of Ndc80 fluorescence at
+%             kinetochores should stay constant over metaphase. For tubulin
+%             image, the image is normed so that the maximum is 1, because
+%             the total polymerized tubulin may change over the course of
+%             metaphase, but the concentration of microtubules right off
+%             the spindle pole should be a constant maximum in microtubule
+%             concentration and thus GFP-tubulin intensity.
+%               The code plots a gallery of projections (max, sum) along
+%             third grid dimension for inspection, and a graph with the
+%             intensity distribution as a function of spindle length and
+%             spindle position on the left, and the standard deviation of
+%             the intensities on the right.
 %
 % created with MATLAB ver.: 7.2.0.232 (R2006a) on Windows_NT
 %
@@ -27,6 +88,8 @@ function [resultList,plotData,plotStruct] = bilobesGfpKinetochores(project, norm
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+% correction factors
 spbCorrection_1 = [-0.0124 0.1647 0.2546]; % from diploid 1-7. CFP->GFP
 align_1=true;
 spbCorrection_2 = [-0.0029    0.3407    0.2784];
@@ -38,9 +101,6 @@ align_3=true;
 spbCorrection_4 = [-0.0517    0.1898    0.3650]; % February 20 2007
 align_4=false;
 
-debug = false;
-alignmentTolerance = 0.3;
-maxIter = 10;
 
 % turn off exposure time/nd warnings
 warningState = warning;
@@ -50,6 +110,9 @@ warning('off','R3DREADHEADER:ndFilterChanged');
 % PARAMETERS THAT CANNOT BE CHANGED FROM INPUT
 plotGrid = false; % imaris will plot the 3D-grid over the aligned two-color data
 plotInt = false; % imaris will plot spb and ndc80
+debug = false;
+alignmentTolerance = 0.3; % tolerance for calculating alignment
+maxIter = 10; % max number of iterations for calculating alignment
 
 
 % PARAMETERS THAT CAN BE CHANGED FROM INPUT
@@ -435,7 +498,10 @@ for iData = 1:nData
 
                 % make maximum, average projections
                 maxProj = nanmax(nanmax(interpImg,[],3),[],2)-background;
-                meanProj = nanmean(nanmean(interpImg,3),2)-background;
+                % !! since all that is out of the image should be
+                % background, the sum is much better than the mean. The
+                % mean would arbitrarily stretch intensities!
+                meanProj = nansum(nansum(interpImg,3),2)-background;
 
                 % make perpendicular projections
                 p_perp = squeeze(nanmean(interpImg,1))-background;
@@ -620,7 +686,7 @@ if plotGallery
     nData = length(resultList);
     nRows = floor(sqrt(nData));
     nCols = ceil(nData/nRows);
-    proj = {'maximum projection. length--angle(z/xy)--idx','mean projection. length--angle(z/xy)--idx'};
+    proj = {'maximum projection. length--angle(z/xy)--idx','sum projection. length--angle(z/xy)--idx'};
     for p=1:2
         fh = figure('Name',proj{p});
         for d=sortIdx'
