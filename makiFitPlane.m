@@ -1,7 +1,7 @@
 function dataStruct = makiFitPlane(dataStruct,verbose)
 %MAKIFITPLANE attempts to fit planes into kinetochore clusters
 %
-% SYNOPSIS: makiFitPlane(dataStruct)
+% SYNOPSIS: dataStruct = makiFitPlane(dataStruct,verbose)
 %
 % INPUT dataStruct (opt): maki data structure. If empty, it will be loaded
 %                         via GUI
@@ -38,10 +38,10 @@ function dataStruct = makiFitPlane(dataStruct,verbose)
 %                   considered to be inliers
 %               .laggingIdx      index into initCoord of all spots that are
 %                   considered to belong to lagging chromosomes
-%               .phase either 'E' prophase/early prometaphase -> no plane
-%                   fit possible; 'P' late prometaphase -> planefit possible but 
-%                   unaligned kinetochores found; 'M' metaphase -> plane
-%                   fit possible and no unaligned kinetochores found; 'A'
+%               .phase either 'e' prophase/early prometaphase -> no plane
+%                   fit possible; 'p' late prometaphase -> planefit possible but 
+%                   unaligned kinetochores found; 'm' metaphase -> plane
+%                   fit possible and no unaligned kinetochores found; 'a'
 %                   anaphase -> planefit possible with eigenvalue normal
 %                   >> mean eigenvalue;
 %               .distParms       [variance,skewness,kurtosis,pNormal]' for
@@ -62,7 +62,7 @@ function dataStruct = makiFitPlane(dataStruct,verbose)
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
-% created by: jdorn, modified by: kjaqaman
+% created by: jdorn, kjaqaman, gdanuser
 % DATE: 03-Jul-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -331,99 +331,71 @@ end
 %     end
 % end
     
-%% align frames wherever possible (i.e. in metaphase) to get rid of overall rotation
+%% align frames wherever possible to get rid of overall rotation
 
-% %shift the coordinates in each frame such that the center of the fitted 
-% %plane in each frame is the origin
-% tmpCoord = repmat(struct('allCoord',[]),nTimePoints,1);
-% for iTime = 1 : nTimePoints
-%     tmpCoord(iTime).allCoord = initCoord(iTime).allCoord;
-%     tmpCoord(iTime).allCoord(:,1:3) = tmpCoord(iTime).allCoord(:,1:3) - ...
-%         repmat(meanCoord(iTime,:),nSpots(iTime),1);
-% end
-% 
-% %get frames in metaphase
-% metaFrames = planeFit(1).metaphaseFrames;
-% 
-% %if there are metaphase frames to align ...
-% if length(metaFrames) > 1
-% 
-%     %get first metaphase frame
-%     firstMetaFrame = metaFrames(1);
-% 
-%     %construct the coordinate system of each frame from the plane fit
-%     coordSystem = zeros(3,3,nTimePoints);
-%     axis1Old = planeFit(1).eigenVectors(:,1); %dummy for first iteration
-%     for iTime = 1 : nTimePoints
-% 
-%         %fetch the eigenvector representing the normal to the plane
-%         axis1 = planeFit(iTime).eigenVectors(:,1);
-% 
-%         %make sure that the rotation from the previous frame to this one is
-%         %smooth, i.e. the dot product of the normal in this frame and the
-%         %normal in the previous frame is positive. If it is negative, flip
-%         %the normal vector
-%         dotProdNormal = axis1' * axis1Old;
-%         axis1 = sign(dotProdNormal) * axis1;
-% 
-%         %construct the second axis which is in the x,y-plane
-%         axis2 = [-axis1(2) axis1(1) 0]';
-%         axis2 = axis2 / sqrt(axis2' * axis2);
-% 
-%         %calculate the third axis
-%         axis3 = cross(axis1,axis2);
-%         coordSystem(:,:,iTime) = [axis1 axis2 axis3];
-% 
-%         %store axis perpendicular to the plane in this frame to form the dot
-%         %product with the next frame
-%         axis1Old = axis1;
-% 
-%     end
-% 
-%     %rotate coordinates and coordinate systems in all frames such that the
-%     %coordinate system of the first frame labeled metaphase defines the
-%     %new x, y and z axes for all frames
-%     %propagate errors to the new coordinates
-%     rotationMat = inv(coordSystem(:,:,firstMetaFrame)); %rotation matrix
-%     errorPropMat = rotationMat.^2;
-%     for iTime = 1 : nTimePoints
-%         tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
-%         tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
-%         coordSystem(:,:,iTime) = rotationMat*coordSystem(:,:,iTime);
-%     end
-% 
-%     %rotate coordinates in metaphase frames to align them with the first metaphase frame
-%     %propagate errors to the new coordinates
-%     for iTime = metaFrames(2:end)'
-%         rotationMat = inv(coordSystem(:,:,iTime)); %rotation matrix
-%         errorPropMat = rotationMat.^2;
-%         tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
-%         tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
-%     end
-% 
-%     %rotate coordinates in all frames after metaphase with the rotation matrix
-%     %of the last metaphase frame
-%     for iTime = metaFrames(end) + 1 : nTimePoints
-%         tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
-%         tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
-%     end
-%     
-% end %if ~isempty(metaFrames)
+%get the phase of each frame
+framePhase = vertcat(planeFit.phase);
 
-% %make all coordinates positive
-% minCoord = vertcat(tmpCoord.allCoord);
-% minCoord = min(minCoord);
-% minCoord = minCoord - 10;
-% for iTime = 1 : nTimePoints
-%     tmpCoord(iTime).allCoord(:,1) = tmpCoord(iTime).allCoord(:,1) - minCoord(1);
-%     tmpCoord(iTime).allCoord(:,2) = tmpCoord(iTime).allCoord(:,2) - minCoord(2);
-%     tmpCoord(iTime).allCoord(:,3) = tmpCoord(iTime).allCoord(:,3) - minCoord(3);
-% end
-% 
-% %store rotated coordinates in planeFit structure
-% for iTime = 1 : nTimePoints
-%     planeFit(iTime).rotatedCoord = tmpCoord(iTime).allCoord;
-% end
+%find frames with plane (and frames without plane)
+framesNoPlane = find(framePhase == 'e')';
+framesWiPlane = setxor((1:nTimePoints),framesNoPlane);
+
+%for frames with a plane, use plane origin as the frame origin
+%for frames without a plane, use the center of mass as the frame origin
+frameOrigin = NaN(nTimePoints,3);
+frameOrigin(framesWiPlane,:) = vertcat(planeFit.planeOrigin);
+frameOrigin(framesNoPlane,:) = meanCoord(framesNoPlane,:);
+
+%shift the coordinates in each frame such that frameOrigin 
+%in each frame is the origin
+tmpCoord = repmat(struct('allCoord',[]),nTimePoints,1);
+for iTime = 1 : nTimePoints
+    tmpCoord(iTime).allCoord = initCoord(iTime).allCoord;
+    tmpCoord(iTime).allCoord(:,1:3) = tmpCoord(iTime).allCoord(:,1:3) - ...
+        repmat(frameOrigin(iTime,:),nSpots(iTime),1);
+end
+
+%if there are frames to rotate ...
+if length(framesWiPlane) > 1
+
+    %get first frame to rotate
+    firstFrameRotate = framesWiPlane(1);
+
+    %find frames without plane that are before the first frame with plane
+    framesBefore1 = framesNoPlane(framesNoPlane < firstFrameRotate);
+    framesAfter1 = setxor(framesNoPlane,framesBefore1); % the rest of the frames
+
+    %get the coordinate system of each frame with a plane
+    coordSystem = zeros(3,3,nTimePoints);
+    coordSystem(:,:,framesWiPlane) = cat(3,planeFit.planeVectors);
+
+    %assign the coordinate system of each frame without a plane
+    %if they are before the first frame with a plane, take the coordinate
+    %system of the plane after
+    %if they are after the first frame with a plane, take the coordinate
+    %system of the plane before
+    for iTime = framesBefore1(end:-1:1)
+        coordSystem(:,:,iTime) = coordSystem(:,:,iTime+1);
+    end
+    for iTime = framesAfter1
+        coordSystem(:,:,iTime) = coordSystem(:,:,iTime-1);
+    end
+    
+    %rotate the coordinates in all frames
+    %propagate errors to the new coordinates
+    for iTime = 1 : nTimePoints
+        rotationMat = inv(coordSystem(:,:,iTime)); %rotation matrix
+        errorPropMat = rotationMat.^2; %error propagation matrix
+        tmpCoord(iTime).allCoord(:,1:3) = (rotationMat*(tmpCoord(iTime).allCoord(:,1:3))')';
+        tmpCoord(iTime).allCoord(:,4:6) = sqrt((errorPropMat*((tmpCoord(iTime).allCoord(:,4:6)).^2)')');
+    end
+    
+end %(if length(framesWiPlane) > 1)
+
+%store rotated coordinates in planeFit structure
+for iTime = 1 : nTimePoints
+    planeFit(iTime).rotatedCoord = tmpCoord(iTime).allCoord;
+end
 
 %% output
 

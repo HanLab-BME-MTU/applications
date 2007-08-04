@@ -24,7 +24,11 @@ nTimepoints = dataStruct.dataProperties.movieSize(4);
 %get kinetochore coordinates and amplitude
 movieInfo = repmat(struct('xCoord',[],'yCoord',[],'zCoord',[],'amp',[]),...
     nTimepoints,1);
-if dataStruct.dataProperties.tracksParam.rotate == 1 %rotated coordinates
+
+%if rotated coordinates are to be used ...
+if dataStruct.dataProperties.tracksParam.rotate == 1
+    
+    %get the rotated coordinates
     for iTime = 1 : nTimepoints
         allCoord = dataStruct.planeFit(iTime).rotatedCoord;
         movieInfo(iTime).xCoord = [allCoord(:,1) allCoord(:,4)];
@@ -32,7 +36,10 @@ if dataStruct.dataProperties.tracksParam.rotate == 1 %rotated coordinates
         movieInfo(iTime).zCoord = [allCoord(:,3) allCoord(:,6)];
         movieInfo(iTime).amp = dataStruct.initCoord(iTime).amp;
     end
-else %original coordinates
+    
+else %if the original coordinates are to be used
+    
+    %get the original coordinates
     for iTime = 1 : nTimepoints
         allCoord = dataStruct.initCoord(iTime).allCoord;
         movieInfo(iTime).xCoord = [allCoord(:,1) allCoord(:,4)];
@@ -40,6 +47,22 @@ else %original coordinates
         movieInfo(iTime).zCoord = [allCoord(:,3) allCoord(:,6)];
         movieInfo(iTime).amp = dataStruct.initCoord(iTime).amp;
     end
+    
+    %calculate the center of mass in each frame
+    centerOfMass = zeros(nTimepoints,3);
+    for iTime = 1 : nTimepoints
+       centerOfMass(iTime,:) = [mean(movieInfo(iTime).xCoord(:,1)) ...
+           mean(movieInfo(iTime).yCoord(:,1)) mean(movieInfo(iTime).zCoord(:,1))];
+    end
+    
+    %shift coordinates by center of mass to make the origin in each frame 
+    %at its center of mass
+    for iTime = 1 : nTimepoints
+        movieInfo(iTime).xCoord(:,1) = movieInfo(iTime).xCoord(:,1) - centerOfMass(iTime,1);
+        movieInfo(iTime).yCoord(:,1) = movieInfo(iTime).yCoord(:,1) - centerOfMass(iTime,2);
+        movieInfo(iTime).zCoord(:,1) = movieInfo(iTime).zCoord(:,1) - centerOfMass(iTime,3);
+    end
+    
 end
     
 %get number of features in each frame
@@ -106,42 +129,38 @@ try
     tracks = trackCloseGapsKalman(movieInfo,costMatParam,...
         gapCloseParam,[],useLocalDensity,0,3,0);
 
-    %replace rotated coordinates in tracks by original ones if rotated 
-    %coordinates were used for tracking
-    if dataStruct.dataProperties.tracksParam.rotate == 1
-        
-        %go over all tracks
-        for iTrack = 1 : length(tracks)
-            
-            %store rotated coordinates in another field
-            tracks(iTrack).coordAmpRot = tracks(iTrack).tracksCoordAmpCG;
-            
-            %fetch the start and end time of this track
-            startTime = tracks(iTrack).seqOfEvents(1,1);
-            endTime = tracks(iTrack).seqOfEvents(2,1);
-            
-            %go over all frames where this track exists
-            for iFrame =  startTime : endTime 
-                
-                %get the feature making up this track in this frame
-                iFeature = tracks(iTrack).tracksFeatIndxCG(iFrame-startTime+1);
-                
-                %if there is a feature (not a gap)
-                if iFeature ~= 0
-                    
-                    %replace coordiantes and their stds
-                    tracks(iTrack).tracksCoordAmpCG(1,(iFrame-startTime)*8+1:...
-                        (iFrame-startTime)*8+3) = dataStruct.initCoord(iFrame).allCoord(iFeature,1:3);
-                    tracks(iTrack).tracksCoordAmpCG(1,(iFrame-startTime)*8+5:...
-                        (iFrame-startTime)*8+7) = dataStruct.initCoord(iFrame).allCoord(iFeature,4:6);
-                    
-                end
-                
+    %replace the coordinate used for tracking (whether the rotated
+    %coordinates or the original coordinates shifted by center of mass) by
+    %the original coordinates
+    for iTrack = 1 : length(tracks)
+
+        %store coordinates used for tracking in another field
+        tracks(iTrack).coordAmp4Tracking = tracks(iTrack).tracksCoordAmpCG;
+
+        %fetch the start and end time of this track
+        startTime = tracks(iTrack).seqOfEvents(1,1);
+        endTime = tracks(iTrack).seqOfEvents(2,1);
+
+        %go over all frames where this track exists
+        for iFrame =  startTime : endTime
+
+            %get the feature making up this track in this frame
+            iFeature = tracks(iTrack).tracksFeatIndxCG(iFrame-startTime+1);
+
+            %if there is a feature (not a gap)
+            if iFeature ~= 0
+
+                %replace coordiantes and their stds
+                tracks(iTrack).tracksCoordAmpCG(1,(iFrame-startTime)*8+1:...
+                    (iFrame-startTime)*8+3) = dataStruct.initCoord(iFrame).allCoord(iFeature,1:3);
+                tracks(iTrack).tracksCoordAmpCG(1,(iFrame-startTime)*8+5:...
+                    (iFrame-startTime)*8+7) = dataStruct.initCoord(iFrame).allCoord(iFeature,4:6);
+
             end
-            
-        end %(for iTrack = 1 : numTracks)
-        
-    end %(if dataStruct.dataProperties.tracksParam.rotate == 1)
+
+        end
+
+    end %(for iTrack = 1 : numTracks)
 
 catch
 end
