@@ -31,6 +31,18 @@ nTimePoints = dataStruct.dataProperties.movieSize(end);
 planeInfo.planeFit = dataStruct.planeFit;
 planeInfo.projectName = dataStruct.projectName;
 
+% check whether any of the plane is defined
+defined = 0;
+timePoint = 1;
+while (timePoint <= nTimePoints) && ~defined
+    defined = ~isempty(dataStruct.planeFit(timePoint).planeVectors);
+    timePoint = timePoint + 1;
+end
+if ~defined
+    warning('None of the time points contains a valid planeVector field');
+    return;
+end
+
 % initialize plot window
 figH = figure('Name',sprintf('Plane Orientation %s (%2d / %2d)',dataStruct.projectName,1, nTimePoints));
 set(figH,'KeyPressFcn',@figure_keyPress);
@@ -65,42 +77,60 @@ end
 planeInfo.timeInfo = timeInfo;
 
 set(src,'UserData',planeInfo);
-plotPlanes(src,0);
+plotPlanes(src,0,event.Key);
     
 % end of function figure_keyPress
 
-function plotPlanes(figH,initialPlot)
+function plotPlanes(figH,initialPlot,key)
 
 cameraPropertyNames = {'CameraPosition', 'CameraTarget', 'CameraUpVector', 'CameraViewAngle'};
 
+if nargin == 3
+    fwd = strmatch(key,'uparrow');
+else
+    fwd = 1;
+end
+
 % figure is still open
-    figure(figH)
-    cameraProps = get(gca,cameraPropertyNames);
-    
-    
-    planeInfo = get(figH,'UserData');
-    timeInfo = planeInfo.timeInfo;
-    currentTimePoint = timeInfo.currentTimePoint;
-    planeData = planeInfo.planeFit(currentTimePoint);
-    
+figure(figH)
+cameraProps = get(gca,cameraPropertyNames);
+
+
+planeInfo = get(figH,'UserData');
+timeInfo = planeInfo.timeInfo;
+currentTimePoint = timeInfo.currentTimePoint;
+planeData = planeInfo.planeFit(currentTimePoint);
+
+if ~isempty(planeData.planeVectors)
     % plot normal vector in red
     [dx,dy,dz] = eigenVec2plotVec(planeData.planeVectors(:,1));
-    plot3(dx,dy,dz,'r-');
-    hold on
+    if planeData.planeVectorClassifier
+        % the plane is defined by the eigenvectors
+        plot3(dx,dy,dz,'r-');
+        hold on
     
-    % which column in the eigenvector matrix defined the normal ?
-    normalIndx = find(planeData.planeVectors(1,1)==planeData.eigenVectors(1,:));
-    eigenVecRatio = planeData.eigenValues(normalIndx)/...
-        mean(planeData.eigenValues(setdiff([1 2 3],normalIndx)));
-    % replot normal vector multiplied by the eigen vector ratio in much
-    % larger width
-    lineH = plot3(eigenVecRatio*dx,eigenVecRatio*dy,eigenVecRatio*dz,'r-');
-    set(lineH,'LineWidth',5);
-    % plot in plane vectors
-    [dx,dy,dz] = eigenVec2plotVec(planeData.planeVectors(:,2));
-    plot3(dx,dy,dz,'k-');
-    [dx,dy,dz] = eigenVec2plotVec(planeData.planeVectors(:,3));
-    plot3(dx,dy,dz,'k-');
+        % which column in the eigenvector matrix defined the normal ?
+        normalIndx = find(planeData.planeVectors(1,1)==planeData.eigenVectors(1,:));
+        eigenVecRatio = planeData.eigenValues(normalIndx)/...
+            mean(planeData.eigenValues(setdiff([1 2 3],normalIndx)));
+        % replot normal vector multiplied by the eigen vector ratio in much
+        % larger width
+        lineH = plot3(eigenVecRatio*dx,eigenVecRatio*dy,eigenVecRatio*dz,'r-');
+        set(lineH,'LineWidth',5);
+    else 
+        plot3(dx,dy,dz,'r--');
+        hold on
+    end
+        
+    % plot in-plane vectors
+    for i =2:3
+        [dx,dy,dz] = eigenVec2plotVec(planeData.planeVectors(:,i));
+        if planeData.planeVectorClassifier
+            plot3(dx,dy,dz,'k-');
+        else
+            plot3(dx,dy,dz,'k--');
+        end
+    end
     
     if ~initialPlot
         set(gca,cameraPropertyNames,cameraProps);
@@ -110,6 +140,28 @@ cameraPropertyNames = {'CameraPosition', 'CameraTarget', 'CameraUpVector', 'Came
     set(figH,'Name',sprintf('Plane Orientation %s (%2d / %2d)',planeInfo.projectName,...
         timeInfo.currentTimePoint,timeInfo.nTimePoints));
     hold off;
+else
+    % increase or deacreas the currrent time point by 1 and write it back into the
+    % figure handle's user data
+    if fwd
+        timeInfo.currentTimePoint = timeInfo.currentTimePoint + 1;
+    else 
+        timeInfo.currentTimePoint = timeInfo.currentTimePoint - 1;
+    end
+    
+    if timeInfo.currentTimePoint > timeInfo.nTimePoints
+        timeInfo.currentTimePoint = 1;
+    end
+    if timeInfo.currentTimePoint < 1
+        timeInfo.currentTimePoint = timeInfo.nTimePoints;
+    end
+    
+    planeInfo.timeInfo = timeInfo;
+    set(figH,'UserData', planeInfo);
+    % recursive call of plot plane; the recursion will end as soon as
+    % one time point with a valid plane is found
+    plotPlanes(figH,0,key);
+end
 
 % end of function plotPlanes
     
