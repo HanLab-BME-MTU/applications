@@ -71,7 +71,11 @@ warningState = warning;
 warning off stats:lillietest:OutOfRangeP
 
 % threshold for an acceptable eigenvalue ratio
-minEigenValRatio = 2; 
+minEigenValRatio = 3;
+
+% rank of n of neighbors used for the initial detection of outlier
+% kinetochore; n/2 reflects the number of expected unaligned sister pairs
+rankNNearestNeighbors = 10; 
 
 % remove last frame?
 % removeLastFrames = 1; % number of frames to remove at the end of M
@@ -108,9 +112,31 @@ meanCoord = zeros(nTimePoints,3);
 
 goodFrames = [];
 for t=1:nTimePoints
+
+    % make an initial outlier detection
+    dist = pdist(initCoord(t).allCoord(:,1:3));
+    dist = squareform(dist); 
+    sortedDist = sort(dist);
+    meanNearestDist = mean(sortedDist(2:rankNNearestNeighbors+1,:));
+    % get kinetochores whose mean distance to the rankNNearestNeighbors is
+    % falls within the scatter of most of the kinetochores
+    [dummy, dummy, inlierIdx] = robustMean(meanNearestDist,2);
+    
+    %%% DEBUG
+    % inlierIdx = 1:length(initCoord(t).allCoord(:,1));
+    
+    % store an initial inlier index (this may be modified later)
+    planeFit(t).inlierIdx = inlierIdx;
+    planeFit(t).laggingIdx = setdiff(1:length(initCoord(t).allCoord(:,1)),inlierIdx);
+    
+    
+    % tree = linkage(dist);
+    % dendrogram(tree);
+    % treeInc = inconsistent(tree,size(initCoord(t).allCoord,1)-1); 
+    
     % get data for eigenRatio, subsequent plane fitting
     [eigenVectors(:,:,t), eigenValues(t,:), meanCoord(t,:)] = ...
-        eigenCalc(initCoord(t).allCoord(:,1:3));
+        eigenCalc(initCoord(t).allCoord(inlierIdx,1:3));
     
     % classify the anisotropy of the point cloud
     [maxEigenVal, maxIndx] = max(eigenValues(t,:));
@@ -125,8 +151,12 @@ end
 
 % assign the eigenvectors so that they generate minimal global rotation
 % between good frames.
-[eigenVecAssign,eigenVectors(:,:,goodFrames)] = assignEigenVecs(eigenVectors(:,:,goodFrames));
+[eigenVecAssign,eigenVectors(:,:,goodFrames),eigenVectorRotCos] = assignEigenVecs(eigenVectors(:,:,goodFrames));
 
+% assume no rotation between the first from of the movie and the virtual
+% time point before
+eigenVectorCos = [[1;1;1] eigenVectorRotCos];
+eigenVectorRotation = acos(eigenVectorCos);
 
 % copy updated eigenvectors and eigenvalues into the data structure
 for t = 1:nTimePoints
@@ -145,11 +175,19 @@ for t = 1:length(goodFrames)
     geomDist(1,t) = sqrt(diffs(1)*diffs(2));
     geomDist(2,t) = sqrt(diffs(1)*diffs(3));
     geomDist(3,t) = sqrt(diffs(2)*diffs(3));
-    evecScore(:) = evecScore(:) + geomDist(eigenVecAssign(:,t),t);
+    
+    % score : minimize the rotation of the normal and maximize the gemotric
+    % mean distance of the eigenvalue associated with the normal to the two
+    % in plane eignevalues. 
+    % on average: eigenvectors associated with the plane normal have a 
+    % large geometric mean difference to inplane eigenvectors, and inplane
+    % eigenvectors tend to rotate more
+    
+    evecScore(:) = evecScore(:) + eigenVectorRotation(:,t)./geomDist(eigenVecAssign(:,t),t);
 end
 
 % the normal is the one with the largest distance
-[dummy, normalIndx] = max(evecScore); 
+[dummy, normalIndx] = min(evecScore); 
 
 
 % define plane vectors etc. 
@@ -186,7 +224,7 @@ if ~isempty(gapFrames)
     for i = 1:size(gapNormals,1)
         gapNormals(:,i) = gapNormals(:,i)/gapNormalsNorm(i);
     end
-    
+
     % define the interpolated plane vectors etc.
     for t = 1:length(gapFrames)
         e_plane = calcPlaneVectors(gapNormals(:,t));
@@ -444,7 +482,7 @@ eigenVectors = eigenVectors(:,[farIdx,closestIdx]).*sign(eigenVectors(1,farIdx))
 eigenValues = eigenValues([farIdx,closestIdx]);
 
 
-function [aList, evec] = assignEigenVecs(evec) 
+function [aList, evec, rotList] = assignEigenVecs(evec) 
 % assign the indices of the eignevectors such that the tripof between
 % consecutive frames undergoes minimal overall rotation
 % The output of the function is a 3 x nTimePoints matrix where columns list
@@ -456,10 +494,12 @@ function [aList, evec] = assignEigenVecs(evec)
 %
 % indicates that the eigenvectors in order of input have a the best match
 % between frame 1 and 2; but between frame 2 and 3 eigenvectors 2 and 3
-% have been swapped.
+% have been swapped, etc.
 %
 % The function also updates the eigenvectors to remove near-180 degrees
 % jumps
+%
+% rotList contains the cos(Phi_t->t+1) for each the eigenvector assignments
 
 nTimePoints = size(evec,3);
 aList = zeros(3,nTimePoints);
@@ -472,6 +512,7 @@ for i = 2:nTimePoints
     costMat = 1 - abs(costMat);
     links = lap(costMat);
     aList(:,i)=links(aList(:,i-1));
+    rotList(:,i-1)= diag(1 - costMat(aList(:,i-1),aList(:,i)));
     
     % check for negative dot products -- these indicate 180 degree jumps
     for j = 1:3
