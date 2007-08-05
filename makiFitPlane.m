@@ -36,8 +36,12 @@ function dataStruct = makiFitPlane(dataStruct,verbose)
 %               .eigenValues     corresponding eigenValues
 %               .inlierIdx       index into initCoord of all spots that are
 %                   considered to be inliers
+%               .unalignedIdx    index into initCoord of all spots that are
+%                   considered to belong to lagging chromosomes 
+%                   (occurs late prometaphase through anaphase)
 %               .laggingIdx      index into initCoord of all spots that are
 %                   considered to belong to lagging chromosomes
+%                   (occurs only in anaphase frames)
 %               .phase either 'e' prophase/early prometaphase -> no plane
 %                   fit possible; 'p' late prometaphase -> planefit possible but 
 %                   unaligned kinetochores found; 'm' metaphase -> plane
@@ -99,8 +103,12 @@ nSpots = cat(1,initCoord.nSpots);
 
 planeFit(1:nTimePoints) = struct('plane',[],'planeCoord',[],'planeVectorClassifier', 0, ...
     'planeVectors',[],'planeOrigin',[],'eigenVectors',[],'eigenValues',[],...
-    'inlierIdx',[],'laggingIdx',[],'phase','e',...
+    'inlierIdx',[],'unalignedIdx',[],'laggingIdx',[],'phase','e',...
     'distParms',[],'deltaP',[],'deltaAngle',[]);
+
+% initialize lists of frames with and without plane
+framesNoPlane = 1:nTimePoints;
+framesWiPlane = [];
 
 % loop through timepoints. Get covariance of point cloud, and the
 % corresponding eigenvalues. Compare the two most similar eigenvalues to
@@ -127,7 +135,7 @@ for t=1:nTimePoints
     
     % store an initial inlier index (this may be modified later)
     planeFit(t).inlierIdx = inlierIdx;
-    planeFit(t).laggingIdx = setdiff(1:length(initCoord(t).allCoord(:,1)),inlierIdx);
+    planeFit(t).unalignedIdx = setdiff(1:length(initCoord(t).allCoord(:,1)),inlierIdx);
     
     
     % tree = linkage(dist);
@@ -137,6 +145,11 @@ for t=1:nTimePoints
     % get data for eigenRatio, subsequent plane fitting
     [eigenVectors(:,:,t), eigenValues(t,:), meanCoord(t,:)] = ...
         eigenCalc(initCoord(t).allCoord(inlierIdx,1:3));
+    
+    % fill in the center of mass into the planeOrigin no matter whether
+    % there will ever be a plane
+    planeFit(t).planeOrigin = meanCoord(t,:);
+    
     
     % classify the anisotropy of the point cloud
     [maxEigenVal, maxIndx] = max(eigenValues(t,:));
@@ -149,240 +162,244 @@ for t=1:nTimePoints
     end
 end
 
-% assign the eigenvectors so that they generate minimal global rotation
-% between good frames.
-[eigenVecAssign,eigenVectors(:,:,goodFrames),eigenVectorRotCos] = assignEigenVecs(eigenVectors(:,:,goodFrames));
-
-% assume no rotation between the first from of the movie and the virtual
-% time point before
-eigenVectorCos = [[1;1;1] eigenVectorRotCos];
-eigenVectorRotation = acos(eigenVectorCos);
-
-% copy updated eigenvectors and eigenvalues into the data structure
-for t = 1:nTimePoints
-    planeFit(t).eigenVectors = eigenVectors(:,:,t);
-    planeFit(t).eigenValues = eigenValues(t,:);
-end
-
-evecScore= [0;0;0];
-
-% define the normal vector of the rotating plane as the one whose eigenvalue is
-% overall the most distant from the two other eigenvalues
-for t = 1:length(goodFrames)
-    % calculate geometric means of the pairwise distances in every time
-    % point
-    diffs = pdist(eigenValues(goodFrames(t),:)');
-    geomDist(1,t) = sqrt(diffs(1)*diffs(2));
-    geomDist(2,t) = sqrt(diffs(1)*diffs(3));
-    geomDist(3,t) = sqrt(diffs(2)*diffs(3));
-    
-    % score : minimize the rotation of the normal and maximize the gemotric
-    % mean distance of the eigenvalue associated with the normal to the two
-    % in plane eignevalues. 
-    % on average: eigenvectors associated with the plane normal have a 
-    % large geometric mean difference to inplane eigenvectors, and inplane
-    % eigenvectors tend to rotate more
-    
-    evecScore(:) = evecScore(:) + eigenVectorRotation(:,t)./geomDist(eigenVecAssign(:,t),t);
-end
-
-% the normal is the one with the largest distance
-[dummy, normalIndx] = min(evecScore); 
 
 
-% define plane vectors etc. 
-for t = 1:length(goodFrames)
-    goodNormals(:,t) = eigenVectors(:,eigenVecAssign(normalIndx,t),goodFrames(t));
-    e_plane = calcPlaneVectors(goodNormals(:,t)); 
-    planeFit(goodFrames(t)).plane = [goodNormals(:,t)',meanCoord(goodFrames(t),:)*goodNormals(:,t)];
-    planeFit(goodFrames(t)).planeVectors = e_plane;
-    planeFit(goodFrames(t)).planeOrigin = meanCoord(goodFrames(t),:);
-    
-    % assignment of metaphase or anaphase; distinction of late prometaphase
-    % to metaphase will be done during the search for unaligned
-    % kinetochores
-    eigenRatio = eigenValues(goodFrames(t),eigenVecAssign(normalIndx,t))/...
-        mean(eigenValues(goodFrames(t),setdiff(1:3,eigenVecAssign(normalIndx,t))));
-    if(eigenRatio > 1)
-        planeFit(goodFrames(t)).phase = 'a';
-    else
-        planeFit(goodFrames(t)).phase = 'm';
-    end
-end
+if ~isempty(goodFrames)
+    % assign the eigenvectors so that they generate minimal global rotation
+    % between good frames.
+    [eigenVecAssign,eigenVectors(:,:,goodFrames),eigenVectorRotCos] = assignEigenVecs(eigenVectors(:,:,goodFrames));
 
-% find frames whose normal need to be interpolated; no extrapolation is
-% being done
-gapFrames = setdiff(goodFrames(1):goodFrames(end),goodFrames);
+    % assume no rotation between the first from of the movie and the virtual
+    % time point before
+    eigenVectorCos = [[1;1;1] eigenVectorRotCos];
+    eigenVectorRotation = acos(eigenVectorCos);
 
-if ~isempty(gapFrames)
-    % B-spline interpolation of the normals in gap frames
-    % The interpolation is forced to use derivative 0 at the boundary frames
-    gapNormals = spline(goodFrames,[[0;0;0] goodNormals [0;0;0]], gapFrames);
-    
-    % normalization of interpolated vectors
-    gapNormalsNorm = sqrt(sum(gapNormals.^2));
-    for i = 1:size(gapNormals,1)
-        gapNormals(:,i) = gapNormals(:,i)/gapNormalsNorm(i);
+    % copy updated eigenvectors and eigenvalues into the data structure
+    for t = 1:nTimePoints
+        planeFit(t).eigenVectors = eigenVectors(:,:,t);
+        planeFit(t).eigenValues = eigenValues(t,:);
     end
 
-    % define the interpolated plane vectors etc.
-    for t = 1:length(gapFrames)
-        e_plane = calcPlaneVectors(gapNormals(:,t));
-        planeFit(gapFrames(t)).plane = [gapNormals(:,t)',meanCoord(gapFrames(t),:)*gapNormals(:,t)];
-        planeFit(gapFrames(t)).planeVectors = e_plane;
-        planeFit(gapFrames(t)).planeOrigin = meanCoord(gapFrames(t),:);
-    
-    
-        % assign the mitotic phase to what the next good frame is classified
-        % for, i.e. in a sequence 'm' 'm' 'e' 'm', 'e' will be replaced by 'm';
-        % in a sequence 'm' 'm' 'e' 'e' 'e' 'a' 'a', all 'e's will be replaced
-        % by 'a's;
-        % dependent on the noise level there might be inconsistencies in the
-        % classification. Those will be fetched later in a global consistency
-        % check of the mitotic phase classification
-        nextGoodFrames = find(goodFrames > gapFrames(t));
-        planeFit(gapFrames(t)).phase = planeFit(goodFrames(nextGoodFrames(1))).phase;
+    evecScore= [0;0;0];
+
+    % define the normal vector of the rotating plane as the one whose eigenvalue is
+    % overall the most distant from the two other eigenvalues
+    for t = 1:length(goodFrames)
+        % calculate geometric means of the pairwise distances in every time
+        % point
+        diffs = pdist(eigenValues(goodFrames(t),:)');
+        geomDist(1,t) = sqrt(diffs(1)*diffs(2));
+        geomDist(2,t) = sqrt(diffs(1)*diffs(3));
+        geomDist(3,t) = sqrt(diffs(2)*diffs(3));
+
+        % score : minimize the rotation of the normal and maximize the gemotric
+        % mean distance of the eigenvalue associated with the normal to the two
+        % in plane eignevalues.
+        % on average: eigenvectors associated with the plane normal have a
+        % large geometric mean difference to inplane eigenvectors, and inplane
+        % eigenvectors tend to rotate more
+
+        evecScore(:) = evecScore(:) + eigenVectorRotation(:,t)./geomDist(eigenVecAssign(:,t),t);
     end
+
+    % the normal is the one with the largest distance
+    [dummy, normalIndx] = min(evecScore);
+
+
+    % define plane vectors etc.
+    for t = 1:length(goodFrames)
+        goodNormals(:,t) = eigenVectors(:,eigenVecAssign(normalIndx,t),goodFrames(t));
+        e_plane = calcPlaneVectors(goodNormals(:,t));
+        planeFit(goodFrames(t)).plane = [goodNormals(:,t)',meanCoord(goodFrames(t),:)*goodNormals(:,t)];
+        planeFit(goodFrames(t)).planeVectors = e_plane;
+
+        % assignment of metaphase or anaphase; distinction of late prometaphase
+        % to metaphase will be done during the search for unaligned
+        % kinetochores
+        eigenRatio = eigenValues(goodFrames(t),eigenVecAssign(normalIndx,t))/...
+            mean(eigenValues(goodFrames(t),setdiff(1:3,eigenVecAssign(normalIndx,t))));
+        if(eigenRatio > 1)
+            planeFit(goodFrames(t)).phase = 'a';
+        else
+            planeFit(goodFrames(t)).phase = 'm';
+        end
+    end
+
+    % find frames whose normal need to be interpolated; no extrapolation is
+    % being done
+    gapFrames = setdiff(goodFrames(1):goodFrames(end),goodFrames);
+
+    if ~isempty(gapFrames)
+        % B-spline interpolation of the normals in gap frames
+        % The interpolation is forced to use derivative 0 at the boundary frames
+        gapNormals = spline(goodFrames,[[0;0;0] goodNormals [0;0;0]], gapFrames);
+
+        % normalization of interpolated vectors
+        gapNormalsNorm = sqrt(sum(gapNormals.^2));
+        for i = 1:size(gapNormals,1)
+            gapNormals(:,i) = gapNormals(:,i)/gapNormalsNorm(i);
+        end
+
+        % define the interpolated plane vectors etc.
+        for t = 1:length(gapFrames)
+            e_plane = calcPlaneVectors(gapNormals(:,t));
+            planeFit(gapFrames(t)).plane = [gapNormals(:,t)',meanCoord(gapFrames(t),:)*gapNormals(:,t)];
+            planeFit(gapFrames(t)).planeVectors = e_plane;
+
+            % assign the mitotic phase to what the next good frame is classified
+            % for, i.e. in a sequence 'm' 'm' 'e' 'm', 'e' will be replaced by 'm';
+            % in a sequence 'm' 'm' 'e' 'e' 'e' 'a' 'a', all 'e's will be replaced
+            % by 'a's;
+            % dependent on the noise level there might be inconsistencies in the
+            % classification. Those will be fetched later in a global consistency
+            % check of the mitotic phase classification
+            nextGoodFrames = find(goodFrames > gapFrames(t));
+            planeFit(gapFrames(t)).phase = planeFit(goodFrames(nextGoodFrames(1))).phase;
+        end
+    end
+
+    %% refinement of phase classification and identification of unaligned and
+    %  lagging kinetochores
+
+    % get all classified frames (goodFrames and gapFrames)
+    framesWiPlane = [goodFrames(1):goodFrames(end)];
+    framesNoPlane = setxor((1:nTimePoints),framesWiPlane);
+
+    % get distance from plane, in-plane coordinates by transformation
+    % with inverse of in-plane vectors
+
+
+
+    % % do only for good frames
+    % if ~isempty(metaphaseFrames)
+    %     for t = metaphaseFrames'
+    %         done = false;
+    %         % initially: assume no bad spots. Allow for 10 iterations
+    %         badSpotIdxLOld = false(nSpots(t),10);
+    %         ct = 1;
+    %
+    %         while ~done
+    %
+    %             % get distance from plane, in-plane coordinates by transformation
+    %             % with inverse of in-plane vectors
+    %             normal = eigenVectors(:,1,t);
+    %             e_plane = zeros(3);
+    %             e_plane(:,1) = normal;
+    %             e_plane(:,2) = [-normal(2),normal(1),0]./sqrt(sum(normal(1:2).^2));
+    %             e_plane(:,3) = cross(e_plane(:,1),e_plane(:,2));
+    %             % planeCoord: [d,xplane,yplane]
+    %             planeFit(t).planeCoord = ...
+    %                 (inv(e_plane)*...
+    %                 (initCoord(t).allCoord(:,1:3)-repmat(meanCoord(t,:),nSpots(t),1))')';
+    %
+    %             % find outliers
+    %             [dummy, dummy, goodSpotIdx] = robustMean(planeFit(t).planeCoord(:,1));
+    %             badSpotIdxL = true(initCoord(t).nSpots,1);
+    %             badSpotIdxL(goodSpotIdx) = false;
+    %
+    %             %         % DEBUG plot plane in matlab
+    %             %         pc=planeFit(t).planeCoord;
+    %             %         pos = pc(:,1)>0;
+    %             %         neg = pc(:,1)<0;
+    %             %         figure,plot3(pc(pos,1),pc(pos,2),pc(pos,3),'.k',...
+    %             %             pc(neg,1),pc(neg,2),pc(neg,3),'or',...
+    %             %             pc(badSpotIdxL,1),pc(badSpotIdxL,2),pc(badSpotIdxL,3),'+b')
+    %
+    %             % check whether there was any change
+    %             if any(all(repmat(badSpotIdxL,1,10) == badSpotIdxLOld,1)) || ct == 10
+    %                 % done. Fill information into planeFit-structure
+    %
+    %                 planeFit(t).plane = [normal',meanCoord(t,:)*normal];
+    %                 planeFit(t).planeVectors = e_plane;
+    %                 planeFit(t).eigenVectors = eigenVectors(:,:,t);
+    %                 planeFit(t).eigenValues = eigenValues(t,:);
+    %                 planeFit(t).planeOrigin = meanCoord(t,:);
+    %
+    %                 % lagging chromosomes are outliers (until we can identify pairs
+    %                 planeFit(t).laggingIdx = find(badSpotIdxL);
+    %                 planeFit(t).inlierIdx = goodSpotIdx;
+    %
+    %                 % distribution parameters (do for all unit directions -
+    %                 % the second vector is also interesting, as it lies in the xy
+    %                 % plane, in which the metaphase plate should not be cut off
+    %                 % distribution parameters (rows):
+    %                 % var
+    %                 % skew
+    %                 % kurtosis
+    %                 % p for normal distribution (lilliefors test)
+    %                 % correct all parameters for bias
+    %                 planeFit(t).distParms = zeros(4,3);
+    %                 planeFit(t).distParms(1,:) = var(planeFit(t).planeCoord(goodSpotIdx,:));
+    %                 planeFit(t).distParms(2,:) = skewness(planeFit(t).planeCoord(goodSpotIdx,:),0);
+    %                 planeFit(t).distParms(3,:) = kurtosis(planeFit(t).planeCoord(goodSpotIdx,:),0);
+    %                 [dummy,planeFit(t).distParms(4,1)] = ...
+    %                     lillietest(planeFit(t).planeCoord(goodSpotIdx,1));
+    %                 [dummy,planeFit(t).distParms(4,2)] = ...
+    %                     lillietest(planeFit(t).planeCoord(goodSpotIdx,2));
+    %                 [dummy,planeFit(t).distParms(4,3)] = ...
+    %                     lillietest(planeFit(t).planeCoord(goodSpotIdx,3));
+    %
+    %                 % plot plane in matlab
+    %                 if verbose > 1
+    %                     [ygrid,zgrid] = meshgrid(...
+    %                         linspace(min(planeFit(t).planeCoord(:,2)),...
+    %                         max(planeFit(t).planeCoord(:,2)),5), ...
+    %                         linspace(min(planeFit(t).planeCoord(:,3)),...
+    %                         max(planeFit(t).planeCoord(:,3)),5));
+    %                     xgrid = zeros(5,5);
+    %                     pc=planeFit(t).planeCoord;
+    %                     pos = pc(:,1)>0;
+    %                     neg = pc(:,1)<0;
+    %                     figure('Name',...
+    %                         sprintf('Metaphase plate frame %i for %s',...
+    %                         t,dataStruct.projectName))
+    %                     plot3(pc(pos,1),pc(pos,2),pc(pos,3),'.k',...
+    %                         pc(neg,1),pc(neg,2),pc(neg,3),'or',...
+    %                         pc(badSpotIdxL,1),pc(badSpotIdxL,2),pc(badSpotIdxL,3),'+b')
+    %                     hold on
+    %                     mesh(xgrid,ygrid,zgrid,'EdgeColor',[0 0 1],'FaceAlpha',0);
+    %                     grid on
+    %                 end
+    %
+    %
+    %                 done = true;
+    %
+    %             else
+    %                 % re-"fit" the plane. Update eigenVectors etc.
+    %                 [eigenVectors(:,:,t), eigenValues(t,:), meanCoord(t,:)] = ...
+    %                     eigenCalc(initCoord(t).allCoord(goodSpotIdx,1:3));
+    %                 % count fit
+    %                 ct = ct + 1;
+    %                 % remember current bad spots
+    %                 badSpotIdxLOld(:,ct) = badSpotIdxL;
+    %
+    %             end
+    %
+    %         end
+    %     end % loop good frames
+    % end
+
+    % % loop to get the "between frames" - stuff
+    % if length(metaphaseFrames) > 1
+    %     for t=[metaphaseFrames(1:end-1),metaphaseFrames(2:end)]'
+    %         % p-value of distribution comparison
+    %         [dummy,planeFit(t(1)).deltaP] = kstest2(...
+    %             planeFit(t(1)).planeCoord(planeFit(t(1)).inlierIdx,1),...
+    %             planeFit(t(2)).planeCoord(planeFit(t(2)).inlierIdx,1));
+    %
+    %         % change in plane orientation
+    %         planeFit(t(1)).deltaAngle = acos(dot(planeFit(t(1)).planeVectors(:,1),...
+    %             planeFit(t(2)).planeVectors(:,1))) *180/pi;
+    %     end
+    % end
 end
 
-
-% % do only for good frames
-% if ~isempty(metaphaseFrames)
-%     for t = metaphaseFrames'
-%         done = false;
-%         % initially: assume no bad spots. Allow for 10 iterations
-%         badSpotIdxLOld = false(nSpots(t),10);
-%         ct = 1;
-% 
-%         while ~done
-% 
-%             % get distance from plane, in-plane coordinates by transformation
-%             % with inverse of in-plane vectors
-%             normal = eigenVectors(:,1,t);
-%             e_plane = zeros(3);
-%             e_plane(:,1) = normal;
-%             e_plane(:,2) = [-normal(2),normal(1),0]./sqrt(sum(normal(1:2).^2));
-%             e_plane(:,3) = cross(e_plane(:,1),e_plane(:,2));
-%             % planeCoord: [d,xplane,yplane]
-%             planeFit(t).planeCoord = ...
-%                 (inv(e_plane)*...
-%                 (initCoord(t).allCoord(:,1:3)-repmat(meanCoord(t,:),nSpots(t),1))')';
-% 
-%             % find outliers
-%             [dummy, dummy, goodSpotIdx] = robustMean(planeFit(t).planeCoord(:,1));
-%             badSpotIdxL = true(initCoord(t).nSpots,1);
-%             badSpotIdxL(goodSpotIdx) = false;
-% 
-%             %         % DEBUG plot plane in matlab
-%             %         pc=planeFit(t).planeCoord;
-%             %         pos = pc(:,1)>0;
-%             %         neg = pc(:,1)<0;
-%             %         figure,plot3(pc(pos,1),pc(pos,2),pc(pos,3),'.k',...
-%             %             pc(neg,1),pc(neg,2),pc(neg,3),'or',...
-%             %             pc(badSpotIdxL,1),pc(badSpotIdxL,2),pc(badSpotIdxL,3),'+b')
-% 
-%             % check whether there was any change
-%             if any(all(repmat(badSpotIdxL,1,10) == badSpotIdxLOld,1)) || ct == 10
-%                 % done. Fill information into planeFit-structure
-% 
-%                 planeFit(t).plane = [normal',meanCoord(t,:)*normal];
-%                 planeFit(t).planeVectors = e_plane;
-%                 planeFit(t).eigenVectors = eigenVectors(:,:,t);
-%                 planeFit(t).eigenValues = eigenValues(t,:);
-%                 planeFit(t).planeOrigin = meanCoord(t,:);
-% 
-%                 % lagging chromosomes are outliers (until we can identify pairs
-%                 planeFit(t).laggingIdx = find(badSpotIdxL);
-%                 planeFit(t).inlierIdx = goodSpotIdx;
-% 
-%                 % distribution parameters (do for all unit directions -
-%                 % the second vector is also interesting, as it lies in the xy
-%                 % plane, in which the metaphase plate should not be cut off
-%                 % distribution parameters (rows):
-%                 % var
-%                 % skew
-%                 % kurtosis
-%                 % p for normal distribution (lilliefors test)
-%                 % correct all parameters for bias
-%                 planeFit(t).distParms = zeros(4,3);
-%                 planeFit(t).distParms(1,:) = var(planeFit(t).planeCoord(goodSpotIdx,:));
-%                 planeFit(t).distParms(2,:) = skewness(planeFit(t).planeCoord(goodSpotIdx,:),0);
-%                 planeFit(t).distParms(3,:) = kurtosis(planeFit(t).planeCoord(goodSpotIdx,:),0);
-%                 [dummy,planeFit(t).distParms(4,1)] = ...
-%                     lillietest(planeFit(t).planeCoord(goodSpotIdx,1));
-%                 [dummy,planeFit(t).distParms(4,2)] = ...
-%                     lillietest(planeFit(t).planeCoord(goodSpotIdx,2));
-%                 [dummy,planeFit(t).distParms(4,3)] = ...
-%                     lillietest(planeFit(t).planeCoord(goodSpotIdx,3));
-% 
-%                 % plot plane in matlab
-%                 if verbose > 1
-%                     [ygrid,zgrid] = meshgrid(...
-%                         linspace(min(planeFit(t).planeCoord(:,2)),...
-%                         max(planeFit(t).planeCoord(:,2)),5), ...
-%                         linspace(min(planeFit(t).planeCoord(:,3)),...
-%                         max(planeFit(t).planeCoord(:,3)),5));
-%                     xgrid = zeros(5,5);
-%                     pc=planeFit(t).planeCoord;
-%                     pos = pc(:,1)>0;
-%                     neg = pc(:,1)<0;
-%                     figure('Name',...
-%                         sprintf('Metaphase plate frame %i for %s',...
-%                         t,dataStruct.projectName))
-%                     plot3(pc(pos,1),pc(pos,2),pc(pos,3),'.k',...
-%                         pc(neg,1),pc(neg,2),pc(neg,3),'or',...
-%                         pc(badSpotIdxL,1),pc(badSpotIdxL,2),pc(badSpotIdxL,3),'+b')
-%                     hold on
-%                     mesh(xgrid,ygrid,zgrid,'EdgeColor',[0 0 1],'FaceAlpha',0);
-%                     grid on
-%                 end
-% 
-% 
-%                 done = true;
-% 
-%             else
-%                 % re-"fit" the plane. Update eigenVectors etc.
-%                 [eigenVectors(:,:,t), eigenValues(t,:), meanCoord(t,:)] = ...
-%                     eigenCalc(initCoord(t).allCoord(goodSpotIdx,1:3));
-%                 % count fit
-%                 ct = ct + 1;
-%                 % remember current bad spots
-%                 badSpotIdxLOld(:,ct) = badSpotIdxL;
-% 
-%             end
-% 
-%         end
-%     end % loop good frames
-% end
-
-% % loop to get the "between frames" - stuff
-% if length(metaphaseFrames) > 1
-%     for t=[metaphaseFrames(1:end-1),metaphaseFrames(2:end)]'
-%         % p-value of distribution comparison
-%         [dummy,planeFit(t(1)).deltaP] = kstest2(...
-%             planeFit(t(1)).planeCoord(planeFit(t(1)).inlierIdx,1),...
-%             planeFit(t(2)).planeCoord(planeFit(t(2)).inlierIdx,1));
-% 
-%         % change in plane orientation
-%         planeFit(t(1)).deltaAngle = acos(dot(planeFit(t(1)).planeVectors(:,1),...
-%             planeFit(t(2)).planeVectors(:,1))) *180/pi;
-%     end
-% end
-    
 %% align frames wherever possible to get rid of overall rotation
 
-%get the phase of each frame
-framePhase = vertcat(planeFit.phase);
-
-%find frames with plane (and frames without plane)
-framesNoPlane = find(framePhase == 'e')';
-framesWiPlane = setxor((1:nTimePoints),framesNoPlane);
 
 %for frames with a plane, use plane origin as the frame origin
 %for frames without a plane, use the center of mass as the frame origin
-frameOrigin = NaN(nTimePoints,3);
-frameOrigin(framesWiPlane,:) = vertcat(planeFit.planeOrigin);
-frameOrigin(framesNoPlane,:) = meanCoord(framesNoPlane,:);
+frameOrigin = vertcat(planeFit.planeOrigin);
 
 %shift the coordinates in each frame such that frameOrigin 
 %in each frame is the origin
