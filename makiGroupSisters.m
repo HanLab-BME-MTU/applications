@@ -4,7 +4,7 @@ function dataStruct = makiGroupSisters(dataStruct,verbose)
 % SYNOPSIS: dataStruct = makiGroupSisters(dataStruct)
 %
 % INPUT dataStruct: data structure as created by makiMakeDataStruct
-%       verbose (opt) : 0 - no output (default)
+%       verbose (opt) : 0 - no plotting (default)
 %                       1 - plot 4 frames with sister assignment
 %                       2 - 1 & plot all tracks
 %
@@ -32,19 +32,19 @@ function dataStruct = makiGroupSisters(dataStruct,verbose)
 %                   its std.
 %              sisterList(iPair).distances is a nTimepoints-by-2 array with
 %                   the distance between sisters and its std.
-
 %
-% REMARKS The strategy is to first try and identify sister pairs among the
-%           tracks that span at least 75% of the movie
-%         Grouping is mainly based on the idea that within sister variance
-%           is smaller than between sisters variance. Additionally, there
-%           is a user-set distance cutoff above which pairs won't be
-%           linked. In metaphase, the alignment of sisters with respect to
-%           the plane is taken into account.
+% REMARKS Sister identification is based on globally minimizing (1) the
+%           average distance between sisters, (2) the variance of the distance
+%           between sisters, and (3) the alignment of sisters with the normal to
+%           the metaphase plate (if relevant). 
+%         Anaphase frames are not used in sister identification. Thus,
+%           right now, sister pair identification is limited to
+%           pre-anaphase frames. Code must be generalized to extend sister
+%           tracks into anaphase (even if anaphase frames are not used for
+%           identification).
 %         At the end of the code is a plotting function for the distance
 %           between the tracks for debugging
 %         The code cannot handle merged/splitted tracks!
-%
 %
 % created with MATLAB ver.: 7.3.0.267 (R2006b) on Windows_NT
 %
@@ -69,10 +69,11 @@ if minOverlap < 10
 end
 maxDist = dataStruct.dataProperties.groupSisters.maxDist;
 robust = dataStruct.dataProperties.groupSisters.robust;
-costFunction = lower(dataStruct.dataProperties.groupSisters.costFunction);
+costFunction = dataStruct.dataProperties.groupSisters.costFunction;
 
 % read movieLength
 nTimepoints = dataStruct.dataProperties.movieSize(4);
+
 % read track statistics. This will work only if no merge/split, i.e. if
 % there are only two events per track: a start and a finish
 try
@@ -81,23 +82,41 @@ catch
     error('makiGroupSisters cannot handle merging/splitting')
 end
 
-% check for length of tracks
-trackLength = ...
-    squeeze(trackStats(2,1,:)-trackStats(1,1,:)+1);
-% select above 0.75
+% get track lengths
+trackLength = squeeze(trackStats(2,1,:)-trackStats(1,1,:)+1);
+
+% select tracks whose length is larger than the minimum overlap
 goodTracks = find(trackLength>=minOverlap);
-% count
 nGoodTracks = length(goodTracks);
-
-
 
 %% READ TRACK INFORMATION
 
 % preassign matrices
 [variances,distances,alignment] = deal(NaN(nGoodTracks));
 
-% read normals to plane - takes time, thus outside the loop
-normals = catStruct(2,'dataStruct.planeFit.eigenVectors(:,1)')';
+%find frames that have a plane (to calculate alignment cost)
+%if none of the frames have a plane, we cannot use alignment criterion
+phase = vertcat(dataStruct.planeFit.phase);
+framesWiPlane = find(phase ~= 'e');
+if isempty(framesWiPlane)
+    costFunction = 0;
+end
+
+%find anaphase frames in order to exclude them from identification process
+anaphaseFrames = find(phase == 'a');
+
+%if the whole movie is in anaphase, there's no point in looking for
+%sisters. Exit with an empty sisterList.
+if length(anaphaseFrames) == nTimepoints
+    dataStruct.sisterList = [];
+    return
+end 
+
+% read normals to plane
+normals = NaN(nTimepoints,3);
+if costFunction == 1
+    normals(framesWiPlane,:) = catStruct(2,'dataStruct.planeFit.planeVectors(:,1)')';
+end
 
 % loop through the good tracks, calculate for every pair median distance
 % and variance
@@ -111,7 +130,7 @@ for jTrack = 1:nGoodTracks % loop cols
     jIdx = goodTracks(jTrack);
 
     % read track coordinates etc. (one could get the coordinate stds as
-    % well, but for now no need here)
+    % well, but for now no need here - KJ)
     [colCoords,colTime,colIdx] = trackData(jIdx,dataStruct,trackStats);
 
     % plot individual tracks
@@ -126,11 +145,17 @@ for jTrack = 1:nGoodTracks % loop cols
         iIdx = goodTracks(iTrack);
 
         % read track coordinates (one could get the coordinate stds as
-        % well, but for now no need)
+        % well, but for now no need - KJ)
         [rowCoords,rowTime,rowIdx] = trackData(iIdx,dataStruct,trackStats);
 
         % find common time
         [commonTime,ctColIdx,ctRowIdx] = intersect(colTime,rowTime);
+
+        %retain only common time which is not in anaphase
+        ctNotAna = find(phase(commonTime)~='a');
+        commonTime = commonTime(ctNotAna);
+        ctColIdx = ctColIdx(ctNotAna);
+        ctRowIdx = ctRowIdx(ctNotAna);
         
         %if the common time between the two tracks is at least minOverlap, 
         %calculate parameters (otherwise, they stay as NaN, which assigns 
@@ -153,7 +178,10 @@ for jTrack = 1:nGoodTracks % loop cols
             % average alpha, rather than tan to be nice to pairs that will
             % align eventually. Potentially this can be put under the control
             % of the "robust" switch, too
-            meanAlpha = mean(alpha);
+            %average alpha only over frames where there is a plane (the
+            %rest are NaN). If none of the frames have a plane, the average
+            %will be NaN.
+            meanAlpha = nanmean(alpha);
 
             % get distance mean and standard deviation
             if robust
@@ -171,9 +199,9 @@ for jTrack = 1:nGoodTracks % loop cols
             variances(jTrack,iTrack) = rStd^2;
             variances(iTrack,jTrack) = rStd^2;
             
-            %assign alignment for pair if the average angle is less than 60
-            %degrees. Otherwise, keep as NaN to prohibit the link
-            if meanAlpha < pi/3
+            %assign alignment cost for pair if the average angle is less
+            %than 45 degrees. Otherwise, keep as NaN to prohibit the link
+            if meanAlpha < pi/4
                 [alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
                     = deal(2*sqrt(3)*tan(meanAlpha)+1);
             end
@@ -189,14 +217,20 @@ end %(for jTrack = 1:nGoodTracks)
     linkTracks(distances,variances,alignment,...
     nGoodTracks,maxDist,costFunction);
 
+if all(isnan(r2c))
+    dataStruct.sisterList = [];
+    return;
+end
+
 % get cutoff for visualization
-% cutoff distances (b/c they'll be used for refinement
 [dummy,cutoffDistance]=cutFirstHistMode(distances(linkedIdx),verbose>0);
 if verbose
     set(gcf,'Name',sprintf('Distance cutoff for %s',dataStruct.projectName))
 end
 
+%find pairs that get a unique assignment
 goodPairIdxL = r2c==c2r;
+
 if verbose
     % plot for 4 frames (that's about how many can be properly displayed)
     deltaT = max(1,floor(nTimepoints/4));
@@ -211,38 +245,13 @@ if verbose
         dataStruct.projectName))
 end
 
-if ~strcmp(costFunction,'anaphase')
-
-    % even in metaphase, sister distances seem to be small and tightly
-    % distributed. Thus, cutoff with distance and relink (this will not work in
-    % anaphase, of course).
-    [r2c,c2r,costMat,linkedIdx] = ...
-        linkTracks(distances,variances,alignment,...
-        nGoodTracks,cutoffDistance,costFunction);
-
-
-    % check for good pairs (non-polygons)
-    goodPairIdxL = r2c==c2r;
-    if verbose
-        % highlight polygons
-        r2cTmp = r2c;
-        r2cTmp(~goodPairIdxL) = -r2cTmp(~goodPairIdxL);
-        [dummy,cutoff]=cutFirstHistMode(costMat(linkedIdx),0);
-        plotGroupResults(t,r2cTmp,nGoodTracks,...
-            goodTracks,dataStruct,costMat,cutoff,...
-            sprintf('Refined grouping for %s. G/B-Cutoff=cost',...
-            dataStruct.projectName))
-    end
-end % if ~anaphase
-
-
-
 %% RESOLVE POLYGONS
 
 % identify polygons. Polygons have to be closed, thus, it should not matter
 % where we start. Also, since the distance between polygons and the rest is
 % hopefully fairly large, we don't care about neighborhood.
 polygonIdx = find(~goodPairIdxL);
+
 % remove the not-linked tracks
 polygonIdx(isnan(r2c(polygonIdx))) = [];
 polyList = [];
@@ -263,7 +272,6 @@ while ~isempty(polygonIdx)
             polygonIdx(polygonIdx==nextCorner) = [];
         end
     end % identify polygon
-
 
     % within the polygon: find closest distance to identify first pair.
     % Remove it, and check for more pairs. This will potentially result in
@@ -378,6 +386,8 @@ end % loop goodPairs
 
 %% remove extra large distances from sister pairing
 
+%for math behind algorithm, see Danuser, 1992 or Rousseeuw & Leroy, 1987
+
 %put all sister distances in one vector
 sisterDist = vertcat(sisterList.distances);
 sisterDist = sisterDist(:,1);
@@ -400,7 +410,7 @@ medRes2 = median(res2);
 res2(residuals < 0) = 0;
 
 %define parameters to remove outliers
-k = 3; %value important for calculation of sigma, see Danuser, 1992 or Rousseeuw & Leroy, 1987
+k = 2; %assuming Gaussian distribution, keeps 95% of the distances
 magicNumber2 = 1.4826^2; %see same publications
 
 %calculate testvalues to determine which observations are inliers and which
@@ -430,20 +440,13 @@ end %(for iPair = 1 : nGoodPairs/2)
 
 dataStruct.sisterList = sisterList;
 
-%%
 
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% SUBFUNCTIONS & DEBUG HELPER FUNCTIONS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% link tracks
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [r2c,c2r,costMat,linkedIdx] = linkTracks(distances,variances,alignment,nGoodTracks,maxDist,costFunction)
+function [r2c,c2r,costMat,linkedIdx] = linkTracks(distances,variances,...
+    alignment,nGoodTracks,maxDist,costFunction)
+
 % cutoff distances
 distCutoffIdx = distances>maxDist;
 distances(distCutoffIdx) = NaN;
@@ -452,23 +455,24 @@ alignment(distCutoffIdx) = NaN;
 
 % make cost matrix
 switch costFunction
-    case 'prophase'
-        % variance should work here, too
+    case 0
         costMat = distances.*variances;
-    case 'prometaphase'
-        costMat = distances.*variances;
-    case 'metaphase'
+    case 1
         costMat = distances.*variances.*alignment;
-    case 'anaphase'
-        costMat = alignment;
 end
+
 % replace zeros with -1
 costMat(isnan(costMat)) = -1;
 
 % lap costMat
-[r2c,c2r] = lap(costMat,-1,0,1);
+if all(costMat==-1)
+    r2c = NaN(2*nGoodTracks,1);
+    c2r = NaN(2*nGoodTracks,1);
+else
+    [r2c,c2r] = lap(costMat,-1,0,1);
+end
 
-% shorten r2c, c2r. No link is nan
+% shorten r2c, c2r. No link is NaN
 r2c = double(r2c(1:nGoodTracks));
 r2c(r2c>nGoodTracks) = NaN;
 c2r = double(c2r(1:nGoodTracks));
@@ -477,10 +481,7 @@ c2r(c2r>nGoodTracks) = NaN;
 linkedIdx=sub2ind([nGoodTracks nGoodTracks],1:nGoodTracks,r2c(1:nGoodTracks)');
 linkedIdx(isnan(linkedIdx)) = [];
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% read track coordinates
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [coords,time,coordIdx,coordsStd] = trackData(idx,dataStruct,trackStats)
 
 % read track coordinates and their stds for idx
@@ -497,9 +498,7 @@ time(all(isnan(coords),2)) = [];
 % remember indices into colCoords that correspond to the timepoints
 coordIdx = time - trackStats(1,1,idx) + 1;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PLOT/DEBUG FUNCTIONS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function plotGroupResults(tt,r2c,nGoodTracks,goodTracks,dataStruct,variances,cutoff,figureName)
 % plot sister-links for one frame. Number indicates goodTrackIdx
 % green: variance below cutoff
@@ -605,13 +604,42 @@ plot3(cc(1:2,1),cc(1:2,2),cc(1:2,3),'*')
 
 %% old code stuff, just to clean up
 
-% alignment: one up to about 30°, then increasing
+% alignment: one up to about 30ï¿½, then increasing
 %[alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
 %    = deal(tan(meanAlpha)+1-meanAlpha);
-% start at one, increase from the beginning (2 at 45°)
+% start at one, increase from the beginning (2 at 45ï¿½)
 %[alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
 %    = deal(tan(meanAlpha)+1);
-% start at one, increase from the beginning (2 at 45°)
+% start at one, increase from the beginning (2 at 45ï¿½)
 %[alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
 %    = deal(tan(meanAlpha)+1);
-% start at one, increase from the beginning (2 at 30°)
+% start at one, increase from the beginning (2 at 30ï¿½)
+
+%Jonas had this to refine the linking with a new maximum distance. I don't
+%think it's necessary - KJ
+% if ~strcmp(costFunction,'anaphase')
+% 
+%     % even in metaphase, sister distances seem to be small and tightly
+%     % distributed. Thus, cutoff with distance and relink (this will not work in
+%     % anaphase, of course).
+%     [r2c,c2r,costMat,linkedIdx] = ...
+%         linkTracks(distances,variances,alignment,...
+%         nGoodTracks,cutoffDistance,costFunction);
+% 
+% 
+%     % check for good pairs (non-polygons)
+%     goodPairIdxL = r2c==c2r;
+%     if verbose
+%         % highlight polygons
+%         r2cTmp = r2c;
+%         r2cTmp(~goodPairIdxL) = -r2cTmp(~goodPairIdxL);
+%         [dummy,cutoff]=cutFirstHistMode(costMat(linkedIdx),0);
+%         plotGroupResults(t,r2cTmp,nGoodTracks,...
+%             goodTracks,dataStruct,costMat,cutoff,...
+%             sprintf('Refined grouping for %s. G/B-Cutoff=cost',...
+%             dataStruct.projectName))
+%     end
+% end % if ~anaphase
+
+
+

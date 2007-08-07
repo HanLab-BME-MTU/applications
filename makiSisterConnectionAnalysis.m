@@ -3,8 +3,8 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,ve
 %
 %SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,verbose)
 %
-%INPUT  jobType: 1: test job (default)
-%                2: hercules run
+%INPUT  jobType: 1: test job
+%                2: hercules run (default)
 %       analysisStruct: Structure with field movies indicating the movies
 %                       to be analyzed. Optional. If not input, GUI to load
 %                       movies is launched.
@@ -17,7 +17,7 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,ve
 
 %% input
 if nargin < 1 || isempty(jobType)
-    jobType = 1;
+    jobType = 2;
 end
 
 if nargin < 3 || isempty(verbose)
@@ -40,65 +40,185 @@ for iMovie = numMovies : -1 : 1
     dataStruct(iMovie,1) = makiLoadDataFile(fullfile(moviesList{iMovie,2},moviesList{iMovie,1}));
 end
 
-%% means and stds
-%collect all sisterList's into one array
-sisterList = vertcat(dataStruct.sisterList);
-numSisterList = size(sisterList,1);
-
-%collect all inter-sister distances into one array
-sisterDist = vertcat(sisterList.distances);
-sisterDist = sisterDist(~isnan(sisterDist(:,1)),1);
-
-%calculate their mean and standard deviation    
-sisterDistMeanStd = [mean(sisterDist) std(sisterDist)];
-
-%calculate change per frame in inter-sister distance
-for iList = 1 : numSisterList
-    sisterList(iList).vel = diff(sisterList(iList).distances(:,1));
+%find number of sisters in each movie
+numSisters = zeros(numMovies,1);
+for iMovie = 1 : numMovies
+    numSisters(iMovie) = length(dataStruct(iMovie).sisterList);
 end
-sisterVel = vertcat(sisterList.vel);
-sisterVel = sisterVel(~isnan(sisterVel));
+numSistersTot = sum(numSisters);
 
-%convert to nm/s
-sisterVel = sisterVel*1000/15;
+%% collect angles and distances
 
-%calculate the mean and standard deviation of positive velocities
-sisterVelPos = sisterVel(sisterVel>0);
-sisterVelPosMeanStd = [mean(sisterVelPos) std(sisterVelPos)];
+%initialize global sister index and structures
+iGlobal = 0;
+sisterDist(1:numSistersTot,1) = struct('observations',[]);
+sisterVel(1:numSistersTot,1) = struct('observations',[]);
+angleNormal(1:numSistersTot,1) = struct('observations',[]);
+angularVel(1:numSistersTot,1) = struct('observations',[]);
 
-%calculate the mean and standard deviation of negative velocities
-sisterVelNeg = abs(sisterVel(sisterVel<0));
-sisterVelNegMeanStd = [mean(sisterVelNeg) std(sisterVelNeg)];
+%go over all movies
+for iMovie = 1 : numMovies
 
-%delete some variables
-clear sisterDist sisterVel sisterVelPos sisterVelNeg
+    %copy fields out of dataStruct(iMovie)
+    sisterList = dataStruct(iMovie).sisterList;
+    tracks = dataStruct(iMovie).tracks;
+    frameAlignment = dataStruct(iMovie).frameAlignment;
+    planeFit = dataStruct(iMovie).planeFit;
+    timeLapse = dataStruct(iMovie).dataProperties.timeLapse;
+
+    %determine frames where there is a plane
+    phase = vertcat(planeFit.phase)';
+    framesWithPlane = find(phase ~= 'e');
+    
+    %go over all sisters in movie
+    for iSister = 1 : numSisters(iMovie)
+        
+        %increase global index of sisters by 1
+        iGlobal = iGlobal + 1;
+
+        %find track indices
+        tracksIndx = sisterList(1).trackPairs(iSister,1:2);
+
+        %determine frame where each track starts
+        trackStart = [tracks(tracksIndx(1)).seqOfEvents(1,1) ...
+            tracks(tracksIndx(2)).seqOfEvents(1,1)];
+
+        %find number of frames and frames where pair "exists"
+        goodFrames = ~isnan(sisterList(iSister).distances(:,1));
+        numFrames = length(goodFrames);
+        goodFrames = find(goodFrames);
+
+        %find feature indices making up sisters
+        sisterIndx1 = NaN(numFrames,1);
+        sisterIndx2 = NaN(numFrames,1);
+        sisterIndx1(goodFrames) = tracks(tracksIndx(1)).tracksFeatIndxCG(goodFrames-trackStart(1)+1);
+        sisterIndx2(goodFrames) = tracks(tracksIndx(2)).tracksFeatIndxCG(goodFrames-trackStart(2)+1);
+
+        %get aligned sister coordinates
+        coords1 = NaN(numFrames,6);
+        coords2 = NaN(numFrames,6);
+        for iFrame = goodFrames'
+            coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),:);
+            coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),:);
+        end
+
+        %calculate vector between sisters
+        sisterVec = [coords2(:,1:3)-coords1(:,1:3) sqrt(coords1(:,4:6).^2+coords2(:,4:6).^2)];
+
+        %calculate angle with normal
+        angleWithNorm = NaN(numFrames,1);
+        for iFrame = framesWithPlane
+            angleWithNorm(iFrame) = acos(abs(sisterVec(iFrame,1)./norm(sisterVec(iFrame,1:3))));
+        end
+
+        %calculate angle between consecutive frames
+        angularDisp = NaN(numFrames-1,1);
+        for iFrame = 1 : numFrames - 1
+            angularDisp(iFrame) = acos(abs(sisterVec(iFrame,1:3) * sisterVec(iFrame+1,1:3)' ...
+                / norm(sisterVec(iFrame,1:3)) / norm(sisterVec(iFrame+1,1:3))));
+        end
+        
+        sisterDist(iGlobal).observations = sisterList(iSister).distances; %um
+        sisterVel(iGlobal).observations = diff(sisterList(iSister).distances(:,1)) ...
+            * 1000 / timeLapse; %nm/s
+        angleNormal(iGlobal).observations = angleWithNorm * 180 / pi; %deg
+        angularVel(iGlobal).observations = angularDisp * 180 / pi / timeLapse; %deg/s
+        
+    end %(for iSister = 1 : numSisters(iMovie))
+
+end %(for iMovie = 1 : numMovies)
+    
+%% means and stds
+
+%distance
+allValues = vertcat(sisterDist.observations);
+allValues = allValues(:,1);
+sisterDistMeanStd = [nanmean(allValues) nanstd(allValues)];
+
+%positive velocity
+allValues = vertcat(sisterVel.observations);
+allValues = allValues(allValues(:,1)>0,1);
+sisterVelPosMeanStd = [nanmean(allValues) nanstd(allValues)];
+
+%negative velocity
+allValues = vertcat(sisterVel.observations);
+allValues = abs(allValues(allValues(:,1)<0,1));
+sisterVelNegMeanStd = [nanmean(allValues) nanstd(allValues)];
+
+%angle with normal
+allValues = vertcat(angleNormal.observations);
+allValues = allValues(:,1);
+angleNormalMeanStd = [nanmean(allValues) nanstd(allValues)];
+
+%angular velocity
+allValues = vertcat(angularVel.observations);
+allValues = allValues(:,1);
+angularVelMeanStd = [nanmean(allValues) nanstd(allValues)];
 
 %% autocorrelation
 
 %define maximum lag
 maxLag = 10;
 
-%put the distances and velocities in the correct structure to calculate
-%their autocorrelation
-for iList = 1 : numSisterList
-    sisterDist(iList).observations = sisterList(iList).distances;
-    sisterVel(iList).observations = sisterList(iList).vel;
-end
+%distance
+sisterDistAutocorr = autoCorr(sisterDist,maxLag);
 
-%calculate distance autocorrelation
-autoCorrDist = autoCorr(sisterDist,maxLag);
+%velocity
+sisterVelAutocorr = autoCorr(sisterVel,maxLag);
 
-%calculate velocity autocorrelation
-autoCorrVel = autoCorr(sisterVel,maxLag);
+%angle with normal
+angleNormalAutocorr = autoCorr(angleNormal,maxLag);
+
+%angular velocity
+angularVelAutocorr = autoCorr(angularVel,maxLag);
 
 %% ARMA
 
-%% output
+%define model orders to test
+modelOrder = [0 3; 0 3; 0 3];
+
+%call ARMA analysis function
+% sisterDistArma = armaxFitKalman(sisterDist,[],modelOrder,'tl');
+sisterDistArma = [];
+
+%call ARMA analysis function
+% sisterVelArma = armaxFitKalman(sisterVel,[],modelOrder,'tl');
+sisterVelArma = [];
+
+%call ARMA analysis function
+% angleNormalArma = armaxFitKalman(angleNormal,[],modelOrder,'tl');
+angleNormalArma = [];
+
+%call ARMA analysis function
+% angularVelArma = armaxFitKalman(angularVel,[],modelOrder,'tl');
+angularVelArma = [];
+
+%% angle vs. distance
+
+%collect all angles and distances
+allAngles = vertcat(angleNormal.observations);
+allDistances = vertcat(sisterDist.observations);
+goodIndx = find(~isnan(allAngles(:,1)) & ~isnan(allDistances(:,1)));
+allAngles = allAngles(goodIndx,1);
+allDistances = allDistances(goodIndx,1);
+
+%for now, only plot at the end
+
+%% output to analysisStruct
 
 %store results in one structure
-sisterConnection = struct('separation',sisterDistMeanStd,'rateChangeSepPos',...
-    sisterVelPosMeanStd,'rateChangeSepNeg',sisterVelNegMeanStd,...
-    'autoCorrDist',autoCorrDist,'autoCorrVel',autoCorrVel);
+meanStd = struct('distance',sisterDistMeanStd,'posRateChangeDist',...
+    sisterVelPosMeanStd,'negRateChangeDist',sisterVelNegMeanStd,...
+    'angleWithNormal',angleNormalMeanStd,'angularVel',angularVelMeanStd);
+autocorr = struct('distance',sisterDistAutocorr,'rateChangeDist',...
+    sisterVelAutocorr,'angleWithNormal',angleNormalAutocorr,'angularVel',...
+    angularVelAutocorr);
+arma = struct('distance',sisterDistArma,'rateChangeDist',...
+    sisterVelArma,'angleWithNormal',angleNormalArma,'angularVel',...
+    angularVelArma);
+
+sisterConnection = struct('meanStd',meanStd,'autocorr',autocorr,...
+    'arma',arma);
 
 %check whether current analysisStruct already has the sisterConnection field
 fieldExists = isfield(analysisStruct,'sisterConnection');
@@ -107,7 +227,7 @@ fieldExists = isfield(analysisStruct,'sisterConnection');
 analysisStruct.sisterConnection = sisterConnection;
 
 %if sisterConnection field already existed, add 1 to the version number in
-%the file name where analysisStruct will be stored stored
+%the file name where analysisStruct will be stored
 if fieldExists
     [versionNum,fileBody] = makiGetVersion(fileName);
     fileName = [fileBody '_' num2str(versionNum+1) '.mat'];
@@ -116,6 +236,11 @@ end
 
 %save analysisStruct
 save(fullfile(dir2SaveRes,fileName),'analysisStruct');
+
+%for now, since we cannot run the ARMA stuff at MBL but must run it at
+%Scripps, save variables in a .mat file to ship them to Scripps
+save(fullfile(dir2SaveRes,['arma_' fileName]),'sisterDist','sisterVel',...
+    'angleNormal','angularVel','modelOrder');
 
 %% plots
 
@@ -127,8 +252,10 @@ if verbose
     %get number of frames in each movie
     numFrames = dataStruct(1).dataProperties.movieSize(end);
 
+    %% distance stuff %%
+    
     %open figure and write title
-    figure('Name',fileName,'NumberTitle','off');
+    figure('Name',[fileName ' - distances'],'NumberTitle','off');
     
     %plot a sample of trajectories
     
@@ -141,17 +268,17 @@ if verbose
     distanceMat = distanceMat(:,1:2:end);
     
     %plot distance over time for all sisters
-    plot((1:numFrames)*timeLapse,distanceMat);
+    plot((0:numFrames-1)*timeLapse,distanceMat);
 
     %set axes limit
-    axis([timeLapse numFrames*timeLapse 0 max(distanceMat(:))+1]);
+    axis([0 (numFrames-1)*timeLapse 0 max(distanceMat(:))+1]);
     
     %write axes labels
     xlabel('Time (s)');
     ylabel('Sister separation (um)');
     
     %write averaging information
-    text(2*timeLapse,max(distanceMat(:))+0.6,sprintf([' Sister separation' ...
+    text(timeLapse,max(distanceMat(:))+0.6,sprintf([' Sister separation' ...
         ' (um): %4.2f +- %4.2f \n Rate of change of sister separation ' ...
         '(nm/s): \n +ve: %4.2f +- %4.2f, -ve: %4.2f +- %4.2f'],...
         sisterDistMeanStd(1),sisterDistMeanStd(2),sisterVelPosMeanStd(1),...
@@ -167,11 +294,11 @@ if verbose
     hold on;
 
     %plot the distance and velocity autocorrelations
-    plot((0:maxLag)*timeLapse,autoCorrDist,'k','marker','.');
-    plot((0:maxLag)*timeLapse,autoCorrVel,'r','marker','.');
+    plot((0:maxLag)*timeLapse,sisterDistAutocorr,'k','marker','.');
+    plot((0:maxLag)*timeLapse,sisterVelAutocorr,'r','marker','.');
 
     %set axes limit
-    axis([0 maxLag*timeLapse min(0,1.1*min([autoCorrDist;autoCorrVel])) 1.1]);
+    axis([0 maxLag*timeLapse min(0,1.1*min([sisterDistAutocorr;sisterVelAutocorr])) 1.1]);
     
     %write axes labels
     xlabel('Lag (s)');
@@ -184,6 +311,114 @@ if verbose
     %hold off figure
     hold off
 
+    %% angle stuff %%
+    
+    %open figure and write title
+    figure('Name',[fileName ' - angles'],'NumberTitle','off');
+    
+    %plot a sample of time series of angle with normal
+    
+    %create subplot 1
+    subplot(2,2,1);
+    hold on;
+    
+    %put all angles with normal together in one matrix
+    angleMat = [angleNormal.observations];
+    
+    %plot angles with normal over time for all sisters
+    plot((0:numFrames-1)*timeLapse,angleMat);
+
+    %set axes limit
+    axis([0 (numFrames-1)*timeLapse 0 90]);
+    
+    %write axes labels
+    xlabel('Time (s)');
+    ylabel('Angle with normal to metaphase plate (degrees)');
+    
+    %write averaging information
+    text(timeLapse,80,sprintf('angle (degrees): %4.2f +- %4.2f',...
+        angleNormalMeanStd(1),angleNormalMeanStd(2)));
+    
+    %hold off figure
+    hold off
+    
+    %plot autocorrelation function of angle with normal
+
+    %create subplot 3
+    subplot(2,2,3); 
+    hold on;
+
+    %plot the autocorrelation of angle with normal
+    plot((0:maxLag)*timeLapse,angleNormalAutocorr,'k','marker','.');
+
+    %set axes limit
+    axis([0 maxLag*timeLapse min(0,1.1*min(angleNormalAutocorr)) 1.1]);
+    
+    %write axes labels
+    xlabel('Lag (s)');
+    ylabel('Autocorrelation of angle with normal');
+
+    %hold off figure
+    hold off
+
+    %plot a sample of time series of angular velocity
+    
+    %create subplot 2
+    subplot(2,2,2);
+    hold on;
+    
+    %put all angular velocities together in one matrix
+    angleMat = [angularVel.observations];
+    
+    %plot angular velocities over time for all sisters
+    plot((0:numFrames-2)*timeLapse,angleMat);
+
+    %set axes limit
+    axis([0 (numFrames-2)*timeLapse 0 1.1*max(angleMat(:))]);
+    
+    %write axes labels
+    xlabel('Time (s)');
+    ylabel('Angular velocity (degrees/s)');
+    
+    %write averaging information
+    text(timeLapse,1.05*max(angleMat(:)),sprintf('angular velocity (degrees/s): %4.2f +- %4.2f',...
+        angularVelMeanStd(1),angularVelMeanStd(2)));
+    
+    %hold off figure
+    hold off
+    
+    %plot autocorrelation function of angle with normal
+
+    %create subplot 4
+    subplot(2,2,4); 
+    hold on;
+
+    %plot the autocorrelation of angular velocity
+    plot((0:maxLag)*timeLapse,angularVelAutocorr,'k','marker','.');
+
+    %set axes limit
+    axis([0 maxLag*timeLapse min(0,1.1*min(angularVelAutocorr)) 1.1]);
+    
+    %write axes labels
+    xlabel('Lag (s)');
+    ylabel('Autocorrelation of angular velocity');
+
+    %hold off figure
+    hold off
+
+    %% angle vs. distance %%
+
+    %open figure and write title
+    figure('Name',[fileName ' - angle vs. distance'],'NumberTitle','off');
+    
+    %plot angle vs. distance as a scatter plot
+    plot(allDistances,allAngles,'k.')
+        
+    %write axes labels
+    xlabel('Sister separation (um)');
+    ylabel('Angle with normal (degrees)');
+    
 end
 
-%%
+%% ~~~ the end ~~~ %%
+

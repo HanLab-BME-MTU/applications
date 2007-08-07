@@ -374,20 +374,48 @@ warning(warningState)
 %% subfunction to ask for input for tracking
 function dataStruct = getTrackingInput(dataStruct)
 
+%assign defaults
+dataPropertiesTmp = dataStruct.dataProperties;
+if isfield(dataPropertiesTmp,'tracksParam') %if tracksParam have been assigned previously
+    tracksParamTmp = dataPropertiesTmp.tracksParam;
+    if isfield(tracksParamTmp,'rotate')
+        rotateTmp = tracksParamTmp.rotate;
+    else
+        rotateTmp = 1;
+    end
+    if isfield(tracksParamTmp,'gapCloseParam')
+        timeWindowTmp = tracksParamTmp.gapCloseParam.timeWindow - 1;
+    else
+        timeWindowTmp = 5;
+    end
+    if isfield(tracksParamTmp,'costMatParam')
+        minRadiusTmp = tracksParamTmp.costMatParam.minSearchRadiusL;
+        maxRadiusTmp = tracksParamTmp.costMatParam.maxSearchRadiusL;
+    else
+        minRadiusTmp = 0.25;
+        maxRadiusTmp = 1;
+    end
+else %if this is the first time
+    rotateTmp = 1;
+    timeWindowTmp = 5;
+    minRadiusTmp = 0.25;
+    maxRadiusTmp = 1;
+end
+
+%ask for user input
 tracksParam = inputdlg(...
-    {'Use rotated coordinates',...
+    {'Use rotated coordinates (1 yes, 0 no)',...
     'Maximum gap to close (in frames)',...
     'Minimum allowed search radius (in microns)',...
     'Maximum allowed search radius (in microns)'},...
-    'Tracking parameters',1,{num2str(1),num2str(5),...
-    num2str(0.25),num2str(1)});
+    sprintf(['Tracking parameters for ' dataStruct.projectName]),1,{num2str(rotateTmp),num2str(timeWindowTmp),...
+    num2str(minRadiusTmp),num2str(maxRadiusTmp)},'on');
 if isempty(tracksParam)
     error('input aborted')
 end
 
 %assign whether to use rotated coordinates or not
-dataStruct.dataProperties.tracksParam.rotate = ...
-    str2double(tracksParam{1});
+rotate = str2double(tracksParam{1});
 
 %assign gap closing parameters
 gapCloseParam.timeWindow = str2double(tracksParam{2}) + 1;
@@ -421,46 +449,66 @@ useLocalDensity.cg = 1;
 useLocalDensity.nnWindowL = gapCloseParam.timeWindow;
 useLocalDensity.nnWindowCG = gapCloseParam.timeWindow;
 
-%save tracking parameters in dataProperties
-dataStruct.dataProperties.tracksParam.gapCloseParam = gapCloseParam;
-dataStruct.dataProperties.tracksParam.costMatParam = costMatParam;
-dataStruct.dataProperties.tracksParam.useLocalDensity = useLocalDensity;
-
+%save tracking parameters in dataStruct
+tracksParam.rotate = rotate;
+tracksParam.gapCloseParam = gapCloseParam;
+tracksParam.costMatParam = costMatParam;
+tracksParam.useLocalDensity = useLocalDensity;
+dataStruct.dataProperties.tracksParam = tracksParam;
 
 %% subfunction to ask for input for groupSisters
 function dataStruct = getGroupSisterInput(dataStruct)
 
-%assign default parameters
-groupSisters.maxDist = 1.5; % maximum average sister separation in um
-groupSisters.minOverlap = 10; % minimum overlap (in frames) between two tracks
-groupSisters.robust = false; % whether or not to use robust statistics for determining cost function parameters
-groupSisters.costFunction = 'metaphase'; % cost function type.
-dataStruct.dataProperties.groupSisters = groupSisters;
+%assign defaults
+dataPropertiesTmp = dataStruct.dataProperties;
+if isfield(dataPropertiesTmp,'groupSisters') %if groupSisters parameters have been assigned previously
+    groupSistersTmp = dataPropertiesTmp.tracksParam;
+    if isfield(groupSistersTmp,'costFunction')
+        costFunctionTmp = groupSistersTmp.costFuntion;
+        if ~isnumeric(costFunctionTmp)
+            costFunctionTmp = 1;
+        end
+    else
+        costFunctionTmp = 1;
+    end
+    if isfield(groupSistersTmp,'maxDist')
+        maxDistTmp = groupSistersTmp.maxDist;
+    else
+        maxDistTmp = 1.5;
+    end
+    if isfield(groupSistersTmp,'minOverlap')
+        minOverlapTmp = groupSistersTmp.minOverlap;
+    else
+        minOverlapTmp = 10;
+    end
+    if isfield(groupSistersTmp,'robust')
+        robustTmp = groupSistersTmp.robust;
+    else
+        robustTmp = 0;
+    end
+else %if this is the first time
+    costFunctionTmp = 1;
+    maxDistTmp = 1.5;
+    minOverlapTmp = 10;
+    robustTmp = 0;
+end
 
-phases ={'prophase';'prometaphase';'metaphase';'anaphase'};
-defPhase = strmatch(...
-    dataStruct.dataProperties.groupSisters.costFunction,phases);
+%ask for user input
 groupStats = inputdlg(...
-    {sprintf(['Main cell cycle phase',...
-    '\n1: Prophase\n2: Prometaphase',...
-    '\n3: Metaphase\n4: Anaphase']),...
+    {'Use alignment (1 yes, 0 no)',...
     'Maximum average distance between sisters (in microns)',...
     'Minimum overlap between two tracks (>=10 frames)',...
-    'Use robust statistics'},...
-    'Grouping Sisters',1,{num2str(defPhase),...
-    num2str(dataStruct.dataProperties.groupSisters.maxDist),...
-    num2str(dataStruct.dataProperties.groupSisters.minOverlap),...
-    num2str(dataStruct.dataProperties.groupSisters.robust)});
+    'Use robust statistics'},sprintf(['Sister identification parameters for ' dataStruct.projectName]),1,{num2str(costFunctionTmp),...
+    num2str(maxDistTmp),num2str(minOverlapTmp),num2str(robustTmp)},'on');
 if isempty(groupStats)
     error('input aborted')
 end
 
-dataStruct.dataProperties.groupSisters.costFunction = ...
-    phases{str2double(groupStats{1})};
-dataStruct.dataProperties.groupSisters.maxDist = ...
-    str2double(groupStats{2});
-dataStruct.dataProperties.groupSisters.minOverlap = ...
-    str2double(groupStats{3});
-dataStruct.dataProperties.groupSisters.robust = ...
-    str2double(groupStats{4});
+%process user input
+groupSisters.costFunction = str2double(groupStats{1});
+groupSisters.maxDist = str2double(groupStats{2});
+groupSisters.minOverlap = str2double(groupStats{3});
+groupSisters.robust = str2double(groupStats{4});
 
+%save in dataStruct
+dataStruct.dataProperties.groupSisters = groupSisters;

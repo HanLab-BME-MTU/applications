@@ -81,6 +81,10 @@ minEigenValRatio = 3;
 % kinetochore; n/2 reflects the number of expected unaligned sister pairs
 rankNNearestNeighbors = 10; 
 
+% minimal number of consecutive frames in a movie that have stable enough
+% eigenvectors for plane rotation estimation
+minConsecFrames = 5; 
+
 % remove last frame?
 % removeLastFrames = 1; % number of frames to remove at the end of M
 
@@ -149,7 +153,8 @@ for t=1:nTimePoints
     % fill in the center of mass into the planeOrigin no matter whether
     % there will ever be a plane
     planeFit(t).planeOrigin = meanCoord(t,:);
-    
+    planeFit(t).eigenVectors = eigenVectors(:,:,t);
+    planeFit(t).eigenValues = eigenValues(t,:);
     
     % classify the anisotropy of the point cloud
     [maxEigenVal, maxIndx] = max(eigenValues(t,:));
@@ -163,28 +168,30 @@ for t=1:nTimePoints
 end
 
 
-
-if ~isempty(goodFrames)
+% we set the condition that at least minConsecFrames pairs of consecutive frames must
+% exist, where the eignevectors are sufficiently stable. Otherwise, the
+% movie is considered as a prophase/early prometaphase movie with no plane
+nConsecFrames = length(find(diff(goodFrames) == 1));
+if nConsecFrames >= minConsecFrames
     % assign the eigenvectors so that they generate minimal global rotation
     % between good frames.
-    [eigenVecAssign,eigenVectors(:,:,goodFrames),eigenVectorRotCos] = assignEigenVecs(eigenVectors(:,:,goodFrames));
+        [eigenVecAssign,eigenVectors(:,:,goodFrames),eigenVectorRotCos] = assignEigenVecs(eigenVectors(:,:,goodFrames));
 
-    % assume no rotation between the first from of the movie and the virtual
+    % assume no rotation between the first frame of the movie and the virtual
     % time point before
     eigenVectorCos = [[1;1;1] eigenVectorRotCos];
     eigenVectorRotation = acos(eigenVectorCos);
-
-    % copy updated eigenvectors and eigenvalues into the data structure
-    for t = 1:nTimePoints
-        planeFit(t).eigenVectors = eigenVectors(:,:,t);
-        planeFit(t).eigenValues = eigenValues(t,:);
-    end
 
     evecScore= [0;0;0];
 
     % define the normal vector of the rotating plane as the one whose eigenvalue is
     % overall the most distant from the two other eigenvalues
     for t = 1:length(goodFrames)
+        
+        % copy updated eigenvectors and eigenvalues into the data
+        % structure
+        planeFit(goodFrames(t)).eigenVectors = eigenVectors(:,:,goodFrames(t));
+        planeFit(goodFrames(t)).eigenValues = eigenValues(goodFrames(t),:);
         % calculate geometric means of the pairwise distances in every time
         % point
         diffs = pdist(eigenValues(goodFrames(t),:)');
@@ -236,7 +243,7 @@ if ~isempty(goodFrames)
 
         % normalization of interpolated vectors
         gapNormalsNorm = sqrt(sum(gapNormals.^2));
-        for i = 1:size(gapNormals,1)
+        for i = 1:size(gapNormals,2)
             gapNormals(:,i) = gapNormals(:,i)/gapNormalsNorm(i);
         end
 
