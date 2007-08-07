@@ -403,36 +403,36 @@ else %if this is the first time
 end
 
 %ask for user input
-tracksParam = inputdlg(...
+tracksParamIn = inputdlg(...
     {'Use rotated coordinates (1 yes, 0 no)',...
     'Maximum gap to close (in frames)',...
     'Minimum allowed search radius (in microns)',...
     'Maximum allowed search radius (in microns)'},...
     sprintf(['Tracking parameters for ' dataStruct.projectName]),1,{num2str(rotateTmp),num2str(timeWindowTmp),...
     num2str(minRadiusTmp),num2str(maxRadiusTmp)},'on');
-if isempty(tracksParam)
+if isempty(tracksParamIn)
     error('input aborted')
 end
 
 %assign whether to use rotated coordinates or not
-rotate = str2double(tracksParam{1});
+rotate = str2double(tracksParamIn{1});
 
 %assign gap closing parameters
-gapCloseParam.timeWindow = str2double(tracksParam{2}) + 1;
+gapCloseParam.timeWindow = str2double(tracksParamIn{2}) + 1;
 gapCloseParam.mergeSplit = 0;
 
 %assign cost matrix parameters for linking spots between consecutive 
 %frames
-costMatParam.minSearchRadiusL = str2double(tracksParam{3});
-costMatParam.maxSearchRadiusL = str2double(tracksParam{4});
+costMatParam.minSearchRadiusL = str2double(tracksParamIn{3});
+costMatParam.maxSearchRadiusL = str2double(tracksParamIn{4});
 costMatParam.brownStdMultL = 3;
 costMatParam.closestDistScaleL = 2;
 costMatParam.maxStdMultL = 20;
 
 %assign cost matrix parameters for closing gaps and (in principle) 
 %merging and splitting
-costMatParam.minSearchRadiusCG = str2double(tracksParam{3});
-costMatParam.maxSearchRadiusCG = str2double(tracksParam{4});
+costMatParam.minSearchRadiusCG = str2double(tracksParamIn{3});
+costMatParam.maxSearchRadiusCG = str2double(tracksParamIn{4});
 costMatParam.brownStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
 costMatParam.linStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
 costMatParam.timeReachConfB = min(2,gapCloseParam.timeWindow);
