@@ -172,8 +172,8 @@ switch jobType
                 else
                     logFileNameBody = projectName;
                 end;
-                % search for bla*log
-                logFile = searchFiles([logFileNameBody,'.*','\.log$'],'',rawMoviePath,0);
+                % search for bla_*log
+                logFile = searchFiles([[logFileNameBody '_'],'.*','\.log$'],'',rawMoviePath,0);
                 % copy file log to dataFilePath
                 if size(logFile,1) > 1
                     errordlg(sprintf('%s is not a unique log filename in the directory %s\nRename before continuing', ...
