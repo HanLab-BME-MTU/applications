@@ -1,4 +1,4 @@
-function [corrVal,errFlag] = crossCorr(traj1,traj2)
+function [gamma,errFlag] = crossCorr(traj1,traj2,maxLag)
 %CROSSCORR calculates the cross-correlation (at lag 0) between 2 series which might have missing observations
 %
 %SYNOPSIS [corrVal,errFlag] = crossCorr(traj1,traj2)
@@ -8,28 +8,26 @@ function [corrVal,errFlag] = crossCorr(traj1,traj2)
 %                     traj(1:nTraj).observations, or a 2D array (value +
 %                     std) representing a single trajectory. Missing 
 %                     points should be indicated with NaN.
+%       maxLag      : Maximu lag to calculate cross-correlation.
 %
-%OUTPUT corrVal     : Normalized cross-correlation (between -1 and 1).
+%OUTPUT corrVal     : 2*maxLag+1-by-1 array of the normalized
+%                     cross-correlation.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %REMARKS Input trajectories could have a nonzero mean. The algorithm accounts
 %        for that.
 %
-%Khuloud Jaqaman, June 2005
+%Khuloud Jaqaman, August 2007
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Output
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Output
 
 errFlag = 0;
 gamma = [];
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Input
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Input
 
-%check if correct number of arguments were used when function was called
-if nargin < 2 || nargin > 3
+%check if correct number of arguments was used when function was called
+if nargin < 3
     disp('--crossCorr: Incorrect number of input arguments!');
     errFlag  = 1;
     return
@@ -41,112 +39,143 @@ if maxLag <= 0
     errFlag = 1;
 end
 
-%check trajectory and turn into struct if necessary
-if ~isstruct(traj)
-    tmp = traj;
-    clear traj
-    traj.observations = tmp;
+%check first trajectory and turn into struct if necessary
+if ~isstruct(traj1)
+    tmp = traj1;
+    clear traj1
+    traj1.observations = tmp;
     clear tmp
-elseif ~isfield(traj,'observations')
+elseif ~isfield(traj1,'observations')
     disp('--crossCorr: Please input the trajectories in fields ''observations''')
     errFlag = 1;
     return
 end
 
-%check input "correct"
-if nargin > 2 && ~isempty(correct)
-    % use user input
-else %use default
-    correct = -1;
+%check second trajectory and turn into struct if necessary
+if ~isstruct(traj2)
+    tmp = traj2;
+    clear traj2
+    traj2.observations = tmp;
+    clear tmp
+elseif ~isfield(traj2,'observations')
+    disp('--crossCorr: Please input the trajectories in fields ''observations''')
+    errFlag = 1;
+    return
 end
 
 %get number of trajectories, length of each trajectory, and make sure that
-%trajectories are column vectors
-numTraj = length(traj);
-trajLength = zeros(numTraj,1);
-for i=1:numTraj
-    [trajLength(i),nCol] = size(traj(i).observations); %length of each trajectory
+%trajectories are column vectors - first
+numTraj1 = length(traj1);
+trajLength1 = zeros(numTraj1,1);
+for i=1:numTraj1
+    [trajLength1(i),nCol] = size(traj1(i).observations); %length of each trajectory
     if nCol > 2
         disp('--crossCorr: Each trajectory should be a column vector!');
         errFlag = 1;
     end
 end
 
+%get number of trajectories, length of each trajectory, and make sure that
+%trajectories are column vectors - second
+numTraj2 = length(traj2);
+trajLength2 = zeros(numTraj2,1);
+for i=1:numTraj2
+    [trajLength2(i),nCol] = size(traj2(i).observations); %length of each trajectory
+    if nCol > 2
+        disp('--crossCorr: Each trajectory should be a column vector!');
+        errFlag = 1;
+    end
+end
+
+%make sure that both trajectories contain the same number of data points
+if max(abs([numTraj1; trajLength1] - [numTraj2; trajLength2])) ~= 0
+    disp('--crossCorr: Both trajectories must have the same number of data points!');
+    errFlag = 1;
+end
+
 %ad-hoc criterion to ensure that there are enough data points
-if sum(trajLength((trajLength>maxLag))-maxLag) < 3*maxLag
-    disp('--crossCorr: Trajectories not long enough! Increase trajectories or reduce maxLag');
+if sum(trajLength1((trajLength1>maxLag))-maxLag) < 3*maxLag
+    disp('--crossCorr: Trajectories not long enough! Increase trajectory length or reduce maxLag');
     errFlag = 1;
 end
 
 if errFlag
-    if nargout == 2
-        disp('--crossCorr: Please fix input data!');
-        return
-    else
-        error('--crossCorr: Please fix input data!')
-    end
+    disp('--crossCorr: Please fix input data!');
+    return
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Trend correction
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Crosscorrelation calculation
 
-trajMean = zeros(numTraj,1);
-
-for i=1:numTraj
-
-    %correct trajectories if necessary and remember the mean
-    switch correct
-        case -1
-            %remember mean
-            trajMean(i) = nanmean(traj(i).observations(:,1));
-        case 0
-            %remove trend with linear fit
-            traj(i).observations = removeLinearTrend(traj(i).observations(:,1));
-            trajMean(i) = 0;
-        otherwise %remove trend with differencing at specified lag
-            tmp1 = traj(i).observations(correct+1:end,1) - ...
-                traj(i).observations(1:end-correct,1);
-            tmp2 = sqrt(traj(i).observations(correct+1:end,2).^2 + ...
-                traj(i).observations(1:end-correct,2).^2);
-            traj(i).observations = [tmp1 tmp2];
-            trajMean(i) = nanmean(traj(i).observations(:,1));
-            %modify trajectory length
-            trajLength(i) = trajLength(i) - correct;
-    end
-
+%shift each trajectory to make its mean zero
+for iTraj = 1 : numTraj1
+    observations = traj1(iTraj).observations(:,1);
+    trajMean = nanmean(observations);
+    observations = observations - trajMean;
+    traj1(iTraj).observations(:,1) = observations;
+end
+for iTraj = 1 : numTraj2
+    observations = traj2(iTraj).observations(:,1);
+    trajMean = nanmean(observations);
+    observations = observations - trajMean;
+    traj2(iTraj).observations(:,1) = observations;
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Autocorrelation function calculation
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%calculate the collective standard deviation of each trajectory
+observations = vertcat(traj1.observations);
+observations = observations(:,1);
+traj1Std = sqrt(nanmean((observations).^2));
+observations = vertcat(traj2.observations);
+observations = observations(:,1);
+traj2Std = sqrt(nanmean((observations).^2));
 
-%calculate unnormalized autocorrelation function for lags 0 through maxLag
-gamma = zeros(maxLag+1,1);
-for lag = 0:maxLag %for each lag
+%calculate crosscorrelation function for lags -maxLag through maxLag
+gamma = zeros(2*maxLag+1,1);
+
+for lag = -maxLag : -1 %for all lags < 0
 
     vecMult = [];
-    for j = 1:numTraj %go over all trajectories
-        if trajLength(j) > lag %which are longer than lag
+    for j = 1 : numTraj1 %(=numTraj2) go over all trajectories
+        
+        if trajLength1(j) > abs(lag) %which are longer than lag
 
             %find pairs of points to be used in calculation
-            vec1 = traj(j).observations(1:end-lag,1);
-            vec2 = traj(j).observations(lag+1:end,1);
+            vec1 = traj1(j).observations(abs(lag)+1:end,1);
+            vec2 = traj2(j).observations(1:end-abs(lag),1);
 
-            %multiply mean-subtracted vectors
-            vecMult = [vecMult; (vec1-trajMean(j)).*(vec2-trajMean(j))];
+            %multiply vectors
+            vecMult = [vecMult; vec1.*vec2];
 
         end
+        
+    end
+
+    %calculate autocorrelation function (omit pairs with missing
+    %observations)
+    gamma(lag+maxLag+1) = nanmean(vecMult)/traj1Std/traj2Std;
+
+end
+
+for lag = 0 : maxLag %for all lags >= 0
+
+    vecMult = [];
+    for j = 1 : numTraj1 %(=numTraj2) go over all trajectories
+        
+        if trajLength1(j) > lag %which are longer than lag
+
+            %find pairs of points to be used in calculation
+            vec1 = traj1(j).observations(1:end-lag,1);
+            vec2 = traj2(j).observations(lag+1:end,1);
+
+            %multiply vectors
+            vecMult = [vecMult; vec1.*vec2];
+
+        end
+        
     end
 
     %calculate autocorrelation function (omit pairs with missing observations)
-    gamma(lag+1) = nanmean(vecMult);
-    %     gamma(lag+1) = nansum(vecMult)/(length(vecMult)-1);
+    gamma(lag+maxLag+1) = nanmean(vecMult)/traj1Std/traj2Std;
 
 end
 
-%normalize autocorrelation function
-gamma = gamma/gamma(1);
-
-
-%%%%% ~~ the end ~~ %%%%%
+%% ~~ the end ~~
