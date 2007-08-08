@@ -265,7 +265,7 @@ end %(if select(1))
 
 %% sisters
 
-if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterList.trackPairs)
+if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterList(1).trackPairs)
 
     %make spots plotted earlier invisible
     imaSpots.mVisible = 0;
