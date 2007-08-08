@@ -3,8 +3,8 @@ function analysisStruct = makiCollectMovies(jobType)
 %
 %SYNOPSIS analysisStruct = makiCollectMovies(jobType)
 %
-%INPUT jobType: 1: test job (default)
-%               2: hercules run
+%INPUT jobType: 1: test job
+%               2: hercules run (default)
 %
 %OUTPUT analysisStruct: Structure with fields:
 %               .fileName: Name of file where analysisStruct is stored.
@@ -16,7 +16,7 @@ function analysisStruct = makiCollectMovies(jobType)
 
 %assign default job type if not input
 if nargin < 1
-    jobType = 1;
+    jobType = 2;
 end
 
 %define top directory to start search at

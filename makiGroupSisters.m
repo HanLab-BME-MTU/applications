@@ -108,9 +108,11 @@ anaphaseFrames = find(phase == 'a');
 %if the whole movie is in anaphase, there's no point in looking for
 %sisters. Exit with an empty sisterList.
 if length(anaphaseFrames) == nTimepoints
-    dataStruct.sisterList = [];
+    sisterList = struct('trackPairs',[],'coords1',[],...
+        'coords2',[],'sisterVectors',[],'distances',[]);
+    dataStruct.sisterList = sisterList;
     return
-end 
+end
 
 % read normals to plane
 normals = NaN(nTimepoints,3);
@@ -218,14 +220,10 @@ end %(for jTrack = 1:nGoodTracks)
     nGoodTracks,maxDist,costFunction);
 
 if all(isnan(r2c))
-    dataStruct.sisterList = [];
+    sisterList = struct('trackPairs',[],'coords1',[],...
+        'coords2',[],'sisterVectors',[],'distances',[]);
+    dataStruct.sisterList = sisterList;
     return;
-end
-
-% get cutoff for visualization
-[dummy,cutoffDistance]=cutFirstHistMode(distances(linkedIdx),verbose>0);
-if verbose
-    set(gcf,'Name',sprintf('Distance cutoff for %s',dataStruct.projectName))
 end
 
 %find pairs that get a unique assignment
@@ -240,7 +238,7 @@ if verbose
     r2cTmp = r2c;
     r2cTmp(~goodPairIdxL) = -r2cTmp(~goodPairIdxL);
     plotGroupResults(t,r2cTmp,nGoodTracks,...
-        goodTracks,dataStruct,distances,cutoffDistance,...
+        goodTracks,dataStruct,distances,maxDist,...
         sprintf('Initial grouping for %s. G/B-Cutoff=distance',...
         dataStruct.projectName))
 end
@@ -640,6 +638,12 @@ plot3(cc(1:2,1),cc(1:2,2),cc(1:2,3),'*')
 %             dataStruct.projectName))
 %     end
 % end % if ~anaphase
+
+% % get cutoff for visualization
+% [dummy,cutoffDistance]=cutFirstHistMode(distances(linkedIdx),verbose>0);
+% if verbose
+%     set(gcf,'Name',sprintf('Distance cutoff for %s',dataStruct.projectName))
+% end
 
 
 
