@@ -16,6 +16,8 @@ function [resultList,plotData,plotStruct] = bilobesGfpKinetochores(project, norm
 %
 % OUTPUT resultList(1:nData) : Structure with fields
 %           interpImg - interpolated intensity from GFP channel (30x21x21)
+%                       (background has been subtracted)
+%           background - estimated background from interpImg
 %           interpImgSpb - interpolated intensity from SPB channel
 %           maxProj - maximum projection of intensity onto pole axis
 %           meanProj - sum (not mean) projection of intensity 
@@ -495,16 +497,17 @@ for iData = 1:nData
 
                 edgeList = interpImg(edgeMask);
                 background = nanmedian(edgeList);
+                interpImg = interpImg - background;
 
                 % make maximum, average projections
-                maxProj = nanmax(nanmax(interpImg,[],3),[],2)-background;
+                maxProj = nanmax(nanmax(interpImg,[],3),[],2);
                 % !! since all that is out of the image should be
                 % background, the sum is much better than the mean. The
                 % mean would arbitrarily stretch intensities!
-                meanProj = nansum(nansum(interpImg,3),2)-background;
+                meanProj = nansum(nansum(interpImg,3),2);
 
                 % make perpendicular projections
-                p_perp = squeeze(nanmean(interpImg,1))-background;
+                p_perp = squeeze(nanmean(interpImg,1));
 
                 % plot - debug
                 %                 figure(fh1)
@@ -653,6 +656,7 @@ for iData = 1:nData
             % store data
 
             resultList(iData).interpImg = interpImg;
+            resultList(iData).background = background;
             resultList(iData).interpImgSpb = interpImgSpb;
             resultList(iData).maxProj = maxProj;
             resultList(iData).meanProj = meanProj;
