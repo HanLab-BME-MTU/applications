@@ -80,13 +80,10 @@ for iMovie = 1 : numMovies
     tracks = dataStruct(iMovie).tracks;
     frameAlignment = dataStruct(iMovie).frameAlignment;
 
-    %get number of sisters in movie
-    numSisters = length(sisterList);
-    
     %go over all sisters in movie
     if numSisters(iMovie) > 0
 
-        for iSister = 1 : numSisters
+        for iSister = 1 : numSisters(iMovie)
 
             %increase global index of sisters by 1
             iGlobal = iGlobal + 1;
@@ -143,7 +140,7 @@ for iMovie = 1 : numMovies
             angleSis1(iGlobal).observations = angle1; %deg
             angleSis2(iGlobal).observations = angle2; %deg
 
-        end %(for iSister = 1 : numSisters)
+        end %(for iSister = 1 : numSisters(iMovie) )
         
     end
     
