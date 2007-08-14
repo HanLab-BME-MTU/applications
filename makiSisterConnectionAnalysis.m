@@ -44,6 +44,19 @@ end
 numSisters = zeros(numMovies,1);
 for iMovie = 1 : numMovies
     numSisters(iMovie) = length(dataStruct(iMovie).sisterList);
+    
+    % when the length of sisterList == 1, it could either mean that there
+    % is no sister at all, or that there is only 1 sister. Check here which
+    % one is the case
+    if numSisters(iMovie) == 1
+        if isempty(dataStruct(iMovie).sisterList.distances)
+            % no sister
+            numSisters(iMovie) = 0;
+            if verbose 
+                disp(sprintf('no sisters in %s',fullfile(moviesList{iMovie,2},moviesList{iMovie,1})));
+            end
+        end
+    end
 end
 numSistersTot = sum(numSisters);
 
@@ -69,62 +82,64 @@ for iMovie = 1 : numMovies
     %determine frames where there is a plane
     phase = vertcat(planeFit.phase)';
     framesWithPlane = find(phase ~= 'e');
-    
+
     %go over all sisters in movie
-    for iSister = 1 : numSisters(iMovie)
-        
-        %increase global index of sisters by 1
-        iGlobal = iGlobal + 1;
+    if numSisters(iMovie) > 0
+        for iSister = 1 : numSisters(iMovie)
 
-        %find track indices
-        tracksIndx = sisterList(1).trackPairs(iSister,1:2);
+            %increase global index of sisters by 1
+            iGlobal = iGlobal + 1;
 
-        %determine frame where each track starts
-        trackStart = [tracks(tracksIndx(1)).seqOfEvents(1,1) ...
-            tracks(tracksIndx(2)).seqOfEvents(1,1)];
+            %find track indices
+            tracksIndx = sisterList(1).trackPairs(iSister,1:2);
 
-        %find number of frames and frames where pair "exists"
-        goodFrames = ~isnan(sisterList(iSister).distances(:,1));
-        numFrames = length(goodFrames);
-        goodFrames = find(goodFrames);
+            %determine frame where each track starts
+            trackStart = [tracks(tracksIndx(1)).seqOfEvents(1,1) ...
+                tracks(tracksIndx(2)).seqOfEvents(1,1)];
 
-        %find feature indices making up sisters
-        sisterIndx1 = NaN(numFrames,1);
-        sisterIndx2 = NaN(numFrames,1);
-        sisterIndx1(goodFrames) = tracks(tracksIndx(1)).tracksFeatIndxCG(goodFrames-trackStart(1)+1);
-        sisterIndx2(goodFrames) = tracks(tracksIndx(2)).tracksFeatIndxCG(goodFrames-trackStart(2)+1);
+            %find number of frames and frames where pair "exists"
+            goodFrames = ~isnan(sisterList(iSister).distances(:,1));
+            numFrames = length(goodFrames);
+            goodFrames = find(goodFrames);
 
-        %get aligned sister coordinates
-        coords1 = NaN(numFrames,6);
-        coords2 = NaN(numFrames,6);
-        for iFrame = goodFrames'
-            coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),:);
-            coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),:);
-        end
+            %find feature indices making up sisters
+            sisterIndx1 = NaN(numFrames,1);
+            sisterIndx2 = NaN(numFrames,1);
+            sisterIndx1(goodFrames) = tracks(tracksIndx(1)).tracksFeatIndxCG(goodFrames-trackStart(1)+1);
+            sisterIndx2(goodFrames) = tracks(tracksIndx(2)).tracksFeatIndxCG(goodFrames-trackStart(2)+1);
 
-        %calculate vector between sisters
-        sisterVec = [coords2(:,1:3)-coords1(:,1:3) sqrt(coords1(:,4:6).^2+coords2(:,4:6).^2)];
+            %get aligned sister coordinates
+            coords1 = NaN(numFrames,6);
+            coords2 = NaN(numFrames,6);
+            for iFrame = goodFrames'
+                coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),:);
+                coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),:);
+            end
 
-        %calculate angle with normal
-        angleWithNorm = NaN(numFrames,1);
-        for iFrame = framesWithPlane
-            angleWithNorm(iFrame) = acos(abs(sisterVec(iFrame,1)./norm(sisterVec(iFrame,1:3))));
-        end
+            %calculate vector between sisters
+            sisterVec = [coords2(:,1:3)-coords1(:,1:3) sqrt(coords1(:,4:6).^2+coords2(:,4:6).^2)];
 
-        %calculate angle between consecutive frames
-        angularDisp = NaN(numFrames-1,1);
-        for iFrame = 1 : numFrames - 1
-            angularDisp(iFrame) = acos(abs(sisterVec(iFrame,1:3) * sisterVec(iFrame+1,1:3)' ...
-                / norm(sisterVec(iFrame,1:3)) / norm(sisterVec(iFrame+1,1:3))));
-        end
-        
-        sisterDist(iGlobal).observations = sisterList(iSister).distances; %um
-        sisterVel(iGlobal).observations = diff(sisterList(iSister).distances(:,1)) ...
-            * 1000 / timeLapse; %nm/s
-        angleNormal(iGlobal).observations = angleWithNorm * 180 / pi; %deg
-        angularVel(iGlobal).observations = angularDisp * 180 / pi / timeLapse; %deg/s
-        
-    end %(for iSister = 1 : numSisters(iMovie))
+            %calculate angle with normal
+            angleWithNorm = NaN(numFrames,1);
+            for iFrame = framesWithPlane
+                angleWithNorm(iFrame) = acos(abs(sisterVec(iFrame,1)./norm(sisterVec(iFrame,1:3))));
+            end
+
+            %calculate angle between consecutive frames
+            angularDisp = NaN(numFrames-1,1);
+            for iFrame = 1 : numFrames - 1
+                angularDisp(iFrame) = acos(abs(sisterVec(iFrame,1:3) * sisterVec(iFrame+1,1:3)' ...
+                    / norm(sisterVec(iFrame,1:3)) / norm(sisterVec(iFrame+1,1:3))));
+            end
+
+            sisterDist(iGlobal).observations = sisterList(iSister).distances; %um
+            sisterVel(iGlobal).observations = diff(sisterList(iSister).distances(:,1)) ...
+                * 1000 / timeLapse; %nm/s
+            angleNormal(iGlobal).observations = angleWithNorm * 180 / pi; %deg
+            angularVel(iGlobal).observations = angularDisp * 180 / pi / timeLapse; %deg/s
+
+        end %(for iSister = 1 : numSisters(iMovie))
+    end
 
 end %(for iMovie = 1 : numMovies)
     
