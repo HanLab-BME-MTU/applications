@@ -185,8 +185,16 @@ switch jobType
                             fullfile(logFile{1,2},logFile{1,1}),...
                             dataFilePath)
                         % rename the log file in dataFilePath to
-                        % movieFileName.log
-                        movefile(fullfile(dataFilePath,logFile{1,1}),fullfile(dataFilePath,[rawMovieFile{1,1},'.log']));
+                        % movieFileName.log 
+                        % there are a few rare cases where the moved log
+                        % file already has the movieFileName 
+                        % This happens when the movie itself has no crop
+                        % indicator
+                        movedLogFileOldName = fullfile(dataFilePath,logFile{1,1});
+                        movedLogFileNewName = fullfile(dataFilePath,[rawMovieFile{1,1},'.log']);
+                        if ~strmatch(movedLogFileOldName,movedLogFileNewName)
+                            movefile(movedLogFileOldName,movedLogFileNewName);
+                        end
                     else
                         warndlg(sprintf('No log filename matching movie %s in the directory %s\n', ...
                             rawMovieFile{1,1}, rawMovieFile{1,2}), ...
