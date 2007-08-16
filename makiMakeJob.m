@@ -163,17 +163,17 @@ switch jobType
                     if ~isempty(r3dIdx)
                         % the body of the project name is from 1 to 
                         % either a '_R3D' or one of the crop strings
-                        logFileNameBody = projectName(1:min(cropIdx,r3dIdx)-1);
+                        logFileNameBody = projectName(1:min(cropIdx,r3dIdx));
                     else
                         % the body of the project name is from 1 to 
                         % one of the crop strings
-                        logFileNameBody = projectName(1:cropIdx-1);
+                        logFileNameBody = projectName(1:cropIdx);
                     end
                 else
                     logFileNameBody = projectName;
                 end;
                 % search for bla_*log
-                logFile = searchFiles([[logFileNameBody '_'],'.*','\.log$'],'',rawMoviePath,0);
+                logFile = searchFiles([[logFileNameBody],'.*','\.log$'],'',rawMoviePath,0);
                 % copy file log to dataFilePath
                 if size(logFile,1) > 1
                     errordlg(sprintf('%s is not a unique log filename in the directory %s\nRename before continuing', ...

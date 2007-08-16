@@ -78,6 +78,7 @@ zeroOffset = [zeroOffsetX zeroOffsetY zeroOffsetZ];
 
 %get coordinates
 initCoord = dataStruct.initCoord;
+planeFit = dataStruct.planeFit;
 
 % make spots object: X,Y,Z,T,r
 nTimepoints = dataProperties.movieSize(end);
@@ -86,6 +87,11 @@ spots = zeros(sum(nSpots),5);
 spots(:,5) = pixelSize(1)*2; % radius in micron
 goodTimes = find(nSpots);
 nSpotSum = [0;cumsum(nSpots)];
+
+inlierIdx = [];
+unalignedIdx = [];
+laggingIdx = [];
+
 for t = goodTimes'
     % calculate positions in microns. Subtract one voxel from
     % the coords: Imaris starts counting at 0!
@@ -96,6 +102,15 @@ for t = goodTimes'
         repmat(pixelSize,nSpots(t),1) + ...
         repmat(zeroOffset,nSpots(t),1),...
         (t-1)*ones(nSpots(t),1)];
+    
+    if ~isempty(planeFit)
+        % generate inlier, unaligned, and lagging indices
+        inlierIdx = [inlierIdx (planeFit(t).inlierIdx + nSpotSum(t))];
+        unalignedIdx = [unalignedIdx (planeFit(t).unalignedIdx + nSpotSum(t))];
+        laggingIdx = [laggingIdx (planeFit(t).laggingIdx + nSpotSum(t))];
+    else
+        inlierIdx = [inlierIdx (1:size(initCoord(t).allCoordPix,1) + nSpotSum(t))];
+    end
 end
 
 % make top-level surpass scene
@@ -114,16 +129,31 @@ imarisApplication.mSurpassScene = imaSurpassScene;
 imarisApplication.mViewer = 'eViewerSurpass';
 
 % create spots object
-imaSpots = imarisApplication.mFactory.CreateSpots;
+if ~isempty(inlierIdx)
+    imaSpotsInlier = imarisApplication.mFactory.CreateSpots;
+    imaSpotsInlier.Set(single(spots(inlierIdx,1:3)),single(spots(inlierIdx,4)),single(spots(inlierIdx,5)));
+    imaSpotsInlier.mName = ['Inlier spots (avg: ' num2str(length(inlierIdx)/nTimepoints) ' / frame)'];
+    imaSpotsInlier.SetColor(single(0.8),single(0.8),single(0.8),single(0));
+    imaSurpassScene.AddChild(imaSpotsInlier);
+end
 
-% set coords
-imaSpots.Set(single(spots(:,1:3)),single(spots(:,4)),single(spots(:,5)));
+if ~isempty(unalignedIdx)
+    imaSpotsUnaligned = imarisApplication.mFactory.CreateSpots;
+    imaSpotsUnaligned.Set(single(spots(unalignedIdx,1:3)),single(spots(unalignedIdx,4)),...
+        single(spots(unalignedIdx,5)));
+    imaSpotsUnaligned.mName = ['Unaligned spots (avg: ' num2str(length(unalignedIdx)/nTimepoints) ' / frame)'];
+    imaSpotsUnaligned.SetColor(single(1),single(0),single(0),single(0));
+    imaSurpassScene.AddChild(imaSpotsUnaligned);
+end
 
-%assign name
-imaSpots.mName = ['Spots (avg: ' num2str(round(mean(nSpots))) ' / frame)'];
+if ~isempty(laggingIdx)
+    imaSpotsLagging = imarisApplication.mFactory.CreateSpots;
+    imaSpotsLagging.Set(single(spots(laggingIdx,1:3)),single(spots(laggingIdx,4)),single(spots(laggingIdx,5)));
+    imaSpotsLagging.mName = ['Lagging spots (avg: ' num2str(length(laggingIdx)/nTimepoints) ' / frame)'];
+    imaSpotsLagging.SetColor(single(0),single(0),single(1),single(0));
+    imaSurpassScene.AddChild(imaSpotsLagging);
+end
 
-% add to scene
-imaSurpassScene.AddChild(imaSpots);
            
 %% tracks
 

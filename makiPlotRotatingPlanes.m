@@ -89,6 +89,7 @@ if nargin == 3
     fwd = strmatch(key,'uparrow');
 else
     fwd = 1;
+    key = 'uparrow';
 end
 
 % figure is still open
@@ -160,7 +161,7 @@ else
     set(figH,'UserData', planeInfo);
     % recursive call of plot plane; the recursion will end as soon as
     % one time point with a valid plane is found
-    plotPlanes(figH,0,key);
+    plotPlanes(figH,initialPlot,key);
 end
 
 % end of function plotPlanes

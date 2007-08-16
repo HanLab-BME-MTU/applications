@@ -274,8 +274,20 @@ if nConsecFrames >= minConsecFrames
 
     % get distance from plane, in-plane coordinates by transformation
     % with inverse of in-plane vectors
-
-
+    for t = framesWiPlane(1):framesWiPlane(end)
+        % planeCoord: [d,xplane,yplane]    
+        planeFit(t).planeCoord = ...
+            (inv(planeFit(t).planeVectors)*...
+            (initCoord(t).allCoord(:,1:3)-repmat(planeFit(t).planeOrigin,nSpots(t),1))')';
+        
+        if verbose > 1
+            % plot dendrograms of distances
+            d = planeFit(t).planeCoord(:,1);
+            cTree = linkage(pdist(d));
+            dendrogram(cTree);
+            input(sprintf('frame %3d: enter to continue',t));
+        end
+    end 
 
     % % do only for good frames
     % if ~isempty(metaphaseFrames)
