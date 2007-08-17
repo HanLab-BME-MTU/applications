@@ -15,7 +15,7 @@ if nargin == 1
     load([dirName,filesep,fileName]);
 else
     %     load(['/mnt/alex10/AlexData11/786O/786O_parental/786Opar_NaCl02_R3D/point_files/config001_5p00_track_bidir.mat']);
-    load(['D:\amatov\data\786O\config001_5p00_track_bidir.mat']);
+    load(['C:\amatov\data\786O\config001_5p00_track_bidir.mat']);
 end
 
 indx = find( [tracks.len] >= LifeTime);
@@ -110,12 +110,14 @@ C(radIndx) = D(radIndx).*M(radIndx); % overwrite old cut-off matrix to generate 
 [links12, links21] = lap(C,-1,0,1);
 lnk = links12(1:leIndx);
 
-grIndx = find(lnk<=leIndx);
+lnkIndx = find(lnk<=leIndx);
+leLnkIndx = length(lnkIndx);
 group=struct('list',[]);
 assocTracks = zeros(leIndx,1);
 grNb = 0; 
-for k = 1:grIndx
-    if (assocTracks(k) == 0) && (lnk(k) <= leIndx)
+for i = 1:leLnkIndx
+    k = lnkIndx(i);
+    if assocTracks(k) == 0
         if assocTracks(lnk(k)) == 0
             grNb = grNb + 1;
             assocTracks(k) = grNb;
@@ -125,24 +127,33 @@ for k = 1:grIndx
             traj(lnk(k)).prev = k;
             traj(k).g_nb = grNb;
             traj(lnk(k)).g_nb = grNb;
-            k = lnk(k);
-            while k <= leIndx
-                if lnk(k) <= leIndx
-                    assocTracks(lnk(k)) = grNb;
-                    group(grNb).list = [group(grNb).list,lnk(k)];
-                    traj(k).next = lnk(k);
-                    traj(lnk(k)).prev = k;
-                    traj(lnk(k)).g_nb = grNb;
-                end
-                k = lnk(k);
-            end
         else
+            assocTracks(k) = assocTracks(lnk(k));
             group(assocTracks(lnk(k))).list = [k,group(assocTracks(lnk(k))).list];
+            traj(k).next = lnk(k);
+            traj(lnk(k)).prev = k;
+            traj(k).g_nb = assocTracks(lnk(k));
         end
-
+    else
+        assocTracks(lnk(k)) = assocTracks(k);
+        group(assocTracks(k)).list = [group(assocTracks(k)).list,lnk(k)];
+        traj(k).next = lnk(k);
+        traj(lnk(k)).prev = k;
+        traj(lnk(k)).g_nb = assocTracks(k);
     end
+
 end
 
+%             k = lnk(k);
+%             while k <= leIndx
+%                 if lnk(k) <= leIndx
+%                     assocTracks(lnk(k)) = grNb;
+%                     group(grNb).list = [group(grNb).list,lnk(k)];
+%                     traj(k).next = lnk(k);
+%                     traj(lnk(k)).prev = k;
+%                     traj(lnk(k)).g_nb = grNb;
+%                 end
+%                 k = lnk(k);
 grNb = length(group);
 figure
 for i = 1:grNb
