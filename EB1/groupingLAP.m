@@ -45,7 +45,7 @@ end
 M = sparse(leIndx,leIndx); % angle multiplication matrix
 C = sparse(leIndx,leIndx); % distance cut-off matrix
 
-progressText(0,'For-loop') % Create text
+progressText(0,'First FOR-loop') % Create text
 for i = 1:leIndx
     if TimeSpan > nbFrames-traj(i).endID
         T = nbFrames-traj(i).endID;
@@ -115,6 +115,8 @@ leLnkIndx = length(lnkIndx);
 group=struct('list',[]);
 assocTracks = zeros(leIndx,1);
 grNb = 0; 
+
+progressText(0,'Second FOR-loop') % Create text
 for i = 1:leLnkIndx
     k = lnkIndx(i);
     if assocTracks(k) == 0
@@ -141,19 +143,9 @@ for i = 1:leLnkIndx
         traj(lnk(k)).prev = k;
         traj(lnk(k)).g_nb = assocTracks(k);
     end
-
+    progressText(i/leLnkIndx);
 end
 
-%             k = lnk(k);
-%             while k <= leIndx
-%                 if lnk(k) <= leIndx
-%                     assocTracks(lnk(k)) = grNb;
-%                     group(grNb).list = [group(grNb).list,lnk(k)];
-%                     traj(k).next = lnk(k);
-%                     traj(lnk(k)).prev = k;
-%                     traj(lnk(k)).g_nb = grNb;
-%                 end
-%                 k = lnk(k);
 grNb = length(group);
 figure
 for i = 1:grNb
