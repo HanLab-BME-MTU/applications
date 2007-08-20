@@ -1,4 +1,4 @@
-function group = groupingLAP(load_mat)
+function group = groupingLAP(fileName,dirName)
 
 % pass the TRACKS struct as input
 nbFrames = 125;
@@ -11,8 +11,10 @@ trackAng = cos(pi/3);%60
 constVel = 1; %debug100
 duConst = 1000000;
 
-[fileName,dirName] = uigetfile('*.mat','Choose a .mat file');
-load([dirName,filesep,fileName]); 
+if nargin == 0
+    [fileName,dirName] = uigetfile('*.mat','Choose a .mat file');
+    load([dirName,filesep,fileName]);
+end
 %check wether the "groups" subdirectory exists or not 
 [success, msg, msgID] = mkdir(dirName(1:end-13), 'groups');
 
