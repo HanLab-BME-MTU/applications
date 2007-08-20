@@ -1,7 +1,7 @@
 function EB3a
 
 
-for i = 1:125
+for i = 1:1
 
     s = 3;
     strg=sprintf('%%.%dd',s);
@@ -15,7 +15,7 @@ for i = 1:125
     %           I = imread(['Z:\AlexData\EB1_Katsu_2s_2\EB1-GFP-6',indxStr,'.tif']);
     %-----CLAUDIO--------------
 %     I = imread(['C:\amatov\data\Monastrol\images\mono3',indxStr,'.tif']);
-        I = imread(['C:\amatov\data\070622_4\images\mono2',indxStr,'.tif']);
+        I = imread(['C:\amatov\data\070622_2\images\mono1',indxStr,'.tif']);
     % I = imread(['Z:\AlexData\Ben\EB1tracking\Op18Spindles\102406_Op18\Op18_movie_2\images\Op18_movie2_',indxStr,'.tif']);
 %         I = imread(['X:\AlexData\Yukako\060707_2\2_',indxStr,'.tif']);
 %     I = imread(['X:\AlexData\Jay\EB1_60x2x2binning_25uMSTC_4a\images\EB1_60x_2x2binning_25uMSTC_4a',indxStr,'.tif']);
@@ -143,20 +143,20 @@ for i = 1:125
 
 
     %-------------------------------------
-%     aaux = 5;
-%     If=Gauss2D(I,1);
-%     figure, imshow(If(1+aaux:end-aaux,1+aaux:end-aaux),[]);%I4
-%     hold on
-%     for i = 1:length(feats.ori)
-%         h = quiver(feats.pos(i,1)-aaux,feats.pos(i,2)-aaux,-cos(feats.ori(i)*pi/180),sin(feats.ori(i)*pi/180),3,'r');
-%         set(h,'LineWidth',2)
-%     end
+    aaux = 5;
+    If=Gauss2D(I,1);
+    figure, imshow(If(1+aaux:end-aaux,1+aaux:end-aaux),[]);%I4
+    hold on
+    for i = 1:length(feats.ori)
+        h = quiver(feats.pos(i,1)-aaux,feats.pos(i,2)-aaux,-cos(feats.ori(i)*pi/180),sin(feats.ori(i)*pi/180),3,'r');
+        set(h,'LineWidth',2)
+    end
     %------------------------------------
     %        save(['Z:\AlexData\Torsten\control_1\cands\feats',indxStr],'feats')
-    save(['C:\amatov\data\070622_4\cands\feats',indxStr],'feats')
-    
-    clear all
-    close all
+%     save(['C:\amatov\data\Monastrol\cands\feats',indxStr],'feats')
+%     
+%     clear all
+%     close all
 end
 % p
 % aaux = 5;

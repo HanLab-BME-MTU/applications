@@ -10,12 +10,18 @@ coneAngNeg = cos(pi/18);%10
 trackAng = cos(pi/3);%60
 constVel = 1; %debug100
 duConst = 1000000;
-if nargin == 1
-    [fileName,dirName] = uigetfile('*.mat','Choose a .mat file');
-    load([dirName,filesep,fileName]);
+
+[fileName,dirName] = uigetfile('*.mat','Choose a .mat file');
+load([dirName,filesep,fileName]); 
+%check wether the "groups" subdirectory exists or not 
+[success, msg, msgID] = mkdir(dirName(1:end-13), 'groups');
+
+if (success ~= 1)
+    error(msgID, msg); 
+elseif (~isempty(msg))
+    fprintf('Subdirectory "groups" already exists.\n');
 else
-    %     load(['/mnt/alex10/AlexData11/786O/786O_parental/786Opar_NaCl02_R3D/point_files/config001_5p00_track_bidir.mat']);
-    load(['C:\amatov\data\786O\config001_5p00_track_bidir.mat']);
+    fprintf('Subdirectory "groups" has been created.\n');
 end
 
 indx = find( [tracks.len] >= LifeTime);
@@ -145,23 +151,6 @@ for i = 1:leLnkIndx
     end
     progressText(i/leLnkIndx);
 end
+save([dirName(1:end-13),'\groups\group'],'group')
 
-grNb = length(group);
-figure
-for i = 1:grNb
-    k = group(i).list;
-    le_gr = length(k);
-    plot(traj(k(1)).points(1,2),traj(k(1)).points(1,1),'ks') 
-    for j = 1:le_gr
-        plot(traj(k(j)).points(:,2),traj(k(j)).points(:,1),'r-')
-        hold on
-        plot(traj(k(j)).points(end,2),traj(k(j)).points(end,1),'r*')
-        plot([traj(k(j)).points(1,2),traj(k(j)).points(end,2)],[traj(k(j)).points(1,1),traj(k(j)).points(end,1)],'k:')
-        if j < le_gr
-            plot([traj(k(j)).points(end,2),traj(k(j+1)).points(1,2)],[traj(k(j)).points(end,1),traj(k(j+1)).points(1,1)],'g-')
-            plot(traj(k(j+1)).points(1,2),traj(k(j+1)).points(1,1),'g*')
-        end
-    end
-end
-hold off
-disp(sprintf('Number of groups %d',grNb));
+plotGroup(traj,group)
