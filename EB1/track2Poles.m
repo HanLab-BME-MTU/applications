@@ -50,7 +50,8 @@ for slide = 0:10:110
     %     figure,imshow(I,[])
     %     hold on
     %     plot(p(:,2),p(:,1),'r*')
-    sigma = 5;M = 0; MM1=0; MM2 = 0;
+    sigma = 1;M = 0; MM1=0; MM2 = 0; count = 0;
+    lookup = [sqrt(3) sqrt(5) sqrt(7) sqrt(9) sqrt(11) sqrt(13) sqrt(15) sqrt(17) sqrt(19)];
     while (5*M)>=MM2
         accum = gauss2D(accum,sigma);
         locm=locmax2D(accum,[5 5]);
@@ -68,15 +69,27 @@ for slide = 0:10:110
         if length(soLocm)>1
             M = soLocm(end-2);
         else
-            M = 0
+            M = 0 % it means that it keeps looping until soLoc has only one value/locmax
         end
-        sigma = sigma + 5 ;
+        if count > 0 && count < 10
+            sigma = sigma + lookup(count);
+        elseif count >= 10
+            sigma = sigma + lookup(9);
+        end
+        count = count + 1;
     end
+    ITERATIONS = count
     figure,imshow(I,[])
     hold on
     plot(my,mx,'r*')
-    [mxi(poCe) myi(poCe)]=find(accum==soLocm(end));
-    plot(myi,mxi,'b-')
-    plot(myi(end),mxi(end),'b*')
+    
+    [mxi1(poCe) myi1(poCe)]=find(accum==soLocm(end));
+    plot(myi1,mxi1,'b-')
+    plot(myi1(end),mxi1(end),'b*')    
+    
+    [mxi2(poCe) myi2(poCe)]=find(accum==soLocm(end-1));
+    plot(myi2,mxi2,'g-')
+    plot(myi2(end),mxi2(end),'g*')
+    
     poCe = poCe + 1;
 end
