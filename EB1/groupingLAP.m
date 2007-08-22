@@ -21,9 +21,9 @@ end
 if (success ~= 1)
     error(msgID, msg); 
 elseif (~isempty(msg))
-    fprintf('Subdirectory "groups" already exists.\n');
+    fprintf('Directory "groups" already exists.\n');
 else
-    fprintf('Subdirectory "groups" has been created.\n');
+    fprintf('Directory "groups" has been created.\n');
 end
 
 indx = find( [tracks.len] >= LifeTime);
