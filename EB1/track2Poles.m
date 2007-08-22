@@ -15,14 +15,15 @@ end
 poCe = 1;
 s = 3;
 strg=sprintf('%%.%dd',s);
-for slide = 0:10:110
-    b = slide;
-    e = 10+slide;
-    im = (b+e)/2; % get the middle image nb
+window = 2;
+for begin = (LifeTime+1):window:(125-LifeTime)
+    b = begin;
+    e = window+begin;
+    im = b-LifeTime;%round((b+e)/2); % get the middle image nb
     indxStr=sprintf(strg,im);
     I = imread([dirName,fileName(1:end-7),indxStr,'.tif']);
     % select tracks which fall within the 10 frame window
-    indxT = find([traj.endID]>b & [traj.startID]<=e);
+    indxT = find([traj.endID]>=b & [traj.startID]<e);
     traj_aux = traj(indxT);
     leIndx = length(traj_aux);
     for i = 1:leIndx
@@ -52,7 +53,7 @@ for slide = 0:10:110
     %     plot(p(:,2),p(:,1),'r*')
     sigma = 1;M = 0; MM1=0; MM2 = 0; count = 0;
     lookup = [sqrt(3) sqrt(5) sqrt(7) sqrt(9) sqrt(11) sqrt(13) sqrt(15) sqrt(17) sqrt(19)];
-    while (5*M)>=MM2
+    while (2*M)>=min(MM1,MM2)
         accum = gauss2D(accum,sigma);
         locm=locmax2D(accum,[5 5]);
         [mx my] = find(locm);
@@ -65,11 +66,15 @@ for slide = 0:10:110
 
         %         figure,plot(soLocm(1:end))
         MM1 = soLocm(end);
-        MM2 = soLocm(end-1);
-        if length(soLocm)>1
+        if length(soLocm)> 1;
+            MM2 = soLocm(end-1);
+        else
+            MM2 = 0.001;
+        end
+        if length(soLocm)>2
             M = soLocm(end-2);
         else
-            M = 0 % it means that it keeps looping until soLoc has only one value/locmax
+            M = 0 % it means that it keeps looping until soLoc has only one(two) value/locmax
         end
         if count > 0 && count < 10
             sigma = sigma + lookup(count);
@@ -81,15 +86,31 @@ for slide = 0:10:110
     ITERATIONS = count
     figure,imshow(I,[])
     hold on
-    plot(my,mx,'r*')
-    
-    [mxi1(poCe) myi1(poCe)]=find(accum==soLocm(end));
+    %     plot(my,mx,'r*')
+    [x1 y1]=find(accum==soLocm(end));
+    if length(soLocm) > 1
+        [x2 y2]=find(accum==soLocm(end-1));
+        if y1 > y2
+            mxi1(poCe) = x1;
+            myi1(poCe) = y1;
+            mxi2(poCe) = x2;
+            myi2(poCe) = y2;
+        else
+            mxi1(poCe) = x2;
+            myi1(poCe) = y2;
+            mxi2(poCe) = x1;
+            myi2(poCe) = y1;
+        end
+    else
+        mxi2(poCe) = x1 + 10;
+        myi2(poCe) = y1 + 10;
+        mxi1(poCe) = x1;
+        myi1(poCe) = y1;
+    end
     plot(myi1,mxi1,'b-')
-    plot(myi1(end),mxi1(end),'b*')    
-    
-    [mxi2(poCe) myi2(poCe)]=find(accum==soLocm(end-1));
+    plot(myi1(end),mxi1(end),'b*')
     plot(myi2,mxi2,'g-')
     plot(myi2(end),mxi2(end),'g*')
-    
+
     poCe = poCe + 1;
 end
