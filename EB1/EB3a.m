@@ -110,6 +110,9 @@ for i = 1:le
     elseif debug == 0
         save([dirName(1:end-7),'cands\feats',indxStr],'feats')
         clear goodFeats 
+        clear OUT 
+        clear V 
+        clear Crop
     end
 end
 
