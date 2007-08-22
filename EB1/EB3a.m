@@ -12,9 +12,9 @@ function EB3a(debug,coef,sigma)
 [fileName,dirName] = uigetfile('*.tif','Choose a .tif file');
 I = imread([dirName,filesep,fileName]);
 if debug == 0
-    le = 125
+    le = 125;
 elseif debug == 1
-    le = 1
+    le = 1;
 end
 for i = 1:le
 
@@ -108,9 +108,8 @@ for i = 1:le
             set(h,'LineWidth',2)
         end
     elseif debug == 0
-        save([dirName,'cands\feats',indxStr],'feats')
-        clear all
-        close all
+        save([dirName(1:end-7),'cands\feats',indxStr],'feats')
+        clear goodFeats 
     end
 end
 
