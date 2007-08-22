@@ -1,38 +1,35 @@
-function EB3a
+function EB3a(debug,coef,sigma)
 
+% input debug -> if 0 - save 125 cands files to disk, else if 1 - run for
+% the 1st file and plot detection figure
+% 
+% coef = 1; sigma = 4;
+%
+% run:
+% EB3a(1,1,4) to plot figure and look at results
+% EB3a(0,1,4) to run thru whole movie and save detection
 
-for i = 1:1
+[fileName,dirName] = uigetfile('*.tif','Choose a .tif file');
+I = imread([dirName,filesep,fileName]);
+if debug == 0
+    le = 125
+elseif debug == 1
+    le = 1
+end
+for i = 1:le
 
     s = 3;
     strg=sprintf('%%.%dd',s);
     indxStr=sprintf(strg,i);
 
-    %     I = imread(['Z:\AlexData\EB1_Katsu\20041113EB1-GFP',indxStr,'.tif']);
-    %     I = imread(['Z:\AlexData\EB1_Claudio\controlmovie5\EB1-GFP_control05_T',indxStr,'.tif']);
-    %     I = imread(['Z:\AlexData\EB1_Lisa\extract\extract_tiffs\xjul03_r11\xjul03_r11tiff',indxStr,'.tif']);
-
-    %        I = imread(['Z:\AlexData\EB1_Katsu_2s_1\EB1-GFP-5',indxStr,'.tif']);
-    %           I = imread(['Z:\AlexData\EB1_Katsu_2s_2\EB1-GFP-6',indxStr,'.tif']);
-    %-----CLAUDIO--------------
-%     I = imread(['C:\amatov\data\Monastrol\images\mono3',indxStr,'.tif']);
-        I = imread(['C:\amatov\data\070622_2\images\mono1',indxStr,'.tif']);
-    % I = imread(['Z:\AlexData\Ben\EB1tracking\Op18Spindles\102406_Op18\Op18_movie_2\images\Op18_movie2_',indxStr,'.tif']);
-%         I = imread(['X:\AlexData\Yukako\060707_2\2_',indxStr,'.tif']);
-%     I = imread(['X:\AlexData\Jay\EB1_60x2x2binning_25uMSTC_4a\images\EB1_60x_2x2binning_25uMSTC_4a',indxStr,'.tif']);
-    
-%     I = imread(['P:\forAlex\images300\RNAi_RACCA_3_',indxStr,'.tif']);
-  
-% I = imread(['X:\AlexData11\786Opar\786Opar_NaCl01_R3D\images\786Opar_NaCl01_T',indxStr,'.tif']);
-    %------KATSU----------------
-    % I = imread(['Z:\AlexData\Katsu\cell7\images\EB1-GFP',indxStr,'.tif']);
-
+    I = imread([dirName,fileName(1:end-7),indxStr,'.tif']);
     I=double(I);
     aux = Gauss2D(I,1);%1 
-    I2 = Gauss2D(I,4); %4 (Yukako 10)
+    I2 = Gauss2D(I,sigma); %4 (Yukako 10)
     I3 = aux - I2;
     [cutoffInd, cutoffV] = cutFirstHistMode(I3,0);
 
-    coef = 1;% coef = 4 Katsu; coef = 1 Claudio; coef = 1 Lisa_xju103_r11; 
+    % coef = 4 Katsu; coef = 1 Claudio; coef = 1 Lisa_xju103_r11; 
     I4 = I3>cutoffV*coef; % REMOVE THE NOISE FEATURES %no 3
 
     X = bwlabel(I4);
@@ -69,26 +66,10 @@ for i = 1:1
         e1 = [];e2 = [];e3 = []; Ori = []; v1 = []; v2 = []; xGrid = []; yGrid = [];
     end
 
-    %-------------------------------------
-    %     aaux = 5;
-    %     If=Gauss2D(I,1);
-    %     figure, imshow(If(1+aaux:end-aaux,1+aaux:end-aaux),[]);%I4
-    %     hold on
-    %     for i = 1:length(feats.ori)
-    %         h = quiver(feats.pos(i,1)-aaux,feats.pos(i,2)-aaux,-cos(feats.ori(i)*pi/180),sin(feats.ori(i)*pi/180),3,'r');
-    %         set(h,'LineWidth',2)
-    %     end
-    %------------------------------------
-
     Cm = nanmean(Crop,3); % MEAN/REPRESENTATIVE EB1 CROP
     Crop(isnan(Crop))=0;% border effect - some NaN
     Cm1 = bwlabel(Cm);
     statsC = regionprops(Cm1,'all');
-
-    %     figure,imshow(Cm,[])
-    %
-    %     uiviewpanel,imshow(Cm,[])
-
 
     sC = size(Crop);
     Cm3d = repmat(Cm,[1,1,size(Crop,3)]);
@@ -112,70 +93,25 @@ for i = 1:1
 
     goodFeats = find(OUT(:,1)<V); % SPOTS WHICH FIT WELL WITH THE MEAN EB1 SPOT
 
-    %     featNames = fieldnames(feats);
-    %     for field = 1:length(featNames)
-    %         feats.(featNames{field}) = feats.(featNames{field})(goodFeats,:);
-    %     end
-
-    %     CC = Crop(:,:,goodFeats);
-    %     CCm = nanmean(CC,3); %MEAN EB1 BASED on GOOD/FITTED EB1 SPOTS
-    %     CC(isnan(CC))=0;% border effect - some NaN
-    %     CCm1 = bwlabel(CCm);
-    %     statsCC = regionprops(CCm1,'all');
-
-    %     figure,imshow(CCm,[])
-    %
-    %     figure,histogram(ssqC)
-    %     figure,histogram(ssqC(goodFeats))
-    %     [cutoffIndex, cutoffValue] = cutFirstHistMode(ssqC(goodFeats),0);
-    %     [cutoffIndex, cutoffValue] = cutFirstHistMode(ssqC,0);
-    %
-    % %     veryGoodFeats = find(ssqC(goodFeats)<cutoffValue);
-    %     veryGoodFeats = find(ssqC<cutoffValue);
-
-
-
     featNames = fieldnames(feats);
     for field = 1:length(featNames)
         feats.(featNames{field}) = feats.(featNames{field})(goodFeats,:);
     end
 
-
-
-    %-------------------------------------
-    aaux = 5;
-    If=Gauss2D(I,1);
-    figure, imshow(If(1+aaux:end-aaux,1+aaux:end-aaux),[]);%I4
-    hold on
-    for i = 1:length(feats.ori)
-        h = quiver(feats.pos(i,1)-aaux,feats.pos(i,2)-aaux,-cos(feats.ori(i)*pi/180),sin(feats.ori(i)*pi/180),3,'r');
-        set(h,'LineWidth',2)
+    if debug == 1
+        aaux = 5;
+        If=Gauss2D(I,1);
+        figure, imshow(If(1+aaux:end-aaux,1+aaux:end-aaux),[]);%I4
+        hold on
+        for i = 1:length(feats.ori)
+            h = quiver(feats.pos(i,1)-aaux,feats.pos(i,2)-aaux,-cos(feats.ori(i)*pi/180),sin(feats.ori(i)*pi/180),3,'r');
+            set(h,'LineWidth',2)
+        end
+    elseif debug == 0
+        save([dirName,'cands\feats',indxStr],'feats')
+        clear all
+        close all
     end
-    %------------------------------------
-    %        save(['Z:\AlexData\Torsten\control_1\cands\feats',indxStr],'feats')
-%     save(['C:\amatov\data\Monastrol\cands\feats',indxStr],'feats')
-%     
-%     clear all
-%     close all
 end
-% p
-% aaux = 5;
-% If=Gauss2D(I,1);
-% figure, imshow(If(1+aaux:end-aaux,1+aaux:end-aaux),[]);%I4
-% hold on
-% for i = 1:length(feats.ori)
-%     h = quiver(feats.pos(i,1)-aaux,feats.pos(i,2)-aaux,-cos(feats.ori(i)*pi/180),sin(feats.ori(i)*pi/180),3,'r');
-%     set(h,'LineWidth',2)
-% end
-
-% stats
-%
-%
-%
-% figure,imshow(I,[])
-% hold on
-% plot(xGrid(:),yGrid(:),'g.')
-%
-% figure,imshow(Crop1,[])
 
 
