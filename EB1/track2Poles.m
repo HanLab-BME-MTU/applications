@@ -3,7 +3,7 @@ function track2Poles
 [fileName,dirName] = uigetfile('*.tif','Choose a .tif file');
 I = imread([dirName,filesep,fileName]);
 [xmax,ymax] = size(I);
-load([dirName(1:end-8),'\point_files\config001_6p00_track_bidir.mat']);
+load([dirName(1:end-8),'\point_files\config001_5p00_track_bidir.mat']);
 LifeTime = 7;
 indx = find( [tracks.len] >= LifeTime);
 traj = tracks(indx);
@@ -58,13 +58,13 @@ for begin = (LifeTime+1):window:(125-LifeTime)
         locm=locmax2D(accum,[5 5]);
         [mx my] = find(locm);
 
-        %         figure,imshow(accum,[])
-        %         hold on
-        %         plot(my,mx,'r*')
+%                 figure,imshow(accum,[])
+%                 hold on
+%                 plot(my,mx,'r*')
         soLocm = sort(locm(:));
         soLocm = soLocm(find(soLocm));
 
-        %         figure,plot(soLocm(1:end))
+%                 figure,plot(soLocm(1:end))
         MM1 = soLocm(end);
         if length(soLocm)> 1;
             MM2 = soLocm(end-1);
