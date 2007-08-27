@@ -18,16 +18,30 @@ for i = 1:leTraj
     dX = traj(i).points(end,2) - traj(i).points(1,2);
     traj(i).vec = [dX; dY];
     traj(i).vel = sqrt(dY^2+dX^2)/traj(i).len;
+    % cluster tracks based on distance to each pole of track's beginning
+    dy1 = traj(i).points(1,1) - poleAxis(n,1);
+    dx1 = traj(i).points(1,2) - poleAxis(n,2);
+    dy2 = traj(i).points(1,1) - poleAxis(n,3);
+    dx2 = traj(i).points(1,2) - poleAxis(n,4);
+    dist1 = sqrt(dy1^2+dx1^2);
+    dist2 = sqrt(dy2^2+dx2^2);
+    if dist1 < dist2
+        traj(i).pol = 2;
+    else
+        traj(i).pol = 1;
+    end
 end
 % exclude tracks with NO motion
 traj = traj(find([traj.vel]>0)); % SOME DONT MOVE!?
+% traj = traj(find([traj.pol]==2)); % look at pole2 
+traj = traj(find([traj.pol]==1)); % look at pole1
 % calculate the dot product
 magPoleVec = sqrt(sum(poleVec.^2,1));
 magTrajVec = sqrt(sum([traj.vec]'.^2,2));
 cos_trackAng = (poleVec'*[traj.vec])./(magPoleVec*magTrajVec)';
 % select the positive values
-list = find(cos_trackAng<0); % for pole2
-% list = find(cos_trackAng>0); % for pole1
+% list = find(cos_trackAng<0); % for pole2
+list = find(cos_trackAng>0); % for pole1
 selTr = traj(list);
 le = length(list);
 % plot the poles and the tracks
