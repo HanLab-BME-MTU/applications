@@ -18,22 +18,47 @@ for i = 1:leTraj
     dX = traj(i).points(end,2) - traj(i).points(1,2);
     traj(i).vec = [dX; dY];
     traj(i).vel = sqrt(dY^2+dX^2)/traj(i).len;
+    magTrajVec = sqrt(sum(traj(i).vec.^2,1));
+    
     % cluster tracks based on distance to each pole of track's beginning
     dy1 = traj(i).points(1,1) - poleAxis(n,1);
     dx1 = traj(i).points(1,2) - poleAxis(n,2);
+    aVecs1 = ([dx1; dy1])';
+    magAvecs1 = sqrt(sum(aVecs1.^2,2));
+    cos_clustAng1 = (aVecs1*traj(i).vec)./(magAvecs1*magTrajVec);
+    
     dy2 = traj(i).points(1,1) - poleAxis(n,3);
     dx2 = traj(i).points(1,2) - poleAxis(n,4);
-    dist1 = sqrt(dy1^2+dx1^2);
-    dist2 = sqrt(dy2^2+dx2^2);
-    if dist1 < dist2
+    aVecs2 = ([dx2; dy2])';
+    magAvecs2 = sqrt(sum(aVecs2.^2,2));
+    cos_clustAng2 = (aVecs2*traj(i).vec)./(magAvecs2*magTrajVec);
+    
+    if cos_clustAng1 > cos_clustAng2 
         traj(i).pol = 2;
     else
         traj(i).pol = 1;
     end
 end
+indx1 = find([traj.pol]==1);
+nbTrPole1 = length(indx1)
+indx2 = find([traj.pol]==2);
+nbTrPole2 = length(indx2)
+% plot the poles and the tracks
+figure,imshow(I,[])
+hold on
+plot(poleAxis(n,1),poleAxis(n,2),'rs')
+plot(poleAxis(n,3),poleAxis(n,4),'bs')
+for i = 1:nbTrPole1
+    plot(traj(indx1(i)).points(:,1),traj(indx1(i)).points(:,2),'b-')
+    plot(traj(indx1(i)).points(end,1),traj(indx1(i)).points(end,2),'b*')
+end
+for i = 1:nbTrPole2
+    plot(traj(indx2(i)).points(:,1),traj(indx2(i)).points(:,2),'r-')
+    plot(traj(indx2(i)).points(end,1),traj(indx2(i)).points(end,2),'r*')
+end
 % exclude tracks with NO motion
 traj = traj(find([traj.vel]>0)); % SOME DONT MOVE!?
-% traj = traj(find([traj.pol]==2)); % look at pole2 
+% traj = traj(find([traj.pol]==2)); % look at pole2
 traj = traj(find([traj.pol]==1)); % look at pole1
 % calculate the dot product
 magPoleVec = sqrt(sum(poleVec.^2,1));
