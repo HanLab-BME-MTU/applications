@@ -1,6 +1,15 @@
 function track2Poles
 
 [fileName,dirName] = uigetfile('*.tif','Choose a .tif file');
+%check wether the "groups" subdirectory exists or not 
+[success, msg, msgID] = mkdir(dirName(1:end-8), 'poles');
+if (success ~= 1)
+    error(msgID, msg); 
+elseif (~isempty(msg))
+    fprintf('Directory "poles" already exists.\n');
+else
+    fprintf('Directory "poles" has been created.\n');
+end
 I = imread([dirName,filesep,fileName]);
 [xmax,ymax] = size(I);
 load([dirName(1:end-8),'\point_files\config001_5p00_track_bidir.mat']);
@@ -114,3 +123,12 @@ for begin = (LifeTime+1):window:(125-LifeTime)
 
     poCe = poCe + 1;
 end
+poleAxis = [myi1',mxi1',myi2',mxi2'];
+save([dirName(1:end-8),'\poles\axis'],'poleAxis')
+% figure,imshow(I,[])
+% hold on
+% plot(poleAxis(:,1),poleAxis(:,2),'r')
+% plot(poleAxis(end,1),poleAxis(end,2),'r*')
+% plot(poleAxis(:,3),poleAxis(:,4),'r')
+% plot(poleAxis(end,3),poleAxis(end,4),'r*')
+ selectTracks(p1p2,traj,I,n)
