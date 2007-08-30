@@ -1,7 +1,7 @@
 function track2Poles
 
 [fileName,dirName] = uigetfile('*.tif','Choose a .tif file');
-%check wether the "groups" subdirectory exists or not 
+%check wether the "poles" subdirectory exists or not 
 [success, msg, msgID] = mkdir(dirName(1:end-8), 'poles');
 if (success ~= 1)
     error(msgID, msg); 
