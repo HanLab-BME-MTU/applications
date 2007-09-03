@@ -145,14 +145,23 @@ for i = 1:leLnkIndx
             traj(k).g_nb = assocTracks(lnk(k));
         end
     else
-        assocTracks(lnk(k)) = assocTracks(k);
-        group(assocTracks(k)).list = [group(assocTracks(k)).list,lnk(k)];
-        traj(k).next = lnk(k);
-        traj(lnk(k)).prev = k;
-        traj(lnk(k)).g_nb = assocTracks(k);
+        if assocTracks(lnk(k)) == 0
+            assocTracks(lnk(k)) = assocTracks(k);
+            group(assocTracks(k)).list = [group(assocTracks(k)).list,lnk(k)];
+            traj(k).next = lnk(k);
+            traj(lnk(k)).prev = k;
+            traj(lnk(k)).g_nb = assocTracks(k);
+        else
+            % there are two groups to be linked together
+            group(assocTracks(k)).list = [group(assocTracks(k)).list,group(assocTracks(link(k))).list];
+            % update all members of group(assocTracks(link(k))).list in
+            % traj
+            group(assocTracks(link(k))).list = [];
     end
     progressText(i/leLnkIndx);
 end
 save([dirName(1:end-13),'\groups\group'],'group')
 
 plotGroup(traj,group)
+
+% changes so that you can handle abandoned groups
