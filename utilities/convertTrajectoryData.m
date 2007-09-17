@@ -43,6 +43,9 @@ if nargin < 2 || isempty(join)
     join = 0;
 end
 
+%get the names of fields in data
+dataFields = fieldnames(data);
+
 %----------------
 
 
@@ -57,32 +60,47 @@ switch dataType*2 + join
         % get the length of data
         numData = length(data);
         
+        %remove fields to be converted from dataFields
+        keepField = [];
+        for iField = 1 : length(dataFields)
+            if ~strcmp(dataFields{iField},'distance') && ~strcmp(dataFields{iField},'time') && ...
+                    ~strcmp(dataFields{iField},'timePoints')
+                keepField = [keepField; iField];
+            end
+        end
+        dataFields = dataFields(keepField);
+        
         % find the number of timepoints and prepare output data
         nanCell = cell(numData,1);
         for iData = 1:numData
             % prepare Nan-arrays for distance
             nanCell{iData} = repmat(NaN,[data(iData).timePoints(end),2]);
         end
-        
+
         % init array. Thanks to the nanCell, it already has the right size
         convertedData = struct('observations',nanCell,'time',nanCell);
-        
+
         % now loop through data and fill in distance and calculate average
         % time interval
         for iData = 1:numData
-            
+
             % read distance into output
             convertedData(iData).observations(data(iData).timePoints,:) = data(iData).distance;
-            
-%             % find mean time by finding where we had just one timepoint
-%             % difference
-%             timeAndTp = [data(iData).time,data(iData).timePoints];
-%             deltaTaT = diff(timeAndTp,1,1);
-%            convertedData(iData).timeInterval = mean(deltaTaT(find(deltaTaT(:,3)==1),1));
+
+            %             % find mean time by finding where we had just one timepoint
+            %             % difference
+            %             timeAndTp = [data(iData).time,data(iData).timePoints];
+            %             deltaTaT = diff(timeAndTp,1,1);
+            %            convertedData(iData).timeInterval = mean(deltaTaT(find(deltaTaT(:,3)==1),1));
 
             % read time into output
             convertedData(iData).time(data(iData).timePoints,:) = data(iData).time;
-            
+
+            %add any additional fields
+            for iField = 1 : length(dataFields)
+                eval(['convertedData(iData).' dataFields{iField} ' = data(iData).' dataFields{iField} ';']);
+            end
+
         end %for iData = 1:numData
         
         %END CASE 1
@@ -91,7 +109,6 @@ switch dataType*2 + join
         
         % get the length of data
         numData = length(data);
-        
         
         % since we will not need to loop to collect the distances, cat
         % already now
@@ -120,27 +137,36 @@ switch dataType*2 + join
         % init array. Thanks to the nanCell, it already has the right size
         nanList = repmat(NaN,[nanNum,2]);
         convertedData = struct('observations',nanList,'time',nanList);
-        
-        
+
+
         % read distance and time into output
         convertedData.observations(tpList,:) = allDist;
         convertedData.time(tpList,:) = allTime;
-        
-%         % find mean time by finding where we had just one timepoint
-%         % difference
-%         timeAndTp = [cat(1,data.time),cat(1,data.timePoints)];
-%         deltaTaT = diff(timeAndTp,1,1);
-%         
-%         convertedData.timeInterval = mean(deltaTaT(find(deltaTaT(:,3)==1),1));
-        
-        
+
+        %         % find mean time by finding where we had just one timepoint
+        %         % difference
+        %         timeAndTp = [cat(1,data.time),cat(1,data.timePoints)];
+        %         deltaTaT = diff(timeAndTp,1,1);
+        %
+        %         convertedData.timeInterval = mean(deltaTaT(find(deltaTaT(:,3)==1),1));
+
+
         %END CASE 2
-        
-        %--------------- sim2TA -------------------    
+
+        %--------------- sim2TA -------------------
     case 4 % sim2TA, no join
         
         % get the length of data
         numData = length(data);
+        
+        %remove fields to be converted from dataFields
+        keepField = [];
+        for iField = 1 : length(dataFields)
+            if ~strcmp(dataFields{iField},'observations') && ~strcmp(dataFields{iField},'time')
+                keepField = [keepField; iField];
+            end
+        end
+        dataFields = dataFields(keepField);
         
         % init output data
         convertedData(1:numData) = struct('distance',[],'time',[],'timePoints',[]);
@@ -156,10 +182,15 @@ switch dataType*2 + join
             
             % time. Starts at min 1 time interval
             convertedData(iData).time = data(iData).time(convertedData(iData).timePoints,:);
-            
-            
+
+            %add any additional fields
+            for iField = 1 : length(dataFields)
+                eval(['convertedData(iData).' dataFields{iField} ' = data(iData).' dataFields{iField} ';']);
+            end
+
+
         end
-        
+
         %END CASE 3
         
     case 5 % sim2TA, join
