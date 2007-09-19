@@ -287,6 +287,15 @@ end
 warningState = warning;
 warning('off','MATLAB:divideByZero');
 
+%initialize progress text
+progressText(0,'fitting ARMA models');
+
+%get total number of runs
+numRunsTot = length(modelParam(:));
+
+%initialize variable counting number of runs
+iRun = 0;
+
 %go over all suggested models
 for k=size(modelParam,3):-1:1
     for j=size(modelParam,2):-1:1
@@ -304,6 +313,10 @@ for k=size(modelParam,3):-1:1
                     varCovMatL,varCovMatF,wnVariance,wnVector,selectCrit,...
                     pVCompKL,pVPort,errFlag] = armaxCoefKalman(trajOut,...
                     trajIn,arParamP0,maParamP0,xParam0,[],minOpt);
+
+                %display progress
+                iRun = iRun + 1;
+                progressText(iRun/numRunsTot,'fitting ARMA models');
 
             else %if local minimization and initial guess was not supplied
 
@@ -366,6 +379,10 @@ for k=size(modelParam,3):-1:1
 
                     end
 
+                    %display progress
+                    iRun = iRun + 1;
+                    progressText(iRun/numRunsTot,'fitting ARMA models');
+                    
                 end %(for l=1:repeat_def)
 
             end %(if strcmp(minOpt,'tg') || suppliedIG ... else ...)
