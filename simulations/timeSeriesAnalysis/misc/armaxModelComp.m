@@ -142,10 +142,10 @@ if nargin < 2 || isempty(fitResults2) %if 2nd model was not input
 
     %assign 2nd model to default
     fitResults2 = fitResults2_def;
-    arOrder2 = arOrder2_def;
-    maOrder2 = maOrder2_def;
-    xOrder2 = xOrder2_def;
-    numParam2 = numParam2_def;
+    %     arOrder2 = arOrder2_def;
+    %     maOrder2 = maOrder2_def;
+    %     xOrder2 = xOrder2_def;
+    %     numParam2 = numParam2_def;
     numDegFree2 = numDegFree2_def;
     
 else %if user specified a 2nd model

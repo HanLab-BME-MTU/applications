@@ -66,21 +66,21 @@ end
 
 %check its ARMAX coefficients
 if isfield(fitResults1,'arParamK')
-    [nRow,arOrder1] = size(fitResults1.arParamK);
+    arOrder1 = size(fitResults1.arParamK,2);
 else
     disp('--armaxOrderMatch: fitResults1 must have the field arParamK!');
     errFlag = 1;
     return
 end
 if isfield(fitResults1,'maParamK')
-    [nRow,maOrder1] = size(fitResults1.maParamK);
+    maOrder1 = size(fitResults1.maParamK,2);
 else
     disp('--armaxOrderMatch: fitResults1 must have the field maParamK!');
     errFlag = 1;
     return
 end
 if isfield(fitResults1,'xParamK')
-    [nRow,xOrder1] = size(fitResults1.xParamK);
+    xOrder1 = size(fitResults1.xParamK,2);
     xOrder1 = xOrder1 - 1;
 else
     disp('--armaxOrderMatch: fitResults1 must have the field xParamK!');
@@ -127,21 +127,21 @@ else
 
     %check its ARMAX coefficients
     if isfield(fitResults2,'arParamK')
-        [nRow,arOrder2] = size(fitResults2.arParamK);
+        arOrder2 = size(fitResults2.arParamK,2);
     else
         disp('--armaxOrderMatch: fitResults2 must have the field arParamK!');
         errFlag = 1;
         return
     end
     if isfield(fitResults2,'maParamK')
-        [nRow,maOrder2] = size(fitResults2.maParamK);
+        maOrder2 = size(fitResults2.maParamK,2);
     else
         disp('--armaxOrderMatch: fitResults2 must have the field maParamK!');
         errFlag = 1;
         return
     end
     if isfield(fitResults2,'xParamK')
-        [nRow,xOrder2] = size(fitResults2.xParamK);
+        xOrder2 = size(fitResults2.xParamK,2);
         xOrder2 = xOrder2 - 1;
     else
         disp('--armaxOrderMatch: fitResults2 must have the field xParamK!');
@@ -207,8 +207,12 @@ if twoResults
         fitResults2.xParamK(1,:) zeros(1,max(0,-xOrderDiff))];
 end
 
+%determine whether to pad with zeros or whether to use the Fisher
+%infotmation matrix
+padWithZeros = isempty(lengthSeries1) || isempty(lengthSeries2);
+
 %modify the variance-covariance matrices
-if ~isempty(lengthSeries1) && ~isempty(lengthSeries2)
+if ~padWithZeros
 
     %calculate the Fisher information matrix of the first padded model
     [fishInfoMat,errFlag] = armaxFisherInfoMatrix(lengthSeries1,[],...
@@ -217,6 +221,9 @@ if ~isempty(lengthSeries1) && ~isempty(lengthSeries2)
 
     %get the variance-covariance matrix of the first padded model
     varCovMat1 = inv(fishInfoMat/fitResults1.numObserve)/fitResults1.numObserve;
+
+    %resort to padding with zeroes of this method fails
+    padWithZeros = padWithZeros + (norm(varCovMat1,'fro') > 2);
 
     if twoResults
 
@@ -228,9 +235,14 @@ if ~isempty(lengthSeries1) && ~isempty(lengthSeries2)
         %get the variance-covariance matrix of the second padded model
         varCovMat2 = inv(fishInfoMat/fitResults2.numObserve)/fitResults2.numObserve;
 
+        %resort to padding with zeroes of this method fails
+        padWithZeros = padWithZeros + (norm(varCovMat2,'fro') > 2);
+
     end
 
-else
+end
+
+if padWithZeros
 
     %fill 1st variance-covariance matrix
     tmp = [fitResults1.varCovMatF(:,1:arOrder1) zeros(numParam1,max(0,arOrderDiff)) ...

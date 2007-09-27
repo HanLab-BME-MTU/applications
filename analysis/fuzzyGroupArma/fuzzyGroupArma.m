@@ -9,7 +9,7 @@ function [attached, detached] = fuzzyGroupArma(data, options)
 %                     velocities were fitted.
 %                   - name (name of the dataSet). 
 %                 If empty, the code will ask for a file called
-%                 strain_???.mat, an then look for a file called
+%                 strain_???.mat, and then look for a file called
 %                 resFitVelAndLen_???.mat, and, possibly,
 %                 lengthSeries_???.mat OR velocitySeries_???.mat
 %           options (opt): structure with fields
@@ -54,11 +54,11 @@ function [attached, detached] = fuzzyGroupArma(data, options)
 % defaults
 
 % fish for detached as default only if manually loading data
-if nargin == 0 || isempty(data)
-    def_options.fishDetached = true;
-else
+% if nargin == 0 || isempty(data)
+%     def_options.fishDetached = true;
+% else
     def_options.fishDetached = false;
-end
+% end
 % default bait is empty, of course
 def_options.bait = [];
 % plot is good
@@ -270,7 +270,7 @@ while ~done
     % do fuzzy clustering
     eta = log10(options.armaThreshold); % negative eta -> no recalc
     m = 1.1;
-    [centers, membership, distances, eta] = ...
+    [centers, membership, distances, eta, typicality] = ...
         possibilisticClustering(data,centers,...
         'fuzzyGroupArma_centerFunction','fuzzyGroupArma_distanceFunction',...
         eta,m, ...
@@ -323,7 +323,7 @@ while ~done
                 [ig,jg] = ind2sub(size(compMat),minIdx);
 
                 newMembership = membership(:,ig) + membership(:,jg);
-                centers(min(ig,jg)) = fuzzyGroupArma_centerFunction(data,newMembership,[],...
+                centers(min(ig,jg)) = fuzzyGroupArma_centerFunction(data,newMembership,typicality,1.1,...
                     struct('recalc',1,'names',{{sprintf('%s_attached_tmp',commonName)}}));
 
                 % remove center

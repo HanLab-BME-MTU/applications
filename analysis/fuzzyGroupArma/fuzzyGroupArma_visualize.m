@@ -64,7 +64,7 @@ dm=zeros(nData);
 for iData = 2:nData,
     for jData=1:iData-1
         dm(iData,jData) = armaxModelComp(data(iData),...
-            data(jData));
+            data(jData),'global',data(iData).lenSeries,data(jData).lenSeries);
         dm(jData,iData) = dm(iData,jData);
     end,
 end
@@ -111,22 +111,26 @@ if useLin
     crit = 'lin';
 end
 
-% if doEllipse: get "ARMA-coords"
-% do anyway, in order to properly align data
-try
-    % collect data
-    arma = [catStruct(1,'data.arParamK(1)'),catStruct(1,'data.maParamK(1)')];
-    covArma = cat(3,data.varCovMatF);
+if doEllipse
 
-    % align mds. Do not scale, so that maximum distance is preserved
-    [dummy,dummy,transform] = procrustes(arma,scaledCoords);
-    scaledCoords = scaledCoords*transform.T;
-    [dummy,dummy,transform2] = procrustes(arma,scaledCoords2);
-    scaledCoords2 = scaledCoords2*transform2.T;
+    % if doEllipse: get "ARMA-coords"
+    % do anyway, in order to properly align data
+    try
+        % collect data
+        arma = [catStruct(1,'data.arParamK(1)'),catStruct(1,'data.maParamK(1)')];
+        covArma = cat(3,data.varCovMatF);
 
-catch
-    disp('fGA_visualize: no ellipse/alignment possible %s',lasterr)
-    doEllipse = false;
+        % align mds. Do not scale, so that maximum distance is preserved
+        [dummy,dummy,transform] = procrustes(arma,scaledCoords);
+        scaledCoords = scaledCoords*transform.T;
+        [dummy,dummy,transform2] = procrustes(arma,scaledCoords2);
+        scaledCoords2 = scaledCoords2*transform2.T;
+
+    catch
+        disp('fGA_visualize: no ellipse/alignment possible %s',lasterr)
+        doEllipse = false;
+    end
+    
 end
 
 % transform mds coords so that they start from 0.5
