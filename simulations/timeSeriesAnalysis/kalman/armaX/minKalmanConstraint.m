@@ -43,7 +43,7 @@ constParamV = [];
 %Input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%check if correct number of input arguments are used
+%check if correct number of input arguments is used
 if nargin ~= nargin('minKalmanConstraint')
     disp('--minKalmanConstraint: Incorrect number of input arguments!');
     return

@@ -116,11 +116,6 @@ function [arParamK,maParamK,xParamK,arParamL,maParamL,xParamL,varCovMatL,...
 %        represent. Thus Eqs. 3.14 and 3.15 in the paper are modified
 %        accordingly.
 %
-%        Then the problem is re-formulated as a least squares problem in
-%        order to obtain the variance-covariance matrix of the estimated
-%        coefficients. The output is regressed onto its past values, the
-%        white noise series estimated above, and the input series.
-%
 %        *CONSTRAINED MINIMIZATION MIGHT NEED UPDATING. DON'T USE!
 %        *CURRENTLY I SUBTRACT THE MEAN ONLY WHEN NO X. THINK ABOUT IT!
 %        *MINIMIZATION OPTION 'ml' OUT OF DATE. DON'T USE!
@@ -690,7 +685,7 @@ end
 % end
 
 %use the portmanteau test to check whether residuals are white noise.
-[H,pVPort,errFlag] = portmanteau(wnVector,10,0.01);
+[H,pVPort,errFlag] = portmanteau(wnVector,5,0.01);
 
 %report failure of fit and do not consider results if residuals are not white noise
 if H == 1

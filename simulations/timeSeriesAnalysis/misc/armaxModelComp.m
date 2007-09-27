@@ -1,9 +1,9 @@
 function [mLogPValueCoef,mLogPValueVar,errFlag] = armaxModelComp(fitResults1,...
-    fitResults2,compOpt)
+    fitResults2,compOpt,lengthSeries1,lengthSeries2)
 %ARMAXCOEFCOMP tests whether two ARMA models are different
 %
 %SYNOPSIS [mLogPValueCoef,mLogPValueVar,errFlag] = armaxModelComp(fitResults1,...
-%    fitResults2,compOpt)
+%    fitResults2,compOpt,lengthSeries1,lengthSeries2)
 %
 %INPUT  
 %   Mandatory
@@ -29,6 +29,13 @@ function [mLogPValueCoef,mLogPValueVar,errFlag] = armaxModelComp(fitResults1,...
 %                       account covariances within each set of coefficients
 %                       but ignoring covariances between sets.
 %                     Default: 'global'.
+%       lengthSeries1: Length series described by fitResults1.
+%       lengthSeries2: Length series described by fitResults2.
+%                      Both variables look like the structure input to armaxFitKalman.
+%                      If lengthSeries1 and lengthSeries2 are supplied, the
+%                      variance-covariance matrices after zero-padding are
+%                      calculated from the data. If not, then they will be
+%                      simply padded with zeros.
 %
 %OUTPUT mLogPValueCoef: Probability that difference between coefficients is 
 %                       >= difference observed assuming that the null 
@@ -128,6 +135,8 @@ fitResults2_def = struct('arParamK',zeros(1,arOrder2_def),...
     'xOrderK',zeros(1,xOrder2_def+1),...
     'varCovMatF',1e-10*eye(numParam2_def),'wnVariance',1);
 compOpt_def = 'global';
+lengthSeries1_def = [];
+lengthSeries2_def = [];
 
 if nargin < 2 || isempty(fitResults2) %if 2nd model was not input
 
@@ -210,6 +219,14 @@ else %if user specified compOpt
 
 end %(if nargin < 3 || isempty(compOpt) ... else ...)
 
+%check whether the length series were input
+if nargin < 4 || isempty(lengthSeries1)
+    lengthSeries1 = lengthSeries1_def;
+end
+if nargin < 5 || isempty(lengthSeries2)
+    lengthSeries2 = lengthSeries2_def;
+end
+  
 %exit if there are problems in input data
 if errFlag
     disp('--armaxModelComp: Please fix input data!');
@@ -223,7 +240,7 @@ end
 %get coefficient vectors and their variance-covariance matrices after
 %matching model orders
 [armaxParam1,armaxParam2,varCovMatT1,varCovMatT2,errFlag] = ...
-    armaxOrderMatch(fitResults1,fitResults2);
+    armaxOrderMatch(fitResults1,fitResults2,lengthSeries1,lengthSeries2);
 numParamMax = length(armaxParam1);
 
 %get the smaller number of degrees of freedom

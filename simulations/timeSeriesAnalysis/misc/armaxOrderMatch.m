@@ -1,9 +1,9 @@
 function [paramVec1,paramVec2,varCovMat1,varCovMat2,errFlag] = ...
-    armaxOrderMatch(fitResults1,fitResults2)
+    armaxOrderMatch(fitResults1,fitResults2,lengthSeries1,lengthSeries2)
 %ARMAXORDERMATCH compensates for order mismatch between 2 ARMAX models.
 %
 %SYNOPSIS [paramVec1,paramVec2,varCovMat1,varCovMat2,errFlag] = ...
-%    armaxOrderMatch(fitResults1,fitResults2)
+%    armaxOrderMatch(fitResults1,fitResults2,lengthSeries1,lengthSeries2)
 %
 %INPUT  fitResults1: Structure output from armaxFitKalman. Must contain at
 %                    least the following fields:
@@ -15,7 +15,14 @@ function [paramVec1,paramVec2,varCovMat1,varCovMat2,errFlag] = ...
 %       fitResults2: same as fitResults1, or a vector with
 %               [arOrder, maOrder, xOrder]. In the case of vector input,
 %               there will be empty paramVec2 and varCovMat2
-%
+%   OPTIONAL
+%       lengthSeries1: Length series corresponding to fitResults1.
+%       lengthSeries2: Length series correponsding to fitResults2.
+%                      Both variables look like the structure input to armaxFitKalman.
+%                      If lengthSeries1 and lengthSeries2 are supplied, the
+%                      variance-covariance matrices after zero-padding are
+%                      calculated from the data. If not, then they will be
+%                      simply padded with zeros.
 %
 %OUTPUT paramVec1  : Vector of parameters in model 1, with 0s in place of
 %                    parameters that exist in model 2 only.
@@ -42,7 +49,7 @@ errFlag    =  0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check input data
-if nargin ~= 2
+if nargin < 2
     disp('--armaxOrderMatch: Wrong number of input arguments!');
     errFlag = 1;
     return
@@ -147,6 +154,7 @@ end % if isstruct(fitResults2)
 numParam2 = arOrder2 + maOrder2 + xOrder2 + 1;
 
 if twoResults
+    
     %check its variance-covariance matrix
     if isfield(fitResults2,'varCovMatF')
         [nRow,nCol] = size(fitResults2.varCovMatF);
@@ -162,6 +170,14 @@ if twoResults
     end
 
 end % if twoResults
+
+%check the length series
+if nargin < 3
+    lengthSeries1 = [];
+end
+if nargin < 4
+    lengthSeries2 = [];
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -191,22 +207,51 @@ if twoResults
         fitResults2.xParamK(1,:) zeros(1,max(0,-xOrderDiff))];
 end
 
-%fill 1st variance-covariance matrix
-tmp = [fitResults1.varCovMatF(:,1:arOrder1) zeros(numParam1,max(0,arOrderDiff)) ...
-    fitResults1.varCovMatF(:,arOrder1+1:arOrder1+maOrder1) zeros(numParam1,max(0,maOrderDiff)) ...
-    fitResults1.varCovMatF(:,arOrder1+maOrder1+1:end) zeros(numParam1,max(0,xOrderDiff))];
-varCovMat1 = [tmp(1:arOrder1,:); zeros(max(0,arOrderDiff),numParamMax); ...
-    tmp(arOrder1+1:arOrder1+maOrder1,:); zeros(max(0,maOrderDiff),numParamMax); ...
-    tmp(arOrder1+maOrder1+1:end,:); zeros(max(0,xOrderDiff),numParamMax)];
+%modify the variance-covariance matrices
+if ~isempty(lengthSeries1) && ~isempty(lengthSeries2)
 
-if twoResults
-    %fill 2nd variance-covariance matrix
-    tmp = [fitResults2.varCovMatF(:,1:arOrder2) zeros(numParam2,max(0,-arOrderDiff)) ...
-        fitResults2.varCovMatF(:,arOrder2+1:arOrder2+maOrder2) zeros(numParam2,max(0,-maOrderDiff)) ...
-        fitResults2.varCovMatF(:,arOrder2+maOrder2+1:end) zeros(numParam2,max(0,-xOrderDiff))];
-    varCovMat2 = [tmp(1:arOrder2,:); zeros(max(0,-arOrderDiff),numParamMax); ...
-        tmp(arOrder2+1:arOrder2+maOrder2,:); zeros(max(0,-maOrderDiff),numParamMax); ...
-        tmp(arOrder2+maOrder2+1:end,:); zeros(max(0,-xOrderDiff),numParamMax)];
+    %calculate the Fisher information matrix of the first padded model
+    [fishInfoMat,errFlag] = armaxFisherInfoMatrix(lengthSeries1,[],...
+        paramVec1(1:arOrderMax),paramVec1(arOrderMax+1:arOrderMax+maOrderMax),...
+        paramVec1(arOrderMax+maOrderMax+1:end),fitResults1.wnVariance);
+
+    %get the variance-covariance matrix of the first padded model
+    varCovMat1 = inv(fishInfoMat/fitResults1.numObserve)/fitResults1.numObserve;
+
+    if twoResults
+
+        %calculate the Fisher information matrix of the second padded model
+        [fishInfoMat,errFlag] = armaxFisherInfoMatrix(lengthSeries2,[],...
+            paramVec2(1:arOrderMax),paramVec2(arOrderMax+1:arOrderMax+maOrderMax),...
+            paramVec2(arOrderMax+maOrderMax+1:end),fitResults2.wnVariance);
+
+        %get the variance-covariance matrix of the second padded model
+        varCovMat2 = inv(fishInfoMat/fitResults2.numObserve)/fitResults2.numObserve;
+
+    end
+
+else
+
+    %fill 1st variance-covariance matrix
+    tmp = [fitResults1.varCovMatF(:,1:arOrder1) zeros(numParam1,max(0,arOrderDiff)) ...
+        fitResults1.varCovMatF(:,arOrder1+1:arOrder1+maOrder1) zeros(numParam1,max(0,maOrderDiff)) ...
+        fitResults1.varCovMatF(:,arOrder1+maOrder1+1:end) zeros(numParam1,max(0,xOrderDiff))];
+    varCovMat1 = [tmp(1:arOrder1,:); zeros(max(0,arOrderDiff),numParamMax); ...
+        tmp(arOrder1+1:arOrder1+maOrder1,:); zeros(max(0,maOrderDiff),numParamMax); ...
+        tmp(arOrder1+maOrder1+1:end,:); zeros(max(0,xOrderDiff),numParamMax)];
+
+    if twoResults
+        %fill 2nd variance-covariance matrix
+        tmp = [fitResults2.varCovMatF(:,1:arOrder2) zeros(numParam2,max(0,-arOrderDiff)) ...
+            fitResults2.varCovMatF(:,arOrder2+1:arOrder2+maOrder2) zeros(numParam2,max(0,-maOrderDiff)) ...
+            fitResults2.varCovMatF(:,arOrder2+maOrder2+1:end) zeros(numParam2,max(0,-xOrderDiff))];
+        varCovMat2 = [tmp(1:arOrder2,:); zeros(max(0,-arOrderDiff),numParamMax); ...
+            tmp(arOrder2+1:arOrder2+maOrder2,:); zeros(max(0,-maOrderDiff),numParamMax); ...
+            tmp(arOrder2+maOrder2+1:end,:); zeros(max(0,-xOrderDiff),numParamMax)];
+    end
+
 end
 
 %%%%% ~~ the end ~~ %%%%%
+
+

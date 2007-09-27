@@ -162,6 +162,16 @@ maOrder = length(maParam);
 xOrder  = length(xParam) - 1;
 numParam = arOrder + maOrder + xOrder + 1;
 
+%shift trajectories so that each trajectory's mean = 0
+%shift only if pure ARMA (no X)
+if xOrder == -1
+    for i=1:numTraj
+        traj = trajOut(i).observations(:,1);
+        traj = traj - nanmean(traj);
+        trajOut(i).observations(:,1) = traj;
+    end
+end
+    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Computation of Fisher information matrix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
