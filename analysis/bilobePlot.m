@@ -9,9 +9,15 @@ function out = bilobePlot(inputData, dataName)
 %
 
 
+
+
 % correction for psf-width (to calculate convolution with psf-matched
 % Gaussian for position histograms) calculated on real data.
-sigmaCorrection = [1,1];
+
+% non-deconvolved
+%sigmaCorrection = [1.5798    1.4426];
+% deconvolved
+sigmaCorrection = [1.2010    1.2118];
 
 % triage input
 if iscell(inputData)
