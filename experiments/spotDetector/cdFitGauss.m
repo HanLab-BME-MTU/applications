@@ -128,6 +128,7 @@ nTimepoints = length(slist);
 gaussFit(1:nTimepoints) = struct('coords',[],'Q',{{}},'chi2',[]);
 moreOutput(1:nTimepoints) = struct('residualImage',{{}});
 
+
 for t=1:nTimepoints
 
     if ~isempty(slist(t).sp)
@@ -177,6 +178,7 @@ for t=1:nTimepoints
                         deal(NaN);
                 end
             else
+                
                 % fit multiple spots (or single spot)
                 % read intensities, coordinates
                 idxList=find(mask);
@@ -190,10 +192,11 @@ for t=1:nTimepoints
                     slistCoords(spotsIdx,5)];
                 [parameters,sigmaParameters,Q,...
                     chiSquared,degreesOfFreedom,...
-                    residualImage,resAndGauss] = ...
+                    residualImage] = ...
                     GaussFitND(mskData, coordList, ...
                     fitList, ...
                     inputParameters);
+
 
                 % store output
                 for i=1:nSpots2fit
@@ -258,4 +261,3 @@ for t=1:nTimepoints
     end % if there is a non-empty slist
 
 end % loop time
-

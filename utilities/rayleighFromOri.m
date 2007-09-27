@@ -1,4 +1,4 @@
-function [rayleighLimit, angle] = rayleighFromOri(normedVectors, wavelength, NA, n)
+function [rayleighLimit, angle] = rayleighFromOri(normedVectors, wavelength, NA, n, gaussOrBessel, sigmaCorrection)
 %RAYLEIGHFROMORI calculates the Rayleigh limit given a vector in space
 %
 % SYNOPSIS: [rayleighLimit, rayleighRatio, angle] = rayleighFromOri(normedVectors, dataProperties)
@@ -7,6 +7,10 @@ function [rayleighLimit, angle] = rayleighFromOri(normedVectors, wavelength, NA,
 %       wavelength (opt): wavelength in microns {0.525}
 %       NA (opt): numerical aperture {1.4}
 %       n (opt): refractive index of immersion oil {1.518}
+%       gaussOrBessel: either 'gauss' or 'bessel' depending on whether the
+%           limit should be calculated in PSF-radii or Gaussian sigmas.
+%           Default: 'bessel'
+%       sigmaCorrection: correction factor for psf-radius/Gauss-sigma {1,1}
 %
 % OUTPUT rayleighLimit: rayleighLimit in the specified orientation (in
 %           microns)
@@ -30,6 +34,8 @@ function [rayleighLimit, angle] = rayleighFromOri(normedVectors, wavelength, NA,
 def_wvl = 0.525;
 def_NA  = 1.4;
 def_n   = 1.518;
+def_gob = 'bessel';
+def_sc  = [1 1];
 
 if nargin < 1 || isempty(normedVectors)
     % don't error, as this is a helper function
@@ -48,7 +54,12 @@ end
 if nargin < 4 || isempty(n)
     n = def_n;
 end
-
+if nargin < 5 || isempty(gaussOrBessel)
+    gaussOrBessel = def_gob;
+end
+if nargin < 6 || isempty(sigmaCorrection)
+    sigmaCorrection = def_sc;
+end
 %========================
 
 
@@ -65,7 +76,8 @@ angle = pi/2-acos(normedVectors(:,3));
 
 % calculate Rayleigh limit
 
-[ralXY, ralZ] = calcFilterParms(wavelength, NA, n, 'bessel');
+[ralXY, ralZ] = calcFilterParms(wavelength, NA, n,...
+    gaussOrBessel, sigmaCorrection);
 
 rayleighLimit = sqrt(1./ (cos(angle).^2 / ralXY^2 + ...
     sin(angle).^2 / ralZ^2) );

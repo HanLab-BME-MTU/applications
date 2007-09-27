@@ -43,6 +43,7 @@ switch type
             % therefore: find the raw movie
             [dummy,dummy,loadStruct] = cdLoadMovie('corr/raw',...
                 idlistList(iIdlist).dirName,-1);
+            deltaFrames = loadStruct.frames2load{1}(1)-1;
 
             % make slist from idlist (!! this is a subfunction, not the
             % outdated function with the same name!!)
@@ -55,35 +56,26 @@ switch type
                 'movieDir',idlistList(iIdlist).dirName,...
                 'rawMovieName',loadStruct.movieName);
             
+            %spotIdx = catStruct(1,'out.sp.idxL');
+
             % for isolated spots, position should always be ok (and, in
             % principle, amplitude, though it will depend on sigma). To get
             % correct sigma, fit width of isolated spots first
-            sigmaCorrectionOld = fitStruct.dataProperties.sigmaCorrection;
-            originalSigma = fitStruct.dataProperties.FT_SIGMA([1,3])./sigmaCorrectionOld;
-            spotIdx = catStruct(1,'out.sp.idxL');
-            [dummy,spbIdx] = ismember({'spb1';'spb2'},idlistList(iIdlist).idlist(1).stats.labelcolor);
-            spbSpotIdxL = ismember(spotIdx,spbIdx);
-            done = false;
-            while ~done
-            gaussFit = cdFitGauss(fitStruct,{'a','sxy','s3','b'}); %#ok<NASGU>
-            % only care about spb
-             
-             s = catStruct(1,'gaussFit.coords(:,5:6)'); 
-             s=s(spbSpotIdxL,:);
-            sigmaCorrection = robustMean(s(~isnan(s(:,1)),:))./originalSigma;
-            disp(sigmaCorrection);
-            fitStruct.dataProperties.sigmaCorrection = ...
-                sigmaCorrection;
-            fitStruct.dataProperties = defaultDataProperties(...
-                fitStruct.dataProperties);
-            if all((abs(sigmaCorrection-sigmaCorrectionOld)./sigmaCorrectionOld)<0.05)
-                done = true;
-            else
-                sigmaCorrectionOld = sigmaCorrection;
-            end
-            end % while
+            [dummy,spbIdx] = ...
+                ismember({'spb1';'spb2'},idlistList(iIdlist).idlist(1).stats.labelcolor);
+            fitStruct.spbIdx = spbIdx;
+            fitStruct = cdFitPsf(fitStruct);
             
             
+            % old while-loop-stuff to do iterative fitting
+            %                 if all((abs(sigmaCorrection-sigmaCorrectionOld)./sigmaCorrectionOld)<0.01)
+            %                     done = true;
+            %                 else
+            %                     sigmaCorrectionOld = sigmaCorrection;
+            %                 end
+            %             end % while
+
+
             % check type. If we come from idlist_L, we want to adjust
             % positions, too
             if findstr(idlistList(iIdlist).idlist(1).stats.idname,'track_L')
@@ -179,6 +171,73 @@ switch type
             end
             title('above: normed by med spb int. Below: each frame normed by avg spb int')
             legend toggle
+            
+%              %% HACK
+%             % remove from goodTimes frames with less than maxSpots
+%             for t=goodTimes'
+%                 if sum(fitStruct.idlist(t).linklist(:,2)>0)<nSpotsMax
+%                     goodTimes(goodTimes==t)=[];
+%                 end
+%             end
+            
+            
+            % display projected intensities
+            % 1) loop to read the SPB 1 position, and the start/end
+            %    relative to it
+            % 2) set up display arrays
+            % 3) collect intensities (resample?)
+            % 4) display
+            
+            
+            
+            % loop to read 
+            posAndLength = zeros(nTimepoints,2);
+            goodTimes = catStruct(1,'fitStruct.idlist.linklist(1)');
+            for t = goodTimes'
+                if ~isempty(intensities(t).residualInt)
+                    
+                    posAndLength(t,1) = ...
+                        round(intensities(t).spotPos(2,intensities(t).direction)) - ...
+                        intensities(t).spotPos(1,intensities(t).direction) + ...
+                        1;
+                    posAndLength(t,2) = size(intensities(t).residualInt,3);
+                else
+                    goodTimes(t==goodTimes) = [];
+                end % if
+            end % loop t
+            
+            % horzExtent goes from pixel furthest left from SPB to pixel
+            % furthest right from SPB
+            horzExtent = [1-max(posAndLength(:,1)),...
+                max(posAndLength(:,2) - posAndLength(:,1))];
+                vertExtent = [goodTimes(1) goodTimes(end)];
+                    
+                % make display matrix:
+                % green - theoretical
+                % blue - raw
+                % red - raw-theoretical
+                
+                [red,green,blue] = deal(zeros(diff(vertExtent)+1,...
+                    diff(horzExtent)+1));
+                
+                % loop to fill
+                for t = goodTimes'
+                    
+                    row = t-goodTimes(1)+1;
+                    cols = 1-posAndLength(t,1)-horzExtent(1)+1:...
+                        diff(posAndLength(t,:))-horzExtent(1)+1;
+                    red(row,cols) = squeeze(nanmean(nanmean(...
+                        intensities(t).residualInt,1),2))';
+                end
+                
+                [xx,yy] = ndgrid(horzExtent(1):horzExtent(2),...
+                    vertExtent(1):vertExtent(2));
+                figure,imagesc(xx,yy,red)
+                
+                    
+                    
+            
+            
 
             [n_spindleVector, cenPosNorm,goodTimes] = ...
                 cdProjectPositions(fitStruct.idlist);
@@ -196,14 +255,8 @@ switch type
             tmp = nan(size(cpn));
             tmp(goodTimes,:)=cpn;
             cpn = tmp;
-            
-            %% HACK
-            % remove from goodTimes frames with less than maxSpots
-            for t=goodTimes'
-                if sum(fitStruct.idlist(t).linklist(:,2)>0)<nSpotsMax
-                    goodTimes(goodTimes==t)=[];
-                end
-            end
+
+           
 
             % make two kymographs. One for spotIntensities alone, one with
             % spotIntensities plus in-between intensities. Only do the
@@ -218,7 +271,7 @@ switch type
                 fitStruct.dataProperties.sigmaCorrection);
 
             % make 10nm bins
-            xMatrix = repmat(min(cpn(:,1))-0.1:0.01:max(cpn(:,3))+0.1,nTimepoints,1);
+            xMatrix = repmat(min(cpn(:,1))-3*gaussXY:0.01:max(cpn(:,3))+3*gaussXY,nTimepoints,1);
             yMatrix = repmat((1:nTimepoints)',1,size(xMatrix,2));
             zMatrix = zeros(size(xMatrix));
             for t=goodTimes'
@@ -269,7 +322,7 @@ switch type
                     % read intensities and the corresponding values along
                     % the axis
                     cpnCt = 1;
-                    for f = fieldList
+                    for f = fieldList %%%--- change
                         % intensities are nanMedians (hopefully, this will be
                         % robust-y to too hot pixels
                         redInt = nanmedian(nanmedian(intensities(t).([f{1},'Int']),2),3);
@@ -287,7 +340,7 @@ switch type
                         [xStep,xVecN] = normList(xVec);
                         cosGamma = dot(xVecN,intensities(t).s1s2Vec);
                         % projected step: step*cos(g). zero is at -0.5 pix
-                        xValues = ((1:length(redInt))'-0.5)*xStep*cosGamma;
+                        xValues = ((1:length(redInt))'-10)*xStep*cosGamma;
 
                         % add to correct value in cpn and store
                         xValues = xValues + cpn(t,cpnList(cpnCt));
@@ -332,7 +385,7 @@ switch type
             cmg=isomorphicColormap('green');
             colormap(cmg)
             set(gca,'Color','k')
-            
+
             w=white/max(white(:))./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
             w(w==0) = NaN;
             w(w<0) = 0;
@@ -353,7 +406,7 @@ switch type
             colormap(cmr)
             set(gca,'Color','k')
 
-           
+
 
             disp('stopping. Press key to continue')
             keyboard

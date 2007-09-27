@@ -1,4 +1,4 @@
-function  [spotsidx, mask] = discernspots(cordList,mSize,dataProperties);
+function  [spotsidx, mask] = discernspots(cordList,mSize,dataProperties)
 %DISCERNSPOTS distinguish between partially overlapping spots and isolated spots
 %
 % SYNOPSIS [spotsidx, mask] = discernspots(cordList,mSize);
@@ -20,7 +20,7 @@ mask = [];
 %take first check distance to others
 %dm=distMat(cordList,diag([PIXELSIZE_XY^2 PIXELSIZE_XY^2 PIXELSIZE_Z^2]));
 dmXY=distMat(cordList(:,1:2),diag([PIXELSIZE_XY^2 PIXELSIZE_XY^2]));
-dmZ=distMat(cordList(:,3),diag([PIXELSIZE_Z^2]));
+dmZ=distMat(cordList(:,3),diag(PIXELSIZE_Z^2));
 
 spotsidx=rec_find(dmXY,dmZ,1,PIXELSIZE_XY, PIXELSIZE_Z, FILTERPRM);
 
@@ -65,9 +65,9 @@ MIN_DIST_Z=7*FILTERPRM(3)*PIXELSIZE_Z;
 %if smaller than d add spot
 spidx=curIdxList;
 for i=1:size(dMatrixXY,2)
-    if (i~=curIdxList(end) & dMatrixXY(curIdxList(end),i)<MIN_DIST_XY & dMatrixZ(curIdxList(end),i)<MIN_DIST_Z)
-        if (isempty(spidx) | ~any(spidx==i))
-            spidx(end+1)=i;
+    if (i~=curIdxList(end) && dMatrixXY(curIdxList(end),i)<MIN_DIST_XY && dMatrixZ(curIdxList(end),i)<MIN_DIST_Z)
+        if (isempty(spidx) || ~any(spidx==i))
+            spidx(end+1)=i; %#ok<AGROW>
             spidx=rec_find(dMatrixXY,dMatrixZ,spidx,PIXELSIZE_XY, PIXELSIZE_Z, FILTERPRM);
         end;
     end;

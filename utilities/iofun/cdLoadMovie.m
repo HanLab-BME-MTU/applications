@@ -783,7 +783,7 @@ end
 % move the first entry of files2load
 % into the list of loaded frames
 if noMovie
-    loadStruct.loadesFrames = [];
+    loadStruct.loadedFrames = [];
 else
     loadStruct.loadedFrames = loadStruct.frames2load{1};
     loadStruct.frames2load(1) = [];
