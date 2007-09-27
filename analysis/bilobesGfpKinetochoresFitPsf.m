@@ -4,7 +4,7 @@ function sigmaCorrections = bilobesGfpKinetochoresFitPsf
 
 
 % search files
-[fileList,tokens]=searchFiles('(\w+)_R3D\.dv','log','ask');
+[fileList,tokens]=searchFiles('(\w+)_R3D\.dv','log|DIC','ask');
 
 % select files
 selection = listSelectGUI(tokens);

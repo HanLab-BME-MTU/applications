@@ -9,6 +9,9 @@ function out = bilobePlot(inputData, dataName)
 %
 
 
+% correction for psf-width (to calculate convolution with psf-matched
+% Gaussian for position histograms) calculated on real data.
+sigmaCorrection = [1,1];
 
 % triage input
 if iscell(inputData)
@@ -153,7 +156,7 @@ for i=1:3
         % convolve with psf if not intensties
         if ~intensities
             dx=xall(2,1)-xall(1,1);
-            [FT_XY, FT_Z] = calcFilterParms(0.525,1.4,1.51,'gauss',[], [dx*yall(1,ct) dx*yall(1,ct)]);
+            [FT_XY, FT_Z] = calcFilterParms(0.525,1.4,1.51,'gauss',sigmaCorrection, [dx*yall(1,ct) dx*yall(1,ct)]);
             g=gauss1d(-5:5,FT_XY);
             zg=conv(zall(:,ct),g);
             zall(:,ct)=zg(6:end-5);
