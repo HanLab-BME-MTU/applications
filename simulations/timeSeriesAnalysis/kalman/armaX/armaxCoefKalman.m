@@ -685,7 +685,7 @@ end
 % end
 
 %use the portmanteau test to check whether residuals are white noise.
-[H,pVPort,errFlag] = portmanteau(wnVector,5,0.01);
+[H,pVPort,errFlag] = portmanteau(wnVector,10,0.01);
 
 %report failure of fit and do not consider results if residuals are not white noise
 if H == 1

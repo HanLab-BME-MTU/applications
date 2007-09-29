@@ -155,8 +155,8 @@ if constrained %if motion is confined within a certain region
             %determine fraction of original displacement within confinement region
             dispFrac = roots([displacement2 2*displacementVec*prevPosVec' ...
                 (sum(prevPosVec.^2)-cRadius^2)]); %solve equation
-            dispFrac = dispFrac(find(dispFrac>0)); %assign correct root
-            dispFrac = dispFrac(find(dispFrac<1)); %to fraction
+            dispFrac = dispFrac(dispFrac>0); %assign correct root
+            dispFrac = dispFrac(dispFrac<1); %to fraction
             
             %get vector within confinement region and vector to be reflected
             vecInside = dispFrac*displacementVec;
