@@ -204,6 +204,9 @@ for iIdlist = 1:nIdlists
         else
             if nTags == 1
                 n_spb = 0;
+            else
+                % assume g1
+                n_spb=1;
             end
             relCenInt = 0;
             relCenDiff = 0;
@@ -356,8 +359,15 @@ set(get(AX(3,1),'xLabel'),'String','SpbDist (\mum)')
 set(get(AX(3,2),'xLabel'),'String','relCenInt')
 set(get(AX(3,3),'xLabel'),'String','relSpbDiff')
 
-
-
-
+% show 3vs 4 spots (sorry, it's another hack)
+a=cat(1,cellDataAll{:,1});
+a=a(a(:,1)>2 & a(:,2)>0.5,1:2);
+range = 0.5:0.25:2;
+c3=hist(a(a(:,1)==3,2),range);
+c4=hist(a(a(:,1)==4,2),range);
+figure('Name','3 (blue) and 4 (red) spots'),area(range,[c3',c4'])
+xlabel('Spindle Length (\mum)')
+figure('Name','3 (blue) and 4 (red) spots'),area(range,[c3',c4']./repmat(nansum([c3',c4'],2),1,2))
+xlabel('Spindle Length (\mum)')
 % reset warnings
 warning(warningState);

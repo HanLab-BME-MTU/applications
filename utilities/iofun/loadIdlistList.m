@@ -70,7 +70,7 @@ idlistList(1:nFiles) = struct('idlist',[],'dataProperties',[],'name',[],...
 idlistCt = 1;
 for iFile = 1:nFiles
     dataFileName = fullfile(fileList{iFile,2},fileList{iFile,1});
-    
+    try
     % load files
     [idlist,dataProperties,projectProperties,slist,loadStruct] = ...
         loadProjectData(fileList{iFile,1},fileList{iFile,2},'last',0,[],movie);
@@ -102,6 +102,8 @@ for iFile = 1:nFiles
             % update counter
             idlistCt = idlistCt + 1;
         end
+    catch
+    end
 end
 % remove empty entries
 idlistList(idlistCt:end) = [];
