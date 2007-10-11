@@ -24,6 +24,10 @@ warning off MATLAB:divideByZero
 idlistList = loadIdlistList([],'~any(strcmp(idlist(1).stats.labelcolor,''cen1*''))');
 nIdlists = length(idlistList);
 
+if nargin == 0 || isempty(type)
+    type = 1;
+end
+
 % idlistList contains the latest idlists. If it's an idlisttrack we should
 % adjust intensities. If it is an idlist, we should adjust both position
 % and intensities (b/c tags could have been removed)
@@ -181,7 +185,95 @@ switch type
 %             end
             
             
-            % display projected intensities
+% find goodTimes
+dispXC = {intensities.dispX};
+goodTimes = find(~cellfun(@isempty,tmp))';
+
+% display projections
+
+% need to loop if we want x,t,int triplets later
+% dispTC = cell(nTimepoints,1);
+% 
+% xMax = [0 0];
+% for t=goodTimes'
+%     % expand time
+%     sx = size(dispXC{t});
+%     dispTC{t} = t*ones(sx);
+%     % remember maxX
+%     if sx(1)>xMax
+%         xMax(1) = sx(1);
+%         xMax(2) = t;
+%     end
+% end
+% % catenate coords
+% dispX = cat(1,dispXC{:});
+% dispT = cat(1,dispTC{:});
+% % collect intensities
+% dispMsk = cat(1,intensities.dispMsk);
+% figure,plot3(dispX,dispT,dispMsk)
+
+
+sx=cellfun(@length,dispXC);
+[xMax(1),xMax(2)]=max(sx);
+
+% for contourf, we need to expand x,t, and the intensities into matrices.
+% Start filling at the left, because that's where the data is aligned
+[resMatrix,mskMatrix,rawMatrix] = deal(NaN(xMax(1),goodTimes(end)+4));
+% fill x, time
+xMatrix = repmat(dispXC{xMax(2)},1,goodTimes(end)+4);
+tMatrix = repmat(goodTimes(1):goodTimes(end)+4,xMax(1),1)-2;
+
+% loop to fill intensities
+for t=goodTimes'
+    resMatrix(1:length(intensities(t).dispResidual),t+2) = ...
+        intensities(t).dispResidual;
+    mskMatrix(1:length(intensities(t).dispMsk),t+2) = ...
+        intensities(t).dispMsk;
+    rawMatrix(1:length(intensities(t).dispRaw),t+2) = ...
+        intensities(t).dispRaw;
+end
+
+figure('Name','mask movie'),
+contourf(xMatrix,tMatrix,norm01(mskMatrix),...
+    'LineStyle','none','LevelList',linspace(0,1,100));
+cmg=isomorphicColormap('green');
+colormap(cmg)
+set(gca,'Color','k')
+xlabel('distance spb1-spb2 (\mum)')
+ylabel('time (s)')
+figure('Name','raw movie'),
+contourf(xMatrix,tMatrix,norm01(rawMatrix),...
+    'LineStyle','none','LevelList',linspace(0,1,100));
+cmb=isomorphicColormap('blue');
+colormap(cmb)
+set(gca,'Color','k')
+xlabel('distance spb1-spb2 (\mum)')
+ylabel('time (s)')
+figure('Name','residual movie'),
+contourf(xMatrix,tMatrix,norm01(resMatrix),...
+    'LineStyle','none','LevelList',linspace(0,1,100));
+cmr=isomorphicColormap('red');
+colormap(cmr)
+set(gca,'Color','k')
+xlabel('distance spb1-spb2 (\mum)')
+ylabel('time (s)')
+
+% count significant pixels
+cutoff = 0.05;
+for t=goodTimes'
+    
+    % find threshold
+        threshold = prctile(intensities(t).residualBg,100-100*cutoff);
+        % find significant pixels
+        sigIntL = intensities(t).residualInt > threshold;
+        % count significant pixels
+        nSig = sum(sigIntL(:));
+        
+end
+        
+
+
+            % display projected intensities - needs interpolation sampling
             % 1) loop to read the SPB 1 position, and the start/end
             %    relative to it
             % 2) set up display arrays
@@ -190,222 +282,222 @@ switch type
             
             
             
-            % loop to read 
-            posAndLength = zeros(nTimepoints,2);
-            goodTimes = catStruct(1,'fitStruct.idlist.linklist(1)');
-            for t = goodTimes'
-                if ~isempty(intensities(t).residualInt)
+%             % loop to read 
+%             posAndLength = zeros(nTimepoints,2);
+%             goodTimes = catStruct(1,'fitStruct.idlist.linklist(1)');
+%             for t = goodTimes'
+%                 if ~isempty(intensities(t).residualInt)
+%                     
+%                     posAndLength(t,1) = ...
+%                         round(intensities(t).spotPos(2,intensities(t).direction)) - ...
+%                         intensities(t).spotPos(1,intensities(t).direction) + ...
+%                         1;
+%                     posAndLength(t,2) = size(intensities(t).residualInt,3);
+%                 else
+%                     goodTimes(t==goodTimes) = [];
+%                 end % if
+%             end % loop t
+%             
+%             % horzExtent goes from pixel furthest left from SPB to pixel
+%             % furthest right from SPB
+%             horzExtent = [1-max(posAndLength(:,1)),...
+%                 max(posAndLength(:,2) - posAndLength(:,1))];
+%                 vertExtent = [goodTimes(1) goodTimes(end)];
+%                     
+%                 % make display matrix:
+%                 % green - theoretical
+%                 % blue - raw
+%                 % red - raw-theoretical
+%                 
+%                 [red,green,blue] = deal(zeros(diff(vertExtent)+1,...
+%                     diff(horzExtent)+1));
+%                 
+%                 % loop to fill
+%                 for t = goodTimes'
+%                     
+%                     row = t-goodTimes(1)+1;
+%                     cols = 1-posAndLength(t,1)-horzExtent(1)+1:...
+%                         diff(posAndLength(t,:))-horzExtent(1)+1;
+%                     red(row,cols) = squeeze(nanmean(nanmean(...
+%                         intensities(t).residualInt,1),2))';
+%                 end
+%                 
+%                 [xx,yy] = ndgrid(horzExtent(1):horzExtent(2),...
+%                     vertExtent(1):vertExtent(2));
+%                 figure,imshow(xx,yy,red)
+                
                     
-                    posAndLength(t,1) = ...
-                        round(intensities(t).spotPos(2,intensities(t).direction)) - ...
-                        intensities(t).spotPos(1,intensities(t).direction) + ...
-                        1;
-                    posAndLength(t,2) = size(intensities(t).residualInt,3);
-                else
-                    goodTimes(t==goodTimes) = [];
-                end % if
-            end % loop t
+                    
             
-            % horzExtent goes from pixel furthest left from SPB to pixel
-            % furthest right from SPB
-            horzExtent = [1-max(posAndLength(:,1)),...
-                max(posAndLength(:,2) - posAndLength(:,1))];
-                vertExtent = [goodTimes(1) goodTimes(end)];
-                    
-                % make display matrix:
-                % green - theoretical
-                % blue - raw
-                % red - raw-theoretical
-                
-                [red,green,blue] = deal(zeros(diff(vertExtent)+1,...
-                    diff(horzExtent)+1));
-                
-                % loop to fill
-                for t = goodTimes'
-                    
-                    row = t-goodTimes(1)+1;
-                    cols = 1-posAndLength(t,1)-horzExtent(1)+1:...
-                        diff(posAndLength(t,:))-horzExtent(1)+1;
-                    red(row,cols) = squeeze(nanmean(nanmean(...
-                        intensities(t).residualInt,1),2))';
-                end
-                
-                [xx,yy] = ndgrid(horzExtent(1):horzExtent(2),...
-                    vertExtent(1):vertExtent(2));
-                figure,imagesc(xx,yy,red)
-                
-                    
-                    
-            
             
 
-            [n_spindleVector, cenPosNorm,goodTimes] = ...
-                cdProjectPositions(fitStruct.idlist);
-
-            % cpn is cenPosNorm*spindleLength
-            cpn = [zeros(size(cenPosNorm,1),1),cenPosNorm,ones(size(cenPosNorm,1),1)];% -0.5;
-            cpn = cpn .* repmat(n_spindleVector,1,4);
-            if nSpotsMax == 3
-                cpn(:,3) = [];
-            else
-                % cpn is now s1 c1 s2 c2
-                cpn = cpn(:,[1,2,4,3]);
-            end
-
-            tmp = nan(size(cpn));
-            tmp(goodTimes,:)=cpn;
-            cpn = tmp;
-
-           
-
-            % make two kymographs. One for spotIntensities alone, one with
-            % spotIntensities plus in-between intensities. Only do the
-            % in-between intensities if there is data between all spots.
-            % For the spotIntensity kymograph, we just use detected spot
-            % intensities. For the rest, we have to calculate projections
-
-            % for spots: make psf-size
-            [gaussXY] = calcFilterParms(...
-                fitStruct.dataProperties.WVL,...
-                fitStruct.dataProperties.NA,1.51,'gauss',...
-                fitStruct.dataProperties.sigmaCorrection);
-
-            % make 10nm bins
-            xMatrix = repmat(min(cpn(:,1))-3*gaussXY:0.01:max(cpn(:,3))+3*gaussXY,nTimepoints,1);
-            yMatrix = repmat((1:nTimepoints)',1,size(xMatrix,2));
-            zMatrix = zeros(size(xMatrix));
-            for t=goodTimes'
-                for i=1:nSpotsMax
-                    zMatrix(t,:) = zMatrix(t,:) + ...
-                        exp(-(xMatrix(t,:)-cpn(t,i)).^2/(2*gaussXY^2)) *...
-                        spotIntensitiesC(t,i)/mean(spotIntensitiesC(t,[1,3]));
-                end
-            end
-            % remove rows that have no data
-            zMatrix(zMatrix == 0) = NaN;
-            % correct for possible fitting errors
-            zMatrix(zMatrix < 0) = 0;
-
-            %             figure,contourf(xMatrix,yMatrix,zMatrix,...
-            %                 'LineStyle','none','LevelList',linspace(0,1,100));
-            %             % green colormap
-            %             cm=hsl2rgb([linspace(0.3,0.4,64)',linspace(0.7,0.8,64)',linspace(0.2,1,64)']);
-            %             colormap(cm);
-            % make black axes background for NaNs
-            %             set(gca,'Color','k')
-
-            % second kymograph. This one will be an RGB figure
-            % green: intensity of spots
-            [red,green,blue,white] = deal(zeros(size(zMatrix)));
-
-            fieldList = {'s1c1' 'c1c2' 's2c2'};
-            if nSpotsMax == 3;
-                fieldList = fieldList([1,3]);
-                cpnList = [1,2];
-            else
-                cpnList = [1,2,4];
-            end
-
-            for t=goodTimes'
-                % check whether all data is there. If not, skip
-                allDataThere=  ~isempty(intensities(t).s1c1Int) && ...
-                    ~isempty(intensities(t).s2c2Int) &&...
-                    ~isempty(intensities(t).c1c2Int);
-
-                redList = [];
-                greenList = [];
-                whiteList = [];
-                xList = [];
-
-                if allDataThere(1:end-(4-nSpotsMax))
-
-                    % read intensities and the corresponding values along
-                    % the axis
-                    cpnCt = 1;
-                    for f = fieldList %%%--- change
-                        % intensities are nanMedians (hopefully, this will be
-                        % robust-y to too hot pixels
-                        redInt = nanmedian(nanmedian(intensities(t).([f{1},'Int']),2),3);
-                        redIntBg = nanmedian(intensities(t).([f{1},'Bg']),2);
-                        redInt = redInt - redIntBg; % this takes care of uneven backgrounds
-
-                        greenInt = nanmean(nanmean(intensities(t).([f{1},'Sp']),2),3);
-
-                        whiteInt = nanmedian(nanmedian(intensities(t).([f{1},'IntRaw']),2),3);
-                        whiteIntBg = nanmedian(intensities(t).([f{1},'BgRaw']),2);
-                        whiteInt = whiteInt - whiteIntBg;
-
-                        % x-values: take norm of first vector
-                        xVec = intensities(t).([f{1},'Vec'])(1,:);
-                        [xStep,xVecN] = normList(xVec);
-                        cosGamma = dot(xVecN,intensities(t).s1s2Vec);
-                        % projected step: step*cos(g). zero is at -0.5 pix
-                        xValues = ((1:length(redInt))'-10)*xStep*cosGamma;
-
-                        % add to correct value in cpn and store
-                        xValues = xValues + cpn(t,cpnList(cpnCt));
-
-                        redList = [redList;redInt];
-                        greenList = [greenList;greenInt];
-                        whiteList = [whiteList;whiteInt];
-                        xList = [xList;xValues];
-
-                        % up counter
-                        cpnCt = cpnCt + 1;
-
-                    end
-
-                    % add to red, green
-                    red(t,:) = interp1(xList,redList,xMatrix(t,:),'linear',NaN);
-                    green(t,:) = interp1(xList,greenList,xMatrix(t,:),'linear',NaN);
-                    white(t,:) = interp1(xList,whiteList,xMatrix(t,:),'linear',NaN);
-
-                end
-            end
-
-
-
-
-            rgb=cat(3,red,green,blue);
-            maxRgb = max(rgb(:));
-            rgb = rgb/maxRgb;
-            rgb = rgb./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2),3]);
-            % reorder for proper display
-            rgb = rgb(end:-1:1,:,:);
-
-            % show image
-            %             figure,imshow(rgb);
-            g=green/maxRgb./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
-            g(g==0) = NaN;
-            g(g<0) = 0;
-            figure('Name',...
-                sprintf('%s: theoretical int.',idlistList(iIdlist).dataProperties.name)),
-            contourf(xMatrix,yMatrix,g,...
-                'LineStyle','none','LevelList',linspace(0,1,100));
-            cmg=isomorphicColormap('green');
-            colormap(cmg)
-            set(gca,'Color','k')
-
-            w=white/max(white(:))./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
-            w(w==0) = NaN;
-            w(w<0) = 0;
-            figure('Name',sprintf('%s: raw int.',idlistList(iIdlist).dataProperties.name)),
-            contourf(xMatrix,yMatrix,w,...
-                'LineStyle','none','LevelList',linspace(0,1,100));
-            cmw=isomorphicColormap('blue');
-            colormap(cmw)
-            set(gca,'Color','k')
-
-            r=red/maxRgb./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
-            r(r==0) = NaN;
-            r(r<0) = 0;
-            figure('Name',sprintf('%s: residual int.',idlistList(iIdlist).dataProperties.name)),
-            contourf(xMatrix,yMatrix,r,...
-                'LineStyle','none','LevelList',linspace(0,1,100));
-            cmr=isomorphicColormap('red');
-            colormap(cmr)
-            set(gca,'Color','k')
-
+%             [n_spindleVector, cenPosNorm,goodTimes] = ...
+%                 cdProjectPositions(fitStruct.idlist);
+% 
+%             % cpn is cenPosNorm*spindleLength
+%             cpn = [zeros(size(cenPosNorm,1),1),cenPosNorm,ones(size(cenPosNorm,1),1)];% -0.5;
+%             cpn = cpn .* repmat(n_spindleVector,1,4);
+%             if nSpotsMax == 3
+%                 cpn(:,3) = [];
+%             else
+%                 % cpn is now s1 c1 s2 c2
+%                 cpn = cpn(:,[1,2,4,3]);
+%             end
+% 
+%             tmp = nan(size(cpn));
+%             tmp(goodTimes,:)=cpn;
+%             cpn = tmp;
+% 
+%            
+% 
+%             % make two kymographs. One for spotIntensities alone, one with
+%             % spotIntensities plus in-between intensities. Only do the
+%             % in-between intensities if there is data between all spots.
+%             % For the spotIntensity kymograph, we just use detected spot
+%             % intensities. For the rest, we have to calculate projections
+% 
+%             % for spots: make psf-size
+%             [gaussXY] = calcFilterParms(...
+%                 fitStruct.dataProperties.WVL,...
+%                 fitStruct.dataProperties.NA,1.51,'gauss',...
+%                 fitStruct.dataProperties.sigmaCorrection);
+% 
+%             % make 10nm bins
+%             xMatrix = repmat(min(cpn(:,1))-3*gaussXY:0.01:max(cpn(:,3))+3*gaussXY,nTimepoints,1);
+%             yMatrix = repmat((1:nTimepoints)',1,size(xMatrix,2));
+%             zMatrix = zeros(size(xMatrix));
+%             for t=goodTimes'
+%                 for i=1:nSpotsMax
+%                     zMatrix(t,:) = zMatrix(t,:) + ...
+%                         exp(-(xMatrix(t,:)-cpn(t,i)).^2/(2*gaussXY^2)) *...
+%                         spotIntensitiesC(t,i)/mean(spotIntensitiesC(t,[1,3]));
+%                 end
+%             end
+%             % remove rows that have no data
+%             zMatrix(zMatrix == 0) = NaN;
+%             % correct for possible fitting errors
+%             zMatrix(zMatrix < 0) = 0;
+% 
+%             %             figure,contourf(xMatrix,yMatrix,zMatrix,...
+%             %                 'LineStyle','none','LevelList',linspace(0,1,100));
+%             %             % green colormap
+%             %             cm=hsl2rgb([linspace(0.3,0.4,64)',linspace(0.7,0.8,64)',linspace(0.2,1,64)']);
+%             %             colormap(cm);
+%             % make black axes background for NaNs
+%             %             set(gca,'Color','k')
+% 
+%             % second kymograph. This one will be an RGB figure
+%             % green: intensity of spots
+%             [red,green,blue,white] = deal(zeros(size(zMatrix)));
+% 
+%             fieldList = {'s1c1' 'c1c2' 's2c2'};
+%             if nSpotsMax == 3;
+%                 fieldList = fieldList([1,3]);
+%                 cpnList = [1,2];
+%             else
+%                 cpnList = [1,2,4];
+%             end
+% 
+%             for t=goodTimes'
+%                 % check whether all data is there. If not, skip
+%                 allDataThere=  ~isempty(intensities(t).s1c1Int) && ...
+%                     ~isempty(intensities(t).s2c2Int) &&...
+%                     ~isempty(intensities(t).c1c2Int);
+% 
+%                 redList = [];
+%                 greenList = [];
+%                 whiteList = [];
+%                 xList = [];
+% 
+%                 if allDataThere(1:end-(4-nSpotsMax))
+% 
+%                     % read intensities and the corresponding values along
+%                     % the axis
+%                     cpnCt = 1;
+%                     for f = fieldList %%%--- change
+%                         % intensities are nanMedians (hopefully, this will be
+%                         % robust-y to too hot pixels
+%                         redInt = nanmedian(nanmedian(intensities(t).([f{1},'Int']),2),3);
+%                         redIntBg = nanmedian(intensities(t).([f{1},'Bg']),2);
+%                         redInt = redInt - redIntBg; % this takes care of uneven backgrounds
+% 
+%                         greenInt = nanmean(nanmean(intensities(t).([f{1},'Sp']),2),3);
+% 
+%                         whiteInt = nanmedian(nanmedian(intensities(t).([f{1},'IntRaw']),2),3);
+%                         whiteIntBg = nanmedian(intensities(t).([f{1},'BgRaw']),2);
+%                         whiteInt = whiteInt - whiteIntBg;
+% 
+%                         % x-values: take norm of first vector
+%                         xVec = intensities(t).([f{1},'Vec'])(1,:);
+%                         [xStep,xVecN] = normList(xVec);
+%                         cosGamma = dot(xVecN,intensities(t).s1s2Vec);
+%                         % projected step: step*cos(g). zero is at -0.5 pix
+%                         xValues = ((1:length(redInt))'-10)*xStep*cosGamma;
+% 
+%                         % add to correct value in cpn and store
+%                         xValues = xValues + cpn(t,cpnList(cpnCt));
+% 
+%                         redList = [redList;redInt];
+%                         greenList = [greenList;greenInt];
+%                         whiteList = [whiteList;whiteInt];
+%                         xList = [xList;xValues];
+% 
+%                         % up counter
+%                         cpnCt = cpnCt + 1;
+% 
+%                     end
+% 
+%                     % add to red, green
+%                     red(t,:) = interp1(xList,redList,xMatrix(t,:),'linear',NaN);
+%                     green(t,:) = interp1(xList,greenList,xMatrix(t,:),'linear',NaN);
+%                     white(t,:) = interp1(xList,whiteList,xMatrix(t,:),'linear',NaN);
+% 
+%                 end
+%             end
+% 
+% 
+% 
+% 
+%             rgb=cat(3,red,green,blue);
+%             maxRgb = max(rgb(:));
+%             rgb = rgb/maxRgb;
+%             rgb = rgb./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2),3]);
+%             % reorder for proper display
+%             rgb = rgb(end:-1:1,:,:);
+% 
+%             % show image
+%             %             figure,imshow(rgb);
+%             g=green/maxRgb./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
+%             g(g==0) = NaN;
+%             g(g<0) = 0;
+%             figure('Name',...
+%                 sprintf('%s: theoretical int.',idlistList(iIdlist).dataProperties.name)),
+%             contourf(xMatrix,yMatrix,g,...
+%                 'LineStyle','none','LevelList',linspace(0,1,100));
+%             cmg=isomorphicColormap('green');
+%             colormap(cmg)
+%             set(gca,'Color','k')
+% 
+%             w=white/max(white(:))./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
+%             w(w==0) = NaN;
+%             w(w<0) = 0;
+%             figure('Name',sprintf('%s: raw int.',idlistList(iIdlist).dataProperties.name)),
+%             contourf(xMatrix,yMatrix,w,...
+%                 'LineStyle','none','LevelList',linspace(0,1,100));
+%             cmw=isomorphicColormap('blue');
+%             colormap(cmw)
+%             set(gca,'Color','k')
+% 
+%             r=red/maxRgb./repmat(exp(xFit(end)*(1:nTimepoints)'),[1,size(red,2)]);
+%             r(r==0) = NaN;
+%             r(r<0) = 0;
+%             figure('Name',sprintf('%s: residual int.',idlistList(iIdlist).dataProperties.name)),
+%             contourf(xMatrix,yMatrix,r,...
+%                 'LineStyle','none','LevelList',linspace(0,1,100));
+%             cmr=isomorphicColormap('red');
+%             colormap(cmr)
+%             set(gca,'Color','k')
+% 
 
 
             disp('stopping. Press key to continue')
