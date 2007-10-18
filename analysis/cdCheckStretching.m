@@ -187,7 +187,7 @@ switch type
             
 % find goodTimes
 dispXC = {intensities.dispX};
-goodTimes = find(~cellfun(@isempty,tmp))';
+goodTimes = find(~cellfun(@isempty,dispXC))';
 
 % display projections
 
@@ -260,6 +260,8 @@ ylabel('time (s)')
 
 % count significant pixels
 cutoff = 0.05;
+sigIntList = cell(goodTimes(end),1);
+sigIntSum = NaN(nTimepoints,1);
 for t=goodTimes'
     
     % find threshold
@@ -268,6 +270,24 @@ for t=goodTimes'
         sigIntL = intensities(t).residualInt > threshold;
         % count significant pixels
         nSig = sum(sigIntL(:));
+        % count overall pixels
+        nTot = sum(isfinite(intensities(t).residualInt(:)));
+        % the lower "cutoff*100"% could be noise
+        sigInt = intensities(t).residualInt(sigIntL);
+        nNoise = min(floor(nTot * cutoff),nSig);
+        [sigInt,sortIdx] = sort(sigInt);
+        sigInt(1:nNoise) = [];
+        sigRatio(t) = nSig/nTot;
+        sigRatio2(t) = length(sigInt)/nTot;
+        sigIntLcorr = sigIntL;
+        sigIntLcorr(sortIdx(1:nNoise)) = false;
+        
+        % sum the intensity in the significant voxels, keep the ordering
+        % along the first dimension, though
+        tmp = intensities(t).residualInt;
+        tmp(~sigIntLcorr) = 0;
+        sigIntList{t} = squeeze(sum(sum(tmp,1),2));
+        sigIntSum(t) = sum(sigIntList{t});
         
 end
         

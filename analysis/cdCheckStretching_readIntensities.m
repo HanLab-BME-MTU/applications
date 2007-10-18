@@ -252,7 +252,7 @@ for t=goodTimes'
             % make sure we start inside the movie
             startPix = max(startPix,[1,1,1]);
             startPix = min(startPix,movieSize(1:3));
-            endPos = (linklist(3,9:11) + e_s1s2*3*oneSigma)./pix2mu;
+            endPos = (linklist(3,9:11) + e_s1s2*4*oneSigma)./pix2mu;
             endPix = round(endPos);
             endPix = max(endPix,[1,1,1]);
             endPix = min(endPix,movieSize(1:3));
