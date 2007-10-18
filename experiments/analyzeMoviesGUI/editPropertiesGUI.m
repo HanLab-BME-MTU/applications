@@ -22,7 +22,7 @@ function varargout = editPropertiesGUI(varargin)
 
 % Edit the above text to modify the response to help editPropertiesGUI
 
-% Last Modified by GUIDE v2.5 15-Feb-2006 12:29:52
+% Last Modified by GUIDE v2.5 18-Oct-2007 15:46:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1472,4 +1472,65 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+
+
+
+
+function edit_sigmaCorrX_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_sigmaCorrX_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_sigmaCorrX_txt as text
+%        str2double(get(hObject,'String')) returns contents of edit_sigmaCorrX_txt as a double
+scx = str2double(get(hObject,'String'));
+if ~isfinite(scx)
+    set(hObject,'String','1');
+else
+    set(handles.edit_sigmaCorrY_txt,'String',sprintf('%1.2f',scx))
+    handles.sigmaCorrection(1) = scx;
+    % update filter parameters
+     wvl = str2double(get(handles.edit_wavelength_txt,'String'));
+        NA = str2double(get(handles.edit_NA_txt,'String'));
+        [FT_XY, FT_Z] = calcFilterParms(...
+            wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
+        patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
+        handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
+        set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
+        set(handles.edit_filterY_txt,'String',sprintf('%0.3f',FT_XY));
+        set(handles.edit_filterZ_txt,'String',sprintf('%0.3f',FT_Z));
+        set(handles.edit_patchX_txt,'String',patchXYZ(1));
+        set(handles.edit_patchY_txt,'String',patchXYZ(2));
+        set(handles.edit_patchZ_txt,'String',patchXYZ(3));
+end
+guidata(hObject,handles);
+
+
+function edit_sigmaCorrZ_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_sigmaCorrZ_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_sigmaCorrZ_txt as text
+%        str2double(get(hObject,'String')) returns contents of edit_sigmaCorrZ_txt as a double
+scz = str2double(get(hObject,'String'));
+if ~isfinite(scz)
+    set(hObject,'String','1');
+else
+    handles.sigmaCorrection(2) = scz;
+    % update filter parameters
+     wvl = str2double(get(handles.edit_wavelength_txt,'String'));
+        NA = str2double(get(handles.edit_NA_txt,'String'));
+        [FT_XY, FT_Z] = calcFilterParms(...
+            wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
+        patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
+        handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
+        set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
+        set(handles.edit_filterY_txt,'String',sprintf('%0.3f',FT_XY));
+        set(handles.edit_filterZ_txt,'String',sprintf('%0.3f',FT_Z));
+        set(handles.edit_patchX_txt,'String',patchXYZ(1));
+        set(handles.edit_patchY_txt,'String',patchXYZ(2));
+        set(handles.edit_patchZ_txt,'String',patchXYZ(3));
+end
+guidata(hObject,handles);
 
