@@ -371,3 +371,9 @@ figure('Name','3 (blue) and 4 (red) spots'),area(range,[c3',c4']./repmat(nansum(
 xlabel('Spindle Length (\mum)')
 % reset warnings
 warning(warningState);
+
+% Eugenio's request of Oct 16 2007: plot relCenInt for 3 and 4 spots
+figure('Name','relative centromere intensity (3=b/4=r)')
+plot(data1(d31,2),data1(d31,5),'.b',data1(d41,2),data1(d41,5),'.r')
+xlabel('Spindle Length (\mum)')
+ylabel('$$\frac{\Sigma(cenInt)}{\Sigma(spbInt)}$$','Interpreter','latex')
