@@ -27,6 +27,9 @@ function makiUpdateDataFile(update)
 %           14: remove field goodTrackRatio from
 %               dataStruct.dataProperties.groupSisters (basically I'm
 %               fixing a bug).
+%           15: Add 2 new fields to dataStruct for classification update,
+%               add additional row in status and additional field in
+%               history.
 %
 % OUTPUT
 %
@@ -369,6 +372,68 @@ for iFile = 1:nFiles
                 end
             end
                 
+        case 15
+            
+            %get movie name
+            projectName = dataStruct.projectName;
+            
+            %add 2 new fields to dataStruct for classification update
+            if ~isfield(dataStruct,'updatedClassName')
+                dataStruct.updatedClassName = ['updatedClass_' projectName '_1.mat'];
+                dataStruct.updatedClass = [];
+            end
+            
+            %status
+            if length(dataStruct.status) < 9
+                dataStruct.status = [dataStruct.status; 0];
+            end
+            
+            %statusHelp
+            if size(dataStruct.statusHelp,1) < 9
+                tmpVar2 = cell(1,3);
+                tmpVar2{1,1} = 'updatedClass';
+                dataStruct.statusHelp = [dataStruct.statusHelp; tmpVar2];
+                clear tmpVar2
+            end
+            
+            %history
+            tmpVar2 = dataStruct.history;
+            if ~isfield(tmpVar2,'updatedClass')
+                dataStruct.history.updatedClass = zeros(1,tmpVar2.numRuns);
+            end
+            clear tmpVar2
+
+            %rearrange sequence of fields in dataStruct
+            tmpVar = dataStruct;
+            clear dataStruct;
+            dataStruct.projectName = tmpVar.projectName;
+            dataStruct.rawMovieName = tmpVar.rawMovieName;
+            dataStruct.rawMoviePath = tmpVar.rawMoviePath;
+            dataStruct.dataFileName = tmpVar.dataFileName;
+            dataStruct.dataFilePath = tmpVar.dataFilePath;
+            dataStruct.dataPropertiesName = tmpVar.dataPropertiesName;
+            dataStruct.dataProperties = tmpVar.dataProperties;
+            dataStruct.movieHeaderName = tmpVar.movieHeaderName;
+            dataStruct.movieHeader = tmpVar.movieHeader;
+            dataStruct.initCoordName = tmpVar.initCoordName;
+            dataStruct.initCoord = tmpVar.initCoord;
+            dataStruct.slistName = tmpVar.slistName;
+            dataStruct.slist = tmpVar.slist;
+            dataStruct.planeFitName = tmpVar.planeFitName;
+            dataStruct.planeFit = tmpVar.planeFit;
+            dataStruct.tracksName = tmpVar.tracksName;
+            dataStruct.tracks = tmpVar.tracks;
+            dataStruct.sisterListName = tmpVar.sisterListName;
+            dataStruct.sisterList = tmpVar.sisterList;
+            dataStruct.frameAlignmentName = tmpVar.frameAlignmentName;
+            dataStruct.frameAlignment = tmpVar.frameAlignment;
+            dataStruct.updatedClassName = tmpVar.updatedClassName;
+            dataStruct.updatedClass = tmpVar.updatedClass;
+            dataStruct.status = tmpVar.status;
+            dataStruct.statusHelp = tmpVar.statusHelp;
+            dataStruct.history = tmpVar.history;
+            clear tmpVar
+            
         otherwise
             % do nothing
     end

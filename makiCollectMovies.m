@@ -3,8 +3,8 @@ function analysisStruct = makiCollectMovies(jobType)
 %
 %SYNOPSIS analysisStruct = makiCollectMovies(jobType)
 %
-%INPUT jobType: 1: test job
-%               2: hercules run (default)
+%INPUT jobType: string which can take the values:
+%               'TEST','HERCULES','DANUSER','MERLADI',SWEDLOW' or MCAINSH
 %
 %OUTPUT analysisStruct: Structure with fields:
 %               .fileName: Name of file where analysisStruct is stored.
@@ -15,20 +15,28 @@ function analysisStruct = makiCollectMovies(jobType)
 %Khuloud Jaqaman, July 2007
 
 %assign default job type if not input
+%define top directory to start search
 if nargin < 1
-    jobType = 2;
-end
-
-%define top directory to start search at
-switch jobType
-    case 1
+    topDir = makiPathDef('$TESTDATA');
+else
+    jobType = upper(jobType);
+    if strcmp(jobType,'TEST')
         topDir = makiPathDef('$TESTDATA');
-    case 2
+    elseif strcmp(jobType,'HERCULES')        
         topDir = makiPathDef('$HERCULES');
+    elseif strcmp(jobType,'DANUSER')
+        topDir = makiPathDef('$DANUSER');
+    elseif strcmp(jobType,'MERALDI')
+        topDir = makiPathDef('$MERALDI');
+    elseif strcmp(jobType,'SWEDLOW')
+        topDir = makiPathDef('$SWEDLOW');
+    elseif strcmp(jobType,'MCAINSH')
+        topDir = makiPathDef('$MCAINSH');
+    end
 end
 
 %allow user to choose directory
-basePath = uigetdir(topDir,'Please select data-dir');
+basePath = uigetdir(topDir,'Please select directory');
 
 %find all makiAnalysis files in chosen directory
 fileList1 = searchFiles('makiAnalysis',[],basePath,1);
@@ -73,6 +81,9 @@ if numFiles == 1 %if only 1 file was uploaded
         analysisStruct.fileName = fileName;
         analysisStruct.filePath = dir2SaveRes;
         analysisStruct.movies = fileList;
+        
+        %make analysisStruct platform independent
+        analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct);
 
         %save analysisStruct
         save(fullfile(dir2SaveRes,fileName),'analysisStruct');
@@ -89,8 +100,9 @@ if numFiles == 1 %if only 1 file was uploaded
 
 else %if more than 1 file was uploaded
 
-    %create cell array where movie names are stored
-    movieListAll = [];
+    %create cell arrays where movie names are stored
+    movieListAll1 = [];
+    movieListAll2 = [];
 
     %go over all selected files
     for iFile = 1 : numFiles
@@ -98,7 +110,7 @@ else %if more than 1 file was uploaded
         if isDataFile(iFile) %if this file is a data file
 
             %add movie name to list
-            movieListAll = [movieListAll; fileList(iFile,:)];
+            movieListAll1 = [movieListAll1; fileList(iFile,:)];
 
         else %if this file is an analysis file
 
@@ -106,7 +118,7 @@ else %if more than 1 file was uploaded
             load(fullfile(fileList{iFile,2},fileList{iFile,1}));
             
             %add movie names to list
-            movieListAll = [movieListAll; analysisStruct.movies];
+            movieListAll2 = [movieListAll2; analysisStruct.movies];
 
             %delete the uploaded analysisStruct
             clear analysisStruct
@@ -114,6 +126,14 @@ else %if more than 1 file was uploaded
         end %(if isDataFile(iFile))
 
     end %(for iFile = 1 : numFiles)
+    
+    %change file paths in movieListAll1 into identifiers
+    for i = 1 : size(movieListAll1,1)
+        movieListAll1{i,2} = makiPathDef(movieListAll1{i,2});
+    end
+    
+    %put all selected files together
+    movieListAll = [movieListAll1; movieListAll2];
     
     %make sure that there are no movie repetitions
     [dummy,indxUnique] = unique(movieListAll(:,1));
@@ -128,7 +148,7 @@ else %if more than 1 file was uploaded
 
         %generate analysisStruct
         analysisStruct.fileName = fileName;
-        analysisStruct.filePath = dir2SaveRes;
+        analysisStruct.filePath = makiPathDef(dir2SaveRes);
         analysisStruct.movies = movieListAll;
 
     else %if user specified a file and directory
@@ -154,7 +174,7 @@ else %if more than 1 file was uploaded
         
         %generate analysisStruct
         analysisStruct.fileName = fileName;
-        analysisStruct.filePath = dir2SaveRes;
+        analysisStruct.filePath = makiPathDef(dir2SaveRes);
         analysisStruct.movies = movieListAll;
 
         %save analysisStruct
@@ -162,5 +182,5 @@ else %if more than 1 file was uploaded
 
     end
 
-end %(if numFiles == 1)
+end %(if numFiles == 1 ... else ...)
 

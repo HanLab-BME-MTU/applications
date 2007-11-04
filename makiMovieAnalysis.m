@@ -39,6 +39,7 @@ end
 % 6: track
 % 7: sister identification
 % 8: frame alignment
+% 9: update frame and kinetochore classification
 
 if testMode
 
@@ -154,93 +155,93 @@ while ~done
             
             %I recently moved mmf from task # 7 to task #4, where it should
             %be. Keep an eye on things. -KJ (02-Aug-2007)
-            if any(jobs2do == 4)
+            %             if any(jobs2do == 4)
+            %
+            %                 % write current job to log files
+            %                 fprintf(1,'%s : mixture model fitting for %s\n',...
+            %                     nowString,job(iJob).dataStruct.projectName);
+            %                 fprintf(generalLog,'%s : mixture model fitting\n',nowString);
+            %                 fprintf(individualLog,'%s : mixture model fitting\n', nowString);
+            %
+            %                 % read and prepare data
+            %                 rawMovieName = fullfile(job(iJob).dataStruct.rawMoviePath,...
+            %                     job(iJob).dataStruct.rawMovieName);
+            %
+            %                 nTimepoints = job(iJob).dataStruct.dataProperties.movieSize(end);
+            %
+            %                 % create a 'cord' structure (yes, I know it's a typo)
+            %                 cordStruct = makiCoord2Cord(initCoord);
+            %
+            %                 % loop with movie-chunks
+            %                 loopDone = 0;
+            %
+            %                 % preassign slist
+            %                 slist(1:nTimepoints) = ...
+            %                     struct('sp',[],...
+            %                     'statistics',[],...
+            %                     'parms',[],...
+            %                     'COM',[]);
+            %
+            %                 %!!!!!!!!!! update this !!!!!!!!!!!!
+            %                 % for testing, set amplitudeCutoff to 6
+            %                 % activate lines in makiInitCoord to get good A.C.
+            %                 job(iJob).dataStruct.dataProperties.amplitudeCutoff = 6;
+            %
+            %
+            %                 % load first part
+            %                 [rawMovie, movieHeader, loadStruct] = ...
+            %                     cdLoadMovie({rawMovieName,'raw'},[],job(iJob).dataStruct.dataProperties);
+            %
+            %                 while ~loopDone
+            %
+            %                     lf = loadStruct.loadedFrames;
+            %                     fprintf(generalLog,sprintf('%s : MMF frames %i:%i\n',nowString,lf(1),lf(end)));
+            %                     fprintf(individualLog,sprintf('%s : MMF frames %i:%i\n',nowString,lf(1),lf(end)));
+            %                     slist(lf) = ...
+            %                         detectSpots_MMF_main(rawMovie,cordStruct(lf),...
+            %                         job(iJob).dataStruct.dataProperties,[],sprintf('MMF frames %i:%i/%i',lf(1),lf(end),...
+            %                         nTimepoints)); %#ok<AGROW>
+            %
+            %                     % load more
+            %                     if ~isempty(loadStruct.frames2load)
+            %                         [rawMovie, movieHeader, loadStruct] = ...
+            %                             cdLoadMovie(loadStruct.movieType,[],loadStruct);
+            %                     else
+            %                         loopDone = 1;
+            %                     end
+            %
+            %                 end % while loop
+            %
+            %
+            %                 % save job
+            %                 job(iJob).dataStruct.status(4) = 1;
+            %                 job(iJob).dataStruct.statusHelp{4,2} = date;
+            %                 job(iJob).dataStruct.slist = slist;
+            %                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
+            %
+            %                 % save dataStruct. Do not overwrite previous slist
+            %                 [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'slist');
+            %
+            %                 % set the current version of the slist
+            %                 if success
+            %                     job(iJob).dataStruct.history.slist(job(iJob).dataStruct.history.numRuns)= ...
+            %                         getVersion(job(iJob).dataStruct.slistName);
+            %                     % mixture model fitting depends on initial coordinates -- thus,
+            %                     % fill in the history.initCoord field as well
+            %                     job(iJob).dataStruct.history.initCoord(job(iJob).dataStruct.history.numRuns) = ...
+            %                         getVersion(job(iJob).dataStruct.initCoordName);
+            %                 else
+            %                     error('unable to secure-save mixture model coordinates');
+            %                 end
+            %
+            %             else
+            %
+            % write temporarily a zero to history.slist
+            % Dependent on the jobs to follow, this field might be
+            % overwritten again
+            job(iJob).dataStruct.history.slist(job(iJob).dataStruct.history.numRuns)= 0;
 
-                % write current job to log files
-                fprintf(1,'%s : mixture model fitting for %s\n',...
-                    nowString,job(iJob).dataStruct.projectName);
-                fprintf(generalLog,'%s : mixture model fitting\n',nowString);
-                fprintf(individualLog,'%s : mixture model fitting\n', nowString);
-
-                % read and prepare data
-                rawMovieName = fullfile(job(iJob).dataStruct.rawMoviePath,...
-                    job(iJob).dataStruct.rawMovieName);
-
-                nTimepoints = job(iJob).dataStruct.dataProperties.movieSize(end);
-
-                % create a 'cord' structure (yes, I know it's a typo)
-                cordStruct = makiCoord2Cord(initCoord);
-
-                % loop with movie-chunks
-                loopDone = 0;
-
-                % preassign slist
-                slist(1:nTimepoints) = ...
-                    struct('sp',[],...
-                    'statistics',[],...
-                    'parms',[],...
-                    'COM',[]);
-
-                %!!!!!!!!!! update this !!!!!!!!!!!!
-                % for testing, set amplitudeCutoff to 6
-                % activate lines in makiInitCoord to get good A.C.
-                job(iJob).dataStruct.dataProperties.amplitudeCutoff = 6;
-
-
-                % load first part
-                [rawMovie, movieHeader, loadStruct] = ...
-                    cdLoadMovie({rawMovieName,'raw'},[],job(iJob).dataStruct.dataProperties);
-
-                while ~loopDone
-
-                    lf = loadStruct.loadedFrames;
-                    fprintf(generalLog,sprintf('%s : MMF frames %i:%i\n',nowString,lf(1),lf(end)));
-                    fprintf(individualLog,sprintf('%s : MMF frames %i:%i\n',nowString,lf(1),lf(end)));
-                    slist(lf) = ...
-                        detectSpots_MMF_main(rawMovie,cordStruct(lf),...
-                        job(iJob).dataStruct.dataProperties,[],sprintf('MMF frames %i:%i/%i',lf(1),lf(end),...
-                        nTimepoints)); %#ok<AGROW>
-
-                    % load more
-                    if ~isempty(loadStruct.frames2load)
-                        [rawMovie, movieHeader, loadStruct] = ...
-                            cdLoadMovie(loadStruct.movieType,[],loadStruct);
-                    else
-                        loopDone = 1;
-                    end
-
-                end % while loop
-
-
-                % save job
-                job(iJob).dataStruct.status(4) = 1;
-                job(iJob).dataStruct.statusHelp{4,2} = date;
-                job(iJob).dataStruct.slist = slist;
-                save(fullfile(job(1).jobPath,job(1).jobName),'job');
-                
-                % save dataStruct. Do not overwrite previous slist
-                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'slist');
-                
-                % set the current version of the slist
-                if success
-                    job(iJob).dataStruct.history.slist(job(iJob).dataStruct.history.numRuns)= ...
-                        getVersion(job(iJob).dataStruct.slistName);
-                    % mixture model fitting depends on initial coordinates -- thus,
-                    % fill in the history.initCoord field as well
-                    job(iJob).dataStruct.history.initCoord(job(iJob).dataStruct.history.numRuns) = ...
-                        getVersion(job(iJob).dataStruct.initCoordName);
-                else
-                    error('unable to secure-save mixture model coordinates');
-                end
-                
-            else
-                
-                % write temporarily a zero to history.slist
-                % Dependent on the jobs to follow, this field might be
-                % overwritten again
-                job(iJob).dataStruct.history.slist(job(iJob).dataStruct.history.numRuns)= 0;
-                
-            end
+            %             end
             
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %----------------- plane fitting ----------------------
@@ -361,7 +362,7 @@ while ~done
                 %save dataStruct. Do not overwrite older sisterLists
                 [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'sisterList');
                 
-                % set the current version of the initCoord
+                % set the current version of the sister list
                 if success
                     job(iJob).dataStruct.history.sisterList(job(iJob).dataStruct.history.numRuns)= ...
                         getVersion(job(iJob).dataStruct.sisterListName);
@@ -407,7 +408,7 @@ while ~done
                 %save dataStruct. Do not overwrite older frame alignments
                 [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'frameAlignment');
                 
-                % set the current version of the initCoord
+                % set the current version of the frame alignment
                 if success
                     job(iJob).dataStruct.history.frameAlignment(job(iJob).dataStruct.history.numRuns)= ...
                         getVersion(job(iJob).dataStruct.frameAlignmentName);
@@ -425,10 +426,59 @@ while ~done
                 
             else
 
-                % write temporarily a zero to history.tracks
+                % write temporarily a zero to history.frameAlignment
                 % Dependent on the jobs to follow, this field might be
                 % overwritten again
                 job(iJob).dataStruct.history.frameAlignment(job(iJob).dataStruct.history.numRuns)= 0;
+                
+            end
+
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %------------- update classification ------------------
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            
+            if any(jobs2do == 9)
+                
+                %write current job to log files
+                fprintf(1,'%s : update classification for %s\n',...
+                    nowString,job(iJob).dataStruct.projectName);
+                fprintf(generalLog,'%s : update classification\n',nowString);
+                fprintf(individualLog,'%s : update classification\n', nowString);
+
+                %pass and retrieve dataStruct
+                job(iJob).dataStruct = makiUpdateClass(job(iJob).dataStruct);
+
+                %save job
+                job(iJob).dataStruct.status(9) = 1;
+                job(iJob).dataStruct.statusHelp{9,2} = date;
+                save(fullfile(job(1).jobPath,job(1).jobName),'job');
+                
+                %save dataStruct. Do not overwrite older classification
+                %updates
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'updatedClass');
+                
+                % set the current version of the classification update
+                if success
+                    job(iJob).dataStruct.history.updatedClass(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.updatedClassName);
+                    % frame alignment depends on initCoord, plane fit and tracks -- thus,
+                    % fill in those fields as well
+                    job(iJob).dataStruct.history.planeFit(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.planeFitName);
+                    job(iJob).dataStruct.history.tracks(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.tracksName);
+                    job(iJob).dataStruct.history.sisterList(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.sisterListName);
+                else
+                    error('unable to secure-save updated classification');
+                end
+                
+            else
+
+                % write temporarily a zero to history.updatedClass
+                % Dependent on the jobs to follow, this field might be
+                % overwritten again
+                job(iJob).dataStruct.history.updatedClass(job(iJob).dataStruct.history.numRuns)= 0;
                 
             end
 
@@ -437,6 +487,8 @@ while ~done
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %--------------- THE END (of job-loop) ------------------
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            
+            
         catch
             
             % display and log error

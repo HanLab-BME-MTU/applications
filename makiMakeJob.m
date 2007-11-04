@@ -3,9 +3,9 @@ function job = makiMakeJob(jobType,status,job)
 %
 % SYNOPSIS: job = makiMakeJob(jobType,status,job)
 %
-% INPUT jobType: 1: test job (default)
-%                2: hercules run
-%                3: update existing job
+% INPUT jobType: string which can take the values:
+%                'TEST','HERCULES','UPDATE',
+%                'DANUSER','MERLADI',SWEDLOW' or MCAINSH
 %       status : status that you want to achieve, either as status vector,
 %                e.g. [1,1,1,0,1,0,0,0], or a list of tasks, e.g. [1,2,3,5]
 %                To force a task, set 2 in the status vector, or negative
@@ -21,10 +21,10 @@ function job = makiMakeJob(jobType,status,job)
 %
 % OUTPUT job: job-struct (input to makiMovieAnalysis)
 %
-% REMARKS This is a hack. Setting up jobs should be done via a GUI.
-%         Order of jobs so far: (1) cropping; (2) saving dataStruct;
+% REMARKS Order of tasks so far: (1) cropping; (2) saving dataStruct;
 %         (3) initCoord; (4) mixture-model fitting; (5) plane fit;
-%         (6) tracking; (7) sister identification; (8) frame alignment.
+%         (6) tracking; (7) sister identification; (8) frame alignment;
+%         (9) update kinetochore and frame classification.
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -34,12 +34,27 @@ function job = makiMakeJob(jobType,status,job)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make this compatible for future addition of tasks.
-% % % Currently only 6 tasks are documented in the help. 
-% % % The system semi-supports a 7th task, which is the mixture model fitting
-makiNumPossibleTasks = 8;
+makiNumPossibleTasks = 9;
 
 if nargin < 1 || isempty(jobType)
     jobType = 1;
+else
+    jobType = upper(jobType);
+    if strcmp(jobType,'TEST')
+        jobType = 1;
+    elseif strcmp(jobType,'HERCULES')
+        jobType = 2;
+    elseif strcmp(jobType,'UPDATE')
+        jobType = 3;
+    elseif strcmp(jobType,'DANUSER')
+        jobType = 4;
+    elseif strcmp(jobType,'MERALDI')
+        jobType = 5;
+    elseif strcmp(jobType,'SWEDLOW')
+        jobType = 6;
+    elseif strcmp(jobType,'MCAINSH')
+        jobType = 7;
+    end
 end
 if nargin < 2 || isempty(status)
     status = zeros(makiNumPossibleTasks,1);
@@ -64,26 +79,41 @@ warningState = warning;
 warning off IMARISIMREAD:NOPROPERTYREADER
 
 switch jobType
-    case {1,2}
+    case {1,2,4,5,6,7}
         % test jobs and hercules runs
-
-        % job-files will always be stored in testData
-        jobPath = makiPathDef('$TESTDATA');
 
         % basePath depends on the job
         switch jobType
             case 1
+                jobPath = makiPathDef('$TESTDATA');
                 basePath = jobPath;
                 jobName = sprintf('testJob-%s.mat',nowString);
             case 2
+                jobPath = makiPathDef('$TESTDATA');
                 basePath = makiPathDef('$HERCULES');
                 jobName = sprintf('herculesJob-%s.mat',nowString);
+            case 4
+                basePath = makiPathDef('$DANUSER');
+                jobPath = [basePath filesep 'JobLogFiles'];
+                jobName = sprintf('danuserJob-%s.mat',nowString);
+            case 5
+                basePath = makiPathDef('$MERALDI');
+                jobPath = [basePath filesep 'JobLogFiles'];
+                jobName = sprintf('meraldiJob-%s.mat',nowString);
+            case 6
+                basePath = makiPathDef('$SWEDLOW');
+                jobPath = [basePath filesep 'JobLogFiles'];
+                jobName = sprintf('swedlowJob-%s.mat',nowString);
+            case 7
+                basePath = makiPathDef('$MCAINSH');
+                jobPath = [basePath filesep 'JobLogFiles'];
+                jobName = sprintf('mcainshJob-%s.mat',nowString);
         end
 
         % allow user to change base path
         basePath = uigetdir(basePath,'Please select data-dir');
 
-        % find all .dv files in jobPath
+        % find all .dv files in basePath
         fileList = searchFiles('dv$','(log)|(_PRJ)',basePath,1);
 
         selectIdx = listSelectGUI(fileList(:,1),[],'move');
@@ -93,7 +123,7 @@ switch jobType
         nJobs = length(selectIdx);
 
         % set up job file
-        % store job path in all jobs, in case we want to pick out one
+        % store job path for all jobs, in case we want to pick out one
         job(1:nJobs) = struct('jobPath',jobPath,...
             'jobName',jobName,'dataStruct',[]);
 

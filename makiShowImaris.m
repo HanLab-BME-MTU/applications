@@ -6,7 +6,7 @@ function makiShowImaris(dataStruct,select)
 % INPUT dataStruct: (opt) data structure as described in makiMakeDataStruct
 %                   if empty, guiLoad
 %		select: (opt) vector of analysis results to plot. If not
-%               not inputed or empty, everything available will be plotted.
+%               inputed or empty, everything available will be plotted.
 %               1st entry: tracks; 2nd entry: sisters, 3rd entry: fitted 
 %               plane. Enter 1 for result to be plotted, 0 for result not 
 %               to be plotted.
@@ -47,7 +47,7 @@ dataProperties = dataStruct.dataProperties;
 pixelSize = [dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,...
     dataProperties.PIXELSIZE_Z];
 
-% check for croppping
+% check for cropping
 if isempty(dataProperties.crop)
     dataProperties.crop = zeros(2,3);
 end
@@ -78,7 +78,6 @@ zeroOffset = [zeroOffsetX zeroOffsetY zeroOffsetZ];
 
 %get coordinates
 initCoord = dataStruct.initCoord;
-planeFit = dataStruct.planeFit;
 
 % make spots object: X,Y,Z,T,r
 nTimepoints = dataProperties.movieSize(end);
@@ -88,11 +87,8 @@ spots(:,5) = pixelSize(1)*2; % radius in micron
 goodTimes = find(nSpots);
 nSpotSum = [0;cumsum(nSpots)];
 
-inlierIdx = [];
-unalignedIdx = [];
-laggingIdx = [];
-
 for t = goodTimes'
+
     % calculate positions in microns. Subtract one voxel from
     % the coords: Imaris starts counting at 0!
     % Use initCoord in pixels to avoid correction problems
@@ -102,15 +98,7 @@ for t = goodTimes'
         repmat(pixelSize,nSpots(t),1) + ...
         repmat(zeroOffset,nSpots(t),1),...
         (t-1)*ones(nSpots(t),1)];
-    
-    if ~isempty(planeFit)
-        % generate inlier, unaligned, and lagging indices
-        inlierIdx = [inlierIdx (planeFit(t).inlierIdx + nSpotSum(t))];
-        unalignedIdx = [unalignedIdx (planeFit(t).unalignedIdx + nSpotSum(t))];
-        laggingIdx = [laggingIdx (planeFit(t).laggingIdx + nSpotSum(t))];
-    else
-        inlierIdx = [inlierIdx (1:size(initCoord(t).allCoordPix,1) + nSpotSum(t))];
-    end
+
 end
 
 % make top-level surpass scene
@@ -129,30 +117,11 @@ imarisApplication.mSurpassScene = imaSurpassScene;
 imarisApplication.mViewer = 'eViewerSurpass';
 
 % create spots object
-if ~isempty(inlierIdx)
-    imaSpotsInlier = imarisApplication.mFactory.CreateSpots;
-    imaSpotsInlier.Set(single(spots(inlierIdx,1:3)),single(spots(inlierIdx,4)),single(spots(inlierIdx,5)));
-    imaSpotsInlier.mName = ['Inlier spots (avg: ' num2str(length(inlierIdx)/nTimepoints) ' / frame)'];
-    imaSpotsInlier.SetColor(single(0.8),single(0.8),single(0.8),single(0));
-    imaSurpassScene.AddChild(imaSpotsInlier);
-end
-
-if ~isempty(unalignedIdx)
-    imaSpotsUnaligned = imarisApplication.mFactory.CreateSpots;
-    imaSpotsUnaligned.Set(single(spots(unalignedIdx,1:3)),single(spots(unalignedIdx,4)),...
-        single(spots(unalignedIdx,5)));
-    imaSpotsUnaligned.mName = ['Unaligned spots (avg: ' num2str(length(unalignedIdx)/nTimepoints) ' / frame)'];
-    imaSpotsUnaligned.SetColor(single(1),single(0),single(0),single(0));
-    imaSurpassScene.AddChild(imaSpotsUnaligned);
-end
-
-if ~isempty(laggingIdx)
-    imaSpotsLagging = imarisApplication.mFactory.CreateSpots;
-    imaSpotsLagging.Set(single(spots(laggingIdx,1:3)),single(spots(laggingIdx,4)),single(spots(laggingIdx,5)));
-    imaSpotsLagging.mName = ['Lagging spots (avg: ' num2str(length(laggingIdx)/nTimepoints) ' / frame)'];
-    imaSpotsLagging.SetColor(single(0),single(0),single(1),single(0));
-    imaSurpassScene.AddChild(imaSpotsLagging);
-end
+imaSpotsAll = imarisApplication.mFactory.CreateSpots;
+imaSpotsAll.Set(single(spots(:,1:3)),single(spots(:,4)),single(spots(:,5)));
+imaSpotsAll.mName = ['Spots (avg: ' num2str(size(spots,1)/nTimepoints) ' / frame)'];
+imaSpotsAll.SetColor(single(0.8),single(0.8),single(0.8),single(0));
+imaSurpassScene.AddChild(imaSpotsAll);
 
            
 %% tracks
@@ -160,7 +129,7 @@ end
 if select(1) && ~isempty(dataStruct.tracks)
 
     %make spots plotted earlier invisible
-    imaSpots.mVisible = 0;
+    imaSpotsAll.mVisible = 0;
 
     %get tracks from dataStruct
     tracksFinal = dataStruct.tracks;
@@ -177,22 +146,15 @@ if select(1) && ~isempty(dataStruct.tracks)
     %create data container for tracks longer than 90% of movie
     imaTrackGroup90to100 = imarisApplication.mFactory.CreateDataContainer;
 
-    %create data container for tracks between 70% and 90% of movie
-    imaTrackGroup70to90 = imarisApplication.mFactory.CreateDataContainer;
-    imaTrackGroup70to90.mName = 'tracks - length 70-90%';
-
-    %create data container for tracks between 50% and 70% of movie
-    imaTrackGroup50to70 = imarisApplication.mFactory.CreateDataContainer;
-    imaTrackGroup50to70.mName = 'tracks - length 50-70%';
+    %create data container for tracks between 50% and 90% of movie
+    imaTrackGroup50to90 = imarisApplication.mFactory.CreateDataContainer;
 
     %create data container for tracks shorter than 50% of movie
     imaTrackGroup0to50 = imarisApplication.mFactory.CreateDataContainer;
-    imaTrackGroup0to50.mName = 'tracks - length 0-50%';
 
     %initialize to zero number of tracks in each category
     numTracks90to100 = 0;
-    numTracks70to90 = 0;
-    numTracks50to70 = 0;
+    numTracks50to90 = 0;
     numTracks0to50 = 0;
 
     %plot unpaired tracks
@@ -259,16 +221,12 @@ if select(1) && ~isempty(dataStruct.tracks)
             imaTracks.SetColor(single(1),single(0),single(0),single(0));
             imaTrackGroup90to100.AddChild(imaTracks);
             numTracks90to100 = numTracks90to100 + 1;
-        elseif trackSEL(iTrack,3) >= 0.7*nTimepoints
-            imaTracks.SetColor(single(0),single(1),single(0),single(0));
-            imaTrackGroup70to90.AddChild(imaTracks);
-            numTracks70to90 = numTracks70to90 + 1;
         elseif trackSEL(iTrack,3) >= 0.5*nTimepoints
             imaTracks.SetColor(single(0),single(0),single(1),single(0));
-            imaTrackGroup50to70.AddChild(imaTracks);
-            numTracks50to70 = numTracks50to70 + 1;
+            imaTrackGroup50to90.AddChild(imaTracks);
+            numTracks50to90 = numTracks50to90 + 1;
         else
-            imaTracks.SetColor(single(1),single(0),single(1),single(0));
+            imaTracks.SetColor(single(1),single(1),single(0),single(0));
             imaTrackGroup0to50.AddChild(imaTracks);
             numTracks0to50 = numTracks0to50 + 1;
         end
@@ -278,17 +236,14 @@ if select(1) && ~isempty(dataStruct.tracks)
     %give names to groups of tracks
     imaTrackGroup90to100.mName = ['tracks length 90-100% (' ...
         num2str(numTracks90to100) ')'];
-    imaTrackGroup70to90.mName = ['tracks length 70-90% (' ...;
-        num2str(numTracks70to90) ')'];
-    imaTrackGroup50to70.mName = ['tracks length 50-70% (' ...;
-        num2str(numTracks50to70) ')'];
+    imaTrackGroup50to90.mName = ['tracks length 50-90% (' ...;
+        num2str(numTracks50to90) ')'];
     imaTrackGroup0to50.mName = ['tracks length 0-50% (' ...;
         num2str(numTracks0to50) ')'];
 
     %add track groups to scene
     imaSurpassScene.AddChild(imaTrackGroup90to100);
-    imaSurpassScene.AddChild(imaTrackGroup70to90);
-    imaSurpassScene.AddChild(imaTrackGroup50to70);
+    imaSurpassScene.AddChild(imaTrackGroup50to90);
     imaSurpassScene.AddChild(imaTrackGroup0to50);
 
 end %(if select(1))
@@ -298,7 +253,7 @@ end %(if select(1))
 if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterList(1).trackPairs)
 
     %make spots plotted earlier invisible
-    imaSpots.mVisible = 0;
+    imaSpotsAll.mVisible = 0;
 
     %get tracks from dataStruct
     tracksFinal = dataStruct.tracks;
@@ -466,7 +421,117 @@ end %(if select(2))
 %% fitted plane
 
 if select(3) && ~isempty(dataStruct.planeFit)
-    %disp('Sorry, plotting plane not implemented yet!');
+
+    %make spots plotted earlier invisible
+    imaSpotsAll.mVisible = 0;
+
+    %get plane fit results and updated classification
+    planeFit = dataStruct.planeFit;
+    updatedClass = dataStruct.updatedClass;
+
+    %generate inlier, unaligned, and lagging indices
+    inlierIdx = [];
+    unalignedIdx = [];
+    laggingIdx = [];
+    if isempty(updatedClass)
+        for t = goodTimes'
+            inlierIdx = [inlierIdx (planeFit(t).inlierIdx + nSpotSum(t))];
+            unalignedIdx = [unalignedIdx (planeFit(t).unalignedIdx + nSpotSum(t))];
+            laggingIdx = [laggingIdx (planeFit(t).laggingIdx + nSpotSum(t))];
+        end
+    else
+        for t = goodTimes'
+            inlierIdx = [inlierIdx (updatedClass(t).inlierIdx + nSpotSum(t))];
+            unalignedIdx = [unalignedIdx (updatedClass(t).unalignedIdx + nSpotSum(t))];
+            laggingIdx = [laggingIdx (updatedClass(t).laggingIdx + nSpotSum(t))];
+        end
+    end        
+
+    %plot inliers
+    if ~isempty(inlierIdx)
+        imaSpotsInlier = imarisApplication.mFactory.CreateSpots;
+        imaSpotsInlier.Set(single(spots(inlierIdx,1:3)),single(spots(inlierIdx,4)),single(spots(inlierIdx,5)));
+        imaSpotsInlier.mName = ['Inlier spots (avg: ' num2str(length(inlierIdx)/nTimepoints) ' / frame)'];
+        imaSpotsInlier.SetColor(single(0.8),single(0.8),single(0.8),single(0));
+        imaSurpassScene.AddChild(imaSpotsInlier);
+    end
+
+    %plot unaligned kinetochores
+    if ~isempty(unalignedIdx)
+        imaSpotsUnaligned = imarisApplication.mFactory.CreateSpots;
+        imaSpotsUnaligned.Set(single(spots(unalignedIdx,1:3)),single(spots(unalignedIdx,4)),...
+            single(spots(unalignedIdx,5)));
+        imaSpotsUnaligned.mName = ['Unaligned spots (avg: ' num2str(length(unalignedIdx)/nTimepoints) ' / frame)'];
+        imaSpotsUnaligned.SetColor(single(1),single(0),single(0),single(0));
+        imaSurpassScene.AddChild(imaSpotsUnaligned);
+    end
+
+    %plot lagging kinetochores
+    if ~isempty(laggingIdx)
+        imaSpotsLagging = imarisApplication.mFactory.CreateSpots;
+        imaSpotsLagging.Set(single(spots(laggingIdx,1:3)),single(spots(laggingIdx,4)),single(spots(laggingIdx,5)));
+        imaSpotsLagging.mName = ['Lagging spots (avg: ' num2str(length(laggingIdx)/nTimepoints) ' / frame)'];
+        imaSpotsLagging.SetColor(single(0),single(0),single(1),single(0));
+        imaSurpassScene.AddChild(imaSpotsLagging);
+    end
+
+    %initialize variables storing grid spots
+    spotsGridEigen = []; %planes from eigenvectors and eigenvalues
+    spotsGridInter = []; %planes from interpolation
+    
+    %go over all time points
+    for iTime = 1 : nTimepoints
+    
+        %if there is a plane to plot ...
+        if ~isempty(planeFit(iTime).planeVectors)
+            
+            %fetch spots in this frame
+            spotsFrame = spots(nSpotSum(iTime)+1:nSpotSum(iTime+1),1:3);
+
+            %get the origin of the plane to be plotted
+            planeOrigin = mean(spotsFrame(planeFit(iTime).inlierIdx,:));
+
+            %make the grid
+            [xGrid,yGrid,zGrid] = arbitraryGrid(...
+                0.2*dataStruct.planeFit(iTime).planeVectors(:,1),...
+                0.2*dataStruct.planeFit(iTime).planeVectors(:,2),...
+                0.2*dataStruct.planeFit(iTime).planeVectors(:,3),...
+                planeOrigin([2 1 3]),[0 0],[-25 25],[-25 25]);
+
+            %assign grid spots coordinates
+            spotsGrid = [yGrid(:) xGrid(:) zGrid(:)];
+            
+            %append frame number and spot size
+            spotsGrid = [spotsGrid (iTime-1)*ones(size(spotsGrid,1),1) ...
+                pixelSize(1)*0.5*ones(size(spotsGrid,1),1)];
+            
+            %add grid information to the information on all grids
+            if planeFit(iTime).planeVectorClassifier == 1
+                spotsGridEigen = [spotsGridEigen; spotsGrid];
+            else
+                spotsGridInter = [spotsGridInter; spotsGrid];
+            end
+            
+        end %(if ~isempty(planeFit(iTime).planeVectors))
+
+    end %(for iTime = 1 : nTimepoints)
+
+    %add grids to surpassScene
+    if ~isempty(spotsGridEigen)
+        imaSpotsGrid = imarisApplication.mFactory.CreateSpots;
+        imaSpotsGrid.Set(single(spotsGridEigen(:,1:3)),single(spotsGridEigen(:,4)),single(spotsGridEigen(:,5)));
+        imaSpotsGrid.SetColor(single(1),single(1),single(0),single(0));
+        imaSpotsGrid.mName = 'Plane fits (anisotropy)';
+        imaSurpassScene.AddChild(imaSpotsGrid);
+    end
+    if ~isempty(spotsGridInter)
+        imaSpotsGrid2 = imarisApplication.mFactory.CreateSpots;
+        imaSpotsGrid2.Set(single(spotsGridInter(:,1:3)),single(spotsGridInter(:,4)),single(spotsGridInter(:,5)));
+        imaSpotsGrid2.SetColor(single(1),single(0.75),single(0),single(0));
+        imaSpotsGrid2.mName = 'Plane fits (interpolation)';
+        imaSurpassScene.AddChild(imaSpotsGrid2);
+    end
+
 end
 
 % turn warnings back on

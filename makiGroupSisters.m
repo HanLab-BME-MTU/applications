@@ -120,7 +120,7 @@ if costFunction == 1
     normals(framesWiPlane,:) = catStruct(2,'dataStruct.planeFit.planeVectors(:,1)')';
 end
 
-% loop through the good tracks, calculate for every pair median distance
+% loop through the good tracks, calculate for every pair mean distance
 % and variance
 if verbose == 2
     figure
@@ -189,7 +189,7 @@ for jTrack = 1:nGoodTracks % loop cols
             if robust
                 [rMean,rStd]=robustMean(distance);
             else
-                rMean=mean(distance);
+                rMean = mean(distance);
                 rStd = std(distance);
             end
 
@@ -400,7 +400,7 @@ residuals = sisterDist - medDistance;
 %square the residuals
 res2 = residuals .^ 2;
 
-%calculate the median of the residuals
+%calculate the median of the squared residuals
 medRes2 = median(res2);
 
 %assign a res2 of zero to all distances smaller than the median because we

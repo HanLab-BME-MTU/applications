@@ -8,9 +8,12 @@ function pathOrId = makiPathDef(pathOrId)
 %                 that should be converted into /a/real/path   
 %                 Supported identifiers
 %                 $HERCULES - root path where the movies on hercules are
-%                             stored (works for linux or windows)
+%                             stored (works for linux or windows) - deleted
+%                             for now to allow use of movies analyzed in
+%                             Woods Hole.
 %                 $TESTDATA - D:\makiTestData on windows and HOME/testdata
 %                             on linux
+%                 $DANUSER, $MERLADI, $SWEDLOW, $MCAINSH
 %       if pathOrId is empty or omitted, makiPathDef returns the current
 %       path definition
 %
@@ -102,5 +105,9 @@ function pathList = loadPathList
 homeUser = getenv('HOME');
 % pathList is {id, winPath, linuxPath}
 pathList = {'$TESTDATA','D:\makiTestData',[homeUser '/testData'];...
-    '$HERCULES','O:','/hercules';...
-    };
+    '$DANUSER','O:','/dundee';...
+    '$MERALDI','','';...
+    '$SWEDLOW','','';...
+    '$MCAINSH','',''};
+
+%     '$HERCULES','O:','/hercules';...
