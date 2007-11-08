@@ -127,7 +127,7 @@ try
 
     %track the kinetochores
     tracks = trackCloseGapsKalman(movieInfo,costMatParam,...
-        gapCloseParam,[],useLocalDensity,0,3,0);
+        gapCloseParam,[],useLocalDensity,0,3,0,0);
 
     %replace the coordinate used for tracking (whether the rotated
     %coordinates or the original coordinates shifted by center of mass) by

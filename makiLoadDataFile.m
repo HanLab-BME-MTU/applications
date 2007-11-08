@@ -1,9 +1,11 @@
-function dataStruct = makiLoadDataFile(dataFileName)
+function dataStruct = makiLoadDataFile(serverType,dataFileName)
 %MAKILOADDATAFILE loads a maki-data file from disk
 %
-% SYNOPSIS: dataStruct = makiLoadDataFile(dataFileName)
+% SYNOPSIS: dataStruct = makiLoadDataFile(serverType,dataFileName)
 %
-% INPUT dataFileName (opt): [pathName,filesep,filename] of dataFile. If
+% INPUT     serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+%                       'MCAINSH'
+%           dataFileName (opt): [pathName,filesep,filename] of dataFile. If
 %           omitted, or if only a pathName is specified, the file can be
 %           selected interactively
 %
@@ -26,7 +28,7 @@ function dataStruct = makiLoadDataFile(dataFileName)
 guiLoad = true;
 guiPath = pwd;
 
-if nargin < 1 || isempty(dataFileName)
+if nargin < 2 || isempty(dataFileName)
     % guiLoad
 else
     % check for file, then for path, then exit with error 
@@ -85,7 +87,7 @@ if isempty(dataStruct.rawMoviePath)
     dataStruct.rawMoviePath = dataStruct.dataFilePath;
 else
     % remove identifier
-    dataStruct.rawMoviePath = makiPathDef(dataStruct.rawMoviePath);
+    dataStruct.rawMoviePath = makiPathDef(dataStruct.rawMoviePath,serverType);
 end
         
 

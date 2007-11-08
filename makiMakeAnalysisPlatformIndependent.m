@@ -1,10 +1,12 @@
-function analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct)
+function analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct,serverType)
 %MAKIMAKEANALYSISPLATFORMINDEPENDENT makes an analysis structure compatible with current platform
 %
-% SYNOPSIS: analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct)
+% SYNOPSIS: analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct,serverType)
 %
 % INPUT analysisStruct: maki analysisStruct with analysisStruct path and
 %                       movie paths
+%       serverType: string which can take the values:
+%                   'TEST','HERCULES','DANUSER','MERLADI',SWEDLOW' or MCAINSH
 %
 % OUTPUT same as input with paths made compatible with current platform 
 %
@@ -18,12 +20,13 @@ function analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %convert analysisStruct path
-analysisStruct.filePath = makiPathDef(analysisStruct.filePath);
+analysisStruct.filePath = makiPathDef(analysisStruct.filePath,serverType);
 
 %get number of movies in analysisStruct
 numMovies = size(analysisStruct.movies,1);
 
 %convert the movie paths
 for iMovie = 1 : numMovies
-    analysisStruct.movies{iMovie,2} = makiPathDef(analysisStruct.movies{iMovie,2});
+    analysisStruct.movies{iMovie,2} = makiPathDef(...
+        analysisStruct.movies{iMovie,2},serverType);
 end

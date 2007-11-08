@@ -1,11 +1,13 @@
-function makiMovieAnalysis(job)
+function makiMovieAnalysis(serverType,job)
 %MAKIMOVIEANALYSIS is the main function to process mammalian kinetochore movies
 %
 % SYNOPSIS: makiMovieAnalysis
 %
-% INPUT job: structure containing information about movies to be
-%                analyzed. Best set up via a GUI
-%
+% INPUT serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+%                   'MCAINSH'
+%       job: structure containing information about movies to be
+%            analyzed. Best set up via a GUI
+%       
 % OUTPUT
 %
 % REMARKS
@@ -23,7 +25,7 @@ function makiMovieAnalysis(job)
 testMoviePath = 'D:\makiTestData\210607_cell2';
 testDataFile = '210607_cell2-makiData-28-Jun-2007-14-38-13.mat';
 testMode = true;
-if nargin > 0 && ~isempty(job)
+if nargin > 1 && ~isempty(job)
     testMode = false;
 end
 
@@ -38,8 +40,8 @@ end
 % 5: plane fit
 % 6: track
 % 7: sister identification
-% 8: frame alignment
-% 9: update frame and kinetochore classification
+% 8: update frame and kinetochore classification
+% 9: frame alignment
 
 if testMode
 
@@ -58,7 +60,7 @@ if testMode
     job(1).jobName = sprintf('testJob-%s.mat',nowString);
 else
     % revert job paths
-    job = makiMakeJobPlatformIndependent(job);
+    job = makiMakeJobPlatformIndependent(job,serverType);
 end
 
 % collect status of all the jobs
@@ -130,7 +132,7 @@ while ~done
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
                 
                 % save dataStruct. Do not overwrite older initCoord
-                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'initCoord');
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(serverType,job(iJob).dataStruct,'initCoord');
                 
                 % set the current version of the initCoord
                 if success
@@ -220,7 +222,7 @@ while ~done
             %                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
             %
             %                 % save dataStruct. Do not overwrite previous slist
-            %                 [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'slist');
+            %                 [success, job(iJob).dataStruct ] = makiSaveDataFile(serverType,job(iJob).dataStruct,'slist');
             %
             %                 % set the current version of the slist
             %                 if success
@@ -264,7 +266,7 @@ while ~done
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
                 
                 % save dataStruct. Do not overwrite older plane fits
-                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'planeFit');
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(serverType,job(iJob).dataStruct,'planeFit');
                 
                 % set the current version of the plane fit
                 if success
@@ -308,7 +310,7 @@ while ~done
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
                 
                 %save dataStruct. Do not overwrite older tracks
-                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'tracks');
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(serverType,job(iJob).dataStruct,'tracks');
                 
                 % set the current version of the tracks
                 if success
@@ -360,7 +362,7 @@ while ~done
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
                 
                 %save dataStruct. Do not overwrite older sisterLists
-                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'sisterList');
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(serverType,job(iJob).dataStruct,'sisterList');
                 
                 % set the current version of the sister list
                 if success
@@ -386,58 +388,10 @@ while ~done
             end
 
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            %---------------- align frames ------------------------
-            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            
-            if any(jobs2do == 8)
-                
-                %write current job to log files
-                fprintf(1,'%s : align frames for %s\n',...
-                    nowString,job(iJob).dataStruct.projectName);
-                fprintf(generalLog,'%s : align frames\n',nowString);
-                fprintf(individualLog,'%s : align frames\n', nowString);
-
-                %pass and retrieve dataStruct
-                job(iJob).dataStruct = makiAlignFrames(job(iJob).dataStruct);
-
-                %save job
-                job(iJob).dataStruct.status(8) = 1;
-                job(iJob).dataStruct.statusHelp{8,2} = date;
-                save(fullfile(job(1).jobPath,job(1).jobName),'job');
-                
-                %save dataStruct. Do not overwrite older frame alignments
-                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'frameAlignment');
-                
-                % set the current version of the frame alignment
-                if success
-                    job(iJob).dataStruct.history.frameAlignment(job(iJob).dataStruct.history.numRuns)= ...
-                        getVersion(job(iJob).dataStruct.frameAlignmentName);
-                    % frame alignment depends on initCoord, plane fit and tracks -- thus,
-                    % fill in those fields as well
-                    job(iJob).dataStruct.history.initCoord(job(iJob).dataStruct.history.numRuns)= ...
-                        getVersion(job(iJob).dataStruct.initCoordName);
-                    job(iJob).dataStruct.history.planeFit(job(iJob).dataStruct.history.numRuns)= ...
-                        getVersion(job(iJob).dataStruct.planeFitName);
-                    job(iJob).dataStruct.history.tracks(job(iJob).dataStruct.history.numRuns)= ...
-                        getVersion(job(iJob).dataStruct.tracksName);
-                else
-                    error('unable to secure-save frame alignment');
-                end
-                
-            else
-
-                % write temporarily a zero to history.frameAlignment
-                % Dependent on the jobs to follow, this field might be
-                % overwritten again
-                job(iJob).dataStruct.history.frameAlignment(job(iJob).dataStruct.history.numRuns)= 0;
-                
-            end
-
-            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %------------- update classification ------------------
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++
             
-            if any(jobs2do == 9)
+            if any(jobs2do == 8)
                 
                 %write current job to log files
                 fprintf(1,'%s : update classification for %s\n',...
@@ -449,20 +403,20 @@ while ~done
                 job(iJob).dataStruct = makiUpdateClass(job(iJob).dataStruct);
 
                 %save job
-                job(iJob).dataStruct.status(9) = 1;
-                job(iJob).dataStruct.statusHelp{9,2} = date;
+                job(iJob).dataStruct.status(8) = 1;
+                job(iJob).dataStruct.statusHelp{8,2} = date;
                 save(fullfile(job(1).jobPath,job(1).jobName),'job');
                 
                 %save dataStruct. Do not overwrite older classification
                 %updates
-                [success, job(iJob).dataStruct ] = makiSaveDataFile(job(iJob).dataStruct,'updatedClass');
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(serverType,job(iJob).dataStruct,'updatedClass');
                 
                 % set the current version of the classification update
                 if success
                     job(iJob).dataStruct.history.updatedClass(job(iJob).dataStruct.history.numRuns)= ...
                         getVersion(job(iJob).dataStruct.updatedClassName);
-                    % frame alignment depends on initCoord, plane fit and tracks -- thus,
-                    % fill in those fields as well
+                    % classification update depends on plane fit, tracks 
+                    % and sisterList -- thus fill in those fields as well
                     job(iJob).dataStruct.history.planeFit(job(iJob).dataStruct.history.numRuns)= ...
                         getVersion(job(iJob).dataStruct.planeFitName);
                     job(iJob).dataStruct.history.tracks(job(iJob).dataStruct.history.numRuns)= ...
@@ -479,6 +433,56 @@ while ~done
                 % Dependent on the jobs to follow, this field might be
                 % overwritten again
                 job(iJob).dataStruct.history.updatedClass(job(iJob).dataStruct.history.numRuns)= 0;
+                
+            end
+
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %---------------- align frames ------------------------
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            
+            if any(jobs2do == 9)
+                
+                %write current job to log files
+                fprintf(1,'%s : align frames for %s\n',...
+                    nowString,job(iJob).dataStruct.projectName);
+                fprintf(generalLog,'%s : align frames\n',nowString);
+                fprintf(individualLog,'%s : align frames\n', nowString);
+
+                %pass and retrieve dataStruct
+                job(iJob).dataStruct = makiAlignFrames(job(iJob).dataStruct);
+
+                %save job
+                job(iJob).dataStruct.status(9) = 1;
+                job(iJob).dataStruct.statusHelp{9,2} = date;
+                save(fullfile(job(1).jobPath,job(1).jobName),'job');
+                
+                %save dataStruct. Do not overwrite older frame alignments
+                [success, job(iJob).dataStruct ] = makiSaveDataFile(serverType,job(iJob).dataStruct,'frameAlignment');
+                
+                % set the current version of the frame alignment
+                if success
+                    job(iJob).dataStruct.history.frameAlignment(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.frameAlignmentName);
+                    % frame alignment depends on initCoord, plane fit, tracks
+                    % and updatedClass -- thus fill in those fields as well
+                    job(iJob).dataStruct.history.initCoord(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.initCoordName);
+                    job(iJob).dataStruct.history.planeFit(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.planeFitName);
+                    job(iJob).dataStruct.history.tracks(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.tracksName);
+                    job(iJob).dataStruct.history.updatedClass(job(iJob).dataStruct.history.numRuns)= ...
+                        getVersion(job(iJob).dataStruct.updatedClassName);
+                else
+                    error('unable to secure-save frame alignment');
+                end
+                
+            else
+
+                % write temporarily a zero to history.frameAlignment
+                % Dependent on the jobs to follow, this field might be
+                % overwritten again
+                job(iJob).dataStruct.history.frameAlignment(job(iJob).dataStruct.history.numRuns)= 0;
                 
             end
 
@@ -532,7 +536,7 @@ while ~done
         individualLog = [];
     
         %save history in dataStruct to the dataFile a last time
-        makiSaveDataFile(job(iJob).dataStruct);
+        makiSaveDataFile(serverType,job(iJob).dataStruct);
         
     end % loop jobs
 
@@ -615,7 +619,7 @@ end
 %     job(iJob).dataStruct.statusHelp{3,2} = date;
 %     save(fullfile(job(1).jobPath,job(1).jobName),'job');
 %     % save dataStruct
-%     makiSaveDataFile(job(iJob).dataStruct);
+%     makiSaveDataFile(serverType,job(iJob).dataStruct);
 % 
 % end % ------------ filter ---------------
 

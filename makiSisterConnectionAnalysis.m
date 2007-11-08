@@ -13,6 +13,8 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,ve
 %OUTPUT analysisStruct: Same as input but with additional field
 %           .sisterConnection: 
 %
+%REMARKS Code is not applicable to anaphase movies/frames
+%
 %Khuloud Jaqaman, July 2007
 
 %% input
@@ -30,17 +32,17 @@ if nargin < 2 || isempty(analysisStruct) || ~isfield(analysisStruct,'movies')
 end
 
 %convert file paths in analysisStruct from identifier to real path
-analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct);
+analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct,jobType);
 
 %extract fileName and directory name from analysisStruct
 fileName = analysisStruct.fileName;
 dir2SaveRes = analysisStruct.filePath;
 
-%load dataStruct's belonging to the movies in analysisStruct
+%load dataStructs belonging to the movies in analysisStruct
 moviesList = analysisStruct.movies;
 numMovies = size(moviesList,1);
 for iMovie = numMovies : -1 : 1
-    dataStruct(iMovie,1) = makiLoadDataFile(fullfile(moviesList{iMovie,2},moviesList{iMovie,1}));
+    dataStruct(iMovie,1) = makiLoadDataFile(jobType,fullfile(moviesList{iMovie,2},moviesList{iMovie,1}));
 end
 
 %find number of sisters in each movie
@@ -68,25 +70,22 @@ timeLapse = round(dataStruct(1).dataProperties.timeLapse);
 
 %% collect sister angles and distances
 
+%define cell array of sister labels
+label{1,1} = 'Inlier';
+label{2,1} = 'Unaligned';
+label{3,1} = 'Lagging';
+
 %initialize global sister index and structures
-iGlobalInlier = 0;
-iGlobalUnaligned = 0;
-iGlobalLagging = 0;
+for iLabel = 1 : 3
 
-sisterDistInlier(1:numSistersTot,1) = struct('observations',[]);
-sisterVelInlier(1:numSistersTot,1) = struct('observations',[]);
-angleNormalInlier(1:numSistersTot,1) = struct('observations',[]);
-angularVelInlier(1:numSistersTot,1) = struct('observations',[]);
+    eval(['iGlobal' label{iLabel,1} ' = 0;'])
 
-sisterDistUnaligned(1:numSistersTot,1) = struct('observations',[]);
-sisterVelUnaligned(1:numSistersTot,1) = struct('observations',[]);
-angleNormalUnaligned(1:numSistersTot,1) = struct('observations',[]);
-angularVelUnaligned(1:numSistersTot,1) = struct('observations',[]);
-
-sisterDistLagging(1:numSistersTot,1) = struct('observations',[]);
-sisterVelLagging(1:numSistersTot,1) = struct('observations',[]);
-angleNormalLagging(1:numSistersTot,1) = struct('observations',[]);
-angularVelLagging(1:numSistersTot,1) = struct('observations',[]);
+    eval(['sisterDist' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+    eval(['sisterVel' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+    eval(['angleNormal' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+    eval(['angularVel' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+    
+end
 
 %go over all movies
 for iMovie = 1 : numMovies
@@ -94,14 +93,26 @@ for iMovie = 1 : numMovies
     %copy fields out of dataStruct(iMovie)
     sisterList = dataStruct(iMovie).sisterList;
     tracks = dataStruct(iMovie).tracks;
-    frameAlignment = dataStruct(iMovie).frameAlignment;
     planeFit = dataStruct(iMovie).planeFit;
+    frameAlignment = dataStruct(iMovie).frameAlignment;
     timeLapse = dataStruct(iMovie).dataProperties.timeLapse;
     updatedClass = dataStruct(iMovie).updatedClass;
-
+    numFramesMovie = length(planeFit);
+    
     %determine frames where there is a plane
-    phase = vertcat(planeFit.phase)';
-    framesWithPlane = find(phase ~= 'e');
+    framesWithPlane = [];
+    for t = 1 : numFramesMovie
+        if ~isempty(planeFit(t).planeVectors)
+            framesWithPlane = [framesWithPlane t];
+        end
+    end
+    
+    %find frame where anaphase starts (if it starts at all)
+    framePhase = vertcat(updatedClass.phase);
+    firstFrameAna = find(framePhase=='a',1,'first');
+    if isempty(firstFrameAna)
+        firstFrameAna = numFramesMovie + 1;
+    end
 
     if numSisters(iMovie) > 0
         
@@ -126,12 +137,15 @@ for iMovie = 1 : numMovies
             goodFrames = ~isnan(sisterList(iSister).distances(:,1));
             numFrames = length(goodFrames);
             goodFrames = find(goodFrames);
+            goodFrames = goodFrames(goodFrames < firstFrameAna);
 
             %find feature indices making up sisters
             sisterIndx1 = NaN(numFrames,1);
             sisterIndx2 = NaN(numFrames,1);
-            sisterIndx1(goodFrames) = tracks(tracksIndx(1)).tracksFeatIndxCG(goodFrames-trackStart(1)+1);
-            sisterIndx2(goodFrames) = tracks(tracksIndx(2)).tracksFeatIndxCG(goodFrames-trackStart(2)+1);
+            sisterIndx1(goodFrames) = tracks(tracksIndx(1))...
+                .tracksFeatIndxCG(goodFrames-trackStart(1)+1);
+            sisterIndx2(goodFrames) = tracks(tracksIndx(2))...
+                .tracksFeatIndxCG(goodFrames-trackStart(2)+1);
 
             %get aligned sister coordinates
             coords1 = NaN(numFrames,6);
@@ -158,45 +172,21 @@ for iMovie = 1 : numMovies
             end
 
             %store sister information based on the sister type
-            switch sisterType(iSister)
-                
-                case 0
+            iLabel = sisterType(iSister) + 1;
 
-                    %increase global index of inlier sisters by 1
-                    iGlobalInlier = iGlobalInlier + 1;
+            %increase global index of sister type by 1
+            eval(['iGlobal' label{iLabel,1} ' = iGlobal' label{iLabel,1} ' + 1;'])
 
-                    %store information
-                    sisterDistInlier(iGlobalInlier).observations = sisterList(iSister).distances; %um
-                    sisterVelInlier(iGlobalInlier).observations = diff(sisterList(iSister).distances(:,1)) ...
-                        * 1000 / timeLapse; %nm/s
-                    angleNormalInlier(iGlobalInlier).observations = angleWithNorm * 180 / pi; %deg
-                    angularVelInlier(iGlobalInlier).observations = angularDisp * 180 / pi / timeLapse; %deg/s
-                    
-                case 1
-                    
-                    %increase global index of unaligned sisters by 1
-                    iGlobalUnaligned = iGlobalUnaligned + 1;
-
-                    %store information
-                    sisterDistUnaligned(iGlobalUnaligned).observations = sisterList(iSister).distances; %um
-                    sisterVelUnaligned(iGlobalUnaligned).observations = diff(sisterList(iSister).distances(:,1)) ...
-                        * 1000 / timeLapse; %nm/s
-                    angleNormalUnaligned(iGlobalUnaligned).observations = angleWithNorm * 180 / pi; %deg
-                    angularVelUnaligned(iGlobalUnaligned).observations = angularDisp * 180 / pi / timeLapse; %deg/s
-                    
-                case 2
-                    
-                    %increase global index of lagging sisters by 1
-                    iGlobalLagging = iGlobalLagging + 1;
-
-                    %store information
-                    sisterDistLagging(iGlobalLagging).observations = sisterList(iSister).distances; %um
-                    sisterVelLagging(iGlobalLagging).observations = diff(sisterList(iSister).distances(:,1)) ...
-                        * 1000 / timeLapse; %nm/s
-                    angleNormalLagging(iGlobalLagging).observations = angleWithNorm * 180 / pi; %deg
-                    angularVelLagging(iGlobalLagging).observations = angularDisp * 180 / pi / timeLapse; %deg/s
-                    
-            end %(switch sisterType(iSister))
+            %store information
+            eval(['sisterDist' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                ').observations = sisterList(iSister).distances;']) %um
+            eval(['sisterVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                ').observations = diff(sisterList(iSister).distances(:,1))' ...
+                ' * 1000 / timeLapse;']) %nm/s
+            eval(['angleNormal' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                ').observations = angleWithNorm * 180 / pi;']) %deg
+            eval(['angularVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                ').observations = angularDisp * 180 / pi / timeLapse;']) %deg/s
 
         end %(for iSister = 1 : numSisters(iMovie))
         
@@ -204,10 +194,7 @@ for iMovie = 1 : numMovies
 
 end %(for iMovie = 1 : numMovies)
     
-%define cell array of sister labels
-label{1,1} = 'Inlier';
-label{2,1} = 'Unaligned';
-label{3,1} = 'Lagging';
+%store number of sisters per category
 for i = 1 : 3
     eval(['label{i,2} = iGlobal' label{i,1} ' ~= 0;']);
 end
@@ -510,11 +497,13 @@ for iLabel = 1 : 3
         '''angularVel'',angularVelArma' label{iLabel,1} ');']);
     eval(['numSistersCat = iGlobal' label{iLabel,1} ';']);
 
-    eval([label{iLabel,1} ' = struct(''numSisters'',numSistersCat,'...
+    eval([label{iLabel,1} ' = struct('...
+        '''numSisters'',numSistersCat,'...
         '''distribution'',distribution,'...
         '''meanStdMin25P50P75PMax'',meanStdMin25P50P75PMax,'...
         '''temporalTrend'',temporalTrend,'...
-        '''autocorr'',autocorr,''arma'',arma);'])
+        '''autocorr'',autocorr,'...
+        '''arma'',arma);'])
 
 end
 
@@ -536,7 +525,7 @@ if fieldExists
 end
 
 %save analysisStruct
-analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct);
+analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct,jobType);
 save(fullfile(dir2SaveRes,fileName),'analysisStruct');
 
 %% plots
@@ -744,8 +733,10 @@ if verbose
 
         %plot histogram of distance temporal trend
         eval(['trend2plot = sisterDistTrend' label{iLabel,1} ';']);
-        [x] = histogram(trend2plot(:,1));
-        hist(trend2plot(:,1),length(x));
+        if ~isempty(trend2plot)
+            [x] = histogram(trend2plot(:,1));
+            hist(trend2plot(:,1),length(x));
+        end
         
         %write axes labels and title
         xlabel('Sister separation slopes (\mum/s)');
@@ -760,8 +751,10 @@ if verbose
 
         %plot histogram of significant trends only
         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
-        [x] = histogram(trend2plot);
-        hist(trend2plot,length(x));
+        if ~isempty(trend2plot)
+            [x] = histogram(trend2plot);
+            hist(trend2plot,length(x));
+        end
         
         %write axes labels and title
         xlabel('Significant slopes only');
@@ -776,8 +769,10 @@ if verbose
 
         %plot histogram of velocity temporal trend
         eval(['trend2plot = sisterVelTrend' label{iLabel,1} ';']);
-        [x] = histogram(trend2plot(:,1));
-        hist(trend2plot(:,1),length(x));
+        if ~isempty(trend2plot)
+            [x] = histogram(trend2plot(:,1));
+            hist(trend2plot(:,1),length(x));
+        end
         
         %write axes labels and title
         xlabel('Absolute rate change sister separation slopes (nm/s/s)');
@@ -792,8 +787,10 @@ if verbose
 
         %plot histogram of significant trends only
         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
-        [x] = histogram(trend2plot);
-        hist(trend2plot,length(x));
+        if ~isempty(trend2plot)
+            [x] = histogram(trend2plot);
+            hist(trend2plot,length(x));
+        end
         
         %write axes labels and title
         xlabel('Significant slopes only');
@@ -808,8 +805,10 @@ if verbose
 
         %plot histogram of angle with normal temporal trend
         eval(['trend2plot = angleNormalTrend' label{iLabel,1} ';']);
-        [x] = histogram(trend2plot(:,1));
-        hist(trend2plot(:,1),length(x));
+        if ~isempty(trend2plot)
+            [x] = histogram(trend2plot(:,1));
+            hist(trend2plot(:,1),length(x));
+        end
         
         %write axes labels and title
         xlabel('Angle with normal slopes (degrees/s)');
@@ -824,8 +823,10 @@ if verbose
 
         %plot histogram of significant trends only
         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
-        [x] = histogram(trend2plot);
-        hist(trend2plot,length(x));
+        if ~isempty(trend2plot)
+            [x] = histogram(trend2plot);
+            hist(trend2plot,length(x));
+        end
         
         %write axes labels and title
         xlabel('Significant slopes only');
@@ -840,8 +841,10 @@ if verbose
 
         %plot histogram of angular velocity temporal trend
         eval(['trend2plot = angularVelTrend' label{iLabel,1} ';']);
-        [x] = histogram(trend2plot(:,1));
-        hist(trend2plot(:,1),length(x));
+        if ~isempty(trend2plot)
+            [x] = histogram(trend2plot(:,1));
+            hist(trend2plot(:,1),length(x));
+        end
         
         %write axes labels and title
         xlabel('Angular velocity slopes  (degrees/s/s)');
@@ -856,8 +859,10 @@ if verbose
 
         %plot histogram of angular velocity temporal trend
         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
-        [x] = histogram(trend2plot);
-        hist(trend2plot,length(x));
+        if ~isempty(trend2plot)
+            [x] = histogram(trend2plot);
+            hist(trend2plot,length(x));
+        end
         
         %write axes labels and title
         xlabel('Significant slopes only');

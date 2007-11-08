@@ -95,15 +95,25 @@ nGoodTracks = length(goodTracks);
 [variances,distances,alignment] = deal(NaN(nGoodTracks));
 
 %find frames that have a plane (to calculate alignment cost)
-%if none of the frames have a plane, we cannot use alignment criterion
-phase = vertcat(dataStruct.planeFit.phase);
-framesWiPlane = find(phase ~= 'e');
+%if none of the frames have a plane, we cannot use the alignment criterion
+framesWiPlane = [];
+for t = 1 : nTimepoints
+    if ~isempty(dataStruct.planeFit(t).planeVectors)
+        framesWiPlane = [framesWiPlane; t];
+    end
+end
 if isempty(framesWiPlane)
     costFunction = 0;
 end
 
 %find anaphase frames in order to exclude them from identification process
-anaphaseFrames = find(phase == 'a');
+framePhase = vertcat(dataStruct.planeFit.phase);
+anaphaseFrames = find(framePhase == 'a');
+if isempty(anaphaseFrames)
+    lastFrameNotAna = nTimepoints;
+else
+    lastFrameNotAna = anaphaseFrames(1) - 1;
+end
 
 %if the whole movie is in anaphase, there's no point in looking for
 %sisters. Exit with an empty sisterList.
@@ -154,7 +164,7 @@ for jTrack = 1:nGoodTracks % loop cols
         [commonTime,ctColIdx,ctRowIdx] = intersect(colTime,rowTime);
 
         %retain only common time which is not in anaphase
-        ctNotAna = find(phase(commonTime)~='a');
+        ctNotAna = find(framePhase(commonTime)~='a');
         commonTime = commonTime(ctNotAna);
         ctColIdx = ctColIdx(ctNotAna);
         ctRowIdx = ctRowIdx(ctNotAna);
@@ -387,8 +397,10 @@ end % loop goodPairs
 %for math behind algorithm, see Danuser, 1992 or Rousseeuw & Leroy, 1987
 
 %put all sister distances in one vector
-sisterDist = vertcat(sisterList.distances);
-sisterDist = sisterDist(:,1);
+sisterDist = [];
+for iSister = 1 : nGoodPairs/2
+    sisterDist = [sisterDist; sisterList(iSister).distances(1:lastFrameNotAna,1)];
+end
 sisterDist = sisterDist(~isnan(sisterDist));
 
 %calculate median of distances
@@ -408,7 +420,7 @@ medRes2 = median(res2);
 res2(residuals < 0) = 0;
 
 %define parameters to remove outliers
-k = 2; %assuming Gaussian distribution, keeps 95% of the distances
+k = 2.5; %assuming Gaussian distribution, keeps 95% of the distances
 magicNumber2 = 1.4826^2; %see same publications
 
 %calculate testvalues to determine which observations are inliers and which
@@ -424,7 +436,8 @@ maxSisterDist = max(sisterDist(testValue <= k^2));
 for iPair = 1 : nGoodPairs/2
     
     %find indices of distances larger than maximum allowed
-    outlierIndx = find(sisterList(iPair).distances(:,1) > maxSisterDist);
+    outlierIndx = find(sisterList(iPair).distances(1:lastFrameNotAna,1) ...
+        > maxSisterDist);
     
     %remove those timepoints from the sister information
     sisterList(iPair).coords1(outlierIndx,:) = NaN;

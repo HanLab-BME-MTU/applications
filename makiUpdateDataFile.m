@@ -30,6 +30,7 @@ function makiUpdateDataFile(update)
 %           15: Add 2 new fields to dataStruct for classification update,
 %               add additional row in status and additional field in
 %               history.
+%           16: Switch positions of "updatedClass" and "frameAlignment".
 %
 % OUTPUT
 %
@@ -38,7 +39,7 @@ function makiUpdateDataFile(update)
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
-% created by: jdorn
+% created by: jdorn, gdanuser & kjaqaman
 % DATE: 30-Jun-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,28 +69,28 @@ for iFile = 1:nFiles
     dataStruct = makiLoadDataFile(fullfile(fileList{iFile,2},fileList{iFile,1}));
 
 
-    if update >= 9
-        % remove all the xxx/xxxName pair files so that we don't get into
-        % trouble with secureSave
-        %
-        % update 9 relies on the original files to adjust the broken data
-        % structure -- thus do not delete
-        %
-        fn = fieldnames(dataStruct);
-        for i=1:length(fn)
-            % load data files that exist. Rest will be empty
-            fileName = [fn{i},'Name'];
-            if any(strmatch(fileName,fn)) && ~isempty(dataStruct.(fn{i}))
-                try
-                    delete(fullfile(dataStruct.dataFilePath,dataStruct.(fileName)));
-
-                catch
-                    warning('couldn''t delete %s',...
-                        fullfile(dataStruct.dataFilePath,dataStruct.(fileName))); %#ok<WNTAG>
-                end
-            end
-        end
-    end
+    %     if update >= 9
+    %         % remove all the xxx/xxxName pair files so that we don't get into
+    %         % trouble with secureSave
+    %         %
+    %         % update 9 relies on the original files to adjust the broken data
+    %         % structure -- thus do not delete
+    %         %
+    %         fn = fieldnames(dataStruct);
+    %         for i=1:length(fn)
+    %             % load data files that exist. Rest will be empty
+    %             fileName = [fn{i},'Name'];
+    %             if any(strmatch(fileName,fn)) && ~isempty(dataStruct.(fn{i}))
+    %                 try
+    %                     delete(fullfile(dataStruct.dataFilePath,dataStruct.(fileName)));
+    %
+    %                 catch
+    %                     warning('couldn''t delete %s',...
+    %                         fullfile(dataStruct.dataFilePath,dataStruct.(fileName))); %#ok<WNTAG>
+    %                 end
+    %             end
+    %         end
+    %     end
 
     %===========================
     %----- UPDATE --------------
@@ -434,6 +435,62 @@ for iFile = 1:nFiles
             dataStruct.history = tmpVar.history;
             clear tmpVar
             
+        case 16
+            
+            if strcmp(dataStruct.statusHelp{8,1},'frameAlignment')
+                
+                %status
+                dataStruct.status = dataStruct.status([1 2 3 4 5 6 7 9 8]);
+                
+                %statusHelp
+                dataStruct.statusHelp = dataStruct.statusHelp([1 2 3 4 5 6 7 9 8],:);
+
+                %history
+                tmpVar.numRuns = dataStruct.history.numRuns;
+                tmpVar.dataProperties = dataStruct.history.dataProperties;
+                tmpVar.initCoord = dataStruct.history.initCoord;
+                tmpVar.slist = dataStruct.history.slist;
+                tmpVar.planeFit = dataStruct.history.planeFit;
+                tmpVar.tracks = dataStruct.history.tracks;
+                tmpVar.sisterList = dataStruct.history.sisterList;
+                tmpVar.updatedClass = dataStruct.history.updatedClass;
+                tmpVar.frameAlignment = dataStruct.history.frameAlignment;
+                dataStruct.history = tmpVar;
+                clear tmpVar
+
+                %rearrange sequence of fields in dataStruct
+                tmpVar = dataStruct;
+                clear dataStruct;
+                dataStruct.projectName = tmpVar.projectName;
+                dataStruct.rawMovieName = tmpVar.rawMovieName;
+                dataStruct.rawMoviePath = tmpVar.rawMoviePath;
+                dataStruct.dataFileName = tmpVar.dataFileName;
+                dataStruct.dataFilePath = tmpVar.dataFilePath;
+                dataStruct.dataPropertiesName = tmpVar.dataPropertiesName;
+                dataStruct.dataProperties = tmpVar.dataProperties;
+                dataStruct.movieHeaderName = tmpVar.movieHeaderName;
+                dataStruct.movieHeader = tmpVar.movieHeader;
+                dataStruct.initCoordName = tmpVar.initCoordName;
+                dataStruct.initCoord = tmpVar.initCoord;
+                dataStruct.slistName = tmpVar.slistName;
+                dataStruct.slist = tmpVar.slist;
+                dataStruct.planeFitName = tmpVar.planeFitName;
+                dataStruct.planeFit = tmpVar.planeFit;
+                dataStruct.tracksName = tmpVar.tracksName;
+                dataStruct.tracks = tmpVar.tracks;
+                dataStruct.sisterListName = tmpVar.sisterListName;
+                dataStruct.sisterList = tmpVar.sisterList;
+                dataStruct.updatedClassName = tmpVar.updatedClassName;
+                dataStruct.updatedClass = tmpVar.updatedClass;
+                dataStruct.frameAlignmentName = tmpVar.frameAlignmentName;
+                dataStruct.frameAlignment = tmpVar.frameAlignment;
+                dataStruct.status = tmpVar.status;
+                dataStruct.statusHelp = tmpVar.statusHelp;
+                dataStruct.history = tmpVar.history;
+                clear tmpVar
+
+            end
+
         otherwise
             % do nothing
     end

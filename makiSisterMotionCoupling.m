@@ -16,6 +16,8 @@ function analysisStruct = makiSisterMotionCoupling(jobType,analysisStruct,verbos
 %OUTPUT analysisStruct: Same as input but with additional field
 %           .motionCoupling: 
 %
+%REMARKS Code is not applicable to anaphase movies/frames
+%
 %Khuloud Jaqaman, August 2007
 
 %% input
@@ -33,7 +35,7 @@ if nargin < 2 || isempty(analysisStruct) || ~isfield(analysisStruct,'movies')
 end
 
 %convert file paths in analysisStruct from identifier to real path
-analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct);
+analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct,jobType);
 
 %extract fileName and directory name from analysisStruct
 fileName = analysisStruct.fileName;
@@ -43,7 +45,7 @@ dir2SaveRes = analysisStruct.filePath;
 moviesList = analysisStruct.movies;
 numMovies = size(moviesList,1);
 for iMovie = numMovies : -1 : 1
-    dataStruct(iMovie,1) = makiLoadDataFile(fullfile(moviesList{iMovie,2},moviesList{iMovie,1}));
+    dataStruct(iMovie,1) = makiLoadDataFile(jobType,fullfile(moviesList{iMovie,2},moviesList{iMovie,1}));
 end
 
 %find number of sisters in each movie
@@ -68,25 +70,22 @@ numSistersTot = sum(numSisters);
 
 %% collect sister projections and angles
 
+%define cell array of sister labels
+label{1,1} = 'Inlier';
+label{2,1} = 'Unaligned';
+label{3,1} = 'Lagging';
+
 %initialize global sister index and structures
-iGlobalInlier = 0;
-iGlobalUnaligned = 0;
-iGlobalLagging = 0;
+for iLabel = 1 : 3
 
-projectionSis1Inlier(1:numSistersTot,1) = struct('observations',[]);
-projectionSis2Inlier(1:numSistersTot,1) = struct('observations',[]);
-angleSis1Inlier(1:numSistersTot,1) = struct('observations',[]);
-angleSis2Inlier(1:numSistersTot,1) = struct('observations',[]);
+    eval(['iGlobal' label{iLabel,1} ' = 0;'])
 
-projectionSis1Unaligned(1:numSistersTot,1) = struct('observations',[]);
-projectionSis2Unaligned(1:numSistersTot,1) = struct('observations',[]);
-angleSis1Unaligned(1:numSistersTot,1) = struct('observations',[]);
-angleSis2Unaligned(1:numSistersTot,1) = struct('observations',[]);
-
-projectionSis1Lagging(1:numSistersTot,1) = struct('observations',[]);
-projectionSis2Lagging(1:numSistersTot,1) = struct('observations',[]);
-angleSis1Lagging(1:numSistersTot,1) = struct('observations',[]);
-angleSis2Lagging(1:numSistersTot,1) = struct('observations',[]);
+    eval(['projectionSis1' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+    eval(['projectionSis2' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+    eval(['angleSis1' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+    eval(['angleSis2' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+    
+end
 
 %go over all movies
 for iMovie = 1 : numMovies
@@ -96,6 +95,14 @@ for iMovie = 1 : numMovies
     tracks = dataStruct(iMovie).tracks;
     frameAlignment = dataStruct(iMovie).frameAlignment;
     updatedClass = dataStruct(iMovie).updatedClass;
+    numFramesMovie = length(updatedClass);
+
+    %find frame where anaphase starts (if it starts at all)
+    framePhase = vertcat(updatedClass.phase);
+    firstFrameAna = find(framePhase=='a',1,'first');
+    if isempty(firstFrameAna)
+        firstFrameAna = numFramesMovie + 1;
+    end
 
     if numSisters(iMovie) > 0
 
@@ -120,6 +127,7 @@ for iMovie = 1 : numMovies
             goodFrames = ~isnan(sisterList(iSister).distances(:,1));
             numFrames = length(goodFrames);
             goodFrames = find(goodFrames);
+            goodFrames = goodFrames(goodFrames < firstFrameAna);
 
             %find feature indices making up sisters
             sisterIndx1 = NaN(numFrames,1);
@@ -156,53 +164,28 @@ for iMovie = 1 : numMovies
             angle2 = acos(projection2 ./ sqrt(sum(coords2Diff(:,1:3).^2,2))) * 180 / pi;
 
             %store projections and angles based on the sister type
-            switch sisterType(iSister)
+            iLabel = sisterType(iSister) + 1;
 
-                case 0
+            %increase global index of sister type by 1
+            eval(['iGlobal' label{iLabel,1} ' = iGlobal' label{iLabel,1} ' + 1;'])
 
-                    %increase global index of inlier sisters by 1
-                    iGlobalInlier = iGlobalInlier + 1;
-
-                    %store information
-                    projectionSis1Inlier(iGlobalInlier).observations = projection1; %um
-                    projectionSis2Inlier(iGlobalInlier).observations = projection2; %um
-                    angleSis1Inlier(iGlobalInlier).observations = angle1; %deg
-                    angleSis2Inlier(iGlobalInlier).observations = angle2; %deg
-
-                case 1
-
-                    %increase global index of unaligned sisters by 1
-                    iGlobalUnaligned = iGlobalUnaligned + 1;
-
-                    %store information
-                    projectionSis1Unaligned(iGlobalUnaligned).observations = projection1; %um
-                    projectionSis2Unaligned(iGlobalUnaligned).observations = projection2; %um
-                    angleSis1Unaligned(iGlobalUnaligned).observations = angle1; %deg
-                    angleSis2Unaligned(iGlobalUnaligned).observations = angle2; %deg
-
-                case 2
-
-                    %increase global index of unaligned sisters by 1
-                    iGlobalLagging = iGlobalLagging + 1;
-
-                    %store information
-                    projectionSis1Lagging(iGlobalLagging).observations = projection1; %um
-                    projectionSis2Lagging(iGlobalLagging).observations = projection2; %um
-                    angleSis1Lagging(iGlobalLagging).observations = angle1; %deg
-                    angleSis2Lagging(iGlobalLagging).observations = angle2; %deg
-                    
-            end %(switch sisterType(iSister))
-
+            %store information
+            eval(['projectionSis1' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                ').observations = projection1;']) %um
+            eval(['projectionSis2' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                ').observations = projection2;']) %um
+            eval(['angleSis1' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                ').observations = angle1;']) %um
+            eval(['angleSis2' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                ').observations = angle2;']) %um
+            
         end %(for iSister = 1 : numSisters(iMovie) )
 
     end %(if numSisters(iMovie) > 0)
 
 end %(for iMovie = 1 : numMovies)
 
-%define cell array of sister labels
-label{1,1} = 'Inlier';
-label{2,1} = 'Unaligned';
-label{3,1} = 'Lagging';
+%store number of sisters per category
 for i = 1 : 3
     eval(['label{i,2} = iGlobal' label{i,1} ' ~= 0;']);
 end
@@ -231,11 +214,17 @@ maxLag = 10;
 for iLabel = 1 : 3
     eval(['projectionCrosscorr' label{iLabel,1} ' = [];'])
     eval(['angleCrosscorr' label{iLabel,1} ' = [];'])
+    eval(['projection1Autocorr' label{iLabel,1} ' = [];'])
+    eval(['angle1Autocorr' label{iLabel,1} ' = [];'])
+    eval(['projection2Autocorr' label{iLabel,1} ' = [];'])
+    eval(['angle2Autocorr' label{iLabel,1} ' = [];'])
 end
 
 %calculation
 for iLabel = goodLabel
 
+    %between sisters
+    
     %projections
     eval(['projectionCrosscorr' label{iLabel,1} ' = crossCorr(projectionSis1' ...
         label{iLabel,1} ',projectionSis2' label{iLabel,1} ',maxLag);'])
@@ -243,6 +232,24 @@ for iLabel = goodLabel
     %angles
     eval(['angleCrosscorr' label{iLabel,1} ' = crossCorr(angleSis1' ...
         label{iLabel,1} ',angleSis2' label{iLabel,1} ',maxLag);'])
+    
+    %sister with itself
+    
+    %projections
+    eval(['projection1Autocorr' label{iLabel,1} ' = autoCorr(projectionSis1' ...
+        label{iLabel,1} ',maxLag);'])
+
+    %angles
+    eval(['angle1Autocorr' label{iLabel,1} ' = autoCorr(angleSis1' ...
+        label{iLabel,1} ',maxLag);'])
+    
+    %projections
+    eval(['projection2Autocorr' label{iLabel,1} ' = autoCorr(projectionSis2' ...
+        label{iLabel,1} ',maxLag);'])
+
+    %angles
+    eval(['angle2Autocorr' label{iLabel,1} ' = autoCorr(angleSis2' ...
+        label{iLabel,1} ',maxLag);'])
     
 end
 
@@ -257,8 +264,16 @@ for iLabel = 1 : 3
     %store results in one structure
     eval(['crosscorr = struct(''projections'',projectionCrosscorr' label{iLabel,1} ','...
         '''angles'',angleCrosscorr' label{iLabel,1} ');']);
+    eval(['autocorr = struct(''projectionsSis1'',projection1Autocorr' label{iLabel,1} ...
+        ',''anglesSis1'',angle1Autocorr' label{iLabel,1} ...
+        ',''projectionsSis2'',projection2Autocorr' label{iLabel,1} ...
+        ',''anglesSis2'',angle2Autocorr' label{iLabel,1} ');']);
+    eval(['numSistersCat = iGlobal' label{iLabel,1} ';']);
 
-    eval([label{iLabel,1} ' = struct(''crosscorr'',crosscorr);'])
+    eval([label{iLabel,1} ' = struct('...
+        '''numSisters'',numSistersCat,'...
+        '''crosscorr'',crosscorr,'...
+        '''autocorr'',autocorr);'])
 
 end
 
@@ -280,7 +295,7 @@ if fieldExists
 end
 
 %save analysisStruct
-analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct);
+analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct,jobType);
 save(fullfile(dir2SaveRes,fileName),'analysisStruct');
 
 %% plots
@@ -301,10 +316,15 @@ if verbose
 
         %plot projection crosscorrelation
         eval(['projectionCrosscorr = projectionCrosscorr' label{iLabel,1} ';']);
+        eval(['autocorr1 = projection1Autocorr' label{iLabel,1} ';']);
+        eval(['autocorr2 = projection2Autocorr' label{iLabel,1} ';']);
         plot((-maxLag:maxLag)*timeLapse,projectionCrosscorr,'k','marker','.');
+        plot((0:maxLag)*timeLapse,autocorr1,'g:','marker','.');
+        plot((0:maxLag)*timeLapse,autocorr2,'r:','marker','.');
 
         %set axes limit
-        axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*min(projectionCrosscorr)) 1.1]);
+        minVal = min([projectionCrosscorr; autocorr1; autocorr2]);
+        axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*minVal) 1.1]);
 
         %write axes labels
         xlabel('Lag (s)');
@@ -319,10 +339,15 @@ if verbose
 
         %plot angle crosscorrelation
         eval(['angleCrosscorr = angleCrosscorr' label{iLabel,1} ';']);
+        eval(['autocorr1 = angle1Autocorr' label{iLabel,1} ';']);
+        eval(['autocorr2 = angle2Autocorr' label{iLabel,1} ';']);
         plot((-maxLag:maxLag)*timeLapse,angleCrosscorr,'k','marker','.');
+        plot((0:maxLag)*timeLapse,autocorr1,'g:','marker','.');
+        plot((0:maxLag)*timeLapse,autocorr2,'r:','marker','.');
 
         %set axes limit
-        axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*min(angleCrosscorr)) 1.1]);
+        minVal = min([angleCrosscorr; autocorr1; autocorr2]);
+        axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*minVal) 1.1]);
 
         %write axes labels
         xlabel('Lag (s)');

@@ -1,9 +1,11 @@
-function job = makiMakeJobPlatformIndependent(job)
+function job = makiMakeJobPlatformIndependent(job,serverType)
 %MAKIMAKEJOBPLATFORMINDEPENDENT makes a job platform independent
 %
-% SYNOPSIS: job = makiMakeJobPlatformIndependent(job)
+% SYNOPSIS: job = makiMakeJobPlatformIndependent(job,serverType)
 %
 % INPUT job: maki job file
+%       serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+%       'MCAINSH'
 %
 % OUTPUT 
 %
@@ -31,12 +33,12 @@ for iJob = 1:nJobs
    % check job fields
    for f=1:nJobFields
        job(iJob).(jobFields2check{f}) = ...
-           makiPathDef(job(iJob).(jobFields2check{f}));
+           makiPathDef(job(iJob).(jobFields2check{f}),serverType);
    end
    % check dataStruct fields
    for f=1:nDataFields
        job(iJob).dataStruct.(dataFields2check{f}) = ...
-           makiPathDef(job(iJob).dataStruct.(dataFields2check{f}));
+           makiPathDef(job(iJob).dataStruct.(dataFields2check{f}),serverType);
    end
     
 end

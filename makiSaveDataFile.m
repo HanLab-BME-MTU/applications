@@ -1,9 +1,11 @@
-function [success,dataStructOut] = makiSaveDataFile(dataStruct,secureName)
+function [success,dataStructOut] = makiSaveDataFile(serverType,dataStruct,secureName)
 %MAKISAVEDATAFILE saves maki-data to disk
 %
-% SYNOPSIS: [success,dataStructOut] = makiSaveDataFile(dataStruct,secureName)
+% SYNOPSIS: [success,dataStructOut] = makiSaveDataFile(serverType,dataStruct,secureName)
 %
-% INPUT dataStruct: maki-data structure (see makiMakeDataStruct)
+% INPUT serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+%                   'MCAINSH'
+%       dataStruct: maki-data structure (see makiMakeDataStruct)
 %       secureName: fieldname of data item that should be saved via
 %                   secureSave, such as 'initCoord' if the initial
 %                   coordinate detection has just been performed.
@@ -26,10 +28,10 @@ function [success,dataStructOut] = makiSaveDataFile(dataStruct,secureName)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % check for dataStruct
-if nargin == 0 || isempty(dataStruct) || ~isstruct(dataStruct)
+if nargin < 2 || isempty(dataStruct) || ~isstruct(dataStruct)
     error('no dataStruct supplied')
 end
-if nargin < 2 || isempty(secureName)
+if nargin < 3 || isempty(secureName)
     secureName = 'noName';
 end
 if ischar(secureName)
@@ -106,7 +108,7 @@ try
     else
         try
             % make platform independant, if possible
-            dataStruct.rawMoviePath = makiPathDef(dataStruct.rawMoviePath);
+            dataStruct.rawMoviePath = makiPathDef(dataStruct.rawMoviePath,serverType);
         catch
         end
     end

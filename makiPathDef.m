@@ -1,7 +1,7 @@
-function pathOrId = makiPathDef(pathOrId)
+function pathOrId = makiPathDef(pathOrId,serverType)
 %MAKIPATHDEF contains path definitions for relative paths for the maki project
 %
-% SYNOPSIS: pathOrId = makiPathDef(pathOrId)
+% SYNOPSIS: pathOrId = makiPathDef(pathOrId,serverType)
 %
 % INPUT pathOrId: path that should be converted into
 %                 $IDENTIFIER/rest/of/path, or $IDENTIFIER/rest/of/path
@@ -14,6 +14,8 @@ function pathOrId = makiPathDef(pathOrId)
 %                 $TESTDATA - D:\makiTestData on windows and HOME/testdata
 %                             on linux
 %                 $DANUSER, $MERLADI, $SWEDLOW, $MCAINSH
+%       serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+%       'MCAINSH'
 %       if pathOrId is empty or omitted, makiPathDef returns the current
 %       path definition
 %
@@ -23,13 +25,15 @@ function pathOrId = makiPathDef(pathOrId)
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
-% created by: jdorn
+% created by: jdorn, kjaqaman
 % DATE: 05-Jul-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% assign path or ID
+
 % load path list
-pathList = loadPathList;
+pathList = loadPathList(serverType);
 
 % check empty input
 if nargin == 0 || isempty(pathList)
@@ -99,15 +103,29 @@ end
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% pathlist
-function pathList = loadPathList
-homeUser = getenv('HOME');
-% pathList is {id, winPath, linuxPath}
-pathList = {'$TESTDATA','D:\makiTestData',[homeUser '/testData'];...
-    '$DANUSER','O:','/dundee';...
-    '$MERALDI','','';...
-    '$SWEDLOW','','';...
-    '$MCAINSH','',''};
+%% subfunction
 
-%     '$HERCULES','O:','/hercules';...
+function pathList = loadPathList(serverType)
+
+%Input: 
+%       serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+%       'MCAINSH'
+
+
+homeUser = getenv('HOME');
+
+% pathList is {id, winPath, linuxPath}
+if strcmp(serverType,'TEST')
+    pathList = {'$TESTDATA','D:\makiTestData',[homeUser '/testData']};
+elseif strcmp(serverType,'HERCULES')
+    pathList = {'$HERCULES','O:','/hercules'};
+elseif strcmp(serverType,'DANUSER')
+    pathList = {'$DANUSER','O:','/mnt/dundee'};
+elseif strcmp(serverType,'MERALDI')
+    pathList = {'$MERALDI','O:',''};
+elseif strcmp(serverType,'SWEDLOW')
+    pathList = {'$SWEDLOW','',''};
+elseif strcmp(serverType,'MCAINSH')
+    pathList = {'$MCAINSH','',''};
+end    
+

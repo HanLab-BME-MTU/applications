@@ -4,10 +4,9 @@ function job = makiMakeJob(jobType,status,job)
 % SYNOPSIS: job = makiMakeJob(jobType,status,job)
 %
 % INPUT jobType: string which can take the values:
-%                'TEST','HERCULES','UPDATE',
-%                'DANUSER','MERLADI',SWEDLOW' or MCAINSH
+%                'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or 'MCAINSH'
 %       status : status that you want to achieve, either as status vector,
-%                e.g. [1,1,1,0,1,0,0,0], or a list of tasks, e.g. [1,2,3,5]
+%                e.g. [1,1,1,0,1,0,0,0,0], or a list of tasks, e.g. [1,2,3,5]
 %                To force a task, set 2 in the status vector, or negative
 %                numbers in the list
 %               
@@ -21,10 +20,20 @@ function job = makiMakeJob(jobType,status,job)
 %
 % OUTPUT job: job-struct (input to makiMovieAnalysis)
 %
-% REMARKS Order of tasks so far: (1) cropping; (2) saving dataStruct;
-%         (3) initCoord; (4) mixture-model fitting; (5) plane fit;
-%         (6) tracking; (7) sister identification; (8) frame alignment;
-%         (9) update kinetochore and frame classification.
+% REMARKS Order of tasks so far: 
+%         (1) cropping
+%         (2) saving dataStruct
+%         (3) initCoord
+%         (4) mixture-model fitting
+%         (5) plane fit
+%         (6) tracking 
+%         (7) sister identification
+%         (8) update kinetochore and frame classification
+%         (9) frame alignment
+%
+%         I removed the option jobType = 'UPDATE' for now because of
+%         changes that I had to make to makiPathDef due to more than
+%         one server being called O: on the Windows side.
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -38,8 +47,10 @@ makiNumPossibleTasks = 9;
 
 if nargin < 1 || isempty(jobType)
     jobType = 1;
+    serverType = 'TEST';
 else
     jobType = upper(jobType);
+    serverType = jobType;
     if strcmp(jobType,'TEST')
         jobType = 1;
     elseif strcmp(jobType,'HERCULES')
@@ -85,28 +96,28 @@ switch jobType
         % basePath depends on the job
         switch jobType
             case 1
-                jobPath = makiPathDef('$TESTDATA');
+                jobPath = [makiPathDef('$TESTDATA',serverType) filesep];
                 basePath = jobPath;
                 jobName = sprintf('testJob-%s.mat',nowString);
             case 2
-                jobPath = makiPathDef('$TESTDATA');
-                basePath = makiPathDef('$HERCULES');
+                jobPath = [makiPathDef('$TESTDATA',serverType) filesep];
+                basePath = [makiPathDef('$HERCULES',serverType) filesep];
                 jobName = sprintf('herculesJob-%s.mat',nowString);
             case 4
-                basePath = makiPathDef('$DANUSER');
-                jobPath = [basePath filesep 'JobLogFiles'];
+                basePath = [makiPathDef('$DANUSER',serverType) filesep];
+                jobPath = [basePath 'JobLogFiles'];
                 jobName = sprintf('danuserJob-%s.mat',nowString);
             case 5
-                basePath = makiPathDef('$MERALDI');
-                jobPath = [basePath filesep 'JobLogFiles'];
+                basePath = [makiPathDef('$MERALDI',serverType) filesep];
+                jobPath = [basePath 'JobLogFiles'];
                 jobName = sprintf('meraldiJob-%s.mat',nowString);
             case 6
-                basePath = makiPathDef('$SWEDLOW');
-                jobPath = [basePath filesep 'JobLogFiles'];
+                basePath = [makiPathDef('$SWEDLOW',serverType) filesep];
+                jobPath = [basePath 'JobLogFiles'];
                 jobName = sprintf('swedlowJob-%s.mat',nowString);
             case 7
-                basePath = makiPathDef('$MCAINSH');
-                jobPath = [basePath filesep 'JobLogFiles'];
+                basePath = [makiPathDef('$MCAINSH',serverType) filesep];
+                jobPath = [basePath 'JobLogFiles'];
                 jobName = sprintf('mcainshJob-%s.mat',nowString);
         end
 
@@ -127,7 +138,11 @@ switch jobType
         job(1:nJobs) = struct('jobPath',jobPath,...
             'jobName',jobName,'dataStruct',[]);
 
+        %initialize progress display
+        progressText(0,'Setting up jobs');
+
         for iJob = 1:nJobs
+
             % for now: project name is rawMovieName minus extension
             rawMovieName = fileList{iJob,1};
             rawMoviePath = fileList{iJob,2};
@@ -203,7 +218,7 @@ switch jobType
                     logFileNameBody = projectName;
                 end;
                 % search for bla_*log
-                logFile = searchFiles([[logFileNameBody],'.*','\.log$'],'',rawMoviePath,0);
+                logFile = searchFiles([logFileNameBody,'.*','\.log$'],'',rawMoviePath,0);
                 % copy file log to dataFilePath
                 if size(logFile,1) > 1
                     errordlg(sprintf('%s is not a unique log filename in the directory %s\nRename before continuing', ...
@@ -260,7 +275,7 @@ switch jobType
                 end
             else
                 % load dataFile
-                dataStruct = makiLoadDataFile(fullfile(dataFilePath,dataFile.name));
+                dataStruct = makiLoadDataFile(serverType,fullfile(dataFilePath,dataFile.name));
             end
 
             % request jobs to be done
@@ -344,10 +359,13 @@ switch jobType
             end
 
             % store dataStruct - store success
-            [dataStruct.status(2),dataStruct] = makiSaveDataFile(dataStruct,'dataProperties');
-            % dataStruct.status(2) = makiSaveDataFile(dataStruct,'dataProperties');       
+            [dataStruct.status(2),dataStruct] = makiSaveDataFile(serverType,dataStruct,'dataProperties');
+            % dataStruct.status(2) = makiSaveDataFile(dataStruct,'dataProperties');
             % update job
             job(iJob).dataStruct = dataStruct;
+
+            %display progress
+            progressText(iJob/(nJobs),'Setting up jobs');
 
         end % loop jobs
     case 3
@@ -367,11 +385,11 @@ switch jobType
         end
 
         % loop through job to reload dataStruct, and to change status
-        job = makiMakeJobPlatformIndependent(job);
+        job = makiMakeJobPlatformIndependent(job,serverType);
 
         for iJob = 1:length(job)
             % reload dataStruct
-            dataStruct = makiLoadDataFile(...
+            dataStruct = makiLoadDataFile(serverType,...
                 fullfile(job(iJob).dataStruct.dataFilePath,...
                 job(iJob).dataStruct.dataFileName));
 
@@ -399,10 +417,10 @@ end
 
 if ~isempty(job)
     % make job platform-independent
-    job = makiMakeJobPlatformIndependent(job);
+    job = makiMakeJobPlatformIndependent(job,serverType);
 
     % save job
-    save(fullfile(makiPathDef(job(1).jobPath),job(1).jobName),'job');
+    save(fullfile(makiPathDef(job(1).jobPath,serverType),job(1).jobName),'job');
 end
 
 warning(warningState)
@@ -458,28 +476,30 @@ rotate = str2double(tracksParamIn{1});
 %assign gap closing parameters
 gapCloseParam.timeWindow = str2double(tracksParamIn{2}) + 1;
 gapCloseParam.mergeSplit = 0;
+gapCloseParam.minTrackLen = 1;
 
 %assign cost matrix parameters for linking spots between consecutive 
 %frames
 costMatParam.minSearchRadiusL = str2double(tracksParamIn{3});
 costMatParam.maxSearchRadiusL = str2double(tracksParamIn{4});
-costMatParam.brownStdMultL = 3;
+costMatParam.brownStdMultL = 4;
 costMatParam.closestDistScaleL = 2;
-costMatParam.maxStdMultL = 20;
+costMatParam.maxStdMultL = 100;
 
 %assign cost matrix parameters for closing gaps and (in principle) 
 %merging and splitting
 costMatParam.minSearchRadiusCG = str2double(tracksParamIn{3});
 costMatParam.maxSearchRadiusCG = str2double(tracksParamIn{4});
-costMatParam.brownStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
-costMatParam.linStdMultCG = 3*ones(gapCloseParam.timeWindow,1);
+costMatParam.brownStdMultCG = 4*ones(gapCloseParam.timeWindow,1);
+costMatParam.linStdMultCG = 4*ones(gapCloseParam.timeWindow,1);
 costMatParam.timeReachConfB = min(2,gapCloseParam.timeWindow);
 costMatParam.timeReachConfL = 1;
 costMatParam.closestDistScaleCG = 2;
-costMatParam.maxStdMultCG = 20;
+costMatParam.maxStdMultCG = 100;
 costMatParam.lenForClassify = 10;
-costMatParam.maxAngle = 10;
-costMatParam.ampRatioLimitCG = [0.5000 2];
+costMatParam.maxAngleVV = 20;
+costMatParam.maxAngleVD = 20;
+costMatParam.ampRatioLimitCG = [0.65 4];
 
 %assign parameters for using local density to expand search radius
 useLocalDensity.link = 1;

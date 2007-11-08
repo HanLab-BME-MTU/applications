@@ -4,8 +4,9 @@ function dataStruct = makiAlignFrames(dataStruct)
 %SYNOPSIS dataStruct = makiAlignFrames(dataStruct)
 %
 %INPUT  dataStruct : dataStruct as in makiMakeDataStruct with at least the
-%                    fields "dataProperties", "initCoord", "planeFit" &
-%                    "tracks". Optional. Loaded interactively if not input.
+%                    fields "dataProperties", "initCoord", "planeFit", 
+%                    "tracks" and "updatedClass". 
+%                    Optional. Loaded interactively if not input.
 %
 %OUTPUT dataStruct : Same as input, with added field "frameAlignment".
 %                    For each frame, it contains the subfields:
@@ -45,7 +46,7 @@ numTracks = size(tracksIndx,1);
 
 %assign 0 to outlier (unaligned & lagging) features in each frame
 for iFrame = 1 : numFrames
-    outIndx = [dataStruct.planeFit(iFrame).unalignedIdx dataStruct.planeFit(iFrame).laggingIdx];
+    outIndx = [dataStruct.updatedClass(iFrame).unalignedIdx dataStruct.updatedClass(iFrame).laggingIdx];
     for iFeat = outIndx
         tracksIndx(tracksIndx(:,iFrame)==iFeat,iFrame) = 0;
     end
@@ -54,10 +55,13 @@ end
 %reserve memory for euler angles and rotation frame of reference
 eulerAnglesX = NaN(numFrames,4);
 
-%find which frames need their rotation to be estimated (empty frames as
-%output by planeFit)
-phase = vertcat(dataStruct.planeFit.phase);
-frames2align = find(phase == 'e')';
+%find which frames need their rotation to be estimated
+frames2align = [];
+for t = 1 : numFrames
+    if isempty(dataStruct.planeFit(t).planeVectors)
+        frames2align = [frames2align t];
+    end
+end
 framesOK = setxor((1:numFrames),frames2align);
 
 %if all frames are empty, make the first frame non-empty (it will be taken

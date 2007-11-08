@@ -43,12 +43,18 @@ function dataStruct = makiFitPlane(dataStruct,verbose)
 %               .laggingIdx      index into initCoord of all spots that are
 %                   considered to belong to lagging chromosomes
 %                   (occurs only in anaphase frames)
-%               .phase either 'e' prophase/early prometaphase -> no plane
-%                   fit possible; 'p' late prometaphase -> planefit possible but 
-%                   unaligned kinetochores found; 'm' metaphase -> plane
-%                   fit possible and no unaligned kinetochores found; 'a'
-%                   anaphase -> planefit possible with eigenvalue normal
-%                   >> mean eigenvalue;
+%               .phase 
+%                   'e': prophase/early prometaphase -> no plane fit
+%                        possible;
+%                   'p': late prometaphase -> plane fit possible but 
+%                        unaligned kinetochores found; 
+%                   'm': metaphase -> plane fit possible and no unaligned 
+%                        kinetochores found;
+%                   'a': anaphase -> either planefit possible with
+%                        eigenvalue normal > mean eigenvalue, or no
+%                        plane fit possible but frame comes after metaphase
+%                        or anaphase frames (happens when confusing
+%                        anaphase frames come at the end of a movie).
 %               .distParms       [variance,skewness,kurtosis,pNormal]' for
 %                   the planeCoord. pNormal is the p-value that the data
 %                   comes from a normal distribution. The tabulated values
@@ -338,8 +344,8 @@ if nConsecFrames >= minConsecFrames && ~isempty(goodFrames)
         %         % The interpolation is forced to use derivative 0 at the boundary frames
         %         gapNormals = spline(goodFrames,[[0;0;0] goodNormals [0;0;0]], gapFrames);
 
-        % an attempt to check out linear interpolation - maybe works better
-        % than spline
+        % an attempt to check out linear interpolation - seems to work
+        % better than spline
         gapNormals = interp1q(goodFrames',goodNormals',gapFrames');
         gapNormals = gapNormals';
         
@@ -370,16 +376,16 @@ if nConsecFrames >= minConsecFrames && ~isempty(goodFrames)
         
     end %(if ~isempty(gapFrames))
 
-    % refinement of phase classification and identification of unaligned and
-    % lagging kinetochores
-
     % get all classified frames (goodFrames and gapFrames)
     framesWiPlane = (goodFrames(1):goodFrames(end));
     framesNoPlane = setxor((1:nTimePoints),framesWiPlane);
 
-    % get distance from plane, in-plane coordinates by transformation
+    % refinement of phase classification based on scatter along normal to
+    % plane and time evolution
+    
+    % get distance from plane and in-plane coordinates by transformation
     % with inverse of in-plane vectors
-    % identify outliers in each frame
+    dist2planeStd = NaN(nTimePoints,1);
     for t = framesWiPlane(1):framesWiPlane(end)
 
         % planeCoord: [d,xplane,yplane]
@@ -387,6 +393,47 @@ if nConsecFrames >= minConsecFrames && ~isempty(goodFrames)
             (inv(planeFit(t).planeVectors)*...
             (initCoord(t).allCoord(:,1:3)-...
             repmat(planeFit(t).planeOrigin,nSpots(t),1))')';
+        
+        % calculate std of distances from plane
+        dist2planeStd(t) = std(planeFit(t).planeCoord(planeFit(t).inlierIdx,1));
+
+    end
+    
+    %find last frame not labeled 'e' and first frame labeled 'a'
+    framePhase = vertcat(planeFit.phase);
+    lastFrameNotE = find(framePhase~='e',1,'last');
+    firstFrameA = find(framePhase=='a',1,'first');
+
+    %if there is a frame labeled 'a', go back in time and, as long as the
+    %kinetochore scatter decreases, classify preceding frames as 'a'
+    if ~isempty(firstFrameA)
+
+        t = firstFrameA - 1;
+        while t > 0 && (all(dist2planeStd(t) > dist2planeStd(max(1,t-5):max(1,t-1))))
+            planeFit(t).phase = 'a';
+            t = t - 1;
+        end
+
+        %if there are no 'a' frames but there are some empty frames toward
+        %the end of the movie, label those as 'a' and again go back in time
+        %looking for the start of anaphase
+    elseif ~isempty(lastFrameNotE) && lastFrameNotE < nTimePoints
+        for t = lastFrameNotE+1 : nTimePoints
+            planeFit(t).phase = 'a';
+        end
+        t = lastFrameNotE;
+        while t > 0 && (all(dist2planeStd(t) > dist2planeStd(max(1,t-5):max(1,t-1))))
+            planeFit(t).phase = 'a';
+            t = t - 1;
+        end
+
+    end
+        
+    % identification of unaligned and lagging kinetochores and further
+    % refinement of phase classification
+
+    % identify outliers in each frame
+    for t = framesWiPlane(1):framesWiPlane(end)
 
         %extract distance from plane along the normal
         d = planeFit(t).planeCoord(:,1);
@@ -579,11 +626,10 @@ end
 
 %% output
 
-% assign out
+% assign output
 dataStruct.planeFit = planeFit;
 
-
-% plot everything
+% plot everything if verbose
 if verbose > 0
     % makiFitPlanePlot(dataStruct)
     makiPlotRotatingPlanes(dataStruct);
@@ -594,9 +640,7 @@ warning(warningState);
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% SUBFUNCTIONS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [eigenVectors, eigenValues, meanCoord] = eigenCalc(coordinates)
 % find eigenVectors, eigenValues, meanCoordinates for plane fitting

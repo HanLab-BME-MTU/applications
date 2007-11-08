@@ -19,8 +19,9 @@ function dataStruct = makiUpdateClass(dataStruct)
 %               .phase           'e' = prophase/early prometaphase (no plane)
 %                                'p' = late prometaphase (plane, unaligned Ks)
 %                                'm' = metaphase (plane, no unaligned Ks)
-%                                'a' = anaphase (plane, 2 groups of Ks,
-%                                some can be unaligned or lagging)
+%                                'a' = anaphase (EITHER plane, 2 groups of Ks,
+%                                some can be unaligned or lagging, OR no
+%                                plane but after 'm' in end of movie)
 %
 % REMARKS The code assumes that the tracks do not contain merges and splits
 %
@@ -62,7 +63,7 @@ end
 
 %% outlier expansion based on sister pairs
 
-if ~isempty(sisterList)
+if ~isempty(sisterList) && ~isempty(sisterList(1).trackPairs)
 
     %get number of sisters
     numSisters = length(sisterList);
@@ -112,7 +113,7 @@ if ~isempty(sisterList)
     
 end %(if ~isempty(sisterList))
 
-%% outlier examination based on track information
+%% outlier examination based on tracking information
 
 tracksMatrixUnaligned = tracksIndxMatrix;
 tracksMatrixLagging = tracksIndxMatrix;
@@ -165,7 +166,7 @@ for iFrame = 1 : numFrames
     laggingIdx = abs(tracksMatrixLagging(tracksMatrixLagging(:,iFrame)<0,iFrame)');
     inlierIdx = setdiff((1:numSpots(iFrame)),[unalignedIdx laggingIdx]);
     framePhase = planeFit(iFrame).phase;
-    if ~strcmp(framePhase,'a')
+    if ~strcmp(framePhase,'a') && ~strcmp(framePhase,'e')
         if isempty(unalignedIdx)
             framePhase = 'm';
         else
@@ -186,7 +187,7 @@ tracksLagging = find(any(tracksMatrixLagging<0,2));
 updatedClass(1).tracksUnaligned = tracksUnaligned';
 updatedClass(1).tracksLagging = tracksLagging';
 
-if ~isempty(sisterList)
+if ~isempty(sisterList) && ~isempty(sisterList(1).trackPairs)
 
     %list the track indices making up sister pairs
     %look only at first track of each pair since either both tracks have
