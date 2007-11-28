@@ -17,7 +17,7 @@ function varargout = editPropertiesGUI(varargin)
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
-% 
+%
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
 % Edit the above text to modify the response to help editPropertiesGUI
@@ -500,11 +500,40 @@ if get(hObject,'Value')
     end
     %set(handles.trackH,'Enable','off');
     %set(handles.testH,'Enable','on');
+
+    % reset sigmaCorrection
+    ans = questdlg('Do you also want to update sigmaCorrection?','','yes','no','yes');
+    if strcmp(ans,'yes')
+        handles.sigmaCorrection(1) = 1.6;% changed 11/07 after finally measuring
+        handles.sigmaCorrection(2) = 1.4;% changed 11/07 after finally measuring
+        set(handles.edit_sigmaCorrX_txt,'String',handles.sigmaCorrection(1));
+        set(handles.edit_sigmaCorrY_txt,'String',handles.sigmaCorrection(1));
+        set(handles.edit_sigmaCorrZ_txt,'String',handles.sigmaCorrection(2));
+        wvl = str2double(get(handles.edit_wavelength_txt,'String'));
+        NA = str2double(get(handles.edit_NA_txt,'String'));
+        if ~isempty(NA)
+            [FT_XY, FT_Z] = calcFilterParms(...
+                wvl(1),NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
+
+            patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
+            handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
+            set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
+            set(handles.edit_filterY_txt,'String',sprintf('%0.3f',FT_XY));
+            set(handles.edit_filterZ_txt,'String',sprintf('%0.3f',FT_Z));
+            set(handles.edit_patchX_txt,'String',patchXYZ(1));
+            set(handles.edit_patchY_txt,'String',patchXYZ(2));
+            set(handles.edit_patchZ_txt,'String',patchXYZ(3));
+        end
+    else
+        % don't
+    end
 else
     set(handles.checkH(2:end),'Value',0); %do not try to assign value with a matrix: objects will disappear!
     set(handles.linkH,'Enable','off');
     set(handles.detectH,'Enable','off');
     set(handles.backgroundH,'Enable','off');
+
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -708,25 +737,25 @@ if strcmp(pdString{currentSelection},'select movie #1')
 end
 
 if strcmp(pdString{currentSelection},'add new...')
-    
+
     %check if default biodata-dir exists
     oldDir = pwd;
     mainDir = cdBiodata(0);
-    
+
     %find calibration movie
     [fileName,pathName] = uigetfile({'*.r3d;*.r3c;*R3D.dv','raw movie files'},'select project movie');
-    
+
     %return if user has selected nothing
     if all(fileName==0) || ~(strcmp(fileName(end-3:end-1),'.r3') |  strcmp(fileName(end-2:end),'.dv'))  %can be r3d or r3c
         %change back to correct dir
         cd(oldDir);
         return
     end
-    
+
     %if last part of pathname differs from moviename: create project directory
     %and move movie and logfile; else read projectName
     calMovieName = fileName(1:end-4);
-    
+
     %see if project is in mainDir, do it case-unsensitive
     if strcmpi(pathName(1:length(mainDir)),mainDir)==1
         relPathName = pathName(length(mainDir)+2:end-1); %begins without filesep, ends with none
@@ -741,7 +770,7 @@ if strcmp(pdString{currentSelection},'add new...')
             relPathName = pathName(1:end-1); %ends without filesep
         end
     end
-    
+
     %write filename into Pulldown-String
     pdString{end+1} = calMovieName;
     %check whether #1 is select. If yes, delete
@@ -750,17 +779,17 @@ if strcmp(pdString{currentSelection},'add new...')
     end
     newItem = length(pdString);
     set(hObject,'String',pdString,'Value',newItem);
-    
+
     %store pathname&filename
     handles.correctBackground1{end+1,1} = pathName;
     handles.correctBackground1{end,2} = fileName;
-    
+
     %store data
     guidata(hObject, handles);
-    
+
     %change back to correct dir
     cd(oldDir);
-else    
+else
     %eliminate selectMovie-entry if necessary
     if strcmp(pdString{1},'select movie #1')
         pdString(1) = [];
@@ -791,25 +820,25 @@ if strcmp(pdString{currentSelection},'select movie #2')
 end
 
 if strcmp(pdString{currentSelection},'add new...')
-    
+
     %check if default biodata-dir exists
     oldDir = pwd;
     mainDir = cdBiodata(0);
-    
+
     %find calibration movie
     [fileName,pathName] = uigetfile({'*.r3d;*.r3c','raw movie files'},'select project movie');
-    
+
     %return if user has selected nothing
     if fileName==0 | ~strcmp(fileName(end-3:end-1),'.r3') %can be r3d or r3c
         %change back to correct dir
         cd(oldDir);
         return
     end
-    
+
     %if last part of pathname differs from moviename: create project directory
     %and move movie and logfile; else read projectName
     calMovieName = fileName(1:end-4);
-    
+
     %see if project is in mainDir, do it case-unsensitive
     if strcmpi(pathName(1:length(mainDir)),mainDir)==1
         relPathName = pathName(length(mainDir)+2:end-1); %begins without filesep, ends with none
@@ -824,7 +853,7 @@ if strcmp(pdString{currentSelection},'add new...')
             relPathName = pathName(1:end-1); %ends without filesep
         end
     end
-    
+
     %write filename into Pulldown-String
     pdString{end+1} = calMovieName;
     %check whether #1 is select. If yes, delete
@@ -833,14 +862,14 @@ if strcmp(pdString{currentSelection},'add new...')
     end
     newItem = length(pdString);
     set(hObject,'String',pdString,'Value',newItem);
-    
+
     %store pathname&filename
     handles.correctBackground2{end+1,1} = pathName;
     handles.correctBackground2{end,2} = fileName;
-    
+
     %store data
     guidata(hObject, handles);
-    
+
     %change back to correct dir
     cd(oldDir);
 else
@@ -974,7 +1003,7 @@ function writeCurrentBackgroundState(hObject,handles)
 correctBG = struct('correctFiles',[],'correctFrames',[],'header',[]);
 if get(handles.edit_check_correctBG,'Value')
     %one of the two fields will not be empty
-    
+
     correctBG.header = handles.header;
     switch get(handles.edit_RB_firstAndLast,'Value')
         case 1
@@ -1490,18 +1519,18 @@ else
     set(handles.edit_sigmaCorrY_txt,'String',sprintf('%1.2f',scx))
     handles.sigmaCorrection(1) = scx;
     % update filter parameters
-     wvl = str2double(get(handles.edit_wavelength_txt,'String'));
-        NA = str2double(get(handles.edit_NA_txt,'String'));
-        [FT_XY, FT_Z] = calcFilterParms(...
-            wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
-        patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
-        handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
-        set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
-        set(handles.edit_filterY_txt,'String',sprintf('%0.3f',FT_XY));
-        set(handles.edit_filterZ_txt,'String',sprintf('%0.3f',FT_Z));
-        set(handles.edit_patchX_txt,'String',patchXYZ(1));
-        set(handles.edit_patchY_txt,'String',patchXYZ(2));
-        set(handles.edit_patchZ_txt,'String',patchXYZ(3));
+    wvl = str2double(get(handles.edit_wavelength_txt,'String'));
+    NA = str2double(get(handles.edit_NA_txt,'String'));
+    [FT_XY, FT_Z] = calcFilterParms(...
+        wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
+    patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
+    handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
+    set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
+    set(handles.edit_filterY_txt,'String',sprintf('%0.3f',FT_XY));
+    set(handles.edit_filterZ_txt,'String',sprintf('%0.3f',FT_Z));
+    set(handles.edit_patchX_txt,'String',patchXYZ(1));
+    set(handles.edit_patchY_txt,'String',patchXYZ(2));
+    set(handles.edit_patchZ_txt,'String',patchXYZ(3));
 end
 guidata(hObject,handles);
 
@@ -1519,18 +1548,18 @@ if ~isfinite(scz)
 else
     handles.sigmaCorrection(2) = scz;
     % update filter parameters
-     wvl = str2double(get(handles.edit_wavelength_txt,'String'));
-        NA = str2double(get(handles.edit_NA_txt,'String'));
-        [FT_XY, FT_Z] = calcFilterParms(...
-            wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
-        patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
-        handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
-        set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
-        set(handles.edit_filterY_txt,'String',sprintf('%0.3f',FT_XY));
-        set(handles.edit_filterZ_txt,'String',sprintf('%0.3f',FT_Z));
-        set(handles.edit_patchX_txt,'String',patchXYZ(1));
-        set(handles.edit_patchY_txt,'String',patchXYZ(2));
-        set(handles.edit_patchZ_txt,'String',patchXYZ(3));
+    wvl = str2double(get(handles.edit_wavelength_txt,'String'));
+    NA = str2double(get(handles.edit_NA_txt,'String'));
+    [FT_XY, FT_Z] = calcFilterParms(...
+        wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
+    patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
+    handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
+    set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
+    set(handles.edit_filterY_txt,'String',sprintf('%0.3f',FT_XY));
+    set(handles.edit_filterZ_txt,'String',sprintf('%0.3f',FT_Z));
+    set(handles.edit_patchX_txt,'String',patchXYZ(1));
+    set(handles.edit_patchY_txt,'String',patchXYZ(2));
+    set(handles.edit_patchZ_txt,'String',patchXYZ(3));
 end
 guidata(hObject,handles);
 

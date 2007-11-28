@@ -186,28 +186,8 @@ end
 timeLapse = sprintf('%0.3f',meanTimeLapse);
 set(handles.edit_timeLapse_txt,'String',timeLapse);
 
-%filter parameters (can't be edited)
-%start assuming that the psf matches the theoretical psf
-handles.sigmaCorrection(1) = 1.0;%1.2 before pixCorr.
-handles.sigmaCorrection(2) = 1.0;%1.3 before NAcorr
-
-set(handles.edit_sigmaCorrX_txt,'String',handles.sigmaCorrection(1));
-set(handles.edit_sigmaCorrY_txt,'String',handles.sigmaCorrection(1));
-set(handles.edit_sigmaCorrZ_txt,'String',handles.sigmaCorrection(2));
-
-if ~isempty(NA)
-    [FT_XY, FT_Z] = calcFilterParms(...
-        header.wvl(1),NA,1.51,'gauss',handles.sigmaCorrection, [header.pixelX, header.pixelZ]);
-
-    patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
-    handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
-    set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
-    set(handles.edit_filterY_txt,'String',sprintf('%0.3f',FT_XY));
-    set(handles.edit_filterZ_txt,'String',sprintf('%0.3f',FT_Z));
-    set(handles.edit_patchX_txt,'String',patchXYZ(1));
-    set(handles.edit_patchY_txt,'String',patchXYZ(2));
-    set(handles.edit_patchZ_txt,'String',patchXYZ(3));
-end
+%--- cut sigmaCorrection/filter parameter settings here and moved it
+%further down 
 
 %store data
 handles.frameTime = frameTime';
@@ -515,6 +495,38 @@ end
 handles.previewData.filteredMovieName = filteredMovieName;
 handles.previewData.movieName = movieName;
 handles.previewData.movieLength = header.numTimepoints;
+
+%filter parameters (can't be edited) - 11/07 since recently, they can!
+
+% check if filtering is being done. If yes, set sigmaCorrection to new
+% defaults. (also, if filtering is being redone, sigmaCorrectio will be
+% updated!!)
+
+if get(handles.checkH(1),'Value') == 1
+handles.sigmaCorrection(1) = 1.6;% changed 11/07 after finally measuring
+handles.sigmaCorrection(2) = 1.4;% changed 11/07 after finally measuring
+else
+    handles.sigmaCorrection = myJob.dataProperties.sigmaCorrection;
+end
+
+% now update parameters
+set(handles.edit_sigmaCorrX_txt,'String',handles.sigmaCorrection(1));
+set(handles.edit_sigmaCorrY_txt,'String',handles.sigmaCorrection(1));
+set(handles.edit_sigmaCorrZ_txt,'String',handles.sigmaCorrection(2));
+
+if ~isempty(NA)
+    [FT_XY, FT_Z] = calcFilterParms(...
+        header.wvl(1),NA,1.51,'gauss',handles.sigmaCorrection, [header.pixelX, header.pixelZ]);
+
+    patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
+    handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
+    set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
+    set(handles.edit_filterY_txt,'String',sprintf('%0.3f',FT_XY));
+    set(handles.edit_filterZ_txt,'String',sprintf('%0.3f',FT_Z));
+    set(handles.edit_patchX_txt,'String',patchXYZ(1));
+    set(handles.edit_patchY_txt,'String',patchXYZ(2));
+    set(handles.edit_patchZ_txt,'String',patchXYZ(3));
+end
 
 
 guidata(hObject,handles);
