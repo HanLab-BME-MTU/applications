@@ -9,7 +9,7 @@ function [bilobeDataIdlist, bilobeDataSpindleLength, plotData,plotStruct] = bilo
 %                               1  Correction by 0.1 um
 %                               any other number: correction (in um)
 %        spindleEdges (opt) : vector of bin edges for spindle length.
-%                            Default : [1,1.2,1.4,1.6,2];
+%                            Default : [0.8,1,1.2,1.4,1.6,1.8]
 %                            Edge bins exclude extreme data
 %
 % OUTPUT bilobeDataXX:  structure array.
