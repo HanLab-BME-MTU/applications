@@ -376,4 +376,4 @@ warning(warningState);
 figure('Name','relative centromere intensity (3=b/4=r)')
 plot(data1(d31,2),data1(d31,5),'.b',data1(d41,2),data1(d41,5),'.r')
 xlabel('Spindle Length (\mum)')
-ylabel('$$\frac{\Sigma(cenInt)}{\Sigma(spbInt)}$$','Interpreter','latex')
+ylabel('$$\frac{\Sigma(cenInt)/numCen}{\Sigma(spbInt)/2}$$','Interpreter','latex')

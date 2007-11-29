@@ -267,30 +267,41 @@ for t=goodTimes'
     % find threshold
         threshold = prctile(intensities(t).residualBg,100-100*cutoff);
         % find significant pixels
-        sigIntL = intensities(t).residualInt > threshold;
+        sigIntIdxL = intensities(t).residualInt > threshold;
         % count significant pixels
-        nSig = sum(sigIntL(:));
+        nSig = sum(sigIntIdxL(:));
         % count overall pixels
         nTot = sum(isfinite(intensities(t).residualInt(:)));
         % the lower "cutoff*100"% could be noise
-        sigInt = intensities(t).residualInt(sigIntL);
+        sigInt = intensities(t).residualInt(sigIntIdxL);
         nNoise = min(floor(nTot * cutoff),nSig);
         [sigInt,sortIdx] = sort(sigInt);
-        sigInt(1:nNoise) = [];
-        sigRatio(t) = nSig/nTot;
-        sigRatio2(t) = length(sigInt)/nTot;
-        sigIntLcorr = sigIntL;
-        sigIntLcorr(sortIdx(1:nNoise)) = false;
+        sigInt(1:nNoise) = []; % remember for control
+        sigRatio(t) = nSig/nTot; % before removing x%
+        sigRatio2(t) = length(sigInt)/nTot; % after removing x%
+        sigIntIdxLcorr = sigIntIdxL;
+        sigIntIdx = find(sigIntIdxL);
+        sigIntIdxLcorr(sigIntIdx(sortIdx(1:nNoise))) = false;
         
         % sum the intensity in the significant voxels, keep the ordering
         % along the first dimension, though
         tmp = intensities(t).residualInt;
-        tmp(~sigIntLcorr) = 0;
+        tmp(~sigIntIdxLcorr) = 0;
         sigIntList{t} = squeeze(sum(sum(tmp,1),2));
         sigIntSum(t) = sum(sigIntList{t});
         
 end
-        
+
+% get factor to get integral from amplitude
+ampC=(prod(fitStruct(1).dataProperties.FT_SIGMA))*(2*pi)^(3/2);
+
+figure,plot(sigIntSum)
+hold on, plot(goodTimes,spotIntensities(goodTimes,:)*ampC)
+
+figure,plot(sigIntSum+sum(spotIntensities(:,[2,4]),2)*ampC)
+
+figure,plot((sigIntSum+sum(spotIntensities(:,[2,4]),2)*ampC)./repmat(exp(xFit(end)*(1:nTimepoints)'),1,1))
+hold on, plot((sum(spotIntensities(:,[2,4]),2)*ampC)./repmat(exp(xFit(end)*(1:nTimepoints)'),1,1),'r')
 
 
             % display projected intensities - needs interpolation sampling
