@@ -17,6 +17,7 @@ function [gamma,errFlag] = autoCorr(traj,maxLag,correct)
 %
 %OUTPUT gamma  : Unbiased autocorrelation function of series,
 %                where gamma(i) is the autocorrelation at lag i-1.
+%                2nd column: std of gamma.
 %       errFlag: 0 if function executes normally, 1 otherwise.
 %
 %REMARKS Input trajectories could have a nonzero mean. The algorithm accounts
@@ -134,7 +135,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %calculate unnormalized autocorrelation function for lags 0 through maxLag
-gamma = zeros(maxLag+1,1);
+gamma = zeros(maxLag+1,2);
 for lag = 0:maxLag %for each lag
 
     vecMult = [];
@@ -152,7 +153,8 @@ for lag = 0:maxLag %for each lag
     end
 
     %calculate autocorrelation function (omit pairs with missing observations)
-    gamma(lag+1) = nanmean(vecMult);
+    vecMult = vecMult(~isnan(vecMult));
+    gamma(lag+1,:) = [mean(vecMult) std(vecMult)/sqrt(length(vecMult))];
     %     gamma(lag+1) = nansum(vecMult)/(length(vecMult)-1);
 
 end

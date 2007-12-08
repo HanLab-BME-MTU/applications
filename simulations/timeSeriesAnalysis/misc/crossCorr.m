@@ -1,7 +1,7 @@
 function [gamma,errFlag] = crossCorr(traj1,traj2,maxLag)
 %CROSSCORR calculates the cross-correlation (at lag 0) between 2 series which might have missing observations
 %
-%SYNOPSIS [corrVal,errFlag] = crossCorr(traj1,traj2)
+%SYNOPSIS [gamma,errFlag] = crossCorr(traj1,traj2,maxLag)
 %
 %INPUT  traj1, traj2: Observations of the 2 time series to be tested.
 %                     Each is either an array of structures 
@@ -10,8 +10,8 @@ function [gamma,errFlag] = crossCorr(traj1,traj2,maxLag)
 %                     points should be indicated with NaN.
 %       maxLag      : Maximu lag to calculate cross-correlation.
 %
-%OUTPUT corrVal     : 2*maxLag+1-by-1 array of the normalized
-%                     cross-correlation.
+%OUTPUT gamma       : 2*maxLag+1-by-2 array of the normalized
+%                     cross-correlation and its std.
 %       errFlag     : 0 if function executes normally, 1 otherwise.
 %
 %REMARKS Input trajectories could have a nonzero mean. The algorithm accounts
@@ -129,7 +129,7 @@ observations = observations(:,1);
 traj2Std = sqrt(nanmean((observations).^2));
 
 %calculate crosscorrelation function for lags -maxLag through maxLag
-gamma = zeros(2*maxLag+1,1);
+gamma = zeros(2*maxLag+1,2);
 
 for lag = -maxLag : -1 %for all lags < 0
 
@@ -151,7 +151,8 @@ for lag = -maxLag : -1 %for all lags < 0
 
     %calculate autocorrelation function (omit pairs with missing
     %observations)
-    gamma(lag+maxLag+1) = nanmean(vecMult)/traj1Std/traj2Std;
+    vecMult = vecMult(~isnan(vecMult))/traj1Std/traj2Std;
+    gamma(lag+maxLag+1,:) = [mean(vecMult) std(vecMult)/sqrt(length(vecMult))];
 
 end
 
@@ -173,8 +174,10 @@ for lag = 0 : maxLag %for all lags >= 0
         
     end
 
-    %calculate autocorrelation function (omit pairs with missing observations)
-    gamma(lag+maxLag+1) = nanmean(vecMult)/traj1Std/traj2Std;
+    %calculate autocorrelation function (omit pairs with missing
+    %observations)
+    vecMult = vecMult(~isnan(vecMult))/traj1Std/traj2Std;
+    gamma(lag+maxLag+1,:) = [mean(vecMult) std(vecMult)/sqrt(length(vecMult))];
 
 end
 

@@ -96,10 +96,10 @@ if errFlag
     disp('--portmanteau: "autoCorr" did not function properly!');
     return
 end
-gamma = gamma(2:end); %get rid of autocorrelation at 0 lag
+gamma = gamma(2:end,1); %get rid of autocorrelation at 0 lag
 
 %calculate the Ljung and Box test statistic
-QLB = numAvail*(numAvail+2)*sum(gamma.^2./[numAvail-1:-1:numAvail-maxLag]');
+QLB = numAvail*(numAvail+2)*sum(gamma.^2./(numAvail-1:-1:numAvail-maxLag)');
 
 %get the p-value of the test statistic assuming a chi2 distribution
 pValue = 1 - chi2cdf(QLB,maxLag);
