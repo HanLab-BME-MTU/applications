@@ -36,7 +36,7 @@ else
 end
 
 %allow user to choose directory
-basePath = uigetdir(topDir,'Please select directory');
+basePath = uigetdir([topDir filesep],'Please select directory');
 
 %find all makiAnalysis files in chosen directory
 fileList1 = searchFiles('makiAnalysis',[],basePath,1);

@@ -37,11 +37,7 @@ function dataStruct = makiGroupSisters(dataStruct,verbose)
 %           average distance between sisters, (2) the variance of the distance
 %           between sisters, and (3) the alignment of sisters with the normal to
 %           the metaphase plate (if relevant). 
-%         Anaphase frames are not used in sister identification. Thus,
-%           right now, sister pair identification is limited to
-%           pre-anaphase frames. Code must be generalized to extend sister
-%           tracks into anaphase (even if anaphase frames are not used for
-%           identification).
+%         Anaphase frames are not used in sister identification.
 %         At the end of the code is a plotting function for the distance
 %           between the tracks for debugging
 %         The code cannot handle merged/splitted tracks!
@@ -62,14 +58,16 @@ if nargin < 2 || isempty(verbose)
     verbose = 0;
 end
 
-% read parameters. 
+% read parameters
 minOverlap = dataStruct.dataProperties.groupSisters.minOverlap;
 if minOverlap < 10
     minOverlap = 10;
 end
 maxDist = dataStruct.dataProperties.groupSisters.maxDist;
+maxAngle = dataStruct.dataProperties.groupSisters.maxAngle * pi / 180;
 robust = dataStruct.dataProperties.groupSisters.robust;
-costFunction = dataStruct.dataProperties.groupSisters.costFunction;
+useAlignment = dataStruct.dataProperties.groupSisters.useAlignment;
+useAnaphase = dataStruct.dataProperties.groupSisters.useAnaphase;
 
 % read movieLength
 nTimepoints = dataStruct.dataProperties.movieSize(4);
@@ -103,10 +101,10 @@ for t = 1 : nTimepoints
     end
 end
 if isempty(framesWiPlane)
-    costFunction = 0;
+    useAlignment = 0;
 end
 
-%find anaphase frames in order to exclude them from identification process
+%find anaphase frames
 framePhase = vertcat(dataStruct.planeFit.phase);
 anaphaseFrames = find(framePhase == 'a');
 if isempty(anaphaseFrames)
@@ -126,7 +124,7 @@ end
 
 % read normals to plane
 normals = NaN(nTimepoints,3);
-if costFunction == 1
+if useAlignment == 1
     normals(framesWiPlane,:) = catStruct(2,'dataStruct.planeFit.planeVectors(:,1)')';
 end
 
@@ -143,6 +141,7 @@ for jTrack = 1:nGoodTracks % loop cols
 
     % read track coordinates etc. (one could get the coordinate stds as
     % well, but for now no need here - KJ)
+    % coordinates are in metaphase plane rotated frame of reference
     [colCoords,colTime,colIdx] = trackData(jIdx,dataStruct,trackStats);
 
     % plot individual tracks
@@ -158,67 +157,99 @@ for jTrack = 1:nGoodTracks % loop cols
 
         % read track coordinates (one could get the coordinate stds as
         % well, but for now no need - KJ)
+        % coordinates are in metaphase plane rotated frame of reference
         [rowCoords,rowTime,rowIdx] = trackData(iIdx,dataStruct,trackStats);
 
         % find common time
         [commonTime,ctColIdx,ctRowIdx] = intersect(colTime,rowTime);
 
-        %retain only common time which is not in anaphase
+        %separate common time which is in anaphase from common time which
+        %is not in anaphase
         ctNotAna = find(framePhase(commonTime)~='a');
-        commonTime = commonTime(ctNotAna);
-        ctColIdx = ctColIdx(ctNotAna);
-        ctRowIdx = ctRowIdx(ctNotAna);
+        ctAna = find(framePhase(commonTime)=='a');
+        commonTimeNA = commonTime(ctNotAna); %not in anaphase
+        ctColIdxNA = ctColIdx(ctNotAna);
+        ctRowIdxNA = ctRowIdx(ctNotAna);
+        commonTimeA = commonTime(ctAna); %not in anaphase
+        ctColIdxA = ctColIdx(ctAna);
+        ctRowIdxA = ctRowIdx(ctAna);
+        clear commonTime ctColIdx ctRowIdx
         
-        %if the common time between the two tracks is at least minOverlap, 
+        %if the common time between the two tracks is at least minOverlap,
         %calculate parameters (otherwise, they stay as NaN, which assigns 
         %them -1 in linkTracks)
-        if length(commonTime) >= minOverlap
-
-            % calculate distance (microns)
-            distanceVector = colCoords(colIdx(ctColIdx),:) -...
-                rowCoords(rowIdx(ctRowIdx),:);
-
-            % calculate alignment:
-
-            % retain commonTime-normals
-            commonNormals = normals(commonTime,:);
+        if length(commonTimeNA) >= minOverlap
             
-            % cos(alpha) = dot(a,b)/(norm(a)*norm(b))
-            [distance,distanceVectorN] = normList(distanceVector);
-            alpha = acos(abs(dot(distanceVectorN',commonNormals')));
-            
-            % average alpha, rather than tan to be nice to pairs that will
-            % align eventually. Potentially this can be put under the control
-            % of the "robust" switch, too
-            %average alpha only over frames where there is a plane (the
-            %rest are NaN). If none of the frames have a plane, the average
-            %will be NaN.
-            meanAlpha = nanmean(alpha);
-
-            % get distance mean and standard deviation
-            if robust
-                [rMean,rStd]=robustMean(distance);
+            %get the positions of the two tracks at the end of anaphase
+            %and add up their signs
+            if ~isempty(ctAna)
+                track1Pos = colCoords(colIdx(ctColIdxA(end)),1);
+                track2Pos = rowCoords(rowIdx(ctRowIdxA(end)),1);
+                sumSigns = sign(track1Pos) + sign(track2Pos);
             else
-                rMean = mean(distance);
-                rStd = std(distance);
+                sumSigns = 0;
             end
-
-            %assign distance mean for pair
-            distances(iTrack,jTrack) = rMean;
-            distances(jTrack,iTrack) = rMean;
-
-            %assign distance variance for pair
-            variances(jTrack,iTrack) = rStd^2;
-            variances(iTrack,jTrack) = rStd^2;
             
-            %assign alignment cost for pair if the average angle is less
-            %than 45 degrees. Otherwise, keep as NaN to prohibit the link
-            if meanAlpha < pi/4
-                [alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
-                    = deal(2*sqrt(3)*tan(meanAlpha)+1);
-            end
+            %if there is anaphase, try to link pairs only if they end up on
+            %opposite sides of the metaphase plate (if requested by user)
+            %(otherwise, they stay as NaN, which assigns them -1 in linkTracks)
+            if (useAnaphase && (sumSigns==0)) || ~useAnaphase
 
-        end %(if ~isempty(commonTime))
+                % calculate distance (microns)
+                distanceVector = colCoords(colIdx(ctColIdxNA),:) -...
+                    rowCoords(rowIdx(ctRowIdxNA),:);
+
+                % calculate alignment:
+
+%                 % no need for this now since the coordinates are in the
+%                 % metaphase-plate frame of reference
+%                 % retain commonTime-normals
+%                 commonNormals = normals(commonTimeNA,:);
+% 
+%                 % cos(alpha) = dot(a,b)/(norm(a)*norm(b))
+%                 [distance,distanceVectorN] = normList(distanceVector);
+%                 alpha = acos(abs(dot(distanceVectorN',commonNormals')));
+
+                %get the angle between distance vector and normal
+                [distance,distanceVectorN] = normList(distanceVector);
+                alpha = acos(abs(distanceVectorN(:,1)));
+
+                % average alpha, rather than tan to be nice to pairs that will
+                % align eventually. Potentially this can be put under the control
+                % of the "robust" switch, too
+                %average alpha only over frames where there is a plane (the
+                %rest are NaN). If none of the frames have a plane, the average
+                %will be NaN.
+                %also get the standard deviation of alpha
+                meanAlpha = nanmean(alpha);
+                stdAlpha = nanstd(alpha);
+
+                % get distance mean and standard deviation
+                if robust
+                    [rMean,rStd]=robustMean(distance);
+                else
+                    rMean = mean(distance);
+                    rStd = std(distance);
+                end
+
+                %assign distance mean for pair
+                distances(iTrack,jTrack) = rMean;
+                distances(jTrack,iTrack) = rMean;
+
+                %assign distance variance for pair
+                variances(jTrack,iTrack) = rStd^2;
+                variances(iTrack,jTrack) = rStd^2;
+
+                %assign alignment cost for pair if the average angle is less
+                %than 30 degrees. Otherwise, keep as NaN to prohibit the link
+                if meanAlpha < maxAngle
+                    [alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
+                        = deal(2*sqrt(3)*tan(meanAlpha)+1);
+                end
+                
+            end %(if (useAnaphase && (sign(track1Pos)+sign(track2Pos))==0) || ~useAnaphase)
+
+        end %(if length(commonTime) >= minOverlap)
         
     end %(for iTrack = jTrack+1:nGoodTracks)
 end %(for jTrack = 1:nGoodTracks)
@@ -227,7 +258,7 @@ end %(for jTrack = 1:nGoodTracks)
 
 [r2c,c2r,costMat,linkedIdx] = ...
     linkTracks(distances,variances,alignment,...
-    nGoodTracks,maxDist,costFunction);
+    nGoodTracks,maxDist,useAlignment);
 
 if all(isnan(r2c))
     sisterList = struct('trackPairs',[],'coords1',[],...
@@ -301,7 +332,7 @@ while ~isempty(polygonIdx)
         % check whether there are still tracks to link
         polyList([idx1,idx2]) = [];
 
-        if length(polyList) > 1
+        if length(polyList) > 1 && any(~isinf(currentCost(:)))
             % continue
         else
             % clear polyList, write NaN into r2c, c2r
@@ -456,7 +487,7 @@ dataStruct.sisterList = sisterList;
 
 %% link tracks
 function [r2c,c2r,costMat,linkedIdx] = linkTracks(distances,variances,...
-    alignment,nGoodTracks,maxDist,costFunction)
+    alignment,nGoodTracks,maxDist,useAlignment)
 
 % cutoff distances
 distCutoffIdx = distances>maxDist;
@@ -465,14 +496,14 @@ variances(distCutoffIdx) = NaN;
 alignment(distCutoffIdx) = NaN;
 
 % make cost matrix
-switch costFunction
+switch useAlignment
     case 0
         costMat = distances.*variances;
     case 1
         costMat = distances.*variances.*alignment;
 end
 
-% replace zeros with -1
+% replace NaNs with -1
 costMat(isnan(costMat)) = -1;
 
 % lap costMat
@@ -495,10 +526,29 @@ linkedIdx(isnan(linkedIdx)) = [];
 %% read track coordinates
 function [coords,time,coordIdx,coordsStd] = trackData(idx,dataStruct,trackStats)
 
+%get indices of feature making track
+featIndx = dataStruct.tracks(idx).tracksFeatIndxCG;
+
+%get start time and end time of track
+startTime = dataStruct.tracks(idx).seqOfEvents(1,1);
+endTime = dataStruct.tracks(idx).seqOfEvents(2,1);
+lifeTime = endTime - startTime + 1;
+
 % read track coordinates and their stds for idx
-coordsInfo = reshape(dataStruct.tracks(idx).tracksCoordAmpCG,8,[])';
-coords = coordsInfo(:,1:3);
-coordsStd = coordsInfo(:,5:7);
+coords = NaN(lifeTime,3);
+coordsStd = NaN(lifeTime,3);
+for iFrame = 1 : lifeTime
+    jFrame = startTime + iFrame - 1;
+    featIndxTmp = featIndx(iFrame);
+    if featIndxTmp ~= 0
+        coords(iFrame,1:3) = dataStruct.planeFit(jFrame).rotatedCoord(featIndxTmp,1:3);
+        coordsStd(iFrame,1:3) = dataStruct.planeFit(jFrame).rotatedCoord(featIndxTmp,4:6);
+    end
+end
+
+% coordsInfo = reshape(dataStruct.tracks(idx).tracksCoordAmpCG,8,[])';
+% coords = coordsInfo(:,1:3);
+% coordsStd = coordsInfo(:,5:7);
 
 % read timepoints of the track
 time = (trackStats(1,1,idx):trackStats(2,1,idx))';

@@ -60,13 +60,14 @@ end
 goodMovies = find(firstFrameAna > 10);
 dataStruct = dataStruct(goodMovies);
 firstFrameAna = firstFrameAna(goodMovies);
-firstFrameSave = firstFrameAna + 10;
+numAnaFramesSave = 30;
+firstFrameSave = firstFrameAna + numAnaFramesSave;
 numMovies = length(dataStruct);
 
 %get number of frames in movies (assume that all movies have the same
 %number of frames)
-%add 10 to look at the 10 frames after anaphase onset also
-numFramesAll = dataStruct(1).dataProperties.movieSize(end) + 10;
+%add 30 to look at the 30 frames after anaphase onset also
+numFramesAll = dataStruct(1).dataProperties.movieSize(end) + numAnaFramesSave;
 
 %find number of sisters in each movie
 numSisters = zeros(numMovies,1);
@@ -155,111 +156,120 @@ for iMovie = 1 : numMovies
             goodFrames = ~isnan(sisterList(iSister).distances(:,1));
             numFrames = length(goodFrames);
             goodFrames = find(goodFrames);
+            
+            %consider this pair only if it exists before and after anaphase
+            %onset
+            if any(goodFrames >= firstFrameAna(iMovie)) && ...
+                    any(goodFrames < firstFrameAna(iMovie))
 
-            %find feature indices making up sisters
-            sisterIndx1 = NaN(numFrames,1);
-            sisterIndx2 = NaN(numFrames,1);
-            sisterIndx1(goodFrames) = tracks(tracksIndx(1))...
-                .tracksFeatIndxCG(goodFrames-trackStart(1)+1);
-            sisterIndx2(goodFrames) = tracks(tracksIndx(2))...
-                .tracksFeatIndxCG(goodFrames-trackStart(2)+1);
+                %find feature indices making up sisters
+                sisterIndx1 = NaN(numFrames,1);
+                sisterIndx2 = NaN(numFrames,1);
+                sisterIndx1(goodFrames) = tracks(tracksIndx(1))...
+                    .tracksFeatIndxCG(goodFrames-trackStart(1)+1);
+                sisterIndx2(goodFrames) = tracks(tracksIndx(2))...
+                    .tracksFeatIndxCG(goodFrames-trackStart(2)+1);
 
-            %get aligned sister coordinates
-            coords1 = NaN(numFrames,6);
-            coords2 = NaN(numFrames,6);
-            for iFrame = goodFrames'
-                coords1(iFrame,:) = frameAlignment(iFrame)...
-                    .alignedCoord(sisterIndx1(iFrame),:);
-                coords2(iFrame,:) = frameAlignment(iFrame)...
-                    .alignedCoord(sisterIndx2(iFrame),:);
-            end
+                %get aligned sister coordinates
+                coords1 = NaN(numFrames,6);
+                coords2 = NaN(numFrames,6);
+                for iFrame = goodFrames'
+                    coords1(iFrame,:) = frameAlignment(iFrame)...
+                        .alignedCoord(sisterIndx1(iFrame),:);
+                    coords2(iFrame,:) = frameAlignment(iFrame)...
+                        .alignedCoord(sisterIndx2(iFrame),:);
+                end
 
-            %get distance between sisters
-            sisterDist = sisterList(iSister).distances(:,1);
+                %calculate vector between sisters
+                sisterVec = [coords2(:,1:3)-coords1(:,1:3) ...
+                    sqrt(coords1(:,4:6).^2+coords2(:,4:6).^2)];
 
-            %calculate rate of change of sister distance
-            sisterVel = diff(sisterDist) * 1000 / timeLapse; %nm/s
+                %get distance between sisters
+                sisterDist = sqrt(sum(sisterVec(:,1:3).^2,2)); %um
+                
+                %normalize vector between sisters
+                sisterVec = sisterVec ./ repmat(sisterDist,1,6);
 
-            %calculate vector between sisters and normalize it
-            sisterVec = [coords2(:,1:3)-coords1(:,1:3) ...
-                sqrt(coords1(:,4:6).^2+coords2(:,4:6).^2)];
-            sisterVec = sisterVec ./ repmat(sqrt(sum(sisterVec(:,1:3).^2,2)),1,6);
+                %calculate rate of change of sister distance
+                sisterVel = diff(sisterDist) * 1000 / timeLapse; %nm/s
 
-            %calculate angle with normal
-            angleWithNorm = NaN(numFrames,1);
-            for iFrame = framesWithPlane
-                angleWithNorm(iFrame) = acos(abs(sisterVec(iFrame,1)));
-            end
-            angleWithNorm = angleWithNorm * 180 / pi;
+                %calculate angle with normal
+                angleWithNorm = NaN(numFrames,1);
+                for iFrame = framesWithPlane
+                    angleWithNorm(iFrame) = acos(abs(sisterVec(iFrame,1))); %radians
+                end
+                angleWithNorm = angleWithNorm * 180 / pi; %degrees
 
-            %calculate angle between consecutive frames
-            angularDisp = NaN(numFrames-1,1);
-            for iFrame = 1 : numFrames - 1
-                angularDisp(iFrame) = acos(abs(sisterVec(iFrame,1:3) ...
-                    * sisterVec(iFrame+1,1:3)'));
-            end
-            angularDisp = angularDisp * 180 / pi / timeLapse;
+                %calculate angle between consecutive frames
+                angularDisp = NaN(numFrames-1,1);
+                for iFrame = 1 : numFrames - 1
+                    angularDisp(iFrame) = acos(abs(sisterVec(iFrame,1:3) ...
+                        * sisterVec(iFrame+1,1:3)')); %radians
+                end
+                angularDisp = angularDisp * 180 / pi / timeLapse; %degrees
 
-            %calculate the displacement between frames
-            coords1Diff = [coords1(2:end,1:3)-coords1(1:end-1,1:3) ...
-                sqrt(coords1(2:end,4:6).^2+coords1(1:end-1,4:6).^2)];
-            coords2Diff = [coords2(2:end,1:3)-coords2(1:end-1,1:3) ...
-                sqrt(coords2(2:end,4:6).^2+coords2(1:end-1,4:6).^2)];
+                %calculate the displacement between frames
+                coords1Diff = [coords1(2:end,1:3)-coords1(1:end-1,1:3) ...
+                    sqrt(coords1(2:end,4:6).^2+coords1(1:end-1,4:6).^2)];
+                coords2Diff = [coords2(2:end,1:3)-coords2(1:end-1,1:3) ...
+                    sqrt(coords2(2:end,4:6).^2+coords2(1:end-1,4:6).^2)];
 
-            %calculate projection of displacements on vector connecting sisters
-            projection1 = coords1Diff(:,1:3) * sisterVec(1:end-1,1:3)';
-            projection1 = diag(projection1);
-            projection2 = coords2Diff(:,1:3) * sisterVec(1:end-1,1:3)';
-            projection2 = diag(projection2);
+                %calculate projection of displacements on vector connecting sisters
+                projection1 = coords1Diff(:,1:3) * sisterVec(1:end-1,1:3)';
+                projection1 = diag(projection1);
+                projection2 = coords2Diff(:,1:3) * sisterVec(1:end-1,1:3)';
+                projection2 = diag(projection2);
 
-            %calculate angle between displacements and vector connecting sisters
-            angle1 = acos(projection1 ./ sqrt(sum(coords1Diff(:,1:3).^2,2))) * 180 / pi;
-            angle2 = acos(projection2 ./ sqrt(sum(coords2Diff(:,1:3).^2,2))) * 180 / pi;
+                %calculate angle between displacements and vector connecting sisters
+                angle1 = acos(projection1 ./ sqrt(sum(coords1Diff(:,1:3).^2,2))) * 180 / pi;
+                angle2 = acos(projection2 ./ sqrt(sum(coords2Diff(:,1:3).^2,2))) * 180 / pi;
 
-            %store information based on the sister type
-            iLabel = sisterType(iSister) + 1;
+                %store information based on the sister type
+                iLabel = sisterType(iSister) + 1;
 
-            %increase global index of sister type by 1
-            eval(['iGlobal' label{iLabel,1} ' = iGlobal' label{iLabel,1} ' + 1;'])
+                %increase global index of sister type by 1
+                eval(['iGlobal' label{iLabel,1} ' = iGlobal' label{iLabel,1} ' + 1;'])
 
-            numFrames2SaveFrame = firstFrameSave(iMovie) - goodFrames(end);
-            if numFrames2SaveFrame >= 0
-                lastFrameStoreSis = goodFrames(end);
-                firstFrameStoreSis = 1;
-                lastFrameStoreGlob = numFramesAll - numFrames2SaveFrame;
-                firstFrameStoreGlob = lastFrameStoreGlob - lastFrameStoreSis + 1;
-            else
-                lastFrameStoreSis = goodFrames(end) + numFrames2SaveFrame;
-                firstFrameStoreSis = 1;
-                lastFrameStoreGlob = numFramesAll;
-                firstFrameStoreGlob = lastFrameStoreGlob - lastFrameStoreSis + 1;
-            end
+                numFrames2SaveFrame = firstFrameSave(iMovie) - goodFrames(end);
+                if numFrames2SaveFrame >= 0
+                    lastFrameStoreSis = goodFrames(end);
+                    firstFrameStoreSis = 1;
+                    lastFrameStoreGlob = numFramesAll - numFrames2SaveFrame;
+                    firstFrameStoreGlob = lastFrameStoreGlob - lastFrameStoreSis + 1;
+                else
+                    lastFrameStoreSis = goodFrames(end) + numFrames2SaveFrame;
+                    firstFrameStoreSis = 1;
+                    lastFrameStoreGlob = numFramesAll;
+                    firstFrameStoreGlob = lastFrameStoreGlob - lastFrameStoreSis + 1;
+                end
 
-            %store information
-            eval(['sisterDist' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ',firstFrameStoreGlob:lastFrameStoreGlob) '...
-                '= sisterDist(firstFrameStoreSis:lastFrameStoreSis);']) %um
-            eval(['sisterVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
-                '= sisterVel(firstFrameStoreSis:lastFrameStoreSis-1);']) %nm/s
-            eval(['angleNormal' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ',firstFrameStoreGlob:lastFrameStoreGlob) '...
-                '= angleWithNorm(firstFrameStoreSis:lastFrameStoreSis);']) %deg
-            eval(['angularVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
-                '= angularDisp(firstFrameStoreSis:lastFrameStoreSis-1);']) %deg/s
-            eval(['projectionSis1' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
-                '= projection1(firstFrameStoreSis:lastFrameStoreSis-1);']) %um
-            eval(['projectionSis2' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
-                '= projection2(firstFrameStoreSis:lastFrameStoreSis-1);']) %um
-            eval(['angleSis1' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
-                '= angle1(firstFrameStoreSis:lastFrameStoreSis-1);']) %deg
-            eval(['angleSis2' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
-                '= angle2(firstFrameStoreSis:lastFrameStoreSis-1);']) %deg
+                %store information
+                eval(['sisterDist' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ',firstFrameStoreGlob:lastFrameStoreGlob) '...
+                    '= sisterDist(firstFrameStoreSis:lastFrameStoreSis);']) %um
+                eval(['sisterVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
+                    '= sisterVel(firstFrameStoreSis:lastFrameStoreSis-1);']) %nm/s
+                eval(['angleNormal' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ',firstFrameStoreGlob:lastFrameStoreGlob) '...
+                    '= angleWithNorm(firstFrameStoreSis:lastFrameStoreSis);']) %deg
+                eval(['angularVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
+                    '= angularDisp(firstFrameStoreSis:lastFrameStoreSis-1);']) %deg/s
+                eval(['projectionSis1' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
+                    '= projection1(firstFrameStoreSis:lastFrameStoreSis-1);']) %um
+                eval(['projectionSis2' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
+                    '= projection2(firstFrameStoreSis:lastFrameStoreSis-1);']) %um
+                eval(['angleSis1' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
+                    '= angle1(firstFrameStoreSis:lastFrameStoreSis-1);']) %deg
+                eval(['angleSis2' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ',firstFrameStoreGlob:lastFrameStoreGlob-1) '...
+                    '= angle2(firstFrameStoreSis:lastFrameStoreSis-1);']) %deg
+                
+            end %(if any(goodFrames >= firstFrameAna(iMovie)) && ...)
 
         end %(for iSister = 1 : numSisters(iMovie) )
 
@@ -309,41 +319,84 @@ for iLabel = goodLabel
 
     %go over all time intervals from anaphase onset
     for iFrame = 1 : numFramesAll
-
+        
         %distance
         eval(['values = sisterDist' label{iLabel,1} '(:,iFrame);'])
-        valuesMean = nanmean(values);
-        valuesStd = nanstd(values);
+        values = values(~isnan(values));
+        if length(values) >= 15
+            [valuesMean,valuesStd] = robustMean(values);
+            if isinf(valuesStd)
+                valuesMean = nanmean(values);
+                valuesStd = nanstd(values);
+            end
+        else
+            valuesMean = nanmean(values);
+            valuesStd = nanstd(values);
+        end
         eval(['distanceMeanStd' label{iLabel,1} ...
             '(:,iFrame) = [valuesMean valuesStd]'';'])
 
         %positive velocity
         eval(['values = sisterVel' label{iLabel,1} '(:,iFrame);'])
         values = values(values >= 0);
-        valuesMean = nanmean(values);
-        valuesStd = nanstd(values);
+        if length(values) >= 15
+            [valuesMean,valuesStd] = robustMean(values);
+            if isinf(valuesStd)
+                valuesMean = nanmean(values);
+                valuesStd = nanstd(values);
+            end
+        else
+            valuesMean = nanmean(values);
+            valuesStd = nanstd(values);
+        end
         eval(['posVelMeanStd' label{iLabel,1} ...
             '(:,iFrame) = [valuesMean valuesStd]'';'])
 
         %negative velocity
         eval(['values = sisterVel' label{iLabel,1} '(:,iFrame);'])
         values = values(values < 0);
-        valuesMean = nanmean(values);
-        valuesStd = nanstd(values);
+        if length(values) >= 15
+            [valuesMean,valuesStd] = robustMean(values);
+            if isinf(valuesStd)
+                valuesMean = nanmean(values);
+                valuesStd = nanstd(values);
+            end
+        else
+            valuesMean = nanmean(values);
+            valuesStd = nanstd(values);
+        end
         eval(['negVelMeanStd' label{iLabel,1} ...
             '(:,iFrame) = [valuesMean valuesStd]'';'])
 
         %angle with normal
         eval(['values = angleNormal' label{iLabel,1} '(:,iFrame);'])
-        valuesMean = nanmean(values);
-        valuesStd = nanstd(values);
+        values = values(~isnan(values));
+        if length(values) >= 15
+            [valuesMean,valuesStd] = robustMean(values);
+            if isinf(valuesStd)
+                valuesMean = nanmean(values);
+                valuesStd = nanstd(values);
+            end
+        else
+            valuesMean = nanmean(values);
+            valuesStd = nanstd(values);
+        end
         eval(['angleNormalMeanStd' label{iLabel,1} ...
             '(:,iFrame) = [valuesMean valuesStd]'';'])
 
         %angular velocity
         eval(['values = angularVel' label{iLabel,1} '(:,iFrame);'])
-        valuesMean = nanmean(values);
-        valuesStd = nanstd(values);
+        values = values(~isnan(values));
+        if length(values) >= 15
+            [valuesMean,valuesStd] = robustMean(values);
+            if isinf(valuesStd)
+                valuesMean = nanmean(values);
+                valuesStd = nanstd(values);
+            end
+        else
+            valuesMean = nanmean(values);
+            valuesStd = nanstd(values);
+        end
         eval(['angularVelMeanStd' label{iLabel,1} ...
             '(:,iFrame) = [valuesMean valuesStd]'';'])
 
@@ -434,6 +487,8 @@ save(fullfile(dir2SaveRes,fileName),'analysisStruct');
 
 %% plots
 
+numFrames = dataStruct(1).dataProperties.movieSize(end);
+
 if verbose
 
     for iLabel = goodLabel
@@ -441,7 +496,8 @@ if verbose
         %% distance stuff %%
 
         %open figure and write title
-        figure('Name',[fileName ' - Sister distance vs. anaphase onset - ' label{iLabel,1}],'NumberTitle','off');
+        figure('Name',[fileName ' - Sister distance vs. anaphase onset - ' ...
+            label{iLabel,1}],'NumberTitle','off');
 
         %create subplot 1
         subplot(2,1,1);
@@ -449,17 +505,20 @@ if verbose
 
         %plot mean and std of distance over time
         eval(['distanceMat = distanceMeanStd' label{iLabel,1} ';'])
-        plot((-numFrames+1:10)*timeLapse,distanceMat(1,:),'k','marker','.');
-        plot((-numFrames+1:10)*timeLapse,distanceMat(2,:),'k:','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,distanceMat(1,:),...
+            'k','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,distanceMat(2,:),...
+            'k:','marker','.');
         
         %plot line highlighting anaphase onset
         plot([0 0],[0 max(distanceMat(:))+1],'r--');
 
         %set axes limit
-        axis([-(numFrames-1)*timeLapse 10*timeLapse 0 max(distanceMat(:))+1]);
+        axis([-(numFrames-1)*timeLapse numAnaFramesSave*timeLapse ...
+            0 max(distanceMat(:))+1]);
 
         %write axes labels
-        xlabel('Time before anaphase onset (s)');
+        xlabel('Time wrt anaphase onset (s)');
         ylabel('Sister separation (\mum)');
 
         %write legend
@@ -475,14 +534,18 @@ if verbose
 
         %plot mean and std pos. velocity over time
         eval(['velocityMat = posVelMeanStd' label{iLabel,1} ';'])
-        plot((-numFrames+1:10)*timeLapse,velocityMat(1,:),'k','marker','+');
-        plot((-numFrames+1:10)*timeLapse,velocityMat(2,:),'k:','marker','+');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,velocityMat(1,:),...
+            'k','marker','+');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,velocityMat(2,:),...
+            'k:','marker','+');
         maxVel1 = max(velocityMat(:));
 
         %plot mean and std of neg. velocity over time
         eval(['velocityMat = negVelMeanStd' label{iLabel,1} ';'])
-        plot((-numFrames+1:10)*timeLapse,-velocityMat(1,:),'k','marker','.');
-        plot((-numFrames+1:10)*timeLapse,velocityMat(2,:),'k:','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,-velocityMat(1,:),...
+            'k','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,velocityMat(2,:),...
+            'k:','marker','.');
         maxVel2 = max(velocityMat(:));
 
         %plot line highlighting anaphase onset
@@ -490,10 +553,11 @@ if verbose
         plot([0 0],[0 maxVel+1],'r--');
 
         %set axes limit
-        axis([-(numFrames-1)*timeLapse 10*timeLapse 0 maxVel+1]);
+        axis([-(numFrames-1)*timeLapse numAnaFramesSave*timeLapse ...
+            0 maxVel+1]);
 
         %write axes labels
-        xlabel('Time before anaphase onset (s)');
+        xlabel('Time wrt anaphase onset (s)');
         ylabel('Rate change sister separation (nm/s)');
 
         %write legend
@@ -506,7 +570,8 @@ if verbose
         %% angle stuff %%
 
         %open figure and write title
-        figure('Name',[fileName ' - Sister angle vs. anaphase onset - ' label{iLabel,1}],'NumberTitle','off');
+        figure('Name',[fileName ' - Sister angle vs. anaphase onset - ' ...
+            label{iLabel,1}],'NumberTitle','off');
 
         %create subplot 1
         subplot(2,1,1);
@@ -515,17 +580,18 @@ if verbose
         %plot mean angle with normal over time
         %indicate std by dashed lines
         eval(['angleMat = angleNormalMeanStd' label{iLabel,1} ';'])
-        plot((-numFrames+1:10)*timeLapse,angleMat(1,:),'k','marker','.');
-        plot((-numFrames+1:10)*timeLapse,angleMat(2,:),'k:','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,angleMat(1,:),'k','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,angleMat(2,:),'k:','marker','.');
 
         %plot line highlighting anaphase onset
         plot([0 0],[0 max(angleMat(:))+1],'r--');
 
         %set axes limit
-        axis([-(numFrames-1)*timeLapse 10*timeLapse 0 max(angleMat(:))+1]);
+        axis([-(numFrames-1)*timeLapse numAnaFramesSave*timeLapse ...
+            0 max(angleMat(:))+1]);
 
         %write axes labels
-        xlabel('Time before anaphase onset (s)');
+        xlabel('Time wrt anaphase onset (s)');
         ylabel('Angle with normal to metaphase plate (degrees)');
 
         %write legend
@@ -542,17 +608,20 @@ if verbose
         %plot angular velocity over time
         %indicate std by dashed lines
         eval(['angleMat = angularVelMeanStd' label{iLabel,1} ';'])
-        plot((-numFrames+1:10)*timeLapse,angleMat(1,:),'k','marker','.');
-        plot((-numFrames+1:10)*timeLapse,angleMat(2,:),'k:','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,angleMat(1,:),...
+            'k','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,angleMat(2,:),...
+            'k:','marker','.');
 
         %plot line highlighting anaphase onset
         plot([0 0],[0 max(angleMat(:))+1],'r--');
 
         %set axes limit
-        axis([-(numFrames-1)*timeLapse 10*timeLapse 0 max(angleMat(:))+1]);
+        axis([-(numFrames-1)*timeLapse numAnaFramesSave*timeLapse ...
+            0 max(angleMat(:))+1]);
 
         %write axes labels
-        xlabel('Time before anaphase onset (s)');
+        xlabel('Time wrt anaphase onset (s)');
         ylabel('Sister angular velocity (degrees/s)');
 
         %write legend
@@ -565,7 +634,8 @@ if verbose
         %% cross-correlation stuff %%
 
         %open figure and write title
-        figure('Name',[fileName ' - Motion coupling vs. anaphase onset - ' label{iLabel,1}],'NumberTitle','off');
+        figure('Name',[fileName ' - Motion coupling vs. anaphase onset - ' ...
+            label{iLabel,1}],'NumberTitle','off');
 
         %create subplot 1
         subplot(2,1,1);
@@ -573,16 +643,18 @@ if verbose
 
         %plot projection cross-correlation over time
         eval(['crossCorrTmp = projectionCrosscorr' label{iLabel,1} ';'])
-        plot((-numFrames+1:10)*timeLapse,crossCorrTmp,'k','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,crossCorrTmp,'k',...
+            'marker','.');
 
         %plot line highlighting anaphase onset
         plot([0 0],[min(0,1.1*min(crossCorrTmp)) 1.1],'r--');
 
         %set axes limit
-        axis([-(numFrames-1)*timeLapse 10*timeLapse min(0,1.1*min(crossCorrTmp)) 1.1]);
+        axis([-(numFrames-1)*timeLapse numAnaFramesSave*timeLapse ...
+            min(0,1.1*min(crossCorrTmp)) 1.1]);
 
         %write axes labels
-        xlabel('Time before anaphase onset (s)');
+        xlabel('Time wrt anaphase onset (s)');
         ylabel('Projection cross-correlation');
 
         %hold off figure
@@ -594,16 +666,18 @@ if verbose
 
         %plot projection cross-correlation over time
         eval(['crossCorrTmp = angleCrosscorr' label{iLabel,1} ';'])
-        plot((-numFrames+1:10)*timeLapse,crossCorrTmp,'k','marker','.');
+        plot((-numFrames+1:numAnaFramesSave)*timeLapse,crossCorrTmp,'k',...
+            'marker','.');
 
         %plot line highlighting anaphase onset
         plot([0 0],[min(0,1.1*min(crossCorrTmp)) 1.1],'r--');
 
         %set axes limit
-        axis([-(numFrames-1)*timeLapse 10*timeLapse min(0,1.1*min(crossCorrTmp)) 1.1]);
+        axis([-(numFrames-1)*timeLapse numAnaFramesSave*timeLapse ...
+            min(0,1.1*min(crossCorrTmp)) 1.1]);
 
         %write axes labels
-        xlabel('Time before anaphase onset (s)');
+        xlabel('Time wrt anaphase onset (s)');
         ylabel('Angle cross-correlation');
 
         %hold off figure

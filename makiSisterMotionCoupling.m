@@ -207,9 +207,6 @@ end
     
 %% cross-correlation of motion
 
-%define maximum lag
-maxLag = 10;
-
 %initialization
 for iLabel = 1 : 3
     eval(['projectionCrosscorr' label{iLabel,1} ' = [];'])
@@ -219,6 +216,9 @@ for iLabel = 1 : 3
     eval(['projection2Autocorr' label{iLabel,1} ' = [];'])
     eval(['angle2Autocorr' label{iLabel,1} ' = [];'])
 end
+
+%define maximum lag
+maxLag = 10;
 
 %calculation
 for iLabel = goodLabel
@@ -308,7 +308,7 @@ if verbose
     for iLabel = goodLabel
 
         %open figure and write title
-        figure('Name',[fileName ' - Motion coupling - ' label{iLabel,1}],'NumberTitle','off');
+        figure('Name',[fileName(1:end-4) ' - Motion coupling - ' label{iLabel,1}],'NumberTitle','off');
 
         %create subplot 1
         subplot(2,1,1);
@@ -318,12 +318,12 @@ if verbose
         eval(['projectionCrosscorr = projectionCrosscorr' label{iLabel,1} ';']);
         eval(['autocorr1 = projection1Autocorr' label{iLabel,1} ';']);
         eval(['autocorr2 = projection2Autocorr' label{iLabel,1} ';']);
-        plot((-maxLag:maxLag)*timeLapse,projectionCrosscorr,'k','marker','.');
-        plot((0:maxLag)*timeLapse,autocorr1,'g:','marker','.');
-        plot((0:maxLag)*timeLapse,autocorr2,'r:','marker','.');
+        plot((-maxLag:maxLag)*timeLapse,projectionCrosscorr(:,1),'k','marker','.');
+        plot((0:maxLag)*timeLapse,autocorr1(:,1),'g:','marker','.');
+        plot((0:maxLag)*timeLapse,autocorr2(:,1),'r:','marker','.');
 
         %set axes limit
-        minVal = min([projectionCrosscorr; autocorr1; autocorr2]);
+        minVal = min([projectionCrosscorr(:,1); autocorr1(:,1); autocorr2(:,1)]);
         axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*minVal) 1.1]);
 
         %write axes labels
@@ -341,12 +341,12 @@ if verbose
         eval(['angleCrosscorr = angleCrosscorr' label{iLabel,1} ';']);
         eval(['autocorr1 = angle1Autocorr' label{iLabel,1} ';']);
         eval(['autocorr2 = angle2Autocorr' label{iLabel,1} ';']);
-        plot((-maxLag:maxLag)*timeLapse,angleCrosscorr,'k','marker','.');
-        plot((0:maxLag)*timeLapse,autocorr1,'g:','marker','.');
-        plot((0:maxLag)*timeLapse,autocorr2,'r:','marker','.');
+        plot((-maxLag:maxLag)*timeLapse,angleCrosscorr(:,1),'k','marker','.');
+        plot((0:maxLag)*timeLapse,autocorr1(:,1),'g:','marker','.');
+        plot((0:maxLag)*timeLapse,autocorr2(:,1),'r:','marker','.');
 
         %set axes limit
-        minVal = min([angleCrosscorr; autocorr1; autocorr2]);
+        minVal = min([angleCrosscorr(:,1); autocorr1(:,1); autocorr2(:,1)]);
         axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*minVal) 1.1]);
 
         %write axes labels

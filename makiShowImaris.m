@@ -74,33 +74,6 @@ zeroOffsetY = imarisApplication.mDataSet.mExtendMinY + 0.5*pixelSize(2);
 zeroOffsetZ = imarisApplication.mDataSet.mExtendMinZ + 0.5*pixelSize(3);
 zeroOffset = [zeroOffsetX zeroOffsetY zeroOffsetZ];
 
-%% detected spots (initCoord)
-
-%get coordinates
-initCoord = dataStruct.initCoord;
-
-% make spots object: X,Y,Z,T,r
-nTimepoints = dataProperties.movieSize(end);
-nSpots = cat(1,initCoord.nSpots);
-spots = zeros(sum(nSpots),5);
-spots(:,5) = pixelSize(1)*2; % radius in micron
-goodTimes = find(nSpots);
-nSpotSum = [0;cumsum(nSpots)];
-
-for t = goodTimes'
-
-    % calculate positions in microns. Subtract one voxel from
-    % the coords: Imaris starts counting at 0!
-    % Use initCoord in pixels to avoid correction problems
-    spots(nSpotSum(t)+1:nSpotSum(t+1),1:4) = ...
-        [(initCoord(t).allCoordPix(:,[2,1,3])-1 + ...
-        repmat(crop(1,[2,1,3])-1,nSpots(t),1)).*...
-        repmat(pixelSize,nSpots(t),1) + ...
-        repmat(zeroOffset,nSpots(t),1),...
-        (t-1)*ones(nSpots(t),1)];
-
-end
-
 % make top-level surpass scene
 imaSurpassScene = imarisApplication.mFactory.CreateDataContainer();
 
@@ -116,12 +89,43 @@ imaSurpassScene.AddChild(imaVolume);
 imarisApplication.mSurpassScene = imaSurpassScene;
 imarisApplication.mViewer = 'eViewerSurpass';
 
-% create spots object
-imaSpotsAll = imarisApplication.mFactory.CreateSpots;
-imaSpotsAll.Set(single(spots(:,1:3)),single(spots(:,4)),single(spots(:,5)));
-imaSpotsAll.mName = ['Spots (avg: ' num2str(size(spots,1)/nTimepoints) ' / frame)'];
-imaSpotsAll.SetColor(single(0.8),single(0.8),single(0.8),single(0));
-imaSurpassScene.AddChild(imaSpotsAll);
+%% detected spots (initCoord)
+
+%get coordinates
+initCoord = dataStruct.initCoord;
+
+if ~isempty(initCoord)
+
+    % make spots object: X,Y,Z,T,r
+    nTimepoints = dataProperties.movieSize(end);
+    nSpots = cat(1,initCoord.nSpots);
+    spots = zeros(sum(nSpots),5);
+    spots(:,5) = pixelSize(1)*2; % radius in micron
+    goodTimes = find(nSpots);
+    nSpotSum = [0;cumsum(nSpots)];
+
+    for t = goodTimes'
+
+        % calculate positions in microns. Subtract one voxel from
+        % the coords: Imaris starts counting at 0!
+        % Use initCoord in pixels to avoid correction problems
+        spots(nSpotSum(t)+1:nSpotSum(t+1),1:4) = ...
+            [(initCoord(t).allCoordPix(:,[2,1,3])-1 + ...
+            repmat(crop(1,[2,1,3])-1,nSpots(t),1)).*...
+            repmat(pixelSize,nSpots(t),1) + ...
+            repmat(zeroOffset,nSpots(t),1),...
+            (t-1)*ones(nSpots(t),1)];
+
+    end
+
+    % create spots object
+    imaSpotsAll = imarisApplication.mFactory.CreateSpots;
+    imaSpotsAll.Set(single(spots(:,1:3)),single(spots(:,4)),single(spots(:,5)));
+    imaSpotsAll.mName = ['Spots (avg: ' num2str(size(spots,1)/nTimepoints) ' / frame)'];
+    imaSpotsAll.SetColor(single(0.8),single(0.8),single(0.8),single(0));
+    imaSurpassScene.AddChild(imaSpotsAll);
+    
+end
 
            
 %% tracks

@@ -160,9 +160,6 @@ end
     
 %% mean square displacement & diffusion coefficient
 
-%define maximum lag
-maxLag = numFramesMax-1;
-
 %initialization
 for iLabel = 1 : 3
     eval(['meanSqDispAlignEnsemble' label{iLabel,1} ' = [];'])
@@ -174,6 +171,9 @@ for iLabel = 1 : 3
     eval(['diffCoefOrigEnsemble' label{iLabel,1} ' = [];'])
     eval(['diffCoefOrigTime' label{iLabel,1} ' = [];'])
 end
+
+%define maximum lag
+maxLag = numFramesMax-1;
 
 %calculation
 for iLabel = goodLabel

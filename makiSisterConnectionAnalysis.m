@@ -4,7 +4,7 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,ve
 %SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,verbose)
 %
 %INPUT  jobType: string which can take the values:
-%               'TEST','HERCULES','DANUSER','MERLADI',SWEDLOW' or MCAINSH
+%               'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or MCAINSH
 %       analysisStruct: Structure with field movies indicating the movies
 %                       to be analyzed. Optional. If not input, GUI to load
 %                       movies is launched.
@@ -95,7 +95,6 @@ for iMovie = 1 : numMovies
     tracks = dataStruct(iMovie).tracks;
     planeFit = dataStruct(iMovie).planeFit;
     frameAlignment = dataStruct(iMovie).frameAlignment;
-    timeLapse = dataStruct(iMovie).dataProperties.timeLapse;
     updatedClass = dataStruct(iMovie).updatedClass;
     numFramesMovie = length(planeFit);
     
@@ -158,17 +157,23 @@ for iMovie = 1 : numMovies
             %calculate vector between sisters
             sisterVec = [coords2(:,1:3)-coords1(:,1:3) sqrt(coords1(:,4:6).^2+coords2(:,4:6).^2)];
 
+            %calculate distance between sisters
+            sisterDistance = sqrt(sum(sisterVec(:,1:3).^2,2)); %um
+            
+            %calculate sister velocity
+            sisterVelocity = diff(sisterDistance) * 1000 / timeLapse; %nm/s
+            
             %calculate angle with normal
             angleWithNorm = NaN(numFrames,1);
             for iFrame = framesWithPlane
-                angleWithNorm(iFrame) = acos(abs(sisterVec(iFrame,1)./norm(sisterVec(iFrame,1:3))));
+                angleWithNorm(iFrame) = acos(abs(sisterVec(iFrame,1)./norm(sisterVec(iFrame,1:3)))); %radians
             end
 
             %calculate angle between consecutive frames
             angularDisp = NaN(numFrames-1,1);
             for iFrame = 1 : numFrames - 1
                 angularDisp(iFrame) = acos(abs(sisterVec(iFrame,1:3) * sisterVec(iFrame+1,1:3)' ...
-                    / norm(sisterVec(iFrame,1:3)) / norm(sisterVec(iFrame+1,1:3))));
+                    / norm(sisterVec(iFrame,1:3)) / norm(sisterVec(iFrame+1,1:3)))); %radians/s
             end
 
             %store sister information based on the sister type
@@ -179,10 +184,9 @@ for iMovie = 1 : numMovies
 
             %store information
             eval(['sisterDist' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ').observations = sisterList(iSister).distances;']) %um
+                ').observations = sisterDistance;']) %um
             eval(['sisterVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ').observations = diff(sisterList(iSister).distances(:,1))' ...
-                ' * 1000 / timeLapse;']) %nm/s
+                ').observations = sisterVelocity;']) %nm/s
             eval(['angleNormal' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
                 ').observations = angleWithNorm * 180 / pi;']) %deg
             eval(['angularVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
@@ -298,91 +302,88 @@ for iLabel = 1 : 3
     eval(['angularVelTrend' label{iLabel,1} ' = [];'])
 end
 
-%calculation
-for iLabel = goodLabel
-
-    %get number of sisters in this category
-    eval(['numSistersCat = iGlobal' label{iLabel,1} ';']);
-    
-    %distance
-    trendTmp = NaN(numSistersCat,3);
-    for iSister = 1 : numSistersCat
-        eval(['allValues = sisterDist' label{iLabel,1} '(iSister).observations(:,1);'])
-        indxAvail = find(~isnan(allValues));
-        [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
-        varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
-        slopeStd = sqrt(varCovMat(1));
-        testStat = lineParam(1)/slopeStd;
-        if testStat > 0
-            pValue = 1 - tcdf(testStat,S.df);
-        else
-            pValue = tcdf(testStat,S.df);            
-        end
-        trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
-    end
-    eval(['sisterDistTrend' label{iLabel} ' = trendTmp;']);
-    
-    %absolute velocity
-    trendTmp = NaN(numSistersCat,3);
-    for iSister = 1 : numSistersCat
-        eval(['allValues = sisterVel' label{iLabel,1} '(iSister).observations(:,1);'])
-        allValues = abs(allValues);
-        indxAvail = find(~isnan(allValues));
-        [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
-        varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
-        slopeStd = sqrt(varCovMat(1));
-        testStat = lineParam(1)/slopeStd;
-        if testStat > 0
-            pValue = 1 - tcdf(testStat,S.df);
-        else
-            pValue = tcdf(testStat,S.df);            
-        end
-        trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
-    end
-    eval(['sisterVelTrend' label{iLabel} ' = trendTmp;']);
-    
-    %angle with normal
-    trendTmp = NaN(numSistersCat,3);
-    for iSister = 1 : numSistersCat
-        eval(['allValues = angleNormal' label{iLabel,1} '(iSister).observations(:,1);'])
-        indxAvail = find(~isnan(allValues));
-        [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
-        varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
-        slopeStd = sqrt(varCovMat(1));
-        testStat = lineParam(1)/slopeStd;
-        if testStat > 0
-            pValue = 1 - tcdf(testStat,S.df);
-        else
-            pValue = tcdf(testStat,S.df);            
-        end
-        trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
-    end
-    eval(['angleNormalTrend' label{iLabel} ' = trendTmp;']);
-    
-    %angular velocity
-    trendTmp = NaN(numSistersCat,3);
-    for iSister = 1 : numSistersCat
-        eval(['allValues = angularVel' label{iLabel,1} '(iSister).observations(:,1);'])
-        indxAvail = find(~isnan(allValues));
-        [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
-        varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
-        slopeStd = sqrt(varCovMat(1));
-        testStat = lineParam(1)/slopeStd;
-        if testStat > 0
-            pValue = 1 - tcdf(testStat,S.df);
-        else
-            pValue = tcdf(testStat,S.df);            
-        end
-        trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
-    end
-    eval(['angularVelTrend' label{iLabel} ' = trendTmp;']);
-    
-end
+% %calculation
+% for iLabel = goodLabel
+% 
+%     %get number of sisters in this category
+%     eval(['numSistersCat = iGlobal' label{iLabel,1} ';']);
+%     
+%     %distance
+%     trendTmp = NaN(numSistersCat,3);
+%     for iSister = 1 : numSistersCat
+%         eval(['allValues = sisterDist' label{iLabel,1} '(iSister).observations(:,1);'])
+%         indxAvail = find(~isnan(allValues));
+%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
+%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
+%         slopeStd = sqrt(varCovMat(1));
+%         testStat = lineParam(1)/slopeStd;
+%         if testStat > 0
+%             pValue = 1 - tcdf(testStat,S.df);
+%         else
+%             pValue = tcdf(testStat,S.df);            
+%         end
+%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
+%     end
+%     eval(['sisterDistTrend' label{iLabel} ' = trendTmp;']);
+%     
+%     %absolute velocity
+%     trendTmp = NaN(numSistersCat,3);
+%     for iSister = 1 : numSistersCat
+%         eval(['allValues = sisterVel' label{iLabel,1} '(iSister).observations(:,1);'])
+%         allValues = abs(allValues);
+%         indxAvail = find(~isnan(allValues));
+%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
+%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
+%         slopeStd = sqrt(varCovMat(1));
+%         testStat = lineParam(1)/slopeStd;
+%         if testStat > 0
+%             pValue = 1 - tcdf(testStat,S.df);
+%         else
+%             pValue = tcdf(testStat,S.df);            
+%         end
+%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
+%     end
+%     eval(['sisterVelTrend' label{iLabel} ' = trendTmp;']);
+%     
+%     %angle with normal
+%     trendTmp = NaN(numSistersCat,3);
+%     for iSister = 1 : numSistersCat
+%         eval(['allValues = angleNormal' label{iLabel,1} '(iSister).observations(:,1);'])
+%         indxAvail = find(~isnan(allValues));
+%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
+%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
+%         slopeStd = sqrt(varCovMat(1));
+%         testStat = lineParam(1)/slopeStd;
+%         if testStat > 0
+%             pValue = 1 - tcdf(testStat,S.df);
+%         else
+%             pValue = tcdf(testStat,S.df);            
+%         end
+%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
+%     end
+%     eval(['angleNormalTrend' label{iLabel} ' = trendTmp;']);
+%     
+%     %angular velocity
+%     trendTmp = NaN(numSistersCat,3);
+%     for iSister = 1 : numSistersCat
+%         eval(['allValues = angularVel' label{iLabel,1} '(iSister).observations(:,1);'])
+%         indxAvail = find(~isnan(allValues));
+%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
+%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
+%         slopeStd = sqrt(varCovMat(1));
+%         testStat = lineParam(1)/slopeStd;
+%         if testStat > 0
+%             pValue = 1 - tcdf(testStat,S.df);
+%         else
+%             pValue = tcdf(testStat,S.df);            
+%         end
+%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
+%     end
+%     eval(['angularVelTrend' label{iLabel} ' = trendTmp;']);
+%     
+% end
 
 %% autocorrelation
-
-%define maximum lag
-maxLag = 10;
 
 %initialization
 for iLabel = 1 : 3
@@ -391,6 +392,9 @@ for iLabel = 1 : 3
     eval(['angleNormalAutocorr' label{iLabel,1} ' = [];'])
     eval(['angularVelAutocorr' label{iLabel,1} ' = [];'])
 end
+
+%define maximum lag
+maxLag = 10;
 
 %calculation
 for iLabel = goodLabel
@@ -415,9 +419,6 @@ end
 
 %% ARMA
 
-%define model orders to test
-modelOrder = [0 0; 0 0; -1 -1];
-
 %initialization
 for iLabel = 1 : 3
     eval(['sisterDistArma' label{iLabel,1} ' = [];'])
@@ -426,6 +427,9 @@ for iLabel = 1 : 3
     eval(['angularVelArma' label{iLabel,1} ' = [];'])
 end
 
+% %define model orders to test
+% modelOrder = [0 0; 0 0; -1 -1];
+% 
 % %calculation
 % for iLabel = goodLabel
 %
@@ -546,7 +550,7 @@ if verbose
 
         %create subplot 1
         subplot(2,1,1);
-        hold on;
+        hold on
 
         %put all distances together in one matrix
         eval(['distanceMat = [sisterDist' label{iLabel,1} '.observations];'])
@@ -578,16 +582,16 @@ if verbose
 
         %create subplot 2
         subplot(2,1,2);
-        hold on;
+        hold on
 
         %plot the distance and velocity autocorrelations
         eval(['sisterDistAutocorr = sisterDistAutocorr' label{iLabel,1} ';']);
-        plot((0:maxLag)*timeLapse,sisterDistAutocorr,'k','marker','.');
+        plot((0:maxLag)*timeLapse,sisterDistAutocorr(:,1),'k','marker','.');
         eval(['sisterVelAutocorr = sisterVelAutocorr' label{iLabel,1} ';']);
-        plot((0:maxLag)*timeLapse,sisterVelAutocorr,'r','marker','.');
+        plot((0:maxLag)*timeLapse,sisterVelAutocorr(:,1),'r','marker','.');
 
         %set axes limit
-        axis([0 maxLag*timeLapse min(0,1.1*min([sisterDistAutocorr;sisterVelAutocorr])) 1.1]);
+        axis([0 maxLag*timeLapse min(0,1.1*min([sisterDistAutocorr(:,1);sisterVelAutocorr(:,1)])) 1.1]);
 
         %write axes labels
         xlabel('Lag (s)');
@@ -613,7 +617,7 @@ if verbose
 
         %create subplot 1
         subplot(2,2,1);
-        hold on;
+        hold on
 
         %put all angles with normal together in one matrix
         eval(['angleMat = [angleNormal' label{iLabel,1} '.observations];']);
@@ -640,14 +644,14 @@ if verbose
 
         %create subplot 3
         subplot(2,2,3);
-        hold on;
+        hold on
 
         %plot the autocorrelation of angle with normal
         eval(['angleNormalAutocorr = angleNormalAutocorr' label{iLabel,1} ';']);
-        plot((0:maxLag)*timeLapse,angleNormalAutocorr,'k','marker','.');
+        plot((0:maxLag)*timeLapse,angleNormalAutocorr(:,1),'k','marker','.');
 
         %set axes limit
-        axis([0 maxLag*timeLapse min(0,1.1*min(angleNormalAutocorr)) 1.1]);
+        axis([0 maxLag*timeLapse min(0,1.1*min(angleNormalAutocorr(:,1))) 1.1]);
 
         %write axes labels
         xlabel('Lag (s)');
@@ -660,7 +664,7 @@ if verbose
 
         %create subplot 2
         subplot(2,2,2);
-        hold on;
+        hold on
 
         %put all angular velocities together in one matrix
         eval(['angleMat = [angularVel' label{iLabel,1} '.observations];'])
@@ -686,14 +690,14 @@ if verbose
 
         %create subplot 4
         subplot(2,2,4);
-        hold on;
+        hold on
 
         %plot the autocorrelation of angular velocity
         eval(['angularVelAutocorr = angularVelAutocorr' label{iLabel,1} ';']);
-        plot((0:maxLag)*timeLapse,angularVelAutocorr,'k','marker','.');
+        plot((0:maxLag)*timeLapse,angularVelAutocorr(:,1),'k','marker','.');
 
         %set axes limit
-        axis([0 maxLag*timeLapse min(0,1.1*min(angularVelAutocorr)) 1.1]);
+        axis([0 maxLag*timeLapse min(0,1.1*min(angularVelAutocorr(:,1))) 1.1]);
 
         %write axes labels
         xlabel('Lag (s)');
@@ -720,158 +724,223 @@ if verbose
         
     end %(or iLabel = goodLabel)
     
-    %% temporal trend stuff %%
+    %% histograms %%
     
     for iLabel = goodLabel
-
+        
         %open figure and write title
-        figure('Name',[fileName(1:end-4) ' - Temporal trends - ' label{iLabel,1}],'NumberTitle','off');
+        figure('Name',[fileName(1:end-4) ' - Histograms - ' label{iLabel,1}],'NumberTitle','off');
 
-        %create subplot 1
-        subplot(4,2,1);
-        hold on;
+        %create subplot 1 for distances
+        subplot(2,2,1);
+        hold on
+        
+        %get number of necessary bins
+        eval(['[n,x] = histogram(sisterDistDistr' label{iLabel,1} ');']);
+        eval(['hist(sisterDistDistr' label{iLabel,1} ',length(n));']);
 
-        %plot histogram of distance temporal trend
-        eval(['trend2plot = sisterDistTrend' label{iLabel,1} ';']);
-        if ~isempty(trend2plot)
-            [x] = histogram(trend2plot(:,1));
-            hist(trend2plot(:,1),length(x));
-        end
-        
-        %write axes labels and title
-        xlabel('Sister separation slopes (\mum/s)');
-        ylabel('# of occurance');
-        
-        %hold off figure
+        %write axes labels
+        xlabel('Sister separation (\mum)');
+        ylabel('# of occurances');        
+    
         hold off
-
-        %create subplot 2
-        subplot(4,2,2);
-        hold on;
-
-        %plot histogram of significant trends only
-        trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
-        if ~isempty(trend2plot)
-            [x] = histogram(trend2plot);
-            hist(trend2plot,length(x));
-        end
+    
+        %create subplot 2 for velocities
+        subplot(2,2,2);
+        hold on
         
-        %write axes labels and title
-        xlabel('Significant slopes only');
-        ylabel('# of occurance');
-        
-        %hold off figure
+        %get number of necessary bins
+        eval(['[n,x] = histogram(sisterVelDistr' label{iLabel,1} ');']);
+        eval(['hist(sisterVelDistr' label{iLabel,1} ',length(n));']);
+
+        %write axes labels
+        xlabel('Rate change sister separation (nm/s)');
+        ylabel('# of occurances');        
+    
         hold off
-
-        %create subplot 3
-        subplot(4,2,3);
-        hold on;
-
-        %plot histogram of velocity temporal trend
-        eval(['trend2plot = sisterVelTrend' label{iLabel,1} ';']);
-        if ~isempty(trend2plot)
-            [x] = histogram(trend2plot(:,1));
-            hist(trend2plot(:,1),length(x));
-        end
+    
+        %create subplot 3 for angles
+        subplot(2,2,3);
+        hold on
         
-        %write axes labels and title
-        xlabel('Absolute rate change sister separation slopes (nm/s/s)');
-        ylabel('# of occurances');
-        
-        %hold off figure
+        %get number of necessary bins
+        eval(['[n,x] = histogram(angleNormalDistr' label{iLabel,1} ');']);
+        eval(['hist(angleNormalDistr' label{iLabel,1} ',length(n));']);
+
+        %write axes labels
+        xlabel('Sister angle with normal (deg)');
+        ylabel('# of occurances');        
+    
         hold off
-
-        %create subplot 4
-        subplot(4,2,4);
-        hold on;
-
-        %plot histogram of significant trends only
-        trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
-        if ~isempty(trend2plot)
-            [x] = histogram(trend2plot);
-            hist(trend2plot,length(x));
-        end
+    
+        %create subplot 4 for angular velocity
+        subplot(2,2,4);
+        hold on
         
-        %write axes labels and title
-        xlabel('Significant slopes only');
-        ylabel('# of occurances');
-        
-        %hold off figure
+        %get number of necessary bins
+        eval(['[n,x] = histogram(angularVelDistr' label{iLabel,1} ');']);
+        eval(['hist(angularVelDistr' label{iLabel,1} ',length(n));']);
+
+        %write axes labels
+        xlabel('Sister angular velocity (deg/s)');
+        ylabel('# of occurances');        
+    
         hold off
-
-        %create subplot 5
-        subplot(4,2,5);
-        hold on;
-
-        %plot histogram of angle with normal temporal trend
-        eval(['trend2plot = angleNormalTrend' label{iLabel,1} ';']);
-        if ~isempty(trend2plot)
-            [x] = histogram(trend2plot(:,1));
-            hist(trend2plot(:,1),length(x));
-        end
-        
-        %write axes labels and title
-        xlabel('Angle with normal slopes (degrees/s)');
-        ylabel('# of occurances');
-        
-        %hold off figure
-        hold off
-
-        %create subplot 6
-        subplot(4,2,6);
-        hold on;
-
-        %plot histogram of significant trends only
-        trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
-        if ~isempty(trend2plot)
-            [x] = histogram(trend2plot);
-            hist(trend2plot,length(x));
-        end
-        
-        %write axes labels and title
-        xlabel('Significant slopes only');
-        ylabel('# of occurances');
-        
-        %hold off figure
-        hold off
-
-        %create subplot 7
-        subplot(4,2,7);
-        hold on;
-
-        %plot histogram of angular velocity temporal trend
-        eval(['trend2plot = angularVelTrend' label{iLabel,1} ';']);
-        if ~isempty(trend2plot)
-            [x] = histogram(trend2plot(:,1));
-            hist(trend2plot(:,1),length(x));
-        end
-        
-        %write axes labels and title
-        xlabel('Angular velocity slopes  (degrees/s/s)');
-        ylabel('# of occurance');
-        
-        %hold off figure
-        hold off
-
-        %create subplot 8
-        subplot(4,2,8);
-        hold on;
-
-        %plot histogram of angular velocity temporal trend
-        trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
-        if ~isempty(trend2plot)
-            [x] = histogram(trend2plot);
-            hist(trend2plot,length(x));
-        end
-        
-        %write axes labels and title
-        xlabel('Significant slopes only');
-        ylabel('# of occurance');
-        
-        %hold off figure
-        hold off
-
-    end %(or iLabel = goodLabel)    
+    
+    end
+    
+    %     %% temporal trend stuff %%
+    %
+    %     for iLabel = goodLabel
+    %
+    %         %open figure and write title
+    %         figure('Name',[fileName(1:end-4) ' - Temporal trends - ' label{iLabel,1}],'NumberTitle','off');
+    %
+    %         %create subplot 1
+    %         subplot(4,2,1);
+    %         hold on;
+    %
+    %         %plot histogram of distance temporal trend
+    %         eval(['trend2plot = sisterDistTrend' label{iLabel,1} ';']);
+    %         if ~isempty(trend2plot)
+    %             [x] = histogram(trend2plot(:,1));
+    %             hist(trend2plot(:,1),length(x));
+    %         end
+    %
+    %         %write axes labels and title
+    %         xlabel('Sister separation slopes (\mum/s)');
+    %         ylabel('# of occurance');
+    %
+    %         %hold off figure
+    %         hold off
+    %
+    %         %create subplot 2
+    %         subplot(4,2,2);
+    %         hold on;
+    %
+    %         %plot histogram of significant trends only
+    %         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
+    %         if ~isempty(trend2plot)
+    %             [x] = histogram(trend2plot);
+    %             hist(trend2plot,length(x));
+    %         end
+    %
+    %         %write axes labels and title
+    %         xlabel('Significant slopes only');
+    %         ylabel('# of occurance');
+    %
+    %         %hold off figure
+    %         hold off
+    %
+    %         %create subplot 3
+    %         subplot(4,2,3);
+    %         hold on;
+    %
+    %         %plot histogram of velocity temporal trend
+    %         eval(['trend2plot = sisterVelTrend' label{iLabel,1} ';']);
+    %         if ~isempty(trend2plot)
+    %             [x] = histogram(trend2plot(:,1));
+    %             hist(trend2plot(:,1),length(x));
+    %         end
+    %
+    %         %write axes labels and title
+    %         xlabel('Absolute rate change sister separation slopes (nm/s/s)');
+    %         ylabel('# of occurances');
+    %
+    %         %hold off figure
+    %         hold off
+    %
+    %         %create subplot 4
+    %         subplot(4,2,4);
+    %         hold on;
+    %
+    %         %plot histogram of significant trends only
+    %         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
+    %         if ~isempty(trend2plot)
+    %             [x] = histogram(trend2plot);
+    %             hist(trend2plot,length(x));
+    %         end
+    %
+    %         %write axes labels and title
+    %         xlabel('Significant slopes only');
+    %         ylabel('# of occurances');
+    %
+    %         %hold off figure
+    %         hold off
+    %
+    %         %create subplot 5
+    %         subplot(4,2,5);
+    %         hold on;
+    %
+    %         %plot histogram of angle with normal temporal trend
+    %         eval(['trend2plot = angleNormalTrend' label{iLabel,1} ';']);
+    %         if ~isempty(trend2plot)
+    %             [x] = histogram(trend2plot(:,1));
+    %             hist(trend2plot(:,1),length(x));
+    %         end
+    %
+    %         %write axes labels and title
+    %         xlabel('Angle with normal slopes (degrees/s)');
+    %         ylabel('# of occurances');
+    %
+    %         %hold off figure
+    %         hold off
+    %
+    %         %create subplot 6
+    %         subplot(4,2,6);
+    %         hold on;
+    %
+    %         %plot histogram of significant trends only
+    %         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
+    %         if ~isempty(trend2plot)
+    %             [x] = histogram(trend2plot);
+    %             hist(trend2plot,length(x));
+    %         end
+    %
+    %         %write axes labels and title
+    %         xlabel('Significant slopes only');
+    %         ylabel('# of occurances');
+    %
+    %         %hold off figure
+    %         hold off
+    %
+    %         %create subplot 7
+    %         subplot(4,2,7);
+    %         hold on;
+    %
+    %         %plot histogram of angular velocity temporal trend
+    %         eval(['trend2plot = angularVelTrend' label{iLabel,1} ';']);
+    %         if ~isempty(trend2plot)
+    %             [x] = histogram(trend2plot(:,1));
+    %             hist(trend2plot(:,1),length(x));
+    %         end
+    %
+    %         %write axes labels and title
+    %         xlabel('Angular velocity slopes  (degrees/s/s)');
+    %         ylabel('# of occurance');
+    %
+    %         %hold off figure
+    %         hold off
+    %
+    %         %create subplot 8
+    %         subplot(4,2,8);
+    %         hold on;
+    %
+    %         %plot histogram of angular velocity temporal trend
+    %         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
+    %         if ~isempty(trend2plot)
+    %             [x] = histogram(trend2plot);
+    %             hist(trend2plot,length(x));
+    %         end
+    %
+    %         %write axes labels and title
+    %         xlabel('Significant slopes only');
+    %         ylabel('# of occurance');
+    %
+    %         %hold off figure
+    %         hold off
+    %
+    %     end %(or iLabel = goodLabel)
     
 end
 

@@ -1,4 +1,4 @@
-function job = makiMakeJob(jobType,status,job)
+function job = makiMakeJob(jobType,status,job,ask4input)
 %MAKIMAKEJOB is a hack to set up jobs from movies
 %
 % SYNOPSIS: job = makiMakeJob(jobType,status,job)
@@ -18,13 +18,17 @@ function job = makiMakeJob(jobType,status,job)
 %       job    : job-struct as output from makiMakeJob (e.g. if you want to
 %                update it). If empty, you can load via GUI
 %
+%       ask4input: 1 to ask user for input (specifically for tracking and
+%                  sister identification), 0 to use built-in defaults.
+%                  Optional. Default: 1.
+%
 % OUTPUT job: job-struct (input to makiMovieAnalysis)
 %
 % REMARKS Order of tasks so far: 
 %         (1) cropping
 %         (2) saving dataStruct
 %         (3) initCoord
-%         (4) mixture-model fitting
+%         (4) mixture-model fitting - DON'T USE!
 %         (5) plane fit
 %         (6) tracking 
 %         (7) sister identification
@@ -81,8 +85,13 @@ if length(status) < makiNumPossibleTasks || any(status > 2)
     tmp(abs(status(status<0))) = 2;
     status = tmp;
 end
+
 if jobType == 3 && nargin < 3
     job = [];
+end
+
+if nargin < 4 || isempty(ask4input)
+    ask4input = 1;
 end
 
 % turn off property reader warning
@@ -350,12 +359,12 @@ switch jobType
 
             %assign tracking parameters
             if dataStruct.status(6) < 0
-                dataStruct = getTrackingInput(dataStruct);
+                dataStruct = getTrackingInput(dataStruct,ask4input);
             end
 
             %assign sister grouping parameters
             if dataStruct.status(7) < 0
-                dataStruct = getGroupSisterInput(dataStruct);
+                dataStruct = getGroupSisterInput(dataStruct,ask4input);
             end
 
             % store dataStruct - store success
@@ -428,7 +437,13 @@ warning(warningState)
 
 
 %% subfunction to ask for input for tracking
-function dataStruct = getTrackingInput(dataStruct)
+function dataStruct = getTrackingInput(dataStruct,ask4input)
+
+%define default values
+rotate_def = 1;
+timeWindow_def = 3;
+minRadius_def = 0.5;
+maxRadius_def = 1.1;
 
 %assign defaults
 dataPropertiesTmp = dataStruct.dataProperties;
@@ -437,61 +452,79 @@ if isfield(dataPropertiesTmp,'tracksParam') %if tracksParam have been assigned p
     if isfield(tracksParamTmp,'rotate')
         rotateTmp = tracksParamTmp.rotate;
     else
-        rotateTmp = 1;
+        rotateTmp = rotate_def;
     end
     if isfield(tracksParamTmp,'gapCloseParam')
         timeWindowTmp = tracksParamTmp.gapCloseParam.timeWindow - 1;
     else
-        timeWindowTmp = 5;
+        timeWindowTmp = timeWindow_def;
     end
     if isfield(tracksParamTmp,'costMatParam')
         minRadiusTmp = tracksParamTmp.costMatParam.minSearchRadiusL;
         maxRadiusTmp = tracksParamTmp.costMatParam.maxSearchRadiusL;
     else
-        minRadiusTmp = 0.25;
-        maxRadiusTmp = 1;
+        minRadiusTmp = minRadius_def;
+        maxRadiusTmp = maxRadius_def;
     end
 else %if this is the first time
-    rotateTmp = 1;
-    timeWindowTmp = 5;
-    minRadiusTmp = 0.25;
-    maxRadiusTmp = 1;
+    rotateTmp = rotate_def;
+    timeWindowTmp = timeWindow_def;
+    minRadiusTmp = minRadius_def;
+    maxRadiusTmp = maxRadius_def;
 end
 
 %ask for user input
-tracksParamIn = inputdlg(...
-    {'Use rotated coordinates (1 yes, 0 no)',...
-    'Maximum gap to close (in frames)',...
-    'Minimum allowed search radius (in microns)',...
-    'Maximum allowed search radius (in microns)'},...
-    sprintf(['Tracking parameters for ' dataStruct.projectName]),1,{num2str(rotateTmp),num2str(timeWindowTmp),...
-    num2str(minRadiusTmp),num2str(maxRadiusTmp)},'on');
-if isempty(tracksParamIn)
-    error('input aborted')
+if ask4input
+    
+    tracksParamIn = inputdlg(...
+        {'Use rotated coordinates (1 yes, 0 no)',...
+        'Maximum gap to close (in frames)',...
+        'Minimum allowed search radius (in microns)',...
+        'Maximum allowed search radius (in microns)'},...
+        sprintf(['Tracking parameters for ' dataStruct.projectName]),1,...
+        {num2str(rotateTmp),num2str(timeWindowTmp),...
+        num2str(minRadiusTmp),num2str(maxRadiusTmp)},'on');
+    
+    if isempty(tracksParamIn)
+        error('input aborted')
+    else
+        rotateTmp = str2double(tracksParamIn{1});
+        timeWindowTmp = str2double(tracksParamIn{2});
+        minRadiusTmp = str2double(tracksParamIn{3});
+        maxRadiusTmp = str2double(tracksParamIn{4});
+    end
+    
+else
+    
+    rotateTmp = rotate_def;
+    timeWindowTmp = timeWindow_def;
+    minRadiusTmp = minRadius_def;
+    maxRadiusTmp = maxRadius_def;
+    
 end
 
 %assign whether to use rotated coordinates or not
-rotate = str2double(tracksParamIn{1});
+rotate = rotateTmp;
 
 %assign gap closing parameters
-gapCloseParam.timeWindow = str2double(tracksParamIn{2}) + 1;
+gapCloseParam.timeWindow = timeWindowTmp + 1;
 gapCloseParam.mergeSplit = 0;
 gapCloseParam.minTrackLen = 1;
 
 %assign cost matrix parameters for linking spots between consecutive 
 %frames
-costMatParam.minSearchRadiusL = str2double(tracksParamIn{3});
-costMatParam.maxSearchRadiusL = str2double(tracksParamIn{4});
-costMatParam.brownStdMultL = 4;
+costMatParam.minSearchRadiusL = minRadiusTmp;
+costMatParam.maxSearchRadiusL = maxRadiusTmp;
+costMatParam.brownStdMultL = 3.5;
 costMatParam.closestDistScaleL = 2;
 costMatParam.maxStdMultL = 100;
 
 %assign cost matrix parameters for closing gaps and (in principle) 
 %merging and splitting
-costMatParam.minSearchRadiusCG = str2double(tracksParamIn{3});
-costMatParam.maxSearchRadiusCG = str2double(tracksParamIn{4});
-costMatParam.brownStdMultCG = 4*ones(gapCloseParam.timeWindow,1);
-costMatParam.linStdMultCG = 4*ones(gapCloseParam.timeWindow,1);
+costMatParam.minSearchRadiusCG = minRadiusTmp;
+costMatParam.maxSearchRadiusCG = maxRadiusTmp;
+costMatParam.brownStdMultCG = 3.5*ones(gapCloseParam.timeWindow,1);
+costMatParam.linStdMultCG = 3.5*ones(gapCloseParam.timeWindow,1);
 costMatParam.timeReachConfB = min(2,gapCloseParam.timeWindow);
 costMatParam.timeReachConfL = 1;
 costMatParam.closestDistScaleCG = 2;
@@ -515,58 +548,105 @@ tracksParam.useLocalDensity = useLocalDensity;
 dataStruct.dataProperties.tracksParam = tracksParam;
 
 %% subfunction to ask for input for groupSisters
-function dataStruct = getGroupSisterInput(dataStruct)
+function dataStruct = getGroupSisterInput(dataStruct,ask4input)
+
+%define default values
+useAlignment_def = 1;
+maxAngle_def = 30;
+maxDist_def = 1.5;
+minOverlap_def = 10;
+useAnaphase_def = 1;
+robust_def = 0;
 
 %assign defaults
 dataPropertiesTmp = dataStruct.dataProperties;
 if isfield(dataPropertiesTmp,'groupSisters') %if groupSisters parameters have been assigned previously
     groupSistersTmp = dataPropertiesTmp.tracksParam;
-    if isfield(groupSistersTmp,'costFunction')
-        costFunctionTmp = groupSistersTmp.costFuntion;
-        if ~isnumeric(costFunctionTmp)
-            costFunctionTmp = 1;
+    if isfield(groupSistersTmp,'useAlignment')
+        useAlignmentTmp = groupSistersTmp.costFuntion;
+        if ~isnumeric(useAlignmentTmp)
+            useAlignmentTmp = useAlignment_def;
         end
     else
-        costFunctionTmp = 1;
+        useAlignmentTmp = useAlignment_def;
+    end
+    if isfield(groupSistersTmp,'maxAngle')
+        maxAngleTmp = groupSistersTmp.maxAngle;
+    else
+        maxAngleTmp = maxAngle_def;
     end
     if isfield(groupSistersTmp,'maxDist')
         maxDistTmp = groupSistersTmp.maxDist;
     else
-        maxDistTmp = 1.5;
+        maxDistTmp = maxDist_def;
     end
     if isfield(groupSistersTmp,'minOverlap')
         minOverlapTmp = groupSistersTmp.minOverlap;
     else
-        minOverlapTmp = 10;
+        minOverlapTmp = minOverlap_def;
+    end
+    if isfield(groupSistersTmp,'useAnaphase')
+        useAnaphaseTmp = groupSistersTmp.useAnaphase;
+    else
+        useAnaphaseTmp = useAnaphase_def;
     end
     if isfield(groupSistersTmp,'robust')
         robustTmp = groupSistersTmp.robust;
     else
-        robustTmp = 0;
+        robustTmp = robust_def;
     end
 else %if this is the first time
-    costFunctionTmp = 1;
-    maxDistTmp = 1.5;
-    minOverlapTmp = 10;
-    robustTmp = 0;
+    useAlignmentTmp = useAlignment_def;
+    maxAngleTmp = maxAngle_def;
+    maxDistTmp = maxDist_def;
+    minOverlapTmp = minOverlap_def;
+    useAnaphaseTmp = useAnaphase_def;
+    robustTmp = robust_def;
 end
 
 %ask for user input
-groupStats = inputdlg(...
-    {'Use alignment (1 yes, 0 no)',...
-    'Maximum average distance between sisters (in microns)',...
-    'Minimum overlap between two tracks (>=10 frames)',...
-    'Use robust statistics'},sprintf(['Sister identification parameters for ' dataStruct.projectName]),1,{num2str(costFunctionTmp),...
-    num2str(maxDistTmp),num2str(minOverlapTmp),num2str(robustTmp)},'on');
-if isempty(groupStats)
-    error('input aborted')
+if ask4input
+
+    groupStats = inputdlg(...
+        {'Use alignment (1 yes, 0 no)',...
+        'Maximum average angle between sisters and normal to metaphase plate (in degrees)',...
+        'Maximum average distance between sisters (in microns)',...
+        'Minimum overlap between two tracks (>=10 frames)',...
+        'Assume sisters will go in opposite directions in anaphase (1 yes, 0 no)',...
+        'Use robust statistics'},sprintf(['Sister identification parameters for ' ...
+        dataStruct.projectName]),1,{num2str(useAlignmentTmp),...
+        num2str(maxAngleTmp),num2str(maxDistTmp),num2str(minOverlapTmp),...
+        num2str(useAnaphaseTmp),num2str(robustTmp)},'on');
+
+    if isempty(groupStats)
+        error('input aborted')
+    else
+        useAlignmentTmp = str2double(groupStats{1});
+        maxAngleTmp = str2double(groupStats{2});
+        maxDistTmp = str2double(groupStats{3});
+        minOverlapTmp = str2double(groupStats{4});
+        useAnaphaseTmp = str2double(groupStats{5});
+        robustTmp = str2double(groupStats{6});
+    end
+
+else
+
+    useAlignmentTmp = useAlignment_def;
+    maxAngleTmp = maxAngle_def;
+    maxDistTmp = maxDist_def;
+    minOverlapTmp = minOverlap_def;
+    useAnaphaseTmp = useAnaphase_def;
+    robustTmp = robust_def;
+
 end
 
 %process user input
-groupSisters.costFunction = str2double(groupStats{1});
-groupSisters.maxDist = str2double(groupStats{2});
-groupSisters.minOverlap = str2double(groupStats{3});
-groupSisters.robust = str2double(groupStats{4});
+groupSisters.useAlignment = useAlignmentTmp;
+groupSisters.maxAngle = maxAngleTmp;
+groupSisters.maxDist = maxDistTmp;
+groupSisters.minOverlap = minOverlapTmp;
+groupSisters.useAnaphase = useAnaphaseTmp;
+groupSisters.robust = robustTmp;
 
 %save in dataStruct
 dataStruct.dataProperties.groupSisters = groupSisters;
