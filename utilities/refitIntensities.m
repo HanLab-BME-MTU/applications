@@ -182,6 +182,10 @@ if loadData
         end
         % save outside data file - later
     end
+    
+    % return output if requested
+    idlist = idlistList;
+    dataProperties = [];
 
 else
     % return outputs
