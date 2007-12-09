@@ -15,7 +15,7 @@ function [idlist,dataProperties] = refitIntensities(idlist,dataProperties,movieN
 %                updated idlists
 %		 dataProperties: updated dataProperties (if fitPsf)
 %
-% REMARKS
+% REMARKS This code was lifted from cdCheckStretching. Thus the awkwardness
 %
 % created with MATLAB ver.: 7.5.0.342 (R2007b) on Windows_NT
 %
@@ -103,6 +103,7 @@ for iIdlist = 1:nIdlists
             ismember({'spb1';'spb2'},idlistList(iIdlist).idlist(1).stats.labelcolor);
         fitStruct.spbIdx = spbIdx;
         fitStruct = cdFitPsf(fitStruct);
+        idlistList(iIdlist).dataProperties = fitStruct.dataProperties;
     end
 
     % check type. If we come from idlist_L, we want to adjust
@@ -166,6 +167,9 @@ if loadData
     for iIdlist = 1:nIdlists
         % save into data file
         save(idlistList(iIdlist).dataFileName,idlistList(iIdlist).idlist(1).stats.idname,'-append');
+        if fitPsf
+             save(idlistList(iIdlist).dataFileName,'idlistList(iIdlist).dataProperties','-append');
+        end
         % save outside data file - later
     end
 
