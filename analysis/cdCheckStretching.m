@@ -8,7 +8,7 @@ function cdCheckStretching(type)
 %
 % OUTPUT -- not defined yet
 %
-% REMARKS
+% REMARKS -- redo with refitIntensities
 %
 % created with MATLAB ver.: 7.3.0.267 (R2006b) on Windows_NT
 %
@@ -88,12 +88,12 @@ switch type
             else
                 % if it was idlisttrack: find idlist_L
                 if findstr(idlistList(iIdlist).idlist(1).stats.idname,'track')
-                    if strcmp(idlist(iIdlist).type(end),'2')
-                        load(idlist(iIdlist).dataFileName,'idlist_L2')
+                    if strcmp(idlistList(iIdlist).type(end),'2')
+                        load(idlistList(iIdlist).dataFileName,'idlist_L2')
                         idlistList(iIdlist).idlist = idlist_L2;
                         fitStruct.idlist = idlist_L2;
                     else
-                        load(idlist(iIdlist).dataFileName,'idlist_L')
+                        load(idlistList(iIdlist).dataFileName,'idlist_L')
                         idlistList(iIdlist).idlist = idlist_L;
                         fitStruct.idlist = idlist_L;
                     end

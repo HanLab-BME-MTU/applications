@@ -15,21 +15,27 @@ function [mainDir,oldDir]=cdBiodata(option)
 %           oldDir  previous directory
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+oldDir = [];
 mainDir=getenv('BIODATA');
 if isempty(mainDir) || ~isdir(mainDir)
     mainDir=getenv('HOME');
     if isempty(mainDir) || ~isdir(mainDir)
-        h=errordlg('Set environment variables HOME and BIODATA for your matlab home directory and the directory where you store the movies, respectively');
-        uiwait(h)
-        return
+        mainDir=getenv('MATLABHOME');
+        if isempty(mainDir) || ~isdir(mainDir)
+            h=errordlg('Set environment variables HOME and BIODATA for your matlab home directory and the directory where you store the movies, respectively');
+            uiwait(h)
+            return
+        end
     end
+    % add matlab to mainDir
+    mainDir = fullfile(mainDir,'matlab');
 end
 
 oldDir=pwd;
 
 %if there is no option: switch to biodata-main if not already in some
 %biodata-subdirectory
-if nargin==0|isempty(option)
+if nargin==0||isempty(option)
     option=1;
 end
 
@@ -41,7 +47,7 @@ switch option
             cd(mainDir);
         elseif length(mainDir)>length(oldDir) %...or we are in a parent
             cd(mainDir);
-        end 
+        end
     case 2
         if isempty(findstr(lower(mainDir),lower(oldDir)))
             cd(mainDir);
@@ -49,7 +55,7 @@ switch option
             if ~isempty(dir('*.r3*'))
                 cd .. %if in a project dir: move up one file to allow easier switching between projects
             end
-        end 
+        end
     case 3
         if ~isempty(dir('*.r3*'))
             cd .. %if in a project dir: move up one file to allow easier switching between projects
@@ -58,34 +64,34 @@ switch option
         % do not do anything - just return mainDir
     case 5
         % go to tmpData/misteli
-        
-       
-        
+
+
+
         % cd Biodata and then misteli
         cdBiodata(0);
         try
-        cd ../tmpData/misteli
+            cd ../tmpData/misteli
         catch
         end
         mainDir = pwd;
-        
-       
+
+
     case 6
         % go to tmpData/jason
-        
+
         % cd Biodata
         cdBiodata(0);
         try
-        cd ../kinetochore       
+            cd ../kinetochore
         catch
             % we're on the laptop
             cd c:\tmp
         end
         mainDir = pwd;
-        
+
     case 7
         % go to tmpData/misteli, but stay if there already
-        
+
         % if we're already there, go maybe one dir up
         if any(findstr(oldDir,'misteli'))
             % check whether we're in a movieDir
@@ -98,7 +104,7 @@ switch option
             end
         else
             cdBiodata(0);
-        cd ../tmpData/misteli
-        mainDir = pwd;
+            cd ../tmpData/misteli
+            mainDir = pwd;
         end
 end

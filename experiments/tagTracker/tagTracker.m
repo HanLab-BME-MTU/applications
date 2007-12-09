@@ -1300,6 +1300,9 @@ end
 %idlisttrack(1).stats.recalc = {12};
 %idlisttrack = linker(idlisttrack,dataProperties);
 
+% re-fit intensities
+idlisttrack = refitIntensities(idlisttrack);
+
 
 
 %=========================================================================

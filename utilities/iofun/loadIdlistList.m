@@ -71,12 +71,21 @@ idlistCt = 1;
 for iFile = 1:nFiles
     dataFileName = fullfile(fileList{iFile,2},fileList{iFile,1});
     try
-    % load files
-    [idlist,dataProperties,projectProperties,slist,loadStruct] = ...
-        loadProjectData(fileList{iFile,1},fileList{iFile,2},'last',0,[],movie);
-   
+        % load files
+        [idlist,dataProperties,projectProperties,slist,loadStruct] = ...
+            loadProjectData(fileList{iFile,1},fileList{iFile,2},'last',0,[],movie);
+
         % check condition
-        if eval(condition)
+        if ischar(condition)
+            trueOrFalse = eval(condition);
+        else
+            switch condition
+                otherwise
+            end
+        end
+
+        % check condition
+        if trueOrFalse
             % store idlist
             idlistList(idlistCt).idlist = idlist;
             % store projectName
@@ -89,13 +98,13 @@ for iFile = 1:nFiles
 
             % store dirName
             idlistList(idlistCt).dirName = dirName;
-            
+
             % store slist
             idlistList(idlistCt).slist = slist;
-            
+
             % store loadStruct
             idlistList(idlistCt).loadStruct = loadStruct;
-            
+
             % store datafile-name
             idlistList(idlistCt).dataFileName = dataFileName;
 
