@@ -8,7 +8,9 @@ function [idlist,dataProperties] = refitIntensities(idlist,dataProperties,movieN
 %		idlist: idlist (normally after running tracker)
 %		dataProperties: see defaultDataProperties
 %		movieName: filename with path of movie
-%		fitPsf: if 1, code will attempt to recalculate psf-width (default: 0)
+%		fitPsf: if 1, code will attempt to recalculate psf-width (default:
+%               0). If fitPsf is a two-element vector, it will be
+%               interpreted as new sigmaCorrection (psf will not be fitted)
 %		fitPos: if 1, code will attempt to re-fit positions, too. (default: 0)
 %
 % OUTPUT idlist: updated idlist if idlist was supplied. Otherwise, list of
@@ -72,6 +74,14 @@ end
 
 % count
 nIdlists = length(idlistList);
+
+% check psfFit and write sigmaCorrection if necessary
+if length(fitPsf) > 1
+    for iIdlist = 1:nIdlists
+        idlistList(iIdlist).dataProperties.sigmaCorrection = fitPsf;
+    end
+    fitPsf = false;
+end
 
 %============================
 
