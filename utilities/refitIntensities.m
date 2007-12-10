@@ -175,12 +175,14 @@ end % loop idlists
 if loadData
 
     for iIdlist = 1:nIdlists
-        % save into data file
+        % save into data file - assign idlistxxx first
+        eval(sprintf('%s = idlistList(iIdlist).idlist;',idlistList(iIdlist).idlist(1).stats.idname));
         save(idlistList(iIdlist).dataFileName,idlistList(iIdlist).idlist(1).stats.idname,'-append');
         if fitPsf
              save(idlistList(iIdlist).dataFileName,'idlistList(iIdlist).dataProperties','-append');
         end
-        % save outside data file - later
+        % save outside data file 
+        save(fullfile(idlistList(iIdlist).dirName,sprintf('%s_%s',idlistList(iIdlist).idlist(1).stats.idname,nowString)),idlistList(iIdlist).idlist(1).stats.idname)
     end
     
     % return output if requested
