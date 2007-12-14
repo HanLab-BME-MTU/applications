@@ -315,8 +315,9 @@ for ii = 1:length(selTimeSteps)
    %Calculate the angle between force and flow.
    dotProdBFRecU = recBFx.*unitRecU1 + recBFy.*unitRecU2;
    dotProdBF_RecUPerp = recBFx.*unitRecU2 - recBFy.*unitRecU1;
+   meanForceMag = mean(forceField.fMag);
    forceField.angleFlowBF = sign(dotProdBF_RecUPerp).'.* ...
-      acos(dotProdBFRecU.'./forceField.fMag);
+      acos(dotProdBFRecU.'./max(forceField.fMag,meanForceMag/100));
 
    mcfIndShow = find((dotProdBFRecU-recBFLen*cos(mcfAngle))>=0);
    adfIndShow = find((-dotProdBFRecU-recBFLen*cos(adfAngle))>=0);
