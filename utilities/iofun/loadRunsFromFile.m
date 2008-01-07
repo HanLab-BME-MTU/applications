@@ -6,8 +6,8 @@ function run = loadRunsFromFile(nRunsOrFileList,varargin)
 % INPUT    nRunsOrFilelist (opt) if scalar, then n Runs are loaded.
 %                            otherwise, specify inputList a 1-by-nRuns
 %                            structure with field fileList, which is a
-%                            struct with fields .file, .type of length n, 
-%                            where n is the number of files to be loaded. 
+%                            struct with fields .file, .type of length n,
+%                            where n is the number of files to be loaded.
 %                               .file  : full path for the file including filename
 %                               .type  : (numeric) filetype (results files: 1, projFiles: 2).
 %                               .opt   : cell array with additional information, as
@@ -36,12 +36,21 @@ function run = loadRunsFromFile(nRunsOrFileList,varargin)
 %                                 time/timePoints. Default: 0
 %                               idlist   entire idlist      0
 %                               realTime use real timestamp 1
-%                        
-%                            
+%
+%                              In order to supply a condition idlists have
+%                              to fulfill, please input a structure array
+%                              as any of the variable input arguments.
+%                              Fields:
+%                                .check
+%                                .askOptions
+%                              see checkIdlist for the options for these
+%                              arguments.
+%
+%
 %
 % OUTPUT   run             input structure for trajectoryAnalysis with e.v.
 %                            additional fields. Fieldnames:
-%                      
+%
 %                       .fileNameList
 %                       .data
 %                           .distance
@@ -75,6 +84,7 @@ addIsT  = 0;
 convDist= 0;
 addIdlist = 0;
 useRealTime = 1;
+checkStruct = struct('check',[],'askOptions',[]);
 
 
 if nargin == 0 || isempty(nRunsOrFileList)
@@ -89,64 +99,74 @@ end
 % SWITCHES
 for in = 1:length(varargin)
     arg2check = varargin{in};
-    
+
     % make sure it's a string
     % FUTURE: if it's the last argument, check whether it is some option
     % structure
-    if ~isstr(arg2check)
-        error('Options for loadRunsFromFile have to be strings! (offending argument#: %i)',in);
-    end
-    
-    % check for + or - sign
-    switch arg2check(1)
-        case '+'
-            newValue = 1;
-            arg2check = arg2check(2:end);
-        case '-'
-            newValue = 0;
-            arg2check = arg2check(2:end);
-        otherwise
-            newValue = 1;
-    end
-    
-    % find which to set
-    switch arg2check
-        case 'dist'
-            % distance 
-            addDist = newValue;
-        case 'time'     
-            % time [s] 
-            addTime = newValue;
-        case 'tp'
-            % timePoints 
-            addTP = newValue;
-        case 'ori'
-            % orientation    
-            addOri = newValue;
-        case 'sig0'
-            % sigmaZero
-            addSig0 = newValue;
-        case 'dp'
-            % dataProperties
-            addDP = newValue;
-        case 'SNR'
-            % SNR max
-            addSnr = newValue;
-        case 'isT'
-            % tracked or not
-            addIsT = newValue;
-        case 'pos'
-            % add position structure
-            addPos = newValue;
-        case 'nanDist'
-            convDist = newValue;
-        case 'idlist'
-            addIdlist = newValue;
-        case 'realTime'
-            useRealTime = newValue;
-         
-        otherwise
-            warning('Option %i (''%s'') for loadRunsFromFile not recognized',in,arg2check);
+    if ~ischar(arg2check)
+        if isstruct(arg2check)
+            if isfield(arg2check,'check')
+                checkStruct.check = arg2check.check;
+            end
+            if isfield(arg2check,'askOptions')
+                checkStruct.askOptions = arg2check.check;
+            end
+        else
+            error('Options for loadRunsFromFile have to be strings! (offending argument#: %i)',in);
+        end
+    else
+
+        % check for + or - sign
+        switch arg2check(1)
+            case '+'
+                newValue = 1;
+                arg2check = arg2check(2:end);
+            case '-'
+                newValue = 0;
+                arg2check = arg2check(2:end);
+            otherwise
+                newValue = 1;
+        end
+
+        % find which to set
+        switch arg2check
+            case 'dist'
+                % distance
+                addDist = newValue;
+            case 'time'
+                % time [s]
+                addTime = newValue;
+            case 'tp'
+                % timePoints
+                addTP = newValue;
+            case 'ori'
+                % orientation
+                addOri = newValue;
+            case 'sig0'
+                % sigmaZero
+                addSig0 = newValue;
+            case 'dp'
+                % dataProperties
+                addDP = newValue;
+            case 'SNR'
+                % SNR max
+                addSnr = newValue;
+            case 'isT'
+                % tracked or not
+                addIsT = newValue;
+            case 'pos'
+                % add position structure
+                addPos = newValue;
+            case 'nanDist'
+                convDist = newValue;
+            case 'idlist'
+                addIdlist = newValue;
+            case 'realTime'
+                useRealTime = newValue;
+
+            otherwise
+                warning('Option %i (''%s'') for loadRunsFromFile not recognized',in,arg2check);
+        end
     end
 end
 
@@ -172,13 +192,13 @@ standardTags = {'spb1';'cen1'};
 
 
 %nRunsOrFilelist
-if nargin==0 | isempty(nRunsOrFileList)
+if nargin==0 || isempty(nRunsOrFileList)
     loadData = 1;
     nRuns    = 1;
-elseif isnumeric(nRunsOrFileList) & isfinite(nRunsOrFileList)
+elseif isnumeric(nRunsOrFileList) && isfinite(nRunsOrFileList)
     loadData = nRunsOrFileList;
     nRuns    = nRunsOrFileList;
-elseif isstruct(nRunsOrFileList) & isfield(nRunsOrFileList,'fileList')
+elseif isstruct(nRunsOrFileList) && isfield(nRunsOrFileList,'fileList')
     loadData = 0;
     inputList = nRunsOrFileList;
     nRuns = length(nRunsOrFileList);
@@ -197,31 +217,31 @@ clear nRunsOrFileList;
 oldDir = pwd; %remember old dir before loading
 
 loadCt = 0;
-if loadData    
-    %go to biodata. remember oldDir first   
+if loadData
+    %go to biodata. remember oldDir first
     cdBiodata(2);
-    
-    %buld a list of data files   
+
+    %buld a list of data files
     for iInput = 1:loadData
         fileList = loadFileList({'*.mte;*.mts;*.mtx','results files';...
-                '*-data-??-???-????-??-??-??.mat','project data files'},[2;1],...
+            '*-data-??-???-????-??-??-??.mat','project data files'},[2;1],...
             [],['load data for run - ' num2str(loadCt+1) ' -']);
         if ~isempty(fileList)
             % only count loaded data if we have loaded at all
             loadCt = loadCt + 1;
             inputList(loadCt).fileList = fileList;
-        end    
+        end
     end
-    
+
     % check whether we do have data at all
-    if loadCt == 0 
+    if loadCt == 0
         disp('no files loaded - end evaluation')
         return
     end
-    
+
     % update nRuns
     nRuns = loadCt;
-    
+
 end
 
 cd(oldDir);
@@ -238,32 +258,32 @@ runCt = 0;
 for iRun = 1:nRuns
     fileList = inputList(iRun).fileList;
     for iFile = 1:length(fileList)
-        
-        
+
+
         try
             %load all
             allDat = load(fileList(iFile).file);
-            
+
             %load the idlist specified in lastResult
             eval(['idlist2use = allDat.',allDat.lastResult,';']);
-            
+
             % if addSnr, we add the idlist_L, if it exists
             if addSnr
                 if isfield(allDat,'idlist_L')
                     calculateTrajectoryOpt.oldIdlist = allDat.idlist_L;
                 end
             end
-                    
-            
-            
+
+
+
             %---prepare calculate trajectory
-            
+
             %choose tags
             %check whether there is a non-empty field opt, else just use
             %standardTags
-            
+
             flopt = fileList(iFile).opt; %increase readability
-            if isempty(flopt) | length(flopt)<3  | isempty(flopt{2}) | isempty(flopt{3})%there could be more options in the future!
+            if isempty(flopt) || length(flopt)<3  || isempty(flopt{2}) || isempty(flopt{3})%there could be more options in the future!
                 % use default tag1, tag2
                 tag1 = standardTags{1};
                 tag2 = standardTags{2};
@@ -271,33 +291,59 @@ for iRun = 1:nRuns
                 tag1 = fileList(iFile).opt{2};
                 tag2 = fileList(iFile).opt{3};
             end
-            
+
             %store identifier
-            if isempty(fileList(iFile).opt) | isempty(fileList(iFile).opt{1})
+            if isempty(fileList(iFile).opt) || isempty(fileList(iFile).opt{1})
                 calculateTrajectoryOpt.identifier = 'NONE';
             else
                 calculateTrajectoryOpt.identifier = fileList(iFile).opt{1};
             end
-            
+
             % check whether to convert data to nanList
             if convDist
                 calculateTrajectoryOpt.nanList = 1;
             end
-            
+
             % realTime switch
             calculateTrajectoryOpt.realTime = useRealTime;
             
-            if calcTraj
-            %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
-            [tmpData,ori,pos,sig0,dataProperties,snrMax,isTracked] =...
-                calculateTrajectoryFromIdlist(...
-                idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
-            %-------------------------
+            % check idlist. Properly prepare input. We want, in any case,
+            % check for tag1&tag2. Will throw an error if not n-by-3 cell
+            % input for checkCell or check.
+            if isempty(checkStruct.check)
+                checkStruct.check = {7,tag1,tag2};
+            else
+                if iscell(checkStruct.check)
+                    checkStruct.check = [checkStruct.check;{7,tag1,tag2}];
+                elseif ischar(checkStruct.check)
+                    if strcmp(checkStruct.check,'ask')
+                        if ~isfield(checkStruct.askOptions,'checkCell')
+                        checkStruct.askOptions.checkCell = {7,tag1,tag2};
+                        else
+                            checkStruct.askOptions.checkCell = [checkStruct.askOptions.checkCell;{7,tag1,tag2}];
+                        end
+                    else
+                        checkStruct.check = [{checkStruct.check,'',''};{7,tag1,tag2}];
+                    end
+                end
             end
-            
+            [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist2use,checkStruct.check,checkStruct.askOptions);
+            % quit with error if necessary
+            error(errorMessage);
+            % remove bad goodTimes
+            idlist2use(~goodTimes).linklist = [];
+
+            if calcTraj
+                %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
+                [tmpData,ori,pos,sig0,dataProperties,snrMax,isTracked] =...
+                    calculateTrajectoryFromIdlist(...
+                    idlist2use,allDat.dataProperties,tag1,tag2,calculateTrajectoryOpt);
+                %-------------------------
+            end
+
             % update dataCt
             dataCt = dataCt + 1;
-            
+
             % add standard data
             if addDist
                 data(dataCt).distance = tmpData.distance;
@@ -315,7 +361,7 @@ for iRun = 1:nRuns
                     data(dataCt).timePoints = tmpData.timePoints;
                 end
             end
-            
+
             % add more data
             if addOri
                 data(dataCt).orientation = ori;
@@ -338,23 +384,23 @@ for iRun = 1:nRuns
             if addIdlist
                 data(dataCt).idlist = idlist2use;
             end
-            
+
             %remember fileName
             fileNameList{dataCt} = fileList(iFile).file;
-            
-            
-            
-            
+
+
+
+
         catch
             if isempty(problem)
                 problem = lasterr;
             end
             disp([fileList(iFile).file, ' could not be loaded:',char(10),problem])
         end
-        
+
         clear lr id dp
     end %for i = 1:length(fileList)
-    
+
     % make sure we loaded something
     if dataCt == 0
         error('no data loaded!') % alternatively, we just could move on without updating runCt/dataCt
@@ -364,12 +410,11 @@ for iRun = 1:nRuns
         run(runCt).fileNameList = fileNameList;
         clear data
         clear fileNameList;
-        
+
         dataCt = 0;
     end
-    
+
 end %  for iRun = runCt:length(fileListStruct)
 
-    
 
-    
+

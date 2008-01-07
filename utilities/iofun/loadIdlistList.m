@@ -8,6 +8,9 @@ function idlistList = loadIdlistList(startDirectory, condition,selectAll,movie)
 %       condition (opt): string with a condition that the idlist has to
 %                        meet to be acceptable. For example
 %                        'length(idlist(1).stats.labelcolor == 4'
+%                        For alternative ways to state the condition, and
+%                        for how to ask the user for input via GUI, see
+%                        help checkIdlist
 %       selectAll(opt) : true if all idlists found should be selected {0}
 %       movie (opt) : 0/[] - nothing
 %                     1 - loadStruct for corr/raw
@@ -76,16 +79,12 @@ for iFile = 1:nFiles
             loadProjectData(fileList{iFile,1},fileList{iFile,2},'last',0,[],movie);
 
         % check condition
-        if ischar(condition)
-            trueOrFalse = eval(condition);
-        else
-            switch condition
-                otherwise
-            end
-        end
+       [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,condition);
 
         % check condition
-        if trueOrFalse
+        if goodIdlist
+            % remove bad frames
+            idlist(~goodTimes).linklist = [];
             % store idlist
             idlistList(idlistCt).idlist = idlist;
             % store projectName

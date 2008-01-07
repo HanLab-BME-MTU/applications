@@ -1,6 +1,5 @@
-
 function H=arrow3x(p1,p2,spCol,w,h,ip)
-% ARROW3
+%ARROW3 cretes a 3D arrow
 %   ARROW3(P1,P2) will draw vector lines (2D/3D) from P1 to P2 with
 %   arrowheads, where P1 and P2 can be either nx2 matrices (for 2D),
 %   or nx3 matrices (for 3D).
