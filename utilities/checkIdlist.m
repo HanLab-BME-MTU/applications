@@ -99,6 +99,14 @@ def_goodTags = {'spb1','cen1'};
 def_spbSeparation = [1.4 1.7];
 def_choiceList = [3:6,8:9];
 
+choiceDefaults = cell(9,2);
+choiceDefaults{4,1} = def_nTagsInIdlist;
+choiceDefaults{5,1} = def_nTagsInFrame;
+choiceDefaults{6,1} = def_ampThreshold;
+choiceDefaults(7,1:2) = def_goodTags;
+choiceDefaults{8,1} = def_spbSeparation(1);
+choiceDefaults{8,2} = def_spbSeparation(2);
+
 %==================
 %% TEST INPUT
 %==================
@@ -169,13 +177,7 @@ if ischar(check) && strcmp(check,'ask')
     if isfield(askOptions,'choiceDefaults')
         choiceDefaults = askOptions.choiceDefaults;
     else
-        choiceDefaults = cell(8,2);
-        choiceDefaults{4,1} = def_nTagsInIdlist;
-        choiceDefaults{5,1} = def_nTagsInFrame;
-        choiceDefaults{6,1} = def_ampThreshold;
-        choiceDefaults(7,1:2) = def_goodTags;
-        choiceDefaults{8,1} = def_spbSeparation(1);
-        choiceDefaults{8,2} = def_spbSeparation(2);
+        
 
         choiceDefaults = choiceDefaults(choiceList,:);
     end
@@ -492,10 +494,10 @@ while goodIdlist && iCheck < nChecks
             spbIdx = strmatch('spb',idlist(1).stats.labelcolor);
 
             % find the target value
-            if isempty(checkCell) || size(checkCell,2) < 2 || isempty(checkCell{iCheck,2})
+            if isempty(checkCell) || size(checkCell,2) < 3 || isempty(checkCell{iCheck,2})
                 spbSeparation = def_spbSeparation;
             else
-                spbSeparation = checkCell{iCheck,2};
+                spbSeparation = [checkCell{iCheck,2:3}];
             end
 
             % loop through idlist and check
