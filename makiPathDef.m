@@ -123,9 +123,13 @@ elseif strcmp(serverType,'DANUSER')
     pathList = {'$DANUSER','O:','/mnt/dundee'};
 elseif strcmp(serverType,'MERALDI')
     pathList = {'$MERALDI','O:',''};
-elseif strcmp(serverType,'SWEDLOW')
-    pathList = {'$SWEDLOW','',''};
 elseif strcmp(serverType,'MCAINSH')
-    pathList = {'$MCAINSH','',''};
+    pathList = {'$MCAINSH','O:',''};
+elseif strcmp(serverType,'PORTER')
+    pathList = {'$PORTER','O:\iainp',''};
+elseif strcmp(serverType,'KING')
+    pathList = {'$PORTER','O:\eking',''};
+elseif strcmp(serverType,'POSCH')
+    pathList = {'$POSCH','O:\mposch',''};
 end    
 
