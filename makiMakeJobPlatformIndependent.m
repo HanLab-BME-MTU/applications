@@ -4,7 +4,7 @@ function job = makiMakeJobPlatformIndependent(job,serverType)
 % SYNOPSIS: job = makiMakeJobPlatformIndependent(job,serverType)
 %
 % INPUT job: maki job file
-%       serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+%       serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
 %       'MCAINSH'
 %
 % OUTPUT 

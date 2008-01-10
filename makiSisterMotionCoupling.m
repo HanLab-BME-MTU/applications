@@ -4,7 +4,8 @@ function analysisStruct = makiSisterMotionCoupling(jobType,analysisStruct,verbos
 %SYNOPSIS analysisStruct = makiSisterMotionCoupling(jobType,analysisStruct,verbose)
 %
 %INPUT  jobType: string which can take the values:
-%               'TEST','HERCULES','DANUSER','MERLADI',SWEDLOW' or MCAINSH
+%               'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
+%               'MCAINSH'
 %       analysisStruct: Structure with fields
 %               .fileName: Name of file where analysisStruct is stored.
 %               .filePath: Directory where analysisStruct is stored.

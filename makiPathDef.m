@@ -13,8 +13,8 @@ function pathOrId = makiPathDef(pathOrId,serverType)
 %                             Woods Hole.
 %                 $TESTDATA - D:\makiTestData on windows and HOME/testdata
 %                             on linux
-%                 $DANUSER, $MERLADI, $SWEDLOW, $MCAINSH
-%       serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+%                 $DANUSER, $MERALDI, $SWEDLOW, $MCAINSH
+%       serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
 %       'MCAINSH'
 %       if pathOrId is empty or omitted, makiPathDef returns the current
 %       path definition
@@ -108,7 +108,7 @@ end
 function pathList = loadPathList(serverType)
 
 %Input: 
-%       serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+%       serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
 %       'MCAINSH'
 
 
@@ -123,13 +123,9 @@ elseif strcmp(serverType,'DANUSER')
     pathList = {'$DANUSER','O:','/mnt/dundee'};
 elseif strcmp(serverType,'MERALDI')
     pathList = {'$MERALDI','O:',''};
+elseif strcmp(serverType,'SWEDLOW')
+    pathList = {'$SWEDLOW','O:',''};
 elseif strcmp(serverType,'MCAINSH')
     pathList = {'$MCAINSH','O:',''};
-elseif strcmp(serverType,'PORTER')
-    pathList = {'$PORTER','O:\iainp',''};
-elseif strcmp(serverType,'KING')
-    pathList = {'$PORTER','O:\eking',''};
-elseif strcmp(serverType,'POSCH')
-    pathList = {'$POSCH','O:\mposch',''};
 end    
 

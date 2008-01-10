@@ -4,7 +4,8 @@ function job = makiMakeJob(jobType,status,job,ask4input)
 % SYNOPSIS: job = makiMakeJob(jobType,status,job)
 %
 % INPUT jobType: string which can take the values:
-%                'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or 'MCAINSH'
+%                'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or 
+%                'MCAINSH'
 %       status : status that you want to achieve, either as status vector,
 %                e.g. [1,1,1,0,1,0,0,0,0], or a list of tasks, e.g. [1,2,3,5]
 %                To force a task, set 2 in the status vector, or negative
@@ -122,7 +123,7 @@ switch jobType
                 jobName = sprintf('meraldiJob-%s.mat',nowString);
             case 6
                 basePath = [makiPathDef('$SWEDLOW',serverType) filesep];
-                jobPath = [basePath 'JobLogFiles'];
+                jobPath = uigetdir(basePath,'Please select JobLogFiles directory');
                 jobName = sprintf('swedlowJob-%s.mat',nowString);
             case 7
                 basePath = [makiPathDef('$MCAINSH',serverType) filesep];
@@ -131,7 +132,7 @@ switch jobType
         end
 
         % allow user to change base path
-        basePath = uigetdir(basePath,'Please select data-dir');
+        basePath = uigetdir(basePath,'Please select directory of movies to be analyzed');
 
         % find all .dv files in basePath
         fileList = searchFiles('dv$','(log)|(_PRJ)',basePath,1);

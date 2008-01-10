@@ -4,7 +4,8 @@ function analysisStruct = makiCollectMovies(jobType)
 %SYNOPSIS analysisStruct = makiCollectMovies(jobType)
 %
 %INPUT jobType: string which can take the values:
-%               'TEST','HERCULES','DANUSER','MERLADI',SWEDLOW' or MCAINSH
+%               'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
+%               'MCAINSH'
 %
 %OUTPUT analysisStruct: Structure with fields:
 %               .fileName: Name of file where analysisStruct is stored.
@@ -36,7 +37,7 @@ else
 end
 
 %allow user to choose directory
-basePath = uigetdir([topDir filesep],'Please select directory');
+basePath = uigetdir([topDir filesep],'Please select directory of movies to be collected');
 
 %find all makiAnalysis files in chosen directory
 fileList1 = searchFiles('makiAnalysis',[],basePath,1);

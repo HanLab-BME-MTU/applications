@@ -3,7 +3,7 @@ function [success,dataStructOut] = makiSaveDataFile(serverType,dataStruct,secure
 %
 % SYNOPSIS: [success,dataStructOut] = makiSaveDataFile(serverType,dataStruct,secureName)
 %
-% INPUT serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
+% INPUT serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
 %                   'MCAINSH'
 %       dataStruct: maki-data structure (see makiMakeDataStruct)
 %       secureName: fieldname of data item that should be saved via

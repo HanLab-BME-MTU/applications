@@ -4,7 +4,8 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,ve
 %SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,verbose)
 %
 %INPUT  jobType: string which can take the values:
-%               'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or MCAINSH
+%               'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
+%               'MCAINSH'
 %       analysisStruct: Structure with field movies indicating the movies
 %                       to be analyzed. Optional. If not input, GUI to load
 %                       movies is launched.

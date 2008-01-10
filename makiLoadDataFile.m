@@ -3,8 +3,8 @@ function dataStruct = makiLoadDataFile(serverType,dataFileName)
 %
 % SYNOPSIS: dataStruct = makiLoadDataFile(serverType,dataFileName)
 %
-% INPUT     serverType: 'TEST','HERCULES','DANUSER','MERALDI',SWEDLOW' or
-%                       'MCAINSH'
+% INPUT     serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW'
+%                       or 'MCAINSH'
 %           dataFileName (opt): [pathName,filesep,filename] of dataFile. If
 %           omitted, or if only a pathName is specified, the file can be
 %           selected interactively

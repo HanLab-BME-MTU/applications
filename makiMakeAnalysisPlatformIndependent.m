@@ -6,7 +6,8 @@ function analysisStruct = makiMakeAnalysisPlatformIndependent(analysisStruct,ser
 % INPUT analysisStruct: maki analysisStruct with analysisStruct path and
 %                       movie paths
 %       serverType: string which can take the values:
-%                   'TEST','HERCULES','DANUSER','MERLADI',SWEDLOW' or MCAINSH
+%                   'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
+%                   'MCAINSH'
 %
 % OUTPUT same as input with paths made compatible with current platform 
 %
