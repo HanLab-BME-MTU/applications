@@ -25,6 +25,9 @@ dataFileCreated = zeros(nJobs,1);
 mainDir = getenv('BIODATA');
 if isempty(mainDir)
     mainDir = getenv('HOME');
+     if isempty(mainDir)
+        mainDir = getenv('MATLABHOME');
+    end
 end
 cd(mainDir);
 if isempty(job(1).mainSaveDir)

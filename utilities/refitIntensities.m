@@ -67,9 +67,15 @@ else
     % - idlist
     % - loadStruct
     % - dataProperties
-    [dummy,dummy,loadStruct] = cdLoadMovie({movieName,'corrected'},'',-1);
-    idlistList = struct('idlist',idlist,'dataProperties',dataProperties,...
-        'loadStruct',loadStruct);
+    if iscell(movieName)
+        [dummy,dummy,loadStruct] = cdLoadMovie(movieName,'',-1);
+        idlistList = struct('idlist',idlist,'dataProperties',dataProperties,...
+            'loadStruct',loadStruct);
+    else
+        [dummy,dummy,loadStruct] = cdLoadMovie({movieName,'corrected'},'',-1);
+        idlistList = struct('idlist',idlist,'dataProperties',dataProperties,...
+            'loadStruct',loadStruct);
+    end
 end
 
 % count
@@ -164,7 +170,7 @@ for iIdlist = 1:nIdlists
             end
         end
     end
-    
+
     if loadData
         progressText(iIdlist/nIdlists)
     end
@@ -179,12 +185,12 @@ if loadData
         eval(sprintf('%s = idlistList(iIdlist).idlist;',idlistList(iIdlist).idlist(1).stats.idname));
         save(idlistList(iIdlist).dataFileName,idlistList(iIdlist).idlist(1).stats.idname,'-append');
         if fitPsf
-             save(idlistList(iIdlist).dataFileName,'idlistList(iIdlist).dataProperties','-append');
+            save(idlistList(iIdlist).dataFileName,'idlistList(iIdlist).dataProperties','-append');
         end
-        % save outside data file 
+        % save outside data file
         save(fullfile(idlistList(iIdlist).dirName,sprintf('%s_%s',idlistList(iIdlist).idlist(1).stats.idname,nowString)),idlistList(iIdlist).idlist(1).stats.idname)
     end
-    
+
     % return output if requested
     idlist = idlistList;
     dataProperties = [];

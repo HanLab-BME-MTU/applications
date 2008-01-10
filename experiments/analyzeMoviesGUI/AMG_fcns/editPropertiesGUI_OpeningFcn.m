@@ -30,6 +30,9 @@ end
 mainDir = getenv('BIODATA');
 if isempty(mainDir)
     mainDir = getenv('HOME');
+    if isempty(mainDir)
+        mainDir = getenv('MATLABHOME');
+    end
 end
 
 activeJobNum = get(amgHandles.dirListBox,'Value');

@@ -15,6 +15,9 @@ function [idlisttrack,debugData] = tagTracker(movie,idlist,dataProperties,verbos
 % improve localization and resolution.
 % It employs a Lucas-Kanade formalism.
 %
+% REMARKS Currently, re-fitting idlist doesn't work if a movie has been
+%         supplied (change refitIntensities if this is required).
+%
 % c: 2/05 jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1300,8 +1303,12 @@ end
 %idlisttrack(1).stats.recalc = {12};
 %idlisttrack = linker(idlisttrack,dataProperties);
 
-% re-fit intensities
-idlisttrack = refitIntensities(idlisttrack);
+% re-fit intensities. Use standard sigma correction
+if iscell(movie)
+    idlisttrack = refitIntensities(idlisttrack,dataProperties, movie, dataProperties.sigmaCorrection);
+else
+    warning('TAGTRACKER:CANNOTREFITINT','Cannot refit intensities. RefitIntensities cannot handle input movie format')
+end
 
 
 
