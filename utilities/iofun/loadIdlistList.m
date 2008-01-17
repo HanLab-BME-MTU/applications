@@ -79,7 +79,7 @@ for iFile = 1:nFiles
             loadProjectData(fileList{iFile,1},fileList{iFile,2},'last',0,[],movie);
 
         % check condition
-       [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,condition);
+        [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,condition);
 
         % check condition
         if goodIdlist
@@ -115,3 +115,6 @@ for iFile = 1:nFiles
 end
 % remove empty entries
 idlistList(idlistCt:end) = [];
+
+% remove checkIdlist from memory to clear persistent variables
+clear checkIdlist

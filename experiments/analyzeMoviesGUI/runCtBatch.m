@@ -313,7 +313,7 @@ try
                                     fprintf(fidJob,[nowString,' save(%s,''projProperties'',''-append'');\n'],projData);
                                     fprintf(fid,[nowString,' update projProperties\n']);
                                     prevStatus = bsum2bvec(job(i).projProperties.status);
-                                    job(i).projProperties.status = sum(prevStatus(find(prevStatus<4)))+4;
+                                    job(i).projProperties.status = sum(prevStatus((prevStatus<4)))+4;
                                     projProperties = job(i).projProperties;
                                     save(projData,'projProperties','-append');
 

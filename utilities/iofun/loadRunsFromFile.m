@@ -413,8 +413,10 @@ for iRun = 1:nRuns
 
         dataCt = 0;
     end
+    
+    % remove checkIdlist from memory to clear persistent variables
+    clear checkIdlist
 
 end %  for iRun = runCt:length(fileListStruct)
-
 
 
