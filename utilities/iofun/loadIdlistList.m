@@ -8,9 +8,11 @@ function idlistList = loadIdlistList(startDirectory, condition,selectAll,movie)
 %       condition (opt): string with a condition that the idlist has to
 %                        meet to be acceptable. For example
 %                        'length(idlist(1).stats.labelcolor == 4'
-%                        For alternative ways to state the condition, and
-%                        for how to ask the user for input via GUI, see
-%                        help checkIdlist
+%                        Alternatively, supply a structure with the fields:
+%                                .check
+%                                .askOptions
+%                              see checkIdlist for the options for these
+%                              arguments.
 %       selectAll(opt) : true if all idlists found should be selected {0}
 %       movie (opt) : 0/[] - nothing
 %                     1 - loadStruct for corr/raw
@@ -35,6 +37,9 @@ if nargin == 0 ||isempty(startDirectory)
 end
 if nargin < 2 || isempty(condition)
     condition = 'true';
+end
+if ~isstruct(condition)
+    condition = struct('check',condition,'askOptions','');
 end
 if nargin < 3 || isempty(selectAll)
     selectAll = false;
@@ -79,7 +84,8 @@ for iFile = 1:nFiles
             loadProjectData(fileList{iFile,1},fileList{iFile,2},'last',0,[],movie);
 
         % check condition
-        [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,condition);
+        [goodIdlist,errorMessage,goodTimes] = ...
+            checkIdlist(idlist,condition.check,condition.askOptions);
 
         % check condition
         if goodIdlist

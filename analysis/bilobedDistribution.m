@@ -63,7 +63,9 @@ plotIndividual = false;
 
 % condition: min. 3 tags, no '?'
 idlistList = loadIdlistList(cdBiodata(4),...
-    'length(idlist(1).stats.labelcolor) > 2 && isempty(strmatch(''?'',idlist(1).stats.labelcolor)) ');
+    struct('check','ask','askOptions',struct('checkCell',{{4,3:4;9,''}})));
+% idlistList = loadIdlistList(cdBiodata(4),...
+%     'length(idlist(1).stats.labelcolor) > 2 && isempty(strmatch(''?'',idlist(1).stats.labelcolor)) ');
 
 %========================
 % CALCULATE PROJECTION
