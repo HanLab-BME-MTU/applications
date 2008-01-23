@@ -77,7 +77,7 @@ idlistList = loadIdlistList(cdBiodata(4),...
 % bilobeProjection.m
 nIdlists = length(idlistList);
 bilobeDataIdlist(1:nIdlists) = struct('spindleLength',[],...
-    'cenPositions',[],'time',[],'name',[]);
+    'cenPosition',[],'time',[],'name',[]);
 
 for iIdlist = 1:nIdlists
 

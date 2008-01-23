@@ -90,7 +90,7 @@ for iFile = 1:nFiles
         % check condition
         if goodIdlist
             % remove bad frames
-            idlist(~goodTimes).linklist = [];
+            [idlist(~goodTimes).linklist] = deal([]);
             % store idlist
             idlistList(idlistCt).idlist = idlist;
             % store projectName
