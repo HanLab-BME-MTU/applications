@@ -42,7 +42,7 @@ if nargin<3 || isempty(timeStepSize)
 end
 
 if nargin<4 || isempty(startFrm)
-    startFrm=1; default
+    startFrm=1; % default
     disp(['polyDepolyTimeAvg: startFrm = ' num2str(startFrm)])
 end
 

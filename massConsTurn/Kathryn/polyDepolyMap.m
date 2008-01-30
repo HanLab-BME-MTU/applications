@@ -41,6 +41,9 @@ tic
 
 global DEBUG__
 
+% these will keep track of min and max values over the whole movie
+movieMin=0; movieMax=0;
+
 % check input of image directory; query user if []
 if nargin<1 | isempty(imDir)
     runInfo.imDir=uigetdir(pwd,'Please select image directory');
@@ -64,7 +67,7 @@ else
 end
 
 % check input of nPairs2analyze
-if nargin<3
+if nargin<3 || isempty(nPairs2analyze)
     runInfo.nPairs2analyze=[]; %default - do them all
 end
 
@@ -177,11 +180,11 @@ end
 % ===NORMALIZE USING CELL MASKS TO 0-1=====================
 % or skip this time-consuming step if files exist in normDir
 listNormIm = searchFiles('norm_image',[],normDir);
-if isempty(listNormIm)
+%if isempty(listNormIm)
     normImgSeries(runInfo,runInfo.nImTotExist);
-else
+%else
     disp('POLYDEPOLYMAP: images in /norm/normMats assumed to be normalized')
-end
+%end
 
 % get orMask, the mask of all area covered by cell during any frame
 orMask=zeros(runInfo.imL,runInfo.imW);
@@ -560,11 +563,19 @@ for p=1:nPairs
     end
     % spatially average over the four maps
     polyDepoly=nanmean(polyDepolyMap4Grids,3);
+    
+    % keep track of min/max for the movie
+    movieMin=min([movieMin,nanmin(polyDepoly)]);
+    movieMax=max([movieMax,nanmax(polyDepoly)]);
+    
+    % save the movie as a .mat file
     indxStr=sprintf(strg,p);
     save([turnSpAvgDir filesep 'mapMats' filesep 'polyDepoly' indxStr '.mat'],'polyDepoly');
 end
 
 runInfo.runTime=toc;
+runInfo.movieMin=movieMin;
+runInfo.movieMax=movieMax;
 
 save([runInfo.turnDir filesep 'runInfo'],'runInfo');
 save([runInfo.turnDir filesep 'edgePix'],'edgePix');
