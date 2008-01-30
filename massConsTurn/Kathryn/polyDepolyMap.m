@@ -1,7 +1,7 @@
-function [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze)
+function [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze,doNorm,winSize)
 %POLYDEPOLYMAP creates a map of polymer kinetics using mass conservation
 %
-% SYNOPSIS: [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze,n2avg,gamma)
+% SYNOPSIS: [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze,doNorm,winSize)
 %
 % INPUT: imDir: image directory (if [], will query user).
 %        anDir: analysis (project) directory (if [], will query user).
@@ -11,6 +11,9 @@ function [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze)
 %               temporal averaging will be done).
 %        gamma: gamma correction (default is 1, or no correction). gamma<1
 %               boosts low values; 0>gamma>1 suppresses low values.
+%        doNorm: 1 if you want to do (or re-do) image normalization;
+%                otherwise this time-consuming step can be skipped
+%        winSize: length of measurement window (default is 17 pixels)
 %
 % OUTPUT: runInfo: structure containing directory information and various
 %                  calculated parameters.
@@ -41,11 +44,14 @@ tic
 
 global DEBUG__
 
+
+
+
 % these will keep track of min and max values over the whole movie
 movieMin=0; movieMax=0;
 
 % check input of image directory; query user if []
-if nargin<1 | isempty(imDir)
+if nargin<1 || isempty(imDir)
     runInfo.imDir=uigetdir(pwd,'Please select image directory');
     imDir=runInfo.imDir;
 else
@@ -56,7 +62,7 @@ else
 end
 
 % check input of analysis directory; query user if []
-if nargin<2 | isempty(anDir)
+if nargin<2 || isempty(anDir)
     runInfo.anDir=uigetdir(runInfo.imDir ,'Please select project analysis directory');
     anDir=runInfo.anDir;
 else
@@ -69,6 +75,18 @@ end
 % check input of nPairs2analyze
 if nargin<3 || isempty(nPairs2analyze)
     runInfo.nPairs2analyze=[]; %default - do them all
+end
+
+% check input of doNorm
+if nargin<4 || isempty(doNorm) || doNorm~=1
+    doNorm=0;
+end
+
+% check input of winSize
+if nargin<5 || isempty(winSize)
+    runInfo.winSize=17; % default - empirical estimate
+else
+    runInfo.winSize=winSize;
 end
 
 % check whether cell masks exist.  they are necessary for calculating mean
@@ -180,11 +198,11 @@ end
 % ===NORMALIZE USING CELL MASKS TO 0-1=====================
 % or skip this time-consuming step if files exist in normDir
 listNormIm = searchFiles('norm_image',[],normDir);
-%if isempty(listNormIm)
+if isempty(listNormIm) || doNorm==1
     normImgSeries(runInfo,runInfo.nImTotExist);
-%else
+else
     disp('POLYDEPOLYMAP: images in /norm/normMats assumed to be normalized')
-%end
+end
 
 % get orMask, the mask of all area covered by cell during any frame
 orMask=zeros(runInfo.imL,runInfo.imW);
@@ -245,7 +263,7 @@ end
 % ===CALL FUNCTION TO FIND OPTIMAL WINDOW SIZE HERE========
 % function hasn't been finished yet; call will go here.  should somehow use
 % mean(velocityList) and bgStd.  for now, use empirical estimate.
-runInfo.winSize=17;
+% =========================================================
 
 % area of windows in first frame
 A1=runInfo.winSize^2;
