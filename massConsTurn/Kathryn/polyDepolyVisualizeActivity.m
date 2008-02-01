@@ -13,15 +13,25 @@ function polyDepolyVisualizeActivity(cmDir,mapDir,edgePix,gamma,cMapLength,batch
 %                        (default = 1: no change)
 %    cMapLength        : color map length for red/green (default is 64).
 %                        must be even
-%    batchGlobalMinMax : [gmin gmax]. this optional parameter is useful if
+%    batchGlobalMinMax : [gmin gmax] this optional parameter is useful if
 %                        you want to normalize a bunch of movies with the 
-%                        same min/max values
+%                        same min/max values. if empty or 0, the function
+%                        uses the values specific to this movie.
 %                     
 % OUTPUT: 
 %    a new directory is created at the level of \turn\...\mapTifs where
 %    output tifs are stored.  several parameters are saved in the .mat file
 %    visualizationParams
-%    
+%
+% Note on batchGlobalMinMax: if running a batch job and you use the batch
+% values, and if one movie has a very broad range compared to the others,
+% all the other movies will tend to gray.  this is because that movie will
+% have optimized red/green color and the others will be closer to zero.
+%
+% It will therefore be best when running as a batch to set a good range
+% from an empirical estimate of the activity histograms made during time
+% averaging, even if this cuts off the broad range values to the
+% boundaries.
 %
 % MATLAB VERSION (originally written on): 7.2.0.232 (R2006a) Windows XP
 %
@@ -55,21 +65,13 @@ elseif ~isEven(cMapLength)
     error('polyDepolyVisualizeActivity: cMapLength should be even')
 end
 
-if nargin<6 || isempty(batchGlobalMinMax)
-    batchGlobalMinMax=0; % default - will use actual max/min from this movie
-elseif ~isnumeric(batchGlobalMinMax) || length(batchGlobalMinMax)~=2
-    error('polyDepolyVisualizeActivity: batchGlobalMinMax (opt) should have the form [globalMin globalMax]')
-elseif batchGlobalMinMax(1)>=batchGlobalMinMax(2)
-    error('polyDepolyVisualizeActivity: check batchGlobalMinMax (opt) - max should be greater than min')
+if nargin<6 || isempty(batchGlobalMinMax) || sum(abs(batchGlobalMinMax))==0 % default - will use actual max/min from this movie
+	batchGlobalMinMax=0;
+    disp('polyDepolyVisualizeActivity: will use values from this movie for batchGlobalMinMax');
+elseif length(batchGlobalMinMax)~=2
+    error('polyDepolyVisualizeActivity: batchGlobalMinMax should be [] or [userMin userMax]')
 end
 
-% make output directory
-outDir=[mapDir filesep 'mapTifs_gamma_' num2str(gamma)];
-if ~isdir(outDir)
-    mkdir(outDir);
-else
-    delete([outDir filesep '*tif'])
-end
 
 % get list of activity maps and count them
 [listOfMaps] = searchFiles('polyDepoly','tif',mapDir,1);
@@ -81,7 +83,7 @@ strg=sprintf('%%.%dd',s);
 % get list of corresponding cell masks
 [listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
 
-% get min/max over whole series if not using global values from batch
+% get min/max over whole image series if not using global values from batch
 if batchGlobalMinMax==0
     minValue=0;
     maxValue=0;
@@ -113,8 +115,30 @@ if gamma~=1
     maxValue=sign2.*(abs(maxValue).^gamma);
 end
 
-% get absolute max for normalization to color map range
-m=max(abs([minValue maxValue]));
+% m is the upper bound for normalization to color map range
+% here we take the minimum abs value and will make values < -m equal to -m
+% and values > m equal to m
+
+% this means if running a batch job and one movie has a very broad range
+% compared to the others, all the other movies will tend to gray, b/c that
+% movie will have optimized red/green color and the others will be closer
+% to zero.
+
+% it will therefore be best when running as a batch to set a good range
+% from an empirical estimate of the activity histograms made during time
+% averaging, even if this cuts off the broad range values to the
+% boundaries.
+
+m=min(abs([minValue maxValue]));
+
+% make output directory
+outDir=[mapDir filesep 'mapTifs_' num2str(m) '_' num2str(gamma)];
+if ~isdir(outDir)
+    mkdir(outDir);
+else
+    delete([outDir filesep '*tif'])
+end
+
 
 % create the color map with black at the end
 % this function makes a perceptual color map
@@ -143,9 +167,11 @@ for i=1:nFrames
     im=sign.*(abs(im).^gamma);
 
     % rescale the image
-    im=im-minValue;             % range is 0-max
+    im(im<-m)=-m;
+    im(im>m)=m;
+    im=im+m;                    % range is 0-2m
     im=im./(2*m);               % range is 0-1
-    im=im.*(cMapLength-1);      % range is 0-64 (if cMapLength is 64)
+    im=im.*(cMapLength-1);      % range is 0-63 (if cMapLength is 64)
     im=round(im);               % round to integers
     im=im+1;                    % range is 1-64 (-32 to 32)
     im(isnan(im))=cMapLength+1;
@@ -176,7 +202,7 @@ for i=1:nFrames
 
     % write the image
     imwrite(RGmap,[outDir filesep 'polyDepoly' indxStr '.tif']);
-    disp(['Saving red-green tiffs: frame ' num2str(i)])
+    % disp(['Saving red-green tiffs: frame ' num2str(i)])
 
 end
-save([mapDir filesep 'mapTifs' filesep 'visualizationParams'],'minValue','maxValue','m','gamma','cMapLength','batchGlobalMinMax');
+save([outDir filesep 'visualizationParams'],'minValue','maxValue','m','gamma','cMapLength','batchGlobalMinMax');

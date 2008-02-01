@@ -1,65 +1,137 @@
 function polyDepolyMapBatch
-% makes poly/depoly maps, does time averaging, and makes r/g colormaps of
-% both raw and time-averaged maps
+% POLYDEPOLYMAPBATCH: makes poly/depoly maps, time-averaged maps, and r/g colormaps of both
 
-%%%%%%%%%%%%%%%%%%%%%
-% user can change these
-doNorm=1; % 1 if you want to do image normalization for sure; if 0 it only does it if it hasn't been run before
-gamma=1; % should be <1 if you want to boost low values
-cMapLength=128; % colormap length; 128 should be fine. must be even.
-nFrms2Avg=5; % for time averaging, the number of frames to average
-timeStepSize=1; % frame interval for time averaging
-useGlobalMaxMin=0; % 1 if you want to compare r/g maps between movies; 0 if you want each movie to have max/min red/green
-doPolyDepolyCalc=1; % 1 if you need to run polyDepolyMap first; 0 if you just want to play with r/g maps
-winSize=15;
-%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% USER-SET PARAMETERS - START
+%
+% firstWin/lastWin : Range of values to test for measurement window size
+%                    (in pixels) in polyDepolyMap. Must be an odd number.
+%                    The optimal value currently has to be determined
+%                    empirically, but good starting values are 15/21.
+%                    Please note: the window size is used to name the
+%                    turnover directory, so in the case that you are NOT
+%                    running poly/depoly, make these parameters correspond
+%                    to those found in the directory names.
+% doPolyDepolyCalc : 1 to run polyDepolyMap.m; 0 to skip.
+% doNorm           : 1 to run image normalization within polyDepolyMap.m; 0
+%                    to skip. Usually after you have run it at one window
+%                    size, you won't need to repeat it. This parameter is
+%                    irrelevant if doPolyDepolyCalc = 0.
+%
+% doTimeAvging     : 1 to run time averaging; 0 to skip.
+% nFrms2Avg        : The number of frames to average. This parameter is
+%                    irrelevant if doTimeAvging = 0.
+% timeStepSize     : Frame interval for time averaging. This parameter is
+%                    irrelevant if doTimeAvging = 0.
+%
+%
+% makeRedGreenMaps : 1 to make red/green color maps of the data; 0 to skip.
+%                    Data from raw and time-averaged .mat files are
+%                    converted to color tif images.
+% gamma            : Since most pixels will have a small value compared to
+%                    a few with strong poly/depoly, you can boost the
+%                    appearance of the signal by gamma correction.
+%                    0<gamma<1 to boost low values.
+% cMapLength       : Length of the color map.  Must be even. 128 should be
+%                    fine in most cases.
+% useGlobalMinMax  : 0 to normalize each movie's colormaps with its own values
+%                    1 to normalize using values based on ALL the movies in the batch
+%                    [userMin userMax] to use empirically derived values.
 
-topDir=uigetdir(pwd,'Please select top directory containing all the project directories');
-dirNames = dir(topDir);
+firstWin=17;  lastWin=17;
+doPolyDepolyCalc=1;
+doNorm=1;
 
-% here we remove entries for . and .. and the txt file at the end of the
-% control cell list
-dirNames(1:2)=[];
-dirNames(end)=[];
+doTimeAvging=1;
+nFrms2Avg=5;
+timeStepSize=1;
 
-nProj=length(dirNames);
+makeRedGreenMaps=1;
+gamma=1;
+cMapLength=128;
+useGlobalMinMax=0; 
 
-% these will keep track of min and max values over the whole batch
-batchMin=0; batchMax=0;
-if doPolyDepolyCalc==1
+% USER-SET PARAMETERS - END
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+for winSize=firstWin:2:lastWin;
+
+    topDir=uigetdir(pwd,'Please select top directory containing all the project directories');
+    dirNames = dir(topDir);
+    dirNames(1:2)=[]; % get rid of . and .. directories in list
+
+    % get rid out of the list any element in dirNames that isn't a real
+    % directory (e.g. .txt file, .mat file)
+    countNonDirectories=zeros(length(dirNames)-2,1);
+    for i=1:length(dirNames)
+        countNonDirectories(i)=isdir([topDir filesep dirNames(i).name]);
+    end
+    dirNames(countNonDirectories==0)=[];
+    nProj=length(dirNames);
+
+
+    % run poly/depoly and time averaging if respective flags are 1
+    batchMin=0; batchMax=0; % min and max values over the whole batch
     for i=1:nProj
-        imDir=[topDir filesep dirNames(i).name filesep 'images'];
-        anDir=[topDir filesep dirNames(i).name filesep 'analysis'];
+        try
+            imDir=[topDir filesep dirNames(i).name filesep 'images'];
+            anDir=[topDir filesep dirNames(i).name filesep 'analysis'];
 
-        % run poly/depoly
-        [runInfo]=polyDepolyMap(imDir,anDir,[],doNorm,winSize)
+            % run poly/depoly
+            if doPolyDepolyCalc==1
+                [runInfo]=polyDepolyMap(imDir,anDir,[],doNorm,winSize)
+            else % or just get max/min info from previous run
+                runInfo=load([anDir filesep 'turn_winSize_' num2str(winSize) filesep 'runInfo.mat']);
+                runInfo=runInfo.runInfo;
+            end
 
-        % do time averaging
-        polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize)
+            % keep track of global min/max from all the movies
+            batchMin=min(batchMin,runInfo.movieMin);
+            batchMax=max(batchMax,runInfo.movieMax);
 
-        % keep track of global min/max from all the movies
-        batchMin=min(batchMin,runInfo.movieMin);
-        batchMax=max(batchMax,runInfo.movieMax);
+            % do time averaging
+            if doTimeAvging==1
+                polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize);
+            end
+        catch
+            disp(['movie ' num2str(i) ' had an error during poly/depoly or time averaging:'])
+            lasterr
+        end
+
     end
-end
 
-for i=1:nProj % get r/g maps all normalized to same values %%% analysis\turn\turnSpAvgDir
-    cmDir=[topDir filesep dirNames(i).name filesep 'analysis' filesep 'edge' filesep 'cell_mask'];
-    mapDirSp=[topDir filesep dirNames(i).name filesep 'analysis' filesep 'turn' filesep 'turnSpAvgDir'];
-    mapDirTm=[topDir filesep dirNames(i).name filesep 'analysis' filesep 'turn' filesep 'turnTmAvgDir'];
 
-    % get edge pixels to make border in red/green maps
-    turnDir=[topDir filesep dirNames(i).name filesep 'analysis' filesep 'turn'];
-    edgePix=load([turnDir filesep 'edgePix'])
-    edgePix=edgePix.edgePix;
+    % now make red/green maps if flag is 1
+    if makeRedGreenMaps==1
+        if isequal(useGlobalMinMax,0)       % movie values
+            minMax=[];
+        elseif isequal(useGlobalMinMax,1)   % batch values
+            minMax=[batchMin batchMax];
+        else                                % user values
+            minMax=useGlobalMinMax;
+        end
 
-    if useGlobalMaxMin==1 % use same values for all movies to make r/g maps (so can compare visually)
-        polyDepolyVisualizeActivity(cmDir,mapDirSp,edgePix,gamma,cMapLength,[batchMin batchMax]); % each individual frame
-        polyDepolyVisualizeActivity(cmDir,mapDirTm,edgePix,gamma,cMapLength,[batchMin batchMax]); % each time-averaged frame (same normalization)
-    else % use values appropriate to each movie to make r/g maps (so each looks good, but you can't compare movies)
-        polyDepolyVisualizeActivity(cmDir,mapDirSp,edgePix,gamma,cMapLength); % each individual frame
-        polyDepolyVisualizeActivity(cmDir,mapDirTm,edgePix,gamma,cMapLength); % each time-averaged frame (same normalization)
+        for i=1:nProj
+            try
+                cmDir=[topDir filesep dirNames(i).name filesep 'analysis' filesep 'edge' filesep 'cell_mask'];
+                turnDir=[topDir filesep dirNames(i).name filesep 'analysis' filesep 'turn_winSize_' num2str(winSize)];
+                mapDirSp=[turnDir filesep 'turnSpAvgDir'];
+                mapDirTm=[turnDir  filesep 'turnTmAvgDir'];
+
+                % get edge pixels to make border in red/green maps
+                edgePix=load([turnDir filesep 'edgePix']);
+                edgePix=edgePix.edgePix;
+
+                % get r/g maps for spatial and temporal directories
+                polyDepolyVisualizeActivity(cmDir,mapDirSp,edgePix,gamma,cMapLength,minMax);
+                polyDepolyVisualizeActivity(cmDir,mapDirTm,edgePix,gamma,cMapLength,minMax);
+            catch
+                disp(['movie ' num2str(i) ' had an error during r/g map generation:'])
+                lasterr
+            end
+        end
     end
+    save([topDir filesep 'batchParams_winSize_' num2str(winSize)]);
 end
-
-save([topDir filesep 'batchMinMax'],'batchMin','batchMax','gamma','cMapLength','dirNames','nFrms2Avg','timeStepSize');

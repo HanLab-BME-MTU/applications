@@ -116,7 +116,7 @@ if ~isdir(normDir)
 end
 
 % create directories for turnover data
-runInfo.turnDir=[runInfo.anDir filesep 'turn'];
+runInfo.turnDir=[runInfo.anDir filesep 'turn_winSize_' num2str(winSize)];
 if ~isdir(runInfo.turnDir)
     mkdir(runInfo.turnDir);
 else
@@ -583,8 +583,8 @@ for p=1:nPairs
     polyDepoly=nanmean(polyDepolyMap4Grids,3);
     
     % keep track of min/max for the movie
-    movieMin=min([movieMin,nanmin(polyDepoly)]);
-    movieMax=max([movieMax,nanmax(polyDepoly)]);
+    movieMin=min(movieMin,nanmin(polyDepoly(:)));
+    movieMax=max(movieMax,nanmax(polyDepoly(:)));
     
     % save the movie as a .mat file
     indxStr=sprintf(strg,p);

@@ -60,6 +60,12 @@ end
 tmMatsDir=[turnTmAvgDir filesep 'mapMats'];
 mkdir(tmMatsDir);
 
+% create subdirectory for histograms showing the kinetic activity from the
+% time-averaged data
+% (first remove old directory if it exists)
+histDir=[turnTmAvgDir filesep 'activityHist'];
+mkdir(histDir);
+
 
 % get total number of images for correct digits while naming
 [listOfImages] = searchFiles('.tif',[],runInfo.imDir);
@@ -103,6 +109,14 @@ for i=1:nIterations
 
     polyDepolySum(i,1)=sum(polyDepolyFrmStack(polyDepolyFrmStack(:)>0)); % sum poly over set of frames
     polyDepolySum(i,2)=sum(polyDepolyFrmStack(polyDepolyFrmStack(:)<0)); % sum depoly over set of frames
+    
+    % create histogram of poly/depoly values from the set of nFrms2Avg
+    temp=polyDepolyFrmStack(:);
+    temp(isnan(temp))=[];
+    hist(temp,100);
+    axis([-0.05 0.05 0 10000]);
+    saveas(gca,[histDir filesep 'actHist' indxStr1 '_' indxStr2 '.tif']);
+    
 end
 
 % take the average integrated (summed) poly/depoly over the set of frames
