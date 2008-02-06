@@ -403,8 +403,11 @@ for iData = 1:nData
         % spotIdx afterwards
         idlist_L.linklist = sortrows(idlist_L.linklist,11);
         spbCoord = idlist_L.linklist(:,[10,9,11]);
+        
+        % check idlist
+        isGood = checkIdlist(idlist_L,'ask',struct('choiceList',8));
 
-        if size(spbCoord,1) ~=2
+        if size(spbCoord,1) ~=2 || ~isGood
             % not two spb tags found
             status(iData) = -1;
         else
@@ -964,5 +967,7 @@ end
 % reset warnings
 warning(warningState)
 
+% clean up persistent
+clear checkIdlist
 
 
