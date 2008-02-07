@@ -408,7 +408,7 @@ for iData = 1:nData
         isGood = checkIdlist(idlist_L,'ask',struct('choiceList',8));
 
         if size(spbCoord,1) ~=2 || ~isGood
-            % not two spb tags found
+            % not two spb tags found or other problem
             status(iData) = -1;
         else
 
