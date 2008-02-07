@@ -263,8 +263,8 @@ for iData = 1:nData
     if status(iData) > -1
 
         if status(iData) == 0
-            % load movie - use low-level r3dread
-            rawMovie = r3dread(nameList(iData).rawMovieName);
+            % load movie - use low-level r3dread. Careful with waveOrder
+            rawMovie = r3dread(nameList(iData).rawMovieName,'','','','',2);
             movieHeader = readr3dheader(nameList(iData).rawMovieName);
             
             % correct a small mistake of Eugenio - the software said that
@@ -446,9 +446,9 @@ for iData = 1:nData
             % load image - deconvolved movie
             switch movieType
                 case 'decon'
-                    rawMovie = r3dread(nameList(iData).deconMovieName);
+                    rawMovie = r3dread(nameList(iData).deconMovieName,'','','','',2);
                 case 'raw'
-                    rawMovie = r3dread(nameList(iData).rawMovieName);
+                    rawMovie = r3dread(nameList(iData).rawMovieName,'','','','',2);
             end
 
             % arbitrary grid: 15 pix perpendicular, 24 bins parallel to spindle

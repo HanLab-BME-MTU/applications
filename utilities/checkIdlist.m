@@ -16,6 +16,7 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 %                  command. An example of a check-string is
 %                  '~any(strcmp(idlist(1).stats.labelcolor,''cen1*''))'
 %                INTEGER Integers point to a specific test:
+%                    0: Always true
 %                    1: (default) check whether any kind of idlist2
 %                    2: check whether there is an inconsistency in the
 %                       idlist
@@ -37,6 +38,9 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 %                    8: Only keep frames where the spindle pole body
 %                       separation is between R1 and R2 um. Def.: [1.4 1.7]
 %                       (needs 2 cols in cell array)
+%                       If there are only two spots in the movie,  the
+%                       distance between the two will be considered as
+%                       inter-spb distance, irrespective of labels.
 %                    9: No '?' in labels.
 %                CELL A cell array is used to specify multiple checks
 %                  and/or use values other than the defaults. The
@@ -158,7 +162,9 @@ if ischar(check) && strcmp(check,'ask')
             checkCell(:,1:min(scc(2),3)) = checkCellTmp(:,1:min(scc(2),3));
         end
     else
-        checkCell = {};
+        % have at least check 0, so that an acceptAll will make the ask
+        % window disappear
+        checkCell = {0,'',''};
     end
     if isfield(askOptions,'choiceList')
         choiceList = askOptions.choiceList;
@@ -240,6 +246,10 @@ iCheck = 0;
 while goodIdlist && iCheck < nChecks
     iCheck = iCheck +1;
     switch check{iCheck}
+        
+        case 0
+            % true
+            goodIdlist = goodIdlist && true;
 
         case 1 % check for idlist2
 
@@ -492,7 +502,12 @@ while goodIdlist && iCheck < nChecks
 
             % find the tagIndices
             spbIdx = strmatch('spb',idlist(1).stats.labelcolor);
-
+            
+            % if there are only two spots, spbIdx is all of them
+            if length(idlist(1).stats.labelcolor) == 2
+                spbIdx = [1;2];
+            end
+            
             % find the target value
             if isempty(checkCell) || size(checkCell,2) < 3 || isempty(checkCell{iCheck,2})
                 spbSeparation = def_spbSeparation;
