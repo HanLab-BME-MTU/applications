@@ -41,6 +41,12 @@ end
 if ~isstruct(condition)
     condition = struct('check',condition,'askOptions','');
 end
+if ~isfield(condition,'check')
+    error('need field check if condition is given')
+end
+if ~isfield(condition,'askOptions')
+    condition.askOptions = '';
+end
 if nargin < 3 || isempty(selectAll)
     selectAll = false;
 end

@@ -136,7 +136,12 @@ end
 
 % nargin can't be smaller than 2 with persistent check, because it has to
 % be 'ask' initially to allow creating a non-persistent variable
-if nargin < 2 || isempty(check)
+if nargin < 2 
+    % default check is 1
+    check = 1;
+end
+
+if isempty(check)
     if iscell(check)
         % empty check. Always true.
         return
@@ -302,8 +307,12 @@ while goodIdlist && iCheck < nChecks
             % remove first all single-occurence tags, so that we're only
             % left with good ones. LG_deleteTag needs goodTimes. Don't call
             % it that way, though.
+            if checkIdlist(idlist,1)
             gt = catStruct(1,'idlist.linklist(1)');
             idlistTmp = LG_deleteSingleOccurences(idlist,gt);
+            else
+                idlistTmp = idlist;
+            end
 
             % now read out number of tags
             nTags = length(idlistTmp(1).stats.labelcolor);
@@ -328,8 +337,13 @@ while goodIdlist && iCheck < nChecks
             % remove first all single-occurence tags, so that we're only
             % left with good ones. LG_deleteTag needs goodTimes. Don't call
             % it that way, though.
+           if checkIdlist(idlist,1)
             gt = catStruct(1,'idlist.linklist(1)');
             idlistTmp = LG_deleteSingleOccurences(idlist,gt);
+            else
+                idlistTmp = idlist;
+           end
+
 
             % find target number of tags
             if isempty(checkCell) || size(checkCell,2) < 2 || isempty(checkCell{iCheck,2})
@@ -406,13 +420,15 @@ while goodIdlist && iCheck < nChecks
             if isempty(checkCell) || size(checkCell,2) < 3 || isempty(checkCell{iCheck,2})
                 goodTags = def_goodTags;
             else
-                goodTags = checkCell{iCheck,2:3};
+                goodTags = checkCell(iCheck,2:3);
             end
 
             % find tags
             tag1Idx = strmatch(goodTags{1},idlist(1).stats.labelcolor);
-            tag2Idx = strmatch(goodTags{1},idlist(1).stats.labelcolor);
+            tag2Idx = strmatch(goodTags{2},idlist(1).stats.labelcolor);
             tagIdx = [tag1Idx,tag2Idx];
+            
+            nTags = length(idlist(1).stats.labelcolor);
             
             % set all goodTimes to false
             gtTmp = false(size(goodTimes));
@@ -421,7 +437,7 @@ while goodIdlist && iCheck < nChecks
             newId = checkIdlist(idlist);
             
             % loop through frames, check
-            fused = [-1,-1];
+            fused = [0,0];
             for t=1:length(idlist)
                 if ~isempty(idlist(t).linklist)
                     
@@ -446,7 +462,9 @@ while goodIdlist && iCheck < nChecks
                         % check for fusion to other tags
                         
                         % tag1
-                        if any(ismember(tagCoords(1,:),idlist(t).linklist(:,9:11)))
+                        not1 = true(nTags,1);
+                        not1(tag1Idx) = false;
+                        if any(ismember(tagCoords(1,:),idlist(t).linklist(not1,9:11),'rows'))
                             if fused(1) == 0
                                 % not fused before. Discard
                                 gtTmp(t) = false;
@@ -469,7 +487,9 @@ while goodIdlist && iCheck < nChecks
                         end
                         
                         % tag2
-                        if any(ismember(tagCoords(2,:),idlist(t).linklist(:,9:11)))
+                        not2 = true(nTags,1);
+                        not2(tag2Idx) = false;
+                        if any(ismember(tagCoords(2,:),idlist(t).linklist(not2,9:11),'rows'))
                             if fused(2) == 0
                                 % not fused before. Discard
                                 gtTmp(t) = false;
