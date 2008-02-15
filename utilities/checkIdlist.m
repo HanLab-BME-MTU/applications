@@ -383,17 +383,19 @@ while goodIdlist && iCheck < nChecks
 
             % loop through idlist and check
             gtTmp = false(size(goodTimes));
-            for t = squeeze(linklists(1,1,:))'
-                if goodTimes(t)
-                    % read amps, discard estimated tags, secondary fusions
-                    spbAmp = idlist(t).linklist(spbIdx,8);
-                    spbAmp(ismember(idlist(t).linklist(spbIdx,3),[1 4])) = [];
-                    cenAmp = idlist(t).linklist(cenIdx,8);
-                    cenAmp(ismember(idlist(t).linklist(cenIdx,3),[1 4])) = [];
+            for t = 1:length(idlist)
+                if ~isempty(idlist(t).linklist)
+                    if goodTimes(t)
+                        % read amps, discard estimated tags, secondary fusions
+                        spbAmp = idlist(t).linklist(spbIdx,8);
+                        spbAmp(ismember(idlist(t).linklist(spbIdx,3),[1 4])) = [];
+                        cenAmp = idlist(t).linklist(cenIdx,8);
+                        cenAmp(ismember(idlist(t).linklist(cenIdx,3),[1 4])) = [];
 
-                    % check target
-                    if mean(cenAmp)/mean(spbAmp) > ampThreshold(1) && mean(cenAmp)/mean(spbAmp) < ampThreshold(1)
-                        gtTmp(t) = true;
+                        % check target
+                        if mean(cenAmp)/mean(spbAmp) > ampThreshold(1) && mean(cenAmp)/mean(spbAmp) < ampThreshold(1)
+                            gtTmp(t) = true;
+                        end
                     end
                 end
 
@@ -438,82 +440,84 @@ while goodIdlist && iCheck < nChecks
 
             % loop through frames, check
             fused = [0,0];
-            for t = squeeze(linklists(1,1,:))'
+            for t = 1:length(idlist)
+
                 if goodTimes(t)
+                    if ~isempty(idlist(t).linklist)
 
 
-                    % check for both tags existing
-                    if newId
-                        if ~any(ismember(idlist(t).linklist(tagIdx,3),[1,4]))
-                            gtTmp(t) = true;
+                        % check for both tags existing
+                        if newId
+                            if ~any(ismember(idlist(t).linklist(tagIdx,3),[1,4]))
+                                gtTmp(t) = true;
+                            end
+                        else
+                            if ~any(idlist(t).linklist(tagIdx,2)==0)
+                                gtTmp(t) = true;
+                            end
                         end
-                    else
-                        if ~any(idlist(t).linklist(tagIdx,2)==0)
-                            gtTmp(t) = true;
-                        end
+
+                        % check for fusion
+                        tagCoords = idlist(t).linklist(tagIdx,9:11);
+
+                        if all(tagCoords(1,:) == tagCoords(2,:))
+                            % both fused. Discard
+                            gtTmp(t) = false;
+                        else
+                            % check for fusion to other tags
+
+                            % tag1
+                            not1 = true(nTags,1);
+                            not1(tag1Idx) = false;
+                            if any(ismember(tagCoords(1,:),idlist(t).linklist(not1,9:11),'rows'))
+                                if fused(1) == 0
+                                    % not fused before. Discard
+                                    gtTmp(t) = false;
+                                    % remember time
+                                    fused(1) = t;
+                                else
+                                    % remember time
+                                    fused(1) = t;
+                                end
+                            else
+                                % check for prior fusion
+                                if fused(1) == 0
+                                    % all is well
+                                else
+                                    % remove last fusion
+                                    gtTmp(fused(1)) = false;
+                                    % remember not fused
+                                    fused(1) = 0;
+                                end
+                            end
+
+                            % tag2
+                            not2 = true(nTags,1);
+                            not2(tag2Idx) = false;
+                            if any(ismember(tagCoords(2,:),idlist(t).linklist(not2,9:11),'rows'))
+                                if fused(2) == 0
+                                    % not fused before. Discard
+                                    gtTmp(t) = false;
+                                    % remember time
+                                    fused(2) = t;
+                                else
+                                    % remember time
+                                    fused(2) = t;
+                                end
+                            else
+                                % check for prior fusion
+                                if fused(2) == 0
+                                    % all is well
+                                else
+                                    % remove last fusion
+                                    gtTmp(fused(2)) = false;
+                                    % remember not fused
+                                    fused(2) = 0;
+                                end
+                            end
+                        end % if fused tags
+
                     end
-
-                    % check for fusion
-                    tagCoords = idlist(t).linklist(tagIdx,9:11);
-
-                    if all(tagCoords(1,:) == tagCoords(2,:))
-                        % both fused. Discard
-                        gtTmp(t) = false;
-                    else
-                        % check for fusion to other tags
-
-                        % tag1
-                        not1 = true(nTags,1);
-                        not1(tag1Idx) = false;
-                        if any(ismember(tagCoords(1,:),idlist(t).linklist(not1,9:11),'rows'))
-                            if fused(1) == 0
-                                % not fused before. Discard
-                                gtTmp(t) = false;
-                                % remember time
-                                fused(1) = t;
-                            else
-                                % remember time
-                                fused(1) = t;
-                            end
-                        else
-                            % check for prior fusion
-                            if fused(1) == 0
-                                % all is well
-                            else
-                                % remove last fusion
-                                gtTmp(fused(1)) = false;
-                                % remember not fused
-                                fused(1) = 0;
-                            end
-                        end
-
-                        % tag2
-                        not2 = true(nTags,1);
-                        not2(tag2Idx) = false;
-                        if any(ismember(tagCoords(2,:),idlist(t).linklist(not2,9:11),'rows'))
-                            if fused(2) == 0
-                                % not fused before. Discard
-                                gtTmp(t) = false;
-                                % remember time
-                                fused(2) = t;
-                            else
-                                % remember time
-                                fused(2) = t;
-                            end
-                        else
-                            % check for prior fusion
-                            if fused(2) == 0
-                                % all is well
-                            else
-                                % remove last fusion
-                                gtTmp(fused(2)) = false;
-                                % remember not fused
-                                fused(2) = 0;
-                            end
-                        end
-                    end % if fused tags
-
-
                 end % if goodTimes
             end % loop time
 
@@ -540,16 +544,18 @@ while goodIdlist && iCheck < nChecks
 
             % loop through idlist and check
             gtTmp = false(size(goodTimes));
-            for t = squeeze(linklists(1,1,:))'
+            for t = 1:length(idlist)
                 if goodTimes(t)
-                    % read spb-coord
-                    spbCoord = idlist(t).linklist(spbIdx,9:11);
-                    % calc distance
-                    spbDeltaCoord = norm(diff(spbCoord));
+                    if ~isempty(idlist(t).linklist)
+                        % read spb-coord
+                        spbCoord = idlist(t).linklist(spbIdx,9:11);
+                        % calc distance
+                        spbDeltaCoord = norm(diff(spbCoord));
 
-                    % check target
-                    if spbDeltaCoord > spbSeparation(1) && spbDeltaCoord < spbSeparation(2)
-                        gtTmp(t) = true;
+                        % check target
+                        if spbDeltaCoord > spbSeparation(1) && spbDeltaCoord < spbSeparation(2)
+                            gtTmp(t) = true;
+                        end
                     end
                 end % if goodTimes
 
