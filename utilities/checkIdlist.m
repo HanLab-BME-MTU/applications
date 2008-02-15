@@ -45,7 +45,7 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 %                   10: Only keeps frames wehre the ratio of the projection
 %                       of spb1-cen1 onto spb1-spb2 to spb1-spb2 is betwen
 %                       R1 and R2. Note: This automatically discards
-%                       idlists with less than 3 tags found. Def.: [0 0.25]  
+%                       idlists with less than 3 tags found. Def.: [0 0.25]
 %                CELL A cell array is used to specify multiple checks
 %                  and/or use values other than the defaults. The
 %                  dimensions of the cell array are nChecks-by-m, where m
@@ -121,6 +121,9 @@ choiceDefaults{8,2} = def_spbSeparation(2);
 choiceDefaults{10,1} = def_distanceRatio(1);
 choiceDefaults{10,2} = def_distanceRatio(2);
 
+% define persistent_check here, because it cannot be inside an if-statement
+ persistent persistent_check
+
 %==================
 %% TEST INPUT
 %==================
@@ -138,11 +141,7 @@ goodTimes = true(length(idlist),1);
 goodIdlist = true;
 errorMessage = '';
 
-% check for persistent variables
-persistent persistent_check
-if ~isempty(persistent_check)
-    check = persistent_check;
-end
+
 
 % nargin can't be smaller than 2 with persistent check, because it has to
 % be 'ask' initially to allow creating a non-persistent variable
@@ -164,68 +163,75 @@ end
 %% ask for input
 if ischar(check) && strcmp(check,'ask')
 
-    % check for askOptions
-    if nargin < 3
-        askOptions = [];
-    end
-    if isfield(askOptions,'checkCell')
-        checkCell = askOptions.checkCell;
-        scc = size(checkCell);
-        if scc(2) ~= 3
-            checkCellTmp = checkCell;
-            checkCell = cell(scc(1),3);
-            checkCell(:,1:min(scc(2),3)) = checkCellTmp(:,1:min(scc(2),3));
+    % check for persistent variables
+   
+    if ~isempty(persistent_check)
+        check = persistent_check;
+    else
+
+        % check for askOptions
+        if nargin < 3
+            askOptions = [];
         end
-    else
-        % have at least check 0, so that an acceptAll will make the ask
-        % window disappear
-        checkCell = {0,'',''};
-    end
-    if isfield(askOptions,'choiceList')
-        choiceList = askOptions.choiceList;
-    else
-        choiceList = def_choiceList;
-    end
-    % make sure checks in checkCell don't show up in choiceList
-    if ~isempty(checkCell)
-        c = [checkCell{:,1}];
-        badChoice = ismember(choiceList,c);
+        if isfield(askOptions,'checkCell')
+            checkCell = askOptions.checkCell;
+            scc = size(checkCell);
+            if scc(2) ~= 3
+                checkCellTmp = checkCell;
+                checkCell = cell(scc(1),3);
+                checkCell(:,1:min(scc(2),3)) = checkCellTmp(:,1:min(scc(2),3));
+            end
+        else
+            % have at least check 0, so that an acceptAll will make the ask
+            % window disappear
+            checkCell = {0,'',''};
+        end
+        if isfield(askOptions,'choiceList')
+            choiceList = askOptions.choiceList;
+        else
+            choiceList = def_choiceList;
+        end
+        % make sure checks in checkCell don't show up in choiceList
+        if ~isempty(checkCell)
+            c = [checkCell{:,1}];
+            badChoice = ismember(choiceList,c);
+            if isfield(askOptions,'choiceDefaults')
+                askOptions.choiceDefaults(badChoice,:) = [];
+            end
+            choiceList(badChoice) = [];
+        end
         if isfield(askOptions,'choiceDefaults')
-            askOptions.choiceDefaults(badChoice,:) = [];
+            choiceDefaults = askOptions.choiceDefaults;
+        else
+
+
+            choiceDefaults = choiceDefaults(choiceList,:);
         end
-        choiceList(badChoice) = [];
-    end
-    if isfield(askOptions,'choiceDefaults')
-        choiceDefaults = askOptions.choiceDefaults;
-    else
-
-
-        choiceDefaults = choiceDefaults(choiceList,:);
-    end
 
 
 
-    % prepare input for checkIdlistGui
-    choiceCell = getChoiceCell;
+        % prepare input for checkIdlistGui
+        choiceCell = getChoiceCell;
 
-    % add defaults
-    choiceCell(choiceList(:)+1,[4 6]) = choiceDefaults;
-    % retain good choices. Don't forget to keep empty choice
-    choiceCell = choiceCell([1;choiceList(:)+1],:);
+        % add defaults
+        choiceCell(choiceList(:)+1,[4 6]) = choiceDefaults;
+        % retain good choices. Don't forget to keep empty choice
+        choiceCell = choiceCell([1;choiceList(:)+1],:);
 
-    % submit
-    [check, applyToAll] = checkIdlistGui(choiceCell, idlist(1).stats.name);
+        % submit
+        [check, applyToAll] = checkIdlistGui(choiceCell, idlist(1).stats.name);
 
-    if ~iscell(check) && check == -1
-        error('checkIdlist aborted')
-    end
+        if ~iscell(check) && check == -1
+            error('checkIdlist aborted')
+        end
 
-    % add checkCell
-    check = [check;checkCell];
+        % add checkCell
+        check = [check;checkCell];
 
-    % make persistent if requested
-    if applyToAll
-        persistent_check = check;
+        % make persistent if requested
+        if applyToAll
+            persistent_check = check;
+        end
     end
 
 end
@@ -591,77 +597,77 @@ while goodIdlist && iCheck < nChecks
             if ~goodIdlist
                 errorMessage = 'Idlist contains ''?''';
             end
-            
+
         case 10 % ratio of projection of s1c1 onto s1s2
-            
+
             % check for correct number of spots
             goodIdlist = checkIdlist(idlist,4);
-            
+
             if goodIdlist
-                
+
                 % check for target value
                 if isempty(checkCell) || size(checkCell,2) < 3 || isempty(checkCell{iCheck,2})
                     distanceRatio = def_distanceRatio;
                 else
                     distanceRatio = [checkCell{iCheck,2:3}];
                 end
-            
+
                 % find tags
-            [tagExists,tagOrder] = ismember({'spb1','cen1','cen2','spb2'}, idlist(1).stats.labelcolor);
+                [tagExists,tagOrder] = ismember({'spb1','cen1','cen2','spb2'}, idlist(1).stats.labelcolor);
 
 
-               % calculate tagOrder for distance calculation
-               idTagOrder = tagOrder(tagOrder>0);
-               idTagOrder = idTagOrder - min(idTagOrder) + 1;
+                % calculate tagOrder for distance calculation
+                idTagOrder = tagOrder(tagOrder>0);
+                idTagOrder = idTagOrder - min(idTagOrder) + 1;
 
-               if checkIdlist( idlist,1)
-                   % new idlist - dataProperties are needed for sigmas,
-                   % which is not relevant for now
-                   [ distance,  distanceUnitVectors] = ...
-                       idlist2distMat( idlist,  defaultDataProperties,[],[],idTagOrder);
-               else
+                if checkIdlist( idlist,1)
+                    % new idlist - dataProperties are needed for sigmas,
+                    % which is not relevant for now
+                    [ distance,  distanceUnitVectors] = ...
+                        idlist2distMat( idlist,  defaultDataProperties,[],[],idTagOrder);
+                else
 
-                   % calculate distances, distanceVectors without idlist2distMat - we need to
-                   % be able to use old idlists. Since we don't worry about uncertainties,
-                   % it's still fairly straightforward
-                   linklists = cat(3, idlist.linklist);
-                   linklists = linklists(idTagOrder,:,:);
-                   goodTimes = squeeze(linklists(1,1,:));
-                   nTimepoints = length( idlist);
-                   nTags = length(idTagOrder);
+                    % calculate distances, distanceVectors without idlist2distMat - we need to
+                    % be able to use old idlists. Since we don't worry about uncertainties,
+                    % it's still fairly straightforward
+                    linklists = cat(3, idlist.linklist);
+                    linklists = linklists(idTagOrder,:,:);
+                    goodTimes = squeeze(linklists(1,1,:));
+                    nTimepoints = length( idlist);
+                    nTags = length(idTagOrder);
                     distance = repmat(NaN,[nTags,nTags,nTimepoints]);
                     distanceUnitVectors = repmat(NaN,[nTags,nTags,nTimepoints,3]);
-                   for t = goodTimes'
-                       % get distance matrix, distanceVectorMatrix. Divide
-                       % distanceVectorMatrix by distance to get normed vectors
-                       % use the same ordering as idlist2distMat
-                       [ distance(:,:,t),distanceVectorMatrix] =...
-                           distMat(linklists(:,9:11,linklists(1,1,:)==t));
+                    for t = goodTimes'
+                        % get distance matrix, distanceVectorMatrix. Divide
+                        % distanceVectorMatrix by distance to get normed vectors
+                        % use the same ordering as idlist2distMat
+                        [ distance(:,:,t),distanceVectorMatrix] =...
+                            distMat(linklists(:,9:11,linklists(1,1,:)==t));
                         distanceUnitVectors(:,:,t,:) = ...
-                           permute(...
-                           distanceVectorMatrix./repmat( distance(:,:,t),[1,1,3]),[1,2,4,3]);
-                   end
-               end
-               
-               % store index, time
+                            permute(...
+                            distanceVectorMatrix./repmat( distance(:,:,t),[1,1,3]),[1,2,4,3]);
+                    end
+                end
+
+                % store index, time
                 distList = [squeeze( distance(2,1,:)),squeeze( distance(3,1,:))];
-               
-               
-               % get scalar product of vectors for projection of s1c1 onto
-               % s1s2
-               s1c1vec = squeeze( distanceUnitVectors(2,1,:,:));
-               s1s2vec = squeeze( distanceUnitVectors(3,1,:,:));
-               proj = sum(s1c1vec.*s1s2vec,2);
-               
-               
+
+
+                % get scalar product of vectors for projection of s1c1 onto
+                % s1s2
+                s1c1vec = squeeze( distanceUnitVectors(2,1,:,:));
+                s1s2vec = squeeze( distanceUnitVectors(3,1,:,:));
+                proj = sum(s1c1vec.*s1s2vec,2);
+
+
                 distList(:,3) = ( distList(:,1).*proj)./ distList(:,2);
-               if sum( distList(:,3)>0.5) > 0.5 * sum(~isnan(proj))
+                if sum( distList(:,3)>0.5) > 0.5 * sum(~isnan(proj))
                     distList(:,3) = 1- distList(:,3);
-               end
-               
-               % update goodTimes
-               goodTimes = goodTimes & (distList(:,3)>distanceRatio(1) & distList(:,3)<distanceRatio(2));
-               
+                end
+
+                % update goodTimes
+                goodTimes = goodTimes & (distList(:,3)>distanceRatio(1) & distList(:,3)<distanceRatio(2));
+
             end
 
         otherwise
@@ -673,13 +679,13 @@ while goodIdlist && iCheck < nChecks
                 error('check %i has not been defined yet',check)
             end
     end % switch check{iCheck}
-    
+
     % check whether there is any goodTime
-if ~any(goodTimes)
-    goodIdlist = false;
-    errorMessage = 'No good frame detected';
-end
-    
+    if ~any(goodTimes)
+        goodIdlist = false;
+        errorMessage = 'No good frame detected';
+    end
+
 end % while goodIdlist && iCheck < nChecks
 
 
@@ -701,10 +707,10 @@ choiceCell = {'Please choose',0, 0, '', '', '', '';...
     'is inconsistent?',2, 0, '', '', '', '';...
     'no cen1*',3, 0, '', '', '', '';...
     'idlist with N1:N2 tags',4, 1, '', 'N1:N2', '', '';...
-    'frames with N1:N2 frames',5, 1, '', 'N1:N2', '', '';...
+    'frames with N1:N2 spots',5, 1, '', 'N1:N2', '', '';...
     'frames w/ avg(cenAmp)/avg(spbAmp)<R',6, 11, '', 'maxRatio', '', '';...
     'frames with tag1,tag2',7, 22, '', 'tag1', '', 'tag2';...
     'frames with minD<d(spb)<maxD (um)',8, 11, '', 'minD (um)', '', 'maxD (um)';...
     'no unlabeled good tags (''?'')',9,0,'','','','';...
     'frames w/ minR<s1c1/s1s2<maxR',10,11,'','minR','','maxR';...
-     };
+    };
