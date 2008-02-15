@@ -42,6 +42,10 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 %                       distance between the two will be considered as
 %                       inter-spb distance, irrespective of labels.
 %                    9: No '?' in labels.
+%                   10: Only keeps frames wehre the ratio of the projection
+%                       of spb1-cen1 onto spb1-spb2 to spb1-spb2 is betwen
+%                       R1 and R2. Note: This automatically discards
+%                       idlists with less than 3 tags found. Def.: [0 0.25]  
 %                CELL A cell array is used to specify multiple checks
 %                  and/or use values other than the defaults. The
 %                  dimensions of the cell array are nChecks-by-m, where m

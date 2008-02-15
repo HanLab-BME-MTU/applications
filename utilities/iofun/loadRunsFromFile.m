@@ -84,7 +84,7 @@ addIsT  = 0;
 convDist= 0;
 addIdlist = 0;
 useRealTime = 1;
-checkStruct = struct('check',[],'askOptions',[]);
+checkStructIn = struct('check',[],'askOptions',[]);
 
 
 if nargin == 0 || isempty(nRunsOrFileList)
@@ -106,10 +106,10 @@ for in = 1:length(varargin)
     if ~ischar(arg2check)
         if isstruct(arg2check)
             if isfield(arg2check,'check')
-                checkStruct.check = arg2check.check;
+                checkStructIn.check = arg2check.check;
             end
             if isfield(arg2check,'askOptions')
-                checkStruct.askOptions = arg2check.check;
+                checkStructIn.askOptions = arg2check.askOptions;
             end
         else
             error('Options for loadRunsFromFile have to be strings! (offending argument#: %i)',in);
@@ -310,20 +310,22 @@ for iRun = 1:nRuns
             % check idlist. Properly prepare input. We want, in any case,
             % check for tag1&tag2. Will throw an error if not n-by-3 cell
             % input for checkCell or check.
-            if isempty(checkStruct.check)
+            checkStruct = struct('check',[],'askOptions',[]);
+            if isempty(checkStructIn.check)
                 checkStruct.check = {7,tag1,tag2};
             else
-                if iscell(checkStruct.check)
-                    checkStruct.check = [checkStruct.check;{7,tag1,tag2}];
-                elseif ischar(checkStruct.check)
-                    if strcmp(checkStruct.check,'ask')
+                if iscell(checkStructIn.check)
+                    checkStruct.check = [checkStructIn.check;{7,tag1,tag2}];
+                elseif ischar(checkStructIn.check)
+                    if strcmp(checkStructIn.check,'ask')
+                        checkStruct.check = 'ask';
                         if ~isfield(checkStruct.askOptions,'checkCell')
-                        checkStruct.askOptions.checkCell = {7,tag1,tag2};
+                            checkStruct.askOptions.checkCell = {7,tag1,tag2};
                         else
-                            checkStruct.askOptions.checkCell = [checkStruct.askOptions.checkCell;{7,tag1,tag2}];
+                            checkStruct.askOptions.checkCell = [checkStructIn.askOptions.checkCell;{7,tag1,tag2}];
                         end
                     else
-                        checkStruct.check = [{checkStruct.check,'',''};{7,tag1,tag2}];
+                        checkStruct.check = [{checkStructIn.check,'',''};{7,tag1,tag2}];
                     end
                 end
             end
@@ -331,7 +333,7 @@ for iRun = 1:nRuns
             % quit with error if necessary
             error(errorMessage);
             % remove bad goodTimes
-            [idlist2use(~goodTimes).linklist] = deal([]);
+            [idlist2use(~goodTimes).linklist] = deal([]); %#ok<AGROW>
 
             if calcTraj
                 %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
