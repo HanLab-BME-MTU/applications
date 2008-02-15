@@ -331,7 +331,7 @@ for iRun = 1:nRuns
             % quit with error if necessary
             error(errorMessage);
             % remove bad goodTimes
-            idlist2use(~goodTimes).linklist = [];
+            [idlist2use(~goodTimes).linklist] = deal([]);
 
             if calcTraj
                 %-----calculate trajectory -- the assignment data(i) = output.a/b/c does not work if data is []!!
