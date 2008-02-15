@@ -96,20 +96,26 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 %% SET DEFAULTS
 %==================
 
+% if you add checks, don't forget to update the subfunction
+
 def_nTagsInIdlist = 3:4;
 def_nTagsInFrame  = 4;
 def_ampThreshold = [0 0.8];
 def_goodTags = {'spb1','cen1'};
 def_spbSeparation = [1.4 1.7];
-def_choiceList = [3:6,8:9];
+def_choiceList = [3:6,8:10];
+def_distanceRatio = [0,0.25];
 
-choiceDefaults = cell(9,2);
+choiceDefaults = cell(10,2);
 choiceDefaults{4,1} = def_nTagsInIdlist;
 choiceDefaults{5,1} = def_nTagsInFrame;
-choiceDefaults{6,1} = def_ampThreshold;
+choiceDefaults{6,1} = def_ampThreshold(1);
+choiceDefaults{6,2} = def_ampThreshold(2);
 choiceDefaults(7,1:2) = def_goodTags;
 choiceDefaults{8,1} = def_spbSeparation(1);
 choiceDefaults{8,2} = def_spbSeparation(2);
+choiceDefaults{10,1} = def_distanceRatio(1);
+choiceDefaults{10,2} = def_distanceRatio(2);
 
 %==================
 %% TEST INPUT
@@ -569,13 +575,89 @@ while goodIdlist && iCheck < nChecks
             % left with good ones. LG_deleteTag needs goodTimes. Don't call
             % it that way, though.
             gt = catStruct(1,'idlist.linklist(1)');
-            idlistTmp = LG_deleteSingleOccurences(idlist,gt);
+            if checkIdlist
+                idlistTmp = LG_deleteSingleOccurences(idlist,gt);
+            else
+                idlistTmp = idlist;
+            end
 
             goodIdlist = goodIdlist && ...
                 ~any(strcmp(idlistTmp(1).stats.labelcolor,'?'));
 
             if ~goodIdlist
                 errorMessage = 'Idlist contains ''?''';
+            end
+            
+        case 10 % ratio of projection of s1c1 onto s1s2
+            
+            % check for correct number of spots
+            goodIdlist = checkIdlist(idlist,4);
+            
+            if goodIdlist
+                
+                % check for target value
+                if isempty(checkCell) || size(checkCell,2) < 3 || isempty(checkCell{iCheck,2})
+                    distanceRatio = def_distanceRatio;
+                else
+                    distanceRatio = [checkCell{iCheck,2:3}];
+                end
+            
+                % find tags
+            [tagExists,tagOrder] = ismember({'spb1','cen1','cen2','spb2'}, idlist(1).stats.labelcolor);
+
+
+               % calculate tagOrder for distance calculation
+               idTagOrder = tagOrder(tagOrder>0);
+               idTagOrder = idTagOrder - min(idTagOrder) + 1;
+
+               if checkIdlist( idlist,1)
+                   % new idlist - dataProperties are needed for sigmas,
+                   % which is not relevant for now
+                   [ distance,  distanceUnitVectors] = ...
+                       idlist2distMat( idlist,  defaultDataProperties,[],[],idTagOrder);
+               else
+
+                   % calculate distances, distanceVectors without idlist2distMat - we need to
+                   % be able to use old idlists. Since we don't worry about uncertainties,
+                   % it's still fairly straightforward
+                   linklists = cat(3, idlist.linklist);
+                   linklists = linklists(idTagOrder,:,:);
+                   goodTimes = squeeze(linklists(1,1,:));
+                   nTimepoints = length( idlist);
+                   nTags = length(idTagOrder);
+                    distance = repmat(NaN,[nTags,nTags,nTimepoints]);
+                    distanceUnitVectors = repmat(NaN,[nTags,nTags,nTimepoints,3]);
+                   for t = goodTimes'
+                       % get distance matrix, distanceVectorMatrix. Divide
+                       % distanceVectorMatrix by distance to get normed vectors
+                       % use the same ordering as idlist2distMat
+                       [ distance(:,:,t),distanceVectorMatrix] =...
+                           distMat(linklists(:,9:11,linklists(1,1,:)==t));
+                        distanceUnitVectors(:,:,t,:) = ...
+                           permute(...
+                           distanceVectorMatrix./repmat( distance(:,:,t),[1,1,3]),[1,2,4,3]);
+                   end
+               end
+               
+               % store index, time
+                distList = [squeeze( distance(2,1,:)),squeeze( distance(3,1,:))];
+               
+               
+               % get scalar product of vectors for projection of s1c1 onto
+               % s1s2
+               s1c1vec = squeeze( distanceUnitVectors(2,1,:,:));
+               s1s2vec = squeeze( distanceUnitVectors(3,1,:,:));
+               proj = sum(s1c1vec.*s1s2vec,2);
+               
+               
+                distList(:,3) = ( distList(:,1).*proj)./ distList(:,2);
+               if sum( distList(:,3)>0.5) > 0.5 * sum(~isnan(proj))
+                    distList(:,3) = 1- distList(:,3);
+               end
+               
+               % update goodTimes
+               goodTimes = goodTimes & (distList(:,3)>distanceRatio(1) & distList(:,3)<distanceRatio(2));
+               
             end
 
         otherwise
@@ -587,13 +669,16 @@ while goodIdlist && iCheck < nChecks
                 error('check %i has not been defined yet',check)
             end
     end % switch check{iCheck}
-end % while goodIdlist && iCheck < nChecks
-
-% check whether there is any goodTime
+    
+    % check whether there is any goodTime
 if ~any(goodTimes)
     goodIdlist = false;
     errorMessage = 'No good frame detected';
 end
+    
+end % while goodIdlist && iCheck < nChecks
+
+
 
 
 function choiceCell = getChoiceCell
@@ -616,5 +701,6 @@ choiceCell = {'Please choose',0, 0, '', '', '', '';...
     'frames w/ avg(cenAmp)/avg(spbAmp)<R',6, 11, '', 'maxRatio', '', '';...
     'frames with tag1,tag2',7, 22, '', 'tag1', '', 'tag2';...
     'frames with minD<d(spb)<maxD (um)',8, 11, '', 'minD (um)', '', 'maxD (um)';...
-    'no unlabeled good tags (''?'')',9,0,'','','','',...
-    };
+    'no unlabeled good tags (''?'')',9,0,'','','','';...
+    'frames w/ minR<s1c1/s1s2<maxR',10,11,'','minR','','maxR';...
+     };
