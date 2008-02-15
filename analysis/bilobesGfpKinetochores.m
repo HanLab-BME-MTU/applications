@@ -1,4 +1,4 @@
-function [resultList,plotData,plotStruct] = bilobesGfpKinetochores(project, normalize,doPlot,improveAlignment,redoAll,zOrientation,movieType)
+function [resultList,plotData,plotStruct,symmetry] = bilobesGfpKinetochores(project, normalize,doPlot,improveAlignment,redoAll,zOrientation,movieType)
 %BILOBESPINDLES projects kinetochore signals onto the spindle axis in two-color images
 %
 % SYNOPSIS: bilobeSpindles
@@ -745,8 +745,57 @@ if plotGallery
     end
 end
 
-
-
+% measure symmetry. 
+% 1) %of total intensity difference between two halves of spindle
+% 2) %of half spindle length shift in centers of mass between two halves of
+% spindle
+nData = length(resultList);
+symmetry = zeros(nData,2);
+for i=1:nData
+    % generate matrix of coordinates relative to half spindle
+    xx=(-14.5:14.5)'*norm(resultList(d).e_spb.*pix2mu);
+    posGrid = xx>0;
+    negGrid = xx<0;
+    
+    % get average and total intensities
+    tmp = resultList(i).meanProj(posGrid|negGrid);
+    totalInt = sum(tmp(:));
+    tmp = resultList(i).meanProj(posGrid);
+   posInt = sum(tmp(:));
+    tmp = resultList(i).meanProj(negGrid);
+     negInt = sum(tmp(:));
+     
+     % get relative difference in intensities
+     symmetry(i,1) = (posInt-negInt)/totalInt;
+     
+     % get moment, i.e. integral(int(x)*x,x)/integral(int(x),x)
+     tmp = xx(posGrid) .* resultList(i).meanProj(posGrid);
+     posMom = sum(tmp(:))/posInt;
+     tmp = xx(negGrid) .* resultList(i).meanProj(negGrid);
+     negMom = sum(tmp(:))/negInt;
+     
+     % difference is divided by half spindle length (b/c it can be max
+     % n_spb/2). Careful: negMom is negative by definition
+     symmetry(i,2) = (posMom+negMom)/(resultList(i).n_spb/2);
+end
+figure('Name','Symmetry plots'),
+subplot(2,2,1),
+histogram(abs(symmetry(:,1)))
+title('intensity difference wrt total intensity')
+subplot(2,2,2)
+histogram(abs(symmetry(:,2)))
+title('moment difference wrt half spindle length')
+subplot(2,2,3)
+plot(symmetry(:,1),symmetry(:,2),'.')
+xlabel('intensity difference')
+ylabel('moment difference')
+axis equal
+subplot(2,2,4)
+plot(abs(symmetry(:,1)),abs(symmetry(:,2)),'.')
+xlabel('intensity difference')
+ylabel('moment difference')
+title('absolute values')
+axis equal
 
 switch project
     case 'max'

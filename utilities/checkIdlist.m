@@ -25,8 +25,8 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 %                       [3:4]
 %                    5: Only choose frames with N1:N2 tags found. Default:
 %                       [4 4]
-%                    6: Only choose frames where avg(cenAmp)/avg(spbAmp)<R.
-%                       Default: 0.8
+%                    6: Only choose frames where avg(cenAmp)/avg(spbAmp) is
+%                       between R1 and R2. [0 0.75]
 %                    7: Only keep frames where TAG1 and TAG2
 %                       - have been found
 %                       - arent't fused to each other
@@ -98,7 +98,7 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 
 def_nTagsInIdlist = 3:4;
 def_nTagsInFrame  = 4;
-def_ampThreshold = 0.8;
+def_ampThreshold = [0 0.8];
 def_goodTags = {'spb1','cen1'};
 def_spbSeparation = [1.4 1.7];
 def_choiceList = [3:6,8:9];
@@ -136,7 +136,7 @@ end
 
 % nargin can't be smaller than 2 with persistent check, because it has to
 % be 'ask' initially to allow creating a non-persistent variable
-if nargin < 2 
+if nargin < 2
     % default check is 1
     check = 1;
 end
@@ -188,7 +188,7 @@ if ischar(check) && strcmp(check,'ask')
     if isfield(askOptions,'choiceDefaults')
         choiceDefaults = askOptions.choiceDefaults;
     else
-        
+
 
         choiceDefaults = choiceDefaults(choiceList,:);
     end
@@ -251,7 +251,7 @@ iCheck = 0;
 while goodIdlist && iCheck < nChecks
     iCheck = iCheck +1;
     switch check{iCheck}
-        
+
         case 0
             % true
             goodIdlist = goodIdlist && true;
@@ -308,8 +308,8 @@ while goodIdlist && iCheck < nChecks
             % left with good ones. LG_deleteTag needs goodTimes. Don't call
             % it that way, though.
             if checkIdlist(idlist,1)
-            gt = catStruct(1,'idlist.linklist(1)');
-            idlistTmp = LG_deleteSingleOccurences(idlist,gt);
+                gt = catStruct(1,'idlist.linklist(1)');
+                idlistTmp = LG_deleteSingleOccurences(idlist,gt);
             else
                 idlistTmp = idlist;
             end
@@ -337,12 +337,12 @@ while goodIdlist && iCheck < nChecks
             % remove first all single-occurence tags, so that we're only
             % left with good ones. LG_deleteTag needs goodTimes. Don't call
             % it that way, though.
-           if checkIdlist(idlist,1)
-            gt = catStruct(1,'idlist.linklist(1)');
-            idlistTmp = LG_deleteSingleOccurences(idlist,gt);
+            if checkIdlist(idlist,1)
+                gt = catStruct(1,'idlist.linklist(1)');
+                idlistTmp = LG_deleteSingleOccurences(idlist,gt);
             else
                 idlistTmp = idlist;
-           end
+            end
 
 
             % find target number of tags
@@ -383,8 +383,8 @@ while goodIdlist && iCheck < nChecks
 
             % loop through idlist and check
             gtTmp = false(size(goodTimes));
-            for t = 1:length(idlist)
-                if ~isempty(idlist(t).linklist)
+            for t = squeeze(linklists(1,1,:))'
+                if goodTimes(t)
                     % read amps, discard estimated tags, secondary fusions
                     spbAmp = idlist(t).linklist(spbIdx,8);
                     spbAmp(ismember(idlist(t).linklist(spbIdx,3),[1 4])) = [];
@@ -392,11 +392,11 @@ while goodIdlist && iCheck < nChecks
                     cenAmp(ismember(idlist(t).linklist(cenIdx,3),[1 4])) = [];
 
                     % check target
-                    if mean(cenAmp)/mean(spbAmp) < ampThreshold
+                    if mean(cenAmp)/mean(spbAmp) > ampThreshold(1) && mean(cenAmp)/mean(spbAmp) < ampThreshold(1)
                         gtTmp(t) = true;
                     end
+                end
 
-                end % if ~isempty
             end % loop idlist
 
             % combine gtTmp with goodTimes
@@ -413,7 +413,7 @@ while goodIdlist && iCheck < nChecks
             %                 7, frames 2 and 7 will be removed.
             %                 Default: {'spb1', 'cen1'} (needs 2 cols in cell
             %                 array)
-          
+
 
 
             % check for tag names
@@ -427,40 +427,41 @@ while goodIdlist && iCheck < nChecks
             tag1Idx = strmatch(goodTags{1},idlist(1).stats.labelcolor);
             tag2Idx = strmatch(goodTags{2},idlist(1).stats.labelcolor);
             tagIdx = [tag1Idx,tag2Idx];
-            
+
             nTags = length(idlist(1).stats.labelcolor);
-            
+
             % set all goodTimes to false
             gtTmp = false(size(goodTimes));
-            
+
             % check for new idlist
             newId = checkIdlist(idlist);
-            
+
             % loop through frames, check
             fused = [0,0];
-            for t=1:length(idlist)
-                if ~isempty(idlist(t).linklist)
-                    
+            for t = squeeze(linklists(1,1,:))'
+                if goodTimes(t)
+
+
                     % check for both tags existing
                     if newId
-                    if ~any(ismember(idlist(t).linklist(tagIdx,3),[1,4]))
-                        gtTmp(t) = true;
-                    end
+                        if ~any(ismember(idlist(t).linklist(tagIdx,3),[1,4]))
+                            gtTmp(t) = true;
+                        end
                     else
                         if ~any(idlist(t).linklist(tagIdx,2)==0)
                             gtTmp(t) = true;
                         end
                     end
-                    
+
                     % check for fusion
                     tagCoords = idlist(t).linklist(tagIdx,9:11);
-                    
+
                     if all(tagCoords(1,:) == tagCoords(2,:))
                         % both fused. Discard
                         gtTmp(t) = false;
                     else
                         % check for fusion to other tags
-                        
+
                         % tag1
                         not1 = true(nTags,1);
                         not1(tag1Idx) = false;
@@ -485,7 +486,7 @@ while goodIdlist && iCheck < nChecks
                                 fused(1) = 0;
                             end
                         end
-                        
+
                         % tag2
                         not2 = true(nTags,1);
                         not2(tag2Idx) = false;
@@ -511,23 +512,25 @@ while goodIdlist && iCheck < nChecks
                             end
                         end
                     end % if fused tags
-                end % if good linklist
+
+
+                end % if goodTimes
             end % loop time
-            
+
             % combine gtTmp with goodTimes
             goodTimes = goodTimes & gtTmp;
-                        
+
 
         case 8 % check spb separation
 
             % find the tagIndices
             spbIdx = strmatch('spb',idlist(1).stats.labelcolor);
-            
+
             % if there are only two spots, spbIdx is all of them
             if length(idlist(1).stats.labelcolor) == 2
                 spbIdx = [1;2];
             end
-            
+
             % find the target value
             if isempty(checkCell) || size(checkCell,2) < 3 || isempty(checkCell{iCheck,2})
                 spbSeparation = def_spbSeparation;
@@ -537,8 +540,8 @@ while goodIdlist && iCheck < nChecks
 
             % loop through idlist and check
             gtTmp = false(size(goodTimes));
-            for t = 1:length(idlist)
-                if ~isempty(idlist(t).linklist)
+            for t = squeeze(linklists(1,1,:))'
+                if goodTimes(t)
                     % read spb-coord
                     spbCoord = idlist(t).linklist(spbIdx,9:11);
                     % calc distance
@@ -548,8 +551,8 @@ while goodIdlist && iCheck < nChecks
                     if spbDeltaCoord > spbSeparation(1) && spbDeltaCoord < spbSeparation(2)
                         gtTmp(t) = true;
                     end
+                end % if goodTimes
 
-                end % if ~isempty
             end % loop idlist
 
             % combine gtTmp with goodTimes
@@ -604,7 +607,7 @@ choiceCell = {'Please choose',0, 0, '', '', '', '';...
     'no cen1*',3, 0, '', '', '', '';...
     'idlist with N1:N2 tags',4, 1, '', 'N1:N2', '', '';...
     'frames with N1:N2 frames',5, 1, '', 'N1:N2', '', '';...
-    'frames w/ avg(cenAmp)/avg(spbAmp)<R',6, 1, '', 'maxRatio', '', '';...
+    'frames w/ avg(cenAmp)/avg(spbAmp)<R',6, 11, '', 'maxRatio', '', '';...
     'frames with tag1,tag2',7, 22, '', 'tag1', '', 'tag2';...
     'frames with minD<d(spb)<maxD (um)',8, 11, '', 'minD (um)', '', 'maxD (um)';...
     'no unlabeled good tags (''?'')',9,0,'','','','',...
