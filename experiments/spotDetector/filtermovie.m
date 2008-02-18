@@ -1,7 +1,7 @@
 function fMov=filtermovie(mov,par,verbose)
 %FILTERMOVIE 3D gaussian filter the movie
 %
-% SYNOPSIS  fMov=filtermovie(mov,par)
+% SYNOPSIS  fMov=filtermovie(mov,par,verbose)
 %
 % INPUT mov  : full  movie stack
 %           par    : vector with gaussian sigma parameter in [sx sy sz]
