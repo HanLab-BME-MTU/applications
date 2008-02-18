@@ -1,4 +1,3 @@
-
 function dataStruct = makiInitCoord(dataStruct, verbose)
 %MAKIINITCOORD finds initial guesses for mammalian kinetochores
 %
@@ -6,7 +5,7 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 %
 % INPUT dataStruct: dataStruct as in makimakeDataStruct with at least the
 %                   fields
-%                     .rawMovieName
+%                     .rawMovieName - may contain the actual movie
 %                     .rawMoviePath
 %                     .dataProperties
 %                   verbose: whether or not to plot cutoff plots 
@@ -48,7 +47,11 @@ end
 %% COLLECT INPUT & SETUP
 %=========================
 
-rawMovie = fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName);
+if ischar(dataStruct.rawMovieName)
+    rawMovie = fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName);
+else
+    rawMovie = [];
+end
 dataProperties = dataStruct.dataProperties;
 
 % setup filter parameters
@@ -98,9 +101,14 @@ for t=1:nTimepoints
     % background = current 10xPSF-filtered movie frame
     % amplitude = filtered - background
     % noise = locAvg(var(raw-filtered))
-
+    
+    if isempty(rawMovie)
+        % movie has been passed directly
+        raw = dataStruct.rawMovieName(:,:,:,:,t);
+    else
     raw = cdLoadMovie({rawMovie,'raw'},[],struct('frames2load',{{t}},...
         'crop',dataProperties.crop,'maxSize',dataProperties.maxSize));
+    end
     raw = raw - min(raw(:)); %remove offset
     % filter movie with gauss-filter
     filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),1,signalFilter);
