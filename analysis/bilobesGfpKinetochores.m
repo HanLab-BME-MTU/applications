@@ -750,7 +750,9 @@ end
 % 2) %of half spindle length shift in centers of mass between two halves of
 % spindle
 nData = length(resultList);
-symmetry = zeros(nData,2);
+% symmetry: difference in intensities, difference in center of mass,
+% spindle length
+symmetry = zeros(nData,3);
 for i=1:nData
     % generate matrix of coordinates relative to half spindle
     xx=(-14.5:14.5)'*norm(resultList(d).e_spb.*pix2mu);
@@ -777,25 +779,38 @@ for i=1:nData
      % difference is divided by half spindle length (b/c it can be max
      % n_spb/2). Careful: negMom is negative by definition
      symmetry(i,2) = (posMom+negMom)/(resultList(i).n_spb/2);
+     
+     symmetry(i,3) = resultList(i).n_spb;
 end
 figure('Name','Symmetry plots'),
 subplot(2,2,1),
-histogram(abs(symmetry(:,1)))
+histogram(abs(symmetry(:,1)),1,0)
+xlabel('normalized intensity difference'),ylabel('counts')
 title('intensity difference wrt total intensity')
 subplot(2,2,2)
-histogram(abs(symmetry(:,2)))
+histogram(abs(symmetry(:,2)),1,0)
+xlabel('normalized moment difference'),ylabel('counts')
 title('moment difference wrt half spindle length')
 subplot(2,2,3)
-plot(symmetry(:,1),symmetry(:,2),'.')
-xlabel('intensity difference')
-ylabel('moment difference')
-axis equal
+plot(symmetry(:,3),symmetry(:,1),'.')
+xlabel('spindle length (\mum)')
+ylabel('normalized intensity difference')
 subplot(2,2,4)
-plot(abs(symmetry(:,1)),abs(symmetry(:,2)),'.')
-xlabel('intensity difference')
-ylabel('moment difference')
-title('absolute values')
-axis equal
+plot(symmetry(:,3),symmetry(:,2),'.')
+xlabel('spindle length (\mum)')
+ylabel('normalized moment difference')
+
+% subplot(2,2,3)
+% plot(symmetry(:,1),symmetry(:,2),'.')
+% xlabel('intensity difference')
+% ylabel('moment difference')
+% axis equal
+% subplot(2,2,4)
+% plot(abs(symmetry(:,1)),abs(symmetry(:,2)),'.')
+% xlabel('intensity difference')
+% ylabel('moment difference')
+% title('absolute values')
+% axis equal
 
 switch project
     case 'max'

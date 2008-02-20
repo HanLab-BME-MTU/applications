@@ -190,11 +190,11 @@ switch figureId
            s1c1dist = [cat(1,idlistList.i),cat(1,idlistList.t),cat(1,idlistList.distList)];
            
            figure('Name',sprintf('distance ratio for %i movies (%i tp)',nIdlists,size(s1c1dist,1))),
-           histogram(s1c1dist(:,5),1,1)
+           histogram(s1c1dist(:,5),1,0)
 ylabel('tp counts'),xlabel('s1c1:s1s2/s1s2 w/ flip')
 
 
-           figure('Name',sprintf('distance ratio vs spindle length')),hold on
+           figure('Name',sprintf('projected distance ratio vs spindle length')),hold on
            for i=unique(s1c1dist(:,1)'),idx = s1c1dist(:,1) == i;plot(s1c1dist(idx,4),s1c1dist(idx,5),'.','Color',extendedColors(i)),end
            xlabel('s1s2 (\mum)'),ylabel('s1c1:s1s2/s1s2 w/ flip')
            figure('Name',sprintf('distance vs spindle length')),hold on
