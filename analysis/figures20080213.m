@@ -103,7 +103,7 @@ switch figureId
         xlabel('distance spb-cen')
         ylabel('ratio cenInt:spbInt')
         
-        figure,histogram(unique(s1c1int(:,6)))
+        figure,histogram(unique(s1c1int(:,6)),1,1)
         
         varargout{1} = s1c1int;
            varargout{2} = idlistList;
@@ -115,7 +115,7 @@ switch figureId
         idlistList = [];
         while ~done
             try 
-                tmp = loadIdlistList(cdBiodata(4),struct('check',{{8,[0 1.4],'';4,3,'';3,'',''}}),1,0);
+                tmp = loadIdlistList(cdBiodata(4),struct('check',{{8,0,1.4;4,3,'';3,'',''}}),1,0);
  
         idlistList = [idlistList,tmp];
             catch
@@ -165,10 +165,10 @@ switch figureId
                    end
                end
                
-               % store index, time
+               % distList: s1c1, s1s2
                idlistList(i).distList = [squeeze(idlistList(i).distance(2,1,:)),squeeze(idlistList(i).distance(3,1,:))];
                goodTimes = find(all(~isnan(idlistList(i).distList),2));
- 
+ % store index, time
                idlistList(i).i = i * ones(length(goodTimes),1);
                idlistList(i).t = goodTimes;
                
@@ -190,7 +190,20 @@ switch figureId
            s1c1dist = [cat(1,idlistList.i),cat(1,idlistList.t),cat(1,idlistList.distList)];
            
            figure('Name',sprintf('distance ratio for %i movies (%i tp)',nIdlists,size(s1c1dist,1))),
-           histogram(s1c1dist(:,5))
+           histogram(s1c1dist(:,5),1,1)
+ylabel('tp counts'),xlabel('s1c1:s1s2/s1s2 w/ flip')
+
+
+           figure('Name',sprintf('distance ratio vs spindle length')),hold on
+           for i=unique(s1c1dist(:,1)'),idx = s1c1dist(:,1) == i;plot(s1c1dist(idx,4),s1c1dist(idx,5),'.','Color',extendedColors(i)),end
+           xlabel('s1s2 (\mum)'),ylabel('s1c1:s1s2/s1s2 w/ flip')
+           figure('Name',sprintf('distance vs spindle length')),hold on
+           for i=unique(s1c1dist(:,1)'),idx = s1c1dist(:,1) == i;plot(s1c1dist(idx,4),s1c1dist(idx,3),'.','Color',extendedColors(i)),end
+           xlabel('s1s2 (\mum)'),ylabel('s1c1 (\mum)')
+           figure('Name',sprintf('distance ratio vs spindle length')),hold on
+           for i=unique(s1c1dist(:,1)'),idx = s1c1dist(:,1) == i;plot(s1c1dist(idx,4),s1c1dist(idx,3)./s1c1dist(idx,4),'.','Color',extendedColors(i)),end
+           xlabel('s1s2 (\mum)'),ylabel('s1c1/s1s2')
+           
            
            varargout{1} = s1c1dist;
            varargout{2} = idlistList;
