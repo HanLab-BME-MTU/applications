@@ -124,10 +124,10 @@ switch figureId
         figure('Name','relative fitted intensities')
         plot(s1c1intF(:,2),s1c1intF(:,5),'.');
         
-        figure,histogram(s1c1intF(:,5))
+        figure,histogram(s1c1intF(:,5),1,0)
         
         varargout{1} = s1c1int;
-        varargout{3} = s1c1intF;
+        varargout{2} = s1c1intF;
            varargout{3} = idlistList;
     case 2
         
