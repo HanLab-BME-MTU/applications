@@ -54,6 +54,8 @@ switch figureId
         % fitting of intensities)
         s1c1int = zeros(200*nIdlists,6);
         scIdx = 0;
+        % s1c1intF: movieIdx, distance, s1IntF, c1IntF, ratio, exponent
+        s1c1intF = zeros(nIdlists,6);
         
         for iIdlist = 1:nIdlists
             
@@ -71,18 +73,31 @@ switch figureId
             linklists = cat(3,idlist.linklist);
             nTimepoints = size(linklists,3);
             dist = normList(squeeze(linklists(tagOrder(1),9:11,:)-linklists(tagOrder(2),9:11,:))');
-            s1c1int(scIdx+1:scIdx+nTimepoints,2:5) = ...
+            tmp = ...
                 [squeeze(linklists(1,1,:)), dist,...
                 squeeze(linklists(tagOrder(1),8,:)),...
                 squeeze(linklists(tagOrder(2),8,:))];
-            s1c1int(scIdx+1:scIdx+nTimepoints,1) = iIdlist;
             
+            
+            s1c1int(scIdx+1:scIdx+nTimepoints,2:5) = tmp;
+            s1c1int(scIdx+1:scIdx+nTimepoints,1) = iIdlist;
+                      
             % update index
-            scIdx = scIdx + nTimepoints;
+            scIdx = scIdx + nTimepoints; 
+            
+            % robustExponentialFit for intensities
+            fitInt = robustExponentialFit2(reshape(tmp(:,3:4),[],1),...
+                [blkdiag(ones(nTimepoints,1),ones(nTimepoints,1)),...
+                repmat(tmp(:,1),2,1)]);
+            % check for negative exponential
+            if fitInt(end) < 0
+                s1c1intF(iIdlist,:) = [iIdlist,mean(dist),fitInt(1),fitInt(2),fitInt(2)/fitInt(1),fitInt(3)];
+            end
         end
         
         % remove superfluous entries
         s1c1int(scIdx+1:end,:) = [];
+        s1c1intF(s1c1intF(:,1) == 0,:) = [];
         
         % take ratio
         s1c1int(:,6) = s1c1int(:,5) ./ s1c1int(:,4);
@@ -103,10 +118,17 @@ switch figureId
         xlabel('distance spb-cen')
         ylabel('ratio cenInt:spbInt')
         
-        figure,histogram(unique(s1c1int(:,6)),1,1)
+        figure,histogram(unique(s1c1int(:,6)),1,0)
+        
+        % plot fitted int
+        figure('Name','relative fitted intensities')
+        plot(s1c1intF(:,2),s1c1intF(:,5),'.');
+        
+        figure,histogram(s1c1intF(:,5))
         
         varargout{1} = s1c1int;
-           varargout{2} = idlistList;
+        varargout{3} = s1c1intF;
+           varargout{3} = idlistList;
     case 2
         
         % for metaphase 3-spot movies with spindles shorter than 1.4 um and no cen1*:
