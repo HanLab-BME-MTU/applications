@@ -161,6 +161,14 @@ for t=goodTimes'
                 fitTest(mskData,cordList(spotsidx,:),idxList,...
                 frameSize,dataProperties, debug);
             
+            % !!! HACK
+            % somehow for Ipl1-bilobe-data, fitTest places the spots way
+            % off. I have no idea why and no time to find out. Thus, use
+            % cordList if negative amplitudeCutoff
+            if dataProperties.amplitudeCutoff < 0
+                ncordList = cordList(spotsidx,:);
+            end
+            
             % DEBUG - STORE TESTSTAT IN BASE
 %             testStat = cat(2,dbTmp.testValue)';
 %             testStat = [ones(length(testStat),1)*t,testStat];

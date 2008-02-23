@@ -250,7 +250,7 @@ if nTimepoints < 2
     nRatios = length(ratios);
     % cut at MAXSPOTS
     cutIdx = min(nRatios,dataProperties.MAXSPOTS);
-    cutValue = ratios(cutIdx);
+    cutValue = 0.99999 * ratios(cutIdx);
 
         
 else

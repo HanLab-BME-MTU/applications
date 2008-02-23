@@ -195,6 +195,28 @@ end
 
 %===========================================
 
+% check coordinates
+if 0 
+    filteredMovie = cdLoadMovie({filteredMovieName,'filtered'}, [], dataProperties);
+fm = max(filteredMovie(:,:,:,1,1),[],3);
+figure,
+subplot(1,2,1),
+imshow(fm,[])
+hold on,
+for i=1:length(coordinates(1).sp),
+    plot(coordinates(1).sp(i).cord(1),coordinates(1).sp(i).cord(2),'.',...
+        'Color',extendedColors(i)),
+end
+subplot(1,2,2),
+fm = squeeze(max(filteredMovie(:,:,:,1,1),[],2));
+imshow(fm,[])
+hold on,
+for i=1:length(coordinates(1).sp),
+    plot(coordinates(1).sp(i).cord(3),coordinates(1).sp(i).cord(2),'.',...
+        'Color',extendedColors(i)),
+end
+end
+
 
 
 %===========================================
@@ -212,6 +234,17 @@ if ~isfield(dataProperties,'amplitudeCutoff') || ...
     [dataProperties, testRatios, dbTmp] = ...
         detectSpots_MMF_findAmplitudeCutoff(...
         rawMovieName, coordinates, dataProperties, movieLoader, verbose, any(debug==2));
+elseif dataProperties.amplitudeCutoff < 0
+    % take n largest intensities, discard everything else
+    for t = 1:movieHeader.numTimepoints
+        intList = cat(1,coordinates(t).sp.mnint);
+        [dummy, sortIdx] = sort(-intList);
+        coordinates(t).sp(sortIdx(-dataProperties.amplitudeCutoff+1:end)) = [];
+    end
+    testRatios = [];
+    % since the cutoff is negative, all spots will pass. Thus, this can
+    % only work if fitNPlus1 is 0
+    dataProperties.fitNPlusOne = 0;
 else
     % set testRatios to []
     testRatios = [];

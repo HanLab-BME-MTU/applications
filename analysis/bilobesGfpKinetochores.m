@@ -1,4 +1,4 @@
-function [resultList,plotData,plotStruct,symmetry] = bilobesGfpKinetochores(project, normalize,doPlot,improveAlignment,redoAll,zOrientation,movieType)
+function [resultList,plotData,plotStruct,symmetry] = bilobesGfpKinetochores(project, normalize,doPlot,improveAlignment,redoAll,zOrientation,movieType,iplHack)
 %BILOBESPINDLES projects kinetochore signals onto the spindle axis in two-color images
 %
 % SYNOPSIS: bilobeSpindles
@@ -13,6 +13,8 @@ function [resultList,plotData,plotStruct,symmetry] = bilobesGfpKinetochores(proj
 %       zOrientation : orientation of the z-axis: 'perpendicular' to the
 %                      other two/{'parallel'} to image-z
 %       movieType : {'raw'} or 'decon' (recommended for tub1)
+%       iplHack : Hack to make spindle pole bodies in ipl1 survive
+%                 detection. {0}/1
 %
 % OUTPUT resultList(1:nData) : Structure with fields
 %           interpImg - interpolated intensity from GFP channel (30x21x21)
@@ -126,6 +128,7 @@ def_improveAlignment = true;
 def_zOrientation = 'para'; % perp(endicular) / par(allel)
 def_redoAll = false; % if false, code will not redo analysis
 def_movieType = 'raw'; % or 'decon'
+def_iplHack = false;
 
 if nargin < 1 || isempty(project)
     project = def_project;
@@ -147,6 +150,9 @@ if nargin < 6 || isempty(zOrientation)
 end
 if nargin < 7 || isempty(movieType)
     movieType = def_movieType;
+end
+if nargin < 8 || isempty(iplHack)
+    iplHack = def_iplHack;
 end
 if nargout == 3
     doPlot = true;
@@ -302,7 +308,7 @@ for iData = 1:nData
 
 
             % filter movie
-            filteredMovie = filtermovie(rawMovie,dataProperties.FILTERPRM);
+            filteredMovie = filtermovie(rawMovie,dataProperties.FILTERPRM,0);
 
             % save filtered movie
             writemat(nameList(iData).filteredMovieName,...
@@ -314,6 +320,12 @@ for iData = 1:nData
         if status(iData) == 1
 
             % detect two spots
+            
+            % ipl1 somehow leads to badly-shaped spots. Hope for the best
+            % and only keep the 2 highest intensity spots.
+            if iplHack
+                dataProperties.amplitudeCutoff = -2;
+            end
 
 
             [slist, dataProperties, testRatios] = detectSpots(...
@@ -345,7 +357,7 @@ for iData=1:nData
         % check for number of spots
         nSpots = size(idlist(1).linklist,1);
 
-        if nSpots > 2
+        if nSpots > 2 || iplHack
             filteredMovie = readmat(nameList(iData).filteredMovieName);
             load(nameList(iData).dataPropertiesName);
             lh = LG_loadAllFromOutside(filteredMovie,nameList(iData).dirName,...
