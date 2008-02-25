@@ -111,7 +111,7 @@ def_goodTags = {'spb1','cen1'};
 def_spbSeparation = [1.4 1.7];
 def_choiceList = [3:6,8:11]; % maybe update here when adding checks
 def_distanceRatio = [0,0.25];
-def_spbSeparationAvg = [0,0.25];
+def_spbSeparationAvg = [0 1.4];
 
 choiceDefaults = cell(11,2); % update here when adding checks
 choiceDefaults{4,1} = def_nTagsInIdlist;
@@ -587,7 +587,7 @@ while goodIdlist && iCheck < nChecks
             % left with good ones. LG_deleteTag needs goodTimes. Don't call
             % it that way, though.
             gt = catStruct(1,'idlist.linklist(1)');
-            if checkIdlist
+            if checkIdlist(idlist)
                 idlistTmp = LG_deleteSingleOccurences(idlist,gt);
             else
                 idlistTmp = idlist;

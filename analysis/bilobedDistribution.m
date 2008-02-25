@@ -76,6 +76,11 @@ idlistList = loadIdlistList(cdBiodata(4),...
 % this part of the code is not very clean because it has been copied from
 % bilobeProjection.m
 nIdlists = length(idlistList);
+
+if nIdlists == 0
+    error('no idlist selected or no idlist fulfills all conditions')
+end
+
 bilobeDataIdlist(1:nIdlists) = struct('spindleLength',[],...
     'cenPosition',[],'time',[],'name',[]);
 
