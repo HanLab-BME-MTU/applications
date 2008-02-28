@@ -2,6 +2,7 @@
 % 'setupForceProj' so that the 'resl' directory is known and it knows where 
 % to look for 'setPar'
 
+run([mechDir filesep 'modelPar.m']);
 run([reslDir filesep 'setPar.m']);
 
 switch trackMethod
