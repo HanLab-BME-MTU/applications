@@ -1,7 +1,7 @@
-function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,verbose)
+function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,verbose,removeNetDisp,randomize)
 %MAKISISTERCONNECTIONANALYSIS analyzes in multiple ways the connection between sisters
 %
-%SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,verbose)
+%SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,verbose,removeNetDisp,randomize)
 %
 %INPUT  jobType: string which can take the values:
 %               'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
@@ -10,6 +10,11 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,ve
 %                       to be analyzed. Optional. If not input, GUI to load
 %                       movies is launched.
 %       verbose: 1 to make plots, 0 otherwise. Optional. Default: 0.
+%       removeNetDisp: 1 - Make center of each sister pair at zero
+%                      throughout the whole movie, 0 otherwise.
+%                      Optional. Default: 0.
+%       randomize: 1 - Randomize sister pairing, 0 otherwise.
+%                  Optional. Default: 0.
 %
 %OUTPUT analysisStruct: Same as input but with additional field
 %           .sisterConnection: 
@@ -25,6 +30,14 @@ end
 
 if nargin < 3 || isempty(verbose)
     verbose = 0;
+end
+
+if nargin < 4 || isempty(removeNetDisp)
+    removeNetDisp = 0;
+end
+
+if nargin < 5 || isempty(randomize)
+    randomize = 0;
 end
 
 %interactively obtain analysisStruct if not input
@@ -90,32 +103,35 @@ end
 
 %go over all movies
 for iMovie = 1 : numMovies
-
-    %copy fields out of dataStruct(iMovie)
-    sisterList = dataStruct(iMovie).sisterList;
-    tracks = dataStruct(iMovie).tracks;
-    planeFit = dataStruct(iMovie).planeFit;
-    frameAlignment = dataStruct(iMovie).frameAlignment;
-    updatedClass = dataStruct(iMovie).updatedClass;
-    numFramesMovie = length(planeFit);
     
-    %determine frames where there is a plane
-    framesWithPlane = [];
-    for t = 1 : numFramesMovie
-        if ~isempty(planeFit(t).planeVectors)
-            framesWithPlane = [framesWithPlane t];
-        end
-    end
-    
-    %find frame where anaphase starts (if it starts at all)
-    framePhase = vertcat(updatedClass.phase);
-    firstFrameAna = find(framePhase=='a',1,'first');
-    if isempty(firstFrameAna)
-        firstFrameAna = numFramesMovie + 1;
-    end
-
     if numSisters(iMovie) > 0
-        
+
+        %construct sisters with aligned coordinates
+        %remove net displacement and randomize if requested
+        sisterList = makiConstructAlignedSisters(dataStruct(iMovie),...
+            removeNetDisp,randomize);
+        numSisters(iMovie) = length(sisterList);
+
+        %copy fields out of dataStruct(iMovie)
+        planeFit = dataStruct(iMovie).planeFit;
+        updatedClass = dataStruct(iMovie).updatedClass;
+        numFramesMovie = length(planeFit);
+
+        %determine frames where there is a plane
+        framesWithPlane = [];
+        for t = 1 : numFramesMovie
+            if ~isempty(planeFit(t).planeVectors)
+                framesWithPlane = [framesWithPlane t];
+            end
+        end
+
+        %find frame where anaphase starts (if it starts at all)
+        framePhase = vertcat(updatedClass.phase);
+        firstFrameAna = find(framePhase=='a',1,'first');
+        if isempty(firstFrameAna)
+            firstFrameAna = numFramesMovie + 1;
+        end
+
         %sister type = 0 if all kinetochores are inliers
         %sister type = 1 if some kinetochores are unaligned
         %sister type = 2 if some kinetochores are lagging
@@ -126,40 +142,26 @@ for iMovie = 1 : numMovies
         %go over all sisters in movie
         for iSister = 1 : numSisters(iMovie)
 
-            %find track indices
-            tracksIndx = sisterList(1).trackPairs(iSister,1:2);
-
-            %determine frame where each track starts
-            trackStart = [tracks(tracksIndx(1)).seqOfEvents(1,1) ...
-                tracks(tracksIndx(2)).seqOfEvents(1,1)];
-
-            %find number of frames and frames where pair "exists"
-            goodFrames = ~isnan(sisterList(iSister).distances(:,1));
+            %find number of frames and frames where pair "exists" before
+            %anaphase
+            goodFrames = ~isnan(sisterList(iSister).distanceAligned(:,1));
             numFrames = length(goodFrames);
             goodFrames = find(goodFrames);
             goodFrames = goodFrames(goodFrames < firstFrameAna);
 
-            %find feature indices making up sisters
-            sisterIndx1 = NaN(numFrames,1);
-            sisterIndx2 = NaN(numFrames,1);
-            sisterIndx1(goodFrames) = tracks(tracksIndx(1))...
-                .tracksFeatIndxCG(goodFrames-trackStart(1)+1);
-            sisterIndx2(goodFrames) = tracks(tracksIndx(2))...
-                .tracksFeatIndxCG(goodFrames-trackStart(2)+1);
-
-            %get aligned sister coordinates
-            coords1 = NaN(numFrames,6);
-            coords2 = NaN(numFrames,6);
+            %get sister coordinates in good frames
+            coords1 = NaN(numFrames,3);
+            coords2 = NaN(numFrames,3);
             for iFrame = goodFrames'
-                coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),:);
-                coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),:);
+                coords1(iFrame,:) = sisterList(iSister).coords1Aligned(iFrame,1:3);
+                coords2(iFrame,:) = sisterList(iSister).coords2Aligned(iFrame,1:3);
             end
-
+            
             %calculate vector between sisters
-            sisterVec = [coords2(:,1:3)-coords1(:,1:3) sqrt(coords1(:,4:6).^2+coords2(:,4:6).^2)];
+            sisterVec = coords2 - coords1;
 
             %calculate distance between sisters
-            sisterDistance = sqrt(sum(sisterVec(:,1:3).^2,2)); %um
+            sisterDistance = sqrt(sum(sisterVec.^2,2)); %um
             
             %calculate sister velocity
             sisterVelocity = diff(sisterDistance) * 1000 / timeLapse; %nm/s
@@ -173,8 +175,8 @@ for iMovie = 1 : numMovies
             %calculate angle between consecutive frames
             angularDisp = NaN(numFrames-1,1);
             for iFrame = 1 : numFrames - 1
-                angularDisp(iFrame) = acos(abs(sisterVec(iFrame,1:3) * sisterVec(iFrame+1,1:3)' ...
-                    / norm(sisterVec(iFrame,1:3)) / norm(sisterVec(iFrame+1,1:3)))); %radians/s
+                angularDisp(iFrame) = acos(abs(sisterVec(iFrame,:) * sisterVec(iFrame+1,:)' ...
+                    / norm(sisterVec(iFrame,:)) / norm(sisterVec(iFrame+1,:)))); %radians/s
             end
 
             %store sister information based on the sister type
@@ -765,8 +767,10 @@ if verbose
         hold on
         
         %get number of necessary bins
-        eval(['[n,x] = histogram(angleNormalDistr' label{iLabel,1} ');']);
-        eval(['hist(angleNormalDistr' label{iLabel,1} ',length(n));']);
+        if eval(['~isempty(angleNormalDistr' label{iLabel,1} ')'])
+            eval(['[n,x] = histogram(angleNormalDistr' label{iLabel,1} ');']);
+            eval(['hist(angleNormalDistr' label{iLabel,1} ',length(n));']);
+        end
 
         %write axes labels
         xlabel('Sister angle with normal (deg)');
