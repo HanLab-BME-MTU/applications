@@ -295,8 +295,10 @@ switch selectionCell{3}
     case {1,2}
         % write default
         set(etH{1}(1),'String',num2str(selectionCell{4}),'Visible','on')
+        set(etH{1}(2),'String',num2str(selectionCell{6}),'Visible','off')
         % label
         set(etH{2}(1),'String',selectionCell{5},'Visible','on')
+        set(etH{2}(2),'String',selectionCell{7},'Visible','off')
     case {11,12,21,22}
         % write defaults
         set(etH{1}(1),'String',num2str(selectionCell{4}),'Visible','on')
