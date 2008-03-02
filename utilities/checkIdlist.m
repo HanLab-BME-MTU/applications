@@ -114,7 +114,7 @@ def_nTagsInFrame  = 4;
 def_ampThreshold = [0 0.8];
 def_goodTags = {'spb1','cen1'};
 def_spbSeparation = [1.4 1.7];
-def_choiceList = [3:6,8:12]; % maybe update here when adding checks
+def_choiceList = [3:6,8:13]; % maybe update here when adding checks
 def_distanceRatio = [0,0.125];
 def_spbSeparationAvg = [0 1.4];
 def_absDistanceRatio = [0,0.165];
@@ -133,8 +133,8 @@ choiceDefaults{11,1} = def_spbSeparationAvg(1);
 choiceDefaults{11,2} = def_spbSeparationAvg(2);
 choiceDefaults{12,1} = def_absDistanceRatio(1);
 choiceDefaults{12,2} = def_absDistanceRatio(2);
-%choiceDefaults{13,1} = def_ampThreshold(1); % use same defaults as 6
-%choiceDefaults{13,2} = def_ampThreshold(2);
+choiceDefaults{13,1} = def_ampThreshold(1); % use same defaults as 6
+choiceDefaults{13,2} = def_ampThreshold(2);
 % update here when adding checks
 
 % define persistent_check here, because it cannot be inside an if-statement
@@ -235,7 +235,7 @@ if ischar(check) && strcmp(check,'ask')
 
         % prepare input for checkIdlistGui
         choiceCell = getChoiceCell;
-        
+
         % update choiceList to reflect choiceOrder
         choiceOrder = cat(1,choiceCell{2:end,2});
         [dummy,choiceList] = ismember(choiceList,choiceOrder);
@@ -422,7 +422,7 @@ while goodIdlist && iCheck < nChecks
             if isempty(checkCell) || size(checkCell,2) < 2 || isempty(checkCell{iCheck,2})
                 ampThreshold = def_ampThreshold;
             else
-                ampThreshold = checkCell{iCheck,2};
+                ampThreshold = cat(2,checkCell{iCheck,2:3});
             end
 
             % loop through idlist and check
@@ -435,7 +435,7 @@ while goodIdlist && iCheck < nChecks
                 cenAmp(ismember(idlist(t).linklist(cenIdx,3),[1 4])) = [];
 
                 % check target
-                if mean(cenAmp)/mean(spbAmp) > ampThreshold(1) && mean(cenAmp)/mean(spbAmp) < ampThreshold(1)
+                if mean(cenAmp)/mean(spbAmp) > ampThreshold(1) && mean(cenAmp)/mean(spbAmp) < ampThreshold(2)
                     gtTmp(t) = true;
                 end
             end % loop idlist
@@ -725,7 +725,7 @@ while goodIdlist && iCheck < nChecks
                 goodIdlist = false;
                 errorMessage = sprintf('Less than 90% of nonempty time points with spindle length between %1.2f and %1.2f',spbSeparation);
             end
-            
+
         case 12 % projection of s1c1 onto s1s2
 
             % check for correct number of spots
@@ -792,7 +792,7 @@ while goodIdlist && iCheck < nChecks
                 if sum( distList(:,3)>0.5) > 0.5 * sum(~isnan(proj))
                     distList(:,3) = 1- distList(:,3);
                 end
-                
+
                 % multiply with s1s2 - this allows us to flip before
                 distList(:,3) = distList(:,3) .* distList(:,2);
 
@@ -800,38 +800,77 @@ while goodIdlist && iCheck < nChecks
                 goodTimes = goodTimes & (distList(:,3)>distanceRatio(1) & distList(:,3)<distanceRatio(2));
 
             end
-            
-        case 13 % check for ratios between fits
-            
-%              % find the tagIndices
-%             spbIdx = strmatch('spb',idlist(1).stats.labelcolor);
-%             cenIdx = strmatch('cen',idlist(1).stats.labelcolor);
-% 
-%             % find the target value
-%             if isempty(checkCell) || size(checkCell,2) < 2 || isempty(checkCell{iCheck,2})
-%                 ampThreshold = def_ampThreshold;
-%             else
-%                 ampThreshold = checkCell{iCheck,2};
-%             end
-% 
-%             % loop through idlist and check
-%             gtTmp = false(size(goodTimes));
-%             for t = find(goodTimes)'
-%                 % read amps, discard estimated tags, secondary fusions
-%                 spbAmp = idlist(t).linklist(spbIdx,8);
-%                 spbAmp(ismember(idlist(t).linklist(spbIdx,3),[1 4])) = [];
-%                 cenAmp = idlist(t).linklist(cenIdx,8);
-%                 cenAmp(ismember(idlist(t).linklist(cenIdx,3),[1 4])) = [];
-% 
-%                 % check target
-%                 if mean(cenAmp)/mean(spbAmp) > ampThreshold(1) && mean(cenAmp)/mean(spbAmp) < ampThreshold(1)
-%                     gtTmp(t) = true;
-%                 end
-%             end % loop idlist
-% 
-%             % combine gtTmp with goodTimes
-%             goodTimes = goodTimes & gtTmp;
 
+        case 13 % check for ratios between fits
+
+            % find tags
+            [tagExists,tagOrder] = ismember({'spb1','spb2','cen1','cen2'},idlist(1).stats.labelcolor);
+
+            % split spb, cen
+            spbIdx = tagOrder(1:2);
+            spbIdx(spbIdx==0) = [];
+            nSpb = length(spbIdx);
+
+            cenIdx = tagOrder(3:4);
+            cenIdx(cenIdx==0) = [];
+            nCen = length(cenIdx);
+
+            nTags = nSpb + nCen;
+
+            if nSpb == 0 || nCen == 0
+                goodIdlist = false;
+                errorMessage = 'spb or cen not found';
+            else
+
+
+                % read intensities
+                linklists = cat(3,idlist(goodTimes).linklist);
+                nTimepoints = size(linklists,3);
+
+                % intList is: nTimepoint, spbInt(s), cenInt(s)
+                intList = ...
+                    [squeeze(linklists(1,1,:)), ...
+                    squeeze(permute(linklists(spbIdx,8,:),[1,3,2]))',...
+                    squeeze(permute(linklists(cenIdx,8,:),[1,3,2]))'];
+
+
+                % robustExponentialFit for intensities. For A, we need
+                % blockdiag of ones with length nTimepoints.
+                tmpC = mat2cell(ones(nTimepoints,nTags),nTimepoints,ones(1,nTags));
+                fitInt = robustExponentialFit2(reshape(intList(:,2:end),[],1),...
+                    [blkdiag(tmpC{:}),...
+                    repmat(intList(:,1),nTags,1)]);
+
+                % make sure exponential is negative - otherwise, the fit failed
+                if fitInt(end) > 0
+                    goodIdlist = false;
+                    errorMessage = 'positive exponential in bleaching fit';
+                else
+
+
+                    % find the target value
+                    if isempty(checkCell) || size(checkCell,2) < 2 || isempty(checkCell{iCheck,2})
+                        ampThreshold = def_ampThreshold;
+                    else
+                        ampThreshold = cat(2,checkCell{iCheck,2:3});
+                    end
+
+                    % check for target
+                    avgSpb = mean(fitInt(1:nSpb));
+                    avgCen = mean(fitInt(nSpb+1:end-1));
+
+                    intRatio = avgCen/avgSpb;
+
+                    if intRatio > ampThreshold(1) && intRatio < ampThreshold(2)
+                        % all is well
+                    else
+                        goodIdlist = false;
+                        errorMessage = sprintf('fitted intensity ratio (%1.2f) is not between %1.2f and %1.2f',intRatio,ampThreshold);
+                    end
+
+
+                end % check for negative exponential
+            end % check for existence of tags
 
         otherwise
             % check for string
@@ -871,14 +910,14 @@ choiceCell = {'Please choose',0, 0, '', '', '', '';...
     'no cen1*',3, 0, '', '', '', '';...
     'idlist with N1:N2 tags',4, 1, '', 'N1:N2', '', '';...
     'frames with N1:N2 spots',5, 1, '', 'N1:N2', '', '';...
-    'frames w/ avg(cenAmp)/avg(spbAmp)<R',6, 11, '', 'maxRatio', '', '';...
- %   'frames w/ fit(cenAmp)/fit(spbAmp)<R',13, 11, '', 'maxRatio', '', '';...
+    'frames w/ R<avg(cenAmp)/avg(spbAmp)<R',6, 11, '', 'minRatio', '', 'maxRatio';...
+    'idlist w/ R<fit(cenAmp)/fit(spbAmp)<R',13, 11, '', 'minRatio', '', 'maxRatio';...
     'frames with tag1,tag2',7, 22, '', 'tag1', '', 'tag2';...
     'frames with minD<d(spb)<maxD (um)',8, 11, '', 'minD (um)', '', 'maxD (um)';...
-     'movies with >90% minD<d(spb)<maxD (um)',11, 11, '', 'minD (um)', '', 'maxD (um)';...
+    'movies with >90% minD<d(spb)<maxD (um)',11, 11, '', 'minD (um)', '', 'maxD (um)';...
     'no unlabeled good tags (''?'')',9,0,'','','','';...
     'frames w/ minR<s1c1:s1s2/s1s2<maxR',10,11,'','minR','','maxR';...
     'frames w/ minR<s1c1:s1s2<maxR',12,11,'','minR','','maxR';...
-   
-    
+
+
     };
