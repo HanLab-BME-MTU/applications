@@ -26,7 +26,7 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 %                    5: Only choose frames with N1:N2 tags found. Default:
 %                       [4 4]
 %                    6: Only choose frames where avg(cenAmp)/avg(spbAmp) is
-%                       between R1 and R2. [0 0.75]
+%                       between R1 and R2. [0 0.65]
 %                    7: Only keep frames where TAG1 and TAG2
 %                       - have been found
 %                       - arent't fused to each other
@@ -52,7 +52,7 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 %                       ratios. Def.: [0 0.165]
 %                   13: Same as 6, except that the ratio is taken on the
 %                       intensity fit and thus per movie instead of per
-%                       frame. [0 0.75] NOT IMPLEMENTED YET
+%                       frame. [0 0.65] 
 %                CELL A cell array is used to specify multiple checks
 %                  and/or use values other than the defaults. The
 %                  dimensions of the cell array are nChecks-by-m, where m
@@ -111,7 +111,7 @@ function [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist,check,askOptio
 
 def_nTagsInIdlist = 3:4;
 def_nTagsInFrame  = 4;
-def_ampThreshold = [0 0.8];
+def_ampThreshold = [0 0.65];
 def_goodTags = {'spb1','cen1'};
 def_spbSeparation = [1.4 1.7];
 def_choiceList = [3:6,8:13]; % maybe update here when adding checks
