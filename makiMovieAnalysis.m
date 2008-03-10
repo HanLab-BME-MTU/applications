@@ -3,8 +3,8 @@ function makiMovieAnalysis(serverType,job)
 %
 % SYNOPSIS: makiMovieAnalysis
 %
-% INPUT serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
-%                   'MCAINSH'
+% INPUT serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW',
+%                   'MCAINSH', or 'MADDOX'
 %       job: structure containing information about movies to be
 %            analyzed. Best set up via a GUI
 %       

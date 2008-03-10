@@ -70,6 +70,8 @@ else
         jobType = 6;
     elseif strcmp(jobType,'MCAINSH')
         jobType = 7;
+    elseif strcmp(jobType,'MADDOX')
+        jobType = 8;
     end
 end
 if nargin < 2 || isempty(status)
@@ -100,7 +102,7 @@ warningState = warning;
 warning off IMARISIMREAD:NOPROPERTYREADER
 
 switch jobType
-    case {1,2,4,5,6,7}
+    case {1,2,4,5,6,7,8}
         % test jobs and hercules runs
 
         % basePath depends on the job
@@ -129,13 +131,17 @@ switch jobType
                 basePath = [makiPathDef('$MCAINSH',serverType) filesep];
                 jobPath = [basePath 'JobLogFiles'];
                 jobName = sprintf('mcainshJob-%s.mat',nowString);
+            case 8
+                basePath = [makiPathDef('$MADDOX',serverType) filesep];
+                jobPath = [basePath 'analysisLogFiles'];
+                jobName = sprintf('makiJob-%s.mat',nowString);
         end
 
         % allow user to change base path
         basePath = uigetdir(basePath,'Please select directory of movies to be analyzed');
 
         % find all .dv files in basePath
-        fileList = searchFiles('dv$','(log)|(_PRJ)',basePath,1);
+        fileList = searchFiles('dv$','(log)|(_PRJ)|(DIC)',basePath,1);
 
         selectIdx = listSelectGUI(fileList(:,1),[],'move');
         % shorten fileList
@@ -277,12 +283,14 @@ switch jobType
                 % run defDP again to get the correct filter parameters
                 dataStruct.dataProperties = defaultDataProperties(dataStruct.dataProperties);
 
-                % set crop-status to -1 if we're on a PC
-                if ispc
-                    dataStruct.status(1) = -1;
-                else
-                    dataStruct.status(1) = 0;
-                end
+                % jonas, 08-03-06: These lines mean that it is not possible
+                % to avoid cropping. That is bad if there is no ImarisXT
+%                 % set crop-status to -1 if we're on a PC
+%                 if ispc
+%                     dataStruct.status(1) = -1;
+%                 else
+%                     dataStruct.status(1) = 0;
+%                 end
             else
                 % load dataFile
                 dataStruct = makiLoadDataFile(serverType,fullfile(dataFilePath,dataFile.name));
@@ -340,26 +348,30 @@ switch jobType
                 catch
                     % if Imaris doesn't load, try matlab's version. There
                     % cannot be time cropping here, of course
+                    
+                    % load 10 images, overlay and crop
+                    nTimepoints = dataStruct.dataProperties.movieSize(4);
+                    frameList = unique(round(1:nTimepoints/10:nTimepoints));
+                    
+                    projections = zeros([dataStruct.dataProperties.movieSize(1:2),length(frameList)]);
+                    
+                    % loop to get max-projections
+                    for f = 1:length(frameList)
+                        img = r3dread(fullfile(rawMoviePath, rawMovieName),frameList(f),1);
+                        projections(:,:,f) = max(img,[],3);
+                    end
+                    
+                    % create multicolorImage
+                    cropImg = multicolorImage(projections,'','',3);
 
-                    % load the first, middle and last frame. Make
-                    % max-projection and run imCrop
-                    red = r3dread(fullfile(rawMoviePath, rawMovieName),1,1);
-                    red = norm01(max(red,[],3));
-                    green = r3dread(fullfile(rawMoviePath, rawMovieName),...
-                        round(dataStruct.dataProperties.movieSize(4)/2),1);
-                    green = norm01(max(green,[],3));
-                    blue = r3dread(fullfile(rawMoviePath, rawMovieName),...
-                        (dataStruct.dataProperties.movieSize(4)),1);
-                    blue = norm01(max(blue,[],3));
-                    % rect is ymin xmin ydelta xdelta
-                    rgbImg = cat(3,red,green,blue);
-                    [dummy rect] = imcrop(rgbImg);
+                    % crop with Matlab's imcrop
+                    [dummy rect] = imcrop(cropImg);
                     cropYmin = round(rect(1));
                     cropYmax = round(rect(3)+rect(1));
                     cropXmin = round(rect(2));
                     cropXmax = round(rect(4)+rect(2));
                     % test
-                    % figure,imshow(rgbImg(cropXmin:cropXmax,cropYmin:cropYmax,:))
+                    % figure,imshow(cropImg(cropXmin:cropXmax,cropYmin:cropYmax,:))
                 end
 
                 if cropXmin == 1 && cropYmin == 1 && ...
@@ -401,7 +413,7 @@ switch jobType
             job(iJob).dataStruct = dataStruct;
 
             %display progress
-            progressText(iJob/(nJobs),'Setting up jobs');
+            progressText(iJob/(nJobs),sprintf('Setting up %i jobs',nJobs));
 
         end % loop jobs
     case 3
@@ -455,8 +467,14 @@ if ~isempty(job)
     % make job platform-independent
     job = makiMakeJobPlatformIndependent(job,serverType);
 
-    % save job
-    save(fullfile(makiPathDef(job(1).jobPath,serverType),job(1).jobName),'job');
+    % save job - this will crash if there is no jobPath yet
+    try
+        save(fullfile(makiPathDef(job(1).jobPath,serverType),job(1).jobName),'job');
+    catch
+        % try saving with creating the file
+        mkdir(makiPathDef(job(1).jobPath,serverType));
+        save(fullfile(makiPathDef(job(1).jobPath,serverType),job(1).jobName),'job');
+    end
 end
 
 warning(warningState)

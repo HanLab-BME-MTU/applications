@@ -6,22 +6,16 @@ function pathOrId = makiPathDef(pathOrId,serverType)
 % INPUT pathOrId: path that should be converted into
 %                 $IDENTIFIER/rest/of/path, or $IDENTIFIER/rest/of/path
 %                 that should be converted into /a/real/path   
-%                 Supported identifiers
-%                 $HERCULES - root path where the movies on hercules are
-%                             stored (works for linux or windows) - deleted
-%                             for now to allow use of movies analyzed in
-%                             Woods Hole.
-%                 $TESTDATA - D:\makiTestData on windows and HOME/testdata
-%                             on linux
-%                 $DANUSER, $MERALDI, $SWEDLOW, $MCAINSH
-%       serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
-%       'MCAINSH'
-%       if pathOrId is empty or omitted, makiPathDef returns the current
-%       path definition
+%                 See serverType for supported identifiers
+%       serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW',
+%                 'MCAINSH', or 'MADDOX'
+%                 if pathOrId is empty or omitted, makiPathDef returns the
+%                 current path definition
 %
 % OUTPUT converted input
 %
 % REMARKS pathes must not end in a filesep
+%         $TESTDATA is D:\makiTestData on windows and HOME/testdata on linux
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -108,24 +102,32 @@ end
 function pathList = loadPathList(serverType)
 
 %Input: 
-%       serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
-%       'MCAINSH'
+%       serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW',
+%       'MCAINSH', or 'MADDOX'
 
 
 homeUser = getenv('HOME');
 
 % pathList is {id, winPath, linuxPath}
-if strcmp(serverType,'TEST')
-    pathList = {'$TESTDATA','D:\makiTestData',[homeUser '/testData']};
-elseif strcmp(serverType,'HERCULES')
-    pathList = {'$HERCULES','O:','/hercules'};
-elseif strcmp(serverType,'DANUSER')
-    pathList = {'$DANUSER','O:','/mnt/dundee'};
-elseif strcmp(serverType,'MERALDI')
-    pathList = {'$MERALDI','O:',''};
-elseif strcmp(serverType,'SWEDLOW')
-    pathList = {'$SWEDLOW','O:',''};
-elseif strcmp(serverType,'MCAINSH')
-    pathList = {'$MCAINSH','O:',''};
-end    
+switch serverType
+    case 'TEST'
+        pathList = {'$TESTDATA','D:\makiTestData',[homeUser '/testData']};
+    case 'TEST2'
+        pathList = {'$TEST2','C:\data\testData',[homeUser '/testData']};
+    case 'HERCULES'
+        pathList = {'$HERCULES','O:','/hercules'};
+    case 'DANUSER'
+        pathList = {'$DANUSER','O:','/mnt/dundee'};
+    case 'MERALDI'
+        pathList = {'$MERALDI','O:',''};
+    case 'SWEDLOW'
+        pathList = {'$SWEDLOW','O:',''};
+    case 'MCAINSH'
+        pathList = {'$MCAINSH','O:',''};
+    case 'MADDOX'
+        pathList = {'$MADDOX','G:\PMaddox\imageData',...
+            sprintf('%s/serv02/Groupe/PMaddox/imageData',homeUser)};
+    otherwise
+        error('serverType %s could not be resolved.',serverType)
+end
 
