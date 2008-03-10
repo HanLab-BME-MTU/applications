@@ -4,17 +4,17 @@ function job = makiMakeJob(jobType,status,job,ask4input)
 % SYNOPSIS: job = makiMakeJob(jobType,status,job)
 %
 % INPUT jobType: string which can take the values:
-%                'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or 
+%                'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
 %                'MCAINSH'
 %       status : status that you want to achieve, either as status vector,
 %                e.g. [1,1,1,0,1,0,0,0,0], or a list of tasks, e.g. [1,2,3,5]
 %                To force a task, set 2 in the status vector, or negative
 %                numbers in the list
-%               
+%
 %                REMARK: this help page (and the code) freely mixes the
 %                terms 'job' and 'task'. A job contains a list of tasks
-%                that is applied to one movie. Thus, status effectively defines 
-%                a task list 
+%                that is applied to one movie. Thus, status effectively defines
+%                a task list
 %
 %       job    : job-struct as output from makiMakeJob (e.g. if you want to
 %                update it). If empty, you can load via GUI
@@ -25,13 +25,13 @@ function job = makiMakeJob(jobType,status,job,ask4input)
 %
 % OUTPUT job: job-struct (input to makiMovieAnalysis)
 %
-% REMARKS Order of tasks so far: 
+% REMARKS Order of tasks so far:
 %         (1) cropping
 %         (2) saving dataStruct
 %         (3) initCoord
 %         (4) mixture-model fitting - DON'T USE!
 %         (5) plane fit
-%         (6) tracking 
+%         (6) tracking
 %         (7) sister identification
 %         (8) update kinetochore and frame classification
 %         (9) frame alignment
@@ -181,14 +181,14 @@ switch jobType
                 % CORRECTION HERE: Since the _R3D and the crop identifier
                 % strings can occur in random positions, the project name
                 % sometimes is and sometimes is not the general file name body
-                % for the '.dv', '_PRJ.dv', and '.dv.log' files. Thus, the previous call  
+                % for the '.dv', '_PRJ.dv', and '.dv.log' files. Thus, the previous call
                 % files2move =
                 % searchFiles(projectName,'(log)|(_PRJ)',rawMoviePath,0)
                 % resulted in either the moving of all, or of only the
-                % movie file. 
+                % movie file.
                 % For now, I restrict the moving to the movie file only,
                 % the _PRJ remains untouched, and the '.dv.log' file is
-                % dealt with specifically below. 
+                % dealt with specifically below.
                 rawMovieFile = searchFiles(projectName,'(log)|(_PRJ)',rawMoviePath,0);
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OLD VERSION
                 %                 for iFile = 1:size(files2move,1)
@@ -206,7 +206,7 @@ switch jobType
                         fullfile(rawMovieFile{1,2},rawMovieFile{1,1}),...
                         dataFilePath)
                 end
-                
+
                 % NOW: copy log file
 
                 % get 'body' of movie name, e.g. from 'bla_crop1_xx.dv'
@@ -216,11 +216,11 @@ switch jobType
                     % check if the project name still contains a _R3D
                     r3dIdx = regexp(projectName,'(_R3D)');
                     if ~isempty(r3dIdx)
-                        % the body of the project name is from 1 to 
+                        % the body of the project name is from 1 to
                         % either a '_R3D' or one of the crop strings
                         logFileNameBody = projectName(1:min(cropIdx,r3dIdx));
                     else
-                        % the body of the project name is from 1 to 
+                        % the body of the project name is from 1 to
                         % one of the crop strings
                         logFileNameBody = projectName(1:cropIdx);
                     end
@@ -240,9 +240,9 @@ switch jobType
                             fullfile(logFile{1,2},logFile{1,1}),...
                             dataFilePath)
                         % rename the log file in dataFilePath to
-                        % movieFileName.log 
+                        % movieFileName.log
                         % there are a few rare cases where the moved log
-                        % file already has the movieFileName 
+                        % file already has the movieFileName
                         % This happens when the movie itself has no crop
                         % indicator
                         movedLogFileOldName = fullfile(dataFilePath,logFile{1,1});
@@ -256,7 +256,7 @@ switch jobType
                             'Non unique log filename');
                     end
                 end
-                
+
                 rawMoviePath = dataFilePath;
             end
 
@@ -295,46 +295,72 @@ switch jobType
             % crop if not cropped yet (do it here so that we can easily update
             % dataProperties, and that we can set up the job on windows and
             % then run under linux)
-            if dataStruct.status(1) < 0 && ispc
+            if dataStruct.status(1) < 0
                 % load movie into Imaris
-                [dummy,dummy,dummy,...
-                    dummy,dummy,imarisHandle] = ...
-                    imarisImread(...
-                    rawMovieName,...
-                    rawMoviePath,[],[],1);
+                try
+                    [dummy,dummy,dummy,...
+                        dummy,dummy,imarisHandle] = ...
+                        imarisImread(...
+                        rawMovieName,...
+                        rawMoviePath,[],[],1);
 
-                % read 'zero'. In DV files (and maybe others), Imaris puts
-                % the zero at -0.5 pix (like Matlab!). Furthermore, if the
-                % movie was cropped already, zero is in the coordinates of
-                % the original movie. Therefore, subtract zeroOffset below
-                zeroOffsetX = imarisHandle.mDataSet.mExtendMinX;
-                zeroOffsetY = imarisHandle.mDataSet.mExtendMinY;
-                %zeroOffsetZ = imarisHandle.mDataSet.mExtendMinZ;
+                    % read 'zero'. In DV files (and maybe others), Imaris puts
+                    % the zero at -0.5 pix (like Matlab!). Furthermore, if the
+                    % movie was cropped already, zero is in the coordinates of
+                    % the original movie. Therefore, subtract zeroOffset below
+                    zeroOffsetX = imarisHandle.mDataSet.mExtendMinX;
+                    zeroOffsetY = imarisHandle.mDataSet.mExtendMinY;
+                    %zeroOffsetZ = imarisHandle.mDataSet.mExtendMinZ;
 
-                % in principle, we could also allow cropping in Z. In
-                % practice, there is no need for that
-                announcement = warndlg(['Please crop this movie in xy so',...
-                    ' that there are no kinetochores from other cells in the image.',...
-                    'CAREFUL: Crop and WAIT till Imaris is done cropping BEFORE clicking OK!'],'Please read carefully');
-                uiwait(announcement);
+                    % in principle, we could also allow cropping in Z. In
+                    % practice, there is no need for that
+                    announcement = warndlg(['Please crop this movie in xy so',...
+                        ' that there are no kinetochores from other cells in the image.',...
+                        'CAREFUL: Crop and WAIT till Imaris is done cropping BEFORE clicking OK!'],'Please read carefully');
+                    uiwait(announcement);
 
-                %%%%%%%%%%%%%%%%% THIS CROPPING WILL BE MODIFIED TO
-                %%%%%%%%%%%%%%%%% INTEGRATE TIME CROPPING AS WELL -- gd
-                
-                % crop has to be corrected by zeroOffset. Round to avoid
-                % .9999999 pixels
-                % Also, correct for the fact that the image is 0.5 pixel
-                % 'too large'!
-                % !!!! SWAP X/Y !!!!
-                cropYmin = round((imarisHandle.mDataSet.mExtendMinX-zeroOffsetX)/dataStruct.dataProperties.PIXELSIZE_XY)+1;
-                cropYmax = round((imarisHandle.mDataSet.mExtendMaxX-zeroOffsetX)/dataStruct.dataProperties.PIXELSIZE_XY)+1-1;
-                cropXmin = round((imarisHandle.mDataSet.mExtendMinY-zeroOffsetY)/dataStruct.dataProperties.PIXELSIZE_XY)+1;
-                cropXmax = round((imarisHandle.mDataSet.mExtendMaxY-zeroOffsetY)/dataStruct.dataProperties.PIXELSIZE_XY)+1-1;
-                %cropZmin = round((imarisHandle.mDataSet.mExtendMinZ-zeroOffsetZ)/dataStruct.dataProperties.PIXELSIZE_Z)+1;
-                %cropZmax = round((imarisHandle.mDataSet.mExtendMaxZ-zeroOffsetZ)/dataStruct.dataProperties.PIXELSIZE_Z)+1-1;
-                % check whether we're cropping at all
+                    %%%%%%%%%%%%%%%%% THIS CROPPING WILL BE MODIFIED TO
+                    %%%%%%%%%%%%%%%%% INTEGRATE TIME CROPPING AS WELL -- gd
 
-                % GAUDENZ:  check for negative
+                    % crop has to be corrected by zeroOffset. Round to avoid
+                    % .9999999 pixels
+                    % Also, correct for the fact that the image is 0.5 pixel
+                    % 'too large'!
+                    % !!!! SWAP X/Y !!!!
+                    cropYmin = round((imarisHandle.mDataSet.mExtendMinX-zeroOffsetX)/dataStruct.dataProperties.PIXELSIZE_XY)+1;
+                    cropYmax = round((imarisHandle.mDataSet.mExtendMaxX-zeroOffsetX)/dataStruct.dataProperties.PIXELSIZE_XY)+1-1;
+                    cropXmin = round((imarisHandle.mDataSet.mExtendMinY-zeroOffsetY)/dataStruct.dataProperties.PIXELSIZE_XY)+1;
+                    cropXmax = round((imarisHandle.mDataSet.mExtendMaxY-zeroOffsetY)/dataStruct.dataProperties.PIXELSIZE_XY)+1-1;
+                    %cropZmin = round((imarisHandle.mDataSet.mExtendMinZ-zeroOffsetZ)/dataStruct.dataProperties.PIXELSIZE_Z)+1;
+                    %cropZmax = round((imarisHandle.mDataSet.mExtendMaxZ-zeroOffsetZ)/dataStruct.dataProperties.PIXELSIZE_Z)+1-1;
+                    % check whether we're cropping at all
+
+                    % GAUDENZ:  check for negative
+
+                catch
+                    % if Imaris doesn't load, try matlab's version. There
+                    % cannot be time cropping here, of course
+
+                    % load the first, middle and last frame. Make
+                    % max-projection and run imCrop
+                    red = r3dread(fullfile(rawMoviePath, rawMovieName),1,1);
+                    red = norm01(max(red,[],3));
+                    green = r3dread(fullfile(rawMoviePath, rawMovieName),...
+                        round(dataStruct.dataProperties.movieSize(4)/2),1);
+                    green = norm01(max(green,[],3));
+                    blue = r3dread(fullfile(rawMoviePath, rawMovieName),...
+                        (dataStruct.dataProperties.movieSize(4)),1);
+                    blue = norm01(max(blue,[],3));
+                    % rect is ymin xmin ydelta xdelta
+                    rgbImg = cat(3,red,green,blue);
+                    [dummy rect] = imcrop(rgbImg);
+                    cropYmin = round(rect(1));
+                    cropYmax = round(rect(3)+rect(1));
+                    cropXmin = round(rect(2));
+                    cropXmax = round(rect(4)+rect(2));
+                    % test
+                    % figure,imshow(rgbImg(cropXmin:cropXmax,cropYmin:cropYmax,:))
+                end
 
                 if cropXmin == 1 && cropYmin == 1 && ...
                         cropXmax == dataStruct.dataProperties.movieSize(1) &&  ...
@@ -476,7 +502,7 @@ end
 
 %ask for user input
 if ask4input
-    
+
     tracksParamIn = inputdlg(...
         {'Use rotated coordinates (1 yes, 0 no)',...
         'Maximum gap to close (in frames)',...
@@ -485,7 +511,7 @@ if ask4input
         sprintf(['Tracking parameters for ' dataStruct.projectName]),1,...
         {num2str(rotateTmp),num2str(timeWindowTmp),...
         num2str(minRadiusTmp),num2str(maxRadiusTmp)},'on');
-    
+
     if isempty(tracksParamIn)
         error('input aborted')
     else
@@ -494,14 +520,14 @@ if ask4input
         minRadiusTmp = str2double(tracksParamIn{3});
         maxRadiusTmp = str2double(tracksParamIn{4});
     end
-    
+
 else
-    
+
     rotateTmp = rotate_def;
     timeWindowTmp = timeWindow_def;
     minRadiusTmp = minRadius_def;
     maxRadiusTmp = maxRadius_def;
-    
+
 end
 
 %assign whether to use rotated coordinates or not
@@ -512,7 +538,7 @@ gapCloseParam.timeWindow = timeWindowTmp + 1;
 gapCloseParam.mergeSplit = 0;
 gapCloseParam.minTrackLen = 1;
 
-%assign cost matrix parameters for linking spots between consecutive 
+%assign cost matrix parameters for linking spots between consecutive
 %frames
 costMatParam.minSearchRadiusL = minRadiusTmp;
 costMatParam.maxSearchRadiusL = maxRadiusTmp;
@@ -520,7 +546,7 @@ costMatParam.brownStdMultL = 3.5;
 costMatParam.closestDistScaleL = 2;
 costMatParam.maxStdMultL = 100;
 
-%assign cost matrix parameters for closing gaps and (in principle) 
+%assign cost matrix parameters for closing gaps and (in principle)
 %merging and splitting
 costMatParam.minSearchRadiusCG = minRadiusTmp;
 costMatParam.maxSearchRadiusCG = maxRadiusTmp;
