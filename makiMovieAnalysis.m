@@ -499,7 +499,7 @@ while ~done
             err = lasterror;
 
             % print to screen
-            fprintf(1,'%s : job %i - error: %s\n',nowString,iJob,err.message);
+            fprintf(1,'%s : %s - error: %s\n',nowString,job(iJob).dataStruct.projectName,err.message);
             for iErr = 1:length(err.stack)
                 fprintf(1, 'in %s at %i\n',...
                     err.stack(iErr).name,err.stack(iErr).line);

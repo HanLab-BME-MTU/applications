@@ -141,13 +141,18 @@ switch jobType
         basePath = uigetdir(basePath,'Please select directory of movies to be analyzed');
 
         % find all .dv files in basePath
-        fileList = searchFiles('dv$','(log)|(_PRJ)|(DIC)',basePath,1);
+        fileList = searchFiles('dv$','(log)|(_PRJ)|(DIC)|(_REF)',basePath,1);
 
         selectIdx = listSelectGUI(fileList(:,1),[],'move');
         % shorten fileList
         fileList = fileList(selectIdx,:);
 
         nJobs = length(selectIdx);
+        
+        if nJobs == 0
+            job = [];
+            return
+        end
 
         % set up job file
         % store job path for all jobs, in case we want to pick out one
@@ -259,7 +264,7 @@ switch jobType
                     else
                         warndlg(sprintf('No log filename matching movie %s in the directory %s\n', ...
                             rawMovieFile{1,1}, rawMovieFile{1,2}), ...
-                            'Non unique log filename');
+                            'No matching log filename');
                     end
                 end
 
@@ -364,8 +369,12 @@ switch jobType
                     % create multicolorImage
                     cropImg = multicolorImage(projections,'','',3);
 
-                    % crop with Matlab's imcrop
-                    [dummy rect] = imcrop(cropImg);
+                    % crop with Matlab's imcrop. Load image independently
+                    % so that we can give a title to the image
+                    fh=figure('Name',dataStruct.projectName);
+                    imshow(cropImg)
+                    [dummy rect] = imcrop(fh);
+                    close(fh) % close the image to avoid cluttering the desktop
                     cropYmin = round(rect(1));
                     cropYmax = round(rect(3)+rect(1));
                     cropXmin = round(rect(2));

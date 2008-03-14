@@ -30,6 +30,9 @@ guiPath = pwd;
 
 if nargin < 2 || isempty(dataFileName)
     % guiLoad
+    if nargin > 0 && ~isempty(serverType)
+        guiPath = makiPathDef(['$' serverType],serverType);
+    end
 else
     % check for file, then for path, then exit with error 
     if exist(dataFileName,'file')

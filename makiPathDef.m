@@ -9,13 +9,13 @@ function pathOrId = makiPathDef(pathOrId,serverType)
 %                 See serverType for supported identifiers
 %       serverType: 'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW',
 %                 'MCAINSH', or 'MADDOX'
-%                 if pathOrId is empty or omitted, makiPathDef returns the
-%                 current path definition
 %
 % OUTPUT converted input
 %
-% REMARKS pathes must not end in a filesep
-%         $TESTDATA is D:\makiTestData on windows and HOME/testdata on linux
+% REMARKS paths must not end in a filesep
+%         To query a specific path, call:
+%         makiPathDef('$IDENTIFIER','IDENTIFIER')
+%         To find all paths, look at the function. 
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
@@ -26,14 +26,21 @@ function pathOrId = makiPathDef(pathOrId,serverType)
 
 %% assign path or ID
 
+% check input. serverType has been necessary since Nov07
+if nargin < 2 || isempty(serverType) 
+    error('makiPathDef requires serverType as nonempty input argument')
+end
+
+
 % load path list
 pathList = loadPathList(serverType);
 
-% check empty input
-if nargin == 0 || isempty(pathList)
-    pathOrId = pathList;
-    return
-end
+% check empty input and return all definitions. This feature no longer
+% works since Nov07
+% if nargin == 0 || isempty(pathList)
+%     pathOrId = pathList;
+%     return
+% end
 
 % check input for $IDENTIFIER
 tok = regexp(pathOrId,'^(\$\w+)','tokens');
