@@ -1,4 +1,5 @@
-function fuzzyGroupArma_visualize(data,typicality,doEllipse,centers, classification,dmCutoff,mdsScale,plt)
+function fuzzyGroupArma_visualize(data,typicality,doEllipse,centers,...
+    classification,dmCutoff,mdsScale,plt,vizVariance)
 %FUZZYGROUPARMA_VISUALIZE is the utility for visualizing ARMA clusters
 %
 % Input: data (as in groupArmaDescriptors)
@@ -10,6 +11,8 @@ function fuzzyGroupArma_visualize(data,typicality,doEllipse,centers, classificat
 %        dmCutoff - value that should become the max distance (def: none)
 %        mdsScale - scaling for the mds plot - def: none
 %        plt - plot option. def: 1
+%        visVariance: 1 to visualize variance, 0 to visualize arma
+%        coefficients. Optional. Default: 0
 %
 
 % defaults
@@ -58,15 +61,33 @@ end
 if nargin < 8 || isempty(plt)
     plt = 1;
 end
+if nargin < 9 || isempty(vizVariance)
+    vizVariance = 0;
+end
 
 % make distance matrix for ctVAT
-dm=zeros(nData);
-for iData = 2:nData,
-    for jData=1:iData-1
-        dm(iData,jData) = armaxModelComp(data(iData),...
-            data(jData),'global',data(iData).lenSeries,data(jData).lenSeries);
-        dm(jData,iData) = dm(iData,jData);
-    end,
+if vizVariance %distance matrix based on variances
+
+    dm=zeros(nData);
+    for iData = 2:nData,
+        for jData=1:iData-1
+            [dummy,dm(iData,jData)] = armaxModelComp(data(iData),...
+                data(jData),'global',data(iData).lenSeries,data(jData).lenSeries);
+            dm(jData,iData) = dm(iData,jData);
+        end
+    end
+
+else %distance matrix based on ARMA coefficients
+
+    dm=zeros(nData);
+    for iData = 2:nData,
+        for jData=1:iData-1
+            dm(iData,jData) = armaxModelComp(data(iData),...
+                data(jData),'global',data(iData).lenSeries,data(jData).lenSeries);
+            dm(jData,iData) = dm(iData,jData);
+        end
+    end
+
 end
 
 % make sure there are no zeros off-diagonal
@@ -111,7 +132,7 @@ if useLin
     crit = 'lin';
 end
 
-if doEllipse
+if doEllipse && ~vizVariance
 
     % if doEllipse: get "ARMA-coords"
     % do anyway, in order to properly align data
@@ -202,7 +223,7 @@ switch plt
         ylabel('transformed distances')
         axis square
 
-        if doEllipse
+        if doEllipse && ~vizVariance
             % plot second figure
             figure('Name','Ellipse & sammon-mds')
             ah1 = subplot(2,3,[1,2,4,5]);

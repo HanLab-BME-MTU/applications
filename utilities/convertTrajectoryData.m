@@ -3,9 +3,10 @@ function convertedData = convertTrajectoryData(data,join)
 %
 % SYNOPSIS convertedData = convertTrajectoryData(data)
 %
-% INPUT    data: either trajectoryAnalysis data structure with fields distance (ntpx2), time(ntpx2),
-%                timepoints (ntpx1) or simulation data structure with fields
-%                observations (timeIntx2), time (timeIntx2)
+% INPUT    data: either trajectoryAnalysis data structure with fields
+%                distance (ntpx2), time(ntpx2), timepoints (ntpx1); 
+%                or simulation data structure with fields
+%                observations (ntpx2), time (ntpx2)
 %          join: (opt) whether to join the individual elements of the struct
 %                array data. Default is 0
 %          
