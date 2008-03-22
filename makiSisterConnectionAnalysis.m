@@ -176,7 +176,7 @@ for iMovie = 1 : numMovies
             angularDisp = NaN(numFrames-1,1);
             for iFrame = 1 : numFrames - 1
                 angularDisp(iFrame) = acos(abs(sisterVec(iFrame,:) * sisterVec(iFrame+1,:)' ...
-                    / norm(sisterVec(iFrame,:)) / norm(sisterVec(iFrame+1,:)))); %radians/s
+                    / norm(sisterVec(iFrame,:)) / norm(sisterVec(iFrame+1,:)))); %radians
             end
 
             %store sister information based on the sister type

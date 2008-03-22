@@ -76,7 +76,7 @@ if numFiles == 1 %if only 1 file was uploaded
         fileNameBase = fileName(1:indx-1);
 
         %give a name to the file where analysisStruct will be saved
-        fileName = ['makiAnalysis_' fileNameBase '_1'];
+        fileName = ['makiAnalysis_' fileNameBase '_1.mat'];
 
         %generate analysisStruct
         analysisStruct.fileName = fileName;
