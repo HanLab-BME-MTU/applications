@@ -21,11 +21,11 @@ function cdCopyMovies
 [currentDir, oldDir] = cdBiodata(1);
 oldMovieDir = uigetdir(pwd,'Please select a movie top-level directory');
 if ~ischar(oldMovieDir)
-    error('cdCopyMovies aborted by user')
+    return
 end
 newMovieDir = uigetdir(oldMovieDir,'Please select a new directory');
 if ~ischar(newMovieDir)
-    error('cdCopyMovies aborted by user')
+   return
 end
 
 % lookfor .r3d or .dv files
