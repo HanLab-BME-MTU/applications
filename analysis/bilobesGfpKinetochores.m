@@ -763,8 +763,8 @@ end
 % spindle
 nData = length(resultList);
 % symmetry: difference in intensities, difference in center of mass,
-% spindle length
-symmetry = zeros(nData,3);
+% spindle length, max# of properly aligned chromosomes
+symmetry = zeros(nData,4);
 for i=1:nData
     % generate matrix of coordinates relative to half spindle
     xx=(-14.5:14.5)'*norm(resultList(d).e_spb.*pix2mu);
@@ -793,24 +793,39 @@ for i=1:nData
      symmetry(i,2) = (posMom+negMom)/(resultList(i).n_spb/2);
      
      symmetry(i,3) = resultList(i).n_spb;
+     
+     % max number of properly aligned chromosomes: Imin*32/Itot
+     symmetry(i,4) = floor(min(posInt,negInt)/totalInt*32);
 end
 figure('Name','Symmetry plots'),
-subplot(2,2,1),
-histogram(abs(symmetry(:,1)),1,0)
+subplot(2,3,1),
+[y,x]=histc(abs(symmetry(:,1)),0:0.1:1);
+bar(0.05:0.1:1,y(1:end-1),1)
 xlabel('normalized intensity difference'),ylabel('counts')
 title('intensity difference wrt total intensity')
-subplot(2,2,2)
-histogram(abs(symmetry(:,2)),1,0)
+subplot(2,3,2)
+[y,x]=histc(abs(symmetry(:,2)),0:0.1:1);
+bar(0.05:0.1:1,y(1:end-1),1)
 xlabel('normalized moment difference'),ylabel('counts')
 title('moment difference wrt half spindle length')
-subplot(2,2,3)
+subplot(2,3,3)
+[y,x]=histc(abs(symmetry(:,4)),0:32);
+bar(0.5:32,y(1:end-1),1)
+xlim([0,32]);
+xlabel('max# of bioriented chromosomes'),ylabel('counts')
+title('max# of bioriented chromosomes')
+subplot(2,3,4)
 plot(symmetry(:,3),abs(symmetry(:,1)),'.')
 xlabel('spindle length (\mum)')
 ylabel('normalized intensity difference')
-subplot(2,2,4)
+subplot(2,3,5)
 plot(symmetry(:,3),abs(symmetry(:,2)),'.')
 xlabel('spindle length (\mum)')
 ylabel('normalized moment difference')
+subplot(2,3,6)
+plot(symmetry(:,3),abs(symmetry(:,4)),'.')
+xlabel('spindle length (\mum)')
+ylabel('max# of bioriented chromosomes')
 
 % subplot(2,2,3)
 % plot(symmetry(:,1),symmetry(:,2),'.')
