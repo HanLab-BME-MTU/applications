@@ -99,7 +99,7 @@ linklists(badTagIdx,:,:) = [];
 
 idlist = LG_deleteTag(idlist, badTagIdx, goodTimes);
 % count tags only after deleting tags!!
-nTags = length(goodTagIdx);
+nTags = size(idlist(goodTimes(1)).linklist,1);
 
 % check tagOrder
 if nargin < 5 || isempty(tagOrder)
