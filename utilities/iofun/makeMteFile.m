@@ -141,7 +141,7 @@ for iFile = 1:size(fileNameList,1)
         restOfFileName = fileName;
 
     end %check for identifier and restOfFilename
-    
+
     % check resOfFilename for spaces
     if any(regexp(restOfFileName,'\s'))
         fclose(fidTxt)
@@ -186,10 +186,13 @@ for iFile = 1:size(fileNameList,1)
                 elseif length(spbIdx) + length(cenIdx) ~= 3
                     error('bad labeling!')
                 end
+
+                % sort spb index
+                [dummy,si]=sort(labelcolor(spbIdx));
                 fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
-                    identifier, labelcolor{spbIdx(1)}, labelcolor{cenIdx}, restOfFileName);
+                    identifier, labelcolor{spbIdx(si(1))}, labelcolor{cenIdx}, restOfFileName);
                 fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
-                    identifier, labelcolor{spbIdx(2)}, labelcolor{cenIdx}, restOfFileName);
+                    identifier, labelcolor{spbIdx(si(2))}, labelcolor{cenIdx}, restOfFileName);
             case 4
                 % 2 trajectories. Spb1-cen1, spb2-cen2
                 spb1Idx = strmatch('spb1',labelcolor);
