@@ -21,9 +21,16 @@ function idlistList = cdGetInfo(varargin)
 
 %% Get input
 
-% load data
-idlistList = loadIdlistList(cdBiodata(4),...
-    struct('check','ask'));
+if nargin > 0 && isstruct(varargin{1})
+    % it's an idlistList
+    idlistList = varargin{1};
+    varargin(1) = [];
+else
+
+    % load data
+    idlistList = loadIdlistList(cdBiodata(4),...
+        struct('check','ask'));
+end
 
 nIdlists = length(idlistList);
 if nIdlists == 0
@@ -36,13 +43,16 @@ end
 % read distances, tagOrder etc.
 for i=1:nIdlists
 
-    [tagExists,tagOrder] = ismember({'spb1','cen1','cen2','spb2'},idlistList(i).idlist(1).stats.labelcolor);
+    [tagExists,tagOrder] = ismember({'spb1','cen1','spb2','cen2'},idlistList(i).idlist(1).stats.labelcolor);
 
     % calculate tagOrder for distance calculation
     idTagOrder = tagOrder(tagOrder>0);
     idTagOrder = idTagOrder - min(idTagOrder) + 1;
     nTags = length(idTagOrder);
     idlistList(i).nTags = nTags;
+    
+    idl = idlistList(i).idlist;
+    idlistList(i).goodTimes = catStruct(1,'idl.linklist(1)');
 
     if checkIdlist(idlistList(i).idlist,1)
         % new idlist
@@ -101,7 +111,7 @@ if any(strmatch('spbCenDistance',varargin))
                 dc12 = reshape(idlistList(i).distance(3,2,:),[],1,1);
                 sc12 = reshape(idlistList(i).distance(2,3,:),[],1,1);
 
-                dc1 = max(dc11,dc12);
+                dc1 = min(dc11,dc12);
                 ntp = length(dc1);
                 sc1=sc11;
                 sc1(dc12==dc1) = sc12(dc12==dc1);
@@ -115,17 +125,17 @@ if any(strmatch('spbCenDistance',varargin))
                 dc12 = reshape(idlistList(i).distance(3,2,:),[],1,1);
                 sc12 = reshape(idlistList(i).distance(2,3,:),[],1,1);
 
-                dc1 = max(dc11,dc12);
+                dc1 = min(dc11,dc12);
                 ntp = length(dc1);
                 sc1=sc11;
                 sc1(dc12==dc1) = sc12(dc12==dc1);
 
-                dc21 = reshape(idlistList(i).distance(2,1,:),[],1,1);
-                sc21 = reshape(idlistList(i).distance(1,2,:),[],1,1);
-                dc22 = reshape(idlistList(i).distance(3,2,:),[],1,1);
-                sc22 = reshape(idlistList(i).distance(2,3,:),[],1,1);
+                dc21 = reshape(idlistList(i).distance(4,1,:),[],1,1);
+                sc21 = reshape(idlistList(i).distance(1,4,:),[],1,1);
+                dc22 = reshape(idlistList(i).distance(4,3,:),[],1,1);
+                sc22 = reshape(idlistList(i).distance(3,4,:),[],1,1);
 
-                dc2 = max(dc21,dc22);
+                dc2 = min(dc21,dc22);
                 %ntp = length(dc2);
                 sc2=sc21;
                 sc2(dc22==dc2) = sc22(dc22==dc2);
@@ -152,13 +162,13 @@ if any(strmatch('spbCenDistance',varargin))
     histogram(allDist(:,4),1,0);
 
     [rm,rs] = robustMean(allDist(:,4));
-    fprintf('Average Distance : %1.1f%s%1.1f um\n',rm,char(177),rs)
+    fprintf('Average Robust Distance : %1.2f%s%1.2f um\n',rm,char(177),rs)
     [rm,rs] = robustMean(allStats(:,2));
-    fprintf('Average Sigma    : %1.1f%s%1.1f um\n\n\n',rm,char(177),rs)
+    fprintf('Average Robust Sigma    : %1.2f%s%1.2f um\n\n\n',rm,char(177),rs)
 
     % individual stats
     for i=1:nIdlists
-        fprintf('Stats for %s : %1.1f%s%1.1f %%out:%2.1f n=%i\n',...
+        fprintf('Stats for %s : %1.2f%s%1.2f %%out:%2.1f n=%i\n',...
             idlistList(i).name,idlistList(i).spbCenDistanceStats(1),...
             char(177),idlistList(i).spbCenDistanceStats(2:end));
     end
