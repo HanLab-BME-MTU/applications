@@ -76,7 +76,7 @@ else
 end
 if nargin < 2 || isempty(status)
     status = zeros(makiNumPossibleTasks,1);
-    status(3) = 1; % do only initCoord for now as standard
+    status(1:3) = 1; % do cropping and initCoords as defaults
 else
     status = status(:);
 end
