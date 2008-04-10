@@ -1,14 +1,21 @@
 function idlistList = cdGetInfo(varargin)
 %CDGETINFO allows extracting specific information from idlists
 %
-% SYNOPSIS: out = cdGetInfo(identifier1, identifier2,...)
+% SYNOPSIS: out = cdGetInfo('identifier1', 'identifier2',...)
+%           out = cdGetInfo(idlistList,...)
+%           out = cdGetInfo(...,verbose)
 %
 % INPUT identifiers: strings requesting specific output
-%       spbCenDistance : plots histogram, shows mean/std/median/%out of
-%           distance of cen to closest spb.
-%           output: movieIdx, t, cenIdx, distance, distanceSigma
+%       'spbCenDistance' : distance of cen to closest spb tag
+%           display: plots histogram, shows mean/std/median/%outliers
+%           output: movieIdx, t, cenIdx, distance, distanceSigma,
+%                   distance-mean
 %
-% OUTPUT idlistList with additional fields named as input
+%       verbose: if 0, nothing is displayed
+%       idlistList: idlistList structure from loadIdlistList
+%
+% OUTPUT out: idlistList with additional fields named according to
+%             identifier
 %
 % REMARKS
 %
@@ -18,6 +25,9 @@ function idlistList = cdGetInfo(varargin)
 % DATE: 08-Apr-2008
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Defaults
+def_verbose = 1;
 
 %% Get input
 
@@ -32,6 +42,36 @@ else
         struct('check','ask'));
 end
 
+% check for verbose - can add more numeric switches later
+doneChecking = false;
+switchCell = cell(1,1); % switch cell has length(allPossibleSwitches)
+ct = 0;
+while ~doneChecking
+    if isempty(varargin{end}) || isnumeric(varargin{end})
+        % found a switch
+        ct = ct + 1;
+        switchCell{ct} = varargin{end};
+        varargin(end) = []; % remove switch
+    else
+        % no more switches
+        doneChecking = true;
+    end
+    % check for empty varargin
+    numArgIn = length(varargin);
+    if numArgIn == 0
+        doneChecking = true;
+    end
+end % search for switches
+
+% flip around and shorten switchCell
+switchCell = switchCell(ct:-1:1);
+nSwitches = length(switchCell);
+if nSwitches > 0 && ~isempty(switchCell{1})
+    verbose = switchCell{1};
+else
+    verbose = def_verbose;
+end
+
 nIdlists = length(idlistList);
 if nIdlists == 0
     return
@@ -43,14 +83,19 @@ end
 % read distances, tagOrder etc.
 for i=1:nIdlists
 
-    [tagExists,tagOrder] = ismember({'spb1','cen1','spb2','cen2'},idlistList(i).idlist(1).stats.labelcolor);
+    % support cen1*
+    if any(strmatch('cen1*',idlistList(i).idlist(1).stats.labelcolor))
+        [tagExists,tagOrder] = ismember({'spb1','cen1*','spb2','xxx'},idlistList(i).idlist(1).stats.labelcolor);
+    else
+        [tagExists,tagOrder] = ismember({'spb1','cen1','spb2','cen2'},idlistList(i).idlist(1).stats.labelcolor);
+    end
 
     % calculate tagOrder for distance calculation
     idTagOrder = tagOrder(tagOrder>0);
     idTagOrder = idTagOrder - min(idTagOrder) + 1;
     nTags = length(idTagOrder);
     idlistList(i).nTags = nTags;
-    
+
     idl = idlistList(i).idlist;
     idlistList(i).goodTimes = catStruct(1,'idl.linklist(1)');
 
@@ -103,7 +148,7 @@ if any(strmatch('spbCenDistance',varargin))
                 sc1 = reshape(idlistList(i).distance(1,2,:),[],1,1);
                 ntp = length(dc1);
                 idlistList(i).spbCenDistance = [ones(ntp,1)*i,(1:ntp)',...
-                    ones(ntp,1)*1,dc1,sc1];
+                    ones(ntp,1)*1,dc1,sc1,dc1-robustMean(dc1)];
             case 3
                 % have to compare distances.
                 dc11 = reshape(idlistList(i).distance(2,1,:),[],1,1);
@@ -117,7 +162,7 @@ if any(strmatch('spbCenDistance',varargin))
                 sc1(dc12==dc1) = sc12(dc12==dc1);
 
                 idlistList(i).spbCenDistance = [ones(ntp,1)*i,(1:ntp)',...
-                    ones(ntp,1)*1,dc1,sc1];
+                    ones(ntp,1)*1,dc1,sc1,dc1-robustMean(dc1)];
             case 4
                 % do the same as case 3, but for two cen tags
                 dc11 = reshape(idlistList(i).distance(2,1,:),[],1,1);
@@ -141,36 +186,42 @@ if any(strmatch('spbCenDistance',varargin))
                 sc2(dc22==dc2) = sc22(dc22==dc2);
 
                 idlistList(i).spbCenDistance = [ones(ntp,1)*i,(1:ntp)',...
-                    ones(ntp,1)*1,dc1,sc1;...
+                    ones(ntp,1)*1,dc1,sc1,dc1-robustMean(dc1);...
                     ones(ntp,1)*i,(1:ntp)',...
-                    ones(ntp,1)*2,dc2,sc2;];
+                    ones(ntp,1)*2,dc2,sc2,dc2-robustMean(dc2);];
         end
 
-        % do distance stats: robustMean, robustStd, outlier%, n
+        % do distance stats: robustMean, robustStd, outlier%, n,
+        % average uncertainty
         [rm,rs,ii,oo] = robustMean(idlistList(i).spbCenDistance(:,4));
         oo = length(oo);ii = length(ii);
-        idlistList(i).spbCenDistanceStats = [rm,rs,oo/(ii+oo),ii+oo];
+        au = robustMean(idlistList(i).spbCenDistance(:,5));
+        idlistList(i).spbCenDistanceStats = [rm,rs,oo/(ii+oo),ii+oo,au];
 
 
     end
+    if verbose
+        allDist = cat(1,idlistList.spbCenDistance);
+        allStats = cat(1,idlistList.spbCenDistanceStats);
 
-    allDist = cat(1,idlistList.spbCenDistance);
-    allStats = cat(1,idlistList.spbCenDistanceStats);
+        % display overall stats and histogram
+        figure('Name','SPB-CEN distances')
+        histogram(allDist(:,4),1,0);
 
-    % display overall stats and histogram
-    figure('Name','SPB-CEN distances')
-    histogram(allDist(:,4),1,0);
+        [rm,rs,ii,oo] = robustMean(allDist(:,4));
+        oo = length(oo);ii = length(ii);
+        au = robustMean(allDist(:,5));
+        fprintf('Average Robust Distance    : %1.3f%s%1.3f um %%out:%2.1f n=%3i avgUnc: %1.3f\n',rm,char(177),rs,oo/(ii+oo),ii+oo,au)
+        [rm,rs] = robustMean(allStats(:,2));
+        fprintf('Average Robust Sigma (old) : %1.3f%s%1.3f um\n\',rm,char(177),rs)
+        [rm,rs,ii,oo] = robustMean(allDist(:,6));
+        fprintf('Average Robust Sigma (new) : %1.3f%s%1.3f um\n\n\n',rs)
 
-    [rm,rs] = robustMean(allDist(:,4));
-    fprintf('Average Robust Distance : %1.2f%s%1.2f um\n',rm,char(177),rs)
-    [rm,rs] = robustMean(allStats(:,2));
-    fprintf('Average Robust Sigma    : %1.2f%s%1.2f um\n\n\n',rm,char(177),rs)
-
-    % individual stats
-    for i=1:nIdlists
-        fprintf('Stats for %s : %1.2f%s%1.2f %%out:%2.1f n=%i\n',...
-            idlistList(i).name,idlistList(i).spbCenDistanceStats(1),...
-            char(177),idlistList(i).spbCenDistanceStats(2:end));
+        % individual stats
+        for i=1:nIdlists
+            fprintf('Stats for %s : %1.3f%s%1.3f %%out:%2.1f n=%3i avgUnc: %1.3f\n',...
+                idlistList(i).name,idlistList(i).spbCenDistanceStats(1),...
+                char(177),idlistList(i).spbCenDistanceStats(2:end));
+        end
     end
-
 end
