@@ -795,7 +795,7 @@ for i=1:nData
      symmetry(i,3) = resultList(i).n_spb;
      
      % max number of properly aligned chromosomes: Imin*32/Itot
-     symmetry(i,4) = floor(min(posInt,negInt)/totalInt*32);
+     symmetry(i,4) = round(min(posInt,negInt)/totalInt*32);
 end
 figure('Name','Symmetry plots'),
 subplot(2,3,1),
