@@ -215,7 +215,7 @@ if any(strmatch('spbCenDistance',varargin))
         [rm,rs] = robustMean(allStats(:,2));
         fprintf('Average Robust Sigma (old) : %1.3f%s%1.3f um\n\',rm,char(177),rs)
         [rm,rs,ii,oo] = robustMean(allDist(:,6));
-        fprintf('Average Robust Sigma (new) : %1.3f%s%1.3f um\n\n\n',rs)
+        fprintf('Average Robust Sigma (new) : %1.3f um\n\n\n',rs)
 
         % individual stats
         for i=1:nIdlists
