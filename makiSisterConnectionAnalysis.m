@@ -80,7 +80,7 @@ end
 numSistersTot = sum(numSisters);
 
 %get time between frames
-timeLapse = round(dataStruct(1).dataProperties.timeLapse);
+timeLapse = round(2*dataStruct(1).dataProperties.timeLapse)/2;
 
 %% collect sister angles and distances
 
@@ -397,7 +397,7 @@ for iLabel = 1 : 3
 end
 
 %define maximum lag
-maxLag = 10;
+maxLag = 20;
 
 %calculation
 for iLabel = goodLabel
@@ -540,7 +540,11 @@ save(fullfile(dir2SaveRes,fileName),'analysisStruct');
 if verbose
 
     %get number of frames in each movie
-    numFrames = dataStruct(1).dataProperties.movieSize(end);
+    numFrames = NaN(numMovies,1);
+    for iMovie = 1 : numMovies
+        numFrames(iMovie) = dataStruct(iMovie).dataProperties.movieSize(end);
+    end
+    numFrames = min(numFrames);
 
     %% distance stuff %%
     
@@ -556,8 +560,10 @@ if verbose
         hold on
 
         %put all distances together in one matrix
-        eval(['distanceMat = [sisterDist' label{iLabel,1} '.observations];'])
-        distanceMat = distanceMat(:,1:2:end);
+        distanceMat = [];
+        for iSis = 1 : eval(['length(sisterDist' label{iLabel,1} ')'])
+            eval(['distanceMat = [distanceMat sisterDist' label{iLabel,1} '(iSis).observations(1:numFrames,1)];'])
+        end
 
         %plot distance over time for all sisters
         plot((0:numFrames-1)*timeLapse,distanceMat);
@@ -623,7 +629,10 @@ if verbose
         hold on
 
         %put all angles with normal together in one matrix
-        eval(['angleMat = [angleNormal' label{iLabel,1} '.observations];']);
+        angleMat = [];
+        for iSis = 1 : eval(['length(angleNormal' label{iLabel,1} ')'])
+            eval(['angleMat = [angleMat angleNormal' label{iLabel,1} '(iSis).observations(1:numFrames,1)];'])
+        end
 
         %plot angles with normal over time for all sisters
         plot((0:numFrames-1)*timeLapse,angleMat);
@@ -670,7 +679,10 @@ if verbose
         hold on
 
         %put all angular velocities together in one matrix
-        eval(['angleMat = [angularVel' label{iLabel,1} '.observations];'])
+        angleMat = [];
+        for iSis = 1 : eval(['length(angularVel' label{iLabel,1} ')'])
+            eval(['angleMat = [angleMat angularVel' label{iLabel,1} '(iSis).observations(1:numFrames-1,1)];'])
+        end
 
         %plot angular velocities over time for all sisters
         plot((0:numFrames-2)*timeLapse,angleMat);

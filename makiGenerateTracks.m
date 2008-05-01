@@ -119,15 +119,15 @@ end
 
 %get tracking parameters
 gapCloseParam = dataStruct.dataProperties.tracksParam.gapCloseParam;
-costMatParam = dataStruct.dataProperties.tracksParam.costMatParam;
-useLocalDensity = dataStruct.dataProperties.tracksParam.useLocalDensity;
+costMatrices = dataStruct.dataProperties.tracksParam.costMatrices;
+kalmanFunctions = dataStruct.dataProperties.tracksParam.kalmanFunctions;
 
 %call tracker
 try
-
+    
     %track the kinetochores
-    tracks = trackCloseGapsKalman(movieInfo,costMatParam,...
-        gapCloseParam,[],useLocalDensity,0,3,0,0);
+    tracks = trackCloseGapsKalman(movieInfo,...
+        costMatrices,gapCloseParam,kalmanFunctions,3,0,0);
 
     %replace the coordinate used for tracking (whether the rotated
     %coordinates or the original coordinates shifted by center of mass) by
@@ -163,6 +163,7 @@ try
     end %(for iTrack = 1 : numTracks)
 
 catch
+    disp('error in tracking')
 end
 
 %store tracks in dataStruct

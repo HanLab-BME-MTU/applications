@@ -516,6 +516,9 @@ if isfield(dataPropertiesTmp,'tracksParam') %if tracksParam have been assigned p
     if isfield(tracksParamTmp,'costMatParam')
         minRadiusTmp = tracksParamTmp.costMatParam.minSearchRadiusL;
         maxRadiusTmp = tracksParamTmp.costMatParam.maxSearchRadiusL;
+    elseif isfield(tracksParamTmp,'costMatrices')
+        minRadiusTmp = tracksParamTmp.costMatrices(1).parameters.minSearchRadius;
+        maxRadiusTmp = tracksParamTmp.costMatrices(1).parameters.maxSearchRadius;        
     else
         minRadiusTmp = minRadius_def;
         maxRadiusTmp = maxRadius_def;
@@ -567,38 +570,44 @@ gapCloseParam.minTrackLen = 1;
 
 %assign cost matrix parameters for linking spots between consecutive
 %frames
-costMatParam.minSearchRadiusL = minRadiusTmp;
-costMatParam.maxSearchRadiusL = maxRadiusTmp;
-costMatParam.brownStdMultL = 3.5;
-costMatParam.closestDistScaleL = 2;
-costMatParam.maxStdMultL = 100;
+costMatrices(1).funcName = 'costMatLinearMotionLink';
+parameters.linearMotion = 0;
+parameters.minSearchRadius = minRadiusTmp;
+parameters.maxSearchRadius = maxRadiusTmp;
+parameters.brownStdMult = 3.5;
+parameters.useLocalDensity = 1;
+parameters.nnWindow = gapCloseParam.timeWindow;
+costMatrices(1).parameters = parameters;
+clear parameters
 
 %assign cost matrix parameters for closing gaps and (in principle)
 %merging and splitting
-costMatParam.minSearchRadiusCG = minRadiusTmp;
-costMatParam.maxSearchRadiusCG = maxRadiusTmp;
-costMatParam.brownStdMultCG = 3.5*ones(gapCloseParam.timeWindow,1);
-costMatParam.linStdMultCG = 3.5*ones(gapCloseParam.timeWindow,1);
-costMatParam.timeReachConfB = min(2,gapCloseParam.timeWindow);
-costMatParam.timeReachConfL = 1;
-costMatParam.closestDistScaleCG = 2;
-costMatParam.maxStdMultCG = 100;
-costMatParam.lenForClassify = 10;
-costMatParam.maxAngleVV = 20;
-costMatParam.maxAngleVD = 20;
-costMatParam.ampRatioLimitCG = [0.65 4];
+costMatrices(2).funcName = 'costMatLinearMotionCloseGaps';
+parameters.linearMotion = 0;
+parameters.minSearchRadius = minRadiusTmp;
+parameters.maxSearchRadius = maxRadiusTmp;
+parameters.brownStdMult = 3.5*ones(gapCloseParam.timeWindow,1);
+parameters.timeReachConfB = min(2,gapCloseParam.timeWindow);
+parameters.lenForClassify = 10;
+parameters.ampRatioLimit = [0.65 4];
+parameters.useLocalDensity = 1;
+parameters.nnWindow = gapCloseParam.timeWindow;
+parameters.linStdMult = 3.5*ones(gapCloseParam.timeWindow,1);
+parameters.timeReachConfL = 1;
+parameters.maxAngleVV = 45;
+costMatrices(2).parameters = parameters;
+clear parameters
 
-%assign parameters for using local density to expand search radius
-useLocalDensity.link = 1;
-useLocalDensity.cg = 1;
-useLocalDensity.nnWindowL = gapCloseParam.timeWindow;
-useLocalDensity.nnWindowCG = gapCloseParam.timeWindow;
+%assign Kalman filter function names
+kalmanFunctions.reserveMem = 'kalmanResMemLM';
+kalmanFunctions.initialize = 'kalmanInitLinearMotion';
+kalmanFunctions.calcGain = 'kalmanGainLinearMotion';
 
 %save tracking parameters in dataStruct
 tracksParam.rotate = rotate;
 tracksParam.gapCloseParam = gapCloseParam;
-tracksParam.costMatParam = costMatParam;
-tracksParam.useLocalDensity = useLocalDensity;
+tracksParam.costMatrices = costMatrices;
+tracksParam.kalmanFunctions = kalmanFunctions;
 dataStruct.dataProperties.tracksParam = tracksParam;
 
 %% subfunction to ask for input for groupSisters

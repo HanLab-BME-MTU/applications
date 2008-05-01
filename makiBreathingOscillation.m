@@ -70,7 +70,7 @@ end
 numSistersTot = sum(numSisters);
 
 %get time between frames
-timeLapse = round(dataStruct(1).dataProperties.timeLapse);
+timeLapse = round(2*dataStruct(1).dataProperties.timeLapse)/2;
 
 %% collect sister breathing and oscillation information
 
@@ -1638,100 +1638,154 @@ if verbose
             for iState = 1 : 3
 
                 subplot(6,9,(iState-1)*3+1)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.after.All.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.after.All.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('overall','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+2)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.after.Same.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.after.Same.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 title(['After ' pointState{iState} ' point'],'Fontsize',12)
                 xlabel('r.r.+l.l.','Fontsize',8);
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+3)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.after.Opp.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.after.Opp.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('r.l.+l.r.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 
                 subplot(6,9,(iState-1)*3+10)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.after.BothRight.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.after.BothRight.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('r.r.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+11)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.after.BothLeft.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.after.BothLeft.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('l.l.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+12)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.after.Approach.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.after.Approach.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('r.l.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 
                 subplot(6,9,(iState-1)*3+19)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.after.Separate.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.after.Separate.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('l.r.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+20)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.after.Tumble.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.after.Tumble.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('tumble','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+21)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.after.NoTumble.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.after.NoTumble.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('no tumble','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 
                 subplot(6,9,(iState-1)*3+28)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.before.All.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.before.All.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('overall','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+29)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.before.Same.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.before.Same.distribution(:,iColumn),[],0)'])
+                catch
+                end    
                 title(['Before ' pointState{iState} ' point'],'Fontsize',12)
                 xlabel('r.r.+l.l.','Fontsize',8);
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+30)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.before.Opp.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.before.Opp.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('r.l.+l.r.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 
                 subplot(6,9,(iState-1)*3+37)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.before.BothRight.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.before.BothRight.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('r.r.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+38)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.before.BothLeft.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.before.BothLeft.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('l.l.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+39)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.before.Approach.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.before.Approach.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('r.l.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 
                 subplot(6,9,(iState-1)*3+46)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.before.Separate.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.before.Separate.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('l.r.','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+47)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.before.Tumble.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.before.Tumble.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('tumble','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+48)
-                eval(['histogram(' pointState{iState} 'PointChar' ...
-                    label{iLabel,1} '.before.NoTumble.distribution(:,iColumn),[],[],0)'])
+                try
+                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                        label{iLabel,1} '.before.NoTumble.distribution(:,iColumn),[],0)'])
+                catch
+                end
                 xlabel('no tumble','Fontsize',8)
                 h = gca; set(h,'Fontsize',6);
 
@@ -1742,6 +1796,8 @@ if verbose
     end %(for iLabel = goodLabel)
 
 end
+
+figure
 
 %% ~~~ the end ~~~ %%
 

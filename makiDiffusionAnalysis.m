@@ -64,7 +64,7 @@ end
 numFramesMax = max(numFrames);
 
 %get time between frames
-timeLapse = round(dataStruct(1).dataProperties.timeLapse);
+timeLapse = round(2*dataStruct(1).dataProperties.timeLapse)/2;
 
 %% collect tracks
 

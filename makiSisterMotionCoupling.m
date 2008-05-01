@@ -435,7 +435,7 @@ for iLabel = 1 : 3
 end
 
 %define maximum lag
-maxLag = 10;
+maxLag = 20;
 
 %calculation
 for iLabel = goodLabel
@@ -548,7 +548,7 @@ save(fullfile(dir2SaveRes,fileName),'analysisStruct');
 if verbose
 
     %get time between frames
-    timeLapse = round(dataStruct(1).dataProperties.timeLapse);
+    timeLapse = round(2*dataStruct(1).dataProperties.timeLapse)/2;
     
     for iLabel = goodLabel
 
