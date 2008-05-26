@@ -8,7 +8,8 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 %                     .rawMovieName - may contain the actual movie
 %                     .rawMoviePath
 %                     .dataProperties
-%                   verbose: whether or not to plot cutoff plots 
+%                   Alternatively, a makiData object can be passed.
+%                   verbose: whether or not to plot cutoff plots
 %                       (default: 0)
 %
 % OUTPUT dataStruct.initCoords: Structure of length nTimepoints with fields
@@ -47,10 +48,16 @@ end
 %% COLLECT INPUT & SETUP
 %=========================
 
-if ischar(dataStruct.rawMovieName)
-    rawMovie = fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName);
+if isobject(dataStruct)
+    % if dataStruct is an object, movie is in imageData
+    dataObject = true;
 else
-    rawMovie = [];
+    dataObject = false;
+    if ischar(dataStruct.rawMovieName)
+        rawMovie = fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName);
+    else
+        rawMovie = [];
+    end
 end
 dataProperties = dataStruct.dataProperties;
 
@@ -70,8 +77,8 @@ noiseMask = {...
     ones(1,1,dataProperties.FILTERPRM(6))./dataProperties.FILTERPRM(6),...
     };
 
-    % for conversion to microns in the end: get pixelSize
-    pixelSize = [dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,...
+% for conversion to microns in the end: get pixelSize
+pixelSize = [dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,...
     dataProperties.PIXELSIZE_Z];
 
 % get halfPatchSize to adjust centroid result. The center pixel of a 7x5
@@ -101,20 +108,22 @@ for t=1:nTimepoints
     % background = current 10xPSF-filtered movie frame
     % amplitude = filtered - background
     % noise = locAvg(var(raw-filtered))
-    
-    if isempty(rawMovie)
+
+    if dataObject
+        raw = dataStruct.imageData.getFrame(t);
+    elseif isempty(rawMovie)
         % movie has been passed directly
         raw = dataStruct.rawMovieName(:,:,:,:,t);
     else
-    raw = cdLoadMovie({rawMovie,'raw'},[],struct('frames2load',{{t}},...
-        'crop',dataProperties.crop,'maxSize',dataProperties.maxSize));
+        raw = cdLoadMovie({rawMovie,'raw'},[],struct('frames2load',{{t}},...
+            'crop',dataProperties.crop,'maxSize',dataProperties.maxSize));
     end
     raw = raw - min(raw(:)); %remove offset
     % filter movie with gauss-filter
     filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),1,signalFilter);
 
     background = fastGauss3D(raw,[],backgroundFilterParms(4:6),1,backgroundFilter);
-    
+
     amplitude = filtered - background;
 
     % noise is local average (averaged over filter support) of squared
@@ -134,9 +143,9 @@ for t=1:nTimepoints
     % only take 500 highest amplitudes. This will leave plenty of noise
     % spots, but it will avoid huge arrays
     initCoordTmp = initCoordTmp(1:min(dataProperties.MAXSPOTS,size(initCoordTmp,1)),:);
-    
-    
-    % loop through all to get sub-pixel positions. 
+
+
+    % loop through all to get sub-pixel positions.
     raw = raw - background; %overwrite raw to save memory
     for iSpot = 1:size(initCoordTmp,1)
         % read volume around coordinate
@@ -148,18 +157,18 @@ for t=1:nTimepoints
         initCoordTmp(iSpot,1:3)=...
             initCoordTmp(iSpot,1:3) + ...
             centroid3D(patch) - halfPatchSize;
-        % amplitude guess is integral. 
+        % amplitude guess is integral.
         initCoordTmp(iSpot,6) = mean(patch(:));
     end
-    
+
     % use maxPix-amplitude to calculate cutoff - meanInt is not consistent
     % with the rest of the measures!
-     initCoordTmp = [initCoordTmp,...
-            initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)),...
-            initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)./max(initCoordTmp(:,4),eps))];
-        initCoordRaw{t} = initCoordTmp;
+    initCoordTmp = [initCoordTmp,...
+        initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)),...
+        initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)./max(initCoordTmp(:,4),eps))];
+    initCoordRaw{t} = initCoordTmp;
 
-    
+
     progressText(t/nTimepoints);
 end % loop timepoints
 
@@ -189,7 +198,9 @@ else
     error('less than 25 spots per frame found. makiInitCoord failed')
 end
 % remember the cutoff criterion used
-dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];
+if ~dataObject
+    dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];
+end
 
 % plot all
 if verbose == 2
@@ -210,65 +221,65 @@ if verbose == 2
     end
     title(ah(cutoffIdx),'cutoff selected')
     % if we want to look at this, we should do scatterCloud!!
-%     figure('Name',sprintf('cutoff-comparison for %s',dataStruct.projectName))
-%     minC = min(allCoord,[],1);
-%     maxC = max(allCoord,[],1);
-%     subplot(2,2,1)
-%     plot(allCoord(:,4),allCoord(:,6),'.')
-%     hold on, plot([minC(4),maxC(4)],[cutoff2,cutoff2])
-%     hold on, plot([cutoff1, cutoff1],[minC(6),maxC(6)])
-%     subplot(2,2,2)
-%     plot(allCoord(:,7),allCoord(:,6),'.')
-%     hold on, plot([minC(7),maxC(7)],[cutoff2,cutoff2])
-%     hold on, plot([cutoff3, cutoff3],[minC(6),maxC(6)])
-%     subplot(2,2,3)
-%     plot(allCoord(:,4),allCoord(:,7),'.')
-%     hold on, plot([minC(4),maxC(4)],[cutoff3,cutoff3])
-%     hold on, plot([cutoff1, cutoff1],[minC(7),maxC(7)])
+    %     figure('Name',sprintf('cutoff-comparison for %s',dataStruct.projectName))
+    %     minC = min(allCoord,[],1);
+    %     maxC = max(allCoord,[],1);
+    %     subplot(2,2,1)
+    %     plot(allCoord(:,4),allCoord(:,6),'.')
+    %     hold on, plot([minC(4),maxC(4)],[cutoff2,cutoff2])
+    %     hold on, plot([cutoff1, cutoff1],[minC(6),maxC(6)])
+    %     subplot(2,2,2)
+    %     plot(allCoord(:,7),allCoord(:,6),'.')
+    %     hold on, plot([minC(7),maxC(7)],[cutoff2,cutoff2])
+    %     hold on, plot([cutoff3, cutoff3],[minC(6),maxC(6)])
+    %     subplot(2,2,3)
+    %     plot(allCoord(:,4),allCoord(:,7),'.')
+    %     hold on, plot([minC(4),maxC(4)],[cutoff3,cutoff3])
+    %     hold on, plot([cutoff1, cutoff1],[minC(7),maxC(7)])
 end
 
 
 
 % loop and store only good locMax. Before that, get z-correction
 % get correction from .log file
-    % load $MOVIENAME.log, parse for start coordinate and determine focus
-    % adjustment. This should give a z0-value for every frame that we can
-    % use to correct the um-coords for tracking
-    
+% load $MOVIENAME.log, parse for start coordinate and determine focus
+% adjustment. This should give a z0-value for every frame that we can
+% use to correct the um-coords for tracking
+
 
 
 for t=1:nTimepoints
     goodIdxL = initCoordRaw{t}(:,cutoffCol) > cutoff(cutoffIdx);
-    
+
     % count good spots
     dataStruct.initCoord(t).nSpots = sum(goodIdxL);
-    
+
     % store pixel coords. Uncertainty is 0.5 pix
     dataStruct.initCoord(t).allCoordPix = ...
         [initCoordRaw{t}(goodIdxL,1:3),...
         0.25*ones(dataStruct.initCoord(t).nSpots,3)];
-    
-    % store estimated amplitude and noise 
+
+    % store estimated amplitude and noise
     dataStruct.initCoord(t).initAmp = initCoordRaw{t}(goodIdxL,4:5);
-    
+
     % store integral amplitude
     dataStruct.initCoord(t).amp = [initCoordRaw{t}(goodIdxL,6),...
         zeros(dataStruct.initCoord(t).nSpots,1)];
-    
+
     % store correction
     dataStruct.initCoord(t).correctionMu = 0; % for now
-    
+
     % store coords in microns and correct
     dataStruct.initCoord(t).allCoord = ...
         dataStruct.initCoord(t).allCoordPix.*...
         repmat(pixelSize,dataStruct.initCoord(t).nSpots,2);
     dataStruct.initCoord(t).allCoord(:,3) = ...
         dataStruct.initCoord(t).allCoord(:,3) +...
-        dataStruct.initCoord(t).correctionMu; 
-    
-    
-    
-    
+        dataStruct.initCoord(t).correctionMu;
+
+
+
+
     % store 2 spots above and below cutoff in case we want to get amplitude
     % cutoff for detector later. Note: the spots may be not exactly the two
     % above or below, since we sorted the data according to amplitudes
