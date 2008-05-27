@@ -39,7 +39,8 @@ end
 
 % loop through all time points
 for t=1:tsteps
-    fMov(:,:,:,1,t)=fastGauss3D(mov(:,:,:,1,t),par(1:3),par(4:6),1);
+    % use old border correction for reasons of consistency
+    fMov(:,:,:,1,t)=fastGauss3D(mov(:,:,:,1,t),par(1:3),par(4:6),2);
 
     %remove  bg
     curT=fMov(:,:,:,1,t);
