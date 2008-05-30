@@ -118,18 +118,52 @@ for t=1:nTimepoints
         raw = cdLoadMovie({rawMovie,'raw'},[],struct('frames2load',{{t}},...
             'crop',dataProperties.crop,'maxSize',dataProperties.maxSize));
     end
-    raw = raw - min(raw(:)); %remove offset
+    %remove offset
+    offset = min(raw(:));
+    raw = raw -  offset;
     % filter movie with gauss-filter
-    filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),1,signalFilter);
+    if dataObject
+        % there will be NaNs in the masked image. Therefore, request
+        % filtered data from imageDataObject. Ideally, loadType is set to
+        % fcn or reqKeep
+        
+        background = dataStruct.imageData.getFrame(t,'',{[],backgroundFilterParms(4:6),1,backgroundFilter})-offset;
+        
+        % mask signal pixels, then recalculate background
+        sigMask = raw>background;
+        % remove some of the spurious hits. Use 2d mask for speed and
+        % memory (3d strel won't work on binary image with imopen)
+        sigMask = imopen(sigMask,strel('disk',1));
+        rawMsk = raw.*~sigMask;
+        clear sigMask
+        % fill holes. ConvNan can in principle handle holes, but they might
+        % be on the large side. Similarly, if fillZeroHoles misses a few
+        % zeros, convNan can help out
+        for z=1:dataProperties.movieSize(3)
+            rawMsk(:,:,z)=blkproc(rawMsk(:,:,z),[21 21],@fillZeroHoles);
+        end
+        rawMsk(rawMsk==0) = NaN;
+        background = fastGauss3D(rawMsk,[],dataProperties.FILTERPRM(4:6),1,signalFilter);
+        %background = convNan(rawMsk,backgroundFilter,backgroundFilterParms(4:6),1);
+            filtered = dataStruct.imageData.getFrame(t,'',{[],dataProperties.FILTERPRM(4:6),1,signalFilter})-offset;
+    else
+    filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2,signalFilter);
 
-    background = fastGauss3D(raw,[],backgroundFilterParms(4:6),1,backgroundFilter);
+    background = fastGauss3D(raw,[],backgroundFilterParms(4:6),2,backgroundFilter);
+    end
 
     amplitude = filtered - background;
 
     % noise is local average (averaged over filter support) of squared
     % residuals of raw-filtered image
     noise = (raw - filtered).^2;
+    if dataObject
+        % careful because of NaN-mask
+        %noise = convNan(noise,noiseMask,dataProperties.FILTERPRM(4:6));
+         noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),1,noiseMask);
+    else
     noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),1,noiseMask);
+    end
 
     % find local maxima
     locMax = loc_max3Df(filtered,[3 3 3]);
@@ -158,7 +192,7 @@ for t=1:nTimepoints
             initCoordTmp(iSpot,1:3) + ...
             centroid3D(patch) - halfPatchSize;
         % amplitude guess is integral.
-        initCoordTmp(iSpot,6) = mean(patch(:));
+        initCoordTmp(iSpot,6) = nanmean(patch(:));
     end
 
     % use maxPix-amplitude to calculate cutoff - meanInt is not consistent
@@ -208,12 +242,18 @@ if verbose == 2
     ah(1) = subplot(3,1,1);
     set(ah(1),'NextPlot','add')
     plot(ah(1),[1,nTimepoints],[cutoff(1) cutoff(1)]);
+    xlabel('timepoints')
+    ylabel('amplitude - signal in grey values')
     ah(2) = subplot(3,1,2);
     set(ah(2),'NextPlot','add')
     plot(ah(2),[1,nTimepoints],[cutoff(2) cutoff(2)]);
+    xlabel('timepoints')
+    ylabel('amplitude/sqrt(nse) - SNR for dark noise')
     ah(3) = subplot(3,1,3);
     set(ah(3),'NextPlot','add')
     plot(ah(3),[1,nTimepoints],[cutoff(3) cutoff(3)]);
+    xlabel('timepoints')
+    ylabel('amplitude/sqrt(nse/amp) - SNR for poisson noise')
     for t=1:nTimepoints
         plot(ah(1),t,initCoordRaw{t}(:,4),'+')
         plot(ah(2),t,initCoordRaw{t}(:,7),'+')
