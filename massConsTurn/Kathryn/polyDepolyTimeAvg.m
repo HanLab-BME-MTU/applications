@@ -1,4 +1,4 @@
-function polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,startFrm,endFrm)
+function polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,startFrm,endFrm,movieName,mkMov)
 %POLYDEPOLYTIMEAVG: time average kinetic maps and calculate mean total poly/depoly over frame range
 %
 % SYNOPSIS: [polyDepolySumAvg]=polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,startFrm,endFrm)
@@ -43,22 +43,23 @@ end
 
 if nargin<4 || isempty(startFrm)
     startFrm=1; % default
-    disp(['polyDepolyTimeAvg: startFrm = ' num2str(startFrm)])
 end
 
 if nargin<5 || isempty(endFrm)
-    endFrm=[]; % will assign to nTotalFrames 
-    disp(['polyDepolyTimeAvg: endFrm will number of frames in directory'])
+    endFrm=[]; % will assign to nTotalFrames
 end
 
 % create subdirectory for time averaging the spatially averaged maps
 % (first remove old directory if it exists)
-turnTmAvgDir=[runInfo.turnDir filesep 'turnTmAvgDir'];
+turnTmAvgDir=[runInfo.turnDir filesep 'turnTmAvgDir_' num2str(nFrms2Avg) '_' num2str(timeStepSize)];
 if isdir(turnTmAvgDir)
     rmdir(turnTmAvgDir,'s');
 end
 tmMatsDir=[turnTmAvgDir filesep 'mapMats'];
 mkdir(tmMatsDir);
+% make subdirectory for storing max-edge cell masks over the time interval
+tmCellMasksDir=[tmMatsDir filesep 'cell_mask'];
+mkdir(tmCellMasksDir);
 
 % create subdirectory for histograms showing the kinetic activity from the
 % time-averaged data
@@ -66,20 +67,18 @@ mkdir(tmMatsDir);
 histDir=[turnTmAvgDir filesep 'activityHist'];
 mkdir(histDir);
 
-
-% get total number of images for correct digits while naming
-[listOfImages] = searchFiles('.tif',[],runInfo.imDir);
-nImTot=size(listOfImages,1);
-s=length(num2str(nImTot));
-strg=sprintf('%%.%dd',s);
-indxStr=sprintf(strg,nImTot);
-
 % count frames for proper naming
-turnSpAvgMatDir=[runInfo.turnDir filesep 'turnSpAvgDir' filesep 'mapMats'];
-[listOfFiles] = searchFiles('polyDepoly',[],turnSpAvgMatDir);
+turnMapDir=[runInfo.turnDir filesep 'polyDepolyMaps'];
+[listOfFiles] = searchFiles('polyDepoly',[],turnMapDir);
 nFrames=size(listOfFiles,1);
 s=length(num2str(nFrames));
 strg=sprintf('%%.%dd',s);
+
+% if 0, than average over the whole movie
+if nFrms2Avg==0
+    nFrms2Avg=nFrames;
+    endFrm=nFrames;
+end
 
 % figure out which frames to average in a given iteration
 if isempty(endFrm)
@@ -89,41 +88,65 @@ firstFrm=[startFrm:timeStepSize:endFrm]; lastFrm=firstFrm+nFrms2Avg-1;
 firstFrm(lastFrm>endFrm)=[];             lastFrm(lastFrm>endFrm)=[];
 
 nIterations=length(firstFrm); % how many iterations needed to go thru all frame ranges
-polyDepolySum=zeros(nIterations,2); % store [sum(Poly) sum(Depoly)] for each frame range
+avgPolyDepolyPerFrame=zeros(nIterations,2); % store [sum(avgPoly) sum(avgDepoly)] for each frame range
 polyDepolyFrmStack=zeros(runInfo.imL,runInfo.imW,nFrms2Avg); % store the nFrms2Avg maps here
+
+% use the cell masks of the images to average
+cmDir=[runInfo.anDir filesep 'edge' filesep 'cell_mask'];
+[listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
+roiMask=runInfo.roiMask; % max cell proj bounded by fieldGeom
+
+if mkMov==1
+    wholeMovieName=[histDir filesep 'actHist_' movieName '_' num2str(nFrms2Avg) '.avi'];
+    aviobj = avifile(wholeMovieName,'fps',10);
+end
 
 for i=1:nIterations
     counter=1;
+    cellMaskTmAvg=zeros(runInfo.imL,runInfo.imW);
     for j=firstFrm(i):lastFrm(i)
+        % put the polyDepoly maps for the interval into a big array
         indxStr=sprintf(strg,j);
-        iMap=load([turnSpAvgMatDir filesep 'polyDepoly' indxStr '.mat']);
+        iMap=load([turnMapDir filesep 'polyDepoly' indxStr '.mat']);
         polyDepolyFrmStack(:,:,counter)=iMap.polyDepoly;
         counter=counter+1;
+
+        % get max edge projection cell mask
+        cMask=double(imread([char(listOfCellMasks(j,2)) filesep char(listOfCellMasks(j,1))]));
+        cellMaskTmAvg = cellMaskTmAvg | cMask;
     end
-    
+    % bound cell mask by fieldGeom
+    cellMaskTmAvg=logical(cellMaskTmAvg.*roiMask);
+
     % get average value of poly/depoly at each pixel over the set of frames
-    polyDepolyTmAvg=nanmean(polyDepolyFrmStack,3); 
+    polyDepolyTmAvg=nanmean(polyDepolyFrmStack,3);
     indxStr1=sprintf(strg,firstFrm(i));
     indxStr2=sprintf(strg,lastFrm(i));
     save([tmMatsDir filesep 'polyDepolyTmAvg' indxStr1 '_' indxStr2 '.mat'],'polyDepolyTmAvg');
 
-    polyDepolySum(i,1)=sum(polyDepolyFrmStack(polyDepolyFrmStack(:)>0)); % sum poly over set of frames
-    polyDepolySum(i,2)=sum(polyDepolyFrmStack(polyDepolyFrmStack(:)<0)); % sum depoly over set of frames
-    
+    % write the tif image of the max projection cell mask
+    imwrite(cellMaskTmAvg,[tmCellMasksDir filesep 'timeAvgCellMask' indxStr1 '_' indxStr2 '.tif']);
+
+    cellMaskTmAvg=swapMaskValues(cellMaskTmAvg,0,NaN); % 1's inside max cell; nan's outside
+    maskedAvgActivity=polyDepolyTmAvg.*cellMaskTmAvg; % mask out the time averaged activity map
+    avgPolyDepolyPerFrame(i,1)=sum(maskedAvgActivity(maskedAvgActivity(:)>0)); % sum of the time-averaged poly map
+    avgPolyDepolyPerFrame(i,2)=sum(maskedAvgActivity(maskedAvgActivity(:)<0)); % sum of the time-averaged depoly map
+
     % create histogram of poly/depoly values from the set of nFrms2Avg
-    temp=polyDepolyFrmStack(:);
+    temp=maskedAvgActivity(:);
     temp(isnan(temp))=[];
     hist(temp,100);
-    axis([-0.05 0.05 0 10000]);
-    saveas(gca,[histDir filesep 'actHist' indxStr1 '_' indxStr2 '.tif']);
-    
+    axis([-0.04 0.04 0 2000]);
+    saveas(gca,[histDir filesep 'actHist' indxStr1 '_' indxStr2 '.png']);
+    frame = getframe(gca);
+    if mkMov==1
+    aviobj = addframe(aviobj,frame);
+    end
 end
+if mkMov==1
+    aviobj = close(aviobj);
+end
+save([tmMatsDir filesep 'tmAvgParams'],'avgPolyDepolyPerFrame','nFrms2Avg','timeStepSize','startFrm','endFrm');
 
-% take the average integrated (summed) poly/depoly over the set of frames
-polyDepolySumAvg=polyDepolySum./nFrms2Avg; 
-indxStr1=sprintf(strg,startFrm);
-indxStr2=sprintf(strg,nFrms2Avg);
-indxStr3=sprintf(strg,endFrm);
-save([tmMatsDir filesep 'tmAvgParams'],'polyDepolySumAvg','nFrms2Avg','timeStepSize','startFrm','endFrm');
 
 

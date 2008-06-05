@@ -94,14 +94,23 @@ end
 [bgMean, bgStd]=bgStats(imDir,cmDir,nImTot,frameRange);
 bgMean=round(bgMean);
 
+
+[listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
+
 % loop thru frames: subtract bg, get global max/min over all frames
-gmax=0; gmin=0;
+gmax=0; gmin=10^5;
 for i=1:nImTot
     fileNameIm=[char(listOfImages(i,2)) filesep char(listOfImages(i,1))];
     im=double(imread(fileNameIm)); %im is raw image
     im=im-bgMean(i); % subtract average background from frames i-2:i+2
-    gmax=max(gmax,nanmax(im(:))); % keep track of global max
-    gmin=min(gmin,nanmin(im(:))); % keep track of global min
+    gmin=min(gmin,nanmin(im(:))); % keep track of global min (probably from bg)
+    
+    fileNameMask=[char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))];
+    cm=imread(fileNameMask); %cm is cell mask
+    [cm]=swapMaskValues(cm,0,nan);
+    im=im.*cm;
+    gmax=max(gmax,nanmax(im(:))); % keep track of global max (restrict to within the cell)
+    
 end
 bgStd=bgStd/(gmax-gmin);
 
@@ -111,8 +120,9 @@ for i=1:nImTot
     im=double(imread(fileNameIm)); %im is raw image
     im=im-bgMean(i); % subtract average background
     normImg=(im-gmin)./(gmax-gmin); % normalize using global max/min
-    % im(im<0)=0; % cut off negative values
-    % normImg=im./gmax; % normalize
+    % cut off values outside the range
+    normImg(normImg<0)=0;
+    normImg(normImg>1)=1;
     
     % save normalized image as .mat and .tif
     indxStr=sprintf(strg,i);
@@ -120,7 +130,6 @@ for i=1:nImTot
     imwrite(normImg,[normDir filesep 'normTifs' filesep 'norm_image',indxStr,'.tif']);
 
     % create image negative and show cell edge from cell mask
-    [listOfCellMasks] = searchFiles('.tif',[],cmDir);
     fileNameMask=[char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))];
     cm=imread(fileNameMask); %cm is cell mask
     pixelEdgeMask=bwmorph(cm,'remove');
@@ -131,6 +140,7 @@ for i=1:nImTot
 end
 
 save([normDir filesep 'bgStd'],'bgStd');
+save([normDir filesep 'bgMean'],'bgMean');
 
 % --------------------------
 % subfunction to check input

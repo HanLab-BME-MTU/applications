@@ -1,7 +1,7 @@
-function [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze,doNorm,winSize)
+function [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze,doNorm,winL)
 %POLYDEPOLYMAP creates a map of polymer kinetics using mass conservation
 %
-% SYNOPSIS: [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze,doNorm,winSize)
+% SYNOPSIS: [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze,doNorm,winL)
 %
 % INPUT: imDir: image directory (if [], will query user).
 %        anDir: analysis (project) directory (if [], will query user).
@@ -13,7 +13,7 @@ function [runInfo]=polyDepolyMap(imDir,anDir,nPairs2analyze,doNorm,winSize)
 %               boosts low values; 0>gamma>1 suppresses low values.
 %        doNorm: 1 if you want to do (or re-do) image normalization;
 %                otherwise this time-consuming step can be skipped
-%        winSize: length of measurement window (default is 17 pixels)
+%        winL: length of measurement window (default is 17 pixels)
 %
 % OUTPUT: runInfo: structure containing directory information and various
 %                  calculated parameters.
@@ -48,7 +48,7 @@ global DEBUG__
 
 
 % these will keep track of min and max values over the whole movie
-movieMin=0; movieMax=0;
+movieMin=10^6; movieMax=-10^6;
 
 % check input of image directory; query user if []
 if nargin<1 || isempty(imDir)
@@ -82,11 +82,11 @@ if nargin<4 || isempty(doNorm) || doNorm~=1
     doNorm=0;
 end
 
-% check input of winSize
-if nargin<5 || isempty(winSize)
-    runInfo.winSize=17; % default - empirical estimate
+% check input of winL
+if nargin<5 || isempty(winL)
+    runInfo.winL=17; % default - empirical estimate
 else
-    runInfo.winSize=winSize;
+    runInfo.winL=winL;
 end
 
 % check whether cell masks exist.  they are necessary for calculating mean
@@ -116,7 +116,7 @@ if ~isdir(normDir)
 end
 
 % create directories for turnover data
-runInfo.turnDir=[runInfo.anDir filesep 'turn_winSize_' num2str(winSize)];
+runInfo.turnDir=[runInfo.anDir filesep 'turn_winL_' num2str(winL)];
 if ~isdir(runInfo.turnDir)
     mkdir(runInfo.turnDir);
 else
@@ -266,19 +266,20 @@ end
 % =========================================================
 
 % area of windows in first frame
-A1=runInfo.winSize^2;
+A1=runInfo.winL^2;
 
 % get coordinates for rectangle circumscribing roi (integer # of window)
 % top-left corner (TLC) and bottom-right corner (BRC) of the rectangle
-[yTLC,xTLC,yBRC,xBRC]=findRoiRect(roiMask,runInfo.winSize);
+[yTLC,xTLC,yBRC,xBRC]=findCalcRegion(roiMask,winL)
+%[yTLC,xTLC,yBRC,xBRC]=findRoiRect(roiMask,runInfo.winL);
 
 % need to make three other overlapping grids by shifting half a window length
 % col1: m x n windows
 % col2: m-1 x n windows (shifted down)
 % col3: m x n-1 windows (shifted right)
 % col4: m-1 x n-1 windows (shifted down and right)
-shiftDR=ceil(runInfo.winSize/2); % amount to shift down or to the right
-shiftUL=runInfo.winSize-shiftDR; % amount to shift up or to the left
+shiftDR=ceil(runInfo.winL/2); % amount to shift down or to the right
+shiftUL=runInfo.winL-shiftDR; % amount to shift up or to the left
 yTLC=[yTLC yTLC+shiftDR yTLC         yTLC+shiftDR];
 xTLC=[xTLC xTLC         xTLC+shiftDR xTLC+shiftDR];
 yBRC=[yBRC yBRC-shiftUL yBRC         yBRC-shiftUL];
@@ -286,14 +287,9 @@ xBRC=[xBRC xBRC         xBRC-shiftUL xBRC-shiftUL];
 
 recLength=yBRC-yTLC+1;
 recWidth=xBRC-xTLC+1;
-runInfo.nBoxesL=recLength/runInfo.winSize;
-runInfo.nBoxesW=recWidth/runInfo.winSize;
+runInfo.nBoxesL=recLength/runInfo.winL;
+runInfo.nBoxesW=recWidth/runInfo.winL;
 
-% make sure findRoiRect picked a region with integer number of winSize x winSize
-% windows
-if mod(runInfo.nBoxesL,1)~=0 | mod(runInfo.nBoxesW,1)~=0
-    error('POLYDEPOLYMAP: roiRect not made of integer number of windows');
-end
 
 % four turnover maps will be interpolated from data calculated on the four
 % grids, and these will be averaged to get more accurate spatial average.
@@ -343,7 +339,7 @@ indYX(indYX==0)=1;
 pixInd=xy2index(indYX(:,2),indYX(:,1),runInfo.imL,runInfo.imW,1);
 
 % created matrix of tiled window
-%[boxNumTile]=tileboxnum(zeros(recLength(grid),recWidth(grid)),runInfo.winSize);
+%[boxNumTile]=tileboxnum(zeros(recLength(grid),recWidth(grid)),runInfo.winL);
 
 edgePix=cell(1,runInfo.nIm2an-1);
 for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
@@ -352,7 +348,7 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
 
     if i==1
         fileNameMask1=[char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))];
-        cellMask1=double(imread(fileNameMask1));
+        cellMask1=double(imread(fileNameMask1)).*roiMask;
 
         indxStr1=sprintf(strg,i);
         im1=load([normDir filesep 'norm_image' indxStr1]);
@@ -363,7 +359,7 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
     end
 
     fileNameMask2=[char(listOfCellMasks(i+1,2)) filesep char(listOfCellMasks(i+1,1))];
-    cellMask2=double(imread(fileNameMask2));
+    cellMask2=double(imread(fileNameMask2)).*roiMask;
 
     indxStr2=sprintf(strg,i+1);
     im2=load([normDir filesep 'norm_image' indxStr2]);
@@ -375,7 +371,7 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
     % INTERPOLATE VECTOR FIELD FOR CURRENT FRAME AND GET SPLINE
 
     %dilate the cell mask by the window size to use for vector field interp.
-    cellMaskDil=bwmorph(cellMask1,'dilate',runInfo.winSize+1); %ceil(maxThisFrm(i)));
+    cellMaskDil=bwmorph(cellMask1,'dilate',runInfo.winL+1); %ceil(maxThisFrm(i)));
     %check whether interp pixels are in or out of dilated cell
     inOrOut=cellMaskDil(pixInd);
     %Interp: [py0 px0 py1 px1], (all velocities initialized as zero)
@@ -450,13 +446,13 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
     polyDepolyMap4Grids=zeros(runInfo.imL,runInfo.imW,4);
     for g=1:4
         % get pixel coordinates of the center of each window in grid g
-        centersX=(ceil(runInfo.winSize/2):runInfo.winSize:recWidth(g)-ceil(runInfo.winSize/2)+1)+xTLC(g)-1;
-        centersY=(ceil(runInfo.winSize/2):runInfo.winSize:recLength(g)-ceil(runInfo.winSize/2)+1)+yTLC(g)-1;
+        centersX=(ceil(runInfo.winL/2):runInfo.winL:recWidth(g)-ceil(runInfo.winL/2)+1)+xTLC(g)-1;
+        centersY=(ceil(runInfo.winL/2):runInfo.winL:recLength(g)-ceil(runInfo.winL/2)+1)+yTLC(g)-1;
         [cCent rCent]=meshgrid(centersX,centersY);
 
         % get non-integer coordinates of corners of each window in grid g
-        cornersX=(0.5:runInfo.winSize:recWidth(g)+0.5)+xTLC(g)-1;
-        cornersY=(0.5:runInfo.winSize:recLength(g)+0.5)+yTLC(g)-1;
+        cornersX=(0.5:runInfo.winL:recWidth(g)+0.5)+xTLC(g)-1;
+        cornersY=(0.5:runInfo.winL:recLength(g)+0.5)+yTLC(g)-1;
         [cCorn rCorn]=meshgrid(cornersX,cornersY);
 
         % transform box corners for grid g according to spline
@@ -464,11 +460,11 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
             + [rCorn(:) cCorn(:)];
 
         % calc how many pixels per window are within the cell in fm i
-        nCellPixInBox1=imResample(cellMask1(yTLC(g):yBRC(g),xTLC(g):xBRC(g)),[1 1],[runInfo.winSize runInfo.winSize]); % fm 1, grid g
+        nCellPixInBox1=imResample(cellMask1(yTLC(g):yBRC(g),xTLC(g):xBRC(g)),[1 1],[runInfo.winL runInfo.winL]); % fm 1, grid g
 
         % calc how many pixels per window are within the cell in fm i+1
         nCellPixInBox2=imResample(pixInCellFm2((yTLC(g)-yTLC(1)+1):(yBRC(g)-yTLC(1)+1),...
-            (xTLC(g)-xTLC(1)+1):(xBRC(g)-xTLC(1)+1)),[1 1],[runInfo.winSize runInfo.winSize]);
+            (xTLC(g)-xTLC(1)+1):(xBRC(g)-xTLC(1)+1)),[1 1],[runInfo.winL runInfo.winL]);
 
 
         % iob (in/out/border) keeps track of whether a window is
@@ -484,7 +480,7 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
 
         % denom keeps track of the area by which to divide I2-I1 to get a
         % per-pixel poly/depoly value.
-        denom=nan*zeros(size(nCellPixInBox1));
+        denom=A1*ones(size(nCellPixInBox1));
 
         % where window is on the border in either frame (iob=1)
         % denom(iob==1)=abs(nCellPixInBox1(iob==1)-nCellPixInBox2(iob==1));
@@ -498,7 +494,7 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
         denom(iob==2)=A1;
 
         % get total intensity for each window in frame i
-        I1=imResample(im1(yTLC(g):yBRC(g),xTLC(g):xBRC(g)),[1 1],[runInfo.winSize runInfo.winSize]);
+        I1=imResample(im1(yTLC(g):yBRC(g),xTLC(g):xBRC(g)),[1 1],[runInfo.winL runInfo.winL]);
 
         % find area of transformed window in frame i+1
         A2=grid2boxCorners(reshape(tBoxCornerGridYX(:,1),size(rCorn)),reshape(tBoxCornerGridYX(:,2),size(cCorn)))';
@@ -507,7 +503,7 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
 
         % get total intensity for each window in frame i+1
         I2=imResample(im2interpIOuterRec((yTLC(g)-yTLC(1)+1):(yBRC(g)-yTLC(1)+1),...
-            (xTLC(g)-xTLC(1)+1):(xBRC(g)-xTLC(1)+1)),[1 1],[runInfo.winSize runInfo.winSize]);
+            (xTLC(g)-xTLC(1)+1):(xBRC(g)-xTLC(1)+1)),[1 1],[runInfo.winL runInfo.winL]);
 
         % this is the beauty of the algorithm, i think.  in essence, to
         % calculate I2 we find the *estimated* average intensity per pixel in I2 using
@@ -532,7 +528,7 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
         % plot to check during debugging
         bigGridMask=imread([runInfo.turnDir filesep 'roi4calc_grid1.tif']);
         figure(1); imshow(bigGridMask);
-        
+
         hold on
         % plot window centers from frame i and show vector to where they go
         % in frame i+1 (blue)
@@ -541,7 +537,7 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
             + [rCent(:) cCent(:)];
         quiver(cCent(:),rCent(:),tCenter(:,2)-cCent(:),tCenter(:,1)-rCent(:),0,'b','lineWidth',2)
         scatter(tCenter(:,2),tCenter(:,1),'b.')
-        
+
         % plot window corners from frame i and show vector to where they go
         % in frame i+1 (red)
         scatter(cCorn(:),rCorn(:),'r+') % window corners
@@ -554,7 +550,7 @@ for i=1:runInfo.nIm2an-1 % loop thru all frame pairs
         %     quiver(pyxNeeded(:,2),pyxNeeded(:,1),vx,vy,0,'-r')
         %     hold on
         %     scatter(pyxStillNeeded(:,2),pyxStillNeeded(:,1),'+')
-        
+
     end
 
 end
@@ -569,6 +565,9 @@ strg=sprintf('%%.%dd',s);
 
 counter=0;
 for p=1:nPairs
+    fileNameMask1=[char(listOfCellMasks(p,2)) filesep char(listOfCellMasks(p,1))];
+    cellMask1=double(imread(fileNameMask1)).*roiMask;
+
     % use array to hold all four interpolated maps before averaging
     polyDepolyMap4Grids=zeros(runInfo.imL,runInfo.imW,4);
 
@@ -577,18 +576,21 @@ for p=1:nPairs
         fileName=[char(listOfRawTurnFiles(counter,2)) filesep char(listOfRawTurnFiles(counter,1))];
         turnFile=load(fileName);
         % interpolate using imDataMap
-        polyDepolyMap4Grids(:,:,g)=imDataMap([runInfo.imL runInfo.imW],[turnFile.rCent(:) turnFile.cCent(:)],turnFile.rawTurnover(:),'grid',[runInfo.winSize runInfo.winSize]);
+        polyDepolyMap4Grids(:,:,g)=imDataMap([runInfo.imL runInfo.imW],...
+            [turnFile.rCent(:) turnFile.cCent(:)],turnFile.rawTurnover(:),...
+            'grid',[runInfo.winL runInfo.winL]);
     end
     % spatially average over the four maps
     polyDepoly=nanmean(polyDepolyMap4Grids,3);
-    
-    % keep track of min/max for the movie
-    movieMin=min(movieMin,nanmin(polyDepoly(:)));
-    movieMax=max(movieMax,nanmax(polyDepoly(:)));
-    
-    % save the movie as a .mat file
+
+    % save the image as a .mat file
     indxStr=sprintf(strg,p);
     save([turnSpAvgDir filesep 'mapMats' filesep 'polyDepoly' indxStr '.mat'],'polyDepoly');
+    
+    polyDepoly=polyDepoly.*cellMask1;
+    % keep track of turnover min/max for the movie inside the cell mask
+    movieMin=min(movieMin,nanmin(polyDepoly(:)));
+    movieMax=max(movieMax,nanmax(polyDepoly(:)));
 end
 
 runInfo.runTime=toc;
@@ -597,6 +599,7 @@ runInfo.movieMax=movieMax;
 
 save([runInfo.turnDir filesep 'runInfo'],'runInfo');
 save([runInfo.turnDir filesep 'edgePix'],'edgePix');
+save([runInfo.turnDir filesep 'roiMask'],'roiMask');
 
 % catch
 %     disp(['Something went wrong while analyzing ' runInfo.anDir])

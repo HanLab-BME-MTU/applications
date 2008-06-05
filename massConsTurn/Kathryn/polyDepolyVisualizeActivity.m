@@ -1,4 +1,4 @@
-function polyDepolyVisualizeActivity(cmDir,mapDir,edgePix,gamma,cMapLength,batchGlobalMinMax)
+function polyDepolyVisualizeActivity(cmDir,mapDir,edgePix,gamma,cMapLength,batchGlobalMinMax,movieName,runInfo,mkMov)
 % POLYDEPOLYVISUALIZEACTIVITY uses isomorphic color maps to show poly/depoly activity
 %
 % DESCRIPTION: uses isomorphic color maps to show poly/depoly activity
@@ -6,7 +6,7 @@ function polyDepolyVisualizeActivity(cmDir,mapDir,edgePix,gamma,cMapLength,batch
 % SYNOPSIS: polyDepolyVisualizeActivity(cmDir,mapDir,edgePix,gamma,cMapLength,batchGlobalMinMax)
 %
 % INPUT: 
-%    cmDir             : path to analysis\edge\cell_mask
+%    cmDir             : path to cell masks corresponding to the maps
 %    mapDir            : path to ONE LEVEL UP FROM analysis\turn\...\mapMats
 %    edgePix           : .mat saved in analysis\turn by polyDepolyMap
 %    gamma             : value for gamma correction (<1 boosts low signals)
@@ -67,7 +67,6 @@ end
 
 if nargin<6 || isempty(batchGlobalMinMax) || sum(abs(batchGlobalMinMax))==0 % default - will use actual max/min from this movie
 	batchGlobalMinMax=0;
-    disp('polyDepolyVisualizeActivity: will use values from this movie for batchGlobalMinMax');
 elseif length(batchGlobalMinMax)~=2
     error('polyDepolyVisualizeActivity: batchGlobalMinMax should be [] or [userMin userMax]')
 end
@@ -82,16 +81,27 @@ strg=sprintf('%%.%dd',s);
 
 % get list of corresponding cell masks
 [listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
+roiMask=load([runInfo.turnDir filesep 'roiMask']); % max cell proj bounded by fieldGeom
+roiMask=roiMask.roiMask;
+
+
 
 % get min/max over whole image series if not using global values from batch
 if batchGlobalMinMax==0
-    minValue=0;
-    maxValue=0;
+    minValue=10^6;
+    maxValue=-10^6;
     for i=1:nFrames
-        indxStr=sprintf(strg,i);
+        % load mask and bound by fieldGeom-maxProjectionEdge
+        cMask=double(imread([char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))]));
+        boundMask=cMask.*roiMask;
+        % get rid of zeros so these don't become the minValue
+        boundMask=swapMaskValues(boundMask,0,nan);
+        % load the image
         iMap=load([char(listOfMaps(i,2)) filesep char(listOfMaps(i,1))]);
         im=eval(['iMap.' char(fieldnames(iMap))]);
-
+        % backfill image with NaNs
+        im=im.*boundMask;
+        
         if i==1
             [imL,imW]=size(im);
         end
@@ -116,7 +126,7 @@ if gamma~=1
 end
 
 % m is the upper bound for normalization to color map range
-% here we take the minimum abs value and will make values < -m equal to -m
+% here we take the MINIMUM abs value and will make values < -m equal to -m
 % and values > m equal to m
 
 % this means if running a batch job and one movie has a very broad range
@@ -129,7 +139,8 @@ end
 % averaging, even if this cuts off the broad range values to the
 % boundaries.
 
-m=min(abs([minValue maxValue]));
+%m=min(abs([minValue maxValue]));
+m=max(abs([minValue maxValue])); % trying this out for now
 
 % make output directory
 outDir=[mapDir filesep 'mapTifs_' num2str(m) '_' num2str(gamma)];
@@ -157,7 +168,7 @@ for i=1:nFrames
     end
 
     % make mask into RGB-size array
-    cMask=double(imread([char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))]));
+    cMask=roiMask.*double(imread([char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))]));
     cellMask=repmat(cMask,[1 1 3]); 
 
     % gamma-correct pixel values here (boost low values if gamma < 1)
@@ -186,10 +197,10 @@ for i=1:nFrames
     G(:)=colorMap(im(:),2);
     B(:)=colorMap(im(:),3);
 
-    % make the cell edge white
-    R(edgePix{i})=1;
-    G(edgePix{i})=1;
-    B(edgePix{i})=1;
+%     % make the cell edge white
+%     R(edgePix{i})=1;
+%     G(edgePix{i})=1;
+%     B(edgePix{i})=1;
 
     % make the final RGB image
     RGmap=zeros(imL,imW,3);
@@ -205,4 +216,9 @@ for i=1:nFrames
     % disp(['Saving red-green tiffs: frame ' num2str(i)])
 
 end
+
+if nFrames>1 & mkMov==1
+    mkMovie(outDir,movieName,m,'.tif');
+end
+
 save([outDir filesep 'visualizationParams'],'minValue','maxValue','m','gamma','cMapLength','batchGlobalMinMax');
