@@ -1,17 +1,13 @@
-function [bgMean, bgStd]=bgStats(imDir,cmDir,nFrames,nFms2avg)
-%BGSTATS finds the mean and std of the background for an image series
+function [bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nFrames,nFms2avg)
+%BGSTATS gives background mean and std for image series
 %
-% DESCRIPTION: bgStats finds the background mean and std for a
+% DESCRIPTION: bgStats finds the intensity max and background min,std for a
 % non-normalized image series.  it finds the background region by ignoring
 % pixels outside a dilated cell mask (ie, in case image segmentation wasn't
 % very good, we expand the mask to make sure the values used are from the
 % background). also, bgStats avoids regions where image intensity is 0 (eg,
 % in keratocyte cell-frame-of-reference images, the rotation procedure
-% creates artificial boundaries).  please note that if nFms2avg > 1, the
-% stats for the first and last few frames will be based off of fewer
-% images.  eg) if nFrames=10 and nFms2avg=5, then bgMean for frame 1 will
-% be calcuated from frames 1-3 (3 frames), for frame 2 from 1-4 (4), 3 from
-% 1-5 (5), 4 from 2-6 (5),..., 9 from 7-10 (4), 10 from 8-10 (3).
+% creates artificial boundaries).
 %
 % bgStats accepts .tif or .mat images and masks, though if .mat, images
 % need to load to 'normImg' and masks need to load to 'mask'.  be aware
@@ -19,7 +15,7 @@ function [bgMean, bgStd]=bgStats(imDir,cmDir,nFrames,nFms2avg)
 % function SHOULD NOT BE USED ON NORMALIZED IMAGES where the background
 % has been subtracted.
 %
-% SYNOPSIS: [bgMean, bgStd]=bgStats(imDir,cmDir,nFrames,nFms2avg)
+% SYNOPSIS: [bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nFrames,nFms2avg)
 %
 % INPUT: imDir     : path to image directory
 %        cmDir     : path to cell mask directory
@@ -29,12 +25,12 @@ function [bgMean, bgStd]=bgStats(imDir,cmDir,nFrames,nFms2avg)
 %                    (e.g. if nFms2avg=5, bgStats will calculate the avg bg
 %                    from frames i-2, i-1, i, i+1, i+2)
 %                    use 0 (default) to return stats calculated over
-%                    nFrames
+%                    nFrames THIS PARAMETER IS NO LONGER FUNCTIONAL...
 %
-% OUTPUT: bgMean   : average background intensity
-%         bgStd    : standard deviation
-%         these are calculated for every image unless nFms2avg=0 (see
-%         input)
+% OUTPUT: bgStd    : standard deviation from background pixels
+%         bgMin    : minimum intensity from background pixels
+%         globalMax: max intensity from any pixel in any frame
+%         
 %         cmDir/bgMasks: a directory is created with masks of the bg
 %                        regions used for each frame
 %
@@ -148,15 +144,6 @@ end
 % minimum number
 nFrames2Use=min([nImTot nCmTot nFrames]);
 
-% initialize vectors to store stats for frames
-if nFms2avg==0 % will average over whole series
-    bgMean=0;
-    bgStd=0;
-else % will find value for each frame by averaging over nFms2avg
-    bgMean=zeros(nFrames2Use,1);
-    bgStd=zeros(nFrames2Use,1);
-end
-
 % initialize vector to store data from all frames
 fileNameIm=[char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
 if matformatim==0 % tiff
@@ -169,6 +156,7 @@ end
 bgPixVal=nan*zeros(imL,imW,nFrames2Use);
 
 % loop thru frames and put bg masks into bgPixVal
+globalMax=0;
 for i=1:nFrames2Use
 
     % read or load image
@@ -180,30 +168,31 @@ for i=1:nFrames2Use
         im=im.normImg;
     end
 
+    % keep track of global max
+    globalMax=max(globalMax,nanmax(im(:))); 
+    
     % read or load mask
     fileNameMask=[char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))];
     if matformatcm==0 % tiff
-        cm=imread(fileNameMask); %cm is cell mask
+        cm=double(imread(fileNameMask)); %cm is cell mask
     else
         cm=load(fileNameMask);
-        cm=cm.mask;
+        cm=double(cm.mask);
     end
 
     % dilate the cell mask in case segmentation wasn't perfect
     cmDil=bwmorph(cm,'dilate',40);
 
     % bgm is 1 wherever the raw image is 0
-    bgm=zeros(size(im)); 
+    bgm=zeros(size(im));
     bgm(im==0)=1;
 
     % in the keratocyte cell frame of reference, there is often a zone of
     % 0's from the alignment procedure.  we dilate this zone to remove edge
     % effects
     bgmDil=bwmorph(bgm,'dilate',10);
-
     bgMask=zeros(size(im));
     bgMask(bgmDil | cmDil)=1; % this is inverse of what we want
-
 
     % make it NaN in cell body and in former 0 zones, and 1 across bg
     % in other words, 1=bg, NaN=everywhere else
@@ -216,25 +205,78 @@ for i=1:nFrames2Use
 
     % create image with NaNs everywhere except background
     bgPixVal(:,:,i)=bgMask.*im;
+
+    % this commented-out section was used to verify that the std/sqrt(n) is
+    % essentially the same if you actually sample an image versus finding
+    % the std over the whole movie.  this is an uninteresting result, but i
+    % nevertheless wanted to see it for myself.
+%     % for the first frame, go through the possible window sizes and get
+%     % measures of the intensity std over the bg
+%     if i==1
+%         winRange=[15:-2:5]; nWinSizes=length(winRange);
+%         c1=1; % counter for window sizes
+%         for winL=winRange
+%             [tiledArray]=tileSquaresWithIndex(im,winL); % tile first image (bg only) with boxes (side length = winL)
+%             [arrayL,arrayW]=size(tiledArray);
+%             imCropped=bgPixVal(1:arrayL,1:arrayW,1); % crop the image to same size as tiledArray
+% 
+%             nBoxes=max(tiledArray(:)); % number of boxes that fit in the tiled array
+%             % initialize matrix to contain std/sqrt(N) values based on largest box size
+%             if winL==winRange(1)
+%                 perPixVar=zeros(nBoxes,nWinSizes);
+%                 nValues=nBoxes;
+%             end
+%             c2=1; %counter for squares that have non-NaN values
+%             for square=1:nBoxes % loop through boxes in image to get std/sqrt(N)                
+%                 intensities=imCropped(tiledArray==square);
+%                 varVal=std(intensities)/winL;
+%                 % discard if NaN - occurs when part/all of box is outside
+%                 % bg of image
+%                 if ~isnan(varVal)
+%                     perPixVar(c2,end-c1+1)=varVal; % record small-to-large
+%                     c2=c2+1;
+%                     if c2>nValues
+%                         break
+%                     end
+%                     
+%                 end
+%             end
+%             if winL==winRange(1)
+%                 perPixVar(perPixVar(:,end)==0,:)=[];
+%                 nValues=size(perPixVar,1);
+%             end
+%             c1=c1+1;
+%         end
+%     end
+% 
 end
 
-if nFms2avg==0 % average over all nFrames
-    bgMean=nanmean(bgPixVal(:));
-    bgStd=nanstd(bgPixVal(:));
-else % do calculation for each frame
-    for i=1:nFrames2Use
-        sF=i-(nFms2avg-1)/2; %starting frame
-        eF=i+(nFms2avg-1)/2; %ending frame
+% here we get the bg mean and std over the whole movie
+bgMean=round(nanmean(bgPixVal(:)));
+bgStd=round(nanstd(bgPixVal(:)));
+bgMin=nanmin(bgPixVal(:));
 
-        if sF<1
-            sF=1;
-        end
-        if eF>nFrames2Use
-            eF=nFrames2Use;
-        end
 
-        usefulPart=bgPixVal(:,:,sF:eF);
-        bgMean(i)=nanmean(usefulPart(:));
-        bgStd(i)=nanstd(usefulPart(:));
-    end
-end
+% this commented section is vestigial from when i was calculating the mean
+% and std of the bg pixels using a moving window around the frame. it
+% essentially is meaningless for
+% if nFms2avg==0 % average over all nFrames
+%     bgMean=nanmean(bgPixVal(:));
+%     bgStd=nanstd(bgPixVal(:));
+% else % do calculation for each frame
+%     for i=1:nFrames2Use
+%         sF=i-(nFms2avg-1)/2; %starting frame
+%         eF=i+(nFms2avg-1)/2; %ending frame
+%
+%         if sF<1
+%             sF=1;
+%         end
+%         if eF>nFrames2Use
+%             eF=nFrames2Use;
+%         end
+%
+%         usefulPart=bgPixVal(:,:,sF:eF);
+%         bgMean(i)=nanmean(usefulPart(:));
+%         bgStd(i)=nanstd(usefulPart(:));
+%     end
+% end

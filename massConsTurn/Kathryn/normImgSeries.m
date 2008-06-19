@@ -1,9 +1,8 @@
-function normImgSeries(runInfo,nFrames)
+function [runInfo]=normImgSeries(runInfo,nFrames)
 % NORMIMGSERIES subtracts avg bg and normalizes images to 0-1
 %
-% DESCRIPTION: normImgSeries subtracts the average background (calculated
-% from frames i-2:i+2) of each frame i and uses the max calculated from
-% nFrames to normalize to 0-1.
+% DESCRIPTION: normImgSeries subtracts the average background of the movie
+% and uses the max calculated from nFrames to normalize to 0-1. 
 %
 % SYNOPSIS: normImgSeries(runInfo,nFrames)
 %
@@ -24,7 +23,8 @@ function normImgSeries(runInfo,nFrames)
 %                                 regions used to calculate the mean and
 %                                 std (using bgStats, called here) in
 %                                 white, and the excluded regions in black.
-%         The scaled standard deviation for a frame is saved under /norm.
+%         The scaled bg standard deviation (for whole movie) and fg mean
+%         (for each frame) are saved in runInfo.
 %
 % This function will delete contents of norm from a previous run.
 %
@@ -37,10 +37,12 @@ function normImgSeries(runInfo,nFrames)
 %
 %
 
+warningState=warning;
+warning('off','MATLAB:intConvertNonIntVal')
 
 % this is the number of frames used to calculate the local average
 % intensity to subtract - should be odd.  see bgStats for details.
-frameRange=5;
+frameRange=5; % this is defunct now, don't worry about changing it
 
 [anDir,imDir,cmDir]=checkInputParameters(runInfo,nFrames);
 
@@ -90,39 +92,27 @@ if nFrames~=0
     nImTot=nFrames; 
 end
 
-% get bg mean/std for each frame based on several frames
-[bgMean, bgStd]=bgStats(imDir,cmDir,nImTot,frameRange);
-bgMean=round(bgMean);
-
+% we take the global min to be the minimum gray level from the background
+% pixels. (if we take the overall global min, it will always be zero
+% because of the zero regions from the translation to the cell frame of
+% reference.)  we take the global max to be the actual global max from the
+% whole image because we believe all these values are accurate. we subtract
+% off the background mean and scale the std accordingly.
+[bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nImTot,frameRange);
+bgStd=bgStd/(globalMax-bgMin); 
 
 [listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
 
-% loop thru frames: subtract bg, get global max/min over all frames
-gmax=0; gmin=10^5;
+% now we normalize and save images
+fgMean=zeros(nImTot,1);
 for i=1:nImTot
     fileNameIm=[char(listOfImages(i,2)) filesep char(listOfImages(i,1))];
     im=double(imread(fileNameIm)); %im is raw image
-    im=im-bgMean(i); % subtract average background from frames i-2:i+2
-    gmin=min(gmin,nanmin(im(:))); % keep track of global min (probably from bg)
+    normImg=(im-bgMin)./(globalMax-bgMin); % normalize using global max/min
     
-    fileNameMask=[char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))];
-    cm=imread(fileNameMask); %cm is cell mask
-    [cm]=swapMaskValues(cm,0,nan);
-    im=im.*cm;
-    gmax=max(gmax,nanmax(im(:))); % keep track of global max (restrict to within the cell)
-    
-end
-bgStd=bgStd/(gmax-gmin);
-
-% now normalize and save images
-for i=1:nImTot
-    fileNameIm=[char(listOfImages(i,2)) filesep char(listOfImages(i,1))];
-    im=double(imread(fileNameIm)); %im is raw image
-    im=im-bgMean(i); % subtract average background
-    normImg=(im-gmin)./(gmax-gmin); % normalize using global max/min
-    % cut off values outside the range
+    % cut off values under 0 or over 1
     normImg(normImg<0)=0;
-    normImg(normImg>1)=1;
+    normImg(normImg>1)=1; 
     
     % save normalized image as .mat and .tif
     indxStr=sprintf(strg,i);
@@ -131,16 +121,28 @@ for i=1:nImTot
 
     % create image negative and show cell edge from cell mask
     fileNameMask=[char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))];
-    cm=imread(fileNameMask); %cm is cell mask
+    cm=double(imread(fileNameMask)); %cm is cell mask
     pixelEdgeMask=bwmorph(cm,'remove');
     pixelEdgeMask=swapMaskValues(pixelEdgeMask);
-
     negEdgeImg=abs(normImg-1).*pixelEdgeMask;
     imwrite(negEdgeImg,[normDir filesep 'negEdgeTifs' filesep 'neg_edge_image',indxStr,'.tif']);
+    
+    cm=swapMaskValues(cm,0,nan);
+    maskedIm=normImg.*cm;
+    fgMean(i)=nanmean(maskedIm(:));
 end
 
+% plot the foreground mean per frame
+scatter(1:nImTot,fgMean,'.')
+ylim([0 1])
+saveas(gcf,[normDir filesep 'cellBodyMeanIntensityPerFrame.fig']);
 save([normDir filesep 'bgStd'],'bgStd');
-save([normDir filesep 'bgMean'],'bgMean');
+save([normDir filesep 'fgMean'],'fgMean');
+
+runInfo.bgStd=bgStd; 
+runInfo.fgMean=fgMean;
+
+warning(warningState);
 
 % --------------------------
 % subfunction to check input
