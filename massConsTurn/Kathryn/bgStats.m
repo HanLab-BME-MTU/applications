@@ -1,13 +1,15 @@
-function [bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nFrames,nFms2avg)
+function [bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nFrames,insideCellMaxFlag)
 %BGSTATS gives background mean and std for image series
 %
-% DESCRIPTION: bgStats finds the intensity max and background min,std for a
+% DESCRIPTION: bgStats finds the background min and std for a
 % non-normalized image series.  it finds the background region by ignoring
 % pixels outside a dilated cell mask (ie, in case image segmentation wasn't
 % very good, we expand the mask to make sure the values used are from the
 % background). also, bgStats avoids regions where image intensity is 0 (eg,
 % in keratocyte cell-frame-of-reference images, the rotation procedure
-% creates artificial boundaries).
+% creates artificial boundaries). to find the max intensity value, it
+% either looks at all the image pixels or only those inside the cell mask
+% (specified using insideCellMaxFlag).
 %
 % bgStats accepts .tif or .mat images and masks, though if .mat, images
 % need to load to 'normImg' and masks need to load to 'mask'.  be aware
@@ -15,22 +17,21 @@ function [bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nFrames,nFms2avg)
 % function SHOULD NOT BE USED ON NORMALIZED IMAGES where the background
 % has been subtracted.
 %
-% SYNOPSIS: [bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nFrames,nFms2avg)
+% SYNOPSIS: [bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nFrames,insideCellMaxFlag)
 %
-% INPUT: imDir     : path to image directory
-%        cmDir     : path to cell mask directory
-%        nFrames   : number of frames over which to find stats
-%                    use 0 (default) to find stats for each frame in imDir
-%        nFms2avg  : the number of frames used to calculate local average
-%                    (e.g. if nFms2avg=5, bgStats will calculate the avg bg
-%                    from frames i-2, i-1, i, i+1, i+2)
-%                    use 0 (default) to return stats calculated over
-%                    nFrames THIS PARAMETER IS NO LONGER FUNCTIONAL...
+% INPUT: imDir             : path to image directory
+%        cmDir             : path to cell mask directory
+%        nFrames           : number of frames over which to find stats
+%                            use 0 (default) to find stats for each frame 
+%                            in imDir
+%        insideCellMaxFlag : 1 if its desirable to look for max intensity
+%                            level from only the pixels inside the cell; 
+%                            0 if better to look at the whole image
 %
 % OUTPUT: bgStd    : standard deviation from background pixels
 %         bgMin    : minimum intensity from background pixels
 %         globalMax: max intensity from any pixel in any frame
-%         
+%
 %         cmDir/bgMasks: a directory is created with masks of the bg
 %                        regions used for each frame
 %
@@ -53,7 +54,7 @@ if nargin<2
 end
 
 % check for valid input of imDir
-if ~isstr(imDir)
+if ~ischar(imDir)
     error('BGSTATS: imDir must be a string');
 elseif ~isdir(imDir)
     error('BGSTATS: imDir does not exist')
@@ -74,7 +75,7 @@ else % if valid directory, check for tifs
 end
 
 % check for valid input of cmDir
-if ~isstr(cmDir)
+if ~ischar(cmDir)
     error('BGSTATS: cmDir must be a string');
 elseif ~isdir(cmDir)
     error('BGSTATS: cmDir does not exist')
@@ -112,19 +113,12 @@ else
     end
 end
 
-% default for nFms2avg = 0 (get stats over nFrames)
-if nargin<4 || isempty(nFms2avg)
-    nFms2avg=0;
-else
-    if nFms2avg<0 || (nFms2avg>0 && (mod(nFms2avg,1)~=0 || mod(nFms2avg,2)==0))
-        % error if not zero and either negative, not an integer, or not odd
-        error('BGSTATS: nFms2avg must be an odd whole number');
-    end
-end
-
-% can't average over more the number of frames
-if nFms2avg>nFrames
-    error('BGSTATS: nFms2avg must be less than or equal to nFrames');
+% default for insideCellMaxFlag = 0 (look over whole image, not just cell)
+if nargin<4 || isempty(insideCellMaxFlag)
+    insideCellMaxFlag=0;
+elseif insideCellMaxFlag~=0 && insideCellMaxFlag~=1
+    % error if not 0 or 1
+    error('BGSTATS: insideCellMaxFlag must be 0 or 1');
 end
 
 % find number of images and masks
@@ -168,9 +162,6 @@ for i=1:nFrames2Use
         im=im.normImg;
     end
 
-    % keep track of global max
-    globalMax=max(globalMax,nanmax(im(:))); 
-    
     % read or load mask
     fileNameMask=[char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))];
     if matformatcm==0 % tiff
@@ -179,6 +170,16 @@ for i=1:nFrames2Use
         cm=load(fileNameMask);
         cm=double(cm.mask);
     end
+
+    % keep track of global max
+    if insideCellMaxFlag==1 % look only at values inside cell mask
+        cmNans=swapMaskValues(cm,0,nan);
+        maskedIm=cmNans.*im;
+        globalMax=max(globalMax,nanmax(maskedIm(:)));
+    else % look at whole movie
+        globalMax=max(globalMax,nanmax(im(:)));
+    end
+
 
     % dilate the cell mask in case segmentation wasn't perfect
     cmDil=bwmorph(cm,'dilate',40);
@@ -210,45 +211,45 @@ for i=1:nFrames2Use
     % essentially the same if you actually sample an image versus finding
     % the std over the whole movie.  this is an uninteresting result, but i
     % nevertheless wanted to see it for myself.
-%     % for the first frame, go through the possible window sizes and get
-%     % measures of the intensity std over the bg
-%     if i==1
-%         winRange=[15:-2:5]; nWinSizes=length(winRange);
-%         c1=1; % counter for window sizes
-%         for winL=winRange
-%             [tiledArray]=tileSquaresWithIndex(im,winL); % tile first image (bg only) with boxes (side length = winL)
-%             [arrayL,arrayW]=size(tiledArray);
-%             imCropped=bgPixVal(1:arrayL,1:arrayW,1); % crop the image to same size as tiledArray
-% 
-%             nBoxes=max(tiledArray(:)); % number of boxes that fit in the tiled array
-%             % initialize matrix to contain std/sqrt(N) values based on largest box size
-%             if winL==winRange(1)
-%                 perPixVar=zeros(nBoxes,nWinSizes);
-%                 nValues=nBoxes;
-%             end
-%             c2=1; %counter for squares that have non-NaN values
-%             for square=1:nBoxes % loop through boxes in image to get std/sqrt(N)                
-%                 intensities=imCropped(tiledArray==square);
-%                 varVal=std(intensities)/winL;
-%                 % discard if NaN - occurs when part/all of box is outside
-%                 % bg of image
-%                 if ~isnan(varVal)
-%                     perPixVar(c2,end-c1+1)=varVal; % record small-to-large
-%                     c2=c2+1;
-%                     if c2>nValues
-%                         break
-%                     end
-%                     
-%                 end
-%             end
-%             if winL==winRange(1)
-%                 perPixVar(perPixVar(:,end)==0,:)=[];
-%                 nValues=size(perPixVar,1);
-%             end
-%             c1=c1+1;
-%         end
-%     end
-% 
+    %     % for the first frame, go through the possible window sizes and get
+    %     % measures of the intensity std over the bg
+    %     if i==1
+    %         winRange=[15:-2:5]; nWinSizes=length(winRange);
+    %         c1=1; % counter for window sizes
+    %         for winL=winRange
+    %             [tiledArray]=tileSquaresWithIndex(im,winL); % tile first image (bg only) with boxes (side length = winL)
+    %             [arrayL,arrayW]=size(tiledArray);
+    %             imCropped=bgPixVal(1:arrayL,1:arrayW,1); % crop the image to same size as tiledArray
+    %
+    %             nBoxes=max(tiledArray(:)); % number of boxes that fit in the tiled array
+    %             % initialize matrix to contain std/sqrt(N) values based on largest box size
+    %             if winL==winRange(1)
+    %                 perPixVar=zeros(nBoxes,nWinSizes);
+    %                 nValues=nBoxes;
+    %             end
+    %             c2=1; %counter for squares that have non-NaN values
+    %             for square=1:nBoxes % loop through boxes in image to get std/sqrt(N)
+    %                 intensities=imCropped(tiledArray==square);
+    %                 varVal=std(intensities)/winL;
+    %                 % discard if NaN - occurs when part/all of box is outside
+    %                 % bg of image
+    %                 if ~isnan(varVal)
+    %                     perPixVar(c2,end-c1+1)=varVal; % record small-to-large
+    %                     c2=c2+1;
+    %                     if c2>nValues
+    %                         break
+    %                     end
+    %
+    %                 end
+    %             end
+    %             if winL==winRange(1)
+    %                 perPixVar(perPixVar(:,end)==0,:)=[];
+    %                 nValues=size(perPixVar,1);
+    %             end
+    %             c1=c1+1;
+    %         end
+    %     end
+    %
 end
 
 % here we get the bg mean and std over the whole movie

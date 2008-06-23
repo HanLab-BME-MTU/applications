@@ -1,10 +1,10 @@
-function [runInfo]=normImgSeries(runInfo,nFrames)
+function [normInfo]=normImgSeries(runInfo,nFrames)
 % NORMIMGSERIES subtracts avg bg and normalizes images to 0-1
 %
 % DESCRIPTION: normImgSeries subtracts the average background of the movie
 % and uses the max calculated from nFrames to normalize to 0-1. 
 %
-% SYNOPSIS: normImgSeries(runInfo,nFrames)
+% SYNOPSIS: [normInfo]=normImgSeries(runInfo,nFrames)
 %
 % INPUT: runInfo : structure containing path to image and analysis
 %                  directories. use runInfo=[] to query user for
@@ -24,7 +24,7 @@ function [runInfo]=normImgSeries(runInfo,nFrames)
 %                                 std (using bgStats, called here) in
 %                                 white, and the excluded regions in black.
 %         The scaled bg standard deviation (for whole movie) and fg mean
-%         (for each frame) are saved in runInfo.
+%         (for each frame) are saved in normInfo.
 %
 % This function will delete contents of norm from a previous run.
 %
@@ -40,9 +40,11 @@ function [runInfo]=normImgSeries(runInfo,nFrames)
 warningState=warning;
 warning('off','MATLAB:intConvertNonIntVal')
 
-% this is the number of frames used to calculate the local average
-% intensity to subtract - should be odd.  see bgStats for details.
-frameRange=5; % this is defunct now, don't worry about changing it
+% user can change this: should be 1 if the max intensity value should be
+% found from within the cell across the whole movie, or 0 if it should be
+% found from the whole image.
+insideCellMaxFlag=1;
+
 
 [anDir,imDir,cmDir]=checkInputParameters(runInfo,nFrames);
 
@@ -96,9 +98,9 @@ end
 % pixels. (if we take the overall global min, it will always be zero
 % because of the zero regions from the translation to the cell frame of
 % reference.)  we take the global max to be the actual global max from the
-% whole image because we believe all these values are accurate. we subtract
+% whole image or from the pixels inside the cell mask. we subtract
 % off the background mean and scale the std accordingly.
-[bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nImTot,frameRange);
+[bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nFrames,insideCellMaxFlag);
 bgStd=bgStd/(globalMax-bgMin); 
 
 [listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
@@ -136,11 +138,11 @@ end
 scatter(1:nImTot,fgMean,'.')
 ylim([0 1])
 saveas(gcf,[normDir filesep 'cellBodyMeanIntensityPerFrame.fig']);
-save([normDir filesep 'bgStd'],'bgStd');
-save([normDir filesep 'fgMean'],'fgMean');
 
-runInfo.bgStd=bgStd; 
-runInfo.fgMean=fgMean;
+
+normInfo.bgStd=bgStd; 
+normInfo.fgMean=fgMean;
+save([normDir filesep 'normInfo'],'normInfo');
 
 warning(warningState);
 
