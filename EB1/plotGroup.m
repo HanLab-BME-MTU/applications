@@ -1,7 +1,7 @@
-function plotGroup(traj,group)
+function h = plotGroup(traj,group)
 
 grNb = length(group);
-figure
+h = figure
 for i = 1:grNb
     k = group(i).list;
     le_gr = length(k);

@@ -6,7 +6,7 @@ if nargin == 0
     load([dirName(1:end-8),'\point_files\config001_6p00_track_bidir.mat']);
     load([dirName(1:end-8),'\poles\axis.mat']);
     traj=tracks(find([tracks.len]>=2));
-    n = 20; LTw = 7;
+    n = 40; LTw = 7;
     leTraj = length(traj);
     for i = 1:leTraj
         traj(i).endID = traj(i).startID + traj(i).len - 1;

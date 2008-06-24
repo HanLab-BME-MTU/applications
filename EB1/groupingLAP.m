@@ -3,8 +3,10 @@ function group = groupingLAP(fileName,dirName)
 % pass the TRACKS struct as input
 nbFrames = 125;
 LifeTime = 4; %4
+alpha = 2; % shrinkage speed factor->(1,2]
+MaxTimeSpan = 30;%25; %15
 
-MaxTimeSpan = 15;
+delta_t_max = sqrt(MaxTimeSpan); % 4 or more?
 coneAngPos = cos(pi/4);%45
 coneAngNeg = cos(pi/18);%10
 trackAng = cos(pi/3);%60
@@ -12,11 +14,14 @@ constVel = 1; %debug100
 duConst = 1000000;
 
 if nargin == 0
-    [fileName,dirName] = uigetfile('*.mat','Choose a .mat file');
+    [fileName,dirName] = uigetfile('*.mat','Choose a .mat file');    
+    load([dirName,filesep,fileName]);
+else
     load([dirName,filesep,fileName]);
 end
+
 %check wether the "groups" subdirectory exists or not 
-[success, msg, msgID] = mkdir(dirName(1:end-13), 'groups');
+[success, msg, msgID] = mkdir(dirName(1:end-12), 'groups');
 
 if (success ~= 1)
     error(msgID, msg); 
@@ -27,7 +32,7 @@ else
 end
 
 indx = find( [tracks.len] >= LifeTime);
-TimeSpan = min(max([tracks.len]),MaxTimeSpan); 
+TimeSpan = MaxTimeSpan;%min(max([tracks.len]),MaxTimeSpan); 
 traj = tracks(indx);
 leIndx = length(indx);
 
@@ -42,6 +47,11 @@ end
 % exclude tracks with NO motion
 traj = traj(find([traj.vel]>0)); % SOME DONT MOVE!?
 leIndx = length(traj);
+traj_vel = sort([traj.vel]);
+percentileVel = 0.95;
+v_max = traj_vel(round(length([traj.vel])*percentileVel)); % pixels
+v_med = median(traj_vel);
+distance_max = v_med * MaxTimeSpan;
 
 % get start & end points of all tracks for distance matrix calculation
 for i = 1:leIndx
@@ -61,49 +71,55 @@ for i = 1:leIndx
         T = TimeSpan;
     end
     if (traj(i).endID < (nbFrames - LifeTime))
-
-        aux1 = find(listStartID>(traj(i).endID+1));
-        firstIndx =  aux1(1);
-
-        aux2 = find(listStartID>(traj(i).endID+T+1));
-        if ~isempty(aux2)
-            finalIndx =  aux2(1)-1;
-        else
-            finalIndx = length(listStartID);
-        end
-
-        a = indxStartID(firstIndx:finalIndx);
-
-        magTrajVec = sqrt(sum(traj(i).vec.^2,1));
-        magTrajA = sqrt(sum([traj(a).vec]'.^2,2));
-        cos_trackAng = ([traj(a).vec]'*traj(i).vec)./(magTrajA*magTrajVec);
         
-        listA = find(cos_trackAng>trackAng);
-        aa = a(listA);
-        cos_trA = cos_trackAng(listA);
-   
-        if ~isempty(aa)
-            dxCo = []; dyCo = [];
-            for j = 1:length(aa)
-                dyCo(j) = traj(aa(j)).points(1,1) - traj(i).points(end,1); % get it out of the loop - to the other loop up
-                dxCo(j) = traj(aa(j)).points(1,2) - traj(i).points(end,2);
+        aux1 = find(listStartID>(traj(i).endID+1));% skip next frame
+        if ~isempty(aux1)
+            firstIndx =  aux1(1);
+
+            aux2 = find(listStartID>(traj(i).endID+T+1));
+            if ~isempty(aux2)
+                finalIndx =  aux2(1)-1;
+            else
+                finalIndx = length(listStartID);
             end
-            aVecs = ([dxCo; dyCo])';
 
-            magAvecs = sqrt(sum(aVecs.^2,2));
-            magAvecs(find(magAvecs==0)) = 0.001; % some new/t+4 traj begin where an old/t one ended
-            cos_coneAng = (aVecs*traj(i).vec)./(magAvecs*magTrajVec);
+            a = indxStartID(firstIndx:finalIndx);
 
-            posC = find(cos_coneAng>coneAngPos);
-            negC = find(cos_coneAng<-coneAngNeg);
+            magTrajVec = sqrt(sum(traj(i).vec.^2,1));
+            magTrajA = sqrt(sum([traj(a).vec]'.^2,2));
+            cos_trackAng = ([traj(a).vec]'*traj(i).vec)./(magTrajA*magTrajVec);
 
-            if ~isempty(posC)
-                C(i,aa(posC)) = traj(i).vel * sqrt([traj(aa(posC)).startID]-traj(i).endID) ;%* constVel;
-                M(i,aa(posC)) = abs(cos_trA(posC) - cos_coneAng(posC));
-            end
-            if ~isempty(negC)
-                C(i,aa(negC)) = traj(i).vel * sqrt([traj(aa(negC)).startID]-traj(i).endID) ;%* constVel;
-                M(i,aa(negC)) = abs(cos_trA(negC) - abs(cos_coneAng(negC)));
+            listA = find(cos_trackAng>trackAng);
+            aa = a(listA);
+            cos_trA = cos_trackAng(listA);
+
+            if ~isempty(aa)
+                dxCo = []; dyCo = [];
+                for j = 1:length(aa)
+                    dyCo(j) = traj(aa(j)).points(1,1) - traj(i).points(end,1); % get it out of the loop - to the other loop up
+                    dxCo(j) = traj(aa(j)).points(1,2) - traj(i).points(end,2);
+                end
+                aVecs = ([dxCo; dyCo])';
+
+                magAvecs = sqrt(sum(aVecs.^2,2));
+                magAvecs(find(magAvecs==0)) = 0.001; % some new/t+4 traj begin where an old/t one ended
+                cos_coneAng = (aVecs*traj(i).vec)./(magAvecs*magTrajVec);
+
+                posC = find(cos_coneAng>coneAngPos);
+                negC = find(cos_coneAng<-coneAngNeg);
+
+                if ~isempty(posC)
+                    %               C(i,aa(posC)) = traj(i).vel * sqrt([traj(aa(posC)).startID]-traj(i).endID); %* constVel;
+                    delta_t_gr = [traj(aa(posC)).startID]-traj(i).endID;
+                    C(i,aa(posC)) = v_max * min( delta_t_max , delta_t_gr ); % delta_t_max = sqrt(MaxTimeSpan)
+                    M(i,aa(posC)) = abs(cos_trA(posC) - cos_coneAng(posC));
+                end
+                if ~isempty(negC)
+                    %               C(i,aa(negC)) = traj(i).vel * sqrt([traj(aa(negC)).startID]-traj(i).endID); %* constVel;
+                    delta_t_sh = [traj(aa(negC)).startID]-traj(i).endID;
+                    C(i,aa(negC)) = min( distance_max ,  v_max * alpha * delta_t_sh ); % distance_max = v_med * MaxTimeSpan
+                    M(i,aa(negC)) = abs(cos_trA(negC) - abs(cos_coneAng(negC)));
+                end
             end
         end
     end
@@ -113,6 +129,8 @@ end
 R = max(C(:));
 D=createSparseDistanceMatrix(E,B,R); % dimentions - leIndx
 radIndx = find(D<=C);
+clear C;
+C = sparse(leIndx,leIndx); % distance cut-off matrix
 C(radIndx) = D(radIndx).*M(radIndx); % overwrite old cut-off matrix to generate cost matrix
 
 [links12, links21] = lap(C,-1,0,1);
@@ -150,8 +168,7 @@ for i = 1:leLnkIndx
     end
     progressText(i/leLnkIndx);
 end
-save([dirName(1:end-13),'\groups\group'],'group')
-
-
-plotGroup(traj,group)
-% changes so that you can handle abandoned groups
+% s = 2;
+% strg=sprintf('%%.%dd',s);
+% indxStr=sprintf(strg,10*alpha);
+save([dirName(1:end-12),filesep,'groups',filesep,'group'],'group') % -13

@@ -1,28 +1,32 @@
-function EB3a(debug,coef,sigma)
+function EB3a(debug,coef,sigma,s,k)
 
-% input debug -> if 0 - save 125 cands files to disk, else if 1 - run for
-% the 1st file and plot detection figure
+% input debug -> if 0 - save all 'cands' files to disk (k should be #images), 
+% else if 1 - run for the k-th image and plot detection figure
 % 
 % coef = 1; sigma = 4;
+% s = 2 if image numbers are XX
+% s = 3 if image number are XXX
 %
 % run:
-% EB3a(1,1,4) to plot figure and look at results
-% EB3a(0,1,4) to run thru whole movie and save detection
+% EB3a(1,1,4,s,numberOfDebugImage) to plot figure and look at results
+% EB3a(0,1,4,s,numberOfLastImage) to run thru whole movie and save detection
 
 [fileName,dirName] = uigetfile('*.tif','Choose a .tif file');
 I = imread([dirName,filesep,fileName]);
 if debug == 0
-    le = 125;
+    m = 1; %0 claudio
+    n = k;
 elseif debug == 1
-    le = 1;
+    m = k; 
+    n = k;
 end
-for i = 1:le
-
-    s = 3;
+for i = m:n %0:le was m:n
+ 
+%     s =3;%2 some noco & torsten
     strg=sprintf('%%.%dd',s);
     indxStr=sprintf(strg,i);
 
-    I = imread([dirName,fileName(1:end-7),indxStr,'.tif']);
+    I = imread([dirName,fileName(1:end-(s+4)),indxStr,'.tif']); %-6 torsten. -7 otherwise
     I=double(I);
     aux = Gauss2D(I,1);%1 
     I2 = Gauss2D(I,sigma); %4 (Yukako 10)
@@ -33,10 +37,11 @@ for i = 1:le
     I4 = I3>cutoffV*coef; % REMOVE THE NOISE FEATURES %no 3
 
     X = bwlabel(I4);
-    warningState = warning;
-    warning off all
+%     warningState = warning;
+%     warning off all
+    intwarning off
     stats = regionprops(X,'all'); % Warning: Out of range value converted to intmin('uint8') or intmax('uint8').
-    warning(warningState)
+%     warning(warningState)
 
     % Initialize 'feats' structure
     feats=struct(...
@@ -108,7 +113,7 @@ for i = 1:le
             set(h,'LineWidth',2)
         end
     elseif debug == 0
-        save([dirName(1:end-7),'cands\feats',indxStr],'feats')
+        save([dirName(1:end-7),'cands',filesep,'feats',indxStr],'feats')
         clear goodFeats 
         clear OUT 
         clear V 
