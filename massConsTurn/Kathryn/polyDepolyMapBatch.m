@@ -27,7 +27,7 @@ function polyDepolyMapBatch
 %                    to the run using nFrms2Avg. This parameter is
 %                    irrelevant if doTimeAvging = 0.
 %
-% makeRedGreenMaps : 1 to make red/green color maps of the data; 0 to skip.
+% visualizeMovie   : 1 to make red/green color maps of the data; 0 to skip.
 %                    Data from raw and time-averaged .mat files are
 %                    converted to color tif images.
 % gamma            : Since most pixels will have a small value compared to
@@ -41,21 +41,19 @@ function polyDepolyMapBatch
 %                    [userMin userMax] to use empirically derived values.
 % mkMov            : 1 to make histogram and red/green map movies; 0 if not
 
-firstWin=5;  lastWin=15; 
-doPolyDepolyCalc=1;
-doNorm=0;
+winRange=[7:4:15];
+doPolyDepolyCalc=0;
+doNormInit=0;
 
 doTimeAvging=0;
 nFrms2Avg=5;
 timeStepSize=1;
 tmAvgAllFrmsAlso=0;
 
-makeRedGreenMaps=0;
+visualizeMovie=1;
 gamma=1;
-cMapLength=256;
-useGlobalMinMax=0;
-
-mkMov=0;
+cMap='jet';
+useMovValues=0; % 1 if you want to use the min/max values from the movie
 
 % USER-SET PARAMETERS - END
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -71,100 +69,72 @@ for i=1:length(dirNames)
     countNonDirectories(i)=isdir([topDir filesep dirNames(i).name]);
 end
 dirNames(countNonDirectories==0)=[];
+
 nProj=length(dirNames);
 
+for polyLocFlag=1
 
-for winSize=firstWin:2:lastWin;
-
-    if winSize~=firstWin
-        doNorm=0;
-    end
-
-    % run poly/depoly and time averaging if respective flags are 1
-    batchMin=0; batchMax=0; % min and max values over the whole batch
-    for i=1:nProj
-        try
-            imDir=[topDir filesep dirNames(i).name filesep 'images'];
-            anDir=[topDir filesep dirNames(i).name filesep 'analysis'];
-
-            % run poly/depoly
-            if doPolyDepolyCalc==1
-                disp(['Calculating polyDepoly maps: window size: ' num2str(winSize) ' pixels, Project ' num2str(i) ' of ' num2str(nProj)])
-                [polyDepoly,accumY,accumX,runInfo]=turnoverMap(imDir,anDir,3,doNorm,winSize);
-                %[runInfo]=polyDepolyMap(imDir,anDir,[],doNorm,winSize);
-            else % or just get max/min info from previous run
-                runInfo=load([anDir filesep 'turn_winSize_' num2str(winSize) filesep 'runInfo.mat']);
-                runInfo=runInfo.runInfo;
-            end
-
-            % keep track of global min/max from all the movies
-            %batchMin=min(batchMin,runInfo.movieMin);
-            %batchMax=max(batchMax,runInfo.movieMax);
-
-            % do time averaging
-            if doTimeAvging==1
-                disp(['Calculating time-averaged maps: window size: ' num2str(winSize) ' pixels, Project ' num2str(i) ' of ' num2str(nProj)])
-                polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,[],[],dirNames(i).name,mkMov); % time average using time interval and time step
-                if tmAvgAllFrmsAlso==1
-                    polyDepolyTimeAvg(runInfo,0,1,[],[],dirNames(i).name,mkMov); % time average over the whole movie
-                end
-            end
-        catch
-            disp(['Project ' num2str(i) ' had an error during poly/depoly or time averaging:'])
-            lasterr
+    for winSize=winRange;
+        
+        if polyLocFlag==0 && winSize==winRange(1)
+            doNorm=doNormInit;
+        else
+            doNorm=0;
         end
-
-    end
-
-
-    % now make red/green maps if flag is 1
-    if makeRedGreenMaps==1
-        if isequal(useGlobalMinMax,0)       % movie values
-            minMax=[];
-        elseif isequal(useGlobalMinMax,1)   % batch values
-            minMax=[batchMin batchMax];
-        else                                % user values
-            minMax=useGlobalMinMax;
-        end
-
+        
         for i=1:nProj
-            try
-                turnDir=[topDir filesep dirNames(i).name filesep 'analysis' filesep 'turn_winSize_' num2str(winSize)];
-                runInfo=load([turnDir filesep 'runInfo.mat']);
-                runInfo=runInfo.runInfo;
-                
-                mapDirSp=[turnDir filesep 'turnSpAvgDir'];
 
-                mapDirTm1=[turnDir filesep 'turnTmAvgDir_' num2str(nFrms2Avg) '_' num2str(timeStepSize)];
-                mapDirTm2=[turnDir filesep 'turnTmAvgDir_0_1'];
+            imDir=[topDir filesep dirNames(i).name filesep 'images'];
+            anDir=[topDir filesep dirNames(i).name filesep 'analysis-polyFlag' num2str(polyLocFlag)];
 
-                % for frame-by-frame maps, use the regular cell masks
-                cmDirSp=[topDir filesep dirNames(i).name filesep 'analysis' filesep 'edge' filesep 'cell_mask'];
-                % for time-avged maps, use the max projection masks created in that step
-                cmDirTm1=[mapDirTm1 filesep 'mapMats' filesep 'cell_mask'];
-                cmDirTm2=[mapDirTm2 filesep 'mapMats' filesep 'cell_mask'];
-
-                % get edge pixels to make border in red/green maps - now we
-                % don't use the edge because it only corresponds to the
-                % first frame in the averaged movies...might want it later
-                % though
-                edgePix=load([turnDir filesep 'edgePix']);
-                edgePix=edgePix.edgePix;
-
-                % get r/g maps for spatial and temporal directories
-                disp(['Calculating red-green maps: window size: ' num2str(winSize) ' pixels, Project ' num2str(i) ' of ' num2str(nProj)])
-                polyDepolyVisualizeActivity(cmDirSp,mapDirSp,edgePix,gamma,cMapLength,minMax,dirNames(i).name,runInfo,mkMov);
-                polyDepolyVisualizeActivity(cmDirTm1,mapDirTm1,edgePix,gamma,cMapLength,minMax,dirNames(i).name,runInfo,mkMov);
-
-                if tmAvgAllFrmsAlso==1
-                    polyDepolyVisualizeActivity(cmDirTm1,mapDirTm2,edgePix,gamma,cMapLength,minMax,dirNames(i).name,runInfo,mkMov);
+            try % run poly/depoly
+                if doPolyDepolyCalc==1
+                    disp(['Calculating polyDepoly maps: window size: ' num2str(winSize) ' pixels, Project ' num2str(i) ' of ' num2str(nProj)])
+                    [polyDepoly,accumY,accumX,runInfo]=turnoverMap(imDir,anDir,[],doNorm,winSize,polyLocFlag)
+                else % or just get max/min info from previous run
+                    runInfo=load([anDir filesep 'turn_winL_' num2str(winSize) filesep 'runInfo.mat']);
+                    runInfo=runInfo.runInfo;
                 end
-
             catch
-                disp(['Project ' num2str(i) ' had an error during r/g map generation:'])
+                disp(['error: Project ' num2str(i) ' during turnoverMap.m'])
+                lasterr
+            end
+
+
+            try % make r/g maps from non-temporally averaged data
+                if visualizeMovie==1
+                    mapDir=[runInfo.turnDir filesep 'interp'];
+                    polyDepolyVisualizeActivity(runInfo,mapDir,useMovValues,cMap,gamma,1);
+                end
+            catch
+                disp(['error: Project ' num2str(i) ' during polyDepolyVisualizeActivity (1)'])
+                lasterr
+            end
+
+
+            try % do time averaging
+                if doTimeAvging==1
+                    disp(['Calculating time-averaged maps: window size: ' num2str(winSize) ' pixels, Project ' num2str(i) ' of ' num2str(nProj)])
+                    [runInfo]=polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,[],[]);
+                end
+            catch
+                disp(['error: Project ' num2str(i) ' during polyDepolyTimeAvg'])
+                lasterr
+            end
+
+
+            try % make r/g maps from time-averaged data
+                if visualizeMovie==1
+                    mapDir=[runInfo.turnDir filesep 'timeAvg_' num2str(nFrms2Avg) '_' num2str(gamma) filesep 'mapMats'];
+                    polyDepolyVisualizeActivity(runInfo,mapDir,useMovValues,cMap,gamma,1);
+                end
+            catch
+                disp(['error: Project ' num2str(i) ' during polyDepolyVisualizeActivity (2)'])
                 lasterr
             end
         end
+
     end
-    save([topDir filesep 'batchParams_winSize_' num2str(winSize)]);
 end
+save([topDir filesep 'batchParams_winSize_' num2str(winSize)]);
+

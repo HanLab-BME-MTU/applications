@@ -1,4 +1,4 @@
-function polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,startFrm,endFrm,movieName,mkMov)
+function [runInfo]=polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,startFrm,endFrm)
 %POLYDEPOLYTIMEAVG: time average kinetic maps and calculate mean total poly/depoly over frame range
 %
 % SYNOPSIS: [polyDepolySumAvg]=polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,startFrm,endFrm)
@@ -9,23 +9,35 @@ function polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,startFrm,endFrm,movieN
 %        timeStepSize   : number of frames between averages
 %        startFrm       : first frame to use in calculation
 %        endFrm         : last frame to use in calculation
+%        
 %
 %        e.g.) if you want frames 1-5 averaged, 3-8, 5-11, etc. then
 %                         nFrms2Avg=5 and timeStepSize=3
 %
 % OUTPUT: /analysis/turn/turnTmAvgDir/mapMats : directory with .mat files
-%              containing the averaged poly/depoly maps
-%         polyDepolySumAvg : n x 2 matrix containing the average integrated
-%              value for [poly depoly] calculated from raw,
-%              spatially-averaged (over 4 grids) maps. The idea
-%              is to compare the average amount of poly vs.
-%              depoly over parts of the movie. This calculation
-%              is not normalized for the number of pixels used
-%              to make the measurement in each frame.  This value gets
-%              saved in the mapMats folder in tmAvgParams.
+%              containing the averaged poly-depoly maps
+%         /turnTmAvgDir/activityHist : directory containing histograms of
+%              poly-depoly values for each averaged frame
 %
 % USERNAME: kathomps
 % DATE: 11-Jan-2008
+
+
+
+% --------------------
+% PICK CELL MASK DIRECTORY - user might want to change
+
+cmDir=2;
+if cmDir==1
+    % use the cell masks of the images to average
+    cmDir=[runInfo.anDir filesep 'edge' filesep 'cell_mask'];
+elseif cmDir==2
+    % use vectorCoverageMasks instead of cell masks
+    cmDir=[runInfo.turnDir filesep 'vectorCoverageMask'];
+end
+
+% --------------------
+% CHECK USER INPUT
 
 if nargin<1 || ~isstruct(runInfo) || ~isfield(runInfo,'turnDir')
     error('polyDepolyTimeAvg: runInfo should be a structure with field turnDir')
@@ -49,16 +61,23 @@ if nargin<5 || isempty(endFrm)
     endFrm=[]; % will assign to nTotalFrames
 end
 
+
+% --------------------
+% MAKE DIRECTORIES
+
 % create subdirectory for time averaging the spatially averaged maps
 % (first remove old directory if it exists)
-turnTmAvgDir=[runInfo.turnDir filesep 'turnTmAvgDir_' num2str(nFrms2Avg) '_' num2str(timeStepSize)];
+turnTmAvgDir=[runInfo.turnDir filesep 'timeAvg_' num2str(nFrms2Avg) '_' num2str(timeStepSize)];
+runInfo.turnTmAvgDir=turnTmAvgDir;
+
 if isdir(turnTmAvgDir)
     rmdir(turnTmAvgDir,'s');
 end
 tmMatsDir=[turnTmAvgDir filesep 'mapMats'];
 mkdir(tmMatsDir);
-% make subdirectory for storing max-edge cell masks over the time interval
-tmCellMasksDir=[tmMatsDir filesep 'cell_mask'];
+
+% make subdirectory for storing average cell masks over the time interval
+tmCellMasksDir=[tmMatsDir filesep 'avgCellMask'];
 mkdir(tmCellMasksDir);
 
 % create subdirectory for histograms showing the kinetic activity from the
@@ -67,8 +86,10 @@ mkdir(tmCellMasksDir);
 histDir=[turnTmAvgDir filesep 'activityHist'];
 mkdir(histDir);
 
+% --------------------
+
 % count frames for proper naming
-turnMapDir=[runInfo.turnDir filesep 'polyDepolyMaps'];
+turnMapDir=[runInfo.turnDir filesep 'interp'];
 [listOfFiles] = searchFiles('polyDepoly',[],turnMapDir);
 nFrames=size(listOfFiles,1);
 s=length(num2str(nFrames));
@@ -89,64 +110,59 @@ firstFrm(lastFrm>endFrm)=[];             lastFrm(lastFrm>endFrm)=[];
 
 nIterations=length(firstFrm); % how many iterations needed to go thru all frame ranges
 avgPolyDepolyPerFrame=zeros(nIterations,2); % store [sum(avgPoly) sum(avgDepoly)] for each frame range
-polyDepolyFrmStack=zeros(runInfo.imL,runInfo.imW,nFrms2Avg); % store the nFrms2Avg maps here
 
-% use the cell masks of the images to average
-cmDir=[runInfo.anDir filesep 'edge' filesep 'cell_mask'];
+
 [listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
 roiMask=runInfo.roiMask; % max cell proj bounded by fieldGeom
 
-if mkMov==1
-    wholeMovieName=[histDir filesep 'actHist_' movieName '_' num2str(nFrms2Avg) '.avi'];
-    aviobj = avifile(wholeMovieName,'fps',10);
-end
-
 for i=1:nIterations
+
     counter=1;
-    cellMaskTmAvg=zeros(runInfo.imL,runInfo.imW);
+
+    polyDepolySum=zeros(runInfo.imL,runInfo.imW,nFrms2Avg);
+    cellMaskSum=zeros(runInfo.imL,runInfo.imW,nFrms2Avg);
+
     for j=firstFrm(i):lastFrm(i)
-        % put the polyDepoly maps for the interval into a big array
+        % accumulate polyDepoly maps for the interval
         indxStr=sprintf(strg,j);
         iMap=load([turnMapDir filesep 'polyDepoly' indxStr '.mat']);
-        polyDepolyFrmStack(:,:,counter)=iMap.polyDepoly;
-        counter=counter+1;
+        polyDepolySum(:,:,j) = iMap.polyDepoly;
 
-        % get max edge projection cell mask
+        % accumulate the cell masks
         cMask=double(imread([char(listOfCellMasks(j,2)) filesep char(listOfCellMasks(j,1))]));
-        cellMaskTmAvg = cellMaskTmAvg | cMask;
-    end
-    % bound cell mask by fieldGeom
-    cellMaskTmAvg=logical(cellMaskTmAvg.*roiMask);
+        cellMaskSum(:,:,j) = cMask;
 
-    % get average value of poly/depoly at each pixel over the set of frames
-    polyDepolyTmAvg=nanmean(polyDepolyFrmStack,3);
+        counter=counter+1;
+    end
+
     indxStr1=sprintf(strg,firstFrm(i));
     indxStr2=sprintf(strg,lastFrm(i));
-    save([tmMatsDir filesep 'polyDepolyTmAvg' indxStr1 '_' indxStr2 '.mat'],'polyDepolyTmAvg');
 
-    % write the tif image of the max projection cell mask
-    imwrite(cellMaskTmAvg,[tmCellMasksDir filesep 'timeAvgCellMask' indxStr1 '_' indxStr2 '.tif']);
+    polyDepolySum=nansum(polyDepolySum,3);
+    cellMaskSum=nansum(cellMaskSum,3);
 
-    cellMaskTmAvg=swapMaskValues(cellMaskTmAvg,0,NaN); % 1's inside max cell; nan's outside
-    maskedAvgActivity=polyDepolyTmAvg.*cellMaskTmAvg; % mask out the time averaged activity map
-    avgPolyDepolyPerFrame(i,1)=sum(maskedAvgActivity(maskedAvgActivity(:)>0)); % sum of the time-averaged poly map
-    avgPolyDepolyPerFrame(i,2)=sum(maskedAvgActivity(maskedAvgActivity(:)<0)); % sum of the time-averaged depoly map
+    % get average mask and bound by fieldGeom, write image
+    cellMaskAvg=(cellMaskSum./nFrms2Avg).*roiMask;
+    save([tmCellMasksDir filesep 'timeAvgCellMask' indxStr1 '_' indxStr2 '.mat'],'cellMaskAvg');
+    
+    cellMaskSum=swapMaskValues(cellMaskSum,0,NaN); % 1's inside avg cell; nan's outside
 
+    % get average poly/depoly map and bound by fieldGeom, save
+    polyDepolyAvg=(polyDepolySum./cellMaskSum).*roiMask;
+    save([tmMatsDir filesep 'polyDepolyAvg' indxStr1 '_' indxStr2 '.mat'],'polyDepolyAvg');
+
+    m=max(abs([runInfo.polyDepolyMovieMin runInfo.polyDepolyMovieMax]));    
+    
     % create histogram of poly/depoly values from the set of nFrms2Avg
-    temp=maskedAvgActivity(:);
+    temp=polyDepolyAvg(:);
     temp(isnan(temp))=[];
     hist(temp,100);
-    axis([-0.04 0.04 0 2000]);
+    axis([-m m 0 3000]);
     saveas(gca,[histDir filesep 'actHist' indxStr1 '_' indxStr2 '.png']);
-    frame = getframe(gca);
-    if mkMov==1
-    aviobj = addframe(aviobj,frame);
-    end
+
 end
-if mkMov==1
-    aviobj = close(aviobj);
-end
-save([tmMatsDir filesep 'tmAvgParams'],'avgPolyDepolyPerFrame','nFrms2Avg','timeStepSize','startFrm','endFrm');
+
+save([tmMatsDir filesep 'tmAvgParams'],'nFrms2Avg','timeStepSize','startFrm','endFrm');
 
 
 
