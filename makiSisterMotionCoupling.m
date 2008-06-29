@@ -90,12 +90,21 @@ for iLabel = 1 : 3
     eval(['separationSis12' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
     eval(['sepChangeSis12' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
     eval(['crossProdSign12' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+        
+    eval(['movieStartIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
+    eval(['movieEndIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
     
 end
 
 %go over all movies
 for iMovie = 1 : numMovies
 
+    %store the index of the first place where the sisters belonging to this
+    %movie are stored
+    movieStartIndxInlier(iMovie) = iGlobalInlier + 1;
+    movieStartIndxUnaligned(iMovie) = iGlobalUnaligned + 1;
+    movieStartIndxLagging(iMovie) = iGlobalLagging + 1;
+    
     %copy fields out of dataStruct(iMovie)
     sisterList = dataStruct(iMovie).sisterList;
     tracks = dataStruct(iMovie).tracks;
@@ -238,6 +247,12 @@ for iMovie = 1 : numMovies
 
     end %(if numSisters(iMovie) > 0)
 
+    %store the index of the last place where the sisters belonging to this
+    %movie are stored
+    movieEndIndxInlier(iMovie) = iGlobalInlier;
+    movieEndIndxUnaligned(iMovie) = iGlobalUnaligned;
+    movieEndIndxLagging(iMovie) = iGlobalLagging;
+    
 end %(for iMovie = 1 : numMovies)
 
 %store number of sisters per category
@@ -424,6 +439,9 @@ end
 
 %% cross-correlation of motion
 
+%define maximum lag
+maxLag = 20;
+
 %initialization
 for iLabel = 1 : 3
     eval(['projectionCrosscorr' label{iLabel,1} ' = [];'])
@@ -432,10 +450,14 @@ for iLabel = 1 : 3
     eval(['angle1Autocorr' label{iLabel,1} ' = [];'])
     eval(['projection2Autocorr' label{iLabel,1} ' = [];'])
     eval(['angle2Autocorr' label{iLabel,1} ' = [];'])
+    
+    eval(['projectionIndCrosscorr' label{iLabel,1} ' = NaN(2*maxLag+1,2,numMovies);'])
+    eval(['angleIndCrosscorr' label{iLabel,1} ' = NaN(2*maxLag+1,2,numMovies);'])
+    eval(['projection1IndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
+    eval(['angle1IndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
+    eval(['projection2IndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
+    eval(['angle2IndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
 end
-
-%define maximum lag
-maxLag = 20;
 
 %calculation
 for iLabel = goodLabel
@@ -445,28 +467,92 @@ for iLabel = goodLabel
     %projections
     eval(['projectionCrosscorr' label{iLabel,1} ' = crossCorr(projectionSis1' ...
         label{iLabel,1} ',projectionSis2' label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj1 = projectionSis1' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        eval(['traj2 = projectionSis2' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj1) && ~isempty(traj2)
+            [tmpCorr,errFlag] = crossCorr(traj1,traj2,maxLag);
+            if ~errFlag
+                eval(['projectionIndCrosscorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
 
     %angles
     eval(['angleCrosscorr' label{iLabel,1} ' = crossCorr(angleSis1' ...
         label{iLabel,1} ',angleSis2' label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj1 = angleSis1' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        eval(['traj2 = angleSis2' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj1) && ~isempty(traj2)
+            [tmpCorr,errFlag] = crossCorr(traj1,traj2,maxLag);
+            if ~errFlag
+                eval(['angleIndCrosscorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
     
     %sister with itself
     
     %projections
     eval(['projection1Autocorr' label{iLabel,1} ' = autoCorr(projectionSis1' ...
         label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj = projectionSis1' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            [tmpCorr,errFlag] = autoCorr(traj,maxLag);
+            if ~errFlag
+                eval(['projection1IndAutocorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
 
     %angles
     eval(['angle1Autocorr' label{iLabel,1} ' = autoCorr(angleSis1' ...
         label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj = angleSis1' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            [tmpCorr,errFlag] = autoCorr(traj,maxLag);
+            if ~errFlag
+                eval(['angle1IndAutocorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
     
     %projections
     eval(['projection2Autocorr' label{iLabel,1} ' = autoCorr(projectionSis2' ...
         label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj = projectionSis2' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            [tmpCorr,errFlag] = autoCorr(traj,maxLag);
+            if ~errFlag
+                eval(['projection2IndAutocorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
 
     %angles
     eval(['angle2Autocorr' label{iLabel,1} ' = autoCorr(angleSis2' ...
         label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj = angleSis2' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            [tmpCorr,errFlag] = autoCorr(traj,maxLag);
+            if ~errFlag
+                eval(['angle2IndAutocorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
     
 end
 
@@ -505,12 +591,18 @@ for iLabel = 1 : 3
         '''sisterSepAfter'',sisterSepAftParam' label{iLabel,1} ','...
         '''sisterSepChangePos'',sisterSepChangePosParam' label{iLabel,1} ','...
         '''sisterSepChangeNeg'',sisterSepChangeNegParam' label{iLabel,1} ');']);
-    eval(['crosscorr = struct(''projections'',projectionCrosscorr' label{iLabel,1} ','...
+    eval(['crosscorr.all = struct(''projections'',projectionCrosscorr' label{iLabel,1} ','...
         '''angles'',angleCrosscorr' label{iLabel,1} ');']);
-    eval(['autocorr = struct(''projectionsSis1'',projection1Autocorr' label{iLabel,1} ...
+    eval(['crosscorr.ind = struct(''projections'',projectionIndCrosscorr' label{iLabel,1} ','...
+        '''angles'',angleIndCrosscorr' label{iLabel,1} ');']);
+    eval(['autocorr.all = struct(''projectionsSis1'',projection1Autocorr' label{iLabel,1} ...
         ',''anglesSis1'',angle1Autocorr' label{iLabel,1} ...
         ',''projectionsSis2'',projection2Autocorr' label{iLabel,1} ...
         ',''anglesSis2'',angle2Autocorr' label{iLabel,1} ');']);
+    eval(['autocorr.ind = struct(''projectionsSis1'',projection1IndAutocorr' label{iLabel,1} ...
+        ',''anglesSis1'',angle1IndAutocorr' label{iLabel,1} ...
+        ',''projectionsSis2'',projection2IndAutocorr' label{iLabel,1} ...
+        ',''anglesSis2'',angle2IndAutocorr' label{iLabel,1} ');']);
     eval(['numSistersCat = iGlobal' label{iLabel,1} ';']);
 
     eval([label{iLabel,1} ' = struct('...
@@ -556,7 +648,7 @@ if verbose
         figure('Name',[fileName(1:end-4) ' - Motion coupling - ' label{iLabel,1}],'NumberTitle','off');
 
         %create subplot 1
-        subplot(2,1,1);
+        subplot(2,3,1);
         hold on;
 
         %plot projection crosscorrelation
@@ -577,9 +669,49 @@ if verbose
 
         %hold off figure
         hold off
-
+        
         %create subplot 2
-        subplot(2,1,2);
+        subplot(2,3,2);
+        hold on;
+        
+        %plot individual movie projection crosscorrelation
+        eval(['tmpCorr = squeeze(projectionIndCrosscorr' label{iLabel,1} '(:,1,:));'])
+        plot((-maxLag:maxLag)*timeLapse,tmpCorr,'marker','.');
+        
+        %set axes limits
+        minVal = min(tmpCorr(:));
+        axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*minVal) 1.1]);
+        
+        %write axes labels
+        xlabel('Lag (s)');
+        ylabel('Projection crosscorrelation - ind movies');
+        
+        %hold off figure
+        hold off
+        
+        %create subplot 3
+        subplot(2,3,3);
+        hold on;
+        
+        %plot individual movie projection autocorrelations
+        eval(['tmpCorr1 = squeeze(projection1IndAutocorr' label{iLabel,1} '(:,1,:));'])
+        eval(['tmpCorr2 = squeeze(projection2IndAutocorr' label{iLabel,1} '(:,1,:));'])
+        plot((-maxLag:0)*timeLapse,tmpCorr1(end:-1:1,:),'marker','.');
+        plot((0:maxLag)*timeLapse,tmpCorr2,'marker','.');
+        
+        %set axes limits
+        minVal = min([tmpCorr1(:); tmpCorr2(:)]);
+        axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*minVal) 1.1]);
+        
+        %write axes labels
+        xlabel('Lag (s)');
+        ylabel('Projection autocorrelations - ind movies');
+        
+        %hold off figure
+        hold off
+
+        %create subplot 4
+        subplot(2,3,4);
         hold on;
 
         %plot angle crosscorrelation
@@ -601,6 +733,46 @@ if verbose
         %hold off figure
         hold off
         
+        %create subplot 5
+        subplot(2,3,5);
+        hold on;
+        
+        %plot individual movie angle crosscorrelation
+        eval(['tmpCorr = squeeze(angleIndCrosscorr' label{iLabel,1} '(:,1,:));'])
+        plot((-maxLag:maxLag)*timeLapse,tmpCorr,'marker','.');
+        
+        %set axes limits
+        minVal = min(tmpCorr(:));
+        axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*minVal) 1.1]);
+        
+        %write axes labels
+        xlabel('Lag (s)');
+        ylabel('Angle crosscorrelation - ind movies');
+        
+        %hold off figure
+        hold off
+        
+        %create subplot 6
+        subplot(2,3,6);
+        hold on;
+        
+        %plot individual movie projection autocorrelations
+        eval(['tmpCorr1 = squeeze(angle1IndAutocorr' label{iLabel,1} '(:,1,:));'])
+        eval(['tmpCorr2 = squeeze(angle2IndAutocorr' label{iLabel,1} '(:,1,:));'])
+        plot((-maxLag:0)*timeLapse,tmpCorr1(end:-1:1,:),'marker','.');
+        plot((0:maxLag)*timeLapse,tmpCorr2,'marker','.');
+        
+        %set axes limits
+        minVal = min([tmpCorr1(:); tmpCorr2(:)]);
+        axis([-maxLag*timeLapse maxLag*timeLapse min(0,1.1*minVal) 1.1]);
+        
+        %write axes labels
+        xlabel('Lag (s)');
+        ylabel('Angle autocorrelations - ind movies');
+        
+        %hold off figure
+        hold off
+
     end
     
 end

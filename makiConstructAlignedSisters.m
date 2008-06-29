@@ -65,17 +65,17 @@ for iSister = 1 : numSisters
         .tracksFeatIndxCG(goodFrames-trackStart(2)+1);
 
     %get aligned sister coordinates
-    coords1 = NaN(numFrames,3);
-    coords2 = NaN(numFrames,3);
+    coords1 = NaN(numFrames,6);
+    coords2 = NaN(numFrames,6);
     for iFrame = goodFrames'
-        coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),1:3);
-        coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),1:3);
+        coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),:);
+        coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),:);
     end
 
     %store aligned coordinates in sisterList
     sisterList(iSister).coords1Aligned = coords1;
     sisterList(iSister).coords2Aligned = coords2;
-    sisterList(iSister).distanceAligned = sqrt(sum((coords1 - coords2).^2,2));
+    sisterList(iSister).distanceAligned = sqrt(sum((coords1(:,1:3) - coords2(:,1:3)).^2,2));
     
 end
 

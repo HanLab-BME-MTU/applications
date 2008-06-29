@@ -99,10 +99,19 @@ for iLabel = 1 : 3
     eval(['angleNormal' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
     eval(['angularVel' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
     
+    eval(['movieStartIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
+    eval(['movieEndIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
+    
 end
 
 %go over all movies
 for iMovie = 1 : numMovies
+    
+    %store the index of the first place where the sisters belonging to this
+    %movie are stored
+    movieStartIndxInlier(iMovie) = iGlobalInlier + 1;
+    movieStartIndxUnaligned(iMovie) = iGlobalUnaligned + 1;
+    movieStartIndxLagging(iMovie) = iGlobalLagging + 1;
     
     if numSisters(iMovie) > 0
 
@@ -152,20 +161,29 @@ for iMovie = 1 : numMovies
             %get sister coordinates in good frames
             coords1 = NaN(numFrames,3);
             coords2 = NaN(numFrames,3);
+            coords1Std = NaN(numFrames,3);
+            coords2Std = NaN(numFrames,3);
             for iFrame = goodFrames'
                 coords1(iFrame,:) = sisterList(iSister).coords1Aligned(iFrame,1:3);
                 coords2(iFrame,:) = sisterList(iSister).coords2Aligned(iFrame,1:3);
+                coords1Std(iFrame,:) = sisterList(iSister).coords1Aligned(iFrame,4:6);
+                coords2Std(iFrame,:) = sisterList(iSister).coords2Aligned(iFrame,4:6);
             end
             
             %calculate vector between sisters
-            sisterVec = coords2 - coords1;
+            sisterVec = coords2 - coords1; %um
+            sisterVecVar = coords1Std.^2 + coords2Std.^2; %um^2
 
             %calculate distance between sisters
             sisterDistance = sqrt(sum(sisterVec.^2,2)); %um
-            
+            sisterDistStd = sqrt( sum( sisterVecVar .* sisterVec.^2 ,2) ) ...
+                ./ sisterDistance; %um
+
             %calculate sister velocity
             sisterVelocity = diff(sisterDistance) * 1000 / timeLapse; %nm/s
-            
+            sisterVelStd = sqrt( sum( [sisterDistStd(2:end) ...
+                sisterDistStd(1:end-1)].^2 ,2) ) * 1000 / timeLapse; %nm/s
+
             %calculate angle with normal
             angleWithNorm = NaN(numFrames,1);
             for iFrame = framesWithPlane
@@ -187,9 +205,9 @@ for iMovie = 1 : numMovies
 
             %store information
             eval(['sisterDist' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ').observations = sisterDistance;']) %um
+                ').observations = [sisterDistance sisterDistStd];']) %um
             eval(['sisterVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ').observations = sisterVelocity;']) %nm/s
+                ').observations = [sisterVelocity sisterVelStd];']) %nm/s
             eval(['angleNormal' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
                 ').observations = angleWithNorm * 180 / pi;']) %deg
             eval(['angularVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
@@ -199,6 +217,12 @@ for iMovie = 1 : numMovies
         
     end %(if numSisters(iMovie) > 0)
 
+    %store the index of the last place where the sisters belonging to this
+    %movie are stored
+    movieEndIndxInlier(iMovie) = iGlobalInlier;
+    movieEndIndxUnaligned(iMovie) = iGlobalUnaligned;
+    movieEndIndxLagging(iMovie) = iGlobalLagging;
+    
 end %(for iMovie = 1 : numMovies)
     
 %store number of sisters per category
@@ -388,16 +412,20 @@ end
 
 %% autocorrelation
 
+%define maximum lag
+maxLag = 20;
+
 %initialization
 for iLabel = 1 : 3
     eval(['sisterDistAutocorr' label{iLabel,1} ' = [];'])
     eval(['sisterVelAutocorr' label{iLabel,1} ' = [];'])
     eval(['angleNormalAutocorr' label{iLabel,1} ' = [];'])
     eval(['angularVelAutocorr' label{iLabel,1} ' = [];'])
+    eval(['sisterDistIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
+    eval(['sisterVelIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
+    eval(['angleNormalIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
+    eval(['angularVelIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
 end
-
-%define maximum lag
-maxLag = 20;
 
 %calculation
 for iLabel = goodLabel
@@ -405,18 +433,58 @@ for iLabel = goodLabel
     %distance
     eval(['sisterDistAutocorr' label{iLabel,1} ...
         ' = autoCorr(sisterDist' label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj = sisterDist' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            [tmpCorr,errFlag] = autoCorr(traj,maxLag);
+            if ~errFlag
+                eval(['sisterDistIndAutocorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
 
     %velocity
     eval(['sisterVelAutocorr' label{iLabel,1} ...
         ' = autoCorr(sisterVel' label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj = sisterVel' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            [tmpCorr,errFlag] = autoCorr(traj,maxLag);
+            if ~errFlag
+                eval(['sisterVelIndAutocorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
 
     %angle with normal
     eval(['angleNormalAutocorr' label{iLabel,1} ...
         ' = autoCorr(angleNormal' label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj = angleNormal' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            [tmpCorr,errFlag] = autoCorr(traj,maxLag);
+            if ~errFlag
+                eval(['angleNormalIndAutocorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
 
     %angular velocity
     eval(['angularVelAutocorr' label{iLabel,1} ...
         ' = autoCorr(angularVel' label{iLabel,1} ',maxLag);'])
+    for iMovie = 1 : numMovies
+        eval(['traj = angularVel' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            [tmpCorr,errFlag] = autoCorr(traj,maxLag);
+            if ~errFlag
+                eval(['angularVelIndAutocorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end
     
 end
 
@@ -424,35 +492,55 @@ end
 
 %initialization
 for iLabel = 1 : 3
-    eval(['sisterDistArma' label{iLabel,1} ' = [];'])
-    eval(['sisterVelArma' label{iLabel,1} ' = [];'])
-    eval(['angleNormalArma' label{iLabel,1} ' = [];'])
-    eval(['angularVelArma' label{iLabel,1} ' = [];'])
+    eval(['sisterDistIndArma' label{iLabel,1} ' = repmat(struct(''results'',[]),numMovies,1);'])
+    eval(['sisterVelIndArma' label{iLabel,1} ' = repmat(struct(''results'',[]),numMovies,1);'])
+    eval(['angleNormalIndArma' label{iLabel,1} ' = repmat(struct(''results'',[]),numMovies,1);'])
+    eval(['angularVelIndArma' label{iLabel,1} ' = repmat(struct(''results'',[]),numMovies,1);'])
 end
 
-% %define model orders to test
-% modelOrder = [0 0; 0 0; -1 -1];
-% 
-% %calculation
-% for iLabel = goodLabel
-%
-%     %call ARMA analysis function for sister distance
-%     eval(['sisterDistArma' label{iLabel,1} ' = armaxFitKalman(sisterDist' ...
-%         label{iLabel,1} ',[],modelOrder,''tl'');'])
-%
-%     %call ARMA analysis function for sister velocity
-%     eval(['sisterVelArma' label{iLabel,1} ' = armaxFitKalman(sisterVel' ...
-%         label{iLabel,1} ',[],modelOrder,''tl'');'])
-%
-%     %call ARMA analysis function for angle with normal to plane
-%     eval(['angleNormalArma' label{iLabel,1} ' = armaxFitKalman(angleNormal' ...
-%         label{iLabel,1} ',[],modelOrder,''tl'');'])
-%
-%     %call ARMA analysis function for angular velocity
-%     eval(['angularVelArma' label{iLabel,1} ' = armaxFitKalman(angularVel' ...
-%         label{iLabel,1} ',[],modelOrder,''tl'');'])
-%
-% end
+%define model orders to test
+modelOrder = [0 3; 0 3; -1 -1];
+
+%calculation
+for iLabel = goodLabel
+    
+    %call ARMA analysis function for sister distance
+    for iMovie = 1 : numMovies
+        eval(['traj = sisterDist' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            fitResults = armaxFitKalmanMEX(traj,[],modelOrder,'tl');
+            eval(['sisterDistIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
+        end
+    end
+
+    %call ARMA analysis function for sister velocity
+    for iMovie = 1 : numMovies
+        eval(['traj = sisterVel' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        if ~isempty(traj)
+            fitResults = armaxFitKalmanMEX(traj,[],modelOrder,'tl');
+            eval(['sisterVelIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
+        end
+    end
+
+    %     %call ARMA analysis function for angle with normal to plane
+    %     for iMovie = 1 : numMovies
+    %         eval(['fitResults = armaxFitKalmanMEX(angleNormal' label{iLabel,1} ...
+    %             '(movieStartIndx' label{iLabel,1} '(iMovie):movieEndIndx' ...
+    %             label{iLabel,1} '(iMovie)),[],modelOrder,''tl'');'])
+    %         eval(['angleNormalIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
+    %     end
+    %
+    %     %call ARMA analysis function for angular velocity
+    %     for iMovie = 1 : numMovies
+    %         eval(['fitResults = armaxFitKalmanMEX(angularVel' label{iLabel,1} ...
+    %             '(movieStartIndx' label{iLabel,1} '(iMovie):movieEndIndx' ...
+    %             label{iLabel,1} '(iMovie)),[],modelOrder,''tl'');'])
+    %         eval(['angularVelIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
+    %     end
+
+end
 
 %% angle vs. distance
 
@@ -494,14 +582,18 @@ for iLabel = 1 : 3
         '''absoluteRateChangeDist'',sisterVelTrend' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalTrend' label{iLabel,1} ','...
         '''angularVel'',angularVelTrend' label{iLabel,1} ');']);
-    eval(['autocorr = struct(''distance'',sisterDistAutocorr' label{iLabel,1} ','...
+    eval(['autocorr.all = struct(''distance'',sisterDistAutocorr' label{iLabel,1} ','...
         '''rateChangeDist'',sisterVelAutocorr' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalAutocorr' label{iLabel,1} ','...
         '''angularVel'',angularVelAutocorr' label{iLabel,1} ');']);
-    eval(['arma = struct(''distance'',sisterDistArma' label{iLabel,1} ','...
-        '''rateChangeDist'',sisterVelArma' label{iLabel,1} ','...
-        '''angleWithNormal'',angleNormalArma' label{iLabel,1} ','...
-        '''angularVel'',angularVelArma' label{iLabel,1} ');']);
+    eval(['autocorr.ind = struct(''distance'',sisterDistIndAutocorr' label{iLabel,1} ','...
+        '''rateChangeDist'',sisterVelIndAutocorr' label{iLabel,1} ','...
+        '''angleWithNormal'',angleNormalIndAutocorr' label{iLabel,1} ','...
+        '''angularVel'',angularVelIndAutocorr' label{iLabel,1} ');']);
+    eval(['arma.ind = struct(''distance'',sisterDistIndArma' label{iLabel,1} ','...
+        '''rateChangeDist'',sisterVelIndArma' label{iLabel,1} ','...
+        '''angleWithNormal'',angleNormalIndArma' label{iLabel,1} ','...
+        '''angularVel'',angularVelIndArma' label{iLabel,1} ');']);
     eval(['numSistersCat = iGlobal' label{iLabel,1} ';']);
 
     eval([label{iLabel,1} ' = struct('...
@@ -556,7 +648,7 @@ if verbose
         %plot a sample of trajectories
 
         %create subplot 1
-        subplot(2,1,1);
+        subplot(2,2,1);
         hold on
 
         %put all distances together in one matrix
@@ -587,10 +679,10 @@ if verbose
         %hold off figure
         hold off
 
-        %plot autocorrelation functions
+        %plot overall autocorrelation functions
 
         %create subplot 2
-        subplot(2,1,2);
+        subplot(2,2,2);
         hold on
 
         %plot the distance and velocity autocorrelations
@@ -604,11 +696,49 @@ if verbose
 
         %write axes labels
         xlabel('Lag (s)');
-        ylabel('Autocorrelation');
+        ylabel('Autocorrelation - overall');
 
         %write legend
         text(1*timeLapse,0.9,sprintf([' Black: Sister separation \n Red: ' ...
             'Rate of change of sister separation']));
+
+        %hold off figure
+        hold off
+        
+        %plot individual autocorrelation functions
+        
+        %create subplot 3
+        subplot(2,2,3)
+        hold on
+        
+        %plot the distance autocorrelations
+        eval(['tmpCorr = squeeze(sisterDistIndAutocorr' label{iLabel,1} '(:,1,:));'])
+        plot((0:maxLag)*timeLapse,tmpCorr,'marker','.');
+        
+        %set axes limit
+        axis([0 maxLag*timeLapse min(0,1.1*min(tmpCorr(:))) 1.1]);
+        
+        %write axes labels
+        xlabel('Lag (s)');
+        ylabel('Sister separation autocorrelation - ind movies');
+
+        %hold off figure
+        hold off
+        
+        %create subplot 4
+        subplot(2,2,4)
+        hold on
+        
+        %plot the distance autocorrelations
+        eval(['tmpCorr = squeeze(sisterVelIndAutocorr' label{iLabel,1} '(:,1,:));'])
+        plot((0:maxLag)*timeLapse,tmpCorr,'marker','.');
+        
+        %set axes limit
+        axis([0 maxLag*timeLapse min(0,1.1*min(tmpCorr(:))) 1.1]);
+        
+        %write axes labels
+        xlabel('Lag (s)');
+        ylabel('Rate change sister separation autocorrelation - ind movies');
 
         %hold off figure
         hold off

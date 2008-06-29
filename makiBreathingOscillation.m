@@ -1394,6 +1394,41 @@ for iLabel = goodLabel
     
 end
 
+%% ARMA of sister separation and COM motion
+
+% %initialization
+% for iLabel = 1 : 3
+%     eval(['sisterSepArma' label{iLabel,1} ' = [];'])
+%     eval(['sisterSepChangeArma' label{iLabel,1} ' = [];'])
+%     eval(['centerPosArma' label{iLabel,1} ' = [];'])
+%     eval(['centerPosChangeArma' label{iLabel,1} ' = [];'])
+% end
+% 
+% %define model orders to test
+% modelOrder = [0 3; 0 3; -1 -1];
+% 
+% %calculation
+% for iLabel = goodLabel
+% 
+%     %call ARMA analysis function for sister distance
+%     eval(['sisterSepArma' label{iLabel,1} ' = armaxFitKalman(separationSis12' ...
+%         label{iLabel,1} ',[],modelOrder,''tl'');'])
+% 
+%     %call ARMA analysis function for sister velocity
+%     eval(['sisterSepChangeArma' label{iLabel,1} ' = armaxFitKalman(separationChangeSis12' ...
+%         label{iLabel,1} ',[],modelOrder,''tl'');'])
+% 
+%     %call ARMA analysis function for angle with normal to plane
+%     eval(['centerPosArma' label{iLabel,1} ' = armaxFitKalman(centerPositionSis12' ...
+%         label{iLabel,1} ',[],modelOrder,''tl'');'])
+% 
+%     %call ARMA analysis function for angular velocity
+%     eval(['centerPosChangeArma' label{iLabel,1} ' = armaxFitKalman(centerPositionChangeSis12' ...
+%         label{iLabel,1} ',[],modelOrder,''tl'');'])
+% 
+% end
+
+
 %% output to analysisStruct
 
 for iLabel = 1 : 3
