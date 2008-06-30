@@ -1,241 +1,122 @@
-function [polyDepoly,accumY,accumX,runInfo]=turnoverMap(imDir,anDir,nPairs2analyze,doNorm,winL,polyLocFlag)
+function [polyDepoly,accumY,accumX,runInfo]=turnoverMap(runInfo,nImgs2Analyze,winL,methodStr)
 
-% threshold for vector outlier detection
-runInfo.thresh=50;
-
-% minimum number of neighbors for vector outlier detection
-runInfo.nNeighborLowerLimit=3;
-
-% directional deviation (degrees) allowed for a vector compared to its
-% neighbors
-runInfo.dirDev=15;
-
-% how many points on each side of the measurement window to use
-runInfo.nPtsPerSide=4; 
 
 % imDir: image directory
 % anDir: analysis directory
-% nPairs2analyze: number of image pairs to calculate (must be <= nImages-1)
+% nImgs2Analyze: number of image pairs to calculate (must be <= nImages-1)
 % doNorm: 0 if image normalization has been done; 1 if it needs to be done
 % winL: measurement window length (must be odd)
-% polyLocFlag: 0 if poly events should be stored on same grid as depoly; 1
-%              if poly events should be stored on window center location in
-%              second frame (see comment above where this flag is checked 
-%              for the rationale)
+% methodStr: 'frame0grid' if poly events should be stored on same grid as depoly; 
+%            'frame1grid' if poly events should be stored on window center location in
+%             second frame (see comment above where this flag is checked 
+%             for the rationale)
 
 
-%imDir='S:\scripps\analysis\thompson\Theriot\blebbistatinCells\050224D04Mf_231-266\images-renamed';
-%anDir='S:\scripps\analysis\thompson\Theriot\blebbistatinCells\050224D04Mf_231-266\analysis';
 
-%anDir='S:\scripps\analysis\thompson\Theriot\2008-06-12\050224D04Af\analysis';
-%imDir='S:\scripps\analysis\thompson\Theriot\2008-06-12\050224D04Af\images';
-
-%imDir=[pwd filesep 'exp1' filesep 'images' filesep 'maskedTifs'];
-%anDir=[pwd filesep 'exp1' filesep 'analysis'];
 
 global DEBUG__
 if isempty(DEBUG__)
     DEBUG__=0;
 end
 
-%------------------------------------------------------------------
-% CHECK USER INPUT & CREATE NEW DIRECTORIES
-
-% check input of image directory; query user if []
-if nargin<1 || isempty(imDir)
-    runInfo.imDir=uigetdir(pwd,'Please select image directory');
-    imDir=runInfo.imDir;
-else
-    runInfo.imDir=imDir;
-    if ~ischar(runInfo.imDir) || ~isdir(runInfo.imDir)
-        error('POLYDEPOLYMAP: imDir must be a valid directory name')
-    end
+if nargin<1
+    error('turnoverMap: Not enough input parameters')
+end
+if ~isstruct(runInfo)
+    runInfo=struct;
 end
 
-% check input of analysis directory; query user if []
-if nargin<2 || isempty(anDir)
-    runInfo.anDir=uigetdir(runInfo.imDir ,'Please select project analysis directory');
-    anDir=runInfo.anDir;
+if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
+    error('turnoverMap: runInfo should contain fields imDir and anDir');
 else
-    runInfo.anDir=anDir;
-    if ~ischar(runInfo.anDir) || ~isdir(runInfo.anDir)
-        error('POLYDEPOLYMAP: imDir must be a valid directory name')
-    end
+    [runInfo.anDir] = formatPath(runInfo.anDir);
+    [runInfo.imDir] = formatPath(runInfo.imDir);
 end
 
-% check input of nPairs2analyze
-if nargin<3 || isempty(nPairs2analyze)
-    runInfo.nPairs2analyze=[]; %default - do them all
+% check input of nImgs2Analyze
+if nargin<2 || isempty(nImgs2Analyze)
+    runInfo.nImgs2Analyze=[]; % default - do them all
 else
-    runInfo.nPairs2analyze=nPairs2analyze;
-end
-
-% check input of doNorm
-if nargin<4 || isempty(doNorm) || doNorm~=1
-    doNorm=0; % doNorm must be 1 to run image normalization
+    runInfo.nImgs2Analyze=nImgs2Analyze;
 end
 
 % check input of winL
-if nargin<5 || isempty(winL)
+if nargin<3 || isempty(winL)
     runInfo.winL=11; % default - empirical estimate
 else
     runInfo.winL=winL;
 end
 
-% check input of polyLocFlag
-if nargin<6 || isempty(polyLocFlag)
-    runInfo.polyLocFlag=0; % default - will plot on original grid
+% check input of methodStr
+if nargin<4 || isempty(methodStr)
+    runInfo.methodStr='frame0grid'; % default - will plot on original grid
 else
-    runInfo.polyLocFlag=polyLocFlag;
+    runInfo.methodStr=methodStr;
 end
 
-% check whether cell masks exist.  they are necessary for calculating mean
-% background intensity during normalization.  if the images have already
-% been normalized, and somehow the masks do not exist, then the user should
-% run edge tracking or create them using ones(lengthOfImage,widthOfImage).
-cmDir=[runInfo.anDir filesep 'edge' filesep 'cell_mask'];
-if ~isdir(cmDir)
-    error('POLYDEPOLYMAP: cmDir does not exist')
-else % if valid directory, check for tifs
-    [listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
-    if isempty(listOfCellMasks) % if no tifs, give error
-        error('POLYDEPOLYMAP: the cell mask directory is empty')
-    end
-end
+% normalized image directory
+normDir=[runInfo.imDir filesep 'norm' filesep 'normMats'];
 
-% create corr directory if it does not exist
-corrDir=[runInfo.anDir filesep 'corr'];
-if ~isdir(corrDir)
-    mkdir(corrDir);
-end
+% flow tracking directory, retrieve flow data
+filtDir=[runInfo.anDir filesep 'corr' filesep 'filt'];
+temp=load([filtDir filesep 'filteredFlow.mat']);
+filteredFlow=temp.filteredFlow;
 
-% create norm directory if it does not exist
-normDir=[runInfo.anDir filesep 'norm' filesep 'normMats'];
-if ~isdir(normDir)
-    mkdir(normDir);
-end
+
+% vector coverage mask directory, get mask list
+vecCovDir=[filtDir filesep 'vectorCoverageMask'];
+[listOfVecCovMasks]=searchFiles('vectorCoverage',[],vecCovDir,0);
 
 % create directories for turnover data
-runInfo.turnDir=[runInfo.anDir filesep 'turn_winL_' num2str(runInfo.winL)];
+runInfo.turnDir=[runInfo.anDir filesep 'turn_' runInfo.methodStr filesep 'turn_winL_' num2str(runInfo.winL)];
 if isdir(runInfo.turnDir)
     rmdir(runInfo.turnDir,'s');
 end
 mkdir([runInfo.turnDir filesep 'raw']);
 mkdir([runInfo.turnDir filesep 'interp']);
-mkdir([runInfo.turnDir filesep 'vectorCoverageMask']);
-if DEBUG__==1
-    mkdir([runInfo.turnDir filesep 'overlay']);
-end
 
-% initialize fields to store min/max poly/depoly
-runInfo.polyDepolyMovieMin=10^6;
-runInfo.polyDepolyMovieMax=0;
-
-%------------------------------------------------------------------
-% EXTRACT STORED FLOW TRACK DATA
-
-% check to see if corr contains flow tracks in either the imKymoAnalysis
-% format or Cyrus's format (ie flowHistory structure)
-% if no files exist, user should run imKymoAnalysis to track flow or copy over
-% flowTrack in Cyrus format into corr directory
-
-% searchFiles not case sensitive; if you change this, be careful that names conform to
-% standards
-
-% vecPxyVxyAllFms: nFrames x 1 cell containing the tail positions
-% and x- and y-components of all vectors
-listFilesLin = searchFiles('flowTrack(\w*)_(\w*).mat',[],corrDir,0);
-listFilesCyrus = searchFiles('(\w*)FlowTrack.mat','_',corrDir,0);
-
-if ~isempty(listFilesLin(:,1)) && isempty(listFilesCyrus(:,1)) % Lin format
-    runInfo.nFlwTrcks=length(listFilesLin(:,1)); %number of flowtracks
-
-    % fill cell with measured velocity info from all tracks
-    vecPxyVxyAllFms=cell(runInfo.nFlwTrcks,1);
-    for n=1:runInfo.nFlwTrcks
-        fileName=[char(listFilesLin(n,2)) filesep char(listFilesLin(n,1))];
-        flwTrck=load(fileName);
-        vecPxyVxyAllFms{n}=[flwTrck.flowTrack.p{1,1} flwTrck.flowTrack.v{1,1}];
-    end
-
-elseif isempty(listFilesLin(:,1)) && ~isempty(listFilesCyrus(:,1)) % Cyrus format
-    fileName=[char(listFilesCyrus(1,2)) filesep char(listFilesCyrus(1,1))];
-    flwTrck=load(fileName);
-    flwTrck=flwTrck.flowHistory;
-    runInfo.nFlwTrcks=length(flwTrck); %number of flowtracks
-
-    % fill cell with measured velocity info from all tracks
-    vecPxyVxyAllFms=cell(runInfo.nFlwTrcks,1);
-    for n=1:runInfo.nFlwTrcks
-        vecPxyVxyAllFms{n}=[flwTrck(1,n).p flwTrck(1,n).v];
-    end
-
-else % corr is either empty, contains more than 1 Cyrus .mat file, or contains no Lin flowTrack files
-    disp('POLYDEPOLYMAP: flow tracks missing from /corr or have unknown format')
-end
-
-%------------------------------------------------------------------
-% NORMALIZE IMAGES & GET ROI MASK
-
-% get total number of images to avoid incorrect naming and create string
-% for naming files with correct number of digits
-[listOfImages] = searchFiles('.tif',[],runInfo.imDir);
-runInfo.nImTotExist=length(listOfImages);
-s=length(num2str(runInfo.nImTotExist));
-strg=sprintf('%%.%dd',s);
-
-% get image dimensions from the first image in the list
-[runInfo.imL,runInfo.imW]=size(imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))]));
-imL=runInfo.imL; imW=runInfo.imW;
-
-% find the number of images to analyze
-if isempty(runInfo.nPairs2analyze)
-    runInfo.nIm2an=runInfo.nFlwTrcks+1;
-else
-    runInfo.nIm2an=nanmin(runInfo.nPairs2analyze,runInfo.nFlwTrcks)+1;
-end
-
-% check that the number of images to analyze is less than or equal to the
-% total number that exist
-if runInfo.nImTotExist < runInfo.nIm2an
-    error('POLYDEPOLYMAP: total number of images should be >= number of images used in analysis')
-end
-
-% NORMALIZE images to 0-1, or skip this time-consuming step if files exist
-% in normDir
-listNormIm = searchFiles('norm_image',[],normDir);
-if isempty(listNormIm) || doNorm==1
-    [normInfo]=normImgSeries(runInfo,runInfo.nIm2an);
-else
-    disp('POLYDEPOLYMAP: images in /norm/normMats assumed to be normalized')
-    temp=load([runInfo.anDir filesep 'norm' filesep 'normInfo.mat']);
-    normInfo=temp.normInfo;
-end
 
 % per-pixel variation due to noise is std of background divided by the
 % square root of the number of pixels used to make the calculation. thus we
 % can say that poly/depoly values that are above, say, 2x this value are
 % significant.
+temp=load([runInfo.imDir filesep 'norm' filesep 'normInfo.mat']);
+normInfo=temp.normInfo;
 runInfo.perPixNoiseVar=normInfo.bgStd/runInfo.winL;
 
-% get roiMask from fieldGeom-polygon (fieldGeom generated by selecting a ROI in
-% imKymoAnalysis), or if it doesn't exist, use whole image
-fieldGeom=[corrDir filesep 'fieldGeom.mat'];
-if exist(fieldGeom,'file')
-    fieldGeom=load([corrDir filesep 'fieldGeom']);
-    roiMask=zeros(imL,imW); % size of whole image
-    roiMask=roipoly(roiMask,fieldGeom.fieldGeom{1,1}.bndX,fieldGeom.fieldGeom{1,1}.bndY);
-else % if no roi was pre-selected, use whole cell
-    roiMask=ones(imL,imW);
-end
-runInfo.roiMask=roiMask;
 
-% initialize cell to contain pixels on cell boundary
-runInfo.edgePix=cell(1,runInfo.nIm2an-1);
-filteredFlow(runInfo.nIm2an)=struct('pyxRaw',[],'vyxRaw',[],'pyxFilt',[],'vyxFilt',[]);
+% initialize fields to store min/max poly/depoly
+runInfo.polyDepolyMovieMin=10^6;
+runInfo.polyDepolyMovieMax=0;
+
+
+% find the number of images to analyze
+if isempty(runInfo.nImgs2Analyze)
+    runInfo.nImgs2Analyze=runInfo.nImages;
+else
+    runInfo.nImgs2Analyze=nanmin(runInfo.nImgs2Analyze,runInfo.nImages);
+end
+s=length(num2str(runInfo.nImgs2Analyze));
+strg=sprintf('%%.%dd',s);
+
+
+% get roiMask from anDir (made useing polyDepolyChooseROI),or if it doesn't
+% exist, use whole image
+roiFile=[runInfo.anDir filesep 'polyDepolyROI.tif'];
+if exist(roiFile,'file')
+    roiMask=imread(roiFile);
+else
+    roiMask=ones(runInfo.imL,runInfo.imW);
+end
+roiMaskDil=bwmorph(roiMask,'dilate',runInfo.winL);
+
+% pixels on cell boundary
+temp=load([runInfo.anDir filesep 'edgePix.mat']);
+edgePix=temp.edgePix;
+
 %------------------------------------------------------------------
 % ITERATE THROUGH FRAME PAIRS
-for pairNumber=1:runInfo.nIm2an-1
+for pairNumber=1:runInfo.nImgs2Analyze-1
     
     indxStr1=sprintf(strg,pairNumber);   
     
@@ -243,24 +124,22 @@ for pairNumber=1:runInfo.nIm2an-1
     % READ CELL MASKS AND LOAD NORMALIZED IMAGES FOR FRAMES i AND i+1
 
     if pairNumber==1
-        % load first frame mask
-        fileNameMask0=[char(listOfCellMasks(pairNumber,2)) filesep char(listOfCellMasks(pairNumber,1))];
-        cellMask0=double(imread(fileNameMask0)).*roiMask;
-        % find cell edge pixels for first frame
-        runInfo.edgePix{pairNumber}=find(bwmorph(cellMask0,'remove'));
+        % mask0: dilated polyDepolyROI x vectorCoverageMask
+        fileNameMask0=[char(listOfVecCovMasks(pairNumber,2)) filesep char(listOfVecCovMasks(pairNumber,1))];
+        mask0=double(imread(fileNameMask0)).*roiMaskDil;
+        
         % load first frame image
         indxStr1=sprintf(strg,pairNumber);
         img0=load([normDir filesep 'norm_image' indxStr1]);
         img0=img0.normImg;
     else
-        cellMask0=cellMask1;
+        mask0=mask1;
         img0=img1;
     end
-    % load second frame mask
-    fileNameMask1=[char(listOfCellMasks(pairNumber+1,2)) filesep char(listOfCellMasks(pairNumber+1,1))];
-    cellMask1=double(imread(fileNameMask1)).*roiMask;
-    % find the edge pixels for second image based on mask
-    runInfo.edgePix{pairNumber+1}=find(bwmorph(cellMask1,'remove'));
+    % mask1: dilated polyDepolyROI x vectorCoverageMask
+    fileNameMask1=[char(listOfVecCovMasks(pairNumber+1,2)) filesep char(listOfVecCovMasks(pairNumber+1,1))];
+    mask1=double(imread(fileNameMask1)).*roiMaskDil;
+    
     % load second frame image
     indxStr2=sprintf(strg,pairNumber+1);
     img1=load([normDir filesep 'norm_image' indxStr2]);
@@ -273,29 +152,17 @@ for pairNumber=1:runInfo.nIm2an-1
 
     %------------------------------------------------------------------
 
-    % extract the vectors for frm1, separate into known vector tail
-    % positions and y and x components
-    vecPxyVxy=vecPxyVxyAllFms{pairNumber,1};
-    pyxVecKnown=vecPxyVxy(:,2:-1:1);
-    vyxVecKnown=vecPxyVxy(:,4:-1:3);
 
-    % remove vector outliers
-    [pyxFiltered,vyxFiltered,vectorCoverageMask,runInfo]=removeVectorOutliers(runInfo,pyxVecKnown,vyxVecKnown);
-
-    filteredFlow(pairNumber).pyxRaw=pyxVecKnown;
-    filteredFlow(pairNumber).vyxRaw=vyxVecKnown;
-    filteredFlow(pairNumber).pyxFilt=pyxFiltered;
-    filteredFlow(pairNumber).vyxFilt=vyxFiltered;
     
     % get grid for calculating poly/depoly
     % findCalcRegion gives coordinates for a rectangle surrounding the
-    % vectorCoverageMask, the sides of which are a multiple of gridSpace.
+    % vectorCoverageMasks, the sides of which are a multiple of gridSpace.
     % we need to add 1 to each side to allow for integer coordinates. for
     % example, if the rectangle were 15 pixels long, and gridSpace=5; we
     % want to end up with coordinates at 1,6,11,16.
     gridSpace=5;
-    [yTLC,xTLC,yBRC,xBRC,nWinL,nWinW]=findCalcRegion(vectorCoverageMask,gridSpace);
-    if yBRC<imL
+    [yTLC,xTLC,yBRC,xBRC,nWinL,nWinW]=findCalcRegion(mask0 | mask1,gridSpace);
+    if yBRC<runInfo.imL
         yBRC=yBRC+1;
     elseif yTLC>1
         yTLC=yTLC-1;
@@ -303,7 +170,7 @@ for pairNumber=1:runInfo.nIm2an-1
         warning('TURNOVERMAP: border problem in grid to calculate poly/depoly');
     end
 
-    if xBRC<imW
+    if xBRC<runInfo.imW
         xBRC=xBRC+1;
     elseif xTLC>1
         xTLC=xTLC-1;
@@ -316,7 +183,9 @@ for pairNumber=1:runInfo.nIm2an-1
     cY0=cY0(:); cX0=cX0(:);
 
     %------------------------------------------------------------------
-
+    pyxFiltered=filteredFlow(1,pairNumber).pyxFilt;
+    vyxFiltered=filteredFlow(1,pairNumber).vyxFilt;    
+    
     % here we interpolate the vector field on the grid points, as well as
     % the measurement window edge points
 
@@ -347,6 +216,9 @@ for pairNumber=1:runInfo.nIm2an-1
     
     % get nEdgePts x nWindows arrays containing coordinates of the
     % points on the window perimeter (including corners)
+    
+    % how many points on each side of the measurement window to use
+    runInfo.nPtsPerSide=4; 
     [edgeY0,edgeX0]=findEdgePts(cY0,cX0,runInfo.winL,runInfo.nPtsPerSide);
     [nEdgePts,nWindows]=size(edgeY0);
     counter=1;
@@ -379,8 +251,8 @@ for pairNumber=1:runInfo.nIm2an-1
 
     % some of the center points or edge points may extend beyond the image
     % find these and remove them
-    centerIdx2remove=find(cX0<1 | cX0>imW | cX1<1 | cX1>imW | cY0<1 | cY0>imL | cY1<1 | cY1>imL);
-    [edgeIdx2remove,winIdx2remove]=find(edgeX0<1 | edgeX0>imW | edgeX1<1 | edgeX1>imW | edgeY0<1 | edgeY0>imL | edgeY1<1 | edgeY1>imL);
+    centerIdx2remove=find(cX0<1 | cX0>runInfo.imW | cX1<1 | cX1>runInfo.imW | cY0<1 | cY0>runInfo.imL | cY1<1 | cY1>runInfo.imL);
+    [edgeIdx2remove,winIdx2remove]=find(edgeX0<1 | edgeX0>runInfo.imW | edgeX1<1 | edgeX1>runInfo.imW | edgeY0<1 | edgeY0>runInfo.imL | edgeY1<1 | edgeY1>runInfo.imL);
     idx2remove=unique([centerIdx2remove;winIdx2remove]);
 
     cX0(idx2remove)=[];
@@ -430,7 +302,7 @@ for pairNumber=1:runInfo.nIm2an-1
     I0=zeros(nWindows,1);
     I1=zeros(nWindows,1);
     % consider all image pixels for in/out/on test
-    [X Y]=meshgrid(1:imW,1:imL);
+    [X Y]=meshgrid(1:runInfo.imW,1:runInfo.imL);
     for i=1:nWindows
         % get which pixels are inside/on window i's boundary in each frame
         [in0 on0] = inpolygon(X,Y,edgeX0(:,i),edgeY0(:,i));
@@ -476,10 +348,10 @@ for pairNumber=1:runInfo.nIm2an-1
     accumX(netDepolyWinIdx)=cX0(netDepolyWinIdx);
 
     % poly, take location based on flag
-    if runInfo.polyLocFlag==0 % take first frame centers
-        accumY(netPolyWinIdx)=cY1(netPolyWinIdx);
-        accumX(netPolyWinIdx)=cX1(netPolyWinIdx);
-    elseif runInfo.polyLocFlag==1 % take the second frame centers
+    if isequal(runInfo.methodStr,'frame0grid') % take first frame centers
+        accumY(netPolyWinIdx)=cY0(netPolyWinIdx);
+        accumX(netPolyWinIdx)=cX0(netPolyWinIdx);
+    elseif isequal(runInfo.methodStr,'frame1grid') % take the second frame centers
         accumY(netPolyWinIdx)=cY1(netPolyWinIdx);
         accumX(netPolyWinIdx)=cX1(netPolyWinIdx);
     end
@@ -491,9 +363,9 @@ for pairNumber=1:runInfo.nIm2an-1
     % we sum these values, since the optical effect of poly/depoly in the same
     % location is additive.  here we find repeated entries, sum their turnover
     % scores into one location, and remove the other locations.
-    accumY=round(accumY); accumY(accumY<1)=1; accumY(accumY>imL)=imL;
-    accumX=round(accumX); accumX(accumX<1)=1; accumX(accumX>imW)=imW;
-    pixIdx=xy2index(accumX,accumY,imL,imW);
+    accumY=round(accumY); accumY(accumY<1)=1; accumY(accumY>runInfo.imL)=runInfo.imL;
+    accumX=round(accumX); accumX(accumX<1)=1; accumX(accumX>runInfo.imW)=runInfo.imW;
+    pixIdx=xy2index(accumX,accumY,runInfo.imL,runInfo.imW);
     [uniqueE,nOccurences] = countEntries(pixIdx,1,0);
     repeats=uniqueE(nOccurences>1);
     mark4removal=zeros(100000,1); c=1;
@@ -510,43 +382,20 @@ for pairNumber=1:runInfo.nIm2an-1
     accumTurnover(mark4removal)=[];
 
 
-    
+    maskBoth=mask0 | mask1;
     % interpolate poly/depoly values at every pixel in vectorCoverageMask
     dataM = imDataMap([max(accumY)-min(accumY)+1 max(accumX)-min(accumX)+1],...
         [accumY-min(accumY)+1 accumX-min(accumX)+1],accumTurnover,...
         'infLen',11,...   
         'grid',[5 5],...
-        'mask',vectorCoverageMask(min(accumY):max(accumY),min(accumX):max(accumX)));
+        'mask',maskBoth(min(accumY):max(accumY),min(accumX):max(accumX)));
     % put data back into imL x imW image
-    polyDepoly=nan*zeros(imL,imW);
+    polyDepoly=nan*zeros(runInfo.imL,runInfo.imW);
     polyDepoly(min(accumY):max(accumY),min(accumX):max(accumX))=dataM;
    
     runInfo.polyDepolyMovieMin=nanmin(runInfo.polyDepolyMovieMin,nanmin(polyDepoly(:)));
     runInfo.polyDepolyMovieMax=nanmax(runInfo.polyDepolyMovieMax,nanmax(polyDepoly(:)));
-    
-    if DEBUG__==1
-        % plot the data using red/green values from this frame only
-        % show outliers in cyan, raw filtered vectors in yellow
-        % show cell outlines from frame pair in blue
-        cMap=isomorphicColormap('g/r',128);
-        cMap=[cMap; [0 0 0]];
-        opacity=1;
-        [img3C,pixClasses]=imDataMapOverlay(img0,polyDepoly,[-nanmax(abs(polyDepoly(:))),nanmax(abs(polyDepoly(:)))],cMap,opacity);
-        img3C(runInfo.edgePix{pairNumber}+2*imL*imW)=1; % show cell from pair i in dark blue
-        img3C(runInfo.edgePix{pairNumber+1}+2*imL*imW)=.5; % show cell from pair i+1 in lighter blue
-        hmain=get(0,'CurrentFigure');
-        if pairNumber==1 && ~isempty(hmain)
-            figure(hmain+1);
-        else
-            figure(1);
-        end
-        imshow(img3C);
-        hold on
-        quiver(vecPxyVxy(:,1),vecPxyVxy(:,2),vecPxyVxy(:,3),vecPxyVxy(:,4),0,'c')
-        quiver(pyxFiltered(:,2),pyxFiltered(:,1),vyxFiltered(:,2),vyxFiltered(:,1),0,'y')
-        % save matlab figure of vector overlay
-        saveas(gcf,[runInfo.turnDir filesep 'overlay' filesep 'overlay' indxStr1 '.fig']);
-    end
+  
 
     % save raw data - accumY, accumX, and accumTurnover
     save([runInfo.turnDir filesep 'raw' filesep 'accumY' indxStr1 '.mat'],'accumY');
@@ -554,19 +403,7 @@ for pairNumber=1:runInfo.nIm2an-1
     save([runInfo.turnDir filesep 'raw' filesep 'accumTurnover' indxStr1 '.mat'],'accumTurnover');
     % save interpolated data
     save([runInfo.turnDir filesep 'interp' filesep 'polyDepoly' indxStr1 '.mat'],'polyDepoly');
-    % save vector coverage masks
-    imwrite(vectorCoverageMask,[runInfo.turnDir filesep 'vectorCoverageMask' filesep 'vectorCoverageMask' indxStr1 '.tif']);
 
 end
 save([runInfo.turnDir filesep 'runInfo'],'runInfo');
-save([runInfo.turnDir filesep 'filteredFlow'],'filteredFlow');
 
-
-
-% function filteredIm = filterRegion(im, mask, kernel)
-% warning('off', 'MATLAB:divideByZero');
-% im(~mask) = 0;
-% filteredIm = imfilter(im, kernel,'symmetric');
-% W = imfilter(double(mask), kernel);
-% filteredIm = filteredIm ./ W;
-% filteredIm(~mask) = 0;

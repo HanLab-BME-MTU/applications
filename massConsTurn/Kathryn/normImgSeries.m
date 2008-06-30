@@ -1,4 +1,4 @@
-function [normInfo]=normImgSeries(runInfo,nFrames)
+function normImgSeries(runInfo,nFrames)
 % NORMIMGSERIES subtracts avg bg and normalizes images to 0-1
 %
 % DESCRIPTION: normImgSeries subtracts the average background of the movie
@@ -7,12 +7,11 @@ function [normInfo]=normImgSeries(runInfo,nFrames)
 % SYNOPSIS: [normInfo]=normImgSeries(runInfo,nFrames)
 %
 % INPUT: runInfo : structure containing path to image and analysis
-%                  directories. use runInfo=[] to query user for
-%                  directories and normalize all frames
+%                  directories.
 %        nFrames : number of frames to normalize 
 %                  use nFrames = 0 (default) to normalize all frames.
 %
-% OUTPUT: /analysis/norm/normMats contains .mat's of the normalized images,
+% OUTPUT: /images/norm/normMats contains .mat's of the normalized images,
 %                                 which are between 0 and 1.
 %                  /norm/normTifs contains .tiff's of the normalized images
 %                  /norm/negEdgeTifs contains .tiffs of the image negative
@@ -37,62 +36,62 @@ function [normInfo]=normImgSeries(runInfo,nFrames)
 %
 %
 
-warningState=warning;
-warning('off','MATLAB:intConvertNonIntVal')
-
-% user can change this: should be 1 if the max intensity value should be
+% USER can change this: should be 1 if the max intensity value should be
 % found from within the cell across the whole movie, or 0 if it should be
 % found from the whole image.
 insideCellMaxFlag=1;
 
-
-[anDir,imDir,cmDir]=checkInputParameters(runInfo,nFrames);
-
-% get list of images and total number of images
-[listOfImages] = searchFiles('.tif',[],imDir);
-nImTot=size(listOfImages,1);
-
-% give error if nFrames is larger than the total number of images
-if nFrames>nImTot
-    disp('normImgSeries: nFrames must be <= the total number of images');
-    disp('               nFrames will now be the total number of images');
-    nFrames=nImTot;
+% --- CHECK USER INPUT ---
+if nargin<1
+    error('normImgSeries: Not enough input parameters')
 end
+if ~isstruct(runInfo)
+    runInfo=struct;
+end
+
+if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
+    error('normImgSeries: runInfo should contain fields imDir and anDir');
+else
+    [anDir] = formatPath(runInfo.anDir);
+    [imDir] = formatPath(runInfo.imDir);
+end
+
+% cell mask directory
+cmDir=[anDir filesep 'edge' filesep 'cell_mask'];
+if ~isdir(cmDir)
+    error('normImgSeries: Please run edge tracking')
+end
+
+[listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
+nImTot=size(listOfCellMasks,1);
+
+% check nFrames
+if nargin<2 || isempty(nFrames) || ~isnumeric(nFrames) || nFrames==0
+    nFrames=nImTot;
+elseif nFrames>nImTot
+    error('normImgSeries: nFrames must be <= the total number of images');
+end
+
+% output the normalized images to subdirectory of image directory
+% delete contents if it already exists
+normDir=[imDir filesep 'norm'];
+if isdir(normDir)
+    rmdir(normDir,'s');
+end
+mkdir(normDir);
+mkdir([normDir filesep 'normTifs']);
+mkdir([normDir filesep 'normMats']);
+mkdir([normDir filesep 'negEdgeTifs']);
 
 % create string for naming files with correct number of digits
 % we want to match the naming of the image files, so use nImTot for this
 s=length(num2str(nImTot));
 strg=sprintf('%%.%dd',s);
 
-% output the normalized images to subdirectory of project directory
-% delete contents if it already exists
-normDir=[anDir filesep 'norm'];
-if ~isdir(normDir)
-    mkdir(normDir);
-end
-if ~isdir([normDir filesep 'normTifs'])
-    mkdir([normDir filesep 'normTifs']);
-else
-    delete([normDir filesep 'normTifs' filesep '*tif'])
-end
-if ~isdir([normDir filesep 'normMats'])
-    mkdir([normDir filesep 'normMats']);
-else
-    delete([normDir filesep 'normMats' filesep '*mat'])
-end
-if ~isdir([normDir filesep 'negEdgeTifs'])
-    mkdir([normDir filesep 'negEdgeTifs']);
-else
-    delete([normDir filesep 'negEdgeTifs' filesep '*tif'])
-end
-if isdir([cmDir filesep 'bgMasks']) % mkdir done by bgStats.m
-   delete([cmDir filesep 'bgMasks' filesep '*tif'])
-end
+% --- END CHECK USER INPUT ---
 
-% nImTot is given the user-set nFrames if not 0
-if nFrames~=0
-    nImTot=nFrames; 
-end
+warningState=warning;
+warning('off','MATLAB:intConvertNonIntVal')
 
 % we take the global min to be the minimum gray level from the background
 % pixels. (if we take the overall global min, it will always be zero
@@ -103,11 +102,12 @@ end
 [bgStd, bgMin, globalMax]=bgStats(imDir,cmDir,nFrames,insideCellMaxFlag);
 bgStd=bgStd/(globalMax-bgMin); 
 
-[listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
-
 % now we normalize and save images
-fgMean=zeros(nImTot,1);
-for i=1:nImTot
+fgMean=zeros(nFrames,1);
+edgePix=cell(1,nFrames);
+[listOfImages] = searchFiles('.tif',[],imDir,0);
+
+for i=1:nFrames
     fileNameIm=[char(listOfImages(i,2)) filesep char(listOfImages(i,1))];
     im=double(imread(fileNameIm)); %im is raw image
     normImg=(im-bgMin)./(globalMax-bgMin); % normalize using global max/min
@@ -125,7 +125,10 @@ for i=1:nImTot
     fileNameMask=[char(listOfCellMasks(i,2)) filesep char(listOfCellMasks(i,1))];
     cm=double(imread(fileNameMask)); %cm is cell mask
     pixelEdgeMask=bwmorph(cm,'remove');
-    pixelEdgeMask=swapMaskValues(pixelEdgeMask);
+
+    edgePix{i}=find(pixelEdgeMask);
+
+    pixelEdgeMask=swapMaskValues(pixelEdgeMask,[0 1],[1 0]);
     negEdgeImg=abs(normImg-1).*pixelEdgeMask;
     imwrite(negEdgeImg,[normDir filesep 'negEdgeTifs' filesep 'neg_edge_image',indxStr,'.tif']);
     
@@ -135,10 +138,17 @@ for i=1:nImTot
 end
 
 % plot the foreground mean per frame
-scatter(1:nImTot,fgMean,'.')
+h=get(0,'CurrentFigure');
+if h==1
+    close(h)
+end
+figure(1);
+scatter(1:nFrames,fgMean,'.')
 ylim([0 1])
-saveas(gcf,[normDir filesep 'cellBodyMeanIntensityPerFrame.fig']);
+saveas(gcf,[normDir filesep 'cellBodyMeanIntensityPerFrame.tif']);
+close
 
+save([anDir filesep 'edgePix'],'edgePix');
 
 normInfo.bgStd=bgStd; 
 normInfo.fgMean=fgMean;
@@ -146,37 +156,7 @@ save([normDir filesep 'normInfo'],'normInfo');
 
 warning(warningState);
 
-% --------------------------
-% subfunction to check input
-function [anDir,imDir,cmDir]=checkInputParameters(runInfo,nFrames)
 
-% check nFrames
-if nargin<2 || isempty(nFrames) || ~isnumeric(nFrames) 
-        error('normImgSeries: nFrames must be a positive integer, or use 0 to normalize over all frames');
-else
-    if nFrames<0 || (nFrames>0 && mod(nFrames,1)~=0)
-        % error if not zero and either negative or not an integer
-        error('normImgSeries: nFrames must be a positive integer, or use 0 to normalize over all frames');
-    end
-end
 
-% if no arguments given, query user for directories and use nFrames=0
-if nargin<1 || ~isstruct(runInfo)
-    anDir=uigetdir(pwd ,'Please select project analysis directory');
-    imDir=uigetdir(anDir,'Choose directory containing tifs to be normalized');
-end
 
-% check that runInfo contains imDir and anDir and that they are valid paths
-if isstruct(runInfo)
-    if isfield(runInfo,'imDir') && isfield(runInfo,'anDir') && isdir(runInfo.anDir) && isdir(runInfo.imDir)
-        anDir=runInfo.anDir;
-        imDir=runInfo.imDir;
-    else
-        error('normImgSeries: runInfo must be a structure containing imDir and anDir paths, or you may use [] to query user');
-    end
-end
 
-cmDir=[anDir filesep 'edge' filesep 'cell_mask'];
-if ~isdir(cmDir)
-    error('normImgSeries: Please run edge tracking')
-end

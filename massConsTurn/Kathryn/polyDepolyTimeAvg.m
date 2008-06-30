@@ -23,25 +23,35 @@ function [runInfo]=polyDepolyTimeAvg(runInfo,nFrms2Avg,timeStepSize,startFrm,end
 % DATE: 11-Jan-2008
 
 
-
 % --------------------
-% PICK CELL MASK DIRECTORY - user might want to change
+% CHECK USER INPUT
 
-cmDir=2;
+if nargin<1
+    error('turnoverMap: Not enough input parameters')
+end
+if ~isstruct(runInfo)
+    runInfo=struct;
+end
+
+if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir') || ~isfield(runInfo,'turnDir')
+    error('turnoverMap: runInfo should contain fields imDir and anDir');
+else
+    [runInfo.anDir] = formatPath(runInfo.anDir);
+    [runInfo.imDir] = formatPath(runInfo.imDir);
+    [runInfo.turnDir] = formatPath(runInfo.turnDir);
+end
+
+cmDir=2; % user might want to change this
 if cmDir==1
     % use the cell masks of the images to average
     cmDir=[runInfo.anDir filesep 'edge' filesep 'cell_mask'];
 elseif cmDir==2
     % use vectorCoverageMasks instead of cell masks
-    cmDir=[runInfo.turnDir filesep 'vectorCoverageMask'];
+    cmDir=[runInfo.anDir filesep 'corr' filesep 'filt' filesep 'vectorCoverageMask'];
 end
 
-% --------------------
-% CHECK USER INPUT
 
-if nargin<1 || ~isstruct(runInfo) || ~isfield(runInfo,'turnDir')
-    error('polyDepolyTimeAvg: runInfo should be a structure with field turnDir')
-end
+
 
 if nargin<2 || isempty(nFrms2Avg)
     nFrms2Avg=5; % default
@@ -90,7 +100,7 @@ mkdir(histDir);
 
 % count frames for proper naming
 turnMapDir=[runInfo.turnDir filesep 'interp'];
-[listOfFiles] = searchFiles('polyDepoly',[],turnMapDir);
+[listOfFiles] = searchFiles('polyDepoly',[],turnMapDir,0);
 nFrames=size(listOfFiles,1);
 s=length(num2str(nFrames));
 strg=sprintf('%%.%dd',s);
@@ -112,9 +122,23 @@ nIterations=length(firstFrm); % how many iterations needed to go thru all frame 
 avgPolyDepolyPerFrame=zeros(nIterations,2); % store [sum(avgPoly) sum(avgDepoly)] for each frame range
 
 
-[listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
-roiMask=runInfo.roiMask; % max cell proj bounded by fieldGeom
+% roiMask is the user-selected region where poly/depoly should be
+% calculated
+roiFile=[runInfo.anDir filesep 'polyDepolyROI.tif'];
+if exist(roiFile,'file')
+    roiMask=imread(roiFile);
+else
+    roiMask=ones(runInfo.imL,runInfo.imW);
+end
 
+h=get(0,'CurrentFigure');
+if h==1
+    close(h)
+end
+figure(1);
+
+
+[listOfCellMasks] = searchFiles('.tif',[],cmDir,0);
 for i=1:nIterations
 
     counter=1;
@@ -124,13 +148,12 @@ for i=1:nIterations
 
     for j=firstFrm(i):lastFrm(i)
         % accumulate polyDepoly maps for the interval
-        indxStr=sprintf(strg,j);
-        iMap=load([turnMapDir filesep 'polyDepoly' indxStr '.mat']);
+        iMap=load([char(listOfFiles(j,2)) filesep char(listOfFiles(j,1))]);
         polyDepolySum(:,:,j) = iMap.polyDepoly;
 
-        % accumulate the cell masks
+        % accumulate the cell masks, bound by roiMask
         cMask=double(imread([char(listOfCellMasks(j,2)) filesep char(listOfCellMasks(j,1))]));
-        cellMaskSum(:,:,j) = cMask;
+        cellMaskSum(:,:,j) = cMask.*roiMask;
 
         counter=counter+1;
     end
@@ -141,13 +164,13 @@ for i=1:nIterations
     polyDepolySum=nansum(polyDepolySum,3);
     cellMaskSum=nansum(cellMaskSum,3);
 
-    % get average mask and bound by fieldGeom, write image
-    cellMaskAvg=(cellMaskSum./nFrms2Avg).*roiMask;
+    % get average mask, write image
+    cellMaskAvg=(cellMaskSum./nFrms2Avg);
     save([tmCellMasksDir filesep 'timeAvgCellMask' indxStr1 '_' indxStr2 '.mat'],'cellMaskAvg');
     
     cellMaskSum=swapMaskValues(cellMaskSum,0,NaN); % 1's inside avg cell; nan's outside
 
-    % get average poly/depoly map and bound by fieldGeom, save
+    % get average poly/depoly map and bound by roiMask, save
     polyDepolyAvg=(polyDepolySum./cellMaskSum).*roiMask;
     save([tmMatsDir filesep 'polyDepolyAvg' indxStr1 '_' indxStr2 '.mat'],'polyDepolyAvg');
 
@@ -158,10 +181,12 @@ for i=1:nIterations
     temp(isnan(temp))=[];
     hist(temp,100);
     axis([-m m 0 3000]);
-    saveas(gca,[histDir filesep 'actHist' indxStr1 '_' indxStr2 '.png']);
-
+    drawnow
+    h=get(0,'CurrentFigure');
+    saveas(h,[histDir filesep 'actHist' indxStr1 '_' indxStr2 '.png']);
+   
 end
-
+close
 save([tmMatsDir filesep 'tmAvgParams'],'nFrms2Avg','timeStepSize','startFrm','endFrm');
 
 
