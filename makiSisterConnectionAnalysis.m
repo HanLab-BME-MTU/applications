@@ -504,20 +504,26 @@ modelOrder = [0 3; 0 3; -1 -1];
 %calculation
 for iLabel = goodLabel
     
-    %call ARMA analysis function for sister distance
-    for iMovie = 1 : numMovies
-        eval(['traj = sisterDist' label{iLabel,1} '(movieStartIndx' ...
-            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
-        if ~isempty(traj)
-            fitResults = armaxFitKalmanMEX(traj,[],modelOrder,'tl');
-            eval(['sisterDistIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
-        end
-    end
+    %     %call ARMA analysis function for sister distance
+    %     for iMovie = 1 : numMovies
+    %         eval(['traj = sisterDist' label{iLabel,1} '(movieStartIndx' ...
+    %             label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+    %         for i=1:length(traj)
+    %             traj(i).observations(:,2) = 0;
+    %         end
+    %         if ~isempty(traj)
+    %             fitResults = armaxFitKalmanMEX(traj,[],modelOrder,'tl');
+    %             eval(['sisterDistIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
+    %         end
+    %     end
 
     %call ARMA analysis function for sister velocity
     for iMovie = 1 : numMovies
         eval(['traj = sisterVel' label{iLabel,1} '(movieStartIndx' ...
             label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+        for i=1:length(traj)
+            traj(i).observations(:,2) = 0;
+        end
         if ~isempty(traj)
             fitResults = armaxFitKalmanMEX(traj,[],modelOrder,'tl');
             eval(['sisterVelIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
