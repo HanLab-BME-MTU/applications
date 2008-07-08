@@ -59,7 +59,7 @@ numTracksTot = sum(numTracks);
 %find number of frames in each movie
 numFrames = zeros(numMovies,1);
 for iMovie = 1 : numMovies
-    numFrames = dataStruct(iMovie).dataProperties.movieSize(end);
+    numFrames(iMovie) = dataStruct(iMovie).dataProperties.movieSize(end);
 end
 numFramesMax = max(numFrames);
 

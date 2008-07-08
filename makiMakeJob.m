@@ -278,6 +278,11 @@ switch jobType
                     rawMoviePath, projectName, dataFilePath);
 
                 % make movieHeader
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %%
+                %% FOR METAMORPH READER OPEN A GUI HERE TO SET UP THE
+                %% HEADER
+                %%
                 dataStruct.movieHeader = readr3dheader(fullfile(rawMoviePath,rawMovieName));
 
                 % make dataProperties, set sigmaCorrection to 1.5
