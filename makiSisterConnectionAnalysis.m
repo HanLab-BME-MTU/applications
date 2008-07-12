@@ -1,20 +1,26 @@
-function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,verbose,removeNetDisp,randomize)
+function analysisStruct = makiSisterConnectionAnalysis(jobType,...
+    analysisStruct,verbose,removeNetDisp,randomize,samplingPeriod)
 %MAKISISTERCONNECTIONANALYSIS analyzes in multiple ways the connection between sisters
 %
-%SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,verbose,removeNetDisp,randomize)
+%SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,...
+%    analysisStruct,verbose,removeNetDisp,randomize,samplingPeriod)
 %
-%INPUT  jobType: string which can take the values:
-%               'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
-%               'MCAINSH'
+%INPUT  jobType       : string which can take the values:
+%                       'TEST', 'HERCULES', 'DANUSER', 'MERALDI',
+%                       'SWEDLOW' or 'MCAINSH'
 %       analysisStruct: Structure with field movies indicating the movies
 %                       to be analyzed. Optional. If not input, GUI to load
 %                       movies is launched.
-%       verbose: 1 to make plots, 0 otherwise. Optional. Default: 0.
-%       removeNetDisp: 1 - Make center of each sister pair at zero
-%                      throughout the whole movie, 0 otherwise.
-%                      Optional. Default: 0.
-%       randomize: 1 - Randomize sister pairing, 0 otherwise.
-%                  Optional. Default: 0.
+%       verbose       : 1 to make plots, 0 otherwise. Optional. Default: 0.
+%       removeNetDisp : 1 - Make center of each sister pair at zero
+%                       throughout the whole movie, 0 otherwise.
+%                       Optional. Default: 0.
+%       randomize     : 1 - Randomize sister pairing, 0 otherwise.
+%                       Optional. Default: 0.
+%       samplingPeriod: 1 to keep sampling as is, 2 to downsample by taking
+%                       every 2nd time point, 3 to downsample by taking
+%                       every 3rd time point, etc.
+%                       Optional. Default: 1.
 %
 %OUTPUT analysisStruct: Same as input but with additional field
 %           .sisterConnection: 
@@ -38,6 +44,10 @@ end
 
 if nargin < 5 || isempty(randomize)
     randomize = 0;
+end
+
+if nargin < 6 || isempty(samplingPeriod)
+    samplingPeriod = 1;
 end
 
 %interactively obtain analysisStruct if not input
@@ -79,8 +89,12 @@ for iMovie = 1 : numMovies
 end
 numSistersTot = sum(numSisters);
 
+%multiply number of sisters by samplingPeriod to get the effective number
+%of sisters
+numSistersTotEff = numSistersTot * samplingPeriod;
+
 %get time between frames
-timeLapse = round(2*dataStruct(1).dataProperties.timeLapse)/2;
+timeLapse = round(2*dataStruct(1).dataProperties.timeLapse)/2 * samplingPeriod;
 
 %% collect sister angles and distances
 
@@ -94,10 +108,10 @@ for iLabel = 1 : 3
 
     eval(['iGlobal' label{iLabel,1} ' = 0;'])
 
-    eval(['sisterDist' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
-    eval(['sisterVel' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
-    eval(['angleNormal' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
-    eval(['angularVel' label{iLabel,1} '(1:numSistersTot,1) = struct(''observations'',[]);'])
+    eval(['sisterDist' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
+    eval(['sisterVel' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
+    eval(['angleNormal' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
+    eval(['angularVel' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
     
     eval(['movieStartIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
     eval(['movieEndIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
@@ -113,108 +127,120 @@ for iMovie = 1 : numMovies
     movieStartIndxUnaligned(iMovie) = iGlobalUnaligned + 1;
     movieStartIndxLagging(iMovie) = iGlobalLagging + 1;
     
+    %if there are sister kinetochores in this movie
     if numSisters(iMovie) > 0
 
         %construct sisters with aligned coordinates
         %remove net displacement and randomize if requested
-        sisterList = makiConstructAlignedSisters(dataStruct(iMovie),...
+        sisterListTmp = makiConstructAlignedSisters(dataStruct(iMovie),...
             removeNetDisp,randomize);
-        numSisters(iMovie) = length(sisterList);
-
-        %copy fields out of dataStruct(iMovie)
-        planeFit = dataStruct(iMovie).planeFit;
-        updatedClass = dataStruct(iMovie).updatedClass;
-        numFramesMovie = length(planeFit);
-
-        %determine frames where there is a plane
-        framesWithPlane = [];
-        for t = 1 : numFramesMovie
-            if ~isempty(planeFit(t).planeVectors)
-                framesWithPlane = [framesWithPlane t];
-            end
-        end
-
-        %find frame where anaphase starts (if it starts at all)
-        framePhase = vertcat(updatedClass.phase);
-        firstFrameAna = find(framePhase=='a',1,'first');
-        if isempty(firstFrameAna)
-            firstFrameAna = numFramesMovie + 1;
-        end
+        numSisters(iMovie) = length(sisterListTmp);
 
         %sister type = 0 if all kinetochores are inliers
         %sister type = 1 if some kinetochores are unaligned
         %sister type = 2 if some kinetochores are lagging
         sisterType = zeros(numSisters(iMovie),1);
-        sisterType(updatedClass(1).sistersUnaligned) = 1;
-        sisterType(updatedClass(1).sistersLagging) = 2;
-        
-        %go over all sisters in movie
-        for iSister = 1 : numSisters(iMovie)
+        sisterType(dataStruct(iMovie).updatedClass(1).sistersUnaligned) = 1;
+        sisterType(dataStruct(iMovie).updatedClass(1).sistersLagging) = 2;
 
-            %find number of frames and frames where pair "exists" before
-            %anaphase
-            goodFrames = ~isnan(sisterList(iSister).distanceAligned(:,1));
-            numFrames = length(goodFrames);
-            goodFrames = find(goodFrames);
-            goodFrames = goodFrames(goodFrames < firstFrameAna);
+        %subsample as requested
+        for iSample = 1 : samplingPeriod
 
-            %get sister coordinates in good frames
-            coords1 = NaN(numFrames,3);
-            coords2 = NaN(numFrames,3);
-            coords1Std = NaN(numFrames,3);
-            coords2Std = NaN(numFrames,3);
-            for iFrame = goodFrames'
-                coords1(iFrame,:) = sisterList(iSister).coords1Aligned(iFrame,1:3);
-                coords2(iFrame,:) = sisterList(iSister).coords2Aligned(iFrame,1:3);
-                coords1Std(iFrame,:) = sisterList(iSister).coords1Aligned(iFrame,4:6);
-                coords2Std(iFrame,:) = sisterList(iSister).coords2Aligned(iFrame,4:6);
+            %get coordinates with proper subsampling
+            for iSister = 1 : numSisters(iMovie)
+                sisterList(iSister).distanceAligned = sisterListTmp(iSister).distanceAligned(iSample:samplingPeriod:end,:);
+                sisterList(iSister).coords1Aligned = sisterListTmp(iSister).coords1Aligned(iSample:samplingPeriod:end,:);
+                sisterList(iSister).coords2Aligned = sisterListTmp(iSister).coords2Aligned(iSample:samplingPeriod:end,:);
             end
             
-            %calculate vector between sisters
-            sisterVec = coords2 - coords1; %um
-            sisterVecVar = coords1Std.^2 + coords2Std.^2; %um^2
+            %copy fields out of dataStruct(iMovie)
+            planeFit = dataStruct(iMovie).planeFit(iSample:samplingPeriod:end);
+            updatedClass = dataStruct(iMovie).updatedClass(iSample:samplingPeriod:end);
+            numFramesMovie = length(planeFit);
 
-            %calculate distance between sisters
-            sisterDistance = sqrt(sum(sisterVec.^2,2)); %um
-            sisterDistStd = sqrt( sum( sisterVecVar .* sisterVec.^2 ,2) ) ...
-                ./ sisterDistance; %um
-
-            %calculate sister velocity
-            sisterVelocity = diff(sisterDistance) * 1000 / timeLapse; %nm/s
-            sisterVelStd = sqrt( sum( [sisterDistStd(2:end) ...
-                sisterDistStd(1:end-1)].^2 ,2) ) * 1000 / timeLapse; %nm/s
-
-            %calculate angle with normal
-            angleWithNorm = NaN(numFrames,1);
-            for iFrame = framesWithPlane
-                angleWithNorm(iFrame) = acos(abs(sisterVec(iFrame,1)./norm(sisterVec(iFrame,1:3)))); %radians
+            %determine frames where there is a plane
+            framesWithPlane = [];
+            for t = 1 : numFramesMovie
+                if ~isempty(planeFit(t).planeVectors)
+                    framesWithPlane = [framesWithPlane t];
+                end
+            end
+            
+            %find frame where anaphase starts (if it starts at all)
+            framePhase = vertcat(updatedClass.phase);
+            firstFrameAna = find(framePhase=='a',1,'first');
+            if isempty(firstFrameAna)
+                firstFrameAna = numFramesMovie + 1;
             end
 
-            %calculate angle between consecutive frames
-            angularDisp = NaN(numFrames-1,1);
-            for iFrame = 1 : numFrames - 1
-                angularDisp(iFrame) = acos(abs(sisterVec(iFrame,:) * sisterVec(iFrame+1,:)' ...
-                    / norm(sisterVec(iFrame,:)) / norm(sisterVec(iFrame+1,:)))); %radians
-            end
+            %go over all sisters in movie
+            for iSister = 1 : numSisters(iMovie)
 
-            %store sister information based on the sister type
-            iLabel = sisterType(iSister) + 1;
+                %find number of frames and frames where pair "exists" before
+                %anaphase
+                goodFrames = ~isnan(sisterList(iSister).distanceAligned(:,1));
+                numFrames = length(goodFrames);
+                goodFrames = find(goodFrames);
+                goodFrames = goodFrames(goodFrames < firstFrameAna);
 
-            %increase global index of sister type by 1
-            eval(['iGlobal' label{iLabel,1} ' = iGlobal' label{iLabel,1} ' + 1;'])
+                %get sister coordinates in good frames
+                coords1 = NaN(numFrames,3);
+                coords2 = NaN(numFrames,3);
+                coords1Std = NaN(numFrames,3);
+                coords2Std = NaN(numFrames,3);
+                for iFrame = goodFrames'
+                    coords1(iFrame,:) = sisterList(iSister).coords1Aligned(iFrame,1:3);
+                    coords2(iFrame,:) = sisterList(iSister).coords2Aligned(iFrame,1:3);
+                    coords1Std(iFrame,:) = sisterList(iSister).coords1Aligned(iFrame,4:6);
+                    coords2Std(iFrame,:) = sisterList(iSister).coords2Aligned(iFrame,4:6);
+                end
 
-            %store information
-            eval(['sisterDist' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ').observations = [sisterDistance sisterDistStd];']) %um
-            eval(['sisterVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ').observations = [sisterVelocity sisterVelStd];']) %nm/s
-            eval(['angleNormal' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ').observations = angleWithNorm * 180 / pi;']) %deg
-            eval(['angularVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                ').observations = angularDisp * 180 / pi / timeLapse;']) %deg/s
+                %calculate vector between sisters
+                sisterVec = coords2 - coords1; %um
+                sisterVecVar = coords1Std.^2 + coords2Std.^2; %um^2
 
-        end %(for iSister = 1 : numSisters(iMovie))
-        
+                %calculate distance between sisters
+                sisterDistance = sqrt(sum(sisterVec.^2,2)); %um
+                sisterDistStd = sqrt( sum( sisterVecVar .* sisterVec.^2 ,2) ) ...
+                    ./ sisterDistance; %um
+                
+                %calculate sister velocity
+                sisterVelocity = diff(sisterDistance) * 1000 / timeLapse; %nm/s
+                sisterVelStd = sqrt( sum( [sisterDistStd(2:end) sisterDistStd(1:end-1)].^2 ,2) ) * 1000 / timeLapse; %nm/s
+
+                %calculate angle with normal
+                angleWithNorm = NaN(numFrames,1);
+                for iFrame = framesWithPlane
+                    angleWithNorm(iFrame) = acos(abs(sisterVec(iFrame,1)./norm(sisterVec(iFrame,1:3)))); %radians
+                end
+
+                %calculate angle between consecutive frames
+                angularDisp = NaN(numFrames-1,1);
+                for iFrame = 1 : numFrames - 1
+                    angularDisp(iFrame) = acos(abs(sisterVec(iFrame,:) * sisterVec(iFrame+1,:)' ...
+                        / norm(sisterVec(iFrame,:)) / norm(sisterVec(iFrame+1,:)))); %radians
+                end
+                
+                %store sister information based on the sister type
+                iLabel = sisterType(iSister) + 1;
+
+                %increase global index of sister type by 1
+                eval(['iGlobal' label{iLabel,1} ' = iGlobal' label{iLabel,1} ' + 1;'])
+
+                %store information
+                eval(['sisterDist' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ').observations = [sisterDistance sisterDistStd];']) %um
+                eval(['sisterVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ').observations = [sisterVelocity sisterVelStd];']) %nm/s
+                eval(['angleNormal' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ').observations = angleWithNorm * 180 / pi;']) %deg
+                eval(['angularVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ').observations = angularDisp * 180 / pi / timeLapse;']) %deg/s
+
+            end %(for iSister = 1 : numSisters(iMovie))
+
+        end %(for iSample = 1 : samplingPeriod)
+
     end %(if numSisters(iMovie) > 0)
 
     %store the index of the last place where the sisters belonging to this
@@ -258,11 +284,19 @@ for iLabel = 1 : 3
     eval(['angleNormalParam' label{iLabel,1} ' = [];'])
     eval(['angularVelDistr' label{iLabel,1} ' = [];'])
     eval(['angularVelParam' label{iLabel,1} ' = [];'])
+    
+    eval(['sisterDistIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['sisterVelPosIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['sisterVelNegIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['angleNormalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['angularVelIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])    
 end
 
 %calculation
 for iLabel = goodLabel
 
+    % overall %
+    
     %distance
     eval(['allValues = vertcat(sisterDist' label{iLabel,1} '.observations);']);
     allValues = allValues(:,1);
@@ -317,6 +351,88 @@ for iLabel = goodLabel
         'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
         'max(allValues)];']);
     
+    % individual cells %
+    
+    %distance
+    for iMovie = 1 : numMovies
+        eval(['allValues = vertcat(sisterDist' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie)).observations);']);
+        if ~isempty(allValues)
+            allValues = allValues(:,1);
+            allValues = allValues(~isnan(allValues));
+            if ~isempty(allValues)
+                eval(['sisterDistIndParam' label{iLabel,1} '(iMovie,:)' ...
+                    ' = [mean(allValues) std(allValues) min(allValues) ' ...
+                    'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+                    'max(allValues)];']);
+            end
+        end
+    end
+
+    %positive velocity
+    for iMovie = 1 : numMovies
+        eval(['allValues = vertcat(sisterVel' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie)).observations);']);
+        if ~isempty(allValues)
+            allValues = allValues(allValues(:,1)>0,1);
+            allValues = allValues(~isnan(allValues));
+            if ~isempty(allValues)
+                eval(['sisterVelPosIndParam' label{iLabel,1} '(iMovie,:)' ...
+                    ' = [mean(allValues) std(allValues) min(allValues) ' ...
+                    'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+                    'max(allValues)];']);
+            end
+        end
+    end
+
+    %negative velocity
+    for iMovie = 1 : numMovies
+        eval(['allValues = vertcat(sisterVel' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie)).observations);']);
+        if ~isempty(allValues)
+            allValues = abs(allValues(allValues(:,1)<0,1));
+            allValues = allValues(~isnan(allValues));
+            if ~isempty(allValues)
+                eval(['sisterVelNegIndParam' label{iLabel,1} '(iMovie,:)' ...
+                    ' = [mean(allValues) std(allValues) min(allValues) ' ...
+                    'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+                    'max(allValues)];']);
+            end
+        end
+    end
+
+    %angle with normal
+    for iMovie = 1 : numMovies
+        eval(['allValues = vertcat(angleNormal' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie)).observations);']);
+        if ~isempty(allValues)
+            allValues = allValues(:,1);
+            allValues = allValues(~isnan(allValues));
+            if ~isempty(allValues)
+                eval(['angleNormalIndParam' label{iLabel,1} '(iMovie,:)' ...
+                    ' = [mean(allValues) std(allValues) min(allValues) ' ...
+                    'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+                    'max(allValues)];']);
+            end
+        end
+    end
+
+    %angular velocity
+    for iMovie = 1 : numMovies
+        eval(['allValues = vertcat(angularVel' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie)).observations);']);
+        if ~isempty(allValues)
+            allValues = allValues(:,1);
+            allValues = allValues(~isnan(allValues));
+            if ~isempty(allValues)
+                eval(['angularVelIndParam' label{iLabel,1} '(iMovie,:)' ...
+                    ' = [mean(allValues) std(allValues) min(allValues) ' ...
+                    'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+                    'max(allValues)];']);
+            end
+        end
+    end
+    
 end
 
 %% temporal trends
@@ -329,91 +445,11 @@ for iLabel = 1 : 3
     eval(['angularVelTrend' label{iLabel,1} ' = [];'])
 end
 
-% %calculation
-% for iLabel = goodLabel
-% 
-%     %get number of sisters in this category
-%     eval(['numSistersCat = iGlobal' label{iLabel,1} ';']);
-%     
-%     %distance
-%     trendTmp = NaN(numSistersCat,3);
-%     for iSister = 1 : numSistersCat
-%         eval(['allValues = sisterDist' label{iLabel,1} '(iSister).observations(:,1);'])
-%         indxAvail = find(~isnan(allValues));
-%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
-%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
-%         slopeStd = sqrt(varCovMat(1));
-%         testStat = lineParam(1)/slopeStd;
-%         if testStat > 0
-%             pValue = 1 - tcdf(testStat,S.df);
-%         else
-%             pValue = tcdf(testStat,S.df);            
-%         end
-%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
-%     end
-%     eval(['sisterDistTrend' label{iLabel} ' = trendTmp;']);
-%     
-%     %absolute velocity
-%     trendTmp = NaN(numSistersCat,3);
-%     for iSister = 1 : numSistersCat
-%         eval(['allValues = sisterVel' label{iLabel,1} '(iSister).observations(:,1);'])
-%         allValues = abs(allValues);
-%         indxAvail = find(~isnan(allValues));
-%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
-%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
-%         slopeStd = sqrt(varCovMat(1));
-%         testStat = lineParam(1)/slopeStd;
-%         if testStat > 0
-%             pValue = 1 - tcdf(testStat,S.df);
-%         else
-%             pValue = tcdf(testStat,S.df);            
-%         end
-%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
-%     end
-%     eval(['sisterVelTrend' label{iLabel} ' = trendTmp;']);
-%     
-%     %angle with normal
-%     trendTmp = NaN(numSistersCat,3);
-%     for iSister = 1 : numSistersCat
-%         eval(['allValues = angleNormal' label{iLabel,1} '(iSister).observations(:,1);'])
-%         indxAvail = find(~isnan(allValues));
-%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
-%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
-%         slopeStd = sqrt(varCovMat(1));
-%         testStat = lineParam(1)/slopeStd;
-%         if testStat > 0
-%             pValue = 1 - tcdf(testStat,S.df);
-%         else
-%             pValue = tcdf(testStat,S.df);            
-%         end
-%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
-%     end
-%     eval(['angleNormalTrend' label{iLabel} ' = trendTmp;']);
-%     
-%     %angular velocity
-%     trendTmp = NaN(numSistersCat,3);
-%     for iSister = 1 : numSistersCat
-%         eval(['allValues = angularVel' label{iLabel,1} '(iSister).observations(:,1);'])
-%         indxAvail = find(~isnan(allValues));
-%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
-%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
-%         slopeStd = sqrt(varCovMat(1));
-%         testStat = lineParam(1)/slopeStd;
-%         if testStat > 0
-%             pValue = 1 - tcdf(testStat,S.df);
-%         else
-%             pValue = tcdf(testStat,S.df);            
-%         end
-%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
-%     end
-%     eval(['angularVelTrend' label{iLabel} ' = trendTmp;']);
-%     
-% end
-
 %% autocorrelation
 
 %define maximum lag
-maxLag = 20;
+maxLag = round(20 / samplingPeriod);
+maxLagSis = round(10 / samplingPeriod);
 
 %initialization
 for iLabel = 1 : 3
@@ -421,18 +457,42 @@ for iLabel = 1 : 3
     eval(['sisterVelAutocorr' label{iLabel,1} ' = [];'])
     eval(['angleNormalAutocorr' label{iLabel,1} ' = [];'])
     eval(['angularVelAutocorr' label{iLabel,1} ' = [];'])
+    
     eval(['sisterDistIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
     eval(['sisterVelIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
     eval(['angleNormalIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
     eval(['angularVelIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
+    
+    eval(['sisterDistSisAutocorr' label{iLabel,1} ' = NaN(maxLagSis+1,2,iGlobal' label{iLabel,1} ');'])
+    eval(['sisterVelSisAutocorr' label{iLabel,1} ' = NaN(maxLagSis+1,2,iGlobal' label{iLabel,1} ');'])
+    eval(['angleNormalSisAutocorr' label{iLabel,1} ' = NaN(maxLagSis+1,2,iGlobal' label{iLabel,1} ');'])
+    eval(['angularVelSisAutocorr' label{iLabel,1} ' = NaN(maxLagSis+1,2,iGlobal' label{iLabel,1} ');'])
 end
 
 %calculation
 for iLabel = goodLabel
 
+    % overall %
+    
     %distance
     eval(['sisterDistAutocorr' label{iLabel,1} ...
         ' = autoCorr(sisterDist' label{iLabel,1} ',maxLag);'])
+
+    %velocity
+    eval(['sisterVelAutocorr' label{iLabel,1} ...
+        ' = autoCorr(sisterVel' label{iLabel,1} ',maxLag);'])
+
+    %angle with normal
+    eval(['angleNormalAutocorr' label{iLabel,1} ...
+        ' = autoCorr(angleNormal' label{iLabel,1} ',maxLag);'])
+
+    %angular velocity
+    eval(['angularVelAutocorr' label{iLabel,1} ...
+        ' = autoCorr(angularVel' label{iLabel,1} ',maxLag);'])
+    
+    % individual cells %
+    
+    %distance
     for iMovie = 1 : numMovies
         eval(['traj = sisterDist' label{iLabel,1} '(movieStartIndx' ...
             label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
@@ -445,8 +505,6 @@ for iLabel = goodLabel
     end
 
     %velocity
-    eval(['sisterVelAutocorr' label{iLabel,1} ...
-        ' = autoCorr(sisterVel' label{iLabel,1} ',maxLag);'])
     for iMovie = 1 : numMovies
         eval(['traj = sisterVel' label{iLabel,1} '(movieStartIndx' ...
             label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
@@ -459,8 +517,6 @@ for iLabel = goodLabel
     end
 
     %angle with normal
-    eval(['angleNormalAutocorr' label{iLabel,1} ...
-        ' = autoCorr(angleNormal' label{iLabel,1} ',maxLag);'])
     for iMovie = 1 : numMovies
         eval(['traj = angleNormal' label{iLabel,1} '(movieStartIndx' ...
             label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
@@ -473,8 +529,6 @@ for iLabel = goodLabel
     end
 
     %angular velocity
-    eval(['angularVelAutocorr' label{iLabel,1} ...
-        ' = autoCorr(angularVel' label{iLabel,1} ',maxLag);'])
     for iMovie = 1 : numMovies
         eval(['traj = angularVel' label{iLabel,1} '(movieStartIndx' ...
             label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
@@ -482,6 +536,52 @@ for iLabel = goodLabel
             [tmpCorr,errFlag] = autoCorr(traj,maxLag);
             if ~errFlag
                 eval(['angularVelIndAutocorr' label{iLabel,1} '(:,:,iMovie) = tmpCorr;'])
+            end
+        end
+    end    
+    
+    % individual sisters %
+    
+    %distance
+    for iSister = 1 : eval(['iGlobal' label{iLabel,1}])
+        eval(['traj = sisterDist' label{iLabel,1} '(iSister).observations;'])
+        if length(find(~isnan(traj(:,1))))>maxLagSis+10
+            [tmpCorr,errFlag] = autoCorr(traj,maxLagSis);
+            if ~errFlag
+                eval(['sisterDistSisAutocorr' label{iLabel,1} '(:,:,iSister) = tmpCorr;'])
+            end
+        end
+    end
+    
+    %velocity
+    for iSister = 1 : eval(['iGlobal' label{iLabel,1}])
+        eval(['traj = sisterVel' label{iLabel,1} '(iSister).observations;'])
+        if length(find(~isnan(traj(:,1))))>maxLagSis+10
+            [tmpCorr,errFlag] = autoCorr(traj,maxLagSis);
+            if ~errFlag
+                eval(['sisterVelSisAutocorr' label{iLabel,1} '(:,:,iSister) = tmpCorr;'])
+            end
+        end
+    end
+    
+    %angle with normal
+    for iSister = 1 : eval(['iGlobal' label{iLabel,1}])
+        eval(['traj = angleNormal' label{iLabel,1} '(iSister).observations;'])
+        if length(find(~isnan(traj(:,1))))>maxLagSis+10
+            [tmpCorr,errFlag] = autoCorr(traj,maxLagSis);
+            if ~errFlag
+                eval(['angleNormalSisAutocorr' label{iLabel,1} '(:,:,iSister) = tmpCorr;'])
+            end
+        end
+    end
+    
+    %angular velocity
+    for iSister = 1 : eval(['iGlobal' label{iLabel,1}])
+        eval(['traj = angularVel' label{iLabel,1} '(iSister).observations;'])
+        if length(find(~isnan(traj(:,1))))>maxLagSis+10
+            [tmpCorr,errFlag] = autoCorr(traj,maxLagSis);
+            if ~errFlag
+                eval(['angularVelSisAutocorr' label{iLabel,1} '(:,:,iSister) = tmpCorr;'])
             end
         end
     end
@@ -499,7 +599,7 @@ for iLabel = 1 : 3
 end
 
 %define model orders to test
-modelOrder = [0 3; 0 3; -1 -1];
+modelOrder = [0 5; 0 5; -1 -1];
 
 %calculation
 for iLabel = goodLabel
@@ -516,19 +616,19 @@ for iLabel = goodLabel
     %             eval(['sisterDistIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
     %         end
     %     end
-
-    %call ARMA analysis function for sister velocity
-    for iMovie = 1 : numMovies
-        eval(['traj = sisterVel' label{iLabel,1} '(movieStartIndx' ...
-            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
-        for i=1:length(traj)
-            traj(i).observations(:,2) = 0;
-        end
-        if ~isempty(traj)
-            fitResults = armaxFitKalmanMEX(traj,[],modelOrder,'tl');
-            eval(['sisterVelIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
-        end
-    end
+    
+    %     %call ARMA analysis function for sister velocity
+    %     for iMovie = 1 : numMovies
+    %         eval(['traj = sisterVel' label{iLabel,1} '(movieStartIndx' ...
+    %             label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+    %         for i=1:length(traj)
+    %             traj(i).observations(:,2) = 0;
+    %         end
+    %         if ~isempty(traj)
+    %             fitResults = armaxFitKalmanMEX(traj,[],modelOrder,'tl');
+    %             eval(['sisterVelIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
+    %         end
+    %     end
 
     %     %call ARMA analysis function for angle with normal to plane
     %     for iMovie = 1 : numMovies
@@ -537,7 +637,7 @@ for iLabel = goodLabel
     %             label{iLabel,1} '(iMovie)),[],modelOrder,''tl'');'])
     %         eval(['angleNormalIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
     %     end
-    %
+
     %     %call ARMA analysis function for angular velocity
     %     for iMovie = 1 : numMovies
     %         eval(['fitResults = armaxFitKalmanMEX(angularVel' label{iLabel,1} ...
@@ -579,11 +679,16 @@ for iLabel = 1 : 3
         '''rateChangeDist'',sisterVelDistr' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalDistr' label{iLabel,1} ','...
         '''angularVel'',angularVelDistr' label{iLabel,1} ');']);
-    eval(['meanStdMin25P50P75PMax = struct(''distance'',sisterDistParam' label{iLabel,1} ','...
+    eval(['meanStdMin25P50P75PMax.all = struct(''distance'',sisterDistParam' label{iLabel,1} ','...
         '''posRateChangeDist'',sisterVelPosParam' label{iLabel,1} ','...
         '''negRateChangeDist'',sisterVelNegParam' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalParam' label{iLabel,1} ','...
         '''angularVel'',angularVelParam' label{iLabel,1} ');']);
+    eval(['meanStdMin25P50P75PMax.indcell = struct(''distance'',sisterDistIndParam' label{iLabel,1} ','...
+        '''posRateChangeDist'',sisterVelPosIndParam' label{iLabel,1} ','...
+        '''negRateChangeDist'',sisterVelNegIndParam' label{iLabel,1} ','...
+        '''angleWithNormal'',angleNormalIndParam' label{iLabel,1} ','...
+        '''angularVel'',angularVelIndParam' label{iLabel,1} ');']);
     eval(['temporalTrend = struct(''distance'',sisterDistTrend' label{iLabel,1} ','...
         '''absoluteRateChangeDist'',sisterVelTrend' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalTrend' label{iLabel,1} ','...
@@ -592,10 +697,14 @@ for iLabel = 1 : 3
         '''rateChangeDist'',sisterVelAutocorr' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalAutocorr' label{iLabel,1} ','...
         '''angularVel'',angularVelAutocorr' label{iLabel,1} ');']);
-    eval(['autocorr.ind = struct(''distance'',sisterDistIndAutocorr' label{iLabel,1} ','...
+    eval(['autocorr.indcell = struct(''distance'',sisterDistIndAutocorr' label{iLabel,1} ','...
         '''rateChangeDist'',sisterVelIndAutocorr' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalIndAutocorr' label{iLabel,1} ','...
         '''angularVel'',angularVelIndAutocorr' label{iLabel,1} ');']);
+    eval(['autocorr.indsis = struct(''distance'',sisterDistSisAutocorr' label{iLabel,1} ','...
+        '''rateChangeDist'',sisterVelSisAutocorr' label{iLabel,1} ','...
+        '''angleWithNormal'',angleNormalSisAutocorr' label{iLabel,1} ','...
+        '''angularVel'',angularVelSisAutocorr' label{iLabel,1} ');']);
     eval(['arma.ind = struct(''distance'',sisterDistIndArma' label{iLabel,1} ','...
         '''rateChangeDist'',sisterVelIndArma' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalIndArma' label{iLabel,1} ','...
@@ -612,8 +721,9 @@ for iLabel = 1 : 3
 
 end
 
+inputParam = struct('removeNetDisp',removeNetDisp,'randomize',randomize,'samplingPeriod',samplingPeriod);
 sisterConnection = struct('Inlier',Inlier,'Unaligned',Unaligned,...
-    'Lagging',Lagging);
+    'Lagging',Lagging,'inputParam',inputParam);
 
 %check whether current analysisStruct already has the sisterConnection field
 fieldExists = isfield(analysisStruct,'sisterConnection');
@@ -640,7 +750,7 @@ if verbose
     %get number of frames in each movie
     numFrames = NaN(numMovies,1);
     for iMovie = 1 : numMovies
-        numFrames(iMovie) = dataStruct(iMovie).dataProperties.movieSize(end);
+        numFrames(iMovie) = floor(dataStruct(iMovie).dataProperties.movieSize(end)/samplingPeriod);
     end
     numFrames = min(numFrames);
 
@@ -696,6 +806,7 @@ if verbose
         plot((0:maxLag)*timeLapse,sisterDistAutocorr(:,1),'k','marker','.');
         eval(['sisterVelAutocorr = sisterVelAutocorr' label{iLabel,1} ';']);
         plot((0:maxLag)*timeLapse,sisterVelAutocorr(:,1),'r','marker','.');
+        plot([0 maxLag]*timeLapse,[0 0],'k--');
 
         %set axes limit
         axis([0 maxLag*timeLapse min(0,1.1*min([sisterDistAutocorr(:,1);sisterVelAutocorr(:,1)])) 1.1]);
@@ -720,7 +831,8 @@ if verbose
         %plot the distance autocorrelations
         eval(['tmpCorr = squeeze(sisterDistIndAutocorr' label{iLabel,1} '(:,1,:));'])
         plot((0:maxLag)*timeLapse,tmpCorr,'marker','.');
-        
+        plot([0 maxLag]*timeLapse,[0 0],'k--');
+                
         %set axes limit
         axis([0 maxLag*timeLapse min(0,1.1*min(tmpCorr(:))) 1.1]);
         
@@ -735,10 +847,11 @@ if verbose
         subplot(2,2,4)
         hold on
         
-        %plot the distance autocorrelations
+        %plot the velocity autocorrelations
         eval(['tmpCorr = squeeze(sisterVelIndAutocorr' label{iLabel,1} '(:,1,:));'])
         plot((0:maxLag)*timeLapse,tmpCorr,'marker','.');
-        
+        plot([0 maxLag]*timeLapse,[0 0],'k--');
+
         %set axes limit
         axis([0 maxLag*timeLapse min(0,1.1*min(tmpCorr(:))) 1.1]);
         
@@ -797,6 +910,7 @@ if verbose
         %plot the autocorrelation of angle with normal
         eval(['angleNormalAutocorr = angleNormalAutocorr' label{iLabel,1} ';']);
         plot((0:maxLag)*timeLapse,angleNormalAutocorr(:,1),'k','marker','.');
+        plot([0 maxLag]*timeLapse,[0 0],'k--');
 
         %set axes limit
         axis([0 maxLag*timeLapse min(0,1.1*min(angleNormalAutocorr(:,1))) 1.1]);
@@ -846,6 +960,7 @@ if verbose
         %plot the autocorrelation of angular velocity
         eval(['angularVelAutocorr = angularVelAutocorr' label{iLabel,1} ';']);
         plot((0:maxLag)*timeLapse,angularVelAutocorr(:,1),'k','marker','.');
+        plot([0 maxLag]*timeLapse,[0 0],'k--');
 
         %set axes limit
         axis([0 maxLag*timeLapse min(0,1.1*min(angularVelAutocorr(:,1))) 1.1]);
@@ -942,6 +1057,93 @@ if verbose
     
     end
     
+end
+
+%% ~~~ the end ~~~ %%
+
+%% unused temporal trend stuff
+
+% %calculation
+% for iLabel = goodLabel
+% 
+%     %get number of sisters in this category
+%     eval(['numSistersCat = iGlobal' label{iLabel,1} ';']);
+%     
+%     %distance
+%     trendTmp = NaN(numSistersCat,3);
+%     for iSister = 1 : numSistersCat
+%         eval(['allValues = sisterDist' label{iLabel,1} '(iSister).observations(:,1);'])
+%         indxAvail = find(~isnan(allValues));
+%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
+%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
+%         slopeStd = sqrt(varCovMat(1));
+%         testStat = lineParam(1)/slopeStd;
+%         if testStat > 0
+%             pValue = 1 - tcdf(testStat,S.df);
+%         else
+%             pValue = tcdf(testStat,S.df);            
+%         end
+%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
+%     end
+%     eval(['sisterDistTrend' label{iLabel} ' = trendTmp;']);
+%     
+%     %absolute velocity
+%     trendTmp = NaN(numSistersCat,3);
+%     for iSister = 1 : numSistersCat
+%         eval(['allValues = sisterVel' label{iLabel,1} '(iSister).observations(:,1);'])
+%         allValues = abs(allValues);
+%         indxAvail = find(~isnan(allValues));
+%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
+%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
+%         slopeStd = sqrt(varCovMat(1));
+%         testStat = lineParam(1)/slopeStd;
+%         if testStat > 0
+%             pValue = 1 - tcdf(testStat,S.df);
+%         else
+%             pValue = tcdf(testStat,S.df);            
+%         end
+%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
+%     end
+%     eval(['sisterVelTrend' label{iLabel} ' = trendTmp;']);
+%     
+%     %angle with normal
+%     trendTmp = NaN(numSistersCat,3);
+%     for iSister = 1 : numSistersCat
+%         eval(['allValues = angleNormal' label{iLabel,1} '(iSister).observations(:,1);'])
+%         indxAvail = find(~isnan(allValues));
+%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
+%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
+%         slopeStd = sqrt(varCovMat(1));
+%         testStat = lineParam(1)/slopeStd;
+%         if testStat > 0
+%             pValue = 1 - tcdf(testStat,S.df);
+%         else
+%             pValue = tcdf(testStat,S.df);            
+%         end
+%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
+%     end
+%     eval(['angleNormalTrend' label{iLabel} ' = trendTmp;']);
+%     
+%     %angular velocity
+%     trendTmp = NaN(numSistersCat,3);
+%     for iSister = 1 : numSistersCat
+%         eval(['allValues = angularVel' label{iLabel,1} '(iSister).observations(:,1);'])
+%         indxAvail = find(~isnan(allValues));
+%         [lineParam,S] = polyfit(indxAvail*timeLapse,allValues(indxAvail),1);
+%         varCovMat = (inv(S.R)*inv(S.R)')*S.normr^2/S.df;
+%         slopeStd = sqrt(varCovMat(1));
+%         testStat = lineParam(1)/slopeStd;
+%         if testStat > 0
+%             pValue = 1 - tcdf(testStat,S.df);
+%         else
+%             pValue = tcdf(testStat,S.df);            
+%         end
+%         trendTmp(iSister,:) = [lineParam(1) slopeStd pValue];
+%     end
+%     eval(['angularVelTrend' label{iLabel} ' = trendTmp;']);
+%     
+% end
+
     %     %% temporal trend stuff %%
     %
     %     for iLabel = goodLabel
@@ -1095,7 +1297,4 @@ if verbose
     %
     %     end %(or iLabel = goodLabel)
     
-end
-
-%% ~~~ the end ~~~ %%
 

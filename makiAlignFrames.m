@@ -22,7 +22,7 @@ function dataStruct = makiAlignFrames(dataStruct)
 %                          eulerAnglesX are not NaN, it is obtained by
 %                          rotating the coordinate system of the reference
 %                          frame.
-%           alignedCoord : Aligned coordinates in each frame, where both
+%           .alignedCoord: Aligned coordinates in each frame, where both
 %                          center of mass translation and rigid body
 %                          rotation are compensated for.
 %
