@@ -630,6 +630,22 @@ for iLabel = goodLabel
     %         end
     %     end
 
+<<<<<<< .mine
+    %call ARMA analysis function for sister velocity
+%     for iMovie = 1 : numMovies
+%         eval(['traj = sisterVel' label{iLabel,1} '(movieStartIndx' ...
+%             label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
+%         for i=1:length(traj)
+%             traj(i).observations(:,2) = 0;
+%         end
+%         if ~isempty(traj)
+%             fitResults = armaxFitKalmanMEX(traj,[],modelOrder,'tl');
+%             eval(['sisterVelIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
+%         end
+%     end
+
+=======
+>>>>>>> .r2870
     %     %call ARMA analysis function for angle with normal to plane
     %     for iMovie = 1 : numMovies
     %         eval(['fitResults = armaxFitKalmanMEX(angleNormal' label{iLabel,1} ...
