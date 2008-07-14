@@ -390,7 +390,7 @@ if verbose
 
         %write axes labels
         xlabel('Time (s)');
-        ylabel('Autocorrelatino of plate displacement along normal');
+        ylabel('Autocorrelation of plate displacement along normal');
 
         %hold off figure
         hold off
