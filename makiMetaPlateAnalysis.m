@@ -23,7 +23,7 @@ function analysisStruct = makiMetaPlateAnalysis(jobType,analysisStruct,verbose)
 
 %% input
 if nargin < 1 || isempty(jobType)
-    jobType = 'TEST';
+    jobType = 'DANUSER';
 end
 
 if nargin < 3 || isempty(verbose)
@@ -307,7 +307,8 @@ if verbose
     numFrames = min(numFrames)-1;
 
     %open figure and write title
-    figure('Name',[fileName(1:end-4) ' - Plate displacement '],'NumberTitle','off');
+    figFileName = [fileName(1:end-4) '-PlateDisplacement'];
+    figHandle = figure('Name',figFileName,'NumberTitle','off');
 
         %create subplot 1
         subplot(2,2,1);
@@ -329,7 +330,7 @@ if verbose
         xlabel('Time (s)');
         ylabel('Plate displacement magnitude (\mum)');
 
-        %hold off figure
+        %hold off subplot 1
         hold off
 
         %create subplot 2
@@ -352,7 +353,7 @@ if verbose
         xlabel('Time (s)');
         ylabel('Plate displacement along normal (\mum)');
 
-        %hold off figure
+        %hold off subplot 2
         hold off
 
         %create subplot 3
@@ -375,7 +376,7 @@ if verbose
         xlabel('Time (s)');
         ylabel('Plate normal direction change (degrees)');
 
-        %hold off figure
+        %hold off subplot 3
         hold off
 
         %create subplot 4
@@ -391,9 +392,12 @@ if verbose
         %write axes labels
         xlabel('Time (s)');
         ylabel('Autocorrelation of plate displacement along normal');
-
-        %hold off figure
+        
+        %hold off subplot 4
         hold off
+
+        %save figure in file
+        saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
 
 end
 

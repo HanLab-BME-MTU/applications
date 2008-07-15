@@ -31,7 +31,7 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,...
 
 %% input
 if nargin < 1 || isempty(jobType)
-    jobType = 'TEST';
+    jobType = 'DANUSER';
 end
 
 if nargin < 3 || isempty(verbose)
@@ -630,22 +630,6 @@ for iLabel = goodLabel
     %         end
     %     end
 
-<<<<<<< .mine
-    %call ARMA analysis function for sister velocity
-%     for iMovie = 1 : numMovies
-%         eval(['traj = sisterVel' label{iLabel,1} '(movieStartIndx' ...
-%             label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie));'])
-%         for i=1:length(traj)
-%             traj(i).observations(:,2) = 0;
-%         end
-%         if ~isempty(traj)
-%             fitResults = armaxFitKalmanMEX(traj,[],modelOrder,'tl');
-%             eval(['sisterVelIndArma' label{iLabel,1} '(iMovie).results = fitResults;'])
-%         end
-%     end
-
-=======
->>>>>>> .r2870
     %     %call ARMA analysis function for angle with normal to plane
     %     for iMovie = 1 : numMovies
     %         eval(['fitResults = armaxFitKalmanMEX(angleNormal' label{iLabel,1} ...
@@ -775,7 +759,8 @@ if verbose
     for iLabel = goodLabel
 
         %open figure and write title
-        figure('Name',[fileName(1:end-4) ' - Distances - ' label{iLabel,1}],'NumberTitle','off');
+        figFileName = [fileName(1:end-4) '-Distances-' label{iLabel,1}];
+        figHandle = figure('Name',figFileName,'NumberTitle','off');
 
         %plot a sample of trajectories
 
@@ -808,7 +793,7 @@ if verbose
         %             'sisterVelPosMeanStd' label{iLabel,1} '(2),sisterVelNegMeanStd' ...
         %             label{iLabel,1} '(1),sisterVelNegMeanStd' label{iLabel,1} '(2)));']);
 
-        %hold off figure
+        %hold off subplot 1
         hold off
 
         %plot overall autocorrelation functions
@@ -835,7 +820,7 @@ if verbose
         text(1*timeLapse,0.9,sprintf([' Black: Sister separation \n Red: ' ...
             'Rate of change of sister separation']));
 
-        %hold off figure
+        %hold off subplot 2
         hold off
         
         %plot individual autocorrelation functions
@@ -856,7 +841,7 @@ if verbose
         xlabel('Lag (s)');
         ylabel('Sister separation autocorrelation - ind movies');
 
-        %hold off figure
+        %hold off subplot 3
         hold off
         
         %create subplot 4
@@ -875,8 +860,11 @@ if verbose
         xlabel('Lag (s)');
         ylabel('Rate change sister separation autocorrelation - ind movies');
 
-        %hold off figure
+        %hold off subplot 4
         hold off
+        
+        %save figure in file
+        saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
         
     end %(for iLabel = goodLabel)
 
@@ -885,7 +873,8 @@ if verbose
     for iLabel = goodLabel
 
         %open figure and write title
-        figure('Name',[fileName(1:end-4) ' - Angles - ' label{iLabel,1}],'NumberTitle','off');
+        figFileName = [fileName(1:end-4) '-Angles-' label{iLabel,1}];
+        figHandle = figure('Name',figFileName,'NumberTitle','off');
 
         %plot a sample of time series of angle with normal
 
@@ -914,7 +903,7 @@ if verbose
         %             'angleNormalMeanStd' label{iLabel,1} '(1),angleNormalMeanStd' ...
         %             label{iLabel,1} '(2)));']);
 
-        %hold off figure
+        %hold off subplot 1
         hold off
 
         %plot autocorrelation function of angle with normal
@@ -935,7 +924,7 @@ if verbose
         xlabel('Lag (s)');
         ylabel('Autocorrelation of angle with normal');
 
-        %hold off figure
+        %hold off subplot 3
         hold off
 
         %plot a sample of time series of angular velocity
@@ -964,7 +953,7 @@ if verbose
         %         eval(['text(timeLapse,1.05*max(angleMat(:)),sprintf(''angular velocity (degrees/s): %4.2f +- %4.2f'','...
         %             'angularVelMeanStd' label{iLabel,1} '(1),angularVelMeanStd' label{iLabel,1} '(2)));'])
 
-        %hold off figure
+        %hold off subplot 2
         hold off
 
         %plot autocorrelation function of angle with normal
@@ -985,9 +974,12 @@ if verbose
         xlabel('Lag (s)');
         ylabel('Autocorrelation of angular velocity');
 
-        %hold off figure
+        %hold off subplot 4
         hold off
 
+        %save figure in file
+        saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
+        
     end %(for iLabel = goodLabel)
         
     %% angle vs. distance %%
@@ -995,7 +987,8 @@ if verbose
     for iLabel = goodLabel
 
         %open figure and write title
-        figure('Name',[fileName(1:end-4) ' - Angle vs. Distance - ' label{iLabel,1}],'NumberTitle','off');
+        figFileName = [fileName(1:end-4) '-AngleVsDistance-' label{iLabel,1}];
+        figHandle = figure('Name',figFileName,'NumberTitle','off');
 
         %plot angle vs. distance as a scatter plot
         eval(['plot(allDistances' label{iLabel,1} ',allAngles' label{iLabel,1} ',''k.'')']);
@@ -1004,6 +997,9 @@ if verbose
         xlabel('Sister separation (\mum)');
         ylabel('Angle with normal (degrees)');
         
+        %save figure in file
+        saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
+        
     end %(or iLabel = goodLabel)
     
     %% histograms %%
@@ -1011,7 +1007,8 @@ if verbose
     for iLabel = goodLabel
         
         %open figure and write title
-        figure('Name',[fileName(1:end-4) ' - Histograms - ' label{iLabel,1}],'NumberTitle','off');
+        figFileName = [fileName(1:end-4) '-Histograms-' label{iLabel,1}];
+        figHandle = figure('Name',figFileName,'NumberTitle','off');
 
         %create subplot 1 for distances
         subplot(2,2,1);
@@ -1071,6 +1068,9 @@ if verbose
     
         hold off
     
+        %save figure in file
+        saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
+        
     end
     
 end

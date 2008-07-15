@@ -27,7 +27,7 @@ function results = makiJitterAnalysis(jobType,analysisStruct,verbose)
 
 %% input
 if nargin < 1 || isempty(jobType)
-    jobType = 'TEST';
+    jobType = 'DANUSER';
 end
 
 if nargin < 3 || isempty(verbose)

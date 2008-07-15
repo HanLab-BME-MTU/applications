@@ -23,7 +23,7 @@ function analysisStruct = makiDiffusionAnalysis(jobType,analysisStruct,verbose)
 
 %% input
 if nargin < 1 || isempty(jobType)
-    jobType = 'TEST';
+    jobType = 'DANUSER';
 end
 
 if nargin < 3 || isempty(verbose)
@@ -284,7 +284,8 @@ if verbose
     for iLabel = goodLabel
 
         %open figure and write title
-        figure('Name',[fileName(1:end-4) ' - Mean square displacement - ' label{iLabel,1}],'NumberTitle','off');
+        figFileName = [fileName(1:end-4) '-MeanSquareDisplacement-' label{iLabel,1}];
+        figHandle = figure('Name',figFileName,'NumberTitle','off');
 
         %create subplot 1
         subplot(2,2,1);
@@ -313,7 +314,7 @@ if verbose
         text(maxLag*timeLapse/2,0.4*max(ensembleAverage(:,1)),...
             sprintf(' Black: Kinetochore motion \n Red: Pure Brownian motion'));
 
-        %hold off figure
+        %hold off subplot 1
         hold off
 
         %create subplot 2
@@ -343,7 +344,7 @@ if verbose
         text(maxLag*timeLapse/2,0.4*max(ensembleAverage(:,1)),...
             sprintf(' Black: Kinetochore motion \n Red: Pure Brownian motion'));
 
-        %hold off figure
+        %hold off subplot 2
         hold off
 
         %create subplot 3
@@ -373,7 +374,7 @@ if verbose
         text(maxLag*timeLapse/2,0.4*max(timeAverage(:,1)),...
             sprintf(' Black: Kinetochore motion \n Red: Pure Brownian motion'));
 
-        %hold off figure
+        %hold off subplot 3
         hold off
 
         %create subplot 4
@@ -403,9 +404,12 @@ if verbose
         text(maxLag*timeLapse/2,0.4*max(timeAverage(:,1)),...
             sprintf(' Black: Kinetochore motion \n Red: Pure Brownian motion'));
 
-        %hold off figure
+        %hold off subplot 4
         hold off
 
+        %save figure in file
+        saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
+        
     end
     
 end

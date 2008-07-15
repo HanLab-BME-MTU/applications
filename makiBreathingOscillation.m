@@ -23,7 +23,7 @@ function analysisStruct = makiBreathingOscillation(jobType,analysisStruct,verbos
 
 %% input
 if nargin < 1 || isempty(jobType)
-    jobType = 'TEST';
+    jobType = 'DANUSER';
 end
 
 if nargin < 3 || isempty(verbose)
@@ -1545,7 +1545,8 @@ if verbose
     for iLabel = goodLabel
 
         %open figure and write title
-        figure('Name',[fileName(1:end-4) ' - State probabilities - ' label{iLabel,1}],'NumberTitle','off');
+        figFileName = [fileName(1:end-4) '-StateProbabilities-' label{iLabel,1}];
+        figHandle = figure('Name',figFileName,'NumberTitle','off');
 
         %subplot 1 - both move to right
         subplot(3,4,1);
@@ -1615,6 +1616,9 @@ if verbose
         axis([-1 12 0 1]);
         title('11: Tumbling');
 
+        %save figure in file
+        saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
+        
     end
     
     %% cross-correlation stuff %%
@@ -1622,7 +1626,8 @@ if verbose
     for iLabel = goodLabel
 
         %open figure and write title
-        figure('Name',[fileName(1:end-4) ' - Sister coupling at lag 0 - ' label{iLabel,1}],'NumberTitle','off');
+        figFileName = [fileName(1:end-4) '-SisterCouplingAtLag0-' label{iLabel,1}];
+        figHandle = figure('Name',figFileName,'NumberTitle','off');
 
         %put x-axis labels
         axes(...
@@ -1641,6 +1646,9 @@ if verbose
         xlabel('Category');
         ylabel('Cross-correlation at lag 0');
 
+        %save figure in file
+        saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
+        
     end
 
     %% characteristics stuff %%
@@ -1648,15 +1656,15 @@ if verbose
     for iLabel = 1
 
         %assign figure names
-        figureName{1} = 'Sister separation';
-        figureName{2} = 'Sister separation change';
-        figureName{3} = 'Angle with normal';
-        figureName{4} = 'Angular displacement';
-        figureName{5} = 'Center position change';
-        figureName{6} = 'Sister 1 displacement projection';
-        figureName{7} = 'Sister 1 displacement angle';
-        figureName{8} = 'Sister 2 displacement projection';
-        figureName{9} = 'Sister 2 displacement angle';
+        figureName{1} = 'SisterSeparation';
+        figureName{2} = 'SisterSeparation change';
+        figureName{3} = 'AngleWithNormal';
+        figureName{4} = 'AngularDisplacement';
+        figureName{5} = 'CenterPositionChange';
+        figureName{6} = 'Sister1DisplacementProjection';
+        figureName{7} = 'Sister1DisplacementAngle';
+        figureName{8} = 'Sister2DisplacementProjection';
+        figureName{9} = 'Sister2DisplacementAngle';
         
         %assign point states
         pointState = [];
@@ -1667,8 +1675,8 @@ if verbose
         for iColumn = 1 : 9
 
             %open figure and write title
-            figure('Name',[fileName(1:end-4) ' - ' figureName{iColumn} ...
-                ' - ' label{iLabel,1}],'NumberTitle','off');
+            figFileName = [fileName(1:end-4) '-' figureName{iColumn} '-' label{iLabel,1}];
+            figHandle = figure('Name',figFileName,'NumberTitle','off');
 
             for iState = 1 : 3
 
@@ -1825,7 +1833,10 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
 
             end %(for iState = 1 : 3)
-            
+
+            %save figure in file
+            saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
+
         end %(for iColumn = 1 : 7)
 
     end %(for iLabel = goodLabel)
