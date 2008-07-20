@@ -476,7 +476,7 @@ for iLabel = 1 : 3
     eval(['separationIndParam' label{iLabel,1} ' = [];'])
     eval(['sepChangeIndParam' label{iLabel,1} ' = [];'])
     
-    eval(['sepChangeAutocorr' label{iLabel,1} ' = [];'])
+    eval(['sepChangeAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2);'])
     eval(['sepChangeIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
     
     eval(['sepPChangeIntervalDistr' label{iLabel,1} ' = [];'])
@@ -497,12 +497,16 @@ for iLabel = goodLabel
 
     %overall
     eval(['allValues = vertcat(separationSis12' label{iLabel,1} '.observations);']);
-    allValues = allValues(:,1);
-    allValues = allValues(~isnan(allValues));
-    eval(['separationDistr' label{iLabel,1} ' = allValues;']);
-    eval(['separationParam' label{iLabel,1} ' = [mean(allValues) ' ...
-        'std(allValues) min(allValues) prctile(allValues,25) ' ...
-        'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+    if ~isempty(allValues)
+        allValues = allValues(:,1);
+        allValues = allValues(~isnan(allValues));
+        eval(['separationDistr' label{iLabel,1} ' = allValues;']);
+        if ~isempty(allValues)
+            eval(['separationParam' label{iLabel,1} ' = [mean(allValues) ' ...
+                'std(allValues) min(allValues) prctile(allValues,25) ' ...
+                'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+        end
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -524,12 +528,16 @@ for iLabel = goodLabel
     
     %overall
     eval(['allValues = vertcat(separationChangeSis12' label{iLabel,1} '.observations);']);
-    allValues = allValues(:,1);
-    allValues = allValues(~isnan(allValues));
-    eval(['sepChangeDistr' label{iLabel,1} ' = allValues;']);
-    eval(['sepChangeParam' label{iLabel,1} ' = [mean(allValues) ' ...
-        'std(allValues) min(allValues) prctile(allValues,25) ' ...
-        'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+    if ~isempty(allValues)
+        allValues = allValues(:,1);
+        allValues = allValues(~isnan(allValues));
+        eval(['sepChangeDistr' label{iLabel,1} ' = allValues;']);
+        if ~isempty(allValues)
+            eval(['sepChangeParam' label{iLabel,1} ' = [mean(allValues) ' ...
+                'std(allValues) min(allValues) prctile(allValues,25) ' ...
+                'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+        end
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -550,8 +558,10 @@ for iLabel = goodLabel
     % separation change autocorrelation %
     
     %overall
-    eval(['sepChangeAutocorr' label{iLabel,1} ...
-        ' = autoCorr(separationChangeSis12' label{iLabel,1} ',maxLag);'])
+    eval(['[tmpCorr,errFlag] = autoCorr(separationChangeSis12' label{iLabel,1} ',maxLag);'])
+    if ~errFlag
+        eval(['sepChangeAutocorr' label{iLabel,1} ' = tmpCorr;'])
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -569,12 +579,16 @@ for iLabel = goodLabel
     
     %overall
     eval(['allValues = vertcat(sepPChangeInt' label{iLabel,1} '.observations);']);
-    allValues = allValues(:,1);
-    allValues = allValues(~isnan(allValues));
-    eval(['sepPChangeIntervalDistr' label{iLabel,1} ' = allValues;']);
-    eval(['sepPChangeIntervalParam' label{iLabel,1} ' = [mean(allValues) ' ...
-        'std(allValues) min(allValues) prctile(allValues,25) ' ...
-        'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+    if ~isempty(allValues)
+        allValues = allValues(:,1);
+        allValues = allValues(~isnan(allValues));
+        eval(['sepPChangeIntervalDistr' label{iLabel,1} ' = allValues;']);
+        if ~isempty(allValues)
+            eval(['sepPChangeIntervalParam' label{iLabel,1} ' = [mean(allValues) ' ...
+                'std(allValues) min(allValues) prctile(allValues,25) ' ...
+                'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+        end
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -596,12 +610,16 @@ for iLabel = goodLabel
     
     %overall
     eval(['allValues = vertcat(sepNChangeInt' label{iLabel,1} '.observations);']);
-    allValues = allValues(:,1);
-    allValues = allValues(~isnan(allValues));
-    eval(['sepNChangeIntervalDistr' label{iLabel,1} ' = allValues;']);
-    eval(['sepNChangeIntervalParam' label{iLabel,1} ' = [mean(allValues) ' ...
-        'std(allValues) min(allValues) prctile(allValues,25) ' ...
-        'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+    if ~isempty(allValues)
+        allValues = allValues(:,1);
+        allValues = allValues(~isnan(allValues));
+        eval(['sepNChangeIntervalDistr' label{iLabel,1} ' = allValues;']);
+        if ~isempty(allValues)
+            eval(['sepNChangeIntervalParam' label{iLabel,1} ' = [mean(allValues) ' ...
+                'std(allValues) min(allValues) prctile(allValues,25) ' ...
+                'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+        end
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -635,7 +653,7 @@ for iLabel = 1 : 3
     eval(['centerPosIndParam' label{iLabel,1} ' = [];'])
     eval(['centerPosChangeIndParam' label{iLabel,1} ' = [];'])
     
-    eval(['centerPosChangeAutocorr' label{iLabel,1} ' = [];'])
+    eval(['centerPosChangeAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2);'])
     eval(['centerPosChangeIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
     
     eval(['centerPosPChangeIntervalDistr' label{iLabel,1} ' = [];'])
@@ -656,12 +674,16 @@ for iLabel = goodLabel
 
     %overall
     eval(['allValues = vertcat(centerPositionSis12' label{iLabel,1} '.observations);']);
-    allValues = allValues(:,1);
-    allValues = allValues(~isnan(allValues));
-    eval(['centerPosDistr' label{iLabel,1} ' = allValues;']);
-    eval(['centerPosParam' label{iLabel,1} ' = [mean(allValues) ' ...
-        'std(allValues) min(allValues) prctile(allValues,25) ' ...
-        'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+    if ~isempty(allValues)
+        allValues = allValues(:,1);
+        allValues = allValues(~isnan(allValues));
+        eval(['centerPosDistr' label{iLabel,1} ' = allValues;']);
+        if ~isempty(allValues)
+            eval(['centerPosParam' label{iLabel,1} ' = [mean(allValues) ' ...
+                'std(allValues) min(allValues) prctile(allValues,25) ' ...
+                'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+        end
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -683,12 +705,16 @@ for iLabel = goodLabel
     
     %overall
     eval(['allValues = vertcat(centerPositionChangeSis12' label{iLabel,1} '.observations);']);
-    allValues = allValues(:,1);
-    allValues = allValues(~isnan(allValues));
-    eval(['centerPosChangeDistr' label{iLabel,1} ' = allValues;']);
-    eval(['centerPosChangeParam' label{iLabel,1} ' = [mean(allValues) ' ...
-        'std(allValues) min(allValues) prctile(allValues,25) ' ...
-        'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+    if ~isempty(allValues)
+        allValues = allValues(:,1);
+        allValues = allValues(~isnan(allValues));
+        eval(['centerPosChangeDistr' label{iLabel,1} ' = allValues;']);
+        if ~isempty(allValues)
+            eval(['centerPosChangeParam' label{iLabel,1} ' = [mean(allValues) ' ...
+                'std(allValues) min(allValues) prctile(allValues,25) ' ...
+                'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+        end
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -709,8 +735,10 @@ for iLabel = goodLabel
     % center position change autocorrelation %
     
     %overall
-    eval(['centerPosChangeAutocorr' label{iLabel,1} ...
-        ' = autoCorr(centerPositionChangeSis12' label{iLabel,1} ',maxLag);'])
+    eval(['[tmpCorr,errFlag] = autoCorr(centerPositionChangeSis12' label{iLabel,1} ',maxLag);'])
+    if ~errFlag
+        eval(['centerPosChangeAutocorr' label{iLabel,1} ' = tmpCorr;'])
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -728,12 +756,16 @@ for iLabel = goodLabel
     
     %overall
     eval(['allValues = vertcat(centerPChangeInt' label{iLabel,1} '.observations);']);
-    allValues = allValues(:,1);
-    allValues = allValues(~isnan(allValues));
-    eval(['centerPosPChangeIntervalDistr' label{iLabel,1} ' = allValues;']);
-    eval(['centerPosPChangeIntervalParam' label{iLabel,1} ' = [mean(allValues) ' ...
-        'std(allValues) min(allValues) prctile(allValues,25) ' ...
-        'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+    if ~isempty(allValues)
+        allValues = allValues(:,1);
+        allValues = allValues(~isnan(allValues));
+        eval(['centerPosPChangeIntervalDistr' label{iLabel,1} ' = allValues;']);
+        if ~isempty(allValues)
+            eval(['centerPosPChangeIntervalParam' label{iLabel,1} ' = [mean(allValues) ' ...
+                'std(allValues) min(allValues) prctile(allValues,25) ' ...
+                'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+        end
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -755,12 +787,16 @@ for iLabel = goodLabel
     
     %overall
     eval(['allValues = vertcat(centerNChangeInt' label{iLabel,1} '.observations);']);
-    allValues = allValues(:,1);
-    allValues = allValues(~isnan(allValues));
-    eval(['centerPosNChangeIntervalDistr' label{iLabel,1} ' = allValues;']);
-    eval(['centerPosNChangeIntervalParam' label{iLabel,1} ' = [mean(allValues) ' ...
-        'std(allValues) min(allValues) prctile(allValues,25) ' ...
-        'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+    if ~isempty(allValues)
+        allValues = allValues(:,1);
+        allValues = allValues(~isnan(allValues));
+        eval(['centerPosNChangeIntervalDistr' label{iLabel,1} ' = allValues;']);
+        if ~isempty(allValues)
+            eval(['centerPosNChangeIntervalParam' label{iLabel,1} ' = [mean(allValues) ' ...
+                'std(allValues) min(allValues) prctile(allValues,25) ' ...
+                'prctile(allValues,50) prctile(allValues,75) max(allValues)];']);
+        end
+    end
 
     %individual cells
     for iMovie = 1 : numMovies
@@ -785,7 +821,7 @@ end %(for iLabel = goodLabel)
 %initialization
 for iLabel = 1 : 3
     
-    eval(['dispCrosscorr' label{iLabel,1} ' = [];'])
+    eval(['dispCrosscorr' label{iLabel,1} ' = NaN(1,2);'])
     eval(['dispIndCrosscorr' label{iLabel,1} ' = NaN(numMovies,2);'])
    
 end
@@ -793,8 +829,11 @@ end
 for iLabel = goodLabel
 
     %overall
-    eval(['dispCrosscorr' label{iLabel,1} ' = crossCorr(sister1Disp' label{iLabel,1} ...
+    eval(['[tmpCorr,errFlag] = crossCorr(sister1Disp' label{iLabel,1} ...
         ',sister2Disp' label{iLabel,1} ',0);'])
+    if ~errFlag
+        eval(['dispCrosscorr' label{iLabel,1} ' = tmpCorr;'])
+    end
     
     %individual cells
     for iMovie = 1 : numMovies
@@ -911,16 +950,21 @@ if verbose
 
         %histogram of sister separation
         eval(['tmpVar = separationDistr' label{iLabel,1} ';'])
-        n = histogram(tmpVar,[],0);
-        histogram(tmpVar,[],0);
-
-        %write axes labels
-        xlabel('Sister separation (\mum)');
-        ylabel('# of occurances');
         
-        %add average and std
-        eval(['tmpVar = separationParam' label{iLabel,1} '(1:2);'])
-        text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+        if ~isempty(tmpVar)
+
+            n = histogram(tmpVar,[],0);
+            histogram(tmpVar,[],0);
+
+            %write axes labels
+            xlabel('Sister separation (\mum)');
+            ylabel('# of occurances');
+
+            %add average and std
+            eval(['tmpVar = separationParam' label{iLabel,1} '(1:2);'])
+            text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            
+        end
 
         %hold off subplot 1
         hold off
@@ -931,16 +975,21 @@ if verbose
 
         %histogram of sister separation change
         eval(['tmpVar = sepChangeDistr' label{iLabel,1} ';'])
-        n = histogram(tmpVar,[],0);
-        histogram(tmpVar,[],0);
+        
+        if ~isempty(tmpVar)
 
-        %write axes labels
-        xlabel('Frame-to-frame sister separation change (\mum)');
-        ylabel('# of occurances');
+            n = histogram(tmpVar,[],0);
+            histogram(tmpVar,[],0);
 
-        %add average and std
-        eval(['tmpVar = sepChangeParam' label{iLabel,1} '(1:2);'])
-        text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            %write axes labels
+            xlabel('Frame-to-frame sister separation change (\mum)');
+            ylabel('# of occurances');
+
+            %add average and std
+            eval(['tmpVar = sepChangeParam' label{iLabel,1} '(1:2);'])
+            text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            
+        end
 
         %hold off subplot 2
         hold off
@@ -951,16 +1000,21 @@ if verbose
 
         %histogram of intervals of positive change in sister separation
         eval(['tmpVar = sepPChangeIntervalDistr' label{iLabel,1} ';']);
-        n = hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
-        hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
+        
+        if ~isempty(tmpVar)
 
-        %write axes labels
-        xlabel('Positive change intervals (s)');
-        ylabel('# of occurances');
+            n = hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
+            hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
 
-        %add average and std
-        eval(['tmpVar = sepPChangeIntervalParam' label{iLabel,1} '(1:2);'])
-        text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            %write axes labels
+            xlabel('Positive change intervals (s)');
+            ylabel('# of occurances');
+
+            %add average and std
+            eval(['tmpVar = sepPChangeIntervalParam' label{iLabel,1} '(1:2);'])
+            text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            
+        end
 
         %hold off subplot 3
         hold off
@@ -971,16 +1025,21 @@ if verbose
 
         %histogram of intervals of negative change in sister separation
         eval(['tmpVar = sepNChangeIntervalDistr' label{iLabel,1} ';']);
-        n = hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
-        hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
+        
+        if ~isempty(tmpVar)
 
-        %write axes labels
-        xlabel('Negative change intervals (s)');
-        ylabel('# of occurances');
+            n = hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
+            hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
 
-        %add average and std
-        eval(['tmpVar = sepNChangeIntervalParam' label{iLabel,1} '(1:2);'])
-        text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            %write axes labels
+            xlabel('Negative change intervals (s)');
+            ylabel('# of occurances');
+
+            %add average and std
+            eval(['tmpVar = sepNChangeIntervalParam' label{iLabel,1} '(1:2);'])
+            text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            
+        end
 
         %hold off subplot 4
         hold off
@@ -1032,19 +1091,24 @@ if verbose
         %create subplot 1
         subplot(3,2,1);
         hold on
-
+        
         %histogram of center position
         eval(['tmpVar = centerPosDistr' label{iLabel,1} ';'])
-        n = histogram(tmpVar,[],0);
-        histogram(tmpVar,[],0);
 
-        %write axes labels
-        xlabel('Sister center position (\mum)');
-        ylabel('# of occurances');
-        
-        %add average and std
-        eval(['tmpVar = centerPosParam' label{iLabel,1} '(1:2);'])
-        text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+        if ~isempty(tmpVar)
+
+            n = histogram(tmpVar,[],0);
+            histogram(tmpVar,[],0);
+
+            %write axes labels
+            xlabel('Sister center position (\mum)');
+            ylabel('# of occurances');
+
+            %add average and std
+            eval(['tmpVar = centerPosParam' label{iLabel,1} '(1:2);'])
+            text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+
+        end
 
         %hold off subplot 1
         hold off
@@ -1055,16 +1119,21 @@ if verbose
 
         %histogram of sister center displacement
         eval(['tmpVar = centerPosChangeDistr' label{iLabel,1} ';'])
-        n = histogram(tmpVar,[],0);
-        histogram(tmpVar,[],0);
+        
+        if ~isempty(tmpVar)
 
-        %write axes labels
-        xlabel('Frame-to-frame sister center displacement (\mum)');
-        ylabel('# of occurances');
+            n = histogram(tmpVar,[],0);
+            histogram(tmpVar,[],0);
 
-        %add average and std
-        eval(['tmpVar = centerPosChangeParam' label{iLabel,1} '(1:2);'])
-        text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            %write axes labels
+            xlabel('Frame-to-frame sister center displacement (\mum)');
+            ylabel('# of occurances');
+
+            %add average and std
+            eval(['tmpVar = centerPosChangeParam' label{iLabel,1} '(1:2);'])
+            text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+
+        end
 
         %hold off subplot 2
         hold off
@@ -1075,16 +1144,21 @@ if verbose
 
         %histogram of intervals of positive change in center position
         eval(['tmpVar = centerPosPChangeIntervalDistr' label{iLabel,1} ';']);
-        n = hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
-        hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
 
-        %write axes labels
-        xlabel('Positive displacement intervals (s)');
-        ylabel('# of occurances');
+        if ~isempty(tmpVar)
 
-        %add average and std
-        eval(['tmpVar = centerPosPChangeIntervalParam' label{iLabel,1} '(1:2);'])
-        text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            n = hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
+            hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
+
+            %write axes labels
+            xlabel('Positive displacement intervals (s)');
+            ylabel('# of occurances');
+
+            %add average and std
+            eval(['tmpVar = centerPosPChangeIntervalParam' label{iLabel,1} '(1:2);'])
+            text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+
+        end
 
         %hold off subplot 3
         hold off
@@ -1095,16 +1169,21 @@ if verbose
 
         %histogram of intervals of negative change in center position
         eval(['tmpVar = centerPosNChangeIntervalDistr' label{iLabel,1} ';']);
-        n = hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
-        hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
+        
+        if ~isempty(tmpVar)
 
-        %write axes labels
-        xlabel('Negative displacement intervals (s)');
-        ylabel('# of occurances');
+            n = hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
+            hist(tmpVar,(timeLapse:timeLapse:max(tmpVar)+timeLapse));
 
-        %add average and std
-        eval(['tmpVar = centerPosNChangeIntervalParam' label{iLabel,1} '(1:2);'])
-        text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            %write axes labels
+            xlabel('Negative displacement intervals (s)');
+            ylabel('# of occurances');
+
+            %add average and std
+            eval(['tmpVar = centerPosNChangeIntervalParam' label{iLabel,1} '(1:2);'])
+            text(tmpVar(1)+tmpVar(2),max(n),sprintf('mean+-std:\n%4.2f +- %4.2f',tmpVar(1),tmpVar(2)));
+            
+        end
 
         %hold off subplot 4
         hold off

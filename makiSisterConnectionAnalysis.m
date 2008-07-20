@@ -302,10 +302,12 @@ for iLabel = goodLabel
     allValues = allValues(:,1);
     allValues = allValues(~isnan(allValues));
     eval(['sisterDistDistr' label{iLabel,1} ' = allValues;']);
-    eval(['sisterDistParam' label{iLabel,1} ...
-        ' = [mean(allValues) std(allValues) min(allValues) ' ...
-        'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
-        'max(allValues)];']);
+    if ~isempty(allValues)
+        eval(['sisterDistParam' label{iLabel,1} ...
+            ' = [mean(allValues) std(allValues) min(allValues) ' ...
+            'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+            'max(allValues)];']);
+    end
 
     %overall velocity
     eval(['allValues = vertcat(sisterVel' label{iLabel,1} '.observations);']);
@@ -317,39 +319,47 @@ for iLabel = goodLabel
     eval(['allValues = vertcat(sisterVel' label{iLabel,1} '.observations);']);
     allValues = allValues(allValues(:,1)>0,1);
     allValues = allValues(~isnan(allValues));
-    eval(['sisterVelPosParam' label{iLabel,1} ...
-        ' = [mean(allValues) std(allValues) min(allValues) ' ...
-        'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
-        'max(allValues)];']);
+    if ~isempty(allValues)
+        eval(['sisterVelPosParam' label{iLabel,1} ...
+            ' = [mean(allValues) std(allValues) min(allValues) ' ...
+            'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+            'max(allValues)];']);
+    end
 
     %negative velocity
     eval(['allValues = vertcat(sisterVel' label{iLabel,1} '.observations);']);
     allValues = abs(allValues(allValues(:,1)<0,1));
     allValues = allValues(~isnan(allValues));
-    eval(['sisterVelNegParam' label{iLabel,1} ...
-        ' = [mean(allValues) std(allValues) min(allValues) ' ...
-        'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
-        'max(allValues)];']);
+    if ~isempty(allValues)
+        eval(['sisterVelNegParam' label{iLabel,1} ...
+            ' = [mean(allValues) std(allValues) min(allValues) ' ...
+            'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+            'max(allValues)];']);
+    end
 
     %angle with normal
     eval(['allValues = vertcat(angleNormal' label{iLabel,1} '.observations);']);
     allValues = allValues(:,1);
     allValues = allValues(~isnan(allValues));
     eval(['angleNormalDistr' label{iLabel,1} ' = allValues;']);
-    eval(['angleNormalParam' label{iLabel,1} ...
-        ' = [mean(allValues) std(allValues) min(allValues) ' ...
-        'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
-        'max(allValues)];']);
+    if ~isempty(allValues)
+        eval(['angleNormalParam' label{iLabel,1} ...
+            ' = [mean(allValues) std(allValues) min(allValues) ' ...
+            'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+            'max(allValues)];']);
+    end
 
     %angular velocity
     eval(['allValues = vertcat(angularVel' label{iLabel,1} '.observations);'])
     allValues = allValues(:,1);
     allValues = allValues(~isnan(allValues));
     eval(['angularVelDistr' label{iLabel,1} ' = allValues;']);
-    eval(['angularVelParam' label{iLabel,1} ...
-        ' = [mean(allValues) std(allValues) min(allValues) ' ...
-        'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
-        'max(allValues)];']);
+    if ~isempty(allValues)
+        eval(['angularVelParam' label{iLabel,1} ...
+            ' = [mean(allValues) std(allValues) min(allValues) ' ...
+            'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+            'max(allValues)];']);
+    end
     
     % individual cells %
     
@@ -453,10 +463,10 @@ maxLagSis = round(10 / samplingPeriod);
 
 %initialization
 for iLabel = 1 : 3
-    eval(['sisterDistAutocorr' label{iLabel,1} ' = [];'])
-    eval(['sisterVelAutocorr' label{iLabel,1} ' = [];'])
-    eval(['angleNormalAutocorr' label{iLabel,1} ' = [];'])
-    eval(['angularVelAutocorr' label{iLabel,1} ' = [];'])
+    eval(['sisterDistAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2);'])
+    eval(['sisterVelAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2);'])
+    eval(['angleNormalAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2);'])
+    eval(['angularVelAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2);'])
     
     eval(['sisterDistIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
     eval(['sisterVelIndAutocorr' label{iLabel,1} ' = NaN(maxLag+1,2,numMovies);'])
@@ -473,22 +483,30 @@ end
 for iLabel = goodLabel
 
     % overall %
-    
+
     %distance
-    eval(['sisterDistAutocorr' label{iLabel,1} ...
-        ' = autoCorr(sisterDist' label{iLabel,1} ',maxLag);'])
+    eval(['[tmpCorr,errFlag] = autoCorr(sisterDist' label{iLabel,1} ',maxLag);'])
+    if ~errFlag
+        eval(['sisterDistAutocorr' label{iLabel,1} ' = tmpCorr;']);
+    end
 
     %velocity
-    eval(['sisterVelAutocorr' label{iLabel,1} ...
-        ' = autoCorr(sisterVel' label{iLabel,1} ',maxLag);'])
+    eval(['[tmpCorr,errFlag] = autoCorr(sisterVel' label{iLabel,1} ',maxLag);'])
+    if ~errFlag
+        eval(['sisterVelAutocorr' label{iLabel,1} ' = tmpCorr;']);
+    end
 
     %angle with normal
-    eval(['angleNormalAutocorr' label{iLabel,1} ...
-        ' = autoCorr(angleNormal' label{iLabel,1} ',maxLag);'])
-
+    eval(['[tmpCorr,errFlag] = autoCorr(angleNormal' label{iLabel,1} ',maxLag);'])
+    if ~errFlag
+        eval(['angleNormalAutocorr' label{iLabel,1} ' = tmpCorr;']);
+    end
+    
     %angular velocity
-    eval(['angularVelAutocorr' label{iLabel,1} ...
-        ' = autoCorr(angularVel' label{iLabel,1} ',maxLag);'])
+    eval(['[tmpCorr,errFlag] = autoCorr(angularVel' label{iLabel,1} ',maxLag);'])
+    if ~errFlag
+        eval(['angularVelAutocorr' label{iLabel,1} ' = tmpCorr;']);
+    end
     
     % individual cells %
     
