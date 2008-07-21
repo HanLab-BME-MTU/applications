@@ -40,7 +40,7 @@ end
 basePath = uigetdir([topDir filesep],'Please select directory of movies to be collected');
 
 %find all makiAnalysis files in chosen directory
-fileList1 = searchFiles('makiAnalysis',[],basePath,1);
+fileList1 = searchFiles('makiAnalysis','.fig',basePath,1);
 numList1 = size(fileList1,1);
 
 %find all makiData files in chosen directory
