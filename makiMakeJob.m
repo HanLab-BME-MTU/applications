@@ -501,8 +501,8 @@ function dataStruct = getTrackingInput(dataStruct,ask4input)
 %define default values
 rotate_def = 1;
 timeWindow_def = 3;
-minRadius_def = 0.5;
-maxRadius_def = 1.1;
+minRadius_def = [0.5 1 0.5];
+maxRadius_def = [1.1 3 1.1];
 
 %assign defaults
 dataPropertiesTmp = dataStruct.dataProperties;
@@ -519,11 +519,11 @@ if isfield(dataPropertiesTmp,'tracksParam') %if tracksParam have been assigned p
         timeWindowTmp = timeWindow_def;
     end
     if isfield(tracksParamTmp,'costMatParam')
-        minRadiusTmp = tracksParamTmp.costMatParam.minSearchRadiusL;
-        maxRadiusTmp = tracksParamTmp.costMatParam.maxSearchRadiusL;
+        minRadiusTmp = [tracksParamTmp.costMatParam.minSearchRadiusL minRadius_def(2:3)];
+        maxRadiusTmp = [tracksParamTmp.costMatParam.maxSearchRadiusL maxRadius_def(2:3)];
     elseif isfield(tracksParamTmp,'costMatrices')
-        minRadiusTmp = tracksParamTmp.costMatrices(1).parameters.minSearchRadius;
-        maxRadiusTmp = tracksParamTmp.costMatrices(1).parameters.maxSearchRadius;        
+        minRadiusTmp = [tracksParamTmp.costMatrices(1).parameters.minSearchRadius minRadius_def(2:3)];
+        maxRadiusTmp = [tracksParamTmp.costMatrices(1).parameters.maxSearchRadius maxRadius_def(2:3)];
     else
         minRadiusTmp = minRadius_def;
         maxRadiusTmp = maxRadius_def;
@@ -541,22 +541,30 @@ if ask4input
     tracksParamIn = inputdlg(...
         {'Use rotated coordinates (1 yes, 0 no)',...
         'Maximum gap to close (in frames)',...
-        'Minimum allowed search radius (in microns)',...
-        'Maximum allowed search radius (in microns)'},...
+        'Minimum allowed search radius (in microns) - inliers',...
+        'Minimum allowed search radius (in microns) - unaligned',...
+        'Minimum allowed search radius (in microns) - lagging',...
+        'Maximum allowed search radius (in microns) - inliers'...
+        'Maximum allowed search radius (in microns) - unaligned'...
+        'Maximum allowed search radius (in microns) - lagging'},...
         sprintf(['Tracking parameters for ' dataStruct.projectName]),1,...
         {num2str(rotateTmp),num2str(timeWindowTmp),...
-        num2str(minRadiusTmp),num2str(maxRadiusTmp)},'on');
+        num2str(minRadiusTmp(1)),num2str(minRadiusTmp(2)),...
+        num2str(minRadiusTmp(3)),num2str(maxRadiusTmp(1)),...
+        num2str(maxRadiusTmp(2)),num2str(maxRadiusTmp(3))},'on');
 
     if isempty(tracksParamIn)
         error('input aborted')
     else
         rotateTmp = str2double(tracksParamIn{1});
         timeWindowTmp = str2double(tracksParamIn{2});
-        minRadiusTmp = str2double(tracksParamIn{3});
-        maxRadiusTmp = str2double(tracksParamIn{4});
+        minRadiusTmp = [str2double(tracksParamIn{3}) ...
+            str2double(tracksParamIn{4}) str2double(tracksParamIn{5})];
+        maxRadiusTmp = [str2double(tracksParamIn{6}) ...
+            str2double(tracksParamIn{7}) str2double(tracksParamIn{8})];
     end
 
-else
+    else
 
     rotateTmp = rotate_def;
     timeWindowTmp = timeWindow_def;
@@ -575,7 +583,7 @@ gapCloseParam.minTrackLen = 1;
 
 %assign cost matrix parameters for linking spots between consecutive
 %frames
-costMatrices(1).funcName = 'costMatLinearMotionLink';
+costMatrices(1).funcName = 'makiTrackCostMatLink';
 parameters.linearMotion = 0;
 parameters.minSearchRadius = minRadiusTmp;
 parameters.maxSearchRadius = maxRadiusTmp;
@@ -587,7 +595,7 @@ clear parameters
 
 %assign cost matrix parameters for closing gaps and (in principle)
 %merging and splitting
-costMatrices(2).funcName = 'costMatLinearMotionCloseGaps';
+costMatrices(2).funcName = 'makiTrackCostMatCloseGaps';
 parameters.linearMotion = 0;
 parameters.minSearchRadius = minRadiusTmp;
 parameters.maxSearchRadius = maxRadiusTmp;

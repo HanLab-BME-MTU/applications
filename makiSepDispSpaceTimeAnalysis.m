@@ -636,7 +636,7 @@ for iLabel = goodLabel
             end
         end
     end
-
+    
 end %(for iLabel = goodLabel)
 
 %% center of mass motion analysis

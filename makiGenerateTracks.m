@@ -117,6 +117,29 @@ if ~isfield(movieInfo,'nnDist')
     
 end
 
+%get kinetochore classification in each frame if available
+if isfield(dataStruct,'planeFit') %if the plane fit has been done
+    
+    %extract planeFit field from structure
+    planeFit = dataStruct.planeFit;
+    
+    %assign kinetochore types per frame
+    for iTime = 1 : nTimepoints
+        kinType = zeros(movieInfo(iTime).num,1); %inlier
+        kinType(planeFit(iTime).unalignedIdx) = 1; %unaligned
+        kinType(planeFit(iTime).laggingIdx) = 2; %lagging
+        movieInfo(iTime).kinType = kinType;
+    end
+    
+else %if not
+    
+    %treat all kinetochores as inliers
+    for iTime = 1 : nTimepoints
+        movieInfo(iTime).kinType = ones(movieInfo(iTime).num,1);
+    end
+
+end
+
 %get tracking parameters
 gapCloseParam = dataStruct.dataProperties.tracksParam.gapCloseParam;
 costMatrices = dataStruct.dataProperties.tracksParam.costMatrices;
