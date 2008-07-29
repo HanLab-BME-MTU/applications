@@ -4,13 +4,14 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 % SYNOPSIS: dataStruct = makiInitCoord(dataStruct)
 %
 % INPUT dataStruct: dataStruct as in makimakeDataStruct with at least the
-%                   fields
-%                     .rawMovieName - may contain the actual movie
-%                     .rawMoviePath
-%                     .dataProperties
-%                   Alternatively, a makiData object can be passed.
-%                   verbose: whether or not to plot cutoff plots
-%                       (default: 0)
+%                       fields
+%                         .rawMovieName - may contain the actual movie
+%                         .rawMoviePath
+%                         .dataProperties
+%                       Alternatively, a makiData object can be passed.
+%                   verbose (opt): 0: plot nothing
+%                                  1: show progressText (default)
+%                                  2: show cutoff-plots
 %
 % OUTPUT dataStruct.initCoords: Structure of length nTimepoints with fields
 %                       .allCoord     [x y z sx sy sz] coords and sigmas in
@@ -22,6 +23,7 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 %                       .nSpots       number of spots
 %                       .initAmp      maximum pixel intensity and estimated
 %                           local noise of local maxima
+%                           This tends to be better than .amp
 %                       .amp          amplitude estimate from local
 %                           integral around locMax
 %                       .data4MMF     [x y z] pixel coordinates of two
@@ -41,7 +43,7 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if nargin < 2 || isempty(verbose)
-    verbose = 0;
+    verbose = 1;
 end
 
 %=========================
@@ -93,13 +95,27 @@ tmp(1:nTimepoints,1) = struct('allCoord',[],...
     'allCoordPix',[],'correctionMu',[],'nSpots',[],...
     'initAmp',[],'amp',[],'data4MMF',[]);
 dataStruct.initCoord = tmp;
+
+% missing frames are indicated by empty cropMasks. Don't analyze them!
+% For safety reason, this check is only performed on data objects
+goodTimes = 1:nTimepoints;
+if dataObject
+    % since this is dataObj only, no need to worry about compatibility
+    if dataProperties.initCoord.rmEmptyMasks
+        goodTimes = find(cellfun(@(x)(~isempty(x)),...
+            dataStruct.imageData.cropInfo.cropMask))';
+    end
+
+end
+
 %=====================
 %% MAIN LOOP
 %=====================
-
+if verbose
 progressText;
-
-for t=1:nTimepoints
+end
+nTimes = max(goodTimes); % not the best way to count, but it works.
+for t=goodTimes
 
     % -- load images --
     % raw = current raw movie frame
@@ -126,9 +142,9 @@ for t=1:nTimepoints
         % there will be NaNs in the masked image. Therefore, request
         % filtered data from imageDataObject. Ideally, loadType is set to
         % fcn or reqKeep
-        
+
         background = dataStruct.imageData.getFrame(t,'',{[],backgroundFilterParms(4:6),1,backgroundFilter})-offset;
-        
+
         % mask signal pixels, then recalculate background
         sigMask = raw>background;
         % remove some of the spurious hits. Use 2d mask for speed and
@@ -145,11 +161,11 @@ for t=1:nTimepoints
         rawMsk(rawMsk==0) = NaN;
         background = fastGauss3D(rawMsk,[],dataProperties.FILTERPRM(4:6),1,signalFilter);
         %background = convNan(rawMsk,backgroundFilter,backgroundFilterParms(4:6),1);
-            filtered = dataStruct.imageData.getFrame(t,'',{[],dataProperties.FILTERPRM(4:6),1,signalFilter})-offset;
+        filtered = dataStruct.imageData.getFrame(t,'',{[],dataProperties.FILTERPRM(4:6),1,signalFilter})-offset;
     else
-    filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2,signalFilter);
+        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2,signalFilter);
 
-    background = fastGauss3D(raw,[],backgroundFilterParms(4:6),2,backgroundFilter);
+        background = fastGauss3D(raw,[],backgroundFilterParms(4:6),2,backgroundFilter);
     end
 
     amplitude = filtered - background;
@@ -160,9 +176,9 @@ for t=1:nTimepoints
     if dataObject
         % careful because of NaN-mask
         %noise = convNan(noise,noiseMask,dataProperties.FILTERPRM(4:6));
-         noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),1,noiseMask);
+        noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),1,noiseMask);
     else
-    noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),1,noiseMask);
+        noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),1,noiseMask);
     end
 
     % find local maxima
@@ -174,7 +190,7 @@ for t=1:nTimepoints
     initCoordTmp = [locMax, amplitude(locMaxIdx), noise(locMaxIdx), ...
         zeros(length(locMaxIdx),1)];
     initCoordTmp = sortrows(initCoordTmp,-4);
-    % only take 500 highest amplitudes. This will leave plenty of noise
+    % only take MAXSPOTS highest amplitudes. This will leave plenty of noise
     % spots, but it will avoid huge arrays
     initCoordTmp = initCoordTmp(1:min(dataProperties.MAXSPOTS,size(initCoordTmp,1)),:);
 
@@ -202,8 +218,9 @@ for t=1:nTimepoints
         initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)./max(initCoordTmp(:,4),eps))];
     initCoordRaw{t} = initCoordTmp;
 
-
-    progressText(t/nTimepoints);
+if verbose
+    progressText(t/nTimes);
+end
 end % loop timepoints
 
 clear initCoordTmp
@@ -238,7 +255,11 @@ end
 
 % plot all
 if verbose == 2
-    figure('Name',sprintf('cutoffs for %s',dataStruct.projectName))
+    if dataObject
+        figure('Name',sprintf('cutoffs for %s',dataStruct.identifier))
+    else
+        figure('Name',sprintf('cutoffs for %s',dataStruct.projectName))
+    end
     ah(1) = subplot(3,1,1);
     set(ah(1),'NextPlot','add')
     plot(ah(1),[1,nTimepoints],[cutoff(1) cutoff(1)]);
@@ -254,7 +275,7 @@ if verbose == 2
     plot(ah(3),[1,nTimepoints],[cutoff(3) cutoff(3)]);
     xlabel('timepoints')
     ylabel('amplitude/sqrt(nse/amp) - SNR for poisson noise')
-    for t=1:nTimepoints
+    for t=goodTimes
         plot(ah(1),t,initCoordRaw{t}(:,4),'+')
         plot(ah(2),t,initCoordRaw{t}(:,7),'+')
         plot(ah(3),t,initCoordRaw{t}(:,8),'+')
@@ -288,7 +309,7 @@ end
 
 
 
-for t=1:nTimepoints
+for t=goodTimes
     goodIdxL = initCoordRaw{t}(:,cutoffCol) > cutoff(cutoffIdx);
 
     % count good spots
@@ -337,45 +358,3 @@ end
 % [dataProperties] = ...
 %     detectSpots_MMF_findAmplitudeCutoff(...
 %     rawMovie, cordStruct, dataProperties,[],0)
-
-
-
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% subfunctions
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cutValue = splitModes(data)
-% cut histogram where there is no data
-
-% first guess via cutFirstHistMode - put as 1 to see histograms
-[cutIdx, cutVal,sp] = cutFirstHistMode(data,0);
-
-% now check the local minima in the vicinity of the cutoff
-spder = fnder(sp);
-zeroList = fnzeros(spder);
-zeroList = zeroList(1,:);
-% evaluate
-zeroVals = fnval(sp,zeroList);
-
-% look in zeroList. Find one value before cutVal, three after. Go into
-% zeroVals and find lowest minimum
-[dummy,closestIdx] = min(abs(zeroList - cutVal));
-
-% check only the minimas that are close by; two to the right and
-% one to the left (don't forget that between two minima there will
-% always be a maximum!)
-indexList = (closestIdx-2):(closestIdx + 4);
-indexList(indexList < 1 | indexList > length(zeroVals)) = [];
-
-% also, never allow going left of the highest maximum!
-[dummy,maxValIdx] = max(zeroVals);
-indexList(indexList < maxValIdx) = [];
-
-% find lowest
-[dummy, cutIdx] = min(zeroVals(indexList));
-% and determine break value
-cutValue = zeroList(indexList(cutIdx));
