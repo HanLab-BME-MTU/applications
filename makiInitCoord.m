@@ -207,7 +207,15 @@ for t=goodTimes
         initCoordTmp(iSpot,1:3)=...
             initCoordTmp(iSpot,1:3) + ...
             centroid3D(patch) - halfPatchSize;
-        % amplitude guess is integral.
+        
+        %HLE - Adjust for edge effect. When patch is truncated by low - index
+        %edge of image, the halfPatchSize needs to be adjusted
+        edgeAdjustTmp = initCoordTmp(iSpot,1:3) - ... 
+            (dataProperties.FILTERPRM(4:6)-1)./2 ;        
+        initCoordTmp(iSpot,1:3) = initCoordTmp(iSpot,1:3) - ...
+            edgeAdjustTmp .* (edgeAdjustTmp < 0);        
+        
+        % amplitude guess is integral.                        
         initCoordTmp(iSpot,6) = nanmean(patch(:));
     end
 
@@ -314,7 +322,9 @@ for t=goodTimes
 
     % count good spots
     dataStruct.initCoord(t).nSpots = sum(goodIdxL);
-
+    
+    
+    
     % store pixel coords. Uncertainty is 0.5 pix
     dataStruct.initCoord(t).allCoordPix = ...
         [initCoordRaw{t}(goodIdxL,1:3),...
