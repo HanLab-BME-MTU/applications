@@ -41,7 +41,14 @@ plotTrapezoid = true;
 xLabels = -1/48:1/24:49/48;
 
 % sample every 25 nanometer spindle length
-boundaries = [0.7:0.025:1.7;0.9:0.025:1.9];
+% Change by Eugenio
+% We remove set the axis from 1.0 to 2.0
+
+% Original code from Jonas
+% boundaries = [0.7:0.025:1.7;0.9:0.025:1.9];
+% New code by Eugenio
+boundaries = [.9:0.025:1.9;1.1:0.025:2.1];
+
 
 meanBoundaries = mean(boundaries,1);
 nBoundaries = size(boundaries,2);
@@ -156,8 +163,15 @@ for i=1:3
             zallS(:,ct) = NaN;
         end
         yall(:,ct)=meanBoundaries(ct);
-        yTickLabels{ct}=sprintf('%1.1f/%1.2f', ...
-            meanBoundaries(ct),nSpindles(ct));
+        
+        % Change by Eugenio
+        % We remove the nSpindles from the y axis
+        % Original code from Jonas
+%         yTickLabels{ct}=sprintf('%1.1f/%1.2f', ...
+%             meanBoundaries(ct),nSpindles(ct));
+        % New code by Eugenio
+        yTickLabels{ct}=sprintf('%1.1f', ...
+            meanBoundaries(ct));
         
         % convolve with psf if not intensties
         if ~intensities
@@ -208,7 +222,12 @@ for i=1:3
             set(ah,'CLim',[0,1])
         case 2
             goodZ = nSpindles>1;
-            set(ah,'CLim',[0,nanmax(nanmax(zall(:,goodZ)))])
+            % Change by Eugenio
+            % We set all the figures to the same scale, up to 0.15
+            % Original code from Jonas
+%             set(ah,'CLim',[0,nanmax(nanmax(zall(:,goodZ)))])
+            % New code by Eugenio
+            set(ah,'CLim',[0,0.15])
         case 1
             % here it depends how we normalized before. Implement later, do
             % 01 for now
