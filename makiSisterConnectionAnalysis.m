@@ -1,9 +1,9 @@
-function analysisStruct = makiSisterConnectionAnalysis(jobType,...
-    analysisStruct,verbose,removeNetDisp,randomize,samplingPeriod)
+function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,...
+    verbose,samplingPeriod,correctStd,strictClass,removeNetDisp,randomize)
 %MAKISISTERCONNECTIONANALYSIS analyzes in multiple ways the connection between sisters
 %
-%SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,...
-%    analysisStruct,verbose,removeNetDisp,randomize,samplingPeriod)
+%SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,...
+%    verbose,removeNetDisp,randomize,samplingPeriod,correctStd)
 %
 %INPUT  jobType       : string which can take the values:
 %                       'TEST', 'HERCULES', 'DANUSER', 'MERALDI',
@@ -12,20 +12,30 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,...
 %                       to be analyzed. Optional. If not input, GUI to load
 %                       movies is launched.
 %       verbose       : 1 to make plots, 0 otherwise. Optional. Default: 0.
+%       samplingPeriod: 1 to keep sampling as is, 2 to downsample by taking
+%                       every 2nd time point, 3 to downsample by taking
+%                       every 3rd time point, etc.
+%                       Optional. Default: 1.
+%       correctStd    : 1 to correct stds (because they are underestimated in
+%                       initCoord), 0 otherwise. Optional. Default: 0.
+%       strictClass   : 1 to use strict classification of unaligned and
+%                       lagging sisters, i.e. use only those frames where they
+%                       really are unaligned or lagging; 0 to use less strict
+%                       classification, where if a pair is unaligned or
+%                       lagging in some frames then it is classified as
+%                       unaligned or lagging for the whole movie.
+%                       Optional. Default: 0
 %       removeNetDisp : 1 - Make center of each sister pair at zero
 %                       throughout the whole movie, 0 otherwise.
 %                       Optional. Default: 0.
 %       randomize     : 1 - Randomize sister pairing, 0 otherwise.
 %                       Optional. Default: 0.
-%       samplingPeriod: 1 to keep sampling as is, 2 to downsample by taking
-%                       every 2nd time point, 3 to downsample by taking
-%                       every 3rd time point, etc.
-%                       Optional. Default: 1.
 %
 %OUTPUT analysisStruct: Same as input but with additional field
 %           .sisterConnection: 
 %
-%REMARKS Code is not applicable to anaphase movies/frames
+%REMARKS Code is not applicable to anaphase movies/frames. 
+%        strictClass = 1 ONLY WORKS WITH samplingPeriod = 1.
 %
 %Khuloud Jaqaman, July 2007
 
@@ -38,16 +48,24 @@ if nargin < 3 || isempty(verbose)
     verbose = 0;
 end
 
-if nargin < 4 || isempty(removeNetDisp)
+if nargin < 4 || isempty(samplingPeriod)
+    samplingPeriod = 1;
+end
+
+if nargin < 5 || isempty(correctStd)
+    correctStd = 0;
+end
+
+if nargin < 6 || isempty(strictClass)
+    strictClass = 0;
+end
+
+if nargin < 7 || isempty(removeNetDisp)
     removeNetDisp = 0;
 end
 
-if nargin < 5 || isempty(randomize)
+if nargin < 8 || isempty(randomize)
     randomize = 0;
-end
-
-if nargin < 6 || isempty(samplingPeriod)
-    samplingPeriod = 1;
 end
 
 %interactively obtain analysisStruct if not input
@@ -146,14 +164,19 @@ for iMovie = 1 : numMovies
         %subsample as requested
         for iSample = 1 : samplingPeriod
 
-            %get coordinates with proper subsampling
-            for iSister = 1 : numSisters(iMovie)
-                sisterList(iSister).distanceAligned = sisterListTmp(iSister).distanceAligned(iSample:samplingPeriod:end,:);
-                sisterList(iSister).coords1Aligned = sisterListTmp(iSister).coords1Aligned(iSample:samplingPeriod:end,:);
-                sisterList(iSister).coords2Aligned = sisterListTmp(iSister).coords2Aligned(iSample:samplingPeriod:end,:);
+            %get coordinates with proper subsampling -- UGLY BUT WORKS FOR NOW
+            if samplingPeriod == 1
+                sisterList = sisterListTmp;
+            else
+                for iSister = 1 : numSisters(iMovie)
+                    sisterList(iSister).distanceAligned = sisterListTmp(iSister).distanceAligned(iSample:samplingPeriod:end,:);
+                    sisterList(iSister).coords1Aligned = sisterListTmp(iSister).coords1Aligned(iSample:samplingPeriod:end,:);
+                    sisterList(iSister).coords2Aligned = sisterListTmp(iSister).coords2Aligned(iSample:samplingPeriod:end,:);
+                end
             end
             
             %copy fields out of dataStruct(iMovie)
+            tracks = dataStruct(iMovie).tracks;
             planeFit = dataStruct(iMovie).planeFit(iSample:samplingPeriod:end);
             updatedClass = dataStruct(iMovie).updatedClass(iSample:samplingPeriod:end);
             numFramesMovie = length(planeFit);
@@ -176,12 +199,57 @@ for iMovie = 1 : numMovies
             %go over all sisters in movie
             for iSister = 1 : numSisters(iMovie)
 
+                %get sister type
+                iLabel = sisterType(iSister) + 1;
+
+                %find track indices
+                tracksIndx = sisterList(1).trackPairs(iSister,1:2);
+
+                %determine frame where each track starts
+                trackStart = [tracks(tracksIndx(1)).seqOfEvents(1,1) ...
+                    tracks(tracksIndx(2)).seqOfEvents(1,1)];
+
                 %find number of frames and frames where pair "exists" before
                 %anaphase
                 goodFrames = ~isnan(sisterList(iSister).distanceAligned(:,1));
                 numFrames = length(goodFrames);
                 goodFrames = find(goodFrames);
                 goodFrames = goodFrames(goodFrames < firstFrameAna);
+
+                %find feature indices making up sisters
+                sisterIndx1 = NaN(numFrames,1);
+                sisterIndx2 = NaN(numFrames,1);
+                sisterIndx1(goodFrames) = tracks(tracksIndx(1)).tracksFeatIndxCG(goodFrames-trackStart(1)+1);
+                sisterIndx2(goodFrames) = tracks(tracksIndx(2)).tracksFeatIndxCG(goodFrames-trackStart(2)+1);
+
+                %if we are looking at unaligned or lagging pairs, keep only
+                %those frames where they really are unaligned or lagging
+                if strictClass
+                    switch iLabel
+                        case 2
+                            for iFrame = goodFrames'
+                                %keep this frame if sisters are unaligned in this
+                                %frame
+                                unalignedIdx = updatedClass(iFrame).unalignedIdx;
+                                if ~any(sisterIndx1(iFrame)==unalignedIdx | sisterIndx2(iFrame)==unalignedIdx)
+                                    sisterIndx1(iFrame) = NaN;
+                                    sisterIndx2(iFrame) = NaN;
+                                end
+                            end
+                            goodFrames = find(~isnan(sisterIndx1));
+                        case 3
+                            for iFrame = goodFrames'
+                                %keep this frame if sisters are lagging in this
+                                %frame
+                                laggingIdx = updatedClass(iFrame).laggingIdx;
+                                if ~any(sisterIndx1(iFrame)==laggingIdx | sisterIndx2(iFrame)==laggingIdx)
+                                    sisterIndx1(iFrame) = NaN;
+                                    sisterIndx2(iFrame) = NaN;
+                                end
+                            end
+                            goodFrames = find(~isnan(sisterIndx1));
+                    end
+                end
 
                 %get sister coordinates in good frames
                 coords1 = NaN(numFrames,3);
@@ -193,6 +261,12 @@ for iMovie = 1 : numMovies
                     coords2(iFrame,:) = sisterList(iSister).coords2Aligned(iFrame,1:3);
                     coords1Std(iFrame,:) = sisterList(iSister).coords1Aligned(iFrame,4:6);
                     coords2Std(iFrame,:) = sisterList(iSister).coords2Aligned(iFrame,4:6);
+                end
+
+                %correct position standard deviation if necessary
+                if correctStd
+                    coords1Std = coords1Std * 1.5;
+                    coords2Std = coords2Std * 1.5;
                 end
 
                 %calculate vector between sisters
@@ -739,7 +813,9 @@ for iLabel = 1 : 3
 
 end
 
-inputParam = struct('removeNetDisp',removeNetDisp,'randomize',randomize,'samplingPeriod',samplingPeriod);
+inputParam = struct('samplingPeriod',samplingPeriod,'correctStd',correctStd,...
+    'strictClass',strictClass,'removeNetDisp',removeNetDisp,...
+    'randomize',randomize);
 sisterConnection = struct('Inlier',Inlier,'Unaligned',Unaligned,...
     'Lagging',Lagging,'inputParam',inputParam);
 

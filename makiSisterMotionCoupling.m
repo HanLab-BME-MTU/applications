@@ -1,9 +1,9 @@
-function analysisStruct = makiSisterMotionCoupling(jobType,...
-    analysisStruct,verbose,samplingPeriod)
+function analysisStruct = makiSisterMotionCoupling(jobType,analysisStruct,...
+    verbose,samplingPeriod,correctStd,strictClass)
 %MAKISISTERMOTIONCOUPLING looks for coupling in the motion of sister kinetochores
 %
-%SYNOPSIS analysisStruct = makiSisterMotionCoupling(jobType,...
-%    analysisStruct,verbose,samplingPeriod)
+%SYNOPSIS analysisStruct = makiSisterMotionCoupling(jobType,analysisStruct,...
+%    verbose,samplingPeriod,correctStd)
 %
 %INPUT  jobType       : string which can take the values:
 %                       'TEST', 'HERCULES', 'DANUSER', 'MERALDI',
@@ -19,6 +19,15 @@ function analysisStruct = makiSisterMotionCoupling(jobType,...
 %                       every 2nd time point, 3 to downsample by taking
 %                       every 3rd time point, etc.
 %                       Optional. Default: 1.
+%       correctStd    : 1 to correct stds (because they are underestimated in
+%                       initCoord), 0 otherwise. Optional. Default: 0.
+%       strictClass   : 1 to use strict classification of unaligned and
+%                       lagging sisters, i.e. use only those frames where they
+%                       really are unaligned or lagging; 0 to use less strict
+%                       classification, where if a pair is unaligned or
+%                       lagging in some frames then it is classified as
+%                       unaligned or lagging for the whole movie.
+%                       Optional. Default: 0
 %
 %OUTPUT analysisStruct: Same as input but with additional field
 %           .motionCoupling: 
@@ -38,6 +47,14 @@ end
 
 if nargin < 4 || isempty(samplingPeriod)
     samplingPeriod = 1;
+end
+
+if nargin < 5 || isempty(correctStd)
+    correctStd = 0;
+end
+
+if nargin < 6 || isempty(strictClass)
+    strictClass = 0;
 end
 
 %interactively obtain analysisStruct if not input
@@ -174,6 +191,9 @@ for iMovie = 1 : numMovies
             %go over all sisters in movie
             for iSister = 1 : numSisters(iMovie)
 
+                %get sister type
+                iLabel = sisterType(iSister) + 1;
+
                 %find track indices
                 tracksIndx = sisterListTmp(1).trackPairs(iSister,1:2);
 
@@ -192,12 +212,47 @@ for iMovie = 1 : numMovies
                 sisterIndx1(goodFrames) = trackFeatIndx(tracksIndx(1),goodFrames);
                 sisterIndx2(goodFrames) = trackFeatIndx(tracksIndx(2),goodFrames);
 
+                %if we are looking at unaligned or lagging pairs, keep only
+                %those frames where they really are unaligned or lagging
+                if strictClass
+                    switch iLabel
+                        case 2
+                            for iFrame = goodFrames'
+                                %keep this frame if sisters are unaligned in this
+                                %frame
+                                unalignedIdx = updatedClass(iFrame).unalignedIdx;
+                                if ~any(sisterIndx1(iFrame)==unalignedIdx | sisterIndx2(iFrame)==unalignedIdx)
+                                    sisterIndx1(iFrame) = NaN;
+                                    sisterIndx2(iFrame) = NaN;
+                                end
+                            end
+                            goodFrames = find(~isnan(sisterIndx1));
+                        case 3
+                            for iFrame = goodFrames'
+                                %keep this frame if sisters are lagging in this
+                                %frame
+                                laggingIdx = updatedClass(iFrame).laggingIdx;
+                                if ~any(sisterIndx1(iFrame)==laggingIdx | sisterIndx2(iFrame)==laggingIdx)
+                                    sisterIndx1(iFrame) = NaN;
+                                    sisterIndx2(iFrame) = NaN;
+                                end
+                            end
+                            goodFrames = find(~isnan(sisterIndx1));
+                    end
+                end
+
                 %get aligned sister coordinates
                 coords1 = NaN(numFrames,6);
                 coords2 = NaN(numFrames,6);
                 for iFrame = goodFrames'
                     coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),:);
                     coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),:);
+                end
+
+                %correct position standard deviation if necessary
+                if correctStd
+                    coords1(:,4:6) = coords1(:,4:6) * 1.5;
+                    coords2(:,4:6) = coords2(:,4:6) * 1.5;
                 end
 
                 %calculate the average coordinate of each sister along the normal
@@ -213,7 +268,7 @@ for iMovie = 1 : numMovies
                     coords1 = tmp;
                 end
 
-                %calculate vector between sisters and normalize it
+                %calculate vector between sisters
                 sisterVec = [coords2(:,1:3)-coords1(:,1:3) sqrt(coords1(:,4:6).^2+coords2(:,4:6).^2)];
 
                 %calculate sister separation
@@ -1023,7 +1078,8 @@ for iLabel = 1 : 3
 
 end
 
-inputParam = struct('samplingPeriod',samplingPeriod);
+inputParam = struct('samplingPeriod',samplingPeriod,'correctStd',...
+    correctStd,'strictClass',strictClass);
 sisterMotionCoupling = struct('Inlier',Inlier,'Unaligned',Unaligned,...
     'Lagging',Lagging,'inputParam',inputParam);
 

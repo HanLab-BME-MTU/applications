@@ -241,7 +241,7 @@ for jTrack = 1:nGoodTracks % loop cols
                 variances(iTrack,jTrack) = rStd^2;
 
                 %assign alignment cost for pair if the average angle is less
-                %than 30 degrees. Otherwise, keep as NaN to prohibit the link
+                %than maxAngle degrees. Otherwise, keep as NaN to prohibit the link
                 if meanAlpha < maxAngle
                     [alignment(jTrack,iTrack),alignment(iTrack,jTrack)]...
                         = deal(2*sqrt(3)*tan(meanAlpha)+1);

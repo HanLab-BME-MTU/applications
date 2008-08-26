@@ -96,10 +96,17 @@ for iMovie = 1 : numMovies
     jitZ = dZ - ones(numTracks(iMovie),1)*driftZ;
     
     results.jitter{iMovie} = sqrt(nanmean(jitX.^2)+nanmean(jitY.^2)+nanmean(jitZ.^2));
+    results.jitterX{iMovie} = nanstd(jitX);
+    results.jitterY{iMovie} = nanstd(jitY);
+    results.jitterZ{iMovie} = nanstd(jitZ);
     
     % get overall statistics over one movie 
     results.meanDrift(iMovie) = mean(results.driftMag{iMovie});
     results.meanJitter(iMovie) = mean(results.jitter{iMovie});
+    results.meanJitterX(iMovie) = mean(results.jitterX{iMovie});
+    results.meanJitterY(iMovie) = mean(results.jitterY{iMovie});
+    results.meanJitterZ(iMovie) = mean(results.jitterZ{iMovie});
+    
 end
 
 if verbose

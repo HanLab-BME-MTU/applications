@@ -1,7 +1,9 @@
-function analysisStruct = makiMetaPlateAnalysis(jobType,analysisStruct,verbose)
+function analysisStruct = makiMetaPlateAnalysis(jobType,analysisStruct,...
+    verbose)
 %MAKIMETAPLATEANALYSIS analyzes the behavior of the metaphase plate
 %
-%SYNOPSIS analysisStruct = makiMetaPlateAnalysis(jobType,analysisStruct,verbose)
+%SYNOPSIS analysisStruct = makiMetaPlateAnalysis(jobType,analysisStruct,...
+%    verbose)
 %
 %INPUT  jobType: string which can take the values:
 %               'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
@@ -249,7 +251,7 @@ end
 maxLag = 20;
 
 %displacement along normal autocorrelation
-originDispAlongNormAutocorr = autoCorr(originDispAlongNorm,maxLag);
+[originDispAlongNormAutocorr,errFlag] = autoCorr(originDispAlongNorm,maxLag);
 
 %% output to analysisStruct
 
@@ -384,14 +386,16 @@ if verbose
         hold on
 
         %plot displacement along normal autocorrelation
-        plot((0:maxLag)*timeLapse,originDispAlongNormAutocorr(:,1));
+        if ~isempty(originDispAlongNormAutocorr)
+            plot((0:maxLag)*timeLapse,originDispAlongNormAutocorr(:,1));
 
-        %set axes limit
-        axis([0 (maxLag)*timeLapse min(0,1.1*min(originDispAlongNormAutocorr(:,1))) 1.1]);
+            %set axes limit
+            axis([0 (maxLag)*timeLapse min(0,1.1*min(originDispAlongNormAutocorr(:,1))) 1.1]);
 
-        %write axes labels
-        xlabel('Time (s)');
-        ylabel('Autocorrelation of plate displacement along normal');
+            %write axes labels
+            xlabel('Time (s)');
+            ylabel('Autocorrelation of plate displacement along normal');
+        end
         
         %hold off subplot 4
         hold off

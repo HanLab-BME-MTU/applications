@@ -325,7 +325,7 @@ for t=goodTimes
     
     
     
-    % store pixel coords. Uncertainty is 0.5 pix
+    % store pixel coords. Uncertainty is 0.25 pix
     dataStruct.initCoord(t).allCoordPix = ...
         [initCoordRaw{t}(goodIdxL,1:3),...
         0.25*ones(dataStruct.initCoord(t).nSpots,3)];
