@@ -6,7 +6,7 @@ if nargin == 0 | isempty(pathName)
     mainDir = cdBiodata(2);
     
     %get project data file
-    [fileName,pathName] = uigetfile({'*-data-??-???-????-??-??-??.mat','project data files'},'select project data file');
+    [fileName,pathName] = uigetfile({'*-data*-??-???-????-??-??-??.mat','project data files'},'select project data file');
     
     if fileName == 0
         error('No file loaded')
