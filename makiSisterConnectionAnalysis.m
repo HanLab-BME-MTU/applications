@@ -179,13 +179,15 @@ for iMovie = 1 : numMovies
             tracks = dataStruct(iMovie).tracks;
             planeFit = dataStruct(iMovie).planeFit(iSample:samplingPeriod:end);
             updatedClass = dataStruct(iMovie).updatedClass(iSample:samplingPeriod:end);
-            numFramesMovie = length(planeFit);
+            numFramesMovie = length(updatedClass);
 
             %determine frames where there is a plane
             framesWithPlane = [];
-            for t = 1 : numFramesMovie
-                if ~isempty(planeFit(t).planeVectors)
-                    framesWithPlane = [framesWithPlane t];
+            if ~isempty(planeFit)
+                for t = 1 : numFramesMovie
+                    if ~isempty(planeFit(t).planeVectors)
+                        framesWithPlane = [framesWithPlane t];
+                    end
                 end
             end
             

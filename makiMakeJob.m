@@ -1,4 +1,4 @@
-function job = makiMakeJob(jobType,status,job,ask4input)
+function job = makiMakeJob(jobType,status,job,ask4input,movieType)
 %MAKIMAKEJOB is a hack to set up jobs from movies
 %
 % SYNOPSIS: job = makiMakeJob(jobType,status,job)
@@ -6,6 +6,7 @@ function job = makiMakeJob(jobType,status,job,ask4input)
 % INPUT jobType: string which can take the values:
 %                'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
 %                'MCAINSH'
+%
 %       status : status that you want to achieve, either as status vector,
 %                e.g. [1,1,1,0,1,0,0,0,0], or a list of tasks, e.g. [1,2,3,5]
 %                To force a task, set 2 in the status vector, or negative
@@ -21,6 +22,9 @@ function job = makiMakeJob(jobType,status,job,ask4input)
 %
 %       ask4input: 1 to ask user for input (specifically for tracking and
 %                  sister identification), 0 to use built-in defaults.
+%                  Optional. Default: 1.
+%
+%       movieType: 1 for deltaVision files, 2 for metamorph stacks.
 %                  Optional. Default: 1.
 %
 % OUTPUT job: job-struct (input to makiMovieAnalysis)
@@ -97,6 +101,10 @@ if nargin < 4 || isempty(ask4input)
     ask4input = 1;
 end
 
+if nargin < 5 || isempty(movieType)
+    movieType = 1;
+end
+
 % turn off property reader warning
 warningState = warning;
 warning off IMARISIMREAD:NOPROPERTYREADER
@@ -140,8 +148,13 @@ switch jobType
         % allow user to change base path
         basePath = uigetdir(basePath,'Please select directory of movies to be analyzed');
 
-        % find all .dv files in basePath
-        fileList = searchFiles('dv$','(log)|(_PRJ)|(DIC)|(_REF)',basePath,1);
+        % find all movie files in basePath
+        switch movieType
+            case 1
+                fileList = searchFiles('dv$','(log)|(_PRJ)|(DIC)|(_REF)',basePath,1);
+            case 2
+                fileList = searchFiles('t1.STK$',[],basePath,1);
+        end
 
         selectIdx = listSelectGUI(fileList(:,1),[],'move');
         % shorten fileList
@@ -173,15 +186,21 @@ switch jobType
             % At this point (July-24-2007), we have a number of files (and
             % directories) which have the _R3D string in the middle of the
             % name and thus will contain it also in the project name
-            extIdx = regexp(rawMovieName,'(_R3D)?\.dv');
+            switch movieType
+                case 1
+                    extIdx = regexp(rawMovieName,'(_R3D)?\.dv');
+                case 2
+                    extIdx = length(rawMovieName) - 6;
+            end
             projectName = rawMovieName(1:extIdx-1);
-
+            
             % make folder for file and movie if necessary
             % For both test and hercules projects, rawMoviePath and
             % dataFilePath are identical. Thus, check whether the
             % rawMoviePath already contains the project name. If not, make
             % a subdirectory
-            if any(findstr(rawMoviePath,projectName))
+            % DO NOT APPLY TO STK FILES - THEY ARE ALREADY IN THEIR OWN FOLDER
+            if movieType == 2 || any(findstr(rawMoviePath,projectName))
                 dataFilePath = rawMoviePath;
             else
                 % movie isn't in its directory yet. Make a new one!
@@ -278,12 +297,12 @@ switch jobType
                     rawMoviePath, projectName, dataFilePath);
 
                 % make movieHeader
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %%
-                %% FOR METAMORPH READER OPEN A GUI HERE TO SET UP THE
-                %% HEADER
-                %%
-                dataStruct.movieHeader = readr3dheader(fullfile(rawMoviePath,rawMovieName));
+                switch movieType
+                    case 1
+                        dataStruct.movieHeader = readr3dheader(fullfile(rawMoviePath,rawMovieName));
+                    case 2
+                        dataStruct.movieHeader = stk3dheader(rawMoviePath,rawMovieName);
+                end
 
                 % make dataProperties, set sigmaCorrection to 1.5
                 dataStruct.dataProperties = defaultDataProperties(dataStruct.movieHeader);
@@ -564,12 +583,12 @@ if ask4input
             str2double(tracksParamIn{7}) str2double(tracksParamIn{8})];
     end
 
-    else
-
-    rotateTmp = rotate_def;
-    timeWindowTmp = timeWindow_def;
-    minRadiusTmp = minRadius_def;
-    maxRadiusTmp = maxRadius_def;
+    % else
+    %
+    %     rotateTmp = rotate_def;
+    %     timeWindowTmp = timeWindow_def;
+    %     minRadiusTmp = minRadius_def;
+    %     maxRadiusTmp = maxRadius_def;
 
 end
 
@@ -600,7 +619,8 @@ parameters.linearMotion = 0;
 parameters.minSearchRadius = minRadiusTmp;
 parameters.maxSearchRadius = maxRadiusTmp;
 parameters.brownStdMult = 3.5*ones(gapCloseParam.timeWindow,1);
-parameters.timeReachConfB = min(2,gapCloseParam.timeWindow);
+% parameters.timeReachConfB = min(2,gapCloseParam.timeWindow);
+parameters.timeReachConfB = min(1,gapCloseParam.timeWindow);
 parameters.lenForClassify = 10;
 parameters.ampRatioLimit = [0.65 4];
 parameters.useLocalDensity = 1;
@@ -637,9 +657,9 @@ robust_def = 0;
 %assign defaults
 dataPropertiesTmp = dataStruct.dataProperties;
 if isfield(dataPropertiesTmp,'groupSisters') %if groupSisters parameters have been assigned previously
-    groupSistersTmp = dataPropertiesTmp.tracksParam;
+    groupSistersTmp = dataPropertiesTmp.groupSisters;
     if isfield(groupSistersTmp,'useAlignment')
-        useAlignmentTmp = groupSistersTmp.costFuntion;
+        useAlignmentTmp = groupSistersTmp.useAlignment;
         if ~isnumeric(useAlignmentTmp)
             useAlignmentTmp = useAlignment_def;
         end
@@ -705,14 +725,14 @@ if ask4input
         robustTmp = str2double(groupStats{6});
     end
 
-else
-
-    useAlignmentTmp = useAlignment_def;
-    maxAngleTmp = maxAngle_def;
-    maxDistTmp = maxDist_def;
-    minOverlapTmp = minOverlap_def;
-    useAnaphaseTmp = useAnaphase_def;
-    robustTmp = robust_def;
+    % else
+    %
+    %     useAlignmentTmp = useAlignment_def;
+    %     maxAngleTmp = maxAngle_def;
+    %     maxDistTmp = maxDist_def;
+    %     minOverlapTmp = minOverlap_def;
+    %     useAnaphaseTmp = useAnaphase_def;
+    %     robustTmp = robust_def;
 
 end
 

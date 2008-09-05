@@ -1,4 +1,4 @@
-function dataStruct = makiInitCoord(dataStruct, verbose)
+function dataStruct = makiInitCoord(dataStruct, verbose, movieType)
 %MAKIINITCOORD finds initial guesses for mammalian kinetochores
 %
 % SYNOPSIS: dataStruct = makiInitCoord(dataStruct)
@@ -12,6 +12,8 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 %                   verbose (opt): 0: plot nothing
 %                                  1: show progressText (default)
 %                                  2: show cutoff-plots
+%                   movieType: 1 for DV movies, 2 for STK movies.
+%                              Optional. Default: 1.
 %
 % OUTPUT dataStruct.initCoords: Structure of length nTimepoints with fields
 %                       .allCoord     [x y z sx sy sz] coords and sigmas in
@@ -44,6 +46,10 @@ function dataStruct = makiInitCoord(dataStruct, verbose)
 
 if nargin < 2 || isempty(verbose)
     verbose = 1;
+end
+
+if nargin < 3 || isempty(movieType)
+    movieType = 1;
 end
 
 %=========================
@@ -83,8 +89,8 @@ noiseMask = {...
 pixelSize = [dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,...
     dataProperties.PIXELSIZE_Z];
 
-% get halfPatchSize to adjust centroid result. The center pixel of a 7x5
-% array is (4,3), thus, we have to subtract that from centroid coordinates
+% get halfPatchSize to adjust centroid result. The center pixel of a 5x5x5
+% array is (3,3,3), thus, we have to subtract that from centroid coordinates
 halfPatchSize = dataProperties.FILTERPRM(4:6)/2+0.5;
 
 % setup lists
@@ -112,7 +118,7 @@ end
 %% MAIN LOOP
 %=====================
 if verbose
-progressText;
+    progressText;
 end
 nTimes = max(goodTimes); % not the best way to count, but it works.
 for t=goodTimes
@@ -124,15 +130,34 @@ for t=goodTimes
     % background = current 10xPSF-filtered movie frame
     % amplitude = filtered - background
     % noise = locAvg(var(raw-filtered))
-
+    
     if dataObject
         raw = dataStruct.imageData.getFrame(t);
     elseif isempty(rawMovie)
         % movie has been passed directly
         raw = dataStruct.rawMovieName(:,:,:,:,t);
     else
-        raw = cdLoadMovie({rawMovie,'raw'},[],struct('frames2load',{{t}},...
-            'crop',dataProperties.crop,'maxSize',dataProperties.maxSize));
+        switch movieType
+            case 1 %DV files
+                raw = cdLoadMovie({rawMovie,'raw'},[],struct('frames2load',{{t}},...
+                    'crop',dataProperties.crop,'maxSize',dataProperties.maxSize));
+            case 2 %STK files
+                movieTPName = [rawMovie(1:end-5) num2str(t) '.STK']; %name of files storing current time point
+                imageStack = metaTiffRead(movieTPName,[],[],0); %read stack using Nedelec's code
+                raw = double(cat(3,imageStack.data)); %extract image information
+                cropInfo = dataProperties.crop; %cropping information
+                if ~isempty(cropInfo)
+                    cropInfo = cropInfo(:,1:2);
+                    cropInfo(1,:) = max(cropInfo(1,:),[1 1]); %defaults for min
+                    if cropInfo(2,1) == 0 %defaults for max
+                        cropInfo(2,1) = size(raw,1);
+                    end
+                    if cropInfo(2,2) == 0
+                        cropInfo(2,2) = size(raw,2);
+                    end
+                    raw = raw(cropInfo(1,1):cropInfo(2,1),cropInfo(1,2):cropInfo(2,2),:); %crop image
+                end
+        end
     end
     %remove offset
     offset = min(raw(:));
@@ -193,30 +218,48 @@ for t=goodTimes
     % only take MAXSPOTS highest amplitudes. This will leave plenty of noise
     % spots, but it will avoid huge arrays
     initCoordTmp = initCoordTmp(1:min(dataProperties.MAXSPOTS,size(initCoordTmp,1)),:);
-
+    
+    %remove any spots with negative amplitude, because those are false
+    %positives for sure - KJ
+    if movieType == 2
+        initCoordTmp = initCoordTmp(initCoordTmp(:,4)>0,:);
+    end
 
     % loop through all to get sub-pixel positions.
     raw = raw - background; %overwrite raw to save memory
     for iSpot = 1:size(initCoordTmp,1)
+        
         % read volume around coordinate
         patch = stamp3d(...
             raw,dataProperties.FILTERPRM(4:6),...
             initCoordTmp(iSpot,1:3),0);
+
+        %HLE,KJ - calculate low-index edge patch adjustment if relevant
+        edgeAdjustTmp = initCoordTmp(iSpot,1:3) - halfPatchSize;
+        edgeAdjustTmp = abs(edgeAdjustTmp) .* edgeAdjustTmp<0;
+        
         % subpixel coord is integer coord plus centroid (subtract
         % halfPatchSize so that center coordinate of patch is (0,0,0))
-        initCoordTmp(iSpot,1:3)=...
+        initCoordTmp(iSpot,1:3) = ...
             initCoordTmp(iSpot,1:3) + ...
             centroid3D(patch) - halfPatchSize;
         
-        %HLE - Adjust for edge effect. When patch is truncated by low - index
-        %edge of image, the halfPatchSize needs to be adjusted
-        edgeAdjustTmp = initCoordTmp(iSpot,1:3) - ... 
-            (dataProperties.FILTERPRM(4:6)-1)./2 ;        
-        initCoordTmp(iSpot,1:3) = initCoordTmp(iSpot,1:3) - ...
-            edgeAdjustTmp .* (edgeAdjustTmp < 0);        
+        %HLE,KJ - correct position due to patch truncation due to proximity
+        %to a low-index edge
+        initCoordTmp(iSpot,1:3) = initCoordTmp(iSpot,1:3) + edgeAdjustTmp;
+        
+        % %         %KJ - Hunter's original attempt - has a bug:
+        % %         %last line must have floor(edgeAdjustTmp)
+        % %         %HLE - Adjust for edge effect. When patch is truncated by low-index
+        % %         %edge of image, the halfPatchSize needs to be adjusted
+        % %         edgeAdjustTmp = initCoordTmp(iSpot,1:3) - ...
+        % %             (dataProperties.FILTERPRM(4:6)-1)./2 ;
+        % %         initCoordTmp(iSpot,1:3) = initCoordTmp(iSpot,1:3) - ...
+        % %             edgeAdjustTmp .* (edgeAdjustTmp < 0);
         
         % amplitude guess is integral.                        
         initCoordTmp(iSpot,6) = nanmean(patch(:));
+        
     end
 
     % use maxPix-amplitude to calculate cutoff - meanInt is not consistent
@@ -224,38 +267,70 @@ for t=goodTimes
     initCoordTmp = [initCoordTmp,...
         initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)),...
         initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)./max(initCoordTmp(:,4),eps))];
+    
     initCoordRaw{t} = initCoordTmp;
 
-if verbose
-    progressText(t/nTimes);
-end
+    if verbose
+        progressText(t/nTimes);
+    end
+    
 end % loop timepoints
 
 clear initCoordTmp
 allCoord = cat(1,initCoordRaw{:});
 
-
 % find cutoff based on amplitude/sqrt(noise/amp), though the others are
 % very similar. Allow fallback if less than 25 spots per frame are found
 % (this indicates that cutFirstHistmode of splitModes failed)
 cutoff = zeros(3,1);
-cutoff(1) = splitModes(allCoord(:,4)); % amplitude
-cutoff(2) = splitModes(allCoord(:,7)); % amplitude/sqrt(nse) - dark noise
-cutoff(3) = splitModes(allCoord(:,8)); % amplitude/sqrt(nse/amp) - poisson
-minGood = 25*nTimepoints;
-
-if sum(allCoord(:,8)>cutoff(3)) > minGood
-    cutoffIdx = 3;
-    cutoffCol = 8;
-elseif sum(allCoord(:,7)>cutoff(2)) > minGood
-    cutoffIdx = 2;
-    cutoffCol = 7;
-elseif sum(allCoord(:,4)>cutoff(1)) > minGood
-    cutoffIdx = 1;
-    cutoffCol = 4;
+cutoff1 = splitModes(allCoord(:,4)); % amplitude
+cutoff2 = splitModes(allCoord(:,7)); % amplitude/sqrt(nse) - dark noise
+cutoff3 = splitModes(allCoord(:,8)); % amplitude/sqrt(nse/amp) - poisson
+if ~isempty(cutoff1)
+    cutoff(1) = cutoff1;
 else
-    error('less than 25 spots per frame found. makiInitCoord failed')
+    cutoff(1) = NaN;
 end
+if ~isempty(cutoff2)
+    cutoff(2) = cutoff2;
+else
+    cutoff(2) = NaN;
+end
+if ~isempty(cutoff3)
+    cutoff(3) = cutoff3;
+else
+    cutoff(3) = NaN;
+end
+
+switch movieType
+    case 1
+        minGood = 25*nTimepoints;
+        if sum(allCoord(:,8)>cutoff(3)) > minGood
+            cutoffIdx = 3;
+            cutoffCol = 8;
+        elseif sum(allCoord(:,7)>cutoff(2)) > minGood
+            cutoffIdx = 2;
+            cutoffCol = 7;
+        elseif sum(allCoord(:,4)>cutoff(1)) > minGood
+            cutoffIdx = 1;
+            cutoffCol = 4;
+        else
+            error('less than 25 spots per frame found. makiInitCoord failed')
+        end
+
+    case 2
+
+        %for the HMS data, the signal is very dim and photobleaches a lot,
+        %and determining the cutoff on the fly does not work. 
+        %Thus, I'm fixing the cutoff criterion to the amplitude-to-noise
+        %ratio and I'm fixing the cutoff to 2.32 (approximating a 0.01 
+        %alpha-value in a hypothesis test) - KJ
+        cutoff(2) = 2.32;
+        cutoffIdx = 2;
+        cutoffCol = 7;
+
+end
+
 % remember the cutoff criterion used
 if ~dataObject
     dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];

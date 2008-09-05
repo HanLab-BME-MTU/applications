@@ -4,7 +4,9 @@ function dataStruct = makiUpdateClass(dataStruct)
 % SYNOPSIS: dataStruct = makiUpdateClass(dataStruct)
 %
 % INPUT dataStruct (opt): maki data structure. If empty, it will be loaded
-%                         via GUI
+%                         via GUI. Contains the fields: "dataProperties", 
+%                         "initCoord", "planeFit", "tracks" & "sisterList".
+%                         Field "planeFit" can be empty.
 %
 % OUTPUT dataStruct.updatedClass: structure of length nTimepoints with the
 %                                 fields:
@@ -56,9 +58,11 @@ sisterList = dataStruct.sisterList;
 updatedClass = repmat(struct('inlierIdx',[],'unalignedIdx',[],'laggingIdx',[],...
     'phase',[],'tracksUnaligned',[],'tracksLagging',[],'sistersUnaligned',...
     [],'sistersLagging',[]),numFrames,1);
-for iFrame = 1 : numFrames
-    updatedClass(iFrame).unalignedIdx = planeFit(iFrame).unalignedIdx;
-    updatedClass(iFrame).laggingIdx = planeFit(iFrame).laggingIdx;
+if ~isempty(planeFit)
+    for iFrame = 1 : numFrames
+        updatedClass(iFrame).unalignedIdx = planeFit(iFrame).unalignedIdx;
+        updatedClass(iFrame).laggingIdx = planeFit(iFrame).laggingIdx;
+    end
 end
 
 %% outlier expansion based on sister pairs
@@ -165,7 +169,11 @@ for iFrame = 1 : numFrames
     unalignedIdx = abs(tracksMatrixUnaligned(tracksMatrixUnaligned(:,iFrame)<0,iFrame)');
     laggingIdx = abs(tracksMatrixLagging(tracksMatrixLagging(:,iFrame)<0,iFrame)');
     inlierIdx = setdiff((1:numSpots(iFrame)),[unalignedIdx laggingIdx]);
-    framePhase = planeFit(iFrame).phase;
+    if ~isempty(planeFit)
+        framePhase = planeFit(iFrame).phase;
+    else
+        framePhase = 'e';
+    end
     if ~strcmp(framePhase,'a') && ~strcmp(framePhase,'e')
         if isempty(unalignedIdx)
             framePhase = 'm';

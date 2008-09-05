@@ -1,4 +1,4 @@
-function makiShowImaris(dataStruct,select)
+function makiShowImaris(dataStruct,select,movieType)
 %MAKISHOWIMARIS shows mammalina kinetochore data in Imaris
 %
 % SYNOPSIS: imarisHandle = makiShowImaris(dataStruct,select)
@@ -10,6 +10,8 @@ function makiShowImaris(dataStruct,select)
 %               1st entry: tracks; 2nd entry: sisters, 3rd entry: fitted 
 %               plane. Enter 1 for result to be plotted, 0 for result not 
 %               to be plotted.
+%       movieType: 1 for deltaVision files, 2 for metamorph stacks.
+%                  Optional. Default: 1.
 %
 % OUTPUT ---
 %
@@ -37,7 +39,11 @@ elseif length(select) < 2
 elseif length(select) < 3
     select = [select 1];
 end
-    
+ 
+if nargin < 3 || isempty(movieType)
+    movieType = 1;
+end
+
 % turn off property reader warning
 warningState = warning;
 warning off IMARISIMREAD:NOPROPERTYREADER
@@ -62,16 +68,31 @@ imarisApplication = imarisStartNew;
 % load raw movie into imaris. We could do filtered movie, but
 % for this, we would have to load frame by frame and do all the
 % image properties stuff
-imarisApplication.FileOpen(...
-    fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName),...
-    'reader=''DeltaVision''');
+switch movieType
+    case 1
+        imarisApplication.FileOpen(...
+            fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName),...
+            'reader=''DeltaVision''');
+    case 2
+        imarisApplication.FileOpen(...
+            fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName));
+        stackData = metaTiffRead(fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName),[],[],0);
+        numRows = stackData(1).height;
+        numCols = stackData(1).width;
+end
 
-% check image properties: image should begin at -0.5 pix.
-% It would be nice to be able to set the pixelSize to -0.5.
-% Instead, we have to read the mins and calculate an offset
-zeroOffsetX = imarisApplication.mDataSet.mExtendMinX + 0.5*pixelSize(1);
-zeroOffsetY = imarisApplication.mDataSet.mExtendMinY + 0.5*pixelSize(2);
-zeroOffsetZ = imarisApplication.mDataSet.mExtendMinZ + 0.5*pixelSize(3);
+%         % check image properties: image should begin at -0.5 pix.
+%         % It would be nice to be able to set the pixelSize to -0.5.
+%         % Instead, we have to read the mins and calculate an offset
+%         zeroOffsetX = imarisApplication.mDataSet.mExtendMinX + 0.5*pixelSize(1);
+%         zeroOffsetY = imarisApplication.mDataSet.mExtendMinY + 0.5*pixelSize(2);
+%         zeroOffsetZ = imarisApplication.mDataSet.mExtendMinZ + 0.5*pixelSize(3);
+
+%get image frame origin offset. I don't think there's any need for the
+%subtration done by Jonas, since it is compensated for later - KJ
+zeroOffsetX = imarisApplication.mDataSet.mExtendMinX;
+zeroOffsetY = imarisApplication.mDataSet.mExtendMinY;
+zeroOffsetZ = imarisApplication.mDataSet.mExtendMinZ;
 zeroOffset = [zeroOffsetX zeroOffsetY zeroOffsetZ];
 
 % make top-level surpass scene
@@ -97,28 +118,41 @@ initCoord = dataStruct.initCoord;
 if ~isempty(initCoord)
 
     % make spots object: X,Y,Z,T,r
-    nTimepoints = dataProperties.movieSize(end);
+    nTimepoints = dataProperties.movieSize(end);    
     nSpots = cat(1,initCoord.nSpots);
     spots = zeros(sum(nSpots),5);
     spots(:,5) = pixelSize(1)*2; % radius in micron
     goodTimes = find(nSpots);
     nSpotSum = [0;cumsum(nSpots)];
-
+    
     for t = goodTimes'
 
-        % calculate positions in microns. Subtract one voxel from
-        % the coords: Imaris starts counting at 0!
-        % Use initCoord in pixels to avoid correction problems
+        %Jonas's old way. Keep for reference (the -1 here, together with the +0.5
+        %above, gives effectively -0.5, as done below) - KJ
+        %                 %for DV files, subtract one voxel from the coordinates:
+        %                 %The center of the first pixel in Imaris is 0, whereas
+        %                 %in our coordinates the center of the first pixel is 1.
+        %                 allCoordPix = initCoord(t).allCoordPix(:,[2,1,3]) - 1 + ...
+        %                     repmat(crop(1,[2,1,3])-1,nSpots(t),1);
+
+        %get positions in pixels, with adjustment for cropping and frame
+        %origin (-0.5)
+        allCoordPix = initCoord(t).allCoordPix(:,[2,1,3]) - 0.5 + ...
+            repmat(crop(1,[2,1,3])-1,nSpots(t),1);
+
+        %for STK files, invert imaris y-coordinate
+        if movieType==2
+            allCoordPix(:,2) = numRows - allCoordPix(:,2);
+        end
+
+        % calculate positions in microns
         spots(nSpotSum(t)+1:nSpotSum(t+1),1:4) = ...
-            [(initCoord(t).allCoordPix(:,[2,1,3])-1 + ...
-            repmat(crop(1,[2,1,3])-1,nSpots(t),1)).*...
-            repmat(pixelSize,nSpots(t),1) + ...
-            repmat(zeroOffset,nSpots(t),1),...
-            (t-1)*ones(nSpots(t),1)];
+            [(allCoordPix) .* repmat(pixelSize,nSpots(t),1) + ...
+            repmat(zeroOffset,nSpots(t),1),(t-1)*ones(nSpots(t),1)];
 
     end
 
-    % create spots object
+    % create spots object and display
     imaSpotsAll = imarisApplication.mFactory.CreateSpots;
     imaSpotsAll.Set(single(spots(:,1:3)),single(spots(:,4)),single(spots(:,5)));
     imaSpotsAll.mName = ['Spots (avg: ' num2str(size(spots,1)/nTimepoints) ' / frame)'];

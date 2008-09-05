@@ -1,4 +1,4 @@
-function makiMovieAnalysis(serverType,job)
+function makiMovieAnalysis(serverType,job,movieType)
 %MAKIMOVIEANALYSIS is the main function to process mammalian kinetochore movies
 %
 % SYNOPSIS: makiMovieAnalysis
@@ -7,6 +7,8 @@ function makiMovieAnalysis(serverType,job)
 %                   'MCAINSH', or 'MADDOX'
 %       job: structure containing information about movies to be
 %            analyzed. Best set up via a GUI
+%       movieType: 1 for deltaVision files, 2 for metamorph stacks.
+%                  Optional. Default: 1.
 %       
 % OUTPUT
 %
@@ -29,6 +31,9 @@ if nargin > 1 && ~isempty(job)
     testMode = false;
 end
 
+if nargin < 3 || isempty(movieType)
+    movieType = 1;
+end
 
 %% MAIN LOOP
 
@@ -71,7 +76,7 @@ nJobs = length(job);
 logFileName = fullfile(job(1).jobPath,sprintf('%s.log',job(1).jobName(1:end-4)));
 generalLog = fopen(logFileName,'a+');
 
-% loop though all. Allow for multiple passes
+% loop through all. Allow for multiple passes
 done = false;
 individualLog = [];
 
@@ -124,7 +129,7 @@ while ~done
                 fprintf(individualLog,'%s : find initial coords\n', nowString);
 
                 % pass and retrieve dataStruct
-                job(iJob).dataStruct = makiInitCoord(job(iJob).dataStruct);
+                job(iJob).dataStruct = makiInitCoord(job(iJob).dataStruct,[],movieType);
 
                 % save job
                 job(iJob).dataStruct.status(3) = 1;

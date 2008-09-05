@@ -3,8 +3,9 @@ function dataStruct = makiGenerateTracks(dataStruct)
 %
 %SYNOPSIS dataStruct = makiGenerateTracks(dataStruct)
 %
-%INPUT  dataStruct: dataStruct as in makiMakeDataStruct with at least the
-%                   fields "dataProperties", "planeFit" & "initCoord".
+%INPUT  dataStruct: dataStruct as in makiMakeDataStruct with the
+%                   fields "dataProperties", "initCoord" & "planeFit".
+%                   Field "planeFit" can be empty.
 %                   Optional. Loaded interactively if not input.
 %
 %OUTPUT dataStruct: Same as input, with added field "tracks"
@@ -26,7 +27,7 @@ movieInfo = repmat(struct('xCoord',[],'yCoord',[],'zCoord',[],'amp',[]),...
     nTimepoints,1);
 
 %if rotated coordinates are to be used ...
-if dataStruct.dataProperties.tracksParam.rotate == 1
+if dataStruct.dataProperties.tracksParam.rotate == 1 && ~isempty(dataStruct.planeFit)
     
     %get the rotated coordinates
     for iTime = 1 : nTimepoints
@@ -118,7 +119,7 @@ if ~isfield(movieInfo,'nnDist')
 end
 
 %get kinetochore classification in each frame if available
-if isfield(dataStruct,'planeFit') %if the plane fit has been done
+if ~isempty(dataStruct.planeFit) %if the plane fit has been done
     
     %extract planeFit field from structure
     planeFit = dataStruct.planeFit;
@@ -135,7 +136,7 @@ else %if not
     
     %treat all kinetochores as inliers
     for iTime = 1 : nTimepoints
-        movieInfo(iTime).kinType = ones(movieInfo(iTime).num,1);
+        movieInfo(iTime).kinType = zeros(movieInfo(iTime).num,1);
     end
 
 end

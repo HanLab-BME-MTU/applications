@@ -3,9 +3,10 @@ function dataStruct = makiAlignFrames(dataStruct)
 %
 %SYNOPSIS dataStruct = makiAlignFrames(dataStruct)
 %
-%INPUT  dataStruct : dataStruct as in makiMakeDataStruct with at least the
+%INPUT  dataStruct : dataStruct as in makiMakeDataStruct with the
 %                    fields "dataProperties", "initCoord", "planeFit", 
-%                    "tracks" and "updatedClass". 
+%                    "tracks" & "updatedClass". Field "planeFit" can be
+%                    empty.
 %                    Optional. Loaded interactively if not input.
 %
 %OUTPUT dataStruct : Same as input, with added field "frameAlignment".
@@ -56,10 +57,14 @@ end
 eulerAnglesX = NaN(numFrames,4);
 
 %find which frames need their rotation to be estimated
-frames2align = [];
-for t = 1 : numFrames
-    if isempty(dataStruct.planeFit(t).planeVectors)
-        frames2align = [frames2align t];
+if isempty(dataStruct.planeFit)
+    frames2align = (1 : numFrames);
+else
+    frames2align = [];
+    for t = 1 : numFrames
+        if isempty(dataStruct.planeFit(t).planeVectors)
+            frames2align = [frames2align t];
+        end
     end
 end
 framesOK = setxor((1:numFrames),frames2align);
@@ -85,7 +90,14 @@ eulerAnglesX(framesAfter1,4) = framesAfter1 - 1;
 %% center of mass shift
 
 %get the center of mass of each frame
-centerOfMass = vertcat(dataStruct.planeFit.planeOrigin);
+if ~isempty(dataStruct.planeFit)
+    centerOfMass = vertcat(dataStruct.planeFit.planeOrigin);
+else
+    centerOfMass = NaN(numFrames,3);
+    for iFrame = 1 : numFrames
+        centerOfMass(iFrame,:) = mean(dataStruct.initCoord(iFrame).allCoord(:,1:3));
+    end
+end
 
 %shift the track coordinates so that the origin is at the center of mass
 %in each frame
@@ -138,7 +150,7 @@ coordSystem = repmat(eye(3),[1 1 numFrames]);
 
 %get the coordinate systems of non-empty frames from the plane fit
 for iFrame = framesOK
-    if isempty(dataStruct.planeFit(iFrame).planeVectors)
+    if isempty(dataStruct.planeFit) || isempty(dataStruct.planeFit(iFrame).planeVectors)
         coordSystem(:,:,iFrame) = eye(3);
     else
         coordSystem(:,:,iFrame) = dataStruct.planeFit(iFrame).planeVectors;

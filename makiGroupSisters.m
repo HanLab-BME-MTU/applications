@@ -3,7 +3,9 @@ function dataStruct = makiGroupSisters(dataStruct,verbose)
 %
 % SYNOPSIS: dataStruct = makiGroupSisters(dataStruct)
 %
-% INPUT dataStruct: data structure as created by makiMakeDataStruct
+% INPUT dataStruct: data structure as created by makiMakeDataStruct, with
+%                   the fields: "dataProperties", "initCoord", "planeFit" &
+%                   "tracks". Field "planeFit" can be empty.
 %       verbose (opt) : 0 - no plotting (default)
 %                       1 - plot 4 frames with sister assignment
 %                       2 - 1 & plot all tracks
@@ -96,7 +98,7 @@ nGoodTracks = length(goodTracks);
 %if none of the frames have a plane, we cannot use the alignment criterion
 framesWiPlane = [];
 for t = 1 : nTimepoints
-    if ~isempty(dataStruct.planeFit(t).planeVectors)
+    if ~isempty(dataStruct.planeFit) && ~isempty(dataStruct.planeFit(t).planeVectors)
         framesWiPlane = [framesWiPlane; t];
     end
 end
@@ -105,7 +107,11 @@ if isempty(framesWiPlane)
 end
 
 %find anaphase frames
-framePhase = vertcat(dataStruct.planeFit.phase);
+if ~isempty(dataStruct.planeFit)
+    framePhase = vertcat(dataStruct.planeFit.phase);
+else
+    framePhase = repmat('e',nTimepoints,1);
+end
 anaphaseFrames = find(framePhase == 'a');
 if isempty(anaphaseFrames)
     lastFrameNotAna = nTimepoints;
@@ -124,7 +130,7 @@ end
 
 % read normals to plane
 normals = NaN(nTimepoints,3);
-if useAlignment == 1
+if useAlignment == 1 && ~isempty(dataStruct.planeFit)
     normals(framesWiPlane,:) = catStruct(2,'dataStruct.planeFit.planeVectors(:,1)')';
 end
 
@@ -537,12 +543,23 @@ lifeTime = endTime - startTime + 1;
 % read track coordinates and their stds for idx
 coords = NaN(lifeTime,3);
 coordsStd = NaN(lifeTime,3);
-for iFrame = 1 : lifeTime
-    jFrame = startTime + iFrame - 1;
-    featIndxTmp = featIndx(iFrame);
-    if featIndxTmp ~= 0
-        coords(iFrame,1:3) = dataStruct.planeFit(jFrame).rotatedCoord(featIndxTmp,1:3);
-        coordsStd(iFrame,1:3) = dataStruct.planeFit(jFrame).rotatedCoord(featIndxTmp,4:6);
+if ~isempty(dataStruct.planeFit)
+    for iFrame = 1 : lifeTime
+        jFrame = startTime + iFrame - 1;
+        featIndxTmp = featIndx(iFrame);
+        if featIndxTmp ~= 0
+            coords(iFrame,1:3) = dataStruct.planeFit(jFrame).rotatedCoord(featIndxTmp,1:3);
+            coordsStd(iFrame,1:3) = dataStruct.planeFit(jFrame).rotatedCoord(featIndxTmp,4:6);
+        end
+    end
+else
+    for iFrame = 1 : lifeTime
+        jFrame = startTime + iFrame - 1;
+        featIndxTmp = featIndx(iFrame);
+        if featIndxTmp ~= 0
+            coords(iFrame,1:3) = dataStruct.initCoord(jFrame).allCoord(featIndxTmp,1:3);
+            coordsStd(iFrame,1:3) = dataStruct.initCoord(jFrame).allCoord(featIndxTmp,4:6);
+        end
     end
 end
 
