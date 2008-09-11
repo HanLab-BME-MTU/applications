@@ -530,15 +530,21 @@ if select(3) && ~isempty(dataStruct.planeFit)
             planeOrigin = mean(spotsFrame(planeFit(iTime).inlierIdx,:));
 
             %make the grid
-            [xGrid,yGrid,zGrid] = arbitraryGrid(...
-                0.2*dataStruct.planeFit(iTime).planeVectors(:,1),...
-                0.2*dataStruct.planeFit(iTime).planeVectors(:,2),...
-                0.2*dataStruct.planeFit(iTime).planeVectors(:,3),...
-                planeOrigin([2 1 3]),[0 0],[-25 25],[-25 25]);
-
+            gridOrigin = planeOrigin([2 1 3]);
+            vec1 = 0.2*dataStruct.planeFit(iTime).planeVectors(:,1);
+            vec2 = 0.2*dataStruct.planeFit(iTime).planeVectors(:,2);
+            vec3 = 0.2*dataStruct.planeFit(iTime).planeVectors(:,3);
+            if movieType == 2
+                vec1(2) = -vec1(2);
+                vec2(2) = -vec2(2);
+                vec3(2) = -vec3(2);
+            end
+            [xGrid,yGrid,zGrid] = arbitraryGrid(vec1,vec2,vec3,...
+                gridOrigin,[0 0],[-25 25],[-25 25]);
+            
             %assign grid spots coordinates
             spotsGrid = [yGrid(:) xGrid(:) zGrid(:)];
-            
+
             %append frame number and spot size
             spotsGrid = [spotsGrid (iTime-1)*ones(size(spotsGrid,1),1) ...
                 pixelSize(1)*0.5*ones(size(spotsGrid,1),1)];

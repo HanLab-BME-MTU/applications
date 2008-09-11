@@ -429,6 +429,18 @@ switch jobType
                 clear imarisHandle
             end
 
+            %assign plane fit parameters - for now it is fixed, but this
+            %could be converted into an interactive user input thing if
+            %needed
+            if dataStruct.status(7) < 0
+                switch movieType
+                    case 1
+                        dataStruct.dataProperties.planeFitParam.use2D = 0;
+                    case 2
+                        dataStruct.dataProperties.planeFitParam.use2D = 1;
+                end
+            end
+
             %assign tracking parameters
             if dataStruct.status(6) < 0
                 dataStruct = getTrackingInput(dataStruct,ask4input);

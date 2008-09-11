@@ -94,6 +94,16 @@ end
 if nargin < 2 || isempty(verbose)
     verbose = 1;
 end
+
+%determine whether to use 2D projection instead of 3D
+%the 2D approximation only works in late prometaphase and metaphase
+dataProperties = dataStruct.dataProperties;
+if ~isfield(dataProperties,'planeFitParam')
+    use2D = 0;
+else
+    use2D = dataProperties.planeFitParam.use2D;
+end
+
 % check whether analysis has been done
 if isempty(dataStruct.initCoord)
     dataStruct = makiInitCoord(dataStruct,0);
@@ -103,6 +113,9 @@ end
 initCoord = dataStruct.initCoord;
 nTimePoints = length(initCoord);
 nSpots = cat(1,initCoord.nSpots);
+
+%assign dimensionality for fit
+probDim = 3 - use2D;
 
 planeFit(1:nTimePoints) = struct('plane',[],'planeCoord',[],'planeVectorClassifier', 0, ...
     'planeVectors',[],'planeOrigin',[],'eigenVectors',[],'eigenValues',[],...
@@ -116,16 +129,17 @@ framesWiPlane = [];
 % loop through timepoints. Get covariance of point cloud, and the
 % corresponding eigenvalues. Label frames that have sufficient anisotropy.
 
-eigenValues = zeros(nTimePoints, 3);
-eigenVectors = zeros(3,3,nTimePoints);  %vectors in cols
-meanCoord = zeros(nTimePoints,3);
+eigenValues = zeros(nTimePoints,probDim);
+eigenVectors = zeros(probDim,probDim,nTimePoints);  %vectors in cols
+meanCoord = zeros(nTimePoints,probDim);
+meanCoordFull = zeros(nTimePoints,3);
 
 goodFrames1 = [];
 potFrames = [];
 for t=1:nTimePoints
 
     % make an initial outlier detection
-    dist = pdist(initCoord(t).allCoord(:,1:3));
+    dist = pdist(initCoord(t).allCoord(:,1:probDim));
     dist = squareform(dist); 
     sortedDist = sort(dist);
     meanNearestDist = mean(sortedDist(2:rankNNearestNeighbors+1,:));
@@ -144,11 +158,13 @@ for t=1:nTimePoints
     
     % get data for eigenRatio, subsequent plane fitting
     [eigenVectors(:,:,t), eigenValues(t,:), meanCoord(t,:)] = ...
-        eigenCalc(initCoord(t).allCoord(inlierIdx,1:3));
+        eigenCalc(initCoord(t).allCoord(inlierIdx,1:probDim));
+    [dummy,dummy,meanCoordFull(t,:)] = ...
+        eigenCalc(initCoord(t).allCoord(inlierIdx,1:3)); % needed only for 3D center of mass
     
     % fill in the center of mass into the planeOrigin no matter whether
     % there will ever be a plane
-    planeFit(t).planeOrigin = meanCoord(t,:);
+    planeFit(t).planeOrigin = meanCoordFull(t,:);
     planeFit(t).eigenVectors = eigenVectors(:,:,t);
     planeFit(t).eigenValues = eigenValues(t,:);
     
@@ -157,18 +173,18 @@ for t=1:nTimePoints
     [minEigenVal, minIndx] = min(eigenValues(t,:));
     
     % if there is sufficient anisotropy, classify this frame as a good frame 
-    if( (eigenValues(t,maxIndx)/mean(eigenValues(t,setdiff(1:3,maxIndx))) ...
+    if( (eigenValues(t,maxIndx)/mean(eigenValues(t,setdiff(1:probDim,maxIndx))) ...
             > minEigenValRatio1) ||...
-            (eigenValues(t,minIndx)/mean(eigenValues(t,setdiff(1:3,minIndx))) ...
+            (eigenValues(t,minIndx)/mean(eigenValues(t,setdiff(1:probDim,minIndx))) ...
             < 1/minEigenValRatio1))
         planeFit(t).planeVectorClassifier = 1;
         goodFrames1 = [goodFrames1 t];
     end
     
     %indicate if this frame has borderline anisotropy
-    if( (eigenValues(t,maxIndx)/mean(eigenValues(t,setdiff(1:3,maxIndx))) ...
+    if( (eigenValues(t,maxIndx)/mean(eigenValues(t,setdiff(1:probDim,maxIndx))) ...
             > minEigenValRatio2) ||...
-            (eigenValues(t,minIndx)/mean(eigenValues(t,setdiff(1:3,minIndx))) ...
+            (eigenValues(t,minIndx)/mean(eigenValues(t,setdiff(1:probDim,minIndx))) ...
             < 1/minEigenValRatio2))
         potFrames = [potFrames t];
     end
@@ -201,57 +217,72 @@ if nConsecFrames >= minConsecFrames
 
     % assume no rotation between the first frame of the movie and the virtual
     % time point before
-    eigenVectorCos = [[1;1;1] eigenVectorRotCos];
+    eigenVectorCos = [ones(probDim,1) eigenVectorRotCos];
     eigenVectorRotation = acos(eigenVectorCos);
 
-    evecScore= [0;0;0];
+    if ~use2D
 
-    % define the normal vector of the rotating plane as the one whose eigenvalue is
-    % overall the most distant from the two other eigenvalues
-    for t = 1:length(goodFrames)
-        
-        % copy updated eigenvectors and eigenvalues into the data
-        % structure
-        planeFit(goodFrames(t)).eigenVectors = eigenVectors(:,:,goodFrames(t));
-        planeFit(goodFrames(t)).eigenValues = eigenValues(goodFrames(t),:);
-        
-        % calculate geometric means of the pairwise distances in every time
-        % point
-        diffs = pdist(eigenValues(goodFrames(t),:)');
-        geomDist(1,t) = sqrt(diffs(1)*diffs(2));
-        geomDist(2,t) = sqrt(diffs(1)*diffs(3));
-        geomDist(3,t) = sqrt(diffs(2)*diffs(3));
+        evecScore= [0;0;0];
 
-        % score : minimize the rotation of the normal and maximize the geometric
-        % mean distance of the eigenvalue associated with the normal to the two
-        % in plane eignevalues.
-        % on average: eigenvectors associated with the plane normal have a
-        % large geometric mean difference to inplane eigenvectors, and inplane
-        % eigenvectors tend to rotate more
-        evecScore(:) = evecScore(:) + eigenVectorRotation(:,t)./geomDist(eigenVecAssign(:,t),t);
-        
+        % define the normal vector of the rotating plane as the one whose eigenvalue is
+        % overall the most distant from the two other eigenvalues
+        for t = 1:length(goodFrames)
+
+            % copy updated eigenvectors and eigenvalues into the data
+            % structure
+            planeFit(goodFrames(t)).eigenVectors = eigenVectors(:,:,goodFrames(t));
+            planeFit(goodFrames(t)).eigenValues = eigenValues(goodFrames(t),:);
+
+            % calculate geometric means of the pairwise distances in every time
+            % point
+            diffs = pdist(eigenValues(goodFrames(t),:)');
+            geomDist(1,t) = sqrt(diffs(1)*diffs(2));
+            geomDist(2,t) = sqrt(diffs(1)*diffs(3));
+            geomDist(3,t) = sqrt(diffs(2)*diffs(3));
+
+            % score : minimize the rotation of the normal and maximize the geometric
+            % mean distance of the eigenvalue associated with the normal to the two
+            % in plane eignevalues.
+            % on average: eigenvectors associated with the plane normal have a
+            % large geometric mean difference to inplane eigenvectors, and inplane
+            % eigenvectors tend to rotate more
+            evecScore(:) = evecScore(:) + eigenVectorRotation(:,t)./geomDist(eigenVecAssign(:,t),t);
+
+        end
+
+        % the normal is the one with the largest distance
+        [dummy, normalIndx] = min(evecScore);
+
+    else
+
+        % the above does not make sense in 2D. I will assume that the
+        % cases that need 2D are always in late prometaphase or metaphase, in
+        % which case the smaller eigenvalue is the normal - KJ
+        evecScore = zeros(1,2);
+        for t = 1 : length(goodFrames)
+            evecScore = evecScore + eigenValues(goodFrames(t),eigenVecAssign(:,goodFrames(t)));
+        end
+        [dummy,normalIndx] = min(evecScore);
+
     end
 
-    % the normal is the one with the largest distance
-    [dummy, normalIndx] = min(evecScore);
-    
     %before fitting planes and interpolating, make sure that the chosen
     %normal makes sense. Particularly, if the chosen normal is along the
     %direction of largest variation, then the corresponding eigenvalue
     %should generally increase, reflecting anaphase behavior. This helps
     %avoid strange prophase/early prometaphase cases which can be slightly
-    %elongated and so a plain gets fitted perpendicular to the long
+    %elongated and so a plane gets fitted perpendicular to the long
     %direction (in this case, the eigenvalue does not increase over time).
     
     %get the eigenvalues corresponding to the chosen normal and to the
-    %other 2 directions
-    eigenValOrdered = NaN*(ones(3,nTimePoints));
+    %other direction(s)
+    eigenValOrdered = NaN*(ones(probDim,nTimePoints));
     for t = 1 : length(goodFrames)
         eigenValOrdered(:,goodFrames(t)) = eigenValues(goodFrames(t),...
             eigenVecAssign(:,t));
     end
     eigenValOrdered = [eigenValOrdered(normalIndx,:); ...
-        eigenValOrdered(setxor((1:3),normalIndx),:)];
+        eigenValOrdered(setxor((1:probDim),normalIndx),:)];
     
     %find frames where the first eigenvalue is largest
     frames2consider = [];
@@ -265,7 +296,7 @@ if nConsecFrames >= minConsecFrames
 
         %calculate the eigenvalue ratio
         eigenValRatio = eigenValOrdered(1,frames2consider) ...
-            ./ mean(eigenValOrdered(2:3,frames2consider));
+            ./ mean(eigenValOrdered(2:probDim,frames2consider));
 
         %among the frames to consider, find the frames where the eigenratio is
         %larger than the minimum
@@ -308,8 +339,26 @@ else
         planeFit(t).unalignedIdx = [];
         planeFit(t).laggingIdx = [];
     end
-
+    
 end %(if nConsecFrames >= minConsecFrames)
+
+%Put back the third dimension.
+%For now, this is done in a simple way, where the metaphase plate
+%is assumed to be absolutely perpendicular to the x,y-plane.
+%This can be improved in the future by rotating the normal to
+%make an angle with the x,y-plane such that the positional scatter
+%along the normal direction is minimized. - KJ
+if use2D
+    for t = 1 : nTimePoints
+        eigenVecTmp = planeFit(goodFrames(t)).eigenVectors;
+        planeFit(goodFrames(t)).eigenVectors = [[eigenVecTmp; zeros(1,2)] [0 0 1]'];
+        planeFit(goodFrames(t)).eigenValues = [planeFit(goodFrames(t)).eigenValues NaN];
+    end
+    eigenVectorsOld = eigenVectors;
+    eigenVectors = zeros(3,3,nTimePoints);
+    eigenVectors(1:2,1:2,:) = eigenVectorsOld;
+    eigenVectors(3,3,:) = 1;
+end
 
 if nConsecFrames >= minConsecFrames && ~isempty(goodFrames)
 
@@ -318,14 +367,14 @@ if nConsecFrames >= minConsecFrames && ~isempty(goodFrames)
         % define plane vectors etc.
         goodNormals(:,t) = eigenVectors(:,eigenVecAssign(normalIndx,t),goodFrames(t));
         e_plane = calcPlaneVectors(goodNormals(:,t));
-        planeFit(goodFrames(t)).plane = [goodNormals(:,t)',meanCoord(goodFrames(t),:)*goodNormals(:,t)];
+        planeFit(goodFrames(t)).plane = [goodNormals(:,t)',meanCoordFull(goodFrames(t),:)*goodNormals(:,t)];
         planeFit(goodFrames(t)).planeVectors = e_plane;
 
         % assignment of metaphase or anaphase; distinction of late prometaphase
         % to metaphase will be done during the search for unaligned
         % kinetochores
         eigenRatio = eigenValues(goodFrames(t),eigenVecAssign(normalIndx,t))/...
-            mean(eigenValues(goodFrames(t),setdiff(1:3,eigenVecAssign(normalIndx,t))));
+            mean(eigenValues(goodFrames(t),setdiff(1:probDim,eigenVecAssign(normalIndx,t))));
         if(eigenRatio > 1)
             planeFit(goodFrames(t)).phase = 'a';
         else
@@ -363,7 +412,7 @@ if nConsecFrames >= minConsecFrames && ~isempty(goodFrames)
             planeFit(gapFrames(t)).planeVectors = e_plane;
 
             % assign the mitotic phase to what the next good frame is classified
-            % for, i.e. in a sequence 'm' 'm' 'e' 'm', 'e' will be replaced by 'm';
+            % as, i.e. in a sequence 'm' 'm' 'e' 'm', 'e' will be replaced by 'm';
             % in a sequence 'm' 'm' 'e' 'e' 'e' 'a' 'a', all 'e's will be replaced
             % by 'a's;
             % dependent on the noise level there might be inconsistencies in the
@@ -643,6 +692,10 @@ warning(warningState);
 %% SUBFUNCTIONS
 
 function [eigenVectors, eigenValues, meanCoord] = eigenCalc(coordinates)
+
+%get problem dimensionality
+probDim = size(coordinates,2);
+
 % find eigenVectors, eigenValues, meanCoordinates for plane fitting
 coordCov = cov(coordinates);
 
@@ -652,14 +705,28 @@ meanCoord = mean(coordinates,1);
 [eigenVectors,eVals] = eig(coordCov);
 eigenValues = diag(eVals)';
 
-% compare eigenValues
-diffs = pdist(eigenValues');
-% indices to understand lowest
-[u,v] = find(tril(ones(3),-1));
-[dummy,idx] = min(diffs);
-% find two close, one far
-closestIdx = [u(idx),v(idx)];
-farIdx = setdiff(1:3,closestIdx);
+if probDim==3
+
+    % compare eigenValues
+    diffs = pdist(eigenValues');
+
+    % indices to understand lowest
+    [u,v] = find(tril(ones(probDim),-1));
+    [dummy,idx] = min(diffs);
+
+    % find two close, one far
+    closestIdx = [u(idx),v(idx)];
+    farIdx = setdiff(1:probDim,closestIdx);
+    
+else
+   
+    %The algorithm above does not work in the case of 2D. Take simple
+    %alternative, which makes use of the fact that the first eigenvalue is
+    %always smallest. Assumes metaphase/late prometaphase configuration.    
+    farIdx = 1;
+    closestIdx = 2;
+    
+end
 
 
 % sort eigenVectors, eigenValues. X-component of first eigenvector should
@@ -669,16 +736,17 @@ eigenValues = eigenValues([farIdx,closestIdx]);
 
 
 function [aList, evec, rotList] = assignEigenVecs(evec) 
-% assign the indices of the eignevectors such that the tripof between
+% assign the indices of the eignevectors such that the tripod between
 % consecutive frames undergoes minimal overall rotation
-% The output of the function is a 3 x nTimePoints matrix where columns list
+% The output of the function is a probDim x nTimePoints matrix where columns list
 % eigenvector index for a specific frame, while the next column lists the
-% indices of the associated eigenvector in the next frame. For instance,
+% indices of the associated eigenvector in the next frame. For instance, in
+% 3D,
 %           1 1 1 1 2 1 1 ...
 % aList = [ 2 2 3 2 1 3 3 ...
 %           3 3 2 3 3 2 2 ...
 %
-% indicates that the eigenvectors in order of input have a the best match
+% indicates that the eigenvectors in order of input have the best match
 % between frame 1 and 2; but between frame 2 and 3 eigenvectors 2 and 3
 % have been swapped, etc.
 %
@@ -687,9 +755,9 @@ function [aList, evec, rotList] = assignEigenVecs(evec)
 %
 % rotList contains the cos(Phi_t->t+1) for each the eigenvector assignments
 
-nTimePoints = size(evec,3);
-aList = zeros(3,nTimePoints);
-aList(:,1) =[1 ; 2; 3]; 
+[probDim,probDim,nTimePoints] = size(evec);
+aList = zeros(probDim,nTimePoints);
+aList(:,1) = (1:probDim)'; 
 
 for i = 2:nTimePoints
     % calculate the cost matrix eignevector assignment
@@ -701,7 +769,7 @@ for i = 2:nTimePoints
     rotList(:,i-1)= diag(1 - costMat(aList(:,i-1),aList(:,i)));
     
     % check for negative dot products -- these indicate 180 degree jumps
-    for j = 1:3
+    for j = 1:probDim
         if(transpose(evec(:,aList(j,i-1),i-1))*evec(:,aList(j,i),i) < 0)
             evec(:,aList(j,i),i)=-1*evec(:,aList(j,i),i);
         end
