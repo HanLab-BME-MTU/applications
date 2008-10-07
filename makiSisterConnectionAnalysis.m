@@ -3,7 +3,7 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,..
 %MAKISISTERCONNECTIONANALYSIS analyzes in multiple ways the connection between sisters
 %
 %SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,...
-%    verbose,removeNetDisp,randomize,samplingPeriod,correctStd)
+%    verbose,samplingPeriod,correctStd,strictClass,removeNetDisp,randomize)
 %
 %INPUT  jobType       : string which can take the values:
 %                       'TEST', 'HERCULES', 'DANUSER', 'MERALDI',
@@ -114,7 +114,7 @@ numSistersTotEff = numSistersTot * samplingPeriod;
 %get time between frames
 timeLapse = round(2*dataStruct(1).dataProperties.timeLapse)/2 * samplingPeriod;
 
-%% collect sister angles and distances
+%% collect sister angles and distances (and attachment type if requested)
 
 %define cell array of sister labels
 label{1,1} = 'Inlier';
@@ -130,6 +130,7 @@ for iLabel = 1 : 3
     eval(['sisterVel' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
     eval(['angleNormal' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
     eval(['angularVel' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
+    eval(['angleRadial' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
     
     eval(['movieStartIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
     eval(['movieEndIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
@@ -296,7 +297,20 @@ for iMovie = 1 : numMovies
                     angularDisp(iFrame) = acos(abs(sisterVec(iFrame,:) * sisterVec(iFrame+1,:)' ...
                         / norm(sisterVec(iFrame,:)) / norm(sisterVec(iFrame+1,:)))); %radians
                 end
-                
+
+                %calculate sister center
+                centerCoord = (coords1 + coords2) / 2;
+
+                %calculate the angle witht he radial
+                %i.e. the angle between the sister vector and the 
+                %vector connecting the sister center to the origin
+                angleWithRad = NaN(numFrames,1);
+                for iFrame = goodFrames'
+                    angleWithRad(iFrame) = acos(abs(sisterVec(iFrame,1:3) * ...
+                        centerCoord(iFrame,1:3)' / norm(sisterVec(iFrame,1:3)) ...
+                        / norm(centerCoord(iFrame,1:3))));
+                end
+
                 %store sister information based on the sister type
                 iLabel = sisterType(iSister) + 1;
 
@@ -312,6 +326,8 @@ for iMovie = 1 : numMovies
                     ').observations = angleWithNorm * 180 / pi;']) %deg
                 eval(['angularVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
                     ').observations = angularDisp * 180 / pi / timeLapse;']) %deg/s
+                eval(['angleRadial' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
+                    ').observations = angleWithRad * 180 / pi;']) %deg
 
             end %(for iSister = 1 : numSisters(iMovie))
 
@@ -344,6 +360,8 @@ for iLabel = 1 : 3
         '(1:iGlobal' label{iLabel,1} ');'])
     eval(['angularVel' label{iLabel,1} ' = angularVel' label{iLabel,1} ...
         '(1:iGlobal' label{iLabel,1} ');'])
+    eval(['angleRadial' label{iLabel,1} ' = angleRadial' label{iLabel,1} ...
+        '(1:iGlobal' label{iLabel,1} ');'])
 
 end
 
@@ -360,12 +378,15 @@ for iLabel = 1 : 3
     eval(['angleNormalParam' label{iLabel,1} ' = [];'])
     eval(['angularVelDistr' label{iLabel,1} ' = [];'])
     eval(['angularVelParam' label{iLabel,1} ' = [];'])
+    eval(['angleRadialDistr' label{iLabel,1} ' = [];'])
+    eval(['angleRadialParam' label{iLabel,1} ' = [];'])
     
     eval(['sisterDistIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['sisterVelPosIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['sisterVelNegIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['angleNormalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['angularVelIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])    
+    eval(['angleRadialIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
 end
 
 %calculation
@@ -436,9 +457,21 @@ for iLabel = goodLabel
             'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
             'max(allValues)];']);
     end
-    
+
+    %angle with radial
+    eval(['allValues = vertcat(angleRadial' label{iLabel,1} '.observations);']);
+    allValues = allValues(:,1);
+    allValues = allValues(~isnan(allValues));
+    eval(['angleRadialDistr' label{iLabel,1} ' = allValues;']);
+    if ~isempty(allValues)
+        eval(['angleRadialParam' label{iLabel,1} ...
+            ' = [mean(allValues) std(allValues) min(allValues) ' ...
+            'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+            'max(allValues)];']);
+    end
+
     % individual cells %
-    
+
     %distance
     for iMovie = 1 : numMovies
         eval(['allValues = vertcat(sisterDist' label{iLabel,1} '(movieStartIndx' ...
@@ -519,6 +552,22 @@ for iLabel = goodLabel
         end
     end
     
+    %angle with radial
+    for iMovie = 1 : numMovies
+        eval(['allValues = vertcat(angleRadial' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie)).observations);']);
+        if ~isempty(allValues)
+            allValues = allValues(:,1);
+            allValues = allValues(~isnan(allValues));
+            if ~isempty(allValues)
+                eval(['angleRadialIndParam' label{iLabel,1} '(iMovie,:)' ...
+                    ' = [mean(allValues) std(allValues) min(allValues) ' ...
+                    'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+                    'max(allValues)];']);
+            end
+        end
+    end
+
 end
 
 %% temporal trends
@@ -772,17 +821,20 @@ for iLabel = 1 : 3
     eval(['distribution = struct(''distance'',sisterDistDistr' label{iLabel,1} ','...
         '''rateChangeDist'',sisterVelDistr' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalDistr' label{iLabel,1} ','...
-        '''angularVel'',angularVelDistr' label{iLabel,1} ');']);
+        '''angularVel'',angularVelDistr' label{iLabel,1} ','...
+        '''angleWithRadial'',angleRadialDistr' label{iLabel,1} ');']);
     eval(['meanStdMin25P50P75PMax.all = struct(''distance'',sisterDistParam' label{iLabel,1} ','...
         '''posRateChangeDist'',sisterVelPosParam' label{iLabel,1} ','...
         '''negRateChangeDist'',sisterVelNegParam' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalParam' label{iLabel,1} ','...
-        '''angularVel'',angularVelParam' label{iLabel,1} ');']);
+        '''angularVel'',angularVelParam' label{iLabel,1} ','...
+        '''angleWithRadial'',angleRadialParam' label{iLabel,1} ');']);
     eval(['meanStdMin25P50P75PMax.indcell = struct(''distance'',sisterDistIndParam' label{iLabel,1} ','...
         '''posRateChangeDist'',sisterVelPosIndParam' label{iLabel,1} ','...
         '''negRateChangeDist'',sisterVelNegIndParam' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalIndParam' label{iLabel,1} ','...
-        '''angularVel'',angularVelIndParam' label{iLabel,1} ');']);
+        '''angularVel'',angularVelIndParam' label{iLabel,1} ','...
+        '''angleWithRadial'',angleRadialIndParam' label{iLabel,1} ');']);
     eval(['temporalTrend = struct(''distance'',sisterDistTrend' label{iLabel,1} ','...
         '''absoluteRateChangeDist'',sisterVelTrend' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalTrend' label{iLabel,1} ','...

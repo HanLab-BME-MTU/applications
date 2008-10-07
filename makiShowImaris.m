@@ -468,6 +468,7 @@ if select(3) && ~isempty(dataStruct.planeFit)
     updatedClass = dataStruct.updatedClass;
 
     %generate inlier, unaligned, and lagging indices
+    %also get frame phase
     inlierIdx = [];
     unalignedIdx = [];
     laggingIdx = [];
@@ -477,14 +478,19 @@ if select(3) && ~isempty(dataStruct.planeFit)
             unalignedIdx = [unalignedIdx (planeFit(t).unalignedIdx + nSpotSum(t))];
             laggingIdx = [laggingIdx (planeFit(t).laggingIdx + nSpotSum(t))];
         end
+        framePhase = vertcat(planeFit.phase);
     else
         for t = goodTimes'
             inlierIdx = [inlierIdx (updatedClass(t).inlierIdx + nSpotSum(t))];
             unalignedIdx = [unalignedIdx (updatedClass(t).unalignedIdx + nSpotSum(t))];
             laggingIdx = [laggingIdx (updatedClass(t).laggingIdx + nSpotSum(t))];
         end
+        framePhase = vertcat(updatedClass.phase);
     end        
 
+    %find frame where anaphase starts
+    aStartFrame = find(framePhase=='a',1,'first');
+    
     %plot inliers
     if ~isempty(inlierIdx)
         imaSpotsInlier = imarisApplication.mFactory.CreateSpots;
@@ -565,7 +571,12 @@ if select(3) && ~isempty(dataStruct.planeFit)
         imaSpotsGrid = imarisApplication.mFactory.CreateSpots;
         imaSpotsGrid.Set(single(spotsGridEigen(:,1:3)),single(spotsGridEigen(:,4)),single(spotsGridEigen(:,5)));
         imaSpotsGrid.SetColor(single(1),single(1),single(0),single(0));
-        imaSpotsGrid.mName = 'Plane fits (anisotropy)';
+        if isempty(aStartFrame)
+            anaText = [];
+        else
+            anaText = [' - A: TP ' num2str(aStartFrame)];
+        end
+        imaSpotsGrid.mName = ['Plane fits (anisotropy)' anaText];
         imaSurpassScene.AddChild(imaSpotsGrid);
     end
     if ~isempty(spotsGridInter)

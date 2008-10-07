@@ -647,6 +647,7 @@ clear parameters
 kalmanFunctions.reserveMem = 'kalmanResMemLM';
 kalmanFunctions.initialize = 'kalmanInitLinearMotion';
 kalmanFunctions.calcGain = 'kalmanGainLinearMotion';
+kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
 
 %save tracking parameters in dataStruct
 tracksParam.rotate = rotate;
