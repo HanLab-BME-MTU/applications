@@ -183,6 +183,7 @@ for i=1:nFrames2Use
 
     % dilate the cell mask in case segmentation wasn't perfect
     cmDil=bwmorph(cm,'dilate',40);
+%    cmDil=cm; % for synthetic movies, don't need to dilate
 
     % bgm is 1 wherever the raw image is 0
     bgm=zeros(size(im));
@@ -192,6 +193,7 @@ for i=1:nFrames2Use
     % 0's from the alignment procedure.  we dilate this zone to remove edge
     % effects
     bgmDil=bwmorph(bgm,'dilate',10);
+%    bgmDil=bgm; % for synthetic movies, don't need to dilate
     bgMask=zeros(size(im));
     bgMask(bgmDil | cmDil)=1; % this is inverse of what we want
 

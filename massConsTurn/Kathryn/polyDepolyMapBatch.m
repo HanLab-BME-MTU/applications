@@ -15,16 +15,16 @@ nNeighborLowerLimit=1;
 dirDev=45;
 
 doTurnover=1; % run turnoverMap
-winRange=[7:4:15];
-methodStr='CAW'; % 'frame0grid', 'frame1grid', or 'CAW'
+winRange=[7]; %:4:15];
+methodStr='frame0grid'; % 'frame0grid', 'frame1grid', or 'CAW'
 
 doTimeAvging=1; % time averaging
-nFrms2Avg=5;
+nFrms2Avg=4;
 timeStepSize=1;
 
 doVisualize=1; % make tifs for turnoverMap and time-averaged data
 gamma=1;
-cMap='jet';
+cMap='iso'; % 'jet' or 'iso'
 useMovValues=0; % 1 if you want to use the min/max values from the movie
 
 % USER-SET PARAMETERS - END
@@ -78,7 +78,7 @@ end
 
 
 for winL=winRange;
-    for i=1:4 %1:3 %nProj
+    for i=1:nProj
 
         imDir=[topDir filesep dirNames(i).name filesep 'images'];
         anDir=[topDir filesep dirNames(i).name filesep 'analysis'];
@@ -99,15 +99,14 @@ for winL=winRange;
             disp(['error: Project ' num2str(i) ' during turnoverMap.m'])
             lasterr
         end
-
-        % get runInfo from specific turnover directory
-        turnDir=[anDir filesep 'turn_' methodStr filesep 'turn_winL_' num2str(winL)];
-        if isdir(turnDir) && (doTimeAvging==1 || doVisualize==1)
+        
+        try % get runInfo from specific turnover directory
+            turnDir=[anDir filesep 'turn_' methodStr filesep 'turn_winL_' num2str(winL)];
             temp=load([turnDir filesep 'runInfo.mat']);
             runInfo=temp.runInfo;
-        else
+        catch
             disp('error: cannot do time-averaging and/or visualization without running turnoverMap first')
-            break
+            lasterr
         end
         
         try % make r/g maps from non-temporally averaged data
