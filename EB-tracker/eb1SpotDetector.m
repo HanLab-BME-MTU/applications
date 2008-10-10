@@ -1,14 +1,14 @@
-function eb1SpotDetector(runInfo,nFrames,debug)
+function [movieInfo]=eb1SpotDetector(runInfo,nFrames,savePlots,debug,overwriteData,bitDepth)
 
 % runInfo: structure containing image and analysis directories
 % nFrames: number of frames on which to detect; []=all (default)
-% debug: 0 to detect spots on all images; 1 to test one image
+% debug: 0 to detect feats on all images; 1 to test one image
 
 warningState=warning;
 warning('off','MATLAB:divideByZero')
 
-if nargin<3
-    error('eb1SpotDetector: need 3 input arguments')
+if nargin<5
+    error('eb1SpotDetector: need 4 input arguments')
 end
 
 % check runInfo format and directory names between file systems
@@ -19,27 +19,29 @@ else
     [runInfo.imDir]=formatPath(runInfo.imDir);
 end
 
-% get roi edge pixels and make region outside mask NaN
-if ~isfield(runInfo,'roiMask')
-    roiMask=1;
-    edgePix=[];
-else
-    polyEdge=bwmorph(runInfo.roiMask,'remove');
-    edgePix=find(polyEdge);
-    roiMask=swapMaskValues(double(runInfo.roiMask),0,NaN);
+if bitDepth~=12 & bitDepth~=14 & bitDepth~=16
+    warning('Choose 12, 14, or 16 for camera bit depth')
 end
 
-% make spot directory if it doesn't exist from batch
-spotDir=[runInfo.anDir filesep 'spot'];
-if ~isdir(spotDir)
-    mkdir(spotDir);
+
+% make feat directory if it doesn't exist from batch
+featDir=[runInfo.anDir filesep 'feat'];
+if overwriteData==1
+    if isdir(featDir)
+        rmdir(featDir,'s')
+    end
+end
+if ~isdir(featDir)
+    mkdir([featDir filesep 'featMaps']);
+    mkdir([featDir filesep 'overlay']);
 end
 
 % count number of images in image directory
 [listOfImages] = searchFiles('.tif',[],runInfo.imDir,0);
 nImTot=size(listOfImages,1);
 
-if debug==1 % let user select image to test
+if debug==1
+    % let user select an image to test
     currentDir=pwd;
     cd(runInfo.imDir)
     [fileName,dirName] = uigetfile('*.tif','Choose a .tif file');
@@ -50,51 +52,50 @@ if debug==1 % let user select image to test
             break
         end
     end
-    m=i;
-    n=i;
+    m=i; n=i;
 
-elseif debug==0 % do detection on all images
+    gaussSigma=[2 5 10]; % sigma for gauss filtering
+
+elseif debug==0
+    % do detection on nFrames
     m=1;
     if ~isempty(nFrames) && nFrames>0 && nFrames<nImTot
         n=nFrames;
     else
         n=nImTot;
     end
+
+    gaussSigma=4; % sigma for gauss filtering
+
 end
 
+% get image dimensions
+[imL,imW]=size(double(imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))])));
 
-% sigma for gauss filtering
-gaussSigma=4;
+if ~exist([runInfo.anDir filesep 'roiMask_cropped.tif'])
+    % not roi selected; use the whole image
+    roiMask=ones(imL,imW);
+    edgePix=[];
+else
+    % get roi edge pixels and make region outside mask NaN
+    roiMask=double(imread([runInfo.anDir filesep 'roiMask_cropped.tif']));
+    polyEdge=bwmorph(roiMask,'remove');
+    edgePix=find(polyEdge);
+    %roiMask=swapMaskValues(roiMask,0,NaN);
+end
 
 
 % string for sigma in gauss filtered
 s1=length(num2str(max(gaussSigma)));
 strg1=sprintf('%%.%dd',s1);
 
-% string for number of files
-s2=length(num2str(length(m:n)));
+% string for percent max cutoff
+s2=length(num2str(2));
 strg2=sprintf('%%.%dd',s2);
 
-% string for percent max cutoff
-s3=length(num2str(2));
+% string for number of files
+s3=length(num2str(length(m:n)));
 strg3=sprintf('%%.%dd',s3);
-
-% get image dimensions
-[imL,imW]=size(double(imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))])));
-
-% agg=zeros(imL,imW,length(gaussSigma));
-% for sig=1:length(gaussSigma)
-%         fileNameIm=[char(listOfImages(m,2)) filesep char(listOfImages(m,1))];
-%         img=double(imread(fileNameIm));
-%
-%         lowPass=Gauss2DBorder(img,1);
-%         highPass=Gauss2DBorder(img,gaussSigma(sig));
-%         filterDiff=lowPass-highPass;
-%
-%         agg(:,:,sig)=filterDiff;
-% end
-% figure(1); imshow(sum(agg,3),[])
-% figure(2); imshow(mean(agg,3),[])
 
 
 % initialize structure to store info for tracking
@@ -103,333 +104,230 @@ movieInfo(n-m+1,1).yCoord=0;
 movieInfo(n-m+1,1).amp=0;
 movieInfo(n-m+1,1).int=0;
 
-for i=m:n % loop thru frames
+% create kernels for gauss filtering
+blurKernelLow=fspecial('gaussian', 21, 1);
+blurKernelHigh=fspecial('gaussian', 21, 4);
 
-    if debug==1
-        agg=zeros(imL,imW,length(gaussSigma));
-        minMax=zeros(length(gaussSigma),2);
-    end
+if debug==1
+    % load image and normalize to 0-1
+    fileNameIm=[char(listOfImages(m,2)) filesep char(listOfImages(m,1))];
+    img=double(imread(fileNameIm))./((2.^bitDepth)-1);
 
+    minMax=zeros(length(gaussSigma),2);
     for sig=1:length(gaussSigma) % loop thru sigma sizes
 
-        indxStr1=sprintf(strg1,gaussSigma(sig));
+        % use subfunction that calls imfilter to take care of edge effects
+        lowPass=filterRegion(img,roiMask,blurKernelLow);
+        highPass=filterRegion(img,roiMask,blurKernelHigh);
 
-        fileNameIm=[char(listOfImages(i,2)) filesep char(listOfImages(i,1))];
-        img=double(imread(fileNameIm));
-
-        lowPass=Gauss2DBorder(img,1);
-        highPass=Gauss2DBorder(img,gaussSigma(sig));
+        % get difference of gaussians image
         filterDiff=roiMask.*(lowPass-highPass);
-        %filterDiff=roiMask.*(lowPass-meanImg);
-        
-        %if debug==1
-        %         minMax(sig,:)=[min(filterDiff(:)) max(filterDiff(:))];
-        %         maxAbs=max(abs(minMax(sig,:)));
-        %         normFilterDiff=filterDiff./maxAbs;
-        %
-        %         RGB=zeros(imL,imW,3);
-        %         r=zeros(imL,imW); r(normFilterDiff>=0)=normFilterDiff(normFilterDiff>=0);
-        %         g=zeros(imL,imW); g(normFilterDiff<=0)=abs(normFilterDiff(normFilterDiff<=0));
-        %         RGB(:,:,1)=r;
-        %         RGB(:,:,2)=g;
-        %         RGB=round(255.*(RGB.^gamma));
 
-        %         imwrite(RGB,[spotDir filesep 'filterDiff_RG_sigma_' num2str(sig) '.tif']);
-        %         agg(:,:,sig)=filterDiff;
-
-        %     agg=reshape(agg,[imL*imW,length(gaussSigma)]);
-        %     edges=round(linspace(min(minMax(:)),max(minMax(:)),100)); % 100
-        %     [n1,xout1]=histc(agg(:,1),edges);
-        %     [n2,xout2]=histc(agg(:,2),edges);
-        %     [n3,xout3]=histc(agg(:,3),edges);
-        %     [n4,xout4]=histc(agg(:,4),edges);
-        %     [n5,xout5]=histc(agg(:,5),edges);
-        %     [n6,xout6]=histc(agg(:,6),edges);
-        %     Y=[n1'; n2'; n3'; n4'; n5'; n6';];
-
-        %     % histogram
-        %     bar(edges,Y','group')
-        %     legend(num2str(gaussSigma'))
-        %     title(['frame ' num2str(i) ': Gauss2D(img,1) - Gauss(img,sigma) intensity histogram'])
-
-        %     % cumulative histogram
-        %     figure(2); cY=cumsum(Y');
-        %     bar(edges,cY,'group') %whatever, fix this tomorrow...
-        %     legend(num2str(gaussSigma'))
-        %     title(['frame ' num2str(i) ': Gauss2D(img,1) - Gauss(img,sigma) intensity cumulative histogram'])
-        %
-        %end
-
-        maxFiltDiff=nanmax(filterDiff(:));
+        % record min/max values for this sigma size
         minFiltDiff=nanmin(filterDiff(:));
+        maxFiltDiff=nanmax(filterDiff(:));
+        minMax(sig,:)=[minFiltDiff maxFiltDiff];
 
-        % assume lowest value we care about is x% of max value of
-        % filterDiff, where x is the abs(most negative value)
-        %lowCutPercent=round(100*(abs(minFiltDiff)/maxFiltDiff));
-         lowCutPercent=33;
-        % compare features in z-slices startest from the highest one
-        count=1;
-        for p=99:-1:lowCutPercent % percent of max intensity of filterDiff
+        % cut off negative values
+        filterDiff(filterDiff<0)=0;
 
-            if count==1
-                slice1=filterDiff>.01*p*maxFiltDiff; % top slice
-                [featMap1,numFeats1]=bwlabel(slice1);
-                featProp1=regionprops(featMap1,'PixelIdxList','Area');
-            else
-                featProp1=featProp2;
-                numFeats1=numFeats2;
-            end
-            slice2=filterDiff>.01*(p-1)*maxFiltDiff; % next slice down
-            imshow(slice2,[])
-            [featMap2,numFeats2]=bwlabel(slice2);
-            featProp2=regionprops(featMap2,'PixelIdxList','Area','Extrema');
+        % find gradient and magnitude
+        [x y]=meshgrid(1:imW,1:imL);
+        [px,py] = gradient(filterDiff,1,1);
+        magF=sqrt(px.^2+py.^2);
 
-            % groupIntersect looks for pixls shared by features in slice1 and
-            % slice2. since pixels can only belong to one feature, as we move
-            % down the z-slices, we will find that features in the lower slice
-            % have intersections with more than one feature from the upper
-            % slice. we want to kick out the merged feature and replace it with
-            % the smaller individual features from the upper slice.
-            groupIntersect=zeros(numFeats1,numFeats2);
-            for rows=1:numFeats1
-                for cols=1:numFeats2
-                    groupIntersect(rows,cols)=~isempty(intersect(featProp1(rows,1).PixelIdxList,featProp2(cols,1).PixelIdxList));
-                end
-            end
-
-            % index of features in slice1 that have more than one feature from
-            % slice2 contributing
-            mergeIdx=find(sum(groupIntersect,1)>1);
-
-            for idx=1:length(mergeIdx)
-                % replace pixel area with NaN for a merged feature in slice2
-                featProp2(mergeIdx(idx)).Area=nan;
-                % get indices for the features from slice1 that contributed to
-                % the one we just kicked out and add these to the end of the
-                % slice2 feature list
-                rowIdx=find(groupIntersect(:,mergeIdx(idx)));
-                for rows=1:length(rowIdx)
-                    numFeats2=numFeats2+1; % increase feature number since added
-                    featProp2(numFeats2)=featProp1(rowIdx(rows));
-                end
-            end
-
-            count=count+1;
-        end
-
-        %smallFeats=find([featProp2(:,1).Area]<=4);
-
-        % the good features have area (weren't a merged feature; ~NaN) and we
-        % assume the area > 4 pixels
-        goodFeats=find(~isnan([featProp2(:,1).Area]))';% & [featProp2(:,1).Area]>4)';
-        featureList=deal(featProp2(goodFeats));
-        
-        featureMap=zeros(imL,imW);
-        numFeats=length(goodFeats);
-        featureIntensity=zeros(numFeats,1);
-        for iFeat=1:length(goodFeats)
-            % make new labeled map 
-            featureMap(featureList(iFeat,1).PixelIdxList)=iFeat;
-            
-            % integrate intensity for each feature
-            featureIntensity(iFeat)=sum(img(featureList(iFeat,1).PixelIdxList));
-        end
-        %get feature properties
-        featPropFinal=regionprops(featureMap,'PixelIdxList','Area','Centroid','Extrema'); %,'Orientation');
-
-        % centroid coordinates
-        yCoord=zeros(numFeats,2); xCoord=zeros(numFeats,2);
-        pos=reshape([featPropFinal.Centroid],2,[])'; 
-        yCoord(:,1)=pos(:,2); xCoord(:,1)=pos(:,1);
-        
-        % area
-        featArea=[featPropFinal.Area]';
-        
-        amp=ones(numFeats,2); % assume area std is 1??
-        amp(:,1)=featArea;
-        
-        
-        % orientation in radians
-%         ori=[featPropFinal.Orientation]'.*pi/180;
-%         u=5*-cos(ori);
-%         v=5*sin(ori);
-
-        % use extrema to draw polygon around spots - here we get
-        % coordinates for polygon
-        outline=[featPropFinal.Extrema]; outline=[outline; outline(1,:)];
-        outlineX=outline(:,1:2:size(outline,2));
-        outlineY=outline(:,2:2:size(outline,2));
-
-        
-        indxStr2=sprintf(strg2,i); %frame
-        indxStr3=sprintf(strg3,lowCutPercent); %percentMaximum
- 
-        % plot spot outlines and centroid on image
-        figure(1); 
-        im2show=lowPass./max(abs(lowPass(:))); % image for overlay
-        im2show(edgePix)=1; % ROI in white
-        imshow(im2show,[]);
-        hold on
-        scatter(xCoord(:,1),yCoord(:,1),'c.'); % plot centroid in cyan
-        %quiver(xCoord(:,1),yCoord(:,1),u,v,0,'r'); % plot directionality in red
-        plot(outlineX,outlineY); % plot spot outlines in random colors
- 
-        saveas(gcf,[spotDir filesep 'overlay_f' indxStr2 '_p' indxStr3])
-        saveas(gcf,[spotDir filesep 'overlay_f' indxStr2 '_p' indxStr3 '.tif']);
-        
-        
-        % make color image of spots
-        RGB=label2rgb(featureMap, 'jet', 'k','shuffle');
-        
-        % save image of colored spots
-        figure(2); 
-        imshow(RGB); 
-        hold on;
-        %scatter(xCoord(:,1),yCoord(:,1),'c.');
-        %quiver(xCoord(:,1),yCoord(:,1),u,v,0,'r');
-        %plot(outlineX,outlineY);
-        saveas(gcf,[spotDir filesep 'spots_f' indxStr2 '_p' indxStr3 '.tif']);
-        
-        
-        % make structure compatible with Khuloud's tracker
-        movieInfo(i,1).xCoord=xCoord;
-        movieInfo(i,1).yCoord=yCoord;
-        movieInfo(i,1).amp=amp;
-        movieInfo(i,1).int=featureIntensity;
-        save([spotDir filesep 'movieInfo'],'movieInfo');
-        
-        % save a structure per frame
-        %save([spotDir filesep 'featureList_f' indxStr2],'featPropFinal');
+        figure(sig); imshow(filterDiff,[]);
+        hold on; quiver(x,y,px,py,'r')
+        figure(2*sig); imshow(magF,[]);
     end
+    figure(sig+1); imshow(lowPass,[])
 
+else
+    % not debug mode...loop thru frames and detect
+    for i=m:n
+if i==1
+    tic
 end
+        % load image and normalize to 0-1
+        fileNameIm=[char(listOfImages(i,2)) filesep char(listOfImages(i,1))];
+        img=double(imread(fileNameIm))./((2.^bitDepth)-1);
+
+        for sig=1:length(gaussSigma) % loop thru sigma sizes
+
+            % use subfunction that calls imfilter to take care of edge effects
+            lowPass=filterRegion(img,roiMask,blurKernelLow);
+            highPass=filterRegion(img,roiMask,blurKernelHigh);
+
+            % get difference of gaussians image
+            filterDiff=lowPass-highPass;
+
+            % cut postive component of histogram; make below that nan
+            filterDiff(filterDiff<0)=nan;
+            [cutoffInd, cutoffValue] = cutFirstHistMode(filterDiff,0);
+            filterDiff(filterDiff<1.5*cutoffValue)=nan;                     % hardwired
+
+
+            % find spots that bigger than 6 pixels in area
+            featMap=bwlabel(filterDiff>0);
+            featProp=regionprops(featMap,'PixelIdxList','Area');
+            goodFeatIdx=find(vertcat(featProp(:,1).Area)>=8);               % hardwired
+
+            % concat list of all pixels from good features
+            % make new mask
+            bwMask=nan*zeros(imL,imW);
+            bwMask(vertcat(featProp(goodFeatIdx,1).PixelIdxList))=1;
+
+            filterDiff=filterDiff.*bwMask;
+            %figure(3); imshow(filterDiff,[]);                               % figure
+
+            % get min/max of filterDiff
+            minFiltDiff=nanmin(filterDiff(:));
+            maxFiltDiff=nanmax(filterDiff(:));
+
+            % we assume each step should be a near the inital
+            % cutoffValue from the histogram
+            nSteps=round((maxFiltDiff-minFiltDiff)/(1.0*cutoffValue));      % hardwired
+            threshList=linspace(maxFiltDiff,minFiltDiff,nSteps);
+
+            % compare features in z-slices startest from the highest one
+            for p=1:length(threshList)-1
+
+                % slice1 is top slice; slice2 is next slice down
+                % here we generate BW masks of slices
+                if p==1
+                    slice1=filterDiff>threshList(p);
+                else
+                    slice1=slice2;
+                end
+                slice2=filterDiff>threshList(p+1);
+
+                % now we label them
+                featMap1=bwlabel(slice1);
+                featMap2=bwlabel(slice2);
+                featProp2=regionprops(featMap2,'PixelIdxList');
+
+                % loop thru slice2 features and replace them if there are 2 or
+                % more features from slice1 that contribute
+                for iFeat=1:max(featMap2(:))
+                    pixIdx=featProp2(iFeat,1).PixelIdxList; % pixel indices from slice2
+                    featIdx=unique(featMap1(pixIdx)); % feature indices from slice1 using same pixels
+                    featIdx(featIdx==0)=[]; % 0's shouldn't count since not feature
+                    if length(featIdx)>1 % if two or more features contribute...
+                        slice2(pixIdx)=slice1(pixIdx); % replace slice2 pixels with slice1 values
+                    end
+                end
+
+            end
+
+            % label slice2 again and get region properties
+            featMap2=bwlabel(slice2);
+            featProp2=regionprops(featMap2,filterDiff,'PixelIdxList','Area','MaxIntensity');
+
+            % here we sort through features and retain only the "good" ones
+            % we assume the good features have area > n pixels
+            % also good features have a max intensity > 2*cutoff
+            goodFeatIdxA=find(vertcat(featProp2(:,1).Area)>=8);             % hardwired
+            goodFeatIdxI=find(vertcat(featProp2(:,1).MaxIntensity)>2*cutoffValue);
+            goodFeatIdx=intersect(goodFeatIdxA,goodFeatIdxI);
+            
+            % make new label matrix and get props
+            featureMap=zeros(imL,imW);
+            featureMap(vertcat(featProp2(goodFeatIdx,1).PixelIdxList))=1;
+            [featMapFinal,nFeats]=bwlabel(featureMap);
+            featPropFinal=regionprops(featMapFinal,filterDiff,'PixelIdxList','Area','WeightedCentroid','Extrema','MaxIntensity');
+
+%             % loop thru features and calc total intensity and peak pixel
+%             for iFeat=1:nFeats
+%                 % intensity values for pixels in feature iFeat
+%                 featIntens=filterDiff(featPropFinal(iFeat,1).PixelIdxList);
+% 
+%                 % integrate intensity over feature
+%                 featPropFinal(iFeat).IntSum=sum(featIntens);
+% 
+%                 % make centroid to be intensity maximum of feature
+%                 maxIntPixIdx=featPropFinal(iFeat,1).PixelIdxList(featIntens==max(featIntens));
+%                 [r c]= ind2sub([imL,imW],maxIntPixIdx);
+%                 featPropFinal(iFeat).Centroid=[r c];
+%                 
+%             end
+          
+            % centroid coordinates with zero uncertainties for Khuloud's tracker
+            yCoord=zeros(nFeats,2); xCoord=zeros(nFeats,2);
+            temp=vertcat(featPropFinal.WeightedCentroid);
+            yCoord(:,1)=temp(:,2);
+            xCoord(:,1)=temp(:,1);
+
+            % area
+            featArea=vertcat(featPropFinal(:,1).Area);
+            amp=zeros(nFeats,2);
+            amp(:,1)=featArea;
+            
+            % intensity
+            featInt=vertcat(featPropFinal(:,1).MaxIntensity);
+            featI=zeros(nFeats,2);
+            featI(:,1)=featInt;
+
+            % make structure compatible with Khuloud's tracker
+            movieInfo(i,1).xCoord=xCoord;
+            movieInfo(i,1).yCoord=yCoord;
+            movieInfo(i,1).amp=amp;
+            movieInfo(i,1).int=featI;
+
+if i==1
+    toc
+end
+
+            if savePlots==1
+                % use extrema to draw polygon around feats - here we get
+                % coordinates for polygon
+                outline=[featPropFinal.Extrema]; outline=[outline; outline(1,:)];
+                outlineX=outline(:,1:2:size(outline,2));
+                outlineY=outline(:,2:2:size(outline,2));
+
+                indxStr1=sprintf(strg1,gaussSigma(sig)); % gaussSigma
+                %indxStr2=sprintf(strg2,lowCutPercent);   % percentMaximum
+                indxStr3=sprintf(strg3,i);               % frame
+
+                %plot feat outlines and centroid on image
+                figure(1);
+                im2show=(lowPass-nanmin(lowPass(:)))./(nanmax(lowPass(:))-nanmin(lowPass(:))); % image for overlay
+                im2show(edgePix)=1; % ROI in white
+                imshow(im2show,[],'Border','tight');
+                hold on
+                scatter(xCoord(:,1),yCoord(:,1),'c.'); % plot centroid in cyan
+                %plot(outlineX,outlineY,'r'); % plot feat outlines in red
+
+                %saveas(gcf,[featDir filesep 'overlay' filesep 'overlay_g' indxStr1 '_f' indxStr3])
+                saveas(gcf,[featDir filesep 'overlay' filesep 'overlay_g' indxStr1 '_f' indxStr3 '.tif']);
+
+                % save image of colored feats
+                RGB=label2rgb(featMapFinal, 'jet', 'k','shuffle');
+                figure(2);
+                imshow(RGB,'Border','tight');
+
+                save([featDir filesep 'featMaps' filesep 'feats_g' indxStr1 '_f' indxStr3], 'featMapFinal');
+                saveas(gcf,[featDir filesep 'featMaps' filesep 'feats_g' indxStr1 '_f' indxStr3 '.tif']);
+
+            end
+
+        end
+
+    end
+end
+
+save([featDir filesep 'movieInfo'],'movieInfo');
+close all
 warning(warningState);
 
 
+function filteredIm = filterRegion(im, mask, kernel)
 
-% go thru these features and look at area before/after
-%         for idx=1:length(mergeIdx)
-%             feat2merge=find(groupIntersect(:,mergeIdx(idx)));
-%             feats1AreaSum=0;
-%             for f=1:length(feat2merge)
-%                 feats1AreaSum=feats1AreaSum+featProp1(feat2merge(f),1).Area;
-%                 feats2Area=featProp2(mergeIdx(idx),1).Area;
-%             end
-%         end
+im(mask~=1)=0;
+filteredIm = imfilter(im, kernel);
+W = imfilter(double(mask), kernel);
+filteredIm = filteredIm ./ W;
+filteredIm(~mask) = nan;
 
-
-
-
-
-
-
-
-
-
-
-% [n,xout]=hist(filterDiff(:),100);
-%
-% for j=1:100
-%     imshow(filterDiff>xout(97))
-%     bwSpotMap=filterDiff>xout(end-j+1);
-%     [featMap,numFeats]=bwlabel(bwSpotMap,4);
-%
-%     RGB=label2rgb(featMap, 'jet', 'k','shuffle');
-%     h=gcf;
-%     figure(h); imshow(RGB);
-%     imwrite(RGB,[spotDir filesep 'junk' num2str(j) '.tif']);
-% end
-%
-% [cutoffInd,cutoffValue]=cutFirstHistMode(filterDiff,1);
-% drawnow
-% % coef = 4 Katsu; coef = 1 Claudio; coef = 1 Lisa_xju103_r11;
-% bwSpotMap=filterDiff>cutoffValue*coef; % REMOVE THE NOISE FEATURES %no 3
-%
-% [featMap,numFeats]=bwlabel(bwSpotMap);
-% RGB=label2rgb(featMap, 'jet', 'k','shuffle');
-% h=gcf;
-% figure(h+1); imshow(RGB);
-%
-% warningState=warning;
-% %    intwarning off
-% feats=regionprops(featMap,'Centroid','Eccentricity','Orientation','MajorAxisLength');
-% warning(warningState);
-%
-% %     % Initialize 'feats' structure
-% %     feats(numFeats)=struct(...
-% %         'pos',[0 0],...
-% %         'ecc',0,...
-% %         'ori',0,...
-% %         'len',0);
-%
-% figure(4); imshow(img,[]); hold on
-% for j=1:length(feats)
-%     e1 = [-cos(feats(j).Orientation*pi/180) sin(feats(j).Orientation*pi/180) 0];
-%     e2 = [sin(feats(j).Orientation*pi/180) cos(feats(j).Orientation*pi/180) 0];
-%     e3 = [0 0 1];
-%     Ori = [feats(j).Centroid  0];
-%     v1 = [-10 10];
-%     v2 = [-5 5];
-%     v3 = [0 0];
-%     [xGrid,yGrid]=arbitraryGrid(e1,e2,e3,Ori,v1,v2,v3);
-%
-%     imshow(featMap==j); hold on
-%     scatter(xGrid(:),yGrid(:),'r+');
-%
-%     Crop(:,:,j) = interp2(img,xGrid,yGrid);
-%     %         Crop(:,:,j) = interp2(img,xGrid,yGrid,'*linear');
-%
-%     e1 = [];e2 = [];e3 = []; Ori = []; v1 = []; v2 = []; xGrid = []; yGrid = [];
-% end
-%
-% Cm = nanmean(Crop,3); % MEAN/REPRESENTATIVE EB1 CROP
-% Crop(isnan(Crop))=0;% border effect - some NaN
-% Cm1 = bwlabel(Cm);
-% statsC = regionprops(Cm1,'all');
-%
-% sC = size(Crop);
-% Cm3d = repmat(Cm,[1,1,size(Crop,3)]);
-% dC = Crop - Cm3d;
-% sqC = dC.^2;
-% ssqC = squeeze(sum(sum(sqC,1),2)); %LIST OF DIFFERENCES AFTER SUBTRACTION
-%
-% B = Cm(:);
-% A = ones(length(B),2);
-%
-% for m = 1:size(Crop,3)
-%     CR = Crop(:,:,m);
-%     A(:,2) = CR(:);
-%     goodRows = find(A(:,2) ~= 0 & isfinite(B));
-%     XX = lscov(A(goodRows,:),B(goodRows));
-%     RES = B(goodRows) - A(goodRows,:)*XX;
-%     OUT(m,:) = [mean(RES(:).^2),XX'];
-% end
-%
-% [Ind,V]=cutFirstHistMode(OUT(:,1),0);% switch to 1 to see HIST
-%
-% goodFeats = find(OUT(:,1)<V); % SPOTS WHICH FIT WELL WITH THE MEAN EB1 SPOT
-%
-% featNames = fieldnames(feats);
-% for field = 1:length(featNames)
-%     feats.(featNames{field}) = feats.(featNames{field})(goodFeats,:);
-% end
-%
-% if debug == 1
-%     alowPass = 5;
-%     If=Gauss2D(img,1);
-%     figure, imshow(If(1+alowPass:end-alowPass,1+alowPass:end-alowPass),[]);%bwSpotMap
-%     hold on
-%     for img = 1:length(feats.ori)
-%         h = quiver(feats.pos(img,1)-alowPass,feats.pos(img,2)-alowPass,-cos(feats.ori(img)*pi/180),sin(feats.ori(img)*pi/180),3,'r');
-%         set(h,'LineWidth',2)
-%     end
-% elseif debug == 0
-%     save([dirName(1:end-7),'cands',filesep,'feats',indxStr],'feats')
-%     clear goodFeats
-%     clear OUT
-%     clear V
-%     clear Crop
-% end
 
 
 
