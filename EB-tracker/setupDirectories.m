@@ -7,19 +7,19 @@ function [projList] = setupDirectories(selectROI,preserveROIs)
 %
 % The function then creates a new directory at the same level called /rois,
 % which will contain roi_1,...,roi_9 sub-directories.  Each roi_n directory
-% will have an images and an analysis folder.  
-% 
+% will have an images and an analysis folder.
+%
 % If the user wants to select 1 or more rois (see 'selectROI'), (s)he can
 % do so for up to nine per movie. Images will be cropped using a bounding
 % rectangle and saved in roi_n/roi_images.  The selected ROI mask will be
-% saved as a tif in roi_n/roi_analysis.  
+% saved as a tif in roi_n/roi_analysis.
 %
 % If the user does not want to select a ROI, the original images will
 % simply be copied into the roi_n/roi_images folder.
 %
 % The user can either overwrite or retain /rois directories that have
 % already been created by setupDirectories; in this way you can add more
-% data and not undo previous analysis.  
+% data and not undo previous analysis.
 %
 % A cell array containing useful information will be the output (see
 % 'projList' below).
@@ -38,7 +38,7 @@ function [projList] = setupDirectories(selectROI,preserveROIs)
 %
 % OUTPUT:
 %
-% projList:         nSubprojects x 7 (or more) cell array of the form:
+% projList        : nSubprojects x 7 (or more) cell array of the form:
 %                   [target oligo movie roi roi_imageDir roi_analysisDir
 %                   origImDir (...)] 'projList' assumes that the data is in
 %                   a directory hierarchy like this:
@@ -57,7 +57,7 @@ function [projList] = setupDirectories(selectROI,preserveROIs)
 % Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
 
 if nargin<2 || isempty(preserveROIs) || (preserveROIs~=0 && preserveROIs~=1)
-preserveROIs=1;
+    preserveROIs=1;
 end
 
 if nargin<1 || isempty(selectROI) || (selectROI~=0 && selectROI~=1)
@@ -70,17 +70,30 @@ topDir=uigetdir(pwd,'Please select top-level directory containing targets');
 % imageDir is cell array containing all *\images directories in topDir
 p=genpath(topDir);
 imDir=strrep(p,';',' ');
-[imageDir] = regexp(imDir,'\S*\\images\s','match')';
+[imageDirList] = regexp(imDir,'\S*\\images\s','match')';
+
+% check that data is 16-bit
+for i=1:size(imageDirList,1)
+    [listOfImages]=searchFiles('.tif',[],imageDirList{i,1}(1:end-1),0);
+    img=imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))]);
+    if isa(img,'uint16')
+        bitType=16;
+    else
+        warning('images should be 16-bit')
+    end
+
+end
+
 
 subProjCount=1; % counter for all rois from all projects
 alreadyDoneList=0; % vector containing subProjCount index of projects that already have rois
-for i=1:length(imageDir) % iterate through projects
+for i=1:length(imageDirList) % iterate through projects
 
     % this will be changed to 1 for projects that already have roi_n directories
     alreadyDoneFlag=0;
 
     % define image and rois directories
-    runInfo(i,1).imDir=imageDir{i,1}(1:end-1);
+    runInfo(i,1).imDir=imageDirList{i,1}(1:end-1);
     runInfo(i,1).roiDir=[runInfo(i,1).imDir(1:end-7) filesep 'rois'];
 
     % check for existence of rois directory; make dir if needed
@@ -115,69 +128,75 @@ for i=1:length(imageDir) % iterate through projects
 
         % iterate til the user is finished or just copy if not choosing roi
         while makeNewROI==1 && roiCount<10
-            % make new roi_n image/analysis directories
-            currentRoiImDir=[runInfo(i,1).roiDir filesep 'roi_' num2str(roiCount) filesep 'roi_images'];
-            mkdir(currentRoiImDir);
-            currentRoiAnDir=[runInfo(i,1).roiDir filesep 'roi_' num2str(roiCount) filesep 'roi_analysis'];
-            mkdir(currentRoiAnDir);
+            try
+                % make new roi_n image/analysis directories
+                currentRoiImDir=[runInfo(i,1).roiDir filesep 'roi_' num2str(roiCount) filesep 'roi_images'];
+                mkdir(currentRoiImDir);
+                currentRoiAnDir=[runInfo(i,1).roiDir filesep 'roi_' num2str(roiCount) filesep 'roi_analysis'];
+                mkdir(currentRoiAnDir);
 
-            if selectROI==1
-                % draw polygon to make mask for bounding tracks
-                [roiMask]=roipoly((img-min(img(:)))./(max(img(:))-min(img(:))));
-                close
+                if selectROI==1
+                    % draw polygon to make mask for bounding tracks
+                    [roiMask,polyXcoord,polyYcoord]=roipoly((img-min(img(:)))./(max(img(:))-min(img(:))));
+                    roiCoords=[polyYcoord polyXcoord];
+                    close
 
-                % make bigger for edges of gaussian
-                roiMaskDil=bwmorph(roiMask,'dilate',6);
-                % get boundary box parameters for roiMask from dilated
-                [rows,cols]=find(roiMaskDil);
-                ymin=min(rows); height=max(rows)-min(rows)+1;
-                xmin=min(cols); width=max(cols)-min(cols)+1;
+                    % make a bit bigger for edges of gaussian
+                    roiMaskDil=bwmorph(roiMask,'dilate',6);
+                    % get boundary box parameters for roiMask from dilated
+                    [rows,cols]=find(roiMaskDil);
+                    ymin=min(rows); height=max(rows)-min(rows)+1;
+                    xmin=min(cols); width=max(cols)-min(cols)+1;
 
-                % crop and save ROI
-                roiMask=logical(roiMask);
-                croppedRoi=imcrop(roiMask,[xmin ymin width height]);
-            else
-                % make the ROI the whole image
-                roiMask=ones(size(img));
-                croppedRoi=roiMask;
+                    % crop and save ROI
+                    roiMask=logical(roiMask);
+                    croppedRoi=imcrop(roiMask,[xmin ymin width height]);
+                else
+                    % make the ROI the whole image
+                    roiMask=ones(size(img));
+                    croppedRoi=roiMask;
+                end
+
+                % save original and croppsed roiMask
+                imwrite(roiMask,[currentRoiAnDir filesep 'roiMask.tif']);
+                imwrite(croppedRoi,[currentRoiAnDir filesep 'roiMask_cropped.tif']);
+                save([currentRoiAnDir filesep 'roiCoords'],'roiCoords');
+
+                % parse the path to get "words" used to identify target, oligo,
+                % movie, and roi
+                nChar=length(currentRoiImDir);
+                filesepLoc=regexp(currentRoiImDir,'\\');
+                wordStart=[1 filesepLoc+1]; wordEnd=[filesepLoc-1 nChar];
+                words=cell(length(wordStart),1);
+                for iWord=1:length(wordStart)
+                    words{iWord,1}=currentRoiImDir(wordStart(iWord):wordEnd(iWord));
+                end
+
+                % assign cell to be nProj x 7
+                projList{subProjCount,1}=words{end-5,1};     % target
+                projList{subProjCount,2}=words{end-4,1};     % oligo
+                projList{subProjCount,3}=words{end-3,1};     % movie
+                projList{subProjCount,4}=words{end-1,1};     % roi
+                projList{subProjCount,5}=currentRoiImDir;    % roiImageDir
+                projList{subProjCount,6}=currentRoiAnDir;    % roiAnalysisDir
+                projList{subProjCount,7}=runInfo(i,1).imDir; % originalImageDir
+
+                if selectROI==1
+                    reply=input('Do you want to select another ROI? y/n [n]: ','s');
+                else
+                    reply='n';
+                end
+                if lower(reply)=='y'
+                    makeNewROI=1; % user said yes; make another one
+                    roiCount=roiCount+1; % counter for current condition rois
+                else
+                    makeNewROI=0; % assume no; we're done
+                end
+
+                subProjCount=subProjCount+1; % counter for all conditions in top directory
+            catch
+                % try again if you make a mistake
             end
-
-            % save original and croppsed roiMask
-            imwrite(roiMask,[currentRoiAnDir filesep 'roiMask.tif']);
-            imwrite(croppedRoi,[currentRoiAnDir filesep 'roiMask_cropped.tif']);
-
-            % parse the path to get "words" used to identify target, oligo,
-            % movie, and roi
-            nChar=length(currentRoiImDir);
-            filesepLoc=regexp(currentRoiImDir,'\\');
-            wordStart=[1 filesepLoc+1]; wordEnd=[filesepLoc-1 nChar];
-            words=cell(length(wordStart),1);
-            for iWord=1:length(wordStart)
-                words{iWord,1}=currentRoiImDir(wordStart(iWord):wordEnd(iWord));
-            end
-
-            % assign cell to be nProj x 7
-            projList{subProjCount,1}=words{end-5,1};     % target
-            projList{subProjCount,2}=words{end-4,1};     % oligo
-            projList{subProjCount,3}=words{end-3,1};     % movie
-            projList{subProjCount,4}=words{end-1,1};     % roi
-            projList{subProjCount,5}=currentRoiImDir;    % roiImageDir
-            projList{subProjCount,6}=currentRoiAnDir;    % roiAnalysisDir
-            projList{subProjCount,7}=runInfo(i,1).imDir; % originalImageDir
-
-            if selectROI==1
-                reply=input('Do you want to select another ROI? y/n [n]: ','s');
-            else
-                reply='n';
-            end
-            if lower(reply)=='y'
-                makeNewROI=1; % user said yes; make another one
-                roiCount=roiCount+1; % counter for current condition rois
-            else
-                makeNewROI=0; % assume no; we're done
-            end
-
-            subProjCount=subProjCount+1; % counter for all conditions in top directory
         end
 
     elseif alreadyDoneFlag==1
@@ -215,26 +234,15 @@ for i=1:length(imageDir) % iterate through projects
 end
 
 for i=1:subProjCount-1
-    
+
     % only do the ones that haven't been done
-    if ~ismember(i,alreadyDoneList) 
+    if ~ismember(i,alreadyDoneList)
 
         % get list and number of images from original data
         [listOfImages]=searchFiles('.tif',[],projList{i,7},0);
         nImages=size(listOfImages,1);
         s1=length(num2str(nImages));
         strg1=sprintf('%%.%dd',s1);
-
-        % read first image, see if 8-bit or 16-bit
-        img=imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))]);
-        if isa(img,'uint8')
-            bitType=8;
-        elseif isa(img,'uint16')
-            bitType=16;
-        else
-            error('images should be 8-bit or 16-bit')
-        end
-        img=double(img);
 
         if selectROI==1 % CROP images from originals
             roiMask=double(imread([projList{i,6} filesep 'roiMask.tif']));
@@ -247,12 +255,7 @@ for i=1:subProjCount-1
             % crop and save images
             for iImage=1:size(listOfImages,1)
                 img=double(imread([char(listOfImages(iImage,2)) filesep char(listOfImages(iImage,1))]));
-
-                if bitType==8
-                    croppedImg=uint8(imcrop(img,[xmin ymin width height]));
-                else
-                    croppedImg=uint16(imcrop(img,[xmin ymin width height]));
-                end
+                croppedImg=uint16(imcrop(img,[xmin ymin width height]));
 
                 indxStr1=sprintf(strg1,iImage);
                 imwrite(croppedImg,[projList{i,5} filesep 'image_cropped' indxStr1 '.tif']);

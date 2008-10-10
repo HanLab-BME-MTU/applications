@@ -1,4 +1,5 @@
 function [runInfo]=getProj(projList,targetName,oligoName,movieName,roiName)
+% GETPROJ returns paths to projects matching user query
 
 % INPUT:
 % projList: nSubprojects x 7 (or more) cell array of the form:
