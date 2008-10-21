@@ -58,7 +58,7 @@ else
     
     % Fetch the jobvalues and image directory
     %imageDirectory = handles.imageSeq.imageDirectory;
-    firstImage     = handles.imageSeq.firstImage
+    firstImage     = handles.imageSeq.firstImage;
     %lastImage      = handles.imageSeq.lastImage;
     %imageRange     = handles.imageSeq.imageRange;
     %imageNameList  = handles.imageSeq.imageNameList;
@@ -100,7 +100,7 @@ else
         end
         
         if ~exist(candsName, 'file')
-            uiwait(errordlg(['Cands file ' candsName ' does not exist.'],'Error','modal')); % BUG 1: exit here
+            uiwait(errordlg(['Cands file ' candsName ' does not exist.'],'Error','modal'));
             set(hMenu, 'Checked', 'off');
             return
         end

@@ -57,7 +57,7 @@ if(isa(fileName,'char') && isa(dirName,'char'))
 %    % Extract the body of the filename and store in handles struct
 %    bodyName = fileName(1:(end-(4+countNum)))
 %
-%   ...BY THIS
+%   ...BY THIS (Sylvain Berlemont)
     [path,bodyName,no,ext] = getFilenameBody(fileName);
     
     % Create a list of files present in the image directory selected by the user
@@ -103,7 +103,7 @@ if(isa(fileName,'char') && isa(dirName,'char'))
 %    end
 %    firstImage = number
 %
-%   ...BY THIS
+%   ...BY THIS (Sylvain Berlemont)
     [path,bodyName,no,ext] = getFilenameBody(char(imageNameList(1)));
     firstImage = str2double(no);
             
