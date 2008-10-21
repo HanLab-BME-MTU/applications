@@ -5,13 +5,13 @@ function fsmCenterCB_showSeqCands
 % opened by the pushImShow_Callback function of fsmCenter
 %
 % This function allows the user to overlay the result of a speckle selection
-% step on the currently displayed image.
+% step on the currently displayed image sequence.
 %
 % INPUT   None
 %
 % OUTPUT  None
 %
-% Andre Kerstens, 12/15/2004
+% Andre Kerstens, 10/20/2008
 
 % Current directory
 oldDir=cd;
@@ -54,15 +54,15 @@ else
 
     % Get slider and counter info
     hFsmSlider = findall (0, 'Tag', 'pictureSlide');
-    hFsmCounter = findall (0, 'Style', 'text', 'Tag', 'pictureCount');
+    %hFsmCounter = findall (0, 'Style', 'text', 'Tag', 'pictureCount');
     
     % Fetch the jobvalues and image directory
-    imageDirectory = handles.imageSeq.imageDirectory;
-    firstImage     = handles.imageSeq.firstImage;
-    lastImage      = handles.imageSeq.lastImage;
-    imageRange     = handles.imageSeq.imageRange;
-    imageNameList  = handles.imageSeq.imageNameList;
-    bodyName       = handles.imageSeq.bodyName;
+    %imageDirectory = handles.imageSeq.imageDirectory;
+    firstImage     = handles.imageSeq.firstImage
+    %lastImage      = handles.imageSeq.lastImage;
+    %imageRange     = handles.imageSeq.imageRange;
+    %imageNameList  = handles.imageSeq.imageNameList;
+    %bodyName       = handles.imageSeq.bodyName;
     imageRange     = handles.imageSeq.imageRange;
     
     % Get the current value of the slider, so that we know which frame the user
@@ -78,8 +78,8 @@ else
         {'*.mat;','MATLAB .mat files (*.mat)'
         '*.*','All Files (*.*)'},...
         'Select cands###.mat file');
-    if(isa(fileName,'char') & isa(dirName,'char'))
-        
+    if(isa(fileName,'char') && isa(dirName,'char'))
+
         % Check whather a subpixel speckle file is selected
         spa = strfind(fileName, '_spa');
         if ~isempty(spa)
@@ -91,7 +91,7 @@ else
         
         formatStr = sprintf ('%%.%dd', length(no));
         imageNr = sprintf (formatStr, imageNumber);
-        
+       
         if ~isempty(spa)
             % A sub pixel speckle file has been selected
             candsName = [path body imageNr '_spa' ext];
@@ -99,8 +99,8 @@ else
             candsName = [path body imageNr ext];
         end
         
-        if ~exist(candsName)
-            uiwait(errordlg(['Cands file ' candsName ' does not exist.'],'Error','modal'));
+        if ~exist(candsName, 'file')
+            uiwait(errordlg(['Cands file ' candsName ' does not exist.'],'Error','modal')); % BUG 1: exit here
             set(hMenu, 'Checked', 'off');
             return
         end
@@ -160,13 +160,13 @@ else
     %    this allows to easily change their properties 
     hold on;
     h1=plot(pPos(:,2),pPos(:,1),'.','Color',colors{indx},'MarkerSize',6); % Primary speckles
-    set(h1,'Tag','cands'); set(h1,'UserData',str2num(no));
+    set(h1,'Tag','cands'); set(h1,'UserData',str2double(no));
     h2=plot(sPos(:,2),sPos(:,1),'+','Color',colors{indx},'MarkerSize',4); % Secondary peckles
-    set(h2,'Tag','cands'); set(h2,'UserData',str2num(no));
+    set(h2,'Tag','cands'); set(h2,'UserData',str2double(no));
     h3=plot(tPos(:,2),tPos(:,1),'^','Color',colors{indx},'MarkerSize',4); % Tertiary speckles
-    set(h3,'Tag','cands'); set(h3,'UserData',str2num(no));
+    set(h3,'Tag','cands'); set(h3,'UserData',str2double(no));
     h4=plot(hPos(:,2),hPos(:,1),'*','Color',colors{indx},'MarkerSize',4); % Higher-order speckles
-    set(h4,'Tag','cands'); set(h4,'UserData',str2num(no));
+    set(h4,'Tag','cands'); set(h4,'UserData',str2double(no));
 
     % Title
     hTitle=title('Speckles: . (1st order), + (2nd), ^ (3rd), * (4th and above)'); 

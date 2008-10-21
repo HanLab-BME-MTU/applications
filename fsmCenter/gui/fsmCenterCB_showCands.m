@@ -39,7 +39,7 @@ end
     {'*.mat;','MATLAB .mat files (*.mat)'
     '*.*','All Files (*.*)'},...
     'Select cands###.mat file');
-if(isa(fileName,'char') & isa(dirName,'char'))
+if(isa(fileName,'char') && isa(dirName,'char'))
     try
         s=load([dirName,fileName]);
         %To cope with subpixel cands.
@@ -101,13 +101,13 @@ if indx==0; indx=5; end
 %    this allows to easily change their properties 
 hold on;
 h1=plot(pPos(:,2),pPos(:,1),'.','Color',colors{indx},'MarkerSize',6); % Primary speckles
-set(h1,'Tag','cands'); set(h1,'UserData',str2num(no));
+set(h1,'Tag','cands'); set(h1,'UserData',str2double(no));
 h2=plot(sPos(:,2),sPos(:,1),'+','Color',colors{indx},'MarkerSize',4); % Secondary peckles
-set(h2,'Tag','cands'); set(h2,'UserData',str2num(no));
+set(h2,'Tag','cands'); set(h2,'UserData',str2double(no));
 h3=plot(tPos(:,2),tPos(:,1),'^','Color',colors{indx},'MarkerSize',4); % Tertiary speckles
-set(h3,'Tag','cands'); set(h3,'UserData',str2num(no));
+set(h3,'Tag','cands'); set(h3,'UserData',str2double(no));
 h4=plot(hPos(:,2),hPos(:,1),'*','Color',colors{indx},'MarkerSize',4); % Higher-order speckles
-set(h4,'Tag','cands'); set(h4,'UserData',str2num(no));
+set(h4,'Tag','cands'); set(h4,'UserData',str2double(no));
 
 % Title
 hTitle=title('Speckles: . (1st order), + (2nd), ^ (3rd), * (4th and above)'); 

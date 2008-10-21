@@ -1,16 +1,16 @@
 function fsmShowImageSequence
 % fsmShowSlidingFrames finds the correct image and shows it in the
-% figure opened by fsmCentercb_loadNewSequence
+% figure opened by fsmCenterCB_loadNewSequence
 %
 % SYNOPSIS       fsmShowImageSequence
 %
-% INPUT          none (it gets values from the slider created in fsmCentercb_loadNewSequence)
+% INPUT          none (it gets values from the slider created in fsmCenterCB_loadNewSequence)
 %
 % OUTPUT         none (it updates the handles object directly)
 %
 % DEPENDENCIES   fsmShowImageSequence uses {nothing}
 %                                  
-%                fsmShowImageSequence is used by { fsmCentercb_loadNewSequence }
+%                fsmShowImageSequence is used by { fsmCenterCB_loadNewSequence }
 %
 % Revision History
 % Name                  Date            Comment
@@ -164,7 +164,7 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
         candsName = [candsPath candsBody imageNr candsExt];
     end
     
-    if ~exist(candsName)
+    if ~exist(candsName, 'file')
         uiwait(errordlg(['Cands file ' candsName ' does not exist.'],'Error','modal'));
         %set(hSpeckleMenu, 'Checked', 'off');
         
@@ -220,13 +220,13 @@ if strcmp(get(hSpeckleMenu, 'Checked'),'on')
     hold on;
     
     h1=plot(pPos(:,2),pPos(:,1),'.','Color',colors{indx},'MarkerSize',6); % Primary speckles
-    set(h1,'Tag','cands'); set(h1,'UserData',str2num(imageNr));
+    set(h1,'Tag','cands'); set(h1,'UserData',str2double(imageNr));
     h2=plot(sPos(:,2),sPos(:,1),'+','Color',colors{indx},'MarkerSize',4); % Secondary peckles
-    set(h2,'Tag','cands'); set(h2,'UserData',str2num(imageNr));
+    set(h2,'Tag','cands'); set(h2,'UserData',str2double(imageNr));
     h3=plot(tPos(:,2),tPos(:,1),'^','Color',colors{indx},'MarkerSize',4); % Tertiary speckles
-    set(h3,'Tag','cands'); set(h3,'UserData',str2num(imageNr));
+    set(h3,'Tag','cands'); set(h3,'UserData',str2double(imageNr));
     h4=plot(hPos(:,2),hPos(:,1),'*','Color',colors{indx},'MarkerSize',4); % Higher-order speckles
-    set(h4,'Tag','cands'); set(h4,'UserData',str2num(imageNr));
+    set(h4,'Tag','cands'); set(h4,'UserData',str2double(imageNr));
 
     % Title
     hTitle=title('Speckles: . (1st order), + (2nd), ^ (3rd), * (4th and above)'); 

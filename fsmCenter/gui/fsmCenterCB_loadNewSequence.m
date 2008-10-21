@@ -1,5 +1,5 @@
-function fsmCentercb_loadNewSequence
-% fsmCentercb_loadNewSequence
+function fsmCenterCB_loadNewSequence
+% fsmCenterCB_loadNewSequence
 %
 % This function is a callback for the pushImShow_Callback function of fsmCenter
 %
@@ -35,7 +35,7 @@ end
     '*.jpeg;','JPEG files (*.jpeg)'
     '*.*','All Files (*.*)'},...
     'Select image to load');
-if(isa(fileName,'char') & isa(dirName,'char'))
+if(isa(fileName,'char') && isa(dirName,'char'))
     
     % Clear current window's children
     clf;
@@ -46,15 +46,19 @@ if(isa(fileName,'char') & isa(dirName,'char'))
 
     % Find out what part of the filename describes the images and which part
     % is just counting them through.    
-    number = 0;
-    countNum = 0;
-    while ~isnan(number) & (countNum < 3)
-       countNum = countNum + 1;
-       number = str2num(fileName(end-(4+countNum):end-4));
-    end
-
-    % Extract the body of the filename and store in handles struct
-    bodyName = fileName(1:(end-(4+countNum)));
+%    REPLACE THIS...
+%     number = 0;
+%     countNum = 0;
+%     while ~isnan(number) & (countNum < 3)
+%        countNum = countNum + 1;
+%        number = str2num(fileName(end-(4+countNum):end-4));
+%     end
+% 
+%    % Extract the body of the filename and store in handles struct
+%    bodyName = fileName(1:(end-(4+countNum)))
+%
+%   ...BY THIS
+    [path,bodyName,no,ext] = getFilenameBody(fileName);
     
     % Create a list of files present in the image directory selected by the user
     dirList = dir(imageDirectory);
@@ -74,10 +78,11 @@ if(isa(fileName,'char') & isa(dirName,'char'))
     end
     
     % Rearrange images according to number
+    imageNum = zeros(1, length(dirList));
     for jRearange = 1:length(dirList)
        tmpName = char(dirList(jRearange));
        try
-          imageNum(jRearange) = str2num(tmpName(length(bodyName)+1:end-4));
+          imageNum(jRearange) = str2double(tmpName(length(bodyName)+1:end-4));
        catch
           dirList(jRearange) = [];
        end
@@ -86,17 +91,22 @@ if(isa(fileName,'char') & isa(dirName,'char'))
     imageNameList = dirList(imageNumInd);
     
     % Find out what the first image nr is (not necessarily 1)
-    firstImageFile = char(imageNameList(1));
-    
-    % Find out what the first image number is   
-    number = 0;
-    countNum = 0;
-    while ~isnan(number) & (countNum < 2)
-       countNum = countNum + 1;
-       number = str2num(firstImageFile(end-(4+countNum):end-4));
-    end
-    firstImage = number;
-        
+%   REPLACE THIS...    
+%    firstImageFile = char(imageNameList(1));
+%    
+%    % Find out what the first image number is   
+%    number = 0;
+%    countNum = 0;
+%    while ~isnan(number) & (countNum < 2)
+%       countNum = countNum + 1;
+%       number = str2num(firstImageFile(end-(4+countNum):end-4));
+%    end
+%    firstImage = number
+%
+%   ...BY THIS
+    [path,bodyName,no,ext] = getFilenameBody(char(imageNameList(1)));
+    firstImage = str2double(no);
+            
     % Calculate the image range
     imageRange = length(dirList);
 
