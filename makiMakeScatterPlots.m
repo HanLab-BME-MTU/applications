@@ -1,8 +1,8 @@
-function [couplingCoef,lineFit] = makiMakeScatterPlots(jobType,analysisStruct,...
-    analysisStructA,distingPhase)
+function [couplingCoef,lineFit,lineFitDS] = makiMakeScatterPlots(jobType,analysisStruct,...
+    analysisStructA,distingPhase,downSampleSize)
 %MAKIMAKESCATTERPLOTS generates scatter plots of various kinetochore motion parameters
 %
-%SYNOPSIS [couplingCoef,lineFit] = makiMakeScatterPlots(jobType,analysisStruct,...
+%SYNOPSIS [couplingCoef,lineFit,lineFitDS] = makiMakeScatterPlots(jobType,analysisStruct,...
 %    analysisStructA,distingPhase)
 %
 %INPUT  jobType: string which can take the values:
@@ -19,9 +19,13 @@ function [couplingCoef,lineFit] = makiMakeScatterPlots(jobType,analysisStruct,..
 %       analysisStructA: Same as analysisStruct but for movies that enter
 %                        anaphase. Optional. Default: [].
 %       distingPhase: 1 to distinguish between pre-anaphase phases, 0
-%                     otherwise. Optional. default: 1.
+%                     otherwise. Optional. Default: 1.
+%       downSampleSize: N to downsample data to N movies, 0 to use the
+%                       whole dataset. Optional. Default: 0.
 %
-%OUTPUT couplingCoef: Coupling coefficients for the different variables
+%OUTPUT couplingCoef: Coupling coefficients for the different variables.
+%       lineFit     : 1- and 2-line fits for the different variables.
+%       lineFitDS   : 1- and 2-line fits with down-sampling (if requested).
 %
 %REMARKS Code assumes 7.5-sec sampling
 %
@@ -34,6 +38,10 @@ end
 
 if nargin < 4 || isempty(distingPhase)
     distingPhase = 1;
+end
+
+if nargin < 5 || isempty(downSampleSize)
+    downSampleSize = 0;
 end
 
 %convert file paths in analysisStruct from identifier to real path
@@ -250,6 +258,33 @@ lineFit.spreadAngleStd = fit1Line2Lines(plateStdAll(indxKeep),angleNormStdAll(in
 indxKeep = find(~isnan(plateStdAll) & ~isnan(angVelMeanAll) & plateStdAll~=0 & angVelMeanAll~=0);
 lineFit.spreadAngVel = fit1Line2Lines(plateStdAll(indxKeep),angVelMeanAll(indxKeep),0.3);
 
+%down sample if requested (20 times) and do the line fit
+numObs = length(plateStdAll);
+lineFitDS = [];
+if downSampleSize ~= 0 && downSampleSize < numObs
+    for iSample = 100 : -1 : 1
+
+        randIndx = randsample(numObs,downSampleSize);
+        lineFitDS(iSample).spreadDisp = fit1Line2Lines(plateStdAll(randIndx),...
+            dispStdAll(randIndx),0.3);
+        lineFitDS(iSample).spreadSep = fit1Line2Lines(plateStdAll(randIndx),...
+            sepMeanAll(randIndx),0.3);
+        lineFitDS(iSample).spreadSepChange = fit1Line2Lines(plateStdAll(randIndx),...
+            sepChangeStdAll(randIndx),0.3);
+        lineFitDS(iSample).spreadCenterDispInt = fit1Line2Lines(plateStdAll(randIndx),...
+            centerDispIntMeanAll(randIndx),0.3);
+        lineFitDS(iSample).spreadProdDT = fit1Line2Lines(plateStdAll(randIndx),...
+            prodDispTimeAll(randIndx),0.3);
+        lineFitDS(iSample).spreadAngle = fit1Line2Lines(plateStdAll(randIndx),...
+            angleNormMeanAll(randIndx),0.3);
+        lineFitDS(iSample).spreadAngleStd = fit1Line2Lines(plateStdAll(randIndx),...
+            angleNormStdAll(randIndx),0.3);
+        lineFitDS(iSample).spreadAngVel = fit1Line2Lines(plateStdAll(randIndx),...
+            angVelMeanAll(randIndx),0.3);
+
+    end
+end
+
 %calculate overall coupling coefficient
 couplingCoef.all.spreadDisp = crossCorr(plateStdAll,dispStdAll,0);
 couplingCoef.all.spreadSep = crossCorr(plateStdAll,sepMeanAll,0);
@@ -353,9 +388,17 @@ plot(plateStdM(mIndx),dispStdM(mIndx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.4784 0.06275 0.8941]);
 if ~isempty(analysisStructA)
     plot(plateStdA,dispStdA,'rx','LineWidth',1,'MarkerSize',15);
-    legend('LPM near','LPM far','M','A')
+    if distingPhase
+        legend('LPM near','LPM far','M','A')
+    else
+        legend('M & LPM','A')
+    end
 else
-    legend('LPM near','LPM far','M')
+    if distingPhase
+        legend('LPM near','LPM far','M')
+    else
+        legend('M & LPM')
+    end
 end
 xlabel('Center position std (um)');
 ylabel('Center displacement std (um)');
@@ -381,9 +424,17 @@ plot(plateStdM(mIndx),sepMeanM(mIndx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.4784 0.06275 0.8941]);
 if ~isempty(analysisStructA)
     plot(plateStdA,sepMeanA,'rx','LineWidth',1,'MarkerSize',15);
-    legend('LPM near','LPM far','M','A')
+    if distingPhase
+        legend('LPM near','LPM far','M','A')
+    else
+        legend('M & LPM','A')
+    end
 else
-    legend('LPM near','LPM far','M')
+    if distingPhase
+        legend('LPM near','LPM far','M')
+    else
+        legend('M & LPM')
+    end
 end
 xlabel('Center position std (um)');
 ylabel('Sister separation mean (um)');
@@ -409,9 +460,17 @@ plot(plateStdM(mIndx),sepChangeStdM(mIndx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.4784 0.06275 0.8941]);
 if ~isempty(analysisStructA)
     plot(plateStdA,sepChangeStdA,'rx','LineWidth',1,'MarkerSize',15);
-    legend('LPM near','LPM far','M','A')
+    if distingPhase
+        legend('LPM near','LPM far','M','A')
+    else
+        legend('M & LPM','A')
+    end
 else
-    legend('LPM near','LPM far','M')
+    if distingPhase
+        legend('LPM near','LPM far','M')
+    else
+        legend('M & LPM')
+    end
 end
 xlabel('Center position std (um)');
 ylabel('Sister separation change std (um)');
@@ -437,9 +496,17 @@ plot(plateStdM(mIndx),centerDispIntMeanM(mIndx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.4784 0.06275 0.8941]);
 if ~isempty(analysisStructA)
     plot(plateStdA,centerDispIntMeanA,'rx','LineWidth',1,'MarkerSize',15);
-    legend('LPM near','LPM far','M','A')
+    if distingPhase
+        legend('LPM near','LPM far','M','A')
+    else
+        legend('M & LPM','A')
+    end
 else
-    legend('LPM near','LPM far','M')
+    if distingPhase
+        legend('LPM near','LPM far','M')
+    else
+        legend('M & LPM')
+    end
 end
 xlabel('Center position std (um)');
 ylabel('Center displacement switching time (s)');
@@ -465,9 +532,17 @@ plot(plateStdM(mIndx),prodDispTimeM(mIndx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.4784 0.06275 0.8941]);
 if ~isempty(analysisStructA)
     plot(plateStdA,prodDispTimeA,'rx','LineWidth',1,'MarkerSize',15);
-    legend('LPM near','LPM far','M','A')
+    if distingPhase
+        legend('LPM near','LPM far','M','A')
+    else
+        legend('M & LPM','A')
+    end
 else
-    legend('LPM near','LPM far','M')
+    if distingPhase
+        legend('LPM near','LPM far','M')
+    else
+        legend('M & LPM')
+    end
 end
 xlabel('Center position std (um)');
 ylabel('Center displacement x switching time (um)');
@@ -493,9 +568,17 @@ plot(plateStdM(mIndx),angleNormMeanM(mIndx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.4784 0.06275 0.8941]);
 if ~isempty(analysisStructA)
     plot(plateStdA,angleNormMeanA,'rx','LineWidth',1,'MarkerSize',15);
-    legend('LPM near','LPM far','M','A')
+    if distingPhase
+        legend('LPM near','LPM far','M','A')
+    else
+        legend('M & LPM','A')
+    end
 else
-    legend('LPM near','LPM far','M')
+    if distingPhase
+        legend('LPM near','LPM far','M')
+    else
+        legend('M & LPM')
+    end
 end
 xlabel('Center position std (um)');
 ylabel('Mean angle with normal (degrees)');
@@ -521,9 +604,17 @@ plot(plateStdM(mIndx),angleNormStdM(mIndx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.4784 0.06275 0.8941]);
 if ~isempty(analysisStructA)
     plot(plateStdA,angleNormStdA,'rx','LineWidth',1,'MarkerSize',15);
-    legend('LPM near','LPM far','M','A')
+    if distingPhase
+        legend('LPM near','LPM far','M','A')
+    else
+        legend('M & LPM','A')
+    end
 else
-    legend('LPM near','LPM far','M')
+    if distingPhase
+        legend('LPM near','LPM far','M')
+    else
+        legend('M & LPM')
+    end
 end
 xlabel('Center position std (um)');
 ylabel('Standard deviation of angle with normal (degrees)');
@@ -549,9 +640,17 @@ plot(plateStdM(mIndx),angVelMeanM(mIndx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.4784 0.06275 0.8941]);
 if ~isempty(analysisStructA)
     plot(plateStdA,angVelMeanA,'rx','LineWidth',1,'MarkerSize',15);
-    legend('LPM near','LPM far','M','A')
+    if distingPhase
+        legend('LPM near','LPM far','M','A')
+    else
+        legend('M & LPM','A')
+    end
 else
-    legend('LPM near','LPM far','M')
+    if distingPhase
+        legend('LPM near','LPM far','M')
+    else
+        legend('M & LPM')
+    end
 end
 xlabel('Center position std (um)');
 ylabel('Angular displacement (degrees)');

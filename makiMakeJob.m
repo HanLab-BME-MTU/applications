@@ -550,14 +550,24 @@ if isfield(dataPropertiesTmp,'tracksParam') %if tracksParam have been assigned p
         timeWindowTmp = timeWindow_def;
     end
     if isfield(tracksParamTmp,'costMatParam')
-        minRadiusTmp = [tracksParamTmp.costMatParam.minSearchRadiusL minRadius_def(2:3)];
-        maxRadiusTmp = [tracksParamTmp.costMatParam.maxSearchRadiusL maxRadius_def(2:3)];
+        minRadiusTmp = tracksParamTmp.costMatParam.minSearchRadiusL;
+        maxRadiusTmp = tracksParamTmp.costMatParam.maxSearchRadiusL;
     elseif isfield(tracksParamTmp,'costMatrices')
-        minRadiusTmp = [tracksParamTmp.costMatrices(1).parameters.minSearchRadius minRadius_def(2:3)];
-        maxRadiusTmp = [tracksParamTmp.costMatrices(1).parameters.maxSearchRadius maxRadius_def(2:3)];
+        minRadiusTmp = tracksParamTmp.costMatrices(1).parameters.minSearchRadius;
+        maxRadiusTmp = tracksParamTmp.costMatrices(1).parameters.maxSearchRadius;
     else
         minRadiusTmp = minRadius_def;
         maxRadiusTmp = maxRadius_def;
+    end
+    if length(minRadiusTmp) == 1
+        minRadiusTmp = [minRadiusTmp minRadius_def(2:3)];
+    elseif length(minRadiusTmp) > 3
+        minRadiusTmp = minRadiusTmp(1:3);
+    end
+    if length(maxRadiusTmp) == 1
+        maxRadiusTmp = [maxRadiusTmp maxRadius_def(2:3)];
+    elseif length(maxRadiusTmp) > 3
+        maxRadiusTmp = maxRadiusTmp(1:3);
     end
 else %if this is the first time
     rotateTmp = rotate_def;

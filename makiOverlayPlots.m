@@ -15,8 +15,8 @@ if nargin < 3 || isempty(plotConfidence)
 end
 
 if nargin < 4 || isempty(colorArray)
-    if nStrucs <= 8
-        colorArray = ['k' 'r' 'b' 'c' 'm' 'g' 'y' 'w']';
+    if nStrucs <= 7
+        colorArray = ['k' 'r' 'b' 'c' 'm' 'g' 'y']';
     else
         colorArray = rand(nStrucs,3);
     end

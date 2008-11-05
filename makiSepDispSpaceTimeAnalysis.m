@@ -810,8 +810,8 @@ for iLabel = 1 : 3
     eval(['separationParam' label{iLabel,1} ' = [];'])
     eval(['sepChangeParam' label{iLabel,1} ' = [];'])
 
-    eval(['separationIndParam' label{iLabel,1} ' = [];'])
-    eval(['sepChangeIndParam' label{iLabel,1} ' = [];'])
+    eval(['separationIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['sepChangeIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     
     eval(['separationMovAvParam' label{iLabel,1} ' = [];'])
     eval(['sepChangeMovAvParam' label{iLabel,1} ' = [];'])
@@ -825,8 +825,8 @@ for iLabel = 1 : 3
     eval(['sepPChangeIntervalParam' label{iLabel,1} ' = [];'])
     eval(['sepNChangeIntervalParam' label{iLabel,1} ' = [];'])
    
-    eval(['sepPChangeIntervalIndParam' label{iLabel,1} ' = [];'])
-    eval(['sepNChangeIntervalIndParam' label{iLabel,1} ' = [];'])
+    eval(['sepPChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['sepNChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
    
 end
 
@@ -1028,8 +1028,8 @@ for iLabel = 1 : 3
     eval(['centerPosParam' label{iLabel,1} ' = [];'])
     eval(['centerPosChangeParam' label{iLabel,1} ' = [];'])
 
-    eval(['centerPosIndParam' label{iLabel,1} ' = [];'])
-    eval(['centerPosChangeIndParam' label{iLabel,1} ' = [];'])
+    eval(['centerPosIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['centerPosChangeIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     
     eval(['centerPosMovAvParam' label{iLabel,1} ' = [];'])
     eval(['centerPosChangeMovAvParam' label{iLabel,1} ' = [];'])
@@ -1043,8 +1043,8 @@ for iLabel = 1 : 3
     eval(['centerPosPChangeIntervalParam' label{iLabel,1} ' = [];'])
     eval(['centerPosNChangeIntervalParam' label{iLabel,1} ' = [];'])
    
-    eval(['centerPosPChangeIntervalIndParam' label{iLabel,1} ' = [];'])
-    eval(['centerPosNChangeIntervalIndParam' label{iLabel,1} ' = [];'])
+    eval(['centerPosPChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['centerPosNChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
    
 end
 
@@ -1281,8 +1281,8 @@ for iLabel = 1 : 3
     eval(['kinPosParam' label{iLabel,1} ' = [];'])
     eval(['kinPosChangeParam' label{iLabel,1} ' = [];'])
 
-    eval(['kinPosIndParam' label{iLabel,1} ' = [];'])
-    eval(['kinPosChangeIndParam' label{iLabel,1} ' = [];'])
+    eval(['kinPosIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['kinPosChangeIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     
     eval(['kinPosMovAvParam' label{iLabel,1} ' = [];'])
     eval(['kinPosChangeMovAvParam' label{iLabel,1} ' = [];'])
@@ -1296,8 +1296,8 @@ for iLabel = 1 : 3
     eval(['kinPosPChangeIntervalParam' label{iLabel,1} ' = [];'])
     eval(['kinPosNChangeIntervalParam' label{iLabel,1} ' = [];'])
    
-    eval(['kinPosPChangeIntervalIndParam' label{iLabel,1} ' = [];'])
-    eval(['kinPosNChangeIntervalIndParam' label{iLabel,1} ' = [];'])
+    eval(['kinPosPChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['kinPosNChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
    
 end
 
