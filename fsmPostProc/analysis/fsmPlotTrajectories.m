@@ -165,25 +165,12 @@ if method==1
         Mo=M(:,:,i);
         Mv=Mo(find(Mo(:,1)~=0 & Mo(:,3)~=0),:);
         
-        % Check for MATLAB version - quiver 7.0 is no longer compatible
-        v=ver('MATLAB');
-        pointPos=findstr(v.Version,'.');
-        if ~isempty(pointPos)
-            v.Version=v.Version(1:pointPos(1)+1);
-        end
-        
-        %Plot arrows
-        if str2num(v.Version)<7
-            h=quiver(Mv(:,2),Mv(:,1),Mv(:,4)-Mv(:,2),Mv(:,3)-Mv(:,1),0);
-        else
-            h=quiver('v6',Mv(:,2),Mv(:,1),Mv(:,4)-Mv(:,2),Mv(:,3)-Mv(:,1),0);
-        end
+        h=quiver(Mv(:,2),Mv(:,1),Mv(:,4)-Mv(:,2),Mv(:,3)-Mv(:,1),0);
+
         if colorCode==1
-            set(h(1),'Color',cmap(cmapIndex,:)); set(h(1),'LineWidth',1);
-            set(h(2),'Color',cmap(cmapIndex,:)); set(h(1),'LineWidth',1);
+            set(h,'Color',cmap(cmapIndex,:)); set(h,'LineWidth',1);
         else
-            set(h(1),'Color','red');
-            set(h(2),'Color','red');
+            set(h,'Color','red');
         end
         
     end 
