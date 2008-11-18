@@ -304,7 +304,8 @@ end
 
 switch movieType
     case 1
-        minGood = 25*nTimepoints;
+        % note: ask only for spots in good frames
+        minGood = 20*length(goodTimes);
         if sum(allCoord(:,8)>cutoff(3)) > minGood
             cutoffIdx = 3;
             cutoffCol = 8;
