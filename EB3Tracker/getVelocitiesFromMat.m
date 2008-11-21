@@ -12,9 +12,6 @@ function [trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFro
 % OUTPUT: trackedFeatureInfoInterp : same size as trackedFeatureInfo but
 %                                    has gaps filled in with interpolated
 %                                    positions
-%         perFrameVelocities       : nTracks x nFrames-1 matrix where entry
-%                                    ij contains the velocity of the ith
-%                                    microtubule between the j and j+1 frames
 %         trackInfo                : nTrack x 1 structure with the
 %                                    following fields:
 %                                    .seg (segment)
@@ -24,6 +21,20 @@ function [trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFro
 %                                    each field is an nSeg(nGap) x 4 matrix
 %                                    containing the track number, start
 %                                    frame, end frame, and average velocity
+%         trackVelocities          : structure with fields .frame2frame and
+%                                    segmentAvgs, where each is an 
+%                                    nTracks x nFrames-1 matrix where entry
+%                                    ij contains the velocity of the ith
+%                                    microtubule between the j and j+1
+%                                    frames. the former gives instantaneous
+%                                    velocities whereas the latter gives
+%                                    averages over the whole segment
+
+
+if isstruct(trackedFeatureInfo)
+    [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(trackedFeatureInfo);
+    clear trackedFeatureIndx
+end
 
 
 % since we need a few frames to calculate segment directions for the dot
@@ -55,7 +66,7 @@ for iTrack=1:nTracks
 
     % find start/end frames for each segment of the track
     trackIdx = find(~isnan(px));
-    temp=(diff(~isnan(px)));
+    temp = diff(~isnan(px));
     trackStarts = unique([trackIdx(1) find(temp == 1)+1]);
     trackEnds   = unique([trackIdx(end) find(temp == -1)]);
     trackLengths = trackEnds - trackStarts + 1;

@@ -128,7 +128,7 @@ for i=1:length(imageDirList) % iterate through projects
 
         % iterate til the user is finished or just copy if not choosing roi
         while makeNewROI==1 && roiCount<10
-            try
+            % try
                 % make new roi_n image/analysis directories
                 currentRoiImDir=[runInfo(i,1).roiDir filesep 'roi_' num2str(roiCount) filesep 'roi_images'];
                 mkdir(currentRoiImDir);
@@ -153,11 +153,13 @@ for i=1:length(imageDirList) % iterate through projects
                     croppedRoi=imcrop(roiMask,[xmin ymin width height]);
                 else
                     % make the ROI the whole image
-                    roiMask=ones(size(img));
+                    [imL,imW]=size(img);
+                    roiMask=logical(ones(imL,imW));
                     croppedRoi=roiMask;
+                    roiCoords=[1 1; imL 1; imL imW; 1 imW; 1 1];
                 end
 
-                % save original and croppsed roiMask
+                % save original and cropped roiMask
                 imwrite(roiMask,[currentRoiAnDir filesep 'roiMask.tif']);
                 imwrite(croppedRoi,[currentRoiAnDir filesep 'roiMask_cropped.tif']);
                 save([currentRoiAnDir filesep 'roiCoords'],'roiCoords');
@@ -194,9 +196,9 @@ for i=1:length(imageDirList) % iterate through projects
                 end
 
                 subProjCount=subProjCount+1; % counter for all conditions in top directory
-            catch
+            %catch
                 % try again if you make a mistake
-            end
+            %end
         end
 
     elseif alreadyDoneFlag==1
