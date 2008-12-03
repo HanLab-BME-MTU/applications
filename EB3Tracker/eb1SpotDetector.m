@@ -34,8 +34,8 @@ elseif isequal(unique(size(frameRange)),[1 2])
         startFrame = frameRange(1);
         endFrame = frameRange(2);
     else
-       startFrame = 1;
-    endFrame = nImTot;
+        startFrame = 1;
+        endFrame = nImTot;
     end
 
 else
@@ -53,6 +53,7 @@ maxIntensity = max(img(:));
 if nargin < 3 || isempty(bitDepth)
     imgData = imfinfo(fileNameIm);
     bitDepth = imgData.BitDepth;
+    disp(['bitDepth estimated to be' bitDepth])
 end
 
 % check bit depth to make sure it is 12, 14, or 16 and that its dynamic
@@ -79,20 +80,23 @@ if overwriteData == 1
     end
 end
 if ~isdir(featDir)
-    mkdir([featDir filesep 'featureInfo']);
+    mkdir(featDir)
+end
+if savePlots==1 && ~isdir([featDir filesep 'overlayImages'])
     mkdir([featDir filesep 'overlayImages']);
 end
 
+
 % look for region of interest info from project setup step
-if ~exist([runInfo.anDir filesep 'roiMask_cropped.tif'])
+if ~exist([runInfo.anDir filesep 'roiMask.tif'])
     % not roi selected; use the whole image
     roiMask = ones(imL,imW);
-    edgePix = [];
+    roiCoords=[1 1; imL 1; imL imW; 1 imW; 1 1];
 else
     % get roi edge pixels and make region outside mask NaN
-    roiMask = double(imread([runInfo.anDir filesep 'roiMask_cropped.tif']));
-    polyEdge = bwmorph(roiMask,'remove');
-    edgePix = find(polyEdge);
+    roiMask = double(imread([runInfo.anDir filesep 'roiMask.tif']));
+    roiCoords=load([runInfo.anDir filesep 'roiCoords']);
+    roiCoords=roiCoords.roiCoords;
 end
 
 % string for sigma in gauss filtered
@@ -120,7 +124,7 @@ movieInfo(nFrames,1).int = 0;
 
 % loop thru frames and detect
 for i = startFrame:endFrame
-    
+
     if i==startFrame
         tic
     end
@@ -144,7 +148,7 @@ for i = startFrame:endFrame
 
         % cut postive component of histogram; make below that nan
         filterDiff(filterDiff<0) = nan;
-        [cutoffInd, cutOffValueInitInt] = cutFirstHistMode(filterDiff(:),1);
+        [cutoffInd, cutOffValueInitInt] = cutFirstHistMode(filterDiff(:),0);
         noiseFloor = 1.0 * cutOffValueInitInt;
         filterDiff(filterDiff<noiseFloor) = nan;
 
@@ -154,7 +158,7 @@ for i = startFrame:endFrame
 
         % we assume each step size down the intensity profile should be on
         % the order of the size of the noise level; here we find how many
-        % steps we need and what their spacing should be 
+        % steps we need and what their spacing should be
         nSteps = round((maxFiltDiff-minFiltDiff)/(noiseFloor));
         threshList = linspace(maxFiltDiff,minFiltDiff,nSteps);
 
@@ -192,21 +196,21 @@ for i = startFrame:endFrame
         featMap2 = bwlabel(slice2);
         featProp2 = regionprops(featMap2,filterDiff,'PixelIdxList','Area','MaxIntensity');
         [cutoffInd, cutoffValueArea] = cutFirstHistMode(vertcat(featProp2(:,1).Area),0);
-        
-        
-%         % fill label matrix with area value
-%         areaLabel = zeros(imL,imW);
-%         for iFeat = 1:max(featMap2(:))
-%             pixIdx = featProp2(iFeat,1).PixelIdxList;
-%             areaLabel(pixIdx) = featProp2(iFeat,1).Area;
-%         end
-%         figure(1); hist(vertcat(featProp2(:,1).Area),100)
-%         figure(2); hist(vertcat(featProp2(:,1).MaxIntensity),100)
-%         figure(3); imshow(featMap2>0,[])
-%         figure(4); imshow(areaLabel>0,[])
-%         figure(5); imshow(areaLabel>20 & areaLabel<80,[])        
-        
-        
+
+
+        %         % fill label matrix with area value
+        %         areaLabel = zeros(imL,imW);
+        %         for iFeat = 1:max(featMap2(:))
+        %             pixIdx = featProp2(iFeat,1).PixelIdxList;
+        %             areaLabel(pixIdx) = featProp2(iFeat,1).Area;
+        %         end
+        %         figure(1); hist(vertcat(featProp2(:,1).Area),100)
+        %         figure(2); hist(vertcat(featProp2(:,1).MaxIntensity),100)
+        %         figure(3); imshow(featMap2>0,[])
+        %         figure(4); imshow(areaLabel>0,[])
+        %         figure(5); imshow(areaLabel>20 & areaLabel<80,[])
+
+
         % here we sort through features and retain only the "good" ones
         % we assume the good features have area > cutoffValueArea pixels
         % also good features have a max intensity > 2*cutoff
@@ -257,48 +261,50 @@ for i = startFrame:endFrame
         movieInfo(i,1).amp = amp;
         movieInfo(i,1).int = featI;
 
-        if i==1
-            tm = toc;
-            expectedTime = (tm*nFrames)/60; % in minutes
-            disp(['first frame took ' num2str(tm) ' seconds; ' num2str(nFrames) ' frames will take ' num2str(expectedTime) ' minutes.'])
-        end
-            indxStr1 = sprintf(strg1,gaussSigma(sig)); % gaussSigma
-            %indxStr2 = sprintf(strg2,lowCutPercent);   % percentMaximum
-            indxStr3 = sprintf(strg3,i);               % frame
-            
-            save([featDir filesep 'featureInfo' filesep 'featPropFinal' indxStr3],'featPropFinal');
-            
+
+        indxStr1 = sprintf(strg1,gaussSigma(sig)); % gaussSigma
+        %indxStr2 = sprintf(strg2,lowCutPercent);   % percentMaximum
+        indxStr3 = sprintf(strg3,i);               % frame
+
+        %save([featDir filesep 'featureInfo' filesep 'featPropFinal' indxStr3],'featPropFinal');
+
         if savePlots==1
             % use extrema to draw polygon around feats - here we get
             % coordinates for polygon
-%             outline = [featPropFinal.Extrema]; outline = [outline; outline(1,:)];
-%             outlineX = outline(:,1:2:size(outline,2));
-%             outlineY = outline(:,2:2:size(outline,2));
+            %             outline = [featPropFinal.Extrema]; outline = [outline; outline(1,:)];
+            %             outlineX = outline(:,1:2:size(outline,2));
+            %             outlineY = outline(:,2:2:size(outline,2));
 
-            
+
 
             %plot feat outlines and centroid on image
             figure(1);
-            im2show = (lowPass-nanmin(lowPass(:)))./(nanmax(lowPass(:))-nanmin(lowPass(:))); % image for overlay
-            im2show(edgePix) = 1; % ROI in white
-            imshow(im2show,[],'Border','tight');
+            imagesc(img);
             hold on
             scatter(xCoord(:,1),yCoord(:,1),'c.'); % plot centroid in cyan
+            colormap gray
+            plot(roiCoords(2),roiCoords(1),'w')
             %plot(outlineX,outlineY,'r'); % plot feat outlines in red
-           
+
             saveas(gcf,[featDir filesep 'overlayImages' filesep 'overlay_g' indxStr1 '_f' indxStr3 '.tif']);
             %saveas(gcf,[featDir filesep 'overlay' filesep 'overlay_g' indxStr1 '_f' indxStr3])
-            
-%             % save image of colored feats
-%             RGB = label2rgb(featMapFinal, 'jet', 'k','shuffle');
-%             figure(2);
-%             imshow(RGB,'Border','tight');
-% 
-%             save([featDir filesep 'featMaps' filesep 'feats_g' indxStr1 '_f' indxStr3], 'featMapFinal');
-%             saveas(gcf,[featDir filesep 'featMaps' filesep 'feats_g' indxStr1 '_f' indxStr3 '.tif']);
+
+            %             % save image of colored feats
+            %             RGB = label2rgb(featMapFinal, 'jet', 'k','shuffle');
+            %             figure(2);
+            %             imshow(RGB,'Border','tight');
+            %
+            %             save([featDir filesep 'featMaps' filesep 'feats_g' indxStr1 '_f' indxStr3], 'featMapFinal');
+            %             saveas(gcf,[featDir filesep 'featMaps' filesep 'feats_g' indxStr1 '_f' indxStr3 '.tif']);
 
         end
 
+    end
+
+    if i==1
+        tm = toc;
+        expectedTime = (tm*nFrames)/60; % in minutes
+        disp(['first frame took ' num2str(tm) ' seconds; ' num2str(nFrames) ' frames will take ' num2str(expectedTime) ' minutes.'])
     end
 
 end

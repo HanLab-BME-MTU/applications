@@ -10,26 +10,25 @@ if isempty(runInfo)
     if showTracks==1 || showDetect==1
         cd(runInfo.imDir)
         cd ..
-        cd 'roi_analysis'
-        cd feat
+        cd 'roi_1'
     end
     if showTracks==1
-        load testTrack050
+        load testTrack
     end
     if showDetect==1
-        load movieInfo
+        load(['feat' filesep 'movieInfo'])
     else
         movieInfo=[];
     end
 else
     if showTracks==1 || showDetect==1
-        cd([runInfo.anDir filesep 'feat'])
+        cd(runInfo.anDir)
     end
     if showTracks==1
-        load testTrack050_2
+        load testTrack
     end
     if showDetect==1
-        load movieInfo
+        load(['feat' filesep 'movieInfo'])
     else
         movieInfo=[];
     end

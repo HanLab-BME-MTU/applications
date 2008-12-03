@@ -1,0 +1,128 @@
+function setupRoiDirectories(selectROI,overwriteROIs)
+% SETUPDIRECTORIES does quick roi directory creation for movie batch
+%
+% DESCRIPTION: setupDirectories searches a user-selected, top-level
+% directory for every sub-directory called /images, where presumably the
+% original data for a movie resides.
+%
+% The function then creates 1-9 new directories at the same level
+% called roi_1,...,roi_9, depending on how many ROIs the user selects.
+%
+% The user can either overwrite or retain roi directories that have
+% already been created; in this way you can add more data and not undo
+% previous analysis.
+%
+% INPUT:
+%
+% selectROI    : 1 if the user wants to select regions of interest (up to 9)
+%                per image directory found in the user-selected top-level
+%                directory; (0) if not (note: in this case, a roi_1
+%                directory will be created and the roi will be the whole image)
+% overwriteROIs: (1) if projects that have already had rois should
+%                be overwritten; 0 if they should be preserved.
+%
+%
+% OUTPUT:
+%
+% roiMask      : tif the size of the raw images containing the roiMask;
+%                this gets saved in the roi_n folder
+% roiCoords    : corresponding xy-coordinates of the roi
+%
+% Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
+
+if nargin<2 || isempty(overwriteROIs) || (overwriteROIs~=0 && overwriteROIs~=1)
+    overwriteROIs=0;
+end
+if overwriteROIs==1
+    reply=input('You chose to overwrite any existing ROI data and analysis. Is this correct? y/n [n]: ','s');
+else
+    reply='n';
+end
+if lower(reply)~='y'
+    overwriteROIs=0;
+end
+
+
+if nargin<1 || isempty(selectROI) || (selectROI~=0 && selectROI~=1)
+    selectROI=0;
+end
+
+
+topDir=uigetdir(pwd,'Please select top-level directory containing targets');
+p=genpath(topDir);
+tempDirList=strrep(p,';',' ');
+[imageDirList] = regexp(tempDirList,'\S*\\images\s','match')'; % cell array of "images" directories
+[roiDirList] = regexp(tempDirList,'\S*\\roi_\S','match')';     % cell array of "roi_x" directories
+
+% if we should overwrite ROI data, remove it
+if overwriteROIs==1 && ~isempty(roiDirList)
+    for i=1:length(roiDirList)
+        rmdir(roiDirList,'s');
+    end
+end
+
+
+for i=1:length(imageDirList) % iterate through projects
+
+    % define image and roi directories
+    imDir=imageDirList{i,1}(1:end-1);
+    roiDir=[imDir(1:end-7) filesep 'roi'];
+
+    % check for existence of rois directory; make dir if needed
+    if ~isdir([roiDir '_1'])
+        % get list and number of images
+        [listOfImages]=searchFiles('.tif',[],imDir,0);
+
+        % read first image
+        img=double(imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))]));
+        img=(img-min(img(:)))./(max(img(:))-min(img(:)));
+        roiCount=1; % counter for rois for current project
+        makeNewROI=1; % flag for making new roi
+
+        % iterate til the user is finished
+        while makeNewROI==1 && roiCount<10
+                % make new roi_n image/analysis directories
+                currentRoiAnDir=[roiDir '_' num2str(roiCount)];
+                mkdir(currentRoiAnDir);
+                
+                if selectROI==1
+                    roiMask=[];
+                    while isempty(roiMask)
+                        try
+                            % draw polygon to make mask
+                            [roiMask,polyXcoord,polyYcoord]=roipoly(img);
+                        catch
+                            disp('Please try again.')
+                        end
+                    end
+                    close
+                    roiMask=logical(roiMask);
+                    roiCoords=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
+                else
+                    % make the ROI the whole image
+                    [imL,imW]=size(img);
+                    roiMask=logical(ones(imL,imW));
+                    roiCoords=[1 1; imL 1; imL imW; 1 imW; 1 1];
+                end
+
+                % save original and cropped roiMask
+                imwrite(roiMask,[currentRoiAnDir filesep 'roiMask.tif']);
+                save([currentRoiAnDir filesep 'roiCoords'],'roiCoords');
+
+                if selectROI==1
+                    reply=input('Do you want to select another ROI? y/n [n]: ','s');
+                else
+                    reply='n';
+                end
+                if lower(reply)=='y'
+                    makeNewROI=1; % user said yes; make another one
+                    roiCount=roiCount+1; % counter for current condition rois
+                else
+                    makeNewROI=0; % assume no; we're done
+                end
+        end % while makeNewROI==1 && roiCount<10
+    end % if there's no roi_1 directory
+end % iterate through projects
+
+
+
