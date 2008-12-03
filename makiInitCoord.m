@@ -306,17 +306,20 @@ switch movieType
     case 1
         % note: ask only for spots in good frames
         minGood = 20*length(goodTimes);
-        if sum(allCoord(:,8)>cutoff(3)) > minGood
+        n3 = sum(allCoord(:,8)>cutoff(3));
+        n2 = sum(allCoord(:,7)>cutoff(2));
+        n1 = sum(allCoord(:,4)>cutoff(1));
+        if n3 > minGood
             cutoffIdx = 3;
             cutoffCol = 8;
-        elseif sum(allCoord(:,7)>cutoff(2)) > minGood
+        elseif n2 > minGood
             cutoffIdx = 2;
             cutoffCol = 7;
-        elseif sum(allCoord(:,4)>cutoff(1)) > minGood
+        elseif n1 > minGood
             cutoffIdx = 1;
             cutoffCol = 4;
         else
-            error('less than 25 spots per frame found. makiInitCoord failed')
+            error('less than 20 spots per frame found. makiInitCoord failed')
         end
 
     case 2
@@ -435,6 +438,13 @@ for t=goodTimes
     twoBelow = find(initCoordRaw{t}(:,cutoffCol) < cutoff(cutoffIdx),2,'first');
     dataStruct.initCoord(t).data4MMF = ...
         initCoordRaw{t}([twoAbove;twoBelow],1:3);
+end
+
+% save cutoff info
+if dataObject
+    dataStruct.initCoord(1).cutoff.co = cutoff;
+    dataStruct.initCoord(1).cutoff.sel = [cutoffIdx,cutoffCol];
+    dataStruct.initCoord(1).cutoff.n = [n1,n2,n3];
 end
 
 % % code to determine optimal amplitude cutoff
