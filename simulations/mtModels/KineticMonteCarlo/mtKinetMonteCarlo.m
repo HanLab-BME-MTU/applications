@@ -30,6 +30,8 @@ function [traj, stateIndex, errFlag] = mtKinetMonteCarlo(model, initLen,...
 %
 % Pei-hsin Hsu, December 2008
 
+errFlag = 0;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Check input. Initialize output
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -42,7 +44,6 @@ end
 
 traj(1, :) = [0, initLen];
 stateIndex(1) = 1;
-errFlag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Kinetic Monte Carlo simulation
