@@ -8,7 +8,6 @@ function [projList]=getProj(varargin)
 % projList: structure containing image and analysis directories for each
 % sub-project fitting the query. this is saved in the top-level directory
 
-
 if ~isempty(varargin)
     inputStrings=cellfun(@(y) ischar(y), varargin);
     if sum(inputStrings)~=nargin
@@ -19,7 +18,7 @@ end
 topDir=uigetdir(pwd,'Please select top-level directory containing targets');
 p=genpath(topDir);
 tempDirList=strrep(p,';',' ');
-roiDirList = regexp(tempDirList,'\S*\\roi_\S','match')'; % cell array of "roi_x" directories
+roiDirList = regexp(tempDirList,'\S*\\roi_\d\s','match')'; % cell array of "roi_x" directories
 
 temp=ones(length(roiDirList),1);
 for i=1:nargin
@@ -30,8 +29,9 @@ end
 matches=find(temp);
 for i=1:length(matches)
     roiDir=roiDirList{matches(i),1};
-    projList(i,1).imDir=[roiDir(1:end-5) 'images'];
-    projList(i,1).anDir=roiDir;
+    projList(i,1).imDir=[roiDir(1:end-6) 'images'];
+    projList(i,1).anDir=roiDir(1:end-1);
 end
 
 save([topDir filesep 'projList'],'projList')
+

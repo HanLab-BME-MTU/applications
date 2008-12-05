@@ -52,7 +52,8 @@ topDir=uigetdir(pwd,'Please select top-level directory containing targets');
 p=genpath(topDir);
 tempDirList=strrep(p,';',' ');
 [imageDirList] = regexp(tempDirList,'\S*\\images\s','match')'; % cell array of "images" directories
-[roiDirList] = regexp(tempDirList,'\S*\\roi_\S','match')';     % cell array of "roi_x" directories
+roiDirList = regexp(tempDirList,'\S*\\roi_\d\s','match')'; % cell array of "roi_x" directories
+
 
 % if we should overwrite ROI data, remove it
 if overwriteROIs==1 && ~isempty(roiDirList)

@@ -184,6 +184,20 @@ fgaps=(vertcat(trackInfo.fgap));
 bgaps=(vertcat(trackInfo.bgap));
 ugaps=(vertcat(trackInfo.ugap));
 
+if isempty(segs)
+    segs=zeros(1,4);
+end
+if isempty(fgaps)
+    fgaps=zeros(1,4);
+end
+if isempty(bgaps)
+    bgaps=zeros(1,4);
+end
+if isempty(ugaps)
+    ugaps=zeros(1,4);
+end
+
+
 %get list of all tracks that have begun before plotCurrentOnly-frame but
 %finish after
 if plotCurrentOnly~=0
@@ -211,7 +225,7 @@ end
 fgapMatX = NaN(numTimePoints,size(fgaps,1));
 fgapMatY = NaN(numTimePoints,size(fgaps,1));
 for i=1:size(fgaps,1)
-    if isempty(intersect(fgaps(i,1),removeTheseTracks))
+    if isempty(intersect(fgaps(i,1),removeTheseTracks)) && sum(fgaps(:))~=0
         fgapMatX(fgaps(i,2):fgaps(i,3),i) = tracksXInterp(fgaps(i,2):fgaps(i,3),fgaps(i,1));
         fgapMatY(fgaps(i,2):fgaps(i,3),i) = tracksYInterp(fgaps(i,2):fgaps(i,3),fgaps(i,1));
     end
@@ -221,7 +235,7 @@ end
 bgapMatX = NaN(numTimePoints,size(bgaps,1));
 bgapMatY = NaN(numTimePoints,size(bgaps,1));
 for i=1:size(bgaps,1)
-    if isempty(intersect(bgaps(i,1),removeTheseTracks))
+    if isempty(intersect(bgaps(i,1),removeTheseTracks)) && sum(bgaps(:))~=0
         bgapMatX(bgaps(i,2):bgaps(i,3),i) = tracksXInterp(bgaps(i,2):bgaps(i,3),bgaps(i,1));
         bgapMatY(bgaps(i,2):bgaps(i,3),i) = tracksYInterp(bgaps(i,2):bgaps(i,3),bgaps(i,1));
     end
@@ -231,7 +245,7 @@ end
 ugapMatX = NaN(numTimePoints,size(ugaps,1));
 ugapMatY = NaN(numTimePoints,size(ugaps,1));
 for i=1:size(ugaps,1)
-    if isempty(intersect(ugaps(i,1),removeTheseTracks))
+    if isempty(intersect(ugaps(i,1),removeTheseTracks))  && sum(ugaps(:))~=0
         ugapMatX(ugaps(i,2):ugaps(i,3),i) = tracksXInterp(ugaps(i,2):ugaps(i,3),ugaps(i,1));
         ugapMatY(ugaps(i,2):ugaps(i,3),i) = tracksYInterp(ugaps(i,2):ugaps(i,3),ugaps(i,1));
     end
@@ -272,10 +286,10 @@ ugapMatY=ugapMatY-minY+1;
 
 
 hold on
-plot(ugapMatX(timeRange(1):timeRange(2),:),ugapMatY(timeRange(1):timeRange(2),:),'m:')
-plot(fgapMatX(timeRange(1):timeRange(2),:),fgapMatY(timeRange(1):timeRange(2),:),'c:')
-plot(bgapMatX(timeRange(1):timeRange(2),:),bgapMatY(timeRange(1):timeRange(2),:),'y:')
-plot(segMatX(timeRange(1):timeRange(2),:),segMatY(timeRange(1):timeRange(2),:),'r')
+plot(ugapMatX(timeRange(1):timeRange(2),:),ugapMatY(timeRange(1):timeRange(2),:),'m:','LineWidth',2)
+plot(fgapMatX(timeRange(1):timeRange(2),:),fgapMatY(timeRange(1):timeRange(2),:),'c:','LineWidth',2)
+plot(bgapMatX(timeRange(1):timeRange(2),:),bgapMatY(timeRange(1):timeRange(2),:),'y:','LineWidth',2)
+plot(segMatX(timeRange(1):timeRange(2),:),segMatY(timeRange(1):timeRange(2),:),'r','LineWidth',2)
 
 if ~isempty(movieInfo)
     colorOverTime = jet(timeRange(2)-timeRange(1)+1);
