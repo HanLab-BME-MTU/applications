@@ -1,10 +1,9 @@
-function [traj, stateIndex, errFlag] = mtKinetMonteCarlo(model, initLen,...
-    time)
-% MTKINETMONTECARLO simulates an MT trajectory assuming the growth, 
-% shrinkage and pause time are exponentially distributed.
+function [traj, stateIndex, errFlag] = mtMultiStates(model, initLen, time)
+% MTMULTISTATES uses kinetic Monte Carlo simulation to generate an MT
+% trajectory, assuming the growth, shrinkage and pause time are exponentially
+% distributed.
 %
-% SYNOPSIS [traj, stateIndex, errFlag] = mtKinetMonteCarlo(model,...
-%           initLen, time)
+% SYNOPSIS [traj, stateIndex, errFlag] = mtKinetMonteCarlo(model, initLen, time)
 %
 % INPUT 
 %   Mandatory

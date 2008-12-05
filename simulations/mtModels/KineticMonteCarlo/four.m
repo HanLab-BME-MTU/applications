@@ -55,7 +55,7 @@ initLen = 10;
 time = 5000;
 
 % Retrieve a 2-column trajectory and a state index array
-[traj, stateIndex, errFlag] = mtKinetMonteCarlo(model, initLen, time);
+[traj, stateIndex, errFlag] = mtMultiStates(model, initLen, time);
 
 % Plot
 plot(traj(:, 1), traj(:, 2));

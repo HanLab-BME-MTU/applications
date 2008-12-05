@@ -65,7 +65,7 @@ model(4).transit(3).dS = 5;
 
 % growth 2
 model(5).name = 'g2';   
-model(5).speed = 11.1 * 0.5;
+model(5).speed = 11.1 * 0.5; % (speed of growth 1) * 0.5
 model(5).nTransits = 3;
 model(5).transit(1).rate = 0.71;
 model(5).transit(1).dS = 2;
@@ -80,7 +80,7 @@ initLen = 10;
 time = 5000;
 
 % Retrieve a 2-column trajectory and a state index array
-[traj, stateIndex, errFlag] = mtKinetMonteCarlo(model, initLen, time);
+[traj, stateIndex, errFlag] = mtMultiStates(model, initLen, time);
 
 % Plot
 plot(traj(:, 1), traj(:, 2));
