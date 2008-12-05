@@ -3,7 +3,7 @@ function [traj, stateIndex, errFlag] = mtMultiStates(model, initLen, time)
 % trajectory, assuming the growth, shrinkage and pause time are exponentially
 % distributed.
 %
-% SYNOPSIS [traj, stateIndex, errFlag] = mtKinetMonteCarlo(model, initLen, time)
+% SYNOPSIS [traj, stateIndex, errFlag] = mtMultiStates(model, initLen, time)
 %
 % INPUT 
 %   Mandatory
