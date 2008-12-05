@@ -1,10 +1,10 @@
 % File: five.m
 % ------------
 % This script file is to demonstrate how to set up the STATE-BASED
-% trajectory generator mtKinetMonteCarlo (microtubule Kinetic Monte Carlo).
+% trajectory generator mtMultiStates (kinetic Monte Carlo simulation).
 % Each model(i) represents a state. Parameters are extracted from a 
-% 4-state model from the reference. The fifth state (growth 2) is 
-% hypothetical.
+% published 4-state model (see reference). The fifth state (growth 2)
+% is hypothetical.
 %
 % Reference:
 % Keller et al. Three-dimensional microtubule behavior in Xenopus egg 
