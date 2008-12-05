@@ -36,7 +36,7 @@ model(2).transit(1).dS = 1;
 model(2).transit(2).rate = 0.31;
 model(2).transit(2).dS = 3;
 
-model(2).transit(3).rate = 0.5;
+model(2).transit(3).rate = 2.58;
 model(2).transit(3).dS = 5;
 
 % shrinkage
@@ -48,7 +48,7 @@ model(3).transit(1).dS = 1;
 model(3).transit(2).rate = 3.58;
 model(3).transit(2).dS = 4;
 
-model(3).transit(3).rate = 0.5;
+model(3).transit(3).rate = 1.79;
 model(3).transit(3).dS = 5;
 
 % shrinkage pause
@@ -60,7 +60,7 @@ model(4).transit(1).dS = 1;
 model(4).transit(2).rate = 0.79;
 model(4).transit(2).dS = 3;
 
-model(4).transit(3).rate = 0.5;
+model(4).transit(3).rate = 2.76;
 model(4).transit(3).dS = 5;
 
 % growth 2
