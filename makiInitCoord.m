@@ -1,4 +1,4 @@
-function dataStruct = makiInitCoord(dataStruct, verbose, movieType)
+function dataStruct = makiInitCoord(dataStruct, verbose, movieType, cutoffFix)
 %MAKIINITCOORD finds initial guesses for mammalian kinetochores
 %
 % SYNOPSIS: dataStruct = makiInitCoord(dataStruct)
@@ -14,6 +14,12 @@ function dataStruct = makiInitCoord(dataStruct, verbose, movieType)
 %                                  2: show cutoff-plots
 %                   movieType: 1 for DV movies, 2 for STK movies.
 %                              Optional. Default: 1.
+%                   cutoffFix: 2-element vector indicating
+%                           cutoff-type/cutoff-value for the selection of
+%                           the "good" local maxima. Default: []
+%                           This input is to be used for testing purposes
+%                           only; a pre-set cutoff value should be stored
+%                           in dataStruct.dataProperties
 %
 % OUTPUT dataStruct.initCoords: Structure of length nTimepoints with fields
 %                       .allCoord     [x y z sx sy sz] coords and sigmas in
@@ -50,6 +56,10 @@ end
 
 if nargin < 3 || isempty(movieType)
     movieType = 1;
+end
+
+if nargin < 4 || isempty(cutoffFix)
+    cutoffFix = [];
 end
 
 %=========================
@@ -111,7 +121,7 @@ if dataObject
         goodTimes = find(cellfun(@(x)(~isempty(x)),...
             dataStruct.imageData.cropInfo.cropMask))';
     end
-
+    
 end
 
 %=====================
@@ -122,7 +132,7 @@ if verbose
 end
 nTimes = max(goodTimes); % not the best way to count, but it works.
 for t=goodTimes
-
+    
     % -- load images --
     % raw = current raw movie frame
     % filtered = current PSF-filtered movie frame
@@ -167,9 +177,9 @@ for t=goodTimes
         % there will be NaNs in the masked image. Therefore, request
         % filtered data from imageDataObject. Ideally, loadType is set to
         % fcn or reqKeep
-
+        
         background = dataStruct.imageData.getFrame(t,'',{[],backgroundFilterParms(4:6),1,backgroundFilter})-offset;
-
+        
         % mask signal pixels, then recalculate background
         sigMask = raw>background;
         % remove some of the spurious hits. Use 2d mask for speed and
@@ -189,12 +199,12 @@ for t=goodTimes
         filtered = dataStruct.imageData.getFrame(t,'',{[],dataProperties.FILTERPRM(4:6),1,signalFilter})-offset;
     else
         filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2,signalFilter);
-
+        
         background = fastGauss3D(raw,[],backgroundFilterParms(4:6),2,backgroundFilter);
     end
-
+    
     amplitude = filtered - background;
-
+    
     % noise is local average (averaged over filter support) of squared
     % residuals of raw-filtered image
     noise = (raw - filtered).^2;
@@ -205,12 +215,12 @@ for t=goodTimes
     else
         noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),1,noiseMask);
     end
-
+    
     % find local maxima
     locMax = loc_max3Df(filtered,[3 3 3]);
     locMaxIdx = sub2ind(dataProperties.movieSize(1:3),...
         locMax(:,1),locMax(:,2),locMax(:,3));
-
+    
     % read amplitude and noise at local maxima
     initCoordTmp = [locMax, amplitude(locMaxIdx), noise(locMaxIdx), ...
         zeros(length(locMaxIdx),1)];
@@ -224,7 +234,7 @@ for t=goodTimes
     if movieType == 2
         initCoordTmp = initCoordTmp(initCoordTmp(:,4)>0,:);
     end
-
+    
     % loop through all to get sub-pixel positions.
     raw = raw - background; %overwrite raw to save memory
     for iSpot = 1:size(initCoordTmp,1)
@@ -233,7 +243,7 @@ for t=goodTimes
         patch = stamp3d(...
             raw,dataProperties.FILTERPRM(4:6),...
             initCoordTmp(iSpot,1:3),0);
-
+        
         %HLE,KJ - calculate low-index edge patch adjustment if relevant
         edgeAdjustTmp = initCoordTmp(iSpot,1:3) - halfPatchSize;
         edgeAdjustTmp = abs(edgeAdjustTmp) .* edgeAdjustTmp<0;
@@ -257,11 +267,11 @@ for t=goodTimes
         % %         initCoordTmp(iSpot,1:3) = initCoordTmp(iSpot,1:3) - ...
         % %             edgeAdjustTmp .* (edgeAdjustTmp < 0);
         
-        % amplitude guess is integral.                        
+        % amplitude guess is integral.
         initCoordTmp(iSpot,6) = nanmean(patch(:));
         
     end
-
+    
     % use maxPix-amplitude to calculate cutoff - meanInt is not consistent
     % with the rest of the measures!
     initCoordTmp = [initCoordTmp,...
@@ -269,7 +279,7 @@ for t=goodTimes
         initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)./max(initCoordTmp(:,4),eps))];
     
     initCoordRaw{t} = initCoordTmp;
-
+    
     if verbose
         progressText(t/nTimes);
     end
@@ -278,6 +288,8 @@ end % loop timepoints
 
 clear initCoordTmp
 allCoord = cat(1,initCoordRaw{:});
+
+%% Find cutoff
 
 % find cutoff based on amplitude/sqrt(noise/amp), though the others are
 % very similar. Allow fallback if less than 25 spots per frame are found
@@ -302,37 +314,50 @@ else
     cutoff(3) = NaN;
 end
 
-switch movieType
-    case 1
-        % note: ask only for spots in good frames
-        minGood = 20*length(goodTimes);
-        n3 = sum(allCoord(:,8)>cutoff(3));
-        n2 = sum(allCoord(:,7)>cutoff(2));
-        n1 = sum(allCoord(:,4)>cutoff(1));
-        if n3 > minGood
-            cutoffIdx = 3;
-            cutoffCol = 8;
-        elseif n2 > minGood
+% check for predetermined cutoff
+if ~isempty(cutoffFix)
+    % store old value
+    oldCutoff = cutoff;
+    % set cutoffIdx, cutoffCol
+    cutoffIdx = cutoffFix(1);
+    cutoffCol = cutoffIdx + 5;
+    % update cutoff
+    cutoff(cutoffIdx) = cutoffFix(2);
+else
+    
+    
+    switch movieType
+        case 1
+            % note: ask only for spots in good frames
+            minGood = 20*length(goodTimes);
+            nn(3) = sum(allCoord(:,8)>cutoff(3))/minGood;
+            nn(2) = sum(allCoord(:,7)>cutoff(2))/minGood;
+            nn(1) = sum(allCoord(:,4)>cutoff(1))/minGood;
+            if nn(3) > 1
+                cutoffIdx = 3;
+                cutoffCol = 8;
+            elseif nn(2) > 1
+                cutoffIdx = 2;
+                cutoffCol = 7;
+            elseif nn(1) > 1
+                cutoffIdx = 1;
+                cutoffCol = 4;
+            else
+                error('less than 20 spots per frame found. makiInitCoord failed')
+            end
+            
+        case 2
+            
+            %for the HMS data, the signal is very dim and photobleaches a lot,
+            %and determining the cutoff on the fly does not work.
+            %Thus, I'm fixing the cutoff criterion to the amplitude-to-noise
+            %ratio and I'm fixing the cutoff to 2.32 (approximating a 0.01
+            %alpha-value in a hypothesis test) - KJ
+            cutoff(2) = 2.32;
             cutoffIdx = 2;
             cutoffCol = 7;
-        elseif n1 > minGood
-            cutoffIdx = 1;
-            cutoffCol = 4;
-        else
-            error('less than 20 spots per frame found. makiInitCoord failed')
-        end
-
-    case 2
-
-        %for the HMS data, the signal is very dim and photobleaches a lot,
-        %and determining the cutoff on the fly does not work. 
-        %Thus, I'm fixing the cutoff criterion to the amplitude-to-noise
-        %ratio and I'm fixing the cutoff to 2.32 (approximating a 0.01 
-        %alpha-value in a hypothesis test) - KJ
-        cutoff(2) = 2.32;
-        cutoffIdx = 2;
-        cutoffCol = 7;
-
+            
+    end
 end
 
 % remember the cutoff criterion used
@@ -398,7 +423,7 @@ end
 
 for t=goodTimes
     goodIdxL = initCoordRaw{t}(:,cutoffCol) > cutoff(cutoffIdx);
-
+    
     % count good spots
     dataStruct.initCoord(t).nSpots = sum(goodIdxL);
     
@@ -408,17 +433,17 @@ for t=goodTimes
     dataStruct.initCoord(t).allCoordPix = ...
         [initCoordRaw{t}(goodIdxL,1:3),...
         0.25*ones(dataStruct.initCoord(t).nSpots,3)];
-
+    
     % store estimated amplitude and noise
     dataStruct.initCoord(t).initAmp = initCoordRaw{t}(goodIdxL,4:5);
-
+    
     % store integral amplitude
     dataStruct.initCoord(t).amp = [initCoordRaw{t}(goodIdxL,6),...
         zeros(dataStruct.initCoord(t).nSpots,1)];
-
+    
     % store correction
     dataStruct.initCoord(t).correctionMu = 0; % for now
-
+    
     % store coords in microns and correct
     dataStruct.initCoord(t).allCoord = ...
         dataStruct.initCoord(t).allCoordPix.*...
@@ -426,10 +451,10 @@ for t=goodTimes
     dataStruct.initCoord(t).allCoord(:,3) = ...
         dataStruct.initCoord(t).allCoord(:,3) +...
         dataStruct.initCoord(t).correctionMu;
-
-
-
-
+    
+    
+    
+    
     % store 2 spots above and below cutoff in case we want to get amplitude
     % cutoff for detector later. Note: the spots may be not exactly the two
     % above or below, since we sorted the data according to amplitudes
@@ -442,7 +467,12 @@ end
 
 % save cutoff info
 if dataObject
-    dataStruct.initCoord(1).cutoff.co = cutoff;
+    if isempty(cutoffFix)
+        dataStruct.initCoord(1).cutoff.co = cutoff;
+    else
+        % with fixed cutoff: store old value
+        dataStruct.initCoord(1).cutoff.co = cutoffOld;
+    end
     dataStruct.initCoord(1).cutoff.sel = [cutoffIdx,cutoffCol];
     dataStruct.initCoord(1).cutoff.n = [n1,n2,n3];
 end
