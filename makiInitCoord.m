@@ -314,6 +314,8 @@ else
     cutoff(3) = NaN;
 end
 
+
+nn = nan(3,1);
 % check for predetermined cutoff
 if ~isempty(cutoffFix)
     % store old value
@@ -471,10 +473,10 @@ if dataObject
         dataStruct.initCoord(1).cutoff.co = cutoff;
     else
         % with fixed cutoff: store old value
-        dataStruct.initCoord(1).cutoff.co = cutoffOld;
+        dataStruct.initCoord(1).cutoff.co = oldCutoff;
     end
     dataStruct.initCoord(1).cutoff.sel = [cutoffIdx,cutoffCol];
-    dataStruct.initCoord(1).cutoff.n = [n1,n2,n3];
+    dataStruct.initCoord(1).cutoff.n = nn;
 end
 
 % % code to determine optimal amplitude cutoff
