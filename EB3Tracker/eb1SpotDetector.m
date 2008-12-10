@@ -15,7 +15,7 @@ warning('off','MATLAB:divideByZero')
 
 % check runInfo format and directory names between file systems
 if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
-    error('eb1SpotDetector: runInfo should contain fields imDir and anDir');
+    error('eb1SpotDetector: first argument should be a structure with fields imDir and anDir');
 else
     [runInfo.anDir] = formatPath(runInfo.anDir);
     [runInfo.imDir] = formatPath(runInfo.imDir);
@@ -74,9 +74,13 @@ end
 
 % make feat directory if it doesn't exist from batch
 featDir = [runInfo.anDir filesep 'feat'];
-if overwriteData == 1
-    if isdir(featDir)
+
+if isdir(featDir)
+    if overwriteData == 1
         rmdir(featDir,'s')
+    else
+        disp([featDir 'already exists'])
+        return
     end
 end
 if ~isdir(featDir)
@@ -148,7 +152,7 @@ for i = startFrame:endFrame
 
         % cut postive component of histogram; make below that nan
         filterDiff(filterDiff<0) = nan;
-        [cutoffInd, cutOffValueInitInt] = cutFirstHistMode(filterDiff(:),0);
+        [cutoffInd, cutOffValueInitInt] = cutFirstHistMode(filterDiff(:),1);
         noiseFloor = 1.0 * cutOffValueInitInt;
         filterDiff(filterDiff<noiseFloor) = nan;
 

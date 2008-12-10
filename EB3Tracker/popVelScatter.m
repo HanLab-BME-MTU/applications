@@ -1,5 +1,7 @@
 function popVelScatter(projData)
 
+velLimit=40;
+
 close all
 
 for p=1:length(projData)
@@ -15,8 +17,7 @@ for p=1:length(projData)
     fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
     img = double(imread(fileNameIm));
     [imL,imW] = size(img);
-
-    velLimit=40;
+    
     cMapLength=128;
     cMap=jet(cMapLength);
 

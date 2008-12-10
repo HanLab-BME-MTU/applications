@@ -129,11 +129,8 @@ for i=startFrame:endFrame
 
     img=double(imread([char(listOfImages(i,2)) filesep char(listOfImages(i,1))]));
     if showTracks==1
-        % plotTracks2D_EB3(trackedFeatureInfo,timeRange,colorTime,markerType,...
-        %    indicateSE,newFigure,img,flipXY,ask4sel,minMaxVel,plotCurrentOnly,roiYX)
-        %         [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,...
-        %     newFigure,img,flipXY,ask4sel,plotCurrentOnly,roiYX,movieInfo)
-        plotTracks2D_EB3(trackedFeatureInfo,[startFrame endFrame],0,img,0,0,i,roiYX,movieInfo);
+        % [selectedTracks]=plotTracks2D_EB3(trackedFeatureInfo,timeRange,img,ask4sel,plotCurrentOnly,roiYX,movieInfo)
+        plotTracks2D_EB3(trackedFeatureInfo,[startFrame endFrame],img,0,i,roiYX,movieInfo);
 
         if ~isempty(indivTrack)
             frmCount1=1;
@@ -146,7 +143,7 @@ for i=startFrame:endFrame
                 xCoord=xCoord-minX+1;
                 yCoord=yCoord-minY+1;
                 hold on
-                scatter(xCoord,yCoord,'Marker','.','cData',repmat(colorOverTime(frmCount1,:),[length(xCoord),1]));
+                scatter(xCoord(j),yCoord(j),'Marker','.','cData',colorOverTime(frmCount1,:));
                 frmCount1=frmCount1+1;
             end
         end

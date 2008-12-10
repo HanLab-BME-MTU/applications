@@ -1,10 +1,12 @@
+function popHist(projData)
+
 close all
 
 for i=1:length(projData)
 
     a=projData(i,1).allTracks; % project number
 
-    segIdx=find(a(:,5)==1);
+     segIdx=find(a(:,5)==1);
     fgapIdx=find(a(:,5)==2);
     bgapIdx=find(a(:,5)==3);
     ugapIdx=find(a(:,5)==4);

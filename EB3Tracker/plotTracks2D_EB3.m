@@ -1,32 +1,15 @@
-function [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,...
-    newFigure,img,flipXY,ask4sel,plotCurrentOnly,roiYX,movieInfo)
+function [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,img,ask4sel,plotCurrentOnly,roiYX,movieInfo)
 %PLOTTRACKS2D plots a group of tracks in 2D and allows user to click on them and extract track information
 %
-%SYNOPSIS plotTracks2D(trackedFeatureInfo,timeRange,colorTime,markerType,...
-%    indicateSE,newFigure,img,flipXY,ask4sel)
+%SYNOPSIS [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,...
+%    img,ask4sel,plotCurrentOnly,roiYX,movieInfo)
 %
-%INPUT  trackedFeatureInfo: either tracksFinal structure,
-%                           or trackedFeatureInfo matrix
-%                           Matrix indicating the positions and amplitudes
-%                           of the tracked features to be plotted. Number
-%                           of rows = number of tracks, while number of
-%                           columns = 8*number of time points. Each row
-%                           consists of
-%                           [x1 y1 z1 a1 dx1 dy1 dz1 da1 x2 y2 z2 a2 dx2 dy2 dz2 da2 ...]
-%                           in image coordinate system (coordinates in
-%                           pixels). NaN is used to indicate time points
-%                           where the track does not exist.
+%INPUT  trackedFeatureInfo: either tracksFinal structure or trackedFeatureInfo matrix
 %       timeRange         : 2-element row vector indicating time range to plot.
 %                           Optional. Default: whole movie.
-%       newFigure         : 1 if plot should be made in a new figure
-%                           window, 0 otherwise (in which case it will be
-%                           plotted in an existing figure window).
-%                           Optional. Default: 1.
 %       img                : An image that the tracks will be overlaid on if
 %                           newFigure=1. It will be ignored if newFigure=0.
 %                           Optional. Default: no image
-%       flipXY            : 1 if x and y coord should be flipped for
-%                           plotting. Optional. Default: 0.
 %       ask4sel           : 1 if user should be asked to select tracks in
 %                           plot in order to show track information.
 %                           Optional. Default: 1.
@@ -45,6 +28,9 @@ function [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,...
 %Input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+close all
+
+% convert to matrix if tracksFinal is the input
 if isstruct(trackedFeatureInfo)
     [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(trackedFeatureInfo);
     clear trackedFeatureIndx
@@ -65,38 +51,33 @@ else
     end
 end
 
-%check whether newFigure was input
-if nargin < 3 || isempty(newFigure)
-    newFigure = 1;
-else
-    if newFigure ~= 0 && newFigure ~= 1
-        error('--plotTracks2D: newFigure should be 0 or 1!');
-    end
-end
-
 %check whether user supplied an image
-if nargin < 4 || isempty(img)
-    img = [];
-end
-
-%check whether detection coordinates should be flipped for plotting
-if nargin < 5 || isempty(flipXY)
-    flipXY = false;
+if nargin < 3 || isempty(img)
+    %find coordinate limits
+    maxXCoord =  ceil(nanmax(tracksX(:)));
+    maxYCoord =  ceil(nanmax(tracksY(:)));
+    img = repmat(0.75*ones(maxYCoord,maxXCoord),[1,1,3]);
+elseif strcmp(img,'pick')
+    %let user pick image
+    [fileName,pathName] = uigetfile('*.tif','Select image to use for track overlay');
+    img=double(imread([pathName filesep fileName]));
+else
+    %use input image
 end
 
 %check whether user wants to get track data by selection
-if nargin < 6 || isempty(ask4sel)
+if nargin < 4 || isempty(ask4sel)
     ask4sel = true;
 end
 
 %check whether user wants to only plot "active" tracks at
 %plotCurrentOnly-frame or all tracks in frame range
-if nargin<7 || isempty(plotCurrentOnly)
+if nargin<5 || isempty(plotCurrentOnly)
     plotCurrentOnly=0; %default: all frames in timeRange
 end
 
 %check for coordinates of a ROI in which results should be plotted
-if nargin<8 || isempty(roiYX) || isequal(roiYX,0)
+if nargin<6 || isempty(roiYX) || isequal(roiYX,0)
     [imL imW]=size(img);
     minY=1;
     maxY=imL;
@@ -107,17 +88,13 @@ else
     maxY=ceil(max(roiYX(:,1)));
     minX=floor(min(roiYX(:,2)));
     maxX=ceil(max(roiYX(:,2)));
+    img=img(minY:maxY,minX:maxX);
 end
 
-if nargin<9 || ~isstruct(movieInfo)
+if nargin<7 || ~isstruct(movieInfo)
     %no detection results to plot
     movieInfo=[];
 end
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Pre-processing
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 % trackInfo contains gap start/end info, while trackVelocities has
@@ -125,53 +102,29 @@ end
 [trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(trackedFeatureInfo,3);
 
 %get the x,y-coordinates of features in all tracks
-if flipXY
-    tracksY = trackedFeatureInfo(:,1:8:end)';
-    tracksX = trackedFeatureInfo(:,2:8:end)';
-    tracksYInterp = trackedFeatureInfoInterp(:,1:8:end)';
-    tracksXInterp = trackedFeatureInfoInterp(:,2:8:end)';
-else
-    tracksX = trackedFeatureInfo(:,1:8:end)';
-    tracksY = trackedFeatureInfo(:,2:8:end)';
-    tracksXInterp = trackedFeatureInfoInterp(:,1:8:end)';
-    tracksYInterp = trackedFeatureInfoInterp(:,2:8:end)';
-end
+tracksX = trackedFeatureInfo(:,1:8:end)';
+tracksY = trackedFeatureInfo(:,2:8:end)';
+tracksXInterp = trackedFeatureInfoInterp(:,1:8:end)';
+tracksYInterp = trackedFeatureInfoInterp(:,2:8:end)';
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Plotting
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 %open new figure window
-figure(gcf)
-
-if ~isempty(img)
-    img=img(minY:maxY,minX:maxX);
-    imagesc(img)
-    colormap gray
-else
-    %find coordinate limits
-    maxXCoord =  ceil(nanmax(tracksX(:)));
-    maxYCoord =  ceil(nanmax(tracksY(:)));
-    img = repmat(0.75*ones(maxYCoord,maxXCoord),[1,1,3]);
-    imagesc(img); %plot an empty image
-    colormap gray
-end
+figure(1);
+imagesc(img);
+colormap gray
 
 %show coordinates on axes
 ah = gca;
 set(ah,'visible','on');
 
 %label axes
-if flipXY
-    xlabel('y-coordinate (pixels)');
-    ylabel('x-coordinate (pixels)');
-else
-    xlabel('x-coordinate (pixels)');
-    ylabel('y-coordinate (pixels)');
-end
-
+xlabel('x-coordinate (pixels)');
+ylabel('y-coordinate (pixels)');
 
 %hold on figure
 hold on
@@ -197,7 +150,6 @@ if isempty(ugaps)
     ugaps=zeros(1,4);
 end
 
-
 %get list of all tracks that have begun before plotCurrentOnly-frame but
 %finish after
 if plotCurrentOnly~=0
@@ -208,6 +160,7 @@ if plotCurrentOnly~=0
 else
     plotCurrentTracksIdx=1:numTracks;
 end
+
 %these ones don't meet that criterion
 removeTheseTracks=setdiff(1:numTracks,plotCurrentTracksIdx);
 
@@ -282,15 +235,14 @@ ugapMatY(outOfRangeIdx)=nan;
 ugapMatX=ugapMatX-minX+1;
 ugapMatY=ugapMatY-minY+1;
 
-
-
-
+% plot the segments and gaps
 hold on
 plot(ugapMatX(timeRange(1):timeRange(2),:),ugapMatY(timeRange(1):timeRange(2),:),'m:','LineWidth',2)
 plot(fgapMatX(timeRange(1):timeRange(2),:),fgapMatY(timeRange(1):timeRange(2),:),'c:','LineWidth',2)
 plot(bgapMatX(timeRange(1):timeRange(2),:),bgapMatY(timeRange(1):timeRange(2),:),'y:','LineWidth',2)
 plot(segMatX(timeRange(1):timeRange(2),:),segMatY(timeRange(1):timeRange(2),:),'r','LineWidth',2)
 
+% if movieInfo given then detected features will be showw ith jet colormap
 if ~isempty(movieInfo)
     colorOverTime = jet(timeRange(2)-timeRange(1)+1);
     frmCount1=1;
@@ -310,7 +262,6 @@ end
 
 
 if ask4sel
-
     %extract the portion of tracksX and tracksY that is of interest
     tracksXPInterp = tracksXInterp(timeRange(1):timeRange(2),:)-minX+1;
     tracksYPInterp = tracksYInterp(timeRange(1):timeRange(2),:)-minY+1;
@@ -340,7 +291,7 @@ if ask4sel
             [frameChosen,rowChosen] = find(distTrack2Point==min(distTrack2Point(:)));
 
             %go over all chosen rows
-            for j = 1 : length(rowChosen)
+            for j = 1:length(rowChosen)
 
                 %find the track corresponding to each minimum distance
                 trackChosen = find(1:numTracks <= rowChosen(j),1,'last');
@@ -352,9 +303,7 @@ if ask4sel
 
 
                 disp(['Track: ' num2str(trackChosen) ...
-                    '   Frame: ' num2str(frameChosen(j)+timeRange(1)-1) ...
-                    '   Coordinates: ' num2str(tracksXPInterp(frameChosen(j),rowChosen(j))) ...
-                    ' ' num2str(tracksYPInterp(frameChosen(j),rowChosen(j)))]);
+                    '   Frame: ' num2str(frameChosen(j)+timeRange(1)-1)]);
 
                 prof = [tSeg 1*ones(size(tSeg,1),1); ...
                     tFgap 2*ones(size(tFgap,1),1); ...
@@ -362,9 +311,9 @@ if ask4sel
                     tUgap 4*ones(size(tUgap,1),1);];
                 trackProfile = sortrows(prof,2)
                 selectedTracks{count,1} = trackProfile;
-                
+
                 text(tracksXPInterp(frameChosen(j),rowChosen(j)),tracksYPInterp(frameChosen(j),rowChosen(j)),...
-                    ['\leftarrow' num2str(count)],'Color','y','FontWeight','bold')
+                    ['\leftarrow' num2str(trackProfile(1,1))],'Color','y','FontWeight','bold')
                 count = count+1;
             end
 

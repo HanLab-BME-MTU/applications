@@ -6,7 +6,7 @@ function makeImageDirectory
 topDir=uigetdir(pwd,'Please select top-level directory containing projects');
 
 % look for tifs that do not include "overlay" in their name (overlay images
-% are produced by kathryn's EB3 comet detection
+% are produced by kathryn's EB3 comet detection)
 [listOfImages]=searchFiles('.tif','overlay',topDir,1);
 
 % find the unique directory names

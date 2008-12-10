@@ -68,7 +68,7 @@ clear parameters
 %% Kalman filter function names
 
 kalmanFunctions.reserveMem = 'kalmanResMemLM';
-kalmanFunctions.initialize = 'kalmanInitLinearMotion_EB3';
+kalmanFunctions.initialize = 'kalmanInitLinearMotion';
 kalmanFunctions.calcGain = 'kalmanGainLinearMotion';
 kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
 

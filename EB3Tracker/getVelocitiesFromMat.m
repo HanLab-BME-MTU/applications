@@ -137,7 +137,7 @@ for iTrack=1:nTracks
     % input matrix) - this corresponds to average speed in forward
     % direction. we will give negative sign to backward gaps in the next
     % step.
-    perFrameVelocities(iTrack,:)=sqrt(diff(pxFill).^2+diff(pyFill).^2);
+    perFrameVelocities(iTrack,:)=sqrt(diff(pxFill,[],2).^2+diff(pyFill,[],2).^2);
 
     for iBackGap=1:size(trackInfo(iTrack,1).bgap,1)
         % get gap start and end frame
