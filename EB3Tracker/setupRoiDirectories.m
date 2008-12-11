@@ -1,4 +1,4 @@
-function setupRoiDirectories(selectROI,overwriteROIs)
+function setupRoiDirectories(selectROI,overwriteROIs,doCrop)
 % SETUPDIRECTORIES does quick roi directory creation for movie batch
 %
 % DESCRIPTION: setupDirectories searches a user-selected, top-level
@@ -30,6 +30,10 @@ function setupRoiDirectories(selectROI,overwriteROIs)
 %
 % Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
 
+if nargin<3 || isempty(doCrop)
+    doCrop=0;
+end
+
 if nargin<2 || isempty(overwriteROIs) || (overwriteROIs~=0 && overwriteROIs~=1)
     overwriteROIs=0;
 end
@@ -58,7 +62,8 @@ roiDirList = regexp(tempDirList,'\S*\\roi_\d\s','match')'; % cell array of "roi_
 % if we should overwrite ROI data, remove it
 if overwriteROIs==1 && ~isempty(roiDirList)
     for i=1:length(roiDirList)
-        rmdir(roiDirList,'s');
+        temp=roiDirList{i,1}; temp=temp(1:end-1);
+        rmdir(temp,'s');
     end
 end
 
@@ -109,6 +114,21 @@ for i=1:length(imageDirList) % iterate through projects
                 % save original and cropped roiMask
                 imwrite(roiMask,[currentRoiAnDir filesep 'roiMask.tif']);
                 save([currentRoiAnDir filesep 'roiCoords'],'roiCoords');
+                
+                if doCrop==1
+                    minY=floor(min(roiCoords(:,1)));
+                    maxY=ceil(max(roiCoords(:,1)));
+                    minX=floor(min(roiCoords(:,2)));
+                    maxX=ceil(max(roiCoords(:,2)));
+                    
+                    mkdir([currentRoiAnDir filesep 'images']);
+                    for j=1:size(listOfImages,1)
+                        imgName=[char(listOfImages(j,2)) filesep char(listOfImages(j,1))];
+                        img=double(imread(imgName));
+                        img=uint16(img(minY:maxY,minX:maxX));
+                        imwrite(img,[currentRoiAnDir filesep 'images' filesep char(listOfImages(j,1))]);
+                    end
+                end
 
                 if selectROI==1
                     reply=input('Do you want to select another ROI? y/n [n]: ','s');
