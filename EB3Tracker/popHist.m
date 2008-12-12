@@ -17,13 +17,13 @@ for i=1:length(projData)
 
     hold on
 
-    [x1 x2]=hist(a(fgapIdx,4),100);
+    [x1 x2]=hist(a(fgapIdx,4),50);
     bar(x2,x1,'r')
 
-    [x1 x2]=hist(a(ugapIdx,4),100);
+    [x1 x2]=hist(a(ugapIdx,4),50);
     bar(x2,x1,'g')
 
-    [x1 x2]=hist(a(bgapIdx,4),100);
+    [x1 x2]=hist(a(bgapIdx,4),50);
     bar(x2,x1,'c')
 
     title('segment(blue), fgap(red), ugap(green), bgap(cyan) velocities')

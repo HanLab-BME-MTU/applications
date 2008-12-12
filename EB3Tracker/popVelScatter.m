@@ -46,7 +46,7 @@ for p=1:length(projData)
     eval(['MakeQTMovie start ', 'velDistMovie' '.avi']);
 
 
-    for i=1:20 %size(listOfImages,1)
+    for i=1:40 %size(listOfImages,1)
 
 
         fileNameIm = [char(listOfImages(i,2)) filesep char(listOfImages(i,1))];
