@@ -54,9 +54,13 @@ end
 
 topDir=uigetdir(pwd,'Please select top-level directory containing targets');
 p=genpath(topDir);
-tempDirList=strrep(p,';',' ');
-[imageDirList] = regexp(tempDirList,'\S*\\images\s','match')'; % cell array of "images" directories
-roiDirList = regexp(tempDirList,'\S*\\roi_\d\s','match')'; % cell array of "roi_x" directories
+if ispc
+    tempDirList=strrep(p,';',' ');
+else
+    tempDirList=strrep(p,':',' ');
+end
+imageDirList=regexp(tempDirList,['\S*images\s'],'match')'; % cell array of "images" directories
+roiDirList  =regexp(tempDirList,['\S*roi_\d\s'],'match')'; % cell array of "roi_x" directories
 
 
 % if we should overwrite ROI data, remove it
@@ -102,18 +106,28 @@ for i=1:length(imageDirList) % iterate through projects
                         end
                     end
                     close
-                    roiMask=logical(roiMask);
                     roiCoords=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
                 else
                     % make the ROI the whole image
                     [imL,imW]=size(img);
                     roiMask=logical(ones(imL,imW));
                     roiCoords=[1 1; imL 1; imL imW; 1 imW; 1 1];
+                    
+                    % get within-cell point for each project
+                    imagesc(img); colormap gray;
+                    [x,y] = getpts;
+                    bgPtYX = [y(1) x(1)];
+                    if i==1
+                        disp('Select a point in the cell center, then press enter')
+                    end
+                    save([currentRoiAnDir filesep 'bgPtYX'],'bgPtYX');
+                    close
                 end
 
                 % save original and cropped roiMask
                 imwrite(roiMask,[currentRoiAnDir filesep 'roiMask.tif']);
                 save([currentRoiAnDir filesep 'roiCoords'],'roiCoords');
+                disp(currentRoiAnDir)
                 
                 if doCrop==1
                     minY=floor(min(roiCoords(:,1)));
@@ -144,6 +158,3 @@ for i=1:length(imageDirList) % iterate through projects
         end % while makeNewROI==1 && roiCount<10
     end % if there's no roi_1 directory
 end % iterate through projects
-
-
-
