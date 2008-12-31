@@ -200,6 +200,15 @@ end
 %get the Kalman standard deviation of all features in frame 1
 kalmanStd = sqrt(probDim * squeeze(kalmanFilterInfoFrame1.noiseVar(1,1,:)));
 
+% here we check whether this is the first frame. if it is, then the
+% noiseVar stored in the kalman filter should have the same uniform value
+% calculated in kalmanInitLinearMotion
+currFrameNum = [];
+temp = squeeze(kalmanFilterInfoFrame1.noiseVar(1,1,:));
+if isequal(temp,temp(1)*ones(size(temp)))
+    currFrameNum = 1;
+end
+   
 %copy brownStdMult into vector
 stdMultInd = repmat(brownStdMult,numFeaturesFrame1,1);
 
@@ -220,8 +229,15 @@ end
 %get the search radius of each feature in frame 1 and make sure it falls
 %within reasonable limits
 searchRadius = stdMultInd .* kalmanStd;
-searchRadius(searchRadius>maxSearchRadius) = maxSearchRadius;
-searchRadius(searchRadius<minSearchRadius) = minSearchRadius;
+
+% if it is the first frame, we don't bound the searchRadius with min/max
+% values because it essentially does a nearest-neighbor search.  in the
+% subsequent iterations, we can bound to min/max because we want to look
+% around the propagated positions for features to link
+if isempty(currFrameNum)
+    searchRadius(searchRadius>maxSearchRadius) = maxSearchRadius;
+    searchRadius(searchRadius<minSearchRadius) = minSearchRadius;
+end
 
 %replicate the search radius to compare to cost matrix
 searchRadius = repmat(searchRadius,1,numFeaturesFrame2);
