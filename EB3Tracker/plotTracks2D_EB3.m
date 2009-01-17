@@ -5,45 +5,84 @@ function [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,img,as
 %    img,ask4sel,plotCurrentOnly,roiYX,movieInfo)
 %
 %INPUT  trackedFeatureInfo: either tracksFinal structure or trackedFeatureInfo matrix
-%       timeRange         : 2-element row vector indicating time range to plot.
-%                           Optional. Default: whole movie.
-%       img                : An image that the tracks will be overlaid on if
-%                           newFigure=1. It will be ignored if newFigure=0.
-%                           Optional. Default: no image
-%       ask4sel           : 1 if user should be asked to select tracks in
-%                           plot in order to show track information.
-%                           Optional. Default: 1.
-%       plotCurrentOnly   : number of a frame, will only plot those tracks
-%                           between timeRange that exist during that frame
+%                           tracksFinal can be found by loading the
+%                           "trackResults" file containing the final
+%                           tracking results. if given as [], user will be
+%                           asked to choose roi_x directory.
+%       timeRange         : row vector of the form [startFrame endFrame]
+%                           indicating time range to plot. if not given or
+%                           given as [], tracks from the whole movie will
+%                           be displayed
+%       img               : image for overlay. if not given or given as [],
+%                           user will be asked to select the image.
+%       ask4sel           : 1 (default) if user should be asked to select
+%                           tracks in plot in order to show track
+%                           information, 0 otherwise
+%       plotCurrentOnly   : a particular frame number within timeRange
+%                           if given, will only plot those tracks
+%                           that exist during that frame.
 %       roiYX             : coordinates of a region-of-interest (closed
-%                           polygon), the rectangle circumscribing the ROI
+%                           polygon). the rectangle circumscribing the ROI
 %                           will be used to limit plotting to within the
-%                           region
+%                           region. if not given or given as [], whole
+%                           image will be used
+%       movieInfo         : structure containing detection results. can be
+%                           loaded from "feat" directory. if given, ALL
+%                           detected features are plotted with color
+%                           corresponding to time (startFrame in dark blue
+%                           to endFrame in deep red). if not given or given
+%                           as [], detected features will not be plotted.
+%                           note that all features, not just the ones
+%                           accepted by the tracking, will be plotted.
 %
 %OUTPUT The plot.
-%
-%Khuloud Jaqaman, August 2006
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-close all
+if nargin<1 || isempty(trackedFeatureInfo)
 
-% convert to matrix if tracksFinal is the input
-if isstruct(trackedFeatureInfo)
+    % if not given as input, ask user for ROI directory
+    runInfo.anDir=uigetdir(pwd,'Please select ROI directory');
+
+    % load tracksFinal (tracking result)
+    trackDir = [runInfo.anDir filesep 'track'];
+
+    if ~isdir(trackDir)
+        error('--plotTracks2D_EB3: track directory missing')
+    else
+        [listOfFiles]=searchFiles('.mat',[],trackDir,0);
+        if ~isempty(listOfFiles)
+            load([listOfFiles{1,2} filesep listOfFiles{1,1}])
+            if ~exist('tracksFinal','var')
+                error('--plotTracks2D_EB3: tracksFinal missing...');
+            end
+        else
+            error('--plotTracks2D_EB3: tracksFinal missing...');
+        end
+    end
+    % convert to matrix if tracksFinal is the input
+    [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(tracksFinal);
+    clear trackedFeatureIndx
+
+elseif isstruct(trackedFeatureInfo)
+
+    % we don't know where we are from the input alone
+    runInfo.anDir=pwd;
+
+    % convert to matrix if tracksFinal is the input
     [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(trackedFeatureInfo);
     clear trackedFeatureIndx
+
 end
 
 %get number of tracks and number of time points
 [numTracks,numTimePoints] = size(trackedFeatureInfo);
 numTimePoints = numTimePoints/8;
 
-selectedTracks=[];
-
 %check whether a time range for plotting was input
-if nargin < 2 || isempty(timeRange)
+if nargin<2 || isempty(timeRange)
     timeRange = [1 numTimePoints];
 else
     if timeRange(1) < 1 || timeRange(2) > numTimePoints
@@ -52,21 +91,20 @@ else
 end
 
 %check whether user supplied an image
-if nargin < 3 || isempty(img)
-    %find coordinate limits
-    maxXCoord =  ceil(nanmax(tracksX(:)));
-    maxYCoord =  ceil(nanmax(tracksY(:)));
-    img = repmat(0.75*ones(maxYCoord,maxXCoord),[1,1,3]);
-elseif strcmp(img,'pick')
+if nargin<3 || isempty(img)
     %let user pick image
+    homeDir=pwd;
+    if ~isequal(pwd,runInfo.anDir)
+        cd(runInfo.anDir)
+        cd ..
+    end
     [fileName,pathName] = uigetfile('*.tif','Select image to use for track overlay');
     img=double(imread([pathName filesep fileName]));
-else
-    %use input image
+    cd(homeDir);
 end
 
 %check whether user wants to get track data by selection
-if nargin < 4 || isempty(ask4sel)
+if nargin<4 || isempty(ask4sel)
     ask4sel = true;
 end
 
@@ -74,6 +112,11 @@ end
 %plotCurrentOnly-frame or all tracks in frame range
 if nargin<5 || isempty(plotCurrentOnly)
     plotCurrentOnly=0; %default: all frames in timeRange
+    close all
+else
+    if plotCurrentOnly<timeRange(1) || plotCurrentOnly>timeRange(2)
+        error('--plotTracks2D: plotCurrentOnly must be within timeRange');
+    end
 end
 
 %check for coordinates of a ROI in which results should be plotted
@@ -108,13 +151,12 @@ tracksXInterp = trackedFeatureInfoInterp(:,1:8:end)';
 tracksYInterp = trackedFeatureInfoInterp(:,2:8:end)';
 
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Plotting
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %open new figure window
-figure(1);
+gcf;
 imagesc(img);
 colormap gray
 
@@ -153,7 +195,8 @@ end
 %get list of all tracks that have begun before plotCurrentOnly-frame but
 %finish after
 if plotCurrentOnly~=0
-    plotCurrentTracksIdx=unique([segs(segs(:,2)<=plotCurrentOnly & segs(:,3)>=plotCurrentOnly,1);...
+    plotCurrentTracksIdx=unique([
+        segs(segs(:,2)  <=plotCurrentOnly & segs(:,3) >=plotCurrentOnly,1);...
         fgaps(fgaps(:,2)<=plotCurrentOnly & fgaps(:,3)>=plotCurrentOnly,1);...
         bgaps(bgaps(:,2)<=plotCurrentOnly & bgaps(:,3)>=plotCurrentOnly,1);...
         ugaps(ugaps(:,2)<=plotCurrentOnly & ugaps(:,3)>=plotCurrentOnly,1)]);
@@ -237,12 +280,13 @@ ugapMatY=ugapMatY-minY+1;
 
 % plot the segments and gaps
 hold on
-plot(ugapMatX(timeRange(1):timeRange(2),:),ugapMatY(timeRange(1):timeRange(2),:),'m:','LineWidth',2)
-plot(fgapMatX(timeRange(1):timeRange(2),:),fgapMatY(timeRange(1):timeRange(2),:),'c:','LineWidth',2)
-plot(bgapMatX(timeRange(1):timeRange(2),:),bgapMatY(timeRange(1):timeRange(2),:),'y:','LineWidth',2)
-plot(segMatX(timeRange(1):timeRange(2),:),segMatY(timeRange(1):timeRange(2),:),'r','LineWidth',2)
+plot(ugapMatX(timeRange(1):timeRange(2),:),ugapMatY(timeRange(1):timeRange(2),:),'m:','LineWidth',1)
+plot(fgapMatX(timeRange(1):timeRange(2),:),fgapMatY(timeRange(1):timeRange(2),:),'c:','LineWidth',1)
+plot(bgapMatX(timeRange(1):timeRange(2),:),bgapMatY(timeRange(1):timeRange(2),:),'y:','LineWidth',1)
+plot(segMatX(timeRange(1):timeRange(2),:),segMatY(timeRange(1):timeRange(2),:),'r','LineWidth',1)
 
-% if movieInfo given then detected features will be showw ith jet colormap
+% if movieInfo given then ALL detected features will be show ith jet
+% colormap (not just the ones selected by the tracking)
 if ~isempty(movieInfo)
     colorOverTime = jet(timeRange(2)-timeRange(1)+1);
     frmCount1=1;
@@ -260,7 +304,7 @@ if ~isempty(movieInfo)
     end
 end
 
-
+selectedTracks=[]; % initialize output
 if ask4sel
     %extract the portion of tracksX and tracksY that is of interest
     tracksXPInterp = tracksXInterp(timeRange(1):timeRange(2),:)-minX+1;

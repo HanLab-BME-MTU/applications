@@ -109,6 +109,10 @@ frameNum = size(nnDistFeatures,2);
 tmpNN = max(1,frameNum-nnWindow);
 nnDistTracks = min(nnDistFeatures(:,tmpNN:end),[],2);
 
+%find features that appear and remove negative signs
+firstAppearanceFlag = sign(squeeze(kalmanFilterInfoFrame1.noiseVar(1,1,:)));
+kalmanFilterInfoFrame1.noiseVar = abs(kalmanFilterInfoFrame1.noiseVar);
+
 %% Motion propagation
 
 %specify number of propagation schemes used
@@ -199,15 +203,6 @@ end
 
 %get the Kalman standard deviation of all features in frame 1
 kalmanStd = sqrt(probDim * squeeze(kalmanFilterInfoFrame1.noiseVar(1,1,:)));
-
-% here we check whether this is the first frame. if it is, then the
-% noiseVar stored in the kalman filter should have the same uniform value
-% calculated in kalmanInitLinearMotion
-currFrameNum = [];
-temp = squeeze(kalmanFilterInfoFrame1.noiseVar(1,1,:));
-if isequal(temp,temp(1)*ones(size(temp)))
-    currFrameNum = 1;
-end
    
 %copy brownStdMult into vector
 stdMultInd = repmat(brownStdMult,numFeaturesFrame1,1);
@@ -234,10 +229,15 @@ searchRadius = stdMultInd .* kalmanStd;
 % values because it essentially does a nearest-neighbor search.  in the
 % subsequent iterations, we can bound to min/max because we want to look
 % around the propagated positions for features to link
-if isempty(currFrameNum)
-    searchRadius(searchRadius>maxSearchRadius) = maxSearchRadius;
-    searchRadius(searchRadius<minSearchRadius) = minSearchRadius;
-end
+
+oldIdx = firstAppearanceFlag==1; % these are not new features - apply min/max
+tooBigIdx = searchRadius>maxSearchRadius;
+tooSmallIdx = searchRadius<minSearchRadius;
+
+
+    
+searchRadius(oldIdx & tooBigIdx)   = maxSearchRadius;
+searchRadius(oldIdx & tooSmallIdx) = minSearchRadius;
 
 %replicate the search radius to compare to cost matrix
 searchRadius = repmat(searchRadius,1,numFeaturesFrame2);

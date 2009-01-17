@@ -1,7 +1,31 @@
-function [movieInfo]=eb1SpotDetector(runInfo,frameRange,bitDepth,savePlots,overwriteData)
-
-% runInfo: structure containing image and analysis directories
-% frameRange: [startFrame endFrame] or [] for whole movie
+function [movieInfo]=eb1SpotDetector(runInfo,timeRange,bitDepth,savePlots)
+% EB1SPOTDETECTOR locates EB1/EB3 comets in a movie stack
+%
+%SYNOPSIS [movieInfo]=eb1SpotDetector(runInfo,timeRange,bitDepth,savePlots)
+%
+%INPUT  runInfo           : structure containing fields .anDir, which gives
+%                           the full path to the roi_x directory
+%                           and .imDir, which gives the full path to the
+%                           folder containing the images for overlay.
+%                           if given as [], program will query user for
+%                           roi_x directory.
+%       timeRange         : row vector of the form [startFrame endFrame]
+%                           indicating time range to plot. if not given or 
+%                           given as [], tracks from the whole movie will
+%                           be displayed. 
+%       bitDepth          : bit depth of the images - should be 12, 14, or 16
+%       savePlots         : 1 to save overlay plots of detection results, 
+%                           0 if not
+%
+%OUTPUT movieInfo         : nFrames-structure containing x/y coordinates
+%       stdList           : nFrames-vector containing the standard
+%                           deviation of the difference of Gauss-filtered
+%                           images corresponding to each frame. this is
+%                           based on either the user-selected ROI (if
+%                           provided) or a region estimated to be within the
+%                           cell from the background point (if ROI wasn't
+%                           provided). both the ROI and bg point are saved
+%                           during setupRoiDirectories.m
 
 
 warningState = warning;
@@ -9,33 +33,45 @@ warning('off','MATLAB:divideByZero')
 
 % CHECK INPUT AND SET UP DIRECTORIES
 
-% check runInfo format and directory names between file systems
-if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
-    error('eb1SpotDetector: first argument should be a structure with fields imDir and anDir');
+% get runInfo in correct format
+if nargin<1 || isempty(runInfo)
+    % if not given as input, ask user for ROI directory
+    % assume images directory is at same level
+    runInfo.anDir=uigetdir(pwd,'Please select ROI directory');
+    homeDir=pwd;
+    cd(runInfo.anDir);
+    cd('..');
+    runInfo.imDir=[pwd filesep 'images'];
+    cd(homeDir)
 else
-    [runInfo.anDir] = formatPath(runInfo.anDir);
-    [runInfo.imDir] = formatPath(runInfo.imDir);
+    % adjust for OS
+    if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
+        error('--eb1SpotDetector: first argument should be a structure with fields imDir and anDir');
+    else
+        [runInfo.anDir] = formatPath(runInfo.anDir);
+        [runInfo.imDir] = formatPath(runInfo.imDir);
+    end
 end
 
 % count number of images in image directory
 [listOfImages] = searchFiles('.tif',[],runInfo.imDir,0);
 nImTot = size(listOfImages,1);
 
-% check frameRange input, assign start and end frame
-if nargin<2 || isempty(frameRange)
+% check timeRange input, assign start and end frame
+if nargin<2 || isempty(timeRange)
     startFrame = 1;
     endFrame = nImTot;
-elseif isequal(unique(size(frameRange)),[1 2])
-    if frameRange(1)<=frameRange(2) && frameRange(1)>0 && frameRange(2)<=nImTot
-        startFrame = frameRange(1);
-        endFrame = frameRange(2);
+elseif isequal(unique(size(timeRange)),[1 2])
+    if timeRange(1)<=timeRange(2) && timeRange(1)>0 && timeRange(2)<=nImTot
+        startFrame = timeRange(1);
+        endFrame = timeRange(2);
     else
         startFrame = 1;
         endFrame = nImTot;
     end
 
 else
-    error('eb1SpotDetector: frameRange should be [startFrame endFrame] or [] for all frames')
+    error('--eb1SpotDetector: timeRange should be [startFrame endFrame] or [] for all frames')
 end
 nFrames = endFrame-startFrame+1;
 
@@ -55,7 +91,7 @@ end
 % check bit depth to make sure it is 12, 14, or 16 and that its dynamic
 % range is not greater than the provided bitDepth
 if sum(bitDepth==[12 14 16])~=1 || maxIntensity > 2^bitDepth-1
-    error('eb1SpotDetector: bit depth should be 12, 14, or 16');
+    error('--eb1SpotDetector: bit depth should be 12, 14, or 16');
 end
 
 % check input for savePlots
@@ -63,42 +99,28 @@ if nargin<4 || isempty(savePlots)
     savePlots = 1;
 end
 
-% check input for overwriteData
-if nargin<5 || isempty(overwriteData)
-    overwriteData = 1;
-end
-
 % make feat directory if it doesn't exist from batch
 featDir = [runInfo.anDir filesep 'feat'];
-
-
 if isdir(featDir)
-    if overwriteData == 1
-        rmdir(featDir,'s')
-    else
-        disp([featDir ' already exists and you chose do not overwrite it'])
-        return
-    end
+    rmdir(featDir,'s')
 end
-if ~isdir(featDir)
-    mkdir(featDir)
-end
+mkdir(featDir)
+mkdir([featDir filesep 'filterDiff']);    
 if savePlots==1
     mkdir([featDir filesep 'overlayImages']);
 end
-mkdir([featDir filesep 'filterDiff']);
 
 
 % look for region of interest info from project setup step
 if ~exist([runInfo.anDir filesep 'roiMask.tif'])
     % not roi selected; use the whole image
     roiMask = ones(imL,imW);
-    roiCoords=[1 1; imL 1; imL imW; 1 imW; 1 1];
+    roiYX=[1 1; imL 1; imL imW; 1 imW; 1 1];
 else
     % get roi edge pixels and make region outside mask NaN
     roiMask = double(imread([runInfo.anDir filesep 'roiMask.tif']));
-    roiCoords=load([runInfo.anDir filesep 'roiCoords']);
-    roiCoords=roiCoords.roiCoords;
+    roiYX=load([runInfo.anDir filesep 'roiYX']);
+    roiYX=roiYX.roiYX;
 end
 
 
@@ -118,10 +140,10 @@ movieInfo(nFrames,1).int = 0;
 % get difference of Gaussians image for each frame and standard deviation
 % of the cell background, stored in stdList
 stdList=zeros(endFrame-startFrame+1,1);
-for i = startFrame:endFrame
+for iFrame = startFrame:endFrame
 
     % load image and normalize to 0-1
-    fileNameIm = [char(listOfImages(i,2)) filesep char(listOfImages(i,1))];
+    fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
     img = double(imread(fileNameIm))./((2^bitDepth)-1);
 
     % create kernels for gauss filtering
@@ -136,21 +158,20 @@ for i = startFrame:endFrame
     filterDiff = lowPass-highPass;
 
     % if bg point was chosen and saved, get bgMask from first frame
-    if i==startFrame && exist([runInfo.anDir filesep 'bgPtYX.mat'])~=0
+    if iFrame==startFrame && exist([runInfo.anDir filesep 'bgPtYX.mat'])~=0
         bgPtYX=load([runInfo.anDir filesep 'bgPtYX.mat']);
         bgPtYX=bgPtYX.bgPtYX;
         [bgMask]=eb3BgMask(filterDiff,bgPtYX);
         saveas(gcf,[featDir filesep 'filterDiff' filesep 'bgMask.tif']);
-        %imwrite(bgMask,[featDir filesep 'filterDiff' filesep 'bgMask.tif']);
     end
     % if bg point wasn't chosen, use ROI
-    if i==startFrame && exist([runInfo.anDir filesep 'bgPtYX.mat'])==0
+    if iFrame==startFrame && exist([runInfo.anDir filesep 'bgPtYX.mat'])==0
         bgMask=logical(roiMask);
     end
 
-    stdList(i)=std(filterDiff(bgMask));
+    stdList(iFrame)=std(filterDiff(bgMask));
     
-    indxStr1 = sprintf(strg1,i);
+    indxStr1 = sprintf(strg1,iFrame);
     save([featDir filesep 'filterDiff' filesep 'filterDiff' indxStr1],'filterDiff')
     save([featDir filesep 'stdList'],'stdList')
 end
@@ -161,13 +182,13 @@ eF=min([startFrame:endFrame]+1,nFrames*ones(1,nFrames));
 
 
 % loop thru frames and detect
-for i = startFrame:endFrame
+for iFrame = startFrame:endFrame
 
-    if i==startFrame
+    if iFrame==startFrame
         tic
     end
 
-    indxStr1 = sprintf(strg1,i);
+    indxStr1 = sprintf(strg1,iFrame);
     filterDiff=load([featDir filesep 'filterDiff' filesep 'filterDiff' indxStr1]);
     filterDiff=filterDiff.filterDiff;
 
@@ -179,7 +200,7 @@ for i = startFrame:endFrame
 
     % thickness of intensity slices is average std from filterDiffs over
     % from one frame before to one frame after
-    stepSize=mean(stdList(sF(i):eF(i)));
+    stepSize=mean(stdList(sF(iFrame):eF(iFrame)));
     thresh=3*stepSize;
     
     % we assume each step size down the intensity profile should be on
@@ -269,7 +290,7 @@ for i = startFrame:endFrame
     %             end
 
     % centroid coordinates with zero uncertainties for Khuloud's tracker
-    yCoord = zeros(nFeats,2); xCoord = zeros(nFeats,2);
+    yCoord = 0.5*ones(nFeats,2); xCoord = 0.5*ones(nFeats,2);
     temp = vertcat(featPropFinal.WeightedCentroid);
     yCoord(:,1) = temp(:,2);
     xCoord(:,1) = temp(:,1);
@@ -285,13 +306,13 @@ for i = startFrame:endFrame
     featI(:,1) = featInt;
 
     % make structure compatible with Khuloud's tracker
-    movieInfo(i,1).xCoord = xCoord;
-    movieInfo(i,1).yCoord = yCoord;
-    movieInfo(i,1).amp = amp;
-    movieInfo(i,1).int = featI;
+    movieInfo(iFrame,1).xCoord = xCoord;
+    movieInfo(iFrame,1).yCoord = yCoord;
+    movieInfo(iFrame,1).amp = amp;
+    movieInfo(iFrame,1).int = featI;
 
 
-    indxStr1 = sprintf(strg1,i); % frame
+    indxStr1 = sprintf(strg1,iFrame); % frame
 
     %save([featDir filesep 'featureInfo' filesep 'featPropFinal' indxStr1],'featPropFinal');
 
@@ -305,7 +326,7 @@ for i = startFrame:endFrame
 
 
         %plot feat outlines and centroid on image
-        fileNameIm = [char(listOfImages(i,2)) filesep char(listOfImages(i,1))];
+        fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
         img = double(imread(fileNameIm))./((2^bitDepth)-1);
 
         figure(1);
@@ -313,7 +334,7 @@ for i = startFrame:endFrame
         hold on
         scatter(xCoord(:,1),yCoord(:,1),'c.'); % plot centroid in cyan
         colormap gray
-        plot(roiCoords(2),roiCoords(1),'w')
+        plot(roiYX(2),roiYX(1),'w')
         %plot(outlineX,outlineY,'r'); % plot feat outlines in red
 
         saveas(gcf,[featDir filesep 'overlayImages' filesep 'overlay' indxStr1 '.tif']);
@@ -331,7 +352,7 @@ for i = startFrame:endFrame
 
 end
 
-if i==1
+if iFrame==1
     tm = toc;
     expectedTime = (tm*nFrames)/60; % in minutes
     disp(['first frame took ' num2str(tm) ' seconds; ' num2str(nFrames) ' frames will take ' num2str(expectedTime) ' minutes.'])

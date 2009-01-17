@@ -22,13 +22,13 @@ function [trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFro
 %                                    containing the track number, start
 %                                    frame, end frame, and average velocity
 %         trackVelocities          : structure with fields .frame2frame and
-%                                    segmentAvgs, where each is an 
-%                                    nTracks x nFrames-1 matrix where entry
-%                                    ij contains the velocity of the ith
+%                                    .segmentAvgs, where each is an 
+%                                    nTracks x nFrames-1 matrix. entry ij
+%                                    contains the velocity of the ith
 %                                    microtubule between the j and j+1
 %                                    frames. the former gives instantaneous
 %                                    velocities whereas the latter gives
-%                                    averages over the whole segment
+%                                    averages over the whole segment or gap
 
 
 if isstruct(trackedFeatureInfo)

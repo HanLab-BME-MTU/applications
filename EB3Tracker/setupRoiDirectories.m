@@ -1,39 +1,46 @@
 function setupRoiDirectories(selectROI,overwriteROIs,doCrop)
-% SETUPDIRECTORIES does quick roi directory creation for movie batch
+% SETUPROIDIRECTORIES allows quick roi directory creation for movie(s)
 %
-% DESCRIPTION: setupDirectories searches a user-selected, top-level
+% DESCRIPTION: setupRoiDirectories searches a user-selected, top-level
 % directory for every sub-directory called /images, where presumably the
 % original data for a movie resides.
 %
-% The function then creates 1-9 new directories at the same level
-% called roi_1,...,roi_9, depending on how many ROIs the user selects.
+% The function then creates one or more (up to 9) new directories at the 
+% same level, called roi_1,...,roi_9, depending on how many ROIs the user
+% selects.
 %
 % The user can either overwrite or retain roi directories that have
-% already been created; in this way you can add more data and not undo
-% previous analysis.
+% already been created; in this way you can add more data to the parent
+% directory and select ROIs for just those new movies (leaving the old ones
+% intact), or you may want to repeat ROI selection for all the movies.
 %
-% INPUT:
+% INPUT  selectROI     : 1 if the user wants to select regions of interest
+%                        per image directory found in the user-selected top-level
+%                        directory
+%                        (0) if not (note: in this case, a roi_1 directory
+%                        will be created and the "roi" will be the whole image)
+%        overwriteROIs : 1 if projects that have already have rois should
+%                        be overwritten 
+%                        (0) if they should be preserved (in this case you
+%                        cannot add more ROIs to the old projects - just to
+%                        the new ones.  See note above.)
+%        doCrop        : optional parameter. 1 if you want to generate
+%                        cropped 16-bit images in a subdirectory of roi_x
+%                        called images.
 %
-% selectROI    : 1 if the user wants to select regions of interest (up to 9)
-%                per image directory found in the user-selected top-level
-%                directory; (0) if not (note: in this case, a roi_1
-%                directory will be created and the roi will be the whole image)
-% overwriteROIs: (1) if projects that have already had rois should
-%                be overwritten; 0 if they should be preserved.
-%
-%
-% OUTPUT:
-%
-% roiMask      : tif the size of the raw images containing the roiMask;
-%                this gets saved in the roi_n folder
-% roiCoords    : corresponding xy-coordinates of the roi
+% OUTPUT roiMask      : tif the size of the raw images containing the roiMask;
+%                       this gets saved in the roi_n folder
+%        roiYX        : contains xy-coordinates of the roi
 %
 % Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
 
-if nargin<3 || isempty(doCrop)
-    doCrop=0;
+% default - make roi_1 directory, roi is whole image
+if nargin<1 || isempty(selectROI) || (selectROI~=0 && selectROI~=1)
+    selectROI=0;
 end
 
+% default - don't overwrite old data - just look for new projects under
+% parent directory
 if nargin<2 || isempty(overwriteROIs) || (overwriteROIs~=0 && overwriteROIs~=1)
     overwriteROIs=0;
 end
@@ -46,12 +53,13 @@ if lower(reply)~='y'
     overwriteROIs=0;
 end
 
-
-if nargin<1 || isempty(selectROI) || (selectROI~=0 && selectROI~=1)
-    selectROI=0;
+% default - don't crop the images and store them
+if nargin<3 || isempty(doCrop)
+    doCrop=0;
 end
 
-
+% find existing /images and /roi_x directories. "images" directories make
+% up the list of all the projects; "roi_x" ones have already been analyzed
 topDir=uigetdir(pwd,'Please select top-level directory containing targets');
 p=genpath(topDir);
 if ispc
@@ -78,7 +86,7 @@ for i=1:length(imageDirList) % iterate through projects
     imDir=imageDirList{i,1}(1:end-1);
     roiDir=[imDir(1:end-7) filesep 'roi'];
 
-    % check for existence of rois directory; make dir if needed
+    % check for existence of rois directory and make dir if needed
     if ~isdir([roiDir '_1'])
         % get list and number of images
         [listOfImages]=searchFiles('.tif',[],imDir,0);
@@ -106,34 +114,36 @@ for i=1:length(imageDirList) % iterate through projects
                         end
                     end
                     close
-                    roiCoords=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
+                    roiYX=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
                 else
                     % make the ROI the whole image
                     [imL,imW]=size(img);
                     roiMask=logical(ones(imL,imW));
-                    roiCoords=[1 1; imL 1; imL imW; 1 imW; 1 1];
+                    roiYX=[1 1; imL 1; imL imW; 1 imW; 1 1];
                     
                     % get within-cell point for each project
-                    imagesc(img); colormap gray;
-                    [x,y] = getpts;
-                    bgPtYX = [y(1) x(1)];
                     if i==1
                         disp('Select a point in the cell center, then press enter')
                     end
+                    
+                    imagesc(img); colormap gray;
+                    [x,y] = getpts;
+                    bgPtYX = [y(1) x(1)];
+                    
                     save([currentRoiAnDir filesep 'bgPtYX'],'bgPtYX');
                     close
                 end
 
                 % save original and cropped roiMask
                 imwrite(roiMask,[currentRoiAnDir filesep 'roiMask.tif']);
-                save([currentRoiAnDir filesep 'roiCoords'],'roiCoords');
+                save([currentRoiAnDir filesep 'roiYX'],'roiYX');
                 disp(currentRoiAnDir)
                 
                 if doCrop==1
-                    minY=floor(min(roiCoords(:,1)));
-                    maxY=ceil(max(roiCoords(:,1)));
-                    minX=floor(min(roiCoords(:,2)));
-                    maxX=ceil(max(roiCoords(:,2)));
+                    minY=floor(min(roiYX(:,1)));
+                    maxY=ceil(max(roiYX(:,1)));
+                    minX=floor(min(roiYX(:,2)));
+                    maxX=ceil(max(roiYX(:,2)));
                     
                     mkdir([currentRoiAnDir filesep 'images']);
                     for j=1:size(listOfImages,1)
