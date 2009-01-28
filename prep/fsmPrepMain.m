@@ -347,7 +347,7 @@ for counter1=1:n
                rBgMaskInd = find(bgMaskFileIndex==currentIndex);
 
                if ~isempty(rBgMaskInd)
-                  bwMask = imread(bgMaskFileList{rBgMaskInd});
+                  bwMask = double(imread(bgMaskFileList{rBgMaskInd}));
                   successCE = 1;
                end
             end
