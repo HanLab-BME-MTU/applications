@@ -11,7 +11,9 @@ function dataStruct = makiInitCoord(dataStruct, verbose, movieType, cutoffFix)
 %                       Alternatively, a makiData object can be passed.
 %                   verbose (opt): 0: plot nothing
 %                                  1: show progressText (default)
-%                                  2: show cutoff-plots
+%                                  2: + show cutoff-plots
+%                                  3: + show initial coordinate guesses
+%                                     ordered by amplitude for every frame
 %                   movieType: 1 for DV movies, 2 for STK movies.
 %                              Optional. Default: 1.
 %                   cutoffFix: 2-element vector indicating
@@ -121,7 +123,17 @@ if dataObject
         goodTimes = find(cellfun(@(x)(~isempty(x)),...
             dataStruct.imageData.cropInfo.cropMask))';
     end
-    
+end
+
+% read minimum number of requested spots per frame. If not set, assume 20
+if dataObject
+    if isfield(dataProperties.initCoord,'minSpotsPerFrame')
+        minSpotsPerFrame = dataProperties.initCoord.minSpotsPerFrame;
+    else
+        minSpotsPerFrame = 20;
+    end
+else
+    minSpotsPerFrame = 20;
 end
 
 %=====================
@@ -284,6 +296,15 @@ for t=goodTimes
         progressText(t/nTimes);
     end
     
+    if verbose > 2
+        % plot frame with initial guesses for coords
+        figure('Name',sprintf('frame %i',t))
+        imshow(max(amplitude,[],3),[])
+        hold on, 
+        for i=1:size(initCoordTmp,1),
+            text(initCoordTmp(i,2),initCoordTmp(i,1),num2str(i),'Color','r');
+        end
+    end
 end % loop timepoints
 
 clear initCoordTmp
@@ -314,61 +335,8 @@ else
     cutoff(3) = NaN;
 end
 
-
-nn = nan(3,1);
-% check for predetermined cutoff
-if ~isempty(cutoffFix)
-    % store old value
-    oldCutoff = cutoff;
-    % set cutoffIdx, cutoffCol
-    cutoffIdx = cutoffFix(1);
-    cutoffCol = cutoffIdx + 5;
-    % update cutoff
-    cutoff(cutoffIdx) = cutoffFix(2);
-else
-    
-    
-    switch movieType
-        case 1
-            % note: ask only for spots in good frames
-            minGood = 20*length(goodTimes);
-            nn(3) = sum(allCoord(:,8)>cutoff(3))/minGood;
-            nn(2) = sum(allCoord(:,7)>cutoff(2))/minGood;
-            nn(1) = sum(allCoord(:,4)>cutoff(1))/minGood;
-            if nn(3) > 1
-                cutoffIdx = 3;
-                cutoffCol = 8;
-            elseif nn(2) > 1
-                cutoffIdx = 2;
-                cutoffCol = 7;
-            elseif nn(1) > 1
-                cutoffIdx = 1;
-                cutoffCol = 4;
-            else
-                error('less than 20 spots per frame found. makiInitCoord failed')
-            end
-            
-        case 2
-            
-            %for the HMS data, the signal is very dim and photobleaches a lot,
-            %and determining the cutoff on the fly does not work.
-            %Thus, I'm fixing the cutoff criterion to the amplitude-to-noise
-            %ratio and I'm fixing the cutoff to 2.32 (approximating a 0.01
-            %alpha-value in a hypothesis test) - KJ
-            cutoff(2) = 2.32;
-            cutoffIdx = 2;
-            cutoffCol = 7;
-            
-    end
-end
-
-% remember the cutoff criterion used
-if ~dataObject
-    dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];
-end
-
-% plot all
-if verbose == 2
+% plot all before selecting cutoff so that we can see what went wrong
+if verbose > 1
     if dataObject
         figure('Name',sprintf('cutoffs for %s',dataStruct.identifier))
     else
@@ -394,6 +362,61 @@ if verbose == 2
         plot(ah(2),t,initCoordRaw{t}(:,7),'+')
         plot(ah(3),t,initCoordRaw{t}(:,8),'+')
     end
+end
+
+nn = nan(3,1);
+% check for predetermined cutoff
+if ~isempty(cutoffFix)
+    % store old value
+    oldCutoff = cutoff;
+    % set cutoffIdx, cutoffCol
+    cutoffIdx = cutoffFix(1);
+    cutoffCol = cutoffIdx + 5;
+    % update cutoff
+    cutoff(cutoffIdx) = cutoffFix(2);
+else
+    
+    
+    switch movieType
+        case 1
+            % note: ask only for spots in good frames
+            minGood = minSpotsPerFrame*length(goodTimes);
+            nn(3) = sum(allCoord(:,8)>cutoff(3))/minGood;
+            nn(2) = sum(allCoord(:,7)>cutoff(2))/minGood;
+            nn(1) = sum(allCoord(:,4)>cutoff(1))/minGood;
+            if nn(3) > 1
+                cutoffIdx = 3;
+                cutoffCol = 8;
+            elseif nn(2) > 1
+                cutoffIdx = 2;
+                cutoffCol = 7;
+            elseif nn(1) > 1
+                cutoffIdx = 1;
+                cutoffCol = 4;
+            else
+                error('less than %i spots per frame found. makiInitCoord failed',minSpotsPerFrame)
+            end
+            
+        case 2
+            
+            %for the HMS data, the signal is very dim and photobleaches a lot,
+            %and determining the cutoff on the fly does not work.
+            %Thus, I'm fixing the cutoff criterion to the amplitude-to-noise
+            %ratio and I'm fixing the cutoff to 2.32 (approximating a 0.01
+            %alpha-value in a hypothesis test) - KJ
+            cutoff(2) = 2.32;
+            cutoffIdx = 2;
+            cutoffCol = 7;
+            
+    end
+end
+
+% remember the cutoff criterion used
+if ~dataObject
+    dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];
+end
+
+if verbose > 1
     title(ah(cutoffIdx),'cutoff selected')
     % if we want to look at this, we should do scatterCloud!!
     %     figure('Name',sprintf('cutoff-comparison for %s',dataStruct.projectName))
