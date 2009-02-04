@@ -98,7 +98,7 @@ if ~isfield(fsmParam,'batchJob')
     % Check whether the image is 8 bit and the selected bitdepth is higher
     imInfo=imfinfo([dirName,fName]);
     selBitDepth=log2(xmax+1);
-    if imInfo.BitDepth==8 & selBitDepth>8
+    if imInfo.BitDepth==8 && selBitDepth>8
         msg=['You selected ',num2str(selBitDepth),' bit depth for your camera, but the images to be analyzed are only 8 bit. Continue anyway?'];
         button = questdlg(msg,...
             'Warning!','Yes','No','No');
@@ -154,7 +154,7 @@ if ~isfield(fsmParam,'batchJob')
         [userROIbwFileName,userROIbwPath]=uigetfile( ...
             {'userROI.mat'}, ...
             'Please load ''userROI.mat''');
-        if ~(isa(userROIbwFileName,'char') & isa(userROIbwPath,'char'))
+        if ~(isa(userROIbwFileName,'char') && isa(userROIbwPath,'char'))
             return 
         end
         
@@ -169,7 +169,7 @@ if ~isfield(fsmParam,'batchJob')
             if size(userROIbw)~=[imInfo.Height imInfo.Width]
                 
                 % Error - inform the user that he will have to draw the roi 
-                errorMsg=['The selected userROI.mat contains a polygon incompatible with your image size. You will be now asked to draw a ROI.'];
+                errorMsg='The selected userROI.mat contains a polygon incompatible with your image size. You will be now asked to draw a ROI.';
                 uiwait(errordlg(errorMsg,'Error','modal'));
                 
                 % Set drawROI=1, the user will draw
@@ -273,9 +273,9 @@ if autoPolygon == 1
         %Get the index of the available mask files.
         bgMaskFileIndex = zeros(size(bgMaskFileList));
         for k = 1:length(bgMaskFileList)
-            [path,body,no,ext] = getFilenameBody(bgMaskFileList{k});
+            [path,body,no] = getFilenameBody(bgMaskFileList{k});
             bgMaskFileList{k}  = [bgMaskDir filesep bgMaskFileList{k}];
-            bgMaskFileIndex(k) = str2num(no);
+            bgMaskFileIndex(k) = str2double(no);
         end
         [bgMaskFileIndex,sortedI] = sort(bgMaskFileIndex);
         bgMaskFileList = bgMaskFileList(sortedI);
@@ -301,13 +301,13 @@ if autoPolygon == 1
         bgMaskFileIndex<=firstIndex+n-1);
 
     if length(inRangeI) < n
-        ans = questdlg(['Cell edge mask files are missing for some images ' ...
+        answ = questdlg(['Cell edge mask files are missing for some images ' ...
             'in the selected ''edge'' directory: ' edgeDir ...
             '. Do you want to continue or go back and run edge tracking again by ' ...
             'click ''Run edge tracker'' button in ''fsmCenter''?'], ...
             'warning','Continue','Cancel','Continue');
 
-        if strcmp(ans,'Cancel')
+        if strcmp(answ,'Cancel')
             cd(oldPath);
             if ishandle(h)
                 delete(h);
@@ -325,7 +325,7 @@ for counter1=1:n
     % Index of the current image
     currentIndex=counter1+firstIndex-1;
     
-    if fsmParam.prep.pstSpeckles==1 | fsmParam.prep.pstSpeckles==2
+    if fsmParam.prep.pstSpeckles==1 || fsmParam.prep.pstSpeckles==2
         
         % Load and normalize the image
         img=imreadnd2(char(outFileList(counter1,:)),xmin,xmax);
