@@ -155,6 +155,12 @@ sepMeanM = sepMeanM(:);
 sepChangeStdM = analysisStruct.sepDispSpaceTime.Inlier.meanStdMin25P50P75PMax.indcell.sisterSepChange(:,2,:);
 sepChangeStdM = sepChangeStdM(:);
 
+%sister separation switching time mean
+sepPChangeIntMean = analysisStruct.sepDispSpaceTime.Inlier.meanStdMin25P50P75PMax.indcell.sepPChangeInterval(:,1,:);
+sepNChangeIntMean = analysisStruct.sepDispSpaceTime.Inlier.meanStdMin25P50P75PMax.indcell.sepNChangeInterval(:,1,:);
+sepChangeIntMeanM = (sepPChangeIntMean + sepNChangeIntMean) / 2;
+sepChangeIntMeanM = sepChangeIntMeanM(:);
+
 %center switching time mean
 centerPDispIntMean = analysisStruct.sepDispSpaceTime.Inlier.meanStdMin25P50P75PMax.indcell.centerPosPChangeInterval(:,1,:);
 centerNDispIntMean = analysisStruct.sepDispSpaceTime.Inlier.meanStdMin25P50P75PMax.indcell.centerPosNChangeInterval(:,1,:);
@@ -188,6 +194,7 @@ if isempty(analysisStructA)
     dispStdA = [];
     sepMeanA = [];
     sepChangeStdA = [];
+    sepChangeIntMeanA = [];
     centerDispIntMeanA = [];
     prodDispTimeA = [];
     angleNormMeanA = [];
@@ -207,6 +214,11 @@ else
 
     %sister separation change std
     sepChangeStdA = analysisStructA.sepDispSpaceTime.Inlier.meanStdMin25P50P75PMax.indcell.sisterSepChange(:,2);
+
+    %sister separation switching time mean
+    sepPChangeIntMean = analysisStructA.sepDispSpaceTime.Inlier.meanStdMin25P50P75PMax.indcell.sepPChangeInterval(:,1);
+    sepNChangeIntMean = analysisStructA.sepDispSpaceTime.Inlier.meanStdMin25P50P75PMax.indcell.sepNChangeInterval(:,1);
+    sepChangeIntMeanA = (sepPChangeIntMean + sepNChangeIntMean) / 2;
 
     %center switching time mean
     centerPDispIntMean = analysisStructA.sepDispSpaceTime.Inlier.meanStdMin25P50P75PMax.indcell.centerPosPChangeInterval(:,1);
@@ -234,6 +246,7 @@ plateStdAll = [plateStdM;plateStdA];
 dispStdAll = [dispStdM;dispStdA];
 sepMeanAll = [sepMeanM;sepMeanA];
 sepChangeStdAll = [sepChangeStdM;sepChangeStdA];
+sepChangeIntMeanAll = [sepChangeIntMeanM;sepChangeIntMeanA];
 centerDispIntMeanAll = [centerDispIntMeanM;centerDispIntMeanA];
 prodDispTimeAll = [prodDispTimeM;prodDispTimeA];
 angleNormMeanAll = [angleNormMeanM;angleNormMeanA];
@@ -243,18 +256,28 @@ angVelMeanAll = [angVelMeanM;angVelMeanA];
 %fit each scatter plot with 1 and 2 lines, and decide which fits better
 indxKeep = find(~isnan(plateStdAll) & ~isnan(dispStdAll) & plateStdAll~=0 & dispStdAll~=0);
 lineFit.spreadDisp = fit1Line2Lines(plateStdAll(indxKeep),dispStdAll(indxKeep),0.3);
+
 indxKeep = find(~isnan(plateStdAll) & ~isnan(sepMeanAll) & plateStdAll~=0 & sepMeanAll~=0);
 lineFit.spreadSep = fit1Line2Lines(plateStdAll(indxKeep),sepMeanAll(indxKeep),0.3);
+
 indxKeep = find(~isnan(plateStdAll) & ~isnan(sepChangeStdAll) & plateStdAll~=0 & sepChangeStdAll~=0);
 lineFit.spreadSepChange = fit1Line2Lines(plateStdAll(indxKeep),sepChangeStdAll(indxKeep),0.3);
+
+indxKeep = find(~isnan(plateStdAll) & ~isnan(sepChangeIntMeanAll) & plateStdAll~=0 & sepChangeIntMeanAll~=0);
+lineFit.spreadSepChangeInt = fit1Line2Lines(plateStdAll(indxKeep),sepChangeIntMeanAll(indxKeep),0.3);
+
 indxKeep = find(~isnan(plateStdAll) & ~isnan(centerDispIntMeanAll) & plateStdAll~=0 & centerDispIntMeanAll~=0);
 lineFit.spreadCenterDispInt = fit1Line2Lines(plateStdAll(indxKeep),centerDispIntMeanAll(indxKeep),0.3);
+
 indxKeep = find(~isnan(plateStdAll) & ~isnan(prodDispTimeAll) & plateStdAll~=0 & prodDispTimeAll~=0);
 lineFit.spreadProdDT = fit1Line2Lines(plateStdAll(indxKeep),prodDispTimeAll(indxKeep),0.3);
+
 indxKeep = find(~isnan(plateStdAll) & ~isnan(angleNormMeanAll) & plateStdAll~=0 & angleNormMeanAll~=0);
 lineFit.spreadAngle = fit1Line2Lines(plateStdAll(indxKeep),angleNormMeanAll(indxKeep),0.3);
+
 indxKeep = find(~isnan(plateStdAll) & ~isnan(angleNormStdAll) & plateStdAll~=0 & angleNormStdAll~=0);
 lineFit.spreadAngleStd = fit1Line2Lines(plateStdAll(indxKeep),angleNormStdAll(indxKeep),0.3);
+
 indxKeep = find(~isnan(plateStdAll) & ~isnan(angVelMeanAll) & plateStdAll~=0 & angVelMeanAll~=0);
 lineFit.spreadAngVel = fit1Line2Lines(plateStdAll(indxKeep),angVelMeanAll(indxKeep),0.3);
 
@@ -271,6 +294,8 @@ if downSampleSize ~= 0 && downSampleSize < numObs
             sepMeanAll(randIndx),0.3);
         lineFitDS(iSample).spreadSepChange = fit1Line2Lines(plateStdAll(randIndx),...
             sepChangeStdAll(randIndx),0.3);
+        lineFitDS(iSample).spreadSepChangeInt = fit1Line2Lines(plateStdAll(randIndx),...
+            sepChangeIntMeanAll(randIndx),0.3);
         lineFitDS(iSample).spreadCenterDispInt = fit1Line2Lines(plateStdAll(randIndx),...
             centerDispIntMeanAll(randIndx),0.3);
         lineFitDS(iSample).spreadProdDT = fit1Line2Lines(plateStdAll(randIndx),...
@@ -289,6 +314,7 @@ end
 couplingCoef.all.spreadDisp = crossCorr(plateStdAll,dispStdAll,0);
 couplingCoef.all.spreadSep = crossCorr(plateStdAll,sepMeanAll,0);
 couplingCoef.all.spreadSepChange = crossCorr(plateStdAll,sepChangeStdAll,0);
+couplingCoef.all.spreadSepChangeInt = crossCorr(plateStdAll,sepChangeIntMeanAll,0);
 couplingCoef.all.spreadCenterDispInt = crossCorr(plateStdAll,centerDispIntMeanAll,0);
 couplingCoef.all.spreadProdDT = crossCorr(plateStdAll,prodDispTimeAll,0);
 couplingCoef.all.spreadAngle = crossCorr(plateStdAll,angleNormMeanAll,0);
@@ -301,6 +327,7 @@ indxMA = find(plateStdAll<0.5);
 couplingCoef.maRegime.spreadDisp = crossCorr(plateStdAll(indxMA),dispStdAll(indxMA),0);
 couplingCoef.maRegime.spreadSep = crossCorr(plateStdAll(indxMA),sepMeanAll(indxMA),0);
 couplingCoef.maRegime.spreadSepChange = crossCorr(plateStdAll(indxMA),sepChangeStdAll(indxMA),0);
+couplingCoef.maRegime.spreadSepChangeInt = crossCorr(plateStdAll(indxMA),sepChangeIntMeanAll(indxMA),0);
 couplingCoef.maRegime.spreadCenterDispInt = crossCorr(plateStdAll(indxMA),centerDispIntMeanAll(indxMA),0);
 couplingCoef.maRegime.spreadProdDT = crossCorr(plateStdAll(indxMA),prodDispTimeAll(indxMA),0);
 couplingCoef.maRegime.spreadAngle = crossCorr(plateStdAll(indxMA),angleNormMeanAll(indxMA),0);
@@ -330,6 +357,13 @@ indxAbove = find(plateStdAll>plateStdDiv);
 couplingCoef.lineRegime.spreadSepChange = ...
     [crossCorr(plateStdAll(indxBelow),sepChangeStdAll(indxBelow),0) ...
     crossCorr(plateStdAll(indxAbove),sepChangeStdAll(indxAbove),0)];
+
+plateStdDiv = lineFit.spreadSepChangeInt.line2.param(5);
+indxBelow = find(plateStdAll<=plateStdDiv);
+indxAbove = find(plateStdAll>plateStdDiv);
+couplingCoef.lineRegime.spreadSepChangeInt = ...
+    [crossCorr(plateStdAll(indxBelow),sepChangeIntMeanAll(indxBelow),0) ...
+    crossCorr(plateStdAll(indxAbove),sepChangeIntMeanAll(indxAbove),0)];
 
 plateStdDiv = lineFit.spreadCenterDispInt.line2.param(5);
 indxBelow = find(plateStdAll<=plateStdDiv);
@@ -487,7 +521,43 @@ end
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
-%figure 4: center displacement switching time vs. spread
+%figure 4: sister separation change interval vs. spread
+figure, hold on
+plot(plateStdM(lpm1Indx),sepChangeIntMeanM(lpm1Indx),'MarkerSize',10,'Marker','o',...
+    'LineWidth',1,'LineStyle','none','Color',[0.5 0.5 0.5])
+plot(plateStdM(lpm2Indx),sepChangeIntMeanM(lpm2Indx),'ko','MarkerSize',10,'LineWidth',1)
+plot(plateStdM(mIndx),sepChangeIntMeanM(mIndx),'MarkerSize',10,'Marker','o',...
+    'LineWidth',1,'LineStyle','none','Color',[0.4784 0.06275 0.8941]);
+if ~isempty(analysisStructA)
+    plot(plateStdA,sepChangeIntMeanA,'rx','LineWidth',1,'MarkerSize',15);
+    if distingPhase
+        legend('LPM near','LPM far','M','A')
+    else
+        legend('M & LPM','A')
+    end
+else
+    if distingPhase
+        legend('LPM near','LPM far','M')
+    else
+        legend('M & LPM')
+    end
+end
+xlabel('Center position std (um)');
+ylabel('Sister separation change switching times (s)');
+if lineFit.spreadSepChangeInt.lines1or2 == 1
+    lineParam = lineFit.spreadSepChangeInt.line1.param;
+    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+    yvalues = lineParam(1) * xvalues + lineParam(2);
+else
+    lineParam = lineFit.spreadSepChangeInt.line2.param;
+    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+    yvalues = lineParam(1) * xvalues + lineParam(2);
+    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+end
+plot(xvalues,yvalues,'k','LineWidth',1)
+hold off
+
+%figure 5: center displacement switching time vs. spread
 figure, hold on
 plot(plateStdM(lpm1Indx),centerDispIntMeanM(lpm1Indx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.5 0.5 0.5])
@@ -523,7 +593,7 @@ end
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
-%figure 5: displacement switching time * displacement vs. spread
+%figure 6: displacement switching time * displacement vs. spread
 figure, hold on
 plot(plateStdM(lpm1Indx),prodDispTimeM(lpm1Indx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.5 0.5 0.5])
@@ -559,7 +629,7 @@ end
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
-%figure 6: angle vs. spread
+%figure 7: angle vs. spread
 figure, hold on
 plot(plateStdM(lpm1Indx),angleNormMeanM(lpm1Indx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.5 0.5 0.5])
@@ -595,7 +665,7 @@ end
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
-%figure 7: angle std vs. spread
+%figure 8: angle std vs. spread
 figure, hold on
 plot(plateStdM(lpm1Indx),angleNormStdM(lpm1Indx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.5 0.5 0.5])
@@ -631,7 +701,7 @@ end
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
-%figure 8: angular displacement vs. spread
+%figure 9: angular displacement vs. spread
 figure, hold on
 plot(plateStdM(lpm1Indx),angVelMeanM(lpm1Indx),'MarkerSize',10,'Marker','o',...
     'LineWidth',1,'LineStyle','none','Color',[0.5 0.5 0.5])

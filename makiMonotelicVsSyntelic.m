@@ -1,9 +1,9 @@
-function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,...
-    verbose,samplingPeriod,correctStd,strictClass,removeNetDisp,randomize)
-%MAKISISTERCONNECTIONANALYSIS analyzes in multiple ways the connection between sisters
+function analysisStruct = makiMonotelicVsSyntelic(jobType,analysisStruct,...
+    verbose,samplingPeriod,correctStd)
+%MAKIMONOTELICVSSYNTELIC characterizes monotelic and syntelic sister behavior
 %
-%SYNOPSIS analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,...
-%    verbose,samplingPeriod,correctStd,strictClass,removeNetDisp,randomize)
+%SYNOPSIS analysisStruct = makiMonotelicVsSyntelic(jobType,analysisStruct,...
+%    verbose,samplingPeriod,correctStd)
 %
 %INPUT  jobType       : string which can take the values:
 %                       'TEST', 'HERCULES', 'DANUSER', 'MERALDI',
@@ -18,26 +18,13 @@ function analysisStruct = makiSisterConnectionAnalysis(jobType,analysisStruct,..
 %                       Optional. Default: 1.
 %       correctStd    : 1 to correct stds (because they are underestimated in
 %                       initCoord), 0 otherwise. Optional. Default: 0.
-%       strictClass   : 1 to use strict classification of unaligned and
-%                       lagging sisters, i.e. use only those frames where they
-%                       really are unaligned or lagging; 0 to use less strict
-%                       classification, where if a pair is unaligned or
-%                       lagging in some frames then it is classified as
-%                       unaligned or lagging for the whole movie.
-%                       Optional. Default: 0
-%       removeNetDisp : 1 - Make center of each sister pair at zero
-%                       throughout the whole movie, 0 otherwise.
-%                       Optional. Default: 0.
-%       randomize     : 1 - Randomize sister pairing, 0 otherwise.
-%                       Optional. Default: 0.
 %
 %OUTPUT analysisStruct: Same as input but with additional field
-%           .sisterConnection: 
+%           .monoVsSyntelic: 
 %
 %REMARKS Code is not applicable to anaphase movies/frames. 
-%        strictClass = 1 ONLY WORKS WITH samplingPeriod = 1.
 %
-%Khuloud Jaqaman, July 2007
+%Khuloud Jaqaman, September 2008
 
 %% input
 if nargin < 1 || isempty(jobType)
@@ -54,18 +41,6 @@ end
 
 if nargin < 5 || isempty(correctStd)
     correctStd = 0;
-end
-
-if nargin < 6 || isempty(strictClass)
-    strictClass = 0;
-end
-
-if nargin < 7 || isempty(removeNetDisp)
-    removeNetDisp = 0;
-end
-
-if nargin < 8 || isempty(randomize)
-    randomize = 0;
 end
 
 %interactively obtain analysisStruct if not input
@@ -114,7 +89,7 @@ numSistersTotEff = numSistersTot * samplingPeriod;
 %get time between frames
 timeLapse = round(2*dataStruct(1).dataProperties.timeLapse)/2 * samplingPeriod;
 
-%% collect sister angles and distances (and attachment type if requested)
+%% collect sister angles and distances
 
 %define cell array of sister labels
 label{1,1} = 'Inlier';
@@ -130,7 +105,6 @@ for iLabel = 1 : 3
     eval(['sisterVel' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
     eval(['angleNormal' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
     eval(['angularVel' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
-    eval(['angleRadial' label{iLabel,1} '(1:numSistersTotEff,1) = struct(''observations'',[]);'])
     
     eval(['movieStartIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
     eval(['movieEndIndx' label{iLabel,1} ' = zeros(numMovies,1);'])
@@ -155,10 +129,6 @@ for iMovie = 1 : numMovies
             removeNetDisp,randomize);
         numSisters(iMovie) = length(sisterListTmp);
 
-        %get tracks
-        tracksTmp = dataStruct(iMovie).tracks;
-        [tracksTmp,tracksIndxTmp] = convStruct2MatNoMS(tracksTmp);
-
         %sister type = 0 if all kinetochores are inliers
         %sister type = 1 if some kinetochores are unaligned
         %sister type = 2 if some kinetochores are lagging
@@ -169,7 +139,7 @@ for iMovie = 1 : numMovies
         %subsample as requested
         for iSample = 1 : samplingPeriod
 
-            %get sister coordinates with proper subsampling -- UGLY BUT WORKS FOR NOW
+            %get coordinates with proper subsampling -- UGLY BUT WORKS FOR NOW
             if samplingPeriod == 1
                 sisterList = sisterListTmp;
             else
@@ -180,22 +150,8 @@ for iMovie = 1 : numMovies
                 end
             end
             
-            %get track coordinates with proper subsampling
-            frames2keep = (iSample:samplingPeriod:size(tracksTmp,2)/8);
-            columns2keep = [8*(frames2keep-1)+1; 8*(frames2keep-1)+2; ...
-                8*(frames2keep-1)+3; 8*(frames2keep-1)+4; ...
-                8*(frames2keep-1)+5; 8*(frames2keep-1)+6; ...
-                8*(frames2keep-1)+7; 8*(frames2keep-1)+8];
-            columns2keep = columns2keep(:)';
-            tracks = tracksTmp(:,columns2keep);
-            trackFeatIndx = tracksIndxTmp(:,frames2keep);
-            
-            %get track start and end times
-            nonemptyIndx = find(any(~isnan(tracks),2));
-            trackSEL = NaN(size(tracks,1),3);
-            trackSEL(nonemptyIndx,:) = getTrackSEL(tracks(nonemptyIndx,:));
-
             %copy fields out of dataStruct(iMovie)
+            tracks = dataStruct(iMovie).tracks;
             planeFit = dataStruct(iMovie).planeFit(iSample:samplingPeriod:end);
             updatedClass = dataStruct(iMovie).updatedClass(iSample:samplingPeriod:end);
             numFramesMovie = length(updatedClass);
@@ -224,10 +180,11 @@ for iMovie = 1 : numMovies
                 iLabel = sisterType(iSister) + 1;
 
                 %find track indices
-                tracksIndx = sisterListTmp(1).trackPairs(iSister,1:2);
+                tracksIndx = sisterList(1).trackPairs(iSister,1:2);
 
                 %determine frame where each track starts
-                trackStart = [trackSEL(tracksIndx(1),1) trackSEL(tracksIndx(2),1)];
+                trackStart = [tracks(tracksIndx(1)).seqOfEvents(1,1) ...
+                    tracks(tracksIndx(2)).seqOfEvents(1,1)];
 
                 %find number of frames and frames where pair "exists" before
                 %anaphase
@@ -239,8 +196,8 @@ for iMovie = 1 : numMovies
                 %find feature indices making up sisters
                 sisterIndx1 = NaN(numFrames,1);
                 sisterIndx2 = NaN(numFrames,1);
-                sisterIndx1(goodFrames) = trackFeatIndx(tracksIndx(1),goodFrames);
-                sisterIndx2(goodFrames) = trackFeatIndx(tracksIndx(2),goodFrames);
+                sisterIndx1(goodFrames) = tracks(tracksIndx(1)).tracksFeatIndxCG(goodFrames-trackStart(1)+1);
+                sisterIndx2(goodFrames) = tracks(tracksIndx(2)).tracksFeatIndxCG(goodFrames-trackStart(2)+1);
 
                 %if we are looking at unaligned or lagging pairs, keep only
                 %those frames where they really are unaligned or lagging
@@ -314,20 +271,7 @@ for iMovie = 1 : numMovies
                     angularDisp(iFrame) = acos(abs(sisterVec(iFrame,:) * sisterVec(iFrame+1,:)' ...
                         / norm(sisterVec(iFrame,:)) / norm(sisterVec(iFrame+1,:)))); %radians
                 end
-
-                %calculate sister center
-                centerCoord = (coords1 + coords2) / 2;
-
-                %calculate the angle witht he radial
-                %i.e. the angle between the sister vector and the 
-                %vector connecting the sister center to the origin
-                angleWithRad = NaN(numFrames,1);
-                for iFrame = goodFrames'
-                    angleWithRad(iFrame) = acos(abs(sisterVec(iFrame,1:3) * ...
-                        centerCoord(iFrame,1:3)' / norm(sisterVec(iFrame,1:3)) ...
-                        / norm(centerCoord(iFrame,1:3))));
-                end
-
+                
                 %store sister information based on the sister type
                 iLabel = sisterType(iSister) + 1;
 
@@ -343,8 +287,6 @@ for iMovie = 1 : numMovies
                     ').observations = angleWithNorm * 180 / pi;']) %deg
                 eval(['angularVel' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
                     ').observations = angularDisp * 180 / pi / timeLapse;']) %deg/s
-                eval(['angleRadial' label{iLabel,1} '(iGlobal' label{iLabel,1} ...
-                    ').observations = angleWithRad * 180 / pi;']) %deg
 
             end %(for iSister = 1 : numSisters(iMovie))
 
@@ -377,8 +319,6 @@ for iLabel = 1 : 3
         '(1:iGlobal' label{iLabel,1} ');'])
     eval(['angularVel' label{iLabel,1} ' = angularVel' label{iLabel,1} ...
         '(1:iGlobal' label{iLabel,1} ');'])
-    eval(['angleRadial' label{iLabel,1} ' = angleRadial' label{iLabel,1} ...
-        '(1:iGlobal' label{iLabel,1} ');'])
 
 end
 
@@ -395,15 +335,12 @@ for iLabel = 1 : 3
     eval(['angleNormalParam' label{iLabel,1} ' = [];'])
     eval(['angularVelDistr' label{iLabel,1} ' = [];'])
     eval(['angularVelParam' label{iLabel,1} ' = [];'])
-    eval(['angleRadialDistr' label{iLabel,1} ' = [];'])
-    eval(['angleRadialParam' label{iLabel,1} ' = [];'])
     
     eval(['sisterDistIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['sisterVelPosIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['sisterVelNegIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['angleNormalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['angularVelIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])    
-    eval(['angleRadialIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
 end
 
 %calculation
@@ -474,21 +411,9 @@ for iLabel = goodLabel
             'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
             'max(allValues)];']);
     end
-
-    %angle with radial
-    eval(['allValues = vertcat(angleRadial' label{iLabel,1} '.observations);']);
-    allValues = allValues(:,1);
-    allValues = allValues(~isnan(allValues));
-    eval(['angleRadialDistr' label{iLabel,1} ' = allValues;']);
-    if ~isempty(allValues)
-        eval(['angleRadialParam' label{iLabel,1} ...
-            ' = [mean(allValues) std(allValues) min(allValues) ' ...
-            'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
-            'max(allValues)];']);
-    end
-
+    
     % individual cells %
-
+    
     %distance
     for iMovie = 1 : numMovies
         eval(['allValues = vertcat(sisterDist' label{iLabel,1} '(movieStartIndx' ...
@@ -569,22 +494,6 @@ for iLabel = goodLabel
         end
     end
     
-    %angle with radial
-    for iMovie = 1 : numMovies
-        eval(['allValues = vertcat(angleRadial' label{iLabel,1} '(movieStartIndx' ...
-            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie)).observations);']);
-        if ~isempty(allValues)
-            allValues = allValues(:,1);
-            allValues = allValues(~isnan(allValues));
-            if ~isempty(allValues)
-                eval(['angleRadialIndParam' label{iLabel,1} '(iMovie,:)' ...
-                    ' = [mean(allValues) std(allValues) min(allValues) ' ...
-                    'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
-                    'max(allValues)];']);
-            end
-        end
-    end
-
 end
 
 %% temporal trends
@@ -838,20 +747,17 @@ for iLabel = 1 : 3
     eval(['distribution = struct(''distance'',sisterDistDistr' label{iLabel,1} ','...
         '''rateChangeDist'',sisterVelDistr' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalDistr' label{iLabel,1} ','...
-        '''angularVel'',angularVelDistr' label{iLabel,1} ','...
-        '''angleWithRadial'',angleRadialDistr' label{iLabel,1} ');']);
+        '''angularVel'',angularVelDistr' label{iLabel,1} ');']);
     eval(['meanStdMin25P50P75PMax.all = struct(''distance'',sisterDistParam' label{iLabel,1} ','...
         '''posRateChangeDist'',sisterVelPosParam' label{iLabel,1} ','...
         '''negRateChangeDist'',sisterVelNegParam' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalParam' label{iLabel,1} ','...
-        '''angularVel'',angularVelParam' label{iLabel,1} ','...
-        '''angleWithRadial'',angleRadialParam' label{iLabel,1} ');']);
+        '''angularVel'',angularVelParam' label{iLabel,1} ');']);
     eval(['meanStdMin25P50P75PMax.indcell = struct(''distance'',sisterDistIndParam' label{iLabel,1} ','...
         '''posRateChangeDist'',sisterVelPosIndParam' label{iLabel,1} ','...
         '''negRateChangeDist'',sisterVelNegIndParam' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalIndParam' label{iLabel,1} ','...
-        '''angularVel'',angularVelIndParam' label{iLabel,1} ','...
-        '''angleWithRadial'',angleRadialIndParam' label{iLabel,1} ');']);
+        '''angularVel'',angularVelIndParam' label{iLabel,1} ');']);
     eval(['temporalTrend = struct(''distance'',sisterDistTrend' label{iLabel,1} ','...
         '''absoluteRateChangeDist'',sisterVelTrend' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalTrend' label{iLabel,1} ','...
