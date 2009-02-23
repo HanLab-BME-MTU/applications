@@ -147,7 +147,7 @@ projData.anDir=runInfo.anDir;
 projData.secPerFrame=secPerFrame;
 projData.pixSizeNm=pixSizeNm;
 projData.numTracks=numTracks;
-projData.numFrames=numTimePoints;
+projData.numFrames=numTimePoints/8;
 projData.xCoord = trackedFeatureInfoInterp(:,1:8:end); 
 projData.yCoord = trackedFeatureInfoInterp(:,2:8:end);
 
@@ -193,40 +193,62 @@ projData.meanDisp2medianNNDistRatio = mean(projData.frame2frameDispPix)/projData
 
 % concatenate all segments and gaps into n x 4 matrices, then add info:
 % [trackNum startFrame endFrame velocity seg/gapType trackLengthFrames]
-segs   = vertcat(trackInfo.seg);  segs =  [segs   1*ones(size(segs,1),1)   segs(:,3)-segs(:,2)];
-fgaps  = vertcat(trackInfo.fgap); fgaps = [fgaps  2*ones(size(fgaps,1),1) fgaps(:,3)-fgaps(:,2)];
-bgaps  = vertcat(trackInfo.bgap); bgaps = [bgaps  3*ones(size(bgaps,1),1) bgaps(:,3)-bgaps(:,2)];
-ugaps  = vertcat(trackInfo.ugap); ugaps = [ugaps  4*ones(size(ugaps,1),1) ugaps(:,3)-ugaps(:,2)];
+segs   = vertcat(trackInfo.seg);
+fgaps  = vertcat(trackInfo.fgap);
+bgaps  = vertcat(trackInfo.bgap);
+ugaps  = vertcat(trackInfo.ugap);
 
-% get indices of tracks where there are forward gaps, backward gaps, and
-% unclassified gaps
-projData.tracksWithFgaps = unique(fgaps(:,1));
-projData.tracksWithBgaps = unique(bgaps(:,1));
-projData.tracksWithUgaps = unique(ugaps(:,1));
+compositeMatrix = [];
+if ~isempty(segs)
+    segs =  [segs   1*ones(size(segs,1),1)   segs(:,3)-segs(:,2)];
+    
+    compositeMatrix = [compositeMatrix; segs];
+    % get mean/std speed (microns/min) for whole population of segs (taken from seg averages)
+    projData.segGapMeanStd_micPerMin.meanSegVel = mean(pixPerFrame2umPerMin(segs(:,4),secPerFrame,pixSizeNm));
+    projData.segGapMeanStd_micPerMin.stdSegVel  =  std(pixPerFrame2umPerMin(segs(:,4),secPerFrame,pixSizeNm));
+    
+end
+if ~isempty(fgaps)
+    fgaps = [fgaps  2*ones(size(fgaps,1),1) fgaps(:,3)-fgaps(:,2)];
+    % get indices of tracks where there are forward gaps
+    projData.tracksWithFgaps = unique(fgaps(:,1));
+    
+    compositeMatrix = [compositeMatrix; fgaps];
+    % get mean/std speed (microns/min) for whole population of fgaps
+    projData.segGapMeanStd_micPerMin.meanFgapVel = mean(pixPerFrame2umPerMin(fgaps(:,4),secPerFrame,pixSizeNm));
+    projData.segGapMeanStd_micPerMin.stdFgapVel  =  std(pixPerFrame2umPerMin(fgaps(:,4),secPerFrame,pixSizeNm));
+    
+end
+if ~isempty(bgaps)
+    bgaps = [bgaps  3*ones(size(bgaps,1),1) bgaps(:,3)-bgaps(:,2)];
+    % get indices of tracks where there are backward gaps
+    projData.tracksWithBgaps = unique(bgaps(:,1));
+    
+    compositeMatrix = [compositeMatrix; bgaps];
+    % get mean/std speed (microns/min) for whole population of bgaps
+    projData.segGapMeanStd_micPerMin.meanBgapVel = mean(pixPerFrame2umPerMin(bgaps(:,4),secPerFrame,pixSizeNm));
+    projData.segGapMeanStd_micPerMin.stdBgapVel  =  std(pixPerFrame2umPerMin(bgaps(:,4),secPerFrame,pixSizeNm));
 
+end
+if ~isempty(ugaps)
+    ugaps = [ugaps  4*ones(size(ugaps,1),1) ugaps(:,3)-ugaps(:,2)];
+    % get indices of tracks where there are unclassified gaps
+    projData.tracksWithUgaps = unique(ugaps(:,1));
+    
+    compositeMatrix = [compositeMatrix; ugaps];
+    % get mean/std speed (microns/min) for whole population of ugaps
+    projData.segGapMeanStd_micPerMin.meanUgapVel = mean(pixPerFrame2umPerMin(ugaps(:,4),secPerFrame,pixSizeNm));
+    projData.segGapMeanStd_micPerMin.stdUgapVel  =  std(pixPerFrame2umPerMin(ugaps(:,4),secPerFrame,pixSizeNm));
+
+end
+    
 
 % put segs/gaps into one matrix and sort to see track profiles in order
-aT=sortrows([segs; fgaps; bgaps; ugaps],[1 2]);
+aT=sortrows(compositeMatrix,[1 2]);
 
 % convert pix/frame --> micron/min velocities
 [aT(:,4)] = pixPerFrame2umPerMin(aT(:,4),secPerFrame,pixSizeNm);
 projData.nTrack_start_end_velMicPerMin_class_lifetime=aT;
-
-% get mean/std speed (microns/min) for whole population of segs (taken from seg averages)
-projData.segGapMeanStd_micPerMin.meanSegVel = mean(pixPerFrame2umPerMin(segs(:,4),secPerFrame,pixSizeNm));
-projData.segGapMeanStd_micPerMin.stdSegVel  =  std(pixPerFrame2umPerMin(segs(:,4),secPerFrame,pixSizeNm));
-
-% get mean/std speed (microns/min) for whole population of fgaps 
-projData.segGapMeanStd_micPerMin.meanFgapVel = mean(pixPerFrame2umPerMin(fgaps(:,4),secPerFrame,pixSizeNm));
-projData.segGapMeanStd_micPerMin.stdFgapVel  =  std(pixPerFrame2umPerMin(fgaps(:,4),secPerFrame,pixSizeNm));
-
-% get mean/std speed (microns/min) for whole population of bgaps 
-projData.segGapMeanStd_micPerMin.meanBgapVel = mean(pixPerFrame2umPerMin(bgaps(:,4),secPerFrame,pixSizeNm));
-projData.segGapMeanStd_micPerMin.stdBgapVel  =  std(pixPerFrame2umPerMin(bgaps(:,4),secPerFrame,pixSizeNm));
-
-% get mean/std speed (microns/min) for whole population of ugaps 
-projData.segGapMeanStd_micPerMin.meanUgapVel = mean(pixPerFrame2umPerMin(ugaps(:,4),secPerFrame,pixSizeNm));
-projData.segGapMeanStd_micPerMin.stdUgapVel  =  std(pixPerFrame2umPerMin(ugaps(:,4),secPerFrame,pixSizeNm));
 
 
 % get stats for each track in the form:
