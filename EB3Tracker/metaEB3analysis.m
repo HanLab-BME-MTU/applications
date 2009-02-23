@@ -205,6 +205,7 @@ if ~isempty(segs)
     compositeMatrix = [compositeMatrix; segs];
     % get mean/std speed (microns/min) for whole population of segs (taken from seg averages)
     projData.segGapMeanStd_micPerMin.meanSegVel = mean(pixPerFrame2umPerMin(segs(:,4),secPerFrame,pixSizeNm));
+    projData.segGapMeanStd_micPerMin.medianSegVel = median(pixPerFrame2umPerMin(segs(:,4),secPerFrame,pixSizeNm));
     projData.segGapMeanStd_micPerMin.stdSegVel  =  std(pixPerFrame2umPerMin(segs(:,4),secPerFrame,pixSizeNm));
     
 end
