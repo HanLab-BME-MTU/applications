@@ -34,7 +34,10 @@ if nargin<1 || isempty(projData)
 end
 
 % get output directory from the user
-movDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
+movDir=[projData.anDir filesep 'movies'];
+if ~isdir(movDir)
+    mkdir(movDir)
+end
 cd(movDir)
 
 % check whether a time range for plotting was input
