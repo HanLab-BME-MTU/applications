@@ -1,9 +1,10 @@
-function cord = makiCoord2Cord(initCoord)
+function cord = makiCoord2Cord(initCoord,forCutoff)
 %MAKICOORD2CORD converts initCoord to a cord-array for the detector
 %
 % SYNOPSIS: cord = makiCoord2Cord(initCoord)
 %
 % INPUT initCoord: initCoord-cell from makiInitCoord
+%       forCutoff: only use the coordinates for establishing cutoff
 %
 % OUTPUT cord: cord-structure used for detectSpots-subfunctions
 %
@@ -17,16 +18,26 @@ function cord = makiCoord2Cord(initCoord)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 nTimepoints = length(initCoord);
+if nargin < 2 || isempty(forCutoff)
+    forCutoff = false;
+end
+if ~forCutoff
+    fname = 'allCoordPix';
+else
+    fname = 'data4MMF';
+end
 
 % write sp, COM. Should anything more be necessary, check spotfind.m for
 % how the information is filled in
 cord(1:nTimepoints) = ...
     struct('sp',[],'COM',[]);
 for t=1:nTimepoints
-    for i=1:job(iJob).dataStruct.initCoord(t).nSpots
-        cord(t).sp(i).cord = ...
-            job(iJob).dataStruct.initCoord(t).allCoordPix(i,1:3);
+    if ~isempty(initCoord(t).nSpots)
+        for i=1:size(initCoord(t).(fname),1)
+            cord(t).sp(i).cord = ...
+                initCoord(t).(fname)(i,1:3);
+        end
+        cord(t).COM = ...
+            mean(initCoord(t).(fname)(:,1:3),1);
     end
-    cord(t).COM = ...
-        mean(job(iJob).dataStruct.initCoord(t).allCoordPix(i,1:3),1);
 end
