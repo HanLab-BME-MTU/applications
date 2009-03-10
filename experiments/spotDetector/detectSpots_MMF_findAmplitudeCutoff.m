@@ -3,11 +3,12 @@ function [dataProperties, testRatios, debugData] = detectSpots_MMF_findAmplitude
 %
 % SYNOPSIS: [dataProperties, testRatios] = detectSpots_MMF_findAmplitudeCutoff(rawMovieName, coordinates, dataProperties,movieLoader,verbose,debug)
 %
-% INPUT rawMovieName: full name of raw movie file or imaris handle
+% INPUT rawMovieName: full name of raw movie file or imaris handle or
+%           imageDataObj
 %		coordinates: coordinates of local maxima from spotfind
 %		dataProperties: dataProperties structure
 %		movieLoader: (opt) function for loading the movie
-%               ['imaris'/{'cdLoadMovie'}/'sedat']
+%               ['imaris'/{'cdLoadMovie'}/'sedat'/'obj']
 %       verbose: (opt)  0: nothing at all.
 %                      {1} show waitbar.
 %                       2: show waitbar and cutoff-plot
@@ -40,6 +41,10 @@ end
 
 if nargin < 6 || isempty(debug)
     debug = 0;
+end
+% assign movieLoader in case it's a movieDataObj
+if ~isempty(rawMovieName) && isa(rawMovieName,'imageDataObj')
+    movieLoader = 'obj';
 end
 
 % find maximum allowed data size
@@ -78,6 +83,17 @@ switch movieLoader
         loadStruct.loadedFrames = 1:size(rawMovie,5);
         loadStruct.frames2load = [];
         deltaFrames = 0;
+    case 'obj'
+        rawMovie = rawMovieName;
+        % 'loadedFrames' are from minT to maxT
+        loadStruct.loadedFrames = rawMovie.cropInfo.crop(1,4):...
+            rawMovie.cropInfo.crop(2,4);
+        % frames2load is empty, because we are going to go through the
+        % entire movie in one loop
+        loadStruct.frames2load = [];
+        deltaFrames = 0;
+    otherwise
+        error('movieLoader %s not recognized',movieLoader)
 end
 
 debugData = [];
@@ -130,7 +146,13 @@ while ~done
                 cordList(:,2)=cordList(:,1);
                 cordList(:,1)=tc2;
 
-                imgStk=rawMovie(:,:,:,1,t);
+                % if we have an imageDataObj, we get the frame via getFrame
+                % directly so that there won't be memory issues
+                if strcmp(movieLoader,'obj')
+                    imgStk = rawMovie.getFrame(currentTime);
+                else
+                    imgStk=rawMovie(:,:,:,1,t);
+                end
 
                 % preassign current testRatios
                 nSpots = size(cordList,1);

@@ -43,8 +43,9 @@ if nargout > 1
 
 
 
-    % %create mask
-    mask=zeros(mSize);
+    % %create mask 
+    % jonas@march10,2009 : use logical mask to save memory
+    mask=false(mSize);
     % % default sphere
     % ellipsoid=fillSphereData(5*FT_SIGMA(1),1);
 
