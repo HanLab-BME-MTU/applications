@@ -35,9 +35,9 @@ for t=1:nTimepoints
     if ~isempty(initCoord(t).nSpots)
         for i=1:size(initCoord(t).(fname),1)
             cord(t).sp(i).cord = ...
-                initCoord(t).(fname)(i,1:3);
+                initCoord(t).(fname)(i,[2,1,3]);
         end
         cord(t).COM = ...
-            mean(initCoord(t).(fname)(:,1:3),1);
+            mean(initCoord(t).(fname)(:,[2,1,3]),1);
     end
 end
