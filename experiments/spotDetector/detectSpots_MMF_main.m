@@ -52,7 +52,11 @@ debugData = [];
 %=========================
 
 % find length of movie
-nTimepoints = size(rawMovie,5);
+if isnumeric(rawMovie)
+    nTimepoints = size(rawMovie,5);
+else
+    nTimepoints = rawMovie.imageSize(4);
+end
 frameSize = dataProperties.movieSize(1:3);
 
 % find goodTimes, which timepoints analyzed if possible
@@ -125,7 +129,13 @@ for t=goodTimes'
         tc2=cordList(:,2);
         cordList(:,2)=cordList(:,1);
         cordList(:,1)=tc2;
-        currentFrame=rawMovie(:,:,:,1,t);
+        
+        % check for object
+        if isnumeric(rawMovie)
+            currentFrame=rawMovie(:,:,:,1,t);
+        else
+            currentFrame = rawMovie.getFrame(t);
+        end
 
         % DEBUG
         % nspots=size(cordList,1);
