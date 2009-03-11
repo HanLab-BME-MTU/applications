@@ -1,0 +1,189 @@
+% Detection of glomeruli in the olfactory system of mice
+%
+% 25/May/2005 - Dimitri Van De Ville
+% Adapted for IPTool 26/May/2005 - Brice Bathellier 
+%
+
+function WaveletAn(handles)
+
+% Read in data
+load(handles.);
+
+
+% Put data into A
+A=c2;
+
+% Determine original size
+n01=size(A,1);
+n02=size(A,2);
+Nt=size(A,3);
+
+% Number of iterations of the wavelet transform
+Jw=6; 
+
+% Extend data (mirror boundary conditions) to be able to perform the
+% required number of iterations
+n1=finddim(n01,2^Jw);
+n2=finddim(n02,2^Jw);
+A=extend(A,[n1 n2 Nt]);
+
+% Linear Model setup
+CONST_T=10;    % start of stimulus response 
+CONST_T2=40;   % start of post-stimulus response
+CONST_TAU=15;  % stimulus response time constant
+CONST_TAU2=15; % post-stimulus response time constant
+
+% Design matrix: 3 columns
+X=zeros(Nt,3);
+
+% 1) constant
+model=ones(Nt,1); 
+X(:,2)=model;
+
+% 2) stimulus response
+Xidx=(1:Nt)';
+model(1:CONST_T-1)=zeros(CONST_T-1,1);
+model(CONST_T:end)=-(1-exp(-(Xidx(CONST_T:end)-CONST_T)/CONST_TAU));
+X(:,1)=model;
+
+% 3) post-stimulus response
+model(1:CONST_T2-1)=zeros(CONST_T2-1,1);
+model(CONST_T2:end)=exp((Xidx(CONST_T2:end)-CONST_T2)/CONST_TAU2)-1;
+X(:,3)=model;
+
+% Least-square fitting (pseudo-inverse)
+Xi=pinv(X);
+XXi=pinv(X'*X);
+
+% Contrast vector: pick out constrast of stimulus response
+c=[1; 0; 0];
+
+% Degrees of freedom
+J=Nt-rank(X);
+
+% Type of wavelet transform
+wav_type='*ortho';  % Symmetric orthogonal B-spline wavelets (Battle-Lemarie)
+wav_degree=3.0;     % Degree 3 (cubic)
+
+% Generate analysis and synthesis filters
+[FA1,FS1]=FFTfractsplinefilters(n1,wav_degree,wav_type);
+[FA2,FS2]=FFTfractsplinefilters(n2,wav_degree,wav_type);
+
+% Perform spatial wavelet transform frame by frame
+clear W;
+fprintf('\nComputing DWT: frame %03d',0);
+for iter=1:Nt,
+    fprintf('\b\b\b%03d',iter);
+    W(:,:,iter)=FFTwaveletanalysis2D(A(:,:,iter),FA1,FA2,Jw);
+end;
+fprintf('\n');
+
+% Set confidence level
+alpha=0.000001;    % desired type I error level
+a=alpha/(n01*n02); % conservative (Bonferroni) correction for multiple testing
+
+% Calculate threshold values according to spatio-wavelet statistical
+% framework
+fprintf('Setting confidence level to %f\nComputing thresholds... ',alpha);
+[TW,TS]=threshold_search2d(Nt,J,a);
+fprintf('[TW,TS]=[%f,%f]\n',TW,TS);
+
+% Reshape the wavelet-temporal data
+v=reshape(W(:,:,:),n1*n2,Nt)';
+
+% Fit linear model; find contrast values for every coefficient
+y=Xi*v;
+
+% Pick out contrast of interest
+g=c'*y;
+
+% Residual error 
+e=v-X*y;
+s2=sum(e.^2,1)*(c'*XXi*c)/J;
+
+% Reshape data
+g=reshape(g,n1,n2);
+s2=reshape(s2,n1,n2);
+ss=sqrt(s2);
+
+% T-value in wavelet domain
+t=g./ss;
+
+% Wavelet processing: mask contrast according to t-values that survive TW
+tmp=g;
+tmp(find(abs(t)<TW))=0;
+r=FFTwaveletsynthesis2D(tmp,FS1,FS2,Jw);
+
+% Same but without lowpass subband
+tmp(1:n1/2^Jw,1:n2/2^Jw)=0;
+rhp=FFTwaveletsynthesis2D(tmp,FS1,FS2,Jw);
+
+% Pure contrast without wavelet processing
+r0=FFTwaveletsynthesis2D(g,FS1,FS2,Jw);
+
+% Special reconstruction of error estimate
+rs=FFTwaveletsynthesis2Dabs(ss,FS1,FS2,Jw,ones(n1,n2));
+
+% Cropping to size of original data
+r=r(1:n01,1:n02);
+r0=r(1:n01,1:n02);
+rs=rs(1:n01,1:n02);
+rhp=rhp(1:n01,1:n02);
+
+% Mask in spatial domain
+mask=ones(size(r));
+maskhp=ones(size(r));
+idx=find((r./rs)<TS);
+mask(idx)=0;
+idx=find((rhp./rs)<TS);
+maskhp(idx)=0;
+
+% Results:
+% Contrast in the spatial domain (with lowpass)
+sol=r.*mask;
+% Contrast in the spatial domain (without lowpass)
+solhp=rhp.*maskhp;
+% Significance (T-map) in the spatial domain
+solsig=(r./rs+TW).*mask;
+solhpsig=(rhp./rs+TW).*maskhp;
+
+avgsiglp=mean2(abs(t(1:n1/2^Jw,1:n2/2^Jw)));
+
+% Display results
+figure;
+subplot(3,3,1);
+imagesc(r); title('Contrast with lowpass (wavelet processing)');
+subplot(3,3,2);
+imagesc(rhp); title('Contrast without lowpass (wavelet processing)');
+subplot(3,3,4);
+imagesc(sol); title('Contrast with lowpass (wavelet processing+mask)');
+subplot(3,3,5);
+imagesc(solhp); title('Contrast without lowpass (wavelet processing+mask)');
+subplot(3,3,7);
+imagesc(solsig); title(strcat('Significance map with lowpass (LP avg t=',num2str(avgsiglp),')')); colorbar;
+subplot(3,3,8);
+imagesc(solhpsig); title('Significance map without lowpass'); colorbar;
+subplot(3,3,3);
+imagesc(showdwt2d(g,Jw)); title('Contrast in the wavelet domain');
+subplot(3,3,9);
+imagesc(showdwt2d(abs(t),Jw,0)); title('Significance map in the wavelet domain'); colorbar;
+
+fprintf('Significance of lowpass subband (avg t-value) : %f\n',avgsiglp);
+
+% Detect local maxima (rough and dirty)
+subplot(3,3,5);
+hold on;
+tmp=solhp;
+tmp(find(tmp==0))=Inf;
+tmpn=zeros(8,size(tmp,1),size(tmp,2));
+shiftn=[1 0; -1 0; 0 1; 0 -1; 1 1; 1 -1; -1 1; -1 -1]; % 8-connectivity
+for iter=1:size(shiftn,1),
+    tmpn(iter,:,:)=circshift(tmp,shiftn(iter,:));
+end;
+tmpn=squeeze(max(tmpn));
+idx=find(tmp>tmpn & solhp>0);
+[x2,x1]=ndgrid(1:n01,1:n02);
+for iter=1:length(idx),
+    co1=x1(idx(iter)); co2=x2(idx(iter));
+    plot(co1,co2,'wx','MarkerSize',10);
+end;
