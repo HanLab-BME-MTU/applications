@@ -109,7 +109,7 @@ if ~isfield(fsmParam,'batchJob')
     
     % recover the number of image selected
     [path,body,firstIndex]=getFilenameBody(char(outFileList(1)));
-    firstIndex=str2doube(firstIndex);
+    firstIndex=str2double(firstIndex);
     
     % Recover the number of the last image in the folder
     [path,body,no]=getFilenameBody(char(outFileList(end)));
