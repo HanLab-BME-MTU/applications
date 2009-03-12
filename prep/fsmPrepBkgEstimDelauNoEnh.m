@@ -1,7 +1,7 @@
-function [cands,triMin,pMin]=fsmPrepBkgEstimDelauNotEnh(imgSize,lMax,lMin)
-% fsmPrepBkgEstimDelauNotEnh uses Delaunay triangulation to assign 3 local minima to every local maximum
+function [cands,triMin,pMin]=fsmPrepBkgEstimDelauNoEnh(imgSize,lMax,lMin)
+% fsmPrepBkgEstimDelauNoEnh uses Delaunay triangulation to assign 3 local minima to every local maximum
 %
-% SYNOPSIS   [cands,triMin,pMin]=fsmPrepBkgEstimationDelaunay(imgSize,lMax,lMin,enhTriang)
+% SYNOPSIS   [cands,triMin,pMin]=fsmPrepBkgEstimationDelaunay(imgSize,lMax,lMin)
 %
 % INPUT      imgSize   :   image size [y x]
 %            lMax      :   local max map (the output of the locMax2D function)
@@ -13,8 +13,7 @@ function [cands,triMin,pMin]=fsmPrepBkgEstimDelauNotEnh(imgSize,lMax,lMin)
 %                          (see help for detail) - fsmPrepBkgEstimationDelaunay only stores 
 %                          local maximum and local minimum coordinates
 %
-% Enhanced triangulation
-% ----------------------
+% Note about previous 'Enhanced triangulation' option:
 %
 % As of Matlab 6.1, the delaunay function has been enhanced and does no longer accept the 
 % 'fuzz' parameter.
@@ -64,14 +63,7 @@ y=cat(1,y,dSet(:,1));
 x=cat(1,x,dSet(:,2));
 
 % Delaunay triangulation
-mv=ver('MATLAB');
-posDot=findstr(mv.Version,'.'); % In case MATLAB's version is something like 6.5.1 (2 dots)
-posDot=posDot(1);
-if str2num(mv.Version(1:posDot+1))<7
-    triMin=delaunay(pMin(:,1),pMin(:,2));
-else
-    triMin=delaunay(pMin(:,1),pMin(:,2),{'Qt'}); % New delaunay function (MATLAB 7), 'Qt' -> triangulated output
-end
+triMin=delaunay(pMin(:,1),pMin(:,2),{'Qt'}); % New delaunay function (MATLAB 7), 'Qt' -> triangulated output
 
 % Search triangles
 triangles=tsearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));

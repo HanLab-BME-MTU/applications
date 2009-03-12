@@ -98,12 +98,6 @@ if fsmParam.prep.enable==1
         otherwise
             error('Wrong value for fsmParam.prep.pstSpeckles');
     end
-    switch fsmParam.prep.enhTriang
-        case 1, fprintf(fid,'Enhanced triangulation         : Yes\n');
-        case 0, fprintf(fid,'Enhanced triangulation         : No\n');
-        otherwise
-            error('Wrong value for fsmParam.prep.enhTriang');
-    end
     switch fsmParam.prep.autoPolygon
         case 1, fprintf(fid,'Automatic edge detection       : Yes\n');
         case 0, fprintf(fid,'Automatic edge detection       : No\n');

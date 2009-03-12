@@ -1,4 +1,4 @@
-function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,enhTriang,fsmParam,oI)
+function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,fsmParam,oI)
 
 % fsmPrepMainSecondarySpeckles is the main function of the fsmPrepSecondarySpeckles sub-module
 %
@@ -7,7 +7,7 @@ function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noisePar
 % new (secondary) speckles (intensity and distance significance tests applied)
 %
 %
-% SYNOPSIS   [IMfinal,candsTot]=fmsPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,enhTriang)
+% SYNOPSIS   [IMfinal,candsTot]=fmsPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles)
 %
 % INPUT      I          :  filtered image
 %            strg       :  format string for the correct file numbering
@@ -16,7 +16,6 @@ function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noisePar
 %            Speckles   :  (1) contains information for the hierarchical level 
 %                          (2) minimal increase in (%) of new speckles
 %                          (before stopping)
-%            enhTriang  :  turns on enhanced triangulation for Matlab Version < 6.5
 %            fsmParam   :  (optional) fsmParam structure for SpeckTackle
 %            oI         :  original image necessary for subpixel accuracy
 %                           determination; is normalized, but NOT filtered
@@ -41,7 +40,6 @@ if nargin==0
     [fileName,dirName] = uigetfile('*.tif','Choose an image');
     I=imread([dirName,filesep,fileName]);
     SIG=1.88;
-    enhTriang=0;
     %     I=double(I); %??
     IG=prepareRowData(I,SIG);
     strg=[];
@@ -106,7 +104,7 @@ if ~isempty(fsmParam)
         
         % Load user-defined ROI from disk
         ROIname=[fsmParam.main.path,filesep,'userROI.mat'];
-        if exist(ROIname)==2 % File found
+        if exist(ROIname, 'file')==2 % File found
             tmp=load(ROIname);
             userROIbw=tmp.userROIbw;
             clear tmp;
@@ -126,7 +124,7 @@ SIG=1.88; % for the twice convolved image (or 1.77)
 Imin=locmin2d(IG,[3,3]);
 
 % intial (filtered) image
-[yi,xi,y,x,Imax,candsP,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,enhTriang,userROIbw); % TO DO: update cands
+[yi,xi,y,x,Imax,candsP,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw); % TO DO: update cands
 
 aux=length(candsP);
 for i=1:aux
@@ -142,8 +140,8 @@ HierLevel=2;
 while HierLevel<=Speckles(1) && length(candsS)>(Speckles(2)*length(candsTot)) && ~isempty(find([candsS.status] == 1, 1))
     
     [Inew,Imaxima,nmB]=fsmPrepSubstructMaxima(Inew,Imax,SIG,candsS); % prednite Cands
-    [yni,xni,yn,xn,Imax,candsS]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTriang,triMin,pMin,IG,userROIbw);
-    %     [yni,xni,yn,xn,Imax,candsS]=fsmPrepConfirmSpeckles(Inew,Imin,noiseParam,enhTriang);
+    [yni,xni,yn,xn,Imax,candsS]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG,userROIbw);
+    %     [yni,xni,yn,xn,Imax,candsS]=fsmPrepConfirmSpeckles(Inew,Imin,noiseParam);
     
     aux=length(candsS);
     for i=1:aux
@@ -212,7 +210,7 @@ if fsmParam.prep.subpixel==1
     image=I;
     disp(['psfsigma=',num2str(psfsigma),'   filtersigma=',num2str(filtersigma),'   mixmodsigma=',num2str(mmsigma)]);
     disp('calculating sub-pixel locations...');
-    [candsSP] = candsToSubpixelN(image,cands,mmsigma);
+    candsSP = candsToSubpixelN(image,cands,mmsigma);
     eval( (strcat('save cands',filesep,'cands',indxStr,'_spa.mat candsSP;')) );
 end
 

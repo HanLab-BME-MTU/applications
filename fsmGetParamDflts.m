@@ -68,9 +68,6 @@ fsmParam.prep.enable=1;                    % Activates the PREPROCESSING module 
 fsmParam.prep.pstSpeckles=1;               % Sets the type of speckles to be detected
 fsmParam.prep.paramSpeckles=[3 0.01 1.06]; % Sets [order percentage] for 'higher-order speckles' and sigma for 'scale space spaeckles'
 
-% Enhanced triangulation
-fsmParam.prep.enhTriang=0;          % Delaunay triangulation can be made more stable by enhancing it 
-%                                    [ 0 : no | 1 : yes (slower)]
 % Auto polygon
 fsmParam.prep.autoPolygon=0;        % Automatic analisys of the image to extract cell boundaries  [ 0 : off, 1 : on ]
 % The user draws a ROI

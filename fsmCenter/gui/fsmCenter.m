@@ -25,6 +25,14 @@ function varargout = fsmCenter(varargin)
 % Last Modified by GUIDE v2.5 10-Mar-2005 18:22:34
 
 % Begin initialization code - DO NOT EDIT
+% Check Matlab version: we restrict FSMCenter to Matlab 2006a or newer
+
+matlabVersion=ver('MATLAB');
+if str2double(matlabVersion.Version) < 7.2
+    errordlg('FSM Center requires Matlab 2006a or newer.', 'FSM Center');
+    return;
+end
+
 gui_Singleton = 1;
 gui_State = struct('gui_Name', mfilename, ...
     'gui_Singleton',  gui_Singleton, ...

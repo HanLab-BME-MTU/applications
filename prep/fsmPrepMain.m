@@ -38,16 +38,13 @@ imagePath    = fsmParam.main.imagePath;     % Image path (defined at the project
 imgNumber    = fsmParam.main.imgN;          % Number of image to be processed from the stack
 xmin         = fsmParam.main.normMin;       % Lower intensity bound for intensity normalization
 xmax         = fsmParam.main.normMax;       % Upper intensity bound for intensity normalization
-edgeBitDepth = fsmParam.prep.edgeBitDepth;  % special bit depth for edge detection
 noiseParam   = fsmParam.main.noiseParam;    % Parameters for the noise model
 paramSpeckles= fsmParam.prep.paramSpeckles; % High-order speckle parameters 
-enhTriang    = fsmParam.prep.enhTriang;     % Enhanced triangulation flag
 autoPolygon  = fsmParam.prep.autoPolygon;   % Automatic analisys of the image to extract cell boundaries
 drawROI      = fsmParam.prep.drawROI;       % The user draws or loads a ROI to restrict analysis
-% sigma        = fsmParam.prep.sigma;       % Sigma for image low-pass filtering, replaced as seen below
 subpixel     = fsmParam.prep.subpixel;      % significant speckles are localized with subpixel accuracy
-psfsigma     = fsmParam.prep.psfSigma;       % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
-filtersigma  = fsmParam.prep.filterSigma;    % sigma used for the low-pass filtering; except where specifically
+psfsigma     = fsmParam.prep.psfSigma;      % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
+filtersigma  = fsmParam.prep.filterSigma;   % sigma used for the low-pass filtering; except where specifically
                                             % stated differently by the user, filtersigma should have the same value as psfsigma; 
                                             % for filtersigma>psfsigma, image information is lost during filtering!!                                            % same value as 
 projDir = fsmParam.project.path;
@@ -78,7 +75,7 @@ if ~isfield(fsmParam,'batchJob')
         '*.jpeg;','JPEG files (*.jpeg)'
         '*.*','All Files (*.*)'},...
         'Select first image');
-    if(isa(fName,'char') & isa(dirName,'char'))
+    if(isa(fName,'char') && isa(dirName,'char'))
         
         % Check that the user did not change the image directory
         %    (remove fileseps)
@@ -87,7 +84,7 @@ if ~isfield(fsmParam,'batchJob')
             return % Returns an error (status=0)
         end
         
-        [imageOne,map]=imread([dirName,fName]);
+        imageOne = imread([dirName,fName]);
         % Store image size
         imageSize=size(imageOne);
     else
@@ -111,11 +108,11 @@ if ~isfield(fsmParam,'batchJob')
     outFileList=getFileStackNames([dirName,fName]);
     
     % recover the number of image selected
-    [path,body,firstIndex,ext]=getFilenameBody(char(outFileList(1)));
-    firstIndex=str2num(firstIndex);
+    [path,body,firstIndex]=getFilenameBody(char(outFileList(1)));
+    firstIndex=str2doube(firstIndex);
     
     % Recover the number of the last image in the folder
-    [path,body,no,ext]=getFilenameBody(char(outFileList(end)));
+    [path,body,no]=getFilenameBody(char(outFileList(end)));
     
     % Prepare string number format
     s=length(num2str(no));
@@ -166,7 +163,7 @@ if ~isfield(fsmParam,'batchJob')
             userROIpoly=s.userROIpoly;
             
             % Check dimensions
-            if size(userROIbw)~=[imInfo.Height imInfo.Width]
+            if size(userROIbw) ~= [imInfo.Height, imInfo.Width]
                 
                 % Error - inform the user that he will have to draw the roi 
                 errorMsg='The selected userROI.mat contains a polygon incompatible with your image size. You will be now asked to draw a ROI.';
@@ -177,7 +174,6 @@ if ~isfield(fsmParam,'batchJob')
                 
                 % And also update fsmParam
                 fsmParam.prep.drawROI=1;
-                
             else
                 
                 % Save polygon to current project
@@ -188,7 +184,7 @@ if ~isfield(fsmParam,'batchJob')
         catch
             
             % Error - inform the user that he will have to draw the roi 
-            errorMsg=['Invalid userROI.mat file. You will be now asked to draw a ROI.'];
+            errorMsg='Invalid userROI.mat file. You will be now asked to draw a ROI.';
             uiwait(errordlg(errorMsg,'Error','modal'));
             
             % Set drawROI=1, the user will draw
@@ -246,8 +242,6 @@ else
     outFileList=fsmParam.specific.fileList;
     factors=ones(1,n);
     firstIndex=fsmParam.specific.firstIndex;
-    lastIndex=fsmParam.specific.lastIndex;
-    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -267,7 +261,7 @@ bgMaskDir = [projDir filesep edgeDir filesep 'cell_mask'];
 if autoPolygon == 1
     if isdir(bgMaskDir)
         dirList = dir(bgMaskDir);
-        fileList = {dirList(find([dirList.isdir] == 0)).name};
+        fileList = {dirList(dirList.isdir == 0).name};
         bgMaskFileList = fileList(strmatch('mask_',fileList));
 
         %Get the index of the available mask files.
@@ -331,7 +325,7 @@ for counter1=1:n
         img=imreadnd2(char(outFileList(counter1,:)),xmin,xmax);
         
          % retain copy of original image for mixture model
-         %orig_image is normalized, but NOT filtered
+         % orig_image is normalized, but NOT filtered
          orig_image=img;
         
         if autoPolygon==1
@@ -356,7 +350,6 @@ for counter1=1:n
             %   try
             %      % Here use special bit depth instead of the FSM bit depth
             %      % contact Matthias for more questions
-            %      eBD = 2^str2num(edgeBitDepth)-1;
             %      img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
             %      [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',0,'filter_image',1,'bit_depth',eBD);
             %   catch
@@ -389,7 +382,7 @@ for counter1=1:n
         img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],filtersigma);
         
         % Statistically test the local maxima to extract (significant) speckles 
-        fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,enhTriang,fsmParam,orig_image);
+        fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,fsmParam,orig_image);
         
                 
         
@@ -418,7 +411,6 @@ for counter1=1:n
             %try
             %    % Here use special bit depth instead of the FSM bit depth
             %    % contact Matthias for more questions
-            %    eBD = 2^str2num(edgeBitDepth)-1;
             %    img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
             %    [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',1,'filter_image',1,'bit_depth',eBD);
             %catch

@@ -1,4 +1,4 @@
-function [yi,xi,y,x,Imax,cands,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,enhTriang,userROIbw)
+function [yi,xi,y,x,Imax,cands,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw)
 
 % fsmPrepConfirmSpeckles uses statistical tests to confirm the significance of detected speckles
 %
@@ -8,7 +8,6 @@ function [yi,xi,y,x,Imax,cands,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noise
 % INPUT      IG         :  filtered image
 %            Imin       :  local minima
 %            noiseParam :  noise parameters for statistical speckle selection
-%            enhTriang  :  turns on enhanced triangulation for Matlab Version < 6.5
 %            userROIbw  :  (optional) User-defined black-and-white mask to select speckles
 %
 % OUTPUT     yi         :  initial local maxima positions before the test
@@ -22,7 +21,7 @@ function [yi,xi,y,x,Imax,cands,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noise
 %
 %
 %
-% DEPENDENCES   fsmPrepConfirmSpeckles uses { fsmPrepBkgEstimationDelaunay, fsmPrepTestLocalMaxima, locmax2d }
+% DEPENDENCES   fsmPrepConfirmSpeckles uses { fsmPrepBkgEstimDelauNoEnh, fsmPrepTestLocalMaxima, locmax2d }
 %               fsmPrepConfirmSpeckles is used by { fsmPrepMainSecondarySpeckles }
 %
 % Alexandre Matov, November 7th, 2002
@@ -42,16 +41,7 @@ end
 % Find the coordinates/positions of the initial local maxima before significance test (for comparision)
 [yi,xi]=find(ne(Imax,0));
 
-% Use Delaunay triangulation to assign 3 local minima to each local maximum
-matlabVersion=ver('MATLAB');
-
-if str2num(matlabVersion.Version)<6.1
-    % Use enhanced triangulation
-    [cands,triMin,pMin]=fsmPrepBkgEstimationDelaunay(size(IG),Imax,Imin,enhTriang); % Finds 3 loc min around each loc max
-else
-    % Use delaunay triangulation of Matlab version >=6.1
-    [cands,triMin,pMin]=fsmPrepBkgEstimDelauNoEnh(size(IG),Imax,Imin); % Finds 3 loc min around each loc max
-end
+[cands,triMin,pMin]=fsmPrepBkgEstimDelauNoEnh(size(IG),Imax,Imin); % Finds 3 loc min around each loc max
 
 % analyze speckles - validate, locmax, locmin...
 [Imax,cands]=fsmPrepTestLocalMaxima(IG,Imax,cands,noiseParam,IG);  

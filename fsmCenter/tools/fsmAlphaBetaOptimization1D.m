@@ -181,7 +181,7 @@ close(h);
 
 %--------------------------------------------------------------------------
 
-function [y, x, cands]= alphaBeta(IG, Imax, Imin, cands, noiseParam, enhTriang, userROIbw)
+function [y, x, cands]= alphaBeta(IG, Imax, Imin, cands, noiseParam, userROIbw)
 % This is s simpifiled function for the statistical detection of speckles.
 % It is written to avoid redundancy in speckle detection calculation. 
 

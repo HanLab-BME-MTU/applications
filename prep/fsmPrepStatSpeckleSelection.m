@@ -1,10 +1,9 @@
-function fsmPrepStatSpeckleSelection(img,enhTriang,noiseParam,strg,counter)
+function fsmPrepStatSpeckleSelection(img,noiseParam,strg,counter)
 % fsmPrepStatSpeckleSelection performs a statistical selection on local maxima based on a noise model
 %
-% SYNOPSIS   fsmPrepStatSpeckleSelection(img,enhTriang,noiseParam,str)
+% SYNOPSIS   fsmPrepStatSpeckleSelection(img,noiseParam,str)
 %
 % INPUT      img            : loaded image
-%            enhTriang      : if set to 1, an enhanced Delaunay triangulation is performed
 %            noiseParam     : parameters of the noise model
 %            str            : string format to save the result with the correct index
 % 
@@ -33,16 +32,10 @@ locMax=locmax2d(img,[5 5]);
 locMin=locmin2d(img,[3 3]);
 
 % Use Delaunay triangulation to assign 3 local minima to each local maximum
-matlabVersion=ver('MATLAB');
-if str2num(matlabVersion.Version)<6.1
-    % Use enhanced triangulation
-    cands=fsmPrepBkgEstimationDelaunay(size(img),locMax,locMin,enhTriang); % Finds 3 loc min around each loc max
-else
-    % Use delaunay triangulation of Matlab version >=6.1
-    cands=fsmPrepBkgEstimDelauNoEnh(size(img),locMax,locMin); % Finds 3 loc min around each loc max
-end
+cands = fsmPrepBkgEstimDelauNoEnh(size(img),locMax,locMin); % Finds 3 loc min around each loc max
+
 % Test local maxima against background using using a noise model (updates locMax and cands)
-[locMax,cands]=fsmPrepTestLocalMaxima(img,locMax,cands,noiseParam);
+[locMax,cands] = fsmPrepTestLocalMaxima(img,locMax,cands,noiseParam);
 
 % Save speckle information (cands and locMax) to disk for future use
 indxStr=sprintf(strg,counter);

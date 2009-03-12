@@ -102,10 +102,7 @@ if ~isfield(fsmParam.main,'label') % Back-compatibility
     fsmParam.main.label=[];
 end
 
-if isempty(fsmParam.main.label) & fsmParam.main.noiseParam(7)==1
-    
-    % This is the default fsmParam - set experiments to default
-    expLabel='Select experiment';
+if isempty(fsmParam.main.label) && fsmParam.main.noiseParam(7)==1
     
     set(handles.expPopup,'Value',1);
     set(handles.textDescr,'String','Experiment description');
@@ -113,9 +110,6 @@ if isempty(fsmParam.main.label) & fsmParam.main.noiseParam(7)==1
 else
     
     if isempty(fsmExpParam)
-        
-        % This is the default fsmParam - set experiments to default
-        expLabel='Select experiment';
         
         set(handles.expPopup,'Value',1);
         set(handles.textDescr,'String','Experiment description');
@@ -153,9 +147,9 @@ else
             end
                 
             % Check that that the noise parameters did not change
-            if any((fsmParam.main.noiseParam(2:4)==fsmExpParam(fsmParam.main.noiseParam(7)-1).noiseParams)==0) | fsmParam.prep.gaussRatio~=fsmExpParam(fsmParam.main.noiseParam(7)-1).gaussRatio
+            if any((fsmParam.main.noiseParam(2:4)==fsmExpParam(fsmParam.main.noiseParam(7)-1).noiseParams)==0) || fsmParam.prep.gaussRatio~=fsmExpParam(fsmParam.main.noiseParam(7)-1).gaussRatio
                     
-                msg=['The parameters in the experiment database do not match those saved in the project. Which version do you want to use?'];
+                msg='The parameters in the experiment database do not match those saved in the project. Which version do you want to use?';
                 choice=myQuestdlg(msg,'User input requested','Database (project parameters will be lost)','Project (database won''t be changed)','Database (project parameters will be lost)');
                 if strcmp(choice,'Database (project parameters will be lost)')
                     
@@ -237,9 +231,7 @@ otherwise
     error('Value for PST out of range.');
 end
 
-set(handles.TriangCheck,'Value',fsmParam.prep.enhTriang);
 set(handles.autoPolCheck,'Value',fsmParam.prep.autoPolygon);
-set(handles.edgeBitDepth   ,'String', {'16', '14', '12', '10', '8'});
 
 switch fsmParam.prep.drawROI
     case 0, 
@@ -259,9 +251,7 @@ set(handles.percEdit,'String',num2str(fsmParam.prep.paramSpeckles(2)));   % Sets
 set(handles.sigEdit,'String',num2str(fsmParam.prep.paramSpeckles(3)));   % Sets the sigma for 'scale space speckles'
 
 if fsmParam.prep.enable==1
-    set(handles.TriangCheck,'Enable','on');
     set(handles.autoPolCheck,'Enable','on');
-    set(handles.textDel,'Enable','on');
     set(handles.textCameraCalPar,'Enable','on');    
     set(handles.expPopup,'Enable','on');
     set(handles.primaryRadio,'Enable','on');
@@ -274,9 +264,7 @@ if fsmParam.prep.enable==1
     set(handles.editGauss,'Enable','on');    
     set(handles.textDescr,'Enable','on');
 else
-    set(handles.TriangCheck,'Enable','off');
     set(handles.autoPolCheck,'Enable','off');
-    set(handles.textDel,'Enable','off');
     set(handles.textCameraCalPar,'Enable','off');
     set(handles.expPopup,'Enable','on');
     set(handles.primaryRadio,'Enable','off');
@@ -372,13 +360,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Check for 'Scale space'
-if fsmParam.prep.pstSpeckles==3 & strcmp(fsmParam.main.label,'Scale space')
+if fsmParam.prep.pstSpeckles==3 && strcmp(fsmParam.main.label,'Scale space')
     fsmParam.build.enable=0; % Make sure that only preprocessing and tracking are allowed if the user picked 'Scale space'
     set(handles.checkBuildModule,'Enable','off');
 end
 
 % Enable/disable module
-if fsmParam.build.enable==1
+if fsmParam.build.enable == 1
     set(handles.checkBuildModule,'Value',1);
 else
     set(handles.checkBuildModule,'Value',0);
@@ -391,7 +379,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Check for 'Scale space'
-if fsmParam.prep.pstSpeckles==3 & strcmp(fsmParam.main.label,'Scale space')
+if fsmParam.prep.pstSpeckles==3 && strcmp(fsmParam.main.label,'Scale space')
     fsmParam.kin.enable=0; % Make sure that only preprocessing and tracking are allowed if the user picked 'Scale space'
     set(handles.textBleach,'Enable','off');
     set(handles.checkKinModule,'Enable','off');
@@ -417,7 +405,7 @@ switch fsmParam.kin.bleachRed
     case 7.25e-5,  set(handles.bleachRadio1x,'Value',1);
     case 1.45e-4,  set(handles.bleachRadio2x,'Value',1);
     case 2.175e-4, set(handles.bleachRadio3x,'Value',1);
-    otherwise error('Wrong bleaching value');
+    otherwise,     error('Wrong bleaching value');
 end
    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -427,7 +415,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Check for 'Scale space'
-if fsmParam.prep.pstSpeckles==3 & strcmp(fsmParam.main.label,'Scale space')
+if fsmParam.prep.pstSpeckles==3 && strcmp(fsmParam.main.label,'Scale space')
     fsmParam.disp.enable=0; % Make sure that only preprocessing and tracking are allowed if the user picked 'Scale space'
     set(handles.checkDispModule,'Enable','off');
 end

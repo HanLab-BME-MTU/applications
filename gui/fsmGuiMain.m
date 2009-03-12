@@ -539,12 +539,8 @@ function varargout = autoPolCheck_Callback(h, eventdata, handles, varargin)
 % function varargout = ButtonBrowse_Callback(h, eventdata, handles, varargin)
 % 
 % % Select path
-% matlabVersion=ver('MATLAB');
-% if str2num(matlabVersion.Version)<6.5
-%     [newfile,newpath]=uiputfile('fsm.ini','Select work directory');
-% else
-%     newpath=uigetdir('','Select work directory');
-% end
+% newpath=uigetdir('','Select work directory');
+%
 % % Check whether an fsmParam.mat file already exists
 % catchPathChange(newpath,handles);
 % 
@@ -564,7 +560,7 @@ function catchPathChange(newpath,handles,settings,inFsmParam)
 if newpath~=0
 
     % If an fsmParam.mat file is found in this path, use this as fsmParam
-    if exist([newpath,filesep,'fsmParam.mat'])==2
+    if exist([newpath,filesep,'fsmParam.mat'], 'file') == 2
         
         % Inform user
         uiwait(msgbox('A file ''fsmParam.mat'' has been found in the selected path. Loading and setting stored values.','Info','help','modal'));
@@ -576,7 +572,7 @@ if newpath~=0
         if ~isfield(fsmParam.prep,'filterSigma')
            fsmParam.prep.filterSigma = fsmParam.prep.sigma;
         end
-        if ~isfield(fsmParam.prep,'psfSigma') & nargin == 4 & ...
+        if ~isfield(fsmParam.prep,'psfSigma') && nargin == 4 && ...
            isfield(inFsmParam.prep,'psfSigma')
            fsmParam.prep.psfSigma = inFsmParam.prep.psfSigma;
         end
@@ -766,13 +762,13 @@ if isempty(userPath)
     return;
 else
     % Create ROOT directory
-    if exist(userPath)~=7
+    if ~exist(userPath, 'dir')
         % Directory does not exist - create it
         if userPath(2)==':';   % Windows
             % Drive letter specified
-            st=mkdir(userPath(1:3),userPath(4:end));
+            mkdir(userPath(1:3),userPath(4:end));
         else
-            st=mkdir(userPath);
+            mkdir(userPath);
         end
     end
 
@@ -959,7 +955,7 @@ else
 end
 
 %Update 'filterSigma' in 'fsmParam'.
-filterSigma = str2num(get(handles.editSigma,'String'));
+filterSigma = str2double(get(handles.editSigma,'String'));
 fsmParam.prep.filterSigma = filterSigma;
 set(handles.start,'UserData',fsmParam);
 
@@ -1049,7 +1045,7 @@ kineticAnalysis(handles,'off');
 % --------------------------------------------------------------------
 function kineticAnalysis(handles,flag)
 
-if ~strcmp(flag,'off') & ~strcmp(flag,'on')
+if ~strcmp(flag,'off') && ~strcmp(flag,'on')
     error('Wrong value for parameter flag');
 end
 
@@ -1132,7 +1128,7 @@ else
 end
 
 % Close
-if fsmH~=hObject & force==1
+if fsmH~=hObject && force==1
     delete(fsmH); % Force closing
 else
     choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
@@ -1207,7 +1203,7 @@ function editSigma_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of editSigma as a double
 
 fsmParam = get(handles.start,'UserData');
-filterSigma = str2num(get(hObject,'String'));
+filterSigma = str2double(get(hObject,'String'));
 if isempty(filterSigma)
    set(handles.editSigma,'String',num2str(fsmParam.prep.filterSigma));
    errordlg('Not valid numerical value','Error','modal');
@@ -1396,15 +1392,6 @@ function editInitRadius_Callback(hObject, eventdata, handles)
 function checkTest_Callback(hObject, eventdata, handles)
 
 function subpixel_Callback(hObject, eventdata, handles)
-
-function edgeBitDepth_Callback(hObject, eventdata, handles)
-
-
-function edgeBitDepth_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 function textPsfSigma_CreateFcn(hObject, eventdata, handles)
 

@@ -1,13 +1,12 @@
-function [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTriang,triMin,pMin,IG,userROIbw)
+function [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG,userROIbw)
 
 % fsmPrepConfirmLoopSpeckles uses statistical tests to confirm the significance of detected speckles
 % of higher than one hierarchical level (in the main loop)
 %
-% SYNOPSIS   [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTriang,triMin,pMin,IG)
+% SYNOPSIS   [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG)
 %
 % INPUT      Inew       :  substracted image
 %            noiseParam :  noise parameters for statistical speckle selection
-%            enhTriang  :  turns on enhanced triangulation for Matlab Version < 6.5
 %            triMin     :  set of Delaunay triangles
 %            pMin       :  attached dSet (vertex coordinates) to lMin
 %            IG         :  original (filtered) image
