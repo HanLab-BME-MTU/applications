@@ -139,7 +139,7 @@ Inew=IG;
 candsS=candsP;
 HierLevel=2;
 
-while HierLevel<=Speckles(1) & length(candsS)>(Speckles(2)*length(candsTot)) & length(find([candsS.status]==1))>0
+while HierLevel<=Speckles(1) && length(candsS)>(Speckles(2)*length(candsTot)) && ~isempty(find([candsS.status] == 1, 1))
     
     [Inew,Imaxima,nmB]=fsmPrepSubstructMaxima(Inew,Imax,SIG,candsS); % prednite Cands
     [yni,xni,yn,xn,Imax,candsS]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,enhTriang,triMin,pMin,IG,userROIbw);
@@ -235,8 +235,7 @@ if locDEBUG==1
             end
         end
         figure(100),plot(SNR);
-        MEAN_SNR=mean(SNR)
-        
+        MEAN_SNR=mean(SNR)        
         c2=0;
         for j=1:length(candsTot)
             if candsTot(j).status==0
@@ -323,7 +322,6 @@ if locDEBUG==1
     OSEM=0;
     shift=4;%15
     
-    
     figure,imshow(IG(1+shift:end-shift,1+shift:end-shift),[]);
     hold on
     for i=1:length(candsTot)
@@ -352,7 +350,7 @@ if locDEBUG==1
     end
     hold off
     title('the green spots denote significant speckles');
-        title('green-primary red-secondary blue-tertiary cyan-quattro magenta-cinque yellow-shest');
+    title('green-primary red-secondary blue-tertiary cyan-quattro magenta-cinque yellow-shest');
     
         PRIMARY
         SECONDARY

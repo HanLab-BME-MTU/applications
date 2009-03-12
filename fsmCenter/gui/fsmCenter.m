@@ -26,13 +26,13 @@ function varargout = fsmCenter(varargin)
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
+gui_State = struct('gui_Name', mfilename, ...
     'gui_Singleton',  gui_Singleton, ...
     'gui_OpeningFcn', @fsmCenter_OpeningFcn, ...
     'gui_OutputFcn',  @fsmCenter_OutputFcn, ...
     'gui_LayoutFcn',  [] , ...
     'gui_Callback',   []);
-if nargin & isstr(varargin{1})
+if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
 
@@ -56,8 +56,8 @@ handles.output = hObject;
 
 settings = get(handles.fsmCenter,'UserData');
 
-if isempty(settings) | ~isfield(settings,'projDir') | ...
-   (isfield(settings,'projDir')&isempty(settings.projDir))
+if isempty(settings) || ~isfield(settings,'projDir') || ...
+   (isfield(settings,'projDir') && isempty(settings.projDir))
    handles.physiParamFile = 'fsmPhysiParam.mat';
 
    handles.physiParam = getDefFsmPhysiParam;
@@ -113,13 +113,6 @@ if strcmp(fsmState,'off')
    set(handles.pushEdgeTracker,'Enable','off');
    set(handles.pushFsmTransition,'Enable','off');
    set(handles.pushPostProc,'Enable','off');
-
-   %Physical parameters edit fields.
-   %set(handles.editNA,'Enable','off');
-   %set(handles.editWaveLen,'Enable','off');
-   %set(handles.editBitDepth,'Enable','off');
-   %set(handles.editPixelSize,'Enable','off');
-   %set(handles.editFrameInterval,'Enable','off');
 else
    set(handles.pushFSM,'Enable','on');
    set(handles.pushBatchJobs,'Enable','on');
@@ -127,13 +120,6 @@ else
    set(handles.pushEdgeTracker,'Enable','on');
    set(handles.pushFsmTransition,'Enable','on');
    set(handles.pushPostProc,'Enable','on');
-
-   %Physical parameters edit fields.
-   %set(handles.editNA,'Enable','on');
-   %set(handles.editWaveLen,'Enable','on');
-   %set(handles.editBitDepth,'Enable','on');
-   %set(handles.editPixelSize,'Enable','on');
-   %set(handles.editFrameInterval,'Enable','on');
 end
 
 
@@ -228,9 +214,12 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushOpenProject_Callback(hObject, eventdata, handles)
-projDir=get(handles.textCurrentProject,'String');
+
+projDir = get(handles.textCurrentProject,'String');
+
 [projDir,imageDir,subProjects,imgDirList,firstImgList,physiParam]= ...
    projSetupGUI('a','b',projDir,get(hObject,'Parent'));
+
 if isempty(projDir)
     % Nothing to do here - the user just canceled
     return
@@ -340,11 +329,11 @@ xS=get(handles.editCalX,'String');
 if any([isempty(y0S) isempty(yS) isempty(x0S) isempty(xS)])
     area=[];
 else
-    y0=fix(str2num(y0S));
-    y=fix(str2num(yS));
-    x0=fix(str2num(x0S));
-    x=fix(str2num(xS));
-    if (y<=y0 | x<=x0 | y0<0 | x0<0) % We don't know the size of the image yet
+    y0=fix(str2doule(y0S));
+    y=fix(str2double(yS));
+    x0=fix(str2double(x0S));
+    x=fix(str2double(xS));
+    if (y<=y0 || x<=x0 || y0<0 || x0<0) % We don't know the size of the image yet
         uiwait(msgbox('Invalid region specified. You will need to draw.','error','modal'));
         area=[];
     else
@@ -411,11 +400,11 @@ function pushConvertSA_Callback(hObject, eventdata, handles)
     {'speckleArray.mat;','speckleArray.mat';
     '*.*','All Files (*.*)'},...
     'Select speckleArray.mat');
-if ~(isa(fName,'char') & isa(dirName,'char'))
+if ~(isa(fName,'char') && isa(dirName,'char'))
     return
 end
 load([dirName,fName]);
-if exist('speckleArray')~=1
+if exist('speckleArray', 'var')~=1
     % The loaded speckleArray is invalid
     uiwait(msgbox('The loaded speckleArray is invalid.','error','modal'));
     return
@@ -446,7 +435,7 @@ while quit==0
         path=uigetdir(dirName,'Please specifiy a different directory or leave whithout saving');
     end
     if path~=0
-        if exist([path,filesep,'speckleArray.mat'])==2
+        if exist([path,filesep,'speckleArray.mat'], 'file') == 2
             choice=questdlg('A speckleArray.mat file already exists in this directory. Do you want to overwrite it?','User input requested','Yes','No','Yes');
             switch choice,
                 case 'Yes', save([path,filesep,'speckleArray.mat'],'speckleArray'); quit=1; uiwait(msgbox('Converted speckleArray.mat successfully saved.','Info','modal'));
@@ -469,8 +458,8 @@ else
     dataFile=which('fsmExpParams.txt'); % Default fsmExpParams.txt file
     % Check
     fsmMainPath=which('fsmMain.m');
-    [pathExpParams,fname,no,ext]=getFilenameBody(dataFile);
-    [pathFsmMain,fname,no,ext]=getFilenameBody(fsmMainPath);
+    pathExpParams = getFilenameBody(dataFile);
+    pathFsmMain = getFilenameBody(fsmMainPath);
     if ~strcmp(pathExpParams,pathFsmMain)
         uiwait(msgbox('Something is wrong with your configuration. Plase click on "User settings" in fsmCenter and follow the instructions. Then try again.','Error','modal'));
         return
@@ -533,6 +522,7 @@ fsmPostProc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushFsmTransition_Callback(hObject, eventdata, handles)
+
 fsmTransition;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -544,6 +534,7 @@ fsmTransition;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushEdgeTracker_Callback(hObject, eventdata, handles)
+
 prPanel;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -557,54 +548,46 @@ prPanel;
 function fsmCenter_DeleteFcn(hObject, eventdata, handles)
 
 function fsmCenter_CloseRequestFcn(hObject, eventdata, handles)
-fsmH=findall(0,'Tag','fsmCenter'); % Get the handle of fsmCenter
-choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
-switch choice,
-    case 'Yes', shutdown=1;
-    case 'No', shutdown=0;
-end % switch
 
-if shutdown==0
-    return
-else
-    
-    % fsmPostProc
-    hFsmPostProc=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing');
-    if ~isempty(hFsmPostProc)
-        fsmPostProc('fsmPostProc_CloseRequestFcn',fsmH,[],guidata(hFsmPostProc)); % The calling GUI is fsmH -> fsmCenter
-    end
-    
-    % fsmGuiMain (SpeckTackle)
-    hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
-    if ~isempty(hFsmGuiMain)
-        fsmGuiMain('fsmGuiMain_CloseRequestFcn',fsmH,[],guidata(hFsmGuiMain)); % The calling GUI is fsmH -> fsmCenter
-    end
-    
-    % imKymoAnalysis
-    hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
-    if ~isempty(hCorrTrack)
-        imKymoAnalysis('closeRequest',fsmH,[],guidata(hCorrTrack)); % The calling GUI is fsmH -> fsmCenter
-    end
-    
-    % fsmTransition
-    hFsmTransition=findall(0,'Tag','fsmTransition','Name','fsmTransition');
-    if ~isempty(hFsmTransition)
-        fsmTransition('fsmTransition_CloseRequestFcn',fsmH,[],guidata(hFsmTransition)); % The calling GUI is fsmH -> fsmCenter
-    end
+fsmH = findall(0,'Tag','fsmCenter'); % Get the handle of fsmCenter
+choice = questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
 
-    % fsmCenterAlphaBetaGui
-    hFsmCenterABGui=findall(0,'Tag','NoiseParameterOptimizer','Name','Optimizer');
-    if ~isempty(hFsmCenterABGui)
-        fsmCenterAlphaBetaGui('NoiseParameterOptimizer_CloseRequestFcn',fsmH,[],guidata(hFsmCenterABGui)); % The calling GUI is fsmH -> fsmCenter
-    end
-    
-    
-    % And now close fsmCenter
-    delete(fsmH);
-    
-    
-%     fsmCenter('fsmCenter_CloseRequestFcn',gcbo,[],guidata(gcbo))
+if isempty(choice) || strcmp(choice, 'No') == 1
+    return;
 end
+
+% fsmPostProc
+hFsmPostProc=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing');
+if ~isempty(hFsmPostProc)
+    fsmPostProc('fsmPostProc_CloseRequestFcn',fsmH,[],guidata(hFsmPostProc)); % The calling GUI is fsmH -> fsmCenter
+end
+
+% fsmGuiMain (SpeckTackle)
+hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
+if ~isempty(hFsmGuiMain)
+    fsmGuiMain('fsmGuiMain_CloseRequestFcn',fsmH,[],guidata(hFsmGuiMain)); % The calling GUI is fsmH -> fsmCenter
+end
+
+% imKymoAnalysis
+hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
+if ~isempty(hCorrTrack)
+    imKymoAnalysis('closeRequest',fsmH,[],guidata(hCorrTrack)); % The calling GUI is fsmH -> fsmCenter
+end
+
+% fsmTransition
+hFsmTransition=findall(0,'Tag','fsmTransition','Name','fsmTransition');
+if ~isempty(hFsmTransition)
+    fsmTransition('fsmTransition_CloseRequestFcn',fsmH,[],guidata(hFsmTransition)); % The calling GUI is fsmH -> fsmCenter
+end
+
+% fsmCenterAlphaBetaGui
+hFsmCenterABGui=findall(0,'Tag','NoiseParameterOptimizer','Name','Optimizer');
+if ~isempty(hFsmCenterABGui)
+    fsmCenterAlphaBetaGui('NoiseParameterOptimizer_CloseRequestFcn',fsmH,[],guidata(hFsmCenterABGui)); % The calling GUI is fsmH -> fsmCenter
+end
+
+% And now close fsmCenter
+delete(fsmH);
 
 % Menu
 function menuHelp_Callback(hObject, eventdata, handles)
@@ -622,7 +605,7 @@ function menuTools_Callback(hObject, eventdata, handles)
 
 function editBitDepth_Callback(hObject, eventdata, handles)
 
-bitDepth = str2num(get(hObject,'String'));
+bitDepth = str2double(get(hObject,'String'));
 if isempty(bitDepth)
    set(hObject,'String',num2str(handles.physiParam.bitDepth));
    errordlg('Not valid numerical input.','Error','modal');
@@ -634,7 +617,7 @@ guidata(hObject,handles);
 saveFsmPhysiParam(handles);
 
 function editNA_Callback(hObject, eventdata, handles)
-NA = str2num(get(hObject,'String'));
+NA = str2double(get(hObject,'String'));
 if isempty(NA)
    set(hObject,'String',num2str(handles.physiParam.NA));
    errordlg('Not valid numerical input.','Error','modal');
@@ -653,7 +636,7 @@ guidata(hObject,handles);
 saveFsmPhysiParam(handles);
 
 function editWaveLen_Callback(hObject, eventdata, handles)
-waveLen = str2num(get(hObject,'String'));
+waveLen = str2double(get(hObject,'String'));
 if isempty(waveLen)
    set(hObject,'String',num2str(handles.physiParam.waveLen));
    errordlg('Not valid numerical input.','Error','modal');
@@ -672,7 +655,7 @@ guidata(hObject,handles);
 saveFsmPhysiParam(handles);
 
 function editPixelSize_Callback(hObject, eventdata, handles)
-pixelSize = str2num(get(hObject,'String'));
+pixelSize = str2double(get(hObject,'String'));
 if isempty(pixelSize)
    set(hObject,'String',num2str(handles.physiParam.pixelSize));
    errordlg('Not valid numerical input.','Error','modal');
@@ -691,7 +674,7 @@ guidata(hObject,handles);
 saveFsmPhysiParam(handles);
 
 function editFrameInterval_Callback(hObject, eventdata, handles)
-frameInterval = str2num(get(hObject,'String'));
+frameInterval = str2double(get(hObject,'String'));
 if isempty(frameInterval)
    set(hObject,'String',num2str(handles.physiParam.frameInterval));
    errordlg('Not valid numerical input.','Error','modal');
