@@ -1,61 +1,48 @@
 function subRoiConfig
-% choose sub-regions of interest and get tracking data for them
+% SUBROICONFIG allows user to choose sub-regions of interest and get detection & tracking from original ROI
 
-% get project directory to work on
-roiDir=uigetdir(pwd,'Please select ROI directory to use for making sub-ROIs');
 
-% get images directory
+% ask user for project directory
+roiDir=uigetdir(pwd,'Please select roi_x directory to use for making sub-rois');
+
+% find images directory
 homeDir=pwd;
 cd(roiDir)
 cd ..
 imDir=[pwd filesep 'images'];
 
-
-% load roiMask used to make ROI_x
+% load roiMask used to make roi_x
 roiMask=imread([roiDir filesep 'roiMask.tif']);
 
-
-% load detected features
+% load detected features from feat directory
 movieInfo=load([roiDir filesep 'feat' filesep 'movieInfo']);
 movieInfoOld=movieInfo.movieInfo;
 
-% load tracking data
-% load tracksFinal (tracking result)
+% load tracking data and convert tracksFinal to matrix
 trackDir = [roiDir filesep 'track'];
 [listOfFiles]=searchFiles('.mat',[],trackDir,0);
 load([listOfFiles{1,2} filesep listOfFiles{1,1}])
-% convert tracksFinal to matrix
 [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(tracksFinal);
 clear trackedFeatureIndx
 
 %get number of tracks and number of time points
 [numTracks,numTimePoints] = size(trackedFeatureInfo);
 numTimePoints=numTimePoints./8;
+% get start and end columns for each frame
 eC=8*[1:numTimePoints]';
 sC=eC-7;
 
-% save misc info for output
-
+% extract coordinates of tracks
 tracks.xCoord = trackedFeatureInfo(:,1:8:end); 
 tracks.yCoord = trackedFeatureInfo(:,2:8:end);
 
-
-
-
-
-
-
-
-% get list and number of images
+% get list of images, read first image, and make RGB (gray)
 [listOfImages]=searchFiles('.tif',[],imDir,0);
-
-% read first image and make RGB
 img=double(imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))]));
 img=(img-min(img(:)))./(max(img(:))-min(img(:)));
 img=repmat(img,[1,1,3]);
 
-
-% make sub-roi directory under ROI_x directory and go there
+% make sub-roi directory under roi_x directory and go there
 subRoiDir=[roiDir filesep 'subROIs'];
 if isdir(subRoiDir)
     rmdir(subRoiDir,'s');
@@ -63,15 +50,17 @@ end
 mkdir(subRoiDir);
 cd(subRoiDir)
 
+% input to varycolor is black (we don't use it since the image is dark;
+% make it one more than the number of ROIs (max is 9)
+cMap=varycolor(10);
 
-cMap=jet(10);
-
-
-[img2show]=addMaskInColor(img,roiMask,cMap(10,:));
+% set cell boundary to white in composite image
+[img2show]=addMaskInColor(img,roiMask,[1 1 1]);
 
 roiCount=1; % counter for rois for current project
 makeNewROI=1; % flag for making new roi
 
+% store 1 in every pixel of sub_1, 2 in every pixel of sub_2, etc.
 labelMatrix=zeros(size(roiMask));
 
 % iterate til the user is finished
@@ -92,19 +81,23 @@ while makeNewROI==1 && roiCount<10
     end
     close all
     
-    
+    % get intersection with max region in the cell
     tempRoi=tempRoi & roiMask;
+    % shrink max region in the cell for next round by excluding current roi
     roiMask=roiMask-tempRoi;
+    % fill in label matrix
     labelMatrix(tempRoi)=roiCount;
    
+    % add the current roi to the composite image
     [img2show]=addMaskInColor(img2show,tempRoi,cMap(roiCount,:));
     
+    % get coordinates of vertices
     roiYX=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
 
     % save sub-roi mask
     imwrite(tempRoi,[currentRoiAnDir filesep 'roiMask.tif']);
     
-    
+    % extract detected features falling in current ROI from the full set
     fNames=fieldnames(movieInfoOld);
     for iFrame=1:size(movieInfoOld,1)
         % look for feature coordinates within the polygon
@@ -120,7 +113,7 @@ while makeNewROI==1 && roiCount<10
     save([featDir filesep 'movieInfo'],'movieInfo')    
 
     
-    % fill in new matrix
+    % fill in new matrix of tracks
     tracksFinal=nan(size(trackedFeatureInfo));
     for iFrame=1:numTimePoints
         % find coordinate from tracks that are within polygon
@@ -133,11 +126,12 @@ while makeNewROI==1 && roiCount<10
         allIdx=inPolyIdx+idx2add;
         tracksFinal(inPolyIdx(:),col(:))=trackedFeatureInfo(inPolyIdx(:),col(:));
     end
+    % make track directory for sub-roi and save tracks matrix
     trackDir=[currentRoiAnDir filesep 'track']; mkdir(trackDir);
     save([trackDir filesep 'subTracks'],'tracksFinal')
-    
-    reply=input('Do you want to select another ROI? y/n [n]: ','s');
 
+    % ask user whether to not to select another sub-roi
+    reply=input('Do you want to select another ROI? y/n [n]: ','s');
     if lower(reply)=='y'
         makeNewROI=1; % user said yes; make another one
         roiCount=roiCount+1; % counter for current condition rois
@@ -146,7 +140,7 @@ while makeNewROI==1 && roiCount<10
     end
 end % while makeNewROI==1 && roiCount<10
 
-% add text to show which region is which
+% add a number to center of each sub-roi to show which region is which
 s = regionprops(labelMatrix, 'centroid');
 centroids = cat(1, s.Centroid);
 imshow(img2show)
@@ -155,6 +149,7 @@ for iRoi=1:roiCount
     text(centroids(iRoi,1), centroids(iRoi,2), num2str(iRoi),'color','w')
 end
 
+% save composite image and label matrix
 frame = getframe(gca);
 [I,map] = frame2im(frame);
 imwrite(I,[pwd filesep 'sub-ROIs.tif'],'tif')
@@ -166,7 +161,7 @@ cd(homeDir)
 
 
 function [img2show]=addMaskInColor(img,roiMask,c)
-
+%subfunction to add new polygon outline to composite image
 temp=double(bwmorph(roiMask,'remove'));
 borderIdx=find(temp);
 nPix=numel(roiMask);
