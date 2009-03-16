@@ -1,5 +1,5 @@
 function [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,img,ask4sel,plotCurrentOnly,roiYX,movieInfo)
-%PLOTTRACKS2D plots a group of tracks in 2D and allows user to click on them and extract track information
+%plotTracks2D_EB3 plots a group of tracks in 2D and allows user to click on them and extract track information
 %
 %SYNOPSIS [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,...
 %    img,ask4sel,plotCurrentOnly,roiYX,movieInfo)
@@ -22,10 +22,12 @@ function [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,img,as
 %                           if given, will only plot those tracks
 %                           that exist during that frame.
 %       roiYX             : coordinates of a region-of-interest (closed
-%                           polygon). the rectangle circumscribing the ROI
-%                           will be used to limit plotting to within the
+%                           polygon) in which tracks should be plotted, or
+%                           a logical mask the size of the image.  the
+%                           rectangle circumscribing the ROI will be used
+%                           to limit plotting to within the
 %                           region. if not given or given as [], whole
-%                           image will be used
+%                           image will be used.
 %       movieInfo         : structure containing detection results. can be
 %                           loaded from "feat" directory. if given, ALL
 %                           detected features are plotted with color
@@ -86,7 +88,7 @@ if nargin<2 || isempty(timeRange)
     timeRange = [1 numTimePoints];
 else
     if timeRange(1) < 1 || timeRange(2) > numTimePoints
-        error('--plotTracks2D: Wrong time range for plotting!');
+        error('--plotTracks2D_EB3: Wrong time range for plotting!');
     end
 end
 
@@ -115,34 +117,33 @@ if nargin<5 || isempty(plotCurrentOnly)
     close all
 else
     if plotCurrentOnly<timeRange(1) || plotCurrentOnly>timeRange(2)
-        error('--plotTracks2D: plotCurrentOnly must be within timeRange');
+        error('--plotTracks2D_EB3: plotCurrentOnly must be within timeRange');
     end
 end
 
-%check for coordinates of a ROI in which results should be plotted
-if nargin<6 || isempty(roiYX) || isequal(roiYX,0)
-    [imL imW]=size(img);
-    minY=1;
-    maxY=imL;
-    minX=1;
-    maxX=imW;
+% check input for ROI coordinates
+if nargin<6 || isempty(roiYX)
+    [r c]=find(ones(size(img)));
+    roiYX=[min(r) min(c); max(r) max(c)];
+elseif islogical(roiYX)
+    [r c]=find(roiYX);
+    roiYX=[min(r) min(c); max(r) max(c)];
 else
-    minY=floor(min(roiYX(:,1)));
-    maxY=ceil(max(roiYX(:,1)));
-    minX=floor(min(roiYX(:,2)));
-    maxX=ceil(max(roiYX(:,2)));
-    img=img(minY:maxY,minX:maxX);
+    if size(roiYX,2)~=2
+        error('--plotTracks2D_EB3: roiYX should be nx2 matrix of coordinates or logical mask')
+    end
 end
 
-if nargin<7 || ~isstruct(movieInfo)
-    %no detection results to plot
-    movieInfo=[];
-end
+minY=floor(min(roiYX(:,1)));
+maxY=ceil(max(roiYX(:,1)));
+minX=floor(min(roiYX(:,2)));
+maxX=ceil(max(roiYX(:,2)));
+img=img(minY:maxY,minX:maxX);
 
 
 % trackInfo contains gap start/end info, while trackVelocities has
 % per-frame or average-per-segment track veloctiies
-[trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(trackedFeatureInfo,3);
+[trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(trackedFeatureInfo,3);
 
 %get the x,y-coordinates of features in all tracks
 tracksX = trackedFeatureInfo(:,1:8:end)';
