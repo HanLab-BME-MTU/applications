@@ -1,5 +1,5 @@
-function [trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(trackedFeatureInfo,minTrackLen)
-% getVelocitiesFromMat fills forward and backward gaps in EB3 trajectory
+function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(trackedFeatureInfo,minTrackLen)
+% GETVELOCITIESFROMMAT fills forward and backward gaps in EB3 trajectory
 % and calculates segment velocities
 %
 % INPUT: trackedFeatureInfo : nTracks x 8*nFrames matrix resulting from
@@ -36,6 +36,9 @@ if isstruct(trackedFeatureInfo)
     clear trackedFeatureIndx
 end
 
+
+nanRowIdx=find(sum(isnan(trackedFeatureInfo),2)==size(trackedFeatureInfo,2));
+trackedFeatureInfo(nanRowIdx,:)=[];
 
 % since we need a few frames to calculate segment directions for the dot
 % product calculation (to determine whether forward (growing) or backward
@@ -81,13 +84,18 @@ for iTrack=1:nTracks
     % again find start/end frames for each segment of the track
     trackIdx = find(~isnan(px));
     temp=(diff(~isnan(px)));
-    trackStarts = unique([trackIdx(1) find(temp == 1)+1]);
-    trackEnds = unique([trackIdx(end) find(temp == -1)]);
-    trackLengths = trackEnds - trackStarts + 1;
+    if ~isempty(trackIdx) % after removal, we may have an empty row
+        trackStarts = unique([trackIdx(1) find(temp == 1)+1]);
+        trackEnds = unique([trackIdx(end) find(temp == -1)]);
+        trackLengths = trackEnds - trackStarts + 1;
+        % fill in segment info [trackIndex trackStart trackEnd 0], where the 0
+        % will be filled with the segment velocity
+        trackInfo(iTrack,1).seg = [iTrack*ones(size(trackStarts')) trackStarts' trackEnds' zeros(size(trackStarts'))];
+    else
+        trackStarts=-1;
+    end
 
-    % fill in segment info [trackIndex trackStart trackEnd 0], where the 0
-    % will be filled with the segment velocity
-    trackInfo(iTrack,1).seg = [iTrack*ones(size(trackStarts')) trackStarts' trackEnds' zeros(size(trackStarts'))];
+    
     
     % pxFill/pyFill are the coordinates of the track where we have
     % estimated the position of the feature (using a constant velocity) to fill the gap.
@@ -186,6 +194,26 @@ for iTrack=1:nTracks
     end
 
 end
+% get rows that don't contain a track
+nanRowIdx=find(sum(isnan(trackedFeatureInfoInterp),2)==size(trackedFeatureInfoInterp,2));
+% remove these rows from relevant data
+trackedFeatureInfo(nanRowIdx,:)=[];
+trackedFeatureInfoInterp(nanRowIdx,:)=[];
+perFrameVelocities(nanRowIdx,:)=[];
+nTracks = size(trackedFeatureInfo,1);
+
+% removing NaN-data from trackInfo is a bit trickier...
+fNames=fieldnames(trackInfo);
+for iNan=1:length(nanRowIdx)
+    for iTrack=nanRowIdx(iNan):length(trackInfo)
+        for iField=1:length(fNames)
+            if ~isempty(trackInfo(iTrack).(fNames{iField}))
+                trackInfo(iTrack).(fNames{iField})(:,1)= trackInfo(iTrack).(fNames{iField})(:,1)-1;
+            end
+        end
+    end
+end
+trackInfo(nanRowIdx)=[];
 
 % concatenate the segment and gap data
 binnedData = [vertcat(trackInfo.seg); vertcat(trackInfo.fgap); vertcat(trackInfo.bgap); vertcat(trackInfo.ugap)];
