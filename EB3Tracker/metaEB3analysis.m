@@ -79,12 +79,8 @@ function [projData]=metaEB3analysis(runInfo,secPerFrame,pixSizeNm)
 if nargin<1 || isempty(runInfo)
     % if not given as input, ask user for ROI directory
     % assume images directory is at same level
-    runInfo.anDir=uigetdir(pwd,'Please select ROI directory');
-    homeDir=pwd;
-    cd(runInfo.anDir);
-    cd('..');
-    runInfo.imDir=[pwd filesep 'images'];
-    cd(homeDir)
+    runInfo.anDir=uigetdir(pwd,'Please select analysis directory');
+    runInfo.imDir=uigetdir(pwd,'Please select image directory');
 else
     % adjust for OS
     if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
@@ -129,13 +125,14 @@ if ~isdir(runInfo.metaDir)
     mkdir(runInfo.metaDir)
 end
 
-
 % convert tracksFinal to matrix
-[trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(tracksFinal);
-clear trackedFeatureIndx
+if isstruct(tracksFinal)
+    [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(tracksFinal);
+    clear trackedFeatureIndx
+end
 
 % get interpolated positions for gaps and calculate velocities
-[trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(tracksFinal,3);
+[trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(tracksFinal,3);
 
 %get number of tracks and number of time points
 [numTracks,numTimePoints] = size(trackedFeatureInfo);
