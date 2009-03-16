@@ -10,6 +10,14 @@ if nargin<1 || isempty(projData)
     [fileName,pathName]=uigetfile('*.mat','Please select projData from META directory');
     projData=load([pathName filesep fileName]);
     projData=projData.projData;
+else
+    % adjust for OS
+    if ~isfield(projData,'imDir') || ~isfield(projData,'anDir')
+        error('--popHist: first argument should be a structure with fields imDir and anDir');
+    else
+        [projData.anDir] = formatPath(projData.anDir);
+        [projData.imDir] = formatPath(projData.imDir);
+    end
 end
 
 
@@ -30,66 +38,91 @@ figure(1);
 hold on
 
 % segments
-[x1 x2]=hist(a(segIdx,4),20);
-bar(x2,x1,'b')
+if ~isempty(a(segIdx))
+    [x1 x2]=hist(a(segIdx,4),20);
+    bar(x2,x1,'b')
+end
 
 % forward gaps
-[x1 x2]=hist(a(fgapIdx,4),20);
-bar(x2,x1,'r')
+if ~isempty(a(fgapIdx))
+    [x1 x2]=hist(a(fgapIdx,4),20);
+    bar(x2,x1,'r')
+end
 
 % backward gaps
-[x1 x2]=hist(a(bgapIdx,4),20);
-bar(x2,x1,'g')
+if ~isempty(a(bgapIdx))
+    [x1 x2]=hist(a(bgapIdx,4),20);
+    bar(x2,x1,'g')
+end
 
 % unclassified gaps
-[x1 x2]=hist(a(ugapIdx,4),20);
-bar(x2,x1,'c')
+if ~isempty(a(ugapIdx))
+    [x1 x2]=hist(a(ugapIdx,4),20);
+    bar(x2,x1,'c')
+end
 
 xlabel('velocity (microns/minute)');
 ylabel('frequency');
 legend('segments (growth)','forward gaps (pause/false neg)','backward gaps (shrinkage)','unclassified','Location','best')
+
 saveas(gcf,'compositeHist.fig')
 saveas(gcf,'compositeHist.tif')
 
 figure(2);
 % segments
-[x1 x2]=hist(a(segIdx,4),20);
-bar(x2,x1,'b')
-xlabel('velocity (microns/minute)');
-ylabel('frequency');
-title('histogram of average segment velocities')
-saveas(gcf,'segsHist.fig')
-saveas(gcf,'segsHist.tif')
+if ~isempty(a(segIdx))
+    [x1 x2]=hist(a(segIdx,4),20);
+    bar(x2,x1,'b')
+    xlabel('velocity (microns/minute)');
+    ylabel('frequency');
+    title('histogram of average segment velocities')
+    saveas(gcf,'segsHist.fig')
+    frame = getframe(gca);
+    [I,map] = frame2im(frame);
+    imwrite(I,[pwd filesep 'segsHist.tif'],'tif')
+end
 
 figure(3);
 % forward gaps
-[x1 x2]=hist(a(fgapIdx,4),20);
-bar(x2,x1,'r')
-xlabel('velocity (microns/minute)');
-ylabel('frequency');
-title('histogram of average forward gap velocities')
-saveas(gcf,'fgapsHist.fig')
-saveas(gcf,'fgapsHist.tif')
+if ~isempty(a(fgapIdx))
+    [x1 x2]=hist(a(fgapIdx,4),20);
+    bar(x2,x1,'r')
+    xlabel('velocity (microns/minute)');
+    ylabel('frequency');
+    title('histogram of average forward gap velocities')
+    saveas(gcf,'fgapsHist.fig')
+    frame = getframe(gca);
+    [I,map] = frame2im(frame);
+    imwrite(I,[pwd filesep 'fgapsHist.tif'],'tif')
+end
 
 figure(4);
 % backward gaps
-[x1 x2]=hist(a(bgapIdx,4),20);
-bar(x2,x1,'g')
-xlabel('velocity (microns/minute)');
-ylabel('frequency');
-title('histogram of average backward gap velocities')
-saveas(gcf,'bgapsHist.fig')
-saveas(gcf,'bgapsHist.tif')
+if ~isempty(a(bgapIdx))
+    [x1 x2]=hist(a(bgapIdx,4),20);
+    bar(x2,x1,'g')
+    xlabel('velocity (microns/minute)');
+    ylabel('frequency');
+    title('histogram of average backward gap velocities')
+    saveas(gcf,'bgapsHist.fig')
+    frame = getframe(gca);
+    [I,map] = frame2im(frame);
+    imwrite(I,[pwd filesep 'bgapsHist.tif'],'tif')
+end
 
 figure(5);
 % unclassified gaps
-[x1 x2]=hist(a(ugapIdx,4),20);
-bar(x2,x1,'c')
-xlabel('velocity (microns/minute)');
-ylabel('frequency');
-title('histogram of average unclassified gap velocities')
-saveas(gcf,'ugapsHist.fig')
-saveas(gcf,'ugapsHist.tif')
+if ~isempty(a(ugapIdx))
+    [x1 x2]=hist(a(ugapIdx,4),20);
+    bar(x2,x1,'c')
+    xlabel('velocity (microns/minute)');
+    ylabel('frequency');
+    title('histogram of average unclassified gap velocities')
+    saveas(gcf,'ugapsHist.fig')
+    frame = getframe(gca);
+    [I,map] = frame2im(frame);
+    imwrite(I,[pwd filesep 'ugapsHist.tif'],'tif')
+end
 
 figure(6);
 hist(projData.pair2pairDiffPix,20)
@@ -97,7 +130,9 @@ xlabel('difference in displacement (pixels)');
 ylabel('frequency');
 title('difference in displacement between consecutive frame pairs')
 saveas(gcf,'dispDiffHist.fig')
-saveas(gcf,'dispDiffHist.tif')
+frame = getframe(gca);
+[I,map] = frame2im(frame);
+imwrite(I,[pwd filesep 'dispDiffHist.tif'],'tif')
 
 close all
 cd(homeDir)
