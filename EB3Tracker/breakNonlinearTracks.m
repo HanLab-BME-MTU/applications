@@ -36,7 +36,7 @@ badLinkIdx=[r c];
 badLinkIdx=sortrows(badLinkIdx,1); % sorted indices [trackNumber tailPosition]
 
 [trackIdxWithBadLink,nBadLinks,whereIdx] = countEntries(badLinkIdx(:,1));
-% n links to break creates n+1 segments. bue, since we retain the original row
+% n links to break creates n+1 segments. but, since we retain the original row
 % for the first segment, we only need to add n rows
 nRows2add = sum(nBadLinks);
 
