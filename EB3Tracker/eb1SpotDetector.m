@@ -27,7 +27,6 @@ function [movieInfo]=eb1SpotDetector(runInfo,timeRange,bitDepth,savePlots)
 %                           provided). both the ROI and bg point are saved
 %                           during setupRoiDirectories.m
 
-
 warningState = warning;
 warning('off','MATLAB:divideByZero')
 
@@ -289,7 +288,7 @@ for iFrame = startFrame:endFrame
     %
     %             end
 
-    % centroid coordinates with zero uncertainties for Khuloud's tracker
+    % centroid coordinates with 0.5 uncertainties for Khuloud's tracker
     yCoord = 0.5*ones(nFeats,2); xCoord = 0.5*ones(nFeats,2);
     temp = vertcat(featPropFinal.WeightedCentroid);
     yCoord(:,1) = temp(:,2);
@@ -351,20 +350,11 @@ for iFrame = startFrame:endFrame
     end
 
 end
-
-if iFrame==1
-    tm = toc;
-    expectedTime = (tm*nFrames)/60; % in minutes
-    disp(['first frame took ' num2str(tm) ' seconds; ' num2str(nFrames) ' frames will take ' num2str(expectedTime) ' minutes.'])
-end
-
-
 save([featDir filesep 'movieInfo'],'movieInfo');
 
 
 close all
 warning(warningState);
-
 
 
 
