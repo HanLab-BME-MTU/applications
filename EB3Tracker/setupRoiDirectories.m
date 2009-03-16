@@ -28,9 +28,9 @@ function setupRoiDirectories(selectROI,overwriteROIs,doCrop)
 %                        cropped 16-bit images in a subdirectory of roi_x
 %                        called images.
 %
-% OUTPUT roiMask      : tif the size of the raw images containing the roiMask;
-%                       this gets saved in the roi_n folder
-%        roiYX        : contains xy-coordinates of the roi
+% OUTPUT roiMask       : tif the size of the raw images containing the roiMask;
+%                        this gets saved in the roi_n folder
+%        roiYX         : contains xy-coordinates of the roi
 %
 % Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
 
@@ -79,7 +79,7 @@ if overwriteROIs==1 && ~isempty(roiDirList)
     end
 end
 
-
+roiCount=0;
 for i=1:length(imageDirList) % iterate through projects
 
     % define image and roi directories
@@ -166,5 +166,7 @@ for i=1:length(imageDirList) % iterate through projects
                     makeNewROI=0; % assume no; we're done
                 end
         end % while makeNewROI==1 && roiCount<10
-    end % if there's no roi_1 directory
+    else % if there's no roi_1 directory
+        
+    end
 end % iterate through projects
