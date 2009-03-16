@@ -21,8 +21,9 @@ function trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDe
 %                           parameter defaults to the frames over which the
 %                           track appears, regardless of user input.
 %       roiYX             : coordinates of a region-of-interest (closed
-%                           polygon) in which tracks should be plotted.
-%                           if indivTrack is given, this parameter
+%                           polygon) in which tracks should be plotted, or
+%                           a logical mask the size of the image. if
+%                           indivTrack is given, this parameter
 %                           defaults to the ROI circumscribing the full
 %                           track, regardless of user input. if given as
 %                           [], user will be asked to select a ROI.
@@ -35,8 +36,11 @@ function trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDe
 %                           plotted (color-coded by time) in the movie; 2
 %                           if ALL detected features coordinates should be
 %                           plotted (not just the ones accepted by the
-%                           tracking step) in the movie; 0 if no feature
-%                           coordinates should be plotted.
+%                           tracking step) in the movie (color-coded by
+%                           time); 3 if detection for just the current
+%                           frame should be plotted in cyan (basic
+%                           detection movie); 0 if no feature coordinates
+%                           should be plotted.
 %
 %OUTPUT One or more Quicktime movies and the regions of interest used to
 %       generate them
@@ -166,13 +170,18 @@ for iMovie=1:size(timeRange,1)
         % retain all the tracks for this movie
         temptrackedFeatureInfo=trackedFeatureInfo;
         
+        
+        % check input for ROI coordinates
         if nargin<4 || isempty(roiYX)
             imscaled=(img-min(img(:)))./(max(img(:))-min(img(:)));
             [BW,xi,yi] = roipoly(imscaled);
             roiYX=[yi xi];
+        elseif islogical(roiYX)
+            [r c]=find(roiYX);
+            roiYX=[min(r) min(c); max(r) max(c)];
         else
             if size(roiYX,2)~=2
-                error('--trackMovie: roiYX should be nx2 matrix of coordinates')
+                error('--trackMovie: roiYX should be nx2 matrix of coordinates or logical mask')
             end
         end
 
@@ -180,6 +189,7 @@ for iMovie=1:size(timeRange,1)
         maxY=ceil(max(roiYX(:,1)));
         minX=floor(min(roiYX(:,2)));
         maxX=ceil(max(roiYX(:,2)));
+
 
         % name the movie with the following:
         % allTracks_startFrame_endFrame_01 (or 02, 03...depending on how
@@ -310,20 +320,42 @@ for iMovie=1:size(timeRange,1)
                 xCoord=xCoord-minX+1;
                 yCoord=yCoord-minY+1;
                 hold on
+                                
                 scatter(xCoord,yCoord,'Marker','.','cData',repmat(colorOverTime(frmCount1,:),[length(xCoord),1]));
                 frmCount1=frmCount1+1;
             end
         end
+        if showDetect==3 % use coordinates from detection, plot in cyan
+            
+            for j=iFrame
+                % use coordinates from detection
+                xCoord = vertcat(movieInfo(j).xCoord); xCoord = xCoord(:,1);
+                yCoord = vertcat(movieInfo(j).yCoord); yCoord = yCoord(:,1);
+
+                outOfRangeIdx=find(xCoord<minX | xCoord>maxX | yCoord<minY | yCoord>maxY);
+                xCoord(outOfRangeIdx) = [];
+                yCoord(outOfRangeIdx) = [];
+                xCoord=xCoord-minX+1;
+                yCoord=yCoord-minY+1;
+                hold on
+                
+                scatter(xCoord,yCoord,'c.');
+               
+            end
+        end
 
         text(.25,.25,num2str(iFrame),'Color',colorOverTime(frmCount2,:),'FontWeight','bold','HorizontalAlignment','right','Units','inches')
-        MakeQTMovie addaxes
-        MakeQTMovie('framerate', 5);
+        %MakeQTMovie addaxes
+        %MakeQTMovie('framerate', 5);
         %MakeQTMovie('quality', .7);
-
+        F(iFrame) = getframe;
+        
         frmCount2=frmCount2+1;
 
     end
-    MakeQTMovie finish
+    %MakeQTMovie finish
+    movie2avi(F,[runInfo.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+
     save([movieName '_roiYX'],'roiYX')
 
     close all
