@@ -320,9 +320,9 @@ end
 
 tMax=gapCloseParam.timeWindow;
 
-indx1 = zeros(numTracks.^2,1);
-indx2 = zeros(numTracks.^2,1);
-cost  = zeros(numTracks.^2,1);
+indx1 = zeros(50*numTracks,1);
+indx2 = zeros(50*numTracks,1);
+cost  = zeros(50*numTracks,1);
 linkCount = 1;
 for iFrame = 1:numFrames-1
 
