@@ -5,7 +5,7 @@
 % track segment start that allows linking them. if timeWindow = n, then
 % there are n-1 frames between the last detection event of the first track
 % segment and the first detection event of the second track segment.
-gapCloseParam.timeWindow = 8; 
+gapCloseParam.timeWindow = 7; 
 
 % 1 if merging and splitting are to be considered, 0 otherwise.
 % even though EB comets might overlap in a given frame, they do not merge
@@ -25,7 +25,7 @@ costMatrices(1).funcName = 'costMatLinearMotionLink_EB3';
 
 parameters.linearMotion = 1; %use linear motion Kalman filter.
 
-parameters.minSearchRadius = 10; %minimum allowed search radius. The search radius is calculated on the spot in the code given a feature's motion parameters. If it happens to be smaller than this minimum, it will be increased to the minimum.
+parameters.minSearchRadius = 10; %used 10 and 15 for 2sec data,3/5 for Claudio %minimum allowed search radius. The search radius is calculated on the spot in the code given a feature's motion parameters. If it happens to be smaller than this minimum, it will be increased to the minimum.
 parameters.maxSearchRadius = 15; %maximum allowed search radius. Again, if a feature's calculated search radius is larger than this maximum, it will be reduced to this maximum.
 parameters.brownStdMult = 3; %multiplication factor to calculate search radius from standard deviation.
 
@@ -77,7 +77,14 @@ kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
 %% additional input
 
 %saveResults
-trackDir = [pwd filesep 'track'];
+[currentProj]=getProj(pwd);
+if isempty(currentProj) || size(currentProj,1)~=1
+    currentProj.anDir=uigetdir(pwd,'Please select ROI directory');
+end
+featDir = [currentProj.anDir filesep 'feat'];
+load([featDir filesep 'movieInfo.mat'])
+
+trackDir = [currentProj.anDir filesep 'track'];
 if ~isdir(trackDir)
     mkdir(trackDir)
 end
