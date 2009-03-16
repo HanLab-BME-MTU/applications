@@ -14,8 +14,9 @@ function featVelMovie(projData,timeRange,velLimit,roiYX)
 %                           than velLimit or lower than -velLimit will be
 %                           plotted as red or blue, respectively.
 %       roiYX             : coordinates of a region-of-interest (closed
-%                           polygon) in which tracks should be plotted.
-%                           if given as [], user will be asked to select a ROI.
+%                           polygon) in which tracks should be plotted, or
+%                           a logical mask the size of the image. if given
+%                           as [], user will be asked to select a ROI.
 %
 %OUTPUT Quicktime movies and the regions of interest used to generate them.
 %       Cool colors correspond to shrinkage events (these have "negative"
@@ -69,9 +70,12 @@ if nargin<4 || isempty(roiYX)
     imscaled=(img-min(img(:)))./(max(img(:))-min(img(:)));
     [BW,xi,yi] = roipoly(imscaled);
     roiYX=[yi xi];
+elseif islogical(roiYX)
+    [r c]=find(roiYX);
+    roiYX=[min(r) min(c); max(r) max(c)];
 else
     if size(roiYX,2)~=2
-        error('--featVelMovie: roiYX should be nx2 matrix of coordinates')
+        error('--featVelMovie: roiYX should be nx2 matrix of coordinates or logical mask')
     end
 end
 
@@ -174,11 +178,15 @@ for iFrame=startFrame:endFrame-1
     scatter(xCoord,yCoord,'Marker','.','cData',cMap(idx(:,1),:));
     
     text(.25,.25,num2str(iFrame),'Color','w','FontWeight','bold','HorizontalAlignment','right','Units','inches')
-    MakeQTMovie addaxes
-    MakeQTMovie('framerate', 5);
+    F(iFrame) = getframe;
+
+    %MakeQTMovie addaxes
+    %MakeQTMovie('framerate', 5);
 end
 
-MakeQTMovie finish
+%MakeQTMovie finish
+movie2avi(F,[movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+
 save([movieName '_roiYX'],'roiYX')
 close all
 cd(homeDir)
