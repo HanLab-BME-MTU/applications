@@ -62,7 +62,7 @@ function fsmCenter_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for fsmCenter
 handles.output = hObject;
 
-settings = get(handles.fsmCenter,'UserData');
+settings = get(hObject,'UserData');
 
 if isempty(settings) || ~isfield(settings,'projDir') || ...
    (isfield(settings,'projDir') && isempty(settings.projDir))
@@ -221,103 +221,108 @@ end
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function pushOpenProject_Callback(hObject, eventdata, handles)
+% The 'Setup Project' button is now replaced by a menu Project->Setup Project
+%
+% function pushOpenProject_Callback(hObject, eventdata, handles)
+% 
+% projDir = get(handles.textCurrentProject,'String');
+% 
+% [projDir, imageDir, subProjects, imgDirList, firstImgList, physiParam]= ...
+%    projSetupGUI('a','b', projDir, handles.fsmCenter);
+% 
+% if isempty(projDir)
+%     % Nothing to do here - the user just canceled
+%     return
+% end
+% 
+% % Update project info in fsmCenter
+% set(handles.textCurrentProject, 'String', projDir);
+% set(handles.textCurrentImage, 'String', imageDir);
+% 
+% % Add projDir, imageDir and subProjects to the userData of fsmCenter
+% settings.projDir=projDir;
+% settings.imageDir={imageDir}; % This is a cell (n-channel movies)
+% settings.subProjects=subProjects;
+% settings.imgDirList=imgDirList;
+% settings.firstImgList=firstImgList;
+% set(handles.fsmCenter, 'UserData', settings);
+% 
+% %Enable all fsm software package.
+% handles = enableFsmPackages(handles,'on');
+% 
+% %Update physical parameters if the parameter file 'fsmPhysiParam.mat' exist.
+% %physiParamFile = [settings.projDir filesep handles.physiParamFile];
+% %if exist(physiParamFile,'file') == 2;
+% %   s = load(physiParamFile);
+% %   handles.physiParam = s.fsmPhysiParam;
+% %else
+% %   handles.physiParam = getDefFsmPhysiParam;
+% %end
+% if ~isempty(physiParam)
+%     handles.physiParam = physiParam{1};
+%     saveFsmPhysiParam(handles);
+% 
+%     handles = updateFsmGuiPhysiParamEdit(handles);
+% end
+% 
+% guidata(handles.fsmCenter, handles);
+% 
+% % Update other GUIs if they are already running
+% 
+% % fsmPostProc
+% hFsmPostProc=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing');
+% if ~isempty(hFsmPostProc)
+%     fsmPostProc;
+% end
+% 
+% % fsmGuiMain (SpeckTackle)
+% hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
+% if ~isempty(hFsmGuiMain)
+%     fsmGuiMain;
+% end
+% 
+% % imKymoAnalysis
+% hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
+% if ~isempty(hCorrTrack)
+%     imKymoAnalysis;
+% end
+% 
+% % fsmTransition
+% hFsmTransition=findall(0,'Tag','fsmTransition','Name','fsmTransition');
+% if ~isempty(hFsmTransition)
+%     fsmTransition;
+% end
 
-projDir = get(handles.textCurrentProject,'String');
-
-[projDir,imageDir,subProjects,imgDirList,firstImgList,physiParam]= ...
-   projSetupGUI('a','b',projDir,get(hObject,'Parent'));
-
-if isempty(projDir)
-    % Nothing to do here - the user just canceled
-    return
-end
-
-% Update project info in fsmCenter
-set(handles.textCurrentProject,'String',projDir);
-set(handles.textCurrentImage,'String',imageDir);
-
-% Add projDir, imageDir and subProjects to the userData of fsmCenter
-settings.projDir=projDir;
-settings.imageDir={imageDir}; % This is a cell (n-channel movies)
-settings.subProjects=subProjects;
-settings.imgDirList=imgDirList;
-settings.firstImgList=firstImgList;
-set(handles.fsmCenter,'UserData',settings);
-
-%Enable all fsm software package.
-handles = enableFsmPackages(handles,'on');
-
-%Update physical parameters if the parameter file 'fsmPhysiParam.mat' exist.
-%physiParamFile = [settings.projDir filesep handles.physiParamFile];
-%if exist(physiParamFile,'file') == 2;
-%   s = load(physiParamFile);
-%   handles.physiParam = s.fsmPhysiParam;
-%else
-%   handles.physiParam = getDefFsmPhysiParam;
-%end
-if ~isempty(physiParam)
-    handles.physiParam = physiParam{1};
-    saveFsmPhysiParam(handles);
-
-    handles = updateFsmGuiPhysiParamEdit(handles);
-end
-
-guidata(hObject,handles);
-
-% Update other GUIs if they are already running
-
-% fsmPostProc
-hFsmPostProc=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing');
-if ~isempty(hFsmPostProc)
-    fsmPostProc;
-end
-
-% fsmGuiMain (SpeckTackle)
-hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
-if ~isempty(hFsmGuiMain)
-    fsmGuiMain;
-end
-
-% imKymoAnalysis
-hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
-if ~isempty(hCorrTrack)
-    imKymoAnalysis;
-end
-
-% fsmTransition
-hFsmTransition=findall(0,'Tag','fsmTransition','Name','fsmTransition');
-if ~isempty(hFsmTransition)
-    fsmTransition;
-end
-
-function pushDescription_Callback(hObject, eventdata, handles)
-% This function allows the user to create a text file where all notes, comments, and description are stored.
-projDir=get(handles.textCurrentProject,'String');
-if isempty(projDir)
-    % No project active
-    uiwait(errordlg('Plese create/open a project first.','Error','modal'));
-    return;
-end
-
-% Check whether a file description.txt exists in the project directory
-if exist([projDir,filesep,'description.txt'],'file')==2
-    % Open it
-    edit([projDir,filesep,'description.txt']);
-else
-    % Create it
-    fid=fopen([projDir,filesep,'description.txt'],'w');
-    if fid==-1
-        uiwait(errordlg('Cannot write to the project directory.','Error','modal'));
-        return;
-    else
-        % Add an initial text
-        fwrite(fid,'Please use this file to store your comments, notes, descriptions for the project.');
-        fclose(fid);
-        edit([projDir,filesep,'description.txt']);
-    end
-    
-end
+% The 'Description' button is now replaced by a menu Project->Project
+% Description
+%
+% function pushDescription_Callback(hObject, eventdata, handles)
+% % This function allows the user to create a text file where all notes, comments, and description are stored.
+% projDir=get(handles.textCurrentProject,'String');
+% if isempty(projDir)
+%     % No project active
+%     uiwait(errordlg('Plese create/open a project first.','Error','modal'));
+%     return;
+% end
+% 
+% % Check whether a file description.txt exists in the project directory
+% if exist([projDir,filesep,'description.txt'],'file')==2
+%     % Open it
+%     edit([projDir,filesep,'description.txt']);
+% else
+%     % Create it
+%     fid=fopen([projDir,filesep,'description.txt'],'w');
+%     if fid==-1
+%         uiwait(errordlg('Cannot write to the project directory.','Error','modal'));
+%         return;
+%     else
+%         % Add an initial text
+%         fwrite(fid,'Please use this file to store your comments, notes, descriptions for the project.');
+%         fclose(fid);
+%         edit([projDir,filesep,'description.txt']);
+%     end
+%     
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -364,13 +369,13 @@ if isempty(area)
     end
 end
 
-
 function editCalY0_Callback(hObject, eventdata, handles)
+
 function editCalY_Callback(hObject, eventdata, handles)
+
 function editCalX0_Callback(hObject, eventdata, handles)
+
 function editCalX_Callback(hObject, eventdata, handles)
-
-
 
 function editCaliSigma_Callback(hObject, eventdata, handles)
 
@@ -597,10 +602,125 @@ end
 % And now close fsmCenter
 delete(fsmH);
 
-% Menu
+% Menu PROJECT
+function menuProject_Callback(hObject, eventdata, handles)
+
+function menuSetupProject_Callback(hObject, eventdata, handles)
+
+projDir = get(handles.textCurrentProject, 'String');
+
+[projDir, imageDir, subProjects, imgDirList, firstImgList, physiParam] = ...
+   projSetupGUI('a','b',projDir, handles.fsmCenter);
+
+if isempty(projDir)
+    % Nothing to do here - the user just canceled
+    return
+end
+
+% Update project info in fsmCenter
+set(handles.textCurrentProject,'String',projDir);
+set(handles.textCurrentImage,'String',imageDir);
+
+% Add projDir, imageDir and subProjects to the userData of fsmCenter
+settings.projDir = projDir;
+settings.imageDir = {imageDir}; % This is a cell (n-channel movies)
+settings.subProjects = subProjects;
+settings.imgDirList = imgDirList;
+settings.firstImgList = firstImgList;
+
+set(handles.fsmCenter,'UserData', settings);
+
+%Enable all fsm software package.
+handles = enableFsmPackages(handles, 'on');
+
+if ~isempty(physiParam)
+    handles.physiParam = physiParam{1};
+    saveFsmPhysiParam(handles);
+
+    handles = updateFsmGuiPhysiParamEdit(handles);
+end
+
+guidata(handles.fsmCenter, handles);
+
+% Update other GUIs if they are already running
+
+% fsmPostProc
+hFsmPostProc=findall(0,'Tag','fsmPostProc','Name','SpeckTackle - Post processing');
+if ~isempty(hFsmPostProc)
+    fsmPostProc;
+end
+
+% fsmGuiMain (SpeckTackle)
+hFsmGuiMain=findall(0,'Tag','fsmGuiMain','Name','SpeckTackle');
+if ~isempty(hFsmGuiMain)
+    fsmGuiMain;
+end
+
+% imKymoAnalysis
+hCorrTrack=findall(0,'Tag','imKymoAnalysis','Name','imKymoAnalysis');
+if ~isempty(hCorrTrack)
+    imKymoAnalysis;
+end
+
+% fsmTransition
+hFsmTransition=findall(0,'Tag','fsmTransition','Name','fsmTransition');
+if ~isempty(hFsmTransition)
+    fsmTransition;
+end
+
+function menuCloseProject_Callback(hObject, eventdata, handles)
+% TODO: is there anything to save before closing ?
+
+% Update project info in fsmCenter
+set(handles.textCurrentProject, 'String', '');
+set(handles.textCurrentImage, 'String', '');
+
+% How to clear settings from UserData ?
+% set(handles.fsmCenter, 'UserData', settings);
+
+handles.physiParam = getDefFsmPhysiParam;
+handles = updateFsmGuiPhysiParamEdit(handles);
+handles = enableFsmPackages(handles,'off');
+
+guidata(handles.fsmCenter, handles);
+
+function menuProjectDescription_Callback(hObject, eventdata, handles)
+% This function allows the user to create a text file where all notes, comments, and description are stored.
+
+projDir = get(handles.textCurrentProject,'String');
+
+if isempty(projDir)
+    % No project active
+    uiwait(errordlg('Plese create/open a project first.','Error','modal'));
+    return;
+end
+
+% Check whether a file description.txt exists in the project directory
+if exist([projDir,filesep,'description.txt'],'file') == 2
+    % Open it
+    edit([projDir,filesep,'description.txt']);
+else
+    % Create it
+    fid = fopen([projDir,filesep,'description.txt'],'w');
+    if fid==-1
+        uiwait(errordlg('Cannot write to the project directory.','Error','modal'));
+        return;
+    else
+        % Add an initial text
+        fwrite(fid,'Please use this file to store your comments, notes, descriptions for the project.');
+        fclose(fid);
+        edit([projDir,filesep,'description.txt']);
+    end
+    
+end
+
+function menuAnalysisStatus_Callback(hObject, eventdata, handles)
+disp('menuAnalysisStatus');
+
+% Menu HELP
 function menuHelp_Callback(hObject, eventdata, handles)
 
-function helpFsmCenter_Callback(hObject, eventdata, handles)
+function menuFsmCenter_Callback(hObject, eventdata, handles)
 
 function menuSpeckTackle_Callback(hObject, eventdata, handles)
 

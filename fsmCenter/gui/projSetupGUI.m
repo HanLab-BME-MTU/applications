@@ -66,6 +66,7 @@ callObjTag  = '';
 callObjName = '';
 if nargin == 7
    callObj = varargin{4};
+
    if ishandle(callObj)
       callObjTag  = get(callObj,'Tag');
       callObjName = get(callObj,'Name');
