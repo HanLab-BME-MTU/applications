@@ -154,11 +154,11 @@ else % The user chose to load an already averaged stack of vector fields (Md)
         {'*.mat;','*.mat';
         '*.*','All Files (*.*)'},...
         'Select Md###-###.mat');
-    if ~(isa(fName,'char') & isa(dirName,'char'))
+    if ~(isa(fName,'char') && isa(dirName,'char'))
         return 
     end
     load([dirName,fName]);
-    if ~exist('Md')
+    if ~exist('Md', 'var')
         % The user didn't pick a valid Md.mat file
         errordlg('Invalid Md###-###.mat file chosen.','Error','modal');
         return
@@ -273,14 +273,14 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Create subdirectories if needed
-if exist([outputdir,filesep,'tif'])~=7
+if ~exist([outputdir,filesep,'tif'], 'dir')
     % Create directory
     success=mkdir(outputdir,'tif');
     if success==0
         error('Could not create subfolder in specified directory');
     end
 end
-if exist([outputdir,filesep,'mat'])~=7
+if ~exist([outputdir,filesep,'mat'], 'dir')
     % Create directory
     success=mkdir(outputdir,'mat');
     if success==0
@@ -288,7 +288,7 @@ if exist([outputdir,filesep,'mat'])~=7
     end
 
 end
-if exist([outputdir,filesep,'eps'])~=7
+if ~exist([outputdir,filesep,'eps'], 'dir')
     % Create directory
     success=mkdir(outputdir,'eps');
     if success==0
@@ -297,12 +297,12 @@ if exist([outputdir,filesep,'eps'])~=7
 end
 
 % Create vector of indices for file names
-[path,body,indxStart,ext]=getFilenameBody(char(imageFileList(uFirst,:)));
-[path,body,indxEnd,ext]=getFilenameBody(char(imageFileList(uLast,:)));
-indices=[str2num(indxStart):str2num(indxEnd)-n+1]+fix(n/2);
+[path,body,indxStart]=getFilenameBody(char(imageFileList(uFirst,:)));
+[path,body,indxEnd]=getFilenameBody(char(imageFileList(uLast,:)));
+indices=[str2double(indxStart):str2double(indxEnd)-n+1]+fix(n/2);
 
 % Update image file list
-imageFileList=imageFileList(indices-str2num(indxStart)+1,:);
+imageFileList=imageFileList(indices-str2double(indxStart)+1,:);
 
 % Initializing waitbar
 % h=waitbar(0,'Creating speed maps...');
@@ -360,7 +360,7 @@ for c2=1:steps
             xmax=2^bitDepth-1;
             img=imreadnd2(char(imageFileList(c2,:)),0,xmax);
             try
-                [ans,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
+                [answer,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
             catch
                 % Uses last one
             end
@@ -419,7 +419,7 @@ for c2=1:steps
     end
 
     % Set color range between 0 and MAXSPEED and update colorbar
-    if c2==1 & maxSpeed==0
+    if c2==1 && maxSpeed==0
         maxSpeed=max(speedMap(:))*1.1; % Give a 10% space
     end
     % Make sure the focus is on the speedMap (and not on the waitbar - this appears to be a MATLAB 7 problem)

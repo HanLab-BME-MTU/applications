@@ -247,7 +247,7 @@ if nImages>1
     end
     
     % String format
-    [path,outputFileName,no,ext]=getFilenameBody(imageFileList(1,:));
+    [path,outputFileName,no]=getFilenameBody(imageFileList(1,:));
     s=length(no);
     strg=sprintf('%%.%dd',s);
     
@@ -260,7 +260,7 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if roi(1)==1 & roi(2)==0
+if roi(1)==1 && roi(2)==0
     
     % Show image
     h=figure; imshow(img,[]);
@@ -290,7 +290,7 @@ if roi(1)==1 & roi(2)==0
         [saveFileName,savePath]=uiputfile(...
             {'*.mat','*.mat'},...
             'Save polygon as...');
-        if(isa(saveFileName,'char') & isa(savePath,'char'))
+        if(isa(saveFileName,'char') && isa(savePath,'char'))
             if isempty(findstr('.',saveFileName))
                 saveFileName=[saveFileName,'.mat'];
             else
@@ -305,15 +305,15 @@ if roi(1)==1 & roi(2)==0
         
     end
     
-elseif roi(1)==0 & roi(2)==1
+elseif roi(1)==0 && roi(2)==1
     
     % Load roi
     [roiFileName,roiDirName] = uigetfile(...
         {'*.mat','*.mat'},...
         'Load roi...');
-    if(isa(roiFileName,'char') & isa(roiDirName,'char'))
+    if(isa(roiFileName,'char') && isa(roiDirName,'char'))
         load([roiDirName,roiFileName]);
-        if ~(exist('y') & exist('x'))
+        if ~(exist('y', 'var') && exist('x', 'var'))
             errordlg('The loaded roi is not valid.','Error','modal');
             return
         end
@@ -321,7 +321,7 @@ elseif roi(1)==0 & roi(2)==1
         return 
     end
     
-elseif roi(1)==1 & roi(2)==1
+elseif roi(1)==1 && roi(2)==1
     error('The region of interest can be either drawn or loaded, not both');
     
 else
@@ -335,7 +335,7 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if ~isempty(y) & ~isempty(x)
+if ~isempty(y) && ~isempty(x)
     
     if displROI==1
         PPOLYGON_DISPLAY=1;
@@ -455,14 +455,13 @@ for c1=1:nImages %firstMatrix:lastMatrix
     h=0;
     
     % Display image if needed
-    if displ(5)==1 & (any([RAW_DISPLAY INTERP_DISPLAY NOISE_DISPLAY])==1)
+    if displ(5)==1 && (any([RAW_DISPLAY INTERP_DISPLAY NOISE_DISPLAY])==1)
         
         % Load current image
         img=imread(char(imageFileList(c1,:)));
         
         % Show image
-        h=figure; imshow(img,[]);
-        
+        h=figure; imshow(img,[]);   
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -484,7 +483,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    if INTERP_CALC==1 & INTERP_DISPLAY==1
+    if INTERP_CALC==1 && INTERP_DISPLAY==1
         
         % Extract corresponding frame
         Mm=Mt(:,:,c1);
@@ -759,7 +758,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
             % Plot first error
             if E(1,3)<=2
                 plot(E(1,2)+E(1,3)*sn_small,E(1,1)+E(1,3)*cs_small,'r.');
-            elseif E(1,3)>2 & E(1,3)<10
+            elseif E(1,3)>2 && E(1,3)<10
                 plot(E(1,2)+E(1,3)*sn_med,E(1,1)+E(1,3)*cs_med,'r.');
             else
                 plot(E(1,2)+E(1,3)*sn_large,E(1,1)+E(1,3)*cs_large,'r.');
@@ -770,7 +769,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
             for i=2:size(E,1)
                 if E(i,3)<=2
                     plot(E(i,2)+E(i,3)*sn_small,E(i,1)+E(i,3)*cs_small,'r.');
-                elseif E(i,3)>2 & E(i,3)<10
+                elseif E(i,3)>2 && E(i,3)<10
                     plot(E(i,2)+E(i,3)*sn_med,E(i,1)+E(i,3)*cs_med,'r.');
                 else
                     plot(E(i,2)+E(i,3)*sn_large,E(i,1)+E(i,3)*cs_large,'r.');
@@ -804,7 +803,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
             % Plot first error
             if S(1,3)<=2
                 plot(S(1,2)+S(1,3)*sn_small,S(1,1)+S(1,3)*cs_small,'r.');
-            elseif S(1,3)>2 & S(1,3)<10
+            elseif S(1,3)>2 && S(1,3)<10
                 plot(S(1,2)+S(1,3)*sn_med,S(1,1)+S(1,3)*cs_med,'r.');
             else
                 plot(S(1,2)+S(1,3)*sn_large,S(1,1)+S(1,3)*cs_large,'r.');
@@ -816,7 +815,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
             for i=2:size(S,1)
                 if S(i,3)<=2
                     plot(S(i,2)+S(i,3)*sn_small,S(i,1)+S(i,3)*cs_small,'r.');
-                elseif E(i,3)>2 & E(i,3)<10
+                elseif E(i,3)>2 && E(i,3)<10
                     plot(S(i,2)+S(i,3)*sn_med,S(i,1)+S(i,3)*cs_med,'r.');
                 else
                     plot(S(i,2)+S(i,3)*sn_large,S(i,1)+S(i,3)*cs_large,'r.');

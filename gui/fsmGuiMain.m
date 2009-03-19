@@ -62,7 +62,7 @@ if nargin == 0  % LAUNCH GUI
         indx=find(pathOfFsmMain==filesep);
         indx=indx(length(indx));
         fsmParamPath=[pathOfFsmMain(1:indx),'fsmParam.mat'];
-        if exist(fsmParamPath)==2
+        if exist(fsmParamPath, 'file') == 2
             load(fsmParamPath); % Load defaut values stored in the fsm directory
         else
             % Initialize fsmParam with default values
@@ -101,13 +101,13 @@ if nargin == 0  % LAUNCH GUI
             fsmExpParamPath=[pathOfFsmMain(1:indx),'fsmExpParams.txt'];
         else
             fsmExpParamPath=[userDir,filesep,'fsmExpParams.txt'];
-            if exist(fsmExpParamPath)~=2
+            if ~exist(fsmExpParamPath, 'file')
                 % No database found in user-defined directory
                 % Reverting to default database
                 fsmExpParamPath=[pathOfFsmMain(1:indx),'fsmExpParams.txt'];
             end
         end
-        if exist(fsmExpParamPath)~=2
+        if ~exist(fsmExpParamPath, 'file')
             uiwait(msgbox('Could not find experiment database! Get fsmExpParams.txt from the repository and restart SpeckTackle.','Error','modal'));
             return
         end
@@ -205,7 +205,7 @@ if nargin == 0  % LAUNCH GUI
         if ~isdir(fsmParam.main.imagePath)
             %This could be a platform problem.
             if ispc == 1
-                if ~isempty(fsmParam.main.imagePath) & strcmp(fsmParam.main.imagePath(1),'/')
+                if ~isempty(fsmParam.main.imagePath) && strcmp(fsmParam.main.imagePath(1),'/')
                     %This is a Unix directory. Try to convert it to PC
                     %format.
                     imgDrive = getDriveName(imageDir);
@@ -221,7 +221,7 @@ if nargin == 0  % LAUNCH GUI
                     noProblem = 0;
                 end
             elseif isunix == 1
-                if ~isempty(fsmParam.main.imagePath) & ~strcmp(fsmParam.main.imagePath(1),'/')
+                if ~isempty(fsmParam.main.imagePath) && ~strcmp(fsmParam.main.imagePath(1),'/')
                     imgDrive = getDriveName(imageDir);
                     imagePath = dirPC2Unix(fsmParam.main.imagePath,imgDrive);
                     if ~samdir(imagePath,imageDir)

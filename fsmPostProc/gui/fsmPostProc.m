@@ -32,7 +32,7 @@ gui_State = struct('gui_Name',       mfilename, ...
                    'gui_OutputFcn',  @fsmPostProc_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
-if nargin & isstr(varargin{1})
+if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
 
@@ -349,12 +349,12 @@ if roi=='g' % The b/w mask is used only to get a subset of the grid
             {'wavesBwMask.mat;','wavesBwMask.mat';
             '*.*','All Files (*.*)'},...
             'Select wavesBwMask.mat');
-        if ~(isa(fName,'char') & isa(dirName,'char'))
+        if ~(isa(fName,'char') && isa(dirName,'char'))
             disp('Continuing without mask...');
             bwMask=[];
         else
             load([dirName,filesep,fName]);
-            if exist('bwMask')~=1
+            if ~exist('bwMask', 'var')
                 uiwait(errordlg('The chosen file does not appear to contain a valid b/w mask.','Error','modal'));
                 return;
             end
@@ -402,7 +402,7 @@ set(handles.editTSampling,'String',num2str(abs(str2num(get(handles.editTSampling
 
 % Label peaks with power > user setting
 function editLabel_Callback(hObject, eventdata, handles)
-if str2num(get(handles.editLabel,'String'))<0 | str2num(get(handles.editLabel,'String'))>1
+if str2num(get(handles.editLabel,'String'))<0 || str2num(get(handles.editLabel,'String'))>1
     uiwait(msgbox('Please enter a value between 0 and 1.','Help','modal'));
     set(handles.editLabel,'String','0.3')
 end
@@ -542,7 +542,7 @@ function checkROI_Callback(hObject, eventdata, handles)
 set(handles.checkLoadROI,'Value',0);
 
 function checkSaveROI_Callback(hObject, eventdata, handles)
-if get(handles.checkLoadROI,'Value')==1 | get(handles.checkROI,'Value')==0
+if get(handles.checkLoadROI,'Value')==1 || get(handles.checkROI,'Value')==0
     set(handles.checkSaveROI,'Value',0);
 end
 
@@ -591,7 +591,7 @@ if get(handles.checkSMMask,'Value')==1
         {'userROI.mat;','userROI.mat';
         '*.*','All Files (*.*)'},...
         'Select userROI.mat');
-    if ~(isa(fName,'char') & isa(dirName,'char'))
+    if ~(isa(fName,'char') && isa(dirName,'char'))
         choice=questdlg('You didn''t pick any file.','Error','Continue without ROI','Exit','Exit');
         switch choice,
             case 'Continue without ROI'; userROIpoly=[]; filePicked=0;
@@ -604,7 +604,7 @@ if get(handles.checkSMMask,'Value')==1
         % Load the file
         load([dirName,fName]);
     end
-    if filePicked==1 & exist('userROIpoly')~=1
+    if filePicked==1 && ~exist('userROIpoly', 'var')
         choice=questdlg('The loaded file does not seem to contain a valid ROI.','Error','Continue without ROI','Exit','Exit');
         switch choice,
             case 'Continue without ROI', userROIpoly=[];
@@ -699,7 +699,7 @@ sigma=str2num(get(handles.editSigmaTN,'String'));
 
 if isempty(outputdir)
     
-    if ~isempty(polyMap) & ~isempty(depolyMap) & ~isempty(netMapRGB)
+    if ~isempty(polyMap) && ~isempty(depolyMap) && ~isempty(netMapRGB)
         % Show maps and return them to Matlab base workspace
         figure; imshow(polyMap,[]); title('Polymerization map'); assignin('base','polyMap',polyMap);
         figure; imshow(-depolyMap,[]); title('Depolymerization map'); assignin('base','depolyMap',depolyMap);
@@ -709,7 +709,7 @@ if isempty(outputdir)
     
 else
     
-    if ~isempty(polyMap) & ~isempty(depolyMap) & ~isempty(netMapRGB)
+    if ~isempty(polyMap) && ~isempty(depolyMap) && ~isempty(netMapRGB)
         % Maps have been saved to disk
         msg=['Turnover maps have been saved to ',outputdir,'.'];
         uiwait(msgbox(msg,'Help','modal'));
@@ -796,7 +796,7 @@ if exist('speckleArray','var')~=1
 end
 
 % Check that the speckleArray is not in the old format
-if ~(length(speckleArray)==1 & length(speckleArray(1).timepoint)>1)
+if ~(length(speckleArray)==1 && length(speckleArray(1).timepoint)>1)
     uiwait(errordlg('This speckleArray structure is in the old format. Use ''Convert speckleArray'' in fsmCenter to update it and then retry.','Error','modal'));
     return
 end
@@ -815,7 +815,7 @@ while quit==0
         path=uigetdir(projDir,'Please specifiy a different directory or click on cancel to leave whithout saving');
     end
     if path~=0
-        if exist([path,filesep,'speckleClasses.mat'])==2
+        if exist([path,filesep,'speckleClasses.mat'], 'file') == 2
             choice=questdlg('A speckleClasses.mat file already exists in this directory. Do you want to overwrite it?','User input requested','Yes','No','Yes');
             switch choice,
                 case 'Yes', save([path,filesep,'speckleClasses.mat'],'speckleClasses'); quit=1; uiwait(msgbox('speckleClasses.mat successfully saved.','Info','modal'));
@@ -909,7 +909,7 @@ else
 end
 
 % Close
-if fsmH~=hObject & force==1
+if fsmH~=hObject && force==1
     delete(fsmH); % Force closing
 else
     choice=questdlg('Are you sure you want to exit?','Exit request','Yes','No','No');
