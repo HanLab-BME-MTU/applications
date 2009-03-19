@@ -29,14 +29,11 @@ status=0;
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Store current directory
-oldDir=cd;
-
 % Default
 st=1;
 
 % Create ROOT directory
-if exist(userPath)~=7
+if ~exist(userPath, 'dir')
     % Directory does not exist - create it
     if userPath(2)==':';   % Windows
         % Drive letter specified
@@ -55,70 +52,70 @@ end
 cd(userPath);
 
 % Add subdirectories
-if exist([userPath,filesep,'bwMask'])~=7
+if ~exist([userPath,filesep,'bwMask'], 'dir')
     st=mkdir('bwMask');
     % Check status
     if st~=1
         return;
     end
 end
-if exist([userPath,filesep,'cands'])~=7
+if ~exist([userPath,filesep,'cands'], 'dir')
     st=mkdir('cands');
     % Check status
     if st~=1
         return;
     end
 end
-if exist([userPath,filesep,'gapList'])~=7
+if ~exist([userPath,filesep,'gapList'], 'dir')
     st=mkdir('gapList');
     % Check status
     if st~=1
         return;
     end
 end
-if exist([userPath,filesep,'kinScore'])~=7
+if ~exist([userPath,filesep,'kinScore'], 'dir')
     st=mkdir('kinScore');
     % Check status
     if st~=1
         return;
     end
 end
-if exist([userPath,filesep,'locMax'])~=7
+if ~exist([userPath,filesep,'locMax'], 'dir')
     st=mkdir('locMax');
     % Check status
     if st~=1
         return;
     end
 end
-if exist([userPath,filesep,'movies'])~=7
+if ~exist([userPath,filesep,'movies'], 'dir')
     st=mkdir('movies');
     % Check status
     if st~=1
         return;
     end
 end
-if exist([userPath,filesep,'vectors'])~=7
+if ~exist([userPath,filesep,'vectors'], 'dir')
     st=mkdir('vectors');
     % Check status
     if st~=1
         return;
     end
 end
-if exist([userPath,filesep,'links'])~=7
+if ~exist([userPath,filesep,'links'], 'dir')
     st=mkdir('links');
     % Check status
     if st~=1
         return;
     end
 end
-if exist([userPath,filesep,'flow'])~=7
+if ~exist([userPath,filesep,'flow'], 'dir')
     st=mkdir('flow');
     % Check status
     if st~=1
         return;
     end
 end
-if exist([userPath,filesep,'pointFiles'])~=7
+if ~exist([userPath,filesep,'pointFiles'], 'dir')
     st=mkdir('pointFiles');
     % Check status
     if st~=1

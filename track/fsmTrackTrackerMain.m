@@ -25,7 +25,7 @@ function M=fsmTrackTrackerMain(I,J,threshold,influence,fsmParam,counter, TRACKER
 %
 % Aaron Ponti, September 8th, 2004
 
-if nargin<7 | nargin>8
+if nargin<7 || nargin>8
     error('Six or seven input parameter expected.');
 end
 
@@ -210,7 +210,7 @@ if fsmParam.track.enhanced==1
 end
 
 % If none of the above was run, simply track once with no propagation
-if fsmParam.track.init==0 & fsmParam.track.enhanced==0
+if fsmParam.track.init==0 && fsmParam.track.enhanced==0
     M=fsmTrackTrackerIterative([],I,J,threshold,influence, TRACKER);
 end
 
@@ -219,7 +219,7 @@ end
 if fsmParam.track.init~=0
     
     % Next frame's vector field
-    indxStr=sprintf(strg,str2num(imageNo)+1); % Next frame
+    indxStr=sprintf(strg,str2double(imageNo)+1); % Next frame
     if exist([initPath,filesep,'flow',indxStr,'.mat'],'file')~=2
         
         % Okay, we need to create the initializer for the next frame
@@ -238,7 +238,7 @@ if fsmParam.track.init~=0
         flow=vectorFieldAdaptInterp(raw,grid,d0,[],'strain');
 
         % Save averaged vectors to the initializer subdirectory
-        indxStr=sprintf(strg,str2num(imageNo)+1); % Next frame
+        indxStr=sprintf(strg,str2double(imageNo)+1); % Next frame
         try
             eval(['save ',initPath,filesep,'tackFlow.mat flow;']);
         catch

@@ -160,7 +160,7 @@ if fsmParam.track.enable==1
     % Files to check
     firstFileName=[userPath,filesep,'cands',filesep,'cands',sprintf(strg,firstIndex),'.mat'];
     lastFileName=[userPath,filesep,'cands',filesep,'cands',sprintf(strg,lastIndex),'.mat'];
-    if exist(firstFileName)~=2 | exist(lastFileName)~=2 % At least one of the files does not exist
+    if exist(firstFileName, 'file')~=2 || exist(lastFileName, 'file')~=2 % At least one of the files does not exist
         uiwait(msgbox('Files: ''cands###.mat'' not found. Please run the PREPROCESSING module.','Error','error','modal'));
         return    
     end
@@ -225,7 +225,7 @@ if fsmParam.build.enable==1
     % Check cands###.mat
     firstFileName=[userPath,filesep,'cands',filesep,'cands',sprintf(strg,firstIndex),'.mat'];
     lastFileName=[userPath,filesep,'cands',filesep,'cands',sprintf(strg,lastIndex),'.mat'];
-    if exist(firstFileName)~=2 | exist(lastFileName)~=2 % At least one of the files does not exist
+    if exist(firstFileName, 'file')~=2 || exist(lastFileName, 'file')~=2 % At least one of the files does not exist
         uiwait(msgbox('Files: ''cands###.mat'' not found. Please run the PREPROCESSING module.','Error','error','modal'));
         return    
     end
@@ -233,14 +233,14 @@ if fsmParam.build.enable==1
     % Check gapList###.mat
     firstFileName=[userPath,filesep,'gapList',filesep,'gapList',sprintf(strg,firstIndex),'.mat'];
     lastFileName=[userPath,filesep,'gapList',filesep,'gapList',sprintf(strg,lastIndex),'.mat'];
-    if exist(firstFileName)~=2 | exist(lastFileName)~=2 % At least one of the files does not exist
+    if exist(firstFileName, 'file')~=2 || exist(lastFileName, 'file') ~= 2 % At least one of the files does not exist
         uiwait(msgbox('Files: ''gapList###.mat'' not found. Please run the TRACKING module.','Error','error','modal'));
         return    
     end
 
     % Check mpm.mat
     firstFileName=[userPath,filesep,'mpm.mat'];
-    if exist(firstFileName)~=2 % mpm.mat does not exist
+    if exist(firstFileName, 'file') ~= 2 % mpm.mat does not exist
         uiwait(msgbox('Files: ''mpm.mat'' not found. Please run the TRACKING module.','Error','error','modal'));
         return    
     end
@@ -288,7 +288,7 @@ if fsmParam.kin.enable==1
         return 
     end
 
-    if exist('speckleArray')~=1  
+    if exist('speckleArray', 'var')~=1  
         
         % If the variable speckleArray does not exist, it means that the
         % previous module was not run. So speckleArray.mat has to be loaded 
@@ -302,14 +302,14 @@ if fsmParam.kin.enable==1
     
         % Check that: speckleArray.mat exists on disk
         firstFileName=[fsmParam.main.path,filesep,'speckleArray.mat'];
-        if exist(firstFileName)~=2  % speckleArray.mat does not exist
+        if exist(firstFileName, 'file')~=2  % speckleArray.mat does not exist
             uiwait(msgbox('File ''speckleArray.mat'' not found. Please run the BUILDER module.','Error','error','modal'));
             return    
         else
             load(firstFileName); % Load speckleArray.mat from disk
             
             % Check that the speckleArray is really in the old format
-            if length(speckleArray)>1 & length(speckleArray(1).timepoint)==1
+            if length(speckleArray)>1 && length(speckleArray(1).timepoint)==1
                 uiwait(msgbox('The loaded speckleArray has the old structure. Please run "Convert specklArray" in fsmCenter and try again.','Error','modal'));
                 return
             end
@@ -357,7 +357,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Run if enabled
-if fsmParam.disp.enable==1
+if fsmParam.disp.enable == 1
     
     if size(fsmParam.specific.fileList,1)<4
         uiwait(msgbox('Only the PREPROCESSING and the TRACKER modules are allowed to work with less than 4 frames preprocessed. Please run the PREPROCESSING MODULE again on more frames.','Error','error','modal'));
@@ -365,7 +365,7 @@ if fsmParam.disp.enable==1
         return 
     end
     
-    if exist('SCORE')~=1
+    if exist('SCORE', 'var') ~= 1
         
         % If the variable SCORE does not exist, it means that the
         % previous module was not run. So SCORE.mat has to be loaded 
@@ -379,7 +379,7 @@ if fsmParam.disp.enable==1
     
         % Check that: SCORE.mat exists on disk
         firstFileName=[fsmParam.main.path,filesep,'SCORE.mat'];
-        if exist(firstFileName)~=2  % speckleArray.mat does not exist
+        if exist(firstFileName, 'file') ~= 2  % speckleArray.mat does not exist
             uiwait(msgbox('File ''SCORE.mat'' not found. Please run the BUILDER module.','Error','error','modal'));
             return    
         else

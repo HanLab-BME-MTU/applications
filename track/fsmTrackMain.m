@@ -107,7 +107,7 @@ emptyM=zeros(1,4);
 %  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if TRACKER==1 | TRACKER==2 | TRACKER ==3
+if TRACKER==1 || TRACKER==2 || TRACKER ==3
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %                                                                                                                        %
@@ -269,7 +269,7 @@ if TRACKER==1 | TRACKER==2 | TRACKER ==3
     %                               %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
-    if TRACKER==1 | TRACKER==2  % If needed, run the Neural Network tracker
+    if TRACKER==1 || TRACKER==2  % If needed, run the Neural Network tracker
         
         % Number of images to be used for the Nural Network tracker
         lastImage=n-1;
@@ -383,7 +383,7 @@ if TRACKER==1 | TRACKER==2 | TRACKER ==3
     %                                                                                                                        % 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    if init~=0 & init~=1 & init~=2
+    if init~=0 && init~=1 && init~=2
         
         % Inform the user that this is a bug and quit
         error('The selected initializer does not exist. This is a bug. Please report it.');
@@ -488,7 +488,7 @@ end
 %  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if TRACKER~=1 & TRACKER~=2 & TRACKER~=3
+if TRACKER~=1 && TRACKER~=2 && TRACKER~=3
     
     % Inform the user that this is a bug and quit
     error('The selected tracker does not exist. This is a bug. Please report it.');

@@ -67,7 +67,7 @@ else
 end
 
 % Create temporary directory
-if exist(userPath)~=7
+if ~exist(userPath, 'dir')
    % Directory does not exist - create it
    if userPath(2)==':'
       % Drive letter specified
@@ -87,12 +87,12 @@ cd(userPath);
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if exist(firstImage)~=2
+if ~exist(firstImage, 'file')
    % Images have to be selected again
    [fName,dirName] = uigetfile('*.tif','Select first image');
-   if(isa(fName,'char') & isa(dirName,'char'))
+   if(isa(fName,'char') && isa(dirName,'char'))
       %cd(dirName);
-      [a,map]=imread([dirName,fName]);
+      [a, map]=imread([dirName,fName]);
       % Recover all file names from the stack
       outFileList=getFileStackNames([dirName,fName]);
       % Cut in case
@@ -175,7 +175,7 @@ if autoPolygon==1
         indxStr=sprintf(strg,currentIndex);   
         fName=[rootUserPath filesep 'bwMask' filesep 'bwMask' indxStr '.mat'];
         
-        if exist(fName)==2
+        if exist(fName, 'file') == 2
             string=['load ' fName];
             eval(string);
             
@@ -242,6 +242,10 @@ if fsmParam.track.tracker==3
 else
     lastImage=n-1;
 end
+
+% TODO: use makeQtMovie function
+% add Axes option for each frame
+
 for i=2:lastImage
 	
     % Current index
@@ -250,29 +254,25 @@ for i=2:lastImage
 	% Load image
 	img=0.5+nrm(imread(char(outFileList(i,:))),1)/2;  
 
-	if autoPolygon==1
-        
+    if autoPolygon == 1
         % Load black-and-white mask
-        indxStr=sprintf(strg,currentIndex);   
+        indxStr=sprintf(strg,currentIndex);
         fName=[rootUserPath filesep 'bwMask' filesep 'bwMask' indxStr '.mat'];
         
-        if exist(fName)==2
+        if exist(fName, 'file') == 2
             string=['load ' fName];
             eval(string);
         else
             bwMask=ones(size(img));
         end
-        
     else
-        
         bwMask=ones(size(img));
-        
     end
     
 	% Crop events referring to timepoint i
-	eventsB=SCORE(find(SCORE(:,1)==i-1),:);
-	eventsI=SCORE(find(SCORE(:,1)==i),:);
-	eventsA=SCORE(find(SCORE(:,1)==i+1),:);
+	eventsB=SCORE(find(SCORE(:,1) == i - 1),:);
+	eventsI=SCORE(find(SCORE(:,1) == i),:);
+	eventsA=SCORE(find(SCORE(:,1) == i + 1),:);
 	
 	% Weigh events (Gauss over 3 points, NOT NORMALIZED TO MAINTAIN CLASSES)
     %                                    ----------------------------------
@@ -305,7 +305,7 @@ for i=2:lastImage
     img3C=applyColorMap(img,cScores,[-15 15],mapC,convFactor);
 
 	% Display image
-	fH=figure('Visible','off');
+	fH=figure('Visible','off'); % get(fH, 'CurrentAxis')
 	imshow(img3C);
     indxStr=sprintf(strg,currentIndex);   
 	title(indxStr);
