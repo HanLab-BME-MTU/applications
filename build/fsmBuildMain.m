@@ -60,7 +60,7 @@ cd(userPath);
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if exist([userPath,filesep,'mpm.mat'])==2
+if exist([userPath,filesep,'mpm.mat'], 'file') == 2
     load([userPath,filesep,'mpm.mat']);
 else
     error('The file ''mpm.mat'' cannot be found. Please re-run the TRACKER module');
@@ -94,7 +94,7 @@ if length(userPath)>40
 else
     strUserPath=userPath;
 end
-textString=['Saving speckleArray to ',strUserPath,'\speckleArray.mat'];
+textString=['Saving speckleArray to ',strUserPath, filesep, 'speckleArray.mat'];
 set(ch(3),'String','BUILDER MODULE');
 set(ch(2),'String',textString);
 set(ch(1),'String','Prease wait...');
