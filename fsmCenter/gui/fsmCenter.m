@@ -9,10 +9,12 @@ function varargout = fsmCenter(varargin)
 %      FSMCENTER('CALLBACK',hObject,eventData,handles,...) calls the local
 %      function named CALLBACK in FSMCENTER.M with the given input arguments.
 %
-%      FSMCENTER('Property','Value',...) creates a new FSMCENTER or raises the
+%      FSMCENTER('Property','Value',...) creates a new FSMCENTER or raises
+%      the
 %      existing singleton*.  Starting from the left, property value pairs are
 %      applied to the GUI before fsmCenter_OpeningFunction gets called.  An
-%      unrecognized property name or invalid value makes property application
+%      unrecognized property name or invalid value makes property
+%      application
 %      stop.  All inputs are passed to fsmCenter_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
@@ -73,7 +75,12 @@ if isempty(settings) || ~isfield(settings,'projDir') || ...
 
    %Disable all fsm software package and physical parameters entrance when there
    %is no project setup.
-   handles = enableFsmPackages(handles,'off');
+   handles = enableFsmPackages(handles, 'off');
+   
+   % Disable menus
+   set(handles.menuCloseProject,'Enable', 'off');
+   set(handles.menuProjectDescription, 'Enable', 'off');
+   set(handles.menuProjectStatus, 'Enable', 'off');
 end
 
 % Update handles structure
@@ -528,8 +535,13 @@ settings.firstImgList = firstImgList;
 
 set(handles.fsmCenter,'UserData', settings);
 
-%Enable all fsm software package.
+% Enable all fsm software package.
 handles = enableFsmPackages(handles, 'on');
+
+% Enable menus
+set(handles.menuCloseProject,'Enable','on');
+set(handles.menuProjectDescription, 'Enable', 'on');
+set(handles.menuProjectStatus, 'Enable', 'on');
 
 if ~isempty(physiParam)
     handles.physiParam = physiParam{1};
@@ -578,7 +590,14 @@ set(handles.textCurrentImage, 'String', '');
 
 handles.physiParam = getDefFsmPhysiParam;
 handles = updateFsmGuiPhysiParamEdit(handles);
+
+% Disable all fsm software package.
 handles = enableFsmPackages(handles,'off');
+
+% Disable menus
+set(handles.menuCloseProject,'Enable','off');
+set(handles.menuProjectDescription, 'Enable', 'off');
+set(handles.menuProjectStatus, 'Enable', 'off');
 
 guidata(handles.fsmCenter, handles);
 
@@ -587,11 +606,14 @@ function menuProjectDescription_Callback(hObject, eventdata, handles)
 
 projDir = get(handles.textCurrentProject,'String');
 
-if isempty(projDir)
-    % No project active
-    uiwait(errordlg('Plese create/open a project first.','Error','modal'));
-    return;
-end
+disp('test description')
+
+% This becomes useless since the menu is disabled if no project is open.
+% if isempty(projDir)
+%     % No project active
+%     uiwait(errordlg('Plese create/open a project first.','Error','modal'));
+%     return;
+% end
 
 % Check whether a file description.txt exists in the project directory
 if exist([projDir,filesep,'description.txt'],'file') == 2
@@ -609,11 +631,11 @@ else
         fclose(fid);
         edit([projDir,filesep,'description.txt']);
     end
-    
 end
 
-function menuAnalysisStatus_Callback(hObject, eventdata, handles)
-disp('menuAnalysisStatus');
+function menuProjectStatus_Callback(hObject, eventdata, handles)
+
+fsmCenterProjectStatus;
 
 % Menu HELP
 function menuHelp_Callback(hObject, eventdata, handles)
