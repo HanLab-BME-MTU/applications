@@ -14,7 +14,8 @@ function stats=fsmInfoSpeckleArrayStatistics(speckleArray,writeToFile)
 %                                 .dSpeckle        : number of speckles without birth
 %                                 .gCounter        : number of 'g' speckles (gaps)
 %                                 .sCounter        : number of 's' speckles
-%                                 .numberOfGhost   : number of ghost speckles 
+%                                 .numberOfGhost   : number of ghost
+%                                 speckles 
 %                                                    (lifetime = 1)
 %                                 .numberOfSpeckle : number of speckles with lifetime > 1
 %                                 .polyScore       : strongest polymerization score
@@ -106,7 +107,7 @@ for i=1:length([speckleArray.timepoint])
     if speckleArray.status(i)=='g'
         stats.gCounter=stats.gCounter+1;
     end
-    if speckleArray.status(i)=='s' | speckleArray.status(i)=='f' | speckleArray.status(i)=='l'
+    if speckleArray.status(i)=='s' || speckleArray.status(i)=='f' || speckleArray.status(i)=='l'
         stats.sCounter=stats.sCounter+1;
     end
 
@@ -144,8 +145,8 @@ for i=1:length([speckleArray.timepoint])
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    if speckleArray.status(i)=='b' & speckleArray.activity(i)~=0
-        if lastEv=='b' | lastEv=='f' | lastEv=='l'
+    if speckleArray.status(i)=='b' && speckleArray.activity(i)~=0
+        if lastEv=='b' || lastEv=='f' || lastEv=='l'
             % Forget this
             lastEv='n';
             posB=-1;
@@ -156,12 +157,12 @@ for i=1:length([speckleArray.timepoint])
     end
     if speckleArray.status(i)=='d'
         if speckleArray.activity(i)~=0
-            if lastEv=='b' & posB~=-1
+            if lastEv=='b' && posB~=-1
                 if ((i-1)-posB)>1 % Count them only if the trajectory is more than one frame (i.e. not a ghost speckle)
                     count=count+1;
                     lifetime(count)=(i-1)-posB;
                 end
-            elseif lastEv=='d' | lastEv=='f' | lastEv=='l'
+            elseif lastEv=='d' || lastEv=='f' || lastEv=='l'
                 % A speckle without birth - forget it
                 posB=-1;
             end
@@ -169,7 +170,7 @@ for i=1:length([speckleArray.timepoint])
         end
         lastEv='d';
     end
-    if speckleArray.status(i)=='f' |speckleArray.status(i)=='l'
+    if speckleArray.status(i)=='f' ||speckleArray.status(i)=='l'
         lastEv='n';
         posB=-1;
     end
@@ -181,7 +182,7 @@ for i=1:length([speckleArray.timepoint])
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % For this analysis we only consider SIGNIFICANT events
-    if (speckleArray.status(i)=='b' | speckleArray.status(i)=='d') & speckleArray.activity(i)~=0
+    if (speckleArray.status(i)=='b' || speckleArray.status(i)=='d') && speckleArray.activity(i)~=0
         stats.events=stats.events+1;
         if speckleArray.lmEvent(i)~=0
             stats.weakEvents=stats.weakEvents+1;
@@ -202,17 +203,17 @@ stats.meanLifeTime=mean(lifetime);
 % Last event check
 foundB=0; foundD=0;
 for i=length([speckleArray.timepoint]):-1:1
-    if speckleArray.status(i)=='b' & foundB==0
+    if speckleArray.status(i)=='b' && foundB==0
         lastB=i;
         foundB=1;
         continue;
     end
-    if speckleArray.status(i)=='d' & foundD==0
+    if speckleArray.status(i)=='d' && foundD==0
         lastD=i;
         foundD=1;
         continue;
     end
-    if foundB==1 & foundD==1
+    if foundB==1 && foundD==1
         break;
     end
 end
@@ -234,7 +235,7 @@ while i<=lastB % To stay within speckleArray with the check
         deltaIs=0;
         
         % Go along the lifetime
-        while speckleArray.status(i)=='s' | speckleArray.status(i)=='g'
+        while speckleArray.status(i)=='s' || speckleArray.status(i)=='g'
             n=n+1;
             i=i+1;
         end
