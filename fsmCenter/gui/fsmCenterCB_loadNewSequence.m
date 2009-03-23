@@ -27,7 +27,7 @@ if ~isempty(hFsm)
 end
 
 % Select image
-[fileName,dirName] = uigetfile(...
+[fileName, imageDirectory] = uigetfile(...
     {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
     '*.tif','TIF files (*.tif)'
     '*.tiff','TIFF files (*.tiff)'
@@ -35,76 +35,33 @@ end
     '*.jpeg;','JPEG files (*.jpeg)'
     '*.*','All Files (*.*)'},...
     'Select image to load');
-if(isa(fileName,'char') && isa(dirName,'char'))
-    
+
+if isa(fileName,'char') && isa(imageDirectory,'char')
     % Clear current window's children
     clf;
-
-    % Fetch the jobvalues
-    imageDirectory = dirName;
-    imageName      = fileName;
-
-    % Find out what part of the filename describes the images and which part
-    % is just counting them through.    
-%    REPLACE THIS...
-%     number = 0;
-%     countNum = 0;
-%     while ~isnan(number) & (countNum < 3)
-%        countNum = countNum + 1;
-%        number = str2num(fileName(end-(4+countNum):end-4));
-%     end
-% 
-%    % Extract the body of the filename and store in handles struct
-%    bodyName = fileName(1:(end-(4+countNum)))
-%
-%   ...BY THIS (Sylvain Berlemont)
-    [path,bodyName,no,ext] = getFilenameBody(fileName);
     
-    % Create a list of files present in the image directory selected by the user
-    dirList = dir(imageDirectory);
-    dirList = struct2cell(dirList);
-    dirList = dirList(1,:);
+    [path,bodyName] = getFilenameBody(fileName);
+    dirList = dir([imageDirectory, filesep, bodyName, '*']);    
     
-    % Find all files within this directory with the same name as the selected filename
-    ind = strmatch(bodyName, dirList);
-    dirList = dirList(ind)';
-
     % If images do not exist then exit
     if isempty(dirList)
-        h=errordlg(['No images starting with ' bodyName ' can be found in ' imageDirectory '.']);
+        h = errordlg(['No images starting with ' bodyName ' can be found in ' imageDirectory '.']);
         uiwait(h);
         close;
         return
     end
-    
+
     % Rearrange images according to number
     imageNum = zeros(1, length(dirList));
-    for jRearange = 1:length(dirList)
-       tmpName = char(dirList(jRearange));
-       try
-          imageNum(jRearange) = str2double(tmpName(length(bodyName)+1:end-4));
-       catch
-          dirList(jRearange) = [];
-       end
-    end  % for jRearange
-    [dummy,imageNumInd] = sort(imageNum);
-    imageNameList = dirList(imageNumInd);
+    for i = 1:length(dirList)
+        [path, bodyName, no] = getFilenameBody(dirList(i).name);
+        imageNum(i) = str2double(no);
+    end    
+    imageNameList = {dirList(imageNum).name};
     
     % Find out what the first image nr is (not necessarily 1)
-%   REPLACE THIS...    
-%    firstImageFile = char(imageNameList(1));
-%    
-%    % Find out what the first image number is   
-%    number = 0;
-%    countNum = 0;
-%    while ~isnan(number) & (countNum < 2)
-%       countNum = countNum + 1;
-%       number = str2num(firstImageFile(end-(4+countNum):end-4));
-%    end
-%    firstImage = number
-%
-%   ...BY THIS (Sylvain Berlemont)
-    [path,bodyName,no,ext] = getFilenameBody(char(imageNameList(1)));
+    [path,bodyName,no] = getFilenameBody(char(imageNameList(1)));
+
     firstImage = str2double(no);
             
     % Calculate the image range
@@ -115,36 +72,32 @@ if(isa(fileName,'char') && isa(dirName,'char'))
 
     % Generate the slider step values for the uicontrol
     % First the arrow slide step (1):
-    slider_step(1) = 1 / imageRange;
+    sliderStep(1) = 1 / imageRange;
 
     % Then the through step size (5):
-    slider_step(2) = 5 / imageRange;
+    sliderStep(2) = 5 / imageRange;
 
     % Draw the frame counter in the figure; it is identified by the tag picturecount
-    imageCounterHandle = uicontrol ('Style', 'text',...
-                                    'Units', 'normalized',...
-                                    'Tag', 'pictureCount',...
-                                    'Position', [0.02,0.93,0.06,0.06]);
-
-    % Set the frame counter to the first image number
-    set (imageCounterHandle, 'String', num2str(firstImage));
+    uicontrol ('Style', 'text',...
+        'Units', 'normalized',...
+        'Tag', 'pictureCount',...
+        'String', num2str(firstImage),...
+        'Position', [0.02,0.93,0.06,0.06]);
 
     % Draw the slider in the figure; it is identified by the tag pictureslide and calls
     % the function ptShowSlidingFrames when moved
-    sliderHandle = uicontrol ('Style', 'slider', ...
-                              'Units', 'normalized', ... 
-                              'Value', 1/(imageRange), ...
-                              'Min', 1/(imageRange), ...
-                              'Max', 1, ...
-                              'SliderStep', slider_step, ...
-                              'Callback', 'fsmShowImageSequence', ...
-                              'Tag', 'pictureSlide', ...
-                              'Position', [0.02,0.02,0.06,0.9]);
-
+    uicontrol ('Style', 'slider', ...
+        'Units', 'normalized',...
+        'Value', sliderStep(1), ...
+        'Min', sliderStep(1), ...
+        'Max', 1, ...
+        'SliderStep', sliderStep, ...
+        'Callback', 'fsmShowImageSequence', ...
+        'Tag', 'pictureSlide', ...
+        'Position', [0.02,0.02,0.06,0.9]);
+    
     % Read the image frame from disk
-    %cd (imageDirectory);
-    fileName = char(imageNameList(1));
-    image = double(imread([imageDirectory,fileName]));
+    image = double(imread([imageDirectory, filesep, char(imageNameList(1))]));
     
     % Get a handle to the figure
     imgHandle = gcf;
@@ -158,11 +111,12 @@ if(isa(fileName,'char') && isa(dirName,'char'))
     axis([1 size(image,2) 1 size(image,1)]);
     
     % Add title
-    titleStr=[dirName,fileName,' (',num2str(size(image,1)),'x',num2str(size(image,2)),')'];
-    set(imgHandle,'Name',titleStr,'NumberTitle','off');
+    titleStr = [imageDirectory, fileName, ' (', num2str(size(image, 1)), 'x', num2str(size(image, 2)), ')'];
+    
+    set(imgHandle, 'Name', titleStr, 'NumberTitle', 'off');
     
     % Add univocal tag
-    set(imgHandle,'Tag','ViewPanel');
+    set(imgHandle, 'Tag', 'ViewPanel');
     
     % Return image to MATLAB base workspace
     assignin('base','image',image);

@@ -39,8 +39,8 @@ imageRange     = handles.imageSeq.imageRange;
 
 % Get the current value of the slider, so that we know which frame the user
 % wants to see
-sliderValueTmp = get(hFsmSlider, 'Value');
-sliderValue = round(sliderValueTmp * imageRange);
+sliderValue = get(hFsmSlider, 'Value');
+sliderValue = round(sliderValue * imageRange);
 
 % Calculate the frame number to show
 imageNumber = (sliderValue - 1) + firstImage;
@@ -62,7 +62,7 @@ hFiltMenu = findobj('Label','Filter image');
 if strcmp(get(hFiltMenu, 'Checked'),'on')
    % Filter
    sigmaSeq = handles.imageSeq.sigma;
-   fImg = Gauss2D(image,str2num(sigmaSeq));
+   fImg = Gauss2D(image,str2double(sigmaSeq));
    
    % Determine min and max without the borders
    bImg = fImg(sigmaSeq:end-sigmaSeq,sigmaSeq:end-sigmaSeq);
