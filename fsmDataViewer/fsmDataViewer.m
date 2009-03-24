@@ -22,8 +22,7 @@ h = figure('Tag', 'fsmDataViewer',...
     'NumberTitle', 'off');
 
 % Add a slider
-numImages = settings.numImages;
-sliderStep = [1 5] / numImages;
+sliderStep = [1 5] / settings.numFrames;
 
 uicontrol(h, 'Style', 'slider', ...
     'Units', 'normalized',...

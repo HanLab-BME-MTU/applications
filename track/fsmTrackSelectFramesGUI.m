@@ -32,7 +32,7 @@ gui_State = struct('gui_Name',       mfilename, ...
                    'gui_OutputFcn',  @fsmTrackSelectFramesGUI_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
-if nargin & isstr(varargin{1})
+if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
 
@@ -158,13 +158,13 @@ function editFirstFrame_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editFirstFrame as text
 %        str2double(get(hObject,'String')) returns contents of editFirstFrame as a double
 minN=get(handles.pushOkay,'UserData');
-value=str2num(get(handles.editFirstFrame,'String'));
+value=str2double(get(handles.editFirstFrame,'String'));
 if ~isnumeric(value)
     return
 end
 valueSlider1=get(handles.sliderFirstFrame,'Value');
 valueSlider2=get(handles.sliderLastFrame,'Value');
-if value<get(handles.sliderFirstFrame,'Min') | value>(valueSlider2-minN) | value>get(handles.sliderFirstFrame,'Max')
+if value<get(handles.sliderFirstFrame,'Min') || value>(valueSlider2-minN) || value>get(handles.sliderFirstFrame,'Max')
     value=valueSlider1;    
 end
 set(handles.sliderFirstFrame,'Value',value);
@@ -229,13 +229,13 @@ function editLastFrame_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editLastFrame as text
 %        str2double(get(hObject,'String')) returns contents of editLastFrame as a double
 minN=get(handles.pushOkay,'UserData');
-value=str2num(get(handles.editLastFrame,'String'));
+value=str2double(get(handles.editLastFrame,'String'));
 if ~isnumeric(value)
     return
 end
 valueSlider1=get(handles.sliderFirstFrame,'Value');
 valueSlider2=get(handles.sliderLastFrame,'Value');
-if value<get(handles.sliderLastFrame,'Min') | value<(valueSlider1+minN) | value>get(handles.sliderLastFrame,'Max')
+if value<get(handles.sliderLastFrame,'Min') || value<(valueSlider1+minN) || value>get(handles.sliderLastFrame,'Max')
     value=valueSlider2;    
 end
 set(handles.sliderLastFrame,'Value',value);

@@ -5,7 +5,7 @@ hSlider = findobj(h, 'Tag', 'sliderShowFrame');
 settings = get(h, 'UserData');
 
 sliderValue = get(hSlider, 'Value');
-iFrame = round(sliderValue * settings.numImages);
+iFrame = round(sliderValue * settings.numFrames);
 
 displayFrame(h, iFrame);
 
