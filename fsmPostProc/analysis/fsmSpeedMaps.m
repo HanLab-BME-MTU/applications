@@ -1,11 +1,11 @@
-function outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed,segment,bitDepth)
+function outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed,segment)
 % fsmSpeedMaps creates speed maps from the flow maps returned by the SpeckTackle package
 %
 % fsmSpeedMaps goes through the whole M (or Md) stack of s matrices (each matrix corresponds to the
 %    matches returned by the tracker for frames 2 consecutive frames) and creates t<=s speed maps
 %    each of which is the average over n frames [j-n/2:j+n/2] around frame j, j in [fix(n/2)+1:s-fix(n/2)]
 %   
-% SYNOPSIS      outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed,segment,bitDepth)
+% SYNOPSIS      outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed,segment)
 %
 % INPUT         projDir     : string pointing to the project directory (where the fsmParam.mat file is 
 %                             located). Pass projDir=[] to manually select fsmParam.mat via a dialog.
@@ -25,10 +25,9 @@ function outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixe
 %                             Set it to 0 to turn off rescaling (the function will set this value to 110% 
 %                             of the maximum velocity from frame 1) or to any velocity n in nm/min.
 %               segment     : [ 0 | 1 ] turns on and off automatic segmentation
-%               bitDpeth    : image bit depth, used for automatic segmentation
 %
 % OUTPUT        outputdir   : directory where the speed maps are saved to.
-%               speedMaps saved to disk as .tif, .eps, .mat 
+%               speedMaps saved to disk as .tif, .eps, .mat (ONLY .mat now)
 %
 %
 % DEPENDENCES   fsmSpeedMaps uses { }
@@ -76,7 +75,7 @@ img=imread(char(imageFileList(1,:)));
 imgSize=size(img);
 
 % String format for extension
-[path,outputFileName,no,ext]=getFilenameBody(char(imageFileList(1,:)));
+[path,outputFileName,no]=getFilenameBody(char(imageFileList(1,:)));
 s=length(no);
 strg=sprintf('%%.%dd',s);
 
@@ -272,6 +271,7 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% TO BE DELETED (Sylvain)
 % Create subdirectories if needed
 if ~exist([outputdir,filesep,'tif'], 'dir')
     % Create directory
@@ -280,14 +280,17 @@ if ~exist([outputdir,filesep,'tif'], 'dir')
         error('Could not create subfolder in specified directory');
     end
 end
+
+% TO BE CHANGED FROM 'mat' -> 'speedMap' (Sylvain)
 if ~exist([outputdir,filesep,'mat'], 'dir')
     % Create directory
-    success=mkdir(outputdir,'mat');
-    if success==0
+    success = mkdir(outputdir,'mat');
+    if ~success
         error('Could not create subfolder in specified directory');
     end
-
 end
+
+% TO BE DELETED (Sylvain)
 if ~exist([outputdir,filesep,'eps'], 'dir')
     % Create directory
     success=mkdir(outputdir,'eps');
@@ -297,12 +300,12 @@ if ~exist([outputdir,filesep,'eps'], 'dir')
 end
 
 % Create vector of indices for file names
-[path,body,indxStart]=getFilenameBody(char(imageFileList(uFirst,:)));
-[path,body,indxEnd]=getFilenameBody(char(imageFileList(uLast,:)));
-indices=[str2double(indxStart):str2double(indxEnd)-n+1]+fix(n/2);
+[path,body,indxStart] = getFilenameBody(char(imageFileList(uFirst,:)));
+[path,body,indxEnd] = getFilenameBody(char(imageFileList(uLast,:)));
+indices = (str2double(indxStart):str2double(indxEnd)-n+1)+fix(n/2);
 
 % Update image file list
-imageFileList=imageFileList(indices-str2double(indxStart)+1,:);
+imageFileList = imageFileList(indices-str2double(indxStart)+1,:);
 
 % Initializing waitbar
 % h=waitbar(0,'Creating speed maps...');
@@ -314,10 +317,6 @@ bwMask=ones(size(img));
 if ~isempty(userROIpoly)
     userROIbw=roipoly(bwMask,userROIpoly(:,2),userROIpoly(:,1));
 end
-
-% Added by Matthias. Take background masks from
-% the edge directory instead calculating them again!
-%bgMaskDir = [projDir edgeDir filesep 'cell_mask'];
 
 % Calculate average vector fields
 steps=size(Md,3)-n+1;
@@ -350,32 +349,23 @@ for c2=1:steps
         [dumpath,bgMaskName,ext] = fileparts(imageFileList(c2,:));
         bgMaskPath = [bgMaskDir filesep 'mask_' bgMaskName ext];
         
-        bgExist = exist(bgMaskPath,'file');
-        
-        if bgExist ~= 0
+        if exist(bgMaskPath,'file')
             bwMask = imread(bgMaskPath);
         else
-            disp('No mask found in specified edge directory');
-            % Find cell boundaries
-            xmax=2^bitDepth-1;
-            img=imreadnd2(char(imageFileList(c2,:)),0,xmax);
-            try
-                [answer,img_edge,bwMask]=imFindCellEdge(img,'',0,'filter_image',1,'img_sigma',1,'bit_depth',xmax);
-            catch
-                % Uses last one
-            end
+            error('No mask found in specified edge directory.');
         end
         
         % Crop velocity map
-        speedMap=speedMap.*bwMask;
-        
+        speedMap = speedMap .* bwMask;
     end
     
     % If needed apply the userROI as well
     if ~isempty(userROIpoly)
-        speedMap=speedMap.*userROIbw;
+        speedMap = speedMap .* userROIbw;
     end
     
+    % TO BE REMOVED (Sylvain)
+    % FROM HERE...    
     % Display
     mH=figure;
     imshow(speedMap,[]);
@@ -395,7 +385,7 @@ for c2=1:steps
         toBeDispl=[];
         counter=0;
         for i=1:size(Mav,1)
-            if bwMaskVectors(Mav(i,1),Mav(i,2))==1
+            if bwMaskVectors(Mav(i,1), Mav(i,2))==1
                 counter=counter+1;
                 toBeDispl(counter)=i;
             end
@@ -408,7 +398,7 @@ for c2=1:steps
         end
         
         % Plot vectors on top of speed map
-        MavDisp(:,3:4)=[MavDisp(:,1:2)+scaleFactor*(MavDisp(:,3:4)-MavDisp(:,1:2))];
+        MavDisp(:,3:4) = MavDisp(:,1:2) + scaleFactor * (MavDisp(:,3:4) - MavDisp(:,1:2));
         hold on;
         
         qH=quiver(MavDisp(:,2),MavDisp(:,1),MavDisp(:,4)-MavDisp(:,2),MavDisp(:,3)-MavDisp(:,1),0);
@@ -426,9 +416,13 @@ for c2=1:steps
     figure(mH);
     set(gca,'CLim',[0 maxSpeed]);
     colorbar;
-
+    % ... UNTIL HERE
+    
     % Save image
-    indxStr=sprintf(strg,indices(c2));
+    indxStr = sprintf(strg,indices(c2));
+    
+    % .TIF AND .EPS MUST BE REMOVED TOO (Syvlain)
+    
     if scaleFactor~=0
         fname=[outputdir,filesep,'tif',filesep,'speedMap_d0=',num2str(d0_init),'_scale=',num2str(scaleFactor),'x_frames=',num2str(n),'_',indxStr,'.tif'];
         print(gcf,'-dtiffnocompression',fname);
@@ -445,14 +439,11 @@ for c2=1:steps
         eval(['save ',outputdir,filesep,'mat',filesep,'speedMap_d0=',num2str(d0_init),'_frames=',num2str(n),'_',indxStr,'.mat speedMap;']);
     end
     
-
-
+    % TO BE REMOVED:
     close(gcf);
     
     % Updating waitbar
-%     waitbar(c2/steps,h);
-fprintf(1,'Created map %d of %d.\n',c2,steps);
-    
+    % waitbar(c2/steps,h);
+    fprintf(1,'Created map %d of %d.\n',c2,steps);
 end
 
-% close(h);

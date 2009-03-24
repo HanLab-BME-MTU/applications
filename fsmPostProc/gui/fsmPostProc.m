@@ -337,11 +337,11 @@ switch choice
     case 3, roi='r';
     otherwise error('bad selection for ROI');
 end
-gridSize=[str2num(get(handles.editY,'String')) str2num(get(handles.editX,'String'))];
-sigma=str2num(get(handles.editTimeSigma,'String'));
-sigmaFreq=str2num(get(handles.editSpectrumSigma,'String'));
-tSampling=str2num(get(handles.editTSampling,'String'));
-label=str2num(get(handles.editLabel,'String'));
+gridSize=[str2double(get(handles.editY,'String')) str2double(get(handles.editX,'String'))];
+sigma=str2double(get(handles.editTimeSigma,'String'));
+sigmaFreq=str2double(get(handles.editSpectrumSigma,'String'));
+tSampling=str2double(get(handles.editTSampling,'String'));
+label=str2double(get(handles.editLabel,'String'));
 if roi=='g' % The b/w mask is used only to get a subset of the grid
     if get(handles.checkLoadBwMask,'Value')==1
         % Load wavesBwMask.mat
@@ -398,11 +398,11 @@ function editX_Callback(hObject, eventdata, handles)
 
 % Sampling interval
 function editTSampling_Callback(hObject, eventdata, handles)
-set(handles.editTSampling,'String',num2str(abs(str2num(get(handles.editTSampling,'String')))));
+set(handles.editTSampling,'String',num2str(abs(str2double(get(handles.editTSampling,'String')))));
 
 % Label peaks with power > user setting
 function editLabel_Callback(hObject, eventdata, handles)
-if str2num(get(handles.editLabel,'String'))<0 || str2num(get(handles.editLabel,'String'))>1
+if str2double(get(handles.editLabel,'String'))<0 || str2double(get(handles.editLabel,'String'))>1
     uiwait(msgbox('Please enter a value between 0 and 1.','Help','modal'));
     set(handles.editLabel,'String','0.3')
 end
@@ -449,8 +449,8 @@ set(handles.checkSaveBwMask,'Enable','off');
 
 function editSpectrumSigma_Callback(hObject, eventdata, handles)
 % Make sure the entered value is > 0
-set(handles.editSpectrumSigma,'String',num2str(abs(fix(str2num(get(handles.editSpectrumSigma,'String'))))));
-if ~mod(str2num(get(handles.editSpectrumSigma,'String')),2)
+set(handles.editSpectrumSigma,'String',num2str(abs(fix(str2double(get(handles.editSpectrumSigma,'String'))))));
+if ~mod(str2double(get(handles.editSpectrumSigma,'String')),2)
     uiwait(msgbox('Please enter an integer, ODD value > 0.','Help','modal'));
     set(handles.editSpectrumSigma,'String','1');
 end
@@ -490,11 +490,11 @@ projDir=getProjDir(handles);
 if isempty(projDir)
     return
 end
-nAvg=str2num(get(handles.editVectorAnalysis,'String'));
+nAvg=str2double(get(handles.editVectorAnalysis,'String'));
 displ=[get(handles.checkRaw,'Value') get(handles.checkInterp,'Value') get(handles.checkNoise,'Value') get(handles.checkError,'Value') get(handles.checkDisplayImg,'Value')];
 roi=[get(handles.checkROI,'Value') get(handles.checkLoadROI,'Value') get(handles.checkSaveROI,'Value')];
-scale=str2num(get(handles.editScale,'String'));
-d0=str2num(get(handles.editD0,'String'));
+scale=str2double(get(handles.editScale,'String'));
+d0=str2double(get(handles.editD0,'String'));
 useDiv=get(handles.checkDiv,'Value');
 output=find([get(handles.radioCMap,'Value') get(handles.radioCircle,'Value')]);
 displROI=get(handles.checkDisplayROI,'Value');
@@ -524,7 +524,7 @@ function editScale_Callback(hObject, eventdata, handles)
 function editD0_Callback(hObject, eventdata, handles)
 
 function editVectorAnalysis_Callback(hObject, eventdata, handles)
-nAvg=fix(str2num(get(handles.editVectorAnalysis,'String')));
+nAvg=fix(str2double(get(handles.editVectorAnalysis,'String')));
 if isempty(nAvg)
     nAvg=1;
 end
@@ -614,17 +614,18 @@ if get(handles.checkSMMask,'Value')==1
 else
     userROIpoly=[];
 end
-gridSize=[str2num(get(handles.editYSP,'string')) str2num(get(handles.editXSP,'string'))];
-n=str2num(get(handles.editFrameSP,'string'));
-d0=str2num(get(handles.editSMCL,'string'));
+gridSize=[str2double(get(handles.editYSP,'string')) str2double(get(handles.editXSP,'string'))];
+n=str2double(get(handles.editFrameSP,'string'));
+d0=str2double(get(handles.editSMCL,'string'));
 loadMPM=get(handles.radioSMMPM,'value');
 overlayVectors=get(handles.checkSMOverlay,'value');
-sampling=str2num(get(handles.editSMSampling,'string'));
-pixelSize=str2num(get(handles.editSMPixel,'string'));
-maxSpeed=str2num(get(handles.editSMMax,'string'));
+sampling=str2double(get(handles.editSMSampling,'string'));
+pixelSize=str2double(get(handles.editSMPixel,'string'));
+maxSpeed=str2double(get(handles.editSMMax,'string'));
 segment=get(handles.checkSMSegment,'value');
-bitDepth=str2num(get(handles.editSMBitDepth,'String'));
-outputdir=fsmSpeedMaps(projDir,gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIpoly,maxSpeed,segment,bitDepth);
+
+outputdir=fsmSpeedMaps(projDir,gridSize,n,d0,loadMPM,sampling,pixelSize,overlayVectors,userROIpoly,maxSpeed,segment);
+
 if ~isempty(outputdir)
     % Maps have been saved to disk
     msg=['Speed maps have been saved to ',outputdir,'.'];
@@ -635,7 +636,7 @@ function pushHelpSpeed_Callback(hObject, eventdata, handles)
 web(['file:///' which('qFSM_default.html')]);
 
 function editFrameSP_Callback(hObject, eventdata, handles)
-nAvg=fix(str2num(get(handles.editFrameSP,'String')));
+nAvg=fix(str2double(get(handles.editFrameSP,'String')));
 if isempty(nAvg)
     nAvg=1;
 end
@@ -691,8 +692,8 @@ if isempty(projDir)
 end
 
 % Read parameters
-n=str2num(get(handles.editFrameTN,'String'));
-sigma=str2num(get(handles.editSigmaTN,'String'));
+n=str2double(get(handles.editFrameTN,'String'));
+sigma=str2double(get(handles.editSigmaTN,'String'));
 
 % Call function
 [polyMap,depolyMap,netMapRGB,outputdir]=fsmKineticMaps(projDir,[-1 n],sigma);
@@ -723,7 +724,7 @@ function pushHelpTurnoverMaps_Callback(hObject, eventdata, handles)
 web(['file:///' which('qFSM_turnoverMaps.html')]);
 
 function editFrameTN_Callback(hObject, eventdata, handles)
-nAvg=fix(str2num(get(handles.editFrameTN,'String')));
+nAvg=fix(str2double(get(handles.editFrameTN,'String')));
 if isempty(nAvg)
     nAvg=1;
 end
@@ -856,7 +857,7 @@ end
 candsDir=[projDir,filesep,'cands'];
 
 % Get max raius from fsmPostProc
-maxRadius=str2num(get(handles.editEstMaxRadius,'String'));
+maxRadius=str2double(get(handles.editEstMaxRadius,'String'));
 
 % Call function
 allDistances=fsmEstSearchRadius(candsDir,maxRadius);
@@ -873,7 +874,7 @@ assignin('base','allDistances',allDistances);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function editEstMaxRadius_Callback(hObject, eventdata, handles)
-maxR=fix(str2num(get(handles.editEstMaxRadius,'String')));
+maxR=fix(str2double(get(handles.editEstMaxRadius,'String')));
 if isempty(maxR)
     maxR=10;
 end

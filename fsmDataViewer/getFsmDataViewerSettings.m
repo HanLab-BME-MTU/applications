@@ -29,73 +29,79 @@ for iLayer = 1:5
 end
 
 for iChannel = 1:3
-    [fileList, status] = getFileList(settings.channels{iChannel}.selectedFileName);    
+    [path, fileList, status] = getFileList(settings.channels{iChannel}.selectedFileName);    
     if ~status
         return;
     end
+    settings.channels{iChannel}.path = path;
     settings.channels{iChannel}.fileList = fileList;
 end
 
-[fileList, status] = getFileList(settings.mask.selectedFileName);
+[path, fileList, status] = getFileList(settings.mask.selectedFileName);
 if ~status
     return;
 end
+settings.mask.path = path;
 settings.mask.fileList = fileList;
 
 for iLayer = 1:5
-    [fileList, status] = getFileList(settings.layers{iLayer}.selectedFileName);    
+    [path, fileList, status] = getFileList(settings.layers{iLayer}.selectedFileName);    
     if ~status
         return;
     end
+    settings.layers{iLayer}.path = path;
     settings.layers{iLayer}.fileList = fileList;
 end
 
 % Check the number of files in every channel to be equal or null
-firstNonZeroIndex = 0;
+firstNonZeroChannel = 0;
 index = 1;
 while index <=3
     if numel(settings.channels{index}.fileList)
-        firstNonZeroIndex = index;
+        firstNonZeroChannel = index;
         break;
     end
     index = index + 1;
 end
+settings.firstNonZeroChannel = firstNonZeroChannel;
 
 if index <= 3 % due to break
     for i=index+1:3
         numFiles = numel(settings.channels{i}.fileList);
-        if numFiles && numFiles ~= numel(settings.channels{firstNonZeroIndex}.fileList)
+        if numFiles && numFiles ~= numel(settings.channels{firstNonZeroChannel}.fileList)
             status = 0;
             errordlg('Number of files in background channels differ.');
             return;
         end
     end
-else
-    % every channel are empty
-    if ~numel(settings.mask.fileList)
-        status = 0;
-        errordlg('Mask must be provided in case no channel has been set.');
-        return;
-    end
+end
+
+numMaskFiles = numel(settings.mask.fileList);
+
+% Check mask is provided in case no channel are set.
+if ~firstNonZeroChannel && ~numMaskFiles
+    status = 0;
+    errordlg('Mask must be provided in case no channel has been set.');
+    return;
 end
 
 % Check the number of mask files to matche the number of files in channels.
-if firstNonZeroIndex && numel(settings.mask.fileList) ~= ...
-        numel(settings.channels{firstNonZeroIndex}.fileList)
+if firstNonZeroChannel && numMaskFiles && numMaskFiles ~= ...
+        numel(settings.channels{firstNonZeroChannel}.fileList)
     status = 0;
     errordlg('Number of mask files does not match the number of files in channels.');
     return;
 end
 
-numFiles = numel(settings.mask.fileList);
+settings.numImages = numMaskFiles;
 
-if firstNonZeroIndex
-    numFiles = numel(settings.channels{firstNonZeroIndex}.fileList);
+if firstNonZeroChannel
+    settings.numImages = numel(settings.channels{firstNonZeroChannel}.fileList);
 end
 
 % Check the number of data files in layers to be lesser or equal to numFiles.
 for iLayer = 1:5
-    if numel(settings.layers{iLayer}.fileList) > numFiles
+    if numel(settings.layers{iLayer}.fileList) > settings.numImages
         status = 0;
         errordlg('Number of data files in layers cannot be greater than the number of files in channels.');
         return;        
@@ -111,11 +117,12 @@ end
 % and are located in the same directory that 'fileName'.
 % TODO: use this function everywhere in qfsm.
 
-function [fileList status] = getFileList(fileName)
+function [path, fileList, status] = getFileList(fileName)
 
 if isempty(fileName)
-    status = 1;
+    path = '';
     fileList = {};
+    status = 1;
     return;
 end
 
@@ -132,7 +139,7 @@ end
 % Rearrange files according to their number
 fileNumbers = zeros(1, length(fileList));
 for i = 1:length(fileList)
-    [path, body, no] = getFilenameBody(fileList(i).name);
+    [dummy1, dummy2, no] = getFilenameBody(fileList(i).name);
     fileNumbers(i) = str2double(no);
 end
 

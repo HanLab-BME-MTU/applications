@@ -22,7 +22,7 @@ function varargout = fsmDataViewerSetup(varargin)
 
 % Edit the above text to modify the response to help fsmDataViewerSetup
 
-% Last Modified by GUIDE v2.5 23-Mar-2009 09:30:01
+% Last Modified by GUIDE v2.5 23-Mar-2009 12:10:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -58,6 +58,8 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
+% UIWAIT makes fsmDataViewer wait for user response (see UIRESUME)
+uiwait(hObject);
 
 % --- Outputs from this function are returned to the command line.
 function varargout = fsmDataViewerSetup_OutputFcn(hObject, eventdata, handles) 
@@ -66,8 +68,16 @@ function varargout = fsmDataViewerSetup_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+if nargout >= 1
+    if isempty(handles)
+        settings = '';
+    else
+        settings = get(hObject, 'UserData');
+
+        delete(hObject);
+    end
+    varargout{1} = settings;
+end
 
 
 % --- Executes on selection change in listboxBackground.
@@ -79,7 +89,7 @@ function listboxBackground_Callback(hObject, eventdata, handles)
 % Hints: contents = get(hObject,'String') returns listboxBackground contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listboxBackground
 
-hFsmDataViewer = get(hObject, 'Parent');
+hFsmDataViewerSetup = get(hObject, 'Parent');
 
 status = 'on';
 
@@ -87,21 +97,21 @@ if get(hObject, 'Value') == 2
     status = 'off';
 end
 
-h = findobj(hFsmDataViewer, 'Tag', 'textGreenChannel');
+h = findobj(hFsmDataViewerSetup, 'Tag', 'textGreenChannel');
 set(h, 'Enable', status);
-h = findobj(hFsmDataViewer, 'Tag', 'textBlueChannel');
+h = findobj(hFsmDataViewerSetup, 'Tag', 'textBlueChannel');
 set(h, 'Enable', status);
-h = findobj(hFsmDataViewer, 'Tag', 'editRedChannel');
+h = findobj(hFsmDataViewerSetup, 'Tag', 'editRedChannel');
 set(h, 'String', '');
-h = findobj(hFsmDataViewer, 'Tag', 'editGreenChannel');
-set(h, 'Enable', status);
-set(h, 'String', '');
-h = findobj(hFsmDataViewer, 'Tag', 'editBlueChannel');
+h = findobj(hFsmDataViewerSetup, 'Tag', 'editGreenChannel');
 set(h, 'Enable', status);
 set(h, 'String', '');
-h = findobj(hFsmDataViewer, 'Tag', 'pushButtonGreenChannel');
+h = findobj(hFsmDataViewerSetup, 'Tag', 'editBlueChannel');
 set(h, 'Enable', status);
-h = findobj(hFsmDataViewer, 'Tag', 'pushButtonBlueChannel');
+set(h, 'String', '');
+h = findobj(hFsmDataViewerSetup, 'Tag', 'pushButtonGreenChannel');
+set(h, 'Enable', status);
+h = findobj(hFsmDataViewerSetup, 'Tag', 'pushButtonBlueChannel');
 set(h, 'Enable', status);
 
 
@@ -148,8 +158,8 @@ function pushButtonRedChannel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % if (SpeedMap | KineticsMap) is selected, we expect '.mat' files.
-hFsmDataViewer = get(hObject, 'Parent');
-h = findobj(hFsmDataViewer, 'Tag', 'listboxBackground');
+hFsmDataViewerSetup = get(hObject, 'Parent');
+h = findobj(hFsmDataViewerSetup, 'Tag', 'listboxBackground');
 
 if (get(h, 'Value') == 1)
     [fileName, directoryName] = uigetfile({'*.tif';'*jpg';'*.png'}, 'Select first image');
@@ -158,8 +168,8 @@ else
 end
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewer = get(hObject, 'Parent');
-    h = findobj(hFsmDataViewer, 'Tag', 'editRedChannel');
+    hFsmDataViewerSetup = get(hObject, 'Parent');
+    h = findobj(hFsmDataViewerSetup, 'Tag', 'editRedChannel');
     set(h, 'String', [directoryName fileName]);
 end
 
@@ -192,8 +202,8 @@ function pushButtonGreenChannel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % if (SpeedMap | KineticsMap) is selected, we expect '.mat' files.
-hFsmDataViewer = get(hObject, 'Parent');
-h = findobj(hFsmDataViewer, 'Tag', 'listboxBackground');
+hFsmDataViewerSetup = get(hObject, 'Parent');
+h = findobj(hFsmDataViewerSetup, 'Tag', 'listboxBackground');
 
 if (get(h, 'Value') == 1)
     [fileName, directoryName] = uigetfile({'*.tif';'*jpg';'*.png'}, 'Select first image');
@@ -202,9 +212,9 @@ else
 end
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewer = get(hObject, 'Parent');
+    hFsmDataViewerSetup = get(hObject, 'Parent');
 
-    h = findobj(hFsmDataViewer, 'Tag', 'editGreenChannel');
+    h = findobj(hFsmDataViewerSetup, 'Tag', 'editGreenChannel');
     set(h, 'String', [directoryName fileName]);
 end
 
@@ -238,8 +248,8 @@ function pushButtonBlueChannel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % if (SpeedMap | KineticsMap) is selected, we expect '.mat' files.
-hFsmDataViewer = get(hObject, 'Parent');
-h = findobj(hFsmDataViewer, 'Tag', 'listboxBackground');
+hFsmDataViewerSetup = get(hObject, 'Parent');
+h = findobj(hFsmDataViewerSetup, 'Tag', 'listboxBackground');
 
 if (get(h, 'Value') == 1)
     [fileName, directoryName] = uigetfile({'*.tif';'*jpg';'*.png'}, 'Select first image');
@@ -248,9 +258,9 @@ else
 end
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewer = get(hObject, 'Parent');
+    hFsmDataViewerSetup = get(hObject, 'Parent');
 
-    h = findobj(hFsmDataViewer, 'Tag', 'editBlueChannel');
+    h = findobj(hFsmDataViewerSetup, 'Tag', 'editBlueChannel');
     set(h, 'String', [directoryName fileName]);
 end
 
@@ -286,9 +296,9 @@ function pushButtonMask_Callback(hObject, eventdata, handles)
 [fileName, directoryName] = uigetfile({'*.tif'}, 'Select first image');
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewer = get(hObject, 'Parent');
+    hFsmDataViewerSetup = get(hObject, 'Parent');
 
-    h = findobj(hFsmDataViewer, 'Tag', 'editMask');
+    h = findobj(hFsmDataViewerSetup, 'Tag', 'editMask');
     set(h, 'String', [directoryName fileName]);
 end
 
@@ -323,9 +333,9 @@ function pushButtonLayer1_Callback(hObject, eventdata, handles)
 [fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewer = get(hObject, 'Parent');
+    hFsmDataViewerSetup = get(hObject, 'Parent');
 
-    h = findobj(hFsmDataViewer, 'Tag', 'editLayer1');
+    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer1');
     set(h, 'String', [directoryName fileName]);
 end
 
@@ -361,9 +371,9 @@ function pushButtonLayer2_Callback(hObject, eventdata, handles)
 [fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewer = get(hObject, 'Parent');
+    hFsmDataViewerSetup = get(hObject, 'Parent');
 
-    h = findobj(hFsmDataViewer, 'Tag', 'editLayer2');
+    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer2');
     set(h, 'String', [directoryName fileName]);
 end
 
@@ -399,9 +409,9 @@ function pushButtonLayer3_Callback(hObject, eventdata, handles)
 [fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewer = get(hObject, 'Parent');
+    hFsmDataViewerSetup = get(hObject, 'Parent');
 
-    h = findobj(hFsmDataViewer, 'Tag', 'editLayer3');
+    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer3');
     set(h, 'String', [directoryName fileName]);
 end
 
@@ -437,9 +447,9 @@ function pushButtonLayer4_Callback(hObject, eventdata, handles)
 [fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewer = get(hObject, 'Parent');
+    hFsmDataViewerSetup = get(hObject, 'Parent');
 
-    h = findobj(hFsmDataViewer, 'Tag', 'editLayer4');
+    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer4');
     set(h, 'String', [directoryName fileName]);
 end
 
@@ -475,9 +485,9 @@ function pushButtonLayer5_Callback(hObject, eventdata, handles)
 [fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewer = get(hObject, 'Parent');
+    hFsmDataViewerSetup = get(hObject, 'Parent');
 
-    h = findobj(hFsmDataViewer, 'Tag', 'editLayer5');
+    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer5');
     set(h, 'String', [directoryName fileName]);
 end
 
@@ -552,35 +562,30 @@ if numel(color) == 3
 end
 
 
-% --- Executes on button press in pushButtonDisplay.
-function pushButtonDisplay_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonDisplay (see GCBO)
+% --- Executes on button press in pushButtonOK.
+function pushButtonOK_Callback(hObject, eventdata, handles)
+% hObject    handle to pushButtonOK (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-hFsmDataViewer = get(hObject, 'Parent');
+hFsmDataViewerSetup = get(hObject, 'Parent');
 
-[settings status] = getFsmDataViewerSettings(hFsmDataViewer);
+[settings status] = getFsmDataViewerSettings(hFsmDataViewerSetup);
 
 if (status)
-    set(hFsmDataViewer, 'UserData', settings);
+    set(hFsmDataViewerSetup, 'UserData', settings);
     
-    disp('Ready to display');
+    uiresume(hFsmDataViewerSetup);
 end
 
-
-% --- Executes on button press in pushButtonExport.
-function pushButtonExport_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonExport (see GCBO)
+% --- Executes on button press in pushButtonCancel.
+function pushButtonCancel_Callback(hObject, eventdata, handles)
+% hObject    handle to pushButtonCancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-hFsmDataViewer = get(hObject, 'Parent');
+hFsmDataViewerSetup = get(hObject, 'Parent');
 
-[settings status] = getFsmDataViewerSettings(hFsmDataViewer);
+set(hFsmDataViewerSetup, 'UserData', []);
 
-if (status)
-    set(hFsmDataViewer, 'UserData', settings);
-    
-    disp('Ready to export');
-end
+uiresume(hFsmDataViewerSetup);
