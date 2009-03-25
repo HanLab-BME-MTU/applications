@@ -42,7 +42,7 @@ setupRoiDirectories(selectROI,overwriteROIs,[]);
 % use getProj to set up a batch job. this function collects all the
 % projects under a user-selected top-level directory.
 
-queryString=[] % enter a string like 'rac' or 'control' to find only projects which have this in the file path
+queryString=[]; % enter a string like 'rac' or 'control' to find only projects which have this in the file path
 [projList,projPathParsed]=getProj(queryString);
 
 
