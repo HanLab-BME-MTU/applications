@@ -1,4 +1,4 @@
-function [] = runDiffusionAnalysis;
+function [] = runDiffusionAnalysis(experiment,force);
 
 % runDiffusion analyses diffusion of all tracks for each chosen movie
 %
@@ -20,20 +20,35 @@ function [] = runDiffusionAnalysis;
 %   updated September 1, 2008 to no longer restrict tracks analyzed
 
 %%
-%LOAD MOVIES
+if nargin == 0
 [experiment] = loadIndividualMovies();
+force = 0;
+elseif nargin == 1 && isstruct(experiment)
+    force = 0;
+elseif nargin == 1 && ~isstruct(experiment)
+    force = experiment;
+    [experiment] = loadIndividualMovies();
+elseif nargin == 2 && isstruct(experiment)
+   if isempty(force)
+    force = 0;
+    end
+elseif nargin == 1 && ~isstruct(experiment)
+    [experiment] = loadIndividualMovies();
+end
+
 
 %FOR EACH MOVIE
 for iexp = 1:length(experiment)
 
     %print movie number
     display(['running movie number ' num2str(iexp) ' out of ' num2str(length(experiment))]);
-
-    %LOAD TRACKS
     cd(experiment(iexp).source);
+    
+    if exist([experiment(iexp).source filesep 'diffusionAnalysis' filesep 'diffusionAnalysisResultsForAllTracks.mat'],'file') == 0 || force == 1 
+    %LOAD TRACKS
     cd('TrackInfoMatrices');
     load trackInfo.mat;
-    if exist('trackInfo')
+    if exist('trackInfo','var')
         trackInfoMat = trackInfo;
     end
 
@@ -66,6 +81,8 @@ for iexp = 1:length(experiment)
     %results and skiping the movie)
     clear trackInfo;
     clear trackInfoMat;
+    
+    end %if diffusion analysis resutls do not exist or forced
 end %of for each movie
 
 end %of function
