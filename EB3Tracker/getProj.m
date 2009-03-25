@@ -29,7 +29,9 @@ if ~isempty(varargin)
    
     % create string for naming projList with query
     for i=1:length(varargin)
+        if strcmp(varargin{i},pwd)~=1
         n=[n '_' varargin{i}];
+        end
     end
 end
 
