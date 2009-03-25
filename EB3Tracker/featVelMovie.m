@@ -1,4 +1,4 @@
-function featVelMovie(projData,timeRange,velLimit,roiYX)
+function featVelMovie(projData,timeRange,velLimit,roiYX,aviInstead)
 % FEATVELMOVIE makes a movie of features color-coded by velocity
 %
 %SYNOPSIS featVelMovie(projData,timeRange,velLimit,roiYX)
@@ -17,6 +17,8 @@ function featVelMovie(projData,timeRange,velLimit,roiYX)
 %                           polygon) in which tracks should be plotted, or
 %                           a logical mask the size of the image. if given
 %                           as [], user will be asked to select a ROI.
+%       aviInstead        : 1 to make AVI move (works in Windows only),
+%                           0 (default) for Quicktime
 %
 %OUTPUT Quicktime movies and the regions of interest used to generate them.
 %       Cool colors correspond to shrinkage events (these have "negative"
@@ -33,6 +35,10 @@ if nargin<1 || isempty(projData)
     projData=load([pathName filesep fileName]);
     projData=projData.projData;
 end
+
+
+projData.anDir=formatPath(projData.anDir);
+projData.imDir=formatPath(projData.imDir);
 
 % get output directory from the user
 movDir=[projData.anDir filesep 'movies'];
@@ -77,6 +83,10 @@ else
     if size(roiYX,2)~=2
         error('--featVelMovie: roiYX should be nx2 matrix of coordinates or logical mask')
     end
+end
+
+if nargin<5 || isempty(aviInstead)
+    aviInstead=0;
 end
 
 minY=floor(min(roiYX(:,1)));
@@ -178,14 +188,20 @@ for iFrame=startFrame:endFrame-1
     scatter(xCoord,yCoord,'Marker','.','cData',cMap(idx(:,1),:));
     
     text(.25,.25,num2str(iFrame),'Color','w','FontWeight','bold','HorizontalAlignment','right','Units','inches')
-    F(iFrame) = getframe;
-
-    %MakeQTMovie addaxes
-    %MakeQTMovie('framerate', 5);
+    
+    if aviInstead==1
+        F(iFrame) = getframe;
+    else
+        MakeQTMovie addaxes
+        MakeQTMovie('framerate', 5);
+    end
 end
 
-%MakeQTMovie finish
-movie2avi(F,[movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+if aviInstead==1
+    movie2avi(F,[movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+else
+    MakeQTMovie finish
+end
 
 save([movieName '_roiYX'],'roiYX')
 close all

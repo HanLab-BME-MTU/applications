@@ -1,4 +1,4 @@
-function trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect)
+function trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead)
 % TRACKMOVIE makes a movie of all the tracks in a ROI or of an individual
 %
 %SYNOPSIS trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect)
@@ -41,6 +41,8 @@ function trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDe
 %                           frame should be plotted in cyan (basic
 %                           detection movie); 0 if no feature coordinates
 %                           should be plotted.
+%       aviInstead        : 1 to make AVI move (works in Windows only),
+%                           0 (default) for Quicktime
 %
 %OUTPUT One or more Quicktime movies and the regions of interest used to
 %       generate them
@@ -153,6 +155,9 @@ if nargin<7 || isempty(showDetect)
     showDetect=1;
 end
 
+if nargin<8 || isempty(aviInstead)
+    aviInstead=0;
+end
 
 [listOfImages] = searchFiles('.tif',[],runInfo.imDir,0);
 for iMovie=1:size(timeRange,1)
@@ -345,16 +350,23 @@ for iMovie=1:size(timeRange,1)
         end
 
         text(.25,.25,num2str(iFrame),'Color',colorOverTime(frmCount2,:),'FontWeight','bold','HorizontalAlignment','right','Units','inches')
-        %MakeQTMovie addaxes
-        %MakeQTMovie('framerate', 5);
-        %MakeQTMovie('quality', .7);
-        F(iFrame) = getframe;
-        
+        if aviInstead==1
+            F(iFrame) = getframe;
+        else
+            MakeQTMovie addaxes
+            MakeQTMovie('framerate', 5);
+            %MakeQTMovie('quality', .7);
+        end
+
         frmCount2=frmCount2+1;
 
     end
-    %MakeQTMovie finish
-    movie2avi(F,[runInfo.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+    
+    if aviInstead==1
+        movie2avi(F,[runInfo.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+    else
+        MakeQTMovie finish
+    end
 
     save([movieName '_roiYX'],'roiYX')
 
