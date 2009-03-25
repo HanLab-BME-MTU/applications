@@ -11,7 +11,9 @@ cd(roiDir)
 cd ..
 imDir=[pwd filesep 'images'];
 
-% load roiMask used to make roi_x
+% load roiYX and roiMask
+roiYX=load([roiDir filesep 'roiYX.mat']);
+roiYX=roiYX.roiYX;
 roiMask=imread([roiDir filesep 'roiMask.tif']);
 
 % load detected features from feat directory
@@ -39,8 +41,10 @@ tracks.yCoord = trackedFeatureInfo(:,2:8:end);
 % get list of images, read first image, and make RGB (gray)
 [listOfImages]=searchFiles('.tif',[],imDir,0);
 img=double(imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))]));
+[imL,imW]=size(img(:,:,1));
 img=(img-min(img(:)))./(max(img(:))-min(img(:)));
 img=repmat(img,[1,1,3]);
+
 
 % make sub-roi directory under roi_x directory and go there
 subRoiDir=[roiDir filesep 'subROIs'];
@@ -80,6 +84,7 @@ while makeNewROI==1 && roiCount<10
         end
     end
     close all
+
     
     % get intersection with max region in the cell
     tempRoi=tempRoi & roiMask;
@@ -91,11 +96,20 @@ while makeNewROI==1 && roiCount<10
     % add the current roi to the composite image
     [img2show]=addMaskInColor(img2show,tempRoi,cMap(roiCount,:));
     
-    % get coordinates of vertices
-    roiYX=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
-
+    % get coordinates of vertices (ie all pixels of polygon boundary)
+    [y1,x1]=ind2sub([imL,imW],find(tempRoi,1)); % first pixel on boundary
+    roiYX = bwtraceboundary(tempRoi,[y1,x1],'N'); % get all pixels on boundary
+    % test to make sure roi can be reproduced ok - assume that new polygon
+    % doesn't differ in area more than 10% of tempRoi
+    [resultBW]=roipoly(imL,imW,roiYX(:,2),roiYX(:,1));
+    if abs(sum(resultBW(:))-sum(tempRoi(:)))/sum(tempRoi(:))>.1
+        error('problem with ROI construction')
+    end
+    
+    
     % save sub-roi mask
     imwrite(tempRoi,[currentRoiAnDir filesep 'roiMask.tif']);
+    save([currentRoiAnDir filesep 'roiYX'],'roiYX');
     
     % extract detected features falling in current ROI from the full set
     fNames=fieldnames(movieInfoOld);
@@ -118,13 +132,13 @@ while makeNewROI==1 && roiCount<10
     for iFrame=1:numTimePoints
         % find coordinate from tracks that are within polygon
         [inIdx,onIdx]=inpolygon(tracks.xCoord(:,iFrame),tracks.yCoord(:,iFrame),roiYX(:,2),roiYX(:,1));
-        [inPolyIdx]=repmat(find(inIdx),[1 8]);
+        [inPolyIdx]=repmat(find(inIdx),[1 8]); % rows for points to add
         nPtsInside=size(inPolyIdx,1);
 
-        col=repmat([sC(iFrame):eC(iFrame)],[nPtsInside,1]);
-        idx2add=repmat(numTracks.*[0:7],[nPtsInside 1]);
-        allIdx=inPolyIdx+idx2add;
+        col=repmat([sC(iFrame):eC(iFrame)],[nPtsInside,1]); % particular columns corresponding to frame
+        
         tracksFinal(inPolyIdx(:),col(:))=trackedFeatureInfo(inPolyIdx(:),col(:));
+
     end
     % make track directory for sub-roi and save tracks matrix
     trackDir=[currentRoiAnDir filesep 'track']; mkdir(trackDir);
@@ -141,12 +155,13 @@ while makeNewROI==1 && roiCount<10
 end % while makeNewROI==1 && roiCount<10
 
 % add a number to center of each sub-roi to show which region is which
-s = regionprops(labelMatrix, 'centroid');
-centroids = cat(1, s.Centroid);
 imshow(img2show)
 for iRoi=1:roiCount
+    % make weighted mask using distance transform to find position where text should go 
+    weightedRoi=bwdist(swapMaskValues(labelMatrix==iRoi));
+    [r,c]=find(weightedRoi==max(weightedRoi(:)));      
     hold on
-    text(centroids(iRoi,1), centroids(iRoi,2), num2str(iRoi),'color','w')
+    text(c(1),r(1), num2str(iRoi),'color','r')
 end
 
 % save composite image and label matrix
