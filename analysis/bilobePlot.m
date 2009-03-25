@@ -223,11 +223,12 @@ for i=1:3
         case 2
             goodZ = nSpindles>1;
             % Change by Eugenio
-            % We set all the figures to the same scale, up to 0.15
+            % We set all the figures to the same scale, up to 0.21
+            % This is the maximum in the Ndc80, wt, unaligned (actually 0.2054)
             % Original code from Jonas
 %             set(ah,'CLim',[0,nanmax(nanmax(zall(:,goodZ)))])
             % New code by Eugenio
-            set(ah,'CLim',[0,0.15])
+            set(ah,'CLim',[0,0.21])
         case 1
             % here it depends how we normalized before. Implement later, do
             % 01 for now

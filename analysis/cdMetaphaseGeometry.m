@@ -135,6 +135,10 @@ for i=1:nData
     % meanOffsetVector is the average of the two offset lengths
     idlistList(i).meanOffsetVector = mean([n_cen1Offset,n_cen2Offset],2);
     
+    % get cen1SpindleAngle, the angle between spb1-cen1 and spb1-spb2
+    idlistList(i).cen1SpindleAngle = acos(dot(e_s1c1,e_s1s2,2))*180/pi;
+
+    
     % ratio of distance s1-c1-c2-s2 to s1-s2
     idlistList(i).distanceRatio = sum([n_s1c1,n_c1c2,n_s2c2],2)./n_s1s2;
     
