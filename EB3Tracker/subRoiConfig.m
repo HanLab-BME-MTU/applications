@@ -85,6 +85,10 @@ while makeNewROI==1 && roiCount<10
     end
     close all
 
+    % get coordinates of vertices of whole cell (ie all pixels of polygon boundary)
+    [y1,x1]=ind2sub([imL,imW],find(roiMask,1)); % first pixel on boundary
+    roiYXcell = bwtraceboundary(roiMask,[y1,x1],'N'); % get all pixels on boundary
+    
     
     % get intersection with max region in the cell
     tempRoi=tempRoi & roiMask;
@@ -154,17 +158,26 @@ while makeNewROI==1 && roiCount<10
     end
 end % while makeNewROI==1 && roiCount<10
 
+% plot using vector graphics of boundaries and save as figure and tif
 % add a number to center of each sub-roi to show which region is which
-imshow(img2show)
+imshow(img)
+hold on
+% plot original roi outline
+plot(roiYXcell(:,2),roiYXcell(:,1),'w');
 for iRoi=1:roiCount
     % make weighted mask using distance transform to find position where text should go 
     weightedRoi=bwdist(swapMaskValues(labelMatrix==iRoi));
     [r,c]=find(weightedRoi==max(weightedRoi(:)));      
-    hold on
     text(c(1),r(1), num2str(iRoi),'color','r')
+    % load sub-roi boundaries and plot outline
+    currentRoiAnDir=[pwd filesep 'sub_' num2str(iRoi)];
+    roiYX=load([currentRoiAnDir filesep 'roiYX']);
+    roiYX=roiYX.roiYX;
+    plot(roiYX(:,2),roiYX(:,1),'Color',cMap(iRoi,:));
 end
 
 % save composite image and label matrix
+saveas(gcf,[pwd filesep 'sub-ROIs.fig'])
 frame = getframe(gca);
 [I,map] = frame2im(frame);
 imwrite(I,[pwd filesep 'sub-ROIs.tif'],'tif')
@@ -176,7 +189,9 @@ cd(homeDir)
 
 
 function [img2show]=addMaskInColor(img,roiMask,c)
-%subfunction to add new polygon outline to composite image
+%subfunction to add new polygon outline to composite image - this is needed
+%because you can't pass vector graphics info to roipoly function, and we
+%want to be able to visualize the regions that have already been selected.
 temp=double(bwmorph(roiMask,'remove'));
 borderIdx=find(temp);
 nPix=numel(roiMask);
