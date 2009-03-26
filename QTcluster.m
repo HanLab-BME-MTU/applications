@@ -1,24 +1,24 @@
-function [clusterResults] = QTcluster(experiment,rest);
+function [clusterResults] = QTcluster(experiment,rest,force);
 
 % QTcluster clusters initiations as defined by the rest vector in each
-% movie in experiment and saves results to specified directory.
+% movie in experiment and saves results under each movie directory.
 %
 % INPUT:   experiment=   data structure pointing to all the
 %                       image/detection/tracking data for a given condition;
 %                       for e.g. 10 cell movies, the structure should have 10
-%                       entries; the data structure can be created with the 
+%                       entries; the data structure can be created with the
 %                       function loadConditionData, and it needs to contain
-%                       at least the field 
-%                       .source, which is the (path) location of the 
+%                       at least the field
+%                       .source, which is the (path) location of the
 %                       lifetime information folder
 %                       .framerate, which is the movie framerate, which is
-%                       necessary for the lifetime restriction                    
+%                       necessary for the lifetime restriction
 %           rest    =   restriction vector can have variable length;
 %                       minimum length is five, where the entries are
 %                       [stat da minfr minlft maxlft]
 %                       optionally, the length can be extended to nine,
-%                       where the additional entries are 
-%                       [... minint maxint minmot maxmot]  
+%                       where the additional entries are
+%                       [... minint maxint minmot maxmot]
 % OUTPUT
 %           clusterResults.clusterResults = [xPos yPos clusterID lifetime startFrame]
 %               the first column contains the x position, the second the y
@@ -29,22 +29,27 @@ function [clusterResults] = QTcluster(experiment,rest);
 %               row 1.
 %           clusterResults.clusterCentroids = position of cluster centroids in two
 %               columns; first column is x position and second column is y
-%               position; 
+%               position;
+%           clusterResults.hotSpotRadius = radius used for clustering by
+%               QualityThresholdCluster
 %
-% Uses: determineMovieLength
-%       determineImagesize
+% Uses:
 %       determineHotSpotRadius
 %       QualityThresholdCluster
 %
-% Daniel Nunez, January 9, 2009
+% Daniel Nunez, updated March 11, 2009
 
+%save old directory
 oldDir = cd;
-%choose directory to save clustering results
-[PATHNAME] = uigetdir(pwd, 'choose directory to save output');
+%set force variable
+if exist('force','var') == 0 || isempty(force)
+    force = 0;
+end
+
 
 %Fill in Missing Data
+%movie length is required for
 [experiment] = determineMovieLength(experiment);
-[experiment] = determineImagesize(experiment);
 
 %GET HOT SPOT RADIUS FROM DENSITY PLOTS
 [hotSpotRadius] = determineHotSpotRadius(experiment,rest);
@@ -54,6 +59,10 @@ oldDir = cd;
 %FOR EACH MOVIE
 for iexp = 1:length(experiment)
 
+    waitHandle = waitbar(iexp/length(experiment),['clustering in progress ' num2str(iexp) ' out of ' num2str(length(experiment))]);
+    
+    if exist([experiment(iexp).source filesep 'Cluster'],'dir') == 0 || force == 1 
+    
     %Load Lifetime Information
     cd([experiment(iexp).source filesep 'LifetimeInfo'])
     load('lftInfo')
@@ -69,27 +78,6 @@ for iexp = 1:length(experiment)
     daMat = (lftInfo.Mat_disapp);
     % framerate
     framerate = experiment(iexp).framerate;
-    % image size
-    imsize  = experiment(iexp).imagesize;
-
-    %CALCULATE NORMALIZED AREA OF CELL
-    imagesize = experiment(iexp).imagesize;
-    msx = imagesize(1);
-    msy = imagesize(2);
-    imsizS = [imagesize(2) imagesize(1)];
-    % construct convex hull out of complete point distribution
-    % combined mpm
-    selx = full(matX); selx = selx(isfinite(selx)); selx = nonzeros(selx(:));
-    sely = full(matY); sely = sely(isfinite(sely)); sely = nonzeros(sely(:));
-    combMPM = [ selx sely ];
-    K = convhull(combMPM(:,1),combMPM(:,2));
-    % edge points of the convex hull
-    cpointsx = combMPM(K,1);
-    cpointsy = combMPM(K,2);
-    % create mask
-    areamask = poly2mask(cpointsx,cpointsy,msx,msy);
-    % CREATE CORRECTION FACTOR MATRIX FOR THIS MOVIE using all objects
-    normArea = sum(areamask(:));
 
     %find all pits in movie that meet requirements specified by restriction
     %vector
@@ -109,31 +97,45 @@ for iexp = 1:length(experiment)
 
     particlePositions = [matX(alteredPos) matY(alteredPos)];
     
+    %CLUSTER
     [clusteredParticles,clusterCentroids] = QualityThresholdCluster(particlePositions,2,hotSpotRadius);
-    
+
     %add removed unclustered pits
     outsideParticles = [matX(outsidePits) matY(outsidePits) zeros(length(outsidePits),1)];
     clusteredParticles = [clusteredParticles; outsideParticles];
-    
+
     %add lifetimes
     clusteredParticles(1:size(clusteredParticles,1),4) = lftMat([alteredPos;outsidePits])';
     %add start frame
     [dummy,startFrame] = ind2sub(size(lftMat),[alteredPos;outsidePits]);
     clusteredParticles(1:size(clusteredParticles,1),5) = startFrame';
     %make result structure for movie
-    clusterResults(iexp).clusterResults = clusteredParticles;
-    clusterResults(iexp).clusterCentroids = clusterCentroids;
-    clusterResults(iexp).cellArea = normArea;
-    clusterResults(iexp).hotSpotRadius = hotSpotRadius;
-    clusterResults(iexp).framerate = framerate;
-    clusterResults(iexp).movieID = iexp;
-    clusterResults(iexp).movie = experiment(iexp).source;
-    clusterResults(iexp).movieLength = experiment(iexp).movieLength;
-end %for each movie
-%save data onto folder under density folder
-cd(PATHNAME);
-mkdir(PATHNAME,'ClusterData')
-filePath = [PATHNAME filesep 'ClusterData' filesep 'hotSpotAnalysisResultsWithMorePitsAnd1PlusProdFarDenRadius' datestr(now,'yyyymmdd')];
-securesave(filePath,'clusterResults')
+    clusterResults.clusterResults = clusteredParticles;
+    clusterResults.clusterCentroids = clusterCentroids;
+    clusterResults.hotSpotRadius = hotSpotRadius;
+
+    %save data onto folder under cell directory
+    PATHNAME = experiment(iexp).source;
+    cd(PATHNAME);
+    %if ClusterData directory does not exist make it
+    if ~(exist([PATHNAME filesep 'ClusterData'],'dir') == 7)
+    mkdir(PATHNAME,'ClusterData')
+    end
+    %save cluster results under ClusterData folder; if cluster results
+    %already exists, do not overwrite but rather add a number by which to
+    %identiofy this particular clusterResults; functions that use
+    %clusterResults will have to take the latest result, or have the user
+    %specify a number to identy the result
+    filePath = [PATHNAME filesep 'ClusterData' filesep 'clusterResults_rad' num2str(round(hotSpotRadius)) '_' num2str(round(rest(4)))...
+        'to' num2str(round(rest(5))) 'lft'];
+    securesave(filePath,'clusterResults');
+    
+    end %of if needs to cluster
+    
+    close(waitHandle)
+    
+end %of for each movie
+
+%return to old directory
 cd(oldDir)
 end %of function
