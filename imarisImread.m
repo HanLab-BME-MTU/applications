@@ -1,7 +1,7 @@
-function [movie,movieSize,movieName,moviePath,movieProperties,imarisHandle,loadStruct] = imarisImread(multiArgument,pathName,cropIdx,maxSize,noMovie)
+function [movie,movieSize,movieName,moviePath,movieProperties,imarisHandle,loadStruct] = imarisImread(multiArgument,pathName,cropIdx,maxSize,noMovie,vImarisApplication)
 %IMARISIMREAD will launch imaris to read a movie (or any parts of it) from disk
 %
-% SYNOPSIS [movie,movieSize,movieName,moviePath,movieProperties,imarisHandle,loadStruct] = imarisImread(multiArgument,pathName,cropIdx,maxSize)
+% SYNOPSIS [movie,movieSize,movieName,moviePath,movieProperties,imarisHandle,loadStruct] = imarisImread(multiArgument,pathName,cropIdx,maxSize,noMovie,vImarisApplication)
 %
 % INPUT    multiArgument      : (opt) either the name of the movie, or an
 %                                 list of indices pointing to the formats
@@ -246,6 +246,12 @@ end
 
 if nargin < 5 || isempty(noMovie)
     noMovie = 0;
+end
+
+if nargin < 6 || isempty(vImarisApplication)
+    % launch as normal
+else
+    launchImaris = false;
 end
 
 %=============================
