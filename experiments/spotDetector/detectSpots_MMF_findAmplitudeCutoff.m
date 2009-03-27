@@ -298,6 +298,8 @@ if nTimepoints < 2
     cutIdx = min(nRatios,dataProperties.MAXSPOTS);
     cutValue = 0.99999 * ratios(cutIdx);
     
+    % assign cutVal for debug
+    cutVal = NaN;
     
 else
     
