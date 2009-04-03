@@ -121,6 +121,22 @@ switch sum(find(equalizeTC == 1))
         
 end
 
+% get rid of NaNs
+delta = 0;
+for c = 1:sizeArray(5)
+    for t = 1:sizeArray(4)
+       frame = array(:,:,:,t,c);
+            frameVec = frame(:);
+            nanList = (isnan(frameVec));
+            if any(nanList)
+                if delta == 0
+                    delta = nanmin(diff(unique(frameVec)));
+                end
+                frame(nanList) = nanmin(frameVec)-delta;
+                array(:,:,:,t,c) = frame;
+            end
+    end
+end
 
 %===============
 % DISPLAY DATA
