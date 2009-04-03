@@ -204,7 +204,32 @@ for i=1:3
         xFactor = ones(size(xall));
         xSub = 0;
     end
-    contourf((xall-xSub).*xFactor,yall,zall,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
+
+
+    switch i
+        case {1,3}
+            contourf((xall-xSub).*xFactor,yall,zall,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
+        case 2
+            % Added by Eugenio
+            % The following lines are needed in order to be able to compare pdfs at
+            % different lengths. Since zall is discretized, it is actually P(x)*dx
+            % Since dx is different for different slices we have to divide by it
+
+            allx = (xall-xSub).*xFactor;
+
+            xsize = size(allx,1);
+
+            deltax = 2*allx(xsize/2+1,:); % This is the value of dx for each slice
+
+            alldeltax = repmat(deltax,xsize,1);
+
+            contourf((xall-xSub).*xFactor,yall,zall./alldeltax,'LineStyle','none','LevelList',linspace(0,nanmax(nanmax(zall./alldeltax)),100));
+    end
+
+            
+
+    % old code
+    %     contourf((xall-xSub).*xFactor,yall,zall,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
     %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
     %     axis tight
     set(ah,'yTick',meanBoundaries(1:4:end),'yTickLabel',yTickLabels(1:4:end),'yGrid','on','Color',get(gcf,'Color'))
@@ -223,12 +248,12 @@ for i=1:3
         case 2
             goodZ = nSpindles>1;
             % Change by Eugenio
-            % We set all the figures to the same scale, up to 0.21
-            % This is the maximum in the Ndc80, wt, unaligned (actually 0.2054)
+            % We set all the figures to the same scale, up to 2.7
+            % This is the maximum in the Ndc80, wt, unaligned (actually 2.6823)
             % Original code from Jonas
 %             set(ah,'CLim',[0,nanmax(nanmax(zall(:,goodZ)))])
             % New code by Eugenio
-            set(ah,'CLim',[0,0.21])
+            set(ah,'CLim',[0,2.7])
         case 1
             % here it depends how we normalized before. Implement later, do
             % 01 for now
@@ -265,7 +290,23 @@ for i=1:3
 
     if plotSigma %&& ~all(isnan(zallS(:)))
         ah = subplot(1,2,2);
-        contourf((xall-xSub).*xFactor,yall,zallS,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
+        
+        switch i
+            case {1,3}
+                contourf((xall-xSub).*xFactor,yall,zallS,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
+            case 2
+                % Added by Eugenio
+                % The following lines are needed in order to be able to compare pdfs at
+                % different lengths. Since zall is discretized, it is actually P(x)*dx
+                % Since dx is different for different slices we have to divide by it
+
+                contourf((xall-xSub).*xFactor,yall,zallS./alldeltax,'LineStyle','none','LevelList',linspace(0,nanmax(nanmax(zall./alldeltax)),100));
+        end
+        
+      
+        % old code
+        %         contourf((xall-xSub).*xFactor,yall,zallS,'LineStyle','none','LevelList',linspace(0,nanmax(zall(:)),100));
+
         %     figure('Name',figureNames{i}),surf(xall,yall,zall,'FaceColor','interp','FaceLighting','phong')
         %     axis tight
         set(ah,'yTick',meanBoundaries(1:4:end),'yTickLabel',yTickLabels(1:4:end),'yGrid','on','Color',get(gcf,'Color'))
@@ -275,7 +316,14 @@ for i=1:3
                 set(ah,'CLim',[0,1])
             case 2
                 goodZ = nSpindles>1;
-                set(ah,'CLim',[0,nanmax(nanmax(zall(:,goodZ)))])
+%                 set(ah,'CLim',[0,nanmax(nanmax(zall(:,goodZ)))])
+            % Change by Eugenio
+            % We set all the figures to the same scale, up to 2.7
+            % This is the maximum in the Ndc80, wt, unaligned (actually 2.6823)
+            % Original code from Jonas
+%             set(ah,'CLim',[0,nanmax(nanmax(zall(:,goodZ)))])
+            % New code by Eugenio
+            set(ah,'CLim',[0,2.7])            
             case 1
                 % here it depends how we normalized before. Implement later, do
                 % 01 for now
