@@ -32,7 +32,7 @@ function [polyMap,depolyMap,kinMap2C,outputdir]=fsmKineticMaps(projDir,n,sigma)
 %
 % Aaron Ponti, September 2th, 2003
 
-if nargin<2 | nargin>3
+if nargin<2 || nargin>3
     error('Two or three input parameters expected');
 end
 
@@ -120,7 +120,7 @@ else
 end
 
 % If the number of frames for averaging is not set, set it equal to the total number of frames
-if n(2)==0 | n(2)>n(1)
+if n(2)==0 || n(2)>n(1)
     n(2)=n(1);
 end
 
@@ -147,14 +147,14 @@ if SAVEFILE==1
         return
     end
     % Create subdirectories if needed
-    if exist([outputdir,filesep,'tif'])~=7
+    if ~exist([outputdir,filesep,'tif'], 'dir')
         % Create directory
         success=mkdir(outputdir,'tif');
         if success==0
             error('Could not create subfolder in specified directory');
         end
     end
-    if exist([outputdir,filesep,'mat'])~=7
+    if ~exist([outputdir,filesep,'mat'], 'dir')
         % Create directory
         success=mkdir(outputdir,'mat');
         if success==0
@@ -167,9 +167,9 @@ else
 end
 
 % Create vector of indices for file names
-[path,body,indxStart,ext]=getFilenameBody(char(kinScoreList(1)));
-[path,body,indxEnd,ext]=getFilenameBody(char(kinScoreList(end)));
-indices=[str2num(indxStart):str2num(indxEnd)-n(2)+1]+fix(n(2)/2);
+[path,body,indxStart]=getFilenameBody(char(kinScoreList(1)));
+[path,body,indxEnd]=getFilenameBody(char(kinScoreList(end)));
+indices=(str2double(indxStart):str2double(indxEnd)-n(2)+1)+fix(n(2)/2);
 
 % Number of images
 nImg=length(kinScoreList)-(n(2)-1);
@@ -197,7 +197,7 @@ for i=1:nImg
         load(char(kinScoreList(currentIndx)));
         
         % Read index
-        [path,body,indxStr,ext]=getFilenameBody(char(kinScoreList(currentIndx)));
+        [path,body,indxStr]=getFilenameBody(char(kinScoreList(currentIndx)));
         
         % Copy matrix
         eval(['kinScore=kinScore',indxStr,'; clear kinScore',indxStr,';']);
@@ -256,7 +256,6 @@ for i=1:nImg
     end
     
     if nImg>1
-
         % Update waitbar
         waitbar(i/nImg,h);
         
