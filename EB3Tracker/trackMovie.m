@@ -1,7 +1,7 @@
 function trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead)
 % TRACKMOVIE makes a movie of all the tracks in a ROI or of an individual
 %
-%SYNOPSIS trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect)
+%SYNOPSIS trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead)
 %
 %INPUT  runInfo           : structure containing fields .anDir, which gives
 %                           the full path to the roi_x directory (under
@@ -291,7 +291,7 @@ for iMovie=1:size(timeRange,1)
 
     eval(['MakeQTMovie start ', movieName '.mov']);
 
-    frmCount2=1;
+    frmCount=1;
     colorOverTime = jet(endFrame-startFrame+1);
     for iFrame=startFrame:endFrame
 
@@ -349,21 +349,22 @@ for iMovie=1:size(timeRange,1)
             end
         end
 
-        text(.25,.25,num2str(iFrame),'Color',colorOverTime(frmCount2,:),'FontWeight','bold','HorizontalAlignment','right','Units','inches')
+        text(.25,.25,num2str(iFrame),'Color',colorOverTime(frmCount,:),'FontWeight','bold','HorizontalAlignment','right','Units','inches')
         if aviInstead==1
-            F(iFrame) = getframe;
+            F(frmCount) = getframe;
         else
             MakeQTMovie addaxes
             MakeQTMovie('framerate', 5);
             %MakeQTMovie('quality', .7);
         end
 
-        frmCount2=frmCount2+1;
+        frmCount=frmCount+1;
 
     end
     
     if aviInstead==1
-        movie2avi(F,[runInfo.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+        %movie2avi(F,[runInfo.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+        movie2aviNADA_CAW(F,[runInfo.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
     else
         MakeQTMovie finish
     end
@@ -371,5 +372,32 @@ for iMovie=1:size(timeRange,1)
     save([movieName '_roiYX'],'roiYX')
 
     close all
+    clear F
 end
 cd(homeDir)
+
+
+% function mkAVI(mov,filename,varargin)
+% 
+% if isstruct(mov)
+%   if (~isfield(mov,'cdata') || ~isfield(mov,'colormap'))
+%     error('MATLAB:movie2avi:invalidFirstInput','First input must be a MATLAB movie.');
+%   end
+% else
+%   error('MATLAB:movie2avi:invalidFirstInput','First input must be a MATLAB movie.');
+% end
+% 
+% if(~ischar(filename))
+%   error('MATLAB:movie2avi:invalidInputArguments','Invalid input arguments. Second input argument must be a filename.');
+% end
+% 
+% if (nargin>2)
+%   if( rem(nargin,2) ~= 0 )
+%     error('MATLAB:movie2avi:mismatchedPairValueInputs','Inputs must be a MATLAB movie, a filename, and param/value pairs.');
+%   end
+% end
+% 
+% % Create a new AVI movie
+% avimov = avifile(filename,varargin{:});
+% avimov = addframe(avimov,mov);
+% avimov = close(avimov);

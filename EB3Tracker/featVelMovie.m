@@ -161,7 +161,7 @@ figure('Position',[round(screenW*(1-movieW/screenW)/2) round(screenL*(1-movieL/s
 
 eval(['MakeQTMovie start ', movieName '.mov']);
 
-
+frmCounter=1;
 for iFrame=startFrame:endFrame-1
     
     fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
@@ -190,11 +190,12 @@ for iFrame=startFrame:endFrame-1
     text(.25,.25,num2str(iFrame),'Color','w','FontWeight','bold','HorizontalAlignment','right','Units','inches')
     
     if aviInstead==1
-        F(iFrame) = getframe;
+        F(frmCounter) = getframe;
     else
         MakeQTMovie addaxes
         MakeQTMovie('framerate', 5);
     end
+    frmCounter=frmCounter+1;
 end
 
 if aviInstead==1
