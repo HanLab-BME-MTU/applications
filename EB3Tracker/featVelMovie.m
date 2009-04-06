@@ -35,8 +35,6 @@ if nargin<1 || isempty(projData)
     projData=load([pathName filesep fileName]);
     projData=projData.projData;
 end
-
-
 projData.anDir=formatPath(projData.anDir);
 projData.imDir=formatPath(projData.imDir);
 
@@ -199,7 +197,7 @@ for iFrame=startFrame:endFrame-1
 end
 
 if aviInstead==1
-    movie2avi(F,[movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+    movie2aviNADA_CAW(F,[movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
 else
     MakeQTMovie finish
 end

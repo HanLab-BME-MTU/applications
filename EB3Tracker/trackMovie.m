@@ -1,15 +1,11 @@
-function trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead)
+function trackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead)
 % TRACKMOVIE makes a movie of all the tracks in a ROI or of an individual
 %
-%SYNOPSIS trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead)
+%SYNOPSIS trackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead)
 %
-%INPUT  runInfo           : structure containing fields .anDir, which gives
-%                           the full path to the roi_x directory (under
-%                           which there are /feat and /track directories)
-%                           and .imDir, which gives the full path to the
-%                           folder containing the images for overlay.
-%                           if given as [], program will query user for
-%                           roi_x directory.
+%INPUT  projData          : output of metaEB3analysis, stored in /meta
+%                           if not given, user will be asked to select the
+%                           file
 %       indivTrack        : n-vector containing n track numbers if you want
 %                           to make n movies of individual tracks. if given
 %                           as [], all tracks will be plotted within the
@@ -51,32 +47,24 @@ function trackMovie(runInfo,indivTrack,timeRange,roiYX,magCoef,showTracks,showDe
 close all
 homeDir=pwd;
 
-% get runInfo in correct format
-if nargin<1 || isempty(runInfo)
+% get projData in correct format
+if nargin<1 || isempty(projData)
     % if not given as input, ask user for ROI directory
     % assume images directory is at same level
-    runInfo.anDir=uigetdir(pwd,'Please select ROI directory');
-    homeDir=pwd;
-    cd(runInfo.anDir);
-    cd('..');
-    runInfo.imDir=[pwd filesep 'images'];
-    cd(homeDir)
-else
-    % adjust for OS
-    if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
-        error('--trackMovie: first argument should be a structure with fields imDir and anDir');
-    else
-        [runInfo.anDir] = formatPath(runInfo.anDir);
-        [runInfo.imDir] = formatPath(runInfo.imDir);
-    end
+    [fileName,pathName]=uigetfile('*.mat','Please select projData from META directory');
+    projData=load([pathName filesep fileName]);
+    projData=projData.projData;
 end
+projData.anDir=formatPath(projData.anDir);
+projData.imDir=formatPath(projData.imDir);
+
 
 % get output directory from the user
-runInfo.movDir=uigetdir(runInfo.anDir,'Please select OUTPUT directory');
-cd(runInfo.movDir)
+projData.movDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
+cd(projData.movDir)
 
 % load movieInfo (detection result)
-featDir  = [runInfo.anDir filesep 'feat'];
+featDir  = [projData.anDir filesep 'feat'];
 if ~isdir(featDir)
     error('--trackMovie: feat directory missing')
 else
@@ -88,7 +76,7 @@ else
 end
 
 % load tracksFinal (tracking result)
-trackDir = [runInfo.anDir filesep 'track'];
+trackDir = [projData.anDir filesep 'track'];
 if ~isdir(trackDir)
     error('--trackMovie: track directory missing')
 else
@@ -159,7 +147,7 @@ if nargin<8 || isempty(aviInstead)
     aviInstead=0;
 end
 
-[listOfImages] = searchFiles('.tif',[],runInfo.imDir,0);
+[listOfImages] = searchFiles('.tif',[],projData.imDir,0);
 for iMovie=1:size(timeRange,1)
 
     startFrame = timeRange(iMovie,1);
@@ -214,7 +202,7 @@ for iMovie=1:size(timeRange,1)
         movNum = sprintf(strg,count);
 
         temp=['allTracks_' sFrm '_' eFrm '_' movNum];
-        while exist([runInfo.movDir filesep temp '.mov'],'file')>0
+        while exist([projData.movDir filesep temp '.mov'],'file')>0
             count=count+1;
             movNum = sprintf(strg,count);
             temp=['allTracks_' sFrm '_' eFrm '_' movNum];
@@ -255,7 +243,7 @@ for iMovie=1:size(timeRange,1)
         movNum = sprintf(strg,count);
 
         temp=['track_' trckNum '_' sFrm '_' eFrm '_' movNum];
-        while exist([runInfo.movDir filesep temp '.mov'],'file')>0
+        while exist([projData.movDir filesep temp '.mov'],'file')>0
             count=count+1;
             movNum = sprintf(strg,count);
             temp=['track_' trckNum '_' sFrm '_' eFrm '_' movNum];
@@ -363,8 +351,8 @@ for iMovie=1:size(timeRange,1)
     end
     
     if aviInstead==1
-        %movie2avi(F,[runInfo.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
-        movie2aviNADA_CAW(F,[runInfo.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+        %movie2avi(F,[projData.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+        movie2aviNADA_CAW(F,[projData.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
     else
         MakeQTMovie finish
     end
