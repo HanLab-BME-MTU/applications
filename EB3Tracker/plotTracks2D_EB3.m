@@ -286,7 +286,56 @@ plot(fgapMatX(timeRange(1):timeRange(2),:),fgapMatY(timeRange(1):timeRange(2),:)
 plot(bgapMatX(timeRange(1):timeRange(2),:),bgapMatY(timeRange(1):timeRange(2),:),'y:','LineWidth',1)
 plot(segMatX(timeRange(1):timeRange(2),:),segMatY(timeRange(1):timeRange(2),:),'r','LineWidth',1)
 
-% if movieInfo given then ALL detected features will be show ith jet
+% find those segs and gaps starting in plotCurrentOnly and draw a circle
+% around their locations
+for t=1:4
+    switch t
+        case 1
+            tempMatX=ugapMatX;
+            tempMatY=ugapMatY;
+            col='m';
+            
+        case 2
+            tempMatX=fgapMatX;
+            tempMatY=fgapMatY;
+            col='c';
+
+        case 3
+            tempMatX=bgapMatX;
+            tempMatY=bgapMatY;
+            col='y';
+
+        case 4
+            tempMatX=segMatX;
+            tempMatY=segMatY;
+            col='r';
+    end
+
+    if plotCurrentOnly==0
+        tempXY=[];
+    elseif plotCurrentOnly==1
+        tempXY=[tempMatX(1,:)' tempMatY(1,:)'];
+        nanIdx=isnan(tempXY(:,1));
+        tempXY(nanIdx,:)=[];
+    else
+        tempXYFrameBefore=[tempMatX(plotCurrentOnly-1,:)' tempMatY(plotCurrentOnly-1,:)'];
+        tempXY=[tempMatX(plotCurrentOnly,:)' tempMatY(plotCurrentOnly,:)'];
+        % get rid of NaN rows in both
+        nanIdx=isnan(tempXY(:,1));
+        tempXYFrameBefore(nanIdx,:)=[];
+        tempXY(nanIdx,:)=[];
+        % find which entries do not correspond to starts
+        notAStartIdx=~isnan(tempXYFrameBefore(:,1));
+        tempXY(notAStartIdx,:)=[];
+    end
+    
+    if ~isempty(tempXY)
+        scatter(tempXY(:,1),tempXY(:,2),'MarkerEdgeColor',col,'SizeData',(72/3)^2)
+    end
+
+end
+
+% if movieInfo given then ALL detected features will be shown with jet
 % colormap (not just the ones selected by the tracking)
 if ~isempty(movieInfo)
     colorOverTime = jet(timeRange(2)-timeRange(1)+1);
