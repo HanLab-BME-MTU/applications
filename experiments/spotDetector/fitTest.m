@@ -81,6 +81,12 @@ ub = [1]; %-> intensities are transformed onto [0 1]
 %get maxData for transform
 maxData = max(data(:));
 
+% check for problems
+if ~isfinite(maxData) || maxData == 0
+    warning('Max data value is either not finite or 0 in frame %i',evalin('caller','t'));
+    return
+end
+
 %TO PREVENT BADLY CONDITIONED MATRIX: transform data onto interval [~0 1]
 TRANSFACT = 1/maxData;
 transData = data*TRANSFACT;
