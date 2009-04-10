@@ -16,15 +16,31 @@ if (isempty(settings))
     return;
 end
 
-% Set up the main window
-h = figure('Tag', 'fsmDataViewer',...
-    'Name', 'fsmDataViewer',...
+% Get background of the first frame so that we can create the
+% current axes.
+[B cmap] = getBackground(settings, 1);
+
+% Set up the main figure (using imtool)
+hFig = imtool(B, []);
+set(hFig, 'Tag', 'fsmDataViewer',...
     'NumberTitle', 'off');
+
+% Unlock imtool axes children.
+set(hFig, 'HandleVisibility', 'on');
+
+% Set the colormap
+colormap(cmap);
+
+% Set the title of the window
+set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(1) '/' num2str(settings.numFrames) ')' ]);
+
+% Make the overview figure invisible.
+% TODO
 
 % Add a slider
 sliderStep = [1 5] / settings.numFrames;
 
-uicontrol(h, 'Style', 'slider', ...
+uicontrol(hFig, 'Style', 'slider', ...
     'Units', 'normalized',...
     'Value', sliderStep(1), ...
     'Min', sliderStep(1), ...
@@ -34,12 +50,17 @@ uicontrol(h, 'Style', 'slider', ...
     'Tag', 'sliderShowFrame', ...
     'Position', [0,0,1,0.05]);
 
-% Add menu (set settings, export menu, etc.)
+% Display layers of the first frame
+% displayLayers(hFig, 1);
+
+% Make the pixel region figure visible.
+% Make the overview figure visible.
+% TODO
+
+% Relock imtool axes children.
+set(hFig, 'HandleVisibility', 'callback');
 
 % Attach the settings to the figure
-set(h, 'UserData', settings);
-
-% Display the first frame
-displayFrame(h, 1);
+set(hFig, 'UserData', settings);
 
 end
