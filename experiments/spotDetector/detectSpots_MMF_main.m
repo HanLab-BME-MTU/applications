@@ -3,7 +3,7 @@ function [slist, debugData] = detectSpots_MMF_main(rawMovie,cord,dataProperties,
 %
 % SYNOPSIS: [slist, optData] = detectSpots_MMF_main(rawMovie,cord,dataProperties,testRatio,verbose,options)
 %
-% INPUT rawMovie: raw movie frames
+% INPUT rawMovie: raw movie frames or imageData object
 %       cord: coordinates array
 %		dataProperties: data properties structure
 %		testRatio: output of detectSpots_MMF_findAmplitudeCutoff. Can be
@@ -251,9 +251,9 @@ for t=goodTimes'
     % progressbar
     switch verbose
         case 1
-            mywaitbar(t/nTimepoints,h,nTimepoints);
+            mywaitbar(find(t==goodTimes),h,length(goodTimes));
         case 2
-            progressText(t/nTimepoints);
+            progressText(find(t==goodTimes)/length(goodTimes));
     end
 end; % loop time
 
