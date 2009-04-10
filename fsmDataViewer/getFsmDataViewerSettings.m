@@ -110,7 +110,7 @@ if settings.numBackgroundFiles && settings.numMaskFiles
 end
 
 % firstNonEmptyLayer corresponds to the index of the first non
-% empty layer. May be 0 is not channel is provided.
+% empty layer. May be 0 is not layer is provided.
 settings.firstNonEmptyLayer = 0;
 for iLayer = 1:5
     if numel(settings.layers{iLayer}.fileNames)
@@ -163,7 +163,7 @@ if settings.numBackgroundFiles && settings.numLayerFiles
         
         no = str2double(no);
         
-        [dummy, found] = findNumberedFileInList(settings.layers{firstNonEmptyLayer}.fileNames, str2double(no));
+        [dummy, found] = findNumberedFileInList(settings.layers{settings.firstNonEmptyLayer}.fileNames, no);
         
         if ~found
             status = 0;

@@ -15,7 +15,8 @@ B = getBackground(settings, iFrame);
 set(hFig, 'HandleVisibility', 'on');
 
 % Update the title of the window.
-set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(iFrame) '/' num2str(settings.numFrames) ')' ]);
+set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(iFrame) '/'...
+    num2str(settings.numFrames) ')' ]);
 
 % Get the axes of imtool.
 hAxes = get(hFig, 'CurrentAxes');
@@ -31,9 +32,17 @@ if numel(hImage) ~= 1
 end
 
 % Update the image data
+% FIXME: this command remove the pixel region tool.
 set(hImage, 'CData', B);
+
+% Display layers
+displayLayers(hFig, iFrame);
 
 % Relock imtool axes children.
 set(hFig, 'HandleVisibility', 'callback');
+
+% Attach the settings to the figure (for something above
+% has erased it).
+set(hFig, 'UserData', settings);
 
 end

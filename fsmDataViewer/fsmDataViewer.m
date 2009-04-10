@@ -34,9 +34,6 @@ colormap(cmap);
 % Set the title of the window
 set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(1) '/' num2str(settings.numFrames) ')' ]);
 
-% Make the overview figure invisible.
-% TODO
-
 % Add a slider
 sliderStep = [1 5] / settings.numFrames;
 
@@ -50,17 +47,13 @@ uicontrol(hFig, 'Style', 'slider', ...
     'Tag', 'sliderShowFrame', ...
     'Position', [0,0,1,0.05]);
 
-% Display layers of the first frame
-% displayLayers(hFig, 1);
+% Attach the settings to the figure.
+set(hFig, 'UserData', settings);
 
-% Make the pixel region figure visible.
-% Make the overview figure visible.
-% TODO
+% Display layers of the first frame
+displayLayers(hFig, 1);
 
 % Relock imtool axes children.
 set(hFig, 'HandleVisibility', 'callback');
-
-% Attach the settings to the figure
-set(hFig, 'UserData', settings);
 
 end

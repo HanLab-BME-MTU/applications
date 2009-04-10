@@ -1,100 +1,141 @@
 function [B cmap] = getBackground(settings, iFrame)
 
 backgroundIndex = settings.backgroundIndex;
-%numFrames = settings.numFrames;
 firstNonEmptyChannel = settings.firstNonEmptyChannel;
-numBackgroundFiles = settings.numBackgroundFiles;
-%numLayerFiles = settings.numLayerFiles;
 numMaskFiles = settings.numMaskFiles;
 
-% Read channels
-cmap = 'default';
+% Set default colormap to gray.
+cmap = 'gray';
 
-I = [];
-if firstNonEmptyChannel
+% Get the number of non-empty channels.
+numNonEmptyChannels = 0;
+for iChannel = 1:3
+    path = settings.channels{iChannel}.path;
+    if ~isempty(path)
+        numNonEmptyChannels = numNonEmptyChannels + 1;
+    end
+end
+
+if numNonEmptyChannels
     switch backgroundIndex
-        case 1, % from raw data
+        case 1, % From raw data
+            
+            % Open the image corresponding to the first channel.
             path = settings.channels{firstNonEmptyChannel}.path;
             fileName = settings.channels{firstNonEmptyChannel}.fileNames{iFrame};
             I = double(imread([path filesep fileName]));
-            B = cat(3, zeros(size(I, 1), size(I, 2), firstNonEmptyChannel - 1),...
-                I / max(I(:)),...
-                zeros(size(I, 1), size(I, 2), 3 - firstNonEmptyChannel));
-            for iChannel = firstNonEmptyChannel+1:3
-                path = settings.channels{iChannel}.path;
-                if ~isempty(path)
-                    fileName = settings.channels{iChannel}.fileNames{iFrame};
-                    I = double(imread([path filesep fileName]));
-                    B(:, :, iChannel) = I / max(I(:));
+            [m n] = size(I);
+            
+            if numNonEmptyChannels ~= 1
+                % Create an RGB image
+                B = cat(3, zeros(m, n, firstNonEmptyChannel - 1),...
+                    I / max(I(:)),...
+                    zeros(m, n, 3 - firstNonEmptyChannel));
+                
+                for iChannel = firstNonEmptyChannel+1:3
+                    path = settings.channels{iChannel}.path;
+                    if ~isempty(path)
+                        fileName = settings.channels{iChannel}.fileNames{iFrame};
+                        I = double(imread([path filesep fileName]));
+                        B(:, :, iChannel) = I / max(I(:));
+                    end
                 end
+            else
+                % Otherwise, a gray image
+                B = I;
             end
 
-        case 2, % from speed map
+        case 2, % From speed map
+            
+            % Open the speedmap file.
             path = settings.channels{firstNonEmptyChannel}.path;
             fileName = settings.channels{firstNonEmptyChannel}.fileNames{iFrame};
             load([path, filesep fileName]);
+            
+            % Check the validity of variables.
             if ~exist('speedMap', 'var')
-                error(['Unable to load the ''speedMap'' variable for ' path filesep fileName '.']);
+                error(['Unable to load the ''speedMap'' variable for '...
+                    path filesep fileName '.']);
             end
+            
             B = speedMap;
+            
+            % Set the proper colormap.
             cmap = 'jet';
+            
+            % Clear loaded variables.
+            clear speedMap;
 
-        case 3, % from kinetics map (REDO IT)
+        case 3, % from kinetics map
+            
+            % Open the speedmap file for the first channel.
             path = settings.channels{firstNonEmptyChannel}.path;
             fileName = settings.channels{firstNonEmptyChannel}.fileNames{iFrame};
             load([path, filesep fileName]);
+            
+            % Check the validity of variables.
             if exist('polyMap', 'var')
-                I = polyMap;
+                I = polyMap;                
                 I = I / max(I(:));
                 clear polyMap;
+            elseif exist('depolyMap', 'var')
+                I = depolyMap;
+                I = I / min(I(:));
+                clear depolyMap;
             else
-                if exist('depolyMap', 'var')
-                    I = depolyMap;
-                    I = I / min(I(:));
-                    clear depolyMap;
-                else
-                    error(['Unable to load the poly/depoly map variable for ' path filesep fileName '.']);
-                end
+                error(['Unable to load the poly/depoly map variable for '...
+                    path filesep fileName '.']);
             end
-            B = cat(3, zeros(size(I, 1), size(I, 2), firstNonEmptyChannel - 1),...
-                I,...
-                zeros(size(I, 1), size(I, 2), 3 - firstNonEmptyChannel));
-            for iChannel = firstNonEmptyChannel+1:3
-                path = settings.channels{iChannel}.path;
-                if ~isempty(path)
-                    fileName = settings.channels{iChannel}.fileNames{iFrame};
-                    load([path, filesep fileName]);
-                    if exist('polyMap', 'var')
-                        I = polyMap;
-                        I = I / max(I(:));
-                        clear polyMap;
-                    else
-                        if exist('depolyMap', 'var')
+
+            [m n] = size(I);
+            
+            if numNonEmptyChannels ~= 1
+                % Create an RGB image
+                B = cat(3, zeros(m, n, firstNonEmptyChannel - 1),...
+                    I,...
+                    zeros(m, n, 3 - firstNonEmptyChannel));
+                
+                for iChannel = firstNonEmptyChannel+1:3
+                    path = settings.channels{iChannel}.path;
+                    if ~isempty(path)
+                        fileName = settings.channels{iChannel}.fileNames{iFrame};
+                        load([path, filesep fileName]);
+                        
+                        % Check the validity of variables.
+                        if exist('polyMap', 'var')
+                            I = polyMap;
+                            I = I / max(I(:));
+                            clear polyMap;
+                        elseif exist('depolyMap', 'var')
                             I = depolyMap;
                             I = I / min(I(:));
                             clear depolyMap;
                         else
-                            error(['Unable to load the poly/depoly map variable for ' path filesep fileName '.']);
+                            error(['Unable to load the poly/depoly map variable for '...
+                                path filesep fileName '.']);
                         end
+                        B(:, :, iChannel) = I;
                     end
-                    B(:, :, iChannel) = I;
                 end
+            else
+                % Otherwise, a gray image
+                B = I;
             end
     end
 end
 
-% Add the mask
+% Add the masks
 if numMaskFiles
-    path = settings.mask.path;
+    maskPath = settings.mask.path;
 
-    if numBackgroundFiles
-        [dummy1, dummy2, no] = getFilenameBody([settings.channels{firstNonEmptyChannel}.path ...
-            filesep ...
-            settings.channels{firstNonEmptyChannel}.fileNames{iFrame}]);
+    if numNonEmptyChannels
+        path = settings.channels{firstNonEmptyChannel}.path;
+        fileName = settings.channels{firstNonEmptyChannel}.fileNames{iFrame};
+        [dummy1, dummy2, no] = getFilenameBody([path filesep fileName]);
 
         fileName = findNumberedFileInList(settings.mask.fileNames, str2double(no));
 
-        M = imread([path filesep fileName]);
+        M = imread([maskPath filesep fileName]);
 
         for iChannel = 1:size(B, 3)
             B(:, :, iChannel) = B(:, :, iChannel) .* M;
@@ -102,9 +143,11 @@ if numMaskFiles
     else
         fileName = settings.mask.fileNames{iFrame};
 
-        M = imread([path filesep fileName]);
+        M = imread([maskPath filesep fileName]);
 
         B = M;
     end
 end
+
 end
+
