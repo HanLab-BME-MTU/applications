@@ -5,7 +5,7 @@
 % track segment start that allows linking them. if timeWindow = n, then
 % there are n-1 frames between the last detection event of the first track
 % segment and the first detection event of the second track segment.
-gapCloseParam.timeWindow = 7; 
+gapCloseParam.timeWindow = 8; 
 
 % 1 if merging and splitting are to be considered, 0 otherwise.
 % even though EB comets might overlap in a given frame, they do not merge
@@ -60,9 +60,9 @@ costMatrices(2).funcName = 'costMatLinearMotionCloseGaps_EB3';
 % parameters.useLocalDensity = 1; %1 if you want to expand the search radius of isolated features in the gap closing and merging/splitting step.
 parameters.nnWindow = gapCloseParam.timeWindow; %number of frames before/after the current one where you want to look for a track's nearest neighbor at its end/start (in the gap closing step).
 
-parameters.maxFAngle = 45;
-parameters.maxBAngle = 15;
-parameters.backVelMultFactor = 2;
+parameters.maxFAngle = 30;
+parameters.maxBAngle = 10;
+parameters.backVelMultFactor = 1.5;
 
 costMatrices(2).parameters = parameters;
 clear parameters
@@ -79,6 +79,7 @@ kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
 %saveResults
 [currentProj]=getProj(pwd);
 if isempty(currentProj) || size(currentProj,1)~=1
+    currentProj=[];
     currentProj.anDir=uigetdir(pwd,'Please select ROI directory');
 end
 featDir = [currentProj.anDir filesep 'feat'];
