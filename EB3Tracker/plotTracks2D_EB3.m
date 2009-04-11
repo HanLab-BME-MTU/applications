@@ -42,12 +42,16 @@ function [selectedTracks] = plotTracks2D_EB3(trackedFeatureInfo,timeRange,img,as
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+selectedTracks=[]; % initialize output
 
 if nargin<1 || isempty(trackedFeatureInfo)
 
     % if not given as input, ask user for ROI directory
     runInfo.anDir=uigetdir(pwd,'Please select ROI directory');
-
+    if runInfo.anDir==0
+        return
+    end
+    
     % load tracksFinal (tracking result)
     trackDir = [runInfo.anDir filesep 'track'];
 
@@ -87,9 +91,13 @@ numTimePoints = numTimePoints/8;
 if nargin<2 || isempty(timeRange)
     timeRange = [1 numTimePoints];
 else
-    if timeRange(1) < 1 || timeRange(2) > numTimePoints
-        error('--plotTracks2D_EB3: Wrong time range for plotting!');
+    if timeRange(1) < 1
+        timeRange(1)=1;
     end
+    if timeRange(2) > numTimePoints
+        timeRange(2)=numTimePoints;
+    end
+
 end
 
 %check whether user supplied an image
@@ -101,6 +109,9 @@ if nargin<3 || isempty(img)
         cd ..
     end
     [fileName,pathName] = uigetfile('*.tif','Select image to use for track overlay');
+    if fileName==0
+        return
+    end
     img=double(imread([pathName filesep fileName]));
     cd(homeDir);
 end
@@ -114,7 +125,7 @@ end
 %plotCurrentOnly-frame or all tracks in frame range
 if nargin<5 || isempty(plotCurrentOnly)
     plotCurrentOnly=0; %default: all frames in timeRange
-    close all
+    figure
 else
     if plotCurrentOnly<timeRange(1) || plotCurrentOnly>timeRange(2)
         error('--plotTracks2D_EB3: plotCurrentOnly must be within timeRange');
@@ -294,7 +305,7 @@ for t=1:4
             tempMatX=ugapMatX;
             tempMatY=ugapMatY;
             col='m';
-            
+
         case 2
             tempMatX=fgapMatX;
             tempMatY=fgapMatY;
@@ -328,7 +339,7 @@ for t=1:4
         notAStartIdx=~isnan(tempXYFrameBefore(:,1));
         tempXY(notAStartIdx,:)=[];
     end
-    
+
     if ~isempty(tempXY)
         scatter(tempXY(:,1),tempXY(:,2),'MarkerEdgeColor',col,'SizeData',(72/3)^2)
     end
@@ -354,23 +365,18 @@ if ~isempty(movieInfo)
     end
 end
 
-selectedTracks=[]; % initialize output
+
 if ask4sel
     %extract the portion of tracksX and tracksY that is of interest
     tracksXPInterp = tracksXInterp(timeRange(1):timeRange(2),:)-minX+1;
     tracksYPInterp = tracksYInterp(timeRange(1):timeRange(2),:)-minY+1;
 
     %ask the user whether to click on figure and get frame information
-    userEntry = input('select points in figure? y/n ','s');
-    if strcmp(userEntry,'y')
-        disp('Use normal button clicks to add points.')
-        disp('Double-click to add a final point and end selection.')
-        disp('Press Enter to end selection without adding a final point.')
-        disp('Press Backspace or Delete to remove previously selected point.')
-        disp('--------------------------------------------------------------')
-    end
+    userEntry = 'yes';
+    msgbox('Left-click to add points. Double-click to add final point and end selection, or press Enter to end selection without adding a final point. Press Backspace or Delete to remove previously selected point.','Help for track selection','help')
+    uiwait
     count = 1;
-    while strcmp(userEntry,'y')
+    while strcmp(lower(userEntry),'yes')
 
         %let the user choose the points of interest
         [x,y] = getpts;
@@ -396,15 +402,17 @@ if ask4sel
                 tUgap = ugaps(ugaps(:,1)==trackChosen,:);
 
 
-                disp(['Track: ' num2str(trackChosen) ...
-                    '   Frame: ' num2str(frameChosen(j)+timeRange(1)-1)]);
-
+                
                 prof = [tSeg 1*ones(size(tSeg,1),1); ...
                     tFgap 2*ones(size(tFgap,1),1); ...
                     tBgap 3*ones(size(tBgap,1),1); ...
                     tUgap 4*ones(size(tUgap,1),1);];
-                trackProfile = sortrows(prof,2)
+                trackProfile = sortrows(prof,2);
                 selectedTracks{count,1} = trackProfile;
+                
+                disp(['Track: ' num2str(trackChosen) ...
+                    '   Frame: ' num2str(frameChosen(j)+timeRange(1)-1)]);
+                disp(trackProfile)
 
                 text(tracksXPInterp(frameChosen(j),rowChosen(j)),tracksYPInterp(frameChosen(j),rowChosen(j)),...
                     ['\leftarrow' num2str(trackProfile(1,1))],'Color','y','FontWeight','bold')
@@ -414,7 +422,7 @@ if ask4sel
         end
 
         %ask the user again whether to click on figure and get frame information
-        userEntry = input('select points again? y/n ','s');
+        userEntry = questdlg('Do you want to select more points?');
 
     end
 
