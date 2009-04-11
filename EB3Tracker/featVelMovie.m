@@ -12,7 +12,8 @@ function featVelMovie(projData,timeRange,velLimit,roiYX,aviInstead)
 %                           be displayed.
 %       velLimit          : max speed to use for colormap (speeds higher
 %                           than velLimit or lower than -velLimit will be
-%                           plotted as red or blue, respectively.
+%                           plotted as red or blue, respectively. if not
+%                           given or given as [], max value will be used.
 %       roiYX             : coordinates of a region-of-interest (closed
 %                           polygon) in which tracks should be plotted, or
 %                           a logical mask the size of the image. if given
@@ -24,7 +25,7 @@ function featVelMovie(projData,timeRange,velLimit,roiYX,aviInstead)
 %       Cool colors correspond to shrinkage events (these have "negative"
 %       speeds); warm colors correspond to growth or pause.
 
-close all
+
 homeDir=pwd;
 
 % get runInfo in correct format
@@ -32,6 +33,9 @@ if nargin<1 || isempty(projData)
     % if not given as input, ask user for ROI directory
     % assume images directory is at same level
     [fileName,pathName]=uigetfile('*.mat','Please select projData from META directory');
+    if fileName==0
+        return
+    end
     projData=load([pathName filesep fileName]);
     projData=projData.projData;
 end
@@ -49,8 +53,11 @@ cd(movDir)
 if nargin<3 || isempty(timeRange)
     timeRange = [1 projData.numFrames];
 else
-    if timeRange(1) < 1 || timeRange(2) > projData.numFrames
-        error('--propVelScatter: Problem with timeRange');
+    if timeRange(1) < 1
+        timeRange(1)=1;
+    end
+    if timeRange(2) > projData.numFrames
+        timeRange(2)=projData.numFrames;
     end
 end
 startFrame = timeRange(1);
@@ -72,7 +79,10 @@ img = double(imread(fileNameIm));
 % check input for ROI coordinates
 if nargin<4 || isempty(roiYX)
     imscaled=(img-min(img(:)))./(max(img(:))-min(img(:)));
+    figure
+    set(gcf,'Name','Choose ROI by clicking on image...')
     [BW,xi,yi] = roipoly(imscaled);
+    close(figure(gcf))
     roiYX=[yi xi];
 elseif islogical(roiYX)
     [r c]=find(roiYX);
@@ -164,7 +174,6 @@ for iFrame=startFrame:endFrame-1
     
     fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
     img = double(imread(fileNameIm));
-
     imagesc(img(minY:maxY,minX:maxX))
     colormap gray
 
@@ -203,5 +212,6 @@ else
 end
 
 save([movieName '_roiYX'],'roiYX')
-close all
+
 cd(homeDir)
+close(figure(gcf))
