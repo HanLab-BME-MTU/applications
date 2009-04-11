@@ -44,7 +44,6 @@ function trackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTracks,showD
 %       generate them
 
 
-close all
 homeDir=pwd;
 
 % get projData in correct format
@@ -52,6 +51,9 @@ if nargin<1 || isempty(projData)
     % if not given as input, ask user for ROI directory
     % assume images directory is at same level
     [fileName,pathName]=uigetfile('*.mat','Please select projData from META directory');
+    if fileName==0
+        return
+    end
     projData=load([pathName filesep fileName]);
     projData=projData.projData;
 end
@@ -61,6 +63,9 @@ projData.imDir=formatPath(projData.imDir);
 
 % get output directory from the user
 projData.movDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
+if projData.movDir==0
+    return
+end
 cd(projData.movDir)
 
 % load movieInfo (detection result)
@@ -99,7 +104,7 @@ clear trackedFeatureIndx
 [numTracks,numTimePoints] = size(trackedFeatureInfo);
 numTimePoints = numTimePoints/8;
 
-% if no individual track given, check/assign timeRange input
+% if no individual track given, check/assign input
 if nargin<2 || isempty(indivTrack)
     indivTrack=[];
 else
@@ -113,8 +118,11 @@ if isempty(indivTrack)
     if nargin<3 || isempty(timeRange)
         timeRange = [1 numTimePoints];
     else
-        if timeRange(1) < 1 || timeRange(2) > numTimePoints
-            error('--trackMovie: Problem with timeRange');
+        if timeRange(1) < 1
+            timeRange(1)=1;
+        end
+        if timeRange(2) > numTimePoints
+            timeRange(2)=numTimePoints;
         end
     end
 
@@ -167,7 +175,10 @@ for iMovie=1:size(timeRange,1)
         % check input for ROI coordinates
         if nargin<4 || isempty(roiYX)
             imscaled=(img-min(img(:)))./(max(img(:))-min(img(:)));
+            figure
+            set(gcf,'Name','Choose ROI by clicking on image...')
             [BW,xi,yi] = roipoly(imscaled);
+            close(figure(gcf))
             roiYX=[yi xi];
         elseif islogical(roiYX)
             [r c]=find(roiYX);
@@ -359,7 +370,7 @@ for iMovie=1:size(timeRange,1)
 
     save([movieName '_roiYX'],'roiYX')
 
-    close all
+    close(figure(gcf));
     clear F
 end
 cd(homeDir)
