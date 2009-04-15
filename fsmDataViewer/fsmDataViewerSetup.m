@@ -9,7 +9,8 @@ function varargout = fsmDataViewerSetup(varargin)
 %      FSMDATAVIEWERSETUP('CALLBACK',hObject,eventData,handles,...) calls the local
 %      function named CALLBACK in FSMDATAVIEWERSETUP.M with the given input arguments.
 %
-%      FSMDATAVIEWERSETUP('Property','Value',...) creates a new FSMDATAVIEWERSETUP or raises the
+%      FSMDATAVIEWERSETUP('Property','Value',...) creates a new
+%      FSMDATAVIEWERSETUP or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
 %      applied to the GUI before fsmDataViewerSetup_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
@@ -22,7 +23,7 @@ function varargout = fsmDataViewerSetup(varargin)
 
 % Edit the above text to modify the response to help fsmDataViewerSetup
 
-% Last Modified by GUIDE v2.5 23-Mar-2009 12:10:40
+% Last Modified by GUIDE v2.5 14-Apr-2009 15:47:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -79,45 +80,65 @@ if nargout >= 1
     varargout{1} = settings;
 end
 
-
-% --- Executes on selection change in listboxBackground.
-function listboxBackground_Callback(hObject, eventdata, handles)
-% hObject    handle to listboxBackground (see GCBO)
+function editRootDirectory_Callback(hObject, eventdata, handles)
+% hObject    handle to editRootDirectory (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = get(hObject,'String') returns listboxBackground contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listboxBackground
-
-hFsmDataViewerSetup = get(hObject, 'Parent');
-
-status = 'on';
-
-if get(hObject, 'Value') == 2
-    status = 'off';
-end
-
-h = findobj(hFsmDataViewerSetup, 'Tag', 'textGreenChannel');
-set(h, 'Enable', status);
-h = findobj(hFsmDataViewerSetup, 'Tag', 'textBlueChannel');
-set(h, 'Enable', status);
-h = findobj(hFsmDataViewerSetup, 'Tag', 'editRedChannel');
-set(h, 'String', '');
-h = findobj(hFsmDataViewerSetup, 'Tag', 'editGreenChannel');
-set(h, 'Enable', status);
-set(h, 'String', '');
-h = findobj(hFsmDataViewerSetup, 'Tag', 'editBlueChannel');
-set(h, 'Enable', status);
-set(h, 'String', '');
-h = findobj(hFsmDataViewerSetup, 'Tag', 'pushButtonGreenChannel');
-set(h, 'Enable', status);
-h = findobj(hFsmDataViewerSetup, 'Tag', 'pushButtonBlueChannel');
-set(h, 'Enable', status);
+% Hints: get(hObject,'String') returns contents of editRootDirectory as text
+%        str2double(get(hObject,'String')) returns contents of editRootDirectory as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function listboxBackground_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listboxBackground (see GCBO)
+function editRootDirectory_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editRootDirectory (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on button press in pushbuttonRootDirectory.
+function pushbuttonRootDirectory_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonRootDirectory (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+hFig = get(hObject, 'Parent');
+
+rootDirectory = uigetdir('', 'Select a root directory:');
+
+if rootDirectory
+    h = findobj(hFig, 'Tag', 'editRootDirectory');
+    set(h, 'String', rootDirectory);
+end
+
+% --- Executes on selection change in listboxChannelType.
+function listboxChannelType_Callback(hObject, eventdata, handles)
+% hObject    handle to listboxChannelType (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns listboxChannelType contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from listboxChannelType
+
+channelType = get(hObject, 'Value');
+
+status = 'on';
+if channelType == 1
+    status = 'off';
+end
+    
+hFig = get(hObject, 'Parent');
+hPushButtonChannel = findobj(hFig, 'Tag', 'pushbuttonChannel');
+set(hPushButtonChannel, 'Enable', status);
+ 
+% --- Executes during object creation, after setting all properties.
+function listboxChannelType_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to listboxChannelType (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -127,143 +148,96 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function editRedChannel_Callback(hObject, eventdata, handles)
-% hObject    handle to editRedChannel (see GCBO)
+% --- Executes on button press in pushbuttonChannel.
+function pushbuttonChannel_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonChannel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of editRedChannel as text
-%        str2double(get(hObject,'String')) returns contents of editRedChannel as a double
+hPanel = get(hObject, 'Parent');
+hFig = get(hPanel, 'Parent');
+
+% Get the root directory
+h = findobj(hFig, 'Tag', 'editRootDirectory');
+rootDirectory = get(h, 'String');
+currentDirectory = pwd;
+
+% Change directory
+if ~isempty(rootDirectory)
+    cd(rootDirectory);
+end
+
+% Get the channel type
+h = findobj(hPanel, 'Tag', 'listboxChannelType');
+channelTypeName = get(h, 'String');
+channelType = get(h, 'Value');
+
+switch channelType
+    case 2, filterSpec = {'*.tif';'*jpg';'*.png'}; % raw images
+    case 3, filterSpec = {'*.mat'}; % speed map
+    case 4, filterSpec = {'*.mat'}; % poly map
+    case 5, filterSpec = {'*.mat'}; % depoly map
+    otherwise, error('Invalid channel type.');
+end
+
+% Get the image file
+[fileName, directoryName] = uigetfile(filterSpec, 'Select an image file');
+
+if ischar(fileName) && ischar(directoryName)
+    h = findobj(hPanel, 'Tag', 'uitableChannels');
+    data = get(h, 'Data');
+    newData = {true,...
+        channelTypeName{channelType},...
+        'gray',...
+        [directoryName fileName]};
+    data = vertcat(data, newData);
+    set(h, 'Data', data);
+    set(h, 'ColumnWidth', {20, 110, 65, 280});
+end
+
+% Go back to the current directory
+if ~isempty(rootDirectory)
+    cd(currentDirectory);
+end
+
+% --- Executes when selected cell(s) is changed in uitableChannels.
+function uitableChannels_CellSelectionCallback(hObject, eventdata, handles)
+% hObject    handle to uitableChannels (see GCBO)
+% eventdata  structure with the following fields (see UITABLE)
+%	Indices: row and column indices of the cell(s) currently selecteds
+% handles    structure with handles and user data (see GUIDATA)
 
 
 % --- Executes during object creation, after setting all properties.
-function editRedChannel_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editRedChannel (see GCBO)
+function uitableChannels_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to uitableChannels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in pushButtonRedChannel.
-function pushButtonRedChannel_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonRedChannel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% if (SpeedMap | KineticsMap) is selected, we expect '.mat' files.
-hFsmDataViewerSetup = get(hObject, 'Parent');
-h = findobj(hFsmDataViewerSetup, 'Tag', 'listboxBackground');
-
-if (get(h, 'Value') == 1)
-    [fileName, directoryName] = uigetfile({'*.tif';'*jpg';'*.png'}, 'Select first image');
-else
-    [fileName, directoryName] = uigetfile('*.mat', 'Select first image data');
-end
-
-if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewerSetup = get(hObject, 'Parent');
-    h = findobj(hFsmDataViewerSetup, 'Tag', 'editRedChannel');
-    set(h, 'String', [directoryName fileName]);
-end
-
-function editGreenChannel_Callback(hObject, eventdata, handles)
-% hObject    handle to editGreenChannel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of editGreenChannel as text
-%        str2double(get(hObject,'String')) returns contents of editGreenChannel as a double
-
-
 % --- Executes during object creation, after setting all properties.
-function editGreenChannel_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editGreenChannel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+set(hObject, 'Data', cell(0, 4));
 
-
-% --- Executes on button press in pushButtonGreenChannel.
-function pushButtonGreenChannel_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonGreenChannel (see GCBO)
+% --- Executes on button press in checkboxMask.
+function checkboxMask_Callback(hObject, eventdata, handles)
+% hObject    handle to checkboxMask (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% if (SpeedMap | KineticsMap) is selected, we expect '.mat' files.
-hFsmDataViewerSetup = get(hObject, 'Parent');
-h = findobj(hFsmDataViewerSetup, 'Tag', 'listboxBackground');
+% Hint: get(hObject,'Value') returns toggle state of checkboxMask
+enable = get(hObject, 'Value');
 
-if (get(h, 'Value') == 1)
-    [fileName, directoryName] = uigetfile({'*.tif';'*jpg';'*.png'}, 'Select first image');
-else
-    [fileName, directoryName] = uigetfile('*.mat', 'Select first image data');
+hPanel = get(hObject, 'Parent');
+hEditMask = findobj(hPanel, 'Tag', 'editMask');
+hPushbuttonMask = findobj(hPanel, 'Tag', 'pushbuttonMask');
+
+status = 'off';
+
+if enable
+    status = 'on';
 end
 
-if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewerSetup = get(hObject, 'Parent');
-
-    h = findobj(hFsmDataViewerSetup, 'Tag', 'editGreenChannel');
-    set(h, 'String', [directoryName fileName]);
-end
-
-
-function editBlueChannel_Callback(hObject, eventdata, handles)
-% hObject    handle to editBlueChannel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of editBlueChannel as text
-%        str2double(get(hObject,'String')) returns contents of editBlueChannel as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function editBlueChannel_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editBlueChannel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in pushButtonBlueChannel.
-function pushButtonBlueChannel_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonBlueChannel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% if (SpeedMap | KineticsMap) is selected, we expect '.mat' files.
-hFsmDataViewerSetup = get(hObject, 'Parent');
-h = findobj(hFsmDataViewerSetup, 'Tag', 'listboxBackground');
-
-if (get(h, 'Value') == 1)
-    [fileName, directoryName] = uigetfile({'*.tif';'*jpg';'*.png'}, 'Select first image');
-else
-    [fileName, directoryName] = uigetfile('*.mat', 'Select first image data');
-end
-
-if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewerSetup = get(hObject, 'Parent');
-
-    h = findobj(hFsmDataViewerSetup, 'Tag', 'editBlueChannel');
-    set(h, 'String', [directoryName fileName]);
-end
-
+set(hEditMask, 'Enable', status);
+set(hPushbuttonMask, 'Enable', status);
 
 function editMask_Callback(hObject, eventdata, handles)
 % hObject    handle to editMask (see GCBO)
@@ -287,305 +261,159 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in pushButtonMask.
-function pushButtonMask_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonMask (see GCBO)
+% --- Executes on button press in pushbuttonMask.
+function pushbuttonMask_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonMask (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[fileName, directoryName] = uigetfile({'*.tif'}, 'Select first image');
+hPanel = get(hObject, 'Parent');
+hFig = get(hPanel, 'Parent');
+
+% Get the root directory
+h = findobj(hFig, 'Tag', 'editRootDirectory');
+rootDirectory = get(h, 'String');
+currentDirectory = pwd;
+
+% Change directory
+if ~isempty(rootDirectory)
+    cd(rootDirectory);
+end
+
+[fileName, directoryName] = uigetfile({'*.tif'}, 'Select a cell mask');
 
 if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewerSetup = get(hObject, 'Parent');
-
-    h = findobj(hFsmDataViewerSetup, 'Tag', 'editMask');
+    h = findobj(hPanel, 'Tag', 'editMask');
     set(h, 'String', [directoryName fileName]);
 end
 
-function editLayer1_Callback(hObject, eventdata, handles)
-% hObject    handle to editLayer1 (see GCBO)
+% Go back to the current directory
+if ~isempty(rootDirectory)
+    cd(currentDirectory);
+end
+
+
+% --- Executes on selection change in listboxLayerType.
+function listboxLayerType_Callback(hObject, eventdata, handles)
+% hObject    handle to listboxLayerType (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of editLayer1 as text
-%        str2double(get(hObject,'String')) returns contents of editLayer1 as a double
+% Hints: contents = get(hObject,'String') returns listboxLayerType contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from listboxLayerType
 
+channelType = get(hObject, 'Value');
+
+status = 'on';
+if channelType == 1
+    status = 'off';
+end
+    
+hFig = get(hObject, 'Parent');
+hPushButtonChannel = findobj(hFig, 'Tag', 'pushbuttonChannel');
+set(hPushButtonChannel, 'Enable', status);
 
 % --- Executes during object creation, after setting all properties.
-function editLayer1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editLayer1 (see GCBO)
+function listboxLayerType_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to listboxLayerType (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
+% Hint: popupmenu controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-% --- Executes on button press in pushButtonLayer1.
-function pushButtonLayer1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonLayer1 (see GCBO)
+% --- Executes on button press in pushbuttonLayer.
+function pushbuttonLayer_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonLayer (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
+hPanel = get(hObject, 'Parent');
+hFig = get(hPanel, 'Parent');
 
-if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewerSetup = get(hObject, 'Parent');
+% Get the root directory
+h = findobj(hFig, 'Tag', 'editRootDirectory');
+rootDirectory = get(h, 'String');
+currentDirectory = pwd;
 
-    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer1');
-    set(h, 'String', [directoryName fileName]);
+% Change directory
+if ~isempty(rootDirectory)
+    cd(rootDirectory);
 end
 
+% Get the layer type
+h = findobj(hPanel, 'Tag', 'listboxChannelType');
+layerTypeName = get(h, 'String');
+layerType = get(h, 'Value');
 
-function editLayer2_Callback(hObject, eventdata, handles)
-% hObject    handle to editLayer2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
+switch layerType
+    case 2, filterSpec = {'*.mat'}; % speckles
+    otherwise, error('Invalid channel type.');
+end
+
+% Get the image file
+[fileName, directoryName] = uigetfile(filterSpec, 'Select an image file');
+
+if ischar(fileName) && ischar(directoryName)
+    h = findobj(hPanel, 'Tag', 'uitableLayers');
+    data = get(h, 'Data');
+    newData = {true,...
+        layerTypeName{layerType},...
+        'gray',...
+        [directoryName fileName]};
+    data = vertcat(data, newData);
+    set(h, 'Data', data);
+    set(h, 'ColumnWidth', {20, 110, 65, 280});
+end
+
+% Go back to the current directory
+if ~isempty(rootDirectory)
+    cd(currentDirectory);
+end
+
+% --- Executes when selected cell(s) is changed in uitableLayers.
+function uitableLayers_CellSelectionCallback(hObject, eventdata, handles)
+% hObject    handle to uitableLayers (see GCBO)
+% eventdata  structure with the following fields (see UITABLE)
+%	Indices: row and column indices of the cell(s) currently selecteds
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of editLayer2 as text
-%        str2double(get(hObject,'String')) returns contents of editLayer2 as a double
-
-
 % --- Executes during object creation, after setting all properties.
-function editLayer2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editLayer2 (see GCBO)
+function uitableLayers_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to uitableLayers (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+set(hObject, 'Data', cell(0, 4));
 
-
-% --- Executes on button press in pushButtonLayer2.
-function pushButtonLayer2_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonLayer2 (see GCBO)
+% --- Executes on button press in pushbuttonOK.
+function pushbuttonOK_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonOK (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
+hFig = get(hObject, 'Parent');
 
-if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewerSetup = get(hObject, 'Parent');
-
-    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer2');
-    set(h, 'String', [directoryName fileName]);
-end
-
-
-function editLayer3_Callback(hObject, eventdata, handles)
-% hObject    handle to editLayer3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of editLayer3 as text
-%        str2double(get(hObject,'String')) returns contents of editLayer3 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function editLayer3_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editLayer3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in pushButtonLayer3.
-function pushButtonLayer3_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonLayer3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-[fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
-
-if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewerSetup = get(hObject, 'Parent');
-
-    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer3');
-    set(h, 'String', [directoryName fileName]);
-end
-
-
-function editLayer4_Callback(hObject, eventdata, handles)
-% hObject    handle to editLayer4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of editLayer4 as text
-%        str2double(get(hObject,'String')) returns contents of editLayer4 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function editLayer4_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editLayer4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in pushButtonLayer4.
-function pushButtonLayer4_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonLayer4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-[fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
-
-if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewerSetup = get(hObject, 'Parent');
-
-    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer4');
-    set(h, 'String', [directoryName fileName]);
-end
-
-
-function editLayer5_Callback(hObject, eventdata, handles)
-% hObject    handle to editLayer5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of editLayer5 as text
-%        str2double(get(hObject,'String')) returns contents of editLayer5 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function editLayer5_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editLayer5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in pushButtonLayer5.
-function pushButtonLayer5_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonLayer5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-[fileName, directoryName] = uigetfile({'*.mat'}, 'Select first image data');
-
-if ischar(fileName) && ischar(directoryName)
-    hFsmDataViewerSetup = get(hObject, 'Parent');
-
-    h = findobj(hFsmDataViewerSetup, 'Tag', 'editLayer5');
-    set(h, 'String', [directoryName fileName]);
-end
-
-% --- Executes on button press in pushButtonColorLayer1.
-function pushButtonColorLayer1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonColorLayer1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-currentColor = get(hObject, 'backgroundColor');
-
-color = uisetcolor(currentColor);
-
-if numel(color) == 3
-    set(hObject, 'backgroundColor', color);
-end
-
-% --- Executes on button press in pushButtonColorLayer2.
-function pushButtonColorLayer2_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonColorLayer2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-currentColor = get(hObject, 'backgroundColor');
-
-color = uisetcolor(currentColor);
-
-if numel(color) == 3
-    set(hObject, 'backgroundColor', color);
-end
-
-% --- Executes on button press in pushButtonColorLayer3.
-function pushButtonColorLayer3_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonColorLayer3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-currentColor = get(hObject, 'backgroundColor');
-
-color = uisetcolor(currentColor);
-
-if numel(color) == 3
-    set(hObject, 'backgroundColor', color);
-end
-
-% --- Executes on button press in pushButtonColorLayer4.
-function pushButtonColorLayer4_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonColorLayer4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-currentColor = get(hObject, 'backgroundColor');
-
-color = uisetcolor(currentColor);
-
-if numel(color) == 3
-    set(hObject, 'backgroundColor', color);
-end
-
-% --- Executes on button press in pushButtonColorLayer5.
-function pushButtonColorLayer5_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonColorLayer5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-currentColor = get(hObject, 'backgroundColor');
-
-color = uisetcolor(currentColor);
-
-if numel(color) == 3
-    set(hObject, 'backgroundColor', color);
-end
-
-
-% --- Executes on button press in pushButtonOK.
-function pushButtonOK_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonOK (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-hFsmDataViewerSetup = get(hObject, 'Parent');
-
-[settings status] = getFsmDataViewerSettings(hFsmDataViewerSetup);
+[settings status] = getSettings(hFig);
 
 if (status)
-    set(hFsmDataViewerSetup, 'UserData', settings);
+    set(hFig, 'UserData', settings);
     
-    uiresume(hFsmDataViewerSetup);
+    uiresume(hFig);
 end
 
-% --- Executes on button press in pushButtonCancel.
-function pushButtonCancel_Callback(hObject, eventdata, handles)
-% hObject    handle to pushButtonCancel (see GCBO)
+% --- Executes on button press in pushbuttonCancel.
+function pushbuttonCancel_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonCancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-hFsmDataViewerSetup = get(hObject, 'Parent');
+hFig = get(hObject, 'Parent');
 
-set(hFsmDataViewerSetup, 'UserData', []);
+set(hFig, 'UserData', []);
 
-uiresume(hFsmDataViewerSetup);
+uiresume(hFig);
+

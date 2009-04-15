@@ -1,4 +1,4 @@
-function [B cmap] = getBackground(settings, iFrame)
+function [B cmap] = getImageChannels(settings, iFrame)
 
 backgroundIndex = settings.backgroundIndex;
 firstNonEmptyChannel = settings.firstNonEmptyChannel;
