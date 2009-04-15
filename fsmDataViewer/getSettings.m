@@ -3,6 +3,8 @@ function [settings, status] = getSettings(hFig)
 % Get channels
 h = findobj(hFig, 'Tag', 'uitableChannels');
 data = get(h, 'Data');
+columnFormat = get(h, 'ColumnFormat');
+colorNames = columnFormat{4};
 
 settings.channels = {};
 
@@ -11,7 +13,9 @@ for iChannel = 1:size(data, 1)
     
     if selected
         channel.type = data{iChannel, 2};
-        channel.color = data{iChannel, 3};
+
+        colorName = data{iChannel, 3};
+        channel.color = strmatch(colorName, colorNames);        
         
         [path, fileNames, status] = getFileNames(data{iChannel, 4});
 
@@ -55,7 +59,9 @@ for iLayer = 1:size(data, 1)
     
     if selected
         layer.type = data{iChannel, 2};
-        layer.color = data{iChannel, 3};
+
+        colorName = data{iChannel, 3};
+        layer.color = strmatch(colorName, colorNames);        
         
         [path, fileNames, status] = getFileNames(data{iChannel, 4});
 
@@ -84,25 +90,20 @@ end
 %
 % - no multiple occurences of any color allowed
 % - gray is possible only if numChannels == 1
-%
-% gray = 1
-% red = 2
-% green = 3
-% blue = 4
 
 numColorsOcc = zeros(1, 4);
 for iChannel = 1:settings.numChannels
     numColorsOcc(settings.channels{iChannel}.color) = ...
-        numColorOcc(settings.channels{iChannel}.color) + 1;
+        numColorsOcc(settings.channels{iChannel}.color) + 1;
 end
 
-if numColorOcc(1) && max(numColorOcc(2:4)) ~= 0
+if numColorsOcc(1) && max(numColorsOcc(2:4)) ~= 0
     status = 0;
     errordlg('Gray color cannot be assigned when multiple channels are provided.');
     return;
 end
 
-if max(colorOccurences) > 1
+if max(numColorsOcc) > 1
     status = 0;
     errordlg('Multiple occurences of the same channel color is not possible.');
     return;

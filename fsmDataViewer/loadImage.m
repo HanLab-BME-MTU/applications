@@ -25,17 +25,23 @@ numChannelFiles = settings.numChannelFiles;
 numMaskFiles = settings.numMaskFiles;
 numLayerFiles = settings.numLayerFiles;
 
+channelTypeNames = {'Raw Images'}; 
+channelLoaders = {@imread};
+
 % Get sequence dimension from the first image.
 
 if ~numLayerFiles
     if numMaskFiles
-        BW = imread([settings.maskPath filesep settings.maskFileNames{iFrame}]);
+        BW = imread([settings.maskPath filesep...
+            settings.maskFileNames{iFrame}]);
     end
-    if numChannelFiles
+    if numChannelFiles        
         I = [];
         for iChannel = 1:numChannels
-            J = imread([settings.channels{1}.path filesep...
-                settings.channels{1}.fileNames{iFrame}]);
+            channelTypeName = settings.channels{iChannel}.type;
+            channelType = strmatch(channelTypeName, channelTypeNames);
+            J = channelLoaders{channelType}([settings.channels{iChannel}.path...
+                filesep settings.channels{1}.fileNames{iFrame}]);
             I = cat(3, I, J);
         end
         % Fill with empty channel if numChannels == 2
@@ -43,13 +49,14 @@ if ~numLayerFiles
             [m n] = size(I);
             I = cat(3, I, zeros(m, n, class(I)));
         end
+        
         % Make channel permutation according to channel colors
         % TODO
     end
     
     if numMaskFiles % else (case 2)
         if numChannelFiles
-            I(BW == 0) = 0; % (case 3)
+            I(BW == 0, :) = 0; % (case 3)
         else
             I = uint8(BW); % (case 1)
         end
