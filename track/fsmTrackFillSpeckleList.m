@@ -62,9 +62,10 @@ t = toc;
 disp(['to be deleted: ' num2str(t)]);
 
 % .. TO HERE CAN BE REPLACED BY:
+tic;
 speckleMap2 = zeros(imgSize);
 Lmax = cat(1, cands(:).Lmax);
-Imax = cat(1, cands(:).Imax);
+Imax = cat(1, cands(:).ILmax);
 status = cat(1, cands(:).status);
 
 indStatus = find(status);
@@ -81,3 +82,5 @@ disp(['err(speckleMap2 - speckleMap) = '...
     num2str(max(max(abs(speckleMap2 - speckleMap))))]);
 disp(['err(speckleMap2 - speckleMap) = '...
     num2str(min(min(abs(speckleMap2 - speckleMap))))]);
+t = toc;
+disp(['replaced by: ' num2str(t)]);
