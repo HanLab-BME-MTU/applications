@@ -2,7 +2,8 @@ function outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixe
 % fsmSpeedMaps creates speed maps from the flow maps returned by the SpeckTackle package
 %
 % fsmSpeedMaps goes through the whole M (or Md) stack of s matrices (each matrix corresponds to the
-%    matches returned by the tracker for frames 2 consecutive frames) and creates t<=s speed maps
+%    matches returned by the tracker for frames 2 consecutive frames) and
+%    creates t<=s speed maps
 %    each of which is the average over n frames [j-n/2:j+n/2] around frame j, j in [fix(n/2)+1:s-fix(n/2)]
 %   
 % SYNOPSIS      outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixelSize,overlayVect,userROIpoly,maxSpeed,segment)
@@ -36,8 +37,8 @@ function outputdir=fsmSpeedMaps(projDir,gridSize,n,d0_init,loadMPM,sampling,pixe
 % Aaron Ponti, January 16th, 2004
 
 % Check input parameters
-if nargin~=12
-    error('12 input parameters expected');
+if nargin~=11
+    error('11 input parameters expected');
 end
 
 % Initialize output
@@ -246,7 +247,7 @@ if interp==1
         current=current+1;
         
         % Extract vectors
-        Mp=M(:,:,c1);
+        Mp=M(:,:,c1); %#ok<COLND>
         Mv=Mp(find(Mp(:,1)~=0 & Mp(:,3)~=0),:);
         
         % Interpolate onto a grid

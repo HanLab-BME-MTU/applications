@@ -41,7 +41,7 @@ strg=fsmParam.specific.formString;
 
 % Read current image number (in string format)
 currentFrame=fsmParam.specific.fileList(counter,:);
-[imagePath,imageBody,imageNo,imageExt]=getFilenameBody(currentFrame);
+[imagePath,imageBody,imageNo]=getFilenameBody(currentFrame);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
