@@ -1097,7 +1097,7 @@ if isdir(projDir)
                             noProblem = 1;
                         end
 
-                        for k = 1:lenght(imgDirList)
+                        for k = 1:length(imgDirList)
                             noProblem = noProblem & isdir(imgDirList{k});
                         end
                     end
