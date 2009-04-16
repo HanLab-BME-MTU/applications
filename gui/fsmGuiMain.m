@@ -514,15 +514,6 @@ set(handles.bleachRadio3x,'Value',1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% TRIANGULATION CALLBACK
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function varargout = TriangCheck_Callback(h, eventdata, handles, varargin)
-% Nothing must be done here
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
 % AUTO POLYGON CALLBACK
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -617,7 +608,6 @@ end
 function togglePrepModule(handles,value)
 
 if value==0
-    set(handles.TriangCheck,'Enable','off');
     set(handles.autoPolCheck,'Enable','off');
     set(handles.textDel,'Enable','off');
     set(handles.textCameraCalPar,'Enable','off');
@@ -635,7 +625,6 @@ if value==0
     set(handles.textSigma,'Enable','off');
     set(handles.editSigma,'Enable','off');    
 else
-    set(handles.TriangCheck,'Enable','on');
     set(handles.autoPolCheck,'Enable','on');
     set(handles.textDel,'Enable','on');
     set(handles.bleachRadioOff,'Enable','on');
