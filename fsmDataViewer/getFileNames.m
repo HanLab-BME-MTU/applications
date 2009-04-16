@@ -16,8 +16,7 @@ fileNames = dir([path, filesep, body, '*', ext]);
 % Check if there is any file.
 if isempty(fileNames)
     status = 0;
-    errordlg(['No file name containing ' body ' can be found in ' path '.']);
-    return;
+    error(['No file name containing ' body ' can be found in ' path '.']);
 end
 
 % Rearrange files according to their number

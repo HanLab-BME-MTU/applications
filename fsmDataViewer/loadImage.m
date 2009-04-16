@@ -57,7 +57,8 @@ if ~numLayerFiles
             I = single(I);
             for iChannel = 1:c
                 J = I(:, :, iChannel);
-                I(:, :, iChannel) = (J + min(J(:))) / max(J(:));
+                J = J - min(J(:));
+                I(:, :, iChannel) = J / max(J(:));
             end
             
             if c == 2
@@ -122,7 +123,8 @@ else
             I = double(I);
             for iChannel = 1:c
                 J = I(:, :, iChannel);
-                I(:, :, iChannel) = (J + min(J(:))) / max(J(:));
+                J = J - min(J(:));
+                I(:, :, iChannel) = J / max(J(:));
             end
             
             if c == 2
