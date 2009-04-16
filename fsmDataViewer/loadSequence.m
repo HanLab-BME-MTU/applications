@@ -1,5 +1,7 @@
 function newSettings = loadSequence(settings)
 
+newSettings = settings;
+
 h = waitbar(0, 'Load sequence...');
 
 numFrames = settings.numFrames;
@@ -18,7 +20,7 @@ clear I;
 % Load the rest of the sequence
 
 for iFrame = 2:numFrames
-    newSettings.sequence(:, :, iFrame) = loadImage(settings, iFrame);
+    newSettings.sequence(:, :, :, iFrame) = loadImage(settings, iFrame);
     
     waitbar(iFrame / numFrames);
 end

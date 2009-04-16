@@ -1,15 +1,11 @@
 function sliderShowFrame_Callback
 
-hFig = findall(0, 'Tag', 'fsmDataViewer');
+hFig = findall(0, '-regexp','Name','fsmDataViewer');
 hSlider = findobj(hFig, 'Tag', 'sliderShowFrame');
 settings = get(hFig, 'UserData');
 
 sliderValue = get(hSlider, 'Value');
 iFrame = round(sliderValue * settings.numFrames);
-
-% Get background of the first frame so that we can create the
-% current axes.
-B = getBackground(settings, iFrame);
 
 % Unlock imtool axes children.
 set(hFig, 'HandleVisibility', 'on');
@@ -33,16 +29,12 @@ end
 
 % Update the image data
 % FIXME: this command remove the pixel region tool.
-set(hImage, 'CData', B);
+set(hImage, 'CData', settings.sequence(:, :, :, iFrame));
 
 % Display layers
-displayLayers(hFig, iFrame);
+% displayLayers(hFig, iFrame);
 
 % Relock imtool axes children.
 set(hFig, 'HandleVisibility', 'callback');
-
-% Attach the settings to the figure (for something above
-% has erased it).
-set(hFig, 'UserData', settings);
 
 end

@@ -25,10 +25,8 @@ numChannelFiles = settings.numChannelFiles;
 numMaskFiles = settings.numMaskFiles;
 numLayerFiles = settings.numLayerFiles;
 
-channelTypeNames = {'Raw Images'}; 
+% Should be read from a configuration file.
 channelLoaders = {@imread};
-
-% Get sequence dimension from the first image.
 
 if ~numLayerFiles
     if numMaskFiles
@@ -37,21 +35,42 @@ if ~numLayerFiles
     end
     if numChannelFiles        
         I = [];
+        colors = zeros(3, 1);
         for iChannel = 1:numChannels
-            channelTypeName = settings.channels{iChannel}.type;
-            channelType = strmatch(channelTypeName, channelTypeNames);
-            J = channelLoaders{channelType}([settings.channels{iChannel}.path...
-                filesep settings.channels{1}.fileNames{iFrame}]);
+            channelType = settings.channels{iChannel}.type;
+            channelColor = settings.channels{iChannel}.color;
+            
+            fileName = [settings.channels{iChannel}.path ...
+                filesep settings.channels{1}.fileNames{iFrame}];
+            
+            J = channelLoaders{channelType}(fileName);
             I = cat(3, I, J);
+            
+            colors(iChannel) = channelColor;
         end
-        % Fill with empty channel if numChannels == 2
-        if numChannels == 2
-            [m n] = size(I);
-            I = cat(3, I, zeros(m, n, class(I)));
+       
+        [m n c] = size(I);
+
+        if c > 1
+            % RGB images are 3 x [0..1] so each channel has to be
+            % normalized.
+            I = single(I);
+            for iChannel = 1:c
+                J = I(:, :, iChannel);
+                I(:, :, iChannel) = (J + min(J(:))) / max(J(:));
+            end
+            
+            if c == 2
+                % Add a blank channel.
+                I = cat(3, I, zeros(m, n, class(I)));
+                % Set the color of the blank channel to the free color (i.e.
+                % different form colors(1) and colors(2)).
+                colors(3) = 6 - (colors(1) + colors(2));
+            end
+            
+            % Make channel permutation according to channel colors
+            I = I(:, :, colors);            
         end
-        
-        % Make channel permutation according to channel colors
-        % TODO
     end
     
     if numMaskFiles % else (case 2)
@@ -70,14 +89,53 @@ else
     no = str2double(no);
     
     if numMaskFiles
-        [file, found] = findNumberedFileInList(settings.maskFileNames, no);
+        [fileName, found] = findNumberedFileInList(...
+            settings.maskFileNames, no);
         assert(found); % Test done in getSettings.m. Must be valid.
         BW = imread([settings.maskPath filesep file]);
     end
     if numChannelFiles
-        [file, found] = findNumberedFileInList(settings.channels{1}.fileNames, no);
-        assert(found); % Test done in getSettings.m. Must be valid.
-        I = imread([settings.maskPath filesep file]);
+        % TODO: this part is pretty much a copy-past of lines 37:73. Make
+        % something to avoid that.
+        I = [];
+        colors = zeros(3, 1);
+        for iChannel = 1:numChannels
+            channelType = settings.channels{iChannel}.type;
+            channelColor = settings.channels{iChannel}.color;
+
+            [fileName, found] = findNumberedFileInList(...
+                settings.channels{iChannel}.fileNames, no);
+        
+            assert(found); % Test done in getSettings.m. Must be valid.
+                                
+            J = channelLoaders{channelType}(fileName);
+            I = cat(3, I, J);
+            
+            colors(iChannel) = channelColor;
+        end
+       
+        [m n c] = size(I);
+
+        if c > 1
+            % RGB images are 3 x [0..1] so each channel has to be
+            % normalized.
+            I = double(I);
+            for iChannel = 1:c
+                J = I(:, :, iChannel);
+                I(:, :, iChannel) = (J + min(J(:))) / max(J(:));
+            end
+            
+            if c == 2
+                % Add a blank channel.
+                I = cat(3, I, zeros(m, n, class(I)));
+                % Set the color of the blank channel to the free color (i.e.
+                % different form colors(1) and colors(2)).
+                colors(3) = 6 - (colors(1) + colors(2));
+            end
+            
+            % Make channel permutation according to channel colors
+            I = I(:, :, colors);            
+        end
     end
     
     if numMaskFiles % else (case 5)

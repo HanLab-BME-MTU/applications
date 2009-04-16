@@ -1,10 +1,14 @@
 function [settings, status] = getSettings(hFig)
 
+% Get names of channel type.
+h = findobj(hFig, 'Tag', 'listboxChannelType');
+channelTypeNames = get(h, 'String');
+
 % Get channels
 h = findobj(hFig, 'Tag', 'uitableChannels');
 data = get(h, 'Data');
 columnFormat = get(h, 'ColumnFormat');
-colorNames = columnFormat{4};
+colorNames = columnFormat{3};
 
 settings.channels = {};
 
@@ -12,7 +16,8 @@ for iChannel = 1:size(data, 1)
     selected = data{iChannel, 1};
     
     if selected
-        channel.type = data{iChannel, 2};
+        channelTypeName = data{iChannel, 2};
+        channel.type = strmatch(channelTypeName, channelTypeNames) - 1;
 
         colorName = data{iChannel, 3};
         channel.color = strmatch(colorName, colorNames);        
@@ -48,6 +53,10 @@ if value
     settings.maskFileNames = fileNames;
 end
 
+% Get layers type names
+h = findobj(hFig, 'Tag', 'listboxLayerType');
+layerTypeNames = get(h, 'String');
+
 % Get layers
 h = findobj(hFig, 'Tag', 'uitableLayers');
 data = get(h, 'Data');
@@ -58,10 +67,11 @@ for iLayer = 1:size(data, 1)
     selected = data{iLayer, 1};
     
     if selected
-        layer.type = data{iChannel, 2};
+        layerTypeName = data{iChannel, 2};
+        layer.type = strmatch(layerTypeName, layerTypeNames) - 1;
 
         colorName = data{iChannel, 3};
-        layer.color = strmatch(colorName, colorNames);        
+        layer.color = strmatch(colorName, colorNames); 
         
         [path, fileNames, status] = getFileNames(data{iChannel, 4});
 
@@ -89,18 +99,11 @@ end
 % Check channel color compatibility
 %
 % - no multiple occurences of any color allowed
-% - gray is possible only if numChannels == 1
 
-numColorsOcc = zeros(1, 4);
+numColorsOcc = zeros(1, 3);
 for iChannel = 1:settings.numChannels
     numColorsOcc(settings.channels{iChannel}.color) = ...
         numColorsOcc(settings.channels{iChannel}.color) + 1;
-end
-
-if numColorsOcc(1) && max(numColorsOcc(2:4)) ~= 0
-    status = 0;
-    errordlg('Gray color cannot be assigned when multiple channels are provided.');
-    return;
 end
 
 if max(numColorsOcc) > 1

@@ -101,6 +101,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+set(hObject, 'String', pwd);
+
 % --- Executes on button press in pushbuttonRootDirectory.
 function pushbuttonRootDirectory_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbuttonRootDirectory (see GCBO)
@@ -186,9 +188,11 @@ end
 if ischar(fileName) && ischar(directoryName)
     h = findobj(hPanel, 'Tag', 'uitableChannels');
     data = get(h, 'Data');
+    columnFormat = get(h, 'ColumnFormat');
+    colorNames = columnFormat{3};
     newData = {true,...
         channelTypeName{channelType},...
-        'gray',...
+        colorNames{1},...
         [directoryName fileName]};
     data = vertcat(data, newData);
     set(h, 'Data', data);
