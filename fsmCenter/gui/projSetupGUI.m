@@ -413,7 +413,11 @@ if isdir(projDir)
    end
    projSettings.firstImgList = firstImgList;
 
-   save(settingsMatFile,'projSettings');
+   try
+       save(settingsMatFile,'projSettings');
+   catch ME
+       warndlg(ME.message);
+   end
 
    %We also save a text file of the project settings.
    fid = fopen([handles.projDir filesep settingsFileName],'w');
