@@ -4,7 +4,7 @@ function [projList,projPathParsed]=getProj(varargin)
 % INPUT: one or more comma-separated search strings used to search all
 %        roi_x and sub_x directory paths found in a user-selected top-level
 %        directory. the search is NOT case-sensitive.
-%       
+%
 %        Note: if pwd is given as input, user is not asked for top-level
 %        directory; instead the working directory is used. in this case all
 %        projects are returned. this option is not compatible with user
@@ -26,11 +26,11 @@ if ~isempty(varargin)
     if sum(inputStrings)~=nargin
         error('input arguments must be strings')
     end
-   
+
     % create string for naming projList with query
     for i=1:length(varargin)
         if strcmp(varargin{i},pwd)~=1
-        n=[n '_' varargin{i}];
+            n=[n '_' varargin{i}];
         end
     end
 end
@@ -59,10 +59,10 @@ roiDirList=regexp(tempDirList,['\S*roi_\d\s'],'match')';
 subDirList=regexp(tempDirList,['\S*sub_\d\s'],'match')';
 
 % initialize as empty in case no projects found
-projList=[]; 
+projList=[];
 projPathParsed=[];
 
-if isempty(roiDirList) && isempty(subDirList) 
+if isempty(roiDirList) && isempty(subDirList)
     disp('no projects found')
     return
 end
@@ -107,7 +107,7 @@ if ~isempty(subDirList)
 end
 
 % return if nothing
-if isempty(projList) 
+if isempty(projList)
     disp('no projects found')
     return
 end
@@ -131,7 +131,7 @@ for iProj=1:size(projList,1)
     end
 
     % assign values to cell
-    if strfind(words{end},'roi')  
+    if strfind(words{end},'roi')
         projPathParsed{iProj,1}=words{end-4,1}; % date
         projPathParsed{iProj,2}=words{end-3,1}; % target
         projPathParsed{iProj,3}=words{end-2,1}; % oligo
