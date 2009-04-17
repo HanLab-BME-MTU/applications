@@ -30,8 +30,6 @@ if size(imgSize)~= [1 2] %#ok<BDSCA>
     error('imgSize must be a [1x2] row vector');
 end
 
-% THIS... (Sylvain)
-tic;
 % Constant
 nSp=length(cands);
 
@@ -58,29 +56,3 @@ end
 if numberOfSpeckles~=nSp
     specklePos(numberOfSpeckles+1:nSp,:)=[];
 end
-t = toc;
-disp(['to be deleted: ' num2str(t)]);
-
-% .. TO HERE CAN BE REPLACED BY:
-tic;
-speckleMap2 = zeros(imgSize);
-Lmax = cat(1, cands(:).Lmax);
-Imax = cat(1, cands(:).ILmax);
-status = cat(1, cands(:).status);
-
-indStatus = find(status);
-specklePos2 = [Lmax(indStatus, :), Imax(indStatus)];
-idxLmax = sub2ind(imgSize, round(specklePos(:, 1)), round(specklePos(:, 2)));
-speckleMap2(idxLmax) = Imax;
-
-disp(['err(specklePos2 - specklePos) = '...
-    num2str(max(max(abs(specklePos2 - specklePos))))]);
-disp(['err(specklePos2 - specklePos) = '...
-    num2str(min(min(abs(specklePos2 - specklePos))))]);
-
-disp(['err(speckleMap2 - speckleMap) = '...
-    num2str(max(max(abs(speckleMap2 - speckleMap))))]);
-disp(['err(speckleMap2 - speckleMap) = '...
-    num2str(min(min(abs(speckleMap2 - speckleMap))))]);
-t = toc;
-disp(['replaced by: ' num2str(t)]);
