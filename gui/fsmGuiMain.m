@@ -609,7 +609,6 @@ function togglePrepModule(handles,value)
 
 if value==0
     set(handles.autoPolCheck,'Enable','off');
-    set(handles.textDel,'Enable','off');
     set(handles.textCameraCalPar,'Enable','off');
     set(handles.expPopup,'Enable','off');
     set(handles.textAdvancedPrep,'Enable','off');
@@ -626,7 +625,6 @@ if value==0
     set(handles.editSigma,'Enable','off');    
 else
     set(handles.autoPolCheck,'Enable','on');
-    set(handles.textDel,'Enable','on');
     set(handles.bleachRadioOff,'Enable','on');
     set(handles.textCameraCalPar,'Enable','on');
     set(handles.expPopup,'Enable','on');
@@ -638,7 +636,7 @@ else
     set(handles.primaryRadio,'Enable','on');
     set(handles.tertiaryRadio,'Enable','on');
     set(handles.drawROICheck,'Enable','on');
-    set(handles.loadROICheck,'Enable','off');
+    set(handles.loadROICheck,'Enable','on');
     set(handles.scaleRadio,'Enable','on');
     set(handles.textDescr,'Enable','on');
     set(handles.textSigma,'Enable','on');
