@@ -1,42 +1,25 @@
-function subRoiConfig
-% SUBROICONFIG allows user to choose sub-regions of interest and get detection & tracking from original ROI
+function subRoiConfig(projData)
+% SUBROICONFIG allows user to choose sub-rois and get indices of subtracks
+% which start and end in each one.
 
-
-% ask user for project directory
-roiDir=uigetdir(pwd,'Please select roi_x directory to use for making sub-rois');
-
-% find images directory
 homeDir=pwd;
-cd(roiDir)
-cd ..
-imDir=[pwd filesep 'images'];
+
+% load projData
+if nargin<1 || isempty(projData)
+    [fileName,pathName]=uigetfile('*.mat','Please select projData from META directory');
+    if strcmp(fileName,0)
+        return
+    end
+    projData=load([pathName filesep fileName]);
+    projData=projData.projData;
+end
+anDir=formatPath(projData.anDir);
+imDir=formatPath(projData.imDir);
 
 % load roiYX and roiMask
-roiYX=load([roiDir filesep 'roiYX.mat']);
+roiYX=load([anDir filesep 'roiYX.mat']);
 roiYX=roiYX.roiYX;
-roiMask=imread([roiDir filesep 'roiMask.tif']);
-
-% load detected features from feat directory
-movieInfo=load([roiDir filesep 'feat' filesep 'movieInfo']);
-movieInfoOld=movieInfo.movieInfo;
-
-% load tracking data and convert tracksFinal to matrix
-trackDir = [roiDir filesep 'track'];
-[listOfFiles]=searchFiles('.mat',[],trackDir,0);
-load([listOfFiles{1,2} filesep listOfFiles{1,1}])
-[trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(tracksFinal);
-clear trackedFeatureIndx
-
-%get number of tracks and number of time points
-[numTracks,numTimePoints] = size(trackedFeatureInfo);
-numTimePoints=numTimePoints./8;
-% get start and end columns for each frame
-eC=8*[1:numTimePoints]';
-sC=eC-7;
-
-% extract coordinates of tracks
-tracks.xCoord = trackedFeatureInfo(:,1:8:end); 
-tracks.yCoord = trackedFeatureInfo(:,2:8:end);
+roiMask=imread([anDir filesep 'roiMask.tif']);
 
 % get list of images, read first image, and make RGB (gray)
 [listOfImages]=searchFiles('.tif',[],imDir,0);
@@ -45,14 +28,13 @@ img=double(imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))]));
 img=(img-min(img(:)))./(max(img(:))-min(img(:)));
 img=repmat(img,[1,1,3]);
 
-
 % make sub-roi directory under roi_x directory and go there
-subRoiDir=[roiDir filesep 'subROIs'];
-if isdir(subRoiDir)
-    rmdir(subRoiDir,'s');
+subanDir=[anDir filesep 'subROIs'];
+if isdir(subanDir)
+    rmdir(subanDir,'s');
 end
-mkdir(subRoiDir);
-cd(subRoiDir)
+mkdir(subanDir);
+cd(subanDir)
 
 % input to varycolor is black (we don't use it since the image is dark;
 % make it one more than the number of ROIs (max is 9)
@@ -89,7 +71,6 @@ while makeNewROI==1 && roiCount<10
     [y1,x1]=ind2sub([imL,imW],find(roiMask,1)); % first pixel on boundary
     roiYXcell = bwtraceboundary(roiMask,[y1,x1],'N'); % get all pixels on boundary
     
-    
     % get intersection with max region in the cell
     tempRoi=tempRoi & roiMask;
     % shrink max region in the cell for next round by excluding current roi
@@ -110,47 +91,30 @@ while makeNewROI==1 && roiCount<10
         error('problem with ROI construction')
     end
     
-    
     % save sub-roi mask
     imwrite(tempRoi,[currentRoiAnDir filesep 'roiMask.tif']);
     save([currentRoiAnDir filesep 'roiYX'],'roiYX');
     
-    % extract detected features falling in current ROI from the full set
-    fNames=fieldnames(movieInfoOld);
-    for iFrame=1:size(movieInfoOld,1)
-        % look for feature coordinates within the polygon
-        [inIdx,onIdx]=inpolygon(movieInfoOld(iFrame,1).xCoord(:,1),movieInfoOld(iFrame,1).yCoord(:,1),roiYX(:,2),roiYX(:,1));
-        inPolyIdx=find(inIdx);
-        % assign new movieInfo structure with only those features
-        for iName=1:length(fNames)
-            movieInfo(iFrame,1).(fNames{iName})=movieInfoOld(iFrame,1).(fNames{iName})(inPolyIdx,1);
-        end    
-    end
-    % make feat directory for sub-roi and save movieInfo
-    featDir=[currentRoiAnDir filesep 'feat']; mkdir(featDir);
-    save([featDir filesep 'movieInfo'],'movieInfo')    
-
+    % find all subtracks starting within roi
+    temp=projData.nTrack_start_end_velMicPerMin_class_lifetime;
+    c=sub2ind(size(projData.xCoord),temp(:,1),temp(:,2));
+    x=projData.xCoord(c);
+    y=projData.yCoord(c);
+    [inIdx,onIdx]=inpolygon(x,y,roiYX(:,2),roiYX(:,1));
+    subtracksStartingIN=find(inIdx);
+    save([currentRoiAnDir filesep 'subtracksStartingIN'],'subtracksStartingIN')
     
-    % fill in new matrix of tracks
-    tracksFinal=nan(size(trackedFeatureInfo));
-    for iFrame=1:numTimePoints
-        % find coordinate from tracks that are within polygon
-        [inIdx,onIdx]=inpolygon(tracks.xCoord(:,iFrame),tracks.yCoord(:,iFrame),roiYX(:,2),roiYX(:,1));
-        [inPolyIdx]=repmat(find(inIdx),[1 8]); % rows for points to add
-        nPtsInside=size(inPolyIdx,1);
-
-        col=repmat([sC(iFrame):eC(iFrame)],[nPtsInside,1]); % particular columns corresponding to frame
-        
-        tracksFinal(inPolyIdx(:),col(:))=trackedFeatureInfo(inPolyIdx(:),col(:));
-
-    end
-    % make track directory for sub-roi and save tracks matrix
-    trackDir=[currentRoiAnDir filesep 'track']; mkdir(trackDir);
-    save([trackDir filesep 'subTracks'],'tracksFinal')
-
+    % find all subtracks ending within roi
+    c=sub2ind(size(projData.xCoord),temp(:,1),temp(:,3));
+    x=projData.xCoord(c);
+    y=projData.yCoord(c);
+    [inIdx,onIdx]=inpolygon(x,y,roiYX(:,2),roiYX(:,1));
+    subtracksEndingIN=find(inIdx);
+    save([currentRoiAnDir filesep 'subtracksEndingIN'],'subtracksEndingIN')
+    
     % ask user whether to not to select another sub-roi
-    reply=input('Do you want to select another ROI? y/n [n]: ','s');
-    if lower(reply)=='y'
+    reply = questdlg('Do you want to select another ROI?');
+    if strcmpi(reply,'yes')
         makeNewROI=1; % user said yes; make another one
         roiCount=roiCount+1; % counter for current condition rois
     else
