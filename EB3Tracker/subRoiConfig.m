@@ -1,6 +1,6 @@
 function subRoiConfig(projData)
 % SUBROICONFIG allows user to choose sub-rois and get indices of subtracks
-% which start and end in each one.
+% which start and end in each sub-roi.
 
 homeDir=pwd;
 
