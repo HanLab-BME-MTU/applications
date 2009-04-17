@@ -1,5 +1,8 @@
 function [h]=plusTipGuiSwitch(hObject,eventdata,h,callbackName)
 
+% GUIs that use this function:
+% plusTipTrackViz - for track plotting and movie making
+
 switch callbackName
 
     case 'chooseProjData'
@@ -14,18 +17,18 @@ switch callbackName
             h.projData=p.projData;
 
             % load tracksFinal from track
-            anDir=formatPath(h.projData.anDir);
-            trackDir=[anDir filesep 'track'];
-            [listOfFiles]=searchFiles('.mat',[],trackDir,0);
-            if ~isempty(listOfFiles)
-                load([listOfFiles{1,2} filesep listOfFiles{1,1}])
-                if ~exist('tracksFinal','var')
-                    error('--plusTipTrackViz: tracksFinal missing...');
-                end
-            else
-                error('--plusTipTrackViz: tracksFinal missing...');
-            end
-            h.tracksFinal=tracksFinal;
+%             anDir=formatPath(h.projData.anDir);
+%             trackDir=[anDir filesep 'track'];
+%             [listOfFiles]=searchFiles('.mat',[],trackDir,0);
+%             if ~isempty(listOfFiles)
+%                 load([listOfFiles{1,2} filesep listOfFiles{1,1}])
+%                 if ~exist('tracksFinal','var')
+%                     error('Error: tracksFinal missing...');
+%                 end
+%             else
+%                 error('Error: tracksFinal missing...');
+%             end
+%             h.tracksFinal=tracksFinal;
         end
 
     case 'selectSavedRoiPushbutton'
@@ -40,6 +43,7 @@ switch callbackName
                 errordlg('File chosen was not a roiYX.mat or roiMask.tif file. Please try again.','File Error');
             end
         end
+        
     case 'startFrame'
         sFVal=get(hObject,'String');
         if isequal(lower(sFVal),'min')
@@ -47,6 +51,7 @@ switch callbackName
         else
             h.timeRange(1)=str2double(sFVal);
         end
+        
     case 'endFrame'
         eFVal=get(hObject,'String');
         if isequal(lower(eFVal),'max')
@@ -54,6 +59,7 @@ switch callbackName
         else
             h.timeRange(2)=str2double(eFVal);
         end
+        
     case 'selectTracksCheck'
         val=get(hObject,'Value');
         if val==0
@@ -61,6 +67,7 @@ switch callbackName
         else
             h.ask4select=1;
         end
+        
     case 'showTracksCheck'
         val=get(hObject,'Value');
         if val==0
@@ -68,6 +75,7 @@ switch callbackName
         else
             h.showTracks=1;
         end
+        
     case 'speedLimitEdit'
         velLimVal=get(hObject,'String');
         if isequal(lower(velLimVal),'max')
@@ -75,6 +83,7 @@ switch callbackName
         else
             h.velLimit=str2double(velLimVal);
         end
+        
     case 'indivTrackNumbersEdit'
         userInput=get(hObject,'String');
         h.indivTrack=str2num(userInput)';
@@ -94,6 +103,7 @@ switch callbackName
             end
 
         end
+        
     case 'aviCheckTrackMov'
         val=get(hObject,'Value');
         if val==0
@@ -101,6 +111,7 @@ switch callbackName
         else
             h.doAvi=1;
         end
+        
     case 'selectedTracksDisplay'
         hObject=h.selectedTracksDisplay;
         if isempty(h.selectedTracks)
@@ -109,26 +120,31 @@ switch callbackName
             set(hObject,'Visible','On');
         end
         set(hObject,'String',num2str(h.selectedTracks));
+        
     case 'speedMovieButton'
         plusTipSpeedMovie(h.projData,h.timeRange,h.velLimit,h.roi,h.doAvi);
+        
     case 'trackMovieButton'
-        plusTipTrackMovie(h.projData,h.indivTrack,h.timeRange,h.roi,h.magCoef,h.showTracks,h.showDetect,h.doAvi);
+        plusTipTrackMovie(h.projData,h.indivTrack,h.timeRange,...
+            h.roi,h.magCoef,h.showTracks,h.showDetect,h.doAvi);
+        
     case 'aviCheckSpeedMov'
         val=get(hObject,'Value');
-if val==0
-    h.doAvi=0;
-else
-    h.doAvi=1;
-end
+        if val==0
+            h.doAvi=0;
+        else
+            h.doAvi=1;
+        end
+        
     case 'resetButton'
         closeGUI = h.figure1; %h.figure1 is the GUI figure
- 
-guiPosition = get(h.figure1,'Position'); %get the position of the GUI
-guiName = get(h.figure1,'Name'); %get the name of the GUI
-eval(guiName) %call the GUI again
- 
-close(closeGUI); %close the old GUI
-set(gcf,'Position',guiPosition); %set the position for the new GUI
+
+        guiPosition = get(h.figure1,'Position'); %get the position of the GUI
+        guiName = get(h.figure1,'Name'); %get the name of the GUI
+        eval(guiName) %call the GUI again
+
+        close(closeGUI); %close the old GUI
+        set(gcf,'Position',guiPosition); %set the position for the new GUI
 
     otherwise
         error('???')
