@@ -28,6 +28,10 @@ function [projData]=metaEB3analysis(runInfo,secPerFrame,pixSizeNm)
 %       number of time points (frames)
 %  .xCoord/yCoord
 %       pixel coordinates of features in tracks
+%  .featArea
+%       area in pixels of feature from detection (for segs only)
+%  .featInt
+%       max intensity of feature from detection (for segs only)
 %  .frame2frameDispPix
 %       vector containing all frame-to-frame displacements from the initial
 %       segments (not gaps) of all tracks
@@ -77,10 +81,11 @@ function [projData]=metaEB3analysis(runInfo,secPerFrame,pixSizeNm)
 
 % get runInfo in correct format
 if nargin<1 || isempty(runInfo)
-    % if not given as input, ask user for ROI directory
-    % assume images directory is at same level
+    homeDir=pwd;
     runInfo.anDir=uigetdir(pwd,'Please select analysis directory');
+    cd([runInfo.anDir filesep '..'])
     runInfo.imDir=uigetdir(pwd,'Please select image directory');
+    cd(homeDir)
 else
     % adjust for OS
     if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
@@ -90,6 +95,7 @@ else
         [runInfo.imDir] = formatPath(runInfo.imDir);
     end
 end
+
 
 % load movieInfo (detection result)
 featDir  = [runInfo.anDir filesep 'feat'];
@@ -128,7 +134,7 @@ end
 % convert tracksFinal to matrix
 if isstruct(tracksFinal)
     [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(tracksFinal);
-    clear trackedFeatureIndx
+    %clear trackedFeatureIndx
 end
 
 % get interpolated positions for gaps and calculate velocities
@@ -136,23 +142,54 @@ end
 
 %get number of tracks and number of time points
 [numTracks,numTimePoints] = size(trackedFeatureInfo);
+numTimePoints=numTimePoints/8;
+
+% without interpolation yet
+x = trackedFeatureInfo(:,1:8:end); 
+y = trackedFeatureInfo(:,2:8:end);
+
+% initialize matrices for feature indices, area, and intensity
+movieInfoIdx=nan(numTracks,numTimePoints);
+featArea=nan(numTracks,numTimePoints);
+featInt =nan(numTracks,numTimePoints);
+for iFrame=1:numTimePoints
+    % these are the track numbers which exist in iFrame
+    existCoordIdx=find(~isnan(x(:,iFrame)));
+    % these are the corresponding xy-coordinates
+    xi=x(:,iFrame); xi(isnan(xi))=[];
+    yi=y(:,iFrame); yi(isnan(yi))=[];
+    % distance matrix reveals where features coincide with those recorded
+    % in movieInfo
+    D=createDistanceMatrix([xi,yi],[movieInfo(iFrame,1).xCoord(:,1),movieInfo(iFrame,1).yCoord(:,1)]);
+    [r,c]=find(D==0); % r=track index, c=frame
+
+    [newR,idx]=sort(r); % re-order based on track
+    featIdx=c(idx); % movieInfo feature index, sorted to correspond to track indices
+
+    % fill in movieInfoIdx with indices from features stored in movieInfo
+    movieInfoIdx(existCoordIdx,iFrame)=featIdx;
+    % fill in feature area (pixels) at corresponding features
+    featArea(existCoordIdx,iFrame)=movieInfo(iFrame,1).amp(featIdx,1);
+    % fill in feature max intensity at corresponding features
+    featInt (existCoordIdx,iFrame)=movieInfo(iFrame,1).int(featIdx,1);
+end
 
 
 % save misc info for output
-projData.imDir=runInfo.imDir;
-projData.anDir=runInfo.anDir;
-projData.secPerFrame=secPerFrame;
-projData.pixSizeNm=pixSizeNm;
-projData.numTracks=numTracks;
-projData.numFrames=numTimePoints/8;
+projData.imDir = runInfo.imDir;
+projData.anDir = runInfo.anDir;
+projData.secPerFrame = secPerFrame;
+projData.pixSizeNm = pixSizeNm;
+projData.numTracks = numTracks;
+projData.numFrames = numTimePoints;
 projData.xCoord = trackedFeatureInfoInterp(:,1:8:end); 
 projData.yCoord = trackedFeatureInfoInterp(:,2:8:end);
+projData.featArea = featArea;
+projData.featInt = featInt;
 
-% extract coordinates for all features within segments (gaps show up as NaNs)
-px = trackedFeatureInfo(:,1:8:end); py = trackedFeatureInfo(:,2:8:end);
 
 % get frame-to-frame displacement for segments only (not gaps)
-frame2frameDispPix=sqrt(diff(px,1,2).^2+diff(py,1,2).^2);
+frame2frameDispPix=sqrt(diff(x,1,2).^2+diff(y,1,2).^2);
 % get rid of NaNs and linearize the vector
 projData.frame2frameDispPix=frame2frameDispPix(~isnan(frame2frameDispPix(:)));
 
@@ -167,8 +204,8 @@ NNdist=zeros(length(vertcat(movieInfo.xCoord)),1);
 count=1;
 for iFrame=1:length(movieInfo)
 
-    xCoord = vertcat(movieInfo(iFrame).xCoord); xCoord = xCoord(:,1);
-    yCoord = vertcat(movieInfo(iFrame).yCoord); yCoord = yCoord(:,1);
+    xCoord = movieInfo(iFrame).xCoord(:,1);
+    yCoord = movieInfo(iFrame).yCoord(:,1);
 
     D=createDistanceMatrix([xCoord yCoord],[xCoord yCoord]);
     [sD,idx]=sort(D,2);
