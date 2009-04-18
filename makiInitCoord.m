@@ -71,6 +71,8 @@ end
 if isobject(dataStruct)
     % if dataStruct is an object, movie is in imageData
     dataObject = true;
+    % change save-mode of initCoord so that it doesn't autosave 100 times
+    dataStruct.propertyNames{3,2}.saveMode = 0;
 else
     dataObject = false;
     if ischar(dataStruct.rawMovieName)
@@ -500,6 +502,11 @@ if dataObject
     end
     dataStruct.initCoord(1).cutoff.sel = [cutoffIdx,cutoffCol];
     dataStruct.initCoord(1).cutoff.n = nn;
+    
+    % change save-mode again and save
+    dataStruct.propertyNames{3,2}.saveMode = 2;
+    dataStruct.initCoord = dataStruct.initCoord;
+    
 end
 
 % % code to determine optimal amplitude cutoff
