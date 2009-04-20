@@ -22,6 +22,12 @@ mask = [];
 dmXY=distMat(cordList(:,1:2),diag([PIXELSIZE_XY^2 PIXELSIZE_XY^2]));
 dmZ=distMat(cordList(:,3),diag(PIXELSIZE_Z^2));
 
+% jonas,4/09: adjust filterprm for sigmaCorrection. Otherwise, so many 
+% spots are being fitted jointly in mammalian metaphase that there is no 
+% hope of ever finishing.
+if isfield(dataProperties,'sigmaCorrection') && ~isempty(dataProperties.sigmaCorrection)
+    FILTERPRM = FILTERPRM./dataProperties.sigmaCorrection([1,1,2]);
+end
 spotsidx=rec_find(dmXY,dmZ,1,PIXELSIZE_XY, PIXELSIZE_Z, FILTERPRM);
 
 if nargout > 1
@@ -60,7 +66,7 @@ end
 function spidx=rec_find(dMatrixXY,dMatrixZ,curIdxList,PIXELSIZE_XY, PIXELSIZE_Z, FILTERPRM)
 % recursive search for points which are separated by a distance smaller than MIN_DIST
 
-% use 7 sigma as minimum distance cutoff
+% use 7 sigma as minimum distance cutoff 
 MIN_DIST_XY=7*FILTERPRM(1)*PIXELSIZE_XY;
 MIN_DIST_Z=7*FILTERPRM(3)*PIXELSIZE_Z;
 %if smaller than d add spot
