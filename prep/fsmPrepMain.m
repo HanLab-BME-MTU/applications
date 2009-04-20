@@ -261,7 +261,7 @@ bgMaskDir = [projDir filesep edgeDir filesep 'cell_mask'];
 if autoPolygon == 1
     if isdir(bgMaskDir)
         dirList = dir(bgMaskDir);
-        fileList = {dirList(dirList.isdir == 0).name};
+        fileList = {dirList([dirList.isdir] == 0).name};
         bgMaskFileList = fileList(strmatch('mask_',fileList));
 
         %Get the index of the available mask files.
