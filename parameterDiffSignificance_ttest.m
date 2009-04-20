@@ -44,8 +44,9 @@ nValues2    = compRes2.matrix(1,6);
 [sr1,sc1] = size(meanValues1);
 [sr2,sc2] = size(meanValues2);
 minrow = min(sr1,sr2);
+maxrow = max(sr1,sr2);
 
-ttestpval = nan*zeros(minrow,sc1);
+ttestpval = nan*zeros(maxrow,sc1);
 
 for i=1:minrow
     for k=1:sc1
@@ -56,8 +57,19 @@ for i=1:minrow
     end
 end
 
-results.contributions = [meanValues1(:,1),stdValues1(:,1),meanValues2(:,1),stdValues2(:,1),ttestpval(:,1)];
-results.timeConstants = [meanValues1(:,2),stdValues1(:,2),meanValues2(:,2),stdValues2(:,2),ttestpval(:,2)];
+cont = nan*zeros(maxrow,5);
+taus = nan*zeros(maxrow,5);
+
+cont(1:sr1,1:2) = [meanValues1(:,1),stdValues1(:,1)];
+cont(1:sr2,3:4) = [meanValues2(:,1),stdValues2(:,1)];
+cont(1:maxrow,5) = ttestpval(:,1);
+
+taus(1:sr1,1:2) = [meanValues1(:,2),stdValues1(:,2)];
+taus(1:sr2,3:4) = [meanValues2(:,2),stdValues2(:,2)];
+taus(1:maxrow,5) = ttestpval(:,2);
+
+results.contributions = cont;
+results.timeConstants = taus;
 
 
 
