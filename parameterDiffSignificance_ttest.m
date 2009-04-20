@@ -22,9 +22,16 @@ function [ttestpval, results] = parameterDiffSignificance_ttest(compRes1,compRes
 %           which both have the format (successive columns)
 %           [mean1 std1 mean2 std2 p-value]
 % 
-% last modified: Dinah Loerke 03/05/2009
+% last modified: Dinah Loerke 04/20/2009
+%
+% NOTE: The updated version of this function can deal with a comparison of
+% fit results with different numbers of subpopulation (e.g. 3 vs. 4) -
+% in this case, the p-values are calculated for the comparison between the
+% maximum available number of distributions (pop1 to pop1, pop2 to pop2,
+% pop3 to pop3, and pop4 unmatched)
 
-
+% extract mean values from compact fit results; 
+% first column (1) = contributions, second column (3) = time constants
 meanValues1 = compRes1.matrix(:,[1,3]);
 meanValues2 = compRes2.matrix(:,[1,3]);
 
@@ -34,13 +41,19 @@ stdValues2  = compRes2.matrix(:,[2,4]);
 nValues1    = compRes1.matrix(1,6);
 nValues2    = compRes2.matrix(1,6);
 
-ttestpval = nan* meanValues1;
+[sr1,sc1] = size(meanValues1);
+[sr2,sc2] = size(meanValues2);
+minrow = min(sr1,sr2);
 
-for i=1:length(meanValues1(:))
-    values1 = [meanValues1(i) stdValues1(i) nValues1];
-    values2 = [meanValues2(i) stdValues2(i) nValues2];
-    [pval] = ttest2OnValues(values1,values2);
-    ttestpval(i) = pval;
+ttestpval = nan*zeros(minrow,sc1);
+
+for i=1:minrow
+    for k=1:sc1
+        values1 = [meanValues1(i,k) stdValues1(i,k) nValues1];
+        values2 = [meanValues2(i,k) stdValues2(i,k) nValues2];
+        [pval] = ttest2OnValues(values1,values2);
+        ttestpval(i,k) = pval;
+    end
 end
 
 results.contributions = [meanValues1(:,1),stdValues1(:,1),meanValues2(:,1),stdValues2(:,1),ttestpval(:,1)];
