@@ -358,8 +358,8 @@ if TRACKER==1 || TRACKER==2 || TRACKER ==3
             
             % Store speckle position information
             M(1:size(emptyM,1),1:size(emptyM,2),counter1,1)=emptyM;
-            M(1:size(tmp,1),1:size(tmp,2),counter1,1)=tmp;
-            
+            M(1:size(tmp,1),1:size(tmp,2),counter1,1)=tmp;            
+
             % Update wait bar
             waitbar(counter1/lastImage,h);
             

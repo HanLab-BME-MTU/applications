@@ -238,7 +238,7 @@ xS=get(handles.editCalX,'String');
 if any([isempty(y0S) isempty(yS) isempty(x0S) isempty(xS)])
     area=[];
 else
-    y0=fix(str2doule(y0S));
+    y0=fix(str2double(y0S));
     y=fix(str2double(yS));
     x0=fix(str2double(x0S));
     x=fix(str2double(xS));
