@@ -389,6 +389,7 @@ for iLabel = 1 : 3
     eval(['sisterDistDistr' label{iLabel,1} ' = [];'])
     eval(['sisterDistParam' label{iLabel,1} ' = [];'])
     eval(['sisterVelDistr' label{iLabel,1} ' = [];'])
+    eval(['sisterVelParam' label{iLabel,1} ' = [];'])
     eval(['sisterVelPosParam' label{iLabel,1} ' = [];'])
     eval(['sisterVelNegParam' label{iLabel,1} ' = [];'])
     eval(['angleNormalDistr' label{iLabel,1} ' = [];'])
@@ -399,6 +400,7 @@ for iLabel = 1 : 3
     eval(['angleRadialParam' label{iLabel,1} ' = [];'])
     
     eval(['sisterDistIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+    eval(['sisterVelIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['sisterVelPosIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['sisterVelNegIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['angleNormalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
@@ -428,7 +430,11 @@ for iLabel = goodLabel
     allValues = allValues(:,1);
     allValues = allValues(~isnan(allValues));
     eval(['sisterVelDistr' label{iLabel,1} ' = allValues;']);
-    
+    eval(['sisterVelParam' label{iLabel,1} ...
+        ' = [mean(allValues) std(allValues) min(allValues) ' ...
+        'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+        'max(allValues)];']);
+
     %positive velocity
     eval(['allValues = vertcat(sisterVel' label{iLabel,1} '.observations);']);
     allValues = allValues(allValues(:,1)>0,1);
@@ -505,6 +511,22 @@ for iLabel = goodLabel
         end
     end
 
+    %positive and negative velocities
+    for iMovie = 1 : numMovies
+        eval(['allValues = vertcat(sisterVel' label{iLabel,1} '(movieStartIndx' ...
+            label{iLabel,1} '(iMovie):movieEndIndx' label{iLabel,1} '(iMovie)).observations);']);
+        if ~isempty(allValues)
+            allValues = allValues(:,1);
+            allValues = allValues(~isnan(allValues));
+            if ~isempty(allValues)
+                eval(['sisterVelIndParam' label{iLabel,1} '(iMovie,:)' ...
+                    ' = [mean(allValues) std(allValues) min(allValues) ' ...
+                    'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
+                    'max(allValues)];']);
+            end
+        end
+    end
+    
     %positive velocity
     for iMovie = 1 : numMovies
         eval(['allValues = vertcat(sisterVel' label{iLabel,1} '(movieStartIndx' ...
@@ -841,12 +863,14 @@ for iLabel = 1 : 3
         '''angularVel'',angularVelDistr' label{iLabel,1} ','...
         '''angleWithRadial'',angleRadialDistr' label{iLabel,1} ');']);
     eval(['meanStdMin25P50P75PMax.all = struct(''distance'',sisterDistParam' label{iLabel,1} ','...
+        '''rateChangeDist'',sisterVelParam' label{iLabel,1} ','...
         '''posRateChangeDist'',sisterVelPosParam' label{iLabel,1} ','...
         '''negRateChangeDist'',sisterVelNegParam' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalParam' label{iLabel,1} ','...
         '''angularVel'',angularVelParam' label{iLabel,1} ','...
         '''angleWithRadial'',angleRadialParam' label{iLabel,1} ');']);
     eval(['meanStdMin25P50P75PMax.indcell = struct(''distance'',sisterDistIndParam' label{iLabel,1} ','...
+        '''rateChangeDist'',sisterVelIndParam' label{iLabel,1} ','...
         '''posRateChangeDist'',sisterVelPosIndParam' label{iLabel,1} ','...
         '''negRateChangeDist'',sisterVelNegIndParam' label{iLabel,1} ','...
         '''angleWithNormal'',angleNormalIndParam' label{iLabel,1} ','...
