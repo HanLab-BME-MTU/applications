@@ -26,7 +26,7 @@ dmZ=distMat(cordList(:,3),diag(PIXELSIZE_Z^2));
 % spots are being fitted jointly in mammalian metaphase that there is no 
 % hope of ever finishing.
 if isfield(dataProperties,'sigmaCorrection') && ~isempty(dataProperties.sigmaCorrection)
-    FILTERPRM = FILTERPRM./dataProperties.sigmaCorrection([1,1,2]);
+    FILTERPRM(1:3) = FILTERPRM(1:3)./dataProperties.sigmaCorrection([1,1,2]);
 end
 spotsidx=rec_find(dmXY,dmZ,1,PIXELSIZE_XY, PIXELSIZE_Z, FILTERPRM);
 
