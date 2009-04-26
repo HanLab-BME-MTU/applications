@@ -83,8 +83,28 @@ else
 end
 dataProperties = dataStruct.dataProperties;
 
-% setup filter parameters
-backgroundFilterParms = dataProperties.FT_SIGMA * 15;
+% find more parameters
+% betterBackground: estimate background after masking signal
+if ~isfield(dataProperties,'betterBackground')
+    if dataObject
+        betterBackground = false;
+    else
+        betterBackground = false;
+    end
+end
+% isNanMask: switch that checks whether there needs to be a correction for
+% nanMasks
+if ~isfield(dataProperties,'isNanMask')
+    if dataObject
+        isNanMask = 2;
+    else
+        isNanMask = 0;
+    end
+end
+
+% setup filter parameters. Increase speed by doing incremental filtering
+% for background
+backgroundFilterParms = dataProperties.FT_SIGMA * 14; % 14 is 15-1
 backgroundFilterParms(4:6) = roundOddOrEven(backgroundFilterParms,'odd','inf');
 % create background mask already
 backgroundFilter = GaussMask3D(backgroundFilterParms(1:3),...
@@ -156,7 +176,9 @@ for t=goodTimes
     % noise = locAvg(var(raw-filtered))
     
     if dataObject
-        raw = dataStruct.imageData.getFrame(t);
+        % isNanMask == 2 indicates that we should crop only later in order
+        % to increase processing speed.
+        raw = dataStruct.imageData.getFrame(t,[],[],isNanMask==1);
     elseif isempty(rawMovie)
         % movie has been passed directly
         raw = dataStruct.rawMovieName(:,:,:,:,t);
@@ -187,12 +209,14 @@ for t=goodTimes
     offset = min(raw(:));
     raw = raw -  offset;
     % filter movie with gauss-filter
-    if dataObject
+    if betterBackground
         % there will be NaNs in the masked image. Therefore, request
         % filtered data from imageDataObject. Ideally, loadType is set to
         % fcn or reqKeep
-        
-        background = dataStruct.imageData.getFrame(t,'',{[],backgroundFilterParms(4:6),1,backgroundFilter})-offset;
+        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter);
+        % filter signal first, then run smaller filter with background to
+        % save some time
+        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter);
         
         % mask signal pixels, then recalculate background
         sigMask = raw>background;
@@ -210,25 +234,40 @@ for t=goodTimes
         rawMsk(rawMsk==0) = NaN;
         background = fastGauss3D(rawMsk,[],dataProperties.FILTERPRM(4:6),1,signalFilter);
         %background = convNan(rawMsk,backgroundFilter,backgroundFilterParms(4:6),1);
-        filtered = dataStruct.imageData.getFrame(t,'',{[],dataProperties.FILTERPRM(4:6),1,signalFilter})-offset;
-    else
-        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2,signalFilter);
         
-        background = fastGauss3D(raw,[],backgroundFilterParms(4:6),2,backgroundFilter);
+    else
+        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter);
+        % filtering with sigma=15 is equal to filtering with 1 and then
+        % with 14
+        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter);
     end
     
+    % amplitude is filtered image - background. This underestimates the
+    % true signal. The underestimation becomes stronger if betterBackground
+    % is not used.
     amplitude = filtered - background;
+    
     
     % noise is local average (averaged over filter support) of squared
     % residuals of raw-filtered image
-    noise = (raw - filtered).^2;
-    if dataObject
-        % careful because of NaN-mask
-        %noise = convNan(noise,noiseMask,dataProperties.FILTERPRM(4:6));
-        noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),1,noiseMask);
-    else
-        noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),1,noiseMask);
+    noise = (raw-filtered).^2;
+    noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),noiseMask);
+    
+    if isNanMask == 2
+        % apply nan-mask now
+        if ~isempty(dataStruct.imageData.cropInfo)
+            if iscell(dataStruct.imageData.cropInfo.cropMask)
+                msk = ~dataStruct.imageData.cropInfo.cropMask{t};
+            else
+                msk = ~dataStruct.imageData.cropInfo.cropMask;
+            end
+            msk = repmat(msk,[1,1,dataProperties.movieSize(3)]);
+            filtered(msk) = NaN;
+        end
     end
+    
+    figure,imshow(max(amplitude,[],3)-mean(amplitude,3),[]);
+    error('bam')
     
     % find local maxima
     locMax = loc_max3Df(filtered,[3 3 3]);
