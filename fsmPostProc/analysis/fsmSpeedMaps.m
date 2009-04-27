@@ -353,9 +353,7 @@ for c2=1:steps
     speedMap=imresize(speedMap,imgSize,'bilinear');
     
     if segment==1
-        bgMaskPath = [bgMaskDir filesep maskFileList(c2)];
-%        [dumpath,bgMaskName,ext] = fileparts(imageFileList(c2,:));
-%        bgMaskPath = [bgMaskDir filesep 'mask_' bgMaskName ext];
+        bgMaskPath = [bgMaskDir filesep maskFileList{c2}];
         
         if exist(bgMaskPath,'file')
             bwMask = imread(bgMaskPath);
