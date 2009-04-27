@@ -305,14 +305,20 @@ end
 [path,body,indxEnd] = getFilenameBody(char(imageFileList(uLast,:)));
 indices = (str2double(indxStart):str2double(indxEnd)-n+1)+fix(n/2);
 
-% Update image file list
-imageFileList = imageFileList(indices-str2double(indxStart)+1,:);
+% Update image file list (NOT USED ANYMORE)
+% imageFileList = imageFileList(indices-str2double(indxStart)+1,:);
 
 % Initializing waitbar
 % h=waitbar(0,'Creating speed maps...');
 
 % Create a full bwMask (in case of failure of edge detection)
 bwMask=ones(size(img));
+
+% Create the list of mask files
+if segment==1
+    maskFileList = dir([bgMaskDir filesep '*.tif']);
+    maskFileList = {maskFileList(indices).name};
+end
 
 % If needed, create a user mask
 if ~isempty(userROIpoly)
@@ -347,8 +353,9 @@ for c2=1:steps
     speedMap=imresize(speedMap,imgSize,'bilinear');
     
     if segment==1
-        [dumpath,bgMaskName,ext] = fileparts(imageFileList(c2,:));
-        bgMaskPath = [bgMaskDir filesep 'mask_' bgMaskName ext];
+        bgMaskPath = [bgMaskDir filesep maskFileList(c2)];
+%        [dumpath,bgMaskName,ext] = fileparts(imageFileList(c2,:));
+%        bgMaskPath = [bgMaskDir filesep 'mask_' bgMaskName ext];
         
         if exist(bgMaskPath,'file')
             bwMask = imread(bgMaskPath);

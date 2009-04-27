@@ -19,9 +19,8 @@ end
 t_n =1;
 track_length(1)=0;
 
-
 strg = sprintf('%%.%dd',5);
-backSpc = ['\b\b\b\b\b'];
+backSpc = '\b\b\b\b\b';
     
 size(MPM,1)
 track_data=zeros(100000,4);
@@ -29,7 +28,7 @@ track_length=zeros(100000,1);
 
 for i=1:size(MPM,1)
     
-    fprintf(1,[strg],i); 
+    fprintf(1,strg,i); 
     
     j=1;
     while j < size(MPM,2)-1 
@@ -47,7 +46,7 @@ for i=1:size(MPM,1)
                     % save endpoint of track
                     end_track_1 = MPM(i,j);
                     end_track_2 = MPM(i,j+1);
-                    if  end_track_1 == 0 | end_track_2 == 0
+                    if  end_track_1 == 0 || end_track_2 == 0
                         disp('there is some problem');
                     end
                     j=j+2;
