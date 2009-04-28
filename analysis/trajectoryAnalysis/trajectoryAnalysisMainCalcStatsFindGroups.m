@@ -10,7 +10,8 @@ stateIdx = find(dataListG(:,3)==state);
 
 
 %try to find groups
-gGroups = findGroups(dataListG(:,3),1);
+% gGroups = findGroups(dataListG(:,3),1);
+gGroups = findGroups(dataListG(:,3),state);
 
 %search where the groups are separated by just one other unit
 %then check whether these are pauses or single undetermined

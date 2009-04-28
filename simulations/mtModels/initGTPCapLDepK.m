@@ -6,7 +6,7 @@ function [initialState,modelParam,runInfo,saveTraj,saveStats] = initGTPCapLDepK
 %See function "mtGTPCapLDepK" for details.
 initialState.mtLength0 = 3;
 initialState.capSize0 = 1;
-initialState.unitConc = 20;
+initialState.unitConc = 10;
 
 %See function "mtGTPCapLDepK" for meanings and units of variables
 modelParam.kTOnT.lDepend = -1;
