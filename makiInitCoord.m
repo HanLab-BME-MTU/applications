@@ -266,8 +266,8 @@ for t=goodTimes
         end
     end
     
-    figure,imshow(max(amplitude,[],3)-mean(amplitude,3),[]);
-    error('bam')
+%     figure,imshow(max(amplitude,[],3)-mean(amplitude,3),[]);
+%     error('bam')
     
     % find local maxima
     locMax = loc_max3Df(filtered,[3 3 3]);
