@@ -97,68 +97,32 @@ popHist(projData)
 % once you have detected/tracked a region of interest (like a cell), you
 % may want to choose sub-regions to further analyze. use subRoiConfig to
 % choose up to 9 sub-regions.  the data from tracking will be pulled
-% automatically and stored in the roi_x/subROIs/sub_x folders.  after
-% running it, you can run getProj again to add these sub-projects into the
-% list for batch processing, or you can run metaEB3analysis at the
-% individual project level.
+% automatically and stored in the roi_x/subROIs/sub_x folders.
 
 subRoiConfig
+
+% after running subRoiConfig, if you want to see the tracks, go to the
+% sub_x folder and load subIdx and the roiYX then go to the roi_x folder
+% which you're using and load projData.  then run the following, and choose
+% an image to use for the overlay according to the prompt.
+
+timeRange=[];
+img=[];
+ask4sel=[];
+[selectedTracks] = plusTipPlotTracks(projData,subIdx,timeRange,img,ask4sel,[],roiYX);
+
+% you can access the data this way:
+subTrackProfiles=projData.nTrack_start_end_velMicPerMin_class_lifetime(subIdx,:);
+% and here we can make a histogram of growth speeds, for example...
+growthSpeeds=subTrackProfiles(subTrackProfiles(:,5)==1,4);
+figure; hist(growthSpeeds,25)
 
 
 
 %% VISUALIZATION OF THE RESULTS
 
-% the function featVelMovie makes movies of moving dots corresponding to tracks. 
-% the color of the dots corresponds to speed (where cool colors represent
-% shrinkage speeds, and warm colors represent growth and/or pause phase)
+% use the GUI
+plusTipTrackViz
 
-% projData is the output from the metaEB3analysis function, but you can give [] to select the file
-timeRange = [1 30];   % frame range [start end], use [] to use all frames
-velLimit  = [];       % max speed to use for color min/max (i.e. it will plot all tracks faster than velLimit as same shade of red), if [], will use full range
-roiYX     = [];       % [] to choose a ROI on the fly; or load one by dragging it into the workspace
-featVelMovie(projData,timeRange,velLimit,roiYX);
-
-
-% using trackMovie, you can make movies of one or more individual tracks,
-% or of all the tracks within the timeRange and within the input ROI. the
-% movies will be stored in whatever folder you select when prompted, along
-% with the ROI coordinates used to make that movie. the movie name is
-% chosen automatically as either:
-%
-% "allTracks_startFrame_endFrame_01" (or 02, 03, etc, depending on how many
-% allTracks movies have been produced in the past)
-%
-% -OR-
-%
-% "track_trackNumber_startFrame_endFrame_01" (or 02, 03, etc, for
-% individual movies)
-%
-% movies are never overwritten so you can make variations on a theme, for
-% example: you might want to make 3 movies using the same ROI and timeRange
-%           - one where you just show the raw images
-%           - one where you show just the tracks
-%           - one where you show the tracks with the feature centroids plotted
-%             according to time
-
-indivTrack = []; % track numbers if you want to make n movies of individual tracks. use [] for all tracks
-timeRange  = [1 10]; % frame range [start end], use [] to use all frames
-roiYX      = []; % [] to choose a ROI on the fly; or load one by dragging it into the workspace
-magCoef    = []; % use [] to make largest possible movie based on screen size, otherwise try 3 or 4.
-showTracks = 1; % 1 to show tracks, 0 if not
-showDetect = 1; % 1 for feature positions on tracks only, 2 for all detected features, 3 for current frame (see function header)
-trackMovie([],indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect)
-
-
-% with plotTracks2D_EB3 you can overlay the tracks onto a single image and select them
-% selectedTracks are not saved anywhere but will appear in the work space
-
-timeRange       = [1 10]; % frame range over which to plot
-img             = [];     % [] to select the image
-ask4sel         = 'y'     % 'y' to select tracks, 'n' otherwise
-plotCurrentOnly = []      % [] for all tracks in the frame range, a number in timeRange if you only want to show the tracks active in that frame
-roiYX           = []      % [] to use whole image, or load one by dragging it into the workspace
-[selectedTracks] = plotTracks2D_EB3([],timeRange,img,ask4sel,plotCurrentOnly,roiYX,[]);
-
-
-
+plusTipPlotTracks
 
