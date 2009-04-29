@@ -20,14 +20,14 @@ doDetect=0;
 doTrack=0; 
 
 % use 0 to run post-processing function metaEB3analysis, 1 to skip
-doMeta=1;
+doMeta=0;
 
 
 % DETECTION parameters (will only matter if doDetect=1) %%%%%%%%%%%%%%%%%%%
 
 timeRangeDetect = []; % frame range [start end], use [] to use all frames
-bitDepth  = 16; % change according to your camera (should be 12, 14, or 16)
-savePlots = 0;  % 1 to save overlay plots of detection results in subfolder; 0 if not (may run faster)
+bitDepth  = 14; % change according to your camera (should be 12, 14, or 16)
+savePlots = 1;  % 1 to save overlay plots of detection results in subfolder; 0 if not (may run faster)
 
 % TRACKING parameters
 % open file using "edit scriptTrack_EB3" and check tracking parameters!!!
@@ -35,13 +35,13 @@ savePlots = 0;  % 1 to save overlay plots of detection results in subfolder; 0 i
 % META parameters (will only matter if doMeta=1) %%%%%%%%%%%%%%%%%%%%%%%%%%
 % (i.e. k: 2.0s,105nm;  y: 2.0s,84nm;  c: 0.8s,110nm)
 secPerFrame=2; % frame rate
-pixSizeNm=105; % real-space pixel size (nanometers)
+pixSizeNm=84; % real-space pixel size (nanometers)
 
 doPopHist=1; % 1 to make population histograms, 0 to skip
 
-doFeatVelMovie=1; % 1 to make velocity movie, 0 to skip
-timeRangeMovie = [1 5]; % frame range [start end], use [] to use all frames
-velLimit  = []; % max speed (microns/minute) to use for color min/max, use [] for full range
+doFeatVelMovie=0; % 1 to make velocity movie, 0 to skip
+timeRangeMovie = [1 30]; % frame range [start end], use [] to use all frames
+velLimit  = [30]; % max speed (microns/minute) to use for color min/max, use [] for full range
 % (i.e. all tracks faster than velLimit will be the same shade of red; 
 % all shrinkage events faster than -velLimit will be the same shade of blue) 
 
@@ -56,6 +56,11 @@ load(formatPath([pathName filesep fileName]));
 clear 'fileName' 'pathName'
 
 for i=1:size(projList,1)
+    
+    if ~isempty(strfind(projList(i).anDir,'sub'))
+        continue
+    end
+    
     %try
         
         if doDetect==1
