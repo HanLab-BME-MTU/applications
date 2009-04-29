@@ -95,22 +95,33 @@ while makeNewROI==1 && roiCount<10
     imwrite(tempRoi,[currentRoiAnDir filesep 'roiMask.tif']);
     save([currentRoiAnDir filesep 'roiYX'],'roiYX');
     
-    % find all subtracks starting within roi
-    temp=projData.nTrack_start_end_velMicPerMin_class_lifetime;
-    c=sub2ind(size(projData.xCoord),temp(:,1),temp(:,2));
-    x=projData.xCoord(c);
-    y=projData.yCoord(c);
-    [inIdx,onIdx]=inpolygon(x,y,roiYX(:,2),roiYX(:,1));
-    subtracksStartingIN=find(inIdx);
-    save([currentRoiAnDir filesep 'subtracksStartingIN'],'subtracksStartingIN')
     
-    % find all subtracks ending within roi
-    c=sub2ind(size(projData.xCoord),temp(:,1),temp(:,3));
+    temp=projData.nTrack_start_end_velMicPerMin_class_lifetime;
+    
+    % find all subtracks starting within roi
+    c=sub2ind(size(projData.xCoord),temp(:,1),round(mean([temp(:,2),temp(:,3)],2)));
     x=projData.xCoord(c);
     y=projData.yCoord(c);
     [inIdx,onIdx]=inpolygon(x,y,roiYX(:,2),roiYX(:,1));
-    subtracksEndingIN=find(inIdx);
-    save([currentRoiAnDir filesep 'subtracksEndingIN'],'subtracksEndingIN')
+    subIdx=find(inIdx);
+    save([currentRoiAnDir filesep 'subIdx'],'subIdx')
+    
+    
+%     % find all subtracks starting within roi
+%     c=sub2ind(size(projData.xCoord),temp(:,1),temp(:,2));
+%     x=projData.xCoord(c);
+%     y=projData.yCoord(c);
+%     [inIdx,onIdx]=inpolygon(x,y,roiYX(:,2),roiYX(:,1));
+%     subtracksStartingIN=find(inIdx);
+%     save([currentRoiAnDir filesep 'subtracksStartingIN'],'subtracksStartingIN')
+%     
+%     % find all subtracks ending within roi
+%     c=sub2ind(size(projData.xCoord),temp(:,1),temp(:,3));
+%     x=projData.xCoord(c);
+%     y=projData.yCoord(c);
+%     [inIdx,onIdx]=inpolygon(x,y,roiYX(:,2),roiYX(:,1));
+%     subtracksEndingIN=find(inIdx);
+%     save([currentRoiAnDir filesep 'subtracksEndingIN'],'subtracksEndingIN')
     
     % ask user whether to not to select another sub-roi
     reply = questdlg('Do you want to select another ROI?');
