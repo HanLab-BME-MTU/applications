@@ -33,6 +33,7 @@ for i=1:length(exp)
     
     cd(od);
 end
+pause(0.1);
 
 
 for i = 1:length(exp)
