@@ -1,4 +1,4 @@
-function [data]=determineLifetimeInfo(data);
+function [data]=determineLifetimeInfo(data, overwrite);
 % determine lifetime info data for all entries in the data structure
 %
 % SYNOPSIS  [data]=determineLifetimeInfo(data);
@@ -17,6 +17,14 @@ function [data]=determineLifetimeInfo(data);
 lens = length(data);
 
 ordir = cd;
+
+owVar = 0;
+if nargin>1
+    if overwrite==1
+        owVar = 1;
+    end
+end
+
 
 for i=1:lens
     
@@ -40,8 +48,8 @@ for i=1:lens
         cd(currPath);
     end
     
-    % if lifetime Info doesn't already exist
-    if lftexist == 0
+    % if lifetime Info doesn't already exist or if overwrite is specified
+    if (lftexist == 0) | (owVar==1)
         
         % check for TrackInfo
         if exist('TrackInfoMatrices')==7
