@@ -1,4 +1,4 @@
-function [] = main283AUTO(iclean,oriImageName, oriImagePath);
+function [] = main283AUTO(iclean,oriImageName, oriImagePath)
 %reads a whole bunch of original images and for each image it
 % Reconstructs a filtered image using iterative filtering from significant
 % coefficients ( see Book by Starck et al, p. 66)
@@ -38,7 +38,7 @@ function [] = main283AUTO(iclean,oriImageName, oriImagePath);
 %                                   here, or input is empty, the default 
 %                                   value will be 
 %                                   itest=0
-% EXAMPLE: main283_ML7(1,[],0); 
+% EXAMPLE: main283AUTO(1,[],0); 
 %
 % NOTE: the default values can be changed below in line 58-60, if desired,
 % but generally, different parameter values can be used by entering them in
@@ -96,11 +96,11 @@ fprintf(' icut = %d   {icut > 0 for Dafi"s movies to remove first "icut" rows} \
 fprintf(' iclean = %d  {iclean = 0 is NORMALLY used} \n', iclean)
 fprintf(' itest = %d {use itest = 0 for a regular run over a whole movie} \n', itest)
 
-kk=0; %kk is necessary (used as a counter below)
+% kk=0; %kk is necessary (used as a counter below) (Sylvain)
 %
 
 % Step 1 : Load all the images 
-defaultFileName = []; %HRJ 'tif'
+%defaultFileName = []; %HRJ 'tif' (Sylvain)
 
 if nargin<2
     [oriImageName, oriImagePath] = uigetfile('.tif','Please select the first original image'); %HRJ'.tif'
@@ -189,34 +189,36 @@ for ix = 1 : 1 : ixmax
     ttmn=min(rw(:));
     rw=rw-ttmn;
     mxw=max(rw(:));
-    mnw=min(rw(:));
+    % mnw=min(rw(:)); (Sylvain)
     
-    bs=4; % size of mask for local average= (2*bs+1)by(2*bs+1)
-    
-    [av,sg]=wlocav(rw,bs); % calculate local average (av) and local standard deviation (sg)
-    
+    % size of mask for local average= (2*bs+1)by(2*bs+1)
+    [av,sg]=wlocav(rw, 4); % calculate local average (av) and local standard deviation (sg)
+
     ttav=mean(rw(:));
-    ttsg=std(rw(:));
+    % ttsg=std(rw(:)); (Sylvain)
     
     avt=ttav; %+0.5*ttsg;
     
     %create binary image
-    
-    ia=0; % ia indicates unoccupied (or dark) sites,
-    
-    ib=1-ia; % ib indicates fluorescent sites
-    for i=1:sy
-        for j=1:sx
-            sd3=av(i,j)+0.5*sg(i,j);
-            if ((rw(i,j) >= sd3)&&(rw(i,j)*wm(i,j) >=avt)) % local and global cutoff criteria
-                rwb(i,j)=ib;
-            else
-                rwb(i,j)=ia;
-            end
-        end
-    end
-    
-    
+
+    % REPLACE THIS... (Sylvain)
+%     ia=0; % ia indicates unoccupied (or dark) sites,
+%     
+%     ib=1-ia; % ib indicates fluorescent sites
+%     for i=1:sy
+%         for j=1:sx
+%             sd3=av(i,j)+0.5*sg(i,j);
+%             if ((rw(i,j) >= sd3)&&(rw(i,j)*wm(i,j) >=avt)) % local and global cutoff criteria
+%                 rwb(i,j)=ib;
+%             else
+%                 rwb(i,j)=ia;
+%             end
+%         end
+%     end
+    % ... BY THIS:
+    rwb = zeros(sy, sx);
+    rwb((rw >= av+0.5*sg) & (rw .* wm >=avt)) = 1;
+
     rwb=bwmorph(rwb,'clean'); %to get rid of isolated pixels (noise)
     rwb=bwmorph(rwb,'fill'); %to fill up empty internal pixels
     rwb=bwmorph(rwb,'thicken'); %to make larger clusters because of the harsh cutoff criteria above
@@ -246,17 +248,17 @@ for ix = 1 : 1 : ixmax
     
     rw=rw.*rwb; %Outside the clusters the intensity is set to zero exactly
     
-    ttav=mean(rw(:));
-    ttsg=std(rw(:));
-    tta1=ttav; %+1.0*ttsg
-    ttmx1=max(rw(:));
-    ttmn1=min(rw(:));
+    %ttav=mean(rw(:)); (Sylvain)
+    %ttsg=std(rw(:)); (Sylvain)
+    %tta1=ttav; %+1.0*ttsg (Sylvain)
+    %ttmx1=max(rw(:)); (Sylvain)
+    %ttmn1=min(rw(:)); (Sylvain)
     
     lm=locmax2d(rw,[9 9]); % find the location of the maxima of the clusters
     [ymx xmx]=find(lm>0); %tta1);
     
     nmax=length(xmx);  % calculate  number of maxima determined by locmax2d
-    pnum=0; %initialize number of primary maxima
+    % pnum=0; %initialize number of primary maxima (Sylvain)
     snum=0; %initialize number of secondary maxima (if there are two or more maxima in a cluster found by locmax2d)
     lxm=zeros(num,1);  %initialize the number of maxima in each cluster
     intot=zeros(num,1);%initialize the total intensity of each cluster
@@ -266,20 +268,27 @@ for ix = 1 : 1 : ixmax
     yav=zeros(num,1);%initialize the coordinates of the center of intensity
     xav=zeros(num,1);
     labl=zeros(num,1); %NEWHRJ
+    nn=zeros(num, 1); % (Sylvain)
+    ymax2=zeros(num, 1); % (Sylvain)
+    xmax2=zeros(num, 1); % (Sylvain)
+    lxm2=zeros(num, 1); % (Sylvain)
+    intot2=zeros(num, 1); % (Sylvain)
+    csize2=zeros(num, 1); % (Sylvain)
+    labl2=zeros(num, 1); % (Sylvain)
     for i=1:num
         labl(i)=i;%NEWHRJ
         [yi,xi] = find(Lbr==i);
-        kk=kk+1;
+        %kk=kk+1; (Sylvain)
         lni=length(yi);
-        nn(kk)=lni;
-        [ym,xm]= find((Lbr==i)&(lm>0));
+        nn(i)=lni; %nn(kk)=lni; (Sylvain)        
+        [ym,xm]= find((Lbr==i) & (lm>0));
         
         lxm(i)=length(xm);
-        pnum=pnum+1;
+        % pnum=pnum+1; (Sylvain)
         if lxm(i)==1
             
-            ymax(pnum)=ym;
-            xmax(pnum)=xm;
+            ymax(i)=ym; % ymax(pnum)=ym; (Sylvain)
+            xmax(i)=xm; % xmax(pnum)=xm; (Sylvain)
             for j=1:lni
                 inloc=rw(yi(j),xi(j));
                 yav(i)=yav(i)+yi(j)*inloc;
@@ -304,8 +313,8 @@ for ix = 1 : 1 : ixmax
                     tt=inloc;
                     ymx(nmax)=yi(j);
                     xmx(nmax)=xi(j);
-                    ymax(pnum)=yi(j);
-                    xmax(pnum)=xi(j);
+                    ymax(i)=yi(j); % ymax(pnum)=yi(j); (Sylvain)
+                    xmax(i)=xi(j); % xmax(pnum)=xi(j); (SYlvain)
                 end
                 %fprintf([' i = ',num2str(i),' j=  ',num2str(j),'\n'])
                 %ymax(pnum)=ymx(nmax);
@@ -325,16 +334,16 @@ for ix = 1 : 1 : ixmax
             xav(i)=xav(i)/intot(i);
             yav(i)=yav(i)/intot(i);
             tt1=rw(ym(1),xm(1));
-            ymax(pnum)=ym(1);
-            xmax(pnum)=xm(1);
+            ymax(i)=ym(1); % ymax(pnum)=ym(1); (Sylvain)
+            xmax(i)=xm(1); % xmax(pnum)=xm(1); (Sylvain)
             for jmx=2:lxm(i)
                 tt2=rw(ym(jmx),xm(jmx));
                 snum=snum+1;
                 if tt2>tt1
-                    ymax2(snum)=ymax(pnum); %The weaker maxima  are designated secondary maxima
-                    xmax2(snum)=xmax(pnum);
-                    ymax(pnum)=ym(jmx); %The maximum with the highest intensity in a cluster is designated the primary max
-                    xmax(pnum)=xm(jmx);
+                    ymax2(snum)=ymax(i); % ymax2(snum)=ymax(pnum); (Sylvain) %The weaker maxima  are designated secondary maxima
+                    xmax2(snum)=xmax(i); % xmax2(snum)=xmax(pnum); (Sylvain)
+                    ymax(i)=ym(jmx); % ymax(pnum)=ym(jmx); (Sylvain) %The maximum with the highest intensity in a cluster is designated the primary max
+                    xmax(i)=xm(jmx); % xmax(pnum)=xm(jmx); (Sylvain)
                     lxm2(snum)=lxm(i);
                     intot2(snum)=intot(i);
                     csize2(snum)=csize(i);
@@ -355,15 +364,23 @@ for ix = 1 : 1 : ixmax
     end
     % Add secondary maxima to the end of the primary maxima list
     if snum > 0
-        for  imx=1:snum
-            pnum=pnum+1;
-            ymax(pnum)=ymax2(imx);
-            xmax(pnum)=xmax2(imx);
-            lxm(pnum)=lxm2(imx);
-            intot(pnum)=intot2(imx);
-            csize(pnum)=csize2(imx);
-            labl(pnum)=labl2(imx);%NEWHRJ
-        end
+        % REPLACE THIS... (Sylvain)
+%         for  imx=1:snum
+%             pnum=pnum+1;
+%             ymax(pnum)=ymax2(imx);
+%             xmax(pnum)=xmax2(imx);
+%             lxm(pnum)=lxm2(imx);
+%             intot(pnum)=intot2(imx);
+%             csize(pnum)=csize2(imx);
+%             labl(pnum)=labl2(imx);%NEWHRJ
+%         end
+        % ...BY THIS:
+        ymax = vertcat(ymax, ymax2(1:snum));
+        xmax = vertcat(xmax, xmax2(1:snum));
+        lxm = vertcat(lxm, lxm2(1:snum));
+        intot = vertcat(intot, intot2(1:snum));
+        csize = vertcat(csize, csize2(1:snum));
+        labl = vertcat(labl, labl2(1:snum));
     end
     nmax=length(xmax);
     
