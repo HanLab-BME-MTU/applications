@@ -45,9 +45,9 @@ end
 compactRes.numcells = k;
 compactRes.numtraj = n;
 compactRes.contr = resmat1(:,1);
-compactRes.contrError = round(10*E2Eval(:,1))/10;
+compactRes.contrError = round(100*E2Eval(:,1))/100;
 compactRes.tau = resmat1(:,2);
-compactRes.tauError = round(10*E2Eval(:,2))/10;
+compactRes.tauError = round(100*E2Eval(:,2))/100;
 compactRes.tau50 = resmat1(:,3);
 
  [data] = determinePitDensities(data);
