@@ -333,11 +333,11 @@ axis([0 maxt 0 1.01*max(1-hcfit)]);
 % relative contributions
 atpos = [1, 2:3:length(est3)];
 ATcont = abs(est3(atpos))/sum(abs(est3(atpos)));
-ATcont = round(ATcont*1000)/10;
+ATcont = round(ATcont*10000)/100;
 
 % time constants
 ATtau = est3(3:3:length(est3));
-ATtau = [ 0 round(ATtau*10)/10];
+ATtau = [ 0 round(ATtau*100)/100];
 
 
 
@@ -353,8 +353,8 @@ for p=2:length(ATtau)
     [range50(p)] = boxwhiskerPerRange(ATtau(p), shapevec(p-1), 0.5);
     [range75(p)] = boxwhiskerPerRange(ATtau(p), shapevec(p-1), 0.75);
 end
-range50 = round(range50*10)/10;
-range75 = round(range75*10)/10;
+range50 = round(range50*100)/100;
+range75 = round(range75*100)/100;
 
 
 %OUTPUT
