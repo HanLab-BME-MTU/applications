@@ -8,7 +8,7 @@ function y=wstarck2(x,k,irecon)
 %    calcualted reconstructed image up to order k without kth detail.
 %
 %    Reference:  "Olivo-Marin J.C. 2002. Extraction of spots in biological
-%    images using multiscale products. Pattern Recognit. 35: 1989–1996."
+%    images using multiscale products. Pattern Recognit. 35: 1989ï¿½1996."
 % 
 % Last updated:  Shann-Ching Sam Chen, April 8, 2008
 %                add description to the function and rewrote the inner loop 
@@ -22,6 +22,7 @@ function y=wstarck2(x,k,irecon)
 
 y=zeros(ly,lx);
 m=zeros(ly,lx,k);
+yl = zeros(ly, lx, k + 1);
 
 tx=x;				% Copy the original.
 yl(:,:,1)=x;
@@ -59,7 +60,7 @@ for ind=1:k			% For every scale...
     % End of the loop    
     
     % the above loop was rewritten in a vectorized form by Sam, April 8, 2008
-    s(find(abs(yh)>=3*st)) = 1;
+    s(abs(yh)>=3*st) = 1;
     
     w=w+s.*yh;
 end				% end of all scales.
