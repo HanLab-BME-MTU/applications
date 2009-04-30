@@ -6,7 +6,7 @@ function y=wtlo2(x,k)
 %    Y is the processed result (with low pass transformation).
 %
 %    Reference:  "Olivo-Marin J.C. 2002. Extraction of spots in biological
-%    images using multiscale products. Pattern Recognit. 35: 1989–1996."
+%    images using multiscale products. Pattern Recognit. 35: 1989ï¿½1996."
 %
 % Last updated:  Shann-Ching Sam Chen, April 8, 2008
 %                add description to the function and rewrote the inner loop
@@ -22,7 +22,7 @@ lmax=lix+2*edge;
 % Copy the vector to transform.
 tzeros =zeros(1,lmax);
 y = zeros(size(x));
-ix=[1+edge:lix+edge];
+ix=1+edge:lix+edge;
 
 for it=1:liy
     % For every row of the input matrix...
