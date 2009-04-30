@@ -1,4 +1,4 @@
-function [] = runLifetimeAnalysis(restrict,shape)
+function [] = runLifetimeAnalysis(restrict,shape,expData)
 
 % runLifetimeAnalysis takes all data folders under a given condition and fills in
 % missing tracking and lifetime data
@@ -6,9 +6,11 @@ function [] = runLifetimeAnalysis(restrict,shape)
 % SYNOPSIS [] = runLifetimeAnalysis()
 %
 % INPUT     restrict    = (optional) time restriction in seconds, e.g. 300
-%           shape   = (optional) shape for populations, e.g. [2 2 1], where 1
+%           shape       = (optional) shape for populations, e.g. [2 2 1], where 1
 %                   indicates an exponential distribution, and 2 a Rayleigh
 %                   distribution
+%           expData  = (optional) if specified, data is taken from this
+%                   structure instead of loaded via user interface
 %
 % OUTPUT
 %
@@ -18,12 +20,30 @@ function [] = runLifetimeAnalysis(restrict,shape)
 %           runLifetimeAnalysis([],[2 2 1])
 %
 % Daniel Nunez, March 5, 2008
+% update Dinah Loerke, March 15, 2009
 
 oldDir = cd;
 
-%Load Data
-%ask user to specify movies to analyse
-[experiment] = loadIndividualMovies();
+% check if experiment dat is already specified
+noLoad = 0;
+if nargin>2
+    if ~isempty(expData)
+        if isstruct(expData)
+            noLoad = 1;
+        end
+    end
+end
+
+
+if noLoad
+    experiment = expData;
+else
+    %Load Data
+    %ask user to specify movies to analyse
+    [experiment] = loadIndividualMovies();
+end
+
+
 %go to condition folder
 cd(experiment(1).source);
 cd ..
@@ -77,8 +97,8 @@ elseif nargin == 2
         restrict = 300;
         disp('lifetimes have been restricted to under 300 seconds')
     end
-else
-    error('Input must of the form (),(restrict,[]), ([],shape), or (restrict,shape).\n Restrict must be of length 1 and shape of length 3.')
+% else
+%    error('Input must of the form (),(restrict,[]), ([],shape), or (restrict,shape).\n Restrict must be of length 1 and shape of length 3.')
 end
 
 %Fill in movie length and image size
