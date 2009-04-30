@@ -49,8 +49,8 @@ for i=1:lens
         lftInfo = loadfile.lftInfo;
 
 
-        lftMat = lftInfo.Mat_lifetime;
-        statMat =  lftInfo.Mat_status;
+        lftMat = full(lftInfo.Mat_lifetime);
+        statMat =  full(lftInfo.Mat_status);
 
         [sx,sy] = size(lftMat);
 
