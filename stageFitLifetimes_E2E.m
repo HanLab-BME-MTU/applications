@@ -462,7 +462,7 @@ for r=1:2
     
     
     if r==1
-       histVector_fast = [ round(tvecRes*10)/10; histVectorRes ; histVectorResDel];
+        histVector_fast = [ round(tvecRes*10)/10; histVectorRes ; histVectorResDel];
         totalNumCells_fast = sum(ncells(usepos));
         results.numcells_fast = totalNumCells_fast;
         plot(tvecRes, cumsum(histVectorRes),'r.-');
