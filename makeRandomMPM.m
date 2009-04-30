@@ -54,7 +54,8 @@ umat(upos) = 1;
 % all collected x- and y-positions
 xvec = xmat(:);
 yvec = ymat(:);
-l = length(xvec);
+%l = length(xvec);
+l = length(upos);
 
 max_x = max(xvec);
 max_y = max(yvec);
