@@ -13,8 +13,8 @@ function [segmentStatusVector,segmentEUdistVector] = calcIORegionLfthistSimple(l
 
 [no,nf] = size(lftInfo.Mat_lifetime);
 
-cmx = lftInfo.Mat_xcoord;
-cmy = lftInfo.Mat_ycoord;
+cmx = full(lftInfo.Mat_xcoord);
+cmy = full(lftInfo.Mat_ycoord);
 
 lmat = lftInfo.Mat_lifetime;
 lvec = full(max(lmat,[],2));
@@ -42,9 +42,16 @@ for n=1:no
     % traj of this object
     upos = find( cmx(n,:)>0 & cmy(n,:)>0 );
     currx = full(cmx(n,upos));
-    curry = full(cmy(n,upos));
-    
-    % object is defined as IN if the majority of its points are inside    
+    curry = full(cmy(n,upos));   
+   
+    if isempty(upos) 
+        objectInStatus(n) = 0;
+        objectEUdist(1,n) = nan;
+        objectEUdist(2,n) = nan;
+        continue
+    end
+        
+     % object is defined as IN if the majority of its points are inside    
     % maskIN
     instatus = [];
     eudist = [];
