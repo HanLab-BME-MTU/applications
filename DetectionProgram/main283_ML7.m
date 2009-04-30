@@ -56,7 +56,7 @@ clc;
 %=========================================================================
 
 icleandefault = 0;
-icutdefault   = 5;
+icutdefault   = 0;
 itestdefault  = 0;
 
 
@@ -114,6 +114,8 @@ defaultFileName = []; %HRJ 'tif'
 oriImageName = strcat(oriImagePath, oriImageName);
 oriImageStackList = getFileStackNames(oriImageName);
 total_frame_num = length(oriImageStackList);
+
+pause(0.1);
 
 %check whether the \maxdata28\ subdirectory exists or not 
 %((This is where the data about the clusters is stored))
