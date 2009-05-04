@@ -1,5 +1,5 @@
 function plusTipTracker(runInfo,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxBDist)
-
+% plusTipTracker is the tracking function
 
 %% get runInfo in correct format
 if nargin<1 || isempty(runInfo)
