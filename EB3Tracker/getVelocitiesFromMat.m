@@ -31,14 +31,17 @@ function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities]
 %                                    averages over the whole segment or gap
 
 
+% if tracksFinal is the input, convert to matrix format
 if isstruct(trackedFeatureInfo)
     [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(trackedFeatureInfo);
     clear trackedFeatureIndx
 end
 
-
+% find whole rows full of nans and remove them
 nanRowIdx=find(sum(isnan(trackedFeatureInfo),2)==size(trackedFeatureInfo,2));
-trackedFeatureInfo(nanRowIdx,:)=[];
+if ~isempty(nanRowIdx)
+    trackedFeatureInfo(nanRowIdx,:)=[];
+end
 
 % since we need a few frames to calculate segment directions for the dot
 % product calculation (to determine whether forward (growing) or backward
@@ -197,10 +200,13 @@ end
 % get rows that don't contain a track
 nanRowIdx=find(sum(isnan(trackedFeatureInfoInterp),2)==size(trackedFeatureInfoInterp,2));
 % remove these rows from relevant data
+if ~isempty(nanRowIdx)
 trackedFeatureInfo(nanRowIdx,:)=[];
 trackedFeatureInfoInterp(nanRowIdx,:)=[];
 perFrameVelocities(nanRowIdx,:)=[];
+end
 nTracks = size(trackedFeatureInfo,1);
+
 
 % removing NaN-data from trackInfo is a bit trickier...
 fNames=fieldnames(trackInfo);
