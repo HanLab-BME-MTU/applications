@@ -92,9 +92,20 @@ else
         error('--metaEB3analysis: first argument should be a structure with fields imDir and anDir');
     else
         [runInfo.anDir] = formatPath(runInfo.anDir);
+        homeDir=pwd;
+        cd(runInfo.anDir)
         [runInfo.imDir] = formatPath(runInfo.imDir);
+        cd(homeDir)
     end
 end
+
+if nargin<2 || isempty(secPerFrame)
+    error('--metaEB3analysis: frame rate missing')
+end
+if nargin<3 || isempty(pixSizeNm)
+    error('--metaEB3analysis: pixel size missing')
+end
+
 
 
 % load movieInfo (detection result)
@@ -102,7 +113,7 @@ featDir  = [runInfo.anDir filesep 'feat'];
 if ~isdir(featDir)
     error('--metaEB3analysis: feat directory missing')
 else
-    if exist([featDir filesep 'movieInfo.mat'])
+    if exist([featDir filesep 'movieInfo.mat'],'file')
         load([featDir filesep 'movieInfo.mat'])
     else
         error('--metaEB3analysis: movieInfo missing...')

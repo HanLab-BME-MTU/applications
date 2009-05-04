@@ -34,6 +34,8 @@ function setupRoiDirectories(selectROI,overwriteROIs,doCrop)
 %
 % Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
 
+topDir=uigetdir(pwd,'Please select top-level directory containing targets');
+
 % default - make roi_1 directory, roi is whole image
 if nargin<1 || isempty(selectROI) || (selectROI~=0 && selectROI~=1)
     selectROI=0;
@@ -44,13 +46,16 @@ end
 if nargin<2 || isempty(overwriteROIs) || (overwriteROIs~=0 && overwriteROIs~=1)
     overwriteROIs=0;
 end
+
+reply='no';
 if overwriteROIs==1
-    reply=input('You chose to overwrite any existing ROI data and analysis. Is this correct? y/n [n]: ','s');
-else
-    reply='n';
+    reply = questdlg('This function will overwrite all existing ROI directories under the one you just selected. Do you wish to continue?');
+    if strcmpi(reply,'cancel')
+        return
+    end
 end
-if lower(reply)~='y'
-    overwriteROIs=0;
+if strcmpi(reply,'yes')
+    overwriteROIs=1;
 end
 
 % default - don't crop the images and store them
@@ -60,7 +65,7 @@ end
 
 % find existing /images and /roi_x directories. "images" directories make
 % up the list of all the projects; "roi_x" ones have already been analyzed
-topDir=uigetdir(pwd,'Please select top-level directory containing targets');
+
 p=genpath(topDir);
 if ispc
     tempDirList=strrep(p,';',' ');
@@ -108,9 +113,11 @@ for i=1:length(imageDirList) % iterate through projects
                     while isempty(roiMask)
                         try
                             % draw polygon to make mask
+                            figure
                             [roiMask,polyXcoord,polyYcoord]=roipoly(img);
                         catch
-                            disp('Please try again.')
+                            h=msgbox('Please try again.','help');
+                            uiwait(h);
                         end
                     end
                     close
@@ -122,11 +129,12 @@ for i=1:length(imageDirList) % iterate through projects
                     roiYX=[1 1; imL 1; imL imW; 1 imW; 1 1];
                     
                     % get within-cell point for each project
-                    if i==1
-                        disp('Select a point in the cell center, then press enter')
-                    end
-                    
+                    figure
                     imagesc(img); colormap gray;
+                    if i==1
+                        h=msgbox('For each ROI, select a point in the cell center and press enter.');
+                        uiwait(h);
+                    end
                     [x,y] = getpts;
                     bgPtYX = [y(1) x(1)];
                     
@@ -134,7 +142,7 @@ for i=1:length(imageDirList) % iterate through projects
                     close
                 end
 
-                % save original and cropped roiMask
+                % save roiMask and coordinates
                 imwrite(roiMask,[currentRoiAnDir filesep 'roiMask.tif']);
                 save([currentRoiAnDir filesep 'roiYX'],'roiYX');
                 disp(currentRoiAnDir)
@@ -155,11 +163,11 @@ for i=1:length(imageDirList) % iterate through projects
                 end
 
                 if selectROI==1
-                    reply=input('Do you want to select another ROI? y/n [n]: ','s');
+                    reply = questdlg('Do you want to select another ROI?');
                 else
-                    reply='n';
+                    reply='no';
                 end
-                if lower(reply)=='y'
+                if strcmpi(reply,'yes')
                     makeNewROI=1; % user said yes; make another one
                     roiCount=roiCount+1; % counter for current condition rois
                 else

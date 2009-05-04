@@ -5,6 +5,8 @@ function [projList,projPathParsed]=getProj(varargin)
 %        roi_x and sub_x directory paths found in a user-selected top-level
 %        directory. the search is NOT case-sensitive.
 %
+%        input can also be a cell array containing strings.
+%
 %        Note: if pwd is given as input, user is not asked for top-level
 %        directory; instead the working directory is used. in this case all
 %        projects are returned. this option is not compatible with user
@@ -20,10 +22,28 @@ function [projList,projPathParsed]=getProj(varargin)
 
 
 % check whether inputs are strings
+
+
+if nargin>=1 && isempty(varargin{1,1})
+    varargin=[];
+end
+
 n=[];
+nStr=0;
 if ~isempty(varargin)
+
+    % check whether input is a cell array
+    nStr=nargin;
+    if isempty(varargin{1,1})
+        nStr=0;
+    end
+    if iscell(varargin{1,1})
+        varargin=varargin{1,1}';
+        nStr=length(varargin);
+    end
+
     inputStrings=cellfun(@(y) ischar(y), varargin);
-    if sum(inputStrings)~=nargin
+    if sum(inputStrings)~=nStr
         error('input arguments must be strings')
     end
 
@@ -38,10 +58,10 @@ end
 % if input is current working directory, look here and in all
 % sub-directories for roi_x directories. otherwise, ask the user to select
 % the top-level directory
-if nargin==1 && isequal(varargin{1},pwd)
+if nStr==1 && isequal(varargin{1},pwd)
     topDir=pwd;
 else
-    topDir=uigetdir(pwd,'Please select top-level directory containing targets');
+    topDir=uigetdir(pwd,'Please select top-level directory containing projects');
 end
 
 
@@ -71,7 +91,7 @@ end
 projCount=0;
 if ~isempty(roiDirList)
     tempROI=ones(length(roiDirList),1);
-    for i=1:nargin
+    for i=1:nStr
         testStr = varargin{i};
         tempROI=tempROI & cellfun(@(y) ~isempty(strfind(y,lower(testStr))),lower(roiDirList));
     end
@@ -88,7 +108,7 @@ end
 % do this also for sub list
 if ~isempty(subDirList)
     tempSUB=ones(length(subDirList),1);
-    for i=1:nargin
+    for i=1:nStr
         testStr = varargin{i};
         tempSUB=tempSUB & cellfun(@(y) ~isempty(strfind(y,lower(testStr))),lower(subDirList));
     end

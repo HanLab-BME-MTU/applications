@@ -111,7 +111,7 @@ end
 
 
 % look for region of interest info from project setup step
-if ~exist([runInfo.anDir filesep 'roiMask.tif'])
+if ~exist([runInfo.anDir filesep 'roiMask.tif'],'file')
     % not roi selected; use the whole image
     roiMask = ones(imL,imW);
     roiYX=[1 1; imL 1; imL imW; 1 imW; 1 1];
@@ -353,7 +353,7 @@ end
 save([featDir filesep 'movieInfo'],'movieInfo');
 
 
-close all
+close(gcf)
 warning(warningState);
 
 
