@@ -43,10 +43,10 @@ inputMask = im2bw(inputMask);
 [experiment] = determineImagesize(experiment);
 
 for iexp = 1:length(experiment)
-    
+
     %gives wait bar; comment if not wanted
     waitHandle = waitbar(iexp/length(experiment),['running movie ' num2str(iexp) ' out of ' num2str(length(experiment))]);
-    
+
     %Load Lifetime Information
     cd([experiment(iexp).source filesep 'LifetimeInfo'])
     load('lftInfo')
@@ -65,7 +65,7 @@ for iexp = 1:length(experiment)
     %movie length
     movieLength = experiment(iexp).movieLength;
     imSize = experiment(iexp).imagesize;
-    
+
     %find all pits in movie that meet requirements specified by restriction
     %vector
     findPos = find((statMat==rest(1,1))& (daMat==rest(1,2)) &...
@@ -73,17 +73,17 @@ for iexp = 1:length(experiment)
 
     %get pits inside mask
     if exist('inputMask','var') && ~isempty(inputMask)
-    findPos = findPos(diag(inputMask(ceil(matY(findPos)),ceil(matX(findPos)))) == 1);
+        findPos = findPos(diag(inputMask(ceil(matY(findPos)),ceil(matX(findPos)))) == 1);
     end
-    
-    [areamask] = makeCellMaskDetections([matX(findPos),matY(findPos)],40,imSize);
-    normArea = bwarea(areamask);  
+
+    [areamask] = makeCellMaskDetections([matX(:),matY(:)],40,15,1,imSize,0,[]);
+    normArea = bwarea(areamask);
     
     experiment(iexp).initiationDen = length(findPos)/normArea/movieLength;
     experiment(iexp).initiationDenUnits = length(findPos)/(normArea*0.067^2)/(movieLength*framerate)*60;
     
     close(waitHandle)
-    
+
 end %for each experiment
 
 end %of function
