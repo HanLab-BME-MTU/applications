@@ -1,35 +1,35 @@
-function varargout = plusTipTrackerGUI(varargin)
-% PLUSTIPTRACKERGUI M-file for plusTipTrackerGUI.fig
-%      PLUSTIPTRACKERGUI, by itself, creates a new PLUSTIPTRACKERGUI or raises the existing
+function varargout = plusTipAnalysis(varargin)
+% PLUSTIPANALYSIS M-file for plusTipAnalysis.fig
+%      PLUSTIPANALYSIS, by itself, creates a new PLUSTIPANALYSIS or raises the existing
 %      singleton*.
 %
-%      H = PLUSTIPTRACKERGUI returns the handle to a new PLUSTIPTRACKERGUI or the handle to
+%      H = PLUSTIPANALYSIS returns the handle to a new PLUSTIPANALYSIS or the handle to
 %      the existing singleton*.
 %
-%      PLUSTIPTRACKERGUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in PLUSTIPTRACKERGUI.M with the given input arguments.
+%      PLUSTIPANALYSIS('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in PLUSTIPANALYSIS.M with the given input arguments.
 %
-%      PLUSTIPTRACKERGUI('Property','Value',...) creates a new PLUSTIPTRACKERGUI or raises the
+%      PLUSTIPANALYSIS('Property','Value',...) creates a new PLUSTIPANALYSIS or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before plusTipTrackerGUI_OpeningFcn gets called.  An
+%      applied to the GUI before plusTipAnalysis_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to plusTipTrackerGUI_OpeningFcn via varargin.
+%      stop.  All inputs are passed to plusTipAnalysis_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help plusTipTrackerGUI
+% Edit the above text to modify the response to help plusTipAnalysis
 
-% Last Modified by GUIDE v2.5 04-May-2009 10:38:42
+% Last Modified by GUIDE v2.5 04-May-2009 14:46:56
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
+gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @plusTipTrackerGUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @plusTipTrackerGUI_OutputFcn, ...
+                   'gui_OpeningFcn', @plusTipAnalysis_OpeningFcn, ...
+                   'gui_OutputFcn',  @plusTipAnalysis_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,18 +44,18 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before plusTipTrackerGUI is made visible.
-function plusTipTrackerGUI_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before plusTipAnalysis is made visible.
+function plusTipAnalysis_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to plusTipTrackerGUI (see VARARGIN)
+% varargin   command line arguments to plusTipAnalysis (see VARARGIN)
 
-% Choose default command line output for plusTipTrackerGUI
+% Choose default command line output for plusTipAnalysis
 handles.output = hObject;
 handles.selectRoi = 1;
-handles.getStr = 1;
+handles.getStr = 0;
 
 handles.doDetect=0;
 handles.doTrack=0; 
@@ -63,8 +63,8 @@ handles.doMeta=0;
 
 % DETECTION parameters
 handles.timeRange = [1 inf];
-handles.bitDepth  = 14; % change according to your camera (should be 12, 14, or 16)
-handles.savePlots = 1;  % 1 to save overlay plots of detection results in subfolder; 0 if not (may run faster)
+handles.bitDepth  = 14; 
+handles.savePlots = 1;
 
 % TRACKING parameters
 handles.timeWindow=[];
@@ -82,12 +82,12 @@ handles.doHist=1;
 % Update handles structure
 guidata(hObject,handles);
 
-% UIWAIT makes plusTipTrackerGUI wait for user response (see UIRESUME)
+% UIWAIT makes plusTipAnalysis wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = plusTipTrackerGUI_OutputFcn(hObject, eventdata, handles) 
+function varargout = plusTipAnalysis_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -102,20 +102,16 @@ function getProjPush_Callback(hObject, eventdata, handles)
 % hObject    handle to getProjPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if handles.getStr==1
-    handles.strList=inputGUI;
-    [projList,projPathParsed]=getProj(handles.strList);
-else
-    handles.strList=[];
-    [projList,projPathParsed]=getProj;
-end
-if ~isempty(projList)
-    a=struct2cell(projList);
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');   
+
+% here we filter out any sub-directories
+if ~isempty(handles.projList)
+    a=struct2cell(handles.projList);
     a=a(2,:)';
     a=sort(a);
     b=cellfun(@isempty, strfind(a,'sub'));
     [selection,selectionList]=listSelectGUI(a(b),[],'move');
-    handles.projList=projList(selection,1);
+    handles.projList=handles.projList(selection,1);
 else
     handles.projList=[];
 end
@@ -210,27 +206,6 @@ function savePlotCheck_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of savePlotCheck
 handles.savePlots=get(hObject,'Value');
-guidata(hObject, handles);
-
-% --- Executes on button press in doDetectCheck.
-function doDetectCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to doDetectCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of doDetectCheck
-handles.doDetect=get(hObject,'Value');
-if handles.doDetect==1
-    set(handles.bitDepthEdit,'Enable','on')
-    set(handles.startFrame,'Enable','on')
-    set(handles.endFrame,'Enable','on')
-    set(handles.savePlotCheck,'Enable','on')
-else
-    set(handles.bitDepthEdit,'Enable','off')
-    set(handles.startFrame,'Enable','off')
-    set(handles.endFrame,'Enable','off')
-    set(handles.savePlotCheck,'Enable','off')
-end
 guidata(hObject, handles);
 
 
@@ -425,6 +400,28 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes on button press in doDetectCheck.
+function doDetectCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to doDetectCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of doDetectCheck
+handles.doDetect=get(hObject,'Value');
+if handles.doDetect==1
+    set(handles.bitDepthEdit,'Enable','on')
+    set(handles.startFrame,'Enable','on')
+    set(handles.endFrame,'Enable','on')
+    set(handles.savePlotCheck,'Enable','on')
+else
+    set(handles.bitDepthEdit,'Enable','off')
+    set(handles.startFrame,'Enable','off')
+    set(handles.endFrame,'Enable','off')
+    set(handles.savePlotCheck,'Enable','off')
+end
+guidata(hObject, handles);
+
+
 % --- Executes on button press in trackingCheck.
 function trackingCheck_Callback(hObject, eventdata, handles)
 % hObject    handle to trackingCheck (see GCBO)
@@ -522,8 +519,6 @@ imagesc(img,'parent',hObject);
 axis image
 axis off
 imHandle=get(hObject,'Children');
-%info=get(hObject); info2=get(blah);
-%set(blah,'HitTest','off')
 set(imHandle,'ButtonDownFcn',@helpPic_ButtonDownFcn)
 
 % --- Executes on mouse press over axes background.
@@ -562,4 +557,11 @@ function selectRoiCheck_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of selectRoiCheck
 handles.selectRoi=get(hObject,'Value');
 guidata(hObject, handles);
+
+% --- Executes on button press in resetButton.
+function resetButton_Callback(hObject, eventdata, handles)
+% hObject    handle to resetButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+plusTipGuiSwitch(hObject,eventdata,handles,'resetButton');   
 

@@ -19,18 +19,31 @@ Track Type Quick Reference - see details below
 
 STEPS:
 
-1. Select Project Data (OPTIONAL) 
-Click the button and navigate to the projData file corresponding to the 
-project of interest (located in the roi_x/meta folder).  Once you choose a 
-project, it can be used for multiple tasks (e.g. 4a followed by 4b).  You 
-can choose a new one at any time, or click "Reset" to start over. If you do
-not choose the project first, you can still run 4a and 4b, but you will 
-have to select the project for each one separately.
+1. Select Project (OPTIONAL) 
+Once you choose a project, it can be used for multiple tasks 
+(e.g. 4a followed by 4b).  You can choose a new one at any time, or click 
+"Reset" to start over. If you do not choose the project first, you can 
+still run 4a and 4b, but you will have to select the project for each one 
+separately.
+
+If "Select Subset" is checked, a window will pop up asking for one or more
+search strings.  These are strings of characters that can be used to narrow
+down the number of projects you have to scroll through.  For example, you 
+may know that you have some projects that contain "tau" (somewhere in the file
+path), so you may input "tau" into the search string list.  Then only those matching
+the query will pop up.  If "Select Subset" is unchecked, this step is bypassed
+and all the projects will appear in the list.  
+
+When the next window pops up with the list of projects, choose one 
+and use the arrow to move it from the left to the right.  Please note that 
+if you havecreated a roi_x directory but not run the tracking and 
+post-processing, it will not appear in the list. Unlike the analysis
+GUI, this one can only process one project at a time.
 
 ---------------------------------------------------------------------------
 2. Select Saved ROI (OPTIONAL) 
 Click the button if you want to use a saved roiYX or roiMask.tif file.
-These are saved during the intitial ROI selection and also for each movie
+These are saved during the initial ROI selection and also for each movie
 that is generated.  Once you load one ROI, it can be used for multiple
 tasks (e.g. 4a followed by 4b).  You can choose a new one at any time, or 
 click "Reset" to start over with no ROI.  If no ROI is chosen, 4a will use  
