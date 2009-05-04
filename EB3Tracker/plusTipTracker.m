@@ -39,14 +39,14 @@ end
 % there are n-1 frames between the last detection event of the first track
 % segment and the first detection event of the second track segment.
 if nargin<2 || isempty(timeWindow)
-    gapCloseParam.timeWindow = 10;
+    error('--plusTipTracker: time window input missing')
 else
     gapCloseParam.timeWindow = timeWindow;
 end
 % minimum length of track segments (in frames) from linking to be used in
 % gap closing. 1 if everything, 2 if all tracks 2 or more frames long, etc.
 if nargin<3 || isempty(minTrackLen)
-    gapCloseParam.minTrackLen = 3;
+    error('--plusTipTracker: min track length input missing')
 else
     gapCloseParam.minTrackLen = minTrackLen;
 end
@@ -66,14 +66,14 @@ costMatrices(1).funcName = 'costMatLinearMotionLink_EB3';
 %in the code given a feature's motion parameters. if it happens to be
 %smaller than this minimum, it will be increased to the minimum.
 if nargin<4 || isempty(minRadius)
-    parameters.minSearchRadius = 10;
+    error('--plusTipTracker: min search radius input missing')
 else
     parameters.minSearchRadius = minRadius;
 end
 %maximum allowed search radius. if a feature's calculated search radius is
 %larger than this maximum, it will be reduced to this maximum.
 if nargin<5 || isempty(maxRadius)
-    parameters.maxSearchRadius = 15;
+    error('--plusTipTracker: max search radius input missing')
 else
     parameters.maxSearchRadius = maxRadius;
 end

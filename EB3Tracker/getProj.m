@@ -83,7 +83,8 @@ projList=[];
 projPathParsed=[];
 
 if isempty(roiDirList) && isempty(subDirList)
-    disp('no projects found')
+    h=msgbox('No projects found.');
+    uiwait(h);
     return
 end
 
@@ -128,7 +129,8 @@ end
 
 % return if nothing
 if isempty(projList)
-    disp('no projects found')
+    h=msgbox('No projects found.');
+    uiwait(h);
     return
 end
 

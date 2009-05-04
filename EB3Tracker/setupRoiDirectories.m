@@ -35,6 +35,9 @@ function setupRoiDirectories(selectROI,overwriteROIs,doCrop)
 % Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
 
 topDir=uigetdir(pwd,'Please select top-level directory containing targets');
+if topDir==0
+    return
+end
 
 % default - make roi_1 directory, roi is whole image
 if nargin<1 || isempty(selectROI) || (selectROI~=0 && selectROI~=1)
@@ -82,6 +85,11 @@ if overwriteROIs==1 && ~isempty(roiDirList)
         temp=roiDirList{i,1}; temp=temp(1:end-1);
         rmdir(temp,'s');
     end
+end
+
+if isequal(size(imageDirList),[0 0])
+    h=msgbox('No directories called "images" were found.');
+    uiwait(h);
 end
 
 roiCount=0;
