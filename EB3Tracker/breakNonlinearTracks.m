@@ -1,15 +1,23 @@
 function [newTrackedFeatureInfo,newTrackedFeatureIndx,newNnDistFeatures]=breakNonlinearTracks(trackedFeatureInfo,trackedFeatureIndx,nnDistFeatures)
-%breaks up tracks if not following roughly linear behavior
+% BREAKNONLINEARTRACKS splits up tracks not following uni-directional behavior
 
-% this function looks for instances where the vectors created by consecutive 
-% features in a track have a negative dot product, indicating that they do
-% not follow a unidirectional path. for each broken track two new tracks
-% are born. output has the same format as input. note that nnDistFeatures
-% may be nonsensical...need to check with Khuloud whether these should be
-% recalculated.  many links are now shorter than minLength, but those can
-% be filtered out by post-processing step.
+% this function splits up individial tracks where the displacement vectors
+% created by consecutive frame-frame pairs in a track differ in direction
+% by more than 45 degrees. for each instance like this, one new track is
+% born. 
+%
+% some instances where the angle is greater than 45 degrees are retained if
+% one or both of the vectors is very short (<3rd percentile), which may
+% simply reflect the uncertainty in the detected position if the features
+% are not moving much per frame.
+%
+% output has the same format as input. NOTE: nnDistFeatures will now be
+% nonsensical, but these are currently not used in the gap closing cost
+% matrix.  many links will now shorter than minLength, but those can be
+% filtered out by post-processing step.
 
-% currently called in conditional statement during trackCloseGapsKalman
+% this function is currently called in conditional statement during
+% trackCloseGapsKalman
 
 
 %get total number of tracks
@@ -25,15 +33,69 @@ py=trackedFeatureInfo(:,2:8:end);
 % get vector coordinates between linked features
 vx=diff(px,1,2);
 vy=diff(py,1,2);
+vmag=sqrt(vx.^2+vy.^2);
 
-% take dot product of each pair of consecutive vectors along all the tracks
-dotProd = vx(:,1:end-1).*vx(:,2:end) + vy(:,1:end-1).*vy(:,2:end);
+% first vector matrix
+v1x=vx(:,1:end-1);
+v1y=vy(:,1:end-1);
+v1mag=sqrt(v1x.^2+v1y.^2);
 
-% dot < 0 when vectors off by 90 degrees or more - indicates a "bad" (ie
-% nonlinear) link
-[r c]=find(dotProd<0); c=c+1; % add one to get tail position of vector to break
-badLinkIdx=[r c];
-badLinkIdx=sortrows(badLinkIdx,1); % sorted indices [trackNumber tailPosition]
+% second vector matrix
+v2x=vx(:,2:end);
+v2y=vy(:,2:end);
+v2mag=sqrt(v2x.^2+v2y.^2);
+
+% cos of angle between consecutive vectors (displacements)
+cosV12=(v1x.*v2x+v1y.*v2y)./(v1mag.*v2mag);
+
+% assume max angle is 45 degrees
+cosMax=cos(45*pi/180);
+
+% lower bound displacement - if smaller than this, may just be jitter
+lb=prctile(vmag(:),3); 
+
+% keep track of where cos or displacement vectors are NaNs
+nanMat=swapMaskValues(isnan(cosV12) | isnan(v1mag) | isnan(v2mag),[0 1],[1 NaN]);
+
+% these are within forward cone, so they're ok
+okAngles=cosV12>cosMax;
+
+% these are not in the forward cone but one or both of the vectors is shorter 
+% than the nth percentile of all vectors, so maybe just jitter
+okLength=cosV12<cosMax & (v1mag<lb | v2mag<lb); 
+
+% if either the angle or the length criterion isn't met, then it's a bad
+% link which we will break
+badLinks=swapMaskValues(nanMat.*(okAngles | okLength),[0 1],[1 0]);
+
+
+[badTrackIdx badTrackVecPair]=find(badLinks==1);
+badTrackVecHead=badTrackVecPair+1;
+
+doPlot=0;
+if doPlot==1
+    % plot the first 50 bad tracks
+    b=badTrackIdx(1:50);
+    figure
+    plot(px(b,:)',py(b,:)')
+    hold on
+    x=px(b,:)'; x=x(:);
+    y=py(b,:)'; y=y(:);
+    scatter(x,y,'b')
+    % plot break points in red
+    for i=1:length(b)
+        a=badTrackIdx(badTrackIdx==b(i));
+        d=badTrackVecPair(badTrackIdx==b(i));
+        x=px(sub2ind(size(badLinks),a,d)+length(px));
+        y=py(sub2ind(size(badLinks),a,d)+length(px));
+
+        scatter(x,y,'r')
+    end
+end
+
+
+badLinkIdx=[badTrackIdx badTrackVecHead];
+badLinkIdx=sortrows(badLinkIdx,1); % sorted indices [trackNumber headPosition]
 
 [trackIdxWithBadLink,nBadLinks,whereIdx] = countEntries(badLinkIdx(:,1));
 % n links to break creates n+1 segments. but, since we retain the original row
@@ -68,7 +130,8 @@ end
 
 doPlot=0;
 if doPlot==1
-    % plot broken links in red, kept tracks in blue
+    figure
+    % plot broken links in red, retained tracks in blue
     px=trackedFeatureInfo(:,1:8:end)';
     py=trackedFeatureInfo(:,2:8:end)';
     plot(px(:,:),py(:,:),'r') % original
@@ -77,6 +140,10 @@ if doPlot==1
     px=newTrackedFeatureInfo(:,1:8:end)';
     py=newTrackedFeatureInfo(:,2:8:end)';
     plot(px(:,:),py(:,:),'b') % new
+    
+    x=px(:);
+	y=py(:);
+    scatter(x,y,'b')
 end
 
 %rearrange "newTrackedFeatureIndx" such that tracks are sorted in ascending order by their
