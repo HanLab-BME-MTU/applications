@@ -23,7 +23,7 @@ function varargout = plusTipTrackViz(varargin)
 
 % Edit the above text to modify the response to help plusTipTrackViz
 
-% Last Modified by GUIDE v2.5 16-Apr-2009 14:33:34
+% Last Modified by GUIDE v2.5 02-May-2009 15:23:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -400,7 +400,34 @@ switch get(hObject,'Tag')   % Get Tag of selected object
 end
 
 
+% --- Executes during object creation, after setting all properties.
+function radioButtonGroupDetection_CreateFcn(hObject, eventdata, h)
+% hObject    handle to radioButtonGroupDetection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% h    empty - h not created until after all CreateFcns called
 
 
+% --- Executes on mouse press over axes background.
+function helpPic_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to helpPic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+open plusTipTrackViz_README.txt
 
+
+% --- Executes during object creation, after setting all properties.
+function helpPic_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to helpPic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate helpPic
+img=imread('qIcon.jpg');
+imagesc(img,'parent',hObject);
+axis image
+axis off
+imHandle=get(hObject,'Children');
+%info=get(hObject); info2=get(blah);
+%set(blah,'HitTest','off')
+set(imHandle,'ButtonDownFcn',@helpPic_ButtonDownFcn)
 
