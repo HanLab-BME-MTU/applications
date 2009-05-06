@@ -51,7 +51,7 @@ function [confRadius,trackCenter] = calculateConfinementRadius(tracks,probDim)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %estimate the confinement radius
-for iTrack = size(tracks,1)
+for iTrack = 1:size(tracks,1)
 
     %get track coordinates
     xCoord = (tracks(iTrack,1:8:end))';
@@ -64,7 +64,7 @@ for iTrack = size(tracks,1)
     eigenVal = eig(nancov(xyzCoord(:,1:probDim)));
 
     %calculate the track's confinement radius
-    confRadius(iTrack,1) = sqrt( mean(eigenVal) * (probDim + 2) );
+    confRadius(iTrack,1) = sqrt( min(eigenVal) * (probDim + 2) );
 
 
     %calculate the track's center

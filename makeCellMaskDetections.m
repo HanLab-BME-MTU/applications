@@ -3,7 +3,7 @@ function [mask] = makeCellMaskDetections(positions,closureRadius,dilationRadius,
 % makeCellMaskDetections calculates mask based on positions of particles by
 % dilating, closing, and filling these particles
 %
-% INPUT:    positions = matrix where first column contains the x positions 
+% INPUT:    positions = matrix where first column contains the x positions
 %               of all points and second column contains the y positions
 
 %           closureRadius =   radius for disk used in closure
@@ -22,7 +22,7 @@ function [mask] = makeCellMaskDetections(positions,closureRadius,dilationRadius,
 %           mask
 %
 % Uses:
-%       
+%
 %
 % Daniel Nunez, updated May 04, 2009
 
@@ -42,18 +42,6 @@ direction = find(sizePositions == 2);
 if direction == 1
     positions = positions';
 end
-
-% %GET CLOSURE RADIUS FROM DISTANCE DISTRIBUTION
-% %calculate distances between all points
-% distances = squareform(pdist(positions));
-% %make diagonal (distance of point to self) nans
-% distances(distances == 0) = nan;
-% %find nearest neighbor distance
-% distances = min(distances,[],2);
-% %make histogram of distances
-% [distHist,bins] = hist(distances,length(positions));
-% cumHistNorm = cumsum(distHist)/sum(distHist);
-% closureRadius = bins(find(cumHistNorm >= cutoff,1));
 
 
 %MAKE MASK OUT OF POINTS
@@ -76,8 +64,7 @@ mask = imdilate(mask,seDilate);
 seClose = strel('disk',closureRadius);
 mask = imclose(mask,seClose);
 
-
-%grab largest connected area as mask
+%GRAB LARGEST CONNECTED AREA AS MASK
 [mask,labelNum] = bwlabeln(mask);
 for ilabel = 1:labelNum
     labelSize(ilabel) = length(find(mask == ilabel));
@@ -85,10 +72,12 @@ end
 maxArea = find(labelSize == max(labelSize));
 mask(mask ~= maxArea) = 0;
 
+%PERFORM FILL
 if doFill
     mask = imfill(mask);
 end
 
+%remove padding from image edge
 mask(1:2*closureRadius,:) = [];
 mask(:,1:2*closureRadius) = [];
 mask(1+imSize(1):end,:) = [];
@@ -97,14 +86,22 @@ mask(:,1+imSize(2):end) = [];
 
 %PLOT MASK
 if plotMask
-    imagesc(overlayImage)
-    colormap(gray)
-    figure, hold on
-    plot(matX,matY,'r.','MarkerSize',0.2)
-    boundaries = bwboundaries(areamask);
-    for ibound = 1:length(boundaries)
-        bounds = boundaries{ibound};
-        plot(bounds(:,2),bounds(:,1),'r')
+    boundaries = bwboundaries(mask);
+    for iter = 1:2
+        figure
+        if exist(overlayImage,'var') && ~isempty(overlayImage)
+            imagesc(overlayImage)
+            colormap(gray)
+        end
+        hold on
+        axis equal
+        if iter == 1
+            plot(positions(:,1),positions(:,2),'r.','MarkerSize',0.2)
+        end
+        for ibound = 1:length(boundaries)
+            bounds = boundaries{ibound};
+            plot(bounds(:,2),bounds(:,1),'g')
+        end
     end
 end
 

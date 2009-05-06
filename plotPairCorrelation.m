@@ -1,6 +1,6 @@
-function [experiment] = determineInitiationDensity(experiment,rest,plotMask,inputMask);
+function [pairCorrelation,clustering] = plotPairCorrelation(experiment,dist,rest,plotMask);
 
-% determineInitiationDensity calculates the density of pits defined by rest
+% plotPairCorrelation calculates the density of pits defined by rest
 % and that fall within an inputMask
 %
 % INPUT:   experiment=   data structure pointing to all the
@@ -20,18 +20,23 @@ function [experiment] = determineInitiationDensity(experiment,rest,plotMask,inpu
 %                       optionally, the length can be extended to nine,
 %                       where the additional entries are
 %                       [... minint maxint minmot maxmot]
-%           inputMask = binary mask; pits that fall within pixels of value
-%                       one will be counted towards density.
+%           dist =      [optional] distance vector for binning (default is
+%                       1:20)
+%           plotMask =  [optional] 1 to plot area mask and detections 0 to
+%                       not (default is 0)
+%           
 % OUTPUT
-%           experiment.initiationDen in pits/frame/pixel
-%           experiment.initiationDen in pits/second/micrometer^2
-%
+%           pairCorr =  pair correlation as column vecotrs for each movie
+%           clustering = sum of pairCorrelation for the first two pixels
+%                       for ech movie
 % Uses:
-%       determineMovieLength
 %       determineImagesize
 %       makeCellMaskDetections
+%       RipleysKfunction
+%       calculatePitDenFromLR
+%       makeCorrFactorMatrix
 %
-% Daniel Nunez, updated May 5, 2009
+% Daniel Nunez, updated May 05, 2009
 
 %% EXPLANATION of restriction values:
 % rest = [stat da minfr minlft maxlft minint maxint minmot maxmot]
@@ -75,29 +80,29 @@ dilationRadius = 5;
 doFill = 1;
 
 %%
+od = cd;
+
 %interpret inputs
-if nargin < 2 || isempty(rest)
+if nargin < 3 || isempty(dist)
+    dist = 1:20;
+end
+if nargin < 3 || isempty(rest)
     rest = [1 1 4 1 300];
 end
-if nargin < 3 || isempty(plotMask)
+if nargin < 4 || isempty(plotMask)
    plotMask = 0;
 end
-if nargin < 4 || isempty(inputMask)
-    inputMask = [];
+
+%convert movie paths to correct OS
+for iexp = 1:length(experiment)
+    [experiment(iexp).source]=formatPath(experiment(iexp).source);
 end
 
-%make image binary
-inputMask = im2bw(inputMask);
-
 %Fill in Missing Data
-%needed to normalize density by movie length
-[experiment] = determineMovieLength(experiment);
-%needed to make mask
 [experiment] = determineImagesize(experiment);
 
 for iexp = 1:length(experiment)
 
-    %gives wait bar; comment if not wanted
     waitHandle = waitbar(iexp/length(experiment),['running movie ' num2str(iexp) ' out of ' num2str(length(experiment))]);
 
     %Load Lifetime Information
@@ -115,28 +120,34 @@ for iexp = 1:length(experiment)
     daMat = lftInfo.Mat_disapp;
     % framerate
     framerate = experiment(iexp).framerate;
-    %movie length
-    movieLength = experiment(iexp).movieLength;
-    imSize = experiment(iexp).imagesize;
+    % image size
+    imsize  = experiment(iexp).imagesize;
 
     %find all pits in movie that meet requirements specified by restriction
     %vector
-    findPos = find((statMat==rest(1,1))& (daMat==rest(1,2)) &...
+    findPos = find((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
         (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)));
 
-    %get pits inside mask
-    if exist('inputMask','var') && ~isempty(inputMask)
-        findPos = findPos(diag(inputMask(ceil(matY(findPos)),ceil(matX(findPos)))) == 1);
-    end
-
-    [areamask] = makeCellMaskDetections([matX(:),matY(:)],closureRadius,dilationRadius,doFill,imSize,plotMask,[]);
+    %MAKE MASK
+    imsizS = [imsize(2) imsize(1)];
+    [areamask] = makeCellMaskDetections([matX(:),matY(:)],closureRadius,dilationRadius,doFill,imsize,plotMask,[]);
+    %CALCULATE NORMALIZED AREA FROM MASK
     normArea = bwarea(areamask);
     
-    experiment(iexp).initiationDen = length(findPos)/normArea/movieLength;
-    experiment(iexp).initiationDenUnits = length(findPos)/(normArea*0.067^2)/(movieLength*framerate)*60;
+    % CREATE CORRECTION FACTOR MATRIX FOR THIS MOVIE using all objects
+    corrFacMat = makeCorrFactorMatrix(imsizS, dist, 10, areamask');
     
+    %CALCULATE PIT DENSITY
+    mpm2 = [full(matX(findPos)) full(matY(findPos))];
+    mpm1 = mpm2;
+    [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
+    [currDen] = calculatePitDenFromLR(kr,dist);
+    pairCorrelation(:,iexp) = currDen;
+
     close(waitHandle)
+end
 
-end %for each experiment
-
+clustering = sum(pairCorrelation(1:2,:),1);
+cd(od)
 end %of function
+
