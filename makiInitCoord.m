@@ -213,10 +213,10 @@ for t=goodTimes
         % there will be NaNs in the masked image. Therefore, request
         % filtered data from imageDataObject. Ideally, loadType is set to
         % fcn or reqKeep
-        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter);
+        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter,1);
         % filter signal first, then run smaller filter with background to
         % save some time
-        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter);
+        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter,1);
         
         % mask signal pixels, then recalculate background
         sigMask = raw>background;
@@ -232,14 +232,16 @@ for t=goodTimes
             rawMsk(:,:,z)=blkproc(rawMsk(:,:,z),[21 21],@fillZeroHoles);
         end
         rawMsk(rawMsk==0) = NaN;
-        background = fastGauss3D(rawMsk,[],dataProperties.FILTERPRM(4:6),1,signalFilter);
+        background = fastGauss3D(rawMsk,[],dataProperties.FILTERPRM(4:6),1,signalFilter,1);
         %background = convNan(rawMsk,backgroundFilter,backgroundFilterParms(4:6),1);
         
     else
-        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter);
+        % only use NaN-image-reduction and new addBorders for dataObj to guarantee backward
+        % compatibility
+        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter,dataObj);
         % filtering with sigma=15 is equal to filtering with 1 and then
         % with 14
-        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter);
+        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter,dataObj);
     end
     
     % amplitude is filtered image - background. This underestimates the
