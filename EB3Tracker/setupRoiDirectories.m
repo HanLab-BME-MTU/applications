@@ -53,7 +53,7 @@ end
 reply='no';
 if overwriteROIs==1
     reply = questdlg('This function will overwrite all existing ROI directories under the one you just selected. Do you wish to continue?');
-    if strcmpi(reply,'cancel')
+    if strcmpi(reply,'cancel') | strcmpi(reply,'no')
         return
     end
 end

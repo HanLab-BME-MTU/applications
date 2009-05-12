@@ -56,6 +56,7 @@ function plusTipAnalysis_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 handles.selectRoi = 1;
 handles.getStr = 0;
+handles.projList = [];
 
 handles.doDetect=0;
 handles.doTrack=0; 
@@ -484,7 +485,27 @@ function startPush_Callback(hObject, eventdata, handles)
 % hObject    handle to startPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+if isempty(handles.projList)
+    errordlg('Please select project(s) first','No project error');
+    return
+end
+
 numProj=size(handles.projList,1);
+
+if handles.doTrack==1
+    if isempty(handles.timeWindow) | isempty(handles.minRadius) | isempty(handles.maxRadius)
+        errordlg('Please check tracking parameters.','Missing Input');
+        return
+    end       
+end
+if handles.doMeta==1
+    if isempty(handles.secPerFrame) | isempty(handles.pixSizeNm)
+        errordlg('Please check post-processing parameters.','Missing Input');
+        return
+    end       
+end
+
+
 for i=1:numProj
 %    try
         % detection
