@@ -23,6 +23,8 @@ function [projList,projPathParsed]=getProj(varargin)
 
 % check whether inputs are strings
 
+projList=[];
+projPathParsed=[];
 
 if nargin>=1 && isempty(varargin{1,1})
     varargin=[];
@@ -63,7 +65,9 @@ if nStr==1 && isequal(varargin{1},pwd)
 else
     topDir=uigetdir(pwd,'Please select top-level directory containing projects');
 end
-
+if topDir==0
+    return
+end
 
 disp(topDir);
 % get semi-colon- (windows) or colon- (linux) separated list of all
