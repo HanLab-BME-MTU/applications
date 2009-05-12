@@ -22,7 +22,7 @@ function varargout = plusTipAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipAnalysis
 
-% Last Modified by GUIDE v2.5 04-May-2009 14:46:56
+% Last Modified by GUIDE v2.5 11-May-2009 11:16:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -72,7 +72,8 @@ handles.minTrackLen=3;
 handles.minRadius=[];
 handles.maxRadius=[];
 handles.maxFAngle=45;
-handles.maxBDist=1.5;
+handles.maxShrinkFactor=1.5;
+handles.d1Max=1;
 
 % META parameters
 handles.secPerFrame=[];
@@ -377,19 +378,19 @@ end
 
 
 
-function maxBDistEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to maxBDistEdit (see GCBO)
+function maxShrinkFactorEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to maxShrinkFactorEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of maxBDistEdit as text
-%        str2double(get(hObject,'String')) returns contents of maxBDistEdit as a double
-handles.maxBDist=str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of maxShrinkFactorEdit as text
+%        str2double(get(hObject,'String')) returns contents of maxShrinkFactorEdit as a double
+handles.maxShrinkFactor=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function maxBDistEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to maxBDistEdit (see GCBO)
+function maxShrinkFactorEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to maxShrinkFactorEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -436,14 +437,17 @@ if handles.doTrack==1
     set(handles.minRadiusEdit,'Enable','on')
     set(handles.maxRadiusEdit,'Enable','on')
     set(handles.maxAngleEdit,'Enable','on')
-    set(handles.maxBDistEdit,'Enable','on')
+    set(handles.maxShrinkFactorEdit,'Enable','on')
+    set(handles.d1MaxEdit,'Enable','on')
+    
 else
     set(handles.timeWindowEdit,'Enable','off')
     set(handles.minTrackLengthEdit,'Enable','off')
     set(handles.minRadiusEdit,'Enable','off')
     set(handles.maxRadiusEdit,'Enable','off')
     set(handles.maxAngleEdit,'Enable','off')
-    set(handles.maxBDistEdit,'Enable','off')
+    set(handles.maxShrinkFactorEdit,'Enable','off')
+    set(handles.d1MaxEdit,'Enable','off')
 end
 guidata(hObject, handles);
 
@@ -493,11 +497,11 @@ for i=1:numProj
         if handles.doTrack==1
             disp(['Tracking project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
             plusTipTracker(handles.projList(i),handles.timeWindow,handles.minTrackLen,...
-                handles.minRadius,handles.maxRadius,handles.maxFAngle,handles.maxBDist);
+                handles.minRadius,handles.maxRadius,handles.maxFAngle,handles.maxShrinkFactor,handles.d1Max);
         end
         if handles.doMeta==1
             disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
-            [projData]=metaEB3analysis(handles.projList(i),handles.secPerFrame,handles.pixSizeNm);
+            [projData]=plusTipPostTracking(handles.projList(i),handles.secPerFrame,handles.pixSizeNm);
             if handles.doHist==1
                 popHist(projData);
             end
@@ -564,4 +568,35 @@ function resetButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 plusTipGuiSwitch(hObject,eventdata,handles,'resetButton');   
+
+
+
+function d1MaxEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to d1MaxEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of d1MaxEdit as text
+%        str2double(get(hObject,'String')) returns contents of d1MaxEdit as a double
+handles.d1Max=str2double(get(hObject,'String'));
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function d1MaxEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to d1MaxEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function d1Max_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to d1Max (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
 

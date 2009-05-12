@@ -74,3 +74,8 @@ for pause/out-of-focus events.
 Max shrinkage factor: how fast shrinkage is expected to occur relative to
 growth.  (e.g. if a MT grows at 10microns/min, and we assume it cannot 
 shrink faster than 15microns/min, then this parameter is 1.5.)
+
+Max perp end-start distance (pixels): maximum distance between a track start 
+and the nearest point along the current track.  This is used to narrow down
+the candidates for backward (shrinkage) linking.  Candidates for shrinkage
+should be colinear with the track, even if the track has curvature.
