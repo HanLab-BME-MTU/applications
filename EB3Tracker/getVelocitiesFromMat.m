@@ -22,7 +22,7 @@ function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities]
 %                                    containing the track number, start
 %                                    frame, end frame, and average velocity
 %         trackVelocities          : structure with fields .frame2frame and
-%                                    .segmentAvgs, where each is an 
+%                                    .segmentAvgs, where each is an
 %                                    nTracks x nFrames-1 matrix. entry ij
 %                                    contains the velocity of the ith
 %                                    microtubule between the j and j+1
@@ -90,7 +90,7 @@ for iTrack=1:nTracks
     if ~isempty(trackIdx) % after removal, we may have an empty row
         trackStarts = unique([trackIdx(1) find(temp == 1)+1]);
         trackEnds = unique([trackIdx(end) find(temp == -1)]);
-        trackLengths = trackEnds - trackStarts + 1;
+        
         % fill in segment info [trackIndex trackStart trackEnd 0], where the 0
         % will be filled with the segment velocity
         trackInfo(iTrack,1).seg = [iTrack*ones(size(trackStarts')) trackStarts' trackEnds' zeros(size(trackStarts'))];
@@ -98,8 +98,8 @@ for iTrack=1:nTracks
         trackStarts=-1;
     end
 
-    
-    
+
+
     % pxFill/pyFill are the coordinates of the track where we have
     % estimated the position of the feature (using a constant velocity) to fill the gap.
     pxFill=px; pyFill=py;
@@ -119,8 +119,7 @@ for iTrack=1:nTracks
             afterGapDirXY = [(px(gapEnds(iGap)+2)-px(gapEnds(iGap)))/2; (py(gapEnds(iGap)+2)-py(gapEnds(iGap)))/2];
 
             % get xy-vector showing direction/speed-per-frame of the particle during the gap
-            gapDirXY = [mean(diff(linspace(px(gapStarts(iGap)),px(gapEnds(iGap)),gapLengths(iGap))));...
-                mean(diff(linspace(py(gapStarts(iGap)),py(gapEnds(iGap)),gapLengths(iGap))))];
+            gapDirXY = [px(gapEnds(iGap))-px(gapStarts(iGap)); py(gapEnds(iGap))-py(gapStarts(iGap))];
 
             % take dot product of before/after and gap vectors and determine if
             % a forward or backward gap
@@ -201,9 +200,9 @@ end
 nanRowIdx=find(sum(isnan(trackedFeatureInfoInterp),2)==size(trackedFeatureInfoInterp,2));
 % remove these rows from relevant data
 if ~isempty(nanRowIdx)
-trackedFeatureInfo(nanRowIdx,:)=[];
-trackedFeatureInfoInterp(nanRowIdx,:)=[];
-perFrameVelocities(nanRowIdx,:)=[];
+    trackedFeatureInfo(nanRowIdx,:)=[];
+    trackedFeatureInfoInterp(nanRowIdx,:)=[];
+    perFrameVelocities(nanRowIdx,:)=[];
 end
 nTracks = size(trackedFeatureInfo,1);
 
