@@ -1,7 +1,7 @@
-function [movieInfo]=eb1SpotDetector(runInfo,timeRange,bitDepth,savePlots)
-% EB1SPOTDETECTOR locates EB1/EB3 comets in a movie stack
+function [movieInfo]=plusTipCometDetector(runInfo,timeRange,bitDepth,savePlots)
+% plusTipCometDetector locates plus tip comets (or other blobs) in a movie stack
 %
-%SYNOPSIS [movieInfo]=eb1SpotDetector(runInfo,timeRange,bitDepth,savePlots)
+%SYNOPSIS [movieInfo]=plusTipCometDetector(runInfo,timeRange,bitDepth,savePlots)
 %
 %INPUT  runInfo           : structure containing fields .anDir, which gives
 %                           the full path to the roi_x directory
