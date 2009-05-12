@@ -1,7 +1,5 @@
 function popHist(projData)
 
-close all
-
 
 % get runInfo in correct format
 if nargin<1 || isempty(projData)
@@ -26,7 +24,7 @@ metaDir=[projData.anDir filesep 'meta'];
 cd(metaDir)
 
 % re-assign seg/gap data to shorter name
-a=projData.nTrack_start_end_velMicPerMin_class_lifetime;
+a=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 
 % get indices of segments and gaps according to their kinds
 segIdx=find(a(:,5)==1);
@@ -68,6 +66,8 @@ legend('segments (growth)','forward gaps (pause/false neg)','backward gaps (shri
 saveas(gcf,'compositeHist.fig')
 saveas(gcf,'compositeHist.tif')
 
+close(gcf)
+
 figure(2);
 % segments
 if ~isempty(a(segIdx))
@@ -81,6 +81,7 @@ if ~isempty(a(segIdx))
     [I,map] = frame2im(frame);
     imwrite(I,[pwd filesep 'segsHist.tif'],'tif')
 end
+close(gcf)
 
 figure(3);
 % forward gaps
@@ -95,6 +96,7 @@ if ~isempty(a(fgapIdx))
     [I,map] = frame2im(frame);
     imwrite(I,[pwd filesep 'fgapsHist.tif'],'tif')
 end
+close(gcf)
 
 figure(4);
 % backward gaps
@@ -109,6 +111,7 @@ if ~isempty(a(bgapIdx))
     [I,map] = frame2im(frame);
     imwrite(I,[pwd filesep 'bgapsHist.tif'],'tif')
 end
+close(gcf)
 
 figure(5);
 % unclassified gaps
@@ -123,6 +126,7 @@ if ~isempty(a(ugapIdx))
     [I,map] = frame2im(frame);
     imwrite(I,[pwd filesep 'ugapsHist.tif'],'tif')
 end
+close(gcf)
 
 figure(6);
 hist(projData.pair2pairDiffPix,20)
@@ -133,8 +137,8 @@ saveas(gcf,'dispDiffHist.fig')
 frame = getframe(gca);
 [I,map] = frame2im(frame);
 imwrite(I,[pwd filesep 'dispDiffHist.tif'],'tif')
+close(gcf)
 
-close all
 cd(homeDir)
 
 

@@ -139,8 +139,8 @@ errFlag = [];
 %% Input
 
 %check whether correct number of input arguments was used
-if nargin ~= nargin('costMatLinearMotionCloseGaps_EB3')
-    disp('--costMatLinearMotionCloseGaps_EB3: Incorrect number of input arguments!');
+if nargin ~= nargin('plusTipCostMatCloseGaps')
+    disp('--plusTipCostMatCloseGaps: Incorrect number of input arguments!');
     errFlag  = 1;
     return
 end
