@@ -490,7 +490,7 @@ for i=1:numProj
         % detection
         if handles.doDetect==1
             disp(['Detecting project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
-            eb1SpotDetector(handles.projList(i),handles.timeRange,handles.bitDepth,handles.savePlots);
+            plusTipCometDetector(handles.projList(i),handles.timeRange,handles.bitDepth,handles.savePlots);
         end
 
         % tracking
