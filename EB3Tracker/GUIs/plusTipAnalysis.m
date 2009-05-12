@@ -63,7 +63,7 @@ handles.doMeta=0;
 
 % DETECTION parameters
 handles.timeRange = [1 inf];
-handles.bitDepth  = 14; 
+handles.bitDepth  = 16; 
 handles.savePlots = 1;
 
 % TRACKING parameters
