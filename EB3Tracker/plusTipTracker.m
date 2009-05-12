@@ -1,4 +1,4 @@
-function plusTipTracker(runInfo,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxBDist)
+function plusTipTracker(runInfo,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxShrinkFactor,d1Max)
 % plusTipTracker is the tracking function
 
 %% get runInfo in correct format
@@ -59,7 +59,7 @@ gapCloseParam.mergeSplit = 0;
 %% cost matrix for frame-to-frame linking
 
 %function name
-costMatrices(1).funcName = 'costMatLinearMotionLink_EB3'; 
+costMatrices(1).funcName = 'plusTipCostMatLinearMotionLink'; 
 
 %used 10 and 15 for 2sec data,3/5 for Claudio 
 %minimum allowed search radius. the search radius is calculated on the spot
@@ -93,7 +93,7 @@ clear parameters
 %% cost matrix for gap closing
 
 %function name
-costMatrices(2).funcName = 'costMatLinearMotionCloseGaps_EB3';
+costMatrices(2).funcName = 'plusTipCostMatCloseGaps';
 
 if nargin<6 || isempty(maxFAngle)
     parameters.maxFAngle = 30;
@@ -101,10 +101,16 @@ else
     parameters.maxFAngle = maxFAngle;
 end
 
-if nargin<7 || isempty(maxBDist)
+if nargin<7 || isempty(maxShrinkFactor)
     parameters.backVelMultFactor = 1.5;
 else
-    parameters.backVelMultFactor = maxBDist;
+    parameters.backVelMultFactor = maxShrinkFactor;
+end
+
+if nargin<8 || isempty(d1Max)
+    parameters.d1Max = 1.0;
+else
+    parameters.d1Max = d1Max;
 end
 
 costMatrices(2).parameters = parameters;
@@ -112,9 +118,9 @@ clear parameters
 
 %% Kalman filter function names
 
-kalmanFunctions.reserveMem = 'kalmanResMemLM';
-kalmanFunctions.initialize = 'kalmanInitLinearMotion_EB3';
-kalmanFunctions.calcGain = 'kalmanGainLinearMotion_EB3';
+kalmanFunctions.reserveMem  = 'kalmanResMemLM';
+kalmanFunctions.initialize  = 'plusTipKalmanInitLinearMotion';
+kalmanFunctions.calcGain    = 'plusTipKalmanGainLinearMotion';
 kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
 
 %% additional input
