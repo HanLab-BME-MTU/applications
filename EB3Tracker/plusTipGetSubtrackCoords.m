@@ -4,9 +4,9 @@ function [xMat,yMat]=plusTipGetSubtrackCoords(projData,idx)
 
 % get data from all subtracks
 if nargin<2 || isempty(idx)
-    trackData=projData.nTrack_start_end_velMicPerMin_class_lifetime; % all
+    trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix; % all
 else
-    trackData=projData.nTrack_start_end_velMicPerMin_class_lifetime(idx,:);
+    trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix(idx,:);
 end
 
 % list of corresponding track numbers for each subtrack
@@ -43,5 +43,4 @@ idx=cellfun(@(x,y) sub2ind(size(xMat),x,y),subNumPerSub,framesPerSubtrack,'Unifo
 % fill in matrices with coordinates
 xMat(cell2mat(idx))=cell2mat(coordsX);
 yMat(cell2mat(idx))=cell2mat(coordsY);
-
 

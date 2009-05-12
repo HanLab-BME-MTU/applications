@@ -123,7 +123,7 @@ if nargin<8 || isempty(movieInfo)
 end
 
 % get track information
-trackData=projData.nTrack_start_end_velMicPerMin_class_lifetime;
+trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 
 if isempty(subIdx)
     fullIdx=trackData(:,1);

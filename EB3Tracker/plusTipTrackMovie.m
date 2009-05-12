@@ -65,7 +65,7 @@ end
 cd(projData.movDir)
 
 
-trackData=projData.nTrack_start_end_velMicPerMin_class_lifetime;
+trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 % if no individual track given, use all
 if nargin<2 || isempty(indivTrack)
     indivTrack=[];
