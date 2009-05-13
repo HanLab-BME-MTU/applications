@@ -61,7 +61,7 @@ for iexp = 1:length(experiment)
 
     waitHandle = waitbar(iexp/length(experiment),['clustering in progress ' num2str(iexp) ' out of ' num2str(length(experiment))]);
     
-    if exist([experiment(iexp).source filesep 'Cluster'],'dir') == 0 || force == 1 
+    if exist([experiment(iexp).source filesep 'ClusterData'],'dir') == 0 || force == 1 
     
     %Load Lifetime Information
     cd([experiment(iexp).source filesep 'LifetimeInfo'])
