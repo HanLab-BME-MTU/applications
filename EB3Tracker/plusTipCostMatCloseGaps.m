@@ -148,7 +148,7 @@ end
 
 doPlot=0;
 
-d1Max=costMatParam.d1Max;                                            
+d1Max=costMatParam.d1Max;
 maxFAngle = costMatParam.maxFAngle*pi/180;
 backVelMultFactor = costMatParam.backVelMultFactor;
 
@@ -173,12 +173,12 @@ vMag=sqrt(vx.^2+vy.^2);
 
 trackLengths=nansum(sqrt(vx.^2+vy.^2),2);
 
-% ax=vx(:,1:end-1); [row col]=size(ax); ax=ax(:)'; 
+% ax=vx(:,1:end-1); [row col]=size(ax); ax=ax(:)';
 % ay=vy(:,1:end-1); ay=ay(:)';
-% 
+%
 % bx=vx(:,2:end); bx=bx(:)';
 % by=vy(:,2:end); by=by(:)';
-% 
+%
 % c=cross([ax;ay;zeros(1,length(ax))],[bx;by;zeros(1,length(bx))]);
 % magC=sqrt(c(1,:).^2+c(2,:).^2+c(3,:).^2);
 % magC=reshape(magC,row,col);
@@ -224,7 +224,7 @@ if doPlot==1
     hold on
     plot([x(1); x(end)],[vMax*sqrt(tMax); vMax*sqrt(tMax)],'r')
     title({'cutoffFwd (red): vMax*min(sqrt(tMax),tGap)';'cutoffBwd (blue): min(vMed*tMax,backVelMultFactor*vMax*tGap)'})
-    
+
     plot backward cutoff
     y=backVelMultFactor*vMax*x;
     plot(x,y)
@@ -237,7 +237,6 @@ indx1 = zeros(10*numTracks,1);
 indx2 = zeros(10*numTracks,1);
 cost  = zeros(10*numTracks,4);
 
-
 linkCount = 1;
 for iFrame = 1:numFrames-1
     %find tracks that end in this frame
@@ -246,7 +245,7 @@ for iFrame = 1:numFrames-1
     if isempty(endsToConsider)
         continue
     end
-    
+
     for jFrame = iFrame + 1 : min(iFrame+tMax,numFrames)
 
         %find tracks that start in this frame
@@ -261,7 +260,7 @@ for iFrame = 1:numFrames-1
 
         % time gap
         tGap = jFrame - iFrame;
-        
+
         % forward and backward cutoff distances - based on velocity and the
         % current time gap
         cutoffDistFwd = vMax*min(sqrt(tMax),tGap);
@@ -270,10 +269,10 @@ for iFrame = 1:numFrames-1
         % coordinates of the first point in each startsToConsider track
         spX=mat2cell(repmat(trackStartPxyVxy(startsToConsider,1),[nEnds 1]),repmat(nStarts,[nEnds 1]),1);
         spY=mat2cell(repmat(trackStartPxyVxy(startsToConsider,2),[nEnds 1]),repmat(nStarts,[nEnds 1]),1);
-       
+
         [d1,d2,evYc,evXc]=arrayfun(@(i) pt2segDist([py(endsToConsider(i),:)'...
             px(endsToConsider(i),:)'],[spY{i,1},spX{i,1}],0),[1:nEnds]','UniformOutput',0);
-        
+
         % for each endsToConsider track, find the distance from
         % the point along the track nearest each startsToConsider track
         % to the starting point of the startsToConsider track
@@ -282,11 +281,11 @@ for iFrame = 1:numFrames-1
         % track end along the lattice towards the point along the track
         % nearest each startsToConsider track
         d2=cell2mat(d2')';
-        
+
         % for each endsToConsider track, find the instantaneous velocity at
         % the point along the track nearest each startsToConsider track
         % starts
-        evXc=cell2mat(evXc')'; 
+        evXc=cell2mat(evXc')';
         evYc=cell2mat(evYc')';
         evMagC=sqrt(evXc.^2+evYc.^2);
 
@@ -294,11 +293,11 @@ for iFrame = 1:numFrames-1
         svX = repmat(trackStartPxyVxy(startsToConsider,3)',[nEnds 1]);
         svY = repmat(trackStartPxyVxy(startsToConsider,4)',[nEnds 1]);
         svMag = sqrt(svX.^2 + svY.^2);
-        
+
         % cos of angle between start track beginning and direction of end
         % track at closet point to start
         cosTheta = (evXc.*svX + evYc.*svY)./(evMagC.*svMag);
-        
+
         % velocity at final point (f) of endsToConsider tracks
         evXf = repmat(trackEndPxyVxy(endsToConsider,3),[1 nStarts]);
         evYf = repmat(trackEndPxyVxy(endsToConsider,4),[1 nStarts]);
@@ -308,229 +307,75 @@ for iFrame = 1:numFrames-1
         dispX = repmat(trackStartPxyVxy(startsToConsider,1)',[nEnds 1]) - repmat(trackEndPxyVxy(endsToConsider,1),[1 nStarts]);
         dispY = repmat(trackStartPxyVxy(startsToConsider,2)',[nEnds 1]) - repmat(trackEndPxyVxy(endsToConsider,2),[1 nStarts]);
         dispMag = sqrt(dispX.^2 + dispY.^2);
-        
+
         % cos angle between track 1 end and track 2 start
         cosEF_SF = (evXf.*svX + evYf.*svY)./(evMagF.*svMag); % cos(alpha)
         % cos angle between track 1 end and displacement vector
         cosEF_D  = (evXf.*dispX + evYf.*dispY)./(evMagF.*dispMag); % cos(beta)
-        
+
         % find candidates for forward linking
         fwdIdx=find(d1<=cutoffDistFwd & d2==0 & cosEF_D>=cos(maxFAngle) & cosTheta>=cos(maxFAngle));
-        % for forward links, cosTheta==cosEF_SF and d1==dispMag 
-        % reassign d1 and d2 with components of displacement vector and
-        % cosTheta with more accurate measurement of cos(alpha)
-        d2(fwdIdx)=d1(fwdIdx).*cosEF_D(fwdIdx);
-        d1(fwdIdx)=sqrt(d1(fwdIdx).^2-d2(fwdIdx).^2);
-        cosTheta(fwdIdx)=cosEF_SF(fwdIdx);
-        
-        % record indices and parts of cost for forward links
-        [r c]=ind2sub(size(d1),fwdIdx);
-        indx1(linkCount:linkCount+length(fwdIdx)-1) = endsToConsider(r);
-        indx2(linkCount:linkCount+length(fwdIdx)-1) = startsToConsider(c);
-        cost(linkCount:linkCount+length(fwdIdx)-1,:) = [d1(fwdIdx) d2(fwdIdx) cosTheta(fwdIdx) ones(length(fwdIdx),1)];
-        linkCount = linkCount+length(fwdIdx);
+
+        if ~isempty(fwdIdx)
+            % for forward links, cosTheta==cosEF_SF and d1==dispMag
+            % reassign d1 and d2 with components of displacement vector and
+            % cosTheta with more accurate measurement of cos(alpha)
+            d2(fwdIdx)=d1(fwdIdx).*cosEF_D(fwdIdx);
+            d1(fwdIdx)=sqrt(d1(fwdIdx).^2-d2(fwdIdx).^2);
+            cosTheta(fwdIdx)=cosEF_SF(fwdIdx);
+
+            % record indices and parts of cost for forward links
+            [r c]=ind2sub(size(d1),fwdIdx);
+            indx1(linkCount:linkCount+length(fwdIdx)-1) = endsToConsider(r);
+            indx2(linkCount:linkCount+length(fwdIdx)-1) = startsToConsider(c);
+            cost(linkCount:linkCount+length(fwdIdx)-1,:) = [d1(fwdIdx) d2(fwdIdx) cosTheta(fwdIdx) ones(length(fwdIdx),1)];
+            linkCount = linkCount+length(fwdIdx);
+        end
 
         % find candidates for backward linking
         bwdIdx=find(d1<=d1Max & (d2>0 & d2<=cutoffDistBwd) & cosTheta>=cos(maxFAngle));
-        
-        % record indices and parts of cost for forward links
-        [r c]=ind2sub(size(d1),bwdIdx);
-        indx1(linkCount:linkCount+length(bwdIdx)-1) = endsToConsider(r);
-        indx2(linkCount:linkCount+length(bwdIdx)-1) = startsToConsider(c);
-        cost(linkCount:linkCount+length(bwdIdx)-1,:) = [d1(bwdIdx) d2(bwdIdx) cosTheta(bwdIdx) 2*ones(length(bwdIdx),1)];
-        linkCount = linkCount+length(bwdIdx);
-        
 
+        if ~isempty(bwdIdx)
+            % record indices and parts of cost for forward links
+            [r c]=ind2sub(size(d1),bwdIdx);
+            indx1(linkCount:linkCount+length(bwdIdx)-1) = endsToConsider(r);
+            indx2(linkCount:linkCount+length(bwdIdx)-1) = startsToConsider(c);
+            cost(linkCount:linkCount+length(bwdIdx)-1,:) = [d1(bwdIdx) d2(bwdIdx) cosTheta(bwdIdx) 2*ones(length(bwdIdx),1)];
+            linkCount = linkCount+length(bwdIdx);
+        end
 
-if doPlot==1
-    figure(1);
-    % plot ends
-    for iTrack=1:3 %nEnds %numTracks
-        figure
-        
-        currentTrack = [px(endsToConsider(iTrack),:)' py(endsToConsider(iTrack),:)'];
-        currentTrack = currentTrack(trackStartTime(endsToConsider(iTrack)):trackEndTime(endsToConsider(iTrack)),:);
+        if doPlot==1
+            figure(1);
+            % plot ends
+            for iTrack=1:3 %nEnds %numTracks
+                figure
 
-        plot(currentTrack(:,1),currentTrack(:,2),'b')
-        hold on;
-        scatter(currentTrack(:,1),currentTrack(:,2),'b.')
-        quiver(trackEndPxyVxy(endsToConsider(iTrack),1),trackEndPxyVxy(endsToConsider(iTrack),2),trackEndPxyVxy(endsToConsider(iTrack),3),trackEndPxyVxy(endsToConsider(iTrack),4),'b')
-        
-        fwd=fwdIdx{iTrack};
-        
-        % plot corresponding starts from fwd
-        for jTrack=1:length(fwd)
-            %get current track's coordinates
-        currentTrack = [px(startsToConsider(fwd(jTrack)),:)' py(startsToConsider(fwd(jTrack)),:)'];
-        currentTrack = currentTrack(trackStartTime(startsToConsider(fwd(jTrack))):trackEndTime(startsToConsider(fwd(jTrack))),:);
+                currentTrack = [px(endsToConsider(iTrack),:)' py(endsToConsider(iTrack),:)'];
+                currentTrack = currentTrack(trackStartTime(endsToConsider(iTrack)):trackEndTime(endsToConsider(iTrack)),:);
 
-        plot(currentTrack(:,1),currentTrack(:,2),'r')
-        hold on;
-        scatter(currentTrack(:,1),currentTrack(:,2),'r.')
-        quiver(trackEndPxyVxy(startsToConsider(fwd(jTrack)),1),trackEndPxyVxy(startsToConsider(fwd(jTrack)),2),trackEndPxyVxy(startsToConsider(fwd(jTrack)),3),trackEndPxyVxy(startsToConsider(fwd(jTrack)),4),'b')
-            
+                plot(currentTrack(:,1),currentTrack(:,2),'b')
+                hold on;
+                scatter(currentTrack(:,1),currentTrack(:,2),'b.')
+                quiver(trackEndPxyVxy(endsToConsider(iTrack),1),trackEndPxyVxy(endsToConsider(iTrack),2),trackEndPxyVxy(endsToConsider(iTrack),3),trackEndPxyVxy(endsToConsider(iTrack),4),'b')
+
+                fwd=fwdIdx{iTrack};
+
+                % plot corresponding starts from fwd
+                for jTrack=1:length(fwd)
+                    %get current track's coordinates
+                    currentTrack = [px(startsToConsider(fwd(jTrack)),:)' py(startsToConsider(fwd(jTrack)),:)'];
+                    currentTrack = currentTrack(trackStartTime(startsToConsider(fwd(jTrack))):trackEndTime(startsToConsider(fwd(jTrack))),:);
+
+                    plot(currentTrack(:,1),currentTrack(:,2),'r')
+                    hold on;
+                    scatter(currentTrack(:,1),currentTrack(:,2),'r.')
+                    quiver(trackEndPxyVxy(startsToConsider(fwd(jTrack)),1),trackEndPxyVxy(startsToConsider(fwd(jTrack)),2),trackEndPxyVxy(startsToConsider(fwd(jTrack)),3),trackEndPxyVxy(startsToConsider(fwd(jTrack)),4),'b')
+
+                end
+            end
+            axis equal
         end
     end
-    axis equal    
-end
-
-
-%         % vectors at ends of endsToConsider tracks
-%         EFx = repmat(trackEndPxyVxy(endsToConsider,3),[1 nStarts]);
-%         EFy = repmat(trackEndPxyVxy(endsToConsider,4),[1 nStarts]);
-%         EFmag = sqrt(EFx.^2 + EFy.^2);
-% 
-%         % vectors at starts of startsToConsider tracks
-%         SFx = repmat(trackStartPxyVxy(startsToConsider,3)',[nEnds 1]);
-%         SFy = repmat(trackStartPxyVxy(startsToConsider,4)',[nEnds 1]);
-%         SFmag = sqrt(SFx.^2 + SFy.^2);
-% 
-%         % displacement vector (start minus end)
-%         Dx = repmat(trackStartPxyVxy(startsToConsider,1)',[nEnds 1]) - repmat(trackEndPxyVxy(endsToConsider,1),[1 nStarts]);
-%         Dy = repmat(trackStartPxyVxy(startsToConsider,2)',[nEnds 1]) - repmat(trackEndPxyVxy(endsToConsider,2),[1 nStarts]);
-%         Dmag = sqrt(Dx.^2 + Dy.^2);
-%         Dz = tGap.*ones(size(Dx));
-%         DmagWithTime = sqrt(Dx.^2 + Dy.^2 + Dz.^2);
-% 
-%         % cos angle between track 1 end and track 2 start
-%         cosEF_SF = (EFx.*SFx + EFy.*SFy)./(EFmag.*SFmag); % cos(alpha)
-%         % cos angle between track 1 end and displacement vector
-%         cosEF_D  = (EFx.*Dx + EFy.*Dy)./(EFmag.*Dmag); % cos(beta)
-% 
-%         % find all pairs of ends and starts where the start is in the
-%         % forward cone of the end, the vectors point the same general way,
-%         % and the displacement vector between end and start is shorter than
-%         % the forward cutoff distance for current time gap
-%         pointSameWay   = cosEF_SF>0;
-%         startInFwdCone = cosEF_D>=cos(maxFAngle);
-% 
-%         [endIdxFWD,startIdxFWD] = find(pointSameWay & startInFwdCone & Dmag<=cutoffDistFwd);
-%         [tempIdxFWD] = find(pointSameWay & startInFwdCone & Dmag<=cutoffDistFwd);
-%         if ~isempty(endIdxFWD)
-%             indx1(linkCount:linkCount+length(endIdxFWD)-1) = endsToConsider(endIdxFWD);
-%             indx2(linkCount:linkCount+length(endIdxFWD)-1) = startsToConsider(startIdxFWD);
-%             %cost(linkCount:linkCount+length(endIdxFWD)-1)  = 2-(abs(cosEF_SF(tempIdxFWD))+abs(cosEF_D(tempIdxFWD)));
-%             %cost(linkCount:linkCount+length(endIdxFWD)-1)  = Dmag(tempIdxFWD).*(2-(abs(cosEF_SF(tempIdxFWD))+abs(cosEF_D(tempIdxFWD))));
-%             cost(linkCount:linkCount+length(endIdxFWD)-1)  = abs(cosEF_SF(tempIdxFWD))+DmagWithTime(tempIdxFWD);
-%             type(linkCount:linkCount+length(endIdxFWD)-1)  = 2*ones(length(endIdxFWD),1);
-%         end
-% 
-%         linkCount = linkCount+length(endIdxFWD);
-% 
-     end
-
-
-    % NOW LOOK FOR BACKWARD LINKS
-    
-    
-
-% 
-%     for jFrame = iFrame + 1 : min(iFrame+tMax,numFrames)
-% 
-%         %find tracks that start in this frame
-%         startsToConsider = tracksPerFrame(jFrame).starts;
-% 
-%         if isempty(startsToConsider)
-%             continue
-%         end
-% 
-%         nStarts = length(startsToConsider);
-%         nEnds = length(endsToConsider);
-% 
-%         tGap = jFrame - iFrame;
-%         cutoffDistBwd = min(vMed*tMax,backVelMultFactor*vMax*tGap);
-% 
-%         
-%         % for all the tracks ending in frame i,
-%         % [endIndex, indexOfPtAlongTrack, x, y, vel, reverseCumVel]
-%         tempEnd=endTrackInfo;
-%         % remove all points along tracks which extend beyond the backward
-%         % cutoff distance
-%         tempEnd(tempEnd(:,6)>cutoffDistBwd,:)=[];
-% 
-%         % xy-coordinates of startsToConsider
-%         startXY=[trackStartPxyVxy(startsToConsider,1),trackStartPxyVxy(startsToConsider,2)];
-% 
-%         % points along end track vs. starting point of start track distance
-%         D=createDistanceMatrix(tempEnd(:,3:4),startXY);
-%         [sD,idx]=sort(D,1);
-%         startIdx=find(sD(1,:)<d1Max)'; % index of startsToConsider tracks within d1Max of an endToConsdier
-%         endIdx=idx(1,startIdx)'; % index of tempEnd row corresponding to startIdx
-%         d=sD(1,startIdx)'; % distance of start pt to NN pt on end track
-%         Dmag=tempEnd(endIdx,6)+d; % distance from picked pt to track end along track, plus dist from start pt to NN on end
-% 
-%         % get list of first coordinates from tracks starting in j frame
-%         SFx=trackStartPxyVxy(startsToConsider(startIdx),3);
-%         SFy=trackStartPxyVxy(startsToConsider(startIdx),4);
-%         SFmag = sqrt(SFx.^2 + SFy.^2);
-% 
-%         EFx=zeros(length(endIdx),1);
-%         EFy=zeros(length(endIdx),1);
-%         for i=1:length(endIdx)
-%             % check whether next point in tempEnd is from the same track, if
-%             % yes then forward vector points toward it, if not then forward
-%             % vector points to the next point.
-%             b=min(2*n,find(tempEnd(:,1)==repmat(tempEnd(endIdx(i),1),[size(tempEnd,1) 1]),1,'last')-endIdx(i));
-%             if b<n
-%                 % close to the track end, just use that value
-%                 EFx(i)=trackEndPxyVxy(endsToConsider(tempEnd(endIdx(i),1)),3);
-%                 EFy(i)=trackEndPxyVxy(endsToConsider(tempEnd(endIdx(i),1)),4);
-%             else 
-%                 % get vector pointing to next end-ward point
-%                 EFx(i)=mean(diff(tempEnd(endIdx(i):endIdx(i)+n,3)));
-%                 EFy(i)=mean(diff(tempEnd(endIdx(i):endIdx(i)+n,4)));
-%             end
-%         end
-%         EFmag = sqrt(EFx.^2 + EFy.^2);
-% 
-% 
-%         cosEF_SF = (EFx.*SFx + EFy.*SFy)./(EFmag.*SFmag); % cos(alpha)
-%         pointSameWay = cosEF_SF>0;
-% 
-%         endIdxTemp=endsToConsider(tempEnd(endIdx,1));
-%         startIdxTemp=startsToConsider(startIdx,1);
-% 
-%         nPossBwd=length(endIdxTemp);
-%         notInFwdCone=logical(ones(nPossBwd,1));
-%         for i=1:nPossBwd
-%             test=repmat([endIdxTemp(i) startIdxTemp(i)],[length(indx1),1]);
-%             matchIdx=find(sum(test==[indx1 indx2],2)==2);
-%             if ~isempty(matchIdx)
-%                 notInFwdCone(i)=0;
-%             end
-%         end
-%         
-% 
-%         keepList=pointSameWay & notInFwdCone;
-% 
-%         endIdxBWD=endIdxTemp(keepList);
-%         startIdxBWD=startIdxTemp(keepList);
-% 
-%         if ~isempty(endIdxBWD)
-%             indx1(linkCount:linkCount+length(endIdxBWD)-1) = endIdxBWD;
-%             indx2(linkCount:linkCount+length(endIdxBWD)-1) = startIdxBWD;
-%             %cost(linkCount:linkCount+length(endIdxBWD)-1)  = 1-abs(cosEF_SF(keepList));
-%             cost(linkCount:linkCount+length(endIdxBWD)-1)  = Dmag(keepList).*(2-(abs(cosEF_SF(keepList))+abs(1-d(keepList)./d1Max)));
-%             type(linkCount:linkCount+length(endIdxBWD)-1)  = 3*ones(sum(keepList),1);
-%         end
-% 
-%         linkCount = linkCount+length(endIdxBWD);
-% 
-% 
-% 
-%         %         [endIdx,startIdx] = find(pointSameWay & ((startInFwdCone & Dmag<=cutoffDistFwd) | (startInBwdCone & Dmag<=cutoffDistBwd)));
-%         %         [tempIdx]         = find(pointSameWay & ((startInFwdCone & Dmag<=cutoffDistFwd) | (startInBwdCone & Dmag<=cutoffDistBwd)));
-%         %         if ~isempty(endIdx)
-%         %             indx1(linkCount:linkCount+length(endIdx)-1) = endsToConsider(endIdx);
-%         %             indx2(linkCount:linkCount+length(endIdx)-1) = startsToConsider(startIdx);
-%         %             cost(linkCount:linkCount+length(endIdx)-1)  = Dmag(tempIdx).*abs(abs(cosEF_SF(tempIdx))-abs(cosEF_D(tempIdx)));
-%         %
-%         %         end
-% 
-% 
-% 
-%     end
-
 end
 
 indx1(linkCount:end) =[];
@@ -565,7 +410,7 @@ if doPlot==1
     title('d1/dmax + (1-cosTheta)')
     hold on
     plot([prctile(cost,90);prctile(cost,90)],[0,max([x1+x2])])
-    
+
     % get histogram of costs for those ends which only link to one start
     [u,num]=countEntries(indx1);
     only1=u(num==1);
@@ -696,7 +541,7 @@ evX=zeros(nPts,1);
 for i=1:size(ptYX,1)
     % velocity components for vectors from all points on seg to P
     temp=repmat(ptYX(i,:),[size(segYX,1),1])-segYX;
-    
+
     bpYX=temp(1:end-1,:); % velocity components for P-B
     BP=sqrt(sum(bpYX.^2,2)); % distance from P to B
 
@@ -709,7 +554,7 @@ for i=1:size(ptYX,1)
 
     D=zeros(length(t0),1);
     extraPt=zeros(length(t0),2);
-    
+
     % P falls outside segment and is closest to B
     idx=find(t0<=0);
     D(idx)=BP(idx);
@@ -727,14 +572,14 @@ for i=1:size(ptYX,1)
     nearVec=pYX-b_plus_t0M;
     D(idx)=sqrt(sum(nearVec.^2,2));
     extraPt(idx,:)=b_plus_t0M;
-    
+
     % don't consider where track didn't exist
     D=D.*nanEntries;
 
     % this is the segment index with the lowest distance
     d1Idx=find(D==nanmin(D),1,'first');
     d1(i)=D(d1Idx); % distance from P to nearest point on BC
-    
+
     % add in the extra point corresponding to where the d1 vector falls on
     % the BC line
     temp=[segYX; 0 0];
@@ -745,13 +590,13 @@ for i=1:size(ptYX,1)
     velYX=nanmean(diff(temp(max(1,d1Idx-1):min(size(temp,1),d1Idx+3),:)));
     evY(i)=velYX(1);
     evX(i)=velYX(2);
-    
+
     % calculate pt-to-pt displacements towards the track end and sum them
     % this is the total shrinkage distance
     % if d2=0, P is nearest the track end (no shrinkage)
     % if d2=trackLength, P is nearest the track start (complete shrinkage)
     d2(i)=nansum(sqrt(sum(diff(temp(d1Idx+1:end,:)).^2,2)));
-    
+
     if doPlot==1
         plot(segYX(:,2),segYX(:,1))
         hold on;
