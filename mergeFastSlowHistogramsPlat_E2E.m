@@ -1,7 +1,43 @@
-function [mergedHistRes]=mergeFastSlowHistogramsPlat_E2E(Results, restrict, shape)
-% merge the fast and slow histograms preserving the normalization
-% fit multiple populations to lifetimes
-% fit time constants with the assumption that the best combination is RRE
+function [mergedHistRes]=mergeFastSlowHistogramsPlat_E2E(Results, restrict, shape, estartvec, efixvec)
+% merge the fast and slow histograms preserving the normalization, and
+% fit multiple populations to lifetimes - PLUS estimation of experiment-
+% to-experiment (i.e. cell-to-cell) error
+% SYNOPSIS [mergedHistRes]=mergeFastSlowHistogramsPlat_E2E(Results, restrict, shape);
+%
+% INPUT     Results     = results of function StageFitLifetimePlat, which
+%                         contain the summarized fast and slow results
+%           restrict    = (optional) time restriction in seconds, e.g. 300
+%           shape       = (optional) shape for populations, e.g. [2 2 1], where
+%                       1 indicates an exponential distribution, and 
+%                       2 indicates a Rayleigh distribution
+%           estartvec (optional) = start values for fitting
+%                       [ b a1 tau1 k1 a2 tau2 k2 .... an taun kn]
+%           efixvec (optional) = vector with 1/0 values to indicate that
+%                       certain start values will be fixed during the final
+%                       fit; this vector needs to have the same length as
+%                       startpar (3 times the number of populations plus one)
+%                       and set to zero for no fixing, one for fixing, e.g.
+%                       [ 1 0 0 0 0 0 0 ]
+%                       for a fit with two populations where b is fixed, or
+%                       [ 0 0 1 0 ]
+%                       for a fit with one population where tau1 is fixed                  
+%
+% OUTPUT    mergedHistRes   = merged Histogram results, which have the fields
+%           .numcells       = number of trajectories, fast+slow;
+%           .tvec_or        = time vector for original merged histogram
+%           .hvec_or        =  original merged histogram
+%           .tvec_cum       = time vector for original cumulative histogram
+%           .hvec_cum       = cumulative merged histogram
+%           .compactFitRes  = compact matrix representation of fit results,
+%               where the first column represents the relative
+%               contributions of all populations (including the persistent
+%               population offset), the second column represents the time 
+%               constants, and the third column represents tau50   
+%
+%
+% Dinah Loerke
+% last modified May 14, 2009
+
 
 % loop over fast and slow results (multiple entries, which are the results
 % of deleting one movie after the other)
@@ -315,9 +351,18 @@ for nf = 1:nfast-1
         fixv3template   = [0 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1]; 
         fixv3 = fixv2;
         fixv3(1:length(fixv3)) = fixv3template(1:length(fixv3));
+        
+        
+        if nargin>3
+            startv3 = estartvec;
+            if nargin>4
+                fixv3 = efixvec;
+            end
+        end
 
+        
         axis([0 maxt 0 1.01*max(1-hcfit)]);
-
+        
         [est3] = fitcurveMultiWeibullCDFi_lsq( tcfit, 1-hcfit, startv3, fixv3);
 
 
