@@ -1,4 +1,4 @@
-function [mergedHistRes]=mergeFastSlowHistogramsPlat(Results, restrict, shape, startpar)
+function [mergedHistRes]=mergeFastSlowHistogramsPlat(Results, restrict, shape, estartvec, efixvec);
 % merge the fast and slow histograms preserving the normalization, and
 % fit multiple populations to lifetimes
 % SYNOPSIS [mergedHistRes]=mergeFastSlowHistogramsPlat(Results, restrict, shape);
@@ -9,8 +9,17 @@ function [mergedHistRes]=mergeFastSlowHistogramsPlat(Results, restrict, shape, s
 %           shape   = (optional) shape for populations, e.g. [2 2 1], where
 %                   1 indicates an exponential distribution, and 
 %                   2 indicates a Rayleigh distribution
-%           startpar (optional) = start values for fitting
-%           [ b a1 tau1 k1 a2 tau2 k2 .... an taun kn]
+%           estartvec (optional) = start values for fitting
+%                   [ b a1 tau1 k1 a2 tau2 k2 .... an taun kn]
+%           efixvec (optional) = vector with 1/0 values to indicate that
+%                   certain start values will be fixed during the final
+%                   fit; this vector needs to have the same length as
+%                   startpar (3 times the number of populations plus one)
+%                   and set to zero for no fixing, one for fixing, e.g.
+%                   [ 1 0 0 0 0 0 0 ]
+%                   for a fit with two populations where b is fixed, or
+%                   [ 0 0 1 0 ]
+%                   for a fit with one population where tau1 is fixed                  
 %
 % OUTPUT    mergedHistRes = merged Histogram results, which have the fields
 %           .numcells   = number of trajectories, fast+slow;
@@ -248,10 +257,6 @@ else
 end
 
 startv1template = [0    0.2 sigRay  2   0.1  10  2   0.2  90  1 0.2  100  1];
-if nargin>3
-    startv1template = startpar;
-    startv1template(3) = sigRay;
-end
 
 startv1 = zeros(1,1+3*length(shapevec));
 startv1(1:length(startv1)) = startv1template(1:length(startv1));
@@ -324,6 +329,14 @@ startv3(1) = 0;
 fixv3template   = [0  0  0  1  0  0  1  0  0  1  0  0  1]; 
 fixv3 = fixv2;
 fixv3(1:length(fixv3)) = fixv3template(1:length(fixv3));
+
+if nargin>3
+    startv3 = estartvec;
+    if nargin >4
+        fixv3 = efixvec;
+    end
+end
+
 
 axis([0 maxt 0 1.01*max(1-hcfit)]);
 
