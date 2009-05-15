@@ -5,6 +5,10 @@ function [BICres] = simpleBICtest(data, startparameters)
 %
 %INPUT      data:       movie data in the format prodcued by e.g.
 %                       loadConditionData
+%          startparameters (OPTIONAL) : starting parameters for fit; this
+%                       vector needs to have the format
+%                       [b a1 tau1 k1 a2 tau2 k2 ... an taun kn]
+%           
 %
 %OUTPUT:    BICres:     results structure containing
 %                       .startparams    = guess vector for fit;
