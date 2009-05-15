@@ -1,4 +1,4 @@
-function [BICres] = simpleBICtest(data)
+function [BICres] = simpleBICtest(data, startparameters)
 % simpleBICtest performs a simple BIC test on the cumulative merged 
 % histogram of the data specified
 % SYNOPSIS [BICres] = simpleBICtest(data)
@@ -24,7 +24,11 @@ mer     = mergeFastSlowHistogramsPlat(res, 300, [2 2 1]);
 
 % perform BIC test
 % set start values for parameters
-startpar = [0.1 0.2 10 2 0.2 20 2 0.2 90 1 0.2 25 1 0.2 35 1];
+if nargin>1
+    startpar = startparameters;
+else
+    startpar = [0.1 0.2 10 2 0.2 20 2 0.2 90 1 0.2 25 1 0.2 35 1];
+end
 
 [BICres] = multiWeibullBICtest_cum(mer.tvec_cum,mer.hvec_cum,startpar);
 
