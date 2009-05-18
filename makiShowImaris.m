@@ -66,7 +66,12 @@ crop(2,~isCrop) = dataProperties.movieSize(find(~isCrop)); %#ok<FNDSB>
 imarisApplication = imarisStartNew;
 
 % read version, which is a string of the form 'Imaris 5.0.0 [May 11 2006]'
-imarisVersion = sscanf(imarisApplication.mVersion,'*s %i.%i.%i %*s %*i');
+% do the easy way and read the 8th and 10th character
+%imarisVersion = sscanf(imarisApplication.mVersion,'*s %i.%i.%i %*s %*i');
+imarisVersion = [0 0];
+vstr = imarisApplication.mVersion;
+imarisVersion(1) = str2num(vstr(8));
+imarisVersion(2) = str2num(vstr(10));
 
 interface62 = imarisVersion(1) > 5 && imarisVersion(2) > 1;
 
@@ -513,7 +518,7 @@ if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterLis
                 end
                 
                 %set spot coordinates in imaris object
-                imaTrack1.Set(single(sisterCoord1),...
+                imaTracks1.Set(single(sisterCoord1),...
                     single(0:nTimepoints-1),single(spotSize));
                 
                 
@@ -559,7 +564,7 @@ if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterLis
                 end
                 
                 %set spot coordinates in imaris object
-                imaTrack2.Set(single(sisterCoord2),...
+                imaTracks2.Set(single(sisterCoord2),...
                     single(0:nTimepoints-1),single(spotSize));
                 
                 %define track edges
