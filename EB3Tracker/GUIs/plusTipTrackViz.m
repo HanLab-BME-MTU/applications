@@ -148,8 +148,8 @@ if ~isempty(handles.projList)
     a=struct2cell(handles.projList);
     a=a(2,:)';
     a=sort(a);
-    b=cellfun(@isempty, strfind(a,'sub'));
-    a=a(b);
+%     b=cellfun(@isempty, strfind(a,'sub'));
+%     a=a(b);
     b=zeros(length(a),1);
     for i=1:length(a)
         % check for existence of projData in meta folder
@@ -158,7 +158,7 @@ if ~isempty(handles.projList)
     a=a(logical(b));
 
     % allow only one project to be selected
-    [selection,selectionList]=listSelectGUI(a,1,'copy');
+    [selection,selectionList]=listSelectGUI(a,1,'move');
 
     %
     if ~isempty(selection)

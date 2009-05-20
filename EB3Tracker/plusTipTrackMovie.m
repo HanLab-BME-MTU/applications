@@ -178,7 +178,15 @@ for iMovie=1:size(timeRange,1)
             [BW,xi,yi] = roipoly(imscaled);
             close(figure(gcf))
             roiYX=[yi xi];
+        elseif islogical(roiYX)
+            [r c]=find(roiYX);
+            roiYX=[min(r) min(c); max(r) max(c)];
+        else
+            if size(roiYX,2)~=2
+                error('--plusTipTrackMovie: roiYX should be nx2 matrix of coordinates or logical mask')
+            end
         end
+
 
         minY=floor(min(roiYX(:,1)));
         maxY=ceil(max(roiYX(:,1)));

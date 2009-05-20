@@ -33,7 +33,7 @@ end
 [xMat,yMat]=plusTipGetSubtrackCoords(projData);
 
 % extract track data
-trackData=projData.nTrack_start_end_velMicPerMin_class_lifetime;
+trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 
 % track types: 1 growth, 2 pause/outOfFocus, 3 shrinkage, 4 unclassified
 trackType=trackData(:,5);
