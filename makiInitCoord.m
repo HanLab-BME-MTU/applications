@@ -238,10 +238,10 @@ for t=goodTimes
     else
         % only use NaN-image-reduction and new addBorders for dataObj to guarantee backward
         % compatibility
-        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter,dataObj);
+        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter,dataObject);
         % filtering with sigma=15 is equal to filtering with 1 and then
         % with 14
-        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter,dataObj);
+        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter,dataObject);
     end
     
     % amplitude is filtered image - background. This underestimates the
