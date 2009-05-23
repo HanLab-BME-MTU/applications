@@ -70,11 +70,11 @@ end
 
 if isobject(dataStruct)
     % if dataStruct is an object, movie is in imageData
-    dataObject = true;
+    isDataObject = true;
     % change save-mode of initCoord so that it doesn't autosave 100 times
     dataStruct.propertyNames{3,2}.saveMode = 0;
 else
-    dataObject = false;
+    isDataObject = false;
     if ischar(dataStruct.rawMovieName)
         rawMovie = fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName);
     else
@@ -86,7 +86,7 @@ dataProperties = dataStruct.dataProperties;
 % find more parameters
 % betterBackground: estimate background after masking signal
 if ~isfield(dataProperties,'betterBackground')
-    if dataObject
+    if isDataObject
         betterBackground = false;
     else
         betterBackground = false;
@@ -95,7 +95,7 @@ end
 % isNanMask: switch that checks whether there needs to be a correction for
 % nanMasks
 if ~isfield(dataProperties,'isNanMask')
-    if dataObject
+    if isDataObject
         isNanMask = 2;
     else
         isNanMask = 0;
@@ -139,7 +139,7 @@ dataStruct.initCoord = tmp;
 % missing frames are indicated by empty cropMasks. Don't analyze them!
 % For safety reason, this check is only performed on data objects
 goodTimes = 1:nTimepoints;
-if dataObject
+if isDataObject
     % since this is dataObj only, no need to worry about compatibility
     if dataProperties.initCoord.rmEmptyMasks
         goodTimes = find(cellfun(@(x)(~isempty(x)),...
@@ -148,7 +148,7 @@ if dataObject
 end
 
 % read minimum number of requested spots per frame. If not set, assume 20
-if dataObject
+if isDataObject
     if isfield(dataProperties.initCoord,'minSpotsPerFrame')
         minSpotsPerFrame = dataProperties.initCoord.minSpotsPerFrame;
     else
@@ -175,7 +175,7 @@ for t=goodTimes
     % amplitude = filtered - background
     % noise = locAvg(var(raw-filtered))
     
-    if dataObject
+    if isDataObject
         % isNanMask == 2 indicates that we should crop only later in order
         % to increase processing speed.
         raw = dataStruct.imageData.getFrame(t,[],[],isNanMask==1);
@@ -238,10 +238,10 @@ for t=goodTimes
     else
         % only use NaN-image-reduction and new addBorders for dataObj to guarantee backward
         % compatibility
-        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter,dataObject);
+        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter,isDataObject);
         % filtering with sigma=15 is equal to filtering with 1 and then
         % with 14
-        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter,dataObject);
+        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter,isDataObject);
     end
     
     % amplitude is filtered image - background. This underestimates the
@@ -380,7 +380,7 @@ end
 
 % plot all before selecting cutoff so that we can see what went wrong
 if verbose > 1
-    if dataObject
+    if isDataObject
         figure('Name',sprintf('cutoffs for %s',dataStruct.identifier))
     else
         figure('Name',sprintf('cutoffs for %s',dataStruct.projectName))
@@ -455,7 +455,7 @@ else
 end
 
 % remember the cutoff criterion used
-if ~dataObject
+if ~isDataObject
     dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];
 end
 
@@ -534,7 +534,7 @@ for t=goodTimes
 end
 
 % save cutoff info
-if dataObject
+if isDataObject
     if isempty(cutoffFix)
         dataStruct.initCoord(1).cutoff.co = cutoff;
     else
