@@ -1,4 +1,4 @@
-function I = loadImage(settings, iFrame)
+function I = loadChannels(settings, iFrame)
 
 % Loading the sequence depends on what other kind of data need to be
 % displayed. There are 6 cases:

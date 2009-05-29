@@ -17,7 +17,7 @@ if (isempty(settings))
 end
 
 % Set up the main figure (using imtool)
-hFig = imtool(loadImage(settings, 1), []);
+hFig = imtool(loadChannels(settings, 1), []);
 
 % Unlock imtool axes children.
 set(hFig, 'HandleVisibility', 'on');

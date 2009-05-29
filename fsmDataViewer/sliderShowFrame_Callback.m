@@ -28,8 +28,8 @@ if numel(hImage) ~= 1
     error('Current figure contain none or invalid image data.');
 end
 
-% Load and display the new image
-cdata = loadImage(settings, iFrame);
+% Load and display the new frame
+cdata = loadChannels(settings, iFrame);
 clim = [min(cdata(:)) max(cdata(:))];
 map = get(hFig, 'Colormap');
 
