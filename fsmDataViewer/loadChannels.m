@@ -25,8 +25,8 @@ numChannelFiles = settings.numChannelFiles;
 numMaskFiles = settings.numMaskFiles;
 numLayerFiles = settings.numLayerFiles;
 
-% Should be read from a configuration file.
-channelLoaders = {@imread};
+% Get the channel plugins list
+channelPlugins = getPlugins();
 
 if ~numLayerFiles
     if numMaskFiles
@@ -37,13 +37,13 @@ if ~numLayerFiles
         I = [];
         colors = zeros(3, 1);
         for iChannel = 1:numChannels
-            channelType = settings.channels{iChannel}.type;
+            channelTypeID = settings.channels{iChannel}.type;
             channelColor = settings.channels{iChannel}.color;
             
             fileName = [settings.channels{iChannel}.path ...
                 filesep settings.channels{1}.fileNames{iFrame}];
             
-            J = channelLoaders{channelType}(fileName);
+            J = channelPlugins(channelTypeID).load(fileName);
             I = cat(3, I, J);
             
             colors(iChannel) = channelColor;
@@ -101,13 +101,13 @@ else
         I = [];
         colors = zeros(3, 1);
         for iChannel = 1:numChannels
-            channelType = settings.channels{iChannel}.type;
+            channelTypeID = settings.channels{iChannel}.type;
             channelColor = settings.channels{iChannel}.color;
 
             fileName = findNumberedFileInList(...
                 settings.channels{iChannel}.fileNames, no);
-        
-            J = channelLoaders{channelType}([settings.channels{iChannel}.path ...
+            
+            J = channelPlugins(channelTypeID).load([settings.channels{iChannel}.path ...
                 filesep fileName]);
             
             I = cat(3, I, J);

@@ -1,9 +1,9 @@
-function displaySpeckles(hAxes, fileName, layerColor)
+function displaySpeckles(hAxes, tag, fileName, layerColor)
 
 load(fileName);
 
 if ~exist('cands', 'var')
-    error('Cands variable cannot be found in specified file.');
+    error('cands variable cannot be found in specified file.');
 end
 
 % Extract speckle classes
@@ -21,21 +21,21 @@ hPos=reshape([cands(higher).Lmax], 2, length([cands(higher).Lmax])/2)';
 % Primary speckles
 line(pPos(:,2),pPos(:,1),'LineStyle', 'none',...
     'Marker', '.','Color',layerColor,'MarkerSize',6,...
-    'Tag', 'pCands', 'Parent', hAxes);
+    'Tag', tag, 'Parent', hAxes);
 
 % Secondary peckles
 line(sPos(:,2),sPos(:,1),'LineStyle', 'none',...
     'Marker', '+','Color',layerColor,'MarkerSize',4,...
-    'Tag', 'sCands', 'Parent', hAxes);
+    'Tag', tag, 'Parent', hAxes);
 
 % Tertiary speckles
 line(tPos(:,2),tPos(:,1),'LineStyle', 'none',...
     'Marker', '^','Color',layerColor,'MarkerSize',4,...
-    'Tag', 'tCands', 'Parent', hAxes);
+    'Tag', tag, 'Parent', hAxes);
 
 % Higher-order speckles
 line(hPos(:,2),hPos(:,1),'LineStyle', 'none',...
     'Marker', '*','Color',layerColor,'MarkerSize',4,...
-    'Tag', 'hCands', 'Parent', hAxes);
+    'Tag', tag, 'Parent', hAxes);
 
 end

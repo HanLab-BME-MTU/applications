@@ -8,16 +8,16 @@ numLayers = settings.numChannels;
 hAxes = get(hFig, 'CurrentAxes');
 hContent = get(hAxes, 'Children');
 
- % Should be read from a configuration file.
-layerDisplayers = {@displaySpeckles};
-layerTags = {'Cands'};
+% Get the channel plugins list
+[channelPlugins layerPlugins] = getPlugins();
 
 for iLayer = 1:numLayers
-    layerType = settings.layers{iLayer}.type;
+    layerTypeID = settings.layers{iLayer}.type;
     layerColor = settings.layers{iLayer}.color;
+    tag = layerPlugins(layerTypeID).desc;
     
     % Clear previous layer
-    hLayers = findobj(hContent, '-regexp', 'Tag', layerTags{layerType});
+    hLayers = findobj(hContent, 'Tag', tag);
     for h=1:length(hLayers)
         delete(hLayers(h));        
     end
@@ -26,7 +26,7 @@ for iLayer = 1:numLayers
     fileName = [settings.layers{iLayer}.path ...
         filesep settings.layers{iLayer}.fileNames{iFrame}];
     
-    layerDisplayers{layerType}(hAxes, fileName, layerColor);
+    layerPlugins(layerTypeID).display(hAxes, tag, fileName, layerColor);
 end
 
 end

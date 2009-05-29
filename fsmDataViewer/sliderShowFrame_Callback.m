@@ -14,7 +14,6 @@ set(hFig, 'HandleVisibility', 'on');
 set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(iFrame) '/'...
     num2str(settings.numFrames) ')' ]);
 
-
 % Get the axes of hFig.
 hAxes = get(hFig, 'CurrentAxes');
 

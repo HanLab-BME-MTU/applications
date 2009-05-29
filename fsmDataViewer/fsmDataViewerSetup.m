@@ -150,14 +150,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-strings = {...
-    'Choose Channel Type...',...
-    'Raw Images',...
-    '[qFSM] Speed Map',...
-    '[qFSM] Poly Map',...
-    '[qFSM] Depoly Map'};
+channelPlugins = getPlugins();
 
-set(hObject, 'String', strings);
+set(hObject, 'String', {'Choose Channel Type...', channelPlugins(:).desc});
 
 % --- Executes on button press in pushbuttonChannel.
 function pushbuttonChannel_Callback(hObject, eventdata, handles)
@@ -167,6 +162,9 @@ function pushbuttonChannel_Callback(hObject, eventdata, handles)
 
 hPanel = get(hObject, 'Parent');
 hFig = get(hPanel, 'Parent');
+
+% Get the plugins list
+channelPlugins = getPlugins();
 
 % Get the root directory
 h = findobj(hFig, 'Tag', 'editRootDirectory');
@@ -178,18 +176,11 @@ if ~isempty(rootDirectory)
     cd(rootDirectory);
 end
 
-% Get the channel type
+% Get the channel type ID
 h = findobj(hPanel, 'Tag', 'listboxChannelType');
-channelTypeName = get(h, 'String');
-channelType = get(h, 'Value');
+channelTypeID = get(h, 'Value') - 1;
 
-switch channelType
-    case 2, filterSpec = {'*.tif';'*jpg';'*.png'}; % raw images
-    case 3, filterSpec = {'*.mat'}; % speed map
-    case 4, filterSpec = {'*.mat'}; % poly map
-    case 5, filterSpec = {'*.mat'}; % depoly map
-    otherwise, error('Invalid channel type.');
-end
+filterSpec = channelPlugins(channelTypeID).filterSpec;
 
 % Get the image file
 [fileName, directoryName] = uigetfile(filterSpec, 'Select an image file');
@@ -200,7 +191,7 @@ if ischar(fileName) && ischar(directoryName)
     columnFormat = get(h, 'ColumnFormat');
     colorNames = columnFormat{3};
     newData = {true,...
-        channelTypeName{channelType},...
+        channelPlugins(channelTypeID).desc,...
         colorNames{1},...
         [directoryName fileName]};
     data = vertcat(data, newData);
@@ -338,11 +329,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-strings = {...
-    'Choose Layer Type...',...
-    '[qFSM] Speckles'};
+[channelPlugins, layerPlugins] = getPlugins();
 
-set(hObject, 'String', strings);
+set(hObject, 'String', {'Choose Layer Type...', layerPlugins(:).desc});
 
 % --- Executes on button press in pushbuttonLayer.
 function pushbuttonLayer_Callback(hObject, eventdata, handles)
@@ -352,6 +341,9 @@ function pushbuttonLayer_Callback(hObject, eventdata, handles)
 
 hPanel = get(hObject, 'Parent');
 hFig = get(hPanel, 'Parent');
+
+% Get the plugins list
+[channelPlugins layerPlugins] = getPlugins();
 
 % Get the root directory
 h = findobj(hFig, 'Tag', 'editRootDirectory');
@@ -363,15 +355,11 @@ if ~isempty(rootDirectory)
     cd(rootDirectory);
 end
 
-% Get the layer type
+% Get the layer type ID
 h = findobj(hPanel, 'Tag', 'listboxLayerType');
-layerTypeName = get(h, 'String');
-layerType = get(h, 'Value');
+layerTypeID = get(h, 'Value') - 1;
 
- switch layerType
-    case 2, filterSpec = {'*.mat'}; % speckles
-    otherwise, error('Invalid layer type.');
-end
+filterSpec = layerPlugins(layerTypeID).filterSpec;
 
 % Get the image file
 [fileName, directoryName] = uigetfile(filterSpec, 'Select an image file');
@@ -382,7 +370,7 @@ if ischar(fileName) && ischar(directoryName)
     columnFormat = get(h, 'ColumnFormat');
     colorNames = columnFormat{3};
     newData = {true,...
-        layerTypeName{layerType},...
+        layerPlugins(layerTypeID).desc,...
         colorNames{1},...
         [directoryName fileName]};
     data = vertcat(data, newData);
