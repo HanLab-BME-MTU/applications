@@ -13,7 +13,7 @@ hAxes = get(hFig, 'CurrentAxes');
 for iLayer = 1:numLayers
     layerTypeID = settings.layers{iLayer}.type;
     layerColor = settings.layers{iLayer}.color;
-    tag = layerPlugins(layerTypeID).desc;
+    tag = settings.layers{iLayer}.tag;
 
     % Clear previous layer
     hLayers = findall(get(hAxes, 'Children'), 'Tag', tag);
@@ -25,7 +25,7 @@ for iLayer = 1:numLayers
     fileName = [settings.layers{iLayer}.path ...
         filesep settings.layers{iLayer}.fileNames{iFrame}];
     
-    layerPlugins(layerTypeID).display(hAxes, tag, fileName, layerColor);
+    layerPlugins(layerTypeID).displayFunc(hAxes, tag, fileName, layerColor);
 end
 
 end

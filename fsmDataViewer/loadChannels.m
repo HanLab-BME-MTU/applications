@@ -9,7 +9,7 @@ function I = loadChannels(settings, iFrame)
 %    settings.channels{*}.fileNames
 %
 % 3. mask + channels: load the sequence according to
-%    settings.channels{*}.fileNames 
+%    settings.channels{*}.fileNames
 %
 % 4. mask + layers: load the sequence according to
 %    settings.layers{settings.inumLayerFiles}.fileNames
@@ -33,22 +33,22 @@ if ~numLayerFiles
         BW = imread([settings.maskPath filesep...
             settings.maskFileNames{iFrame}]);
     end
-    if numChannelFiles        
+    if numChannelFiles
         I = [];
         colors = zeros(3, 1);
         for iChannel = 1:numChannels
             channelTypeID = settings.channels{iChannel}.type;
             channelColor = settings.channels{iChannel}.color;
-            
+
             fileName = [settings.channels{iChannel}.path ...
-                filesep settings.channels{1}.fileNames{iFrame}];
-            
-            J = channelPlugins(channelTypeID).load(fileName);
+                filesep settings.channels{iChannel}.fileNames{iFrame}];
+
+            J = channelPlugins(channelTypeID).loadFunc(fileName);
             I = cat(3, I, J);
-            
+
             colors(iChannel) = channelColor;
         end
-       
+
         [m n c] = size(I);
 
         if c > 1
@@ -60,7 +60,7 @@ if ~numLayerFiles
                 J = J - min(J(:));
                 I(:, :, iChannel) = J / max(J(:));
             end
-            
+
             if c == 2
                 % Add a blank channel.
                 I = cat(3, I, zeros(m, n, class(I)));
@@ -68,15 +68,20 @@ if ~numLayerFiles
                 % different form colors(1) and colors(2)).
                 colors(3) = 6 - (colors(1) + colors(2));
             end
-            
+
             % Make channel permutation according to channel colors
-            I = I(:, :, colors);            
+            I = I(:, :, colors);
         end
     end
-    
+
     if numMaskFiles % else (case 2)
-        if numChannelFiles
-            I(BW == 0, :) = 0; % (case 3)
+        if numChannelFiles  % (case 3)
+            idx = find(BW == 0);
+            for iChannel = 1:c
+                tmp = I(:, :, iChannel);
+                tmp(idx) = 0; %#ok<FNDSB>
+                I(:, :, iChannel) = tmp; %#ok<AGROW>
+            end
         else
             I = uint8(BW); % (case 1)
         end
@@ -86,14 +91,13 @@ else
     % Get the number of the first layer file name.
     [dummy, body, no] = getFilenameBody(...
         settings.layers{settings.iNumLayerFiles}.fileNames{iFrame});
-    
+
     no = str2double(no);
-    
+
     if numMaskFiles
-        [fileName, found] = findNumberedFileInList(...
-            settings.maskFileNames, no);
-        assert(found); % Test done in getSettings.m. Must be valid.
-        BW = imread([settings.maskPath filesep file]);
+        fileName = findNumberedFileInList(settings.maskFileNames, no);
+
+        BW = imread([settings.maskPath filesep fileName]);
     end
     if numChannelFiles
         % TODO: this part is pretty much a copy-past of lines 37:73. Make
@@ -106,15 +110,15 @@ else
 
             fileName = findNumberedFileInList(...
                 settings.channels{iChannel}.fileNames, no);
-            
-            J = channelPlugins(channelTypeID).load([settings.channels{iChannel}.path ...
+
+            J = channelPlugins(channelTypeID).loadFunc([settings.channels{iChannel}.path ...
                 filesep fileName]);
-            
+
             I = cat(3, I, J);
-            
+
             colors(iChannel) = channelColor;
         end
-       
+
         [m n c] = size(I);
 
         if c > 1
@@ -126,7 +130,7 @@ else
                 J = J - min(J(:));
                 I(:, :, iChannel) = J / max(J(:));
             end
-            
+
             if c == 2
                 % Add a blank channel.
                 I = cat(3, I, zeros(m, n, class(I)));
@@ -134,15 +138,20 @@ else
                 % different form colors(1) and colors(2)).
                 colors(3) = 6 - (colors(1) + colors(2));
             end
-            
+
             % Make channel permutation according to channel colors
-            I = I(:, :, colors);            
+            I = I(:, :, colors);
         end
     end
-    
+
     if numMaskFiles % else (case 5)
-        if numChannelFiles
-            I(BW == 0) = 0; % (case 6)
+        if numChannelFiles % (case 6)
+            idx = find(BW == 0);
+            for iChannel = 1:c
+                tmp = I(:, :, iChannel);
+                tmp(idx) = 0; %#ok<FNDSB>
+                I(:, :, iChannel) = tmp; %#ok<AGROW>
+            end
         else
             I = uint8(BW); % (case 4)
         end

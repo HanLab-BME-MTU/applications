@@ -22,11 +22,7 @@ for iChannel = 1:size(data, 1)
         colorName = data{iChannel, 3};
         channel.color = strmatch(colorName, colorNames);        
         
-        [path, fileNames, status] = getFileNames(data{iChannel, 4});
-
-        if ~status
-            return;
-        end
+        [path, fileNames] = getFileNames(data{iChannel, 4});
         
         channel.path = path;
         channel.fileNames = fileNames;
@@ -43,11 +39,7 @@ value = get(h, 'Value');
 if value
     h = findobj(hFig, 'Tag', 'editMask');
     
-    [path, fileNames, status] = getFileNames(get(h, 'String'));
-
-    if ~status
-        return;
-    end
+    [path, fileNames] = getFileNames(get(h, 'String'));
         
     settings.maskPath = path;
     settings.maskFileNames = fileNames;
@@ -69,14 +61,10 @@ for iLayer = 1:size(data, 1)
     if selected
         layerTypeName = data{iLayer, 2};
         layer.type = strmatch(layerTypeName, layerTypeNames) - 1;
-
+        layer.tag = [layerTypeName '_' num2str(iLayer)];
         layer.color = data{iLayer, 3};
         
-        [path, fileNames, status] = getFileNames(data{iLayer, 4});
-
-        if ~status
-            return;
-        end
+        [path, fileNames] = getFileNames(data{iLayer, 4});
         
         layer.path = path;
         layer.fileNames = fileNames;
@@ -113,31 +101,22 @@ end
 
 % Check channel type compatibility
 if settings.numChannels > 1
-    hasRawImages = false;
-    hasSpeedMap = false;
-    hasOtherData = false;
+    hasRawImage = 0;
+    hasOtherData = 0;
     
     for iChannel = 1:settings.numChannels
-        switch settings.channels{iChannel}.type
-            case 2, hasRawImages = true; % Raw images
-            case 3, hasSpeedMap = true; % Speed map
-            otherwise, hasOtherData = true;
+        if settings.channels{iChannel}.type == 1
+            hasRawImage = 1; % raw image
+        else
+            hasOtherData = 1; % other data
         end
     end
     
-    if hasSpeedMap
-        status = 0;
-        errordlg('Speed map cannot be merged with other channel.');
-        return;
-    end
-
-    if hasRawImages && hasOtherData
+    if hasRawImage && hasOtherData
         status = 0;
         errordlg('Raw images can only be merged with raw image type.');
         return;
     end
-    
-    % TODO: add here other type compatibility checks.
 end
 
 % Get the number of layers
@@ -217,7 +196,7 @@ if settings.numLayers && settings.numMaskFiles
         [dummy, body, no] = ...
             getFilenameBody(settings.layers{settings.iNumLayerFiles}.fileNames{iFile});
         
-        [dummy, found] = findNumberedFileInList(settings.mask.fileNames, str2double(no));
+        [dummy, found] = findNumberedFileInList(settings.maskFileNames, str2double(no));
 
         if ~found
             status = 0;
