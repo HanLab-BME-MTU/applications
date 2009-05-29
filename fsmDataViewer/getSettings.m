@@ -67,13 +67,12 @@ for iLayer = 1:size(data, 1)
     selected = data{iLayer, 1};
     
     if selected
-        layerTypeName = data{iChannel, 2};
+        layerTypeName = data{iLayer, 2};
         layer.type = strmatch(layerTypeName, layerTypeNames) - 1;
 
-        colorName = data{iChannel, 3};
-        layer.color = strmatch(colorName, colorNames); 
+        layer.color = data{iLayer, 3};
         
-        [path, fileNames, status] = getFileNames(data{iChannel, 4});
+        [path, fileNames, status] = getFileNames(data{iLayer, 4});
 
         if ~status
             return;

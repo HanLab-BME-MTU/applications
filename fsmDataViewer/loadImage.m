@@ -85,7 +85,7 @@ if ~numLayerFiles
 else
     % Get the number of the first layer file name.
     [dummy, body, no] = getFilenameBody(...
-        settings.channels{settings.iNumLayerFiles}.fileNames{iFrame});
+        settings.layers{settings.iNumLayerFiles}.fileNames{iFrame});
     
     no = str2double(no);
     
@@ -104,12 +104,12 @@ else
             channelType = settings.channels{iChannel}.type;
             channelColor = settings.channels{iChannel}.color;
 
-            [fileName, found] = findNumberedFileInList(...
+            fileName = findNumberedFileInList(...
                 settings.channels{iChannel}.fileNames, no);
         
-            assert(found); % Test done in getSettings.m. Must be valid.
-                                
-            J = channelLoaders{channelType}(fileName);
+            J = channelLoaders{channelType}([settings.channels{iChannel}.path ...
+                filesep fileName]);
+            
             I = cat(3, I, J);
             
             colors(iChannel) = channelColor;

@@ -16,11 +16,8 @@ if (isempty(settings))
     return;
 end
 
-% Load channels
-settings = loadSequence(settings);
-
 % Set up the main figure (using imtool)
-hFig = imtool(settings.sequence(:, :, :, 1), []);
+hFig = imtool(loadImage(settings, 1), []);
 
 % Unlock imtool axes children.
 set(hFig, 'HandleVisibility', 'on');
@@ -42,13 +39,13 @@ uicontrol(hFig, 'Style', 'slider', ...
     'Callback', 'sliderShowFrame_Callback', ...
     'Tag', 'sliderShowFrame', ...
     'Position', [0,0,position(3),30]);
-% 
+ 
 % Attach the settings to the figure.
 set(hFig, 'UserData', settings);
-% 
-% % Display layers of the first frame
-% displayLayers(hFig, 1);
-% 
+ 
+% Display layers of the first frame
+displayLayers(hFig, 1);
+
 % Relock imtool axes children.
 set(hFig, 'HandleVisibility', 'callback');
 

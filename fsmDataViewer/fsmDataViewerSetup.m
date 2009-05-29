@@ -150,6 +150,15 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+strings = {...
+    'Choose Channel Type...',...
+    'Raw Images',...
+    '[qFSM] Speed Map',...
+    '[qFSM] Poly Map',...
+    '[qFSM] Depoly Map'};
+
+set(hObject, 'String', strings);
+
 % --- Executes on button press in pushbuttonChannel.
 function pushbuttonChannel_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbuttonChannel (see GCBO)
@@ -314,8 +323,8 @@ if channelType == 1
 end
     
 hFig = get(hObject, 'Parent');
-hPushButtonChannel = findobj(hFig, 'Tag', 'pushbuttonChannel');
-set(hPushButtonChannel, 'Enable', status);
+hPushButtonLayer = findobj(hFig, 'Tag', 'pushbuttonLayer');
+set(hPushButtonLayer, 'Enable', status);
 
 % --- Executes during object creation, after setting all properties.
 function listboxLayerType_CreateFcn(hObject, eventdata, handles)
@@ -328,6 +337,12 @@ function listboxLayerType_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+strings = {...
+    'Choose Layer Type...',...
+    '[qFSM] Speckles'};
+
+set(hObject, 'String', strings);
 
 % --- Executes on button press in pushbuttonLayer.
 function pushbuttonLayer_Callback(hObject, eventdata, handles)
@@ -349,13 +364,13 @@ if ~isempty(rootDirectory)
 end
 
 % Get the layer type
-h = findobj(hPanel, 'Tag', 'listboxChannelType');
+h = findobj(hPanel, 'Tag', 'listboxLayerType');
 layerTypeName = get(h, 'String');
 layerType = get(h, 'Value');
 
-switch layerType
+ switch layerType
     case 2, filterSpec = {'*.mat'}; % speckles
-    otherwise, error('Invalid channel type.');
+    otherwise, error('Invalid layer type.');
 end
 
 % Get the image file
@@ -364,9 +379,11 @@ end
 if ischar(fileName) && ischar(directoryName)
     h = findobj(hPanel, 'Tag', 'uitableLayers');
     data = get(h, 'Data');
+    columnFormat = get(h, 'ColumnFormat');
+    colorNames = columnFormat{3};
     newData = {true,...
         layerTypeName{layerType},...
-        'gray',...
+        colorNames{1},...
         [directoryName fileName]};
     data = vertcat(data, newData);
     set(h, 'Data', data);

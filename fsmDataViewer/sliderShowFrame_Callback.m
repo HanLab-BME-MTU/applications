@@ -14,7 +14,8 @@ set(hFig, 'HandleVisibility', 'on');
 set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(iFrame) '/'...
     num2str(settings.numFrames) ')' ]);
 
-% Get the axes of imtool.
+
+% Get the axes of hFig.
 hAxes = get(hFig, 'CurrentAxes');
 
 % Get the children of axes.
@@ -27,12 +28,19 @@ if numel(hImage) ~= 1
     error('Current figure contain none or invalid image data.');
 end
 
-% Update the image data
-% FIXME: this command remove the pixel region tool.
-set(hImage, 'CData', settings.sequence(:, :, :, iFrame));
+% Load and display the new image
+cdata = loadImage(settings, iFrame);
+clim = [min(cdata(:)) max(cdata(:))];
+map = get(hFig, 'Colormap');
+
+set(hImage, 'CData', cdata);
+set(hFig, 'Colormap', map);
+set(hAxes, 'CLim', clim);
 
 % Display layers
-% displayLayers(hFig, iFrame);
+displayLayers(hFig, iFrame);
+
+refresh(hFig);
 
 % Relock imtool axes children.
 set(hFig, 'HandleVisibility', 'callback');
