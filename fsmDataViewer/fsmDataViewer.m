@@ -1,7 +1,7 @@
-function fsmDataViewer
+function fsmDataViewer(varargin)
 
 % Check fsmDataViewer is not already open
-h = findall(0, 'Tag', 'fsmDataViewer');
+h = findall(0, '-regexp', 'Name', 'fsmDataViewer');
 
 if ~isempty(h) && ishandle(h)
     set(h, 'Visible', 'on');
@@ -9,7 +9,7 @@ if ~isempty(h) && ishandle(h)
 end
 
 % First time 'fsmDataViewer' so call the setup window.
-settings = fsmDataViewerSetup;
+settings = fsmDataViewerSetup(varargin);
 
 if (isempty(settings))
     % The user has cancel
@@ -26,19 +26,17 @@ set(hFig, 'HandleVisibility', 'on');
 set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(1) '/' num2str(settings.numFrames) ')' ]);
 
 % Add a slider
-sliderStep = [1 5] / settings.numFrames;
-
-position = get(hFig, 'Position');
+sliderStep = [1 5] / (settings.numFrames - 1);
 
 uicontrol(hFig, 'Style', 'slider', ...
-    'Units', get(hFig, 'Units'),...
-    'Value', sliderStep(1), ...
-    'Min', sliderStep(1), ...
-    'Max', 1, ...
+    'BackgroundColor', [.91 .91 .91],...
+    'Value', 1, ...
+    'Min', 1, ...
+    'Max', settings.numFrames, ...
     'SliderStep', sliderStep, ...
     'Callback', 'sliderShowFrame_Callback', ...
     'Tag', 'sliderShowFrame', ...
-    'Position', [0,0,position(3),30]);
+    'Position', [1 40 200, 14]);
  
 % Attach the settings to the figure.
 set(hFig, 'UserData', settings);

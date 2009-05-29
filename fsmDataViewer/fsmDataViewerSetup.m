@@ -53,6 +53,18 @@ function fsmDataViewerSetup_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to fsmDataViewerSetup (see VARARGIN)
 
+if numel(varargin) > 0
+    rootDirectory = varargin{1}{1};
+    if exist(rootDirectory, 'dir')
+        hFig = get(hObject, 'Parent');
+        h = findobj(hFig, 'Tag', 'editRootDirectory');
+        set(h, 'String', rootDirectory);
+    else
+        warning('fsmDataViewer:fsmDataViewerSetup',...
+            [rootDirectory ' is not a valid directory (discarded).']);
+    end
+end
+
 % Choose default command line output for fsmDataViewerSetup
 handles.output = hObject;
 

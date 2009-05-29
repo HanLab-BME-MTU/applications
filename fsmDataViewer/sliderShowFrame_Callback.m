@@ -5,7 +5,7 @@ hSlider = findobj(hFig, 'Tag', 'sliderShowFrame');
 settings = get(hFig, 'UserData');
 
 sliderValue = get(hSlider, 'Value');
-iFrame = round(sliderValue * settings.numFrames);
+iFrame = round(sliderValue);
 
 % Unlock imtool axes children.
 set(hFig, 'HandleVisibility', 'on');
