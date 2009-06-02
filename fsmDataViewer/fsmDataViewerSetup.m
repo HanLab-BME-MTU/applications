@@ -53,7 +53,7 @@ function fsmDataViewerSetup_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to fsmDataViewerSetup (see VARARGIN)
 
-if numel(varargin) > 0
+if ~isempty(varargin{1})
     rootDirectory = varargin{1}{1};
     if exist(rootDirectory, 'dir')
         hFig = get(hObject, 'Parent');
