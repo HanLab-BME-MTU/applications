@@ -1,10 +1,12 @@
-function cord = makiCoord2Cord(initCoord,forCutoff)
+function cord = makiCoord2Cord(initCoord,forCutoff,timeRange)
 %MAKICOORD2CORD converts initCoord to a cord-array for the detector
 %
 % SYNOPSIS: cord = makiCoord2Cord(initCoord)
 %
 % INPUT initCoord: initCoord-cell from makiInitCoord
 %       forCutoff: only use the coordinates for establishing cutoff
+%       timeRange: list of time points for which to fill cord (so that you
+%           can avoid MMF for certain frames)
 %
 % OUTPUT cord: cord-structure used for detectSpots-subfunctions
 %
