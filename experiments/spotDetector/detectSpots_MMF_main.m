@@ -163,7 +163,8 @@ for t=goodTimes'
             % find (again) spots that have to be fitted jointly
             [spotsidx, mask] = discernspots(cordList,frameSize,dataProperties);
 
-            idxList=find(mask);
+            % avoid problems with NaNs
+            idxList=find(mask & ~isnan(currentFrame));
             mskData=currentFrame(idxList);
 
             % do the mixture-model fitting
