@@ -34,12 +34,22 @@ layerPlugins = struct('desc', {}, 'filterSpec', {}, 'display', {});
 
 % Vector Field
 layerPlugins(1).desc = 'Vector Field';
-layerPlugins(1).filterSpec = {'*mat'};
+layerPlugins(1).filterSpec = {'*.mat'};
 layerPlugins(1).displayFunc = @displayVectorField;
 
+% Points
+layerPlugins(2).desc = 'Points';
+layerPlugins(2).filterSpec = {'*.mat'};
+layerPlugins(2).displayFunc = @displayPoints;
+
 % [qFSM] Speckles
-layerPlugins(2).desc = '[qFSM] Speckles';
-layerPlugins(2).filterSpec = {'*.mat'}; 
-layerPlugins(2).displayFunc = @displaySpeckles;
+layerPlugins(3).desc = '[qFSM] Speckles';
+layerPlugins(3).filterSpec = {'*.mat'}; 
+layerPlugins(3).displayFunc = @displaySpeckles;
+
+% [MP] Graph
+layerPlugins(4).desc = '[MP] Graph';
+layerPlugins(4).filterSpec = {'*.mat'}; 
+layerPlugins(4).displayFunc = @displayGraph;
 
 end
