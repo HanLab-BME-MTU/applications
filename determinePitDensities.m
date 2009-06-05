@@ -47,6 +47,7 @@ for i = 1:length(data)
         cmy = full(currTrackInfo(:,2:8:sty));
         
         % number of objects detected in each frame
+        numPitsFrame = [];
         for k=1:numf
             numPitsFrame(k) = length(find(cmx(:,k)>0));
         end
