@@ -1,9 +1,18 @@
-function cellDataAll = measureSpindles(idlist,dicMaxProj,doPlot)
+function cellDataAll = measureSpindles(idlist,dicMaxProj,doPlot,starPlot)
 %MEASURESPINDLES groups tags from several cells and measures spindle length
 %
 % SYNOPSIS: measureSpindles
 %
-% INPUT
+% INPUT : idlist : directly input an idlist to analyze (mostly for testing
+%                   purposes). If empty, you can choose a list of idlists
+%                   via GUIs
+%         dicMaxProj : (DIC) image on which to display data. If empty, DIC
+%                   image is loaded from idlist directory (pwd if idlist
+%                   has been specified in the input)
+%         doPlot : 1 if data should be plotted (default: true)
+%         starPlot : 1 if sbp1* should always be counted as 4 spots in
+%                   intensity plots. Default: true
+%         
 %
 % OUTPUT cellDataAll : nImages-by-3 cell array
 %           1st row: for every cell in the image:
@@ -12,8 +21,8 @@ function cellDataAll = measureSpindles(idlist,dicMaxProj,doPlot)
 %                   cen-amps?, mean(cenInt)/mean(spbInt),
 %                   delta(cenInt)/mean(cenInt), delta(spbInt)/mean(spbInt)
 %                   dist(spb-cen) x2, dist(cen1-cen2),
-%                   normed projections of dist(spb-cen) x2]
-%           2nd row: [#G1,#Pro,#M3,#M4]
+%                   normed projections of dist(spb-cen) x2,is3.5]
+%           2nd row: [#G1,#Pro,#M3,#M4,#M3.5]
 %           3rd row: first two cols of 1st row for metaphase cells -> make
 %                    into plotData for trapezoids
 %
@@ -33,7 +42,7 @@ warning off MATLAB:intConvertNonIntVal
 warning off MATLAB:divideByZero
 
 def_doPlot = true;
-
+def_starPlot = true;
 
 if nargin == 0 || isempty(idlist)
     % load idlist
@@ -65,6 +74,12 @@ cellDataAll = cell(nIdlists,3);
 if nargin < 3 || isempty(doPlot)
 doPlot = def_doPlot;
 end
+% init starPlot
+if nargin < 4 || isempty(starPlot)
+    starPlot = def_starPlot;
+end
+
+%% loop to read data from idlists
 
 for iIdlist = 1:nIdlists
 
@@ -122,7 +137,16 @@ for iIdlist = 1:nIdlists
     % the longest side, flag whether the intensities of the two tags associated
     % with the longest side are more similar than the other tag(s)
     nCells = max(labels);
-    cellData = zeros(nCells, 12);
+    %               [nTags, spindleLength, smallest spb-cen-spb angle, 
+%                   are spb-amps more similar to each other than to
+%                   cen-amps?, mean(cenInt)/mean(spbInt),
+%                   delta(cenInt)/mean(cenInt), delta(spbInt)/mean(spbInt)
+%                   dist(spb-cen) x2, dist(cen1-cen2),
+%                   normed projections of dist(spb-cen) x2,is3.5]
+    cellData = NaN(nCells, 13);
+    
+    spbStarIdx = strmatch('sbp1*',idlist(1).stats.labelcolor);
+
 
     for c = 1:nCells
         % init vars
@@ -213,20 +237,26 @@ for iIdlist = 1:nIdlists
             relSpbDiff = 0;
         end
 
-        cellData(c,:) = [nTags,n_spb,min(angle),min(similarAmplitude),relCenInt,relCenDiff,relSpbDiff,minDist2Spb(1:2),cenDist,cenPosNorm(1:2)];
+        cellData(c,:) = [nTags,n_spb,min(angle),min(similarAmplitude),relCenInt,relCenDiff,relSpbDiff,minDist2Spb(1:2),cenDist,cenPosNorm(1:2),any(ismember(spbStarIdx,cIdx))];
 
     end
 
     if doPlot
         figure('Name',idlist(1).stats.name),imshow(dicMaxProj',[]);
         hold on
+        markerList = 'so';
         for c = 1:nCells
-            cIdx = find(labels == c);
+            cIdx = (labels == c);
             xy = coords(cIdx,[2,1]);
-            if isEven(c)
-                plot(xy(:,1)/0.0663,xy(:,2)/0.066,'o','MarkerSize',4,'Color',extendedColors(c/2));
+            if cellData(c,13)
+                marker = '+';
             else
-                plot(xy(:,1)/0.0663,xy(:,2)/0.066,'s','MarkerSize',4,'Color',extendedColors((c+1)/2));
+                marker = markerList(isEven(c) + 1);
+            end
+            if isEven(c)
+                plot(xy(:,1)/0.0663,xy(:,2)/0.066,marker,'MarkerSize',4,'Color',extendedColors(c/2));
+            else
+                plot(xy(:,1)/0.0663,xy(:,2)/0.066,marker,'MarkerSize',4,'Color',extendedColors((c+1)/2));
             end
         end
     end
@@ -241,18 +271,19 @@ for iIdlist = 1:nIdlists
     nPro = sum(proMetaIdxL);
     nG1 = sum(g1IdxL);
     nM = sum(metaIdxL);
+    nStar = sum(cellData(:,13));
 
     % if any(metaIdxL)
     %     figure('Name',idlist.name)
     %     boxplot(cellData(metaIdxL,2),cellData(metaIdxL,1),'notch','on')
     % end
 
-    disp(sprintf('%1.2f%% G1, %1.2f%% proM, %1.2f%% M, %1.2f%% 3spM, %1.2f%% 4spM, Ntot %i, NM %i',...
-        nG1/nCells*100,nPro/nCells*100,nM/nCells*100,nM3/nM*100,nM4/nM*100,nCells,nM))
+    disp(sprintf('%1.2f%% G1, %6.2f%% proM, %6.2f%% M, %6.2f%% (%6.2f%%) 3spM, %6.2f%% (%6.2f%%) 4spM,  Ntot %3i, NM %3i, N* %3i',...
+        nG1/nCells*100,nPro/nCells*100,nM/nCells*100,nM3/nM*100,(nM3-nStar)/nM*100,nM4/nM*100,(nM4+nStar)/nM*100,nCells,nM,nStar))
 
     % collect statistics
     cellDataAll{iIdlist,1} = cellData;
-    cellDataAll{iIdlist,2} = [nG1,nPro,nM3,nM4];
+    cellDataAll{iIdlist,2} = [nG1,nPro,nM3,nM4,nStar];
     if any(metaIdxL)
         % plotData: spindleLength, bin# of spb-cen distance, weight,
         % movie#.cell#
@@ -305,6 +336,8 @@ for iIdlist = 1:nIdlists
 end
 
 
+%% plot overall statistics
+
 data1=cat(1,cellDataAll{:,1});
 metaIdxL = data1(:,1) == 4 | (data1(:,1) == 3 & data1(:,4) == 1 & data1(:,2) > 1);
     proMetaIdxL = data1(:,1) == 3 & ~metaIdxL;
@@ -315,14 +348,15 @@ metaIdxL = data1(:,1) == 4 | (data1(:,1) == 3 & data1(:,4) == 1 & data1(:,2) > 1
     nG1 = sum(g1IdxL);
     nM = sum(metaIdxL);
     nCells = size(data1,1);
+    nStar = sum(cellData(:,13));
 
     % if any(metaIdxL)
     %     figure('Name',idlist.name)
     %     boxplot(cellData(metaIdxL,2),cellData(metaIdxL,1),'notch','on')
     % end
 
-    disp(sprintf('%1.2f%% G1, %1.2f%% proM, %1.2f%% M, %1.2f%% 3spM, %1.2f%% 4spM, Ntot %i, NM %i',...
-        nG1/nCells*100,nPro/nCells*100,nM/nCells*100,nM3/nM*100,nM4/nM*100,nCells,nM))
+     disp(sprintf('%1.2f%% G1, %6.2f%% proM, %6.2f%% M, %6.2f%% (%6.2f%%) 3spM, %6.2f%% (%6.2f%%) 4spM,  Ntot %3i, NM %3i, N* %3i',...
+        nG1/nCells*100,nPro/nCells*100,nM/nCells*100,nM3/nM*100,(nM3-nStar)/nM*100,nM4/nM*100,(nM4+nStar)/nM*100,nCells,nM,nStar))
 
 
 
@@ -330,7 +364,11 @@ metaIdxL = data1(:,1) == 4 | (data1(:,1) == 3 & data1(:,4) == 1 & data1(:,2) > 1
 
 
 % intStats for 4 spots
+if starPlot
+    d41 = data1(:,1) == 4 | data1(:,13) == 1;
+else
 d41=data1(:,1)==4;
+end
 figure('Name','IntStats 4sp'),
 [H,AX,BigAx,P] = plotmatrix(abs(data1(d41,[2,5:7,10])),'.');
 set(get(AX(1,1),'yLabel'),'String','SpbDist (\mum)')
@@ -349,7 +387,11 @@ figure,plot3([data1(d41,2);data1(d41,2)],abs([data1(d41,6);data1(d41,6)]),[data1
 %figure,plot3([data1(d41,2);data1(d41,2)],abs([data1(d41,6);data1(d41,6)]),[data1(d41,8);data1(d41,9)],'.')
 
 % intStats for 3 spots
+if starPlot
+    d31=(data1(:,1) == 3 & data1(:,4) == 1 & data1(:,2) > 1) & data1(:,13) == 0;
+else
 d31=(data1(:,1) == 3 & data1(:,4) == 1 & data1(:,2) > 1);
+end
 figure('Name','IntStats 3sp'),
 [H,AX,BigAx,P] = plotmatrix(abs(data1(d31,[2,5,7])),'.');
 set(get(AX(1,1),'yLabel'),'String','SpbDist (\mum)')
@@ -359,12 +401,18 @@ set(get(AX(3,1),'xLabel'),'String','SpbDist (\mum)')
 set(get(AX(3,2),'xLabel'),'String','relCenInt')
 set(get(AX(3,3),'xLabel'),'String','relSpbDiff')
 
-% show 3vs 4 spots (sorry, it's another hack)
+% show 3vs 4 spots (sorry, it's another hack) - JD,6.9.09: no idea why I
+% catenate again
 a=cat(1,cellDataAll{:,1});
-a=a(a(:,1)>2 & a(:,2)>0.5,1:2);
+a=a(a(:,1)>2 & a(:,2)>0.5,[1:2,13]);
 range = 0.5:0.25:2;
-c3=hist(a(a(:,1)==3,2),range);
-c4=hist(a(a(:,1)==4,2),range);
+if starPlot
+c3=hist(a(a(:,1)==3 & ~a(:,3),2),range);
+c4=hist(a(a(:,1)==4 | a(:,3),2),range);
+else
+    c3=hist(a(a(:,1)==3,2),range);
+    c4=hist(a(a(:,1)==4,2),range);
+end
 figure('Name','3 (blue) and 4 (red) spots'),area(range,[c3',c4'])
 xlabel('Spindle Length (\mum)')
 figure('Name','3 (blue) and 4 (red) spots'),area(range,[c3',c4']./repmat(nansum([c3',c4'],2),1,2))
