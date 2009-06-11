@@ -30,97 +30,114 @@ iEnd = 2;
 winMethod = 'e';
 
 for iMovie = 1:numel(movieData)
-    
+
+    %Get current movie data for readability
+    currMovie = movieData(iMovie);
+
     % STEP 1: Create the initial movie data
-    movieData(iMovie).analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
-    
+    currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
+
     % Be sure to handle 'Actin' lower case properly
-    movieData(iMovie).imageDirectory = [paths{iMovie} filesep 'Actin' filesep 'crop'];
-    if ~exist(movieData(iMovie).imageDirectory, 'dir')
+    currMovie.imageDirectory = [paths{iMovie} filesep 'Actin' filesep 'crop'];
+    if ~exist(currMovie.imageDirectory, 'dir')
         disp(['Movie ' num2str(iMovie) '/' num2str(nMovies) ': unable to find image directory.']);
         continue;
     end
-    
-    movieData(iMovie).nImages = numel(dir([movieData(iMovie).imageDirectory filesep '*.tif']));
-    movieData(iMovie).channelDirectory = {''};
+
+    currMovie.nImages = numel(dir([currMovie.imageDirectory filesep '*.tif']));
+    currMovie.channelDirectory = {''};
     % TODO: read the pixel size from FSM center parameter file.
-    movieData(iMovie).pixelSize_nm = 67;
+    currMovie.pixelSize_nm = 67;
     % TODO: read the time interval from FSM center parameter file.
-    movieData(iMovie).timeInterval_s = 10;
-    
+    currMovie.timeInterval_s = 10;
+
     % Get the mask directory
-    movieData(iMovie).masks.directory = [paths{iMovie} filesep 'Actin' filesep 'cell_mask'];
-    if ~exist(movieData(iMovie).masks.directory, 'dir')
+    currMovie.masks.directory = [paths{iMovie} filesep 'Actin' filesep 'cell_mask'];
+    if ~exist(currMovie.masks.directory, 'dir')
         disp(['Movie ' num2str(iMovie) '/' num2str(nMovies) ': unable to find mask directory.']);
         continue;
     end
-    movieData(iMovie).masks.n = numel(dir([movieData(iMovie).masks.directory filesep '*.tif']));
-    
+    currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
+
+    % Update from already saved movieData
+    currMovie = refreshMovieData(currMovie);
+
     % STEP 2: Get the contour
-    try
-        movieData(iMovie) = getMovieContours(movieData(iMovie), 0:dContour:500, 0, 0, ['contours_'  num2str(dContour) 'pix.mat']);
-    catch errMess
-        disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
-        currMovie.contours.error = errMess;
-        currMovie.contours.status = 0;
+    if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || currMovie.contours.status ~= 1
+        try
+            currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 0, ['contours_'  num2str(dContour) 'pix.mat']);
+        catch errMess
+            disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
+            currMovie.contours.error = errMess;
+            currMovie.contours.status = 0;
+        end
     end
-    
+
     % STEP 3: Calculate protusion
-    try
-        %Indicate that protrusion was started
-        movieData(iMovie).protrusion.status = 0;
+    if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'status') || currMovie.protrusion.status ~= 1
+        try
+            %Indicate that protrusion was started
+            currMovie.protrusion.status = 0;
 
-        %Set up inputs for sams protrusion calc
+            %Set up inputs for sams protrusion calc
 
-        %Check and convert OS for linux
-        movieData(iMovie) = setupMovieData(movieData(iMovie));
+            %Check and convert OS for linux
+            currMovie = setupMovieData(currMovie);
 
-        handles.batch_processing = 1;
-        handles.directory_name = [movieData(iMovie).masks.directory];
-        handles.result_directory_name = [movieData(iMovie).masks.directory];
-        handles.FileType = '*.tif';
-        handles.timevalue = movieData(iMovie).timeInterval_s;
-        handles.resolutionvalue = movieData(iMovie).pixelSize_nm;
-        handles.segvalue = 30;
-        handles.dl_rate = 50;
-        
-        %run it
-        [OK,handles] = protrusionAnalysis(handles);
+            handles.batch_processing = 1;
+            handles.directory_name = [currMovie.masks.directory];
+            handles.result_directory_name = [currMovie.masks.directory];
+            handles.FileType = '*.tif';
+            handles.timevalue = currMovie.timeInterval_s;
+            handles.resolutionvalue = currMovie.pixelSize_nm;
+            handles.segvalue = 30;
+            handles.dl_rate = 50;
 
-        if ~OK
-            movieData(iMovie).protrusion.status = 0;
-        else
-            if isfield(currMovie.protrusion,'error')
-                movieData(iMovie).protrusion = rmfield(movieData(iMovie).protrusion,'error');
+            %run it
+            [OK,handles] = protrusionAnalysis(handles);
+
+            if ~OK
+                currMovie.protrusion.status = 0;
+            else
+                if isfield(currMovie.protrusion,'error')
+                    currMovie.protrusion = rmfield(currMovie.protrusion,'error');
+                end
+                currMovie.protrusion.directory = [currMovie.masks.directory];
+                currMovie.protrusion.fileName = 'protrusion.mat';
+                currMovie.protrusion.nfileName = 'normal_matrix.mat';
+                currMovie.protrusion.status = 1;
             end
-            movieData(iMovie).protrusion.directory = [movieData(iMovie).masks.directory];
-            movieData(iMovie).protrusion.fileName = 'protrusion.mat';
-            movieData(iMovie).protrusion.nfileName = 'normal_matrix.mat';
-            movieData(iMovie).protrusion.status = 1;
-        end
-    catch errMess
-        disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
-        movieData(iMovie).protrusion.error = errMess;
-        movieData(iMovie).protrusion.status = 0;
-    end
-    
-    % STEP 4: Create windows    
-    windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' num2str(iStart) '_' num2str(iEnd)];
-     
-    try
-        movieData(iMovie) = setupMovieData(movieData(iMovie));
             
-        disp(['Windowing movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
-        movieData(iMovie) = getMovieWindows(movieData(iMovie),winMethod,dWin,[],iStart,iEnd,[],[],['windows_' winMethod '_' windowString '.mat']);
-        
-        if isfield(currMovie.windows,'error')
-            movieData(iMovie).windows = rmfield(movieData(iMovie).windows,'error');
+            updateMovieData(currMovie);
+            
+        catch errMess
+            disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
+            currMovie.protrusion.error = errMess;
+            currMovie.protrusion.status = 0;
         end
-    
-    catch errMess
-        disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
-        movieData(iMovie).windows.error = errMess;
-        movieData(iMovie).windows.status = 0;
     end
+
+    % STEP 4: Create windows
+    windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' num2str(iStart) '_' num2str(iEnd)];
+
+    if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || currMovie.windows.status ~= 1
+        try
+            currMovie = setupMovieData(currMovie);
+
+            disp(['Windowing movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
+            currMovie = getMovieWindows(currMovie,winMethod,dWin,[],iStart,iEnd,[],[],['windows_' winMethod '_' windowString '.mat']);
+
+            if isfield(currMovie.windows,'error')
+                currMovie.windows = rmfield(currMovie.windows,'error');
+            end
+
+        catch errMess
+            disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
+            currMovie.windows.error = errMess;
+            currMovie.windows.status = 0;
+        end
+    end
+
+    movieData(iMovie) = currMovie;
 end
 end
