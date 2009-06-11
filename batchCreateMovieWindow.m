@@ -15,7 +15,7 @@ end
 paths = getDirectories(rootDirectory);
 nMovies = numel(paths);
 
-movieData(1:nMovies) = struct('analysisDirectory', '',...
+movieData{1:nMovies} = struct('analysisDirectory', '',...
     'imageDirectory', [],...
     'nImages', [],...
     'channelDirectory', [],...
@@ -26,13 +26,13 @@ movieData(1:nMovies) = struct('analysisDirectory', '',...
 dContour = 15; % ~ 1um
 dWin = 10;
 iStart = 1;
-iEnd = 2;
+iEnd = 10;
 winMethod = 'e';
 
 for iMovie = 1:numel(movieData)
 
     %Get current movie data for readability
-    currMovie = movieData(iMovie);
+    currMovie = movieData{iMovie};
 
     % STEP 1: Create the initial movie data
     currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
@@ -138,6 +138,9 @@ for iMovie = 1:numel(movieData)
         end
     end
 
-    movieData(iMovie) = currMovie;
+    % STEP 5: Split the windows into different files.
+    splitWindowFrames(currMovie, [currMovie.analysisDirectory filesep 'windows']);
+    
+    movieData{iMovie} = currMovie;
 end
 end
