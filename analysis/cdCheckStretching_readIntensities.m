@@ -314,20 +314,20 @@ for t=goodTimes'
                     switch direction
                         case 1
                             c1 = currentPosPix(1);
-                            c2 = max(currentPosPix(2)-n3Sigma(1)-nBackground,1):...
+                            c2 = max(currentPosPix(2)-n3Sigma(1)-nBackground(1),1):...
                                 min(currentPosPix(2)+n3Sigma(1)+nBackground(1),movieSize(2));
-                            c3 = max(currentPosPix(3)-n3Sigma(2)-nBackground,1):...
+                            c3 = max(currentPosPix(3)-n3Sigma(2)-nBackground(2),1):...
                                 min(currentPosPix(3)+n3Sigma(2)+nBackground(2),movieSize(3));
-                            d1 = c3-min(c3)+1;
-                            d2 = c2-min(c2)+1;
+                            d1 = c3-(currentPosPix(3)-n3Sigma(2)-nBackground(2))+1;
+                            d2 = c2-(currentPosPix(2)-n3Sigma(1)-nBackground(1))+1;
                         case 2
-                            c1 = max(currentPosPix(1)-n3Sigma(1)-nBackground,1):...
+                            c1 = max(currentPosPix(1)-n3Sigma(1)-nBackground(1),1):...
                                 min(currentPosPix(1)+n3Sigma(1)+nBackground(1),movieSize(1));
                             c2 = currentPosPix(2);
-                            c3 = max(currentPosPix(3)-n3Sigma(2)-nBackground,1):...
+                            c3 = max(currentPosPix(3)-n3Sigma(2)-nBackground(2),1):...
                                 min(currentPosPix(3)+n3Sigma(2)+nBackground(2),movieSize(3));
-                            d1 = c3-min(c3)+1;
-                            d2 = c1-min(c1)+1;
+                            d1 = c3-(currentPosPix(3)-n3Sigma(2)-nBackground(2))+1;
+                            d2 = c1-(currentPosPix(2)-n3Sigma(1)-nBackground(1))+1;
                     end
 
                     % read intensities
