@@ -1,4 +1,4 @@
-function dataStruct = makiInitCoord(dataStruct, verbose, movieType, cutoffFix)
+function dataStruct = makiInitCoord(dataStruct, verbose, movieType, cutoffFix,timeRange)
 %MAKIINITCOORD finds initial guesses for mammalian kinetochores
 %
 % SYNOPSIS: dataStruct = makiInitCoord(dataStruct)
@@ -22,6 +22,8 @@ function dataStruct = makiInitCoord(dataStruct, verbose, movieType, cutoffFix)
 %                           This input is to be used for testing purposes
 %                           only; a pre-set cutoff value should be stored
 %                           in dataStruct.dataProperties
+%                   timeRange: subset of timepoints for which makiInitCoord
+%                           is being run. Optional. Default: [] (=all)
 %
 % OUTPUT dataStruct.initCoords: Structure of length nTimepoints with fields
 %                       .allCoord     [x y z sx sy sz] coords and sigmas in
@@ -64,6 +66,10 @@ if nargin < 4 || isempty(cutoffFix)
     cutoffFix = [];
 end
 
+if nargin < 5 || isempty(timeRange)
+    timeRange = [];
+end
+
 %=========================
 %% COLLECT INPUT & SETUP
 %=========================
@@ -87,10 +93,12 @@ dataProperties = dataStruct.dataProperties;
 % betterBackground: estimate background after masking signal
 if ~isfield(dataProperties,'betterBackground')
     if isDataObject
-        betterBackground = false;
+        betterBackground = true;
     else
         betterBackground = false;
     end
+else
+    betterBackground = dataProperties.betterBackground;
 end
 % isNanMask: switch that checks whether there needs to be a correction for
 % nanMasks
@@ -100,6 +108,8 @@ if ~isfield(dataProperties,'isNanMask')
     else
         isNanMask = 0;
     end
+else
+    isNanMask = dataProperties.isNanMask;
 end
 
 % setup filter parameters. Increase speed by doing incremental filtering
@@ -145,6 +155,11 @@ if isDataObject
         goodTimes = find(cellfun(@(x)(~isempty(x)),...
             dataStruct.imageData.cropInfo.cropMask))';
     end
+end
+
+% check timeRange
+if ~isempty(timeRange)
+    goodTimes = intersect(goodTimes,timeRange);
 end
 
 % read minimum number of requested spots per frame. If not set, assume 20
