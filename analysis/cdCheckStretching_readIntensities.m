@@ -124,11 +124,19 @@ for t=goodTimes'
     elseif (nSpots==3 && any(badTagIdx == 2)) || (nSpots==4 && all(ismember([2,4],badTagIdx)))
         goodFrame = false;
     end
-    if goodFrame && ~isempty(badTagIdx) && badTagIdx == 2
+    if goodFrame && ~isempty(badTagIdx) 
+        if badTagIdx == 2
         % it's a 4 spot movie, we're missing CEN1
         linklist = linklist([1,4,3],:);
         nSpots = 3;
         llIdx = [1,3,2];
+        elseif badTagIdx == 4
+            linklist = linklist([1,2,3],:);
+            nSpots = 3;
+            llIdx = 1:3;
+        else
+            error('unhandled tag disappearance')
+        end
     end
 
     if goodFrame

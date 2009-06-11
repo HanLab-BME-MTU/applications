@@ -531,8 +531,8 @@ hold on, plot((sum(spotIntensities(:,[2,4]),2)*ampC)./repmat(exp(xFit(end)*(1:nT
 % 
 
 
-            disp('stopping. Press key to continue')
-            keyboard
+%             disp('stopping. Press key to continue')
+%             keyboard
 
             % figure,hold on
             % for i=1:nSpotsMax,
