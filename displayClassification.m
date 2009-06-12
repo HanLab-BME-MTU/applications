@@ -31,10 +31,10 @@ ind1 = find(D <= dCrit);
 ind2 = find(D > dCrit);
 
 % figure
-% scatter(Y(ind1,4),Y(ind1,5),10,'b.'); hold on;
-% scatter(Y(ind2,4),Y(ind2,5),10,'r.');
+scatter(Y(ind1,4),Y(ind1,5),10,'b.'); hold on;
+scatter(Y(ind2,4),Y(ind2,5),10,'r.');
 
 figure
-line(Y(ind1, 1), Y(ind1, 2), 'Color', 'k', 'LineStyle', '.');
+line(Y(ind1, 1), Y(ind1, 2), 'Color', 'b', 'LineStyle', '.');
 line(Y(ind2, 1), Y(ind2, 2), 'Color', 'r', 'LineStyle', '.');
 end

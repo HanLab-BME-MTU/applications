@@ -15,12 +15,7 @@ end
 paths = getDirectories(rootDirectory);
 nMovies = numel(paths);
 
-movieData{1:nMovies} = struct('analysisDirectory', '',...
-    'imageDirectory', [],...
-    'nImages', [],...
-    'channelDirectory', [],...
-    'pixelSize_nm', [],...
-    'timeInterval_s', []);
+movieData = cell(nMovies, 1);
 
 % Set up parameters
 dContour = 15; % ~ 1um
@@ -33,7 +28,7 @@ for iMovie = 1:numel(movieData)
 
     %Get current movie data for readability
     currMovie = movieData{iMovie};
-
+    
     % STEP 1: Create the initial movie data
     currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
 
@@ -60,7 +55,9 @@ for iMovie = 1:numel(movieData)
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
 
     % Update from already saved movieData
-    currMovie = refreshMovieData(currMovie);
+    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file')
+        currMovie = refreshMovieData(currMovie);
+    end
 
     % STEP 2: Get the contour
     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || currMovie.contours.status ~= 1
