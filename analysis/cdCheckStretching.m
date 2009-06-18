@@ -218,18 +218,18 @@ sx=cellfun(@length,dispXC);
 
 % for contourf, we need to expand x,t, and the intensities into matrices.
 % Start filling at the left, because that's where the data is aligned
-[resMatrix,mskMatrix,rawMatrix] = deal(NaN(xMax(1),goodTimes(end)+4));
+[resMatrix,mskMatrix,rawMatrix] = deal(NaN(xMax(1),goodTimes(end)-goodTimes(1)+1+4));
 % fill x, time
-xMatrix = repmat(dispXC{xMax(2)},1,goodTimes(end)+4);
+xMatrix = repmat(dispXC{xMax(2)},1,goodTimes(end)-goodTimes(1)+1+4);
 tMatrix = repmat(goodTimes(1):goodTimes(end)+4,xMax(1),1)-2;
 
 % loop to fill intensities
 for t=goodTimes'
-    resMatrix(1:length(intensities(t).dispResidual),t+2) = ...
+    resMatrix(1:length(intensities(t).dispResidual),t+2-goodTimes(1)+1) = ...
         intensities(t).dispResidual;
-    mskMatrix(1:length(intensities(t).dispMsk),t+2) = ...
+    mskMatrix(1:length(intensities(t).dispMsk),t+2-goodTimes(1)+1) = ...
         intensities(t).dispMsk;
-    rawMatrix(1:length(intensities(t).dispRaw),t+2) = ...
+    rawMatrix(1:length(intensities(t).dispRaw),t+2-goodTimes(1)+1) = ...
         intensities(t).dispRaw;
 end
 

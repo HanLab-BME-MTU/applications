@@ -103,7 +103,11 @@ for t=goodTimes'
         spotIdx(1) = find(strcmp(idlist(1).stats.labelcolor,'spb1'));
         spotIdx(2) = find(strcmp(idlist(1).stats.labelcolor,'cen1'));
         spotIdx(3) = find(strcmp(idlist(1).stats.labelcolor,'spb2'));
-        spotIdx(4) = find(strcmp(idlist(1).stats.labelcolor,'cen2'));
+        if length(idlist(1).stats.labelcolor) > 3
+            spotIdx(4) = find(strcmp(idlist(1).stats.labelcolor,'cen2'));
+        else
+            spotIdx(4) = [];
+        end
     end
 
     % update linklist, indices, according to order
@@ -266,7 +270,7 @@ for t=goodTimes'
             endPix = min(endPix,movieSize(1:3));
 
             % count pixels along the direction
-            nPixDir = endPix(direction) - startPix(direction) + 1;
+            nPixDir = abs(endPix(direction) - startPix(direction) + 1);
 
             % collect positions
             posList = zeros(6,3);
@@ -298,6 +302,9 @@ for t=goodTimes'
             % monotonously increasing
             deltaPos = diff(posList(:,direction));
             directionOk = all(sign(deltaPos./deltaPos(1))>0);
+            
+            % it is possible that all directions are negative.
+            dirSign = sign(deltaPos(1));
 
 
             if directionOk
@@ -337,22 +344,30 @@ for t=goodTimes'
                             d1 = c3-(currentPosPix(3)-n3Sigma(2)-nBackground(2))+1;
                             d2 = c1-(currentPosPix(2)-n3Sigma(1)-nBackground(1))+1;
                     end
+                    
+                    good1 = d1>=1&d1<=(n3Sigma(2)+nBackground(2))*2+1;
+                    d1(~good1) = [];
+                    good2 = d2>=1&d2<=(n3Sigma(1)+nBackground(1))*2+1;
+                    d2(~good2) = [];
 
                     % read intensities
                     tmpInt = correctedImage(c1,c2,c3);
-                    residualIntBg(d1,d2,i) = permute(tmpInt,permuteOrder);
+                    tmp = permute(tmpInt,permuteOrder);
+                    residualIntBg(d1,d2,i) = tmp(good1,good2);
                     tmpInt = rawMovie(c1,c2,c3);
-                    rawIntBg(d1,d2,i) = permute(tmpInt,permuteOrder);
+                    tmp = permute(tmpInt,permuteOrder);
+                    rawIntBg(d1,d2,i) = tmp(good1,good2);
                     tmpInt = maskMovie(c1,c2,c3);
-                    maskIntBg(d1,d2,i) = permute(tmpInt,permuteOrder);
+                    tmp = permute(tmpInt,permuteOrder);
+                    maskIntBg(d1,d2,i) = tmp(good1,good2);
 
                     % update to next position
                     if i<nPixDir
-                        nextPos = currentPos + vectorList(currentVectorIdx,:);
+                        nextPos = currentPos + vectorList(currentVectorIdx,:) * dirSign;
                     end
 
                     % check whether that would move us beyond a tag position
-                    if i<nPixDir && round(nextPos(direction))+0.5 > posList(currentPosIdx+1,direction)
+                    if i<nPixDir && round(dirSign*nextPos(direction))+0.5 > dirSign*posList(currentPosIdx+1,direction)
                         % update currentPosIdx, currentVectorIdx, recalculate nextPos
                         currentPosIdx = currentPosIdx + 1;
                         currentVectorIdx = currentVectorIdx + 1;

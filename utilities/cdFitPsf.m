@@ -52,13 +52,13 @@ originalSigma = fitStruct.dataProperties.FT_SIGMA([1,3])./sigmaCorrectionOld;
 for t = 1:length(fitStruct.slist)
     if ~isempty(fitStruct.slist(t).sp)
         slistCoords = cat(1,fitStruct.slist(t).sp.cord);
-
+        
         % make distance matrix that counts in sigma. (metric
         % =1/sigma^2)
         metric = diag(1./fitStruct.dataProperties.FT_SIGMA(1:3).^2);
         spDist = distMat(slistCoords,metric);
         spDist = spDist + 10 * eye(size(spDist));
-
+        
         % check closeness
         if checkSpb
             spList = cat(1,fitStruct.slist(t).sp.idxL);
@@ -67,15 +67,15 @@ for t = 1:length(fitStruct.slist)
             rowIdx = 1:length(spDist); %spDist is square
         end
         goodSpbIdx = find(all(spDist(rowIdx,:) > 7,2));
-
+        
         if ~isempty(goodSpbIdx)
-
+            
             % load movie
             cfLoadStruct = loadStruct;
             cfLoadStruct.frames2load{1} = t+deltaFrames;
             currentFrame = cdLoadMovie(cfLoadStruct.movieType, [], cfLoadStruct);
             currentFrame = currentFrame(:,:,:,fitStruct.waveIdx);
-
+            
             % read intensities
             for s = 1:length(goodSpbIdx)
                 spotCoord = slistCoords(rowIdx(goodSpbIdx(s)),[2,1,3]);
@@ -84,7 +84,7 @@ for t = 1:length(fitStruct.slist)
                     spotCoord(2)-hSize(2):spotCoord(2)+hSize(2),...
                     spotCoord(3)-hSize(3):spotCoord(3)+hSize(3));
                 intList = interp3(currentFrame,yy,xx,zz,'*linear');
-
+                
                 % store in signalCell
                 signalCell{end+1}=intList; %#ok<AGROW>
             end
@@ -103,11 +103,11 @@ if ~isempty(signalCell)
             fitStruct.dataProperties.FT_SIGMA([1,3]).*...
             fitStruct.dataProperties.sigmaCorrection);
     end
-
+    
     % update sigmaCorrection
     sigmaCorrection = ...
         sigma./originalSigma;
-
+    
 else
     sigmaCorrection = NaN(1,2);
     fitImages = [];
@@ -115,7 +115,9 @@ end
 
 
 %disp(sigmaCorrection);
-fitStruct.dataProperties.sigmaCorrection = ...
-    sigmaCorrection;
-fitStruct.dataProperties = defaultDataProperties(...
-    fitStruct.dataProperties);
+if isfinite(sigmaCorrection)
+    fitStruct.dataProperties.sigmaCorrection = ...
+        sigmaCorrection;
+    fitStruct.dataProperties = defaultDataProperties(...
+        fitStruct.dataProperties);
+end
