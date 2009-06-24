@@ -1,7 +1,20 @@
 function [result,notDone]=plusTipCheckIfDone(fileType)
-% plusTipCheckIfDone returns directory name and timestamp for creation of either
-% movieInfo.mat (if fileType=1) or projData.mat (if fileType=2) for each
-% project, as well as which projects have not been analyzed.
+% plusTipCheckIfDone checks whether detection or tracking has been finished for a group of movies
+
+% INPUT: fileType: 1 to check if detection is done 
+%                  2 to check if tracking is done
+%        you will be asked to select the projList.mat file containing the
+%                  list of movies to check - run getProj to create this
+%                  file
+%
+% OUTPUT: result : nMovies x 2 matrix where column 1 contains the
+%                  directory name and column 2 contains the timestamp of
+%                  creation for either the movieInfo.mat file (if fileType
+%                  is 1) or the projData.mat file (if fileType is 2)
+%         notDone: vector of movie numbers corresponding to projList for
+%                  which the querried file does not exist
+%             
+
 
 result=[];
 notDone=[];
@@ -25,15 +38,11 @@ else
     cd(homeDir)
 end
 
-% get sorted list of all projects
-allProjList=struct2cell(projList);
-allProjList=allProjList(2,:)';
-%allProjList=sort(allProjList);
-allProjList=cellfun(@(i) formatPath(i),allProjList,'uniformoutput',0);
+% get list of all projects
+[allProjList]=projList2Mat(projList);
 
 switch fileType
     case 1
-
         % list of all the files in each project directory
         dirContents=cellfun(@(i) dir([i filesep 'feat']),allProjList,'uniformoutput',0);
         % convert each structure to a cell array
