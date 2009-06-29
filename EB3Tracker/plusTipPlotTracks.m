@@ -4,7 +4,7 @@ function [selectedTracks] = plusTipPlotTracks(projData,subIdx,timeRange,img,ask4
 %INPUT  projData         : structure containing track info (stored in meta
 %                          folder); if not given, user will be asked to
 %                          select the file
-%       subIdx              : indices for subtracks that should be considered
+%       subIdx           : indices for subtracks that should be considered
 %                          for plotting, corresponds to rows of projData
 %                          .nTrack_start_end_velMicPerMin_class_lifetime
 %                          if given as [], all subtracks will be

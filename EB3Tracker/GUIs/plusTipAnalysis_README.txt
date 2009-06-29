@@ -65,7 +65,7 @@ candidate features in the next frame.  This will depend on the average speed,
 the frame rate, and how much heterogeneity there is between frame-to-frame  
 displacements. You will probably want to try several ranges to find the 
 optimal values for your data, though the tracker is not super sensitive to 
-these values.  (e.g. for 2sec data, try 10-15; for 0.8sec data, try 3-5)
+these values.  (e.g. for 2sec data, try 15-20; for 0.8sec data, try 3-5)
 
 Maximum angle (degrees): only tracks which start within a cone of +/- this 
 angle projecting out from the end of a track will be considered as candidates

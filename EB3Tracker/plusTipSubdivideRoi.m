@@ -1,6 +1,25 @@
-function subRoiConfig(sourceProjData,fractionFromEdge)
-% SUBROICONFIG allows user to choose sub-rois and get indices of subtracks
-% which start and end in each sub-roi.
+function plusTipSubdivideRoi(sourceProjData,fractionFromEdge)
+% plusTipSubdivideRoi allows user to choose sub-regions of interest
+%
+% INPUT : sourceProjData        : projData file from any project
+%         fractionFromEdge (OPT): decimal value representing position of a
+%                                 central polygon edge from ROI-boundary to
+%                                 the cell's center of mass.  Use 1 to
+%                                 avoid the central polygon and only have
+%                                 four quadrants.  Value should be in range
+%                                 0-1. Upon running the function, you will
+%                                 be asked to draw a line across the cell.
+%                                 This provides one of the two axes used to
+%                                 divide the cell into quadrants. If this
+%                                 parameter is not included, the user can
+%                                 pick his/her own regions (up to 9).
+%
+% OUTPUT: sub-roi directories, histograms, a tiff image showing regional
+%         selections, and an Excel spreadsheet giving the velocity
+%         distributions for growth, pause, and shrinkage.  A track is
+%         included in a particular region if more than half the frames of
+%         that track's existence fall within the region.
+
 
 homeDir=pwd;
 warningState=warning('query', 'all');
@@ -17,6 +36,7 @@ if nargin<1 || isempty(sourceProjData)
     sourceProjData=sourceProjData.projData;
 end
 anDir=formatPath(sourceProjData.anDir);
+cd(anDir)
 imDir=formatPath(sourceProjData.imDir);
 
 if nargin<1 || isempty(fractionFromEdge)
@@ -38,6 +58,10 @@ img=double(imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))]));
 img1=(img-min(img(:)))./(max(img(:))-min(img(:)));
 img=repmat(img1,[1,1,3]);
 
+
+% if the input includes the fraction from the cell edge parameter, then
+% divide the cell into 5 sub-rois consisting of a central polygon and four
+% quadrants around the periphery
 if ~isempty(fractionFromEdge)
 
     % get roi centroid
@@ -67,7 +91,7 @@ if ~isempty(fractionFromEdge)
     axis equal
     plot(innerMaskYX(:,2),innerMaskYX(:,1))
     plot(roiMaskYX(:,2),roiMaskYX(:,1))
-    h=msgbox('Draw a line and double-click when finished','help');
+    h=msgbox('Draw a line across the cell and double-click when finished','help');
     uiwait(h);
     h=imline;
     position = wait(h);
@@ -216,10 +240,11 @@ while makeNewROI==1 && roiCount<10
 
     % projData will have same format as sourceProjData but with only data for
     % relevant tracks
-    projData=sourceProjData;
-
-    % project name is now the sub-roi directory
+    projData.imDir=sourceProjData.imDir;
     projData.anDir=currentRoiAnDir;
+    projData.secPerFrame=sourceProjData.secPerFrame;
+    projData.pixSizeNm=sourceProjData.pixSizeNm;
+    projData.numFrames=sourceProjData.numFrames;
 
     % initialize matrices with all nans
     projData.xCoord=nan.*sourceProjData.xCoord;
@@ -246,97 +271,98 @@ while makeNewROI==1 && roiCount<10
     projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aT;
 
     % count the tracks that appear in the sub-roi
-    % projData.numTracks=length(unique(aT(:,1)));
+    projData.numTracks=length(unique(aT(:,1)));
 
-    % don't worry about these parameters for now...
-    projData.frame2frameDispPix=[];
-    projData.pair2pairDiffPix=[];
-    projData.medNNdistWithinFramePix=[];
-    projData.meanDisp2medianNNDistRatio=[];
-
-
-    % figure out which track numbers contain a pause, catastrophe, or
-    % unclassified gap
-    projData.tracksWithPause       = unique(aT(aT(:,5)==2,1));
-    projData.tracksWithCatastrophe = unique(aT(aT(:,5)==3,1));
-    projData.tracksWithUnclassifed = unique(aT(aT(:,5)==4,1));
-
-    % mean/std for growth speed (microns per minute)
-    projData.typeStats.type1_mean_micPerMin = mean(aT(aT(:,5)==1,4));
-    projData.typeStats.type1_std_micPerMin  =  std(aT(aT(:,5)==1,4));
-
-    % probability of pausing is 1 over the average total time (in seconds) spent
-    % growing prior to pause event
-    pauseIdx=find(aT(:,5)==2);
-    beforePauseIdx=pauseIdx-1;
-    % if the first row is a pause, the growth phase before isn't in the
-    % sub-roi.  get rid of this one.
-    if beforePauseIdx(1)==0
-        pauseIdx(1)=[];
-        beforePauseIdx(1)=[];
-    end
-    % get rid of those indices corresponding to the growth phase of a
-    % different track OR where the growth phase begins in the first frame
-    remIdx=find(aT(pauseIdx,1)~=aT(beforePauseIdx,1) | aT(beforePauseIdx,2)==1);
-    beforePauseIdx(remIdx)=[];
-
-    if isempty(beforePauseIdx)
-        projData.typeStats.type1_Ppause=NaN;
-    else
-        projData.typeStats.type1_Ppause=mean(1./(aT(beforePauseIdx,6).*sourceProjData.secPerFrame));
-    end
-
-    % probability of shrinking is 1 over the average total time (in seconds) spent
-    % growing prior to shrinkage event
-    shrinkIdx=find(aT(:,5)==3);
-    beforeShrinkIdx=shrinkIdx-1;
-    % if the first row is a catastrophe, the growth phase before isn't in the
-    % sub-roi.  get rid of this one.
-    if beforeShrinkIdx(1)==0
-        shrinkIdx(1)=[];
-        beforeShrinkIdx(1)=[];
-    end
-
-    % get rid of those indices corresponding to the growth phase of a
-    % different track OR where the growth phase begins in the first frame
-    remIdx=find(aT(shrinkIdx,1)~=aT(beforeShrinkIdx,1) | aT(beforeShrinkIdx,2)==1);
-    beforeShrinkIdx(remIdx)=[];
-
-    if isempty(beforeShrinkIdx)
-        projData.typeStats.type1_Pcat=NaN;
-    else
-        projData.typeStats.type1_Pcat=mean(1./(aT(beforeShrinkIdx,6).*sourceProjData.secPerFrame));
-    end
-
-    % mean/std for pause speed (microns per minute)
-    if ~isempty(aT(aT(:,5)==2,4))
-        projData.typeStats.type2_mean_micPerMin = mean(aT(aT(:,5)==2,4));
-        projData.typeStats.type2_std_micPerMin  =  std(aT(aT(:,5)==2,4));
-    else
-        projData.typeStats.type2_mean_micPerMin = NaN;
-        projData.typeStats.type2_std_micPerMin  = NaN;
-    end
-
-    % mean/std for shrinkage speed (microns per minute)
-    if ~isempty(aT(aT(:,5)==3,4))
-        projData.typeStats.type3_mean_micPerMin = mean(aT(aT(:,5)==3,4));
-        projData.typeStats.type3_std_micPerMin  =  std(aT(aT(:,5)==3,4));
-    else
-        projData.typeStats.type3_mean_micPerMin = NaN;
-        projData.typeStats.type3_std_micPerMin  = NaN;
-    end
-
-    % mean/std for unclassified speed (microns per minute)
-    if ~isempty(aT(aT(:,5)==4,4))
-        projData.typeStats.type4_mean_micPerMin = mean(aT(aT(:,5)==4,4));
-        projData.typeStats.type4_std_micPerMin  =  std(aT(aT(:,5)==4,4));
-    else
-        projData.typeStats.type4_mean_micPerMin = NaN;
-        projData.typeStats.type4_std_micPerMin  = NaN;
-    end
+%     % don't worry about these parameters for now...
+%     projData.frame2frameDispPix=[];
+%     projData.pair2pairDiffPix=[];
+%     projData.medNNdistWithinFramePix=[];
+%     projData.meanDisp2medianNNDistRatio=[];
+% 
+% 
+%     % figure out which track numbers contain a pause, catastrophe, or
+%     % unclassified gap
+%     projData.tracksWithPause       = unique(aT(aT(:,5)==2,1));
+%     projData.tracksWithCatastrophe = unique(aT(aT(:,5)==3,1));
+%     projData.tracksWithUnclassifed = unique(aT(aT(:,5)==4,1));
+% 
+%     % mean/std for growth speed (microns per minute)
+%     projData.typeStats.type1_mean_micPerMin = mean(aT(aT(:,5)==1,4));
+%     projData.typeStats.type1_std_micPerMin  =  std(aT(aT(:,5)==1,4));
+% 
+%     % probability of pausing is 1 over the average total time (in seconds) spent
+%     % growing prior to pause event
+%     pauseIdx=find(aT(:,5)==2);
+%     beforePauseIdx=pauseIdx-1;
+%     % if the first row is a pause, the growth phase before isn't in the
+%     % sub-roi.  get rid of this one.
+%     if beforePauseIdx(1)==0
+%         pauseIdx(1)=[];
+%         beforePauseIdx(1)=[];
+%     end
+%     % get rid of those indices corresponding to the growth phase of a
+%     % different track OR where the growth phase begins in the first frame
+%     remIdx=find(aT(pauseIdx,1)~=aT(beforePauseIdx,1) | aT(beforePauseIdx,2)==1);
+%     beforePauseIdx(remIdx)=[];
+% 
+%     if isempty(beforePauseIdx)
+%         projData.typeStats.type1_Ppause=NaN;
+%     else
+%         projData.typeStats.type1_Ppause=mean(1./(aT(beforePauseIdx,6).*sourceProjData.secPerFrame));
+%     end
+% 
+%     % probability of shrinking is 1 over the average total time (in seconds) spent
+%     % growing prior to shrinkage event
+%     shrinkIdx=find(aT(:,5)==3);
+%     beforeShrinkIdx=shrinkIdx-1;
+%     % if the first row is a catastrophe, the growth phase before isn't in the
+%     % sub-roi.  get rid of this one.
+%     if beforeShrinkIdx(1)==0
+%         shrinkIdx(1)=[];
+%         beforeShrinkIdx(1)=[];
+%     end
+% 
+%     % get rid of those indices corresponding to the growth phase of a
+%     % different track OR where the growth phase begins in the first frame
+%     remIdx=find(aT(shrinkIdx,1)~=aT(beforeShrinkIdx,1) | aT(beforeShrinkIdx,2)==1);
+%     beforeShrinkIdx(remIdx)=[];
+% 
+%     if isempty(beforeShrinkIdx)
+%         projData.typeStats.type1_Pcat=NaN;
+%     else
+%         projData.typeStats.type1_Pcat=mean(1./(aT(beforeShrinkIdx,6).*sourceProjData.secPerFrame));
+%     end
+% 
+%     % mean/std for pause speed (microns per minute)
+%     if ~isempty(aT(aT(:,5)==2,4))
+%         projData.typeStats.type2_mean_micPerMin = mean(aT(aT(:,5)==2,4));
+%         projData.typeStats.type2_std_micPerMin  =  std(aT(aT(:,5)==2,4));
+%     else
+%         projData.typeStats.type2_mean_micPerMin = NaN;
+%         projData.typeStats.type2_std_micPerMin  = NaN;
+%     end
+% 
+%     % mean/std for shrinkage speed (microns per minute)
+%     if ~isempty(aT(aT(:,5)==3,4))
+%         projData.typeStats.type3_mean_micPerMin = mean(aT(aT(:,5)==3,4));
+%         projData.typeStats.type3_std_micPerMin  =  std(aT(aT(:,5)==3,4));
+%     else
+%         projData.typeStats.type3_mean_micPerMin = NaN;
+%         projData.typeStats.type3_std_micPerMin  = NaN;
+%     end
+% 
+%     % mean/std for unclassified speed (microns per minute)
+%     if ~isempty(aT(aT(:,5)==4,4))
+%         projData.typeStats.type4_mean_micPerMin = mean(aT(aT(:,5)==4,4));
+%         projData.typeStats.type4_std_micPerMin  =  std(aT(aT(:,5)==4,4));
+%     else
+%         projData.typeStats.type4_mean_micPerMin = NaN;
+%         projData.typeStats.type4_std_micPerMin  = NaN;
+%     end
 
 
     save([currentRoiAnDir filesep 'meta' filesep 'projData'],'projData')
+    plusTipHistograms(projData)
 
     if ~isempty(fractionFromEdge)
         if roiCount<size(roiSet,3)

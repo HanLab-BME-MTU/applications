@@ -1,7 +1,7 @@
 function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
 % plusTipPostTracking extracts various statistics from EB3 tracks
 %
-%SYNOPSIS [projData]=metaEB3analysis(runInfo,secPerFrame,pixSizeNm)
+%SYNOPSIS [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
 %
 %INPUT  runInfo           : structure containing fields .anDir, which gives
 %                           the full path to the roi_x directory

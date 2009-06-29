@@ -507,7 +507,7 @@ end
 
 
 for i=1:numProj
-%    try
+    try
         % detection
         if handles.doDetect==1
             disp(['Detecting project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
@@ -524,12 +524,12 @@ for i=1:numProj
             disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
             [projData]=plusTipPostTracking(handles.projList(i),handles.secPerFrame,handles.pixSizeNm);
             if handles.doHist==1
-                popHist(projData);
+                plusTipHistograms(projData);
             end
         end
-%     catch
-%         disp(['Problem with ' handles.projList(i).anDir])
-%     end
+    catch
+        disp(['Problem with ' handles.projList(i).anDir])
+    end
 end
 
 % --- Executes during object creation, after setting all properties.

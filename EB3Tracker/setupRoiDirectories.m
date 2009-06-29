@@ -34,7 +34,7 @@ function setupRoiDirectories(selectROI,overwriteROIs,doCrop)
 %
 % Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
 
-topDir=uigetdir(pwd,'Please select top-level directory containing targets');
+topDir=uigetdir(pwd,'Please select top-level directory containing one or more movies.');
 if topDir==0
     return
 end

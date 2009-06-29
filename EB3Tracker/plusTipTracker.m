@@ -1,5 +1,16 @@
 function plusTipTracker(runInfo,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxShrinkFactor,d1Max)
-% plusTipTracker is the tracking function
+% plusTipTracker is the main tracking function
+
+% run diagnostics on time window parameter - get histogram of all gap lifetimes
+% use 1 to run and 0 to skip this step
+gapCloseParam.diagnostics = 0;
+
+% run diagnostics on search radius range - get histogram of the linking distance 
+% enter vector containing frames of interest for which you want to make the
+% plot. keep in mind that 3 figures will be created for each frame, because
+% the linking step is repeated forward, backward, and forward.
+parameters.diagnostics = [60];
+
 
 %% get runInfo in correct format
 if nargin<1 || isempty(runInfo)
@@ -56,6 +67,7 @@ end
 % or split physically, so this should be zero.
 gapCloseParam.mergeSplit = 0;
 
+
 %% cost matrix for frame-to-frame linking
 
 %function name
@@ -77,6 +89,10 @@ if nargin<5 || isempty(maxRadius)
 else
     parameters.maxSearchRadius = maxRadius;
 end
+
+% check diagnostics - enter vector containing frames of interest where you
+% want to plot the linking distance histogram
+parameters.diagnostics = [2 60];
 
 
 parameters.brownStdMult = 3; %multiplication factor to calculate search radius from standard deviation.

@@ -232,7 +232,15 @@ tMax=gapCloseParam.timeWindow;
 
 indx1 = zeros(10*numTracks,1);
 indx2 = zeros(10*numTracks,1);
-costComponents  = zeros(10*numTracks,4);
+costComponents  = zeros(10*numTracks,5);
+
+% get start and end frames for each track
+sFrameAll=zeros(numTracks,1);
+eFrameAll=zeros(numTracks,1);
+for iFrame=1:numFrames
+    sFrameAll(tracksPerFrame(iFrame).starts)=iFrame;
+    eFrameAll(tracksPerFrame(iFrame).ends)=iFrame;
+end
 
 linkCount = 1;
 for iFrame = 1:numFrames-1
@@ -378,7 +386,7 @@ for iFrame = 1:numFrames-1
 
         % cost - keep several pieces of data here for now
         % [d1 d2 cosTheta 2 (for backward)]
-        costComponents(linkCount:linkCount+length(bwdIdx)-1,:) = [d1(bwdIdx) d2(bwdIdx) cosTheta(bwdIdx) 2*ones(length(bwdIdx),1)];
+        costComponents(linkCount:linkCount+length(bwdIdx)-1,1:4) = [d1(bwdIdx) d2(bwdIdx) cosTheta(bwdIdx) 2*ones(length(bwdIdx),1)];
         linkCount = linkCount+length(bwdIdx);
     end
     
@@ -403,7 +411,7 @@ for iFrame = 1:numFrames-1
 
         % cost - keep several pieces of data here for now
         % [d1 d2 cosTheta 1 (for forward)]
-        costComponents(linkCount:linkCount+length(fwdIdx)-1,:) = [d1(fwdIdx) d2(fwdIdx) cosTheta(fwdIdx) ones(length(fwdIdx),1)];
+        costComponents(linkCount:linkCount+length(fwdIdx)-1,1:4) = [d1(fwdIdx) d2(fwdIdx) cosTheta(fwdIdx) ones(length(fwdIdx),1)];
         linkCount = linkCount+length(fwdIdx);
     end
 end
@@ -411,16 +419,18 @@ end
 indx1(linkCount:end) =[];
 indx2(linkCount:end) =[];
 costComponents(linkCount:end,:)=[];
+costComponents(:,5)=sFrameAll(indx2)-eFrameAll(indx1);
 
 % type is 1 for forward, 2 for backward
 type=costComponents(:,4);
 
 % calculate the cost
 d1NormFactor=prctile(costComponents(:,1),99);
-cost=costComponents(:,1)./d1NormFactor + (1-costComponents(:,3));
+cost=1.5.^costComponents(:,5).*(costComponents(:,1)./d1NormFactor + (1-costComponents(:,3)));
 
 
 % plot histograms of costs for forward and backward
+doPlot=0;
 if doPlot==1
     % to make a stacked plot we need equal sample sizes for both forward and
     % backward populations.  here we find the max sample size which is the
@@ -440,11 +450,11 @@ if doPlot==1
     [x2,nbins2] = histc(pop2,n); % backward
 
     % make the plot
-    figure
+        subplot(2,1,1)
     bar(n,[x1 x2],'stack')
     colormap([1 0 0;0 0 1])
     legend('Forward Costs','Shrinkage Costs')
-    title('Cost: d1/dmax + (1-cosTheta)')
+    %title('Cost for all tracks')
     hold on
     deathCost=prctile(cost,90);
     plot([deathCost;deathCost],[0,max([x1+x2])])
@@ -468,11 +478,11 @@ if doPlot==1
     [x2,nbins2] = histc(pop2,n); % backward
 
     % make the plot
-    figure
+    subplot(2,1,2)
     bar(n,[x1 x2],'stack')
     colormap([1 0 0;0 0 1])
-    legend('Forward Costs','Shrinkage Costs')
-    title('Costs for track ends with only one potential link')
+%     legend('Forward Costs','Shrinkage Costs')
+%     title('Costs for track ends with only one potential link')
     hold on
     deathCost=prctile(cost,90);
     plot([deathCost;deathCost],[0,max([x1+x2])])

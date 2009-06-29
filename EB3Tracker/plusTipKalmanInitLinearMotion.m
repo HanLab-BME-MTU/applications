@@ -1,8 +1,8 @@
 function [kalmanFilterInfo,errFlag] = plusTipKalmanInitLinearMotion(frameInfo,...
     probDim,costMatParam)
-%KALMANINITLINEARMOTION initializes Kalman filter state vector and covariance matrix for features in a frame
+%plusTipKalmanInitLinearMotion initializes Kalman filter state vector and covariance matrix for features in a frame
 %
-%SYNOPSIS [kalmanFilterInfo,errFlag] = kalmanInitLinearMotion(frameInfo,...
+%SYNOPSIS [kalmanFilterInfo,errFlag] = plusTipKalmanInitLinearMotion(frameInfo,...
 %    probDim,costMatParam)
 %
 %INPUT  frameInfo       : Structure with fields (for 1 frame):
@@ -30,7 +30,7 @@ function [kalmanFilterInfo,errFlag] = plusTipKalmanInitLinearMotion(frameInfo,..
 %                                   neighbor. here we use this parameter to
 %                                   get the initial noise variance. in
 %                                   kathryn's alternate function
-%                                   costMatLinearMotionLink_EB3.m, the
+%                                   plusTipCostMatLinearMotionLink.m, the
 %                                   min/max search radii are not applied in
 %                                   the first iteration so that this
 %                                   initial radius can be sufficiently big

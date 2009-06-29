@@ -1,21 +1,20 @@
 function [mData]=generateMovieDatabase(projList)
+% generateMoveieDatabase creates a dataset array for movies in projList
+
+% INPUT : projList: list of projects created by getProj. If no input given,
+%                   the user can select more than one projList file.
+% OUTPUT: mData   : dataset array (see statistics toolbox help) containing
+%                   the following columns for each movie: date, target,
+%                   oligo number, movie number, roi number, sub-roi number, and
+%                   project path. all these are extracted from the project
+%                   path name, so the column names only make sense if the
+%                   directory structure follows the pattern:
+%                   ...\081120\Allstar\1027280\01\roi_1
+
 
 % allow user to concatenate multiple project lists if no input given
 if nargin<1
-    temp=[];
-    userEntry='y';
-    while strcmp(userEntry,'y')
-        [fileName,pathName] = uigetfile('*.mat','Select projList.mat file');
-        load([pathName filesep fileName]);
-
-        temp=[temp; projList];
-
-        disp(['Selected: ' pathName filesep fileName])
-        userEntry = lower(input('Select another projList file? y/n ','s'));
-
-    end
-    clear projList;
-    projList=temp;
+    [projList]=combineProjListFiles;
 end
 
 projPathParsed{size(projList,1),7}=[];
@@ -49,12 +48,11 @@ for iProj=1:size(projList,1)
         projPathParsed{iProj,3}=words{end-4,1}; % oligo
         projPathParsed{iProj,4}=words{end-3,1}; % movie number
         projPathParsed{iProj,5}=words{end-2,1}; % roi number
+        % end-1 is for subRoi header directory
         projPathParsed{iProj,6}=words{end-0,1}; % sub-roi number
     end
     projPathParsed{iProj,7}=currentROI;         % project directory path
 end
-
-
 
 
 nMovs=size(projPathParsed,1);
@@ -62,10 +60,9 @@ NameObs = strcat({'Movie'},num2str((1:nMovs)','%d'));
 
 mData=dataset({projPathParsed(:,1:7),'date','target','oligo','movNum','roiNum','subNum','path'},'ObsNames',NameObs);
 
-% make targets nominal and order labels so that Allstar is first and Negctr
-% is second
+% make targets nominal and order labels so that Allstar is first and Negctr is second
 mData.target=nominal(mData.target);
-targetLabels=getlabels(mData.target); 
+targetLabels=getlabels(mData.target);
 nTargets=length(targetLabels);
 % get indices of  Allstar and Negctr in the set of labels
 allstarIdx=find(vertcat(cellfun(@(y) strcmp(y,'Allstar'),targetLabels)));
@@ -77,23 +74,4 @@ else
     newOrder=[1:nTargets]';
 end
 % apply new order
-mData.target=reorderlevels(mData.target,targetLabels(newOrder)); 
-
-
-%mData.date=ordinal(mData.date);
-% dateLabels=getlabels(mData.date);
-% 
-%mData.oligo=nominal(mData.oligo);
-% oligoLabels=getlabels(mData.oligo);
-% 
-%mData.movNum=nominal(mData.movNum);
-% movieLabels=getlabels(mData.movNum);
-% 
-%mData.roiNum=nominal(mData.roiNum);
-
-
-
-
-
-
-
+mData.target=reorderlevels(mData.target,targetLabels(newOrder));

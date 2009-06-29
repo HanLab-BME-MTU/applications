@@ -78,7 +78,7 @@ errFlag = [];
 %% Input
 
 %check whether correct number of input arguments was used
-if nargin < 8
+if nargin < 9
     disp('--kalmanGainLinearMotion: Incorrect number of input arguments!');
     errFlag  = 1;
     return
@@ -92,7 +92,8 @@ end
 
 %% Gain calculation and update
 
-%take absolute value of all noise variances
+%take absolute value of all noise variances - we do this because we make
+%noiseVar negative in the initialization for first appearances...
 for iFrame = 1 : length(kalmanFilterInfoIn)
     kalmanFilterInfoIn(iFrame).noiseVar = abs(kalmanFilterInfoIn(iFrame).noiseVar);
 end
@@ -147,19 +148,20 @@ for iFeature = 1 : numFeatures
         indxLength = length(find(indx));
         
         %collect all of the error terms
-        stateNoiseAll = [];
+        stateNoiseAll = zeros(indxLength,2*probDim);
+        j = 0;
         for i = iFrame-indxLength : iFrame-1
-            stateNoiseAll = [stateNoiseAll; kalmanFilterInfoOut(i).stateNoise(indx(i),:)];
+            j = j + 1;
+            stateNoiseAll(j,:) = kalmanFilterInfoOut(i).stateNoise(indx(i),:);
         end
 
         %impose isotropy (all directions are equivalent)
         stateNoisePos = stateNoiseAll(:,1:probDim);
         stateNoiseVel = stateNoiseAll(:,probDim+1:2*probDim);
 
-        %estimate positional noise variance in current frame
+        %estimate positional and speed noise variances in current frame
+        noiseVar = zeros(1,2*probDim);
         noiseVar(1:probDim) = var(stateNoisePos(:));
-
-        %estimate speed noise variances in current frame
         noiseVar(probDim+1:2*probDim) = var(stateNoiseVel(:));
 
         %save this information in kalmanFilterInfo

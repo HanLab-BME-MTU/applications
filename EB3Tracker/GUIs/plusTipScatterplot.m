@@ -85,8 +85,25 @@ function selectGroupsPush_Callback(hObject, eventdata, handles)
 % hObject    handle to selectGroupsPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[handles.movDataSet]=plusTipPickGroups;
+[projGroupDir,projGroupName]=plusTipPickGroups;
+[handles.movDataSet]=plusTipExtractGroupData(projGroupDir,projGroupName);
 guidata(hObject, handles);
+
+
+% --- Executes on button press in makePlotButton.
+function makePlotButton_Callback(hObject, eventdata, handles)
+% hObject    handle to makePlotButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%subset = ismember(movDataSet.groupName,unique(movDataSet.groupName)');
+scattergroup = handles.movDataSet.groupName;
+colorMap='rbgbcm'; %varycolor(length(unique(scattergroup)));
+colorMap=colorMap(1:length(unique(scattergroup)));
+figure
+gscatter(handles.movDataSet.(handles.xaxis),handles.movDataSet.(handles.yaxis),scattergroup,colorMap)
+xlabel(handles.xlabel)
+ylabel(handles.ylabel)
+legend('location','best')
 
 
 % --- Executes on selection change in xaxisDrop.
@@ -116,8 +133,6 @@ switch val
         handles.xlabel='Probability of catastrophe';
 end
 guidata(hObject, handles);
-        
-
 
 % --- Executes during object creation, after setting all properties.
 function xaxisDrop_CreateFcn(hObject, eventdata, handles)
@@ -130,23 +145,6 @@ function xaxisDrop_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
-% --- Executes on button press in makePlotButton.
-function makePlotButton_Callback(hObject, eventdata, handles)
-% hObject    handle to makePlotButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-%subset = ismember(movDataSet.groupName,unique(movDataSet.groupName)');
-scattergroup = handles.movDataSet.groupName;
-colorMap='rbgbcm'; %varycolor(length(unique(scattergroup)));
-colorMap=colorMap(1:length(unique(scattergroup)));
-figure
-gscatter(handles.movDataSet.(handles.xaxis),handles.movDataSet.(handles.yaxis),scattergroup,colorMap)
-xlabel(handles.xlabel)
-ylabel(handles.ylabel)
-legend('location','best')
-
 
 
 % --- Executes on selection change in yaxisDrop.
@@ -176,7 +174,6 @@ switch val
         handles.ylabel='Probability of catastrophe';
 end
 guidata(hObject, handles);
-
 
 % --- Executes during object creation, after setting all properties.
 function yaxisDrop_CreateFcn(hObject, eventdata, handles)

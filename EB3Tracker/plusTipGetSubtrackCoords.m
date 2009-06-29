@@ -1,6 +1,13 @@
 function [xMat,yMat]=plusTipGetSubtrackCoords(projData,idx)
-% return nIdx x nFrames matrices containing xy-coordinates for subtracks
-% coords in frames where subtracks do not exist are backfilled with NaNs
+% plusTipGetSubtrackCoords returns subtrack coordinates
+%
+% INPUT : projData : project data from meta folder
+%         idx      : vector containing subtrack indices for which
+%                    coordinates are needed
+% OUTPUT: xMat,yMat: nIndex x nFrames matrices containing track coordinates
+%                    in frames where subtracks do not exist, matrices are
+%                    backfilled with NaNs
+
 
 % get data from all subtracks
 if nargin<2 || isempty(idx)

@@ -130,20 +130,29 @@ end
 
 doPlot=0;
 if doPlot==1
-    figure
+    
     % plot broken links in red, retained tracks in blue
     px=trackedFeatureInfo(:,1:8:end)';
     py=trackedFeatureInfo(:,2:8:end)';
+    
+    % limit t
+    px=px(5:25,:); py=py(5:25,:);   
+    
+    x=px(:); x(isnan(x))=[];
+	y=py(:); y(isnan(y))=[];
+    
+    figure
     plot(px(:,:),py(:,:),'r') % original
-
     hold on
+    scatter(x,y,'.b')
+    
     px=newTrackedFeatureInfo(:,1:8:end)';
     py=newTrackedFeatureInfo(:,2:8:end)';
-    plot(px(:,:),py(:,:),'b') % new
+    px=px(5:25,:); py=py(5:25,:);
     
-    x=px(:);
-	y=py(:);
-    scatter(x,y,'b')
+    plot(px(:,:),py(:,:),'b') % new
+
+    axis equal
 end
 
 %rearrange "newTrackedFeatureIndx" such that tracks are sorted in ascending order by their

@@ -23,21 +23,8 @@ if nargin < 1
     fileType=2;
 end
 
-% allow user to concatenate multiple project lists if no input given
-temp=[];
-userEntry='Yes';
-while strcmp(userEntry,'Yes')
-    [fileName,pathName] = uigetfile('*.mat','Select projList.mat file');
-    if fileName==0
-        return
-    end
-    load([pathName filesep fileName]);
-    temp=[temp; projList];
-    disp(['Selected: ' pathName filesep fileName])
-    userEntry = questdlg('Select another projList.mat file?');
-end
-clear projList;
-projList=temp;
+% allow user to concatenate multiple project lists
+[projList]=combineProjListFiles;
 
 
 % get list of all projects
