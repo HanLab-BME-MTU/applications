@@ -381,8 +381,8 @@ for t=goodTimes'
                     currentPosPix = round(currentPos);
 
                     % debug
-                    %                 [xx,yy,zz] = ndgrid(c1,c2,c3);
-                    %                 coordStore{end+1} = [xx(:),yy(:),zz(:)];
+%                                     [xx,yy,zz] = ndgrid(c1,c2,c3);
+%                                     coordStore{end+1} = [xx(:),yy(:),zz(:)];
 
                 end
 
@@ -435,6 +435,7 @@ for t=goodTimes'
         intensities(t).direction = direction;
 
         % write intensities-structure if there is more than x% not-nan
+        %disp(sum(isnan(residualInt(:))) / numel(residualInt))
         if sum(isnan(residualInt(:))) < storeRatio*numel(residualInt)
             intensities(t).residualInt = residualInt;
             intensities(t).residualBg = residualBg;
