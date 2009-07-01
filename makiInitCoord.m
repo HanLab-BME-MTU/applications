@@ -438,7 +438,12 @@ else
     switch movieType
         case 1
             % note: ask only for spots in good frames
-            minGood = minSpotsPerFrame*length(goodTimes);
+            if isfield(dataProperties.initCoord,'minSpotsPerFrame')
+                minN = dataProperties.initCoord.minSpotsPerFrame;
+            else
+                minN = 20;
+            end
+            minGood = minN*length(goodTimes);
             nn(3) = sum(allCoord(:,8)>cutoff(3))/minGood;
             nn(2) = sum(allCoord(:,7)>cutoff(2))/minGood;
             nn(1) = sum(allCoord(:,4)>cutoff(1))/minGood;
