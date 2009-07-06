@@ -9,7 +9,7 @@ gapCloseParam.diagnostics = 0;
 % enter vector containing frames of interest for which you want to make the
 % plot. keep in mind that 3 figures will be created for each frame, because
 % the linking step is repeated forward, backward, and forward.
-parameters.diagnostics = [60];
+parameters.diagnostics = [];
 
 
 %% get runInfo in correct format
@@ -89,11 +89,6 @@ if nargin<5 || isempty(maxRadius)
 else
     parameters.maxSearchRadius = maxRadius;
 end
-
-% check diagnostics - enter vector containing frames of interest where you
-% want to plot the linking distance histogram
-parameters.diagnostics = [2 60];
-
 
 parameters.brownStdMult = 3; %multiplication factor to calculate search radius from standard deviation.
 parameters.linearMotion = 1; %use linear motion Kalman filter.

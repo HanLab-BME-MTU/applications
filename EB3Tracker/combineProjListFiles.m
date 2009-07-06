@@ -23,5 +23,5 @@ projList=temp;
 if saveResult==1
     temp=inputdlg({'Enter file name:'},'',1);
     dirName=uigetdir('Select output directory.');
-    save([dirName filesep temp],'projList')
+    save([dirName filesep temp{1}],'projList')
 end

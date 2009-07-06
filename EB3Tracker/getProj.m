@@ -1,4 +1,4 @@
-function [projList,projPathParsed]=getProj(varargin)
+function [projList,projPaths]=getProj(varargin)
 % GETPROJ returns paths to roi_x and sub_x projects matching user query
 
 % INPUT: one or more comma-separated search strings used to search all
@@ -17,14 +17,13 @@ function [projList,projPathParsed]=getProj(varargin)
 %                             .imDir - path to image folder
 %                          for each project fitting the query.
 %                          this is saved in the top-level directory.
-%         projPathParsed : cell array containing easier-to-read info about
-%                          the projects
+%         projPaths      : cell array containing roi/subroi paths only
 
 
 % check whether inputs are strings
 
 projList=[];
-projPathParsed=[];
+projPaths=[];
 
 if nargin>=1 && isempty(varargin{1,1})
     varargin=[];
@@ -84,7 +83,7 @@ subDirList=regexp(tempDirList,['\S*sub_\d\s'],'match')';
 
 % initialize as empty in case no projects found
 projList=[];
-projPathParsed=[];
+projPaths=[];
 
 if isempty(roiDirList) && isempty(subDirList)
     h=msgbox('No projects found.');
@@ -138,41 +137,9 @@ if isempty(projList)
     return
 end
 
-projPathParsed{size(projList,1),6}=[];
-for iProj=1:size(projList,1)
-
-    currentROI=formatPath(projList(iProj,1).anDir);
-    % parse the path to get "words" used to identify target, oligo,
-    % movie, and roi
-    nChar=length(currentROI);
-    if ispc
-        filesepLoc=regexp(currentROI,'\\');
-    else
-        filesepLoc=regexp(currentROI,'\/');
-    end
-    wordStart=[1 filesepLoc+1]; wordEnd=[filesepLoc-1 nChar];
-    words=cell(length(wordStart),1);
-    for iWord=1:length(wordStart)
-        words{iWord,1}=currentROI(wordStart(iWord):wordEnd(iWord));
-    end
-
-    % assign values to cell
-    if strfind(words{end},'roi')
-        projPathParsed{iProj,1}=words{end-4,1}; % date
-        projPathParsed{iProj,2}=words{end-3,1}; % target
-        projPathParsed{iProj,3}=words{end-2,1}; % oligo
-        projPathParsed{iProj,4}=words{end-1,1}; % movie number
-        projPathParsed{iProj,5}=words{end-0,1}; % roi number
-    else
-        projPathParsed{iProj,1}=words{end-6,1}; % date
-        projPathParsed{iProj,2}=words{end-5,1}; % target
-        projPathParsed{iProj,3}=words{end-4,1}; % oligo
-        projPathParsed{iProj,4}=words{end-3,1}; % movie number
-        projPathParsed{iProj,5}=words{end-2,1}; % roi number
-        projPathParsed{iProj,6}=words{end-0,1}; % sub-roi number
-    end
-end
-
+% convert structure to cell to view easier - but don't save it.
+projPaths=struct2cell(projList);
+projPaths=projPaths(2,:)';
 
 save([topDir filesep 'projList' n],'projList')
 
