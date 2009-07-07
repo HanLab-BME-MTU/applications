@@ -1,4 +1,4 @@
-function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptTrackCells (ptJob, jobNumber, saveIntResults)
+function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptTrackCells(ptJob, jobNumber, saveIntResults)
 % ptTrackCells finds and links coordinates in a serie of phase contrast images 
 %
 % SYNOPSIS       [M, clusterProps, cellProps, imageCount] = ptTrackCells (ptJob, jobNumber)
@@ -77,7 +77,7 @@ function [M, clusterProps, cellProps, frameProps, imageCount, validFrames] = ptT
 %                                       frames. needs revision, but works.
 % Johan de Rooij        Jul 05          Improve segmentation by using
 %                                       edgeImage for background loss.
-
+% Dinah Loerke          Jul 08          primarily fixes for segmentation
 
 % Get a pointer to the chromdynMain gui
 hPtMain = findall(0,'Tag','polyTrack_mainwindow','Name','PolyTrack');
@@ -175,13 +175,16 @@ else		% lastImaNum > firstImaNum
       
       % Read the current image and normalize the intensity values to [0..1]
       tempImage = imreadnd2 (imageFilename, 0, intensityMax);
-   
+        
       % Check the variance of the whole image. If it's a very small value
       % (< 0.005) it will be a bad frame (lots of black pixels when the
       % shutter was completely closed)
+      badFrameCutoff = 0.0001;
+      % NOTE: modification by Dinah: This has to be adjusted to the image
+      % in question
       varImage = max(var(tempImage));
       
-      if varImage > 0.001
+      if varImage > badFrameCutoff
 
           % Process the image: subtract background, increase contrast between halos and nuclei
           [newImage, backgroundLevel, edgeImage] = ptGetProcessedImage (tempImage, intensityMax, ...
@@ -193,7 +196,7 @@ else		% lastImaNum > firstImaNum
           % Segment the image; if necessary multiple times
           nucleiArea = 1;
           equality = 0.1;
-          escapeCount = 0; maxCount = 3;
+          escapeCount = 0; maxCount = 1;
           while ((nucleiArea > 0.5) || (haloArea > 0.5) || (equality < 0.8)) && (escapeCount < maxCount) 
 
              % Calculate the variation for mu0 in case we segment more than once
@@ -224,7 +227,7 @@ else		% lastImaNum > firstImaNum
              elseif (escapeCount == 0) & (loopCount > 1) & (badFrameCounter == 0);
                 mu0 = mu0Calc;
              else
-                fprintf (1, '       ptTrackCells: Bad segmentation: adjusting mu0 parameter: %d %d %d\n', mu0(1), mu0(2), mu0(3), mu0(4), mu0(5));
+                fprintf (1, '       ptTrackCells: Bad segmentation: adjusting mu0 parameter\n');
                 mu0 = mu0 + [0.03; 0.02 ; -0.01 ; -0.02 ; -0.03];
              end
 
@@ -244,13 +247,25 @@ else		% lastImaNum > firstImaNum
              segmentedImage = zeros(size(edgeImageSeg));
              segmentedImage(find(edgeImageSeg)) = segmentedVec;
              segmentedImage(find(edgeImageSeg == 0)) = 3;
-                         
+            
+             %% START =============== Dinah's modification for this version
+             mu0 = [nucleusLevel ; backgroundLevel ; haloLevel];
+             % Segment the image using the k-means method
+             [segmentedImage, dummy, mu0] = imClusterSeg (newImage, 1, 'method', 'kmeans', 'k_cluster', 3, 'mu0', mu0);
+             %% END ===============   Dinah's modification for this version
+             
              % we may need a little check here, to make sure that we are
              % not finding bulshit further down the line, because this
              % resulted in black dots at the wrong spots.
              % therefore we quickly determine the nuclei it finds in the
              % segmented image:
              [nucCoord, imgNuclei] = ptFindNuclei (segmentedImage, minSizeNuc, maxSizeNuc);
+             
+             %% DINAH's addition - switch width and Height??
+             % reshape segmented vector to yield decent segmented image
+             segmentedImage_DD = reshape(segmentedImage,imgHeight,imgWidth);
+             imshow(segmentedImage_DD,[]); hold on;
+             plot(nucCoord(:,1),nucCoord(:,2),'r.'); hold off;
              
              % now we compare this frame to the previous (if there was one)
              if mCount > 0
@@ -282,10 +297,10 @@ else		% lastImaNum > firstImaNum
              escapeCount = escapeCount + 1;
           end   % while              
           
-      end  % if varImage > 0.001
+      end  % if varImage > 0.0005
        
       % In case we found a bad frame, mark it in the valid frame array
-      if varImage <= 0.001 | escapeCount >= maxCount
+      if varImage <= badFrameCutoff %| escapeCount >= maxCount
          fprintf (1, '       ptTrackCells: Bad frame %d: continue with next.\n', imageCount);
          
          % Increase bad frame counter
@@ -631,9 +646,16 @@ else		% lastImaNum > firstImaNum
              % Go to the directory where the segmentation, cell and cluster info
              % is going to be saved. Create it first if it doesn't exist and cd into it
              infoDir = [saveDirectory filesep 'info'];
+             bodyDir = [saveDirectory filesep 'body'];
+
              if ~exist (infoDir)
                 mkdir (saveDirectory, 'info');
              end
+             
+             if ~exist (bodyDir)
+                mkdir (saveDirectory, 'body');
+             end
+             
              cd (infoDir);
 
              % Create numerical index to number the files
