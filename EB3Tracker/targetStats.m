@@ -1,4 +1,6 @@
-function targetStats(mData)
+function targetStats(mData,exList)
+
+
 
 doPlot=1;
 
@@ -26,13 +28,11 @@ lastRow=0;
 targetLabels=getlabels(mData.target);
 
 
-lastRow=134;
-exList=46;
-
 for iTar=1:2
 
-    [movGroup]=splitByDate(mData,iTar,exList);
-
+    %[movGroup]=splitByDate(mData,iTar,exList);
+    [movGroup]=splitByMovie(mData,iTar,exList);
+    
     discrimMatrices=[];
     prop2sample='growthSpeeds';
     [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
@@ -42,9 +42,11 @@ for iTar=1:2
 %     [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
 %     [discrimMatrices]=sampleData(movGroup,prop2sample,discrimMatrices,doPlot);
 
+    save([outputDir filesep 'targetStatsOutput2 ' num2str(iTar)],'movGroup','discrimMatrices')
+    
     [lastRow]=writeData2Excel(filePath,discrimMatrices,lastRow);
 
-    save([outputDir filesep 'targetStatsOutput2 ' num2str(iTar)],'movGroup','discrimMatrices')
+    
 
 end
 
@@ -80,7 +82,9 @@ letters={'A' 'B' 'C' 'D' 'E' 'F' 'G' 'H' 'I' 'J' 'K' 'L' 'M' 'N'...
     'BA' 'BB' 'BC' 'BD' 'BE' 'BF' 'BG' 'BH' 'BI' 'BJ' 'BK' 'BL' 'BM' 'BN'...
     'BO' 'BP' 'BQ' 'BR' 'BS' 'BT' 'BU' 'BV' 'BW' 'BX' 'BY' 'BZ'...
     'CA' 'CB' 'CC' 'CD' 'CE' 'CF' 'CG' 'CH' 'CI' 'CJ' 'CK' 'CL' 'CM' 'CN'...
-    'CO' 'CP' 'CQ' 'CR' 'CS' 'CT' 'CU' 'CV' 'CW' 'CX' 'CY' 'CZ'};
+    'CO' 'CP' 'CQ' 'CR' 'CS' 'CT' 'CU' 'CV' 'CW' 'CX' 'CY' 'CZ'...
+    'DA' 'DB' 'DC' 'DD' 'DE' 'DF' 'DG' 'DH' 'DI' 'DJ' 'DK' 'DL' 'DM' 'DN'...
+    'DO' 'DP' 'DQ' 'DR' 'DS' 'DT' 'DU' 'DV' 'DW' 'DX' 'DY' 'DZ'};
 
 names = fieldnames(discrimMatrices);
 for iName=1:length(names)
@@ -103,6 +107,7 @@ function [movGroup]=splitByOligo(mData,iTar,exList)
 if nargin<3
     exList=[];
 end
+movGroup=[];
 
 % get list of all target names
 targetLabels=getlabels(mData.target);
@@ -132,6 +137,7 @@ function [movGroup]=splitByMovie(mData,iTar,exList)
 if nargin<3
     exList=[];
 end
+movGroup=[];
 
 % get list of all target names
 targetLabels=getlabels(mData.target);
