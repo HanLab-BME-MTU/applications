@@ -1,6 +1,6 @@
 function [movDataSet]=plusTipExtractGroupData(projGroupDir,projGroupName)
 % plusTipExtractGroupData extracts various kinds of data from movies grouped together
-
+% this is used by plusTipScatterplot
 
 % INPUT : projGroupDir : cell array containing paths to chosen projects
 %         projGroupName: cell array containing the group name for each

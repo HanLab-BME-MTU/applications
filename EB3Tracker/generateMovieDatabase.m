@@ -62,6 +62,10 @@ mData=dataset({projPathParsed(:,1:7),'date','target','oligo','movNum','roiNum','
 
 % make targets nominal and order labels so that Allstar is first and Negctr is second
 mData.target=nominal(mData.target);
+
+% combine all the negative controls since they have different labels
+mData.target=mergelevels(mData.target,{'Negctr','negctr','negctrl'});
+
 targetLabels=getlabels(mData.target);
 nTargets=length(targetLabels);
 % get indices of  Allstar and Negctr in the set of labels

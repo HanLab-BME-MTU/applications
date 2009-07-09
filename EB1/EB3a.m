@@ -10,8 +10,22 @@ function EB3a(debug,coef,sigma,s,k)
 % run:
 % EB3a(1,1,4,s,numberOfDebugImage) to plot figure and look at results
 % EB3a(0,1,4,s,numberOfLastImage) to run thru whole movie and save detection
+tic
+dirName=uigetdir(pwd,'Pick images directory');
+[listOfImages] = searchFiles('tif',[],dirName,0);
+fileName = [filesep listOfImages{1,1}];
 
-[fileName,dirName] = uigetfile('*.tif','Choose a .tif file');
+outDir=[dirName(1:end-6),'cands'];
+if ~isdir(outDir)
+   mkdir(outDir) 
+end
+
+if nargin<5
+    k=size(listOfImages,1);
+end
+
+tic
+%[fileName,dirName] = uigetfile(dirName,'*.tif','Choose a .tif file');
 I = imread([dirName,filesep,fileName]);
 if debug == 0
     m = 1; %0 claudio
@@ -113,12 +127,14 @@ for i = m:n %0:le was m:n
             set(h,'LineWidth',2)
         end
     elseif debug == 0
-        save([dirName(1:end-7),'cands',filesep,'feats',indxStr],'feats')
+        save([outDir filesep 'feats' indxStr],'feats')
         clear goodFeats 
         clear OUT 
         clear V 
         clear Crop
     end
+    
+    
 end
 
-
+toc
