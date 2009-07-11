@@ -28,48 +28,71 @@ lastRow=0;
 targetLabels=getlabels(mData.target);
 
 
-for iTar=1:2
 
-    %[movGroup]=splitByDate(mData,iTar,exList);
-    [movGroup]=splitByMovie(mData,iTar,exList);
-    
-    discrimMatrices=[];
-    prop2sample='growthSpeeds';
-    [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
-    [discrimMatrices]=plusTipSampleData(movGroup,prop2sample,discrimMatrices,doPlot);
+for iTar=1:length(targetLabels);
+    try
 
-%     prop2sample='shrinkSpeeds';
-%     [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
-%     [discrimMatrices]=sampleData(movGroup,prop2sample,discrimMatrices,doPlot);
+        %[movGroup]=splitByDate(mData,iTar,exList);
+        [movGroup]=splitByMovie(mData,iTar,exList);
 
-    save([outputDir filesep 'targetStatsOutput2 ' num2str(iTar)],'movGroup','discrimMatrices')
-    
-    [lastRow]=writeData2Excel(filePath,discrimMatrices,lastRow);
+        discrimMatrices=[];
+        prop2sample='growthSpeeds';
+        [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
+        [discrimMatrices]=plusTipSampleData(movGroup,prop2sample,discrimMatrices,doPlot);
 
-    
+        % extract the p-values from the ks test and t-test
+        ksTestP=discrimMatrices.growthSpeeds     (find(triu(ones(size(discrimMatrices.growthSpeeds     ,1)),1)));
+        tTestP =discrimMatrices.growthSpeedsMeans(find(triu(ones(size(discrimMatrices.growthSpeedsMeans,1)),1)));
+
+        stats(iTar,1).kstest=ksTestP;
+        stats(iTar,1).ttest = tTestP;
+
+        %     prop2sample='shrinkSpeeds';
+        %     [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
+        %     [discrimMatrices]=sampleData(movGroup,prop2sample,discrimMatrices,doPlot);
+
+        save([outputDir filesep 'targetStatsSplitByMovie ' num2str(iTar)],'movGroup','discrimMatrices')
+
+        [lastRow]=writeData2Excel(filePath,discrimMatrices,lastRow);
+    catch
+        disp(['problem with' num2str(iTar)])
+    end
 
 end
+
+save([outputDir filesep 'byMoviePvalues'],'stats')
 
 for iTar=3:length(targetLabels);
-    [movGroup]=splitByOligo(mData,iTar,exList);
+    try
+        [movGroup]=splitByOligo(mData,iTar,exList);
 
-    discrimMatrices=[];
-    prop2sample='growthSpeeds';
-    [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
-    [discrimMatrices]=sampleData(movGroup,prop2sample,discrimMatrices,doPlot);
+        discrimMatrices=[];
+        prop2sample='growthSpeeds';
+        [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
+        [discrimMatrices]=sampleData(movGroup,prop2sample,discrimMatrices,doPlot);
 
-%     prop2sample='shrinkSpeeds';
-%     [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
-%     [discrimMatrices]=sampleData(movGroup,prop2sample,discrimMatrices,doPlot);
+        %     prop2sample='shrinkSpeeds';
+        %     [movGroup]=plusTipGetPooledData(mData,movGroup,prop2sample);
+        %     [discrimMatrices]=sampleData(movGroup,prop2sample,discrimMatrices,doPlot);
 
+        % extract the p-values from the ks test and t-test
+        ksTestP=discrimMatrices.growthSpeeds     (find(triu(ones(size(discrimMatrices.growthSpeeds     ,1)),1)));
+        tTestP =discrimMatrices.growthSpeedsMeans(find(triu(ones(size(discrimMatrices.growthSpeedsMeans,1)),1)));
 
-    [lastRow]=writeData2Excel(filePath,discrimMatrices,lastRow);
+        stats(iTar,1).kstest=ksTestP;
+        stats(iTar,1).ttest = tTestP;
 
-    save([outputDir filesep 'targetStatsOutput3 ' num2str(iTar)],'movGroup','discrimMatrices')
+        save([outputDir filesep 'targetStatsSplitByOligo ' num2str(iTar)],'movGroup','discrimMatrices')
+
+        [lastRow]=writeData2Excel(filePath,discrimMatrices,lastRow);
+
+    catch
+        disp(['problem with' num2str(iTar)])
+    end
 
 end
 
-
+save([outputDir filesep 'byOligoPvalues'],'stats')
 
 
 %%%%% sub-functions %%%%%
@@ -124,7 +147,7 @@ iTarOligoLabels=getlabels(nominal(mData.oligo(movNums)));
 % any that are to be excluded
 nOligos=length(iTarOligoLabels);
 for iOligo=1:nOligos
-    movGroup(iOligo,1).common2group=[targetLabels{iTar} '_split_by_oligo']; 
+    movGroup(iOligo,1).common2group=[targetLabels{iTar} '_split_by_oligo'];
     movGroup(iOligo,1).label=[targetLabels{iTar} '_' iTarOligoLabels{iOligo}];
     % movies are split by oligo number only - same oligos on different days
     % will be grouped together
@@ -152,7 +175,7 @@ for iMov=1:length(movNums)
     movGroup(iMov,1).label=[targetLabels{iTar} '_' mData.oligo{movNums(iMov)}...
         '_' mData.date{movNums(iMov)} '_mov_' num2str(movNums(iMov))];
     movGroup(iMov,1).movNums=movNums(iMov);
-       
+
 end
 
 
