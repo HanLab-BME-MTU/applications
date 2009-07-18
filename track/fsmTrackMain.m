@@ -293,6 +293,7 @@ if TRACKER==1 || TRACKER==2 || TRACKER ==3
                 % Load speckle information for the FIRST image from cands###.mat
                 indxStr=sprintf(strg,currentIndex);
                 eval(['load ',userPath,filesep,'cands',filesep,'cands',indxStr,'.mat;']);  % Load cands for the current image
+                
                 % load from cands###_spa.mat if subpixel accuracy is
                 % determined
                 if fsmParam.prep.subpixel==1

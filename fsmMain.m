@@ -91,7 +91,11 @@ if status==1
     disp('The PREPROCESSING module completed successfully.');
     
     % Save fsmParam to disk
-    eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    % eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    
+    % bug fix 2009: replace eval with save -- GD
+    save([fsmParam.main.path,filesep,'fsmParam.mat'],'fsmParam');
+
 
 elseif status==0
     disp('The PREPROCESSING module did not complete successfully. Aborting.');
@@ -179,7 +183,10 @@ if status==1
     disp('The TRACKING module completed successfully.');
 
     % Save fsmParam to disk
-    eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    % eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    
+    % bug fix 2009: replace eval with save -- GD
+    save([fsmParam.main.path,filesep,'fsmParam.mat'],'fsmParam');
     
 elseif status==0
     disp('The TRACKING module did not complete successfully. Aborting.');
@@ -257,9 +264,12 @@ end
 if status==1
     disp('The BUILDER module completed successfully.');
     
-    % Save fsmParam to disk
-    eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
-
+    %% Save fsmParam to disk
+    % eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    
+    % bug fix 2009: replace eval with save -- GD
+    save([fsmParam.main.path,filesep,'fsmParam.mat'],'fsmParam');
+    
 elseif status==0
     disp('The BUILDER module did not complete successfully. Aborting.');
     return
@@ -335,7 +345,10 @@ if status==1
     disp('The KINETIC ANALYSIS module completed successfully.');
     
     % Save fsmParam to disk
-    eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    % eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    
+    % bug fix 2009: replace eval with save -- GD
+    save([fsmParam.main.path,filesep,'fsmParam.mat'],'fsmParam');
 
 elseif status==0
     disp('The KINETIC ANALYSIS module did not complete successfully. Aborting.');
@@ -401,7 +414,10 @@ if status==1
     disp('The RESULT DISPLAY module completed successfully.');
     
     % Save fsmParam to disk
-    eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    % eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    
+    % bug fix 2009: replace eval with save -- GD
+    save([fsmParam.main.path,filesep,'fsmParam.mat'],'fsmParam');
     
 elseif status==0
     disp('The RESULT DISPLAY module did not complete successfully. Aborting.');
@@ -424,7 +440,10 @@ dateFinished=datestr(now,0);
 fsmParam.specific.lastRun=dateFinished; 
 
 % Save fsmParam to disk
-eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+% eval(['save ',fsmParam.main.path,filesep,'fsmParam.mat fsmParam']);
+    
+% bug fix 2009: replace eval with save -- GD
+save([fsmParam.main.path,filesep,'fsmParam.mat'],'fsmParam');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
