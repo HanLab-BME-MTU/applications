@@ -1,10 +1,12 @@
-function cdCheckStretching(type)
+function cdCheckStretching(type,storeRatio)
 %CDCHECKSTRETCHING attempts to quantify fluorescent tag stretching
 %
 % SYNOPSIS: cdCheckStretching
 %
 % INPUT type: 1 - movie
 %             2 - bigImage
+%       storeRatio: max ratio of NaN-pixels (i.e. pixels outside the frame)
+%             of an acceptable image. Optional. Default 0.25
 %
 % OUTPUT -- not defined yet
 %
@@ -26,6 +28,9 @@ nIdlists = length(idlistList);
 
 if nargin == 0 || isempty(type)
     type = 1;
+end
+if nargin < 1 || isempty(storeRatio)
+    storeRatio = [];
 end
 
 % idlistList contains the latest idlists. If it's an idlisttrack we should
@@ -133,7 +138,7 @@ switch type
             % read intensities. We need the info in the fitStructure.
             % Therefore, update
             fitStruct.idlist = idlistList(iIdlist).idlist;
-            intensities = cdCheckStretching_readIntensities(fitStruct);
+            intensities = cdCheckStretching_readIntensities(fitStruct,storeRatio);
 
             nTimepoints = length(intensities);
             spotIntensities=cat(2,intensities.spotIntensities)';

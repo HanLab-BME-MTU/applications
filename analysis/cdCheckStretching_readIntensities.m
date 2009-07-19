@@ -1,4 +1,4 @@
-function intensities = cdCheckStretching_readIntensities(fitStruct)
+function intensities = cdCheckStretching_readIntensities(fitStruct,storeRatio)
 % readIntensities creates a grid between spb and cen tags and interpolates
 % the intensities
 %
@@ -7,6 +7,7 @@ function intensities = cdCheckStretching_readIntensities(fitStruct)
 %		-dataProperties
 %       -movieDir
 %		-rawMovieName
+%      storeRatio: max ratio of not-nan pixels of a good frame
 %
 % OUTPUT intensities: structure of length(idlist)
 %       - spotIntensities [spb1 cen1 spb2 cen2]
@@ -36,8 +37,9 @@ pix2mu = [fitStruct.dataProperties.PIXELSIZE_XY,...
 % npix_2 is always the same (grid goes from -n:n)
 %npix_2 = ceil((psfXY + add2psf/2)/pix2mu(1));
 
-
+if nargin < 2 || isempty(storeRatio)
 storeRatio = 0.25; % [0...1] ratio of acceptable NaN-pixels
+end
 nBackground = [3,1]; % number of background pixels perpendicular to the axes
 
 % initialize output.
@@ -435,7 +437,7 @@ for t=goodTimes'
         intensities(t).direction = direction;
 
         % write intensities-structure if there is more than x% not-nan
-        %disp(sum(isnan(residualInt(:))) / numel(residualInt))
+        %fprintf(1,'%i - %5.3f\n',t,sum(isnan(residualInt(:))) / numel(residualInt))
         if sum(isnan(residualInt(:))) < storeRatio*numel(residualInt)
             intensities(t).residualInt = residualInt;
             intensities(t).residualBg = residualBg;
