@@ -130,26 +130,26 @@ checkSize = 0;
 
 % first argument
 if nargin == 0 || isempty(multiArgument)
-
+    
     % no first argument, so all is normal
-
+    
 elseif isnumeric(multiArgument)
     % filterIdx
-
+    
     % make sure we have reasonable filter choices
     if max(multiArgument) <= numFilters && min(multiArgument) > 0
         filterChoice = multiArgument;
     else
         error(['there are only' num2str(numFilters) 'possible choices for filters, starting at 1'])
     end
-
+    
 elseif ischar(multiArgument)
     % fileName
-
+    
     launchGUI = 0;
-
+    
     movieName = multiArgument;
-
+    
     if any(findstr(movieName,filesep))
         % redo moviePath
         
@@ -164,10 +164,10 @@ elseif ischar(multiArgument)
         [moviePath,tmp1,tmp2] = fileparts(fullName);
         movieName = [tmp1,tmp2];
     end
-
+    
 elseif strcmp(class(multiArgument),'COM.Imaris_Application')
     % imarisHandle
-
+    
     launchImaris = 0;
     launchGUI    = 0;
     vImarisApplication = multiArgument;
@@ -175,11 +175,11 @@ elseif strcmp(class(multiArgument),'COM.Imaris_Application')
     % get movieName
     movieName = vImarisApplication.mDataSet.GetParameter('Image','Name');
     % in the future, we could test here whether a movie has been loaded
-
+    
 elseif isstruct(multiArgument)
     % assign loadStruct
     loadStruct = multiArgument;
-
+    
     % check whether there is anything to be loaded still
     if isempty(loadStruct.frames2load)
         movie = [];
@@ -191,28 +191,28 @@ elseif isstruct(multiArgument)
         loadStruct = [];
         return
     end
-
+    
     % we don't need GUI etc.
     launchImaris = 0;
     launchGUI = 0;
     vImarisApplication = loadStruct.imarisHandle;
-
+    
     checkSize = 1;
-
+    
 else
     error('invalid first input argument')
 end
 
 % second argument
 if nargin < 2 || isempty(pathName)
-
+    
     if ~launchGUI
         % only get pathName if we have to
         moviePath = pwd;
     else
         moviePath = [];
     end
-
+    
 else
     moviePath = pathName;
 end
@@ -223,21 +223,21 @@ end
 
 % third argument
 if nargin < 3 || isempty(cropIdx)
-
+    
     % no crop
     cropIdx = [];
-
+    
 else
     % cropIdx will be tested once we know the size of the movie
     if ~all(size(cropIdx)==[2 5])
         error('Please specify cropIdx as 2x5 array')
     end
-
+    
 end
 
 % fourth argument
 if nargin < 4 || isempty(maxSize)
-% nothing
+    % nothing
 else
     checkSize = 1;
     % initialize loadStruct
@@ -278,44 +278,21 @@ filterList = filterList(filterChoice,:);
 %==========================
 
 if launchGUI
-
+    
     % ask for movieName, moviePath
     [movieName,moviePath,filterIdx] = uigetfile(filterList(:,1:2),'Please select an image file');
-
+    
     % handle user cancel
     if isequal(movieName,0)
         error('no movie loaded - User abort')
     end
-
+    
 else
     filterIdx = 1;
 end
 
-if launchImaris
-    % load movie into imaris
-    vImarisApplication.FileOpen([moviePath movieName], filterList{filterIdx,3});
-    % set name
-    %vImarisApplication.mDataSet.SetParameter('Image','Name',movieName);
-    
-    % make top-level surpass scene
-    imaSurpassScene = vImarisApplication.mFactory.CreateDataContainer();
-
-    % fill surpass scene with light and frame and volume
-    imaLight = vImarisApplication.mFactory.CreateLightSource();
-    imaSurpassScene.AddChild(imaLight);
-    imaFrame = vImarisApplication.mFactory.CreateFrame();
-    imaSurpassScene.AddChild(imaFrame);
-    imaVolume = vImarisApplication.mFactory.CreateVolume();
-    imaSurpassScene.AddChild(imaVolume);
-
-    % add surpass scene and set view
-    vImarisApplication.mSurpassScene = imaSurpassScene;
-    vImarisApplication.mViewer = 'eViewerSurpass';
-
-    
-end
-
-% and get all the corresponding properties
+% get movie size - this allows to check whether a movie has been loaded
+% already as well
 vImarisDataSet = vImarisApplication.mDataSet;
 movieSize = [vImarisDataSet.mSizeX,...
     vImarisDataSet.mSizeY,...
@@ -323,9 +300,42 @@ movieSize = [vImarisDataSet.mSizeX,...
     vImarisDataSet.mSizeC,...
     vImarisDataSet.mSizeT];
 
-if ~all(movieSize)
-    error('Problem loading movie into Imaris')
+if launchImaris || all(movieSize==0)
+    % load movie into imaris
+    vImarisApplication.FileOpen([moviePath movieName], filterList{filterIdx,3});
+    % set name
+    %vImarisApplication.mDataSet.SetParameter('Image','Name',movieName);
+    
+    % make top-level surpass scene
+    imaSurpassScene = vImarisApplication.mFactory.CreateDataContainer();
+    
+    % fill surpass scene with light and frame and volume
+    imaLight = vImarisApplication.mFactory.CreateLightSource();
+    imaSurpassScene.AddChild(imaLight);
+    imaFrame = vImarisApplication.mFactory.CreateFrame();
+    imaSurpassScene.AddChild(imaFrame);
+    imaVolume = vImarisApplication.mFactory.CreateVolume();
+    imaSurpassScene.AddChild(imaVolume);
+    
+    % add surpass scene and set view
+    vImarisApplication.mSurpassScene = imaSurpassScene;
+    vImarisApplication.mViewer = 'eViewerSurpass';
+    
+    % read movie size and check whether loading has succeeded
+    vImarisDataSet = vImarisApplication.mDataSet;
+    movieSize = [vImarisDataSet.mSizeX,...
+        vImarisDataSet.mSizeY,...
+        vImarisDataSet.mSizeZ,...
+        vImarisDataSet.mSizeC,...
+        vImarisDataSet.mSizeT];
+    
+    if ~all(movieSize)
+        error('Problem loading movie into Imaris')
+    end
+    
 end
+
+
 
 %==========================
 % CHECK SIZE
@@ -339,42 +349,42 @@ if checkSize
         % can fit into maxSize to see how many movie-chunks have. First
         % check whether we are using a cropped movie, though.
         includeArray = [ones(1,5); movieSize];
-
+        
         if ~isempty(cropIdx)
             % check start indices
             sIdx = find(cropIdx(1,1:4));
             newStart = cropIdx(1,sIdx);
-
+            
             if any(newStart < 1)
                 error('crop-indices have to start at 1!')
             end
-
+            
             % put in newStart
             includeArray(1,sIdx) = newStart;
-
+            
             % check end indices
             eIdx = find(cropIdx(2,1:4));
             newEnd = cropIdx(2,eIdx);
-
+            
             if any(newEnd > movieSize(eIdx))
                 error('crop-indices can not be outside of the movie!')
             end
-
+            
             % put in newStart
             includeArray(2,eIdx) = newEnd;
         end
-
+        
         % now calculate size of frame
         frameSizeBytes = 8 * prod(diff(includeArray(:,1:4),1,1)+1);
-
+        
         % calculate number of frames per chunk
         numFramesPerChunk = floor(maxSize/frameSizeBytes);
-
+        
         if numFramesPerChunk == 0
             warning('IMREAD:LARGEFRAME','less than one frame fits into max chunk size - trying to load one');
             numFramesPerChunk = 1;
         end
-
+        
         % do this quick and dirty - it's one of those Fridays again
         numChunks = ceil(movieSize(end)/numFramesPerChunk);
         startIdx = 1:numFramesPerChunk:movieSize(end);
@@ -384,7 +394,7 @@ if checkSize
             includeArray(:,5) = [startIdx(iChunk);endIdx(iChunk)];
             frames2load{iChunk,1} = includeArray; %#ok<AGROW>
         end
-
+        
         % fill loadStruct
         loadStruct.maxSize = maxSize;
         loadStruct.frames2load = frames2load;
@@ -393,7 +403,7 @@ if checkSize
         loadStruct.movieName = movieName;
         loadStruct.moviePath = moviePath;
     end
-
+    
     % now that we have loadStruct either from input or from just being
     % created, take cropIdx, update frames2load and loadedFrames
     cropIdx = loadStruct.frames2load{1};
@@ -407,9 +417,9 @@ if checkSize
     end
     movieName = loadStruct.movieName;
     moviePath = loadStruct.moviePath;
-
-
-
+    
+    
+    
 else
     % just in case the user wants that
     loadStruct.maxSize = NaN;
@@ -452,7 +462,7 @@ switch movieType
                 str2double(vImarisApplication.mDataSet.GetParameter(...
                 sprintf('Channel %i',w-1),'LSMEmissionWavelength'));
         end
-         % wvl in um!!
+        % wvl in um!!
         movieProperties.wvl = movieProperties.wvl/1000;
         
         
@@ -496,22 +506,22 @@ if ~isempty(cropIdx)
     % check start indices
     sIdx = find(cropIdx(1,:));
     newStart = cropIdx(1,sIdx);
-
+    
     if any(newStart < 1)
         error('crop-indices have to start at 1!')
     end
-
+    
     % put in newStart
     includeArray(1,sIdx) = newStart;
-
+    
     % check end indices
     eIdx = find(cropIdx(2,:));
     newEnd = cropIdx(2,eIdx);
-
+    
     if any(newEnd > movieSize(eIdx))
         error('crop-indices can not be outside of the movie!')
     end
-
+    
     % put in newStart
     includeArray(2,eIdx) = newEnd;
 end
@@ -538,7 +548,7 @@ end
 %=======================
 
 
-        
+
 
 
 %=========================
