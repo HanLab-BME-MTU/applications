@@ -148,8 +148,9 @@ end
 
 doPlot=0;
 
-d1Max=costMatParam.d1Max;
+perpDistMax=costMatParam.d1Max;
 maxFAngle = costMatParam.maxFAngle*pi/180;
+maxBAngle = costMatParam.maxBAngle*pi/180;
 backVelMultFactor = costMatParam.backVelMultFactor;
 
 
@@ -165,13 +166,15 @@ for iFrame = 1 : numFrames
 end
 
 %% Gap closing
+
+% extract feature positions and velocity components
 px=trackedFeatInfo(:,1:8:end);
 py=trackedFeatInfo(:,2:8:end);
 vx=diff(px,1,2);
 vy=diff(py,1,2);
-vMag=sqrt(vx.^2+vy.^2);
+%vMag=sqrt(vx.^2+vy.^2);
 
-trackLengths=nansum(sqrt(vx.^2+vy.^2),2);
+%trackLengths=nansum(sqrt(vx.^2+vy.^2),2);
 
 % ax=vx(:,1:end-1); [row col]=size(ax); ax=ax(:)';
 % ay=vy(:,1:end-1); ay=ay(:)';
@@ -271,8 +274,8 @@ for iFrame = 1:numFrames-1
     cutoffDistFwd = vMax*min(sqrt(tMax),tGap);
     cutoffDistBwd = min(vMed*tMax,backVelMultFactor*vMax*tGap);
     % make vectors containing forward/backward cutoffs for each start
-    cF=cell2mat(arrayfun(@(i,j) repmat(i,[j,1]),cutoffDistFwd,cell2mat(nStarts),'uniformoutput',0)');
-    cB=cell2mat(arrayfun(@(i,j) repmat(i,[j,1]),cutoffDistBwd,cell2mat(nStarts),'uniformoutput',0)');
+    cutFwdPerVec=cell2mat(arrayfun(@(i,j) repmat(i,[j,1]),cutoffDistFwd,cell2mat(nStarts),'uniformoutput',0)');
+    cutBwdPerVec=cell2mat(arrayfun(@(i,j) repmat(i,[j,1]),cutoffDistBwd,cell2mat(nStarts),'uniformoutput',0)');
 
     startsToConsider=cell2mat(startsToConsider');
 
@@ -285,15 +288,16 @@ for iFrame = 1:numFrames-1
     % start track first pt
     spX=repmat(trackStartPxyVxy(startsToConsider,1)',[nEnds 1]);
     spY=repmat(trackStartPxyVxy(startsToConsider,2)',[nEnds 1]);
-    % displacement vector length
+    % nEnds x nStarts distance matrix containing displacement vector
+    % magnittude
     dispMag=sqrt((epX-spX).^2+(epY-spY).^2);
 
     % we will only consider end/start pairs where the distance from end to start is less than
     % the max(forwardCutoff,backwardCutoff)
-    maxCut=max(repmat(cF',[nEnds 1]),repmat(cB',[nEnds 1]));
+    maxCut=max(repmat(cutFwdPerVec',[nEnds 1]),repmat(cutBwdPerVec',[nEnds 1]));
 
-    d1=zeros(nStarts*nEnds,1);
-    d2=zeros(nStarts*nEnds,1);
+    dPerp=zeros(nStarts*nEnds,1);
+    dPara=zeros(nStarts*nEnds,1);
     evYc=zeros(nStarts*nEnds,1);
     evXc=zeros(nStarts*nEnds,1);
     endLinkIdx=zeros(nStarts*nEnds,1);
@@ -304,42 +308,42 @@ for iFrame = 1:numFrames-1
     for iEnd=1:nEnds
         % indices correspoinding to current set of starts and ends,
         % respectively
-        s=find(dispMag(iEnd,:)<maxCut(iEnd,:))';
-        e=repmat(iEnd,[length(s) 1]);
+        startCandidateIdx=find(dispMag(iEnd,:)<maxCut(iEnd,:))';
+        endCandidateIdx=repmat(iEnd,[length(startCandidateIdx) 1]);
 
-        if isempty(s)
+        if isempty(startCandidateIdx)
             continue
         end
 
         % coordinates of the first point in each startsToConsider track
-        sX=trackStartPxyVxy(startsToConsider(s),1);
-        sY=trackStartPxyVxy(startsToConsider(s),2);
+        sX=trackStartPxyVxy(startsToConsider(startCandidateIdx),1);
+        sY=trackStartPxyVxy(startsToConsider(startCandidateIdx),2);
 
         % call subfunction to calculate magnitude of the components of
         % the vector pointing from end to start, as well as the components
         % of the local velocity along the end track at its closest point to
         % the start track
-        [d1Temp,d2Temp,evYcTemp,evXcTemp]=pt2segDist([py(endsToConsider(iEnd),:)',px(endsToConsider(iEnd),:)'],[sY,sX],0);
+        [dPerpTemp,dParaTemp,evYcTemp,evXcTemp]=pt2segDist([py(endsToConsider(iEnd),:)',px(endsToConsider(iEnd),:)'],[sY,sX],0);
 
-        % d1 is the component perpendicular to the end track
-        d1(count:count+length(s)-1)=d1Temp;
-        % d2 is the component parallel to the end track
-        d2(count:count+length(s)-1)=d2Temp;
+        % dPerp is the component perpendicular to the end track
+        dPerp(count:count+length(startCandidateIdx)-1)=dPerpTemp;
+        % dPara is the component parallel to the end track
+        dPara(count:count+length(startCandidateIdx)-1)=dParaTemp;
 
         % evX/Yc are the velocity components of the end track at
         % the point closest (c) each startsToConsider track starts
-        evXc(count:count+length(s)-1)=evXcTemp;
-        evYc(count:count+length(s)-1)=evYcTemp;
+        evXc(count:count+length(startCandidateIdx)-1)=evXcTemp;
+        evYc(count:count+length(startCandidateIdx)-1)=evYcTemp;
 
         % starts/endsToConsider indices of the ones checked
-        endLinkIdx  (count:count+length(s)-1) =   endsToConsider(e);
-        startLinkIdx(count:count+length(s)-1) = startsToConsider(s);
-        sAll(count:count+length(s)-1)=s;
-        count=count+length(s);
+        endLinkIdx  (count:count+length(startCandidateIdx)-1) =   endsToConsider(endCandidateIdx);
+        startLinkIdx(count:count+length(startCandidateIdx)-1) = startsToConsider(startCandidateIdx);
+        sAll(count:count+length(startCandidateIdx)-1)=startCandidateIdx;
+        count=count+length(startCandidateIdx);
     end
 
-    d1(count:end)=[];
-    d2(count:end)=[];
+    dPerp(count:end)=[];
+    dPara(count:end)=[];
     evYc(count:end)=[];
     evXc(count:end)=[];
     endLinkIdx(count:end)=[];
@@ -373,11 +377,11 @@ for iFrame = 1:numFrames-1
     cosEF_D  = (evXf.*dispX + evYf.*dispY)./(evMagF.*dispMag); % cos(beta)
 
     % criteria for backward linking:
-    % perp dist (d1) must be smaller than user-set d1Max
+    % perp dist (dPerp) must be smaller than user-set perpDistMax
     % nearest pt needs to not be the end of the endTrack and parallel dist
     % should be smaller than backward cutoff
     % angle between tracks should be less than max forward angle
-    bwdIdx=find(d1<=d1Max & (d2>0 & d2<=cB(sAll)) & cosTheta>=cos(maxFAngle));
+    bwdIdx=find(dPerp<=(perpDistMax+dPara*tan(maxBAngle)) & (dPara>0 & dPara<=cutBwdPerVec(sAll)) & cosTheta>=cos(maxFAngle));
 
     if ~isempty(bwdIdx)
         % record indices and parts of cost for forward links
@@ -385,33 +389,33 @@ for iFrame = 1:numFrames-1
         indx2(linkCount:linkCount+length(bwdIdx)-1) = startLinkIdx(bwdIdx);
 
         % cost - keep several pieces of data here for now
-        % [d1 d2 cosTheta 2 (for backward)]
-        costComponents(linkCount:linkCount+length(bwdIdx)-1,1:4) = [d1(bwdIdx) d2(bwdIdx) cosTheta(bwdIdx) 2*ones(length(bwdIdx),1)];
+        % [dPerp dPara cosTheta 2 (for backward)]
+        costComponents(linkCount:linkCount+length(bwdIdx)-1,1:4) = [dPerp(bwdIdx) dPara(bwdIdx) cosTheta(bwdIdx) 2*ones(length(bwdIdx),1)];
         linkCount = linkCount+length(bwdIdx);
     end
     
     % criteria for forward linking:
-    % parallel dist (d2) must be 0 (indicates closest pt is the end pt)
+    % parallel dist (dPara) must be 0 (indicates closest pt is the end pt)
     % end-start dist must be smaller than forward cutoff
     % end-displacement angle must be smaller than max forward angle
     % angle between tracks should be less than max forward angle
-    fwdIdx=find(d1<=cF(sAll) & d2==0 & cosEF_D>=cos(maxFAngle) & cosTheta>=cos(maxFAngle));
+    fwdIdx=find(dPerp<=cutFwdPerVec(sAll) & dPara==0 & cosEF_D>=cos(maxFAngle) & cosTheta>=cos(maxFAngle));
 
     if ~isempty(fwdIdx)
-        % for forward links, currently cosTheta=cosEF_SF and d1=dispMag
-        % reassign d1 and d2 with components of displacement vector and
+        % for forward links, currently cosTheta=cosEF_SF and dPerp=dispMag
+        % reassign dPerp and dPara with components of displacement vector and
         % cosTheta with more accurate measurement of cos(alpha)
-        d2(fwdIdx)=d1(fwdIdx).*cosEF_D(fwdIdx);
-        d1(fwdIdx)=sqrt(d1(fwdIdx).^2-d2(fwdIdx).^2);
+        dPara(fwdIdx)=dPerp(fwdIdx).*cosEF_D(fwdIdx);
+        dPerp(fwdIdx)=sqrt(dPerp(fwdIdx).^2-dPara(fwdIdx).^2);
         cosTheta(fwdIdx)=cosEF_SF(fwdIdx);
 
         % record indices and parts of cost for forward links
-        indx1(linkCount:linkCount+length(fwdIdx)-1) = endLinkIdx(fwdIdx);
+        indx1(linkCount:linkCount+length(fwdIdx)-1) = endLinkIdx(fwdIdx); %%% test
         indx2(linkCount:linkCount+length(fwdIdx)-1) = startLinkIdx(fwdIdx);
 
         % cost - keep several pieces of data here for now
-        % [d1 d2 cosTheta 1 (for forward)]
-        costComponents(linkCount:linkCount+length(fwdIdx)-1,1:4) = [d1(fwdIdx) d2(fwdIdx) cosTheta(fwdIdx) ones(length(fwdIdx),1)];
+        % [dPerp dPara cosTheta 1 (for forward)]
+        costComponents(linkCount:linkCount+length(fwdIdx)-1,1:4) = [dPerp(fwdIdx) dPara(fwdIdx) cosTheta(fwdIdx) ones(length(fwdIdx),1)];
         linkCount = linkCount+length(fwdIdx);
     end
 end
@@ -580,28 +584,46 @@ nonlinkMarker = min(floor(full(min(min(costMat))))-5,-5);
 
 
 %% ~~~ the end ~~~
-function [d1,d2,evY,evX]=pt2segDist(segYX,ptYX,doPlot)
+function [dPerp,dPara,evY,evX]=pt2segDist(segYX,ptYX,doPlot)
 % find nearest point on the directed segment B-C to point P
+% see http://www.geometrictools.com/Documentation/DistancePointLine.pdf for
+% inspiration
+
+% the point of this subfunction is to find the perpendicular and parallel
+% distances of one or more points (stored in ptYX), which represent a
+% candidate track's starting position, to a line segment (segYX), which
+% represents the end track itself.  we also want to know the
+% velocity components of the point on segment nearest the 
+% track start.  because the MT tarck may not be straight, dPara, the
+% component parallel to the track, is here the actual distance along the
+% lattice, not the euclidean distance from track end to nearest point to
+% the start. dPerp is perpendicular to the line segment unless of course
+% the point of interest is nearest one of the two segment ends; then it is
+% defined as the distance.
+
+% to extend the track in the negative direction, I suggest adding more
+% points here to segYX at the start....
 
 if doPlot==1
     figure
 end
 
-bYX=segYX(1:end-1,:); % first pt of each line segment (B)
 
-bcYX=diff(segYX); % velocity components for C-B
-BC=sqrt(sum(bcYX.^2,2)); % distance from B to C
+% treat every consecutive pair of points in segYX as a line segment BC
+bYX=segYX(1:end-1,:); % here's a vector containing the first pt of each line segment (B)
+bcYX=diff(segYX); % velocity components
+BC=sqrt(sum(bcYX.^2,2)); % BC length
 
 % keep track of which entries don't exist
 nanEntries=double(isnan(bcYX(:,1)));
 nanEntries=swapMaskValues(nanEntries,[0,1],[1,nan]);
 nPts=size(ptYX,1);
-d1=zeros(nPts,1);
-d2=zeros(nPts,1);
+dPerp=zeros(nPts,1);
+dPara=zeros(nPts,1);
 evY=zeros(nPts,1);
 evX=zeros(nPts,1);
 for i=1:size(ptYX,1)
-    % velocity components for vectors from all points on seg to P
+    % velocity components for vectors from all points on seg BC to P
     temp=repmat(ptYX(i,:),[size(segYX,1),1])-segYX;
 
     bpYX=temp(1:end-1,:); % velocity components for P-B
@@ -611,7 +633,7 @@ for i=1:size(ptYX,1)
     CP=sqrt(sum(cpYX.^2,2)); % distance from P to C
 
     % get fraction mag(vector from B to point on line closest to P)/mag(BC)
-    % ref: http://www.geometrictools.com/Documentation/DistancePointLine.pdf
+    % if t0<0, closest to b; if t0>0 then closet to c
     t0=(bcYX(:,1).*bpYX(:,1)+bcYX(:,2).*bpYX(:,2))./(BC.^2);
 
     D=zeros(length(t0),1);
@@ -620,29 +642,29 @@ for i=1:size(ptYX,1)
     % P falls outside segment and is closest to B
     idx=find(t0<=0);
     D(idx)=BP(idx);
-    extraPt(idx,:)=segYX(idx,:);
+    extraPt(idx,:)=segYX(idx,:); % just duplicate the first point
 
     % P falls outside segment and is closest to C
-    idx=find(t0>=0);
+    idx=find(t0>=1);
     D(idx)=CP(idx);
-    extraPt(idx,:)=segYX(idx+1,:);
+    extraPt(idx,:)=segYX(idx+1,:); % duplicate the last point
 
     % P falls within BC segment
     idx=find(t0>0 & t0<1);
     pYX=repmat(ptYX(i,:),[length(idx),1]);
-    b_plus_t0M=bYX(idx,:)+repmat(t0(idx),[1 2]).*bcYX(idx,:);
+    b_plus_t0M=bYX(idx,:)+repmat(t0(idx),[1 2]).*bcYX(idx,:); % location of perp point along segment
     nearVec=pYX-b_plus_t0M;
     D(idx)=sqrt(sum(nearVec.^2,2));
-    extraPt(idx,:)=b_plus_t0M;
+    extraPt(idx,:)=b_plus_t0M; % we'll have to insert this point into the list of pts in segYX
 
     % don't consider where track didn't exist
     D=D.*nanEntries;
 
     % this is the segment index with the lowest distance
-    d1Idx=find(D==nanmin(D),1,'first');
-    d1(i)=D(d1Idx); % distance from P to nearest point on BC
+    d1Idx=find(D==nanmin(D),1,'first'); % this is where we will insert the extra point
+    dPerp(i)=D(d1Idx); % distance from P to nearest point on BC
 
-    % add in the extra point corresponding to where the d1 vector falls on
+    % add in the extra point corresponding to where the dPerp vector falls on
     % the BC line
     temp=[segYX; 0 0];
     temp(d1Idx+2:end,:)=temp(d1Idx+1:end-1,:);
@@ -655,16 +677,16 @@ for i=1:size(ptYX,1)
 
     % calculate pt-to-pt displacements towards the track end and sum them
     % this is the total shrinkage distance
-    % if d2=0, P is nearest the track end (no shrinkage)
-    % if d2=trackLength, P is nearest the track start (complete shrinkage)
-    d2(i)=nansum(sqrt(sum(diff(temp(d1Idx+1:end,:)).^2,2)));
+    % if dPara=0, P is nearest the track end (no shrinkage)
+    % if dPara=trackLength, P is nearest the track start (complete shrinkage)
+    dPara(i)=nansum(sqrt(sum(diff(temp(d1Idx+1:end,:)).^2,2)));
 
     if doPlot==1
         plot(segYX(:,2),segYX(:,1))
         hold on;
         scatter(temp(:,2),temp(:,1),'b.')
         scatter(ptYX(i,2),ptYX(i,1),'r.')
-        text(ptYX(i,2),ptYX(i,1),['\leftarrow ' sprintf('%3.2f',d1(i)) ', ' sprintf('%3.2f',d2(i))])
+        text(ptYX(i,2),ptYX(i,1),['\leftarrow ' sprintf('%3.2f',dPerp(i)) ', ' sprintf('%3.2f',dPara(i))])
         scatter(extraPt(d1Idx,2),extraPt(d1Idx,1),'g')
         quiver(extraPt(d1Idx,2),extraPt(d1Idx,1),vYX(2)+.1,vYX(1)+.1,0,'r')
         plot([ptYX(i,2); extraPt(d1Idx,2)],[ptYX(i,1); extraPt(d1Idx,1)],'g')
