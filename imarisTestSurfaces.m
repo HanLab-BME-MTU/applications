@@ -63,6 +63,8 @@ else
     imaApp = obj.imageData.showImaris;
 end
 
+% make a surpass scene
+imaSurpassScene = imaApp.mFactory.CreateDataContainer;
 % fill surpass scene with light and frame
 imaLight = imaApp.mFactory.CreateLightSource;
 imaSurpassScene.AddChild(imaLight);
