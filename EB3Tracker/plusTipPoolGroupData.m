@@ -7,7 +7,7 @@ histDir = uigetdir(pwd,'Please select output directory.');
 [grpNames,m,movGroupIdx] = unique(projGroupName);
 
 
-mCount=1; allGrwthSpdCell=cell(1,length(projGroupName));
+mCount=1; movCount=1; allGrwthSpdCell=cell(1,length(projGroupName));
 for iGroup = 1:length(grpNames)
     growthSpeeds=[];
     meanStdGrowth=[];
@@ -25,6 +25,9 @@ for iGroup = 1:length(grpNames)
     for iMov = 1:length(tempIdx)
         temp = load([projGroupDir{tempIdx(iMov)} filesep 'meta' filesep 'projData']);
         data{iMov,1} = temp.projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
+        movNum{movCount,1}=iMov;
+        movNum{movCount,2}=temp.projData.anDir;
+        movCount=movCount+1;
     end
 
     growthSpeeds = cellfun(@(x) x(x(:,5)==1,4),data,'uniformoutput',0);
@@ -104,9 +107,8 @@ end
 % for each value, put group name into matrix
 condition=repmat(projGroupName',[max(maxSize'),1]);
 % for each value, put movie number (within group) into matrix
-[temp,nOccur]=countEntries(movGroupIdx);
-movNum=cell2mat(arrayfun(@(x) [1:x]',nOccur,'uniformOutput',0));
-movNumMat=repmat(movNum',[max(maxSize'),1]);
+
+movNumMat=repmat(cell2mat(movNum(:,1))',[max(maxSize'),1]);
 
 % make box plot comparing all the movies
 figure
@@ -125,6 +127,8 @@ set(gca,'YDir','reverse')
 xlabel('microns/minute')
 saveas(gcf,[histDir filesep 'boxplotByGroup.fig'])
 saveas(gcf,[histDir filesep 'boxplotByGroup.tif'])
+
+
 movIdx=[];
 movIdx=cell(length(projGroupName),3);
 movIdx(:,1)=projGroupName;
