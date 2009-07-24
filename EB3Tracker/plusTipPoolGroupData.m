@@ -132,7 +132,7 @@ saveas(gcf,[histDir filesep 'boxplotByGroup.tif'])
 movIdx=[];
 movIdx=cell(length(projGroupName),3);
 movIdx(:,1)=projGroupName;
-movIdx(:,2)=num2cell(movNum,length(projGroupName));
-movIdx(:,3)=projGroupDir;
+movIdx(:,2)=movNum(:,1);
+movIdx(:,3)=movNum(:,2);
 groupData.movIdx=movIdx;
 save([histDir filesep 'groupData'],'groupData');
