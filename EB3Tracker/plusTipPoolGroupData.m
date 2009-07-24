@@ -91,7 +91,7 @@ for iGroup = 1:length(grpNames)
     mCount = mCount+length(tempIdx);
 
 end
-save([histDir filesep 'groupData'],'groupData');
+
 
 
 % get nMovie-vector with number of growth trajectories 
@@ -106,11 +106,11 @@ condition=repmat(projGroupName',[max(maxSize'),1]);
 % for each value, put movie number (within group) into matrix
 [temp,nOccur]=countEntries(movGroupIdx);
 movNum=cell2mat(arrayfun(@(x) [1:x]',nOccur,'uniformOutput',0));
-movNum=repmat(movNum',[max(maxSize'),1]);
+movNumMat=repmat(movNum',[max(maxSize'),1]);
 
 % make box plot comparing all the movies
 figure
-boxplot(allGrwthSpdMatrix(:),{condition(:) movNum(:)},'notch','on','orientation','horizontal');
+boxplot(allGrwthSpdMatrix(:),{condition(:) movNumMat(:)},'notch','on','orientation','horizontal');
 title('Growth Speeds by Movie')
 set(gca,'YDir','reverse')
 xlabel('microns/minute')
@@ -125,3 +125,10 @@ set(gca,'YDir','reverse')
 xlabel('microns/minute')
 saveas(gcf,[histDir filesep 'boxplotByGroup.fig'])
 saveas(gcf,[histDir filesep 'boxplotByGroup.tif'])
+movIdx=[];
+movIdx=cell(length(projGroupName),3);
+movIdx(:,1)=projGroupName;
+movIdx(:,2)=num2cell(movNum,length(projGroupName));
+movIdx(:,3)=projGroupDir;
+groupData.movIdx=movIdx;
+save([histDir filesep 'groupData'],'groupData');

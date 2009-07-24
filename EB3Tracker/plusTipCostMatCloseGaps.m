@@ -150,6 +150,7 @@ doPlot=0;
 
 perpDistMax=costMatParam.d1Max;
 maxFAngle = costMatParam.maxFAngle*pi/180;
+costMatParam.maxBAngle=10;
 maxBAngle = costMatParam.maxBAngle*pi/180;
 backVelMultFactor = costMatParam.backVelMultFactor;
 
