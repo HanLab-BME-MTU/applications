@@ -52,9 +52,14 @@ layerPlugins(4).desc = '[MP] Graph';
 layerPlugins(4).filterSpec = {'*.mat'}; 
 layerPlugins(4).displayFunc = @displayGraph;
 
-% [PANDA] Window
-layerPlugins(5).desc = '[PANDA] Windows';
+% [MP] Link Lists
+layerPlugins(5).desc = '[MP] Link Lists';
 layerPlugins(5).filterSpec = {'*.mat'}; 
-layerPlugins(5).displayFunc = @plotWindowsFSM;
+layerPlugins(5).displayFunc = @displayLinkLists;
+
+% [PANDA] Window
+layerPlugins(6).desc = '[PANDA] Windows';
+layerPlugins(6).filterSpec = {'*.mat'}; 
+layerPlugins(6).displayFunc = @plotWindowsFSM;
 
 end
