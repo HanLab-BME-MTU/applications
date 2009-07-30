@@ -15,9 +15,8 @@ for iLayer = 1:numLayers
     tag = settings.layers{iLayer}.tag;
     
     hLayers = findall(get(hAxes, 'Children'), 'Tag', tag);
-    for i=1:length(hLayers)
-        delete(hLayers(i));        
-    end
+    
+    delete(hLayers);
 end
 
 h = waitbar(0, 'please wait...');
