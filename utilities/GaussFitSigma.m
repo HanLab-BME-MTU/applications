@@ -87,7 +87,7 @@ end
 %% LOOP TO FIT SIGMA
 %=========================
 
-sigmaList = zeros(nSignals,2);
+sigmaList = NaN(nSignals,2);
 goodSignalCell = cell(size(signalCell));
 
 for s=1:nSignals
@@ -168,8 +168,9 @@ for s=1:nSignals
 end % loop preparing
 
 % fit
-for s=1:nSignals
+for s=nSignals:-1:1
     % fit - request all output so that we can give output if necessary
+    try
     if recalcCoordList
         halfSize = (size(signalCell{s})-1)/2;
         [cx,cy,cz] = ndgrid(-halfSize(1):halfSize(1),...
@@ -183,6 +184,11 @@ for s=1:nSignals
 
     % relevant parameters are #5 and #6
     sigmaList(s,:) = parameters(1,5:6);
+    catch
+        sigmaList(s,:) = [];
+        goodSignalCell(s) = [];
+        signalCell(s) = [];
+    end
 
 end
 
