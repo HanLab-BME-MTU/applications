@@ -47,19 +47,14 @@ layerPlugins(3).desc = '[qFSM] Speckles';
 layerPlugins(3).filterSpec = {'*.mat'}; 
 layerPlugins(3).displayFunc = @displaySpeckles;
 
-% [MP] Graph
-layerPlugins(4).desc = '[MP] Graph';
-layerPlugins(4).filterSpec = {'*.mat'}; 
-layerPlugins(4).displayFunc = @displayGraph;
-
 % [MP] Link Lists
-layerPlugins(5).desc = '[MP] Link Lists';
-layerPlugins(5).filterSpec = {'*.mat'}; 
-layerPlugins(5).displayFunc = @displayLinkLists;
+layerPlugins(4).desc = '[IF] Init Curves';
+layerPlugins(4).filterSpec = {'*.mat'}; 
+layerPlugins(4).displayFunc = @displayInitCurves;
 
 % [PANDA] Window
-layerPlugins(6).desc = '[PANDA] Windows';
-layerPlugins(6).filterSpec = {'*.mat'}; 
-layerPlugins(6).displayFunc = @plotWindowsFSM;
+layerPlugins(5).desc = '[PANDA] Windows';
+layerPlugins(5).filterSpec = {'*.mat'}; 
+layerPlugins(5).displayFunc = @plotWindowsFSM;
 
 end
