@@ -24,23 +24,19 @@ function [] = runLifetimeAnalysis(restrict,shape,expData)
 
 oldDir = cd;
 
-% check if experiment dat is already specified
-noLoad = 0;
-if nargin>2
-    if ~isempty(expData)
-        if isstruct(expData)
-            noLoad = 1;
-        end
-    end
+%Default Values
+if nargin < 2 || isempty(shape)
+    shape = [2 2 1]
 end
-
-
-if noLoad
-    experiment = expData;
-else
+if nargin < 1 || isempty(restrict)
+    restrict = 300;
+end
+if nargin < 3 || isempty(expData)
     %Load Data
     %ask user to specify movies to analyse
     [experiment] = loadIndividualMovies();
+else
+    experiment = expData;
 end
 
 
@@ -65,41 +61,6 @@ if isempty(fileName)
     fileName = [dirName 'LifetimeAnalysisResults'];
 end
 
-
-%Default Values
-%if user did not specify inputs then use defaults
-if nargin == 0
-    restrict = 300; %restrict pit lifetimes
-    shape = [2 2 1]; %distribution shape vector
-    disp('lifetimes have been restricted to under 300 seconds and shape set to [2 2 1]')
-    %if restrict is specified, but empty then use default
-elseif nargin == 1 && length(restrict) > 1
-    restrict = 300;
-    disp('lifetimes have been restricted to under 300 seconds')
-    %if shape is specified, but empty then use default
-elseif nargin == 1 && length(restrict) == 1
-    shape = [2 2 1];
-    disp('shape set to [2 2 1]')
-    %if two inputs do nothing unless restrict is a vector and shape a scalar
-elseif nargin == 2
-    if length(shape) == 1 && length(restrict) > 1
-        new_shape = restrict;
-        new_restrict = shape;
-        shape = new_shape;
-        restrict = new_restrict;
-        warning('Inputs may have been misinterpreted.');
-    end
-    if isempty(shape)
-        shape = [2 2 1]; %distribution shape vector
-        disp('lifetimes have been restricted to under 300 seconds and shape set to [2 2 1]')
-    end
-    if isemptry(restrict)
-        restrict = 300;
-        disp('lifetimes have been restricted to under 300 seconds')
-    end
-% else
-%    error('Input must of the form (),(restrict,[]), ([],shape), or (restrict,shape).\n Restrict must be of length 1 and shape of length 3.')
-end
 
 %Fill in movie length and image size
 [experiment] = determineMovieLength(experiment);

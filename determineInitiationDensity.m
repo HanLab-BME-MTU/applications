@@ -72,7 +72,7 @@ function [experiment] = determineInitiationDensity(experiment,rest,plotMask,inpu
 %AREA MASK PARAMETERS
 closureRadius = 20;
 dilationRadius = 5;
-doFill = 1;
+doFill = 0;
 
 %%
 %interpret inputs
@@ -85,6 +85,12 @@ end
 if nargin < 4 || isempty(inputMask)
     inputMask = [];
 end
+
+%convert movie paths to correct OS
+for iexp = 1:length(experiment)
+    [experiment(iexp).source]=formatPath(experiment(iexp).source);
+end
+
 
 %make image binary
 inputMask = im2bw(inputMask);

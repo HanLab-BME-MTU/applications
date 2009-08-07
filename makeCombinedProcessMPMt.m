@@ -108,6 +108,12 @@ else
                     sigma_diff = 0;
                 end
 
+                if length(cvec)>5
+                    parentMinDistance = cvec(6);
+                else
+                    parentMinDistance = 0;
+                end
+
                 % in the first frame, define the positions of the parent
                 % points; in subsequent frames, re-use the original parent
                 % positions or let them diffuse as specified
@@ -124,6 +130,27 @@ else
                 x_mother = 1+(sxLarge-1)*rand(nump,1) - 10;
                 y_mother = 1+(syLarge-1)*rand(nump,1) - 10;
                 mpm_mother_start = [x_mother y_mother];
+
+                %calculate interparent distance
+                parentDistance = squareform(pdist(mpm_mother_start));
+                %replace zeros with nans
+                parentDistance(parentDistance == 0) = nan;
+                %if any of these distances are smaller than minimum
+                %specified parent distance then redraw those
+                %only allow this to loop for so long
+                loopcount = 0;
+                while any(min(parentDistance,[],2) < parentMinDistance) || loopcount == 50
+                    findParent = find(min(parentDistance,[],2) < parentMinDistance);
+                    x_redraw = 1+(sxLarge-1)*rand(length(findParent),1) - 10;
+                    y_redraw = 1+(syLarge-1)*rand(length(findParent),1) - 10;
+                    mpm_mother_start(findParent,:) = [x_redraw y_redraw];
+                    loopcount = loopcount + 1;
+                    %calculate interparent distance
+                    parentDistance = squareform(pdist(mpm_mother_start));
+                    %replace zeros with nans
+                    parentDistance(parentDistance == 0) = nan;%calculate interparent distance
+                end
+
                 mpm_mother = [];
                 mpm_mother(:,1:2) = mpm_mother_start;
                 % fill subsequent time positions
@@ -145,7 +172,7 @@ else
                     [ndx,ndy] = size(mpm_daughters_curr);
                     mpm_daughters(1:ndx,2*t-1:2*t) = mpm_daughters_curr;
                     if any(mpm_daughters(:,1:2:end)) > 120
-                       keyboard 
+                        keyboard
                     end
                 end
 
@@ -441,7 +468,7 @@ end % of function
 
 %%       ==================================================================
 
-function [mpm_daughters] = makeRaftProcessMPM(mpm_mothers,num_mothers,sigma,imagesize);
+function [mpm_daughters] = makeRaftProcessMPM(mpm_mothers,lambda_Poisson,sigma,imagesize);
 
 
 sx = imagesize(1);
@@ -449,13 +476,16 @@ sy = imagesize(2);
 
 nmp = size(mpm_mothers,1);
 nms = (size(mpm_mothers,2)/2);
+%
+% if length(num_mothers)==1
+%     vec_nump = num_mothers+zeros(nmp,1);
+% else
+%     vec_nump = num_mothers;
+% end
 
-if length(num_mothers)==1
-    vec_nump = num_mothers+zeros(nmp,1);
-else
-    vec_nump = num_mothers;
-end
 
+% the number of daughters per mother is poisson-distributed
+vec_nump = poissrnd(lambda_Poisson,nmp,1);
 
 % loop over number of samples
 for s=1:nms

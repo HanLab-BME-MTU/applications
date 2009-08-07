@@ -15,7 +15,7 @@ function [pairCorrelation,clustering] = plotPairCorrelation(experiment,dist,rest
 %                       necessary for the lifetime restriction
 %           rest    =   [optional] restriction vector can have variable length;
 %                       minimum length is five, where the entries are
-%                       [stat da minfr minlft maxlft] 
+%                       [stat da minfr minlft maxlft]
 %                       (default is [1 1 4 1 300])
 %                       optionally, the length can be extended to nine,
 %                       where the additional entries are
@@ -24,7 +24,7 @@ function [pairCorrelation,clustering] = plotPairCorrelation(experiment,dist,rest
 %                       1:20)
 %           plotMask =  [optional] 1 to plot area mask and detections 0 to
 %                       not (default is 0)
-%           
+%
 % OUTPUT
 %           pairCorr =  pair correlation as column vecotrs for each movie
 %           clustering = sum of pairCorrelation for the first two pixels
@@ -40,7 +40,7 @@ function [pairCorrelation,clustering] = plotPairCorrelation(experiment,dist,rest
 
 %% EXPLANATION of restriction values:
 % rest = [stat da minfr minlft maxlft minint maxint minmot maxmot]
-%                     
+%
 % stat  =   object status, possible values are 1, 2, 3
 %           1: object appears and disappears in the movie
 %           2: object is present for entire length of the movie
@@ -65,7 +65,7 @@ function [pairCorrelation,clustering] = plotPairCorrelation(experiment,dist,rest
 %
 % These latter criteria allow you to select e.g. the brightest 10% of the
 % population, or the faster 50%.
-% 
+%
 % EXAMPLE:  to select the positions where productive pits appear
 %           rest1 = [1 1 4 60 300]
 %           to select the positions where abortive pits are located in each
@@ -77,20 +77,20 @@ function [pairCorrelation,clustering] = plotPairCorrelation(experiment,dist,rest
 %AREA MASK PARAMETERS
 closureRadius = 20;
 dilationRadius = 5;
-doFill = 1;
+doFill = 0;
 
 %%
 od = cd;
 
 %interpret inputs
-if nargin < 3 || isempty(dist)
+if nargin < 2 || isempty(dist)
     dist = 1:20;
 end
 if nargin < 3 || isempty(rest)
     rest = [1 1 4 1 300];
 end
 if nargin < 4 || isempty(plotMask)
-   plotMask = 0;
+    plotMask = 0;
 end
 
 %convert movie paths to correct OS
@@ -133,16 +133,24 @@ for iexp = 1:length(experiment)
     [areamask] = makeCellMaskDetections([matX(:),matY(:)],closureRadius,dilationRadius,doFill,imsize,plotMask,[]);
     %CALCULATE NORMALIZED AREA FROM MASK
     normArea = bwarea(areamask);
-    
+
     % CREATE CORRECTION FACTOR MATRIX FOR THIS MOVIE using all objects
     corrFacMat = makeCorrFactorMatrix(imsizS, dist, 10, areamask');
-    
+
     %CALCULATE PIT DENSITY
     mpm2 = [full(matX(findPos)) full(matY(findPos))];
     mpm1 = mpm2;
     [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
     [currDen] = calculatePitDenFromLR(kr,dist);
     pairCorrelation(:,iexp) = currDen;
+
+% 
+%     %SCRAMBLE MPM
+%     [mpm2] = makeRandomMPM(mpm2, areamask',1);
+%     mpm1 = mpm2;
+%     [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
+%     [currDen] = calculatePitDenFromLR(kr,dist);
+%     pairCorrelationRand(:,iexp) = currDen;
 
     close(waitHandle)
 end
