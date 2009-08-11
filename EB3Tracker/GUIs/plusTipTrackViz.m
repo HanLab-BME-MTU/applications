@@ -23,7 +23,7 @@ function varargout = plusTipTrackViz(varargin)
 
 % Edit the above text to modify the response to help plusTipTrackViz
 
-% Last Modified by GUIDE v2.5 04-May-2009 15:25:55
+% Last Modified by GUIDE v2.5 08-Jul-2009 15:20:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -57,6 +57,7 @@ function plusTipTrackViz_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 handles.getStr = 0;
+handles.loadProjList = 0;
 
 handles.homeDir=pwd;
 handles.projData=[];
@@ -475,3 +476,13 @@ function getQueryStr_Check_Callback(hObject, eventdata, handles)
 handles.getStr=get(hObject,'Value');
 guidata(hObject, handles);
 
+
+% --- Executes on button press in getProjListFilek_check.
+function getProjListFilek_check_Callback(hObject, eventdata, handles)
+% hObject    handle to getProjListFilek_check (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of getProjListFilek_check
+handles.loadProjList=get(hObject,'Value');
+guidata(hObject, handles);

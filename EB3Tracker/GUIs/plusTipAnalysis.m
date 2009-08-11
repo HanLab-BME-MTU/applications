@@ -22,7 +22,7 @@ function varargout = plusTipAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipAnalysis
 
-% Last Modified by GUIDE v2.5 11-May-2009 11:16:27
+% Last Modified by GUIDE v2.5 08-Jul-2009 11:57:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -56,6 +56,7 @@ function plusTipAnalysis_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 handles.selectRoi = 1;
 handles.getStr = 0;
+handles.loadProjList = 0;
 handles.projList = [];
 
 handles.doDetect=0;
@@ -74,7 +75,7 @@ handles.minRadius=[];
 handles.maxRadius=[];
 handles.maxFAngle=45;
 handles.maxShrinkFactor=1.5;
-handles.d1Max=1;
+handles.fluctRad=1;
 
 % META parameters
 handles.secPerFrame=[];
@@ -104,7 +105,8 @@ function getProjPush_Callback(hObject, eventdata, handles)
 % hObject    handle to getProjPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');   
+
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');
 
 % here we filter out any sub-directories
 if ~isempty(handles.projList)
@@ -115,6 +117,7 @@ if ~isempty(handles.projList)
     [selection,selectionList]=listSelectGUI(a(b),[],'move');
     handles.projList=handles.projList(selection,1);
 else
+    disp('No projects found')
     handles.projList=[];
 end
 guidata(hObject, handles);
@@ -507,7 +510,7 @@ end
 
 
 for i=1:numProj
-    try
+    %try
         % detection
         if handles.doDetect==1
             disp(['Detecting project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
@@ -518,7 +521,7 @@ for i=1:numProj
         if handles.doTrack==1
             disp(['Tracking project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
             plusTipTracker(handles.projList(i),handles.timeWindow,handles.minTrackLen,...
-                handles.minRadius,handles.maxRadius,handles.maxFAngle,handles.maxShrinkFactor,handles.d1Max);
+                handles.minRadius,handles.maxRadius,handles.maxFAngle,handles.maxShrinkFactor,handles.fluctRad);
         end
         if handles.doMeta==1
             disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
@@ -527,9 +530,9 @@ for i=1:numProj
                 plusTipHistograms(projData);
             end
         end
-    catch
-        disp(['Problem with ' handles.projList(i).anDir])
-    end
+%     catch
+%         disp(['Problem with ' handles.projList(i).anDir])
+%     end
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -599,7 +602,7 @@ function d1MaxEdit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of d1MaxEdit as text
 %        str2double(get(hObject,'String')) returns contents of d1MaxEdit as a double
-handles.d1Max=str2double(get(hObject,'String'));
+handles.fluctRad=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -617,7 +620,20 @@ end
 
 % --- Executes during object creation, after setting all properties.
 function d1Max_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to d1Max (see GCBO)
+% hObject    handle to fluctRad (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+
+
+% --- Executes on button press in getProjListFilek_check.
+function getProjListFilek_check_Callback(hObject, eventdata, handles)
+% hObject    handle to getProjListFilek_check (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of getProjListFilek_check
+handles.loadProjList=get(hObject,'Value');
+guidata(hObject, handles);
+
+
 

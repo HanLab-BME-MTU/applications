@@ -1,13 +1,14 @@
 function [projGroupDir,projGroupName]=plusTipPickGroups
 % plusTipPickGroups allows user to select groups of movies
-
+%
+% SYNOPSIS: [projGroupDir,projGroupName]=plusTipPickGroups
+%
 % INPUT : user is asked to select the projList file(s) containing projects
 %         to be used for group selection.  
+%
 % OUTPUT: projGroupDir : cell array containing paths to chosen projects
 %         projGroupName: cell array containing the group name for each
 %                        project
-
-
 
 
 % ask user to select projList file and check which movies have been tracked

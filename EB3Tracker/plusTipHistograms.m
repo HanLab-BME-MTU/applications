@@ -24,7 +24,7 @@ end
 
 
 homeDir=pwd;
-metaDir=[projData.anDir filesep 'meta'];
+metaDir=[formatPath(projData.anDir) filesep 'meta'];
 cd(metaDir)
 
 histDir=[metaDir filesep 'histograms'];
@@ -46,27 +46,35 @@ pop2=a(fgapIdx,4);
 pop3=abs(a(bgapIdx,4));
 
 % write data into Excel spreadsheet
-letters={'A' 'B' 'C' 'D'};
-names{1,1}='growth';
-names{2,1}='pause';
-names{3,1}='shrinkage';
-for iName=1:length(names)
-    switch iName
-        case 1
-            tempMat=pop1;
-            % put headers at the top of the file
-            range=[letters{iName+1} num2str(1) ':' letters{iName+3} num2str(1)];
-            xlswrite([metaDir filesep 'speedDistributions'],{'growth', 'pause' 'shrinkage'},range);
-        case 2
-            tempMat=pop2;
-        case 3
-            tempMat=pop3;
-    end
-    % write the growth, pause, and shrinkage distributions into the file
-    [r c]=size(tempMat);
-    range=[letters{iName+1} num2str(3) ':' letters{iName+1} num2str(3+r-1)];
-    xlswrite([metaDir filesep 'speedDistributions'],tempMat,range);
-end
+% if ispc
+%     letters={'A' 'B' 'C' 'D'};
+%     names{1,1}='growth';
+%     names{2,1}='pause';
+%     names{3,1}='shrinkage';
+%     for iName=1:length(names)
+%         switch iName
+%             case 1
+%                 tempMat=pop1;
+%                 % put headers at the top of the file
+%                 range=[letters{iName+1} num2str(1) ':' letters{iName+3} num2str(1)];
+%                 xlswrite([metaDir filesep 'speedDistributions'],{'growth', 'pause' 'shrinkage'},range);
+%             case 2
+%                 tempMat=pop2;
+%             case 3
+%                 tempMat=pop3;
+%         end
+%         % write the growth, pause, and shrinkage distributions into the file
+%         [r c]=size(tempMat);
+%         range=[letters{iName+1} num2str(3) ':' letters{iName+1} num2str(3+r-1)];
+%         xlswrite([metaDir filesep 'speedDistributions'],tempMat,range);
+%     end
+% else
+M=nan(max([length(pop1) length(pop2) length(pop3)]),3);
+M(1:length(pop1),1)=pop1;
+M(1:length(pop2),2)=pop2;
+M(1:length(pop3),3)=pop3;
+dlmwrite([metaDir filesep 'growthPauseShrinkSpeedDistributions.txt'], M, 'precision', 3,'delimiter', '\t','newline', 'pc');
+% end
 
 % create x-axis bins spanning all costs in sample
 n=linspace(min([pop1;pop2;pop3]),max([pop1;pop2;pop3]),25);

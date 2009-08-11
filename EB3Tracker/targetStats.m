@@ -2,18 +2,18 @@ function targetStats(mData,exList)
 
 
 
-doPlot=1;
+doPlot=0;
 
 % get output directory and excel sheet for writing
-homeDir=pwd;
-outputDir=uigetdir(pwd,'Select output directory.');
-cd(outputDir)
-filePath=[];
-while exist(filePath,'file')==0
-    [fileName,pathName]=uigetfile('*.xls','Select .xls file for data output.');
-    filePath=[pathName fileName];
-end
-cd(homeDir)
+% homeDir=pwd;
+% outputDir=uigetdir(pwd,'Select output directory.');
+% cd(outputDir)
+% filePath=[];
+% while exist(filePath,'file')==0
+%     [fileName,pathName]=uigetfile('*.xls','Select .xls file for data output.');
+%     filePath=[pathName fileName];
+% end
+% cd(homeDir)
 
 % use doPlot variable for output directory path
 if doPlot==1
