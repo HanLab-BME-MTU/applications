@@ -22,7 +22,7 @@ function varargout = plusTipAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipAnalysis
 
-% Last Modified by GUIDE v2.5 08-Jul-2009 11:57:39
+% Last Modified by GUIDE v2.5 12-Aug-2009 09:44:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -81,6 +81,12 @@ handles.fluctRad=1;
 handles.secPerFrame=[];
 handles.pixSizeNm=[];
 handles.doHist=1;
+
+
+
+
+
+
 
 % Update handles structure
 guidata(hObject,handles);
@@ -442,7 +448,7 @@ if handles.doTrack==1
     set(handles.maxRadiusEdit,'Enable','on')
     set(handles.maxAngleEdit,'Enable','on')
     set(handles.maxShrinkFactorEdit,'Enable','on')
-    set(handles.d1MaxEdit,'Enable','on')
+    set(handles.fluctRadEdit,'Enable','on')
     
 else
     set(handles.timeWindowEdit,'Enable','off')
@@ -451,7 +457,7 @@ else
     set(handles.maxRadiusEdit,'Enable','off')
     set(handles.maxAngleEdit,'Enable','off')
     set(handles.maxShrinkFactorEdit,'Enable','off')
-    set(handles.d1MaxEdit,'Enable','off')
+    set(handles.fluctRadEdit,'Enable','off')
 end
 guidata(hObject, handles);
 
@@ -535,28 +541,6 @@ for i=1:numProj
 %     end
 end
 
-% --- Executes during object creation, after setting all properties.
-function helpPic_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to helpPic (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: place code in OpeningFcn to populate helpPic
-img=imread('qIcon.jpg');
-imagesc(img,'parent',hObject);
-axis image
-axis off
-imHandle=get(hObject,'Children');
-set(imHandle,'ButtonDownFcn',@helpPic_ButtonDownFcn)
-
-% --- Executes on mouse press over axes background.
-function helpPic_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to helpPic (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-open plusTipAnalysis_README.txt
-
-
 % --- Executes on button press in histCheck.
 function histCheck_Callback(hObject, eventdata, handles)
 % hObject    handle to histCheck (see GCBO)
@@ -595,19 +579,19 @@ plusTipGuiSwitch(hObject,eventdata,handles,'resetButton');
 
 
 
-function d1MaxEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to d1MaxEdit (see GCBO)
+function fluctRadEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to fluctRadEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of d1MaxEdit as text
-%        str2double(get(hObject,'String')) returns contents of d1MaxEdit as a double
+% Hints: get(hObject,'String') returns contents of fluctRadEdit as text
+%        str2double(get(hObject,'String')) returns contents of fluctRadEdit as a double
 handles.fluctRad=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function d1MaxEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to d1MaxEdit (see GCBO)
+function fluctRadEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to fluctRadEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -619,7 +603,7 @@ end
 
 
 % --- Executes during object creation, after setting all properties.
-function d1Max_CreateFcn(hObject, eventdata, handles)
+function fluctRad_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to fluctRad (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -634,6 +618,23 @@ function getProjListFilek_check_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of getProjListFilek_check
 handles.loadProjList=get(hObject,'Value');
 guidata(hObject, handles);
+
+
+% --- Executes on button press in getHelpPush.
+function getHelpPush_Callback(hObject, eventdata, handles)
+% hObject    handle to getHelpPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+open plusTipAnalysis_README.txt
+
+% --- Executes during object creation, after setting all properties.
+function getHelpPush_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to getHelpPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+import_icons; % Import icons from bmp files
+set(hObject,'CData',helpIcon);
 
 
 
