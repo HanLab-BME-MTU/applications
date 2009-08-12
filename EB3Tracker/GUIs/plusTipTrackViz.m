@@ -23,7 +23,8 @@ function varargout = plusTipTrackViz(varargin)
 
 % Edit the above text to modify the response to help plusTipTrackViz
 
-% Last Modified by GUIDE v2.5 08-Jul-2009 15:20:22
+% Last Modified by GUIDE v2.5 12-Aug-2009 10:53:46
+
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -108,39 +109,12 @@ function resetButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 plusTipGuiSwitch(hObject,eventdata,handles,'resetButton');
 
-% --- Executes during object creation, after setting all properties.
-function helpBoxAxes1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to helpBoxAxes1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: place code in OpeningFcn to populate helpBoxAxes1
-img=imread('qIcon.jpg');
-imagesc(img,'parent',hObject);
-axis image
-axis off
-imHandle=get(hObject,'Children');
-set(imHandle,'ButtonDownFcn',@helpBoxAxes1_ButtonDownFcn)
-
-
-% --- Executes on mouse press over axes background.
-function helpBoxAxes1_ButtonDownFcn(hObject, eventdata, handles)
-% % hObject    handle to helpBoxAxes1 (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% % handles.helpNote=1;
-% % guidata(hObject, handles);
-% % helpNotes_Callback(hObject, eventdata, handles)
-% handles.helpNotes
-open plusTipTrackViz_README.txt
-
 
 % --- Executes on button press in getProjPush.
 function getProjPush_Callback(hObject, eventdata, handles)
 % hObject    handle to getProjPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');
 
 % here we filter out any sub-directories and also projects that have not
@@ -477,12 +451,18 @@ handles.getStr=get(hObject,'Value');
 guidata(hObject, handles);
 
 
-% --- Executes on button press in getProjListFilek_check.
-function getProjListFilek_check_Callback(hObject, eventdata, handles)
-% hObject    handle to getProjListFilek_check (see GCBO)
+% --- Executes on button press in getHelpPush.
+function getHelpPush_Callback(hObject, eventdata, handles)
+% hObject    handle to getHelpPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+open plusTipTrackViz_README.txt
 
-% Hint: get(hObject,'Value') returns toggle state of getProjListFilek_check
-handles.loadProjList=get(hObject,'Value');
-guidata(hObject, handles);
+% --- Executes during object creation, after setting all properties.
+function getHelpPush_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to getHelpPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+import_icons; % Import icons from bmp files
+set(hObject,'CData',helpIcon);
