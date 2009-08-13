@@ -52,10 +52,10 @@ layerPlugins(4).desc = '[IF] Init Curves';
 layerPlugins(4).filterSpec = {'*.mat'}; 
 layerPlugins(4).displayFunc = @displayInitCurves;
 
-% [IF] Curve Models
-layerPlugins(5).desc = '[IF] Curve Models';
+% [IF] Clusters
+layerPlugins(5).desc = '[IF] Clusters';
 layerPlugins(5).filterSpec = {'*.mat'}; 
-layerPlugins(5).displayFunc = @displayCurveModels;
+layerPlugins(5).displayFunc = @displayClusters;
 
 % [PANDA] Window
 layerPlugins(6).desc = '[PANDA] Windows';
