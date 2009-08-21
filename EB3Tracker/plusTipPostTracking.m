@@ -92,11 +92,6 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
 
 
 
-
-
-
-
-
 % get runInfo in correct format
 if nargin<1 || isempty(runInfo)
     homeDir=pwd;
@@ -107,7 +102,7 @@ if nargin<1 || isempty(runInfo)
 else
     % adjust for OS
     if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
-        error('--metaEB3analysis: first argument should be a structure with fields imDir and anDir');
+        error('--plusTipPostTracking: first argument should be a structure with fields imDir and anDir');
     else
         [runInfo.anDir] = formatPath(runInfo.anDir);
         homeDir=pwd;
@@ -118,37 +113,37 @@ else
 end
 
 if nargin<2 || isempty(secPerFrame)
-    error('--metaEB3analysis: frame rate missing')
+    error('--plusTipPostTracking: frame rate missing')
 end
 if nargin<3 || isempty(pixSizeNm)
-    error('--metaEB3analysis: pixel size missing')
+    error('--plusTipPostTracking: pixel size missing')
 end
 
 % load movieInfo (detection result)
 featDir  = [runInfo.anDir filesep 'feat'];
 if ~isdir(featDir)
-    error('--metaEB3analysis: feat directory missing')
+    error('--plusTipPostTracking: feat directory missing')
 else
     if exist([featDir filesep 'movieInfo.mat'],'file')
         load([featDir filesep 'movieInfo.mat'])
     else
-        error('--metaEB3analysis: movieInfo missing...')
+        error('--plusTipPostTracking: movieInfo missing...')
     end
 end
 
 % load tracksFinal (tracking result)
 trackDir = [runInfo.anDir filesep 'track'];
 if ~isdir(trackDir)
-    error('--metaEB3analysis: track directory missing')
+    error('--plusTipPostTracking: track directory missing')
 else
     [listOfFiles]=searchFiles('.mat',[],trackDir,0);
     if ~isempty(listOfFiles)
         load([listOfFiles{1,2} filesep listOfFiles{1,1}])
         if ~exist('tracksFinal','var')
-            error('--metaEB3analysis: tracksFinal missing...');
+            error('--plusTipPostTracking: tracksFinal missing...');
         end
     else
-        error('--metaEB3analysis: tracksFinal missing...');
+        error('--plusTipPostTracking: tracksFinal missing...');
     end
 end
 
@@ -210,7 +205,7 @@ projData.featArea = featArea;
 projData.featInt = featInt;
 
 
-% get frame-to-frame displacement for segments only (not gaps)
+% get frame-to-frame displacement for growth only (not forward/backward gaps)
 frame2frameDispPix=sqrt(diff(x,1,2).^2+diff(y,1,2).^2);
 % get rid of NaNs and linearize the vector
 projData.frame2frameDispPix=frame2frameDispPix(~isnan(frame2frameDispPix(:)));
@@ -317,7 +312,7 @@ for i=1:length(tracks2check)
             aT(fIdx,3)=aT(lIdx,3); % change end frame
             aT(fIdx,6)=sum(aT(fIdx:lIdx,6)); % sum lifetimes
             aT(fIdx,7)=sum(aT(fIdx:lIdx,7)); % sum total displacements
-            aT(fIdx,4)=aT(fIdx,7)/aT(fIdx,6); % find new average displacement
+            aT(fIdx,4)=aT(fIdx,7)/aT(fIdx,6); % find new average velocity
 
             % keep track of which are the extra rows
             aTrows2remove=[aTrows2remove fIdx+1:lIdx];

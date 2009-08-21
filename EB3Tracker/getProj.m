@@ -1,15 +1,14 @@
 function [projList,projPaths]=getProj(varargin)
 % GETPROJ returns paths to roi_x and sub_x projects matching user query
 
-% INPUT: one or more comma-separated search strings used to search all
-%        roi_x and sub_x directory paths found in a user-selected top-level
-%        directory. the search is NOT case-sensitive.
+% INPUT: One or more comma-separated search strings used to search all
+%        roi_x and sub_x directory paths found in a user-selected parent
+%        directory. The search is NOT case-sensitive.
+%        Input can also be a cell array containing strings.
 %
-%        input can also be a cell array containing strings.
-%
-%        Note: if pwd is given as input, user is not asked for top-level
-%        directory; instead the working directory is used. in this case all
-%        projects are returned. this option is not compatible with user
+%        Note: if pwd is given as input, user is not asked for parent
+%        directory; instead the working directory is used. In this case all
+%        projects are returned. This option is not compatible with user
 %        queries to narrow down projects.
 %
 % OUTPUT: projList       : structure containing fields:
@@ -20,7 +19,7 @@ function [projList,projPaths]=getProj(varargin)
 %         projPaths      : cell array containing roi/subroi paths only
 
 
-% check whether inputs are strings
+
 
 projList=[];
 projPaths=[];
@@ -43,6 +42,7 @@ if ~isempty(varargin)
         nStr=length(varargin);
     end
 
+    % check whether inputs are strings
     inputStrings=cellfun(@(y) ischar(y), varargin);
     if sum(inputStrings)~=nStr
         error('input arguments must be strings')
@@ -62,7 +62,7 @@ end
 if nStr==1 && isequal(varargin{1},pwd)
     topDir=pwd;
 else
-    topDir=uigetdir(pwd,'Please select top-level directory containing projects');
+    topDir=uigetdir(pwd,'Please select parent directory containing projects');
 end
 if topDir==0
     return

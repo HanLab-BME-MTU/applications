@@ -1,10 +1,18 @@
 function [projList]=combineProjListFiles(saveResult)
 % combineProjListFiles allows selection of multiple projList files to combine
 
+% SYNOPSIS: [projList]=combineProjListFiles(saveResult)
+%
+% INPUT   : saveResult: 1 to save new projList file, 0 to return it to
+%                       workspace only
+% OUTPUT  : projList  : see getProj.m for details
+%
+% 2009/08 - Kathryn Applegate, Matlab R2008a
+
 if nargin<1
     saveResult=0;
 end
-
+projList=[];
 temp=[];
 userEntry='Yes';
 while strcmp(userEntry,'Yes')

@@ -25,7 +25,9 @@ end
 
 % allow user to concatenate multiple project lists
 [projList]=combineProjListFiles;
-
+if isempty(projList)
+    error('No projects selected.')
+end
 
 % get list of all projects
 [allProjList]=projList2Mat(projList);

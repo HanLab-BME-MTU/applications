@@ -33,22 +33,23 @@ function [costMat,nonlinkMarker,indxMerge,numMerge,indxSplit,numSplit,...
 %                                direction will expand out from the track at
 %                                the final point.  This value also determines
 %                                the search radius around the final point
-%                                wherein any candidates will be considered for 
-%                                forward linking, even if they fall slightly 
+%                                wherein any candidates will be considered for
+%                                forward linking, even if they fall slightly
 %                                behind the point.  This ensures that tracks
 %                                starting from a fluctuation during a pause
 %                                will still be picked up as candidates for
 %                                pause.
-%          .maxFAngle          : Max angle in degrees allowed between the end 
+%          .maxFAngle          : Max angle in degrees allowed between the end
 %                                track's final velocity vector and the
 %                                displacement vector between end and start.
-%                                Also the max angle between the end and start 
+%                                Also the max angle between the end and start
 %                                tracks themselves.
 %          .maxBAngle          : Angle in degrees used to expand backward
 %                                search region, giving a distance-dependent
 %                                criterion for how far a start track
 %                                can be from the lattice to be considered a
-%                                candidate for linking.
+%                                candidate for linking. THIS IS CURRENTLY A
+%                                HARDWIRED PARAMETER
 %          .backVelMultFactor : Muliplication factor of max growth speed used
 %                               to define candidate search area in the
 %                               backward direction.
@@ -96,7 +97,8 @@ function [costMat,nonlinkMarker,indxMerge,numMerge,indxSplit,numSplit,...
 %
 %REMARKS
 %
-%Khuloud Jaqaman, April 2007
+%Kathryn Applegate, 2009
+%Adapted from costMatCloseGaps.m by Khuloud Jaqaman, April 2007
 
 %% Output
 
@@ -117,15 +119,16 @@ if nargin ~= nargin('plusTipCostMatCloseGaps')
     return
 end
 
-doTest=1
+doTest=0;
 doPlot=0;
 
+% get user-set parameters
 fluctRad=costMatParam.fluctRad;
 maxFAngle = costMatParam.maxFAngle*pi/180;
-costMatParam.maxBAngle=10;
+costMatParam.maxBAngle=10; % this one's hardwired for now...
 maxBAngle = costMatParam.maxBAngle*pi/180;
 backVelMultFactor = costMatParam.backVelMultFactor;
-
+tMax=gapCloseParam.timeWindow;
 
 %find the number of tracks to be linked and the number of frames in the movie
 [numTracks,numFrames] = size(trackedFeatInfo);
@@ -145,21 +148,11 @@ px=trackedFeatInfo(:,1:8:end);
 py=trackedFeatInfo(:,2:8:end);
 vx=diff(px,1,2);
 vy=diff(py,1,2);
-%vMag=sqrt(vx.^2+vy.^2);
 
-%trackLengths=nansum(sqrt(vx.^2+vy.^2),2);
-
-% ax=vx(:,1:end-1); [row col]=size(ax); ax=ax(:)';
-% ay=vy(:,1:end-1); ay=ay(:)';
-%
-% bx=vx(:,2:end); bx=bx(:)';
-% by=vy(:,2:end); by=by(:)';
-%
-% c=cross([ax;ay;zeros(1,length(ax))],[bx;by;zeros(1,length(bx))]);
-% magC=sqrt(c(1,:).^2+c(2,:).^2+c(3,:).^2);
-% magC=reshape(magC,row,col);
-
-
+% all the instantaneous velocities from all tracks in one vector
+velInst=sqrt(vx.^2+vy.^2);
+velInst=velInst(:);
+velInst(isnan(velInst))=[];
 
 % TRACK STARTS
 trackStartPxyVxy = zeros(numTracks,4);
@@ -181,7 +174,7 @@ trackEndPxyVxy(:,2)=cell2mat(arrayfun(@(i) py(i,find(~isnan(py(i,:)),1,'last')),
 trackEndPxyVxy(:,3)=cell2mat(arrayfun(@(i) mean(vx(i,find(~isnan(vx(i,:)),3,'last'))),[1:numTracks]','UniformOutput',0));
 trackEndPxyVxy(:,4)=cell2mat(arrayfun(@(i) mean(vy(i,find(~isnan(vy(i,:)),3,'last'))),[1:numTracks]','UniformOutput',0));
 
-% get velocity components from kalman filter (very similar to trackEndVxy)
+% get velocity components for each track from kalman filter (very similar to trackEndVxy)
 xyzVel=cell2mat(arrayfun(@(iTrack) kalmanFilterInfo(trackEndTime(iTrack))...
     .stateVec(trackedFeatIndx(iTrack,trackEndTime(iTrack)),probDim+1:2*probDim),...
     [1:numTracks]','UniformOutput',0));
@@ -191,12 +184,6 @@ trackEndSpeed=sqrt(sum(xyzVel.^2,2));
 vMax=prctile(trackEndSpeed,95);
 vMed=median(trackEndSpeed);
 
-tMax=gapCloseParam.timeWindow;
-
-indx1 = zeros(10*numTracks,1);
-indx2 = zeros(10*numTracks,1);
-costComponents  = zeros(10*numTracks,5);
-
 % get start and end frames for each track
 sFrameAll=zeros(numTracks,1);
 eFrameAll=zeros(numTracks,1);
@@ -204,6 +191,11 @@ for iFrame=1:numFrames
     sFrameAll(tracksPerFrame(iFrame).starts)=iFrame;
     eFrameAll(tracksPerFrame(iFrame).ends)=iFrame;
 end
+
+% initialize matrices for pair indices and cost components
+indx1 = zeros(10*numTracks,1);
+indx2 = zeros(10*numTracks,1);
+costComponents  = zeros(10*numTracks,5);
 
 linkCount = 1;
 for iFrame = 1:numFrames-1
@@ -235,11 +227,18 @@ for iFrame = 1:numFrames-1
     cutoffDistBwd = min(vMed*tMax,backVelMultFactor*vMax*tGap);
 
     % plot the cutoff distances as a function of time gap
-    if doPlot==1
-        figure; plot(cutoffDistFwd); hold on; plot(cutoffDistBwd,'r');
+    if doPlot==1 && iFrame==1
+        figure;
+        plot(cutoffDistFwd);
+        hold on;
+        plot(cutoffDistBwd,'r');
+        legend('forward links','backward links','location','best')
+        title('cutoff distance')
+        xlabel('time gap (frames)')
+        ylabel('cutoff distance (pixels)')
     end
 
-    % make vectors containing forward/backward cutoffs for each start
+    % make vectors containing forward/backward cutoffs for each start track candidate
     cutFwdPerVec=cell2mat(arrayfun(@(i,j) repmat(i,[j,1]),cutoffDistFwd,cell2mat(nStarts),'uniformoutput',0)');
     cutBwdPerVec=cell2mat(arrayfun(@(i,j) repmat(i,[j,1]),cutoffDistBwd,cell2mat(nStarts),'uniformoutput',0)');
 
@@ -254,41 +253,34 @@ for iFrame = 1:numFrames-1
     % start track first pt
     spX=repmat(trackStartPxyVxy(startsToConsider,1)',[nEnds 1]);
     spY=repmat(trackStartPxyVxy(startsToConsider,2)',[nEnds 1]);
-    % nEnds x nStarts distance matrix containing displacement vector
-    % magnittude
+    % nEnds x nStarts distance matrix containing displacement vector magnitude
     dispMag=sqrt((epX-spX).^2+(epY-spY).^2);
 
     % we will only consider end/start pairs where the distance from end to start is less than
     % the max(forwardCutoff,backwardCutoff)
     maxCut=max(repmat(cutFwdPerVec',[nEnds 1]),repmat(cutBwdPerVec',[nEnds 1]));
 
-    dPerp=zeros(nStarts*nEnds,1);
-    dPara=zeros(nStarts*nEnds,1);
-    evYc=zeros(nStarts*nEnds,1);
-    evXc=zeros(nStarts*nEnds,1);
-    endLinkIdx=zeros(nStarts*nEnds,1);
-    startLinkIdx=zeros(nStarts*nEnds,1);
-    sAll=zeros(nStarts*nEnds,1);
+    % initialize with larger-than-needed matrix
+    dPerp=zeros(nStarts*nEnds,1); % distance from start track's first point to end track's lattice
+    dPara=zeros(nStarts*nEnds,1); % distance from the dPerp point on end track lattice to end track's last point
+    evYc=zeros(nStarts*nEnds,1);  % x component of end track's instantaneous velocity at dPerp point
+    evXc=zeros(nStarts*nEnds,1);  % y component of end track's instantaneous velocity at dPerp point
+    endLinkIdx=zeros(nStarts*nEnds,1);   % end track's index for candidate pair
+    startLinkIdx=zeros(nStarts*nEnds,1); % start track's index for candidate pair
+    sAll=zeros(nStarts*nEnds,1);         % local start index that feeds into startCandidateIdx
+    sXall=zeros(nStarts*nEnds,1);        % x-coordinates of all start tracks
+    sYall=zeros(nStarts*nEnds,1);        % y-coordinates of all start tracks
+    endCounter=zeros(nStarts*nEnds,1);   % keep track of the current iEnd loop index
 
-    %%%%%%%%%%%%%%% load b4gapclosing from NIH_Waterman
-    % need to find direction of velocity in bw direction and backproject by
-    % large amt (maxCut?)
-    % plot this to check, then see how this affects cand selection - is
-    % criterion based on whether pt is trackLength-distance away?  if so, need
-    % to redefine b/c this will change when we add a phantom point...
-
-
-    count=1;
     if doTest==1
-        endRange=1:5;
+        endRange=1:nEnds;
     else
         endRange=1:nEnds;
     end
 
-
+    count=1;
     for iEnd=endRange
-        % indices correspoinding to current set of starts and ends,
-        % respectively
+        % indices correspoinding to current set of starts and ends, respectively
         startCandidateIdx=find(dispMag(iEnd,:)<maxCut(iEnd,:))';
         endCandidateIdx=repmat(iEnd,[length(startCandidateIdx) 1]);
 
@@ -301,48 +293,50 @@ for iFrame = 1:numFrames-1
         sY=trackStartPxyVxy(startsToConsider(startCandidateIdx),2);
 
         if doTest==1
-            %plot the track and the potential starts...
-            % figure
-            xtemp=px(endsToConsider(iEnd),:)'; ytemp=py(endsToConsider(iEnd),:)';
-            xtemp(isnan(xtemp))=[]; ytemp(isnan(ytemp))=[];
-            
-            
-           
+            % re-assign points to be the current end track
+            xtemp=px(endsToConsider(iEnd),:)';
+            xtemp(isnan(xtemp))=[];
+            ytemp=py(endsToConsider(iEnd),:)';
+            ytemp(isnan(ytemp))=[];
 
+            % here only look at the end tracks >=10 frames long
+            if length(xtemp)<25
+                continue
+            end
 
-            % add in some fake pts...
-%             r=150; nPts=10000;
-%             sX=r.*rand(nPts,1)+xtemp(end)-r/2;
-%             sY=r.*rand(nPts,1)+ytemp(end)-r/2;
-%             cutFwdPerVec=randsample(cutoffDistFwd,nPts,'true')';
-%             cutBwdPerVec=randsample(cutoffDistBwd,nPts,'true')';
+            % store track for later
+            xTemp{iEnd,1}=xtemp;
+            yTemp{iEnd,1}=ytemp;
 
-            [sX sY]= meshgrid([round(xtemp(end))-100:round(xtemp(end))+100],[round(ytemp(end))-100:round(ytemp(end))+100]);
+            % add fake points around the end track's last point at each
+            % pixel center +/- halfWidth pixels from this point
+            halfWidth=round(max([max(cutoffDistFwd); max(cutoffDistBwd)]));
+            [sX sY]= meshgrid([round(xtemp(end))-halfWidth:round(xtemp(end))+halfWidth],[round(ytemp(end))-halfWidth:round(ytemp(end))+halfWidth]);
             sX=sX(:);
             sY=sY(:);
             negIdx=find(sX<=0 | sY<=0);
             sX(negIdx)=[];
             sY(negIdx)=[];
-            
-            img=zeros(max(sY),max(sX));
-            
-            
-            cutFwdPerVec=repmat(max(cutoffDistFwd),size(sX));
-            cutBwdPerVec=repmat(max(cutoffDistBwd),size(sX));
-            
-            %scatter(sX(:),sY(:))
-            
-            
-            %scatter(sX,sY,'r.')
 
-            
+            sXall(count:count+length(sX)-1)=sX;
+            sYall(count:count+length(sX)-1)=sY;
+
+            % assume all fake points are within the fwd and bwd cutoff distances
+            cutFwdPerVec(count:count+length(sX)-1)=max(cutoffDistFwd);
+            cutBwdPerVec(count:count+length(sX)-1)=max(cutoffDistBwd);
+
         end
+        sXall(count:count+length(sX)-1)=sX;
+        sYall(count:count+length(sX)-1)=sY;
+        endCounter(count:count+length(sX)-1)=iEnd;
 
         % call subfunction to calculate magnitude of the components of
         % the vector pointing from end to start, as well as the components
         % of the local velocity along the end track at its closest point to
         % the start track
-        [dPerpTemp,dParaTemp,evYcTemp,evXcTemp]=pt2segDist([py(endsToConsider(iEnd),:)',px(endsToConsider(iEnd),:)'],trackStartPxyVxy(endsToConsider(iEnd),:),[sY,sX],cutoffDistBwd,0);
+        [dPerpTemp,dParaTemp,evYcTemp,evXcTemp]=pt2segDist...
+            ([py(endsToConsider(iEnd),:)',px(endsToConsider(iEnd),:)'],...
+            trackStartPxyVxy(endsToConsider(iEnd),:),[sY,sX],cutoffDistBwd,0);
 
         % dPerp is the component perpendicular to the end track
         dPerp(count:count+length(sX)-1)=dPerpTemp;
@@ -369,14 +363,16 @@ for iFrame = 1:numFrames-1
             sAll(count:count+length(sX)-1)=startCandidateIdx;
         end
 
-
-
         count=count+length(sX);
-    end
+
+    end % end iterating thru track ends
+
     if count==1
+        % there aren't any points to continue with
         continue
     end
 
+    % trim down the vectors
     dPerp(count:end)=[];
     dPara(count:end)=[];
     evYc(count:end)=[];
@@ -387,10 +383,9 @@ for iFrame = 1:numFrames-1
 
     % velocity at starts of startsToConsider tracks
     if doTest==1
-        %svX = 1*rand(length(sX),1).*randsample([-1;1],length(sX),'true');
-        %svY = 1*rand(length(sX),1).*randsample([-1;1],length(sX),'true');
-        svX = repmat(trackEndPxyVxy(endLinkIdx(1),3),size(sX));
-        svY = repmat(trackEndPxyVxy(endLinkIdx(1),4),size(sX));
+        % for test, assume they all point in same direction as end track's last pt
+        svX = evXc; %trackEndPxyVxy(endLinkIdx,3);
+        svY = evYc; %trackEndPxyVxy(endLinkIdx,4);
     else
         svX = trackStartPxyVxy(startLinkIdx,3);
         svY = trackStartPxyVxy(startLinkIdx,4);
@@ -407,21 +402,20 @@ for iFrame = 1:numFrames-1
     evYf = trackEndPxyVxy(endLinkIdx,4);
     evMagF = sqrt(evXf.^2 + evYf.^2);
 
-
     % displacement vector (start minus end)
     if doTest==1
-        dispX = sX-trackEndPxyVxy(endLinkIdx,1);
-        dispY = sY-trackEndPxyVxy(endLinkIdx,2);
+        dispX = sXall-trackEndPxyVxy(endLinkIdx,1);
+        dispY = sYall-trackEndPxyVxy(endLinkIdx,2);
     else
         dispX = trackStartPxyVxy(startLinkIdx,1)-trackEndPxyVxy(endLinkIdx,1);
         dispY = trackStartPxyVxy(startLinkIdx,2)-trackEndPxyVxy(endLinkIdx,2);
     end
     dispMag = sqrt(dispX.^2 + dispY.^2);
 
-    % cos angle between track 1 end and track 2 start
+    % cos angle between end track's end and start track's start
     cosEF_SF = (evXf.*svX + evYf.*svY)./(evMagF.*svMag); % cos(alpha)
 
-    % cos angle between track 1 end and displacement vector
+    % cos angle between end track's end and displacement vector
     cosEF_D  = (evXf.*dispX + evYf.*dispY)./(evMagF.*dispMag); % cos(beta)
 
     % criteria for backward linking:
@@ -429,10 +423,8 @@ for iFrame = 1:numFrames-1
     % nearest pt needs to not be the end of the endTrack and parallel dist
     % should be smaller than backward cutoff
     % angle between tracks should be less than max forward angle
-    bwdIdx=find(dPerp<=(fluctRad+dPara*tan(maxBAngle)) & (dPara>fluctRad & dPara<=cutBwdPerVec(sAll)) & cosTheta>=cos(maxFAngle));
+    bwdIdx=find(dPerp<=(fluctRad+dPara*tan(maxBAngle)) & (dPara>0 & dPara<=cutBwdPerVec(sAll)) & cosTheta>=cos(maxFAngle));
 
-    bwdIdx1=find(dPerp<=(fluctRad) & (dPara>fluctRad & dPara<=cutBwdPerVec(sAll)) & cosTheta>=cos(maxFAngle));
-    
     if ~isempty(bwdIdx)
         % record indices and parts of cost for forward links
         indx1(linkCount:linkCount+length(bwdIdx)-1) = endLinkIdx(bwdIdx);
@@ -448,21 +440,30 @@ for iFrame = 1:numFrames-1
     % parallel dist (dPara) must be 0 (indicates closest pt is the end pt)
     % end-start dist must be smaller than forward cutoff
     % end-displacement angle must be smaller than max forward angle
-    % angle between tracks should be less than max forward angle 
+    % angle between tracks should be less than max forward angle
     fwdIdx1=find(dPerp<=cutFwdPerVec(sAll) & dPara==0 & cosEF_D>=cos(maxFAngle) & cosTheta>=cos(maxFAngle));
-    % but also count those tracks falling within fluctRad of the track
-    % end in the backward direction as forward links
-    fwdIdx2=setdiff(find(dispMag<=fluctRad),fwdIdx1);
-    
-    if ~isempty(unique([fwdIdx1; fwdIdx2]))
-        % for forward links, currently cosTheta=cosEF_SF and dPerp=dispMag
-        % reassign dPerp and dPara with components of displacement vector and
-        % cosTheta with more accurate measurement of cos(alpha)
+
+    % for forward links, currently cosTheta=cosEF_SF and dPerp=dispMag
+    % reassign dPerp and dPara with components of displacement vector
+    if ~isempty(fwdIdx1)
         dPara(fwdIdx1)=dPerp(fwdIdx1).*cosEF_D(fwdIdx1);
         dPerp(fwdIdx1)=sqrt(dPerp(fwdIdx1).^2-dPara(fwdIdx1).^2);
-        cosTheta(fwdIdx1)=cosEF_SF(fwdIdx1);
+    end
+
+    % but also count those tracks falling within fluctRad of the track
+    % end in the backward direction as forward links. here we calculate
+    % dispMagApparent, which is the hypotenuse length of the triangle
+    % formed by dPara and dPerp (as opposed to the Euclidean distance
+    % between them, which is captured by dispMag)
+    dispMagApparent = sqrt(dPara.^2+dPerp.^2);
+    fwdIdx2=setdiff(find(dispMagApparent<=fluctRad & cosTheta>=cos(maxFAngle)),fwdIdx1);
+    
+    % combine them
+    fwdIdx=[fwdIdx1; fwdIdx2];
+    
+    if ~isempty(fwdIdx)
         
-        fwdIdx=[fwdIdx1; fwdIdx2];
+        
 
         % record indices and parts of cost for forward links
         indx1(linkCount:linkCount+length(fwdIdx)-1) = endLinkIdx(fwdIdx);
@@ -473,46 +474,48 @@ for iFrame = 1:numFrames-1
         costComponents(linkCount:linkCount+length(fwdIdx)-1,1:4) = [dPerp(fwdIdx) dPara(fwdIdx) cosTheta(fwdIdx) ones(length(fwdIdx),1)];
         linkCount = linkCount+length(fwdIdx);
     end
-    
-    if doTest==1
-        
-        img(sub2ind(size(img),sY(fwdIdx),sX(fwdIdx)))=1;
-        img(sub2ind(size(img),sY(bwdIdx),sX(bwdIdx)))=2;
-        img(sub2ind(size(img),sY(bwdIdx1),sX(bwdIdx1)))=3;
 
-        
-        figure(gcf)
-        
-            hold on
-            imagesc(img); 
-            plot(xtemp,ytemp,'linewidth',2)            
-            axis equal
-            scatter(xtemp,ytemp,'b.')
-            scatter(xtemp(end),ytemp(end),'b*')
-        % show velocity vectors for those simulated start points not
-        % selected as either forward or backward links
-        %quiver(sX(setdiff(sAll,[fwdIdx; bwdIdx])),sY(setdiff(sAll,[fwdIdx; bwdIdx])),...
-        %   svX(setdiff(sAll,[fwdIdx; bwdIdx])),svY(setdiff(sAll,[fwdIdx; bwdIdx])),'k')
-        
-%         % green are all backward links
-%         quiver(sX(bwdIdx),sY(bwdIdx),svX(bwdIdx),svY(bwdIdx),'g')
-%         % red are backward links within sausage only - not used right now
-%         quiver(sX(bwdIdx1),sY(bwdIdx1),svX(bwdIdx1),svY(bwdIdx1),'r')
-%         % blue are forward links
-%         quiver(sX(fwdIdx),sY(fwdIdx),svX(fwdIdx),svY(fwdIdx),'b')
-        
-        %plusTipSearchRadPlot(trackEndPxyVxy(endLinkIdx(1),:),cutoffDistFwd,maxFAngle)
-        %plusTipSearchRadPlot([1 1 -1 -1].*trackEndPxyVxy(endLinkIdx(1),:),cutoffDistBwd,maxBAngle)
+    % some candidates will be in both fwd and bwd lists because the bwd
+    % criterion specifies dPara>0, which includes some in the fluctation
+    % radius captured by the fwdIdx.  we leave those in the fwdIdx list and
+    % get rid of them from the bwdIdx list.
+    bwdIdx=setdiff(bwdIdx,fwdIdx);
+
+    if doTest==1
+
+        for iEnd=endRange
+            % get only those indices corresponding to the current end
+            idxTemp=find(endCounter==iEnd);
+
+            % if there are some, make an image where the forward cone is
+            % green, the backward cone is red, and other pixels in blue
+            if ~isempty(idxTemp)
+
+                if isempty(intersect(idxTemp,fwdIdx)) && isempty(intersect(idxTemp,bwdIdx))
+                    continue
+                end
+                img=zeros(max(sYall(idxTemp)),max(sXall(idxTemp)));
+                img(sub2ind(size(img),sYall(intersect(idxTemp,fwdIdx)),sXall(intersect(idxTemp,fwdIdx))))=1;
+                img(sub2ind(size(img),sYall(intersect(idxTemp,bwdIdx)),sXall(intersect(idxTemp,bwdIdx))))=2;
+
+
+                figure
+                imagesc(img);
+                hold on
+                x=xTemp{iEnd,1};
+                y=yTemp{iEnd,1};
+                plot(x,y,'linewidth',2)
+                axis equal
+                scatter(x,y,'b.')
+                scatter(x(end),y(end),'b*')
+
+            end
+        end
+
     end
 end
 
 
-% figure 
-% hold on
-% for i=5:5:20
-% plot(1:20,1+tan(i*pi/180).*[1:20])
-% plot(1:20,-(1+tan(i*pi/180).*[1:20]))
-% end
 
 indx1(linkCount:end) =[];
 indx2(linkCount:end) =[];
@@ -523,22 +526,23 @@ costComponents(:,5)=sFrameAll(indx2)-eFrameAll(indx1);
 type=costComponents(:,4);
 
 % calculate the cost
-d1NormFactor=prctile(costComponents(:,1),99);
-cost=1.5.^costComponents(:,5).*(costComponents(:,1)./d1NormFactor + (1-costComponents(:,3)));
-
+costPerp = costComponents(:,1)./prctile(costComponents(:,1),99); % normalized dperp only
+costPara = costComponents(:,2)./prctile(costComponents(:,2),99); % normalized dpara only
+costAngle = 1-costComponents(:,3);                               % 1-cos(angle) only
+costPerpParaAngle = costPerp + costPara + costAngle;             
+cost = 1.1.^costComponents(:,5).*costPerpParaAngle; % for now, this seems to be the best cost
 
 % plot histograms of costs for forward and backward
-doPlot=0;
+% doPlot=1;
 if doPlot==1
-    % to make a stacked plot we need equal sample sizes for both forward and
-    % backward populations.  here we find the max sample size which is the
-    % min of nForwardEvents or nBackwardEvents
-    m=min(length(find(type==1)),length(find(type==2)));
-    sub1=randsample(find(type==1),m); % forward indices
-    sub2=randsample(find(type==2),m); % backward indices
+    % define populations for forward/backward linkings costs (all tracks)
+    pop1=cost(type==1); % forward
+    pop2=cost(type==2); % backward
 
-    pop1=cost(sub1); % sampled forward costs
-    pop2=cost(sub2); % sampled backward costs
+    % put them into a matrix
+    M=nan(max([length(pop1) length(pop2)]),2);
+    M(1:length(pop1),1)=pop1;
+    M(1:length(pop2),2)=pop2;
 
     % create x-axis bins spanning all costs in sample
     n=linspace(min([pop1;pop2]),max([pop1;pop2]),25);
@@ -547,55 +551,82 @@ if doPlot==1
     [x1,nbins1] = histc(pop1,n); % forward
     [x2,nbins2] = histc(pop2,n); % backward
 
+    % make new matrix of binned samples
+    M=nan(max([length(x1) length(x2)]),2);
+    M(1:length(x1),1)=x1;
+    M(1:length(x2),2)=x2;
+
     % make the plot
-    subplot(2,1,1)
-    bar(n,[x1 x2],'stack')
-    colormap([1 0 0;0 0 1])
-    legend('Forward Costs','Shrinkage Costs')
-    %title('Cost for all tracks')
+    figure
+    bar(n,M,'stack')
+    colormap([1 0 0; 0 0 1])
+    legend('Forward Costs','Shrinkage Costs','Location','best')
+    title('Cost for all tracks')
+    xlabel('cost');
+    ylabel('number of track pairs');
     hold on
     deathCost=prctile(cost,90);
     plot([deathCost;deathCost],[0,max([x1+x2])])
+    text(deathCost,max([x1+x2])/2,['\leftarrow ' 'death cost'])
+    %saveas(gcf,[histDir filesep 'allTracksCostStackedHist.fig'])
+    %saveas(gcf,[histDir filesep 'allTracksCostStackedHist.tif'])
 
-    % get histogram of costs for those ends which only link to one start
+    % get indices from endsToConsider with only 1 potential start link
     [u,num]=countEntries(indx1);
-    only1=u(num==1); % indices from endsToConsider with only 1 potential start link
+    only1=u(num==1);
 
     costSingles=cost(cell2mat(arrayfun(@(x) find(indx1==x),only1,'uniformoutput',0)));
     typeSingles=type(cell2mat(arrayfun(@(x) find(indx1==x),only1,'uniformoutput',0)));
 
-    m=min(length(find(typeSingles==1)),length(find(typeSingles==2)));
-    sub1=randsample(find(typeSingles==1),m); % forward indices
-    sub2=randsample(find(typeSingles==2),m); % backward indices
+    % define populations for forward/backward linkings costs (tracks with only one link)
+    pop1=costSingles(typeSingles==1); % forward
+    pop2=costSingles(typeSingles==2); % backward
 
-    pop1=costSingles(sub1); % sampled forward costs
-    pop2=costSingles(sub2); % sampled backward costs
+    % put them into a matrix
+    M=nan(max([length(pop1) length(pop2)]),2);
+    M(1:length(pop1),1)=pop1;
+    M(1:length(pop2),2)=pop2;
+
+    % create x-axis bins spanning all costs in sample
+    %n=linspace(min([pop1;pop2]),max([pop1;pop2]),25);
+    % here let's use the same span for all costs
 
     % bin the samples
     [x1,nbins1] = histc(pop1,n); % forward
     [x2,nbins2] = histc(pop2,n); % backward
 
+    % make new matrix of binned samples
+    M=nan(max([length(x1) length(x2)]),2);
+    M(1:length(x1),1)=x1;
+    M(1:length(x2),2)=x2;
+
     % make the plot
-    subplot(2,1,2)
-    bar(n,[x1 x2],'stack')
-    colormap([1 0 0;0 0 1])
-    %     legend('Forward Costs','Shrinkage Costs')
-    %     title('Costs for track ends with only one potential link')
+    figure
+    bar(n,M,'stack')
+    colormap([1 0 0; 0 0 1])
+    legend('Forward Costs','Shrinkage Costs','Location','best')
+    title('Cost for tracks with only one potential link')
+    xlabel('cost');
+    ylabel('number of track pairs');
     hold on
     deathCost=prctile(cost,90);
     plot([deathCost;deathCost],[0,max([x1+x2])])
+    text(deathCost,max([x1+x2])/2,['\leftarrow ' 'death cost'])
+    %saveas(gcf,[histDir filesep 'singleTracksCostStackedHist.fig'])
+    %saveas(gcf,[histDir filesep 'singleTracksCostStackedHist.tif'])
 
 end
 
-% plot those tracks with more than 3 potential connections and their costs
+% plot those tracks with 3 potential connections and their costs
+% doPlot=1;
 if doPlot==1
     figure
     imagesc(.75*zeros(round(max(py(:))),round(max(px(:))))); colormap gray
     hold on
 
     [u,num]=countEntries(indx1);
-    c=u(num>3);
-    for j=1:length(c);
+    c=u(num==3);
+    for j=1:5 %length(c);
         b=find(indx1==c(j));
         [indx1(b) indx2(b) type(b) cost(b)]
         for i=1:length(b)
@@ -618,21 +649,21 @@ if doPlot==1
             scatter(currentTrackS(:,1),currentTrackS(:,2),'b.')
 
             % plot possible connections
-            if type(iEnd)==1
+            if type(idx)==1
                 x=[currentTrackE(end,1);currentTrackS(1,1)];
                 y=[currentTrackE(end,2);currentTrackS(1,2)];
-                plot(x,y,'c','LineWidth',2)
+                plot(x,y,'c')
                 text(mean(x),mean(y),[' \leftarrow ' sprintf('%3.2f',cost(idx))],'color','c');
             else
                 x=[currentTrackE(end,1);currentTrackS(1,1)];
                 y=[currentTrackE(end,2);currentTrackS(1,2)];
-                plot(x,y,'y','LineWidth',2)
+                plot(x,y,'y')
                 text(mean(x),mean(y),[sprintf('%3.2f',cost(idx)) '\rightarrow '],'color','y','horizontalAlignment','right');
             end
 
             % end track end vectors
             %quiver(currentTrackE(end,1),currentTrackE(end,2),xyzVel(indx1(iEnd),1),xyzVel(indx1(iEnd),2),'r')
-            quiver(trackEndPxyVxy(indx1(idx),1),trackEndPxyVxy(indx1(idx),2),trackEndPxyVxy(indx1(idx),3),trackEndPxyVxy(indx1(idx),4),'g')
+            quiver(trackEndPxyVxy(indx1(idx),1),trackEndPxyVxy(indx1(idx),2),trackEndPxyVxy(indx1(idx),3),trackEndPxyVxy(indx1(idx),4),'b')
             % start track end vectors
             %quiver(currentTrackS(end,1),currentTrackS(end,2),xyzVel(indx2(iStart),1),xyzVel(indx2(iStart),2),'r')
             quiver(trackEndPxyVxy(indx2(idx),1),trackEndPxyVxy(indx2(idx),2),trackEndPxyVxy(indx2(idx),3),trackEndPxyVxy(indx2(idx),4),'b')
@@ -640,7 +671,6 @@ if doPlot==1
         end
 
     end
-
     axis equal
 end
 
@@ -668,7 +698,7 @@ costBD = prctile(cost,90);
 %get the cost for the lower right block
 costLR = min(min(min(costMat))-1,-1);
 
-% % %create cost matrix that allows for births and deaths
+% create cost matrix that allows for births and deaths
 costMat = [costMat ... %costs for links (gap closing + merge/split)
     spdiags([costBD*ones(numTracks,1); altCostSplit],0,numEndSplit,numEndSplit); ... %costs for death
     spdiags([costBD*ones(numTracks,1); altCostMerge],0,numStartMerge,numStartMerge) ...  %costs for birth
@@ -696,10 +726,12 @@ function [dPerp,dPara,evY,evX]=pt2segDist(segYX,endTrackStartPxyVxy,ptYX,maxCuto
 % lattice, not the euclidean distance from track end to the candidate start.
 % dPerp is perpendicular to the line segment unless of course
 % the point of interest is nearest one of the two segment ends; then it is
-% defined as the Euclidean distance.
-
-% to extend the track in the negative direction, I suggest adding more
-% points here to segYX at the start....
+% defined as the Euclidean distance.  to avoid dPerp being zero in the
+% backward direction (along the lattice), we add "phantom points" before
+% the first point of segYX, extending the lattice backward in the direction
+% of the end track's start velocity.  this extrapolation is not implemented
+% for the forward direction, as dPerp = 0 is one of the criterion for a
+% point to be considered in the forward direction.
 
 if doPlot==1
     figure
@@ -707,12 +739,16 @@ end
 
 segYXorig=segYX;
 
-% find how many phantom pts are needed to extend bwd vector past max bwd
-% cutoff
+% find how many phantom pts are needed to extend bwd vector past max bwd cutoff
+% endTrackStartPxyVxy is not the whole matrix - only for this particular end
+% track
 endMag=sqrt(sum(endTrackStartPxyVxy(1,3:4).^2));
 nRepPhantom=ceil(max(maxCutoff)/endMag);
 
-phantomYX=repmat(endTrackStartPxyVxy(1,2:-1:1),[nRepPhantom,1])-repmat([nRepPhantom:-1:1]',[1,2]).*repmat(endTrackStartPxyVxy(1,4:-1:3),[nRepPhantom,1]);
+% create the phantom points extending back from end track's first pt,
+% pointing towards it with the end track's starting velocity
+phantomYX=repmat(endTrackStartPxyVxy(1,2:-1:1),[nRepPhantom,1])-...
+    repmat([nRepPhantom:-1:1]',[1,2]).*repmat(endTrackStartPxyVxy(1,4:-1:3),[nRepPhantom,1]);
 segYX=[phantomYX; segYX];
 
 % treat every consecutive pair of points in segYX as a line segment BC
@@ -797,8 +833,12 @@ for i=1:size(ptYX,1)
     dPara(i)=nansum(sqrt(sum(diff(temp(d1Idx+1:end,:)).^2,2)));
 
     if doPlot==1
+        % show all the pts to check as blue dot
+        scatter(ptYX(:,2),ptYX(:,1),'.')
+
         % plot end track as a blue line
         plot(segYX(:,2),segYX(:,1))
+        plot(segYXorig(:,2),segYXorig(:,1),'LineWidth',2)
         hold on;
         % add blue dots for detection events
         scatter(temp(:,2),temp(:,1),'b.')

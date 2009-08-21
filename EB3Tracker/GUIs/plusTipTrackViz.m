@@ -23,7 +23,7 @@ function varargout = plusTipTrackViz(varargin)
 
 % Edit the above text to modify the response to help plusTipTrackViz
 
-% Last Modified by GUIDE v2.5 12-Aug-2009 10:53:46
+% Last Modified by GUIDE v2.5 13-Aug-2009 06:55:40
 
 
 % Begin initialization code - DO NOT EDIT
@@ -59,6 +59,7 @@ handles.output = hObject;
 
 handles.getStr = 0;
 handles.loadProjList = 0;
+handles.loadProjList = 0;
 
 handles.homeDir=pwd;
 handles.projData=[];
@@ -81,6 +82,12 @@ handles.ask4select=0;
 handles.selectedTracks=[];
 handles.plotCurrentOnly=[];
 handles.movieInfo=[];
+
+
+handles.xaxisScatter='growthSpeed';
+handles.yaxisScatter='growthLifetime';
+handles.xScatterPercent=50;
+handles.yScatterPercent=50;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -115,36 +122,38 @@ function getProjPush_Callback(hObject, eventdata, handles)
 % hObject    handle to getProjPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');
 
-% here we filter out any sub-directories and also projects that have not
-% been analyzed (don't have projData)
 if ~isempty(handles.projList)
+    % here we do NOT filter out any sub-directories
     a=struct2cell(handles.projList);
     a=a(2,:)';
     a=sort(a);
-%     b=cellfun(@isempty, strfind(a,'sub'));
-%     a=a(b);
+    
+    % check for existence of projData in meta folder - if it's not there,
+    % the project has not been tracked/processed, so we cannot visualize it
     b=zeros(length(a),1);
     for i=1:length(a)
-        % check for existence of projData in meta folder
-        b(i)=exist([a{i} filesep 'meta' filesep 'projData.mat'],'file')==2;
+        b(i)=exist([formatPath(a{i}) filesep 'meta' filesep 'projData.mat'],'file')==2;
     end
     a=a(logical(b));
 
     % allow only one project to be selected
-    [selection,selectionList]=listSelectGUI(a,1,'move');
+    [selection,selectionList]=listSelectGUI(a,1,'move',1);
 
-    %
+    % if a project was selected, save projData info and get data
     if ~isempty(selection)
-        handles.dataDir=selectionList{1,1};
+        handles.dataDir=formatPath(selectionList{1,1});
         p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
         handles.projData=p.projData;
     else
+        msgbox('No projects selected or tracking has not been completed.')
         handles.dataDir=[];
         handles.projData=[];
     end
 else
+    msgbox('No projects selected.')
     handles.dataDir=[];
     handles.projData=[];
 end
@@ -463,6 +472,188 @@ function getHelpPush_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to getHelpPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+set(hObject,'CData',imread('help_icon.bmp'));
 
-import_icons; % Import icons from bmp files
-set(hObject,'CData',helpIcon);
+
+% --- Executes on button press in getProjListFile_check.
+function getProjListFile_check_Callback(hObject, eventdata, handles)
+% hObject    handle to getProjListFile_check (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of getProjListFile_check
+handles.loadProjList=get(hObject,'Value');
+guidata(hObject, handles);
+
+
+% --- Executes on selection change in xaxisScatterDrop.
+function xaxisScatterDrop_Callback(hObject, eventdata, handles)
+% hObject    handle to xaxisScatterDrop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns xaxisScatterDrop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from xaxisScatterDrop
+val = get(hObject,'Value');
+
+% string labels in drop down menu
+% 
+% Growth speed
+% Growth lifetime
+% Growth displacement
+% Shrinkage speed
+% Shrinkage lifetime
+% Shrinkage displacement
+% Gap speed
+% Gap lifetime
+% Gap displacement
+
+group = {...
+    'growthSpeed',... 
+    'growthLifetime',... 
+    'growthDisp',... 
+    'shrinkSpeed',...
+    'shrinkLifetime',...
+    'shrinkDisp'...
+    'gapSpeed',...
+    'gapLifetime',...
+    'gapDisp',...
+    };
+
+handles.xaxisScatter=group{val};
+
+guidata(hObject, handles);
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function xaxisScatterDrop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to xaxisScatterDrop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function xaxisScatterPerc_Callback(hObject, eventdata, handles)
+% hObject    handle to xaxisScatterPerc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of xaxisScatterPerc as text
+%        str2double(get(hObject,'String')) returns contents of xaxisScatterPerc as a double
+handles.xScatterPercent = str2double(get(hObject,'String'));
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function xaxisScatterPerc_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to xaxisScatterPerc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function yaxisScatterPerc_Callback(hObject, eventdata, handles)
+% hObject    handle to yaxisScatterPerc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of yaxisScatterPerc as text
+%        str2double(get(hObject,'String')) returns contents of yaxisScatterPerc as a double
+handles.yScatterPercent = str2double(get(hObject,'String'));
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function yaxisScatterPerc_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to yaxisScatterPerc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in yaxisScatterDrop.
+function yaxisScatterDrop_Callback(hObject, eventdata, handles)
+% hObject    handle to yaxisScatterDrop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns yaxisScatterDrop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from yaxisScatterDrop
+val = get(hObject,'Value');
+
+% string labels in drop down menu
+% 
+% Growth speed
+% Growth lifetime
+% Growth displacement
+% Shrinkage speed
+% Shrinkage lifetime
+% Shrinkage displacement
+% Gap speed
+% Gap lifetime
+% Gap displacement
+
+group = {...
+    'growthSpeed',... 
+    'growthLifetime',... 
+    'growthDisp',... 
+    'shrinkSpeed',...
+    'shrinkLifetime',...
+    'shrinkDisp'...
+    'gapSpeed',...
+    'gapLifetime',...
+    'gapDisp',...
+    };
+
+handles.yaxisScatter=group{val};
+
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function yaxisScatterDrop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to yaxisScatterDrop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in quadScatterPlotPush.
+function quadScatterPlotPush_Callback(hObject, eventdata, handles)
+% hObject    handle to quadScatterPlotPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if ~isfield(handles,'projData')
+    handles.projData=[];
+end
+param1=handles.xaxisScatter;
+cutoff1=handles.xScatterPercent;
+param2=handles.yaxisScatter;
+cutoff2=handles.yScatterPercent;
+[thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,handles.projData);
+

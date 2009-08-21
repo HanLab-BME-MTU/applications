@@ -22,7 +22,7 @@ function varargout = plusTipAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipAnalysis
 
-% Last Modified by GUIDE v2.5 12-Aug-2009 09:44:28
+% Last Modified by GUIDE v2.5 12-Aug-2009 18:38:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -114,16 +114,28 @@ function getProjPush_Callback(hObject, eventdata, handles)
 
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');
 
-% here we filter out any sub-directories
 if ~isempty(handles.projList)
+    % here we filter out any sub-directories
     a=struct2cell(handles.projList);
     a=a(2,:)';
     a=sort(a);
     b=cellfun(@isempty, strfind(a,'sub'));
-    [selection,selectionList]=listSelectGUI(a(b),[],'move');
-    handles.projList=handles.projList(selection,1);
+    a=a(b);
+    
+    % don't look for tracking results as in plusTipTrackViz - need to
+    % collect untracked projects for tracking!
+    
+    % allow multiple projects to be selected
+    [selection,selectionList]=listSelectGUI(a(b),[],'move',1);
+
+    % if a project was selected, save projData info and get data
+    if ~isempty(selection)
+        handles.projList=handles.projList(selection,1);
+    else
+        handles.projList=[];
+    end
 else
-    disp('No projects found')
+    msgbox('No projects selected.')
     handles.projList=[];
 end
 guidata(hObject, handles);
@@ -609,13 +621,13 @@ function fluctRad_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 
-% --- Executes on button press in getProjListFilek_check.
-function getProjListFilek_check_Callback(hObject, eventdata, handles)
-% hObject    handle to getProjListFilek_check (see GCBO)
+% --- Executes on button press in getProjListFile_check.
+function getProjListFile_check_Callback(hObject, eventdata, handles)
+% hObject    handle to getProjListFile_check (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of getProjListFilek_check
+% Hint: get(hObject,'Value') returns toggle state of getProjListFile_check
 handles.loadProjList=get(hObject,'Value');
 guidata(hObject, handles);
 
@@ -632,9 +644,7 @@ function getHelpPush_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to getHelpPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-
-import_icons; % Import icons from bmp files
-set(hObject,'CData',helpIcon);
+set(hObject,'CData',imread('help_icon.bmp'));
 
 
 

@@ -1,18 +1,37 @@
-function [groupData] = plusTipPoolGroupData
-
-
-% ask user to pick groups
-[projGroupDir,projGroupName]=plusTipPickGroups;
+function [groupData] = plusTipPoolGroupData(useSavedGrp)
 
 % get output directory
 histDir = uigetdir(pwd,'Please select output directory.');
 
+if nargin<1 || isempty(useSavedGrp)
+    % ask user to pick groups
+    [projGroupDir,projGroupName]=plusTipPickGroups(histDir);
+else
+    homeDir=pwd;
+    cd([histDir filesep '..'])
+    [fileName,pathName] = uigetfile('*.mat','Select saved groups file');
+    if fileName==0
+        return
+    end
+    load([pathName filesep fileName]);
+    cd(homeDir)
+end
+
+
+
 % count unique groups and find out which movies go in which group
+projGroupName=cellfun(@(x) strrep(x,'-','_'),projGroupName,'uniformoutput',0);
+projGroupName=cellfun(@(x) strrep(x,' ','_'),projGroupName,'uniformoutput',0);
+projGroupName=cellfun(@(x) ['grp_' x],projGroupName,'uniformoutput',0);
+
+
 [grpNames,m,movGroupIdx] = unique(projGroupName);
+[b,idx]=sort(m);
+grpNames=grpNames(idx);
 
 
 mCount=1; % all-movie counter
-movCount=1; % in-group movie counter 
+movCount=1; % in-group movie counter
 allGrwthSpdCell=cell(1,length(projGroupName)); % cell array for holding growth speeds from groups
 % iterate thru groups
 for iGroup = 1:length(grpNames)
@@ -27,9 +46,9 @@ for iGroup = 1:length(grpNames)
     growthSpeeds=[];
     meanStdGrowth=[];
     data=[];
-    
+
     % these movies are in iGroup - get big info matrix into cell array
-    tempIdx=find(movGroupIdx==iGroup);
+    tempIdx=strmatch(grpNames(iGroup),projGroupName,'exact');
     for iMov = 1:length(tempIdx)
         temp = load([projGroupDir{tempIdx(iMov)} filesep 'meta' filesep 'projData']);
         temp2 = temp.projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
@@ -42,71 +61,71 @@ for iGroup = 1:length(grpNames)
 
     % extract all growth speeds from each movie in group
     growthSpeeds = cellfun(@(x) x(x(:,5)==1,4),data,'uniformoutput',0);
-        [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),growthSpeeds,'uniformoutput',0);
-        growthSpeeds = cellfun(@(x,y) x(y),growthSpeeds,inlierIdx,'uniformoutput',0);
-        outlierIdx=[]; inlierIdx=[];
+    %         [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),growthSpeeds,'uniformoutput',0);
+    %         growthSpeeds = cellfun(@(x,y) x(y),growthSpeeds,inlierIdx,'uniformoutput',0);
+    %         outlierIdx=[]; inlierIdx=[];
 
     % get movie-specific mean/std for growth speeds
     meanStdGrowth = cell2mat(cellfun(@(x) [mean(x) std(x)],growthSpeeds,'uniformoutput',0));
     % collect growth speeds for all movies (not just this group)
     allGrwthSpdCell(1,mCount:mCount+length(tempIdx)-1) = growthSpeeds';
-    
+
     % turn cell array into matrix
     growthSpeeds = cell2mat(growthSpeeds);
-    
+
     % extract all growth phase lifetimes from each movie in group
     growthLifes = cellfun(@(x) x(x(:,5)==1,6),data,'uniformoutput',0);
-        [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),growthLifes,'uniformoutput',0);
-        growthLifes = cellfun(@(x,y) x(y),growthLifes,inlierIdx,'uniformoutput',0);
-        outlierIdx=[]; inlierIdx=[];
-        % turn cell array into matrix
-        growthLifes = cell2mat(growthLifes);
-    
+    %         [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),growthLifes,'uniformoutput',0);
+    %         growthLifes = cellfun(@(x,y) x(y),growthLifes,inlierIdx,'uniformoutput',0);
+    %         outlierIdx=[]; inlierIdx=[];
+    % turn cell array into matrix
+    growthLifes = cell2mat(growthLifes);
+
     % extract all pause speeds from each movie in group
     pauseSpeeds = cellfun(@(x) x(x(:,5)==2,4),data,'uniformoutput',0);
-            [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),pauseSpeeds,'uniformoutput',0);
-            pauseSpeeds = cellfun(@(x,y) x(y),pauseSpeeds,inlierIdx,'uniformoutput',0);
-            outlierIdx=[]; inlierIdx=[];
-            % turn cell array into matrix
-            pauseSpeeds = cell2mat(pauseSpeeds);
-    
+    %             [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),pauseSpeeds,'uniformoutput',0);
+    %             pauseSpeeds = cellfun(@(x,y) x(y),pauseSpeeds,inlierIdx,'uniformoutput',0);
+    %             outlierIdx=[]; inlierIdx=[];
+    % turn cell array into matrix
+    pauseSpeeds = cell2mat(pauseSpeeds);
+
     % extract all pause phase lifetimes from each movie in group
     pauseLifes = cellfun(@(x) x(x(:,5)==2,6),data,'uniformoutput',0);
-            [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),pauseLifes,'uniformoutput',0);
-            pauseLifes = cellfun(@(x,y) x(y),pauseLifes,inlierIdx,'uniformoutput',0);
-            outlierIdx=[]; inlierIdx=[];    
-            % turn cell array into matrix
-            pauseLifes = cell2mat(pauseLifes);            
-    
+    %             [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),pauseLifes,'uniformoutput',0);
+    %             pauseLifes = cellfun(@(x,y) x(y),pauseLifes,inlierIdx,'uniformoutput',0);
+    %             outlierIdx=[]; inlierIdx=[];
+    % turn cell array into matrix
+    pauseLifes = cell2mat(pauseLifes);
+
     % extract all shrinkage speeds from each movie in group
     shrinkSpeeds = cellfun(@(x) abs(x(x(:,5)==3,4)),data,'uniformoutput',0);
-            [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),shrinkSpeeds,'uniformoutput',0);
-            shrinkSpeeds = cellfun(@(x,y) x(y),shrinkSpeeds,inlierIdx,'uniformoutput',0);
-            outlierIdx=[]; inlierIdx=[];   
-            % turn cell array into matrix
-            shrinkSpeeds = cell2mat(shrinkSpeeds);            
-    
+    %             [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),shrinkSpeeds,'uniformoutput',0);
+    %             shrinkSpeeds = cellfun(@(x,y) x(y),shrinkSpeeds,inlierIdx,'uniformoutput',0);
+    %             outlierIdx=[]; inlierIdx=[];
+    % turn cell array into matrix
+    shrinkSpeeds = cell2mat(shrinkSpeeds);
+
     % extract all shrinkage phase lifetimes from each movie in group
     shrinkLifes = cellfun(@(x) x(x(:,5)==3,6),data,'uniformoutput',0);
-            [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),shrinkLifes,'uniformoutput',0);
-            shrinkLifes = cellfun(@(x,y) x(y),shrinkLifes,inlierIdx,'uniformoutput',0);
-            outlierIdx=[]; inlierIdx=[];    
-            % turn cell array into matrix
-            shrinkLifes = cell2mat(shrinkLifes);
+    %             [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),shrinkLifes,'uniformoutput',0);
+    %             shrinkLifes = cellfun(@(x,y) x(y),shrinkLifes,inlierIdx,'uniformoutput',0);
+    %             outlierIdx=[]; inlierIdx=[];
+    % turn cell array into matrix
+    shrinkLifes = cell2mat(shrinkLifes);
 
 
     % assign group data to output structure
     groupData.(grpNames{iGroup,1}).growthSpeeds = growthSpeeds;
     groupData.(grpNames{iGroup,1}).meanStdGrowth = meanStdGrowth;
-    
-    groupData.(grpNames{iGroup,1}).growthLifetimes = growthLifes; 
-    
+
+    groupData.(grpNames{iGroup,1}).growthLifetimes = growthLifes;
+
     groupData.(grpNames{iGroup,1}).pauseSpeeds = pauseSpeeds;
-    
+
     groupData.(grpNames{iGroup,1}).pauseLifetimes = pauseLifes;
 
     groupData.(grpNames{iGroup,1}).shrinkSpeeds = shrinkSpeeds;
-    
+
     groupData.(grpNames{iGroup,1}).shrinkLifetimes = shrinkLifes;
 
     % create x-axis bins spanning all speeds in sample
@@ -144,20 +163,22 @@ for iGroup = 1:length(grpNames)
 
     saveas(gcf,[histDir filesep 'growthHist_' grpNames{iGroup,1} '.fig'])
     saveas(gcf,[histDir filesep 'growthHist_' grpNames{iGroup,1} '.tif'])
-    
+
     % update the counter
     mCount = mCount+length(tempIdx);
 
 end
 
 
-% get nMovie-vector with number of growth trajectories 
+% get nMovie-vector with number of growth trajectories
 maxSize=cellfun(@(x) length(x),allGrwthSpdCell);
 % convert cell array of growth speeds into nTraj x nMovie matrix
 allGrwthSpdMatrix=nan(max(maxSize'),length(allGrwthSpdCell));
 for i=1:length(allGrwthSpdCell)
-   allGrwthSpdMatrix(1:maxSize(i),i) = allGrwthSpdCell{1,i}; 
+    allGrwthSpdMatrix(1:maxSize(i),i) = allGrwthSpdCell{1,i};
 end
+
+
 
 % for each value, put group name into matrix
 condition=repmat(projGroupName',[max(maxSize'),1]);

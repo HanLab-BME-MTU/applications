@@ -1,4 +1,4 @@
-function [projGroupDir,projGroupName]=plusTipPickGroups
+function [projGroupDir,projGroupName]=plusTipPickGroups(saveDir)
 % plusTipPickGroups allows user to select groups of movies
 %
 % SYNOPSIS: [projGroupDir,projGroupName]=plusTipPickGroups
@@ -12,6 +12,13 @@ function [projGroupDir,projGroupName]=plusTipPickGroups
 
 
 % ask user to select projList file and check which movies have been tracked
+
+if nargin<1
+    saveResult=0;
+else
+    saveResult=1;
+end
+
 [allProjects,notDone]=plusTipCheckIfDone(2);
 
 % show only the ones that have been tracked in the selection box
@@ -59,4 +66,13 @@ end
 projGroupDir(countMovie:end)=[];
 projGroupName(countMovie:end)=[];
 
+if saveResult==1
+    fileName='groupList';
+    nameList=unique(projGroupName);
+    for i=1:length(nameList)
+        fileName=[fileName '_' nameList{i}];
+    end
+    
+    save([saveDir filesep fileName],'projGroupName','projGroupDir')
+end
 

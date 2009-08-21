@@ -69,6 +69,7 @@ switch callbackName
         else
             handles.timeRange(1)=str2double(sFVal);
         end
+        set(hObject,'String',num2str(handles.timeRange(1)));
 
     case 'endFrame'
         eFVal=get(hObject,'String');
@@ -77,6 +78,7 @@ switch callbackName
         else
             handles.timeRange(2)=str2double(eFVal);
         end
+        set(hObject,'String',num2str(handles.timeRange(1)));
 
     case 'selectTracksCheck'
         handles.ask4select=get(hObject,'Value');
@@ -134,7 +136,7 @@ switch callbackName
 
     case 'aviCheckSpeedMov'
         handles.doAvi=get(hObject,'Value');
-
+        
     case 'resetButton'
         closeGUI = handles.figure1; %handles.figure1 is the GUI figure
         guiPosition = get(handles.figure1,'Position'); %get the position of the GUI
