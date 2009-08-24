@@ -647,7 +647,7 @@ function getHelpPush_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to getHelpPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-set(hObject,'CData',imread('help_icon.bmp'));
+set(hObject,'CData',imread('help_icon.png'));
 
 
 
