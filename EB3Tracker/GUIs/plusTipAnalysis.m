@@ -25,7 +25,7 @@ function varargout = plusTipAnalysis(varargin)
 %
 % adding space to test SVN
 %
-% Last Modified by GUIDE v2.5 12-Aug-2009 18:38:37
+% Last Modified by GUIDE v2.5 28-Aug-2009 13:59:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -77,6 +77,7 @@ handles.minTrackLen=3;
 handles.minRadius=[];
 handles.maxRadius=[];
 handles.maxFAngle=45;
+handles.maxBAngle=10;
 handles.maxShrinkFactor=1.5;
 handles.fluctRad=1;
 
@@ -379,19 +380,19 @@ end
 
 
 
-function maxAngleEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to maxAngleEdit (see GCBO)
+function maxFAngleEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to maxFAngleEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of maxAngleEdit as text
-%        str2double(get(hObject,'String')) returns contents of maxAngleEdit as a double
+% Hints: get(hObject,'String') returns contents of maxFAngleEdit as text
+%        str2double(get(hObject,'String')) returns contents of maxFAngleEdit as a double
 handles.maxFAngle=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function maxAngleEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to maxAngleEdit (see GCBO)
+function maxFAngleEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to maxFAngleEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -401,6 +402,28 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+
+function maxBAngleEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to maxBAngleEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of maxBAngleEdit as text
+%        str2double(get(hObject,'String')) returns contents of maxBAngleEdit as a double
+handles.maxBAngle=str2double(get(hObject,'String'));
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function maxBAngleEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to maxBAngleEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 
 function maxShrinkFactorEdit_Callback(hObject, eventdata, handles)
@@ -461,7 +484,8 @@ if handles.doTrack==1
     set(handles.minTrackLengthEdit,'Enable','on')
     set(handles.minRadiusEdit,'Enable','on')
     set(handles.maxRadiusEdit,'Enable','on')
-    set(handles.maxAngleEdit,'Enable','on')
+    set(handles.maxFAngleEdit,'Enable','on')
+    set(handles.maxBAngleEdit,'Enable','on')
     set(handles.maxShrinkFactorEdit,'Enable','on')
     set(handles.fluctRadEdit,'Enable','on')
     
@@ -470,7 +494,8 @@ else
     set(handles.minTrackLengthEdit,'Enable','off')
     set(handles.minRadiusEdit,'Enable','off')
     set(handles.maxRadiusEdit,'Enable','off')
-    set(handles.maxAngleEdit,'Enable','off')
+    set(handles.maxFAngleEdit,'Enable','off')
+    set(handles.maxBAngleEdit,'Enable','off')
     set(handles.maxShrinkFactorEdit,'Enable','off')
     set(handles.fluctRadEdit,'Enable','off')
 end
@@ -542,7 +567,7 @@ for i=1:numProj
         if handles.doTrack==1
             disp(['Tracking project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
             plusTipTracker(handles.projList(i),handles.timeWindow,handles.minTrackLen,...
-                handles.minRadius,handles.maxRadius,handles.maxFAngle,handles.maxShrinkFactor,handles.fluctRad);
+                handles.minRadius,handles.maxRadius,handles.maxFAngle,handles.maxBAngle,handles.maxShrinkFactor,handles.fluctRad);
         end
         if handles.doMeta==1
             disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
@@ -648,6 +673,5 @@ function getHelpPush_CreateFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 set(hObject,'CData',imread('help_icon.png'));
-
 
 

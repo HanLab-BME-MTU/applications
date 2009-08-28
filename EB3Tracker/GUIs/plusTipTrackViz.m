@@ -23,7 +23,7 @@ function varargout = plusTipTrackViz(varargin)
 
 % Edit the above text to modify the response to help plusTipTrackViz
 
-% Last Modified by GUIDE v2.5 13-Aug-2009 06:55:40
+% Last Modified by GUIDE v2.5 25-Aug-2009 10:22:54
 
 
 % Begin initialization code - DO NOT EDIT
@@ -74,6 +74,7 @@ handles.indivTrack=[];
 handles.magCoef=[];
 handles.showTracks=1;
 handles.showDetect=1;
+handles.rawToo=1;
 
 handles.velLimit=inf;
 
@@ -432,23 +433,6 @@ function helpPic_ButtonDownFcn(hObject, eventdata, handles)
 open plusTipTrackViz_README.txt
 
 
-% --- Executes during object creation, after setting all properties.
-function helpPic_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to helpPic (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: place code in OpeningFcn to populate helpPic
-img=imread('qIcon.jpg');
-imagesc(img,'parent',hObject);
-axis image
-axis off
-imHandle=get(hObject,'Children');
-%info=get(hObject); info2=get(blah);
-%set(blah,'HitTest','off')
-set(imHandle,'ButtonDownFcn',@helpPic_ButtonDownFcn)
-
-
 % --- Executes on button press in getQueryStr_Check.
 function getQueryStr_Check_Callback(hObject, eventdata, handles)
 % hObject    handle to getQueryStr_Check (see GCBO)
@@ -472,7 +456,7 @@ function getHelpPush_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to getHelpPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-set(hObject,'CData',imread('help_icon.bmp'));
+set(hObject,'CData',imread('help_icon.png'));
 
 
 % --- Executes on button press in getProjListFile_check.
@@ -657,3 +641,22 @@ param2=handles.yaxisScatter;
 cutoff2=handles.yScatterPercent;
 [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,handles.projData);
 
+
+% --- Executes on button press in selectOutputDirPush.
+function selectOutputDirPush_Callback(hObject, eventdata, handles)
+% hObject    handle to selectOutputDirPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectOutputDir');
+guidata(hObject, handles);
+
+
+% --- Executes on button press in dualPanelCheck.
+function dualPanelCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to dualPanelCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of dualPanelCheck
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'dualPanelCheck');
+guidata(hObject, handles);

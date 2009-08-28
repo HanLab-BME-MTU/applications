@@ -78,10 +78,26 @@ switch callbackName
         else
             handles.timeRange(2)=str2double(eFVal);
         end
-        set(hObject,'String',num2str(handles.timeRange(1)));
+        set(hObject,'String',num2str(handles.timeRange(2)));
+
+    case 'selectOutputDir'
+        outDir=0;
+        if isfield(handles,'dataDir')
+            dirStart=handles.dataDir;
+        else
+            dirStart=pwd;
+        end
+        while isequal(outDir,0)
+            outDir=uigetdir(dirStart,'Please select OUTPUT directory for movies');
+        end
+        handles.projData.movDir=outDir;
+        cd(outDir);
 
     case 'selectTracksCheck'
         handles.ask4select=get(hObject,'Value');
+
+    case 'dualPanelCheck'
+        handles.rawToo=get(hObject,'Value');
 
     case 'showTracksCheck'
         handles.showTracks=get(hObject,'Value');
@@ -132,7 +148,7 @@ switch callbackName
 
     case 'trackMovieButton'
         plusTipTrackMovie(handles.projData,handles.indivTrack,handles.timeRange,...
-            handles.roi,handles.magCoef,handles.showTracks,handles.showDetect,handles.doAvi);
+            handles.roi,handles.magCoef,handles.showTracks,handles.showDetect,handles.doAvi,handles.rawToo);
 
     case 'aviCheckSpeedMov'
         handles.doAvi=get(hObject,'Value');
