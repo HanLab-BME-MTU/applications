@@ -20,11 +20,11 @@ for t=1:2:size(MPM,2)-2
     nr=1;
     for i=1:size(MPM,1)
         if MPM(i,t) ~= 0 && MPM(i,t+2) ~= 0
-            vector(nr,:) = MPM(i,t:t+3);
+            vector(nr,:) = MPM(i,t:t+3); %#ok<NASGU>
             nr=nr+1;
         end
     end
     % save 
-    num_ext = num2str(int8(t/2), '%03i');
+    num_ext = num2str(round(t/2), '%03i');
     save([result_Dir filesep 'vector' num_ext],'vector');
 end

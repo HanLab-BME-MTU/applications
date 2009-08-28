@@ -11,7 +11,7 @@ for iField = 1:numel(fieldNames)
     if (numel(size(VF)) == 2 && size(VF, 2) == 4)
         set(hAxes, 'NextPlot', 'add');
         
-        quiver(hAxes, VF(:, 1), VF(:, 2), VF(:, 3), VF(:, 4), 'Tag', tag, 'Color', layerColor);
+        quiver(hAxes, VF(:, 2), VF(:, 1), VF(:, 4) - VF(:, 2), VF(:, 3) - VF(:, 1), 'Tag', tag, 'Color', layerColor);
 
         return;
     end
