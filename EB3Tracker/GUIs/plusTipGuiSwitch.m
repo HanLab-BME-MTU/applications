@@ -62,23 +62,41 @@ switch callbackName
             end
         end
 
-    case 'startFrame'
+    case 'startFrameDetect'
         sFVal=get(hObject,'String');
         if isequal(lower(sFVal),'min')
-            handles.timeRange(1)=1;
+            handles.timeRangeDetect(1)=1;
         else
-            handles.timeRange(1)=str2double(sFVal);
+            handles.timeRangeDetect(1)=str2double(sFVal);
         end
-        set(hObject,'String',num2str(handles.timeRange(1)));
+        set(hObject,'String',num2str(handles.timeRangeDetect(1)));
 
-    case 'endFrame'
+    case 'endFrameDetect'
         eFVal=get(hObject,'String');
         if isequal(lower(eFVal),'max')
-            handles.timeRange(2)=handles.projData.numFrames;
+            handles.timeRangeDetect(2)=handles.projData.numFrames;
         else
-            handles.timeRange(2)=str2double(eFVal);
+            handles.timeRangeDetect(2)=str2double(eFVal);
         end
-        set(hObject,'String',num2str(handles.timeRange(2)));
+        set(hObject,'String',num2str(handles.timeRangeDetect(2)));
+        
+    case 'startFramePost'
+        sFVal=get(hObject,'String');
+        if isequal(lower(sFVal),'min')
+            handles.timeRangePost(1)=1;
+        else
+            handles.timeRangePost(1)=str2double(sFVal);
+        end
+        set(hObject,'String',num2str(handles.timeRangePost(1)));
+
+    case 'endFramePost'
+        eFVal=get(hObject,'String');
+        if isequal(lower(eFVal),'max')
+            handles.timeRangePost(2)=handles.projData.numFrames;
+        else
+            handles.timeRangePost(2)=str2double(eFVal);
+        end
+        set(hObject,'String',num2str(handles.timeRangePost(2)));
 
     case 'selectOutputDir'
         outDir=0;
@@ -116,7 +134,7 @@ switch callbackName
 
     case 'plotTracksPush'
         [handles.selectedTracks] = plusTipPlotTracks(handles.projData,[],...
-            handles.timeRange,handles.img,handles.ask4select,...
+            handles.timeRangeDetect,handles.img,handles.ask4select,...
             handles.plotCurrentOnly,handles.roi,handles.movieInfo);
 
         if ~isempty(handles.selectedTracks)
@@ -144,10 +162,10 @@ switch callbackName
         set(hObject,'String',num2str(handles.selectedTracks));
 
     case 'speedMovieButton'
-        plusTipSpeedMovie(handles.projData,handles.timeRange,handles.velLimit,handles.roi,handles.doAvi);
+        plusTipSpeedMovie(handles.projData,handles.timeRangeDetect,handles.velLimit,handles.roi,handles.doAvi);
 
     case 'trackMovieButton'
-        plusTipTrackMovie(handles.projData,handles.indivTrack,handles.timeRange,...
+        plusTipTrackMovie(handles.projData,handles.indivTrack,handles.timeRangeDetect,...
             handles.roi,handles.magCoef,handles.showTracks,handles.showDetect,handles.doAvi,handles.rawToo);
 
     case 'aviCheckSpeedMov'
@@ -161,7 +179,6 @@ switch callbackName
         close(closeGUI); %close the old GUI
         set(gcf,'Position',guiPosition); %set the position for the new GUI
 
-    otherwise
-        error('???')
+    otherwise        error('???')
 
 end

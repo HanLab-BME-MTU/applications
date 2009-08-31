@@ -66,7 +66,7 @@ handles.projData=[];
 handles.tracksFinal=[];
 
 handles.roi=[];
-handles.timeRange=[1 inf];
+handles.timeRangeDetect=[1 inf];
 
 handles.doAvi=0;
 
@@ -177,7 +177,7 @@ function startFrame_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of startFrame as text
 %        str2double(get(hObject,'String')) returns contents of startFrame as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFrame');
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFrameDetect');
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -201,7 +201,7 @@ function endFrame_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of endFrame as text
 %        str2double(get(hObject,'String')) returns contents of endFrame as
 %        a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFrame');
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFrameDetect');
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.

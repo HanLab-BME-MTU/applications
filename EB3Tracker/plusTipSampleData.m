@@ -17,19 +17,17 @@ switch prop2sample
         if ~isempty(doPlot)
             % make boxplot of group distributions
             figure
-            boxplot(cell2mat(sampleDataLargest'))
-            xlabel(' ');
-            ylabel(prop2sample);
-            set(gca,'XTickLabel',{movGroup.label}');
-            rotateticklabel(gca,30);
-            title([movGroup(1,1).common2group ' - ' prop2sample]);
+            boxplot(cell2mat(sampleDataLargest'),'labels',{movGroup.label}','notch','on','orientation','horizontal')
+            set(gca,'YDir','reverse')
+            xlabel(' ')
+            title([movGroup(1,1).common2group ' - ' prop2sample ', N=' num2str(sampSizeLargest)]);
             
-            plotDir=[doPlot filesep 'boxPlots'];
-            if ~isdir(plotDir)
-                mkdir(plotDir)
-            end
-            saveas(gcf,[plotDir filesep movGroup(1,1).common2group '_' prop2sample '.fig']);
-            close(gcf)
+%             plotDir=[doPlot filesep 'boxPlots'];
+%             if ~isdir(plotDir)
+%                 mkdir(plotDir)
+%             end
+%             saveas(gcf,[plotDir filesep movGroup(1,1).common2group '_' prop2sample '.fig']);
+%             close(gcf)
         end
 
         % sample each group for maxSampleSize values
@@ -38,8 +36,8 @@ switch prop2sample
         %initialize discrimination matrix
         tempDiscrimMat=zeros(nGroups,nGroups,nReps);
 
-        % KS test with mean subtracted = 11
-        testStructure.(prop2sample)=[11 11];
+        % KS test with median subtracted = 11
+        testStructure.(prop2sample)=[12 12];
 
         sMeans=zeros(nReps,nGroups);
         for iRep=1:nReps

@@ -1,4 +1,4 @@
-function [projGroupDir,projGroupName]=plusTipPickGroups(saveDir)
+function [projGroupDir,projGroupName]=plusTipPickGroups(saveResult)
 % plusTipPickGroups allows user to select groups of movies
 %
 % SYNOPSIS: [projGroupDir,projGroupName]=plusTipPickGroups
@@ -11,14 +11,15 @@ function [projGroupDir,projGroupName]=plusTipPickGroups(saveDir)
 %                        project
 
 
-% ask user to select projList file and check which movies have been tracked
 
-if nargin<1
+if nargin<1 || isempty(saveResult)
     saveResult=0;
+    saveDir=[];
 else
-    saveResult=1;
+    saveDir=uigetdir(pwd,'Select output directory for groupList.');
 end
 
+% ask user to select projList file and check which movies have been tracked
 [allProjects,notDone]=plusTipCheckIfDone(2);
 
 % show only the ones that have been tracked in the selection box

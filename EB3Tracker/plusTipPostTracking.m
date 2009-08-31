@@ -1,4 +1,4 @@
-function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
+function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange)
 % plusTipPostTracking extracts various statistics from EB3 tracks
 %
 %SYNOPSIS [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
@@ -14,9 +14,9 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
 %
 %OUTPUT projData          : structure with the following fields, saved in
 %                           a folder /roi_x/meta
-%  .imDir    
+%  .imDir
 %       image directory path
-%  .anDir    
+%  .anDir
 %       roi directory path
 %  .secPerFrame
 %       frame rate (seconds per frame)
@@ -36,7 +36,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
 %       vector containing all frame-to-frame displacements from the initial
 %       growth subtrack portions of all tracks
 %  .pair2pairDiffPix
-%       vector containing the difference in displacement between any two 
+%       vector containing the difference in displacement between any two
 %       frame pairs from the initial growth trajectories (before gap
 %       closing) - provides a roughly normal distribution, the width of
 %       which indicates how much intra-track speed variation there is
@@ -81,9 +81,9 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
 %  .nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix
 %       matrix containing the profile of all the tracks, where the columns
 %       represent:
-%           1. track number 
-%           2. start frame 
-%           3. end frame 
+%           1. track number
+%           2. start frame
+%           3. end frame
 %           4. velocity (microns/min)
 %           5. subtrack type
 %              (1=growth, 2=pause, 3=shrinkage, 4=unclassifed gap)
@@ -155,14 +155,14 @@ end
 
 % get interpolated positions for gaps and calculate velocities
 [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities]=...
-    getVelocitiesFromMat(tracksFinal,3);
+    getVelocitiesFromMat(tracksFinal,movieInfo,3,timeRange);
 
 %get number of tracks and number of time points
 [numTracks,numTimePoints] = size(trackedFeatureInfo);
 numTimePoints=numTimePoints/8;
 
 % without interpolation yet
-x = trackedFeatureInfo(:,1:8:end); 
+x = trackedFeatureInfo(:,1:8:end);
 y = trackedFeatureInfo(:,2:8:end);
 
 % initialize matrices for feature indices, area, and intensity
@@ -175,31 +175,42 @@ for iFrame=1:numTimePoints
     % these are the corresponding xy-coordinates
     xi=x(:,iFrame); xi(isnan(xi))=[];
     yi=y(:,iFrame); yi(isnan(yi))=[];
-    % distance matrix reveals where features coincide with those recorded
-    % in movieInfo
-    D=createDistanceMatrix([xi,yi],[movieInfo(iFrame,1).xCoord(:,1),movieInfo(iFrame,1).yCoord(:,1)]);
-    [r,c]=find(D==0); % r=track index, c=frame
 
-    [newR,idx]=sort(r); % re-order based on track
-    featIdx=c(idx); % movieInfo feature index, sorted to correspond to track indices
+    if ~isempty(xi)
+        % distance matrix reveals where features coincide with those recorded
+        % in movieInfo
+        D=createDistanceMatrix([xi,yi],[movieInfo(iFrame,1).xCoord(:,1),movieInfo(iFrame,1).yCoord(:,1)]);
+        [r,c]=find(D==0); % r=track index, c=frame
 
-    % fill in movieInfoIdx with indices from features stored in movieInfo
-    movieInfoIdx(existCoordIdx,iFrame)=featIdx;
-    % fill in feature area (pixels) at corresponding features
-    featArea(existCoordIdx,iFrame)=movieInfo(iFrame,1).amp(featIdx,1);
-    % fill in feature max intensity at corresponding features
-    featInt (existCoordIdx,iFrame)=movieInfo(iFrame,1).int(featIdx,1);
+        [newR,idx]=sort(r); % re-order based on track
+        featIdx=c(idx); % movieInfo feature index, sorted to correspond to track indices
+
+        % fill in movieInfoIdx with indices from features stored in movieInfo
+        movieInfoIdx(existCoordIdx,iFrame)=featIdx;
+        % fill in feature area (pixels) at corresponding features
+        featArea(existCoordIdx,iFrame)=movieInfo(iFrame,1).amp(featIdx,1);
+        % fill in feature max intensity at corresponding features
+        featInt (existCoordIdx,iFrame)=movieInfo(iFrame,1).int(featIdx,1);
+    end
 end
 
 
 % save misc info for output
 projData.imDir = runInfo.imDir;
 projData.anDir = runInfo.anDir;
+projData.trackingParameters.timeWindow=gapCloseParam.timeWindow;
+projData.trackingParameters.minTrackLen=gapCloseParam.minTrackLen;
+projData.trackingParameters.minSearchRadius=costMatrices(1,1).parameters.minSearchRadius;
+projData.trackingParameters.maxSearchRadius=costMatrices(1,1).parameters.maxSearchRadius;
+projData.trackingParameters.maxFAngle=costMatrices(1,2).parameters.maxFAngle;
+projData.trackingParameters.maxBAngle=costMatrices(1,2).parameters.maxBAngle;
+projData.trackingParameters.backVelMultFactor=costMatrices(1,2).parameters.backVelMultFactor;
+projData.trackingParameters.fluctRad=costMatrices(1,2).parameters.fluctRad;
 projData.secPerFrame = secPerFrame;
 projData.pixSizeNm = pixSizeNm;
 projData.numTracks = numTracks;
 projData.numFrames = numTimePoints;
-projData.xCoord = trackedFeatureInfoInterp(:,1:8:end); 
+projData.xCoord = trackedFeatureInfoInterp(:,1:8:end);
 projData.yCoord = trackedFeatureInfoInterp(:,2:8:end);
 projData.featArea = featArea;
 projData.featInt = featInt;
@@ -217,23 +228,28 @@ projData.pair2pairDiffPix=pair2pairDiffPix(~isnan(pair2pairDiffPix(:)));
 
 
 % get all feature nearest neighbor distances from all frames in one vector
-NNdist=zeros(length(vertcat(movieInfo.xCoord)),1);
+NNdist=nan(length(vertcat(movieInfo.xCoord)),1);
 count=1;
-for iFrame=1:length(movieInfo)
+for iFrame=5:length(movieInfo)
 
-    xCoord = movieInfo(iFrame).xCoord(:,1);
-    yCoord = movieInfo(iFrame).yCoord(:,1);
+    xCoord = movieInfo(iFrame).xCoord;
+    yCoord = movieInfo(iFrame).yCoord;
+    
+    if ~isempty(xCoord)
+        xCoord=xCoord(:,1);
+        yCoord=yCoord(:,1);
 
-    D=createDistanceMatrix([xCoord yCoord],[xCoord yCoord]);
-    [sD,idx]=sort(D,2);
+        D=createDistanceMatrix([xCoord yCoord],[xCoord yCoord]);
+        [sD,idx]=sort(D,2);
 
-    NNdist(count:count+length(xCoord)-1)=sD(:,2);
+        NNdist(count:count+length(xCoord)-1)=sD(:,2);
 
+    end
     count=count+length(xCoord);
 end
 
 % median NN dist
-projData.medNNdistWithinFramePix=median(NNdist);
+projData.medNNdistWithinFramePix=nanmedian(NNdist);
 
 % get mean displacement to median NN distance ratio
 projData.meanDisp2medianNNDistRatio = mean(projData.frame2frameDispPix)/projData.medNNdistWithinFramePix;
@@ -266,7 +282,7 @@ if ~isempty(ugaps)
     ugaps = [ugaps  4*ones(size(ugaps,1),1)];
     compositeMatrix = [compositeMatrix; ugaps];
 end
-    
+
 
 % put segs/gaps into one matrix and sort to see track profiles in order
 aT=sortrows(compositeMatrix,[1 2]);
@@ -280,7 +296,7 @@ aT=[aT lifeTimes totalDispPix];
 
 
 % look at fgaps - if their speed << growth phase just prior, then it's a
-% true pause.  it it is greater than 90% growth speed, reclassify it as 
+% true pause.  it it is greater than 90% growth speed, reclassify it as
 % continuation of growth.
 pauseIdx=find(aT(:,5)==2);
 beforePauseIdx=pauseIdx-1;

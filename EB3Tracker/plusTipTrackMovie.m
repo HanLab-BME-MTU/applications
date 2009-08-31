@@ -1,4 +1,4 @@
-function plusTipTrackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead)
+function plusTipTrackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead,rawToo)
 % plusTipTrackMovie makes a movie of all the tracks in a ROI or of an individual
 %
 %INPUT  projData          : output of metaEB3analysis, stored in /meta
@@ -36,6 +36,8 @@ function plusTipTrackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTrack
 %                              current frame only (dark blue)
 %       aviInstead        : 1  to make AVI movie (works in Windows only),
 %                          {0} to make MOV movie
+%       rawToo            : 1  to show raw image on left of overlay
+%                          {0} to make overlay without dual panel
 %
 %OUTPUT One or more movies and the regions of interest used to
 %       generate them
@@ -58,8 +60,11 @@ projData.anDir=formatPath(projData.anDir);
 projData.imDir=formatPath(projData.imDir);
 
 % get output directory from the user
-projData.movDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
+if ~isfield(projData,'movDir')
+    projData.movDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
+end
 if isequal(projData.movDir,0)
+    disp('No output directory selected.')
     return
 end
 cd(projData.movDir)
@@ -98,7 +103,7 @@ else % otherwise, use individul tracks
         eF=max(trackData(subIdx{i,1},3));
         % assign frame range for each individual track, disregarding user input
         % begins 3 frames before track appears and ends 3 frames after
-        timeRange(i,1)=max(1,sF-3);
+        timeRange(i,1)=max(1,sF-3); % could do sF-3 and eF+3
         timeRange(i,2)=min(projData.numFrames,eF+3);
     end
 
@@ -231,8 +236,16 @@ for iMovie=1:size(timeRange,1)
     % calculate the size of the movie from the screen size and roi dimensions
     % if magCoef is given, use it unless bigger than the maximum allowed by the
     % screen size
-    maxMagCoefW = (0.8*screenW)/(maxX-minX+1);
-    maxMagCoefL = (0.8*screenL)/(maxY-minY+1);
+    if rawToo==1
+        xRange=2*(maxX-minX+1);
+        yRange=maxY-minY+1;
+    else
+        xRange=maxX-minX+1;
+        yRange=maxY-minY+1;
+    end
+
+    maxMagCoefW = (0.8*screenW)/xRange;
+    maxMagCoefL = (0.8*screenL)/yRange;
 
     if magCoef > min([maxMagCoefW; maxMagCoefL])
         calcMagCoef = min([magCoef; maxMagCoefW; maxMagCoefL]);
@@ -240,8 +253,8 @@ for iMovie=1:size(timeRange,1)
         calcMagCoef = magCoef;
     end
 
-    movieL = (calcMagCoef*(maxY-minY+1));
-    movieW = (calcMagCoef*(maxX-minX+1));
+    movieL = (calcMagCoef*yRange);
+    movieW = (calcMagCoef*xRange);
 
     figure('Position',[round(screenW*(1-movieW/screenW)/2) round(screenL*(1-movieL/screenL)/2) movieW movieL])
 
@@ -257,11 +270,22 @@ for iMovie=1:size(timeRange,1)
         img=double(imread([char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))]));
         if showTracks==1
             % plot the tracks
-            plusTipPlotTracks(projData,subIdx{iMovie,1},[startFrame endFrame],img,0,iFrame,roiYX,[]);
+            plusTipPlotTracks(projData,subIdx{iMovie,1},[startFrame endFrame],img,0,iFrame,roiYX,[],rawToo);
+
+            img=img(minY:maxY,minX:maxX);
+            if rawToo==1
+                img=[img img];
+            end
+
         else
             % otherwise just show the image
-            imagesc(img(minY:maxY,minX:maxX))
+            img=img(minY:maxY,minX:maxX);
+            if rawToo==1
+                img=[img img];
+            end
+            imagesc(img)
             colormap gray
+            %axis equal
         end
         if showDetect~=0
             switch showDetect
@@ -280,21 +304,36 @@ for iMovie=1:size(timeRange,1)
 
                 case 2 % plot all features detected, color-coded by frame
                     nFr=length(startFrame:endFrame);
-                    xCoord=arrayfun(@(i) vertcat(movieInfo(i).xCoord(:,1)),[startFrame:endFrame]','UniformOutput',0);
-                    yCoord=arrayfun(@(i) vertcat(movieInfo(i).yCoord(:,1)),[startFrame:endFrame]','UniformOutput',0);
-                    l=arrayfun(@(i) length(xCoord{i}),[1:nFr]');
-                    col=cell2mat(arrayfun(@(i) repmat(colorOverTime(i,:),[l(i) 1]), [1:nFr]','UniformOutput',0));
-                    xCoord=cell2mat(xCoord);
-                    yCoord=cell2mat(yCoord);
+                    try
+                        xCoord=arrayfun(@(i) vertcat(movieInfo(i).xCoord(:,1)),[startFrame:endFrame]','UniformOutput',0);
+                        yCoord=arrayfun(@(i) vertcat(movieInfo(i).yCoord(:,1)),[startFrame:endFrame]','UniformOutput',0);
+                        l=arrayfun(@(i) length(xCoord{i}),[1:nFr]');
+                        col=cell2mat(arrayfun(@(i) repmat(colorOverTime(i,:),[l(i) 1]), [1:nFr]','UniformOutput',0));
+                        xCoord=cell2mat(xCoord);
+                        yCoord=cell2mat(yCoord);
+                    catch
+                        xCoord=[];
+                        yCoord=[];
+                        l=[];
+                        col=[];
+                    end
 
                 case 3 % plot all features detected in current frame only in dark blue
                     nFr=length(iFrame:iFrame);
-                    xCoord=arrayfun(@(i) vertcat(movieInfo(i).xCoord(:,1)),[iFrame:iFrame]','UniformOutput',0);
-                    yCoord=arrayfun(@(i) vertcat(movieInfo(i).yCoord(:,1)),[iFrame:iFrame]','UniformOutput',0);
-                    l=arrayfun(@(i) length(xCoord{i}),[1:nFr]');
-                    col=cell2mat(arrayfun(@(i) repmat(colorOverTime(1,:),[l(i) 1]), [1:nFr]','UniformOutput',0));
-                    xCoord=cell2mat(xCoord);
-                    yCoord=cell2mat(yCoord);
+                    try % in case no features in current frame
+                        xCoord=arrayfun(@(i) vertcat(movieInfo(i).xCoord(:,1)),[iFrame:iFrame]','UniformOutput',0);
+                        yCoord=arrayfun(@(i) vertcat(movieInfo(i).yCoord(:,1)),[iFrame:iFrame]','UniformOutput',0);
+                        l=arrayfun(@(i) length(xCoord{i}),[1:nFr]');
+                        col=cell2mat(arrayfun(@(i) repmat(colorOverTime(1,:),[l(i) 1]), [1:nFr]','UniformOutput',0));
+                        xCoord=cell2mat(xCoord);
+                        yCoord=cell2mat(yCoord);
+                    catch
+                        xCoord=[];
+                        yCoord=[];
+                        l=[];
+                        col=[];
+                    end
+
             end
 
             % remove those coordinates out of the ROI
@@ -305,6 +344,11 @@ for iMovie=1:size(timeRange,1)
             xCoord=xCoord-minX+1;
             yCoord=yCoord-minY+1;
 
+            if rawToo==1
+                xCoord=xCoord+length(img(1,:))/2;
+                % y values don't change
+            end
+
             % pot detection points
             hold on
             scatter(xCoord,yCoord,'Marker','.','cData',col);
@@ -313,6 +357,12 @@ for iMovie=1:size(timeRange,1)
 
         % plot color-coded frame number
         text(.25,.25,num2str(iFrame),'Color',colorOverTime(frmCount,:),'FontWeight','bold','HorizontalAlignment','right','Units','inches')
+
+        % make dark line down the middle of split-panel
+        if rawToo==1
+            [imL,imW]=size(img);
+            plot([imW/2; imW/2],[0; imL+1],'k','lineWidth',3)
+        end
 
         % add frame to the movie
         if aviInstead==1

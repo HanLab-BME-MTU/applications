@@ -6,35 +6,35 @@ This README explains how to do the following:
 - Run detection, tracking, and post-processing
 
 ---------------------------------------------------------------------------
-PROJECT SETUP
+1. Set Up New Project(s)
 
-A new project begins with a tiff series in a folder called "images."  As
-analysis commences, folders called roi_1, roi_2, etc. will be created.  
+A new project begins with a .tiff series in a folder called "images."  As
+analysis commences, project folders named roi_1, roi_2, etc. will be created.  
 Multiple projects will only be necessary for a given image series if
 there are multiple cells in the field of view (analysis at the sub-cellular
-scale is possible with post-processing functions).  Even in that case, it 
-is generally ok to analyze them together unless you want to look at cell-cell
-heterogeneity.
+level is possible with post-processing functions).  Even in the multi-cell
+case, it is generally fine to analyze them together unless the goal is to
+analyze cell-cell heterogeneity.
 
-For a new project, click "Set Up New Project(s)." 
-You will be prompted to select a top-level directory.  This can be any
-directory as long as there are one or more directories called "images"
-containing the tif series you want to analyze.  
+To initiate a new project, click "Set Up New Project(s)" and select a 
+parent directory.  This can be any directory containing one or more 
+sub-directories in the hierarchy called "images," which contain the .tiff 
+series of interest.  
 
-If "Draw ROI" is checked, you will be able to draw up to 9 regions-of-interest
-(ROIs) per movie.  The first frame of each movie will appear in succession
-and allow you to draw a polygons.  Left-clicking to add points and close the
-polygon by right-clicking on the first point and selecting "Create mask."  
-If "Draw ROI" is unchecked, you will be prompted to click in the center
-of the cell on the first frame.  The whole image will then be considered 
-to be the ROI for future steps. (The click simply helps the comet detector 
-estimate the local background.)
+If "Draw region of interest" is checked, you will be able to draw up to 9 
+regions of interest (ROIs) per movie.  The first frame of each movie will 
+appear in succession and allow you to draw a polygon.  Left-click to add 
+points and close the polygon by right-clicking on the first point and 
+selecting "Create mask."  If "Draw region of interest" is unchecked, you 
+will be prompted to click in the center of the cell on the first frame.  
+The whole image will then be considered to be the ROI for future steps. 
+(The click simply helps the comet detector estimate the local background.)
 
 ---------------------------------------------------------------------------
-PROJECT SELECTION
+2. Select Project(s)
 
 This step allows you to choose one or more projects (i.e. roi_1 folders) 
-for analysis.  This allows you to analyze many movies at once, provided they 
+for analysis.  You may analyze many movies as a batch, provided they 
 have the same parameters.
 
 If "Load projList" is checked, you will be asked to select one or more 
@@ -52,36 +52,71 @@ search strings.  These are strings of characters that can be used to narrow
 down the number of projects you have to scroll through when selecting
 from a long list. For example, if "ctrl" appears anywhere in the file path
 to your control movies, you may enter "ctrl" into the search string list.
-Only those projects matching all the query strings will pop up.  If 
+Only those projects matching all the query strings will appear.  If 
 "Narrow down list" is unchecked, this step is bypassed and all the projects 
 will appear in the list.
 
-From the resultant list of projects, choose one or more and use the arrow 
+From the resultant list of projects, select one or more and use the arrow 
 to move them from the left to the right.  
 
 TROUBLESHOOTING:
 
-* If you have not created a roi_x directory, it will not appear in the list. 
+* If you have not created a roi_x directory for a movie, it will not appear
+in the list. 
 
 * If no projects are found, check to make sure there are no spaces anywhere 
-in the directory path or file names.
+in the directory path or file names.  Also make sure the string "sub" does
+not appear anywhere in the path or file names - this is reserved for 
+sub-projects.
 
 * If you get the message "Select any directory above input directory", the 
 root of your Matlab current directory does not match the root directory
 where your project is stored.  Point to the relevant server location.
 
 ---------------------------------------------------------------------------
+3. Functions to Run
+
+Select which functions you want to run.  The relevant parameter boxes will
+become active.  Note that you cannot run Post-Processing without first 
+running Tracking, or Tracking without first running Detection.  Enter the 
+parameters and click "Start" to commence.
+
+After the job finishes, you may want to visualize the results.  To do this,
+call plusTipTrackViz from the Matlab command line.
+
+---------------------------------------------------------------------------
+DETECTION PARAMETERS
+
+The output of detection will be stored in the /feat directory under the
+project directory.
+
+Frame Range: frame numbers for which detection should be performed. If 
+running a batch, the same range will be used for all movies, except for
+movies where the requested min or max is above the number of images.  For 
+such movies, only the images that exist within the frame range will be 
+used.
+
+Camera Bit Depth: bit depth of the camera used to record the images.  Value
+must be 12, 14, or 16.
+
+If "Save Overlay Plots" is checked, .tiff images of the detection results
+will be saved in a sub-directory under /feat.
+
+---------------------------------------------------------------------------
 TRACKING PARAMETERS
 
-Maximum gap length (frames): max number of frames that can separate two
+The output of tracking will be stored in the /track directory under the
+project directory.
+
+Maximum Gap Length (frames): max number of frames that can separate two
 growth trajectories for them to be considered candidates for gap closing. 
 8-10 is generally a good range.
 
-Minimum track length (frames): minimum number of consecutive frames over
+Minimum Track Length (frames): minimum number of consecutive frames over
 which a feature must persist in order to be retained as a track. 3 is
 the default.
 
-Search radius range (pixels): min/max distance away from a feature's projected
+Search Radius Range (pixels): min/max distance away from a feature's projected
 position (based on its movement in the past) to consider when looking for
 candidate features in the next frame.  This will depend on the average speed,
 the frame rate, and how much heterogeneity there is between frame-to-frame  
@@ -89,17 +124,31 @@ displacements. You will probably want to try several ranges to find the
 optimal values for your data, though the tracker is not super sensitive to 
 these values.  (e.g. for 2sec data, try 15-20; for 0.8sec data, try 3-5)
 
-Maximum angle (degrees): only tracks which begin within the cones bounded
+Maximum Angle (degrees): only tracks which begin within the cones bounded
 by +/- the forward or backward angle from the end track's final direction
 will be considered as candidates for gap closing.
 
-Max shrinkage factor: how fast shrinkage is expected to occur relative to
+Max Shrinkage Factor: how fast shrinkage is expected to occur relative to
 growth.  (e.g. if a MT grows at 10 microns/min, and we assume it cannot 
 shrink faster than 15 microns/min, then this parameter is 1.5.)
 
-Fluctuation radius (pixels): the size of a small disk around a track's final
+Fluctuation Radius (pixels): the size of a small disk around a track's final
 point, within which candidate tracks are considered to be pause rather
 than actively polymerizing or depolymerizing.  This prevents small fluctuations
 in the backward direction from being classified as shrinkage events.  In
 addition, this parameter defines the smallest width of the forward and 
 backward cones.
+
+---------------------------------------------------------------------------
+POST-PROCESSING PARAMETERS
+
+The output of post-processing will be stored in the /meta directory under 
+the project directory.
+
+Frame Range: frame numbers for which post-processing should be performed.
+This may be only a subset of the frames used for detection.  Use Min/Max to 
+use the whole frame range used for detection.
+
+Frame Rate (s): Camera frame rate
+
+Pixel Size (nm): Real-space pixel size of the image.

@@ -91,6 +91,12 @@ Default is all frames. The frame range chosen here will be applied to 5a,
 chosen here.
 
 ---------------------------------------------------------------------------
+4. Select Output Directory (OPTIONAL)
+
+Select the directory in which to store movies.  Overlays and Scatterplots
+are not automatically saved.
+
+---------------------------------------------------------------------------
 5a. Overlay tracks on image with "Track Overlays"
 
 All tracks within the frame range will appear as an overlay on an image
@@ -142,6 +148,9 @@ represent the raw image.
 Because the values on the x- and y- axes must be paired, only certain 
 combinations of parameters work.  The track type (e.g. "shrinkage") must be
 the same for x- and y- axes.
+
+Note that the frame range specified in 3 is ignored; tracks from the range
+used in the post-processing step are used.
 
 ---------------------------------------------------------------------------
 

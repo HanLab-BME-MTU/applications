@@ -1,4 +1,4 @@
-function plusTipTracker(runInfo,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxShrinkFactor,fluctRad)
+function plusTipTracker(runInfo,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad)
 % plusTipTracker is the main tracking function
 
 % run diagnostics on time window parameter - get histogram of all gap lifetimes
@@ -112,13 +112,19 @@ else
     parameters.maxFAngle = maxFAngle;
 end
 
-if nargin<7 || isempty(maxShrinkFactor)
+if nargin<7 || isempty(maxFAngle)
+    parameters.maxBAngle = 10;
+else
+    parameters.maxBAngle = maxBAngle;
+end
+
+if nargin<8 || isempty(maxShrinkFactor)
     parameters.backVelMultFactor = 1.5;
 else
     parameters.backVelMultFactor = maxShrinkFactor;
 end
 
-if nargin<8 || isempty(fluctRad)
+if nargin<9 || isempty(fluctRad)
     parameters.fluctRad = 1.0;
 else
     parameters.fluctRad = fluctRad;

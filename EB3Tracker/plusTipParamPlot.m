@@ -187,7 +187,7 @@ for iColor=1:4
 end
 
 % plot the corresponding tracks on the image
-figure 
+h=figure; 
 imagesc(img); colormap gray;
 hold on
 for iColor=1:4
@@ -201,7 +201,14 @@ for iColor=1:4
         case 4 % red
             idx=find(data1<=thresh1 & data2<=thresh2);     
     end
-    
+    % make individual plot
+    figure
+    imagesc(img); colormap gray;
+    hold on
+    plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
+
+    % make overlay
+    figure(h)
     plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
 
 end

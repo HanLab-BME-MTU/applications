@@ -25,7 +25,7 @@ function varargout = plusTipAnalysis(varargin)
 %
 % adding space to test SVN
 %
-% Last Modified by GUIDE v2.5 28-Aug-2009 13:59:24
+% Last Modified by GUIDE v2.5 29-Aug-2009 17:58:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -67,7 +67,7 @@ handles.doTrack=0;
 handles.doMeta=0; 
 
 % DETECTION parameters
-handles.timeRange = [1 inf];
+handles.timeRangeDetect = [1 inf];
 handles.bitDepth  = 16; 
 handles.savePlots = 1;
 
@@ -84,6 +84,7 @@ handles.fluctRad=1;
 % META parameters
 handles.secPerFrame=[];
 handles.pixSizeNm=[];
+handles.timeRangePost=[1 inf];
 handles.doHist=1;
 
 
@@ -130,7 +131,7 @@ if ~isempty(handles.projList)
     % collect untracked projects for tracking!
     
     % allow multiple projects to be selected
-    [selection,selectionList]=listSelectGUI(a(b),[],'move',1);
+    [selection,selectionList]=listSelectGUI(a,[],'move',1);
 
     % if a project was selected, save projData info and get data
     if ~isempty(selection)
@@ -154,19 +155,19 @@ handles.getStr=get(hObject,'Value');
 guidata(hObject, handles);
 
 
-function startFrame_Callback(hObject, eventdata, handles)
-% hObject    handle to startFrame (see GCBO)
+function startFrameDetect_Callback(hObject, eventdata, handles)
+% hObject    handle to startFrameDetect (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of startFrame as text
-%        str2double(get(hObject,'String')) returns contents of startFrame as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFrame');
+% Hints: get(hObject,'String') returns contents of startFrameDetect as text
+%        str2double(get(hObject,'String')) returns contents of startFrameDetect as a double
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFrameDetect');
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function startFrame_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to startFrame (see GCBO)
+function startFrameDetect_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to startFrameDetect (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -177,20 +178,20 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-function endFrame_Callback(hObject, eventdata, handles)
-% hObject    handle to endFrame (see GCBO)
+function endFrameDetect_Callback(hObject, eventdata, handles)
+% hObject    handle to endFrameDetect (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of endFrame as text
-%        str2double(get(hObject,'String')) returns contents of endFrame as
+% Hints: get(hObject,'String') returns contents of endFrameDetect as text
+%        str2double(get(hObject,'String')) returns contents of endFrameDetect as
 %        a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFrame');  
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFrameDetect');  
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function endFrame_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to endFrame (see GCBO)
+function endFrameDetect_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to endFrameDetect (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -459,13 +460,13 @@ function doDetectCheck_Callback(hObject, eventdata, handles)
 handles.doDetect=get(hObject,'Value');
 if handles.doDetect==1
     set(handles.bitDepthEdit,'Enable','on')
-    set(handles.startFrame,'Enable','on')
-    set(handles.endFrame,'Enable','on')
+    set(handles.startFrameDetect,'Enable','on')
+    set(handles.endFrameDetect,'Enable','on')
     set(handles.savePlotCheck,'Enable','on')
 else
     set(handles.bitDepthEdit,'Enable','off')
-    set(handles.startFrame,'Enable','off')
-    set(handles.endFrame,'Enable','off')
+    set(handles.startFrameDetect,'Enable','off')
+    set(handles.endFrameDetect,'Enable','off')
     set(handles.savePlotCheck,'Enable','off')
 end
 guidata(hObject, handles);
@@ -511,10 +512,14 @@ function metaCheck_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of metaCheck
 handles.doMeta=get(hObject,'Value');
 if handles.doMeta==1
+    set(handles.startFramePost,'Enable','on')
+    set(handles.endFramePost,'Enable','on')
     set(handles.frameRateEdit,'Enable','on')
     set(handles.pixSizeEdit,'Enable','on')
     set(handles.histCheck,'Enable','on')
 else
+    set(handles.startFramePost,'Enable','off')
+    set(handles.endFramePost,'Enable','off')
     set(handles.frameRateEdit,'Enable','off')
     set(handles.pixSizeEdit,'Enable','off')
     set(handles.histCheck,'Enable','off')
@@ -560,7 +565,7 @@ for i=1:numProj
         % detection
         if handles.doDetect==1
             disp(['Detecting project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
-            plusTipCometDetector(handles.projList(i),handles.timeRange,handles.bitDepth,handles.savePlots);
+            plusTipCometDetector(handles.projList(i),handles.timeRangeDetect,handles.bitDepth,handles.savePlots);
         end
 
         % tracking
@@ -571,7 +576,7 @@ for i=1:numProj
         end
         if handles.doMeta==1
             disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
-            [projData]=plusTipPostTracking(handles.projList(i),handles.secPerFrame,handles.pixSizeNm);
+            [projData]=plusTipPostTracking(handles.projList(i),handles.secPerFrame,handles.pixSizeNm,handles.timeRangePost);
             if handles.doHist==1
                 plusTipHistograms(projData);
             end
@@ -673,5 +678,53 @@ function getHelpPush_CreateFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 set(hObject,'CData',imread('help_icon.png'));
+
+
+
+function startFramePost_Callback(hObject, eventdata, handles)
+% hObject    handle to startFramePost (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of startFramePost as text
+%        str2double(get(hObject,'String')) returns contents of startFramePost as a double
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFramePost');
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function startFramePost_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to startFramePost (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function endFramePost_Callback(hObject, eventdata, handles)
+% hObject    handle to endFramePost (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of endFramePost as text
+%        str2double(get(hObject,'String')) returns contents of endFramePost as a double
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFramePost');
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function endFramePost_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to endFramePost (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 

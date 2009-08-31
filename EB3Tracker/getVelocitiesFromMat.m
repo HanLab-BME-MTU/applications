@@ -1,9 +1,10 @@
-function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(trackedFeatureInfo,minTrackLen)
+function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(trackedFeatureInfo,movieInfo,minTrackLen,timeRange)
 % GETVELOCITIESFROMMAT fills forward and backward gaps in EB3 trajectory
 % and calculates segment velocities
 %
 % INPUT: trackedFeatureInfo : nTracks x 8*nFrames matrix resulting from
 %                             tracking or simulated data from simEBtracks.m
+%        movieInfo          : Output of feature tracking
 %        minTrackLen        : minimum number of frames a track segment
 %                             should be to get considered. segments shorter
 %                             than minTrackLen will be connected with the
@@ -33,9 +34,31 @@ function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities]
 
 % if tracksFinal is the input, convert to matrix format
 if isstruct(trackedFeatureInfo)
-    [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(trackedFeatureInfo);
+    [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatNoMS(trackedFeatureInfo,movieInfo);
     clear trackedFeatureIndx
 end
+nFrames = size(trackedFeatureInfo,2)/8;
+
+
+if nargin<4 || isempty(timeRange)
+    startFrame=1;
+    endFrame=nFrames;
+elseif isequal(unique(size(timeRange)),[1 2])
+    if timeRange(1)<=timeRange(2) && timeRange(2)<=nFrames
+        startFrame = timeRange(1);
+        endFrame = timeRange(2);
+    else
+        startFrame = 1;
+        endFrame = nFrames;
+    end
+
+else
+    error('--getVelocitiesFromMat: timeRange should be [startFrame endFrame] or [] for all frames')
+end
+
+temp=nan(size(trackedFeatureInfo));
+temp(:,8*(startFrame-1)+1:8*endFrame)=trackedFeatureInfo(:,8*(startFrame-1)+1:8*endFrame);
+trackedFeatureInfo=temp;
 
 % find whole rows full of nans and remove them
 nanRowIdx=find(sum(isnan(trackedFeatureInfo),2)==size(trackedFeatureInfo,2));

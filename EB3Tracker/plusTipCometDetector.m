@@ -45,7 +45,7 @@ if nargin<1 || isempty(runInfo)
 else
     % adjust for OS
     if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
-        error('--eb1SpotDetector: first argument should be a structure with fields imDir and anDir');
+        error('--plusTipCometDetector: first argument should be a structure with fields imDir and anDir');
     else
         [runInfo.anDir] = formatPath(runInfo.anDir);
         [runInfo.imDir] = formatPath(runInfo.imDir);
@@ -61,7 +61,7 @@ if nargin<2 || isempty(timeRange)
     startFrame = 1;
     endFrame = nImTot;
 elseif isequal(unique(size(timeRange)),[1 2])
-    if timeRange(1)<=timeRange(2) && timeRange(1)>0 && timeRange(2)<=nImTot
+    if timeRange(1)<=timeRange(2) && timeRange(2)<=nImTot
         startFrame = timeRange(1);
         endFrame = timeRange(2);
     else
@@ -70,7 +70,7 @@ elseif isequal(unique(size(timeRange)),[1 2])
     end
 
 else
-    error('--eb1SpotDetector: timeRange should be [startFrame endFrame] or [] for all frames')
+    error('--plusTipCometDetector: timeRange should be [startFrame endFrame] or [] for all frames')
 end
 nFrames = endFrame-startFrame+1;
 
@@ -90,7 +90,7 @@ end
 % check bit depth to make sure it is 12, 14, or 16 and that its dynamic
 % range is not greater than the provided bitDepth
 if sum(bitDepth==[12 14 16])~=1 || maxIntensity > 2^bitDepth-1
-    error('--eb1SpotDetector: bit depth should be 12, 14, or 16');
+    error('--plusTipCometDetector: bit depth should be 12, 14, or 16');
 end
 
 % check input for savePlots
@@ -124,21 +124,21 @@ end
 
 
 % string for number of files
-s1 = length(num2str(length(startFrame:endFrame)));
+s1 = length(num2str(endFrame));
 strg1 = sprintf('%%.%dd',s1);
 
 
 % START DETECTION
 
 % initialize structure to store info for tracking
-movieInfo(nFrames,1).xCoord = 0;
-movieInfo(nFrames,1).yCoord = 0;
-movieInfo(nFrames,1).amp = 0;
-movieInfo(nFrames,1).int = 0;
+[movieInfo(1:nImTot,1).xCoord] = deal([]);
+[movieInfo(1:nImTot,1).yCoord] = deal([]);
+[movieInfo(1:nImTot,1).amp] = deal([]);
+[movieInfo(1:nImTot,1).int] = deal([]);
 
 % get difference of Gaussians image for each frame and standard deviation
 % of the cell background, stored in stdList
-stdList=zeros(endFrame-startFrame+1,1);
+stdList=nan(nImTot,1);
 for iFrame = startFrame:endFrame
 
     % load image and normalize to 0-1
@@ -176,10 +176,6 @@ for iFrame = startFrame:endFrame
 end
 
 
-sF=max([startFrame:endFrame]-1,ones(1,nFrames));
-eF=min([startFrame:endFrame]+1,nFrames*ones(1,nFrames));
-
-
 % loop thru frames and detect
 for iFrame = startFrame:endFrame
 
@@ -199,7 +195,17 @@ for iFrame = startFrame:endFrame
 
     % thickness of intensity slices is average std from filterDiffs over
     % from one frame before to one frame after
-    stepSize=mean(stdList(sF(iFrame):eF(iFrame)));
+    if iFrame==startFrame
+        sF=iFrame;
+    else
+        sF=iFrame-1;
+    end
+    if iFrame==endFrame
+        eF=iFrame;
+    else
+        eF=iFrame+1;
+    end
+    stepSize=mean(stdList(sF:eF));
     thresh=3*stepSize;
     
     % we assume each step size down the intensity profile should be on
@@ -288,21 +294,30 @@ for iFrame = startFrame:endFrame
     %
     %             end
 
-    % centroid coordinates with 0.5 uncertainties for Khuloud's tracker
-    yCoord = 0.5*ones(nFeats,2); xCoord = 0.5*ones(nFeats,2);
-    temp = vertcat(featPropFinal.WeightedCentroid);
-    yCoord(:,1) = temp(:,2);
-    xCoord(:,1) = temp(:,1);
+    if nFeats==0
+        yCoord = [];
+        xCoord = [];
+        amp = [];
+        featI = [];
+        
+    else
+        % centroid coordinates with 0.5 uncertainties for Khuloud's tracker
+        yCoord = 0.5*ones(nFeats,2);
+        xCoord = 0.5*ones(nFeats,2);
+        temp = vertcat(featPropFinal.WeightedCentroid);
+        yCoord(:,1) = temp(:,2);
+        xCoord(:,1) = temp(:,1);
 
-    % area
-    featArea = vertcat(featPropFinal(:,1).Area);
-    amp = zeros(nFeats,2);
-    amp(:,1) = featArea;
+        % area
+        featArea = vertcat(featPropFinal(:,1).Area);
+        amp = zeros(nFeats,2);
+        amp(:,1) = featArea;
 
-    % intensity
-    featInt = vertcat(featPropFinal(:,1).MaxIntensity);
-    featI = zeros(nFeats,2);
-    featI(:,1) = featInt;
+        % intensity
+        featInt = vertcat(featPropFinal(:,1).MaxIntensity);
+        featI = zeros(nFeats,2);
+        featI(:,1) = featInt;
+    end
 
     % make structure compatible with Khuloud's tracker
     movieInfo(iFrame,1).xCoord = xCoord;

@@ -1,4 +1,4 @@
-function [selectedTracks] = plusTipPlotTracks(projData,subIdx,timeRange,img,ask4sel,plotCurrentOnly,roiYX,movieInfo)
+function [selectedTracks] = plusTipPlotTracks(projData,subIdx,timeRange,img,ask4sel,plotCurrentOnly,roiYX,movieInfo,rawToo)
 %plusTipPlotTracks overlays tracks on an image and allows user to select individual tracks
 %
 %INPUT  projData         : structure containing track info (stored in meta
@@ -36,6 +36,8 @@ function [selectedTracks] = plusTipPlotTracks(projData,subIdx,timeRange,img,ask4
 %                          as [], detected features will not be plotted.
 %                          note that all features, not just the ones
 %                          accepted by the tracking, will be plotted.
+%       rawToo            : 1  to show raw image on left of overlay
+%                          {0} to make overlay without dual panel
 %
 %OUTPUT The plot.
 
@@ -122,6 +124,10 @@ if nargin<8 || isempty(movieInfo)
     movieInfo=[];
 end
 
+if nargin<9 || isempty(rawToo)
+    rawToo=0;
+end
+
 % get track information
 trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 
@@ -141,6 +147,10 @@ maxY=ceil(max(roiYX(:,1)));
 minX=floor(min(roiYX(:,2)));
 maxX=ceil(max(roiYX(:,2)));
 img=img(minY:maxY,minX:maxX);
+
+if rawToo==1
+    img=[img img];
+end
 
 % nSubtrack x nFrames matrices of coordinates for all subtracks in subIdx
 [xMat,yMat]=plusTipGetSubtrackCoords(projData,subIdx);
@@ -166,6 +176,7 @@ end
 gcf;
 imagesc(img);
 colormap gray
+%axis equal
 
 %show coordinates on axes
 ah = gca;
@@ -195,6 +206,10 @@ frames2Plot(:,timeRange(1):timeRange(2))=1;
 xMat=xMat.*frames2Plot;
 yMat=yMat.*frames2Plot;
 
+if rawToo==1
+    xMat=xMat+length(img(1,:))/2;
+    % y values don't change
+end
 
 %hold on figure
 hold on
@@ -279,20 +294,25 @@ if ask4sel
 
             %determine the minimum distance for each chosen point
             [rowChosen,colChosen] = find(distTrack2Point==min(distTrack2Point(:)));
-            subtrackChosen=rowChosen(1);
-            trackChosen=trackData(subIdx(subtrackChosen),1);
-            frameChosen=colChosen(1);
+            if ~isempty(rowChosen)
+                subtrackChosen=rowChosen(1);
+                trackChosen=trackData(subIdx(subtrackChosen),1);
+                frameChosen=colChosen(1);
 
-            % get whole track profile
-            trackProfile=trackData(trackData(:,1)==trackChosen,:);
-            selectedTracks{count,1} = trackProfile;
+                % get whole track profile
+                trackProfile=trackData(trackData(:,1)==trackChosen,:);
+                selectedTracks{count,1} = trackProfile;
 
-            disp(['Track: ' num2str(trackChosen) ',  Frame: ' num2str(frameChosen)]);
-            disp(trackProfile)
+                disp(['Track: ' num2str(trackChosen) ',  Frame: ' num2str(frameChosen)]);
+                disp(trackProfile)
 
-            text(xMat(subtrackChosen,frameChosen),yMat(subtrackChosen,frameChosen),...
-                ['\leftarrow' num2str(trackProfile(1,1))],'Color','y','FontWeight','bold')
-            count = count+1;
+                text(xMat(subtrackChosen,frameChosen),yMat(subtrackChosen,frameChosen),...
+                    ['\leftarrow' num2str(trackProfile(1,1))],'Color','y','FontWeight','bold')
+                count = count+1;
+            else
+                h=errordlg('No tracks found.');
+                uiwait(h)
+            end
 
         end
 

@@ -125,7 +125,6 @@ doPlot=0;
 % get user-set parameters
 fluctRad=costMatParam.fluctRad;
 maxFAngle = costMatParam.maxFAngle*pi/180;
-costMatParam.maxBAngle=10; % this one's hardwired for now...
 maxBAngle = costMatParam.maxBAngle*pi/180;
 backVelMultFactor = costMatParam.backVelMultFactor;
 tMax=gapCloseParam.timeWindow;

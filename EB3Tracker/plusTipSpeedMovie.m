@@ -48,8 +48,11 @@ projData.anDir=formatPath(projData.anDir);
 projData.imDir=formatPath(projData.imDir);
 
 % get output directory from the user
-projData.movDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
+if ~isfield(projData,'movDir')
+    projData.movDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
+end
 if isequal(projData.movDir,0)
+    disp('No output directory selected.')
     return
 end
 cd(projData.movDir)
