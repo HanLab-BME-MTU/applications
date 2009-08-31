@@ -47,12 +47,12 @@ for iMovie = 1:numel(paths)
         continue;        
     end
     
-    % Get the 2 FSMCenter directory paths (Actin, TM2 or TM4)
+    % Get the 2 FSMCenter directory paths (Actin, TM2 or TM4 or TM5NM1)
     % Linux is case sensitive on file system so gives every posibility
     if isunix
-        subDirNames = {'actin', 'Actin', 'TM2', 'TM4'};
+        subDirNames = {'actin', 'Actin', 'TM2', 'TM4', 'TM5NM1'};
     else
-        subDirNames = {'actin', 'TM2', 'TM4'};
+        subDirNames = {'actin', 'TM2', 'TM4', 'TM5NM1'};
     end
     subDirPaths = cell(2, 1);
     indSubDir = 0;
