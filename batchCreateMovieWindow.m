@@ -47,7 +47,7 @@ for iMovie = 1:numel(movieData)
     currMovie.timeInterval_s = 10;
 
     % Get the mask directory
-    currMovie.masks.directory = [paths{iMovie} filesep 'Actin' filesep 'cell_mask'];
+    currMovie.masks.directory = [paths{iMovie} filesep 'Actin' filesep 'edge' filesep 'cell_mask'];
     if ~exist(currMovie.masks.directory, 'dir')
         disp(['Movie ' num2str(iMovie) '/' num2str(nMovies) ': unable to find mask directory.']);
         continue;
