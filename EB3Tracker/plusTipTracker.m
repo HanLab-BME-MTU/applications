@@ -1,39 +1,29 @@
-function plusTipTracker(runInfo,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad)
+function plusTipTracker(projData,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad,timeRange,diagnostics)
 % plusTipTracker is the main tracking function
 
-% run diagnostics on time window parameter - get histogram of all gap lifetimes
-% use 1 to run and 0 to skip this step
-gapCloseParam.diagnostics = 0;
 
-% run diagnostics on search radius range - get histogram of the linking distance 
-% enter vector containing frames of interest for which you want to make the
-% plot. keep in mind that 3 figures will be created for each frame, because
-% the linking step is repeated forward, backward, and forward.
-parameters.diagnostics = [];
-
-
-%% get runInfo in correct format
-if nargin<1 || isempty(runInfo)
+% get projData in correct format
+if nargin<1 || isempty(projData)
     homeDir=pwd;
-    runInfo.anDir=uigetdir(pwd,'Please select analysis directory');
-    cd([runInfo.anDir filesep '..'])
-    runInfo.imDir=uigetdir(pwd,'Please select image directory');
+    projData.anDir=uigetdir(pwd,'Please select analysis directory');
+    cd([projData.anDir filesep '..'])
+    projData.imDir=uigetdir(pwd,'Please select image directory');
     cd(homeDir)
 else
     % adjust for OS
-    if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
+    if ~isfield(projData,'imDir') || ~isfield(projData,'anDir')
         error('--plusTipTracker: first argument should be a structure with fields imDir and anDir');
     else
-        [runInfo.anDir] = formatPath(runInfo.anDir);
+        [projData.anDir] = formatPath(projData.anDir);
         homeDir=pwd;
-        cd(runInfo.anDir)
-        [runInfo.imDir] = formatPath(runInfo.imDir);
+        cd(projData.anDir)
+        [projData.imDir] = formatPath(projData.imDir);
         cd(homeDir)
     end
 end
 
 % load movieInfo (detection result)
-featDir  = [runInfo.anDir filesep 'feat'];
+featDir  = [projData.anDir filesep 'feat'];
 if ~isdir(featDir)
     error('--plusTipTracker: feat directory missing')
 else
@@ -44,59 +34,67 @@ else
     end
 end
 
-%% general gap closing parameters
-% maximum allowed time gap (in frames) between a track segment end and a
-% track segment start that allows linking them. if timeWindow = n, then
-% there are n-1 frames between the last detection event of the first track
-% segment and the first detection event of the second track segment.
-if nargin<2 || isempty(timeWindow)
-    error('--plusTipTracker: time window input missing')
-else
-    gapCloseParam.timeWindow = timeWindow;
-end
-% minimum length of track segments (in frames) from linking to be used in
-% gap closing. 1 if everything, 2 if all tracks 2 or more frames long, etc.
-if nargin<3 || isempty(minTrackLen)
-    error('--plusTipTracker: min track length input missing')
-else
-    gapCloseParam.minTrackLen = minTrackLen;
-end
-
-% 1 if merging and splitting are to be considered, 0 otherwise.
-% even though EB comets might overlap in a given frame, they do not merge
-% or split physically, so this should be zero.
-gapCloseParam.mergeSplit = 0;
-
 
 %% cost matrix for frame-to-frame linking
 
 %function name
 costMatrices(1).funcName = 'plusTipCostMatLinearMotionLink'; 
 
-%used 10 and 15 for 2sec data,3/5 for Claudio 
 %minimum allowed search radius. the search radius is calculated on the spot
 %in the code given a feature's motion parameters. if it happens to be
 %smaller than this minimum, it will be increased to the minimum.
-if nargin<4 || isempty(minRadius)
-    error('--plusTipTracker: min search radius input missing')
-else
-    parameters.minSearchRadius = minRadius;
-end
+parameters.minSearchRadius = minRadius;
+
 %maximum allowed search radius. if a feature's calculated search radius is
 %larger than this maximum, it will be reduced to this maximum.
-if nargin<5 || isempty(maxRadius)
-    error('--plusTipTracker: max search radius input missing')
-else
-    parameters.maxSearchRadius = maxRadius;
-end
+parameters.maxSearchRadius = maxRadius;
 
 parameters.brownStdMult = 3; %multiplication factor to calculate search radius from standard deviation.
 parameters.linearMotion = 1; %use linear motion Kalman filter.
 parameters.useLocalDensity = 1; %1 if you want to expand the search radius of isolated features in the linking (initial tracking) step.
-parameters.nnWindow = gapCloseParam.timeWindow; %number of frames before the current one where you want to look to see a feature's nearest neighbor in order to decide how isolated it is (in the initial linking step).
+parameters.nnWindow = timeWindow; %number of frames before the current one where you want to look to see a feature's nearest neighbor in order to decide how isolated it is (in the initial linking step).
 
 parameters.kalmanInitParam.searchRadiusFirstIteration = 20; %Kalman filter initialization parameters.
-%parameters.kalmanInitParam = [];
+
+% use movieInfo to check start/end frames for tracking
+% then get rid of detected features in movieInfo outside this range
+nFrames = length(movieInfo);
+if nargin<10 || isempty(timeRange)
+    startFrame=1;
+    endFrame=nFrames;
+elseif isequal(unique(size(timeRange)),[1 2])
+    if timeRange(1)<=timeRange(2) && timeRange(2)<=nFrames
+        startFrame = timeRange(1);
+        endFrame = timeRange(2);
+    else
+        startFrame = 1;
+        endFrame = nFrames;
+    end
+else
+    error('--plusTipTracker: timeRange should be [startFrame endFrame] or [] for all frames')
+end
+temp=movieInfo;
+clear movieInfo;
+[movieInfo(1:nFrames,1).xCoord] = deal([]);
+[movieInfo(1:nFrames,1).yCoord] = deal([]);
+[movieInfo(1:nFrames,1).amp] = deal([]);
+[movieInfo(1:nFrames,1).int] = deal([]);
+movieInfo(startFrame:endFrame,:)=temp(startFrame:endFrame,:);
+
+% save the tracking frameRange
+parameters.startFrame = startFrame;
+parameters.endFrmae = endFrame;
+
+% run diagnostics on search radius range - get histogram of the linking distance 
+% enter vector containing frames of interest for which you want to make the
+% plot. keep in mind that 3 figures will be created for each frame, because
+% the linking step is repeated forward, backward, and forward. used in
+% plusTipCostMatLinearMotionLink.
+if nargin<11 || isempty(diagnostics)
+    parameters.diagnostics = [];
+else
+    parameters.diagnostics = round(mean([startFrame; endFrame]));
+end
 
 costMatrices(1).parameters = parameters;
 clear parameters
@@ -106,32 +104,36 @@ clear parameters
 %function name
 costMatrices(2).funcName = 'plusTipCostMatCloseGaps';
 
-if nargin<6 || isempty(maxFAngle)
-    parameters.maxFAngle = 30;
-else
-    parameters.maxFAngle = maxFAngle;
-end
-
-if nargin<7 || isempty(maxFAngle)
-    parameters.maxBAngle = 10;
-else
-    parameters.maxBAngle = maxBAngle;
-end
-
-if nargin<8 || isempty(maxShrinkFactor)
-    parameters.backVelMultFactor = 1.5;
-else
-    parameters.backVelMultFactor = maxShrinkFactor;
-end
-
-if nargin<9 || isempty(fluctRad)
-    parameters.fluctRad = 1.0;
-else
-    parameters.fluctRad = fluctRad;
-end
+parameters.maxFAngle = maxFAngle;
+parameters.maxBAngle = maxBAngle;
+parameters.backVelMultFactor = maxShrinkFactor;
+parameters.fluctRad = fluctRad;
 
 costMatrices(2).parameters = parameters;
 clear parameters
+
+% maximum allowed time gap (in frames) between a track segment end and a
+% track segment start that allows linking them. if timeWindow = n, then
+% there are n-1 frames between the last detection event of the first track
+% segment and the first detection event of the second track segment.
+gapCloseParam.timeWindow = timeWindow;
+
+% minimum length of track segments (in frames) from linking to be used in
+% gap closing. 1 if everything, 2 if all tracks 2 or more frames long, etc.
+gapCloseParam.minTrackLen = minTrackLen;
+
+% 1 if merging and splitting are to be considered, 0 otherwise.
+% even though EB comets might overlap in a given frame, they do not merge
+% or split physically, so this should be zero.
+gapCloseParam.mergeSplit = 0;
+
+% run diagnostics on time window parameter - get histogram of all gap lifetimes
+% use 1 to run and 0 to skip this step. used in trackCloseGapsKalman.
+if nargin<11 || isempty(diagnostics)
+    gapCloseParam.diagnostics = 0;
+else
+    gapCloseParam.diagnostics = 1;
+end
 
 %% Kalman filter function names
 
@@ -143,7 +145,7 @@ kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
 %% additional input
 
 %saveResults
-trackDir = [runInfo.anDir filesep 'track'];
+trackDir = [projData.anDir filesep 'track'];
 if ~isdir(trackDir)
     mkdir(trackDir)
 end

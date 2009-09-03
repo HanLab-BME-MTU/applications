@@ -9,6 +9,7 @@ function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities]
 %                             should be to get considered. segments shorter
 %                             than minTrackLen will be connected with the
 %                             adjacent gaps to make a bigger gap
+%        timeRange          : frame range over which to run post-processing
 %
 % OUTPUT: trackedFeatureInfoInterp : same size as trackedFeatureInfo but
 %                                    has gaps filled in with interpolated

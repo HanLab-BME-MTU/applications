@@ -322,6 +322,13 @@ if currentFrame ~= 1 && any(diagnostics == currentFrame)
     %plot histogram
     figure('Name',['frame # ' num2str(currentFrame)],'NumberTitle','off');
     try
+%         % create bins
+%         n=1:20;
+%         % bin the samples
+%         [x1,nbins1] = histc(linkingDistances,n); % forward
+%         % make the plot
+%         figure
+%         bar(n,x1,'stack')
         histogram(linkingDistances,[],0);
         xlabel('Linking distance');
         ylabel('Counts');

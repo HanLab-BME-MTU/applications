@@ -1,7 +1,12 @@
-function [groupData] = plusTipPoolGroupData(useSavedGrp)
+function [groupData] = plusTipPoolGroupData(useSavedGrp,remBegEnd,saveResult)
 
 % get output directory
-saveDir = uigetdir(pwd,'Select output directory for groupData');
+if nargin<3 || isempty(saveResult)
+    saveResult=0;
+    saveDir=pwd;
+else
+    saveDir = uigetdir(pwd,'Select output directory for groupData');
+end
 
 if nargin<1 || isempty(useSavedGrp)
     % ask user to pick groups
@@ -17,7 +22,10 @@ else
     cd(homeDir)
 end
 
-
+% assume we should use all data
+if nargin<2 || isempty(remBegEnd)
+    remBegEnd=0;
+end
 
 % count unique groups and find out which movies go in which group
 projGroupName=cellfun(@(x) strrep(x,'-','_'),projGroupName,'uniformoutput',0);
@@ -38,11 +46,11 @@ for iGroup = 1:length(grpNames)
     % empty these values each time
     growthSpeeds=[];
     meanStdGrowth=[];
-    growthLifes=[];
+    growthLife=[];
     pauseSpeeds=[];
-    pauseLifes=[];
+    pauseLife=[];
     shrinkSpeeds=[];
-    shrinkLifes=[];
+    shrinkLife=[];
     growthSpeeds=[];
     meanStdGrowth=[];
     data=[];
@@ -59,76 +67,67 @@ for iGroup = 1:length(grpNames)
         movCount=movCount+1;
     end
 
+    if remBegEnd==1
+        sF=cellfun(@(x) min(x(:,2)),data,'uniformoutput',0);
+        eF=cellfun(@(x) max(x(:,3)),data,'uniformoutput',0);
+    else
+        sF=mat2cell(zeros(length(data),1),ones(length(data),1),1);
+        eF=mat2cell(inf.*ones(length(data),1),ones(length(data),1),1);
+    end
+
     % extract all growth speeds from each movie in group
-    growthSpeeds = cellfun(@(x) x(x(:,5)==1,4),data,'uniformoutput',0);
+    growthSpeeds = cellfun(@(x,s,e) x(x(:,5)==1 & x(:,2)>s & x(:,3)<e,4),data,sF,eF,'uniformoutput',0);
     %         [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),growthSpeeds,'uniformoutput',0);
     %         growthSpeeds = cellfun(@(x,y) x(y),growthSpeeds,inlierIdx,'uniformoutput',0);
     %         outlierIdx=[]; inlierIdx=[];
-
     % get movie-specific mean/std for growth speeds
     meanStdGrowth = cell2mat(cellfun(@(x) [mean(x) std(x)],growthSpeeds,'uniformoutput',0));
     % collect growth speeds for all movies (not just this group)
     allGrwthSpdCell(1,mCount:mCount+length(tempIdx)-1) = growthSpeeds';
-
     % turn cell array into matrix
     growthSpeeds = cell2mat(growthSpeeds);
 
+
     % extract all growth phase lifetimes from each movie in group
-    growthLifes = cellfun(@(x) x(x(:,5)==1,6),data,'uniformoutput',0);
-    %         [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),growthLifes,'uniformoutput',0);
-    %         growthLifes = cellfun(@(x,y) x(y),growthLifes,inlierIdx,'uniformoutput',0);
-    %         outlierIdx=[]; inlierIdx=[];
+    growthLife   = cellfun(@(x,s,e) x(x(:,5)==1 & x(:,2)>s & x(:,3)<e,6),data,sF,eF,'uniformoutput',0);
     % collect growth lifetimes for all movies (not just this group)
-    allGrwthLifeCell(1,mCount:mCount+length(tempIdx)-1) = growthLifes';
+    allGrwthLifeCell(1,mCount:mCount+length(tempIdx)-1) = growthLife';
     % turn cell array into matrix
-    growthLifes = cell2mat(growthLifes);
+    growthLife = cell2mat(growthLife);
+
 
     % extract all pause speeds from each movie in group
-    pauseSpeeds = cellfun(@(x) x(x(:,5)==2,4),data,'uniformoutput',0);
-    %             [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),pauseSpeeds,'uniformoutput',0);
-    %             pauseSpeeds = cellfun(@(x,y) x(y),pauseSpeeds,inlierIdx,'uniformoutput',0);
-    %             outlierIdx=[]; inlierIdx=[];
+    pauseSpeeds  = cellfun(@(x,s,e) x(x(:,5)==2 & x(:,2)>s & x(:,3)<e,4),data,sF,eF,'uniformoutput',0);
     % turn cell array into matrix
     pauseSpeeds = cell2mat(pauseSpeeds);
 
+
     % extract all pause phase lifetimes from each movie in group
-    pauseLifes = cellfun(@(x) x(x(:,5)==2,6),data,'uniformoutput',0);
-    %             [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),pauseLifes,'uniformoutput',0);
-    %             pauseLifes = cellfun(@(x,y) x(y),pauseLifes,inlierIdx,'uniformoutput',0);
-    %             outlierIdx=[]; inlierIdx=[];
+    pauseLife    = cellfun(@(x,s,e) x(x(:,5)==2 & x(:,2)>s & x(:,3)<e,6),data,sF,eF,'uniformoutput',0);
     % turn cell array into matrix
-    pauseLifes = cell2mat(pauseLifes);
+    pauseLife = cell2mat(pauseLife);
+
 
     % extract all shrinkage speeds from each movie in group
-    shrinkSpeeds = cellfun(@(x) abs(x(x(:,5)==3,4)),data,'uniformoutput',0);
-    %             [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),shrinkSpeeds,'uniformoutput',0);
-    %             shrinkSpeeds = cellfun(@(x,y) x(y),shrinkSpeeds,inlierIdx,'uniformoutput',0);
-    %             outlierIdx=[]; inlierIdx=[];
+    shrinkSpeeds = cellfun(@(x,s,e) x(x(:,5)==3 & x(:,2)>s & x(:,3)<e,4),data,sF,eF,'uniformoutput',0);
     % turn cell array into matrix
     shrinkSpeeds = cell2mat(shrinkSpeeds);
 
+
     % extract all shrinkage phase lifetimes from each movie in group
-    shrinkLifes = cellfun(@(x) x(x(:,5)==3,6),data,'uniformoutput',0);
-    %             [outlierIdx,inlierIdx] = cellfun(@(x) detectOutliers(x),shrinkLifes,'uniformoutput',0);
-    %             shrinkLifes = cellfun(@(x,y) x(y),shrinkLifes,inlierIdx,'uniformoutput',0);
-    %             outlierIdx=[]; inlierIdx=[];
+    shrinkLife   = cellfun(@(x,s,e) x(x(:,5)==3 & x(:,2)>s & x(:,3)<e,6),data,sF,eF,'uniformoutput',0);
     % turn cell array into matrix
-    shrinkLifes = cell2mat(shrinkLifes);
+    shrinkLife = cell2mat(shrinkLife);
 
 
     % assign group data to output structure
     groupData.(grpNames{iGroup,1}).growthSpeeds = growthSpeeds;
     groupData.(grpNames{iGroup,1}).meanStdGrowth = meanStdGrowth;
-
-    groupData.(grpNames{iGroup,1}).growthLifetimes = growthLifes;
-
+    groupData.(grpNames{iGroup,1}).growthLifetimes = growthLife;
     groupData.(grpNames{iGroup,1}).pauseSpeeds = pauseSpeeds;
-
-    groupData.(grpNames{iGroup,1}).pauseLifetimes = pauseLifes;
-
+    groupData.(grpNames{iGroup,1}).pauseLifetimes = pauseLife;
     groupData.(grpNames{iGroup,1}).shrinkSpeeds = shrinkSpeeds;
-
-    groupData.(grpNames{iGroup,1}).shrinkLifetimes = shrinkLifes;
+    groupData.(grpNames{iGroup,1}).shrinkLifetimes = shrinkLife;
 
     % create x-axis bins spanning all speeds in sample
     n=linspace(min([growthSpeeds; pauseSpeeds; shrinkSpeeds]),max([growthSpeeds; pauseSpeeds ;shrinkSpeeds]),25);
@@ -153,8 +152,10 @@ for iGroup = 1:length(grpNames)
     title(['Sub-Track Speed Distribution: ' grpNames{iGroup,1}])
     xlabel('speed (um/min)');
     ylabel('frequency of tracks');
-    saveas(gcf,[saveDir filesep 'stackedHist_' grpNames{iGroup,1} '.fig'])
-    saveas(gcf,[saveDir filesep 'stackedHist_' grpNames{iGroup,1} '.tif'])
+    if saveResult==1
+        saveas(gcf,[saveDir filesep 'stackedHist_' grpNames{iGroup,1} '.fig'])
+        saveas(gcf,[saveDir filesep 'stackedHist_' grpNames{iGroup,1} '.tif'])
+    end
 
     % make a growth speed histogram
     [x1 x2]=hist(growthSpeeds,25);
@@ -162,10 +163,10 @@ for iGroup = 1:length(grpNames)
     title('growth speed distribution')
     xlabel('speed (um/min)');
     ylabel('frequency of tracks');
-
-    saveas(gcf,[saveDir filesep 'growthHist_' grpNames{iGroup,1} '.fig'])
-    saveas(gcf,[saveDir filesep 'growthHist_' grpNames{iGroup,1} '.tif'])
-
+    if saveResult==1
+        saveas(gcf,[saveDir filesep 'growthHist_' grpNames{iGroup,1} '.fig'])
+        saveas(gcf,[saveDir filesep 'growthHist_' grpNames{iGroup,1} '.tif'])
+    end
     % update the counter
     mCount = mCount+length(tempIdx);
 
@@ -187,10 +188,12 @@ condition=repmat(projGroupName',[max(maxSize'),1]);
 movNumMat=repmat(cell2mat(movNum(:,1))',[max(maxSize'),1]);
 
 % make jonas dist plot comparing all the movies
-figure
-distributionPlot_JD(allGrwthSpdMatrix)
-saveas(gcf,[saveDir filesep 'distributionPlotByMovie_GS.fig'])
-saveas(gcf,[saveDir filesep 'distributionPlotByMovie_GS.tif'])
+% figure
+% distributionPlot_JD(allGrwthSpdMatrix)
+% if saveResult==1
+%     saveas(gcf,[saveDir filesep 'distributionPlotByMovie_GS.fig'])
+%     saveas(gcf,[saveDir filesep 'distributionPlotByMovie_GS.tif'])
+% end
 
 % make box plot comparing all the movies
 figure
@@ -198,8 +201,10 @@ boxplot(allGrwthSpdMatrix(:),{condition(:) movNumMat(:)},'notch','on','orientati
 title('Growth Speeds by Movie')
 set(gca,'YDir','reverse')
 xlabel('microns/minute')
-saveas(gcf,[saveDir filesep 'boxplotByMovie_GS.fig'])
-saveas(gcf,[saveDir filesep 'boxplotByMovie_GS.tif'])
+if saveResult==1
+    saveas(gcf,[saveDir filesep 'boxplotByMovie_GS.fig'])
+    saveas(gcf,[saveDir filesep 'boxplotByMovie_GS.tif'])
+end
 
 % pool data at the level of the group and make box plot
 figure
@@ -207,8 +212,10 @@ boxplot(allGrwthSpdMatrix(:),{condition(:)},'notch','on','orientation','horizont
 title('Growth Speeds by Group')
 set(gca,'YDir','reverse')
 xlabel('microns/minute')
-saveas(gcf,[saveDir filesep 'boxplotByGroup_GS.fig'])
-saveas(gcf,[saveDir filesep 'boxplotByGroup_GS.tif'])
+if saveResult==1
+    saveas(gcf,[saveDir filesep 'boxplotByGroup_GS.fig'])
+    saveas(gcf,[saveDir filesep 'boxplotByGroup_GS.tif'])
+end
 
 %%%% end of growth speed box plots %%%%
 
@@ -228,10 +235,12 @@ condition=repmat(projGroupName',[max(maxSize'),1]);
 movNumMat=repmat(cell2mat(movNum(:,1))',[max(maxSize'),1]);
 
 % make jonas dist plot comparing all the movies
-figure
-distributionPlot_JD(allGrwthLifeMatrix)
-saveas(gcf,[saveDir filesep 'distributionPlotByMovie_GL.fig'])
-saveas(gcf,[saveDir filesep 'distributionPlotByMovie_GL.tif'])
+% figure
+% distributionPlot_JD(allGrwthLifeMatrix)
+% if saveResult==1
+%     saveas(gcf,[saveDir filesep 'distributionPlotByMovie_GL.fig'])
+%     saveas(gcf,[saveDir filesep 'distributionPlotByMovie_GL.tif'])
+% end
 
 % make box plot comparing all the movies
 figure
@@ -239,8 +248,10 @@ boxplot(allGrwthLifeMatrix(:),{condition(:) movNumMat(:)},'notch','on','orientat
 title('Growth Phase Lifetimes by Movie')
 set(gca,'YDir','reverse')
 xlabel('seconds')
-saveas(gcf,[saveDir filesep 'boxplotByMovie_GL.fig'])
-saveas(gcf,[saveDir filesep 'boxplotByMovie_GL.tif'])
+if saveResult==1
+    saveas(gcf,[saveDir filesep 'boxplotByMovie_GL.fig'])
+    saveas(gcf,[saveDir filesep 'boxplotByMovie_GL.tif'])
+end
 
 % pool data at the level of the group and make box plot
 figure
@@ -248,8 +259,10 @@ boxplot(allGrwthLifeMatrix(:),{condition(:)},'notch','on','orientation','horizon
 title('Growth Phase Lifetimes by Group')
 set(gca,'YDir','reverse')
 xlabel('seconds')
-saveas(gcf,[saveDir filesep 'boxplotByGroup_GL.fig'])
-saveas(gcf,[saveDir filesep 'boxplotByGroup_GL.tif'])
+if saveResult==1
+    saveas(gcf,[saveDir filesep 'boxplotByGroup_GL.fig'])
+    saveas(gcf,[saveDir filesep 'boxplotByGroup_GL.tif'])
+end
 
 %%%% end of growth lifetime box plots %%%%
 
@@ -262,4 +275,6 @@ movIdx(:,1)=projGroupName;
 movIdx(:,2)=movNum(:,1);
 movIdx(:,3)=movNum(:,2);
 groupData.movIdx=movIdx;
-save([saveDir filesep 'groupData'],'groupData');
+if saveResult==1
+    save([saveDir filesep 'groupData'],'groupData');
+end

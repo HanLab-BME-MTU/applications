@@ -1,4 +1,4 @@
-function [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projData)
+function [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projData,remBegEnd)
 % Makes quadrant scatterplot split by property percentiles, mapped  onto image
 
 % SYNOPSIS: [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projData)
@@ -19,6 +19,8 @@ function [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projDa
 %                            properties param1/param2, respectively
 %           projData (opt) : MT tracking data stored in the meta folder
 %                            if not given, user will be asked for it
+%           remBegEnd (opt): 1 to remove tracks existing at the beginning
+%                            or end of the movie
 %
 % OUTPUT:   thresh1/thresh2: the parameter values which are the percentile
 %                            values of the cutoffs
@@ -35,7 +37,7 @@ function [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projDa
 % 2009/08 - Kathryn Applegate Matlab R2008a
 
 
-if nargin<1
+if nargin<4
     param1='growthSpeed';
     cutoff1=50;
     param2='growthLifetime';
@@ -77,6 +79,11 @@ if nargin<5 || isempty(projData)
     projData=temp.projData;
 end
 
+% assume we should plot all data
+if nargin<6 || isempty(remBegEnd)
+    remBegEnd=0;
+end
+
 % format image/analysis directory paths
 imDir=formatPath(projData.imDir);
 anDir=formatPath(projData.anDir);
@@ -90,10 +97,20 @@ allData=abs(projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix);
 
 % get track type and matrices containing xy-coordinates for all subtracks
 trackType=allData(:,5);
+trackStarts=allData(:,2);
+trackEnds=allData(:,3);
 [xMat,yMat]=plusTipGetSubtrackCoords(projData,[]);
 
+if remBegEnd==1
+    sF=min(allData(:,2));
+    eF=max(allData(:,3));
+else
+    sF=0;
+    eF=inf;
+end
+
 if ismember(groupNum,[1 2 3])
-subtrackIdx=find(trackType==groupNum);
+    subtrackIdx=find(trackType==groupNum & trackStarts>sF & trackEnds<eF);
 end
 
 % for param1 and param2, get data and label

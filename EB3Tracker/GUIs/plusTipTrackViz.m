@@ -23,7 +23,7 @@ function varargout = plusTipTrackViz(varargin)
 
 % Edit the above text to modify the response to help plusTipTrackViz
 
-% Last Modified by GUIDE v2.5 25-Aug-2009 10:22:54
+% Last Modified by GUIDE v2.5 01-Sep-2009 08:50:30
 
 
 % Begin initialization code - DO NOT EDIT
@@ -89,6 +89,7 @@ handles.xaxisScatter='growthSpeed';
 handles.yaxisScatter='growthLifetime';
 handles.xScatterPercent=50;
 handles.yScatterPercent=50;
+handles.remBegEnd=1;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -639,7 +640,7 @@ param1=handles.xaxisScatter;
 cutoff1=handles.xScatterPercent;
 param2=handles.yaxisScatter;
 cutoff2=handles.yScatterPercent;
-[thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,handles.projData);
+[thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,handles.projData,handles.remBegEnd);
 
 
 % --- Executes on button press in selectOutputDirPush.
@@ -660,3 +661,15 @@ function dualPanelCheck_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of dualPanelCheck
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'dualPanelCheck');
 guidata(hObject, handles);
+
+
+% --- Executes on button press in remTrackBegEnd.
+function remTrackBegEnd_Callback(hObject, eventdata, handles)
+% hObject    handle to remTrackBegEnd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of remTrackBegEnd
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'remBegEndCheck');
+guidata(hObject, handles);
+

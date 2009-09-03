@@ -1,9 +1,9 @@
-function [movieInfo]=plusTipCometDetector(runInfo,timeRange,bitDepth,savePlots)
+function [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)
 % plusTipCometDetector locates plus tip comets (or other blobs) in a movie stack
 %
-%SYNOPSIS [movieInfo]=plusTipCometDetector(runInfo,timeRange,bitDepth,savePlots)
+%SYNOPSIS [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)
 %
-%INPUT  runInfo           : structure containing fields .anDir, which gives
+%INPUT  projData           : structure containing fields .anDir, which gives
 %                           the full path to the roi_x directory
 %                           and .imDir, which gives the full path to the
 %                           folder containing the images for overlay.
@@ -32,28 +32,28 @@ warning('off','MATLAB:divideByZero')
 
 % CHECK INPUT AND SET UP DIRECTORIES
 
-% get runInfo in correct format
-if nargin<1 || isempty(runInfo)
+% get projData in correct format
+if nargin<1 || isempty(projData)
     % if not given as input, ask user for ROI directory
     % assume images directory is at same level
-    runInfo.anDir=uigetdir(pwd,'Please select ROI directory');
+    projData.anDir=uigetdir(pwd,'Please select ROI directory');
     homeDir=pwd;
-    cd(runInfo.anDir);
+    cd(projData.anDir);
     cd('..');
-    runInfo.imDir=[pwd filesep 'images'];
+    projData.imDir=[pwd filesep 'images'];
     cd(homeDir)
 else
     % adjust for OS
-    if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
+    if ~isfield(projData,'imDir') || ~isfield(projData,'anDir')
         error('--plusTipCometDetector: first argument should be a structure with fields imDir and anDir');
     else
-        [runInfo.anDir] = formatPath(runInfo.anDir);
-        [runInfo.imDir] = formatPath(runInfo.imDir);
+        [projData.anDir] = formatPath(projData.anDir);
+        [projData.imDir] = formatPath(projData.imDir);
     end
 end
 
 % count number of images in image directory
-[listOfImages] = searchFiles('.tif',[],runInfo.imDir,0);
+[listOfImages] = searchFiles('.tif',[],projData.imDir,0);
 nImTot = size(listOfImages,1);
 
 % check timeRange input, assign start and end frame
@@ -99,7 +99,7 @@ if nargin<4 || isempty(savePlots)
 end
 
 % make feat directory if it doesn't exist from batch
-featDir = [runInfo.anDir filesep 'feat'];
+featDir = [projData.anDir filesep 'feat'];
 if isdir(featDir)
     rmdir(featDir,'s')
 end
@@ -111,14 +111,14 @@ end
 
 
 % look for region of interest info from project setup step
-if ~exist([runInfo.anDir filesep 'roiMask.tif'],'file')
+if ~exist([projData.anDir filesep 'roiMask.tif'],'file')
     % not roi selected; use the whole image
     roiMask = ones(imL,imW);
     roiYX=[1 1; imL 1; imL imW; 1 imW; 1 1];
 else
     % get roi edge pixels and make region outside mask NaN
-    roiMask = double(imread([runInfo.anDir filesep 'roiMask.tif']));
-    roiYX=load([runInfo.anDir filesep 'roiYX']);
+    roiMask = double(imread([projData.anDir filesep 'roiMask.tif']));
+    roiYX=load([projData.anDir filesep 'roiYX']);
     roiYX=roiYX.roiYX;
 end
 
@@ -157,14 +157,14 @@ for iFrame = startFrame:endFrame
     filterDiff = lowPass-highPass;
 
     % if bg point was chosen and saved, get bgMask from first frame
-    if iFrame==startFrame && exist([runInfo.anDir filesep 'bgPtYX.mat'])~=0
-        bgPtYX=load([runInfo.anDir filesep 'bgPtYX.mat']);
+    if iFrame==startFrame && exist([projData.anDir filesep 'bgPtYX.mat'])~=0
+        bgPtYX=load([projData.anDir filesep 'bgPtYX.mat']);
         bgPtYX=bgPtYX.bgPtYX;
         [bgMask]=eb3BgMask(filterDiff,bgPtYX);
         saveas(gcf,[featDir filesep 'filterDiff' filesep 'bgMask.tif']);
     end
     % if bg point wasn't chosen, use ROI
-    if iFrame==startFrame && exist([runInfo.anDir filesep 'bgPtYX.mat'])==0
+    if iFrame==startFrame && exist([projData.anDir filesep 'bgPtYX.mat'])==0
         bgMask=logical(roiMask);
     end
 
@@ -248,12 +248,10 @@ for iFrame = startFrame:endFrame
     % label slice2 again and get region properties
     featMap2 = bwlabel(slice2);
     featProp2 = regionprops(featMap2,filterDiff,'PixelIdxList','Area');
+
     %[cutoffInd, cutoffValueArea] = cutFirstHistMode(vertcat(featProp2(:,1).Area),1);
-
     %imshow(featMap2)
-
     %figure(2); hist(vertcat(featProp2(:,1).Area),50);
-
     %         % fill label matrix with area value
     %         areaLabel = zeros(imL,imW);
     %         for iFeat = 1:max(featMap2(:))
@@ -278,21 +276,6 @@ for iFrame = startFrame:endFrame
     featureMap(vertcat(featProp2(goodFeatIdx,1).PixelIdxList)) = 1;
     [featMapFinal,nFeats] = bwlabel(featureMap);
     featPropFinal = regionprops(featMapFinal,filterDiff,'PixelIdxList','Area','WeightedCentroid','MaxIntensity'); %'Extrema'
-
-    %             % loop thru features and calc total intensity and peak pixel
-    %             for iFeat = 1:nFeats
-    %                 % intensity values for pixels in feature iFeat
-    %                 featIntens = filterDiff(featPropFinal(iFeat,1).PixelIdxList);
-    %
-    %                 % integrate intensity over feature
-    %                 featPropFinal(iFeat).IntSum = sum(featIntens);
-    %
-    %                 % make centroid to be intensity maximum of feature
-    %                 maxIntPixIdx = featPropFinal(iFeat,1).PixelIdxList(featIntens==max(featIntens));
-    %                 [r c] = ind2sub([imL,imW],maxIntPixIdx);
-    %                 featPropFinal(iFeat).Centroid = [r c];
-    %
-    %             end
 
     if nFeats==0
         yCoord = [];

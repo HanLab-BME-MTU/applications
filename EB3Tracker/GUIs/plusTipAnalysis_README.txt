@@ -81,6 +81,15 @@ become active.  Note that you cannot run Post-Processing without first
 running Tracking, or Tracking without first running Detection.  Enter the 
 parameters and click "Start" to commence.
 
+Frame Ranges: frame numbers for which the functions should be performed. 
+If running a batch, the same range will be used for all movies, except for
+movies where the requested min or max is above the number of images.  For 
+such movies, only the images that exist within the frame range will be 
+used.  Distinct frame ranges can be given for each function so that it is
+possible to test the effects of tracking multiple movies over different 
+numbers of frames without having to repeat the time-consuming detection 
+step.
+
 After the job finishes, you may want to visualize the results.  To do this,
 call plusTipTrackViz from the Matlab command line.
 
@@ -89,12 +98,6 @@ DETECTION PARAMETERS
 
 The output of detection will be stored in the /feat directory under the
 project directory.
-
-Frame Range: frame numbers for which detection should be performed. If 
-running a batch, the same range will be used for all movies, except for
-movies where the requested min or max is above the number of images.  For 
-such movies, only the images that exist within the frame range will be 
-used.
 
 Camera Bit Depth: bit depth of the camera used to record the images.  Value
 must be 12, 14, or 16.
@@ -144,10 +147,6 @@ POST-PROCESSING PARAMETERS
 
 The output of post-processing will be stored in the /meta directory under 
 the project directory.
-
-Frame Range: frame numbers for which post-processing should be performed.
-This may be only a subset of the frames used for detection.  Use Min/Max to 
-use the whole frame range used for detection.
 
 Frame Rate (s): Camera frame rate
 

@@ -11,6 +11,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange)
 %                           roi_x directory.
 %       secPerFrame       : frame rate (seconds per frame)
 %       pixSizeNm         : real-space pixel size in nanometers
+%       timeRange         : frame range over which to run post-processing
 %
 %OUTPUT projData          : structure with the following fields, saved in
 %                           a folder /roi_x/meta
@@ -55,15 +56,17 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange)
 %  .segGapAvgVel_micPerMin
 %       average velocity based on interpolated positions during gaps,
 %       converted to microns/minute
-%  .tracksWithPause
-%       track numbers corresponding to tracks that contain pauses.
-%  .tracksWithCatastrophe
+%  .tracksWithFgap
+%       track numbers corresponding to tracks that contain forward gaps
+%       (pause or out of focus events)
+%  .tracksWithBgap
 %       track numbers corresponding to tracks that contain backward gaps
 %       (shrinkage events)
 %  .tracksWithUnclassified
 %       track numbers corresponding to tracks that contain unclassified gaps
 %  .typeStats
 %       structure containing the following fields
+%           .type1_median_micPerMin : median of all growth average velocities
 %           .type1_mean_micPerMin   : mean of all growth average velocities
 %           .type1_std_micPerMin    : std of all growth average velocities
 %           .type1_Ppause           : probability of pause (1 over the
@@ -72,10 +75,13 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange)
 %           .type1_Pcat             : probability of shrinkage (1 over the
 %                                     average total time (in seconds) spent
 %                                     growing prior to catastrophe
+%           .type2_median_micPerMin : median of all pause average velocities
 %           .type2_mean_micPerMin   : mean of all pause average velocities
 %           .type2_std_micPerMin    : std of all pause average velocities
+%           .type3_median_micPerMin : median of all shrinkage average velocities
 %           .type3_mean_micPerMin   : mean of all shrinkage average velocities
 %           .type3_std_micPerMin    : std of all shrinkage average velocities
+%           .type4_median_micPerMin : median of all unclassified average velocities
 %           .type4_mean_micPerMin   : mean of all unclassified average velocities
 %           .type4_std_micPerMin    : std of all unclassified average velocities
 %  .nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix
@@ -118,6 +124,10 @@ end
 if nargin<3 || isempty(pixSizeNm)
     error('--plusTipPostTracking: pixel size missing')
 end
+if nargin<4 || isempty(timeRange)
+    timeRange=[];
+end
+
 
 % load movieInfo (detection result)
 featDir  = [runInfo.anDir filesep 'feat'];
@@ -198,6 +208,7 @@ end
 % save misc info for output
 projData.imDir = runInfo.imDir;
 projData.anDir = runInfo.anDir;
+
 projData.trackingParameters.timeWindow=gapCloseParam.timeWindow;
 projData.trackingParameters.minTrackLen=gapCloseParam.minTrackLen;
 projData.trackingParameters.minSearchRadius=costMatrices(1,1).parameters.minSearchRadius;
@@ -206,10 +217,13 @@ projData.trackingParameters.maxFAngle=costMatrices(1,2).parameters.maxFAngle;
 projData.trackingParameters.maxBAngle=costMatrices(1,2).parameters.maxBAngle;
 projData.trackingParameters.backVelMultFactor=costMatrices(1,2).parameters.backVelMultFactor;
 projData.trackingParameters.fluctRad=costMatrices(1,2).parameters.fluctRad;
+
 projData.secPerFrame = secPerFrame;
 projData.pixSizeNm = pixSizeNm;
+
 projData.numTracks = numTracks;
 projData.numFrames = numTimePoints;
+
 projData.xCoord = trackedFeatureInfoInterp(:,1:8:end);
 projData.yCoord = trackedFeatureInfoInterp(:,2:8:end);
 projData.featArea = featArea;
@@ -339,14 +353,15 @@ aT(aTrows2remove,:)=[];
 
 % figure out which track numbers contain a pause, catastrophe, or
 % unclassified gap
-projData.tracksWithPause       = unique(aT(aT(:,5)==2,1));
-projData.tracksWithCatastrophe = unique(aT(aT(:,5)==3,1));
+projData.tracksWithFgap       = unique(aT(aT(:,5)==2,1));
+projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
 projData.tracksWithUnclassifed = unique(aT(aT(:,5)==4,1));
 
 % convert pix/frame to micron/min velocities
 [aT(:,4)] = pixPerFrame2umPerMin(aT(:,4),secPerFrame,pixSizeNm);
 
-% mean/std for growth speed (microns per minute)
+% median/mean/std for growth speed (microns per minute)
+projData.typeStats.type1_median_micPerMin = median(aT(aT(:,5)==1,4));
 projData.typeStats.type1_mean_micPerMin = mean(aT(aT(:,5)==1,4));
 projData.typeStats.type1_std_micPerMin  =  std(aT(aT(:,5)==1,4));
 
@@ -370,15 +385,18 @@ else
     projData.typeStats.type1_Pcat=mean(1./(aT(beforeShrinkIdx,6).*secPerFrame));
 end
 
-% mean/std for pause speed (microns per minute)
+% median/mean/std for pause speed (microns per minute)
+projData.typeStats.type2_median_micPerMin = median(aT(aT(:,5)==2,4));
 projData.typeStats.type2_mean_micPerMin = mean(aT(aT(:,5)==2,4));
 projData.typeStats.type2_std_micPerMin  =  std(aT(aT(:,5)==2,4));
 
-% mean/std for shrinkage speed (microns per minute)
+% median/mean/std for shrinkage speed (microns per minute)
+projData.typeStats.type3_median_micPerMin = median(aT(aT(:,5)==3,4));
 projData.typeStats.type3_mean_micPerMin = mean(aT(aT(:,5)==3,4));
 projData.typeStats.type3_std_micPerMin  =  std(aT(aT(:,5)==3,4));
 
-% mean/std for unclassified speed (microns per minute)
+% median/mean/std for unclassified speed (microns per minute)
+projData.typeStats.type4_median_micPerMin = median(aT(aT(:,5)==4,4));
 projData.typeStats.type4_mean_micPerMin = mean(aT(aT(:,5)==4,4));
 projData.typeStats.type4_std_micPerMin  =  std(aT(aT(:,5)==4,4));
 

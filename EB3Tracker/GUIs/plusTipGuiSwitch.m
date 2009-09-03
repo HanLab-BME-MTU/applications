@@ -9,6 +9,9 @@ switch callbackName
         if ~isfield(handles,'loadProjList')
             handles.loadProjList=0;
         end
+        if ~isfield(handles,'getStr')
+            handles.getStr=0;
+        end
 
         if handles.loadProjList==0
 
@@ -98,6 +101,24 @@ switch callbackName
         end
         set(hObject,'String',num2str(handles.timeRangePost(2)));
 
+    case 'startFrameTrack'
+        sFVal=get(hObject,'String');
+        if isequal(lower(sFVal),'min')
+            handles.timeRangeTrack(1)=1;
+        else
+            handles.timeRangeTrack(1)=str2double(sFVal);
+        end
+        set(hObject,'String',num2str(handles.timeRangeTrack(1)));
+
+    case 'endFrameTrack'
+        eFVal=get(hObject,'String');
+        if isequal(lower(eFVal),'max')
+            handles.timeRangeTrack(2)=handles.projData.numFrames;
+        else
+            handles.timeRangeTrack(2)=str2double(eFVal);
+        end
+        set(hObject,'String',num2str(handles.timeRangeTrack(2)));
+
     case 'selectOutputDir'
         outDir=0;
         if isfield(handles,'dataDir')
@@ -116,6 +137,9 @@ switch callbackName
 
     case 'dualPanelCheck'
         handles.rawToo=get(hObject,'Value');
+
+    case 'remBegEndCheck'
+        handles.remBegEnd=get(hObject,'Value');
 
     case 'showTracksCheck'
         handles.showTracks=get(hObject,'Value');

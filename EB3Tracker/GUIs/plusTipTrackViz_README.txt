@@ -18,7 +18,7 @@ Overview of supported track visualization modes:
 
 Track Type Quick Reference for 5a and 5c - see details below
 1 - growth                               (red)
-2 - forward gap  (pause OR out of focus) (cyan)
+2 - forward gap  (pause or out of focus) (cyan)
 3 - backward gap (shrinkage)             (yellow)
 4 - unclassified gap                     (magenta)
 
@@ -128,7 +128,12 @@ The "Plot Tracks" button calls plusTipPlotTracks.m.
 Use the Quadrant Scatter option to color-code tracks falling within 
 specified ranges of various parameters.  Select parameters to be plotted on
 a 2D scatter plot, such as growth speed and growth lifetime.  Adjust the 
-percentile values for each independently and select "Make Plot."  
+percentile values for each independently and select "Make Plot."
+
+If "Remove tracks at start/end" is checked, all tracks existing in the
+first or last tracked frame will not be included.  Lifetime measurements
+can be biased especially in short movies where most tracks will exist at
+the beginning or end.
 
 Six figures will appear: a scatter plot and five images with tracks overlaid.  
 The colors of the tracks correspond to the color map of the scatter plot.  

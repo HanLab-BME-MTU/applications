@@ -40,7 +40,7 @@ segIdx=find(a(:,5)==1);
 fgapIdx=find(a(:,5)==2);
 bgapIdx=find(a(:,5)==3);
 
-% there are the actual speeds
+% here are the actual speeds
 pop1=a(segIdx,4);
 pop2=a(fgapIdx,4);
 pop3=abs(a(bgapIdx,4));
