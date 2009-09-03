@@ -1,5 +1,6 @@
 function [allData]=plusTipParameterTest(projData,parametersToTest,secPerFrame,pixSizeNm)
 % diagnostic test of tracking parameter settings
+% call the plusTipParamTest GUI to set inputs
 
 if nargin<4 
    error('--parametersToTest: not enough input parameters')

@@ -93,8 +93,8 @@ chosen here.
 ---------------------------------------------------------------------------
 4. Select Output Directory (OPTIONAL)
 
-Select the directory in which to store movies.  Overlays and Scatterplots
-are not automatically saved.
+Select the directory in which to store movies.  Note that overlays and 
+scatterplots, unlike movies, are not automatically saved.
 
 ---------------------------------------------------------------------------
 5a. Overlay tracks on image with "Track Overlays"
