@@ -83,7 +83,7 @@ movieInfo(startFrame:endFrame,:)=temp(startFrame:endFrame,:);
 
 % save the tracking frameRange
 parameters.startFrame = startFrame;
-parameters.endFrmae = endFrame;
+parameters.endFrame = endFrame;
 
 % run diagnostics on search radius range - get histogram of the linking distance 
 % enter vector containing frames of interest for which you want to make the

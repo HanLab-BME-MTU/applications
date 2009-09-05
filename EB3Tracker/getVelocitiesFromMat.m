@@ -1,4 +1,4 @@
-function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities] = getVelocitiesFromMat(trackedFeatureInfo,movieInfo,minTrackLen,timeRange)
+function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities,timeRange] = getVelocitiesFromMat(trackedFeatureInfo,movieInfo,minTrackLen,timeRange)
 % GETVELOCITIESFROMMAT fills forward and backward gaps in EB3 trajectory
 % and calculates segment velocities
 %
@@ -31,6 +31,8 @@ function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities]
 %                                    frames. the former gives instantaneous
 %                                    velocities whereas the latter gives
 %                                    averages over the whole segment or gap
+%         timeRange                : frame range over which post-processing
+%                                    ran - needed for post-processing fn
 
 
 % if tracksFinal is the input, convert to matrix format

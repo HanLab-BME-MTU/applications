@@ -1,6 +1,17 @@
 function [allData]=plusTipParameterTest(projData,parametersToTest,secPerFrame,pixSizeNm)
-% diagnostic test of tracking parameter settings
-% call the plusTipParamTest GUI to set inputs
+% plusTipParameterTest tests a range of tracking parameter settings to aid selection
+%
+% Input     
+%       for all inputs   : Call plusTipParamTest to set inputs using a GUI
+%
+% Output
+%       allData          : cell array containing results of all tests
+%       paramTest folder : subfolder of project folder, which contains a
+%                          subfolder for each parameter tested.  these
+%                          contain gapLifetime and linkingDistance figures
+%                          and individual data (subset of allData) matrices
+
+
 
 if nargin<4 
    error('--parametersToTest: not enough input parameters')
@@ -63,7 +74,7 @@ function [data,dataCols]=paramTest(projData,paramNames,paramDflts,secPerFrame,pi
 % pRange should be a vector containing the range of parameter pName to test
 
 % data column descriptions
-dataCols={' '...
+dataCols={projData.anDir...
     'maxTgapFrames'...
     'maxTgapSec'...
     'minRadius'...
@@ -81,8 +92,15 @@ dataCols={' '...
     'dispToNNdistRatio'...
     'medFullTrackLftFrames'...
     'medFractionTimeGrowing'...
+    'pair2pairDiffMicPerMinStd'...
+    'percentFgapsReclass'...
+    'percentGapsBackward'...
+    'percentGrowthLinkedForward'...
+    'percentGrowthLinkedBackward'...
             };
-
+        
+        
+        
 
 
 
@@ -200,7 +218,6 @@ for i=1:nIter
     
     % mean frame-frame displacement over within-frame NN distance
     data(i,15)=projData.meanDisp2medianNNDistRatio;
-    
       
     % get total track lifetime and time spent growing
     tlft=zeros(projData.numTracks,1);
@@ -217,7 +234,13 @@ for i=1:nIter
     data(i,16)=median(tlft);
     % median fraction of time spent in growth
     data(i,17)=median(glft./tlft);
-    
+
+    % params from plusTipPostTracking
+    data(i,18)=projData.pair2pairDiffMicPerMinStd;
+    data(i,19)=projData.percentFgapsReclass;
+    data(i,20)=projData.stats.percentGapsBackward;
+    data(i,21)=projData.stats.percentGrowthLinkedForward;
+    data(i,22)=projData.stats.percentGrowthLinkedBackward;  
     
 end
 save([figDir filesep 'data'],'data');
