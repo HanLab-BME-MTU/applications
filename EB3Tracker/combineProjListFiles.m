@@ -22,7 +22,7 @@ while strcmp(userEntry,'Yes')
     end
     load([pathName filesep fileName]);
     temp=[temp; projList];
-    disp(['Selected: ' pathName filesep fileName])
+    disp(['Selected: ' pathName fileName])
     userEntry = questdlg('Select another projList.mat file?');
 end
 clear projList;

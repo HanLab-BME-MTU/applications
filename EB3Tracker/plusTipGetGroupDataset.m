@@ -90,13 +90,15 @@ for iMov=1:nMovs
     end
     
     % add last 8 bits of directory path info to plusTipInfo
+    c=1;
     for i=3:10
         statNamesInfo{i}=['dir' num2str(i-2)];
         if i>length(words)
             plusTipInfo{iMov,i}='';
         else
-            plusTipInfo{iMov,i}=words{end-i+1};
+            plusTipInfo{iMov,i}=words{end-c+1};
         end
+        c=c+1;
     end
     statNamesInfo{11}='anDir';
     plusTipInfo{iMov,11}=projData.anDir;
