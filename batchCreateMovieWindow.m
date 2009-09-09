@@ -1,6 +1,6 @@
 function batchCreateMovieWindow(varargin)
 
-if nargin == 1
+if nargin >= 1
     rootDirectory = varargin{1};
 else
     % Ask for the root directory.
@@ -9,6 +9,11 @@ else
     if ~ischar(rootDirectory)
         return;
     end
+end
+
+forceRun = 0;
+if nargin == 2
+    forceRun = varargin{2};
 end
 
 % Get all subdirectories containing Actin & TM.
@@ -31,7 +36,7 @@ for iMovie = 1:numel(movieData)
     
     % STEP 1: Create the initial movie data
     currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
-
+    
     % Be sure to handle 'Actin' lower case properly
     currMovie.imageDirectory = [paths{iMovie} filesep 'Actin' filesep 'crop'];
     if ~exist(currMovie.imageDirectory, 'dir')
@@ -55,12 +60,12 @@ for iMovie = 1:numel(movieData)
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
 
     % Update from already saved movieData
-    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file')
+    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun
         currMovie = refreshMovieData(currMovie);
     end
 
     % STEP 2: Get the contour
-    if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || currMovie.contours.status ~= 1
+    if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || currMovie.contours.status ~= 1 || forceRun
         try
             currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 0, ['contours_'  num2str(dContour) 'pix.mat']);
         catch errMess
@@ -71,7 +76,7 @@ for iMovie = 1:numel(movieData)
     end
 
     % STEP 3: Calculate protusion
-    if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'status') || currMovie.protrusion.status ~= 1
+    if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'status') || currMovie.protrusion.status ~= 1 || forceRun
         try
             %Indicate that protrusion was started
             currMovie.protrusion.status = 0;
@@ -117,7 +122,7 @@ for iMovie = 1:numel(movieData)
     % STEP 4: Create windows
     windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' num2str(iStart) '_' num2str(iEnd)];
 
-    if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || currMovie.windows.status ~= 1
+    if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || currMovie.windows.status ~= 1 || forceRun
         try
             currMovie = setupMovieData(currMovie);
 
@@ -135,9 +140,40 @@ for iMovie = 1:numel(movieData)
         end
     end
 
-    % STEP 5: Split the windows into different files.
-    splitWindowFrames(currMovie, [currMovie.analysisDirectory filesep 'windows']);
+    % STEP 5: Create the window labels;
+    if ~isfield(currMovie, 'labels') || ~isfield(currMovie.labels, 'status') || currMovie.labels.status ~= 1 || forceRun
+        try
+            currMovie = setupMovieData(currMovie);
+
+            disp(['Labeling movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
+            
+            currMovie = getMovieLabels(currMovie);
+
+            if isfield(currMovie.labels,'error')
+                currMovie.labels = rmfield(currMovie.labels,'error');
+            end
+
+        catch errMess
+            disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
+            currMovie.labels.error = errMess;
+            currMovie.labels.status = 0;
+        end            
+    end
+
+    % STEP 6: Split the windows into different files.
+    if ~isfield(currMovie, 'windows') || ~isfield(currMovie.windows, 'splitted') || currMovie.windows.splitted ~= 1
+        splitWindowFrames(currMovie, [currMovie.analysisDirectory filesep 'windows']);
+        currMovie.windows.splitted = 1;
+    end
+
+    try
+        %Save the updated movie data
+        updateMovieData(currMovie)
+    catch errMess
+        errordlg(['Problem saving movie data in movie ' num2str(iMov) ': ' errMess.message],mfileName());
+    end
     
     movieData{iMovie} = currMovie;
 end
+
 end
