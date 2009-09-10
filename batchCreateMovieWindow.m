@@ -104,7 +104,12 @@ for iMovie = 1:numel(movieData)
                 if isfield(currMovie.protrusion,'error')
                     currMovie.protrusion = rmfield(currMovie.protrusion,'error');
                 end
-                currMovie.protrusion.directory = [currMovie.masks.directory];
+                
+                %currMovie.protrusion.directory = [currMovie.masks.directory];
+                % Workaround:
+                currMovie.protrusion.directory = [currMovie.masks.directory filesep ...
+                    'analysis_dl' num2str(handles.dl_rate)];
+                
                 currMovie.protrusion.fileName = 'protrusion.mat';
                 currMovie.protrusion.nfileName = 'normal_matrix.mat';
                 currMovie.protrusion.status = 1;
@@ -140,7 +145,32 @@ for iMovie = 1:numel(movieData)
         end
     end
 
-    % STEP 5: Create the window labels;
+    % STEP 5: Sample the protrusion vector in each window
+    if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ~isfield(currMovie.protrusion.samples,'status') ...
+            || currMovie.protrusion.samples.status ~= 1 || forceRun
+        try
+            disp(['Sampling protrusion in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
+            currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' winMethod '_' windowString  '.mat'],10,100);
+            
+            if isfield(currMovie.protrusion.samples,'error')
+               currMovie.protrusion.samples = rmfield(currMovie.protrusion.samples,'error');
+           end
+            
+        catch errMess
+            disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);            
+            currMovie.protrusion.samples.error = errMess;
+            currMovie.protrusion.samples.status = 0;
+        end
+        
+    end 
+    
+    % STEP 6: Split the windows into different files.
+    if ~isfield(currMovie, 'windows') || ~isfield(currMovie.windows, 'splitted') || currMovie.windows.splitted ~= 1
+        splitWindowFrames(currMovie, [currMovie.analysisDirectory filesep 'windows']);
+        currMovie.windows.splitted = 1;
+    end    
+    
+    % STEP 7: Create the window labels;
     if ~isfield(currMovie, 'labels') || ~isfield(currMovie.labels, 'status') || currMovie.labels.status ~= 1 || forceRun
         try
             currMovie = setupMovieData(currMovie);
@@ -158,12 +188,6 @@ for iMovie = 1:numel(movieData)
             currMovie.labels.error = errMess;
             currMovie.labels.status = 0;
         end            
-    end
-
-    % STEP 6: Split the windows into different files.
-    if ~isfield(currMovie, 'windows') || ~isfield(currMovie.windows, 'splitted') || currMovie.windows.splitted ~= 1
-        splitWindowFrames(currMovie, [currMovie.analysisDirectory filesep 'windows']);
-        currMovie.windows.splitted = 1;
     end
 
     try
