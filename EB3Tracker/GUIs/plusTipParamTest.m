@@ -607,7 +607,11 @@ function [allData]=plusTipParameterTest(projData,parametersToTest,secPerFrame,pi
 %                          subfolder for each parameter tested.  these
 %                          contain gapLifetime and linkingDistance figures
 %                          and individual data (subset of allData) matrices
-
+%
+% Note: It is not great coding practice to put called functions
+% within the GUI setup, but in this case it is ok since this function will
+% never be called elsewhere.  They were previously separate but the similar
+% names were confusing.
 
 
 if nargin<4
@@ -688,7 +692,7 @@ maxShrinkFactor=paramDflts{cellfun(@(x) isequal(x,'maxShrinkFactor'),paramNames)
 fluctRad=paramDflts{cellfun(@(x) isequal(x,'fluctRad'),paramNames)};
 
 % test for 50 frames
-timeRange=[1 20];
+timeRange=[1 50];
 diagnostics=1;
 
 nIter=length(pRange);
