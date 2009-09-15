@@ -22,7 +22,7 @@ function varargout = plusTipParamTest(varargin)
 
 % Edit the above text to modify the response to help plusTipParamTest
 
-% Last Modified by GUIDE v2.5 03-Sep-2009 10:18:20
+% Last Modified by GUIDE v2.5 12-Sep-2009 11:04:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -581,15 +581,13 @@ end
 [allData]=plusTipParameterTest(handles.projData,parametersToTest,...
     handles.secPerFrame,handles.pixSizeNm);
 
+disp('Finished!')
 
 
-
-
-
-
-
-
-
-
-
+% --- Executes on button press in getHelpPush.
+function getHelpPush_Callback(hObject, eventdata, handles)
+% hObject    handle to getHelpPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+open plusTipParamTest_README.txt
 

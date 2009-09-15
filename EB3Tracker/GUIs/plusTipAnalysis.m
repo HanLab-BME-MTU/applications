@@ -645,13 +645,13 @@ end
 numProj=size(handles.projList,1);
 
 if handles.doTrack==1
-    if isempty(handles.timeWindow) | isempty(handles.minRadius) | isempty(handles.maxRadius)
+    if isempty(handles.timeWindow) || isempty(handles.minRadius) || isempty(handles.maxRadius)
         errordlg('Please check tracking parameters.','Missing Input');
         return
     end       
 end
 if handles.doMeta==1
-    if isempty(handles.secPerFrame) | isempty(handles.pixSizeNm)
+    if isempty(handles.secPerFrame) || isempty(handles.pixSizeNm)
         errordlg('Please check post-processing parameters.','Missing Input');
         return
     end       
@@ -675,18 +675,18 @@ for i=1:numProj
                 handles.maxFAngle,handles.maxBAngle,handles.maxShrinkFactor,...
                 handles.fluctRad,handles.timeRangeTrack);
         end
+        
+        % post-processing
         if handles.doMeta==1
             disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
             [projData]=plusTipPostTracking(handles.projList(i),...
-                handles.secPerFrame,handles.pixSizeNm,handles.timeRangePost);
-            if handles.doHist==1
-                plusTipHistograms(projData);
-            end
+                handles.secPerFrame,handles.pixSizeNm,handles.timeRangePost,handles.doHist);
         end
 %     catch
 %         disp(['Problem with ' handles.projList(i).anDir])
 %     end
 end
+disp('Finished!')
 
 % --- Executes on button press in histCheck.
 function histCheck_Callback(hObject, eventdata, handles)
