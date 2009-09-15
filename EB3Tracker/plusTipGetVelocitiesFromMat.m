@@ -1,6 +1,5 @@
-function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities,timeRange] = getVelocitiesFromMat(trackedFeatureInfo,movieInfo,minTrackLen,timeRange)
-% GETVELOCITIESFROMMAT fills forward and backward gaps in EB3 trajectory
-% and calculates segment velocities
+function [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities,timeRange] = plusTipGetVelocitiesFromMat(trackedFeatureInfo,movieInfo,minTrackLen,timeRange)
+% plusTipGetVelocitiesFromMat fills forward and backward gaps in EB3 trajectory and calculates segment velocities
 %
 % INPUT: trackedFeatureInfo : nTracks x 8*nFrames matrix resulting from
 %                             tracking or simulated data from simEBtracks.m
@@ -56,7 +55,7 @@ elseif isequal(unique(size(timeRange)),[1 2])
     end
 
 else
-    error('--getVelocitiesFromMat: timeRange should be [startFrame endFrame] or [] for all frames')
+    error('--plusTipGetVelocitiesFromMat: timeRange should be [startFrame endFrame] or [] for all frames')
 end
 
 temp=nan(size(trackedFeatureInfo));
@@ -255,15 +254,3 @@ end
 
 trackVelocities.frame2frame = perFrameVelocities;
 trackVelocities.segmentAvgs = avgSegVel;
-
-
-
-
-
-
-
-
-
-
-
-

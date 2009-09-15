@@ -1,5 +1,5 @@
-function [newTrackedFeatureInfo,newTrackedFeatureIndx,newNnDistFeatures]=breakNonlinearTracks(trackedFeatureInfo,trackedFeatureIndx,nnDistFeatures)
-% BREAKNONLINEARTRACKS splits up tracks not following uni-directional behavior
+function [newTrackedFeatureInfo,newTrackedFeatureIndx,newNnDistFeatures]=plusTipBreakNonlinearTracks(trackedFeatureInfo,trackedFeatureIndx,nnDistFeatures)
+% plusTipBreakNonlinearTracks splits up tracks not following uni-directional behavior
 
 % this function splits up individial tracks where the displacement vectors
 % created by consecutive frame-frame pairs in a track differ in direction

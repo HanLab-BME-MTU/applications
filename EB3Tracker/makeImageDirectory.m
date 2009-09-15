@@ -1,9 +1,9 @@
 function makeImageDirectory
 % MAKEIMAGEDIRECTORY moves tifs from parent to new subdirectory 'images'
 
-% get top-level directory from user containing multiple projects for which
+% get parent directory from user containing multiple projects for which
 % the action should be done
-topDir=uigetdir(pwd,'Please select top-level directory containing projects');
+topDir=uigetdir(pwd,'Please select parent directory containing projects');
 
 % look for tifs that do not include "overlay" in their name (overlay images
 % are produced by kathryn's EB3 comet detection)

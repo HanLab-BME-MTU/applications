@@ -271,7 +271,7 @@ mkdir(runInfo.metaDir)
 
 % get interpolated positions for gaps and calculate velocities
 [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities,timeRange]=...
-    getVelocitiesFromMat(tracksFinal,movieInfo,3,timeRange);
+    plusTipGetVelocitiesFromMat(tracksFinal,movieInfo,3,timeRange);
 
 %get number of tracks and number of time points
 [numTracks,numTimePoints] = size(trackedFeatureInfo);
