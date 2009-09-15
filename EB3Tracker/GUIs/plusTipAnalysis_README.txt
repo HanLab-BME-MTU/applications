@@ -151,3 +151,16 @@ the project directory.
 Frame Rate (s): Camera frame rate
 
 Pixel Size (nm): Real-space pixel size of the image.
+
+If "Make histograms" is checked, a subfolder of /meta will be created to 
+contain .fig and .tif versions of histograms containing the growth, fgap, 
+and bgap speed distributions.  There is also a stacked histogram, which shows
+how the three distributions compare to one another.  In addition, a new file
+called growth_Fgap_Bgap_Distrib.txt will appear in the /meta folder.  The 
+three columns represent the speeds of growth events, fgaps, and bgaps for the 
+movie. (NaN means "not a number" - it is a placeholder to make the columns equal
+in length).
+
+
+
+

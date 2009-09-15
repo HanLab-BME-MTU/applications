@@ -17,10 +17,11 @@ Overview of supported track visualization modes:
 ---------------------------------------------------------------------------
 
 Track Type Quick Reference for 5a and 5c - see details below
-1 - growth                               (red)
-2 - forward gap  (pause or out of focus) (cyan)
-3 - backward gap (shrinkage)             (yellow)
-4 - unclassified gap                     (magenta)
+1 - growth                               (red solid)
+2 - forward gap  (pause)                 (cyan dotted)
+3 - backward gap (shrinkage)             (yellow dotted)
+4 - unclassified gap                     (magenta dotted)
+5 - forward gap reclassified as growth   (green solid)
 
 ---------------------------------------------------------------------------
 STEPS:
@@ -110,10 +111,11 @@ Track: trackNumber   Frame: frame closest to where user selected
     [trackNumber startFrame endFrame velocity trackType]
 
 where velocity is in microns/min and trackType is:
-1 - growth                               (red)
-2 - forward gap  (pause or out of focus) (cyan)
-3 - backward gap (shrinkage)             (yellow)
-4 - unclassified gap                     (magenta)
+1 - growth                               (red solid)
+2 - forward gap  (pause)                 (cyan dotted)
+3 - backward gap (shrinkage)             (yellow dotted)
+4 - unclassified gap                     (magenta dotted)
+5 - forward gap reclassified as growth   (green solid)
 
 The track numbers selected will then show up in a new text window below the 
 "Plot tracks" button. These are useful if, for example, you want to quickly
@@ -213,11 +215,12 @@ The "Make Track Movie" button calls plusTipTrackMovie.m.
 5d. Make a movie where features are color-coded by speed using "Speed Movies"
 
 "Speed Limit" is the maximum speed used in the jet color map (e.g. an input 
-of 20 will map all speeds lower than -20 microns/min to -20 and all speeds 
-higher than 20 to 20, ranging from dark blue to deep red. Negative speeds 
-correspond to shrinkage velocities, because shrinking microtubules move
-away from the direction of growth. The default option (max) uses the whole 
-range.  
+of 20 will map all speeds faster than 20 to 20 and range from dark blue at 0
+to deep red at 20). The default option (max) uses the whole range.  
+
+Circles   - growth
+Triangles - fgap
+Squares   - bgap  
 
 The "Save as AVI" check box determines whether the movie will be saved as 
 .MOV (default) or .AVI.  The AVI option crashes in some versions of Linux, 
