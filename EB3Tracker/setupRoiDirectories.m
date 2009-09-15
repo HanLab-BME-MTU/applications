@@ -1,7 +1,7 @@
 function setupRoiDirectories(selectROI,overwriteROIs,doCrop)
 % SETUPROIDIRECTORIES allows quick roi directory creation for movie(s)
 %
-% DESCRIPTION: setupRoiDirectories searches a user-selected, top-level
+% DESCRIPTION: setupRoiDirectories searches a user-selected parent
 % directory for every sub-directory called /images, where presumably the
 % original data for a movie resides.
 %
@@ -34,7 +34,7 @@ function setupRoiDirectories(selectROI,overwriteROIs,doCrop)
 %
 % Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
 
-topDir=uigetdir(pwd,'Please select top-level directory containing one or more movies.');
+topDir=uigetdir(pwd,'Please select parent directory containing one or more movies.');
 if topDir==0
     return
 end

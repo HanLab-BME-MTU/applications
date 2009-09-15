@@ -1,8 +1,8 @@
 function [allProjects,notDone]=plusTipCheckIfDone(fileType)
-% plusTipCheckIfDone checks whether detection or tracking has been finished for a group of movies
+% plusTipCheckIfDone checks whether detection or post-processing has been finished for a group of movies
 
 % INPUT: fileType: 1 to check if detection is done 
-%                  2 to check if tracking is done (default)
+%                  2 to check if post-processing is done (default)
 %        user will be asked to select one or more projList.mat files
 %                  containing the list(s) of movies to check  (see getProj
 %                  for how to create projList files)

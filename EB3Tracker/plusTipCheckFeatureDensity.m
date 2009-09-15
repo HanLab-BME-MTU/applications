@@ -1,12 +1,19 @@
-function [meanStdFeatNum]=plusTipCheckFeatureDensity(projList)
+function [meanStdFeatNum,idx2rem,p]=plusTipCheckFeatureDensity(projList,prctl2rem)
 % checkFeatureDensity checks whether feature number changes significantly over the course of a movie
 
-% INPUT : projList: list of projects, output of getProj
+% INPUT : projList  : list of projects, output of getProj
+%         prctl2rem : percentile of std above which movies should be
+%                     removed
+%         p         : value corresponding to the percentile
 % OUTPUT: meanStdFeatNum: nProj x 2 matrix containing the mean and standard
 %                         deviation for the number of detected features
 %                         over all frames of the movie.  A high standard
-%                         deviation may indicate significant photbleaching
+%                         deviation may indicate significant photobleaching
 %                         or focus drift.
+%         idx2rem       : indices of movies where the std is in the top
+%                         prctl2rem-percentile
+%         histogram - of std of normalized feature number across frames,
+%         with the red line representing the percentile given
 
 
 
@@ -26,7 +33,13 @@ for i=1:nMovies
     meanStdFeatNum(i,:)=[mean(featNumPerFrame) std(featNumPerFrame)];
 end
 
+p=prctile(meanStdFeatNum(:,2),prctl2rem);
+idx2rem=find(meanStdFeatNum(:,2)>p);
+
 figure
+[n,xout] = hist(meanStdFeatNum(:,2),20);
 hist(meanStdFeatNum(:,2),20)
+hold on
+plot([p;p],[0;max(n)],'r')
 xlabel('std of normalized feature number across frames')
 ylabel('number of movies')

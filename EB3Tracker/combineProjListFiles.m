@@ -12,6 +12,7 @@ function [projList]=combineProjListFiles(saveResult)
 if nargin<1
     saveResult=0;
 end
+
 projList=[];
 temp=[];
 userEntry='Yes';
@@ -30,6 +31,6 @@ projList=temp;
 
 if saveResult==1
     temp=inputdlg({'Enter file name:'},'',1);
-    dirName=uigetdir('Select output directory.');
+    dirName=uigetdir(pwd,'Select output directory.');
     save([dirName filesep temp{1}],'projList')
 end
