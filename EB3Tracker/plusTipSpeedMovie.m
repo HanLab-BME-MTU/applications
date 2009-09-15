@@ -73,8 +73,8 @@ endFrame   = timeRange(2);
     
 
 % default: use maximum velocity as limit
-if nargin<3 || isempty(velLimit)
-    velLimit = inf;
+if nargin<3 || isempty(velLimit) || isinf(velLimit)
+    velLimit = [];
 end
 
 % get list of files and image size
@@ -110,15 +110,33 @@ maxY=ceil(max(roiYX(:,1)));
 minX=floor(min(roiYX(:,2)));
 maxX=ceil(max(roiYX(:,2)));
 
+% use abs of instantaneous velocities, since bgaps have negative values
+trackVelMatrix=abs(projData.frame2frameVel_micPerMin);
+
+% get merged matrix so all we have are growths, fgaps, and bgaps (1,2,3)
+[dataMatMerge,dataMatReclass,percentFgapsReclass]=plusTipMergeSubtracks(projData);
+% make corresponding matrix to velocity matrix where values represent type
+trackTypeMtrix=zeros(size(projData.xCoord));
+for iSub=size(dataMatMerge,1):-1:1
+    sF=dataMatMerge(iSub,2);
+    eF=dataMatMerge(iSub,3);
+    fullIdx=dataMatMerge(iSub,1);
+    trackType=dataMatMerge(iSub,5);
+    trackTypeMtrix(fullIdx,sF:eF)=trackType;
+end
 
 % get velocity limit for color map
-cMapLength=128; cMap=jet(cMapLength);
-trackVelMatrix=projData.segGapAvgVel_micPerMin;
-m=max(abs([min(trackVelMatrix(:)); max(trackVelMatrix(:))]));
-m=round(min(m,velLimit));
-trackVelMatrix(trackVelMatrix<-m)=-m;
+cMapLength=128; 
+cMap=mat2cell(jet(cMapLength),ones(cMapLength,1),3);
+
+% find max velocity value m
+if ~isempty(velLimit)
+    m=round(velLimit);
+else
+    m=round(max(max(trackVelMatrix(:,startFrame:endFrame))));
+end
 trackVelMatrix(trackVelMatrix>m)=m;
-mapper=linspace(-m,m,cMapLength)';
+mapper=linspace(0,m,cMapLength)';
 
 
 % name the movie according to track number
@@ -179,6 +197,10 @@ if aviInstead==0
 end
 
 frmCounter=1;
+mrkTpe={'o';'^';'s'};
+prop_name(1) = {'Marker'};
+prop_name(2) = {'MarkerFaceColor'};
+prop_name(3) = {'MarkerEdgeColor'};
 for iFrame=startFrame:endFrame-1
     
     fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
@@ -189,20 +211,39 @@ for iFrame=startFrame:endFrame-1
     hold on
 
     % correct coordinates to correspond to crop from ROI
-    xCoord=projData.xCoord(:,iFrame); yCoord=projData.yCoord(:,iFrame);
-    outOfRangeIdx=find(xCoord<minX | xCoord>maxX | yCoord<minY | yCoord>maxY);
+    xCoord=projData.xCoord(:,iFrame); 
+    yCoord=projData.yCoord(:,iFrame);
+    trckTp=trackTypeMtrix(:,iFrame);
+    outOfRangeIdx=find(xCoord<minX | xCoord>maxX | yCoord<minY | yCoord>maxY | isnan(xCoord));
     xCoord(outOfRangeIdx) = [];
     yCoord(outOfRangeIdx) = [];
+    trckTp(outOfRangeIdx) = [];
     xCoord=xCoord-minX+1;
     yCoord=yCoord-minY+1;
 
-    % get closest colormap index for each feature
-    D=createDistanceMatrix(trackVelMatrix(:,iFrame),mapper);
-    [sD,idx]=sort(abs(D),2);
-    idx(outOfRangeIdx,:)=[];
-
-    scatter(xCoord,yCoord,'Marker','.','cData',cMap(idx(:,1),:),'sizedata',(72/4)^2);
     
+    
+    % get closest colormap index for each feature
+    vel=trackVelMatrix(:,iFrame);
+    vel(outOfRangeIdx) = [];
+    D=createDistanceMatrix(vel,mapper);
+    [sD,idx]=sort(abs(D),2);
+    idx=idx(:,1);
+    
+    % record marker type and face/edge colors for each feature
+    nC=length(xCoord);
+    prop_values(1:nC,1) = mrkTpe(trckTp);
+    prop_values(1:nC,2) = cMap(idx,:);
+    prop_values(1:nC,3) = cMap(idx,:);
+    
+    xCoord=[xCoord nan(size(xCoord))]';
+    yCoord=[yCoord nan(size(yCoord))]';
+    h=plot(xCoord,yCoord);
+    set(h,prop_name,prop_values)
+
+    % these have to be defined each frame
+    clear prop_values
+
     text(.25,.25,num2str(iFrame),'Color','w','FontWeight','bold','HorizontalAlignment','right','Units','inches')
     
     if aviInstead==1

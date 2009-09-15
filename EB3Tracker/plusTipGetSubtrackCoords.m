@@ -1,19 +1,30 @@
-function [xMat,yMat]=plusTipGetSubtrackCoords(projData,idx)
+function [xMat,yMat]=plusTipGetSubtrackCoords(projData,idx,useMerged)
 % plusTipGetSubtrackCoords returns subtrack coordinates
 %
 % INPUT : projData : project data from meta folder
 %         idx      : vector containing subtrack indices for which
 %                    coordinates are needed
+%         useMerged: 1 if the indices should correspond to the data matrix
+%                    where unconventional track types are consolidated into
+%                    growth events (e.g. trackTypes=5 are merged with
+%                    flanking growth phases)
 % OUTPUT: xMat,yMat: nIndex x nFrames matrices containing track coordinates
 %                    in frames where subtracks do not exist, matrices are
 %                    backfilled with NaNs
 
 
-% get data from all subtracks
-if nargin<2 || isempty(idx)
+if nargin<3 || isempty(useMerged) || useMerged~=1
     trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix; % all
 else
-    trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix(idx,:);
+    [trackData,dataMatReclass,percentFgapsReclass]=plusTipMergeSubtracks(projData);
+end
+
+% get data from all subtracks
+if nargin<2 || isempty(idx)
+    % we already have all the data
+else
+    % just take the subset from idx
+    trackData=trackData(idx,:);
 end
 
 % list of corresponding track numbers for each subtrack

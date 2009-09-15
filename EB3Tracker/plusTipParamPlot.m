@@ -9,12 +9,12 @@ function [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projDa
 %                            'growthSpeed' (track average speed, microns/min)
 %                            'growthLifetime' (growth lifetime, frames)
 %                            'growthDisp' (displacement during growth, microns)
-%                            'gapSpeed'
-%                            'gapLifetime'
-%                            'gapDisp'
-%                            'shrinkSpeed'
-%                            'shrinkLifetime'
-%                            'shrinkDisp'
+%                            'fgapSpeed'
+%                            'fgapLifetime'
+%                            'fgapDisp'
+%                            'bgapSpeed'
+%                            'bgapLifetime'
+%                            'bgapDisp'
 %           cutoff1/cutoff2: percentiles where the data should be split for
 %                            properties param1/param2, respectively
 %           projData (opt) : MT tracking data stored in the meta folder
@@ -49,8 +49,8 @@ end
 % define which parameter sets are complemetary.  param1 and 2 must come
 % from the same group
 group1 = {'growthSpeed', 'growthLifetime', 'growthDisp'};
-group2 = {'gapSpeed', 'gapLifetime', 'gapDisp'};
-group3 = {'shrinkSpeed', 'shrinkLifetime', 'shrinkDisp'};
+group2 = {'fgapSpeed', 'fgapLifetime', 'fgapDisp'};
+group3 = {'bgapSpeed', 'bgapLifetime', 'bgapDisp'};
 
 % check to make sure they are from the same group
 errFlag=1;
@@ -93,13 +93,14 @@ anDir=formatPath(projData.anDir);
 img = double(imread([listOfImages{1,2} filesep listOfImages{1,1}]));
 
 % extract track info (block matrix)
-allData=abs(projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix);
+[dataMatMerge,dataMatReclass,percentFgapsReclass]=plusTipMergeSubtracks(projData);
+allData=abs(dataMatMerge);
 
 % get track type and matrices containing xy-coordinates for all subtracks
 trackType=allData(:,5);
 trackStarts=allData(:,2);
 trackEnds=allData(:,3);
-[xMat,yMat]=plusTipGetSubtrackCoords(projData,[]);
+[xMat,yMat]=plusTipGetSubtrackCoords(projData,[],1);
 
 if remBegEnd==1
     sF=min(allData(:,2));
@@ -118,7 +119,7 @@ for iParam=1:2
     % assign data based on user input    
     switch eval(['param' num2str(iParam)])
 
-        case {'growthSpeed', 'gapSpeed', 'shrinkSpeed'} % speeds in microns/min
+        case {'growthSpeed', 'fgapSpeed', 'bgapSpeed'} % speeds in microns/min
             % extract data
             tempData=allData(subtrackIdx,4);
             
@@ -126,13 +127,13 @@ for iParam=1:2
             switch eval(['param' num2str(iParam)])
                 case 'growthSpeed'
                     tempLabel='Growth Speed (microns/min)';
-                case 'gapSpeed'
-                    tempLabel='Gap Speed (microns/min)';
-                case 'shrinkSpeed'
-                    tempLabel='Shrinkage Speed (microns/min)';
+                case 'fgapSpeed'
+                    tempLabel='Fgap Speed (microns/min)';
+                case 'bgapSpeed'
+                    tempLabel='Bgap Speed (microns/min)';
             end
 
-        case {'growthLifetime', 'gapLifetime', 'shrinkLifetime'} % lifetimes in seconds
+        case {'growthLifetime', 'fgapLifetime', 'bgapLifetime'} % lifetimes in seconds
             % extract data
             tempData=allData(subtrackIdx,6).*projData.secPerFrame;
 
@@ -140,13 +141,13 @@ for iParam=1:2
             switch eval(['param' num2str(iParam)])
                 case 'growthLifetime'
                     tempLabel='Growth Lifetime (s)';
-                case 'gapLifetime'
-                    tempLabel='Gap Lifetime (s)';
-                case 'shrinkLifetime'
-                    tempLabel='Shrinkage Lifetime (s)';
+                case 'fgapLifetime'
+                    tempLabel='Fgap Lifetime (s)';
+                case 'bgapLifetime'
+                    tempLabel='Bgap Lifetime (s)';
             end
 
-        case {'growthDisp', 'gapDisp', 'shrinkDisp'} % displacements in microns
+        case {'growthDisp', 'fgapDisp', 'bgapDisp'} % displacements in microns
             % extract data
             tempData=(allData(subtrackIdx,7).*projData.pixSizeNm)./1000;
 
@@ -154,10 +155,10 @@ for iParam=1:2
             switch eval(['param' num2str(iParam)])
                 case 'growthDisp'
                     tempLabel='Growth Displacement (microns)';
-                case 'gapDisp'
-                    tempLabel='Gap Displacement (microns)';
-                case 'shrinkDisp'
-                    tempLabel='Shrinkage Displacement (microns)';
+                case 'fgapDisp'
+                    tempLabel='Fgap Displacement (microns)';
+                case 'bgapDisp'
+                    tempLabel='Bgap Displacement (microns)';
             end
 
         otherwise

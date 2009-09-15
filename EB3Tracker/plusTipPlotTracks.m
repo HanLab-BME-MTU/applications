@@ -214,12 +214,12 @@ end
 %hold on figure
 hold on
 
-for t=1:4
+for t=1:5
     switch t
         case 1 % growth
             c1='r';
             c2='r';
-        case 2 % forward gaps - pause or out-of-focus
+        case 2 % forward gaps - pause
             c1='c:';
             c2='c';
         case 3 % backward gaps - shrinkage
@@ -228,6 +228,9 @@ for t=1:4
         case 4 % unclassified gaps
             c1='m:';
             c2='m';
+        case 5 % forward gaps - reclassified
+            c1='g';
+            c2='g';
     end
 
     plot(xMat(trackType==t,timeRange(1):timeRange(2))',...

@@ -1,4 +1,4 @@
-function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange)
+function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,mkHist)
 % plusTipPostTracking extracts various statistics from EB3 tracks
 %
 %SYNOPSIS [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
@@ -12,6 +12,9 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange)
 %       secPerFrame       : frame rate (seconds per frame)
 %       pixSizeNm         : real-space pixel size in nanometers
 %       timeRange         : frame range over which to run post-processing
+%       mkHist            : 1 to make histograms for growth,fgap,bgap
+%                           subpopulations and write a txt file containing
+%                           these values
 %
 %OUTPUT projData          : structure with the following fields, saved in
 %                           a folder /roi_x/meta
@@ -187,14 +190,18 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange)
 %           3. end frame
 %           4. speed (microns/min), negative for bgaps
 %           5. subtrack type
-%              (1=growth, 2=forward gap, 3=backward gap, 4=unclassifed gap)
+%              (1=growth, 2=forward gap, 3=backward gap, 4=unclassifed gap,
+%              5=forwrad gap reclassified as growth)
 %           6. lifetime (frames)
 %           7. total displacement (pixels), negative for bgaps
 
 
+if nargin<5
+    error('plusTipPostTracking: not enough input parameters!')
+end
 
 % get runInfo in correct format
-if nargin<1 || isempty(runInfo)
+if isempty(runInfo)
     homeDir=pwd;
     runInfo.anDir=uigetdir(pwd,'Please select analysis directory');
     cd([runInfo.anDir filesep '..'])
@@ -213,14 +220,17 @@ else
     end
 end
 
-if nargin<2 || isempty(secPerFrame)
+if isempty(secPerFrame)
     error('--plusTipPostTracking: frame rate missing')
 end
-if nargin<3 || isempty(pixSizeNm)
+if isempty(pixSizeNm)
     error('--plusTipPostTracking: pixel size missing')
 end
-if nargin<4 || isempty(timeRange)
+if isempty(timeRange)
     timeRange=[];
+end
+if isempty(mkHist)
+    mkHist=0;
 end
 
 
@@ -254,9 +264,10 @@ end
 
 % make a new "meta" directory if it does not exist
 runInfo.metaDir = [runInfo.anDir filesep 'meta'];
-if ~isdir(runInfo.metaDir)
-    mkdir(runInfo.metaDir)
+if isdir(runInfo.metaDir)
+    rmdir(runInfo.metaDir,'s')
 end
+mkdir(runInfo.metaDir)
 
 % get interpolated positions for gaps and calculate velocities
 [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities,timeRange]=...
@@ -379,6 +390,7 @@ projData.meanDisp2medianNNDistRatio = mean(projData.frame2frameDispPix)/projData
 
 % convert interpolated velocities to microns per minute
 [projData.frame2frameVel_micPerMin]=pixPerFrame2umPerMin(trackVelocities.frame2frame,secPerFrame,pixSizeNm);
+projData.segGapAvgVel_micPerMin=[];
 
 % concatenate all segments and gaps into n x 4 matrices, then add info:
 % [trackNum startFrame endFrame velocity seg/gapType trackLengthFrames]
@@ -416,56 +428,13 @@ totalDispPix=aT(:,4).*lifeTimes;
 % add lifetime and total distplacement to matrix
 aT=[aT lifeTimes totalDispPix];
 
+% convert pix/frame to micron/min velocities
+[aT(:,4)] = pixPerFrame2umPerMin(aT(:,4),secPerFrame,pixSizeNm);
 
-% look at fgaps - if their speed << growth phase just prior, then it's a
-% true pause.  it it is greater than 90% growth speed, reclassify it as
-% continuation of growth.
-fgapIdx=find(aT(:,5)==2);
-beforeFgapIdx=fgapIdx-1;
-% get speed of growth phase at last 2-3 time pts (depending on how long
-% growth phase lasted) just prior to pause
-eF=aT(beforeFgapIdx,3);
-beforeFgapSpeed=zeros(length(fgapIdx),1);
-for iGap=1:length(fgapIdx)
-    idxRange=[max(1,eF(iGap)-3):eF(iGap)-1];
-    beforeFgapSpeed(iGap)=nanmean(projData.frame2frameVel_micPerMin(aT(beforeFgapIdx(iGap),1),idxRange));
-end
+% aT will now contain consolidated rows, while aTreclass is the final
+% matrix to be stored in projData.
+[aT,aTreclass,projData.percentFgapsReclass]=plusTipMergeSubtracks(projData,aT);
 
-% these are the fgaps to consolidate
-growthFgapIdx=fgapIdx(aT(fgapIdx,4)>0.9.*beforeFgapSpeed);
-% these are the affected track numbers
-tracks2check=unique(aT(growthFgapIdx,1));
-aTrows2remove=[];
-for i=1:length(tracks2check)
-    % rows of aT corresponding to i track
-    subIdx=find(aT(:,1)==tracks2check(i));
-    % rows of aT corresponding to fgaps in track to consolidate
-    fgap2remIdx=intersect(growthFgapIdx,subIdx);
-    % rows of aT corresonding to bgaps or real pauses in track
-    sepIdx=union(subIdx(aT(subIdx,5)==3),setdiff(intersect(subIdx,fgapIdx),fgap2remIdx))';
-    % split the track based on bgaps, so that all fgaps that
-    % should be consolidated together can be done at the same time
-    sIdx=[subIdx(1); sepIdx(:)];
-    eIdx=[sepIdx(:); subIdx(end)];
-    % loop through groups of subtracks (split by bgaps)
-    for j=1:length(sIdx)
-        % pTemp contains the ones to consolidate in this section
-        pTemp=intersect(fgap2remIdx,sIdx(j):eIdx(j));
-        if ~isempty(pTemp)
-            fIdx=min(pTemp)-1; % first row - prior to first fgap
-            lIdx=max(pTemp)+1; % last row - after final fgap
-
-            aT(fIdx,3)=aT(lIdx,3); % change end frame
-            aT(fIdx,6)=sum(aT(fIdx:lIdx,6)); % sum lifetimes
-            aT(fIdx,7)=sum(aT(fIdx:lIdx,7)); % sum total displacements
-            aT(fIdx,4)=aT(fIdx,7)/aT(fIdx,6); % find new average velocity
-
-            % keep track of which are the extra rows
-            aTrows2remove=[aTrows2remove fIdx+1:lIdx];
-        end
-    end
-end
-aT(aTrows2remove,:)=[];
 
 % recalculate segment averages to reflect consolidation
 projData.segGapAvgVel_micPerMin=zeros(size(projData.frame2frameVel_micPerMin));
@@ -474,16 +443,9 @@ for iSub=1:size(aT,1)
 end
 
 
-% fraction of fgaps that were consolidated into growth, since their speeds
-% were more than 90% of the growth speed just prior to the gap
-projData.percentFgapsReclass=100*(length(aTrows2remove)/2)/length(fgapIdx);
-
 % get track numbers that contain an fgap or bgap
 projData.tracksWithFgap = unique(aT(aT(:,5)==2,1));
 projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
-
-% convert pix/frame to micron/min velocities
-[aT(:,4)] = pixPerFrame2umPerMin(aT(:,4),secPerFrame,pixSizeNm);
 
 % index for growths which don't start before or end after the movie
 gIdx=find(aT(:,5)==1 & aT(:,2)>1 & aT(:,3)<max(aT(:,3)));
@@ -601,11 +563,118 @@ disp=cell2mat(cellfun(@(x) sum(abs(aT(x,7))),subIdx,'uniformoutput',0));
 % collective displacement of all gap-containing MTs over their collective lifetime
 projData.stats.dynamicity=((projData.pixSizeNm/1000)*sum(disp))/((projData.secPerFrame/60)*sum(ltf));
 
+% assign the matrix retaining where growth fgaps are indicated with
+% trackType=5
+projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aTreclass;
 
-projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aT;
-
-% save each projData in its own directory
+% save each projDa in its own directory
 save([runInfo.metaDir filesep 'projData'],'projData')
+
+if mkHist==1
+   makeHistograms(runInfo,aT); 
+end
+
+
+
+function makeHistograms(runInfo,aT)
+% makeHistograms saves growth, fgap, and bgap speed histograms, as well as
+% a txt file containing the raw values for growth, fgap, and bgap.  
+%
+% aT is the matrix where fgaps identified as continuation of growth are
+% closed; that is, where trackType=5, the growth phase before, the fgap,
+% and the growth phase after are merged into one subtrack, so that the
+% average velocity values stored here are slightly different from that of
+% projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix, where
+% the rows are not merged.
+
+homeDir=pwd;
+cd(runInfo.metaDir)
+
+histDir=[runInfo.metaDir filesep 'histograms'];
+mkdir(histDir)
+
+
+% here are the actual speeds according to their kinds
+pop1=    aT(aT(:,5)==1,4);  % growth
+pop2=    aT(aT(:,5)==2,4);  % fgap
+pop3=abs(aT(aT(:,5)==3,4)); % bgap
+
+% put populations into a matrix and write them into a text file
+M=nan(max([length(pop1) length(pop2) length(pop3)]),3);
+M(1:length(pop1),1)=pop1;
+M(1:length(pop2),2)=pop2;
+M(1:length(pop3),3)=pop3;
+dlmwrite([runInfo.metaDir filesep 'growth_Fgap_Bgap_Distrib.txt'], M, 'precision', 3,'delimiter', '\t','newline', 'pc');
+
+% create x-axis bins spanning all values
+n=linspace(min([pop1;pop2;pop3]),max([pop1;pop2;pop3]),25);
+
+% bin the samples
+[x1,dummy] = histc(pop1,n); % growth
+[x2,dummy] = histc(pop2,n); % fgap
+[x3,dummy] = histc(pop3,n); % bgap
+
+% put the binned values into a matrix for the stacked plot
+M=nan(max([length(x1) length(x2) length(x3)]),3);
+M(1:length(x1),1)=x1;
+M(1:length(x2),2)=x2;
+M(1:length(x3),3)=x3;
+
+% make the plot
+figure
+bar(n,M,'stack')
+colormap([1 0 0; 0 0 1; 0 1 0])
+legend('growth','fgap','bgap','Location','best')
+title('Stacked Speed Distributions')
+xlabel('speed (um/min)');
+ylabel('frequency of tracks');
+saveas(gcf,[histDir filesep 'stackedHist.fig'])
+saveas(gcf,[histDir filesep 'stackedHist.tif'])
+close(gcf)
+
+figure;
+% growth
+if ~isempty(x1)
+    bar(n,x1,'r')
+    title('growth speed distribution')
+    xlabel('speed (um/min)');
+    ylabel('frequency of tracks');
+
+    saveas(gcf,[histDir filesep 'growthHist.fig'])
+    saveas(gcf,[histDir filesep 'growthHist.tif'])
+end
+close(gcf)
+
+figure
+% fgap
+if ~isempty(x2)
+    bar(n,x2,'b')
+    title('fgap speed distribution')
+    xlabel('speed (um/min)');
+    ylabel('frequency of tracks');
+
+    saveas(gcf,[histDir filesep 'fgapHist.fig'])
+    saveas(gcf,[histDir filesep 'fgapHist.tif'])
+end
+close(gcf)
+
+figure
+% bgap
+if ~isempty(x3)
+    bar(n,x3,'g')
+    title('bgap speed distribution')
+    xlabel('speed (um/min)');
+    ylabel('frequency of tracks');
+
+    saveas(gcf,[histDir filesep 'bgapHist.fig'])
+    saveas(gcf,[histDir filesep 'bgapHist.tif'])
+end
+close(gcf)
+
+cd(homeDir)
+
+
+
 
 
 
