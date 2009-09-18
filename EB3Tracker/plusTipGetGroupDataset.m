@@ -1,4 +1,4 @@
-function [plusTipInfo,plusTipData]=plusTipGetGroupDataset(saveResult,useSavedGrp)
+function [plusTipDataset]=plusTipGetGroupDataset
 % plusTipGetGroupDataset makes dataset array with data from groupList
 
 % INPUT
@@ -16,159 +16,185 @@ function [plusTipInfo,plusTipData]=plusTipGetGroupDataset(saveResult,useSavedGrp
 
 
 
-% get output directory
-if nargin<1 || isempty(saveResult) || saveResult~=1
-    saveResult=0;
-    saveDir=pwd;
-else
-    saveDir = uigetdir(pwd,'Select output directory for plusTipData');
-end
+homeDir=pwd;
+saveDir=uigetdir(pwd,'Select output directory for plusTipDataset.');
+cd(saveDir)
 
+% ask user to select projList file and check which movies have been tracked
+[allProjects,notDone]=plusTipCheckIfDone;
 
-if nargin<2 || isempty(useSavedGrp)
-    % ask user to pick groups
-    [projGroupDir,projGroupName]=plusTipPickGroups(1);
-else
-    homeDir=pwd;
-    cd([saveDir filesep '..'])
-    [fileName,pathName] = uigetfile('*.mat','Select saved groups file');
-    if fileName==0
-        return
-    end
-    load([pathName filesep fileName]);
-    cd(homeDir)
-end
+% keep only the ones that have been tracked
+%allProjects(notDone,:)=[];
 
-% load first project to get fieldnames
-temp=load([projGroupDir{1} filesep 'meta' filesep 'projData']);
-projData=temp.projData;
+nProj=size(allProjects,1); % total number of columns
+numDir=8; % number of columns devoted to proj path parts
 
-% pick which data to extract
-statNames1={'numTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass'};
-statNames2=fieldnames(projData.stats);
+for iProj=1:nProj
+    try
+        currentROI=formatPath(allProjects{iProj,1});
+        
 
-% number of movies in the set
-nMovs = size(projGroupName,1);
+        if iProj==1
+            % load first project to get fieldnames
+            temp=load([currentROI filesep 'meta' filesep 'projData']);
+            projData=temp.projData;
+            
+            % pick which data to extract
+            dataNames={'numTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass'};
+            statNames=fieldnames(projData.stats);
+            trackParamNames=fieldnames(projData.trackingParameters);
 
-% add some extra rows for extra fields
-nCols=length([statNames1; statNames2])+50;
-statNamesInfo=cell(1,nCols);
-statNamesData=cell(1,nCols);
-plusTipInfo=cell(nMovs,nCols);
-plusTipData=cell(nMovs,nCols);
+            % the first 5+numDir variables will contain the project path and parts of
+            % the path which can be used later to make grouping variables
+            nVar=5+numDir+length(trackParamNames)+length(dataNames)+length(cell2mat(struct2cell(projData.stats)'));
 
-for iMov=1:nMovs
-    temp=load([projGroupDir{iMov} filesep 'meta' filesep 'projData']);
-    projData=temp.projData;
-    
-    % GET PROJECT INFO
-    plusTipInfo{iMov,1}=projGroupName{iMov}; % group label
-    statNamesInfo{1}='label1';
-    plusTipData{iMov,2}=''; % secondary label
-    statNamesInfo{2}='label2';
+            plusTipDataset=cell(nProj,nVar);
+            varNames=cell(1,nVar);
+        end
 
-    currentROI=formatPath(projData.anDir);
-    % parse the path to get "words" used to identify target, oligo,
-    % movie, and roi
-    nChar=length(currentROI);
-    if ispc
-        filesepLoc=regexp(currentROI,'\\');
-    else
-        filesepLoc=regexp(currentROI,'\/');
-    end
-    wordStart=[1 filesepLoc+1]; wordEnd=[filesepLoc-1 nChar];
-    words=cell(length(wordStart),1);
-    for iWord=1:length(wordStart)
-        words{iWord,1}=currentROI(wordStart(iWord):wordEnd(iWord));
-    end
-    % index of the cell which contains parts of the directory name
-    roiIdx=find(cell2mat(cellfun(@(x) ~isempty(strfind(x,'roi')),words,'uniformoutput',0)));
+        % record project path, movie status placeholder (assumes all good for
+        % now), and detection/tracking/postprocessing timestamps
+        varNames{1}='projPath';
+        plusTipDataset{iProj,1}=currentROI;
 
-    % add entry for subroi if there is none
-    if length(words)==roiIdx
-        words{roiIdx+1}='';
-    end
-    
-    % add last 8 bits of directory path info to plusTipInfo
-    c=1;
-    for i=3:10
-        statNamesInfo{i}=['dir' num2str(i-2)];
-        if i>length(words)
-            plusTipInfo{iMov,i}='';
+        varNames{2}='goodMovie';
+        plusTipDataset{iProj,2}=1;
+
+        % check whether a value exists for the timestamps
+        varNames(3:5)={'detectTime','trackTime','postTime'};
+        if ~isempty(allProjects{iProj,2})
+            plusTipDataset{iProj,3}=allProjects{iProj,2}{1,1};
         else
-            plusTipInfo{iMov,i}=words{end-c+1};
+            plusTipDataset{iProj,3}=[];
         end
-        c=c+1;
-    end
-    statNamesInfo{11}='anDir';
-    plusTipInfo{iMov,11}=projData.anDir;
-    
-    
-    % GET PROJECT DATA
-    count=1;
-    % add data pulled from projData
-    for iName=1:length(statNames1)
-        plusTipData{iMov,count}=projData.(statNames1{iName});
-        statNamesData{count}=statNames1{iName};
-        count=count+1;
-    end
+        if ~isempty(allProjects{iProj,3})
+            plusTipDataset{iProj,4}=allProjects{iProj,3}{1,1};
+        else
+            plusTipDataset{iProj,4}=[];
+        end
+        if ~isempty(allProjects{iProj,4})
+            plusTipDataset{iProj,5}=allProjects{iProj,4}{1,1};
+        else
+            plusTipDataset{iProj,5}=[];
+        end
+        c=6; % next one (c is counter)
+        
+        % parse the path to get "words" used to identify target, oligo,
+        % movie, and roi
+        nChar=length(currentROI);
+        if ispc
+            filesepLoc=regexp(currentROI,'\\');
+        else
+            filesepLoc=regexp(currentROI,'\/');
+        end
+        wordStart=[1 filesepLoc+1]; wordEnd=[filesepLoc-1 nChar];
+        words=cell(length(wordStart),1);
+        for iWord=1:length(wordStart)
+            words{iWord,1}=currentROI(wordStart(iWord):wordEnd(iWord));
+        end
+        % index of the cell which contains parts of the directory name
+        roiIdx=find(cell2mat(cellfun(@(x) ~isempty(strfind(x,'roi')),words,'uniformoutput',0)));
 
-    % add data pulled from projData.stats
-    for iName=1:length(statNames2)
-        values=projData.stats.(statNames2{iName});
-        tempName=statNames2{iName};
-        % some measurements have more than one value - here we put each in
-        % a separate column and label with 2,3,...
-        for v=1:length(values)
-            plusTipData{iMov,count}=values(v);
-            if v==1
-                statNamesData{count}=tempName;
+        % add entry for subroi if there is none
+        if length(words)==roiIdx
+            words{roiIdx+1}=' ';
+        end
+
+        % invert order
+        words=words(end:-1:1);
+        for i=1:numDir
+            varNames{c}=['dir' num2str(i)];
+            if i>length(words)
+                plusTipDataset{iProj,c}='';
             else
-                statNamesData{count}=[tempName '_' num2str(v)];
+                plusTipDataset{iProj,c}=words{i};
             end
-            count=count+1;
+            c=c+1;
+        end
+
+        % load first project to get fieldnames
+        temp=load([currentROI filesep 'meta' filesep 'projData']);
+        projData=temp.projData;
+
+        % add tracking parameters pulled from projData
+        for iName=1:length(trackParamNames)
+            varNames{c}=trackParamNames{iName};
+            plusTipDataset{iProj,c}=projData.trackingParameters.(trackParamNames{iName});
+            c=c+1;
+        end
+
+        % add data pulled from projData
+        for iName=1:length(dataNames)
+            varNames{c}=dataNames{iName};
+            plusTipDataset{iProj,c}=projData.(dataNames{iName});
+            c=c+1;
+        end
+
+        % add data pulled from projData.stats
+        for iName=1:length(statNames)
+            values=projData.stats.(statNames{iName});
+            tempName=statNames{iName};
+            % some measurements have more than one value (SEs) - here we put
+            % each in a separate column and label with 2,3,...
+            for v=1:length(values)
+                if v==1
+                    varNames{c}=tempName;
+                else
+                    varNames{c}=[tempName '_' num2str(v)];
+                end
+                plusTipDataset{iProj,c}=values(v);
+                c=c+1;
+            end
+        end
+    catch
+        if iProj==1
+            error('Problem with first project in projList - tracking or post-processing may be out of date')
+        else
+            % change goodMovie to 0 and all dynamics parameters to nan
+            plusTipDataset{iProj,2}=0;
+            for iVar=numDir+5+1:nVar
+                plusTipDataset{iProj,iVar}=nan;
+            end
         end
     end
-    
+
 end
 
-% get rid of extra rows
-emptyIdxInfo=find(cell2mat(cellfun(@(x) sum(isempty(x)),statNamesInfo,'uniformoutput',0)),1,'first');
-statNamesInfo(:,emptyIdxInfo:end)=[];
-plusTipInfo(:,emptyIdxInfo:end)=[];
+% contruct string to contain command for dataset construction of dataset
+% array
+temp=plusTipDataset;
+clear plusTipDataset
 
-emptyIdxData=find(cell2mat(cellfun(@(x) sum(isempty(x)),statNamesData,'uniformoutput',0)),1,'first');
-statNamesData(:,emptyIdxData:end)=[];
-plusTipData(:,emptyIdxData:end)=[];
-
-% contruct string to contain command for dataset construction of INFO
-temp=plusTipInfo; 
-clear plusTipInfo
-
-NameObs = strcat({'Project '},num2str((1:size(temp,1))','%d'));
+NameObs = strcat({'Project '},num2str((1:nProj)','%d'));
 str='dataset(';
-for i=1:length(statNamesInfo)
-    s=['{temp(:,' num2str(i) '),statNamesInfo{' num2str(i) '}},'];
+for i=1:nVar
+    if i<=numDir+5 && i~=2
+        s=['{temp(:,' num2str(i) '),varNames{' num2str(i) '}},'];
+    else
+        s=['{cell2mat(temp(:,' num2str(i) ')),varNames{' num2str(i) '}},'];
+    end
     str=[str s];
 end
 str=[str(1:end-1) ',''ObsNames'',NameObs);'];
 
-plusTipInfo=eval(str);
+plusTipDataset=eval(str);
+plusTipDataset.Properties.DimNames{1,1}='Projects';
 
-% contruct string to contain command for dataset construction of DATA
-temp=plusTipData;
-clear plusTipData
+% save result
+fileName='plusTipDataset';
 
-NameObs = strcat({'Project '},num2str((1:size(temp,1))','%d'));
-str='dataset(';
-for i=1:length(statNamesData)
-    s=['{cell2mat(temp(:,' num2str(i) ')),statNamesData{' num2str(i) '}},'];
-    str=[str s];
+save([saveDir filesep fileName],'plusTipDataset')
+if ispc
+    extstr='.xls';
+else
+    extstr='.txt';
 end
-str=[str(1:end-1) ',''ObsNames'',NameObs);'];
-
-plusTipData=eval(str);
+exportDatasetArray(plusTipDataset,'file',[saveDir filesep fileName extstr])
 
 
-%a=grpstats([dataset({plusTipInfo.label1,'label1'})
-%plusTipData],'label1',{'mean','sem'})
+cd(homeDir)
+
+if any(plusTipDataset.goodMovie==0)
+    msgbox('Check output: one ore more projects likely need to be retracked','Potential Problem')
+end
+

@@ -1,43 +1,64 @@
-function [projGroupDir,projGroupName,plusTipInfo]=plusTipPickGroups(saveResult,autoPick)
+function [groupList]=plusTipPickGroups(autoGrp,saveResult,relDirs)
 % plusTipPickGroups allows user to select groups of movies
 %
-% SYNOPSIS: [projGroupDir,projGroupName]=plusTipPickGroups
+% SYNOPSIS: [groupList]=plusTipPickGroups(autoGrp,saveResult)
 %
 % INPUT : user is asked to select the projList file(s) containing projects
 %         to be used for group selection.
+
+%         autoGrp (opt)   : if [] (def), user picks the groups and gives
+%                           them unique names.  leave names empty to use
+%                           1,2,3... as the group names
+%                           if 1, user is asked to select one or more
+%                           categories from the parsed file path of the first
+%                           project in projList to define how groups should
+%                           be created.  for this to work all projects in
+%                           projList need to have corresponding categories
+%                           at the same folder levels.
+%         saveResult      : 1 to save the info as a matlab variable
+%                           groupList.mat, where
+%         relDirs (opt)   : vector containing the directory number(s)
+%                           relative to the roi_x folder (roi is 1, one
+%                           level up is 2, two levels up is 3, etc.) that
+%                           should be used for making the groups 
+%                           (eg. [5 4]). this option only works if autoGrp
+%                           is 1.
 %
-% OUTPUT: projGroupDir : cell array containing paths to chosen projects
-%         projGroupName: cell array containing the group name for each
-%                        project
+% OUTPUT: groupList : n x 2 cell array, where n is the number of projects
+%                     chosen for all groups. the first column contains the
+%                     group name.  the second column contains the project
+%                     file path.
 
 
 
-if nargin<1 || isempty(saveResult) || saveResult~=1
+if nargin<1 || autoGrp~=1
+    autoGrp=[];
+end
+
+if nargin<2 || saveResult~=1
     saveResult=0;
     saveDir=[];
 else
     saveDir=uigetdir(pwd,'Select output directory for groupList.');
 end
 
-if nargin<2 || isempty(autoPick) || autoPick<1
-    autoPick=0;
-else
-    autoPick=autoPick+3; % add to index for extra columns
+if nargin<3 || ~isvector(relDirs)
+    relDirs=[];
 end
 
 % ask user to select projList file and check which movies have been tracked
-[allProjects,notDone]=plusTipCheckIfDone(2);
+[allProjects,notDone]=plusTipCheckIfDone;
 
 % show only the ones that have been tracked in the selection box
 allProjects(notDone,:)=[];
 allProjects=allProjects(:,1);
 
 % have user select groups of projects
-projGroupDir=cell(size(allProjects));
-projGroupName=cell(size(allProjects));
-plusTipInfo=[];
+nProj=length(allProjects);
+groupList=cell(nProj,2);
 
-if autoPick==0
+
+if isempty(autoGrp)
     countMovie=1;
     countLabel=1;
     pickAgain='yes';
@@ -51,7 +72,7 @@ if autoPick==0
         % get name of group for the legend
         temp=inputdlg({'Enter group name:'},'Input for legend label',1);
         if isempty(temp) % user clicked 'x'
-            legendLabel=num2str(iGroup);
+            legendLabel=num2str(countLabel);
         else
             if isempty(temp{1,1}) % user clicked ok but entered nothing
                 legendLabel=num2str(countLabel);
@@ -61,38 +82,25 @@ if autoPick==0
         end
 
         % record project selection directories and legend names
-        projGroupDir(countMovie:countMovie+length(selection)-1,1)=allProjects(selection,1);
-        for iMov=countMovie:countMovie+length(selection)-1
-            projGroupName{iMov}=legendLabel;
+        for iProj=1:length(selection)
+            groupList(countMovie,:)={legendLabel formatPath(allProjects{selection(iProj),1})};
+            countMovie=countMovie+1;
         end
-        countMovie=countMovie+length(selection);
 
         % get rid of already-picked ones for next round
-        allProjects=allProjects(setdiff(1:length(allProjects),selection),1);
+        allProjects(selection)=[];
+        
         % ask whether to select another group
         pickAgain=questdlg('Select another group?');
         countLabel=countLabel+1;
     end
-    projGroupDir(countMovie:end)=[];
-    projGroupName(countMovie:end)=[];
+    groupList(countMovie:end,:)=[];
 
 else
-    nMovs = size(allProjects,1);
-
-    % add some extra rows for extra fields
-    nCols=11;
-    statNamesInfo=cell(1,nCols);
-    plusTipInfo=cell(nMovs,nCols);
-
-    for iMov=1:nMovs
-        
-        % GET PROJECT INFO
-        plusTipInfo{iMov,1}='autoGrp'; % group label
-        statNamesInfo{1}='label1';
-        plusTipData{iMov,2}=''; % secondary label
-        statNamesInfo{2}='label2';
-
-        currentROI=formatPath(allProjects{iMov,1});
+    
+    for iProj=1:nProj
+       
+        currentROI=formatPath(allProjects{iProj,1});
         % parse the path to get "words" used to identify target, oligo,
         % movie, and roi
         nChar=length(currentROI);
@@ -113,40 +121,36 @@ else
         if length(words)==roiIdx
             words{roiIdx+1}='';
         end
-
-        % add last 8 bits of directory path info to plusTipInfo
-        c=1;
-        for i=3:10
-            statNamesInfo{i}=['dir' num2str(i-2)];
-            if i>length(words)
-                plusTipInfo{iMov,i}='';
+        
+        % invert order
+        words=words(end:-1:1);
+        
+        % ask user for which categories to use to make the groups
+        if iProj==1
+            if isempty(relDirs)
+                autoGrp=listSelectGUI(words,[],'copy');
             else
-                plusTipInfo{iMov,i}=words{end-c+1};
+                autoGrp=relDirs+1;
             end
-            c=c+1;
+            autoGrp=autoGrp(end:-1:1);
         end
 
-        statNamesInfo{11}='anDir';
-        plusTipInfo{iMov,11}=allProjects{iMov,1};
+        % autoGrp is relative to the roi directory, so add 1 since
+        % words is relative to subroi directory
+        macroWord=[];
+        for iNum=1:length(autoGrp)
+            macroWord=[macroWord '_' words{autoGrp(iNum)}];
+        end
+        macroWord(1)=[];
+        
+        groupList(iProj,:)={macroWord formatPath(allProjects{iProj,1})};
 
     end
     
-    projGroupDir=allProjects;
-    projGroupName=plusTipInfo(:,autoPick);
 end
 
 if saveResult==1
-    fileName='groupList';
-    if autoPick==0
-    nameList=unique(projGroupName);
-    for i=1:length(nameList)
-        fileName=[fileName '_' nameList{i}];
-    end
-    else
-        fileName=[fileName '_' num2str(autoPick-3)];
-    end
-
-    save([saveDir filesep fileName],'projGroupName','projGroupDir','plusTipInfo')
+    save([saveDir filesep 'groupList'],'groupList')
 end
 
 

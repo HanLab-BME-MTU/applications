@@ -113,12 +113,12 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %           .fgap_length_mean_SE
 %               [mean SE] of all forward gap trajectory lengths (microns),
 %               where SE is std/sqrt(N)
-%           .fgap_freq_time
+%           .fgap_freq_time_mean_SE
 %               [mean(1/D), SE] where D is the growth lifetime (min) just
 %               prior to a forward gap, excluding growth trajectories
 %               lasting only 3 frames and those beginning in the first
 %               frame, and SE is std/sqrt(N)
-%           .fgap_freq_length     
+%           .fgap_freq_length_mean_SE     
 %               [mean(1/L), SE] where L is the growth length (microns) just
 %               prior to a forward gap, excluding growth trajectories
 %               lasting only 3 frames and those beginning in the first
@@ -141,12 +141,12 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %           .bgap_length_mean_SE
 %               [mean SE] of all backward gap trajectory lengths (microns),
 %               where SE is std/sqrt(N)
-%           .bgap_freq_time
+%           .bgap_freq_time_mean_SE
 %               [mean(1/D), SE] where D is the growth lifetime (min) just
 %               prior to a backward gap, excluding growth trajectories
 %               lasting only 3 frames and those beginning in the first
 %               frame, and SE is std/sqrt(N)
-%           .bgap_freq_length     
+%           .bgap_freq_length_mean_SE     
 %               [mean(1/L), SE] where L is the growth length (microns) just
 %               prior to a backward gap, excluding growth trajectories
 %               lasting only 3 frames and those beginning in the first
@@ -316,14 +316,14 @@ end
 projData.imDir = runInfo.imDir;
 projData.anDir = runInfo.anDir;
 
-projData.trackingParameters.timeWindow=gapCloseParam.timeWindow;
+projData.trackingParameters.maxGapLength=gapCloseParam.timeWindow;
 projData.trackingParameters.minTrackLen=gapCloseParam.minTrackLen;
 projData.trackingParameters.minSearchRadius=costMatrices(1,1).parameters.minSearchRadius;
 projData.trackingParameters.maxSearchRadius=costMatrices(1,1).parameters.maxSearchRadius;
-projData.trackingParameters.maxFAngle=costMatrices(1,2).parameters.maxFAngle;
-projData.trackingParameters.maxBAngle=costMatrices(1,2).parameters.maxBAngle;
+projData.trackingParameters.maxForwardAngle=costMatrices(1,2).parameters.maxFAngle;
+projData.trackingParameters.maxBackwardAngle=costMatrices(1,2).parameters.maxBAngle;
 projData.trackingParameters.backVelMultFactor=costMatrices(1,2).parameters.backVelMultFactor;
-projData.trackingParameters.fluctRad=costMatrices(1,2).parameters.fluctRad;
+projData.trackingParameters.fluctRadius=costMatrices(1,2).parameters.fluctRad;
 
 projData.secPerFrame = secPerFrame;
 projData.pixSizeNm = pixSizeNm;
@@ -486,14 +486,14 @@ beforeFgapIdx=fIdx-1;
 % they are, or those which last for only 3 frames
 beforeFgapIdx=beforeFgapIdx(aT(beforeFgapIdx,2)~=1 & aT(beforeFgapIdx,6)>2);
 if isempty(beforeFgapIdx)
-    projData.stats.fgap_freq_time=NaN;
-    projData.stats.fgap_freq_length=NaN;
+    projData.stats.fgap_freq_time_mean_SE=[NaN NaN];
+    projData.stats.fgap_freq_length_mean_SE=[NaN NaN];
 else
     freq=1./(aT(beforeFgapIdx,6).*(secPerFrame/60));
-    projData.stats.fgap_freq_time=[mean(freq) std(freq)/sqrt(length(freq))];
+    projData.stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
     
     freq=1./(aT(beforeFgapIdx,7).*(pixSizeNm/1000));
-    projData.stats.fgap_freq_length=[mean(freq) std(freq)/sqrt(length(freq))];
+    projData.stats.fgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
 end
 
 % index for bgaps
@@ -518,14 +518,14 @@ beforeBgapIdx=bIdx-1;
 % they are, or those which last for only 3 frames
 beforeBgapIdx=beforeBgapIdx(aT(beforeBgapIdx,2)~=1 & aT(beforeBgapIdx,6)>2); 
 if isempty(beforeBgapIdx)
-    projData.stats.bgap_freq_time=NaN;
-    projData.stats.bgap_freq_length=NaN;
+    projData.stats.bgap_freq_time_mean_SE=[NaN NaN];
+    projData.stats.bgap_freq_length_mean_SE=[NaN NaN];
 else
     freq=1./(aT(beforeBgapIdx,6).*(secPerFrame/60));
-    projData.stats.bgap_freq_time=[mean(freq) std(freq)/sqrt(length(freq))];
+    projData.stats.bgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
     
     freq=1./(aT(beforeBgapIdx,7).*(pixSizeNm/60));
-    projData.stats.bgap_freq_length=[mean(freq) std(freq)/sqrt(length(freq))];
+    projData.stats.bgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
 end
 
 % percent of time spent in growth, fgap, and bgap
@@ -542,6 +542,10 @@ projData.stats.percentGapsBackward= 100*(projData.stats.nBgaps/(projData.stats.n
 
 % if next one after growth has index 2, it's an fgap; if 3, it's a bgap; if
 % 1 or 4, it is unlinked to another subtrack
+if gIdx(end)==size(aT,1)
+    gIdx(end)=[];
+end
+    
 f=sum(aT(gIdx+1,5)==2);
 b=sum(aT(gIdx+1,5)==3);
 u=sum(aT(gIdx+1,5)==1 | aT(gIdx+1,5)==4);

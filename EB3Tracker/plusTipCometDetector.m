@@ -162,6 +162,7 @@ for iFrame = startFrame:endFrame
         bgPtYX=bgPtYX.bgPtYX;
         [bgMask]=eb3BgMask(filterDiff,bgPtYX);
         saveas(gcf,[featDir filesep 'filterDiff' filesep 'bgMask.tif']);
+        close(gcf)
     end
     % if bg point wasn't chosen, use ROI
     if iFrame==startFrame && exist([projData.anDir filesep 'bgPtYX.mat'])==0
@@ -186,12 +187,6 @@ for iFrame = startFrame:endFrame
     indxStr1 = sprintf(strg1,iFrame);
     filterDiff=load([featDir filesep 'filterDiff' filesep 'filterDiff' indxStr1]);
     filterDiff=filterDiff.filterDiff;
-
-    % cut postive component of histogram; make below that nan
-    %filterDiff(filterDiff<0) = nan;
-    %[cutoffInd, cutOffValueInitInt] = cutFirstHistMode(filterDiff(:),0);
-    %noiseFloor = 1.0 * cutOffValueInitInt;
-    %filterDiff(filterDiff<noiseFloor) = nan;
 
     % thickness of intensity slices is average std from filterDiffs over
     % from one frame before to one frame after
@@ -249,22 +244,6 @@ for iFrame = startFrame:endFrame
     featMap2 = bwlabel(slice2);
     featProp2 = regionprops(featMap2,filterDiff,'PixelIdxList','Area');
 
-    %[cutoffInd, cutoffValueArea] = cutFirstHistMode(vertcat(featProp2(:,1).Area),1);
-    %imshow(featMap2)
-    %figure(2); hist(vertcat(featProp2(:,1).Area),50);
-    %         % fill label matrix with area value
-    %         areaLabel = zeros(imL,imW);
-    %         for iFeat = 1:max(featMap2(:))
-    %             pixIdx = featProp2(iFeat,1).PixelIdxList;
-    %             areaLabel(pixIdx) = featProp2(iFeat,1).Area;
-    %         end
-    %         figure(1); hist(vertcat(featProp2(:,1).Area),100)
-    %         figure(2); hist(vertcat(featProp2(:,1).MaxIntensity),100)
-    %         figure(3); imshow(featMap2>0,[])
-    %         figure(4); imshow(areaLabel>0,[])
-    %         figure(5); imshow(areaLabel>20 & areaLabel<80,[])
-
-
     % here we sort through features and retain only the "good" ones
     % we assume the good features have area > 2 pixels
     goodFeatIdx = find(vertcat(featProp2(:,1).Area)>2);
@@ -311,40 +290,20 @@ for iFrame = startFrame:endFrame
 
     indxStr1 = sprintf(strg1,iFrame); % frame
 
-    %save([featDir filesep 'featureInfo' filesep 'featPropFinal' indxStr1],'featPropFinal');
-
+    %plot feat outlines and centroid on image
     if savePlots==1
-        % use extrema to draw polygon around feats - here we get
-        % coordinates for polygon
-        %             outline = [featPropFinal.Extrema]; outline = [outline; outline(1,:)];
-        %             outlineX = outline(:,1:2:size(outline,2));
-        %             outlineY = outline(:,2:2:size(outline,2));
-
-
-
-        %plot feat outlines and centroid on image
         fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
         img = double(imread(fileNameIm))./((2^bitDepth)-1);
 
-        figure(1);
+        figure
         imagesc(img);
         hold on
         scatter(xCoord(:,1),yCoord(:,1),'c.'); % plot centroid in cyan
         colormap gray
         plot(roiYX(2),roiYX(1),'w')
-        %plot(outlineX,outlineY,'r'); % plot feat outlines in red
-
+        axis equal
         saveas(gcf,[featDir filesep 'overlayImages' filesep 'overlay' indxStr1 '.tif']);
-        %saveas(gcf,[featDir filesep 'overlay' filesep 'overlay_g' indxStr1 '_f' indxStr3])
-
-        %             % save image of colored feats
-        %             RGB = label2rgb(featMapFinal, 'jet', 'k','shuffle');
-        %             figure(2);
-        %             imshow(RGB,'Border','tight');
-        %
-        %             save([featDir filesep 'featMaps' filesep 'feats_g' indxStr1 '_f' indxStr3], 'featMapFinal');
-        %             saveas(gcf,[featDir filesep 'featMaps' filesep 'feats_g' indxStr1 '_f' indxStr3 '.tif']);
-
+        close(gcf)
     end
 
 end
@@ -392,7 +351,10 @@ K = convhull(c(goodIdx(closeIdx)),r(goodIdx(closeIdx)));
 [bgMask,xi,yi]=roipoly(fImg,c(goodIdx(closeIdx(K))),r(goodIdx(closeIdx(K))));
 
 
-figure(1); imagesc(filterDiff); colormap gray;
+figure 
+imagesc(filterDiff); 
+colormap gray;
+axis equal
 hold on
 scatter(bgPtYX(2),bgPtYX(1),'*y') % user-selected point
 scatter(c(goodIdx),r(goodIdx),'.g') % all "good" features in green
