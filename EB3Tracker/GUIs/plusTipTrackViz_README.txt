@@ -198,8 +198,7 @@ numbers into this text box. Or, load projData manually and look for
 interesting tracks to plot.
 
 Please note that the individual track movies are still bounded by the frame
-range given as well as the frame range over wich the tracks exist. Thus it is
-possible to plot only a portion of a track.
+range given and the frames in which the track exists.
 
 If the "Individual Track Numbers" text box is empty, all tracks will
 be shown for the ROI.
