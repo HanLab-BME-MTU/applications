@@ -23,7 +23,7 @@ function varargout = plusTipTrackViz(varargin)
 
 % Edit the above text to modify the response to help plusTipTrackViz
 
-% Last Modified by GUIDE v2.5 01-Sep-2009 08:50:30
+% Last Modified by GUIDE v2.5 18-Sep-2009 13:49:03
 
 
 % Begin initialization code - DO NOT EDIT
@@ -85,10 +85,14 @@ handles.plotCurrentOnly=[];
 handles.movieInfo=[];
 
 
-handles.xaxisScatter='growthSpeed';
-handles.yaxisScatter='growthLifetime';
-handles.xScatterPercent=50;
-handles.yScatterPercent=50;
+handles.xaxisScattParam='growthSpeed';
+handles.xScatValType='value';
+handles.xScattInput=15;
+
+handles.yaxisScattParam='growthLifetime';
+handles.yScatValType='value';
+handles.yScattInput=10;
+
 handles.remBegEnd=1;
 
 % Update handles structure
@@ -483,15 +487,15 @@ val = get(hObject,'Value');
 
 % string labels in drop down menu
 % 
-% Growth speed
-% Growth lifetime
-% Growth displacement
-% Bgap speed
-% Bgap lifetime
-% Bgap displacement
-% Fgap speed
-% Fgap lifetime
-% Fgap displacement
+% Growth speed (um/min)
+% Growth lifetime (sec)
+% Growth displacement (um)
+% Bgap speed (um/min)
+% Bgap lifetime (sec)
+% Bgap displacement (um)
+% Fgap speed (um/min)
+% Fgap lifetime (sec)
+% Fgap displacement (um)
 
 group = {...
     'growthSpeed',... 
@@ -505,7 +509,7 @@ group = {...
     'fgapDisp',...
     };
 
-handles.xaxisScatter=group{val};
+handles.xaxisScattParam=group{val};
 
 guidata(hObject, handles);
 
@@ -526,21 +530,21 @@ end
 
 
 
-function xaxisScatterPerc_Callback(hObject, eventdata, handles)
-% hObject    handle to xaxisScatterPerc (see GCBO)
+function xaxisScatterInput_Callback(hObject, eventdata, handles)
+% hObject    handle to xaxisScatterInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of xaxisScatterPerc as text
-%        str2double(get(hObject,'String')) returns contents of xaxisScatterPerc as a double
-handles.xScatterPercent = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of xaxisScatterInput as text
+%        str2double(get(hObject,'String')) returns contents of xaxisScatterInput as a double
+handles.xScattInput = str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 
 
 % --- Executes during object creation, after setting all properties.
-function xaxisScatterPerc_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to xaxisScatterPerc (see GCBO)
+function xaxisScatterInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to xaxisScatterInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -552,19 +556,19 @@ end
 
 
 
-function yaxisScatterPerc_Callback(hObject, eventdata, handles)
-% hObject    handle to yaxisScatterPerc (see GCBO)
+function yaxisScatterInput_Callback(hObject, eventdata, handles)
+% hObject    handle to yaxisScatterInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of yaxisScatterPerc as text
-%        str2double(get(hObject,'String')) returns contents of yaxisScatterPerc as a double
-handles.yScatterPercent = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of yaxisScatterInput as text
+%        str2double(get(hObject,'String')) returns contents of yaxisScatterInput as a double
+handles.yScattInput = str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function yaxisScatterPerc_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to yaxisScatterPerc (see GCBO)
+function yaxisScatterInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to yaxisScatterInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -587,15 +591,15 @@ val = get(hObject,'Value');
 
 % string labels in drop down menu
 % 
-% Growth speed
-% Growth lifetime
-% Growth displacement
-% Bgap speed
-% Bgap lifetime
-% Bgap displacement
-% Fgap speed
-% Fgap lifetime
-% Fgap displacement
+% Growth speed (um/min)
+% Growth lifetime (sec)
+% Growth displacement (um)
+% Bgap speed (um/min)
+% Bgap lifetime (sec)
+% Bgap displacement (um)
+% Fgap speed (um/min)
+% Fgap lifetime (sec)
+% Fgap displacement (um)
 
 group = {...
     'growthSpeed',... 
@@ -609,7 +613,7 @@ group = {...
     'fgapDisp',...
     };
 
-handles.yaxisScatter=group{val};
+handles.yaxisScattParam=group{val};
 
 guidata(hObject, handles);
 
@@ -636,11 +640,27 @@ function quadScatterPlotPush_Callback(hObject, eventdata, handles)
 if ~isfield(handles,'projData')
     handles.projData=[];
 end
-param1=handles.xaxisScatter;
-cutoff1=handles.xScatterPercent;
-param2=handles.yaxisScatter;
-cutoff2=handles.yScatterPercent;
-[thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,handles.projData,handles.remBegEnd);
+
+if strcmpi(handles.xScatValType,'percentile')
+    percentile1=handles.xScattInput;
+    thresh1=[];
+else
+    percentile1=[];
+    thresh1=handles.xScattInput;
+end
+if strcmpi(handles.yScatValType,'percentile')
+    percentile2=handles.yScattInput;
+    thresh2=[];
+else
+    percentile2=[];
+    thresh2=handles.yScattInput;
+end
+
+
+plusTipParamPlot(handles.xaxisScattParam,percentile1,thresh1,...
+    handles.yaxisScattParam,percentile2,thresh2,...
+    handles.projData,handles.remBegEnd,handles.timeRangeDetect);
+
 
 
 % --- Executes on button press in selectOutputDirPush.
@@ -672,4 +692,80 @@ function remTrackBegEnd_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of remTrackBegEnd
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'remBegEndCheck');
 guidata(hObject, handles);
+
+
+% --- Executes on selection change in xParamDrop.
+function xParamDrop_Callback(hObject, eventdata, handles)
+% hObject    handle to xParamDrop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns xParamDrop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from xParamDrop
+val = get(hObject,'Value');
+
+% string labels in drop down menu
+% 
+% value
+% percentile
+
+group = {...    
+    'value',... 
+    'percentile',... 
+    };
+
+handles.xScatValType=group{val};
+
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function xParamDrop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to xParamDrop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in yParamDrop.
+function yParamDrop_Callback(hObject, eventdata, handles)
+% hObject    handle to yParamDrop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns yParamDrop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from yParamDrop
+val = get(hObject,'Value');
+
+% string labels in drop down menu
+% 
+% value
+% percentile
+
+
+group = {...    
+    'value',... 
+    'percentile',... 
+    };
+handles.yScatValType=group{val};
+
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function yParamDrop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to yParamDrop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
 

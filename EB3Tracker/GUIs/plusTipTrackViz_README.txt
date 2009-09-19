@@ -7,9 +7,9 @@ Overview of supported track visualization modes:
 5a. Overlay tracks on a frame of the movie, with the option to select 
     individual tracks for more information about them
 5b. Make a scatter plot of two parameters (i.e. growth speed and growth 
-    lifetime) divided into quadrants depending on percentiles. The colors 
-    of the four quadrants correspond to tracks overlain on an image in a 
-    second figure
+    lifetime) divided into quadrants depending on values or percentiles. 
+    The colors of the four quadrants correspond to tracks overlain on an 
+    image in a second figure
 5c. Make a movie of EITHER all tracks within a region and within a frame range 
                     OR     one or more individual tracks
 5d. Make a movie where features are color-coded by speed (microns/min)
@@ -87,9 +87,9 @@ selected or not.
 ---------------------------------------------------------------------------
 3. Choose Frame Range (OPTIONAL)
 
-Default is all frames. The frame range chosen here will be applied to 5a, 
-5c, and 5d.  5b uses data from all the frames regardless of the frame range
-chosen here.
+Default is all frames. For 5a, partial tracks will be shown if they exist
+partially outside the frame range. For 5b, partial tracks are exluded from
+the scatterplot and overlay if "Remove tracks at start/end" is checked.
 
 ---------------------------------------------------------------------------
 4. Select Output Directory (OPTIONAL)
@@ -130,12 +130,15 @@ The "Plot Tracks" button calls plusTipPlotTracks.m.
 Use the Quadrant Scatter option to color-code tracks falling within 
 specified ranges of various parameters.  Select parameters to be plotted on
 a 2D scatter plot, such as growth speed and growth lifetime.  Adjust the 
-percentile values for each independently and select "Make Plot."
+data values or percentiles for each parameter independently and select 
+"Make Plot."
 
-If "Remove tracks at start/end" is checked, all tracks existing in the
-first or last tracked frame will not be included.  Lifetime measurements
-can be biased especially in short movies where most tracks will exist at
-the beginning or end.
+If "Remove tracks at start/end" is checked, any track not entirely
+contained within the frame range will be excluded. Lifetime measurements
+can be biased especially in short movies where most long tracks will exist 
+at the beginning or end, thereby getting discarded. 
+If this option is unchecked, any track which ends before the frame range 
+begins or begins after the frame range ends will be excluded.
 
 Six figures will appear: a scatter plot and five images with tracks overlaid.  
 The colors of the tracks correspond to the color map of the scatter plot.  
@@ -150,10 +153,10 @@ parameter into three groups.  For example, if we choose growth speed for
 both the x- and y- axes, and select the 25th and 50th percentiles, 
 respectively, we will see three populations in three colors: tracks in Q1, 
 tracks in Q4, and tracks in both Q2 and Q3.  In this case one figure will 
-represent the raw image.
+simply show the raw image.
 
 Because the values on the x- and y- axes must be paired, only certain 
-combinations of parameters work.  The track type (e.g. "shrinkage") must be
+combinations of parameters work.  The track type (e.g. "fgap") must be
 the same for x- and y- axes.
 
 Note that the frame range specified in 3 is ignored; tracks from the range
@@ -178,7 +181,7 @@ on the movie.
     for checking whether a tracking mistake might be due to a missed detection
     or to wrong linking, for example.
 
-    * All features, current frame only: displays all the detected features from
+    * All features, current frame only: displays ALL the detected features from
     a given frame in that frame only.
 
     * Don't show any features: use this option if you want to make a movie of 
@@ -188,7 +191,7 @@ The "Individual Track Numbers" text box can be used to make movies of
 individual tracks.  The track numbers correspond to those found in the first
 column of projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix,
 the matrix containing the tracking results after post-processing (see the 
-plusTipAnalysis README file for more details). 
+plusTipAnalysis_README file for more details). 
 
 You may find it useful to select tracks in 5a and copy and paste the track 
 numbers into this text box. Or, load projData manually and look for 
