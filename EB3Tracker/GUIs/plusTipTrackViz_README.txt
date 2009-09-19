@@ -197,8 +197,9 @@ You may find it useful to select tracks in 5a and copy and paste the track
 numbers into this text box. Or, load projData manually and look for 
 interesting tracks to plot.
 
-Please note that frame range input is ignored when plotting individual
-tracks. A movie will be made of the entire track.
+Please note that the individual track movies are still bounded by the frame
+range given as well as the frame range over wich the tracks exist. Thus it is
+possible to plot only a portion of a track.
 
 If the "Individual Track Numbers" text box is empty, all tracks will
 be shown for the ROI.
