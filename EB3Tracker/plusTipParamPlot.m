@@ -1,7 +1,8 @@
-function [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projData,remBegEnd)
+function [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange)
 % Makes quadrant scatterplot split by property percentiles, mapped  onto image
 
-% SYNOPSIS: [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projData)
+% SYNOPSIS:
+% [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd)
 
 % INPUT:    param1/param2  : properties of MT dynamics, chosen from the
 %                            following list, where both are from the same
@@ -15,15 +16,21 @@ function [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projDa
 %                            'bgapSpeed'
 %                            'bgapLifetime'
 %                            'bgapDisp'
-%           cutoff1/cutoff2: percentiles where the data should be split for
+%           percentile1/percentile2: percentiles where the data should be split for
 %                            properties param1/param2, respectively
+%           thresh1/thresh2: values where data should be split for
+%                            properties param1/param2, respectively. 
+%                            NOTE:
+%                            only percentile OR thresh value should be
+%                            given for each parameter - the other will be
+%                            calculated accordingly
 %           projData (opt) : MT tracking data stored in the meta folder
 %                            if not given, user will be asked for it
 %           remBegEnd (opt): 1 to remove tracks existing at the beginning
 %                            or end of the movie
+%           timeRange      : frame range over which data should be used
 %
-% OUTPUT:   thresh1/thresh2: the parameter values which are the percentile
-%                            values of the cutoffs
+% OUTPUT:   
 %           The principal outputs are two plots: one, a scatterplot of the
 %           parameters plotted against each other, split into four colors
 %           at the boundaries created by the percentiles, and the second,
@@ -32,18 +39,25 @@ function [thresh1,thresh2]=plusTipParamPlot(param1,cutoff1,param2,cutoff2,projDa
 %           there will be 2-3 colors splitting the data into only 2 or 3
 %           groups.  This can be done to show the first, fourth, and middle
 %           two quartiles of, say, growth speed, if cutoffs 1 and 2 are 25
-%           and 75, respectively.
+%           and 75, respectively.  Four individual overlays are also
+%           created, displaying each color in turn.
 %
 % 2009/08 - Kathryn Applegate Matlab R2008a
 
 
-if nargin<4
+if nargin<6
     param1='growthSpeed';
-    cutoff1=50;
+    percentile1=50;
+    thresh1=[];
     param2='growthLifetime';
-    cutoff2=50;
+    percentile2=50;
+    thresh2=[];
 end
 
+if ~xor(isempty(thresh1),isempty(percentile1)) || ~xor(isempty(thresh2),isempty(percentile2))
+    msgbox('plusTipParamPlot: thresh or percentile value should be empty','Input Error','error')
+    return
+end
 
 
 % define which parameter sets are complemetary.  param1 and 2 must come
@@ -67,8 +81,7 @@ if ismember(param1,group3) && ismember(param2,group3)
     errFlag=0;
 end
 if errFlag==1
-    errordlg('plusTipParamPlot: Input parameters must be from same group (i.e. growth)')
-    uiwait
+    msgbox('plusTipParamPlot: Input parameters must be from same group (i.e. growth)','Input Error','error')
     return
 end
 
@@ -82,6 +95,20 @@ end
 % assume we should plot all data
 if nargin<6 || isempty(remBegEnd)
     remBegEnd=0;
+end
+
+% get number of time points
+numFrames=projData.numFrames;
+% check whether a time range for plotting was input
+if nargin<9 || isempty(timeRange)
+    timeRange=[1 numFrames];
+else
+    if timeRange(1)<1
+        timeRange(1)=1;
+    end
+    if timeRange(2)>numFrames
+        timeRange(2)=numFrames;
+    end
 end
 
 % format image/analysis directory paths
@@ -103,16 +130,16 @@ trackEnds=allData(:,3);
 [xMat,yMat]=plusTipGetSubtrackCoords(projData,[],1);
 
 if remBegEnd==1
-    sF=min(allData(:,2));
-    eF=max(allData(:,3));
+    % any track not entirely contained within the frame range will be excluded
+    subtrackIdx=find(trackType==groupNum & trackStarts>timeRange(1) & trackEnds<timeRange(2));
 else
-    sF=0;
-    eF=inf;
+    % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
+    subtrackIdx=find(trackType==groupNum & trackStarts<timeRange(2) & trackEnds>timeRange(1));
 end
 
-if ismember(groupNum,[1 2 3])
-    subtrackIdx=find(trackType==groupNum & trackStarts>sF & trackEnds<eF);
-end
+
+    
+
 
 % for param1 and param2, get data and label
 for iParam=1:2
@@ -168,12 +195,20 @@ for iParam=1:2
     % first iteration gives x-axis data, second gives y-axis data
     if iParam==1
         data1=tempData;
-        thresh1=prctile(data1,cutoff1);
-        label1=[tempLabel ', P' num2str(cutoff1) ' = ' sprintf('%3.2f',thresh1)];
+        if isempty(thresh1)
+            thresh1=prctile(data1,percentile1);
+        else
+            percentile1=floor(100*length(find(data1<thresh1))/length(data1));
+        end
+        label1=[tempLabel ', P' num2str(percentile1) ' = ' sprintf('%3.2f',thresh1)];
     else
         data2=tempData;
-        thresh2=prctile(data2,cutoff2);
-        label2=[tempLabel ', P' num2str(cutoff2) ' = ' sprintf('%3.2f',thresh2)];
+        if isempty(thresh2)
+            thresh2=prctile(data2,percentile2);
+        else
+            percentile2=floor(100*length(find(data2<thresh2))/length(data2));
+        end
+        label2=[tempLabel ', P' num2str(percentile2) ' = ' sprintf('%3.2f',thresh2)];
     end
 
 end
@@ -196,12 +231,24 @@ for iColor=1:4
             idx=find(data1>thresh1 & data2<=thresh2);
         case 4 % red
             idx=find(data1<=thresh1 & data2<=thresh2);     
+            
+            scatter(data1(idx),data2(idx),[],colorMap(iColor),'.');
+            xlabel(label1)
+            ylabel(label2)
+            
+            if remBegEnd==1
+                % any track not entirely contained within the frame range will be excluded
+                title({['N = ' num2str(length(data1)) ' tracks']; ['starting after frame ' num2str(timeRange(1)) ' and ending before frame ' num2str(timeRange(2))]});
+            else
+                % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
+                title({['N = ' num2str(length(data1)) ' tracks']; ['starting before frame ' num2str(timeRange(2)) ' and ending after frame ' num2str(timeRange(1))]});
+            end
+
+            
+            
+            
     end
 
-    scatter(data1(idx),data2(idx),[],colorMap(iColor),'.');
-    xlabel(label1)
-    ylabel(label2)
-    title(['N = ' num2str(length(data1))]);
 end
 
 % plot the corresponding tracks on the image

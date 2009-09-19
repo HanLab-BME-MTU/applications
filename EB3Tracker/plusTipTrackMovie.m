@@ -72,11 +72,8 @@ cd(projData.movDir)
 
 trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 % if no individual track given, use all
-if nargin<2 || isempty(indivTrack)
-    indivTrack=[];
-    subIdx{1,1}=[];
 
-    % assign frame range
+% assign frame range
     if nargin<3 || isempty(timeRange)
         timeRange=[1 projData.numFrames];
     else
@@ -88,24 +85,34 @@ if nargin<2 || isempty(indivTrack)
         end
     end
 
+if nargin<2 || isempty(indivTrack)
+    indivTrack=[];
+    subIdx{1,1}=[];
+
     % get coordinates of track
     tracksX = projData.xCoord;
     tracksY = projData.yCoord;
 
 
 else % otherwise, use individul tracks
-    timeRange=zeros(length(indivTrack),2);
+    timeRangeIndiv=zeros(length(indivTrack),2);
     for i=1:length(indivTrack)
         % cell array with subtrack indices for each track
         subIdx{i,1}=find(trackData(:,1)==indivTrack(i));
         % start and end frames for whole track
         sF=min(trackData(subIdx{i,1},2));
         eF=max(trackData(subIdx{i,1},3));
-        % assign frame range for each individual track, disregarding user input
+        % assign frame range for each individual track, bounded by user
+        % input
         % begins 3 frames before track appears and ends 3 frames after
-        timeRange(i,1)=max(1,sF-3); % could do sF-3 and eF+3
-        timeRange(i,2)=min(projData.numFrames,eF+3);
+        timeRangeIndiv(i,1)=max(timeRange(1),sF-3); % could do sF-3 and eF+3
+        timeRangeIndiv(i,2)=min(timeRange(2),eF+3);
+        if  timeRangeIndiv(i,1)>=timeRangeIndiv(i,2)
+            error(['--plusTipTrackMovie: check range for individual track ' num2str(indivTrack(i))]);
+        end
     end
+    clear timeRange
+    timeRange=timeRangeIndiv;
 
     % get coordinates of track
     tracksX = projData.xCoord(indivTrack,:);
@@ -149,7 +156,7 @@ end
 
 % load startFrame image and get size
 [listOfImages] = searchFiles('.tif',[],projData.imDir,0);
-fileNameIm = [char(listOfImages(timeRange(1,1),2)) filesep char(listOfImages(timeRange(1,1),1))];
+fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
 img1 = double(imread(fileNameIm));
 [imL,imW] = size(img1);
 
