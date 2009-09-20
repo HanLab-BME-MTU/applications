@@ -31,7 +31,7 @@ function [groupList]=plusTipPickGroups(autoGrp,saveResult,relDirs)
 
 
 
-if nargin<1 || autoGrp~=1
+if nargin<1 || isempty(autoGrp) || autoGrp~=1
     autoGrp=[];
 end
 
