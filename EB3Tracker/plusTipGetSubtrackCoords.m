@@ -11,12 +11,18 @@ function [xMat,yMat]=plusTipGetSubtrackCoords(projData,idx,useMerged)
 % OUTPUT: xMat,yMat: nIndex x nFrames matrices containing track coordinates
 %                    in frames where subtracks do not exist, matrices are
 %                    backfilled with NaNs
+%
+% this function is called by:
+% plusTipParamPlot
+% plusTipEventSpeedOverlay
+% plusTipPlotRandTraj
+% plusTipPlotTracks
 
 
 if nargin<3 || isempty(useMerged) || useMerged~=1
     trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix; % all
 else
-    [trackData,dataMatReclass,percentFgapsReclass]=plusTipMergeSubtracks(projData);
+    trackData=plusTipMergeSubtracks(projData); % first output is merged
 end
 
 % get data from all subtracks

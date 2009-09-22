@@ -114,7 +114,8 @@ maxX=ceil(max(roiYX(:,2)));
 trackVelMatrix=abs(projData.frame2frameVel_micPerMin);
 
 % get merged matrix so all we have are growths, fgaps, and bgaps (1,2,3)
-[dataMatMerge,dataMatReclass,percentFgapsReclass]=plusTipMergeSubtracks(projData);
+dataMatMerge=plusTipMergeSubtracks(projData); % first output is merged
+
 % make corresponding matrix to velocity matrix where values represent type
 trackTypeMtrix=zeros(size(projData.xCoord));
 for iSub=size(dataMatMerge,1):-1:1
@@ -222,7 +223,6 @@ for iFrame=startFrame:endFrame-1
     yCoord=yCoord-minY+1;
 
     
-    
     % get closest colormap index for each feature
     vel=trackVelMatrix(:,iFrame);
     vel(outOfRangeIdx) = [];
@@ -236,6 +236,9 @@ for iFrame=startFrame:endFrame-1
     prop_values(1:nC,2) = cMap(idx,:);
     prop_values(1:nC,3) = cMap(idx,:);
     
+    % use plot instead of scatter so more flexibility with properties. to
+    % do this, make 2 x nPoints matrix where the second row is all NaNs and
+    % then use the plot function
     xCoord=[xCoord nan(size(xCoord))]';
     yCoord=[yCoord nan(size(yCoord))]';
     h=plot(xCoord,yCoord);
