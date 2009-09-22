@@ -1,4 +1,4 @@
-function [dataMatMerge,dataMatReclass,percentFgapsReclass]=plusTipMergeSubtracks(projData,dataMat)
+function [dataMatMerge,dataMatReclass,dataMatCrpMinMic,percentFgapsReclass]=plusTipMergeSubtracks(projData,dataMat)
 % plusTipMergeSubtracks merges growth fgaps with the flanking growth phases
 %
 % SYNOPSIS  : [dataMatMerge,dataMatReclass,percentFgapsReclass]=...
@@ -13,16 +13,31 @@ function [dataMatMerge,dataMatReclass,percentFgapsReclass]=plusTipMergeSubtracks
 %             data matrix prior to reclassification.
 %             
 % OUTPUT
-% dataMatMerge        : matrix where fgaps that should be reclassified as
-%                       growth because their speeds are
+% dataMatMerge        : matrix where fgaps that should be reclassified (as
+%                       growth, because their speeds are
 %                       >=50% the speed at the end of the growth phase
-%                       prior are consolidated with flanking growth
+%                       prior) are consolidated with flanking growth
 %                       subtracks
 % dataMatReclass      : matrix where fgaps that should be reclassified are
 %                       not consolidated but the track type is changed to 5
+% dataMatCrpMinMic    : like dataMatMerge except the growth phases and
+%                       linked fgaps/bgaps from the first and last frames
+%                       of the movie have been removed. also, column 6
+%                       represents lifetime in minutes and 7 represents
+%                       displacement in microns. all speeds and displacements
+%                       are positive (which makes more sense anyway for
+%                       these measurements)
 % percentFgapsReclass : percentage of fgaps that get reclassified as
 %                       continuation of growth
+%
 % 
+% this function is called by:
+% plusTipPostTracking
+% plusTipPoolGroupData
+% plusTipParamPlot
+% plusTipGetSubtrackCoords
+% plusTipSpeedMovie
+
 
 if nargin<2
     % dataMat is the output matrix in projData, where the gaps to
@@ -102,3 +117,40 @@ percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
 dataMat(rows2remove,:)=[];
 
 dataMatMerge=dataMat;
+
+dataMat(:,6)=dataMat(:,6).*(projData.secPerFrame/60); % convert lifetimes to minutes
+dataMat(:,7)=dataMat(:,7).*(projData.pixSizeNm/1000); % convert displacements to microns
+
+
+
+subIdx2rem=[];
+% get index of growth and following fgap or bgap (if it exists) that
+% begin in the first frame
+sF=min(dataMat(:,2));
+fullIdx2rem=unique(dataMat(dataMat(:,2)==sF,1));
+for iTr=1:length(fullIdx2rem)
+    subIdx=find(dataMat(:,1)==fullIdx2rem(iTr));
+    if length(subIdx)>1
+        subIdx2rem=[subIdx2rem; subIdx(1:2)];
+    else
+        subIdx2rem=[subIdx2rem; subIdx(1)];
+    end
+end
+% get index of growth and preceeding fgap or bgap
+% (if it exists) that end in the last frame
+eF=max(dataMat(:,3));
+fullIdx2rem=unique(dataMat(dataMat(:,3)==eF,1));
+for iTr=1:length(fullIdx2rem)
+    subIdx=find(dataMat(:,1)==fullIdx2rem(iTr));
+    if length(subIdx)>1
+        subIdx2rem=[subIdx2rem; subIdx(end-1:end)];
+    else
+        subIdx2rem=[subIdx2rem; subIdx(end)];
+    end
+end
+% remove both classes for statistics
+dataMat(subIdx2rem,:)=[];
+
+dataMatCrpMinMic=abs(dataMat);
+
+
