@@ -155,7 +155,7 @@ stats.percentGrowthTerminal       = 100*(u/length(gIdx));
 % calculate dynamicity
 % all track indices where there is either a forward or backward gap
 tracksWithFgap=unique(dataMatCrpMinMic(dataMatCrpMinMic(:,5)==2,1));
-tracksWithBgap=unique(dataMatCrpMinMic(dataMatCrpMinMic(:,5)==2,1));
+tracksWithBgap=unique(dataMatCrpMinMic(dataMatCrpMinMic(:,5)==3,1));
 idx=unique([tracksWithFgap; tracksWithBgap]);
 idxCell=mat2cell(idx,ones(length(idx),1),1);
 % sub track indices of the full tracks
