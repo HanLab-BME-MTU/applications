@@ -433,149 +433,37 @@ aT=[aT lifeTimes totalDispPix];
 
 % aT will now contain consolidated rows, while aTreclass is the final
 % matrix to be stored in projData.
-[aT,aTreclass,projData.percentFgapsReclass]=plusTipMergeSubtracks(projData,aT);
+[aT,aTreclass,dataMatCrpMinMic,projData.percentFgapsReclass]=plusTipMergeSubtracks(projData,aT);
 
-
-% recalculate segment averages to reflect consolidation
+% recalculate segment average speeds to reflect consolidation
 projData.segGapAvgVel_micPerMin=zeros(size(projData.frame2frameVel_micPerMin));
 for iSub=1:size(aT,1)
     projData.segGapAvgVel_micPerMin(aT(iSub,1),aT(iSub,2):aT(iSub,3)-1)=aT(iSub,4);
 end
 
-
 % get track numbers that contain an fgap or bgap
 projData.tracksWithFgap = unique(aT(aT(:,5)==2,1));
 projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
 
-% index for growths which don't start before or end after the movie
-gIdx=find(aT(:,5)==1 & aT(:,2)>1 & aT(:,3)<max(aT(:,3)));
-projData.stats.nGrowths=length(gIdx);
-% median/mean for growth speeds (microns/minute)
-gs=aT(gIdx,4);
-projData.stats.growth_speed_median = median(gs);
-projData.stats.growth_speed_mean_SE = [mean(gs) std(gs)/sqrt(length(gs))];
-% median/mean for growth lifetime (min)
-gl=(aT(gIdx,6).*projData.secPerFrame)/60;
-projData.stats.growth_lifetime_median = median(gl);
-projData.stats.growth_lifetime_mean_SE = [mean(gl) std(gl)/sqrt(length(gl))];
-% median/mean for growth displacement (microns)
-gd=(abs(aT(gIdx,7)).*projData.pixSizeNm)/1000;
-projData.stats.growth_length_median = median(gd);
-projData.stats.growth_length_mean_SE = [mean(gd) std(gd)/sqrt(length(gd))];
+% calculate stats using the matrix where beginning/end data has been
+% removed. M records speeds (microns/min), lifetimes (min), and
+% displacements (microns) for growths, fgaps,and bgaps.
+[projData.stats,M]=plusTipDynamParam(dataMatCrpMinMic);
 
-
-% index for fgaps
-fIdx=find(aT(:,5)==2);
-projData.stats.nFgaps=length(fIdx);
-% median/mean for fgap speeds (microns/minute)
-fs=aT(fIdx,4);
-projData.stats.fgap_speed_median = median(fs);
-projData.stats.fgap_speed_mean_SE = [mean(fs) std(fs)/sqrt(length(fs))];
-% median/mean for fgap lifetime (min)
-fl=(aT(fIdx,6).*projData.secPerFrame)/60;
-projData.stats.fgap_lifetime_median = median(fl);
-projData.stats.fgap_lifetime_mean_SE = [mean(fl) std(fl)/sqrt(length(fl))];
-% median/mean for fgap displacement (microns)
-fd=(abs(aT(fIdx,7)).*projData.pixSizeNm)/1000;
-projData.stats.fgap_length_median = median(fd);
-projData.stats.fgap_length_mean_SE = [mean(fd) std(fd)/sqrt(length(fd))];
-% frequency of fgap is the average of 1 over the total time (min) spent
-% growing prior to fgap
-beforeFgapIdx=fIdx-1;
-% don't count the ones in the first frame, since we don't know how long
-% they are, or those which last for only 3 frames
-beforeFgapIdx=beforeFgapIdx(aT(beforeFgapIdx,2)~=1 & aT(beforeFgapIdx,6)>2);
-if isempty(beforeFgapIdx)
-    projData.stats.fgap_freq_time_mean_SE=[NaN NaN];
-    projData.stats.fgap_freq_length_mean_SE=[NaN NaN];
-else
-    freq=1./(aT(beforeFgapIdx,6).*(secPerFrame/60));
-    projData.stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    
-    freq=1./(aT(beforeFgapIdx,7).*(pixSizeNm/1000));
-    projData.stats.fgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-end
-
-% index for bgaps
-bIdx=find(aT(:,5)==3);
-projData.stats.nBgaps=length(bIdx);
-% median/mean for bgap speeds (microns/minute)
-bs=abs(aT(bIdx,4));
-projData.stats.bgap_speed_median = median(bs);
-projData.stats.bgap_speed_mean_SE = [mean(bs) std(bs)/sqrt(length(bs))];
-% median/mean for bgap lifetime (min)
-bl=(aT(bIdx,6).*projData.secPerFrame)/60;
-projData.stats.bgap_lifetime_median = median(bl);
-projData.stats.bgap_lifetime_mean_SE = [mean(bl) std(bl)/sqrt(length(bl))];
-% median/mean for bgap displacement (microns)
-bd=(abs(aT(bIdx,7)).*projData.pixSizeNm)/1000;
-projData.stats.bgap_length_median = median(bd);
-projData.stats.bgap_length_mean_SE = [mean(bd) std(bd)/sqrt(length(bd))];
-% frequency of bgap is the average of 1 over the total time (min) spent
-% growing prior to bgap
-beforeBgapIdx=bIdx-1;
-% don't count the ones in the first frame, since we don't know how long
-% they are, or those which last for only 3 frames
-beforeBgapIdx=beforeBgapIdx(aT(beforeBgapIdx,2)~=1 & aT(beforeBgapIdx,6)>2); 
-if isempty(beforeBgapIdx)
-    projData.stats.bgap_freq_time_mean_SE=[NaN NaN];
-    projData.stats.bgap_freq_length_mean_SE=[NaN NaN];
-else
-    freq=1./(aT(beforeBgapIdx,6).*(secPerFrame/60));
-    projData.stats.bgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    
-    freq=1./(aT(beforeBgapIdx,7).*(pixSizeNm/60));
-    projData.stats.bgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-end
-
-% percent of time spent in growth, fgap, and bgap
-totalTime=sum(gl)+sum(fl)+sum(bl);
-projData.stats.percentTimeGrowth=100*(sum(gl)/totalTime);
-projData.stats.percentTimeFgap  =100*(sum(fl)/totalTime);
-projData.stats.percentTimeBgap  =100*(sum(bl)/totalTime);
-
-% percent nFgaps/nGaps
-projData.stats.percentGapsForward = 100*(projData.stats.nFgaps/(projData.stats.nFgaps+projData.stats.nBgaps));
-% percent nBgaps/nGaps
-projData.stats.percentGapsBackward= 100*(projData.stats.nBgaps/(projData.stats.nFgaps+projData.stats.nBgaps));
-
-
-% if next one after growth has index 2, it's an fgap; if 3, it's a bgap; if
-% 1 or 4, it is unlinked to another subtrack
-if gIdx(end)==size(aT,1)
-    gIdx(end)=[];
-end
-    
-f=sum(aT(gIdx+1,5)==2);
-b=sum(aT(gIdx+1,5)==3);
-u=sum(aT(gIdx+1,5)==1 | aT(gIdx+1,5)==4);
-
-% percent of growths ending in fgap, bgap, or nothing
-projData.stats.percentGrowthLinkedForward=100*(f/length(gIdx));
-projData.stats.percentGrowthLinkedBackward=100*(b/length(gIdx));
-projData.stats.percentGrowthTerminal=100*(u/length(gIdx));
-
-% calculate dynamicity
-% all track indices where there is either a forward or backward gap
-idx=unique([projData.tracksWithFgap; projData.tracksWithBgap]);
-idxCell=mat2cell(idx,ones(length(idx),1),1);
-% sub track indices of the full tracks
-subIdx=cellfun(@(x) find(aT(:,1)==x),idxCell,'uniformoutput',0);
-% full track lifetimes and displacements
-ltf=cell2mat(cellfun(@(x) sum(aT(x,6)),subIdx,'uniformoutput',0));
-disp=cell2mat(cellfun(@(x) sum(abs(aT(x,7))),subIdx,'uniformoutput',0));
-% collective displacement of all gap-containing MTs over their collective lifetime
-projData.stats.dynamicity=((projData.pixSizeNm/1000)*sum(disp))/((projData.secPerFrame/60)*sum(ltf));
 
 % assign the matrix retaining where growth fgaps are indicated with
 % trackType=5
 projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aTreclass;
 
-% save each projDa in its own directory
+% save each projData in its own directory
 save([runInfo.metaDir filesep 'projData'],'projData')
 
+% write out speed/lifetime/displacement distributions into a text file 
+dlmwrite([runInfo.metaDir filesep 'gs_fs_bs_gl_fl_bl_gl_fl_bl.txt'], M, 'precision', 3,'delimiter', '\t','newline', 'pc');
+
+
 if mkHist==1
-   plusTipMakeHistograms(runInfo,aT); 
+   plusTipMakeHistograms(M,[runInfo.metaDir filesep 'histograms']) 
 end
 
 
