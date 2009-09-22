@@ -120,7 +120,7 @@ anDir=formatPath(projData.anDir);
 img = double(imread([listOfImages{1,2} filesep listOfImages{1,1}]));
 
 % extract track info (block matrix)
-[dataMatMerge,dataMatReclass,percentFgapsReclass]=plusTipMergeSubtracks(projData);
+dataMatMerge=plusTipMergeSubtracks(projData); % merged data is first output
 allData=abs(dataMatMerge);
 
 % get track type and matrices containing xy-coordinates for all subtracks
