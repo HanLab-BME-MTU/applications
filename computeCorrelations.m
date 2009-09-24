@@ -75,8 +75,8 @@ for iMovie = 1:numel(paths)
     error = 0;
     
      for k = 1:2
-        speedMapFileNames{k} = dir([subDirPaths{k} filesep...
-            'post' filesep 'mat' filesep 'speedMap*.mat']);
+        speedMapFileNames{k} = dir([subDirPaths{k} filesep 'post' ...
+            filesep 'mat' filesep 'speedMap*.mat']);
         
         if isempty(speedMapFileNames{k})
             disp([movieName ': Unable to locate speed map files. (SKIPPING)']);

@@ -38,6 +38,10 @@ end
 %Determine number of windows/bands
 [nBands,nWindows,nFrames] = size(allWinPoly);
 
+movieData.labels.nWindows = nWindows;
+movieData.labels.nBands = nBands;
+movieData.labels.nFrames = nFrames;
+
 %Make the string for formatting
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 
@@ -48,7 +52,7 @@ for iFrame = 1:nFrames
     winPoly = allWinPoly(:,:,iFrame); %#ok<COLND>
     
     labels = createLabelsFromWindows(winPoly, N, M);
-    
+
     imwrite(uint16(labels), [movieData.labels.directory filesep 'labels_' num2str(iFrame,fString) '.tif']);
     
     waitbar(iFrame/nFrames,h)    

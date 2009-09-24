@@ -1,7 +1,10 @@
 function computeGlobalCorr(varargin)
 %      COMPUTEGLOBALCORR(forceRedo) Compute the correlation
-%      between average speed and kinScore, along TM and Actin tracks.
-%      'forceRedo' forces to recompute results.
+%      between:
+%      - average Actin speed along Actin tracks
+%      - average TM speed along Actin tracks.
+%      - average protrusion value along Actin tracks.
+% 'forceRun' forces to recompute results.
 
 if nargin >= 1
     rootDirectory = varargin{1};
@@ -15,9 +18,9 @@ else
 end
 
 if nargin >= 2
-    redo = varargin{2};
+    forceRun = varargin{2};
 else
-    redo = 0;
+    forceRun = 0;
 end
 
 % Get all subdirectories containing Actin & TM.
@@ -42,7 +45,7 @@ for iMovie = 1:numel(paths)
     % Check whether the computation has already been done.
     outputFileName = [path filesep 'globalCorrelations.mat'];
     
-    if exist(outputFileName, 'file') && ~redo
+    if exist(outputFileName, 'file') && ~forceRun
         disp([movieName ': DONE']);
         continue;        
     end
@@ -79,11 +82,9 @@ for iMovie = 1:numel(paths)
         continue;
     end
     
-    % Get the list of speed, poly and depoly map file names.
+    % Get the list of speed map file names.
     speedMapFileNames = cell(2, 1);
-%     polyMapFileNames = cell(2, 1);
-%     depolyMapFileNames = cell(2, 1);
-    
+
     error = 0;
     
     for k = 1:2
@@ -95,24 +96,6 @@ for iMovie = 1:numel(paths)
             error = 1;
             break;
         end
-        
-%         polyMapFileNames{k} = dir([subDirPaths{k} filesep...
-%             'post' filesep 'mat' filesep 'polyMap*.mat']);
-%         
-%         if isempty(polyMapFileNames{k})
-%             disp([movieName ': Unable to locate poly map files. (SKIPPING)']);
-%             error = 1;
-%             break;
-%         end
-%         
-%         depolyMapFileNames{k} = dir([subDirPaths{k} filesep...
-%             'post' filesep 'mat' filesep 'depolyMap*.mat']);
-%         
-%         if isempty(polyMapFileNames{k})
-%             disp([movieName ': Unable to locate depoly map files. (SKIPPING)']);
-%             error = 1;
-%             break;
-%         end
     end
     
     if error
@@ -172,12 +155,13 @@ for iMovie = 1:numel(paths)
     % R(i, 3) = mean distance of the track i to the cell edge
     % R(i, 4) = mean actin speed along track i
     % R(i, 5) = mean TM speed score along track i
-    % R(i, 6) = life time of track i  
+    % R(i, 6) = mean protrusion score along track i
+    % R(i, 7) = life time of track i  
     
     R = cell(2, 1);
     for k = 1:2
         numTracks = 0;
-        R{k} = zeros(numel(find(MPMs{k} == 0)) / 2 + 1, 6, 'single');
+        R{k} = zeros(numel(find(MPMs{k} == 0)) / 2 + 1, 7, 'single');
         
         waitbar(0, h, [movieName ': Compute track mean distance to the edge...']);
         for i = 1:size(MPMs{k}, 1)                
@@ -202,7 +186,7 @@ for iMovie = 1:numel(paths)
                     lifeTime = death - birth + 1;
                     R{k}(numTracks, 1:2) = m / lifeTime;
                     R{k}(numTracks, 3) = d / lifeTime;
-                    R{k}(numTracks, 6) = lifeTime;
+                    R{k}(numTracks, 7) = lifeTime;
                 end
 
                 j = j + 2;
@@ -259,18 +243,16 @@ for iMovie = 1:numel(paths)
 
             while j < size(MPMs{k}, 2) - 1
                 if MPMs{k}(i, j:j+1)
-                    birth = ceil(j / 2);
                     numTracks = numTracks + 1;
                     s1 = 0; s2 = 0;
                     while j < size(MPMs{k}, 2) && MPMs{k}(i, j) ~= 0
                         iFrame = ceil(j / 2);
                         p = MPMs{k}(i, j:j+1);
-                        death = iFrame;
                         s1 = s1 + S{iFrame, 1}(p(1), p(2));
                         s2 = s2 + S{iFrame, 2}(p(1), p(2));
                         j = j + 2;                        
                     end
-                    lifeTime = death - birth + 1;
+                    lifeTime = R{k}(numTracks, 7);
                     R{k}(numTracks, 4) = s1 / lifeTime;
                     R{k}(numTracks, 5) = s2 / lifeTime;
                 end
@@ -281,79 +263,86 @@ for iMovie = 1:numel(paths)
     end
     
     clear S;
+    
+    % Get the labels filename from window analysis directory
+    labelFileNames = dir([path filesep 'windowAnalysis' filesep ...
+        'labels' filesep 'labels*.tif']);
+    if ~numel(labelFileNames)
+        disp([movieName ': Unable to locate label files. (SKIPPING)']);
+        continue;
+    end
+    if numel(labelFileNames) ~= numFrames
+        disp([movieName ': Number of label files does not match number'...
+            ' of frames. (SKIPPING)']);
+        continue;
+    end
+    
+    % Load labels
+    L = cell(numel(labelFileNames), 1);    
+    h = waitbar(0, [movieName ': Load window labeling files...']);
+    for iFrame = 1:numFrames
+        fileName = [path filesep 'windowAnalysis' filesep ...
+        'labels' filesep labelFileNames(iFrame).name];
+        
+        L{iFrame} = imread(fileName);
+        
+        waitbar(iFrame / numel(maskFileNames), h);
+    end  
+    
+    % Load protrusion samples file
+    % TODO: read path and filename from movieData.
+    protSampleFilename = [subDirPaths{1} filesep 'edge' filesep 'cell_mask'...
+        filesep 'analysis_dl50' filesep 'protSamples_e_15by10pix_1_10.mat'];
+    
+    if ~exist(protSampleFilename, 'file')
+        disp([movieName ': Unable to locate protrusion sample file. (SKIPPING)']);
+        continue;
+    end
+    
+    load(protSampleFilename);
+    % Add another frame
+    avgProt = horzcat(protrusionSamples.averageNormalComponent,...
+        protrusionSamples.averageNormalComponent(:, end));
+    clear protrusionSamples;
+    
+    % Compute track mean protrusion score
+    for k = 1:2
+        numTracks = 0;
 
-%     % Load the kinetics maps
-%     K = cell(numel(maskFileNames), 2);    
-%     
-%     for k = 1:2        
-%         waitbar(0, h, [movieName ': Load kinetics maps (' num2str(k) '/2)...']);
-%         for iFile = 1:numel(polyMapFileNames{k})
-%             fileName1 = [subDirPaths{k} filesep 'post' filesep 'mat'...
-%                 filesep polyMapFileNames{k}(iFile).name];
-%             fileName2 = [subDirPaths{k} filesep 'post' filesep 'mat'...
-%                 filesep depolyMapFileNames{k}(iFile).name];
-%             load(fileName1);
-%             load(fileName2);
-%             [dummy1, dummy2, no] = getFilenameBody(fileName1);
-%             no = str2double(no);
-%             K{no, k} = single(polyMap);
-%             ind = find(abs(depolyMap) > K{no, k});
-%             K{no, k}(ind) = single(depolyMap(ind));
-%             clear polyMap depolyMap;
-%             waitbar(iFile / numel(speedMapFileNames{k}), h);
-%         end
-%         % Extend the first
-%         fileName = [subDirPaths{k} filesep 'post' filesep 'mat'...
-%             filesep polyMapFileNames{k}(1).name];
-%         [dummy1, dummy2, no] = getFilenameBody(fileName);
-%         no = str2double(no);
-%         for i = 1:no - 1
-%             K{i, k} = K{no, k};
-%         end
-%         % Extend the last
-%         fileName = [subDirPaths{k} filesep 'post' filesep 'mat'...
-%             filesep polyMapFileNames{k}(end).name];
-%         [dummy1, dummy2, no] = getFilenameBody(fileName);
-%         no = str2double(no);
-%         for i = no+1:size(K, 1)
-%             K{i, k} = K{no, k};
-%         end        
-%     end
-% 
-%     % Compute track mean kin score
-%     for k = 1:2
-%         numTracks = 0;
-%         
-%         waitbar(0, h, [movieName ': Compute track mean kin score (' num2str(k) '/2)...']);
-%         for i = 1:size(MPMs{k}, 1)                
-%             waitbar(i / size(MPMs{k}, 1), h);            
-%             
-%             j = 1;
-% 
-%             while j < size(MPMs{k}, 2) - 1
-%                 if MPMs{k}(i, j:j+1)
-%                     birth = ceil(j / 2);
-%                     numTracks = numTracks + 1;
-%                     k1 = 0; k2 = 0;
-%                     while j < size(MPMs{k}, 2) && MPMs{k}(i, j) ~= 0
-%                         iFrame = ceil(j / 2);
-%                         p = MPMs{k}(i, j:j+1);
-%                         death = iFrame;
-%                         k1 = k1 + K{iFrame, 1}(p(1), p(2));
-%                         k2 = k2 + K{iFrame, 2}(p(1), p(2));                        
-%                         j = j + 2;                        
-%                     end
-%                     lifeTime = death - birth + 1;
-%                     R{k}(numTracks, 4) = k1 / lifeTime;
-%                     R{k}(numTracks, 5) = k2 / lifeTime;
-%                 end
-% 
-%                 j = j + 2;
-%             end
-%         end
-%     end
-% 
-%     clear K;
+        waitbar(0, h, [movieName ': Compute track mean protrusion score (' num2str(k) '/2)...']);
+        for i = 1:size(MPMs{k}, 1)                
+            waitbar(i / size(MPMs{k}, 1), h);
+            
+            j = 1;
+
+            while j < size(MPMs{k}, 2) - 1
+                if MPMs{k}(i, j:j+1)
+                    numTracks = numTracks + 1;
+                    prot = 0;
+                    count = 0;
+                    while j < size(MPMs{k}, 2) && MPMs{k}(i, j) ~= 0
+                        iFrame = ceil(j / 2);
+                        p = MPMs{k}(i, j:j+1);
+                        iSlice = L{iFrame}(p(1), p(2));
+                        if iSlice
+                            prot = prot + avgProt(iSlice, iFrame);
+                            count = count + 1;
+                        end
+                        j = j + 2;                        
+                    end
+                    if count
+                        R{k}(numTracks, 6) = prot / count;
+                    else
+                        R{k}(numTracks, 6) = NaN;
+                    end
+                end
+
+                j = j + 2;
+            end
+        end
+    end
+    
+    clear L;
     
     % Save correlation scores
     save(outputFileName, 'R', 'subDirPaths');

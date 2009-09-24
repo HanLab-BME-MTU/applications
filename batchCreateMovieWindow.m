@@ -25,7 +25,7 @@ movieData = cell(nMovies, 1);
 % Set up parameters
 dContour = 15; % ~ 1um
 dWin = 10;
-iStart = 1;
+iStart = 2;
 iEnd = 10;
 winMethod = 'e';
 
@@ -146,8 +146,8 @@ for iMovie = 1:numel(movieData)
     end
 
     % STEP 5: Sample the protrusion vector in each window
-    if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ~isfield(currMovie.protrusion.samples,'status') ...
-            || currMovie.protrusion.samples.status ~= 1 || forceRun
+    if 1%~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ~isfield(currMovie.protrusion.samples,'status') ...
+        %    || currMovie.protrusion.samples.status ~= 1 || forceRun
         try
             disp(['Sampling protrusion in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' winMethod '_' windowString  '.mat'],10,100);
@@ -189,7 +189,7 @@ for iMovie = 1:numel(movieData)
             currMovie.labels.status = 0;
         end            
     end
-
+    
     try
         %Save the updated movie data
         updateMovieData(currMovie)
