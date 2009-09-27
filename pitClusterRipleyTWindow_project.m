@@ -308,7 +308,7 @@ end
 allResults.restriction  = restrict;
 allResults.dist         = udist;
 allResults.KRmat        = KRmat_w;
-
+allResults.PRmat        = PRmat_w;
 allResults.KRmean   = KRmat_ave;
 allResults.KRstd    = KRmat_std;
 allResults.LRmean   = LRmat_ave;
