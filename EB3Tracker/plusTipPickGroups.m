@@ -1,22 +1,20 @@
-function [groupList]=plusTipPickGroups(autoGrp,saveResult,relDirs)
+function [groupList]=plusTipPickGroups(autoGrp,relDirs)
 % plusTipPickGroups allows user to select groups of movies
 %
-% SYNOPSIS: [groupList]=plusTipPickGroups(autoGrp,saveResult)
+% SYNOPSIS: [groupList]=plusTipPickGroups(autoGrp,relDirs)
 %
 % INPUT : user is asked to select the projList file(s) containing projects
 %         to be used for group selection.
 
 %         autoGrp (opt)   : if [] (def), user picks the groups and gives
-%                           them unique names.  leave names empty to use
-%                           1,2,3... as the group names
+%                           them unique names.  (leave names empty to use
+%                           1,2,3... as the group names)
 %                           if 1, user is asked to select one or more
 %                           categories from the parsed file path of the first
 %                           project in projList to define how groups should
 %                           be created.  for this to work all projects in
 %                           projList need to have corresponding categories
 %                           at the same folder levels.
-%         saveResult      : 1 to save the info as a matlab variable
-%                           groupList.mat, where
 %         relDirs (opt)   : vector containing the directory number(s)
 %                           relative to the roi_x folder (roi is 1, one
 %                           level up is 2, two levels up is 3, etc.) that
@@ -35,16 +33,14 @@ if nargin<1 || isempty(autoGrp) || autoGrp~=1
     autoGrp=[];
 end
 
-if nargin<2 || saveResult~=1
-    saveResult=0;
-    saveDir=[];
-else
-    saveDir=uigetdir(pwd,'Select output directory for groupList.');
-end
-
-if nargin<3 || ~isvector(relDirs)
+if nargin<2 || ~isvector(relDirs)
     relDirs=[];
 end
+
+homeDir=pwd;
+saveDir=uigetdir(pwd,'Select output directory for groupList.');
+cd(saveDir)
+
 
 % ask user to select projList file and check which movies have been tracked
 [allProjects,notDone]=plusTipCheckIfDone;
@@ -149,9 +145,7 @@ else
     
 end
 
-if saveResult==1
-    save([saveDir filesep 'groupList'],'groupList')
-end
+save([saveDir filesep 'groupList'],'groupList')
 
-
+cd(homeDir)
 

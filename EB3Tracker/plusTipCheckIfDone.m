@@ -10,10 +10,11 @@ function [allProjects,notDone]=plusTipCheckIfDone(fileType)
 %                  containing the list(s) of movies to check  (see getProj
 %                  for how to create projList files)
 %
-% OUTPUT: allProjects: nMovies x 2 matrix where column 1 contains the
-%                      directory name and column 2 contains the timestamp of
-%                      creation for either the movieInfo.mat file (if fileType
-%                      is 1) or the projData.mat file (if fileType is 2)
+% OUTPUT: allProjects: nMovies x 4 matrix where column 1 contains the
+%                      directory name and columns 2:4 contain the
+%                      timestamps of creation of the movieInfo.mat file, the
+%                      trackResults.mat file, and the projData.mat file, if
+%                      they exist.
 %         notDone    : vector of movie numbers corresponding to projList for
 %                      which the querried file does not exist
 %             

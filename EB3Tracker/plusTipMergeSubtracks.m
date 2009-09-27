@@ -1,4 +1,4 @@
-function [dataMatMerge,dataMatReclass,dataMatCrpMinMic,percentFgapsReclass]=plusTipMergeSubtracks(projData,dataMat)
+function [dataMatMerge,dataMatReclass,dataMatCrpMinMic,percentFgapsReclass,percentBgapsReclass]=plusTipMergeSubtracks(projData,dataMat)
 % plusTipMergeSubtracks merges growth fgaps with the flanking growth phases
 %
 % SYNOPSIS  : [dataMatMerge,dataMatReclass,percentFgapsReclass]=...
@@ -29,6 +29,8 @@ function [dataMatMerge,dataMatReclass,dataMatCrpMinMic,percentFgapsReclass]=plus
 %                       these measurements)
 % percentFgapsReclass : percentage of fgaps that get reclassified as
 %                       continuation of growth
+% percentBgapsReclass : percentage of bgaps that get reclassified as
+%                       pause
 %
 % 
 % this function is called by:
@@ -67,7 +69,7 @@ else
         beforeFgapSpeed(iGap)=nanmean(projData.frame2frameVel_micPerMin(dataMat(beforeFgapIdx(iGap),1),idxRange));
     end
     % these are the fgaps to consolidate
-    growthFgapIdx=fgapIdx(dataMat(fgapIdx,4)>0.5.*beforeFgapSpeed);
+    growthFgapIdx=fgapIdx(dataMat(fgapIdx,4)>0.7.*beforeFgapSpeed);
 end
 
 
@@ -75,8 +77,30 @@ end
 dataMatReclass=dataMat;
 dataMatReclass(growthFgapIdx,5)=5;
 
+% get 95th-percentile of true pause speeds
+fgapMaxSpeed=prctile(dataMatReclass(dataMatReclass(:,5)==2,4),95);
 
-% these are the affected track numbers
+% get indices of bgaps where the speeds is less than the 95% cutoff
+bgapAllIdx=find(dataMatReclass(:,5)==3);
+bgap2pauseIdx=find(dataMatReclass(:,5)==3 & abs(dataMatReclass(:,4))<fgapMaxSpeed);
+
+% bspeeds=abs(dataMatReclass(bgapAllIdx,4));
+% [cutoffIndex, cutoffValue] = cutFirstHistMode(bspeeds,1);
+
+dataMat(bgap2pauseIdx,5)=2; % reassign dataMat to have type 2 
+dataMat(bgap2pauseIdx,:)=abs(dataMat(bgap2pauseIdx,:)); % get abs value since now pause
+dataMatReclass(bgap2pauseIdx,5)=6; % reassign reclassified matrix to have new type of 6
+
+% fraction of bgaps that are changed to pause, because their speeds are
+% slower than the cutoff for fgap pauses
+percentBgapsReclass=100*length(bgap2pauseIdx)/length(bgapAllIdx);
+
+% fraction of fgaps that were consolidated into growth, since their speeds
+% were more than 50% of the growth speed just prior to the gap
+percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
+
+
+% these are the affected track numbers for growth fgaps
 tracks2check=unique(dataMat(growthFgapIdx,1));
 rows2remove=[];
 
@@ -109,19 +133,17 @@ for i=1:length(tracks2check)
         end
     end
 end
-% fraction of fgaps that were consolidated into growth, since their speeds
-% were more than 50% of the growth speed just prior to the gap
-percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
+
 
 % remove the extra rows
 dataMat(rows2remove,:)=[];
 
 dataMatMerge=dataMat;
 
-dataMat(:,6)=dataMat(:,6).*(projData.secPerFrame/60); % convert lifetimes to minutes
+
+
+dataMat(:,6)=dataMat(:,6).* projData.secPerFrame; % convert lifetimes to seconds
 dataMat(:,7)=dataMat(:,7).*(projData.pixSizeNm/1000); % convert displacements to microns
-
-
 
 subIdx2rem=[];
 % get index of growth and following fgap or bgap (if it exists) that

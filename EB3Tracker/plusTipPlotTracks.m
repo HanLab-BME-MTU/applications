@@ -228,9 +228,13 @@ for t=1:5
         case 4 % unclassified gaps
             c1='m:';
             c2='m';
-        case 5 % forward gaps - reclassified
+        case 5 % forward gaps - reclassified as growth
             c1='g';
             c2='g';
+        case 6 % backward gaps - reclassified as pause
+            c1='b:';
+            c2='b';
+      
     end
 
     plot(xMat(trackType==t,timeRange(1):timeRange(2))',...

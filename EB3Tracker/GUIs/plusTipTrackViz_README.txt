@@ -22,6 +22,7 @@ Track Type Quick Reference for 5a and 5c - see details below
 3 - backward gap (shrinkage)             (yellow dotted)
 4 - unclassified gap                     (magenta dotted)
 5 - forward gap reclassified as growth   (green solid)
+6 - backward gap reclassified as pause   (blue dotted)
 
 ---------------------------------------------------------------------------
 STEPS:
@@ -116,6 +117,7 @@ where velocity is in microns/min and trackType is:
 3 - backward gap (shrinkage)             (yellow dotted)
 4 - unclassified gap                     (magenta dotted)
 5 - forward gap reclassified as growth   (green solid)
+6 - backward gap reclassified as pause   (blue dotted)
 
 The track numbers selected will then show up in a new text window below the 
 "Plot tracks" button. These are useful if, for example, you want to quickly

@@ -1,16 +1,16 @@
 function [plusTipDataset]=plusTipGetGroupDataset
-% plusTipGetGroupDataset makes dataset array with data from groupList
+% plusTipGetGroupDataset makes dataset array with dynamics parameters from movies in groupList
 
 % INPUT
-% saveResult:   1 to save the result, 0 to not save
-% useSavedGrp:  1 to pick a previously-created groupList file, 0 to pick
-%               groups on the fly
+% user is asked for an output directory where dataset should be stored, as
+% well as the projList file(s) from which data should be pulled
 %
 % OUTPUT
-% plusTipInfo:  nProjects x 11 dataset array containing labels and
-%               directory info that can be used to group data for statistics
-% plusTipData:  nProjects x nStats dataset array containing statistics from
-%               projData, created during post-processing
+% plusTipDataset: dataset array containing directory info, tracking
+%                 parameters used, and extracted MT dynamics parameters for
+%                 all projects in projList.  if a project hasn't been
+%                 processed, its row will contain NaNs and the "goodMovie"
+%                 column will have a 0.
 %
 % Kathryn Applegate, 09/2009
 
@@ -182,7 +182,6 @@ plusTipDataset.Properties.DimNames{1,1}='Projects';
 
 % save result
 fileName='plusTipDataset';
-
 save([saveDir filesep fileName],'plusTipDataset')
 if ispc
     extstr='.xls';
@@ -192,9 +191,8 @@ end
 exportDatasetArray(plusTipDataset,'file',[saveDir filesep fileName extstr])
 
 
-cd(homeDir)
-
 if any(plusTipDataset.goodMovie==0)
     msgbox('Check output: one ore more projects likely need to be retracked','Potential Problem')
 end
 
+cd(homeDir)

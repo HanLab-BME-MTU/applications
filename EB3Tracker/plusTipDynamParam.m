@@ -3,11 +3,11 @@ function [stats,M]=plusTipDynamParam(dataMatCrpMinMic)
 %
 % SYNOPSIS: [stats,M]=plusTipDynamParam(dataMatCrpMinMic)
 %
-% INPUT:    
+% INPUT:
 % dataMatCrpMinMic : matrix produced by plusTipMergeSubtracks, or a
 %                    concatenated matrix from multiple movies
-% 
-% OUTPUT:   
+%
+% OUTPUT:
 % stats : structure containing parameters (see plusTipPostTracking for
 %         list) based on the subset of tracks starting after the first
 %         frame and ending before the last frame
@@ -15,7 +15,7 @@ function [stats,M]=plusTipDynamParam(dataMatCrpMinMic)
 %           1. growth speed (microns/min)
 %           2. fgap speed
 %           3. bgap speed
-%           4. growth lifetimes (min)
+%           4. growth lifetimes (sec)
 %           5. fgap lifetimes
 %           6. bgap lifetimes
 %           7. growth displacements (microns)
@@ -63,7 +63,7 @@ stats.nGrowths=length(gIdx);
 % median/mean for growth speeds (microns/minute)
 stats.growth_speed_median = median(gs);
 stats.growth_speed_mean_SE = [mean(gs) std(gs)/sqrt(length(gs))];
-% median/mean for growth lifetime (min)
+% median/mean for growth lifetime (sec)
 stats.growth_lifetime_median = median(gl);
 stats.growth_lifetime_mean_SE = [mean(gl) std(gl)/sqrt(length(gl))];
 % median/mean for growth displacement (microns)
@@ -72,56 +72,82 @@ stats.growth_length_mean_SE = [mean(gd) std(gd)/sqrt(length(gd))];
 
 
 % PARAMETERS RELATED TO FGAPS
-stats.nFgaps=length(fIdx);
-% median/mean for fgap speeds (microns/minute)
-stats.fgap_speed_median = median(fs);
-stats.fgap_speed_mean_SE = [mean(fs) std(fs)/sqrt(length(fs))];
-% median/mean for fgap lifetime (min)
-stats.fgap_lifetime_median = median(fl);
-stats.fgap_lifetime_mean_SE = [mean(fl) std(fl)/sqrt(length(fl))];
-% median/mean for fgap displacement (microns)
-stats.fgap_length_median = median(fd);
-stats.fgap_length_mean_SE = [mean(fd) std(fd)/sqrt(length(fd))];
-% frequency of fgap is the average of 1 over the total time (min) spent
-% growing prior to fgap
-beforeFgapIdx=fIdx-1;
-if isempty(beforeFgapIdx)
+if isempty(fIdx)
+    stats.nFgaps=0;
+    % median/mean for fgap speeds (microns/minute)
+    stats.fgap_speed_median = NaN;
+    stats.fgap_speed_mean_SE = [NaN NaN];
+    % median/mean for fgap lifetime (sec)
+    stats.fgap_lifetime_median = NaN;
+    stats.fgap_lifetime_mean_SE = [NaN NaN];
+    % median/mean for fgap displacement (microns)
+    stats.fgap_length_median = NaN;
+    stats.fgap_length_mean_SE = [NaN NaN];
+    % frequencies of fgap are the average of 1 over the total time (sec) spent
+    % growing prior to fgap, and the average of 1 over the total displacement
+    % (microns) during growth prior to fgap
     stats.fgap_freq_time_mean_SE=[NaN NaN];
     stats.fgap_freq_length_mean_SE=[NaN NaN];
+
 else
+    stats.nFgaps=length(fIdx);
+    % median/mean for fgap speeds (microns/minute)
+    stats.fgap_speed_median = median(fs);
+    stats.fgap_speed_mean_SE = [mean(fs) std(fs)/sqrt(length(fs))];
+    % median/mean for fgap lifetime (sec)
+    stats.fgap_lifetime_median = median(fl);
+    stats.fgap_lifetime_mean_SE = [mean(fl) std(fl)/sqrt(length(fl))];
+    % median/mean for fgap displacement (microns)
+    stats.fgap_length_median = median(fd);
+    stats.fgap_length_mean_SE = [mean(fd) std(fd)/sqrt(length(fd))];
+    % frequencies of fgap are the average of 1 over the total time (sec) spent
+    % growing prior to fgap, and the average of 1 over the total displacement
+    % (microns) during growth prior to fgap
+    beforeFgapIdx=fIdx-1;
     freq=1./dataMatCrpMinMic(beforeFgapIdx,6);
     stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    
     freq=1./dataMatCrpMinMic(beforeFgapIdx,7);
     stats.fgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
 end
 
-
 % PARAMETERS RELATED TO BGAPS
-stats.nBgaps=length(bIdx);
-% median/mean for bgap speeds (microns/minute)
-stats.bgap_speed_median = median(bs);
-stats.bgap_speed_mean_SE = [mean(bs) std(bs)/sqrt(length(bs))];
-% median/mean for bgap lifetime (min)
-stats.bgap_lifetime_median = median(bl);
-stats.bgap_lifetime_mean_SE = [mean(bl) std(bl)/sqrt(length(bl))];
-% median/mean for bgap displacement (microns)
-stats.bgap_length_median = median(bd);
-stats.bgap_length_mean_SE = [mean(bd) std(bd)/sqrt(length(bd))];
-% frequency of bgap is the average of 1 over the total time (min) spent
-% growing prior to bgap
-beforeBgapIdx=bIdx-1;
-if isempty(beforeBgapIdx)
+if isempty(bIdx)
+    stats.nBgaps=0;
+    % median/mean for bgap speeds (microns/minute)
+    stats.bgap_speed_median = NaN;
+    stats.bgap_speed_mean_SE = [NaN NaN];
+    % median/mean for bgap lifetime (sec)
+    stats.bgap_lifetime_median = NaN;
+    stats.bgap_lifetime_mean_SE = [NaN NaN];
+    % median/mean for bgap displacement (microns)
+    stats.bgap_length_median = NaN;
+    stats.bgap_length_mean_SE = [NaN NaN];
+    % frequencies of bgap are the average of 1 over the total time (sec) spent
+    % growing prior to bgap, and the average of 1 over the total displacement
+    % (microns) during growth prior to bgap
     stats.bgap_freq_time_mean_SE=[NaN NaN];
     stats.bgap_freq_length_mean_SE=[NaN NaN];
+
 else
+    stats.nBgaps=length(bIdx);
+    % median/mean for bgap speeds (microns/minute)
+    stats.bgap_speed_median = median(bs);
+    stats.bgap_speed_mean_SE = [mean(bs) std(bs)/sqrt(length(bs))];
+    % median/mean for bgap lifetime (sec)
+    stats.bgap_lifetime_median = median(bl);
+    stats.bgap_lifetime_mean_SE = [mean(bl) std(bl)/sqrt(length(bl))];
+    % median/mean for bgap displacement (microns)
+    stats.bgap_length_median = median(bd);
+    stats.bgap_length_mean_SE = [mean(bd) std(bd)/sqrt(length(bd))];
+    % frequencies of bgap are the average of 1 over the total time (sec) spent
+    % growing prior to bgap, and the average of 1 over the total displacement
+    % (microns) during growth prior to bgap
+    beforeBgapIdx=bIdx-1;
     freq=1./dataMatCrpMinMic(beforeBgapIdx,6);
     stats.bgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    
     freq=1./dataMatCrpMinMic(beforeBgapIdx,7);
     stats.bgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
 end
-
 
 % MISC PARAMETERS
 
@@ -131,10 +157,17 @@ stats.percentTimeGrowth=100*(sum(gl)/totalTime);
 stats.percentTimeFgap  =100*(sum(fl)/totalTime);
 stats.percentTimeBgap  =100*(sum(bl)/totalTime);
 
-% percent nFgaps/nGaps
-stats.percentGapsForward = 100*(stats.nFgaps/(stats.nFgaps+stats.nBgaps));
-% percent nBgaps/nGaps
-stats.percentGapsBackward= 100*(stats.nBgaps/(stats.nFgaps+stats.nBgaps));
+if stats.nFgaps+stats.nBgaps~=0
+    % percent nFgaps/nGaps
+    stats.percentGapsForward = 100*(stats.nFgaps/(stats.nFgaps+stats.nBgaps));
+    % percent nBgaps/nGaps
+    stats.percentGapsBackward= 100*(stats.nBgaps/(stats.nFgaps+stats.nBgaps));
+else
+    % percent nFgaps/nGaps
+    stats.percentGapsForward = NaN;
+    % percent nBgaps/nGaps
+    stats.percentGapsBackward= NaN;
+end
 
 
 % if next one after growth has index 2, it's an fgap; if 3, it's a bgap; if
@@ -142,7 +175,7 @@ stats.percentGapsBackward= 100*(stats.nBgaps/(stats.nFgaps+stats.nBgaps));
 if gIdx(end)==size(dataMatCrpMinMic,1)
     gIdx(end)=[];
 end
-    
+
 f=sum(dataMatCrpMinMic(gIdx+1,5)==2);
 b=sum(dataMatCrpMinMic(gIdx+1,5)==3);
 u=sum(dataMatCrpMinMic(gIdx+1,5)==1 | dataMatCrpMinMic(gIdx+1,5)==4);
@@ -152,20 +185,23 @@ stats.percentGrowthLinkedForward  = 100*(f/length(gIdx));
 stats.percentGrowthLinkedBackward = 100*(b/length(gIdx));
 stats.percentGrowthTerminal       = 100*(u/length(gIdx));
 
-% calculate dynamicity
+% calculate dynamicity (mic/min)
 % all track indices where there is either a forward or backward gap
 tracksWithFgap=unique(dataMatCrpMinMic(dataMatCrpMinMic(:,5)==2,1));
 tracksWithBgap=unique(dataMatCrpMinMic(dataMatCrpMinMic(:,5)==3,1));
 idx=unique([tracksWithFgap; tracksWithBgap]);
-idxCell=mat2cell(idx,ones(length(idx),1),1);
-% sub track indices of the full tracks
-subIdx=cellfun(@(x) find(dataMatCrpMinMic(:,1)==x),idxCell,'uniformoutput',0);
-% full track lifetimes and displacements
-ltf=cell2mat(cellfun(@(x) sum(dataMatCrpMinMic(x,6)),subIdx,'uniformoutput',0));
-disp=cell2mat(cellfun(@(x) sum(abs(dataMatCrpMinMic(x,7))),subIdx,'uniformoutput',0));
-% collective displacement of all gap-containing MTs over their collective lifetime
-stats.dynamicity=sum(disp)/sum(ltf);
-
+if ~isempty(idx)
+    idxCell=mat2cell(idx,ones(length(idx),1),1);
+    % sub track indices of the full tracks
+    subIdx=cellfun(@(x) find(dataMatCrpMinMic(:,1)==x),idxCell,'uniformoutput',0);
+    % full track lifetimes and displacements
+    ltf=cell2mat(cellfun(@(x) sum(dataMatCrpMinMic(x,6)),subIdx,'uniformoutput',0));
+    disp=cell2mat(cellfun(@(x) sum(abs(dataMatCrpMinMic(x,7))),subIdx,'uniformoutput',0));
+    % collective displacement of all gap-containing MTs over their collective lifetime
+    stats.dynamicity=sum(disp)/(sum(ltf)/60);
+else
+    stats.dynamicity=NaN;
+end
 
 
 

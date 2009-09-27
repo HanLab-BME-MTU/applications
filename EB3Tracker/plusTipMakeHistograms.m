@@ -1,6 +1,6 @@
 function plusTipMakeHistograms(speedLifeDispMat,saveDir)
 % plusTipMakeHistograms saves speed, lifetime, and displacement histograms
-% for growth, fgap, and bgap populations
+% for growth, pause, and shrinkage populations
 
 if ~isdir(saveDir)
     mkdir(saveDir)
@@ -16,7 +16,7 @@ for iParam=1:3
         case 2
             data=speedLifeDispMat(:,4:6); % lifetime
             titleStr='lifetime';
-            xStr='lifetime (min)';
+            xStr='lifetime (sec)';
         case 3
             data=speedLifeDispMat(:,7:9); % displacement
             titleStr='displacement';
@@ -29,8 +29,8 @@ for iParam=1:3
 
     % bin the samples
     [x1,dummy] = histc(data(:,1),n); % growth
-    [x2,dummy] = histc(data(:,2),n); % fgap
-    [x3,dummy] = histc(data(:,3),n); % bgap
+    [x2,dummy] = histc(data(:,2),n); % pause
+    [x3,dummy] = histc(data(:,3),n); % shrinkage
 
     % put the binned values into a matrix for the stacked plot
     M=nan(max([length(x1) length(x2) length(x3)]),3);
@@ -42,12 +42,12 @@ for iParam=1:3
     figure
     bar(n,M,'stack')
     colormap([1 0 0; 0 0 1; 0 1 0])
-    legend('growth','fgap','bgap','Location','best')
+    legend('growth','pause','shrinkage','Location','best')
     title(['stacked ' titleStr ' distributions'])
     xlabel(xStr);
     ylabel('frequency of tracks');
-    %saveas(gcf,[saveDir filesep titleStr '_stackedHist.fig'])
-    saveas(gcf,[saveDir filesep titleStr '_stackedHist.tif'])
+   %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_stacked.fig'])
+    saveas(gcf,[saveDir filesep 'histogram_' titleStr '_stacked.tif'])
     close(gcf)
 
     figure;
@@ -58,34 +58,34 @@ for iParam=1:3
         xlabel(xStr);
         ylabel('frequency of tracks');
 
-        %saveas(gcf,[saveDir filesep titleStr '_growthHist.fig'])
-        saveas(gcf,[saveDir filesep titleStr '_growthHist.tif'])
+       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_growth.fig'])
+        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_growth.tif'])
     end
     close(gcf)
 
     figure
-    % fgap
+    % pause
     if ~isempty(x2)
         bar(n,x2,'b')
-        title(['fgap ' titleStr ' distribution'])
+        title(['pause ' titleStr ' distribution'])
         xlabel(xStr);
         ylabel('frequency of tracks');
 
-        %saveas(gcf,[saveDir filesep titleStr '_fgapHist.fig'])
-        saveas(gcf,[saveDir filesep titleStr '_fgapHist.tif'])
+       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_pause.fig'])
+        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_pause.tif'])
     end
     close(gcf)
 
     figure
-    % bgap
+    % shrinkage
     if ~isempty(x3)
         bar(n,x3,'g')
-        title(['bgap ' titleStr ' distribution'])
+        title(['shrinkage ' titleStr ' distribution'])
         xlabel(xStr);
         ylabel('frequency of tracks');
 
-        %saveas(gcf,[saveDir filesep titleStr '_bgapHist.fig'])
-        saveas(gcf,[saveDir filesep titleStr '_bgapHist.tif'])
+       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_shrinkage.fig'])
+        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_shrinkage.tif'])
     end
     close(gcf)
 

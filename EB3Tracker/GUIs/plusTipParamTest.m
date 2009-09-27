@@ -496,22 +496,23 @@ if ~isempty(handles.projList)
     b=cellfun(@isempty, strfind(a,'sub'));
     a=a(b);
     
-    % check for existence of projData in meta folder - if it's not there,
-    % the project has not been tracked/processed, so we cannot visualize it
-    b=zeros(length(a),1);
-    for i=1:length(a)
-        b(i)=exist([formatPath(a{i}) filesep 'meta' filesep 'projData.mat'],'file')==2;
-    end
-    a=a(logical(b));
-
     % allow only one project to be selected
     [selection,selectionList]=listSelectGUI(a,1,'move',1);
 
     % if a project was selected, save projData info and get data
     if ~isempty(selection)
-        handles.dataDir=formatPath(selectionList{1,1});
-        p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
-        handles.projData=p.projData;
+        try
+            handles.dataDir=formatPath(selectionList{1,1});
+            p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
+            handles.projData=p.projData;
+        catch
+            handles.projData.anDir= selectionList{1,1};
+            hdir=pwd;
+            cd(handles.projData.anDir);
+            cd ..
+            handles.projData.imDir=[pwd filesep 'images'];
+            cd(hdir);
+        end
     else
         msgbox('No projects selected or tracking has not been completed.')
         handles.dataDir=[];
@@ -767,7 +768,7 @@ for i=1:nIter
     close all
 
     % pick which data to extract
-    statNames1={'numTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass'};
+    statNames1={'numTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass';'percentBgapsReclass'};
     statNames2=fieldnames(projData.stats);
 
     % GET PROJECT DATA

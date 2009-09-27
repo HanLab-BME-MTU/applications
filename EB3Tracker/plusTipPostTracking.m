@@ -68,6 +68,10 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %       because their speeds are >=90% the speed at the end of the growth
 %       phase prior.  these reclassified fgaps get removed and the growth
 %       phases before and after become joined into one
+%  .percentBgapsReclass
+%       percentage of bgaps that get reclassified as pause
+%       because their speeds are <95th percentile of fgaps remaining after
+%       reclassification.
 %  .tracksWithFgap
 %       track numbers corresponding to tracks that contain forward gaps
 %       (pause or out of focus events)
@@ -86,9 +90,9 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %               [mean SE] of all growth trajectory speeds (microns/min),
 %               where SE is std/sqrt(N)
 %           .growth_lifetime_median
-%               median of all growth trajectory lifetimes (min)
+%               median of all growth trajectory lifetimes (sec)
 %           .growth_lifetime_mean_SE
-%               [mean SE] of all growth trajectory lifetimes (min),
+%               [mean SE] of all growth trajectory lifetimes (sec),
 %               where SE is std/sqrt(N)
 %           .growth_length_median
 %               median of all growth trajectory lengths (microns)
@@ -104,9 +108,9 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %               [mean SE] of all forward gap trajectory speeds (microns/min),
 %               where SE is std/sqrt(N)
 %           .fgap_lifetime_median
-%               median of all forward gap trajectory lifetimes (min)
+%               median of all forward gap trajectory lifetimes (sec)
 %           .fgap_lifetime_mean_SE
-%               [mean SE] of all forward gap trajectory lifetimes (min),
+%               [mean SE] of all forward gap trajectory lifetimes (sec),
 %               where SE is std/sqrt(N)
 %           .fgap_length_median
 %               median of all forward gap trajectory lengths (microns)
@@ -114,7 +118,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %               [mean SE] of all forward gap trajectory lengths (microns),
 %               where SE is std/sqrt(N)
 %           .fgap_freq_time_mean_SE
-%               [mean(1/D), SE] where D is the growth lifetime (min) just
+%               [mean(1/D), SE] where D is the growth lifetime (sec) just
 %               prior to a forward gap, excluding growth trajectories
 %               lasting only 3 frames and those beginning in the first
 %               frame, and SE is std/sqrt(N)
@@ -132,9 +136,9 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %               [mean SE] of all backward gap trajectory speeds (microns/min),
 %               where SE is std/sqrt(N)
 %           .bgap_lifetime_median
-%               median of all backward gap trajectory lifetimes (min)
+%               median of all backward gap trajectory lifetimes (sec)
 %           .bgap_lifetime_mean_SE
-%               [mean SE] of all backward gap trajectory lifetimes (min),
+%               [mean SE] of all backward gap trajectory lifetimes (sec),
 %               where SE is std/sqrt(N)
 %           .bgap_length_median
 %               median of all backward gap trajectory lengths (microns)
@@ -142,7 +146,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %               [mean SE] of all backward gap trajectory lengths (microns),
 %               where SE is std/sqrt(N)
 %           .bgap_freq_time_mean_SE
-%               [mean(1/D), SE] where D is the growth lifetime (min) just
+%               [mean(1/D), SE] where D is the growth lifetime (sec) just
 %               prior to a backward gap, excluding growth trajectories
 %               lasting only 3 frames and those beginning in the first
 %               frame, and SE is std/sqrt(N)
@@ -191,7 +195,8 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %           4. speed (microns/min), negative for bgaps
 %           5. subtrack type
 %              (1=growth, 2=forward gap, 3=backward gap, 4=unclassifed gap,
-%              5=forwrad gap reclassified as growth)
+%              5=forward gap reclassified as growth, 6=backward gap
+%              reclassified as pause)
 %           6. lifetime (frames)
 %           7. total displacement (pixels), negative for bgaps
 
@@ -433,7 +438,7 @@ aT=[aT lifeTimes totalDispPix];
 
 % aT will now contain consolidated rows, while aTreclass is the final
 % matrix to be stored in projData.
-[aT,aTreclass,dataMatCrpMinMic,projData.percentFgapsReclass]=plusTipMergeSubtracks(projData,aT);
+[aT,aTreclass,dataMatCrpMinMic,projData.percentFgapsReclass,projData.percentBgapsReclass]=plusTipMergeSubtracks(projData,aT);
 
 % recalculate segment average speeds to reflect consolidation
 projData.segGapAvgVel_micPerMin=zeros(size(projData.frame2frameVel_micPerMin));
@@ -446,7 +451,7 @@ projData.tracksWithFgap = unique(aT(aT(:,5)==2,1));
 projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
 
 % calculate stats using the matrix where beginning/end data has been
-% removed. M records speeds (microns/min), lifetimes (min), and
+% removed. M records speeds (microns/min), lifetimes (sec), and
 % displacements (microns) for growths, fgaps,and bgaps.
 [projData.stats,M]=plusTipDynamParam(dataMatCrpMinMic);
 
@@ -459,7 +464,7 @@ projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aTreclass;
 save([runInfo.metaDir filesep 'projData'],'projData')
 
 % write out speed/lifetime/displacement distributions into a text file 
-dlmwrite([runInfo.metaDir filesep 'gs_fs_bs_gl_fl_bl_gl_fl_bl.txt'], M, 'precision', 3,'delimiter', '\t','newline', 'pc');
+dlmwrite([runInfo.metaDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd.txt'], M, 'precision', 3,'delimiter', '\t','newline', 'pc');
 
 
 if mkHist==1
