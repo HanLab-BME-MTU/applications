@@ -81,8 +81,8 @@ dataMatReclass(growthFgapIdx,5)=5;
 fgapMaxSpeed=prctile(dataMatReclass(dataMatReclass(:,5)==2,4),95);
 
 % get indices of bgaps where the speeds is less than the 95% cutoff
-bgapAllIdx=find(dataMatReclass(:,5)==3);
-bgap2pauseIdx=find(dataMatReclass(:,5)==3 & abs(dataMatReclass(:,4))<fgapMaxSpeed);
+bgapAllIdx=find(dataMatReclass(:,5)==3 | dataMatReclass(:,5)==6);
+bgap2pauseIdx=find((dataMatReclass(:,5)==3 & abs(dataMatReclass(:,4))<fgapMaxSpeed) | dataMatReclass(:,5)==6);
 
 % bspeeds=abs(dataMatReclass(bgapAllIdx,4));
 % [cutoffIndex, cutoffValue] = cutFirstHistMode(bspeeds,1);
