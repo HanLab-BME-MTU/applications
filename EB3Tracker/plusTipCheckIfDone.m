@@ -1,4 +1,4 @@
-function [allProjects,notDone]=plusTipCheckIfDone(fileType)
+function [allProjects,notDone]=plusTipCheckIfDone(fileType,chckFrNum)
 % plusTipCheckIfDone checks whether detection or post-processing has been finished for a group of movies
 %
 % SYNOPSIS: [allProjects,notDone]=plusTipCheckIfDone(fileType)
@@ -9,6 +9,8 @@ function [allProjects,notDone]=plusTipCheckIfDone(fileType)
 %        user will be asked to select one or more projList.mat files
 %                  containing the list(s) of movies to check  (see getProj
 %                  for how to create projList files)
+%        chckFrNum:1 to add how many frames there are in each movie (time
+%                  consuming)
 %
 % OUTPUT: allProjects: nMovies x 4 matrix where column 1 contains the
 %                      directory name and columns 2:4 contain the
@@ -25,6 +27,9 @@ notDone=[];
 
 if nargin < 1
     fileType=3;
+end
+if nargin < 2
+    chckFrNum=0;
 end
 
 % allow user to concatenate multiple project lists
@@ -69,4 +74,17 @@ dates=[dates1 dates2 dates3];
 % find out if any of them don't have dates
 notDone=find(cell2mat(cellfun(@(i) isempty(i),eval(['dates' num2str(fileType)]),'uniformoutput',0)));
 
-allProjects=[allProjList dates];
+if chckFrNum==1
+    % get how many images are in each project
+    homeDir=pwd;
+    nImages=cell(length(allProjList),1);
+    for iProj=1:length(allProjList)
+        cd(allProjList{iProj,1});
+        cd ..
+        cd('images')
+        nImages{iProj,1}=size(searchFiles('.tif',[],pwd,0),1);
+    end
+    cd(homeDir)
+end
+
+allProjects=[allProjList dates nImages];

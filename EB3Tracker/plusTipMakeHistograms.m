@@ -1,6 +1,6 @@
 function plusTipMakeHistograms(speedLifeDispMat,saveDir)
 % plusTipMakeHistograms saves speed, lifetime, and displacement histograms
-% for growth, pause, and shrinkage populations
+% for growth, fgap, and bgap populations
 
 if ~isdir(saveDir)
     mkdir(saveDir)
@@ -29,8 +29,8 @@ for iParam=1:3
 
     % bin the samples
     [x1,dummy] = histc(data(:,1),n); % growth
-    [x2,dummy] = histc(data(:,2),n); % pause
-    [x3,dummy] = histc(data(:,3),n); % shrinkage
+    [x2,dummy] = histc(data(:,2),n); % fgap
+    [x3,dummy] = histc(data(:,3),n); % bgap
 
     % put the binned values into a matrix for the stacked plot
     M=nan(max([length(x1) length(x2) length(x3)]),3);
@@ -42,7 +42,7 @@ for iParam=1:3
     figure
     bar(n,M,'stack')
     colormap([1 0 0; 0 0 1; 0 1 0])
-    legend('growth','pause','shrinkage','Location','best')
+    legend('growth','fgap','bgap','Location','best')
     title(['stacked ' titleStr ' distributions'])
     xlabel(xStr);
     ylabel('frequency of tracks');
@@ -64,28 +64,28 @@ for iParam=1:3
     close(gcf)
 
     figure
-    % pause
+    % fgap
     if ~isempty(x2)
         bar(n,x2,'b')
-        title(['pause ' titleStr ' distribution'])
+        title(['fgap ' titleStr ' distribution'])
         xlabel(xStr);
         ylabel('frequency of tracks');
 
-       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_pause.fig'])
-        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_pause.tif'])
+       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_fgap.fig'])
+        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_fgap.tif'])
     end
     close(gcf)
 
     figure
-    % shrinkage
+    % bgap
     if ~isempty(x3)
         bar(n,x3,'g')
-        title(['shrinkage ' titleStr ' distribution'])
+        title(['bgap ' titleStr ' distribution'])
         xlabel(xStr);
         ylabel('frequency of tracks');
 
-       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_shrinkage.fig'])
-        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_shrinkage.tif'])
+       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_bgap.fig'])
+        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_bgap.tif'])
     end
     close(gcf)
 
