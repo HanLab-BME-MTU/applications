@@ -139,8 +139,13 @@ strg1 = sprintf('%%.%dd',s1);
 % get difference of Gaussians image for each frame and standard deviation
 % of the cell background, stored in stdList
 stdList=nan(nImTot,1);
+count=1;
+progressText(0,'Filtering images for comet detection');
+
 for iFrame = startFrame:endFrame
 
+    progressText(count/nFrames,'Filtering images for comet detection');
+    
     % load image and normalize to 0-1
     fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
     img = double(imread(fileNameIm))./((2^bitDepth)-1);
@@ -174,11 +179,17 @@ for iFrame = startFrame:endFrame
     indxStr1 = sprintf(strg1,iFrame);
     save([featDir filesep 'filterDiff' filesep 'filterDiff' indxStr1],'filterDiff')
     save([featDir filesep 'stdList'],'stdList')
+    
+    count=count+1;
 end
 
 
 % loop thru frames and detect
+count=1;
+progressText(0,'Detecting comets');
 for iFrame = startFrame:endFrame
+
+    progressText(count/nFrames,'Detecting comets');
 
     if iFrame==startFrame
         tic
@@ -306,6 +317,7 @@ for iFrame = startFrame:endFrame
         close(gcf)
     end
 
+    count=count+1;
 end
 save([featDir filesep 'movieInfo'],'movieInfo');
 

@@ -63,7 +63,7 @@ if isempty(autoGrp)
     while strcmpi(pickAgain,'yes')
 
         % user selection of projects for iGroup
-        [selection,selectionList]=listSelectGUI(allProjects,[],'move');
+        selection=listSelectGUI(allProjects,[],'move');
 
         % get name of group for the legend
         temp=inputdlg({'Enter group name:'},'Input for legend label',1);
@@ -97,8 +97,7 @@ else
     for iProj=1:nProj
        
         currentROI=formatPath(allProjects{iProj,1});
-        % parse the path to get "words" used to identify target, oligo,
-        % movie, and roi
+        % parse the path
         nChar=length(currentROI);
         if ispc
             filesepLoc=regexp(currentROI,'\\');
@@ -122,17 +121,21 @@ else
         words=words(end:-1:1);
         
         % ask user for which categories to use to make the groups
+        h = msgbox('Please select levels to be used for grouping');
+        uiwait(h)
         if iProj==1
             if isempty(relDirs)
                 autoGrp=listSelectGUI(words,[],'copy');
+                autoGrp=autoGrp(end:-1:1);
             else
+                % autoGrp is relative to the roi directory, so add 1 since
+                % words is relative to subroi directory
                 autoGrp=relDirs+1;
             end
-            autoGrp=autoGrp(end:-1:1);
+            
         end
 
-        % autoGrp is relative to the roi directory, so add 1 since
-        % words is relative to subroi directory
+        
         macroWord=[];
         for iNum=1:length(autoGrp)
             macroWord=[macroWord '_' words{autoGrp(iNum)}];

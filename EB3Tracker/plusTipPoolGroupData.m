@@ -33,10 +33,10 @@ for iGroup = 1:length(grpNames)
     for iProj = 1:length(tempIdx)
 
         temp = load([projGroupDir{tempIdx(iProj)} filesep 'meta' filesep 'projData']);
-        [dummy1,dummy2,dataMatCrpMinMic]=plusTipMergeSubtracks(temp.projData);
+        [dummy1,dummy2,dataMatCrpSecMic]=plusTipMergeSubtracks(temp.projData);
 
         % assign matrix to cell array
-        data{iProj,1}=dataMatCrpMinMic;
+        data{iProj,1}=dataMatCrpSecMic;
 
         projNum{projCount,1}=iProj;
         projNum{projCount,2}=formatPath(temp.projData.anDir);

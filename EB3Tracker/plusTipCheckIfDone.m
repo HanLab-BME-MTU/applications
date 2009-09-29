@@ -3,20 +3,21 @@ function [allProjects,notDone]=plusTipCheckIfDone(fileType,chckFrNum)
 %
 % SYNOPSIS: [allProjects,notDone]=plusTipCheckIfDone(fileType)
 %
-% INPUT: fileType: 1 to check if detection is done 
-%                  2 to check if tracking is done
-%                  3 to check if post-processing is done (default)
-%        user will be asked to select one or more projList.mat files
-%                  containing the list(s) of movies to check  (see getProj
-%                  for how to create projList files)
-%        chckFrNum:1 to add how many frames there are in each movie (time
-%                  consuming)
+% INPUT: fileType  : 1 to check if detection is done 
+%                    2 to check if tracking is done
+%                    3 to check if post-processing is done (default)
+%          user will be asked to select one or more projList.mat files
+%                    containing the list(s) of movies to check  (see getProj
+%                    for how to create projList files)
+%        chckFrNum:  1 to add how many frames there are in each movie (time
+%                    consuming)
 %
 % OUTPUT: allProjects: nMovies x 4 matrix where column 1 contains the
 %                      directory name and columns 2:4 contain the
 %                      timestamps of creation of the movieInfo.mat file, the
 %                      trackResults.mat file, and the projData.mat file, if
-%                      they exist.
+%                      they exist. if chckFrNum=1, there will be a 5th
+%                      column with the number of frames for each movie.
 %         notDone    : vector of movie numbers corresponding to projList for
 %                      which the querried file does not exist
 %             
@@ -85,6 +86,8 @@ if chckFrNum==1
         nImages{iProj,1}=size(searchFiles('.tif',[],pwd,0),1);
     end
     cd(homeDir)
+    allProjects=[allProjList dates nImages];
+else
+    allProjects=[allProjList dates];
 end
 
-allProjects=[allProjList dates nImages];

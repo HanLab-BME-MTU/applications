@@ -1,4 +1,4 @@
-function [dataMatMerge,dataMatReclass,dataMatCrpMinMic,percentFgapsReclass,percentBgapsReclass]=plusTipMergeSubtracks(projData,dataMat)
+function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,percentFgapsReclass,percentBgapsReclass]=plusTipMergeSubtracks(projData,dataMat)
 % plusTipMergeSubtracks merges growth fgaps with the flanking growth phases
 %
 % SYNOPSIS  : [dataMatMerge,dataMatReclass,percentFgapsReclass]=...
@@ -8,7 +8,7 @@ function [dataMatMerge,dataMatReclass,dataMatCrpMinMic,percentFgapsReclass,perce
 % projData  : structure containing frame rate, pix size info, etc. 
 %             if dataMatrix isn't given, then projData should have the
 %             field nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix
-%             which contains reclassified fgaps.
+%             which contains reclassified fgaps and bgaps.
 % dataMat   : mainly to be used in plusTipPostTracking, where it is the
 %             data matrix prior to reclassification.
 %             
@@ -17,13 +17,18 @@ function [dataMatMerge,dataMatReclass,dataMatCrpMinMic,percentFgapsReclass,perce
 %                       growth, because their speeds are
 %                       >=50% the speed at the end of the growth phase
 %                       prior) are consolidated with flanking growth
-%                       subtracks
+%                       subtracks. also bgaps that should be reclassified
+%                       as pause, because their speeds are lower than the
+%                       95th percentile of fgap speeds (after reclass),
+%                       have their indices changed to 2.
 % dataMatReclass      : matrix where fgaps that should be reclassified are
-%                       not consolidated but the track type is changed to 5
-% dataMatCrpMinMic    : like dataMatMerge except the growth phases and
+%                       not consolidated but the track type is changed to
+%                       5, and bgaps that should be reclassified have their
+%                       track type changed to 6.
+% dataMatCrpSecMic    : like dataMatMerge except the growth phases and
 %                       linked fgaps/bgaps from the first and last frames
 %                       of the movie have been removed. also, column 6
-%                       represents lifetime in minutes and 7 represents
+%                       represents lifetime in seconds and 7 represents
 %                       displacement in microns. all speeds and displacements
 %                       are positive (which makes more sense anyway for
 %                       these measurements)
@@ -173,6 +178,6 @@ end
 % remove both classes for statistics
 dataMat(subIdx2rem,:)=[];
 
-dataMatCrpMinMic=abs(dataMat);
+dataMatCrpSecMic=abs(dataMat);
 
 

@@ -182,6 +182,10 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %                percent of growth trajectories beginning after the first
 %                frame and ending before the last frame that do not get
 %                linked to either fgaps or bgaps
+%           .avgIndivPercentTimeFgap
+%                average percent of time individual MTs spend in fgap
+%           .avgIndivPercentTimeBgap
+%                average percent of time individual MTs spend in bgap
 %           .dynamicity
 %               collective displacement of all gap-containing MTs over
 %               their collective lifetime
@@ -438,7 +442,7 @@ aT=[aT lifeTimes totalDispPix];
 
 % aT will now contain consolidated rows, while aTreclass is the final
 % matrix to be stored in projData.
-[aT,aTreclass,dataMatCrpMinMic,projData.percentFgapsReclass,projData.percentBgapsReclass]=plusTipMergeSubtracks(projData,aT);
+[aT,aTreclass,dataMatCrpSecMic,projData.percentFgapsReclass,projData.percentBgapsReclass]=plusTipMergeSubtracks(projData,aT);
 
 % recalculate segment average speeds to reflect consolidation
 projData.segGapAvgVel_micPerMin=zeros(size(projData.frame2frameVel_micPerMin));
@@ -453,7 +457,7 @@ projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
 % calculate stats using the matrix where beginning/end data has been
 % removed. M records speeds (microns/min), lifetimes (sec), and
 % displacements (microns) for growths, fgaps,and bgaps.
-[projData.stats,M]=plusTipDynamParam(dataMatCrpMinMic);
+[projData.stats,M]=plusTipDynamParam(dataMatCrpSecMic);
 
 
 % assign the matrix retaining where growth fgaps are indicated with

@@ -506,6 +506,8 @@ if ~isempty(handles.projList)
             p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
             handles.projData=p.projData;
         catch
+            % if the project hasn't been tracked yet, assume the images
+            % directory is at same level as roi_x folder.
             handles.projData.anDir= selectionList{1,1};
             hdir=pwd;
             cd(handles.projData.anDir);

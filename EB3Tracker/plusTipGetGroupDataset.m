@@ -40,7 +40,7 @@ for iProj=1:nProj
             projData=temp.projData;
             
             % pick which data to extract
-            dataNames={'numTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass'};
+            dataNames={'numTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass';'percentBgapsReclass'};
             statNames=fieldnames(projData.stats);
             trackParamNames=fieldnames(projData.trackingParameters);
 
@@ -102,8 +102,9 @@ for iProj=1:nProj
 
         % invert order
         words=words(end:-1:1);
+        
         for i=1:numDir
-            varNames{c}=['dir' num2str(i)];
+            varNames{c}=['dir' num2str(i-1)];
             if i>length(words)
                 plusTipDataset{iProj,c}='';
             else

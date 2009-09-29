@@ -1,8 +1,8 @@
-function [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange)
+function [percentile1,thresh1,percentile2,thresh2]=dataMatCrpSecMic(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange)
 % Makes quadrant scatterplot split by property percentiles, mapped  onto image
 
 % SYNOPSIS:
-% [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd)
+% [percentile1,thresh1,percentile2,thresh2]=dataMatCrpSecMic(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd)
 
 % INPUT:    param1/param2  : properties of MT dynamics, chosen from the
 %                            following list, where both are from the same
@@ -55,7 +55,7 @@ if nargin<6
 end
 
 if ~xor(isempty(thresh1),isempty(percentile1)) || ~xor(isempty(thresh2),isempty(percentile2))
-    msgbox('plusTipParamPlot: thresh or percentile value should be empty','Input Error','error')
+    msgbox('dataMatCrpSecMic: thresh or percentile value should be empty','Input Error','error')
     return
 end
 
@@ -81,7 +81,7 @@ if ismember(param1,group3) && ismember(param2,group3)
     errFlag=0;
 end
 if errFlag==1
-    msgbox('plusTipParamPlot: Input parameters must be from same group (i.e. growth)','Input Error','error')
+    msgbox('dataMatCrpSecMic: Input parameters must be from same group (i.e. growth)','Input Error','error')
     return
 end
 
@@ -167,11 +167,11 @@ for iParam=1:2
             % assign axis labels
             switch eval(['param' num2str(iParam)])
                 case 'growthLifetime'
-                    tempLabel='Growth Lifetime (s)';
+                    tempLabel='Growth Lifetime (sec)';
                 case 'fgapLifetime'
-                    tempLabel='Fgap Lifetime (s)';
+                    tempLabel='Fgap Lifetime (sec)';
                 case 'bgapLifetime'
-                    tempLabel='Bgap Lifetime (s)';
+                    tempLabel='Bgap Lifetime (sec)';
             end
 
         case {'growthDisp', 'fgapDisp', 'bgapDisp'} % displacements in microns

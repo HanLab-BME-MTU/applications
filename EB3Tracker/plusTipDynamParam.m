@@ -1,10 +1,10 @@
-function [stats,M]=plusTipDynamParam(dataMatCrpMinMic)
+function [stats,M]=plusTipDynamParam(dataMatCrpSecMic)
 % plusTipDynamParam: generic function for calculating dynamics parameters
 %
-% SYNOPSIS: [stats,M]=plusTipDynamParam(dataMatCrpMinMic)
+% SYNOPSIS: [stats,M]=plusTipDynamParam(dataMatCrpSecMic)
 %
 % INPUT:
-% dataMatCrpMinMic : matrix produced by plusTipMergeSubtracks, or a
+% dataMatCrpSecMic : matrix produced by plusTipMergeSubtracks, or a
 %                    concatenated matrix from multiple movies
 %
 % OUTPUT:
@@ -28,22 +28,22 @@ function [stats,M]=plusTipDynamParam(dataMatCrpMinMic)
 
 
 % growth speed, lifetime, displacement
-gIdx=find(dataMatCrpMinMic(:,5)==1);
-gs=dataMatCrpMinMic(gIdx,4);
-gl=dataMatCrpMinMic(gIdx,6);
-gd=dataMatCrpMinMic(gIdx,7);
+gIdx=find(dataMatCrpSecMic(:,5)==1);
+gs=dataMatCrpSecMic(gIdx,4);
+gl=dataMatCrpSecMic(gIdx,6);
+gd=dataMatCrpSecMic(gIdx,7);
 
 % fgap speed, lifetime, displacement
-fIdx=find(dataMatCrpMinMic(:,5)==2);
-fs=dataMatCrpMinMic(fIdx,4);
-fl=dataMatCrpMinMic(fIdx,6);
-fd=dataMatCrpMinMic(fIdx,7);
+fIdx=find(dataMatCrpSecMic(:,5)==2);
+fs=dataMatCrpSecMic(fIdx,4);
+fl=dataMatCrpSecMic(fIdx,6);
+fd=dataMatCrpSecMic(fIdx,7);
 
 % bgap speed, lifetime, displacement
-bIdx=find(dataMatCrpMinMic(:,5)==3);
-bs=dataMatCrpMinMic(bIdx,4);
-bl=dataMatCrpMinMic(bIdx,6);
-bd=dataMatCrpMinMic(bIdx,7);
+bIdx=find(dataMatCrpSecMic(:,5)==3);
+bs=dataMatCrpSecMic(bIdx,4);
+bl=dataMatCrpSecMic(bIdx,6);
+bd=dataMatCrpSecMic(bIdx,7);
 
 % put populations into a matrix backfilled with NaNs
 M=nan(max([length(gs) length(fs) length(bs)]),9);
@@ -104,9 +104,9 @@ else
     % growing prior to fgap, and the average of 1 over the total displacement
     % (microns) during growth prior to fgap
     beforeFgapIdx=fIdx-1;
-    freq=1./dataMatCrpMinMic(beforeFgapIdx,6);
+    freq=1./dataMatCrpSecMic(beforeFgapIdx,6);
     stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    freq=1./dataMatCrpMinMic(beforeFgapIdx,7);
+    freq=1./dataMatCrpSecMic(beforeFgapIdx,7);
     stats.fgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
 end
 
@@ -143,9 +143,9 @@ else
     % growing prior to bgap, and the average of 1 over the total displacement
     % (microns) during growth prior to bgap
     beforeBgapIdx=bIdx-1;
-    freq=1./dataMatCrpMinMic(beforeBgapIdx,6);
+    freq=1./dataMatCrpSecMic(beforeBgapIdx,6);
     stats.bgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    freq=1./dataMatCrpMinMic(beforeBgapIdx,7);
+    freq=1./dataMatCrpSecMic(beforeBgapIdx,7);
     stats.bgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
 end
 
@@ -172,31 +172,78 @@ end
 
 % if next one after growth has index 2, it's an fgap; if 3, it's a bgap; if
 % 1 or 4, it is unlinked to another subtrack
-if gIdx(end)==size(dataMatCrpMinMic,1)
+if gIdx(end)==size(dataMatCrpSecMic,1)
     gIdx(end)=[];
 end
 
-f=sum(dataMatCrpMinMic(gIdx+1,5)==2);
-b=sum(dataMatCrpMinMic(gIdx+1,5)==3);
-u=sum(dataMatCrpMinMic(gIdx+1,5)==1 | dataMatCrpMinMic(gIdx+1,5)==4);
+f=sum(dataMatCrpSecMic(gIdx+1,5)==2);
+b=sum(dataMatCrpSecMic(gIdx+1,5)==3);
+u=sum(dataMatCrpSecMic(gIdx+1,5)==1 | dataMatCrpSecMic(gIdx+1,5)==4);
 
 % percent of growths ending in fgap, bgap, or nothing
 stats.percentGrowthLinkedForward  = 100*(f/length(gIdx));
 stats.percentGrowthLinkedBackward = 100*(b/length(gIdx));
 stats.percentGrowthTerminal       = 100*(u/length(gIdx));
 
-% calculate dynamicity (mic/min)
+
 % all track indices where there is either a forward or backward gap
-tracksWithFgap=unique(dataMatCrpMinMic(dataMatCrpMinMic(:,5)==2,1));
-tracksWithBgap=unique(dataMatCrpMinMic(dataMatCrpMinMic(:,5)==3,1));
+tracksWithFgap=unique(dataMatCrpSecMic(dataMatCrpSecMic(:,5)==2,1));
+tracksWithBgap=unique(dataMatCrpSecMic(dataMatCrpSecMic(:,5)==3,1));
+
+% calculate the average percentage of time a MT spends in fgap
+idx=unique(tracksWithFgap);
+if ~isempty(idx)
+    idxCell=mat2cell(idx,ones(length(idx),1),1);
+    % sub track indices of the full tracks
+    subIdxAll=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x),idxCell,'uniformoutput',0);
+    % full track lifetimes and displacements
+    ltfAll=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxAll,'uniformoutput',0));
+    
+    % sub track indices of the full tracks
+    subIdxFgaps=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x & dataMatCrpSecMic(:,5)==2),idxCell,'uniformoutput',0);
+    % full track lifetimes and displacements
+    ltfFgaps=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxFgaps,'uniformoutput',0));
+    
+    % average percent of time spent in fgap for individual MT
+    stats.avgIndivPercentTimeFgap=100*mean(ltfFgaps./ltfAll);
+    
+    clear idx idxCell subIdxAll
+else
+    stats.avgIndivPercentTimeFgap=NaN;
+end
+
+
+% calculate the average percentage of time a MT spends in bgap
+idx=unique(tracksWithBgap);
+if ~isempty(idx)
+    idxCell=mat2cell(idx,ones(length(idx),1),1);
+    % sub track indices of the full tracks
+    subIdxAll=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x),idxCell,'uniformoutput',0);
+    % full track lifetimes and displacements
+    ltfAll=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxAll,'uniformoutput',0));
+    
+    % sub track indices of the full tracks
+    subIdxBgaps=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x & dataMatCrpSecMic(:,5)==3),idxCell,'uniformoutput',0);
+    % full track lifetimes and displacements
+    ltfBgaps=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxBgaps,'uniformoutput',0));
+    
+    % average percent of time spent in bgap for individual MT
+    stats.avgIndivPercentTimeBgap=100*mean(ltfBgaps./ltfAll);
+    
+    clear idx idxCell subIdxAll
+else
+    stats.avgIndivPercentTimeBgap=NaN;
+end
+
+% calculate dynamicity (mic/min)
 idx=unique([tracksWithFgap; tracksWithBgap]);
 if ~isempty(idx)
     idxCell=mat2cell(idx,ones(length(idx),1),1);
     % sub track indices of the full tracks
-    subIdx=cellfun(@(x) find(dataMatCrpMinMic(:,1)==x),idxCell,'uniformoutput',0);
+    subIdx=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x),idxCell,'uniformoutput',0);
     % full track lifetimes and displacements
-    ltf=cell2mat(cellfun(@(x) sum(dataMatCrpMinMic(x,6)),subIdx,'uniformoutput',0));
-    disp=cell2mat(cellfun(@(x) sum(abs(dataMatCrpMinMic(x,7))),subIdx,'uniformoutput',0));
+    ltf=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdx,'uniformoutput',0));
+    disp=cell2mat(cellfun(@(x) sum(abs(dataMatCrpSecMic(x,7))),subIdx,'uniformoutput',0));
     % collective displacement of all gap-containing MTs over their collective lifetime
     stats.dynamicity=sum(disp)/(sum(ltf)/60);
 else
