@@ -65,7 +65,7 @@ else
         timeRange(1)=1;
     end
     if timeRange(2) > projData.numFrames
-        timeRange(2)=projData.numFrames;
+        timeRange(2)=projData.numFrames-1;
     end
 end
 startFrame = timeRange(1);
@@ -134,7 +134,7 @@ cMap=mat2cell(jet(cMapLength),ones(cMapLength,1),3);
 if ~isempty(velLimit)
     m=round(velLimit);
 else
-    m=round(max(max(trackVelMatrix(:,startFrame:endFrame))));
+    m=round(nanmax(nanmax(trackVelMatrix(:,startFrame:endFrame))));
 end
 trackVelMatrix(trackVelMatrix>m)=m;
 mapper=linspace(0,m,cMapLength)';

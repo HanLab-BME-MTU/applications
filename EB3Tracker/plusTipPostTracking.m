@@ -445,7 +445,7 @@ aT=[aT lifeTimes totalDispPix];
 [aT,aTreclass,dataMatCrpSecMic,projData.percentFgapsReclass,projData.percentBgapsReclass]=plusTipMergeSubtracks(projData,aT);
 
 % recalculate segment average speeds to reflect consolidation
-projData.segGapAvgVel_micPerMin=zeros(size(projData.frame2frameVel_micPerMin));
+projData.segGapAvgVel_micPerMin=nan(size(projData.frame2frameVel_micPerMin));
 for iSub=1:size(aT,1)
     projData.segGapAvgVel_micPerMin(aT(iSub,1),aT(iSub,2):aT(iSub,3)-1)=aT(iSub,4);
 end

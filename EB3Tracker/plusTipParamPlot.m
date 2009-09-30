@@ -1,8 +1,8 @@
-function [percentile1,thresh1,percentile2,thresh2]=dataMatCrpSecMic(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange)
+function [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange)
 % Makes quadrant scatterplot split by property percentiles, mapped  onto image
 
 % SYNOPSIS:
-% [percentile1,thresh1,percentile2,thresh2]=dataMatCrpSecMic(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd)
+% [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd)
 
 % INPUT:    param1/param2  : properties of MT dynamics, chosen from the
 %                            following list, where both are from the same
@@ -55,7 +55,7 @@ if nargin<6
 end
 
 if ~xor(isempty(thresh1),isempty(percentile1)) || ~xor(isempty(thresh2),isempty(percentile2))
-    msgbox('dataMatCrpSecMic: thresh or percentile value should be empty','Input Error','error')
+    msgbox('plusTipParamPlot: thresh or percentile value should be empty','Input Error','error')
     return
 end
 
@@ -81,7 +81,7 @@ if ismember(param1,group3) && ismember(param2,group3)
     errFlag=0;
 end
 if errFlag==1
-    msgbox('dataMatCrpSecMic: Input parameters must be from same group (i.e. growth)','Input Error','error')
+    msgbox('plusTipParamPlot: Input parameters must be from same group (i.e. growth)','Input Error','error')
     return
 end
 
@@ -220,7 +220,6 @@ colorMap=['b','g','y','r'];
 
 % make scatterplot showing data distribution between the two parameters
 figure 
-hold on
 for iColor=1:4
     switch iColor
         case 1 % blue
@@ -230,29 +229,25 @@ for iColor=1:4
         case 3 % yellow
             idx=find(data1>thresh1 & data2<=thresh2);
         case 4 % red
-            idx=find(data1<=thresh1 & data2<=thresh2);     
-            
-            scatter(data1(idx),data2(idx),[],colorMap(iColor),'.');
-            xlabel(label1)
-            ylabel(label2)
-            
-            if remBegEnd==1
-                % any track not entirely contained within the frame range will be excluded
-                title({['N = ' num2str(length(data1)) ' tracks']; ['starting after frame ' num2str(timeRange(1)) ' and ending before frame ' num2str(timeRange(2))]});
-            else
-                % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
-                title({['N = ' num2str(length(data1)) ' tracks']; ['starting before frame ' num2str(timeRange(2)) ' and ending after frame ' num2str(timeRange(1))]});
-            end
-
-            
-            
-            
+            idx=find(data1<=thresh1 & data2<=thresh2);
     end
+    scatter(data1(idx),data2(idx),[],colorMap(iColor),'.');
+    hold on
 
 end
+xlabel(label1)
+ylabel(label2)
+if remBegEnd==1
+    % any track not entirely contained within the frame range will be excluded
+    title({['N = ' num2str(length(data1)) ' tracks']; ['starting after frame ' num2str(timeRange(1)) ' and ending before frame ' num2str(timeRange(2))]});
+else
+    % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
+    title({['N = ' num2str(length(data1)) ' tracks']; ['starting before frame ' num2str(timeRange(2)) ' and ending after frame ' num2str(timeRange(1))]});
+end
+
 
 % plot the corresponding tracks on the image
-h=figure; 
+h=figure;
 imagesc(img); colormap gray;
 hold on
 for iColor=1:4
@@ -264,7 +259,7 @@ for iColor=1:4
         case 3 % yellow
             idx=find(data1>thresh1 & data2<=thresh2);
         case 4 % red
-            idx=find(data1<=thresh1 & data2<=thresh2);     
+            idx=find(data1<=thresh1 & data2<=thresh2);
     end
     % make individual plot
     figure

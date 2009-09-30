@@ -59,16 +59,29 @@ M(1:length(bd),9)=bd;
 
 
 % PARAMETERS RELATED TO GROWTH
-stats.nGrowths=length(gIdx);
-% median/mean for growth speeds (microns/minute)
-stats.growth_speed_median = median(gs);
-stats.growth_speed_mean_SE = [mean(gs) std(gs)/sqrt(length(gs))];
-% median/mean for growth lifetime (sec)
-stats.growth_lifetime_median = median(gl);
-stats.growth_lifetime_mean_SE = [mean(gl) std(gl)/sqrt(length(gl))];
-% median/mean for growth displacement (microns)
-stats.growth_length_median = median(gd);
-stats.growth_length_mean_SE = [mean(gd) std(gd)/sqrt(length(gd))];
+if isempty(gIdx)
+    stats.nGrowths=0;
+    % median/mean for growth speeds (microns/minute)
+    stats.growth_speed_median = NaN;
+    stats.growth_speed_mean_SE = [NaN NaN];
+    % median/mean for growth lifetime (sec)
+    stats.growth_lifetime_median = NaN;
+    stats.growth_lifetime_mean_SE = [NaN NaN];
+    % median/mean for growth displacement (microns)
+    stats.growth_length_median = NaN;
+    stats.growth_length_mean_SE = [NaN NaN];
+else
+    stats.nGrowths=length(gIdx);
+    % median/mean for growth speeds (microns/minute)
+    stats.growth_speed_median = median(gs);
+    stats.growth_speed_mean_SE = [mean(gs) std(gs)/sqrt(length(gs))];
+    % median/mean for growth lifetime (sec)
+    stats.growth_lifetime_median = median(gl);
+    stats.growth_lifetime_mean_SE = [mean(gl) std(gl)/sqrt(length(gl))];
+    % median/mean for growth displacement (microns)
+    stats.growth_length_median = median(gd);
+    stats.growth_length_mean_SE = [mean(gd) std(gd)/sqrt(length(gd))];
+end
 
 
 % PARAMETERS RELATED TO FGAPS
@@ -153,91 +166,108 @@ end
 
 % percent of time spent in growth, fgap, and bgap
 totalTime=sum(gl)+sum(fl)+sum(bl);
-stats.percentTimeGrowth=100*(sum(gl)/totalTime);
-stats.percentTimeFgap  =100*(sum(fl)/totalTime);
-stats.percentTimeBgap  =100*(sum(bl)/totalTime);
-
-if stats.nFgaps+stats.nBgaps~=0
-    % percent nFgaps/nGaps
-    stats.percentGapsForward = 100*(stats.nFgaps/(stats.nFgaps+stats.nBgaps));
-    % percent nBgaps/nGaps
-    stats.percentGapsBackward= 100*(stats.nBgaps/(stats.nFgaps+stats.nBgaps));
+if totalTime==0
+    stats.percentTimeGrowth=NaN;
+    stats.percentTimeFgap  =NaN;
+    stats.percentTimeBgap  =NaN;
 else
+    stats.percentTimeGrowth=100*(sum(gl)/totalTime);
+    stats.percentTimeFgap  =100*(sum(fl)/totalTime);
+    stats.percentTimeBgap  =100*(sum(bl)/totalTime);
+end
+
+if stats.nFgaps+stats.nBgaps==0
     % percent nFgaps/nGaps
     stats.percentGapsForward = NaN;
     % percent nBgaps/nGaps
     stats.percentGapsBackward= NaN;
+else
+    % percent nFgaps/nGaps
+    stats.percentGapsForward = 100*(stats.nFgaps/(stats.nFgaps+stats.nBgaps));
+    % percent nBgaps/nGaps
+    stats.percentGapsBackward= 100*(stats.nBgaps/(stats.nFgaps+stats.nBgaps));
 end
 
 
-% if next one after growth has index 2, it's an fgap; if 3, it's a bgap; if
-% 1 or 4, it is unlinked to another subtrack
-if gIdx(end)==size(dataMatCrpSecMic,1)
+% get rid of the last one if it's a growth event, since there is no "next
+% index" for that one
+nextIdx=gIdx+1;
+if nextIdx(end)>size(dataMatCrpSecMic,1)
     gIdx(end)=[];
+    nextIdx(end)=[];
 end
-
-f=sum(dataMatCrpSecMic(gIdx+1,5)==2);
-b=sum(dataMatCrpSecMic(gIdx+1,5)==3);
-u=sum(dataMatCrpSecMic(gIdx+1,5)==1 | dataMatCrpSecMic(gIdx+1,5)==4);
+% get rid of any indices where the next one is an fgap or bgap but it
+% doesn't come from the same track
+rmIdx=find(dataMatCrpSecMic(gIdx,1)~=dataMatCrpSecMic(nextIdx,1) & (dataMatCrpSecMic(nextIdx,5)==2 | dataMatCrpSecMic(nextIdx,5)==3));
+gIdx(rmIdx)=[];
+nextIdx(rmIdx)=[];
 
 % percent of growths ending in fgap, bgap, or nothing
+f=sum(dataMatCrpSecMic(nextIdx,5)==2);
+b=sum(dataMatCrpSecMic(nextIdx,5)==3);
+u=length(gIdx)-(f+b);
+
 stats.percentGrowthLinkedForward  = 100*(f/length(gIdx));
 stats.percentGrowthLinkedBackward = 100*(b/length(gIdx));
 stats.percentGrowthTerminal       = 100*(u/length(gIdx));
 
 
 % all track indices where there is either a forward or backward gap
-tracksWithFgap=unique(dataMatCrpSecMic(dataMatCrpSecMic(:,5)==2,1));
-tracksWithBgap=unique(dataMatCrpSecMic(dataMatCrpSecMic(:,5)==3,1));
+tracksWithFgap=unique(dataMatCrpSecMic(fIdx,1));
+tracksWithBgap=unique(dataMatCrpSecMic(bIdx,1));
 
 % calculate the average percentage of time a MT spends in fgap
 idx=unique(tracksWithFgap);
-if ~isempty(idx)
+if isempty(idx)
+    stats.avgIndivPercentTimeFgap=NaN;
+else
     idxCell=mat2cell(idx,ones(length(idx),1),1);
     % sub track indices of the full tracks
     subIdxAll=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x),idxCell,'uniformoutput',0);
     % full track lifetimes and displacements
     ltfAll=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxAll,'uniformoutput',0));
-    
-    % sub track indices of the full tracks
+
+    % sub track indices of the fgaps
     subIdxFgaps=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x & dataMatCrpSecMic(:,5)==2),idxCell,'uniformoutput',0);
-    % full track lifetimes and displacements
+    % fgap lifetimes and displacements
     ltfFgaps=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxFgaps,'uniformoutput',0));
-    
+
     % average percent of time spent in fgap for individual MT
     stats.avgIndivPercentTimeFgap=100*mean(ltfFgaps./ltfAll);
-    
+
     clear idx idxCell subIdxAll
-else
-    stats.avgIndivPercentTimeFgap=NaN;
 end
 
 
 % calculate the average percentage of time a MT spends in bgap
 idx=unique(tracksWithBgap);
-if ~isempty(idx)
+if isempty(idx)
+    stats.avgIndivPercentTimeBgap=NaN;
+else
+
     idxCell=mat2cell(idx,ones(length(idx),1),1);
     % sub track indices of the full tracks
     subIdxAll=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x),idxCell,'uniformoutput',0);
     % full track lifetimes and displacements
     ltfAll=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxAll,'uniformoutput',0));
-    
-    % sub track indices of the full tracks
+
+    % sub track indices of the bgaps
     subIdxBgaps=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x & dataMatCrpSecMic(:,5)==3),idxCell,'uniformoutput',0);
-    % full track lifetimes and displacements
+    % bgap lifetimes and displacements
     ltfBgaps=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxBgaps,'uniformoutput',0));
-    
+
     % average percent of time spent in bgap for individual MT
     stats.avgIndivPercentTimeBgap=100*mean(ltfBgaps./ltfAll);
-    
+
     clear idx idxCell subIdxAll
-else
-    stats.avgIndivPercentTimeBgap=NaN;
 end
 
 % calculate dynamicity (mic/min)
 idx=unique([tracksWithFgap; tracksWithBgap]);
-if ~isempty(idx)
+if isempty(idx)
+    stats.dynamicity=NaN;
+else
+   
     idxCell=mat2cell(idx,ones(length(idx),1),1);
     % sub track indices of the full tracks
     subIdx=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x),idxCell,'uniformoutput',0);
@@ -246,8 +276,6 @@ if ~isempty(idx)
     disp=cell2mat(cellfun(@(x) sum(abs(dataMatCrpSecMic(x,7))),subIdx,'uniformoutput',0));
     % collective displacement of all gap-containing MTs over their collective lifetime
     stats.dynamicity=sum(disp)/(sum(ltf)/60);
-else
-    stats.dynamicity=NaN;
 end
 
 

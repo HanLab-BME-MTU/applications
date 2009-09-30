@@ -1,5 +1,10 @@
 function plusTipMakeBoxplots(data,setName,saveDir)
-% data is
+% plusTipMakeBoxplots saves speed, lifetime, and displacement boxplots
+% for growth, fgap, and bgap populations from different movie groups
+%
+% SYNOPSIS: plusTipMakeBoxplots(data,setName,saveDir)
+
+
 
 if ~isdir(saveDir)
     mkdir(saveDir)
@@ -12,16 +17,25 @@ bIdxInd=cellfun(@(x) find(x(:,5)==3),data,'UniformOutput',0);
 for iParam=1:3
     switch iParam
         case 1
+            if isempty(cell2mat(gIdxInd))
+                continue
+            end
             ms=cellfun(@(x,y) x(y,4),data,gIdxInd,'UniformOutput',0)';
             ml=cellfun(@(x,y) x(y,6),data,gIdxInd,'UniformOutput',0)';
             md=cellfun(@(x,y) x(y,7),data,gIdxInd,'UniformOutput',0)';
             titleStr='growth';
         case 2
+            if isempty(cell2mat(fIdxInd))
+                continue
+            end
             ms=cellfun(@(x,y) x(y,4),data,fIdxInd,'UniformOutput',0)';
             ml=cellfun(@(x,y) x(y,6),data,fIdxInd,'UniformOutput',0)';
             md=cellfun(@(x,y) x(y,7),data,fIdxInd,'UniformOutput',0)';
             titleStr='fgap';
         case 3
+            if isempty(cell2mat(bIdxInd))
+                continue
+            end
             ms=cellfun(@(x,y) x(y,4),data,bIdxInd,'UniformOutput',0)';
             ml=cellfun(@(x,y) x(y,6),data,bIdxInd,'UniformOutput',0)';
             md=cellfun(@(x,y) x(y,7),data,bIdxInd,'UniformOutput',0)';

@@ -30,11 +30,17 @@ for iGroup = 1:length(grpNames)
     tempIdx=strmatch(grpNames(iGroup),projGroupName,'exact');
 
     data=cell(length(tempIdx),1);
+    trkCount=1;
     for iProj = 1:length(tempIdx)
 
         temp = load([projGroupDir{tempIdx(iProj)} filesep 'meta' filesep 'projData']);
         [dummy1,dummy2,dataMatCrpSecMic]=plusTipMergeSubtracks(temp.projData);
 
+        % reassign the track numbers so when combined from multiple projects they don't repeat
+        trkIdx=unique(dataMatCrpSecMic(:,1));
+        dataMatCrpSecMic(:,1)=swapMaskValues(dataMatCrpSecMic(:,1),trkIdx,[trkCount:trkCount+length(trkIdx)-1]);
+        trkCount=trkCount+length(trkIdx);
+        
         % assign matrix to cell array
         data{iProj,1}=dataMatCrpSecMic;
 

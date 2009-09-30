@@ -54,7 +54,7 @@ len=cell2mat(arrayfun(@(x) length(x{:}), framesPerSubtrack,'UniformOutput',0));
 % for each frame of each subtrack, write corresponding TRACK number
 trackNumPerSub=arrayfun(@(x,y) x*ones(1,y)', trackNum,len,'UniformOutput',0);
 % convert i,j to index
-idx=cellfun(@(x,y) sub2ind([projData.numTracks, projData.numFrames],x,y), trackNumPerSub,framesPerSubtrack,'UniformOutput',0);
+idx=cellfun(@(x,y) sub2ind([size(projData.xCoord,1), projData.numFrames],x,y), trackNumPerSub,framesPerSubtrack,'UniformOutput',0);
 % coordinates for features in all subtracks at all frames
 coordsX=cellfun(@(i) projData.xCoord(i), idx,'UniformOutput',0);
 coordsY=cellfun(@(i) projData.yCoord(i), idx,'UniformOutput',0);

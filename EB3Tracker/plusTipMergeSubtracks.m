@@ -98,12 +98,19 @@ dataMatReclass(bgap2pauseIdx,5)=6; % reassign reclassified matrix to have new ty
 
 % fraction of bgaps that are changed to pause, because their speeds are
 % slower than the cutoff for fgap pauses
-percentBgapsReclass=100*length(bgap2pauseIdx)/length(bgapAllIdx);
+if isempty(bgapAllIdx)
+    percentBgapsReclass=NaN;
+else
+    percentBgapsReclass=100*length(bgap2pauseIdx)/length(bgapAllIdx);
+end
 
 % fraction of fgaps that were consolidated into growth, since their speeds
 % were more than 50% of the growth speed just prior to the gap
-percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
-
+if isempty(fgapIdx)
+    percentFgapsReclass=NaN;
+else
+    percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
+end
 
 % these are the affected track numbers for growth fgaps
 tracks2check=unique(dataMat(growthFgapIdx,1));
