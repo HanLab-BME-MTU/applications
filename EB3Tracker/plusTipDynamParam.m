@@ -189,27 +189,35 @@ else
 end
 
 
-% get rid of the last one if it's a growth event, since there is no "next
-% index" for that one
-nextIdx=gIdx+1;
-if nextIdx(end)>size(dataMatCrpSecMic,1)
-    gIdx(end)=[];
-    nextIdx(end)=[];
+if isempty(gIdx)
+    stats.percentGrowthLinkedForward  = NaN;
+    stats.percentGrowthLinkedBackward = NaN;
+    stats.percentGrowthTerminal       = NaN;
+
+else
+    % get rid of the last one if it's a growth event, since there is no "next
+    % index" for that one
+    nextIdx=gIdx+1;
+    if nextIdx(end)>size(dataMatCrpSecMic,1)
+        gIdx(end)=[];
+        nextIdx(end)=[];
+    end
+    % get rid of any indices where the next one is an fgap or bgap but it
+    % doesn't come from the same track
+    rmIdx=find(dataMatCrpSecMic(gIdx,1)~=dataMatCrpSecMic(nextIdx,1) & (dataMatCrpSecMic(nextIdx,5)==2 | dataMatCrpSecMic(nextIdx,5)==3));
+    gIdx(rmIdx)=[];
+    nextIdx(rmIdx)=[];
+
+    % percent of growths ending in fgap, bgap, or nothing
+    f=sum(dataMatCrpSecMic(nextIdx,5)==2);
+    b=sum(dataMatCrpSecMic(nextIdx,5)==3);
+    u=length(gIdx)-(f+b);
+
+    stats.percentGrowthLinkedForward  = 100*(f/length(gIdx));
+    stats.percentGrowthLinkedBackward = 100*(b/length(gIdx));
+    stats.percentGrowthTerminal       = 100*(u/length(gIdx));
 end
-% get rid of any indices where the next one is an fgap or bgap but it
-% doesn't come from the same track
-rmIdx=find(dataMatCrpSecMic(gIdx,1)~=dataMatCrpSecMic(nextIdx,1) & (dataMatCrpSecMic(nextIdx,5)==2 | dataMatCrpSecMic(nextIdx,5)==3));
-gIdx(rmIdx)=[];
-nextIdx(rmIdx)=[];
 
-% percent of growths ending in fgap, bgap, or nothing
-f=sum(dataMatCrpSecMic(nextIdx,5)==2);
-b=sum(dataMatCrpSecMic(nextIdx,5)==3);
-u=length(gIdx)-(f+b);
-
-stats.percentGrowthLinkedForward  = 100*(f/length(gIdx));
-stats.percentGrowthLinkedBackward = 100*(b/length(gIdx));
-stats.percentGrowthTerminal       = 100*(u/length(gIdx));
 
 
 % all track indices where there is either a forward or backward gap
@@ -267,7 +275,7 @@ idx=unique([tracksWithFgap; tracksWithBgap]);
 if isempty(idx)
     stats.dynamicity=NaN;
 else
-   
+
     idxCell=mat2cell(idx,ones(length(idx),1),1);
     % sub track indices of the full tracks
     subIdx=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x),idxCell,'uniformoutput',0);
