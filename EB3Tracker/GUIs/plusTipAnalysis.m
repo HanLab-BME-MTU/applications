@@ -123,7 +123,11 @@ handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');
 if ~isempty(handles.projList)
     % here we filter out any sub-directories
     a=struct2cell(handles.projList);
-    a=a(2,:)';
+    if isempty(strfind(a{1,1},'roi_'))
+        a=a(2,:)';
+    else
+        a=a(1,:)';
+    end
     a=sort(a);
     b=cellfun(@isempty, strfind(a,'sub'));
     a=a(b);

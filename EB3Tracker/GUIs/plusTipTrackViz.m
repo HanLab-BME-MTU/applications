@@ -134,7 +134,11 @@ handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');
 if ~isempty(handles.projList)
     % here we do NOT filter out any sub-directories
     a=struct2cell(handles.projList);
-    a=a(2,:)';
+    if isempty(strfind(a{1,1},'roi_'))
+        a=a(2,:)';
+    else
+        a=a(1,:)';
+    end
     a=sort(a);
     
     % check for existence of projData in meta folder - if it's not there,
