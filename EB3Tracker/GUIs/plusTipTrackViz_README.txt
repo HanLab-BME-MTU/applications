@@ -13,6 +13,8 @@ Overview of supported track visualization modes:
 5c. Make a movie of EITHER all tracks within a region and within a frame range 
                     OR     one or more individual tracks
 5d. Make a movie where features are color-coded by speed (microns/min)
+5e. Create sub-regions-of-interest and automatically extract growth
+    trajectories from them
 
 ---------------------------------------------------------------------------
 
@@ -233,6 +235,29 @@ so it is advised to leave this box unchecked when working in Linux.
 
 The "Make Speed Movie" button calls plusTipSpeedMovie.m.
 
+---------------------------------------------------------------------------
+
+5e. Select sub-regions of interest
+
+Select a project and saved ROI and press "Select Sub-ROIs" to draw polygons
+on an overlay of the ROI.  If no saved ROI is selected, you will be asked
+to draw a new one which will be saved.  A "subROIs" folder will be created
+under the project directory and to contain info for all sub-regions, which 
+are then treated as new projects.
+
+If "Auto selection" is checked, you may enter a number between 0 and 1, which
+represents the fraction of distance from the ROI boundary to the centroid.
+If a value is entered in the field, you will be asked to draw a line across the
+cell instead of drawing individual sub-ROIs.  This line, and a line perpendicular
+to it running through the ROI centroid, will be used to divide the cell into five
+regions (four quadrants and a central region) if the fraction is less than 1, or
+four quadrants (no central region) if the fraction is 1.
+
+Sub-ROI /meta folders will contain data for GROWTH PHASES ONLY pulled from the 
+originial ROI's data.  A track is considered to be in the sub-ROI if it spends
+half or more of its lifetime inside the sub-ROI.
+
+Sub-ROI projects can then be selected for movie making, etc.
 
 
 

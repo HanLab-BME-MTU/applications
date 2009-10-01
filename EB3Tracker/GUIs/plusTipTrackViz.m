@@ -23,7 +23,7 @@ function varargout = plusTipTrackViz(varargin)
 
 % Edit the above text to modify the response to help plusTipTrackViz
 
-% Last Modified by GUIDE v2.5 18-Sep-2009 13:49:03
+% Last Modified by GUIDE v2.5 30-Sep-2009 17:08:10
 
 
 % Begin initialization code - DO NOT EDIT
@@ -95,6 +95,11 @@ handles.yScattInput=10;
 
 handles.remBegEnd=1;
 
+
+handles.autoSelect=0;
+handles.fractionFromEdge=[];
+
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -157,6 +162,7 @@ if ~isempty(handles.projList)
         handles.dataDir=formatPath(selectionList{1,1});
         p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
         handles.projData=p.projData;
+        set(handles.anDirEdit,'String',formatPath(handles.projData.anDir));
     else
         msgbox('No projects selected or tracking has not been completed.')
         handles.dataDir=[];
@@ -767,6 +773,82 @@ function yParamDrop_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in autoSelectCheck.
+function autoSelectCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to autoSelectCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of autoSelectCheck
+handles.autoSelect=get(hObject,'Value');
+if handles.autoSelect==0
+    set(handles.fractionEdit,'Enable','Off');
+    set(handles.fractionEdit,'String','');
+    handles.fractionFromEdge=[];
+else
+    set(handles.fractionEdit,'Enable','On');
+end
+
+guidata(hObject, handles);
+
+% --- Executes on button press in subRoiPush.
+function subRoiPush_Callback(hObject, eventdata, handles)
+% hObject    handle to subRoiPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+plusTipSubdivideRoi(handles.projData,handles.fractionFromEdge,handles.roi);
+
+
+function fractionEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to fractionEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of fractionEdit as text
+%        str2double(get(hObject,'String')) returns contents of fractionEdit as a double
+handles.fractionFromEdge=str2double(get(hObject,'String'));
+if isnan(handles.fractionFromEdge)
+    handles.fractionFromEdge=[];
+end
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function fractionEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to fractionEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function anDirEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to anDirEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of anDirEdit as text
+%        str2double(get(hObject,'String')) returns contents of anDirEdit as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function anDirEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to anDirEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');

@@ -121,10 +121,11 @@ else
         words=words(end:-1:1);
         
         % ask user for which categories to use to make the groups
-        h = msgbox('Please select levels to be used for grouping');
-        uiwait(h)
+        
         if iProj==1
             if isempty(relDirs)
+                h = msgbox('Please select levels to be used for grouping');
+                uiwait(h)
                 autoGrp=listSelectGUI(words,[],'copy');
                 autoGrp=autoGrp(end:-1:1);
             else
@@ -132,10 +133,9 @@ else
                 % words is relative to subroi directory
                 autoGrp=relDirs+1;
             end
-            
         end
 
-        
+
         macroWord=[];
         for iNum=1:length(autoGrp)
             macroWord=[macroWord '_' words{autoGrp(iNum)}];

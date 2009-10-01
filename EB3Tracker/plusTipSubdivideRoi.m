@@ -1,4 +1,4 @@
-function plusTipSubdivideRoi(sourceProjData,fractionFromEdge)
+function plusTipSubdivideRoi(sourceProjData,fractionFromEdge,savedROI)
 % plusTipSubdivideRoi allows user to choose sub-regions of interest
 %
 % INPUT : sourceProjData        : projData file from any project
@@ -12,17 +12,22 @@ function plusTipSubdivideRoi(sourceProjData,fractionFromEdge)
 %                                 This provides one of the two axes used to
 %                                 divide the cell into quadrants. If this
 %                                 parameter is not included, the user can
-%                                 pick his/her own regions (up to 9).
+%                                 pick his/her own regions.
+%         savedROI              : either a BW mask or roiYX coordinates. if
+%                                 empty, user picks a new ROI
 %
-% OUTPUT: sub-roi directories, histograms, a tiff image showing regional
-%         selections, and an Excel spreadsheet giving the velocity
-%         distributions for growth, pause, and shrinkage.  A track is
-%         included in a particular region if more than half the frames of
-%         that track's existence fall within the region.
+% OUTPUT: sub-roi directories, a tiff image showing regional selections,
+%         and a text file giving the speed/lifetime/displacement
+%         distributions for growth.  a growth track is included in a
+%         particular region if more than half the frames of that track's
+%         existence fall within the region. merged tracks are used in the
+%         case of reclassified fgaps.
 
+doPlot=0;
 
 homeDir=pwd;
-warningState=warning('query', 'all');
+warningState = warning;
+warning('off','Images:initSize:adjustingMag')
 
 %warning on MATLAB:divideByZero
 
@@ -36,20 +41,46 @@ if nargin<1 || isempty(sourceProjData)
     sourceProjData=sourceProjData.projData;
 end
 anDir=formatPath(sourceProjData.anDir);
+
+if ~isempty(strfind(anDir,'sub'))
+    msgbox('Cannot choose sub-ROIs from a sub-ROI')
+    return
+end
+
+
 cd(anDir)
 imDir=formatPath(sourceProjData.imDir);
 
-if nargin<1 || isempty(fractionFromEdge)
+if nargin<2 || isempty(fractionFromEdge)
     fractionFromEdge=[];
+elseif fractionFromEdge<0 || fractionFromEdge>1
+    msgbox('Fraction must be in 0-1 range')
+    return   
 end
 
-% load roiYX and roiMask
-roiYX=load([anDir filesep 'roiYX.mat']);
-roiYX=roiYX.roiYX;
-roiMask=imread([anDir filesep 'roiMask.tif']);
+% make sub-roi directory under roi_x directory and go there
+subanDir=[anDir filesep 'subROIs'];
+if ~isdir(subanDir)
+    mkdir(subanDir);
+end
+cd(subanDir)
 
+flag=0;
+roiCount=1; % counter for rois for current project
+while flag==0
+    currentRoiAnDir=[pwd filesep 'sub_' num2str(roiCount)];
+    if isdir(currentRoiAnDir)
+        roiCount=roiCount+1;
+    else
+        flag=1;
+    end
+end
+roiStart=roiCount;
 
-roiArea=sum(roiMask(:));
+% input to varycolor is black (we don't use it since the image is dark;
+% make it one more than the number of ROIs (max is 9)
+cMap=varycolor(10);
+
 
 % get list of images, read first image, and make RGB (gray)
 [listOfImages]=searchFiles('.tif',[],imDir,0);
@@ -57,6 +88,56 @@ img=double(imread([char(listOfImages(1,2)) filesep char(listOfImages(1,1))]));
 [imL,imW]=size(img(:,:,1));
 img1=(img-min(img(:)))./(max(img(:))-min(img(:)));
 img=repmat(img1,[1,1,3]);
+
+% get figure size for parallel coordinates plot
+% scrsz = get(0,'ScreenSize');
+% screenW=scrsz(3);
+% screenL=scrsz(4);
+% magCoef=inf;
+% xRange=imW;
+% yRange=imL;
+% maxMagCoefW = (0.8*screenW)/xRange;
+% maxMagCoefL = (0.8*screenL)/yRange;
+% if magCoef > min([maxMagCoefW; maxMagCoefL])
+%     calcMagCoef = min([magCoef; maxMagCoefW; maxMagCoefL]);
+% else
+%     calcMagCoef = magCoef;
+% end
+% figW = (calcMagCoef*xRange);
+% figL = (calcMagCoef*yRange);
+% figPos=[round(screenW*(1-figW/screenW)/2) round(screenL*(1-figL/screenL)/2) figW figL];
+
+
+
+% get roiYX and roiMask
+if nargin<3 || isempty(savedROI)
+    h=msgbox('First draw the full region of interest ROI','help');
+    uiwait(h);
+    roiMask=[];
+    while isempty(roiMask)
+        try
+            figure %('Position',figPos)
+            roiMask=roipoly(img);
+            close
+
+        catch
+            h=msgbox('Please try again.','help');
+            uiwait(h);
+        end
+    end
+else
+    if ~isequal(size(savedROI),size(img(:,:,1)))
+        roiMask=roipoly(img,savedROI(:,2),savedROI(:,1));
+    else
+        roiMask=savedROI;
+    end
+end
+roiArea=sum(roiMask(:));
+% save roiMask and coordinates
+imwrite(roiMask,[subanDir filesep 'fullRoiMask_' num2str(roiStart) '.tif']);
+
+% string for number of files
+strg1 = sprintf('%%.%dd',2);
 
 
 % if the input includes the fraction from the cell edge parameter, then
@@ -85,7 +166,7 @@ if ~isempty(fractionFromEdge)
     [y1,x1]=ind2sub([imL,imW],find(roiMask,1));
     roiMaskYX = bwtraceboundary(roiMask,[y1,x1],'N');
 
-    figure
+    figure %('Position',figPos)
     imshow(roiMask.*img1,[])
     hold on
     axis equal
@@ -129,7 +210,7 @@ if ~isempty(fractionFromEdge)
         r22=(yAll> yLine2);
 
     end
-    
+
     if fractionFromEdge<1
         roiSet=zeros(imL,imW,5);
         roiSet(:,:,1)=innerMask;
@@ -147,51 +228,43 @@ if ~isempty(fractionFromEdge)
 
 end
 
-
-
-
-% make sub-roi directory under roi_x directory and go there
-subanDir=[anDir filesep 'subROIs'];
-if isdir(subanDir)
-    rmdir(subanDir,'s');
-end
-mkdir(subanDir);
-cd(subanDir)
-
-% input to varycolor is black (we don't use it since the image is dark;
-% make it one more than the number of ROIs (max is 9)
-cMap=varycolor(10);
-
 % set cell boundary to white in composite image
 [img2show]=addMaskInColor(img,roiMask,[1 1 1]);
-
-roiCount=1; % counter for rois for current project
-makeNewROI=1; % flag for making new roi
 
 % store 1 in every pixel of sub_1, 2 in every pixel of sub_2, etc.
 labelMatrix=zeros(size(roiMask));
 
 % iterate til the user is finished
-selectROI=1;
-while makeNewROI==1 && roiCount<10
+makeNewROI=1; % flag for making new roi
+while makeNewROI==1
     % make new roi_n image/analysis directories
-    currentRoiAnDir=[pwd filesep 'sub_' num2str(roiCount)];
+    %indxStr1 = sprintf(strg1,roiCount);
+    indxStr1 = num2str(roiCount);
+    currentRoiAnDir=[pwd filesep 'sub_' indxStr1];
     mkdir(currentRoiAnDir);
     mkdir([currentRoiAnDir filesep 'meta']);
-    
+
+    sourceFeatDir=[sourceProjData.anDir filesep 'feat'];
+    mkdir([currentRoiAnDir filesep 'feat']);
+    copyfile([anDir filesep 'feat' filesep 'movieInfo.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo.mat']);
+
     if ~isempty(fractionFromEdge)
-        tempRoi=roiSet(:,:,roiCount);
+        tempRoi=roiSet(:,:,roiCount-roiStart+1);
     else
         tempRoi=[];
         while isempty(tempRoi)
             try
-                % draw polygon to make mask
+                if makeNewROI==1
+                    h=msgbox('Draw a sub-ROI','help');
+                    uiwait(h);
+                end
+                figure %('Position',figPos)
                 [tempRoi,polyXcoord,polyYcoord]=roipoly(img2show);
             catch
                 disp('Please try again.')
             end
         end
-        close all
+        close(gcf)
     end
 
     % get coordinates of vertices of whole cell (ie all pixels of polygon boundary)
@@ -205,12 +278,13 @@ while makeNewROI==1 && roiCount<10
     % fill in label matrix
     labelMatrix(tempRoi)=roiCount;
 
-    percentRoiArea=sum(tempRoi(:))/roiArea;
-    
-    allArea(roiCount)=percentRoiArea;
+    totalAreaPixels=sum(tempRoi(:));
+    percentRoiArea=100*(totalAreaPixels/roiArea);
+
+    allArea(roiCount,1:2)=[totalAreaPixels percentRoiArea];
 
     % add the current roi to the composite image
-    [img2show]=addMaskInColor(img2show,tempRoi,cMap(roiCount,:));
+    [img2show]=addMaskInColor(img2show,tempRoi,cMap(max(1,mod(roiCount,10)),:));
 
     % get coordinates of vertices (ie all pixels of polygon boundary)
     [y1,x1]=ind2sub([imL,imW],find(tempRoi,1)); % first pixel on boundary
@@ -222,150 +296,118 @@ while makeNewROI==1 && roiCount<10
         error('problem with ROI construction')
     end
 
-    % save sub-roi mask
-    imwrite(tempRoi,[currentRoiAnDir filesep 'roiMask.tif']);
-    save([currentRoiAnDir filesep 'roiYX'],'roiYX');
-    save([currentRoiAnDir filesep 'percentRoiArea'],'percentRoiArea');
+    % projData will have same format as sourceProjData but with only data for
+    % relevant tracks
+    projData=sourceProjData;
+    projData.anDir=currentRoiAnDir;
 
-    % assign big matrix with shorter name
-    aT=sourceProjData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
+    [aTmerge,aTreclass,dataMatCrpSecMic]=plusTipMergeSubtracks(projData);
 
-    % find all subtracks where the midpoint is within the subroi
-    c=sub2ind(size(sourceProjData.xCoord),aT(:,1),round(mean([aT(:,2),aT(:,3)],2)));
+    % only retain growth subtracks from aTmerge
+    aTmerge(aTmerge(:,5)~=1,:)=[];
+    % only retain subtracks where the midpoint is within the subroi
+    c=sub2ind(size(sourceProjData.xCoord),aTmerge(:,1),round(mean([aTmerge(:,2),aTmerge(:,3)],2)));
     x=sourceProjData.xCoord(c);
     y=sourceProjData.yCoord(c);
     [inIdx,onIdx]=inpolygon(x,y,roiYX(:,2),roiYX(:,1));
     subIdx=find(inIdx);
-    save([currentRoiAnDir filesep 'subIdx'],'subIdx')
+    aTmerge=aTmerge(subIdx,:);
 
-    % projData will have same format as sourceProjData but with only data for
-    % relevant tracks
-    projData.imDir=sourceProjData.imDir;
-    projData.anDir=currentRoiAnDir;
-    projData.secPerFrame=sourceProjData.secPerFrame;
-    projData.pixSizeNm=sourceProjData.pixSizeNm;
-    projData.numFrames=sourceProjData.numFrames;
+    % only retain growth subtracks from dataMatCrpSecMic
+    dataMatCrpSecMic(dataMatCrpSecMic(:,5)~=1,:)=[];
+    % only retain subtracks where the midpoint is within the subroi
+    c=sub2ind(size(sourceProjData.xCoord),dataMatCrpSecMic(:,1),round(mean([dataMatCrpSecMic(:,2),dataMatCrpSecMic(:,3)],2)));
+    x=sourceProjData.xCoord(c);
+    y=sourceProjData.yCoord(c);
+    [inIdx,onIdx]=inpolygon(x,y,roiYX(:,2),roiYX(:,1));
+    subIdx=find(inIdx);
+    dataMatCrpSecMic=dataMatCrpSecMic(subIdx,:);
 
-    % initialize matrices with all nans
-    projData.xCoord=nan.*sourceProjData.xCoord;
-    projData.yCoord=nan.*sourceProjData.yCoord;
-    projData.featArea=nan.*sourceProjData.featArea;
-    projData.featInt=nan.*sourceProjData.featInt;
-    projData.frame2frameVel_micPerMin=nan.*sourceProjData.frame2frameVel_micPerMin;
-    projData.segGapAvgVel_micPerMin=nan.*sourceProjData.segGapAvgVel_micPerMin;
 
-    % reassign appropriate sections of the data for relevant subtracks
-    for iSub=1:length(subIdx)
-        row =aT(subIdx(iSub),1); % full track number
-        cols=aT(subIdx(iSub),2):aT(subIdx(iSub),3); % relevant frames
-        projData.xCoord(row,cols)   = sourceProjData.xCoord(row,cols);
-        projData.yCoord(row,cols)   = sourceProjData.yCoord(row,cols);
-        projData.featArea(row,cols) = sourceProjData.featArea(row,cols);
-        projData.featInt(row,cols)  = sourceProjData.featInt(row,cols);
-        projData.frame2frameVel_micPerMin(row,cols(1:end-1))= sourceProjData.frame2frameVel_micPerMin(row,cols(1:end-1));
-        projData.segGapAvgVel_micPerMin(row,cols(1:end-1))  = sourceProjData.segGapAvgVel_micPerMin(row,cols(1:end-1));
+    % new number of tracks
+    projData.numTracks=length(unique(aTmerge(:,1)));
+
+    % keep only the coordinates, speeds, etc. corresponding to tracks remaining
+    projData.xCoord=nan(size(sourceProjData.xCoord));
+    projData.yCoord=nan(size(sourceProjData.yCoord));
+    projData.featArea=nan(size(sourceProjData.featArea));
+    projData.featInt=nan(size(sourceProjData.featInt));
+    projData.frame2frameVel_micPerMin=nan(size(sourceProjData.frame2frameVel_micPerMin));
+    projData.segGapAvgVel_micPerMin=nan(size(sourceProjData.segGapAvgVel_micPerMin));
+    for iSub=1:size(aTmerge,1)
+        projData.xCoord(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3))=sourceProjData.xCoord(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3));
+        projData.yCoord(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3))=sourceProjData.yCoord(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3));
+
+        projData.featArea(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3))=sourceProjData.featArea(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3));
+        projData.featInt(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3))=sourceProjData.featInt(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3));
+
+        projData.frame2frameVel_micPerMin(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3)-1)=sourceProjData.frame2frameVel_micPerMin(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3)-1);
+        projData.segGapAvgVel_micPerMin(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3)-1)=sourceProjData.segGapAvgVel_micPerMin(aTmerge(iSub,1),aTmerge(iSub,2):aTmerge(iSub,3)-1);
     end
 
-    % reassign matrix with only the subset of tracks in the subroi
-    aT=aT(subIdx,:); % just use a shorter name to make it easier
-    projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aT;
 
-    % count the tracks that appear in the sub-roi
-    projData.numTracks=length(unique(aT(:,1)));
+    % get frame-to-frame displacement for growth only (not forward/backward gaps)
+    frame2frameDispPix=sqrt(diff(projData.xCoord,1,2).^2+diff(projData.yCoord,1,2).^2);
+    % get rid of NaNs and linearize the vector
+    projData.frame2frameDispPix=frame2frameDispPix(~isnan(frame2frameDispPix(:)));
 
-%     % don't worry about these parameters for now...
-%     projData.frame2frameDispPix=[];
-%     projData.pair2pairDiffPix=[];
-%     projData.medNNdistWithinFramePix=[];
-%     projData.meanDisp2medianNNDistRatio=[];
-% 
-% 
-%     % figure out which track numbers contain a pause, catastrophe, or
-%     % unclassified gap
-%     projData.tracksWithPause       = unique(aT(aT(:,5)==2,1));
-%     projData.tracksWithCatastrophe = unique(aT(aT(:,5)==3,1));
-%     projData.tracksWithUnclassifed = unique(aT(aT(:,5)==4,1));
-% 
-%     % mean/std for growth speed (microns per minute)
-%     projData.typeStats.type1_mean_micPerMin = mean(aT(aT(:,5)==1,4));
-%     projData.typeStats.type1_std_micPerMin  =  std(aT(aT(:,5)==1,4));
-% 
-%     % probability of pausing is 1 over the average total time (in seconds) spent
-%     % growing prior to pause event
-%     pauseIdx=find(aT(:,5)==2);
-%     beforePauseIdx=pauseIdx-1;
-%     % if the first row is a pause, the growth phase before isn't in the
-%     % sub-roi.  get rid of this one.
-%     if beforePauseIdx(1)==0
-%         pauseIdx(1)=[];
-%         beforePauseIdx(1)=[];
-%     end
-%     % get rid of those indices corresponding to the growth phase of a
-%     % different track OR where the growth phase begins in the first frame
-%     remIdx=find(aT(pauseIdx,1)~=aT(beforePauseIdx,1) | aT(beforePauseIdx,2)==1);
-%     beforePauseIdx(remIdx)=[];
-% 
-%     if isempty(beforePauseIdx)
-%         projData.typeStats.type1_Ppause=NaN;
-%     else
-%         projData.typeStats.type1_Ppause=mean(1./(aT(beforePauseIdx,6).*sourceProjData.secPerFrame));
-%     end
-% 
-%     % probability of shrinking is 1 over the average total time (in seconds) spent
-%     % growing prior to shrinkage event
-%     shrinkIdx=find(aT(:,5)==3);
-%     beforeShrinkIdx=shrinkIdx-1;
-%     % if the first row is a catastrophe, the growth phase before isn't in the
-%     % sub-roi.  get rid of this one.
-%     if beforeShrinkIdx(1)==0
-%         shrinkIdx(1)=[];
-%         beforeShrinkIdx(1)=[];
-%     end
-% 
-%     % get rid of those indices corresponding to the growth phase of a
-%     % different track OR where the growth phase begins in the first frame
-%     remIdx=find(aT(shrinkIdx,1)~=aT(beforeShrinkIdx,1) | aT(beforeShrinkIdx,2)==1);
-%     beforeShrinkIdx(remIdx)=[];
-% 
-%     if isempty(beforeShrinkIdx)
-%         projData.typeStats.type1_Pcat=NaN;
-%     else
-%         projData.typeStats.type1_Pcat=mean(1./(aT(beforeShrinkIdx,6).*sourceProjData.secPerFrame));
-%     end
-% 
-%     % mean/std for pause speed (microns per minute)
-%     if ~isempty(aT(aT(:,5)==2,4))
-%         projData.typeStats.type2_mean_micPerMin = mean(aT(aT(:,5)==2,4));
-%         projData.typeStats.type2_std_micPerMin  =  std(aT(aT(:,5)==2,4));
-%     else
-%         projData.typeStats.type2_mean_micPerMin = NaN;
-%         projData.typeStats.type2_std_micPerMin  = NaN;
-%     end
-% 
-%     % mean/std for shrinkage speed (microns per minute)
-%     if ~isempty(aT(aT(:,5)==3,4))
-%         projData.typeStats.type3_mean_micPerMin = mean(aT(aT(:,5)==3,4));
-%         projData.typeStats.type3_std_micPerMin  =  std(aT(aT(:,5)==3,4));
-%     else
-%         projData.typeStats.type3_mean_micPerMin = NaN;
-%         projData.typeStats.type3_std_micPerMin  = NaN;
-%     end
-% 
-%     % mean/std for unclassified speed (microns per minute)
-%     if ~isempty(aT(aT(:,5)==4,4))
-%         projData.typeStats.type4_mean_micPerMin = mean(aT(aT(:,5)==4,4));
-%         projData.typeStats.type4_std_micPerMin  =  std(aT(aT(:,5)==4,4));
-%     else
-%         projData.typeStats.type4_mean_micPerMin = NaN;
-%         projData.typeStats.type4_std_micPerMin  = NaN;
-%     end
+    % get change in velocity between frame *pairs* for segments only
+    pair2pairDiffPix=diff(frame2frameDispPix,1,2);
+    % get rid of NaNs and linearize the vector
+    projData.pair2pairDiffPix=pair2pairDiffPix(~isnan(pair2pairDiffPix(:)));
+    % std (microns/min) of delta growthSpeed btw frames
+    projData.pair2pairDiffMicPerMinStd=std(pixPerFrame2umPerMin(projData.pair2pairDiffPix,projData.secPerFrame,projData.pixSizeNm));
 
+    projData.medNNdistWithinFramePix=NaN;
+    projData.meanDisp2medianNNDistRatio=NaN;
 
+    % there are no track numbers that contain an fgap or bgap
+    projData.percentFgapsReclass=NaN;
+    projData.percentBgapsReclass=NaN;
+    projData.tracksWithFgap = NaN;
+    projData.tracksWithBgap = NaN;
+
+    % calculate stats using the matrix where beginning/end data has been
+    % removed. M records speeds (microns/min), lifetimes (sec), and
+    % displacements (microns) for growths, fgaps,and bgaps.
+    [projData.stats,M]=plusTipDynamParam(dataMatCrpSecMic);
+
+    projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aTmerge;
+
+    % save sub-roi mask and coordinates
+    imwrite(tempRoi,[currentRoiAnDir filesep 'roiMask.tif']);
+    save([currentRoiAnDir filesep 'roiYX'],'roiYX');
+    % save each projData in its own directory
     save([currentRoiAnDir filesep 'meta' filesep 'projData'],'projData')
-    plusTipHistograms(projData)
+    save([currentRoiAnDir filesep 'subRoiInfo'],'totalAreaPixels','percentRoiArea');
+
+    % write out speed/lifetime/displacement distributions into a text file
+    dlmwrite([currentRoiAnDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd.txt'], M, 'precision', 3,'delimiter', '\t','newline', 'pc');
+
+    if doPlot==1
+
+        figure;
+        hist(sourceProjData.frame2frameDispPix,50)
+        h = findobj(gca,'Type','patch');
+        set(h,'FaceColor','r')
+        hold on;
+        hist(projData.frame2frameDispPix,50)
+        title('growth phase frame-to-frame displacement (pixels)')
+        legend('ROI','Sub-ROI')
+
+        figure;
+        hist(sourceProjData.pair2pairDiffPix,50)
+        h = findobj(gca,'Type','patch');
+        set(h,'FaceColor','r')
+        hold on;
+        hist(projData.pair2pairDiffPix,50)
+        title('growth phase frame-pair-to-frame-pair difference (pixels)')
+        legend('ROI','Sub-ROI')
+
+    end
 
     if ~isempty(fractionFromEdge)
-        if roiCount<size(roiSet,3)
+        if roiCount<size(roiSet,3)+roiStart-1
             reply='yes';
         else
             reply='no';
@@ -374,38 +416,45 @@ while makeNewROI==1 && roiCount<10
         reply = questdlg('Do you want to select another ROI?');
     end
     if strcmpi(reply,'yes')
-            makeNewROI=1; % user said yes; make another one
-            roiCount=roiCount+1; % counter for current condition rois
-        else
-            makeNewROI=0; % assume no; we're done
-        end
-    end % while makeNewROI==1 && roiCount<10
+        makeNewROI=1; % user said yes; make another one
+        roiCount=roiCount+1; % counter for current condition rois
+    else
+        makeNewROI=0; % assume no; we're done
+    end
+end % while makeNewROI==1 && roiCount<10
 
 % plot using vector graphics of boundaries and save as figure and tif
 % add a number to center of each sub-roi to show which region is which
-figure
+figure %('Position',figPos)
 imshow(img)
 hold on
 % plot original roi outline
 plot(roiYXcell(:,2),roiYXcell(:,1),'w');
-for iRoi=1:roiCount
+for iRoi=roiStart:roiCount
     % make weighted mask using distance transform to find position where text should go
     weightedRoi=bwdist(swapMaskValues(labelMatrix==iRoi));
     [r,c]=find(weightedRoi==max(weightedRoi(:)));
-    text(c(1),r(1), {['Sub-roi: ' num2str(iRoi)],['Fraction of area: ' sprintf('%3.2f',allArea(iRoi))]},'color','r');
+    %indxStr1 = sprintf(strg1,iRoi);
+    indxStr1 = num2str(iRoi);
+    text(c(1),r(1), {['Sub-ROI: ' indxStr1],['Total pixels: ' sprintf('%3.2f',allArea(iRoi,1))],[sprintf('%3.2f',allArea(iRoi,2)) ' %']},'color','r');
     % load sub-roi boundaries and plot outline
-    currentRoiAnDir=[pwd filesep 'sub_' num2str(iRoi)];
+    currentRoiAnDir=[pwd filesep 'sub_' indxStr1];
     roiYX=load([currentRoiAnDir filesep 'roiYX']);
     roiYX=roiYX.roiYX;
-    plot(roiYX(:,2),roiYX(:,1),'Color',cMap(iRoi,:));
+    plot(roiYX(:,2),roiYX(:,1),'Color',cMap(max(1,mod(iRoi,10)),:));
 end
 
 % save composite image and label matrix
-saveas(gcf,[pwd filesep 'sub-ROIs.fig'])
+
 frame = getframe(gca);
 [I,map] = frame2im(frame);
-imwrite(I,[pwd filesep 'sub-ROIs.tif'],'tif')
-save('labelMatrix','labelMatrix');
+% indxStr1 = sprintf(strg1,roiStart);
+% indxStr2 = sprintf(strg1,roiCount);
+indxStr1 = num2str(roiStart);
+indxStr2 = num2str(roiCount);
+imwrite(I,[pwd filesep 'subROIs_' indxStr1 '_' indxStr2 '.tif'])
+saveas(gcf,[pwd filesep 'subROIs_' indxStr1 '_' indxStr2 '.fig'])
+save(['labelMatrix_' indxStr1 '_' indxStr2],'labelMatrix');
 
 cd(anDir)
 cd ..

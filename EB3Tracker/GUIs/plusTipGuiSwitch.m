@@ -157,6 +157,7 @@ switch callbackName
         handles.indivTrack=str2num(userInput)';
 
     case 'plotTracksPush'
+               
         [handles.selectedTracks] = plusTipPlotTracks(handles.projData,[],...
             handles.timeRangeDetect,handles.img,handles.ask4select,...
             handles.plotCurrentOnly,handles.roi,handles.movieInfo);
