@@ -1,4 +1,4 @@
-function [mpm_total] = makeCombinedProcessMPMt(imagesize, numf, plotOn ,varargin);
+function [mpm_total] = makeCombinedProcessMPMt(imagesize, numf, plotOn ,varargin)
 % make simulated MPM (with specified number of frames and imagesize) as a
 % superposition of clustered and random processes
 % INPUT:
@@ -9,7 +9,9 @@ function [mpm_total] = makeCombinedProcessMPMt(imagesize, numf, plotOn ,varargin
 %               [ type   density    other descriptors ]
 %               the individual descriptors are as follows
 %       IF type = 1     random process
-%                       density = point density per frame
+%                       density = point density per frame (this parameter
+%                       is actually the lambda for the poisson distrubuted
+%                       number of random events per frame)
 %                       reshuffle = 1 if point density per frame is to be
 %                       consevred given restrictions
 %       IF type = 2     Cox cluster process (points are distributed
@@ -74,6 +76,8 @@ imareaLarge = sxLarge*syLarge;
 buffer = (sxLarge-sx)/2;
 
 % loop over processes, read process types
+processDensities = nan(1,length(varargin));
+proc = nan(1,length(varargin));
 for i=1:length(varargin)
     vec = varargin{i};
     processDensities(i) = vec(2);
@@ -84,20 +88,32 @@ end
 pos_generate = find(proc<=3);
 pos_restrict = find(proc>3);
 
+%calculate maximum expected number of points per frame
+%for a parent-child this is the parent density times the area of the frame
+%times the average children per frame per parent
+%for a random process this is the expected number per frame
+lengthPointsPerFrame = 100;
+
 %if no point restricting processes are specified...continue
-% if length(pos_restrict)==0
-%     disp('no point-restricting processes specified');
-% end
+if isempty(pos_restrict)
+    disp('no point-restricting processes specified');
+else
+    %allocate space for restricting processes
+    generatedPoints_restrictions = repmat(struct('mpm_restrict',[],'type',[]),length(pos_restrict),1);
+end
 
 %if no point generating processes specified...stop, there is nothing to
 %simulate
-if length(pos_generate)==0
+if isempty(pos_generate)
     error('no point-generating processes specified');
+else
+    %allocate space for restricting processes
+    generatedPoints = repmat(struct('mpm',zeros(lengthPointsPerFrame,numf*2),'mpm_parents',[],'type',[]),length(pos_generate),1);
 end
 
 %% NOW LOOP OVER ALL RESTRICTING PROCESSES
 %if any restriction processes are specified
-if length(pos_restrict)~=0
+if ~isempty(pos_restrict)
     % loop over all point-restricting processes
     for i=1:length(pos_restrict)
         % current generating parameters
@@ -164,10 +180,10 @@ end %if restriction  process exists
 
 %initialize matrix that will hold time gap between successive
 %children at a given parent;
-childTimeDiff = round(numf*rand(round(max(processDensities(pos_generate))*imareaLarge),length(pos_generate)));
+childTimeDiff = numf*rand(round(max(processDensities(proc == 2 | proc == 3))*imareaLarge),length(pos_generate));
 %initialize matrix that will hold restrictions due to previous nucleations
 %(for random population only)
-resourceRestrictions = []; 
+resourceRestrictions = [];
 
 for t=1:numf
 
@@ -202,190 +218,193 @@ for t=1:numf
         % parents
         vi_int = cvec(2);
 
-        %allocate space (needs to be fixed for code to be able to
-        %accomodate parents with more children than one per frame on
-        %average)
-        nump = round(vi_int*imareaLarge);
-        if t == 1 && nump ~= 0
-            generatedPoints(i).mpm = zeros(nump,numf);
-        end
+        %while density is not as specified (due to exclusion process)
+        reshuffle = 1;
+        loopcount = 0;
+        mpm_generatedPoints = [];
 
-        if nump ~= 0
-            %while density is not as specified (due to exclusion process)
-            reshuffle = 1;
-            loopcount = 0;
-            mpm_generatedPoints = [];
+        %get parameters and set parents if necessary
+        switch vi_type
+            % distribution is random
+            case 1
 
-            %get parameters and set parents if necessary
+                % if random process we care about the
+                % points themselevs
+                % number of points is intensity times area
+                nump = poissrnd(vi_int);
+
+                % third value (optional) is determines whether point
+                % density is to be conserved given restrictions
+                if length(cvec) > 2
+                    reshuffle = cvec(3);
+                else
+                    reshuffle = 0;
+                end
+
+                % fourth value (optional) is the restriction radius
+                % after a nucleation has taken place
+                if length(cvec) > 3
+                    restrictRad = cvec(4);
+                else
+                    restrictRad = 0;
+                end
+
+
+                % third value is number of daughters per mother
+                if length(cvec) > 4
+                    nump_lambda = cvec(5);
+                else
+                    nump_lambda = 0;
+                end
+
+                % fourth value is the time lag before parent is allowed
+                % to have succeeding children
+                if length(cvec) > 5
+                    nump_int = cvec(6);
+                else
+                    nump_int = 0;
+                end
+
+                % distribution is cluster (of raft or Cox type)
+            case { 2, 3}
+
+                %if parent process we follow instead the number of parents
+                %because this is the number we set instead of the child density
+                % number of points is intensity times area
+                nump = round(vi_int * imareaLarge);
+
+                % third value is number of daughters per mother
+                nump_lambda = cvec(3);
+
+                % fourth value is the time lag before parent is allowed
+                % to have succeeding children
+                nump_int = cvec(4);
+
+                % fourth value is sigma of distribution (in pixel)
+                sigma_cluster = cvec(5);
+
+                % fifth value (optional) is sigma of parent diffusion (also
+                % in pixel)
+                if length(cvec)>5
+                    sigma_diff = cvec(6);
+                else
+                    sigma_diff = 0;
+                end
+
+                if length(cvec)>6
+                    parentMinDistance = cvec(7);
+                else
+                    parentMinDistance = 0;
+                end
+                % third value (optional) is determines whether point
+                % density is to be conserved given restrictions
+                if length(cvec) > 7
+                    reshuffle = cvec(8);
+                else
+                    reshuffle = 0;
+                end
+                % in the first frame, define the positions of the parent
+                % points; in subsequent frames, re-use the original parent
+                % positions or let them diffuse as specified
+                % NOTE: to avoid edge effects, parent points have to be
+                % simulated outside of the image, too
+                if nump == 0 
+                    error('not enough parents in frame')
+                elseif t == 1
+                    [mpm_mother_start] = makeParentMPM(nump,[sxLarge syLarge],parentMinDistance, buffer);
+                    mpm_generatedMothers = mpm_mother_start;
+                    %numChilds = zeros(size(mpm_generatedMothers),1);
+                else
+                    % fill subsequent time positions
+                    mpm_mother_prev = generatedPoints(i).mpm_parents(:,2*t-3:2*t-2);
+                    mpm_generatedMothers = diffuseParentMPM(mpm_mother_prev,sigma_diff);
+                end
+        end %of switch
+
+        % if specified, generate more points
+        % while per frame density for point generating process is not
+        % met
+        while nump ~= 0 && (loopcount == 0 || reshuffle && loopcount < 100)
+
+            % GENERATE POINTS
             switch vi_type
                 % distribution is random
                 case 1
-
-                    % if random process we care about the
-                    % points themselevs
-                    % number of points is intensity times area
-                    nump = round(vi_int * imarea);
-
-                    % third value (optional) is determines whether point
-                    % density is to be conserved given restrictions
-                    if length(cvec) > 2
-                        reshuffle = cvec(3);
-                    else
-                        reshuffle = 0;
-                    end
-
-                    % fourth value (optional) is the restriction radius
-                    % after a nucleation has taken place
-                    if length(cvec) > 3
-                        restrictRad = cvec(4);
-                    else
-                        restrictRad = 0;
-                    end
-
-
-                    % third value is number of daughters per mother
-                    if length(cvec) > 4
-                        nump_lambda = cvec(5);
-                    else
-                        nump_lambda = 0;
-                    end
-
-                    % fourth value is the time lag before parent is allowed
-                    % to have succeeding children
-                    if length(cvec) > 5
-                        nump_int = cvec(6);
-                    else
-                        nump_int = 0;
-                    end
-
+                    % generate random distribution
+                    x_mpm = 1+(sx-1)*rand(nump,1);
+                    y_mpm = 1+(sy-1)*rand(nump,1);
+                    %store resulting mpm
+                    mpm_points_curr = [x_mpm y_mpm];
                     % distribution is cluster (of raft or Cox type)
                 case { 2, 3}
-
-                    %if parent process we follow instead the number of parents
-                    %because this is the number we set instead of the child density
-                    % number of points is intensity times area
-                    nump = round(vi_int * imareaLarge);
-
-                    % third value is number of daughters per mother
-                    nump_lambda = cvec(3);
-
-                    % fourth value is the time lag before parent is allowed
-                    % to have succeeding children
-                    nump_int = cvec(4);
-
-                    % fourth value is sigma of distribution (in pixel)
-                    sigma_cluster = cvec(5);
-
-                    % fifth value (optional) is sigma of parent diffusion (also
-                    % in pixel)
-                    if length(cvec)>5
-                        sigma_diff = cvec(6);
+                    % generate daughters
+                    if vi_type==2
+                        [mpm_points_curr, childTimeDiff(1:size(mpm_generatedMothers,1),i) ]= makeCoxProcessMPM(mpm_generatedMothers,childTimeDiff(1:size(mpm_generatedMothers,1),i),nump_lambda,nump_int,sigma_cluster,imagesize);
                     else
-                        sigma_diff = 0;
+                        [mpm_points_curr, childTimeDiff(1:size(mpm_generatedMothers,1),i) ]= makeRaftProcessMPM(mpm_generatedMothers,childTimeDiff(1:size(mpm_generatedMothers,1),i),nump_lambda,nump_int,sigma_cluster,imagesize);
                     end
+            end % of switch/case
 
-                    if length(cvec)>6
-                        parentMinDistance = cvec(7);
-                    else
-                        parentMinDistance = 0;
-                    end
-                    % third value (optional) is determines whether point
-                    % density is to be conserved given restrictions
-                    if length(cvec) > 7
-                        reshuffle = cvec(8);
-                    else
-                        reshuffle = 0;
-                    end
-                    % in the first frame, define the positions of the parent
-                    % points; in subsequent frames, re-use the original parent
-                    % positions or let them diffuse as specified
-                    % NOTE: to avoid edge effects, parent points have to be
-                    % simulated outside of the image, too
-                    if t == 1
-                        [mpm_mother_start] = makeParentMPM(nump,[sxLarge syLarge],parentMinDistance, buffer);
-                        mpm_generatedMothers = mpm_mother_start;
-                    else
-                        % fill subsequent time positions
-                        mpm_mother_prev = generatedPoints(i).mpm_parents(:,2*t-3:2*t-2);
-                        mpm_generatedMothers = diffuseParentMPM(mpm_mother_prev,sigma_diff);
-                    end
-            end %of switch for mother generation
-
-            % if specified, generate more points
-            % while per frame density for point generating process is not
-            % met
-            while loopcount == 0 || reshuffle && loopcount < 100 && nump~= 0
-
-                % GENERATE POINTS
-                switch vi_type
-                    % distribution is random
-                    case 1
-                        % generate random distribution
-                        x_mpm = 1+(sx-1)*rand(nump,1);
-                        y_mpm = 1+(sy-1)*rand(nump,1);
-                        %store resulting mpm
-                        mpm_points_curr = [x_mpm y_mpm];
-                        % distribution is cluster (of raft or Cox type)
-                    case { 2, 3}
-                        % generate daughters
-                        if vi_type==2
-                            [mpm_points_curr, childTimeDiff(1:size(mpm_generatedMothers,1),i) ]= makeCoxProcessMPM(mpm_generatedMothers,childTimeDiff(1:size(mpm_generatedMothers,1),i),nump_lambda,nump_int,sigma_cluster,imagesize);
-                        else
-                            [mpm_points_curr, childTimeDiff(1:size(mpm_generatedMothers,1),i) ]= makeRaftProcessMPM(mpm_generatedMothers,childTimeDiff(1:size(mpm_generatedMothers,1),i),nump_lambda,nump_int,sigma_cluster,imagesize);
-                        end
-                end % of switch/case
-
-                %RESTRICT POINTS IF RESTRICTIONS ARE PRESENT
-                if length(pos_restrict)~=0
-                    [mpm_points_curr] = makeExcludedOrIncludedMPM(mpm_points_curr,restrictionsMPM,restrictionsType);
-                end
-                if ~isnan(resourceRestrictions)
-                    [mpm_points_curr] = restrictMPMBasedOnResources(mpm_points_curr,resourceRestrictions,restrictRad,nump_lambda,nump_int);
-                end
-
-                %STORE GENERATED POINTS
-                mpm_generatedPoints = [mpm_generatedPoints; mpm_points_curr];
-
-                % CALCULATE HOW MANY POINTS ARE MISSING
-                switch vi_type
-                    %if random process number of points is image area times
-                    %process density
-                    case 1
-                        nump = round(vi_int * imarea) - size(mpm_generatedPoints,1);
-                    otherwise
-                        %if parent process the density is the process
-                        %density times the image area times the average
-                        %number of children per parent
-                        nump = round(vi_int * imarea * nump_lambda) - size(mpm_generatedPoints,1);
-                end
-                %update loop count
-                loopcount = loopcount + 1;
-            end %of while density not met
-
-            if loopcount  == 100
-                disp('could not reach specified point density');
+            %RESTRICT POINTS IF RESTRICTIONS ARE PRESENT
+            if ~isempty(pos_restrict)
+                [mpm_points_curr] = makeExcludedOrIncludedMPM(mpm_points_curr,restrictionsMPM,restrictionsType);
+            end
+            if ~isnan(resourceRestrictions)
+                [mpm_points_curr] = restrictMPMBasedOnResources(mpm_points_curr,resourceRestrictions,restrictRad,nump_lambda,nump_int);
             end
 
+            %STORE GENERATED POINTS
+            mpm_generatedPoints = [mpm_generatedPoints; mpm_points_curr];
+
+            % CALCULATE HOW MANY POINTS ARE MISSING
+            switch vi_type
+                %if random process number of points is image area times
+                %process density
+                case 1
+                    nump = nump - size(mpm_generatedPoints,1);
+                otherwise
+                    %if parent process the density is the process
+                    %density times the image area times the average
+                    %number of children per parent
+                    nump = round(vi_int * imarea * nump_lambda) - size(mpm_generatedPoints,1);
+            end
+            %update loop count
+            loopcount = loopcount + 1;
+        end %of while density not met
+
+        if loopcount  == 100
+            disp('could not reach specified point density');
+        end
+          
+        %if first frame record type of point generating process
+        if t == 1
             generatedPoints(i).type = vi_type;
+        end
+        
+        %if points were generated
+        if loopcount ~= 0
+            %record positions on mpm
             generatedPoints(i).mpm(1:size(mpm_generatedPoints,1),2*t-1:2*t)  = mpm_generatedPoints(:,1:2);
-            if vi_type == 1
-                generatedPoints(i).mpm_parents  = [];
-            else
+            %if parents were generated, record positions
+            if vi_type ~= 1
                 generatedPoints(i).mpm_parents(:,2*t-1:2*t)  = mpm_generatedMothers;
             end
-        else %density is too low to place any points
-            generatedPoints(i).type = vi_type;
-            generatedPoints(i).mpm_parents  = [];
-            generatedPoints(i).mpm = [];
-        end %of if points exist
-        
-            %Create a new restriction for the points that were generated. These are
-    %defined as areas where probability of nucleation is reduced. For this
-     %for each random point generating process
-    %check if this process is to restrict further initiations
-    if vi_type == 1 && restrictRad ~= 0
-        resourceRestrictions = [resourceRestrictions ; mpm_generatedPoints(:,1:2) repmat(t,size(mpm_generatedPoints,1),1)];
-    end
+        end %of if points generated
+        %NOTE: if points were not generated then the initiated mpm will
+        %contain zeros for this frame
+
+        %Create a new restriction for the points that were generated. These are
+        %defined as areas where probability of nucleation is reduced. For this
+        %for each random point generating process
+        %check if this process is to restrict further initiations
+        if vi_type == 1 && restrictRad ~= 0
+            resourceRestrictions = [resourceRestrictions ; mpm_generatedPoints(:,1:2) repmat(t,size(mpm_generatedPoints,1),1)];
+        end
+
+        %     for ipar = 1:size(mpm_generatedMothers,1)
+        %         numChilds(ipar) = numChilds(ipar) + length(find(mpm_generatedPoints(:,3)==ipar));
+        %     end %of for each parent
+
     end % of for i-loop for point generating processes
 end % of for t
 
@@ -477,7 +496,7 @@ end % of subfunction
 %%       ==================================================================
 
 
-function [mpm_daughters,childTimeDiff] = makeCoxProcessMPM(mpm_mothers, childTimeDiff,nump_lambda,nump_int,sigma,imagesize);
+function [mpm_daughters,childTimeDiff] = makeCoxProcessMPM(mpm_mothers, childTimeDiff,nump_lambda,nump_int,sigma,imagesize)
 
 sx = imagesize(1);
 sy = imagesize(2);
@@ -539,10 +558,8 @@ for s=1:nms
     pxi = (cmpm_daughters(:,1)<sx);
     pyi = (cmpm_daughters(:,2)<sy);
 
-    fpos = find( px0 & py0 & pxi & pyi );
-
-    cmpm_daughters = cmpm_daughters(fpos,:);
-    [csx,csy] = size(cmpm_daughters);
+    cmpm_daughters = cmpm_daughters(px0 & py0 & pxi & pyi,:);
+    csx = size(cmpm_daughters);
 
     if s==1
         mpm_daughters = cmpm_daughters;
@@ -559,28 +576,22 @@ end % of function
 
 %%       ==================================================================
 
-function [mpm_daughters] = makeRaftProcessMPM(mpm_mothers,lambda_Poisson,sigma,imagesize);
-
+function [mpm_daughters,childTimeDiff] = makeRaftProcessMPM(mpm_mothers,childTimeDiff,nump_lambda,nump_int,sigma,imagesize)
 
 sx = imagesize(1);
 sy = imagesize(2);
 
 nmp = size(mpm_mothers,1);
 nms = (size(mpm_mothers,2)/2);
-%
-% if length(num_mothers)==1
-%     vec_nump = num_mothers+zeros(nmp,1);
-% else
-%     vec_nump = num_mothers;
-% end
 
 % the lambda parameter is dependent on the time past since last child
 t = childTimeDiff;
 % in a cox process, the number of daughters per mother is
 % poisson-distributed
-lambda_Poiss = min(max(nump_lambda*t-nump_int,0),1);
-% the number of daughters per mother is poisson-distributed
-vec_nump = poissrnd(lambda_Poiss,nmp,1);
+%lambda_Poiss = min(max(nump_lambda*t-nump_int,0),1);
+vec_nump = poissrnd(nump_lambda,nmp,1);
+vec_nump(t <= nump_int) = zeros(length(find(t <= nump_int)),1);
+
 
 % loop over number of samples
 for s=1:nms
@@ -610,9 +621,9 @@ for s=1:nms
             cmpm = [endx endy repmat(n,length(endx),1)];
 
             cmpm_daughters = [cmpm_daughters ; cmpm];
-            childTimeDiff(nump) = 0;
+            childTimeDiff(n) = 0;
         else
-            childTimeDiff(nump) = mpm_mothers(nump,3) + 1;
+            childTimeDiff(n) = childTimeDiff(n) + 1;
         end
 
     end
@@ -622,10 +633,8 @@ for s=1:nms
     pxi = (cmpm_daughters(:,1)<sx);
     pyi = (cmpm_daughters(:,2)<sy);
 
-    fpos = find( px0 & py0 & pxi & pyi );
-
-    cmpm_daughters = cmpm_daughters(fpos,:);
-    [csx,csy] = size(cmpm_daughters);
+    cmpm_daughters = cmpm_daughters(px0 & py0 & pxi & pyi,:);
+    csx= size(cmpm_daughters);
 
     if s==1
         mpm_daughters = cmpm_daughters;
@@ -705,7 +714,7 @@ end %for each frame
 end %of function
 
 %%  =======================================================================
-function [restrictedMPM] = makeExcludedOrIncludedMPM(unrestrictedMPM,restrictionsMPM,restrictionsType);
+function [restrictedMPM] = makeExcludedOrIncludedMPM(unrestrictedMPM,restrictionsMPM,restrictionsType)
 
 mpm_pt_use = unrestrictedMPM;
 
@@ -735,7 +744,7 @@ restrictedMPM = mpm_pt_use;
 end %of function
 
 %% ========================================================================
-function [mpm_points_curr] = restrictMPMBasedOnResources(mpm_points_curr,resourceRestrictions,restrictRad,nump_lambda,nump_int)
+function [mpm_points_curr] = restrictMPMBasedOnResources(mpm_points_curr,resourceRestrictions,restrictRad,nump_int)
 
 %determine which of these restrictions are still present (if the time
 %elapsed since the nucleation is less that a specified cutoff)
@@ -747,9 +756,7 @@ dm = distMat2(mpm_points_curr(:,1:2),resourceRestrictions);
 dm_min = min(dm,[],2);
 
 %find points that fall withiin restriction
-fpos_stat = find(dm_min <= restrictRad);
-
 %restrict mpm
-mpm_points_curr(fpos_stat,:) = [];
+mpm_points_curr(dm_min <= restrictRad,:) = [];
 
 end %of function
