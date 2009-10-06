@@ -50,8 +50,6 @@ if nargin<5 || isempty(doPlot)
     doPlot=1;
 end
 
-groupData=[];
-
 projGroupName=groupList(:,1);
 projGroupDir=cellfun(@(x) formatPath(x),groupList(:,2),'uniformoutput',0);
 
