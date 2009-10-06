@@ -132,18 +132,73 @@ trackEnds=allData(:,3);
 if remBegEnd==1
     % any track not entirely contained within the frame range will be excluded
     subtrackIdx=find(trackType==groupNum & trackStarts>timeRange(1) & trackEnds<timeRange(2));
+    gIdx=find(trackType==1 & trackStarts>timeRange(1) & trackEnds<timeRange(2)); % just growth
+    fIdx=find(trackType==2 & trackStarts>timeRange(1) & trackEnds<timeRange(2)); % just fgap
+    bIdx=find(trackType==3 & trackStarts>timeRange(1) & trackEnds<timeRange(2)); % just bgap
 else
     % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
     subtrackIdx=find(trackType==groupNum & trackStarts<timeRange(2) & trackEnds>timeRange(1));
+    gIdx=find(trackType==1 & trackStarts<timeRange(2) & trackEnds>timeRange(1)); % just growth
+    fIdx=find(trackType==2 & trackStarts<timeRange(2) & trackEnds>timeRange(1)); % just fgap
+    bIdx=find(trackType==2 & trackStarts<timeRange(2) & trackEnds>timeRange(1)); % just bgap
 end
 
+% get size of the images
+minY=1; maxY=size(img,1);
+minX=1; maxX=size(img,2);
+scrsz = get(0,'ScreenSize');
+screenW=scrsz(3);
+screenL=scrsz(4);
+magCoef=inf;
+maxMagCoefW = (0.8*screenW)/(maxX-minX+1);
+maxMagCoefL = (0.8*screenL)/(maxY-minY+1);
+if magCoef > min([maxMagCoefW; maxMagCoefL])
+    calcMagCoef = min([magCoef; maxMagCoefW; maxMagCoefL]);
+else
+    calcMagCoef = magCoef;
+end
+movieL = (calcMagCoef*(maxY-minY+1));
+movieW = (calcMagCoef*(maxX-minX+1));
+figPos=[round(screenW*(1-movieW/screenW)/2) round(screenL*(1-movieL/screenL)/2) movieW movieL];
 
-    
+
+
+% these are all the growth, fgap, and bgap indices
+allIdx=[gIdx; fIdx; bIdx];
+
+mrkTpe={'o';'^';'s'};
+cMap={[1 0 0]; [0 1 0]; [0 0 1]};
+prop_name(1) = {'Marker'};
+prop_name(2) = {'MarkerFaceColor'};
+prop_name(3) = {'MarkerEdgeColor'};
+
+% get coordinates
+xCoord=projData.xCoord(sub2ind(size(projData.xCoord),allData(allIdx,1),allData(allIdx,2)));
+yCoord=projData.yCoord(sub2ind(size(projData.yCoord),allData(allIdx,1),allData(allIdx,2)));
+
+% record marker type and face/edge colors for each feature
+nC=length(xCoord);
+prop_values(1:nC,1) = mrkTpe(trackType(allIdx));
+prop_values(1:nC,2) = cMap(trackType(allIdx),:);
+prop_values(1:nC,3) = cMap(trackType(allIdx),:);
+
+% use plot instead of scatter so more flexibility with properties. to
+% do this, make 2 x nPoints matrix where the second row is all NaNs and
+% then use the plot function
+xCoord=[xCoord nan(size(xCoord))]';
+yCoord=[yCoord nan(size(yCoord))]';
+figure('Position',figPos)
+imagesc(img); colormap gray;
+hold on
+h=plot(xCoord,yCoord);
+set(h,prop_name,prop_values)
+title('Initiation points for growth (red circles), fgaps (green triangles), and bgaps (blue squares)')
+
 
 
 % for param1 and param2, get data and label
 for iParam=1:2
-    % assign data based on user input    
+    % assign data based on user input
     switch eval(['param' num2str(iParam)])
 
         case {'growthSpeed', 'fgapSpeed', 'bgapSpeed'} % speeds in microns/min
@@ -216,10 +271,35 @@ end
 colorMap=['b','g','y','r'];
 
 
+% plot the corresponding tracks on the image
+h=figure('Position',figPos);
+imagesc(img); colormap gray;
+hold on
+for iColor=1:4
+    switch iColor
+        case 1 % blue
+            idx=find(data1>thresh1 & data2>thresh2);
+        case 2 % green
+            idx=find(data1<=thresh1 & data2>thresh2);
+        case 3 % yellow
+            idx=find(data1>thresh1 & data2<=thresh2);
+        case 4 % red
+            idx=find(data1<=thresh1 & data2<=thresh2);
+    end
+    % make individual plot
+    figure('Position',figPos)
+    imagesc(img); colormap gray;
+    hold on
+    plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
 
+    % make overlay
+    figure(h)
+    plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
+
+end
 
 % make scatterplot showing data distribution between the two parameters
-figure 
+figure
 for iColor=1:4
     switch iColor
         case 1 % blue
@@ -243,32 +323,4 @@ if remBegEnd==1
 else
     % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
     title({['N = ' num2str(length(data1)) ' tracks']; ['starting before frame ' num2str(timeRange(2)) ' and ending after frame ' num2str(timeRange(1))]});
-end
-
-
-% plot the corresponding tracks on the image
-h=figure;
-imagesc(img); colormap gray;
-hold on
-for iColor=1:4
-    switch iColor
-        case 1 % blue
-            idx=find(data1>thresh1 & data2>thresh2);
-        case 2 % green
-            idx=find(data1<=thresh1 & data2>thresh2);
-        case 3 % yellow
-            idx=find(data1>thresh1 & data2<=thresh2);
-        case 4 % red
-            idx=find(data1<=thresh1 & data2<=thresh2);
-    end
-    % make individual plot
-    figure
-    imagesc(img); colormap gray;
-    hold on
-    plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
-
-    % make overlay
-    figure(h)
-    plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
-
 end

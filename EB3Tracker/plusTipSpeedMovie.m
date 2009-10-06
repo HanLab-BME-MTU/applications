@@ -28,8 +28,8 @@ function plusTipSpeedMovie(projData,timeRange,velLimit,roiYX,aviInstead)
 %                          {0} to make MOV movie
 %
 %OUTPUT One or more movies and the regions of interest used to
-%       generate them. Cool colors correspond to shrinkage events (these
-%       have "negative" speeds); warm colors correspond to growth or pause.
+%       generate them. Circle are growths, triangles are fgaps, and squares
+%       are bgaps
 
 homeDir=pwd;
 
