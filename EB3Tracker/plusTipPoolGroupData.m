@@ -1,7 +1,7 @@
-function plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot)
+function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot)
 % plusTipPoolGroupData pools plus tip data from multiple projects in groups
 %
-% SYNOPSIS:  plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot)
+% SYNOPSIS:  [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot)
 %
 % INPUT:
 % groupList : output of plusTipPickGroups, nProj x 2 cell array where the
@@ -13,6 +13,13 @@ function plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot)
 %             each group in a "withinGroupComparisons" folder
 % doPlot    : 1 to make histograms and boxplots for within and/or between
 %             group data
+%
+% OUTPUT:
+% groupData : structure containing group information and fields for 9
+%             distributions: growth speed (gs), fgap speed (fs), bgap speed
+%             (bs), growth lifetime (gl), fgap lifetime (fl), bgap lifetime
+%             (bl), growth displacement (gd), fgap displacement (fd), and
+%             bgap displacement (bd).
 
 
 homeDir=pwd;
@@ -43,7 +50,7 @@ if nargin<5 || isempty(doPlot)
     doPlot=1;
 end
 
-
+groupData=[];
 
 projGroupName=groupList(:,1);
 projGroupDir=cellfun(@(x) formatPath(x),groupList(:,2),'uniformoutput',0);
