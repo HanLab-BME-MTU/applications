@@ -15,7 +15,7 @@ function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,percentFgapsReclass,perce
 % OUTPUT
 % dataMatMerge        : matrix where fgaps that should be reclassified (as
 %                       growth, because their speeds are
-%                       >=50% the speed at the end of the growth phase
+%                       >=70% the speed at the end of the growth phase
 %                       prior) are consolidated with flanking growth
 %                       subtracks. also bgaps that should be reclassified
 %                       as pause, because their speeds are lower than the

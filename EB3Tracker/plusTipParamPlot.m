@@ -1,5 +1,5 @@
 function [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange)
-% Makes quadrant scatterplot split by property percentiles, mapped  onto image
+% Makes quadrant scatterplot split by property percentiles or values, mapped onto image
 
 % SYNOPSIS:
 % [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd)
