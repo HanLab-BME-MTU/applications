@@ -1,37 +1,37 @@
-function varargout = plusTipTrackViz(varargin)
-% PLUSTIPTRACKVIZ M-file for plusTipTrackViz.fig
-%      PLUSTIPTRACKVIZ, by itself, creates a new PLUSTIPTRACKVIZ or raises the
+function varargout = plusTipSeeTracks(varargin)
+% PLUSTIPSEETRACKS M-file for plusTipSeeTracks.fig
+%      PLUSTIPSEETRACKS, by itself, creates a new PLUSTIPSEETRACKS or raises the
 %      existing
 %      singleton*.
 %
-%      H = PLUSTIPTRACKVIZ returns the handle to a new PLUSTIPTRACKVIZ or the handle to
+%      H = PLUSTIPSEETRACKS returns the handle to a new PLUSTIPSEETRACKS or the handle to
 %      the existing singleton*.
 %
-%      PLUSTIPTRACKVIZ('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in PLUSTIPTRACKVIZ.M with the given input arguments.
+%      PLUSTIPSEETRACKS('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in PLUSTIPSEETRACKS.M with the given input arguments.
 %
-%      PLUSTIPTRACKVIZ('Property','Value',...) creates a new PLUSTIPTRACKVIZ or raises the
+%      PLUSTIPSEETRACKS('Property','Value',...) creates a new PLUSTIPSEETRACKS or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before plusTipTrackViz_OpeningFcn gets called.  An
+%      applied to the GUI before plusTipSeeTracks_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to plusTipTrackViz_OpeningFcn via varargin.
+%      stop.  All inputs are passed to plusTipSeeTracks_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help plusTipTrackViz
+% Edit the above text to modify the response to help plusTipSeeTracks
 
-% Last Modified by GUIDE v2.5 30-Sep-2009 17:08:10
+% Last Modified by GUIDE v2.5 08-Oct-2009 13:05:58
 
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
     'gui_Singleton',  gui_Singleton, ...
-    'gui_OpeningFcn', @plusTipTrackViz_OpeningFcn, ...
-    'gui_OutputFcn',  @plusTipTrackViz_OutputFcn, ...
+    'gui_OpeningFcn', @plusTipSeeTracks_OpeningFcn, ...
+    'gui_OutputFcn',  @plusTipSeeTracks_OutputFcn, ...
     'gui_LayoutFcn',  [] , ...
     'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -46,15 +46,15 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before plusTipTrackViz is made visible.
-function plusTipTrackViz_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before plusTipSeeTracks is made visible.
+function plusTipSeeTracks_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to plusTipTrackViz (see VARARGIN)
+% varargin   command line arguments to plusTipSeeTracks (see VARARGIN)
 
-% Choose default command line output for plusTipTrackViz
+% Choose default command line output for plusTipSeeTracks
 handles.output = hObject;
 
 handles.getStr = 0;
@@ -95,22 +95,27 @@ handles.yScattInput=10;
 
 handles.remBegEnd=1;
 
-
 handles.autoSelect=0;
 handles.fractionFromEdge=[];
+
+%place image onto the axes, remove tick marks
+pic=imread('pTT_logo_sm.png');
+axes(handles.logoAxes);
+image(pic);
+axis off
 
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes plusTipTrackViz wait for user response (see UIRESUME)
+% UIWAIT makes plusTipSeeTracks wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = plusTipTrackViz_OutputFcn(hObject, eventdata, handles)
+function varargout = plusTipSeeTracks_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -440,14 +445,6 @@ function radioButtonGroupDetection_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 
-% --- Executes on mouse press over axes background.
-function helpPic_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to helpPic (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-open plusTipTrackViz_README.txt
-
-
 % --- Executes on button press in getQueryStr_Check.
 function getQueryStr_Check_Callback(hObject, eventdata, handles)
 % hObject    handle to getQueryStr_Check (see GCBO)
@@ -464,7 +461,7 @@ function getHelpPush_Callback(hObject, eventdata, handles)
 % hObject    handle to getHelpPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-open plusTipTrackViz_README.txt
+open plusTipSeeTracks_README.txt
 
 % --- Executes during object creation, after setting all properties.
 function getHelpPush_CreateFcn(hObject, eventdata, handles)

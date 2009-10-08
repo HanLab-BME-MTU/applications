@@ -1,4 +1,4 @@
-+TIP Detection, Tracking, and Post-Processing README
+plusTipGetTracks README
 
 This README explains how to do the following:
 - Set up new projects
@@ -91,10 +91,10 @@ numbers of frames without having to repeat the time-consuming detection
 step.
 
 After the job finishes, you may want to visualize the results.  To do this,
-call plusTipTrackViz from the Matlab command line.
+call plusTipSeeTracks from the Matlab command line.
 
 ---------------------------------------------------------------------------
-DETECTION PARAMETERS
+DETECTION PARAMETER SETTINGS
 
 The output of detection will be stored in the /feat directory under the
 project directory.
@@ -106,7 +106,7 @@ If "Save Overlay Plots" is checked, .tiff images of the detection results
 will be saved in a sub-directory under /feat.
 
 ---------------------------------------------------------------------------
-TRACKING PARAMETERS
+TRACKING PARAMETER SETTINGS
 
 The output of tracking will be stored in the /track directory under the
 project directory.
@@ -143,7 +143,7 @@ addition, this parameter defines the smallest width of the forward and
 backward cones.
 
 ---------------------------------------------------------------------------
-POST-PROCESSING PARAMETERS
+POST-PROCESSING PARAMETER SETTINGS
 
 The output of post-processing will be stored in the /meta directory under 
 the project directory.
