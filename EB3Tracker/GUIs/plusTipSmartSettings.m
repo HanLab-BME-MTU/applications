@@ -760,7 +760,7 @@ for i=1:nIter
     fluctRad=fluctRadAll(i);
 
     % run tracking and post-processing
-    plusTipTracker(projData,timeWindow,3,minRadius,maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad,timeRange,diagnostics)
+    plusTipCometTracker(projData,timeWindow,3,minRadius,maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad,timeRange,diagnostics)
     [projData]=plusTipPostTracking(projData,secPerFrame,pixSizeNm,[],0);
 
     % assign strings for figure names

@@ -1,5 +1,5 @@
-function plusTipTracker(projData,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad,timeRange,diagnostics)
-% plusTipTracker is the main tracking function
+function plusTipCometTracker(projData,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad,timeRange,diagnostics)
+% plusTipCometTracker is the main tracking function
 
 
 % get projData in correct format
@@ -12,7 +12,7 @@ if nargin<1 || isempty(projData)
 else
     % adjust for OS
     if ~isfield(projData,'imDir') || ~isfield(projData,'anDir')
-        error('--plusTipTracker: first argument should be a structure with fields imDir and anDir');
+        error('--plusTipCometTracker: first argument should be a structure with fields imDir and anDir');
     else
         [projData.anDir] = formatPath(projData.anDir);
         homeDir=pwd;
@@ -25,12 +25,12 @@ end
 % load movieInfo (detection result)
 featDir  = [projData.anDir filesep 'feat'];
 if ~isdir(featDir)
-    error('--plusTipTracker: feat directory missing')
+    error('--plusTipCometTracker: feat directory missing')
 else
     if exist([featDir filesep 'movieInfo.mat'],'file')
         load([featDir filesep 'movieInfo.mat'])
     else
-        error('--plusTipTracker: movieInfo missing...')
+        error('--plusTipCometTracker: movieInfo missing...')
     end
 end
 
@@ -71,7 +71,7 @@ elseif isequal(unique(size(timeRange)),[1 2])
         endFrame = nFrames;
     end
 else
-    error('--plusTipTracker: timeRange should be [startFrame endFrame] or [] for all frames')
+    error('--plusTipCometTracker: timeRange should be [startFrame endFrame] or [] for all frames')
 end
 temp=movieInfo;
 clear movieInfo;
