@@ -1,9 +1,9 @@
-plusTipSmartParameters README
+plusTipSmartSettings README
 
 This README explains how to choose optimal tracking parameters by doing a 
 parameter sweep.  
 
-plusTipSmartParameters allows the user to choose a range of values for
+plusTipSmartSettings allows the user to choose a range of values for
 each tracking parameter that should be tested, leaving all others constant
 at their user-set defaults.
 

@@ -1,35 +1,35 @@
-function varargout = plusTipSmartParameters(varargin)
-% PLUSTIPSMARTPARAMETERS M-file for plusTipSmartParameters.fig
-%      PLUSTIPSMARTPARAMETERS, by itself, creates a new PLUSTIPSMARTPARAMETERS or raises the existing
+function varargout = plusTipSmartSettings(varargin)
+% PLUSTIPSMARTSETTINGS M-file for plusTipSmartSettings.fig
+%      PLUSTIPSMARTSETTINGS, by itself, creates a new PLUSTIPSMARTSETTINGS or raises the existing
 %      singleton*.
 %
-%      H = PLUSTIPSMARTPARAMETERS returns the handle to a new PLUSTIPSMARTPARAMETERS or the handle to
+%      H = PLUSTIPSMARTSETTINGS returns the handle to a new PLUSTIPSMARTSETTINGS or the handle to
 %      the existing singleton*.
 %
-%      PLUSTIPSMARTPARAMETERS('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in PLUSTIPSMARTPARAMETERS.M with the given input arguments.
+%      PLUSTIPSMARTSETTINGS('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in PLUSTIPSMARTSETTINGS.M with the given input arguments.
 %
-%      PLUSTIPSMARTPARAMETERS('Property','Value',...) creates a new PLUSTIPSMARTPARAMETERS or raises the
+%      PLUSTIPSMARTSETTINGS('Property','Value',...) creates a new PLUSTIPSMARTSETTINGS or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before plusTipSmartParameters_OpeningFcn gets called.  An
+%      applied to the GUI before plusTipSmartSettings_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to plusTipSmartParameters_OpeningFcn via varargin.
+%      stop.  All inputs are passed to plusTipSmartSettings_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help plusTipSmartParameters
+% Edit the above text to modify the response to help plusTipSmartSettings
 
-% Last Modified by GUIDE v2.5 08-Oct-2009 13:08:39
+% Last Modified by GUIDE v2.5 08-Oct-2009 15:04:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @plusTipSmartParameters_OpeningFcn, ...
-                   'gui_OutputFcn',  @plusTipSmartParameters_OutputFcn, ...
+                   'gui_OpeningFcn', @plusTipSmartSettings_OpeningFcn, ...
+                   'gui_OutputFcn',  @plusTipSmartSettings_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,15 +44,15 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before plusTipSmartParameters is made visible.
-function plusTipSmartParameters_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before plusTipSmartSettings is made visible.
+function plusTipSmartSettings_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to plusTipSmartParameters (see VARARGIN)
+% varargin   command line arguments to plusTipSmartSettings (see VARARGIN)
 
-% Choose default command line output for plusTipSmartParameters
+% Choose default command line output for plusTipSmartSettings
 handles.output = hObject;
 
 handles.projData=[];
@@ -86,12 +86,12 @@ axis off
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes plusTipSmartParameters wait for user response (see UIRESUME)
+% UIWAIT makes plusTipSmartSettings wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = plusTipSmartParameters_OutputFcn(hObject, eventdata, handles) 
+function varargout = plusTipSmartSettings_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -601,7 +601,7 @@ function getHelpPush_Callback(hObject, eventdata, handles)
 % hObject    handle to getHelpPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-open plusTipSmartParameters_README.txt
+open plusTipSmartSettings_README.txt
 
 
 
@@ -611,7 +611,7 @@ function [allData]=plusTipParameterTest(projData,parametersToTest,secPerFrame,pi
 % plusTipParameterTest tests a range of tracking parameter settings to aid selection
 %
 % Input
-%       for all inputs   : Call plusTipSmartParameters to set inputs using a GUI
+%       for all inputs   : Call plusTipSmartSettings to set inputs using a GUI
 %
 % Output
 %       allData          : cell array containing results of all tests
