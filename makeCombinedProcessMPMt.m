@@ -1,4 +1,4 @@
-function [mpm_total] = makeCombinedProcessMPMt(imagesize, numf, plotOn ,varargin)
+function [mpm_total] = makeCombinedProcessMPMt(imagesize, numf, plotOn,hotness ,varargin)
 % make simulated MPM (with specified number of frames and imagesize) as a
 % superposition of clustered and random processes
 % INPUT:
@@ -140,7 +140,7 @@ if ~isempty(pos_restrict)
                 else
                     percentRestrict = 1;
                 end
-                
+
                 % fourth value (optional) is sigma of raft diffusion (also
                 % in pixel)
                 if length(cvec)>4
@@ -155,20 +155,20 @@ if ~isempty(pos_restrict)
                 else
                     minDist = 0;
                 end
-                
+
                 %generate mpm for point restricting process...that is, x
                 %and y posiiton of each point restricting process
                 %for each frame of the simulation
                 %parents processes are simulated over a larger area to
                 %avoid edge effects
                 [mpm_restrict] = generateRestrictions(numf,[sxLarge syLarge],vi_int,minDist,sigma_diff,buffer);
-                
+
                 if vi_type==4
                     generatedPoints_restrictions(i).type = [ 4, radius_raft, percentRestrict];
                 else
                     generatedPoints_restrictions(i).type = [ 5, radius_raft, percentRestrict];
                 end
-                
+
                 %store mpm
                 generatedPoints_restrictions(i).mpm_restrict = mpm_restrict;
             otherwise
@@ -184,7 +184,7 @@ end %if restriction  process exists
 
 %for every frame
 for t=1:numf
-    
+
     %make MPM out of restrictions where every two columns represent x and y
     %positions of restriction process (for example if two restriction
     %processes exist then the mpm should have the comlumns [x1 y1 x2 y2]
@@ -204,10 +204,10 @@ for t=1:numf
             restrictionsType = [restrictionsType generatedPoints_restrictions(irestrict).type'];
         end
     end
-    
+
     % loop over all point-generating processes
     for i=1:length(pos_generate)
-        
+
         % current generating parameters
         cvec = varargin{pos_generate(i)};
         % first position: distribution type
@@ -215,22 +215,22 @@ for t=1:numf
         % second position: intensity of the process (number of points or
         % parents
         vi_int = cvec(2);
-        
+
         %while density is not as specified (due to exclusion process)
         reshuffle = 1;
         loopcount = 0;
         mpm_generatedPoints = [];
-        
+
         %get parameters and set parents if necessary
         switch vi_type
             % distribution is random
             case 1
-                
+
                 % if random process we care about the
                 % points themselevs
                 % number of points is intensity times area
                 nump = poissrnd(vi_int);
-                
+
                 % third value (optional) is determines whether point
                 % density is to be conserved given restrictions
                 if length(cvec) > 2
@@ -238,7 +238,7 @@ for t=1:numf
                 else
                     reshuffle = 0;
                 end
-                
+
                 % fourth value (optional) is the restriction radius
                 % after a nucleation has taken place
                 if length(cvec) > 3
@@ -246,15 +246,15 @@ for t=1:numf
                 else
                     restrictRad = 0;
                 end
-                
-                
+
+
                 % third value is number of daughters per mother
                 if length(cvec) > 4
                     restrictLambdaRand = cvec(5);
                 else
                     restrictLambdaRand = 0;
                 end
-                
+
                 % fourth value is the time lag before parent is allowed
                 % to have succeeding children
                 if length(cvec) > 5
@@ -262,25 +262,25 @@ for t=1:numf
                 else
                     restrictLagRand = 0;
                 end
-                
+
                 % distribution is cluster (of raft or Cox type)
             case { 2, 3}
-                
+
                 %if parent process we follow instead the number of parents
                 %because this is the number we set instead of the child density
                 % number of points is intensity times area
                 nump = round(vi_int * imareaLarge);
-                
+
                 % third value is number of daughters per mother
                 nump_lambda = cvec(3);
-                
+
                 % fourth value is the time lag before parent is allowed
                 % to have succeeding children
                 nump_int = cvec(4);
-                
+
                 % fourth value is sigma of distribution (in pixel)
                 sigma_cluster = cvec(5);
-                
+
                 % fifth value (optional) is sigma of parent diffusion (also
                 % in pixel)
                 if length(cvec)>5
@@ -288,19 +288,24 @@ for t=1:numf
                 else
                     sigma_diff = 0;
                 end
-                
+
                 if length(cvec)>6
                     parentMinDistance = cvec(7);
                 else
                     parentMinDistance = 0;
                 end
-                
+
                 if length(cvec)>7
                     parentLifeTime = cvec(8);
+                    % since a lifetime of zero makes no sense switch to and
+                    % infinite lifetime
+                    if parentLifeTime == 0
+                        parentLifeTime = inf;
+                    end
                 else
-                    parentLifeTime = 0;
+                    parentLifeTime = Inf;
                 end
-                
+
                 % ninth value (optional) is determines whether point
                 % density is to be conserved given restrictions
                 if length(cvec) > 8
@@ -317,28 +322,49 @@ for t=1:numf
                     error('not enough parents in frame')
                     %initiate parents
                 elseif t == 1
+                    %initiate parent mpm in output structure
+                    generatedPoints(i).mpm_parents = zeros((numf/parentLifeTime+1)*nump,2*numf);
                     % initieate timer for lifetime of parent and for time
                     % elapsed since last child
-                    generatedPoints(i).parentTimer = numf*rand(nump,2);
+                    %parentTimer = repmat([parentLifeTime 1/nump_lambda],nump,1).*rand(nump,2);
+                    %the minus ones and plus ones is so that the minimum is
+                    %1, which in the program translates to a minimum of one
+                    %frame
+                    parentTimer = round(repmat([parentLifeTime-1 numf-1],nump,1).*rand(nump,2))+1;
                     % initiate parent positions
                     [mpm_mother_start] = makeParentMPM(nump,[sxLarge syLarge],parentMinDistance, buffer);
                     mpm_generatedMothers = mpm_mother_start;
                     % numChilds = zeros(size(mpm_generatedMothers),1);
+                    %store parent positions
+                    generatedPoints(i).mpm_parents(1:size(mpm_generatedMothers,1),1:2)  = mpm_generatedMothers;
                 else
                     % fill subsequent time positions
-                    mpm_mother_prev = generatedPoints(i).mpm_parents(:,2*t-3:2*t-2);
+                    livingParentID = find(generatedPoints(i).mpm_parents(:,2*t-2) ~= 0);
+                    mpm_mother_prev = generatedPoints(i).mpm_parents(livingParentID,2*t-3:2*t-2);
                     mpm_generatedMothers = diffuseParentMPM(mpm_mother_prev,sigma_diff);
                     % redraw dead parents
-                    mpm_generatedMothers = redrawParentMPM(mpm_generatedMothers,generatedPoints(i),parentLifeTime,[sxLarge syLarge],parentMinDistance,buffer);
+                    [mpm_generatedMothers,parentTimer,redrawnID] = redrawParentMPM(mpm_generatedMothers,parentTimer,parentLifeTime,[sxLarge syLarge],parentMinDistance,buffer);
+                    %store new parents starting at the row under the last
+                    %recorded parent position from the previous frame
+                    generatedPoints(i).mpm_parents(livingParentID(end)+1:livingParentID(end)+length(redrawnID),2*t-1:2*t)  = mpm_generatedMothers(redrawnID,:);
+                    %make a dummy mpm for parents that represents the new
+                    %generated mpm, but with the redrawn parents zeroed
+                    %(putting this mpm back into the data structure should
+                    %reupdate parents that were not redrawn while zeroing those
+                    %that did
+                    mpmMotherDummy = mpm_generatedMothers;
+                    mpmMotherDummy(redrawnID,:) = 0;
+                    generatedPoints(i).mpm_parents(livingParentID,2*t-1:2*t) = mpmMotherDummy;
                 end
+
         end %of switch
-        
+
         % if specified, generate more points
         % while per frame density for point generating process is not
         % met
-        looplimit = 50;
+        looplimit = 150;
         while nump ~= 0 && (loopcount == 0 || reshuffle && loopcount < looplimit)
-            
+
             % GENERATE POINTS
             switch vi_type
                 % distribution is random
@@ -352,23 +378,23 @@ for t=1:numf
                 case { 2, 3}
                     % generate daughters
                     if vi_type==2
-                        [mpm_points_curr, generatedPoints(i).parentTimer(:,2) ]= makeCoxProcessMPM(mpm_generatedMothers,generatedPoints(i).parentTimer(:,2),nump_lambda,nump_int,sigma_cluster,imagesize);
+                        [mpm_points_curr, parentTimer(:,2) ]= makeCoxProcessMPM(mpm_generatedMothers,parentTimer(:,2),nump_lambda,nump_int,sigma_cluster,imagesize,numf,hotness);
                     else
-                        [mpm_points_curr, generatedPoints(i).parentTimer(:,2) ]= makeRaftProcessMPM(mpm_generatedMothers,generatedPoints(i).parentTimer(:,2),nump_lambda,nump_int,sigma_cluster,imagesize);
+                        [mpm_points_curr, parentTimer(:,2) ]= makeRaftProcessMPM(mpm_generatedMothers,parentTimer(:,2),nump_lambda,nump_int,sigma_cluster,imagesize);
                     end
             end % of switch/case
-            
+
             %RESTRICT POINTS IF RESTRICTIONS ARE PRESENT
             if ~isempty(pos_restrict)
                 [mpm_points_curr] = makeExcludedOrIncludedMPM(mpm_points_curr,restrictionsMPM,restrictionsType);
             end
-            if ~isempty(generatedPoints(proc==1)) && restrictRad ~= 0
+            if ~isempty(generatedPoints(proc==1)) && t~=1 && restrictRad ~= 0
                 [mpm_points_curr] = restrictMPMBasedOnResources(mpm_points_curr,generatedPoints(proc==1),restrictRad,restrictLambdaRand,restrictLagRand,t);
             end
-            
+
             %STORE GENERATED POINTS
             mpm_generatedPoints = [mpm_generatedPoints; mpm_points_curr];
-            
+
             % CALCULATE HOW MANY POINTS ARE MISSING
             switch vi_type
                 %if random process number of points is image area times
@@ -384,32 +410,28 @@ for t=1:numf
             %update loop count
             loopcount = loopcount + 1;
         end %of while density not met
-        
+
         if loopcount  == looplimit
             disp('could not reach specified point density');
         end
-        
+
         %if first frame record type of point generating process
         if t == 1
             generatedPoints(i).type = vi_type;
         end
-        
+
         %if points were generated
         if loopcount ~= 0
             %record positions on mpm
             generatedPoints(i).mpm(1:size(mpm_generatedPoints,1),2*t-1:2*t)  = mpm_generatedPoints(:,1:2);
-            %if parents were generated, record positions
-            if vi_type ~= 1
-                generatedPoints(i).mpm_parents(:,2*t-1:2*t)  = mpm_generatedMothers;
-            end
         end %of if points generated
         %NOTE: if points were not generated then the initiated mpm will
         %contain zeros for this frame
-        
+
         %     for ipar = 1:size(mpm_generatedMothers,1)
         %         numChilds(ipar) = numChilds(ipar) + length(find(mpm_generatedPoints(:,3)==ipar));
         %     end %of for each parent
-        
+
     end % of for i-loop for point generating processes
 end % of for t
 
@@ -421,7 +443,7 @@ end
 %% plot results
 if plotOn
     figure
-    
+
     for t=1:numf
         for p=1:length(pos_generate)
             ct = generatedPoints(p).type;
@@ -434,18 +456,18 @@ if plotOn
                 plot(cmpm_moth(:,2*t-1),cmpm_moth(:,2*t),'cx');
             end
         end
-        
+
         for p=1:length(pos_restrict)
             ct = generatedPoints_restrictions(p).type;
             cmpm_res = generatedPoints_restrictions(p).mpm_restrict;
-            
+
             plot(cmpm_res(:,2*t-1),cmpm_res(:,2*t),'mx');
         end
-        
+
         hold off;
         axis([1 sx 1 sy]);
         pause(0.1);
-        
+
     end
 end %of if plot is on
 
@@ -456,7 +478,7 @@ end % of function
 
 %%       ==================================================================
 
-function [mask] = makeMaskFromMPM(mpm,radius, imagesize);
+function [mask] = makeMaskFromMPM(mpm,radius, imagesize)
 
 xs = imagesize(1);
 ys = imagesize(2);
@@ -476,21 +498,21 @@ YinPix = YinPix-(radius+1);
 % figure;
 
 for n=1:size(mpm,1)
-    
+
     CurrCoorXCon = round(mpm(n,2))+XinPix;
     CurrCoorYCon = round(mpm(n,1))+YinPix;
     % bad posititons = those outside the image
     goodPos = find( (CurrCoorXCon>=1) & (CurrCoorYCon>=1) & (CurrCoorXCon<=xs) & (CurrCoorYCon<=ys) );
-    
+
     subIndGoodPosCon = sub2ind([xs ys],CurrCoorXCon(goodPos),CurrCoorYCon(goodPos));
-    
+
     mask(subIndGoodPosCon) = 1;
-    
+
     %     hold off;
     %     imshow(mask);
     %     hold on;
     %     plot(mpm(1:n,1),mpm(1:n,2),'rx');
-    
+
 end
 
 
@@ -501,7 +523,7 @@ end % of subfunction
 %%       ==================================================================
 
 
-function [mpm_daughters,childTimeDiff] = makeCoxProcessMPM(mpm_mothers, childTimeDiff,nump_lambda,nump_int,sigma,imagesize)
+function [mpm_daughters,childTimeDiff] = makeCoxProcessMPM(mpm_mothers, childTimeDiff,nump_lambda,nump_int,sigma,imagesize,numf, hotness)
 
 sx = imagesize(1);
 sy = imagesize(2);
@@ -516,63 +538,71 @@ nms = (size(mpm_mothers,2)/2);
 
 % the lambda parameter is dependent on the time past since last child
 t = childTimeDiff;
+%parents with a value of zero in the counter will have a lambda of 0
+%timers will surpass numf.....change these to a maximum (in terms of the
+%maximum possible lambda) since these are due
+t(t==0)=1;
+t(t>numf) = numf;
+%nump_lambda = linspace(0,nump_lambda,numf/10);
+nump_lambda = hotness;
 % in a cox process, the number of daughters per mother is
 % poisson-distributed
 %lambda_Poiss = min(max(nump_lambda*t-nump_int,0),1);
-vec_nump = poissrnd(nump_lambda,nmp,1);
-vec_nump(t <= nump_int) = zeros(length(find(t <= nump_int)),1);
+vec_nump = poissrnd(nump_lambda(t));
+
+%vec_nump(t <= nump_int) = zeros(length(find(t <= nump_int)),1);
 
 % loop over number of samples
 for s=1:nms
-    
+
     % initialize daughter points
     cmpm_daughters = zeros(1,3);
-    
+
     %loop over all mother points
     for n=1:nmp
-        
+
         % position of current mother cluster center
         centerpoint = mpm_mothers(n,2*s-1:2*s);
         % current number of daughters from poisson distribution
         numd = vec_nump(n);
-        
+
         if numd>0
-            
+
             %generate vector length of mother-daughter distance NOTE randn
             lenDis = sigma*randn(numd,1);
-            
+
             %generate angle NOTE rand
             angle = 2*pi*rand(numd,1);
-            
+
             %resulting endpoint for this daughter point
             endx = centerpoint(1) + lenDis .* sin(angle);
             endy = centerpoint(2) + lenDis .* cos(angle);
-            
+
             cmpm = [endx endy repmat(n,length(endx),1)];
-            
+
             cmpm_daughters = [cmpm_daughters ; cmpm];
             childTimeDiff(n) = 0;
         else
             childTimeDiff(n) = childTimeDiff(n) + 1;
         end
-        
+
     end
-    
+
     px0 = (cmpm_daughters(:,1)>1);
     py0 = (cmpm_daughters(:,2)>1);
     pxi = (cmpm_daughters(:,1)<sx);
     pyi = (cmpm_daughters(:,2)<sy);
-    
+
     cmpm_daughters = cmpm_daughters(px0 & py0 & pxi & pyi,:);
     csx = size(cmpm_daughters);
-    
+
     if s==1
         mpm_daughters = cmpm_daughters;
     else
         mpm_daughters((1:csx),((2*s-1):2*s)) = cmpm_daughters;
     end
-    
-    
+
+
 end % of for s
 
 end % of function
@@ -600,70 +630,70 @@ vec_nump(t <= nump_int) = zeros(length(find(t <= nump_int)),1);
 
 % loop over number of samples
 for s=1:nms
-    
+
     %positions of mother cluster centers
     cmpm_daughters = zeros(1,3);
-    
-    
+
+
     %loop over all mother points
     for n=1:nmp
-        
+
         centerpoint = mpm_mothers(n,2*s-1:2*s);
         numd = vec_nump(n);
-        
+
         if numd>0
-            
+
             %generate vector length of mother-daughter distance NOTE rand
             lenDis = sigma*rand(numd,1);
-            
+
             %generate angle NOTE rand
             angle = 2*pi*rand(numd,1);
-            
+
             %resulting endpoint for this daughter point
             endx = centerpoint(1) + lenDis .* sin(angle);
             endy = centerpoint(2) + lenDis .* cos(angle);
-            
+
             cmpm = [endx endy repmat(n,length(endx),1)];
-            
+
             cmpm_daughters = [cmpm_daughters ; cmpm];
             childTimeDiff(n) = 0;
         else
             childTimeDiff(n) = childTimeDiff(n) + 1;
         end
-        
+
     end
-    
+
     px0 = (cmpm_daughters(:,1)>1);
     py0 = (cmpm_daughters(:,2)>1);
     pxi = (cmpm_daughters(:,1)<sx);
     pyi = (cmpm_daughters(:,2)<sy);
-    
+
     cmpm_daughters = cmpm_daughters(px0 & py0 & pxi & pyi,:);
     csx= size(cmpm_daughters);
-    
+
     if s==1
         mpm_daughters = cmpm_daughters;
     else
         mpm_daughters((1:csx),((2*s-1):2*s)) = cmpm_daughters;
     end
-    
+
 end % of for s
 
 end % of function
 
 %%  =======================================================================
-function [mpm_mother] = makeParentMPM(nump,area,minDist, buffer, existingParentMPM)
+function [mpmNew] = makeParentMPM(nump,area,minDist, buffer, existingParentMPM)
 
-%This function takes an existing parent mpm and add a given number of
+%This function takes an existing parent mpm and makes a given number of
 %additional parents in a given area at a given minimum distance from each
-%other
+%other and from the existing parent mpm
 %NOTE: The buffer is used to match up parents in the larger frame to the
 %children in the smaller frame (see begining of function)
 %NOTE: New parents are placed to be beyond the minimum distance from older
 %parents and themselves; older parent positions are kept
 
 if nargin < 5
-    existingParentMPM = [];
+    existingParentMPM = nan(1,2);
 end
 
 sxLarge = area(1);
@@ -673,15 +703,15 @@ syLarge  = area(2);
 % a buffer of +10 on all sides of the image
 x_mother = 1+(sxLarge-1)*rand(nump,1) - buffer;
 y_mother = 1+(syLarge-1)*rand(nump,1) - buffer;
-mpm_mother = [x_mother y_mother];
-%take not of where new parents end on the mpm
-divOldNew = size(existingParentMPM,1);
-%add existing parents to MPM
-mpm_mother = [existingParentMPM;mpm_mother];
-%calculate interparent distance
-parentDistance = squareform(pdist(mpm_mother));
-%replace zeros with nans
-parentDistance(parentDistance == 0) = nan;
+mpmNew = [x_mother y_mother];
+
+
+%calculate distance between new pareants and old parents
+new2oldDist = distMat2(mpmNew,existingParentMPM);
+%calculate distance between new parents
+new2newDist = distMat2(mpmNew,mpmNew);
+new2newDist(new2newDist==0) = nan;
+parentDistance = [new2oldDist new2newDist];
 %if any of these distances are smaller than minimum
 %specified parent distance then redraw those
 %only allow this to loop for so long
@@ -689,19 +719,19 @@ loopcount = 0;
 while any(min(parentDistance,[],2) < minDist) && loopcount ~=50
     %find parents within minimum distance
     findParent = find(min(parentDistance,[],2) < minDist);
-    %take out parents that are from the old mpm
-    findParent = setdiff(findParent, 1:divOldNew);
     %redraw new parents within minimum distance
     x_redraw = 1+(sxLarge-1)*rand(length(findParent),1) - buffer;
     y_redraw = 1+(syLarge-1)*rand(length(findParent),1) - buffer;
     %store redrawn values
-    mpm_mother(findParent,:) = [x_redraw y_redraw];
+    mpmNew(findParent,:) = [x_redraw y_redraw];
     %update loop count
     loopcount = loopcount + 1;
-    %calculate interparent distance
-    parentDistance = squareform(pdist(mpm_mother));
-    %replace zeros with nans
-    parentDistance(parentDistance == 0) = nan;%calculate interparent distance
+    %calculate distance between new pareants and old parents
+    new2oldDist = distMat2(mpmNew,existingParentMPM);
+    %calculate distance between new parents
+    new2newDist = distMat2(mpmNew,mpmNew);
+    new2newDist(new2newDist==0) = nan;
+    parentDistance = [new2oldDist new2newDist];
 end
 
 %stop after 50 loops
@@ -749,7 +779,7 @@ for irestriction = 1:size(restrictionsType,2)
     % determine distances of all daughter points from the central point
     dm = distMat2(mpm_pt_use(:,1:2),restrictionsMPM(:,irestriction*2-1:irestriction*2));
     dm_min = min(dm,[],2);
-    
+
     % inclusive: exclude points that are outside radius from rafts
     if restrictionsType(1,irestriction)==4
         fpos_stat = find(dm_min > restrictionsType(2,irestriction));
@@ -758,14 +788,14 @@ for irestriction = 1:size(restrictionsType,2)
     else
         fpos_stat = find(dm_min <= restrictionsType(2,irestriction));
     end
-    
+
     %number of points to exclude is the total number of points that are
     %found within/outside exclusion multiplied by the percent to be
     %excluded
     number2Restrict = restrictionsType(3, irestriction);
     fpos_stat = randsample(fpos_stat,round(length(fpos_stat)*number2Restrict));
     mpm_pt_use(fpos_stat,:) = [];
-    
+
 end %of for each type of restriction
 restrictedMPM = mpm_pt_use;
 end %of function
@@ -799,23 +829,20 @@ mpm_points_curr(dm_min <= restrictRad,:) = [];
 end %of function
 
 %% ========================================================================
-function [mpm_generatedMothers,parentLifeCount] = redrawParentMPM(mpm_generatedMothers,parentLifeCount,parentLifeTime,area,minDist, buffer)
+function [mpm_generatedMothers,parentLifeCount,findParents] = redrawParentMPM(mpm_generatedMothers,parentLifeCount,parentLifeTime,area,minDist, buffer)
 %this function takes a one frame-long mpm and a lifetime vector
 %each row of the mpm corresponds to the same row in the lifetime vector
 %parents that have outlived their usefulness are redrawn
 
 %find parents to redraw
-findParents = find(parentLifeCount > parentLifeTime);
+findParents = find(parentLifeCount(:,1) > parentLifeTime);
 nump = length(findParents);
-%make nans out of positions so that they are not considered in further
-%calculations
-mpm_generatedMothers(findParents,:) = nan;
 %redraw parents
-mpm_generatedMothers = makeParentMPM(nump,area,minDist, buffer, mpm_generatedMothers);
+[mpmNewParents]= makeParentMPM(nump,area,minDist, buffer, mpm_generatedMothers);
+%update positions of parents to be redrawn with new positions
+mpm_generatedMothers(findParents,:) = mpmNewParents;
 %update parent life count
-parentLifeCount = parentLifeCount + 1;
-%give a -Inf value to the time counters for parents that disappear
-parentLifeCount(findParents) = -inf;
-%add counters to parent timer
-parentLifeCount = [parentLifeCount; zeros(nump,1)];
+parentLifeCount(:,1) = parentLifeCount(:,1) + 1;
+%reset time counters for parents that disappear
+parentLifeCount(findParents,:) = 0;
 end %of function
