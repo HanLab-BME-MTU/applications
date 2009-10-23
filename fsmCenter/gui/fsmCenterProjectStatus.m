@@ -103,18 +103,17 @@ end
 % Edge Tracker
 path = [edgeDir filesep 'cell_mask'];
 status = 2;
-if ~(exist(path, 'dir') && ...
-     size(dir([path, filesep, '*.tif']), 2))
- status = 0;
+if ~(exist(path, 'dir') && size(dir([path, filesep, '*.tif']), 2))
+    status = 0;
 end
 setElementStatus(handles.textEdgeTracker, status);
 
 % Kymograph Analysis
 status = 2;
-flowPath = [corrDir, filesep, 'flow'];
-if ~(size(dir([corrDir, filesep, 'flowTrack*.mat']), 1) && ...
+flowPath = [corrDir filesep 'flow'];
+if ~(size(dir([corrDir filesep 'flowTrack*.mat']), 1) && ...
      exist(flowPath, 'dir') && ...
-     size(dir(flowPath, 'flow*.mat'), 1))
+     size(dir([flowPath filesep 'flow*.mat']), 1))
  status  = 0;
 end
 setElementStatus(handles.textKymographAnalysis, status);
@@ -134,26 +133,26 @@ setElementStatus(handles.textPreprocessingModule, status);
 % Tracker Module
 status = 2;
 gapListPath = [tackDir filesep 'gapList'];     
-if ~(exist('mpm.mat', 'file') && ...
+if ~(exist([tackDir filesep 'mpm.mat'], 'file') && ...
      exist(gapListPath, 'dir') && ...
-     size(dir([gapListPath, filesep, 'gapList*.mat']), 1))
+     numel(dir([gapListPath, filesep, 'gapList*.mat'])))
  status = 0;
 end
 setElementStatus(handles.textTrackerModule, status);
 
 % Builder Module
 status = 2;
-if ~exist('speckleArray.mat', 'file')
+if ~exist([tackDir filesep 'speckleArray.mat'], 'file')
     status = 0;
 end
 setElementStatus(handles.textBuilderModule, status);
 
 % Kinetics Analysis Module
 status = 2;
-kinScorPath = [tackDir filesep 'kinScor'];
-if ~(exist('SCORE.mat', 'file') && ...
+kinScorePath = [tackDir filesep 'kinScore'];
+if ~(exist([tackDir filesep 'SCORE.mat'], 'file') && ...
      exist(kinScorePath, 'dir') && ...
-     size(dir([kinScorPath, filesep, 'kinScore*.mat']), 1))
+     size(dir([kinScorePath, filesep, 'kinScore*.mat']), 1))
  status = 0;
 end
 setElementStatus(handles.textKineticsAnalysisModule, status);

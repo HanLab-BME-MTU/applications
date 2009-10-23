@@ -33,7 +33,7 @@ function speckleArray=fsmBuildSaveSpeckleArray(cM,outFileList,xmin,xmax,firstInd
 % fsmBuildSaveSpeckleArray is used by { fsmBuildMain }
 % fsmBuildSaveSpeckleArray uses { }
 
-if nargin<11 | nargin>12
+if nargin<11 || nargin>12
     error('Wrong number of input arguments');
 end
 
@@ -57,7 +57,7 @@ step=0.5*10^fix(log10(tot)-1); if step<1, step=1; end
 % Index speckles and non-speckles
 %
 
-x=[1:2:2*tp-1];
+x=1:2:2*tp-1;
 
 % Allocate memory for 'table'
 table=zeros(sp*tp,4);
@@ -130,14 +130,14 @@ for c1=1:sp
             
             if currentSpeckle~=0          % Here we have a speckle
                 
-                if cM(c1,x(c2-1))~=0 & cM(c1,x(c2+1))~=0   % Last and next ones are speckle
+                if cM(c1,x(c2-1))~=0 && cM(c1,x(c2+1))~=0   % Last and next ones are speckle
                     pos1=0;
                     sAPos=sAPos+1;          % This is the speckle
                     pos2=sAPos;
                     pos3=0;
                 end
                 
-                if cM(c1,x(c2-1))==0 & cM(c1,x(c2+1))~=0   % Last one was not a speckle; the next is
+                if cM(c1,x(c2-1))==0 && cM(c1,x(c2+1))~=0   % Last one was not a speckle; the next is
                     sAPos=sAPos+1;
                     pos1=sAPos;             % This is the "pre-birth" non-speckle
                     sAPos=sAPos+1;
@@ -145,7 +145,7 @@ for c1=1:sp
                     pos3=0;
                 end
                 
-                if cM(c1,x(c2-1))~=0 & cM(c1,x(c2+1))==0   % Last one was a speckle; the next is not
+                if cM(c1,x(c2-1))~=0 && cM(c1,x(c2+1))==0   % Last one was a speckle; the next is not
                     pos1=0;
                     sAPos=sAPos+1;          % This is the speckle
                     pos2=sAPos;
@@ -153,7 +153,7 @@ for c1=1:sp
                     pos3=sAPos;
                 end
                 
-                if cM(c1,x(c2-1))==0 & cM(c1,x(c2+1))==0   % Both are not speckles
+                if cM(c1,x(c2-1))==0 && cM(c1,x(c2+1))==0   % Both are not speckles
                     sAPos=sAPos+1;
                     pos1=sAPos;             % This is the "pre-birth" non-speckle 
                     sAPos=sAPos+1;
@@ -216,7 +216,7 @@ speckleArray=struct(...
     'speckleType', uint8(zeros(lengthSpeckleArray,1)),...   % Unsigned integer 8: 1 - 255 (1 byte)
     'score',       zeros(lengthSpeckleArray,1),...          % Double 
     'activity',    int8(zeros(lengthSpeckleArray,1)),...    % Integer 8: -128 - 127 (1 byte)
-    'lmEvent',     logical(zeros(lengthSpeckleArray,1)));   % Logical: 0 | 1 (1 byte)
+    'lmEvent',     false(lengthSpeckleArray,1));            % Logical: 0 | 1 (1 byte)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -226,8 +226,6 @@ tot=size(cM,1)*0.5*size(cM,2)*size(cM,3);
 
 % Calculate some longer step size (not to spend too much time updating the waitbar)
 step=0.5*10^fix(log10(tot)-2); if step<1, step=1; end
-
-counter=0;
 
 for c1=1:tp                                    % Cycle through timepoints
     
@@ -326,27 +324,29 @@ for c1=1:tp                                    % Cycle through timepoints
     end
     
     % For the auxiliary function for the selection of local maxima, the following is needed
-    if exist('imgB')
+    if exist('imgB', 'var')
         % Calculate standard deviation of the non-black pixels as statistical value for comparison
-        nonBlackPixels=imgB(find(imgB>0));
-        stdImg=std(nonBlackPixels(:));
+        %nonBlackPixels=imgB(find(imgB>0));
+        %stdImg=std(nonBlackPixels(:));
+        stdImg = std(imgB(imgB > 0));
         
         % Pad img with intensities equal to the mean img intensity (to avoid border effects)
         maskR=5;
         aImgB=mean(imgB(:))*ones(2*maskR+size(imgB));
         aImgB(maskR+1:end-maskR,maskR+1:end-maskR)=imgB;
-end
+    end
     
-    if exist('imgD')
+    if exist('imgD', 'var')
         % Calculate standard deviation of the non-black pixels as statistical value for comparison
-        nonBlackPixels=imgD(find(imgD>0));
-        stdImg=std(nonBlackPixels(:));
+        %nonBlackPixels=imgD(find(imgD>0));
+        %stdImg=std(nonBlackPixels(:));
+        stdImg = std(imgD(imgD > 0));
         
         % Pad img with intensities equal to the mean img intensity (to avoid border effects)
         maskR=5;
         aImgD=mean(imgD(:))*ones(2*maskR+size(imgD));
         aImgD(maskR+1:end-maskR,maskR+1:end-maskR)=imgD;
-end
+    end
     
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -376,7 +376,7 @@ end
                 %
                 % CASE 1: SPECKLE HAVING NO PRE-BIRTH OR POST-DEATH SPECKLE ASSOCIATED
                 %
-                if b==0 & d==0
+                if b==0 && d==0
                     speckleArray.timepoint(s)    = uint16(c1);
                     
                     % Check if the speckle is reported in gapList
@@ -408,7 +408,7 @@ end
                     else
                         % Normal speckle
                     end
-                    speckleArray.lmEvent(s)      = logical(0);
+                    speckleArray.lmEvent(s)      = false;
                     speckleArray.speckleType(s)  = uint8(speckleType);
                     % Add zero score- and activity fields
                     speckleArray.score(s)        = 0;
@@ -418,7 +418,7 @@ end
                 %
                 % CASE 2: SPECKLE HAVING PRE-BIRTH SPECKLE ASSOCIATED
                 %
-                if b~=0 & d==0
+                if b~=0 && d==0
                     
                     % Start with actual speckle
                     speckleArray.timepoint(s)    = uint16(c1);
@@ -452,7 +452,7 @@ end
                     else
                         % Normal speckle
                     end
-                    speckleArray.lmEvent(s)      = logical(0);
+                    speckleArray.lmEvent(s)      = false;
                     speckleArray.speckleType(s)  = uint8(speckleType);
                     % Add zero score- and activity fields
                     speckleArray.score(s)        = 0;
@@ -482,7 +482,7 @@ end
                 %
                 % CASE 3: SPECKLE HAVING POST-DEATH SPECKLE ASSOCIATED
                 %
-                if b==0 & d~=0
+                if b==0 && d~=0
                     
                     % Start with actual speckle
                     speckleArray.timepoint(s)    = uint16(c1);
@@ -516,7 +516,7 @@ end
                     else
                         % Normal speckle
                     end
-                    speckleArray.lmEvent(s)      = logical(0);
+                    speckleArray.lmEvent(s)      = false;
                     speckleArray.speckleType(s)  = uint8(speckleType);
                     % Add zero score- and activity fields
                     speckleArray.score(s)        = 0;
@@ -547,7 +547,7 @@ end
                 %
                 % CASE 4: SPECKLE HAVING BOTH PRE-BIRTH OR POST-DEATH SPECKLE ASSOCIATED
                 %
-                if b~=0 & d~=0                             % THIS IS A GHOST SPECKLE!
+                if b~=0 && d~=0                             % THIS IS A GHOST SPECKLE!
                     
                     % Start with actual speckle
                     speckleArray.timepoint(s)    = uint16(c1);
@@ -581,7 +581,7 @@ end
                     else
                         % Normal speckle
                     end
-                    speckleArray.lmEvent(s)      = logical(0);
+                    speckleArray.lmEvent(s)      = false;
                     speckleArray.speckleType(s)  = uint8(speckleType);
                     % Add zero score- and activity fields
                     speckleArray.score(s)        = 0;
@@ -659,7 +659,7 @@ u=lmPos(1,2)==allCandsPos(:,2);
 v=find(t & u);
 
 % Check for correct selection of the loc max
-if isempty(v) | length(v)>1
+if isempty(v) || length(v)>1
     error('Loc max not univocally found in Delaunay Triangulation results');
 end
 
@@ -674,11 +674,7 @@ deltaICrit=candsS(v).deltaICrit;
 sigmaMax=candsS(v).sigmaLmax;
 sigmaMin=candsS(v).sigmaBkg;
 speckleType=candsS(v).speckleType;
-%
-%
-%
-%
-%
+
 
 function [intensity,background,bk1,bk2,bk3,deltaI,deltaICrit,sigmaMax,sigmaMin,lmEvent,spPos,speckleType]=BDSpeckleInfo(lmPos,candsS,allCandsPos,candsEv,candsEvPos,img,timepoint,c2,c3,cM,noiseParams,threshold,aImg,maskR,stdImg)
 
@@ -688,7 +684,7 @@ u=lmPos(1,2)==allCandsPos(:,2);
 v=find(t & u);
 
 % Check for correct selection of the loc max
-if isempty(v) | length(v)>1
+if isempty(v) || length(v)>1
     error('Loc max not univocally found in Delaunay Triangulation results');
 end
 
@@ -697,7 +693,7 @@ end
 %     NOISE VALUES AS USUAL
 %
 
-if isempty(lmPos) | isempty(candsEvPos)
+if isempty(lmPos) || isempty(candsEvPos)
     D=[];
 else
     D=createDistanceMatrix(lmPos,candsEvPos);
@@ -736,19 +732,16 @@ else
     
 end
 
-if ~isempty(y) & ~isempty(x)
+if ~isempty(y) && ~isempty(x)
     if y~=1
         error('fsmBuildSaveSpeckleArray::BDSpeckleInfo - Too many source speckles!');
     else
         if length(x)>1
             % Arbitrarily take the one with smaller deltaI
-            for i=1:length(x)
-                intensity(i)=img(candsEvPos(x(i),1),candsEvPos(x(i),2));
-            end
-            for i=1:length(x)
-                background(i)=candsEv(x(i)).IBkg;
-            end
-            deltaI=intensity-background;
+            intensity = img(sub2ind(size(img), candsEvPos(x(:), 1), ...
+                candsEvPos(x(:), 2)))'; 
+            background = cell2mat({candsEv(x(:)).IBkg});
+            deltaI = intensity - background;
             index=find(deltaI==min(deltaI)); 
             if length(index)>1
                 disp('Arbitrarily chosen one local maximum as a ''b'' or ''d'' event.');
@@ -812,7 +805,7 @@ end
 function resp=checkGapList(gapList,coords)
 
 % Check
-if size(coords,1)>1 | size(coords,1)==0
+if size(coords,1)>1 || size(coords,1)==0
     error('Either no speckle or more than one speckle passed to fsmBuildSaveSpeckleArray::checkGapList');
 end
 t=coords(1,1)==gapList(:,1);

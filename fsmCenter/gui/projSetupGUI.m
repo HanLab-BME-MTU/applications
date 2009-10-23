@@ -45,7 +45,7 @@ end
 
 
 % --- Executes just before projSetupGUI is made visible.
-function projSetupGUI_OpeningFcn(hObject, eventdata, handles, varargin)
+function projSetupGUI_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<INUSL>
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -120,7 +120,7 @@ unixMntRootMenu = {'/mnt/', ...
 handles.unixMntRootMI = 1;
 
 %Remove space in 'subProjTitle'.
-subProjNames = cell(numel(subProjTitle));
+subProjNames = cell(numel(subProjTitle), 1);
 for k = 1:numSubProj
    subProjNames{k} = sscanf(subProjTitle{k},'%s');
 end
@@ -177,7 +177,7 @@ guidata(hObject, handles);
 % UIWAIT makes projSetupGUI wait for user response (see UIRESUME)
 uiwait(handles.figH);
 
-function updateDirList(dirMH,dirTFH,dirList,selDir,dirName)
+function updateDirList(dirMH,dirTFH,dirList,selDir)
 
 if isempty(dirList)
     set(dirMH,'string',{'New'});
@@ -204,13 +204,13 @@ numSubProj  = handles.numSubProj;
 subProjTags = handles.subProjTags;
 subProjMH   = handles.subProjMH;
 subProjTFH  = handles.subProjTFH;
-platformTH  = handles.platformTH;
+%platformTH  = handles.platformTH;
 
 projDir       = handles.projDir;
 imgDirList    = handles.imgDirList;
 firstImgList  = handles.firstImgList;
-unix_imgDrive = handles.unix_imgDrive;
-win_imgDrive  = handles.win_imgDrive;
+%unix_imgDrive = handles.unix_imgDrive;
+%win_imgDrive  = handles.win_imgDrive;
 subProjDir    = handles.subProjDir;
 selImgDir     = handles.selImgDir;
 
@@ -246,12 +246,12 @@ subProjDirList = cell(size(subProjDir));
 for k = 1:numSubProj
    subProjDirList{k} = findProjSubDir(projDirStruct,subProjTags{k});
    updateDirList(subProjMH{k},subProjTFH{k},subProjDirList{k}, ...
-      subProjDir{k},subProjTags{k});
+       subProjDir{k});
 end
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = projSetupGUI_OutputFcn(hObject, eventdata, handles)
+function varargout = projSetupGUI_OutputFcn(hObject, eventdata, handles) %#ok<INUSL>
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -377,7 +377,6 @@ if isdir(projDir)
          projSettings.win_imgDrive   = {};
          projSettings.win_imgDirList = {};
       end
-      settingsFileName='lastProjSettings_unix.txt';
    elseif ispc==1
       projSettings.win_imgDirList = imgDirList;
       if ~iscell(lastWin_imgDrive)
@@ -407,44 +406,15 @@ if isdir(projDir)
          projSettings.unix_imgDrive   = {};
          projSettings.unix_imgDirList = {};
       end
-      settingsFileName='lastProjSettings_win.txt';
    else
       error('Platform not supported.');
    end
-   projSettings.firstImgList = firstImgList;
+   projSettings.firstImgList = firstImgList; 
 
    try
        save(settingsMatFile,'projSettings');
    catch ME
        warndlg(ME.message);
-   end
-
-   %We also save a text file of the project settings.
-   fid = fopen([handles.projDir filesep settingsFileName],'w');
-   if fid ~= -1
-      %Write image path.
-      if isempty(imgDirList)
-         fprintf(fid,'%s\n',['    Image Path: ']);
-      else
-         fprintf(fid,'%s\n',['    Image Path: ' imgDirList{1}]);
-         for k = 2:length(imgDirList)
-            fprintf(fid,'%s\n',['              : ' imgDirList{k}]);
-         end
-      end
-      %Write first image name.
-      if isempty(firstImgList)
-         fprintf(fid,'%s\n','   First Image: ');
-      else
-         fprintf(fid,'%s\n',['   First Image: ' firstImgList{1}]);
-         for k = 2:length(imgDirList)
-            fprintf(fid,'%s\n',['              : ' firstImgList{k}]);
-         end
-      end
-
-      for k = 1:numSubProj
-         fprintf(fid,'%s\n',[subProjTitle{k} ': ' subProjDir{k}]);
-      end
-      fclose(fid);
    end
 end
 
@@ -475,7 +445,7 @@ end
 
 delete(hObject);
 
-function closeRequestFcn(hObject,eventdata,handles)
+function closeRequestFcn(hObject,eventdata,handles) %#ok<INUSL>
 
 handles.projDir      = '';
 handles.imgDirList   = {};
@@ -489,7 +459,7 @@ delete(hObject);
 
 
 % --- Executes on button press on Cancel.
-function cancel_Callback(hObject, eventdata, handles)
+function cancel_Callback(hObject, eventdata, handles) %#ok<DEFNU,INUSL>
 % hObject    handle to cancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -506,7 +476,7 @@ uiresume(handles.figH);
 
 
 % --- Executes on button press on Ok.
-function Ok_Callback(hObject, eventdata, handles)
+function Ok_Callback(hObject, eventdata, handles) %#ok<INUSL,DEFNU>
 % hObject    handle to Ok(see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -526,7 +496,7 @@ end
 
 imgDirList = handles.imgDirList;
 
-firstImgList = handles.firstImgList;
+%firstImgList = handles.firstImgList;
 numSubProj   = handles.numSubProj;
 subProjTags  = handles.subProjTags;
 subProjDir   = cell(size(subProjTags));
@@ -565,7 +535,7 @@ uiresume(handles.figH);
 
 
 % --- Executes on button press on Browse.
-function projDirBrowse_Callback(hObject, eventdata, handles)
+function projDirBrowse_Callback(hObject, eventdata, handles) %#ok<INUSL,DEFNU>
 % hObject    handle to projDirBrowse (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -589,7 +559,7 @@ guidata(hObject,handles);
 
 
 % --- Executes on return projDir text field.
-function projDir_Callback(hObject, eventdata, handles)
+function projDir_Callback(hObject, eventdata, handles) %#ok<INUSL,DEFNU>
 % hObject    handle to projDir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -613,7 +583,7 @@ guidata(hObject,handles);
 
 
 % --- Executes on button press on Browse.
-function delImgDir_Callback(hObject, eventdata, handles)
+function delImgDir_Callback(hObject, eventdata, handles) %#ok<INUSL,DEFNU>
 % hObject    handle to imgDirBrowse (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -678,7 +648,7 @@ if selImgDir == 0
 else
    if isunix
       [unixMntRoot,handles.unixMntRootMI] = ...
-         autoExtractUnixMntRoot(handles.imgDirList{selImgDir},handles.unixMntRootMenu);
+         autoExtractUnixMntRoot(handles.imgDirList{selImgDir},handles.unixMntRootMenu); %#ok<ASGLU>
       set(handles.unixMntRootMH,'Value',handles.unixMntRootMI);
    end
    %Update the menu list for image directory list.
@@ -703,7 +673,7 @@ handles.lastWin_imgDrive  = lastWin_imgDrive;
 guidata(hObject,handles);
 
 
-function imgDirMenu_Callback(hObject, eventdata, handles)
+function imgDirMenu_Callback(hObject, eventdata, handles) %#ok<INUSL,DEFNU>
 % hObject    handle to imgDir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -715,7 +685,7 @@ selImgDir  = get(handles.imgDirMH,'Value');
 
 %Update 'unixMntRoot'.
 [unixMntRoot,handles.unixMntRootMI] = ...
-   autoExtractUnixMntRoot(imgDirList{selImgDir},handles.unixMntRootMenu);
+   autoExtractUnixMntRoot(imgDirList{selImgDir},handles.unixMntRootMenu); %#ok<ASGLU>
 set(handles.unixMntRootMH,'Value',handles.unixMntRootMI);
 
 %Update the gui field for active (selected) image directory.
@@ -730,7 +700,7 @@ end
 handles.selImgDir = selImgDir;
 guidata(hObject,handles);
 
-function imgDirEdit_Callback(hObject, eventdata, handles)
+function imgDirEdit_Callback(hObject, eventdata, handles) %#ok<INUSL,DEFNU>
 
 selImgDir = handles.selImgDir;
 imgDirList = handles.imgDirList;
@@ -743,7 +713,7 @@ end
 
 
 
-function firstImgBrowse_Callback(hObject, eventdata, handles)
+function firstImgBrowse_Callback(hObject, eventdata, handles) %#ok<INUSL,DEFNU>
 
 oldDir = pwd;
 
@@ -844,7 +814,7 @@ function handles = getProjSetting(handles,projDir,subProjNames,subProjTags)
 
 numSubProj = length(subProjNames);
 
-subProjDir = cell(numSubProj);
+subProjDir = cell(numSubProj, 1);
 for k = 1:numSubProj
     subProjDir{k} = '';
 end
@@ -871,7 +841,7 @@ if isdir(projDir)
         if isfield(projSettings,'physiParam')
             physiParam = projSettings.physiParam;
         else
-            physiParam = cell(length(firstImgList));
+            physiParam = cell(length(firstImgList), 1);
             for k = 1:length(firstImgList)
                 physiParam{k} = getDefFsmPhysiParam;
             end
@@ -916,7 +886,7 @@ if isdir(projDir)
                 % compatibility, we try to extract mount root by checking if one of
                 % the item in 'unixMntRootMenu' exist as a head string 'unix_imgDirList'.
                 [unixMntRoot,handles.unixMntRootMI] = ...
-                    autoExtractUnixMntRoot(unix_imgDirList{1},handles.unixMntRootMenu);
+                    autoExtractUnixMntRoot(unix_imgDirList{1},handles.unixMntRootMenu); %#ok<ASGLU>
             end
 
             if length(unix_imgDrive) ~= length(unix_imgDirList)
@@ -926,8 +896,8 @@ if isdir(projDir)
                 if ~isdir(unix_imgDrive{k})
                     %Either because it is not saved last time or the saved one is
                     % auto-detected and is wrong. Try auto-detect again.
-                    [mntRoot,MI] = ...
-                        autoExtractUnixMntRoot(unix_imgDirList{k},handles.unixMntRootMenu);
+                    mntRoot = autoExtractUnixMntRoot(unix_imgDirList{k}, ...
+                        handles.unixMntRootMenu);
                     unix_imgDrive{k} = autoExtractUnixDriveName(unix_imgDirList{k},mntRoot);
                 end
             end
@@ -1144,125 +1114,8 @@ if isdir(projDir)
             error('Platform not supported.');
         end
     else
-        %The project setting used to be saved in text files and it is not
-        %convinient for coding. For backward compatibility, we transfer all
-        %the old setting file to mat file.
-        if isunix==1
-            settingsFileName='lastProjSettings_unix.txt';
-        elseif ispc==1
-            settingsFileName='lastProjSettings_win.txt';
-        else
-            error('Platform not supported.');
-        end
-        fid = fopen([projDir filesep settingsFileName],'r');
-        if fid ~= -1
-            noProblem = 1;
-            textL     = fgetl(fid);
-            lineNo    = 1;
-            imgLineNo = -1;
-            while noProblem && ischar(textL)
-                k = findstr(':',textL);
-                if isempty(k) || k == 1
-                    noProblem = 0;
-                else
-                    %Use 'sscanf' to remove space.
-                    headStr = sscanf(textL(1:k-1),'%s');
-                    if strcmp(headStr,'ImagePath')
-                        imgLineNo = lineNo;
-                        if k ~= length(textL)
-                            imgDir = sscanf(textL(k+1:end),'%s');
-                            if isempty(imgDir)
-                                numImgDirs = 0;
-                                imgDirList = {};
-                            else
-                                numImgDirs = 1;
-                                imgDirList{numImgDirs} = imgDir;
-                            end
-                        end
-                        lastHead = headStr;
-                    elseif strcmp(headStr,'FirstImage')
-                        if strcmp(lastHead,'ImagePath')
-                            %The first image has to be written next to image path.
-                            if k ~= length(textL)
-                                imgName = sscanf(textL(k+1:end),'%s');
-                            else
-                                imgName = '';
-                            end
-
-                            if isempty(imgDirList)
-                                if ~isempty(imgName)
-                                    noProblem = 0;
-                                else
-                                    firstImgList = {};
-                                end
-                            else
-                                numImgDirs = 1;
-                                firstImgList{numImgDirs} = imgName;
-                            end
-                        else
-                            noProblem = 0;
-                        end
-                        lastHead = headStr;
-                    elseif isempty(headStr)
-                        if strcmp(lastHead,'ImagePath')
-                            if isempty(imgDirList)
-                                noProblem = 0;
-                            elseif k ~= length(textL)
-                                %Get next image path
-                                imgDir = sscanf(textL(k+1:end),'%s');
-                            else
-                                imgDir = '';
-                            end
-
-                            if isempty(imgDir)
-                                noProblem = 0;
-                            else
-                                numImgDirs = numImgDirs+1;
-                                imgDirList{numImgDirs} = imgDir;
-                            end
-                        elseif strcmp(lastHead,'FirstImage')
-                            if k ~= length(textL)
-                                %Get next first image name.
-                                imgName = sscanf(textL(k+1:end),'%s');
-                            else
-                                imgName = '';
-                            end
-                            numImgDirs = numImgDirs+1;
-
-                            if numImgDirs > length(imgDirList)
-                                noProblem = 0;
-                            else
-                                firstImgList{numImgDirs} = imgName;
-                            end
-                        else
-                            noProblem = 0;
-                        end
-                    else
-                        j1 = strmatch(headStr,subProjNames,'exact');
-                        if isempty(j1)
-                            noProblem = 0;
-                        elseif k ~= length(textL)
-                            subProjDir{j1} = sscanf(textL(k+1:end),'%s');
-                        end
-                        lastHead = headStr;
-                    end
-                end
-
-                textL  = fgetl(fid);
-                lineNo = lineNo+1;
-            end
-            if ~noProblem
-                warndlg(['Project setting file is corrupted ' ...
-                    'and will be ignored.'],'Warning','modal');
-            end
-            fclose(fid);
-
-            if noProblem
-                for k = 1:length(imgDirList)
-                    physiParam{k} = getDefFsmPhysiParam;
-                end
-            end
-        end
+        % lastProjSettings.mat doesn't exist.
+        noProblem = 0;
     end
 else
     projDir = '';
@@ -1355,7 +1208,6 @@ else
    mntRoot = mntRootMenu{mntMI};
 end
 
-
 function unix_drive = autoExtractUnixDriveName(inDir,mntRoot)
 
 mntRoot = rmExtraFilesep(mntRoot);
@@ -1377,7 +1229,6 @@ if isempty(mntInd)
 else
    unix_drive = inDir(1:filesepInd(3)-1);
 end
-
 
 function win_drive = autoExtractWinDriveLetter(inDir)
 
