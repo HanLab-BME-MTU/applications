@@ -340,7 +340,8 @@ for t=1:numf
                 else
                     % fill subsequent time positions
                     livingParentID = find(generatedPoints(i).mpm_parents(:,2*t-2) ~= 0);
-                    mpm_mother_prev = generatedPoints(i).mpm_parents(livingParentID,2*t-3:2*t-2);
+                    %mpm_mother_prev = generatedPoints(i).mpm_parents(livingParentID,2*t-3:2*t-2);
+                    mpm_mother_prev = generatedPoints(i).mpm_parents(livingParentID,1:2);
                     mpm_generatedMothers = diffuseParentMPM(mpm_mother_prev,sigma_diff);
                     % redraw dead parents
                     [mpm_generatedMothers,parentTimer,redrawnID] = redrawParentMPM(mpm_generatedMothers,parentTimer,parentLifeTime,[sxLarge syLarge],parentMinDistance,buffer);
@@ -388,7 +389,7 @@ for t=1:numf
             if ~isempty(pos_restrict)
                 [mpm_points_curr] = makeExcludedOrIncludedMPM(mpm_points_curr,restrictionsMPM,restrictionsType);
             end
-            if ~isempty(generatedPoints(proc==1)) && t~=1 && restrictRad ~= 0
+            if ~isempty(generatedPoints(proc(pos_generate)==1)) && t~=1 && restrictRad ~= 0
                 [mpm_points_curr] = restrictMPMBasedOnResources(mpm_points_curr,generatedPoints(proc==1),restrictRad,restrictLambdaRand,restrictLagRand,t);
             end
 

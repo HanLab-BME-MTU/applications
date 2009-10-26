@@ -1,4 +1,4 @@
-function [] = runTracking()
+function [] = runTracking(experiment,tracksettings,force)
 % runTracking tracks movies under a given condition folder. This creates
 % the TrackInfo and lftInfo data structures necessary for lifetime
 % analysis.
@@ -21,12 +21,19 @@ function [] = runTracking()
 %               
 % Daniel Nunez, March 5, 2008
 
-% LOAD Required Files
+%INPUTS
+if nargin < 3 || isempty(force)
+    force = 0;
+end
+if nargin < 1 || isempty(experiment)
 % trim experiment structure as specified by user input
 [experiment] = loadIndividualMovies();
+end
+if nargin < 2 || isempty(tracksettings)
 %load track settings required for tracking
 [fileName filePath] = uigetfile('.mat','choose track settings mat file for tracking');
 load([filePath filesep fileName]);
+end
 
 % CONVERT
 % convert data from Henry's format to a format that is taken by the tracker
@@ -38,14 +45,11 @@ load([filePath filesep fileName]);
 % add track settings to each experiment
 for iexp = 1:length(experiment)
     experiment(iexp).tracksettings = tracksettings;
-    experiment(iexp).lftInfo = [];
-    experiment(iexp).lftVec = [];
-    experiment(iexp).lftHist = [];
 end
 
 % TRACK
 % this function creates the TrackInfo and lftInfo data structures if
 % necessary
-trackMissingFields(experiment);
+trackMissingFields(experiment,force);
 
 end %of function
