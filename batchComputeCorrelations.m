@@ -1,5 +1,5 @@
 function batchComputeCorrelations(varargin)
-%      COMPUTEGLOBALCORR(forceRedo) Compute the correlation
+%      BATCHCOMPUTECORRELATIONS(forceRedo) Compute the correlation
 %      between:
 %      - average Actin speed along Actin tracks
 %      - average TM speed along Actin tracks.

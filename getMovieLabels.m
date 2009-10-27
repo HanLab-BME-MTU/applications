@@ -13,7 +13,7 @@ disp('Please wait, loading windows....')
 load([movieData.windows.directory filesep movieData.windows.fileName]);
 
 %Check that they loaded
-if ~exist('allWinPoly','var') || isempty(allWinPoly)
+if ~exist('allWinPoly','var') || isempty(allWinPoly) %#ok<NODEF>
     errordlg(['Problem loading windows from ' movieData.windows.directory filesep movieData.windows.fileName],mfilename);
     return
 end
@@ -49,11 +49,11 @@ fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 h = waitbar(0,'Please wait, labeling window frames....');
 
 for iFrame = 1:nFrames    
-    winPoly = allWinPoly(:,:,iFrame); %#ok<COLND>
+    winPoly = allWinPoly(:,:,iFrame);
     
     labels = createLabelsFromWindows(winPoly, N, M);
 
-    imwrite(uint16(labels), [movieData.labels.directory filesep 'labels_' num2str(iFrame,fString) '.tif']);
+    imwrite(uint16(labels), [movieData.labels.directory filesep 'labels_' num2str(iFrame,fString) '.tif'], 'Compression', 'none');
     
     waitbar(iFrame/nFrames,h)    
 end
