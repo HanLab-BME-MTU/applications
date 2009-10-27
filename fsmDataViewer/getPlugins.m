@@ -52,14 +52,14 @@ layerPlugins(4).desc = '[PANDA] Windows';
 layerPlugins(4).filterSpec = {'*.mat'}; 
 layerPlugins(4).displayFunc = @plotWindowsFSM;
 
-% [IF] Init Curves
-layerPlugins(5).desc = '[IF] Init Curves';
+% [IF] Graph
+layerPlugins(5).desc = '[IF] Graph';
 layerPlugins(5).filterSpec = {'*.mat'}; 
-layerPlugins(5).displayFunc = @displayInitCurves;
+layerPlugins(5).displayFunc = @displayGraph;
 
-% [IF] Clusters
-layerPlugins(6).desc = '[IF] Cluster #3';
+% [IF] MinimalPaths
+layerPlugins(6).desc = '[IF] Minimal Paths';
 layerPlugins(6).filterSpec = {'*.mat'}; 
-layerPlugins(6).displayFunc = @displayClusters3;
+layerPlugins(6).displayFunc = @displayMinimalPaths;
 
 end
