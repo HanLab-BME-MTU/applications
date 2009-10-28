@@ -187,7 +187,7 @@ for iMovie = 1:nMovies
             updateMovieData(currMovie);
             
         catch errMess
-            disp([movieName ': ' errMess.stack.name ':' num2str(errMess.stack.line) ' : ' errMess.message]);
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.meanDistances.error = errMess;
             currMovie.meanDistances.status = 0;
         end
@@ -294,7 +294,7 @@ for iMovie = 1:nMovies
             updateMovieData(currMovie);
         
         catch errMess
-            disp([movieName ': ' errMess.stack.name ':' num2str(errMess.stack.line) ' : ' errMess.message]);
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.meanSpeeds.error = errMess;
             currMovie.meanSpeeds.status = 0;
         end
@@ -368,7 +368,7 @@ for iMovie = 1:nMovies
             updateMovieData(currMovie);
             
         catch errMess
-            disp([movieName ': ' errMess.stack.name ':' num2str(errMess.stack.line) ' : ' errMess.message]);
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.protrusion.error = errMess;
             currMovie.protrusion.status = 0;
         end
@@ -394,7 +394,7 @@ for iMovie = 1:nMovies
             end
 
         catch errMess
-            disp([movieName ': ' errMess.stack.name ':' num2str(errMess.stack.line) ' : ' errMess.message]);
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.windows.error = errMess;
             currMovie.windows.status = 0;
         end
@@ -416,7 +416,7 @@ for iMovie = 1:nMovies
            end
             
         catch errMess
-            disp([movieName ': ' errMess.stack.name ':' num2str(errMess.stack.line) ' : ' errMess.message]);           
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);           
             currMovie.protrusion.samples.error = errMess;
             currMovie.protrusion.samples.status = 0;
         end
@@ -449,7 +449,7 @@ for iMovie = 1:nMovies
             end
 
         catch errMess
-            disp([movieName ': ' errMess.stack.name ':' num2str(errMess.stack.line) ' : ' errMess.message]);
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.labels.error = errMess;
             currMovie.labels.status = 0;
         end            
@@ -542,7 +542,7 @@ for iMovie = 1:nMovies
             updateMovieData(currMovie);          
             
         catch errMess
-            disp([movieName ': ' errMess.stack.name ':' num2str(errMess.stack.line) ' : ' errMess.message]);
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.meanProtrusion.error = errMess;
             currMovie.meanProtrusion.status = 0;
         end

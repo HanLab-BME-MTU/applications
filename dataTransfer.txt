@@ -11,7 +11,7 @@ A. Transfer data from Scripps -> Orchestra
 B. Update FSMCenter & MovieData parameter files (so that I am able to able Andrea's projects)
 
 1.$ cd matlab/projects
-2.$ svn update common panda qfsm tropo
+2.$ svn update common extern panda qfsm tropo
 3.$ matlab &
 4.>> rootDirectory = '/groups/lccb-interfil/Tropo/ROOT_DIRECTORY';
 5.>> fsmUpdateProjDir(rootDirectory);
@@ -35,7 +35,7 @@ E. Update FSMCenter & MovieData parameter files (so that Andrea is able to open 
 
 1.$ ssh -X sylvain@lccbsv014.scripps.edu
 2.$ cd matlab/projects
-3.$ svn update common panda qfsm tropo
+3.$ svn update common extern panda qfsm tropo
 4.$ matlabDist &
 5.>> rootDirectory = '/mnt/projects/Tropomyosin/ROOT_DIRECTORY';
 6.>> fsmUpdateProjDir(rootDirectory);
