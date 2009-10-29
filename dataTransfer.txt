@@ -12,7 +12,7 @@ B. Update FSMCenter & MovieData parameter files (so that I am able to able Andre
 
 1.$ cd matlab/projects
 2.$ svn update common extern panda qfsm tropo
-3.$ matlab &
+3.$ bsub -Is -R "mem > 20000" -q shared_int_12h matlab
 4.>> rootDirectory = '/groups/lccb-interfil/Tropo/ROOT_DIRECTORY';
 5.>> fsmUpdateProjDir(rootDirectory);
 6.>> relocateMovieData(rootDirectory);
@@ -33,13 +33,13 @@ D. Transfer analysis from Orchestra -> Scripps
 
 E. Update FSMCenter & MovieData parameter files (so that Andrea is able to open his own projects)
 
-1.$ ssh -X sylvain@lccbsv014.scripps.edu
+1.$ ssh sylvain@lccbsv014.scripps.edu
 2.$ cd matlab/projects
 3.$ svn update common extern panda qfsm tropo
-4.$ matlabDist &
-5.>> rootDirectory = '/mnt/projects/Tropomyosin/ROOT_DIRECTORY';
-6.>> fsmUpdateProjDir(rootDirectory);
-7.>> relocateMovieData(rootDirectory);
+4.$ matlabDist
+5.>> rootDirectory = '/mnt/projects/Tropomyosin/ROOT_DIRECTORY'
+6.>> fsmUpdateProjDir(rootDirectory)
+7.>> relocateMovieData(rootDirectory, false)
 8.Exit matlab
 9.Logout lccbsv014
 
