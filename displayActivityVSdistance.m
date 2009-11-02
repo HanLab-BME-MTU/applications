@@ -31,6 +31,7 @@ figure('Name', ['Distance of Speckle to the Cell edge in Function of Cell Activi
     num2str(loDist * ps) '-' num2str(hiDist * ps) ']um']);
 
 plot(activityVSdistance(1).activity(ind1), activityVSdistance(1).distance(ind1), 'r.');
+hold on;
 plot(activityVSdistance(2).activity(ind2), activityVSdistance(2).distance(ind2), 'g.');
 
-legend(activityVSdistance(1).name, activityVSdistance(1).name);
+legend(activityVSdistance(1).name, activityVSdistance(2).name);
