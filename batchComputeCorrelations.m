@@ -607,7 +607,7 @@ for iMovie = 1:nMovies
             
             % STEP 11.5: Store correlation
             for k = 1:2
-                [~, name] = getFilenameBody(currMovie.channels(k).fsmDirectory);
+                [duumy, name] = getFilenameBody(currMovie.channels(k).fsmDirectory);
                 activityVSdistance(k).name = name;
                 nSpeckles = numel(find(MPMs{k})) / 2;
                 activityVSdistance(k).activity = zeros(nSpeckles, 1);
