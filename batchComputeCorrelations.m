@@ -613,7 +613,7 @@ for iMovie = 1:nMovies
                 
                 pos = 1;
                 
-                for iFramce = 1:currMovie.masks.n
+                for iFrame = 1:currMovie.masks.n
                     t = 2 * iFrame - 1;
                     Xt = MPMs{k}(:, t:t+1);
                     % Get rid of 0 rows
