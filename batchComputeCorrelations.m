@@ -592,7 +592,6 @@ for iMovie = 1:nMovies
             filenames = dir([currMovie.labels.directory filesep '*.tif']);
             for iFrame = 1:currMovie.labels.nFrames
                 L{iFrame} = imread([currMovie.labels.directory filesep filenames(iFrame).name]);
-                waitbar(iFrame / numel(currMovie.labels.nFrames), h);
             end
             
             % STEP 11.4: Load protrusion samples file
