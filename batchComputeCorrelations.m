@@ -473,11 +473,9 @@ for iMovie = 1:nMovies
             
             % STEP 10.1: Load labels
             L = cell(currMovie.labels.nFrames, 1);
-            h = waitbar(0, [movieName ': Load window labeling files...']);
             filenames = dir([currMovie.labels.directory filesep '*.tif']);
             for iFrame = 1:currMovie.labels.nFrames
                 L{iFrame} = imread([currMovie.labels.directory filesep filenames(iFrame).name]);
-                waitbar(iFrame / numel(currMovie.labels.nFrames), h);
             end
     
             % STEP 10.2: Load protrusion samples file
@@ -503,7 +501,7 @@ for iMovie = 1:nMovies
             for k = 1:2
                 numTracks = 0;
                 meanProtrusions{k} = zeros(numel(find(MPMs{k} == 0)) / 2 + 1, 2);
-                waitbar(0, h, [movieName ': Compute track mean protrusion score (' num2str(k) '/2)...']);
+                h = waitbar(0, [movieName ': Compute track mean protrusion score (' num2str(k) '/2)...']);
                 for i = 1:size(MPMs{k}, 1)
                     waitbar(i / size(MPMs{k}, 1), h);                    
                     j = 1;
@@ -532,6 +530,7 @@ for iMovie = 1:nMovies
                         j = j + 2;
                     end
                 end
+                close(h);
             end
     
             save([currMovie.meanProtrusions.directory filesep ...
@@ -590,13 +589,11 @@ for iMovie = 1:nMovies
             
             % STEP 11.3: Load labels
             L = cell(currMovie.labels.nFrames, 1);
-            h = waitbar(0, [movieName ': Load window labeling files...']);
             filenames = dir([currMovie.labels.directory filesep '*.tif']);
             for iFrame = 1:currMovie.labels.nFrames
                 L{iFrame} = imread([currMovie.labels.directory filesep filenames(iFrame).name]);
                 waitbar(iFrame / numel(currMovie.labels.nFrames), h);
             end
-            close(h);
             
             % STEP 11.4: Load protrusion samples file
             load([currMovie.protrusion.directory filesep ...
