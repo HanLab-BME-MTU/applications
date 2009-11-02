@@ -17,10 +17,18 @@ end
 
 load([rootDirectory filesep 'windowAnalysis' filesep 'movieData.mat']);
 
-ps = movieData.pixelSize_nm / 1000; % 67nm
+ps = movieData.pixelSize_nm;
+t = movieData.timeInterval_s;
 
 load([movieData.activityVSdistance.directory filesep ...
     movieData.activityVSdistance.filename]);
+
+% Convert into nm
+activityVSdistance(1).distance = activityVSdistance(1).distance * ps;
+activityVSdistance(2).distance = activityVSdistance(2).distance * ps;
+% Convert into nm/s
+activityVSdistance(1).activity = activityVSdistance(1).activity * ps / t;
+activityVSdistance(2).activity = activityVSdistance(2).activity * ps / t;
 
 ind1 = find(activityVSdistance(1).distance >= loDist & ...
     activityVSdistance(1).distance <= hiDist);
@@ -33,5 +41,6 @@ figure('Name', ['Distance of Speckle to the Cell edge in Function of Cell Activi
 plot(activityVSdistance(1).activity(ind1), activityVSdistance(1).distance(ind1), 'r.');
 hold on;
 plot(activityVSdistance(2).activity(ind2), activityVSdistance(2).distance(ind2), 'g.');
-
+xlabel('protrusion/retraction speed (nm/s)');
+ylabel('distance to the edge (nm)');
 legend(activityVSdistance(1).name, activityVSdistance(2).name);
