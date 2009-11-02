@@ -29,15 +29,11 @@ for i=1:nExp
         exp(i).firstImageName = origImageName;
 
         if ~(exist([exp(i).source filesep 'maxdata283'], 'dir') == 7)
-            fprintf('Running detection subroutine "main238AUTO"...\n');
             main283AUTO(1, imData(i).origImageName, imData(i).origImagePath);
-            fprintf('...done\n');
         else
             overwrite = input('Detection results already exist. Overwrite? (y/n): ', 's');
             if strcmp(overwrite, 'y')
-                fprintf('Running detection subroutine "main238AUTO"...\n');
                 main283AUTO(1, imData(i).origImageName, imData(i).origImagePath);
-                fprintf('...done\n');
             end;
         end;
     end;
