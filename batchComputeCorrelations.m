@@ -628,11 +628,11 @@ for iMovie = 1:nMovies
                 end
                 
                 % Remove trailing zeros in activity and distance arrays
-                last = find(activityVSdistance(k).activity == 0, 'last');
+                last = find(activityVSdistance(k).activity(end:-1:1) == 0, 1, 'last');
                 activityVSdistance(k).activity = ...
-                    activityVSdistance(k).activity(1:last-1);
+                    activityVSdistance(k).activity(1:end-last);
                 activityVSdistance(k).distance = ...
-                    activityVSdistance(k).distance(1:last-1);
+                    activityVSdistance(k).distance(1:end-last);
             end
             save([currMovie.activityVSdistance.directory filesep ...
                 currMovie.activityVSdistance.filename], 'activityVSdistance');
