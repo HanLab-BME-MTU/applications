@@ -595,6 +595,7 @@ for iMovie = 1:nMovies
                 L{iFrame} = imread([currMovie.labels.directory filesep filenames(iFrame).name]);
                 waitbar(iFrame / numel(currMovie.labels.nFrames), h);
             end
+            close(h);
             
             % STEP 11.4: Load protrusion samples file
             load([currMovie.protrusion.directory filesep ...
@@ -615,7 +616,7 @@ for iMovie = 1:nMovies
                 
                 pos = 1;
                 
-                for iFramce = 1:currMovie.mask.n
+                for iFramce = 1:currMovie.masks.n
                     t = 2 * iFrame - 1;
                     Xt = MPMs{k}(:, t:t+1);
                     % Get rid of 0 rows
