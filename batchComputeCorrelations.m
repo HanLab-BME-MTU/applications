@@ -586,6 +586,7 @@ for iMovie = 1:nMovies
                 D{iFrame} = single(bwdist(max(BW(:)) - BW));
                 waitbar(iFrame / numel(filenames), h);
             end
+            close(h);
             
             % STEP 11.3: Load labels
             L = cell(currMovie.labels.nFrames, 1);
@@ -638,8 +639,8 @@ for iMovie = 1:nMovies
             
         catch errMess
             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.meanProtrusion.error = errMess;
-            currMovie.meanProtrusion.status = 0;
+            currMovie.activityVSdistance.error = errMess;
+            currMovie.activityVSdistance.status = 0;
         end
     end
     
