@@ -1,9 +1,10 @@
 function batchComputeCorrelations(varargin)
 %      BATCHCOMPUTECORRELATIONS(forceRedo) Compute the correlation
 %      between:
-%      - average Actin speed along Actin tracks
-%      - average TM speed along Actin tracks.
-%      - average protrusion value along Actin tracks.
+%      - average Actin speed along Actin tracks (STEPS 2-10)
+%      - average TM speed along Actin tracks (STEPS 2-10)
+%      - average protrusion value along Actin tracks (STEP 2-10)
+%      - cell activity and speckle distance to the edge (STEP 11)
 % 'forceRun' forces to recompute results.
 
 if nargin >= 1
@@ -20,7 +21,7 @@ end
 if nargin >= 2
     forceRun = varargin{2};
 else
-    forceRun = 0;
+    forceRun = zeros(11, 1);
 end
 
 % Get all subdirectories containing Actin & TM.
@@ -102,7 +103,7 @@ for iMovie = 1:nMovies
     currMovie.imageDirectory = currMovie.channels(1).imageDirectory;
     
     % STEP 1.4: Update from already saved movieData
-    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun
+    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
         currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
         currMovie = currMovie.movieData;
     end
@@ -112,7 +113,7 @@ for iMovie = 1:nMovies
     %
 
     if ~isfield(currMovie,'meanDistances') || ~isfield(currMovie.meanDistances,'status') || ...
-            currMovie.meanDistances.status ~= 1 || forceRun    
+            currMovie.meanDistances.status ~= 1 || forceRun(2)
         try
             % Format:
             % meanDistances(i, 1) = mean distance of the ith track to the cell edge
@@ -197,7 +198,7 @@ for iMovie = 1:nMovies
     % STEP 3: Compute the average speed along each track.
     %
     if ~isfield(currMovie,'meanSpeeds') || ~isfield(currMovie.meanSpeeds,'status') || ...
-            currMovie.meanSpeeds.status ~= 1 || forceRun
+            currMovie.meanSpeeds.status ~= 1 || forceRun(3)
         try
             % Format:
             % meanSpeeds(i, 1) = mean Actin speed of the ith track
@@ -315,7 +316,7 @@ for iMovie = 1:nMovies
     winMethod = 'e';    
     
     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
-            currMovie.contours.status ~= 1 || forceRun
+            currMovie.contours.status ~= 1 || forceRun(4)
         try
             currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 0, ...
                 ['contours_'  num2str(dContour) 'pix.mat']);
@@ -330,7 +331,7 @@ for iMovie = 1:nMovies
     % STEP 5: Calculate protusion
     %
     if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'status') || ...
-            currMovie.protrusion.status ~= 1 || forceRun
+            currMovie.protrusion.status ~= 1 || forceRun(5)
         try
             currMovie.protrusion.status = 0;
 
@@ -381,7 +382,7 @@ for iMovie = 1:nMovies
     windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' num2str(iStart) '_' num2str(iEnd)];
 
     if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || ...
-            currMovie.windows.status ~= 1 || forceRun
+            currMovie.windows.status ~= 1 || forceRun(6)
         try
             currMovie = setupMovieData(currMovie);
 
@@ -405,7 +406,7 @@ for iMovie = 1:nMovies
     %
     if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ...
             ~isfield(currMovie.protrusion.samples,'status') || ...
-            currMovie.protrusion.samples.status ~= 1 || forceRun
+            currMovie.protrusion.samples.status ~= 1 || forceRun(7)
         try
             disp(['Sampling protrusion in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
@@ -436,7 +437,7 @@ for iMovie = 1:nMovies
     % STEP 9: Create the window labels.
     %
     if ~isfield(currMovie, 'labels') || ~isfield(currMovie.labels, 'status') || ...
-            currMovie.labels.status ~= 1 || forceRun
+            currMovie.labels.status ~= 1 || forceRun(9)
         try
             currMovie = setupMovieData(currMovie);
 
@@ -459,11 +460,11 @@ for iMovie = 1:nMovies
     % STEP 10: Compute average protusion score along each track.
     %    
     if ~isfield(currMovie, 'meanProtrusion') || ~isfield(currMovie.meanProtrusion, 'status') || ...
-            currMovie.meanProtrusion.status ~= 1 || forceRun
+            currMovie.meanProtrusion.status ~= 1 || forceRun(10)
         try
             % Format:
-            % meanSpeeds(i, 1) = mean protrusion score of the ith track
-            % meanSpeeds(i, 2) = life time of the ith track
+            % meanProtrusions(i, 1) = mean protrusion score of the ith track
+            % meanProtrusions(i, 2) = life time of the ith track
             meanProtrusions = cell(2, 1);
             
             currMovie.meanProtrusions.status = 0;
@@ -540,6 +541,99 @@ for iMovie = 1:nMovies
             
             currMovie.meanProtrusion.status = 1;
             updateMovieData(currMovie);          
+            
+        catch errMess
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+            currMovie.meanProtrusion.error = errMess;
+            currMovie.meanProtrusion.status = 0;
+        end
+    end
+    
+    %
+    % STEP 11: Compute correlation between cell activity and speckle
+    % distance to cell edge
+    %    
+    if ~isfield(currMovie, 'activityVSdistance') || ~isfield(currMovie.activityVSdistance, 'status') || ...
+            currMovie.activityVSdistance.status ~= 1 || forceRun(11)
+        try
+            % Format:
+            % activityVSdistance(1).name
+            % activityVSdistance(1).activity
+            % activityVSdistance(1).distance
+            activityVSdistance(1:2) = struct('name', [], 'activity', [], 'distance', []);
+            
+            currMovie.activityVSdistance.status = 0;
+            currMovie.activityVSdistance.directory = currMovie.analysisDirectory;
+            currMovie.activityVSdistance.filename = 'activityVSdistance.mat';
+            
+            % STEP 11.1: Load MPM file
+            MPMs = cell(2, 1);
+            
+            for k = 1:2
+                load([currMovie.channels(k).fsmDirectory filesep 'tack' filesep 'mpm.mat']);
+                MPMs{k} = MPM;
+            end
+            
+            clear M MPM;
+            
+            % STEP 11.2: Compute the distance transforms
+            D = cell(numel(currMovie.masks.n), 1);
+            
+            h = waitbar(0, [movieName ': Compute distance transforms...']);
+            filenames = dir([currMovie.masks.directory filesep '*.tif']);
+            for iFrame = 1:currMovie.masks.n
+                BW = imread([currMovie.masks.directory filesep filenames(iFrame).name]);
+                D{iFrame} = single(bwdist(max(BW(:)) - BW));
+                waitbar(iFrame / numel(filenames), h);
+            end
+            
+            % STEP 11.3: Load labels
+            L = cell(currMovie.labels.nFrames, 1);
+            h = waitbar(0, [movieName ': Load window labeling files...']);
+            filenames = dir([currMovie.labels.directory filesep '*.tif']);
+            for iFrame = 1:currMovie.labels.nFrames
+                L{iFrame} = imread([currMovie.labels.directory filesep filenames(iFrame).name]);
+                waitbar(iFrame / numel(currMovie.labels.nFrames), h);
+            end
+            
+            % STEP 11.4: Load protrusion samples file
+            load([currMovie.protrusion.directory filesep ...
+                currMovie.protrusion.samples.fileName]);
+            
+            % Add another frame
+            avgProt = horzcat(protrusionSamples.averageNormalComponent,...
+                protrusionSamples.averageNormalComponent(:, end));
+            clear protrusionSamples;
+            
+            % STEP 11.5: Store correlation
+            for k = 1:2
+                [~, name] = getFilenameBody(currMovie.channels(k).fsmDirectory);
+                activityVSdistance(k).name = name;
+                nSpeckles = numel(find(MPMs{k})) / 2;
+                activityVSdistance(k).activity = zeros(nSpeckles, 1);
+                activityVSdistance(k).distance = zeros(nSpeckles, 1);
+                
+                pos = 1;
+                
+                for iFramce = 1:currMovie.mask.n
+                    t = 2 * iFrame - 1;
+                    Xt = MPMs{k}(:, t:t+1);
+                    % Get rid of 0 rows
+                    Xt = Xt(Xt(:, 1) & Xt(:, 2), :);
+                    ind = sub2ind(size(D{iFrame}), Xt(:, 1), Xt(:, 2));
+                    iSlice = L{iFrame}(ind);
+                    activityVSdistance(k).activity(pos:pos+numel(ind)) = avgProt(iSlice, iFrame);
+                    activityVSdistance(k).distance(pos:pos+numel(ind)) = D{iFrame}(ind);
+                    pos = pos + numel(ind);
+                end
+            end
+            save([currMovie.activityVSdistance.directory filesep ...
+                currMovie.activityVSdistance.filename], 'activityVSdistance');
+            
+            clear D L MPMs activityVSdistance;
+            
+            currMovie.activityVSdistance.status = 1;
+            updateMovieData(currMovie);
             
         catch errMess
             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
