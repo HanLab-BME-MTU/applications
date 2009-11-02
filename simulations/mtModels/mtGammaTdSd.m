@@ -1,4 +1,4 @@
-function [simTraj,errFlag] = mtGammaTdSd(modelParam,length0,totalTime)
+function [simTraj,errFlag] = mtGammaTdSd(modelParam,length0,totalTime,lengthMinMax)
 %MTGAMMATDSD simulates an MT trajectory assuming that phase duration and speed are gamma-distributed
 %
 %SYNOPSIS [simTraj,errFlag] = mtGammaTdSd(modelParam,length0,totalTime)
@@ -15,6 +15,8 @@ function [simTraj,errFlag] = mtGammaTdSd(modelParam,length0,totalTime)
 %
 %       length0     : Initial length of microtubule [microns].
 %       totalTime   : Total time of simulation [s].
+%       lengthMinMax: Row vector with 2 entries for minimum and maximum
+%                     allowed length. Optional. default: No boundaries.
 %       
 %OUTPUT simTraj     : 2 column vector. 1st column: Time at transitions
 %                     (rescue and catastrophe). 2nd column: Corresponding
@@ -35,12 +37,16 @@ errFlag = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %check input data
-if nargin ~= 3 
+if nargin < 3 
 
     disp('--mtGammaTimeDistr: Wrong number of input variables!');
     errFlag = 1;
     return
 
+end
+
+if nargin <4 || isempty(lengthMinMax)
+    lengthMinMax = [-Inf Inf];
 end
 
 %get model parameters
@@ -113,6 +119,8 @@ simTraj = zeros(totItno,2);
 simTraj(1,:) = [0 length0]; %initial length
 for i=1:totItno
     simTraj(i+1,:) = simTraj(i,:) + [gsTimes(i) lengthChange(i)];
+    simTraj(i+1,2) = max([simTraj(i+1,2) lengthMinMax(1)]);
+    simTraj(i+1,2) = min([simTraj(i+1,2) lengthMinMax(2)]);
 end
 
 
