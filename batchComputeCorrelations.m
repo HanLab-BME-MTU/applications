@@ -626,6 +626,13 @@ for iMovie = 1:nMovies
                     activityVSdistance(k).distance(pos:pos+numel(ind)-1) = D{iFrame}(ind);
                     pos = pos + numel(ind);
                 end
+                
+                % Remove trailing zeros in activity and distance arrays
+                last = find(activityVSdistance(k).activity == 0, 'last');
+                activityVSdistance(k).activity = ...
+                    activityVSdistance(k).activity(1:last-1);
+                activityVSdistance(k).distance = ...
+                    activityVSdistance(k).distance(1:last-1);
             end
             save([currMovie.activityVSdistance.directory filesep ...
                 currMovie.activityVSdistance.filename], 'activityVSdistance');
