@@ -622,8 +622,8 @@ for iMovie = 1:nMovies
                     iSlice = L{iFrame}(ind);
                     ind = ind(iSlice ~= 0);
                     iSlice = L{iFrame}(ind);
-                    activityVSdistance(k).activity(pos:pos+numel(ind)) = avgProt(iSlice, iFrame);
-                    activityVSdistance(k).distance(pos:pos+numel(ind)) = D{iFrame}(ind);
+                    activityVSdistance(k).activity(pos:pos+numel(ind)-1) = avgProt(iSlice, iFrame);
+                    activityVSdistance(k).distance(pos:pos+numel(ind)-1) = D{iFrame}(ind);
                     pos = pos + numel(ind);
                 end
             end
