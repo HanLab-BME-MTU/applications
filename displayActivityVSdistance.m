@@ -35,12 +35,31 @@ ind1 = find(activityVSdistance(1).distance >= loDist & ...
 ind2 = find(activityVSdistance(2).distance >= loDist & ...
     activityVSdistance(2).distance <= hiDist);
 
-figure('Name', ['Distance of Speckle to the Cell edge in Function of Cell Activity  [' ...
-    num2str(loDist * ps) '-' num2str(hiDist * ps) ']um']);
+a1 = activityVSdistance(1).activity(ind1);
+a2 = activityVSdistance(2).activity(ind2);
+d1 = activityVSdistance(1).distance(ind1);
+d2 = activityVSdistance(2).distance(ind2);
 
-plot(activityVSdistance(1).activity(ind1), activityVSdistance(1).distance(ind1), 'r.');
-hold on;
-plot(activityVSdistance(2).activity(ind2), activityVSdistance(2).distance(ind2), 'g.');
-xlabel('protrusion/retraction speed (nm/s)');
-ylabel('distance to the edge (nm)');
-legend(activityVSdistance(1).name, activityVSdistance(2).name);
+minA = min([a1; a2]);
+maxA = max([a1; a2]);
+h = (maxA - minA) / 6;
+g1 = zeros(size(d1));
+g2 = zeros(size(d2));
+for i = 1:6
+    lo = minA + (i-1) * h;
+    hi = minA + i * h;
+    g1(a1 >= lo & a1 <= hi) = i;
+    g2(a2 >= lo & a2 <= hi) = i;
+end
+boxplot([d1;d2], [g1 * 2 - 1; g2 * 2]); %hold on;
+%boxplot(d2, g2);
+
+% figure('Name', ['Distance of Speckle to the Cell edge in Function of Cell Activity  [' ...
+%     num2str(loDist * ps) '-' num2str(hiDist * ps) ']um']);
+% 
+% plot(a1, d1, 'r.');
+% hold on;
+% plot(a2, d2, 'g.');
+% xlabel('protrusion/retraction speed (nm/s)');
+% ylabel('distance to the edge (nm)');
+% legend(activityVSdistance(1).name, activityVSdistance(2).name);
