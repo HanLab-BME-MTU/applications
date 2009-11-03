@@ -261,7 +261,7 @@ four quadrants (no central region) if the fraction is 1.
 
 Sub-ROI /meta folders will contain data for GROWTH PHASES ONLY pulled from the 
 originial ROI's data.  A track is considered to be in the sub-ROI if it spends
-half or more of its lifetime inside the sub-ROI.
+three or more frames inside the sub-ROI.
 
 Sub-ROI projects can then be selected for movie making, etc.
 

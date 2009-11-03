@@ -666,25 +666,31 @@ for i=1:numProj
     %try
         % detection
         if handles.doDetect==1
+            tic
             disp(['Detecting project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
             plusTipCometDetector(handles.projList(i),...
                 handles.timeRangeDetect,handles.bitDepth,handles.savePlots);
+            toc
         end
 
         % tracking
         if handles.doTrack==1
+            tic
             disp(['Tracking project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
             plusTipCometTracker(handles.projList(i),handles.timeWindow,...
                 handles.minTrackLen,handles.minRadius,handles.maxRadius,...
                 handles.maxFAngle,handles.maxBAngle,handles.maxShrinkFactor,...
                 handles.fluctRad,handles.timeRangeTrack);
+            toc
         end
         
         % post-processing
         if handles.doMeta==1
+            tic
             disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
             [projData]=plusTipPostTracking(handles.projList(i),...
                 handles.secPerFrame,handles.pixSizeNm,handles.timeRangePost,handles.doHist);
+            toc
         end
 %     catch
 %         disp(['Problem with ' handles.projList(i).anDir])

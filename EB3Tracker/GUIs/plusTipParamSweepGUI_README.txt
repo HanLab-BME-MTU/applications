@@ -1,9 +1,9 @@
-plusTipSmartSettings README
+plusTipParamSweepGUI README
 
 This README explains how to choose optimal tracking parameters by doing a 
 parameter sweep.  
 
-plusTipSmartSettings allows the user to choose a range of values for
+plusTipParamSweepGUI allows the user to choose a range of values for
 each tracking parameter that should be tested, leaving all others constant
 at their user-set defaults.
 
@@ -43,9 +43,10 @@ the values recorded in allData.  Good min/max radii will produce linking
 distance histograms where the exponential does not cut off abruptly
 at the max radius value.  Similarly, a good max gap length will produce a 
 gapLifetimes histogram that tapers off at the max value.  This value can
-also be visual inspection of tracks containing gaps.  To choose settings 
-for the other parameters, consider plotting how the MT dynamics parameters 
-in dataIndivTest change as the tracking parameter of interest changes.
+also be determined by visual inspection of tracks containing gaps.  To 
+choose settings for the other parameters, consider plotting how the MT 
+dynamics parameters in dataIndivTest change as the tracking parameter of 
+interest changes.
 
 The defaults and ranges given were used to validate parameters for a movie
 with a frame rate of 0.8sec and a real-space pixel size of 110nm.
