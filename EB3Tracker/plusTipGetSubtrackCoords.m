@@ -49,7 +49,11 @@ yMat=nan(nSubtracks,projData.numFrames);
 % for each subtrack, get list of frames over which subtrack exists
 framesPerSubtrack=arrayfun(@(x,y) [x:y]', sF,eF,'UniformOutput',0);
 % for each subtrack, get length in frames
+if isempty(framesPerSubtrack)
+    len=framesPerSubtrack;
+else
 len=cell2mat(arrayfun(@(x) length(x{:}), framesPerSubtrack,'UniformOutput',0));
+end
 
 % for each frame of each subtrack, write corresponding TRACK number
 trackNumPerSub=arrayfun(@(x,y) x*ones(1,y)', trackNum,len,'UniformOutput',0);

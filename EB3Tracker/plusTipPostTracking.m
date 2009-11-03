@@ -65,7 +65,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %       converted to microns/minute. takes into account reclassified fgaps
 %  .percentFgapsReclass
 %       percentage of fgaps that get reclassified as continuation of growth
-%       because their speeds are >=90% the speed at the end of the growth
+%       because their speeds are >=70% the speed at the end of the growth
 %       phase prior.  these reclassified fgaps get removed and the growth
 %       phases before and after become joined into one
 %  .percentBgapsReclass

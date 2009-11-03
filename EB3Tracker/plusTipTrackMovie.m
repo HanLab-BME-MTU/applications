@@ -218,6 +218,7 @@ for iMovie=1:size(timeRange,1)
 
     else % specific track
 
+        [imL,imW] = size(img1);
         % make roi just around the track coordinates with 10pix cushion
         minX = floor(max(1,nanmin(tracksX(iMovie,startFrame:endFrame))-10));
         minY = floor(max(1,nanmin(tracksY(iMovie,startFrame:endFrame))-10));

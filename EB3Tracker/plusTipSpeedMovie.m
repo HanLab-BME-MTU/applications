@@ -198,7 +198,7 @@ if aviInstead==0
 end
 
 frmCounter=1;
-mrkTpe={'o';'^';'s'};
+mrkTpe={'o';'^';'s';'o'}; %growth, fgap, bgap, ugap
 prop_name(1) = {'Marker'};
 prop_name(2) = {'MarkerFaceColor'};
 prop_name(3) = {'MarkerEdgeColor'};

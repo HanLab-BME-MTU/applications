@@ -46,7 +46,7 @@ cd(saveDir)
 [allProjects,notDone]=plusTipCheckIfDone;
 
 % show only the ones that have been tracked in the selection box
-allProjects(notDone,:)=[];
+%allProjects(notDone,:)=[];
 allProjects=allProjects(:,1);
 
 % have user select groups of projects

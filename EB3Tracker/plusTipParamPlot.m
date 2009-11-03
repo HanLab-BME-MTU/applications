@@ -1,4 +1,4 @@
-function [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange)
+function [percentile1,thresh1,percentile2,thresh2,popRYGB]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange,doPlot)
 % Makes quadrant scatterplot split by property percentiles or values, mapped onto image
 
 % SYNOPSIS:
@@ -19,7 +19,7 @@ function [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,perce
 %           percentile1/percentile2: percentiles where the data should be split for
 %                            properties param1/param2, respectively
 %           thresh1/thresh2: values where data should be split for
-%                            properties param1/param2, respectively. 
+%                            properties param1/param2, respectively.
 %                            NOTE:
 %                            only percentile OR thresh value should be
 %                            given for each parameter - the other will be
@@ -29,8 +29,9 @@ function [percentile1,thresh1,percentile2,thresh2]=plusTipParamPlot(param1,perce
 %           remBegEnd (opt): 1 to remove tracks existing at the beginning
 %                            or end of the movie
 %           timeRange      : frame range over which data should be used
+%           doPlot         : (1) to make plots, 2 to not
 %
-% OUTPUT:   
+% OUTPUT:
 %           The principal outputs are two plots: one, a scatterplot of the
 %           parameters plotted against each other, split into four colors
 %           at the boundaries created by the percentiles, and the second,
@@ -111,6 +112,10 @@ else
     end
 end
 
+if nargin<10 || isempty(doPlot)
+    doPlot=1;
+end
+
 % format image/analysis directory paths
 imDir=formatPath(projData.imDir);
 anDir=formatPath(projData.anDir);
@@ -187,12 +192,12 @@ prop_values(1:nC,3) = cMap(trackType(allIdx),:);
 % then use the plot function
 xCoord=[xCoord nan(size(xCoord))]';
 yCoord=[yCoord nan(size(yCoord))]';
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-h=plot(xCoord,yCoord);
-set(h,prop_name,prop_values)
-title('Initiation points for growth (red circles), fgaps (green triangles), and bgaps (blue squares)')
+% figure('Position',figPos)
+% imagesc(img); colormap gray;
+% hold on
+% h=plot(xCoord,yCoord);
+% set(h,prop_name,prop_values)
+% title('Initiation points for growth (red circles), fgaps (green triangles), and bgaps (blue squares)')
 
 
 
@@ -204,7 +209,7 @@ for iParam=1:2
         case {'growthSpeed', 'fgapSpeed', 'bgapSpeed'} % speeds in microns/min
             % extract data
             tempData=allData(subtrackIdx,4);
-            
+
             % assign axis labels
             switch eval(['param' num2str(iParam)])
                 case 'growthSpeed'
@@ -272,55 +277,67 @@ colorMap=['b','g','y','r'];
 
 
 % plot the corresponding tracks on the image
-h=figure('Position',figPos);
-imagesc(img); colormap gray;
-hold on
-for iColor=1:4
-    switch iColor
-        case 1 % blue
-            idx=find(data1>thresh1 & data2>thresh2);
-        case 2 % green
-            idx=find(data1<=thresh1 & data2>thresh2);
-        case 3 % yellow
-            idx=find(data1>thresh1 & data2<=thresh2);
-        case 4 % red
-            idx=find(data1<=thresh1 & data2<=thresh2);
-    end
-    % make individual plot
-    figure('Position',figPos)
+if doPlot==1
+    h=figure('Position',figPos);
     imagesc(img); colormap gray;
     hold on
-    plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
+    for iColor=1:4
+        switch iColor
+            case 1 % blue
+                idx=find(data1>thresh1 & data2>thresh2);
+            case 2 % green
+                idx=find(data1<=thresh1 & data2>thresh2);
+            case 3 % yellow
+                idx=find(data1>thresh1 & data2<=thresh2);
+            case 4 % red
+                idx=find(data1<=thresh1 & data2<=thresh2);
+        end
+        % make individual plot
+        figure('Position',figPos)
+        imagesc(img); colormap gray;
+        hold on
+        plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
 
-    % make overlay
-    figure(h)
-    plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
+        % make overlay
+        figure(h)
+        plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
 
+    end
 end
 
 % make scatterplot showing data distribution between the two parameters
-figure
+if doPlot==1
+    figure
+    popRYGB=zeros(1,4);
+end
 for iColor=1:4
     switch iColor
         case 1 % blue
             idx=find(data1>thresh1 & data2>thresh2);
+            popRYGB(4)=length(idx);
         case 2 % green
             idx=find(data1<=thresh1 & data2>thresh2);
+            popRYGB(3)=length(idx);
         case 3 % yellow
             idx=find(data1>thresh1 & data2<=thresh2);
+            popRYGB(2)=length(idx);
         case 4 % red
             idx=find(data1<=thresh1 & data2<=thresh2);
+            popRYGB(1)=length(idx);
     end
-    scatter(data1(idx),data2(idx),[],colorMap(iColor),'.');
-    hold on
-
+    if doPlot==1
+        scatter(data1(idx),data2(idx),[],colorMap(iColor),'filled');
+        hold on
+    end
 end
-xlabel(label1)
-ylabel(label2)
-if remBegEnd==1
-    % any track not entirely contained within the frame range will be excluded
-    title({['N = ' num2str(length(data1)) ' tracks']; ['starting after frame ' num2str(timeRange(1)) ' and ending before frame ' num2str(timeRange(2))]});
-else
-    % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
-    title({['N = ' num2str(length(data1)) ' tracks']; ['starting before frame ' num2str(timeRange(2)) ' and ending after frame ' num2str(timeRange(1))]});
+if doPlot==1
+    xlabel(label1)
+    ylabel(label2)
+    if remBegEnd==1
+        % any track not entirely contained within the frame range will be excluded
+        title({['N = ' num2str(length(data1)) ' tracks']; ['starting after frame ' num2str(timeRange(1)) ' and ending before frame ' num2str(timeRange(2))]});
+    else
+        % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
+        title({['N = ' num2str(length(data1)) ' tracks']; ['starting before frame ' num2str(timeRange(2)) ' and ending after frame ' num2str(timeRange(1))]});
+    end
 end
