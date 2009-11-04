@@ -1,18 +1,6 @@
-function [data] = determineImagesize(data);
-% determine image size of all fields in the experiment
+function [data] = determineImagesize(data)
 
-for i=1:length(data)
-    
-    path  = data(i).source;
-    od = cd;
-    
-    cd(path);
-    cd('images283');
-    loadfile = imread('cmask3001.jpg');
-    imagesize = size(loadfile);
-    
-    data(i).imagesize = imagesize;
-    cd(od);
+for i = 1:length(data)
+    tifFiles = dir([data(i).source filesep '*.tif']);
+    data(i).imagesize = size(imread([data(i).source filesep tifFiles(1).name]));
 end
-
-end % of function
