@@ -24,7 +24,7 @@ load([movieData.activityVSdistance.directory filesep ...
     movieData.activityVSdistance.filename]);
 
 % Convert into nm
-activityVSdistance(1).distance = activityVSdistance(1).distance * ps;
+activityVSdistance(1).distance = activityVSdistance(1).distance * ps; %#ok<NODEF>
 activityVSdistance(2).distance = activityVSdistance(2).distance * ps;
 % Convert into nm/s
 activityVSdistance(1).activity = activityVSdistance(1).activity * ps / t;
@@ -45,21 +45,20 @@ maxA = max([a1; a2]);
 h = (maxA - minA) / 6;
 g1 = zeros(size(d1));
 g2 = zeros(size(d2));
+labels = cell(12, 1);
+
 for i = 1:6
     lo = minA + (i-1) * h;
     hi = minA + i * h;
     g1(a1 >= lo & a1 <= hi) = i;
     g2(a2 >= lo & a2 <= hi) = i;
+    labels{2 * i - 1} = sprintf('[%.2f', lo);
+    labels{2 * i} = sprintf('%.2f]', hi);
 end
-boxplot([d1;d2], [g1 * 2 - 1; g2 * 2]); %hold on;
-%boxplot(d2, g2);
 
-% figure('Name', ['Distance of Speckle to the Cell edge in Function of Cell Activity  [' ...
-%     num2str(loDist * ps) '-' num2str(hiDist * ps) ']um']);
-% 
-% plot(a1, d1, 'r.');
-% hold on;
-% plot(a2, d2, 'g.');
-% xlabel('protrusion/retraction speed (nm/s)');
-% ylabel('distance to the edge (nm)');
-% legend(activityVSdistance(1).name, activityVSdistance(2).name);
+g1 = 2 * g1 -1;
+g2 = 2 * g2;
+boxplot([d1; d2], [g1; g2], ...
+    'colors', 'rg', 'plotstyle', 'compact', ...
+    'labelorientation', 'horizontal', ...
+    'labels', labels);

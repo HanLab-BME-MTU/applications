@@ -605,7 +605,7 @@ for iMovie = 1:nMovies
             
             % STEP 11.5: Store correlation
             for k = 1:2
-                [duumy, name] = getFilenameBody(currMovie.channels(k).fsmDirectory);
+                [dummy, name] = getFilenameBody(currMovie.channels(k).fsmDirectory);
                 activityVSdistance(k).name = name;
                 nSpeckles = numel(find(MPMs{k})) / 2;
                 activityVSdistance(k).activity = zeros(nSpeckles, 1);
@@ -620,7 +620,11 @@ for iMovie = 1:nMovies
                     Xt = Xt(Xt(:, 1) & Xt(:, 2), :);
                     ind = sub2ind(size(D{iFrame}), Xt(:, 1), Xt(:, 2));
                     iSlice = L{iFrame}(ind);
+                    % Get rid of index pointed to label == 0
                     ind = ind(iSlice ~= 0);
+                    iSlice = L{iFrame}(ind);
+                    % Get rid of index pointed to avgProt == 0
+                    ind = ind(~isnan(avgProt(iSlice, iFrame)));
                     iSlice = L{iFrame}(ind);
                     activityVSdistance(k).activity(pos:pos+numel(ind)-1) = avgProt(iSlice, iFrame);
                     activityVSdistance(k).distance(pos:pos+numel(ind)-1) = D{iFrame}(ind);
