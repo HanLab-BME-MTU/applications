@@ -62,4 +62,8 @@ layerPlugins(6).desc = '[IF] Minimal Paths';
 layerPlugins(6).filterSpec = {'*.mat'}; 
 layerPlugins(6).displayFunc = @displayMinimalPaths;
 
+% [IF] ProfileLocations
+layerPlugins(7).desc = '[IF] Profile Locations';
+layerPlugins(7).filterSpec = {'*.mat'}; 
+layerPlugins(7).displayFunc = @displayProfileLocations;
 end

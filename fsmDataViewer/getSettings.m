@@ -60,7 +60,7 @@ for iLayer = 1:size(data, 1)
     
     if selected
         layerTypeName = data{iLayer, 2};
-        layer.type = strmatch(layerTypeName, layerTypeNames) - 1;
+        layer.type = strmatch(layerTypeName, layerTypeNames, 'exact') - 1;
         layer.tag = [layerTypeName '_' num2str(iLayer)];
         layer.color = data{iLayer, 3};
         
