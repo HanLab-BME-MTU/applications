@@ -46,7 +46,8 @@ for i = 1:numel(newProjDirList)
     filename = [newProjDir filesep 'lastProjSettings.mat'];
 
     if ~exist(filename, 'file')
-        error([filename ' does not exist.']);
+        disp('   lastProjSettings.mat does not exist.');
+        continue;
     end
 
     load(filename);
@@ -114,7 +115,7 @@ for i = 1:numel(newProjDirList)
     filename = [newProjDir filesep edgeSubDir filesep 'parameters.dat'];
 
     if ~exist(filename, 'file')
-        disp(['   ' filename ' does not exist (skipping).']);
+        disp('   parameters.dat does not exist (skipping).');
     else
         parameters = read_parameters(filename, 0);
         parameters.file = [projSettings.unix_imgDirList{1} ...
@@ -129,7 +130,7 @@ for i = 1:numel(newProjDirList)
     filename = [newProjDir filesep tackSubDir filesep 'fsmParam.mat'];
     
     if ~exist(filename, 'file')
-        disp(['   ' filename ' does not exist (skipping).']);
+        disp('   fsmParam.mat does not exist (skipping).');
     else
         load(filename);
         fsmParam.project.path = newProjDir;
@@ -151,7 +152,7 @@ for i = 1:numel(newProjDirList)
     filename = [newProjDir filesep tackSubDir filesep 'fsmImages.mat'];
     
     if ~exist(filename, 'file')
-        disp(['   ' filename 'does not exist (skipping).']);
+        disp('   fsmImages.mat does not exist (skipping).');
     else
         load(filename);
         n = numel(imgDirList);
