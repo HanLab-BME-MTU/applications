@@ -129,7 +129,7 @@ for i = 1:numel(newProjDirList)
     filename = [newProjDir filesep tackSubDir filesep 'fsmParam.mat'];
     
     if ~exist(filename, 'file')
-        disp(['   ' filename 'does not exist (skipping).']);
+        disp(['   ' filename ' does not exist (skipping).']);
     else
         load(filename);
         fsmParam.project.path = newProjDir;
