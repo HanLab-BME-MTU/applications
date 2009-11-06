@@ -19,12 +19,13 @@ for iPath = 1:numel(paths)
     found = 0;
     
     for i = 1:numel(contents)
-        name = upper(contents(i).name);
+        name = contents(i).name;
         
         if contents(i).isdir &&  ...
                 ~(strcmp(name, '.') || strcmp(name, '..')) && ...
-                ~isempty(strmatch(name, {'ACTIN', 'TM2', 'TM4', 'TM5NM1'}, 'exact'))
-            % TODO: Check that name is a valid FSMCEnter project directory
+                ~isempty(strmatch(upper(name), ...
+                {'ACTIN', 'TM2', 'TM4', 'TM5NM1'}, 'exact')) && ...
+                exist([paths{iPath} filesep name filesep 'lastProjSettings.mat'], 'file')
             found = found + 1;
         end
     end
