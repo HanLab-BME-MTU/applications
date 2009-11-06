@@ -1,4 +1,4 @@
-function movieData = getMovieLabels(movieData)
+function movieData = getMovieLabels(movieData, batchMode)
 
 %Indicate that labeling was started
 movieData.labels.status = 0;
@@ -9,7 +9,6 @@ if ~checkMovieWindows(movieData)
 end
 
 %Load the windows
-disp('Please wait, loading windows....')
 load([movieData.windows.directory filesep movieData.windows.fileName]);
 
 %Check that they loaded
@@ -46,7 +45,9 @@ movieData.labels.nFrames = nFrames;
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 
 %Go through each frame and save the windows to a file
-h = waitbar(0,'Please wait, labeling window frames....');
+if ~batchMode
+    h = waitbar(0,'Please wait, labeling window frames....');
+end
 
 for iFrame = 1:nFrames    
     winPoly = allWinPoly(:,:,iFrame);
@@ -55,10 +56,14 @@ for iFrame = 1:nFrames
 
     imwrite(uint16(labels), [movieData.labels.directory filesep 'labels_' num2str(iFrame,fString) '.tif'], 'Compression', 'none');
     
-    waitbar(iFrame/nFrames,h)    
+    if ~batchMode && ishandle(h)
+        waitbar(iFrame/nFrames,h)
+    end
 end
 
-close(h);
+if ~batchMode && ishandle(h)
+    close(h);
+end
 
 movieData.labels.dateTime = datestr(now);
 movieData.labels.status = 1;

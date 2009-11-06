@@ -1,65 +1,37 @@
 function paths = getDirectories(rootDirectory)
-% This function finds every path which contains an Actin and TM*
-% subdirectories from rootDirectory.
-
-% Get the list of all subdirectories of rootDirectory (including itself).
+% This function finds every path which contains either Actin and TMx
+% subdirectories or TMx TMy subdirectories from rootDirectory. These 2
+% subdirectories must be valid FSMCenter project directories.
 
 if ~exist(rootDirectory, 'dir')
-    error([rootDirectory 'is not a valid directory.']);
+    error([rootDirectory ' is not a valid directory.']);
 end
 
-paths = {rootDirectory};
-iPath = 1;
-
-while iPath <= numel(paths)
-    contents = dir(paths{iPath});
-
-    for i=1:numel(contents)
-        name = contents(i).name;
-    
-        if contents(i).isdir &&...
-                ~(strcmp(name, '.') || strcmp(name, '..'))
-            containsActin = ~isempty(regexpi(name, 'actin'));
-            containsTM = ~isempty(regexpi(name, 'TM'));
-            
-            if containsActin == containsTM
-                paths = cat(1, paths, [paths{iPath} filesep name]);
-            end
-        end
-    end
-    
-    iPath = iPath + 1;
-end
-
-% Select paths which contains an Actin and TM* subdirectories
-
-selectedPaths = {};
+disp('Find TMx/TMy/Actin subdirectories. Please wait...');
+str = genpath(rootDirectory);
+paths = textscan(str, '%s', 'delimiter', pathsep);
+paths = paths{1};
+finalPaths = {};
 
 for iPath = 1:numel(paths)
     contents = dir(paths{iPath});
     
-    actinFound = 0;
-    TMFound = 0;
+    found = 0;
+    
     for i = 1:numel(contents)
-        name = contents(i).name;
-        if contents(i).isdir
-            containsActin = ~isempty(regexpi(name, 'actin'));
-            containsTM = ~isempty(regexpi(name, 'TM'));
-            
-            % to cope with directory name containing both 'actin' and 'TM'
-            % strings.
-            if xor(containsActin, containsTM)        
-                actinFound = actinFound | containsActin;
-                TMFound = TMFound | containsTM;
-            end
+        name = upper(contents(i).name);
+        
+        if contents(i).isdir &&  ...
+                ~(strcmp(name, '.') || strcmp(name, '..')) && ...
+                ~isempty(strmatch(name, {'ACTIN', 'TM2', 'TM4', 'TM5NM1'}, 'exact'))
+            % TODO: Check that name is a valid FSMCEnter project directory
+            found = found + 1;
         end
     end
-    if actinFound && TMFound
-        selectedPaths = cat(1, selectedPaths, paths{iPath});
+    
+    if found == 2
+        finalPaths = cat(1, finalPaths, paths{iPath});
     end
 end
 
-paths = selectedPaths;
-
-
-end
+paths = finalPaths;
