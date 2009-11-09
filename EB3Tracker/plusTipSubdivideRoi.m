@@ -336,8 +336,10 @@ while makeNewROI==1
 
     sourceFeatDir=[sourceProjData.anDir filesep 'feat'];
 
-    copyfile([anDir filesep 'feat' filesep 'movieInfo.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo.mat']);
-
+    %copyfile([anDir filesep 'feat' filesep 'movieInfo.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo.mat']);
+    [a,b,c]=copyfile([anDir filesep 'feat' filesep 'movieInfo.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo1.mat']); 
+    [a,b,c]=movefile([currentRoiAnDir filesep 'feat' filesep 'movieInfo1.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo.mat']);
+    
     switch roiSelectType
         case 'manual'
             tempRoi=[];

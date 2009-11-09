@@ -74,8 +74,13 @@ end
 % scatter(x(inIncludeRegion),y(inIncludeRegion))
 
 % start/end frames based on range stored in projData
-sF=max([sourceProjData.detectionFrameRange(1); sourceProjData.trackingFrameRange(1); sourceProjData.postTrackFrameRange(1)]);
-eF=min([sourceProjData.detectionFrameRange(2); sourceProjData.trackingFrameRange(2); sourceProjData.postTrackFrameRange(2)]);
+try
+    sF=max([sourceProjData.detectionFrameRange(1); sourceProjData.trackingFrameRange(1); sourceProjData.postTrackFrameRange(1)]);
+    eF=min([sourceProjData.detectionFrameRange(2); sourceProjData.trackingFrameRange(2); sourceProjData.postTrackFrameRange(2)]);
+catch
+   sF=1;
+   eF=sourceProjData.numFrames;
+end
 
 % limit tracks to only these frames
 xMat=xMat(:,sF:eF);
