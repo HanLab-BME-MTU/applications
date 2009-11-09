@@ -1,4 +1,4 @@
-function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,excludeMask)
+function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,excludeMask,midPoint,minFrames)
 % this fn is called by plusTipSubdivideRoi or as a standalone fn after
 % re-running tracking if you don't want to re-draw ROIs
 
@@ -21,6 +21,18 @@ if nargin<2 || isempty(excludeMask)
     excludeMask=[];
 end
 
+% midPoint=1 means that a growth sub-track must have half its life within
+% the region to count as belonging to that region
+if nargin<3 || isempty(midPoint)
+    midPoint=0;
+end
+
+% if midPoint=0, then we make sure the track has a minimum number of frames
+% inside the region of interest.
+if nargin<4 || isempty(minFrames)
+    minFrames=3;
+end
+
 cd(subRoiDir)
 cd ..
 cd ..
@@ -39,9 +51,11 @@ aT=sourceProjData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 idx=find(aT(:,5)==1);
 [xMat,yMat]=plusTipGetSubtrackCoords(sourceProjData,idx);
 
+roiMask=imread([subRoiDir filesep 'roiMask.tif']);
+    [imL,imW]=size(roiMask);
 % get which tracks have their first point NOT in the exclude region
 if ~isempty(excludeMask)
-    [imL,imW]=size(excludeMask);
+
     x=zeros(length(idx),1);
     y=zeros(length(idx),1);
     for i=1:length(idx)
@@ -72,7 +86,7 @@ yMat=yMat(:,sF:eF);
 %yv=roiYX.roiYX(:,1);
 %xv=roiYX.roiYX(:,2);
 
-roiMask=imread([subRoiDir filesep 'roiMask.tif']);
+
 pixIdx=sub2ind([imL,imW],ceil(yMat-.5),ceil(xMat-.5));
 % assume that the first pixel in the image will be a zero
 % but make sure this is so by making the first roiMask pixel = 0
@@ -82,12 +96,15 @@ roiMask(1,1)=0;
 % find which of the track indices are in the roiMask
 IN=roiMask(pixIdx);
 
-
 % calculate which growth track features are in the sub-ROI
-%IN1=inpolygon(xMat,yMat,xv,yv);
-
-% track indices where tracks exist for at least three time points
-trckIdxIn=intersect(find(sum(IN,2)>=3),inIncludeRegion);
+if midPoint==1
+    lifetime=nansum(swapMaskValues(isnan(xMat),[1 0],[nan 1]),2);
+    timeInside=sum(IN,2);
+    trckIdxIn=intersect(find(timeInside./lifetime>=0.5),inIncludeRegion);
+else
+    % tracks spending at least 3 frames in the region count
+    trckIdxIn=intersect(find(sum(IN,2)>=3),inIncludeRegion);
+end
 
 % limit data to these tracks
 xMat=xMat(trckIdxIn,:);

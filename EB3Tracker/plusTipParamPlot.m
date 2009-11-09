@@ -1,4 +1,4 @@
-function [percentile1,thresh1,percentile2,thresh2,popRYGB]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange,doPlot)
+function [percentile1,thresh1,percentile2,thresh2,popRYGB]=plusTipParamPlot(param1,percentile1,thresh1,param2,percentile2,thresh2,projData,remBegEnd,timeRange,doPlot,xLims,yLims)
 % Makes quadrant scatterplot split by property percentiles or values, mapped onto image
 
 % SYNOPSIS:
@@ -45,7 +45,6 @@ function [percentile1,thresh1,percentile2,thresh2,popRYGB]=plusTipParamPlot(para
 %
 % 2009/08 - Kathryn Applegate Matlab R2008a
 
-
 if nargin<6
     param1='growthSpeed';
     percentile1=50;
@@ -87,14 +86,14 @@ if errFlag==1
 end
 
 % check projData input
-if nargin<5 || isempty(projData)
+if nargin<7 || isempty(projData)
     dirName=uigetdir(pwd,'Please select project directory');
     temp=load([dirName filesep 'meta' filesep 'projData.mat']);
     projData=temp.projData;
 end
 
 % assume we should plot all data
-if nargin<6 || isempty(remBegEnd)
+if nargin<8 || isempty(remBegEnd)
     remBegEnd=0;
 end
 
@@ -111,9 +110,14 @@ else
         timeRange(2)=numFrames;
     end
 end
-
 if nargin<10 || isempty(doPlot)
     doPlot=1;
+end
+if nargin<11 || isempty(xLims)
+   xLims=[]; 
+end
+if nargin<12 || isempty(yLims)
+   yLims=[]; 
 end
 
 % format image/analysis directory paths
@@ -326,11 +330,18 @@ for iColor=1:4
             popRYGB(1)=length(idx);
     end
     if doPlot==1
-        scatter(data1(idx),data2(idx),[],colorMap(iColor),'filled');
+        scatter(data1(idx),data2(idx),[],colorMap(iColor),'.');
         hold on
     end
 end
 if doPlot==1
+    if ~isempty(xLims)
+        xlim(xLims)
+    end
+    if ~isempty(yLims)
+        ylim(yLims)
+    end
+
     xlabel(label1)
     ylabel(label2)
     if remBegEnd==1
@@ -338,6 +349,9 @@ if doPlot==1
         title({['N = ' num2str(length(data1)) ' tracks']; ['starting after frame ' num2str(timeRange(1)) ' and ending before frame ' num2str(timeRange(2))]});
     else
         % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
-        title({['N = ' num2str(length(data1)) ' tracks']; ['starting before frame ' num2str(timeRange(2)) ' and ending after frame ' num2str(timeRange(1))]});
+        title({['N = ' num2str(length(data1)) ' tracks']; ['starting at or before frame ' num2str(timeRange(2)) ' and ending at or after frame ' num2str(timeRange(1))]});
     end
+        [nPrctRYGB]=plusTipQuadColorbar(popRYGB);
+        xlabel(gca,['Percents: red=' num2str(nPrctRYGB(1)) ', yellow=' ...
+            num2str(nPrctRYGB(2)) ', green=' num2str(nPrctRYGB(3)) ', blue=' num2str(nPrctRYGB(4))])
 end

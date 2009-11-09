@@ -144,15 +144,13 @@ at the beginning or end, thereby getting discarded.
 If this option is unchecked, any track which ends before the frame range 
 begins or begins after the frame range ends will be excluded.
 
-Seven figures will appear: a scatter plot, five images with tracks overlaid,
-and one image with initiation points for growth, fgap, and bgap subtracks 
-overlaid as red circles, green triangles, and blue squares, respectively.
+Six figures will appear: a scatter plot and five images with tracks overlaid.
 For the track overlays, the colors of the tracks correspond to the color 
 map of the scatter plot. For example, if we take the 50th percentile 
 for growth speed and growth lifetime we will see four populations in four 
 colors: fast and short-lived, slow and short-lived, fast and long-lived, 
 and slow and long-lived.  The four populations will appear separately in 
-four images and together in a fifth image.
+four images and merged together in a fifth image.
 
 It is also possible to divide the population of tracks based on one 
 parameter into three groups.  For example, if we choose growth speed for
@@ -164,13 +162,6 @@ simply show the raw image.
 Because the values on the x- and y- axes must be paired, only certain 
 combinations of parameters work.  The track type (e.g. "fgap") must be
 the same for x- and y- axes.
-
-Note that the frame range specified in 3 is ignored; tracks from the range
-used in the post-processing step are used.
-
-Also note that the track initiation plot (circles, squares, and triangles)
-uses data from all frames in the range and does not depend on the x- and y-
-axis parameters.
 
 ---------------------------------------------------------------------------
 

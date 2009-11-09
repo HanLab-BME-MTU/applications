@@ -1,7 +1,5 @@
 function [handles]=plusTipGuiSwitch(hObject,eventdata,handles,callbackName)
 
-% GUIs that use this function:
-% plusTipTrackViz - for track plotting and movie making
 
 switch callbackName
 

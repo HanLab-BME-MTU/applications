@@ -1,4 +1,4 @@
-function [groupList]=plusTipPickGroups(autoGrp,relDirs)
+function [groupList]=plusTipPickGroups(autoGrp,relDirs,projList)
 % plusTipPickGroups allows user to select groups of movies
 %
 % SYNOPSIS: [groupList]=plusTipPickGroups(autoGrp,relDirs)
@@ -37,13 +37,13 @@ if nargin<2 || ~isvector(relDirs)
     relDirs=[];
 end
 
-homeDir=pwd;
-saveDir=uigetdir(pwd,'Select output directory for groupList.');
-cd(saveDir)
-
 
 % ask user to select projList file and check which movies have been tracked
-[allProjects,notDone]=plusTipCheckIfDone;
+if nargin<3 || isempty(projList)
+    [allProjects,notDone]=plusTipCheckIfDone;
+else
+    [allProjects]=projList2Mat(projList);
+end
 
 % show only the ones that have been tracked in the selection box
 %allProjects(notDone,:)=[];
@@ -148,7 +148,4 @@ else
     
 end
 
-save([saveDir filesep 'groupList'],'groupList')
-
-cd(homeDir)
-
+uisave('groupList','groupList')

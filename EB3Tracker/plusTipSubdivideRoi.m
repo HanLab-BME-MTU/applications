@@ -1,4 +1,4 @@
-function plusTipSubdivideRoi(sourceProjData,fractionFromEdge,savedROI,excludeRegion,micFromEdge)
+function plusTipSubdivideRoi(sourceProjData,fractionFromEdge,savedROI,excludeRegion,micFromEdge,midPoint,minFrames)
 % plusTipSubdivideRoi allows user to choose sub-regions of interest
 %
 % INPUT : sourceProjData        : projData file from any project
@@ -39,6 +39,18 @@ warning('off','Images:initSize:adjustingMag')
 warning('off','MATLAB:divideByZero')
 
 roiSelectType='manual'; %default
+
+% midPoint=1 means that a growth sub-track must have half its life within
+% the region to count as belonging to that region
+if nargin<6 || isempty(midPoint)
+    midPoint=0;
+end
+
+% if midPoint=0, then we make sure the track has a minimum number of frames
+% inside the region of interest.
+if nargin<7 || isempty(minFrames)
+    minFrames=3;
+end
 
 % load projData
 if nargin<1 || isempty(sourceProjData)
@@ -387,7 +399,7 @@ while makeNewROI==1
     save([currentRoiAnDir filesep 'roiYX'],'roiYX');
 
     % create new projData from original data and save it in new meta folder
-    [projData,M]=plusTipSubRoiExtractTracks(currentRoiAnDir,excludeMask);
+    [projData,M]=plusTipSubRoiExtractTracks(currentRoiAnDir,excludeMask,midPoint,minFrames);
     growthTracks_meanSpeed(roiCount,1:2)=[projData.stats.nGrowths projData.stats.growth_speed_mean_SE(1)];
 
     % save area info
