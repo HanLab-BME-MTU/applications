@@ -7,7 +7,7 @@ function batchComputeCorrelations(varargin)
 %      - cell activity and speckle distance to the edge (STEP 11)
 % 'forceRun' forces to recompute results.
 
-if nargin >= 1
+if nargin >= 1 && ~isempty(varargin{1})
     rootDirectory = varargin{1};
 else
     % Ask for the root directory.
@@ -18,14 +18,23 @@ else
     end
 end
 
-if nargin >= 2
+if nargin >= 2 && ~isempty(varargin{2})
     forceRun = varargin{2};
 else
     forceRun = zeros(11, 1);
 end
 
-% Get all subdirectories containing Actin & TM.
-paths = getDirectories(rootDirectory);
+if nargin >= 3 && ~isempty(varargin{3})
+    batchMode = varargin{3};
+else
+    batchMode = 1;
+end
+
+% Get every path from rootDirectory containing two subfolders among the
+% specified list of directories.
+subDirNames = {'actin', 'TM2', 'TM4', 'TM5NM1'};
+paths = getDirectories(rootDirectory, subDirNames, ...
+    @(x) exist([x filesep 'lastProjSettings.mat'], 'file'));
 
 disp('List of directories:');
 
@@ -54,12 +63,6 @@ for iMovie = 1:nMovies
     currMovie.channels(1:2) = struct('fsmDirectory', [], 'imageDirectory', []);
     
     % STEP 1.1: Get the FSM directories
-    if isunix
-        subDirNames = {'actin', 'Actin', 'TM2', 'TM4', 'TM5NM1'};
-    else
-        subDirNames = {'actin', 'TM2', 'TM4', 'TM5NM1'};
-    end
-    
     ind = 0;
     for i = 1:numel(subDirNames)
         subDirPath = [path filesep subDirNames{i}];
@@ -137,21 +140,17 @@ for iMovie = 1:nMovies
             % STEP 2.2: Compute the distance transforms            
             D = cell(numel(currMovie.masks.n), 1);
             
-            h = waitbar(0, [movieName ': Compute distance transforms...']);
             filenames = dir([currMovie.masks.directory filesep '*.tif']);
             for iFrame = 1:currMovie.masks.n
                 BW = imread([currMovie.masks.directory filesep filenames(iFrame).name]);
                 D{iFrame} = single(bwdist(max(BW(:)) - BW));
-                waitbar(iFrame / numel(filenames), h);
             end
             
             % STEP 2.3: Compute track mean distance to the edge            
             for k = 1:2
                 numTracks = 0;
-                meanDistances{k} = zeros(numel(find(MPMs{k} == 0)) / 2 + 1, 2);        
-                waitbar(0, h, [movieName ': Compute track mean distance to the edge...']);
+                meanDistances{k} = zeros(numel(find(MPMs{k} == 0)) / 2 + 1, 2);
                 for i = 1:size(MPMs{k}, 1)
-                    waitbar(i / size(MPMs{k}, 1), h);                    
                     j = 1;                    
                     while j < size(MPMs{k}, 2) - 1
                         if MPMs{k}(i, j:j+1)
@@ -224,7 +223,6 @@ for iMovie = 1:nMovies
             S = cell(currMovie.masks.n, 2);
     
             for k = 1:2
-                waitbar(0, h, [movieName ': Load speed maps (' num2str(k) '/2)...']);
                 filenames = dir([currMovie.channels(k).fsmDirectory filesep ...
                     'post' filesep 'mat' filesep 'speedMap*.mat']);
                 for iFile = 1:numel(filenames)
@@ -235,7 +233,6 @@ for iMovie = 1:nMovies
                     no = str2double(no);
                     S{no, k} = single(speedMap);
                     clear speedMap;
-                    waitbar(iFile / numel(filenames), h);
                 end
                 % Extend the first
                 filename = [currMovie.channels(k).fsmDirectory filesep ...
@@ -259,9 +256,7 @@ for iMovie = 1:nMovies
             for k = 1:2
                 numTracks = 0;
                 meanSpeeds{k} = zeros(numel(find(MPMs{k} == 0)) / 2 + 1, 3);
-                waitbar(0, h, [movieName ': Compute track mean speed (' num2str(k) '/2)...']);
-                for i = 1:size(MPMs{k}, 1)
-                    waitbar(i / size(MPMs{k}, 1), h);                    
+                for i = 1:size(MPMs{k}, 1)                  
                     j = 1;                    
                     while j < size(MPMs{k}, 2) - 1
                         if MPMs{k}(i, j:j+1)
@@ -300,10 +295,6 @@ for iMovie = 1:nMovies
             currMovie.meanSpeeds.status = 0;
         end
     end
-    
-    if exist('h', 'var') && ishandle(h)
-        close(h);
-    end
 
     %
     % STEP 4: Get the contour
@@ -319,7 +310,7 @@ for iMovie = 1:nMovies
             currMovie.contours.status ~= 1 || forceRun(4)
         try
             currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 0, ...
-                ['contours_'  num2str(dContour) 'pix.mat']);
+                ['contours_'  num2str(dContour) 'pix.mat'], batchMode);
         catch errMess
             disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
             currMovie.contours.error = errMess;
@@ -337,14 +328,14 @@ for iMovie = 1:nMovies
 
             currMovie = setupMovieData(currMovie);
 
-            handles.batch_processing = 1;
+            handles.batch_processing = batchMode;
             handles.directory_name = [currMovie.masks.directory];
             handles.result_directory_name = [currMovie.masks.directory];
             handles.FileType = '*.tif';
             handles.timevalue = currMovie.timeInterval_s;
             handles.resolutionvalue = currMovie.pixelSize_nm;
             handles.segvalue = 30;
-            handles.dl_rate = 50;
+            handles.dl_rate = 30;
 
             %run it
             [OK,handles] = protrusionAnalysis(handles);
@@ -388,7 +379,7 @@ for iMovie = 1:nMovies
 
             disp(['Windowing movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieWindows(currMovie,winMethod,dWin,[],iStart,iEnd,[],[],...
-                ['windows_' winMethod '_' windowString '.mat']);
+                ['windows_' winMethod '_' windowString '.mat'], batchMode);
 
             if isfield(currMovie.windows,'error')
                 currMovie.windows = rmfield(currMovie.windows,'error');
@@ -410,7 +401,7 @@ for iMovie = 1:nMovies
         try
             disp(['Sampling protrusion in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
-                winMethod '_' windowString  '.mat'],10,100);
+                winMethod '_' windowString  '.mat'],10,100, batchMode);
             
             if isfield(currMovie.protrusion.samples,'error')
                currMovie.protrusion.samples = rmfield(currMovie.protrusion.samples,'error');
@@ -429,7 +420,7 @@ for iMovie = 1:nMovies
     %
     if ~isfield(currMovie, 'windows') || ~isfield(currMovie.windows, 'splitted') || ...
             currMovie.windows.splitted ~= 1
-        splitWindowFrames(currMovie, [currMovie.analysisDirectory filesep 'windows']);
+        splitWindowFrames(currMovie, [currMovie.analysisDirectory filesep 'windows'], batchMode);
         currMovie.windows.splitted = 1;
     end    
     
@@ -443,7 +434,7 @@ for iMovie = 1:nMovies
 
             disp(['Labeling movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             
-            currMovie = getMovieLabels(currMovie);
+            currMovie = getMovieLabels(currMovie, batchMode);
 
             if isfield(currMovie.labels,'error')
                 currMovie.labels = rmfield(currMovie.labels,'error');
@@ -501,9 +492,7 @@ for iMovie = 1:nMovies
             for k = 1:2
                 numTracks = 0;
                 meanProtrusions{k} = zeros(numel(find(MPMs{k} == 0)) / 2 + 1, 2);
-                h = waitbar(0, [movieName ': Compute track mean protrusion score (' num2str(k) '/2)...']);
-                for i = 1:size(MPMs{k}, 1)
-                    waitbar(i / size(MPMs{k}, 1), h);                    
+                for i = 1:size(MPMs{k}, 1)                    
                     j = 1;
                     while j < size(MPMs{k}, 2) - 1
                         if MPMs{k}(i, j:j+1)
@@ -530,7 +519,6 @@ for iMovie = 1:nMovies
                         j = j + 2;
                     end
                 end
-                close(h);
             end
     
             save([currMovie.meanProtrusions.directory filesep ...
@@ -578,14 +566,11 @@ for iMovie = 1:nMovies
             % STEP 11.2: Compute the distance transforms
             D = cell(numel(currMovie.masks.n), 1);
             
-            h = waitbar(0, [movieName ': Compute distance transforms...']);
             filenames = dir([currMovie.masks.directory filesep '*.tif']);
             for iFrame = 1:currMovie.masks.n
                 BW = imread([currMovie.masks.directory filesep filenames(iFrame).name]);
                 D{iFrame} = single(bwdist(max(BW(:)) - BW));
-                waitbar(iFrame / numel(filenames), h);
             end
-            close(h);
             
             % STEP 11.3: Load labels
             L = cell(currMovie.labels.nFrames, 1);
@@ -661,10 +646,6 @@ for iMovie = 1:nMovies
     end
     
     movieData{iMovie} = currMovie;
-    
-    if exist('h', 'var') && ishandle(h)
-        close(h);
-    end
     
     disp([movieName ': DONE']);
 end

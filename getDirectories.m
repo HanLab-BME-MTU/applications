@@ -1,13 +1,25 @@
-function paths = getDirectories(rootDirectory)
-% This function finds every path which contains either Actin and TMx
-% subdirectories or TMx TMy subdirectories from rootDirectory. These 2
-% subdirectories must be valid FSMCenter project directories.
+function paths = getDirectories(rootDirectory, numSubDirs, subDirList, varargin)
+% This function finds every path which contains 'numbSubDirs' sub folders
+% among the list of possible names subDirList. A function handler can be
+% specified to validate each sub directory.
 
 if ~exist(rootDirectory, 'dir')
     error([rootDirectory ' is not a valid directory.']);
 end
 
-disp('Find TMx/TMy/Actin subdirectories. Please wait...');
+if numSubDirs <= 0 || numSubDirs > numel(subDirList)
+    error('invalid numSubDirs parameter.');
+end
+
+subDirList = upper(subDirList);
+
+if nargin < 4 || isempty(varargin{1})
+    isValidSubDir = @(x) true;
+else
+    isValidSubDir = varargin{1};
+end
+
+disp('Find sub directories. Please wait...');
 str = genpath(rootDirectory);
 paths = textscan(str, '%s', 'delimiter', pathsep);
 paths = paths{1};
@@ -23,14 +35,13 @@ for iPath = 1:numel(paths)
         
         if contents(i).isdir &&  ...
                 ~(strcmp(name, '.') || strcmp(name, '..')) && ...
-                ~isempty(strmatch(upper(name), ...
-                {'ACTIN', 'TM2', 'TM4', 'TM5NM1'}, 'exact')) && ...
-                exist([paths{iPath} filesep name filesep 'lastProjSettings.mat'], 'file')
+                ~isempty(strmatch(upper(name), subDirList, 'exact')) && ...
+                isValidSubDir([paths{iPath} filesep name ])
             found = found + 1;
         end
     end
     
-    if found == 2
+    if found == numSubDirs
         finalPaths = cat(1, finalPaths, paths{iPath});
     end
 end
