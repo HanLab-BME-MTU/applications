@@ -14,7 +14,7 @@ end
 if nargin >= 2 && ~isempty(varargin{2})
     forceRun = varargin{2};
 else
-    forceRun = zeros(11, 1);
+    forceRun = zeros(5, 1);
 end
 
 if nargin >= 3 && ~isempty(varargin{3})
@@ -72,11 +72,11 @@ for iMovie = 1:nMovies
     end
 
     % STEP 2: Get contours
-    dContour = 15; % ~ 1um
-    dWin = 10;
+    dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
+    dWin = 2000 / currMovie.pixelSize_nm; % ~ 2um
     iStart = 2;
-    iEnd = 10;
-    winMethod = 'e';    
+    iEnd = 4;
+    winMethod = 'c';    
     
     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
             currMovie.contours.status ~= 1 || forceRun(2)
@@ -160,9 +160,8 @@ for iMovie = 1:nMovies
         end
     end
     
-    %
     % STEP 5: Sample the protrusion vector in each window
-    %
+
     if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ...
             ~isfield(currMovie.protrusion.samples,'status') || ...
             currMovie.protrusion.samples.status ~= 1 || forceRun(5)

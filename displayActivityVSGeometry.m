@@ -11,8 +11,12 @@ windows = allWinPoly(1, :, :);
 clear allWinPoly;
 
 % Compute for every windows the convexity
-d2Out = cellfun(@(x) norm(x(:, 1) - x(:, end)), {windows(:).outerBorder});
-d2In = cellfun(@(x) norm(x(:, 1) - x(:, end)), {windows(:).innerBorder});
+
+e = cellfun(@(x) ~(isempty(x) || any(isnan(x(:)))), {windows(:).outerBorder}) & ...
+    cellfun(@(x) ~(isempty(x) || any(isnan(x(:)))), {windows(:).innerBorder});
+
+d2Out = cellfun(@(x) norm(x(:, 1) - x(:, end)), {windows(e).outerBorder});
+d2In = cellfun(@(x) norm(x(:, 1) - x(:, end)), {windows(e).innerBorder});
 
 convexity = sqrt(d2Out ./ d2In);
 
