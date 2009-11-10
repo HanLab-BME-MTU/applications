@@ -29,12 +29,11 @@ end
 counter = 1;
 fname = 'cdata3001.mat';
 tname = [pathname filesep fname];
-
+cd(pathname)
 if (exist(tname)>0)
 
 while (exist(tname)==2)
-    
-    eval(['open ',tname,';']);
+    eval(['open ',fname,';']);
     
     % loading this file automatically loads a bunch of variables into the
     % workspace, including:
