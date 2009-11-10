@@ -10,11 +10,10 @@ load([movieData.windows.directory filesep ...
 windows = allWinPoly(1, :, :);
 clear allWinPoly;
 
-% Compute for every windows the convexity
-
 e = cellfun(@(x) ~(isempty(x) || any(isnan(x(:)))), {windows(:).outerBorder}) & ...
     cellfun(@(x) ~(isempty(x) || any(isnan(x(:)))), {windows(:).innerBorder});
 
+% Compute for every windows the convexity
 d2Out = cellfun(@(x) norm(x(:, 1) - x(:, end)), {windows(e).outerBorder});
 d2In = cellfun(@(x) norm(x(:, 1) - x(:, end)), {windows(e).innerBorder});
 
