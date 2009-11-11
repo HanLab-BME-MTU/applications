@@ -53,11 +53,14 @@ if ~isempty(expDir)
                 else 
                     currFramerate = 2;
                 end
-
+                
                 % enter data
                 experiment(ct).source = [expPath filesep cellDir(k).name];
                 experiment(ct).date = currDate;
                 experiment(ct).framerate = currFramerate;
+                
+                tifFiles = dir([experiment(ct).source filesep '*.tif']);                
+                experiment(ct).imagesize = size(imread([experiment(ct).source filesep tifFiles(1).name]));
 
                 ct = ct+1;
             end
