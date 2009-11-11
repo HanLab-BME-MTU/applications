@@ -52,6 +52,7 @@ for iMovie = 1:nMovies
     content = {content.name};
     actinFolder = content{find(strcmpi('actin', content), 1, 'first')};
     currMovie.imageDirectory = [path filesep actinFolder filesep 'crop'];
+    currMovie.channelDirectory = {''};
     currMovie.nImages = numel(dir([currMovie.imageDirectory filesep '*.tif']));
 
     load([path filesep actinFolder filesep 'fsmPhysiParam.mat']);
@@ -64,6 +65,7 @@ for iMovie = 1:nMovies
         disp([movieName ': unable to find mask directory. (SKIPPING)']);
         continue;
     end
+    currMovie.masks.channelDirectory = {''};
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
     
     if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
