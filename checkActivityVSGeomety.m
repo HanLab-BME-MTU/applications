@@ -67,6 +67,7 @@ for iMovie = 1:nMovies
     end
     currMovie.masks.channelDirectory = {''};
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
+    currMovie.masks.status = 1;
     
     if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
         currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
