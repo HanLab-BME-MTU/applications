@@ -84,6 +84,7 @@ for iMovie = 1:nMovies
     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
             currMovie.contours.status ~= 1 || forceRun(2)
         try
+            disp(['Get contours of movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 1, ...
                 ['contours_'  num2str(dContour) 'pix.mat'], batchMode);
         catch errMess
