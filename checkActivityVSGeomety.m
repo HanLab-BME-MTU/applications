@@ -91,6 +91,7 @@ for iMovie = 1:nMovies
             disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
             currMovie.contours.error = errMess;
             currMovie.contours.status = 0;
+            continue;
         end
     end
     
@@ -121,8 +122,6 @@ for iMovie = 1:nMovies
                     currMovie.protrusion = rmfield(currMovie.protrusion,'error');
                 end
                 
-                %currMovie.protrusion.directory = [currMovie.masks.directory];
-                % Workaround:
                 currMovie.protrusion.directory = [currMovie.masks.directory filesep ...
                     'analysis_dl' num2str(handles.dl_rate)];
                 
@@ -137,6 +136,7 @@ for iMovie = 1:nMovies
             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.protrusion.error = errMess;
             currMovie.protrusion.status = 0;
+            continue;
         end
     end
     
@@ -161,6 +161,7 @@ for iMovie = 1:nMovies
             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.windows.error = errMess;
             currMovie.windows.status = 0;
+            continue;
         end
     end
     
@@ -182,6 +183,7 @@ for iMovie = 1:nMovies
             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);           
             currMovie.protrusion.samples.error = errMess;
             currMovie.protrusion.samples.status = 0;
+            continue;
         end
         
     end 
