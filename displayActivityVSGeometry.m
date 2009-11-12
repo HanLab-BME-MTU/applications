@@ -34,6 +34,10 @@ avgProt = avgProt(ind);
 %hist(convexity(avgProt > 0), 50);
 %figure, hist(convexity(avgProt < 0), 50);
 %figure, plot(avgProt(:), convexity, '.');
-kstest2(convexity(avgProt > 0), convexity(avgProt < 0))
+if kstest2(convexity(avgProt > 0), convexity(avgProt < 0)) == 0
+    disp('OK');
+else
+    disp('Not OK');
+end
 
 end
