@@ -55,11 +55,21 @@ for iGroup=1:length(grpNames)
         end
 
     end
+    % make the percentage bar for each sub-roi in the same plot
     [nPrctRYGB]=plusTipQuadColorbar(popRYGB);
     titleStr=strrep(groupList{grpIdx(iSub),1},'_','-');
     title(titleStr)
     saveas(gcf,[saveDir filesep groupList{grpIdx(iSub),1} '_prctBarAll' '.fig'])
     saveas(gcf,[saveDir filesep groupList{grpIdx(iSub),1} '_prctBarAll' '.png'])
+    close(gcf)
+
+    % sum the populations to make the percentage bar for the whole group
+    [nPrctRYGB]=plusTipQuadColorbar(sum(popRYGB,1));
+    titleStr=strrep(groupList{grpIdx(iSub),1},'_','-');
+    title([titleStr ', N=' num2str(length(grpIdx))])
+    saveas(gcf,[saveDir filesep groupList{grpIdx(iSub),1} '_prctBarAll_Merged' '.fig'])
+    saveas(gcf,[saveDir filesep groupList{grpIdx(iSub),1} '_prctBarAll_Merged' '.png'])
+    close(gcf)
             
     save([saveDir filesep groupList{grpIdx(iSub),1} '_groupQuadInfo'],'speedPrct','speedThresh','lifePrct','lifeThresh',...
         'popRYGB','nPrctRYGB','speedLims','lifeLims','remBegEnd','timeRange');
