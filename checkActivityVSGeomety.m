@@ -49,22 +49,12 @@ for iMovie = 1:nMovies
     
     % STEP 1: Create movieData
     currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
-    content = dir(path);
-    content = {content.name};
-    
-    ind = 0;
-    for i = 1:numel(subDirNames)
-        subDirPath = [path filesep subDirNames{i}];
-        if exist(subDirPath, 'dir')
-            ind = ind + 1;
-            break;
-        end
-    end
-    if ind ~= 1
-        disp([movieName ': Unable to find the FSM directories. (SKIPPING)']);
+    ind = cellfun(@(x) exist([path filesep x], 'dir'), subDirNames);
+    if nnz(ind) ~= 1
+        disp([movieName ': Unable to find the FSM directory. (SKIPPING)']);
         continue;
     end    
-    
+    ind = find(ind == 1);
     currMovie.imageDirectory = [path filesep subDirNames{ind} filesep 'crop'];
     currMovie.channelDirectory = {''};
     currMovie.nImages = numel(dir([currMovie.imageDirectory filesep '*.tif']));
