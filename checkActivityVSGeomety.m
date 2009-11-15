@@ -51,7 +51,7 @@ for iMovie = 1:nMovies
     currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
     content = dir(path);
     content = {content.name};
-    ind = cellfun(@(x) strcmpi(x, subDirNames), content);
+    ind = cellfun(@(x) ~isempty(strcmpi(x, subDirNames)), content);
     if ~nnz(ind)
         disp([movieName ': Unable to find the FSM directory. (SKIPPING)']);
         continue;
