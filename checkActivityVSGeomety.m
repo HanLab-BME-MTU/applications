@@ -24,7 +24,8 @@ else
 end
 
 % Get every path from rootDirectory containing actin subfolder.
-paths = getDirectories(rootDirectory, 1, {'actin', 'TM2'}, ...
+subDirNames = {'actin', 'TM2'};
+paths = getDirectories(rootDirectory, 1, subDirNames, ...
     @(x) exist([x filesep 'lastProjSettings.mat'], 'file'));
 
 disp('List of directories:');
@@ -50,17 +51,30 @@ for iMovie = 1:nMovies
     currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
     content = dir(path);
     content = {content.name};
-    actinFolder = content{find(strcmpi('actin', content), 1, 'first')};
-    currMovie.imageDirectory = [path filesep actinFolder filesep 'crop'];
+    
+    ind = 0;
+    for i = 1:numel(subDirNames)
+        subDirPath = [path filesep subDirNames{i}];
+        if exist(subDirPath, 'dir')
+            ind = ind + 1;
+            break;
+        end
+    end
+    if ind ~= 1
+        disp([movieName ': Unable to find the FSM directories. (SKIPPING)']);
+        continue;
+    end    
+    
+    currMovie.imageDirectory = [path filesep subDirNames{ind} filesep 'crop'];
     currMovie.channelDirectory = {''};
     currMovie.nImages = numel(dir([currMovie.imageDirectory filesep '*.tif']));
 
-    load([path filesep actinFolder filesep 'fsmPhysiParam.mat']);
+    load([path filesep subDirNames{ind} filesep 'fsmPhysiParam.mat']);
     currMovie.pixelSize_nm = fsmPhysiParam.pixelSize;
     currMovie.timeInterval_s = fsmPhysiParam.frameInterval;
     clear fsmPhysiParam;
 
-    currMovie.masks.directory = [path filesep actinFolder filesep 'edge' filesep 'cell_mask'];
+    currMovie.masks.directory = [path filesep subDirNames{ind} filesep 'edge' filesep 'cell_mask'];
     if ~exist(currMovie.masks.directory, 'dir')
         disp([movieName ': unable to find mask directory. (SKIPPING)']);
         continue;
