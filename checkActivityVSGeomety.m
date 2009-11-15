@@ -24,7 +24,7 @@ else
 end
 
 % Get every path from rootDirectory containing actin subfolder.
-paths = getDirectories(rootDirectory, 1, 'actin', ...
+paths = getDirectories(rootDirectory, 1, {'actin', 'TM2'}, ...
     @(x) exist([x filesep 'lastProjSettings.mat'], 'file'));
 
 disp('List of directories:');
