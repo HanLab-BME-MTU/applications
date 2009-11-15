@@ -49,22 +49,24 @@ for iMovie = 1:nMovies
     
     % STEP 1: Create movieData
     currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
-    ind = cellfun(@(x) exist([path filesep x], 'dir'), subDirNames);
-    if nnz(ind) ~= 1
+    content = dir(path);
+    content = {content.name};
+    ind = cellfun(@(x) strcmpi(x, subDirNames), content);
+    if ~nnz(ind)
         disp([movieName ': Unable to find the FSM directory. (SKIPPING)']);
         continue;
     end    
-    ind = find(ind == 1);
-    currMovie.imageDirectory = [path filesep subDirNames{ind} filesep 'crop'];
+    fsmFolderName = content{find(ind, 1, 'first')};
+    currMovie.imageDirectory = [path filesep fsmFolderName filesep 'crop'];
     currMovie.channelDirectory = {''};
     currMovie.nImages = numel(dir([currMovie.imageDirectory filesep '*.tif']));
 
-    load([path filesep subDirNames{ind} filesep 'fsmPhysiParam.mat']);
+    load([path filesep fsmFolderName filesep 'fsmPhysiParam.mat']);
     currMovie.pixelSize_nm = fsmPhysiParam.pixelSize;
     currMovie.timeInterval_s = fsmPhysiParam.frameInterval;
     clear fsmPhysiParam;
 
-    currMovie.masks.directory = [path filesep subDirNames{ind} filesep 'edge' filesep 'cell_mask'];
+    currMovie.masks.directory = [path filesep fsmFolderName filesep 'edge' filesep 'cell_mask'];
     if ~exist(currMovie.masks.directory, 'dir')
         disp([movieName ': unable to find mask directory. (SKIPPING)']);
         continue;
