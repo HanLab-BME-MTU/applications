@@ -8,7 +8,6 @@ function dataStruct = makiInitCoord(dataStruct, verbose, movieType, cutoffFix,ti
 %                         .rawMovieName - may contain the actual movie
 %                         .rawMoviePath
 %                         .dataProperties
-%                       Alternatively, a makiData object can be passed.
 %                   verbose (opt): 0: plot nothing
 %                                  1: show progressText (default)
 %                                  2: + show cutoff-plots
@@ -21,7 +20,8 @@ function dataStruct = makiInitCoord(dataStruct, verbose, movieType, cutoffFix,ti
 %                           the "good" local maxima. Default: []
 %                           This input is to be used for testing purposes
 %                           only; a pre-set cutoff value should be stored
-%                           in dataStruct.dataProperties
+%                           in dataStruct.dataProperties.
+%                           Setting [0,0] uses a pooled cutoff.
 %                   timeRange: subset of timepoints for which makiInitCoord
 %                           is being run. Optional. Default: [] (=all)
 %
@@ -49,7 +49,7 @@ function dataStruct = makiInitCoord(dataStruct, verbose, movieType, cutoffFix,ti
 %
 % created with MATLAB ver.: 7.4.0.287 (R2007a) on Windows_NT
 %
-% created by: jdorn
+% created by: Jonas Dorn
 % DATE: 28-Jun-2007
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -74,60 +74,35 @@ end
 %% COLLECT INPUT & SETUP
 %=========================
 
-if isobject(dataStruct)
-    % if dataStruct is an object, movie is in imageData
-    isDataObject = true;
-    % change save-mode of initCoord so that it doesn't autosave 100 times
-    dataStruct.propertyNames{3,2}.saveMode = 0;
+
+if ischar(dataStruct.rawMovieName)
+    rawMovie = fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName);
 else
-    isDataObject = false;
-    if ischar(dataStruct.rawMovieName)
-        rawMovie = fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName);
-    else
-        rawMovie = [];
-    end
+    rawMovie = [];
 end
 dataProperties = dataStruct.dataProperties;
 
-% find more parameters
-% betterBackground: estimate background after masking signal
-if ~isfield(dataProperties,'betterBackground')
-    if isDataObject
-        betterBackground = true;
-    else
-        betterBackground = false;
-    end
-else
-    betterBackground = dataProperties.betterBackground;
-end
-% isNanMask: switch that checks whether there needs to be a correction for
-% nanMasks
-if ~isfield(dataProperties,'isNanMask')
-    if isDataObject
-        isNanMask = 2;
-    else
-        isNanMask = 0;
-    end
-else
-    isNanMask = dataProperties.isNanMask;
-end
+% Jonas, 10/09: The background mask is only 1 sigma wide. This means that
+% instead of Gaussian filtering, we were doing some kind of strange average
+% filtering.
 
-% setup filter parameters. Increase speed by doing incremental filtering
-% for background
-backgroundFilterParms = dataProperties.FT_SIGMA * 14; % 14 is 15-1
+% setup filter parameters. 
+backgroundFilterParms = dataProperties.FT_SIGMA * 15; % use *14 if you then filter the signalFiltered image to backgroundFilter to save some time
 backgroundFilterParms(4:6) = roundOddOrEven(backgroundFilterParms,'odd','inf');
 % create background mask already
 backgroundFilter = GaussMask3D(backgroundFilterParms(1:3),...
     backgroundFilterParms(4:6),[],1,[],[],1);
 signalFilter = GaussMask3D(dataProperties.FILTERPRM(1:3),...
     dataProperties.FILTERPRM(4:6),[],1,[],[],1);
-
 % make separated noise mask
 noiseMask = {...
     ones(dataProperties.FILTERPRM(4),1,1)./dataProperties.FILTERPRM(4),...
     ones(1,dataProperties.FILTERPRM(5),1)./dataProperties.FILTERPRM(5),...
     ones(1,1,dataProperties.FILTERPRM(6))./dataProperties.FILTERPRM(6),...
     };
+
+
+
 
 % for conversion to microns in the end: get pixelSize
 pixelSize = [dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,...
@@ -146,32 +121,14 @@ tmp(1:nTimepoints,1) = struct('allCoord',[],...
     'initAmp',[],'amp',[],'data4MMF',[]);
 dataStruct.initCoord = tmp;
 
-% missing frames are indicated by empty cropMasks. Don't analyze them!
-% For safety reason, this check is only performed on data objects
 goodTimes = 1:nTimepoints;
-if isDataObject
-    % since this is dataObj only, no need to worry about compatibility
-    if dataProperties.initCoord.rmEmptyMasks
-        goodTimes = find(cellfun(@(x)(~isempty(x)),...
-            dataStruct.imageData.cropInfo.cropMask))';
-    end
-end
-
 % check timeRange
 if ~isempty(timeRange)
     goodTimes = intersect(goodTimes,timeRange);
 end
 
-% read minimum number of requested spots per frame. If not set, assume 20
-if isDataObject
-    if isfield(dataProperties.initCoord,'minSpotsPerFrame')
-        minSpotsPerFrame = dataProperties.initCoord.minSpotsPerFrame;
-    else
-        minSpotsPerFrame = 20;
-    end
-else
-    minSpotsPerFrame = 20;
-end
+minSpotsPerFrame = 20;
+
 
 %=====================
 %% MAIN LOOP
@@ -179,8 +136,11 @@ end
 if verbose
     progressText;
 end
-nTimes = max(goodTimes); % not the best way to count, but it works.
-for t=goodTimes
+nTimes = numel(goodTimes); % not the best way to count, but it works.
+
+
+
+for t=goodTimes(:)'
     
     % -- load images --
     % raw = current raw movie frame
@@ -190,13 +150,9 @@ for t=goodTimes
     % amplitude = filtered - background
     % noise = locAvg(var(raw-filtered))
     
-    if isDataObject
-        % isNanMask == 2 indicates that we should crop only later in order
-        % to increase processing speed.
-        raw = dataStruct.imageData.getFrame(t,[],[],isNanMask==1);
-    elseif isempty(rawMovie)
+    if isempty(rawMovie)
         % movie has been passed directly
-        raw = dataStruct.rawMovieName(:,:,:,:,t);
+        raw = dataStruct.rawMovie(:,:,:,:,t);
     else
         switch movieType
             case 1 %DV files
@@ -224,67 +180,27 @@ for t=goodTimes
     offset = min(raw(:));
     raw = raw -  offset;
     % filter movie with gauss-filter
-    if betterBackground
-        % there will be NaNs in the masked image. Therefore, request
-        % filtered data from imageDataObject. Ideally, loadType is set to
-        % fcn or reqKeep
-        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter,1);
-        % filter signal first, then run smaller filter with background to
-        % save some time
-        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter,1);
-        
-        % mask signal pixels, then recalculate background
-        sigMask = raw>background;
-        % remove some of the spurious hits. Use 2d mask for speed and
-        % memory (3d strel won't work on binary image with imopen)
-        sigMask = imopen(sigMask,strel('disk',1));
-        rawMsk = raw.*~sigMask;
-        clear sigMask
-        % fill holes. ConvNan can in principle handle holes, but they might
-        % be on the large side. Similarly, if fillZeroHoles misses a few
-        % zeros, convNan can help out
-        for z=1:dataProperties.movieSize(3)
-            rawMsk(:,:,z)=blkproc(rawMsk(:,:,z),[21 21],@fillZeroHoles);
-        end
-        rawMsk(rawMsk==0) = NaN;
-        background = fastGauss3D(rawMsk,[],dataProperties.FILTERPRM(4:6),1,signalFilter,1);
-        %background = convNan(rawMsk,backgroundFilter,backgroundFilterParms(4:6),1);
-        
-    else
-        % only use NaN-image-reduction and new addBorders for dataObj to guarantee backward
-        % compatibility
-        filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),signalFilter,isDataObject);
-        % filtering with sigma=15 is equal to filtering with 1 and then
-        % with 14
-        background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2-(isNanMask==1),backgroundFilter,isDataObject);
-    end
+    
+    % Jonas: use old version of border-correction to avoid risks (yes, I
+    % have become paranoid about these things)
+    filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2,signalFilter);
+    % filtering with sigma=15 is equal to filtering with 1 and then
+    % with 14 if both filters are Gaussians. Thus, it should be possible to
+    % make backgroundFilter smaller and filter the filtered instead of the
+    % raw image.
+    %background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2,backgroundFilter);
+    background = fastGauss3D(raw,[],backgroundFilterParms(4:6),2,backgroundFilter);
+    
     
     % amplitude is filtered image - background. This underestimates the
     % true signal. The underestimation becomes stronger if betterBackground
     % is not used.
     amplitude = filtered - background;
     
-    
     % noise is local average (averaged over filter support) of squared
     % residuals of raw-filtered image
     noise = (raw-filtered).^2;
-    noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),2-(isNanMask==1),noiseMask);
-    
-    if isNanMask == 2
-        % apply nan-mask now
-        if ~isempty(dataStruct.imageData.cropInfo)
-            if iscell(dataStruct.imageData.cropInfo.cropMask)
-                msk = ~dataStruct.imageData.cropInfo.cropMask{t};
-            else
-                msk = ~dataStruct.imageData.cropInfo.cropMask;
-            end
-            msk = repmat(msk,[1,1,dataProperties.movieSize(3)]);
-            filtered(msk) = NaN;
-        end
-    end
-    
-%     figure,imshow(max(amplitude,[],3)-mean(amplitude,3),[]);
-%     error('bam')
+    noise = fastGauss3D(noise,[],dataProperties.FILTERPRM(4:6),2,noiseMask);
     
     % find local maxima
     locMax = loc_max3Df(filtered,[3 3 3]);
@@ -346,30 +262,33 @@ for t=goodTimes
     % with the rest of the measures!
     initCoordTmp = [initCoordTmp,...
         initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)),...
-        initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)./max(initCoordTmp(:,4),eps))];
+        initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)./max(initCoordTmp(:,4),eps))]; %#ok<AGROW>
     
     initCoordRaw{t} = initCoordTmp;
     
     if verbose
-        progressText(t/nTimes);
+        progressText(find(t==goodTimes)/nTimes); % !! parfor counts backwards
     end
     
     if verbose > 2
         % plot frame with initial guesses for coords
         figure('Name',sprintf('frame %i',t))
         imshow(max(amplitude,[],3),[])
-        hold on, 
+        hold on,
         for i=1:size(initCoordTmp,1),
             text(initCoordTmp(i,2),initCoordTmp(i,1),num2str(i),'Color','r');
         end
     end
 end % loop timepoints
 
+
+
 clear initCoordTmp
 allCoord = cat(1,initCoordRaw{:});
 
 %% Find cutoff
 
+allCols = [4, 7, 8]; % columns used to calculate cutoff
 % find cutoff based on amplitude/sqrt(noise/amp), though the others are
 % very similar. Allow fallback if less than 25 spots per frame are found
 % (this indicates that cutFirstHistmode of splitModes failed)
@@ -393,13 +312,10 @@ else
     cutoff(3) = NaN;
 end
 
+
 % plot all before selecting cutoff so that we can see what went wrong
 if verbose > 1
-    if isDataObject
-        figure('Name',sprintf('cutoffs for %s',dataStruct.identifier))
-    else
-        figure('Name',sprintf('cutoffs for %s',dataStruct.projectName))
-    end
+    figure('Name',sprintf('cutoffs for %s',dataStruct.projectName))
     ah(1) = subplot(3,1,1);
     set(ah(1),'NextPlot','add')
     plot(ah(1),[1,nTimepoints],[cutoff(1) cutoff(1)]);
@@ -429,17 +345,22 @@ if ~isempty(cutoffFix)
     oldCutoff = cutoff;
     % set cutoffIdx, cutoffCol
     cutoffIdx = cutoffFix(1);
-    cutoffCol = cutoffIdx + 5;
-    % update cutoff
-    cutoff(cutoffIdx) = cutoffFix(2);
+    if cutoffIdx == 0
+        cutoffCol = 0;
+    else
+        cutoffCol = cutoffIdx + 5;
+        % update cutoff
+        cutoff(cutoffIdx) = cutoffFix(2);
+    end
 else
+    
     
     
     switch movieType
         case 1
             % note: ask only for spots in good frames
-            if isfield(dataProperties.initCoord,'minSpotsPerFrame')
-                minN = dataProperties.initCoord.minSpotsPerFrame;
+            if isfield(dataProperties,'minSpotsPerFrame')
+                minN = dataProperties.minSpotsPerFrame;
             else
                 minN = 20;
             end
@@ -475,9 +396,8 @@ else
 end
 
 % remember the cutoff criterion used
-if ~isDataObject
-    dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];
-end
+dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];
+
 
 if verbose > 1
     title(ah(cutoffIdx),'cutoff selected')
@@ -506,11 +426,20 @@ end
 % load $MOVIENAME.log, parse for start coordinate and determine focus
 % adjustment. This should give a z0-value for every frame that we can
 % use to correct the um-coords for tracking
+% -- this turns out to be unnecessary due to alignment of coords
 
 
 
-for t=goodTimes
-    goodIdxL = initCoordRaw{t}(:,cutoffCol) > cutoff(cutoffIdx);
+for t=goodTimes(:)'
+    
+    if cutoffCol > 0
+        goodIdxL = initCoordRaw{t}(:,cutoffCol) > cutoff(cutoffIdx);
+    else
+        % do pooled cutoff. Accept if above at least one cutoff
+        goodIdxL = bsxfun(@gt,initCoordRaw{t}(:,allCols),cutoff');
+        goodIdxL = sum(goodIdxL,2)>1;
+    end
+    
     
     % count good spots
     dataStruct.initCoord(t).nSpots = sum(goodIdxL);
@@ -547,27 +476,12 @@ for t=goodTimes
     % cutoff for detector later. Note: the spots may be not exactly the two
     % above or below, since we sorted the data according to amplitudes
     % above.
-    twoAbove = find(initCoordRaw{t}(:,cutoffCol) > cutoff(cutoffIdx),2,'last');
-    twoBelow = find(initCoordRaw{t}(:,cutoffCol) < cutoff(cutoffIdx),2,'first');
-    dataStruct.initCoord(t).data4MMF = ...
-        initCoordRaw{t}([twoAbove;twoBelow],1:3);
-end
-
-% save cutoff info
-if isDataObject
-    if isempty(cutoffFix)
-        dataStruct.initCoord(1).cutoff.co = cutoff;
-    else
-        % with fixed cutoff: store old value
-        dataStruct.initCoord(1).cutoff.co = oldCutoff;
+    if cutoffCol > 0
+        twoAbove = find(initCoordRaw{t}(:,cutoffCol) > cutoff(cutoffIdx),2,'last');
+        twoBelow = find(initCoordRaw{t}(:,cutoffCol) < cutoff(cutoffIdx),2,'first');
+        dataStruct.initCoord(t).data4MMF = ...
+            initCoordRaw{t}([twoAbove;twoBelow],1:3);
     end
-    dataStruct.initCoord(1).cutoff.sel = [cutoffIdx,cutoffCol];
-    dataStruct.initCoord(1).cutoff.n = nn;
-    
-    % change save-mode again and save
-    dataStruct.propertyNames{3,2}.saveMode = 2;
-    dataStruct.initCoord = dataStruct.initCoord;
-    
 end
 
 % % code to determine optimal amplitude cutoff
