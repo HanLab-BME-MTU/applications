@@ -5,7 +5,7 @@ if isempty(projList)
     projectDirectories=[];
 else
     projectDirectories=struct2cell(projList);
-    if isempty(strfind(projectDirectories{2,1},[filesep 'images']))
+    if isempty(strfind(formatPath(projectDirectories{2,1}),[filesep 'images']))
         projectDirectories=projectDirectories(2,:)';
     else
         projectDirectories=projectDirectories(1,:)';

@@ -22,10 +22,10 @@ percentsRYGB=round(100*(popRYGB./repmat(sum(popRYGB,2),[1 4])));
 % highest percentage
 d=sum(percentsRYGB,2);
 if d>100
-    maxIdx=find(percentsRYGB==max(percentsRYGB,[],2));
+    maxIdx=find(percentsRYGB==max(percentsRYGB,[],2),1);
     percentsRYGB(maxIdx)=percentsRYGB(maxIdx)-(d-100);
 elseif d<100
-    minIdx=find(percentsRYGB==min(percentsRYGB,[],2));
+    minIdx=find(percentsRYGB==min(percentsRYGB,[],2),1);
     percentsRYGB(minIdx)=percentsRYGB(minIdx)+(100-d);
 end
 

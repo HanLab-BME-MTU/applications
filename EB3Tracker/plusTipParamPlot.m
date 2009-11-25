@@ -301,10 +301,12 @@ if doPlot==1
         imagesc(img); colormap gray;
         hold on
         plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
-
+        axis equal
+        
         % make overlay
         figure(h)
         plot(xMat(subtrackIdx(idx),:)',yMat(subtrackIdx(idx),:)',colorMap(iColor))
+        axis equal
 
     end
 end

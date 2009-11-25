@@ -11,10 +11,7 @@ function [allData]=plusTipParamSweep(projData,parametersToTest,secPerFrame,pixSi
 %                          contain gapLifetime and linkingDistance figures
 %                          and individual data (subset of allData) matrices
 %
-% Note: It is not great coding practice to put called functions
-% within the GUI setup, but in this case it is ok since this function will
-% never be called elsewhere.  They were previously separate but the similar
-% names were confusing.
+
 
 
 if nargin<4
@@ -45,6 +42,8 @@ paramDir=[formatPath(projData.anDir) filesep 'paramTest'];
 if isdir(paramDir)
     rmdir(paramDir,'s')
 end
+mkdir(paramDir)
+
 
 % loop thru parameters and run through range of values to test
 nParams=length(paramNames);
@@ -66,7 +65,13 @@ end
 allData=[dataCols; [allDataList vertcat(allData{:})]];
 save([paramDir filesep 'allData'],'allData')
 
-
+% make summary plots for allData
+figDir=[paramDir filesep filesep 'figs_allData'];
+if isdir(figDir)
+    rmdir(figDir,'s')
+end
+mkdir(figDir);
+plusTipSettingSweepPlots(allData,figDir)
 
 function [data,dataCols]=paramTest(projData,paramNames,paramDflts,secPerFrame,pixSizeNm,pName,pRange)
 

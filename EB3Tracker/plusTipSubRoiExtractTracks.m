@@ -2,11 +2,44 @@ function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,excludeMask,midPoint,
 % this fn is called by plusTipSubdivideRoi or as a standalone fn after
 % re-running tracking if you don't want to re-draw ROIs
 
-% INPUT: subRoiDir: path of sub_x folder of interest
-% OUTPUT: projData: project data similar to post-processing output, only
-% for growth tracks (no fgaps or bgaps) that exist for 3 or more frames
-% inside the region.  There are some new fields with info about the track
-% mean speeds in/out of the ROI at the end.
+% INPUT:
+%   subRoiDir   : path of sub_x folder of interest
+%   excludeMask : mask containing regions in which a track originating
+%                 within them should be excluded
+%   midPoint    : 1 if the definition of a sub-roi track should be that it
+%                 must spend half or more of its lifetime within the
+%                 sub-roi, 0 if not
+%   minFrames   : if midPoint=0, this is how many frames the track must be
+%                 included in the sub-roi to be considered
+%
+% OUTPUT:
+%   projData : project data similar to post-processing output, only
+%              for growth tracks (no fgaps or bgaps) inside the region.
+%              There are some new fields at the end:
+%                   sourceSubTrackIdx: original sub-track index
+%                                      corresponding to row of nTrack_sF_eF...
+%                   trackLifeFrames  : track lifetime in frames
+%                   framesInSubRoi   : how many frames the sub-track stays
+%                                      within the sub-roi
+%                   percentLifeInside: framesInSubRoi/trackLifeFrames
+%                   speedInMicPerMin : average speed (microns/min) of the
+%                                      sub-track while it is within the roi
+%                   speedOutMicPerMin: average speed (microns/min) of the
+%                                      sub-track while it is outside the roi
+%                                      (NaN if it is completely within)
+%                   trackLifeSec     : track lifetime in seconds
+%                   startOrEnd       : 1 if the sub-track is present at the
+%                                      start or end of the movie
+%                   percentAtStartOrEnd: percentage of all the sub-roi
+%                                        sub-tracks present at the start or
+%                                        end of the movie
+%   M : speeds (microns/min), lifetimes (sec), and displacements (microns)
+%       for growths, fgaps,and bgaps (of which the latter two do not exist here)
+%
+% NOTE: the extracted tracks are the raw growth tracks only - no fgaps or
+% bgaps and no merged subtracks.  thus the growth lifetimes are likely
+% shorter than what would be measured from the original data set, and there
+% would be more tracks in the region.
 
 homeDir=pwd;
 
@@ -45,17 +78,19 @@ mainProjDir=pwd;
 
 
 % all the original tracks
+%aT=plusTipMergeSubtracks(sourceProjData);
 aT=sourceProjData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 
 % get growth track indices only and coordinates
 idx=find(aT(:,5)==1);
+%[xMat,yMat]=plusTipGetSubtrackCoords(sourceProjData,idx,1);
 [xMat,yMat]=plusTipGetSubtrackCoords(sourceProjData,idx);
 
 roiMask=imread([subRoiDir filesep 'roiMask.tif']);
-    [imL,imW]=size(roiMask);
+[imL,imW]=size(roiMask);
+
 % get which tracks have their first point NOT in the exclude region
 if ~isempty(excludeMask)
-
     x=zeros(length(idx),1);
     y=zeros(length(idx),1);
     for i=1:length(idx)
@@ -68,7 +103,7 @@ else
     inIncludeRegion=1:length(idx);
 end
 
-% figure;
+% figure; % make a figure to check the results of exclude region
 % imshow(~excludeMask)
 % hold on
 % scatter(x(inIncludeRegion),y(inIncludeRegion))
@@ -78,27 +113,20 @@ try
     sF=max([sourceProjData.detectionFrameRange(1); sourceProjData.trackingFrameRange(1); sourceProjData.postTrackFrameRange(1)]);
     eF=min([sourceProjData.detectionFrameRange(2); sourceProjData.trackingFrameRange(2); sourceProjData.postTrackFrameRange(2)]);
 catch
-   sF=1;
-   eF=sourceProjData.numFrames;
+    sF=1;
+    eF=sourceProjData.numFrames;
 end
 
 % limit tracks to only these frames
 xMat=xMat(:,sF:eF);
 yMat=yMat(:,sF:eF);
 
-% load sub-roi outline pixels
-%roiYX=load([subRoiDir filesep 'roiYX']);
-%yv=roiYX.roiYX(:,1);
-%xv=roiYX.roiYX(:,2);
-
-
-pixIdx=sub2ind([imL,imW],ceil(yMat-.5),ceil(xMat-.5));
+% find which of the track indices are in the roiMask
 % assume that the first pixel in the image will be a zero
 % but make sure this is so by making the first roiMask pixel = 0
-pixIdx(isnan(pixIdx))=1; 
+pixIdx=sub2ind([imL,imW],ceil(yMat-.5),ceil(xMat-.5));
+pixIdx(isnan(pixIdx))=1;
 roiMask(1,1)=0;
-
-% find which of the track indices are in the roiMask
 IN=roiMask(pixIdx);
 
 % calculate which growth track features are in the sub-ROI
@@ -107,8 +135,8 @@ if midPoint==1
     timeInside=sum(IN,2);
     trckIdxIn=intersect(find(timeInside./lifetime>=0.5),inIncludeRegion);
 else
-    % tracks spending at least 3 frames in the region count
-    trckIdxIn=intersect(find(sum(IN,2)>=3),inIncludeRegion);
+    % tracks spending at least minFrames in the region count
+    trckIdxIn=intersect(find(sum(IN,2)>=minFrames),inIncludeRegion);
 end
 
 % limit data to these tracks

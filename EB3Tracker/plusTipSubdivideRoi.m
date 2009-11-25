@@ -1,8 +1,15 @@
 function plusTipSubdivideRoi(sourceProjData,fractionFromEdge,savedROI,excludeRegion,micFromEdge,midPoint,minFrames)
-% plusTipSubdivideRoi allows user to choose sub-regions of interest
+% plusTipSubdivideRoi creates sub-regions of interest and extracts tracks
+%
+% There are 3 options for sub-region selection
+%  1) manual selection: make fractionFromEdge=[] and micFromEdge=[]
+%  2) automatic selection of 4 quadrants plus or minus a central region: 
+%       make fractionFromEdge some value between 0 and 1 (see below) and micFromEdge=[]
+%  3) automatic selection of 2 regions, a central and a peripheral region
+%       of thickness "micFromEdge" microns; make fractionFromEdge=[]
 %
 % INPUT : sourceProjData        : projData file from any project
-%         fractionFromEdge (OPT): decimal value representing position of a
+%         fractionFromEdge      : decimal value representing position of a
 %                                 central polygon edge from ROI-boundary to
 %                                 the cell's center of mass.  Use 1 to
 %                                 avoid the central polygon and only have
@@ -10,17 +17,31 @@ function plusTipSubdivideRoi(sourceProjData,fractionFromEdge,savedROI,excludeReg
 %                                 0-1. Upon running the function, you will
 %                                 be asked to draw a line across the cell.
 %                                 This provides one of the two axes used to
-%                                 divide the cell into quadrants. If this
-%                                 parameter is not included, the user can
-%                                 pick his/her own regions.
+%                                 divide the cell into quadrants.
 %         savedROI              : either a BW mask or roiYX coordinates. if
 %                                 empty, user picks a new ROI
+%         excludeRegion         : 1 to draw one or more circles around
+%                                 regions for which tracks emanating from
+%                                 them should be excluded from analysis.
+%                                 these might be the centrosome or a bright
+%                                 blob for which tracking is known to be
+%                                 meaningless, for instance
+%        micFromEdge            : thickness in microns of a band around the
+%                                 cell's boundary (from savedROI) used to
+%                                 delineate the two regions in option 3
+%                                 above. note that the cell must be big
+%                                 enough such that the central region forms
+%                                 an open polygon; otherwise you will get
+%                                 errors.
+%        midPoint               : 1 if the definition of a sub-roi track should be that it
+%                                 must spend half or more of its lifetime within the
+%                                 sub-roi, 0 if not
+%        minFrames              : if midPoint=0, this is how many frames the track must be
+%                                 included in the sub-roi to be considered
 %
 % OUTPUT: sub-roi directories, a tiff image showing regional selections,
 %         and a text file giving the speed/lifetime/displacement
-%         distributions for growth.  a growth track is included in a
-%         particular region if three or more frames of that track's
-%         existence fall within the region. merged tracks are not
+%         distributions for growth.  merged tracks are not
 %         considered here - the flanking growth trajectories of a
 %         reclassified fgap or bgap are considered to be two separate
 %         tracks.
@@ -81,6 +102,17 @@ elseif fractionFromEdge<0 || fractionFromEdge>1
     return
 else
     roiSelectType='fractionQuad';
+end
+
+if nargin<5 || isempty(micFromEdge)
+    micFromEdge=[];
+else
+    roiSelectType='micronSplit';
+end
+
+if ~isempty(fractionFromEdge) && ~isempty(micFromEdge)
+    msgbox('plusTipSubdivideRoi: either fractionFromEdge or micFromEdge or both must be []')
+    return
 end
 
 % make sub-roi directory under roi_x directory and go there
@@ -169,11 +201,7 @@ if nargin<4 || isempty(excludeRegion)
     excludeRegion=0;
 end
 
-if nargin<5 || isempty(micFromEdge)
-    micFromEdge=[];
-else
-    roiSelectType='micronSplit';
-end
+
 
 
 excludeMask=swapMaskValues(roiMask);

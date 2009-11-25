@@ -59,21 +59,22 @@ handles.projData=[];
 handles.secPerFrame=[];
 handles.pixSizeNm=[];
 
-handles.timeWindowDef=10;
-handles.minRadiusDef=3;
-handles.maxRadiusDef=6;
+
+handles.minRadiusDef=5;
+handles.maxRadiusDef=10;
+handles.timeWindowDef=12;
 handles.maxFAngleDef=30;
 handles.maxBAngleDef=10;
-handles.maxShrinkFactorDef=1.5;
-handles.fluctRadDef=1.5;
+handles.maxShrinkFactorDef=1.0;
+handles.fluctRadDef=2.0;
 
-handles.timeWindowRange=4:2:30;
-handles.minRadiusRange=3:1:5;
-handles.maxRadiusRange=5:1:8;
-handles.maxFAngleRange=10:10:40;
-handles.maxBAngleRange=5:5:15;
-handles.maxShrinkFactorRange=0.5:0.5:1.5;
-handles.fluctRadRange=1.0:0.5:3.0;
+handles.minRadiusRange=1:1:10;
+handles.maxRadiusRange=5:1:15;
+handles.timeWindowRange=2:2:30;
+handles.maxFAngleRange=10:5:40;
+handles.maxBAngleRange=5:5:30;
+handles.maxShrinkFactorRange=0.5:0.1:1.5;
+handles.fluctRadRange=1.0:0.5:5.0;
 
 
 %place image onto the axes, remove tick marks

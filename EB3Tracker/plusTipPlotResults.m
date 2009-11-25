@@ -30,7 +30,7 @@ end
 imDir=formatPath(projData.imDir);
 anDir=formatPath(projData.anDir);
 
-if nargin<7
+if nargin<7 || isempty(saveDir)
     saveDir=uigetdir(anDir,'Please choose output directory');
 end
 

@@ -60,7 +60,7 @@ else
     % dataMat is an input, we need to find where the growthFgaps are
 
     % look at fgaps - if their speed << growth phase just prior, then it's a
-    % true pause.  it it is greater than 90% growth speed, reclassify it as
+    % true pause.  it it is greater than 70% growth speed, reclassify it as
     % continuation of growth.
     fgapIdx=find(dataMat(:,5)==2);
     

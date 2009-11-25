@@ -10,7 +10,8 @@ for i=1:length(groupList)
     projDir=[groupList{i,2} filesep 'meta'];
     cd(projDir)
     load projData
-    aT=plusTipMergeSubtracks(projData); % use merged data, don't crop beginning/end
+    %aT=plusTipMergeSubtracks(projData); % use merged data, don't crop beginning/end
+    aT=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
     aT(aT(:,5)~=1,:)=[]; % use growths only
     aT(:,6)=aT(:,6).*projData.secPerFrame;
     aT(:,7)=aT(:,7).*(projData.pixSizeNm/1000);

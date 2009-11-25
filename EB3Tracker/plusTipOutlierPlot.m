@@ -149,7 +149,7 @@ for iGroup = 1:nGroups
         % store the handle for the first member of each group for the legend
         h1(iGroup)=h(1);
 
-        % these have to be defined each frame
+        % these have to be defined each time
         clear prop_values
 
         % keep all the parameter values in a vector

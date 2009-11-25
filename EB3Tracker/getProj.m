@@ -17,7 +17,10 @@ function [projList,projPaths]=getProj(varargin)
 %                          for each project fitting the query.
 %                          this is saved in the top-level directory.
 %         projPaths      : cell array containing roi/subroi paths only
-
+% Kathryn Applegate 2008
+%
+% Kathryn Nov 2009 - allows for searches where more than 9 rois or
+% sub-rois
 
 
 
@@ -78,8 +81,22 @@ else
     tempDirList=strrep(p,':',' ');
 end
 % get cell array of "roi_x" directories
-roiDirList=regexp(tempDirList,['\S*roi_\d\s'],'match')';
-subDirList=regexp(tempDirList,['\S*sub_\d\s'],'match')';
+[roiDirList1]=regexp(tempDirList,['\S*roi_\d\s'],'match')';   % rois 1-9
+[roiDirList2]=regexp(tempDirList,['\S*roi_\d\d\s'],'match')'; % rois >=10
+roiDirList=[roiDirList1; roiDirList2]; % concat them
+% add a zero in the middle of 1-9 so they can be sorted
+roiTemp=[cellfun(@(x) [x(1:end-2) '0' x(end-1:end)],roiDirList1,'uniformOutput',0); roiDirList2];
+[b,idx]=sort(roiTemp);
+roiDirList=roiDirList(idx);
+
+% get cell array of "sub_x" directories
+[subDirList1]=regexp(tempDirList,['\S*sub_\d\s'],'match')';   % subs 1-9
+[subDirList2]=regexp(tempDirList,['\S*sub_\d\d\s'],'match')'; % subs >=10
+subDirList=[subDirList1; subDirList2]; % concat them
+% add a zero in the middle of 1-9 so they can be sorted
+subTemp=[cellfun(@(x) [x(1:end-2) '0' x(end-1:end)],subDirList1,'uniformOutput',0); subDirList2];
+[b,idx]=sort(subTemp);
+subDirList=subDirList(idx);
 
 % initialize as empty in case no projects found
 projList=[];

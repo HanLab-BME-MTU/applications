@@ -214,7 +214,7 @@ end
 %hold on figure
 hold on
 
-for t=1:5
+for t=1:6
     switch t
         case 1 % growth
             c1='r';

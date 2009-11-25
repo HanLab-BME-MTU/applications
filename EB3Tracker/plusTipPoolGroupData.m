@@ -1,4 +1,4 @@
-function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot)
+function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,remBegEnd)
 % plusTipPoolGroupData pools plus tip data from multiple projects in groups
 %
 % SYNOPSIS:  [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot)
@@ -13,6 +13,8 @@ function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot)
 %             each group in a "withinGroupComparisons" folder
 % doPlot    : 1 to make histograms and boxplots for within and/or between
 %             group data
+% remBegEnd : 1 to remove tracks existing at the beginning
+%             or end of the movie
 %
 % OUTPUT:
 % groupData : structure containing group information and fields for 9
@@ -49,6 +51,10 @@ end
 if nargin<5 || isempty(doPlot)
     doPlot=1;
 end
+% assume we should use all data
+if nargin<6 || isempty(remBegEnd)
+    remBegEnd=0;
+end
 
 projGroupName=groupList(:,1);
 projGroupDir=cellfun(@(x) formatPath(x),groupList(:,2),'uniformoutput',0);
@@ -84,15 +90,25 @@ for iGroup = 1:length(btwGrpNames)
     for iProj = 1:length(tempIdx)
 
         temp = load([projGroupDir{tempIdx(iProj)} filesep 'meta' filesep 'projData']);
-        [dummy1,dummy2,dataMatCrpSecMic]=plusTipMergeSubtracks(temp.projData);
+        if remBegEnd==1
+            % this output has data at beginning/end removed and units
+            % already converted
+            [dummy1,dummy2,dataMat]=plusTipMergeSubtracks(temp.projData);
+        else
+            % this output just gives merged tracks without converting units
+            % or removing beginning/end data
+            [dataMat,dummy1,dummy2]=plusTipMergeSubtracks(temp.projData);
+            dataMat(:,6)=dataMat(:,6).* temp.projData.secPerFrame; % convert lifetimes to seconds
+            dataMat(:,7)=dataMat(:,7).*(temp.projData.pixSizeNm/1000); % convert displacements to microns
+        end
 
         % reassign the track numbers so when combined from multiple projects they don't repeat
-        trkIdx=unique(dataMatCrpSecMic(:,1));
-        dataMatCrpSecMic(:,1)=swapMaskValues(dataMatCrpSecMic(:,1),trkIdx,[trkCount:trkCount+length(trkIdx)-1]);
+        trkIdx=unique(dataMat(:,1));
+        dataMat(:,1)=swapMaskValues(dataMat(:,1),trkIdx,[trkCount:trkCount+length(trkIdx)-1]);
         trkCount=trkCount+length(trkIdx);
 
         % assign matrix to cell array
-        dataByProject{iProj,1}=dataMatCrpSecMic;
+        dataByProject{iProj,1}=dataMat;
 
         projNum{projCount,1}=iProj;
         projNum{projCount,2}=formatPath(temp.projData.anDir);
