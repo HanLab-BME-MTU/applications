@@ -183,6 +183,14 @@ for iMovie = 1 : numMovies
             frameAlignment = dataStruct(iMovie).frameAlignment(iSample:samplingPeriod:end);
             updatedClass = dataStruct(iMovie).updatedClass(iSample:samplingPeriod:end);
             numFramesMovie = length(updatedClass);
+            
+            %             initCoord = dataStruct(iMovie).initCoord(iSample:samplingPeriod:end);
+            %             for iFrame = 1 : length(initCoord)
+            %                 allCoord = initCoord(iFrame).allCoord(:,1:3);
+            %                 centerOfMass = mean(allCoord);
+            %                 initCoord(iFrame).allCoord(:,1:3) = allCoord - ...
+            %                     repmat(centerOfMass,size(allCoord,1),1);
+            %             end
 
             %find frame where anaphase starts (if it starts at all)
             framePhase = vertcat(updatedClass.phase);
@@ -250,6 +258,8 @@ for iMovie = 1 : numMovies
                 for iFrame = goodFrames'
                     coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),:);
                     coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),:);
+                    %                     coords1(iFrame,:) = initCoord(iFrame).allCoord(sisterIndx1(iFrame),:);
+                    %                     coords2(iFrame,:) = initCoord(iFrame).allCoord(sisterIndx2(iFrame),:);
                 end
 
                 %correct position standard deviation if necessary

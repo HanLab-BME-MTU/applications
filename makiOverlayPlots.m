@@ -70,17 +70,19 @@ for i = 1:nStrucs
     end
     
     %center displacement along normal autocorrelation
-    subplot(1,3,3)
-    hold on
-    plot((0:maxLag)*timeInterval,analStrucArray(i).sepDispSpaceTime.Inlier.autocorr.all.centerPosChange(:,1),'Color',colorArray(i,:));
-
-    if i == nStrucs
-
-        xlabel('Time Lag (s)')
-        ylabel('Center normal displacement autocorrelation')
-
-        if ~isempty(labelArray)
-            legend(labelArray)
+    if isfield(analStrucArray(i),'sepDispSpaceTime')
+        subplot(1,3,3)
+        hold on
+        plot((0:maxLag)*timeInterval,analStrucArray(i).sepDispSpaceTime.Inlier.autocorr.all.centerPosChange(:,1),'Color',colorArray(i,:));
+        
+        if i == nStrucs
+            
+            xlabel('Time Lag (s)')
+            ylabel('Center normal displacement autocorrelation')
+            
+            if ~isempty(labelArray)
+                legend(labelArray)
+            end
         end
     end
     

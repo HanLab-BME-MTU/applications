@@ -123,8 +123,11 @@ switch serverType
         pathList = {'$TEST2','C:\data\testData',[homeUser '/testData']};
     case 'HERCULES'
         pathList = {'$HERCULES','O:','/hercules'};
-    case 'DANUSER'
-        pathList = {'$DANUSER','O:','/mnt/dundee'};
+    case 'DANUSER2'
+        pathList = {'$DANUSE2','O:','/groups/lccb-maki'};
+    case 'DANUSER' %We need two DANUSER identifiers for now, since accessing the data is different between orchestra and the desktop
+        localUser = getenv('HOME');
+        pathList = {'$DANUSER','O:',[localUser '/.gvfs/orchestra on files.med.harvard.edu/groups/lccb-maki']};
     case 'MERALDI'
         pathList = {'$MERALDI','O:',''};
     case 'SWEDLOW'

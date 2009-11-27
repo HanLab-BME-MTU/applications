@@ -260,7 +260,7 @@ if nConsecFrames >= minConsecFrames
         % which case the smaller eigenvalue is the normal - KJ
         evecScore = zeros(1,2);
         for t = 1 : length(goodFrames)
-            evecScore = evecScore + eigenValues(goodFrames(t),eigenVecAssign(:,goodFrames(t)));
+            evecScore = evecScore + eigenValues(goodFrames(t),eigenVecAssign(:,t));
         end
         [dummy,normalIndx] = min(evecScore);
 
@@ -349,7 +349,7 @@ end %(if nConsecFrames >= minConsecFrames)
 %make an angle with the x,y-plane such that the positional scatter
 %along the normal direction is minimized. - KJ
 if use2D
-    for t = 1 : nTimePoints
+    for t = 1 : length(goodFrames)
         eigenVecTmp = planeFit(goodFrames(t)).eigenVectors;
         planeFit(goodFrames(t)).eigenVectors = [[eigenVecTmp; zeros(1,2)] [0 0 1]'];
         planeFit(goodFrames(t)).eigenValues = [planeFit(goodFrames(t)).eigenValues NaN];
@@ -408,7 +408,7 @@ if nConsecFrames >= minConsecFrames && ~isempty(goodFrames)
 
             % define the interpolated plane vectors etc.
             e_plane = calcPlaneVectors(gapNormals(:,t));
-            planeFit(gapFrames(t)).plane = [gapNormals(:,t)',meanCoord(gapFrames(t),:)*gapNormals(:,t)];
+            planeFit(gapFrames(t)).plane = [gapNormals(:,t)',meanCoordFull(gapFrames(t),:)*gapNormals(:,t)];
             planeFit(gapFrames(t)).planeVectors = e_plane;
 
             % assign the mitotic phase to what the next good frame is classified

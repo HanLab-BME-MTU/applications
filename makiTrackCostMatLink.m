@@ -279,13 +279,28 @@ end
 %% Birth and death
 
 %append matrix to allow birth and death
-if any(~isnan(prevCost(:)))
-    maxCost = 1.05*max(prevCost(:));
+% jonas, 10/09: fix for non-sparse tracker
+if isstruct(prevCost)
+    prevCostMax = prevCost.max;
 else
-    maxCost = prctile(costMat(:),80);
+    prevCostMax = max(prevCost(:));
+end
+if ~isnan(prevCostMax) && prevCostMax ~= 0
+    maxCost = 1.05*prevCostMax;
+else
+    maxCost = max(prctile(costMat(:),80),eps);
 end
 deathCost = maxCost * ones(numFeaturesFrame1,1);
 birthCost = maxCost * ones(numFeaturesFrame2,1);
+
+% %append matrix to allow birth and death
+% if any(~isnan(prevCost(:)))
+%     maxCost = 1.05*max(prevCost(:));
+% else
+%     maxCost = prctile(costMat(:),80);
+% end
+% deathCost = maxCost * ones(numFeaturesFrame1,1);
+% birthCost = maxCost * ones(numFeaturesFrame2,1);
 
 %generate upper right and lower left block
 deathBlock = diag(deathCost); %upper right

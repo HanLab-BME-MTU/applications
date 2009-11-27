@@ -552,7 +552,7 @@ end % while ~ done
 
 % close general log
 try
-    fclose(all);
+    fclose('all');
 catch
 end
 

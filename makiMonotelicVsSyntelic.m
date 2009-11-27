@@ -126,7 +126,7 @@ for iMovie = 1 : numMovies
         %construct sisters with aligned coordinates
         %remove net displacement and randomize if requested
         sisterListTmp = makiConstructAlignedSisters(dataStruct(iMovie),...
-            removeNetDisp,randomize);
+           0,0);
         numSisters(iMovie) = length(sisterListTmp);
 
         %sister type = 0 if all kinetochores are inliers
@@ -201,32 +201,32 @@ for iMovie = 1 : numMovies
 
                 %if we are looking at unaligned or lagging pairs, keep only
                 %those frames where they really are unaligned or lagging
-                if strictClass
-                    switch iLabel
-                        case 2
-                            for iFrame = goodFrames'
-                                %keep this frame if sisters are unaligned in this
-                                %frame
-                                unalignedIdx = updatedClass(iFrame).unalignedIdx;
-                                if ~any(sisterIndx1(iFrame)==unalignedIdx | sisterIndx2(iFrame)==unalignedIdx)
-                                    sisterIndx1(iFrame) = NaN;
-                                    sisterIndx2(iFrame) = NaN;
-                                end
-                            end
-                            goodFrames = find(~isnan(sisterIndx1));
-                        case 3
-                            for iFrame = goodFrames'
-                                %keep this frame if sisters are lagging in this
-                                %frame
-                                laggingIdx = updatedClass(iFrame).laggingIdx;
-                                if ~any(sisterIndx1(iFrame)==laggingIdx | sisterIndx2(iFrame)==laggingIdx)
-                                    sisterIndx1(iFrame) = NaN;
-                                    sisterIndx2(iFrame) = NaN;
-                                end
-                            end
-                            goodFrames = find(~isnan(sisterIndx1));
-                    end
-                end
+%                 if strictClass
+%                     switch iLabel
+%                         case 2
+%                             for iFrame = goodFrames'
+%                                 %keep this frame if sisters are unaligned in this
+%                                 %frame
+%                                 unalignedIdx = updatedClass(iFrame).unalignedIdx;
+%                                 if ~any(sisterIndx1(iFrame)==unalignedIdx | sisterIndx2(iFrame)==unalignedIdx)
+%                                     sisterIndx1(iFrame) = NaN;
+%                                     sisterIndx2(iFrame) = NaN;
+%                                 end
+%                             end
+%                             goodFrames = find(~isnan(sisterIndx1));
+%                         case 3
+%                             for iFrame = goodFrames'
+%                                 %keep this frame if sisters are lagging in this
+%                                 %frame
+%                                 laggingIdx = updatedClass(iFrame).laggingIdx;
+%                                 if ~any(sisterIndx1(iFrame)==laggingIdx | sisterIndx2(iFrame)==laggingIdx)
+%                                     sisterIndx1(iFrame) = NaN;
+%                                     sisterIndx2(iFrame) = NaN;
+%                                 end
+%                             end
+%                             goodFrames = find(~isnan(sisterIndx1));
+%                     end
+%                 end
 
                 %get sister coordinates in good frames
                 coords1 = NaN(numFrames,3);
@@ -790,9 +790,7 @@ for iLabel = 1 : 3
 
 end
 
-inputParam = struct('samplingPeriod',samplingPeriod,'correctStd',correctStd,...
-    'strictClass',strictClass,'removeNetDisp',removeNetDisp,...
-    'randomize',randomize);
+inputParam = struct('samplingPeriod',samplingPeriod,'correctStd',correctStd);
 sisterConnection = struct('Inlier',Inlier,'Unaligned',Unaligned,...
     'Lagging',Lagging,'inputParam',inputParam);
 

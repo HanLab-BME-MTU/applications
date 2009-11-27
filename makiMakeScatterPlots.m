@@ -436,16 +436,22 @@ else
 end
 xlabel('Center position std (um)');
 ylabel('Center displacement std (um)');
-if lineFit.spreadDisp.lines1or2 == 1
-    lineParam = lineFit.spreadDisp.line1.param;
-    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-else
-    lineParam = lineFit.spreadDisp.line2.param;
-    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
-end
+% if lineFit.spreadDisp.lines1or2 == 1
+%     lineParam = lineFit.spreadDisp.line1.param;
+%     xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+% else
+%     lineParam = lineFit.spreadDisp.line2.param;
+%     xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+%     yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+% end
+outlierIdx = setdiff(1:length(plateStdAll),lineFit.spreadDisp.line1LM.inlierIdx);
+plot(plateStdAll(outlierIdx),dispStdAll(outlierIdx),'MarkerSize',10,'Marker','^',...
+    'LineWidth',1,'LineStyle','none','Color','k');
+lineParam = lineFit.spreadDisp.line1LM.param;
+xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+yvalues = lineParam(1) * xvalues + lineParam(2);
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
@@ -472,16 +478,22 @@ else
 end
 xlabel('Center position std (um)');
 ylabel('Sister separation mean (um)');
-if lineFit.spreadSep.lines1or2 == 1
-    lineParam = lineFit.spreadSep.line1.param;
-    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-else
-    lineParam = lineFit.spreadSep.line2.param;
-    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
-end
+% if lineFit.spreadSep.lines1or2 == 1
+%     lineParam = lineFit.spreadSep.line1.param;
+%     xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+% else
+%     lineParam = lineFit.spreadSep.line2.param;
+%     xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+%     yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+% end
+outlierIdx = setdiff(1:length(plateStdAll),lineFit.spreadSep.line1LM.inlierIdx);
+plot(plateStdAll(outlierIdx),sepMeanAll(outlierIdx),'MarkerSize',10,'Marker','^',...
+    'LineWidth',1,'LineStyle','none','Color','k');
+lineParam = lineFit.spreadSep.line1LM.param;
+xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+yvalues = lineParam(1) * xvalues + lineParam(2);
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
@@ -508,16 +520,22 @@ else
 end
 xlabel('Center position std (um)');
 ylabel('Sister separation change std (um)');
-if lineFit.spreadSepChange.lines1or2 == 1
-    lineParam = lineFit.spreadSepChange.line1.param;
-    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-else
-    lineParam = lineFit.spreadSepChange.line2.param;
-    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
-end
+% if lineFit.spreadSepChange.lines1or2 == 1
+%     lineParam = lineFit.spreadSepChange.line1.param;
+%     xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+% else
+%     lineParam = lineFit.spreadSepChange.line2.param;
+%     xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+%     yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+% end
+outlierIdx = setdiff(1:length(plateStdAll),lineFit.spreadSepChange.line1LM.inlierIdx);
+plot(plateStdAll(outlierIdx),sepChangeStdAll(outlierIdx),'MarkerSize',10,'Marker','^',...
+    'LineWidth',1,'LineStyle','none','Color','k');
+lineParam = lineFit.spreadSepChange.line1LM.param;
+xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+yvalues = lineParam(1) * xvalues + lineParam(2);
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
@@ -544,16 +562,22 @@ else
 end
 xlabel('Center position std (um)');
 ylabel('Sister separation change switching times (s)');
-if lineFit.spreadSepChangeInt.lines1or2 == 1
-    lineParam = lineFit.spreadSepChangeInt.line1.param;
-    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-else
-    lineParam = lineFit.spreadSepChangeInt.line2.param;
-    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
-end
+% if lineFit.spreadSepChangeInt.lines1or2 == 1
+%     lineParam = lineFit.spreadSepChangeInt.line1.param;
+%     xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+% else
+%     lineParam = lineFit.spreadSepChangeInt.line2.param;
+%     xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+%     yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+% end
+outlierIdx = setdiff(1:length(plateStdAll),lineFit.spreadSepChangeInt.line1LM.inlierIdx);
+plot(plateStdAll(outlierIdx),sepChangeIntMeanAll(outlierIdx),'MarkerSize',10,'Marker','^',...
+    'LineWidth',1,'LineStyle','none','Color','k');
+lineParam = lineFit.spreadSepChangeInt.line1LM.param;
+xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+yvalues = lineParam(1) * xvalues + lineParam(2);
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
@@ -580,16 +604,22 @@ else
 end
 xlabel('Center position std (um)');
 ylabel('Center displacement switching time (s)');
-if lineFit.spreadCenterDispInt.lines1or2 == 1
-    lineParam = lineFit.spreadCenterDispInt.line1.param;
-    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-else
-    lineParam = lineFit.spreadCenterDispInt.line2.param;
-    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
-end
+% if lineFit.spreadCenterDispInt.lines1or2 == 1
+%     lineParam = lineFit.spreadCenterDispInt.line1.param;
+%     xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+% else
+%     lineParam = lineFit.spreadCenterDispInt.line2.param;
+%     xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+%     yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+% end
+outlierIdx = setdiff(1:length(plateStdAll),lineFit.spreadCenterDispInt.line1LM.inlierIdx);
+plot(plateStdAll(outlierIdx),centerDispIntMeanAll(outlierIdx),'MarkerSize',10,'Marker','^',...
+    'LineWidth',1,'LineStyle','none','Color','k');
+lineParam = lineFit.spreadCenterDispInt.line1LM.param;
+xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+yvalues = lineParam(1) * xvalues + lineParam(2);
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
@@ -616,16 +646,22 @@ else
 end
 xlabel('Center position std (um)');
 ylabel('Center displacement x switching time (um)');
-if lineFit.spreadProdDT.lines1or2 == 1
-    lineParam = lineFit.spreadProdDT.line1.param;
-    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-else
-    lineParam = lineFit.spreadProdDT.line2.param;
-    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
-end
+% if lineFit.spreadProdDT.lines1or2 == 1
+%     lineParam = lineFit.spreadProdDT.line1.param;
+%     xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+% else
+%     lineParam = lineFit.spreadProdDT.line2.param;
+%     xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+%     yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+% end
+outlierIdx = setdiff(1:length(plateStdAll),lineFit.spreadProdDT.line1LM.inlierIdx);
+plot(plateStdAll(outlierIdx),prodDispTimeAll(outlierIdx),'MarkerSize',10,'Marker','^',...
+    'LineWidth',1,'LineStyle','none','Color','k');
+lineParam = lineFit.spreadProdDT.line1LM.param;
+xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+yvalues = lineParam(1) * xvalues + lineParam(2);
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
@@ -652,16 +688,22 @@ else
 end
 xlabel('Center position std (um)');
 ylabel('Mean angle with normal (degrees)');
-if lineFit.spreadAngle.lines1or2 == 1
-    lineParam = lineFit.spreadAngle.line1.param;
-    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-else
-    lineParam = lineFit.spreadAngle.line2.param;
-    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
-end
+% if lineFit.spreadAngle.lines1or2 == 1
+%     lineParam = lineFit.spreadAngle.line1.param;
+%     xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+% else
+%     lineParam = lineFit.spreadAngle.line2.param;
+%     xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+%     yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+% end
+outlierIdx = setdiff(1:length(plateStdAll),lineFit.spreadAngle.line1LM.inlierIdx);
+plot(plateStdAll(outlierIdx),angleNormMeanAll(outlierIdx),'MarkerSize',10,'Marker','^',...
+    'LineWidth',1,'LineStyle','none','Color','k');
+lineParam = lineFit.spreadAngle.line1LM.param;
+xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+yvalues = lineParam(1) * xvalues + lineParam(2);
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
@@ -688,16 +730,22 @@ else
 end
 xlabel('Center position std (um)');
 ylabel('Standard deviation of angle with normal (degrees)');
-if lineFit.spreadAngleStd.lines1or2 == 1
-    lineParam = lineFit.spreadAngleStd.line1.param;
-    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-else
-    lineParam = lineFit.spreadAngleStd.line2.param;
-    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
-end
+% if lineFit.spreadAngleStd.lines1or2 == 1
+%     lineParam = lineFit.spreadAngleStd.line1.param;
+%     xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+% else
+%     lineParam = lineFit.spreadAngleStd.line2.param;
+%     xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+%     yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+% end
+outlierIdx = setdiff(1:length(plateStdAll),lineFit.spreadAngleStd.line1LM.inlierIdx);
+plot(plateStdAll(outlierIdx),angleNormStdAll(outlierIdx),'MarkerSize',10,'Marker','^',...
+    'LineWidth',1,'LineStyle','none','Color','k');
+lineParam = lineFit.spreadAngleStd.line1LM.param;
+xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+yvalues = lineParam(1) * xvalues + lineParam(2);
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 
@@ -724,16 +772,22 @@ else
 end
 xlabel('Center position std (um)');
 ylabel('Angular displacement (degrees)');
-if lineFit.spreadAngVel.lines1or2 == 1
-    lineParam = lineFit.spreadAngVel.line1.param;
-    xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-else
-    lineParam = lineFit.spreadAngVel.line2.param;
-    xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
-    yvalues = lineParam(1) * xvalues + lineParam(2);
-    yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
-end
+% if lineFit.spreadAngVel.lines1or2 == 1
+%     lineParam = lineFit.spreadAngVel.line1.param;
+%     xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+% else
+%     lineParam = lineFit.spreadAngVel.line2.param;
+%     xvalues = [min([plateStdM;plateStdA]) lineParam(5) max([plateStdM;plateStdA])];
+%     yvalues = lineParam(1) * xvalues + lineParam(2);
+%     yvalues(3) = lineParam(3) * xvalues(3) + lineParam(4);
+% end
+outlierIdx = setdiff(1:length(plateStdAll),lineFit.spreadAngVel.line1LM.inlierIdx);
+plot(plateStdAll(outlierIdx),angVelMeanAll(outlierIdx),'MarkerSize',10,'Marker','^',...
+    'LineWidth',1,'LineStyle','none','Color','k');
+lineParam = lineFit.spreadAngVel.line1LM.param;
+xvalues = [min([plateStdM;plateStdA]) max([plateStdM;plateStdA])];
+yvalues = lineParam(1) * xvalues + lineParam(2);
 plot(xvalues,yvalues,'k','LineWidth',1)
 hold off
 

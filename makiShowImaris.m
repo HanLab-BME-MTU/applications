@@ -70,8 +70,13 @@ imarisApplication = imarisStartNew;
 %imarisVersion = sscanf(imarisApplication.mVersion,'*s %i.%i.%i %*s %*i');
 imarisVersion = [0 0];
 vstr = imarisApplication.mVersion;
-imarisVersion(1) = str2num(vstr(8));
-imarisVersion(2) = str2num(vstr(10));
+if ~strcmp(vstr(8),'x')
+    imarisVersion(1) = str2num(vstr(8));
+    imarisVersion(2) = str2num(vstr(10));
+else %KJ: needed when the string is of the form 'Imaris x64 6.3.1 [Jun 16 2009]'
+    imarisVersion(1) = str2num(vstr(12));
+    imarisVersion(2) = str2num(vstr(14));    
+end
 
 interface62 = imarisVersion(1) > 5 && imarisVersion(2) > 1;
 
@@ -166,20 +171,16 @@ if ~isempty(initCoord)
     imaSpotsAll = imarisApplication.mFactory.CreateSpots;
     imaSpotsAll.Set(single(spots(:,1:3)),single(spots(:,4)),single(spots(:,5)));
     imaSpotsAll.mName = ['Spots (avg: ' num2str(size(spots,1)/nTimepoints) ' / frame)'];
-    imaSpotsAll.SetColor(single(0.8),single(0.8),single(0.8),single(0));
+    imaSpotsAll.SetColor(single(1),single(1),single(1),single(0));
     imaSurpassScene.AddChild(imaSpotsAll);
     
 end
 
 
-
-
-
-
-
 %% tracks
 
 if select(1) && ~isempty(dataStruct.tracks)
+    
     if interface62
         % not debugged yet
         
@@ -215,6 +216,10 @@ if select(1) && ~isempty(dataStruct.tracks)
         %plot unpaired tracks
         for iTrack = 1 : numTracks
             
+            % create 'track' object (keep variable names for simplicity). In
+            % 6.2+, use spots object and add edges to it
+            imaTracks = imarisApplication.mFactory.CreateSpots;
+
             %get spots belonging to this track, where index is per
             %frame
             spotsIndx = [ones(1,trackSEL(iTrack,1)-1) ...
@@ -257,9 +262,11 @@ if select(1) && ~isempty(dataStruct.tracks)
                 spotSize(gapsInTrack(iGap,3):gapsInTrack(iGap,3)+gapsInTrack(iGap,4)-1) = pixelSize(1);
             end
             
-            % create 'track' object (keep variable names for simplicity). In
-            % 6.2+, use spots object and add edges to it
-            imaTracks = imarisApplication.mFactory.CreateSpots;
+            %             % create 'track' object (keep variable names for simplicity). In
+            %             % 6.2+, use spots object and add edges to it
+            %             imaTracks = imarisApplication.mFactory.CreateSpots;
+            
+            %define track spots
             imaTracks.Set(single(spotsCoord),...
                 single(0:nTimepoints-1),single(spotSize));
             
@@ -268,11 +275,11 @@ if select(1) && ~isempty(dataStruct.tracks)
             
             %add track to relevant data container
             if trackSEL(iTrack,3) >= 0.9*nTimepoints
-                imaTracks.SetColor(single(1),single(0),single(0),single(0));
+                imaTracks.SetColor(single(1),single(0),single(1),single(0));
                 imaTrackGroup90to100.AddChild(imaTracks);
                 numTracks90to100 = numTracks90to100 + 1;
             elseif trackSEL(iTrack,3) >= 0.5*nTimepoints
-                imaTracks.SetColor(single(0),single(0),single(1),single(0));
+                imaTracks.SetColor(single(0),single(1),single(1),single(0));
                 imaTrackGroup50to90.AddChild(imaTracks);
                 numTracks50to90 = numTracks50to90 + 1;
             else
@@ -285,23 +292,19 @@ if select(1) && ~isempty(dataStruct.tracks)
         
         %give names to groups of tracks
         imaTrackGroup90to100.mName = ['tracks length 90-100% (' ...
-            num2str(numTracks90to100) ')'];
+            num2str(numTracks90to100) '-pink)'];
         imaTrackGroup50to90.mName = ['tracks length 50-90% (' ...;
-            num2str(numTracks50to90) ')'];
+            num2str(numTracks50to90) '-cyan)'];
         imaTrackGroup0to50.mName = ['tracks length 0-50% (' ...;
-            num2str(numTracks0to50) ')'];
+            num2str(numTracks0to50) '-yellow)'];
         
         %add track groups to scene
         imaSurpassScene.AddChild(imaTrackGroup90to100);
         imaSurpassScene.AddChild(imaTrackGroup50to90);
         imaSurpassScene.AddChild(imaTrackGroup0to50);
         
-        
-        
-        
     else
         % Imaris 5.7.1
-        
         
         %make spots plotted earlier invisible
         imaSpotsAll.mVisible = 0;
@@ -420,13 +423,16 @@ if select(1) && ~isempty(dataStruct.tracks)
         imaSurpassScene.AddChild(imaTrackGroup90to100);
         imaSurpassScene.AddChild(imaTrackGroup50to90);
         imaSurpassScene.AddChild(imaTrackGroup0to50);
+        
     end
+    
 end %(if select(1))
 
 
 %% sisters
 
 if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterList(1).trackPairs)
+
     if interface62
         % implementation for Imaris 6.2
         
@@ -521,7 +527,6 @@ if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterLis
                 imaTracks1.Set(single(sisterCoord1),...
                     single(0:nTimepoints-1),single(spotSize));
                 
-                
                 %define track edges
                 imaTracks1.SetTrackEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
                 
@@ -592,7 +597,6 @@ if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterLis
         
         % old version
         
-        
         %make spots plotted earlier invisible
         imaSpotsAll.mVisible = 0;
         
@@ -614,7 +618,35 @@ if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterLis
         
         %plot paired tracks
         for iPair = 1 : numPairs
-            
+
+            %get the sister pair's color
+            switch mod(iPair,6)
+                case 0
+                    color1 = 1;
+                    color2 = 0;
+                    color3 = 0;
+                case 1
+                    color1 = 0;
+                    color2 = 0;
+                    color3 = 1;
+                case 2
+                    color1 = 1;
+                    color2 = 1;
+                    color3 = 0;
+                case 3
+                    color1 = 0;
+                    color2 = 1;
+                    color3 = 1;
+                case 4
+                    color1 = 1;
+                    color2 = 0;
+                    color3 = 1;
+                case 5
+                    color1 = 1;
+                    color2 = 1;
+                    color3 = 1;
+            end
+
             %create track object
             imaTracks1 = imarisApplication.mFactory.CreateTrack;
             imaTracks2 = imarisApplication.mFactory.CreateTrack;
@@ -691,8 +723,11 @@ if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterLis
                 %define track edges
                 imaTracks1.SetEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
                 
+                %define track edge color
+                imaTracks1.SetColor(single(color1),single(color2),single(color3),single(0));
+
                 %make track invisible
-                imaTracks1.mVisible = 0;
+                %                 imaTracks1.mVisible = 0;
                 
                 %for second sister ...
                 
@@ -740,8 +775,11 @@ if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterLis
                 %define track edges
                 imaTracks2.SetEdges(single([(0:nTimepoints-2)' (1:nTimepoints-1)']));
                 
+                %define track edge color
+                imaTracks2.SetColor(single(color1),single(color2),single(color3),single(0));
+
                 %make track invisible
-                imaTracks2.mVisible = 0;
+                %                 imaTracks2.mVisible = 0;
                 
                 %add tracks to the data container
                 imaTrackAllSisters.AddChild(imaTracks1);
@@ -756,9 +794,10 @@ if select(2) && ~isempty(dataStruct.sisterList) && ~isempty(dataStruct.sisterLis
         
         %add sisters to scene
         imaSurpassScene.AddChild(imaTrackAllSisters);
+        
     end % switch version
+    
 end %(if select(2))
-
 
 
 %% fitted plane
@@ -800,7 +839,7 @@ if select(3) && ~isempty(dataStruct.planeFit)
         imaSpotsInlier = imarisApplication.mFactory.CreateSpots;
         imaSpotsInlier.Set(single(spots(inlierIdx,1:3)),single(spots(inlierIdx,4)),single(spots(inlierIdx,5)));
         imaSpotsInlier.mName = ['Inlier spots (avg: ' num2str(length(inlierIdx)/nTimepoints) ' / frame)'];
-        imaSpotsInlier.SetColor(single(0.8),single(0.8),single(0.8),single(0));
+        imaSpotsInlier.SetColor(single(1),single(1),single(1),single(0));
         imaSurpassScene.AddChild(imaSpotsInlier);
     end
     
@@ -810,7 +849,7 @@ if select(3) && ~isempty(dataStruct.planeFit)
         imaSpotsUnaligned.Set(single(spots(unalignedIdx,1:3)),single(spots(unalignedIdx,4)),...
             single(spots(unalignedIdx,5)));
         imaSpotsUnaligned.mName = ['Unaligned spots (avg: ' num2str(length(unalignedIdx)/nTimepoints) ' / frame)'];
-        imaSpotsUnaligned.SetColor(single(1),single(0),single(0),single(0));
+        imaSpotsUnaligned.SetColor(single(1),single(0),single(1),single(0));
         imaSurpassScene.AddChild(imaSpotsUnaligned);
     end
     
@@ -819,7 +858,7 @@ if select(3) && ~isempty(dataStruct.planeFit)
         imaSpotsLagging = imarisApplication.mFactory.CreateSpots;
         imaSpotsLagging.Set(single(spots(laggingIdx,1:3)),single(spots(laggingIdx,4)),single(spots(laggingIdx,5)));
         imaSpotsLagging.mName = ['Lagging spots (avg: ' num2str(length(laggingIdx)/nTimepoints) ' / frame)'];
-        imaSpotsLagging.SetColor(single(0),single(0),single(1),single(0));
+        imaSpotsLagging.SetColor(single(0),single(1),single(1),single(0));
         imaSurpassScene.AddChild(imaSpotsLagging);
     end
     

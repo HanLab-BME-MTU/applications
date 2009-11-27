@@ -172,6 +172,8 @@ for iMovie = 1 : numMovies
         planeFit = dataStruct(iMovie).planeFit;
         numFramesMovie = length(updatedClass);
 
+        %         initCoord = dataStruct(iMovie).initCoord(iSample:samplingPeriod:end);
+
         %determine frames where there is a plane
         framesWithPlane = [];
         for t = 1 : numFramesMovie
@@ -261,6 +263,8 @@ for iMovie = 1 : numMovies
             for iFrame = goodFrames'
                 coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),:);
                 coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),:);
+                %                 coords1(iFrame,:) = initCoord(iFrame).allCoord(sisterIndx1(iFrame),:);
+                %                 coords2(iFrame,:) = initCoord(iFrame).allCoord(sisterIndx2(iFrame),:);
             end
             
             %correct position standard deviation if necessary
@@ -813,6 +817,9 @@ for iLabel = 1 : 3
     eval(['separationIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['sepChangeIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     
+    eval(['separationIndParamStd' label{iLabel,1} ' = NaN(numMovies,2);'])
+    eval(['sepChangeIndParamStd' label{iLabel,1} ' = NaN(numMovies,2);'])
+    
     eval(['separationMovAvParam' label{iLabel,1} ' = [];'])
     eval(['sepChangeMovAvParam' label{iLabel,1} ' = [];'])
     
@@ -827,6 +834,9 @@ for iLabel = 1 : 3
    
     eval(['sepPChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['sepNChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+   
+    eval(['sepPChangeIntervalIndParamStd' label{iLabel,1} ' = NaN(numMovies,2);'])
+    eval(['sepNChangeIntervalIndParamStd' label{iLabel,1} ' = NaN(numMovies,2);'])
    
 end
 
@@ -860,6 +870,10 @@ for iLabel = goodLabel
                     ' = [mean(allValues) std(allValues) min(allValues) ' ...
                     'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
                     'max(allValues)];']);
+                %                 statsBtstrp = bootstrp(100,@(x)[mean(x) std(x)],allValues);
+                %                 stdOfMeanAndStd = std(statsBtstrp);
+                %                 eval(['separationIndParamStd' label{iLabel,1} ...
+                %                     '(iMovie,:) = stdOfMeanAndStd;']);
             end
         end
     end
@@ -910,6 +924,10 @@ for iLabel = goodLabel
                     ' = [mean(allValues) std(allValues) min(allValues) ' ...
                     'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
                     'max(allValues)];']);
+                %                 statsBtstrp = bootstrp(100,@(x)[mean(x) std(x)],allValues);
+                %                 stdOfMeanAndStd = std(statsBtstrp);
+                %                 eval(['sepChangeIndParamStd' label{iLabel,1} ...
+                %                     '(iMovie,:) = stdOfMeanAndStd;']);
             end
         end
     end
@@ -980,6 +998,10 @@ for iLabel = goodLabel
                     ' = [mean(allValues) std(allValues) min(allValues) ' ...
                     'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
                     'max(allValues)];']);
+                %                 statsBtstrp = bootstrp(100,@(x)[mean(x) std(x)],allValues);
+                %                 stdOfMeanAndStd = std(statsBtstrp);
+                %                 eval(['sepPChangeIntervalIndParamStd' label{iLabel,1} ...
+                %                     '(iMovie,:) = stdOfMeanAndStd;']);
             end
         end
     end
@@ -1011,6 +1033,10 @@ for iLabel = goodLabel
                     ' = [mean(allValues) std(allValues) min(allValues) ' ...
                     'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
                     'max(allValues)];']);
+                %                 statsBtstrp = bootstrp(100,@(x)[mean(x) std(x)],allValues);
+                %                 stdOfMeanAndStd = std(statsBtstrp);
+                %                 eval(['sepNChangeIntervalIndParamStd' label{iLabel,1} ...
+                %                     '(iMovie,:) = stdOfMeanAndStd;']);
             end
         end
     end
@@ -1031,6 +1057,9 @@ for iLabel = 1 : 3
     eval(['centerPosIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['centerPosChangeIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     
+    eval(['centerPosIndParamStd' label{iLabel,1} ' = NaN(numMovies,2);'])
+    eval(['centerPosChangeIndParamStd' label{iLabel,1} ' = NaN(numMovies,2);'])
+    
     eval(['centerPosMovAvParam' label{iLabel,1} ' = [];'])
     eval(['centerPosChangeMovAvParam' label{iLabel,1} ' = [];'])
     
@@ -1045,6 +1074,9 @@ for iLabel = 1 : 3
    
     eval(['centerPosPChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
     eval(['centerPosNChangeIntervalIndParam' label{iLabel,1} ' = NaN(numMovies,7);'])
+   
+    eval(['centerPosPChangeIntervalIndParamStd' label{iLabel,1} ' = NaN(numMovies,2);'])
+    eval(['centerPosNChangeIntervalIndParamStd' label{iLabel,1} ' = NaN(numMovies,2);'])
    
 end
 
@@ -1078,6 +1110,17 @@ for iLabel = goodLabel
                     ' = [mean(allValues) std(allValues) min(allValues) ' ...
                     'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
                     'max(allValues)];']);
+                %                 statsBtstrp = bootstrp(100,@(x)[mean(x) std(x)],allValues);
+                %                 stdOfMeanAndStd = std(statsBtstrp);
+                %                 eval(['centerPosIndParamStd' label{iLabel,1} ...
+                %                     '(iMovie,:) = stdOfMeanAndStd;']);
+                stdSamp = [];
+                for i = 1 : 41 : length(allValues)-41
+                    stdSamp = [stdSamp; std(allValues(i:i+40))];
+                end
+                stdSampStd = std(stdSamp);
+                eval(['centerPosIndParamStd' label{iLabel,1} ...
+                    '(iMovie,2) = stdSampStd;']);
             end
         end
     end
@@ -1128,6 +1171,17 @@ for iLabel = goodLabel
                     ' = [mean(allValues) std(allValues) min(allValues) ' ...
                     'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
                     'max(allValues)];']);
+                %                 statsBtstrp = bootstrp(100,@(x)[mean(x) std(x)],allValues);
+                %                 stdOfMeanAndStd = std(statsBtstrp);
+                %                 eval(['centerPosChangeIndParamStd' label{iLabel,1} ...
+                %                     '(iMovie,:) = stdOfMeanAndStd;']);
+                stdSamp = [];
+                for i = 1 : 41 : length(allValues)-41
+                    stdSamp = [stdSamp; std(allValues(i:i+40))];
+                end
+                stdSampStd = std(stdSamp);
+                eval(['centerPosChangeIndParamStd' label{iLabel,1} ...
+                    '(iMovie,2) = stdSampStd;']);
             end
         end
     end
@@ -1198,6 +1252,10 @@ for iLabel = goodLabel
                     ' = [mean(allValues) std(allValues) min(allValues) ' ...
                     'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
                     'max(allValues)];']);
+                %                 statsBtstrp = bootstrp(100,@(x)[mean(x) std(x)],allValues);
+                %                 stdOfMeanAndStd = std(statsBtstrp);
+                %                 eval(['centerPosPChangeIntervalIndParamStd' label{iLabel,1} ...
+                %                     '(iMovie,:) = stdOfMeanAndStd;']);
             end
         end
     end
@@ -1229,6 +1287,10 @@ for iLabel = goodLabel
                     ' = [mean(allValues) std(allValues) min(allValues) ' ...
                     'prctile(allValues,25) prctile(allValues,50) prctile(allValues,75) '...
                     'max(allValues)];']);
+                %                 statsBtstrp = bootstrp(100,@(x)[mean(x) std(x)],allValues);
+                %                 stdOfMeanAndStd = std(statsBtstrp);
+                %                 eval(['centerPosNChangeIntervalIndParamStd' label{iLabel,1} ...
+                %                     '(iMovie,:) = stdOfMeanAndStd;']);
             end
         end
     end
@@ -1519,7 +1581,7 @@ for iLabel = 1 : 3
         '''kinetochorePosChange'',kinPosChangeParam' label{iLabel,1} ','...
         '''kinetochorePosPChangeInterval'',kinPosPChangeIntervalParam' label{iLabel,1} ','...
         '''kinetochorePosNChangeInterval'',kinPosNChangeIntervalParam' label{iLabel,1} ');']);
-   
+    
     eval(['meanStdMin25P50P75PMax.indcell = struct('...
         '''sisterSeparation'',separationIndParam' label{iLabel,1} ','...
         '''sisterSepChange'',sepChangeIndParam' label{iLabel,1} ','...
@@ -1533,6 +1595,16 @@ for iLabel = 1 : 3
         '''kinetochorePosChange'',kinPosChangeIndParam' label{iLabel,1} ','...
         '''kinetochorePosPChangeInterval'',kinPosPChangeIntervalIndParam' label{iLabel,1} ','...
         '''kinetochorePosNChangeInterval'',kinPosNChangeIntervalIndParam' label{iLabel,1} ');']);
+    
+    eval(['stdOfMeanAndStd.indcell = struct('...
+        '''sisterSeparation'',separationIndParamStd' label{iLabel,1} ','...
+        '''sisterSepChange'',sepChangeIndParamStd' label{iLabel,1} ','...
+        '''sepPChangeInterval'',sepPChangeIntervalIndParamStd' label{iLabel,1} ','...
+        '''sepNChangeInterval'',sepNChangeIntervalIndParamStd' label{iLabel,1} ','...
+        '''centerPosition'',centerPosIndParamStd' label{iLabel,1} ','...
+        '''centerPosChange'',centerPosChangeIndParamStd' label{iLabel,1} ','...
+        '''centerPosPChangeInterval'',centerPosPChangeIntervalIndParamStd' label{iLabel,1} ','...
+        '''centerPosNChangeInterval'',centerPosNChangeIntervalIndParamStd' label{iLabel,1} ');']);
     
     eval(['meanStdMin25P50P75PMax.indcellMovAv = struct('...
         '''sisterSeparation'',separationMovAvParam' label{iLabel,1} ','...
@@ -1564,6 +1636,7 @@ for iLabel = 1 : 3
         '''numSisters'',numSistersCat,'...
         '''distribution'',distribution,'...
         '''meanStdMin25P50P75PMax'',meanStdMin25P50P75PMax,'...
+        '''stdOfMeanAndStd'',stdOfMeanAndStd,'...
         '''autocorr'',autocorr,'...
         '''crosscorr'',crosscorr);'])
 
