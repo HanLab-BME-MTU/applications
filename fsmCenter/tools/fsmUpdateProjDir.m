@@ -12,12 +12,14 @@ function fsmUpdateProjDir(rootDirectory)
 % tack/fsmParam.mat
 % tack/fsmImages.mat
 %
-% This function returns the previous project location stored in the
-% parameter files as a string array.
+% This function works either from or to windows and linux.
 %
 % Sylvain Berlemont, 2009
 
 % find every fsmCenter directory in rootDirectory
+if rootDirectory(end) == filesep
+    rootDirectory = rootDirectory(1:end-1);
+end
 [status, result] = system(['find ' rootDirectory ' -name lastProjSettings.mat']);
 
 if status
@@ -28,7 +30,7 @@ newProjDirList = regexp(result, '\n', 'split')';
 if ~numel(newProjDirList{end})
     newProjDirList = newProjDirList(1:end-1);
 end
-n = length('/lastProjSettings.mat');
+n = length([filesep 'lastProjSettings.mat']);
 newProjDirList = cellfun(@(x) x(1:end-n), newProjDirList,...
     'UniformOutput', false);
 
@@ -57,12 +59,19 @@ for i = 1:numel(newProjDirList)
         continue;
     end
     
-    if isempty(projSettings.unix_imgDirList)
-        disp('   projSettings.unix_imgDirList is empty (skipping).');
+    createdOnLinux = ~isempty(projSettings.unix_imgDirList);
+    createdOnWindows = ~isempty(projSettings.win_imgDirList);
+    
+    if ~xor(createdOnLinux, createdOnWindows)
+        disp('  Invalid projSettings.*_imgDirList (skipping).');
         continue;
     end
-    
-    imgDirList = projSettings.unix_imgDirList{1};
+       
+    if createdOnLinux
+        imgDirList = projSettings.unix_imgDirList{1};
+    else
+        imgDirList = projSettings.win_imgDirList{1};
+    end
 
     str1 = projDir;
     str2 = imgDirList;
@@ -74,6 +83,10 @@ for i = 1:numel(newProjDirList)
     if ~isempty(ind)
         projSubDir = projDir(ind:end);
         imgSubDir = imgDirList(ind:end);
+        c = imgSubDir(end);
+        if c == '/' || c == '\'
+            imgSubDir(end) = filesep;
+        end
     else
         projSubDir = [];
         imgSubDir = [];
@@ -82,29 +95,49 @@ for i = 1:numel(newProjDirList)
     % First case: images are either directly inside projDir or in a sub
     % folder of projDir.
     if isempty(projSubDir)
-        projSettings.unix_imgDirList = {[newProjDir imgSubDir]};
+        newImgDirList = [newProjDir imgSubDir];
     else
         % Second case: fsmCenter project and images are in 2 different
         % directories but have a common parent folder.
         ind = strfind(newProjDir, projSubDir);
-        projSettings.unix_imgDirList = {[newProjDir(1:ind-1) imgSubDir]};
+        newImgDirList = [newProjDir(1:ind-1) imgSubDir];
     end
-
-    ind = strfind(newProjDir, '/Volumes/');
-    if ~isempty(ind) && ind(1) == 1
-        projSettings.unixMntRoot = '/Volumes/';
+    
+    % update projSettings.*_imgDirList
+    if ispc
+        projSettings.win_imgDirList = {newImgDirList};
+        projSettings.unix_imgDirList = {};
     else
-        ind = strfind(newProjDir, '/mnt/');
+        projSettings.win_imgDirList = {};
+        projSettings.unix_imgDirList = {newImgDirList};
+    end
+    
+    % update projSettings.unixMntRoot
+    if ~ispc
+        ind = strfind(newProjDir, '/Volumes/');
         if ~isempty(ind) && ind(1) == 1
-            projSettings.unixMntRoot = '/mnt/';
+            projSettings.unixMntRoot = '/Volumes/';
         else
-            projSettings.unixMntRoot = '/';
+            ind = strfind(newProjDir, '/mnt/');
+            if ~isempty(ind) && ind(1) == 1
+                projSettings.unixMntRoot = '/mnt/';
+            else
+                projSettings.unixMntRoot = '/';
+            end
         end
     end
 
-    projSettings.unix_imgDrive = {[ '/' strtok(projSettings.unix_imgDirList{1}, ...
-        '/')]};
+    % update projSettings.*_imgDrive
+    if ispc
+        projSettings.win_imgDrive = {strtok(newImgDirList, filesep)};
+        projSettings.unix_imgDrive = {};
+    else
+        projSettings.win_imgDrive = {};
+        projSettings.unix_imgDrive = {[ '/' strtok(newImgDirList, ...
+            filesep)]};
+    end
 
+    % update projSettings.projDir
     projSettings.projDir = newProjDir;
     
     save(filename, 'projSettings');
@@ -118,8 +151,7 @@ for i = 1:numel(newProjDirList)
         disp('   parameters.dat does not exist (skipping).');
     else
         parameters = read_parameters(filename, 0);
-        parameters.file = [projSettings.unix_imgDirList{1} ...
-            projSettings.firstImgList{1}];
+        parameters.file = [newImgDirList projSettings.firstImgList{1}];
         parameters.results = [newProjDir filesep edgeSubDir filesep];
         save_parameters(filename, parameters);
     end
@@ -135,14 +167,14 @@ for i = 1:numel(newProjDirList)
         load(filename);
         fsmParam.project.path = newProjDir;
         fsmParam.main.path = [newProjDir filesep tackSubDir filesep];
-        fsmParam.main.imagePath = [projSettings.unix_imgDirList{1}];
+        fsmParam.main.imagePath = newImgDirList;
         if fsmParam.track.init
             n = numel(projDir);
             fsmParam.track.initPath = [newProjDir fsmParam.track.initPath(n+1:end)];
         end
         n = numel(imgDirList);
         m = size(fsmParam.specific.fileList, 1);
-        fsmParam.specific.fileList = horzcat(repmat(projSettings.unix_imgDirList{1}, ...
+        fsmParam.specific.fileList = horzcat(repmat(newImgDirList, ...
             m, 1), fsmParam.specific.fileList(:, n+1:end)); 
         save(filename, 'fsmParam');
     end
@@ -156,10 +188,8 @@ for i = 1:numel(newProjDirList)
     else
         load(filename);
         n = numel(imgDirList);
-        fsmImages.firstName = [projSettings.unix_imgDirList{1} ...
-            fsmImages.firstName(n+1:end)]; 
-        fsmImages.lastName = [projSettings.unix_imgDirList{1} ...
-            fsmImages.lastName(n+1:end)];
+        fsmImages.firstName = [newImgDirList fsmImages.firstName(n+1:end)]; 
+        fsmImages.lastName = [newImgDirList fsmImages.lastName(n+1:end)];
         save(filename, 'fsmImages');
     end
 end
