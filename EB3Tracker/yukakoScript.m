@@ -71,23 +71,36 @@ allLifetimes=grpData.allGroups(:,2);
 meanSpeed=mean(allSpeeds);
 meanLife=mean(allLifetimes);
 
+figure; hist(allSpeeds,25)
+figure; hist(allLifetimes,25)
 
 %% MAKE THE BATCH QUAD PLOTS
 
 % first set the input parameters
 speedLims=[0 40]; % speed limits for x-axis
-speedDiv=7.5; % speed division mark in microns/min
-lifeLims=[0 30]; % lifetime limits for y-axis
-lifeDiv=11.4; % lifetime division mark in seconds
-remBegEnd=1; % 1 to remove data at beginning/end of the movie, 0 to keep it
+speedDiv=9.9; % speed division mark in microns/min
+lifeLims=[0 40]; % lifetime limits for y-axis
+lifeDiv=9; % lifetime division mark in seconds
+remBegEnd=0; % 1 to remove data at beginning/end of the movie, 0 to keep it
 timeRange=[1 30]; % frame range to use
 
 % now run the quadrant scatter plot fuction
 plusTipBatchQuadPlot(groupList,speedLims,speedDiv,lifeLims,lifeDiv,remBegEnd,timeRange,1);
 
 
+% for getting out mean/std and frequencies from groupData (result of
+% plusTipPoolGroupData
+for i=1:length(groupData)
+    nGrowths=groupData(i,1).info.stats.nGrowths;
+    temp=groupData(i,1).info.stats.growth_speed_mean_SE;
+    meanStd(i,1:2)=[temp(1) temp(2)*sqrt(nGrowths)]
+    
+    fgapFreq(i,1)=groupData(i,1).info.stats.fgap_freq_time_mean_SE(1);
+    
+end
 
-
+popRYGB,nPrctRYGB]=plusTipGroupDataQuadPlot(groupData,'growthSpeed',speedDiv,...
+    'growthLifetime',lifeDiv,speedLims,lifeLims);
 
 
 

@@ -30,11 +30,13 @@ function [percentile1,thresh1,percentile2,thresh2,popRYGB]=plusTipParamPlot(para
 %                            or end of the movie
 %           timeRange      : frame range over which data should be used
 %           doPlot         : (1) to make plots, 2 to not
+%           xLims/yLims    : [lower upper] limits to x and y axes of
+%                            scatter plot
 %
 % OUTPUT:
 %           The principal outputs are two plots: one, a scatterplot of the
 %           parameters plotted against each other, split into four colors
-%           at the boundaries created by the percentiles, and the second,
+%           at the boundaries created by the division marks, and the second,
 %           an image overlay where the colors correspond to the tracks of
 %           interest.  If the same property is given for both parameters,
 %           there will be 2-3 colors splitting the data into only 2 or 3
@@ -332,6 +334,13 @@ for iColor=1:4
             popRYGB(1)=length(idx);
     end
     if doPlot==1
+%         if strcmp(param1,'growthSpeed') && strcmp(param2,'growthLifetime') && ~isempty(xLims) && ~isempty(yLims)
+%             [x,y]=meshgrid(1:xLims(2),1:yLims(2));
+%             disp=x.*(y./60); % displacement in microns
+%             contourf(disp)
+%             colormap gray
+%             hold on
+%         end
         scatter(data1(idx),data2(idx),[],colorMap(iColor),'.');
         hold on
     end
@@ -343,7 +352,7 @@ if doPlot==1
     if ~isempty(yLims)
         ylim(yLims)
     end
-
+    
     xlabel(label1)
     ylabel(label2)
     if remBegEnd==1

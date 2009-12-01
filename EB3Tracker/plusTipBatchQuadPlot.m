@@ -101,7 +101,7 @@ for iGroup=1:length(grpNames)
 
             saveas(5,[saveDirSub filesep groupList{grpIdx(iSub),1} '_' num2str(grpIdx(iSub)) '_slowShort' '.fig'])
             saveas(5,[saveDirSub filesep groupList{grpIdx(iSub),1} '_' num2str(grpIdx(iSub)) '_slowShort' fileExt])
-
+           
             saveas(6,[saveDirSub filesep groupList{grpIdx(iSub),1} '_' num2str(grpIdx(iSub)) '_scatter' '.fig'])
             saveas(6,[saveDirSub filesep groupList{grpIdx(iSub),1} '_' num2str(grpIdx(iSub)) '_scatter' fileExt])
             
