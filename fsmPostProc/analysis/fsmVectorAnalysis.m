@@ -246,6 +246,23 @@ if nImages>1
         return
     end
     
+    % Create sub directories if needed
+    if ~exist([outputdir,filesep,'tif'], 'dir')
+        % Create directory
+        success=mkdir(outputdir,'tif');
+        if success==0
+            error('Could not create subfolder in specified directory');
+        end
+    end
+
+    if ~exist([outputdir,filesep,'eps'], 'dir')
+        % Create directory
+        success=mkdir(outputdir,'eps');
+        if success==0
+            error('Could not create subfolder in specified directory');
+        end
+    end
+    
     % String format
     [path,outputFileName,no]=getFilenameBody(imageFileList(1,:));
     s=length(no);
@@ -586,15 +603,9 @@ for c1=1:nImages %firstMatrix:lastMatrix
         % Save the image to disk if needed
         if nImages>1
             indxStr=sprintf(strg,imageIndices(c1));
-            fname=[outputdir,filesep,'flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
-            F = getframe(gca);
-            imwrite(F.cdata,fname);
-            %print(gcf,'-dtiffnocompression',fname);
-            
-            
-            
-            %fname2=[outputdir,filesep,'flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.fig'];
-            %hgsave(gcf,fname2);
+            fname=['flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr];
+            print(gca,'-dtiff', [outputdir,filesep,'tif',filesep,fname,'.tif']);
+            print(gcf,'-dpsc2', '-r300',[outputdir,filesep,'eps',filesep,fname,'.eps']);
             
             % Close image
             close(h);
@@ -686,9 +697,9 @@ for c1=1:nImages %firstMatrix:lastMatrix
             % Save the image to disk if needed
             if nImages>1
                 indxStr=sprintf(strg,imageIndices(c1));
-                fname=[outputdir,filesep,'matchMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
-                print(gcf,'-dtiffnocompression',fname);
-               
+                fname=['matchMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr];
+                print(gcf,'-dtiff',[outputdir,filesep,'tif',filesep,fname,'.tif']);
+                print(gcf,'-dpsc2', '-r300',[outputdir,filesep,'eps',filesep,fname,'.eps']);               
                 
                 % Close image
                 close(h);
@@ -719,12 +730,12 @@ for c1=1:nImages %firstMatrix:lastMatrix
             % Save the image to disk if needed
             if nImages>1
                 indxStr=sprintf(strg,imageIndices(c1));
-                fname=[outputdir,filesep,'SNRMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
-                print(gcf,'-dtiffnocompression',fname);
+                fname=['SNRMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr];
+                print(gcf,'-dtiff',[outputdir,filesep,'tif',filesep,fname,'.tif']);
+                print(gcf,'-dpsc2', '-r300',[outputdir,filesep,'eps',filesep,fname,'.eps']);               
                 
                 % Close image
                 close(h);
-
             end
             
         else
@@ -781,9 +792,10 @@ for c1=1:nImages %firstMatrix:lastMatrix
             % Save the image to disk if needed
             if nImages>1
                 indxStr=sprintf(strg,imageIndices(c1));
-                fname=[outputdir,filesep,'matchMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
-                print(gcf,'-dtiffnocompression',fname);
-                
+                fname=['matchMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr];
+                print(gcf,'-dtiff',[outputdir,filesep,'tif',filesep,fname,'.tif']);
+                print(gcf,'-dpsc2', '-r300',[outputdir,filesep,'eps',filesep,fname,'.eps']);               
+
                 % Close image
                 close(h);
 
@@ -827,9 +839,10 @@ for c1=1:nImages %firstMatrix:lastMatrix
             % Save the image to disk if needed
             if nImages>1
                 indxStr=sprintf(strg,imageIndices(c1));
-                fname=[outputdir,filesep,'SNRMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr,'.tif'];
-                print(gcf,'-dtiffnocompression',fname);
-                
+                fname=['SNRMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr];
+                print(gcf,'-dtiff',[outputdir,filesep,'tif',filesep,fname,'.tif']);
+                print(gcf,'-dpsc2', '-r300',[outputdir,filesep,'eps',filesep,fname,'.eps']);               
+
                 % Close image
                 close(h);
 
