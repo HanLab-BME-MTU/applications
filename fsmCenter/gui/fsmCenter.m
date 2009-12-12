@@ -126,15 +126,17 @@ if strcmp(fsmState,'off')
    set(handles.pushBatchJobs,'Enable','off');
    set(handles.pushImKymoAnalysis,'Enable','off');
    set(handles.pushEdgeTracker,'Enable','off');
-   set(handles.pushFsmTransition,'Enable','off');
+%   set(handles.pushFsmTransition,'Enable','off'); (Removed from GUI)
    set(handles.pushPostProc,'Enable','off');
+   set(handles.pushStageDriftCorrection, 'Enable', 'off');
 else
    set(handles.pushFSM,'Enable','on');
    set(handles.pushBatchJobs,'Enable','on');
    set(handles.pushImKymoAnalysis,'Enable','on');
    set(handles.pushEdgeTracker,'Enable','on');
-   set(handles.pushFsmTransition,'Enable','on');
+%   set(handles.pushFsmTransition,'Enable','on'); (Removed from GUI)
    set(handles.pushPostProc,'Enable','on');
+   set(handles.pushStageDriftCorrection, 'Enable', 'on');
 end
 
 
@@ -414,6 +416,41 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %
+% %  STAGE DRIFT CORRECTION
+% %
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function pushStageDriftCorrection_Callback(hObject, eventdata, handles)
+
+T = stageDriftCorrection([]);
+
+if ~(isempty(T) || isempty(R))
+    outputFile = [projSettings.projDir filesep projSettings.subProjDir{1} ...
+        filesep 'stageDriftCorrection.mat'];
+    
+    while exist(outputFile, 'file')
+        button = questdlg('File already exists. Override?');
+        switch button
+            case 'Cancel'
+                return;
+            case 'Ok'
+                break;
+            case 'No'
+                outputDir = uigetdir(path, 'Select Output Directory');
+                if ~ischar(filename) || ~ischar(pathname)
+                    return;
+                end
+                outputFile = [outputDir filesep 'stageDriftCorrection.mat'];
+        end
+    end
+    
+    save(outputFile, 'T', 'R');
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
 % %  POST PROCESSING
 % %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -422,17 +459,6 @@ end
 function pushPostProc_Callback(hObject, eventdata, handles)
 fsmPostProc;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %
-% %  TRANSITION ANALYSIS
-% %
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function pushFsmTransition_Callback(hObject, eventdata, handles)
-
-fsmTransition;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -443,7 +469,6 @@ fsmTransition;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function pushEdgeTracker_Callback(hObject, eventdata, handles)
-
 prPanel;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
