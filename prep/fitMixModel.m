@@ -1,5 +1,5 @@
-function [estimates] = fitMixModelN3(image, xyvec, sig, amps, b)
-% fit mixture model to image with Jacobian to retrieve subpixel vlaues for
+function [estimates] = fitMixModel(image, xyvec, sig, amps, b)
+% fit mixture model to image with Jacobian to retrieve subpixel values for
 % speckle positions, using info from cands as start point
 % INPUT:    image
 %           xyvec: (numspec x 2) vector containing startpoints for x,y, 
@@ -8,10 +8,10 @@ function [estimates] = fitMixModelN3(image, xyvec, sig, amps, b)
 %           amps:   amplitudes (deltaI) vector
 %           b:      background value
 % OUTPUT: estimates
-% UPDATED January 31/2006 Dinah Loerke
+% UPDATED Dec 10/2009 Sylvain Berlemont
 
-[xs,ys]=size(image);
-[numspec,nn]=size(xyvec);
+[xs,ys] = size(image);
+numspec = size(xyvec, 1);
 
 %speckle positions
 mspos=xyvec;
@@ -39,8 +39,8 @@ masksin=sparse(xs*ys,numspec);
 
 % radius for speckle spot calculation
 rad = ceil(6*sig);
-len = 2*rad+1;
-[miniImX, miniImY] = ndgrid(-rad:rad,-rad:rad);
+len = 2 * rad + 1;
+[miniImX, miniImY] = ndgrid(-rad:rad, -rad:rad);
 miniDist = sqrt(miniImX.^2 + miniImY.^2);
 %inside pixels
 [XinPix, YinPix] = find(miniDist<=(3*sig));
@@ -58,7 +58,6 @@ GlobalCoordMask = [];
 
 hm = waitbar(0,'generating sparse mask');
 for n=1:numspec
-   
     %mspos are successive speckle positions
     SmalCoorX = mspos(n,1)+XinPix;
     SmalCoorY = mspos(n,2)+YinPix;
@@ -81,7 +80,7 @@ for n=1:numspec
     %subIndLarPos = sub2ind([xs ys],LarCoorX(goodPos),LarCoorY(goodPos));
     singleSpecLarPositions{n} = [LarCoorX(goodPos),LarCoorY(goodPos),sub2ind([xs ys],LarCoorX(goodPos),LarCoorY(goodPos))];
     
-    waitbar( n / numspec );
+    waitbar(n / numspec, hm);
 end
 
 close(hm);

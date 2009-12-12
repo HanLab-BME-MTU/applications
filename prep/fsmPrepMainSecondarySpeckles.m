@@ -61,8 +61,6 @@ if ~isempty(fsmParam)
     end
 end
 
-% SIG=1.60;
-% SIG=1.77;
 SIG=1.88; % for the twice convolved image (or 1.77)
 
 % local minima
@@ -152,10 +150,10 @@ if fsmParam.prep.subpixel==1
     %filtersigma; in the usual case where psfsigma=filtersigma, then
     %mmsigma=sqrt(2)*psfsigma
     mmsigma=sqrt(psfsigma^2+filtersigma^2);
-    image=I;
+    bitDepth = log2(fsmParam.main.normMax + 1);
     disp(['psfsigma=',num2str(psfsigma),'   filtersigma=',num2str(filtersigma),'   mixmodsigma=',num2str(mmsigma)]);
     disp('calculating sub-pixel locations...');
-    candsSP = candsToSubpixelN(image,cands,mmsigma);
+    candsSP = candsToSubpixelN(I, cands, mmsigma, bitDepth);
     eval( (strcat('save cands',filesep,'cands',indxStr,'_spa.mat candsSP;')) );
 end
 
