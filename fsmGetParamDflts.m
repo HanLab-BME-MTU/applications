@@ -66,7 +66,7 @@ fsmParam.main.label='';
 fsmParam.prep.enable=1;                    % Activates the PREPROCESSING module [ 0 : off, 1 : on ]
 % Secondary speckles
 fsmParam.prep.pstSpeckles=1;               % Sets the type of speckles to be detected
-fsmParam.prep.paramSpeckles=[3 0.01 1.06]; % Sets [order percentage] for 'higher-order speckles' and sigma for 'scale space spaeckles'
+fsmParam.prep.paramSpeckles=[3 0.01]; % Sets [order percentage] for 'higher-order speckles'
 
 % Auto polygon
 fsmParam.prep.autoPolygon=0;        % Automatic analisys of the image to extract cell boundaries  [ 0 : off, 1 : on ]

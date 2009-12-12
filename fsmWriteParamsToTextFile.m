@@ -78,13 +78,9 @@ fprintf(fid,'Noise parameters               : [ sDN = %1.8f; beta = %1.8f; I0 = 
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if strcmp(fsmParam.main.label,'Scale space') & fsmParam.main.noiseParam(7)==1
-    fprintf(fid,'Experiment name                : Scale space\n'); % This belongs to MAIN
-    fprintf(fid,'Experiment description         : Scale space\n');
-else
-    fprintf(fid,'Experiment name                : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).label); % This belongs to MAIN
-    fprintf(fid,'Experiment description         : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
-end
+
+fprintf(fid,'Experiment name                : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).label); % This belongs to MAIN
+fprintf(fid,'Experiment description         : %s\n',fsmExpParam(fsmParam.main.noiseParam(7)-1).description);
 fprintf(fid,'\n[ MODULES ]\n');
 
 fprintf(fid,'\n> PREP \n');
@@ -94,7 +90,6 @@ if fsmParam.prep.enable==1
     switch fsmParam.prep.pstSpeckles
         case 1, fprintf(fid,'Speckle order                  : Primary only\n');
         case 2, fprintf(fid,'Speckle order                  : %d-ary (Minimum increase: %1.3f)\n',fsmParam.prep.paramSpeckles(1),fsmParam.prep.paramSpeckles(2));
-        case 3, fprintf(fid,'Speckle order                  : Scale space (sigma: &1.3f)\n',fsmParam.prep.paramSpeckles(1));
         otherwise
             error('Wrong value for fsmParam.prep.pstSpeckles');
     end

@@ -619,15 +619,16 @@ if value==0
     set(handles.tertiaryRadio,'Enable','off');
     set(handles.drawROICheck,'Enable','off');
     set(handles.loadROICheck,'Enable','off');   
-    set(handles.scaleRadio,'Enable','off');
     set(handles.textDescr,'Enable','off');
     set(handles.textSigma,'Enable','off');
-    set(handles.editSigma,'Enable','off');    
+    set(handles.editSigma,'Enable','off');
+    set(handles.percText,'Enable','off');
+    set(handles.percEdit,'Enable','off');
+    set(handles.orderText,'Enable','off');
+    set(handles.orderEdit,'Enable','off');
 else
     set(handles.autoPolCheck,'Enable','on');
-    set(handles.bleachRadioOff,'Enable','on');
     set(handles.textCameraCalPar,'Enable','on');
-    set(handles.expPopup,'Enable','on');
     set(handles.expPopup,'Enable','on');
     set(handles.textAdvancedPrep,'Enable','on');
     set(handles.textGauss,'Enable','on');
@@ -637,10 +638,13 @@ else
     set(handles.tertiaryRadio,'Enable','on');
     set(handles.drawROICheck,'Enable','on');
     set(handles.loadROICheck,'Enable','on');
-    set(handles.scaleRadio,'Enable','on');
     set(handles.textDescr,'Enable','on');
     set(handles.textSigma,'Enable','on');
-%    set(handles.editSigma,'Enable','on');    
+    set(handles.editSigma,'Enable','on');    
+    set(handles.percText,'Enable','on');
+    set(handles.percEdit,'Enable','on');
+    set(handles.orderText,'Enable','on');
+    set(handles.orderEdit,'Enable','on');
 end
 
 
@@ -841,30 +845,20 @@ function varargout = primaryRadio_Callback(h, eventdata, handles, varargin)
 
 set(handles.primaryRadio,'Value',1);
 set(handles.tertiaryRadio,'Value',0);
-set(handles.scaleRadio,'Value',0);
 set(handles.percText,'Enable','off');
 set(handles.percEdit,'Enable','off');
 set(handles.orderText,'Enable','off');
 set(handles.orderEdit,'Enable','off');
-set(handles.sigText,'Enable','off');
-set(handles.sigEdit,'Enable','off');
-% Turn on kinetic analysis
-kineticAnalysis(handles,'on');
 
 % --------------------------------------------------------------------
 function varargout = tertiaryRadio_Callback(h, eventdata, handles, varargin)
 
 set(handles.primaryRadio,'Value',0);
 set(handles.tertiaryRadio,'Value',1);
-set(handles.scaleRadio,'Value',0);
 set(handles.percText,'Enable','on');
 set(handles.percEdit,'Enable','on');
 set(handles.orderText,'Enable','on');
 set(handles.orderEdit,'Enable','on');
-set(handles.sigText,'Enable','off');
-set(handles.sigEdit,'Enable','off');
-% Turn on kinetic analysis
-kineticAnalysis(handles,'on');
 
 % --- Executes on button press in checkbox18.
 function checkbox18_Callback(hObject, eventdata, handles)
@@ -1008,57 +1002,6 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-% --------------------------------------------------------------------
-function varargout = sigText_Callback(h, eventdata, handles, varargin)
-
-% --------------------------------------------------------------------
-function varargout = sigEdit_Callback(h, eventdata, handles, varargin)
-
-% --------------------------------------------------------------------
-function varargout = scaleRadio_Callback(h, eventdata, handles, varargin)
-
-set(handles.primaryRadio,'Value',0);
-set(handles.tertiaryRadio,'Value',0);
-set(handles.scaleRadio,'Value',1);
-set(handles.percText,'Enable','off');
-set(handles.percEdit,'Enable','off');
-set(handles.orderText,'Enable','off');
-set(handles.orderEdit,'Enable','off');
-set(handles.sigText,'Enable','on');
-set(handles.sigEdit,'Enable','on');
-% Turn off kinetic analysis
-kineticAnalysis(handles,'off');
-
-% --------------------------------------------------------------------
-function kineticAnalysis(handles,flag)
-
-if ~strcmp(flag,'off') && ~strcmp(flag,'on')
-    error('Wrong value for parameter flag');
-end
-
-% Enable/Disable
-set(handles.checkBuildModule,'Enable',flag); % Builder module
-set(handles.checkKinModule,'Enable',flag);   % Kinetic analysis module
-set(handles.textBleach,'Enable',flag);
-set(handles.bleachRadioOff,'Enable',flag);
-set(handles.bleachRadio1x,'Enable',flag);
-set(handles.bleachRadio2x,'Enable',flag);
-set(handles.bleachRadio3x,'Enable',flag);
-set(handles.checkDispModule,'Enable',flag);  % Result display module
-
-% If flag is 'off', it means that the scale space approach has been selected.
-% If this is the case, not only must the build, kin, and disp module be disabled, such
-% that they cannot be selected by the user, but they also have to be turned off such 
-% that the software is not going to run them. The opposite is not necessary
-
-if strcmp(flag,'off')
-    
-    set(handles.checkBuildModule,'Value',0); % Builder module
-    set(handles.checkKinModule,'Value',0);   % Kinetic analysis module
-    set(handles.checkDispModule,'Value',0);  % Result display module
-    
-end
-
 
 % --- Executes on button press in checkGrid.
 function checkGrid_Callback(hObject, eventdata, handles)
@@ -1155,7 +1098,6 @@ else
 end
 
 
-
 function editInfluence_Callback(hObject, eventdata, handles)
 % hObject    handle to editInfluence (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1178,7 +1120,6 @@ if ispc
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
-
 
 
 function editSigma_Callback(hObject, eventdata, handles)
@@ -1215,7 +1156,6 @@ if ispc
 else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
-
 
 
 function editCorrLength_Callback(hObject, eventdata, handles)
@@ -1309,7 +1249,6 @@ function checkInitKymo_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkInitKymo
-
 
 % --- Executes during object creation, after setting all properties.
 function popupTrackInit_CreateFcn(hObject, eventdata, handles)

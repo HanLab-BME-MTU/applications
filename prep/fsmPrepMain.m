@@ -6,7 +6,7 @@ function [fsmParam,status]=fsmPrepMain(fsmParam)
 % INPUT      fsmParam:   general parameter structure
 %
 % OUTPUT     fsmParam:   modified (when needed) parameter structure
-%            status  :   it decides whether the program should continue after this module 
+%            status  :   it decides whether the program should continue after this module
 %                        or should stop because of errors;
 %                        status is set to 0 (error) in the beginning of a module and will
 %                        be set to 1 at the end if the module completed successfully.
@@ -39,14 +39,14 @@ imgNumber    = fsmParam.main.imgN;          % Number of image to be processed fr
 xmin         = fsmParam.main.normMin;       % Lower intensity bound for intensity normalization
 xmax         = fsmParam.main.normMax;       % Upper intensity bound for intensity normalization
 noiseParam   = fsmParam.main.noiseParam;    % Parameters for the noise model
-paramSpeckles= fsmParam.prep.paramSpeckles; % High-order speckle parameters 
+paramSpeckles= fsmParam.prep.paramSpeckles; % High-order speckle parameters
 autoPolygon  = fsmParam.prep.autoPolygon;   % Automatic analisys of the image to extract cell boundaries
 drawROI      = fsmParam.prep.drawROI;       % The user draws or loads a ROI to restrict analysis
 subpixel     = fsmParam.prep.subpixel;      % significant speckles are localized with subpixel accuracy
 psfsigma     = fsmParam.prep.psfSigma;      % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
 filtersigma  = fsmParam.prep.filterSigma;   % sigma used for the low-pass filtering; except where specifically
-                                            % stated differently by the user, filtersigma should have the same value as psfsigma; 
-                                            % for filtersigma>psfsigma, image information is lost during filtering!!                                            % same value as 
+% stated differently by the user, filtersigma should have the same value as psfsigma;
+% for filtersigma>psfsigma, image information is lost during filtering!!                                            % same value as
 projDir = fsmParam.project.path;
 edgeDir = fsmParam.project.edge;
 
@@ -57,7 +57,7 @@ cd(userPath);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% IMAGE STACK - GET FILES NAMES AND NUMBERS  
+% IMAGE STACK - GET FILES NAMES AND NUMBERS
 %
 % This part is not run in the case of a batch job
 %
@@ -66,7 +66,7 @@ cd(userPath);
 if ~isfield(fsmParam,'batchJob')
     
     cd(imagePath);
-    % The user must select the first image of the stack 
+    % The user must select the first image of the stack
     [fName,dirName] = uigetfile(...
         {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
         '*.tif','TIF files (*.tif)'
@@ -152,7 +152,7 @@ if ~isfield(fsmParam,'batchJob')
             {'userROI.mat'}, ...
             'Please load ''userROI.mat''');
         if ~(isa(userROIbwFileName,'char') && isa(userROIbwPath,'char'))
-            return 
+            return
         end
         
         try
@@ -165,7 +165,7 @@ if ~isfield(fsmParam,'batchJob')
             % Check dimensions
             if size(userROIbw) ~= [imInfo.Height, imInfo.Width]
                 
-                % Error - inform the user that he will have to draw the roi 
+                % Error - inform the user that he will have to draw the roi
                 errorMsg='The selected userROI.mat contains a polygon incompatible with your image size. You will be now asked to draw a ROI.';
                 uiwait(errordlg(errorMsg,'Error','modal'));
                 
@@ -183,7 +183,7 @@ if ~isfield(fsmParam,'batchJob')
             
         catch
             
-            % Error - inform the user that he will have to draw the roi 
+            % Error - inform the user that he will have to draw the roi
             errorMsg='Invalid userROI.mat file. You will be now asked to draw a ROI.';
             uiwait(errordlg(errorMsg,'Error','modal'));
             
@@ -193,7 +193,7 @@ if ~isfield(fsmParam,'batchJob')
             % And also update fsmParam
             fsmParam.prep.drawROI=1;
             
-        end    
+        end
         
     end
     
@@ -263,7 +263,7 @@ if autoPolygon == 1
         dirList = dir(bgMaskDir);
         fileList = {dirList([dirList.isdir] == 0).name};
         bgMaskFileList = fileList(strmatch('mask_',fileList));
-
+        
         %Get the index of the available mask files.
         bgMaskFileIndex = zeros(size(bgMaskFileList));
         for k = 1:length(bgMaskFileList)
@@ -277,7 +277,7 @@ if autoPolygon == 1
         bgMaskFileList  = {};
         bgMaskFileIndex = [];
     end
-
+    
     if isempty(bgMaskFileList)
         warndlg(['No cell edge mask files has been found in the selected ' ...
             '''edge'' directory: ' edgeDir '. Please run edge tracking first by ' ...
@@ -289,18 +289,18 @@ if autoPolygon == 1
         end
         return;
     end
-
+    
     %Check if edge detection has been done for the selected images.
     inRangeI = find(bgMaskFileIndex>=firstIndex & ...
         bgMaskFileIndex<=firstIndex+n-1);
-
+    
     if length(inRangeI) < n
         answ = questdlg(['Cell edge mask files are missing for some images ' ...
             'in the selected ''edge'' directory: ' edgeDir ...
             '. Do you want to continue or go back and run edge tracking again by ' ...
             'click ''Run edge tracker'' button in ''fsmCenter''?'], ...
             'warning','Continue','Cancel','Continue');
-
+        
         if strcmp(answ,'Cancel')
             cd(oldPath);
             if ishandle(h)
@@ -319,138 +319,73 @@ for counter1=1:n
     % Index of the current image
     currentIndex=counter1+firstIndex-1;
     
-    if fsmParam.prep.pstSpeckles==1 || fsmParam.prep.pstSpeckles==2
+    % Load and normalize the image
+    img=imreadnd2(char(outFileList(counter1,:)),xmin,xmax);
+    
+    % retain copy of original image for mixture model
+    % orig_image is normalized, but NOT filtered
+    orig_image=img;
+    
+    if autoPolygon==1
         
-        % Load and normalize the image
-        img=imreadnd2(char(outFileList(counter1,:)),xmin,xmax);
+        % Initialize successCE
+        successCE=-1;
         
-         % retain copy of original image for mixture model
-         % orig_image is normalized, but NOT filtered
-         orig_image=img;
-        
-        if autoPolygon==1
+        % Extract cell outlines (b/w mask)
+        %Added by Lin Ji on Jan 24, 2005. Check weather a mask file has
+        % already existed.
+        if ~isempty(bgMaskFileList)
+            %Check if the current image has a 'bgMask' file already.
+            rBgMaskInd = find(bgMaskFileIndex==currentIndex);
             
-            % Initialize successCE
-            successCE=-1;
-            
-            % Extract cell outlines (b/w mask)
-            %Added by Lin Ji on Jan 24, 2005. Check weather a mask file has
-            % already existed.
-            if ~isempty(bgMaskFileList)
-               %Check if the current image has a 'bgMask' file already.
-               rBgMaskInd = find(bgMaskFileIndex==currentIndex);
-
-               if ~isempty(rBgMaskInd)
-                  bwMask = double(imread(bgMaskFileList{rBgMaskInd}));
-                  successCE = 1;
-               end
+            if ~isempty(rBgMaskInd)
+                bwMask = double(imread(bgMaskFileList{rBgMaskInd}));
+                successCE = 1;
             end
-
-            %if successCE == -1
-            %   try
-            %      % Here use special bit depth instead of the FSM bit depth
-            %      % contact Matthias for more questions
-            %      img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
-            %      [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',0,'filter_image',1,'bit_depth',eBD);
-            %   catch
-            %      bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
-            %      fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
-            %   end
-            %end
-
-            % If imFindCellEdge returns successCE==-1 create a white mask too
-            if successCE==-1
-                bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
-                %fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
-                fprintf(1,'Edge mask file for frame %s is missing.\n',num2str(currentIndex));
-                fprintf(1,'Run edge tracker to generate this mask.\n');
-            end
-            
-            % Save it to disk
-            % matthias: that is not needed since we store it in
-            % edge/cell_mask already
-            %indxStr=sprintf(strg,currentIndex);
-            %eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask
-            
-            % Multiply image with mask (to set background to 0)
-            img=img.*bwMask;
-            clear bwMask;
-        end
-
-              
-        % Prepare the image for the analysis
-        img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],filtersigma);
-        
-        % Statistically test the local maxima to extract (significant) speckles 
-        fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,fsmParam,orig_image);
-        
-                
-        
-    elseif fsmParam.prep.pstSpeckles==3
-        
-        % Load the image
-        img=imread(char(outFileList(counter1,:)));
-        
-        if autoPolygon==1
-            
-            % Initialize successCE
-            successCE=-1;
-            
-            % Extract cell outlines (b/w mask)
-            %Added by Lin Ji on Jan 24, 2005. Check weather a mask file has
-            % already existed.
-            if ~isempty(bgMaskFileList)
-               %Check if the current image has a 'bgMask' file already.
-               rBgMaskInd = find(bgMaskFileIndex==currentIndex);
-
-               if ~isempty(rBgMaskInd)
-                  bwMask = imread(bgMaskFileList{rBgMaskInd});
-                  successCE = 1;
-               end
-            end
-            %try
-            %    % Here use special bit depth instead of the FSM bit depth
-            %    % contact Matthias for more questions
-            %    img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
-            %    [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',1,'filter_image',1,'bit_depth',eBD);
-            %catch
-            %    bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
-            %    fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
-            %end
-            
-            % If imFindCellEdge returns successCE==-1 create a white mask too
-            if successCE==-1
-                bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
-            %    fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
-                fprintf(1,'Edge mask file for frame %s is missing.\n',num2str(currentIndex));
-                fprintf(1,'Run edge tracker to generate this mask.\n');
-            end
-            
-            % Save it to disk
-            % matthias: that is not needed since we store it in
-            % edge/cell_mask already
-            %indxStr=sprintf(strg,currentIndex);
-            %eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask
-            
-            % Multiply image with mask (to set background to 0)
-            img=img.*bwMask;
-            clear bwMask;
-            
         end
         
-        % Scale space speckle extraction
-        fsmPrepScaleSpace(img,strg,currentIndex,1,fsmParam.prep.paramSpeckles(3),noiseParam(5));      
+        %if successCE == -1
+        %   try
+        %      % Here use special bit depth instead of the FSM bit depth
+        %      % contact Matthias for more questions
+        %      img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
+        %      [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',0,'filter_image',1,'bit_depth',eBD);
+        %   catch
+        %      bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
+        %      fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+        %   end
+        %end
         
-    else
-        error('wrong selection for speckle detection');
+        % If imFindCellEdge returns successCE==-1 create a white mask too
+        if successCE==-1
+            bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
+            %fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
+            fprintf(1,'Edge mask file for frame %s is missing.\n',num2str(currentIndex));
+            fprintf(1,'Run edge tracker to generate this mask.\n');
+        end
+        
+        % Save it to disk
+        % matthias: that is not needed since we store it in
+        % edge/cell_mask already
+        %indxStr=sprintf(strg,currentIndex);
+        %eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask
+        
+        % Multiply image with mask (to set background to 0)
+        img=img.*bwMask;
+        clear bwMask;
     end
+     
+    % Prepare the image for the analysis
+    img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],filtersigma);
+    
+    % Statistically test the local maxima to extract (significant) speckles
+    fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,fsmParam,orig_image);
     
     % Update wait bar
     waitbar(counter1/n,h);
     
     % Force matlab to update the waitbar
     drawnow;
-    
 end
 
 % Close waitbar

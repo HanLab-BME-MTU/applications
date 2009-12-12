@@ -29,70 +29,15 @@ function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noisePar
 %                                         fsmPrepCheckDistance, fsmPrepUpdateImax, fsmPrepCheckInfo}
 %               fsmPrepMainSecondarySpeckles is used by { fsmPrepMain }
 %
-% Alexandre Matov, November 7th, 2002
+% Sylvain Berlemont, Dec 10th, 2009
 
-% if nargin==0
-%     locDEBUG=1;
-%     DEBUG=0;
-%     Speckles=[3 0.0/100];
-%     %     Speckles=[8 0.0/100]; % default
-%     % load first image
-%     [fileName,dirName] = uigetfile('*.tif','Choose an image');
-%     I=imread([dirName,filesep,fileName]);
-%     SIG=1.88;
-%     %     I=double(I); %??
-%     IG=prepareRowData(I,SIG);
-%     strg=[];
-%     counter=0;
-%     shift=4;%15
-%     
-%     % format: [Q/GaussRatio sDN beta I0 Q]
-%     %      noiseParam=[1.96/1.12985 0.00028 1e-4 0.00495 1.96];  % WT 2s 14bit GOOD ONE (but run with division like 8bit!)
-% %          noiseParam=[1.96/1.17700 0.00039 2e-4 0.00531 1.96];  % WT 2s 14bit EVEN BETTER (but run with division like 8bit!)
-% %          noiseParam=[1.96/1.20461 0.01695 1e-5 0.30953 1.96];  % meta spindle WT 2s 8bit ????
-%     %      noiseParam=[1.96/1.21230 0.01036 1e-4 0.27200 1.96];  % meta spindle WT 2s 8bit BLACK BG
-%     
-% %          noiseParam=[1.96/1.25689 0.01200 1e-4 0.29697 1.96];  % meta spindle WT 4s 8bit GOOD ONE
-%     
-% %          noiseParam=[1.96/3.55 0.03656 1e-4 0.14540 1.96]; % actin retrograde flow
-%     
-% %         noiseParam=[1.96/3.55 5.4103e-004 2e-4 0.0295 1.96];% actin 158a 14bit
-%     % noiseParam=[1.96/3.55 5.4103e-004 2e-4 0.0295 1.96];% actin 07 14bit NOISE PARAMS NOT GOOD
-%     
-%     %     noiseParam=[1.96/2 0.0002 1e-4 0.003306872 1.96]; % image Michael AOTF + EPI (naglaseni)
-%     %     noiseParam=[1.96/1.03897826 0.00059316 1e-4 0.03213289 1.96]; % getmodulation UNIVERSAL
-%     noiseParam=[1.4700    0.0001    0.0002    0.0313    1.9600]; % 488 S1 AOTF488_15_1.tif
-% %     noiseParam=[1.96/1.0993 0.0002 1.e-4  0.0316 1.96]; % 488 S1 AOTF488_20_1.tif
-% %     noiseParam=[1.96/1.0597 0.0004 1.e-4  0.0318 1.96]; % 488 S1 AOTF488_25_1.tif
-% %     noiseParam=[1.96/1.0485 0.0004 1.e-4  0.0320 1.96]; % 488 S1 AOTF488_32_1.tif
-% %       noiseParam=[1.96/1.7734 0.0008 7.e-4  0.0311 1.96]; % 488 S1 Epi488_1.tif
-% 
-% 
-% 
-% % noiseParam=[1.1660    0.0006    0.0009    0.0304    1.9600]; % 488 STACK
-%       
-%     %     noiseParam=[1.96/1.03897826 0.00059316 1e-4 0.03213289 1.96]; % image Michael AOTF
-%     
-%     %     noiseParam=[1.96/2.02281245 0.00074871 7e-4 0.03086343 1.96]; % image Michael EPI 1
-%     % noiseParam=[1.96/2.26574167 0.00070565 13e-4 0.03062333 1.96]; % image Michael EPI 2
-%     
-% %         noiseParam=[1.96/1 0.02 2e-4 0.0981 1.96]; % WT 10s 8bit RED
-%     % change sigma dark noise
-%     % noiseParam(2)=noiseParam(2)/5.2540;
-%     
-%     %     noiseParam=[1.96/2.1090 0.02085 1e-4 0.09317 1.96];% Confocal images1 almost o.k. 
-%     %     noiseParam=[1.96/2.75734 0.01971 1e-4 0.08296 1.96];% Confocal images2 too weak
-%     %     noiseParam=[1.96/1.22425 0.04055 1e-4 0.15979 1.96];% Confocal images3
-%     SAVEINFO=0;
-% else
-    IG=I;
-    SAVEINFO=1;
-    if strg == 0 % if you provide all the fields but dont wanna write to disc
-        SAVEINFO=0;
-    end
-    locDEBUG=0;
-    DEBUG=0;
-% end
+IG=I;
+SAVEINFO=1;
+if strg == 0 % if you provide all the fields but dont wanna write to disc
+    SAVEINFO=0;
+end
+locDEBUG=0;
+DEBUG=0;
 
 if nargin==6
     fsmParam=[];

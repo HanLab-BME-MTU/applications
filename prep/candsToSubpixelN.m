@@ -1,4 +1,4 @@
-function [cands2] = candsToSubpixelN(img,cands,sigma)
+function [cands2] = candsToSubpixelN(img,cands,sigma,bitdepth)
 % convert integer speckle position values in cands to subpixel accuracy
 % using mixture-model fitting
 % 
@@ -14,9 +14,9 @@ function [cands2] = candsToSubpixelN(img,cands,sigma)
 % DEPENDENCiES   candsToSubpixelN uses fitMixModel
 %               candsToSubpixelN is used by fsmPrepMainSecondarySpeckles
 %
-% Dinah Loerke, Mar 1, 2005
+% Sylvain Berlemont, Dec 10, 2009
 
-maxbitdepth=2^16;
+maxbitdepth=2^bitdepth;
 %pointer to significant speckles and fitting inputs
 signi=find([cands.status]==1);
 xycand_all=cat(1,cands.Lmax);

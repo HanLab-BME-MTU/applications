@@ -101,30 +101,22 @@ bleachValues=[0 7.25e-5 1.45e-4 2.175e-4]; % 1x corresponds to the mean of the n
 indx=find([get(handles.bleachRadioOff,'Value') get(handles.bleachRadio1x,'Value') get(handles.bleachRadio2x,'Value') get(handles.bleachRadio3x,'Value')]);
 fsmParam.kin.bleachRed=bleachValues(indx);
 
-
 % Subpixel accurate localization of speckles
 fsmParam.prep.subpixel = get(handles.subpixel,'Value');
 
 % Secondary speckles
-fsmParam.prep.pstSpeckles=find([get(handles.primaryRadio,'Value') get(handles.tertiaryRadio,'Value') get(handles.scaleRadio,'Value')]);
+fsmParam.prep.pstSpeckles=find([get(handles.primaryRadio,'Value') get(handles.tertiaryRadio,'Value')]);
 switch fsmParam.prep.pstSpeckles
     case 1
         % Only primary speckles
         fsmParam.prep.paramSpeckles(1)=1; % Sets the order for 'higher-order speckles'
         fsmParam.prep.paramSpeckles(2)=str2double(get(handles.percEdit,'String')); % Percentage
-        fsmParam.prep.paramSpeckles(3)=str2double(get(handles.sigEdit,'String')); % Sets the sigma for 'scale space speckles'
     case 2
         % Higher-order speckles
         fsmParam.prep.paramSpeckles(1)=str2double(get(handles.orderEdit,'String'));
         fsmParam.prep.paramSpeckles(2)=str2double(get(handles.percEdit,'String')); % Percentage
-        fsmParam.prep.paramSpeckles(3)=str2double(get(handles.sigEdit,'String'));
-    case 3
-        % Scale space speckles
-        fsmParam.prep.paramSpeckles(1)=str2double(get(handles.orderEdit,'String'));
-        fsmParam.prep.paramSpeckles(2)=str2double(get(handles.percEdit,'String')); % Percentage
-        fsmParam.prep.paramSpeckles(3)=str2double(get(handles.sigEdit,'String'));
     otherwise
-        error('The expected value for fsmParam.prep.pstSpeckles is either 1 or 2 or 3');
+        error('The expected value for fsmParam.prep.pstSpeckles is either 1 or 2');
 end
 
 % Assign noise parameters
@@ -134,16 +126,8 @@ if exp~=1
     % Store experiment label
     fsmParam.main.label=fsmExpParam(exp-1).label;
 else
-    if fsmParam.prep.pstSpeckles(1)~=3
-        uiwait(msgbox('Please select an experiment.','Warning','warn'));
-        return;
-    else
-        % Store experiment label
-        fsmParam.main.label='Scale space'; % Set it to 'Scale space' so that there won't be any check for setting the next time fsmParam is loaded
-        % Make sure that fsmParam.main.noiseParam(7) does not point to any experiment
-        fsmParam.main.noiseParam(7)=1;
-        set(handles.expPopup,'Value',1);
-    end
+    uiwait(msgbox('Please select an experiment.','Warning','warn'));
+    return;
 end
 
 % Tracker
@@ -175,8 +159,7 @@ else
             % Vectors provided by TFT - saved into /tack/flow
             fsmParam.track.initPath=[fsmParam.project.path,filesep,fsmParam.project.tack,filesep,'flow',filesep];
             
-        otherwise
-            
+        otherwise        
             error('Only tracker initialization by imKymoAnalysis or TFT is supported right now.');
     end
 end

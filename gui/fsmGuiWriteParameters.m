@@ -200,33 +200,17 @@ switch fsmParam.prep.pstSpeckles
 case 1
     set(handles.primaryRadio,'Value',1);
     set(handles.tertiaryRadio,'Value',0);
-    set(handles.scaleRadio,'Value',0);
     set(handles.percText,'Enable','off');
     set(handles.percEdit,'Enable','off');
     set(handles.orderText,'Enable','off');
     set(handles.orderEdit,'Enable','off');
-    set(handles.sigText,'Enable','off');
-    set(handles.sigEdit,'Enable','off');
 case 2
     set(handles.primaryRadio,'Value',0);
     set(handles.tertiaryRadio,'Value',1);
-    set(handles.scaleRadio,'Value',0);
     set(handles.percText,'Enable','on');
     set(handles.percEdit,'Enable','on');
     set(handles.orderText,'Enable','on');
     set(handles.orderEdit,'Enable','on');
-    set(handles.sigText,'Enable','off');
-    set(handles.sigEdit,'Enable','off');
-case 3
-    set(handles.primaryRadio,'Value',0);
-    set(handles.tertiaryRadio,'Value',0);
-    set(handles.scaleRadio,'Value',1);
-    set(handles.percText,'Enable','off');
-    set(handles.percEdit,'Enable','off');
-    set(handles.orderText,'Enable','off');
-    set(handles.orderEdit,'Enable','off');
-    set(handles.sigText,'Enable','on');
-    set(handles.sigEdit,'Enable','on');
 otherwise
     error('Value for PST out of range.');
 end
@@ -248,7 +232,6 @@ end
 
 set(handles.orderEdit,'String',num2str(fsmParam.prep.paramSpeckles(1))); % Sets the order for 'higher-order speckles'
 set(handles.percEdit,'String',num2str(fsmParam.prep.paramSpeckles(2)));   % Sets the percentage for 'higher-order speckles'
-set(handles.sigEdit,'String',num2str(fsmParam.prep.paramSpeckles(3)));   % Sets the sigma for 'scale space speckles'
 
 if fsmParam.prep.enable==1
     set(handles.autoPolCheck,'Enable','on');
@@ -329,7 +312,6 @@ set(handles.checkEnhTrack,'Value',fsmParam.track.enhanced);
 
 % Enable/disable module
 if fsmParam.track.enable==1
-    
     % Check module
     set(handles.checkTrackModule,'Value',1);
 
@@ -343,7 +325,6 @@ if fsmParam.track.enable==1
     fsmGuiMain('popupTracker_Callback',handles.popupTracker,[],handles);
     
 else
-    
     % Uncheck module
     set(handles.checkTrackModule,'Value',0);
 
@@ -359,12 +340,6 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Check for 'Scale space'
-if fsmParam.prep.pstSpeckles==3 && strcmp(fsmParam.main.label,'Scale space')
-    fsmParam.build.enable=0; % Make sure that only preprocessing and tracking are allowed if the user picked 'Scale space'
-    set(handles.checkBuildModule,'Enable','off');
-end
-
 % Enable/disable module
 if fsmParam.build.enable == 1
     set(handles.checkBuildModule,'Value',1);
@@ -377,17 +352,6 @@ end
 % KINETIC ANALYSIS MODULE
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Check for 'Scale space'
-if fsmParam.prep.pstSpeckles==3 && strcmp(fsmParam.main.label,'Scale space')
-    fsmParam.kin.enable=0; % Make sure that only preprocessing and tracking are allowed if the user picked 'Scale space'
-    set(handles.textBleach,'Enable','off');
-    set(handles.checkKinModule,'Enable','off');
-    set(handles.bleachRadioOff,'Enable','off');
-    set(handles.bleachRadio1x,'Enable','off');
-    set(handles.bleachRadio2x,'Enable','off');
-    set(handles.bleachRadio3x,'Enable','off');
-end
 
 % Enable/disable module
 if fsmParam.kin.enable==1
@@ -413,12 +377,6 @@ end
 % RESULT DISPLAY MODULE
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Check for 'Scale space'
-if fsmParam.prep.pstSpeckles==3 && strcmp(fsmParam.main.label,'Scale space')
-    fsmParam.disp.enable=0; % Make sure that only preprocessing and tracking are allowed if the user picked 'Scale space'
-    set(handles.checkDispModule,'Enable','off');
-end
 
 % Enable/disable module
 if fsmParam.disp.enable==1
