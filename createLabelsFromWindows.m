@@ -12,7 +12,7 @@ for n = 1:nWindows
     
     % This is a little patch to cope non-contigous windows in a slice.
     % Should not happen anymore.
-    if ~min(e(mStart:mEnd))
+    if isempty(mStart) || isempty(mEnd) || ~min(e(mStart:mEnd))
         continue;
     end
     

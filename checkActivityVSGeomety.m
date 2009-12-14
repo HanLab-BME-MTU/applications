@@ -158,15 +158,14 @@ for iMovie = 1:nMovies
     end
     
     % STEP 4: Create windowing
-    
+    windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' ...
+                num2str(iStart) '_' num2str(iEnd)];
+            
     if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || ...
             currMovie.windows.status ~= 1 || forceRun(4)
         try
             currMovie = setupMovieData(currMovie);
-            
-            windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' ...
-                num2str(iStart) '_' num2str(iEnd)];
-            
+
             disp(['Windowing movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieWindows(currMovie,winMethod,dWin,[],iStart,iEnd,[],[],...
                 ['windows_' winMethod '_' windowString '.mat'], batchMode);
@@ -207,22 +206,25 @@ for iMovie = 1:nMovies
 
     % STEP 6: Label
     
-    if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'labels') || ...
-            ~isfield(currMovie.windows.labels,'status') || ...
-            currMovie.windows.labels.status ~= 1 || forceRun(6)
+    if ~isfield(currMovie,'labels') || ~isfield(currMovie.labels,'status') || ...
+            currMovie.labels.status ~= 1 || forceRun(6)
         try
             disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             
             currMovie = getMovieLabels(currMovie, batchMode);
             
-            if isfield(currMovie.windows.labels,'error')
-                currMovie.labels = rmfield(currMovie.windows.labels,'error');
+            if isfield(currMovie.labels,'error')
+                currMovie.labels = rmfield(currMovie.labels,'error');
+            end
+            
+            if isfield(currMovie.windows, 'labels')
+                currMovie.windows = rmfield(currMovie.windows, 'labels');
             end
             
         catch errMess
             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.windows.labels.error = errMess;
-            currMovie.windows.labels.status = 0;
+            currMovie.labels.error = errMess;
+            currMovie.labels.status = 0;
             continue;
         end
     end
