@@ -194,6 +194,28 @@ for iMovie = 1:nMovies
         
     end 
 
+    % STEP 6: Label
+    
+    if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'labels') || ...
+            ~isfield(currMovie.windows.labels,'status') || ...
+            currMovie.windows.labels.status ~= 1 || forceRun(6)
+        try
+            disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
+            
+            currMovie = getMovieLabels(currMovie, batchMode);
+            
+            if isfield(currMovie.windows.labels,'error')
+                currMovie.labels = rmfield(currMovie.windows.labels,'error');
+            end
+            
+        catch errMess
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+            currMovie.windows.labels.error = errMess;
+            currMovie.windows.labels.status = 0;
+            continue;
+        end
+    end
+    
     try
         %Save the updated movie data
         updateMovieData(currMovie)
