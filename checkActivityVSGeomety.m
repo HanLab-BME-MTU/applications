@@ -12,19 +12,24 @@ else
 end
 
 if nargin >= 2 && ~isempty(varargin{2})
-    forceRun = varargin{2};
+    subDirNames = varargin{2};
 else
-    forceRun = zeros(5, 1);
+    error('No subdir specified.');
 end
 
 if nargin >= 3 && ~isempty(varargin{3})
-    batchMode = varargin{3};
+    forceRun = varargin{3};
+else
+    forceRun = zeros(6, 1);
+end
+
+if nargin >= 4 && ~isempty(varargin{4})
+    batchMode = varargin{4};
 else
     batchMode = 1;
 end
 
 % Get every path from rootDirectory containing actin subfolder.
-subDirNames = {'actin', 'TM2'};
 paths = getDirectories(rootDirectory, 1, subDirNames, ...
     @(x) exist([x filesep 'lastProjSettings.mat'], 'file'));
 
