@@ -5,7 +5,7 @@ movieData.labels.status = 0;
 
 %Verify that the windowing has been performed
 if ~checkMovieWindows(movieData)
-    error('Must window movie before splitting windows!!!')
+    error('Must window movie before labeling windows.');
 end
 
 %Load the windows

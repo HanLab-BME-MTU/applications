@@ -26,7 +26,7 @@ end
 if nargin >= 4 && ~isempty(varargin{4})
     forceRun = varargin{4};
 else
-    forceRun = zeros(6, 1);
+    forceRun = zeros(7, 1);
 end
 
 if nargin >= 5 && ~isempty(varargin{5})
@@ -209,22 +209,37 @@ for iMovie = 1:nMovies
     if ~isfield(currMovie,'labels') || ~isfield(currMovie.labels,'status') || ...
             currMovie.labels.status ~= 1 || forceRun(6)
         try
-            disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
-            
+            disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
             currMovie = getMovieLabels(currMovie, batchMode);
             
             if isfield(currMovie.labels,'error')
                 currMovie.labels = rmfield(currMovie.labels,'error');
             end
             
-            if isfield(currMovie.windows, 'labels')
-                currMovie.windows = rmfield(currMovie.windows, 'labels');
-            end
-            
         catch errMess
             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.labels.error = errMess;
             currMovie.labels.status = 0;
+            continue;
+        end
+    end
+    
+    % STEP 7: compute matrix D for figure 1
+    
+    if ~isfield(currMovie, 'output') || ~isfield(currMovie.output, 'fig1') || ...
+            ~isfield(currMovie.output.fig1, 'status') || ...
+            currMovie.output.fig1.status ~= 1 || forceRun(7)
+        try
+            disp(['Build Figure 1 data for movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
+            currMovie = computeFigure1(currMovie, batchMode);
+            
+            if isfield(currMovie.output.fig1, 'error')
+                currMovie.output.fig1 = rmfield(currMovie.output.fig1, 'error');
+            end
+        catch errMess
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+            currMovie.output.fig1.error = errMess;
+            currMovie.output.fig1.status = 0;
             continue;
         end
     end
