@@ -425,7 +425,7 @@ function pushStageDriftCorrection_Callback(hObject, eventdata, handles)
 
 T = stageDriftCorrection([]);
 
-if ~(isempty(T) || isempty(R))
+if ~isempty(T)
     outputFile = [projSettings.projDir filesep projSettings.subProjDir{1} ...
         filesep 'stageDriftCorrection.mat'];
     
