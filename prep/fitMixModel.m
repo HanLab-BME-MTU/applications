@@ -82,10 +82,6 @@ options = optimset('TolFun',1e-4,'TolX',1e-4,'Display','off',...
 fh = waitbar(0,'fitting mixture model');
 iteration = 1;
 
-e1 = cell(numspec, 1);
-e2 = cell(numspec, 1);
-e3 = cell(numspec, 1);
-
 [estimates] = lsqnonlin(@Gauss2Dfun, start_point, lowbound, upbound, options);
 
 % in the present implementation, the function Gauss2Dfun fits the x-
@@ -139,6 +135,13 @@ e3 = cell(numspec, 1);
             % y=(y1,y2,y3,....ynumspec) corresponds to columns
             % (numspec+1):end and same for third parameter, amplitude I0.
 
+            % The following three variables are used to stored pair of
+            % indices / value to build the Jacobian matrix J using:
+            % J = sparse(e1, e2, e3, xs * ys, 3 * numspec);
+            e1 = cell(numspec, 1);
+            e2 = cell(numspec, 1);
+            e3 = cell(numspec, 1);
+            
             %now calculate actual values for Jacobian for each speckle
             for s=1:numspec
                 %general procedure:
