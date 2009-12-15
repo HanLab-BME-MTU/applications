@@ -18,25 +18,19 @@ else
 end
 
 if nargin >= 3 && ~isempty(varargin{3})
-    numSubDirs = varargin{3};
-else
-    numSubDirs = numel(subDirNames);
-end
-
-if nargin >= 4 && ~isempty(varargin{4})
-    forceRun = varargin{4};
+    forceRun = varargin{3};
 else
     forceRun = zeros(7, 1);
 end
 
-if nargin >= 5 && ~isempty(varargin{5})
-    batchMode = varargin{5};
+if nargin >= 4 && ~isempty(varargin{4})
+    batchMode = varargin{4};
 else
     batchMode = 1;
 end
 
 % Get every path from rootDirectory containing actin subfolder.
-paths = getDirectories(rootDirectory, numSubDirs, subDirNames, ...
+paths = getDirectories(rootDirectory, 2, subDirNames, ...
     @(x) exist([x filesep 'lastProjSettings.mat'], 'file'));
 
 disp('List of directories:');
@@ -67,17 +61,19 @@ for iMovie = 1:nMovies
         disp([movieName ': Unable to find the FSM directory. (SKIPPING)']);
         continue;
     end    
-    fsmFolderName = content{find(ind, 1, 'first')};
-    currMovie.imageDirectory = [path filesep fsmFolderName filesep 'crop'];
+    %fsmFolderName = content{find(ind, 1, 'first')};
+    currMovie.fsmDirectory = cellfun(@(x) [path filesep x], content);
+    % Add these 2 fields to be compliant with Hunter's check routines:
+    currMovie.imageDirectory = [currMovie.fsmDirectory{1} filesep 'crop'];
     currMovie.channelDirectory = {''};
     currMovie.nImages = numel(dir([currMovie.imageDirectory filesep '*.tif']));
-
-    load([path filesep fsmFolderName filesep 'fsmPhysiParam.mat']);
+    %load([path filesep fsmFolderName filesep 'fsmPhysiParam.mat']);
+    load([currMovie.fsmDirectory filesep 'fsmPhysiParam.mat']);
     currMovie.pixelSize_nm = fsmPhysiParam.pixelSize;
     currMovie.timeInterval_s = fsmPhysiParam.frameInterval;
     clear fsmPhysiParam;
 
-    currMovie.masks.directory = [path filesep fsmFolderName filesep 'edge' filesep 'cell_mask'];
+    currMovie.masks.directory = [currMovie.fsmDirectory{1} filesep 'edge' filesep 'cell_mask'];
     if ~exist(currMovie.masks.directory, 'dir')
         disp([movieName ': unable to find mask directory. (SKIPPING)']);
         continue;
@@ -86,9 +82,21 @@ for iMovie = 1:nMovies
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
     currMovie.masks.status = 1;
     
+    %if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
+    %    currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
+    %    currMovie = currMovie.movieData;
+    %end
+    % Temporary update of existing movieData:
     if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
-        currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
-        currMovie = currMovie.movieData;
+        currMovieOld = load([currMovie.analysisDirectory filesep 'movieData.mat']);
+        currMovieOld = currMovieOld.movieData;
+        % Update new fields.
+        currMovieOld.fsmDirectory = currMovie.fsmDirectory;
+        currMovieOld.imageDirectory = currMovie.imageDirectory;
+        currMovieOld.masks.directory = currMovie.masks.directory;
+        % Save it
+        updateMovieData(currMovieOld);
+        currMovie = currMovieOld;
     end
 
     % STEP 2: Get contours
@@ -226,23 +234,23 @@ for iMovie = 1:nMovies
     
     % STEP 7: compute matrix D for figure 1
     
-    if ~isfield(currMovie, 'output') || ~isfield(currMovie.output, 'fig1') || ...
-            ~isfield(currMovie.output.fig1, 'status') || ...
-            currMovie.output.fig1.status ~= 1 || forceRun(7)
-        try
-            disp(['Build Figure 1 data for movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
-            currMovie = computeFigure1(currMovie, batchMode);
-            
-            if isfield(currMovie.output.fig1, 'error')
-                currMovie.output.fig1 = rmfield(currMovie.output.fig1, 'error');
-            end
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.output.fig1.error = errMess;
-            currMovie.output.fig1.status = 0;
-            continue;
-        end
-    end
+%     if ~isfield(currMovie, 'output') || ~isfield(currMovie.output, 'fig1') || ...
+%             ~isfield(currMovie.output.fig1, 'status') || ...
+%             currMovie.output.fig1.status ~= 1 || forceRun(7)
+%         try
+%             disp(['Build Figure 1 data for movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
+%             currMovie = computeFigure1(currMovie, batchMode);
+%             
+%             if isfield(currMovie.output.fig1, 'error')
+%                 currMovie.output.fig1 = rmfield(currMovie.output.fig1, 'error');
+%             end
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+%             currMovie.output.fig1.error = errMess;
+%             currMovie.output.fig1.status = 0;
+%             continue;
+%         end
+%     end
     
     try
         %Save the updated movie data

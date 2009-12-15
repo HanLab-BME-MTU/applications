@@ -11,3 +11,12 @@ end
 movieData.output.fig1.dateTime = datestr(now);
 movieData.output.fig1.status = 1;
 
+% Load labels
+L = cell(currMovie.labels.nFrames, 1);
+filenames = dir([currMovie.labels.directory filesep '*.tif']);
+for iFrame = 1:currMovie.labels.nFrames
+    L{iFrame} = imread([currMovie.labels.directory filesep filenames(iFrame).name]);
+end
+
+% Load speckles channel 1
+% Load speckles channel 2

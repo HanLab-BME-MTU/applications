@@ -13,7 +13,7 @@ movieData = setupMovieData(movieData);
 
 status = false;
 
-%Check the windowing status and file.
+%Check the labeling status and directory.
 if isfield(movieData,'labels') && isfield(movieData.labels,'directory') ...
         && (movieData.labels.status==1) && exist([movieData.labels.directory],'dir')
     status = true;    
