@@ -1,4 +1,4 @@
-function checkActivityVSGeomety(varargin)
+function batchMakeFigures(varargin)
 
 if nargin >= 1 && ~isempty(varargin{1})
     rootDirectory = varargin{1};
