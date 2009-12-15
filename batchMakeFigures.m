@@ -62,13 +62,14 @@ for iMovie = 1:nMovies
         continue;
     end    
     %fsmFolderName = content{find(ind, 1, 'first')};
-    currMovie.fsmDirectory = cellfun(@(x) [path filesep x], content);
+    currMovie.fsmDirectory = cellfun(@(x) [path filesep x], content(ind), ...
+        'UniformOutput', false);
     % Add these 2 fields to be compliant with Hunter's check routines:
     currMovie.imageDirectory = [currMovie.fsmDirectory{1} filesep 'crop'];
     currMovie.channelDirectory = {''};
     currMovie.nImages = numel(dir([currMovie.imageDirectory filesep '*.tif']));
     %load([path filesep fsmFolderName filesep 'fsmPhysiParam.mat']);
-    load([currMovie.fsmDirectory filesep 'fsmPhysiParam.mat']);
+    load([currMovie.fsmDirectory{1} filesep 'fsmPhysiParam.mat']);
     currMovie.pixelSize_nm = fsmPhysiParam.pixelSize;
     currMovie.timeInterval_s = fsmPhysiParam.frameInterval;
     clear fsmPhysiParam;
@@ -87,7 +88,7 @@ for iMovie = 1:nMovies
     %    currMovie = currMovie.movieData;
     %end
     % Temporary update of existing movieData:
-    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
+    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && forceRun(1)
         currMovieOld = load([currMovie.analysisDirectory filesep 'movieData.mat']);
         currMovieOld = currMovieOld.movieData;
         % Update new fields.
