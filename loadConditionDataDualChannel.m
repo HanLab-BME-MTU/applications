@@ -1,169 +1,104 @@
-function [experiment] = loadConditionDataDualChannel()
+function [experiment] = loadConditionDataDualChannel(condDir)
 % loadConditionData loads the relevant information for all the data
 % available for a specific experiment condition; this requires a specific
-% dircetory structure and nomenclature (see below) 
+% dircetory structure and nomenclature (see below)
 %
 % SYNOPSIS [experiment] = loadConditionData()
 %
-% INPUT    
+% INPUT
 %
 % OUTPUT   experiment: structure with the fields
 %                       .source = pathname of the data/movie
 %                       .date = date when movie was taken
 %                       .framerate = framerate of the movie (2s or 0.4s)
 %
-% 
+%
 %
 % Dinah Loerke, January 24th, 2008
-
+% Francois Aguet, 12/14/2009
 
 % select directory where all data for this condition are located
-
-directory_or = cd;
-[directory_cond] = uigetdir(directory_or,'Please select the folder for this condition'); 
-cd(directory_cond);
-
-% get files in specified directory
-files_cond = dir(directory_cond);
-% files(i).name contains the string name of the file
-% files(i).isdir contains the true/false information about whether the file
-
-
-% identify the usable directories that aren't '.' or '..'
-goodlist_cond = zeros(length(files_cond),1);
-for g=1:length(files_cond)
-    if ( length(files_cond(g).name)>2 ) & ( files_cond(g).isdir == true )
-        goodlist_cond(g) = 1;
-    end
-end
-usedir_cond = find(goodlist_cond);
-
-% initialize counter
-ct = 1;
-
-if length(usedir_cond)>0
+if (nargin == 0)
+    condDir = uigetdir(pwd, 'Select the ''condition'' folder');
+end;
+fprintf('Condition selected: %s\n', condDir);
     
-    % loop over approriate directories
-    for i=1:length(usedir_cond)
-        
-        % current folder name
-        dirname_date = files_cond(usedir_cond(i)).name;
-        % search for date numbers, either at right or left margin of the
-        % folder name
-        idxs=length(dirname_date);
-        % if last (or first) char is a number
-        if (uint8(dirname_date(idxs))>47 & uint8(dirname_date(idxs))<58)
-            idc = idxs;
-            while(uint8(dirname_date(idc))>47 & uint8(dirname_date(idc))<58)
-                idc = idc-1;
-            end
-            currDate = dirname_date(idc+1:idxs);
-            
-        elseif (uint8(dirname_date(1))>47 & uint8(dirname_date(1))<58)
-            idc = 1;
-            while(uint8(dirname_date(idc))>47 & uint8(dirname_date(idc))<58)
-                idc = idc+1;
-            end
-            currDate = dirname_date(1:idc-1);
-        
-        else
-            % default for date = 010101
-            currDate = '010101';
-        end
-        
-        
-        % move to current date directory
-        cd(dirname_date);
-        directory_date = cd;
+% get directories where all data for this condition are located
+expDir = dirList(condDir);
 
+ct = 1;
+if ~isempty(expDir)
+    
+    % get all experiment/date directories for this condition
+    nExp = length(expDir);
+    dateList(1:nExp) = struct('date', [], 'name', []);
+    %nCells = zeros(1,nExp);
+    for i = 1:nExp
+        
+        % extract date from file name
+        currDate = regexp(expDir(i).name, '\d+', 'match');
+        if isempty(currDate)
+            currDate = {'010101'}; % arbitrary default
+        elseif (length(currDate) > 1)
+            lengths = cellfun(@length, currDate);
+            currDate = currDate(lengths == max(lengths(:)));
+        end;
+        dateList(i).date = currDate{1};
+%         dateList(i).name = expDir(i).name;
+        
         % look for the individual cell data in this folder
-        files_cell = dir(cd);
-
+        expPath = [condDir filesep expDir(i).name];
+        cellDir = dirList(expPath);
+        %nCells(i) = length(cellDir);
         
-        % identify the directories that aren't '.' or '..'
-        goodlist_cell = zeros(length(files_cell),1);
-        for g=1:length(files_cell)
-            if ( length(files_cell(g).name)>2 ) & ( files_cell(g).isdir == true )
-                goodlist_cell(g) = 1;
-            end
-        end
-        usedir_cell = find(goodlist_cell);
-
-        % loop over all cell folders in this directory
-
-        if length(usedir_cell)>0
-            
-            for k=1:length(usedir_cell)
-
-                % current cell directory
-                dirname_cell = files_cell(usedir_cell(k)).name;
-
-                % extract framerate from the name of the cell folder
-                % NOTE: if there's no specific identification for fast, then
-                % the default is slow
-
-                inFast1 = findstr(dirname_cell, 'fast');
-                inFast2 = findstr(dirname_cell, '400ms');
-
-                if ( (length(inFast1)>0) | (length(inFast2)>0) )
-                    currFramerate = 0.4;
-                else 
-                    currFramerate = 2;
+        % loop over all cell folders
+        if ~isempty(cellDir)
+            for k = 1:length(cellDir)
+                cellPath = [expPath filesep cellDir(k).name];
+                
+                % extract framerate from directory name. Default to slow                
+                if ( ~isempty(findstr(cellDir(k).name, 'fast')) || (~isempty(findstr(cellDir(k).name, '400ms'))) )
+                    framerate = 0.4;
+                else
+                    framerate = 2;
                 end
                 
-                
-                % look for the individual channels in this cell folder
-                cd(dirname_cell);
-                files_channel = dir(cd);
-                
-                if k==1
-                    dirname_channel1curr = uigetdir(cd,'select first (master) channel (e.g. CCP channel)');
-                    dirname_channel2curr = uigetdir(cd,'select second (slave) channel (e.g. other protein)');
-                    % separate final folder name
-                    k1 = findstr(dirname_channel1curr, filesep);
-                    k2 = findstr(dirname_channel2curr, filesep);
-                    p1 = max(k1); l1 = length(dirname_channel1curr);
-                    p2 = max(k2); l2 = length(dirname_channel2curr);
-                    dirname_channel1root = dirname_channel1curr(p1+1:l1);
-                    dirname_channel2root = dirname_channel2curr(p2+1:l2);
+                if (ct == 1)
+                    % get directories for individual channels
+                    channel1Path = uigetdir(cellPath, 'select first (master) channel (e.g. CCP channel)');
+                    channel2Path = uigetdir(cellPath, 'select second (slave) channel (e.g. other protein)');
+                    channel1Name = channel1Path(find(channel1Path==filesep, 1, 'last')+1:end);
+                    channel2Name = channel2Path(find(channel2Path==filesep, 1, 'last')+1:end);
+                    fprintf('Channel 1 name: %s\n', channel1Name);
+                    fprintf('Channel 2 name: %s\n', channel2Name);
                 else
                     
-                    if exist(dirname_channel1root)==7
-                        dirname_channel1curr = [cd,filesep,dirname_channel1root];                        
-                    else
-                        dirname_channel1curr = uigetdir(cd,'select first (master) channel (e.g. CCP channel)');                        
+                    % look for the individual channels in cell folder
+                    channel1Path = [cellPath filesep channel1Name];
+                    if ~exist(channel1Path, 'dir')==7
+                        channel1Path = uigetdir(cellDir(k).name, 'select first (master) channel (e.g. CCP channel)');
                     end
-                    
-                    if exist(dirname_channel2root)==7
-                        dirname_channel2curr = [cd,filesep,dirname_channel2root];
-                    else
-                        dirname_channel2curr = uigetdir(cd,'select second (slave) channel (e.g. other protein)');
+                    channel2Path = [cellPath filesep channel2Name];
+                    if ~exist(channel2Path, 'dir')==7
+                        channel2Path = uigetdir(cellDir(k).name, 'select second (slave) channel (e.g. other protein)');
                     end
-                    
                 end
                 
-
                 % enter data
-                experiment(ct).source = dirname_channel1curr;
-                experiment(ct).channel1 = dirname_channel1curr;
-                experiment(ct).channel2 = dirname_channel2curr;
-                experiment(ct).date = currDate;
-                experiment(ct).framerate = currFramerate;
+                experiment(ct).source = channel1Path;
+                experiment(ct).channel1 = channel1Path;
+                experiment(ct).channel2 = channel2Path;
+                experiment(ct).date = currDate{1};
+                experiment(ct).framerate = framerate;
+                
+                tifFiles = dir([experiment(ct).channel1 filesep '*.tif']);
+                experiment(ct).imagesize = size(imread([experiment(ct).channel1 filesep tifFiles(1).name]));
+                experiment(ct).movieLength = length(tifFiles);
 
                 ct = ct+1;
-
-                cd(directory_date);
-            end % of for k-loop
-            
-        end % of if length(usedir_cell)>0
-        
-        cd(directory_cond);
-        
-    end % of for i-loop
-
+            end;
+        end;
+    end;
 else
-    error('no usable data in directory');
-end % of if
-
-end % of function
-            
+    error('No data found in directory.');
+end;
