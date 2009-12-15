@@ -23,7 +23,7 @@ function varargout = plusTipSeeTracks(varargin)
 
 % Edit the above text to modify the response to help plusTipSeeTracks
 
-% Last Modified by GUIDE v2.5 08-Oct-2009 13:05:58
+% Last Modified by GUIDE v2.5 15-Dec-2009 09:36:06
 
 
 % Begin initialization code - DO NOT EDIT
@@ -73,7 +73,7 @@ handles.doAvi=0;
 handles.indivTrack=[];
 handles.magCoef=[];
 handles.showTracks=1;
-handles.showDetect=1;
+handles.showDetect=3;
 handles.rawToo=1;
 
 handles.velLimit=inf;
@@ -850,5 +850,12 @@ function anDirEdit_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes during object creation, after setting all properties.
+function figure1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
 
 

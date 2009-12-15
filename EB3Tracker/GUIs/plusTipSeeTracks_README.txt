@@ -12,7 +12,7 @@ Overview of supported track visualization modes:
     image in a second figure
 5c. Make a movie of EITHER all tracks within a region and within a frame range 
                     OR     one or more individual tracks
-5d. Make a movie where features are color-coded by speed (microns/min)
+5d. Make a movie where comets are color-coded by speed (microns/min)
 5e. Create sub-regions-of-interest and automatically extract growth
     trajectories from them
 
@@ -111,7 +111,7 @@ more times on the image. Information about the tracks will appear in the
 Matlab command window as follows:
 
 Track: trackNumber   Frame: frame closest to where user selected
-    [trackNumber startFrame endFrame velocity trackType]
+    [trackNumber, start frame, end frame, velocity (microns/min), track type, lifetime (frames), displacement (pixels)]
 
 where velocity is in microns/min and trackType is:
 1 - growth                               (red solid)
@@ -165,28 +165,28 @@ the same for x- and y- axes.
 
 ---------------------------------------------------------------------------
 
-5c. Make a movie using feature detection results and/or track overlays with
+5c. Make a movie using comet detection results and/or track overlays with
 "Track Movies"
 
-The "Display Detected Features" radio buttons and the "Display Tracks"
-check box control how the detected features and tracks and are displayed 
+The "Detected Comet Display Options" radio buttons and the "Display Tracks"
+check box control how the detected comets and tracks and are displayed 
 on the movie.
 
-    * Track features only, all frames: displays only the features used in the
-    tracks, color-coded by frame, such that features in a track appear shortly 
-    before and after a track.
+    * All comets, current frame only: displays ALL the detected comets from
+    a given frame in that frame only.
 
-    * All features, all frames: displays ALL the detected features (ie including
+    * All comets, all frames: displays ALL the detected comets (ie including
     those that did not get incorporated into a track), color-coded by frame.  
     These are displayed throughout the frame range.  This option is useful
     for checking whether a tracking mistake might be due to a missed detection
     or to wrong linking, for example.
 
-    * All features, current frame only: displays ALL the detected features from
-    a given frame in that frame only.
+    * Comets in tracks only, all frames: displays only the comets used in the
+    tracks, color-coded by frame, such that comets in a track appear shortly 
+    before and after a track.
 
-    * Don't show any features: use this option if you want to make a movie of 
-    the raw data or if you only want to show the track without the features.
+    * None: use this option if you want to make a movie of the raw data 
+    or if you only want to show the track without the detected comets.
 
 The "Individual Track Numbers" text box can be used to make movies of
 individual tracks.  The track numbers correspond to those found in the first
@@ -216,7 +216,7 @@ The "Make Track Movie" button calls plusTipTrackMovie.m.
 
 ---------------------------------------------------------------------------
 
-5d. Make a movie where features are color-coded by speed using "Speed Movies"
+5d. Make a movie where comets are color-coded by speed using "Speed Movies"
 
 "Speed Limit" is the maximum speed used in the jet color map (e.g. an input 
 of 20 will map all speeds faster than 20 to 20 and range from dark blue at 0

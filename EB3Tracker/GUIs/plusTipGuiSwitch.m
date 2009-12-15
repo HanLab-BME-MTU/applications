@@ -15,23 +15,22 @@ switch callbackName
 
             if handles.getStr==1
                 handles.strList=inputGUI;
-                [projList,projPathParsed]=getProj(handles.strList);
+                projList=getProj(handles.strList);
             else
                 handles.strList=[];
-                [projList,projPathParsed]=getProj;
+                projList=getProj;
             end
             handles.projList=projList;
 
         else
             % select one or more projList files
-            [handles.projList]=combineProjListFiles(0);
+            handles.projList=combineProjListFiles(0);
             
             % if "select subset" is checked, ask user for search string(s)
             % and find matches from projList
             if handles.getStr==1
                 handles.strList=inputGUI;
-                roiDirList=struct2cell(handles.projList);
-                roiDirList=roiDirList(2,:)';
+                roiDirList=projList2Cell(handles.projList);
                 nStr=length(handles.strList);
 
                 projCount=0;
@@ -39,7 +38,7 @@ switch callbackName
                     tempROI=ones(length(roiDirList),1);
                     for i=1:nStr
                         testStr = handles.strList{i};
-                        tempROI=tempROI & cellfun(@(y) ~isempty(strfind(y,lower(testStr))),lower(roiDirList));
+                        tempROI=tempROI & cellfun(@(y) ~isempty(strfind(y,lower(testStr))),lower(roiDirList(:,2)));
                     end
 
                     matches=find(tempROI);
@@ -75,7 +74,7 @@ switch callbackName
     case 'endFrameDetect'
         eFVal=get(hObject,'String');
         if isequal(lower(eFVal),'max')
-            handles.timeRangeDetect(2)=handles.projData.numFrames;
+            handles.timeRangeDetect(2)=handles.projData.nFrames;
         else
             handles.timeRangeDetect(2)=str2double(eFVal);
         end
@@ -93,7 +92,7 @@ switch callbackName
     case 'endFramePost'
         eFVal=get(hObject,'String');
         if isequal(lower(eFVal),'max')
-            handles.timeRangePost(2)=handles.projData.numFrames;
+            handles.timeRangePost(2)=handles.projData.nFrames;
         else
             handles.timeRangePost(2)=str2double(eFVal);
         end
@@ -111,7 +110,7 @@ switch callbackName
     case 'endFrameTrack'
         eFVal=get(hObject,'String');
         if isequal(lower(eFVal),'max')
-            handles.timeRangeTrack(2)=handles.projData.numFrames;
+            handles.timeRangeTrack(2)=handles.projData.nFrames;
         else
             handles.timeRangeTrack(2)=str2double(eFVal);
         end
@@ -155,10 +154,11 @@ switch callbackName
         handles.indivTrack=str2num(userInput)';
 
     case 'plotTracksPush'
-               
+        rawToo=0;
+               isStill=1;
         [handles.selectedTracks] = plusTipPlotTracks(handles.projData,[],...
             handles.timeRangeDetect,handles.img,handles.ask4select,...
-            handles.plotCurrentOnly,handles.roi,handles.movieInfo);
+            handles.plotCurrentOnly,handles.roi,handles.movieInfo,rawToo,isStill);
 
         if ~isempty(handles.selectedTracks)
 
