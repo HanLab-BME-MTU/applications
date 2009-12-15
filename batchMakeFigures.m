@@ -83,22 +83,22 @@ for iMovie = 1:nMovies
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
     currMovie.masks.status = 1;
     
-    %if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
-    %    currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
-    %    currMovie = currMovie.movieData;
-    %end
-    % Temporary update of existing movieData:
-    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && forceRun(1)
-        currMovieOld = load([currMovie.analysisDirectory filesep 'movieData.mat']);
-        currMovieOld = currMovieOld.movieData;
-        % Update new fields.
-        currMovieOld.fsmDirectory = currMovie.fsmDirectory;
-        currMovieOld.imageDirectory = currMovie.imageDirectory;
-        currMovieOld.masks.directory = currMovie.masks.directory;
-        % Save it
-        updateMovieData(currMovieOld);
-        currMovie = currMovieOld;
+    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
+       currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
+       currMovie = currMovie.movieData;
     end
+    % Temporary update of existing movieData:
+%     if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && forceRun(1)
+%         currMovieOld = load([currMovie.analysisDirectory filesep 'movieData.mat']);
+%         currMovieOld = currMovieOld.movieData;
+%         % Update new fields.
+%         currMovieOld.fsmDirectory = currMovie.fsmDirectory;
+%         currMovieOld.imageDirectory = currMovie.imageDirectory;
+%         currMovieOld.masks.directory = currMovie.masks.directory;
+%         % Save it
+%         updateMovieData(currMovieOld);
+%         currMovie = currMovieOld;
+%     end
 
     % STEP 2: Get contours
     dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
@@ -235,23 +235,23 @@ for iMovie = 1:nMovies
     
     % STEP 7: compute matrix D for figure 1
     
-%     if ~isfield(currMovie, 'output') || ~isfield(currMovie.output, 'fig1') || ...
-%             ~isfield(currMovie.output.fig1, 'status') || ...
-%             currMovie.output.fig1.status ~= 1 || forceRun(7)
-%         try
-%             disp(['Build Figure 1 data for movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
-%             currMovie = computeFigure1(currMovie, batchMode);
-%             
-%             if isfield(currMovie.output.fig1, 'error')
-%                 currMovie.output.fig1 = rmfield(currMovie.output.fig1, 'error');
-%             end
-%         catch errMess
-%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-%             currMovie.output.fig1.error = errMess;
-%             currMovie.output.fig1.status = 0;
-%             continue;
-%         end
-%     end
+    if ~isfield(currMovie, 'output') || ~isfield(currMovie.output, 'fig1') || ...
+            ~isfield(currMovie.output.fig1, 'status') || ...
+            currMovie.output.fig1.status ~= 1 || forceRun(7)
+        try
+            disp(['Build Figure 1 data for movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
+            currMovie = computeFigure1(currMovie, batchMode);
+            
+            if isfield(currMovie.output.fig1, 'error')
+                currMovie.output.fig1 = rmfield(currMovie.output.fig1, 'error');
+            end
+        catch errMess
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+            currMovie.output.fig1.error = errMess;
+            currMovie.output.fig1.status = 0;
+            continue;
+        end
+    end
     
     try
         %Save the updated movie data

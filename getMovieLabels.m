@@ -46,7 +46,7 @@ fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 
 %Go through each frame and save the windows to a file
 if ~batchMode
-    h = waitbar(0,'Please wait, labeling window frames....');
+    h = waitbar(0,'Please wait, labeling window frames...');
 end
 
 for iFrame = 1:nFrames    
