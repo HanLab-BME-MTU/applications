@@ -8,6 +8,17 @@ if ~checkMovieLabels(movieData)
     error('Must label movie before computing figure 1.');
 end
 
+movieData.output.directory = [movieData.analysisDirectory filesep 'output'];
+
+if ~exist(movieData.output.directory, 'dir')
+    mkdir(movieData.output.directory);
+end
+
+movieData.output.fig1.filename = 'fig1.mat';
+
+names = cellfun(@fliplr, strtok(cellfun(@fliplr,movieData.fsmDirectory, ...
+    'UniformOutput', false), filesep), 'UniformOutput', false);
+
 nFrames = movieData.labels.nFrames;
 pixelSize = movieData.pixelSize_nm;
 
@@ -22,6 +33,8 @@ s2Files = dir([s2Path filesep '*.mat']);
 
 maskPath = movieData.masks.directory;
 maskFiles = dir([maskPath filesep '*.tif']);
+
+nSpeckles = 20;
 
 D1 = cell(1, nFrames);
 D2 = cell(1, nFrames);
@@ -55,21 +68,31 @@ for iFrame = 1:nFrames
     
     maxLabel = max(L(:));
     
-    D1{iFrame} = zeros(maxLabel, 50);
-    D2{iFrame} = zeros(maxLabel, 50);
+    D1{iFrame} = zeros(maxLabel, nSpeckles);
+    D2{iFrame} = zeros(maxLabel, nSpeckles);
     
     for l = 1:maxLabel
         minD1 = sort(distToEdge(idxS1(L(idxS1) == l)));
         minD2 = sort(distToEdge(idxS2(L(idxS2) == l)));
+
+        n1 = min(nSpeckles, numel(minD1));
+        n2 = min(nSpeckles, numel(minD2));
         
-        D1{iFrame}(l, :) = minD1(1:min(50, numel(minD1)));
-        D2{iFrame}(l, :) = minD2(1:min(50, numel(minD2)));
+        D1{iFrame}(l, 1:n1) = minD1(1:n1);
+        D2{iFrame}(l, 1:n2) = minD2(1:n2);
+    end
+    
+    if ~batchMode && ishandle(h)
+        waitbar(iFrame / nFrames, h);
     end
 end
 
 if ~batchMode && ishandle(h)
     close(h);
 end
+
+save([movieData.output.directory filesep movieData.output.fig1.filename],...
+    'names', 'D1', 'D2');
 
 movieData.output.fig1.dateTime = datestr(now);
 movieData.output.fig1.status = 1;
