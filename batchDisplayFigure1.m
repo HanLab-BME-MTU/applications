@@ -24,25 +24,32 @@ disp('Process all directories (Grab a coffee)...');
 nMovies = numel(paths);
 
 for iMovie = 1:nMovies
-    load([paths{iMovie} filesep 'windowAnalysis' filesep 'output' filesep 'fig1.mat']);
+    filename = [paths{iMovie} filesep 'windowAnalysis' filesep 'output' filesep 'fig1.mat'];
     
-    D1full = cellfun(@(x) nonzeros(x), D1, 'UniformOutput', false);
-    D1full = vertcat(D1full{:});
-    D2full = cellfun(@(x) nonzeros(x), D2, 'UniformOutput', false);
-    D2full = vertcat(D2full{:});
-    
-    m1 = mean(D1full);
-    m2 = mean(D2full);
-    
-    sS1 = std(D1full);
-    sS2 = std(D2full);
-    
-    sT1 = std(cell2mat(cellfun(@(x) std(nonzeros(x)), D1, 'UniformOutput', false)));
-    sT2 = std(cell2mat(cellfun(@(x) std(nonzeros(x)), D2, 'UniformOutput', false)));
-    
-    fprintf('%s\t%s  %s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f\n', paths{iMovie}, names{1}, names{2}, m1, sS1, sT1, m2, sS2, sT2); %#ok<USENS>
-    
-    clear names D1 D2;
+    if exist(filename, 'file')
+        load(filename);
+        
+        D1full = cellfun(@(x) nonzeros(x), D1, 'UniformOutput', false);
+        D1full = vertcat(D1full{:});
+        D2full = cellfun(@(x) nonzeros(x), D2, 'UniformOutput', false);
+        D2full = vertcat(D2full{:});
+        
+        m1 = mean(D1full);
+        m2 = mean(D2full);
+        
+        sS1 = std(D1full);
+        sS2 = std(D2full);
+        
+        sT1 = std(cell2mat(cellfun(@(x) std(nonzeros(x)), D1, 'UniformOutput', false)));
+        sT2 = std(cell2mat(cellfun(@(x) std(nonzeros(x)), D2, 'UniformOutput', false)));
+        
+        fprintf('%s\t%s  %s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f\n', ...
+            paths{iMovie}, names{1}, names{2}, m1, sS1, sT1, m2, sS2, sT2); %#ok<USENS>
+        
+        clear names D1 D2;
+    else
+        fprintf('%s\t-  -  -  -  -  -\n', paths{iMovie});
+    end
 end
 
 end
