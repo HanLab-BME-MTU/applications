@@ -54,7 +54,6 @@ if ~isempty(expDir)
         % loop over all cell folders
         if ~isempty(cellDir)
             for k = 1:length(cellDir)
-                cellPath = [expPath filesep cellDir(k).name];
                 
                 % extract framerate from directory name. Default to slow                
                 if ( ~isempty(findstr(cellDir(k).name, 'fast')) || (~isempty(findstr(cellDir(k).name, '400ms'))) )
@@ -65,20 +64,23 @@ if ~isempty(expDir)
                 
                 if (ct == 1)
                     % get directories for individual channels
+                    cellPath = [expPath filesep cellDir(k).name];
                     channel1Path = uigetdir(cellPath, 'select first (master) channel (e.g. CCP channel)');
                     channel2Path = uigetdir(cellPath, 'select second (slave) channel (e.g. other protein)');
-                    channel1Name = channel1Path(find(channel1Path==filesep, 1, 'last')+1:end);
-                    channel2Name = channel2Path(find(channel2Path==filesep, 1, 'last')+1:end);
+                    %channel1Name = channel1Path(find(channel1Path==filesep, 1, 'last')+1:end);
+                    %channel2Name = channel2Path(find(channel2Path==filesep, 1, 'last')+1:end);
+                    channel1Name = channel1Path(length(expPath)+2:end);
+                    channel2Name = channel2Path(length(expPath)+2:end);
                     fprintf('Channel 1 name: %s\n', channel1Name);
                     fprintf('Channel 2 name: %s\n', channel2Name);
                 else
                     
                     % look for the individual channels in cell folder
-                    channel1Path = [cellPath filesep channel1Name];
+                    channel1Path = [expPath filesep channel1Name];
                     if ~exist(channel1Path, 'dir')==7
                         channel1Path = uigetdir(cellDir(k).name, 'select first (master) channel (e.g. CCP channel)');
                     end
-                    channel2Path = [cellPath filesep channel2Name];
+                    channel2Path = [expPath filesep channel2Name];
                     if ~exist(channel2Path, 'dir')==7
                         channel2Path = uigetdir(cellDir(k).name, 'select second (slave) channel (e.g. other protein)');
                     end
