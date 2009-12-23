@@ -50,7 +50,7 @@ switch callbackName
         end
 
     case 'selectSavedRoiPushbutton'
-        [FileName,PathName] = uigetfile({'*.*'},'Select roiYX.mat or roiMask.tif');
+        [FileName,PathName] = uigetfile({'*.*'},'Select roiYX.mat file');
         if ~isequal(FileName,0)
             if ~isempty(strfind(FileName,'tif'))
                 handles.roi=imread([PathName FileName]);
@@ -116,6 +116,22 @@ switch callbackName
         end
         set(hObject,'String',num2str(handles.timeRangeTrack(2)));
 
+    case 'xAxisLim'
+        userInput=get(hObject,'String');
+        if isequal(lower(userInput),'use all')
+            handles.xAxisLim=[-inf inf];
+        else
+            handles.xAxisLim=str2num(userInput);
+        end
+
+    case 'yAxisLim'
+        userInput=get(hObject,'String');
+        if isequal(lower(userInput),'use all')
+            handles.yAxisLim=[-inf inf];
+        else
+            handles.yAxisLim=str2num(userInput);
+        end
+
     case 'selectOutputDir'
         outDir=0;
         if isfield(handles,'dataDir')
@@ -124,9 +140,9 @@ switch callbackName
             dirStart=pwd;
         end
         while isequal(outDir,0)
-            outDir=uigetdir(dirStart,'Please select OUTPUT directory for movies');
+            outDir=uigetdir(dirStart,'Please select OUTPUT directory for plots and movies');
         end
-        handles.projData.movDir=outDir;
+        handles.projData.saveDir=outDir;
         cd(outDir);
 
     case 'selectTracksCheck'
@@ -201,7 +217,16 @@ switch callbackName
         eval(guiName) %call the GUI again
         close(closeGUI); %close the old GUI
         set(gcf,'Position',guiPosition); %set the position for the new GUI
+    case 'pickGroups'
+        saveResult=1;
+        if ~isfield(handles,'autoGrp')
+            handles.autoGrp=1;
+        end
+        [handles.groupList]=plusTipPickGroups(handles.autoGrp,[],handles.projList,saveResult);
 
-    otherwise        error('???')
+
+        
+    otherwise
+        error('???')
 
 end

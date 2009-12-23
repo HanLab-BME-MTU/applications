@@ -121,33 +121,28 @@ function getProjPush_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');
 
 if ~isempty(handles.projList)
+    
     % here we filter out any sub-directories
-    a=struct2cell(handles.projList);
-    if isempty(strfind(a{1,1},'roi_'))
-        a=a(2,:)';
-    else
-        a=a(1,:)';
-    end
-    a=sort(a);
+    a=projList2Cell(handles.projList);
+    a=a(:,1);
     b=cellfun(@isempty, strfind(a,'sub'));
     a=a(b);
-    
-    % don't look for tracking results as in plusTipTrackViz - need to
-    % collect untracked projects for tracking!
-    
+        
     % allow multiple projects to be selected
     [selection,selectionList]=listSelectGUI(a,[],'move',1);
 
-    % if a project was selected, save projData info and get data
     if ~isempty(selection)
         handles.projList=handles.projList(selection,1);
     else
+        msgbox('No projects selected.')
         handles.projList=[];
     end
 else
     msgbox('No projects selected.')
     handles.projList=[];
 end
+temp=projList2Cell(handles.projList);
+assignin('base','selectedProjects',temp);
 guidata(hObject, handles);
 
 
@@ -714,7 +709,9 @@ function setupRoiPush_Callback(hObject, eventdata, handles)
 % hObject    handle to setupRoiPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-setupRoiDirectories(handles.selectRoi,1);
+overwriteROIs=0;
+doCrop=0;
+setupRoiDirectories(handles.selectRoi,overwriteROIs,doCrop);
 
 
 % --- Executes on button press in selectRoiCheck.

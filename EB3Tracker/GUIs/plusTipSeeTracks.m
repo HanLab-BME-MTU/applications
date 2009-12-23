@@ -23,7 +23,7 @@ function varargout = plusTipSeeTracks(varargin)
 
 % Edit the above text to modify the response to help plusTipSeeTracks
 
-% Last Modified by GUIDE v2.5 15-Dec-2009 09:36:06
+% Last Modified by GUIDE v2.5 17-Dec-2009 18:19:30
 
 
 % Begin initialization code - DO NOT EDIT
@@ -57,53 +57,68 @@ function plusTipSeeTracks_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for plusTipSeeTracks
 handles.output = hObject;
 
-handles.getStr = 0;
-handles.loadProjList = 0;
-handles.loadProjList = 0;
+% for "select projects" pushbutton
+handles.projList=[]; % select projects pushbutton
+handles.loadProjList = 0; % load projList checkbox
+handles.getStr = 0; % narrow down list checkbox
+handles.projData=[]; % if one project is selected, projData will be retrieved
 
-handles.homeDir=pwd;
-handles.projData=[];
-handles.tracksFinal=[];
+% for "create groups" pushbutton
+handles.autoGrp=1; % auto group from hierarchy
+handles.groupList=[]; % also select groups pushbutton
 
-handles.roi=[];
+% for "select saved ROI" pushbutton
+handles.roi=[]; 
+
+% for "choose frame range" edit boxes
 handles.timeRangeDetect=[1 inf];
 
+% check for movie type
 handles.doAvi=0;
 
-handles.indivTrack=[];
-handles.magCoef=[];
-handles.showTracks=1;
-handles.showDetect=3;
-handles.rawToo=1;
-
-handles.velLimit=inf;
-
+% for "track overlays" panel
 handles.img=[];
 handles.ask4select=0;
 handles.selectedTracks=[];
 handles.plotCurrentOnly=[];
 handles.movieInfo=[];
 
+% for "speed movies" panel
+handles.velLimit=inf;
 
-handles.xaxisScattParam='growthSpeed';
-handles.xScatValType='value';
-handles.xScattInput=15;
+% for "track movies" panel
+handles.indivTrack=[];
+handles.magCoef=[];
+handles.showTracks=1;
+handles.showDetect=3;
+handles.rawToo=1;
 
-handles.yaxisScattParam='growthLifetime';
-handles.yScatValType='value';
-handles.yScattInput=10;
+% for "sub-ROIs" panel
+handles.subroiSelectType=0; % 0=manual, 1=center/singlePeriph, 2=center/quadPeriph
+handles.subroiDistUnit='Microns';
+handles.subroiDistVal=[];
+handles.subroiTimeUnit='Fraction';
+handles.subroiTimeVal=[];
+handles.subroiExcludeRegion=0;
 
+% for "quadrant scatter plots" panel
+handles.xAxisScatParam='growthSpeed';
+handles.xScatValType='Value';
+handles.xScatInput=15;
+handles.xAxisLim=[-inf inf];
+handles.yAxisScatParam='growthLifetime';
+handles.yScatValType='Value';
+handles.yScatInput=10;
+handles.yAxisLim=[-inf inf];
 handles.remBegEnd=1;
-
-handles.autoSelect=0;
-handles.fractionFromEdge=[];
+handles.doBatchQuad=1;
+handles.doPlotQuad=1;
 
 %place image onto the axes, remove tick marks
 pic=imread('pTT_logo_sm.png');
 axes(handles.logoAxes);
 image(pic);
 axis off
-
 
 % Update handles structure
 guidata(hObject, handles);
@@ -142,42 +157,39 @@ function getProjPush_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');
 
 if ~isempty(handles.projList)
-    % here we do NOT filter out any sub-directories
-    a=struct2cell(handles.projList);
-    if isempty(strfind(a{1,1},'roi_'))
-        a=a(2,:)';
-    else
-        a=a(1,:)';
-    end
-    a=sort(a);
     
-    % check for existence of projData in meta folder - if it's not there,
-    % the project has not been tracked/processed, so we cannot visualize it
-    b=zeros(length(a),1);
-    for i=1:length(a)
-        b(i)=exist([formatPath(a{i}) filesep 'meta' filesep 'projData.mat'],'file')==2;
+    % here we do NOT filter out any sub-directories
+    a=projList2Cell(handles.projList);
+    a=a(:,1);
+
+    % allow multiple projects to be selected
+    if isempty(a)
+        selection=[];
+    else
+        [selection,selectionList]=listSelectGUI(a,[],'move',1);
     end
-    a=a(logical(b));
 
-    % allow only one project to be selected
-    [selection,selectionList]=listSelectGUI(a,1,'move',1);
-
-    % if a project was selected, save projData info and get data
-    if ~isempty(selection)
-        handles.dataDir=formatPath(selectionList{1,1});
+    handles.dataDir=[];
+    % if only one project was selected, save projData info and get data
+    if isempty(selection)
+        msgbox('No projects selected or tracking has not been completed.')
+        handles.projList=[];
+    elseif size(selection,1)==1
+        handles.dataDir=selectionList{1,1};
         p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
         handles.projData=p.projData;
-        set(handles.anDirEdit,'String',formatPath(handles.projData.anDir));
+        set(handles.anDirEdit,'String',handles.projData.anDir);
+        
+        assignin('base','projData',handles.projData)
     else
-        msgbox('No projects selected or tracking has not been completed.')
-        handles.dataDir=[];
-        handles.projData=[];
+        handles.projList=handles.projList(selection,1);
     end
 else
     msgbox('No projects selected.')
     handles.dataDir=[];
-    handles.projData=[];
 end
+temp=projList2Cell(handles.projList);
+assignin('base','selectedProjects',temp);
 guidata(hObject, handles);
 
 
@@ -493,7 +505,7 @@ function xaxisScatterDrop_Callback(hObject, eventdata, handles)
 val = get(hObject,'Value');
 
 % string labels in drop down menu
-% 
+%
 % Growth speed (um/min)
 % Growth lifetime (sec)
 % Growth displacement (um)
@@ -505,9 +517,9 @@ val = get(hObject,'Value');
 % Fgap displacement (um)
 
 group = {...
-    'growthSpeed',... 
-    'growthLifetime',... 
-    'growthDisp',... 
+    'growthSpeed',...
+    'growthLifetime',...
+    'growthDisp',...
     'bgapSpeed',...
     'bgapLifetime',...
     'bgapDisp'...
@@ -516,12 +528,9 @@ group = {...
     'fgapDisp',...
     };
 
-handles.xaxisScattParam=group{val};
+handles.xAxisScatParam=group{val};
 
 guidata(hObject, handles);
-
-
-
 
 % --- Executes during object creation, after setting all properties.
 function xaxisScatterDrop_CreateFcn(hObject, eventdata, handles)
@@ -537,21 +546,19 @@ end
 
 
 
-function xaxisScatterInput_Callback(hObject, eventdata, handles)
-% hObject    handle to xaxisScatterInput (see GCBO)
+function xAxisScatterInput_Callback(hObject, eventdata, handles)
+% hObject    handle to xAxisScatterInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of xaxisScatterInput as text
-%        str2double(get(hObject,'String')) returns contents of xaxisScatterInput as a double
-handles.xScattInput = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of xAxisScatterInput as text
+%        str2double(get(hObject,'String')) returns contents of xAxisScatterInput as a double
+handles.xScatInput = str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
-
-
 % --- Executes during object creation, after setting all properties.
-function xaxisScatterInput_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to xaxisScatterInput (see GCBO)
+function xAxisScatterInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to xAxisScatterInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -562,20 +569,19 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
-function yaxisScatterInput_Callback(hObject, eventdata, handles)
-% hObject    handle to yaxisScatterInput (see GCBO)
+function xAxisLim_Callback(hObject, eventdata, handles)
+% hObject    handle to xAxisLim (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of yaxisScatterInput as text
-%        str2double(get(hObject,'String')) returns contents of yaxisScatterInput as a double
-handles.yScattInput = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of xAxisLim as text
+%        str2double(get(hObject,'String')) returns contents of xAxisLim as a double
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'xAxisLim');
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function yaxisScatterInput_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to yaxisScatterInput (see GCBO)
+function xAxisLim_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to xAxisLim (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -584,7 +590,6 @@ function yaxisScatterInput_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 
 % --- Executes on selection change in yaxisScatterDrop.
 function yaxisScatterDrop_Callback(hObject, eventdata, handles)
@@ -597,7 +602,7 @@ function yaxisScatterDrop_Callback(hObject, eventdata, handles)
 val = get(hObject,'Value');
 
 % string labels in drop down menu
-% 
+%
 % Growth speed (um/min)
 % Growth lifetime (sec)
 % Growth displacement (um)
@@ -609,9 +614,9 @@ val = get(hObject,'Value');
 % Fgap displacement (um)
 
 group = {...
-    'growthSpeed',... 
-    'growthLifetime',... 
-    'growthDisp',... 
+    'growthSpeed',...
+    'growthLifetime',...
+    'growthDisp',...
     'bgapSpeed',...
     'bgapLifetime',...
     'bgapDisp'...
@@ -620,7 +625,7 @@ group = {...
     'fgapDisp',...
     };
 
-handles.yaxisScattParam=group{val};
+handles.yAxisScatParam=group{val};
 
 guidata(hObject, handles);
 
@@ -638,36 +643,86 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+function yAxisScatterInput_Callback(hObject, eventdata, handles)
+% hObject    handle to yAxisScatterInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of yAxisScatterInput as text
+%        str2double(get(hObject,'String')) returns contents of yAxisScatterInput as a double
+handles.yScatInput = str2double(get(hObject,'String'));
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function yAxisScatterInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to yAxisScatterInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function yAxisLim_Callback(hObject, eventdata, handles)
+% hObject    handle to yAxisLim (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of yAxisLim as text
+%        str2double(get(hObject,'String')) returns contents of yAxisLim as a double
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'yAxisLim');
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function yAxisLim_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to yAxisLim (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
 % --- Executes on button press in quadScatterPlotPush.
 function quadScatterPlotPush_Callback(hObject, eventdata, handles)
 % hObject    handle to quadScatterPlotPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~isfield(handles,'projData')
-    handles.projData=[];
+if isfield(handles,'projData') && handles.doBatchQuad==0
+    saveDir=handles.projData.anDir;
+    handles.groupList={'singleProject',handles.projData.anDir};
+else
+    saveDir=[];
 end
 
+xAxisInfo.name=handles.xAxisScatParam;
 if strcmpi(handles.xScatValType,'percentile')
-    percentile1=handles.xScattInput;
-    thresh1=[];
+    xAxisInfo.splitPercentile=handles.xScatInput;
+    xAxisInfo.splitValue=[];
 else
-    percentile1=[];
-    thresh1=handles.xScattInput;
+    xAxisInfo.splitPercentile=[];
+    xAxisInfo.splitValue=handles.xScatInput;
 end
+yAxisInfo.name=handles.yAxisScatParam;
 if strcmpi(handles.yScatValType,'percentile')
-    percentile2=handles.yScattInput;
-    thresh2=[];
+    yAxisInfo.splitPercentile=handles.yScatInput;
+    yAxisInfo.splitValue=[];
 else
-    percentile2=[];
-    thresh2=handles.yScattInput;
+    yAxisInfo.splitPercentile=[];
+    yAxisInfo.splitValue=handles.yScatInput;
 end
 
+xAxisInfo.minMax=handles.xAxisLim;
+yAxisInfo.minMax=handles.yAxisLim;
 
-plusTipParamPlot(handles.xaxisScattParam,percentile1,thresh1,...
-    handles.yaxisScattParam,percentile2,thresh2,...
-    handles.projData,handles.remBegEnd,handles.timeRangeDetect);
-
+plusTipQuadScatter(xAxisInfo,yAxisInfo,handles.groupList,handles.remBegEnd,...
+    handles.timeRangeDetect,handles.doPlotQuad,saveDir);
 
 
 % --- Executes on button press in selectOutputDirPush.
@@ -710,17 +765,7 @@ function xParamDrop_Callback(hObject, eventdata, handles)
 % Hints: contents = get(hObject,'String') returns xParamDrop contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from xParamDrop
 val = get(hObject,'Value');
-
-% string labels in drop down menu
-% 
-% value
-% percentile
-
-group = {...    
-    'value',... 
-    'percentile',... 
-    };
-
+group = {'Value','Percentile'};
 handles.xScatValType=group{val};
 
 guidata(hObject, handles);
@@ -747,17 +792,7 @@ function yParamDrop_Callback(hObject, eventdata, handles)
 % Hints: contents = get(hObject,'String') returns yParamDrop contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from yParamDrop
 val = get(hObject,'Value');
-
-% string labels in drop down menu
-% 
-% value
-% percentile
-
-
-group = {...    
-    'value',... 
-    'percentile',... 
-    };
+group = {'Value','Percentile'};
 handles.yScatValType=group{val};
 
 guidata(hObject, handles);
@@ -776,49 +811,34 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in autoSelectCheck.
-function autoSelectCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to autoSelectCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of autoSelectCheck
-handles.autoSelect=get(hObject,'Value');
-if handles.autoSelect==0
-    set(handles.fractionEdit,'Enable','Off');
-    set(handles.fractionEdit,'String','');
-    handles.fractionFromEdge=[];
-else
-    set(handles.fractionEdit,'Enable','On');
-end
-
-guidata(hObject, handles);
-
 % --- Executes on button press in subRoiPush.
 function subRoiPush_Callback(hObject, eventdata, handles)
 % hObject    handle to subRoiPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-plusTipSubdivideRoi(handles.projData,handles.fractionFromEdge,handles.roi);
+plusTipSubRoiTool(handles.projList,handles.subroiSelectType,...
+    handles.subroiDistUnit,handles.subroiDistVal,...
+    handles.subroiTimeUnit,handles.subroiTimeVal,...
+    handles.roi,handles.subroiExcludeRegion);
 
 
-function fractionEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to fractionEdit (see GCBO)
+function subroiDistValEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to subroiDistValEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of fractionEdit as text
-%        str2double(get(hObject,'String')) returns contents of fractionEdit as a double
-handles.fractionFromEdge=str2double(get(hObject,'String'));
-if isnan(handles.fractionFromEdge)
-    handles.fractionFromEdge=[];
+% Hints: get(hObject,'String') returns contents of subroiDistValEdit as text
+%        str2double(get(hObject,'String')) returns contents of subroiDistValEdit as a double
+handles.subroiDistVal=str2double(get(hObject,'String'));
+if isnan(handles.subroiDistVal)
+    handles.subroiDistVal=[];
 end
 guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function fractionEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to fractionEdit (see GCBO)
+function subroiDistValEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to subroiDistValEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -858,4 +878,219 @@ function figure1_CreateFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
+
+% --- Executes on button press in summQuadPlotOnlyCheck.
+function summQuadPlotOnlyCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to summQuadPlotOnlyCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of summQuadPlotOnlyCheck
+handles.doPlotQuad=~get(hObject,'Value');
+guidata(hObject, handles);
+
+
+% --- Executes on button press in pickGroupsPush.
+function pickGroupsPush_Callback(hObject, eventdata, handles)
+% hObject    handle to pickGroupsPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles=plusTipGuiSwitch(hObject,eventdata,handles,'pickGroups');
+assignin('base','groupList',handles.groupList);
+guidata(hObject, handles);
+
+% --- Executes on button press in autoGrpCheck.
+function autoGrpCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to autoGrpCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of autoGrpCheck
+handles.autoGrp=get(hObject,'Value');
+guidata(hObject, handles);
+
+
+% --- Executes on button press in batchQuadCheck.
+function batchQuadCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to batchQuadCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of batchQuadCheck
+handles.doBatchQuad=get(hObject,'Value');
+guidata(hObject, handles);
+
+
+% --- Executes on button press in selectGroupsPush.
+function selectGroupsPush_Callback(hObject, eventdata, handles)
+% hObject    handle to selectGroupsPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[handles.groupList]=combineGroupListFiles(0);
+assignin('base','groupList',handles.groupList);
+guidata(hObject, handles);
+
+
+% --- Executes on selection change in subroiDistUnitPop.
+function subroiDistUnitPop_Callback(hObject, eventdata, handles)
+% hObject    handle to subroiDistUnitPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns subroiDistUnitPop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from subroiDistUnitPop
+val = get(hObject,'Value');
+group = {'Microns','Fraction'};
+handles.subroiDistUnit=group{val};
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function subroiDistUnitPop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to subroiDistUnitPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes when selected object is changed in subroiRadioPanel.
+function subroiRadioPanel_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in subroiRadioPanel 
+% eventdata  structure with the following fields (see UIBUTTONGROUP)
+%	EventName: string 'SelectionChanged' (read only)
+%	OldValue: handle of the previously selected object or empty if none was selected
+%	NewValue: handle of the currently selected object
+% handles    structure with handles and user data (see GUIDATA)
+switch get(hObject,'Tag')   % Get Tag of selected object
+    case 'subManualRadio'
+        subManualRadio_Callback(hObject, eventdata, handles)
+    case 'subAutoRadio'
+        subAutoRadio_Callback(hObject, eventdata, handles)
+end
+
+
+% --- Executes on button press in subroiManualRadio.
+function subroiManualRadio_Callback(hObject, eventdata, handles)
+% hObject    handle to subroiManualRadio (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of subroiManualRadio
+handles.subroiSelectType=0;
+if handles.subroiSelectType==0
+    set(handles.subroiDistValEdit,'Enable','Off');
+    set(handles.subroiDistValEdit,'String','');
+    handles.subroiDistVal=[];
+    
+    set(handles.subroiDistUnitPop,'Enable','Off');
+    set(handles.subroiAutoDivPeriphCheck,'Enable','Off');
+else
+    set(handles.subroiDistValEdit,'Enable','On');
+    set(handles.subroiDistUnitPop,'Enable','On');
+    set(handles.subroiAutoDivPeriphCheck,'Enable','On');
+end
+guidata(hObject, handles);
+
+
+% --- Executes on button press in subroiAutoRadio.
+function subroiAutoRadio_Callback(hObject, eventdata, handles)
+% hObject    handle to subroiAutoRadio (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of subroiAutoRadio
+handles.subroiSelectType=1;
+if handles.subroiSelectType==0
+    set(handles.subroiDistValEdit,'Enable','Off');
+    set(handles.subroiDistValEdit,'String','');
+    handles.subroiDistVal=[];
+    
+    set(handles.subroiDistUnitPop,'Enable','Off');
+    set(handles.subroiAutoDivPeriphCheck,'Enable','Off');
+else
+    set(handles.subroiDistValEdit,'Enable','On');
+    set(handles.subroiDistUnitPop,'Enable','On');
+    set(handles.subroiAutoDivPeriphCheck,'Enable','On');
+end
+
+guidata(hObject, handles);
+
+
+% --- Executes on button press in subroiAutoDivPeriphCheck.
+function subroiAutoDivPeriphCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to subroiAutoDivPeriphCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of subroiAutoDivPeriphCheck
+handles.subroiSelectType=2;
+guidata(hObject, handles);
+
+
+
+function subroiTimeValEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to subroiTimeValEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of subroiTimeValEdit as text
+%        str2double(get(hObject,'String')) returns contents of subroiTimeValEdit as a double
+handles.subroiTimeVal=str2double(get(hObject,'String'));
+if isnan(handles.subroiTimeVal)
+    handles.subroiTimeVal=[];
+end
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function subroiTimeValEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to subroiTimeValEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in subroiTimeUnitPop.
+function subroiTimeUnitPop_Callback(hObject, eventdata, handles)
+% hObject    handle to subroiTimeUnitPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns subroiTimeUnitPop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from subroiTimeUnitPop
+val = get(hObject,'Value');
+group = {'Fraction','Seconds'};
+handles.subroiTimeUnit=group{val};
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function subroiTimeUnitPop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to subroiTimeUnitPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in subroiExcludeCheck.
+function subroiExcludeCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to subroiExcludeCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of subroiExcludeCheck
+handles.subroiExcludeRegion=get(hObject,'Value');
+guidata(hObject, handles);
 
