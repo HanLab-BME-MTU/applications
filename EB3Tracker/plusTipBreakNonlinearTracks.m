@@ -21,7 +21,7 @@ function [newTrackedFeatureInfo,newTrackedFeatureIndx,newNnDistFeatures]=plusTip
 
 
 %get total number of tracks
-[numTracks, numFrames] = size(trackedFeatureIndx);
+[nTracks, nFrames] = size(trackedFeatureIndx);
 
 % find track start and end frames
 trackSEL = getTrackSEL(trackedFeatureInfo);
@@ -103,11 +103,11 @@ badLinkIdx=sortrows(badLinkIdx,1); % sorted indices [trackNumber headPosition]
 nRows2add = sum(nBadLinks);
 
 % initialize new matrices to contain new rows
-newTrackedFeatureIndx = [trackedFeatureIndx; zeros(nRows2add,numFrames)];
-newNnDistFeatures = [nnDistFeatures; nan(nRows2add,numFrames)];
-newTrackedFeatureInfo = [trackedFeatureInfo; nan(nRows2add,8*numFrames)];
+newTrackedFeatureIndx = [trackedFeatureIndx; zeros(nRows2add,nFrames)];
+newNnDistFeatures = [nnDistFeatures; nan(nRows2add,nFrames)];
+newTrackedFeatureInfo = [trackedFeatureInfo; nan(nRows2add,8*nFrames)];
 
-counter=numTracks+1;
+counter=nTracks+1;
 for i=1:length(trackIdxWithBadLink);
     idx = badLinkIdx(badLinkIdx(:,1)==trackIdxWithBadLink(i),2);
     newSegS = [trackSEL(trackIdxWithBadLink(i),1); idx+1];  % new segment start

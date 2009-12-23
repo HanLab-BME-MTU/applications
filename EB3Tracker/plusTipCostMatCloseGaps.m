@@ -130,12 +130,12 @@ backVelMultFactor = costMatParam.backVelMultFactor;
 tMax=gapCloseParam.timeWindow;
 
 %find the number of tracks to be linked and the number of frames in the movie
-[numTracks,numFrames] = size(trackedFeatInfo);
-numFrames = numFrames / 8;
+[nTracks,nFrames] = size(trackedFeatInfo);
+nFrames = nFrames / 8;
 
 %list the tracks that start and end in each frame
-tracksPerFrame = repmat(struct('starts',[],'ends',[]),numFrames,1);
-for iFrame = 1 : numFrames
+tracksPerFrame = repmat(struct('starts',[],'ends',[]),nFrames,1);
+for iFrame = 1 : nFrames
     tracksPerFrame(iFrame).starts = find(trackStartTime == iFrame); %starts
     tracksPerFrame(iFrame).ends = find(trackEndTime == iFrame); %ends
 end
@@ -154,29 +154,29 @@ velInst=velInst(:);
 velInst(isnan(velInst))=[];
 
 % TRACK STARTS
-trackStartPxyVxy = zeros(numTracks,4);
+trackStartPxyVxy = zeros(nTracks,4);
 % x and y coordinates of the track's first point
-trackStartPxyVxy(:,1)=cell2mat(arrayfun(@(i) px(i,find(~isnan(px(i,:)),1,'first')),[1:numTracks]','UniformOutput',0));
-trackStartPxyVxy(:,2)=cell2mat(arrayfun(@(i) py(i,find(~isnan(py(i,:)),1,'first')),[1:numTracks]','UniformOutput',0));
+trackStartPxyVxy(:,1)=cell2mat(arrayfun(@(i) px(i,find(~isnan(px(i,:)),1,'first')),[1:nTracks]','UniformOutput',0));
+trackStartPxyVxy(:,2)=cell2mat(arrayfun(@(i) py(i,find(~isnan(py(i,:)),1,'first')),[1:nTracks]','UniformOutput',0));
 % average of first three velocity vectors (made from last 4 points
 % on track, if that many exist), x and y components
-trackStartPxyVxy(:,3)=cell2mat(arrayfun(@(i) mean(vx(i,find(~isnan(vx(i,:)),3,'first'))),[1:numTracks]','UniformOutput',0));
-trackStartPxyVxy(:,4)=cell2mat(arrayfun(@(i) mean(vy(i,find(~isnan(vy(i,:)),3,'first'))),[1:numTracks]','UniformOutput',0));
+trackStartPxyVxy(:,3)=cell2mat(arrayfun(@(i) mean(vx(i,find(~isnan(vx(i,:)),3,'first'))),[1:nTracks]','UniformOutput',0));
+trackStartPxyVxy(:,4)=cell2mat(arrayfun(@(i) mean(vy(i,find(~isnan(vy(i,:)),3,'first'))),[1:nTracks]','UniformOutput',0));
 
 % TRACK ENDS
-trackEndPxyVxy = zeros(numTracks,4);
+trackEndPxyVxy = zeros(nTracks,4);
 % x and y coordinates of the track's last point
-trackEndPxyVxy(:,1)=cell2mat(arrayfun(@(i) px(i,find(~isnan(px(i,:)),1,'last')),[1:numTracks]','UniformOutput',0));
-trackEndPxyVxy(:,2)=cell2mat(arrayfun(@(i) py(i,find(~isnan(py(i,:)),1,'last')),[1:numTracks]','UniformOutput',0));
+trackEndPxyVxy(:,1)=cell2mat(arrayfun(@(i) px(i,find(~isnan(px(i,:)),1,'last')),[1:nTracks]','UniformOutput',0));
+trackEndPxyVxy(:,2)=cell2mat(arrayfun(@(i) py(i,find(~isnan(py(i,:)),1,'last')),[1:nTracks]','UniformOutput',0));
 % average of last three velocity vectors (made from last 4 points
 % on track, if that many exist), x and y components
-trackEndPxyVxy(:,3)=cell2mat(arrayfun(@(i) mean(vx(i,find(~isnan(vx(i,:)),3,'last'))),[1:numTracks]','UniformOutput',0));
-trackEndPxyVxy(:,4)=cell2mat(arrayfun(@(i) mean(vy(i,find(~isnan(vy(i,:)),3,'last'))),[1:numTracks]','UniformOutput',0));
+trackEndPxyVxy(:,3)=cell2mat(arrayfun(@(i) mean(vx(i,find(~isnan(vx(i,:)),3,'last'))),[1:nTracks]','UniformOutput',0));
+trackEndPxyVxy(:,4)=cell2mat(arrayfun(@(i) mean(vy(i,find(~isnan(vy(i,:)),3,'last'))),[1:nTracks]','UniformOutput',0));
 
 % get velocity components for each track from kalman filter (very similar to trackEndVxy)
 xyzVel=cell2mat(arrayfun(@(iTrack) kalmanFilterInfo(trackEndTime(iTrack))...
     .stateVec(trackedFeatIndx(iTrack,trackEndTime(iTrack)),probDim+1:2*probDim),...
-    [1:numTracks]','UniformOutput',0));
+    [1:nTracks]','UniformOutput',0));
 
 
 trackEndSpeed=sqrt(sum(xyzVel.^2,2));
@@ -184,20 +184,20 @@ vMax=prctile(trackEndSpeed,95);
 vMed=median(trackEndSpeed);
 
 % get start and end frames for each track
-sFrameAll=zeros(numTracks,1);
-eFrameAll=zeros(numTracks,1);
-for iFrame=1:numFrames
+sFrameAll=zeros(nTracks,1);
+eFrameAll=zeros(nTracks,1);
+for iFrame=1:nFrames
     sFrameAll(tracksPerFrame(iFrame).starts)=iFrame;
     eFrameAll(tracksPerFrame(iFrame).ends)=iFrame;
 end
 
 % initialize matrices for pair indices and cost components
-indx1 = zeros(10*numTracks,1);
-indx2 = zeros(10*numTracks,1);
-costComponents  = zeros(10*numTracks,5);
+indx1 = zeros(10*nTracks,1);
+indx2 = zeros(10*nTracks,1);
+costComponents  = zeros(10*nTracks,5);
 
 linkCount = 1;
-for iFrame = 1:numFrames-1
+for iFrame = 1:nFrames-1
     %find tracks that end in this frame
     endsToConsider = tracksPerFrame(iFrame).ends;
 
@@ -206,7 +206,7 @@ for iFrame = 1:numFrames-1
     end
 
     % these are the frames to consider for finding starts
-    jFrame=iFrame+1:min(iFrame+tMax,numFrames);
+    jFrame=iFrame+1:min(iFrame+tMax,nFrames);
 
     % find tracks that start in possible frame range
     startsToConsider=arrayfun(@(x) tracksPerFrame(x).starts,jFrame,'uniformoutput',0);
@@ -532,7 +532,7 @@ costPerpParaAngle = costPerp + costPara + costAngle;
 cost = 1.1.^costComponents(:,5).*costPerpParaAngle; % for now, this seems to be the best cost
 
 % plot histograms of costs for forward and backward
-% doPlot=1;
+doPlot=0;
 if doPlot==1
     % define populations for forward/backward linkings costs (all tracks)
     pop1=cost(type==1); % forward
@@ -685,8 +685,8 @@ indxSplit = []; %vector storing splitting track number
 altCostSplit = []; %vector storing alternative costs of not splitting
 
 %create cost matrix without births and deaths
-numEndSplit = numTracks;
-numStartMerge = numTracks;
+numEndSplit = nTracks;
+numStartMerge = nTracks;
 costMat = sparse(indx1,indx2,cost,numEndSplit,numStartMerge);
 
 %% Append cost matrix to allow births and deaths ...
@@ -699,8 +699,8 @@ costLR = min(min(min(costMat))-1,-1);
 
 % create cost matrix that allows for births and deaths
 costMat = [costMat ... %costs for links (gap closing + merge/split)
-    spdiags([costBD*ones(numTracks,1); altCostSplit],0,numEndSplit,numEndSplit); ... %costs for death
-    spdiags([costBD*ones(numTracks,1); altCostMerge],0,numStartMerge,numStartMerge) ...  %costs for birth
+    spdiags([costBD*ones(nTracks,1); altCostSplit],0,numEndSplit,numEndSplit); ... %costs for death
+    spdiags([costBD*ones(nTracks,1); altCostMerge],0,numStartMerge,numStartMerge) ...  %costs for birth
     sparse(indx2,indx1,costLR*ones(length(indx1),1),numStartMerge,numEndSplit)]; %dummy costs to complete the cost matrix
 
 %determine the nonlinkMarker

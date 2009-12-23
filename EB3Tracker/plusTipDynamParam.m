@@ -63,24 +63,24 @@ if isempty(gIdx)
     stats.nGrowths=0;
     % median/mean for growth speeds (microns/minute)
     stats.growth_speed_median = NaN;
-    stats.growth_speed_mean_SE = [NaN NaN];
+    stats.growth_speed_mean_std = [NaN NaN];
     % median/mean for growth lifetime (sec)
     stats.growth_lifetime_median = NaN;
-    stats.growth_lifetime_mean_SE = [NaN NaN];
+    stats.growth_lifetime_mean_std = [NaN NaN];
     % median/mean for growth displacement (microns)
     stats.growth_length_median = NaN;
-    stats.growth_length_mean_SE = [NaN NaN];
+    stats.growth_length_mean_std = [NaN NaN];
 else
     stats.nGrowths=length(gIdx);
     % median/mean for growth speeds (microns/minute)
     stats.growth_speed_median = median(gs);
-    stats.growth_speed_mean_SE = [mean(gs) std(gs)/sqrt(length(gs))];
+    stats.growth_speed_mean_std = [mean(gs) std(gs)];
     % median/mean for growth lifetime (sec)
     stats.growth_lifetime_median = median(gl);
-    stats.growth_lifetime_mean_SE = [mean(gl) std(gl)/sqrt(length(gl))];
+    stats.growth_lifetime_mean_std = [mean(gl) std(gl)];
     % median/mean for growth displacement (microns)
     stats.growth_length_median = median(gd);
-    stats.growth_length_mean_SE = [mean(gd) std(gd)/sqrt(length(gd))];
+    stats.growth_length_mean_std = [mean(gd) std(gd)];
 end
 
 
@@ -89,38 +89,38 @@ if isempty(fIdx)
     stats.nFgaps=0;
     % median/mean for fgap speeds (microns/minute)
     stats.fgap_speed_median = NaN;
-    stats.fgap_speed_mean_SE = [NaN NaN];
+    stats.fgap_speed_mean_std = [NaN NaN];
     % median/mean for fgap lifetime (sec)
     stats.fgap_lifetime_median = NaN;
-    stats.fgap_lifetime_mean_SE = [NaN NaN];
+    stats.fgap_lifetime_mean_std = [NaN NaN];
     % median/mean for fgap displacement (microns)
     stats.fgap_length_median = NaN;
-    stats.fgap_length_mean_SE = [NaN NaN];
-    % frequencies of fgap are the average of 1 over the total time (sec) spent
-    % growing prior to fgap, and the average of 1 over the total displacement
-    % (microns) during growth prior to fgap
-    stats.fgap_freq_time_mean_SE=[NaN NaN];
-    stats.fgap_freq_length_mean_SE=[NaN NaN];
+    stats.fgap_length_mean_std = [NaN NaN];
+    % fgap frequency is the inverse of the average growth time (sec) or
+    % displacement (microns) prior to fgap
+    stats.fgap_freq_time=NaN;
+    stats.fgap_freq_length=NaN;
 
 else
     stats.nFgaps=length(fIdx);
     % median/mean for fgap speeds (microns/minute)
     stats.fgap_speed_median = median(fs);
-    stats.fgap_speed_mean_SE = [mean(fs) std(fs)/sqrt(length(fs))];
+    stats.fgap_speed_mean_std = [mean(fs) std(fs)];
     % median/mean for fgap lifetime (sec)
     stats.fgap_lifetime_median = median(fl);
-    stats.fgap_lifetime_mean_SE = [mean(fl) std(fl)/sqrt(length(fl))];
+    stats.fgap_lifetime_mean_std = [mean(fl) std(fl)];
     % median/mean for fgap displacement (microns)
     stats.fgap_length_median = median(fd);
-    stats.fgap_length_mean_SE = [mean(fd) std(fd)/sqrt(length(fd))];
-    % frequencies of fgap are the average of 1 over the total time (sec) spent
-    % growing prior to fgap, and the average of 1 over the total displacement
-    % (microns) during growth prior to fgap
+    stats.fgap_length_mean_std = [mean(fd) std(fd)];
+    % fgap frequency is the inverse of the average growth time (sec) or
+    % displacement (microns) prior to fgap
     beforeFgapIdx=fIdx-1;
-    freq=1./dataMatCrpSecMic(beforeFgapIdx,6);
-    stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    freq=1./dataMatCrpSecMic(beforeFgapIdx,7);
-    stats.fgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    %freq=1./dataMatCrpSecMic(beforeFgapIdx,6);
+    %stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    %freq=1./dataMatCrpSecMic(beforeFgapIdx,7);
+    %stats.fgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    stats.fgap_freq_time=1/mean(dataMatCrpSecMic(beforeFgapIdx,6));
+    stats.fgap_freq_length=1/mean(dataMatCrpSecMic(beforeFgapIdx,7));
 end
 
 % PARAMETERS RELATED TO BGAPS
@@ -128,38 +128,38 @@ if isempty(bIdx)
     stats.nBgaps=0;
     % median/mean for bgap speeds (microns/minute)
     stats.bgap_speed_median = NaN;
-    stats.bgap_speed_mean_SE = [NaN NaN];
+    stats.bgap_speed_mean_std = [NaN NaN];
     % median/mean for bgap lifetime (sec)
     stats.bgap_lifetime_median = NaN;
-    stats.bgap_lifetime_mean_SE = [NaN NaN];
+    stats.bgap_lifetime_mean_std = [NaN NaN];
     % median/mean for bgap displacement (microns)
     stats.bgap_length_median = NaN;
-    stats.bgap_length_mean_SE = [NaN NaN];
-    % frequencies of bgap are the average of 1 over the total time (sec) spent
-    % growing prior to bgap, and the average of 1 over the total displacement
-    % (microns) during growth prior to bgap
-    stats.bgap_freq_time_mean_SE=[NaN NaN];
-    stats.bgap_freq_length_mean_SE=[NaN NaN];
+    stats.bgap_length_mean_std = [NaN NaN];
+    % bgap frequency is the inverse of the average growth time (sec) or
+    % displacement (microns) prior to bgap
+    stats.bgap_freq_time=NaN;
+    stats.bgap_freq_length=NaN;
 
 else
     stats.nBgaps=length(bIdx);
     % median/mean for bgap speeds (microns/minute)
     stats.bgap_speed_median = median(bs);
-    stats.bgap_speed_mean_SE = [mean(bs) std(bs)/sqrt(length(bs))];
+    stats.bgap_speed_mean_std = [mean(bs) std(bs)];
     % median/mean for bgap lifetime (sec)
     stats.bgap_lifetime_median = median(bl);
-    stats.bgap_lifetime_mean_SE = [mean(bl) std(bl)/sqrt(length(bl))];
+    stats.bgap_lifetime_mean_std = [mean(bl) std(bl)];
     % median/mean for bgap displacement (microns)
     stats.bgap_length_median = median(bd);
-    stats.bgap_length_mean_SE = [mean(bd) std(bd)/sqrt(length(bd))];
-    % frequencies of bgap are the average of 1 over the total time (sec) spent
-    % growing prior to bgap, and the average of 1 over the total displacement
-    % (microns) during growth prior to bgap
+    stats.bgap_length_mean_std = [mean(bd) std(bd)]; % std(bd)/sqrt(length(bd))
+    % bgap frequency is the inverse of the average growth time (sec) or
+    % displacement (microns) prior to bgap
     beforeBgapIdx=bIdx-1;
-    freq=1./dataMatCrpSecMic(beforeBgapIdx,6);
-    stats.bgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    freq=1./dataMatCrpSecMic(beforeBgapIdx,7);
-    stats.bgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    %freq=1./dataMatCrpSecMic(beforeBgapIdx,6);
+    %stats.bgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    %freq=1./dataMatCrpSecMic(beforeBgapIdx,7);
+    %stats.bgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    stats.bgap_freq_time=1/mean(dataMatCrpSecMic(beforeBgapIdx,6));
+    stats.bgap_freq_length=1/mean(dataMatCrpSecMic(beforeBgapIdx,7));
 end
 
 % MISC PARAMETERS

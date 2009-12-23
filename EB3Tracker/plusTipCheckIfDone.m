@@ -40,7 +40,8 @@ if isempty(projList)
 end
 
 % get list of all projects
-[allProjList]=projList2Mat(projList);
+[projectDirectories]=projList2Cell(projList);
+allProjList=projectDirectories(:,1); % just analysis directories
 
 % list of all the files in each FEAT directory
 dirContents=cellfun(@(i) dir([i filesep 'feat']),allProjList,'uniformoutput',0);
@@ -60,6 +61,7 @@ dirContentsCell=cellfun(@(i) struct2cell(i),dirContents,'uniformoutput',0);
 trackResultsLoc=cellfun(@(i) find(strcmpi(i(1,:),'trackResults.mat')),dirContentsCell,'uniformoutput',0);
 % get timestamp for each projList file
 dates2=cellfun(@(i,j) i(2,j),dirContentsCell,trackResultsLoc,'uniformoutput',0);
+
 
 % list of all the files in each META directory
 dirContents=cellfun(@(i) dir([i filesep 'meta']),allProjList,'uniformoutput',0);

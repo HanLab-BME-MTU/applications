@@ -19,6 +19,7 @@ userEntry='Yes';
 while strcmp(userEntry,'Yes')
     [fileName,pathName] = uigetfile('*.mat','Select projList.mat file');
     if fileName==0
+        msgbox('No projects selected.')
         return
     end
     load([pathName filesep fileName]);
@@ -28,6 +29,14 @@ while strcmp(userEntry,'Yes')
 end
 clear projList;
 projList=temp;
+
+% format imDir and anDir paths for current OS
+nProj=length(projList);
+curDir=pwd;
+temp1=cellfun(@(x) formatPath(projList(x,1).anDir),mat2cell([1:nProj]',ones(nProj,1),1),'uniformOutput',0);
+temp2=cellfun(@(x) formatPath(projList(x,1).imDir),mat2cell([1:nProj]',ones(nProj,1),1),'uniformOutput',0);
+projList=cell2struct([temp1 temp2],{'anDir','imDir'},2);
+cd(curDir)
 
 if saveResult==1
     temp=inputdlg({'Enter file name:'},'',1);

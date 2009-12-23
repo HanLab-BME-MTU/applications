@@ -43,8 +43,8 @@ eF=trackData(:,3);
 nSubtracks=size(trackData,1);
 
 % initialize where coordinates will be stored
-xMat=nan(nSubtracks,projData.numFrames);
-yMat=nan(nSubtracks,projData.numFrames);
+xMat=nan(nSubtracks,projData.nFrames);
+yMat=nan(nSubtracks,projData.nFrames);
 
 % for each subtrack, get list of frames over which subtrack exists
 framesPerSubtrack=arrayfun(@(x,y) [x:y]', sF,eF,'UniformOutput',0);
@@ -58,7 +58,7 @@ end
 % for each frame of each subtrack, write corresponding TRACK number
 trackNumPerSub=arrayfun(@(x,y) x*ones(1,y)', trackNum,len,'UniformOutput',0);
 % convert i,j to index
-idx=cellfun(@(x,y) sub2ind([size(projData.xCoord,1), projData.numFrames],x,y), trackNumPerSub,framesPerSubtrack,'UniformOutput',0);
+idx=cellfun(@(x,y) sub2ind([size(projData.xCoord,1), projData.nFrames],x,y), trackNumPerSub,framesPerSubtrack,'UniformOutput',0);
 % coordinates for features in all subtracks at all frames
 coordsX=cellfun(@(i) projData.xCoord(i), idx,'UniformOutput',0);
 coordsY=cellfun(@(i) projData.yCoord(i), idx,'UniformOutput',0);

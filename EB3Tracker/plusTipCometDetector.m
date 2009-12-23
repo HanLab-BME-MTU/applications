@@ -321,6 +321,8 @@ for iFrame = startFrame:endFrame
 end
 save([featDir filesep 'movieInfo'],'movieInfo');
 
+rmdir([featDir filesep 'filterDiff'],'s');
+
 
 close(gcf)
 warning(warningState);

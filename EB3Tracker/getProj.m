@@ -155,8 +155,7 @@ if isempty(projList)
 end
 
 % convert structure to cell to view easier - but don't save it.
-projPaths=struct2cell(projList);
-projPaths=projPaths(2,:)';
+projPaths=projList2Cell(projList);
 
 save([topDir filesep 'projList' n],'projList')
 

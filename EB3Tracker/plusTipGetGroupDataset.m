@@ -27,11 +27,11 @@ cd(saveDir)
 %allProjects(notDone,:)=[];
 
 nProj=size(allProjects,1); % total number of columns
-numDir=8; % number of columns devoted to proj path parts
+numDir=0; % number of columns devoted to proj path parts
 
 for iProj=1:nProj
     try
-        currentROI=formatPath(allProjects{iProj,1});
+        currentROI=allProjects{iProj,1};
         
 
         if iProj==1
@@ -40,7 +40,7 @@ for iProj=1:nProj
             projData=temp.projData;
             
             % pick which data to extract
-            dataNames={'numTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass';'percentBgapsReclass'};
+            dataNames={'nTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass';'percentBgapsReclass'};
             statNames=fieldnames(projData.stats);
             trackParamNames=fieldnames(projData.trackingParameters);
 
@@ -79,39 +79,43 @@ for iProj=1:nProj
         end
         c=6; % next one (c is counter)
         
-        % parse the path to get "words" used to identify target, oligo,
-        % movie, and roi
-        nChar=length(currentROI);
-        if ispc
-            filesepLoc=regexp(currentROI,'\\');
-        else
-            filesepLoc=regexp(currentROI,'\/');
-        end
-        wordStart=[1 filesepLoc+1]; wordEnd=[filesepLoc-1 nChar];
-        words=cell(length(wordStart),1);
-        for iWord=1:length(wordStart)
-            words{iWord,1}=currentROI(wordStart(iWord):wordEnd(iWord));
-        end
-        % index of the cell which contains parts of the directory name
-        roiIdx=find(cell2mat(cellfun(@(x) ~isempty(strfind(x,'roi')),words,'uniformoutput',0)));
-
-        % add entry for subroi if there is none
-        if length(words)==roiIdx
-            words{roiIdx+1}=' ';
-        end
-
-        % invert order
-        words=words(end:-1:1);
-        
-        for i=1:numDir
-            varNames{c}=['dir' num2str(i-1)];
-            if i>length(words)
-                plusTipDataset{iProj,c}='';
-            else
-                plusTipDataset{iProj,c}=words{i};
-            end
-            c=c+1;
-        end
+%         % parse the path to get "words" used to identify target, oligo,
+%         % movie, and roi
+%         nChar=length(currentROI);
+%         if ispc
+%             filesepLoc=regexp(currentROI,'\\');
+%         else
+%             filesepLoc=regexp(currentROI,'\/');
+%         end
+%         wordStart=[1 filesepLoc+1]; wordEnd=[filesepLoc-1 nChar];
+%         words=cell(length(wordStart),1);
+%         for iWord=1:length(wordStart)
+%             words{iWord,1}=currentROI(wordStart(iWord):wordEnd(iWord));
+%         end
+%         subROIsIdx=find(cellfun(@(x) ~isempty(strmatch('subROIs',x)),words));
+%         if ~isempty(subROIsIdx)
+%             words(subROIsIdx)=[];;
+%         end
+%         % index of the cell which contains parts of the directory name
+%         roiIdx=find(cell2mat(cellfun(@(x) ~isempty(strfind(x,'roi')),words,'uniformoutput',0)));
+% 
+%         % add entry for subroi if there is none
+%         if length(words)==roiIdx
+%             words{roiIdx+1}=' ';
+%         end
+% 
+%         % invert order
+%         words=words(end:-1:1);
+%         
+%         for i=1:numDir
+%             varNames{c}=['dir' num2str(i-1)];
+%             if i>length(words)
+%                 plusTipDataset{iProj,c}='';
+%             else
+%                 plusTipDataset{iProj,c}=words{i};
+%             end
+%             c=c+1;
+%         end
 
         % load first project to get fieldnames
         temp=load([currentROI filesep 'meta' filesep 'projData']);
@@ -135,7 +139,7 @@ for iProj=1:nProj
         for iName=1:length(statNames)
             values=projData.stats.(statNames{iName});
             tempName=statNames{iName};
-            % some measurements have more than one value (SEs) - here we put
+            % some measurements have more than one value (std's) - here we put
             % each in a separate column and label with 2,3,...
             for v=1:length(values)
                 if v==1
