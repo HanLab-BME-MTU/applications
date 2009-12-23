@@ -1,6 +1,13 @@
 function plusTipPlotResults(projData,remBegEnd,timeRange,speedLim,lifeLim,dispLim,saveDir)
 % make plots of speed/lifetime/displacement, histograms, initition/termination pts for fgaps and bgaps
 
+if ispc
+    fileExt='.emf';
+else
+    fileExt='.jpg';
+end
+
+
 if nargin<1 || isempty(projData)
     dirName=uigetdir(pwd,'Please select project directory');
     temp=load([dirName filesep 'meta' filesep 'projData.mat']);
@@ -13,16 +20,16 @@ if nargin<2 || isempty(remBegEnd)
 end
 
 % get number of time points
-numFrames=projData.numFrames;
+nFrames=projData.nFrames;
 % check whether a time range for plotting was input
 if nargin<3 || isempty(timeRange)
-    timeRange=[1 numFrames];
+    timeRange=[1 nFrames];
 else
     if timeRange(1)<1
         timeRange(1)=1;
     end
-    if timeRange(2)>numFrames
-        timeRange(2)=numFrames;
+    if timeRange(2)>nFrames
+        timeRange(2)=nFrames;
     end
 end
 
@@ -445,7 +452,7 @@ for iType=1:3
                 paramStr='displacement';
         end
         saveas(figNum,[saveDir filesep 'overlay_' typeStr '_' paramStr '.fig'])
-        saveas(figNum,[saveDir filesep 'overlay_' typeStr '_' paramStr '.emf'])
+        saveas(figNum,[saveDir filesep 'overlay_' typeStr '_' paramStr fileExt])
         close(figNum)
         figNum=figNum+1;
     end
@@ -461,39 +468,39 @@ for iParam=1:3
             paramStr='displacement';
     end
     saveas(figNum,[saveDir filesep 'histogram_' paramStr '.fig'])
-    saveas(figNum,[saveDir filesep 'histogram_' paramStr '.emf'])
+    saveas(figNum,[saveDir filesep 'histogram_' paramStr fileExt])
     close(figNum)
     figNum=figNum+1;
 end
 
 % save the catastophe/rescue plots
 saveas(figNum,[saveDir filesep 'pause initiation sites (growth to pause)' '.fig'])
-saveas(figNum,[saveDir filesep 'pause initiation sites (growth to pause)' '.emf'])
+saveas(figNum,[saveDir filesep 'pause initiation sites (growth to pause)' fileExt])
 close(figNum)
 figNum=figNum+1;
 
 saveas(figNum,[saveDir filesep 'shrinkage initiation sites (growth to shrinkage)' '.fig'])
-saveas(figNum,[saveDir filesep 'shrinkage initiation sites (growth to shrinkage)' '.emf'])
+saveas(figNum,[saveDir filesep 'shrinkage initiation sites (growth to shrinkage)' fileExt])
 close(figNum)
 figNum=figNum+1;
 
 saveas(figNum,[saveDir filesep 'pause and shrinkage initiation sites' '.fig'])
-saveas(figNum,[saveDir filesep 'pause and shrinkage initiation sites' '.emf'])
+saveas(figNum,[saveDir filesep 'pause and shrinkage initiation sites' fileExt])
 close(figNum)
 figNum=figNum+1;
 
 saveas(figNum,[saveDir filesep 'pause termination sites (pause to growth)' '.fig'])
-saveas(figNum,[saveDir filesep 'pause termination sites (pause to growth)' '.emf'])
+saveas(figNum,[saveDir filesep 'pause termination sites (pause to growth)' fileExt])
 close(figNum)
 figNum=figNum+1;
 
 saveas(figNum,[saveDir filesep 'shrinkage termination sites(shrinkage to growth)' '.fig'])
-saveas(figNum,[saveDir filesep 'shrinkage termination sites(shrinkage to growth)' '.emf'])
+saveas(figNum,[saveDir filesep 'shrinkage termination sites(shrinkage to growth)' fileExt])
 close(figNum)
 figNum=figNum+1;
 
 saveas(figNum,[saveDir filesep 'pause and shrinkage termination sites' '.fig'])
-saveas(figNum,[saveDir filesep 'pause and shrinkage termination sites' '.emf'])
+saveas(figNum,[saveDir filesep 'pause and shrinkage termination sites' fileExt])
 close(figNum)
 figNum=figNum+1;
 

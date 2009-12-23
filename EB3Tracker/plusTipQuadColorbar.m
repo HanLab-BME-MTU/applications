@@ -1,5 +1,9 @@
-function [nPrctRYGB]=plusTipQuadColorbar(nPopRYGB)
+function [nPrctRYGB]=plusTipQuadColorbar(nPopRYGB,doPlot)
+% calculate percentages of red/yellow/blue/green tracks, make percent bar
 
+if nargin<2 || isempty(doPlot)
+    doPlot=1;
+end
 
 nRows=size(nPopRYGB,1);
 nPrctRYGB=zeros(nRows,4);
@@ -67,7 +71,8 @@ for iRow=1:nRows
     cBCount=cBCount+20;
 
 end
-
-figure
-imagesc(cBarAll);
-axis equal
+if doPlot==1
+    figure
+    imagesc(cBarAll);
+    axis equal
+end

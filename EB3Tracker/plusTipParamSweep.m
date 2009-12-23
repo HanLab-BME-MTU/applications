@@ -175,7 +175,7 @@ for i=1:nIter
     close all
 
     % pick which data to extract
-    statNames1={'numTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass';'percentBgapsReclass'};
+    statNames1={'nTracks';'pair2pairDiffMicPerMinStd';'meanDisp2medianNNDistRatio';'percentFgapsReclass';'percentBgapsReclass'};
     statNames2=fieldnames(projData.stats);
 
     % GET PROJECT DATA

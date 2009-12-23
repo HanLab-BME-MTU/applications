@@ -4,7 +4,7 @@ function plusTipSpeedMovie(projData,timeRange,velLimit,roiYX,aviInstead)
 %
 %OUTPUT Quicktime movies and the regions of interest used to generate them.
 %       
-%INPUT  projData          : output of metaEB3analysis, stored in /meta
+%INPUT  projData          : output of plusTipPostTracking, stored in /meta
 %                           if not given, user will be asked to select the
 %                           file
 %       timeRange         : row vector of the form [startFrame endFrame]
@@ -48,24 +48,24 @@ projData.anDir=formatPath(projData.anDir);
 projData.imDir=formatPath(projData.imDir);
 
 % get output directory from the user
-if ~isfield(projData,'movDir')
-    projData.movDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
+if ~isfield(projData,'saveDir')
+    projData.saveDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
 end
-if isequal(projData.movDir,0)
+if isequal(projData.saveDir,0)
     disp('No output directory selected.')
     return
 end
-cd(projData.movDir)
+cd(projData.saveDir)
 
 % check whether a time range for plotting was input
 if nargin<3 || isempty(timeRange)
-    timeRange = [1 projData.numFrames];
+    timeRange = [1 projData.nFrames];
 else
     if timeRange(1) < 1
         timeRange(1)=1;
     end
-    if timeRange(2) > projData.numFrames
-        timeRange(2)=projData.numFrames-1;
+    if timeRange(2) > projData.nFrames
+        timeRange(2)=projData.nFrames-1;
     end
 end
 startFrame = timeRange(1);
@@ -161,7 +161,7 @@ movNum = sprintf(strg,count);
 
 % name the movie
 temp=['trackVelocityMovie_' sFrm '_' eFrm '_' velLim '_' movNum];
-while exist([projData.movDir filesep temp '.mov'],'file')>0
+while exist([projData.saveDir filesep temp '.mov'],'file')>0
     count=count+1;
     movNum = sprintf(strg,count);
     temp=['trackVelocityMovie_' sFrm '_' eFrm '_' velLim '_' movNum];
@@ -259,7 +259,7 @@ for iFrame=startFrame:endFrame-1
 end
 
 if aviInstead==1
-    movie2aviNADA_CAW(F,[projData.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+    movie2aviNADA_CAW(F,[projData.saveDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
 else
     MakeQTMovie finish
 end

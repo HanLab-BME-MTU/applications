@@ -1,7 +1,7 @@
-function [groupList]=plusTipPickGroups(autoGrp,relDirs,projList)
+function [groupList]=plusTipPickGroups(autoGrp,relDirs,projList,saveResult)
 % plusTipPickGroups allows user to select groups of movies
 %
-% SYNOPSIS: [groupList]=plusTipPickGroups(autoGrp,relDirs)
+% SYNOPSIS: [groupList]=plusTipPickGroups(autoGrp,relDirs,projList,saveResult)
 %
 % INPUT : user is asked to select the projList file(s) containing projects
 %         to be used for group selection.
@@ -21,11 +21,11 @@ function [groupList]=plusTipPickGroups(autoGrp,relDirs,projList)
 %                           should be used for making the groups 
 %                           (eg. [5 4]). this option only works if autoGrp
 %                           is 1.
+%        saveResult       : 1 to prompt to save, 0 to not do so
 %
 % OUTPUT: groupList : n x 2 cell array, where n is the number of projects
 %                     chosen for all groups. the first column contains the
-%                     group name.  the second column contains the project
-%                     file path.
+%                     group name.  the second contains the project path.
 
 
 
@@ -40,20 +40,23 @@ end
 
 % ask user to select projList file and check which movies have been tracked
 if nargin<3 || isempty(projList)
-    [allProjects,notDone]=plusTipCheckIfDone;
-else
-    [allProjects]=projList2Mat(projList);
+    [projList]=combineProjListFiles;
+    if isempty(projList)
+        error('No projects selected.')
+    end
+end
+[allProjects]=projList2Cell(projList);
+
+if nargin<4 || isempty(saveResult)
+    saveResult=0;
 end
 
-% show only the ones that have been tracked in the selection box
-%allProjects(notDone,:)=[];
-allProjects=allProjects(:,1);
 
 % have user select groups of projects
 nProj=length(allProjects);
 groupList=cell(nProj,2);
 
-
+% user picks - no auto groups
 if isempty(autoGrp)
     countMovie=1;
     countLabel=1;
@@ -63,7 +66,7 @@ if isempty(autoGrp)
     while strcmpi(pickAgain,'yes')
 
         % user selection of projects for iGroup
-        selection=listSelectGUI(allProjects,[],'move');
+        selection=listSelectGUI(allProjects(:,1),[],'move');
 
         % get name of group for the legend
         temp=inputdlg({'Enter group name:'},'Input for legend label',1);
@@ -79,7 +82,7 @@ if isempty(autoGrp)
 
         % record project selection directories and legend names
         for iProj=1:length(selection)
-            groupList(countMovie,:)={legendLabel formatPath(allProjects{selection(iProj),1})};
+            groupList(countMovie,:)={legendLabel allProjects{selection(iProj),1}};
             countMovie=countMovie+1;
         end
 
@@ -93,7 +96,7 @@ if isempty(autoGrp)
     groupList(countMovie:end,:)=[];
 
 else
-    
+    % auto groups
     for iProj=1:nProj
        
         currentROI=formatPath(allProjects{iProj,1});
@@ -112,9 +115,9 @@ else
         % index of the cell which contains parts of the directory name
         roiIdx=find(cell2mat(cellfun(@(x) ~isempty(strfind(x,'roi')),words,'uniformoutput',0)));
 
-        % add entry for subroi if there is none
+        % add entry for subROIs and subx folders if there are no sub-rois
         if length(words)==roiIdx
-            words{roiIdx+1}='';
+            words(roiIdx+1:roiIdx+2)={'noSubROIs';'noSubs'};
         end
         
         % invert order
@@ -129,9 +132,9 @@ else
                 autoGrp=listSelectGUI(words,[],'copy');
                 autoGrp=autoGrp(end:-1:1);
             else
-                % autoGrp is relative to the roi directory, so add 1 since
-                % words is relative to subroi directory
-                autoGrp=relDirs+1;
+                % autoGrp is relative to the roi directory, so add 2 since
+                % words is relative to sub directory
+                autoGrp=relDirs+2;
             end
         end
 
@@ -142,10 +145,13 @@ else
         end
         macroWord(1)=[];
         
-        groupList(iProj,:)={macroWord formatPath(allProjects{iProj,1})};
+        groupList(iProj,:)={macroWord allProjects{iProj,1}};
 
     end
     
 end
-
-uisave('groupList','groupList')
+if saveResult==1
+    temp=inputdlg({'Enter file name:'},'',1);
+    dirName=uigetdir(pwd,'Select output directory for groupList.');
+    save([dirName filesep temp{1}],'groupList')
+end

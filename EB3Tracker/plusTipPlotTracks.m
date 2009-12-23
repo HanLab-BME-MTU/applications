@@ -1,4 +1,4 @@
-function [selectedTracks] = plusTipPlotTracks(projData,subIdx,timeRange,img,ask4sel,plotCurrentOnly,roiYX,movieInfo,rawToo)
+function [selectedTracks] = plusTipPlotTracks(projData,subIdx,timeRange,img,ask4sel,plotCurrentOnly,roiYX,movieInfo,rawToo,isStill)
 %plusTipPlotTracks overlays tracks on an image and allows user to select individual tracks
 %
 %INPUT  projData         : structure containing track info (stored in meta
@@ -38,6 +38,10 @@ function [selectedTracks] = plusTipPlotTracks(projData,subIdx,timeRange,img,ask4
 %                          accepted by the tracking, will be plotted.
 %       rawToo            : 1  to show raw image on left of overlay
 %                          {0} to make overlay without dual panel
+%       isStill           : 1 if image if using for single plot, 0 in movie
+%                           call - manages "axis equal" command for stills
+%                           since this is taken care of outside the
+%                           function for calls from movie functions
 %
 %OUTPUT The plot.
 
@@ -59,7 +63,7 @@ projData.anDir=formatPath(projData.anDir);
 projData.imDir=formatPath(projData.imDir);
 
 % get number of time points
-numFrames=projData.numFrames;
+nFrames=projData.nFrames;
 
 % check whether specific subtrack indices were given
 if nargin<2 || isempty(subIdx)
@@ -68,13 +72,13 @@ end
 
 % check whether a time range for plotting was input
 if nargin<3 || isempty(timeRange)
-    timeRange=[1 numFrames];
+    timeRange=[1 nFrames];
 else
     if timeRange(1)<1
         timeRange(1)=1;
     end
-    if timeRange(2)>numFrames
-        timeRange(2)=numFrames;
+    if timeRange(2)>nFrames
+        timeRange(2)=nFrames;
     end
 end
 
@@ -128,6 +132,10 @@ if nargin<9 || isempty(rawToo)
     rawToo=0;
 end
 
+if nargin<10 || isempty(isStill)
+    isStill=0;
+end
+
 % get track information
 trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 
@@ -176,7 +184,9 @@ end
 gcf;
 imagesc(img);
 colormap gray
-%axis equal
+if isStill==1
+    axis equal
+end
 
 %show coordinates on axes
 ah = gca;
@@ -279,16 +289,18 @@ end
 
 % get user selections and plot on image
 if ask4sel
+    title({'Left-click to add points', 'Press Enter to end selection', 'Press Backspace or Delete to remove last point'})
+    
     if isempty(subIdx)
         subIdx=[1:length(trackType)]';
     end
 
     userEntry = 'yes';
-    h=msgbox('Left-click to add points. Double-click to add final point and end selection, or press Enter to end selection without adding a final point. Press Backspace or Delete to remove previously selected point.','Help for track selection','help');
-    uiwait(h);
-
     count = 1;
     while strcmpi(userEntry,'yes')
+        h=msgbox('Zoom as needed. Click ok when finished.','Help for track selection','help');
+        uiwait(h);
+
 
         %let the user choose the points of interest
         [x,y] = getpts;
@@ -326,7 +338,7 @@ if ask4sel
         %ask the user again whether to click on figure and get frame information
         userEntry = questdlg('Do you want to select more points?');
 
-    end
+   end
 
 end
 

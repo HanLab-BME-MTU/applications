@@ -1,7 +1,7 @@
 function plusTipTrackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead,rawToo)
 % plusTipTrackMovie makes a movie of all the tracks in a ROI or of an individual
 %
-%INPUT  projData          : output of metaEB3analysis, stored in /meta
+%INPUT  projData          : output of plusTipPostTracking, stored in /meta
 %                           if not given, user will be asked to select the
 %                           file
 %       indivTrack        : n-vector containing n track numbers if you want
@@ -60,14 +60,14 @@ projData.anDir=formatPath(projData.anDir);
 projData.imDir=formatPath(projData.imDir);
 
 % get output directory from the user
-if ~isfield(projData,'movDir')
-    projData.movDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
+if ~isfield(projData,'saveDir')
+    projData.saveDir=uigetdir(projData.anDir,'Please select OUTPUT directory');
 end
-if isequal(projData.movDir,0)
+if isequal(projData.saveDir,0)
     disp('No output directory selected.')
     return
 end
-cd(projData.movDir)
+cd(projData.saveDir)
 
 
 trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
@@ -75,13 +75,13 @@ trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 
 % assign frame range
     if nargin<3 || isempty(timeRange)
-        timeRange=[1 projData.numFrames];
+        timeRange=[1 projData.nFrames];
     else
         if timeRange(1)<1
             timeRange(1)=1;
         end
-        if timeRange(2)>projData.numFrames
-            timeRange(2)=projData.numFrames;
+        if timeRange(2)>projData.nFrames
+            timeRange(2)=projData.nFrames;
         end
     end
 
@@ -209,7 +209,7 @@ for iMovie=1:size(timeRange,1)
         % allTracks_startFrame_endFrame_01 (or 02, 03...depending on how
         % many allTracks movies have been produced in the past)
         temp=['allTracks_' sFrm '_' eFrm '_' movNum];
-        while exist([projData.movDir filesep temp '.mov'],'file')>0
+        while exist([projData.saveDir filesep temp '.mov'],'file')>0
             count=count+1;
             movNum = sprintf(strg,count);
             temp=['allTracks_' sFrm '_' eFrm '_' movNum];
@@ -227,12 +227,12 @@ for iMovie=1:size(timeRange,1)
         roiYX=[minY minX; maxY maxX];
 
         % initialize strings for track number
-        s = length(num2str(projData.numTracks));
+        s = length(num2str(projData.nTracks));
         strg = sprintf('%%.%dd',s);
         trckNum = sprintf(strg,indivTrack(iMovie));
 
         temp=['track_' trckNum '_' sFrm '_' eFrm '_' movNum];
-        while exist([projData.movDir filesep temp '.mov'],'file')>0
+        while exist([projData.saveDir filesep temp '.mov'],'file')>0
             count=count+1;
             movNum = sprintf(strg,count);
             temp=['track_' trckNum '_' sFrm '_' eFrm '_' movNum];
@@ -386,8 +386,8 @@ for iMovie=1:size(timeRange,1)
     end
 
     if aviInstead==1
-        %movie2avi       (F,[projData.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
-        movie2aviNADA_CAW(F,[projData.movDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+        %movie2avi       (F,[projData.saveDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
+        movie2aviNADA_CAW(F,[projData.saveDir filesep movieName '.avi'],'COMPRESSION','Cinepak','FPS',5)
     else
         MakeQTMovie finish
     end

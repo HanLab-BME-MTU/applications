@@ -4,17 +4,16 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %SYNOPSIS [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm)
 %
 %INPUT  runInfo           : structure containing fields .anDir, which gives
-%                           the full path to the roi_x directory
+%                           the full path to the roi_x directory,
 %                           and .imDir, which gives the full path to the
-%                           folder containing the images for overlay.
+%                           folder containing the associated raw images.
 %                           if given as [], program will query user for
 %                           roi_x directory.
 %       secPerFrame       : frame rate (seconds per frame)
 %       pixSizeNm         : real-space pixel size in nanometers
 %       timeRange         : frame range over which to run post-processing
 %       mkHist            : 1 to make histograms for growth,fgap,bgap
-%                           subpopulations and write a txt file containing
-%                           these values
+%                           subpopulations
 %
 %OUTPUT projData          : structure with the following fields, saved in
 %                           a folder /roi_x/meta
@@ -27,17 +26,17 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %  .secPerFrame
 %       frame rate (seconds per frame)
 %  .pixSizeNm
-%       real-space pixel size in nanometers
-%  .numTracks
-%       number of tracks
-%  .numFrames
+%       real-space pixel size (nanometers)
+%  .nTracks
+%       number of compound tracks
+%  .nFrames
 %       number of time points (frames)
 %  .xCoord/yCoord
-%       pixel coordinates of features in tracks
+%       pixel coordinates of particles in tracks
 %  .featArea
-%       area in pixels of feature from detection (for growth only)
+%       area in pixels of particles from detection (for growth only)
 %  .featInt
-%       max intensity of feature from detection (for growth only)
+%       max intensity of particles from detection (for growth only)
 %  .frame2frameDispPix
 %       vector containing all frame-to-frame displacements from the initial
 %       growth subtrack portions of all tracks
@@ -49,7 +48,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %  .pair2pairDiffMicPerMinStd
 %       standard deviation of pair2pairDiffPix, converted to microns/min
 %  .medNNdistWithinFramePix
-%       median nearest-neighbor distance between all detected features in a
+%       median nearest-neighbor distance between all detected particles in a
 %       frame from movieInfo (loops through all frames to get composite
 %       from full movie, not just first frame)
 %  .meanDisp2medianNNDistRatio
@@ -67,7 +66,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %       percentage of fgaps that get reclassified as continuation of growth
 %       because their speeds are >=70% the speed at the end of the growth
 %       phase prior.  these reclassified fgaps get removed and the growth
-%       phases before and after become joined into one
+%       phases before and after become joined into one.
 %  .percentBgapsReclass
 %       percentage of bgaps that get reclassified as pause
 %       because their speeds are <95th percentile of fgaps remaining after
@@ -79,82 +78,75 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %       track numbers corresponding to tracks that contain backward gaps
 %       (shrinkage events)
 %  .stats
-%       structure containing the following fields:
+%       structure containing the following fields based on MERGED tracks:
 %
 %           .nGrowths
 %               total number of growth trajectories beginning after the
 %               first frame and ending before the last frame
 %           .growth_speed_median
-%               median of all growth trajectory speeds (microns/min)
-%           .growth_speed_mean_SE 
-%               [mean SE] of all growth trajectory speeds (microns/min),
-%               where SE is std/sqrt(N)
+%               median of all growth sub-track speeds (microns/min)
+%           .growth_speed_mean_std 
+%               [mean std] of all growth sub-track speeds (microns/min)
 %           .growth_lifetime_median
-%               median of all growth trajectory lifetimes (sec)
-%           .growth_lifetime_mean_SE
-%               [mean SE] of all growth trajectory lifetimes (sec),
-%               where SE is std/sqrt(N)
+%               median of all growth sub-track lifetimes (sec)
+%           .growth_lifetime_mean_std
+%               [mean std] of all growth sub-track lifetimes (sec)
 %           .growth_length_median
-%               median of all growth trajectory lengths (microns)
-%           .growth_length_mean_SE
-%               [mean SE] of all growth trajectory lengths (microns),
-%               where SE is std/sqrt(N)
+%               median of all growth sub-track lengths (microns)
+%           .growth_length_mean_std
+%               [mean std] of all growth sub-track lengths (microns)
 %
 %           .nFgaps
 %               total number of forward gap trajectories
 %           .fgap_speed_median
-%               median of all forward gap trajectory speeds (microns/min)
-%           .fgap_speed_mean_SE 
-%               [mean SE] of all forward gap trajectory speeds (microns/min),
-%               where SE is std/sqrt(N)
+%               median of all forward gap sub-track speeds (microns/min)
+%           .fgap_speed_mean_std 
+%               [mean std] of all forward gap sub-track speeds (microns/min)
 %           .fgap_lifetime_median
-%               median of all forward gap trajectory lifetimes (sec)
-%           .fgap_lifetime_mean_SE
-%               [mean SE] of all forward gap trajectory lifetimes (sec),
-%               where SE is std/sqrt(N)
+%               median of all forward gap sub-track lifetimes (sec)
+%           .fgap_lifetime_mean_std
+%               [mean std] of all forward gap sub-track lifetimes (sec)
 %           .fgap_length_median
-%               median of all forward gap trajectory lengths (microns)
-%           .fgap_length_mean_SE
-%               [mean SE] of all forward gap trajectory lengths (microns),
-%               where SE is std/sqrt(N)
-%           .fgap_freq_time_mean_SE
-%               [mean(1/D), SE] where D is the growth lifetime (sec) just
+%               median of all forward gap sub-track lengths (microns)
+%           .fgap_length_mean_std
+%               [mean std] of all forward gap sub-track lengths (microns)
+%           .fgap_freq_time
+%               the inverse of the average growth time (sec) prior to fgap
+%               1/mean(T) where T is the growth lifetime (sec) just
 %               prior to a forward gap, excluding growth trajectories
-%               lasting only 3 frames and those beginning in the first
-%               frame, and SE is std/sqrt(N)
-%           .fgap_freq_length_mean_SE     
-%               [mean(1/L), SE] where L is the growth length (microns) just
+%               beginning in the first frame
+%           .fgap_freq_length     
+%               the inverse of the average growth displacement (microns) 
+%               prior to fgap
+%               1/mean(D) where D is the growth displacement (microns) just
 %               prior to a forward gap, excluding growth trajectories
-%               lasting only 3 frames and those beginning in the first
-%               frame, and SE is std/sqrt(N)
+%               beginning in the first frame
 %
 %           .nBgaps
 %               total number of backward gap trajectories
 %           .bgap_speed_median
-%               median of all backward gap trajectory speeds (microns/min)
-%           .bgap_speed_mean_SE 
-%               [mean SE] of all backward gap trajectory speeds (microns/min),
-%               where SE is std/sqrt(N)
+%               median of all backward gap sub-track speeds (microns/min)
+%           .bgap_speed_mean_std 
+%               [mean std] of all backward gap sub-track speeds (microns/min)
 %           .bgap_lifetime_median
-%               median of all backward gap trajectory lifetimes (sec)
-%           .bgap_lifetime_mean_SE
-%               [mean SE] of all backward gap trajectory lifetimes (sec),
-%               where SE is std/sqrt(N)
+%               median of all backward gap sub-track lifetimes (sec)
+%           .bgap_lifetime_mean_std
+%               [mean std] of all backward gap sub-track lifetimes (sec)
 %           .bgap_length_median
-%               median of all backward gap trajectory lengths (microns)
-%           .bgap_length_mean_SE
-%               [mean SE] of all backward gap trajectory lengths (microns),
-%               where SE is std/sqrt(N)
-%           .bgap_freq_time_mean_SE
-%               [mean(1/D), SE] where D is the growth lifetime (sec) just
+%               median of all backward gap sub-track lengths (microns)
+%           .bgap_length_mean_std
+%               [mean std] of all backward gap sub-track lengths (microns)
+%           .bgap_freq_time
+%               the inverse of the average growth time (sec) prior to bgap
+%               1/mean(T) where T is the growth lifetime (sec) just
 %               prior to a backward gap, excluding growth trajectories
-%               lasting only 3 frames and those beginning in the first
-%               frame, and SE is std/sqrt(N)
-%           .bgap_freq_length_mean_SE     
-%               [mean(1/L), SE] where L is the growth length (microns) just
+%               beginning in the first frame
+%           .bgap_freq_length     
+%               the inverse of the average growth displacement (microns) 
+%               prior to bgap
+%               1/mean(D) where D is the growth displacement (microns) just
 %               prior to a backward gap, excluding growth trajectories
-%               lasting only 3 frames and those beginning in the first
-%               frame, and SE is std/sqrt(N)
+%               beginning in the first frame
 %
 %           .projData.percentTimeGrowth
 %               time all tracks spend in growth over time all tracks spend
@@ -283,7 +275,7 @@ mkdir(runInfo.metaDir)
     plusTipGetVelocitiesFromMat(tracksFinal,movieInfo,3,timeRange);
 
 %get number of tracks and number of time points
-[numTracks,numTimePoints] = size(trackedFeatureInfo);
+[nTracks,numTimePoints] = size(trackedFeatureInfo);
 numTimePoints=numTimePoints/8;
 
 
@@ -291,10 +283,10 @@ numTimePoints=numTimePoints/8;
 x = trackedFeatureInfo(:,1:8:end);
 y = trackedFeatureInfo(:,2:8:end);
 
-% initialize matrices for feature indices, area, and intensity
-movieInfoIdx=nan(numTracks,numTimePoints);
-featArea=nan(numTracks,numTimePoints);
-featInt =nan(numTracks,numTimePoints);
+% initialize matrices for particle indices, area, and intensity
+movieInfoIdx=nan(nTracks,numTimePoints);
+featArea=nan(nTracks,numTimePoints);
+featInt =nan(nTracks,numTimePoints);
 for iFrame=1:numTimePoints
     % these are the track numbers which exist in iFrame
     existCoordIdx=find(~isnan(x(:,iFrame)));
@@ -303,19 +295,19 @@ for iFrame=1:numTimePoints
     yi=y(:,iFrame); yi(isnan(yi))=[];
 
     if ~isempty(xi)
-        % distance matrix reveals where features coincide with those recorded
+        % distance matrix reveals where particles coincide with those recorded
         % in movieInfo
         D=createDistanceMatrix([xi,yi],[movieInfo(iFrame,1).xCoord(:,1),movieInfo(iFrame,1).yCoord(:,1)]);
         [r,c]=find(D==0); % r=track index, c=frame
 
         [newR,idx]=sort(r); % re-order based on track
-        featIdx=c(idx); % movieInfo feature index, sorted to correspond to track indices
+        featIdx=c(idx); % movieInfo particle index, sorted to correspond to track indices
 
-        % fill in movieInfoIdx with indices from features stored in movieInfo
+        % fill in movieInfoIdx with indices from particles stored in movieInfo
         movieInfoIdx(existCoordIdx,iFrame)=featIdx;
-        % fill in feature area (pixels) at corresponding features
+        % fill in particle area (pixels) at corresponding particles
         featArea(existCoordIdx,iFrame)=movieInfo(iFrame,1).amp(featIdx,1);
-        % fill in feature max intensity at corresponding features
+        % fill in particle max intensity at corresponding particles
         featInt (existCoordIdx,iFrame)=movieInfo(iFrame,1).int(featIdx,1);
     end
 end
@@ -337,8 +329,8 @@ projData.trackingParameters.fluctRadius=costMatrices(1,2).parameters.fluctRad;
 projData.secPerFrame = secPerFrame;
 projData.pixSizeNm = pixSizeNm;
 
-projData.numTracks = numTracks;
-projData.numFrames = numTimePoints;
+projData.nTracks = nTracks;
+projData.nFrames = numTimePoints;
 
 % figure out which frames were used in detection
 m=struct2cell(movieInfo); m=m(1,:); 
@@ -350,7 +342,7 @@ projData.detectionFrameRange=[sF eF];
 projData.trackingFrameRange=[costMatrices(1).parameters.startFrame costMatrices(1).parameters.endFrame];
 projData.postTrackFrameRange = timeRange;
 
-% coordinate/area/intensity info from detected features
+% coordinate/area/intensity info from detected particles
 projData.xCoord = trackedFeatureInfoInterp(:,1:8:end);
 projData.yCoord = trackedFeatureInfoInterp(:,2:8:end);
 projData.featArea = featArea;
@@ -370,7 +362,7 @@ projData.pair2pairDiffPix=pair2pairDiffPix(~isnan(pair2pairDiffPix(:)));
 projData.pair2pairDiffMicPerMinStd=std(pixPerFrame2umPerMin(projData.pair2pairDiffPix,projData.secPerFrame,projData.pixSizeNm));
 
 
-% get all feature nearest neighbor distances from all frames in one vector
+% get all particle nearest neighbor distances from all frames in one vector
 NNdist=nan(length(vertcat(movieInfo.xCoord)),1);
 count=1;
 for iFrame=5:length(movieInfo)

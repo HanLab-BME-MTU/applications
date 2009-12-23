@@ -49,7 +49,7 @@ lifeMean=find(cellfun(@(x) ~isempty(strfind(x,'lifetime-mean')),statNames));
 % indices for growth/fgap/bgap length mean (but not freq)
 lengthMean=find(cellfun(@(x) ~isempty(strfind(x,'length-mean')),statNames) & cellfun(@(x) isempty(strfind(x,'freq')),statNames));
 % indices for numbers of growths/fgaps/bgaps
-numEvents=find(cellfun(@(x) ~isempty(strfind(x,'nGrowths')) | ~isempty(strfind(x,'nFgaps')) | ~isempty(strfind(x,'nBgaps')) | ~isempty(strfind(x,'numTracks')),statNames));
+numEvents=[find(cellfun(@(x) ~isempty(strfind(x,'nGrowths')) | ~isempty(strfind(x,'nFgaps')) | ~isempty(strfind(x,'nBgaps')),statNames)) find(cellfun(@(x) ~isempty(strfind(x,'nTracks')),statNames))];
 
 % iterate thru control parameters
 for i=1:length(paramsTested);
