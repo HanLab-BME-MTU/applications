@@ -45,20 +45,14 @@ if nargin<1 || isempty(plusTipDataset)
 end
 
 if nargin<2 || isempty(groupList)
-    [fileName,pathName] = uigetfile('*.mat','Select groupList.mat file');
-    if fileName==0
-        display('no file selected')
-        return
-    end
-    load([pathName filesep fileName]);
-    cd(pathName)
+    groupList=combineGroupListFiles;
 end
 cd(homeDir)
 
 if nargin<3 || isempty(paramName)
     % let the user pick the parameter
     paramNameList=plusTipDataset.Properties.VarNames;
-    paramNameList(1:21)=[]; % these come from tracking parameters
+    paramNameList(1:13)=[]; % these come from tracking parameters
     selection=listSelectGUI(paramNameList,1,'copy',1);
     paramName=paramNameList{selection};
 end
@@ -174,7 +168,7 @@ if doPlot==1
     legend(h1,btwGrpNames,'location','BestOutside');
     xlabel('groupList index')
 
-    str=strrep(paramName,'_SE','');
+    str=strrep(paramName,'_std','');
     str=strrep(str,'_',' ');
 
     ylabel(str)

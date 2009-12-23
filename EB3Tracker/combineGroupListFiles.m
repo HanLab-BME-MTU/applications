@@ -1,6 +1,6 @@
 function [groupList]=combineGroupListFiles(saveResult)
 % combineGroupListFiles allows selection of multiple groupList files to combine
-
+%
 % SYNOPSIS: [groupList]=combineGroupListFiles(saveResult)
 %
 % INPUT   : saveResult: 1 to save new groupList file, 0 to return it to

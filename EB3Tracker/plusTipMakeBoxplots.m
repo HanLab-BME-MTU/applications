@@ -3,6 +3,8 @@ function plusTipMakeBoxplots(data,setName,saveDir)
 % for growth, fgap, and bgap populations from different movie groups
 %
 % SYNOPSIS: plusTipMakeBoxplots(data,setName,saveDir)
+%
+% see plusTipPoolGroupData
 
 
 

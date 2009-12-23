@@ -33,7 +33,7 @@ allData(:,idx2rem)=[];
 % here are the stat names now available
 statNames=allData(1,:);
 % pretty up the names
-statNames=cellfun(@(x) strrep(x,'_SE',''),statNames,'uniformoutput',0);
+statNames=cellfun(@(x) strrep(x,'_std',''),statNames,'uniformoutput',0);
 statNames=cellfun(@(x) strrep(x,'_','-'),statNames,'uniformoutput',0);
 allData(1,:)=statNames;
 

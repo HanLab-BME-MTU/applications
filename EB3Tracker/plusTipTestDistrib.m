@@ -5,9 +5,8 @@ function [discrimMat]=plusTipTestDistrib(groupData,distribs2test)
 %
 % INPUT : 
 %   groupData :     nGroups x 1 structure containing fields for
-%   distributions
-%                   from plus tip data - gs,fs,bs,gl,...bd (see
-%                   plusTipPoolGroupData)
+%                   distributions from plus tip data - gs,fs,bs,gl,...bd 
+%                   (see plusTipPoolGroupData)
 %   distribs2test : string or cell array of multiple strings containing
 %                   distribution identifier(s):
 %                       'gs' growth speed 'fs' fgap speed 'bs' bgap speed
@@ -57,8 +56,6 @@ else
         error('distribs2test must be a string or a cell');
     end
 end
-
-
 
 
 for i=1:length(idx)

@@ -1,7 +1,7 @@
 function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,remBegEnd)
 % plusTipPoolGroupData pools plus tip data from multiple projects in groups
 %
-% SYNOPSIS:  [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot)
+% SYNOPSIS:  [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,remBegEnd)
 %
 % INPUT:
 % groupList : output of plusTipPickGroups, nProj x 2 cell array where the
@@ -27,13 +27,7 @@ function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,r
 homeDir=pwd;
 
 if nargin<1 || isempty(groupList)
-    [fileName,pathName] = uigetfile('*.mat','Select groupList.mat file');
-    if fileName==0
-        display('no file selected')
-        return
-    end
-    load([pathName filesep fileName]);
-    cd(pathName)
+    [groupList]=combineGroupListFiles;
 end
 
 if nargin<2 || isempty(saveDir)
@@ -51,6 +45,7 @@ end
 if nargin<5 || isempty(doPlot)
     doPlot=1;
 end
+
 % assume we should use all data
 if nargin<6 || isempty(remBegEnd)
     remBegEnd=0;
