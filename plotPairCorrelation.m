@@ -94,20 +94,20 @@ if nargin < 4 || isempty(plotMask)
 end
 
 %convert movie paths to correct OS
-for iexp = 1:length(experiment)
-    [experiment(iexp).source]=formatPath(experiment(iexp).source);
-end
+experiment = changePathUsingEndocytosis(experiment);
 
 %Fill in Missing Data
+if ~isfield(experiment,'imagesize')
 [experiment] = determineImagesize(experiment);
+end
 
-for iexp = 1:length(experiment)
-
-    waitHandle = waitbar(iexp/length(experiment),['running movie ' num2str(iexp) ' out of ' num2str(length(experiment))]);
+pairCorrelation = nan(length(dist),length(experiment));
+parfor iexp = 1:length(experiment)
 
     %Load Lifetime Information
     cd([experiment(iexp).source filesep 'LifetimeInfo'])
-    load('lftInfo')
+    lftInfo = load('lftInfo');
+    lftInfo = lftInfo.lftInfo;
     % status matrix
     statMat = lftInfo.Mat_status;
     % lifetime matrix
@@ -152,7 +152,7 @@ for iexp = 1:length(experiment)
 %     [currDen] = calculatePitDenFromLR(kr,dist);
 %     pairCorrelationRand(:,iexp) = currDen;
 
-    close(waitHandle)
+
 end
 
 clustering = sum(pairCorrelation(1:2,:),1);
