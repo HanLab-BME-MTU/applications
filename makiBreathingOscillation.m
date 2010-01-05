@@ -191,6 +191,7 @@ for iMovie = 1 : numMovies
 
             %calculate sister separation
             sisterDist = sqrt(sum(sisterVec.^2,2)); %um
+            sisterDist = sisterDist - mean(sisterDist); %make average sister separation zero to clearly distinguish between larger separations (+ve) and smaller separations (-ve) for each pair
             sisterDistStd = sqrt( sum( sisterVecVar .* sisterVec.^2 ,2) ) ...
                 ./ sisterDist;  %um
             
@@ -377,8 +378,12 @@ for iLabel = goodLabel
 
         %assign intervals before the first good interval and intervals
         %after the last good interval a NaN
-        trajStates(1:goodIntervals(1)-1) = NaN;
-        trajStates(goodIntervals(end)+1:end) = NaN;
+        if ~isempty(goodIntervals)
+            trajStates(1:goodIntervals(1)-1) = NaN;
+            trajStates(goodIntervals(end)+1:end) = NaN;
+        else
+            trajStates(:) = NaN;
+        end
 
         %go over intervals in between good intervals
         for iInt = 1 : length(goodIntervals)-1
@@ -1364,7 +1369,7 @@ for iLabel = goodLabel
     for iState = 1 : 3
 
         %overall
-        eval(['character2use = characterBefore(indx' pointState{iState} ',:);'])
+        eval(['character2use = characterAfter(indx' pointState{iState} ',:);'])
         mean2use = mean(character2use);
         std2use = std(character2use);
         skew2use = skewness(character2use,0);
@@ -1377,7 +1382,7 @@ for iLabel = goodLabel
         %different motion states
         for iMotion = 2 : 9
 
-            eval(['character2use = characterBefore(indx' pointState{iState} ...
+            eval(['character2use = characterAfter(indx' pointState{iState} ...
                 motionState{iMotion} ',:);'])
             mean2use = mean(character2use);
             std2use = std(character2use);

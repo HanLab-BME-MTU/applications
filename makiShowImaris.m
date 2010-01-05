@@ -88,12 +88,24 @@ switch movieType
         imarisApplication.FileOpen(...
             fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName),...
             'reader=''DeltaVision''');
+        
     case 2
         imarisApplication.FileOpen(...
             fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName));
         stackData = metaTiffRead(fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName),[],[],0);
         numRows = stackData(1).height;
-        numCols = stackData(1).width;
+        %         numCols = stackData(1).width;
+        
+    case 3
+        imarisApplication.FileOpen(...
+            fullfile(dataStruct.rawMoviePath,dataStruct.rawMovieName));
+        imarisApplication.mDataSet.mExtendMaxX = imarisApplication.mDataSet.mExtendMaxX ...
+            * dataProperties.PIXELSIZE_XY;
+        imarisApplication.mDataSet.mExtendMaxY = imarisApplication.mDataSet.mExtendMaxY ...
+            * dataProperties.PIXELSIZE_XY;
+        imarisApplication.mDataSet.mExtendMaxZ = imarisApplication.mDataSet.mExtendMaxZ ...
+            * dataProperties.PIXELSIZE_Z;
+        
 end
 
 %         % check image properties: image should begin at -0.5 pix.

@@ -1,11 +1,11 @@
 function job = makiMakeJob(jobType,status,job,ask4input,movieType)
 %MAKIMAKEJOB is a hack to set up jobs from movies
 %
-% SYNOPSIS: job = makiMakeJob(jobType,status,job)
+% SYNOPSIS: job = makiMakeJob(jobType,status,job,ask4input,movieType)
 %
 % INPUT jobType: string which can take the values:
-%                'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW' or
-%                'MCAINSH'
+%                'TEST', 'HERCULES', 'DANUSER', 'MERALDI', 'SWEDLOW',
+%                'MCAINSH', 'MADDOX' or 'DANUSER2'
 %
 %       status : status that you want to achieve, either as status vector,
 %                e.g. [1,1,1,0,1,0,0,0,0], or a list of tasks, e.g. [1,2,3,5]
@@ -24,7 +24,9 @@ function job = makiMakeJob(jobType,status,job,ask4input,movieType)
 %                  sister identification), 0 to use built-in defaults.
 %                  Optional. Default: 1.
 %
-%       movieType: 1 for deltaVision files, 2 for metamorph stacks.
+%       movieType: 1 for deltaVision files;
+%                  2 for metamorph stacks;
+%                  3 for tiff series (that contain no meta data).
 %                  Optional. Default: 1.
 %
 % OUTPUT job: job-struct (input to makiMovieAnalysis)
@@ -66,7 +68,7 @@ else
         jobType = 2;
     elseif strcmp(jobType,'UPDATE')
         jobType = 3;
-    elseif strcmp(jobType,'DANUSER')
+    elseif strcmp(jobType,'DANUSER') %for linux on desktop :(
         jobType = 4;
     elseif strcmp(jobType,'MERALDI')
         jobType = 5;
@@ -76,6 +78,8 @@ else
         jobType = 7;
     elseif strcmp(jobType,'MADDOX')
         jobType = 8;
+    elseif strcmp(jobType,'DANUSER2') %for linux on orchestra :(
+        jobType = 9;
     end
 end
 if nargin < 2 || isempty(status)
@@ -105,12 +109,38 @@ if nargin < 5 || isempty(movieType)
     movieType = 1;
 end
 
+if any(movieType == [2 3])
+    metaDataIn = inputdlg(...
+        {'Pixel size in (XY; in microns)',...
+        'Z slice thickness (in microns)',...
+        'Emission wavelength (in microns)',...
+        'Exposure time (in seconds)',...
+        'Time between frames (in seconds)',...
+        'Time between Z slices (in seconds)',...
+        'Objective lens NA',...
+        'Objective lens magnification',...
+        'Microscopy type (1=widefield, 2=confocal)'},...
+        sprintf('Movie meta data'),1,{'','','','','','','','',''},'on');
+    if isempty(metaDataIn)
+        error('input aborted')
+    else
+        metaData.pixelSizeXY = str2double(metaDataIn{1});
+        metaData.thicknessZSlice = str2double(metaDataIn{2});
+        metaData.wavelength = str2double(metaDataIn{3});
+        metaData.exposureTime = str2double(metaDataIn{4});
+        metaData.timeBetweenFrames = str2double(metaDataIn{5});
+        metaData.timeBetweenZSlices = str2double(metaDataIn{6});
+        metaData.objLensInfo = [str2double(metaDataIn{7}) str2double(metaDataIn{8})];
+        metaData.microscopyType = str2double(metaDataIn{9});
+    end
+end
+
 % turn off property reader warning
 warningState = warning;
 warning off IMARISIMREAD:NOPROPERTYREADER
 
 switch jobType
-    case {1,2,4,5,6,7,8}
+    case {1,2,4,5,6,7,8,9}
         % test jobs and hercules runs
 
         % basePath depends on the job
@@ -143,6 +173,10 @@ switch jobType
                 basePath = [makiPathDef('$MADDOX',serverType) filesep];
                 jobPath = [basePath 'analysisLogFiles'];
                 jobName = sprintf('makiJob-%s.mat',nowString);
+            case 9
+                basePath = [makiPathDef('$DANUSER2',serverType) filesep];
+                jobPath = [basePath 'JobLogFiles'];
+                jobName = sprintf('danuserJob-%s.mat',nowString);
         end
 
         % allow user to change base path
@@ -154,6 +188,8 @@ switch jobType
                 fileList = searchFiles('dv$','(log)|(_PRJ)|(DIC)|(_REF)',basePath,1);
             case 2
                 fileList = searchFiles('t1.STK$',[],basePath,1);
+            case 3
+                fileList = searchFiles('t1.tif$',[],basePath,1);
         end
 
         selectIdx = listSelectGUI(fileList(:,1),[],'move');
@@ -189,7 +225,7 @@ switch jobType
             switch movieType
                 case 1
                     extIdx = regexp(rawMovieName,'(_R3D)?\.dv');
-                case 2
+                case {2,3}
                     extIdx = length(rawMovieName) - 6;
             end
             projectName = rawMovieName(1:extIdx-1);
@@ -199,8 +235,9 @@ switch jobType
             % dataFilePath are identical. Thus, check whether the
             % rawMoviePath already contains the project name. If not, make
             % a subdirectory
-            % DO NOT APPLY TO STK FILES - THEY ARE ALREADY IN THEIR OWN FOLDER
-            if movieType == 2 || any(findstr(rawMoviePath,projectName))
+            % DO NOT APPLY TO STK AND TIF FILES - THEY ARE ALREADY IN THEIR
+            % OWN DIRECTORIES
+            if any(movieType == [2 3]) || any(findstr(rawMoviePath,projectName))
                 dataFilePath = rawMoviePath;
             else
                 % movie isn't in its directory yet. Make a new one!
@@ -299,11 +336,19 @@ switch jobType
                 % make movieHeader
                 switch movieType
                     case 1
-                        dataStruct.movieHeader = readr3dheader(fullfile(rawMoviePath,rawMovieName));
+                        dataStruct.movieHeader = readr3dheader(...
+                            fullfile(rawMoviePath,rawMovieName));
                     case 2
-                        dataStruct.movieHeader = stk3dheader(rawMoviePath,rawMovieName);
+                        dataStruct.movieHeader = stk3dheader(...
+                            rawMoviePath,rawMovieName,metaData);
+                    case 3
+                        dataStruct.movieHeader = tif3dheader(...
+                            rawMoviePath,rawMovieName,metaData);
                 end
 
+                %FIGURE OUT WHAT TO DO ABOUT PSF SIGMA AND ITS CORRECTION
+                %FOR CONFOCAL, AND SIGMA CORRECTION FOR HMS DATA
+                
                 % make dataProperties, set sigmaCorrection to 1.5
                 dataStruct.dataProperties = defaultDataProperties(dataStruct.movieHeader);
                 dataStruct.dataProperties.sigmaCorrection = [1.5,1.5];
@@ -341,6 +386,17 @@ switch jobType
                         rawMovieName,...
                         rawMoviePath,[],[],1);
 
+                    %if movieType = 3 (TIF series without any meta-data),
+                    %fix pixel size before proceeding
+                    if movieType == 3
+                        imarisHandle.mDataSet.mExtendMaxX = imarisHandle.mDataSet.mExtendMaxX ...
+                            * dataStruct.dataProperties.PIXELSIZE_XY;
+                        imarisHandle.mDataSet.mExtendMaxY = imarisHandle.mDataSet.mExtendMaxY ...
+                            * dataStruct.dataProperties.PIXELSIZE_XY;
+                        imarisHandle.mDataSet.mExtendMaxZ = imarisHandle.mDataSet.mExtendMaxZ ...
+                            * dataStruct.dataProperties.PIXELSIZE_Z;
+                    end
+                    
                     % read 'zero'. In DV files (and maybe others), Imaris puts
                     % the zero at -0.5 pix (like Matlab!). Furthermore, if the
                     % movie was cropped already, zero is in the coordinates of
@@ -436,7 +492,7 @@ switch jobType
                 switch movieType
                     case 1
                         dataStruct.dataProperties.planeFitParam.use2D = 0;
-                    case 2
+                    case {2,3}
                         dataStruct.dataProperties.planeFitParam.use2D = 1;
                 end
             end

@@ -138,7 +138,8 @@ if verbose
 end
 nTimes = numel(goodTimes); % not the best way to count, but it works.
 
-
+%extract movie size from dataProperties
+movieSize = dataProperties.movieSize;
 
 for t=goodTimes(:)'
     
@@ -158,10 +159,18 @@ for t=goodTimes(:)'
             case 1 %DV files
                 raw = cdLoadMovie({rawMovie,'raw'},[],struct('frames2load',{{t}},...
                     'crop',dataProperties.crop,'maxSize',dataProperties.maxSize));
-            case 2 %STK files
-                movieTPName = [rawMovie(1:end-5) num2str(t) '.STK']; %name of files storing current time point
-                imageStack = metaTiffRead(movieTPName,[],[],0); %read stack using Nedelec's code
-                raw = double(cat(3,imageStack.data)); %extract image information
+            case {2,3} %STK files
+                if movieType == 2
+                    movieTPName = [rawMovie(1:end-5) num2str(t) '.STK']; %name of files storing current time point
+                    imageStack = metaTiffRead(movieTPName,[],[],0); %read stack using Nedelec's code
+                    raw = double(cat(3,imageStack.data)); %extract image information
+                else %TIF series
+                    movieTPName = [rawMovie(1:end-5) num2str(t) '.tif']; %name of files storing current time point
+                    raw = []; %remove old image
+                    for iSlice = 1 : movieSize(3) %read z-slices
+                        raw(:,:,iSlice) = imread(movieTPName,iSlice);
+                    end
+                end
                 cropInfo = dataProperties.crop; %cropping information
                 if ~isempty(cropInfo)
                     cropInfo = cropInfo(:,1:2);
@@ -217,7 +226,7 @@ for t=goodTimes(:)'
     
     %remove any spots with negative amplitude, because those are false
     %positives for sure - KJ
-    if movieType == 2
+    if any(movieType == [2 3])
         initCoordTmp = initCoordTmp(initCoordTmp(:,4)>0,:);
     end
     
@@ -381,7 +390,7 @@ else
                 error('less than %i spots per frame found. makiInitCoord failed',minSpotsPerFrame)
             end
             
-        case 2
+        case {2,3}
             
             %for the HMS data, the signal is very dim and photobleaches a lot,
             %and determining the cutoff on the fly does not work.
