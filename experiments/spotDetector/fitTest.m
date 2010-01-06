@@ -1,12 +1,16 @@
-function [numDist,ncordList,ampList,bg,statistics,debugData]=fitTest(data,cordList,idxList,dataSize,dataProperties,DEBUG)
+function [numDist,ncordList,ampList,bg,statistics,debugData]=fitTest(data,cordList,idxList,dataSize,dataProperties,DEBUG,fitNPlusOne)
 %FITTEST 
 %
-%SYNOPSIS : [numDist,ncordList,statistics]=fitTest(data,cordList,idxList,dataSize)
+%SYNOPSIS : [numDist,ncordList,statistics]=fitTest(data,cordList,idxList,dataSize,dataProperties,DEBUG,fitNPlusOne)
 %
 % INPUT   data       :  vector with raw data
 %              cordList :  list with center coordinates of detected spots
 %              idxList    : vector of mask
 %              dataSize:  original size of data (3D shape)
+%              dataProperties 
+%              fitNPlusOne: allow as separate input so that not every frame
+%              has to be fitted with n+1
+%              DEBUG 
 %
 % OUTPUT numDist   : number of underlying gaussians found
 %                ncordList : estimated coords
@@ -30,6 +34,15 @@ if nargin < 6 || isempty(DEBUG)
     debugData = [];
 else
     debugData = struct('exitflag',[],'output',[],'fStats',[]);
+end
+
+if nargin < 7 || isempty(fitNPlusOne)
+    % check whether we should fit n plus one
+    if isfield(dataProperties,'fitNPlusOne')
+        fitNPlusOne = dataProperties.fitNPlusOne;
+    else
+        fitNPlusOne = 1;
+    end
 end
 
 %init output (could remain empty!)
@@ -176,16 +189,9 @@ ncordList=reshape(parms(posIdx),3,nsp)';
 
 %sprintf('%05.3f \n',parms)
 
-% check whether we should fit n plus one
-fitNPlusOne = 1;
-if isfield(dataProperties,'fitNPlusOne')
-    fitNPlusOne = dataProperties.fitNPlusOne;
-end
-if nsp == 0
-    fitNPlusOne = 0;
-end
 
-if fitNPlusOne %do N+1-fit only if there are any spots left!
+
+if fitNPlusOne && nsp > 0 %do N+1-fit only if there are any spots left!
     %--------------------------------------FIT N+1-------------------------------------
     
     % nCt counts the number of new tags

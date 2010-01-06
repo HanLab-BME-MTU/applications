@@ -387,6 +387,7 @@ end
 % matrices
 fittingIdx = nSources;
 fittingIdx0 = fittingIdx; % 0th fitting idx
+collectIdx = 0;
 
 
 % DEBUG
@@ -933,6 +934,21 @@ end % while ~isempty trackingStrategy
 
 % remove excess entries
 collectedResiduals(collectIdx+1:end,:,:) = [];
+
+if collectIdx < 1
+    % if all frames have failed, do not continue any further. I guess the
+    % code would crash if there are also very few tracked frames, but I
+    % hope that if the templates can track one frame, they can track many
+    % frames. Else, I have to come back to fix this
+    
+    % re-use idlist
+    idlisttrack = idlist;
+    % warn user
+    warning('TAGTRACKER:FAIL','all tracking attempts failed for %s. Aborting tagTracker',idlist(1).stats.name)
+    % quit
+    return
+end
+    
 
 % read sigmaResidual2Init
 Y = sum(collectedResiduals(:,3,:),3);
