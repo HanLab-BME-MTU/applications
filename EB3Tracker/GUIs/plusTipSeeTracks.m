@@ -175,6 +175,7 @@ if ~isempty(handles.projList)
         msgbox('No projects selected or tracking has not been completed.')
         handles.projList=[];
     elseif size(selection,1)==1
+        handles.projList=handles.projList(selection,1);
         handles.dataDir=selectionList{1,1};
         p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
         handles.projData=p.projData;

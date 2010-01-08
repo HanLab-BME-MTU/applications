@@ -73,7 +73,9 @@ if nargin<7 || isempty(cellRoiYX)
     cellRoiYX=[];
 end
 if nargin<8 || isempty(pickExclude)
-    pickExclude=0;
+    pickExcludeInput=0;
+else
+    pickExcludeInput=pickExclude;
 end
 
 
@@ -101,7 +103,6 @@ if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
 end
 
 nProj=length(projList);
-progressText(0,'Creating Sub-ROIs');
 for iProj=1:nProj
 
     anDir=projList(iProj,1).anDir;
@@ -110,9 +111,9 @@ for iProj=1:nProj
     % only, since selecting sub-rois recursively is not allowed.  if it is
     % a full roi, we go on with roi selection.
     if ~isempty(strfind(anDir,'sub'))
-        progressText(iProj/nProj,'Creating Sub-ROIs');
         continue
     end
+
     subanDir=[anDir filesep 'subROIs'];
     if ~isdir(subanDir)
         mkdir(subanDir);
@@ -165,11 +166,10 @@ for iProj=1:nProj
     % otherwise let user load a mask or create a new one if this is the
     % first subroi, or load the already-saved one from subanDir
     if isempty(roiMask)
-        if roiCount>1 %for sub_2 or later
+        if roiCount>1 % for sub_2 or later
             % load the previously-used roiMask
             roiMask=imread([subanDir filesep 'roiMask.tif']);
             roiYX=load([subanDir filesep 'roiYX.mat']); roiYX=roiYX.roiYX;
-
         else % for sub_1, establish what cell region will be
             choice=questdlg('Before creating Sub-ROIs, you need to define the cell boundary.','Cell ROI option','Draw new','Load roiYX.mat','Draw new');
             if ~isempty(strmatch(choice,'Draw new'))
@@ -210,6 +210,7 @@ for iProj=1:nProj
         end
     end
 
+
     % set cell boundary in white to composite image
     [img2show]=addMaskInColor(img2show,roiMask,[1 1 1]);
 
@@ -234,17 +235,17 @@ for iProj=1:nProj
     end
 
     excludeMask=swapMaskValues(roiMask);
-    
+
     % EXCLUDEMASK IS SUBMASK (OR INVERSE OF CELL MASK) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%     pickExclude=0;
-%     fileList=searchFiles('subMask',[],subanDir,0);
-%     if ~isempty(fileList)
-%         excludeMask=imread([fileList{1,2} filesep fileList{1,1}]);
-%     else
-%         excludeMask=~roiMask;
-%     end
+    %     pickExcludeInput=0;
+    %     fileList=searchFiles('subMask',[],subanDir,0);
+    %     if ~isempty(fileList)
+    %         excludeMask=imread([fileList{1,2} filesep fileList{1,1}]);
+    %     else
+    %         excludeMask=~roiMask;
+    %     end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
+    pickExclude=pickExcludeInput;
     while pickExclude==1
         choice=questdlg({'Exclusion mask will be applied to all sub-rois of current project',...
             'created in this round. Press cancel to use full cell.'},...
@@ -434,12 +435,8 @@ for iProj=1:nProj
 
         % get coordinates of vertices (ie all pixels of polygon boundary)
         if sum(tempRoi(:))~=0
-            if ~isempty(strmatch(selectType,'manual'))
-                roiYX=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
-            else
-                [y1,x1]=ind2sub([imL,imW],find(tempRoi,1)); % first pixel on boundary
-                roiYX = bwtraceboundary(tempRoi,[y1,x1],'N'); % get all pixels on boundary
-            end
+            [y1,x1]=ind2sub([imL,imW],find(tempRoi,1)); % first pixel on boundary
+            roiYX = bwtraceboundary(tempRoi,[y1,x1],'N'); % get all pixels on boundary
         else
             roiYX=[nan nan];
         end
@@ -520,7 +517,7 @@ for iProj=1:nProj
             subMask=subMask | tempRoiMask;
         end
     end
-    
+
 
     imwrite(subMask,[subanDir filesep 'subMask_' num2str(roiStart) '_' num2str(roiCount) '.tif']);
 
@@ -529,12 +526,10 @@ for iProj=1:nProj
     saveas(h,[subanDir filesep 'subROIs_' indxStr1 '_' indxStr2 '.fig'])
     saveas(h,[subanDir filesep 'subROIs_' indxStr1 '_' indxStr2 fileExt])
     close(h)
-    
+
     % create updated projList for the roi_x folder containing all the sub-projects
     cd('..')
     getProj(pwd);
-
-    progressText(iProj/nProj,'Creating Sub-ROIs');
 end
 
 % look for repeats and only extract from unique sub-rois
