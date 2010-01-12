@@ -16,7 +16,12 @@ for t = goodTimes'
         qCell = mat2cell(idlist(t).info.(qNames{q}), ...
             3*ones(nTags,1), 3*ones(nTags,1));
         % get Q-matrices of all tags
-        qCellDiag = diag(qCell);
+        %         qCellDiag = diag(qCell); %KJ: replaced with below, no
+        %         longer allowed in R2009b
+        qCellDiag = [];
+        for i = 1 : size(qCell,1)
+            qCellDiag = [qCellDiag; qCell(i,i)];
+        end
         
         % remove tags
         qCellDiag(tagIndices) = [];

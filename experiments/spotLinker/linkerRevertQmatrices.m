@@ -31,15 +31,20 @@ else
             % remove entry from goodTimes
             goodTimes(goodTimes == t) = [];
         else
-
-
+            
+            
             % make idlist.info.Q or idlist.info.QT
             for q = 1:1+isTracked
                 % read list of Q-matrices
                 qCell = mat2cell(idlist(t).info.(qNames{q}), ...
                     3*ones(nTags,1), 3*ones(nTags,1));
                 % get Q-matrices of spots
-                qCellDiag = diag(qCell);
+                %                 qCellDiag = diag(qCell); %KJ: replaced
+                %                 with below, no longer allowed in R2009b
+                qCellDiag = [];
+                for i = 1 : size(qCell,1)
+                    qCellDiag = [qCellDiag; qCell(i,i)];
+                end
                 qCellDiag = qCellDiag(spotIdx);
                 % check if we need to remove a zero-matrix
                 if spotNumber(1) == 0

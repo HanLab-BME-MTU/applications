@@ -17,7 +17,12 @@ isTracked = isfield(idlist(t).info,'QT') && ~isempty(idlist(t).info.QT);
     for q = 1:1+isTracked
         qCell = mat2cell(idlist(t).info.(QNames{q}), ...
             3*ones(nSpots,1), 3*ones(nSpots,1));
-        qCellDiag = [{zeros(3)}; diag(qCell)];
+        %         qCellDiag = [{zeros(3)}; diag(qCell)]; %KJ: replaced with
+        %         below, no longer allowed in R2009b
+        qCellDiag = {zeros(3)};
+        for i = 1 : size(qCell,1)
+            qCellDiag = [qCellDiag; qCell(i,i)];
+        end
         qCellList = qCellDiag(idlist(t).linklist(:,2)+1);
         % make sparse to save some disk space
         idlist(t).info.(qNames{q}) = sparse(blkdiag(qCellList{:}));
