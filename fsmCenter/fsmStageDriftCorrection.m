@@ -31,7 +31,7 @@ if nargin < 1 || isempty(inputFileList)
        return;
    end
    
-   inputFileList = getFileStackNames([filename filesep pathname]);
+   inputFileList = getFileStackNames([pathname filesep filename]);
 else
     isValid = 1;
     for i = 1:numel(inputFileList)

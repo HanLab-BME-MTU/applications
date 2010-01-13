@@ -423,35 +423,46 @@ end
 
 function pushStageDriftCorrection_Callback(hObject, eventdata, handles)
 
-sigmaPSF = 1.33; % TODO: Get it from handles
-bitDepth = 14; % TODO: Get it from handles
-maxDrift = 10; % TODO: Add a text textEdit
-showResult = 1; % TODO: Add a checkBox
+projDir = get(handles.textCurrentProject, 'String');
+projSettingsFile = [projDir filesep 'lastProjSettings.mat'];
 
-T = stageDriftCorrection([], sigmaPSF, bitDepth, maxDrift, showResult);
-
-if ~isempty(T)
-    outputFile = [projSettings.projDir filesep projSettings.subProjDir{1} ...
-        filesep 'stageDriftCorrection.mat'];
-    
-    while exist(outputFile, 'file')
-        button = questdlg('File already exists. Override?');
-        switch button
-            case 'Cancel'
-                return;
-            case 'Ok'
-                break;
-            case 'No'
-                outputDir = uigetdir(path, 'Select Output Directory');
-                if ~ischar(filename) || ~ischar(pathname)
-                    return;
-                end
-                outputFile = [outputDir filesep 'stageDriftCorrection.mat'];
-        end
-    end
-    
-    save(outputFile, 'T');
+if ~exist(projSettingsFile, 'file')
+    disp('Unable to locate lastProjSettings.mat');
+    return;
 end
+
+load(projSettingsFile);
+
+NA = str2double(get(handles.editNA, 'String'));
+lambdaEM = str2double(get(handles.editWaveLen, 'String'));
+pixelSize = str2double(get(handles.editPixelSize, 'String'));
+bitDepth = str2double(get(handles.editBitDepth, 'String'));
+sigmaPSF = (.21 * lambdaEM / NA) / pixelSize;
+
+maxDrift = str2double(get(handles.editMaxDrift, 'String'));
+showResult = get(handles.checkShowResult, 'Value');
+
+T = fsmStageDriftCorrection([], sigmaPSF, bitDepth, maxDrift, showResult); %#ok<NASGU>
+
+outputFile = [projSettings.projDir filesep 'stageDriftCorrection.mat'];
+
+while exist(outputFile, 'file')
+    button = questdlg('File already exists. Override?');
+    switch button
+        case 'Cancel'
+            return;
+        case 'Ok'
+            break;
+        case 'No'
+            outputDir = uigetdir(path, 'Select Output Directory');
+            if ~ischar(filename) || ~ischar(pathname)
+                return;
+            end
+            outputFile = [outputDir filesep 'stageDriftCorrection.mat'];
+    end
+end
+
+save(outputFile, 'T');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
