@@ -50,12 +50,14 @@ for iFrame = 1:nFrames
 
     % Load speckles channel 1
     load([s1Path filesep s1Files(iFrame).name]);
-    S1 = vertcat(cands(:).Lmax); %#ok<NODEF>
+    status = vertcat(cands(:).status); %#ok<NODEF>
+    S1 = vertcat(cands(status == 1).Lmax);
     clear cands;
     
     % Load speckles channel 2
     load([s2Path filesep s2Files(iFrame).name]);
-    S2 = vertcat(cands(:).Lmax);
+    status = vertcat(cands(:).status);
+    S2 = vertcat(cands(status == 1).Lmax);
     clear cands;
     
     % Compute distance to the edge
