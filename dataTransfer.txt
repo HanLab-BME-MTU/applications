@@ -20,7 +20,7 @@ B. Update FSMCenter & MovieData parameter files (so that I am able to read Andre
 
 C. Run analysis
 
-1.>> batchComputeCorrelations(rootDirectory)
+1.>> computeFigure1(rootDirectory)
 2.Exit matlab
 3.Logout orchestra
 
