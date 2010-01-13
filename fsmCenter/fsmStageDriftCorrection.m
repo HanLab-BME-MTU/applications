@@ -168,6 +168,6 @@ if showResult
     end
     
     colormap('jet');
-    subplot(1, 2, 1); imagesc(projI); title('Original stack projection.');
-    subplot(1, 2, 2); imagesc(projR); title('Registered stack projection.');
+    subplot(1, 2, 1); imagesc(projI); title('Original stack projection');
+    subplot(1, 2, 2); imagesc(projR); title('Registered stack projection');
 end
