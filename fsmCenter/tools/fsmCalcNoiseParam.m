@@ -1,4 +1,4 @@
-function [I0,sDN,GaussRatio,status]=fsmCalcNoiseParam(firstfilename,bitDepth,sigma,dataFile)
+function [I0,sDN,GaussRatio,status]=fsmCalcNoiseParam(firstfilename,bitDepth,sigma,dataFile,batchMode)
 % fsmCalcNoiseParam calculates three parameters for the noise model applied to speckle selection
 %
 % Run this funtion on a background region (non-speckled) cropped from an image stack 
@@ -24,6 +24,9 @@ function [I0,sDN,GaussRatio,status]=fsmCalcNoiseParam(firstfilename,bitDepth,sig
 %          dataFile     : file name with complete path where to append the record 
 %                         if the file does not exist it will be created.
 %                         Set dataFile=[] to return to console.
+%          batchMode    : if true, the function doesn't ask question users,
+%                         using every frame of the stack to calculate noise
+%                         parameters.
 %
 % OUTPUT   I0           : average intensity
 %          sDN          : average standard deviation (sigmaDarkNoise)
@@ -34,6 +37,10 @@ function [I0,sDN,GaussRatio,status]=fsmCalcNoiseParam(firstfilename,bitDepth,sig
 %
 % REMARK   fsmCalcNoiseParam loads all the selected images into memory. For this reason, 
 %          adapt image number and size to your machine's amount of memory.
+
+if nargin == 4
+    batchMode = 0;
+end
 
 % Initialize return values
 I0=0; sDN=0; GaussRatio=0; status=0;
@@ -95,12 +102,16 @@ end
 outFileList=getFileStackNames(firstfilename);
 n=length(outFileList);
 
-% The user can decide the number of images to be cropped
-prompt={'Specify the number of images to be used for calibration (the higher the better).'};
-dlg_title='User input requested';
-num_lines=1;
-def={num2str(n)};
-answer=fix(str2num(char(inputdlg(prompt,dlg_title,num_lines,def))));
+if batchMode
+    answer = n;
+else
+    % The user can decide the number of images to be cropped
+    prompt={'Specify the number of images to be used for calibration (the higher the better).'};
+    dlg_title='User input requested';
+    num_lines=1;
+    def={num2str(n)};
+    answer=fix(str2double(char(inputdlg(prompt,dlg_title,num_lines,def))));
+end
 
 % Check the selected number
 if isempty(answer)
@@ -195,7 +206,12 @@ prompt={'Experiment LABEL','Experiment DESCRIPTION:'};
 def={'* * * LABEL * * *','* * * DESCRIPTION * * *'};
 dlgTitle='Please enter a label and a description for the experiment';
 lineNo=1;
-answer=inputdlg(prompt,dlgTitle,lineNo,def);
+
+if batchMode
+    answer = 1;
+else
+    answer=inputdlg(prompt,dlgTitle,lineNo,def);
+end
 
 if isempty(answer)
     answer={'* * * LABEL * * *','* * * DESCRIPTION * * *'};
@@ -220,7 +236,7 @@ else
     if fid==-1
         disp('The file cannot be found/created. Returning to console.');
         fid=1;
-        status=-1
+        status = -1;
     else
         % The result will be written to the opened file with identifier fid.
     end
