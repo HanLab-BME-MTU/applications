@@ -423,7 +423,12 @@ end
 
 function pushStageDriftCorrection_Callback(hObject, eventdata, handles)
 
-T = stageDriftCorrection([]);
+sigmaPSF = 1.33; % TODO: Get it from handles
+bitDepth = 14; % TODO: Get it from handles
+maxDrift = 10; % TODO: Add a text textEdit
+showResult = 1; % TODO: Add a checkBox
+
+T = stageDriftCorrection([], sigmaPSF, bitDepth, maxDrift, showResult);
 
 if ~isempty(T)
     outputFile = [projSettings.projDir filesep projSettings.subProjDir{1} ...
@@ -445,7 +450,7 @@ if ~isempty(T)
         end
     end
     
-    save(outputFile, 'T', 'R');
+    save(outputFile, 'T');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

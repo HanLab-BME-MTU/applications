@@ -47,7 +47,7 @@ if isempty(firstfilename)
     
     % First image
     [fName,dirName] = uigetfile('*.tif','Select first image');
-    if(isa(fName,'char') & isa(dirName,'char'))
+    if(isa(fName,'char') && isa(dirName,'char'))
         firstfilename=[dirName,fName];
     else
         % Return 0 values
@@ -68,7 +68,7 @@ info=imfinfo(firstfilename);
 selBitDepth=num2str(bitDepth);
 imgBitDepth=num2str(info.BitDepth);
 
-if (bitDepth==8 & info.BitDepth>8) | (bitDepth>8 & info.BitDepth==8)
+if (bitDepth==8 && info.BitDepth > 8) || (bitDepth > 8 && info.BitDepth==8)
     strDlg=['The image bit depth is ',imgBitDepth,'. You selected ',selBitDepth,'. Please specify again the bit depth you intend to use.'];
     button = questdlg(strDlg, 'Please specify bit depth',selBitDepth,imgBitDepth,'Other',imgBitDepth);
     if strcmp(button,selBitDepth), % No change
@@ -108,7 +108,7 @@ if isempty(answer)
     return
 end
 
-if answer<1 | answer>n
+if answer<1 || answer>n
     fprintf(1,'Invalid number of images specified. Using the default value (%d).\n',answer);
 else
     % Crop outFileList
@@ -204,7 +204,7 @@ if isempty(answer)
     disp('Click on ''Edit experiment database'' in fsmCenter to update the record manually.');
 end
 
-if isempty(dataFile) | ~exist(dataFile,'file')
+if isempty(dataFile) || ~exist(dataFile,'file')
     fid=1;
     fprintf(fid,'\nTo add this experiment to your database:\n');
     fprintf(fid,'(1) Click on ''Edit experiment database'' in fsmCenter.\n');

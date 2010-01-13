@@ -39,7 +39,7 @@ end
 locDEBUG=0;
 DEBUG=0;
 
-if nargin==6
+if nargin==5
     fsmParam=[];
     userROIbw=[];
 end
@@ -140,7 +140,7 @@ end
 % the original one, requires to modify the sigma of the mixture-model fit!
 
 
-if fsmParam.prep.subpixel==1
+if isstruct(fsmParam) && fsmParam.prep.subpixel==1
     cands=candsTot; 
     psfsigma     = fsmParam.prep.psfSigma;       % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
     filtersigma  = fsmParam.prep.filterSigma;    % sigma used for the low-pass filtering; except where specifically
