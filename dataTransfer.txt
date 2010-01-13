@@ -28,7 +28,7 @@ D. Transfer analysis from Orchestra -> Scripps
 
 1.$ ssh sylvain@lccbfs001.scripps.edu
 2.$ cd /data/projects/Tropomyosin/Analysis/ROOT_DIRECTORY/
-3.$ rsync -avz sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/ROOT_DIRECTORY/ .
+3.$ sudo rsync -avz sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/ROOT_DIRECTORY/ .
 4.$ sudo chgrp -R danuserOld *
 5.Logout lccbfs001
 
