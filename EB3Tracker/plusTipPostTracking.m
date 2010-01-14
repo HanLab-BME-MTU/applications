@@ -148,13 +148,13 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %               prior to a backward gap, excluding growth trajectories
 %               beginning in the first frame
 %
-%           .projData.percentTimeGrowth
+%           .percentTimeGrowth
 %               time all tracks spend in growth over time all tracks spend
 %               in growth, fgap, or bgap
-%           .projData.percentTimeFgap
+%           .percentTimeFgap
 %               time all tracks spend in fgap over time all tracks spend
 %               in f, fgap, or bgap
-%           .projData.percentTimeBgap
+%           .percentTimeBgap
 %               time all tracks spend in bgap over time all tracks spend
 %               in growth, fgap, or bgap
 %

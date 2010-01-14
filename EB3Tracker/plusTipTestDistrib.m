@@ -15,7 +15,7 @@ function [discrimMat]=plusTipTestDistrib(groupData,distribs2test)
 %                       displacement 'bd' bgap displacement
 %
 % OUTPUT :
-%   disrimMat : structure containg matrices with p-values above the
+%   disrimMat : structure containing matrices with p-values above the
 %               diagonal from the permutation test for the means, and with
 %               percent confidence below the diagonal from the bootstrapped
 %               distribution test, which gives the percent confidence that
