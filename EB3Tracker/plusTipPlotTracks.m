@@ -91,7 +91,7 @@ if nargin<4 || isempty(img)
     if isequal(fileName,0)
         return
     end
-    img=double(imread([pathName filesep fileName]));
+    img=imread([pathName filesep fileName]);
     cd(homeDir);
 end
 
@@ -113,7 +113,7 @@ end
 
 % check input for ROI coordinates
 if nargin<7 || isempty(roiYX)
-    [r c]=find(ones(size(img)));
+    [r c]=find(ones(size(img(:,:,1))));
     roiYX=[min(r) min(c); max(r) max(c)];
 elseif islogical(roiYX)
     [r c]=find(roiYX);
@@ -154,7 +154,19 @@ minY=floor(min(roiYX(:,1)));
 maxY=ceil(max(roiYX(:,1)));
 minX=floor(min(roiYX(:,2)));
 maxX=ceil(max(roiYX(:,2)));
-img=img(minY:maxY,minX:maxX);
+
+% crop the image based on roi but avoid making data type double
+% also make sure it works for BW or RGB images
+[imL,imW,dim]=size(img);
+temp=zeros(imL,imW);
+temp(minY:maxY,minX:maxX)=1;
+idx=find(temp(:));
+idxAll=[];
+for i=1:dim
+    idxAll=[idxAll; idx+(i-1)*(imL*imW)];
+end
+img=reshape(img(idxAll),maxY-minY+1,maxX-minX+1,[]);
+%img=img(minY:maxY,minX:maxX);
 
 if rawToo==1
     img=[img img];
@@ -182,8 +194,13 @@ end
 
 %open new figure window
 gcf;
-imagesc(img);
-colormap gray
+if size(img,3)==1
+    imagesc(double(img));
+    colormap gray
+else
+    image(img);
+end
+
 if isStill==1
     axis equal
 end
@@ -217,15 +234,15 @@ xMat=xMat.*frames2Plot;
 yMat=yMat.*frames2Plot;
 
 if rawToo==1
-    xMat=xMat+length(img(1,:))/2;
+    xMat=xMat+length(img(1,:,1))/2;
     % y values don't change
 end
 
 %hold on figure
 hold on
 
-for t=1:6
-    switch t
+for iColor=1:6
+    switch iColor
         case 1 % growth
             c1='r';
             c2='r';
@@ -244,16 +261,16 @@ for t=1:6
         case 6 % backward gaps - reclassified as pause
             c1='b:';
             c2='b';
-      
+
     end
 
-    plot(xMat(trackType==t,timeRange(1):timeRange(2))',...
-        yMat(trackType==t,timeRange(1):timeRange(2))',c1,'LineWidth',1)
+    plot(xMat(trackType==iColor,timeRange(1):timeRange(2))',...
+        yMat(trackType==iColor,timeRange(1):timeRange(2))',c1,'LineWidth',1)
 
     % plot big circle around transition events (red circle when start of
     % growth, yellow circle when start of shrinkage, etc.)
     if plotCurrentOnly~=0
-        cTTIdx=find(trackType==t); % current track type indices
+        cTTIdx=find(trackType==iColor); % current track type indices
         currenStartingSubtrackIdx=cTTIdx(sF(cTTIdx)==plotCurrentOnly);
         if ~isempty(currenStartingSubtrackIdx)
             coordIdx=sub2ind(size(xMat),currenStartingSubtrackIdx,plotCurrentOnly*ones(length(currenStartingSubtrackIdx),1));
@@ -290,7 +307,7 @@ end
 % get user selections and plot on image
 if ask4sel
     title({'Left-click to add points', 'Press Enter to end selection', 'Press Backspace or Delete to remove last point'})
-    
+
     if isempty(subIdx)
         subIdx=[1:length(trackType)]';
     end
@@ -338,7 +355,7 @@ if ask4sel
         %ask the user again whether to click on figure and get frame information
         userEntry = questdlg('Do you want to select more points?');
 
-   end
+    end
 
 end
 

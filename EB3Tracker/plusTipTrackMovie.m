@@ -1,4 +1,4 @@
-function plusTipTrackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead,rawToo)
+function [calcMagCoef]=plusTipTrackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTracks,showDetect,aviInstead,rawToo)
 % plusTipTrackMovie makes a movie of all the tracks in a ROI or of an individual
 %
 %INPUT  projData          : output of plusTipPostTracking, stored in /meta
@@ -41,6 +41,7 @@ function plusTipTrackMovie(projData,indivTrack,timeRange,roiYX,magCoef,showTrack
 %
 %OUTPUT One or more movies and the regions of interest used to
 %       generate them
+%       calcMagCoef : magnification factor used to make each movie
 
 
 homeDir=pwd;
@@ -74,16 +75,16 @@ trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
 % if no individual track given, use all
 
 % assign frame range
-    if nargin<3 || isempty(timeRange)
-        timeRange=[1 projData.nFrames];
-    else
-        if timeRange(1)<1
-            timeRange(1)=1;
-        end
-        if timeRange(2)>projData.nFrames
-            timeRange(2)=projData.nFrames;
-        end
+if nargin<3 || isempty(timeRange)
+    timeRange=[1 projData.nFrames];
+else
+    if timeRange(1)<1
+        timeRange(1)=1;
     end
+    if timeRange(2)>projData.nFrames
+        timeRange(2)=projData.nFrames;
+    end
+end
 
 if nargin<2 || isempty(indivTrack)
     indivTrack=[];
@@ -150,16 +151,24 @@ if showDetect==2 || showDetect==3
     end
 end
 
+
 if nargin<8 || isempty(aviInstead)
     aviInstead=0;
+end
+
+if aviInstead==1
+    movStr='.avi';
+else
+    movStr='.mov';
 end
 
 % load startFrame image and get size
 [listOfImages] = searchFiles('.tif',[],projData.imDir,0);
 fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
 img1 = double(imread(fileNameIm));
-[imL,imW] = size(img1);
+[imL,imW,dim] = size(img1);
 
+calcMagCoef=magCoef;
 for iMovie=1:size(timeRange,1)
 
     startFrame = timeRange(iMovie,1);
@@ -209,7 +218,7 @@ for iMovie=1:size(timeRange,1)
         % allTracks_startFrame_endFrame_01 (or 02, 03...depending on how
         % many allTracks movies have been produced in the past)
         temp=['allTracks_' sFrm '_' eFrm '_' movNum];
-        while exist([projData.saveDir filesep temp '.mov'],'file')>0
+        while exist([projData.saveDir filesep temp movStr],'file')>0
             count=count+1;
             movNum = sprintf(strg,count);
             temp=['allTracks_' sFrm '_' eFrm '_' movNum];
@@ -218,7 +227,7 @@ for iMovie=1:size(timeRange,1)
 
     else % specific track
 
-        [imL,imW] = size(img1);
+        [imL,imW,dim] = size(img1);
         % make roi just around the track coordinates with 10pix cushion
         minX = floor(max(1,nanmin(tracksX(iMovie,startFrame:endFrame))-10));
         minY = floor(max(1,nanmin(tracksY(iMovie,startFrame:endFrame))-10));
@@ -228,11 +237,11 @@ for iMovie=1:size(timeRange,1)
 
         % initialize strings for track number
         s = length(num2str(projData.nTracks));
-        strg = sprintf('%%.%dd',s);
-        trckNum = sprintf(strg,indivTrack(iMovie));
+        strg1 = sprintf('%%.%dd',s);
+        trckNum = sprintf(strg1,indivTrack(iMovie));
 
         temp=['track_' trckNum '_' sFrm '_' eFrm '_' movNum];
-        while exist([projData.saveDir filesep temp '.mov'],'file')>0
+        while exist([projData.saveDir filesep temp movStr],'file')>0
             count=count+1;
             movNum = sprintf(strg,count);
             temp=['track_' trckNum '_' sFrm '_' eFrm '_' movNum];
@@ -255,14 +264,14 @@ for iMovie=1:size(timeRange,1)
     maxMagCoefW = (0.8*screenW)/xRange;
     maxMagCoefL = (0.8*screenL)/yRange;
 
-    if magCoef > min([maxMagCoefW; maxMagCoefL])
-        calcMagCoef = min([magCoef; maxMagCoefW; maxMagCoefL]);
+    if magCoef(iMovie) > min([maxMagCoefW; maxMagCoefL])
+        calcMagCoef(iMovie) = min([magCoef(iMovie); maxMagCoefW; maxMagCoefL]);
     else
-        calcMagCoef = magCoef;
+        calcMagCoef(iMovie) = magCoef(iMovie);
     end
 
-    movieL = (calcMagCoef*yRange);
-    movieW = (calcMagCoef*xRange);
+    movieL = (calcMagCoef(iMovie)*yRange);
+    movieW = (calcMagCoef(iMovie)*xRange);
 
     figure('Position',[round(screenW*(1-movieW/screenW)/2) round(screenL*(1-movieL/screenL)/2) movieW movieL])
 
@@ -275,24 +284,48 @@ for iMovie=1:size(timeRange,1)
     colorOverTime = jet(endFrame-startFrame+1);
     for iFrame=startFrame:endFrame
 
-        img=double(imread([char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))]));
+        img=(imread([char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))]));
         if showTracks==1
             % plot the tracks
             plusTipPlotTracks(projData,subIdx{iMovie,1},[startFrame endFrame],img,0,iFrame,roiYX,[],rawToo);
+            % crop the image based on roi but avoid making data type double
+            % also make sure it works for BW or RGB images
+            [imL,imW,dim]=size(img);
+            temp=zeros(imL,imW);
+            temp(minY:maxY,minX:maxX)=1;
+            idx=find(temp(:));
+            idxAll=[];
+            for i=1:dim
+                idxAll=[idxAll; idx+(i-1)*(imL*imW)];
+            end
+            img=reshape(img(idxAll),maxY-minY+1,maxX-minX+1,[]);
 
-            img=img(minY:maxY,minX:maxX);
             if rawToo==1
                 img=[img img];
             end
 
         else
             % otherwise just show the image
-            img=img(minY:maxY,minX:maxX);
+            % crop the image based on roi but avoid making data type double
+            % also make sure it works for BW or RGB images
+            [imL,imW,dim]=size(img);
+            temp=zeros(imL,imW);
+            temp(minY:maxY,minX:maxX)=1;
+            idx=find(temp(:));
+            idxAll=[];
+            for i=1:dim
+                idxAll=[idxAll; idx+(i-1)*(imL*imW)];
+            end
+            img=reshape(img(idxAll),maxY-minY+1,maxX-minX+1,[]);
             if rawToo==1
                 img=[img img];
             end
-            imagesc(img)
-            colormap gray
+            if size(img,3)==1
+                imagesc(double(img));
+                colormap gray
+            else
+                image(img);
+            end
             %axis equal
         end
         if showDetect~=0
@@ -353,7 +386,7 @@ for iMovie=1:size(timeRange,1)
             yCoord=yCoord-minY+1;
 
             if rawToo==1
-                xCoord=xCoord+length(img(1,:))/2;
+                xCoord=xCoord+length(img(1,:,1))/2;
                 % y values don't change
             end
 
@@ -368,7 +401,7 @@ for iMovie=1:size(timeRange,1)
 
         % make dark line down the middle of split-panel
         if rawToo==1
-            [imL,imW]=size(img);
+            [imL,imW,dim]=size(img);
             plot([imW/2; imW/2],[0; imL+1],'k','lineWidth',3)
         end
 

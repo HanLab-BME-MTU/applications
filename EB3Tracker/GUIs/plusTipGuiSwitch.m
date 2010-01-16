@@ -143,7 +143,7 @@ switch callbackName
             outDir=uigetdir(dirStart,'Please select OUTPUT directory for plots and movies');
         end
         handles.projData.saveDir=outDir;
-        cd(outDir);
+        %cd(outDir);
 
     case 'selectTracksCheck'
         handles.ask4select=get(hObject,'Value');

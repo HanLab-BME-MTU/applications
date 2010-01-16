@@ -27,7 +27,7 @@ function [groupList]=plusTipPickGroups(autoGrp,relDirs,projList,saveResult)
 %                     chosen for all groups. the first column contains the
 %                     group name.  the second contains the project path.
 
-
+groupList=[];
 
 if nargin<1 || isempty(autoGrp) || autoGrp~=1
     autoGrp=[];
@@ -42,7 +42,7 @@ end
 if nargin<3 || isempty(projList)
     [projList]=combineProjListFiles;
     if isempty(projList)
-        error('No projects selected.')
+        return
     end
 end
 [allProjects]=projList2Cell(projList);

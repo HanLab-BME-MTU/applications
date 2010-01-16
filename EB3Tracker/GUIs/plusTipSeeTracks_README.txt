@@ -132,7 +132,9 @@ make a movie of the track you selected.  You may also see all compound track
 profiles by loading the projData.mat file from the 'meta' folder and viewing:
 projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix
 
-The "Plot Tracks" button calls plusTipPlotTracks.m.
+The "Plot Tracks" button calls plusTipPlotTracks.m.  If other colors for the track 
+overlays are desired, they can be set in plusTipPlotTracks.m near the end in the 
+"for iColor=1:6" loop.
 
 ---------------------------------------------------------------------------
 "Track Movies"
@@ -180,6 +182,18 @@ on the right.
 The "Save as AVI" check box determines whether the movie will be saved as 
 .MOV (default) or .AVI.  The AVI option crashes in some versions of Linux, 
 so it is advised to leave this box unchecked when working in Linux.
+
+NOTES:
+
+The size of the image is automatically maximized to your screen (while 
+preserving the aspect ratio) when using the interface.  To make smaller 
+movies, see the magCoef input in plusTipTrackMovie.m and run from the 
+command line.
+
+Also, RGB images can be used by placing them in the "images" subdirectory
+at the same level as the project.  If other colors for the track overlays
+are desired, they can be set in plusTipPlotTracks.m near the end in the 
+"for iColor=1:6" loop.
  
 The "Make Track Movie" button calls plusTipTrackMovie.m.
 
