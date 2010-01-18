@@ -49,21 +49,37 @@ else %if the original coordinates are to be used
         movieInfo(iTime).amp = dataStruct.initCoord(iTime).amp;
     end
     
-    %calculate the center of mass in each frame
-    centerOfMass = zeros(nTimepoints,3);
-    for iTime = 1 : nTimepoints
-       centerOfMass(iTime,:) = [mean(movieInfo(iTime).xCoord(:,1)) ...
-           mean(movieInfo(iTime).yCoord(:,1)) mean(movieInfo(iTime).zCoord(:,1))];
+    %if user requested compensating for COM translation
+    if dataStruct.dataProperties.tracksParam.rotate == 0
+        
+        %calculate the center of mass in each frame
+        centerOfMass = zeros(nTimepoints,3);
+        for iTime = 1 : nTimepoints
+            centerOfMass(iTime,:) = [mean(movieInfo(iTime).xCoord(:,1)) ...
+                mean(movieInfo(iTime).yCoord(:,1)) mean(movieInfo(iTime).zCoord(:,1))];
+        end
+        
+        %shift coordinates by center of mass to make the origin in each frame
+        %at its center of mass
+        for iTime = 1 : nTimepoints
+            movieInfo(iTime).xCoord(:,1) = movieInfo(iTime).xCoord(:,1) - centerOfMass(iTime,1);
+            movieInfo(iTime).yCoord(:,1) = movieInfo(iTime).yCoord(:,1) - centerOfMass(iTime,2);
+            movieInfo(iTime).zCoord(:,1) = movieInfo(iTime).zCoord(:,1) - centerOfMass(iTime,3);
+        end
+        
     end
     
-    %shift coordinates by center of mass to make the origin in each frame 
-    %at its center of mass
-    for iTime = 1 : nTimepoints
-        movieInfo(iTime).xCoord(:,1) = movieInfo(iTime).xCoord(:,1) - centerOfMass(iTime,1);
-        movieInfo(iTime).yCoord(:,1) = movieInfo(iTime).yCoord(:,1) - centerOfMass(iTime,2);
-        movieInfo(iTime).zCoord(:,1) = movieInfo(iTime).zCoord(:,1) - centerOfMass(iTime,3);
-    end
-    
+end
+
+%if any coordinate is exactly 0, add to it eps in order to avoid getting
+%into a mess with sparse format
+for iTime = 1 : nTimepoints
+    coordTmp = movieInfo(iTime).xCoord;
+    movieInfo(iTime).xCoord(coordTmp==0) = eps;
+    coordTmp = movieInfo(iTime).yCoord;
+    movieInfo(iTime).yCoord(coordTmp==0) = eps;
+    coordTmp = movieInfo(iTime).zCoord;
+    movieInfo(iTime).zCoord(coordTmp==0) = eps;
 end
     
 %get number of features in each frame
@@ -93,12 +109,12 @@ if ~isfield(movieInfo,'nnDist')
                 %there are no nearest neighbor distances
                 nnDist = zeros(0,1);
 
-            case 1 %if there is only 1 feature
+            case {1,2} %if there are only 1 or 2 features
 
                 %assign nearest neighbor distance as 1000 pixels (a very big
                 %number)
-                nnDist = 1000;
-
+                nnDist = 1000*ones(movieInfo(iTime).num,1);
+                
             otherwise %if there is more than 1 feature
 
                 %compute distance matrix

@@ -22,6 +22,9 @@ function dataStruct = makiInitCoord(dataStruct, verbose, movieType, cutoffFix,ti
 %                           only; a pre-set cutoff value should be stored
 %                           in dataStruct.dataProperties.
 %                           Setting [0,0] uses a pooled cutoff.
+%                           KJ: I have modified makiMakeJob to allow user
+%                           to enter cutoff, and it is now stored in
+%                           dataStruct.dataProperties.detectionParam.
 %                   timeRange: subset of timepoints for which makiInitCoord
 %                           is being run. Optional. Default: [] (=all)
 %
@@ -63,7 +66,17 @@ if nargin < 3 || isempty(movieType)
 end
 
 if nargin < 4 || isempty(cutoffFix)
-    cutoffFix = [];
+    if isfield(dataStruct.dataProperties,'detectionParam')
+        detectionParam = dataStruct.dataProperties.detectionParam;
+        if isfield(detectionParam,'alphaValue')
+            alphaValue = detectionParam.alphaValue;
+            cutoffFix = [2 norminv(1-alphaValue)];
+        else
+            cutoffFix = [];
+        end
+    else
+        cutoffFix = [];
+    end
 end
 
 if nargin < 5 || isempty(timeRange)
@@ -363,45 +376,47 @@ if ~isempty(cutoffFix)
     end
 else
     
+    %     switch movieType
+    %         case 1
+    % note: ask only for spots in good frames
     
-    
-    switch movieType
-        case 1
-            % note: ask only for spots in good frames
-            if isfield(dataProperties,'minSpotsPerFrame')
-                minN = dataProperties.minSpotsPerFrame;
-            else
-                minN = 20;
-            end
-            minGood = minN*length(goodTimes);
-            nn(3) = sum(allCoord(:,8)>cutoff(3))/minGood;
-            nn(2) = sum(allCoord(:,7)>cutoff(2))/minGood;
-            nn(1) = sum(allCoord(:,4)>cutoff(1))/minGood;
-            if nn(3) > 1
-                cutoffIdx = 3;
-                cutoffCol = 8;
-            elseif nn(2) > 1
-                cutoffIdx = 2;
-                cutoffCol = 7;
-            elseif nn(1) > 1
-                cutoffIdx = 1;
-                cutoffCol = 4;
-            else
-                error('less than %i spots per frame found. makiInitCoord failed',minSpotsPerFrame)
-            end
-            
-        case {2,3}
-            
-            %for the HMS data, the signal is very dim and photobleaches a lot,
-            %and determining the cutoff on the fly does not work.
-            %Thus, I'm fixing the cutoff criterion to the amplitude-to-noise
-            %ratio and I'm fixing the cutoff to 2.32 (approximating a 0.01
-            %alpha-value in a hypothesis test) - KJ
-            cutoff(2) = 2.32;
-            cutoffIdx = 2;
-            cutoffCol = 7;
-            
+    if isfield(dataProperties,'minSpotsPerFrame')
+        minN = dataProperties.minSpotsPerFrame;
+    else
+        minN = 20;
     end
+    minGood = minN*length(goodTimes);
+    nn(3) = sum(allCoord(:,8)>cutoff(3))/minGood;
+    nn(2) = sum(allCoord(:,7)>cutoff(2))/minGood;
+    nn(1) = sum(allCoord(:,4)>cutoff(1))/minGood;
+    if nn(3) > 1
+        cutoffIdx = 3;
+        cutoffCol = 8;
+    elseif nn(2) > 1
+        cutoffIdx = 2;
+        cutoffCol = 7;
+    elseif nn(1) > 1
+        cutoffIdx = 1;
+        cutoffCol = 4;
+    else
+        error('less than %i spots per frame found. makiInitCoord failed',minSpotsPerFrame)
+    end
+    
+    %         case {2,3}
+    %
+    %             %for the HMS data, the signal is very dim and photobleaches a lot,
+    %             %and determining the cutoff on the fly does not work.
+    %             %Thus, I'm fixing the cutoff criterion to the amplitude-to-noise
+    %             %ratio and I'm fixing the cutoff to 2.32 (approximating a 0.01
+    %             %alpha-value in a hypothesis test) - KJ
+    %             %             cutoff(2) = 2.32;
+    %             cutoff(2) = 1.645;
+    %             %             cutoff(2) = 1.3;
+    %             cutoffIdx = 2;
+    %             cutoffCol = 7;
+    %
+    %     end
+    
 end
 
 % remember the cutoff criterion used

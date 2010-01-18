@@ -20,8 +20,8 @@ function job = makiMakeJob(jobType,status,job,ask4input,movieType)
 %       job    : job-struct as output from makiMakeJob (e.g. if you want to
 %                update it). If empty, you can load via GUI
 %
-%       ask4input: 1 to ask user for input (specifically for tracking and
-%                  sister identification), 0 to use built-in defaults.
+%       ask4input: 1 to ask user for input (for analysis parameters), 0 to
+%                  use built-in defaults.
 %                  Optional. Default: 1.
 %
 %       movieType: 1 for deltaVision files;
@@ -110,29 +110,30 @@ if nargin < 5 || isempty(movieType)
 end
 
 if any(movieType == [2 3])
-    metaDataIn = inputdlg(...
-        {'Pixel size in (XY; in microns)',...
-        'Z slice thickness (in microns)',...
-        'Emission wavelength (in microns)',...
-        'Exposure time (in seconds)',...
-        'Time between frames (in seconds)',...
-        'Time between Z slices (in seconds)',...
-        'Objective lens NA',...
-        'Objective lens magnification',...
-        'Microscopy type (1=widefield, 2=confocal)'},...
-        sprintf('Movie meta data'),1,{'','','','','','','','',''},'on');
-    if isempty(metaDataIn)
-        error('input aborted')
-    else
-        metaData.pixelSizeXY = str2double(metaDataIn{1});
-        metaData.thicknessZSlice = str2double(metaDataIn{2});
-        metaData.wavelength = str2double(metaDataIn{3});
-        metaData.exposureTime = str2double(metaDataIn{4});
-        metaData.timeBetweenFrames = str2double(metaDataIn{5});
-        metaData.timeBetweenZSlices = str2double(metaDataIn{6});
-        metaData.objLensInfo = [str2double(metaDataIn{7}) str2double(metaDataIn{8})];
-        metaData.microscopyType = str2double(metaDataIn{9});
-    end
+    %     metaDataIn = inputdlg(...
+    %         {'Pixel size in (XY; in microns)',...
+    %         'Z slice thickness (in microns)',...
+    %         'Emission wavelength (in microns)',...
+    %         'Exposure time (in seconds)',...
+    %         'Time between frames (in seconds)',...
+    %         'Time between Z slices (in seconds)',...
+    %         'Objective lens NA',...
+    %         'Objective lens magnification',...
+    %         'Microscopy type (1=widefield, 2=confocal)'},...
+    %         sprintf('Movie meta data'),1,{'','','','','','','','',''},'on');
+    %     if isempty(metaDataIn)
+    %         error('input aborted')
+    %     else
+    %         metaData.pixelSizeXY = str2double(metaDataIn{1});
+    %         metaData.thicknessZSlice = str2double(metaDataIn{2});
+    %         metaData.wavelength = str2double(metaDataIn{3});
+    %         metaData.exposureTime = str2double(metaDataIn{4});
+    %         metaData.timeBetweenFrames = str2double(metaDataIn{5});
+    %         metaData.timeBetweenZSlices = str2double(metaDataIn{6});
+    %         metaData.objLensInfo = [str2double(metaDataIn{7}) str2double(metaDataIn{8})];
+    %         metaData.microscopyType = str2double(metaDataIn{9});
+    %     end
+    metaData = [];
 end
 
 % turn off property reader warning
@@ -338,14 +339,41 @@ switch jobType
                     case 1
                         dataStruct.movieHeader = readr3dheader(...
                             fullfile(rawMoviePath,rawMovieName));
-                    case 2
-                        dataStruct.movieHeader = stk3dheader(...
-                            rawMoviePath,rawMovieName,metaData);
-                    case 3
-                        dataStruct.movieHeader = tif3dheader(...
-                            rawMoviePath,rawMovieName,metaData);
+                    case {2,3}
+                        if isempty(metaData)
+                            metaDataIn = inputdlg(...
+                                {'Pixel size in (XY; in microns)',...
+                                'Z slice thickness (in microns)',...
+                                'Emission wavelength (in microns)',...
+                                'Exposure time (in seconds)',...
+                                'Time between frames (in seconds)',...
+                                'Time between Z slices (in seconds)',...
+                                'Objective lens NA',...
+                                'Objective lens magnification',...
+                                'Microscopy type (1=widefield, 2=confocal)'},...
+                                sprintf('Movie meta data'),1,{'','','','','','','','',''},'on');
+                            if isempty(metaDataIn)
+                                error('input aborted')
+                            else
+                                metaData.pixelSizeXY = str2double(metaDataIn{1});
+                                metaData.thicknessZSlice = str2double(metaDataIn{2});
+                                metaData.wavelength = str2double(metaDataIn{3});
+                                metaData.exposureTime = str2double(metaDataIn{4});
+                                metaData.timeBetweenFrames = str2double(metaDataIn{5});
+                                metaData.timeBetweenZSlices = str2double(metaDataIn{6});
+                                metaData.objLensInfo = [str2double(metaDataIn{7}) str2double(metaDataIn{8})];
+                                metaData.microscopyType = str2double(metaDataIn{9});
+                            end
+                        end
+                        if movieType == 2
+                            dataStruct.movieHeader = stk3dheader(...
+                                rawMoviePath,rawMovieName,metaData);
+                        else
+                            dataStruct.movieHeader = tif3dheader(...
+                                rawMoviePath,rawMovieName,metaData);
+                        end
                 end
-
+                
                 %FIGURE OUT WHAT TO DO ABOUT PSF SIGMA AND ITS CORRECTION
                 %FOR CONFOCAL, AND SIGMA CORRECTION FOR HMS DATA
                 
@@ -485,18 +513,28 @@ switch jobType
                 clear imarisHandle
             end
 
-            %assign plane fit parameters - for now it is fixed, but this
-            %could be converted into an interactive user input thing if
-            %needed
-            if dataStruct.status(7) < 0
-                switch movieType
-                    case 1
-                        dataStruct.dataProperties.planeFitParam.use2D = 0;
-                    case {2,3}
-                        dataStruct.dataProperties.planeFitParam.use2D = 1;
-                end
+            %             %assign plane fit parameters - for now it is fixed, but this
+            %             %could be converted into an interactive user input thing if
+            %             %needed
+            %             if dataStruct.status(5) < 0
+            %                 switch movieType
+            %                     case 1
+            %                         dataStruct.dataProperties.planeFitParam.use2D = 0;
+            %                     case {2,3}
+            %                         dataStruct.dataProperties.planeFitParam.use2D = 1;
+            %                 end
+            %             end
+            
+            %assign detection parameters
+            if dataStruct.status(3) < 0
+                dataStruct = getDetectionInput(dataStruct,ask4input);
             end
-
+            
+            %assign plane fitting parameters
+            if dataStruct.status(5) < 0
+                dataStruct = getPlaneFitInput(dataStruct,ask4input);
+            end
+            
             %assign tracking parameters
             if dataStruct.status(6) < 0
                 dataStruct = getTrackingInput(dataStruct,ask4input);
@@ -581,7 +619,89 @@ end
 warning(warningState)
 
 
+%% subfunction to ask for input for detection
+function dataStruct = getDetectionInput(dataStruct,ask4input)
 
+%define default value
+alphaValue_def = -1;
+
+%assign defaults
+dataPropertiesTmp = dataStruct.dataProperties;
+if isfield(dataPropertiesTmp,'detectionParam') %if detectionParam have been assigned previously
+    detectionParamTmp = dataPropertiesTmp.detectionParam;
+    if isfield(detectionParamTmp,'alphaValue')
+        alphaValueTmp = detectionParamTmp.alphaValue;
+        if isempty(alphaValueTmp)
+            alphaValueTmp = -1;
+        end
+    else
+        alphaValueTmp = alphaValue_def;
+    end
+else
+    alphaValueTmp = alphaValue_def;
+end
+
+%ask for user input
+if ask4input
+    detectionParamIn = inputdlg(...
+        {'Alpha-value for local maxima detection (value between 0 and 1). To determine alpha-value from data on the fly, input -1'},...
+        sprintf(['Detection parameters for ' dataStruct.projectName]),1,...
+        {num2str(alphaValueTmp)},'on');
+    if isempty(detectionParamIn)
+        error('input aborted')
+    else
+        alphaValueTmp = str2double(detectionParamIn{1});
+    end
+end
+
+%assign alpha-value if defined
+if alphaValueTmp == -1
+    detectionParam.alphaValue = [];
+else
+    detectionParam.alphaValue = alphaValueTmp;
+end
+
+%save detection parameters in dataStruct
+dataStruct.dataProperties.detectionParam = detectionParam;
+    
+    
+%% subfunction to ask for input for plane fitting
+function dataStruct = getPlaneFitInput(dataStruct,ask4input)
+
+%define default values
+use2D_def = 0;
+
+%assign defaults
+dataPropertiesTmp = dataStruct.dataProperties;
+if isfield(dataPropertiesTmp,'planeFitParam') %if detectionParam have been assigned previously
+    planeFitParamTmp = dataPropertiesTmp.planeFitParam;
+    if isfield(planeFitParamTmp,'use2D')
+        use2DTmp = planeFitParamTmp.use2D;
+    else
+        use2DTmp = use2D_def;
+    end
+else
+    use2DTmp = use2D_def;
+end
+
+%ask for user input
+if ask4input
+    planeFitParamIn = inputdlg(...
+        {'Enter 1 to use 2D-projection to help with metaphase plate fit, 0 otherwise'},...
+        sprintf(['Plane fit parameters for ' dataStruct.projectName]),1,...
+        {num2str(use2DTmp)},'on');
+    if isempty(planeFitParamIn)
+        error('input aborted')
+    else
+        use2DTmp = str2double(planeFitParamIn{1});
+    end
+end
+
+%save detection parameters in dataStruct
+planeFitParam.use2D = use2DTmp;
+dataStruct.dataProperties.planeFitParam = planeFitParam;
+    
+    
 %% subfunction to ask for input for tracking
 function dataStruct = getTrackingInput(dataStruct,ask4input)
 
@@ -636,7 +756,7 @@ end
 if ask4input
 
     tracksParamIn = inputdlg(...
-        {'Use rotated coordinates (1 yes, 0 no)',...
+        {'Use rotated coordinates (1 yes, 0 no but compensate for COM translation, -1 no and don''t compensate for COM translation)',...
         'Maximum gap to close (in frames)',...
         'Minimum allowed search radius (in microns) - inliers',...
         'Minimum allowed search radius (in microns) - unaligned',...
@@ -698,7 +818,8 @@ parameters.minSearchRadius = minRadiusTmp;
 parameters.maxSearchRadius = maxRadiusTmp;
 parameters.brownStdMult = 3.5*ones(gapCloseParam.timeWindow,1);
 % parameters.timeReachConfB = min(2,gapCloseParam.timeWindow);
-parameters.timeReachConfB = min(1,gapCloseParam.timeWindow);
+% parameters.timeReachConfB = min(1,gapCloseParam.timeWindow);
+parameters.timeReachConfB = 3;
 parameters.lenForClassify = 10;
 parameters.ampRatioLimit = [0.65 4];
 parameters.useLocalDensity = 1;
@@ -706,6 +827,7 @@ parameters.nnWindow = gapCloseParam.timeWindow;
 parameters.linStdMult = 3.5*ones(gapCloseParam.timeWindow,1);
 parameters.timeReachConfL = 1;
 parameters.maxAngleVV = 45;
+parameters.gapPenalty = 1.5;
 costMatrices(2).parameters = parameters;
 clear parameters
 
@@ -721,6 +843,7 @@ tracksParam.gapCloseParam = gapCloseParam;
 tracksParam.costMatrices = costMatrices;
 tracksParam.kalmanFunctions = kalmanFunctions;
 dataStruct.dataProperties.tracksParam = tracksParam;
+
 
 %% subfunction to ask for input for groupSisters
 function dataStruct = getGroupSisterInput(dataStruct,ask4input)

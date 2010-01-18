@@ -177,6 +177,12 @@ else
     lftCdf = [];
 end
 
+if isfield(costMatParam,'gapPenalty') && ~isempty(costMatParam.gapPenalty)
+    gapPenalty = costMatParam.gapPenalty;
+else
+    gapPenalty = 1;
+end
+
 %get gap closing parameters
 timeWindow = gapCloseParam.timeWindow;
 mergeSplit = gapCloseParam.mergeSplit;
@@ -530,6 +536,9 @@ for iPair = 1 : numPairs
 
         %if the lifetime consideration does not make this link impossible
         if ~isinf(cost12)
+            
+            %penalize cost for gap length considerations
+            cost12 = cost12 * gapPenalty^(timeGap-1);
             
             %add this cost to the list of costs
             cost(iPair) = cost12;
