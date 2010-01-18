@@ -55,11 +55,23 @@ for iFrame = 1:nFrames
     S1 = vertcat(cands(status == 1).Lmax);
     clear cands;
     
+    if isempty(S1)
+        fprintf('%s channel doesn''t contain any speckle in frame %d/%d !!!\n',...
+            names{1}, iFrame, nFrames);
+        continue;
+    end
+    
     % Load speckles channel 2
     load([s2Path filesep s2Files(iFrame).name]);
     status = vertcat(cands(:).status);
     S2 = vertcat(cands(status == 1).Lmax);
     clear cands;
+    
+    if isempty(S2)
+        fprintf('%s channel doesn''t contain any speckle in frame %d/%n !!!\n',...
+            names{2}, iFrame, nFrames);
+        continue;
+    end
     
     % Compute distance to the edge
     BW = imread([maskPath filesep maskFiles(iFrame).name]);
