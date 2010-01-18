@@ -1,4 +1,4 @@
-function [mpm_total] = makeCombinedProcessMPMt(imagesize, numf, plotOn,hotness ,varargin)
+function [mpm_total] = makeCombinedProcessMPMt(imagesize, numf, plotOn, hotness ,varargin)
 % make simulated MPM (with specified number of frames and imagesize) as a
 % superposition of clustered and random processes
 % INPUT:
@@ -97,15 +97,15 @@ pos_restrict = find(proc>3);
 %for a parent-child this is the parent density times the area of the frame
 %times the average children per frame per parent
 %for a random process this is the expected number per frame
-lengthPointsPerFrame = 100;
+lengthPointsPerFrame = 1000;
 
 %if no point restricting processes are specified...continue
-if isempty(pos_restrict)
-    disp('no point-restricting processes specified');
-else
+% if isempty(pos_restrict)
+%     disp('no point-restricting processes specified');
+% else
     %allocate space for restricting processes
-    generatedPoints_restrictions = repmat(struct('mpm_restrict',[],'type',[]),length(pos_restrict),1);
-end
+%    generatedPoints_restrictions = repmat(struct('mpm_restrict',[],'type',[]),length(pos_restrict),1);
+%end
 
 %if no point generating processes specified...stop, there is nothing to
 %simulate
@@ -132,23 +132,26 @@ if ~isempty(pos_restrict)
             % distribution is raft-shaped inclusion or exclusion, i.e. a
             % restriction of previous data rather than added new data
             case {4,5}
+                
                 % third value is radius of disc (in pixel)
                 radius_raft = cvec(3);
-                % fifth value (optional) is the percent of points the area restricts
+                
+                % fourth value (optional) is the percent of points the area restricts
                 if length(cvec)>3
                     percentRestrict = cvec(4);
                 else
                     percentRestrict = 1;
                 end
 
-                % fourth value (optional) is sigma of raft diffusion (also
+                % fifth value (optional) is sigma of raft diffusion (also
                 % in pixel)
                 if length(cvec)>4
                     sigma_diff = cvec(5);
                 else
                     sigma_diff = 0;
                 end
-                % fifth value (optional) is the minimum distance between
+                
+                % sixth value (optional) is the minimum distance between
                 % the centroids of parent processes
                 if length(cvec)>5
                     minDist = cvec(6);
@@ -216,15 +219,10 @@ for t=1:numf
         % parents
         vi_int = cvec(2);
 
-        %while density is not as specified (due to exclusion process)
-        reshuffle = 1;
-        loopcount = 0;
-        mpm_generatedPoints = [];
-
         %get parameters and set parents if necessary
         switch vi_type
-            % distribution is random
-            case 1
+            % distribution is random or saffarian hotspot
+            case { 1}
 
                 % if random process we care about the
                 % points themselevs
@@ -248,14 +246,15 @@ for t=1:numf
                 end
 
 
-                % third value is number of daughters per mother
+                % fourth value is the time restriction imposed after
+                % nucleation on furthe nucleations
                 if length(cvec) > 4
                     restrictLambdaRand = cvec(5);
                 else
                     restrictLambdaRand = 0;
                 end
 
-                % fourth value is the time lag before parent is allowed
+                % fifth value is the time lag before parent is allowed
                 % to have succeeding children
                 if length(cvec) > 5
                     restrictLagRand = cvec(6);
@@ -357,13 +356,42 @@ for t=1:numf
                     mpmMotherDummy(redrawnID,:) = 0;
                     generatedPoints(i).mpm_parents(livingParentID,2*t-1:2*t) = mpmMotherDummy;
                 end
-
+            %Saffarian hotspot process
+            case 2.1
+                
+                %if parent process we follow instead the number of parents
+                %because this is the number we set instead of the child density
+                % number of points is intensity times area
+                nump = poissrnd(vi_int * imareaLarge);
+                
+                % third value is number of daughters per mother
+                nump_child = cvec(3);
+                
+                %fourth value is the time gap between nucleations in frames
+                nucleation_gap = cvec(4);
+                
+                 % fifth value is sigma of distribution (in pixel)
+                sigma_cluster = cvec(5);
+                
+                % generate random distribution
+                    x_mpm = 1+(sx-1)*rand(nump,1);
+                    y_mpm = 1+(sy-1)*rand(nump,1);
+                    %store resulting mpm
+                    mpm_generatedMothers = [x_mpm y_mpm];
+                
         end %of switch
 
         % if specified, generate more points
         % while per frame density for point generating process is not
         % met
         looplimit = 150;
+        %initiate looping counter for reshuffle function so that points are
+        %not redrwan forever if they can't be fit unto the frame due to
+        %restrictions
+        loopcount = 0;
+        %store generated points for each point generating process and for
+        %each frame
+        mpm_generatedPoints = [];
         while nump ~= 0 && (loopcount == 0 || reshuffle && loopcount < looplimit)
 
             % GENERATE POINTS
@@ -375,6 +403,9 @@ for t=1:numf
                     y_mpm = 1+(sy-1)*rand(nump,1);
                     %store resulting mpm
                     mpm_points_curr = [x_mpm y_mpm];
+                    % saffarian process
+                case 2.1
+                    mpm_points_curr = makeSaffarianProcessMPM(mpm_generatedMothers,nump_child,nucleation_gap,sigma_cluster,imagesize);
                     % distribution is cluster (of raft or Cox type)
                 case { 2, 3}
                     % generate daughters
@@ -383,6 +414,7 @@ for t=1:numf
                     else
                         [mpm_points_curr, parentTimer(:,2) ]= makeRaftProcessMPM(mpm_generatedMothers,parentTimer(:,2),nump_lambda,nump_int,sigma_cluster,imagesize);
                     end
+       
             end % of switch/case
 
             %RESTRICT POINTS IF RESTRICTIONS ARE PRESENT
@@ -402,6 +434,8 @@ for t=1:numf
                 %process density
                 case 1
                     nump = nump - size(mpm_points_curr,1);
+                case 2.1
+                    nump = 0; 
                 otherwise
                     %if parent process the density is the process
                     %density times the image area times the average
@@ -422,7 +456,12 @@ for t=1:numf
         end
 
         %if points were generated
-        if loopcount ~= 0
+        if vi_type == 2.1
+            findEmptyRow = find(max(generatedPoints(i).mpm,[],2) == 0,1,'first');
+            generatedPoints(i).mpm(findEmptyRow:findEmptyRow+size(mpm_generatedPoints,1)-1,...
+                2*t-1:min(2*(t-1)+size(mpm_generatedPoints,2),numf*2)) = ...
+                mpm_generatedPoints(:,1:min(size(mpm_generatedPoints,2),(numf+1)*2-2*t));
+        elseif loopcount ~= 0
             %record positions on mpm
             generatedPoints(i).mpm(1:size(mpm_generatedPoints,1),2*t-1:2*t)  = mpm_generatedPoints(:,1:2);
         end %of if points generated
@@ -474,51 +513,6 @@ end %of if plot is on
 
 
 end % of function
-
-
-
-%%       ==================================================================
-
-function [mask] = makeMaskFromMPM(mpm,radius, imagesize)
-
-xs = imagesize(1);
-ys = imagesize(2);
-mask = zeros(xs,ys);
-
-% positions of mini-window in grid form
-[miniImX, miniImY] = ndgrid(-radius:radius,-radius:radius);
-miniDist = sqrt(miniImX.^2 + miniImY.^2);
-% extract from the square grid positions those below the specified radius
-% (convert to circular area)
-[XinPix, YinPix] = find(miniDist<=(radius));
-XinPix = XinPix-(radius+1);
-YinPix = YinPix-(radius+1);
-% now XinPix and YinPix contain the positions of the pixels in the circular
-% area around the origin with radius radius
-
-% figure;
-
-for n=1:size(mpm,1)
-
-    CurrCoorXCon = round(mpm(n,2))+XinPix;
-    CurrCoorYCon = round(mpm(n,1))+YinPix;
-    % bad posititons = those outside the image
-    goodPos = find( (CurrCoorXCon>=1) & (CurrCoorYCon>=1) & (CurrCoorXCon<=xs) & (CurrCoorYCon<=ys) );
-
-    subIndGoodPosCon = sub2ind([xs ys],CurrCoorXCon(goodPos),CurrCoorYCon(goodPos));
-
-    mask(subIndGoodPosCon) = 1;
-
-    %     hold off;
-    %     imshow(mask);
-    %     hold on;
-    %     plot(mpm(1:n,1),mpm(1:n,2),'rx');
-
-end
-
-
-end % of subfunction
-
 
 
 %%       ==================================================================
@@ -683,6 +677,73 @@ end % of for s
 end % of function
 
 %%  =======================================================================
+function mpm_daughters = makeSaffarianProcessMPM(mpm_mothers,nump_child,nucleation_gap,sigma,imagesize)
+
+sx = imagesize(1);
+sy = imagesize(2);
+
+nmp = size(mpm_mothers,1);
+nms = (size(mpm_mothers,2)/2);
+
+% NOTE: the mother points can lie outside the specified image size (in
+% simulations, this can be necessary to avoid edge effects) - in any case,
+% the daughter points are only retained if they come to lie inside the
+% image
+
+%vec_nump(t <= nump_int) = zeros(length(find(t <= nump_int)),1);
+
+% loop over number of samples
+for s=1:nms
+
+    % initialize daughter points
+    cmpmx = [];
+    cmpmy = cmpmx;
+
+    %loop over all mother points
+    for n=1:nmp
+
+        % position of current mother cluster center
+        centerpoint = mpm_mothers(n,2*s-1:2*s);
+        % current number of daughters from poisson distribution
+        numd = nump_child;
+
+        if numd>0
+
+            %generate vector length of mother-daughter distance NOTE randn
+            lenDis = sigma*randn(numd,1);
+
+            %generate angle NOTE rand
+            angle = 2*pi*rand(numd,1);
+
+            %resulting endpoint for this daughter point
+            endx = centerpoint(1) + lenDis .* sin(angle);
+            endy = centerpoint(2) + lenDis .* cos(angle);
+
+            cmpmx = [cmpmx ;endx'];
+            cmpmy = [cmpmy ;endy'];
+
+        end
+
+    end
+
+%     if any(cmpmx<1 | cmpmy<1 | cmpmx>sx | cmpmy>sy)
+%         keyboard
+%     end
+    
+    cmpmx(cmpmx<1 | cmpmy<1 | cmpmx>sx | cmpmy>sy) = 0;
+    cmpmy(cmpmx<1 | cmpmy<1 | cmpmx>sx | cmpmy>sy) = 0;
+
+    mpm_daughters = zeros(nmp,numd*2+2*nucleation_gap*(numd-1)); 
+    mpm_daughters(:,1:(2+2*nucleation_gap):end) = cmpmx;
+    mpm_daughters(:,2:(2+2*nucleation_gap):end) = cmpmy;
+
+
+
+end % of for s
+
+end % of function
+
+%%  =======================================================================
 function [mpmNew] = makeParentMPM(nump,area,minDist, buffer, existingParentMPM)
 
 %This function takes an existing parent mpm and makes a given number of
@@ -693,9 +754,6 @@ function [mpmNew] = makeParentMPM(nump,area,minDist, buffer, existingParentMPM)
 %NOTE: New parents are placed to be beyond the minimum distance from older
 %parents and themselves; older parent positions are kept
 
-if nargin < 5
-    existingParentMPM = nan(1,2);
-end
 
 sxLarge = area(1);
 syLarge  = area(2);
@@ -708,7 +766,11 @@ mpmNew = [x_mother y_mother];
 
 
 %calculate distance between new pareants and old parents
-new2oldDist = distMat2(mpmNew,existingParentMPM);
+if nargin < 5 || isempty(existingParentMPM)
+    new2oldDist = [];
+else
+    new2oldDist = distMat2(mpmNew,existingParentMPM);
+end
 %calculate distance between new parents
 new2newDist = distMat2(mpmNew,mpmNew);
 new2newDist(new2newDist==0) = nan;
