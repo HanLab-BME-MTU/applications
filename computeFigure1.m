@@ -34,6 +34,7 @@ s2Files = dir([s2Path filesep '*.mat']);
 maskPath = movieData.masks.directory;
 maskFiles = dir([maskPath filesep '*.tif']);
 
+% Define the number of closest speckles away from the cell edge.
 nSpeckles = 20;
 
 D1 = cell(1, nFrames);

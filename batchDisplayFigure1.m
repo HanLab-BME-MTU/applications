@@ -47,8 +47,6 @@ for iMovie = 1:nMovies
             paths{iMovie}, names{1}, names{2}, m1, sS1, sT1, m2, sS2, sT2); %#ok<USENS>
         
         clear names D1 D2;
-    else
-        fprintf('%s\t-  -  -  -  -  -\n', paths{iMovie});
     end
 end
 
