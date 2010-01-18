@@ -106,6 +106,10 @@ if ~batchMode && ishandle(h)
     close(h);
 end
 
+% In case some frames are empty.
+D1 = D1(cellfun(@(x) ~isempty(x), D1)); %#ok<NASGU>
+D2 = D2(cellfun(@(x) ~isempty(x), D2)); %#ok<NASGU>
+
 save([movieData.output.directory filesep movieData.output.fig1.filename],...
     'names', 'D1', 'D2');
 
