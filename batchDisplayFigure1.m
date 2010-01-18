@@ -43,7 +43,7 @@ for iMovie = 1:nMovies
         sT1 = std(cell2mat(cellfun(@(x) std(nonzeros(x)), D1, 'UniformOutput', false)));
         sT2 = std(cell2mat(cellfun(@(x) std(nonzeros(x)), D2, 'UniformOutput', false)));
         
-        fprintf('%s\t%s  %s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f\n', ...
+        fprintf('%s, %s, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n', ...
             paths{iMovie}, names{1}, names{2}, m1, sS1, sT1, m2, sS2, sT2); %#ok<USENS>
         
         clear names D1 D2;
