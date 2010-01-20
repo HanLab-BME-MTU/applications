@@ -74,7 +74,7 @@ for i=1:n
     If = fsmPrepPrepareImage(In, 1, [1 1 0 0; 0 0 size(I)], sigmaPSF);
     
     % Statistically test the local maxima to extract (significant) speckles
-    [~, cands] = fsmPrepMainSecondarySpeckles(If, 0, [], noiseParam, [1 0]);
+    [dummy, cands] = fsmPrepMainSecondarySpeckles(If, 0, [], noiseParam, [1 0]);
 
     % Get speckle infos
     status = vertcat(cands(:).status);
@@ -147,8 +147,6 @@ if showResult
     maxY = ceil(max(abs(sumT(:, 1))));
     I = double(imread(inputFileList{1}));
     I = padarray(I, [maxY, maxX]);
-    %[path, ~, no] = getFilenameBody(inputFileList{1});
-    %save([path filesep 'REGISTRED_' no '.txt'], 'I', '-ASCII', '-double');
     
     projI = I;
     projR = zeros(size(I));
@@ -160,8 +158,6 @@ if showResult
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(sumT(i-1, :)) 1]);
         R = imtransform(I, Tr, 'bicubic', 'XData', [1 size(I, 2)], ...
             'YData', [1 size(I, 1)]);
-        %[path, ~, no] = getFilenameBody(inputFileList{i});
-        %save([path filesep 'REGISTRED_' no '.txt'], 'R', '-ASCII', '-double');
         
         projI = projI + I;
         projR = projR + R;
