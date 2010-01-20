@@ -100,7 +100,7 @@ wtBar = waitbar(0,'Please wait, loading all masks and images...');
 for iImage = 1:nImages;
 
     %Load image & mask for this timepoint
-    currIm = double(stkRead(imageFiles{1}{iImage}));    
+    currIm = double(stackRead(imageFiles{1}{iImage}));    
     currMask = tif3Dread(maskFiles{1}{iImage});
     
     %Normalize the image
