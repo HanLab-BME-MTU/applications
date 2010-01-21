@@ -1,4 +1,4 @@
-function [data] = fillStructLifetimeHist(data);
+function [data] = fillStructLifetimeHist(data)
 % fill experiment structure with lifetime histogram based on the lftInfo
 % file saved at the specified directory
 % FILLSTRUCTLIFETIMEINFO calculates lifetime from trackInfo matrix and
@@ -18,43 +18,20 @@ function [data] = fillStructLifetimeHist(data);
 % REMARKS 
 %
 % Dinah Loerke, last modified Mar 2008
+% Francois Aguet, 01/21/2010
 
-% number of entries in exp
-lens = length(data);
+for i = 1:length(data)
+    
+    if ~isfield(data,'lftHist') || isempty(data(i).lftHist)
 
-for i=1:lens
-    
-    % number of frames for this exp
-    lenf = data(i).movieLength;
-    
-    % read lftInfo from the appropriate file if lftHist doesn't lareday
-    % exist
-    
-    cvar = 1;
-    if isfield(data,'lftHist')
-        if ~isempty(data(i).lftHist)
-            cvar = 0;
-        end
-    end
-    
-    if cvar==1
-
-        path = data(i).source;
-        lftpath = [path,'/LifetimeInfo'];
-        od = cd;
-        cd(lftpath);
-        lftname = 'lftInfo.mat';
-        loadfile = load(lftname);
-        cd(od);
-        lftInfo = loadfile.lftInfo;
-
+        load([data(i).source filesep 'LifetimeInfo' filesep 'lftInfo.mat']);
 
         lftMat = full(lftInfo.Mat_lifetime);
         statMat =  full(lftInfo.Mat_status);
 
-        [sx,sy] = size(lftMat);
+        sx = size(lftMat,1);
 
-        lftVec = nan*zeros(sx,1);
+        lftVec = NaN(sx,1);
 
         % a trajectory is counted for the lifetime analysis if the status of 
         % the trajectory is ==1 and the value of the gaps is ==4
@@ -63,17 +40,12 @@ for i=1:lens
             cstat = nonzeros(statMat(k,:));
             % current lifetime vector
             clft = lftMat(k,:);
-            if ( (min(cstat)==1) & (max(cstat)<5) )
+            if ( (min(cstat)==1) && (max(cstat)<5) )
                 lftVec(k) = max(clft);
             end
         end    
 
-        lftVec = lftVec(find(isfinite(lftVec)));
-        data(i).lftHist = hist(lftVec,[1:lenf]);
-        
-    end % of if cvar==1
-        
-
-end % of for
-
-end % of function
+        lftVec = lftVec(isfinite(lftVec));
+        data(i).lftHist = hist(lftVec, 1:data(i).movieLength);
+    end
+end
