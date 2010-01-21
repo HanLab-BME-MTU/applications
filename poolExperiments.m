@@ -1,4 +1,4 @@
-function [dataPool] = poolExperiments(varargin);
+function [data_all] = poolExperiments(varargin)
 % this function pools different experiment structures into one, e.g.
 % different control datasets of different origins
 % INPUT:    various input experiments, e.g. data1, data2, data3
@@ -6,8 +6,8 @@ function [dataPool] = poolExperiments(varargin);
 %           .framerate, .movieLength)
 % OUTPUT:   merged experiment file
 %
-% last modified: Dinah Loerke, March 15, 2009
-
+% Dinah Loerke, March 15, 2009
+% Last Modified: Francois Aguet, 01/21/2010
 
 for i=1:length(varargin)
     
@@ -16,24 +16,13 @@ for i=1:length(varargin)
     if i==1
         names = fieldnames(data_curr);
         data_all = data_curr;
-    else
-
+    else        
         clen = length(data_all);
-        
-        for n=1:length(data_curr)
+        for n = 1:length(data_curr)
             curr_struct = data_curr(n);
-            for k=1:length(names)
-                curr_field  = getfield(curr_struct, names{k}); 
-                data_all    = setfield(data_all, {1,clen+n}, names{k}, curr_field);
+            for k = 1:length(names)
+                data_all    = setfield(data_all, {1,clen+n}, names{k}, curr_struct.(names{k}));
             end
         end
-    end % of if
-end % of for-loop
-
-dataPool = data_all;
-
-end % of function
-            
-            
-    
-    
+    end
+end
