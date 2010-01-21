@@ -47,27 +47,12 @@ for k=1:length(data)
     currLifetimeFunctionOut = currHistOut;
     currLifetimeFunctionOut(pdefOut) = cfOut;
     
+    % survival function
+    currSurvivalFunctionIn = max(currLifetimeFunctionIn) - currLifetimeFunctionIn;
     
     % survival function
-    currMaxIn = max(currLifetimeFunctionIn);
-    currSurvivalFunctionIn = currMaxIn - currLifetimeFunctionIn;
-    
-    % survival function
-    currMaxOut = max(currLifetimeFunctionOut);
-    currSurvivalFunctionOut = currMaxOut - currLifetimeFunctionOut;
+    currSurvivalFunctionOut = max(currLifetimeFunctionOut) - currLifetimeFunctionOut;
     
     data(k).survivalFunction_InRegion = currSurvivalFunctionIn;
     data(k).survivalFunction_OutRegion = currSurvivalFunctionOut;
 end
-
-
-
-end % of function
-
-
-
-
-
-
-
-    
