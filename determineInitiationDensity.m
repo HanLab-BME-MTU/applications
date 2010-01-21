@@ -87,9 +87,7 @@ if nargin < 4 || isempty(inputMask)
 end
 
 %convert movie paths to correct OS
-for iexp = 1:length(experiment)
-    [experiment(iexp).source]=formatPath(experiment(iexp).source);
-end
+    [experiment]=changePathUsingEndocytosis(experiment);
 
 
 %make image binary
