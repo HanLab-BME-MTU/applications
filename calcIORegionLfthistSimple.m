@@ -1,4 +1,4 @@
-function [segmentStatusVector,segmentEUdistVector] = calcIORegionLfthistSimple(lftInfo, maskPattern, mode);
+function [segmentStatusVector,segmentEUdistVector] = calcIORegionLfthistSimple(lftInfo, maskPattern)
 % calculate lifetimes outside and inside segmented area
 % 
 % INPUT:    lftInfo 	= lifetime info 
@@ -11,33 +11,25 @@ function [segmentStatusVector,segmentEUdistVector] = calcIORegionLfthistSimple(l
 %
 % Dinah Loerke, last modified 09/09/2008
 
-[no,nf] = size(lftInfo.Mat_lifetime);
-
 cmx = full(lftInfo.Mat_xcoord);
 cmy = full(lftInfo.Mat_ycoord);
 
-lmat = lftInfo.Mat_lifetime;
-lvec = full(max(lmat,[],2));
-
-
-%% masks defining IN and OUT areas
+% masks defining IN and OUT areas
 maskIN  = maskPattern;
 maskOUT = ~maskPattern;
-
 
 % euclidian distance map of the segmented image
 EDimage = bwdist(logical(maskIN));
 EDimage_out = bwdist(logical(maskOUT));
-
 
 figure;
 imshow(double(maskIN),[]);
 hold on;
 
     
-%% loop over all objects and determine each object's status as either
-%% inside or outside the segmented region
-for n=1:no
+% loop over all objects and determine each object's status as either
+% inside or outside the segmented region
+for n = 1:size(lftInfo.Mat_lifetime, 1)
         
     % traj of this object
     upos = find( cmx(n,:)>0 & cmy(n,:)>0 );
@@ -51,8 +43,7 @@ for n=1:no
         continue
     end
         
-     % object is defined as IN if the majority of its points are inside    
-    % maskIN
+    % object is defined as IN if the majority of its points are inside maskIN
     instatus = [];
     eudist = [];
     eudist_out = [];
@@ -81,7 +72,3 @@ end % of for n-loop
 
 segmentStatusVector = objectInStatus;
 segmentEUdistVector = objectEUdist;
-
-end % of function
-    
-    
