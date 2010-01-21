@@ -22,42 +22,38 @@ function [data] = determinePitDensities(data)
 % Dinah Loerke, last changed 03/19/2008
 %               modified 07/29/2008
 
-od = cd;
+localDensity = zeros(1, length(data));
 
 for i = 1:length(data)
     
-    currDir = data(i).source;
-    cd(currDir);
+    trackInfoPath = [data(i).source filesep 'TrackInfoMatrices' filesep 'trackInfo.mat'];
     
-    if exist('TrackInfoMatrices');
-        
-        cd('TrackInfoMatrices');
-        ti = load('trackInfo.mat');
+    if (exist(trackInfoPath, 'file')==2)
+        ti = load(trackInfoPath);
         if isfield(ti,'trackInfo')
             currTrackInfo = ti.trackInfo;
         elseif isfield(ti,'trackInfoMat')
             currTrackInfo = ti.trackInfoMat;
         end
         
-        [stx,sty] = size(currTrackInfo);
-        numf = sty/8;
+        nFrames = size(currTrackInfo, 2)/8;
         
         % extract all x and y positions of object
-        cmx = full(currTrackInfo(:,1:8:sty));
-        cmy = full(currTrackInfo(:,2:8:sty));
+        cmx = full(currTrackInfo(:,1:8:end));
+        cmy = full(currTrackInfo(:,2:8:end));
         
         % number of objects detected in each frame
-        numPitsFrame = [];
-        for k=1:numf
+        numPitsFrame = zeros(1,nFrames);
+        for k=1:nFrames
             numPitsFrame(k) = length(find(cmx(:,k)>0));
         end
         
         % all positions together
         allx = nonzeros(cmx(:));
         ally = nonzeros(cmy(:));
-        nx = length(allx(:));
-        ny = length(ally(:));
-        numPits = nx/numf;
+        %nx = length(allx(:));
+        %ny = length(ally(:));
+        %numPits = nx/nFrames;
         
         % earlier version used convex hull; this can be tricky for more
         % complicated cell shaped, so allow more complex edge
@@ -70,38 +66,22 @@ for i = 1:length(data)
             mask_detection(detxpos,detypos) = 1;
         end
         % second, dilate the single pixels to little discs
-        se5 = strel('disk',5);
-        se20 = strel('disk',20);
-        mask_detectdilate = imdilate(logical(mask_detection),se5);
+        mask_detectdilate = imdilate(logical(mask_detection), strel('disk',5));
         % third, fill the resulting area and filter with Gaussian profile to
         % create a continuous area
         mask_filled = imfill(double(mask_detectdilate),'holes');
-        mask_close = imclose(mask_filled,se20);
+        mask_close = imclose(mask_filled, strel('disk',20));
         
         totalarea = sum(mask_close(:));
-        
         denPitsFrame = numPitsFrame/totalarea;        
               
         data(i).pitDensity = denPitsFrame;
-        localdensity(i) = nanmean(denPitsFrame);
+        localDensity(i) = nanmean(denPitsFrame);
     else
-        data(i).pitDensity = nan;
-    end
-    
-    cd(od);
-    
-end % of for m
+        data(i).pitDensity = NaN;
+    end 
+end
 
-avDensity = nanmean(localdensity);
-stdDensity = nanstd(localdensity);
-fprintf('density %2.4f',avDensity);
-fprintf(' +- %2.4f',stdDensity);
-fprintf(' obj. per square pixel');
-fprintf('\n')
-%disp(['pit density = ',num2str(avDensity),' +- ',num2str(stdDensity),' obj. per square pixel']);          
-        
-end % of function
-    
-   
-    
-    
+avDensity = nanmean(localDensity);
+stdDensity = nanstd(localDensity);
+fprintf('Pit density %2.4f +- %2.4f obj. per square pixel.\n', avDensity, stdDensity);   
