@@ -4,7 +4,7 @@ function plusTipMakeBoxplots(data,setName,saveDir)
 %
 % SYNOPSIS: plusTipMakeBoxplots(data,setName,saveDir)
 %
-% see plusTipPoolGroupData
+% Called by plusTipPoolGroupData.  See function for input format.
 
 
 

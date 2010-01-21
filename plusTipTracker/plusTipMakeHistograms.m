@@ -1,9 +1,8 @@
 function plusTipMakeHistograms(speedLifeDispMat,saveDir)
 % plusTipMakeHistograms saves speed, lifetime, and displacement histograms
 % for growth, fgap, and bgap populations
-
-% see plusTipPoolGroupData
-
+%
+% Called by plusTipPoolGroupData.  See function for input format.
 
 if ~isdir(saveDir)
     mkdir(saveDir)

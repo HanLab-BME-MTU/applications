@@ -473,8 +473,8 @@ for iProj=1:nProj
 
         % add new sub-roi to the list of projects for extraction
         n=length(projList);
-        projList(n+1).imDir=imDir;
-        projList(n+1).anDir=currentRoiAnDir;
+        projList(n+1,1).imDir=imDir;
+        projList(n+1,1).anDir=currentRoiAnDir;
 
     end % while makeNewROI==1
 

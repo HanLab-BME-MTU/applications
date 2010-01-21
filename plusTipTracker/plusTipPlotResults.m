@@ -1,5 +1,24 @@
 function plusTipPlotResults(projData,remBegEnd,timeRange,speedLim,lifeLim,dispLim,saveDir)
-% make plots of speed/lifetime/displacement, histograms, initition/termination pts for fgaps and bgaps
+% plusTipPlotResults make 18 summary overlay plots and histograms
+%
+% SYNOPSIS: plusTipPlotResults(projData,remBegEnd,timeRange,speedLim,lifeLim,dispLim,saveDir)
+%
+% INPUT: projData: output of post-processing
+%        remBegEnd: 1 to remove data from beginning/end of movie, 0 to
+%                   retain it
+%        timeRange: [startFrame endFrame] for plots
+%        speedLim:  [min max] speed range (microns/min)
+%        lifeLim:   [min max] lifetime range (seconds)
+%        dispLim:   [min max] displacement range (microns)
+%        saveDir:   path to output directory
+% 
+% OUTPUT: 
+%       speed/lifetime/displacement overlays for growth, fgap, and bgap
+%             sub-tracks (9)
+%       speed/lifetime/displacement histograms showing stacked bars for
+%             growth, fgap, and bgap sub-tracks (3)
+%       initition/termination locations for fgaps and bgaps, separate and
+%             merged (6)
 
 if ispc
     fileExt='.emf';

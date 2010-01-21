@@ -1,6 +1,8 @@
 function [meanStdFeatNum,idx2rem,p]=plusTipCheckFeatureDensity(projList,prctl2rem)
 % checkFeatureDensity checks whether feature number changes significantly over the course of a movie
-
+%
+% SYNOPSIS: [meanStdFeatNum,idx2rem,p]=plusTipCheckFeatureDensity(projList,prctl2rem)
+%
 % INPUT : projList  : list of projects, output of getProj
 %         prctl2rem : percentile of std above which movies should be
 %                     removed
@@ -25,12 +27,15 @@ for i=1:nMovies
     temp=load([formatPath(projList(i,1).anDir) filesep 'feat' filesep 'movieInfo.mat']);
     movieInfo=temp.movieInfo;
     movInfoCell=struct2cell(movieInfo);
+    nFrames=length(movieInfo);
+    featNumPerFrame=nan(nFrames,1);
+    idx=find(~cellfun(@isempty, movInfoCell(1,:)));
     % get number of features in each frame
-    featNumPerFrame=cell2mat(cellfun(@(x) length(x(:,1)),movInfoCell(1,:),'UniformOutput',0))';
-    % normalize by the mean feature movie for this frame
-    featNumPerFrame=featNumPerFrame./mean(featNumPerFrame);
+    featNumPerFrame(idx)=cell2mat(cellfun(@(x) length(x(:,1)),movInfoCell(1,idx),'UniformOutput',0))';
+    % normalize by the mean feature number for this movie
+    featNumPerFrame=featNumPerFrame./nanmean(featNumPerFrame);
     % store data
-    meanStdFeatNum(i,:)=[mean(featNumPerFrame) std(featNumPerFrame)];
+    meanStdFeatNum(i,:)=[nanmean(featNumPerFrame) nanstd(featNumPerFrame)];
 end
 
 p=prctile(meanStdFeatNum(:,2),prctl2rem);

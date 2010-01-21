@@ -1,6 +1,8 @@
 function [plusTipDataset]=plusTipGetGroupDataset
 % plusTipGetGroupDataset makes dataset array with dynamics parameters from movies in groupList
-
+%
+% SYNOPSIS: [plusTipDataset]=plusTipGetGroupDataset
+%
 % INPUT
 % user is asked for an output directory where dataset should be stored, as
 % well as the projList file(s) from which data should be pulled
@@ -11,6 +13,11 @@ function [plusTipDataset]=plusTipGetGroupDataset
 %                 all projects in projList.  if a project hasn't been
 %                 processed, its row will contain NaNs and the "goodMovie"
 %                 column will have a 0.
+%
+% Note: the columns labeled “_mean_std” and “_mean_std_2” represent the
+% mean and standard deviation for that parameter, respectively.  The odd
+% naming reflects the fact that these two numbers are stored together in
+% the projData.mat structure
 %
 % Kathryn Applegate, 09/2009
 
