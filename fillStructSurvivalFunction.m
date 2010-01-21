@@ -17,23 +17,20 @@ function [data] = fillStructSurvivalFunction(data, fieldname)
 %
 %
 % last modified DATE: 21-May-2008 (Dinah)
-
+% Francois Aguet 01/21/2010
 
 
 % determine survival function for each movie 
-if nargin>1
-    fname = fieldname;
-else
-    fname = 'lftHist_censored';
+if (nargin == 1)
+    fieldname = 'lftHist_censored';
 end
 
-
-for k=1:length(data)
+for k = 1:length(data)
     
-    if isfield(data,fname)
-        currHist = getfield(data(k), fname);
+    if isfield(data, fieldname)
+        currHist = data(k).(fieldname);
     else
-        error(['function requires existence of a structure field ',fname]);
+        error(['Function requires the field ' fieldname ' in ' data(k) '.']);
     end
           
     % lifetime function
@@ -43,21 +40,6 @@ for k=1:length(data)
     currLifetimeFunction = currHist;
     currLifetimeFunction(pdef) = cf;
     
-    % survival function
-    currMax = max(currLifetimeFunction);
-    currSurvivalFunction = currMax - currLifetimeFunction;
-    
-    data(k).survivalFunction = currSurvivalFunction;
+    % survival function    
+    data(k).survivalFunction = max(currLifetimeFunction) - currLifetimeFunction;
 end
-
-
-
-end % of function
-
-
-
-
-
-
-
-    
