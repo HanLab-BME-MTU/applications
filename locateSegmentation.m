@@ -1,4 +1,4 @@
-function [data] = locateSegmentation(data, outvar);
+function [data] = locateSegmentation(data, outvar)
 % locate segmentation data in the specified paths, and store the location 
 % as fields in the data structure
 %
@@ -29,36 +29,21 @@ function [data] = locateSegmentation(data, outvar);
 %
 % Dinah Loerke, last modified April 20, 2008
 % Dinah Loerke, updated July 23, 2008
+% Francois Aguet, 01/21/2010
 
-od = cd;
-
-ovariable = 0;
-if nargin>1
-    if outvar==1
-        ovariable = 1;
-    end
+if (nargin == 1)
+    outvar = 0;
 end
 
-% loop over all entries in the structure to enter the image data necessary
-% for the detection input
-for i=1:length(data)
+for i = 1:length(data)
     
-    path = data(i).source;
-    % change to source directory
-    cd(path);
+    [imageName, imagePath] = uigetfile('.tif', 'Select first segmentation image:', data(i).source);
     
-    [oriImageName, oriImagePath] = uigetfile('.tif',['Select first segmentation image']); 
-    
-    if ovariable == 0;
-        data(i).segmentDataFileName = oriImageName;
-        data(i).segmentDataFilePath = oriImagePath;
+    if outvar == 0;
+        data(i).segmentDataFileName = imageName;
+        data(i).segmentDataFilePath = imagePath;
     else
-        data(i).segmentDataFileNameOUT = oriImageName;
-        data(i).segmentDataFilePathOUT = oriImagePath;
+        data(i).segmentDataFileNameOUT = imageName;
+        data(i).segmentDataFilePathOUT = imagePath;
     end
-        
-    cd(od);
 end
-
-
-end % of function
