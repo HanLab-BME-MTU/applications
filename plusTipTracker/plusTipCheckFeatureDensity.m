@@ -33,7 +33,7 @@ for i=1:nMovies
     % get number of features in each frame
     featNumPerFrame(idx)=cell2mat(cellfun(@(x) length(x(:,1)),movInfoCell(1,idx),'UniformOutput',0))';
     % normalize by the mean feature number for this movie
-    featNumPerFrame=featNumPerFrame./nanmean(featNumPerFrame);
+    %featNumPerFrame=featNumPerFrame./nanmean(featNumPerFrame);
     % store data
     meanStdFeatNum(i,:)=[nanmean(featNumPerFrame) nanstd(featNumPerFrame)];
 end

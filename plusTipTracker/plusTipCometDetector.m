@@ -253,7 +253,7 @@ for iFrame = startFrame:endFrame
 
     % label slice2 again and get region properties
     featMap2 = bwlabel(slice2);
-    featProp2 = regionprops(featMap2,filterDiff,'PixelIdxList','Area');
+    featProp2 = regionprops(featMap2,'PixelIdxList','Area');
 
     % here we sort through features and retain only the "good" ones
     % we assume the good features have area > 2 pixels
@@ -265,7 +265,17 @@ for iFrame = startFrame:endFrame
     featureMap = zeros(imL,imW);
     featureMap(vertcat(featProp2(goodFeatIdx,1).PixelIdxList)) = 1;
     [featMapFinal,nFeats] = bwlabel(featureMap);
-    featPropFinal = regionprops(featMapFinal,filterDiff,'PixelIdxList','Area','WeightedCentroid','MaxIntensity'); %'Extrema'
+    
+    verDate=version('-date');
+    if str2double(verDate(end-3:end))>=2008
+        featPropFinal = regionprops(featMapFinal,filterDiff,'PixelIdxList','Area','WeightedCentroid','MaxIntensity'); %'Extrema'
+    else
+        featPropFinal = regionprops(featMapFinal,'PixelIdxList','Area','Centroid');
+        for iFeat=1:length(featPropFinal)
+            featPropFinal(iFeat,1).WeightedCentroid=featPropFinal(iFeat,1).Centroid; % centroid's close enough...
+            featPropFinal(iFeat,1).MaxIntensity=max(filterDiff(featPropFinal(iFeat,1).PixelIdxList)); % find maximum intensity
+        end
+    end
 
     if nFeats==0
         yCoord = [];
