@@ -55,12 +55,12 @@ if ~isempty(expDir)
                 end
                 
                 % enter data
-                experiment(ct).source = [expPath filesep cellDir(k).name];
+                experiment(ct).source = [expPath filesep cellDir(k).name filesep];
                 experiment(ct).date = currDate;
                 experiment(ct).framerate = currFramerate;
                 
-                tifFiles = dir([experiment(ct).source filesep '*.tif']);
-                experiment(ct).imagesize = size(imread([experiment(ct).source filesep tifFiles(1).name]));
+                tifFiles = dir([experiment(ct).source '*.tif']);
+                experiment(ct).imagesize = size(imread([experiment(ct).source tifFiles(1).name]));
                 experiment(ct).movieLength = length(tifFiles);
 
                 ct = ct+1;
