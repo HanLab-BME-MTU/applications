@@ -604,7 +604,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
         if nImages>1
             indxStr=sprintf(strg,imageIndices(c1));
             fname=['flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr];
-            print(gca,'-dtiff', [outputdir,filesep,'tif',filesep,fname,'.tif']);
+            print(gcf,'-dtiff', [outputdir,filesep,'tif',filesep,fname,'.tif']);
             print(gcf,'-dpsc2', '-r300',[outputdir,filesep,'eps',filesep,fname,'.eps']);
             
             % Close image
