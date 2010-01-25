@@ -28,7 +28,12 @@ for i = 1:nExp
     frameList = {frameList.name};
     
     if isempty(frameList)
-        error(['No frames found in ' exp(i).source]);        
+        framePath = [uigetdir(exp(i).source, 'Select directory containing the movie frames:') filesep];
+        frameList = dir([framePath '*.tif']);
+        frameList = {frameList.name};
+        if isempty(frameList)
+            error(['No frames found in ' exp(i).source]);
+        end
     end
     data(i).image = double(imread([exp(i).source frameList{1}]));
     
