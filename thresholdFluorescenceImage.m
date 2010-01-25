@@ -25,9 +25,6 @@ function varargout = thresholdFluorescenceImage(imageIn,showPlots)
 % 
 %   thresholdValue - The intensity value selected for thresholding.
 %
-% NOTE: I'm not really sure why this function works. In some rare cases it
-% works as intended. Most of the time, a combination of errors
-% adds up to it somehow working anyways...
 %
 %Hunter Elliott, 11/7/08
 %
@@ -36,45 +33,39 @@ if nargin < 2 || isempty(showPlots)
     showPlots = 0;
 end
 
-
 %Convert to double if necessary
-imageIn = cast(imageIn,'double');
+imageIn = double(imageIn);
 
-%Get the distribution of values in spline form
-[vals,bins,histSpline] = histogram(imageIn,'smooth');
-
-
-%take the derivative of the distribution
-histDeriv = fnder(histSpline);
+%Get histogram, using Jonas' automatic bin number selection & smoothing
+[vals,bins,histSpline] = histogram(imageIn(:),'smooth');
 
 %Find the location of extrema in the histogram
-histExtrema = fnzeros(histDeriv);
+histExtrema = fnzeros(fnder(histSpline));
 
 %Get rid of the 'fake' extrema sometimes produced at beginning and end of
 %distrubution by spline form.
+histExtrema = histExtrema(1,:); %remove the intervals
+histExtrema = histExtrema((histExtrema ~= ... %These will always be at first or last breaks in spline
+            histSpline.breaks(1)) & (histExtrema ~= histSpline.breaks(end)));
+histExtVals = fnval(histSpline,histExtrema);
 
-minFrac = 1e-3; %Small number for eliminating end extrema
-histExtrema = histExtrema(1,:); %Dump the intervals
-histExtrema = histExtrema(histExtrema > (range(bins) * minFrac)); %Too small
-histExtrema = histExtrema(histExtrema < (range(bins) * (1-minFrac))); %Too big
-histExtVals = fnval(histSpline,histExtrema); %Just right... evaluate at these extrema
 
-%Check number of remaingin extrema.
-nExtrema = size(histExtrema,2);
-if nExtrema < 2    
-    error('Could not automatically determine a threshold value!');        
+%Determine whether each extrema is maximum or minimum
+isMax = fnval(fnder(histSpline,2),histExtrema) < 0;
+
+
+%Fint the lowest-intensity maximum, assume this is the background peak.
+iBackMax = find(isMax,1,'first');
+
+%Find the first minimum after this maximum. This is used as the threshold.
+iSep = iBackMax + 1;
+
+if iSep > length(histExtrema);
+    error('Could not automatically determine a threshold value!');
 end
 
-
-
-
-
-%Assuming the lowest-intensity maxima is the background, the first minima
-%after this peak should be a good place to seperate background &
-%foreground.
-thresholdValue = histExtrema(2);
-minVal = histExtVals(2);
-
+thresholdValue = histExtrema(iSep);
+minVal = histExtVals(iSep);
 
 imageMask = imageIn >= thresholdValue;
 
