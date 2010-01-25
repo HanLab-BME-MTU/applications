@@ -1,20 +1,38 @@
 function refinedMask = refineMaskEdges(maskIn,imageIn,maxAdjust,maxGap,preGrow)
 
-
-% refinedMask = refineMaskEdges( mask , image , maxEdgeAdjust, maxEdgeGap,preGrow)
 %
-%This function uses edge detection to refine the edges of a mask.
-%It assumes that the input mask maskIn OVERSHOOTS the cell boundary in
-%all areas - that is the cell/object in the image is completely contained
-%within the mask. If you aren't sure this is the case, input a non-zero
-%integer for preGrow - this will grow the mask a little before refining it.
-% the parameter maxEdgeAdjust is the maximum distance in pixels that the edge
-% will be adjusted.
-% maxEdgeGap is the the closure radius used to close the edges. This is
-% effectively the largest gap that may occur in the edges in imageIn
-
+% refinedMask = refineMaskEdges(mask,image,maxEdgeAdjust,maxEdgeGap,preGrow)
+%
+% This function uses edge detection to refine the edges of a mask.
+% It assumes that the input mask (maskIn) OVERSHOOTS the cell boundary in
+% all areas - that is the cell/object in the image is completely contained
+% within the mask. If you aren't sure this is the case, input a non-zero
+% integer for preGrow.
+% 
+% 
+% Input:
+% 
+%   maskIn - The mask to refine.
+% 
+%   imageIn - The image the mask was created for. 
+% 
+%   maxAdjust - The maximum distance to adjust the edge location by, in
+%   pixels.
+% 
+%   maxEdgeGap - The largest size of gaps in the detected edges to close.
+%   THis is the radius of the closure opp performed on the final mask.
+% 
+%   preGrow - This is the radius in pixels to grow the mask by prior to
+%   edge refinement. This may be needed if the object to be segmented is
+%   not completely contained in the input mask.
+% 
+% 
+% Output:
+% 
+%   refinedMask - The new mask, with improved edge location.
+%
 %Hunter Elliott 3/2009
-
+%
 
 if nargin < 5 || isempty(preGrow)
     preGrow = 0;
@@ -43,7 +61,7 @@ warning('off','MATLAB:intConvertOverflow');
 %% ------ Parameters ----- %%
 
 
-tooSmall = 30; %If a mask fragment is below this size in pixels it is thrown out.
+% tooSmall = 30; %If a mask fragment is below this size in pixels it is thrown out.
 threshScale = .6; %Fraction by which to adjust edge threshold on second round.
 sigFilter = 1.0; %Sigma of filter used in canny edge detection.
 
@@ -61,8 +79,8 @@ sigFilter = 1.0; %Sigma of filter used in canny edge detection.
 
 %% --- Edge Refinement ---- %%
 
-%Clean up the mask a little
-maskIn = bwareaopen(maskIn,tooSmall);
+% %Clean up the mask a little
+% maskIn = bwareaopen(maskIn,tooSmall);
 
 %Grow the mask, if requested
 if preGrow > 0 
@@ -81,8 +99,12 @@ edges = edges & distX <= maxAdjust & distX > 0;
 edges = edges | bwperim(distX >= maxAdjust);
 
 %Close these edges
-seClose = strel('disk',maxGap);
-closedEdges = imclose(edges,seClose);
+if maxGap > 0
+    seClose = strel('disk',maxGap);
+    closedEdges = imclose(edges,seClose);
+else
+    closedEdges = edges;
+end
 
 if showPlots
     figure

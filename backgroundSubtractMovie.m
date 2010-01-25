@@ -3,6 +3,8 @@ function movieData = backgroundSubtractMovie(movieData,varargin)
 %
 % movieData = backgroundSubtractMovie(movieData)
 %
+% movieData = backgroundSubtractMovie(movieData,'OptionName',optionValue)
+%
 % This function performs background subtraction on the movie described by
 % the input movieData. This is accomplished by averaging the intensity in
 % the areas covered by background masks, as created using
