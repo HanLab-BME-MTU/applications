@@ -1,4 +1,4 @@
-function [experiment] = determineInitiationDensity(experiment,rest,plotMask,inputMask);
+function [experiment] = determineInitiationDensity(experiment,rest,plotMask,inputMask)
 
 % determineInitiationDensity calculates the density of pits defined by rest
 % and that fall within an inputMask
