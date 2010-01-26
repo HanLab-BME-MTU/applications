@@ -324,6 +324,7 @@ for iFrame = startFrame:endFrame
         plot(roiYX(2),roiYX(1),'w')
         axis equal
         saveas(gcf,[featDir filesep 'overlayImages' filesep 'overlay' indxStr1 '.tif']);
+        saveas(gcf,[featDir filesep 'overlayImages' filesep 'overlay' indxStr1 '.fig']);
         close(gcf)
     end
 
