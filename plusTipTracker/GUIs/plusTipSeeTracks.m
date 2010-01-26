@@ -696,6 +696,7 @@ function quadScatterPlotPush_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if isfield(handles,'projData') && handles.doBatchQuad==0
+    handles.projData.anDir=formatPath(handles.projData.anDir);
     saveDir=handles.projData.anDir;
     handles.groupList={'singleProject',handles.projData.anDir};
 else
