@@ -6,7 +6,7 @@ A. Transfer data from Scripps -> Orchestra
 
 1.$ ssh -X sb234@orchestra.med.harvard.edu
 2.$ cd /groups/lccb-interfil/Tropo/Analysis/ROOT_DIRECTORY
-3.$ rsync -avz sylvain@lccbfs001.scripps.edu:/data/projects/Tropomyosin/ROOT_DIRECTORY/ .
+3.$ rsync -rtvz sylvain@lccbfs001.scripps.edu:/data/projects/Tropomyosin/ROOT_DIRECTORY/ .
 
 B. Update FSMCenter & MovieData parameter files (so that I am able to read Andrea's projects)
 
@@ -33,8 +33,8 @@ D. Transfer analysis from Orchestra -> Scripps
 
 1.$ ssh sylvain@lccbfs001.scripps.edu
 2.$ cd /data/projects/Tropomyosin/Analysis/ROOT_DIRECTORY/
-3.$ sudo rsync -avz sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/ROOT_DIRECTORY/ .
-4.$ sudo chown -R abacconi:danuserOld *
+3.$ sudo chmod g+w *
+4.$ rsync -rtvz sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/ROOT_DIRECTORY/ .
 5. Logout lccbfs001
 
 E. Update FSMCenter & MovieData parameter files (so that Andrea is able to open his own projects)
