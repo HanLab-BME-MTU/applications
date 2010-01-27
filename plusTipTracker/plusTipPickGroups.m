@@ -87,7 +87,7 @@ if isempty(autoGrp)
         end
 
         % get rid of already-picked ones for next round
-        allProjects(selection)=[];
+        allProjects(selection,:)=[];
         
         % ask whether to select another group
         pickAgain=questdlg('Select another group?');
