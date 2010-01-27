@@ -140,6 +140,11 @@ for i = 1:numel(newProjDirList)
     % update projSettings.projDir
     projSettings.projDir = newProjDir;
     
+    % update projSettings.firstImgList
+    if numel(projSettings.firstImgList) > 1
+        projSettings.firstImgList = {projSettings.firstImgList{1}};
+    end
+    
     save(filename, 'projSettings');
     
     % Update edge/parameters.dat
