@@ -7,8 +7,9 @@ function refinedMask = refineMaskEdges(maskIn,imageIn,maxAdjust,maxGap,preGrow)
 % It assumes that the input mask (maskIn) OVERSHOOTS the cell boundary in
 % all areas - that is the cell/object in the image is completely contained
 % within the mask. If you aren't sure this is the case, input a non-zero
-% integer for preGrow.
-% 
+% integer for preGrow, which will grow the mask prior to edge refinement.
+% It also assumes that the object contained in the mask is brighter than
+% the background.
 % 
 % Input:
 % 
@@ -17,7 +18,8 @@ function refinedMask = refineMaskEdges(maskIn,imageIn,maxAdjust,maxGap,preGrow)
 %   imageIn - The image the mask was created for. 
 % 
 %   maxAdjust - The maximum distance to adjust the edge location by, in
-%   pixels.
+%   pixels. This distance is relative to the original input masks's edge
+%   location, ignoring the effects of the pre-growth (see below);
 % 
 %   maxEdgeGap - The largest size of gaps in the detected edges to close.
 %   THis is the radius of the closure opp performed on the final mask.
@@ -33,6 +35,10 @@ function refinedMask = refineMaskEdges(maskIn,imageIn,maxAdjust,maxGap,preGrow)
 %
 %Hunter Elliott 3/2009
 %
+
+
+%% -------------- Input ------------ %%
+
 
 if nargin < 5 || isempty(preGrow)
     preGrow = 0;
@@ -52,99 +58,96 @@ if ~isequal(size(maskIn),size(imageIn));
     error('The input mask and image must be the same size!!!')
 end
 
+imageIn = double(imageIn);
 
-showPlots = 0;
-
-%Disable rounding warning
-warning('off','MATLAB:intConvertOverflow');
 
 %% ------ Parameters ----- %%
 
-
-% tooSmall = 30; %If a mask fragment is below this size in pixels it is thrown out.
-threshScale = .6; %Fraction by which to adjust edge threshold on second round.
-sigFilter = 1.0; %Sigma of filter used in canny edge detection.
-
-%closeRad = max(round(min(size(imageIn)) / 5), 10); %Radius of closure op for edges
+tooSmall = 1; %If a detected edge fragment is below this size in pixels it is thrown out.
+threshScale = [.95 .5]; %Fraction by which to adjust edge threshold on second round.
+nSig = 5; %Number of standard deviations above background intensity to keep edges.(darker edges are removed)
+sigFilter = 1.2; %Sigma of filter used in canny edge detection.
+showPlots = 1; %For debugging/parameter testing. Shows plots of intermediate steps, overlay of final mask.
 
 %% ----- Edge Detection ------ %%
 
 %Run initial edge detection
-[edges,autoThresh] = edge(imageIn,'canny',[],sigFilter);
+[edges,autoThresh] = edge(imageIn,'canny',[],sigFilter); %#ok<ASGLU>
+
+%Run a second round with lower thresholds
+edges = edge(imageIn,'canny', autoThresh .* threshScale,sigFilter);
 
 
-%Run a second round with lower threshold
-[edges,eThres] = edge(imageIn,'canny', autoThresh * threshScale,sigFilter);
+if showPlots
+   figure
+   hold on
+   title('Initial Edge Detection')       
+   imshow(imageIn,[])   
+   hold on      
+   spy(edges,'r')
+   caxis(caxis/2);    
+end
 
 
-%% --- Edge Refinement ---- %%
+%% ------ Edge Pre-Processing ------ %%
 
-% %Clean up the mask a little
-% maskIn = bwareaopen(maskIn,tooSmall);
+%Get statistics for the background intensity
+meanBak = mean(imageIn(~maskIn(:)));
+stdBak = std(imageIn(~maskIn(:)));
 
-%Grow the mask, if requested
-if preGrow > 0 
+%Remove edges in very dark areas.
+edges(imageIn < (meanBak + nSig*stdBak )) = false;
+
+%Remove small, isolated edge fragments
+edges = bwareaopen(edges,tooSmall);
+
+if showPlots
+   figure
+   hold on
+   title('Pre-Processed Edge Detection')       
+   imshow(imageIn,[])   
+   hold on
+   spy(edges,'y')
+   spy(bwperim(maskIn))
+   caxis(caxis/2);           
+    
+end
+
+
+%% ------- Edge Refinement ------ %%
+
+%Get the distance transform of the mask's inverse before growing.
+%This is because the maxAdjust parameter is relative to the original edge
+%position.
+distX = bwdist(~maskIn);
+
+if preGrow > 0
     seGrow = strel('disk',preGrow);
     maskIn = imdilate(maskIn,seGrow);
 end
 
-%Get the distance transform of the mask and its inverse
-distX = bwdist(~maskIn);
+%Get rid of edges which are outside of the mask.
+edges = edges & maskIn;
 
-%Get rid of edges that are further than maxAdjust away from the mask edge,
-%or which are outside of the edge.
-edges = edges & distX <= maxAdjust & distX > 0;
-
-%Add an inner border at maxAdjust inwards from the mask
-edges = edges | bwperim(distX >= maxAdjust);
+%Add an inner border at maxAdjust pixels inwards from the mask
+edges = edges | distX >= maxAdjust;
 
 %Close these edges
-if maxGap > 0
-    seClose = strel('disk',maxGap);
-    closedEdges = imclose(edges,seClose);
-else
-    closedEdges = edges;
-end
+seClose = strel('disk',maxGap);
+refinedMask = imclose(edges,seClose);
+
+%Fill the insides
+refinedMask = imfill(refinedMask,4,'holes');
 
 if showPlots
-    figure
-    imagesc(imageIn)
-    axis image, colormap gray,axis off
-    hold on
-    spy(bwperim(maskIn),'r',10)
-    spy(closedEdges,'b',10)
-    spy(edges,'y',10)
-   
-end
+   figure
+   hold on
+   title('Final refined mask')       
+   imshow(imageIn,[])   
+   hold on   
+   spy(refinedMask)
+   caxis(caxis/2);           
+end 
 
-%Fill the center and any other holes in these edges to get the mask
-refinedMask = imfill(closedEdges,'holes');
-
-% %Keep only the largest object
-% [labelCut,nCut] = bwlabeln(closedEdges,4);
-% areas = zeros(1,nCut);
-% for j = 1:nCut
-%     
-%     areas(j) = nnz(labelCut == j  & maskIn);
-%     
-% end
-
-% %Find largest area
-% [maxArea,iMax] = max(areas);
-% 
-% refinedMask = labelCut == iMax;
-
-
-if showPlots
-    
-    figure
-    imagesc(imageIn)
-    axis image, colormap gray,axis off
-    hold on
-    spy(bwperim(maskIn),'r',15)    
-    spy(bwperim(refinedMask),'b',10)
-    %spy(edges,'y',5)
-end
-    
 
 
