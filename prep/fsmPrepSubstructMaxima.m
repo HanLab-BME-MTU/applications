@@ -38,7 +38,7 @@ for i=1:s
 end
 
 % the masked with a GK local maxima points with intensity delta.I for the raw data image
-Imaxima=Gauss2D1(Imax,SIG);
+Imaxima=Gauss2D(Imax,SIG);
 
 % substruction  
 Inew=IG-Imaxima;
