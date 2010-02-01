@@ -46,13 +46,13 @@ dNoise = randn(size(noisyPixNel))*MESH.fWC * (MESH.sDn / 2^MESH.nBit);
 noisyPixNel = noisyPixNel + dNoise;
 
 % clip negative values (can happen for low electron numbers)
-noisyPixNel(find(noisyPixNel < 0)) = 0;
+noisyPixNel(noisyPixNel < 0) = 0;
 
 % scale the electron field to an image
 MESH.img = noisyPixNel / MESH.fWC;
 
 % clip values larger than 1 (saturated images)
-MESH.img(find(MESH.img > 1)) = 1;
+MESH.img(MESH.img > 1) = 1;
 
 % Display
 % surf(MESH.img); axis([0 30 0 30 0 1]);
@@ -60,7 +60,7 @@ MESH.img(find(MESH.img > 1)) = 1;
 
 % add speckle detector here
 parameters=[2, MESH.sDn/2^MESH.nBit, 2e-4]; % TEMP
-[nb,speckMap] = speckleDetector(Gauss2D(MESH.img,1),parameters);
+[nb,speckMap] = speckleDetector(filterGauss2D(MESH.img,1),parameters);
 
 % display speckle map 
 % imshow(MESH.img,[]);

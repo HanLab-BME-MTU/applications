@@ -62,7 +62,7 @@ hFiltMenu = findobj('Label','Filter image');
 if strcmp(get(hFiltMenu, 'Checked'),'on')
    % Filter
    sigmaSeq = handles.imageSeq.sigma;
-   fImg = Gauss2D(image,str2double(sigmaSeq));
+   fImg = filterGauss2D(image, str2double(sigmaSeq));
    
    % Determine min and max without the borders
    bImg = fImg(sigmaSeq:end-sigmaSeq,sigmaSeq:end-sigmaSeq);

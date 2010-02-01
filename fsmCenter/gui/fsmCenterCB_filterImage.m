@@ -32,7 +32,7 @@ hImg=findall(gca,'Type','Image');
 img=get(hImg,'CData');
 
 % Filter
-fImg=Gauss2D(img,str2num(sigma));
+fImg=filterGauss2D(img, str2double(sigma));
 
 % Update figure
 set(hImg,'CData',fImg);

@@ -38,7 +38,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % image segmentation
 
-If=Gauss2D(I,sigmaOne); % filter the image with sigmaOne
+If=filterGauss2D(I,sigmaOne); % filter the image with sigmaOne
 MN=mean(If(:)); % find the Mean Intensity over the whole filtered image
 If1=If<=MN; % thresholded image - under the mean
 
@@ -59,7 +59,7 @@ bg2=~bg1; % reverse
 % scale space speckle detection
 
 % filter sigma 2
-I2=Gauss2D(I,sigmaTwo);
+I2=filterGauss2D(I,sigmaTwo);
 % substract
 Isub=If-I2;
 % clipping, for there are some negative values after substraction of the (more) filtered image

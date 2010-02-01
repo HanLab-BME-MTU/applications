@@ -685,7 +685,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
             % distribution occupies the whole image surface or not
             
             % Filter result with a gaussian kernel and the calculated sigma
-            match=Gauss2D(match,sigma);
+            match=filterGauss2D(match,sigma);
             
             % Apply color map
             img3C_map=applyColorMap(img,match,[0 30],jet(31),16);
@@ -718,7 +718,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
             end
             
             % Filter with the same sigma as before
-            SNRmap=Gauss2D(SNRmap,sigma);
+            SNRmap=filterGauss2D(SNRmap,sigma);
             
             % Apply color map
             img3C_SNR=applyColorMap(img,SNRmap,[0 30],jet(31),16);

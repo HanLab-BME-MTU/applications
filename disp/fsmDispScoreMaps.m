@@ -270,9 +270,9 @@ for i=2:lastImage
     end
     
 	% Crop events referring to timepoint i
-	eventsB=SCORE(find(SCORE(:,1) == i - 1),:);
-	eventsI=SCORE(find(SCORE(:,1) == i),:);
-	eventsA=SCORE(find(SCORE(:,1) == i + 1),:);
+	eventsB=SCORE(SCORE(:,1) == i - 1,:);
+	eventsI=SCORE(SCORE(:,1) == i,:);
+	eventsA=SCORE(SCORE(:,1) == i + 1,:);
 	
 	% Weigh events (Gauss over 3 points, NOT NORMALIZED TO MAINTAIN CLASSES)
     %                                    ----------------------------------
@@ -296,7 +296,7 @@ for i=2:lastImage
 	end
 	
 	% Filter result with a gaussian kernel and the calculated sigma
-	[cScores,M]=Gauss2D(scores,sigma);
+	cScores=filterGauss2D(scores,sigma,0);
 	
     % Multiply with bwMask (to discard values outside the cell border)
     cScores=bwMask.*cScores;

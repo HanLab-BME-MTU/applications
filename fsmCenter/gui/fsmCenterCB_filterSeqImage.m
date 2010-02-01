@@ -28,7 +28,7 @@ else
     set(hMenu, 'Checked', 'on');
 
     % Check for the existence of sigma
-    if ~exist('sigmaSeq','var') | ~isempty('sigmaSeq')
+    if ~exist('sigmaSeq','var') || ~isempty('sigmaSeq')
         % Ask the user to specify the sigma for filtering
         prompt={'Please specify sigma (pixels) for low-pass filtering:'};
         def={'1'};
@@ -50,7 +50,7 @@ else
     img=get(hImg,'CData');
 
     % Filter
-    fImg=Gauss2D(img,str2num(sigma));
+    fImg = filterGauss2D(img,str2double(sigma));
     
     % Update figure
     set(hImg,'CData',fImg);

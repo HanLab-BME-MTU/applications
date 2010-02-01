@@ -178,7 +178,7 @@ for i=1:L
     % Get current image
     rImg=stack(:,:,i);
     % Filter it with user-input sigma
-    fImg=Gauss2D(rImg,sigma);
+    fImg=filterGauss2D(rImg, sigma);
     % Crop border
     rImg=rImg(border:end-border+1,border:end-border+1);
     fImg=fImg(border:end-border+1,border:end-border+1);

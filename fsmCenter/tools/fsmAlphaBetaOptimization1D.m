@@ -59,7 +59,7 @@ sigmaG = 1.0;
 
 for i = 1 : optimImageStackLen
     img = double(imread(char(imageNameList(i)), 'tiff')) / (2 ^ bitDepth-1);  % Normalization
-    imGStack(:, :, i) = Gauss2D(img, sigmaG);
+    imGStack(:, :, i) = filterGauss2D(img, sigmaG);
     imMinStack(:, :, i) = locmin2d(imGStack(:, :, i), [3,3]);
     imMaxStack(:, :, i) = locmax2d(imGStack(:, :, i), [5,5]);
     cStack(i).cands = fsmPrepBkgEstimDelauNoEnh(size(imGStack(:, :, i)), imMaxStack(:, :, i), imMinStack(:, :, i)); % Finds 3 loc min around each loc max
@@ -72,7 +72,7 @@ pause(2);
 close(h);
 
 total_area = imHeight * imWidth;
-roi_area = sum(sum(bw))
+roi_area = sum(sum(bw));
 non_roi_area = total_area - roi_area;
 
 % fprintf('Percentage of roi area is %f\n', roi_area/total_area *100);

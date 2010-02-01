@@ -232,8 +232,8 @@ for i=1:nImg
     
     % Low-pass filter
     if sigma~=0
-        polyMap=Gauss2D(polyMap,sigma);
-        depolyMap=Gauss2D(depolyMap,sigma);
+        polyMap=filterGauss2D(polyMap,sigma);
+        depolyMap=filterGauss2D(depolyMap,sigma);
     end
     
     % Create dual-channel image

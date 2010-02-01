@@ -30,7 +30,7 @@ s=length(cands);
 nmb=0;
 
 for i=1:s
-    if cands(i).status==1 & cands(i).deltaI>0 % status flag - a local maximun is significant or not
+    if cands(i).status==1 && cands(i).deltaI>0 % status flag - a local maximun is significant or not
         Imax(cands(i).Lmax(1),cands(i).Lmax(2))=cands(i).deltaI; % the intensity at the speckle position is set to "delta I"
         nmb=nmb+1;
     end
@@ -38,7 +38,7 @@ for i=1:s
 end
 
 % the masked with a GK local maxima points with intensity delta.I for the raw data image
-Imaxima=Gauss2D(Imax,SIG);
+Imaxima=filterGauss2D(Imax,SIG);
 
 % substruction  
 Inew=IG-Imaxima;

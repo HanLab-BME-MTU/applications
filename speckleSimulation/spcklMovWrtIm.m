@@ -29,7 +29,7 @@ for fm=1:params.nFrames
         nPts(a(~isnan(a)))=b(~isnan(a));
         sampledIm=zeros(not2keep.nSamplesL,not2keep.nSamplesW);
         sampledIm(:)=nPts; % let intensity of each fluorophore be 1
-        smoothSampledIm=smoothSampledIm+Gauss2D(sampledIm,sigma/params.sampleScale); % do Gaussian smoothing
+        smoothSampledIm=smoothSampledIm+filterGauss2D(sampledIm,sigma/params.sampleScale); % do Gaussian smoothing
 
     end
     % resample the image to pixels (digitization step)
