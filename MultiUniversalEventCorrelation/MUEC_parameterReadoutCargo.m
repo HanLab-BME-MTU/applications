@@ -76,10 +76,10 @@ function [intRes] = MUEC_parameterReadoutCargo(data, restvector, channel, refere
 %==================================
 if (nargin <= 3)
     reference = 0;
-end;
+end
 if (nargin <= 4)
     framerate = 2;
-end;
+end
 if (nargin >= 6)
     if strcmp(align,'left')
        alignvar = 1; 
@@ -87,27 +87,27 @@ if (nargin >= 6)
        alignvar = 2;
     else
        alignvar = 3;
-    end; 
+    end 
 else % check
     alignvar = 3;
-end;
+end
 if (nargin < 7)
     voidAlignPoint = 0;
-end;
+end
 if (nargin>7 && ischar(parname_c0))
     paramName_c0 = [parname_c0 '.mat'];
     paramNameRef_c0 = [parname_c0 '_Ref.mat'];
 else
     paramName_c0 = 'parameterMat.mat';
     paramNameRef_c0 = 'parameterMat_Ref.mat';
-end;
+end
 if (nargin>8 && ischar(parname_c1))
     paramName_c1 = [parname_c1 '.mat'];
     paramNameRef_c1 = [parname_c1 '_Ref.mat'];
 else
     paramName_c1 = 'SA_red_ParameterMat_.mat';
     paramNameRef_c1 = 'SA_red_ParameterMat__Ref.mat';
-end;
+end
 
 
 % =======================================================================
@@ -122,11 +122,10 @@ fileNameRef_c1 = cell(1:nMovies);
 for i=1:nMovies
     % set search path for parameter/intensity file
     if nargin>2 && ~isempty(channel)
-        sourcePath = [getfield(data, {1,i}, channel) filesep];
+        sourcePath = data(i).(channel);
     else
-        sourcePath = [data(i).source filesep];
-    end;
-    
+        sourcePath = data(i).source;
+    end    
     if exist(sourcePath, 'dir')==7
         
         % Load parameter files for both channels
@@ -137,21 +136,24 @@ for i=1:nMovies
         if reference==1
             fileNameRef_c0{i} = getParameterFileName(sourcePath, paramNameRef_c0);
             fileNameRef_c1{i} = getParameterFileName(sourcePath, paramNameRef_c1);
-        end;
+        end
 
     % if path is file name, use this file
     elseif exist(sourcePath, 'file')==2
         fileName_c0{i} = sourcePath;             
     else
         error('No parameter file found.');
-    end;
-end;
+    end
+end
 
 % ========================================================================
 % extract parameter information from files for all movies
 % ========================================================================
 
-% loop over all movies
+colorV = ones(nMovies,3);
+colorV(:,1) = (1:nMovies)/nMovies;
+colorV = hsv2rgb(colorV);
+
 h1 = figure;
 h2 = figure;
 h3 = figure;
@@ -161,36 +163,23 @@ for i=1:nMovies
             
     % extract the positions with the desired parameters
     % retrieves the indexes of the positions corresponding to the parameters (e.g. lifetime range from 'lftInfo.mat')
-    posvec = extractPos_vecFromLftRest([data(i).source filesep 'LifetimeInfo'], restvector, data(i).framerate);
+    posvec = extractPos_vecFromLftRest([data(i).source 'LifetimeInfo'], restvector, data(i).framerate);
     nt = length(posvec); % number of CCPs in cohort
     fprintf('Number of tracks in cohort: %d\n', nt);
     % load parameters stored as iMat_obj in parameterMat.mat
     paramMat_c0 = load(fileName_c0{i});
     paramMat_c0 = paramMat_c0.iMat_obj;
     paramMat_c0 = paramMat_c0(:,:,:); % extract parameter values
-%     paramMat_c1 = load(fileName_c1{i});
-%     paramMat_c1 = paramMat_c1.iMat_obj;
-%     paramMat_c1 = paramMat_c1(posvec,:,1);
     
     paraInt = paramMat_c0(posvec,:,1);
     paraT1  = paramMat_c0(posvec,:,2);
     paraT2  = paramMat_c0(posvec,:,3);
-    %intRes(i).nt = nt;
-    %intRes(i).framerate = data(i).framerate; % useless, remove -> need new format to store prms        
         
-    %[px,pf] = size(paraInt);
-    %val_max = max(paraT1(:));
-    %val_min = min(paraT2(:));
-    
     %%===================================================================
     % if reference parameter values are used, load and calculate them here
     if reference==1
         paramMatRef_c0 = load(fileNameRef_c0{i});
         paramMatRef_c0 = paramMatRef_c0.iMat_ref;
-        
-        %paramMatRef_c1 = load(fileNameRef_c1{i});
-        %paramMatRef_c1 = paramMatRef_c1.iMat_ref;
-        
         nbgPixels = size(paramMatRef_c0,1)/size(paramMat_c0, 1);
         % determine how many reference points exist for each data point
         % (e.g. 8 or 10 background points per data point)
@@ -203,19 +192,14 @@ for i=1:nMovies
         % to a matrix the same size as paramMat_use(:,:,1)
         if nbgPixels>1
             bgMean_c0 = NaN(size(paraInt));
-            %bgMean_c1 = NaN(size(paraInt));
             for k = 1:nt
-                %posvec(k)
-                %nbgPixels
                 % all reference points for this data point
                 rpos = (nbgPixels*(posvec(k)-1)+1):(nbgPixels*posvec(k));
                 % parameter values for these reference points
                 bgMean_c0(k,:) = nanmean(paramMatRef_c0(rpos,:,1));
-                %bgMean_c1(k,:) = nanmean(paramMatRef_c1(rpos,:,1));
             end
         else
             bgMean_c0 = paramMatRef_c0(posvec,:,1);
-            %bgMean_c1 = paramMatRef_c1(posvec,:,1);
         end
     end
  
@@ -253,9 +237,6 @@ for i=1:nMovies
 
     cidx = cargoStatus==1 & valid==1;
     nidx = cargoStatus==0 & valid==1;
-    sum(cidx)
-    sum(nidx)
-    length(posvec)
     
     paraT1_cargo = paraT1(cidx,:);
     paraT2_cargo = paraT2(cidx,:);
@@ -280,37 +261,25 @@ for i=1:nMovies
     errorMat(i,:)   = error_weighted;
     tvec            = tvec_standard;
     
-    intMat_cargo(i,:)     = int_weighted;
-    errorMat_cargo(i,:)   = error_weighted;
-    tvec_cargo           = tvec_standard;
+    intMat_cargo(i,:)     = int_weighted_cargo;
+    errorMat_cargo(i,:)   = error_weighted_cargo;
     
-    intMat_nocargo(i,:)     = int_weighted;
-    errorMat_nocargo(i,:)   = error_weighted;
-    tvec_nocargo            = tvec_standard;
+    intMat_nocargo(i,:)     = int_weighted_nocargo;
+    errorMat_nocargo(i,:)   = error_weighted_nocargo;
     
-    %statusV{i} = cargoStatus;    
     % ==========================
+        
     
-    % separate based on cargo
-%     whos
-%     int_cargo = int_weighted(cargoStatus==1 & valid==1);
-%     int_nocargo = int_weighted(cargoStatus==0 & valid==1);
-%     
-    
-    
-    
-    % plot result
     figure(h1)
-    errorbar(framerate*tvec_standard(1,:),int_weighted,error_weighted/sqrt(nt),'r');
+    errorbar(framerate*tvec(1,:),int_weighted,error_weighted/sqrt(nt),'Color', colorV(i,:));
     hold on;
 
-    
     figure(h2) % cargo
-    errorbar(framerate*tvec_standard(1,:),int_weighted_cargo,error_weighted_cargo/sqrt(length(cidx)),'r');
+    errorbar(framerate*tvec(1,:),int_weighted_cargo,error_weighted_cargo/sqrt(length(cidx)),'Color', colorV(i,:));
     hold on;
 
     figure(h3) % no cargo
-    errorbar(framerate*tvec_standard(1,:),int_weighted_nocargo,error_weighted_nocargo/sqrt(length(nidx)),'r');
+    errorbar(framerate*tvec(1,:),int_weighted_nocargo,error_weighted_nocargo/sqrt(length(nidx)),'Color', colorV(i,:));
     hold on;
     
 end % of for i-loop
@@ -324,23 +293,14 @@ title('Empty pits');
 
 
 
-% write results to data structure
-intRes.intMat   = intMat;
-intRes.errorMat = errorMat;
-intRes.sn       = sn;
-intRes.tvec     = tvec;
-intRes.framerate = framerate;
-%intRes.cargoStatus = statusV;
 
-% determine final average and standard error of the mean:
+
 
 % total error variance sum: std of each movie squared, multiplied by number
 % of trajs in the respective movie
 varmat = (errorMat.^2).*repmat(sn',1,size(errorMat,2));
-
 varmat_cargo = (errorMat_cargo.^2).*repmat(sn_c',1,size(errorMat_cargo,2));
 varmat_nocargo = (errorMat_nocargo.^2).*repmat(sn_n',1,size(errorMat_nocargo,2));
-
 
 % final error of mean (over all movies):
 % root of total variance sum divided by total n, divided by sqrt(n)
@@ -350,32 +310,32 @@ varvec_cargo = sqrt(nansum(varmat_cargo,1)/sum(sn_c))/sqrt(sum(sn_c));
 varvec_nocargo = sqrt(nansum(varmat_nocargo,1)/sum(sn_n))/sqrt(sum(sn_n));
 
 
-
+% write results to data structure
+intRes.intMat   = intMat;
+intRes.errorMat = errorMat;
+intRes.sn       = sn;
+intRes.tvec     = tvec;
+intRes.framerate = framerate;
 intRes.intAVE   = nanmean(intMat);
 intRes.intSEM   = varvec;
-
 
 % plot final results
 if alignvar==2
     tvec = intRes.tvec(2,:);
-    tvec_cargo = tvec_cargo(2,:);
-    tvec_nocargo = tvec_nocargo(2,:);
 else
     tvec = intRes.tvec(1,:);
-    tvec_cargo = tvec_cargo(1,:);
-    tvec_nocargo = tvec_nocargo(1,:);
 end
 ivec    = intRes.intAVE;
 evec    = intRes.intSEM;
 fr      = intRes.framerate;
 
-% TO DO: remove redunant variables
+% TO DO: remove redundant variables
 evec_cargo = varvec_cargo;
 evec_nocargo = varvec_nocargo;
 ivec_cargo = nanmean(intMat_cargo);
 ivec_nocargo = nanmean(intMat_nocargo);
 
-
+whos
 figure
 errorbar(fr*tvec,ivec,evec,'k-');
 hold on;  
@@ -385,17 +345,17 @@ ylabel('parameter intensity above BG');
 title('All pits');
 
 figure
-errorbar(fr*tvec_cargo,ivec_cargo,evec_cargo,'k-');
+errorbar(fr*tvec,ivec_cargo,evec_cargo,'k-');
 hold on;  
-plot( fr*tvec_cargo,ivec_cargo,'r-','LineWidth',2 );
+plot( fr*tvec,ivec_cargo,'r-','LineWidth',2 );
 xlabel('time (sec)');
 ylabel('parameter intensity above BG');
 title('Pits containing cargo');
 
 figure
-errorbar(fr*tvec_nocargo,ivec_nocargo,evec_nocargo,'k-');
+errorbar(fr*tvec,ivec_nocargo,evec_nocargo,'k-');
 hold on;  
-plot( fr*tvec_nocargo,ivec_nocargo,'r-','LineWidth',2 );
+plot( fr*tvec,ivec_nocargo,'r-','LineWidth',2 );
 xlabel('time (sec)');
 ylabel('parameter intensity above BG');
 title('Empty pits');
@@ -461,9 +421,6 @@ if voidAlignPoint==1
     evec_app(p0_app) = (evec_app(p0_app-1)+evec_app(p0_app+1))/2;
     svec_app(p0_app) = (svec_app(p0_app-1)+svec_app(p0_app+1))/2;
 end
-
-%sn(i) = nt;
-
 
 
 % ==========================
