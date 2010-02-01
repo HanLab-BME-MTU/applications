@@ -335,7 +335,7 @@ evec_nocargo = varvec_nocargo;
 ivec_cargo = nanmean(intMat_cargo);
 ivec_nocargo = nanmean(intMat_nocargo);
 
-whos
+
 figure
 errorbar(fr*tvec,ivec,evec,'k-');
 hold on;  
