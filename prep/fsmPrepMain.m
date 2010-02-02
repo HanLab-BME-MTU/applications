@@ -108,11 +108,11 @@ if ~isfield(fsmParam,'batchJob')
     outFileList=getFileStackNames([dirName,fName]);
     
     % recover the number of image selected
-    [path,body,firstIndex]=getFilenameBody(char(outFileList(1)));
+    [path,body,firstIndex]=getFilenameBody(outFileList{1});
     firstIndex=str2double(firstIndex);
     
     % Recover the number of the last image in the folder
-    [path,body,no]=getFilenameBody(char(outFileList(end)));
+    [path,body,no]=getFilenameBody(outFileList{end});
     
     % Prepare string number format
     s=length(num2str(no));
@@ -128,7 +128,7 @@ if ~isfield(fsmParam,'batchJob')
     end
     
     % Convert filelist to a matrix of strings
-    outFileList=char(outFileList);
+    % outFileList=char(outFileList);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
@@ -207,7 +207,7 @@ if ~isfield(fsmParam,'batchJob')
     if drawROI==1
         
         % Allow the user to draw a ROI
-        img=imreadnd2(char(outFileList(1,:)),xmin,xmax);
+        img=imreadnd2(outFileList{1},xmin,xmax);
         figure;
         imshow(img,[]);
         set(gcf,'Name','Please draw region of interest');
@@ -240,6 +240,12 @@ else
     imageSize=fsmParam.specific.imgSize;
     strg=fsmParam.specific.formString;
     outFileList=fsmParam.specific.fileList;
+    % workaround: outFileList must be a cell array. If previous parameter
+    % file contains character array, we convert it.
+    if ~iscell(outFileList)
+        outFileList = mat2cell(outFileList, ones(1, size(outFileList, 1)), ...
+            size(outFileList, 2));
+    end
     factors=ones(1,n);
     firstIndex=fsmParam.specific.firstIndex;
 end
@@ -320,7 +326,7 @@ for counter1=1:n
     currentIndex=counter1+firstIndex-1;
     
     % Load and normalize the image
-    img=imreadnd2(char(outFileList(counter1,:)),xmin,xmax);
+    img=imreadnd2(outFileList{counter1},xmin,xmax);
     
     % retain copy of original image for mixture model
     % orig_image is normalized, but NOT filtered
@@ -348,7 +354,7 @@ for counter1=1:n
         %   try
         %      % Here use special bit depth instead of the FSM bit depth
         %      % contact Matthias for more questions
-        %      img_tmp=imreadnd2(char(outFileList(counter1,:)),0,eBD);
+        %      img_tmp=imreadnd2(outFileList{counter1},0,eBD);
         %      [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',0,'filter_image',1,'bit_depth',eBD);
         %   catch
         %      bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
@@ -402,7 +408,7 @@ fsmParam.specific.imageNumber=n;
 fsmParam.specific.firstIndex=firstIndex;
 fsmParam.specific.lastIndex=currentIndex;
 fsmParam.specific.formString=strg;
-fsmParam.specific.fileList=char(outFileList);
+fsmParam.specific.fileList=outFileList;
 fsmParam.specific.intCorrFactors=factors;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
