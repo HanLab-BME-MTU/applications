@@ -58,7 +58,7 @@ fprintf(fid,'[ EXPERIMENT INFO ]\n\n');
 fprintf(fid,'Work path                      : %s\n',fsmParam.main.path);
 fprintf(fid,'Number of images               : %d\n',fsmParam.specific.imageNumber); % This must be read from .specific
 fprintf(fid,'Image size                     : %d x %d\n',fsmParam.specific.imgSize(1),fsmParam.specific.imgSize(2)); % This must be read from .specific
-fprintf(fid,'First image name and path      : %s\n',fsmParam.specific.fileList(1,:)); % This must be read from .specific
+fprintf(fid,'First image name and path      : %s\n',fsmParam.specific.fileList{1}); % This must be read from .specific
 fprintf(fid,'Bit depth                      : %d\n',log2(fsmParam.main.normMax+1));
 qtile=[1.15 1.29 1.45 1.645 1.96 2.58];
 pcent=[75 80 85 90 95 99];
