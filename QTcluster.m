@@ -46,11 +46,6 @@ if exist('force','var') == 0 || isempty(force)
     force = 0;
 end
 
-
-%Fill in Missing Data
-%movie length is required for
-[experiment] = determineMovieLength(experiment);
-
 %GET HOT SPOT RADIUS FROM DENSITY PLOTS
 [hotSpotRadius] = determineHotSpotRadius(experiment,rest);
 
