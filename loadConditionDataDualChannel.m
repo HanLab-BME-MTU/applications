@@ -19,7 +19,7 @@ function [experiment] = loadConditionDataDualChannel(condDir)
 
 % select directory where all data for this condition are located
 if (nargin == 0)
-    condDir = uigetdir(pwd, 'Select the ''condition'' folder');
+    condDir = [uigetdir(pwd, 'Select the ''condition'' folder') filesep];
 end;
 fprintf('Condition selected: %s\n', condDir);
     
@@ -47,7 +47,7 @@ if ~isempty(expDir)
 %         dateList(i).name = expDir(i).name;
         
         % look for the individual cell data in this folder
-        expPath = [condDir filesep expDir(i).name filesep];
+        expPath = [condDir expDir(i).name filesep];
         cellDir = dirList(expPath);
         %nCells(i) = length(cellDir);
         
@@ -64,37 +64,39 @@ if ~isempty(expDir)
                 
                 if (ct == 1)
                     % get directories for individual channels
-                    cellPath = [expPath cellDir(k).name];
+                    cellPath = [expPath cellDir(k).name filesep];
                     channel1Path = [uigetdir(cellPath, 'select first (master) channel (e.g. CCP channel)') filesep];
                     channel2Path = [uigetdir(cellPath, 'select second (slave) channel (e.g. other protein)') filesep];
-                    %channel1Name = channel1Path(find(channel1Path==filesep, 1, 'last')+1:end);
-                    %channel2Name = channel2Path(find(channel2Path==filesep, 1, 'last')+1:end);
-                    channel1Name = channel1Path(length(expPath)+1:end-1);
-                    channel2Name = channel2Path(length(expPath)+1:end-1);
-                    fprintf('Channel 1 name: %s\n', channel1Name);
-                    fprintf('Channel 2 name: %s\n', channel2Name);
+                    channel1Name = channel1Path(length(cellPath)+1:end-1);
+                    channel2Name = channel2Path(length(cellPath)+1:end-1);
+                    fprintf('Channel 1 name: "%s"\n', channel1Name);
+                    fprintf('Channel 2 name: "%s"\n', channel2Name);
                 else
                     
                     % look for the individual channels in cell folder
-                    channel1Path = [expPath channel1Name filesep];
-                    if ~exist(channel1Path, 'dir')==7
-                        channel1Path = [uigetdir(cellDir(k).name, 'select first (master) channel (e.g. CCP channel)') filesep];
+                    if ~isempty(channel1Name)
+                        channel1Path = [expPath cellDir(k).name filesep channel1Name filesep];
+                    else
+                        channel1Path = [expPath cellDir(k).name filesep];
                     end
-                    channel2Path = [expPath channel2Name filesep];
-                    if ~exist(channel2Path, 'dir')==7
-                        channel2Path = [uigetdir(cellDir(k).name, 'select second (slave) channel (e.g. other protein)') filesep];
+                    if ~(exist(channel1Path, 'dir')==7)
+                        %channel1Path = [uigetdir(cellDir(k).name, 'select first (master) channel (e.g. CCP channel)') filesep];
+                    end
+                    channel2Path = [expPath cellDir(k).name filesep channel2Name filesep];
+                    if ~(exist(channel2Path, 'dir')==7)
+                        %channel2Path = [uigetdir(cellDir(k).name, 'select second (slave) channel (e.g. other protein)') filesep];
                     end
                 end
                 
-                % enter data
+                fprintf('Loading: %s\n', channel1Path);
+
                 experiment(ct).source = channel1Path;
                 experiment(ct).channel1 = channel1Path;
                 experiment(ct).channel2 = channel2Path;
                 experiment(ct).date = currDate{1};
                 experiment(ct).framerate = framerate;
-                
-                tifFiles = dir([experiment(ct).channel1 filesep '*.tif']);
-                experiment(ct).imagesize = size(imread([experiment(ct).channel1 filesep tifFiles(1).name]));
+                tifFiles = dir([experiment(ct).channel1 '*.tif']);
+                experiment(ct).imagesize = size(imread([experiment(ct).channel1 tifFiles(1).name]));
                 experiment(ct).movieLength = length(tifFiles);
 
                 ct = ct+1;
