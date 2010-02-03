@@ -77,11 +77,11 @@ if ~isempty(expDir)
                         channel1Path = [expPath cellDir(k).name filesep];
                     end
                     if ~(exist(channel1Path, 'dir')==7)
-                        %channel1Path = [uigetdir(cellDir(k).name, 'select first (master) channel (e.g. CCP channel)') filesep];
+                        channel1Path = [uigetdir(cellDir(k).name, 'select first (master) channel (e.g. CCP channel)') filesep];
                     end
                     channel2Path = [expPath cellDir(k).name filesep channel2Name filesep];
                     if ~(exist(channel2Path, 'dir')==7)
-                        %channel2Path = [uigetdir(cellDir(k).name, 'select second (slave) channel (e.g. other protein)') filesep];
+                        channel2Path = [uigetdir(cellDir(k).name, 'select second (slave) channel (e.g. other protein)') filesep];
                     end
                 end
                 
