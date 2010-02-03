@@ -19,7 +19,6 @@ function [BICres] = simpleBICtest(data, startparameters)
 
 
 % fill data structure to the required degree
-data = determineMovieLength(data);
 data = fillStructLifetimeHist(data);
 
 % average and merge
@@ -239,17 +238,7 @@ for r=1:sx
         end
         
         disp(['current minimum: ',shaps,'   BIC=',num2str(BICvalue)]);
-    end
-    
-    % =====     display results: comment/uncomment as desired
-    % ====================================================================
-    
-    
+    end    
 end % of for r
 close(h1);
-
-
 res = fitresults;
-
-
-end % of function
