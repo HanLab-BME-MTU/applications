@@ -1,4 +1,4 @@
-function [data] = makeMockPattern(data, circleradius, circledist);
+function [data] = makeMockPattern(data, circleradius, circledist)
 % make mock pattern and fill into the field .mockpattern
 % 
 % SYNOPSIS [data] = makeMockPattern(data, circleradius, circledist);
@@ -13,10 +13,6 @@ function [data] = makeMockPattern(data, circleradius, circledist);
 %           
 %
 % Dinah Loerke, modified Sept 09, 2008
-
-if ~isfield(data,'imagesize')
-    data = determineImagesize(data);
-end
 
 % (relative) index positions of the pixels that have the specified distance
 % from a pixel of position n in an image of this size
@@ -74,7 +70,7 @@ end % of function
 
 %%========================================================================
 
-function [m2]=DistanceMatrix(c1,c2);
+function [m2]=DistanceMatrix(c1,c2)
 %this subfunction makes a neighbour-distance matrix for input matrix c1
 %(n1 x 2 points) and c2
 %output: m2 (n1 x n1) matrix containing the distances of each point in c1 
@@ -91,9 +87,4 @@ for k = 1:np1
         m2(k,n)=d;
     end
 end
-
-
 end
-
-        
-    
