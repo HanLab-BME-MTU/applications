@@ -39,7 +39,6 @@ function [movieArray] = makeCellMaskIntensity(experiment,forceRun,closureRadius,
 %           movieArray
 % Uses:
 %       batchSegmentMovies
-%       determineMovieLength
 %
 % Daniel Nunez, updated May 06, 2009
 
@@ -69,7 +68,6 @@ end
 %start variables
 movieDataEmpty = struct('analysisDirectory',[],'imageDirectory',[],'nImages',[],'pixelSize_nm',67,'timeInterval_s',[]);
 %prep data
-experiment = determineMovieLength(experiment);
 for iexp = 1:length(experiment)
     directory = experiment(iexp).source;
     movieDataExists = 0;
