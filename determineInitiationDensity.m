@@ -27,8 +27,6 @@ function [experiment] = determineInitiationDensity(experiment,rest,plotMask,inpu
 %           experiment.initiationDen in pits/second/micrometer^2
 %
 % Uses:
-%       determineMovieLength
-%       determineImagesize
 %       makeCellMaskDetections
 %
 % Daniel Nunez, updated May 5, 2009
@@ -92,12 +90,6 @@ end
 
 %make image binary
 inputMask = im2bw(inputMask);
-
-%Fill in Missing Data
-%needed to normalize density by movie length
-[experiment] = determineMovieLength(experiment);
-%needed to make mask
-[experiment] = determineImagesize(experiment);
 
 for iexp = 1:length(experiment)
 
