@@ -20,17 +20,11 @@ function [hotSpotRadius] = determineHotSpotRadius(experiment,rest);
 %           hotSpotRadius: mean value of pair correlation from pixels 10 to   
 %           20 plus one)
 %
-% Uses: determineMovieLength
-%       determineImagesize
-%       RipleysKfunction
+% Uses: RipleysKfunction
 %
 % Daniel Nunez, January 20, 2009
 
 dist = 1:1:20;
-
-%Fill in Missing Data
-[experiment] = determineMovieLength(experiment);
-[experiment] = determineImagesize(experiment);
 
 for iexp = 1:length(experiment)
     
