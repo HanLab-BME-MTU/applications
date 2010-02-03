@@ -32,7 +32,6 @@ if ~isempty(expDir)
     % get all experiment/date directories for this condition
     nExp = length(expDir);
     dateList(1:nExp) = struct('date', [], 'name', []);
-    %nCells = zeros(1,nExp);
     for i = 1:nExp
         
         % extract date from file name
@@ -44,12 +43,10 @@ if ~isempty(expDir)
             currDate = currDate(lengths == max(lengths(:)));
         end;
         dateList(i).date = currDate{1};
-%         dateList(i).name = expDir(i).name;
         
         % look for the individual cell data in this folder
         expPath = [condDir expDir(i).name filesep];
         cellDir = dirList(expPath);
-        %nCells(i) = length(cellDir);
         
         % loop over all cell folders
         if ~isempty(cellDir)
@@ -80,11 +77,11 @@ if ~isempty(expDir)
                         channel1Path = [expPath cellDir(k).name filesep];
                     end
                     if ~(exist(channel1Path, 'dir')==7)
-                        %channel1Path = [uigetdir(cellDir(k).name, 'select first (master) channel (e.g. CCP channel)') filesep];
+                        channel1Path = [uigetdir(cellDir(k).name, 'select first (master) channel (e.g. CCP channel)') filesep];
                     end
                     channel2Path = [expPath cellDir(k).name filesep channel2Name filesep];
                     if ~(exist(channel2Path, 'dir')==7)
-                        %channel2Path = [uigetdir(cellDir(k).name, 'select second (slave) channel (e.g. other protein)') filesep];
+                        channel2Path = [uigetdir(cellDir(k).name, 'select second (slave) channel (e.g. other protein)') filesep];
                     end
                 end
                 
