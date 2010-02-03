@@ -30,7 +30,6 @@ function [pairCorrelation,clustering] = plotPairCorrelation(experiment,dist,rest
 %           clustering = sum of pairCorrelation for the first two pixels
 %                       for ech movie
 % Uses:
-%       determineImagesize
 %       makeCellMaskDetections
 %       RipleysKfunction
 %       calculatePitDenFromLR
@@ -96,11 +95,6 @@ end
 %convert movie paths to correct OS
 experiment = changePathUsingEndocytosis(experiment);
 
-%Fill in Missing Data
-if ~isfield(experiment,'imagesize')
-[experiment] = determineImagesize(experiment);
-end
-
 pairCorrelation = nan(length(dist),length(experiment));
 parfor iexp = 1:length(experiment)
 
@@ -158,4 +152,3 @@ end
 clustering = sum(pairCorrelation(1:2,:),1);
 cd(od)
 end %of function
-
