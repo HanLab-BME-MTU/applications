@@ -116,95 +116,98 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 %ask user to pick folder containing tifs for first channel
 experiment.source = uigetdir([],'choose directory under which the images can be found');
-%save directory for saving movie frames under a child directory of this
-%direcotry
-handles.source = experiment.source;
-% load lifetime info
-%it is loaded here to get the number of frames
-load([experiment.source filesep 'LifetimeInfo' filesep 'lftInfo.mat']);
-%set lifetime maximum to length of movie; done here for easy storage of
-%movie length
-handles.lftMax = size(lftInfo.Mat_xcoord,2);
-%set text box on top of frame slider to read 'frame 1 out of
-%movielength
-set(handles.text1,'String', ['frame 1 out of ' num2str(handles.lftMax)]);
-%update this value of edit box for lifetime max
-set(handles.edit3,'String',num2str(handles.lftMax));
-%FRAME SLIDER VALUES
-%set frame slider max to last frame
-set(handles.slider1,'Max',handles.lftMax);
-%set frame slider min
-set(handles.slider1,'Min',1);
-%set the frame slider value
-set(handles.slider1,'Value',1);
-%set frame slider
-set(handles.slider1,'SliderStep',[1/(handles.lftMax-1) 10/(handles.lftMax-1)]);
-handles.iframe = 1;
-%LOAD IMAGES
-% get all tif files
-filenames = dir([experiment.source filesep '*.tif']);
-% load images for channel one
-handles.imagesChannel1 = [];
-for iIm = 1:length(filenames)
-    handles.imagesChannel1(:,:,iIm) = imread([experiment.source filesep filenames(iIm).name]);
-end
-%set slider values for channel one max Intensity
-set(handles.slider2,'Max',max(handles.imagesChannel1(:)));
-set(handles.slider2,'Min',min(handles.imagesChannel1(:)));
-set(handles.slider2,'Value',max(handles.imagesChannel1(:)));
-handles.maxIntChannel1 = max(handles.imagesChannel1(:));
-handles.minIntChannel1 = min(handles.imagesChannel1(:));
-set(handles.slider2,'SliderStep',[1/(double(handles.maxIntChannel1)-double(handles.minIntChannel1)) ...
-    10/(double(handles.maxIntChannel1)-double(handles.minIntChannel1))]);
-%set slider values for channel one min Intensity
-set(handles.slider3,'Max',max(handles.imagesChannel1(:)));
-set(handles.slider3,'Min',min(handles.imagesChannel1(:)));
-set(handles.slider3,'Value',min(handles.imagesChannel1(:)));
-set(handles.slider3,'SliderStep',[1/(double(handles.maxIntChannel1)-double(handles.minIntChannel1)) ...
-    10/(double(handles.maxIntChannel1)-double(handles.minIntChannel1))]);
-files = dir([experiment.source filesep 'ClusterData' filesep 'clusterResults*']);
-
-%Cluster Results For Hot Spots
-%load cluster results
-if exist([experiment.source filesep 'ClusterData']) == 7
-    load([experiment.source filesep 'ClusterData' filesep files(1).name]);
-    %save cluster results into handles structure
-    handles.clusterResults = clusterResults;
-    handles.pitID = retievePitIDFromClusterResults(lftInfo,clusterResults);
-    handles.hotOrNot = zeros(size(lftInfo.Mat_xcoord,1),1);
-    handles.hotOrNot(handles.pitID(clusterResults.clusterResults(:,3)~=0)) = 1;
-    handles.hotOrNot(handles.pitID(clusterResults.clusterResults(:,3)==0)) = -1;
-    %make points in a circle around each
-    %make nump in a circle around hot spot centroids
-    nump = 8;
-    %equally space them
-    theta = linspace(0,2*pi,nump);
-    rho = ones(1,nump)*clusterResults.hotSpotRadius;
-    [x,y] = pol2cart(theta,rho);
-    %add these points to each hotspot centroid to denote hotspot
-    for ihotspot = 1:size(clusterResults.clusterCentroids,1)
-        X(ihotspot,:) = x + repmat(clusterResults.clusterCentroids(ihotspot,1),1,nump);
-        Y(ihotspot,:) = y + repmat(clusterResults.clusterCentroids(ihotspot,2),1,nump);
+%only do the rest if source is not empty
+if experiment.source ~= 0
+    %save directory for saving movie frames under a child directory of this
+    %direcotry
+    handles.source = experiment.source;
+    % load lifetime info
+    %it is loaded here to get the number of frames
+    load([experiment.source filesep 'LifetimeInfo' filesep 'lftInfo.mat']);
+    %set lifetime maximum to length of movie; done here for easy storage of
+    %movie length
+    handles.lftMax = size(lftInfo.Mat_xcoord,2);
+    %set text box on top of frame slider to read 'frame 1 out of
+    %movielength
+    set(handles.text1,'String', ['frame 1 out of ' num2str(handles.lftMax)]);
+    %update this value of edit box for lifetime max
+    set(handles.edit3,'String',num2str(handles.lftMax));
+    %FRAME SLIDER VALUES
+    %set frame slider max to last frame
+    set(handles.slider1,'Max',handles.lftMax);
+    %set frame slider min
+    set(handles.slider1,'Min',1);
+    %set the frame slider value
+    set(handles.slider1,'Value',1);
+    %set frame slider
+    set(handles.slider1,'SliderStep',[1/(handles.lftMax-1) 10/(handles.lftMax-1)]);
+    handles.iframe = 1;
+    %LOAD IMAGES
+    % get all tif files
+    filenames = dir([experiment.source filesep '*.tif']);
+    % load images for channel one
+    handles.imagesChannel1 = [];
+    for iIm = 1:length(filenames)
+        handles.imagesChannel1(:,:,iIm) = imread([experiment.source filesep filenames(iIm).name]);
     end
-    %save points to handles structure
-    handles.hotSpotsX = X ;
-    handles.hotSpotsY = Y ;
-end %of if cluster results exist
-%make zeros into nans so that the dragtails can be plotted
-%sparse matrices take too long to change into nans
-Mat_xcoord = full(lftInfo.Mat_xcoord);
-Mat_xcoord(Mat_xcoord==0) = nan;
-handles.Mat_xcoord = Mat_xcoord;
-Mat_ycoord = full(lftInfo.Mat_ycoord);
-Mat_ycoord(Mat_ycoord==0) = nan;
-handles.Mat_ycoord = Mat_ycoord;
-handles.lftInfo = lftInfo;
-%plot image
-plotImage(handles);
-%write current movie path in text box next to load movie button
-set(handles.text7,'String', experiment.source);
-% Update handles structure
-guidata(hObject, handles);
+    %set slider values for channel one max Intensity
+    set(handles.slider2,'Max',max(handles.imagesChannel1(:)));
+    set(handles.slider2,'Min',min(handles.imagesChannel1(:)));
+    set(handles.slider2,'Value',max(handles.imagesChannel1(:)));
+    handles.maxIntChannel1 = max(handles.imagesChannel1(:));
+    handles.minIntChannel1 = min(handles.imagesChannel1(:));
+    set(handles.slider2,'SliderStep',[1/(double(handles.maxIntChannel1)-double(handles.minIntChannel1)) ...
+        10/(double(handles.maxIntChannel1)-double(handles.minIntChannel1))]);
+    %set slider values for channel one min Intensity
+    set(handles.slider3,'Max',max(handles.imagesChannel1(:)));
+    set(handles.slider3,'Min',min(handles.imagesChannel1(:)));
+    set(handles.slider3,'Value',min(handles.imagesChannel1(:)));
+    set(handles.slider3,'SliderStep',[1/(double(handles.maxIntChannel1)-double(handles.minIntChannel1)) ...
+        10/(double(handles.maxIntChannel1)-double(handles.minIntChannel1))]);
+    files = dir([experiment.source filesep 'ClusterData' filesep 'clusterResults*']);
+    
+    %Cluster Results For Hot Spots
+    %load cluster results
+    if exist([experiment.source filesep 'ClusterData']) == 7
+        load([experiment.source filesep 'ClusterData' filesep files(1).name]);
+        %save cluster results into handles structure
+        handles.clusterResults = clusterResults;
+        handles.pitID = retievePitIDFromClusterResults(lftInfo,clusterResults);
+        handles.hotOrNot = zeros(size(lftInfo.Mat_xcoord,1),1);
+        handles.hotOrNot(handles.pitID(clusterResults.clusterResults(:,3)~=0)) = 1;
+        handles.hotOrNot(handles.pitID(clusterResults.clusterResults(:,3)==0)) = -1;
+        %make points in a circle around each
+        %make nump in a circle around hot spot centroids
+        nump = 8;
+        %equally space them
+        theta = linspace(0,2*pi,nump);
+        rho = ones(1,nump)*clusterResults.hotSpotRadius;
+        [x,y] = pol2cart(theta,rho);
+        %add these points to each hotspot centroid to denote hotspot
+        for ihotspot = 1:size(clusterResults.clusterCentroids,1)
+            X(ihotspot,:) = x + repmat(clusterResults.clusterCentroids(ihotspot,1),1,nump);
+            Y(ihotspot,:) = y + repmat(clusterResults.clusterCentroids(ihotspot,2),1,nump);
+        end
+        %save points to handles structure
+        handles.hotSpotsX = X ;
+        handles.hotSpotsY = Y ;
+    end %of if cluster results exist
+    %make zeros into nans so that the dragtails can be plotted
+    %sparse matrices take too long to change into nans
+    Mat_xcoord = full(lftInfo.Mat_xcoord);
+    Mat_xcoord(Mat_xcoord==0) = nan;
+    handles.Mat_xcoord = Mat_xcoord;
+    Mat_ycoord = full(lftInfo.Mat_ycoord);
+    Mat_ycoord(Mat_ycoord==0) = nan;
+    handles.Mat_ycoord = Mat_ycoord;
+    handles.lftInfo = lftInfo;
+    %plot image
+    plotImage(handles);
+    %write current movie path in text box next to load movie button
+    set(handles.text7,'String', experiment.source);
+    % Update handles structure
+    guidata(hObject, handles);
+end %of if source is not empty
 
 % INITIATION MARKER CHECKBOX
 % --- Executes on button press in checkbox1.
@@ -361,8 +364,12 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % CREATE CODE TO MAKE AND SAVE .avi
-%make avi for channel1
-aviobj1 = avifile([handles.source filesep handles.movieDir '_channel1']);
+%make movie directory
+mkdir(handles.source,handles.movieDir);
+%make directory for channel 1
+mkdir([handles.source filesep handles.movieDir],'channel1');
+%make directory for channel 2
+mkdir([handles.source filesep handles.movieDir],'channel2');
 for i = 1:size(handles.lftInfo.Mat_ycoord,2)
     handles.iframe = i;
     % Update handles structure
@@ -378,9 +385,8 @@ for i = 1:size(handles.lftInfo.Mat_ycoord,2)
     %make greyscale
     colormap(axHandles,'gray');
     %print new figure
-    %print(figureHandle,'-dtiff',[handles.source filesep handles.movieDir filesep 'channel1' filesep 'frame' num2str(i)])
-    %make matlab movie frame
-    aviobj1 = addframe(aviobj1,figureHandle);
+    print(figureHandle,'-dpng','-r300',[handles.source filesep handles.movieDir...
+    filesep 'channel1' filesep 'frame' num2str(i) '.png'])
     %close figure
     close(figureHandle)
     %if second channel is plotted
@@ -394,13 +400,12 @@ for i = 1:size(handles.lftInfo.Mat_ycoord,2)
         %make greyscale
         colormap(axHandles,'gray');
         %print new figure
-        print(figureHandle,'-dtiff',[handles.source filesep handles.movieDir filesep 'channel2' filesep 'frame' num2str(i)])
+        print(figureHandle,'-dpng','-r300',[handles.source filesep handles.movieDir filesep 'channel2' filesep 'frame' num2str(i)])
         %close figure
         close(figureHandle)
-    end 
+    end
 end
-%close movie when done
-aviobj1 = close(aviobj1);
+
 
 % CHANNEL ONE AXES
 % --- Executes during object creation, after setting all properties.
@@ -648,33 +653,36 @@ function pushbutton3_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 source = uigetdir([],'choose directory under which the images can be found');
-% get all tif files
-filenames = dir([source filesep '*.tif']);
-% load image
-handles.imagesChannel2 = [];
-for iIm = 1:length(filenames)
-    handles.imagesChannel2(:,:,iIm) = imread([source filesep filenames(iIm).name]);
-end
-%set slider values for max Intensity
-set(handles.slider4,'Max',max(handles.imagesChannel2(:)));
-set(handles.slider4,'Min',min(handles.imagesChannel2(:)));
-set(handles.slider4,'Value',max(handles.imagesChannel2(:)));
-handles.maxIntChannel2 = max(handles.imagesChannel2(:));
-handles.minIntChannel2 = min(handles.imagesChannel2(:));
-set(handles.slider4,'SliderStep',[1/(double(handles.maxIntChannel2)-double(handles.minIntChannel2)) ...
-    10/(double(handles.maxIntChannel2)-double(handles.minIntChannel2))]);
-%set slider values for min Intnsity
-set(handles.slider5,'Max',max(handles.imagesChannel2(:)));
-set(handles.slider5,'Min',min(handles.imagesChannel2(:)));
-set(handles.slider5,'Value',min(handles.imagesChannel2(:)));
-set(handles.slider5,'SliderStep',[1/(double(handles.maxIntChannel2)-double(handles.minIntChannel2)) ...
-    10/(double(handles.maxIntChannel2)-double(handles.minIntChannel2))]);
-%write current movie path in text box next to load movie button
-set(handles.text8,'String', source);
-% Update handles structure
-guidata(hObject, handles);
-%plot image
-plotImage(handles);
+%only proceed if directory is not empty
+if source ~= 0
+    % get all tif files
+    filenames = dir([source filesep '*.tif']);
+    % load image
+    handles.imagesChannel2 = [];
+    for iIm = 1:length(filenames)
+        handles.imagesChannel2(:,:,iIm) = imread([source filesep filenames(iIm).name]);
+    end
+    %set slider values for max Intensity
+    set(handles.slider4,'Max',max(handles.imagesChannel2(:)));
+    set(handles.slider4,'Min',min(handles.imagesChannel2(:)));
+    set(handles.slider4,'Value',max(handles.imagesChannel2(:)));
+    handles.maxIntChannel2 = max(handles.imagesChannel2(:));
+    handles.minIntChannel2 = min(handles.imagesChannel2(:));
+    set(handles.slider4,'SliderStep',[1/(double(handles.maxIntChannel2)-double(handles.minIntChannel2)) ...
+        10/(double(handles.maxIntChannel2)-double(handles.minIntChannel2))]);
+    %set slider values for min Intnsity
+    set(handles.slider5,'Max',max(handles.imagesChannel2(:)));
+    set(handles.slider5,'Min',min(handles.imagesChannel2(:)));
+    set(handles.slider5,'Value',min(handles.imagesChannel2(:)));
+    set(handles.slider5,'SliderStep',[1/(double(handles.maxIntChannel2)-double(handles.minIntChannel2)) ...
+        10/(double(handles.maxIntChannel2)-double(handles.minIntChannel2))]);
+    %write current movie path in text box next to load movie button
+    set(handles.text8,'String', source);
+    % Update handles structure
+    guidata(hObject, handles);
+    %plot image
+    plotImage(handles);
+end %of if directory is not empty
 
 % --- Executes during object creation, after setting all properties.
 function text14_CreateFcn(hObject, eventdata, handles)
