@@ -271,15 +271,21 @@ for i=1:nMovies
         
     
     figure(h1)
-    errorbar(framerate*tvec(1,:),int_weighted,error_weighted/sqrt(nt),'Color', colorV(i,:));
+    %errorbar(framerate*tvec(1,:),int_weighted,error_weighted/sqrt(nt),'Color', colorV(i,:));
+    he = errorbar(framerate*tvec(1,:),int_weighted,error_weighted/sqrt(nt));
+    set(he, 'Color', colorV(i,:));
     hold on;
 
     figure(h2) % cargo
-    errorbar(framerate*tvec(1,:),int_weighted_cargo,error_weighted_cargo/sqrt(length(cidx)),'Color', colorV(i,:));
+    %errorbar(framerate*tvec(1,:),int_weighted_cargo,error_weighted_cargo/sqrt(length(cidx)),'Color', colorV(i,:));
+    he = errorbar(framerate*tvec(1,:),int_weighted_cargo,error_weighted_cargo/sqrt(length(cidx)));
+    set(he, 'Color', colorV(i,:));
     hold on;
 
     figure(h3) % no cargo
-    errorbar(framerate*tvec(1,:),int_weighted_nocargo,error_weighted_nocargo/sqrt(length(nidx)),'Color', colorV(i,:));
+    %errorbar(framerate*tvec(1,:),int_weighted_nocargo,error_weighted_nocargo/sqrt(length(nidx)),'Color', colorV(i,:));
+    he = errorbar(framerate*tvec(1,:),int_weighted_nocargo,error_weighted_nocargo/sqrt(length(nidx)));
+    set(he, 'Color', colorV(i,:));
     hold on;
     
 end % of for i-loop
