@@ -3,7 +3,7 @@ function batchMakeFigures(varargin)
 if nargin >= 1 && ~isempty(varargin{1})
     rootDirectory = varargin{1};
 else
-    % Ask for the root directory.
+    % Ask for the root directory (Analysis2)
     rootDirectory = uigetdir('', 'Select a root directory:');
 
     if ~ischar(rootDirectory)
@@ -12,26 +12,26 @@ else
 end
 
 if nargin >= 2 && ~isempty(varargin{2})
-    subDirNames = varargin{2};
+    forceRun = varargin{2};
 else
-    error('No subdir specified.');
+    forceRun = zeros(6, 1);
 end
 
 if nargin >= 3 && ~isempty(varargin{3})
-    forceRun = varargin{3};
-else
-    forceRun = zeros(7, 1);
-end
-
-if nargin >= 4 && ~isempty(varargin{4})
-    batchMode = varargin{4};
+    batchMode = varargin{3};
 else
     batchMode = 1;
 end
 
-% Get every path from rootDirectory containing actin subfolder.
-paths = getDirectories(rootDirectory, 2, subDirNames, ...
-    @(x) exist([x filesep 'lastProjSettings.mat'], 'file'));
+subFolders = {...
+    'Actin_TM2_Imaging',...
+    'Actin_TM4_Imaging'...
+    'Actin_TM5NM1_Imaging',...
+    'TM2_TM4_Imaging',...
+    'TM2_TM5NM1_Imaging',...
+    'TM4_TM5NM1_Imaging'};
+
+paths = cellfun(@(x) [rootDirectory filesep x], subFolders);
 
 disp('List of directories:');
 
@@ -39,7 +39,7 @@ for iMovie = 1:numel(paths)
     disp([num2str(iMovie) ': ' paths{iMovie}]);
 end
 
-disp('Process all directories (Grab a coffee)...');
+disp('Process all directories...');
 
 nMovies = numel(paths);
 
@@ -56,20 +56,25 @@ for iMovie = 1:nMovies
     currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
     content = dir(path);
     content = {content.name};
-    ind = cellfun(@(x) any(strcmpi(x, subDirNames)), content);
-    if ~nnz(ind)
-        disp([movieName ': Unable to find the FSM directory. (SKIPPING)']);
+    ind = cellfun(@(x) exist([x filesep 'lastProjSettings.mat'], 'file'), ...
+        content);
+    if ~nnz(ind) || nnz(ind) ~= 2
+        disp([movieName ': Unable to find the FSM directories. (SKIPPING).']);
         continue;
     end    
-    %fsmFolderName = content{find(ind, 1, 'first')};
     currMovie.fsmDirectory = cellfun(@(x) [path filesep x], content(ind), ...
         'UniformOutput', false);
     % Add these 2 fields to be compliant with Hunter's check routines:
     currMovie.imageDirectory = [currMovie.fsmDirectory{1} filesep 'crop'];
     currMovie.channelDirectory = {''};
     currMovie.nImages = numel(dir([currMovie.imageDirectory filesep '*.tif']));
-    %load([path filesep fsmFolderName filesep 'fsmPhysiParam.mat']);
-    load([currMovie.fsmDirectory{1} filesep 'fsmPhysiParam.mat']);
+    if exist([currMovie.fsmDirectory{1} filesep 'fsmPhysiParam.mat'], 'file')
+        load([currMovie.fsmDirectory{1} filesep 'fsmPhysiParam.mat']);
+    elseif exist([currMovie.fsmDirectory{2} filesep 'fsmPhysiParam.mat'], 'file')
+        load([currMovie.fsmDirectory{2} filesep 'fsmPhysiParam.mat']);
+    else
+        disp([movieName ': Unable to locate fsmPhysiParam.mat (SKIPPING).']);
+    end        
     currMovie.pixelSize_nm = fsmPhysiParam.pixelSize;
     currMovie.timeInterval_s = fsmPhysiParam.frameInterval;
     clear fsmPhysiParam;
@@ -79,6 +84,7 @@ for iMovie = 1:nMovies
         disp([movieName ': unable to find mask directory. (SKIPPING)']);
         continue;
     end
+     % Add this field to be compliant with Hunter's check routines:
     currMovie.masks.channelDirectory = {''};
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
     currMovie.masks.status = 1;
@@ -86,19 +92,12 @@ for iMovie = 1:nMovies
     if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
        currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
        currMovie = currMovie.movieData;
+       
+       % Remove previous outputs
+       if isfield(currMovie.output)
+           currMovie = rmfield(currMovie, 'output');
+       end
     end
-    % Temporary update of existing movieData:
-%     if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && forceRun(1)
-%         currMovieOld = load([currMovie.analysisDirectory filesep 'movieData.mat']);
-%         currMovieOld = currMovieOld.movieData;
-%         % Update new fields.
-%         currMovieOld.fsmDirectory = currMovie.fsmDirectory;
-%         currMovieOld.imageDirectory = currMovie.imageDirectory;
-%         currMovieOld.masks.directory = currMovie.masks.directory;
-%         % Save it
-%         updateMovieData(currMovieOld);
-%         currMovie = currMovieOld;
-%     end
 
     % STEP 2: Get contours
     dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
@@ -191,7 +190,6 @@ for iMovie = 1:nMovies
     end
     
     % STEP 5: Sample the protrusion vector in each window
-
     if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ...
             ~isfield(currMovie.protrusion.samples,'status') || ...
             currMovie.protrusion.samples.status ~= 1 || forceRun(5)
@@ -214,7 +212,6 @@ for iMovie = 1:nMovies
     end 
 
     % STEP 6: Label
-    
     if ~isfield(currMovie,'labels') || ~isfield(currMovie.labels,'status') || ...
             currMovie.labels.status ~= 1 || forceRun(6)
         try
@@ -232,27 +229,7 @@ for iMovie = 1:nMovies
             continue;
         end
     end
-    
-    % STEP 7: compute matrix D for figure 1
-    
-    if ~isfield(currMovie, 'output') || ~isfield(currMovie.output, 'fig1') || ...
-            ~isfield(currMovie.output.fig1, 'status') || ...
-            currMovie.output.fig1.status ~= 1 || forceRun(7)
-        try
-            disp(['Build Figure 1 data for movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
-            currMovie = computeFigure1(currMovie, batchMode);
-            
-            if isfield(currMovie.output.fig1, 'error')
-                currMovie.output.fig1 = rmfield(currMovie.output.fig1, 'error');
-            end
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.output.fig1.error = errMess;
-            currMovie.output.fig1.status = 0;
-            continue;
-        end
-    end
-    
+        
     try
         %Save the updated movie data
         updateMovieData(currMovie)
@@ -264,3 +241,7 @@ for iMovie = 1:nMovies
     
     disp([movieName ': DONE']);
 end
+
+disp('Build figures...');
+
+% Figure 1
