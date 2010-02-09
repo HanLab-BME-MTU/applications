@@ -24,14 +24,19 @@ else
 end
 
 subFolders = {...
-    'Actin_TM2_Imaging',...
-    'Actin_TM4_Imaging'...
-    'Actin_TM5NM1_Imaging',...
-    'TM2_TM4_Imaging',...
-    'TM2_TM5NM1_Imaging',...
-    'TM4_TM5NM1_Imaging'};
+    ['TM2_Actin' filesep 'cell5'],...
+    ['TM4_Actin' filesep '14_August_2009' filesep 'cell1'],...
+    ['TM5NM1_Actin' filesep '26June2009' filesep 'Cell6'],...
+    'TM2_TM4',...
+    'TM2_TM5NM1',...
+    'TM4_TM5NM1'};
 
-paths = cellfun(@(x) [rootDirectory filesep x], subFolders);
+paths = cellfun(@(x) [rootDirectory filesep x], subFolders,...
+    'UniformOutput', false);
+
+% not every subfolder are present now. Workaround:
+ind = cellfun(@(x) exist(x, 'dir') ~= 0, paths);
+paths = paths(ind);
 
 disp('List of directories:');
 
@@ -53,11 +58,11 @@ for iMovie = 1:nMovies
     currMovie = movieData{iMovie};
     
     % STEP 1: Create movieData
-    currMovie.analysisDirectory = [paths{iMovie} filesep 'windowAnalysis'];
+    currMovie.analysisDirectory = [path filesep 'windowAnalysis'];
     content = dir(path);
     content = {content.name};
-    ind = cellfun(@(x) exist([x filesep 'lastProjSettings.mat'], 'file'), ...
-        content);
+    ind = cellfun(@(x) exist([path filesep x filesep ...
+        'lastProjSettings.mat'], 'file') ~= 0, content);
     if ~nnz(ind) || nnz(ind) ~= 2
         disp([movieName ': Unable to find the FSM directories. (SKIPPING).']);
         continue;
@@ -80,10 +85,6 @@ for iMovie = 1:nMovies
     clear fsmPhysiParam;
 
     currMovie.masks.directory = [currMovie.fsmDirectory{1} filesep 'edge' filesep 'cell_mask'];
-    if ~exist(currMovie.masks.directory, 'dir')
-        disp([movieName ': unable to find mask directory. (SKIPPING)']);
-        continue;
-    end
      % Add this field to be compliant with Hunter's check routines:
     currMovie.masks.channelDirectory = {''};
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
@@ -96,6 +97,7 @@ for iMovie = 1:nMovies
        % Remove previous outputs
        if isfield(currMovie.output)
            currMovie = rmfield(currMovie, 'output');
+           updateMovieData(currMovie);
        end
     end
 
@@ -245,3 +247,4 @@ end
 disp('Build figures...');
 
 % Figure 1
+makeFigure1(paths, batchMode);
