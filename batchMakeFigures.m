@@ -198,7 +198,7 @@ for iMovie = 1:nMovies
         try
             disp(['Sampling protrusion in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
-                winMethod '_' windowString  '.mat'],10,100, batchMode);
+                winMethod '_' windowString  '.mat'], batchMode);
             
             if isfield(currMovie.protrusion.samples,'error')
                currMovie.protrusion.samples = rmfield(currMovie.protrusion.samples,'error');

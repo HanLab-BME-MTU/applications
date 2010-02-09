@@ -150,6 +150,8 @@ for iCol = 1:3
     % Panel B
     %
 
+    maxSector = max(cellfun(@numel, dataPanelB));
+    dataPanelB = cellfun(@(x) if numel(x) < maxSector x(maxSector) = 0 end, dataPanelB);
     dataPanelB = cell2mat(dataPanelB);
     subplot(3, 3, 3 + iCol);
     imagesc(dataPanelB);
