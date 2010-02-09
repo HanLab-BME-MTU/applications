@@ -1,5 +1,5 @@
 function movieData = backgroundSubtractMovie(movieData,varargin)
-
+%BACKGROUNDSUBTRACTMOVIE corrects background by subtracting the average unmasked value
 %
 % movieData = backgroundSubtractMovie(movieData)
 %

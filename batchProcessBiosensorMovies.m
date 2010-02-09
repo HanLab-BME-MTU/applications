@@ -1,5 +1,6 @@
 function movieArray = batchProcessBiosensorMovies(movieArray,actChanName,volChanName,varargin)
-
+%BATCHPROCESSBIOSENSORMOVIES processes a series of biosensor movies
+%
 % movieArray = batchProcessBiosensorMovies(movieArray,actChanName,volChanName)
 % 
 % movieArray = batchProcessBiosensorMovies(movieArray,actChanName,volChanName,'OptionName',optionvalue...)

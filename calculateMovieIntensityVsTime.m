@@ -1,5 +1,6 @@
 function movieData = calculateMovieIntensityVsTime(movieData,varargin)
-
+%CALCULATEMOVIEINTENSITYVSTIME calculates the average intensity in each channel over time
+%
 % movieData = calculateMovieIntensityVsTime(movieData)
 % 
 % movieData = calculateMovieIntensityVsTime(movieData,'OptionName',optionValue...)

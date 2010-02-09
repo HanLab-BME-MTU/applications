@@ -1,4 +1,5 @@
 function status = checkMovieBackgroundMasks(movieData,iChannels)
+%CHECKMOVIEBACKGROUNDMASKS determines whether background masks have been created for the input movie.
 % 
 % status = checkMovieBackgroundMasks(movieData,iChannels)
 % 

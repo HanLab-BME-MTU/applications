@@ -1,5 +1,5 @@
 function movieData = processBiosensorMovie(movieData,varargin)
- 
+%PROCESSBIOSENSORMOVIE produces ratio maps from raw biosensor imaging data 
 % 
 % movieData = processBiosensorMovie(movieData)
 % 

@@ -1,4 +1,5 @@
 function movieData = createMovieBackgroundMasks(movieData,varargin)
+%CREATEMOVIEBACKGROUNDMASKS creates background masks by growing the foreground masks
 %                                               
 % movieData = createMovieBackgroundMasks(movieData);                                              
 %

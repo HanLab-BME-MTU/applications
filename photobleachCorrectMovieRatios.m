@@ -1,9 +1,9 @@
 function movieData = photobleachCorrectMovieRatios(movieData,varargin)
-
+%PHOTOBLEACHCORRECTMOVIERATIOS applies a photobleach correction to the input movie
 % 
-% movieData = photobleachCorrectFRETmovie(movieData)
+% movieData = photobleachCorrectMovieRatios(movieData)
 % 
-% movieData = photobleachCorrectFRETmovie(movieData,'OptionName',optionValue)
+% movieData = photobleachCorrectMovieRatios(movieData,'OptionName',optionValue)
 %
 % This function applies a photo-bleach correction to the ratio images in
 % the input movie. Both the type of correction and the channel(s) to

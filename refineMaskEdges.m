@@ -1,5 +1,5 @@
 function refinedMask = refineMaskEdges(maskIn,imageIn,maxAdjust,maxGap,preGrow)
-
+%REFINEMASKEDGES uses edge-detection to refine the postion of the input mask edge
 %
 % refinedMask = refineMaskEdges(mask,image,maxEdgeAdjust,maxEdgeGap,preGrow)
 %
@@ -55,6 +55,10 @@ end
 
 if nargin < 3 || isempty(maxAdjust)
     maxAdjust = 10;    
+end
+
+if nargin < 2 || isempty(maskIn) || isempty(imageIn)
+    error('You must input a mask and an image!')
 end
 
 if ~isequal(size(maskIn),size(imageIn));
