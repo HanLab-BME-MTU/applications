@@ -142,7 +142,7 @@ for iCol = 1:3
     %
     
     subplot(3, 3, iCol);
-    plot(axes,dataPanelA');
+    plot(dataPanelA');
     xlabel('frame');
     ylabel('nm');
     
