@@ -42,8 +42,8 @@ function [mergedHistRes]=mergeFastSlowHistogramsPlat_E2E(Results, restrict, shap
 % loop over fast and slow results (multiple entries, which are the results
 % of deleting one movie after the other)
 
-[nfast,em] = size(Results.hist_fast);
-[nslow,em] = size(Results.hist_slow);
+nfast = size(Results.hist_fast, 1);
+nslow = size(Results.hist_slow, 1);
 
 nc = 1;
 
@@ -86,7 +86,7 @@ for nf = 1:nfast-1
 % combine slow and fast and fit together
 
 
-%% ========================================================================
+% ========================================================================
 % 
 %       fit fast lifetime data to determine Rayleigh
 %
@@ -101,7 +101,7 @@ for nf = 1:nfast-1
         % one is kept fixed to a Rayleigh
         startvF = [0    0.1 4   2   0.2 10  2   0.2 90  1];
         fixvF   = [0    0   0   1   0   0   0   0   0   0]; 
-        [estFast, resFast] = fitcurveMultiWeibullODF_lsq( tvecfast, hvecfast, startvF, fixvF);
+        estFast = fitcurveMultiWeibullODF_lsq( tvecfast, hvecfast, startvF, fixvF);
 
         % set all except offest to positive
         estFast(2:length(estFast)) = abs(estFast(2:length(estFast)));
@@ -118,13 +118,15 @@ for nf = 1:nfast-1
 
         % variation 03/21
         % newly initialized startvector
-        for s=1:3, shapePars(s) = min( max(round(estFast(1+s*3)),1) , 2); end
-        niStartvector = estFast;
-        niStartvector(4:3:10) = shapePars;
+        %for s=1:3
+        %    shapePars(s) = min( max(round(estFast(1+s*3)),1) , 2);
+        %end
+        %niStartvector = estFast;
+        %niStartvector(4:3:10) = shapePars;
 
 
 
-%% ========================================================================
+% ========================================================================
 % 
 %       make continuous distribution of fast and slow
 %
@@ -137,7 +139,7 @@ for nf = 1:nfast-1
 
         % FAST
         % positions within the specified time interval
-        pnorm_fast  = find( (tvecfast<=a2) & (tvecfast>a1) );
+        pnorm_fast  =  (tvecfast<=a2) & (tvecfast>a1) ;
         % area within the interval
         norm_fast   = sum(hvecfast(pnorm_fast));
         % original histogram normalized with area
@@ -147,7 +149,7 @@ for nf = 1:nfast-1
 
         % SLOW
         % positions within the specified time interval
-        pnorm_slow  = find( (tvecslow<=a2) & (tvecslow>a1) );
+        pnorm_slow  =  (tvecslow<=a2) & (tvecslow>a1) ;
         % area within the interval
         norm_slow  = sum(hvecslow(pnorm_slow));
         % original histogram normalized with area
@@ -179,7 +181,7 @@ for nf = 1:nfast-1
         hfrebin(tfcrop>=clo) = nan;
         step = round(dtslow/dtfast);
 
-        pstart = min(find(tfcrop>=clo));
+        pstart = find(tfcrop>=clo, 1, 'first');
         ti = 0;
         for t=pstart:step:(length(tfcrop)-1)
             tfrebin(pstart+ti) = tfcrop(t);
@@ -209,8 +211,8 @@ for nf = 1:nfast-1
         % second stretch: average of fast and slow
         tcomb(f1:f2) = tfrebin(f1:f2);
         % average is weighted with number of points in each category
-        wfast = nc_fast/(nc_fast+nc_slow);
-        wslow = nc_slow/(nc_fast+nc_slow);
+        %wfast = nc_fast/(nc_fast+nc_slow);
+        %wslow = nc_slow/(nc_fast+nc_slow);
         hcomb(f1:f2) = ( (nc_fast*(hfrebin(f1:f2)/dtfast)) + (nc_slow*(hscrop(s1:s2)/dtslow)))/(nc_fast+nc_slow);
         % third stretch: taken from slow
         par3 = hscrop(s2:length(hscrop))/dtslow; lp3 = length(par3);
@@ -225,8 +227,8 @@ for nf = 1:nfast-1
         % normalized values of the histogram: first divide by the same norm, and 
         % then multiply by the framerate dtslow as done for the histogram above
         OffsetNorm = (OffsetCH/norm_slow)/dtslow;
-        sfinal = [tvecslow(length(tvecslow)) hvecslow(length(hvecslow)) OffsetCH];
-        snew = [tfit(length(tfit)) hfit(length(hfit)) OffsetNorm];
+        %sfinal = [tvecslow(length(tvecslow)) hvecslow(length(hvecslow)) OffsetCH];
+        %snew = [tfit(length(tfit)) hfit(length(hfit)) OffsetNorm];
 
 
         % renormalize the merged histogram including the newly normalized offset;
@@ -245,7 +247,7 @@ for nf = 1:nfast-1
 
 
         % restrict the vectors as specified
-        pr = min(find(tfit>resT));
+        pr = find(tfit>resT, 1, 'first');
         if ~isempty(pr)
             tfit = tfit(1:pr);
             hfitNorm = hfitNorm(1:pr);
@@ -265,7 +267,7 @@ for nf = 1:nfast-1
 
 
 
-        %% ========================================================================
+        % ========================================================================
         % 
         %       fit combined original histogram with with multiple distributions,
         %       number and shape is determined by shape input vector
@@ -295,7 +297,7 @@ for nf = 1:nfast-1
         axis([0 maxt 0 1.01*max(hfitNorm)]);
 
 
-        %% ========================================================================
+        % ========================================================================
         % 
         %       fit combined cumulative histogram with multiple distributions,
         %       number and shape is determined by shape input vector
@@ -328,7 +330,7 @@ for nf = 1:nfast-1
         axis([0 maxt 0 1.01*max(hcfit)]);
 
 
-        %% ========================================================================
+        % ========================================================================
         % 
         %       fit inverse cumulative histogram with 3 distributions, with the
         %       constraint that the fit can only have positive offset
@@ -411,6 +413,3 @@ for nf = 1:nfast-1
     
     end % of for ns
 end % of for nf
-
-end % of function
-
