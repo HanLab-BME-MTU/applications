@@ -20,7 +20,7 @@ end
 if nargin >= 2 && ~isempty(varargin{2})
     forceRun = varargin{2};
 else
-    forceRun = zeros(9, 1);
+    forceRun = zeros(7, 1);
 end
 
 if nargin >= 3 && ~isempty(varargin{3})
@@ -110,19 +110,13 @@ for iMovie = 1:nMovies
         continue;
     end
     
-    %% STEP 2: Get the contour
-    
-%     dContour = 15; % ~ 1um
-%     dWin = 10;
-%     iStart = 2;
-%     iEnd = 10;
-%     winMethod = 'e';    
+    %% STEP 2: Get the contour    
     
     dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
-    dWin = 2000 / currMovie.pixelSize_nm; % ~ 2um
+    dWin = 4000 / currMovie.pixelSize_nm; % ~ 4um
     iStart = 2;
-    iEnd = 4;
-    winMethod = 'c';
+    iEnd = 5;
+    winMethod = 'e';
     
     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
             currMovie.contours.status ~= 1 || forceRun(2)
@@ -224,7 +218,7 @@ for iMovie = 1:nMovies
         try
             disp(['Get sampled protrusion of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
             currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
-                winMethod '_' windowString  '.mat'], 10, 100, batchMode);
+                winMethod '_' windowString  '.mat'], batchMode);
             
             if isfield(currMovie.protrusion.samples,'error')
                currMovie.protrusion.samples = rmfield(currMovie.protrusion.samples,'error');
@@ -237,41 +231,11 @@ for iMovie = 1:nMovies
         end
         
     end 
-
-    %% STEP 6: Split the windows into different files.
-
-    if ~isfield(currMovie, 'windows') || ~isfield(currMovie.windows, 'splitted') || ...
-            currMovie.windows.splitted ~= 1 || forceRun(6)
-        splitWindowFrames(currMovie, [currMovie.analysisDirectory filesep 'windows'], batchMode);
-        currMovie.windows.splitted = 1;
-    end    
     
-    %% STEP 7: Sample protrusion.
-    if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ...
-            ~isfield(currMovie.protrusion.samples,'status') || ...
-            currMovie.protrusion.samples.status ~= 1 || forceRun(7)
-        try
-            disp(['Sampling protrusion in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
-            currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
-                winMethod '_' windowString  '.mat'],10,100, batchMode);
-            
-            if isfield(currMovie.protrusion.samples,'error')
-               currMovie.protrusion.samples = rmfield(currMovie.protrusion.samples,'error');
-           end
-            
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);           
-            currMovie.protrusion.samples.error = errMess;
-            currMovie.protrusion.samples.status = 0;
-            continue;
-        end
-        
-    end 
-    
-    %% STEP 8: Create the window labels.
+    %% STEP 6: Create the window labels.
 
     if ~isfield(currMovie, 'labels') || ~isfield(currMovie.labels, 'status') || ...
-            currMovie.labels.status ~= 1 || forceRun(8)
+            currMovie.labels.status ~= 1 || forceRun(6)
         try
             currMovie = setupMovieData(currMovie);
 
@@ -290,10 +254,10 @@ for iMovie = 1:nMovies
         end
     end
 
-    %% STEP 9: FA Segmentation
+    %% STEP 7: FA Segmentation
     
     if ~isfield(currMovie, 'segmentation') || ~isfield(currMovie.segmentation, 'status') || ...
-            currMovie.segmentation.status ~= 1 || forceRun(9)
+            currMovie.segmentation.status ~= 1 || forceRun(7)
         try
             currMovie = setupMovieData(currMovie);
             
