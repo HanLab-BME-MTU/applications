@@ -95,7 +95,7 @@ for iMovie = 1:nMovies
        currMovie = currMovie.movieData;
        
        % Remove previous outputs
-       if isfield(currMovie.output)
+       if isfield(currMovie, 'output')
            currMovie = rmfield(currMovie, 'output');
            updateMovieData(currMovie);
        end
