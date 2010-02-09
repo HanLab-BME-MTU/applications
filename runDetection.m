@@ -41,7 +41,7 @@ for i = 1:nExp
     end;
 end;
 
-for i = 1:nExp
+parfor i = 1:nExp
     if runStatus(i)
         main283AUTO(1, imData(i).origImageName, imData(i).origImagePath);
     end;
