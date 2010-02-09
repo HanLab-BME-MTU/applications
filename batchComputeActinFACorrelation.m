@@ -113,7 +113,7 @@ for iMovie = 1:nMovies
     %% STEP 2: Get the contour    
     
     dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
-    dWin = 4000 / currMovie.pixelSize_nm; % ~ 4um
+    dWin = 2000 / currMovie.pixelSize_nm; % ~ 2um
     iStart = 2;
     iEnd = 5;
     winMethod = 'e';
