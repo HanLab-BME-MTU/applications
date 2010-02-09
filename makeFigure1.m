@@ -5,7 +5,6 @@ if batchMode
 else
     hFig = figure('Visible', 'on');
 end
-axes = get(hFig, 'CurrentAxes');
 
 for iCol = 1:3
     fileName = [paths{iCol} filesep 'windowAnalysis' filesep 'movieData.mat'];
@@ -145,6 +144,7 @@ for iCol = 1:3
     plot(dataPanelA');
     xlabel('frame');
     ylabel('nm');
+    legend(names);
     
     %
     % Panel B
@@ -152,7 +152,7 @@ for iCol = 1:3
 
     dataPanelB = cell2mat(dataPanelB);
     subplot(3, 3, 3 + iCol);
-    imagesc(dataPanelB, 'Parent', axes);
+    imagesc(dataPanelB);
     colormap('jet');
     xlabel('frame');
     ylabel('sector');
@@ -167,8 +167,8 @@ for iCol = 1:3
     [n1, xout1] = hist(dataPanelCprot, 50);
     [n2, xout2] = hist(dataPanelCret, 50);
     c = rand(3, 1);
-    bar(axes, xout1, n1, 'FaceColor', c);
-    bar(axes, xout2, -n2, 'FaceColor', c * .5);
+    bar(xout1, n1, 'FaceColor', c);
+    bar(xout2, -n2, 'FaceColor', c * .5);
     xlabel('nm');
 end
 
