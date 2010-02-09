@@ -18,6 +18,7 @@ function [mpmRand] = makeRandomMPM(mpm, maskImage, randvar)
 %
 %
 % Dinah Loerke, modified 07/29/2008
+% Francois Aguet, last modified 02/09/2010
 
 mask = 0;
 shuffle = 1;
@@ -27,16 +28,13 @@ if nargin>1
     if min(ix,iy)>1
         mask = 1;
     end
-    if nargin>2
-        if randvar==1
-            shuffle=0;
-        end
+    if nargin>2 && randvar==1
+        shuffle=0;
     end
 end
 
 
 [sx,sy] = size(mpm);
-nf = sy/2;
 
 % initialize randomized mpm
 mpmRand = mpm;
@@ -47,9 +45,7 @@ ymat = mpm(:,2:2:sy);
 
 
 % used positions in the matrix
-umat = 0*xmat;
 upos = find( xmat>0  &  ymat>0 );
-umat(upos) = 1;
 
 % all collected x- and y-positions
 xvec = xmat(:);
@@ -64,11 +60,8 @@ max_y = max(yvec);
 if mask==0
     
     if shuffle==1
-        index_x = randsample(l,l);
-        index_y = randsample(l,l);
-
-        xvec_res = xvec(index_x);
-        yvec_res = yvec(index_y);
+        xvec_res = xvec(randsample(l,l));
+        yvec_res = yvec(randsample(l,l));
     else
         xvec_res = max_x*rand(length(xvec),1);
         yvec_res = max_y*rand(length(yvec),1);
@@ -81,21 +74,14 @@ else
     while ct<=l
         
         if shuffle==1
-            
-            index_x = randsample(l,1);
-            index_y = randsample(l,1);
-
-            xvec_ct = xvec(index_x);
-            yvec_ct = yvec(index_y);
-            
+            xvec_ct = xvec(randsample(l,1));
+            yvec_ct = yvec(randsample(l,1));
         else
             xvec_ct = max_x*rand(1);
             yvec_ct = max_y*rand(1);
-            
         end
             
-        
-        if maskImage(ceil(xvec_ct),ceil(yvec_ct))>0
+        if maskImage(ceil(xvec_ct), ceil(yvec_ct))>0
             
             xvec_res(ct) = xvec_ct;
             yvec_res(ct) = yvec_ct;
@@ -111,11 +97,6 @@ ymat_res = 0*ymat;
 xmat_res(upos) = xvec_res;
 ymat_res(upos) = yvec_res;
 
-
 mpmRand(:,1:2:sy) = xmat_res;
 mpmRand(:,2:2:sy) = ymat_res;
-
-
-end % of function
-    
-    
+end
