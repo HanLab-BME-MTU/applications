@@ -1,5 +1,5 @@
 function movieData = refineMovieMasks(movieData,varargin)
-
+% REFINEMOVIEMASKS Performs post-processing to improve masks for an input movie.
 % 
 % movieData = refineMovieMasks(movieData)
 % 
@@ -46,12 +46,13 @@ function movieData = refineMovieMasks(movieData,varargin)
 %           using a disk-shaped structuring element of this radius. This
 %           has the effect of connecting previously un-connected components
 %           in the mask if they are within 2x this distance of one another.
-%           Optional. Default is 0. (no closure)
+%           Optional. Default is 3 pixels.
 %
 %           ('ObjectNumber -> Positive integer scalar)
 %           Only this number of the largest objects in the mask will be
 %           kept. That is, if this number is 2, only the two largest
-%           objects will be kept.
+%           objects will be kept. This step is performed AFTER the edge
+%           refinement (if enabled)
 %           Optional. Default is 1. Set to Inf to keep all objects.
 %
 %           ('FillHoles -> True/False)
@@ -125,7 +126,7 @@ if isempty(minSize)
 end
 
 if isempty(closeRad)
-    closeRad = 0;
+    closeRad = 3;
 end
 
 if isempty(nObjects)
@@ -192,27 +193,7 @@ for iChan = 1:nChan
                 currMask = imclose(currMask,seClose);                                
             end
             
-            %Keep only the largest objects
-            if ~isinf(nObjects)
-                
-                %Label all objects in the mask
-                labelMask = bwlabel(currMask);
-                
-                %Get their area
-                obAreas = regionprops(labelMask,'Area');      
-                
-                %First, check that there are objects to remove
-                if length(obAreas) > nObjects 
-                    obAreas = [obAreas.Area];
-                    %Sort by area
-                    [sortA,iSort] = sort(obAreas,'descend');
-                    %Keep only the largest requested number
-                    currMask = false(size(currMask));
-                    for i = 1:nObjects
-                        currMask = currMask | labelMask == iSort(i);
-                    end
-                end
-            end
+           
         end
         
         
@@ -227,6 +208,29 @@ for iChan = 1:nChan
                 maxEdgeAdjust,maxEdgeGap,preEdgeGrow);
             
             
+        end
+        % ---------- Object Selection -------- %
+        
+        %Keep only the largest objects
+        if doCleanUp && ~isinf(nObjects)
+                
+            %Label all objects in the mask
+            labelMask = bwlabel(currMask);
+
+            %Get their area
+            obAreas = regionprops(labelMask,'Area');      
+
+            %First, check that there are objects to remove
+            if length(obAreas) > nObjects 
+                obAreas = [obAreas.Area];
+                %Sort by area
+                [sortA,iSort] = sort(obAreas,'descend');
+                %Keep only the largest requested number
+                currMask = false(size(currMask));
+                for i = 1:nObjects
+                    currMask = currMask | labelMask == iSort(i);
+                end
+            end
         end
         
         %Write the refined mask to file, over-writing the previous mask.
@@ -257,12 +261,12 @@ movieData.maskRefinement.nObjects = nObjects;
 movieData.maskRefinement.maxEdgeAdjust = maxEdgeAdjust;
 movieData.maskRefinement.maxEdgeGap = maxEdgeGap;
 movieData.maskRefinement.preEdgeGrow = preEdgeGrow;
-movieData.maskRefinement.iRefined(iChannels) = true;
+movieData.maskRefinement.iFrom(iChannels) = iChannels;
 
 %Save the updated movieData structure.
 updateMovieData(movieData);
 
-if ishandle(wtBar) %In case the user closed it
+if ~batchMode && ishandle(wtBar) %In case the user closed it
     close(wtBar)
 end
 

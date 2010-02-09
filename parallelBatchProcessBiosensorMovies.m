@@ -102,7 +102,7 @@ optionsIn = [varargin {'BatchMode', true}];
 optionsIn = repmat(optionsIn,nMov,1);
 
 %% ------- Processing ------ %%
-
+tic;
 parfor iMov = 1:nMov
 
     disp(['Processing movie ' num2str(iMov)]);
@@ -110,7 +110,7 @@ parfor iMov = 1:nMov
     movieArray(iMov) = batchProcessBiosensorMovies(movieArray(iMov),actChanName,volChanName,optionsIn{iMov,:});
 
 end
-
+toc
 
 disp('Finishing parallel processing...')
 

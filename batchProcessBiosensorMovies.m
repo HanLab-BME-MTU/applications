@@ -14,9 +14,10 @@ function movieArray = batchProcessBiosensorMovies(movieArray,actChanName,volChan
 % 
 % Input:
 % 
-%   movieArray - A cell array of movieData structures describing the movies to analyze. The individual
-%   movieData structures are as created with setupMovieData.m. An array can
-%   be created from existing movieDatas using setupMovieArray.m
+%   movieArray - A cell array of movieData structures describing the movies
+%   to analyze. The individual movieData structures are as created with
+%   setupMovieData.m. An array can be created from existing movieDatas
+%   using setupMovieArray.m
 %
 %   actChanName - A character string containing the name of the channel
 %   which contains the activity images (numerator of ratio). This is also
@@ -24,7 +25,7 @@ function movieArray = batchProcessBiosensorMovies(movieArray,actChanName,volChan
 %   these images.
 %
 %   volChanName - A character string containing the name of the channel
-%   which contains the volume images (denominatory of ratio). This is also
+%   which contains the volume images (denominator of ratio). This is also
 %   the name of the sub-directory within the image directory which contains
 %   these images.
 %
@@ -125,7 +126,7 @@ for iMov = 1:nMov
         
         %Combine the selected channels for this movie with the options used
         %on all movies
-        currOptions = [commonOptions {'3ShadeImageChannels',[iActShade iVolShade], ...
+        currOptions = [commonOptions {'4ShadeImageChannels',[iActShade iVolShade], ...
             'ActivityChannel', iAct,'VolumeChannel',iVol}];
         
         %Process the current movie

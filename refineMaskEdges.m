@@ -20,13 +20,16 @@ function refinedMask = refineMaskEdges(maskIn,imageIn,maxAdjust,maxGap,preGrow)
 %   maxAdjust - The maximum distance to adjust the edge location by, in
 %   pixels. This distance is relative to the original input masks's edge
 %   location, ignoring the effects of the pre-growth (see below);
+%   Optional. Default is 10.
 % 
 %   maxEdgeGap - The largest size of gaps in the detected edges to close.
 %   THis is the radius of the closure opp performed on the final mask.
+%   Optional. Default is 5;
 % 
 %   preGrow - This is the radius in pixels to grow the mask by prior to
 %   edge refinement. This may be needed if the object to be segmented is
 %   not completely contained in the input mask.
+%   Optional. Default is 3.
 % 
 % 
 % Output:
@@ -41,7 +44,7 @@ function refinedMask = refineMaskEdges(maskIn,imageIn,maxAdjust,maxGap,preGrow)
 
 
 if nargin < 5 || isempty(preGrow)
-    preGrow = 0;
+    preGrow = 3;
 elseif abs(round(preGrow)) ~= preGrow
     error('The mask growth radius, preGrow, must be a positive integer!')
 end
@@ -51,7 +54,7 @@ if nargin < 4 || isempty(maxGap)
 end
 
 if nargin < 3 || isempty(maxAdjust)
-    maxAdjust = 5;    
+    maxAdjust = 10;    
 end
 
 if ~isequal(size(maskIn),size(imageIn));
@@ -65,7 +68,7 @@ imageIn = double(imageIn);
 
 tooSmall = 1; %If a detected edge fragment is below this size in pixels it is thrown out.
 threshScale = [.95 .5]; %Fraction by which to adjust edge threshold on second round.
-nSig = 5; %Number of standard deviations above background intensity to keep edges.(darker edges are removed)
+nSig = 3; %Number of standard deviations above background intensity to keep edges.(darker edges are removed)
 sigFilter = 1.2; %Sigma of filter used in canny edge detection.
 showPlots = 1; %For debugging/parameter testing. Shows plots of intermediate steps, overlay of final mask.
 
@@ -107,8 +110,8 @@ if showPlots
    title('Pre-Processed Edge Detection')       
    imshow(imageIn,[])   
    hold on
-   spy(edges,'y')
    spy(bwperim(maskIn))
+   spy(edges,'y')   
    caxis(caxis/2);           
     
 end

@@ -1,5 +1,5 @@
 function movieData = ratioMovie(movieData,varargin)
-
+%RATIOMOVIE creates a new ratio channel by dividing one movie channel by another
 % 
 % movieData = ratioMovie(movieData)
 % 
@@ -191,13 +191,17 @@ for iImage = 1:nImages
         currDenomMask = imread(denomMaskNames{1}{iImage});
                 
         if applyMasks
-            currRatio(~currNumMask(:) | ~currDenomMask(:)) = NaN;        
+            currRatio(~currNumMask(:) | ~currDenomMask(:)) = 0;        
         end
          
     end    
     
-    maxRatios(iImage) = nanmax(currRatio(:));
-    minRatios(iImage) = nanmin(currRatio(:));
+    %Remove any infinities from division-by-zero
+    currRatio(~isfinite(currRatio(:))) = 0;
+    
+    %Get max and min values for scalefactor calculation
+    maxRatios(iImage) = max(currRatio(currRatio(:) ~= 0)); %Ignore zeros, in case masks have been applied/infs removed
+    minRatios(iImage) = min(currRatio(currRatio(:) ~= 0));
     
     
 end
@@ -239,6 +243,11 @@ for iImage = 1:nImages
             imwrite(combMask,[maskDir filesep 'mask_' pString num2str(iImage,fString) '.tif'])
         end
     end    
+    
+    %Remove any infinities from division-by-zero (this shouldn't happen if
+    %the masks are perfect, but let's be realistic here .... )
+    currRatio(~isfinite(currRatio(:))) = 0;
+  
     
     currRatio = cast(currRatio .* scaleFactor,ogClass);
     
