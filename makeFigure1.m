@@ -140,7 +140,7 @@ for iCol = 1:3
     % Panel A
     %
     
-    subplot(hFig, 3, 3, iCol);
+    subplot(gca, 3, 3, iCol);
     plot(dataPanelA');
     xlabel('frame');
     ylabel('nm');
@@ -150,7 +150,7 @@ for iCol = 1:3
     %
 
     dataPanelB = cell2mat(dataPanelB);
-    subplot(hFig, 3, 3, 3 + iCol);
+    subplot(gca, 3, 3, 3 + iCol);
     imagesc(dataPanelB);
     colormap('jet');
     xlabel('frame');
@@ -162,7 +162,7 @@ for iCol = 1:3
     
     dataPanelCprot = vertcat(dataPanelCprot{:});
     dataPanelCret = vertcat(dataPanelCret{:});
-    subplot(hFig, 3, 3, 7:9);
+    subplot(gca, 3, 3, 7:9);
     [n1, xout1] = hist(dataPanelCprot, 50);
     [n2, xout2] = hist(dataPanelCret, 50);
     c = rand(3, 1);
