@@ -50,7 +50,6 @@ upos = find( xmat>0  &  ymat>0 );
 % all collected x- and y-positions
 xvec = xmat(:);
 yvec = ymat(:);
-%l = length(xvec);
 l = length(upos);
 
 max_x = max(xvec);
