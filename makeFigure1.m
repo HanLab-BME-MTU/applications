@@ -52,7 +52,7 @@ for iCol = 1:3
     if ~exist(fileName, 'file')
         error(['Unable to locate ' fileName]);
     end
-    load fileName;
+    load(fileName);
     % We do not consider the first 1% of the protrusion values (too small
     % to be significant)
     protMagnitude = protrusionSamples.averageMagnitude;
