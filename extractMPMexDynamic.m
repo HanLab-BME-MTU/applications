@@ -13,73 +13,31 @@ function [extract]=extractMPMexDynamic(data, restvector)
 % used for motion correlation analysis
 %
 % last updated: 02/22/2008 by Dinah Loerke
+% Francois Aguet, last modified 02/09/2010
 
+for i = 1:length(data)
 
-% loop over all movies
-%h = waitbar(0,['looping over ',num2str(length(data)),' movies...']);
-
-odir = cd;
-
-
-% loop over all fields in the data
-for i=1:length(data)
-    
-    %=====================================================================
-    % CURRENT lftInfo
-    % determine if lftInfo is already available in the data structure of if
-    % it has to be read/calculated from trackInfo
-    varReadLftInfo = 1;
-    if isfield(data,'lftInfo')
-        if ~isempty(data(i).lftInfo)
-            varReadLftInfo = 0;
-        end
-    end
-    
-    % read or load depending on the variable
-    if varReadLftInfo==0
+    if isfield(data,'lftInfo') && ~isempty(data(i).lftInfo)
         currLI = data(i).lftInfo;
     else
-        intDir = cd;    
-        % go to appropriate directory and load trackInfo file
-        currPath = data(i).source;
-        cd(currPath);
-
-        % if TrackInfoMatrices folder exists
-        if exist('TrackInfoMatrices')==7
-
-            cd('TrackInfoMatrices');
-            % if trackInfo data exists
-            if exist('trackInfo.mat')==2
-
-                % load trackInfo file
-                loadfile = load('trackInfo.mat');
-                if isfield(loadfile,'trackInfo')
-                    currTrackInfo = loadfile.trackInfo;
-                elseif isfield(loadfile,'trackInfoMat')
-                    currTrackInfo = loadfile.trackInfoMat;
-                else
-                    currTrackInfo = [];
-                end
+        trackInfoPath = [data(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'];
+        if (exist(trackInfoPath, 'file')==2)
+            tfile = load(trackInfoPath);
+            trackFields = fieldnames(tfile);
+            currTrackInfo = tfile.(trackFields{1});
                 
-                % calculate lft matrices
-                [CMlft,CMstat,CMx,CMy,CMda,CVlft]=findLifetimesStatusSimple(currTrackInfo);
-                currLI.Mat_lifetime = CMlft;
-                currLI.Mat_status = CMstat;
-                currLI.Mat_xcoord = CMx;
-                currLI.Mat_ycoord = CMy;
-                currLI.Mat_disapp = CMda;
+            % calculate lft matrices
+            [CMlft,CMstat,CMx,CMy,CMda] = findLifetimesStatusSimple(currTrackInfo);
+            currLI.Mat_lifetime = CMlft;
+            currLI.Mat_status = CMstat;
+            currLI.Mat_xcoord = CMx;
+            currLI.Mat_ycoord = CMy;
+            currLI.Mat_disapp = CMda;
               
-            else
-                currLI = [];
-            end % of if trackInfo exists
         else
             currLI = [];
-        end % of if TrackInfo folder exists
-        
-        cd(intDir);
-        
-    end % of if varReadlftInfo == 0
-    
+        end
+    end
     
     % status matrix
     mat_stat = full(currLI.Mat_status);
@@ -99,16 +57,12 @@ for i=1:length(data)
     mat_x = currLI.Mat_xcoord;
     % y-coordinate matrix
     mat_y = currLI.Mat_ycoord;
-    % disapp status matrix
-    mat_da = currLI.Mat_disapp;
     % framerate
     fr = data(i).framerate;
     % image size
     imsiz = data(i).imagesize;
-    msx = imsiz(1);
-    msy = imsiz(2);
     % frame number
-    [nx,nf] = size(mat_lft);
+    [nx,nf] = size(mat_lft, 2);
     
 %     % intensity - rescale values to range between 0 and 1, where the value
 %     % corresponds to the percentile of all available intensities
@@ -139,24 +93,24 @@ for i=1:length(data)
     
     % desired minimum lifetime in seconds
     dstat       = restvector(1);
-    dapp        = restvector(2);
+%   dapp        = restvector(2);
     dminfr      = restvector(3);
     minlft      = restvector(4);
     maxlft      = restvector(5);
     minlft_fr   = round(minlft/fr);
     maxlft_fr   = round(maxlft/fr);
     
-    if length(restvector)>5
-        minint = restvector(6);
-        maxint = restvector(7);
-        minmot = restvector(8);
-        maxmot = restvector(9);
-    else
-        minint = 0;
-        maxint = 1;
-        minmot = 0;
-        maxmot = 1;
-    end
+%     if length(restvector)>5
+%         minint = restvector(6);
+%         maxint = restvector(7);
+%         minmot = restvector(8);
+%         maxmot = restvector(9);
+%     else
+%         minint = 0;
+%         maxint = 1;
+%         minmot = 0;
+%         maxmot = 1;
+%     end
     
     
     %=====================================================================
@@ -180,20 +134,10 @@ for i=1:length(data)
     findx = full(mat_x(findpos,:));
     findy = full(mat_y(findpos,:));
     
-    currMPM = nan*zeros(length(findpos),2*nf);
+    currMPM = NaN(length(findpos),2*nf);
     currMPM(:,1:2:2*nf) = findx;
     currMPM(:,2:2:2*nf) = findy;
     
     extract(i).mpm = currMPM;
-    extract(i).imagesize = [imsiz(2) imsiz(1)];
-    
-    %waitbar(i/length(data));
-    
-end
-
-%close(h);
-
-cd(odir);
-
-end % of function
-       
+    extract(i).imagesize = [imsiz(2) imsiz(1)];    
+end    
