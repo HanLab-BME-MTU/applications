@@ -65,12 +65,15 @@ function movieData = processBiosensorMovie(movieData,varargin)
 %       Options for individual steps can be passed to the functions
 %       performing each step as follows:
 %
-%       ('#OptionName' -> optionValue)
-%       Where # is the step number, OptionName is the name of the option in
-%       the processing function, and optionValue is the value to pass. For
-%       example, 
-%       processBiosensorMovie(movieData,'3ChannelIndex', [1 3])
-%       Would cause step three to use channels number 1 and 3.
+%       ('processName_OptionName' -> optionValue)
+%       Where processName is the name of the processing step, such as
+%       "masks" or "transformation", OptionName is the name of the option
+%       in the processing function, and optionValue is the value to pass.
+%       For example:
+%
+%       processBiosensorMovie(movieData,'backGroundMasks_ChannelIndex', [1
+%       3]) Would cause the background mask creation step to use channels
+%       number 1 and 3.
 %
 % Output: 
 % 
@@ -115,6 +118,9 @@ procName = {...
 
 nSteps = length(stepFunctions); %Number of steps in processing.
 
+if nSteps ~=length(procName)%Make sure someone didn't fuck something up.
+    error('Number of processing steps and function handles not equivalent! Be careful when editing this file!!!!')
+end
 
 %% ------ Input -------%%
 
@@ -125,7 +131,7 @@ end
 
 movieData = setupMovieData(movieData,'biosensorProcessing');
 
-[batchMode,runSteps,stepOptions,iAct,iVol] = parseInput(varargin,nSteps);
+[batchMode,runSteps,stepOptions,iAct,iVol] = parseInput(varargin,procName);
     
 %---Defaults----%
 
@@ -246,8 +252,9 @@ if ~batchMode && ishandle(wtBar)
 end
 
 
-function [batchMode,runSteps,stepOptions,iAct,iVol] = parseInput(argArray,nSteps)
+function [batchMode,runSteps,stepOptions,iAct,iVol] = parseInput(argArray,procNames)
 
+nSteps = length(procNames);
 
 %Init output
 batchMode = [];
@@ -270,14 +277,16 @@ end
 
 for i = 1:2:nArg
 
-    sNum = str2double(argArray{i}(1));%Check if this is an option for a particular step
+    iUnderscore = regexp(argArray{i},'_','ONCE');%Check if this is an option for a particular step    
     
-    
-    if ~isnan(sNum) && ~isempty(sNum)        
+    if ~isempty(iUnderscore)
+        %Figure out which step this option is for
+        sNum = strcmp(argArray{i}(1:iUnderscore-1),procNames);
+        
         if isempty(stepOptions{sNum}) %Get the option name and value, removing the step number            
-            stepOptions{sNum} = {argArray{i}(2:end) argArray{i+1}}; 
+            stepOptions{sNum} = {argArray{i}(iUnderscore+1:end) argArray{i+1}}; 
         else            
-            stepOptions{sNum} = [stepOptions{sNum} {argArray{i}(2:end) argArray{i+1}}];                              
+            stepOptions{sNum} = [stepOptions{sNum} {argArray{i}(iUnderscore+1) argArray{i+1}}];                              
         end                
     else
         switch argArray{i}                     

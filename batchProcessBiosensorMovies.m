@@ -127,7 +127,7 @@ for iMov = 1:nMov
         
         %Combine the selected channels for this movie with the options used
         %on all movies
-        currOptions = [commonOptions {'4ShadeImageChannels',[iActShade iVolShade], ...
+        currOptions = [commonOptions {'shadeCorrection_ShadeImageChannels',[iActShade iVolShade], ...
             'ActivityChannel', iAct,'VolumeChannel',iVol}];
         
         %Process the current movie
