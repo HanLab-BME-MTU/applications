@@ -150,7 +150,7 @@ for iCol = 1:3
     %
     
     subplot(3, 3, iCol);
-    plot(hFig, dataPanelA');
+    plot(hFig, dataPanelA', 'LineWidth', 2);
     xlabel('Frame');
     ylabel('Distance to edge (nm)');
     legend(names);
