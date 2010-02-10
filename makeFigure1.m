@@ -39,8 +39,8 @@ for iCol = 1:3
     nPanelA = 100;
     dataPanelA = zeros(2, nFrames-1);
     dataPanelB = cell(1, nFrames-1);
-    dataPanelCprot = cell(1, nFrames-1);
-    dataPanelCret = cell(1, nFrames-1);
+    dataPanelC_p = cell(1, nFrames-1);
+    dataPanelC_r = cell(1, nFrames-1);
     
     if ~batchMode
         h = waitbar(0, ['Making column ' num2str(iCol) ' in figure 1...']);
@@ -124,10 +124,10 @@ for iCol = 1:3
         idxL_p = find(protValues(:, iFrame) > 0);
         idxL_r = find(protValues(:, iFrame) < 0);
                
-        dataPanelCprot{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
+        dataPanelC_p{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
             mean(distToEdge(idxS1{l})), idxL_p, 'UniformOutput', false);
         
-        dataPanelCret{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
+        dataPanelC_r{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
             mean(distToEdge(idxS1{l})), idxL_r, 'UniformOutput', false);
         
         if ~batchMode && ishandle(h)
@@ -168,8 +168,8 @@ for iCol = 1:3
     % Panel C
     %
     
-    dataPanelCprot = vertcat(dataPanelCprot{:});
-    dataPanelCret = vertcat(dataPanelCret{:});
+    dataPanelCprot = cell2mat(dataPanelC_p);
+    dataPanelCret = cell2mat(dataPanelC_r);
     subplot(3, 3, 7:9);
     [n1, xout1] = hist(dataPanelCprot, 50);
     [n2, xout2] = hist(dataPanelCret, 50);
