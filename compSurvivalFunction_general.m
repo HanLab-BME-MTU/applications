@@ -1,4 +1,4 @@
-function [survFunc,pvec,decaytimes] = compSurvivalFunction_general(data1, field1, data2, field2, numBS, typeBS, percvec, id)
+function [survFunc, pvec, decaytimes] = compSurvivalFunction_general(data1, field1, data2, field2, numBS, typeBS, percvec, id)
 % compSurvivalFunction_general compares the survival functions for
 % different conditions
 %
@@ -22,10 +22,10 @@ function [survFunc,pvec,decaytimes] = compSurvivalFunction_general(data1, field1
 %                      for comparison; default is [0.9:-0.1:0.1]
 %           id       = set to 1 if you want to compare matched pairs (e.g.
 %                      inside/outside of the same movie)
-%                   
-%                   
 %
-% OUTPUT    survFunc = survival function 
+%
+%
+% OUTPUT    survFunc = survival function
 %                       (first row DATA1, second row Data2)
 %           pvec    = vector of p-values;
 %                     1: KS-test on difference between data1 and data2
@@ -33,7 +33,7 @@ function [survFunc,pvec,decaytimes] = compSurvivalFunction_general(data1, field1
 %                     subsamples of data1 vs bootstrapped subsamples of
 %                     data2
 %                     3. fraction of non-significant boostrap KS-test
-%                     p-values 
+%                     p-values
 %           decaytimes  = decay times, i.e. number of frames for which the
 %                     respective survival function reaches the percentage
 %                     levels specified by percvec; this has the format
@@ -47,7 +47,7 @@ function [survFunc,pvec,decaytimes] = compSurvivalFunction_general(data1, field1
 %                     row 7: average difference 1-2
 %                     row 8: error difference 1-2
 %                     row 9: p-value for t-test on difference
-%                   
+%
 % NOTE: The current version of the function assumes that ALL MOVIES in the
 % data structure are acquired at the same framerate, or that the user
 % chooses to treat them as being the same, and that the survival functions
@@ -59,60 +59,43 @@ function [survFunc,pvec,decaytimes] = compSurvivalFunction_general(data1, field1
 % last modified DATE: 02-Oct-2008 (Dinah)
 
 
-% averaging can only be performed up until the minimum common length of all 
+% averaging can only be performed up until the minimum common length of all
 % movies, so we determine the shortest movie length in the structure
 n1 = length(data1);
 n2 = length(data2);
 
-for i=1:n1
-    mlvec1(i) = data1(i).movieLength;
-end
-minlen1 = min(mlvec1);
-
-for i=1:n2
-    mlvec2(i) = data2(i).movieLength;
-end
-minlen2 = min(mlvec2);
-
-minlen = min(minlen1,minlen2);
+minlen = min([data1.movieLength data2.movieLength]);
 
 idvar = 0;
-if nargin>7
-    if id==1 
-        if n1==n2
-            idvar=1;
-        else
-            disp('idvar can''t be set to 1 since data sets have different sizes');
-        end
-    end
+if nargin>7 && id==1 && n1==n2
+    idvar=1;
+else
+    disp('idvar can''t be set to 1 since data sets have different sizes');
 end
-        
-        
-histmat1 = nan*zeros(length(data1),minlen);
-histmat2 = nan*zeros(length(data2), minlen);
 
-% read data for each movie 
+histmat1 = NaN(length(data1),minlen);
+histmat2 = NaN(length(data2), minlen);
+
+% read data for each movie
 for k=1:n1
     
     if isfield(data1,field1)
-        survFun = getfield(data1(k), field1);
+        survFun = data1(k).(field1);
         histmat1(k,:) = survFun(1:minlen);
     else
-        error(['function requires a structure field called ',field1]);
-    end          
+        error(['function requires a structure field called ', field1]);
+    end
 end
 
-% read data for each movie 
-for k=1:n2
-    
+% read data for each movie
+for k = 1:n2
     if isfield(data2,field2)
-        survFun = getfield(data2(k), field2);
+        survFun = data2(k).(field2);
         histmat2(k,:) = survFun(1:minlen);
     else
-        error(['function requires a structure field called ',field2]);
-    end          
+        error(['function requires a structure field called ', field2]);
+    end
 end
-
 
 % average survival functions
 survFun1_SUM = nansum(histmat1,1);
@@ -135,10 +118,8 @@ nd2 = length(df2);
 [H,pval_av] = kstest2(df1,df2);
 
 
-
-
 %=================================
-%% bootstrap
+% bootstrap
 
 % number of bootstrap runs
 if nargin>4
@@ -164,27 +145,27 @@ for b=1:nbs
     % bootstrap from reshuffled movies
     if testtype==0
         % first position vector
-        pos1 = randsample(n1,n1,true); 
+        pos1 = randsample(n1,n1,true);
         % local bootstrap set from normalized matrix
-        cmat1 = histmat1(pos1,:);  
-        bootstrapSUM1 = nansum(cmat1,1); 
+        cmat1 = histmat1(pos1,:);
+        bootstrapSUM1 = nansum(cmat1,1);
         df1_sub = convSurvivalFunction2dist(bootstrapSUM1);
         % second position vector
         if n2==n1
             pos2 = pos1;
         else
-            pos2 = randsample(n2,n2,true); 
+            pos2 = randsample(n2,n2,true);
         end
         % local bootstrap set from normalized matrix
-        cmat2 = histmat2(pos2,:); 
-        bootstrapSUM2 = nansum(cmat2,1); 
+        cmat2 = histmat2(pos2,:);
+        bootstrapSUM2 = nansum(cmat2,1);
         df2_sub = convSurvivalFunction2dist(bootstrapSUM2);
         
     else
         
-    % testtype 1=================================
-    % bootstrap from downsampled trajectories
-    
+        % testtype 1=================================
+        % bootstrap from downsampled trajectories
+        
         if nd1>nd2
             % position vector
             pos1 = randsample(nd1,nd2,false);
@@ -198,8 +179,8 @@ for b=1:nbs
         end
         
     end
-        
-      
+    
+    
     
     %===========================================
     % comp between subsample 1 and total sample 2
@@ -207,7 +188,7 @@ for b=1:nbs
     [H,pval_bs1] = kstest2(df1_sub,df2_sub);
     bootstrap1_pval(b) = pval_bs1;
     
-     
+    
     fprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b');
     
 end
@@ -232,13 +213,11 @@ pvec(1) = pval_av; % KS-test p-value of all data1 vs all data 2
 pvec(2) = cflevel; % KS-test p-value below which 95% of bootstrap tests are located
 pvec(3) = plevel;  % percentage of non-significant boostrap test results
 
-%% level outout
+% level outout
 
-levels = [0.9:-0.1:0.1];
-if nargin>6
-    if ~isempty(percvec)
-        levels = percvec;
-    end
+levels = 0.9:-0.1:0.1;
+if nargin>6 && ~isempty(percvec)
+    levels = percvec;
 end
 
 
@@ -247,8 +226,6 @@ for k=1:length(levels)
     
     % current percentage increment
     cinc = levels(k);
-    %incrVec1 = [];
-    %incrVec2 = [];
     % find decay time for this level condition 1
     for a=1:n1
         fpos = find( (histmat1(a,:)/histmat1(a,1))<cinc );
@@ -276,7 +253,7 @@ for k=1:length(levels)
     cincrVec2 = incrVec2(:,k);
     
     [h,pval] = ttest2(cincrVec1,cincrVec2);
-
+    
     decaytimes(1,k) = levels(k);
     decaytimes(2,k) = nanmean(cincrVec1);
     decaytimes(3,k) = nanstd(cincrVec1)/sqrt(n1);
@@ -287,22 +264,21 @@ end
 
 
 %==========================================================================
-%% if data are inside vs outside of same movies, compare the individual
-%% differences
+% if data are inside vs outside of same movies, compare the individual differences
 
 if idvar==1
     
-      
+    
     incrDiff = incrVec1-incrVec2;
     
     for k=1:length(levels)
-
+        
         cdiff = incrDiff(:,k);
-        [h,pval2] = ttest(cdiff); 
+        [h,pval2] = ttest(cdiff);
         ptdiff(k) = pval2;
         
     end
-      
+    
     decaytimes(7,:) = nanmean(incrDiff,1);
     decaytimes(8,:) = nanstd(incrDiff,1);
     decaytimes(9,:) = ptdiff(:);
@@ -311,27 +287,25 @@ if idvar==1
     
     figure
     hold on;
-    errorbar([1:length(levels)],decaytimes(7,:),decaytimes(8,:),'r.');
-    bar([1:length(levels)],decaytimes(7,:),0.3,'r' );
-
+    errorbar(1:length(levels), decaytimes(7,:),decaytimes(8,:), 'r.');
+    bar(1:length(levels), decaytimes(7,:),0.3,'r' );
+    
     for n=1:length(levels)
         tlevel(n) = {num2str(levels(n))};
         text( n-0.15,1.1*decaytimes(7,n),['p=',num2str(decaytimes(9,n))] );
     end
-
-    set(gca,'XTick',[1:length(levels)]);
+    
+    set(gca,'XTick', 1:length(levels));
     set(gca,'XTickLabel',tlevel);
     xlabel('percentage level');
     ylabel('decay time pair difference');
-    title('single-sided t-test on matched pair differences'); 
-    
-       
+    title('single-sided t-test on matched pair differences');
 end
 
 
 
 %==========================================================================
-%% display results
+% display results
 
 figure; hold on;
 cdfplot(df1);
@@ -373,22 +347,16 @@ for n=1:length(levels)
     tlevel(n) = {num2str(levels(n))};
     text( n-0.15,1.1*max(decaytimes(2,n),decaytimes(4,n)),['p=',num2str(decaytimes(6,n))] );
 end
-set(gca,'XTick',[1:length(levels)]);
+set(gca,'XTick', 1:length(levels));
 set(gca,'XTickLabel',tlevel);
 xlabel('percentage level');
 ylabel('decay time');
-title('double-sided t-test on percentage levels'); 
+title('double-sided t-test on percentage levels');
 
 
 
 end % of function
 
-
-
-
-%=========================================================================
-%
-%                            SUBFUNCTION
 
 
 
@@ -398,7 +366,7 @@ function [df] = convSurvivalFunction2dist(sf)
 %
 % SYNOPSIS [df] = convSurvivalFunction2dist(sf)
 %
-% INPUT     sf    = survival function, presumed at equal spacing 
+% INPUT     sf    = survival function, presumed at equal spacing
 %
 % OUTPUT    df    = distribution function
 %
@@ -406,23 +374,14 @@ function [df] = convSurvivalFunction2dist(sf)
 % and cropped until appropriate time points, that that the reconversion
 % gets rid of the problem of unequal movie lengths
 
-
 % convert to histogram
 hf = abs(diff(sf));
-
 df = zeros(sum(hf),1);
 ct = 0;
 
 for i=1:length(hf)
     numentry = round(hf(i));
-    %cv = i + zeros(numentry,1);
-    df(ct+1:ct+numentry) = i; 
+    df(ct+1:ct+numentry) = i;
     ct = ct+numentry;
-end % of for
-
-end % of subfunction
-
-
-
-
-    
+end
+end
