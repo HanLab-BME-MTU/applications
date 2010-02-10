@@ -18,7 +18,7 @@ if (nargin < 2)
 end
 
 for i=1:length(data)
-    fprintf('Movie %d\n',i);
+    fprintf('Lifetimes for movie %d\n',i);
     lftPath = [data(i).source 'LifetimeInfo' filesep 'lftInfo.mat'];
     
     if ~(exist(lftPath, 'file')==2) || (overwrite==1)
