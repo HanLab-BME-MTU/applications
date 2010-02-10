@@ -118,7 +118,7 @@ for iCol = 1:3
         
         dataPanelB{iFrame} = arrayfun(@(l) ...
             mean(distToEdge(idxS1{l})) - ...
-            mean(distToEdge(idxS2{l})), 1:max(L(:)));
+            mean(distToEdge(idxS2{l})), (1:max(L(:)))');
         
         % Data for panel C        
         idxL_p = find(protValues(:, iFrame) > 0);
@@ -156,7 +156,7 @@ for iCol = 1:3
     maxSector = max(cellfun(@numel, dataPanelB));
     dataPanelB = cellfun(@(x) padarray(x, [0 maxSector - numel(x)], 'post'), ...
         dataPanelB, 'UniformOutput', false);
-    dataPanelB = vertcat(dataPanelB{:});
+    dataPanelB = horzcat(dataPanelB{:});
     subplot(3, 3, 3 + iCol);
     imagesc(dataPanelB);
     colormap('jet');
