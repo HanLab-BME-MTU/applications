@@ -169,11 +169,11 @@ for iCol = 1:3
     % Panel C
     %
     
-    dataPanelC_p = cell2mat(dataPanelC_p);
-    dataPanelC_r = cell2mat(dataPanelC_r);
+    dataPanelC_p = horzcat(dataPanelC_p);
+    dataPanelC_r = horzcat(dataPanelC_r);
     subplot(3, 3, 7:9);
-    [n1, xout1] = hist(dataPanelCprot, 50);
-    [n2, xout2] = hist(dataPanelCret, 50);
+    [n1, xout1] = hist(dataPanelC_p, 50);
+    [n2, xout2] = hist(dataPanelC_r, 50);
     c = rand(3, 1);
     bar(xout1, n1, 'FaceColor', c);
     bar(xout2, -n2, 'FaceColor', c * .5);
