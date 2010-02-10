@@ -118,10 +118,10 @@ for iCol = 1:3
         idxL_p = find(protValues(:, iFrame) > 0);
         idxL_r = find(protValues(:, iFrame) < 0);
                
-        dataPanelC_p{iFrame} = vertcat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
+        dataPanelC_p{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
             mean(distToEdge(idxS1{l})), idxL_p, 'UniformOutput', false));
         
-        dataPanelC_r{iFrame} = vertcat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
+        dataPanelC_r{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
             mean(distToEdge(idxS1{l})), idxL_r, 'UniformOutput', false));
         
         if ~batchMode && ishandle(h)
@@ -169,14 +169,14 @@ for iCol = 1:3
     % Panel C
     %
     
-    dataPanelC_p = horzcat(dataPanelC_p);
-    dataPanelC_r = horzcat(dataPanelC_r);
+    dataPanelC_p = vertcat(dataPanelC_p{:});
+    dataPanelC_r = vertcat(dataPanelC_r{:});
     subplot(3, 3, 7:9);
     [n1, xout1] = hist(dataPanelC_p, 50);
     [n2, xout2] = hist(dataPanelC_r, 50);
     c = rand(3, 1);
-    bar(xout1, n1, 'FaceColor', c);
-    bar(xout2, -n2, 'FaceColor', c * .5);
+    bar(xout1, n1, 'FaceColor', c); hold on;
+    bar(xout2, -n2, 'FaceColor', c * .5); hold off;
     xlabel('nm');
 end
 
