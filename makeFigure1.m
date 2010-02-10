@@ -53,12 +53,15 @@ for iCol = 1:3
         error(['Unable to locate ' fileName]);
     end
     load(fileName);
-    % We do not consider the first 1% of the protrusion values (too small
-    % to be significant)
-    protMagnitude = protrusionSamples.averageMagnitude;
-    protSign = sign(protrusionSamples.averageNormalComponent);
-    protMagnitudeS = sort(protMagnitude(:));
-    protMagCutOff = protMagnitudeS(ceil(.01 * numel(protMagnitudeS)));
+    % We do not consider the first and last 1% of the protrusion values
+    % (too small/too large to be significant)
+    protValues = protrusionSamples.averageNormalComponent;
+    nValues = numel(protValues);
+    protValuesS = sort(protValues(:));
+    protMinCutOff = protValuesS(ceil(.01 * nValues));
+    protMaxCutOff = protValuesS(ceil((1 - .01) * nValues));
+    protValues(protValues > protMaxCutOff) = NaN;
+    protValues(protValues < protMinCutOff) = NaN;
     
     for iFrame = 1:nFrames-1
         % Load speckles channel 1
@@ -107,25 +110,23 @@ for iCol = 1:3
         % Data for panel B
         
         L = imread([labelPath filesep labelFiles(iFrame).name]);
+
+        idxS1 = cellfun(@(l) idxS1(L(idxS1) == l), 1:max(L(:)));
+        idxS2 = cellfun(@(l) idxS2(L(idxS2) == l), 1:max(L(:)));
+        
         dataPanelB{iFrame} = arrayfun(@(l) ...
-            mean(distToEdge(idxS2(L(idxS2) == l))) - ...
-            mean(distToEdge(idxS1(L(idxS1) == l))), 1:max(L(:)));
+            mean(distToEdge(idxS1{l})) - ...
+            mean(distToEdge(idxS2{l})), 1:max(L(:)));
         
-        % Data for panel C
-        idxLprot = find(protMagnitude(:, iFrame) > protMagCutOff & ...
-            protSign(:, iFrame) > 0);
-        idxLret = find(protMagnitude(:, iFrame) > protMagCutOff & ...
-            protSign(:, iFrame) < 0);
+        % Data for panel C        
+        idxL_p = find(protValues(:, iFrame) > 0);
+        idxL_r = find(protValues(:, iFrame) < 0);
                
-        dataPanelCprot{iFrame} = arrayfun(@(l) ...
-            distToEdge(idxS2(L(idxS2) == l)) - ...
-            mean(distToEdge(idxS1(L(idxS1) == l))), idxLprot,...
-            'UniformOutput', false);
+        dataPanelCprot{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
+            mean(distToEdge(idxS1{l})), idxL_p, 'UniformOutput', false);
         
-        dataPanelCret{iFrame} = arrayfun(@(l) ...
-            distToEdge(idxS2(L(idxS2) == l)) - ...
-            mean(distToEdge(idxS1(L(idxS1) == l))), idxLret,...
-            'UniformOutput', false);
+        dataPanelCret{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
+            mean(distToEdge(idxS1{l})), idxL_r, 'UniformOutput', false);
         
         if ~batchMode && ishandle(h)
             waitbar(iFrame / (nFrames-1), h);
@@ -142,8 +143,8 @@ for iCol = 1:3
     
     subplot(3, 3, iCol);
     plot(dataPanelA');
-    xlabel('frame');
-    ylabel('nm');
+    xlabel('Frame');
+    ylabel('Distance to edge (nm)');
     legend(names);
     
     %
@@ -151,13 +152,14 @@ for iCol = 1:3
     %
 
     maxSector = max(cellfun(@numel, dataPanelB));
-    dataPanelB = cellfun(@(x) if numel(x) < maxSector x(maxSector) = 0 end, dataPanelB);
-    dataPanelB = cell2mat(dataPanelB);
+    dataPanelB = cellfun(@(x) padarray(x, [0 maxSector - numel(x)], 'post'), dataPanelB);
+    dataPanelB = horzcat(dataPanelB{:});
     subplot(3, 3, 3 + iCol);
     imagesc(dataPanelB);
     colormap('jet');
-    xlabel('frame');
-    ylabel('sector');
+    xlabel('Frame');
+    ylabel('Sector #');
+    title('Protrusion Velocity (pixel/frame)');
   
     %
     % Panel C
