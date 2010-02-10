@@ -1,5 +1,11 @@
 function makeFigure1(paths, batchMode)
 
+if batchMode
+    hFig = figure('Visible', 'off');
+else
+    hFig = figure('Visible', 'on');
+end
+
 for iCol = 1:3
     fileName = [paths{iCol} filesep 'windowAnalysis' filesep 'movieData.mat'];
     if ~exist(fileName, 'file')
@@ -139,18 +145,12 @@ for iCol = 1:3
         close(h);
     end
 
-    if batchMode
-        hFig = figure('Visible', 'off');
-    else
-        hFig = figure('Visible', 'on');
-    end
-    
     %
     % Panel A
     %
     
     subplot(3, 3, iCol);
-    plot(dataPanelA');
+    plot(hFig, dataPanelA');
     xlabel('Frame');
     ylabel('Distance to edge (nm)');
     legend(names);
