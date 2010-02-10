@@ -11,7 +11,7 @@ offset = params(1);
 
 n = round((length(params)-1)/3);
 
-for w=1:n
+for w = 1:n
     % the original probability distribution function for a
     % general Weibull is, analytically, 
     % (k/l)*(x/l)^(k-1)*exp(-x/lambda)^k
@@ -23,11 +23,7 @@ for w=1:n
     lambda(w) = params(1+3*w-1);
     ka(w) = params(1+3*w);
                         
-    weibullMat(w,:) = amp(w) * (ka(w)/lambda(w)) * ((t/lambda(w)).^(ka(w)-1)) .*...
-        exp(-(t/lambda(w)).^ka(w));
+    weibullMat(w,:) = amp(w) * (ka(w)/lambda(w)) * ((t/lambda(w)).^(ka(w)-1)) .* exp(-(t/lambda(w)).^ka(w));
 end
 
 wt = offset + sum(weibullMat,1);
-
-
-end % of function
