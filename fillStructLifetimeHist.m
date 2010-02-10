@@ -24,13 +24,12 @@ for i = 1:length(data)
     
     if ~isfield(data,'lftHist') || isempty(data(i).lftHist)
 
-        load([data(i).source filesep 'LifetimeInfo' filesep 'lftInfo.mat']);
+        load([data(i).source 'LifetimeInfo' filesep 'lftInfo.mat']);
 
         lftMat = full(lftInfo.Mat_lifetime);
         statMat =  full(lftInfo.Mat_status);
 
         sx = size(lftMat,1);
-
         lftVec = NaN(sx,1);
 
         % a trajectory is counted for the lifetime analysis if the status of 
@@ -38,10 +37,8 @@ for i = 1:length(data)
         for k=1:sx
             % current status vector
             cstat = nonzeros(statMat(k,:));
-            % current lifetime vector
-            clft = lftMat(k,:);
             if ( (min(cstat)==1) && (max(cstat)<5) )
-                lftVec(k) = max(clft);
+                lftVec(k) = max(lftMat(k,:));
             end
         end    
 
