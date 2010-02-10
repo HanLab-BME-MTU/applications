@@ -19,7 +19,7 @@ for iCol = 1:3
     iCh = [1, 2];
     if ~strcmpi(names{1}, 'actin')
         iCh = [2, 1];
-        names = flipud(names);
+        names = fliplr(names);
     end
     
     nFrames = movieData.labels.nFrames;
@@ -130,9 +130,9 @@ for iCol = 1:3
 %         dataPanelC_r{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
 %             mean(distToEdge(idxS1{l})), idxL_r, 'UniformOutput', false));
 %         
-%         if ~batchMode && ishandle(h)
-%             waitbar(iFrame / (nFrames-1), h);
-%         end
+         if ~batchMode && ishandle(h)
+             waitbar(iFrame / (nFrames-1), h);
+         end
     end
 
     if ~batchMode && ishandle(h)
