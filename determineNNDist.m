@@ -1,4 +1,4 @@
-function [data]=determineNNDist(data);
+function [data] = determineNNDist(data)
 % determine nearest neighbor distance for all entries in the data structure
 %
 % SYNOPSIS  [data]=determineNNDist(data);
@@ -11,101 +11,39 @@ function [data]=determineNNDist(data);
 % REMARKS 
 %
 % Dinah Loerke, last modified Feb 2008
+% Francois Aguet, Jan 2010
 
-
-% number of entries in data
-lens = length(data);
-
-ordir = cd;
-
-for i=1:lens
-    
-    
-    fprintf(' movie %02d',i);   
-    
-    % number of frames for this exp
-    lenf = data(i).movieLength;
-    
-    % current path
-    currPath = data(i).source;
-    cd(currPath);
-    
-    nndexist = 0;
-    
-    if exist('LifetimeInfo')==7
-        cd('LifetimeInfo')
-        if exist('NearNeiDistance.mat')==2
-            nndexist = 1;
-        end
-        cd(currPath);
-    end
+for i = 1:length(data)
+    fprintf(' movie %02d',i);
     
     % if nearest neighbor info matrix doesn't already exist
-    if nndexist == 0
+    if ~(exist([data(i).source 'LifetimeInfo' filesep 'NearNeiDistance.mat'], 'file')==2)
         
-        % check for TrackInfo
-        if exist('TrackInfoMatrices')==7
-            cd('TrackInfoMatrices')
-            if exist('trackInfo.mat')==2
-                % load trackInfo
-                loadfile = load('trackInfo.mat');
-                if isfield(loadfile,'trackInfo')
-                    trackInfo = loadfile.trackInfo;
-                elseif isfield(loadfile,'trackInfoMat')
-                    trackInfo = loadfile.trackInfoMat;
-                else
-                    trackInfo = [];
-                end        
-            end
-            cd(currPath);
-        end   
-            
-        if ~isempty(trackInfo)
-            % calculate nearest neighbor distance
-            [NearNeiDistance] = calcNNDist(trackInfo);
-            % make a directory where to save the data, unless it already exists
-            if exist('LifetimeInfo')==7
-                cd('LifetimeInfo');
+        trackInfoPath = [data(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'];
+        if (exist(trackInfoPath, 'file')==2)
+            loadfile = load(trackInfoPath);
+            if isfield(loadfile,'trackInfo')
+                NearNeiDistance = calcNNDist(loadfile.trackInfo);
+            elseif isfield(loadfile,'trackInfoMat')
+                NearNeiDistance = calcNNDist(loadfile.trackInfoMat);
             else
-                mkdir('LifetimeInfo');
-                cd('LifetimeInfo');
+                error('No suitable trackInfo.mat file found.');
             end
-
-            % save data
-             save('NearNeiDistance.mat','NearNeiDistance');
-
-        end % of if trackInfo isn't empty
-    
-    end % if lftInfo doesn't already exist
-    
-    cd(ordir);
-    
-    fprintf('\b\b\b\b\b\b\b\b\b');
-    
-end % of for i
-
-fprintf('\n');
-
+            if ~(exist([data(i).source 'LifetimeInfo'], 'dir')==7)
+                mkdir([data(i).source 'LifetimeInfo']);
+            end
+            save([data(i).source 'LifetimeInfo' filesep 'NearNeiDistance.mat'], 'NearNeiDistance')
+        end
+    end
+end
 end % of function
 
 
-
-%% ========================================================================
-%
-%                                SUBFUNCTIONS
-%
-% =========================================================================
-
-
-function [nndistmat] = calcNNDist(trackinfo);
+function [nndistmat] = calcNNDist(trackinfo)
 % for each point in each frame in tracking matrix, calculate nearest 
 % neighbor distance
 % INPUT: trackinfo matrix
 % OUTPUT: nearest neighbor matrix
-
-[stx,sty] = size(trackinfo);
-tsiz = round(sty/8);
-nearNeiMat = nan*zeros(stx,tsiz);
 
 if (issparse(trackinfo))
     use_trackinfo = full(trackinfo);
@@ -115,7 +53,7 @@ end
 
 % loop over time points (columns)
 
-for t=1:tsiz
+for t = 1:round(size(trackinfo, 2)/8)
     
     fprintf(' frame %04d',t);
     
@@ -127,8 +65,7 @@ for t=1:tsiz
     uxcoords = xcoords(xcoords_valpos);
     % find defined y coordinates
     ycoords = use_trackinfo(:,yi);
-    ycoords_valpos = find(ycoords>0);
-    uycoords = ycoords(ycoords_valpos);
+    uycoords = ycoords(ycoords>0);
         
     % calculate distance matrix
     xyvec = [uxcoords uycoords];
@@ -143,10 +80,7 @@ for t=1:tsiz
    
     fprintf('\b\b\b\b\b\b\b\b\b\b\b');
     
-end % of for loop over time points
-
-
-
+end
 end % of function
 
 
@@ -154,7 +88,7 @@ end % of function
 %==========================================================================
 
 
-function[m2]=distanceMatrixFunc(c1,c2)
+function[m2] = distanceMatrixFunc(c1, c2)
 %this subfunction makes a neighbour-distance matrix for input matrix m1
 %input: c1 (n1 x 2 points) and c2 (n2 x 2 points) matrices containing 
 %the x,y coordinates of n1 or n2 points
@@ -167,19 +101,17 @@ if nargin<2
     vself = 1;
 end
     
-[ncx1,ncy1]=size(c1);
-[ncx2,ncy2]=size(c2);
-m2=zeros(ncx1,ncx2);
+ncx1 = size(c1,1);
+ncx2 = size(c2,1);
+m2 = zeros(ncx1,ncx2);
 
 if vself == 0
-    
     for k=1:ncx1
         for n=1:ncx2
             d=sqrt((c1(k,1)-c2(n,1))^2+(c1(k,2)-c2(n,2))^2);
             m2(k,n)=d;
         end
     end
-    
 else
     for k=1:ncx1
         for n=k+1:ncx2
