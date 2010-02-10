@@ -156,7 +156,7 @@ for iCol = 1:3
     maxSector = max(cellfun(@numel, dataPanelB));
     dataPanelB = cellfun(@(x) padarray(x, [0 maxSector - numel(x)], 'post'), ...
         dataPanelB, 'UniformOutput', false);
-    dataPanelB = horzcat(dataPanelB{:});
+    dataPanelB = vertcat(dataPanelB{:});
     subplot(3, 3, 3 + iCol);
     imagesc(dataPanelB);
     colormap('jet');
