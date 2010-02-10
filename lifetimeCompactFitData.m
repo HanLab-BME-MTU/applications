@@ -1,4 +1,4 @@
-function [compactRes, data] = lifetimeCompactFitData(data, restrict, shape);
+function [compactRes, data] = lifetimeCompactFitData(data, restrict, shape)
 % perform multiple-population fit on lifetime data, and write all relevant
 % results, including cell-to-cell variation and statistics, into a copmact
 % results file
@@ -13,19 +13,13 @@ function [compactRes, data] = lifetimeCompactFitData(data, restrict, shape);
 %
 % Dinah Loerke, last modified Mar 13, 2008
 
-[data] = fillStructLifetimeHist(data);
-
-% k= number of movies/cells
-k = length(data);
+data = fillStructLifetimeHist(data);
 
 % combine lifetime histograms of the slow and fast movies separately
 res     = stageFitLifetimesPlat(data);
 res_E2E = stageFitLifetimes_E2E(data);
 mer     = mergeFastSlowHistogramsPlat(res, restrict, shape);
 mer_E2E = mergeFastSlowHistogramsPlat_E2E(res_E2E, restrict, shape);
-
-% n = number of trajectories
-n = mer.numcells;
 
 % fit results
 resmat1 = mer.compactFitRes;
@@ -42,20 +36,20 @@ for inx=1:mx
 end
 
 % enter output results
-compactRes.numcells = k;
-compactRes.numtraj = n;
+compactRes.numcells = length(data);
+compactRes.numtraj = mer.numcells;
 compactRes.contr = resmat1(:,1);
 compactRes.contrError = round(100*E2Eval(:,1))/100;
 compactRes.tau = resmat1(:,2);
 compactRes.tauError = round(100*E2Eval(:,2))/100;
 compactRes.tau50 = resmat1(:,3);
 
- [data] = determinePitDensities(data);
- for i=1:length(data)
-     Dens(i) = nanmean(data(i).pitDensity);
- end
- densAV = nanmean(Dens);
- densSTD = nanstd(Dens);
+data = determinePitDensities(data);
+for i = 1:length(data)
+    Dens(i) = nanmean(data(i).pitDensity);
+end
+densAV = nanmean(Dens);
+densSTD = nanstd(Dens);
 
 
 matrix(:,1) = compactRes.contr;
@@ -69,11 +63,4 @@ matrix(2,6) = compactRes.numtraj;
 matrix(3,6) = 1000*densAV;
 matrix(4,6) = 1000*densSTD;
 
-
-
-
-
 compactRes.matrix = matrix;
-
-
-end
