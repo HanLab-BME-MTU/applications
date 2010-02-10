@@ -26,7 +26,7 @@ localDensity = zeros(1, length(data));
 
 for i = 1:length(data)
     
-    trackInfoPath = [data(i).source filesep 'TrackInfoMatrices' filesep 'trackInfo.mat'];
+    trackInfoPath = [data(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'];
     
     if (exist(trackInfoPath, 'file')==2)
         ti = load(trackInfoPath);
