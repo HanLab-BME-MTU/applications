@@ -1,79 +1,44 @@
-function [ex] = trackMissingFields(ex,force)
-% track the missing fields in the experiment
+function [exp] = trackMissingFields(exp,overwrite)
+%
+%
+% Francois Aguet, Jan 2010
 
-
-if nargin < 2 || isempty(force)
-    force = 0;
+if nargin < 2 || isempty(overwrite)
+    overwrite = 0;
 end
 
-for i=1:length(ex)
+for i = 1:length(exp)
     
-    % if data needs to be tracked, then proceed here:
-    cd(ex(i).source)
-    if exist('TrackInfoMatrices','dir') == 0 || force
+    if ~(exist([exp(i).source 'TrackInfoMatrices'], 'dir')==7) || overwrite
         
-        costMatrices    = ex(i).tracksettings.costMat;
-        gapCloseParam   = ex(i).tracksettings.gapClosePar;
-        iterParam       = ex(i).tracksettings.iterPar;
+        costMatrices    = exp(i).tracksettings.costMat;
+        gapCloseParam   = exp(i).tracksettings.gapClosePar;
+        iterParam       = exp(i).tracksettings.iterPar;
         
         % now we're missing the variable movieInfo, which is the detection
-        % data. If a valid detection structure is a field in ex, read it,
-        % else set the load_det parameter to 1 so that the structure is
-        % loaded from the appropriate detection file from the source path
-        load_det = 0;
-        if isfield(ex,'detection')
-            detection = ex(i).detection;
-            if ~isempty(detection)
-                movieInfo = detection;
-            else
-                load_det = 1;
-            end
+        % data. If a valid detection structure is a field in exp, read it,
+        % else load the structure from the appropriate detection file
+        if isfield(exp(i), 'detection') && ~isempty(exp(i).detection)
+            movieInfo = exp(i).detection;
         else
-            load_det = 1;
-        end
-        
-        % set appropriate saving and reading file names
-        saveResultsDir  = ex(i).source;
-        saveResultsFilename = 'trackInfo.mat';
-        readDetectionFilename = 'detection.mat';
-        
-        
-        % now load the detection data if necessary, using the appropriate
-        % name
-        if load_det == 1
-            od = cd;
-            cd(saveResultsDir);
-            cd('DetectionStructures');
-            loadfile = load(readDetectionFilename);
-            if isfield(loadfile,'detection')
+            loadfile = load([exp(i).source 'DetectionStructures' filesep 'detection.mat']);
+            if isfield(loadfile, 'detection')
                 movieInfo = loadfile.detection;
-            elseif isfield(loadfile,'cdet')
+            elseif isfield(loadfile, 'cdet')
                 movieInfo = loadfile.cdet;
             else
-                error('no detection data file of specified format found');
+                error('No detection data file of specified format found');
             end
-            
-            cd(od);
         end
-            
-        od = cd;
-        cd(saveResultsDir);
-        
-        mkdir('TrackInfoMatrices');
-        cd('TrackInfoMatrices');
-        
-        disp(['tracking movie #',num2str(i)]);
-        [trackNum,trackInfo,errFlag] = trackWithGapClosing(movieInfo,costMatrices,'getTrackStats',gapCloseParam,iterParam);
+        if ~(exist([exp(i).source 'TrackInfoMatrices'], 'dir')==7)
+            mkdir([exp(i).source 'TrackInfoMatrices']);
+        end;
+        fprintf('Tracking movie no. %d\n', i);
+        [trackNum,trackInfo] = trackWithGapClosing(movieInfo,costMatrices,'getTrackStats',gapCloseParam,iterParam);
         trackInfo(isnan(trackInfo))=0;
         trackInfo = sparse(trackInfo);
-        save(saveResultsFilename,'trackInfo');
-        
-        cd(od);
-        
+        save([exp(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'], 'trackInfo');
     else
-        disp(['movie ' num2str(i) ' was skipped because it has already been tracked'])
-    end
-    
-end % of for-loop
-
-end % of function
+        fprintf('Movie no. %d was skipped because it has already been tracked\n', i);
+    end 
+end
