@@ -1,4 +1,4 @@
-function [data] = fillStructDensities_segment(data,censor,outvar);
+function [data] = fillStructDensities_segment(data,censor,outvar)
 % fill experiment structure with density values for the inside and outside
 % regions based on the image segmentation in the specified folders
 % 
@@ -50,77 +50,38 @@ function [data] = fillStructDensities_segment(data,censor,outvar);
 %
 % Dinah Loerke, modified July 23, 2008
 % Dinah Loerke, modified July 29, 2008
+% Francois Aguet, Feb 2010
 
-
-censoring = 1;
-ovariable = 0;
-if nargin>1
-    censoring = censor;
-    if nargin>2
-        if outvar==1
-            ovariable = 1;
-        end
-    end
+if (nargin < 2)
+    censor = 1;
+end
+if (nargin < 3)
+    outvar = 0;
 end
 
-
-% number of entries in data structure
-lens = length(data);
-
-od = cd;
-
-for i=1:lens
+for i = 1:length(data)
     
-    fprintf('movie #%02d',i);
-    
-    % current path
-    path = data(i).source;
-    
-    % number of frames for this exp
-    lenf = data(i).movieLength;
-    
-    % load lifetime info data file
-    lftpath = [path,'/LifetimeInfo'];
-    cd(lftpath);
-    lftname = 'lftInfo.mat';
-    loadfile = load(lftname);
-    cd(od);
-    lftInfo = loadfile.lftInfo;
-    
+    fprintf('Movie no. %d\n', i);
+    load([data(i).source 'LifetimeInfo' filesep 'lftInfo.mat']);
     
     % check if segmentation status already exists
     if isfield(data,'segmentStatus')
-        
         segmentStatusVector = data(i).segmentStatus;
-    
-    % else determine the segmentation status here and fill in the value 
     else
-    
         % load segmentation image from specified location
-        SegmFileName = data(i).segmentDataFileName;
-        SegmFilePath = data(i).segmentDataFilePath;
-
-        cd(SegmFilePath);
-        SegmentMask = imread(SegmFileName);    
+        SegmentMask = imread([data(i).segmentDataFilePath data(i).segmentDataFileName]);    
         if ~islogical(SegmentMask)
             SegmentMask = logical(SegmentMask/max(SegmentMask(:)));
         end
-
         % calculate segmentation status (1=Inside, 0=oustide segmented region)
         [segmentStatusVector] = calcIORegionLfthistSimple(lftInfo, SegmentMask);
+    end
     
-    end % of if segmentation status vector field already exists
-    
-    % if ovariable==1, load segmentation data to restrict the OUTSIDE area
+    % if outvar==1, load segmentation data to restrict the OUTSIDE area
     % additionally (e.g. to the cell outline)
-    if ovariable==1
+    if outvar==1
         % load segmentation image from specified location
-        SegmFileNameOUT = data(i).segmentDataFileNameOUT;
-        SegmFilePathOUT = data(i).segmentDataFilePathOUT;
-
-        cd(SegmFilePathOUT);
-        SegmentMaskOUT = imread(SegmFileNameOUT);
-
+        SegmentMaskOUT = imread([data(i).segmentDataFilePathOUT data(i).segmentDataFileNameOUT]);
         if ~islogical(SegmentMaskOUT)
             SegmentMaskOUT = logical(SegmentMaskOUT/max(SegmentMaskOUT(:)));
         end
@@ -132,12 +93,12 @@ for i=1:lens
     lftMat = lftInfo.Mat_lifetime;
     statMat =  lftInfo.Mat_status;
 
-    [sx,sy] = size(lftMat);
+    sx = size(lftMat, 1);
 
     % == DEFAULT:
     % a trajectory is counted for the density analysis if the status of 
     % the trajectory is ==1 and the value of the gaps is ==4
-    % == IF censoring==0
+    % == IF censor==0
     % count all status trajectories
     
     countMat = 0 * full(statMat);
@@ -147,7 +108,7 @@ for i=1:lens
         cstat = nonzeros(statMat(k,:));
                 
         countStat = ( (min(cstat)==1) & (max(cstat)<5) );
-        if censoring==0
+        if censor==0
             countStat = (max(cstat)<5);
         end
         
@@ -161,22 +122,18 @@ for i=1:lens
     
     % split countMat into In and OUT matrices depending on segmentation 
     % status determined by segmentStatusVector
-    
-    findIN = find(segmentStatusVector==1);
-    countMatIN = countMat(findIN,:);
-    findOUT = find(segmentStatusVector~=1);
-    countMatOUT = countMat(findOUT,:);
+    countMatIN = countMat(segmentStatusVector==1,:);
+    countMatOUT = countMat(segmentStatusVector~=1,:);
             
-    % number of points inside and outside, averaged over all frames in the
-    % movie
+    % number of points inside and outside, averaged over all frames in the movie
     numIN = nanmean(sum(countMatIN,1));
     numOUT = nanmean(sum(countMatOUT,1));
     numALL = nanmean(sum(countMat,1));    
         
     % calculate density by dividing by segmented area - depending on
-    % ovariable, restrict outside region to segmented image as well
+    % outvar, restrict outside region to segmented image as well
         
-    if ovariable==1
+    if outvar==1
         areaIN = sum(SegmentMaskOUT(:) & SegmentMask(:));
         areaOUT = sum(SegmentMaskOUT(:) & ~SegmentMask(:));
         areaALL = sum(SegmentMaskOUT(:));
@@ -194,13 +151,4 @@ for i=1:lens
     data(i).density = densityALL;
     data(i).density_InRegion = densityIN;
     data(i).density_OutRegion = densityOUT;
-        
-    fprintf('\b\b\b\b\b\b\b\b\b');       
-
-end % of for
-
-cd(od);
-
-fprintf('\n'); 
-
-end % of function
+end
