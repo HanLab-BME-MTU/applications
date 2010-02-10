@@ -1,4 +1,4 @@
-function [mergedHistRes]=mergeFastSlowHistogramsPlat(Results, restrict, shape, estartvec, efixvec);
+function [mergedHistRes] = mergeFastSlowHistogramsPlat(Results, restrict, shape, estartvec, efixvec)
 % merge the fast and slow histograms preserving the normalization, and
 % fit multiple populations to lifetimes
 % SYNOPSIS [mergedHistRes]=mergeFastSlowHistogramsPlat(Results, restrict, shape);
@@ -64,7 +64,7 @@ OffsetCH = 1 - sum(hvecslow);
 
 
 
-%% ========================================================================
+% ========================================================================
 % 
 %    fit fast lifetime data to determine time constant of first Rayleigh
 %
@@ -78,7 +78,7 @@ axis([0.5 35 0 1.05*max(hvecfast)]);
 % one is kept fixed to a Rayleigh
 startvF = [0    0.1 4   2   0.2 10  2   0.2 90  1];
 fixvF   = [0    0   0   1   0   0   0   0   0   0]; 
-[estFast, resFast] = fitcurveMultiWeibullODF_lsq( tvecfast, hvecfast, startvF, fixvF);
+estFast = fitcurveMultiWeibullODF_lsq( tvecfast, hvecfast, startvF, fixvF);
 
 % set all except offest to positive
 estFast(2:length(estFast)) = abs(estFast(2:length(estFast)));
@@ -95,13 +95,15 @@ sigRay = estFast(3);
 
 % variation 03/21
 % newly initialized startvector
-for s=1:3, shapePars(s) = min( max(round(estFast(1+s*3)),1) , 2); end
-niStartvector = estFast;
-niStartvector(4:3:10) = shapePars;
+%for s = 1:3
+%    shapePars(s) = min( max(round(estFast(1+s*3)),1) , 2);
+%end
+%niStartvector = estFast;
+%niStartvector(4:3:10) = shapePars;
 
 
 
-%% ========================================================================
+% ========================================================================
 % 
 %       make continuous distribution of fast and slow
 %
@@ -114,9 +116,8 @@ a2 = 48;
 
 % FAST
 % positions within the specified time interval
-pnorm_fast  = find( (tvecfast<=a2) & (tvecfast>a1) );
 % area within the interval
-norm_fast   = sum(hvecfast(pnorm_fast));
+norm_fast   = sum(hvecfast((tvecfast<=a2) & (tvecfast>a1)));
 % original histogram normalized with area
 hnorm_fast  = hvecfast/norm_fast;
 % framerate
@@ -124,9 +125,8 @@ dtfast = max(diff(tvecfast));
 
 % SLOW
 % positions within the specified time interval
-pnorm_slow  = find( (tvecslow<=a2) & (tvecslow>a1) );
 % area within the interval
-norm_slow  = sum(hvecslow(pnorm_slow));
+norm_slow  = sum(hvecslow((tvecslow<=a2) & (tvecslow>a1)));
 % original histogram normalized with area
 hnorm_slow  = hvecslow/norm_slow;
 % framerate
@@ -156,7 +156,7 @@ hfrebin = hfcrop;
 hfrebin(tfcrop>=clo) = nan;
 step = round(dtslow/dtfast);
 
-pstart = min(find(tfcrop>=clo));
+pstart = find(tfcrop>=clo, 1, 'first');
 ti = 0;
 for t=pstart:step:(length(tfcrop)-1)
     tfrebin(pstart+ti) = tfcrop(t);
@@ -186,8 +186,8 @@ hcomb(1:f1) = hfrebin(1:f1)/dtfast;
 % second stretch: average of fast and slow
 tcomb(f1:f2) = tfrebin(f1:f2);
 % average is weighted with number of points in each category
-wfast = nc_fast/(nc_fast+nc_slow);
-wslow = nc_slow/(nc_fast+nc_slow);
+%wfast = nc_fast/(nc_fast+nc_slow);
+%wslow = nc_slow/(nc_fast+nc_slow);
 hcomb(f1:f2) = ( (nc_fast*(hfrebin(f1:f2)/dtfast)) + (nc_slow*(hscrop(s1:s2)/dtslow)))/(nc_fast+nc_slow);
 % third stretch: taken from slow
 par3 = hscrop(s2:length(hscrop))/dtslow; lp3 = length(par3);
@@ -202,8 +202,8 @@ tfit = tcomb;
 % normalized values of the histogram: first divide by the same norm, and 
 % then multiply by the framerate dtslow as done for the histogram above
 OffsetNorm = (OffsetCH/norm_slow)/dtslow;
-sfinal = [tvecslow(length(tvecslow)) hvecslow(length(hvecslow)) OffsetCH];
-snew = [tfit(length(tfit)) hfit(length(hfit)) OffsetNorm];
+%sfinal = [tvecslow(length(tvecslow)) hvecslow(length(hvecslow)) OffsetCH];
+%snew = [tfit(length(tfit)) hfit(length(hfit)) OffsetNorm];
 
 
 % renormalize the merged histogram including the newly normalized offset;
@@ -222,15 +222,12 @@ hfitNormCum = cumsum(hfitNorm.*dtvec);
 
 
 % restrict the vectors as specified
-pr = min(find(tfit>resT));
+pr = find(tfit>resT, 1, 'first');
 if ~isempty(pr)
     tfit = tfit(1:pr);
     hfitNorm = hfitNorm(1:pr);
     hfitNormCum = hfitNormCum(1:pr);
 end
-
-
-
 maxt = tfit(length(tfit));
 
 % figure;
@@ -243,7 +240,7 @@ maxt = tfit(length(tfit));
 
 
 
-%% ========================================================================
+% ========================================================================
 % 
 %       fit combined original histogram with with multiple distributions,
 %       number and shape is determined by shape input vector
@@ -273,7 +270,7 @@ fixv1(1:length(fixv1)) = fixv1template(1:length(fixv1));
 % text( 10, 0.9*max(hfitNorm),text1 );
 % axis([0 maxt 0 1.01*max(hfitNorm)]);
 
-%% ========================================================================
+% ========================================================================
 % 
 %       fit combined cumulative histogram with multiple distributions,
 %       number and shape is determined by shape input vector
@@ -299,14 +296,14 @@ fixv2(1:length(fixv2)) = fixv2template(1:length(fixv2));
 
 % subplot(2,1,2); hold on;
 axis([0 maxt 0 1.01*max(hcfit)]);
-[est2] = fitcurveMultiWeibullCDF_lsq( tcfit, hcfit, startv2, fixv2);
+est2 = fitcurveMultiWeibullCDF_lsq( tcfit, hcfit, startv2, fixv2);
 
 % for t=1:length(shapevec), text2{t}=num2str( round(1000*est2(3*t-1:3*t+1))/1000 ); end
 % text( 10, 0.9*max(hcfit),text2 );
 % axis([0 maxt 0 1.01*max(hcfit)]);
 % title('merged cumulative histogram');
 
-%% ========================================================================
+% ========================================================================
 % 
 %       fit inverse cumulative histogram with 3 distributions, with the
 %       constraint that the fit can only have positive offset
@@ -354,7 +351,9 @@ ATtau = [ 0 round(ATtau*100)/100];
 
 
 
-for t=1:length(shapevec)+1, text3{t}=num2str([ATcont(t) ATtau(t)]); end
+for t=1:length(shapevec)+1
+    text3{t}=num2str([ATcont(t) ATtau(t)]);
+end
 text( 10, 0.9*max(1-hcfit),text3 );
 axis([0 maxt 0 1.01*max(1-hcfit)]);
 
@@ -385,12 +384,12 @@ format bank
 
 mergedHistRes.compactFitRes = compResMat;
 
-tplot = [0.5:0.5:max(t)];
-if min(nonzeros(diff(t(:))))<1
-    tplot = t;
-end
+%tplot = [0.5:0.5:max(t)];
+%if min(nonzeros(diff(t(:))))<1
+%    tplot = t;
+%end
 
-%% ========================================================================
+% ========================================================================
 %                               display final results
 % ========================================================================
 
@@ -431,8 +430,3 @@ if length(estimates)>6
     end
 end
 legend(legendstring);
-
-
-
-end % of function
-
