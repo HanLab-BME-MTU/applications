@@ -15,16 +15,23 @@ for iCol = 1:3
     names = cellfun(@fliplr, strtok(cellfun(@fliplr,movieData.fsmDirectory, ...
         'UniformOutput', false), filesep), 'UniformOutput', false);
 
+    % Make sure Actin is the first directory
+    iCh = [1, 2];
+    if ~strcmpi(names{1}, 'actin')
+        iCh = [2, 1];
+        names = flipud(names);
+    end
+    
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
 
     labelPath = movieData.labels.directory;
     labelFiles = dir([labelPath filesep '*.tif']);
 
-    s1Path = [movieData.fsmDirectory{1} filesep 'tack' filesep 'cands'];
+    s1Path = [movieData.fsmDirectory{iCh(1)} filesep 'tack' filesep 'cands'];
     s1Files = dir([s1Path filesep '*.mat']);
 
-    s2Path = [movieData.fsmDirectory{2} filesep 'tack' filesep 'cands'];
+    s2Path = [movieData.fsmDirectory{iCh(2)} filesep 'tack' filesep 'cands'];
     s2Files = dir([s2Path filesep '*.mat']);
 
     maskPath = movieData.masks.directory;
@@ -101,32 +108,31 @@ for iCol = 1:3
         dataPanelA(1,iFrame) = mean(minD1(1:n1));
         dataPanelA(2,iFrame) = mean(minD2(1:n2));
     
-        % Data for panel B
-        
-        L = imread([labelPath filesep labelFiles(iFrame).name]);
-
-        idxS1 = arrayfun(@(l) idxS1(L(idxS1) == l), ...
-            1:max(L(:)), 'UniformOutput', false);
-        idxS2 = arrayfun(@(l) idxS2(L(idxS2) == l), ...
-            1:max(L(:)), 'UniformOutput', false);
-        
-        dataPanelB{iFrame} = arrayfun(@(l) ...
-            mean(distToEdge(idxS2{l})) - ...
-            mean(distToEdge(idxS1{l})), (1:max(L(:)))');
+        % Data for panel B        
+%         L = imread([labelPath filesep labelFiles(iFrame).name]);
+% 
+%         idxS1 = arrayfun(@(l) idxS1(L(idxS1) == l), ...
+%             1:max(L(:)), 'UniformOutput', false);
+%         idxS2 = arrayfun(@(l) idxS2(L(idxS2) == l), ...
+%             1:max(L(:)), 'UniformOutput', false);
+%         
+%         dataPanelB{iFrame} = arrayfun(@(l) ...
+%             mean(distToEdge(idxS2{l})) - ...
+%             mean(distToEdge(idxS1{l})), (1:max(L(:)))');
         
         % Data for panel C        
-        idxL_p = find(protValues(:, iFrame) > 0);
-        idxL_r = find(protValues(:, iFrame) < 0);
-               
-        dataPanelC_p{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
-            mean(distToEdge(idxS1{l})), idxL_p, 'UniformOutput', false));
-        
-        dataPanelC_r{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
-            mean(distToEdge(idxS1{l})), idxL_r, 'UniformOutput', false));
-        
-        if ~batchMode && ishandle(h)
-            waitbar(iFrame / (nFrames-1), h);
-        end
+%         idxL_p = find(protValues(:, iFrame) > 0);
+%         idxL_r = find(protValues(:, iFrame) < 0);
+%                
+%         dataPanelC_p{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
+%             mean(distToEdge(idxS1{l})), idxL_p, 'UniformOutput', false));
+%         
+%         dataPanelC_r{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
+%             mean(distToEdge(idxS1{l})), idxL_r, 'UniformOutput', false));
+%         
+%         if ~batchMode && ishandle(h)
+%             waitbar(iFrame / (nFrames-1), h);
+%         end
     end
 
     if ~batchMode && ishandle(h)
@@ -153,30 +159,30 @@ for iCol = 1:3
     % Panel B
     %
 
-    nSectors = cellfun(@numel, dataPanelB);
-    dataPanelB = cellfun(@(x) padarray(x, [max(nSectors) - numel(x), 0], 'post'), ...
-        dataPanelB, 'UniformOutput', false);
-    dataPanelB = horzcat(dataPanelB{:});
-    subplot(3, 3, 3 + iCol);
-    imagesc(dataPanelB); hold on;
-    plot(1:numel(nSectors), nSectors, '-k', 'LineWidth', 2);
-    colormap('jet');
-    colorbar;
-    xlabel('Frame');
-    ylabel('Sector #');
+%     nSectors = cellfun(@numel, dataPanelB);
+%     dataPanelB = cellfun(@(x) padarray(x, [max(nSectors) - numel(x), 0], 'post'), ...
+%         dataPanelB, 'UniformOutput', false);
+%     dataPanelB = horzcat(dataPanelB{:});
+%     subplot(3, 3, 3 + iCol);
+%     imagesc(dataPanelB); hold on;
+%     plot(1:numel(nSectors), nSectors, '-k', 'LineWidth', 2);
+%     colormap('jet');
+%     colorbar;
+%     xlabel('Frame');
+%     ylabel('Sector #');
   
     %
     % Panel C
     %
     
-    dataPanelC_p = vertcat(dataPanelC_p{:});
-    dataPanelC_r = vertcat(dataPanelC_r{:});
-    subplot(3, 3, 7:9);
-    [n1, xout1] = hist(dataPanelC_p, 50);
-    [n2, xout2] = hist(dataPanelC_r, 50);
-    c = rand(3, 1);
-    bar(xout1, n1, 'FaceColor', c); hold on;
-    bar(xout2, -n2, 'FaceColor', c * .5); hold off;
-    xlabel('nm');
+%     dataPanelC_p = vertcat(dataPanelC_p{:});
+%     dataPanelC_r = vertcat(dataPanelC_r{:});
+%     subplot(3, 3, 7:9);
+%     [n1, xout1] = hist(dataPanelC_p, 50);
+%     [n2, xout2] = hist(dataPanelC_r, 50);
+%     c = rand(3, 1);
+%     bar(xout1, n1, 'FaceColor', c); hold on;
+%     bar(xout2, -n2, 'FaceColor', c * .5); hold off;
+%     xlabel('nm');
 end
 
