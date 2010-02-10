@@ -159,7 +159,7 @@ for iCol = 1:3
     dataPanelB = horzcat(dataPanelB{:});
     subplot(3, 3, 3 + iCol);
     imagesc(dataPanelB); hold on;
-    plot(1:size(dataPanelB, 2), nSectors, 'k-', 'LineWidth', 2);
+    plot(1:numel(nSectors), nSectors, '-k', 'LineWidth', 2);
     colormap('jet');
     colorbar;
     xlabel('Frame');
