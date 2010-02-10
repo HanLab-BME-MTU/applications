@@ -154,7 +154,7 @@ for iCol = 1:3
     %
 
     maxSector = max(cellfun(@numel, dataPanelB));
-    dataPanelB = cellfun(@(x) padarray(x, [0 maxSector - numel(x)], 'post'), ...
+    dataPanelB = cellfun(@(x) padarray(x, [maxSector - numel(x), 0], 'post'), ...
         dataPanelB, 'UniformOutput', false);
     dataPanelB = horzcat(dataPanelB{:});
     subplot(3, 3, 3 + iCol);
