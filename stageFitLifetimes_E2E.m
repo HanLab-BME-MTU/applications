@@ -29,7 +29,7 @@ function [results] = stageFitLifetimes_E2E(data)
 % last modified DATE: 31-Jul-2007 (Dinah)
 
 
-%% ========================================================================
+% ========================================================================
 % 
 %       FIRST STEP: determine which entries in the data structure represent
 %       fast or slow movies, so that we know which ones of the movies can
@@ -53,16 +53,15 @@ function [results] = stageFitLifetimes_E2E(data)
 % for i=1:length(data)
 %     
 %     % read current detection frequency
-%     framerate_i = data(i).framerate;
 %         
 %     %  if movie is fast and data exists
-%     if ( (framerate_i==0.4) & ~isempty(data(i).lftHist) )
+%     if ( (data(i).framerate==0.4) & ~isempty(data(i).lftHist) )
 %         % enter i as a position of a fast movie
 %         positions_fast(ct_fast) = i;
 %         ct_fast = ct_fast+1;
 %         
 %     %  if movie is slow and data exists    
-%     elseif ( (framerate_i==2) & ~isempty(data(i).lftHist) )
+%     elseif ( (data(i).framerate==2) & ~isempty(data(i).lftHist) )
 %         % enter i as a position of a slow movie
 %         positions_slow(ct_slow) = i;
 %         ct_slow = ct_slow+1;  
@@ -75,8 +74,6 @@ function [results] = stageFitLifetimes_E2E(data)
 % 
 % for i=1:length(data)
 %     
-%     % read current detection frequency
-%     framerate_i = data(i).framerate;
 %     
 %     
 %     % if more than one movie for this condition (fast or slow) exists,
@@ -84,9 +81,9 @@ function [results] = stageFitLifetimes_E2E(data)
 %     
 %     deletevar = 0;
 %     % test if more than one movie of specified condition exists
-%     if ( (framerate_i==2) & (ct_slow>1) )
+%     if ( (data(i).framerate==2) & (ct_slow>1) )
 %         deletevar = 1;
-%     elseif ( (framerate_i==0.4) & (ct_fast>1) )
+%     elseif ( (data(i).framerate==0.4) & (ct_fast>1) )
 %         deletevar = 1;
 %     end
 % 
@@ -105,14 +102,14 @@ function [results] = stageFitLifetimes_E2E(data)
 
 
 
-%% ========================================================================
+% ========================================================================
 %  persistence cutoff: all pits that live longer than pc are considered
 %  persistent (meas in seconds)
 
 %pc = persThresh;
 
 
-%% ========================================================================
+% ========================================================================
 % 
 %       FIRST STAGE: average all data to identify initial detection
 %       artifact 
@@ -122,10 +119,8 @@ function [results] = stageFitLifetimes_E2E(data)
 xresample = 0;
 
 cutRes = 0;
-if nargin>1
-    if xresample==1
-        cutRes = 1;
-    end
+if nargin>1 && xresample==1
+    cutRes = 1;
 end
         
 
@@ -156,12 +151,11 @@ histVector_all = nanmean(histMatrix_all,1);
 %...and renormalize
 histVectorRenorm_all = histVector_all/nansum(histVector_all);
 
-tvec = [1:cutoff_art];
-
+tvec = 1:cutoff_art;
 
 
 % plot results
-f1 = figure;
+figure;
 plot(tvec,histVectorRenorm_all,'b.-'); hold on;
 xlabel('frames'); ylabel('average frequency');
 axis([0 cutoff_art 0 1.1*max(histVectorRenorm_all(:))]);
@@ -171,7 +165,7 @@ axis([0 cutoff_art 0 1.1*max(histVectorRenorm_all(:))]);
 % fit averaged results with multiple exponentials (weibulls with k==1)
 guessvector = [0    0.3 0.3 1   0.3 5   1   0.3 20  1];
 fixvector =   [0    0   0   1   0   0   1   0   0   1]; 
-[estAll, resAll] = fitcurveMultiWeibullODF_lsq(tvec, histVectorRenorm_all, guessvector, fixvector);
+estAll = fitcurveMultiWeibullODF_lsq(tvec, histVectorRenorm_all, guessvector, fixvector);
 % take abs of all except offset
 estAll(2:length(estAll)) = abs(estAll(2:length(estAll)));
 
@@ -191,7 +185,7 @@ disp(['0.1% distance: ',num2str(d01percent), 'frames']);
 
 
 
-%% ========================================================================
+% ========================================================================
 %                   define following data cutoffs
 % ========================================================================
 
@@ -207,7 +201,7 @@ cutoff_slow = 0.1;
 
 
 
-%% ========================================================================
+% ========================================================================
 % 
 %       determine which entries in the data structure represent fast or
 %       slow movies and store the positions
@@ -236,25 +230,23 @@ mintimespan_slow = 10000;
 
 % loop over all entries in the data structure
 for i=1:length(data)
-    % read current detection frequency
-    framerate_i = data(i).framerate;
     % read current movie timespan - the framespan will later be reduced by
     % cutoffs, so it has to be modified
     framenum = data(i).movieLength;
-    timespan = framerate_i*framenum;
+    timespan = data(i).framerate*framenum;
     %framespan = floor(framenum*(1-cutoff_end)) - cutoff_start;
-    %timespan = framerate_i*framespan;
+    %timespan = data(i).framerate*framespan;
     
     
     
     %  if movie is fast and data exists
-    if ( (framerate_i<=speed_thresh) & ~isempty(data(i).lftHist) )
+    if ( (data(i).framerate<=speed_thresh) && ~isempty(data(i).lftHist) )
         % enter i as a position of a fast movie
         positions_fast(ct_fast) = i;
         ct_fast = ct_fast+1;
         mintimespan_fast = min(mintimespan_fast,timespan);
     %  if movie is slow and data exists    
-    elseif ( (framerate_i>speed_thresh) & ~isempty(data(i).lftHist) )
+    elseif ( (data(i).framerate>speed_thresh) && ~isempty(data(i).lftHist) )
         % enter i as a position of a slow movie
         positions_slow(ct_slow) = i;
         ct_slow = ct_slow+1;
@@ -268,19 +260,19 @@ end
         
 
 % normalization window for later data (in seconds)
-normStart_fast = 6;
-normEnd_fast = (5*ipFramerate_fast)*floor(mintimespan_fast/(5*ipFramerate_fast));
-normStart_slow = 30;
-normEnd_slow = min(300,(5*ipFramerate_slow)*floor(mintimespan_slow/(5*ipFramerate_slow)));
+% normStart_fast = 6;
+% normEnd_fast = (5*ipFramerate_fast)*floor(mintimespan_fast/(5*ipFramerate_fast));
+% normStart_slow = 30;
+% normEnd_slow = min(300,(5*ipFramerate_slow)*floor(mintimespan_slow/(5*ipFramerate_slow)));
 % normalization window for later data (in frames)
-normStartp_fast = round(normStart_fast/ipFramerate_fast);
-normEndp_fast   = round(normEnd_fast/ipFramerate_fast);
-normStartp_slow = round(normStart_slow/ipFramerate_slow);
-normEndp_slow   = round(normEnd_slow/ipFramerate_slow);
+% normStartp_fast = round(normStart_fast/ipFramerate_fast);
+% normEndp_fast   = round(normEnd_fast/ipFramerate_fast);
+% normStartp_slow = round(normStart_slow/ipFramerate_slow);
+% normEndp_slow   = round(normEnd_slow/ipFramerate_slow);
 
 
 
-%% ========================================================================
+% ========================================================================
 % 
 %       Preparatory STAGE: average all fast/slow data 
 %
@@ -296,26 +288,17 @@ for r=1:2
     if r==1
         usepos      = positions_fast;
         ipFramerate = ipFramerate_fast;
-        normw1      = normStartp_fast;
-        normw2      = normEndp_fast;
-        xlimit      = 60;
-        cutoff_start= cutoff_start;
         maxl        = floor(mintimespan_fast/ipFramerate_fast);
         cutoff_end  = 0.1;
     elseif r==2
         usepos      = positions_slow;
         ipFramerate = ipFramerate_slow;
-        normw1      = normStartp_slow;
-        normw2      = normEndp_slow;
-        xlimit      = 300;
-        cutoff_start= cutoff_start;
         maxl        = floor(mintimespan_slow/ipFramerate_slow);
         cutoff_end  = cutoff_slow;
     end
 
     lup = length(usepos);    
-    histMatrix  = nan*zeros(lup,1000);
-    numPersistVec = nan*zeros(lup,1);
+    histMatrix  = NaN(lup,1000);
     
     figure
     hold on
@@ -421,7 +404,7 @@ for r=1:2
         col = histMatrix(:,ci);
         n_nan = sum(isnan(col));
         n_def = lup - n_nan;
-        if (n_nan>n_def) & (n_def>0)
+        if (n_nan>n_def) && (n_def>0)
             histMatrix(:,ci) = nan;
         end
     end
@@ -445,7 +428,7 @@ for r=1:2
     cp = 0;
     if cp>0, histVectorRes(1:cp)  = nan; end
     
-%% continue HERE
+% continue HERE
     % if there's more than one entry for this condition
     if p>1
         histVectorResDel = [];
@@ -487,18 +470,8 @@ for r=1:2
         figure;
         plot(tvecRes, histVectorRes,'r.-');
         axis([0 600 0 1.05*max(histVectorRes)]);
-        
-        
     end % of if
-    
-    
 end
-
-
-
-%% write out results
-% lftHist_fast = histVector_fast;
-% lftHist_slow = histVector_slow;
 
 results.hist_fast = histVector_fast;
 results.hist_slow = histVector_slow;
@@ -511,7 +484,7 @@ end % of function
 
 
 
-%% =============== mini subfunction for box filter
+% =============== mini subfunction for box filter
 function [filteredtrace]=sboxfilter_edgefix(trace,boxlength)
 len = length(trace);
 for i=1:len
@@ -520,8 +493,4 @@ for i=1:len
     tend = min(len,i+cbox);
     filteredtrace(i)=mean(trace(tbeg:tend));
 end
-end % of subfunction
-
-
-
-    
+end
