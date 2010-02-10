@@ -117,18 +117,18 @@ for iCol = 1:3
             1:max(L(:)), 'UniformOutput', false);
         
         dataPanelB{iFrame} = arrayfun(@(l) ...
-            mean(distToEdge(idxS1{l})) - ...
-            mean(distToEdge(idxS2{l})), (1:max(L(:)))');
+            mean(distToEdge(idxS2{l})) - ...
+            mean(distToEdge(idxS1{l})), (1:max(L(:)))');
         
         % Data for panel C        
         idxL_p = find(protValues(:, iFrame) > 0);
         idxL_r = find(protValues(:, iFrame) < 0);
                
         dataPanelC_p{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
-            mean(distToEdge(idxS1{l})), idxL_p, 'UniformOutput', false);
+            mean(distToEdge(idxS1{l})), idxL_p', 'UniformOutput', false);
         
         dataPanelC_r{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
-            mean(distToEdge(idxS1{l})), idxL_r, 'UniformOutput', false);
+            mean(distToEdge(idxS1{l})), idxL_r', 'UniformOutput', false);
         
         if ~batchMode && ishandle(h)
             waitbar(iFrame / (nFrames-1), h);
@@ -153,23 +153,24 @@ for iCol = 1:3
     % Panel B
     %
 
-    maxSector = max(cellfun(@numel, dataPanelB));
-    dataPanelB = cellfun(@(x) padarray(x, [maxSector - numel(x), 0], 'post'), ...
+    nSectors = cellfun(@numel, dataPanelB);
+    dataPanelB = cellfun(@(x) padarray(x, [max(nSectors) - numel(x), 0], 'post'), ...
         dataPanelB, 'UniformOutput', false);
     dataPanelB = horzcat(dataPanelB{:});
     subplot(3, 3, 3 + iCol);
-    imagesc(dataPanelB);
+    imagesc(dataPanelB); hold on;
+    plot(1:size(dataPanelB, 2), nSectors, 'LineWidth', 2, 'y-');
     colormap('jet');
+    colorbar;
     xlabel('Frame');
     ylabel('Sector #');
-    title('Protrusion Velocity (pixel/frame)');
   
     %
     % Panel C
     %
     
-    dataPanelCprot = cell2mat(dataPanelC_p);
-    dataPanelCret = cell2mat(dataPanelC_r);
+    dataPanelC_p = cell2mat(dataPanelC_p);
+    dataPanelC_r = cell2mat(dataPanelC_r);
     subplot(3, 3, 7:9);
     [n1, xout1] = hist(dataPanelCprot, 50);
     [n2, xout2] = hist(dataPanelCret, 50);
