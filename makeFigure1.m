@@ -1,11 +1,5 @@
 function makeFigure1(paths, batchMode)
 
-if batchMode
-    hFig = figure('Visible', 'off');
-else
-    hFig = figure('Visible', 'on');
-end
-
 for iCol = 1:3
     fileName = [paths{iCol} filesep 'windowAnalysis' filesep 'movieData.mat'];
     if ~exist(fileName, 'file')
@@ -124,11 +118,11 @@ for iCol = 1:3
         idxL_p = find(protValues(:, iFrame) > 0);
         idxL_r = find(protValues(:, iFrame) < 0);
                
-        dataPanelC_p{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
-            mean(distToEdge(idxS1{l})), idxL_p', 'UniformOutput', false);
+        dataPanelC_p{iFrame} = vertcat(cellfun(@(l) distToEdge(idxS2{l}) - ...
+            mean(distToEdge(idxS1{l})), idxL_p, 'UniformOutput', false));
         
-        dataPanelC_r{iFrame} = arrayfun(@(l) distToEdge(idxS2{l}) - ...
-            mean(distToEdge(idxS1{l})), idxL_r', 'UniformOutput', false);
+        dataPanelC_r{iFrame} = vertcat(cellfun(@(l) distToEdge(idxS2{l}) - ...
+            mean(distToEdge(idxS1{l})), idxL_r, 'UniformOutput', false));
         
         if ~batchMode && ishandle(h)
             waitbar(iFrame / (nFrames-1), h);
@@ -137,6 +131,12 @@ for iCol = 1:3
 
     if ~batchMode && ishandle(h)
         close(h);
+    end
+
+    if batchMode
+        hFig = figure('Visible', 'off');
+    else
+        hFig = figure('Visible', 'on');
     end
     
     %
