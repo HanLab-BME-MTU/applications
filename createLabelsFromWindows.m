@@ -1,4 +1,4 @@
-function CC = createLabelsFromWindows(winPoly, N, M)
+function CC = createLabelsFromWindows(winPoly, N, M, nBandsLimit)
 
 [nBands, nWindows] = size(winPoly);
 
@@ -15,6 +15,9 @@ for n = 1:nWindows
     if isempty(mStart) || isempty(mEnd) || ~min(e(mStart:mEnd))
         continue;
     end
+    
+    mStart = min(mStart, nBandsLimit);
+    mEnd = min(mEnd, nBandsLimit);
     
     X = winPoly(mStart, n).outerBorder(1, :);
     Y = winPoly(mStart, n).outerBorder(2, :);

@@ -34,16 +34,16 @@ for iCol = 1:3
     labelPath = movieData.labels.directory;
     labelFiles = dir([labelPath filesep '*.tif']);
 
-    s1Path = [movieData.fsmDirectory{iCh(1)} filesep 'tack' filesep 'cands'];
+    s1Path = [movieData.fsmDirectory{iCh(1)} filesep 'tack' filesep 'locMax'];
     s1Files = dir([s1Path filesep '*.mat']);
 
-    s2Path = [movieData.fsmDirectory{iCh(2)} filesep 'tack' filesep 'cands'];
+    s2Path = [movieData.fsmDirectory{iCh(2)} filesep 'tack' filesep 'locMax'];
     s2Files = dir([s2Path filesep '*.mat']);
 
     maskPath = movieData.masks.directory;
     maskFiles = dir([maskPath filesep '*.tif']);
 
-    nPanelA = 100;
+    %nPanelA = 300;
     dataPanelA = zeros(2, nFrames-1);
     dataPanelB = cell(1, nFrames-1);
     dataPanelC_p = cell(1, nFrames-1);
@@ -73,11 +73,10 @@ for iCol = 1:3
     for iFrame = 1:nFrames-1
         % Load speckles channel 1
         load([s1Path filesep s1Files(iFrame).name]);
-        status = vertcat(cands(:).status); %#ok<NODEF>
-        S1 = vertcat(cands(status == 1).Lmax);
-        clear cands;
+        idxS1 = find(locMax); 
+        clear locMax;
         
-        if isempty(S1)
+        if isempty(idxS1)
             fprintf('%s channel doesn''t contain any speckle in frame %d/%d !!!\n',...
                 names{1}, iFrame, nFrames);
             continue;
@@ -85,11 +84,10 @@ for iCol = 1:3
         
         % Load speckles channel 2
         load([s2Path filesep s2Files(iFrame).name]);
-        status = vertcat(cands(:).status);
-        S2 = vertcat(cands(status == 1).Lmax);
-        clear cands;
+        idxS2 = find(locMax); 
+        clear locMax;
         
-        if isempty(S2)
+        if isempty(idxS2)
             fprintf('%s channel doesn''t contain any speckle in frame %d/%n !!!\n',...
                 names{2}, iFrame, nFrames);
             continue;
@@ -98,33 +96,27 @@ for iCol = 1:3
         % Compute distance to the edge
         BW = imread([maskPath filesep maskFiles(iFrame).name]);
         distToEdge = bwdist(max(BW(:)) - BW) * pixelSize;
-        
-        % Compute linear indices of speckles
-        idxS1 = sub2ind(size(distToEdge), S1(:, 1), S1(:, 2));
-        idxS2 = sub2ind(size(distToEdge), S2(:, 1), S2(:, 2));
 
-        % Data for panel A
-        
+        % Data for panel A       
         minD1 = sort(distToEdge(idxS1));
         minD2 = sort(distToEdge(idxS2));
 
-        n1 = min(nPanelA, numel(minD1));
-        n2 = min(nPanelA, numel(minD2));
+        n1 = find(minD1 > 5000, 1);
+        n2 = find(minD2 > 5000, 1);
         
         dataPanelA(1,iFrame) = mean(minD1(1:n1));
         dataPanelA(2,iFrame) = mean(minD2(1:n2));
-    
+        
         % Data for panel B        
-%         L = imread([labelPath filesep labelFiles(iFrame).name]);
-% 
-%         idxS1 = arrayfun(@(l) idxS1(L(idxS1) == l), ...
-%             1:max(L(:)), 'UniformOutput', false);
-%         idxS2 = arrayfun(@(l) idxS2(L(idxS2) == l), ...
-%             1:max(L(:)), 'UniformOutput', false);
-%         
-%         dataPanelB{iFrame} = arrayfun(@(l) ...
-%             mean(distToEdge(idxS2{l})) - ...
-%             mean(distToEdge(idxS1{l})), (1:max(L(:)))');
+        L = imread([labelPath filesep labelFiles(iFrame).name]);
+
+        %idxS1 = arrayfun(@(l) idxS1(L(idxS1) == l), ...
+        %    1:max(L(:)), 'UniformOutput', false);
+        idxS2 = arrayfun(@(l) idxS2(L(idxS2) == l), ...
+            1:max(L(:)), 'UniformOutput', false);
+        
+        dataPanelB{iFrame} = arrayfun(@(l) mean(distToEdge(idxS2{l})),...
+            (1:max(L(:)))');
         
         % Data for panel C        
 %         idxL_p = find(protValues(:, iFrame) > 0);
@@ -145,12 +137,15 @@ for iCol = 1:3
         close(h);
     end
 
+    set(0, 'CurrentFigure', hFig);
+    
     %
     % Panel A
     %
     
     subplot(3, 3, iCol);
-    plot(hFig, dataPanelA', 'LineWidth', 2);
+    plot(gca, 1:nFrames-1, dataPanelA(1,:), 'r-', 'LineWidth', 2); hold on;
+    plot(gca, 1:nFrames-1, dataPanelA(2,:), 'g-', 'LineWidth', 2); hold off;
     xlabel('Frame');
     ylabel('Distance to edge (nm)');
     legend(names);
@@ -159,17 +154,17 @@ for iCol = 1:3
     % Panel B
     %
 
-%     nSectors = cellfun(@numel, dataPanelB);
-%     dataPanelB = cellfun(@(x) padarray(x, [max(nSectors) - numel(x), 0], 'post'), ...
-%         dataPanelB, 'UniformOutput', false);
-%     dataPanelB = horzcat(dataPanelB{:});
-%     subplot(3, 3, 3 + iCol);
-%     imagesc(dataPanelB); hold on;
-%     plot(1:numel(nSectors), nSectors, '-k', 'LineWidth', 2);
-%     colormap('jet');
-%     colorbar;
-%     xlabel('Frame');
-%     ylabel('Sector #');
+    nSectors = cellfun(@numel, dataPanelB);
+    dataPanelB = cellfun(@(x) padarray(x, [max(nSectors) - numel(x), 0], 'post'), ...
+        dataPanelB, 'UniformOutput', false);
+    dataPanelB = horzcat(dataPanelB{:});
+    subplot(3, 3, 3 + iCol);
+    imagesc(dataPanelB, 'Parent', gca); hold on;
+    plot(gca, 1:numel(nSectors), nSectors, '-k', 'LineWidth', 2);
+    colormap('jet');
+    colorbar;
+    xlabel('Frame');
+    ylabel('Sector #');
   
     %
     % Panel C

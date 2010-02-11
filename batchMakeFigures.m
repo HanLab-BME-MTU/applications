@@ -214,11 +214,12 @@ for iMovie = 1:nMovies
     end 
 
     % STEP 6: Label
+    nBandsLimit = 5; % ~ 5 um depth
     if ~isfield(currMovie,'labels') || ~isfield(currMovie.labels,'status') || ...
             currMovie.labels.status ~= 1 || forceRun(6)
         try
             disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
-            currMovie = getMovieLabels(currMovie, batchMode);
+            currMovie = getMovieLabels(currMovie, nBandsLimit, batchMode);
             
             if isfield(currMovie.labels,'error')
                 currMovie.labels = rmfield(currMovie.labels,'error');

@@ -1,7 +1,11 @@
-function movieData = getMovieLabels(movieData, batchMode)
+function movieData = getMovieLabels(movieData, nBandsLimits, batchMode)
 
 %Indicate that labeling was started
 movieData.labels.status = 0;
+
+if isempty(nBandsLimits)
+    nBandsLimits = +inf;
+end
 
 %Verify that the windowing has been performed
 if ~checkMovieWindows(movieData)
@@ -52,7 +56,7 @@ end
 for iFrame = 1:nFrames    
     winPoly = allWinPoly(:,:,iFrame);
     
-    labels = createLabelsFromWindows(winPoly, N, M);
+    labels = createLabelsFromWindows(winPoly, N, M, nBandsLimits);
 
     imwrite(uint16(labels), [movieData.labels.directory filesep 'labels_' num2str(iFrame,fString) '.tif'], 'Compression', 'none');
     
