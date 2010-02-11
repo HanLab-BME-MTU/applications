@@ -1,4 +1,4 @@
-function [MPMrefpos] = extractAllPosSideBuffer_ref(MPMallpos, im);
+function [MPMrefpos] = extractAllPosSideBuffer_ref(MPMallpos, im)
 % this function produces an MPM of reference positions for a pre-determined
 % set of points of interest, where the have different locations but the
 % identical length and appearance/disapperance positions; this ensures that
@@ -33,8 +33,6 @@ mpm_y = MPMallpos(:,2:2:ny,1);
 mpm_t1 = MPMallpos(:,1:2:ny,2);
 mpm_t2 = MPMallpos(:,1:2:ny,3);
 
-MPMrefpos = MPMallpos;
-
 % number of reference positions per data point
 nref = 8;
 
@@ -65,7 +63,7 @@ stat_t1 = nanmax(abs(mpm_t1),[],2);
 stat_t2 = nanmax(abs(mpm_t2),[],2);
 
 
-%% fill in time shift values
+% fill in time shift values
 % for each trajectory with lifetime > 4 frames, add the specified number of
 % frames to the left and right; the position of the first or last visible
 % frame is filled in
@@ -73,15 +71,14 @@ stat_t2 = nanmax(abs(mpm_t2),[],2);
 gtpos = find( (stat_t1>1) | (stat_t2>1) );
 
 
-mpm_x_ref = nan*zeros(nref*nx,nf);
-mpm_y_ref = nan*zeros(nref*nx,nf);
-mpm_t1_ref = nan*zeros(nref*nx,nf);
-mpm_t2_ref = nan*zeros(nref*nx,nf);
+mpm_x_ref = NaN(nref*nx,nf);
+mpm_y_ref = NaN(nref*nx,nf);
+mpm_t1_ref = NaN(nref*nx,nf);
+mpm_t2_ref = NaN(nref*nx,nf);
 
 
-%% loop over usable trajectories
-
-for i=1:length(gtpos)
+% loop over usable trajectories
+for i = 1:length(gtpos)
     
     k = gtpos(i);
        
@@ -93,10 +90,10 @@ for i=1:length(gtpos)
     
     if strcmp(mode,'shift')
         
-        creftraj_x = nan*zeros(size(shiftpos,1),nf);
-        creftraj_y = nan*zeros(size(shiftpos,1),nf);
-        creftraj_t1 = nan*zeros(size(shiftpos,1),nf);
-        creftraj_t2 = nan*zeros(size(shiftpos,1),nf);
+        creftraj_x = NaN(size(shiftpos,1),nf);
+        creftraj_y = NaN(size(shiftpos,1),nf);
+        creftraj_t1 = NaN(size(shiftpos,1),nf);
+        creftraj_t2 = NaN(size(shiftpos,1),nf);
         
         for s=1:size(shiftpos,1)
             
@@ -106,9 +103,9 @@ for i=1:length(gtpos)
             ct_x_shift = ct_x - shiftx;
             ct_y_shift = ct_y - shifty;
             
-            if (nanmin(ct_x_shift)<1) | (nanmin(ct_y_shift)<1)
+            if (nanmin(ct_x_shift)<1) || (nanmin(ct_y_shift)<1)
                 continue
-            elseif (max(ct_x_shift)>imsiz(2)) | (max(ct_y_shift)>imsiz(1))
+            elseif (max(ct_x_shift)>imsiz(2)) || (max(ct_y_shift)>imsiz(1))
                 continue
             end
             
@@ -134,7 +131,7 @@ for i=1:length(gtpos)
             if wct>1000
                 error('no random points are found');
             end
-        end % of while
+        end
         
         for s=1:nref
             creftraj_x(s,:) = xvec_rand(s)+0*ct_x;
@@ -142,21 +139,16 @@ for i=1:length(gtpos)
             creftraj_t1(s,:) = ct_t1;
             creftraj_t2(s,:) = ct_t2;
         end
-    end % of elseif
+    end
           
-           
     % fill in total matrix
     mpm_x_ref( ((k-1)*nref)+1:(k*nref),: ) = creftraj_x;
     mpm_y_ref( ((k-1)*nref)+1:(k*nref),: ) = creftraj_y;
     mpm_t1_ref( ((k-1)*nref)+1:(k*nref),: ) = creftraj_t1;
-    mpm_t2_ref( ((k-1)*nref)+1:(k*nref),: ) = creftraj_t2;
-    
-    
-end % of for i-loop
+    mpm_t2_ref( ((k-1)*nref)+1:(k*nref),: ) = creftraj_t2; 
+end
 
-%fprintf('\n');
-
-MPMrefpos = nan*zeros(nref*nx,2*nf,3);
+MPMrefpos = NaN(nref*nx,2*nf,3);
 
 % merge information into one big MPM file
 MPMrefpos(:,1:2:2*nf,1) = mpm_x_ref;
@@ -165,6 +157,3 @@ MPMrefpos(:,1:2:2*nf,2) = mpm_t1_ref;
 MPMrefpos(:,2:2:2*nf,2) = mpm_t1_ref;
 MPMrefpos(:,1:2:2*nf,3) = mpm_t2_ref;
 MPMrefpos(:,2:2:2*nf,3) = mpm_t2_ref;
-    
-end % of function
-
