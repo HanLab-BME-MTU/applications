@@ -1,4 +1,4 @@
-function [posvec] = extractPos_vecFromLftRest(lftinfopath, restvector, fr);
+function [posvec] = extractPos_vecFromLftRest(lftinfopath, restvector, framerate)
 % this function extracts an MPM of points of interest from trackInfo using
 % specified restrictions, and time delays in the third dimension
 % 
@@ -26,61 +26,38 @@ function [posvec] = extractPos_vecFromLftRest(lftinfopath, restvector, fr);
 %
 % OUTPUT:   posvec       = result MPM
 %
-% last modified: Dinah Loerke   01/30/2009
+% Dinah Loerke   01/30/2009
+% Last modified: Francois Aguet 02/10/2010
 
-
-
-
-%% determine framerate
-framerate = 1;
-if nargin>2
-    if ~isempty(fr)
-        framerate = fr;
-    end
+if nargin<3 || isempty(framerate)
+    framerate = 1;
 end
 
-
-%% calculate lft matrices
-cd(lftinfopath);
-loadfile = open('lftInfo.mat');
-lmat = loadfile.lftInfo;
-
-mat_lft   = full(lmat.Mat_lifetime);
-mat_stat  = full(lmat.Mat_status);
-mat_x     = full(lmat.Mat_xcoord);
-mat_y     = full(lmat.Mat_ycoord);
-mat_da    = full(lmat.Mat_disapp);
+% calculate lft matrices
+load([lftinfopath filesep 'ltfInfo.mat']);
+mat_lft   = full(lftInfo.Mat_lifetime);
+mat_stat  = full(lftInfo.Mat_status);
 
 vec_lft   = max(mat_lft,[],2);
 mat_stat(mat_stat==0) = nan;
 vec_stat = nanmin(mat_stat,[],2);
 
-% frame number
-[nx,nf] = size(mat_lft);
-    
-
-% if intensity information is used, upload trackInfo and extract intensity
-% data here
+% if intensity information is used, upload trackInfo and extract intensity data here
 if length(restvector)>5
-    % remove 'LifetimeInfo' from lftinfopath
-    trackpath = strrep(lftinfopath, 'LifetimeInfo', 'TrackInfoMatrices');
-    cd(trackpath);
-    loadfile2 = open('trackInfo.mat');
-    tmat = full(loadfile2.trackInfo);
+    tmat = load([strrep(lftinfopath, 'LifetimeInfo', 'TrackInfoMatrices') filesep 'trackInfo.mat']);
+    tmat = full(tmat.trackInfo);
     imat = tmat(:,4:8:size(tmat,2));
     % maximum intensity
     ivec = nanmax(imat,[],2);
-    [inx,iny] = size(imat);
     % intensity vector of all usable positions (>4 frames lft)
     ivec_all = ivec;
-    ivec_all(find(vec_lft<4)) = nan;
+    ivec_all(vec_lft<4) = NaN;
     % calculate intensity percentile rank vector
     ivec_rank_all = intensityPercentageRank(ivec_all);
-        
 end
 
 
-%% =====================================================================
+% =====================================================================
 % DESIRED CONDITIONS
 % for all frames in the movie, collect those locations of points that
 % fulfill a number of requirements
@@ -115,7 +92,7 @@ for r=1:nres
     end
     
 
-    %% =====================================================================
+    % =====================================================================
 
     % find positions that fulfill required conditions, as logical matrices
     % correct status
@@ -159,10 +136,7 @@ for r=1:nres
     else
         posvec = findpos_all;
     end
-    
 end % of for r-loop
-
-
 end % of function
 
 
@@ -172,19 +146,19 @@ end % of function
 %
 %==========================================================================
 
-function [vec_intPercRank] = intensityPercentageRank(vec_int);
+function [vec_intPercRank] = intensityPercentageRank(vec_int)
 
 % sorting matrix
 % first colums: intensities
 imat_sort(:,1) = vec_int;
 %second columns: original positions
-imat_sort(:,2) = [1:length(vec_int)];
+imat_sort(:,2) = 1:length(vec_int);
 % intensity-sorted matrix
 imat_sorted1 = sortrows(imat_sort,1);
 % assign rank into additional column
-imat_sorted1(:,3) = [1:length(vec_int)];
+imat_sorted1(:,3) = 1:length(vec_int);
 % maximum defined position
-imaxpos = max(find(isfinite(imat_sorted1(:,1))));
+imaxpos = find(isfinite(imat_sorted1(:,1)), 1, 'last');
 % convert absolute rank into percentile rank
 imat_sorted1(:,3) = imat_sorted1(:,3)/imaxpos;
 % fill non-defined positions from intensity vector with nans
@@ -194,5 +168,19 @@ imat_sorted2 = sortrows(imat_sorted1,2);
 % extract re-sorted percentage rank
 vec_intPercRank = imat_sorted2(:,3);
 
-end % of subfunction
+end
 
+
+function rankIntensityVect = rankIntensity(intensityVect)
+
+idx = 1:length(intensityVect);
+sortMat(:,1) = intensityVect;
+sortMat(:,2) = idx;
+sortMat = sortrows(sortMat, 1);
+% sort places 'NaN' last -> find first valid max
+maxIdx = find(isfinite(sortMat(:,1)), 1, 'last');
+sortMat(:,3) = idx / maxIdx; % absolute rank -> percentile rank
+sortMat(maxIdx+1:end, 3) = NaN;
+sortMat = sortrows(sortMat, 2);
+rankIntensityVect = sortMat(:,3);
+end
