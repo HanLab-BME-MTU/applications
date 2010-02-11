@@ -101,7 +101,6 @@ if ~any(strcmp('BatchMode',commonOptions))
 end
 
 
-
 %% ------------ Processing -------------- %%
 %Go through each movie and call the processing function.
 
