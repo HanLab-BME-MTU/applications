@@ -1,4 +1,4 @@
-function [result] = MUEC_intensity(data, restvector, dvector, tvector, channel); 
+function [result] = MUEC_intensity(data, restvector, dvector, tvector, channel) 
 % MUEC (Multichannel Universal Event Correlator) Intensity: correlates
 % tracking events with intensity
 % 
@@ -51,18 +51,18 @@ od = cd;
 nr = 10;
 refplane = find(tvector==0);
 
-%% select image files from which intensity is to be read; if no specific
+% select image files from which intensity is to be read; if no specific
 % location is specified, the function will try to read the image locations
 % from the structure field 'channel2'
 
-for i=1:length(data)
+for i = 1:length(data)
     
     % select first image for the second (intensity) channel
     if nargin>4
         if isfield(data, channel)
             path2 = getfield(data,{1,i},channel);
         else
-            error(['no field of the specified name (,'channel,') is found');
+            error(['no field of the specified name (,' channel ') was found']);
         end
     else
         if isfield(data, channel2)
@@ -77,29 +77,15 @@ for i=1:length(data)
     % select first image file
     [imageName, imagePath] = uigetfile('.tif',['Select first original intensity image for movie #',num2str(i)]); 
     % make a list of all complete image file names (including path) for
-    % later upload of the images
-    completeImageName = strcat(imagePath, imageName);
-    imageStackList = getFileStackNames(completeImageName);
-    
-    Ch2stackList(i).list = imageStackList;
+    % later upload of the images   
+    Ch2stackList(i).list = getFileStackNames([imagePath imageName]);
     
 end
-pause(0.1);
 
 
-%% loop over all movies
+% loop over all movies
 for i=1:length(data)
-    
-    fprintf('movie #%02d',i);
-    fprintf('\n');
-    
-    % load trackinfo file
-    cpath = [data(i).source,filesep,'TrackInfoMatrices'];
-    trackinfopath = [data(i).source,filesep,'LifetimeInfo'];
-    cd(cpath);
-    loadfile = open('trackInfo.mat');
-    trackInfo  = loadfile.trackInfo;
-    framerate = data(i).framerate;
+    fprintf('Movie no. %d\n', i);
     
     % load reference image - this is a binary mask that shows the outline
     % of the cell; the mask is required because the function will choose
@@ -107,22 +93,20 @@ for i=1:length(data)
     % background signal, and it is desirable to choose the reference
     % positions within the area of the cell (as opposed to the empty area 
     % on the coverslip next to it)
-    cpath = [data(i).source,filesep,'SubregionsMask'];
-    cd(cpath);
-    image = imread('mask0001.tif');
+    image = imread([data(i).source 'SubregionsMask' filesep 'mask0001.tif']);
     mask = image';
     
     % if necessary, read restriction vector from the specified structure
     % field
-    if isstr(restvector)
-        restrictions = getfield( data(i),restvector );
+    if ischar(restvector)
+        restrictions = data(i).(restvector);
     else
         % extract positions with desired restricition properties
        restrictions = restvector;
     end
 
     % extract the positions with the desired properties
-    MPMglobal = CorrelateData2Pos_extractMPM2L(trackinfopath, restrictions, tvector, framerate, 1);
+    MPMglobal = CorrelateData2Pos_extractMPM2L([data(i).source 'LifetimeInfo'], restrictions, tvector, data(i).framerate, 1);
     
     % if the intensity belongs to a second color channel that is shifted
     % with respect to the tracking channel - i.e. if a field 
@@ -136,38 +120,34 @@ for i=1:length(data)
     % coordinates in the actin channel. Positions outside the shifted image
     % dimensions have to be set to nan
     
-    if isfield(data,'colorShiftVector')
-        if ~isempty(data(i).colorShiftVector)
-            [msx,msy,msz] = size(MPMglobal);
-            [isx,isy] = size(image);
-            shiftx = data(i).colorShiftVector(1);
-            shifty = data(i).colorShiftVector(2);
-            MPMshiftx = MPMglobal(:,1:2:msy)-shifty;
-            MPMshifty = MPMglobal(:,2:2:msy)-shiftx;
-                       
-            badpos = find( (MPMshiftx>isy) | (MPMshiftx<1) | (MPMshifty>isx) | (MPMshifty<1));
-            MPMshiftx(badpos) = nan;
-            MPMshifty(badpos) = nan;
-                  
-            MPMglobal(:,1:2:msy,1) = MPMshiftx;
-            MPMglobal(:,2:2:msy,1) = MPMshifty;
-        end
+    if isfield(data, 'colorShiftVector') && ~isempty(data(i).colorShiftVector)
+        msy = size(MPMglobal, 2);
+        [isx,isy] = size(image);
+        shiftx = data(i).colorShiftVector(1);
+        shifty = data(i).colorShiftVector(2);
+        MPMshiftx = MPMglobal(:,1:2:msy)-shifty;
+        MPMshifty = MPMglobal(:,2:2:msy)-shiftx;
+        
+        badpos = find( (MPMshiftx>isy) | (MPMshiftx<1) | (MPMshifty>isx) | (MPMshifty<1));
+        MPMshiftx(badpos) = NaN;
+        MPMshifty(badpos) = NaN;
+        
+        MPMglobal(:,1:2:msy,1) = MPMshiftx;
+        MPMglobal(:,2:2:msy,1) = MPMshifty;
     end
             
                 
     % compact MPMglobal (get rid of nan rows)
     projpos_global = nanmean(MPMglobal(:,:,1),2);
-    fpos_global = find(isfinite(projpos_global));
-    MPMglobal = MPMglobal(fpos_global,:,:);
+    MPMglobal = MPMglobal(isfinite(projpos_global),:,:);
         
     % make random positions for reference measurement; every event in
     % MPMglobal will be supplemented by 10 points randomly chosen in the
     % cell area (but in the same time frame as the event)
     MPMbas = MPMglobal(:,:,1);
     goodpos = find( MPMglobal(:,:,2) == refplane );
-    MPMbas_use = nan*MPMbas;
+    MPMbas_use = NaN*MPMbas;
     MPMbas_use(goodpos) = MPMbas(goodpos);
-    MPMbas = [];
     
     for k=1:nr
         MPMrandom_curr = makeRandomMPM(MPMbas_use, mask, 1);
@@ -182,8 +162,8 @@ for i=1:length(data)
     MPMrandomshift = CorrelateData2Pos_timeshiftMPM2L(MPMrandom_all, tvector);
     MPMrandomshift(MPMrandomshift==0) = nan;
             
-    [lx1,ly1,lz1] = size(MPMglobal);
-    [lx2,ly2,lz2] = size(MPMrandomshift);
+    lx1 = size(MPMglobal,1);
+    lx2 = size(MPMrandomshift,1);
     
     MPMall = [MPMglobal ; MPMrandomshift];    
         
@@ -198,7 +178,6 @@ for i=1:length(data)
             intensityImageStack = zeros(size(cimage,1),size(cimage,2),total_frame_num);
         end
         intensityImageStack(:,:,k) = cimage;
-        
     end
     
     % perform the correlation
@@ -215,26 +194,15 @@ end % of for i-loop
 cd(od);
 
 
-%% the raw data is now processed for averaging
+% the raw data is now processed for averaging
 
 % NOTE: the function will average the results taking into account possibly 
 % variable framerates; if necessary, the slower movie results are 
 % interpolated to the fastest available framerate
-for i=1:length(data)
-    cfr = data(i).framerate;
-    if i==1
-        ffr = cfr;
-    else
-        ffr = min(ffr,cfr);
-    end
-    framerates(i) = cfr;
-end
-% ffr ist now fastest framerate in data set
-
+ffr = min([data.framerate]);
 
 figure; hold on;
-
-for i=1:length(data)
+for i = 1:length(data)
     
     % event results
     ResultsGlobalCurr       = ResultsGlobalData(i).intmatrix;
@@ -247,9 +215,9 @@ for i=1:length(data)
     ResultsGlobalCurrCORR   = ResultsGlobalCurr - ResultsRandomCurrAVMAT;
     
     % interpolate for fastest framerate is necessary
-    if framerates(i)>ffr
+    if data(i).framerate>ffr
         tff = ffr * tvector;
-        tcf = framerates(i) * tvector;
+        tcf = data(i).framerate * tvector;
         
         ResultsGlobalCurr_EP = interp1(tcf,ResultsGlobalCurr',tff);
         ResultsRandomCurrAV_EP = interp1(tcf,ResultsRandomCurrAV,tff);
@@ -261,10 +229,10 @@ for i=1:length(data)
     if i==1
         ResultsGlobalAll = ResultsGlobalCurrCORR;
     else
-        ResultsGlobalAll = [ResultsGlobalAll;ResultsGlobalCurrCORR];
+        ResultsGlobalAll = [ResultsGlobalAll; ResultsGlobalCurrCORR];
     end
     
-    [rx,ry,rz] = size(ResultsRandomCurrAV);
+    rz = size(ResultsRandomCurrAV,3);
     ResultsGlobalCurrAV = nanmean(ResultsGlobalCurr,1);
     
     if rz>1
@@ -297,7 +265,7 @@ result.numtraj = sum(ResultsNumTraj);
 
 % display results
 figure
-[rx,ry,rz] = size(ResultsGlobalAVE);
+rz = size(ResultsGlobalAVE,3);
 if rz==1
     errorbar(scvec*tvector,ResultsGlobalAVE,ResultsGlobalError);
 else
@@ -311,12 +279,3 @@ amax = max(scvec*tvector)+0.5;
 axis([amin amax -2.5e-7 2.5e-7]);
 xlabel('time point relative to CCP event (sec)');
 ylabel('relative kinetic score');
-
-
-
-end % of function
-
-
-
-    
-    
