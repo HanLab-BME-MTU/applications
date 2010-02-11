@@ -121,7 +121,7 @@ bakNames = cell(1,nChan);
 for i = 1:nChan
    bakDir{i} = [movieData.backgroundMasks.directory filesep ...
        movieData.backgroundMasks.channelDirectory{iBackMasks(i)}];
-   bakNames{i} = dir([bakDir{i} filesep '*.tif']);      
+   bakNames{i} = imDir([bakDir{i}]);      
         
 end
 

@@ -89,21 +89,21 @@ hasBackMasks = false(1,nChan);
 
 disp('Starting intensity calculations...')
 
+imageFileNames = getMovieImageFileNames(movieData,iChannels);    
+
 for iChan = 1:nChan
 
     nImages = movieData.nImages(iChannels(iChan));
     allMeanI{iChan} = zeros(1,nImages);
     allTotalI{iChan} = zeros(1,nImages);
+        
     
-    imageDir = [movieData.imageDirectory filesep movieData.channelDirectory{iChannels(iChan)}];
-    imageFileNames = dir([imageDir filesep '*.tif']);    
             
     
     
     hasMasks(iChan) = checkMovieMasks(movieData,iChannels(iChan));   
-    if hasMasks(iChan)
-        maskDir = [movieData.masks.directory filesep movieData.masks.channelDirectory{iChannels(iChan)}];
-        maskFileNames = dir([maskDir filesep '*.tif']);
+    if hasMasks(iChan)        
+        maskFileNames = getMovieMaskFileNames(movieData,iChannels(iChan));
         allMeanMaskedI{iChan} = zeros(1,nImages);
         allTotalMaskedI{iChan} = zeros(1,nImages);
     end
@@ -113,7 +113,7 @@ for iChan = 1:nChan
     if hasBackMasks(iChan)
         backMaskDir = [movieData.backgroundMasks.directory ...
             filesep movieData.backgroundMasks.channelDirectory{iChannels(iChan)}];
-        backMaskFileNames = dir([backMaskDir filesep '*.tif']);
+        backMaskFileNames = imDir(backMaskDir);
         allMeanBackgroundI{iChan} = zeros(1,nImages);
         allTotalBackgroundI{iChan} = zeros(1,nImages);
     end
@@ -122,10 +122,10 @@ for iChan = 1:nChan
     
     for iImage = 1:nImages
         
-        currIm = imread([imageDir filesep imageFileNames(iImage).name]);
+        currIm = imread(imageFileNames{iChan}{iImage});
         
         if hasMasks(iChan)
-            currMask = imread([maskDir filesep maskFileNames(iImage).name]);
+            currMask = imread(maskFileNames{iChan}{iImage});
             allMeanMaskedI{iChan}(iImage) = mean(currIm(currMask(:)));    
             allTotalMaskedI{iChan}(iImage) = sum(currIm(currMask(:)));    
         end
