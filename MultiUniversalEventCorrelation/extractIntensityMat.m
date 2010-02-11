@@ -1,4 +1,4 @@
-function [] = extractIntensityMat(data, dvector, tbuffer, channel, shiftvar, usemask, filenameRoot); 
+function [] = extractIntensityMat(data, dvector, tbuffer, channel, shiftvar, usemask, filenameRoot)
 % read intensities at specified positions (e.g. at the locations of
 % detected and tracked objects) from image series and save to a parameter file
 % 
@@ -69,68 +69,40 @@ function [] = extractIntensityMat(data, dvector, tbuffer, channel, shiftvar, use
 % image2 (e.g. actin). Using this convention, we obtain the correct
 % coordinates in the second channel by subtracting the shift vector (which
 % amounts to adding if the shift is negative) from the positions in the
-% first channel. 
+% first channel.
+%
+% Last modified: Francois Aguet, Feb 2010
 
-%% set reference and default values
-od = cd;
-
-% set pixel shift
-shift = 0;
-if nargin>4
-    if shiftvar==1
-        shift=1;
-    end
+if nargin<5 || isempty(shiftvar)
+    shiftvar=0;
+end
+if nargin<6 || isempty(usemask)
+    usemask = 0;
+end
+if nargin>6 && ~isempty(filenameRoot)
+    defName = [filenameRoot,'.mat'];
+    defName_ref = [filenameRoot,'_Ref.mat'];
+else
+    defName = 'parameterMat.mat';
+    defName_ref = 'parameterMat_Ref.mat';
 end
 
-% set mask use
-umaskVar = 0;
-if nargin>5
-    if usemask==1
-        umaskVar = 1;
-    end
-end
-
-% set names for results files
-defName = 'parameterMat.mat';
-defName_ref = 'parameterMat_Ref.mat';
-if nargin>6
-    if ~isempty(filenameRoot)
-        defName = [filenameRoot,'.mat'];
-        defName_ref = [filenameRoot,'_Ref.mat'];
-    end
-end
-
-
-%% determine image files from which intensities are read
-for i=1:length(data)
+nMovies = length(data);
+ImageStackList(1:nMovies) = struct('list', []);
+for i = 1:nMovies
     
     % select first image for the intensity channel
     if nargin>3
-        ipath = getfield(data,{1,i},channel);
+        ipath = data(i).(channel);
     else
         ipath = data(i).source;
     end
-    
-    % change to specified directory and look for files; files can be either
-    % image files or parameter matrices
-    cd(ipath);         
-    [imageName, imagePath] = uigetfile({'*.tif';'*.mat'},['Select first intensity image or parameter mat in movie #',num2str(i)]); 
-    
-    % read complete list of images or parameter files
-    completeImageName = strcat(imagePath, imageName);
-    imageStackList = getFileStackNames(completeImageName);
-    % and store them for later use
-    ImageStackList(i).list = imageStackList;
-    ImageSize(i,:) = data(i).imagesize;
-    
+    [imageName, imagePath] = uigetfile({'*.tif';'*.mat'},['Select first intensity image or parameter mat in movie #' num2str(i)], ipath); 
+    ImageStackList(i).list = getFileStackNames([imagePath imageName]);
 end
 
-% pause to allow the function to close the ui window
-pause(0.1);
-
-
-%% read intensities at designated positions (the positions of detected and
-%% tracked objects stored in the lifetimematrix)
+% read intensities at designated positions (the positions of detected and
+% tracked objects stored in the lifetimematrix)
 for i=1:length(data)
     
     % print processing update 
@@ -140,28 +112,27 @@ for i=1:length(data)
     % determine tracking data path, and make mpm of all positions in the
     % lifetime matrix (using a number of buffer frames before and after the
     % end of trajectories)
-    trackinfopath = [data(i).source,filesep,'LifetimeInfo'];
-    trackinfopath2 = data(i).source;
-    MPMpos_obj = extractAllPosSideBuffer(trackinfopath, tbuffer);
+    MPMpos_obj = extractAllPosSideBuffer([data(i).source 'LifetimeInfo'], tbuffer);
     
     % determine reference positions - many intensities or parameters
     % require a reference value within the cell; for this purpose, load the 
     % reference image, if one exists, and choose random positions
-    cpath = [data(i).source,filesep,'SubregionsMask'];
-    if (exist(cpath)==7) & (umaskVar==1)
-        cd(cpath);
-        image = imread('mask0001.tif');
-        mask = image';
-        MPMpos_ref = extractAllPosSideBuffer_ref(MPMpos_obj, mask);
+    cpath = [data(i).source 'SubregionsMask'];
+    if (exist(cpath, 'dir')==7) && (usemask==1)
+        mask = imread([cpath filesep 'mask0001.tif']);
+        MPMpos_ref = extractAllPosSideBuffer_ref(MPMpos_obj, mask');
     else
-        MPMpos_ref = extractAllPosSideBuffer_ref(MPMpos_obj,ImageSize(i,:));
+        MPMpos_ref = extractAllPosSideBuffer_ref(MPMpos_obj, data(i).imagesize);
     end
     
     % put object and reference positions together, and make time vectors
     sy = size(MPMpos_obj,2);
-    MPMall_pos = [ MPMpos_obj(:,:,1) ; MPMpos_ref(:,:,1)];
-    tMat_t1 = [ MPMpos_obj(:,1:2:sy,2) ; MPMpos_ref(:,1:2:sy,2) ];
-    tMat_t2 = [ MPMpos_obj(:,1:2:sy,3) ; MPMpos_ref(:,1:2:sy,3) ];
+    MPMall_pos = [MPMpos_obj(:,:,1);
+                  MPMpos_ref(:,:,1)];
+    tMat_t1 = [MPMpos_obj(:,1:2:sy,2);
+               MPMpos_ref(:,1:2:sy,2)];
+    tMat_t2 = [MPMpos_obj(:,1:2:sy,3);
+               MPMpos_ref(:,1:2:sy,3)];
     
     % if the data originate from different channels that are shifted, then
     % that shift information for this particular movie is stored in a
@@ -175,28 +146,22 @@ for i=1:length(data)
     % channel. After the subtraction, positions lying outside the shifted 
     % image dimensions have to be set to nan again!
     
-    if isfield(data,'colorShiftVector') & (shift==1)
-        if ~isempty(data(i).colorShiftVector)
-            [msx,msy,msz] = size(MPMall_pos);
-            isx  = ImageSize(i,1);
-            isy  = ImageSize(i,2);
-            shiftx = data(i).colorShiftVector(1);
-            shifty = data(i).colorShiftVector(2);
-            MPMshiftx = MPMall_pos(:,1:2:msy)-shifty;
-            MPMshifty = MPMall_pos(:,2:2:msy)-shiftx;
-                       
-            badpos = find( (MPMshiftx>isy) | (MPMshiftx<1) | (MPMshifty>isx) | (MPMshifty<1));
-            MPMshiftx(badpos) = nan;
-            MPMshifty(badpos) = nan;
-                  
-            MPMall_pos(:,1:2:msy,1) = MPMshiftx;
-            MPMall_pos(:,2:2:msy,1) = MPMshifty;
-        end
+    if isfield(data,'colorShiftVector') && (shiftvar==1) && ~isempty(data(i).colorShiftVector)
+        msy = size(MPMall_pos,2);
+        shiftx = data(i).colorShiftVector(1);
+        shifty = data(i).colorShiftVector(2);
+        MPMshiftx = MPMall_pos(:,1:2:msy)-shifty;
+        MPMshifty = MPMall_pos(:,2:2:msy)-shiftx;
+        
+        badpos = find( (MPMshiftx>data(i).imagesize(2)) | (MPMshiftx<1) | (MPMshifty>data(i).imagesize(1)) | (MPMshifty<1));
+        MPMshiftx(badpos) = nan;
+        MPMshifty(badpos) = nan;
+        
+        MPMall_pos(:,1:2:msy,1) = MPMshiftx;
+        MPMall_pos(:,2:2:msy,1) = MPMshifty;
     end
     
-    % read current images
-    currImageStackList = ImageStackList(i).list;    
-    total_frame_num = length(currImageStackList);
+    total_frame_num = length(ImageStackList(i).list);
     
 %     for k=1:total_frame_num
 %         
@@ -211,7 +176,7 @@ for i=1:length(data)
     nf = min(total_frame_num,size(MPMall_pos,2)/2);
     
     % read intensity images matrix
-    iMat = extractIntensity_MPMfromImageStack(MPMall_pos, currImageStackList, dvector);
+    iMat = extractIntensity_MPMfromImageStack(MPMall_pos, ImageStackList(i).list, dvector);
     
     % separate the imat results back into the objects and the reference
     % points
@@ -227,21 +192,6 @@ for i=1:length(data)
     iMat_ref(:,:,3) = tMat_t2(bpoint+1:epoint,1:nf);    
     
     % save results into the .source directory under the specified names
-    cd(trackinfopath2);
-    save(defName,'iMat_obj');
-    save(defName_ref,'iMat_ref');
-    
-    
-end % of for i-loop
-
-% return to original directory
-cd(od);
-
-
-
-end % of function
-
-
-
-    
-    
+    save([data(i).source defName], 'iMat_obj');
+    save([data(i).source defName_ref],'iMat_ref'); 
+end
