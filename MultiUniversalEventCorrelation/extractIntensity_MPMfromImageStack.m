@@ -1,4 +1,4 @@
-function [iMat] = extractIntensity_MPMfromImageStack(MPM, imageStack, rdist);
+function [iMat] = extractIntensity_MPMfromImageStack(MPM, imageStack, rdist)
 % reads out the intensities in the image stack at the reference positions 
 % specified in the mpm file; rdist designates the desired distance around 
 % the reference positions
@@ -24,10 +24,11 @@ function [iMat] = extractIntensity_MPMfromImageStack(MPM, imageStack, rdist);
 % number of frames in the mpm file
 %
 % Dinah Loerke, January 30, 2009
+% Francois Aguet, Jan 2010
 
 
 
-%% =======================================================================
+% =======================================================================
 %  check inputs and set defaults
 % ========================================================================
 
@@ -40,12 +41,12 @@ if iscell(imageStack)
     numf_im = length(imageStack);
 else
     datatype = 'stack';
-    [sx2,sy2,numf_im] = size(imageStack);
+    numf_im = size(imageStack,3);
 end
 
 numf = min(numf_im,numf_mpm);
 
-MPM(MPM==0) = nan;
+MPM(MPM==0) = NaN;
 
 % maximum distance
 rad = max(rdist);
@@ -58,12 +59,9 @@ else
 end
 
 % initialize results matrix
-iMat = nan*zeros(sx,numf,rlen);
+iMat = NaN(sx,numf,rlen);
 
-
-
-
-%% =======================================================================
+% =======================================================================
 %  prepare intensity readout
 % ========================================================================
 
@@ -75,9 +73,8 @@ iMat = nan*zeros(sx,numf,rlen);
 
 % mini-grid
 [miniImX, miniImY] = ndgrid(-ceil(rad):ceil(rad),-ceil(rad):ceil(rad));
-miniDist = sqrt(miniImX.^2 + miniImY.^2);
 %inside pixels
-[XinPix, YinPix] = find(miniDist<=rad);
+[XinPix, YinPix] = find(sqrt(miniImX.^2 + miniImY.^2) <= rad);
 % subtract ceil(rad)+1 to express pixel positions as relative to a given
 % position
 XinPix = XinPix-(ceil(rad)+1);
@@ -85,9 +82,7 @@ YinPix = YinPix-(ceil(rad)+1);
 % corresponding distances of all these points
 DinPix = sqrt(XinPix.^2 + YinPix.^2);
 
-
-
-%% =======================================================================
+% =======================================================================
 %  read intensities
 % ========================================================================
 
@@ -100,16 +95,12 @@ for i=1:numf
     if strcmp(datatype,'stack')
         currIm = imageStack(:,:,i);
     elseif strcmp(datatype,'cell')
-        %currIm = imread(imageStack{i});
         currIm = importdata(imageStack{i});
     else
         error('format not found')
     end
     [ix,iy] = size(currIm);
     
-    checkIm = currIm;
-             
-
     % current valid reference positions
     currx = full(MPM(:,2*i-1,1));
     curry = full(MPM(:,2*i,1));
@@ -117,25 +108,20 @@ for i=1:numf
     uposx = currx(upos);
     uposy = curry(upos);
    
-    
     % loop over all reference points in this frame
-    for k=1:length(uposx)
-
-        % initialize
-        intensityVector = nan*rdist;
+    for k = 1:length(uposx)
 
         % pixel positions for this object 
         XobjPos = round(uposx(k));
         YobjPos = round(uposy(k));
         XusePos = XobjPos + XinPix;
         YusePos = YobjPos + YinPix;
-        % NOTE: maybe in the future correct distances for integer-value 
-        % rounding effects????
+        % NOTE: maybe in the future correct distances for integer-value rounding effects????
         DusePos = DinPix;
 
         % if the object is close to the image edge, check that none of the 
         % pixels are outside the image; note x-y switch for image dim
-        if ( (min(XobjPos,abs(iy-XobjPos))<=rad) | (min(YobjPos,abs(ix-YobjPos))<=rad) )
+        if ( (min(XobjPos,abs(iy-XobjPos))<=rad) || (min(YobjPos,abs(ix-YobjPos))<=rad) )
             goodPos = find( (XusePos>0) & (YusePos>0) & (XusePos<iy) & (YusePos<ix) );
             XusePos = XusePos(goodPos);
             YusePos = YusePos(goodPos);
@@ -148,16 +134,10 @@ for i=1:numf
         
         currObjIntensities = [];
         currObjDistances = [];
-
         for in=1:length(XusePos)
-            % write intensities of pixels into matrix
             currObjIntensities(in) = currIm(YusePos(in),XusePos(in));
-            % write corresponding distance into matrix
             currObjDistances(in) = DusePos(in);
-            % internal control
-            % checkIm(YusePos(in),XusePos(in)) = max(checkIm(:));
         end
-            
             
             %============display results, uncomment if desired
     %         hold off    
@@ -166,7 +146,6 @@ for i=1:numf
     %         plot(currx,curry,'r.');
     %         pause(0.01);
             %=================================================
-
 
         % average intensities for all distance bins
         if length(rdist)>1
@@ -181,23 +160,5 @@ for i=1:numf
         % NOTE that this format for the results matrix works only because
         % there is only one object/trajectory per row!
         iMat(upos(k),i,:) = intensityVector;
-
-
-    end % of loop over k (individual objects in frame)
-
-     
-    %end % of loop over t (layers of mpm)
-    fprintf('\b\b\b\b\b\b\b\b\b\b');
-    
-    
-end % of loop over i (frames)
-fprintf('\n');
-
-end % of function
-
-
-
-
-
-            
-    
+    end
+end
