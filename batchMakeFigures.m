@@ -237,7 +237,7 @@ for iMovie = 1:nMovies
         %Save the updated movie data
         updateMovieData(currMovie)
     catch errMess
-        errordlg(['Problem saving movie data in movie ' num2str(iMovie) ': ' errMess.message], mfileName());
+        errordlg(['Problem saving movie data in movie ' num2str(iMovie) ': ' errMess.message]);
     end
     
     movieData{iMovie} = currMovie;
