@@ -144,13 +144,13 @@ for k = 1:nFrames
         useArea = cdata.csize(1:cdata.num);  
         useInt = cdata.intot(1:cdata.num); 
     end
-    movieInfo(counter).area = useArea;
-    movieInfo(counter).amp = useInt;
-    movieInfo(counter).amp(:,2) = 0;
+    movieInfo(k).area = useArea;
+    movieInfo(k).amp = useInt;
+    movieInfo(k).amp(:,2) = 0;
     
-    movieInfo(counter).xCoord = useXcoord;
-    movieInfo(counter).xCoord(:,2) = 0;
+    movieInfo(k).xCoord = useXcoord;
+    movieInfo(k).xCoord(:,2) = 0;
     
-    movieInfo(counter).yCoord = useYcoord;
-    movieInfo(counter).yCoord(:,2) = 0;
+    movieInfo(k).yCoord = useYcoord;
+    movieInfo(k).yCoord(:,2) = 0;
 end
