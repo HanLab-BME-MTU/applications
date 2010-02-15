@@ -21,7 +21,7 @@ for i = 1:length(exp)
         if isfield(exp(i), 'detection') && ~isempty(exp(i).detection)
             movieInfo = exp(i).detection;
         else
-            loadfile = load([exp(i).source 'DetectionStructures' filesep 'detection.mat']);
+            loadfile = load([exp(i).source filesep 'DetectionStructures' filesep 'detection.mat']);
             if isfield(loadfile, 'detection')
                 movieInfo = loadfile.detection;
             elseif isfield(loadfile, 'cdet')
