@@ -42,7 +42,7 @@ for i=1:length(data)
         end
         
         if ~isempty(trackInfo)
-            [lftMat, statMat, xMat, yMat, disappMat] = findLifetimesStatusSimple(trackinfo);
+            [lftMat, statMat, xMat, yMat, disappMat] = findLifetimesStatusSimple(trackInfo);
             lftInfo.Mat_xcoord = xMat;
             lftInfo.Mat_ycoord = yMat;
             lftInfo.Mat_status = statMat;
