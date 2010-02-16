@@ -35,30 +35,31 @@ function movieData = processBiosensorMovie(movieData,varargin)
 %       ('OptionName' -> possible values)
 %
 %
-%       ('VolumeChannel' -> Positive Integer)
-%       The integer index of the volume-correction channel. (The
-%       denominator of the ratio). This number corresponds to this
-%       channel's index in the field movieData.channelDirectory.
+%       ('VolumeChannel' -> Positive Integer) The integer index of the
+%       volume-correction channel. (The denominator of the ratio). This
+%       number corresponds to this channel's index in the field
+%       movieData.channelDirectory.
 %
 %       ('ActivityChannel' -> Positive Integer) The integer index of the
 %       activity channel. (The numerator of the ratio). This number
 %       corresponds to this channel's index in the field
 %       movieData.channelDirectory.
 %
-%       ('RunSteps' -> integer vector)
-%       This vector indicates which steps to run. It should be nSteps long.
-%       1 Indicates the step should be run no matter what.
-%       0 Indicates the step should only be run if it hasn't been run yet
+%       ('RunSteps' -> integer vector) This vector indicates which steps to
+%       run. It should be nSteps long. 1 Indicates the step should be run
+%       no matter what. 0 Indicates the step should only be run if it
+%       hasn't been run yet
 %      -1 Indicates the step should NOT be run no matter what.
-%       For example, [0 0 -1 1 0 0 0 0] Means that step 3 should be skipped,
-%       step four should be run no matter what, and all other steps should
-%       only be run if they haven't been completed previously.
+%       For example, [0 0 -1 1 0 0 0 0] Means that step 3 should be
+%       skipped, step four should be run no matter what, and all other
+%       steps should only be run if they haven't been completed previously.
 %       Optional. Default is to run all uncompleted steps, except the
 %       transformation & mask refinemtn which are skipped by default.
 %
-%       ('BatchMode' -> True/False)
-%       If this option value is set to true, all graphical output and user
-%       interaction is suppressed. (No progress bars, no dialogue boxes)
+%       ('BatchMode' -> True/False) If this option value is set to true,
+%       all graphical output and user interaction is suppressed. (No
+%       progress bars, no dialogue boxes)
+%       Optional. Default is False.
 %
 %   Processing Step Options:
 %   
