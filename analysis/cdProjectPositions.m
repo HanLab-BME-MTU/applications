@@ -14,7 +14,7 @@ if nargin < 3 || isempty(randomAssignment)
 end
 
 % find indices of spb, cen
-spb1idx = find(strncmpi('spb1',idlist(1).stats.labelcolor),4); % allow sbp1*
+spb1idx = find(strncmpi('spb1',idlist(1).stats.labelcolor,4)); % allow sbp1*
 spb2idx = find(strcmpi(idlist(1).stats.labelcolor,'spb2'));
 cen1idx = find(strcmpi(idlist(1).stats.labelcolor,'cen1'));
 cen2idx = find(strcmpi(idlist(1).stats.labelcolor,'cen2'));
