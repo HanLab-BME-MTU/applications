@@ -1,26 +1,29 @@
-function [results] = stageFitLifetimesPlat(data)
-% STAGEFITLIFETIMES fits the lifetimes contained in the structure in several
-% stages, using the slow and fast data, including info on the persistent
-% pits
-% SYNOPSIS [lftHist_fast, lftHist_slow] = stageFitLifetimes(data)
+function [results] = stageFitLifetimes(data)
+% STAGEFITLIFETIMES(DATA) fits the lifetimes contained in the structure in
+% several stages, using data with slow and fast framerates. Globally averaged
+% and leave-one-out histograms are returned for later jackknife estimation.
+%
+% SYNOPSIS [results] = stageFitLifetimes(data)
 %
 % INPUT     data:   structure containing all raw data
-%           xresample (opt): exclude resampled data if ==1
 %
 % OUTPUT:   results: structure containing the fields
 %                       .hist_fast
 %                       .hist_slow
 %                       .numcells_slow
 %                       .numcells_fast
-%           lftHist_fast =  2xn vector containing
+%           lftHist_fast =  (2+length(data))xn matrix containing
 %                           row 1: time vector
 %                           row 2: normalized lifetimes
+%                           rows 3-end: leave-one-out normalized lifetimes
 %                           (for FAST acquisition)
-%           lftHist_slow =  2xn vector containing
+%           lftHist_slow =  (2+length(data))xn matrix containing
 %                           row 1: time vector
 %                           row 2: normalized lifetimes
+%                           rows 3-end: leave-one-out normalized lifetimes
 %                           (for SLOW acquisition)
-% 10-Jul-2007 (Dinah)
+%
+% last modified DATE: 31-Jul-2007 (Dinah)
 % Francois Aguet, Feb 2010
 
 %========================================================================
@@ -34,23 +37,25 @@ function [results] = stageFitLifetimesPlat(data)
 cutoff_art = 100;
 tvec = 1:cutoff_art;
 
-histMatrix_all = NaN(length(data),cutoff_art);
+histMatrix_all = zeros(length(data),cutoff_art);
+idx = 1:cutoff_art;
 for i=1:length(data)
     if ~isempty(data(i).lftHist)
-        % normalize over area betwen 0 and cutoff_art frames. FA: normalization over full domain would make more sense.
-        histMatrix_all(i,:) = data(i).lftHist(1:cutoff_art)/sum(data(i).lftHist(1:cutoff_art));
+        % normalize over area betwen 0 and cutoff_art frames. FA: cmp normalization over full domain?
+        histMatrix_all(i,:) = data(i).lftHist(idx)/sum(data(i).lftHist(idx));
     end
 end
 
 % combined/averaged histograms, normalized
 cHistogramVector = nanmean(histMatrix_all,1);
-cHistogramVector = cHistogramVector/sum(cHistogramVector);
+cHistogramVector = cHistogramVector/nansum(cHistogramVector);
 
 
 % plot results
 figure;
-plot(tvec, cHistogramVector,'b.-'); hold on;
-xlabel('frames'); ylabel('average frequency');
+plot(tvec, cHistogramVector, 'b.-'); hold on;
+xlabel('frames');
+ylabel('average frequency');
 axis([0 cutoff_art 0 1.1*max(cHistogramVector(:))]);
 
 
@@ -63,7 +68,7 @@ estAll(2:length(estAll)) = abs(estAll(2:length(estAll)));
 
 
 % plot first component, which is the detection artifact
-hold on; plot(tvec, abs(estAll(2))*(1/estAll(3))*exp(-tvec/estAll(3)), 'g-');
+plot(tvec, abs(estAll(2))*(1/estAll(3))*exp(-tvec/estAll(3)), 'g-');
 title('detection artifact');
 
 % extract value of sigma for initial detection artifact
@@ -99,13 +104,13 @@ cutoff_slow = 0.1;
 % input movies with the same framerate (2s slow, 0.4s fast), the knowledge
 % of the last frame suffices
 
-slowIdx = find([data.framerate] == 2   & arrayfun(@(x)~isempty(x.lftHist), data));
-fastIdx = find([data.framerate] == 0.4 & arrayfun(@(x)~isempty(x.lftHist), data));
+frThreshold = 1;
+slowIdx = find([data.framerate] >  frThreshold & arrayfun(@(x)~isempty(x.lftHist), data));
+fastIdx = find([data.framerate] <= frThreshold & arrayfun(@(x)~isempty(x.lftHist), data));
 timespan = [data.framerate].*[data.movieLength];
 
 mintimespan_slow = min(timespan(slowIdx));
 mintimespan_fast = min(timespan(fastIdx));
-
 
 % ========================================================================
 % Average all fast/slow data
@@ -122,7 +127,7 @@ nTracks = zeros(1, length(data));
 if ~isempty(fastIdx)
     nMovies = length(fastIdx);
     ipFramerate = 0.4;
-    maxl        = floor(mintimespan_fast/0.4);
+    maxl = floor(mintimespan_fast/0.4);
     
     cutpoint = round(maxl*0.9); % cut at 90% of total length
     histMatrix  = NaN(nMovies,1000);
@@ -141,7 +146,7 @@ if ~isempty(fastIdx)
         currCorrVec = lftHist_correctionVector(data(i).movieLength); % length: movielength-2
         %currHistCorr = data(i).lftHist(1:data(i).movieLength-2).*currCorrVec;
         currHistCorr = data(i).lftHist(cutoff_start+1:cutpoint-1).*currCorrVec(cutoff_start+1:cutpoint-1);
-                
+
         % pre-normalize first by remaining sum
         currHistNorm = currHistCorr/sum(currHistCorr);
         
@@ -176,16 +181,24 @@ if ~isempty(fastIdx)
     tvecRes = tvecComp(finitepos);
     % define appropriate restricted lft vector
     histVectorAve = histVectorAve(finitepos);
+        
+    % leave-one-out averages for later jackknife
+    if nMovies > 1
+        histVectorAveN1 = zeros(nMovies, length(finitepos));
+        for p = 1:nMovies
+            histVectorAveN1(p,:) = nanmean(histMatrix([1:p-1 p+1:nMovies], finitepos), 1);
+        end
+        results.hist_fast = [round(tvecRes*10)/10; histVectorAve; histVectorAveN1];
+    else
+        results.hist_fast = [round(tvecRes*10)/10; histVectorAve];
+    end
     
-    
-    results.hist_fast = [round(tvecRes*10)/10; histVectorAve];
     results.numcells_fast = sum(nTracks(fastIdx));
     plot(tvecRes, cumsum(histVectorAve),'r.-');
     
     figure;
     plot(tvecRes, histVectorAve,'r.-');
     axis([0 120 0 1.05*max(histVectorAve)]);
-
 end
 
 % =========================================================================
@@ -193,30 +206,27 @@ end
 % =========================================================================
 if ~isempty(slowIdx)
     nMovies = length(slowIdx);
-
     ipFramerate = 2;
-    maxl        = floor(mintimespan_slow/2);
+    maxl = floor(mintimespan_slow/2);
     
     cutpoint = round(maxl*(1-cutoff_slow)); % cut at 90%
     histMatrix  = NaN(nMovies,1000);
     
-    figure;    
+    figure;
     for p = 1:nMovies
         i = slowIdx(p);
 
         % time vector, cut off at beginning and end
         tvec_curr = data(i).framerate*(cutoff_start+1:cutpoint-1);
-                
+
         % Number of trajectories in movie
         nTracks(i) = sum(data(i).lftHist(cutoff_start:end));
-        
+
         % correct histogram for movie length
         currCorrVec = lftHist_correctionVector(data(i).movieLength); % length: movielength-2
         %currHistCorr = data(i).lftHist(1:data(i).movieLength-2).*currCorrVec;
         currHistCorr = data(i).lftHist(cutoff_start+1:cutpoint-1).*currCorrVec(cutoff_start+1:cutpoint-1);
-        
-        % for 'slow' framerate, read number of persistent objects
-        
+
         % number of persistent trajectories: trajectories longer than cutpoint
         if isfield(data(i), 'lftHistCut') && ~isempty(data(i).lftHistCut)
             numPers = sum(data(i).lftHistCut(cutpoint:end));
@@ -263,8 +273,17 @@ if ~isempty(slowIdx)
     % define appropriate restricted lft vector
     histVectorAve = histVectorAve(finitepos);
     
+    % leave-one-out averages for later jackknife
+    if nMovies > 1
+        histVectorAveN1 = zeros(nMovies, length(finitepos));
+        for p = 1:nMovies
+            histVectorAveN1(p,:) = nanmean(histMatrix([1:p-1 p+1:nMovies], finitepos), 1);
+        end
+        results.hist_slow = [round(tvecRes*10)/10; histVectorAve; histVectorAveN1];
+    else
+        results.hist_slow = [round(tvecRes*10)/10; histVectorAve];
+    end
     
-    results.hist_slow = [round(tvecRes*10)/10; histVectorAve];
     results.numcells_slow = sum(nTracks(slowIdx));
     plot(tvecRes, cumsum(histVectorAve),'r.-');
     
@@ -272,7 +291,7 @@ if ~isempty(slowIdx)
     plot(tvecRes, 1-cumsum(histVectorAve),'r.-');
     guessvec = [0 0.3 4 2 0.3 8 2 0.3 90 1];
     fixvec = [0 0 0 0 0 0 0 0 0 0];
-    [estSlowInv] = fitcurveMultiWeibullODF_lsq(tvecRes, 1-cumsum(histVectorAve), guessvec, fixvec);
+    estSlowInv = fitcurveMultiWeibullODF_lsq(tvecRes, 1-cumsum(histVectorAve), guessvec, fixvec);
     disp(['immobile fraction offset = ', num2str(estSlowInv(1))]);
     
     figure;
