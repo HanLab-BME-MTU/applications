@@ -40,11 +40,13 @@ function movieData = shadeCorrectMovie(movieData,varargin)
 %       ('MedianFilter' - True/False)
 %       If true, the final (averaged) shade correction image will be median
 %       filtered with a 3x3 neighborhood.
+%       Optional. Default is true.
 %
 %       ('GaussFilterSigma' -> Positive scalar, >= 1.0)
 %       This specifies the sigma (in pixels) of the gaussian filter to
 %       apply to the final (averaged) shade correction image. If less than
 %       one, no gaussian filtering is performed.
+%       Optional. Default is no filtering.
 %
 %       ('Normalize' -> True/False)
 %       If true, the processed/averaged shade images will be divided by
@@ -70,7 +72,7 @@ function movieData = shadeCorrectMovie(movieData,varargin)
 % Hunter Elliott
 % 11/2009
 
-%% ------ Parameters ----%%
+%% ------ Parameters ------- %%
 
 pString = 'sc_'; %The string to prepend before the shade-corrected image directory & channel name
 saveName = 'shade_correction'; %File name for saving processed/avged shade images. Actual file name will have channel name appended.
@@ -109,9 +111,7 @@ if isempty(iChannels)
     end    
 end
 
-
 nChan = length(iChannels); % Number of channels to shade correct
-
 
 %Ask the user for the channels with the shade correction images, if not input
 if isempty(iShadeIm)
@@ -128,6 +128,12 @@ end
 
 if length(iShadeIm) ~= nChan
     error('You must specify a shade correction image channel for each channel you are correcting!')
+end
+
+%Check that the shade-correction images are the same size as the images to
+%correct
+if ~all(all(movieData.imSize(:,iShadeIm) == movieData.imSize(:,iChannels)))
+    error('Shade correction images must be the same size as the images to be corrected!')
 end
 
 
@@ -187,7 +193,7 @@ for iChan = 1:nChan
         currIm = imread(shadeImNames{iChan}{iImage});
         
         if iImage == 1
-           shadeIm{iChan} = zeros(size(currIm)); %TEMP - Compare size of shade correction images to images to be corrected
+           shadeIm{iChan} = zeros(size(currIm));
         end
         
         %Average the images together

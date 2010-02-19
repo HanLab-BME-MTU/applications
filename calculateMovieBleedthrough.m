@@ -125,6 +125,10 @@ else
 end
 hold on;           
 
+
+disp(['Calculating bleedthrough of channel "' movieData.channelDirectory{fChan} ...
+      '" into channel "' movieData.channelDirectory{bChan} '"..']);
+
 for iImage = 1:nImages
     
     %Load the images and masks
@@ -143,6 +147,7 @@ for iImage = 1:nImages
                                                
 end
 
+
 %Get the average slope and intercept
 avgCoef = mean(fitCoef(:,1));
 stdCoef = std(fitCoef(:,1));
@@ -156,10 +161,11 @@ stdCoef = std(fitCoef(:,1));
 figure(allFig)
 xlabel('Fluorophore Channel Intensity')
 ylabel('Bleedthrough Channel Intensity')
-title('Bleedthrough Relationships - each cell different color')
+title('Bleedthrough Relationships - each image is a different color')
 hgsave(allFig,[movieData.(pName).directory filesep 'bleedthrough plot.fig'])
-close(allFig);
-
+if batchMode
+    close(allFig);
+end
 
 %Save the results
 
@@ -178,6 +184,10 @@ movieData.(pName).bleedthroughChannel = bChan;
 movieData.(pName).fluorMaskChannel = fMaskChan;
 movieData.(pName).bleedMaskChannel = bMaskChan;
 updateMovieData(movieData);
+
+
+disp('Finished with bleedthrough calculation!')
+
 
 
 function [fChan,bChan,fMaskChan,bMaskChan,batchMode] = parseInput(argArray)
