@@ -16,10 +16,10 @@ function [compactRes, data] = lifetimeCompactFitData(data, restrict, shape)
 data = fillStructLifetimeHist(data);
 
 % combine lifetime histograms of the slow and fast movies separately
-res     = stageFitLifetimesPlat(data);
-res_E2E = stageFitLifetimes_E2E(data);
+res = stageFitLifetimes(data);
+
 mer     = mergeFastSlowHistogramsPlat(res, restrict, shape);
-mer_E2E = mergeFastSlowHistogramsPlat_E2E(res_E2E, restrict, shape);
+mer_E2E = mergeFastSlowHistogramsPlat_E2E(res, restrict, shape);
 
 % fit results
 resmat1 = mer.compactFitRes;
@@ -30,8 +30,9 @@ for s = 1:length(mer_E2E)
 end
 [mx,my,mz] = size(E2Emat);
 for inx=1:mx
-    for iny=1:my
-        E2Eval(inx,iny) = jackknifeError(E2Emat(inx,iny,:));
+    for iny=1:my       
+        ns = length(E2Emat(inx,iny,:));
+        E2Eval(inx,iny) = sqrt(((ns-1)/ns)*sum((E2Emat(inx,iny,:)-nanmean(E2Emat(inx,iny,:))).^2));
     end
 end
 
