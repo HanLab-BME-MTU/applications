@@ -38,7 +38,7 @@ end
 end
 
 
-%% ========================= SUBFUNCTION  =================================
+% ========================= SUBFUNCTION  =================================
 
 
 
@@ -61,7 +61,7 @@ function [res]=multiWeibullBICtest_cum(tvec,histvec,startvec)
 %                       .BICvalue       = Bayesian information value
 
 
-%% =======================================================================
+% =======================================================================
 %  for the final slow results, go through multiple steps to determine how
 %  many distributions are needed for an optimum fit (based on Bayesian
 %  information criterion)
@@ -73,7 +73,7 @@ numlev = 5;
 
 
 
-%% kmat contains the shape parameter
+% kmat contains the shape parameter
 
 % kmat contains as rows all the possible combinations of different
 % distributions (k values) - identical permutations are already removed.
@@ -105,8 +105,8 @@ for c=2:numlev
 end % of for c
 
 
-%% amat contains the values for the amplitude, lambdamat contains the
-%% values for the lambda/sigma
+% amat contains the values for the amplitude, lambdamat contains the
+% values for the lambda/sigma
 
 % 1. amplitudes are split evenly between number of distributions
 % 2. lambda for the first Rayleigh is known and kept fixed, for the other
@@ -125,8 +125,8 @@ end
 %lambdamat(:,1) = sigRay;
 
 
-%% for each row in the parameter matrices - which represents one specific
-%% combination of distributions - perform a multiple-Weibull fit
+% for each row in the parameter matrices - which represents one specific
+% combination of distributions - perform a multiple-Weibull fit
 
 BICtemp = 0;
 
@@ -242,3 +242,4 @@ for r=1:sx
 end % of for r
 close(h1);
 res = fitresults;
+end
