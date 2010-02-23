@@ -51,12 +51,15 @@ function pitInfo_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to pitInfo (see VARARGIN)
-
 % Choose default command line output for pitInfo
 handles.output = hObject;
-
 % Update handles structure
 guidata(hObject, handles);
+%get data from 
+%ask user to input intensityMat for channel1
+%ask user to input intensityMat Reference for channel1
+%ask user to input intensityMat for channel2
+%ask user to input intensityMat Reference for channel2
 
 % UIWAIT makes pitInfo wait for user response (see UIRESUME)
 % uiwait(handles.figure1);

@@ -97,7 +97,7 @@ experiment = changePathUsingEndocytosis(experiment);
 
 pairCorrelation = nan(length(dist),length(experiment));
 parfor iexp = 1:length(experiment)
-
+    
     %Load Lifetime Information
     cd([experiment(iexp).source filesep 'LifetimeInfo'])
     lftInfo = load('lftInfo');
@@ -116,37 +116,45 @@ parfor iexp = 1:length(experiment)
     framerate = experiment(iexp).framerate;
     % image size
     imsize  = experiment(iexp).imagesize;
-
+    
     %find all pits in movie that meet requirements specified by restriction
     %vector
     findPos = find((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
         (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)));
-
+    
     %MAKE MASK
     imsizS = [imsize(2) imsize(1)];
     [areamask] = makeCellMaskDetections([matX(:),matY(:)],closureRadius,dilationRadius,doFill,imsize,plotMask,[]);
     %CALCULATE NORMALIZED AREA FROM MASK
     normArea = bwarea(areamask);
-
+    
     % CREATE CORRECTION FACTOR MATRIX FOR THIS MOVIE using all objects
     corrFacMat = makeCorrFactorMatrix(imsizS, dist, 10, areamask');
-
+    
     %CALCULATE PIT DENSITY
-    mpm2 = [full(matX(findPos)) full(matY(findPos))];
-    mpm1 = mpm2;
-    [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
-    [currDen] = calculatePitDenFromLR(kr,dist);
-    pairCorrelation(:,iexp) = currDen;
-
-% 
-%     %SCRAMBLE MPM
-%     [mpm2] = makeRandomMPM(mpm2, areamask',1);
-%     mpm1 = mpm2;
-%     [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
-%     [currDen] = calculatePitDenFromLR(kr,dist);
-%     pairCorrelationRand(:,iexp) = currDen;
-
-
+    
+    if isfield(experiment,'status')
+        mpm2 = [full(matX(findPos)) full(matY(findPos))];
+        mpm1 = mpm2;
+        [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
+        [currDen] = calculatePitDenFromLR(kr,dist);
+        pairCorrelation(:,iexp) = currDen;
+    else
+        mpm2 = [full(matX(findPos)) full(matY(findPos))];
+        mpm1 = mpm2;
+        [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
+        [currDen] = calculatePitDenFromLR(kr,dist);
+        pairCorrelation(:,iexp) = currDen;
+    end
+    %
+    %     %SCRAMBLE MPM
+    %     [mpm2] = makeRandomMPM(mpm2, areamask',1);
+    %     mpm1 = mpm2;
+    %     [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
+    %     [currDen] = calculatePitDenFromLR(kr,dist);
+    %     pairCorrelationRand(:,iexp) = currDen;
+    
+    
 end
 
 clustering = sum(pairCorrelation(1:2,:),1);
