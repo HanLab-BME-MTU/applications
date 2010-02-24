@@ -30,7 +30,14 @@ for iCol = 1:3
     
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
-
+    
+    if movieData.labels.nBandsLimit ~= +inf
+        error('movieData.labels.nBandsLimit must be finite.');
+    end
+    
+    sectorLength = movieData.labels.nBandsLimit * ...
+        movieData.contours.parameters.distanceValues(2);
+    
     labelPath = movieData.labels.directory;
     labelFiles = dir([labelPath filesep '*.tif']);
 
@@ -110,18 +117,21 @@ for iCol = 1:3
         
         % Data for panel B        
         L = imread([labelPath filesep labelFiles(iFrame).name]);
-
+        labels = (1:max(L(:)))';
+        
+        w = arrayfun(@(l) mean(distToEdge(L == l)), labels);
+        w = sectorLength / (2 * w);
+        
         idxS2 = arrayfun(@(l) idxS2(L(idxS2) == l), ...
             1:max(L(:)), 'UniformOutput', false);
-        
-        dataPanelB{iFrame} = arrayfun(@(l) mean(distToEdge(idxS2{l})),...
+        dataPanelB{iFrame} = arrayfun(@(l) w(l) * mean(distToEdge(idxS2{l})),...
             (1:max(L(:)))');
         
         % We put here the Actin distance as Panel C
         idxS1 = arrayfun(@(l) idxS1(L(idxS1) == l), ...
             1:max(L(:)), 'UniformOutput', false);
         
-        dataPanelC{iFrame} = arrayfun(@(l) mean(distToEdge(idxS1{l})),...
+        dataPanelC{iFrame} = arrayfun(@(l) w(l) * mean(distToEdge(idxS1{l})),...
             (1:max(L(:)))');
         
         % Data for panel C        

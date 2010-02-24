@@ -44,6 +44,7 @@ end
 movieData.labels.nWindows = nWindows;
 movieData.labels.nBands = nBands;
 movieData.labels.nFrames = nFrames;
+movieData.labels.nBandsLimits = nBandsLimits;
 
 %Make the string for formatting
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
