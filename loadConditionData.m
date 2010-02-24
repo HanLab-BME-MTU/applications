@@ -59,7 +59,7 @@ if ~isempty(expDir)
                 experiment(ct).date = currDate;
                 experiment(ct).framerate = currFramerate;
                 
-                tifFiles = dir([experiment(ct).source '*.tif']);
+                tifFiles = dir([experiment(ct).source '*.tif*']);
                 experiment(ct).imagesize = size(imread([experiment(ct).source tifFiles(1).name]));
                 experiment(ct).movieLength = length(tifFiles);
 
