@@ -23,7 +23,7 @@ imData(1:nExp) = struct('origImageName', [], 'origImagePath', []);
 runStatus = zeros(1,nExp);
 
 for i = 1:nExp
-    [origImageName, origImagePath] = uigetfile('.tif', ['Select first original image for movie #' num2str(i)], exp(i).source);
+    [origImageName, origImagePath] = uigetfile({'*.tif;*.tiff'}, ['Select first original image for movie #' num2str(i)], exp(i).source);
     
     if (origImageName ~= 0)
         imData(i).origImageName = origImageName;
