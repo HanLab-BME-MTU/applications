@@ -31,7 +31,7 @@ for iCol = 1:3
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
     
-    if movieData.labels.nBandsLimit ~= +inf
+    if ~isfinite(movieData.labels.nBandsLimit)
         error('movieData.labels.nBandsLimit must be finite.');
     end
     
