@@ -1,4 +1,4 @@
-function lifetimeAnalysis_2p(Results)
+function lifetimeAnalysis_2p(Results, kWeibull)
 %(Results, restrict, kWeibull, estartvec, efixvec)
 
 % data = fillStructLifetimeHist(data);
@@ -13,7 +13,8 @@ histVect = Results.hist_slow(2,:);
 
 % cut-off for 2-population fit:
 idx = find(histVect==max(histVect));
-tc = t(idx:end);
+tc = t(idx:end) - t(idx);
+offset = sum(histVect(1:idx-1));
 histVect(1:idx-1) = [];
 t = 0:t(end);
 
@@ -28,8 +29,8 @@ t = 0:t(end);
 %     resT = max(tvecslow);
 % end
 
-if nargin < 3
-    kWeibull = [1 2 2];
+if nargin < 2
+    kWeibull = [1 1];
 end
 
 
@@ -84,7 +85,7 @@ title('Lifetime histogram', 'FontName', 'Helvetica', 'FontSize', 14);
 % 2. Fit cumulative histogram
 % =========================================================================
 
-cumulativeHist = cumsum(histVect);
+cumulativeHist = cumsum(histVect) + offset;
 
 % Fit (retaining 'lambda' values from histogram fit)
 p = lsqnonlin(@nWeibullCDFCost, [aVect 0], [], [], opts, tc, cumulativeHist, kWeibull, lambdaVect);
