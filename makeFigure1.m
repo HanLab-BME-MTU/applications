@@ -36,7 +36,7 @@ for iCol = 1:3
     end
     
     sectorLength = movieData.labels.nBandsLimit * ...
-        movieData.contours.parameters.distanceValues(2);
+        movieData.contours.parameters.distanceValues(2) * pixelSize;
     
     labelPath = movieData.labels.directory;
     labelFiles = dir([labelPath filesep '*.tif']);
