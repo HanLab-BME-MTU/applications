@@ -96,12 +96,13 @@ for iCol = 1:3
         % Data for panel B
         labels = (1:max(L(:)))';
         
-        w = mean(D(idxS2)) - arrayfun(@(l) mean(distToEdge(L == l)), labels);
+        w = mean(distToEdge(idxS2)) - ...
+            arrayfun(@(l) mean(distToEdge(L == l)), labels);
         
-        idxS2 = arrayfun(@(l) idxS2(L(idxS2) == l), ...
+        idxLS2 = arrayfun(@(l) idxS2(L(idxS2) == l), ...
             1:max(L(:)), 'UniformOutput', false);
         
-        dataPanelB{iFrame} = arrayfun(@(l) mean(distToEdge(idxS2{l})), labels);
+        dataPanelB{iFrame} = arrayfun(@(l) mean(distToEdge(idxLS2{l})), labels);
         
         % We put here the Corrected distance as Panel C        
         dataPanelC{iFrame} = w + dataPanelB{iFrame};
@@ -110,11 +111,11 @@ for iCol = 1:3
 %         idxL_p = find(protValues(:, iFrame) > 0);
 %         idxL_r = find(protValues(:, iFrame) < 0);
 %                
-%         dataPanelC_p{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
-%             mean(distToEdge(idxS1{l})), idxL_p, 'UniformOutput', false));
+%         dataPanelC_p{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxLS2{l}) - ...
+%             mean(distToEdge(idxLS1{l})), idxL_p, 'UniformOutput', false));
 %         
-%         dataPanelC_r{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxS2{l}) - ...
-%             mean(distToEdge(idxS1{l})), idxL_r, 'UniformOutput', false));
+%         dataPanelC_r{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxLS2{l}) - ...
+%             mean(distToEdge(idxLS1{l})), idxL_r, 'UniformOutput', false));
 %         
          if ~batchMode && ishandle(h)
              waitbar(iFrame / (nFrames-1), h);
