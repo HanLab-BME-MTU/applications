@@ -50,7 +50,6 @@ for iCol = 1:3
     maskPath = movieData.masks.directory;
     maskFiles = dir([maskPath filesep '*.tif']);
 
-    %nPanelA = 300;
     dataPanelA = zeros(2, nFrames-1);
     dataPanelB = cell(1, nFrames-1);
     dataPanelC = cell(1, nFrames-1);
@@ -79,44 +78,25 @@ for iCol = 1:3
     %protValues(protValues < protMinCutOff) = NaN;
     
     for iFrame = 1:nFrames-1
+        % Load label
+        L = imread([labelPath filesep labelFiles(iFrame).name]);
+        
         % Load speckles channel 1
         load([s1Path filesep s1Files(iFrame).name]);
-        idxS1 = find(locMax); 
-        clear locMax;
-        
-        if isempty(idxS1)
-            fprintf('%s channel doesn''t contain any speckle in frame %d/%d !!!\n',...
-                names{1}, iFrame, nFrames);
-            continue;
-        end
+        idxS1 = find(locMax .* (L ~= 0));
         
         % Load speckles channel 2
         load([s2Path filesep s2Files(iFrame).name]);
-        idxS2 = find(locMax); 
-        clear locMax;
-        
-        if isempty(idxS2)
-            fprintf('%s channel doesn''t contain any speckle in frame %d/%n !!!\n',...
-                names{2}, iFrame, nFrames);
-            continue;
-        end
+        idxS2 = find(locMax .* (L ~= 0));
         
         % Compute distance to the edge
         BW = imread([maskPath filesep maskFiles(iFrame).name]);
         distToEdge = bwdist(max(BW(:)) - BW) * pixelSize;
-
-        % Data for panel A       
-        minD1 = sort(distToEdge(idxS1));
-        minD2 = sort(distToEdge(idxS2));
-
-        n1 = find(minD1 > 5000, 1);
-        n2 = find(minD2 > 5000, 1);
         
-        dataPanelA(1,iFrame) = mean(minD1(1:n1));
-        dataPanelA(2,iFrame) = mean(minD2(1:n2));
+        dataPanelA(1,iFrame) = mean(distToEdge(idxS1));
+        dataPanelA(2,iFrame) = mean(distToEdge(idxS2));
         
-        % Data for panel B        
-        L = imread([labelPath filesep labelFiles(iFrame).name]);
+        % Data for panel B
         labels = (1:max(L(:)))';
         
         w = arrayfun(@(l) mean(distToEdge(L == l)), labels);
