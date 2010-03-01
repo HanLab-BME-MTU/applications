@@ -251,7 +251,8 @@ guiH = handles.AMG;
 %get project name. If the name of the movie and the name of the directory
 %are not the same, create subdirectory with projectname = moviename and move
 %movie and logfile
-movieNames = searchFiles('(.r3[cd]|[dr]3d.dv)','(log|part|bad|^DIC)','ask');
+% movieNames = searchFiles('(.r3[cd]|[dr]3d.dv)','(log|part|bad|^DIC)','ask');
+movieNames = searchFiles('(.r3[cd]|.dv)','(log|part|bad|^DIC|REF|PRJ)','ask');
 selectedIdx = listSelectGUI(movieNames(:,1));
 nSelected = length(selectedIdx);
 movieNames = movieNames(selectedIdx,:);
