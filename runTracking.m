@@ -37,19 +37,21 @@ if nargin < 2 || isempty(tracksettings)
     %load track settings required for tracking
     [fileName filePath] = uigetfile('.mat','choose track settings mat file for tracking');
     load([filePath filesep fileName]);
+elseif ischar(tracksettings)
+    load(tracksettings);
 end
 
 detectFlag = zeros(1,length(exp));
 for i = 1:length(exp)
     detectionFile = [exp(i).source 'DetectionStructures' filesep 'detection.mat'];
-    if (~exist(detectionFile, 'file')==2) || overwrite
-        if (~exist([exp(i).source 'DetectionStructures'], 'dir')==7)
+    if ~(exist(detectionFile, 'file')==2) || overwrite
+        if ~(exist([exp(i).source 'DetectionStructures'], 'dir')==7)
             mkdir([exp(i).source 'DetectionStructures']);
         end;
         fprintf('Converting detection data for movie no. %d\n', i);
         % Convert data from Henry's format to the format read by the tracker
-        [detection] = convertDetectDataForTracking([exp(i).source filesep 'maxdata283']);
-        save detectionFile detection;
+        [detection] = convertDetectDataForTracking([exp(i).source 'maxdata283']);
+        save(detectionFile, 'detection');
         detectFlag(i) = 1;
     end
 end
