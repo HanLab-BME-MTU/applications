@@ -1,13 +1,14 @@
-function [resultList,plotData,plotStruct,symmetry] = bilobesGfpKinetochores(project, normalize,doPlot,improveAlignment,redoAll,zOrientation,movieType,iplHack)
+function [resultList,plotData,plotStruct,symmetry] = bilobesGfpKinetochores(project, normalize,doPlot,doImproveAlignment,redoAll,zOrientation,movieType,iplHack)
 %BILOBESPINDLES projects kinetochore signals onto the spindle axis in two-color images
 %
-% SYNOPSIS: bilobeSpindles
+% SYNOPSIS: [resultList,plotData,plotStruct,symmetry] =
+%      bilobesGfpKinetochores(project, normalize,doPlot,improveAlignment,redoAll,zOrientation,movieType,iplHack)
 %
 % INPUT project : type of projection: 'max'/{'sum'}
 %       normalize : what to set to 1 {'sum'}/'max'/'none'
 %       doPlot : whether to plot or not {1}/0
-%       improveAlignment : whether or not to improve alignment. Default:
-%                 true
+%       improveAlignment : whether or not to improve alignment. Set
+%            true/false if you want to override the internal settings
 %       redoAll : if 0, code will not perform detection if it has been done
 %                  before. Default: false
 %       zOrientation : orientation of the z-axis: 'perpendicular' to the
@@ -124,11 +125,12 @@ plotGallery = true; % plot gallery of projections
 def_project = 'sum'; % maximum intensity projection
 def_normalize = 'sum';
 def_doPlot = true;
-def_improveAlignment = true;
+%def_improveAlignment = true; - overridden by align_#, or user
 def_zOrientation = 'para'; % perp(endicular) / par(allel)
 def_redoAll = false; % if false, code will not redo analysis
 def_movieType = 'raw'; % or 'decon'
 def_iplHack = false;
+%useInputAlign = false; set below
 
 if nargin < 1 || isempty(project)
     project = def_project;
@@ -139,8 +141,10 @@ end
 if nargin < 3 || isempty(doPlot)
     doPlot = def_doPlot;
 end
-if nargin < 4 || isempty(improveAlignment)
-    improveAlignment = def_improveAlignment;
+if nargin < 4 || isempty(doImproveAlignment)
+    useInputAlign = false;
+else
+    useInputAlign = true;
 end
 if nargin < 5 || isempty(redoAll)
     redoAll = def_redoAll;
@@ -409,6 +413,12 @@ for iData = 1:nData
                 improveAlignment = align_4;
             end
         end
+        
+        % allow overriding computational alignment option
+        if useInputAlign
+            improveAlignment = doImproveAlignment;
+        end
+        
 
         % find coordinates of two spots - already correct for x/y. Sort
         % linklist so that we measure bottom to top, and that we can get the
