@@ -31,10 +31,6 @@ for iCol = 1:3
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
     
-    if ~isfinite(movieData.labels.nBandsLimit)
-        error('movieData.labels.nBandsLimit must be finite.');
-    end
-    
     labelPath = movieData.labels.directory;
     labelFiles = dir([labelPath filesep '*.tif']);
 
