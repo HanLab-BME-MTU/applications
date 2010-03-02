@@ -10,10 +10,6 @@ iFrame = round(sliderValue);
 % Unlock imtool axes children.
 set(hFig, 'HandleVisibility', 'on');
 
-% Update the title of the window.
-set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(iFrame) '/'...
-    num2str(settings.numFrames) ')' ]);
-
 % Get the axes of hFig.
 hAxes = get(hFig, 'CurrentAxes');
 
@@ -38,6 +34,10 @@ set(hAxes, 'CLim', clim);
 
 % Display layers
 displayLayers(hFig, iFrame);
+
+% Update the title of the window.
+set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(iFrame) '/'...
+    num2str(settings.numFrames) ')' ]);
 
 refresh(hFig);
 
