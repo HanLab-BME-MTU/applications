@@ -22,7 +22,7 @@ function varargout = pitInfo(varargin)
 
 % Edit the above text to modify the response to help pitInfo
 
-% Last Modified by GUIDE v2.5 18-Feb-2010 20:54:06
+% Last Modified by GUIDE v2.5 23-Feb-2010 20:34:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -43,7 +43,7 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-
+%OPENING FUNCTION
 % --- Executes just before pitInfo is made visible.
 function pitInfo_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
@@ -52,19 +52,48 @@ function pitInfo_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to pitInfo (see VARARGIN)
 % Choose default command line output for pitInfo
-handles.output = hObject;
 % Update handles structure
-guidata(hObject, handles);
-%get data from 
-%ask user to input intensityMat for channel1
-%ask user to input intensityMat Reference for channel1
-%ask user to input intensityMat for channel2
-%ask user to input intensityMat Reference for channel2
-
+handles = guidata(hObject);
+handles.output = hObject;
 % UIWAIT makes pitInfo wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
+% Update handles structure
+guidata(hObject,handles)
+
+%PLOT INTENSITY DATA
+function makePlots(handles)
+%get handles from endocytosisGUI
+mainHandles = guidata(handles.endocytosisGUIHandle);
+%update lifetime handles
+set(handles.text1,'String',['pit lifetime: ' num2str(mainHandles.pitInfo.lifetime) ' seconds'])
+% turn zoom on for axes of channel one
+zoom(handles.axes1,'on')
+%plot channel both chanels if there is data for channel2
+if isfield(mainHandles.pitInfo,'intensityChannel2')
+     [AX,H1,H2] = plotyy(handles.axes1,...
+        1-mainHandles.pitInfo.initiationFrame:size(mainHandles.pitInfo.intensityReferenceChannel1,2) - mainHandles.pitInfo.initiationFrame,...
+    mainHandles.pitInfo.intensityChannel1(mainHandles.pitInfo.pitID,:,1)-mainHandles.pitInfo.intensityReferenceChannel1(mainHandles.pitInfo.pitID,:,1),...
+        1-mainHandles.pitInfo.initiationFrame:size(mainHandles.pitInfo.intensityReferenceChannel1,2) - mainHandles.pitInfo.initiationFrame,...
+    mainHandles.pitInfo.intensityChannel2(mainHandles.pitInfo.pitID,:,1)-mainHandles.pitInfo.intensityReferenceChannel2(mainHandles.pitInfo.pitID,:,1));
+set(H1,'Color','b','LineWidth',2)
+set(H2,'Color','g','LineWidth',2)
+ylabel(AX(1),'Channel1 intensity (background substracted)')
+ylabel(AX(2),'Channel2 intensity (background substracted)')
+else
+    %plot channel 1 only
+   plot(handles.axes1,...
+       1-mainHandles.pitInfo.initiationFrame:size(mainHandles.pitInfo.intensityReferenceChannel1,2) - mainHandles.pitInfo.initiationFrame,...
+    mainHandles.pitInfo.intensityChannel1(mainHandles.pitInfo.pitID,:,1)-mainHandles.pitInfo.intensityReferenceChannel1(mainHandles.pitInfo.pitID,:,1)...
+    ,'g','LineWidth',2) 
+end
+%
+handles.axes1_2 = AX(2);
+handles.axes1_1 = AX(1);
+% Update handles structure
+guidata(handles.figure1,handles)
 
 
+%OUTPUT
 % --- Outputs from this function are returned to the command line.
 function varargout = pitInfo_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -74,3 +103,19 @@ function varargout = pitInfo_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
+
+%TEXT FOR LIFETIME
+% --- Executes during object creation, after setting all properties.
+function text1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to text1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+%AXES FOR INTENSITY PLOTS
+% --- Executes during object creation, after setting all properties.
+function axes1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to axes1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate axes1

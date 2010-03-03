@@ -92,7 +92,7 @@ ImageStackList(1:nMovies) = struct('list', []);
 for i = 1:nMovies
     
     % select first image for the intensity channel
-    if nargin>3
+    if nargin>3 && ~isempty(channel)
         ipath = data(i).(channel);
     else
         ipath = data(i).source;

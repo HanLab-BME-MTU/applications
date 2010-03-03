@@ -207,6 +207,11 @@ if experiment.source ~= 0
     plotImage(handles);
     %write current movie path in text box next to load movie button
     set(handles.text7,'String', experiment.source);
+    %clear intensity data for channel one so that it can be reloaded for
+    %the next movie
+    if isfield(handles,'intensityChannel1')
+        handles = rmfield(handles,'intensityChannel1');
+    end
     % Update handles structure
     guidata(hObject, handles);
 end %of if source is not empty
@@ -509,20 +514,20 @@ for ichannel = 1:numChannels
             plot(axHandle,handles.Mat_xcoord(...
                 handles.lftInfo.Mat_lifetime(:,handles.iframe) >= lftMin ...
                 & handles.lftInfo.Mat_lifetime(:,handles.iframe) <= lftMax...
-                & max(handles.lftInfo.Mat_status,2) == 5,handles.iframe)', ...
+                & max(handles.lftInfo.Mat_status,[],2) == 5,handles.iframe)', ...
                 handles.Mat_ycoord(handles.lftInfo.Mat_lifetime(:,handles.iframe) >= lftMin ...
                 & handles.lftInfo.Mat_lifetime(:,handles.iframe) <= lftMax...
-                & max(handles.lftInfo.Mat_status,2) == 5, handles.iframe)','b.','MarkerSize',2);
+                & max(handles.lftInfo.Mat_status,[],2) == 5, handles.iframe)','b.','MarkerSize',2);
         else
             plot(axHandle,handles.Mat_xcoord(handles.lftInfo.Mat_status(:,handles.iframe) ~=0 & ...
                 handles.lftInfo.Mat_lifetime(:,handles.iframe) >= lftMin ...
                 & handles.lftInfo.Mat_lifetime(:,handles.iframe) <= lftMax...
-                & max(handles.lftInfo.Mat_status,2) == 5, ...
+                & max(handles.lftInfo.Mat_status,[],2) == 5, ...
                 max(handles.iframe-handles.dragTailLength,1):handles.iframe)', ...
                 handles.Mat_ycoord(handles.lftInfo.Mat_status(:,handles.iframe) ~=0 &...
                 handles.lftInfo.Mat_lifetime(:,handles.iframe) >= lftMin ...
                 & handles.lftInfo.Mat_lifetime(:,handles.iframe) <= lftMax ...
-                & max(handles.lftInfo.Mat_status,2) == 5, ...
+                & max(handles.lftInfo.Mat_status,[],2) == 5, ...
                 max(handles.iframe-handles.dragTailLength,1):handles.iframe)','b-','LineWidth',1);
         end
     end
@@ -533,20 +538,20 @@ for ichannel = 1:numChannels
             plot(axHandle,handles.Mat_xcoord(...
                 handles.lftInfo.Mat_lifetime(:,handles.iframe) >= lftMin ...
                 & handles.lftInfo.Mat_lifetime(:,handles.iframe) <= lftMax ...
-            & max(handles.lftInfo.Mat_status,2) ~= 5, handles.iframe)', ...
+                & max(handles.lftInfo.Mat_status,[],2) ~= 5, handles.iframe)', ...
                 handles.Mat_ycoord(handles.lftInfo.Mat_lifetime(:,handles.iframe) >= lftMin ...
                 & handles.lftInfo.Mat_lifetime(:,handles.iframe) <= lftMax...
-                & max(handles.lftInfo.Mat_status,2) ~= 5, handles.iframe)','y.','MarkerSize',2);
+                & max(handles.lftInfo.Mat_status,[],2) ~= 5, handles.iframe)','y.','MarkerSize',2);
         elseif ~handles.showHotSpots
             plot(axHandle,handles.Mat_xcoord(handles.lftInfo.Mat_status(:,handles.iframe) ~=0 & ...
                 handles.lftInfo.Mat_lifetime(:,handles.iframe) >= lftMin ...
                 & handles.lftInfo.Mat_lifetime(:,handles.iframe) <= lftMax...
-                & max(handles.lftInfo.Mat_status,2) ~= 5, ...
+                & max(handles.lftInfo.Mat_status,[],2) ~= 5, ...
                 max(handles.iframe-handles.dragTailLength,1):handles.iframe)', ...
                 handles.Mat_ycoord(handles.lftInfo.Mat_status(:,handles.iframe) ~=0 &...
                 handles.lftInfo.Mat_lifetime(:,handles.iframe) >= lftMin ...
                 & handles.lftInfo.Mat_lifetime(:,handles.iframe) <= lftMax ...
-                & max(handles.lftInfo.Mat_status,2) ~= 5, ...
+                & max(handles.lftInfo.Mat_status,[],2) ~= 5, ...
                 max(handles.iframe-handles.dragTailLength,1):handles.iframe)','y-','LineWidth',1);
         else
             plot(axHandle,handles.Mat_xcoord(handles.hotOrNot==1 & ...
@@ -587,9 +592,9 @@ for ichannel = 1:numChannels
         plot(axHandle,handles.hotSpotsX(:),handles.hotSpotsY(:),'y.')
         plot(axHandle,handles.hotSpotsX(:),handles.hotSpotsY(:),'y.')
     end
-    if isfield(handles,'pitInfoPit')
-        plot(axHandle,handles.lftInfo.Mat_xcoord(handles.pitInfoPit,handles.iframe),...
-            handles.Mat_ycoord(handles.pitInfoPit,handles.iframe),'ws')
+    if isfield(handles,'pitInfo') && isfield(handles.pitInfo,'pitID')
+        plot(axHandle,handles.lftInfo.Mat_xcoord(handles.pitInfo.pitID,handles.iframe),...
+            handles.Mat_ycoord(handles.pitInfo.pitID,handles.iframe),'ws')
     end
 end %of for each channel being plotted
 % link the zoom factor for axes of channel one and channel two
@@ -727,6 +732,11 @@ if source ~= 0
         10/(double(handles.maxIntChannel2)-double(handles.minIntChannel2))]);
     %write current movie path in text box next to load movie button
     set(handles.text8,'String', source);
+    %clear intensity data for channel one so that it can be reloaded for
+    %the next movie
+    if isfield(handles,'intensityChannel2')
+        handles = rmfield(handles,'intensityChannel2');
+    end
     % Update handles structure
     guidata(hObject, handles);
     %plot image
@@ -796,17 +806,73 @@ function pushbutton4_Callback(hObject, eventdata, handles)
 %ask user to pick a pit
 [x y] = ginput(1);
 %determine which pit it is given location of click
-distance = distMat2([x y],[handles.lftInfo.Mat_xcoord(:,handles.iframe),...
-    handles.lftInfo.Mat_xcoord(:,handles.iframe)]);
+distance = distMat2([x y],[handles.Mat_xcoord(:,handles.iframe),...
+    handles.Mat_ycoord(:,handles.iframe)]);
+%get pitID
 pitID = find(distance == min(distance));
 %plot marker over pit
-handles.pitInfoPit = pitID;
-%plot image
+handles.pitInfo.pitID = pitID;
+%update handles
+guidata(hObject, handles);
 plotImage(handles);
-%call pitInfo gui
-hpitInfo = pitInfo;
-%change lifetime
-%change size
-%calculate probabilities
+%update lifetime
+handles.pitInfo.lifetime = max(handles.lftInfo.Mat_lifetime(pitID,:));
+%make time vector which sets the initiation frame as 0
+handles.pitInfo.initiationFrame = find(handles.lftInfo.Mat_disapp(pitID,:)==1);
+%if pit is cut-off at the begining or persistent, then initiationFrame will
+%be empty...make it 0 so that ploting begins at the first frame
+if isempty(handles.pitInfo.initiationFrame)
+handles.pitInfo.initiationFrame = 0;
+end
+%if this is the first time for this movie ask user to get intensity info
+if ~isfield(handles.pitInfo,'intensityChannel1')
+    [filename, pathname] = uigetfile('.mat', 'choose mat file containing intensities for channel 1');
+    load([pathname filesep filename]);
+    handles.pitInfo.intensityChannel1 = iMat_obj;
+    [filename, pathname] = uigetfile('.mat', 'choose mat file containing reference intensities for channel 1');
+    load([pathname filesep filename]);
+    handles.pitInfo.intensityReferenceChannel1 = iMat_ref;
+    %if reference has 8 reference intensity values for each point average
+    %that
+    if size(iMat_ref,1) == 8*size(iMat_obj,1)
+        refIntensities = nan(size(iMat_obj));
+        for k=1:size(iMat_obj,1)
+            refIntensities(k,:) = nanmean(handles.pitInfo.intensityReferenceChannel1(1+(k-1)*8:k*8,:));
+        end
+        handles.pitInfo.intensityReferenceChannel1  = refIntensities;
+    end
+    %if no channel 2 was loaded or was reloaded
+    if isfield(handles,'imagesChannel2') && ~isfield(handles.pitInfo,'intensityChannel2')
+        [filename, pathname] = uigetfile('.mat', 'choose mat file containing intensities for channel 2');
+        load([pathname filesep filename]);
+        handles.pitInfo.intensityChannel2 = iMat_obj;
+        [filename, pathname] = uigetfile('.mat', 'choose mat file containing reference intensities for channel 2');
+        load([pathname filesep filename]);
+        handles.pitInfo.intensityReferenceChannel2 = iMat_ref;
+        %if reference has 8 reference intensity values for each point average
+        %that
+        if size(iMat_ref,1) == 8*size(iMat_obj,1)
+            refIntensities = nan(size(iMat_obj));
+            for k=1:size(iMat_obj,1)
+                refIntensities(k,:) = nanmean(handles.pitInfo.intensityReferenceChannel2(1+(k-1)*8:k*8,:));
+            end
+            handles.pitInfo.intensityReferenceChannel2  = refIntensities;
+        end
+    end
+end
+
+%close previous instance of pitInfo
+close(handles.hpitInfo)
+%open new instance pitINfo gui
+handles.hpitInfo = pitInfo(handles.output);
+%update handles
+guidata(hObject, handles)
+%get handles for pitInfo
+pitInfoHandles = guihandles(handles.hpitInfo);
+%add handle for endocytosisGUI
+pitInfoHandles.endocytosisGUIHandle = handles.output;
+%call makePlots within pitInfo
+pitInfo('makePlots',pitInfoHandles);
 % Update handles structure
-handles.dataPitInfo = guidata(hpitInfo, handles.dataPitInfo);
+guidata(hObject,handles);
+
