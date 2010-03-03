@@ -84,7 +84,7 @@ for iCol = 1:3
         
         % Compute distance to the edge
         BW = imread([maskPath filesep maskFiles(iFrame).name]);
-        distToEdge = bwdist(max(BW(:)) - BW) * pixelSize;
+        distToEdge = double(bwdist(max(BW(:)) - BW)) * pixelSize;
         
         dataPanelA(1,iFrame) = mean(distToEdge(idxS1));
         dataPanelA(2,iFrame) = mean(distToEdge(idxS2));
