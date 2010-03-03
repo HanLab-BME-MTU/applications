@@ -27,8 +27,8 @@ for i = 1:3
     iMin = min(I1(:));
     iMax = max(I1(:));
     I1 = uint8((255 / double(iMax - iMin)) * (double(I1) - iMin));
-    C = cat(3, Z, I1, Z);
-    %imwrite(C, [outputDirectory filesep 'fig3_A' num2str(i) '1.tif'], 'Compression', 'none');
+    C = cat(3, I1, Z, Z);
+    imwrite(C, [outputDirectory filesep 'fig3_A' num2str(i) '1.tif'], 'Compression', 'none');
     
     % TM
     path = [inputDirectory filesep paths{i} filesep tmPaths{i}];
@@ -40,12 +40,12 @@ for i = 1:3
     iMin = min(I2(:));
     iMax = max(I2(:));
     I2 = uint8((255 / double(iMax - iMin)) * (double(I2) - iMin));
-    C = cat(3, I2, Z, Z);
-    %imwrite(C, [outputDirectory filesep 'fig3_A' num2str(i) '2.tif'], 'Compression', 'none');
+    C = cat(3, Z, I2, Z);
+    imwrite(C, [outputDirectory filesep 'fig3_A' num2str(i) '2.tif'], 'Compression', 'none');
     
     % Merge
     C = cat(3, I1, I2, Z);
-    %imwrite(C, [outputDirectory filesep 'fig3_A' num2str(i) '3.tif'], 'Compression', 'none');
+    imwrite(C, [outputDirectory filesep 'fig3_A' num2str(i) '3.tif'], 'Compression', 'none');
     
     %
     % Panel B
@@ -56,8 +56,7 @@ for i = 1:3
     % Crop
     Bw = Bw(pos(i,1):pos(i,1)+w-1,pos(i,2):pos(i,2)+w-1);
     D = double(bwdist(1 - Bw)) * 67;
-    %A = NaN(size(Bw));
-    %A(D < 5000 & Bw == 1) = 1;
+
     figure, imshow(C);
     % Add Actin speckles
     path = [inputDirectory filesep paths{i} filesep actinPaths{i}];
