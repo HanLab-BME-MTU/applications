@@ -24,9 +24,9 @@ else
 end
 
 subFolders = {...
-    ['TM2_Actin' filesep 'cell5_Q4'],...
-    ['TM4_Actin' filesep '14_August_2009' filesep 'cell2_Q4'],...
-    ['TM5NM1_Actin' filesep '26June2009' filesep 'Cell6_Q4'],...
+    ['TM2_Actin' filesep 'cell5'],...
+    ['TM4_Actin' filesep '14_August_2009' filesep 'cell1'],...
+    ['TM5NM1_Actin' filesep '26June2009' filesep 'Cell6'],...
     'TM2_TM4',...
     'TM2_TM5NM1',...
     'TM4_TM5NM1'};
@@ -130,7 +130,7 @@ for iMovie = 1:nMovies
 
             currMovie = setupMovieData(currMovie);
 
-            handles.batch_processing = batchMode;
+            handles.batch_processing = 1; %batchMode;
             handles.directory_name = [currMovie.masks.directory];
             handles.result_directory_name = [currMovie.masks.directory];
             handles.FileType = '*.tif';
@@ -247,5 +247,5 @@ end
 
 disp('Build figures...');
 
-% Figure 1
-makeFigure1(paths, batchMode);
+% Figure 3
+makeFigure3(paths, batchMode);
