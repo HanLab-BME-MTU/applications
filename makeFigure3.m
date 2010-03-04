@@ -79,6 +79,9 @@ for iTM = 1:3
     protMask = protrusionSamples.averageNormalComponent > val;
     retMask = protrusionSamples.averageNormalComponent < -val;
     
+    dataD = cell(3, 1);
+    dataE = cell(3, 1);
+    
     %-----------------------------------------------------------------%
     %                                                                 %
     %                          FIGURE 3 PANEL A                       %
@@ -240,11 +243,13 @@ for iTM = 1:3
         
         % Load TM speckles (channel 1)
         load([s1Path filesep s1Files(iFrame).name]);
-        idxS1 = find(locMax .* (L ~= 0));
+        locMax1 = locMax;
+        idxS1 = find(locMax1 .* (L ~= 0));
         
         % Load Actin speckles (channel 2)
         load([s2Path filesep s2Files(iFrame).name]);
-        idxS2 = find(locMax .* (L ~= 0));
+        locMax2 = locMax;
+        idxS2 = find(locMax2 .* (L ~= 0));
         
         % Compute distance to the edge
         BW = imread([maskPath filesep maskFiles(iFrame).name]);
@@ -252,6 +257,30 @@ for iTM = 1:3
     
         data(1,iFrame) = mean(distToEdge(idxS1));
         data(2,iFrame) = mean(distToEdge(idxS2));
+        
+        % We store these data as well for Panel D (Protrusion):
+        idx = find(protMask(:, iFrame) == 0);
+        Lprot = zeros(size(L));        
+        for il = 1:numel(idx)
+            Lprot(L == idx(il)) = 1;
+        end
+        
+        idxS1 = find(locMax1 .* (Lprot ~= 0));
+        idxS2 = find(locMax2 .* (Lprot ~= 0));
+        
+        dataD{iTM} = cat(1, dataD{iTM}, distToEdge(idxS1) - mean(distToEdge(idxS2)));
+        
+        % ... and the same for Panel E (Retraction):
+        idx = find(retMask(:, iFrame) == 0);
+        Lret = zeros(size(L));
+        for il = 1:numel(idx)
+            Lret(L == idx(il)) = 1;
+        end
+        
+        idxS1 = find(locMax1 .* (Lret ~= 0));
+        idxS2 = find(locMax2 .* (Lret ~= 0));
+        
+        dataE{iTM} = cat(1, dataE{iTM}, distToEdge(idxS1) - mean(distToEdge(idxS2)));
     end
     
     hFig = figure('Visible', 'off');    
@@ -273,208 +302,33 @@ for iTM = 1:3
     legend(names);
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
         num2str(iTM) '.eps']);
-    close(hFig);
-    
-    %-----------------------------------------------------------------%
-    %                                                                 %
-    %                          FIGURE 3 PANEL D                       %
-    %                                                                 %
-    %-----------------------------------------------------------------%
-
-    data = zeros(1, nFrames-1);
-    timeScale = 0:timeInterval:(nFrames-2)*timeInterval;
-    
-    for iFrame = 1:nFrames-1
-        % Load label
-        L = imread([labelPath filesep labelFiles(iFrame).name]);
-        
-        protLabels = find(protMask(:, iFrame) == 0);
-        
-        for il = 1:numel(protLabels)
-            L(L == protLabels(il)) = 0;
-        end
-        
-        % Load TM speckles (channel 1)
-        load([s1Path filesep s1Files(iFrame).name]);
-        idxS1 = find(locMax .* (L ~= 0));
-        
-        % Load Actin speckles (channel 2)
-        load([s2Path filesep s2Files(iFrame).name]);
-        idxS2 = find(locMax .* (L ~= 0));
-        
-        % Compute distance to the edge
-        BW = imread([maskPath filesep maskFiles(iFrame).name]);
-        distToEdge = double(bwdist(1 - BW)) * (pixelSize / 1000); % in microns
-    
-        data(1,iFrame) = mean(distToEdge(idxS1)) - mean(distToEdge(idxS2));
-    end
-    
-    hFig = figure('Visible', 'off');
-    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-    set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
-    plot(gca, timeScale, data(1,:), 'b-', 'LineWidth', 1); hold on;
-    % These settings are adapted to the 3 movies. Change this when you
-    % change to other movies.
-    yRange  = -1.0:.2:1.0;
-    axis([0, max(timeScale), yRange(1), yRange(end)]);
-    set(gca,'YTick', yRange);
-    set(gca,'YTickLabel',arrayfun(@(x) num2str(x, '%3.1f'), yRange, ...
-        'UniformOutput', false));
-    xlabel('Time (s)');
-    if iTM == 1
-        ylabel('Distance to Actin Front (nm)');
-    end
-    legend(names{1});
-    print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D' ...
-        num2str(iTM) '.eps']);
-    close(hFig);
-   
-    %-----------------------------------------------------------------%
-    %                                                                 %
-    %                          FIGURE 3 PANEL E                       %
-    %                                                                 %
-    %-----------------------------------------------------------------%
-    
-    data = zeros(1, nFrames-1);
-    timeScale = 0:timeInterval:(nFrames-2)*timeInterval;
-    
-    for iFrame = 1:nFrames-1
-        % Load label
-        L = imread([labelPath filesep labelFiles(iFrame).name]);
-        
-        retLabels = find(retMask(:, iFrame) == 0);
-        
-        for il = 1:numel(retLabels)
-            L(L == retLabels(il)) = 0;
-        end
-        
-        % Load TM speckles (channel 1)
-        load([s1Path filesep s1Files(iFrame).name]);
-        idxS1 = find(locMax .* (L ~= 0));
-        
-        % Load Actin speckles (channel 2)
-        load([s2Path filesep s2Files(iFrame).name]);
-        idxS2 = find(locMax .* (L ~= 0));
-        
-        % Compute distance to the edge
-        BW = imread([maskPath filesep maskFiles(iFrame).name]);
-        distToEdge = double(bwdist(1 - BW)) * (pixelSize / 1000); % in microns
-    
-        data(1,iFrame) = mean(distToEdge(idxS1)) - mean(distToEdge(idxS2));
-    end
-    
-    hFig = figure('Visible', 'off');
-    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-    set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
-    plot(gca, timeScale, data(1,:), 'y-', 'LineWidth', 1); hold on;
-    % These settings are adapted to the 3 movies. Change this when you
-    % change to other movies.
-    yRange  = -1.0:.2:1.0;
-    axis([0, max(timeScale), yRange(1), yRange(end)]);
-    set(gca,'YTick', yRange);
-    set(gca,'YTickLabel',arrayfun(@(x) num2str(x, '%3.1f'), yRange, ...
-        'UniformOutput', false));
-    xlabel('Time (s)');
-    if iTM == 1
-        ylabel('Distance to Actin Front (nm)');
-    end
-    legend(names{1});
-    print(hFig, '-depsc' , [outputDirectory filesep 'fig3_E' ...
-        num2str(iTM) '.eps']);
-    close(hFig);
+    close(hFig);    
 end
 
-%         % Data for panel B
-%         labels = (1:max(L(:)))';
-%         
-%         w = mean(distToEdge(idxS2)) - ...
-%             arrayfun(@(l) mean(distToEdge(L == l)), labels);
-%         
-%         idxLS2 = arrayfun(@(l) idxS2(L(idxS2) == l), ...
-%             1:max(L(:)), 'UniformOutput', false);
-%         
-%         dataPanelB{iFrame} = arrayfun(@(l) mean(distToEdge(idxLS2{l})), labels);
-%         
-%         % We put here the Corrected distance as Panel C        
-%         dataPanelC{iFrame} = w + dataPanelB{iFrame};
-%         
-%         % Data for panel C        
-% %         idxL_p = find(protValues(:, iFrame) > 0);
-% %         idxL_r = find(protValues(:, iFrame) < 0);
-% %                
-% %         dataPanelC_p{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxLS2{l}) - ...
-% %             mean(distToEdge(idxLS1{l})), idxL_p, 'UniformOutput', false));
-% %         
-% %         dataPanelC_r{iFrame} = cell2mat(arrayfun(@(l) distToEdge(idxLS2{l}) - ...
-% %             mean(distToEdge(idxLS1{l})), idxL_r, 'UniformOutput', false));
-% %         
-%          if ~batchMode && ishandle(h)
-%              waitbar(iFrame / (nFrames-1), h);
-%          end
-%     end
-% 
-%     if ~batchMode && ishandle(h)
-%         close(h);
-%     end
-% 
-%     set(0, 'CurrentFigure', hFig);
-%     
-%     %
-%     % Panel A
-%     %
-%     
-%     subplot(3, 3, iCol);
-%     plot(gca, 1:nFrames-1, dataPanelA(1,:), 'r-', 'LineWidth', 2); hold on;
-%     plot(gca, 1:nFrames-1, dataPanelA(2,:), 'g-', 'LineWidth', 2); hold off;
-%     xlabel('Frame');
-%     h = kstest2(dataPanelA(1,:), dataPanelA(2,:));
-%     if h
-%         ylabel('Distance to edge (nm) (*)');
-%     else
-%         ylabel('Distance to edge (nm)');
-%     end
-%     legend(names);
-%     
-%     %
-%     % Panel B
-%     %
-% 
-%     nSectors = cellfun(@numel, dataPanelB);
-%     dataPanelB = cellfun(@(x) padarray(x, [max(nSectors) - numel(x), 0], 'post'), ...
-%         dataPanelB, 'UniformOutput', false);
-%     dataPanelB = horzcat(dataPanelB{:});
-%     subplot(3, 3, 3 + iCol);
-%     imagesc(dataPanelB, 'Parent', gca); hold on;
-%     plot(gca, 1:numel(nSectors), nSectors, '-w', 'LineWidth', 3);
-%     colormap('jet');
-%     colorbar;
-%     xlabel('Frame');
-%     ylabel('Sector #');
-%   
-%     %
-%     % Panel C
-%     %
-%   
-%     nSectors = cellfun(@numel, dataPanelC);
-%     dataPanelC = cellfun(@(x) padarray(x, [max(nSectors) - numel(x), 0], 'post'), ...
-%         dataPanelC, 'UniformOutput', false);
-%     dataPanelC = horzcat(dataPanelC{:});
-%     subplot(3, 3, 6 + iCol);
-%     imagesc(dataPanelC, 'Parent', gca); hold on;
-%     plot(gca, 1:numel(nSectors), nSectors, '-w', 'LineWidth', 3);
-%     colormap('jet');
-%     colorbar;
-%     xlabel('Frame');
-%     ylabel('Sector #');    
-%     
-% %     dataPanelC_p = vertcat(dataPanelC_p{:});
-% %     dataPanelC_r = vertcat(dataPanelC_r{:});
-% %     subplot(3, 3, 7:9);
-% %     [n1, xout1] = hist(dataPanelC_p, 50);
-% %     [n2, xout2] = hist(dataPanelC_r, 50);
-% %     c = rand(3, 1);
-% %     bar(xout1, n1, 'FaceColor', c); hold on;
-% %     bar(xout2, -n2, 'FaceColor', c * .5); hold off;
-% %     xlabel('nm');
+%-----------------------------------------------------------------%
+%                                                                 %
+%                          FIGURE 3 PANEL D                       %
+%                                                                 %
+%-----------------------------------------------------------------%
+
+hFig = figure('Visible', 'off');
+set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
+set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
+hist
+n1 = hist(dataD{1},-1:.1:1); n1 = n1 / sum(n1);
+n2 = hist(dataD{2},-1:.1:1); n2 = n2 / sum(n2);
+n3 = hist(dataD{3},-1:.1:1); n3 = n3 / sum(n3);
+bar(x, [n1,n2,n3]);
+xlabel('Distance to Actin Front (nm)');
+print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D' ...
+    num2str(iTM) '.eps']);
+close(hFig);
+   
+%-----------------------------------------------------------------%
+%                                                                 %
+%                          FIGURE 3 PANEL E                       %
+%                                                                 %
+%-----------------------------------------------------------------%
+    
 end
 
