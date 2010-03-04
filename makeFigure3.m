@@ -77,7 +77,7 @@ for iTM = 1:3
     v = sort(protrusionSamples.averageMagnitude(:));
     val = v(ceil(.01 * numel(v)));
     protMask = protrusionSamples.averageNormalComponent > val;
-    retMask = protrusionSamples.averageNormalComponen < -val;
+    retMask = protrusionSamples.averageNormalComponent < -val;
     
     %-----------------------------------------------------------------%
     %                                                                 %
