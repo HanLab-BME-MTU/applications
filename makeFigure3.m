@@ -253,7 +253,7 @@ for iTM = 1:3
     plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
     xlabel('Time (s)');
     ylabel('Distance to edge (nm)');
-    legend(names(iCh));
+    legend(names);
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
         num2str(iTM) '.eps']);
     close(hFig);
