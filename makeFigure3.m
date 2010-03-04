@@ -170,7 +170,7 @@ for iTM = 1:3
     line(c(1, 2:n+2), c(2, 2:n+2), 'Color', 'w', 'Linewidth', .75);
     line(c(1, n+3:end), c(2, n+3:end), 'Color', 'w', 'Linewidth', .75);
     % Draw the inset box
-    p = insetPos(iTM, :) - insetPos(iTM, :);
+    p = insetPos(iTM, :) - imagePos(iTM, :);
     line([p(2), p(2) + insetSize, p(2) + insetSize, p(2), p(2)], ...
         [p(1), p(1), p(1) + insetSize, p(1) + insetSize, p(1)], ...
         'Color', 'w', 'Linewidth', .75);
@@ -183,7 +183,7 @@ for iTM = 1:3
     % Inset Merge + Speckles (Panel B, column 2)
     
     % Crop image
-    p = insetPos(iTM, :) - insetPos(iTM, :);
+    p = insetPos(iTM, :) - imagePos(iTM, :);
     insetMerge = imageMerge(p(1):p(1)+insetSize-1, p(2):p(2)+insetSize-1);
     
     % Crop distance transform
