@@ -247,5 +247,15 @@ end
 
 disp('Build figures...');
 
+outputDirectory = [rootDirectory filesep 'figures'];
+if ~exist(outputDirectory, 'dir')
+    mkdir(rootDirectory, 'figures');
+end
+
+% Save the list of paths in the figure in a text file format.
+fid = fopen([outputDirectory filesep 'listFolders.txt'], 'w');
+fprintf(fid, '%s\n%s\n%s\n', paths{:});
+fclose(fid);
+
 % Figure 3
-makeFigure3(paths, batchMode);
+makeFigure3(paths, outputDirectory);
