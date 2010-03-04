@@ -82,7 +82,7 @@ for iTM = 1:3
     % TM (Panel A, column 1)
     
     % Read image
-    fileName = [image1Path filesep image1Files{iFrames(iTM)}];
+    fileName = [image1Path filesep image1Files(iFrames(iTM)).name];
     I1 = imread(fileName);
     % Convert to 8bit channel
     iMin = min(I1(:));
@@ -100,7 +100,7 @@ for iTM = 1:3
     % Actin (Panel A, column 2)
     
     % Read image
-    fileName = [image2Path filesep image2Files{iFrames(iTM)}];
+    fileName = [image2Path filesep image2Files(iFrames(iTM)).name];
     I2 = imread(fileName);
     % Convert to 8bit channel
     iMin = min(I2(:));
@@ -127,16 +127,16 @@ for iTM = 1:3
     %-----------------------------------------------------------------%
 
     % Read the mask
-    fileName = [maskPath filesep maskFiles{iFrames(iTM)}];
+    fileName = [maskPath filesep maskFiles(iFrames(iTM)).name];
     BW = imread(fileName);
     % Compute distance transform
     D = double(bwdist(1 - BW)) * pixelSize / 1000; % in microns
     % Load TM speckles
-    fileName = [s1Path filesep s1Files{iFrames(iTM)}];
+    fileName = [s1Path filesep s1Files(iFrames(iTM)).name];
     load(fileName);
     loc1 = locMax;
     % Load Actin speckles
-    fileName = [s2Path filesep s2Files{iFrames(iTM)}];
+    fileName = [s2Path filesep s2Files(iFrames(iTM)).name];
     load(fileName);
     loc2 = locMax;
         
