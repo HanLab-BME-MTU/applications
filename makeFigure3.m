@@ -256,7 +256,8 @@ for iTM = 1:3
     plot(gca, timeScale, data(1,:), 'g-', 'LineWidth', 1); hold on;
     plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
     % Beware: Change this !!!
-    axis([0, max(timeScale), 1.8, 3.2]);
+    axis([0, max(timeScale), 1.8, 3.4]);
+    set(gca,'YTick',1.8:.2:3.4);
     xlabel('Time (s)');
     if iTM == 1
         ylabel('Distance to edge (nm)');
