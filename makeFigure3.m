@@ -184,7 +184,7 @@ for iTM = 1:3
     
     % Crop image
     p = insetPos(iTM, :) - insetPos(iTM, :);
-    insetMerge = imageMerge(p(2):p(2)+insetSize-1, p(1):p(1)+insetSize-1);
+    insetMerge = imageMerge(p(1):p(1)+insetSize-1, p(2):p(2)+insetSize-1);
     
     % Crop distance transform
     insetD = D(insetPos(iTM,1):insetPos(iTM,1)+insetSize-1,...
