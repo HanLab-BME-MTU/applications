@@ -314,12 +314,13 @@ end
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
 set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
-n1 = hist(dataD{1},-1:.1:1);
-n2 = hist(dataD{2},-1:.1:1);
-n3 = hist(dataD{3},-1:.1:1);
-bar(x, n1 / sum(n1)); hold on;
-bar(x, n2 / sum(n2));
-bar(x, n3 / sum(n3)); hold off;
+xRange = -1:.05:1;
+n1 = hist(dataD{1},xRange);
+n2 = hist(dataD{2},xRange);
+n3 = hist(dataD{3},xRange);
+bar(xRange, n1 / sum(n1)); hold on;
+bar(xRange, n2 / sum(n2));
+bar(xRange, n3 / sum(n3)); hold off;
 xlabel('Distance to Actin Front (nm)');
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D' ...
     num2str(iTM) '.eps']);
