@@ -290,8 +290,8 @@ for iTM = 1:3
         
         protLabels = find(protMask(:, iFrame) == 0);
         
-        for l = protLabels
-            L(L == l) = 0;
+        for il = 1:numel(protLabels)
+            L(L == protLabels(il)) = 0;
         end
         
         % Load TM speckles (channel 1)
