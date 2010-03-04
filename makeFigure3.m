@@ -224,7 +224,7 @@ for iTM = 1:3
     %-----------------------------------------------------------------%
 
     data = zeros(2, nFrames-1);
-    timeScale = 0:timeInterval:(nFrames-1)*timeInterval;
+    timeScale = 0:timeInterval:(nFrames-2)*timeInterval;
     
     for iFrame = 1:nFrames-1
         % Load label
