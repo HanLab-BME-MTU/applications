@@ -253,7 +253,7 @@ for iTM = 1:3
     ylabel('Distance to edge (nm)');
     legend(names);
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
-        num2str(iTM) '_inset.eps']);
+        num2str(iTM) '.eps']);
     close(hFig);
     
     %-----------------------------------------------------------------%
