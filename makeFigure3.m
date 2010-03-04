@@ -255,6 +255,9 @@ for iTM = 1:3
     set(gcf, 'Position', [ 680 678 560 330], 'PaperPositionMode', 'auto');
     plot(gca, timeScale, data(1,:), 'g-', 'LineWidth', 1); hold on;
     plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
+    axis([min(timeScale), max(timeScale), ...
+        min(min(data(1,:)),min(data(2, :))) ...
+        max(max(data(1,:)), max(data(2,:)))]);
     xlabel('Time (s)');
     if iTM == 1
         ylabel('Distance to edge (nm)');
