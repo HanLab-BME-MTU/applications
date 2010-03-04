@@ -315,7 +315,7 @@ for iTM = 1:3
     plot(gca, timeScale, data(1,:), 'b-', 'LineWidth', 1); hold on;
     % These settings are adapted to the 3 movies. Change this when you
     % change to other movies.
-    yRange  = -1.0:.1:1.0;
+    yRange  = -1.0:.2:1.0;
     axis([0, max(timeScale), yRange(1), yRange(end)]);
     set(gca,'YTick', yRange);
     set(gca,'YTickLabel',arrayfun(@(x) num2str(x, '%3.1f'), yRange, ...
