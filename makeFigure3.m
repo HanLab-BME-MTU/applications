@@ -252,12 +252,11 @@ for iTM = 1:3
     
     hFig = figure('Visible', 'off');    
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-    set(gcf, 'Position', [ 680 678 560 330], 'PaperPositionMode', 'auto');
+    set(gcf, 'Position', [ 680 678 560 380], 'PaperPositionMode', 'auto');
     plot(gca, timeScale, data(1,:), 'g-', 'LineWidth', 1); hold on;
     plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
-    axis([min(timeScale), max(timeScale), ...
-        min(min(data(1,:)),min(data(2, :))) ...
-        max(max(data(1,:)), max(data(2,:)))]);
+    % Beware: Change this !!!
+    axis([0, max(timeScale), 1, 3]);
     xlabel('Time (s)');
     if iTM == 1
         ylabel('Distance to edge (nm)');
