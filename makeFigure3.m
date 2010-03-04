@@ -74,7 +74,11 @@ for iTM = 1:3
         error(['Unable to locate ' fileName]);
     end
     load(fileName);
-
+    v = sort(protrusionSamples.averageMagnitude(:));
+    val = v(ceil(.01 * numel(v)));
+    protMask = protrusionSamples.averageNormalComponent > val;
+    retMask = protrusionSamples.averageNormalComponen < -val;
+    
     %-----------------------------------------------------------------%
     %                                                                 %
     %                          FIGURE 3 PANEL A                       %
@@ -276,6 +280,63 @@ for iTM = 1:3
     %                          FIGURE 3 PANEL D                       %
     %                                                                 %
     %-----------------------------------------------------------------%
+
+    data = zeros(2, nFrames-1);
+    timeScale = 0:timeInterval:(nFrames-2)*timeInterval;
+    
+    for iFrame = 1:nFrames-1
+        % Load label
+        L = imread([labelPath filesep labelFiles(iFrame).name]);
+        
+        protLabels = find(protMask(:, iFrame) == 0);
+        
+        for l = protLabels
+            L(L == l) = 0;
+        end
+        
+        % Load TM speckles (channel 1)
+        load([s1Path filesep s1Files(iFrame).name]);
+        idxS1 = find(locMax .* (L ~= 0));
+        
+        % Load Actin speckles (channel 2)
+        load([s2Path filesep s2Files(iFrame).name]);
+        idxS2 = find(locMax .* (L ~= 0));
+        
+        % Compute distance to the edge
+        BW = imread([maskPath filesep maskFiles(iFrame).name]);
+        distToEdge = double(bwdist(1 - BW)) * (pixelSize / 1000); % in microns
+    
+        data(1,iFrame) = mean(distToEdge(idxS1));
+        data(2,iFrame) = mean(distToEdge(idxS2));
+    end
+    
+    hFig = figure('Visible', 'off');
+    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
+    set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
+    plot(gca, timeScale, data(1,:), 'g-', 'LineWidth', 1); hold on;
+    plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
+    % These settings are adapted to the 3 movies. Change this when you
+    % change to other movies.
+    yRange  = 1.8:.2:3.4;
+    axis([0, max(timeScale), yRange(1), yRange(end)]);
+    set(gca,'YTick', yRange);
+    set(gca,'YTickLabel',arrayfun(@(x) num2str(x, '%3.1f'), yRange, ...
+        'UniformOutput', false));
+    xlabel('Time (s)');
+    if iTM == 1
+        ylabel('Distance to edge (nm)');
+    end
+    legend(names);
+    print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D' ...
+        num2str(iTM) '.eps']);
+    close(hFig);
+   
+    %-----------------------------------------------------------------%
+    %                                                                 %
+    %                          FIGURE 3 PANEL E                       %
+    %                                                                 %
+    %-----------------------------------------------------------------%
+    
     
     % TODO
 end
