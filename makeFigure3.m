@@ -31,9 +31,9 @@ for iTM = 1:3
         'UniformOutput', false), filesep), 'UniformOutput', false);
 
     % Make sure TMs is the first directory in the list
-    iCh = [2, 1];
-    if ~strcmpi(names{1}, 'actin')
-        iCh = [1, 2];
+    iCh = [1, 2];
+    if ~strcmpi(names{2}, 'actin')
+        iCh = [2, 1];
         names = fliplr(names);
     end
     
@@ -253,7 +253,7 @@ for iTM = 1:3
     plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
     xlabel('Time (s)');
     ylabel('Distance to edge (nm)');
-    legend(names);
+    legend(names(iCh));
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
         num2str(iTM) '.eps']);
     close(hFig);
