@@ -249,10 +249,15 @@ for iTM = 1:3
     end
     
     hFig = figure('Visible', 'off');    
-    plot(gca, timeScale, data(1,:), 'g-', 'LineWidth', 1); hold on;
-    plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
+    plot(gca, timeScale, data(1,:), 'g-', 'LineWidth', 1,...
+        'FontName', 'Helvetica', 'FontSize', 20); hold on;
+    plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1,...
+        'FontName', 'Helvetica', 'FontSize', 20); hold off;
     xlabel('Time (s)');
-    ylabel('Distance to edge (nm)');
+    if iTM == 1
+        ylabel('Distance to edge (nm)',...
+            'FontName', 'Helvetica', 'FontSize', 20);
+    end
     legend(names);
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
         num2str(iTM) '.eps']);
