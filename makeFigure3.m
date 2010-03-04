@@ -12,6 +12,9 @@ imagePos = [55, 149; 97, 115; 62, 23];
 insetPos = [200,285; 246, 204; 372, 279];
 
 Z = zeros(imageSize, imageSize, 'uint8');
+    
+dataD = cell(3, 1);
+dataE = cell(3, 1);
 
 for iTM = 1:3
     % Load Movie Data
@@ -78,9 +81,6 @@ for iTM = 1:3
     val = v(ceil(.01 * numel(v)));
     protMask = protrusionSamples.averageNormalComponent > val;
     retMask = protrusionSamples.averageNormalComponent < -val;
-    
-    dataD = cell(3, 1);
-    dataE = cell(3, 1);
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -314,10 +314,12 @@ end
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
 set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
-n1 = hist(dataD{1},-1:.1:1); n1 = n1 / sum(n1);
-n2 = hist(dataD{2},-1:.1:1); n2 = n2 / sum(n2);
-n3 = hist(dataD{3},-1:.1:1); n3 = n3 / sum(n3);
-bar(x, [n1,n2,n3]);
+n1 = hist(dataD{1},-1:.1:1);
+n2 = hist(dataD{2},-1:.1:1);
+n3 = hist(dataD{3},-1:.1:1);
+bar(x, n1 / sum(n1)); hold on;
+bar(x, n2 / sum(n2));
+bar(x, n3 / sum(n3)); hold off;
 xlabel('Distance to Actin Front (nm)');
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D' ...
     num2str(iTM) '.eps']);
