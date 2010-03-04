@@ -36,6 +36,8 @@ for iTM = 1:3
         iCh = [2, 1];
         names = fliplr(names);
     end
+    % Force channel 2's name to be 'Actin'
+    names{2} = 'Actin';
     
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
@@ -255,6 +257,8 @@ for iTM = 1:3
     xlabel('Time (s)');
     if iTM == 1
         ylabel('Distance to edge (nm)');
+    else
+        ylabel('');
     end
     legend(names);
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
