@@ -165,7 +165,7 @@ for iTM = 1:3
     [y x] = ind2sub(size(imageD), idxLoc2);
     line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',6);
     % Draw iso-contours at 0 and 5 microns
-    c = contourc(double(imageMerge), [0; 5]);
+    c = contourc(double(imageD), [0, 5]);
     n = c(2, 1);
     line(c(1, 2:n+2), c(2, 2:n+2), 'Color', 'w', 'Linewidth', .75);
     line(c(1, n+3:end), c(2, n+3:end), 'Color', 'w', 'Linewidth', .75);
@@ -209,7 +209,7 @@ for iTM = 1:3
     [y x] = ind2sub(size(insetD), idxLoc2);
     line(8*x, 8*y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',20);
     % Draw only the iso-contour at 0 micron
-    c = contourc(double(insetMerge), [0; 5]);
+    c = contourc(double(insetD), [0, 0]);
     line(8*c(1, 2:end), 8*c(2, 2:end), 'Color', 'w', 'Linewidth', 1);
     % Save input
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_B' ...
