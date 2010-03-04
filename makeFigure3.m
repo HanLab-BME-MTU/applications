@@ -260,7 +260,8 @@ for iTM = 1:3
     yRange  = 1.8:.2:2.4;
     axis([0, max(timeScale), yRange(1), yRange(end)]);
     set(gca,'YTick', yRange);
-    set(gca,'YTickLabel',arrayfun(@(x) num2str(x, '%f.0'), yRange));
+    set(gca,'YTickLabel',arrayfun(@(x) num2str(x, '%f.0'), yRange, ...
+        'UniformOutput', false));
     xlabel('Time (s)');
     if iTM == 1
         ylabel('Distance to edge (nm)');
