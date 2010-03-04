@@ -314,7 +314,6 @@ end
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
 set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
-hist
 n1 = hist(dataD{1},-1:.1:1); n1 = n1 / sum(n1);
 n2 = hist(dataD{2},-1:.1:1); n2 = n2 / sum(n2);
 n3 = hist(dataD{3},-1:.1:1); n3 = n3 / sum(n3);
