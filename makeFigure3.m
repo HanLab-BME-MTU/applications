@@ -96,8 +96,8 @@ for iTM = 1:3
     % Merge
     C = cat(3, Z, I1, Z);
     % Save
-    imwrite(C, [outputDirectory filesep 'fig3_A' num2str(iTM) '1.tif'], ...
-        'Compression', 'none');   
+    %imwrite(C, [outputDirectory filesep 'fig3_A' num2str(iTM) '1.tif'], ...
+    %    'Compression', 'none');   
     
     % Actin (Panel A, column 2)
     
@@ -114,13 +114,13 @@ for iTM = 1:3
     % Merge
     C = cat(3, I2, Z, Z);
     % Save
-    imwrite(C, [outputDirectory filesep 'fig3_A' num2str(iTM) '2.tif'], ...
-        'Compression', 'none');
+    %imwrite(C, [outputDirectory filesep 'fig3_A' num2str(iTM) '2.tif'], ...
+    %    'Compression', 'none');
 
     % Merge (Panel A, column 3)
     imageMerge = cat(3, I2, I1, Z);
-    imwrite(imageMerge, [outputDirectory filesep 'fig3_A' num2str(iTM) '3.tif'], ...
-        'Compression', 'none');
+    %imwrite(imageMerge, [outputDirectory filesep 'fig3_A' num2str(iTM) '3.tif'], ...
+    %    'Compression', 'none');
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -178,8 +178,8 @@ for iTM = 1:3
         'Color', 'w', 'Linewidth', .75);
     % Save input
     set(gcf, 'InvertHardCopy', 'off');
-    print(hFig, '-depsc' , '-painters', [outputDirectory filesep 'fig3_B' ...
-        num2str(iTM) '.eps']);
+    %print(hFig, '-depsc' , '-painters', [outputDirectory filesep 'fig3_B' ...
+    %    num2str(iTM) '.eps']);
     % Close the figure
     close(hFig);
     
@@ -216,8 +216,8 @@ for iTM = 1:3
     line(8*c(1, 2:end), 8*c(2, 2:end), 'Color', 'w', 'Linewidth', 1);
     % Save input
     set(gcf, 'InvertHardCopy', 'off');
-    print(hFig, '-depsc' , [outputDirectory filesep 'fig3_B' ...
-        num2str(iTM) '_inset.eps']);
+    %print(hFig, '-depsc' , [outputDirectory filesep 'fig3_B' ...
+    %    num2str(iTM) '_inset.eps']);
     % Close the figure
     close(hFig);
  
@@ -252,13 +252,12 @@ for iTM = 1:3
     
     hFig = figure('Visible', 'off');    
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
+    set(gcf, 'Position', [ 680 678 560 330], 'PaperPositionMode', 'auto');
     plot(gca, timeScale, data(1,:), 'g-', 'LineWidth', 1); hold on;
     plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
     xlabel('Time (s)');
     if iTM == 1
         ylabel('Distance to edge (nm)');
-    else
-        ylabel('');
     end
     legend(names);
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
