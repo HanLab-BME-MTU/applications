@@ -297,7 +297,7 @@ for iTM = 1:3
         'UniformOutput', false));
     xlabel('Time (s)');
     if iTM == 1
-        ylabel('Distance to Edge (nm)');
+        ylabel('Distance to Edge (\mum)');
     end
     legend(names);
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
@@ -322,7 +322,7 @@ bar(xRange, n1 / sum(n1), 'FaceColor', [.2 0 1], 'EdgeColor', [.1 .1 .1]); hold 
 bar(xRange, n2 / sum(n2), 'FaceColor', [0 .8 .5], 'EdgeColor', [.1 .1 .1]);
 bar(xRange, n3 / sum(n3), 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 axis([-1.5 1.5 0 .5]);
-xlabel('Distance to Actin Front (nm)');
+xlabel('Distance to Actin Front (\mum)');
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D' ...
     num2str(iTM) '.eps']);
 close(hFig);
