@@ -1,4 +1,4 @@
-function [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)
+function [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots,scales)
 % plusTipCometDetector locates plus tip comets (or other blobs) in a movie stack
 %
 %SYNOPSIS [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)
@@ -16,6 +16,7 @@ function [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)
 %       bitDepth          : bit depth of the images - should be 12, 14, or 16
 %       savePlots         : 1 to save overlay plots of detection results, 
 %                           0 if not
+%       scales            : [low high] std for diff of Gaussians (opt)
 %
 %OUTPUT movieInfo         : nFrames-structure containing x/y coordinates
 %       stdList           : nFrames-vector containing the standard
@@ -98,6 +99,10 @@ if nargin<4 || isempty(savePlots)
     savePlots = 1;
 end
 
+if nargin<5 || isempty(scales)
+    scales=[1 4];
+end
+
 % make feat directory if it doesn't exist from batch
 featDir = [projData.anDir filesep 'feat'];
 if isdir(featDir)
@@ -151,8 +156,8 @@ for iFrame = startFrame:endFrame
     img = double(imread(fileNameIm))./((2^bitDepth)-1);
 
     % create kernels for gauss filtering
-    blurKernelLow  = fspecial('gaussian', 21, 1);
-    blurKernelHigh = fspecial('gaussian', 21, 4);
+    blurKernelLow  = fspecial('gaussian', 21, scales(1));
+    blurKernelHigh = fspecial('gaussian', 21, scales(2));
 
     % use subfunction that calls imfilter to take care of edge effects
     lowPass = filterRegion(img,roiMask,blurKernelLow);
