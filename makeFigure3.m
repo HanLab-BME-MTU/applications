@@ -297,11 +297,9 @@ for iTM = 1:3
         'UniformOutput', false));
     xlabel('Time (s)');
     if iTM == 1
-        set(gca, 'Interpreter', 'latex');
-        ylabel('Distance to Edge (\mum)');
-        set(gca, 'Interpreter', 'none');
+        ylabel('Distance to Edge (\mum)', 'Interpreter', 'latex');
     end
-    legend(names);
+    legend(names, 'Interpreter', 'none');
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
         num2str(iTM) '.eps']);
     close(hFig);    
