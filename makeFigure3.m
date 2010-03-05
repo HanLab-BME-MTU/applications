@@ -318,9 +318,9 @@ xRange = -1:.1:1;
 n1 = hist(dataD{1},xRange);
 n2 = hist(dataD{2},xRange);
 n3 = hist(dataD{3},xRange);
-bar(xRange, n1 / sum(n1)); hold on;
-bar(xRange, n2 / sum(n2));
-bar(xRange, n3 / sum(n3)); hold off;
+bar(xRange, n1 / sum(n1), 'FaceColor', [.2 0 1], 'EdgeColor', [.1 .1 .1]); hold on;
+bar(xRange, n2 / sum(n2), 'FaceColor', [0 .2 1], 'EdgeColor', [.1 .1 .1]);
+bar(xRange, n3 / sum(n3), 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 xlabel('Distance to Actin Front (nm)');
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D' ...
     num2str(iTM) '.eps']);
