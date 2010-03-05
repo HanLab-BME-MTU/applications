@@ -323,8 +323,7 @@ bar(xRange, n2 / sum(n2), 'FaceColor', [0 .8 .5], 'EdgeColor', [.1 .1 .1]);
 bar(xRange, n3 / sum(n3), 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 axis([-1.5 1.5 0 .5]);
 xlabel('Distance to Actin Front (\mum)');
-print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D' ...
-    num2str(iTM) '.eps']);
+print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D.eps']);
 close(hFig);
    
 %-----------------------------------------------------------------%
