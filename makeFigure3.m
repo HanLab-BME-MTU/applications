@@ -268,7 +268,7 @@ for iTM = 1:3
         idxS1 = find(locMax1 .* (Lprot ~= 0));
         idxS2 = find(locMax2 .* (Lprot ~= 0));
         
-        dataD{iTM} = cat(1, dataD{iTM}, distToEdge(idxS1) - mean(distToEdge(idxS2)));
+        dataD{iTM} = cat(1, dataD{iTM}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
         
         % ... and the same for Panel E (Retraction):
         idx = find(retMask(:, iFrame) == 0);
@@ -280,7 +280,7 @@ for iTM = 1:3
         idxS1 = find(locMax1 .* (Lret ~= 0));
         idxS2 = find(locMax2 .* (Lret ~= 0));
         
-        dataE{iTM} = cat(1, dataE{iTM}, distToEdge(idxS1) - mean(distToEdge(idxS2)));
+        dataE{iTM} = cat(1, dataE{iTM}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
     end
     
     hFig = figure('Visible', 'off');    
@@ -314,7 +314,7 @@ end
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
 set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
-xRange = -1:.05:1;
+xRange = -1:.1:1;
 n1 = hist(dataD{1},xRange);
 n2 = hist(dataD{2},xRange);
 n3 = hist(dataD{3},xRange);
