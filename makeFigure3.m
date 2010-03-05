@@ -314,7 +314,7 @@ end
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
 set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-xRange = cellfun(@(x) min(x):.1:max(x), dataD);
+xRange = cellfun(@(x) min(x):.1:max(x), dataD, 'UniformOutput', false);
 n = arrayfun(@(i) hist(dataD{i}, xRange{i}), 1:3, 'UniformOutput', false);
 n = cellfun(@(x) x / sum(x), n);
 bar(xRange{1}, n{1}, 'FaceColor', [.2 0 1], 'EdgeColor', [.1 .1 .1]); hold on;
@@ -336,7 +336,7 @@ close(hFig);
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
 set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-xRange = cellfun(@(x) min(x):.1:max(x), dataD);
+xRange = cellfun(@(x) min(x):.1:max(x), dataE, 'UniformOutput', false);
 n = arrayfun(@(i) hist(dataE{i}, xRange{i}), 1:3, 'UniformOutput', false);
 n = cellfun(@(x) x / sum(x), n);
 bar(xRange{1}, n{1}, 'FaceColor', [.2 0 1], 'EdgeColor', [.1 .1 .1]); hold on;
