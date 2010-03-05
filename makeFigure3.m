@@ -325,7 +325,7 @@ bar(xRange{3}, n{3}, 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 legend({'TM2', 'TM4', 'TM5NM1'});
 axis([min(cat(2,xRange{:})) max(cat(2,xRange{:})) 0 max(cat(2,n{:},.4))]);
 title('During Protrusion');
-xlabel(['Distance to Actin Front (' char(181) 'm)']);
+xlabel(['Distance to Actin Front (' char(180) 'm)']);
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D.eps']);
 close(hFig);
    
@@ -347,7 +347,7 @@ bar(xRange{3}, n{3}, 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 legend({'TM2', 'TM4', 'TM5NM1'});
 axis([min(cat(2,xRange{:})) max(cat(2,xRange{:})) 0 max(cat(2,n{:},.4))]);
 title('During Retraction');
-xlabel(['Distance to Actin Front (' char(181) 'm)']);
+xlabel(['Distance to Actin Front (' char(182) 'm)']);
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_E.eps']);
 close(hFig);
 
