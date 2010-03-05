@@ -244,12 +244,12 @@ for iTM = 1:3
         % Load TM speckles (channel 1)
         load([s1Path filesep s1Files(iFrame).name]);
         locMax1 = locMax;
-        idxS1 = find(locMax1 .* (L ~= 0));
+        idxS1 = (locMax1 .* (L ~= 0)) ~= 0;
         
         % Load Actin speckles (channel 2)
         load([s2Path filesep s2Files(iFrame).name]);
         locMax2 = locMax;
-        idxS2 = find(locMax2 .* (L ~= 0));
+        idxS2 = (locMax2 .* (L ~= 0)) ~= 0;
         
         % Compute distance to the edge
         BW = imread([maskPath filesep maskFiles(iFrame).name]);
@@ -259,33 +259,33 @@ for iTM = 1:3
         data(2,iFrame) = mean(distToEdge(idxS2));
         
         % We store these data as well for Panel D (Protrusion):
-        idx = find(protMask(:, iFrame) == 0);
-        Lprot = zeros(size(L));        
+        idx = find(protMask(:, iFrame) == 1);
+        Lprot = zeros(size(L), 'logical');        
         for il = 1:numel(idx)
             Lprot(L == idx(il)) = 1;
         end
         
-        idxS1 = find(locMax1 .* (Lprot ~= 0));
-        idxS2 = find(locMax2 .* (Lprot ~= 0));
+        idxS1 = (locMax1 .* (Lprot == 1)) ~= 0;
+        idxS2 = (locMax2 .* (Lprot == 1)) ~= 0;
         
         dataD{iTM} = cat(1, dataD{iTM}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
         
         % ... and the same for Panel E (Retraction):
-        idx = find(retMask(:, iFrame) == 0);
-        Lret = zeros(size(L));
+        idx = find(retMask(:, iFrame) == 1);
+        Lret = zeros(size(L), 'logical');
         for il = 1:numel(idx)
             Lret(L == idx(il)) = 1;
         end
         
-        idxS1 = find(locMax1 .* (Lret ~= 0));
-        idxS2 = find(locMax2 .* (Lret ~= 0));
+        idxS1 = (locMax1 .* (Lret == 1)) ~= 0;
+        idxS2 = (locMax2 .* (Lret == 1)) ~= 0;
         
         dataE{iTM} = cat(1, dataE{iTM}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
     end
     
     hFig = figure('Visible', 'off');    
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-    set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
+    set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
     plot(gca, timeScale, data(1,:), 'g-', 'LineWidth', 1); hold on;
     plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
     % These settings are adapted to the 3 movies. Change this when you
@@ -313,7 +313,7 @@ end
 
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
+set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
 xRange = -1:.1:1;
 n1 = hist(dataD{1},xRange);
 n2 = hist(dataD{2},xRange);
@@ -332,6 +332,22 @@ close(hFig);
 %                          FIGURE 3 PANEL E                       %
 %                                                                 %
 %-----------------------------------------------------------------%
-    
+
+hFig = figure('Visible', 'off');
+set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
+set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
+xRange = -1:.1:1;
+n1 = hist(dataE{1},xRange);
+n2 = hist(dataE{2},xRange);
+n3 = hist(dataE{3},xRange);
+bar(xRange, n1 / sum(n1), 'FaceColor', [.2 0 1], 'EdgeColor', [.1 .1 .1]); hold on;
+bar(xRange, n2 / sum(n2), 'FaceColor', [0 .8 .5], 'EdgeColor', [.1 .1 .1]);
+bar(xRange, n3 / sum(n3), 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
+legend({'TM2', 'TM4', 'TM5NM1'});
+axis([-.5 1 0 .5]);
+xlabel('Distance to Actin Front (\mum)');
+print(hFig, '-depsc' , [outputDirectory filesep 'fig3_E.eps']);
+close(hFig);
+
 end
 
