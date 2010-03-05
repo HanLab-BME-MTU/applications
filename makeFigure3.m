@@ -286,8 +286,10 @@ for iTM = 1:3
     hFig = figure('Visible', 'off');    
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-    plot(gca, timeScale, data(1,:), 'g-', 'LineWidth', 1); hold on;
-    plot(gca, timeScale, data(2,:), 'r-', 'LineWidth', 1); hold off;
+    plot(gca, timeScale, data(1,:), 'Color', [0 0.8 .5], LineStyle, '-', ...
+        'LineWidth', 1.5); hold on;
+    plot(gca, timeScale, data(2,:), 'Color', [1 0.0 .2], LineStyle, '-', ...
+        'LineWidth', 1.5); hold off;
     % These settings are adapted to the 3 movies. Change this when you
     % change to other movies.
     yRange  = 1.8:.2:3.4;
@@ -300,8 +302,8 @@ for iTM = 1:3
         ylabel('Distance to Edge (\mum)');
     end
     legend(names);
-    %print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
-    %    num2str(iTM) '.eps']);
+    print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
+        num2str(iTM) '.eps']);
     close(hFig);    
 end
 
