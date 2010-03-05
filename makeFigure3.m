@@ -323,7 +323,7 @@ bar(xRange, n2 / sum(n2), 'FaceColor', [0 .8 .5], 'EdgeColor', [.1 .1 .1]);
 bar(xRange, n3 / sum(n3), 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 legend({'TM2', 'TM4', 'TM5NM1'});
 axis([-.5 1 0 1.5]);
-xlabel('Distance to Actin Front (\mum)');
+xlabel('Distance to Actin Front During Protrusion (\mum)');
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D.eps']);
 close(hFig);
    
@@ -345,7 +345,7 @@ bar(xRange, n2 / sum(n2), 'FaceColor', [0 .8 .5], 'EdgeColor', [.1 .1 .1]);
 bar(xRange, n3 / sum(n3), 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 legend({'TM2', 'TM4', 'TM5NM1'});
 axis([-.5 1 0 1.5]);
-xlabel('Distance to Actin Front (\mum)');
+xlabel('Distance to Actin Front During Retraction (\mum)');
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_E.eps']);
 close(hFig);
 
