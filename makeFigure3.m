@@ -300,7 +300,7 @@ for iTM = 1:3
         ylabel('Distance to Edge (\mum)');
     end
     legend(names);
-    print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
+    print(hFig, '-dpsc2' , [outputDirectory filesep 'fig3_C' ...
         num2str(iTM) '.eps']);
     close(hFig);    
 end
@@ -314,7 +314,7 @@ end
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
 set(gcf, 'Position', [ 680 678 560 400], 'PaperPositionMode', 'auto');
-xRange = -1:.05:1;
+xRange = -1:.1:1;
 n1 = hist(dataD{1},xRange);
 n2 = hist(dataD{2},xRange);
 n3 = hist(dataD{3},xRange);
@@ -324,7 +324,7 @@ bar(xRange, n3 / sum(n3), 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold 
 legend({'TM2', 'TM4', 'TM5NM1'});
 axis([-.5 1 0 .5]);
 xlabel('Distance to Actin Front (\mum)');
-print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D.eps']);
+print(hFig, '-dpsc2' , [outputDirectory filesep 'fig3_D.eps']);
 close(hFig);
    
 %-----------------------------------------------------------------%
