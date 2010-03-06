@@ -10,6 +10,8 @@ insetSize = 50;
 imagePos = [55, 149; 97, 115; 62, 23];
 % Location of the inset in Panel B
 insetPos = [200,285; 246, 204; 372, 279];
+% muC (letter mu)
+muC = native2unicode(181);
 
 Z = zeros(imageSize, imageSize, 'uint8');
     
@@ -299,7 +301,7 @@ for iTM = 1:3
         'UniformOutput', false));
     xlabel('Time (s)');
     if iTM == 1
-        ylabel(['Distance to Edge (' char(181) 'm)']);
+        ylabel(['Distance to Edge (' muC 'm)']);
     end
     legend(names);
     print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
@@ -325,7 +327,7 @@ bar(xRange{3}, n{3}, 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 legend({'TM2', 'TM4', 'TM5NM1'});
 axis([min(cat(2,xRange{:})) max(cat(2,xRange{:})) 0 max(cat(2,n{:},.4))]);
 title('During Protrusion');
-xlabel(['Distance to Actin Front (' char(180) 'm)']);
+xlabel(['Distance to Actin Front (' muC 'm)']);
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D.eps']);
 close(hFig);
    
@@ -347,7 +349,7 @@ bar(xRange{3}, n{3}, 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 legend({'TM2', 'TM4', 'TM5NM1'});
 axis([min(cat(2,xRange{:})) max(cat(2,xRange{:})) 0 max(cat(2,n{:},.4))]);
 title('During Retraction');
-xlabel(['Distance to Actin Front (' char(182) 'm)']);
+xlabel(['Distance to Actin Front (' muC 'm)']);
 print(hFig, '-depsc' , [outputDirectory filesep 'fig3_E.eps']);
 close(hFig);
 
