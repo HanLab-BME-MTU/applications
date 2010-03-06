@@ -11,7 +11,7 @@ imagePos = [55, 149; 97, 115; 62, 23];
 % Location of the inset in Panel B
 insetPos = [200,285; 246, 204; 372, 279];
 % muC (letter mu)
-muC = native2unicode(181);
+muC = unicode2native('µ');
 
 Z = zeros(imageSize, imageSize, 'uint8');
     
