@@ -10,8 +10,6 @@ insetSize = 50;
 imagePos = [55, 149; 97, 115; 62, 23];
 % Location of the inset in Panel B
 insetPos = [200,285; 246, 204; 372, 279];
-% muC (letter mu)
-muC = unicode2native('µ');
 
 Z = zeros(imageSize, imageSize, 'uint8');
     
@@ -187,8 +185,9 @@ for iTM = 1:3
         'Color', 'w', 'Linewidth', .75);
     % Save input
     set(gcf, 'InvertHardCopy', 'off');
-    %print(hFig, '-depsc' , '-painters', [outputDirectory filesep 'fig3_B' ...
-    %    num2str(iTM) '.eps']);
+    fileName = [outputDirectory filesep 'fig3_B' num2str(iTM) '.eps'];
+    %print(hFig, '-depsc' , '-painters', fileName);
+    %fixEpsFile(fileName);
     % Close the figure
     close(hFig);
     
@@ -225,8 +224,9 @@ for iTM = 1:3
     line(8*c(1, 2:end), 8*c(2, 2:end), 'Color', 'w', 'Linewidth', 1);
     % Save input
     set(gcf, 'InvertHardCopy', 'off');
-    %print(hFig, '-depsc' , [outputDirectory filesep 'fig3_B' ...
-    %    num2str(iTM) '_inset.eps']);
+    fileName =  [outputDirectory filesep 'fig3_B' num2str(iTM) '_inset.eps'];
+    %print(hFig, '-depsc' , fileName);
+    %fixEpsFile(fileName);
     % Close the figure
     close(hFig);
  
@@ -301,11 +301,12 @@ for iTM = 1:3
         'UniformOutput', false));
     xlabel('Time (s)');
     if iTM == 1
-        ylabel(['Distance to Edge (' muC 'm)']);
+        ylabel(['Distance to Edge (' char(181) 'm)']);
     end
     legend(names);
-    print(hFig, '-depsc' , [outputDirectory filesep 'fig3_C' ...
-        num2str(iTM) '.eps']);
+    fileName = [outputDirectory filesep 'fig3_C' num2str(iTM) '.eps'];
+    print(hFig, '-depsc', fileName);
+    fixEpsFile(fileName);
     close(hFig);    
 end
 
@@ -327,8 +328,9 @@ bar(xRange{3}, n{3}, 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 legend({'TM2', 'TM4', 'TM5NM1'});
 axis([min(cat(2,xRange{:})) max(cat(2,xRange{:})) 0 max(cat(2,n{:},.4))]);
 title('During Protrusion');
-xlabel(['Distance to Actin Front (' muC 'm)']);
-print(hFig, '-depsc' , [outputDirectory filesep 'fig3_D.eps']);
+xlabel(['Distance to Actin Front (' char(181) 'm)']);
+fileName = [outputDirectory filesep 'fig3_D.eps'];
+print(hFig, '-depsc', fileName);
 close(hFig);
    
 %-----------------------------------------------------------------%
@@ -349,8 +351,9 @@ bar(xRange{3}, n{3}, 'FaceColor', [1 0 .2], 'EdgeColor', [.1 .1 .1]); hold off;
 legend({'TM2', 'TM4', 'TM5NM1'});
 axis([min(cat(2,xRange{:})) max(cat(2,xRange{:})) 0 max(cat(2,n{:},.4))]);
 title('During Retraction');
-xlabel(['Distance to Actin Front (' muC 'm)']);
-print(hFig, '-depsc' , [outputDirectory filesep 'fig3_E.eps']);
+xlabel(['Distance to Actin Front (' char(181) 'm)']);
+fileName = [outputDirectory filesep 'fig3_E.eps'];
+print(hFig, '-depsc', fileName);
 close(hFig);
 
 end
