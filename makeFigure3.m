@@ -331,6 +331,7 @@ title('During Protrusion');
 xlabel(['Distance to Actin Front (' char(181) 'm)']);
 fileName = [outputDirectory filesep 'fig3_D.eps'];
 print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
 close(hFig);
    
 %-----------------------------------------------------------------%
@@ -354,6 +355,7 @@ title('During Retraction');
 xlabel(['Distance to Actin Front (' char(181) 'm)']);
 fileName = [outputDirectory filesep 'fig3_E.eps'];
 print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
 close(hFig);
 
 end
