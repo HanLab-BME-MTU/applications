@@ -115,8 +115,9 @@ for iTM = 1:3
         distToEdge = double(bwdist(1 - BW)) * (pixelSize / 1000); % in microns
 
         % Compute distanceMap
-        distanceMap{iFrame} = cat(1, arrayfun(@(l) mean(distToEdge(idxS1{l})) - ...
-            mean(distToEdge(idxS2{l})), labels, 'UniformOutput', false));
+        distanceMap{iFrame} = arrayfun(@(l) mean(distToEdge(idxS1{l})) - ...
+            mean(distToEdge(idxS2{l})), labels);
+        %distanceMap{iFrame} = cell2mat(distanceMap{iFrame});
     end
     
     nWindows = cellfun(@length, distanceMap, 'UniformOutput', false);
