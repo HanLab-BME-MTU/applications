@@ -116,16 +116,15 @@ for iTM = 1:3
         distToEdge = double(bwdist(1 - BW)) * (pixelSize / 1000); % in microns
 
         % Compute distanceMap
-        distanceMap{iFrame} = arrayfun(@(l) mean(distToEdge(idxS1{l})) - ...
-            mean(distToEdge(idxS2{l})), labels);
-        %distanceMap{iFrame} = cell2mat(distanceMap{iFrame});
+        distanceMap{iFrame} = arrayfun(@(l) (mean(distToEdge(idxS1{l})) - ...
+            mean(distToEdge(idxS2{l})))', labels);
     end
     
     nWindows = cellfun(@length, distanceMap, 'UniformOutput', false);
     nWindows = cat(1, nWindows{:});
     maxNWindows = max(nWindows);
     distanceMap = arrayfun(@(iFrame) padarray(distanceMap{iFrame}, ...
-        [0 maxNWindows - nWindows(iFrame)], 0, 'post'), 1:nFrames-1, ...
+        [maxNWindows - nWindows(iFrame) 0], 0, 'post'), 1:nFrames-1, ...
         'UniformOutput', false);
     distanceMap = horzcat(distanceMap{:});
     
