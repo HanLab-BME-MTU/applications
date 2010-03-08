@@ -55,9 +55,10 @@ for iTM = 1:3
     load(fileName);
     v = sort(protrusionSamples.averageMagnitude(:));
     val = v(ceil(.01 * numel(v)));
-    activityMap = protrusionSamples.averageNormalComponent(...
-        protrusionSamples.averageNormalComponent > val & ...
-        protrusionSamples.averageNormalComponent < -val);    
+    activityMap = zeros(size(protrusionSamples.averageNormalComponent));
+    idx = find(protrusionSamples.averageNormalComponent > val | ...
+        protrusionSamples.averageNormalComponent < -val);
+    activityMap(idx) = protrusionSamples.averageNormalComponent(idx);
     activityMap = activityMap * pixelSize / timeInterval;
     
     %-----------------------------------------------------------------%
@@ -126,7 +127,7 @@ for iTM = 1:3
     distanceMap = arrayfun(@(iFrame) padarray(distanceMap{iFrame}, ...
         [0 maxNWindows - nWindows(iFrame)], 0, 'post'), 1:nFrames-1, ...
         'UniformOutput', false);
-    distanceMap = cat(1, distanceMap{:});
+    distanceMap = horzcat(distanceMap{:});
     
     hFig = figure('Visible', 'off');    
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
