@@ -117,7 +117,7 @@ for iTM = 1:3
 
         % Compute distanceMap
         distanceMap{iFrame} = arrayfun(@(l) mean(distToEdge(idxS1{l})) - ...
-            mean(distToEdge(idxS2{l})), labels);
+            mean(distToEdge(idxS2{l})), labels');
     end
     
     nWindows = cellfun(@length, distanceMap, 'UniformOutput', false);
