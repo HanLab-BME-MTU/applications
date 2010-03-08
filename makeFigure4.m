@@ -126,7 +126,7 @@ for iTM = 1:3
     distanceMap = arrayfun(@(iFrame) padarray(distanceMap{iFrame}, ...
         [0 maxNWindows - nWindows(iFrame)], 0, 'post'), 1:nFrames-1, ...
         'UniformOutput', false);
-    distanceMap = cat(2, distanceMap{:});
+    distanceMap = cat(1, distanceMap{:});
     
     hFig = figure('Visible', 'off');    
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
