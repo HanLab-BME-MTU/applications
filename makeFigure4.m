@@ -76,7 +76,6 @@ for iTM = 1:3
     set(gca,'XTick', timeScale);
     xlabel('Time (s)');
     if iTM == 1
-        title('Edge Velocity (nm.s^{-1})');
         ylabel('Window no.');
     elseif iTM == 3
         colorbar;
@@ -132,9 +131,9 @@ for iTM = 1:3
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
     imagesc(distanceMap);
-    set(gca,'XTick', timeScale);
+    set(gca,'XTick', timeScale(1:2:end));
     xlabel('Time (s)');
-    title([names(iCh(1)) ' Distance to Actin Front (' char(181) 'm)']);
+    title(names(iCh(1)));
     if iTM == 1
         ylabel('Window no.');
     end
