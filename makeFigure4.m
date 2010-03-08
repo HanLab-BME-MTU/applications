@@ -73,8 +73,9 @@ for iTM = 1:3
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
     imagesc(activityMap);
-    set(gca,'XTick', timeScale);
+    set(gca,'XTick', timeScale(1:2:end));
     xlabel('Time (s)');
+    title(names(1));
     if iTM == 1
         ylabel('Window no.');
     elseif iTM == 3
@@ -133,9 +134,11 @@ for iTM = 1:3
     imagesc(distanceMap);
     set(gca,'XTick', timeScale(1:2:end));
     xlabel('Time (s)');
-    title(names(iCh(1)));
+    title(names(1));
     if iTM == 1
         ylabel('Window no.');
+    elseif iTM == 3
+        colorbar;
     end
     fileName = [outputDirectory filesep 'fig4_B' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
