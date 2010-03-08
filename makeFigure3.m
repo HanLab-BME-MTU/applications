@@ -93,41 +93,41 @@ for iTM = 1:3
     % Read image
     fileName = [image1Path filesep image1Files(iFrames(iTM)).name];
     I1 = imread(fileName);
+    % Crop image
+    I1 = I1(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
+        imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
     % Convert to 8bit channel
     iMin = min(I1(:));
     iMax = max(I1(:));
     I1 = uint8((255 / double(iMax - iMin)) * (double(I1) - iMin));
-    % Crop image
-    I1 = I1(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
-        imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
     % Merge
     C = cat(3, Z, I1, Z);
     % Save
-    %imwrite(C, [outputDirectory filesep 'fig3_A' num2str(iTM) '1.tif'], ...
-    %    'Compression', 'none');   
+    imwrite(C, [outputDirectory filesep 'fig3_A' num2str(iTM) '1.tif'], ...
+        'Compression', 'none');   
     
     % Actin (Panel A, column 2)
     
     % Read image
     fileName = [image2Path filesep image2Files(iFrames(iTM)).name];
     I2 = imread(fileName);
+    % Crop image
+    I2 = I2(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
+        imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
     % Convert to 8bit channel
     iMin = min(I2(:));
     iMax = max(I2(:));
     I2 = uint8((255 / double(iMax - iMin)) * (double(I2) - iMin));
-    % Crop image
-    I2 = I2(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
-        imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
     % Merge
     C = cat(3, I2, Z, Z);
     % Save
-    %imwrite(C, [outputDirectory filesep 'fig3_A' num2str(iTM) '2.tif'], ...
-    %    'Compression', 'none');
+    imwrite(C, [outputDirectory filesep 'fig3_A' num2str(iTM) '2.tif'], ...
+        'Compression', 'none');
 
     % Merge (Panel A, column 3)
     imageMerge = cat(3, I2, I1, Z);
-    %imwrite(imageMerge, [outputDirectory filesep 'fig3_A' num2str(iTM) '3.tif'], ...
-    %    'Compression', 'none');
+    imwrite(imageMerge, [outputDirectory filesep 'fig3_A' num2str(iTM) '3.tif'], ...
+        'Compression', 'none');
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -186,8 +186,8 @@ for iTM = 1:3
     % Save input
     set(gcf, 'InvertHardCopy', 'off');
     fileName = [outputDirectory filesep 'fig3_B' num2str(iTM) '.eps'];
-    %print(hFig, '-depsc' , '-painters', fileName);
-    %fixEpsFile(fileName);
+    print(hFig, '-depsc' , '-painters', fileName);
+    fixEpsFile(fileName);
     % Close the figure
     close(hFig);
     
@@ -225,8 +225,8 @@ for iTM = 1:3
     % Save input
     set(gcf, 'InvertHardCopy', 'off');
     fileName =  [outputDirectory filesep 'fig3_B' num2str(iTM) '_inset.eps'];
-    %print(hFig, '-depsc' , fileName);
-    %fixEpsFile(fileName);
+    print(hFig, '-depsc' , fileName);
+    fixEpsFile(fileName);
     % Close the figure
     close(hFig);
  
