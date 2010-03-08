@@ -78,9 +78,8 @@ for iTM = 1:3
     title(names(1));
     if iTM == 1
         ylabel('Window no.');
-    elseif iTM == 3
-        colorbar;
     end
+    colorbar;
     fileName = [outputDirectory filesep 'fig4_A' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
@@ -137,9 +136,8 @@ for iTM = 1:3
     title(names(1));
     if iTM == 1
         ylabel('Window no.');
-    elseif iTM == 3
-        colorbar;
     end
+    colorbar;
     fileName = [outputDirectory filesep 'fig4_B' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
