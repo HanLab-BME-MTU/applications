@@ -260,3 +260,5 @@ fclose(fid);
 
 % Figure 3
 makeFigure3(paths, outputDirectory);
+% Figure 4
+makeFigure4(paths, outputDirectory);
