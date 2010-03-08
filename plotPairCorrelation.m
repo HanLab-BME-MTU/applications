@@ -102,7 +102,7 @@ end
 %convert movie paths to correct OS
 experiment = changePathUsingEndocytosis(experiment);
 
-parfor iexp = 1:length(experiment)
+for iexp = 1:length(experiment)
     
     %Load Lifetime Information
     lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
