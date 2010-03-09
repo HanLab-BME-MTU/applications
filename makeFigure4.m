@@ -157,16 +157,11 @@ for iTM = 1:3
     xAp(isnan(xAp)) = 0;
     xDp(isnan(xDp)) = 0;
     
-    % Normalize row-wise activityMap so that sum(xAp(r,:)) = 1, for all r
-    xAp = arrayfun(@(r) xAp(r,:) / sqrt(sum(xAp(r,:).^2)), 1:maxNWindows,...
-        'UniformOutput', false);
-    xAp = vertcat(xAp{:});
-    % Normalize row-wise distanceMap
-    xDp = arrayfun(@(r) xDp(r,:) / sqrt(sum(xDp(r,:).^2)), 1:maxNWindows,...
-        'UniformOutput', false);
-    xDp = vertcat(xDp{:});
+    % Normalize maps
+    xAp = xAp / sqrt(sum(xAp(:).^2));
+    xDp = xDp / sqrt(sum(xDp(:).^2));
 
-    % Zero-Pad the 2 maps
+    % Zero-Pad the 2 maps on time axis
     np = 2 * nFrames - 3;
     npp = 2^(nextpow2(np));
     xAp(:,npp) = 0;
