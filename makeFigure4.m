@@ -180,7 +180,7 @@ for iTM = 1:3
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
     imagesc(cc);
-    set(gca,'XTick', [-np:-2:1, 0, 1:2:np]);
+    set(gca,'XTick', [-(nFrames-1):-2:1, 0, 1:4:(nFrames-1)]);
     xlabel('Time shift (s)');
     title(names(1));
     if iTM == 1
