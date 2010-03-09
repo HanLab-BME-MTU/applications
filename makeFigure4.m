@@ -157,17 +157,13 @@ for iTM = 1:3
     xAp(isnan(xAp)) = 0;
     xDp(isnan(xDp)) = 0;
     
-    % Normalize row-wise activityMap 
-    minAp = arrayfun(@(r) min(xAp(r,:)), 1:maxNWindows);
-    maxAp = arrayfun(@(r) max(xAp(r,:)), 1:maxNWindows);
-    xAp = arrayfun(@(r) (xAp(r,:) - minAp(r)) / (maxAp(r) - minAp(r)), ...
-        1:maxNWindows, 'UniformOutput', false);
+    % Normalize row-wise activityMap so that sum(xAp(r,:)) = 1, for all r
+    xAp = arrayfun(@(r) xAp(r,:) / sqrt(sum(xAp(r,:).^2)), 1:maxNWindows,...
+        'UniformOutput', false);
     xAp = vertcat(xAp{:});
     % Normalize row-wise distanceMap
-    minDp = arrayfun(@(r) min(xDp(r,:)), 1:maxNWindows);
-    maxDp = arrayfun(@(r) max(xDp(r,:)), 1:maxNWindows);
-    xDp = arrayfun(@(r) (xDp(r,:) - minDp(r)) / (maxDp(r) - minDp(r)), ...
-        1:maxNWindows, 'UniformOutput', false);
+    xDp = arrayfun(@(r) xDp(r,:) / sqrt(sum(xDp(r,:).^2)), 1:maxNWindows,...
+        'UniformOutput', false);
     xDp = vertcat(xDp{:});
 
     % Zero-Pad the 2 maps
