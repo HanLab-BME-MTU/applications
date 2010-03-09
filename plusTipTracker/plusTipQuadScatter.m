@@ -39,9 +39,9 @@ function plusTipQuadScatter(xAxisInfo,yAxisInfo,groupList,remBegEnd,timeRange,do
 %                            plots
 %
 % OUTPUT:
-%           A scatterplot of the parameters plotted against each other, 
-%           split into four colors at the boundaries created by the 
-%           division marks, and an image overlay where the colors 
+%           A scatterplot of the parameters plotted against each other,
+%           split into four colors at the boundaries created by the
+%           division marks, and an image overlay where the colors
 %           correspond to the tracks of interest.  Four individual overlays
 %           are also created, displaying each color in turn.  A percentage
 %           bar showing the relative proportion of the subpopulations is
@@ -51,7 +51,7 @@ function plusTipQuadScatter(xAxisInfo,yAxisInfo,groupList,remBegEnd,timeRange,do
 %           there will be 2-3 colors splitting the data into only 2 or 3
 %           groups.  This can be done to show the first, fourth, and middle
 %           two quartiles of, say, growth speed, if cutoffs 1 and 2 are 25
-%           and 75, respectively.  
+%           and 75, respectively.
 %
 %           If there are mutliple groups, a stacked percentage bar will
 %           also be saved.  btwGrpQuadStats.mat is a structure containing
@@ -74,12 +74,12 @@ if ~isequal(sort(xFields),sort({'name';'splitPercentile';'splitValue';'minMax'})
 end
 
 if ~isempty(xAxisInfo.minMax)
-    xAxisInfo.minMax=xAxisInfo.minMax;
+    %xAxisInfo.minMax=xAxisInfo.minMax;
 else
     xAxisInfo.minMax=[-inf inf];
 end
 if ~isempty(yAxisInfo.minMax)
-    yAxisInfo.minMax=yAxisInfo.minMax;
+    %yAxisInfo.minMax=yAxisInfo.minMax;
 else
     yAxisInfo.minMax=[-inf inf];
 end
@@ -173,6 +173,8 @@ if isdir(pVSpDir)
     rmdir(pVSpDir,'s')
 end
 
+data1all=[];
+data2all=[];
 for iGroup=1:nGrps
 
     groupNum = sprintf(iGrpStr,iGroup);
@@ -191,6 +193,8 @@ for iGroup=1:nGrps
 
     % load data and make plots for each project iSub in group iGroup
     for iSub=1:length(grpIdx)
+        data1grp=[];
+        data2grp=[];
 
         % load data for iSub
         projDir=groupList{grpIdx(iSub),2};
@@ -278,9 +282,11 @@ for iGroup=1:nGrps
             if iParam==1
                 data1=tempData;
                 label1=tempLabel;
+                tempLabel1=tempLabel;
             else
                 data2=tempData;
                 label2=tempLabel;
+                tempLabel2=tempLabel;
             end
         end
 
@@ -319,11 +325,18 @@ for iGroup=1:nGrps
         yMat=yMat(subtrackIdx & inRangeIdx,:);
 
 
+        % store all data in iGroup list
+        data1grp = [data1grp; data1];
+        data2grp = [data2grp; data2];
+        % store data in all-group list
+        data1all = [data1all; data1];
+        data2all = [data2all; data2];
+
         colorMap=['b','g','y','r'];
         popRYGB=zeros(1,4);
 
         if doPlot==1
-            h=zeros(6,1); % for figure handle storage
+            h=zeros(8,1); % for figure handle storage
             % fig 6: make scatterplot
             h(6)=figure;
 
@@ -355,11 +368,11 @@ for iGroup=1:nGrps
                 plot(xMat(idx,:)',yMat(idx,:)',colorMap(iColor))
                 axis equal
 
-                figure(h(1))
+                figure(h(1)) % fig 1: overall all four colors
                 plot(xMat(idx,:)',yMat(idx,:)',colorMap(iColor))
                 axis equal
 
-                figure(h(6))
+                figure(h(6)) % fig 6: scatterplot single
                 scatter(data1(idx),data2(idx),[],colorMap(iColor),'.');
                 hold on
             end
@@ -454,16 +467,92 @@ for iGroup=1:nGrps
         saveas(gcf,[grpDir filesep 'prctBarAll_Merged' fileExt])
         close(gcf)
 
-    end
 
-    save([grpDir filesep 'allGrpQuadStats'],'quadStats','xAxisInfo','yAxisInfo');
+        % make the scatterplot for all data from the group
+        h(8)=figure; % fig 8: scatterplot single
+        for iColor=1:4
+            switch iColor
+                case 1 % blue
+                    idx=find(data1grp>splitValueX & data2grp>splitValueY);
+                case 2 % green
+                    idx=find(data1grp<=splitValueX & data2grp>splitValueY);
+                case 3 % yellow
+                    idx=find(data1grp>splitValueX & data2grp<=splitValueY);
+                case 4 % red
+                    idx=find(data1grp<=splitValueX & data2grp<=splitValueY);
+            end
+            scatter(data1grp(idx),data2grp(idx),[],colorMap(iColor),'.');
+            hold on
+        end
+        % apply limits and add title to fig8
+        figure(h(8))
+        xlim(xAxisInfo.minMax)
+        ylim(yAxisInfo.minMax)
+        xlabel(tempLabel1)
+        ylabel(tempLabel2)
+        if remBegEnd==1
+            % any track not entirely contained within the frame range will be excluded
+            title({['N = ' num2str(length(data1grp)) ' tracks']; ...
+                ['starting after frame ' num2str(tempTimeRange(1))...
+                ' and ending before frame ' num2str(tempTimeRange(2))]});
+        else
+            % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
+            title({['N = ' num2str(length(data1grp)) ' tracks'];...
+                ['starting at or before frame ' num2str(tempTimeRange(2))...
+                ' and ending at or after frame ' num2str(tempTimeRange(1))]});
+        end
+        saveas(h(8),[grpDir filesep 'scatterAll_Merged' fileExt])
+        close(h(8))
+
+        save([grpDir filesep 'allGrpQuadStats'],'quadStats','xAxisInfo','yAxisInfo');
+    end
 end
+
 if nGrps>1
     [btwGrpQuadStats.grpPrctRYGB]=plusTipQuadColorbar(btwGrpQuadStats.grpPopRYGB);
     title(['All Groups, N=' num2str(nGrps)])
     %saveas(gcf,[pVSpDir filesep 'prctBarAllGroups' '.fig'])
     saveas(gcf,[pVSpDir filesep 'prctBarAllGroups' fileExt])
     close(gcf)
+    
+    
+    % make the scatterplot for all data from all groups
+        h(9)=figure; % fig 8: scatterplot single
+        for iColor=1:4
+            switch iColor
+                case 1 % blue
+                    idx=find(data1all>splitValueX & data2all>splitValueY);
+                case 2 % green
+                    idx=find(data1all<=splitValueX & data2all>splitValueY);
+                case 3 % yellow
+                    idx=find(data1all>splitValueX & data2all<=splitValueY);
+                case 4 % red
+                    idx=find(data1all<=splitValueX & data2all<=splitValueY);
+            end
+            scatter(data1all(idx),data2all(idx),[],colorMap(iColor),'.');
+            hold on
+        end
+        % apply limits and add title to fig8
+        figure(h(9))
+        xlim(xAxisInfo.minMax)
+        ylim(yAxisInfo.minMax)
+        xlabel(tempLabel1)
+        ylabel(tempLabel2)
+        if remBegEnd==1
+            % any track not entirely contained within the frame range will be excluded
+            title({['N = ' num2str(length(data1all)) ' tracks']; ...
+                ['starting after frame ' num2str(tempTimeRange(1))...
+                ' and ending before frame ' num2str(tempTimeRange(2))]});
+        else
+            % any track which ends before the frame range begins or begins after the frame range ends will be excluded.
+            title({['N = ' num2str(length(data1all)) ' tracks'];...
+                ['starting at or before frame ' num2str(tempTimeRange(2))...
+                ' and ending at or after frame ' num2str(tempTimeRange(1))]});
+        end
+        saveas(h(9),[pVSpDir filesep 'scatterAllGroups' fileExt])
+        close(h(9))
+    
+    
 
     save([pVSpDir filesep 'btwGrpQuadStats'],'btwGrpQuadStats','xAxisInfo','yAxisInfo','groupList');
 end
