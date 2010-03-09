@@ -150,24 +150,36 @@ for iTM = 1:3
     %                                                                 %
     %-----------------------------------------------------------------%
     
+    % Normalize row-wise activityMap 
+    xAp = activityMap;
+    minAp = arrayfun(@(r) min(xAp(r,:)), 1:maxNWindows);
+    maxAp = arrayfun(@(r) max(xAp(r,:)), 1:maxNWindows);
+    xAp = arrayfun(@(r) (xAp(r,:) - minAp(r)) / (maxAp - minAp), ...
+        1:maxNWindows, 'UniformOutput', false);
+    xAp = cat(2, xAp{:});
+    % Normalize row-wise distanceMap
+    xDp = fliplr(distanceMap);
+    minDp = arrayfun(@(r) min(xDp(r,:)), 1:maxNWindows);
+    maxDp = arrayfun(@(r) max(xDp(r,:)), 1:maxNWindows);
+    xDp = arrayfun(@(r) (xDp(r,:) - minDp(r)) / (maxDp - minDp), ...
+        1:maxNWindows, 'UniformOutput', false);
+    xDp = cat(2, xDp{:});
+
+    % Zero-Pad the 2 maps
     np = 2 * nFrames - 3;
     npp = 2^(nextpow2(np));
-    xAp = activityMap;
-    xAp = (xAp - min(xAp(:))) / (max(xAp(:)) - min(xAp(:)));
-    xDp = fliplr(distanceMap);
-    xDp = (xDp - min(xDp(:))) / (max(xDp(:)) - min(xDp(:)));
     xAp(:,npp) = 0;
     xDp(:,npp) = 0;
+    
+    % Compute cross-correlation
     cc = real(ifft(fft(xAp') .* fft(xDp'))');
     cc = cc(:, 1:np);
-    
-    timeShift = -np:np;
-    
+        
     hFig = figure('Visible', 'off');    
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
     imagesc(cc);
-    set(gca,'XTick', timeShift);
+    set(gca,'XTick', [-np:-2:1, 0, 1:2:np]);
     xlabel('Time shift (s)');
     title(names(1));
     if iTM == 1
