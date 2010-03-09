@@ -91,7 +91,7 @@ for iTM = 1:3
     %                                                                 %
     %-----------------------------------------------------------------%
     
-    distanceMap = cell(1, length(timeScale));
+    distanceMap = zeros(nWindows, nFrames - 1);
     
     for iFrame = 1:nFrames-1
         % Load label
