@@ -29,6 +29,7 @@ for iTM = 1:3
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
     timeInterval = movieData.timeInterval_s;
+    nWindows = movieData.windows.parameters.nWindows;
     
     % Read the list of label files
     labelPath = movieData.labels.directory;
