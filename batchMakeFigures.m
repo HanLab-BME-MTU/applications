@@ -171,9 +171,6 @@ for iMovie = 1:nMovies
     end
     
     % STEP 4: Create windowing
-    windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' ...
-                num2str(iStart) '_' num2str(iEnd)];
-
     % Note: the width dWin should be set so that the autocorrelation over
     % windows of Edge Velocity Map is maximized (it might yield a trivial
     % solution dWin -> 0).
@@ -181,6 +178,8 @@ for iMovie = 1:nMovies
     iStart = 2;
     iEnd = 4;
     winMethod = 'e';            
+    windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' ...
+                num2str(iStart) '_' num2str(iEnd)];
             
     if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || ...
             currMovie.windows.status ~= 1 || forceRun(4)
