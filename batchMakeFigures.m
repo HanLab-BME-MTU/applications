@@ -244,7 +244,7 @@ for iMovie = 1:nMovies
     if ~isfield(currMovie,'bwdist') || ~isfield(currMovie.bwdist,'status') || ...
             currMovie.bwdist.status ~= 1 || forceRun(7)
         try
-            dist(['Compute distance transform ' num2str(iMovie) ' of ' num2str(nMovies)]);
+            disp(['Compute distance transform ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieBWDist(currMovie, batchMode);
             
             if isfield(currMovie.bwdist,'error')
