@@ -150,15 +150,20 @@ for iTM = 1:3
     %                                                                 %
     %-----------------------------------------------------------------%
     
-    % Normalize row-wise activityMap 
     xAp = activityMap;
+    xDp = fliplr(distanceMap);
+
+    % Replace every NaN value to zero (this should be fix in the Windowing)
+    xAp(isnan(xAp)) = 0;
+    xDp(isnan(xDp)) = 0;
+    
+    % Normalize row-wise activityMap 
     minAp = arrayfun(@(r) min(xAp(r,:)), 1:maxNWindows);
     maxAp = arrayfun(@(r) max(xAp(r,:)), 1:maxNWindows);
     xAp = arrayfun(@(r) (xAp(r,:) - minAp(r)) / (maxAp - minAp), ...
         1:maxNWindows, 'UniformOutput', false);
     xAp = cat(2, xAp{:});
     % Normalize row-wise distanceMap
-    xDp = fliplr(distanceMap);
     minDp = arrayfun(@(r) min(xDp(r,:)), 1:maxNWindows);
     maxDp = arrayfun(@(r) max(xDp(r,:)), 1:maxNWindows);
     xDp = arrayfun(@(r) (xDp(r,:) - minDp(r)) / (maxDp - minDp), ...
