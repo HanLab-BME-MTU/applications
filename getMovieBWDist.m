@@ -14,9 +14,9 @@ if ~exist(movieData.bwdist.directory, 'dir')
     mkdir(movieData.bwdist.directory);
 end
 
+nFrames = movieData.nImages;
 %Make the string for formatting
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
-nFrames = movieData.nImages;
 
 % Read the list of Actin masks
 maskPath = movieData.masks.directory;
