@@ -281,8 +281,8 @@ fprintf(fid, '%s\n%s\n%s\n', paths{:});
 fclose(fid);
 
 % Figure 3
-disp('Make figure 3...');
-makeFigure3(paths, outputDirectory);
+%disp('Make figure 3...');
+%makeFigure3(paths, outputDirectory);
 % Figure 4
 disp('Make figure 4...');
 makeFigure4(paths, outputDirectory);

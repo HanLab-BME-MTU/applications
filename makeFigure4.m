@@ -143,4 +143,40 @@ for iTM = 1:3
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
     close(hFig);
+    
+    %-----------------------------------------------------------------%
+    %                                                                 %
+    %                          FIGURE 4 PANEL C                       %
+    %                                                                 %
+    %-----------------------------------------------------------------%
+    
+    np = 2 * nFrames - 3;
+    npp = 2^(nextpow2(np));
+    xAp = activityMap;
+    xAp = (xAp - min(xAp(:))) / (max(xAp(:)) - min(xAp(:)));
+    xDp = fliplr(distanceMap);
+    xDp = (xDp - min(xDp(:))) / (max(xDp(:)) - min(xDp(:)));
+    xAp(:,npp) = 0;
+    xDp(:,npp) = 0;
+    cc = real(ifft(fft(xAp') .* fft(xDp'))');
+    cc = cc(:, 1:np);
+    
+    timeShift = -np:np;
+    
+    hFig = figure('Visible', 'off');    
+    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
+    set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
+    imagesc(cc);
+    set(gca,'XTick', timeShift);
+    xlabel('Time shift (s)');
+    title(names(1));
+    if iTM == 1
+        ylabel('Window no.');
+    end
+    colorbar;
+    fileName = [outputDirectory filesep 'fig4_C' num2str(iTM) '.eps'];
+    print(hFig, '-depsc', fileName);
+    fixEpsFile(fileName);
+    close(hFig);
+    
 end
