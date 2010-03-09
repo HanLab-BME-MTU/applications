@@ -42,9 +42,9 @@ for iTM = 1:3
     s2Path = [movieData.fsmDirectory{iCh(2)} filesep 'tack' filesep 'locMax'];
     s2Files = dir([s2Path filesep '*.mat']);
     
-    % Read the list of Actin masks
-    maskPath = movieData.masks.directory;
-    maskFiles = dir([maskPath filesep '*.tif']);
+    % Read the list of distance transforms
+    bwdistPath = movieData.bwdist.directory;
+    bwdistFiles = dir([bwdistPath filesep '*.mat']);
 
     % Load activity map
     fileName = [movieData.protrusion.directory filesep ...
@@ -110,9 +110,10 @@ for iTM = 1:3
         idxS2 = arrayfun(@(l) (locMax2 .* (L == l)) ~= 0, labels, ...
             'UniformOutput', false);
         
-        % Compute distance to the edge
-        BW = imread([maskPath filesep maskFiles(iFrame).name]);        
-        distToEdge = double(bwdist(1 - BW)) * (pixelSize / 1000); % in microns
+        % Read the distance transform
+        fileName = [bwdistPath filesep bwdistFiles(iFrame).name];
+        load(fileName);
+        distToEdge = distToEdge * (pixelSize / 1000); % in microns
 
         % Compute distanceMap
         distanceMap{iFrame} = arrayfun(@(l) mean(distToEdge(idxS1{l})) - ...

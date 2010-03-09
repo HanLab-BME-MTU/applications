@@ -1,5 +1,7 @@
 function batchMakeFigures(varargin)
 
+nSteps = 7;
+
 if nargin >= 1 && ~isempty(varargin{1})
     rootDirectory = varargin{1};
 else
@@ -11,10 +13,14 @@ else
     end
 end
 
-if nargin >= 2 && ~isempty(varargin{2})
+if nargin >= 2 && ~isempty(varargin{2})        
     forceRun = varargin{2};
 else
-    forceRun = zeros(6, 1);
+    forceRun = zeros(nSteps, 1);
+end
+
+if length(forceRun) ~= nSteps
+    error('Invalid number of steps in forceRun (2nd argument).');
 end
 
 if nargin >= 3 && ~isempty(varargin{3})
@@ -234,6 +240,24 @@ for iMovie = 1:nMovies
         end
     end
         
+    % STEP 7: Save Distance transform
+    if ~isfield(currMovie,'bwdist') || ~isfield(currMovie.bwdist,'status') || ...
+            currMovie.bwdist.status ~= 1 || forceRun(7)
+        try
+            dist(['Compute distance transform ' num2str(iMovie) ' of ' num2str(nMovies)]);
+            currMovie = getMovieBWDists(currMovie, batchMode);
+            
+            if isfield(currMovie.bwdist,'error')
+                currMovie.bwdist = rmfield(currMovie.bwdist,'error');
+            end
+        catch errMess
+            dist([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+            currMovie.bwdist.error = errMess;
+            currMovie.bwdist.status = 0;
+            continue;
+        end
+    end
+    
     try
         %Save the updated movie data
         updateMovieData(currMovie)

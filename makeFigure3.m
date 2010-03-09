@@ -66,9 +66,9 @@ for iTM = 1:3
     image2Path = [movieData.fsmDirectory{iCh(2)} filesep 'crop'];
     image2Files = dir([image2Path filesep '*.tif']);
     
-    % Read the list of Actin masks
-    maskPath = movieData.masks.directory;
-    maskFiles = dir([maskPath filesep '*.tif']);
+    % Read the list of distance transforms
+    bwdistPath = movieData.bwdist.directory;
+    bwdistFiles = dir([bwdistPath filesep '*.mat']);
 
     % Load activity map
     fileName = [movieData.protrusion.directory filesep ...
@@ -135,11 +135,10 @@ for iTM = 1:3
     %                                                                 %
     %-----------------------------------------------------------------%
 
-    % Read the mask
-    fileName = [maskPath filesep maskFiles(iFrames(iTM)).name];
-    BW = imread(fileName);
-    % Compute distance transform
-    D = double(bwdist(1 - BW)) * pixelSize / 1000; % in microns
+    % Read the distance transform
+    fileName = [bwdistPath filesep bwdistFiles(iFrames(iTM)).name];
+    load(fileName);
+    distToEdge = distToEdge * (pixelSize / 1000);
     % Load TM speckles
     fileName = [s1Path filesep s1Files(iFrames(iTM)).name];
     load(fileName);
@@ -152,7 +151,7 @@ for iTM = 1:3
     % Merge + Speckles (Panel B, column 1)
     
     % Crop distance transform
-    imageD = D(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
+    imageD = distToEdge(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
         imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
     
     % Crop TM speckles
@@ -198,7 +197,7 @@ for iTM = 1:3
     insetMerge = imageMerge(p(1):p(1)+insetSize-1, p(2):p(2)+insetSize-1,:);
     
     % Crop distance transform
-    insetD = D(insetPos(iTM,1):insetPos(iTM,1)+insetSize-1,...
+    insetD = distToEdge(insetPos(iTM,1):insetPos(iTM,1)+insetSize-1,...
         insetPos(iTM,2):insetPos(iTM,2)+insetSize-1);
     
     % Crop TM speckles
@@ -253,9 +252,10 @@ for iTM = 1:3
         locMax2 = locMax;
         idxS2 = (locMax2 .* (L ~= 0)) ~= 0;
         
-        % Compute distance to the edge
-        BW = imread([maskPath filesep maskFiles(iFrame).name]);
-        distToEdge = double(bwdist(1 - BW)) * (pixelSize / 1000); % in microns
+        % Read the distance transform
+        fileName = [bwdistPath filesep bwdistFiles(iFrame).name];
+        load(fileName);
+        distToEdge = distToEdge * (pixelSize / 1000); % in microns
     
         data(1,iFrame) = mean(distToEdge(idxS1));
         data(2,iFrame) = mean(distToEdge(idxS2));
