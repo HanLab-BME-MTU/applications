@@ -270,8 +270,6 @@ for iMovie = 1:nMovies
     disp([movieName ': DONE']);
 end
 
-disp('Build figures...');
-
 outputDirectory = [rootDirectory filesep 'figures'];
 if ~exist(outputDirectory, 'dir')
     mkdir(rootDirectory, 'figures');
@@ -283,6 +281,8 @@ fprintf(fid, '%s\n%s\n%s\n', paths{:});
 fclose(fid);
 
 % Figure 3
+disp('Make figure 3...');
 makeFigure3(paths, outputDirectory);
 % Figure 4
+disp('Make figure 4...');
 makeFigure4(paths, outputDirectory);
