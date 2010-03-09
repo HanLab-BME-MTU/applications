@@ -160,13 +160,13 @@ for iTM = 1:3
     % Normalize row-wise activityMap 
     minAp = arrayfun(@(r) min(xAp(r,:)), 1:maxNWindows);
     maxAp = arrayfun(@(r) max(xAp(r,:)), 1:maxNWindows);
-    xAp = arrayfun(@(r) (xAp(r,:) - minAp(r)) / (maxAp - minAp), ...
+    xAp = arrayfun(@(r) (xAp(r,:) - minAp(r)) / (maxAp(r) - minAp(r)), ...
         1:maxNWindows, 'UniformOutput', false);
     xAp = cat(2, xAp{:});
     % Normalize row-wise distanceMap
     minDp = arrayfun(@(r) min(xDp(r,:)), 1:maxNWindows);
     maxDp = arrayfun(@(r) max(xDp(r,:)), 1:maxNWindows);
-    xDp = arrayfun(@(r) (xDp(r,:) - minDp(r)) / (maxDp - minDp), ...
+    xDp = arrayfun(@(r) (xDp(r,:) - minDp(r)) / (maxDp(r) - minDp(r)), ...
         1:maxNWindows, 'UniformOutput', false);
     xDp = cat(2, xDp{:});
 
