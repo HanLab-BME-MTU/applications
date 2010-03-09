@@ -116,17 +116,9 @@ for iTM = 1:3
         distToEdge = distToEdge * (pixelSize / 1000); % in microns
 
         % Compute distanceMap
-        distanceMap{iFrame} = arrayfun(@(l) mean(distToEdge(idxS1{l})) - ...
+        distanceMap(:, iFrame) = arrayfun(@(l) mean(distToEdge(idxS1{l})) - ...
             mean(distToEdge(idxS2{l})), labels');
     end
-    
-    nWindows = cellfun(@length, distanceMap, 'UniformOutput', false);
-    nWindows = cat(1, nWindows{:});
-    maxNWindows = max(nWindows);
-    distanceMap = arrayfun(@(iFrame) padarray(distanceMap{iFrame}, ...
-        [maxNWindows - nWindows(iFrame) 0], 0, 'post'), 1:nFrames-1, ...
-        'UniformOutput', false);
-    distanceMap = horzcat(distanceMap{:});
     
     hFig = figure('Visible', 'off');    
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
@@ -157,9 +149,11 @@ for iTM = 1:3
     xAp(isnan(xAp)) = 0;
     xDp(isnan(xDp)) = 0;
     
-    % Normalize maps
-    xAp = xAp / sqrt(sum(xAp(:).^2));
-    xDp = xDp / sqrt(sum(xDp(:).^2));
+    % Normalize every rows
+    xAp = bsxfun(@minus, xAp, mean(xAp, 2));
+    xAp = bsxfun(@ldivide, xAp, sqrt(sum(xAp.^2, 2)));
+    xDp = bsxfun(@minus, xDp, mean(xDp, 2));
+    xDp = bsxfun(@ldivide, xDp, sqrt(sum(xDp.^2, 2)));
 
     % Zero-Pad the 2 maps on time axis
     np = 2 * nFrames - 3;
@@ -168,7 +162,7 @@ for iTM = 1:3
     xDp(:,npp) = 0;
     
     % Compute cross-correlation
-    cc = real(ifft2(fft2(xAp') .* fft2(xDp'))');
+    cc = real(ifft(fft(xAp') .* fft(xDp'))');
     cc = cc(:, 1:np);
         
     hFig = figure('Visible', 'off');    
@@ -185,6 +179,5 @@ for iTM = 1:3
     fileName = [outputDirectory filesep 'fig4_C' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
-    close(hFig);
-    
+    close(hFig);  
 end

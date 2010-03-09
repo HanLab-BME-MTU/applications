@@ -110,10 +110,6 @@ for iMovie = 1:nMovies
 
     % STEP 2: Get contours
     dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
-    dWin = 2000 / currMovie.pixelSize_nm; % ~ 2um
-    iStart = 2;
-    iEnd = 4;
-    winMethod = 'c';    
     
     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
             currMovie.contours.status ~= 1 || forceRun(2)
@@ -177,6 +173,14 @@ for iMovie = 1:nMovies
     % STEP 4: Create windowing
     windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' ...
                 num2str(iStart) '_' num2str(iEnd)];
+
+    % Note: the width dWin should be set so that the autocorrelation over
+    % windows of Edge Velocity Map is maximized (it might yield a trivial
+    % solution dWin -> 0).
+    dWin = 2000 / currMovie.pixelSize_nm; % ~ 2um
+    iStart = 2;
+    iEnd = 4;
+    winMethod = 'e';            
             
     if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || ...
             currMovie.windows.status ~= 1 || forceRun(4)
