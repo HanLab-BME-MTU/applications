@@ -245,13 +245,13 @@ for iMovie = 1:nMovies
             currMovie.bwdist.status ~= 1 || forceRun(7)
         try
             dist(['Compute distance transform ' num2str(iMovie) ' of ' num2str(nMovies)]);
-            currMovie = getMovieBWDists(currMovie, batchMode);
+            currMovie = getMovieBWDist(currMovie, batchMode);
             
             if isfield(currMovie.bwdist,'error')
                 currMovie.bwdist = rmfield(currMovie.bwdist,'error');
             end
         catch errMess
-            dist([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.bwdist.error = errMess;
             currMovie.bwdist.status = 0;
             continue;
