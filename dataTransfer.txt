@@ -1,52 +1,32 @@
-Data transfer and Analysis of Andrea Tropomyosin project
-Sylvain Berlemont, 10/09
+Data and Analysis Tansfer of Tropomyosin project
+Sylvain Berlemont, 03/2010
 
+A. Update DATA from Scripps -> Orchestra
 
-A. Transfer data from Scripps -> Orchestra
+1.$ ssh sb234@orchestra.med.harvard.edu
+2.$ cd /groups/lccb-interfil/Tropo/Data_for_paper
+3.$ rsync -avz sylvain@lccbfs001.scripps.edu:/data/projects/Tropomyosin/Analysis/Data_for_paper/ .
 
-1.$ ssh -X sb234@orchestra.med.harvard.edu
-2.$ cd /groups/lccb-interfil/Tropo/Analysis/ROOT_DIRECTORY
-3.$ rsync -rtvz sylvain@lccbfs001.scripps.edu:/data/projects/Tropomyosin/ROOT_DIRECTORY/ .
+A. Update DATA from Orchestra -> Local Machine
 
-B. Update FSMCenter & MovieData parameter files (so that I am able to read Andrea's projects)
+1.$ cd ~/Projects/Tropo
+2.$ scp -r sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/Data_for_paper .
 
-1.$ cd ~/matlab/projects
+B. Update SVN
+
+1.$ cd ~/Documents/MATLAB/projects
 2.$ svn update *
-3.$ bsub -Is -R "mem > 20000" -q danuser_int_12h matlab -nosplash -nodesktop
-4.>> addpath(genpath('/home/sb234/matlab'))
-5.>> rootDirectory = '/groups/lccb-interfil/Tropo/ROOT_DIRECTORY'
-6.>> fsmUpdateProjDir(rootDirectory)
-7.>> relocateMovieData(rootDirectory, false)
 
-C. Run analysis
+C. Start Matlab
 
-% e.g. subDirNames = {'Actin', 'TM5NM1'}
-% e.g. forceRun = [0 0 0 0 0 0 1]
+1.>> addpath(genpath('/home/sb234/Documents/MATLAB'))
+2.>> dataDirectory = '/home/sb234/Projects/Tropo/Data_for_paper'
+3.>> analysisDirectory = '/home/sb234/Projects/Tropo/Analysis_for_paper'
+4.>> fsmUpdateProjDir(dataDirectory)
+5.>> relocateMovieData(analysisDirectory, false)
+6.>> batchMakeFigures(dataDirectory, analysisDirectory, [], 1)
 
-1.>> batchMakeFigures(rootDirectory, subDirNames, forceRun)
-2.>> batchDisplayFigure1(rootDirectory)
-3. Save anything needed (figure, etc.)
-4. Exit matlab
-5. Logout orchestra
+D. Transfer ANALYSIS from Local Machine -> Orchestra
 
-D. Transfer analysis from Orchestra -> Scripps
-
-1.$ ssh sylvain@lccbfs001.scripps.edu
-2.$ cd /data/projects/Tropomyosin/Analysis/ROOT_DIRECTORY/
-3.$ sudo chmod g+w *
-4.$ rsync -rtvz sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/ROOT_DIRECTORY/ .
-5. Logout lccbfs001
-
-E. Update FSMCenter & MovieData parameter files (so that Andrea is able to open his own projects)
-
-1.$ ssh sylvain@lccbsv014.scripps.edu
-2.$ cd matlab/projects
-3.$ svn update *
-4.$ sudo -u abacconi matlabDist -nosplash -nodesktop
-5.>> rootDirectory = '/mnt/projects/Tropomyosin/ROOT_DIRECTORY'
-6.>> fsmUpdateProjDir(rootDirectory)
-7.>> relocateMovieData(rootDirectory, false)
-8. Exit matlab
-9. Logout lccbsv014
-
-
+1.$ cd ~/Projects/Tropo/
+2. rsync -rtvz Analysis_for_paper sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/

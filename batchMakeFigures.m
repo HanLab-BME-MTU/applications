@@ -1,21 +1,24 @@
-function batchMakeFigures(varargin)
+function batchMakeFigures(dataDirectory, analysisDirectory, forceRun, batchMode)
 
 nSteps = 7;
 
-if nargin >= 1 && ~isempty(varargin{1})
-    rootDirectory = varargin{1};
-else
-    % Ask for the root directory (Analysis2)
-    rootDirectory = uigetdir('', 'Select a root directory:');
+if nargin < 1 || isempty(dataDirectory)
+    dataDirectory = uigetdir('', 'Select a data directory:');
 
-    if ~ischar(rootDirectory)
+    if ~ischar(dataDirectory)
         return;
     end
 end
 
-if nargin >= 2 && ~isempty(varargin{2})        
-    forceRun = varargin{2};
-else
+if nargin < 2 || isempty(analysisDirectory)
+    analysisDirectory = uigetdir('', 'Select an analysis directory:');
+
+    if ~ischar(dataDirectory)
+        return;
+    end
+end
+
+if nargin < 3 || isempty(forceRun)        
     forceRun = zeros(nSteps, 1);
 end
 
@@ -23,9 +26,7 @@ if length(forceRun) ~= nSteps
     error('Invalid number of steps in forceRun (2nd argument).');
 end
 
-if nargin >= 3 && ~isempty(varargin{3})
-    batchMode = varargin{3};
-else
+if nargin < 4 || isempty(batchMode)
     batchMode = 1;
 end
 
@@ -38,43 +39,53 @@ subFolders = {...
     'TM2_TM5NM1',...
     'TM4_TM5NM1'};
 
-paths = cellfun(@(x) [rootDirectory filesep x], subFolders,...
+dataPaths = cellfun(@(x) [dataDirectory filesep x], subFolders,...
     'UniformOutput', false);
 
-% not every subfolder are present now. Workaround:
-ind = cellfun(@(x) exist(x, 'dir') ~= 0, paths);
-paths = paths(ind);
+% We process only files that exist now.
+ind = cellfun(@(x) exist(x, 'dir') ~= 0, dataPaths);
+dataPaths = dataPaths(ind);
 
 disp('List of directories:');
 
-for iMovie = 1:numel(paths)
-    disp([num2str(iMovie) ': ' paths{iMovie}]);
+for iMovie = 1:numel(dataPaths)
+    disp([num2str(iMovie) ': ' dataPaths{iMovie}]);
+end
+
+analysisPaths = cellfun(@(x) [analysisDirectory filesep x], ...
+    subFolders(ind), 'UniformOutput', false);
+
+for iMovie = 1:numel(analysisPaths)
+    if ~exist(analysisPaths{iMovie}, 'dir');
+        mkdir(analysisPaths{iMovie});
+    end
 end
 
 disp('Process all directories...');
 
-nMovies = numel(paths);
+nMovies = numel(dataPaths);
 
 movieData = cell(nMovies, 1);
 
 for iMovie = 1:nMovies
-    movieName = ['Movie ' num2str(iMovie) '/' num2str(numel(paths))];
+    movieName = ['Movie ' num2str(iMovie) '/' num2str(nMovies)];
     
-    path = paths{iMovie};
+    dataPath = dataPaths{iMovie};
+    analysisPath = analysisPaths{iMovie};
    
     currMovie = movieData{iMovie};
     
     % STEP 1: Create movieData
-    currMovie.analysisDirectory = [path filesep 'windowAnalysis'];
-    content = dir(path);
+    currMovie.analysisDirectory = [analysisPath filesep 'windowAnalysis'];
+    content = dir(dataPath);
     content = {content.name};
-    ind = cellfun(@(x) exist([path filesep x filesep ...
+    ind = cellfun(@(x) exist([dataPath filesep x filesep ...
         'lastProjSettings.mat'], 'file') ~= 0, content);
     if ~nnz(ind) || nnz(ind) ~= 2
         disp([movieName ': Unable to find the FSM directories. (SKIPPING).']);
         continue;
     end    
-    currMovie.fsmDirectory = cellfun(@(x) [path filesep x], content(ind), ...
+    currMovie.fsmDirectory = cellfun(@(x) [dataPath filesep x], content(ind), ...
         'UniformOutput', false);
     % Add these 2 fields to be compliant with Hunter's check routines:
     currMovie.imageDirectory = [currMovie.fsmDirectory{1} filesep 'crop'];
@@ -100,12 +111,6 @@ for iMovie = 1:nMovies
     if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
        currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
        currMovie = currMovie.movieData;
-       
-       % Remove previous outputs
-       if isfield(currMovie, 'output')
-           currMovie = rmfield(currMovie, 'output');
-           updateMovieData(currMovie);
-       end
     end
 
     % STEP 2: Get contours
@@ -152,9 +157,7 @@ for iMovie = 1:nMovies
                     currMovie.protrusion = rmfield(currMovie.protrusion,'error');
                 end
                 
-                currMovie.protrusion.directory = [currMovie.masks.directory filesep ...
-                    'analysis_dl' num2str(handles.dl_rate)];
-                
+                currMovie.protrusion.directory = handles.outdir;                
                 currMovie.protrusion.fileName = 'protrusion.mat';
                 currMovie.protrusion.nfileName = 'normal_matrix.mat';
                 currMovie.protrusion.status = 1;
@@ -273,19 +276,19 @@ for iMovie = 1:nMovies
     disp([movieName ': DONE']);
 end
 
-outputDirectory = [rootDirectory filesep 'figures'];
+outputDirectory = [analysisDirectory filesep 'figures'];
 if ~exist(outputDirectory, 'dir')
-    mkdir(rootDirectory, 'figures');
+    mkdir(analysisDirectory, 'figures');
 end
 
-% Save the list of paths in the figure in a text file format.
+% Save the list of dataPaths in the figure in a text file format.
 fid = fopen([outputDirectory filesep 'listFolders.txt'], 'w');
-fprintf(fid, '%s\n%s\n%s\n', paths{:});
+fprintf(fid, '%s\n%s\n%s\n', dataPaths{:});
 fclose(fid);
 
 % Figure 3
 disp('Make figure 3...');
-makeFigure3(paths, outputDirectory);
+makeFigure3(analysisPaths, outputDirectory);
 % Figure 4
 disp('Make figure 4...');
-makeFigure4(paths, outputDirectory);
+makeFigure4(analysisPaths, outputDirectory);
