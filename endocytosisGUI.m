@@ -742,12 +742,15 @@ function checkbox8_Callback(hObject, eventdata, handles)
 % hObject    handle to checkbox8 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.showHotSpots = get(hObject,'Value');
-% Hint: get(hObject,'Value') returns toggle state of checkbox8
-% Update handles structure
-guidata(hObject, handles);
-%plot image
-plotImage(handles);
+%only do anythig if clusterResults were loaded
+if isfield(handles,'clusterResults')
+    handles.showHotSpots = get(hObject,'Value');
+    % Hint: get(hObject,'Value') returns toggle state of checkbox8
+    % Update handles structure
+    guidata(hObject, handles);
+    %plot image
+    plotImage(handles);
+end
 
 % --- Executes during object creation, after setting all properties.
 function text7_CreateFcn(hObject, eventdata, handles)

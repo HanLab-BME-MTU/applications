@@ -101,8 +101,11 @@ end
 
 %convert movie paths to correct OS
 experiment = changePathUsingEndocytosis(experiment);
-
+%initialize
 for iexp = 1:length(experiment)
+experiment(iexp).pairCorrelation = [];
+end
+parfor iexp = 1:length(experiment)
     
     %Load Lifetime Information
     lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
@@ -121,6 +124,11 @@ for iexp = 1:length(experiment)
     framerate = experiment(iexp).framerate;
     % image size
     imsize  = experiment(iexp).imagesize;
+    
+    %make a matrix for max status...in order to tell if trajectory holds
+    %bad gaps
+%     status = max(statMat,[],2);
+%     status = repmat(status,1,size(matX,2));
     
     %find all pits in movie that meet requirements specified by restriction
     %vector
