@@ -53,6 +53,20 @@ function movieArray = batchProcessBiosensorMovies(movieArray,actChanName,volChan
 %       name contains the volume channel name and the word "shade" If it
 %       cannot find a channel, the movie will be skipped.
 %
+%       ('ActivityDarkChanName' -> character string / regexp)
+%       This option specifies the name of the channel to use to
+%       dark-current correct the activity channel.
+%       Optional. If not input, the software will look for channels whith
+%       the activity channel's name and the letters "dk". If a suitable
+%       channel cannot be found, the movie will be skipped.
+%
+%       ('VolumeDarkChanName' -> character string / regexp)
+%       This option specifies the name of the channel to use to
+%       dark-current correct the volume channel.
+%       Optional. If not input, the software will look for channels whith
+%       the volume channel's name and the letters "dk". If a suitable
+%       channel cannot be found, the movie will be skipped.
+%
 % Hunter Elliott
 % 1/2010
 %
@@ -60,7 +74,7 @@ function movieArray = batchProcessBiosensorMovies(movieArray,actChanName,volChan
 %% ------ Parameters ----- %%
 
 shStr = 'shade'; %The string to look for in the shade correction channel names.
-
+dkStr = 'dk'; %The string to look for in the dark-current correction channel names.
 
 %% ----------- Input -------- %%
 
@@ -80,7 +94,12 @@ end
 
 %Parse the input, seperating inputs for this function from inputs for
 %processing functions
-[commonOptions,actShadeName,volShadeName] = parseInputs(varargin);
+[commonOptions,actShadeName,volShadeName,actDarkName,volDarkName] = parseInputs(varargin);
+
+
+
+
+%% --------- Init ---------- %%
 
 %If a name wasn't specified, create a regexp to search for correctly named
 %channels for the shade correction images.
@@ -91,9 +110,16 @@ if isempty(volShadeName)
     volShadeName = ['(' volChanName '.*' shStr ')|(' shStr '.*' volChanName ')'];
 end
 
+%If a name wasn't specified, create a regexp to search for correctly named
+%channels for the dark-current correction images.
+if isempty(actDarkName) 
+    actDarkName = ['(' actChanName '.*' dkStr ')|(' dkStr '.*' actChanName ')'];
+end
+if isempty(volDarkName) 
+    volDarkName = ['(' volChanName '.*' dkStr ')|(' dkStr '.*' volChanName ')'];
+end
 
 
-%% --------- Init ---------- %%
 
 %Check if the batchMode setting has been specified, and if not set it
 if ~any(strcmp('BatchMode',commonOptions))    
@@ -121,13 +147,26 @@ for iMov = 1:nMov
         
         %Make sure only one shade-correction channel was found
         if length(iActShade) ~= 1 || length(iVolShade) ~= 1
-            error('Could not unambigously find shade-correction image channels! Retry specifying shade image channels!')                        
+            error(['Could not unambiguously find shade-correction image channels for movie '...
+                num2str(iMov) '! Retry specifying shade image channels!'])                        
+        end                
+        
+        %Get indices for dark-current-correction images
+        iActDark = find(cellfun(@(x)(~isempty(regexpi(x,actDarkName))),movieArray{iMov}.channelDirectory)); %Activity channel dark-current-correction images
+        iVolDark = find(cellfun(@(x)(~isempty(regexpi(x,volDarkName))),movieArray{iMov}.channelDirectory)); %Volume channel dark-current-correction images        
+        
+        %Make sure only one dark-current-correction channel was found
+        if length(iActDark) ~= 1 || length(iVolDark) ~= 1
+            error(['Could not unambiguously find dark-current-correction image channels for movie '...
+                num2str(iMov) '! Retry specifying dark-current image channels!'])                        
         end
+        
         
         %Combine the selected channels for this movie with the options used
         %on all movies
         currOptions = [commonOptions {'shadeCorrection_ShadeImageChannels',[iActShade iVolShade], ...
-            'ActivityChannel', iAct,'VolumeChannel',iVol}];
+            'ActivityChannel', iAct,'VolumeChannel',iVol,...
+            'darkCurrentCorrection_DarkImageChannels',[iActDark iVolDark]}];
         
         %Process the current movie
         movieArray{iMov} = processBiosensorMovie(movieArray{iMov},currOptions{:});
@@ -153,12 +192,14 @@ for iMov = 1:nMov
     
 end
 
-function [commonOptions,actShadeName,volShadeName] = parseInputs(argArray)
+function [commonOptions,actShadeName,volShadeName,actDarkName,volDarkName] = parseInputs(argArray)
 
 %---Defaults---%
 actShadeName = [];
 volShadeName = [];
 commonOptions = [];
+actDarkName =[];
+volDarkName =[];
 
 if isempty(argArray)
     return
@@ -186,6 +227,13 @@ for i = 1:2:nArg
             
             volShadeName = argArray{i+1};
             
+        case 'ActivityDarkChanName'
+            
+            actDarkName = argArray{i+1};
+            
+        case 'VolumeDarkChanName'
+            
+            volDarkName = argArray{i+1};
     
         otherwise
             %If the option isn't recognized, store it in an array so it can

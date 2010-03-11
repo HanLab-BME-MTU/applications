@@ -14,8 +14,9 @@ function movieData = calculateMovieBleedthrough(movieData,varargin)
 % image in channel B will then be calculated. This allows, in a later
 % experiment, the image in channel B to be corrected for this bleedthrough.
 % 
-% !!NOTE!!: It is strongly recommended that you use background-subtracted,
-% shade-corrected images for bath channels used in this calculation!!
+% !!NOTE!!: It is strongly recommended that you use dark-current corrected,
+% background-subtracted, shade-corrected images for both channels used in
+% this calculation!!
 %
 % Input:
 % 
@@ -115,7 +116,8 @@ mNames = getMovieMaskFileNames(movieData,[fMaskChan bMaskChan]);
 fitCoef = zeros(nImages,2);
 fitStats = struct('R',cell(nImages,1),...
                   'df',cell(nImages,1),...
-               'normr',cell(nImages,1));
+               'normr',cell(nImages,1),...
+               'Rsquared',cell(nImages,1));
 
 %Make figure for showing all lines           
 if batchMode
@@ -123,7 +125,7 @@ if batchMode
 else
     allFig = figure;
 end
-hold on;           
+nByn = ceil(sqrt(nImages));%Determine size of sub-plot array
 
 
 disp(['Calculating bleedthrough of channel "' movieData.channelDirectory{fChan} ...
@@ -132,25 +134,46 @@ disp(['Calculating bleedthrough of channel "' movieData.channelDirectory{fChan} 
 for iImage = 1:nImages
     
     %Load the images and masks
-    fImage = imread(imNames{1}{iImage});
+    fImage = double(imread(imNames{1}{iImage}));
     fMask = imread(mNames{1}{iImage});    
-    bImage = imread(imNames{2}{iImage});
+    bImage = double(imread(imNames{2}{iImage}));
     bMask = imread(mNames{2}{iImage});    
     
     %Fit a line to the current images
-    [fitCoef(iImage,:),fitStats(iImage)] = polyfit(double(fImage(bMask(:))),...
-                                                   double(bImage(fMask(:))),1);
+    [fitCoef(iImage,:),tmp] = polyfit(fImage(bMask(:)),...
+                                                   bImage(fMask(:)),1);
+                                                   
+    %Calculate R^2 for this fit
+    lFun = @(x)(x * fitCoef(iImage,1) + fitCoef(iImage,2));
+    tmp.Rsquared = 1 - sum((bImage(:) - lFun(fImage(:))) .^2) / ...
+                       sum((bImage(:) - mean(bImage(:))) .^2);
+    
+    fitStats(iImage) = tmp; %Allow extra field for Rsquared
+    
+                                               
+                                               
+    %switch to the current sub-plot
+    subplot(nByn,nByn,iImage)
+                                               
+    %Plot the values from this image in their own color
+    plot(fImage(fMask(:)),bImage(bMask(:)),'.');
+    hold on
+    title({['Image #' num2str(iImage) ' Y = ' num2str(fitCoef(iImage,1))...
+        'x + ' num2str(fitCoef(iImage,2))], ['R Squared = ' num2str(fitStats(iImage).Rsquared)]})        
+    xlabel([movieData.channelDirectory{fChan} ' intensity'],'Interpreter','none')
+    ylabel([movieData.channelDirectory{bChan} ' intensity'],'Interpreter','none')
+   
+    %Overlay the line fit
+    plot(xlim,xlim .* fitCoef(iImage,1) + fitCoef(iImage,2),'--r')
     
     
-    %Plot the values from each cell in their own color
-    plot(fImage(fMask(:)),bImage(bMask(:)),'.','color',rand(1,3));
                                                
 end
 
 
 %Get the average slope and intercept
-avgCoef = mean(fitCoef(:,1));
-stdCoef = std(fitCoef(:,1));
+avgCoef = mean(fitCoef(:,1)); %#ok<NASGU>
+stdCoef = std(fitCoef(:,1)); %#ok<NASGU>
 
 
 
@@ -159,9 +182,6 @@ stdCoef = std(fitCoef(:,1));
 
 %Finish and save the figure
 figure(allFig)
-xlabel('Fluorophore Channel Intensity')
-ylabel('Bleedthrough Channel Intensity')
-title('Bleedthrough Relationships - each image is a different color')
 hgsave(allFig,[movieData.(pName).directory filesep 'bleedthrough plot.fig'])
 if batchMode
     close(allFig);

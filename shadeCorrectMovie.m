@@ -33,7 +33,7 @@ function movieData = shadeCorrectMovie(movieData,varargin)
 %
 %       ('ShadeImageChannels'-> Positive integer scalar or vector)
 %       The integer indices of the channels which contain the shade
-%       correction images. This must be the same size as channelsToCorrect!
+%       correction images. This must be the same size as ChannelIndex!
 %       If not input, user will be asked to select, unless batch mode is
 %       enabled, in which case an error will be generated.
 %
@@ -48,12 +48,15 @@ function movieData = shadeCorrectMovie(movieData,varargin)
 %       one, no gaussian filtering is performed.
 %       Optional. Default is no filtering.
 %
-%       ('Normalize' -> True/False)
-%       If true, the processed/averaged shade images will be divided by
+%       ('Normalize' -> 0,1,2)
+%       If set to 1, they will be divided by their own mean, resulting in
+%       their mean being equal to one.        
+%       If set to 0, the processed/averaged shade images will be divided by
 %       their combined mean intensity. This results in their means being
 %       nearer to one, minimizing rounding error in the final
 %       shade-corrected image, while preserving their relative intensities.
-%       Default is true.
+%       If set to 0, no normalization will be done.
+%       Default is 1.
 %
 %       ('BatchMode' -> True/False)
 %       If this option value is set to true, all graphical output is
@@ -98,7 +101,7 @@ if isempty(sigGFilt)
     sigGFilt = 0;
 end
 if isempty(doNorm)
-    doNorm = true;
+    doNorm = 1;
 end
 
 %Ask the user for the image channels to correct if not input
@@ -205,12 +208,8 @@ for iChan = 1:nChan
     %---Filter the averaged shade image---%
     
     %Median filter
-    if medFilt
-        %Add a border to prevent distortion
-        tmp = [shadeIm{iChan}(:,1) shadeIm{iChan} shadeIm{iChan}(:,end)];
-        tmp = vertcat(tmp(1,:), tmp, tmp(end,:));
-        tmp = medfilt2(tmp); %Uses default 3x3 neighborhood
-        shadeIm{iChan} = tmp(2:end-1,2:end-1);
+    if medFilt                
+        shadeIm{iChan} = medfilt2(shadeIm{iChan},'symmetric');
     end
     
     %Gaussian filter
@@ -222,9 +221,12 @@ for iChan = 1:nChan
 end
 
 %---Normalize the Shade Images---%
-if doNorm
+if doNorm == 1
+    %Divide each image by its own mean
+    shadeIm = cellfun(@(x)(x ./ mean(x(:))),shadeIm,'UniformOutput',false);            
+elseif doNorm == 2
     %Calculate the combined mean of all the shade images
-    combMean = sum(cellfun(@(x)(mean(x(:))),shadeIm)) / nChan;
+    combMean = mean(cellfun(@(x)(mean(x(:))),shadeIm));
     %Divide each image by this mean
     shadeIm = cellfun(@(x)(x ./ combMean),shadeIm,'UniformOutput',false);
 end

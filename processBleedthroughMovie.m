@@ -3,14 +3,15 @@ function movieData = processBleedthroughMovie(movieData,fluorChannel,bleedChanne
 % 
 % movieData = processBleedthroughMovie(movieData)
 % 
-% movieData = processBleedthroughMovie(movieData,'OptionName',optionValue,...)
+% movieData = processBleedthroughMovie(movieData,fluorChannel,bleedChannel)
 % 
 % This function is for processing bleedthrough correction movies - that is,
 % movies where a single fluorophore was imaged in two channels to determine
 % how much that fluorophore "bleeds through" into the channel used to image
 % another fluorophore. The movie is first processed by performing
-% segmentation, background subtraction, and shading correction and then the
-% bleedthrough coefficients are calculated using calculateMovieBleedthrough.m
+% segmentation, dark-current subtraction, background subtraction, and
+% shading correction and then the bleedthrough coefficients are calculated
+% using calculateMovieBleedthrough.m
 % 
 %
 % Input:
@@ -89,23 +90,28 @@ movieData = thresholdMovie(movieData,'ChannelIndex',fluorChannel);
 %Create background masks
 movieData = createMovieBackgroundMasks(movieData,'ChannelIndex',fluorChannel);
 
+%Apply dark-current correction
+movieData = darkCurrentCorrectMovie(movieData,'ChannelIndex',[fluorChannel bleedChannel]);
+newFchan = find(movieData.darkCurrentCorrection.iFrom == fluorChannel); %Find the indices for the dark-current corrected images
+newBchan = find(movieData.darkCurrentCorrection.iFrom == bleedChannel);
+
 %Apply shade correction
-movieData = shadeCorrectMovie(movieData,'ChannelIndex',[fluorChannel bleedChannel],...
+movieData = shadeCorrectMovie(movieData,'ChannelIndex',[newFchan newBchan],...
     'ShadeImageChannels',[iSCfluor iSCbleed]);
     
 %Apply background subtraction to the shade-corrected images
-cfChannel = find(movieData.shadeCorrection.iFrom == fluorChannel); %Find the indices for the shade-corrected images
-cbChannel = find(movieData.shadeCorrection.iFrom == bleedChannel);
-movieData = backgroundSubtractMovie(movieData,'ChannelIndex',[cfChannel cbChannel],...
+newFchan = find(movieData.shadeCorrection.iFrom == newFchan); %Find the indices for the shade-corrected images
+newBchan = find(movieData.shadeCorrection.iFrom == newBchan);
+movieData = backgroundSubtractMovie(movieData,'ChannelIndex',[newFchan newBchan],...
     'BackgroundMaskIndex',[fluorChannel fluorChannel]);%and use the masks from the orginal fluorophore channel, since it has much better SNR
 
 %Get indices of the background-subtracted images
-cfChannel = find(movieData.backgroundSubtraction.iFrom == cfChannel);
-cbChannel = find(movieData.backgroundSubtraction.iFrom == cbChannel);
+newFchan = find(movieData.backgroundSubtraction.iFrom == newFchan);
+newBchan = find(movieData.backgroundSubtraction.iFrom == newBchan);
 
 %Calculate bleedthrough coefficients using these processed images
 movieData = calculateMovieBleedthrough(movieData,...
-    'FluorophoreChannel',cfChannel,'BleedthroughChannel',cbChannel,...
+    'FluorophoreChannel',newFchan,'BleedthroughChannel',newBchan,...
     'FluorophoreMaskChannel',fluorChannel,'BleedthroughMaskChannel',fluorChannel);
 
     

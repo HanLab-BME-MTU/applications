@@ -208,7 +208,7 @@ end
 
 %Calculate scale factor to minimize rounding error
 scaleFactor = double(intmax(ogClass)) / (max(maxRatios)-min(minRatios));
-
+minRatio = min(minRatios);
 
 
 %% ------ Ratio -----%%
@@ -248,7 +248,7 @@ for iImage = 1:nImages
     %the masks are perfect, but let's be realistic here .... )
     currRatio(~isfinite(currRatio(:))) = 0;
   
-    
+    currRatio = currRatio - minRatio;
     currRatio = cast(currRatio .* scaleFactor,ogClass);
     
     imwrite(currRatio,[ratioDir filesep pString num2str(iImage,fString) '.tif'])
