@@ -305,9 +305,9 @@ fid = fopen([outputDirectory filesep 'listFolders.txt'], 'w');
 fprintf(fid, '%s\n%s\n%s\n', dataPaths{:});
 fclose(fid);
 
-% Figure 3
-disp('Make figure 3...');
-%makeFigure3(analysisPaths, outputDirectory);
 % Figure 4
 disp('Make figure 4...');
 makeFigure4(analysisPaths, outputDirectory);
+% Figure 5
+%disp('Make figure 5...');
+%makeFigure5(analysisPaths, outputDirectory);

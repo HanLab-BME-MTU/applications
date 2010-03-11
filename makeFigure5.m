@@ -1,4 +1,4 @@
-function makeFigure4(paths, outputDirectory)
+function makeFigure5(paths, outputDirectory)
 
 for iTM = 1:3
     % Load Movie Data
@@ -57,7 +57,7 @@ for iTM = 1:3
     
     %-----------------------------------------------------------------%
     %                                                                 %
-    %                          FIGURE 4 PANEL A                       %
+    %                          FIGURE 5 PANEL A                       %
     %                                                                 %
     %-----------------------------------------------------------------%
     
@@ -75,14 +75,14 @@ for iTM = 1:3
         ylabel('Window no.');
     end
     colorbar;
-    fileName = [outputDirectory filesep 'fig4_A' num2str(iTM) '.eps'];
+    fileName = [outputDirectory filesep 'Fig5_A' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
     close(hFig);    
     
     %-----------------------------------------------------------------%
     %                                                                 %
-    %                          FIGURE 4 PANEL B                       %
+    %                          FIGURE 5 PANEL B                       %
     %                                                                 %
     %-----------------------------------------------------------------%
     
@@ -127,14 +127,14 @@ for iTM = 1:3
         ylabel('Window no.');
     end
     colorbar;
-    fileName = [outputDirectory filesep 'fig4_B' num2str(iTM) '.eps'];
+    fileName = [outputDirectory filesep 'Fig5_B' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
     close(hFig);
     
     %-----------------------------------------------------------------%
     %                                                                 %
-    %                          FIGURE 4 PANEL C                       %
+    %                          FIGURE 5 PANEL C                       %
     %                                                                 %
     %-----------------------------------------------------------------%
     
@@ -173,14 +173,14 @@ for iTM = 1:3
         ylabel('Window no.');
     end
     colorbar;
-    fileName = [outputDirectory filesep 'fig4_C' num2str(iTM) '.eps'];
+    fileName = [outputDirectory filesep 'Fig5_C' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
     close(hFig);
     
     %-----------------------------------------------------------------%
     %                                                                 %
-    %                          FIGURE 4 PANEL D                       %
+    %                          FIGURE 5 PANEL D                       %
     %                                                                 %
     %-----------------------------------------------------------------%
     
@@ -190,7 +190,7 @@ for iTM = 1:3
     plot(cc', 'LineStyle', '-', 'Color', [.1 .1 .1]);
     set(gca,'XTickLabel', 1:2:np - (nFrames-1));
     xlabel('Time shift (s)');
-    fileName = [outputDirectory filesep 'fig4_D' num2str(iTM) '.eps'];
+    fileName = [outputDirectory filesep 'Fig5_D' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
     close(hFig);
