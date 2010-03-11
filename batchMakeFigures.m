@@ -76,7 +76,7 @@ for iMovie = 1:nMovies
     currMovie = movieData{iMovie};
     
     % STEP 1: Create movieData
-    currMovie.analysisDirectory = [analysisPath filesep 'windowAnalysis'];
+    currMovie.analysisDirectory = analysisPath;
     content = dir(dataPath);
     content = {content.name};
     ind = cellfun(@(x) exist([dataPath filesep x filesep ...
@@ -87,14 +87,31 @@ for iMovie = 1:nMovies
     end    
     currMovie.fsmDirectory = cellfun(@(x) [dataPath filesep x], content(ind), ...
         'UniformOutput', false);
+    
+    % Make sure TMs is the first directory in the list
+    content = content(ind);
+    if ~strcmpi(content{2}, 'actin')
+        tmp = currMovie.fsmDirectory{1};
+        currMovie.fsmDirectory{1} = currMovie.fsmDirectory{2};
+        currMovie.fsmDirectory{2} = tmp;
+    end
+    
     % Add these 2 fields to be compliant with Hunter's check routines:
+    % We choose arbitrary TM channel to be referred by 'imageDirectory'
     currMovie.imageDirectory = [currMovie.fsmDirectory{1} filesep 'crop'];
     currMovie.channelDirectory = {''};
+    
+    % Find the number of images
     currMovie.nImages = numel(dir([currMovie.imageDirectory filesep '*.tif']));
-    if exist([currMovie.fsmDirectory{1} filesep 'fsmPhysiParam.mat'], 'file')
-        load([currMovie.fsmDirectory{1} filesep 'fsmPhysiParam.mat']);
-    elseif exist([currMovie.fsmDirectory{2} filesep 'fsmPhysiParam.mat'], 'file')
-        load([currMovie.fsmDirectory{2} filesep 'fsmPhysiParam.mat']);
+    
+    % Load fsmPhysiParam.mat file. We search in both FSM directories. If
+    % both directories contains that file, we choose the file in the first
+    % directory.
+    ind = arrayfun(@(x) exist([currMovie.fsmDirectory{x} filesep ...
+        'fsmPhysiParam.mat'], 'file') ~= 0, 1:2);
+    if any(ind)
+        ind = find(ind, 1, 'first');
+        load([currMovie.fsmDirectory{ind} filesep 'fsmPhysiParam.mat']);
     else
         disp([movieName ': Unable to locate fsmPhysiParam.mat (SKIPPING).']);
     end        
@@ -102,7 +119,9 @@ for iMovie = 1:nMovies
     currMovie.timeInterval_s = fsmPhysiParam.frameInterval;
     clear fsmPhysiParam;
 
-    currMovie.masks.directory = [currMovie.fsmDirectory{1} filesep 'edge' filesep 'cell_mask'];
+    % Set the mask directory (Actin)
+    currMovie.masks.directory = [currMovie.fsmDirectory{2} filesep 'edge' filesep 'cell_mask'];
+    
      % Add this field to be compliant with Hunter's check routines:
     currMovie.masks.channelDirectory = {''};
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
@@ -114,7 +133,7 @@ for iMovie = 1:nMovies
     end
 
     % STEP 2: Get contours
-    dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
+    dContour = 500 / currMovie.pixelSize_nm; % ~ 500nm
     
     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
             currMovie.contours.status ~= 1 || forceRun(2)
@@ -140,7 +159,7 @@ for iMovie = 1:nMovies
 
             handles.batch_processing = 1; %batchMode;
             handles.directory_name = [currMovie.masks.directory];
-            handles.result_directory_name = [currMovie.masks.directory];
+            handles.result_directory_name = currMovie.analysisDirectory;
             handles.FileType = '*.tif';
             handles.timevalue = currMovie.timeInterval_s;
             handles.resolutionvalue = currMovie.pixelSize_nm;
@@ -177,7 +196,7 @@ for iMovie = 1:nMovies
     % Note: the width dWin should be set so that the autocorrelation over
     % windows of Edge Velocity Map is maximized (it might yield a trivial
     % solution dWin -> 0).
-    dWin = 2000 / currMovie.pixelSize_nm; % ~ 2um
+    dWin = 3000 / currMovie.pixelSize_nm; % ~ 3um
     iStart = 2;
     iEnd = 4;
     winMethod = 'e';            
@@ -227,7 +246,7 @@ for iMovie = 1:nMovies
     end 
 
     % STEP 6: Label
-    nBandsLimit = 5; % ~ 5 um depth
+    nBandsLimit = 10; % ~5 um depth
     if ~isfield(currMovie,'labels') || ~isfield(currMovie.labels,'status') || ...
             currMovie.labels.status ~= 1 || forceRun(6)
         try
@@ -288,7 +307,7 @@ fclose(fid);
 
 % Figure 3
 disp('Make figure 3...');
-makeFigure3(analysisPaths, outputDirectory);
+%makeFigure3(analysisPaths, outputDirectory);
 % Figure 4
 disp('Make figure 4...');
 makeFigure4(analysisPaths, outputDirectory);
