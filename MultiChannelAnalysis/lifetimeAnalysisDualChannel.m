@@ -56,6 +56,10 @@ lftHistMean = stageFitLifetimes(data, 'lftHist');
 cargoLftHistMean = stageFitLifetimes(data, 'cargoLftHist');
 nocargoLftHistMean = stageFitLifetimes(data, 'nocargoLftHist');
 
-lifetimeAnalysis_2p(lftHistMean, kWeibull, cutoffIdx);
-lifetimeAnalysis_2p(cargoLftHistMean, kWeibull, cutoffIdx);
-lifetimeAnalysis_2p(nocargoLftHistMean, kWeibull, cutoffIdx);
+resGlobal = lifetimeAnalysis_2p(data, lftHistMean, kWeibull, cutoffIdx, 'all pits');
+resCargo = lifetimeAnalysis_2p(data, cargoLftHistMean, kWeibull, cutoffIdx, 'w/ cargo');
+resNoCargo = lifetimeAnalysis_2p(data, nocargoLftHistMean, kWeibull, cutoffIdx, 'w/o cargo');
+
+
+
+

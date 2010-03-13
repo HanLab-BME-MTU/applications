@@ -1,4 +1,4 @@
-function lifetimeAnalysis_2p(Results, kWeibull, cutoffIdx)
+function output = lifetimeAnalysis_2p(data, Results, kWeibull, cutoffIdx, name)
 %(Results, restrict, kWeibull, estartvec, efixvec)
 
 % data = fillStructLifetimeHist(data);
@@ -10,6 +10,11 @@ function lifetimeAnalysis_2p(Results, kWeibull, cutoffIdx)
 
 if (nargin < 3)
     cutoffIdx = 1;
+end
+if (nargin < 4)
+    name = [];
+else
+    name = [' (' name ')'];
 end
 
 t = Results.hist_slow(1,:);
@@ -79,9 +84,14 @@ axis([0 t(end) 0 max(histVect)]);
 set(gca, 'FontName', 'Helvetica', 'FontSize', 14, 'LineWidth', 2);
 xlabel('t [s]', 'FontName', 'Helvetica', 'FontSize', 14);
 ylabel('Relative frequency', 'FontName', 'Helvetica', 'FontSize', 14);
-title('Lifetime histogram', 'FontName', 'Helvetica', 'FontSize', 14);
+title(['Lifetime histogram' name], 'FontName', 'Helvetica', 'FontSize', 14);
 
 %print('-depsc2', '-r300', 'histogramFit.eps');
+output.populationContributions = aVect/sum(aVect);
+output.tau = lambdaVect;
+output.nCell = length(data);
+output.nCCP = Results.numcells_slow;
+%output.tau50 = jackknifed value 
 
 
 % ========================================================================
@@ -111,7 +121,7 @@ axis([0 t(end) 0 1]);
 set(gca, 'YTick', 0:0.1:1, 'FontName', 'Helvetica', 'FontSize', 14, 'LineWidth', 1.5);
 xlabel('t [s]', 'FontName', 'Helvetica', 'FontSize', 14);
 ylabel('Relative frequency', 'FontName', 'Helvetica', 'FontSize', 14);
-title('Cumulative histogram', 'FontName', 'Helvetica', 'FontSize', 14);
+title(['Cumulative histogram' name], 'FontName', 'Helvetica', 'FontSize', 14);
 %print('-depsc2', '-r300', 'cumulativeHistogramFit.eps');
 
 
