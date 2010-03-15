@@ -1,31 +1,24 @@
-function batchComputeActinFACorrelation(varargin)
-%      BATCHCOMPUTEACTINFACORRELATION(forceRedo) Compute the correlation
-%      between Actin speed and F:
-%      - average Actin speed along Actin tracks
-%      - average TM speed along Actin tracks.
-%      - average protrusion value along Actin tracks.
-% 'forceRun' forces to recompute results.
+function batchComputeActinFACorrelation(rootDirectory, forceRun, batchMode)
 
-if nargin >= 1 && ~isempty(varargin{1})
-    rootDirectory = varargin{1};
-else
-    % Ask for the root directory.
-    rootDirectory = uigetdir('', 'Select a root directory:');
+nSteps = 7;
 
-    if ~ischar(rootDirectory)
+if nargin < 1 || isempty(rootDirectory)
+    dataDirectory = uigetdir('', 'Select a data directory:');
+
+    if ~ischar(dataDirectory)
         return;
     end
 end
 
-if nargin >= 2 && ~isempty(varargin{2})
-    forceRun = varargin{2};
-else
-    forceRun = zeros(7, 1);
+if nargin < 2 || isempty(forceRun)        
+    forceRun = zeros(nSteps, 1);
 end
 
-if nargin >= 3 && ~isempty(varargin{3})
-    batchMode = varargin{3};
-else
+if length(forceRun) ~= nSteps
+    error('Invalid number of steps in forceRun (2nd argument).');
+end
+
+if nargin < 3 || isempty(batchMode)
     batchMode = 1;
 end
 
@@ -51,7 +44,7 @@ for iMovie = 1:nMovies
    
     currMovie = movieData{iMovie};
     
-    %% STEP 1: Create the initial movie data
+    % STEP 1: Create the initial movie data
 
     try
         fieldNames = {...
@@ -110,13 +103,9 @@ for iMovie = 1:nMovies
         continue;
     end
     
-    %% STEP 2: Get the contour    
+    % STEP 2: Get the contour    
     
     dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
-    dWin = 2000 / currMovie.pixelSize_nm; % ~ 2um
-    iStart = 2;
-    iEnd = 5;
-    winMethod = 'e';
     
     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
             currMovie.contours.status ~= 1 || forceRun(2)
@@ -135,7 +124,7 @@ for iMovie = 1:nMovies
         end
     end
 
-    %% STEP 3: Calculate protusion
+    % STEP 3: Calculate protusion
 
     if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'status') || ...
             currMovie.protrusion.status ~= 1 || forceRun(3)
@@ -186,8 +175,13 @@ for iMovie = 1:nMovies
         end
     end
 
-    %% STEP 4: Create windows
+    % STEP 4: Create windows
     
+    dWin = 2000 / currMovie.pixelSize_nm; % ~ 2um
+    iStart = 2;
+    iEnd = 5;
+    winMethod = 'c';
+
     windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' num2str(iStart) '_' num2str(iEnd)];
 
     if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || ...
@@ -210,7 +204,7 @@ for iMovie = 1:nMovies
         end
     end
     
-    %% STEP 5: Sample the protrusion vector in each window
+    % STEP 5: Sample the protrusion vector in each window
 
     if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ...
             ~isfield(currMovie.protrusion.samples,'status') || ...
@@ -232,7 +226,7 @@ for iMovie = 1:nMovies
         
     end 
     
-    %% STEP 6: Create the window labels.
+    % STEP 6: Create the window labels.
 
     if ~isfield(currMovie, 'labels') || ~isfield(currMovie.labels, 'status') || ...
             currMovie.labels.status ~= 1 || forceRun(6)
@@ -241,7 +235,7 @@ for iMovie = 1:nMovies
 
             disp(['Get labels of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
             
-            currMovie = getMovieLabels(currMovie, batchMode);
+            currMovie = getMovieLabels(currMovie, [], batchMode);
 
             if isfield(currMovie.labels,'error')
                 currMovie.labels = rmfield(currMovie.labels,'error');
@@ -254,7 +248,7 @@ for iMovie = 1:nMovies
         end
     end
 
-    %% STEP 7: FA Segmentation
+    % STEP 7: FA Segmentation
     
     if ~isfield(currMovie, 'segmentation') || ~isfield(currMovie.segmentation, 'status') || ...
             currMovie.segmentation.status ~= 1 || forceRun(7)
@@ -276,7 +270,7 @@ for iMovie = 1:nMovies
         end            
     end 
     
-    %% Save results
+    % Save results
     try
         %Save the updated movie data
         updateMovieData(currMovie)

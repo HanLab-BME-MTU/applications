@@ -19,19 +19,11 @@ if ~exist(segmentationPath, 'dir')
 end
 
 nFrames = numel(imageFiles);
- 
-g = ones(3);
-g(2, 2) = 0;
 
 for i = 1:nFrames
     I = imread([imagePath filesep imageFiles(i).name]);
-    
-    Irec = awtDenoising(I, 2, 0, 5);
-    
-    BW = zeros(size(I), 'uint8');
-    BW(uint16(Irec) ~= 0) = 1;
-    BWfiltered = imfilter(BW, g);
-    BW(BWfiltered == 0) = 0;
+
+    BW = blobSegmentThreshold(I, 1, 0);
     
     imwrite(logical(BW), [segmentationPath filesep imageFiles(i).name], ...
         'Compression', 'none');
