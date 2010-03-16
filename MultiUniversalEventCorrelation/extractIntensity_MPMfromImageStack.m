@@ -89,7 +89,7 @@ DinPix = sqrt(XinPix.^2 + YinPix.^2);
 % loop over all frames
 for i=1:numf
     
-    fprintf('frame #%03d',i);
+    %fprintf('frame #%03d',i);
     
     %current image
     if strcmp(datatype,'stack')
