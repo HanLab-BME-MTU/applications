@@ -103,8 +103,8 @@ end
 %  load parameter files for all movies
 % =========================================================================
 nMovies = length(data);
-fileName = cell(1:nMovies);
-fileNameRef = cell(1:nMovies);
+fileName = cell(1,nMovies);
+fileNameRef = cell(1,nMovies);
 
 for i = 1:nMovies
     % set search path for parameter/intensity file
