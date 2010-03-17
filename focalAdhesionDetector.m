@@ -65,22 +65,14 @@ if nargout > 1
     val = cell(n,1);    
     
     for i = 1:n
-        % Define the support of segment i
-        % NOTE 1: these are the same ranges calculated in imageSegmentModel.
-        % Make this computation only once.
-        % NOTE 2: IMPORTANT: check in Mathematica that the support of the
-        % partial derivatives of the segment is the same as for the segment
-        % itself.
         xRange = [];
         yRange = [];
         
         % Compute all partial derivatives of segment parameters (except
         % sigmaPSF, since it is fixed).
-        dFdXc = dlSegment2D_dFdXc(xRange, yRange, x(i,1), x(i,2), x(i,3), sigmaPSF, x(i,4), x(i,5));
-        dFdYc = dlSegment2D_dFdYc(xRange, yRange, x(i,1), x(i,2), x(i,3), sigmaPSF, x(i,4), x(i,5));
-        dFdA = dlSegment2D_dFdA(xRange, yRange, x(i,1), x(i,2), x(i,3), sigmaPSF, x(i,4), x(i,5));
-        dFdl = dlSegment2D_dFdl(xRange, yRange, x(i,1), x(i,2), x(i,3), sigmaPSF, x(i,4), x(i,5));
-        dFdt = dlSegment2D_dFdt(xRange, yRange, x(i,1), x(i,2), x(i,3), sigmaPSF, x(i,4), x(i,5));
+        [dFdXc, dFdYc, dFdA, dFds, dFdl, dFdt] = ...
+            dlSegment2DJacobian(xRange, yRange, x(i,1), x(i,2), x(i,3),...
+            sigmaPSF, x(i,4), x(i,5)); %#ok<ASGLU>
         
         [X Y] = meshgrid(xRange, yRange);
         ind = sub2ind(size(Iu), Y(:), X(:));
