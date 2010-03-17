@@ -38,4 +38,3 @@ for i = 1:numel(idx1)
     plot(p(:, 1), p(:, 2), 'Color', rand(3, 1), 'LineWidth', 2);
 end
 hold off;
-hello
