@@ -52,30 +52,58 @@ quiver(params(:,1), params(:,2), (params(:,4) / 2) .* cos(params(:,5) + pi), ...
     (params(:,4) / 2) .* sin(params(:,5) + pi), 0, 'g');
 plot(params(:,1), params(:,2), 'r.'); hold off;
 
-function [F J] = fitDLSegment2D(x, Iu, sigmaPSF)
+function [F J] = fitDLSegment2D(x, I, sigmaPSF)
 
-F = reshape(Iu - imageSegmentModel(size(Iu), sigmaPSF, x), numel(Iu), 1);
+[n p] = size(x);
+
+[nrows ncols] = size(I);
+
+m = nrows * ncols;
+    
+xRange = cell(n, 1);
+yRange = cell(n, 1);
+
+F = zeros(nrows,ncols);
+
+for i = 1:n
+    xC = x(i,1);
+    yC = x(i,2);
+    A = x(i,3);
+    l = x(i,4);
+    t = x(i,5);
+    
+    [xR yR] = dLSegment2DSupport(xC, yC, sigmaPSF, l, t);
+
+    xRange{i} = max(xR(1),1):min(xR(end),size(Iu,2));
+    yRange{i} = max(yR(1),1):min(yR(end),size(Iu,1));
+    
+    S = dLSegment2D(xRange{i}, yRange{i}, xC, yC, A, sigmaPSF, l, t);
+
+    F(yRange,xRange) = I(yRange,xRange) - S;
+end
+
+F = F(:);
 
 if nargout > 1
-    [n p] = size(x);
-    m = numel(Iu);
-    
     indPixels = cell(n,1);
     indParams = cell(n,1);
     val = cell(n,1);    
     
     for i = 1:n
-        xRange = [];
-        yRange = [];
+        xC = x(i,1);
+        yC = x(i,2);
+        A = x(i,3);
+        l = x(i,4);
+        t = x(i,5);
         
         % Compute all partial derivatives of segment parameters (except
         % sigmaPSF, since it is fixed).
         [dFdXc, dFdYc, dFdA, dFds, dFdl, dFdt] = ...
-            dlSegment2DJacobian(xRange, yRange, x(i,1), x(i,2), x(i,3),...
-            sigmaPSF, x(i,4), x(i,5)); %#ok<ASGLU>
+            dlSegment2DJacobian(xRange{i}, yRange{i}, xC, yC, A, ...
+            sigmaPSF, l, t); %#ok<ASGLU>
         
-        [X Y] = meshgrid(xRange, yRange);
-        ind = sub2ind(size(Iu), Y(:), X(:));
+        [X Y] = meshgrid(xRange{i}, yRange{i});
+        ind = sub2ind([nrows ncols], Y(:), X(:));
         
         indPixels{i} = repmat(ind, p, 1);
         indParams{i} = vertcat(arrayfun(@(k) ones(numel(ind), 1) * i + ...
