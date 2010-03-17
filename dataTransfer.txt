@@ -9,8 +9,8 @@ A. Update DATA from Scripps -> Orchestra
 
 A. Update DATA from Orchestra -> Local Machine
 
-1.$ cd ~/Projects/Tropo
-2.$ scp -r sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/Data_for_paper .
+1.$ cd ~/Projects/Tropo/Data_for_paper
+2.$ rsync -rtvz sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/Data_for_paper/ .
 
 B. Update SVN
 
