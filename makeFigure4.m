@@ -81,55 +81,55 @@ for iTM = 1:3
     %                                                                 %
     %-----------------------------------------------------------------%
     
-    % TM (Panel A, column 1)
-    
-    % Read image
-    fileName = [image1Path filesep image1Files(iFrames(iTM)).name];
-    I1 = imread(fileName);
-    % Crop image
-    I1 = I1(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
-        imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
-    % Save
-    hFig = figure('Visible', 'off');
-    imshow(I1, []);
-    %fileName = [outputDirectory filesep 'Fig4_A' num2str(iTM) '1.eps'];
-    %print(hFig, '-depsc' , '-painters', fileName);
-    % Close the figure
-    close(hFig);
-    
-    % Actin (Panel A, column 2)
-    
-    % Read image
-    fileName = [image2Path filesep image2Files(iFrames(iTM)).name];
-    I2 = imread(fileName);
-    % Crop image
-    I2 = I2(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
-        imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
-    % Save
-    hFig = figure('Visible', 'off');
-    imshow(I2, []);
-    %fileName = [outputDirectory filesep 'Fig4_A' num2str(iTM) '2.eps'];
-    %print(hFig, '-depsc' , '-painters', fileName);
-    % Close the figure
-    close(hFig);
-
-    % Merge (Panel A, column 3)
-    
-    % Convert to 8bit channel
-    iMin = min(I1(:));
-    iMax = max(I1(:));
-    I1 = uint8((255 / double(iMax - iMin)) * (double(I1) - iMin));
-    iMin = min(I2(:));
-    iMax = max(I2(:));
-    I2 = uint8((255 / double(iMax - iMin)) * (double(I2) - iMin));
-    imageMerge = cat(3, I2, I1, Z);
-    % Save
-    hFig = figure('Visible', 'off');
-    imshow(imageMerge);
-    %fileName = [outputDirectory filesep 'Fig4_A' num2str(iTM) '3.eps'];
-    %print(hFig, '-depsc' , '-painters', fileName);
-    % Close the figure
-    close(hFig);
+%     % TM (Panel A, column 1)
+%     
+%     % Read image
+%     fileName = [image1Path filesep image1Files(iFrames(iTM)).name];
+%     I1 = imread(fileName);
+%     % Crop image
+%     I1 = I1(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
+%         imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
+%     % Save
+%     hFig = figure('Visible', 'off');
+%     imshow(I1, []);
+%     fileName = [outputDirectory filesep 'Fig4_A' num2str(iTM) '1.eps'];
+%     print(hFig, '-depsc' , '-painters', fileName);
+%     % Close the figure
+%     close(hFig);
+%     
+%     % Actin (Panel A, column 2)
+%     
+%     % Read image
+%     fileName = [image2Path filesep image2Files(iFrames(iTM)).name];
+%     I2 = imread(fileName);
+%     % Crop image
+%     I2 = I2(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
+%         imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
+%     % Save
+%     hFig = figure('Visible', 'off');
+%     imshow(I2, []);
+%     fileName = [outputDirectory filesep 'Fig4_A' num2str(iTM) '2.eps'];
+%     print(hFig, '-depsc' , '-painters', fileName);
+%     % Close the figure
+%     close(hFig);
+% 
+%     % Merge (Panel A, column 3)
+%     
+%     % Convert to 8bit channel
+%     iMin = min(I1(:));
+%     iMax = max(I1(:));
+%     I1 = uint8((255 / double(iMax - iMin)) * (double(I1) - iMin));
+%     iMin = min(I2(:));
+%     iMax = max(I2(:));
+%     I2 = uint8((255 / double(iMax - iMin)) * (double(I2) - iMin));
+%     imageMerge = cat(3, I2, I1, Z);
+%     % Save
+%     hFig = figure('Visible', 'off');
+%     imshow(imageMerge);
+%     fileName = [outputDirectory filesep 'Fig4_A' num2str(iTM) '3.eps'];
+%     print(hFig, '-depsc' , '-painters', fileName);
+%     % Close the figure
+%     close(hFig);
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -137,119 +137,119 @@ for iTM = 1:3
     %                                                                 %
     %-----------------------------------------------------------------%
 
-    % Read the distance transform
-    fileName = [bwdistPath filesep bwdistFiles(iFrames(iTM)).name];
-    load(fileName);
-    distToEdge = distToEdge * (pixelSize / 1000);
-    % Load TM speckles
-    fileName = [s1Path filesep s1Files(iFrames(iTM)).name];
-    load(fileName);
-    loc1 = locMax;
-    % Load Actin speckles
-    fileName = [s2Path filesep s2Files(iFrames(iTM)).name];
-    load(fileName);
-    loc2 = locMax;
-        
-    % TM Channel + Actin & TM Speckles (Panel B, column 1)
-    
-    % Crop distance transform
-    imageD = distToEdge(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
-        imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
-    
-    % Crop TM speckles
-    idxLoc1 = find(loc1(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
-        imagePos(iTM,2):imagePos(iTM,2)+imageSize-1) ~= 0 & imageD < 5);
-    
-    % Crop Actin speckles
-    idxLoc2 = find(loc2(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
-        imagePos(iTM,2):imagePos(iTM,2)+imageSize-1) ~= 0 & imageD < 5);
-        
-    % Create a figure
-    hFig = figure('Visible', 'off');
-    % Draw image
-    imshow(I1);
-    % Draw TM speckles
-    [y x] = ind2sub(size(imageD), idxLoc1);    
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',6);
-    % Drw Actin speckles
-    [y x] = ind2sub(size(imageD), idxLoc2);
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',6);
-    % Draw iso-contours at 0 and 5 microns
-    c = contourc(double(imageD), [0, 5]);
-    n = c(2, 1);
-    line(c(1, 2:n+1), c(2, 2:n+1), 'Color', 'w', 'Linewidth', 2);
-    line(c(1, n+3:end), c(2, n+3:end), 'Color', 'w', 'Linewidth', 2);
-    % Draw the inset box
-    p = insetPos(iTM, :) - imagePos(iTM, :);
-    line([p(2), p(2) + insetSize, p(2) + insetSize, p(2), p(2)], ...
-        [p(1), p(1), p(1) + insetSize, p(1) + insetSize, p(1)], ...
-        'Color', 'w', 'Linewidth', 2);
-    % Save input
-    set(gcf, 'InvertHardCopy', 'off');
-    fileName = [outputDirectory filesep 'Fig4_B' num2str(iTM) '1.eps'];
-    %print(hFig, '-depsc' , '-painters', fileName);
-    %fixEpsFile(fileName);
-    % Close the figure
-    close(hFig);
-    
-    % TM Inset + Speckles (Panel B, column 2)
-    
-    % Crop image
-    p = insetPos(iTM, :) - imagePos(iTM, :);
-    insetMerge = I1(p(1):p(1)+insetSize-1, p(2):p(2)+insetSize-1);
-    
-    % Crop distance transform
-    insetD = distToEdge(insetPos(iTM,1):insetPos(iTM,1)+insetSize-1,...
-        insetPos(iTM,2):insetPos(iTM,2)+insetSize-1);
-    
-    % Crop TM speckles
-    idxLoc1 = find(loc1(insetPos(iTM,1):insetPos(iTM,1)+insetSize-1,...
-        insetPos(iTM,2):insetPos(iTM,2)+insetSize-1) ~= 0 & insetD < 5);
-    
-    % Create a figure
-    hFig = figure('Visible', 'off');
-    % Draw image
-    imshow(imresize(insetMerge, 8, 'nearest'), ...
-        1.5 * [min(insetMerge(:)) max(insetMerge(:))]);
-    % Draw TM speckles
-    [y x] = ind2sub(size(insetD), idxLoc1);
-    line(8*x, 8*y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g', 'MarkerSize',20);
-    % Draw only the iso-contour at 0 micron
-    c = contourc(double(insetD), [0, 0]);
-    line(8*c(1, 2:end), 8*c(2, 2:end), 'Color', 'w', 'Linewidth', 3);
-    % Save input
-    set(gcf, 'InvertHardCopy', 'off');
-    fileName =  [outputDirectory filesep 'Fig4_B' num2str(iTM) '2.eps'];
-    %print(hFig, '-depsc' , fileName);
-    %fixEpsFile(fileName);
-    % Close the figure
-    close(hFig);
- 
-    % Actin Inset + Speckles (Panel B, column 3)
-    insetMerge = I2(p(1):p(1)+insetSize-1, p(2):p(2)+insetSize-1);
-    
-    % Crop Actin speckles
-    idxLoc2 = find(loc2(insetPos(iTM,1):insetPos(iTM,1)+insetSize-1,...
-        insetPos(iTM,2):insetPos(iTM,2)+insetSize-1) ~= 0 & insetD < 5);
-    
-    % Create a figure
-    hFig = figure('Visible', 'off');
-    % Draw image
-    imshow(imresize(insetMerge, 8, 'nearest'), ...
-        1.5 * [min(insetMerge(:)) max(insetMerge(:))]);
-    % Draw Actin speckles
-    [y x] = ind2sub(size(insetD), idxLoc2);
-    line(8*x, 8*y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',20);
-    % Draw only the iso-contour at 0 micron
-    c = contourc(double(insetD), [0, 0]);
-    line(8*c(1, 2:end), 8*c(2, 2:end), 'Color', 'w', 'Linewidth', 3);
-    % Save input
-    set(gcf, 'InvertHardCopy', 'off');
-    fileName =  [outputDirectory filesep 'Fig4_B' num2str(iTM) '3.eps'];
-    %print(hFig, '-depsc' , fileName);
-    %fixEpsFile(fileName);
-    % Close the figure
-    close(hFig);
+%     % Read the distance transform
+%     fileName = [bwdistPath filesep bwdistFiles(iFrames(iTM)).name];
+%     load(fileName);
+%     distToEdge = distToEdge * (pixelSize / 1000);
+%     % Load TM speckles
+%     fileName = [s1Path filesep s1Files(iFrames(iTM)).name];
+%     load(fileName);
+%     loc1 = locMax;
+%     % Load Actin speckles
+%     fileName = [s2Path filesep s2Files(iFrames(iTM)).name];
+%     load(fileName);
+%     loc2 = locMax;
+%         
+%     % TM Channel + Actin & TM Speckles (Panel B, column 1)
+%     
+%     % Crop distance transform
+%     imageD = distToEdge(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
+%         imagePos(iTM,2):imagePos(iTM,2)+imageSize-1);
+%     
+%     % Crop TM speckles
+%     idxLoc1 = find(loc1(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
+%         imagePos(iTM,2):imagePos(iTM,2)+imageSize-1) ~= 0 & imageD < 5);
+%     
+%     % Crop Actin speckles
+%     idxLoc2 = find(loc2(imagePos(iTM,1):imagePos(iTM,1)+imageSize-1,...
+%         imagePos(iTM,2):imagePos(iTM,2)+imageSize-1) ~= 0 & imageD < 5);
+%         
+%     % Create a figure
+%     hFig = figure('Visible', 'off');
+%     % Draw image
+%     imshow(I1);
+%     % Draw TM speckles
+%     [y x] = ind2sub(size(imageD), idxLoc1);    
+%     line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',6);
+%     % Drw Actin speckles
+%     [y x] = ind2sub(size(imageD), idxLoc2);
+%     line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',6);
+%     % Draw iso-contours at 0 and 5 microns
+%     c = contourc(double(imageD), [0, 5]);
+%     n = c(2, 1);
+%     line(c(1, 2:n+1), c(2, 2:n+1), 'Color', 'w', 'Linewidth', 2);
+%     line(c(1, n+3:end), c(2, n+3:end), 'Color', 'w', 'Linewidth', 2);
+%     % Draw the inset box
+%     p = insetPos(iTM, :) - imagePos(iTM, :);
+%     line([p(2), p(2) + insetSize, p(2) + insetSize, p(2), p(2)], ...
+%         [p(1), p(1), p(1) + insetSize, p(1) + insetSize, p(1)], ...
+%         'Color', 'w', 'Linewidth', 2);
+%     % Save input
+%     set(gcf, 'InvertHardCopy', 'off');
+%     fileName = [outputDirectory filesep 'Fig4_B' num2str(iTM) '1.eps'];
+%     print(hFig, '-depsc' , '-painters', fileName);
+%     fixEpsFile(fileName);
+%     % Close the figure
+%     close(hFig);
+%     
+%     % TM Inset + Speckles (Panel B, column 2)
+%     
+%     % Crop image
+%     p = insetPos(iTM, :) - imagePos(iTM, :);
+%     insetMerge = I1(p(1):p(1)+insetSize-1, p(2):p(2)+insetSize-1);
+%     
+%     % Crop distance transform
+%     insetD = distToEdge(insetPos(iTM,1):insetPos(iTM,1)+insetSize-1,...
+%         insetPos(iTM,2):insetPos(iTM,2)+insetSize-1);
+%     
+%     % Crop TM speckles
+%     idxLoc1 = find(loc1(insetPos(iTM,1):insetPos(iTM,1)+insetSize-1,...
+%         insetPos(iTM,2):insetPos(iTM,2)+insetSize-1) ~= 0 & insetD < 5);
+%     
+%     % Create a figure
+%     hFig = figure('Visible', 'off');
+%     % Draw image
+%     imshow(imresize(insetMerge, 8, 'nearest'), ...
+%         1.5 * [min(insetMerge(:)) max(insetMerge(:))]);
+%     % Draw TM speckles
+%     [y x] = ind2sub(size(insetD), idxLoc1);
+%     line(8*x, 8*y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g', 'MarkerSize',20);
+%     % Draw only the iso-contour at 0 micron
+%     c = contourc(double(insetD), [0, 0]);
+%     line(8*c(1, 2:end), 8*c(2, 2:end), 'Color', 'w', 'Linewidth', 3);
+%     % Save input
+%     set(gcf, 'InvertHardCopy', 'off');
+%     fileName =  [outputDirectory filesep 'Fig4_B' num2str(iTM) '2.eps'];
+%     print(hFig, '-depsc' , fileName);
+%     fixEpsFile(fileName);
+%     % Close the figure
+%     close(hFig);
+%  
+%     % Actin Inset + Speckles (Panel B, column 3)
+%     insetMerge = I2(p(1):p(1)+insetSize-1, p(2):p(2)+insetSize-1);
+%     
+%     % Crop Actin speckles
+%     idxLoc2 = find(loc2(insetPos(iTM,1):insetPos(iTM,1)+insetSize-1,...
+%         insetPos(iTM,2):insetPos(iTM,2)+insetSize-1) ~= 0 & insetD < 5);
+%     
+%     % Create a figure
+%     hFig = figure('Visible', 'off');
+%     % Draw image
+%     imshow(imresize(insetMerge, 8, 'nearest'), ...
+%         1.5 * [min(insetMerge(:)) max(insetMerge(:))]);
+%     % Draw Actin speckles
+%     [y x] = ind2sub(size(insetD), idxLoc2);
+%     line(8*x, 8*y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',20);
+%     % Draw only the iso-contour at 0 micron
+%     c = contourc(double(insetD), [0, 0]);
+%     line(8*c(1, 2:end), 8*c(2, 2:end), 'Color', 'w', 'Linewidth', 3);
+%     % Save input
+%     set(gcf, 'InvertHardCopy', 'off');
+%     fileName =  [outputDirectory filesep 'Fig4_B' num2str(iTM) '3.eps'];
+%     print(hFig, '-depsc' , fileName);
+%     fixEpsFile(fileName);
+%     % Close the figure
+%     close(hFig);
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -338,13 +338,32 @@ end
 %                                                                 %
 %-----------------------------------------------------------------%
 
+% Y(1, :) = TM2 (TM, Actin)
+% Y(2, :) = TM4 (TM, Actin)
+% Y(3, :) = TM5NM1 (TM, Actin)
+Y = [(3:3:9)', (1:3)'];
+
+% E(1, :) = TM2 (TM, Actin)
+% E(2, :) = TM4 (TM, Actin)
+% E(3, :) = TM5NM1 (TM, Actin)
+E = ones(3, 2) * .6;
+
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
 set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-bar(round(rand(3,2)*10));
+h = bar(gca, Y, 'group'); hold on;
+% Get the central position over the bars
+X = cell2mat(arrayfun(@(i) mean(get(get(h(i), 'Children'), 'XData'))', ...
+    1:2, 'UniformOutput', false));
+errorbar(X(:),Y(:),E(:),'xk'); hold off;
+set(h(1), 'FaceColor', [.4 .8 .2]); % TMs
+set(h(2), 'FaceColor', [.6 .2 .2]); % Actin
+legend({'TM', 'Actin', 'Diff'});
+title('During Protrusion');
 set(gca, 'XTickLabel', {'TM2', 'TM4', 'TM5NM1'});
-legend({'TM', 'Actin'});
 ylabel(['Distance to Edge (' char(181) 'm)']);
+
+
 fileName = [outputDirectory filesep 'Fig4_D.eps'];
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);
@@ -369,6 +388,7 @@ legend({'TM2', 'TM4', 'TM5NM1'});
 axis([min(cat(2,xRange{:})) max(cat(2,xRange{:})) 0 max(cat(2,n{:},.4))]);
 title('During Protrusion');
 xlabel(['Distance to Actin Front (' char(181) 'm)']);
+
 fileName = [outputDirectory filesep 'Fig4_E.eps'];
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);
