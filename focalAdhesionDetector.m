@@ -36,9 +36,12 @@ params(:,5) = -vertcat(CCstats(:).Orientation) * pi/180;
 initParams = params;
 options = optimset('Jacobian', 'on', 'MaxFunEvals', 1e4, 'MaxIter', 1e4, ...
     'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
-fun = @(x) fitDLSegment2D(x, Iu, sigmaPSF);
-params = lsqnonlin(fun, initParams, [], [], options);
+fun = @(x) dlSegment2DFit(x, Iu, sigmaPSF);
+[params, ~, residual] = lsqnonlin(fun, initParams, [], [], options);
 
+Im = Iu - residual;
+
+% DEBUG
 imshow(Iu, []); hold on;
 quiver(initParams(:,1), initParams(:,2), (initParams(:,4) / 2) .* cos(initParams(:,5)), ...
     (initParams(:,4) / 2) .* sin(initParams(:,5)), 0, 'g');
@@ -51,69 +54,4 @@ quiver(params(:,1), params(:,2), (params(:,4) / 2) .* cos(params(:,5)), ...
 quiver(params(:,1), params(:,2), (params(:,4) / 2) .* cos(params(:,5) + pi), ...
     (params(:,4) / 2) .* sin(params(:,5) + pi), 0, 'g');
 plot(params(:,1), params(:,2), 'r.'); hold off;
-
-function [F J] = fitDLSegment2D(x, I, sigmaPSF)
-
-[n p] = size(x);
-
-[nrows ncols] = size(I);
-
-m = nrows * ncols;
-    
-xRange = cell(n, 1);
-yRange = cell(n, 1);
-
-F = zeros(nrows,ncols);
-
-for i = 1:n
-    xC = x(i,1);
-    yC = x(i,2);
-    A = x(i,3);
-    l = x(i,4);
-    t = x(i,5);
-    
-    [xR yR] = dLSegment2DSupport(xC, yC, sigmaPSF, l, t);
-
-    xRange{i} = max(xR(1),1):min(xR(end),size(Iu,2));
-    yRange{i} = max(yR(1),1):min(yR(end),size(Iu,1));
-    
-    S = dLSegment2D(xRange{i}, yRange{i}, xC, yC, A, sigmaPSF, l, t);
-
-    F(yRange,xRange) = I(yRange,xRange) - S;
-end
-
-F = F(:);
-
-if nargout > 1
-    indPixels = cell(n,1);
-    indParams = cell(n,1);
-    val = cell(n,1);    
-    
-    for i = 1:n
-        xC = x(i,1);
-        yC = x(i,2);
-        A = x(i,3);
-        l = x(i,4);
-        t = x(i,5);
-        
-        % Compute all partial derivatives of segment parameters (except
-        % sigmaPSF, since it is fixed).
-        [dFdXc, dFdYc, dFdA, dFds, dFdl, dFdt] = ...
-            dlSegment2DJacobian(xRange{i}, yRange{i}, xC, yC, A, ...
-            sigmaPSF, l, t); %#ok<ASGLU>
-        
-        [X Y] = meshgrid(xRange{i}, yRange{i});
-        ind = sub2ind([nrows ncols], Y(:), X(:));
-        
-        indPixels{i} = repmat(ind, p, 1);
-        indParams{i} = vertcat(arrayfun(@(k) ones(numel(ind), 1) * i + ...
-            k * n, 0:p-1, 'UniformOutput', 'false'));        
-        val{i} = vertcat(dFdXc(:), dFdYc(:), dFdA(:), dFdl(:), dFdt(:));
-    end
-    
-    indPixels = vertcat(indPixels{:});
-    indParams = vertcat(indParams{:});
-    val = vertcat(val{:});
-    J = sparse(indPixels, indParams, val, m, n * p, length(val));
-end
 
