@@ -34,7 +34,7 @@ if nargin<3 || isempty(framerate)
 end
 
 % calculate lft matrices
-load([lftinfopath filesep 'ltfInfo.mat']);
+load([lftinfopath filesep 'lftInfo.mat']);
 mat_lft   = full(lftInfo.Mat_lifetime);
 mat_stat  = full(lftInfo.Mat_status);
 
