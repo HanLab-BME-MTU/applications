@@ -1,4 +1,4 @@
-function lifetimeAnalysisDualChannel(data, kWeibull, cutoffIdx)
+function [resCargo resNoCargo resGlobal] = lifetimeAnalysisDualChannel(data, kWeibull, cutoffIdx)
 
 if nargin < 2
     kWeibull = [1 2];
