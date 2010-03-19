@@ -27,10 +27,10 @@ params(:,6) = -vertcat(CCstats(:).Orientation) * pi/180;
 
 % Fit
 initParams = params;
-options = optimset('Jacobian', 'off', 'MaxFunEvals', 1e4, 'MaxIter', 1, ...
+options = optimset('Jacobian', 'off', 'MaxFunEvals', 1e4, 'MaxIter', 1e4, ...
     'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
 fun = @(x) dlSegment2DFit(x, I, sigmaPSF);
-[params, ~, residual,exitflag,output,lambda,jacobian] = lsqnonlin(fun, params, [], [], options);
+[params, ~, residual] = lsqnonlin(fun, params, [], [], options);
 
 Im = I - reshape(residual, size(I));
 
