@@ -27,10 +27,10 @@ params(:,6) = -vertcat(CCstats(:).Orientation) * pi/180;
 
 % Fit
 initParams = params;
-options = optimset('Jacobian', 'off', 'MaxFunEvals', 1e4, 'MaxIter', 1e4, ...
+options = optimset('Jacobian', 'on', 'MaxFunEvals', 1e4, 'MaxIter', 1, ...
     'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
-fun = @(x) dlSegment2DFit(x, I, sigmaPSF);
-[params, ~, residual] = lsqnonlin(fun, params, [], [], options);
+fun = @(x) dLSegment2DFit(x, I, sigmaPSF);
+[params, ~, residual] = lsqnonlin(fun, initParams, [], [], options);
 
 Im = I - reshape(residual, size(I));
 
@@ -38,8 +38,6 @@ Im = I - reshape(residual, size(I));
 imshow(I, []); hold on;
 xC = initParams(:,1);
 yC = initParams(:,2);
-A = initParams(:,3);
-Bg = initParams(:,4);
 l = initParams(:,5);
 t = initParams(:,6);
 
@@ -49,8 +47,6 @@ plot(xC, yC, 'g.');
 
 xC = params(:,1);
 yC = params(:,2);
-A = params(:,3);
-Bg = params(:,4);
 l = params(:,5);
 t = params(:,6);
 
