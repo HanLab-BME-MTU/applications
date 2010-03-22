@@ -27,27 +27,37 @@ params(:,6) = -vertcat(CCstats(:).Orientation) * pi/180;
 
 % Fit
 initParams = params;
-options = optimset('Jacobian', 'on', 'MaxFunEvals', 1e4, 'MaxIter', 1, ...
+
+% Define bounds
+lb = zeros(size(params));
+lb(:,1:2) = 1;  % min value of center coordinates
+lb(:,3:4) = 0;  % min value of signal and background intensity
+lb(:,5) = eps;  % min length
+lb(:,6) = -inf; % min orientation value
+
+ub = zeros(size(params));
+ub(:,1) = size(I,2); % max x-coordinate
+ub(:,2) = size(I,1); % max y-coordinate
+ub(:,3:4) = max(I(:)); % max value of signal and background intensity
+ub(:,5) = max(size(I)); % max length
+ub(:,6) = +inf; % max orientation
+
+options = optimset('Jacobian', 'on', 'MaxFunEvals', 1e4, 'MaxIter', 1e4, ...
     'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
-% Define parameter bounds
-lb = -Inf(size(params));
-lb(:, 6) = -pi/2;
-ub = Inf(size(params));
-ub(:, 6) = pi/2;
 fun = @(x) dLSegment2DFit(x, I, sigmaPSF);
 [params, ~,residual,exitflag,output,lambda,Jon] = lsqnonlin(fun, initParams, lb, ub, options);
 
-options = optimset('Jacobian', 'off', 'MaxFunEvals', 1e4, 'MaxIter', 1, ...
-    'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
-[params, ~,residual,exitflag,output,lambda,Joff] = lsqnonlin(fun, initParams, lb, ub, options);
+% options = optimset('Jacobian', 'off', 'MaxFunEvals', 1e4, 'MaxIter', 1e4, ...
+%     'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
+% [params, ~,residual,exitflag,output,lambda,Joff] = lsqnonlin(fun, initParams, [], [], options);
 
-for j = 1:size(params,1)
-    figure,
-    for i = 1:6
-        subplot(6, 2, 2*i-1); imshow(reshape(full(Jon(:, j + (i-1) * size(params,1))), size(I)),[]);
-        subplot(6, 2, 2*i); imshow(reshape(full(Joff(:, j + (i-1) * size(params,1))), size(I)),[]);
-    end
-end
+% for j = 1:size(params,1)
+%     figure,
+%     for i = 1:6
+%         subplot(6, 2, 2*i-1); imshow(reshape(full(Jon(:, j + (i-1) * size(params,1))), size(I)),[]);
+%         subplot(6, 2, 2*i); imshow(reshape(full(Joff(:, j + (i-1) * size(params,1))), size(I)),[]);
+%     end
+% end
 
 Im = I - reshape(residual, size(I));
 
