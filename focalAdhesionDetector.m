@@ -1,9 +1,9 @@
 function [params, Im] = focalAdhesionDetector(I, mask, sigmaPSF)
 
-% make sure I is type double
+% Make sure I is type double
 I = double(I);
 
-% Get a first crude segmentation
+% Get a first coarse segmentation
 BW = logical(blobSegmentThreshold(I,1,0));
 
 % Restrict analysis to cell footprint
@@ -29,8 +29,25 @@ params(:,6) = -vertcat(CCstats(:).Orientation) * pi/180;
 initParams = params;
 options = optimset('Jacobian', 'on', 'MaxFunEvals', 1e4, 'MaxIter', 1, ...
     'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
+% Define parameter bounds
+lb = -Inf(size(params));
+lb(:, 6) = -pi/2;
+ub = Inf(size(params));
+ub(:, 6) = pi/2;
 fun = @(x) dLSegment2DFit(x, I, sigmaPSF);
-[params, ~, residual] = lsqnonlin(fun, initParams, [], [], options);
+[params, ~,residual,exitflag,output,lambda,Jon] = lsqnonlin(fun, initParams, lb, ub, options);
+
+options = optimset('Jacobian', 'off', 'MaxFunEvals', 1e4, 'MaxIter', 1, ...
+    'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
+[params, ~,residual,exitflag,output,lambda,Joff] = lsqnonlin(fun, initParams, lb, ub, options);
+
+for j = 1:size(params,1)
+    figure,
+    for i = 1:6
+        subplot(6, 2, 2*i-1); imshow(reshape(full(Jon(:, j + (i-1) * size(params,1))), size(I)),[]);
+        subplot(6, 2, 2*i); imshow(reshape(full(Joff(:, j + (i-1) * size(params,1))), size(I)),[]);
+    end
+end
 
 Im = I - reshape(residual, size(I));
 
