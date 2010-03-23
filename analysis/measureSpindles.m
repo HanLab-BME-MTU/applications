@@ -147,7 +147,8 @@ for iIdlist = 1:nIdlists
     
     spbStarIdx = strmatch('sbp1*',idlist(1).stats.labelcolor);
 
-
+    maxDistList = NaN(nCells,1);
+    
     for c = 1:nCells
         % init vars
         angle = 180;
@@ -158,6 +159,13 @@ for iIdlist = 1:nIdlists
         nTags = length(cIdx);
         dist = pdist(coords(cIdx,:));
         [maxDist,maxDistIdx] = max(dist);
+        
+        if doPlot
+            % remember max distance
+            if nTags > 1
+            maxDistList(c) = maxDist;
+            end
+        end
 
         minDist2Spb = [0,0];
         cenDist = 0;
@@ -242,6 +250,17 @@ for iIdlist = 1:nIdlists
     end
 
     if doPlot
+        % try to create colormap from labels so that it is the same as in
+        % dendrogram. From what I understand, the dendrogram makes a hsv
+        % map, coloring the largest-distance-group first
+        groupIdx = isfinite(maxDistList);
+        % get sorted max-distance
+        [dist,order] = sort(maxDistList,'descend');
+        cmap = zeros(nCells,3);
+        cmap(order(isfinite(dist)),:) = hsv(sum(groupIdx));
+        cmap(~groupIdx,:) = hsv(sum(~groupIdx));
+        
+        
         figure('Name',idlist(1).stats.name),imshow(dicMaxProj',[]);
         hold on
         markerList = 'so';
@@ -253,11 +272,14 @@ for iIdlist = 1:nIdlists
             else
                 marker = markerList(isEven(c) + 1);
             end
-            if isEven(c)
-                plot(xy(:,1)/0.0663,xy(:,2)/0.066,marker,'MarkerSize',4,'Color',extendedColors(c/2));
-            else
-                plot(xy(:,1)/0.0663,xy(:,2)/0.066,marker,'MarkerSize',4,'Color',extendedColors((c+1)/2));
-            end
+            % JD, 3/2010: try getting the same colors as dendrogram by
+            % using hsv for colors
+            plot(xy(:,1)/0.0663,xy(:,2)/0.0663,marker,'MarkerSize',4,'Color',cmap(c,:));
+%             if isEven(c)
+%                 plot(xy(:,1)/0.0663,xy(:,2)/0.066,marker,'MarkerSize',4,'Color',extendedColors(c/2));
+%             else
+%                 plot(xy(:,1)/0.0663,xy(:,2)/0.066,marker,'MarkerSize',4,'Color',extendedColors((c+1)/2));
+%             end
         end
     end
 
