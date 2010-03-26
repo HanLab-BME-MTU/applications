@@ -6,13 +6,8 @@ function [exp] = runDetection(exp, overwrite)
 % INPUT     exp       : experiment structure, containing a '.source' field (path to data location)
 %           overwrite : optional, 1 to overwrite previous detection results (default 0).
 %                       
-% OUTPUT               
-% REMARKS   The function only performs the detection for a given movie if 
-%           there are no detection data (folder called maxdata283) already 
-%           present in the specified directory; if you want a partial or
-%           faulty detection to be replaced, you need to DELETE the folders
-%           first!!!!
-%
+% OUTPUT    none 
+
 % Dinah Loerke, last modified Feb 2008
 % Francois Aguet, last modified Mar 2010
 
