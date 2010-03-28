@@ -8,8 +8,8 @@ if nargin < 2 || isempty(overwrite)
 end
 
 for i = 1:length(exp)
-    
-    if ~(exist([exp(i).source 'TrackInfoMatrices'], 'dir')==7) || overwrite
+               
+    if ~(exist([exp(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'], 'file')==2) || overwrite
         
         costMatrices    = exp(i).tracksettings.costMat;
         gapCloseParam   = exp(i).tracksettings.gapClosePar;

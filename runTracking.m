@@ -36,12 +36,12 @@ end
 if nargin < 2 || isempty(tracksettings)
     %load track settings required for tracking
     [fileName filePath] = uigetfile('.mat','choose track settings mat file for tracking');
-    load([filePath filesep fileName]);
+    load([filePath fileName]);
 elseif ischar(tracksettings)
     load(tracksettings);
 end
 
-detectFlag = zeros(1,length(exp));
+
 for i = 1:length(exp)
     detectionFile = [exp(i).source 'DetectionStructures' filesep 'detection.mat'];
     if ~(exist(detectionFile, 'file')==2) || overwrite
@@ -52,10 +52,8 @@ for i = 1:length(exp)
         % Convert data from Henry's format to the format read by the tracker
         [detection] = convertDetectDataForTracking([exp(i).source 'maxdata283']);
         save(detectionFile, 'detection');
-        detectFlag(i) = 1;
     end
 end
-useExp = exp(detectFlag==1);
 
 % two separate loops are used because 'parfor' does not support the 'save' function.
 parfor i = 1:length(useExp)
