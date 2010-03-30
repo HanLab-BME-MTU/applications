@@ -56,8 +56,8 @@ for i = 1:length(exp)
 end
 
 % two separate loops are used because 'parfor' does not support the 'save' function.
-parfor i = 1:length(useExp)
-    iexp = useExp(i);
+parfor i = 1:length(exp)
+    iexp = exp(i);
     iexp.tracksettings = tracksettings;
     % this function creates the TrackInfo and lftInfo data structures
     trackMissingFields(iexp, overwrite);
