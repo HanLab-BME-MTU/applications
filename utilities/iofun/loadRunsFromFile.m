@@ -327,6 +327,8 @@ for iRun = 1:nRuns
                     else
                         checkStruct.check = [{checkStructIn.check,'',''};{7,tag1,tag2}];
                     end
+%                 else
+%                     checkStruct.check = checkStructIn.check;
                 end
             end
             [goodIdlist,errorMessage,goodTimes] = checkIdlist(idlist2use,checkStruct.check,checkStruct.askOptions);
