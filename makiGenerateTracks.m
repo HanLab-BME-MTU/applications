@@ -55,6 +55,10 @@ else %if the original coordinates are to be used
         %calculate the center of mass in each frame
         centerOfMass = zeros(nTimepoints,3);
         for iTime = 1 : nTimepoints
+            %             rMeanX = robustMean(movieInfo(iTime).xCoord(:,1));
+            %             rMeanY = robustMean(movieInfo(iTime).yCoord(:,1));
+            %             rMeanZ = robustMean(movieInfo(iTime).zCoord(:,1));
+            %             centerOfMass(iTime,:) = [rMeanX rMeanY rMeanZ];
             centerOfMass(iTime,:) = [mean(movieInfo(iTime).xCoord(:,1)) ...
                 mean(movieInfo(iTime).yCoord(:,1)) mean(movieInfo(iTime).zCoord(:,1))];
         end
@@ -161,6 +165,9 @@ end
 gapCloseParam = dataStruct.dataProperties.tracksParam.gapCloseParam;
 costMatrices = dataStruct.dataProperties.tracksParam.costMatrices;
 kalmanFunctions = dataStruct.dataProperties.tracksParam.kalmanFunctions;
+
+% gapCloseParam.diagnostics = 1;
+% costMatrices(1).parameters.diagnostics = 168;
 
 %call tracker
 try

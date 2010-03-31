@@ -10,7 +10,9 @@ function makiShowImaris(dataStruct,select,movieType)
 %               1st entry: tracks; 2nd entry: sisters, 3rd entry: fitted
 %               plane. Enter 1 for result to be plotted, 0 for result not
 %               to be plotted.
-%       movieType: 1 for deltaVision files, 2 for metamorph stacks.
+%       movieType: 1 for deltaVision files;
+%                  2 for metamorph stacks;
+%                  3 for tiff series (that contain no meta data).
 %                  Optional. Default: 1.
 %
 % OUTPUT ---

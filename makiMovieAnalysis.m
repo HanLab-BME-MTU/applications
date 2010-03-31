@@ -7,7 +7,9 @@ function makiMovieAnalysis(serverType,job,movieType)
 %                   'MCAINSH', or 'MADDOX'
 %       job: structure containing information about movies to be
 %            analyzed. Best set up via a GUI
-%       movieType: 1 for deltaVision files, 2 for metamorph stacks.
+%       movieType: 1 for deltaVision files;
+%                  2 for metamorph stacks;
+%                  3 for tiff series (that contain no meta data).
 %                  Optional. Default: 1.
 %       
 % OUTPUT

@@ -374,12 +374,14 @@ switch jobType
                         end
                 end
                 
-                %FIGURE OUT WHAT TO DO ABOUT PSF SIGMA AND ITS CORRECTION
-                %FOR CONFOCAL, AND SIGMA CORRECTION FOR HMS DATA
-                
-                % make dataProperties, set sigmaCorrection to 1.5
+                % make dataProperties, set sigmaCorrection to 1.5 (not for
+                % confocal)
                 dataStruct.dataProperties = defaultDataProperties(dataStruct.movieHeader);
-                dataStruct.dataProperties.sigmaCorrection = [1.5,1.5];
+                if ~isempty(metaData) && metaData.microscopyType == 2
+                    dataStruct.dataProperties.sigmaCorrection = [1 1];
+                else
+                    dataStruct.dataProperties.sigmaCorrection = [1.5,1.5];
+                end
                 dataStruct.dataProperties.MAXSPOTS = 500; % number of locmax considered by initCoord
 
                 % run defDP again to get the correct filter parameters

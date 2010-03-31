@@ -92,7 +92,7 @@ nGoodTracks = length(goodTracks);
 %% READ TRACK INFORMATION
 
 % preassign matrices
-[variances,distances,alignment] = deal(NaN(nGoodTracks));
+[variances,distances,alignment,overlapCost] = deal(NaN(nGoodTracks));
 
 %find frames that have a plane (to calculate alignment cost)
 %if none of the frames have a plane, we cannot use the alignment criterion
@@ -174,6 +174,7 @@ for jTrack = 1:nGoodTracks % loop cols
         ctNotAna = find(framePhase(commonTime)~='a');
         ctAna = find(framePhase(commonTime)=='a');
         commonTimeNA = commonTime(ctNotAna); %not in anaphase
+        numOverlapFramesNA = length(commonTimeNA);
         ctColIdxNA = ctColIdx(ctNotAna);
         ctRowIdxNA = ctRowIdx(ctNotAna);
         commonTimeA = commonTime(ctAna); %not in anaphase
@@ -184,7 +185,7 @@ for jTrack = 1:nGoodTracks % loop cols
         %if the common time between the two tracks is at least minOverlap,
         %calculate parameters (otherwise, they stay as NaN, which assigns 
         %them -1 in linkTracks)
-        if length(commonTimeNA) >= minOverlap
+        if numOverlapFramesNA >= minOverlap
             
             %get the positions of the two tracks at the end of anaphase
             %and add up their signs
@@ -253,9 +254,14 @@ for jTrack = 1:nGoodTracks % loop cols
                         = deal(2*sqrt(3)*tan(meanAlpha)+1);
                 end
                 
+                %assign overlap cost - the longer the overlap, the lower the
+                %cost
+                overlapCost(iTrack,jTrack) = sqrt( 10 / numOverlapFramesNA );
+                overlapCost(jTrack,iTrack) = sqrt( 10 / numOverlapFramesNA );
+                
             end %(if (useAnaphase && (sign(track1Pos)+sign(track2Pos))==0) || ~useAnaphase)
 
-        end %(if length(commonTime) >= minOverlap)
+        end %(if length(commonTimeNA) >= minOverlap)
         
     end %(for iTrack = jTrack+1:nGoodTracks)
 end %(for jTrack = 1:nGoodTracks)
@@ -263,7 +269,7 @@ end %(for jTrack = 1:nGoodTracks)
 %% CREATE COST MATRIX & GROUP
 
 [r2c,c2r,costMat,linkedIdx] = ...
-    linkTracks(distances,variances,alignment,...
+    linkTracks(distances,variances,alignment,overlapCost,...
     nGoodTracks,maxDist,useAlignment);
 
 if all(isnan(r2c))
@@ -493,20 +499,21 @@ dataStruct.sisterList = sisterList;
 
 %% link tracks
 function [r2c,c2r,costMat,linkedIdx] = linkTracks(distances,variances,...
-    alignment,nGoodTracks,maxDist,useAlignment)
+    alignment,overlapCost,nGoodTracks,maxDist,useAlignment)
 
 % cutoff distances
 distCutoffIdx = distances>maxDist;
 distances(distCutoffIdx) = NaN;
 variances(distCutoffIdx) = NaN;
 alignment(distCutoffIdx) = NaN;
+overlapCost(distCutoffIdx) = NaN;
 
 % make cost matrix
 switch useAlignment
     case 0
-        costMat = distances.*variances;
+        costMat = distances.*variances.*overlapCost;
     case 1
-        costMat = distances.*variances.*alignment;
+        costMat = distances.*variances.*alignment.*overlapCost;
 end
 
 % replace NaNs with -1
