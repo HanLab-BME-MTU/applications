@@ -14,11 +14,11 @@ imageFiles = dir([imagePath filesep '*.tif']);
 maskPath = movieData.masks.directory;
 maskFiles = dir([maskPath filesep '*.tif']);
 
-detectionPath = [movieData.channels(1).analysisDirectory filesep ...
-    'detection'];
+movieData.detection.directory = [movieData.channels(1).analysisDirectory ...
+    filesep 'detection'];
 
-if ~exist(detectionPath, 'dir')
-    mkdir(movieData.channels(1).analysisDirectory, 'detection');
+if ~exist(movieData.detection.directory, 'dir')
+    mkdir(movieData.detection.directory);
 end
 
 nFrames = numel(imageFiles);
@@ -30,9 +30,10 @@ for i = 1:nFrames
     I = imread([imagePath filesep imageFiles(i).name]);
     BW = imread([maskPah filesep maskFiles(i).name]);
     
-    [FA, Im] = focalAdhesionDetector(I,BW,sigmaPSF);
+    [FA, Im] = focalAdhesionDetector(I,BW,sigmaPSF); %#ok<NASGU>
     
-    save();
+    save([movieData.detection.directory filesep 'FA_' num2str(iFrame,fString) '.mat'], 'FA');
+    save([movieData.detection.directory filesep 'Im_' num2str(iFrame,fString) '.mat'], 'Im');
     
     if ~batchMode && ishandle(h)
         waitbar(i/nFrames, h)
