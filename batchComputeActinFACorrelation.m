@@ -250,23 +250,23 @@ for iMovie = 1:nMovies
 
     % STEP 7: FA Detection
     
-    if ~isfield(currMovie, 'segmentation') || ~isfield(currMovie.segmentation, 'status') || ...
-            currMovie.segmentation.status ~= 1 || forceRun(7)
+    if ~isfield(currMovie, 'detection') || ~isfield(currMovie.detection, 'status') || ...
+            currMovie.detection.status ~= 1 || forceRun(7)
         try
             currMovie = setupMovieData(currMovie);
             
-            disp(['Get segmentation of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
+            disp(['Detect FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
             
             currMovie = getMovieFADetection(currMovie, batchMode);
             
             if isfield(currMovie.segmentation, 'error')
-                currMovie.segmentation = rmfield(currMovie.segmentation, 'error');
+                currMovie.detection = rmfield(currMovie.detection, 'error');
             end
 
         catch errMess
             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.segmentation.error = errMess;
-            currMovie.segmentation.status = 0;
+            currMovie.detection.error = errMess;
+            currMovie.detection.status = 0;
         end            
     end 
     

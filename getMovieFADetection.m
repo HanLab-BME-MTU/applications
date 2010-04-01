@@ -1,40 +1,46 @@
-function movieData = getMovieSegmentation(movieData, batchMode)
+function movieData = getMovieFADetection(movieData, batchMode)
 
 %Indicate that labeling was started
-movieData.segmentation.status = 0;
+movieData.detection.status = 0;
 
-%Go through each frame and save the windows to a file
+% Go through each frame and save the windows to a file
 if ~batchMode
-    h = waitbar(0,'Please wait, image segmentation....');
+    h = waitbar(0,'Please wait, image detection....');
 end
 
 imagePath = movieData.channels(1).roiDirectory;
 imageFiles = dir([imagePath filesep '*.tif']);
 
-segmentationPath = [movieData.channels(1).analysisDirectory filesep ...
-    'segmentation'];
+maskPath = movieData.masks.directory;
+maskFiles = dir([maskPath filesep '*.tif']);
 
-if ~exist(segmentationPath, 'dir')
-    mkdir(movieData.channels(1).analysisDirectory, 'segmentation');
+detectionPath = [movieData.channels(1).analysisDirectory filesep ...
+    'detection'];
+
+if ~exist(detectionPath, 'dir')
+    mkdir(movieData.channels(1).analysisDirectory, 'detection');
 end
 
 nFrames = numel(imageFiles);
 
+% sigmaPSF = vectorialPSFSigma(1.4, 509, 67)
+sigmaPSF = 1.6255;
+
 for i = 1:nFrames
     I = imread([imagePath filesep imageFiles(i).name]);
-
-    BW = blobSegmentThreshold(I, 1, 0);
+    BW = imread([maskPah filesep maskFiles(i).name]);
     
-    imwrite(logical(BW), [segmentationPath filesep imageFiles(i).name], ...
-        'Compression', 'none');
+    [FA, Im] = focalAdhesionDetector(I,BW,sigmaPSF);
+    
+    save();
     
     if ~batchMode && ishandle(h)
         waitbar(i/nFrames, h)
     end
 end
 
-movieData.segmentation.dateTime = datestr(now);
-movieData.segmentation.status = 1;
+movieData.detection.dateTime = datestr(now);
+movieData.detection.status = 1;
 
 if ~batchMode && ishandle(h)
     close(h);
