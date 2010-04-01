@@ -248,7 +248,7 @@ for iMovie = 1:nMovies
         end
     end
 
-    % STEP 7: FA Segmentation
+    % STEP 7: FA Detection
     
     if ~isfield(currMovie, 'segmentation') || ~isfield(currMovie.segmentation, 'status') || ...
             currMovie.segmentation.status ~= 1 || forceRun(7)
@@ -257,7 +257,7 @@ for iMovie = 1:nMovies
             
             disp(['Get segmentation of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
             
-            currMovie = getMovieSegmentation(currMovie, batchMode);
+            currMovie = getMovieFADetection(currMovie, batchMode);
             
             if isfield(currMovie.segmentation, 'error')
                 currMovie.segmentation = rmfield(currMovie.segmentation, 'error');
