@@ -1,4 +1,4 @@
-function [intRes] = MUEC_parameterReadoutCargo(data, restvector, channel, reference, framerate, align, voidAlignPoint, parname_c0, parname_c1)
+function [intRes] = MUEC_parameterReadoutCargo(data, restvector, channel, reference, framerate, align, voidAlignPoint, parname_c0)
 % Multichannel Universal Event Correlator (MUEC) to read out image
 % intensities or parameter values at specified object locations
 % 
@@ -101,13 +101,6 @@ else
     paramName_c0 = 'parameterMat.mat';
     paramNameRef_c0 = 'parameterMat_Ref.mat';
 end
-if (nargin>8 && ischar(parname_c1))
-    paramName_c1 = [parname_c1 '.mat'];
-    paramNameRef_c1 = [parname_c1 '_Ref.mat'];
-else
-    paramName_c1 = 'SA_red_ParameterMat_.mat';
-    paramNameRef_c1 = 'SA_red_ParameterMat__Ref.mat';
-end
 
 
 % =======================================================================
@@ -116,8 +109,6 @@ end
 nMovies = length(data);
 fileName_c0 = cell(1:nMovies);
 fileNameRef_c0 = cell(1:nMovies);
-fileName_c1 = cell(1:nMovies);
-fileNameRef_c1 = cell(1:nMovies);
 
 for i=1:nMovies
     % set search path for parameter/intensity file
@@ -130,12 +121,10 @@ for i=1:nMovies
         
         % Load parameter files for both channels
         fileName_c0{i} = getParameterFileName(sourcePath, paramName_c0);
-        fileName_c1{i} = getParameterFileName(sourcePath, paramName_c1);
         
         % Load reference parameter files for both channels
         if reference==1
             fileNameRef_c0{i} = getParameterFileName(sourcePath, paramNameRef_c0);
-            fileNameRef_c1{i} = getParameterFileName(sourcePath, paramNameRef_c1);
         end
 
     % if path is file name, use this file
@@ -378,7 +367,7 @@ else
 end;
 
 
-
+%function [int_weighted, error_weighted] = alignCohort(data, px, restvector, reference, sframerate, voidAlignPoint, alignvar, paraT1, paraT2, paraInt, paraInt2, tvec_standard)
 function [int_weighted, error_weighted] = alignCohort(data, restvector, reference, framerate, voidAlignPoint, alignvar, paraT1, paraT2, paraInt, bgMean_c0, tvec_standard)
 
 % ==========================
@@ -496,4 +485,3 @@ elseif alignvar==2
     int_weighted    = evec_disapp(adlen-slen+1:adlen);
     error_weighted  = svec_disapp(adlen-slen+1:adlen);
 end
-
