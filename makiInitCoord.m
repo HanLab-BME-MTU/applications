@@ -70,7 +70,11 @@ if nargin < 4 || isempty(cutoffFix)
         detectionParam = dataStruct.dataProperties.detectionParam;
         if isfield(detectionParam,'alphaValue')
             alphaValue = detectionParam.alphaValue;
-            cutoffFix = [2 norminv(1-alphaValue)];
+            if ~isempty(alphaValue) && alphaValue ~= -1
+                cutoffFix = [4 norminv(1-alphaValue)];
+            else
+                cutoffFix = [];
+            end
         else
             cutoffFix = [];
         end
@@ -102,20 +106,19 @@ dataProperties = dataStruct.dataProperties;
 % setup filter parameters. 
 backgroundFilterParms = dataProperties.FT_SIGMA * 15; % use *14 if you then filter the signalFiltered image to backgroundFilter to save some time
 backgroundFilterParms(4:6) = roundOddOrEven(backgroundFilterParms,'odd','inf');
+
 % create background mask already
 backgroundFilter = GaussMask3D(backgroundFilterParms(1:3),...
     backgroundFilterParms(4:6),[],1,[],[],1);
 signalFilter = GaussMask3D(dataProperties.FILTERPRM(1:3),...
     dataProperties.FILTERPRM(4:6),[],1,[],[],1);
+
 % make separated noise mask
 noiseMask = {...
     ones(dataProperties.FILTERPRM(4),1,1)./dataProperties.FILTERPRM(4),...
     ones(1,dataProperties.FILTERPRM(5),1)./dataProperties.FILTERPRM(5),...
     ones(1,1,dataProperties.FILTERPRM(6))./dataProperties.FILTERPRM(6),...
     };
-
-
-
 
 % for conversion to microns in the end: get pixelSize
 pixelSize = [dataProperties.PIXELSIZE_XY,dataProperties.PIXELSIZE_XY,...
@@ -140,8 +143,20 @@ if ~isempty(timeRange)
     goodTimes = intersect(goodTimes,timeRange);
 end
 
-minSpotsPerFrame = 20;
-
+%get minimum number of spots per frame
+if isfield(dataStruct.dataProperties,'detectionParam')
+    detectionParam = dataStruct.dataProperties.detectionParam;
+    if isfield(detectionParam,'minSpotsPerFrame')
+        minSpotsPerFrame = detectionParam.minSpotsPerFrame;
+        if isempty(minSpotsPerFrame)
+            minSpotsPerFrame = 20;
+        end
+    else
+        minSpotsPerFrame = 20;
+    end
+else
+    minSpotsPerFrame = 20;
+end
 
 %=====================
 %% MAIN LOOP
@@ -160,19 +175,26 @@ for t=goodTimes(:)'
     % raw = current raw movie frame
     % filtered = current PSF-filtered movie frame
     % then calculate
-    % background = current 10xPSF-filtered movie frame
+    % background = current 15xPSF-filtered movie frame
     % amplitude = filtered - background
     % noise = locAvg(var(raw-filtered))
     
     if isempty(rawMovie)
+        
         % movie has been passed directly
         raw = dataStruct.rawMovie(:,:,:,:,t);
+        
     else
+        
         switch movieType
+            
             case 1 %DV files
+                
                 raw = cdLoadMovie({rawMovie,'raw'},[],struct('frames2load',{{t}},...
                     'crop',dataProperties.crop,'maxSize',dataProperties.maxSize));
+                
             case {2,3} %STK files
+                
                 if movieType == 2
                     movieTPName = [rawMovie(1:end-5) num2str(t) '.STK']; %name of files storing current time point
                     imageStack = metaTiffRead(movieTPName,[],[],0); %read stack using Nedelec's code
@@ -184,6 +206,7 @@ for t=goodTimes(:)'
                         raw(:,:,iSlice) = imread(movieTPName,iSlice);
                     end
                 end
+                
                 cropInfo = dataProperties.crop; %cropping information
                 if ~isempty(cropInfo)
                     cropInfo = cropInfo(:,1:2);
@@ -196,23 +219,26 @@ for t=goodTimes(:)'
                     end
                     raw = raw(cropInfo(1,1):cropInfo(2,1),cropInfo(1,2):cropInfo(2,2),:); %crop image
                 end
+                
         end
+        
     end
+    
     %remove offset
     offset = min(raw(:));
     raw = raw -  offset;
-    % filter movie with gauss-filter
     
+    % filter movie with gauss-filter
     % Jonas: use old version of border-correction to avoid risks (yes, I
     % have become paranoid about these things)
     filtered = fastGauss3D(raw,[],dataProperties.FILTERPRM(4:6),2,signalFilter);
+    
     % filtering with sigma=15 is equal to filtering with 1 and then
     % with 14 if both filters are Gaussians. Thus, it should be possible to
     % make backgroundFilter smaller and filter the filtered instead of the
     % raw image.
     %background = fastGauss3D(filtered,[],backgroundFilterParms(4:6),2,backgroundFilter);
     background = fastGauss3D(raw,[],backgroundFilterParms(4:6),2,backgroundFilter);
-    
     
     % amplitude is filtered image - background. This underestimates the
     % true signal. The underestimation becomes stronger if betterBackground
@@ -233,6 +259,7 @@ for t=goodTimes(:)'
     initCoordTmp = [locMax, amplitude(locMaxIdx), noise(locMaxIdx), ...
         zeros(length(locMaxIdx),1)];
     initCoordTmp = sortrows(initCoordTmp,-4);
+    
     % only take MAXSPOTS highest amplitudes. This will leave plenty of noise
     % spots, but it will avoid huge arrays
     initCoordTmp = initCoordTmp(1:min(dataProperties.MAXSPOTS,size(initCoordTmp,1)),:);
@@ -286,6 +313,11 @@ for t=goodTimes(:)'
         initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)),...
         initCoordTmp(:,4)./sqrt(initCoordTmp(:,5)./max(initCoordTmp(:,4),eps))]; %#ok<AGROW>
     
+    %append an additional column which stores (A-mean)/sigma instead of
+    %only A/sigma
+    meanAmpAll = robustMean(initCoordTmp(:,4)); %use robst mean in order to use mostly noise maxima
+    initCoordTmp = [initCoordTmp (initCoordTmp(:,4)-meanAmpAll)./sqrt(initCoordTmp(:,5))]; %#ok<AGROW>
+    
     initCoordRaw{t} = initCoordTmp;
     
     if verbose
@@ -301,23 +333,31 @@ for t=goodTimes(:)'
             text(initCoordTmp(i,2),initCoordTmp(i,1),num2str(i),'Color','r');
         end
     end
+    
 end % loop timepoints
-
-
 
 clear initCoordTmp
 allCoord = cat(1,initCoordRaw{:});
 
 %% Find cutoff
 
-allCols = [4, 7, 8]; % columns used to calculate cutoff
 % find cutoff based on amplitude/sqrt(noise/amp), though the others are
 % very similar. Allow fallback if less than 25 spots per frame are found
 % (this indicates that cutFirstHistmode of splitModes failed)
+%
+%KJ: Not sure about this any more. I have modified things below to use a
+%fourth cutoff criterion, but this needs further testing. I have to commit
+%for now though vecause of Valentin (from the Khodjakov lab).
+
+
+%define columns used to calculate cutoff
+allCols = [4, 7, 8, 9];
+
 cutoff = zeros(3,1);
 cutoff1 = splitModes(allCoord(:,4)); % amplitude
 cutoff2 = splitModes(allCoord(:,7)); % amplitude/sqrt(nse) - dark noise
 cutoff3 = splitModes(allCoord(:,8)); % amplitude/sqrt(nse/amp) - poisson
+cutoff4 = splitModes(allCoord(:,9)); % (amplitude-mean(amplitude))/sqrt(noise)
 if ~isempty(cutoff1)
     cutoff(1) = cutoff1;
 else
@@ -333,63 +373,82 @@ if ~isempty(cutoff3)
 else
     cutoff(3) = NaN;
 end
+if ~isempty(cutoff4)
+    cutoff(4) = cutoff4;
+else
+    cutoff(4) = NaN;
+end
 
 
 % plot all before selecting cutoff so that we can see what went wrong
 if verbose > 1
     figure('Name',sprintf('cutoffs for %s',dataStruct.projectName))
-    ah(1) = subplot(3,1,1);
+    ah(1) = subplot(4,1,1);
     set(ah(1),'NextPlot','add')
     plot(ah(1),[1,nTimepoints],[cutoff(1) cutoff(1)]);
     xlabel('timepoints')
     ylabel('amplitude - signal in grey values')
-    ah(2) = subplot(3,1,2);
+    ah(2) = subplot(4,1,2);
     set(ah(2),'NextPlot','add')
     plot(ah(2),[1,nTimepoints],[cutoff(2) cutoff(2)]);
     xlabel('timepoints')
     ylabel('amplitude/sqrt(nse) - SNR for dark noise')
-    ah(3) = subplot(3,1,3);
+    ah(3) = subplot(4,1,3);
     set(ah(3),'NextPlot','add')
     plot(ah(3),[1,nTimepoints],[cutoff(3) cutoff(3)]);
     xlabel('timepoints')
     ylabel('amplitude/sqrt(nse/amp) - SNR for poisson noise')
+    ah(4) = subplot(4,1,4);
+    set(ah(4),'NextPlot','add')
+    plot(ah(4),[1,nTimepoints],[cutoff(4) cutoff(4)]);
+    xlabel('timepoints')
+    ylabel('(amplitude-mean(amplitude))/sqrt(nse)')
     for t=goodTimes
         plot(ah(1),t,initCoordRaw{t}(:,4),'+')
         plot(ah(2),t,initCoordRaw{t}(:,7),'+')
         plot(ah(3),t,initCoordRaw{t}(:,8),'+')
+        plot(ah(4),t,initCoordRaw{t}(:,9),'+')
     end
 end
 
 nn = nan(3,1);
 % check for predetermined cutoff
 if ~isempty(cutoffFix)
+    
+    mapIdx2col = [4 7 8 9];
+    
     % store old value
     oldCutoff = cutoff;
+    
     % set cutoffIdx, cutoffCol
     cutoffIdx = cutoffFix(1);
     if cutoffIdx == 0
         cutoffCol = 0;
     else
-        cutoffCol = cutoffIdx + 5;
+        cutoffCol = mapIdx2col(cutoffIdx);
         % update cutoff
         cutoff(cutoffIdx) = cutoffFix(2);
     end
+    
 else
     
-    %     switch movieType
-    %         case 1
     % note: ask only for spots in good frames
     
-    if isfield(dataProperties,'minSpotsPerFrame')
-        minN = dataProperties.minSpotsPerFrame;
-    else
-        minN = 20;
-    end
+    %     if isfield(dataProperties,'minSpotsPerFrame')
+    %         minN = dataProperties.minSpotsPerFrame;
+    %     else
+    %         minN = 20;
+    %     end
+    minN = minSpotsPerFrame;
     minGood = minN*length(goodTimes);
+    nn(4) = sum(allCoord(:,9)>cutoff(4))/minGood;
     nn(3) = sum(allCoord(:,8)>cutoff(3))/minGood;
     nn(2) = sum(allCoord(:,7)>cutoff(2))/minGood;
     nn(1) = sum(allCoord(:,4)>cutoff(1))/minGood;
-    if nn(3) > 1
+    if nn(4) > 1
+        cutoffIdx = 4;
+        cutoffCol = 9;
+    elseif nn(3) > 1
         cutoffIdx = 3;
         cutoffCol = 8;
     elseif nn(2) > 1
@@ -402,26 +461,10 @@ else
         error('less than %i spots per frame found. makiInitCoord failed',minSpotsPerFrame)
     end
     
-    %         case {2,3}
-    %
-    %             %for the HMS data, the signal is very dim and photobleaches a lot,
-    %             %and determining the cutoff on the fly does not work.
-    %             %Thus, I'm fixing the cutoff criterion to the amplitude-to-noise
-    %             %ratio and I'm fixing the cutoff to 2.32 (approximating a 0.01
-    %             %alpha-value in a hypothesis test) - KJ
-    %             %             cutoff(2) = 2.32;
-    %             cutoff(2) = 1.645;
-    %             %             cutoff(2) = 1.3;
-    %             cutoffIdx = 2;
-    %             cutoffCol = 7;
-    %
-    %     end
-    
 end
 
 % remember the cutoff criterion used
 dataStruct.statusHelp{3,3} = [cutoffIdx,cutoffCol];
-
 
 if verbose > 1
     title(ah(cutoffIdx),'cutoff selected')
@@ -443,16 +486,12 @@ if verbose > 1
     %     hold on, plot([cutoff1, cutoff1],[minC(7),maxC(7)])
 end
 
-
-
 % loop and store only good locMax. Before that, get z-correction
 % get correction from .log file
 % load $MOVIENAME.log, parse for start coordinate and determine focus
 % adjustment. This should give a z0-value for every frame that we can
 % use to correct the um-coords for tracking
 % -- this turns out to be unnecessary due to alignment of coords
-
-
 
 for t=goodTimes(:)'
     
@@ -464,11 +503,8 @@ for t=goodTimes(:)'
         goodIdxL = sum(goodIdxL,2)>1;
     end
     
-    
     % count good spots
     dataStruct.initCoord(t).nSpots = sum(goodIdxL);
-    
-    
     
     % store pixel coords. Uncertainty is 0.25 pix
     dataStruct.initCoord(t).allCoordPix = ...
@@ -493,9 +529,6 @@ for t=goodTimes(:)'
         dataStruct.initCoord(t).allCoord(:,3) +...
         dataStruct.initCoord(t).correctionMu;
     
-    
-    
-    
     % store 2 spots above and below cutoff in case we want to get amplitude
     % cutoff for detector later. Note: the spots may be not exactly the two
     % above or below, since we sorted the data according to amplitudes
@@ -506,7 +539,8 @@ for t=goodTimes(:)'
         dataStruct.initCoord(t).data4MMF = ...
             initCoordRaw{t}([twoAbove;twoBelow],1:3);
     end
-end
+    
+end %(for t=goodTimes(:)')
 
 % % code to determine optimal amplitude cutoff
 % % check if we should just take average testStatistic instead of doing

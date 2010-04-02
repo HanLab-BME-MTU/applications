@@ -624,8 +624,9 @@ warning(warningState)
 %% subfunction to ask for input for detection
 function dataStruct = getDetectionInput(dataStruct,ask4input)
 
-%define default value
+%define default values
 alphaValue_def = -1;
+minSpotsPerFrame_def = 20;
 
 %assign defaults
 dataPropertiesTmp = dataStruct.dataProperties;
@@ -634,25 +635,36 @@ if isfield(dataPropertiesTmp,'detectionParam') %if detectionParam have been assi
     if isfield(detectionParamTmp,'alphaValue')
         alphaValueTmp = detectionParamTmp.alphaValue;
         if isempty(alphaValueTmp)
-            alphaValueTmp = -1;
+            alphaValueTmp = alphaValue_def;
         end
     else
         alphaValueTmp = alphaValue_def;
     end
+    if isfield(detectionParamTmp,'minSpotsPerFrame')
+        minSpotsPerFrameTmp = detectionParamTmp.minSpotsPerFrame;
+        if isempty(minSpotsPerFrameTmp)
+            minSpotsPerFrameTmp = minSpotsPerFrame_def;
+        end
+    else
+        minSpotsPerFrameTmp = minSpotsPerFrame_def;
+    end
 else
     alphaValueTmp = alphaValue_def;
+    minSpotsPerFrameTmp = minSpotsPerFrame_def;
 end
 
 %ask for user input
 if ask4input
     detectionParamIn = inputdlg(...
-        {'Alpha-value for local maxima detection (value between 0 and 1). To determine alpha-value from data on the fly, input -1'},...
+        {'Alpha-value for local maxima detection (value between 0 and 1). To determine alpha-value from data on the fly, input -1',...
+        'Minimum number of spots per frame. Be conservative, allow for possibility that sister kinetochores do not get resolved'},...
         sprintf(['Detection parameters for ' dataStruct.projectName]),1,...
-        {num2str(alphaValueTmp)},'on');
+        {num2str(alphaValueTmp),num2str(minSpotsPerFrameTmp)},'on');
     if isempty(detectionParamIn)
         error('input aborted')
     else
         alphaValueTmp = str2double(detectionParamIn{1});
+        minSpotsPerFrameTmp = str2double(detectionParamIn{2});
     end
 end
 
@@ -662,6 +674,9 @@ if alphaValueTmp == -1
 else
     detectionParam.alphaValue = alphaValueTmp;
 end
+
+%assign minimum number of spots per frame
+detectionParam.minSpotsPerFrame = minSpotsPerFrameTmp;
 
 %save detection parameters in dataStruct
 dataStruct.dataProperties.detectionParam = detectionParam;
