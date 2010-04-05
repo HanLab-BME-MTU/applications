@@ -169,7 +169,7 @@ imageNameList = [];  % please add the file selection slide code here
 %=======
 % Loading images
 [fName,dirName] = uigetfile(...
-    {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
+    {'*.tif;*.tiff;*.jpg;*.jpeg;*.TIF','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
     '*.tif','TIF files (*.tif)'
     '*.tiff','TIFF files (*.tiff)'
     '*.jpg;','JPG files (*.jpg)'
