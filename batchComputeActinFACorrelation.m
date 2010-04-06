@@ -259,15 +259,15 @@ for iMovie = 1:nMovies
             
             currMovie = getMovieFADetection(currMovie, batchMode);
             
-            if isfield(currMovie.segmentation, 'error')
+            if isfield(currMovie.detection, 'error')
                 currMovie.detection = rmfield(currMovie.detection, 'error');
             end
-
+            
         catch errMess
             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
             currMovie.detection.error = errMess;
             currMovie.detection.status = 0;
-        end            
+        end
     end 
     
     % Save results

@@ -79,27 +79,6 @@ fun = @(x) dLSegment2DFit(x, ImBG, sigmaPSF);
 
 Im = I - reshape(residual, size(I));
 
-% DEBUG
-% imshow(I, []); hold on;
-% 
-% xC = initParams(:,1);
-% yC = initParams(:,2);
-% l = initParams(:,4);
-% t = initParams(:,5);
-% 
-% quiver(xC, yC, (l / 2) .* cos(t), (l / 2) .* sin(t), 0, 'g');
-% quiver(xC, yC, (l / 2) .* cos(t + pi), (l / 2) .* sin(t + pi), 0, 'g');
-% plot(xC, yC, 'g.');
-% 
-% xC = params(:,1);
-% yC = params(:,2);
-% l = params(:,4);
-% t = params(:,5);
-% 
-% quiver(xC, yC, (l / 2) .* cos(t), (l / 2) .* sin(t), 0, 'r');
-% quiver(xC, yC, (l / 2) .* cos(t + pi), (l / 2) .* sin(t + pi), 0, 'r');
-% plot(xC, yC, 'r.');
-
 function [F J] = getOrientationCost(x,varargin)
 
 phi = varargin{1};
