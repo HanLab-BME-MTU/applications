@@ -30,14 +30,14 @@ if nargin < 4 || isempty(batchMode)
     batchMode = 1;
 end
 
-% Stick on this order: TM2, TM4, TM5, TM2_TM4, TM2_TM5, TM4_TM5
+% Stick on this order: TM2, TM4, TM5, TM2_TM4, TM5_TM2, TM5_TM4
 subFolders = {...
     ['TM2_Actin' filesep 'cell1_3'],...
     ['TM4_Actin' filesep '14_August_2009' filesep 'cell2'],...
     ['TM5NM1_Actin' filesep '26June2009' filesep 'Cell3'],...
     'TM2_TM4',...
-    'TM2_TM5NM1',...
-    'TM4_TM5NM1'};
+    ['TM5NM1_TM2' filesep '29_June_2009' filesep 'Cell3'],...
+    ['TM5NM1_TM4' filesep '1_July_2009' filesep 'Cell1']};
 
 dataPaths = cellfun(@(x) [dataDirectory filesep x], subFolders,...
     'UniformOutput', false);
@@ -114,6 +114,7 @@ for iMovie = 1:nMovies
         load([currMovie.fsmDirectory{ind} filesep 'fsmPhysiParam.mat']);
     else
         disp([movieName ': Unable to locate fsmPhysiParam.mat (SKIPPING).']);
+        continue;
     end        
     currMovie.pixelSize_nm = fsmPhysiParam.pixelSize;
     currMovie.timeInterval_s = fsmPhysiParam.frameInterval;
@@ -306,8 +307,8 @@ fprintf(fid, '%s\n%s\n%s\n', dataPaths{:});
 fclose(fid);
 
 % Figure 4
-disp('Make figure 4...');
-makeFigure4(analysisPaths, outputDirectory);
+%disp('Make figure 4...');
+%makeFigure4(analysisPaths, outputDirectory);
 % Figure 5
 %disp('Make figure 5...');
 %makeFigure5(analysisPaths, outputDirectory);

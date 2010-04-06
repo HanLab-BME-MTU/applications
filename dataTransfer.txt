@@ -5,7 +5,7 @@ A. Update DATA from Scripps -> Orchestra
 
 1.$ ssh sb234@orchestra.med.harvard.edu
 2.$ cd /groups/lccb-interfil/Tropo/Data_for_paper
-3.$ rsync -avz sylvain@lccbfs001.scripps.edu:/data/projects/Tropomyosin/Analysis/Data_for_paper/ .
+3.$ rsync -rtvz sylvain@lccbfs001.scripps.edu:/data/projects/Tropomyosin/Analysis/Data_for_paper/ .
 
 A. Update DATA from Orchestra -> Local Machine
 

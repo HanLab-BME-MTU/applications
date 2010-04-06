@@ -283,11 +283,7 @@ for iTM = 1:3
         data(2,iFrame) = mean(distToEdge(idxS2));
         
         % We store these data as well for Panel D (Protrusion):
-        idx = find(protMask(:, iFrame) == 1);
-        Lprot = false(size(L));        
-        for il = 1:numel(idx)
-            Lprot = Lprot | (L == idx(il));
-        end
+        Lprot = ismember(L, find(protMask(:, iFrame) == 1));
         
         idxS1 = locMax1 .* Lprot ~= 0;
         idxS2 = locMax2 .* Lprot ~= 0;
@@ -295,11 +291,7 @@ for iTM = 1:3
         dataD{iTM} = cat(1, dataD{iTM}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
         
         % ... and the same for Panel E (Retraction):
-        idx = find(retMask(:, iFrame) == 1);
-        Lret = false(size(L));
-        for il = 1:numel(idx)
-            Lret = Lret | (L == idx(il));
-        end
+        Lret = ismember(L, find(retMask(:, iFrame) == 1));
         
         idxS1 = locMax1 .* Lret ~= 0;
         idxS2 = locMax2 .* Lret ~= 0;
