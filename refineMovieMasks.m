@@ -326,7 +326,15 @@ for i = 1:2:nArg
            nObjects = argArray{i+1};
            
        case 'MaxEdgeAdjust'
+           maxEdgeAdjust = argArray{i+1};
            
+       case 'MaxEdgeGap'
+           maxEdgeGap = argArray{i+1};
+           
+       case 'PreEdgeGrow'
+           
+           preEdgeGrow = argArray{i+1};
+       
            
        otherwise
        

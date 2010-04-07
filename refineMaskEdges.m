@@ -34,7 +34,7 @@ function refinedMask = refineMaskEdges(maskIn,imageIn,maxAdjust,maxGap,preGrow)
 % 
 % Output:
 % 
-%   refinedMask - The new mask, with improved edge location.
+%   refinedMask - The new mask, with (hopefully..) improved edge location.
 %
 %Hunter Elliott 3/2009
 %
@@ -73,8 +73,8 @@ imageIn = double(imageIn);
 tooSmall = 1; %If a detected edge fragment is below this size in pixels it is thrown out.
 threshScale = [.95 .5]; %Fraction by which to adjust edge threshold on second round.
 nSig = 3; %Number of standard deviations above background intensity to keep edges.(darker edges are removed)
-sigFilter = 1.2; %Sigma of filter used in canny edge detection.
-showPlots = 1; %For debugging/parameter testing. Shows plots of intermediate steps, overlay of final mask.
+sigFilter = 3; %Sigma of filter used in canny edge detection.
+showPlots = false; %For debugging/parameter testing. Shows plots of intermediate steps, overlay of final mask.
 
 %% ----- Edge Detection ------ %%
 
