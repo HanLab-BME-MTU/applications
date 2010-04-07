@@ -22,7 +22,7 @@ function [BICres] = simpleBICtest(data, startparameters)
 data = fillStructLifetimeHist(data);
 
 % average and merge
-res     = stageFitLifetimesPlat(data);
+res     = stageFitLifetimes(data);
 mer     = mergeFastSlowHistogramsPlat(res, 300, [2 2 1]);
 
 % perform BIC test
