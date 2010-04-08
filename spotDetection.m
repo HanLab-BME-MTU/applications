@@ -221,11 +221,11 @@ for k = 1%:nFrames
     %fprintf('Frame #%d, #maxima = %d, #components = %d\n', k, nMaxima, nComp);
     
     % Save denoised and masked frame as compressed TIFF file
-    imwrite(uint8(255*imgDenoised/max(imgDenoised(:))), [maskPath 'dmask_' num2str(k, ['%.' num2str(length(num2str(nFrames))) 'd']) '.tif'], 'tif', 'compression' , 'lzw');
+    %imwrite(uint8(255*imgDenoised/max(imgDenoised(:))), [maskPath 'dmask_' num2str(k, ['%.' num2str(length(num2str(nFrames))) 'd']) '.tif'], 'tif', 'compression' , 'lzw');
     fprintf('\b\b\b%2d%%', round(100*k/nFrames))
 end
 fprintf('\n');
-save([sourcePath filesep 'DetectionStructures' filesep 'detectionResults.mat'], 'frameInfo');
+%save([sourcePath filesep 'DetectionStructures' filesep 'detectionResults.mat'], 'frameInfo');
 
 % figure;
 % xa = 1:max([frameInfo(:).area]);
