@@ -19,7 +19,7 @@ end
 tifFiles = dir([sourcePath '*.tif*']);
 nFrames = length(tifFiles);
 
-maskPath = [sourcePath 'detectionMasks/'];
+maskPath = [sourcePath 'detectionMasks' filesep];
 if ~(exist(maskPath, 'dir')==7)
     mkdir(maskPath);
 end
