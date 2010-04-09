@@ -1,7 +1,7 @@
 function [cands,triMin,pMin]=fsmPrepBkgEstimDelauNoEnh(imgSize,lMax,lMin)
 % fsmPrepBkgEstimDelauNoEnh uses Delaunay triangulation to assign 3 local minima to every local maximum
 %
-% SYNOPSIS   [cands,triMin,pMin]=fsmPrepBkgEstimationDelaunay(imgSize,lMax,lMin)
+% SYNOPSIS   [cands,triMin,pMin]=fsmPrepBkgEstimDelauNoEnh(imgSize,lMax,lMin)
 %
 % INPUT      imgSize   :   image size [y x]
 %            lMax      :   local max map (the output of the locMax2D function)
@@ -39,16 +39,10 @@ cands=struct(...
     'sigmaBkg',0,...                 % Error on background intensity 
     'status',0);                     % Significance of the local maximum: 1, speckle; 0, weak local maximum
 
-
-    
-% Define 'd' as the maximum side length for a triangle to be kept
-d=30;
-
 % Setting vertex coordinates
 dSet=[1,1;imgSize(1),1;imgSize(1),imgSize(2);1,imgSize(2)];
 
 % Collect coordinates into matrices
-[y x]=find(lMax);
 pMax=[y x];
 if isempty(pMax)
    info=[];
@@ -59,8 +53,6 @@ pMin=[y x];
 
 % Attach dSet to lMin
 pMin=cat(1,pMin,dSet);
-y=cat(1,y,dSet(:,1));
-x=cat(1,x,dSet(:,2));
 
 % Delaunay triangulation
 triMin=delaunay(pMin(:,1),pMin(:,2),{'Qt'}); % New delaunay function (MATLAB 7), 'Qt' -> triangulated output
@@ -102,7 +94,7 @@ for i=1:size(triangles,1)
    if ~isnan(triangles(i))  % If NaN -> no triangle found
       cands(i).Lmax=pMax(i,:);
       % Read local maxima positions into the 3x2 matrix Bkg
-      Bkg=[pMin([triMin(triangles(i),:)],1) pMin([triMin(triangles(i),:)],2)];
+      Bkg=[pMin(triMin(triangles(i),:),1) pMin(triMin(triangles(i),:),2)];
       % Store positions into the cands structure
       cands(i).Bkg1=Bkg(1,:);
       cands(i).Bkg2=Bkg(2,:);

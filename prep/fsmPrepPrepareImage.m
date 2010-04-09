@@ -34,10 +34,8 @@ if nargin==3
     sigma=1;
 end
 
-% Check for image class
-if ~isa(img,'double')
-    img=double(img);
-end
+% Make sure image class is double
+img=double(img);
 
 % Multiply image with corresponding factor
 img=IcorrFactor*img;
@@ -46,11 +44,13 @@ img=IcorrFactor*img;
 img=img(W(1,1):W(end,3),W(1,2):W(end,4));
 
 % Filter with correction of border effect (if needed)
-if sigma~=0
-    bck=mean(img(:))*ones(size(img));
-    [img,M]=filterGauss2D(img,sigma);
-    dy=fix(size(M,1)/2);
-    dx=fix(size(M,2)/2);
-    bck(dy+1:end-dy,dx+1:end-dx)=img(dy+1:end-dy,dx+1:end-dx); 
-    img=bck;
-end
+% if sigma~=0
+%     bck=mean(img(:))*ones(size(img));
+%     [img,M]=filterGauss2D(img,sigma);
+%     dy=fix(size(M,1)/2);
+%     dx=fix(size(M,2)/2);
+%     bck(dy+1:end-dy,dx+1:end-dx)=img(dy+1:end-dy,dx+1:end-dx); 
+%     img=bck;
+% end
+% Correction: filterGauss2D already takes care of border conditions.
+img = filterGauss2D(img,sigma);

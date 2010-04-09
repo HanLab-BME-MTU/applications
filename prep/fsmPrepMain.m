@@ -108,11 +108,11 @@ if ~isfield(fsmParam,'batchJob')
     outFileList=getFileStackNames([dirName,fName]);
     
     % recover the number of image selected
-    [path,body,firstIndex]=getFilenameBody(outFileList{1});
+    [path,body,firstIndex]=getFilenameBody(outFileList{1}); %#ok<ASGLU>
     firstIndex=str2double(firstIndex);
     
     % Recover the number of the last image in the folder
-    [path,body,no]=getFilenameBody(outFileList{end});
+    [path,body,no]=getFilenameBody(outFileList{end}); %#ok<ASGLU>
     
     % Prepare string number format
     s=length(num2str(no));
@@ -126,9 +126,6 @@ if ~isfield(fsmParam,'batchJob')
         % Crop the portion of interest from the filename list
         outFileList=outFileList(1:n);
     end
-    
-    % Convert filelist to a matrix of strings
-    % outFileList=char(outFileList);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
@@ -154,13 +151,13 @@ if ~isfield(fsmParam,'batchJob')
         if ~(isa(userROIbwFileName,'char') && isa(userROIbwPath,'char'))
             return
         end
-        
+       
         try
             
             % Try to extract all the info we need
             s=load([userROIbwPath,userROIbwFileName]);
             userROIbw=s.userROIbw;
-            userROIpoly=s.userROIpoly;
+            userROIpoly=s.userROIpoly; %#ok<NASGU>
             
             % Check dimensions
             if size(userROIbw) ~= [imInfo.Height, imInfo.Width]
@@ -181,11 +178,10 @@ if ~isfield(fsmParam,'batchJob')
                 
             end
             
-        catch
+        catch errMsg
             
             % Error - inform the user that he will have to draw the roi
-            errorMsg='Invalid userROI.mat file. You will be now asked to draw a ROI.';
-            uiwait(errordlg(errorMsg,'Error','modal'));
+            uiwait(errordlg(errMsg.message,'Error','modal'));
             
             % Set drawROI=1, the user will draw
             drawROI=1;
@@ -326,12 +322,17 @@ for counter1=1:n
     currentIndex=counter1+firstIndex-1;
     
     % Load and normalize the image
-    img=imreadnd2(outFileList{counter1},xmin,xmax);
+    %img=imreadnd2(outFileList{counter1},xmin,xmax);
     
-    % retain copy of original image for mixture model
-    % orig_image is normalized, but NOT filtered
-    orig_image=img;
+    % Load image
+    img = imread(outFileList{counter1});
+    % Compute Ascombes transform
+    % DON'T DO THAT UNTIL IT IS THOROUGHLY CHECKED
+    %img = 2 * sqrt(double(img) + 3/8);
     
+    % Normalize image
+    img = (img - xmin) / (xmax - xmin);
+
     if autoPolygon==1
         
         % Initialize successCE
@@ -349,18 +350,6 @@ for counter1=1:n
                 successCE = 1;
             end
         end
-        
-        %if successCE == -1
-        %   try
-        %      % Here use special bit depth instead of the FSM bit depth
-        %      % contact Matthias for more questions
-        %      img_tmp=imreadnd2(outFileList{counter1},0,eBD);
-        %      [successCE,img_edge,bwMask]=imFindCellEdge(img_tmp,'',0,'filter_image',1,'bit_depth',eBD);
-        %   catch
-        %      bwMask=ones(size(img)); % imFindCellEdge failed to retrieve the edge
-        %      fprintf(1,'Edge extraction failed for frame %s.\n',num2str(currentIndex));
-        %   end
-        %end
         
         % If imFindCellEdge returns successCE==-1 create a white mask too
         if successCE==-1
@@ -385,7 +374,7 @@ for counter1=1:n
     img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],filtersigma);
     
     % Statistically test the local maxima to extract (significant) speckles
-    fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,fsmParam,orig_image);
+    fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,fsmParam);
     
     % Update wait bar
     waitbar(counter1/n,h);

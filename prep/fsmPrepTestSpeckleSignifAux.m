@@ -1,4 +1,4 @@
-function [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignificanceAux(aImg,img,locMax,maskR,stdImg,A,parameters)
+function [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignifAux(aImg,img,locMax,maskR,stdImg,A,parameters)
 % fsmPrepTestSpeckleSignificanceAux tests the significance of a local maximum in the case of failed Delaunay
 %
 % SYNOPSIS   [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignificanceAux(aImg,img,locMax,maskR,stdImg,A,parameters)

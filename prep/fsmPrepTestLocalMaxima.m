@@ -1,4 +1,4 @@
-function [lMax,cands]=fspPrepTestLocalMaxima(img,lMax,cands,parameters,imgO)
+function [lMax,cands]=fsmPrepTestLocalMaxima(img,lMax,cands,parameters,imgO)
 % fspPrepTestLocalMaxima selects statistically significant local maxima using loc max and background info from analyzeSpeckles
 %
 % SYNOPSIS   [lMax,cands]=fspPrepTestLocalMaxima(img,lMax,cands,parameters)
@@ -45,13 +45,12 @@ I0=parameters(4);
 % img([1 size(img,1) (size(img,2)-1)*size(img,1)+1 size(img,1)*size(img,2)])=mean(img(:));
 
 % Calculate standard deviation of the non-black pixels as statistical value for comparison
-nonBlackPixels=img(find(img>0));
+nonBlackPixels=img(img>0);
 stdImg=std(nonBlackPixels(:));
 
-% Pad img with intensities equal to the mean img intensity (to avoid border effects)
-maskR=5;
-aImg=mean(img(:))*ones(2*maskR+size(img));
-aImg(maskR+1:end-maskR,maskR+1:end-maskR)=img;
+% Pad img to avoid border effects.
+maskR = 5;
+aImg = padarray(img, [maskR,maskR], 'replicate');
 
 % Create addressing matrix
 A=zeros(size(img));
@@ -63,7 +62,6 @@ for c1=1:length(cands)
 	Imax=img(cands(c1).Lmax(1),cands(c1).Lmax(2)); % img is the current image
     
 	if cands(c1).Bkg1(1)==-1 % This means that the Deulaunay triangulation has failed
-        
         % imgO is the original filtered image
 		[Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignifAux(aImg,imgO,[cands(c1).Lmax(1) cands(c1).Lmax(2)],maskR,stdImg,A,parameters);
 	else

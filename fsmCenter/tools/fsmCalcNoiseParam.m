@@ -132,6 +132,10 @@ fprintf(1,'Loading stack...');
 stack=imreadstack(firstfilename,n);
 fprintf(1,' Done!\n');
 
+% Compute Ascombes transform (SB - 4/8/10)
+% DON'T DO THAT UNTIL IT IS THOROUGHLY CHECKED
+%stack = 2 * sqrt(stack + 3/8);
+
 % Normalize stack
 stack=(stack-mn)/(mx-mn);
 
@@ -195,7 +199,7 @@ close(h);
 GaussRatio=mean(GaussRatios);
 
 % Adapt beta to the selected bitdepth
-%beta=2^(14-bitDepth)*2e-4;
+% beta=2^(14-bitDepth)*2e-4;
 % that was the old beta value found for the camera in zurich
 % since we do not know the value for other cameras we neglect
 % shot noise and set beta to zero
