@@ -852,13 +852,13 @@ if ~isfield(handles.pitInfo,'intensityChannel1')
 end
 
 %close previous instance of pitInfo
-close(handles.hpitInfo)
+%close(handles.hpitInfo)
 %open new instance pitINfo gui
 handles.hpitInfo = pitInfo(handles.output);
 %update handles
 guidata(hObject, handles)
 %get handles for pitInfo
-pitInfoHandles = guihandles(handles.hpitInfo);
+pitInfoHandles = guidata(handles.hpitInfo);
 %add handle for endocytosisGUI
 pitInfoHandles.endocytosisGUIHandle = handles.output;
 %call makePlots within pitInfo

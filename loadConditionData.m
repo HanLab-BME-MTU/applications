@@ -60,10 +60,11 @@ if ~isempty(expDir)
                 experiment(ct).framerate = currFramerate;
                 
                 tifFiles = dir([experiment(ct).source '*.tif*']);
+                if ~isempty(tifFiles)
                 experiment(ct).imagesize = size(imread([experiment(ct).source tifFiles(1).name]));
                 experiment(ct).movieLength = length(tifFiles);
-
                 ct = ct+1;
+                end
             end
         end   
     end

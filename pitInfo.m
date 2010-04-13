@@ -59,6 +59,7 @@ handles.output = hObject;
 % uiwait(handles.figure1);
 % Update handles structure
 guidata(hObject,handles)
+%makePlots(handles)
 
 %PLOT INTENSITY DATA
 function makePlots(handles)
@@ -79,6 +80,7 @@ set(H1,'Color','b','LineWidth',2)
 set(H2,'Color','g','LineWidth',2)
 ylabel(AX(1),'Channel1 intensity (background substracted)')
 ylabel(AX(2),'Channel2 intensity (background substracted)')
+xlabel('frames from initiation')
 else
     %plot channel 1 only
    plot(handles.axes1,...
