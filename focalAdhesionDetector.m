@@ -27,68 +27,41 @@ indCC = (1:nCC)';
 % Get initial segment parameters
 params = getInitialSegmentParams(ImBG, R, T, sigmaPSF, CCstats);
 
-% % params is a Nx5 matrix where each column stands for Xc, Yc, A, l, theta.
-% params = zeros(nCC, 5);
-% 
-% % Segment amplitude is initialized by the mean intensity of I - BG
-% params(:,3) = cellfun(@(idx) mean(ImBG(idx)), {CCstats(:).PixelIdxList});
-% 
-% % Segment length is initialized by the length of the CC major axis
-% params(:,4) = vertcat(CCstats(:).MajorAxisLength);
-% 
-% % Segment orientation is initialized by the CC's main orientation
-% params(:,5) = -vertcat(CCstats(:).Orientation) * pi/180;
-% % Optimize initial segment orientation using local orientation map
-% params(:,5) = arrayfun(@(i) lsqnonlin(@getOrientationCost, params(i,5),...
-%     [],[],options, T(CCstats(i).PixelIdxList), R(CCstats(i).PixelIdxList)), ...
-%     indCC);
-% 
-% % Segment centre is initialized using Radon transform. Each initial CC's
-% % can yield multiple centers.
-% 
-% winSize = 2*ceil(2*sigmaPSF)+1;
-% centers = arrayfun(@(i) getSegmentInitialPosition(R,CCstats(i),...
-%     params(i,5),winSize),indCC, 'UniformOutput', false);
-% 
-% params = cell2mat(arrayfun(@(i) [centers{i}, repmat(params(i,3:5), ...
-%     size(centers{i},1),1)], indCC, 'UniformOutput', false));
-
 %Optimize all segment parameters together
 %initParams = params;
 
-% Define bounds
-lb = zeros(size(params));
-% min value of center coordinates
-lb(:,1:2) = 1;
-% min value of segment amplitude
-lb(:,3) = cell2mat(arrayfun(@(i) repmat(min(ImBG(CCstats(i).PixelIdxList)), ...
-    size(centers{i},1),1), indCC, 'UniformOutput', false));
-% min length
-lb(:,4) = .25*params(:,4);
-% min orientation value
-lb(:,5) = -inf;
-
-ub = zeros(size(params));
-% max x-coordinate
-ub(:,1) = size(I,2);
-% max y-coordinate
-ub(:,2) = size(I,1);
-% max value of signal intensity
-% +1 is to prevent that lower bound equals upper bound.
-ub(:,3) = cell2mat(arrayfun(@(i) repmat(max(ImBG(CCstats(i).PixelIdxList)), ...
-    size(centers{i},1),1), indCC, 'UniformOutput', false)) + 1;
-% max length
-ub(:,4) = 2*params(:,4);
-% max orientation
-ub(:,5) = +inf;
-
-% Set options for lsqnonlin
-options = optimset('Jacobian', 'on', 'MaxFunEvals', 1e4, 'MaxIter', 1e4, ...
-    'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
-
-fun = @(x) dLSegment2DFit(x, ImBG, sigmaPSF);
+% % Define bounds
+% lb = zeros(size(params));
+% % min value of center coordinates
+% lb(:,1:2) = 1;
+% % min value of segment amplitude
+% lb(:,3) = cell2mat(arrayfun(@(i) repmat(min(ImBG(CCstats(i).PixelIdxList)), ...
+%     size(centers{i},1),1), indCC, 'UniformOutput', false));
+% % min length
+% lb(:,4) = .25*params(:,4);
+% % min orientation value
+% lb(:,5) = -inf;
+% 
+% ub = zeros(size(params));
+% % max x-coordinate
+% ub(:,1) = size(I,2);
+% % max y-coordinate
+% ub(:,2) = size(I,1);
+% % max value of signal intensity
+% % +1 is to prevent that lower bound equals upper bound.
+% ub(:,3) = cell2mat(arrayfun(@(i) repmat(max(ImBG(CCstats(i).PixelIdxList)), ...
+%     size(centers{i},1),1), indCC, 'UniformOutput', false)) + 1;
+% % max length
+% ub(:,4) = 2*params(:,4);
+% % max orientation
+% ub(:,5) = +inf;
+% 
+% % Set options for lsqnonlin
+% options = optimset('Jacobian', 'on', 'MaxFunEvals', 1e4, 'MaxIter', 1e4, ...
+%     'Display', 'off', 'TolX', 1e-6, 'Tolfun', 1e-6);
+% 
+% fun = @(x) dLSegment2DFit(x, ImBG, sigmaPSF);
 %[params, ~,residual] = lsqnonlin(fun, params, lb, ub, options);
-
 %Im = I - reshape(residual, size(I));
 
 function [F J] = getOrientationCost(x,varargin)
@@ -131,6 +104,10 @@ theta0 = arrayfun(@(i) lsqnonlin(@getOrientationCost, theta0(i),[],[],...
     options, T(CCstats(i).PixelIdxList), R(CCstats(i).PixelIdxList)), ...
     indCC);
 
+ct_90 = cos(theta0+pi/2);
+st_90 = sin(theta0+pi/2);
+tt_90 = tan(theta0+pi/2);
+
 %
 % xC, yC and L
 %
@@ -169,26 +146,36 @@ for i = 1:nCC
     indMax = indMax(ccR(indMax) > 0);
     distAside = ccXp(indMax);
 
-    p = repmat(bb(:,1:2) + cRadon - 1,numel(distAside),1) + ...
-        distAside(:) * [cos(theta-pi/2), sin(theta-pi/2)];
+    % Compute Radon transform on the CC's footprint to get the length along
+    % each line.
+    ccL = radon(BW, thetaRadon);
+    L{i} = ccL(indMax);
     
     % Find the distance ALONG each line from which p will need to be
     % shifted so that it represents the center of the footprint of the CC
     % along that line.
     
-    tt = tan(theta0(i));
     D = zeros(bb(4),bb(3));
-    D(indLocal) = (tt * (cRadon(2) - x) + y - cRadon(1)) ./ sqrt(1 + tt^2);
+    D(indLocal) = (tt_90(i) * (cRadon(1) - x) + y - cRadon(2)) ./ ...
+        sqrt(1 + tt_90(i)^2);
     
-    ccShift = radon(D,thetaRadon);
-    ccShift = ccShift(indMax);
+    distAlong = radon(D,thetaRadon);
+    distAlong = distAlong(indMax) ./ L{i};
     
-    centers{i} = p + ccShift;
-
-    % Compute Radon transform on the CC's footprint to get the length along
-    % each line.
-    ccL = radon(BW, thetaRadon);
-    L{i} = ccL(indMax);
+    pts = [distAside distAlong];
+    
+    rotT = [ct_90(i) st_90(i); -st_90(i) ct_90(i)];
+    
+    centers{i} = repmat(bb(:,1:2) + cRadon - 1,numel(distAside),1) + ...
+        cell2mat(arrayfun(@(i) pts(i,1:2) * rotT, (1:size(pts,1))',...
+        'UniformOutput', false));
 end
 
+% Concatenate all parameters
+params = cell2mat(arrayfun(@(i) [...
+    centers{i},...                               % Xc, Yc
+    repmat(A(i), size(centers{i},1),1),...       % A
+    L{i},...                                     % L
+    repmat(theta0(i), size(centers{i},1),1)],... % theta
+    indCC, 'UniformOutput', false));
 
