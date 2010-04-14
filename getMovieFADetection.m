@@ -11,9 +11,6 @@ end
 imagePath = movieData.channels(1).roiDirectory;
 imageFiles = dir([imagePath filesep '*.tif']);
 
-maskPath = movieData.masks.directory;
-maskFiles = dir([maskPath filesep '*.tif']);
-
 movieData.detection.directory = [movieData.channels(1).analysisDirectory ...
     filesep 'detection'];
 
@@ -23,17 +20,18 @@ end
 
 nFrames = numel(imageFiles);
 
+% !!!! LINK THIS WITH THE REAL PARAMS:
 % sigmaPSF = vectorialPSFSigma(1.4, 509, 67)
 sigmaPSF = 1.6255;
+minSize = 2;
 
 %Make the string for formatting
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 
 for i = 1:nFrames
     I = imread([imagePath filesep imageFiles(i).name]);
-    BW = imread([maskPath filesep maskFiles(i).name]);
     
-    [FA, Im] = focalAdhesionDetector(I,BW,sigmaPSF); %#ok<NASGU>
+    [FA, Im] = focalAdhesionDetector(I,sigmaPSF, minSize); %#ok<NASGU>
     %load([movieData.detection.directory filesep 'FA_' num2str(i,fString) '.mat']);
     %load([movieData.detection.directory filesep 'Im_' num2str(i,fString) '.mat']);
     
@@ -41,7 +39,6 @@ for i = 1:nFrames
     save([movieData.detection.directory filesep 'Im_' num2str(i,fString) '.mat'], 'Im');
     
     % Save image overlaid by FA
-    n = size(FA,1);
     xMin = round(FA(:,1) - (FA(:,4) / 2) .* cos(FA(:,5)));
     xMax = round(FA(:,1) + (FA(:,4) / 2) .* cos(FA(:,5)));
     yMin = round(FA(:,2) - (FA(:,4) / 2) .* sin(FA(:,5)));
@@ -62,7 +59,7 @@ for i = 1:nFrames
     I = (I - min(I(:))) / (max(I(:)) - min(I(:)));
     I(indPts) = 0;    
     I = repmat(I, [1 1 3]);
-    I(:,:,1) = I(:,:,1) + Z;
+    I(:,:,2) = I(:,:,2) + Z;
  
     imwrite(I, [movieData.detection.directory filesep 'overlayFA_' ...
         num2str(i,fString) '.tif'], 'Compression', 'none');

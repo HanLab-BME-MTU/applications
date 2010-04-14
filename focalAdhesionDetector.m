@@ -1,5 +1,5 @@
-function [params, Im] = focalAdhesionDetector(I, mask, sigmaPSF)
-% [params, Im] = focalAdhesionDetector(I, mask, sigmaPSF)
+function [params, Im] = focalAdhesionDetector(I, sigmaPSF, minSize)
+% [params, Im] = focalAdhesionDetector(I, sigmaPSF)
 
 % Make sure I is type double
 I = double(I);
@@ -8,11 +8,7 @@ I = double(I);
 ImBG = I - filterGauss2D(I,10);
 
 % Get a first coarse segmentation
-minSize = 2;
-BW = logical(blobSegmentThreshold(I,minSize,1));
-
-% Restrict analysis to cell footprint
-BW = logical(BW .* mask);
+BW = logical(blobSegmentThreshold(I,minSize,0));
 
 % Get the local orientations
 [R,T] = steerableFiltering(I,2,sigmaPSF); % TODO: Use M=4
@@ -25,7 +21,7 @@ nCC = numel(CCstats);
 indCC = (1:nCC)';
 
 % Get initial segment parameters
-params = getInitialSegmentParams(ImBG, R, T, sigmaPSF, CCstats);
+params = getInitialSegmentParams(ImBG,R,T,CCstats,sigmaPSF,minSize);
 
 %Optimize all segment parameters together
 %initParams = params;
@@ -63,6 +59,7 @@ params = getInitialSegmentParams(ImBG, R, T, sigmaPSF, CCstats);
 % fun = @(x) dLSegment2DFit(x, ImBG, sigmaPSF);
 %[params, ~,residual] = lsqnonlin(fun, params, lb, ub, options);
 %Im = I - reshape(residual, size(I));
+Im = dLSegment2DImageModel(params,sigmaPSF,size(I));
 
 function [F J] = getOrientationCost(x,varargin)
 
@@ -76,7 +73,7 @@ if nargout > 1
     J = -w .* cos(x-phi);
 end
 
-function params = getInitialSegmentParams(ImBG,R,T,sigmaPSF,CCstats)
+function params = getInitialSegmentParams(ImBG,R,T,CCstats,sigmaPSF,minSize)
 
 % Set options for lsqnonlin
 options = optimset('Jacobian', 'on', 'MaxFunEvals', 1e4, 'MaxIter', 1e4, ...
@@ -104,9 +101,23 @@ theta0 = arrayfun(@(i) lsqnonlin(@getOrientationCost, theta0(i),[],[],...
     options, T(CCstats(i).PixelIdxList), R(CCstats(i).PixelIdxList)), ...
     indCC);
 
-ct_90 = cos(theta0+pi/2);
-st_90 = sin(theta0+pi/2);
-tt_90 = tan(theta0+pi/2);
+% lsqnonlin could yield theta value outside [-pi/2, pi/2] due to the fact
+% we don't bound the optimization. Make sure theta0 is in [-pi/2,pi/2]
+theta0 = rem(theta0,pi);
+ind = theta0 < -pi/2 & theta0 >= -pi;
+theta0(ind) = theta0(ind) + pi;
+ind = theta0 > pi/2 & theta0 <= pi;
+theta0(ind) = theta0(ind) - pi;
+
+% t90 is theta +/- pi/2 (still belongs to -pi/2, pi/2)
+ind = theta0 >= -pi/2 & theta0 < 0;
+t90 = zeros(size(theta0));
+t90(ind) = theta0(ind) + pi/2;
+t90(~ind) = theta0(~ind) - pi/2;
+
+ct_90 = cos(t90);
+st_90 = sin(t90);
+tt_90 = tan(t90);
 
 %
 % xC, yC and L
@@ -115,7 +126,11 @@ tt_90 = tan(theta0+pi/2);
 centers  = cell(nCC,1);
 L = cell(nCC,1);
 
-for i = 1:nCC
+for i = 1:nCC    
+    if i == 473
+        i;
+    end
+    
     % Floor bounding box
     bb = ceil(CCstats(i).BoundingBox);
 
@@ -127,55 +142,91 @@ for i = 1:nCC
     indLocal = sub2ind(size(BW), y, x);
     BW(indLocal) = 1;
     
-    % Crop R using bounding box and restrinct to pixels in the CC
+    % Crop R using bounding box and restrinct to CC's footprint
     Rcrop = zeros(bb(4),bb(3));
     Rcrop(indLocal) = R(CCstats(i).PixelIdxList);
 
-    % Compute Radon transform on Rcrop
-    thetaRadon = mod(pi-theta0(i)+pi/2,pi)*180/pi;
+    % strategy: so far, we have the angle (theta0) along which every FA is
+    % supposed to be aligned in the CC. We have to find the number of FA in
+    % the CC and their position along a line perpendicular to theta0 and
+    % passing through the center of the CC. We use the Radon transform to
+    % achieve that goal. We use the center defined by Radon as the center
+    % of the CC (i.e center = floor((bb(:,3:4)+1)/2). See Radon's help).
+    % Along the line perpendicular to theta0 (i.e. along t90), we want to
+    % find the position (called distAside) that are local maxima of the
+    % mean integral of R along theta0. This correspond to the find every
+    % local maximum of the 1-dimentional signal radon(Rcrop,theta0) ./
+    % radon(BW,theta0).
     
     % The Radon origin is floor((size(I)+1)/2).
     cRadon = floor((bb(:,3:4)+1)/2);
     
-    [ccR ccXp] = radon(Rcrop,thetaRadon);
-
-    % Find the distances ASIDE from the origin that maximize locally Radon
-    % coefficients. 
+    % Radon angle is defined in degree in a counterclockwise axis
+    thetaRadon = -t90(i)*180/pi;
     
-    indMax = locmax1d(ccR,winSize);
-    indMax = indMax(ccR(indMax) > 0);
-    distAside = ccXp(indMax);
-
-    % Compute Radon transform on the CC's footprint to get the length along
-    % each line.
+    % Compute Radon transform on Rcrop
+    [ccR ccXp] = radon(Rcrop,thetaRadon);
+    
+    % Compute Radon transform on the CC's footprint (ccXp will be the
+    % same as above).
     ccL = radon(BW, thetaRadon);
+
+    % Compute the mean integral of Rcrop along the line oriented along t90.
+    ccMeanR = ccR ./ (ccL + 1e-10);
+    
+    % Find local maxima, under the constraint of a minimal length.
+    indMax = locmax1d(ccMeanR, winSize);
+    indMax = indMax(ccMeanR(indMax) > 0 & ccL(indMax) >= minSize);
+    
+    distAside = ccXp(indMax);
+    
+    % Store the length of each segment
     L{i} = ccL(indMax);
     
-    % Find the distance ALONG each line from which p will need to be
-    % shifted so that it represents the center of the footprint of the CC
-    % along that line.
+    % Now that we have the distance aside the main CC's orientation, we are
+    % able to defines lines that are oriented along theta0 and passing
+    % through the center of the CC shifted by distAside. We hope this set
+    % of lines overlap real FA's in bundle. Still, each point traversed by
+    % a line may not represent the real center of a FA. we need to find the
+    % center of each FA along each line. Again, we use Radon to compute
+    % these positions. distAlong represents the distance along each line
+    % (those along FAs) away from the perpendicular line (perpendicular to
+    % FAs) passing through the center of the CC.
     
+    % D is the signed distance transform from the perpendicular axis.
     D = zeros(bb(4),bb(3));
     D(indLocal) = (tt_90(i) * (cRadon(1) - x) + y - cRadon(2)) ./ ...
         sqrt(1 + tt_90(i)^2);
     
+    % The integration of that distance transform along lines and restricted
+    % to the CC's footprint will gives the center of each FA.
+    
     distAlong = radon(D,thetaRadon);
     distAlong = distAlong(indMax) ./ L{i};
     
-    pts = [distAside distAlong];
+    % distAside and distAlong can be empty. We want to generate 0x2 matrix
+    % so that pts remains compliant with the next set of operations.
+    if isempty(distAside)
+        pts = zeros(0,2);
+    else
+        pts = [distAside distAlong];
+    end
     
-    rotT = [ct_90(i) st_90(i); -st_90(i) ct_90(i)];
+    % Rotate pts
+    rotT90 = [ct_90(i) st_90(i); -st_90(i) ct_90(i)];
     
+    % Centers of FAs = center of the CC + Rot90(pts)
     centers{i} = repmat(bb(:,1:2) + cRadon - 1,numel(distAside),1) + ...
-        cell2mat(arrayfun(@(i) pts(i,1:2) * rotT, (1:size(pts,1))',...
-        'UniformOutput', false));
+        pts * rotT90;
 end
 
 % Concatenate all parameters
+nEmpty = cellfun(@(x) ~isempty(x), centers);
+
 params = cell2mat(arrayfun(@(i) [...
     centers{i},...                               % Xc, Yc
     repmat(A(i), size(centers{i},1),1),...       % A
     L{i},...                                     % L
     repmat(theta0(i), size(centers{i},1),1)],... % theta
-    indCC, 'UniformOutput', false));
+    indCC(nEmpty), 'UniformOutput', false));
 
