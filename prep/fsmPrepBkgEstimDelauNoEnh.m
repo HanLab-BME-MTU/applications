@@ -43,11 +43,6 @@ cands=struct(...
 dSet=[1,1;imgSize(1),1;imgSize(1),imgSize(2);1,imgSize(2)];
 
 % Collect coordinates into matrices
-pMax=[y x];
-if isempty(pMax)
-   info=[];
-   return;
-end
 [y x]=find(lMin);
 pMin=[y x];
 
