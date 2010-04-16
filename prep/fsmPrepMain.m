@@ -322,10 +322,10 @@ for counter1=1:n
     currentIndex=counter1+firstIndex-1;
     
     % Load and normalize the image
-    %img=imreadnd2(outFileList{counter1},xmin,xmax);
+    img=imreadnd2(outFileList{counter1},xmin,xmax);
     
     % Load image
-    img = imread(outFileList{counter1});
+    %img = imread(outFileList{counter1});
     % Compute Ascombes transform
     % DON'T DO THAT UNTIL IT IS THOROUGHLY CHECKED
     %img = 2 * sqrt(double(img) + 3/8);
