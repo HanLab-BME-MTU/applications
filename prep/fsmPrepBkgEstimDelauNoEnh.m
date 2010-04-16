@@ -43,6 +43,10 @@ cands=struct(...
 [y x]=find(lMax);
 pMax=[y x];
 
+if isempty(pMax)
+   return;
+end
+
 % Setting vertex coordinates
 dSet=[1,1;imgSize(1),1;imgSize(1),imgSize(2);1,imgSize(2)];
 

@@ -324,14 +324,13 @@ for counter1=1:n
     % Load and normalize the image
     img=imreadnd2(outFileList{counter1},xmin,xmax);
     
+    % DON'T DO THAT UNTIL IT IS THOROUGHLY CHECKED
     % Load image
     %img = imread(outFileList{counter1});
     % Compute Ascombes transform
-    % DON'T DO THAT UNTIL IT IS THOROUGHLY CHECKED
     %img = 2 * sqrt(double(img) + 3/8);
-    
     % Normalize image
-    img = (img - xmin) / (xmax - xmin);
+    %img = (img - xmin) / (xmax - xmin);
 
     if autoPolygon==1
         

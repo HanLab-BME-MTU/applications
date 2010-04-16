@@ -104,10 +104,12 @@ IMfinal=zeros(size(IG));
 
 % Replace loop
 validCands = [candsTot(:).status] == 1;
-validLmax = vertcat(candsTot(validCands).Lmax);
-validILmax = [candsTot(validCands).ILmax];
-validIdx = sub2ind(size(IG), validLmax(:,1), validLmax(:,2));
-IMfinal(validIdx) = validILmax;
+if any(validCands)
+    validLmax = vertcat(candsTot(validCands).Lmax);
+    validILmax = [candsTot(validCands).ILmax];
+    validIdx = sub2ind(size(IG), validLmax(:,1), validLmax(:,2));
+    IMfinal(validIdx) = validILmax;
+end
 % for i=1:length(candsTot)
 %     if candsTot(i).status==1
 %         IMfinal(candsTot(i).Lmax(1),candsTot(i).Lmax(2))=candsTot(i).ILmax;
@@ -137,7 +139,6 @@ end
 % However, it is important to note that performing the Gauss fit in the
 % mixture model on the filtered image (which is broadened), rather than on
 % the original one, requires to modify the sigma of the mixture-model fit!
-
 
 if isstruct(fsmParam) && fsmParam.prep.subpixel==1
     cands=candsTot; 
