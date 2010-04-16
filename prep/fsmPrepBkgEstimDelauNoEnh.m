@@ -39,10 +39,14 @@ cands=struct(...
     'sigmaBkg',0,...                 % Error on background intensity 
     'status',0);                     % Significance of the local maximum: 1, speckle; 0, weak local maximum
 
+% Collect lMax coordinates into matrics
+[y x]=find(lMax);
+pMax=[y x];
+
 % Setting vertex coordinates
 dSet=[1,1;imgSize(1),1;imgSize(1),imgSize(2);1,imgSize(2)];
 
-% Collect coordinates into matrices
+% Collect lMin coordinates into matrices
 [y x]=find(lMin);
 pMin=[y x];
 
