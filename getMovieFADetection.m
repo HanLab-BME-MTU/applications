@@ -1,11 +1,10 @@
-function movieData = getMovieFADetection(movieData, batchMode)
+function movieData = getMovieFADetection(movieData,batchMode)
 
 %Indicate that labeling was started
 movieData.detection.status = 0;
 
-% Go through each frame and save the windows to a file
 if ~batchMode
-    h = waitbar(0,'Please wait, image detection....');
+    h = waitbar(0,'Please wait, focal adhesion detection....');
 end
 
 imagePath = movieData.channels(1).roiDirectory;
@@ -32,8 +31,6 @@ for i = 1:nFrames
     I = imread([imagePath filesep imageFiles(i).name]);
     
     [FA, Im] = focalAdhesionDetector(I,sigmaPSF, minSize); %#ok<NASGU>
-    %load([movieData.detection.directory filesep 'FA_' num2str(i,fString) '.mat']);
-    %load([movieData.detection.directory filesep 'Im_' num2str(i,fString) '.mat']);
     
     save([movieData.detection.directory filesep 'FA_' num2str(i,fString) '.mat'], 'FA');
     save([movieData.detection.directory filesep 'Im_' num2str(i,fString) '.mat'], 'Im');

@@ -1,6 +1,6 @@
 function batchComputeActinFACorrelation(rootDirectory, forceRun, batchMode)
 
-nSteps = 7;
+nSteps = 8;
 
 if nargin < 1 || isempty(rootDirectory)
     dataDirectory = uigetdir('', 'Select a data directory:');
@@ -84,7 +84,6 @@ for iMovie = 1:nMovies
         currMovie.pixelSize_nm = fsmPhysiParam.pixelSize;
         currMovie.timeInterval_s = fsmPhysiParam.frameInterval;
         clear fsmPhysiParam;
-        
         % STEP 1.3: Get the mask directory
         currMovie.masks.directory = [currMovie.channels(2).analysisDirectory...
             filesep 'edge' filesep 'cell_mask'];
@@ -92,11 +91,11 @@ for iMovie = 1:nMovies
         currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
         currMovie.masks.status = 1;
         
-        % STEP 1.4: Update from already saved movieData
-        if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
-            currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
-            currMovie = currMovie.movieData;
-        end
+         % STEP 1.4: Update from already saved movieData
+         if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
+             currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
+             currMovie = currMovie.movieData;
+         end
     catch errMess
         disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
         disp(['Error in movie ' num2str(iMovie) ': ' errMess.message '(SKIPPING)']);
@@ -269,6 +268,28 @@ for iMovie = 1:nMovies
             currMovie.detection.status = 0;
         end
     end 
+ 
+    % STEP 8: FA Tracking
+    
+    if ~isfield(currMovie, 'tracking') || ~isfield(currMovie.tracking, 'status') || ...
+            currMovie.tracking.status ~= 1 || forceRun(8)
+        try
+            currMovie = setupMovieData(currMovie);
+            
+            disp(['Track FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
+            
+            currMovie = getMovieFATracking(currMovie, batchMode);
+            
+            if isfield(currMovie.tracking, 'error')
+                currMovie.tracking = rmfield(currMovie.tracking, 'error');
+            end
+            
+        catch errMess
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+            currMovie.tracking.error = errMess;
+            currMovie.tracking.status = 0;
+        end
+    end
     
     % Save results
     try
