@@ -48,10 +48,9 @@ hvecslow = Results.hist_slow(2,:);
 % the data, e.g. to the first 300s of the histogram, since measured
 % frequncies for lifetimes >300s are more than 50% speculative due to the
 % correction for movie length
-if nargin>1
-    resT = restrict;
-else
-    resT = max(tvecslow);
+
+if nargin < 2 || isempty(restrict)
+    restrict = max(tvecslow);
 end
 
 
@@ -83,9 +82,10 @@ estFast = fitcurveMultiWeibullODF_lsq( tvecfast, hvecfast, startvF, fixvF);
 % set all except offest to positive
 estFast(2:length(estFast)) = abs(estFast(2:length(estFast)));
 
-for t=1:3, textF{t}=num2str(estFast(3*t-1:3*t+1)); end
-text( 10, 0.9*max(hvecfast), textF);
-
+for t = 1:3
+    textF{t} = num2str(estFast(3*t-1:3*t+1));
+end
+text(10, 0.9*max(hvecfast), textF);
 title('fast framerate');
 
 % extract value of sigma for first fast Rayleigh distribution to be kept
@@ -220,9 +220,9 @@ hfitNormCum = cumsum(hfitNorm.*dtvec);
 
 
 
-
+whos
 % restrict the vectors as specified
-pr = find(tfit>resT, 1, 'first');
+pr = find(tfit>restrict, 1, 'first');
 if ~isempty(pr)
     tfit = tfit(1:pr);
     hfitNorm = hfitNorm(1:pr);
@@ -351,8 +351,8 @@ ATtau = [ 0 round(ATtau*100)/100];
 
 
 
-for t=1:length(shapevec)+1
-    text3{t}=num2str([ATcont(t) ATtau(t)]);
+for t = 1:length(shapevec)+1
+    text3{t} = num2str([ATcont(t) ATtau(t)]);
 end
 text( 10, 0.9*max(1-hcfit),text3 );
 axis([0 maxt 0 1.01*max(1-hcfit)]);
