@@ -118,8 +118,7 @@ a2 = 48;
 % positions within the specified time interval
 % area within the interval
 norm_fast   = sum(hvecfast((tvecfast<=a2) & (tvecfast>a1)));
-% original histogram normalized with area
-hnorm_fast  = hvecfast/norm_fast;
+hnorm_fast  = hvecfast/norm_fast; % original histogram normalized with area
 % framerate
 dtfast = max(diff(tvecfast));
 
@@ -151,27 +150,18 @@ tscrop = tvecslow(tvecslow>=clo);
 % re-bin the portion of the fast histogram above clo to match the slow
 % histogram
 tfrebin = tfcrop;
-tfrebin(tfcrop>=clo) = nan;
+tfrebin(tfcrop>=clo) = NaN;
 hfrebin = hfcrop;
-hfrebin(tfcrop>=clo) = nan;
+hfrebin(tfcrop>=clo) = NaN;
 step = round(dtslow/dtfast);
 
 pstart = find(tfcrop>=clo, 1, 'first');
 ti = 0;
-for t=pstart:step:(length(tfcrop)-1)
+for t = pstart:step:(length(tfcrop)-1)
     tfrebin(pstart+ti) = tfcrop(t);
     hfrebin(pstart+ti) = nanmean(hfcrop(t:t+step-1));
-    ti=ti+1;
+    ti = ti+1;
 end
-
-
-% plot the results
-
-% figure
-plot(tfrebin,hfrebin/dtfast,'r.');
-hold on
-plot(tscrop,hscrop/dtslow,'b.');
-axis([0 120 0 0.2]);
 
 
 
@@ -194,8 +184,6 @@ par3 = hscrop(s2:length(hscrop))/dtslow; lp3 = length(par3);
 tcomb(f2:f2+lp3-1) = tscrop(s2:s2+lp3-1);
 hcomb(f2:f2+lp3-1) = hscrop(s2:s2+lp3-1)/dtslow;
 
-hfit = hcomb;
-tfit = tcomb;
 
 
 % normalized offset (taken from original slow histogram) to match the new
@@ -203,42 +191,49 @@ tfit = tcomb;
 % then multiply by the framerate dtslow as done for the histogram above
 OffsetNorm = (OffsetCH/norm_slow)/dtslow;
 %sfinal = [tvecslow(length(tvecslow)) hvecslow(length(hvecslow)) OffsetCH];
-%snew = [tfit(length(tfit)) hfit(length(hfit)) OffsetNorm];
+%snew = [tcomb(length(tcomb)) hcomb(length(hcomb)) OffsetNorm];
 
 
 % renormalize the merged histogram including the newly normalized offset;
 % the resulting cumulative histogram should again converge towards 1 or a
 % slightly lower (but not higher!) value
 % NOTE: for both the norm and for the cumulative distribution, take the
-% different time steps in tfit into account!!
-dtvec = round(10*diff(tfit))/10; 
+% different time steps in tcomb into account!!
+dtvec = round(10*diff(tcomb))/10; 
 dtvec = [dtvec(1) dtvec]; 
 
-finalsum = sum(hfit.*dtvec)+OffsetNorm*dtvec(length(dtvec));
-hfitNorm = hfit/finalsum;
+finalsum = sum(hcomb.*dtvec) + OffsetNorm*dtvec(length(dtvec));
+hfitNorm = hcomb/finalsum;
 hfitNormCum = cumsum(hfitNorm.*dtvec);
 
 
 
-whos
 % restrict the vectors as specified
-pr = find(tfit>restrict, 1, 'first');
+pr = find(tcomb>restrict, 1, 'first');
 if ~isempty(pr)
-    tfit = tfit(1:pr);
+    tcomb = tcomb(1:pr);
     hfitNorm = hfitNorm(1:pr);
     hfitNormCum = hfitNormCum(1:pr);
 end
-maxt = tfit(length(tfit));
+maxt = tcomb(end);
 
+
+% % plot the results
+% figure
+% plot(tfrebin,hfrebin/dtfast,'r.');
+% hold on;
+% plot(tscrop,hscrop/dtslow,'b.');
+% plot(tcomb, hcomb, 'go');
+% %axis([0 120 0 0.2]);
+% 
+% % figure;
+% % subplot(2,1,1);
+% % plot(tcomb,hfitNorm);
+% % axis([0 maxt -0.001 0.03]);
+% % subplot(2,1,2);
+% % plot(tcomb,hfitNormCum);
+% % axis([0 maxt -0.05 1.05]);
 % figure;
-% subplot(2,1,1);
-% plot(tfit,hfitNorm);
-% axis([0 maxt -0.001 0.03]);
-% subplot(2,1,2);
-% plot(tfit,hfitNormCum);
-% axis([0 maxt -0.05 1.05]);
-
-
 
 % ========================================================================
 % 
@@ -253,7 +248,7 @@ else
     shapevec = [2 1 1];
 end
 
-startv1template = [0    0.2 sigRay  2   0.1  10  2   0.2  90  1 0.2  100  1];
+startv1template = [0 0.2 sigRay  2   0.1  10  2   0.2  90  1 0.2  100  1];
 
 startv1 = zeros(1,1+3*length(shapevec));
 startv1(1:length(startv1)) = startv1template(1:length(startv1));
@@ -264,7 +259,7 @@ fixv1 = startv1;
 fixv1(1:length(fixv1)) = fixv1template(1:length(fixv1));
 
 % subplot(2,1,1); hold on;
-[est1] = fitcurveMultiWeibullODF_lsq( tfit, hfitNorm, startv1, fixv1);
+[est1] = fitcurveMultiWeibullODF_lsq( tcomb, hfitNorm, startv1, fixv1);
 
 % for t=1:length(shapevec), text1{t}=num2str(est1(3*t-1:3*t+1)); end
 % text( 10, 0.9*max(hfitNorm),text1 );
@@ -278,10 +273,6 @@ fixv1(1:length(fixv1)) = fixv1template(1:length(fixv1));
 % =========================================================================
 
 
-hcfit = hfitNormCum;
-tcfit = tfit;
-
-
 % figure
 startv2 = est1;
 startv2(4:3:length(startv2)) = shapevec;
@@ -290,17 +281,17 @@ startv2(4:3:length(startv2)) = shapevec;
 % fitting - this is owed to the fact that the data are normalized and the
 % sum of the three individual populations cannot be more than 1 , only less
 % than 1
-fixv2template   = [0  0  1  1  0  0  1  0  0  1  0  0  1]; 
+fixv2template = [0  0  1  1  0  0  1  0  0  1  0  0  1]; 
 fixv2 = fixv1;
 fixv2(1:length(fixv2)) = fixv2template(1:length(fixv2));
 
 % subplot(2,1,2); hold on;
-axis([0 maxt 0 1.01*max(hcfit)]);
-est2 = fitcurveMultiWeibullCDF_lsq( tcfit, hcfit, startv2, fixv2);
+axis([0 maxt 0 1.01*max(hfitNormCum)]);
+est2 = fitcurveMultiWeibullCDF_lsq(tcomb, hfitNormCum, startv2, fixv2);
 
 % for t=1:length(shapevec), text2{t}=num2str( round(1000*est2(3*t-1:3*t+1))/1000 ); end
-% text( 10, 0.9*max(hcfit),text2 );
-% axis([0 maxt 0 1.01*max(hcfit)]);
+% text( 10, 0.9*max(hfitNormCum),text2 );
+% axis([0 maxt 0 1.01*max(hfitNormCum)]);
 % title('merged cumulative histogram');
 
 % ========================================================================
@@ -335,9 +326,9 @@ if nargin>3
 end
 
 
-axis([0 maxt 0 1.01*max(1-hcfit)]);
+axis([0 maxt 0 1.01*max(1-hfitNormCum)]);
 
-[est3] = fitcurveMultiWeibullCDFi_lsq( tcfit, 1-hcfit, startv3, fixv3);
+[est3] = fitcurveMultiWeibullCDFi_lsq(tcomb, 1-hfitNormCum, startv3, fixv3);
 
 
 % relative contributions
@@ -354,14 +345,14 @@ ATtau = [ 0 round(ATtau*100)/100];
 for t = 1:length(shapevec)+1
     text3{t} = num2str([ATcont(t) ATtau(t)]);
 end
-text( 10, 0.9*max(1-hcfit),text3 );
-axis([0 maxt 0 1.01*max(1-hcfit)]);
+text( 10, 0.9*max(1-hfitNormCum),text3 );
+axis([0 maxt 0 1.01*max(1-hfitNormCum)]);
 
 
 % box-and whisker ranges for the different distributions - the first
 % distribution is the offset and therefore excluded
 [range50(1)] = 0;
-for p=2:length(ATtau)
+for p = 2:length(ATtau)
     [range50(p)] = boxwhiskerPerRange(ATtau(p), shapevec(p-1), 0.5);
     [range75(p)] = boxwhiskerPerRange(ATtau(p), shapevec(p-1), 0.75);
 end
@@ -371,18 +362,14 @@ range75 = round(range75*100)/100;
 
 %OUTPUT
 mergedHistRes.numcells = nc_fast + nc_slow;
-mergedHistRes.tvec_or = tfit;
+mergedHistRes.tvec_or = tcomb;
 mergedHistRes.hvec_or = hfitNorm;
-mergedHistRes.tvec_cum = tcfit;
-mergedHistRes.hvec_cum = hcfit;
+mergedHistRes.tvec_cum = tcomb;
+mergedHistRes.hvec_cum = hfitNormCum;
 
-% output display vector
-% format: relative contributions p1 p2 p3 p4
-% compResMat = [ATcont' ATtau'];
-compResMat = [ATcont' ATtau' range50' range75'];
+% Output display vector. Format: relative contributions p1 p2 p3 p4
 format bank
-
-mergedHistRes.compactFitRes = compResMat;
+mergedHistRes.compactFitRes = [ATcont' ATtau' range50' range75'];
 
 %tplot = [0.5:0.5:max(t)];
 %if min(nonzeros(diff(t(:))))<1
@@ -396,7 +383,7 @@ mergedHistRes.compactFitRes = compResMat;
 
 figure;
 % plot original histogram
-plot(tfit,hfitNorm,'b.-');
+plot(tcomb, hfitNorm, 'b.-');
 axis([0 150 -0.001 1.05*max(hfitNorm(:))]);
 title('merged orginal histogram');
 xlabel('lifetime');
@@ -407,23 +394,23 @@ hold on;
 % final fit results
 estimates = est3;
 p1params = [0 estimates(2:4)];
-p1curve = multiWeibullODF(tfit,p1params);
-plot(tfit,p1curve,'c-'); 
+p1curve = multiWeibullODF(tcomb,p1params);
+plot(tcomb,p1curve,'c-'); 
 legendstring(2) = {'population 1'};
 if length(estimates)>6
     p2params = [0 estimates(5:7)];
-    p2curve = multiWeibullODF(tfit,p2params);
-    plot(tfit,p2curve,'g-');
+    p2curve = multiWeibullODF(tcomb,p2params);
+    plot(tcomb,p2curve,'g-');
     legendstring(3) = {'population 2'};
     if length(estimates)>9
         p3params = [0 estimates(8:10)];
-        p3curve = multiWeibullODF(tfit,p3params);
-        plot(tfit,p3curve,'m-');
+        p3curve = multiWeibullODF(tcomb,p3params);
+        plot(tcomb,p3curve,'m-');
         legendstring(4) = {'population 3'};
         if length(estimates)>12
             p4params = [0 estimates(11:13)];
-            p4curve = multiWeibullODF(tfit,p4params);
-            plot(tfit,p4curve,'r-');
+            p4curve = multiWeibullODF(tcomb,p4params);
+            plot(tcomb,p4curve,'r-');
             legendstring(5) = {'population 4'};
         end
             
