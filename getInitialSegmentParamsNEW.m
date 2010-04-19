@@ -6,7 +6,7 @@ if ~isa(I,'double')
 end
 
 % Get a first coarse segmentation
-BW = logical(blobSegmentThreshold(I,minSize,0));
+BW = logical(blobSegmentThreshold(I,minSize,1));
 
 % Get the connected component properties
 CCstats = regionprops(BW, 'Orientation', 'PixelIdxList', 'BoundingBox');
@@ -19,6 +19,7 @@ ImBG = I - filterGauss2D(I,10);
 amp0 = cellfun(@(idx) mean(ImBG(idx)), {CCstats(:).PixelIdxList});
 
 nCC = numel(CCstats);
+indCC = (1:nCC)';
 
 % Define filter banks for 2nd order ridge detector
 hside = ceil(6 * sigmaPSF);
@@ -31,146 +32,141 @@ g2 = (x.^2 - sigmaPSF^2) ./ (sqrt(2 * pi) * sigmaPSF^5) .* gKernel;
 a20 = sigmaPSF / (2 * sqrt(3 * pi));
 a22 = - sqrt(3 / (4 * pi)) * sigmaPSF;
 
-% Radon angle range
+% Filter image with basis filters
+Ixx = conv2(g0,g2,I,'same');
+Ixy = conv2(g1,g1,I,'same');
+Iyy = conv2(g2,g0,I,'same');
+
+Ixx = Ixx .* BW;
+Ixy = Ixy .* BW;
+Iyy = Iyy .* BW;
+
+% Radon angle range: this angle correspond to the orientation of the
+% projector, i.e. the line where the image will be projected on. It
+% corresponds then to the perpendicular of the projection orientation.
 thetaRadon = 0:179;
 
 % Equivalent in radian in [0...-pi/2] U [pi/2...0] (clockwise)
 theta = [0:-1:-90, 89:-1:1] * pi / 180;
 
-% Pre-compute trigonometric functions
-ct = cos(theta);
-ct2 = ct.^2;
-st = sin(theta);
-st2 = st.^2;
-
 % t90 is theta +/- pi/2 (still belongs to -pi/2, pi/2)
 ind = theta >= -pi/2 & theta < 0;
-t90 = zeros(size(theta));
-t90(ind) = theta(ind) + pi/2;
-t90(~ind) = theta(~ind) - pi/2;
+theta90 = zeros(size(theta));
+theta90(ind) = theta(ind) + pi/2;
+theta90(~ind) = theta(~ind) - pi/2;
 
 % Pre-compute trigonometric functions
-ct_90 = cos(t90);
-st_90 = sin(t90);
-tt_90 = tan(t90);
+ct = cos(theta);
+st = sin(theta);
+tt = tan(theta);
+
+ct90 = cos(theta90);
+st90 = sin(theta90);
+ct90_2 = ct90.^2;
+st90_2 = st90.^2;
 
 % Initialize output arrays
 theta0 = cell(nCC,1);
 length0 = cell(nCC,1);
 centers0 = cell(nCC,1);
 
-% Temporary arrays
-accIndMax = cell(1, numel(theta));
-
 % Minimal distance between local maxima
 winSize = 2*ceil(2*sigmaPSF)+1;
 
-for iCC = 1:nCC
-    % Floor bounding box
+for iCC = 1:nCC    
     bb = ceil(CCstats(iCC).BoundingBox);
     
     % The Radon origin is floor((size(I)+1)/2).
     cRadon = floor((bb(:,3:4)+1)/2);
 
     % Get the footprint of the CC
-    BWcrop = zeros(bb(4),bb(3));
-    [y x] = ind2sub(size(I),CCstats(iCC).PixelIdxList);
+    BWcrop = false(bb(4),bb(3));
+    indGlobal = CCstats(iCC).PixelIdxList;
+    [y x] = ind2sub(size(I),indGlobal);
     x = x - bb(1) + 1;
     y = y - bb(2) + 1;
     indLocal = sub2ind(size(BWcrop), y, x);
-    BWcrop(indLocal) = 1;
-    
-    % Get the image crop
-    Icrop = I(bb(2):bb(2)+bb(4)-1, bb(1):bb(1)+bb(3)-1);
+    BWcrop(indLocal) = true;
     
     % Filter Icrop using filter banks of M=2
-    Ixx = conv2(g0,g2,Icrop,'same');
-    Ixy = conv2(g1,g1,Icrop,'same');
-    Iyy = conv2(g2,g0,Icrop,'same');
-    
-    Ixx = Ixx .* BWcrop;
-    Ixy = Ixy .* BWcrop;
-    Iyy = Iyy .* BWcrop;
+    IxxCrop = zeros(bb(4),bb(3));
+    IxxCrop(indLocal) = Ixx(indGlobal);
+    IxyCrop = zeros(bb(4),bb(3));
+    IxyCrop(indLocal) = Ixy(indGlobal);
+    IyyCrop = zeros(bb(4),bb(3));
+    IyyCrop(indLocal) = Iyy(indGlobal);
     
     % Compute Radon transform on filtered images
-    [Rxx,xp] = radon(Ixx,thetaRadon);
-    Rxy = radon(Ixy,thetaRadon);
-    Ryy = radon(Iyy,thetaRadon);
+    [Rxx,xp] = radon(IxxCrop,thetaRadon);
+    Rxy = radon(IxyCrop,thetaRadon);
+    Ryy = radon(IyyCrop,thetaRadon);
     
     % Combine RTs
-    R = arrayfun(@(iTheta) ...
-        ct2(iTheta) * (Rxx(:,iTheta) * a20 + Ryy(:,iTheta) * a22) + ...
-        st2(iTheta) * (Ryy(:,iTheta) * a20 + Rxx(:,iTheta) * a22) + ...
-        2 * ct(iTheta) * st(iTheta) * Rxy(:,iTheta) * (a20 - a22), ...
-        1:numel(theta), 'UniformOutput', false);
-    
-    R = cell2mat(R);
+    R = repmat(ct90_2,numel(xp),1) .* (Rxx * a20 + Ryy * a22) + ...
+        repmat(st90_2,numel(xp),1) .* (Ryy * a20 + Rxx * a22) + ...
+        2 * repmat(ct90,numel(xp),1) .* repmat(st90,numel(xp),1) .* ...
+        Rxy * (a20 - a22);
     
     % Compute Radon transform on BWcrop
     L = radon(BWcrop,thetaRadon);
     
     % Compute the mean line integral over the filtered image
-    R = R ./ L;
+    R = R ./ sqrt(L);
 
-    % Set a threshold using the variance of the data
-    R(R <= 0) = NaN;
+    % Set a threshold based on the variance of the data
+    R(R <= eps | L < minSize) = NaN;
     th = 3 * nanstd(R(:));
-    
-    % For each angle (column), compute the indices (rows) whose value in R
-    % is greater than th and the length is greater that minSize. Store
-    % these indices in a cell array accIndMax.
-    
-    for iTheta = 1:numel(theta)        
+
+    % Get the local maxima along theta
+    RlocMax = zeros(size(R));
+    for iTheta = 1:numel(theta)
         indMax = locmax1d(R(:,iTheta), winSize);
-        indMax = indMax(R(indMax,iTheta) >= th & L(indMax,iTheta) >= minSize);
-        
-        accIndMax{iTheta} = indMax;
+        indMax = indMax(R(indMax,iTheta) > eps & L(indMax,iTheta) >= minSize);
+        RlocMax(indMax,iTheta) = R(indMax,iTheta);
     end
     
-    if any([accIndMax{:}])
-  
-        % TODO !!!!!
-        
-        %maxSignif = arrayfun(@(iTheta) max(R(accIndMax{iTheta}, iTheta)),...
-        %1:numel(theta), 'UniformOutput', false);
+    % Get the peak in the Radon transform
+    [~,iThetaMax] = max(sum(RlocMax));
+    Rmax = max(RlocMax(:, iThetaMax));
     
-
+    % If the peak is significant, get every local maxima along iThetaMax
+    if Rmax >= th     
+        indMax = find(RlocMax(:,iThetaMax));
+        indMax = indMax(L(indMax,iThetaMax) >= minSize);
         
-        [~, iThetaMax] = max(nSignifIndMax);
-
         % Save the initial orientation
-        theta0{iCC} = theta(iThetaMax);
+        theta0{iCC} = theta90(iThetaMax);
         
         % Save the initial set of lengths
-        length0{iCC} = L(accIndMax{iThetaMax}, iThetaMax);
+        length0{iCC} = L(indMax, iThetaMax);
         
-        distAside = xp(accIndMax{iThetaMax}, iThetaMax);
+        distAside = xp(indMax);
         
         D = zeros(bb(4),bb(3));
-        D(indLocal) = (tt_90(iThetaMax) * (cRadon(1) - x) + y - ...
-            cRadon(2)) ./ sqrt(1 + tt_90(iThetaMax)^2);
+        D(indLocal) = (tt(iThetaMax) * (cRadon(1) - x) + y - ...
+            cRadon(2)) ./ sqrt(1 + tt(iThetaMax)^2);
         
         distAlong = radon(D,thetaRadon(iThetaMax));
-        distAlong = distAlong(accIndMax{iThetaMax}) ./ length0{iCC};
+        distAlong = distAlong(indMax) ./ length0{iCC};
         
         pts = [distAside distAlong];
         
         % Rotate pts
-        rotT90 = [ct_90(iThetaMax) st_90(iThetaMax); ...
-            -st_90(iThetaMax) ct_90(iThetaMax)];
+        rotT = [ct(iThetaMax) st(iThetaMax); ...
+            -st(iThetaMax) ct(iThetaMax)];
     
-        % Centers of FAs = center of the CC + Rot90(pts)
+        % Centers of FAs = center of the CC + Rot(pts)
         centers0{iCC} = repmat(bb(:,1:2) + cRadon - 1,numel(distAside),1) + ...
-            pts * rotT90;
+            pts * rotT;
     end
 end
 
 % Concatenate all parameters
-nEmpty = cellfun(@(x) ~isempty(x), centers);
+nEmpty = cellfun(@(x) ~isempty(x), centers0);
 
 params = cell2mat(arrayfun(@(i) [...
     centers0{i},...                               % Xc, Yc
     repmat(amp0(i), size(centers0{i},1),1),...    % amp
     length0{i},...                                % length
-    repmat(theta0(i), size(centers0{i},1),1)],... % theta
+    repmat(theta0{i}, size(centers0{i},1),1)],... % theta
     indCC(nEmpty), 'UniformOutput', false));
