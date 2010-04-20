@@ -358,19 +358,15 @@ for counter1=1:n
             fprintf(1,'Run edge tracker to generate this mask.\n');
         end
         
-        % Save it to disk
-        % matthias: that is not needed since we store it in
-        % edge/cell_mask already
-        %indxStr=sprintf(strg,currentIndex);
-        %eval(strcat('save bwMask',filesep,'bwMask',indxStr,'.mat bwMask;')); % Save black-and-white mask
-        
         % Multiply image with mask (to set background to 0)
         img=img.*bwMask;
-        clear bwMask;
     end
      
+    
     % Prepare the image for the analysis
     img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],filtersigma);
+    
+    % Call fsmPrepMainSecondarySpeckles with bwMask
     
     % Statistically test the local maxima to extract (significant) speckles
     fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,fsmParam);

@@ -1,11 +1,10 @@
-function [lMax,cands]=fsmPrepTestLocalMaxima(img,lMax,cands,parameters,imgO)
+function cands = fsmPrepTestLocalMaxima(img,cands,parameters,imgO)
 % fspPrepTestLocalMaxima selects statistically significant local maxima using loc max and background info from analyzeSpeckles
 %
-% SYNOPSIS   [lMax,cands]=fspPrepTestLocalMaxima(img,lMax,cands,parameters)
+% SYNOPSIS   cands=fsmPrepTestLocalMaxima(img,cands,parameters)
 %
 % INPUT      img        : image matrix
-%            lMax       : local max map of image
-%            info       : Imax and Imin for every speckles obtained 
+%            cands      : Imax and Imin for every speckles obtained 
 %                         from analyzeSpeckles (Delaunay triangulation)
 %            parameters : [k sigmaD PoissonNoise I0]
 %                               k : gives the confidence interval Xavg+/-k*sigma 
@@ -15,9 +14,7 @@ function [lMax,cands]=fsmPrepTestLocalMaxima(img,lMax,cands,parameters,imgO)
 %                                       I0 : mean intensity of the background images
 %            imgO       : the original (filtered) image 
 %                              
-% OUTPUT     lMax       : the loc max map with only those loc max which have been 
-%                         selected as speckles
-%            cands      : cands (input) augmented by additional (statistical) information 
+% OUTPUT     cands      : cands (input) augmented by additional (statistical) information 
 %
 %                         cands.Lmax       : Local maximum position - [y x]
 %                              .Bkg1       : First local minimum position - [y x]
@@ -52,6 +49,8 @@ stdImg=std(nonBlackPixels(:));
 maskR = 5;
 aImg = padarray(img, [maskR,maskR], 'replicate');
 
+% SB: Remove A
+
 % Create addressing matrix
 A=zeros(size(img));
 
@@ -60,6 +59,9 @@ for c1=1:length(cands)
 	
 	% Read values for Imax and Imin from the image at the coordinates specified by info
 	Imax=img(cands(c1).Lmax(1),cands(c1).Lmax(2)); % img is the current image
+    
+    % SB: This branch should be seldom since the Delaunay triangulation should
+    % not failed anymore.
     
 	if cands(c1).Bkg1(1)==-1 % This means that the Deulaunay triangulation has failed
         % imgO is the original filtered image
@@ -79,8 +81,5 @@ for c1=1:length(cands)
     cands(c1).sigmaLmax=sigmaMax;     % Error on local maximum intensity
     cands(c1).sigmaBkg=sigmaMin;      % Error on background intensity 
     cands(c1).status=status;          % Significance of the local maximum: 1, speckle; 0, weak local maximum
-
 end
 
-% Removing false speckles from loc max map
-lMax=A.*lMax;

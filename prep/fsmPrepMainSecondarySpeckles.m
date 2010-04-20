@@ -1,4 +1,4 @@
-function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,fsmParam)
+function cands=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,fsmParam)
 
 % fsmPrepMainSecondarySpeckles is the main function of the fsmPrepSecondarySpeckles sub-module
 %
@@ -7,7 +7,7 @@ function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noisePar
 % new (secondary) speckles (intensity and distance significance tests applied)
 %
 %
-% SYNOPSIS   [IMfinal,candsTot]=fmsPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles)
+% SYNOPSIS   cands=fmsPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles)
 %
 % INPUT      I          :  filtered image
 %            strg       :  format string for the correct file numbering
@@ -18,8 +18,7 @@ function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noisePar
 %                          (before stopping)
 %            fsmParam   :  (optional) fsmParam structure for SpeckTackle
 %
-% OUTPUT     candsTot   :  augmented cands structure (see fsmPrepTestLocalMaxima.m)
-%            IMfinal    :  local maxima map
+% OUTPUT     cands      :  augmented cands structure (see fsmPrepTestLocalMaxima.m)
 %
 %
 %
@@ -30,10 +29,6 @@ function [IMfinal,candsTot]=fsmPrepMainSecondarySpeckles(I,strg,counter,noisePar
 % Aaron Ponti, October 4th, 2002
 
 IG=I;
-SAVEINFO=1;
-if strg == 0 % if you provide all the fields but dont wanna write to disc
-    SAVEINFO=0;
-end
 
 if nargin==5
     fsmParam=[];
@@ -66,62 +61,57 @@ SIG=1.88; % for the twice convolved image (or 1.77)
 Imin=locmin2d(IG,[3,3]);
 
 % intial (filtered) image
-[Imax,candsP,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw); % TO DO: update cands
+[candsP,triMin,pMin] = fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw); % TO DO: update cands
 
 aux=length(candsP);
 for i=1:aux
     candsP(i).speckleType=1;
 end
 
-candsTot=candsP;
+cands=candsP;
 
 Inew=IG;
 candsS=candsP;
 HierLevel=2;
 
-while HierLevel<=Speckles(1) && length(candsS)>(Speckles(2)*length(candsTot)) && any([candsS.status])
+while HierLevel<=Speckles(1) && length(candsS)>(Speckles(2)*length(cands)) && any([candsS.status])
     
     Inew=fsmPrepSubstructMaxima(Inew,SIG,candsS); % prednite Cands
-    [yni,xni,yn,xn,Imax,candsS]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG,userROIbw);
+    candsS = fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG,userROIbw);
     
     aux=length(candsS);
     for i=1:aux
         candsS(i).speckleType=HierLevel; % type flag
     end
     
-    candsS=fsmPrepCheckDistance(candsS,candsTot);
+    candsS=fsmPrepCheckDistance(candsS,cands);
     
     HierLevel=HierLevel+1;
     
     if ~isempty(candsS)
-        candsTot=cat(2,candsTot,candsS); % concatenating secondary and primary cands structures
+        cands=cat(2,cands,candsS); % concatenating secondary and primary cands structures
     end
 end
 
 % remove repetitions because of secondary speckles apearing on the same
 % positions as primary (because of floating background)
-candsTot=fsmPrepCheckInfo(candsTot);
+cands=fsmPrepCheckInfo(cands);
 
 % obtain updated IM from candstTot
-IMfinal=zeros(size(IG));
+locMax=zeros(size(IG));
 
-% Replace loop
-validCands = [candsTot(:).status] == 1;
+validCands = [cands(:).status] == 1;
 if any(validCands)
-    validLmax = vertcat(candsTot(validCands).Lmax);
-    validILmax = [candsTot(validCands).ILmax];
+    validLmax = vertcat(cands(validCands).Lmax);
+    validILmax = [cands(validCands).ILmax];
     validIdx = sub2ind(size(IG), validLmax(:,1), validLmax(:,2));
-    IMfinal(validIdx) = validILmax;
+    locMax(validIdx) = validILmax; %#ok<NASGU>
 end
 
 % Save speckle information (cands and locMax) to disk for future use
-if SAVEINFO==1
-    locMax=IMfinal; %#ok<NASGU>
-    cands=candsTot; %#ok<NASGU>
-    indxStr=sprintf(strg,counter);
-    save(['cands',filesep,'cands',indxStr,'.mat'], 'cands');
-    save(['locMax',filesep,'locMax',indxStr,'.mat'], 'locMax');    
-end
+indxStr=sprintf(strg,counter);
+save(['cands',filesep,'cands',indxStr,'.mat'], 'cands');
+save(['locMax',filesep,'locMax',indxStr,'.mat'], 'locMax');
 
 %-----------------------------------------
 % Estimate subpixel positions of speckles
@@ -138,8 +128,7 @@ end
 % mixture model on the filtered image (which is broadened), rather than on
 % the original one, requires to modify the sigma of the mixture-model fit!
 
-if isstruct(fsmParam) && fsmParam.prep.subpixel==1
-    cands=candsTot; 
+if isstruct(fsmParam) && fsmParam.prep.subpixel==1 
     psfsigma     = fsmParam.prep.psfSigma;       % true physical sigma of the image point-spread function, caluclated by sigma=0.21*(lambda/NA)/pixelsize
     filtersigma  = fsmParam.prep.filterSigma;    % sigma used for the low-pass filtering; except where specifically
                                                 % stated differently by the user, filtersigma should have the same value as psfsigma; 

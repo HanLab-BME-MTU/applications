@@ -1,7 +1,7 @@
-function [cands,triMin,pMin]=fsmPrepBkgEstimDelauNoEnh(imgSize,lMax,lMin)
-% fsmPrepBkgEstimDelauNoEnh uses Delaunay triangulation to assign 3 local minima to every local maximum
+function [cands,triMin,pMin]=fsmPrepBkgEstimationDelaunay(imgSize,lMax,lMin)
+% fsmPrepBkgEstimationDelaunay uses Delaunay triangulation to assign 3 local minima to every local maximum
 %
-% SYNOPSIS   [cands,triMin,pMin]=fsmPrepBkgEstimDelauNoEnh(imgSize,lMax,lMin)
+% SYNOPSIS   [cands,triMin,pMin]=fsmPrepBkgEstimationDelaunay(imgSize,lMax,lMin)
 %
 % INPUT      imgSize   :   image size [y x]
 %            lMax      :   local max map (the output of the locMax2D function)

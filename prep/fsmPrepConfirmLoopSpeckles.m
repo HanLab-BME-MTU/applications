@@ -1,9 +1,9 @@
-function [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG,userROIbw)
+function cands=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG,userROIbw)
 
 % fsmPrepConfirmLoopSpeckles uses statistical tests to confirm the significance of detected speckles
 % of higher than one hierarchical level (in the main loop)
 %
-% SYNOPSIS   [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG)
+% SYNOPSIS   cands=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG)
 %
 % INPUT      Inew       :  substracted image
 %            noiseParam :  noise parameters for statistical speckle selection
@@ -11,12 +11,7 @@ function [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMi
 %            pMin       :  attached dSet (vertex coordinates) to lMin
 %            IG         :  original (filtered) image
 %
-% OUTPUT     yi         :  initial local maxima positions before the test
-%            xi         :  initial local maxima positions befire the test
-%            y          :  positions of the significant local maxima
-%            x          :  positions of the significant local maxima
-%            Imax       :  the matrix of [y,x]
-%            cands      :  cands structure (see fsmPrepTestLocalMaxima.m)
+% OUTPUT     cands      :  cands structure (see fsmPrepTestLocalMaxima.m)
 %
 %
 %
@@ -24,15 +19,12 @@ function [yi,xi,y,x,Imax,cands]=fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMi
 %               fsmPrepConfirmLoopSpeckles is used by { fsmPrepMainSecondarySpeckles }
 %
 % Alexandre Matov, April 2nd, 2003
-
-if nargin==6
-    userROIbw=[];
-end
+% Sylvain Berlemont, Jan 2010
 
 % find the local maxima  
 Imax=locmax2d(Inew,[5,5]);
 
-if ~isempty(userROIbw)
+if nargin == 6 && ~isempty(userROIbw)
     % Mask Imax
     Imax=Imax.*userROIbw;
 end
@@ -44,12 +36,14 @@ pMax=[yi,xi];
 % Assign local maxima to local minimum triangles
 triangles=tsearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
 
+% SB: allocate the cands array
+
 % Store information into cands structure
 for i=1:size(triangles,1)
    if ~isnan(triangles(i))  % If NaN -> no triangle found
       cands(i).Lmax=pMax(i,:);
       % Read local maxima positions into the 3x2 matrix Bkg
-      Bkg=[pMin([triMin(triangles(i),:)],1) pMin([triMin(triangles(i),:)],2)];
+      Bkg=[pMin(triMin(triangles(i),:),1) pMin(triMin(triangles(i),:),2)];
       % Store positions into the cands structure
       cands(i).Bkg1=Bkg(1,:);
       cands(i).Bkg2=Bkg(2,:);
@@ -63,8 +57,6 @@ for i=1:size(triangles,1)
 end;
 
 % analyze speckles - validate, locmax, locmin...
-[Imax,cands]=fsmPrepTestLocalMaxima(Inew,Imax,cands,noiseParam,IG);  
+cands = fsmPrepTestLocalMaxima(Inew,cands,noiseParam,IG);  
 
-% find the coordinates/positions of the local maxima after selecting only the significant local maxima/speckles
-[y,x]=find(ne(Imax,0));
 
