@@ -68,7 +68,7 @@ guessvector = [0    0.3 0.3 1   0.3 5   1   0.3 20  1];
 fixvector =   [0    0   0   1   0   0   1   0   0   1];
 estAll = fitcurveMultiWeibullODF_lsq(tvec, cHistogramVector, guessvector, fixvector);
 % take abs of all except offset
-estAll(2:length(estAll)) = abs(estAll(2:length(estAll)));
+estAll(2:end) = abs(estAll(2:end));
 
 
 % plot first component, which is the detection artifact
