@@ -29,7 +29,8 @@ if nargin == 4 && ~isempty(userROIbw)
     Imax=Imax.*userROIbw;
 end
 
-[cands,triMin,pMin]=fsmPrepBkgEstimationDelaunay(size(IG),Imax,Imin); % Finds 3 loc min around each loc max
+% Finds 3 loc min around each loc max
+[cands,triMin,pMin]=fsmPrepBkgEstimationDelaunay(Imax,Imin);
 
 % analyze speckles - validate, locmax, locmin...
 cands = fsmPrepTestLocalMaxima(IG,cands,noiseParam,IG);  

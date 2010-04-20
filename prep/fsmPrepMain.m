@@ -366,8 +366,6 @@ for counter1=1:n
     % Prepare the image for the analysis
     img=fsmPrepPrepareImage(img,factors(counter1),[1 1 0 0; 0 0 imageSize(1) imageSize(2)],filtersigma);
     
-    % Call fsmPrepMainSecondarySpeckles with bwMask
-    
     % Statistically test the local maxima to extract (significant) speckles
     fsmPrepMainSecondarySpeckles(img,strg,currentIndex,noiseParam,paramSpeckles,fsmParam);
     

@@ -1,7 +1,7 @@
-function [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=testSpeckleSignificance(locMaxPos,Imax,Imin,k,sigmaD,PoissonNoise,I0,A)
+function [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status]=fsmPrepTestSpeckleSignif(Imax,Imin,k,sigmaD,PoissonNoise,I0)
 % fsmPrepTestSpeckleSignificance tests the significance of a local maximum in the normal case of successful Delaunay
 %
-% SYNOPSIS   [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=testSpeckleSignificance(locMaxPos,Imax,Imin,k,sigmaD,PoissonNoise,I0,A)
+% SYNOPSIS   [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status]=testSpeckleSignificance(Imax,Imin,k,sigmaD,PoissonNoise,I0)
 %
 %
 
@@ -25,11 +25,9 @@ deltaI=Imax-Imin;
 sigmaDiff=sqrt(sigmaMax^2+sigmaMin^2);
 
 % Check for the validity of the speckle
-if deltaI>=k*sigmaDiff;
-	if size(A)~=[1 1] % Function called by validateSpeckle2 and not saveSpeckleArray
-		A(locMaxPos(1),locMaxPos(2))=1;   % Loc max accepted as speckle
-	end
-	status=1;                         
-else
-	status=0;                         % Loc max rejected as speckle
-end
+% if deltaI>=k*sigmaDiff;
+% 	status=1;                         
+% else
+% 	status=0;                         % Loc max rejected as speckle
+% end
+status = deltaI >= k * sigmaDiff;

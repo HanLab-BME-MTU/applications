@@ -125,7 +125,7 @@ for c1=1:sp
             
             %
             % We are in the central time-points
-            %   
+            %   [lmPos(1) lmPos(2)],
             
         else
             
@@ -585,7 +585,7 @@ end
                     else
                         % Normal speckle
                     end
-                    speckleArray.lmEvent(s)      = logical(0);
+                    speckleArray.lmEvent(s)      = false;
                     speckleArray.speckleType(s)  = uint8(speckleType);
                     % Add zero score- and activity fields
                     speckleArray.score(s)        = 0;
@@ -663,7 +663,7 @@ u=lmPos(1,2)==allCandsPos(:,2);
 v=find(t & u);
 
 % Check for correct selection of the loc max
-if isempty(v) | length(v)>1
+if isempty(v) || length(v)>1
     error('Loc max not univocally found in Delaunay Triangulation results');
 end
 
@@ -742,7 +742,7 @@ end
 
 imgWidth  = size(img,2);
 imgHeight = size(img,1);
-if ~isempty(y) & ~isempty(x)
+if ~isempty(y) && ~isempty(x)
     if y~=1
         error('fsmBuildSaveSpeckleArray::BDSpeckleInfo - Too many source speckles!');
     else
@@ -786,24 +786,30 @@ else % No matching discarded local maximum found
     % Before using the data of the speckle 's' to read the corresponding data for 'b' or 'd'
     %    one has to check whether the loc max has been validated using Delaunay or the auxiliary
     %    function
-    if candsS(v).Bkg1(1)==-1 % Auxiliary function
-        disp('Using auxiliary function to recover speckle info for non-existant loc max (failed Delaunay triangulation)');
-        [background,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignifAux(aImg,img,[lmPos(1) lmPos(2)],maskR,stdImg,0,noiseParams);
-        bk1=candsS(v).Bkg1;
-        bk2=candsS(v).Bkg2;
-        bk3=candsS(v).Bkg3;
-        lmEvent=0; % No insignificant local maximum found
-        deltaICrit=k*sigmaDiff;	
-    else % Delaunay
-        background=mean([img(candsS(v).Bkg1(1),candsS(v).Bkg1(2)) img(candsS(v).Bkg2(1),candsS(v).Bkg2(2)) img(candsS(v).Bkg3(1),candsS(v).Bkg3(2))]);
-        bk1=candsS(v).Bkg1;
-        bk2=candsS(v).Bkg2;
-        bk3=candsS(v).Bkg3;
-        lmEvent=0; % No insignificant local maximum found
-        [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignif([lmPos(1) lmPos(2)],intensity,background,noiseParams(1),noiseParams(2),noiseParams(3),noiseParams(4),0);
-        deltaICrit=k*sigmaDiff;
-    end
     
+    % This should not happen anymore
+%     if candsS(v).Bkg1(1)==-1 % Auxiliary function
+%         disp('Using auxiliary function to recover speckle info for non-existant loc max (failed Delaunay triangulation)');
+%         [background,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignifAux(aImg,img,[lmPos(1) lmPos(2)],maskR,stdImg,0,noiseParams);
+%         bk1=candsS(v).Bkg1;
+%         bk2=candsS(v).Bkg2;
+%         bk3=candsS(v).Bkg3;
+%         lmEvent=0; % No insignificant local maximum found
+%         deltaICrit=k*sigmaDiff;	
+%     else % Delaunay
+
+        bk1=candsS(v).Bkg1;
+        bk2=candsS(v).Bkg2;
+        bk3=candsS(v).Bkg3;
+        % SB: some background points can be outside the cell mask where
+        % image is null. Call nonzeros to compute mean over non zeros
+        % pixels.
+        background=mean(nonzeros([img(bk1(1),bk1(2)) img(bk2(1),bk2(2)) ...
+            img(bk3(1),bk3(2))]));
+        lmEvent=0; % No insignificant local maximum found
+        [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status]=fsmPrepTestSpeckleSignif(intensity,background,noiseParams(1),noiseParams(2),noiseParams(3),noiseParams(4));
+        deltaICrit=k*sigmaDiff;
+%    end   
 end
 
 % Return also the position of the recovered local maximum

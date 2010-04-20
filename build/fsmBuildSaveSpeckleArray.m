@@ -769,23 +769,30 @@ else % No matching discarded local maximum found
     % Before using the data of the speckle 's' to read the corresponding data for 'b' or 'd'
     %    one has to check whether the loc max has been validated using Delaunay or the auxiliary
     %    function
-    if candsS(v).Bkg1(1)==-1 % Auxiliary function
-        disp('Using auxiliary function to recover speckle info for non-existant loc max (failed Delaunay triangulation)');
-        [background,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignifAux(aImg,img,[lmPos(1) lmPos(2)],maskR,stdImg,0,noiseParams);
+    
+    % This should never happens anymore
+%     if candsS(v).Bkg1(1)==-1 % Auxiliary function
+%         disp('Using auxiliary function to recover speckle info for non-existant loc max (failed Delaunay triangulation)');
+%         [background,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignifAux(aImg,img,[lmPos(1) lmPos(2)],maskR,stdImg,0,noiseParams);
+%         bk1=candsS(v).Bkg1;
+%         bk2=candsS(v).Bkg2;
+%         bk3=candsS(v).Bkg3;
+%         lmEvent=0; % No insignificant local maximum found
+%         deltaICrit=k*sigmaDiff;	
+%     else % Delaunay
+        
         bk1=candsS(v).Bkg1;
         bk2=candsS(v).Bkg2;
         bk3=candsS(v).Bkg3;
+        % SB: some background points can be outside the cell mask where
+        % image is null. Call nonzeros to compute mean over non zeros
+        % pixels.
+        background=mean(nonzeros([img(bk1(1),bk1(2)) img(bk2(1),bk2(2)) ...
+            img(bk3(1),bk3(2))]));
         lmEvent=0; % No insignificant local maximum found
-        deltaICrit=k*sigmaDiff;	
-    else % Delaunay
-        background=mean([img(candsS(v).Bkg1(1),candsS(v).Bkg1(2)) img(candsS(v).Bkg2(1),candsS(v).Bkg2(2)) img(candsS(v).Bkg3(1),candsS(v).Bkg3(2))]);
-        bk1=candsS(v).Bkg1;
-        bk2=candsS(v).Bkg2;
-        bk3=candsS(v).Bkg3;
-        lmEvent=0; % No insignificant local maximum found
-        [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignif([lmPos(1) lmPos(2)],intensity,background,noiseParams(1),noiseParams(2),noiseParams(3),noiseParams(4),0);
+        [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status]=fsmPrepTestSpeckleSignif(intensity,background,noiseParams(1),noiseParams(2),noiseParams(3),noiseParams(4));
         deltaICrit=k*sigmaDiff;
-    end
+%     end
     
 end
 

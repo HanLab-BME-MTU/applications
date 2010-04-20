@@ -64,7 +64,7 @@ for i = 1 : optimImageStackLen
     imGStack(:, :, i) = filterGauss2D(img, sigmaG);
     imMinStack(:, :, i) = locmin2d(imGStack(:, :, i), [3,3]);
     imMaxStack(:, :, i) = locmax2d(imGStack(:, :, i), [5,5]);
-    cStack(i).cands = fsmPrepBkgEstimationDelaunay(size(imGStack(:, :, i)), imMaxStack(:, :, i), imMinStack(:, :, i)); % Finds 3 loc min around each loc max
+    cStack(i).cands = fsmPrepBkgEstimationDelaunay(imMaxStack(:, :, i), imMinStack(:, :, i)); % Finds 3 loc min around each loc max
     waitbar(i/optimImageStackLen, h)
 end
 close(h);

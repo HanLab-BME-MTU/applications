@@ -43,22 +43,34 @@ triangles=tsearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
 % [-1 -1] anymore.
 
 % Store information into cands structure
-for i=1:size(triangles,1)
-   if ~isnan(triangles(i))  % If NaN -> no triangle found
-      cands(i).Lmax=pMax(i,:);
-      % Read local maxima positions into the 3x2 matrix Bkg
-      Bkg=[pMin(triMin(triangles(i),:),1) pMin(triMin(triangles(i),:),2)];
-      % Store positions into the cands structure
-      cands(i).Bkg1=Bkg(1,:);
-      cands(i).Bkg2=Bkg(2,:);
-      cands(i).Bkg3=Bkg(3,:);
-   else   % Mark failed Delaunay triangulation
-      cands(i).Lmax=pMax(i,:);
-      cands(i).Bkg1=[-1 -1];
-      cands(i).Bkg2=[-1 -1];
-      cands(i).Bkg3=[-1 -1];
-   end
-end;
+
+% SB: Replace the loop
+validTri = 1:numel(triangles);
+validTri = validTri(~isnan(triangles));
+n = ones(numel(validTri), 1);
+
+cands = struct(...
+    'Lmax', mat2cell(pMax(validTri,:), n), ...
+    'Bkg1', mat2cell(pMin(triMin(triangles(validTri),1),:), n),...
+    'Bkg2', mat2cell(pMin(triMin(triangles(validTri),2),:), n),...
+    'Bkg3', mat2cell(pMin(triMin(triangles(validTri),3),:), n));
+
+% for i=1:size(triangles,1)
+%    if ~isnan(triangles(i))  % If NaN -> no triangle found
+%       cands(i).Lmax=pMax(i,:);
+%       % Read local maxima positions into the 3x2 matrix Bkg
+%       Bkg=[pMin(triMin(triangles(i),:),1) pMin(triMin(triangles(i),:),2)];
+%       % Store positions into the cands structure
+%       cands(i).Bkg1=Bkg(1,:);
+%       cands(i).Bkg2=Bkg(2,:);
+%       cands(i).Bkg3=Bkg(3,:);
+%    else   % Mark failed Delaunay triangulation
+%       cands(i).Lmax=pMax(i,:);
+%       cands(i).Bkg1=[-1 -1];
+%       cands(i).Bkg2=[-1 -1];
+%       cands(i).Bkg3=[-1 -1];
+%    end
+% end
 
 % analyze speckles - validate, locmax, locmin...
 cands = fsmPrepTestLocalMaxima(Inew,cands,noiseParam,IG);  
