@@ -13,11 +13,6 @@ function [cands,triMin,pMin]=fsmPrepBkgEstimDelauNoEnh(imgSize,lMax,lMin)
 %                          (see help for detail) - fsmPrepBkgEstimationDelaunay only stores 
 %                          local maximum and local minimum coordinates
 %
-% Note about previous 'Enhanced triangulation' option:
-%
-% As of Matlab 6.1, the delaunay function has been enhanced and does no longer accept the 
-% 'fuzz' parameter.
-%
 % DEPENDENCES
 %
 % Aaron Ponti, October 23th, 2002

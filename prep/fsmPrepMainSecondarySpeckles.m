@@ -59,11 +59,14 @@ end
 
 SIG=1.88; % for the twice convolved image (or 1.77)
 
+% We need to add virtual points from the cell edge to Imin with special
+% value (i.e. -1000);
+
 % local minima
 Imin=locmin2d(IG,[3,3]);
 
 % intial (filtered) image
-[yi,xi,y,x,Imax,candsP,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw); % TO DO: update cands
+[Imax,candsP,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw); % TO DO: update cands
 
 aux=length(candsP);
 for i=1:aux
@@ -110,11 +113,6 @@ if any(validCands)
     validIdx = sub2ind(size(IG), validLmax(:,1), validLmax(:,2));
     IMfinal(validIdx) = validILmax;
 end
-% for i=1:length(candsTot)
-%     if candsTot(i).status==1
-%         IMfinal(candsTot(i).Lmax(1),candsTot(i).Lmax(2))=candsTot(i).ILmax;
-%     end
-% end
 
 % Save speckle information (cands and locMax) to disk for future use
 if SAVEINFO==1
