@@ -17,7 +17,7 @@ function [noiseParameter, actualP, Lmax_ratio] = fsmAlphaBetaOptimization1D(imag
 % OUTPUT      noiseParameter      :     optimized noise parameters among which
 %                                       sigmaD (alpha) and PossionNoise (beta) have been optimized. 
 %
-% DEPENDENCES     fsmPrepBkgEstimDelauNoEnh
+% DEPENDENCES     fsmPrepBkgEstimationDelaunay
                  
 
 % Ge Yang, Aprile 8, 2004
@@ -25,6 +25,8 @@ function [noiseParameter, actualP, Lmax_ratio] = fsmAlphaBetaOptimization1D(imag
 % Step 1: --------------------------------------------------------
 % Setting ROI through user input. Compute Gauss filtered image
 % stack, local_max stack, local_min stack and cands stack
+
+% SB: Correct this function
 
 if (isempty(imageNameList)) % in case the name list is not provided
     [firstImageName, pathname] = uigetfile('.tif', 'Please choose the first image from the sequence for optimization.');
@@ -62,7 +64,7 @@ for i = 1 : optimImageStackLen
     imGStack(:, :, i) = filterGauss2D(img, sigmaG);
     imMinStack(:, :, i) = locmin2d(imGStack(:, :, i), [3,3]);
     imMaxStack(:, :, i) = locmax2d(imGStack(:, :, i), [5,5]);
-    cStack(i).cands = fsmPrepBkgEstimDelauNoEnh(size(imGStack(:, :, i)), imMaxStack(:, :, i), imMinStack(:, :, i)); % Finds 3 loc min around each loc max
+    cStack(i).cands = fsmPrepBkgEstimationDelaunay(size(imGStack(:, :, i)), imMaxStack(:, :, i), imMinStack(:, :, i)); % Finds 3 loc min around each loc max
     waitbar(i/optimImageStackLen, h)
 end
 close(h);
@@ -181,7 +183,7 @@ close(h);
 
 %--------------------------------------------------------------------------
 
-function [y, x, cands]= alphaBeta(IG, Imax, Imin, cands, noiseParam, userROIbw)
+function [y, x]= alphaBeta(IG, Imax, Imin, cands, noiseParam, userROIbw)
 % This is s simpifiled function for the statistical detection of speckles.
 % It is written to avoid redundancy in speckle detection calculation. 
 
@@ -195,8 +197,16 @@ if ~isempty(userROIbw)
 end
 
 % analyze speckles - validate, locmax, locmin...
-[Imax, cands] = fsmPrepTestLocalMaxima(IG, Imax, cands, noiseParam, IG);  
+cands = fsmPrepTestLocalMaxima(IG, cands, noiseParam, IG);  
 
-% find the coordinates/positions of the local maxima after selecting only the significant local maxima/speckles
-[y, x] = find(ne(Imax,0));
+validInd = [cands(:).status] == 1;
+
+if ~isempty(validInd)
+    Lmax = vertcat(cands(validInd).Lmax);
+    y = Lmax(:,1);
+    x = Lmax(:,2);
+else
+    y = [];
+    x = [];
+end
 

@@ -74,7 +74,7 @@ for i=1:n
     If = fsmPrepPrepareImage(In, 1, [1 1 0 0; 0 0 size(I)], sigmaPSF);
     
     % Statistically test the local maxima to extract (significant) speckles
-    [dummy, cands] = fsmPrepMainSecondarySpeckles(If, 0, [], noiseParam, [1 0]);
+    cands = fsmPrepMainSecondarySpeckles(If, 0, [], noiseParam, [1 0]);
 
     % Get speckle infos
     status = vertcat(cands(:).status);

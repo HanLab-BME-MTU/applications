@@ -7,11 +7,12 @@ function cands = fsmPrepTestLocalMaxima(img,cands,parameters,imgO)
 %            cands      : Imax and Imin for every speckles obtained 
 %                         from analyzeSpeckles (Delaunay triangulation)
 %            parameters : [k sigmaD PoissonNoise I0]
-%                               k : gives the confidence interval Xavg+/-k*sigma 
-%                                   for normally distributed data
-%        sigmaD, PoissonNoise, I0 : from the noise calibration model 
-%                                       sigma=sqrt(sigmaD^2+PoissonNoise*(I-I0))
-%                                       I0 : mean intensity of the background images
+%                         k : gives the confidence interval Xavg+/-k*sigma 
+%                         for normally distributed data
+%                         sigmaD, PoissonNoise, I0 : from the noise
+%                         calibration model
+%                         sigma=sqrt(sigmaD^2+PoissonNoise*(I-I0))
+%                         I0 : mean intensity of the background images
 %            imgO       : the original (filtered) image 
 %                              
 % OUTPUT     cands      : cands (input) augmented by additional (statistical) information 
@@ -60,16 +61,20 @@ for c1=1:length(cands)
 	% Read values for Imax and Imin from the image at the coordinates specified by info
 	Imax=img(cands(c1).Lmax(1),cands(c1).Lmax(2)); % img is the current image
     
-    % SB: This branch should be seldom since the Delaunay triangulation should
-    % not failed anymore.
+    % SB: This branch should be seldom since there should not be any Bkg1
+    % == -1 anymore.
     
 	if cands(c1).Bkg1(1)==-1 % This means that the Deulaunay triangulation has failed
         % imgO is the original filtered image
 		[Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignifAux(aImg,imgO,[cands(c1).Lmax(1) cands(c1).Lmax(2)],maskR,stdImg,A,parameters);
-	else
+    else
+        % SB: in case one of the background point is outside the cell edge,
+        % img0(bkg) = 0. We need to replace that intensity by the mean of
+        % the non zeros bkg point.
         
         % imgO is the original filtered image
-        Imin=mean([imgO(cands(c1).Bkg1(1),cands(c1).Bkg1(2)) imgO(cands(c1).Bkg2(1),cands(c1).Bkg2(2)) imgO(cands(c1).Bkg3(1),cands(c1).Bkg3(2))]);
+        Imin=mean([imgO(cands(c1).Bkg1(1),cands(c1).Bkg1(2)) imgO(cands(c1).Bkg2(1),cands(c1).Bkg2(2)) imgO(cands(c1).Bkg3(1),cands(c1).Bkg3(2))]);        
+        
         [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignif([cands(c1).Lmax(1) cands(c1).Lmax(2)],Imax,Imin,k,sigmaD,PoissonNoise,I0,A);
 	end
 	

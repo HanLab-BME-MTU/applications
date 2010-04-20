@@ -17,9 +17,6 @@ function [cands,triMin,pMin]=fsmPrepBkgEstimationDelaunay(imgSize,lMax,lMin)
 %
 % Aaron Ponti, October 23th, 2002
 
-% DEBUG
-showInfo=0;
-
 % Initialize cands structure
 cands=struct(...
     'Lmax',[0 0],...                 % Local maximum position - [y x]
@@ -42,10 +39,14 @@ if isempty(pMax)
    return;
 end
 
+% SB: We need to remove dSet since virtual points on the cell edge has been
+% added.
+
 % Setting vertex coordinates
 dSet=[1,1;imgSize(1),1;imgSize(1),imgSize(2);1,imgSize(2)];
 
 % Collect lMin coordinates into matrices
+% SB: check whether the pixels with -1000 value are caught by find.
 [y x]=find(lMin);
 pMin=[y x];
 
@@ -58,34 +59,9 @@ triMin=delaunay(pMin(:,1),pMin(:,2),{'Qt'}); % New delaunay function (MATLAB 7),
 % Search triangles
 triangles=tsearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
 
-if showInfo==1
-	% Plot loc min
-	figure;
-	%imshow(img),hold on;
-	%plot(pMin(:,2),pMin(:,1),'r.');
-	hold on;
-	% Plot loc max
-	handle=plot(pMax(:,2),pMax(:,1),'b.');
-    set(handle,'MarkerSize',20);
-	% Draw selected Delaunay triangles
-	for i=1:size(triangles,1)
-		if ~isnan(triangles(i))
-			fVecX = pMin([triMin(triangles(i),:),triMin(triangles(i),1)],2);
-			fVecY = pMin([triMin(triangles(i),:),triMin(triangles(i),1)],1);
-			handle=plot(fVecX,fVecY,'k-');
-			set(handle,'LineWidth',2);
-            set(handle,'Marker','.')
-            set(handle,'MarkerSize',20);
-            set(handle,'MarkerSize',15);
-            set(handle,'MarkerEdgeColor','r');
-            set(handle,'MarkerFaceColor','r');
-			%pause;
-		end
-	end;
-	pause;
-	hold off;
-	close;
-end
+% SB: the case triangles(i) == NaN should now happens only at the image
+% border and not anymore at the cell edge. => Discard this case (no Bkg ==
+% [-1 -1] anymore.
 
 % Store information
 for i=1:size(triangles,1)

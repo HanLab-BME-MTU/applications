@@ -27,22 +27,14 @@ if any(validCands)
     validIdx = sub2ind(size(IG), validLmax(:,1), validLmax(:,2));
     Imax(validIdx) = validDeltaI;
 end
-% % setting the value of Imax to the values from delataI, i.e. taking into account the background
-% s=length(cands);
-%
-% % counter
-% nmb=0;
-%
-% for i=1:s
-%     if cands(i).status==1 && cands(i).deltaI>0 % status flag - a local maximun is significant or not
-%         Imax(cands(i).Lmax(1),cands(i).Lmax(2))=cands(i).deltaI; % the intensity at the speckle position is set to "delta I"
-%         nmb=nmb+1;
-%     end
-%
-% end
 
 % the masked with a GK local maxima points with intensity delta.I for the raw data image
 Imaxima=filterGauss2D(Imax,SIG);
 
 % substruction
 Inew=IG-Imaxima;
+
+% In case Imaxima has value outside the cell footprint (IG is masked) due
+% to the filtering step, Inew may have negative value outside the cell
+% footprint. Make sure the cell mask is also applied on Inew.
+Inew(IG == 0) = 0;

@@ -54,24 +54,23 @@ end
 
 SIG=1.88; % for the twice convolved image (or 1.77)
 
-% We need to add virtual points from the cell edge to Imin with special
-% value (i.e. -1000);
+% SB: We need to add virtual points from the cell edge to Imin with special
+% value (i.e. -1000). These points fall ouside the cell footprint, i.e.
+% I(p) == 0. If no cell mask is provided, there is no additional point.
 
 % local minima
 Imin=locmin2d(IG,[3,3]);
 
 % intial (filtered) image
-[candsP,triMin,pMin] = fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw); % TO DO: update cands
+[cands,triMin,pMin] = fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw);
 
-aux=length(candsP);
+aux=length(cands);
 for i=1:aux
-    candsP(i).speckleType=1;
+    cands(i).speckleType=1;
 end
 
-cands=candsP;
-
 Inew=IG;
-candsS=candsP;
+candsS=cands;
 HierLevel=2;
 
 while HierLevel<=Speckles(1) && length(candsS)>(Speckles(2)*length(cands)) && any([candsS.status])

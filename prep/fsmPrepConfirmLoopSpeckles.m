@@ -38,6 +38,10 @@ triangles=tsearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
 
 % SB: allocate the cands array
 
+% SB: the case triangles(i) == NaN should now happens only at the image
+% border and not anymore at the cell edge. => Discard this case (no Bkg ==
+% [-1 -1] anymore.
+
 % Store information into cands structure
 for i=1:size(triangles,1)
    if ~isnan(triangles(i))  % If NaN -> no triangle found
