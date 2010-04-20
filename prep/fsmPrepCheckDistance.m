@@ -20,6 +20,10 @@ function cands2=fsmPrepCheckDistance(cands2,cands1)
 validIdx1 = [cands1(:).status] == 1;
 validIdx2 = [cands2(:).status] == 1;
 
+if ~(any(validIdx1) && any(validIdx2))
+    return;
+end
+
 R1 = vertcat(cands1(validIdx1).Lmax);
 R2 = vertcat(cands2(validIdx2).Lmax);
 

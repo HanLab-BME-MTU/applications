@@ -15,6 +15,7 @@ function [Inew,Imaxima]=fsmPrepSubstructMaxima(IG,SIG,cands)
 %                          real
 %
 % Alexandre Matov, November 7th, 2002
+% Modified by Sylvain Berlemont, 2010
 
 Imax=zeros(size(IG)); % prepearing Imax for substraction
 

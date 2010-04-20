@@ -16,6 +16,7 @@ function candsTot=fsmPrepCheckInfo(candsTot)
 %
 % Alexandre Matov, November 7th, 2002
 
+% SB: this file need to be rewritten.
 
 c=0; % counter
 rep=[]; % repetitions
@@ -45,6 +46,3 @@ if length(y)>length(candsTot)
 end
 
 candsTot(rep)=[];
-
-
-    
