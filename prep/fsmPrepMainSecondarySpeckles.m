@@ -27,6 +27,7 @@ function cands=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,f
 %               fsmPrepMainSecondarySpeckles is used by { fsmPrepMain }
 %
 % Aaron Ponti, October 4th, 2002
+% Sylvain Berlemont, Jan 2010
 
 IG=I;
 
@@ -52,14 +53,15 @@ if ~isempty(fsmParam)
     end
 end
 
+% SB: What the hell is this constant!!!
 SIG=1.88; % for the twice convolved image (or 1.77)
 
 % local minima
 Imin=locmin2d(IG,[3,3]);
 
-% SB: We need to add virtual points from the cell edge to Imin with special
-% value (i.e. -1000). These points fall ouside the cell footprint, i.e.
-% I(p) == 0. If no cell mask is provided, there is no additional point.
+% Add virtual points along the cell edge to make sure there will be a
+% triangle in the delaunay triangulation for each local maxima (cands). If
+% no cell mask is provided there is no additional point.
 
 % reconstruct the mask from the original image
 bwMask = I ~= 0;
@@ -87,27 +89,19 @@ end
 % intial (filtered) image
 [cands,triMin,pMin] = fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw);
 
-% Replace loop
 [cands(:).speckleType] = deal(1);
-% aux=length(cands);
-% for i=1:aux
-%     cands(i).speckleType=1;
-% end
 
 Inew=IG;
 candsS=cands;
 HierLevel=2;
 
-while HierLevel<=Speckles(1) && length(candsS)>(Speckles(2)*length(cands)) && any([candsS.status])
+while HierLevel<=Speckles(1) && ...
+        length(candsS)>(Speckles(2)*length(cands)) && ...
+        any([candsS.status])
     
-    Inew=fsmPrepSubstructMaxima(Inew,SIG,candsS); % prednite Cands
+    Inew=fsmPrepSubstructMaxima(Inew,SIG,candsS);
     candsS = fsmPrepConfirmLoopSpeckles(Inew,noiseParam,triMin,pMin,IG,userROIbw);
     
-    % Replace loop
-%     aux=length(candsS);
-%     for i=1:aux
-%         candsS(i).speckleType=HierLevel; % type flag
-%     end
     [candsS(:).speckleType] = deal(HierLevel);
     
     candsS=fsmPrepCheckDistance(candsS,cands);
@@ -115,7 +109,7 @@ while HierLevel<=Speckles(1) && length(candsS)>(Speckles(2)*length(cands)) && an
     HierLevel=HierLevel+1;
     
     if ~isempty(candsS)
-        cands=cat(1,cands,candsS); % concatenating secondary and primary cands structures
+        cands=cat(1,cands,candsS);
     end
 end
 

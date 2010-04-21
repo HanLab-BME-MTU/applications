@@ -19,7 +19,6 @@ function [Inew,Imaxima]=fsmPrepSubstructMaxima(IG,SIG,cands)
 
 Imax=zeros(size(IG)); % prepearing Imax for substraction
 
-% Replace loop
 validCands = ([cands(:).status] == 1) & ([cands(:).deltaI] > 0);
 if any(validCands)
     validLmax = vertcat(cands(validCands).Lmax);
@@ -28,7 +27,8 @@ if any(validCands)
     Imax(validIdx) = validDeltaI;
 end
 
-% the masked with a GK local maxima points with intensity delta.I for the raw data image
+% the masked with a GK local maxima points with intensity delta.I for the
+% raw data image.
 Imaxima=filterGauss2D(Imax,SIG);
 
 % substruction

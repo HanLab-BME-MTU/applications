@@ -29,22 +29,15 @@ if nargin == 6 && ~isempty(userROIbw)
     Imax=Imax.*userROIbw;
 end
 
-% find the coordinates/positions of the initial local maxima before significance test (for comparision)
+% find the coordinates/positions of the initial local maxima before
+% significance test (for comparision)
 [yi,xi]=find(ne(Imax,0));
 pMax=[yi,xi];
 
 % Assign local maxima to local minimum triangles
 triangles=tsearch(pMin(:,1),pMin(:,2),triMin,pMax(:,1),pMax(:,2));
 
-% SB: allocate the cands array
-
-% SB: the case triangles(i) == NaN should now happens only at the image
-% border and not anymore at the cell edge. => Discard this case (no Bkg ==
-% [-1 -1] anymore.
-
 % Store information into cands structure
-
-% SB: Replace the loop
 validTri = 1:numel(triangles);
 validTri = validTri(~isnan(triangles));
 n = ones(numel(validTri), 1);
@@ -54,23 +47,6 @@ cands = struct(...
     'Bkg1', mat2cell(pMin(triMin(triangles(validTri),1),:), n),...
     'Bkg2', mat2cell(pMin(triMin(triangles(validTri),2),:), n),...
     'Bkg3', mat2cell(pMin(triMin(triangles(validTri),3),:), n));
-
-% for i=1:size(triangles,1)
-%    if ~isnan(triangles(i))  % If NaN -> no triangle found
-%       cands(i).Lmax=pMax(i,:);
-%       % Read local maxima positions into the 3x2 matrix Bkg
-%       Bkg=[pMin(triMin(triangles(i),:),1) pMin(triMin(triangles(i),:),2)];
-%       % Store positions into the cands structure
-%       cands(i).Bkg1=Bkg(1,:);
-%       cands(i).Bkg2=Bkg(2,:);
-%       cands(i).Bkg3=Bkg(3,:);
-%    else   % Mark failed Delaunay triangulation
-%       cands(i).Lmax=pMax(i,:);
-%       cands(i).Bkg1=[-1 -1];
-%       cands(i).Bkg2=[-1 -1];
-%       cands(i).Bkg3=[-1 -1];
-%    end
-% end
 
 % analyze speckles - validate, locmax, locmin...
 cands = fsmPrepTestLocalMaxima(Inew,cands,noiseParam,IG);  

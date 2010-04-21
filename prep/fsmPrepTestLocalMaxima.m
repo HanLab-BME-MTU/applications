@@ -40,21 +40,6 @@ sigmaD=parameters(2);
 PoissonNoise=parameters(3);
 I0=parameters(4);
 
-% Correct intensity at the four edges 
-% img([1 size(img,1) (size(img,2)-1)*size(img,1)+1 size(img,1)*size(img,2)])=mean(img(:));
-
-% Calculate standard deviation of the non-black pixels as statistical value for comparison
-%nonBlackPixels=img(img>0);
-%stdImg=std(nonBlackPixels(:));
-
-% Pad img to avoid border effects.
-%maskR = 5;
-%aImg = padarray(img, [maskR,maskR], 'replicate');
-
-% SB: Remove A
-% Create addressing matrix
-%A=zeros(size(img));
-
 Lmax = vertcat(cands(:).Lmax);
 Bkg1 = vertcat(cands(:).Bkg1);
 Bkg2 = vertcat(cands(:).Bkg2);
@@ -68,31 +53,15 @@ indBkg3 = sub2ind(size(img), Bkg3(:, 1), Bkg3(:, 2));
 % Calculate difference Imax-Imin for every speckle
 for c1=1:length(cands)
 	
-    % Read values for Imax and Imin from the image at the coordinates specified by info
-    %Imax=img(cands(c1).Lmax(1),cands(c1).Lmax(2)); % img is the current image
+    % Read values for Imax and Imin from the image at the coordinates
+    % specified by info 
     Imax = img(indLmax(c1));
     
-    % SB: This branch should be seldom since there should not be any Bkg1
-    % == -1 anymore.
-    
-    % 	if cands(c1).Bkg1(1)==-1 % This means that the Deulaunay triangulation has failed
-    %         % imgO is the original filtered image
-    % 		[Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status,A]=fsmPrepTestSpeckleSignifAux(aImg,imgO,[cands(c1).Lmax(1) cands(c1).Lmax(2)],maskR,stdImg,A,parameters);
-    %     else
-        
     % imgO is the original filtered image
-    %Imin=mean([imgO(cands(c1).Bkg1(1),cands(c1).Bkg1(2))...
-    %imgO(cands(c1).Bkg2(1),cands(c1).Bkg2(2))...
-    %imgO(cands(c1).Bkg3(1),cands(c1).Bkg3(2))]);
-    
-    % SB: some background points can be outside the cell mask where
-    % image is null. Call nonzeros to compute mean over non zeros
-    % pixels.
     Imin = mean(nonzeros([imgO(indBkg1(c1)), imgO(indBkg2(c1)), imgO(indBkg3(c1))]));
     
     [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status]=...
         fsmPrepTestSpeckleSignif(Imax,Imin,k,sigmaD,PoissonNoise,I0);
-% 	end
 	
 	% Complete cands
     cands(c1).ILmax=Imax;             % Local maximum intensity
