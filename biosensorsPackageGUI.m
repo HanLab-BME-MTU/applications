@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 20-Apr-2010 10:47:06
+% Last Modified by GUIDE v2.5 22-Apr-2010 10:39:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,16 +55,36 @@ function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for biosensorsPackageGUI
 handles.output = hObject;
 % Load help icon from dialogicons.mat
-load dialogicons.mat
-questIconMap(256,:) = get(hObject,'color');
-set(hObject,'colormap',questIconMap);
+load lccbGuiIcons.mat
+supermap(1,:) = get(hObject,'color');
+set(hObject,'colormap',supermap);
 
-for i = 1:4
-eval (['axes(handles.axes_help' num2str(i) ')']);
-Img = image(questIconData);
+
+axes(handles.axes_help);
+Img = image(questIconData); 
 set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
     'visible','off');
+
+for i = 1:3
+eval (['axes(handles.axes_help' num2str(i) ')']);
+Img = image(questIconData); 
+set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
+    'visible','off');
+
+ eval (['axes(handles.axes_icon' num2str(1) ')']);
+ Img = image(passIconData);
+ set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
+    'visible','off');
+ eval (['axes(handles.axes_icon' num2str(2) ')']);
+ Img = image(warnIconData);
+ set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
+    'visible','off');
+ eval (['axes(handles.axes_icon' num2str(3) ')']);
+ Img = image(errorIconData);
+ set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
+    'visible','off');
 end
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -179,5 +199,12 @@ function pushbutton9_Callback(hObject, eventdata, handles)
 % --- Executes on button press in pushbutton10.
 function pushbutton10_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton20.
+function pushbutton20_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton20 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
