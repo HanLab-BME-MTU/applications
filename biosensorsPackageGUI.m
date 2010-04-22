@@ -58,7 +58,7 @@ handles.output = hObject;
 handles.dependM = [0 0 0 0;
                    1 0 0 0;
                    0 1 0 0;
-                   0 1 0 0];
+                   0 0 1 0];
 % Initial set up
 userfcn_enable(find (any(handles.dependM,2)), 'off',handles);
 % Load icon images from dialogicons.mat
@@ -119,7 +119,6 @@ function checkbox_1_Callback(hObject, eventdata, handles)
 
 % Switch lamps
 userfcn_lampSwitch(1, get(hObject,'value'), handles);
-disp('box1 pressed');
 
 
 % --- Executes on button press in pushbutton_set1.
@@ -266,8 +265,6 @@ function userfcn_lampSwitch(index, value, handles)
 % value - checked or unchecked
 M = handles.dependM;
 
-    
-
 if ~any(M(:,index))
    % if no follower exists, return.
         return;
@@ -281,20 +278,24 @@ else
                for j = 1: length(parentI)
                    if ~eval(['get(handles.checkbox_',...
                                        num2str(parentI(j)),',''value'')'])
-                       return;                       
+                       k = 1;
+                       break;
+                   else
+                       k = 0;
                    end
                end
-               
+               if k == 1
+                   continue;
+               end
                % The following code will probably not be executed
                % Leave it here just in case design is changed
                % ------------------------------------------ %
                if eval(['get(handles.checkbox_', ...
                                       num2str(subindex(i)),',''value'')'])
                     userfcn_lampSwitch(subindex(i),1,handles)
-               
                % ------------------------------------------ %
                else
-                    % Enable the subindex checkbox
+                    % Turn on the subindex checkbox
                     userfcn_enable (subindex(i),'on',handles);
                end
             end
@@ -311,7 +312,7 @@ else
                 userfcn_lampSwitch(subindex(i),0,handles);
             end
         otherwise
-                    error(['User-defined error: unexpected value of ''value'' property',...
+            error(['User-defined error: unexpected value of ''value'' property',...
                             'in checkbox object']);
      end
             
