@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 22-Apr-2010 16:24:02
+% Last Modified by GUIDE v2.5 23-Apr-2010 10:42:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -58,14 +58,13 @@ handles.output = hObject;
 handles.dependM = [0 0 0 0;
                    1 0 0 0;
                    0 1 0 0;
-                   0 0 1 0];
+                   0 1 0 0];
 % Initial set up
 userfcn_enable(find (any(handles.dependM,2)), 'off',handles);
 % Load icon images from dialogicons.mat
 load lccbGuiIcons.mat
 supermap(1,:) = get(hObject,'color');
 set(hObject,'colormap',supermap);
-
 
 axes(handles.axes_help);
 Img = image(questIconData); 
@@ -190,6 +189,16 @@ function checkbox_all_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_all
+switch get(hObject,'value')
+    case 1
+        userfcn_enable(1:length(handles.dependM(:,1)),'on',handles,true);
+    case 0
+        userfcn_enable(find(any(handles.dependM,2)),'off',handles);
+        for i = 1:length(handles.dependM(:,1))
+            eval( ['set(handles.checkbox_', ...
+                                          num2str(i),', ''value'', 0)'] );
+        end
+end
 
 
 % --- Executes on button press in pushbutton_done.
@@ -236,7 +245,7 @@ function pushbutton_show4_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-function userfcn_enable (index, onoff, handles)
+function userfcn_enable (index, onoff, handles, enable)
 % This is a user-defined function used to change the 'visible' property of
 % uicontrols on control panel. The name of the uicontrols are pre-defined
 % in the following way: 
@@ -249,7 +258,12 @@ function userfcn_enable (index, onoff, handles)
 %       index - vector of check box index
 %       onoff - 'on' or 'off'
 %       handles - handles of control panel
+%       select - (Optional) true or false. It provides a option to select/unselect 
+%       the checkboxs that have been enabled/disabled.
 % 
+if nargin < 4
+    enable = false;
+end
 
 for i = 1: length(index)
     eval (['set(handles.checkbox_', num2str(index(i)),...
@@ -258,6 +272,21 @@ for i = 1: length(index)
                                         ',''enable'',''',onoff,''')']);
     eval (['set(handles.pushbutton_show', num2str(index(i)),...
                                         ',''enable'',''',onoff,''')']);
+end
+if enable
+    switch onoff
+        case 'on'
+            for i = 1: length(index)
+                eval( ['set(handles.checkbox_',...
+                    num2str(index(i)),',''value'',1);'] );
+            end
+        case 'off'
+            for i = 1: length(index)
+                 eval( ['set(handles.checkbox_',...
+                    num2str(index(i)),',''value'',0);'] );           
+            end
+    end
+
 end
 
 function userfcn_lampSwitch(index, value, handles)
@@ -302,11 +331,8 @@ else
         % Checkbox is unselected
         case 0
             for i =1:length(subindex)
-                % Uncheck the follower checkboxes
-                eval(['set(handles.checkbox_', ...
-                               num2str(subindex(i)),',''value'',0)'])
-                % Turn off the follower checkboxes
-                userfcn_enable(subindex(i),'off',handles);
+                % Turn off and uncheck the follower checkboxes
+                userfcn_enable(subindex(i),'off',handles,true);
                 
 %                 childrenI = find( M(:,subindex(i)) );
                 userfcn_lampSwitch(subindex(i),0,handles);
@@ -320,9 +346,23 @@ end
 
 
 
+function edit_notes_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_notes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_notes as text
+%        str2double(get(hObject,'String')) returns contents of edit_notes as a double
 
 
+% --- Executes during object creation, after setting all properties.
+function edit_notes_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_notes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
 
-
-
-
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
