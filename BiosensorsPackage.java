@@ -8,23 +8,24 @@ public class BioSensorsPackage extends Package {
 	
 	// Following are the 3 abstract methods every package needs to implement.
 	
-	// Sanity check
+	// Sanity check (See Package.m for more details)
 	public void sanityCheck(boolean full) throws Exception {
-		// check the status of each process and their dependencies with
-		// each other.
-		checkProcessDependencies_(full);
 		
-		// If needed, we can add specific checks below:
+		// If anything relative to the package itself needs to be checked before
+		// we check the processes, do it here (throw an exception if needed)
+		// ...
 		
-		// if (full) {
-		// ...
-		// } else {
-		// ...
-		// }
+		// check the status of each process, the possible changed of their
+		// parameters, and their dependencies with each other.
+		checkProcesses_(full);
+		
+		// If anything relative to the package itself needs to be checked after
+		// we've checked the processes, do it here (throw an exception if needed)
+		// ...		
 	}
 	
 	// This method returns the list of required processes. Each process is built
-	// using the default contructor
+	// using the default contructor (See Package.m for more details)
 	protected Process[] getDefaultProcessList_() {
 		
 		Process[] list = new Process[3];
@@ -37,8 +38,9 @@ public class BioSensorsPackage extends Package {
 	}
 	
 	// This method return the dependency matrix of processes. It is a square
-	// matrix whose size equals the number of required processes.
+	// matrix whose size equals the number of required processes. (See Package.m
+	// for more details)
 	protected Matrix getProcessDependenyMatrix_() {
-		return eye(3);
+		return zeros(3);
 	}
 }
