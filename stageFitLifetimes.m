@@ -41,7 +41,7 @@ end
 cutoff_art = 100;
 tvec = 1:cutoff_art;
 
-histMatrix_all = zeros(length(data),cutoff_art);
+histMatrix_all = zeros(length(data), cutoff_art);
 idx = 1:cutoff_art;
 for i=1:length(data)
     if ~isempty(data(i).(histName))
@@ -67,8 +67,8 @@ axis([0 cutoff_art 0 1.1*max(cHistogramVector(:))]);
 guessvector = [0    0.3 0.3 1   0.3 5   1   0.3 20  1];
 fixvector =   [0    0   0   1   0   0   1   0   0   1];
 estAll = fitcurveMultiWeibullODF_lsq(tvec, cHistogramVector, guessvector, fixvector);
-% take abs of all except offset
-estAll(2:end) = abs(estAll(2:end));
+
+estAll(2:end) = abs(estAll(2:end)); % abs of all except offset
 
 
 % plot first component, which is the detection artifact
@@ -252,8 +252,8 @@ if ~isempty(slowIdx)
         histMatrix(p,1:length(currHistNorm)) = currHistNorm;
         
         % plot results
-        plot(tvec_curr,cumsum(currHistNorm), 'b.-'); hold on;
-        axis([0 600 0 1.05]);
+        plot(tvec_curr,cumsum(currHistNorm), 'b.-'); hold on;        
+        axis([0 tvec_curr(end) 0 1.05]);
     end
     
     % when the averaging takes place, that's a possible source for
@@ -304,6 +304,6 @@ if ~isempty(slowIdx)
     
     figure;
     plot(tvecRes, histVectorAve,'r.-');
-    axis([0 600 0 1.05*max(histVectorAve)]);
+    axis([0 tvecRes(end) 0 1.05*max(histVectorAve)]);
     title('Average histogram (slow)');
 end
