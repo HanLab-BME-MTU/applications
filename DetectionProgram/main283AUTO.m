@@ -44,11 +44,6 @@ function [] = main283AUTO(iclean,oriImageName, oriImagePath)
 % but generally, different parameter values can be used by entering them in
 % the commando line instead of changing the code
 
-
-close all;
-clc;
-
-
 %=========================================================================
 %
 %       set default values for parameters
