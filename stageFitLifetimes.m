@@ -113,9 +113,6 @@ slowIdx = find([data.framerate] >  frThreshold & arrayfun(@(x)~isempty(x.(histNa
 fastIdx = find([data.framerate] <= frThreshold & arrayfun(@(x)~isempty(x.(histName)), data));
 timespan = [data.framerate].*[data.movieLength];
 
-mintimespan_slow = min(timespan(slowIdx));
-mintimespan_fast = min(timespan(fastIdx));
-
 % ========================================================================
 % Average all fast/slow data
 % =========================================================================
@@ -131,10 +128,12 @@ nTracks = zeros(1, length(data));
 if ~isempty(fastIdx)
     nMovies = length(fastIdx);
     ipFramerate = 0.4;
-    maxl = floor(mintimespan_fast/0.4);
     
-    cutpoint = round(maxl*0.9); % cut at 90% of total length
-    histMatrix  = NaN(nMovies,1000);
+    %cutpoint = round(floor(min(timespan(fastIdx))/0.4)*0.9); % cut at 90% of total length
+    % cutpoint: shortest movie length - 2 (see lftHist_correctionVector)
+    cutpoint = min([data(fastIdx).movieLength]) - 2;
+    
+    histMatrix = NaN(nMovies, 1000);
     
     figure;
     for p = 1:nMovies
@@ -159,7 +158,7 @@ if ~isempty(fastIdx)
         histMatrix(p,1:length(currHistNorm)) = currHistNorm;
         
         % plot results
-        plot(tvec_curr,cumsum(currHistNorm), 'b.-'); hold on;
+        plot(tvec_curr, cumsum(currHistNorm), 'b.-'); hold on;
         axis([0 120 0 1.05]);
     end
     
@@ -213,9 +212,9 @@ end
 if ~isempty(slowIdx)
     nMovies = length(slowIdx);
     ipFramerate = 2;
-    maxl = floor(mintimespan_slow/2);
     
-    cutpoint = round(maxl*(1-cutoff_slow)); % cut at 90%
+    %cutpoint = round(floor(min(timespan(slowIdx))/2)*(1-cutoff_slow)); % cut at 90%
+    cutpoint = min([data(slowIdx).movieLength]) - 2;
     histMatrix  = NaN(nMovies,1000);
     
     figure;
