@@ -1,49 +1,45 @@
 // Here is an example of a concrete package (i.e. that implements the Package
 // abstract class)
 public class BioSensorsPackage extends Package {
-	// Define the constructor
-	public BioSensorsPackage(movieData owner) {
-		super(owner, 'BioSensorsPackage')
-	}
+  // Define the constructor
+  public BioSensorsPackage(movieData owner) {
+    super(owner, 'BioSensorsPackage')
+      }
 	
-	// Following are the 3 abstract methods every package needs to implement.
+  // Following are the 3 abstract methods every package needs to implement.
 	
-	// Sanity check (See Package.m for more details)
-	public void sanityCheck(boolean full) throws Exception {
+  // Sanity check (See Package.m for more details)
+  public void sanityCheck(boolean full) throws Exception {
 		
-		// If anything relative to the package itself needs to be checked before
-		// we check the processes, do it here (throw an exception if needed)
-		// ...
+    // If anything relative to the package itself needs to be checked before
+    // we check the processes, do it here (throw an exception if needed)
+    // ...
 		
-		// check the status of each process, the possible changed of their
-		// parameters, and their dependencies with each other.
-		checkProcesses_(full);
+    // check the status of each process, the possible changed of their
+    // parameters, and their dependencies with each other.
+    checkProcesses_(full);
 		
-		// If anything relative to the package itself needs to be checked after
-		// we've checked the processes, do it here (throw an exception if needed)
-		// ...		
-	}
+    // If anything relative to the package itself needs to be checked after
+    // we've checked the processes, do it here (throw an exception if needed)
+    // ...		
+  }
 	
-	// This method returns the list of required processes. Each process is built
-	// using the default contructor (See Package.m for more details)
-	protected Process[] getDefaultProcessList_() {
+  // Get the list of process class names required by the package.
+  public String[] getListProcessClassName() {
 		
-		Process[] list = new Process[3];
+    String[] list = new String[3];
 		
-		list[0] = new Name1Process(owner_);
-		list[1] = new Name2Process(owner_);
-		list[2] = new Name3Process(owner_);
+    list[0] = new String("SegmentationProcess");
+    list[1] = new String("Other1Process");
+    list[2] = new String("Other2Process");
 		
-		return list;
-	}
+    return list;
+  }
 	
-	// This method return the dependency matrix of processes. It is a square
-	// matrix whose size equals the number of required processes. (See Package.m
-	// for more details)
-	protected Matrix getProcessDependenyMatrix_() {
-		return zeros(3);
-	}
-
-	// private
-	Matrix depMatrix_;
+  // This method return the dependency matrix of processes. It is a square
+  // matrix whose size equals the number of required processes. (See Package.m
+  // for more details)
+  public Matrix getProcessDependenyMatrix() {
+    return zeros(3);
+  }
 }
