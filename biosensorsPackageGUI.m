@@ -245,7 +245,7 @@ function pushbutton_show4_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-function userfcn_enable (index, onoff, handles, enable)
+function userfcn_enable (index, onoff, handles, check)
 % This is a user-defined function used to change the 'visible' property of
 % uicontrols on control panel. The name of the uicontrols are pre-defined
 % in the following way: 
@@ -258,11 +258,11 @@ function userfcn_enable (index, onoff, handles, enable)
 %       index - vector of check box index
 %       onoff - 'on' or 'off'
 %       handles - handles of control panel
-%       select - (Optional) true or false. It provides a option to select/unselect 
+%       check - (Optional) true or false. It provides a option to select/unselect 
 %       the checkboxs that have been enabled/disabled.
 % 
 if nargin < 4
-    enable = false;
+    check = false;
 end
 
 for i = 1: length(index)
@@ -273,7 +273,7 @@ for i = 1: length(index)
     eval (['set(handles.pushbutton_show', num2str(index(i)),...
                                         ',''enable'',''',onoff,''')']);
 end
-if enable
+if check
     switch onoff
         case 'on'
             for i = 1: length(index)
