@@ -100,7 +100,7 @@ movieData = setupMovieData(movieData,'maskRefinement');
 
 [batchMode,iChannels,doCleanUp,doEdgeRefine,...
     minSize,closeRad,nObjects,...
-    maxEdgeAdjust,maxEdgeGap,preEdgeGrow] = parseInput(varargin);
+    maxEdgeAdjust,maxEdgeGap,preEdgeGrow,fillHoles] = parseInput(varargin);
 
 
 % ----- Default Values ----- %
@@ -131,6 +131,10 @@ end
 
 if isempty(nObjects)
     nObjects = 1;
+end
+
+if isempty(fillHoles)
+    fillHoles = true;
 end
 
 if ~checkMovieMasks(movieData,iChannels)
@@ -224,13 +228,18 @@ for iChan = 1:nChan
             if length(obAreas) > nObjects 
                 obAreas = [obAreas.Area];
                 %Sort by area
-                [sortA,iSort] = sort(obAreas,'descend');
+                [~,iSort] = sort(obAreas,'descend');
                 %Keep only the largest requested number
                 currMask = false(size(currMask));
                 for i = 1:nObjects
                     currMask = currMask | labelMask == iSort(i);
                 end
             end
+        end
+        
+        % ------ Hole-Filling ----- %
+        if fillHoles
+            currMask = imfill(currMask,'holes');
         end
         
         %Write the refined mask to file, over-writing the previous mask.
@@ -272,7 +281,7 @@ end
 
 
 function [batchMode,iChannels,doCleanUp,doEdgeRefine,minSize,closeRad, ...
-         nObjects,maxEdgeAdjust,maxEdgeGap,preEdgeGrow] = parseInput(argArray)
+         nObjects,maxEdgeAdjust,maxEdgeGap,preEdgeGrow,fillHoles] = parseInput(argArray)
 
 
 %Init output
@@ -287,6 +296,7 @@ nObjects = [];
 maxEdgeAdjust =[];
 maxEdgeGap = [];
 preEdgeGrow = [];
+fillHoles = [];
 
 if isempty(argArray)
     return
@@ -335,6 +345,10 @@ for i = 1:2:nArg
            
            preEdgeGrow = argArray{i+1};
        
+       case 'FillHoles'
+           
+           fillHoles = argArray{i+1};
+           
            
        otherwise
        
