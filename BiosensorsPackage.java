@@ -43,4 +43,7 @@ public class BioSensorsPackage extends Package {
 	protected Matrix getProcessDependenyMatrix_() {
 		return zeros(3);
 	}
+
+	// private
+	Matrix depMatrix_;
 }
