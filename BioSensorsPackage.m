@@ -9,16 +9,18 @@ classdef BioSensorsPackage < Package
            else
                % Owner: MovieData object
                super_args{1} = owner;
-               super_args{2} = 'BioSensorsPackage'; 
+               super_args{2} = 'BioSensors'; 
                % Dependency Matrix (same length as process class name string)
                super_args{3} = [0 0 0 0
                                 1 0 0 0
                                 0 1 0 0
                                 0 0 1 0];
-               % Process class name string
-               super_args{4} = {'Mask', ... 
-                                'Protrusion', ...
-                                'FinalProcess'};
+               % Process CLASS NAME string (same length as dependency matrix)
+               % Must have accurate process class name
+               super_args{4} = {%'SegmentationProcess', ... 
+                                'SecondProcess', ...
+                                'ThirdProcess', ...
+                                'FourthProcess','SegmentationProcess'};
            end
            % Call the supercalss constructor with empty cell array (no
            % argument) if nargin == 0
