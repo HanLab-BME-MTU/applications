@@ -1,7 +1,7 @@
 classdef BioSensorsPackage < Package
 % A concrete process for BioSensor Package
     
-    methods
+    methods (Access = public)
         function obj = BioSensorsPackage (owner)
            % Construntor of class MaskProcess
            if nargin == 0

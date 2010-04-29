@@ -58,7 +58,7 @@ handles.output = hObject;
 handles.dependM = [0 0 0 0;
                    1 0 0 0;
                    0 1 0 0;
-                   0 1 0 0];
+                   0 0 1 0];
 % Initial set up
 userfcn_enable(find (any(handles.dependM,2)), 'off',handles);
 % Load icon images from dialogicons.mat
