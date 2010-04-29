@@ -12,7 +12,7 @@ for iTM = 1:3
     if ~checkMovieLabels(movieData)
         error('Must label movie before computing figure 3.');
     end
-
+    
     % Get the names of the 2 FSM subfolders
     names = cellfun(@fliplr, strtok(cellfun(@fliplr,movieData.fsmDirectory, ...
         'UniformOutput', false), filesep), 'UniformOutput', false);
@@ -22,7 +22,6 @@ for iTM = 1:3
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
     timeInterval = movieData.timeInterval_s;
-    nWindows = movieData.windows.parameters.nWindows;
     
     % Read the list of label files
     labelPath = movieData.labels.directory;
@@ -35,7 +34,7 @@ for iTM = 1:3
     % Read the list of Actin speckles (channel 2)
     s2Path = [movieData.fsmDirectory{2} filesep 'tack' filesep 'locMax'];
     s2Files = dir([s2Path filesep '*.mat']);
-    
+
     % Read the list of distance transforms
     bwdistPath = movieData.bwdist.directory;
     bwdistFiles = dir([bwdistPath filesep '*.mat']);
@@ -47,13 +46,18 @@ for iTM = 1:3
         error(['Unable to locate ' fileName]);
     end
     load(fileName);
-    v = sort(protrusionSamples.averageMagnitude(:));
-    val = v(ceil(.01 * numel(v)));
-    activityMap = zeros(size(protrusionSamples.averageNormalComponent));
-    idx = find(protrusionSamples.averageNormalComponent > val | ...
-        protrusionSamples.averageNormalComponent < -val);
-    activityMap(idx) = protrusionSamples.averageNormalComponent(idx);
-    activityMap = activityMap * pixelSize / timeInterval;
+    % Convert activity maps to nm/s
+    protrusionSamples.averageMagnitude = ...
+        protrusionSamples.averageMagnitude * pixelSize / timeInterval;
+    protrusionSamples.averageNormalComponent = ...
+        protrusionSamples.averageNormalComponent * pixelSize / timeInterval;
+    
+    % Load activity class
+    fileName = [movieData.labels.directory filesep 'labelClasses.mat'];
+    if ~exist(fileName, 'file')
+        error(['Unale to locate ' fileName]);
+    end
+    load(fileName);
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -61,72 +65,134 @@ for iTM = 1:3
     %                                                                 %
     %-----------------------------------------------------------------%
     
-    timeScale = 0:timeInterval:(nFrames-2)*timeInterval;
-
-    hFig = figure('Visible', 'off');    
+    edgeVelocity = cell(nFrames-1, 1);
+    dist = cell(nFrames-1,1);
+    
+    for iFrame = 1:nFrames-1
+        % Load label
+        L = imread([labelPath filesep labelFiles(iFrame).name]);
+        
+        % Load TM speckles (channel 1)
+        load([s1Path filesep s1Files(iFrame).name]);
+        locMax1 = locMax;
+        ind = (locMax1 .* (L ~= 0)) ~= 0;
+        
+        % Read the distance transform
+        fileName = [bwdistPath filesep bwdistFiles(iFrame).name];
+        load(fileName);
+        distToEdge = distToEdge * (pixelSize / 1000); % in microns        
+        
+        edgeVelocity{iFrame} = protrusionSamples.averageNormalComponent(L(ind), iFrame);
+        dist{iFrame} = distToEdge(ind);
+    end
+    
+    hFig = figure('Visible', 'off');
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-    imagesc(activityMap);
-    set(gca,'XTick', 1:20:numel(timeScale));
-    set(gca,'XTickLabel', timeScale(1:20:end));
-    xlabel('Time (s)');
-    title(names(1));
-    if iTM == 1
-        ylabel('Window no.');
-    end
-    colorbar;
+    
+    edgeVelocity = cell2mat(edgeVelocity);
+    dist = cell2mat(dist);
+    scatter(edgeVelocity, dist, 5, '.');
+    
+    title([names{1} ' Distance to Edge v.s Edge velocity']);
+    xlabel('nm/s');
+    ylabel(['Distance to Edge (' char(181) 'm)']);
+
     fileName = [outputDirectory filesep 'Fig5_A' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
-    close(hFig);    
-    
+    close(hFig);
+
     %-----------------------------------------------------------------%
     %                                                                 %
     %                          FIGURE 5 PANEL B                       %
     %                                                                 %
     %-----------------------------------------------------------------%
     
-    distanceMap = zeros(nWindows, nFrames - 1);
+    % Build activtyStep
+    activityStep = zeros(size(labelClasses));
     
-    for iFrame = 1:nFrames-1
+    % Forward sweep: initialize 1st frame so that protrution / retraction
+    % events which start at first frame are discarded.
+    activityStep(:,1) = 0;
+    
+    for iFrame = 2:nFrames-1
+        % Protrusion at frames iFrame and iFrame-1
+        ind = labelClasses(:,iFrame) == 1 & ...
+            labelClasses(:,iFrame-1) == 1 & ...
+            activityStep(:,iFrame-1);        
+        activityStep(ind,iFrame) = activityStep(ind,iFrame-1) + 1;
+        
+        % Retration at frames iFrame and iFrame-1
+        ind = labelClasses(:,iFrame) == 2 & ...
+            labelClasses(:,iFrame-1) == 2 & ...
+            activityStep(:,iFrame-1);
+        activityStep(ind,iFrame) = activityStep(ind,iFrame-1) - 1;
+        
+        % Protrusion at frame iFrame but not at iFrame-1
+        ind = labelClasses(:,iFrame) == 1 & labelClasses(:,iFrame-1) ~= 1;
+        activityStep(ind,iFrame) = 1;
+        
+        % Retraction at frame iFrame but not at iFrame-1
+        ind = labelClasses(:,iFrame) == 2 & labelClasses(:,iFrame-1) ~= 2;
+        activityStep(ind,iFrame) = -1;
+    end
+    
+    % Backward sweep: discard protrusion / retraction events which continue
+    % at last frame.
+    activityStep(:,end) = 0;
+    
+    for iFrame = nFrames-2:-1:1
+        % Protrusion or Retration at frame iFrame and iFrame+1
+        ind = labelClasses(:,iFrame) == labelClasses(:,iFrame+1) & ...
+            labelClasses(:,iFrame) & ~activityStep(:,iFrame+1);
+        activityStep(ind,iFrame) = 0;
+    end
+    
+    prFrames = cell(1, max(activityStep(:)));
+    reFrames = cell(1, -min(activityStep(:)));
+    
+    for iFrame = 2:nFrames-2
         % Load label
         L = imread([labelPath filesep labelFiles(iFrame).name]);
-        labels = 1:max(L(:));
         
         % Load TM speckles (channel 1)
         load([s1Path filesep s1Files(iFrame).name]);
         locMax1 = locMax;
-        idxS1 = arrayfun(@(l) (locMax1 .* (L == l)) ~= 0, labels, ...
-            'UniformOutput', false);
-        
-        % Load Actin speckles (channel 2)
-        load([s2Path filesep s2Files(iFrame).name]);
-        locMax2 = locMax;
-        idxS2 = arrayfun(@(l) (locMax2 .* (L == l)) ~= 0, labels, ...
-            'UniformOutput', false);
         
         % Read the distance transform
         fileName = [bwdistPath filesep bwdistFiles(iFrame).name];
         load(fileName);
-        distToEdge = distToEdge * (pixelSize / 1000); % in microns
+        distToEdge = distToEdge * (pixelSize / 1000); % in microns        
 
-        % Compute distanceMap
-        distanceMap(:, iFrame) = arrayfun(@(l) mean(distToEdge(idxS1{l})) - ...
-            mean(distToEdge(idxS2{l})), labels');
+        % iterate over windows, discarding the 2 first and 2 last.
+        for iWin = 3:max(L(:))-2
+            ind = (locMax1 .* (L == iWin)) ~= 0;
+            
+            d = distToEdge(ind);
+            
+            step = activityStep(iWin,iFrame);
+            
+            if step > 0
+                prFrames{step} = vertcat(prFrames{step}, d);
+            elseif step < 0
+                reFrames{-step} = vertcat(reFrames{-step}, d);
+            end
+        end
     end
     
-    hFig = figure('Visible', 'off');    
+    hFig = figure('Visible', 'off');
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-    imagesc(distanceMap);
-    set(gca,'XTick', 1:20:numel(timeScale));
-    set(gca,'XTickLabel', timeScale(1:20:end));
-    xlabel('Time (s)');
-    title(names(1));
-    if iTM == 1
-        ylabel('Window no.');
-    end
-    colorbar;
+
+    X = 1:numel(prFrames);
+    Y = cellfun(@mean, prFrames);
+    E = cellfun(@std, prFrames);
+    
+    errorbar(X(:),Y(:),E(:),'xk');
+    xlabel('Number of frame after protrusion begins');
+    ylabel([names{1} ' Distance to Edge (' char(181) 'm)']);
+
     fileName = [outputDirectory filesep 'Fig5_B' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
@@ -137,61 +203,21 @@ for iTM = 1:3
     %                          FIGURE 5 PANEL C                       %
     %                                                                 %
     %-----------------------------------------------------------------%
-    
-    xAp = activityMap;
-    xDp = fliplr(distanceMap);
 
-    % Replace every NaN value to zero (this should be fix in the Windowing)
-    xAp(isnan(xAp)) = 0;
-    xDp(isnan(xDp)) = 0;
-    
-    % Normalize every rows
-    xAp = bsxfun(@minus, xAp, mean(xAp, 2));
-    xAp = bsxfun(@rdivide, xAp, sqrt(sum(xAp.^2, 2)));
-    xDp = bsxfun(@minus, xDp, mean(xDp, 2));
-    xDp = bsxfun(@rdivide, xDp, sqrt(sum(xDp.^2, 2)));
-    
-    % Zero-Pad the 2 maps on time axis
-    np = 2 * nFrames - 3;
-    npp = 2^(nextpow2(np));
-    xAp(:,npp) = 0;
-    xDp(:,npp) = 0;
-    
-    % Compute cross-correlation
-    cc = real(ifft(fft(xAp') .* fft(xDp'))');
-    cc = cc(:, 1:np);
-        
-    hFig = figure('Visible', 'off');    
-    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-    set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-    imagesc(cc);
-    set(gca,'XTick', 1:20:np);
-    set(gca,'XTickLabel', timeScale(1:20:end));
-    xlabel('Time shift (s)');
-    title(names(1));
-    if iTM == 1
-        ylabel('Window no.');
-    end
-    colorbar;
-    fileName = [outputDirectory filesep 'Fig5_C' num2str(iTM) '.eps'];
-    print(hFig, '-depsc', fileName);
-    fixEpsFile(fileName);
-    close(hFig);
-    
-    %-----------------------------------------------------------------%
-    %                                                                 %
-    %                          FIGURE 5 PANEL D                       %
-    %                                                                 %
-    %-----------------------------------------------------------------%
-    
     hFig = figure('Visible', 'off');
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-    plot(cc', 'LineStyle', '-', 'Color', [.1 .1 .1]);
-    set(gca,'XTickLabel', 1:2:np - (nFrames-1));
-    xlabel('Time shift (s)');
-    fileName = [outputDirectory filesep 'Fig5_D' num2str(iTM) '.eps'];
+
+    X = 1:numel(reFrames);
+    Y = cellfun(@mean, reFrames);
+    E = cellfun(@std, reFrames);
+    
+    errorbar(X(:),Y(:),E(:),'xk');
+    xlabel('Number of frame after retraction begins');
+    ylabel([names{1} ' Distance to Edge (' char(181) 'm)']);
+
+    fileName = [outputDirectory filesep 'Fig5_C' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
-    close(hFig);
+    close(hFig);    
 end

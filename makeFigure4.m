@@ -355,7 +355,6 @@ title('During Protrusion');
 set(gca, 'XTickLabel', {'TM2', 'TM4', 'TM5NM1'});
 ylabel(['Distance to Edge (' char(181) 'm)']);
 
-
 fileName = [outputDirectory filesep 'Fig4_D.eps'];
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);

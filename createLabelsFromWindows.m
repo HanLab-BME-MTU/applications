@@ -1,8 +1,9 @@
-function CC = createLabelsFromWindows(winPoly, N, M, nBandsLimit)
+function CC = createLabelsFromWindows(winPoly, imSize)
+% pause = 1, prot = 2, ret = 3
 
-[nBands, nWindows] = size(winPoly);
+[~, nWindows] = size(winPoly);
 
-CC = zeros(N, M);
+CC = zeros(imSize);
 for n = 1:nWindows
     e = cellfun(@(x) ~(isempty(x) || any(isnan(x(:)))), {winPoly(:,n).outerBorder}) & ...
         cellfun(@(x) ~(isempty(x) || any(isnan(x(:)))), {winPoly(:,n).innerBorder});
@@ -15,10 +16,7 @@ for n = 1:nWindows
     if isempty(mStart) || isempty(mEnd) || ~min(e(mStart:mEnd))
         continue;
     end
-    
-    mStart = min(mStart, nBandsLimit);
-    mEnd = min(mEnd, nBandsLimit);
-    
+        
     X = winPoly(mStart, n).outerBorder(1, :);
     Y = winPoly(mStart, n).outerBorder(2, :);
         
@@ -35,7 +33,7 @@ for n = 1:nWindows
        Y = horzcat(Y, winPoly(m, n).outerBorder(2, 1));
     end
     
-    BW =  poly2mask(X, Y, N, M);
+    BW =  poly2mask(X, Y, imSize(1), imSize(2));
     
     CC(BW == 1) = n;    
 end

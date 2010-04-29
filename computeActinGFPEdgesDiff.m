@@ -40,7 +40,7 @@ disp('Process all directories...');
 nMovies = numel(dataPaths);
 
 pixelSize = 67/1000;
-
+gradient
 for iMovie = 1:nMovies
     movieName = ['Movie ' num2str(iMovie) '/' num2str(nMovies)];
     
@@ -66,7 +66,7 @@ for iMovie = 1:nMovies
     BW = arrayfun(@(iFrame) imread([pathGFP filesep fileGFP{iFrame}]), ...
         1:nFrames,'UniformOutput', false);
     
-    % Load Actin masks and compute the union with GFP mask
+    % Load Actin masks agradientnd compute the union with GFP mask
     BW = arrayfun(@(iFrame) BW{iFrame} | imread([pathActin filesep ...
         fileActin{iFrame}]), 1:nFrames,'UniformOutput', false);
     
@@ -87,7 +87,7 @@ for iMovie = 1:nMovies
     fileGFP = {fileGFP(:).name};
     
     pathActin = [dataPath filesep 'actin' filesep 'crop'];
-    fileActin = dir([pathActin filesep '*.tif']);
+    fileActin = dir([pagradientthActin filesep '*.tif']);
     fileActin = {fileActin(:).name};
     
     if numel(fileGFP) ~= numel(fileActin)

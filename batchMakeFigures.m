@@ -32,12 +32,12 @@ end
 
 % Stick on this order: TM2, TM4, TM5, TM2_TM4, TM5_TM2, TM5_TM4
 subFolders = {...
-    ['TM2_Actin' filesep 'cell1_3'],...
-    ['TM4_Actin' filesep '14_August_2009' filesep 'cell2'],...
-    ['TM5NM1_Actin' filesep '26June2009' filesep 'Cell3'],...
-    'TM2_TM4',...
-    ['TM5NM1_TM2' filesep '29_June_2009' filesep 'Cell3'],...
-    ['TM5NM1_TM4' filesep '1_July_2009' filesep 'Cell1']};
+    ['TM2_Actin' filesep 'cell5'],...
+    ['TM4_Actin' filesep '13_August_2009' filesep 'cell3'],...
+    ['TM5NM1_Actin' filesep '26June2009' filesep 'Cell6'],...
+    'TM2_TM4'};%,...
+    %['TM5NM1_TM2' filesep '1_July_2009' filesep 'Cell1'],...
+    %['TM5NM1_TM4' filesep '1_July_2009' filesep 'Cell2']};
 
 dataPaths = cellfun(@(x) [dataDirectory filesep x], subFolders,...
     'UniformOutput', false);
@@ -134,7 +134,7 @@ for iMovie = 1:nMovies
     end
 
     % STEP 2: Get contours
-    dContour = 500 / currMovie.pixelSize_nm; % ~ 500nm
+    dContour = 500 / currMovie.pixelSize_nm;
     
     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
             currMovie.contours.status ~= 1 || forceRun(2)
@@ -194,15 +194,13 @@ for iMovie = 1:nMovies
     end
     
     % STEP 4: Create windowing
-    % Note: the width dWin should be set so that the autocorrelation over
-    % windows of Edge Velocity Map is maximized (it might yield a trivial
-    % solution dWin -> 0).
-    dWin = 3000 / currMovie.pixelSize_nm; % ~ 3um
-    iStart = 2;
-    iEnd = 4;
-    winMethod = 'e';            
-    windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' ...
-                num2str(iStart) '_' num2str(iEnd)];
+    winSize = 3000 / currMovie.pixelSize_nm; % ~ 3um
+    nBands = (5000 / (currMovie.pixelSize_nm * dContour)); % ~5 um depth
+    iOuter = 2;
+    iInner = 4;
+    winMethod = 'p';            
+    windowString = [num2str(dContour) 'by' num2str(winSize) 'pix_' ...
+                num2str(iOuter) '_' num2str(iInner)];
             
     if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || ...
             currMovie.windows.status ~= 1 || forceRun(4)
@@ -210,7 +208,8 @@ for iMovie = 1:nMovies
             currMovie = setupMovieData(currMovie);
 
             disp(['Windowing movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
-            currMovie = getMovieWindows(currMovie,winMethod,dWin,[],iStart,iEnd,[],[],...
+            currMovie = getMovieWindows(currMovie,winMethod,winSize,...
+                nBands,iOuter,iInner,[],[],...
                 ['windows_' winMethod '_' windowString '.mat'], batchMode);
             
             if isfield(currMovie.windows,'error')
@@ -243,16 +242,14 @@ for iMovie = 1:nMovies
             currMovie.protrusion.samples.status = 0;
             continue;
         end
-        
     end 
 
-    % STEP 6: Label
-    nBandsLimit = 10; % ~5 um depth
+    % STEP 6: Activity Label (pause = 1, protrusion = 2, retraction = 3)
     if ~isfield(currMovie,'labels') || ~isfield(currMovie.labels,'status') || ...
             currMovie.labels.status ~= 1 || forceRun(6)
         try
             disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
-            currMovie = getMovieLabels(currMovie, nBandsLimit, batchMode);
+            currMovie = getMovieLabels(currMovie, batchMode);
             
             if isfield(currMovie.labels,'error')
                 currMovie.labels = rmfield(currMovie.labels,'error');
@@ -265,7 +262,7 @@ for iMovie = 1:nMovies
             continue;
         end
     end
-        
+    
     % STEP 7: Save Distance transform
     if ~isfield(currMovie,'bwdist') || ~isfield(currMovie.bwdist,'status') || ...
             currMovie.bwdist.status ~= 1 || forceRun(7)
@@ -283,6 +280,8 @@ for iMovie = 1:nMovies
             continue;
         end
     end
+    
+    
     
     try
         %Save the updated movie data
@@ -310,5 +309,5 @@ fclose(fid);
 %disp('Make figure 4...');
 %makeFigure4(analysisPaths, outputDirectory);
 % Figure 5
-%disp('Make figure 5...');
-%makeFigure5(analysisPaths, outputDirectory);
+disp('Make figure 5...');
+makeFigure5(analysisPaths, outputDirectory);

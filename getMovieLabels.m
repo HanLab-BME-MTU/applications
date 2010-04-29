@@ -1,15 +1,17 @@
-function movieData = getMovieLabels(movieData, nBandsLimit, batchMode)
+function movieData = getMovieLabels(movieData, batchMode)
 
 %Indicate that labeling was started
 movieData.labels.status = 0;
 
-if isempty(nBandsLimit)
-    nBandsLimit = +inf;
-end
+imSize = movieData.imSize';
 
 %Verify that the windowing has been performed
 if ~checkMovieWindows(movieData)
     error('Must window movie before labeling windows.');
+end
+
+if ~checkMovieProtrusionSamples(movieData)
+    error('Must sample protrusion before labeling windows.');
 end
 
 %Load the windows
@@ -17,20 +19,19 @@ load([movieData.windows.directory filesep movieData.windows.fileName]);
 
 %Check that they loaded
 if ~exist('allWinPoly','var') || isempty(allWinPoly) %#ok<NODEF>
-    errordlg(['Problem loading windows from ' movieData.windows.directory filesep movieData.windows.fileName],mfilename);
-    return
+    error(['Problem loading windows from ' movieData.windows.directory ...
+        filesep movieData.windows.fileName],mfilename);
 end
 
-% Determine image dimensions according to the first image mask
-if ~isfield(movieData, 'masks') || ~isfield(movieData.masks, 'directory') ||...
-    ~exist(movieData.masks.directory, 'dir')
-    error(['Problem loading image mask from ' movieData.analysisDirectory]);
-end
+%Load protrusion sample
+load([movieData.protrusion.directory filesep ...
+    movieData.protrusion.samples.fileName]);
 
-maskFilenames = dir([movieData.masks.directory filesep '*.tif']);
-img = imread([movieData.masks.directory filesep maskFilenames(1).name]);
-[N M] = size(img);
-clear img;
+%Check that the protrusion sample map loaded
+if ~exist('protrusionSamples','var')
+    error(['Problem loading protrusionSamples from ' movieData.windows.directory ...
+        filesep movieData.windows.fileName],mfilename);
+end
 
 movieData.labels.directory = [movieData.analysisDirectory filesep 'labels'];
 
@@ -44,26 +45,33 @@ end
 movieData.labels.nWindows = nWindows;
 movieData.labels.nBands = nBands;
 movieData.labels.nFrames = nFrames;
-movieData.labels.nBandsLimit = nBandsLimit;
-
-if isfield(movieData.labels, 'nBandsLimits')
-    movieData.labels = rmfield(movieData.labels, 'nBandsLimits');
-end
 
 %Make the string for formatting
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 
-%Go through each frame and save the windows to a file
+% Step 1: Classify protrusion speed into 3 classes: pause = 0, prot = 1,
+% ret = 2.
+
+labelClasses = zeros(size(protrusionSamples.averageNormalComponent));
+v = sort(protrusionSamples.averageMagnitude(:));
+val = v(ceil(.01 * numel(v)));
+labelClasses(protrusionSamples.averageNormalComponent > val) = 1;
+labelClasses(protrusionSamples.averageNormalComponent < -val) = 2; %#ok<NASGU>
+
+save([movieData.labels.directory filesep 'labelClasses.mat'], 'labelClasses');
+
+% Step 2: Go through each frame and save the windows to a file
 if ~batchMode
     h = waitbar(0,'Please wait, labeling window frames...');
 end
 
-for iFrame = 1:nFrames    
+for iFrame = 1:nFrames-1
     winPoly = allWinPoly(:,:,iFrame);
     
-    labels = createLabelsFromWindows(winPoly, N, M, nBandsLimit);
+    labels = createLabelsFromWindows(winPoly, imSize);
 
-    imwrite(uint16(labels), [movieData.labels.directory filesep 'labels_' num2str(iFrame,fString) '.tif'], 'Compression', 'none');
+    imwrite(uint16(labels), [movieData.labels.directory filesep 'labels_' ...
+        num2str(iFrame,fString) '.tif'], 'Compression', 'lzw');
     
     if ~batchMode && ishandle(h)
         waitbar(iFrame/nFrames,h)
