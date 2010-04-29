@@ -31,7 +31,7 @@ for iFrame = 1:nFrames
     movieInfo(iFrame).xCoord = [FA(:,1) Z];
     movieInfo(iFrame).yCoord = [FA(:,2) Z];
     movieInfo(iFrame).amp = [FA(:,3) Z];
-    movieInfo(iFrame).length = [FA(:,4) Z];
+    movieInfo(iFrame).zCoord= [FA(:,4) Z]; % length
     movieInfo(iFrame).angle = [FA(:,5) Z];
 end
 
@@ -39,11 +39,13 @@ end
 
 % maximum allowed time gap (in frames) between a track segment end and a
 % track segment start that allows linking them.
-gapCloseParam.timeWindow = 7;
+% (TMP) disable the gap closing by setting timeWindow = 1 (default = 7)
+gapCloseParam.timeWindow = 1;
 % 1 if merging and splitting are to be considered, 2 if only merging is to
 % be considered, 3 if only splitting is to be considered, 0 if no merging
 % or splitting are to be considered.
-gapCloseParam.mergeSplit = 1;
+% (TMP) disable split and merge
+gapCloseParam.mergeSplit = 0;
 % minimum length of track segments from linking to be used in gap closing.
 gapCloseParam.minTrackLen = 1;
 % 1 to plot a histogram of gap lengths in the end; 0 or empty otherwise.
@@ -54,7 +56,7 @@ gapCloseParam.diagnostics = 1;
 % cost matrix function name
 costMatrices(1).funcName = 'costMatLinearMotionLink2';
 % use linear motion Kalman filter.
-costMatrices(1).parameters.linearMotion = 0;
+costMatrices(1).parameters.linearMotion = 1;
 % minimum allowed search radius. The search radius is calculated on the spot
 % in the code given a feature's motion parameters. If it happens to be
 % smaller than this minimum, it will be increased to the minimum.
@@ -148,7 +150,8 @@ kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
 saveResults.dir = movieData.tracking.directory;
 saveResults.filename = 'tracks.mat';
 
-probDim = 2;
+% We set probDim to 3 since each feature are defined by 3  
+probDim = 3;
 verbose = ~batchMode;
 
 % Run the tracking
