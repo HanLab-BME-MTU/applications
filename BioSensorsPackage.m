@@ -35,5 +35,11 @@ classdef BioSensorsPackage < Package
             obj.checkProcesses(full)  % throws Exception Cell Array
         end
     end
+    methods (Static)
+        function text = getHelp(obj)
+            % Function return a string of help text
+            text = 'This is specific help text of biosensors package.';
+        end
+    end
 end
 

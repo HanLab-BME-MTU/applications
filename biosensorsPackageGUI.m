@@ -76,35 +76,20 @@ set(hObject,'colormap',supermap);
 
 axes(handles.axes_help);
 Img = image(questIconData); 
-handles.icon_help = Img;
+% handles.icon_help = Img;
 set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
     'visible','off','YDir','reverse');
+set(Img,'ButtonDownFcn',@help_ButtonDownFcn);
+set(Img,'tag','0');
 
 for i = 1:size(handles.dependM, 1)
     eval (['axes(handles.axes_help' num2str(i) ')']);
     Img = image(questIconData);
-    eval(['handles.icon_help',num2str(i),' = Img; '])
+%     eval(['handles.icon_help',num2str(i),' = Img; '])
     set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-        'visible','off','YDir','reverse');
-    
-    eval (['axes(handles.axes_icon' num2str(i) ')']);
-    Img = image(passIconData);
-    eval(['handles.icon_pass',num2str(i),' = Img; '])
-    set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-        'visible','off','YDir','reverse');
-    set(Img, 'visible','off');
-
-    Img = image(errorIconData);
-    eval(['handles.icon_error',num2str(i),' = Img; '])
-    set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-        'visible','off','YDir','reverse');
-    set(Img, 'visible','off');
-    
-    Img = image(warnIconData);
-    eval(['handles.icon_warn',num2str(i),' = Img; '])
-    set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-        'visible','off','YDir','reverse');
-    set(Img, 'visible','off');    
+        'visible','off','YDir','reverse');  
+    set(Img,'ButtonDownFcn',@help_ButtonDownFcn);
+    eval([ 'set(Img,''tag'',''',num2str(i),''');' ])
 end
 
 % Update handles structure
@@ -383,3 +368,33 @@ function edit_notes_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+function help_ButtonDownFcn(hObject, eventdata)
+% Call back function when help icon is clicked
+tag = get(hObject,'tag');
+handles = guidata(hObject);
+% get identity of help event creater
+id = str2double(tag);
+% For test purpose. No MovieData saved in handles
+if ~isfield(handles,'MD')
+    if id
+        helpdlg(['This is help of process ',tag],'Help');
+    else
+        helpdlg(['This is a general help text for the current package'],...
+                        'Help');
+    end
+    return;
+end
+
+% Help are divided into process help and package help
+if id
+    % process help
+    processName = handles.MD.crtPackage_.processClassNames_{id};
+    % how do ppl handle similar situation in C or Java?
+    eval(['helpdlg(',processName,'.getHelp)']);
+%     helpdlg(text,'Help');
+else
+    % package help
+    helpdlg(handles.MD.crtPackage_.getHelp, 'Help');
+end
+
