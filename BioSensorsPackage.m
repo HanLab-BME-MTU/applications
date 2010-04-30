@@ -14,7 +14,7 @@ classdef BioSensorsPackage < Package
                super_args{3} = [0 0 0 0
                                 1 0 0 0
                                 0 1 0 0
-                                0 0 1 0];
+                                0 1 0 0];
                % Process CLASS NAME string (same length as dependency matrix)
                % Must have accurate process class name
                super_args{4} = {%'SegmentationProcess', ... 

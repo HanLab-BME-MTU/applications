@@ -54,11 +54,19 @@ function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for biosensorsPackageGUI
 handles.output = hObject;
-% For test reason, define a dependency matrix in here
-handles.dependM = [0 0 0 0;
-                   1 0 0 0;
-                   0 1 0 0;
-                   0 0 1 0];
+if nargin > 3
+    % Pass the MovieData from setup MovieData GUI to Biosensors GUI
+    handles.MD = varargin{1};
+    % Dependency matrix is defined in BioSensorsPackage class
+    handles.dependM = handles.MD.crtPackage_.depMatrix_;
+else
+    % Default dependency matrix. For test reason, define a dependency 
+    % matrix in here
+    handles.dependM = [0 0 0 0
+                       1 0 0 0
+                       0 1 0 0
+                       0 0 1 0];
+end
 % Initial set up
 userfcn_enable(find (any(handles.dependM,2)), 'off',handles);
 % Load icon images from dialogicons.mat
@@ -68,27 +76,36 @@ set(hObject,'colormap',supermap);
 
 axes(handles.axes_help);
 Img = image(questIconData); 
+handles.icon_help = Img;
 set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
     'visible','off','YDir','reverse');
 
-for i = 1:4
+for i = 1:size(handles.dependM, 1)
     eval (['axes(handles.axes_help' num2str(i) ')']);
-    Img = image(questIconData); 
+    Img = image(questIconData);
+    eval(['handles.icon_help',num2str(i),' = Img; '])
     set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
         'visible','off','YDir','reverse');
+    
+    eval (['axes(handles.axes_icon' num2str(i) ')']);
+    Img = image(passIconData);
+    eval(['handles.icon_pass',num2str(i),' = Img; '])
+    set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
+        'visible','off','YDir','reverse');
+    set(Img, 'visible','off');
+
+    Img = image(errorIconData);
+    eval(['handles.icon_error',num2str(i),' = Img; '])
+    set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
+        'visible','off','YDir','reverse');
+    set(Img, 'visible','off');
+    
+    Img = image(warnIconData);
+    eval(['handles.icon_warn',num2str(i),' = Img; '])
+    set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
+        'visible','off','YDir','reverse');
+    set(Img, 'visible','off');    
 end
- eval (['axes(handles.axes_icon' num2str(1) ')']);
- Img = image(passIconData);
- set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-    'visible','off','YDir','reverse');
- eval (['axes(handles.axes_icon' num2str(2) ')']);
- Img = image(warnIconData);
- set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-    'visible','off','YDir','reverse');
- eval (['axes(handles.axes_icon' num2str(3) ')']);
- Img = image(errorIconData);
- set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-    'visible','off','YDir','reverse');
 
 % Update handles structure
 guidata(hObject, handles);
