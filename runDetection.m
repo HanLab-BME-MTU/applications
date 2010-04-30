@@ -1,47 +1,41 @@
-function [exp] = runDetection(exp, overwrite)
+function [data] = runDetection(data, overwrite)
 % runDetection automatically runs Henry's detection software - with iclean
 % 1 on all the movies specified in the experiment structure
-% SYNOPSIS [exp] = loadAndSaveDetection(exp);
+% SYNOPSIS [data] = loadAndSaveDetection(data);
 %
-% INPUT     exp       : experiment structure, containing a '.source' field (path to data location)
+% INPUT     data      : experiment structure, containing a '.source' field (path to data location)
 %           overwrite : optional, 1 to overwrite previous detection results (default 0).
-%                       
-% OUTPUT    none 
+%
+% OUTPUT    none
 
-% Dinah Loerke, last modified Feb 2008
-% Francois Aguet, last modified Mar 2010
+% Francois Aguet, April 2010
 
 if nargin<2
     overwrite = 0;
 end
 
 % loop over all entries in the structure to enter the image data necessary for the detection input
-nExp = length(exp);
-imData(1:nExp) = struct('origImageName', [], 'origImagePath', []);
-
+nExp = length(data);
 runStatus = zeros(1,nExp);
 
 for i = 1:nExp
-    [origImageName, origImagePath] = uigetfile({'*.tif;*.tiff'}, ['Select first original image for movie #' num2str(i)], exp(i).source);
     
-    if (origImageName ~= 0)
-        imData(i).origImageName = origImageName;
-        imData(i).origImagePath = origImagePath;
-        exp(i).firstImageName = origImageName;
-
-        if ~(exist([exp(i).source filesep 'maxdata283'], 'dir') == 7)
+    tifFiles = dir([data(i).source '*.tif*']);
+    
+    if isempty(tifFiles)
+        error(['No TIF frames found in ' data(i).source]);
+    else
+        if ~(exist([data(i).source 'DetectionMasks'], 'dir') == 7)
             runStatus(i) = 1;
-        else
-            if (overwrite)
-                fprintf('Overwriting detecting results for movie %d.\n', i);
-                runStatus(i) = 1;
-            end;
+        elseif (overwrite)
+            fprintf('Overwriting detecting results for movie %d.\n', i);
+            runStatus(i) = 1;
         end;
     end;
 end;
 
 parfor i = 1:nExp
     if runStatus(i)
-        main283AUTO(1, imData(i).origImageName, imData(i).origImagePath);
+        spotDetection(data(i).source, 1);
     end;
 end;

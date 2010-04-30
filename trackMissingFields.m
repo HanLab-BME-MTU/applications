@@ -1,4 +1,4 @@
-function [exp] = trackMissingFields(exp,overwrite)
+function [data] = trackMissingFieldsNEW(data,overwrite)
 %
 %
 % Francois Aguet, Jan 2010
@@ -7,38 +7,37 @@ if nargin < 2 || isempty(overwrite)
     overwrite = 0;
 end
 
-for i = 1:length(exp)
+for k = 1:length(data)
                
-    if ~(exist([exp(i).source 'TrackInfoMatrices'], 'dir')==7) || overwrite
+    if ~(exist([data(k).source 'TrackInfoMatrices'], 'dir')==7) || overwrite
         
-        costMatrices    = exp(i).tracksettings.costMat;
-        gapCloseParam   = exp(i).tracksettings.gapClosePar;
-        iterParam       = exp(i).tracksettings.iterPar;
+        costMatrices    = data(k).tracksettings.costMat;
+        gapCloseParam   = data(k).tracksettings.gapClosePar;
+        iterParam       = data(k).tracksettings.iterPar;
         
         % now we're missing the variable movieInfo, which is the detection
-        % data. If a valid detection structure is a field in exp, read it,
+        % data. If a valid detection structure is a field in data, read it,
         % else load the structure from the appropriate detection file
-        if isfield(exp(i), 'detection') && ~isempty(exp(i).detection)
-            movieInfo = exp(i).detection;
+        if isfield(data(k), 'detection') && ~isempty(data(k).detection)
+            movieInfo = data(k).detection;
         else
-            loadfile = load([exp(i).source 'DetectionStructures' filesep 'detection.mat']);
-            if isfield(loadfile, 'detection')
-                movieInfo = loadfile.detection;
-            elseif isfield(loadfile, 'cdet')
-                movieInfo = loadfile.cdet;
+            loadfile = load([data(k).source 'Detection' filesep 'detectionResults.mat']);
+            if isfield(loadfile, 'frameInfo')
+                movieInfo = loadfile.frameInfo;
             else
                 error('No detection data file of specified format found');
             end
         end
-        if ~(exist([exp(i).source 'TrackInfoMatrices'], 'dir')==7)
-            mkdir([exp(i).source 'TrackInfoMatrices']);
+        if ~(exist([data(k).source 'TrackInfoMatrices'], 'dir')==7)
+            mkdir([data(k).source 'TrackInfoMatrices']);
         end;
-        fprintf('Tracking movie no. %d\n', i);
-        [trackNum,trackInfo] = trackWithGapClosing(movieInfo,costMatrices,'getTrackStats',gapCloseParam,iterParam);
+        fprintf('Tracking movie no. %d\n', k);
+        saveResults.dir = [data.source 'TrackInfoMatrices' filesep] ;
+        [trackNum,trackInfo] = trackWithGapClosing(movieInfo,costMatrices,'getTrackStats',gapCloseParam,iterParam,saveResults);
         trackInfo(isnan(trackInfo))=0;
         trackInfo = sparse(trackInfo);
-        save([exp(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'], 'trackInfo');
+        save([data(k).source 'TrackInfoMatrices' filesep 'trackInfo.mat'], 'trackInfo');
     else
-        fprintf('Movie no. %d was skipped because it has already been tracked\n', i);
+        fprintf('Movie no. %d was skipped because it has already been tracked\n', k);
     end 
 end

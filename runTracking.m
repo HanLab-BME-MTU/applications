@@ -1,11 +1,11 @@
-function [] = runTracking(exp, tracksettings, overwrite)
+function [] = runTrackingNEW(data, tracksettings, overwrite)
 % runTracking tracks movies under a given condition folder. This creates
 % the TrackInfo and lftInfo data structures necessary for lifetime
 % analysis.
 %
-% SYNOPSIS [exp] = runTracking(exp,tracksettings,overwrite)
+% SYNOPSIS [data] = runTracking(data,tracksettings,overwrite)
 %
-% INPUT     exp(optional): structure containing the field source,
+% INPUT     data(optional): structure containing the field source,
 %               which specifies the directory for each movie (default is to
 %               ask you to load them via gui)
 %           tracksettings(optional):
@@ -15,7 +15,7 @@ function [] = runTracking(exp, tracksettings, overwrite)
 % OUTPUT
 %
 % REMARKS   The function only performs the tracking for a given movie if
-%           the folder DetectionStructures is not already present in the
+%           the folder Detection is not already present in the
 %           specified directory; if you want a partial or faulty tracking
 %           to be replaced, you need to DELETE these folders first.
 %
@@ -23,15 +23,14 @@ function [] = runTracking(exp, tracksettings, overwrite)
 %               trackMissingFields
 %
 % Daniel Nunez, March 5, 2008
-% Francois Aguet, Jan 2010
+% Francois Aguet, April 2010
 
-%INPUTS
 if nargin < 3 || isempty(overwrite)
     overwrite = 0;
 end
-if nargin < 1 || isempty(exp)
-    % trim exp structure as specified by user input
-    [exp] = loadIndividualMovies();
+if nargin < 1 || isempty(data)
+    % trim data structure as specified by user input
+    [data] = loadIndividualMovies();
 end
 if nargin < 2 || isempty(tracksettings)
     %load track settings required for tracking
@@ -41,24 +40,8 @@ elseif ischar(tracksettings)
     load(tracksettings);
 end
 
-
-for i = 1:length(exp)
-    detectionFile = [exp(i).source 'DetectionStructures' filesep 'detection.mat'];
-    if ~(exist(detectionFile, 'file')==2) || overwrite
-        if ~(exist([exp(i).source 'DetectionStructures'], 'dir')==7)
-            mkdir([exp(i).source 'DetectionStructures']);
-        end;
-        fprintf('Converting detection data for movie no. %d\n', i);
-        % Convert data from Henry's format to the format read by the tracker
-        [detection] = convertDetectDataForTracking([exp(i).source 'maxdata283']);
-        save(detectionFile, 'detection');
-    end
-end
-
-% two separate loops are used because 'parfor' does not support the 'save' function.
-parfor i = 1:length(exp)
-    iexp = exp(i);
-    iexp.tracksettings = tracksettings;
-    % this function creates the TrackInfo and lftInfo data structures
-    trackMissingFields(iexp, overwrite);
+parfor k = 1:length(data)
+    idata = data(k);
+    idata.tracksettings = tracksettings;
+    trackMissingFieldsNEW(idata, overwrite);
 end
