@@ -16,7 +16,7 @@ Z = zeros(imageSize, imageSize, 'uint8');
 dataD = cell(3, 1);
 dataE = cell(3, 1);
 
-for iTM = 1:3
+for iTM = 1:numel(paths)
     % Load Movie Data
     fileName = [paths{iTM} filesep 'movieData.mat'];
     if ~exist(fileName, 'file')

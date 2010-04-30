@@ -1,6 +1,6 @@
-function makeFigure5(paths, outputDirectory)
+function makeFigure5bis(paths, outputDirectory)
 
-for iTM = 1:3
+for iTM = 1:numel(paths)
     % Load Movie Data
     fileName = [paths{iTM} filesep 'movieData.mat'];
     if ~exist(fileName, 'file')
@@ -10,14 +10,12 @@ for iTM = 1:3
 
     %Verify that the labeling has been performed
     if ~checkMovieLabels(movieData)
-        error('Must label movie before computing figure 3.');
+        error('Must label movie before computing figure 5bis.');
     end
     
     % Get the names of the 2 FSM subfolders
     names = cellfun(@fliplr, strtok(cellfun(@fliplr,movieData.fsmDirectory, ...
         'UniformOutput', false), filesep), 'UniformOutput', false);
-    % Force channel 2's name to be 'Actin'
-    names{2} = 'Actin';
     
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
@@ -27,11 +25,11 @@ for iTM = 1:3
     labelPath = movieData.labels.directory;
     labelFiles = dir([labelPath filesep '*.tif']);
 
-    % Read the list of TMs speckles (channel 1)
+    % Read the list of TMx speckles (channel 1)
     s1Path = [movieData.fsmDirectory{1} filesep 'tack' filesep 'locMax'];
     s1Files = dir([s1Path filesep '*.mat']);
 
-    % Read the list of Actin speckles (channel 2)
+    % Read the list of TMy speckles (channel 2)
     s2Path = [movieData.fsmDirectory{2} filesep 'tack' filesep 'locMax'];
     s2Files = dir([s2Path filesep '*.mat']);
 
@@ -61,7 +59,7 @@ for iTM = 1:3
     
     %-----------------------------------------------------------------%
     %                                                                 %
-    %                          FIGURE 5 PANEL A                       %
+    %                          FIGURE 5bis PANEL A                    %
     %                                                                 %
     %-----------------------------------------------------------------%
     
@@ -105,17 +103,24 @@ for iTM = 1:3
         activityStep(ind,iFrame) = 0;
     end
     
-    prFrames = cell(1, max(activityStep(:)));
-    reFrames = cell(1, -min(activityStep(:)));
-    
+    prFrames1 = cell(1, max(activityStep(:)));
+    reFrames1 = cell(1, -min(activityStep(:)));
+
+    prFrames2 = cell(1, max(activityStep(:)));
+    reFrames2 = cell(1, -min(activityStep(:)));
+
     for iFrame = 2:nFrames-2
         % Load label
         L = imread([labelPath filesep labelFiles(iFrame).name]);
         
-        % Load TM speckles (channel 1)
+        % Load TMx speckles (channel 1)
         load([s1Path filesep s1Files(iFrame).name]);
         locMax1 = locMax;
-        
+
+        % Load TMy speckles (channel 2)
+        load([s2Path filesep s2Files(iFrame).name]);
+        locMax2 = locMax;
+
         % Read the distance transform
         fileName = [bwdistPath filesep bwdistFiles(iFrame).name];
         load(fileName);
@@ -123,16 +128,20 @@ for iTM = 1:3
 
         % iterate over windows, discarding the 2 first and 2 last.
         for iWin = 3:max(L(:))-2
-            ind = (locMax1 .* (L == iWin)) ~= 0;
+            ind1 = (locMax1 .* (L == iWin)) ~= 0;
+            ind2 = (locMax2 .* (L == iWin)) ~= 0;
             
-            d = distToEdge(ind);
+            d1 = distToEdge(ind1);
+            d2 = distToEdge(ind2);
             
             step = activityStep(iWin,iFrame);
             
             if step > 0
-                prFrames{step} = vertcat(prFrames{step}, d);
+                prFrames1{step} = vertcat(prFrames1{step}, d1);
+                prFrames2{step} = vertcat(prFrames2{step}, d2);
             elseif step < 0
-                reFrames{-step} = vertcat(reFrames{-step}, d);
+                reFrames1{-step} = vertcat(reFrames1{-step}, d1);
+                reFrames2{-step} = vertcat(reFrames2{-step}, d2);
             end
         end
     end
@@ -141,22 +150,30 @@ for iTM = 1:3
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
 
-    X = 1:numel(prFrames);
-    Y = cellfun(@mean, prFrames);
-    E = cellfun(@std, prFrames);
+    X1 = 1:numel(prFrames1);
+    Y1 = cellfun(@mean, prFrames1);
+    E1 = cellfun(@std, prFrames1);
+
+    X2 = 1:numel(prFrames2);
+    Y2 = cellfun(@mean, prFrames2);
+    E2 = cellfun(@std, prFrames2);
     
-    errorbar(X(:),Y(:),E(:),'k');
+    errorbar(X1(:),Y1(:),E1(:),'r'); hold on;
+    errorbar(X2(:),Y2(:),E2(:),'b'); hold off;
+    
+    legend(names);
+    
     xlabel('# of frame');
     ylabel([char(181) 'm']);
 
-    fileName = [outputDirectory filesep 'Fig5_A' num2str(iTM) '.eps'];
+    fileName = [outputDirectory filesep 'Fig5bis_A' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
     close(hFig);
     
     %-----------------------------------------------------------------%
     %                                                                 %
-    %                          FIGURE 5 PANEL B                       %
+    %                          FIGURE 5bis PANEL B                    %
     %                                                                 %
     %-----------------------------------------------------------------%
 
@@ -164,15 +181,23 @@ for iTM = 1:3
     set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
 
-    X = 1:numel(reFrames);
-    Y = cellfun(@mean, reFrames);
-    E = cellfun(@std, reFrames);
+    X1 = 1:numel(reFrames1);
+    Y1 = cellfun(@mean, reFrames1);
+    E1 = cellfun(@std, reFrames1);
+
+    X2 = 1:numel(reFrames2);
+    Y2 = cellfun(@mean, reFrames2);
+    E2 = cellfun(@std, reFrames2);
     
-    errorbar(X(:),Y(:),E(:),'k');
+    errorbar(X1(:),Y1(:),E1(:),'r'); hold on;
+    errorbar(X2(:),Y2(:),E2(:),'b'); hold off;
+    
+    legend(names);
+    
     xlabel('# of frame');
     ylabel([char(181) 'm']);
 
-    fileName = [outputDirectory filesep 'Fig5_B' num2str(iTM) '.eps'];
+    fileName = [outputDirectory filesep 'Fig5bis_B' num2str(iTM) '.eps'];
     print(hFig, '-depsc', fileName);
     fixEpsFile(fileName);
     close(hFig);    
