@@ -1,11 +1,12 @@
 function [params, Im] = focalAdhesionDetector(I, sigmaPSF, minSize)
 % [params, Im] = focalAdhesionDetector(I, sigmaPSF, minSize)
+% THIS FILE IS NOT USED ANYMORE
 
 % Make sure I is type double
 I = double(I);
 
 % Get initial segment parameters
-[params, I] = getInitialSegmentParamsNEW(I,sigmaPSF,minSize);
+[params, I] = getInitialSegmentParams(I,sigmaPSF,minSize);
 
 % % Define bounds
 % lb = zeros(size(params));
@@ -34,7 +35,7 @@ I = double(I);
 % options = optimset('Jacobian', 'on', 'MaxFunEvals', 1e3, 'MaxIter', 1e3, ...
 %     'Display', 'off', 'TolX', 1e-4, 'Tolfun', 1e-4);
 % 
-% fun = @(x) dLSegment2DFit(x, I, sigmaPSF);
+% fun = @(x) subResSegment2DFit(x, I, sigmaPSF);
 % [params, ~,residual] = lsqnonlin(fun, params, lb, ub, options);
 % Im = I - reshape(residual, size(I));
-Im = dLSegment2DImageModel(params,sigmaPSF,size(I));
+Im = subResSegment2DImageModel(params,sigmaPSF,size(I));

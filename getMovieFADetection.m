@@ -28,38 +28,16 @@ minSize = 2;
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 
 for i = 1:nFrames
+    % Read images
     I = imread([imagePath filesep imageFiles(i).name]);
     
-    [FA, Im] = focalAdhesionDetector(I,sigmaPSF, minSize); %#ok<NASGU>
-    
-    save([movieData.detection.directory filesep 'FA_' num2str(i,fString) '.mat'], 'FA');
-    save([movieData.detection.directory filesep 'Im_' num2str(i,fString) '.mat'], 'Im');
-    
-    % Save image overlaid by FA
-    xMin = round(FA(:,1) - (FA(:,4) / 2) .* cos(FA(:,5)));
-    xMax = round(FA(:,1) + (FA(:,4) / 2) .* cos(FA(:,5)));
-    yMin = round(FA(:,2) - (FA(:,4) / 2) .* sin(FA(:,5)));
-    yMax = round(FA(:,2) + (FA(:,4) / 2) .* sin(FA(:,5)));
-    
-    pts = cell2mat(arrayfun(@(i) bresenham([yMin(i) xMin(i)],[yMax(i) xMax(i)]), ...
-        (1:size(FA,1))', 'UniformOutput', false));
-    
-    s = pts(:,1) >= 1 & pts(:,1) <= size(I,1) & ...
-        pts(:,2) >= 1 & pts(:,2) <= size(I,2);
-    pts = pts(s == 1,:);
-    
-    indPts = sub2ind(size(I), pts(:,1), pts(:,2));
-    Z = zeros(size(I));
-    Z(indPts) = 1;
-
+    % Make sure I is type double
     I = double(I);
-    I = (I - min(I(:))) / (max(I(:)) - min(I(:)));
-    I(indPts) = 0;    
-    I = repmat(I, [1 1 3]);
-    I(:,:,2) = I(:,:,2) + Z;
- 
-    imwrite(I, [movieData.detection.directory filesep 'overlayFA_' ...
-        num2str(i,fString) '.tif'], 'Compression', 'none');
+
+    % Get initial segment parameters
+    FA = getInitialSegmentParams(I,sigmaPSF,minSize); %#ok<NASGU>
+
+    save([movieData.detection.directory filesep 'FA_' num2str(i,fString) '.mat'], 'FA');
     
     if ~batchMode && ishandle(h)
         waitbar(i/nFrames, h)

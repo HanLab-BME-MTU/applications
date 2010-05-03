@@ -31,7 +31,7 @@ for iFrame = 1:nFrames
     movieInfo(iFrame).xCoord = [FA(:,1) Z];
     movieInfo(iFrame).yCoord = [FA(:,2) Z];
     movieInfo(iFrame).amp = [FA(:,3) Z];
-    movieInfo(iFrame).zCoord= [FA(:,4) Z]; % length
+    movieInfo(iFrame).length= [FA(:,4) Z];
     movieInfo(iFrame).angle = [FA(:,5) Z];
 end
 
@@ -54,7 +54,7 @@ gapCloseParam.diagnostics = 1;
 % Create costMatrices structure
 
 % cost matrix function name
-costMatrices(1).funcName = 'costMatLinearMotionLink2';
+costMatrices(1).funcName = 'costMatLinearMotionLink2_XYLT';
 % use linear motion Kalman filter.
 costMatrices(1).parameters.linearMotion = 1;
 % minimum allowed search radius. The search radius is calculated on the spot
@@ -63,9 +63,15 @@ costMatrices(1).parameters.linearMotion = 1;
 costMatrices(1).parameters.minSearchRadius = 2;
 % maximum allowed search radius. Again, if a feature's calculated search
 % radius is larger than this maximum, it will be reduced to this maximum.
-costMatrices(1).parameters.maxSearchRadius = 4.5;
+costMatrices(1).parameters.maxSearchRadius = 5;
 % multiplication factor to calculate search radius from standard deviation.
 costMatrices(1).parameters.brownStdMult = 3;
+% Maximum ratio between the length of two features in two consecutive time
+% points that  allows linking them.
+costMatrices(1).parameters.maxLengthRatio = 4;
+% Maximum ratio between the angle of two features in two consecutive time
+% points that  allows linking them.
+costMatrices(1).parameters.maxAnglePenalty = 2; % i.e. tan(pi/4) + 1
 % 1 if you want to expand the search radius of isolated features in the
 % linking (initial tracking) step.
 costMatrices(1).parameters.useLocalDensity = 1;
@@ -90,7 +96,7 @@ costMatrices(2).parameters.linearMotion = 0;
 costMatrices(2).parameters.minSearchRadius = 2;
 % maximum allowed search radius. Again, if a feature's calculated search
 % radius is larger than this maximum, it will be reduced to this maximum.
-costMatrices(2).parameters.maxSearchRadius = 4.5;
+costMatrices(2).parameters.maxSearchRadius = 5;
 % multiplication factor to calculate search radius from standard deviation.
 costMatrices(2).parameters.brownStdMult = 3 * ones(gapCloseParam.timeWindow, 1);
 % in the code, the search radius expands with the time gap (since a
@@ -148,17 +154,17 @@ kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
 % Create saveResutls structure
 
 saveResults.dir = movieData.tracking.directory;
-saveResults.filename = 'tracks.mat';
+saveResults.filename = movieData.tracking.filename;
 
 % We set probDim to 3 since each feature are defined by 3  
-probDim = 3;
+probDim = 2;
 verbose = ~batchMode;
 
 % Run the tracking
 [tracks,kalmanInfoLink,errFlag] = trackCloseGapsKalmanSparse(movieInfo,...
     costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
 
-overlayTracksMovieNew(tracks);
+overlayTracksMovieNew(tracks, [1 nFrames], nFrames, 1, );
 
 movieData.tracking.dateTime = datestr(now);
 movieData.tracking.status = 1;
