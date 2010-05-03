@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 23-Apr-2010 10:42:29
+% Last Modified by GUIDE v2.5 03-May-2010 15:49:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -71,9 +71,14 @@ end
 userfcn_enable(find (any(handles.dependM,2)), 'off',handles);
 % Load icon images from dialogicons.mat
 load lccbGuiIcons.mat
+% Save Icon data to GUI data
+handles.passIconData = passIconData;
+handles.errorIconData = errorIconData;
+handles.warnIconData = warnIconData;
+% Set figure colormap
 supermap(1,:) = get(hObject,'color');
 set(hObject,'colormap',supermap);
-
+% Set up package help. Package icon is tagged as '0'
 axes(handles.axes_help);
 Img = image(questIconData); 
 % handles.icon_help = Img;
@@ -81,7 +86,7 @@ set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
     'visible','off','YDir','reverse');
 set(Img,'ButtonDownFcn',@help_ButtonDownFcn);
 set(Img,'tag','0');
-
+% Set up process help. Process icons are tagged as '1','2' ... 'n'
 for i = 1:size(handles.dependM, 1)
     eval (['axes(handles.axes_help' num2str(i) ')']);
     Img = image(questIconData);
@@ -92,6 +97,7 @@ for i = 1:size(handles.dependM, 1)
     eval([ 'set(Img,''tag'',''',num2str(i),''');' ])
 end
 
+setappdata(hObject, 'setFlag', zeros(1,size(handles.dependM,1)));
 % Update handles structure
 guidata(hObject, handles);
 
@@ -124,9 +130,12 @@ userfcn_lampSwitch(1, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set1.
 function pushbutton_set1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+procID = 1;
+handles.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_show1.
@@ -148,10 +157,12 @@ userfcn_lampSwitch(2, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set2.
 function pushbutton_set2_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+procID = 2;
+handles.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
 
+guidata(hObject,handles);
 
 % --- Executes on button press in pushbutton_show2.
 function pushbutton_show2_Callback(hObject, eventdata, handles)
@@ -172,9 +183,12 @@ userfcn_lampSwitch(3, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set3.
 function pushbutton_set3_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+procID = 3;
+handles.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_show3.
@@ -236,9 +250,12 @@ userfcn_lampSwitch(4, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set4.
 function pushbutton_set4_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+procID = 4;
+handles.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_show4.
@@ -386,7 +403,7 @@ if ~isfield(handles,'MD')
     return;
 end
 
-% Help are divided into process help and package help
+% if id ==0 package help; id ~= 0 process help
 if id
     % process help
     processName = handles.MD.crtPackage_.processClassNames_{id};
@@ -397,4 +414,21 @@ else
     % package help
     helpdlg(handles.MD.crtPackage_.getHelp, 'Help');
 end
+
+
+% --- Executes during object creation, after setting all properties.
+function figure1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+setFlag = getappdata(hObject, 'setFlag');
+if any(setFlag)
+    index = find(setFlag);
+    for i = index
+        delete(handles.setFig(i));
+    end
+end
+
+
+
 
