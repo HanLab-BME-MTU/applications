@@ -26,13 +26,13 @@ classdef BioSensorsPackage < Package
            % argument) if nargin == 0
            obj = obj@Package(super_args{:});
         end
-        function sanityCheck(obj,full) % throws Exception Cell Array
+        function procEx = sanityCheck(obj,full) % throws Exception Cell Array
             % Sanity Check
             % full: true or false
             if nargin < 2
-                full = false;
+                full = true;
             end
-            obj.checkProcesses(full)  % throws Exception Cell Array
+            procEx = obj.checkProcesses(full);  % throws Exception Cell Array
         end
     end
     methods (Static)

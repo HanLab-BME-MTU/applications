@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 03-May-2010 15:49:47
+% Last Modified by GUIDE v2.5 04-May-2010 16:35:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,6 +62,8 @@ if nargin > 3
 else
     % Default dependency matrix. For test reason, define a dependency 
     % matrix in here
+    load movieData.mat
+    handles.MD = MD;
     handles.dependM = [0 0 0 0
                        1 0 0 0
                        0 1 0 0
@@ -97,7 +99,9 @@ for i = 1:size(handles.dependM, 1)
     eval([ 'set(Img,''tag'',''',num2str(i),''');' ])
 end
 
+% Set flag of sub window. Sub window open flag = 1, close flag = 0
 setappdata(hObject, 'setFlag', zeros(1,size(handles.dependM,1)));
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -134,7 +138,6 @@ function pushbutton_set1_Callback(hObject, eventdata, handles)
 % who is the index of corresponding process in current package's process list
 procID = 1;
 handles.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
-
 guidata(hObject,handles);
 
 
@@ -289,8 +292,8 @@ for i = 1: length(index)
                                         ',''enable'',''',onoff,''')']);
     eval (['set(handles.pushbutton_set', num2str(index(i)),...
                                         ',''enable'',''',onoff,''')']);
-    eval (['set(handles.pushbutton_show', num2str(index(i)),...
-                                        ',''enable'',''',onoff,''')']);
+%     eval (['set(handles.pushbutton_show', num2str(index(i)),...
+%                                         ',''enable'',''',onoff,''')']);
 end
 if check
     switch onoff
@@ -415,12 +418,15 @@ else
     helpdlg(handles.MD.crtPackage_.getHelp, 'Help');
 end
 
+function icon_ButtonDownFcn(hObject, eventdata)
 
-% --- Executes during object creation, after setting all properties.
-function figure1_CreateFcn(hObject, eventdata, handles)
+helpdlg( get(hObject,'UserData') ,'Warning');
+
+% --- Executes during object deletion, before destroying properties.
+function figure1_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+% handles    structure with handles and user data (see GUIDATA)
 setFlag = getappdata(hObject, 'setFlag');
 if any(setFlag)
     index = find(setFlag);
@@ -428,7 +434,3 @@ if any(setFlag)
         delete(handles.setFig(i));
     end
 end
-
-
-
-
