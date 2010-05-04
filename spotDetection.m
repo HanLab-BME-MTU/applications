@@ -258,10 +258,10 @@ for k = 1:nFrames
         end
     end
     
-    xmax2 = [xmax2{:}];
-    ymax2 = [ymax2{:}];
-    totalInt2 = [totalInt2{:}];
-    area2 = [area2{:}];
+    xmax2 =  vertcat(xmax2{:});
+    ymax2 = vertcat(ymax2{:});
+    totalInt2 = vertcat(totalInt2{:});
+    area2 = vertcat(area2{:});
     
     % assign
     frameInfo(k).xmax = [xmax; xmax2(:)];
@@ -270,6 +270,7 @@ for k = 1:nFrames
     frameInfo(k).ycom = [ycom; ymax2(:)];
     frameInfo(k).totalInt = [totalInt; totalInt2(:)];
     frameInfo(k).area = [area; area2(:)];
+    
     frameInfo(k).nMaxima = nMaxima; % maxima per component
     %frameInfo(k).labels = [labels; [labels2{:}]]; % labels MxN -> N
     frameInfo(k).nComp = nComp;
