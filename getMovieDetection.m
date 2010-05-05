@@ -1,4 +1,4 @@
-function movieData = getMovieFADetection(movieData,batchMode)
+function movieData = getMovieDetection(movieData,batchMode)
 
 %Indicate that detection was started
 movieData.detection.status = 0;

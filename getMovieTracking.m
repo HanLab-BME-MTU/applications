@@ -1,4 +1,4 @@
-function movieData = getMovieFATracking(movieData,batchMode)
+function movieData = getMovieTracking(movieData,batchMode)
 
 %Indicate that tracking was started
 movieData.tracking.status = 0;
