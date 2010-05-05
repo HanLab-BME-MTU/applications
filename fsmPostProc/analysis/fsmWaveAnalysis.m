@@ -94,7 +94,7 @@ strg=fsmParam.specific.formString;
 if status==0
     return
 end
-nImages=size(imageFileList,1);
+nImages=numel(imageFileList);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -134,7 +134,7 @@ if uFirst==-1
 end
 
 % Load the first image selected
-img=imread(imageFileList(uFirst,:));
+img=imread(imageFileList{uFirst});
 
 % Index of the first and last matrices in M to be analyzed
 firstIndex=uFirst;
@@ -144,7 +144,7 @@ lastIndex=uLast;
 indices=(imageFirstIndex+uFirst-1):(imageFirstIndex+uLast-1);
 
 % Update all lists
-imageFileList=imageFileList(uFirst:uLast,:);
+imageFileList=imageFileList(uFirst:uLast);
 kinScoreFileList=kinScoreFileList(uFirst:uLast);
 if ~isempty(vectorOutFileList)
     vectorOutFileList=vectorOutFileList(uFirst:uLast);
@@ -503,7 +503,7 @@ end
 if analysis(2)==1
     
     % Plot score evolution only for roi = rectangle or polygon
-    if roi=='r' | roi=='p'
+    if roi=='r' || roi=='p'
         figure;
         plot(scores,'k:','LineWidth',2);
         hold on
@@ -526,8 +526,8 @@ if analysis(2)==1
     mWS=round(mWS/span);
     
     % Convert to pointers to cmap
-    mWS(find(mWS<-15))=-15;
-    mWS(find(mWS>15))=15;
+    mWS(mWS<-15)=-15;
+    mWS(mWS>15)=15;
     mWS=mWS+16;
     
     % Prepare colormap
@@ -559,7 +559,7 @@ if analysis(2)==1
     
     % Put colorbar in another window
     figure;
-    scale=repmat([-upperB:upperB/250:upperB],50,1);
+    scale=repmat(-upperB:upperB/250:upperB,50,1);
     imshow(scale,[]);colormap(cmap);
     title('Colormap: blue: depoly -> red: poly');
     

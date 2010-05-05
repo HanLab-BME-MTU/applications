@@ -70,13 +70,13 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load first image
-img=imread(char(imageFileList(1,:)));
+img=imread(imageFileList{1});
 
 % Store image size
 imgSize=size(img);
 
 % String format for extension
-[path,outputFileName,no]=getFilenameBody(char(imageFileList(1,:)));
+[path,outputFileName,no]=getFilenameBody(imageFileList{1});
 s=length(no);
 strg=sprintf('%%.%dd',s);
 
@@ -248,7 +248,7 @@ if interp==1
         
         % Extract vectors
         Mp=M(:,:,c1); %#ok<COLND>
-        Mv=Mp(find(Mp(:,1)~=0 & Mp(:,3)~=0),:);
+        Mv=Mp(Mp(:,1)~=0 & Mp(:,3)~=0,:);
         
         % Interpolate onto a grid
         Md(:,:,current)=vectorFieldAdaptInterp(Mv,G,d0_init,[],'strain');
@@ -301,8 +301,8 @@ if ~exist([outputdir,filesep,'eps'], 'dir')
 end
 
 % Create vector of indices for file names
-[path,body,indxStart] = getFilenameBody(char(imageFileList(uFirst,:)));
-[path,body,indxEnd] = getFilenameBody(char(imageFileList(uLast,:)));
+[path,body,indxStart] = getFilenameBody(imageFileList{uFirst});
+[path,body,indxEnd] = getFilenameBody(imageFileList{uLast});
 indices = (str2double(indxStart):str2double(indxEnd)-n+1)+fix(n/2);
 
 % Update image file list (NOT USED ANYMORE)

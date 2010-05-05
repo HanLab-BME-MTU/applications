@@ -126,7 +126,7 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load first image
-img=double(imread(char(imageFileList(int16(uFirst),:))));
+img=double(imread(imageFileList{uFirst}));
 
 % Store image size
 imgSize=size(img);

@@ -211,19 +211,19 @@ firstMatrix=uFirst;
 lastMatrix=uLast;
 
 % Calculate the corresponding indices for imageFileList and for the outputs
-imageIndices=[firstMatrix:lastMatrix-nAvg+1]+fix(nAvg/2);
+imageIndices=(firstMatrix:lastMatrix-nAvg+1)+fix(nAvg/2);
 
 % Update number of images to be processed
 nImages=length(imageIndices);
 
 % Update imageFileList
-imageFileList=imageFileList(imageIndices,:);
+imageFileList=imageFileList(imageIndices);
 
 % Crop the frames to be processed from M
 M=M(:,:,firstMatrix:lastMatrix);
 
 % Load first image
-img=imread(char(imageFileList(1,:)));
+img=imread(imageFileList{1});
 
 % Store image size
 imgSize=size(img);
@@ -264,7 +264,7 @@ if nImages>1
     end
     
     % String format
-    [path,outputFileName,no]=getFilenameBody(imageFileList(1,:));
+    [path,outputFileName,no]=getFilenameBody(imageFileList{1});
     s=length(no);
     strg=sprintf('%%.%dd',s);
     
@@ -475,7 +475,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
     if displ(5)==1 && (any([RAW_DISPLAY INTERP_DISPLAY NOISE_DISPLAY])==1)
         
         % Load current image
-        img=imread(char(imageFileList(c1,:)));
+        img=imread(imageFileList{c1});
         
         % Show image
         h=figure; imshow(img,[]);   
@@ -853,7 +853,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
     
     if ERROR_CALC==1
 
-        fprintf(1,'File name                        : %s\n',char(imageFileList(c1,:)));
+        fprintf(1,'File name                        : %s\n',imageFileList{c1});
         fprintf(1,'Correlation length d0            : %d\n',d0_init);
         fprintf(1,'Number of RAW vectors            : %d\n',size(Mv,1));
         fprintf(1,'Mean RAW vector length           : %2.4f +/- %2.4f (+/- %2.2f%%)\n',mean(lv),std(lv),100*std(lv)/mean(lv));

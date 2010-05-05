@@ -72,7 +72,7 @@ if isempty(n)
 end
 
 % Check that at least one of the criteria is turned on
-if toggleKinetic==0 & toggleSpeed==0
+if toggleKinetic==0 && toggleSpeed==0
     error('At least one criterion should be on');
 end
 
@@ -167,12 +167,12 @@ else
 end
 
 % Get list of kinScore files
-[kinScoreFileList,success]=fsmPostGetSubProjFileList([tackProjDir,filesep,'kinScore'],'kinScore');
+[kinScoreFileList]=fsmPostGetSubProjFileList([tackProjDir,filesep,'kinScore'],'kinScore');
 len=length(kinScoreFileList);
 
 % First and last kinScore indices
-[tmpPath,tmpBody,firstKinScoreIndex,tmpExt]=getFilenameBody(char(kinScoreFileList(1)));
-[tmpPath,tmpBody,lastKinScoreIndex,tmpExt]=getFilenameBody(char(kinScoreFileList(end)));
+[tmpPath,tmpBody,firstKinScoreIndex]=getFilenameBody(char(kinScoreFileList(1)));
+[tmpPath,tmpBody,lastKinScoreIndex]=getFilenameBody(char(kinScoreFileList(end)));
 
 % Format string for numerical index
 strg=fsmParam.specific.formString;
@@ -189,7 +189,10 @@ end
 imgSize=fsmParam.specific.imgSize;
 
 % Make sure that images, kinScores, profiles, and M all match
-if str2num(firstKinScoreIndex)~=firstImageIndex | str2num(lastKinScoreIndex)>lastImageIndex | length(kinScoreFileList)~=(size(M,3)+1) | length(kinScoreFileList)~=size(profiles,3)
+if str2double(firstKinScoreIndex)~=firstImageIndex || ...
+        str2double(lastKinScoreIndex)>lastImageIndex || ...
+        length(kinScoreFileList)~=(size(M,3)+1) || ...
+        length(kinScoreFileList)~=size(profiles,3)
     error('Some of images, kinScores, profiles, and M do not match. This will be extended in the future to be more flexible.');
 end
 
@@ -201,8 +204,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % First and last frames
-first=str2num(firstKinScoreIndex);
-last=str2num(lastKinScoreIndex);
+first=str2double(firstKinScoreIndex);
+last=str2double(lastKinScoreIndex);
 
 % Select range of frames
 [uFirst,uLast]=fsmTrackSelectFramesGUI(first,last,n-1,'Select images to be processed:');
@@ -213,7 +216,7 @@ end
 
 % Keep only the file names in the user-selected range
 kinScoreFileList=kinScoreFileList(uFirst:uLast);
-imageFileList=imageFileList(uFirst:uLast,:);
+imageFileList=imageFileList(uFirst:uLast);
 
 % Keep only the profiles for the frames in the user-selected range
 profiles=profiles(:,:,uFirst:uLast);
@@ -250,7 +253,7 @@ for j=first:last % Go through all images
     current=first+j-1; % With current implementation, current corresponds to j
 
     % Load current image
-    eval(['img=imreadnd2(''',(char(imageFileList(current,:))),''',1,2^bitDepth-1);']);
+    eval(['img=imreadnd2(''',(imageFileList{current}),''',1,2^bitDepth-1);']);
 
     if DEBUG==1
         h(current)=figure;imshow(img,[]);

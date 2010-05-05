@@ -2,6 +2,19 @@ function [imageFileList,imageFirstIndex,imageLastIndex,status]=fsmPostGetImageLi
 
 status=0;
 
+% Check whether fsmParm has been produced by older version of FSM. In the
+% new version, fsmParam.specific.fileList is a cell array. To ensure
+% backward-compatibility, we update that field accordingly.
+
+if ~iscell(fsmParam.specific.fileList)
+    n = size(fsmParam.specific.fileList,1);
+    
+    fsmParam.specific.fileList = arrayfun(@(i) ...
+        strtrim(fsmParam.specific.fileList(i,:)), 1:n,'UniformOutput',false);
+
+    save([fsmParam.main.path,filesep,'fsmParam.mat'],'fsmParam');
+end
+
 % Extract info from fsmParam
 imageFileList=fsmParam.specific.fileList;
 imageFirstIndex=fsmParam.specific.firstIndex;
