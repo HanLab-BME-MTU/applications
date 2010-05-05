@@ -11,9 +11,10 @@ if ~exist(movieData.tracking.directory, 'dir')
     mkdir(movieData.tracking.directory);
 end
 
-detectionPath = movieData.detection.directory;
-detectionFiles = dir([detectionPath filesep 'FA*.mat']);
-nFrames = numel(detectionFiles);
+% Load detection
+filename = [movieData.detection.directory filesep movieData.detection.filename];
+load(filename);
+nFrames = numel(segmentParams); %#ok<USENS>
 
 % Create movieInfo structure
 
@@ -25,14 +26,18 @@ movieInfo(1:nFrames) = struct(...
     'angle',[]);
 
 for iFrame = 1:nFrames
-    % Read detection params
-    load([detectionPath filesep detectionFiles(iFrame).name]);
-    Z = zeros(size(FA,1),1); %#ok<NODEF>
-    movieInfo(iFrame).xCoord = [FA(:,1) Z];
-    movieInfo(iFrame).yCoord = [FA(:,2) Z];
-    movieInfo(iFrame).amp = [FA(:,3) Z];
-    movieInfo(iFrame).length= [FA(:,4) Z];
-    movieInfo(iFrame).angle = [FA(:,5) Z];
+    xC = segmentParams{iFrame}(:,1);
+    yC = segmentParams{iFrame}(:,2);
+    A = segmentParams{iFrame}(:,3);
+    l = segmentParams{iFrame}(:,4);
+    t = segmentParams{iFrame}(:,5);
+
+    Z = zeros(size(xC));
+    movieInfo(iFrame).xCoord = [xC Z];
+    movieInfo(iFrame).yCoord = [yC Z];
+    movieInfo(iFrame).amp = [A Z];
+    movieInfo(iFrame).length= [l Z];
+    movieInfo(iFrame).angle = [t Z];
 end
 
 % Create gapCloseParam structure
@@ -164,7 +169,7 @@ verbose = ~batchMode;
 [tracks,kalmanInfoLink,errFlag] = trackCloseGapsKalmanSparse(movieInfo,...
     costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
 
-overlayTracksMovieNew(tracks, [1 nFrames], nFrames, 1, );
+%overlayTracksMovieNew(tracks, [1 nFrames], nFrames, 1);
 
 movieData.tracking.dateTime = datestr(now);
 movieData.tracking.status = 1;

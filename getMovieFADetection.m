@@ -17,6 +17,8 @@ if ~exist(movieData.detection.directory, 'dir')
     mkdir(movieData.detection.directory);
 end
 
+movieData.detection.filename = 'segmentParams.mat';
+
 nFrames = numel(imageFiles);
 
 % !!!! LINK THIS WITH THE REAL PARAMS:
@@ -24,8 +26,7 @@ nFrames = numel(imageFiles);
 sigmaPSF = 1.6255;
 minSize = 2;
 
-%Make the string for formatting
-fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
+segmentParams = cell(nFrames, 1);
 
 for i = 1:nFrames
     % Read images
@@ -35,14 +36,15 @@ for i = 1:nFrames
     I = double(I);
 
     % Get initial segment parameters
-    FA = getInitialSegmentParams(I,sigmaPSF,minSize); %#ok<NASGU>
-
-    save([movieData.detection.directory filesep 'FA_' num2str(i,fString) '.mat'], 'FA');
+    segmentParams{i} = getInitialSegmentParams(I,sigmaPSF,minSize);
     
     if ~batchMode && ishandle(h)
         waitbar(i/nFrames, h)
     end
 end
+
+save([movieData.detection.directory filesep movieData.detection.filename], ...
+    'segmentParams');
 
 movieData.detection.dateTime = datestr(now);
 movieData.detection.status = 1;

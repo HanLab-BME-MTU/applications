@@ -7,7 +7,7 @@ function [costMat,propagationScheme,kalmanFilterInfoFrame2,nonlinkMarker,...
 %
 %SYNOPSIS [costMat,propagationScheme,kalmanFilterInfoFrame2,nonlinkMarker,...
 %     errFlag] = costMatLinearMotionLink2_XYLT(movieInfo,kalmanFilterInfoFrame1,...
-%     costMatParam,nnDistFeatures,probDim,prevCost,featLifetime)
+%     costMatParam,nnDistFeatures,probDim,prevCost)
 %
 %INPUT  movieInfo             : A 2x1 array (corresponding to the 2 frames of
 %                               interest) containing the fields:
@@ -62,7 +62,7 @@ function [costMat,propagationScheme,kalmanFilterInfoFrame2,nonlinkMarker,...
 %             .max                : Maximum previous linking cost.
 %      featLifetime           : Lengths of tracks that features in
 %                               first frame belong to.
-%
+%%
 %OUTPUT costMat               : Cost matrix.
 %       propagationScheme     : Propagation scheme corresponding to each
 %                               cost in the cost matrix.
