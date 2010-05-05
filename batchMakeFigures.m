@@ -1,4 +1,4 @@
-function batchMakeFigures(dataDirectory, analysisDirectory, forceRun, batchMode)
+function batchMakeTropoFigures(dataDirectory, analysisDirectory, forceRun, batchMode)
 
 nSteps = 7;
 
