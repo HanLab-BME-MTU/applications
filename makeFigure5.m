@@ -1,4 +1,4 @@
-function makeFigure5(paths, outputDirectory)
+function makeTropoFigure5(paths, outputDirectory)
 
 for iTM = 1:3
     % Load Movie Data

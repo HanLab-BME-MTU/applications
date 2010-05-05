@@ -1,4 +1,4 @@
-function makeFigure5bis(paths, outputDirectory)
+function makeTropoFigure5bis(paths, outputDirectory)
 
 for iTM = 1:numel(paths)
     % Load Movie Data

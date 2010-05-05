@@ -278,8 +278,6 @@ for iMovie = 1:nMovies
         end
     end
     
-    
-    
     try
         %Save the updated movie data
         updateMovieData(currMovie)
@@ -304,10 +302,10 @@ fclose(fid);
 
 % Figure 4
 %disp('Make figure 4...');
-%makeFigure4(analysisPaths, outputDirectory);
+%makeTropoFigure4(analysisPaths, outputDirectory);
 % Figure 5
 %disp('Make figure 5...');
-%makeFigure5(analysisPaths, outputDirectory);
+%makeTropoFigure5(analysisPaths, outputDirectory);
 % Figure 5bis
 disp('Make figure 5bis...');
-makeFigure5bis(analysisPaths, outputDirectory);
+makeTropoFigure5bis(analysisPaths, outputDirectory);
