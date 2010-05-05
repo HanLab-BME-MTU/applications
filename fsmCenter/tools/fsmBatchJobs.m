@@ -74,7 +74,7 @@ for i=1:nExp
 fprintf(1,'Running batch job %d of %d.\n',i,nExp);
 
     cd(userPath(i).directory);
-    if ~exist('fsmParam.mat')
+    if ~exist('fsmParam.mat','file')
         error('No fsmParam.mat found in current directory');
     end
     load fsmParam.mat
@@ -87,19 +87,18 @@ fprintf(1,'Running batch job %d of %d.\n',i,nExp);
         fsmParam.specific.imageNumber=fsmParam.main.imgN;% Get filename list
         % Get image file list
         outFileList=getFileStackNames(userPath(i).firstImageFile);
-        [path,body,no,ext]=getFilenameBody(char(outFileList(end)));
+        [path,body,no]=getFilenameBody(outFileList{end});
         % Prepare string number format
         s=length(num2str(no));
         strg=sprintf('%%.%dd',s);
         fsmParam.specific.formString=strg;
         % Store file list
-        outFileList=outFileList(1:fsmParam.main.imgN);
-        fsmParam.specific.fileList=char(outFileList);
+        fsmParam.specific.fileList=outFileList;
         % Recover the index of the first and last image treated
-        [path,body,no,ext]=getFilenameBody(char(outFileList(1)));
-        fsmParam.specific.firstIndex=str2num(no);
-        [path,body,no,ext]=getFilenameBody(char(outFileList(end)));
-        fsmParam.specific.lastIndex=str2num(no);
+        [path,body,no]=getFilenameBody(outFileList{1});
+        fsmParam.specific.firstIndex=str2double(no);
+        [path,body,no]=getFilenameBody(outFileList{end});
+        fsmParam.specific.lastIndex=str2double(no);
         % Bleaching correction
         fsmParam.specific.intCorrFactors=ones(1,length(outFileList));
     end

@@ -31,18 +31,17 @@ status=0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ~isempty(fsmParam.specific.fileList) % Already analyzed
-    if ~exist(fsmParam.specific.fileList(1,:))
-        infoMsg=['The stored list of images is not valid. The first image [',fsmParam.specific.fileList(1,:),'] does not exist. You will now be asked to locate this image.'];
+    if ~exist(fsmParam.specific.fileList{1}, 'file')
+        infoMsg=['The stored list of images is not valid. The first image [',fsmParam.specific.fileList{1},'] does not exist. You will now be asked to locate this image.'];
         uiwait(msgbox(infoMsg,'Info','modal'));
         
         % Create title for open dialog
-        [path,body,noOriginal,ext]=getFilenameBody(fsmParam.specific.fileList(1,:));
+        [path,body,noOriginal,ext]=getFilenameBody(fsmParam.specific.fileList{1});
         
         title=['Please locate ', body,noOriginal,ext];
         
         valid=0;
         while valid==0
-            
             % The user must select the first image of the stack 
             [fName,dirName] = uigetfile(...
                 {'*.tif;*.tiff;*.jpg;*.jpeg','Image Files (*.tif,*.tiff,*.jpg,*.jpeg)';
@@ -52,12 +51,12 @@ if ~isempty(fsmParam.specific.fileList) % Already analyzed
                 '*.jpeg;','JPEG files (*.jpeg)'
                 '*.*','All Files (*.*)'},...
                 title);
-            if(isa(fName,'char') & isa(dirName,'char'))
+            if(isa(fName,'char') && isa(dirName,'char'))
                 
-                if exist([dirName,fName])==2
+                if exist([dirName,fName],'file')
                     
                     % Check that the frame number matches
-                    [path,body,noNew,ext]=getFilenameBody([dirName,fName]);
+                    [path,body,noNew]=getFilenameBody([dirName,fName]);
                     if strcmp(noOriginal,noNew)==0
                         
                         % Prepare error message
@@ -121,10 +120,7 @@ if ~isempty(fsmParam.specific.fileList) % Already analyzed
         end
             
     else
-        
         % The images exist, inform fsmMain that it can continue safely.
         status=1;
-        
     end
-    
 end

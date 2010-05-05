@@ -55,12 +55,12 @@ end
 outFileList=getFileStackNames(allFiles(i).name);
 
 % Read first and last indices
-[path,body,firstIndex,ext]=getFilenameBody(char(outFileList(1)));
-[path,body,lastIndex,ext]=getFilenameBody(char(outFileList(end)));
+[path,body,firstIndex]=getFilenameBody(outFileList{1});
+[path,body,lastIndex]=getFilenameBody(outFileList{end});
 
 % Ask for user input - Setup dialog 
-first=str2num(firstIndex);
-last=str2num(lastIndex);
+first=str2double(firstIndex);
+last=str2double(lastIndex);
 if tracker==3
     frames=2;
 else
@@ -88,21 +88,21 @@ if uFirst==-1
 end
 
 % Update fsmParam - uFirst and uLast are global variables returned by the dialog
-if uFirst~=origFirstIndex | uLast~=origLastIndex
+if uFirst~=origFirstIndex || uLast~=origLastIndex
 
     % Create image file list
-    [path,body,firstImageIndex,ext]=getFilenameBody(origFileList(1,:));
+    [path,body,firstImageIndex,ext]=getFilenameBody(origFileList{1});
     % Replace numerical extension saved in the original image file list with that of
     % the first preprocessed image
     imageFileName=[path,filesep,body,firstIndex,ext]; 
     outImageFileList=getFileStackNames(imageFileName);
-    outImageFileList=outImageFileList(uFirst-str2num(firstIndex)+1:uLast-str2num(firstIndex)+1);
+    outImageFileList=outImageFileList(uFirst-str2double(firstIndex)+1:uLast-str2double(firstIndex)+1);
 
     % Update fsmParam
     num=uLast-uFirst+1;
     fsmParam.main.imgN=num;
     fsmParam.specific.imageNumber=num;
-    fsmParam.specific.fileList=char(outImageFileList);
+    fsmParam.specific.fileList=outImageFileList;
     fsmParam.specific.firstIndex=uFirst;
     fsmParam.specific.lastIndex=uLast;
     

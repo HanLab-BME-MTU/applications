@@ -178,9 +178,19 @@ for i = 1:numel(newProjDirList)
             fsmParam.track.initPath = [newProjDir fsmParam.track.initPath(n+1:end)];
         end
         n = numel(imgDirList);
-        m = size(fsmParam.specific.fileList, 1);
-        fsmParam.specific.fileList = horzcat(repmat(newImgDirList, ...
-            m, 1), fsmParam.specific.fileList(:, n+1:end)); 
+        
+        if iscell(fsmParam.specific.fileList)
+            fsmParam.specific.fileList = cellfun(@(c) [newImgDirList ...
+                c(n+1:end)], fsmParam.specific.fileList);
+        elseif ischar(fsmParam.specific.fileList)
+            m = size(fsmParam.specific.fileList, 1);
+            
+            fsmParam.specific.fileList = arrayfun(@(i) [newImgDirList ...
+                strtrim(fsmParam.specific.fileList(i, n+1:end))], 1:m, ...
+                'UniformOutput',false);
+        else
+            disp('   Invalid fsmParam.specific.fileList field (skipping).');
+        end
         save(filename, 'fsmParam');
     end
     

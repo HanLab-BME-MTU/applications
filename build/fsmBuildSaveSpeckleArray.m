@@ -4,14 +4,7 @@ function speckleArray=fsmBuildSaveSpeckleArray(cM,outFileList,xmin,xmax,firstInd
 % SYNOPSIS   speckleArray=fsmBuildSaveSpeckleArray(cM,outFileList,xmin,xmax,firstIndex,strg,noiseParams,threshold,factors,userPath,sigma)
 %
 % INPUT      cM            : magic position matrix (mpm) as returned by the tracker module
-%            outFileList   : string matrix containing all image file names.
-%                            It has the form:
-%                                                   |'img/img01.tif'|
-%                                                   |'img/img02.tif'|
-%                                     outFileList = |'img/img03.tif'|
-%                                                   |'img/img04.tif'|
-%                                                   |'img/img05.tif'|                                
-%
+%            outFileList   : a cell array containing all image file names.
 %            xmin          : lower boundary for image normalization
 %            xmax          : upper boundary for image normalization
 %            firstIndex    : index of the corresponding first image
@@ -312,13 +305,13 @@ for c1=1:tp                                    % Cycle through timepoints
     
     % Load images
     if c1>1
-        imgB=imreadnd2(outFileList(c1-1,:),xmin,xmax);
+        imgB=imreadnd2(outFileList{c1-1},xmin,xmax);
         % Prepare image
         imgB=fsmPrepPrepareImage(imgB,factors(c1-1),W,sigma);
     end
     
     if c1<tp
-        imgD=imreadnd2(outFileList(c1+1,:),xmin,xmax);
+        imgD=imreadnd2(outFileList{c1+1},xmin,xmax);
         % Prepare image
         imgD=fsmPrepPrepareImage(imgD,factors(c1+1),W,sigma);
     end

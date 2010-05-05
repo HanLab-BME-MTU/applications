@@ -23,10 +23,23 @@ function fsmParam=fsmMain(fsmParam)
 %               fsmMain is used by { fsmMainRun }
 %
 % Aaron Ponti, October 2nd, 2002
-
+% Modified by Sylvain Berlemont, 2009
 
 if nargin~=1
     error('One parameter (fsmParam) expected');
+end
+
+% Check whether fsmParm has been produced by older version of FSM. In the
+% new version, fsmParam.specific.fileList is a cell array. To ensure
+% backward-compatibility, we update that field accordingly.
+
+if ~iscell(fsmParam.specific.fileList)
+    n = size(fsmParam.specific.fileList,1);
+    
+    fsmParam.specific.fileList = arrayfun(@(i) ...
+        strtrim(fsmParam.specific.fileList(i,:)), 1:n,'UniformOutput',false);
+
+    save([fsmParam.main.path,filesep,'fsmParam.mat'],'fsmParam');
 end
 
 % Store current directory
@@ -110,6 +123,8 @@ if status==2
     if status==0
         return;
     end
+    % Quick fix:
+    status = 2;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -122,7 +137,6 @@ end
 if fsmParam.track.enable==1
     
     if status==2 % The preprocessing module was not run
-
         % Let the user select the images to be tracked
         [fsmParam,statusSF]=fsmTrackSelectFrames(fsmParam);
         
@@ -130,7 +144,6 @@ if fsmParam.track.enable==1
             disp('The TRACKING module was interrupted because of an error.');
             return
         end
-        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -210,7 +223,7 @@ end
 % Run if enabled
 if fsmParam.build.enable==1
 
-    if size(fsmParam.specific.fileList,1)<4
+    if numel(fsmParam.specific.fileList)<4
         uiwait(msgbox('Only the PREPROCESSING and the TRACKER modules are allowed to work with less than 4 frames preprocessed. Please run the PREPROCESSING MODULE again on more frames.','Error','error','modal'));
         disp('Please run the PREPROCESSING module on at least 4 frames. Aborting');
         return 
@@ -292,7 +305,7 @@ end
 % Run if enabled
 if fsmParam.kin.enable==1
     
-    if size(fsmParam.specific.fileList,1)<4
+    if numel(fsmParam.specific.fileList)<4
         uiwait(msgbox('Only the PREPROCESSING and the TRACKER modules are allowed to work with less than 4 frames preprocessed. Please run the PREPROCESSING MODULE again on more frames.','Error','error','modal'));
         disp('Please run the PREPROCESSING module on at least 4 frames. Aborting.');
         return 
@@ -372,7 +385,7 @@ end
 % Run if enabled
 if fsmParam.disp.enable == 1
     
-    if size(fsmParam.specific.fileList,1)<4
+    if numel(fsmParam.specific.fileList)<4
         uiwait(msgbox('Only the PREPROCESSING and the TRACKER modules are allowed to work with less than 4 frames preprocessed. Please run the PREPROCESSING MODULE again on more frames.','Error','error','modal'));
         disp('Please run the PREPROCESSING module on at least 4 frames. Aborting.');
         return 
@@ -477,9 +490,9 @@ fclose(fid);
 
 % Save image information for other packages
 fsmImages.firstIndex = fsmParam.specific.firstIndex;
-fsmImages.firstName  = fsmParam.specific.fileList(1,:);
+fsmImages.firstName  = fsmParam.specific.fileList{1};
 fsmImages.lastIndex  = fsmParam.specific.lastIndex;
-fsmImages.lastName   = fsmParam.specific.fileList(end,:);
+fsmImages.lastName   = fsmParam.specific.fileList{end};
 save fsmImages.mat fsmImages;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

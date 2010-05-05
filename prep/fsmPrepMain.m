@@ -236,12 +236,6 @@ else
     imageSize=fsmParam.specific.imgSize;
     strg=fsmParam.specific.formString;
     outFileList=fsmParam.specific.fileList;
-    % workaround: outFileList must be a cell array. If previous parameter
-    % file contains character array, we convert it.
-    if ~iscell(outFileList)
-        outFileList = mat2cell(outFileList, ones(1, size(outFileList, 1)), ...
-            size(outFileList, 2));
-    end
     factors=ones(1,n);
     firstIndex=fsmParam.specific.firstIndex;
 end

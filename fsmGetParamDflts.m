@@ -161,8 +161,7 @@ fsmParam.disp.uptodate=0;           % Up-to-date flag
 fsmParam.specific.imgSize=[0 0];    % Image size [y x]
 fsmParam.specific.imageNumber=0;    % Number of images to be treated (the actual number)
 fsmParam.specific.formString='';    % String to correctly format the numeric suffix of saved files
-fsmParam.specific.fileList='';      % All file names written in a (char) matrix; eah row contains 
-                                    % a file name with full path
+fsmParam.specific.fileList={};      % A cell array of full path to image
 fsmParam.specific.intCorrFactors=0; % Intensity correction factors
 fsmParam.specific.firstIndex=0;     % Index of the first image
 fsmParam.specific.lastIndex=0;      % Index of the last image

@@ -45,7 +45,7 @@ yxOffset=[0 0];  % This offset is no longer used; but it made be in the future, 
 
 rootUserPath=fsmParam.main.path;
 outFileList=fsmParam.specific.fileList;
-firstImage=outFileList(1,:);
+firstImage=outFileList{1};
 imgSize=fsmParam.specific.imgSize;
 n=fsmParam.specific.imageNumber;
 strg=fsmParam.specific.formString;
@@ -99,7 +99,6 @@ if ~exist(firstImage, 'file')
       if length(outFileList)>n
           outFileList=outFileList(1:n);
       end
-      outFileList=char(outFileList);
       % Copy outFileList into fsmParam
       fsmParam.specific.fileList=outFileList;
    else
@@ -252,7 +251,7 @@ for i=2:lastImage
     currentIndex=i+firstIndex-1;
     
 	% Load image
-	img=0.5+nrm(imread(char(outFileList(i,:))),1)/2;  
+	img=0.5+nrm(imread(outFileList{i}),1)/2;  
 
     if autoPolygon == 1
         % Load black-and-white mask
@@ -326,7 +325,7 @@ for i=2:lastImage
 end
 
 % Save also first ald last (empty) images
-img=0.5+nrm(imread(char(outFileList(1,:))),1)/2;  
+img=0.5+nrm(imread(outFileList{1}),1)/2;  
 fH=figure;
 imshow(img);
 indxStr=sprintf(strg,firstIndex);   
@@ -338,7 +337,7 @@ close(fH);
 waitbar(i/n,h);
 
 if fsmParam.track.tracker==3
-    img=0.5+nrm(imread(char(outFileList(n-1,:))),1)/2;  
+    img=0.5+nrm(imread(outFileList{n-1}),1)/2;  
     fH=figure;
     imshow(img);
     indxStr=sprintf(strg,lastIndex-1);   
@@ -350,7 +349,7 @@ if fsmParam.track.tracker==3
     waitbar((n-1)/n,h);
 end
 %
-img=0.5+nrm(imread(char(outFileList(n,:))),1)/2;  
+img=0.5+nrm(imread(outFileList{n}),1)/2;  
 fH=figure;
 imshow(img);
 indxStr=sprintf(strg,lastIndex);   
