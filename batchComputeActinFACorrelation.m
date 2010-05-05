@@ -306,7 +306,7 @@ for iMovie = 1:nMovies
         try
             currMovie = setupMovieData(currMovie);
             
-            disp(['Generate figures of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
+            disp(['Create figures of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
             
             currMovie = getMovieFigures(currMovie,batMode);
             
