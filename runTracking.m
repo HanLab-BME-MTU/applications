@@ -41,6 +41,7 @@ elseif ischar(tracksettings)
 end
 
 parfor k = 1:length(data)
+    fprintf('Tracking movie no. %d\n', k);
     idata = data(k);
     idata.tracksettings = tracksettings;
     trackMissingFields(idata, overwrite);
