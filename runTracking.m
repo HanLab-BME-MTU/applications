@@ -43,5 +43,5 @@ end
 parfor k = 1:length(data)
     idata = data(k);
     idata.tracksettings = tracksettings;
-    trackMissingFieldsNEW(idata, overwrite);
+    trackMissingFields(idata, overwrite);
 end
