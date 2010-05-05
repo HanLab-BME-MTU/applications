@@ -1,5 +1,4 @@
 function status = checkMovieLabels(movieData)
-
 %
 % status = checkMovieLabels(movieData)
 % Returns true if the movie specified by the input movieData has been
@@ -11,10 +10,8 @@ function status = checkMovieLabels(movieData)
 %Ensure correct OS for filenames
 movieData = setupMovieData(movieData);
 
-status = false;
-
-%Check the labeling status and directory.
-if isfield(movieData,'labels') && isfield(movieData.labels,'directory') ...
-        && (movieData.labels.status==1) && exist([movieData.labels.directory],'dir')
-    status = true;    
-end
+status = isfield(movieData,'labels') && ...
+    isfield(movieData.labels,'status') && ...
+    movieData.labels.status == 1 && ...
+    isfield(movieData.labels,'directory') && ...
+    exist([movieData.labels.directory],'dir');
