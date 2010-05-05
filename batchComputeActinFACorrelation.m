@@ -300,28 +300,6 @@ for iMovie = 1:nMovies
         end
     end
     
-    % STEP 9: GENERATE FIGURES
-    
-    if ~checkMovieFigures(currMovie) || forceRun(9)
-        try
-            currMovie = setupMovieData(currMovie);
-            
-            disp(['Create figures of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-            
-            currMovie = getMovieFigures(currMovie,batMode);
-            
-            if isfield(currMovie.figures,'error')
-                currMovie.figures = rmfield(currMovie.figures,'error');
-            end
-            
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.tracking.error = errMess;
-            currMovie.tracking.status = 0;
-        end
-    end  
-    
-    
     % Save results
     try
         %Save the updated movie data
@@ -338,5 +316,30 @@ for iMovie = 1:nMovies
     
     disp([movieName ': DONE']);
 end
+
+
+%     % STEP 9: GENERATE FIGURES
+%     
+%     if ~checkMovieFigures(currMovie) || forceRun(9)
+%         try
+%             currMovie = setupMovieData(currMovie);
+%             
+%             disp(['Create figures of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
+%             
+%             currMovie = getMovieFigures(currMovie,batchMode);
+%             
+%             if isfield(currMovie.figures,'error')
+%                 currMovie.figures = rmfield(currMovie.figures,'error');
+%             end
+%             
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+%             currMovie.tracking.error = errMess;
+%             currMovie.tracking.status = 0;
+%         end
+%     end  
+    
+    
+
 
 end
