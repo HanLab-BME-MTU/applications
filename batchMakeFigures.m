@@ -139,8 +139,7 @@ for iMovie = 1:nMovies
     % STEP 2: Get contours
     dContour = 500 / currMovie.pixelSize_nm;
     
-    if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
-            currMovie.contours.status ~= 1 || forceRun(2)
+    if ~checkMovieContours(currMovie) || forceRun(2)
         try
             disp(['Get contours of movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 1, ...
@@ -205,8 +204,7 @@ for iMovie = 1:nMovies
     windowString = [num2str(dContour) 'by' num2str(winSize) 'pix_' ...
                 num2str(iOuter) '_' num2str(iInner)];
             
-    if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || ...
-            currMovie.windows.status ~= 1 || forceRun(4)
+    if ~checkMovieWindows(currMovie) || forceRun(4)
         try
             currMovie = setupMovieData(currMovie);
 
@@ -227,9 +225,7 @@ for iMovie = 1:nMovies
     end
     
     % STEP 5: Sample the protrusion vector in each window
-    if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ...
-            ~isfield(currMovie.protrusion.samples,'status') || ...
-            currMovie.protrusion.samples.status ~= 1 || forceRun(5)
+    if ~checkMovieProtrusionSamples(currMovie) || forceRun(5)
         try
             disp(['Sampling protrusion in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
@@ -248,8 +244,7 @@ for iMovie = 1:nMovies
     end 
 
     % STEP 6: Activity Label (pause = 1, protrusion = 2, retraction = 3)
-    if ~isfield(currMovie,'labels') || ~isfield(currMovie.labels,'status') || ...
-            currMovie.labels.status ~= 1 || forceRun(6)
+    if ~checkMovieLabels(currMovie) || forceRun(6)
         try
             disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
             currMovie = getMovieLabels(currMovie, batchMode);
@@ -267,8 +262,7 @@ for iMovie = 1:nMovies
     end
     
     % STEP 7: Save Distance transform
-    if ~isfield(currMovie,'bwdist') || ~isfield(currMovie.bwdist,'status') || ...
-            currMovie.bwdist.status ~= 1 || forceRun(7)
+    if ~checkMovieBWDist(currMovie) || forceRun(7)
         try
             disp(['Compute distance transform ' num2str(iMovie) ' of ' num2str(nMovies)]);
             currMovie = getMovieBWDist(currMovie, batchMode);
