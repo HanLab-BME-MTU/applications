@@ -1,7 +1,10 @@
 function movieData = getMovieFATracking(movieData,batchMode)
 
-%Indicate that labeling was started
+%Indicate that tracking was started
 movieData.tracking.status = 0;
+
+%Check that detection has been performed
+assert(checkMovieDetection(movieData));
 
 movieData.tracking.directory = [movieData.channels(1).analysisDirectory ...
     filesep 'tracking'];

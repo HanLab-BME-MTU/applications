@@ -122,8 +122,7 @@ for iMovie = 1:nMovies
 %     
 %     dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
 %     
-%     if ~isfield(currMovie,'contours') || ~isfield(currMovie.contours,'status') || ...
-%             currMovie.contours.status ~= 1 || forceRun(2)
+%     if ~checkMovieContours(currMovie) || forceRun(2)
 %         try
 %             disp(['Get contours of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
 %             currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 1, ...
@@ -199,8 +198,7 @@ for iMovie = 1:nMovies
 % 
 %     windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' num2str(iStart) '_' num2str(iEnd)];
 % 
-%     if ~isfield(currMovie,'windows') || ~isfield(currMovie.windows,'status')  || ...
-%             currMovie.windows.status ~= 1 || forceRun(4)
+%     if ~checkMovieWindows(currMovie) || forceRun(4)
 %         try
 %             currMovie = setupMovieData(currMovie);
 % 
@@ -221,9 +219,7 @@ for iMovie = 1:nMovies
 %     
 %     % STEP 5: SAMPLE PROTRUSION
 % 
-%     if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'samples') || ...
-%             ~isfield(currMovie.protrusion.samples,'status') || ...
-%             currMovie.protrusion.samples.status ~= 1 || forceRun(5)
+%     if ~checkMovieProtrusionSamples(currMovie) || forceRun(5)
 %         try
 %             disp(['Get sampled protrusion of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
 %             currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
@@ -243,8 +239,7 @@ for iMovie = 1:nMovies
 %     
 %     % STEP 6: WINDOW LABELING
 % 
-%     if ~isfield(currMovie, 'labels') || ~isfield(currMovie.labels, 'status') || ...
-%             currMovie.labels.status ~= 1 || forceRun(6)
+%     if ~checkMovieLabels(currMovie) || forceRun(6)
 %         try
 %             currMovie = setupMovieData(currMovie);
 % 
@@ -265,14 +260,13 @@ for iMovie = 1:nMovies
 
     % STEP 7: FA DETECTION
     
-    if ~isfield(currMovie, 'detection') || ~isfield(currMovie.detection, 'status') || ...
-            currMovie.detection.status ~= 1 || forceRun(7)
+    if ~checkMovieDetection(currMovie) || forceRun(7)
         try
             currMovie = setupMovieData(currMovie);
             
             disp(['Detect FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
             
-            currMovie = getMovieFADetection(currMovie, batchMode);
+            currMovie = getMovieDetection(currMovie, batchMode);
             
             if isfield(currMovie.detection, 'error')
                 currMovie.detection = rmfield(currMovie.detection, 'error');
@@ -287,14 +281,13 @@ for iMovie = 1:nMovies
  
     % STEP 8: FA TRACKING
     
-    if ~isfield(currMovie, 'tracking') || ~isfield(currMovie.tracking, 'status') || ...
-            currMovie.tracking.status ~= 1 || forceRun(8)
+    if ~checkMovieTracking(currMovie) || forceRun(8)
         try
             currMovie = setupMovieData(currMovie);
             
             disp(['Track FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
             
-            currMovie = getMovieFATracking(currMovie, batchMode);
+            currMovie = getMovieTracking(currMovie, batchMode);
             
             if isfield(currMovie.tracking, 'error')
                 currMovie.tracking = rmfield(currMovie.tracking, 'error');
@@ -306,6 +299,28 @@ for iMovie = 1:nMovies
             currMovie.tracking.status = 0;
         end
     end
+    
+    % STEP 9: GENERATE FIGURES
+    
+    if ~checkMovieFigures(currMovie) || forceRun(9)
+        try
+            currMovie = setupMovieData(currMovie);
+            
+            disp(['Generate figures of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
+            
+            currMovie = getMovieFigures(currMovie,batMode);
+            
+            if isfield(currMovie.figures,'error')
+                currMovie.figures = rmfield(currMovie.figures,'error');
+            end
+            
+        catch errMess
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+            currMovie.tracking.error = errMess;
+            currMovie.tracking.status = 0;
+        end
+    end  
+    
     
     % Save results
     try

@@ -1,6 +1,6 @@
 function movieData = getMovieFADetection(movieData,batchMode)
 
-%Indicate that labeling was started
+%Indicate that detection was started
 movieData.detection.status = 0;
 
 if ~batchMode
