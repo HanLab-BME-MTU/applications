@@ -46,11 +46,18 @@ end
 
 % --- Executes just before biosensorsPackageGUI is made visible.
 function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to biosensorsPackageGUI (see VARARGIN)
+% Useful tools
+% GUI data:
+%       handles.MD - the MovieData object
+%       handles.dependM - dependency matrix
+%       handles.passIconData - pass icon image data
+%       handles.errorIconData - error icon image data
+%       handles.warnIconData - warning icon image data
+%       handles.setFig - array of handles of sub-windows
+%
+% App Data:
+%       'setFlag' in figure1 - set flag of open sub window, open or close
+%
 
 % Choose default command line output for biosensorsPackageGUI
 handles.output = hObject;
@@ -69,7 +76,7 @@ else
                        0 1 0 0
                        0 0 1 0];
 end
-% Initial set up
+% Uicontrols initial set up
 userfcn_enable(find (any(handles.dependM,2)), 'off',handles);
 % Load icon images from dialogicons.mat
 load lccbGuiIcons.mat
@@ -222,9 +229,8 @@ end
 
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_done (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
+
 
 
 % --- Executes on button press in pushbutton_status.
@@ -236,10 +242,85 @@ function pushbutton_status_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in pushbutton_run.
 function pushbutton_run_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_run (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
+procCheck = [ ]; % save id of checked processes 
+procRun = [ ]; % save id of processes to run
+nProcesses = size(handles.dependM,1);
+MD = handles.MD;
+for i = 1: nProcesses
+    % collect the processes that are checked
+    eval([ 'checked = get(handles.checkbox_',num2str(i),', ''value'');' ])
+    if checked
+        procCheck = horzcat(procCheck, i);
+    end
+end
+if isempty(procCheck)
+    errordlg('Please select a step to run','No Step Selected','modal');
+    return
+end
+% Check if process exist
+% Check if selected processes have alrady be successfully run
+k = true;
+for i = procCheck
+    if isempty (MD.crtPackage_.processes_{i})
+        errordlg([num2str(i),' th step is not set up yet'], ...
+            'Step Not Set Up','modal');
+        return;
+    end
+    if ~( MD.crtPackage_.processes_{i}.success_ ...
+                && ~MD.crtPackage_.processes_{i}.procChanged_ )
+        k = false;
+        procRun = horzcat(procRun, i);
+    end
+end
+if k
+    warndlg('All selected steps have been processed successfully. Please change settings to run again', ...
+        'Step Processed')
+    return;
+end
+
+% Clear icons of selected processes
+userfcn_drawIcon(handles,'clear',procRun,'');
+% Package full sanity check. Sanitycheck every checked process
+procEx = MD.crtPackage_.sanityCheck(true, procCheck);
+k = {};
+for i = procCheck
+   if ~isempty(procEx{i})
+       % Check if there is fatal error in exception array
+       for j = 1: length(procEx{i})
+           if strcmp(procEx{i}(j).identifier, 'lccb:set:fatal');
+               k = horzcat(k,[num2str(i) ' ']);
+               userfcn_drawIcon(handles,'error',i,procEx{i}(j).message)
+           end
+       end
+   else
+       % if i th process is not the one of the processes to be processed,
+       % and is successfully processed in the last run, re-draw pass icon
+       if ~isempty(MD.crtPackage_.processes_{i})
+            if ~any(i == procRun) && MD.crtPackage_.processes_{i}.success_ 
+                  
+                userfcn_drawIcon(handles,'pass',i,'Current step is processed successfully');
+            end
+       end
+   end
+end
+% If setting error, stop and pop up notice
+if ~isempty(k)
+    errordlg(['Settings are incorrect in ' k{:} 'th step.' ...
+        'Click corresponding error icon for further information'],...
+             'Setting Error','modal');
+    return
+end
+
+% Run the algorithms!
+try
+    for i = procRun
+        userfcn_runProc_dfs(i,procRun,MD,handles);
+    end
+    
+catch ME
+    errordlg(ME.message,'Run Time Error','modal');
+end
 
 % --- Executes on button press in checkbox_4.
 function checkbox_4_Callback(hObject, eventdata, handles)
