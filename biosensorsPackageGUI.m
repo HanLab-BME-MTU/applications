@@ -58,32 +58,32 @@ function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % App Data:
 %       'setFlag' in figure1 - set flag of open sub window, open or close
 %
-
+userData = get(handles.figure1,'UserData');
 % Choose default command line output for biosensorsPackageGUI
 handles.output = hObject;
 if nargin > 3
     % Pass the MovieData from setup MovieData GUI to Biosensors GUI
-    handles.MD = varargin{1};
+    userData.MD = varargin{1};
     % Dependency matrix is defined in BioSensorsPackage class
-    handles.dependM = handles.MD.crtPackage_.depMatrix_;
+    userData.dependM = userData.MD.crtPackage_.depMatrix_;
 else
     % Default dependency matrix. For test reason, define a dependency 
     % matrix in here
     load movieData.mat
-    handles.MD = MD;
-    handles.dependM = [0 0 0 0
+    userData.MD = MD;
+    userData.dependM = [0 0 0 0
                        1 0 0 0
                        0 1 0 0
                        0 0 1 0];
 end
 % Uicontrols initial set up
-userfcn_enable(find (any(handles.dependM,2)), 'off',handles);
+userfcn_enable(find (any(userData.dependM,2)), 'off',handles);
 % Load icon images from dialogicons.mat
 load lccbGuiIcons.mat
 % Save Icon data to GUI data
-handles.passIconData = passIconData;
-handles.errorIconData = errorIconData;
-handles.warnIconData = warnIconData;
+userData.passIconData = passIconData;
+userData.errorIconData = errorIconData;
+userData.warnIconData = warnIconData;
 % Set figure colormap
 supermap(1,:) = get(hObject,'color');
 set(hObject,'colormap',supermap);
@@ -96,7 +96,7 @@ set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
 set(Img,'ButtonDownFcn',@help_ButtonDownFcn);
 set(Img,'tag','0');
 % Set up process help. Process icons are tagged as '1','2' ... 'n'
-for i = 1:size(handles.dependM, 1)
+for i = 1:size(userData.dependM, 1)
     eval (['axes(handles.axes_help' num2str(i) ')']);
     Img = image(questIconData);
 %     eval(['handles.icon_help',num2str(i),' = Img; '])
@@ -106,10 +106,34 @@ for i = 1:size(handles.dependM, 1)
     eval([ 'set(Img,''tag'',''',num2str(i),''');' ])
 end
 
+% set text body
+set(handles.text_body1, 'string',[userData.MD.crtPackage_.name_ ' Package']);
+
 % Set flag of sub window. Sub window open flag = 1, close flag = 0
-setappdata(hObject, 'setFlag', zeros(1,size(handles.dependM,1)));
+setappdata(hObject, 'setFlag', zeros(1,size(userData.dependM,1)));
+
+% all processes full sanity check
+% procEx = MD.crtPackage_.sanityCheck(true, 'all');
+% k = {};
+% for i = procCheck
+%    if ~isempty(procEx{i})
+       % Check if there is fatal error in exception array
+%        for j = 1: length(procEx{i})
+%            if strcmp(procEx{i}(j).identifier, 'lccb:set:fatal');
+%                k = horzcat(k,[num2str(i) ' ']);
+%                userfcn_drawIcon(handles,'error',i,procEx{i}(j).message)
+%            end
+%        end
+%        if isempty(k)
+%            userfcn_drawIcon(handles,'error',i,procEx{i}(1).message)
+%        end
+%    else
+       
+%    end
+% end
 
 % Update handles structure
+set(handles.figure1,'UserData',userData);
 guidata(hObject, handles);
 
 % UIWAIT makes biosensorsPackageGUI wait for user response (see UIRESUME)
@@ -143,8 +167,10 @@ userfcn_lampSwitch(1, get(hObject,'value'), handles);
 function pushbutton_set1_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
+userData = get(handles.figure1, 'UserData');
 procID = 1;
-handles.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+userData.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
@@ -170,8 +196,9 @@ function pushbutton_set2_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 procID = 2;
-handles.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
-
+userData = get(handles.figure1, 'UserData');
+userData.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 % --- Executes on button press in pushbutton_show2.
@@ -196,8 +223,9 @@ function pushbutton_set3_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 procID = 3;
-handles.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
-
+userData = get(handles.figure1, 'UserData');
+userData.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
@@ -214,13 +242,13 @@ function checkbox_all_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of checkbox_all
+userData = get(handles.figure1, 'UserData');
 switch get(hObject,'value')
     case 1
-        userfcn_enable(1:length(handles.dependM(:,1)),'on',handles,true);
+        userfcn_enable(1:length(userData.dependM(:,1)),'on',handles,true);
     case 0
-        userfcn_enable(find(any(handles.dependM,2)),'off',handles);
-        for i = 1:length(handles.dependM(:,1))
+        userfcn_enable(find(any(userData.dependM,2)),'off',handles);
+        for i = 1:length(userData.dependM(:,1))
             eval( ['set(handles.checkbox_', ...
                                           num2str(i),', ''value'', 0)'] );
         end
@@ -243,10 +271,12 @@ function pushbutton_status_Callback(hObject, eventdata, handles)
 % --- Executes on button press in pushbutton_run.
 function pushbutton_run_Callback(hObject, eventdata, handles)
 
+userData = get(handles.figure1,'UserData');
+
 procCheck = [ ]; % save id of checked processes 
 procRun = [ ]; % save id of processes to run
-nProcesses = size(handles.dependM,1);
-MD = handles.MD;
+nProcesses = size(userData.dependM,1);
+MD = userData.MD;
 for i = 1: nProcesses
     % collect the processes that are checked
     eval([ 'checked = get(handles.checkbox_',num2str(i),', ''value'');' ])
@@ -290,17 +320,9 @@ for i = procCheck
        for j = 1: length(procEx{i})
            if strcmp(procEx{i}(j).identifier, 'lccb:set:fatal');
                k = horzcat(k,[num2str(i) ' ']);
+               MD.crtPackage_.processes_{i}.success_ = false;
                userfcn_drawIcon(handles,'error',i,procEx{i}(j).message)
            end
-       end
-   else
-       % if i th process is not the one of the processes to be processed,
-       % and is successfully processed in the last run, re-draw pass icon
-       if ~isempty(MD.crtPackage_.processes_{i})
-            if ~any(i == procRun) && MD.crtPackage_.processes_{i}.success_ 
-                  
-                userfcn_drawIcon(handles,'pass',i,'Current step is processed successfully');
-            end
        end
    end
 end
@@ -322,6 +344,7 @@ catch ME
     errordlg(ME.message,'Run Time Error','modal');
 end
 
+
 % --- Executes on button press in checkbox_4.
 function checkbox_4_Callback(hObject, eventdata, handles)
 % hObject    handle to checkbox_4 (see GCBO)
@@ -337,8 +360,9 @@ function pushbutton_set4_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 procID = 4;
-handles.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
-
+userData = get(handles.figure1, 'userData');
+userData.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
@@ -395,7 +419,8 @@ end
 function userfcn_lampSwitch(index, value, handles)
 % index - the index of current checkbox
 % value - checked or unchecked
-M = handles.dependM;
+userData = get(handles.figure1, 'UserData');
+M = userData.dependM;
 
 if ~any(M(:,index))
    % if no follower exists, return.
@@ -472,8 +497,10 @@ end
 
 function help_ButtonDownFcn(hObject, eventdata)
 % Call back function when help icon is clicked
+
 tag = get(hObject,'tag');
 handles = guidata(hObject);
+userData = get(handles.figure1, 'UserData');
 % get identity of help event creater
 id = str2double(tag);
 % For test purpose. No MovieData saved in handles
@@ -490,13 +517,13 @@ end
 % if id ==0 package help; id ~= 0 process help
 if id
     % process help
-    processName = handles.MD.crtPackage_.processClassNames_{id};
+    processName = userData.MD.crtPackage_.processClassNames_{id};
     % how do ppl handle similar situation in C or Java?
     eval(['helpdlg(',processName,'.getHelp)']);
 %     helpdlg(text,'Help');
 else
     % package help
-    helpdlg(handles.MD.crtPackage_.getHelp, 'Help');
+    helpdlg(userData.MD.crtPackage_.getHelp, 'Help');
 end
 
 function icon_ButtonDownFcn(hObject, eventdata)
@@ -509,9 +536,10 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 setFlag = getappdata(hObject, 'setFlag');
+userData = get(handles.figure1, 'UserData');
 if any(setFlag)
     index = find(setFlag);
     for i = index
-        delete(handles.setFig(i));
+        delete(userData.setFig(i));
     end
 end
