@@ -146,7 +146,13 @@ for iTM = 1:3
     E = cellfun(@std, prFrames);
     
     errorbar(X(:),Y(:),E(:),'k');
-    xlabel('# of frame');
+
+    set(gca, 'XTick', 1:5:nFrames);
+    
+    set(gca, 'XTickLabel', arrayfun(@(x) num2str(x, '%.f'), (0:5:nFrames-1)*timeInterval, ...
+        'UniformOutput', false));
+    
+    xlabel('Time (s)');
     ylabel([char(181) 'm']);
 
     fileName = [outputDirectory filesep 'Fig5_A' num2str(iTM) '.eps'];
@@ -169,7 +175,13 @@ for iTM = 1:3
     E = cellfun(@std, reFrames);
     
     errorbar(X(:),Y(:),E(:),'k');
-    xlabel('# of frame');
+    
+    set(gca, 'XTick', 1:5:nFrames);
+    
+    set(gca, 'XTickLabel', arrayfun(@(x) num2str(x, '%.f'), (0:5:nFrames-1)*timeInterval, ...
+        'UniformOutput', false));
+    
+    xlabel('Time (s)');
     ylabel([char(181) 'm']);
 
     fileName = [outputDirectory filesep 'Fig5_B' num2str(iTM) '.eps'];
