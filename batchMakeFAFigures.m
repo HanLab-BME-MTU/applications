@@ -1,4 +1,4 @@
-function batchComputeActinFACorrelation(rootDirectory, forceRun, batchMode)
+function batchMakeFAFigures(rootDirectory, forceRun, batchMode)
 
 nSteps = 8;
 
@@ -19,7 +19,7 @@ if length(forceRun) ~= nSteps
 end
 
 if nargin < 3 || isempty(batchMode)
-    batchMode = 1;
+        batchMode = 1;
 end
 
 % Get every path from rootDirectory containing ch488 & ch560 subfolders.
@@ -257,48 +257,48 @@ for iMovie = 1:nMovies
 %            currMovie.labels.status = 0;
 %         end
 %     end
-
-    % STEP 7: FA DETECTION
-    
-    if ~checkMovieDetection(currMovie) || forceRun(7)
-        try
-            currMovie = setupMovieData(currMovie);
-            
-            disp(['Detect FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-            
-            currMovie = getMovieDetection(currMovie, batchMode);
-            
-            if isfield(currMovie.detection, 'error')
-                currMovie.detection = rmfield(currMovie.detection, 'error');
-            end
-            
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.detection.error = errMess;
-            currMovie.detection.status = 0;
-        end
-    end 
- 
-    % STEP 8: FA TRACKING
-    
-    if ~checkMovieTracking(currMovie) || forceRun(8)
-        try
-            currMovie = setupMovieData(currMovie);
-            
-            disp(['Track FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-            
-            currMovie = getMovieTracking(currMovie, batchMode);
-            
-            if isfield(currMovie.tracking, 'error')
-                currMovie.tracking = rmfield(currMovie.tracking, 'error');
-            end
-            
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.tracking.error = errMess;
-            currMovie.tracking.status = 0;
-        end
-    end
+%
+%     % STEP 7: FA DETECTION
+%     
+%     if ~checkMovieDetection(currMovie) || forceRun(7)
+%         try
+%             currMovie = setupMovieData(currMovie);
+%             
+%             disp(['Detect FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
+%             
+%             currMovie = getMovieDetection(currMovie, batchMode);
+%             
+%             if isfield(currMovie.detection, 'error')
+%                 currMovie.detection = rmfield(currMovie.detection, 'error');
+%             end
+%             
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+%             currMovie.detection.error = errMess;
+%             currMovie.detection.status = 0;
+%         end
+%     end 
+%  
+%     % STEP 8: FA TRACKING
+%     
+%     if ~checkMovieTracking(currMovie) || forceRun(8)
+%         try
+%             currMovie = setupMovieData(currMovie);
+%             
+%             disp(['Track FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
+%             
+%             currMovie = getMovieTracking(currMovie, batchMode);
+%             
+%             if isfield(currMovie.tracking, 'error')
+%                 currMovie.tracking = rmfield(currMovie.tracking, 'error');
+%             end
+%             
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+%             currMovie.tracking.error = errMess;
+%             currMovie.tracking.status = 0;
+%         end
+%     end
     
     % Save results
     try
@@ -309,37 +309,42 @@ for iMovie = 1:nMovies
     end
     
     movieData{iMovie} = currMovie;
-    
-    if exist('h', 'var') && ishandle(h)
-        close(h);
-    end
-    
+
     disp([movieName ': DONE']);
 end
 
+%
+% Create output directory for figures
+%
 
-%     % STEP 9: GENERATE FIGURES
-%     
-%     if ~checkMovieFigures(currMovie) || forceRun(9)
-%         try
-%             currMovie = setupMovieData(currMovie);
-%             
-%             disp(['Create figures of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-%             
-%             currMovie = getMovieFigures(currMovie,batchMode);
-%             
-%             if isfield(currMovie.figures,'error')
-%                 currMovie.figures = rmfield(currMovie.figures,'error');
-%             end
-%             
-%         catch errMess
-%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-%             currMovie.tracking.error = errMess;
-%             currMovie.tracking.status = 0;
-%         end
-%     end  
-    
-    
-
-
+outputDirectory = fullfile(rootDirectory,'figures');
+if ~exist(outputDirectory, 'dir')
+    mkdir(rootDirectory, 'figures');
 end
+
+% prefix the rootDirectory
+selectedPaths = paths(9:-1:8);
+
+% suffix ch488/analysis
+selectedPaths = cellfun(@(subDir) fullfile(subDir,'ch488','analysis'),...
+    selectedPaths, 'UniformOutput', false);
+
+%
+% Make Figure 1
+%
+%disp('Make figure 1...');
+%makeFAFigure1(selectedPaths, outputDirectory);
+
+%
+% Make Figure 2
+%
+%disp('Make figure 2...');
+%makeFAFigure2(selectedPaths, outputDirectory);
+
+%
+% Make Figure 3
+%
+disp('Make figure 3...');
+makeFAFigure3(selectedPaths, outputDirectory);
+
+
