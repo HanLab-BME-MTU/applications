@@ -1,40 +1,16 @@
-function [percrange] = boxwhiskerPerRange(tau, k,perc)
-% calculate the range of the box-and-whisker plot for a function of
-% time constant tau which contains a given percentage of the data
-% k indicates if the function is an exponential or a rayleigh
+function [delta] = boxwhiskerPerRange(tau, k, pct)
+% Returns the range of for a box-and-whisker plot for Weibull distribution.
+% In the interval [tau-delta, tau+delta], the integral of the distribution is equal to 'pct'.
 
+% Francois Aguet, April 2010
+% For k=1 the exact solution is: delta = tau*asinh(exp(1)*pct(n)/2).
 
-if tau==0
-    
-    percrange = 0;
-    
-else
-    
-    if k==1
-        a = 1;
-        b = -perc*exp(1);
-        c = 1;
-        quadsol = ( -b + sqrt( b^2+4 ) )/2;
-        factor = log ( quadsol );
-        percrange = tau* factor;
-    elseif k==2
-        if tau>=1
-            rvec = [0:0.1:round(3*tau)];
-        % if tau<1, use smaller increment
-        else
-            % exponent
-            ep = floor(log10(tau))-1;
-            incr = 10^ep;
-            rvec = [0:incr:3*tau];
-        end
-        ivec =  exp(-((tau-rvec).^2)/tau^2) - exp(-((tau+rvec).^2)/tau^2) ;
-        rpos = min(find(ivec>=perc));
-        percrange = rvec(rpos);
-    end
+if tau <= 0
+    error('''tau'' must be greater than zero.');
+end
+if k <= 0
+    error('''k'' must be greater than zero.');
+end
 
-end % of if
-
-
-
-end % of function
-
+f = @(a) exp(-(1-a/tau)^k) - exp(-(1+a/tau)^k) - pct;
+delta = fzero(f, tau);
