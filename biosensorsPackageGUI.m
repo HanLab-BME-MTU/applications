@@ -64,20 +64,22 @@ handles.output = hObject;
 if nargin > 3
     % Pass the MovieData from setup MovieData GUI to Biosensors GUI
     userData.MD = varargin{1};
+    % Handle of current package 
+    userData.crtPackage = varargin{2};
     % Dependency matrix is defined in BioSensorsPackage class
-    userData.dependM = userData.MD.crtPackage_.depMatrix_;
+    userData.dependM = userData.crtPackage.depMatrix_;
 else
     % Default dependency matrix. For test reason, define a dependency 
     % matrix in here
     load movieData.mat
     userData.MD = MD;
+    userData.crtPackage = MD.packages_{1};
     userData.dependM = [0 0 0 0
                        1 0 0 0
                        0 1 0 0
                        0 0 1 0];
 end
-% Uicontrols initial set up
-userfcn_enable(find (any(userData.dependM,2)), 'off',handles);
+
 % Load icon images from dialogicons.mat
 load lccbGuiIcons.mat
 % Save Icon data to GUI data
@@ -107,34 +109,67 @@ for i = 1:size(userData.dependM, 1)
 end
 
 % set text body
-set(handles.text_body1, 'string',[userData.MD.crtPackage_.name_ ' Package']);
+set(handles.text_body1, 'string',[userData.crtPackage.name_ ' Package']);
 
 % Set flag of sub window. Sub window open flag = 1, close flag = 0
 setappdata(hObject, 'setFlag', zeros(1,size(userData.dependM,1)));
 
-% all processes full sanity check
-% procEx = MD.crtPackage_.sanityCheck(true, 'all');
-% k = {};
-% for i = procCheck
-%    if ~isempty(procEx{i})
-       % Check if there is fatal error in exception array
-%        for j = 1: length(procEx{i})
-%            if strcmp(procEx{i}(j).identifier, 'lccb:set:fatal');
-%                k = horzcat(k,[num2str(i) ' ']);
-%                userfcn_drawIcon(handles,'error',i,procEx{i}(j).message)
-%            end
-%        end
-%        if isempty(k)
-%            userfcn_drawIcon(handles,'error',i,procEx{i}(1).message)
-%        end
-%    else
-       
-%    end
-% end
-
 % Update handles structure
 set(handles.figure1,'UserData',userData);
 guidata(hObject, handles);
+
+% all processes full sanity check
+procEx = userData.crtPackage.sanityCheck(true, 'all');
+k = [];
+for i = 1: size(userData.dependM, 1)
+   if ~isempty(procEx{i})
+       l = 0;
+       for j = 1: length(procEx{i})
+           if strcmp(procEx{i}(j).identifier, 'lccb:set:fatal')
+               if l <= 2
+                   l = 2;
+                   eInd = j;
+               end
+           elseif strcmp(procEx{i}(j).identifier, 'lccb:parachanged:warn')
+               if l <= 1
+                  l = 1;
+                  eInd = j;
+               end
+           else
+               if l == 0
+                   eInd = j;
+               end
+           end
+       end
+       if l > 1
+           userfcn_drawIcon(handles,'error',i,procEx{i}(eInd).message);
+       else
+           userfcn_drawIcon(handles,'warn',i,procEx{i}(eInd).message);
+       end
+   else
+       if ~isempty(userData.crtPackage.processes_{i}) && ...
+          userData.crtPackage.processes_{i}.success_ && ...
+           ~userData.crtPackage.processes_{i}.procChanged_ && ...
+           userData.crtPackage.processes_{i}.updated_
+      
+           userfcn_drawIcon(handles,'pass',i,'Current step is processed successfully') ;
+           
+       end
+   end
+   % If process's sucess = 1, release the process from GUI enable/disable
+   % control
+   if ~isempty(userData.crtPackage.processes_{i}) && ...
+      userData.crtPackage.processes_{i}.success_ 
+       k = [k, i];
+       eval([ 'set(handles.pushbutton_show',num2str(i),', ''enable'', ''on'');']);
+   end
+end
+tempDependM = userData.dependM;
+tempDependM(:,k) = zeros(size(userData.dependM,1),length(k));
+% Checkbox enable/disable set up
+userfcn_enable(find (any(tempDependM,2)), 'off',handles);
+
+
 
 % UIWAIT makes biosensorsPackageGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -247,18 +282,28 @@ switch get(hObject,'value')
     case 1
         userfcn_enable(1:length(userData.dependM(:,1)),'on',handles,true);
     case 0
-        userfcn_enable(find(any(userData.dependM,2)),'off',handles);
-        for i = 1:length(userData.dependM(:,1))
-            eval( ['set(handles.checkbox_', ...
-                                          num2str(i),', ''value'', 0)'] );
+        k = [];
+        for i = 1: size(userData.dependM, 1)
+            if ~isempty(userData.crtPackage.processes_{i}) && ...
+                userData.crtPackage.processes_{i}.success_ 
+                k = [k, i];
+            end
+            eval( ['set(handles.checkbox_',num2str(i),',''value'',0)']  );
         end
+        tempDependM = userData.dependM;
+        tempDependM(:,k) = zeros(size(userData.dependM,1),length(k));
+        userfcn_enable(find(any(tempDependM,2)),'off',handles,true);
+        
 end
 
 
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 
-
+userData = get(handles.figure1, 'UserData');
+MD = userData.MD;
+save([userData.MD.movieDataPath_ userData.MD.movieDataFileName_], 'MD');
+delete(handles.figure1);
 
 
 % --- Executes on button press in pushbutton_status.
@@ -266,7 +311,8 @@ function pushbutton_status_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_status (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+userData = get(handles.figure1, 'UserData'); 
+disp('status');
 
 % --- Executes on button press in pushbutton_run.
 function pushbutton_run_Callback(hObject, eventdata, handles)
@@ -292,13 +338,14 @@ end
 % Check if selected processes have alrady be successfully run
 k = true;
 for i = procCheck
-    if isempty (MD.crtPackage_.processes_{i})
+    if isempty (userData.crtPackage.processes_{i})
         errordlg([num2str(i),' th step is not set up yet'], ...
             'Step Not Set Up','modal');
         return;
     end
-    if ~( MD.crtPackage_.processes_{i}.success_ ...
-                && ~MD.crtPackage_.processes_{i}.procChanged_ )
+    if ~( userData.crtPackage.processes_{i}.success_ ...
+                && ~userData.crtPackage.processes_{i}.procChanged_ ) ...
+            || ~userData.crtPackage.processes_{i}.updated_
         k = false;
         procRun = horzcat(procRun, i);
     end
@@ -309,10 +356,9 @@ if k
     return;
 end
 
-% Clear icons of selected processes
-userfcn_drawIcon(handles,'clear',procRun,'');
+
 % Package full sanity check. Sanitycheck every checked process
-procEx = MD.crtPackage_.sanityCheck(true, procCheck);
+procEx = userData.crtPackage.sanityCheck(true, procCheck);
 k = {};
 for i = procCheck
    if ~isempty(procEx{i})
@@ -320,7 +366,7 @@ for i = procCheck
        for j = 1: length(procEx{i})
            if strcmp(procEx{i}(j).identifier, 'lccb:set:fatal');
                k = horzcat(k,[num2str(i) ' ']);
-               MD.crtPackage_.processes_{i}.success_ = false;
+%                userData.crtPackage.processes_{i}.setSuccess(false);
                userfcn_drawIcon(handles,'error',i,procEx{i}(j).message)
            end
        end
@@ -332,6 +378,14 @@ if ~isempty(k)
         'Click corresponding error icon for further information'],...
              'Setting Error','modal');
     return
+end
+
+% Clear icons of selected processes
+userfcn_drawIcon(handles,'clear',procRun,'');
+
+% Set all running processes' sucess = false; 
+for i = procRun
+    userData.crtPackage.processes_{i}.setSuccess(false);
 end
 
 % Run the algorithms!
@@ -383,7 +437,7 @@ function userfcn_enable (index, onoff, handles, check)
 %               pushbutton_show1  pushbutton_show2 ...
 % Input: 
 %       index - vector of check box index
-%       onoff - 'on' or 'off'
+%       onoff - enable or disable, 'on' or 'off'
 %       handles - handles of control panel
 %       check - (Optional) true or false. It provides a option to select/unselect 
 %       the checkboxs that have been enabled/disabled.
@@ -458,12 +512,17 @@ else
             end
         % Checkbox is unselected
         case 0
-            for i =1:length(subindex)
-                % Turn off and uncheck the follower checkboxes
-                userfcn_enable(subindex(i),'off',handles,true);
+            % If success = 1, release checkbox dependency enable/disable control
+            if ~isempty(userData.crtPackage.processes_{index}) ...
+                   && userData.crtPackage.processes_{index}.success_
+                return;
+            else
+                for i =1:length(subindex)
+                    % Turn off and uncheck the follower checkboxes
+                    userfcn_enable(subindex(i),'off',handles,true);
                 
-%                 childrenI = find( M(:,subindex(i)) );
-                userfcn_lampSwitch(subindex(i),0,handles);
+                    userfcn_lampSwitch(subindex(i),0,handles);
+                end
             end
         otherwise
             error(['User-defined error: unexpected value of ''value'' property',...
@@ -504,7 +563,7 @@ userData = get(handles.figure1, 'UserData');
 % get identity of help event creater
 id = str2double(tag);
 % For test purpose. No MovieData saved in handles
-if ~isfield(handles,'MD')
+if ~isfield(userData,'MD')
     if id
         helpdlg(['This is help of process ',tag],'Help');
     else
@@ -517,13 +576,13 @@ end
 % if id ==0 package help; id ~= 0 process help
 if id
     % process help
-    processName = userData.MD.crtPackage_.processClassNames_{id};
+    processName = userData.crtPackage.processClassNames_{id};
     % how do ppl handle similar situation in C or Java?
     eval(['helpdlg(',processName,'.getHelp)']);
 %     helpdlg(text,'Help');
 else
     % package help
-    helpdlg(userData.MD.crtPackage_.getHelp, 'Help');
+    helpdlg(userData.crtPackage.getHelp, 'Help');
 end
 
 function icon_ButtonDownFcn(hObject, eventdata)
