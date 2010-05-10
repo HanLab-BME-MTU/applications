@@ -50,16 +50,22 @@ if ~isempty(expDir)
 
                 % extract framerate from the name of the cell folder
                 % NOTE: if there's no specific identification for fast, default to slow
-                if ( ~isempty(findstr(cellDir(k).name, 'fast')) || ~isempty(findstr(cellDir(k).name, '400ms')) )
-                    currFramerate = 0.4;
+                if ~isempty(regexp(cellDir(k).name, '\d+s', 'match'))
+                    fr = regexp(cellDir(k).name, '\d+s', 'match');
+                    framerate = str2num(fr{1}(1:end-1));
+                elseif ~isempty(regexp(cellDir(k).name, '\d+ms', 'match'))
+                    fr = regexp(cellDir(k).name, '\d+ms', 'match');
+                    framerate = str2num(fr{1}(1:end-2))/1000;
+                elseif ~isempty(findstr(cellDir(k).name, 'fast'))
+                    framerate = 0.4;
                 else 
-                    currFramerate = 2;
+                    framerate = 2;
                 end
                 
                 % enter data
                 experiment(ct).source = [expPath filesep cellDir(k).name filesep];
                 experiment(ct).date = currDate;
-                experiment(ct).framerate = currFramerate;
+                experiment(ct).framerate = framerate;
                 
                 tifFiles = dir([experiment(ct).source '*.tif*']);
                 if ~isempty(tifFiles)
