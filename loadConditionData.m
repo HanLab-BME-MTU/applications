@@ -1,4 +1,4 @@
-function [experiment] = loadConditionData()
+function [experiment] = loadConditionData(condDir)
 % loadConditionData loads the relevant information for all the data
 % available for a specific experiment condition; this requires a specific
 % dircetory structure and nomenclature (see below) 
@@ -18,8 +18,10 @@ function [experiment] = loadConditionData()
 % Francois Aguet, 11/02/2009
 
 
-% select directory where all data for this condition are located
-condDir = uigetdir(pwd, 'Please select the folder for this condition');
+if nargin<1
+    % select directory where all data for this condition are located
+    condDir = uigetdir(pwd, 'Please select the folder for this condition');
+end
 
 % get directories for experiments under this condition
 expDir = dirList(condDir);
