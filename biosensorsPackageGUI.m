@@ -204,7 +204,7 @@ function pushbutton_set1_Callback(hObject, eventdata, handles)
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
 procID = 1;
-userData.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+userData.setFig(procID) = thresholdProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
@@ -232,7 +232,8 @@ function pushbutton_set2_Callback(hObject, eventdata, handles)
 % who is the index of corresponding process in current package's process list
 procID = 2;
 userData = get(handles.figure1, 'UserData');
-userData.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+userData.setFig(procID) = ...
+    backgroundMaskProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
