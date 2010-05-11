@@ -1,10 +1,11 @@
-function [corrVect] = lftHist_correctionVector(N)
-% Correction vector for the lifetime histogram. Longer lifetimes are more likely
-% to be cut off at the beginning or end which will result in them not being counted
-%
-% The weighting function is N/(N-x), where N is the movie length.
-% To do: current function truncates the sequence, should be fixed.
+function weights = lftHist_correctionVector(N)
+% Weighting vector for lifetime histogram. Longer lifetimes are less likely to be 
+% observed in their entirety over the movie duration. This introduces a bias in the
+% lifetime histogram, which can be corrected by a weighting function, given by
+% N/(N-t-1), where N is the movie length.
+% The time vector is defined as t in [-1,0,...,N-2]. The first frame yields no
+% useable events, time t=0 corresponds to the second frame.
 % 
-% Last modified by Francois Aguet, 02/18/2010
+% Last modified by Francois Aguet, 05/11/2010
 
-corrVect = N./(N-2:-1:1);
+weights = N./(N:-1:1);
