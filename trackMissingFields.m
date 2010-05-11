@@ -1,4 +1,4 @@
-function [data] = trackMissingFieldsNEW(data,overwrite)
+function [data] = trackMissingFields(data,overwrite)
 %
 %
 % Francois Aguet, Jan 2010
@@ -31,12 +31,8 @@ for k = 1:length(data)
         if ~(exist([data(k).source 'TrackInfoMatrices'], 'dir')==7)
             mkdir([data(k).source 'TrackInfoMatrices']);
         end;
-        fprintf('Tracking movie no. %d\n', k);
         saveResults.dir = [data.source 'TrackInfoMatrices' filesep] ;
-        [trackNum,trackInfo] = trackWithGapClosing(movieInfo,costMatrices,'getTrackStats',gapCloseParam,iterParam,saveResults);
-        trackInfo(isnan(trackInfo))=0;
-        trackInfo = sparse(trackInfo);
-        save([data(k).source 'TrackInfoMatrices' filesep 'trackInfo.mat'], 'trackInfo');
+        trackWithGapClosing(movieInfo, costMatrices, 'getTrackStats', gapCloseParam, iterParam, saveResults);
     else
         fprintf('Movie no. %d was skipped because it has already been tracked\n', k);
     end 
