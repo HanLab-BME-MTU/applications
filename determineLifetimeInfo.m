@@ -23,13 +23,16 @@ for i=1:length(data)
     
     if ~(exist(lftPath, 'file')==2) || (overwrite==1)
         
-        trackInfoPath = [data(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'];
+        %trackInfoPath = [data(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'];
+        trackedFeaturesPath = [data(i).source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'];
         tracksFinalPath = [data(i).source 'TrackInfoMatrices' filesep 'tracksFinal.mat'];
         
-        if (exist(trackInfoPath, 'file')==2)
-            tfile = load(trackInfoPath);
-            trackFields = fieldnames(tfile);
-            trackInfo = tfile.(trackFields{1});
+        if (exist(trackedFeaturesPath, 'file')==2)
+            %tfile = load(trackInfoPath);
+            tfile = load(trackedFeaturesPath);
+            %trackFields = fieldnames(tfile);
+            %trackInfo = tfile.(trackFields{1});
+            trackInfo = tfile.trackedFeatureInfo;
         elseif (exist(tracksFinalPath, 'file')==2)
             tfile = load(tracksFinalPath);
             if isfield(tfile, 'tracksFinal')
@@ -42,7 +45,7 @@ for i=1:length(data)
         end
         
         if ~isempty(trackInfo)
-            [lftMat, statMat, xMat, yMat, disappMat] = findLifetimesStatusSimple(trackInfo);
+            [lftMat, statMat, xMat, yMat, disappMat] = determineLifetimeStatus(trackInfo);
             lftInfo.Mat_xcoord = xMat;
             lftInfo.Mat_ycoord = yMat;
             lftInfo.Mat_status = statMat;
