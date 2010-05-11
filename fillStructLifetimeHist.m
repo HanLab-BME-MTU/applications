@@ -26,15 +26,15 @@ for i = 1:length(data)
 
         load([data(i).source 'LifetimeInfo' filesep 'lftInfo.mat']);
 
-        lftMat = full(lftInfo.Mat_lifetime);
-        statMat =  full(lftInfo.Mat_status);
+        lftMat = lftInfo.Mat_lifetime;
+        statMat = lftInfo.Mat_status;
 
         sx = size(lftMat,1);
         lftVec = NaN(sx,1);
 
         % a trajectory is counted for the lifetime analysis if the status of 
         % the trajectory is ==1 and the value of the gaps is ==4
-        for k=1:sx
+        for k = 1:sx
             % current status vector
             cstat = nonzeros(statMat(k,:));
             if ( (min(cstat)==1) && (max(cstat)<5) )
