@@ -123,6 +123,8 @@ disp('Starting bleedthrough correction...')
 bleedImNames = getMovieImageFileNames(movieData,iBleedIm);
 imNames = getMovieImageFileNames(movieData,iChannels(1));
 
+nChan = length(iChannels);
+
 %Go through the channels and check output directories/channels
 iCorrected = zeros(1,nChan); %The index for the output channels
 corrDir = cell(1,nChan); %The directory names for the bleedthrough-corrected images
@@ -159,23 +161,29 @@ disp('Applying bleedthrough correction to images...')
 %Go through each image and apply the appropriate bleedthrough correction
 
 disp(['Correcting channel "' movieData.channelDirectory{iChannels(1)} ...
-    '" using images from "' movieData.channelDirectory{iBleedIm} '"']);     
+    '" using images from "' movieData.channelDirectory{iBleedIm(1)} ...
+    '" with coefficient ' num2str(bleedCoef(1)) ' and channel "' ...
+    movieData.channelDirectory{iBleedIm(2)} '" with coefficient ' num2str(bleedCoef(2))]);     
 disp(['Resulting images will be stored in channel ' movieData.channelDirectory{iCorrected(1)}])
 
 for iImage = 1:movieData.nImages(iChannels(1))
 
     %Load the image to be corrected
-    currIm = imread(imNames{iChan}{iImage});
+    currIm = imread(imNames{1}{iImage});
     %check the bit-depth of the image
     ogClass = class(currIm);
+    currIm = double(currIm);
 
     for iBleed = 1:nBleed
 
         %Load the bleed image
-        currBleedIm = imread(bleedImNames{iBleed}{iImage});
+        currBleedIm = double(imread(bleedImNames{iBleed}{iImage}));
 
         %Subtract the bleedthrough from this channel
         currIm = currIm - (currBleedIm * bleedCoef(iBleed));
+        
+        %Remove negative values (these usually occur in the background)
+        currIm(currIm < 0) = 0;
 
     end                
 
@@ -184,9 +192,9 @@ for iImage = 1:movieData.nImages(iChannels(1))
     currIm = cast(currIm,ogClass);
 
     %Write it to disk
-    iLastSep = max(regexp(imNames{iChan}{iImage},filesep));%find last file seperator
-    imwrite(currIm,[corrDir{iChan} filesep pString ... 
-        imNames{iChan}{iImage}(iLastSep+1:end)]);
+    iLastSep = max(regexp(imNames{1}{iImage},filesep));%find last file seperator
+    imwrite(currIm,[corrDir{1} filesep pString ... 
+        imNames{1}{iImage}(iLastSep+1:end)]);
 
 
 

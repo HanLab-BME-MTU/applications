@@ -294,7 +294,7 @@ for i = 1:2:nArg
         if isempty(stepOptions{sNum}) %Get the option name and value, removing the step number            
             stepOptions{sNum} = {argArray{i}(iUnderscore+1:end) argArray{i+1}}; 
         else            
-            stepOptions{sNum} = [stepOptions{sNum} {argArray{i}(iUnderscore+1) argArray{i+1}}];                              
+            stepOptions{sNum} = [stepOptions{sNum} {argArray{i}(iUnderscore+1:end) argArray{i+1}}];                              
         end                
     else
         switch argArray{i}                     

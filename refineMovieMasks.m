@@ -126,7 +126,7 @@ if isempty(minSize)
 end
 
 if isempty(closeRad)
-    closeRad = 3;
+    closeRad = [0 3];
 end
 
 if isempty(nObjects)
@@ -157,9 +157,14 @@ end
 
 nChan = length(iChannels);
 
-if closeRad > 0 %If closure is to be performed, create the structuring element
-    seClose = strel('disk',closeRad);    
+if closeRad(1) > 0 %If closure is to be performed, create the structuring element
+    seClose1 = strel('disk',closeRad(1));    
 end
+
+if closeRad(2) > 0
+    seClose2 = strel('disk',closeRad(2));
+end
+
 
 %% ---------------- Mask Refinement --------------- %%
 
@@ -187,14 +192,19 @@ for iChan = 1:nChan
         
         if doCleanUp
             
+            %Perform initial closure operation
+            if closeRad(1) > 0
+                currMask = imclose(currMask,seClose1);            
+            end
+            
             %Remove objects that are too small
             if ~isinf(minSize)                
                 currMask = bwareaopen(currMask,minSize);                                       
             end
         
             %Connect fractured objects
-            if closeRad > 0
-                currMask = imclose(currMask,seClose);                                
+            if closeRad(2) > 0
+                currMask = imclose(currMask,seClose2);                                
             end
             
            
