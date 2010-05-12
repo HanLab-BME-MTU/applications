@@ -16,26 +16,17 @@ end
 
 % loop over all entries in the structure to enter the image data necessary for the detection input
 nExp = length(data);
-runStatus = zeros(1,nExp);
 
-for i = 1:nExp
-    
+parfor i = 1:nExp
     tifFiles = dir([data(i).source '*.tif*']);
-    
     if isempty(tifFiles)
         error(['No TIF frames found in ' data(i).source]);
     else
-        if ~(exist([data(i).source 'DetectionMasks'], 'dir') == 7)
-            runStatus(i) = 1;
+        if ~(exist([data(i).source 'Detection'], 'dir') == 7)
+            spotDetection(data(i).source, 1);
         elseif (overwrite)
             fprintf('Overwriting detecting results for movie %d.\n', i);
-            runStatus(i) = 1;
-        end;
-    end;
-end;
-
-parfor i = 1:nExp
-    if runStatus(i)
-        spotDetection(data(i).source, 1);
-    end;
-end;
+            spotDetection(data(i).source, 1);
+        end
+    end
+end
