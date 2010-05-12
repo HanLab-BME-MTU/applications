@@ -30,22 +30,20 @@ if nargin < 4 || isempty(batchMode)
     batchMode = 1;
 end
 
-% Stick on this order: TM2, TM4, TM5, TM2_TM4, TM5_TM2, TM5_TM4
-subFolders = {...
-    %['TM2_Actin' filesep 'cell5'],...
-    %['TM4_Actin' filesep '13_August_2009' filesep 'cell3'],...
-    %['TM5NM1_Actin' filesep '26June2009' filesep 'Cell5'],...
-    %'TM2_TM4',...
-    %['TM4_TM2' filesep '10July2009' filesep 'Cell1'],...
-    ['TM4_TM2' filesep '10July2009' filesep 'Cell2']};%,...
-    %['TM5NM1_TM4' filesep '1_July_2009' filesep 'Cell2']};
+% Get every movies folder that contains 2 FSM subfolders either called:
+% Actin GFP
+% Actin TMx
+% TMx TMy
 
-dataPaths = cellfun(@(x) [dataDirectory filesep x], subFolders,...
-    'UniformOutput', false);
-
-% We process only files that exist now.
-ind = cellfun(@(x) exist(x, 'dir') ~= 0, dataPaths);
-dataPaths = dataPaths(ind);
+isValidFSMProject = @(x) exist(fullfile(x, 'lastProjSettings.mat'),'file');
+dataPaths = [];
+%dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'Actin', 'GFP'}, isValidFSMProject)];
+dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'Actin', 'TM2'}, isValidFSMProject)];
+dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'Actin', 'TM4'}, isValidFSMProject)];
+dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'Actin', 'TM5NM1'}, isValidFSMProject)];
+dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'TM4', 'TM2'}, isValidFSMProject)];
+dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject)];
+dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject)];
 
 disp('List of directories:');
 
@@ -53,8 +51,9 @@ for iMovie = 1:numel(dataPaths)
     disp([num2str(iMovie) ': ' dataPaths{iMovie}]);
 end
 
-analysisPaths = cellfun(@(x) [analysisDirectory filesep x], ...
-    subFolders(ind), 'UniformOutput', false);
+sstr = numel(dataDirectory);
+analysisPaths = cellfun(@(x) fullfile(analysisDirectory, x(sstr+1:end)),...
+    dataPaths, 'UniformOutput', false);
 
 for iMovie = 1:numel(analysisPaths)
     if ~exist(analysisPaths{iMovie}, 'dir');
@@ -91,7 +90,7 @@ for iMovie = 1:nMovies
     
     % Make sure TMs is the first directory in the list
     content = content(ind);
-    if ~strcmpi(content{2}, 'actin')
+    if ~strcmpi(content{2}, 'actin') || ~strcmpi(content{2}, 'GFP')
         tmp = currMovie.fsmDirectory{1};
         currMovie.fsmDirectory{1} = currMovie.fsmDirectory{2};
         currMovie.fsmDirectory{2} = tmp;

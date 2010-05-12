@@ -55,8 +55,8 @@ fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 labelClasses = zeros(size(protrusionSamples.averageNormalComponent));
 v = sort(protrusionSamples.averageMagnitude(:));
 val = v(ceil(.01 * numel(v)));
-labelClasses(protrusionSamples.averageNormalComponent > val) = 1;
-labelClasses(protrusionSamples.averageNormalComponent < -val) = 2; %#ok<NASGU>
+labelClasses(protrusionSamples.averageNormalComponent >= 1) = 1;
+labelClasses(protrusionSamples.averageNormalComponent <= -1) = 2; %#ok<NASGU>
 
 save([movieData.labels.directory filesep 'labelClasses.mat'], 'labelClasses');
 
