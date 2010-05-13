@@ -12,20 +12,20 @@ classdef BioSensorsPackage < Package
                super_args{2} = 'BioSensors'; 
                % Dependency Matrix (same length as process class name string)
                %                1 2 3 4 5 6 7 8 9 10
-               super_args{3} = [0 0 0 0 0 0 0 0 0 0 ; %1
-                                1 0 0 0 0 0 0 0 0 0 ; %2
-                                1 0 0 0 0 0 0 0 0 0 ; %3
-                                0 0 0 0 0 0 0 0 0 0 ; %4
-                                0 0 0 1 0 0 0 0 0 0 ; %5
-                                0 1 0 0 1 0 0 0 0 0 ; %6
-                                0 0 0 0 0 1 0 0 0 0 ; %7
-                                0 0 0 0 0 1 0 0 0 0 ; %8
-                                0 0 0 0 0 1 0 0 0 0 ; %9
-                                0 0 0 0 0 0 0 0 1 0 ];%10
+               super_args{3} = [0 0 0 0 0 0 0 0 0 0 ; %1 MasksProcess
+                                1 0 0 0 0 0 0 0 0 0 ; %2 BackgroundMasksProcess
+                                1 0 0 0 0 0 0 0 0 0 ; %3 MaskRefinementProcess
+                                0 0 0 0 0 0 0 0 0 0 ; %4 DarkCurrentCorrectionProcess
+                                0 0 0 1 0 0 0 0 0 0 ; %5 ShadeCorrectionProcess
+                                0 1 0 0 1 0 0 0 0 0 ; %6 BackgroundSubtractionProcess
+                                0 0 0 0 0 1 0 0 0 0 ; %7 BleedthroughCorrectionProcess
+                                0 0 0 0 0 1 0 0 0 0 ; %8 TransformationProcess
+                                0 0 0 0 0 1 0 0 0 0 ; %9 RatioingProcess
+                                0 0 0 0 0 0 0 0 1 0 ];%10PhotobleachCorrectionProcess
                                 
                % Process CLASS NAME string (same length as dependency matrix)
-               % Must have accurate process class name
-               super_args{4} = {'SegmentationProcess',...              
+               % Must be accurate process class name
+               super_args{4} = {'MasksProcess',...              
                                 'BackgroundMasksProcess',... 
                                 'MaskRefinementProcess',... 
                                 'DarkCurrentCorrectionProcess',...

@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 04-May-2010 16:35:24
+% Last Modified by GUIDE v2.5 12-May-2010 22:30:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,18 +54,28 @@ function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 %       handles.errorIconData - error icon image data
 %       handles.warnIconData - warning icon image data
 %       handles.setFig - array of handles of sub-windows
-%
+%       
 % App Data:
 %       'setFlag' in figure1 - set flag of open sub window, open or close
 %
 userData = get(handles.figure1,'UserData');
+
 % Choose default command line output for biosensorsPackageGUI
 handles.output = hObject;
+
+
 if nargin > 3
-    % Pass the MovieData from setup MovieData GUI to Biosensors GUI
+    % Batch or from setupMovieData GUI
     userData.MD = varargin{1};
+    
     % Handle of current package 
-    userData.crtPackage = varargin{2};
+    for i = 1: length(userData.MD.packages_)
+        if isa(userData.MD.packages_{i}, 'BioSensorsPackage')
+            userData.crtPackage = userData.MD.packages_{i};
+            break;
+        end
+    end
+    
     % Dependency matrix is defined in BioSensorsPackage class
     userData.dependM = userData.crtPackage.depMatrix_;
 else
@@ -74,34 +84,33 @@ else
     load movieData.mat
     userData.MD = MD;
     userData.crtPackage = MD.packages_{1};
-    userData.dependM = [0 0 0 0
-                       1 0 0 0
-                       0 1 0 0
-                       0 0 1 0];
+    userData.dependM = userData.crtPackage.depMatrix_;
 end
 
 % Load icon images from dialogicons.mat
 load lccbGuiIcons.mat
+
 % Save Icon data to GUI data
 userData.passIconData = passIconData;
 userData.errorIconData = errorIconData;
 userData.warnIconData = warnIconData;
+
 % Set figure colormap
 supermap(1,:) = get(hObject,'color');
 set(hObject,'colormap',supermap);
+
 % Set up package help. Package icon is tagged as '0'
 axes(handles.axes_help);
 Img = image(questIconData); 
-% handles.icon_help = Img;
 set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
     'visible','off','YDir','reverse');
 set(Img,'ButtonDownFcn',@help_ButtonDownFcn);
 set(Img,'tag','0');
+
 % Set up process help. Process icons are tagged as '1','2' ... 'n'
 for i = 1:size(userData.dependM, 1)
     eval (['axes(handles.axes_help' num2str(i) ')']);
     Img = image(questIconData);
-%     eval(['handles.icon_help',num2str(i),' = Img; '])
     set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
         'visible','off','YDir','reverse');  
     set(Img,'ButtonDownFcn',@help_ButtonDownFcn);
@@ -113,6 +122,7 @@ set(handles.text_body1, 'string',[userData.crtPackage.name_ ' Package']);
 
 % Set flag of sub window. Sub window open flag = 1, close flag = 0
 setappdata(hObject, 'setFlag', zeros(1,size(userData.dependM,1)));
+setappdata(hObject, 'setupMovieDataFlag', 0);
 
 % Update handles structure
 set(handles.figure1,'UserData',userData);
@@ -156,6 +166,7 @@ for i = 1: size(userData.dependM, 1)
            
        end
    end
+   
    % If process's sucess = 1, release the process from GUI enable/disable
    % control
    if ~isempty(userData.crtPackage.processes_{i}) && ...
@@ -204,7 +215,7 @@ function pushbutton_set1_Callback(hObject, eventdata, handles)
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
 procID = 1;
-userData.setFig(procID) = thresholdProcessGUI('mainFig',handles.figure1,procID);
+userData.setFig(procID) = masksProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
@@ -233,7 +244,7 @@ function pushbutton_set2_Callback(hObject, eventdata, handles)
 procID = 2;
 userData = get(handles.figure1, 'UserData');
 userData.setFig(procID) = ...
-    backgroundMaskProcessGUI('mainFig',handles.figure1,procID);
+    testProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
@@ -595,11 +606,202 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-setFlag = getappdata(hObject, 'setFlag');
 userData = get(handles.figure1, 'UserData');
+setFlag = getappdata(hObject, 'setFlag');
+
+% Delete setting figures
 if any(setFlag)
     index = find(setFlag);
     for i = index
         delete(userData.setFig(i));
     end
 end
+
+% Delete setupMovieData GUI figure
+if getappdata(hObject,'setupMovieDataFlag')
+    delete(userData.setupMovieDataFig);
+end
+
+% --- Executes on button press in checkbox_5.
+function checkbox_5_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_5
+userfcn_lampSwitch(5, get(hObject,'value'), handles);
+
+
+% --- Executes on button press in pushbutton_set5.
+function pushbutton_set5_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_set5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton_show5.
+function pushbutton_show5_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_show5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in checkbox_6.
+function checkbox_6_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_6
+userfcn_lampSwitch(6, get(hObject,'value'), handles);
+
+
+% --- Executes on button press in pushbutton_set6.
+function pushbutton_set6_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_set6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton_show6.
+function pushbutton_show6_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_show6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in checkbox_7.
+function checkbox_7_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_7 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_7
+userfcn_lampSwitch(7, get(hObject,'value'), handles);
+
+
+% --- Executes on button press in pushbutton_set7.
+function pushbutton_set7_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_set7 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton_show7.
+function pushbutton_show7_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_show7 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in checkbox_8.
+function checkbox_8_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_8
+userfcn_lampSwitch(8, get(hObject,'value'), handles);
+
+
+% --- Executes on button press in pushbutton_set8.
+function pushbutton_set8_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_set8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton_show8.
+function pushbutton_show8_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_show8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in checkbox_9.
+function checkbox_9_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_9
+userfcn_lampSwitch(9, get(hObject,'value'), handles);
+
+
+% --- Executes on button press in pushbutton_set9.
+function pushbutton_set9_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_set9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton_show9.
+function pushbutton_show9_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_show9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in checkbox_10.
+function checkbox_10_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_10
+userfcn_lampSwitch(10, get(hObject,'value'), handles);
+
+
+% --- Executes on button press in pushbutton_set10.
+function pushbutton_set10_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_set10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton_show10.
+function pushbutton_show10_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_show10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_file_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_help_lccb_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_help_lccb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_about_lccb_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_about_lccb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_file_open_Callback(hObject, eventdata, handles)
+% Call back function of 'New' in menu bar
+userData = get(handles.figure1, 'UserData');
+
+% Open setupMovieData, notify new MovieData object is needed.
+userData.setupMovieDataFig = ...
+    setupMovieDataGUI('mainFig',handles.figure1);
+set(handles.figure1, 'UserData', userData);
+
+
+
+% --------------------------------------------------------------------
+function menu_file_exit_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_exit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+delete(handles.figure1);
