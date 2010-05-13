@@ -47,16 +47,19 @@ end
 % --- Executes just before biosensorsPackageGUI is made visible.
 function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Useful tools
-% GUI data:
-%       handles.MD - the MovieData object
-%       handles.dependM - dependency matrix
-%       handles.passIconData - pass icon image data
-%       handles.errorIconData - error icon image data
-%       handles.warnIconData - warning icon image data
-%       handles.setFig - array of handles of sub-windows
+% User data:
+%       userData.MD - the MovieData object
+%       userData.dependM - dependency matrix
+%       userData.crtPackage - current package
+%       userData.passIconData - pass icon image data
+%       userData.errorIconData - error icon image data
+%       userData.warnIconData - warning icon image data
+%       userData.setFig - array of handles of sub-windows (may not exist)
+%       userData.setupMovieDataFig - handle of setupMovieData figure (may not exist)
 %       
 % App Data:
 %       'setFlag' in figure1 - set flag of open sub window, open or close
+%       'setupMovieDataFlag' in figure1 - flag of setupMovieData figure
 %
 userData = get(handles.figure1,'UserData');
 
@@ -215,7 +218,7 @@ function pushbutton_set1_Callback(hObject, eventdata, handles)
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
 procID = 1;
-userData.setFig(procID) = masksProcessGUI('mainFig',handles.figure1,procID);
+userData.setFig(procID) = segmentationProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
@@ -372,6 +375,7 @@ end
 % Package full sanity check. Sanitycheck every checked process
 procEx = userData.crtPackage.sanityCheck(true, procCheck);
 k = {};
+
 for i = procCheck
    if ~isempty(procEx{i})
        % Check if there is fatal error in exception array
