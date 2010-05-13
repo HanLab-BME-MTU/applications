@@ -18,10 +18,9 @@ if (nargin < 2)
 end
 
 for i=1:length(data)
-    fprintf('Lifetimes for movie %d\n',i);
-    lftPath = [data(i).source 'LifetimeInfo' filesep 'lftInfo.mat'];
-    
+    lftPath = [data(i).source 'LifetimeInfo' filesep 'lftInfo.mat'];    
     if ~(exist(lftPath, 'file')==2) || (overwrite==1)
+        fprintf('Generating lifetimes for movie %d of %d\n', i, length(data));
         
         %trackInfoPath = [data(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'];
         trackedFeaturesPath = [data(i).source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'];
