@@ -6,6 +6,9 @@
 %           prmVect        : parameter vector of size 3*N+1
 %           (distribution) : 'PDF' (default), 'CDF', or 'SVF'
 %
+% Outputs:  w : Summed distributions 
+%           W : Individual underlying distributions (without offset)
+%
 % Structure of the parameter vector: [offset A(1) lambda(1) k(1) ... A(N) lambda(N) k(N)]
 
 % Francois Aguet, Jan 2010
