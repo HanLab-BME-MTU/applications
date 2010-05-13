@@ -20,9 +20,9 @@ if nargin<3
     distribution = 'PDF';
 end
 
-% if ~strcmp(distribution, 'PDF') && ~strcmp(distribution, 'CDF') && ~strcmp(distribution, 'SVF')
-%     error('err:thise', 'Valid ''functionType'':\n   ''PDF'' (probability density function)\n   ''CDF'' (cumulative distribution function)\n   ''SVF'' (survival function)');
-% end;
+if ~strcmp(distribution, 'PDF') && ~strcmp(distribution, 'CDF') && ~strcmp(distribution, 'SVF')
+    error('err:thise', 'Valid ''functionType'':\n   ''PDF'' (probability density function)\n   ''CDF'' (cumulative distribution function)\n   ''SVF'' (survival function)');
+end;
 
 N = (length(prmVect)-1)/3;
 offset = prmVect(1);
