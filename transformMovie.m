@@ -100,7 +100,8 @@ if isempty(iMaskChan)
     iMaskChan = iChannels;
 end
 if doMasks && ~checkMovieMasks(movieData,iMaskChan)
-    error('Cannot transform masks because the specified channels do not have valid masks! Disable the "TransformMasks" option, or create masks!!!')
+    warning('Cannot transform masks because the specified channels do not have valid masks! Disable the "TransformMasks" option, or create masks!!!') %#ok<WNTAG>
+    doMasks = false;
 end
 if isempty(xFormFile)
     if ~batchMode
