@@ -2,7 +2,7 @@ classdef BioSensorsPackage < Package
 % A concrete process for BioSensor Package
     
     methods (Access = public)
-        function obj = BioSensorsPackage (owner)
+        function obj = BioSensorsPackage (owner,outputDir)
            % Construntor of class MaskProcess
            if nargin == 0
               super_args = {};
@@ -25,7 +25,7 @@ classdef BioSensorsPackage < Package
                                 
                % Process CLASS NAME string (same length as dependency matrix)
                % Must be accurate process class name
-               super_args{4} = {'MasksProcess',...              
+               super_args{4} = {'SegmentationProcess',...              
                                 'BackgroundMasksProcess',... 
                                 'MaskRefinementProcess',... 
                                 'DarkCurrentCorrectionProcess',...
@@ -36,8 +36,17 @@ classdef BioSensorsPackage < Package
                                 'RatioingProcess',...    
                                 'PhotobleachCorrectionProcess',...
                                 };
+               if nargin < 2 || isempty(outputDir)
+                    outputDir = uigetdir(pwd);
+                    if outputDir == 0
+                       error('You must specify an output directory for the biosensor package!') 
+                    else
+                        super_args{5} = outputDir;
+                    end
+               end
+                
            end
-           % Call the supercalss constructor with empty cell array (no
+           % Call the superclass constructor with empty cell array (no
            % argument) if nargin == 0
            obj = obj@Package(super_args{:});
         end
