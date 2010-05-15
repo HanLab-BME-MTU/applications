@@ -15,7 +15,7 @@ function movieData = createMovieBackgroundMasksNEW(movieData,paramsIn)
 %
 %   paramsIn - Structure with inputs for optional parameters. The
 %   parameters should be stored as fields in the structure, with the field
-%   names and possible values as described below
+%   names and possible values as described below:
 % 
 %   Possible Parameter Structure Field Names:
 %       ('FieldName' -> possible values)
@@ -38,8 +38,9 @@ function movieData = createMovieBackgroundMasksNEW(movieData,paramsIn)
 %       produce the background masks.
 %       Optional. Default is 20 pixels.
 % 
-%       'BatchMode' - If true, graphical output and user interaction is
-%       supressed (i.e. progress bars, dialog and question boxes etc.)
+%       ('BatchMode'- True/False Scalar) If true, graphical output and user
+%       interaction is supressed (i.e. progress bars, dialog and question
+%       boxes etc.)
 %
 %
 % Output:
@@ -60,7 +61,7 @@ pString = 'bkgrnd_'; %Prefix for saving masks to file
 
 %% ------------ Input ----------- %%
 
-if ~isa(movieData,'MovieData')
+if nargin < 1 || ~isa(movieData,'MovieData')
     error('The first input argument must be a valid MovieData object!')
 end
 if nargin < 2
@@ -68,8 +69,10 @@ if nargin < 2
 end
 
 %Make sure the move has been segmented
-iSegProc = find(cellfun(@(x)(isa(x,'SegmentationProcess') && ~ isa(x,'BackgroundMaskProcess')),movieData.processes_),1);   
-%WHAT IF THERE ARE MULTIPLE SEGMENTATION PROCESSES!!!! TEMP TEMP
+iSegProc = find(cellfun(@(x)(isa(x,'ThresholdProcess')),movieData.processes_),1);   
+%WHAT IF THERE ARE MULTIPLE SEGMENTATION PROCESSES!!!! (OF THIS PROCESS, OR
+%OTHER PROCESSES!!?!!? THIS NEEDS TO CHANGE !!! (TEMPORARY) HLE
+
 if isempty(iSegProc) 
     error('Must create foreground masks before creating background masks!')
 else
@@ -104,6 +107,8 @@ end
 if any(~hasMasks(p.ChannelIndex))
     warning('Cannot create background masks for some channels, because they do not have foreground masks! \n Please segment these channels before creating background masks!')
     p.ChannelIndex = p.ChannelIndex(hasMasks);
+elseif ~any(hasMasks(p.ChannelIndex))
+    error('Cannot create background masks - none of the specified channels have foreground masks!')
 end
 
 

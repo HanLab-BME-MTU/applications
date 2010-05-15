@@ -1,5 +1,5 @@
 classdef BackgroundMaskProcess < SegmentationProcess
-    
+  %INHERITANCE OF SEGMENTATIONPROCESS IS TEMPORARY - NEED TO MOVE TO OWN CLASS. HLE  
     methods(Access = public)
         
         function obj = BackgroundMaskProcess(owner,funParams)
@@ -9,7 +9,7 @@ classdef BackgroundMaskProcess < SegmentationProcess
                 nChan = numel(owner.channelPath_);
                 
                 super_args{1} = owner;
-                super_args{2} = @createMovieBackgroundMasks;                               
+                super_args{2} = @createMovieBackgroundMasksNEW;                               
                 
                 if nargin < 2 || isempty(funParams)                                       
                     
