@@ -1,8 +1,8 @@
-classdef BackgroundMaskProcess < SegmentationProcess
+classdef BackgroundMasksProcess < SegmentationProcess
   %INHERITANCE OF SEGMENTATIONPROCESS IS TEMPORARY - NEED TO MOVE TO OWN CLASS. HLE  
     methods(Access = public)
         
-        function obj = BackgroundMaskProcess(owner,funParams)
+        function obj = BackgroundMasksProcess(owner,funParams)
             if nargin == 0
                 super_args = {};
             else
@@ -14,7 +14,8 @@ classdef BackgroundMaskProcess < SegmentationProcess
                 if nargin < 2 || isempty(funParams)                                       
                     
                     %----Defaults----%
-                    funParams.OutputDirectory = [owner.movieDataPath_ filesep 'BackgroundMasks'];                          
+                    funParams.OutputDirectory = ...
+                        [owner.outputDirectory_  filesep 'BackgroundMasks'];                       
                     funParams.ChannelIndex = 1:nChan; %Default is to attempt to creat background masks for all channels
                     funParams.GrowthRadius = 20;
                     funParams.BatchMode = false;                                              

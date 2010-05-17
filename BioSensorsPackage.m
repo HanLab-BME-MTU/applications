@@ -36,18 +36,11 @@ classdef BioSensorsPackage < Package
                                 'RatioingProcess',...    
                                 'PhotobleachCorrectionProcess',...
                                 };
-               if nargin < 2 || isempty(outputDir)
-                    outputDir = uigetdir(pwd);
-                    if outputDir == 0
-                       error('You must specify an output directory for the biosensor package!') 
-                    else
-                        super_args{5} = outputDir;
-                    end
-               end
+                            
+               super_args{5} = outputDir;
                 
            end
-           % Call the superclass constructor with empty cell array (no
-           % argument) if nargin == 0
+           % Call the superclass constructor 
            obj = obj@Package(super_args{:});
         end
         function procEx = sanityCheck(obj,full,procID) % throws Exception Cell Array

@@ -47,10 +47,11 @@ end
 % --- Executes just before biosensorsPackageGUI is made visible.
 function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Useful tools
-% User data:
+% User Data:
 %       userData.MD - the MovieData object
 %       userData.dependM - dependency matrix
 %       userData.crtPackage - current package
+%
 %       userData.passIconData - pass icon image data
 %       userData.errorIconData - error icon image data
 %       userData.warnIconData - warning icon image data
@@ -61,34 +62,85 @@ function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 %       'setFlag' in figure1 - set flag of open sub window, open or close
 %       'setupMovieDataFlag' in figure1 - flag of setupMovieData figure
 %
+
+handles.output = hObject;
 userData = get(handles.figure1,'UserData');
 
-% Choose default command line output for biosensorsPackageGUI
-handles.output = hObject;
+% Call package GUI error
 
+if nargin == 3
+    error('User-defined: Please call biosensors control panel with a MovieData object. E.g. biosensorsPackageGUI(movieDataObject)');
+end
 
-if nargin > 3
-    % Batch or from setupMovieData GUI
-    userData.MD = varargin{1};
-    
-    % Handle of current package 
-    for i = 1: length(userData.MD.packages_)
-        if isa(userData.MD.packages_{i}, 'BioSensorsPackage')
-            userData.crtPackage = userData.MD.packages_{i};
+% ----------------------------- Load MovieData ----------------------------
+
+MD = varargin{1};
+
+% I. Before loading MovieData, firstly check if the current package exists
+    packageExist = false;
+
+    for i = 1: length(MD.packages_)
+        if strcmp(class(MD.packages_{i}), 'BioSensorsPackage')
+            % TODO: dlg box: previous package exists; Save package and
+            % proceeds  
+            userData.crtPackage = MD.packages_{i};
+            packageExist = true;
             break;
         end
     end
     
+    if ~packageExist
+        % No same package is found.. create a new package object
+        MD.addPackage( BioSensorsPackage(MD, MD.outputDirectory_) )
+        userData.crtPackage = MD.packages_{end};
+    end
+
+
+% II. Check if existing processes can be recycled. (No use in first release of software)
+
+if ~packageExist && ~isempty(MD.processes_)
+    for i = 1: length(userData.crtPackage.processClassNames_)
+        % ith process in package's process list
+        % 'sameProcID' save the ID of existing processes in MovieData that 
+        % could be recycled by current package. 
+
+        sameProcID = [];
+        sameProcName = {};
+        
+        for j = 1: length(MD.processes_)
+            % jth available process in MovieData's process pool
+           if strcmp(class(MD.processes_{j}), ...
+                        userData.crtPackage.processClassNames_{i}) 
+                sameProcID = horzcat (sameProcID, j);
+                sameProcName = horzcat(sameProcName, ...
+                                            {MD.processes_{j}.name_});
+           end
+        end
+        
+        if ~isempty(sameProcID)
+            [select, ok] = listdlg('ListString', sameProcName, ...
+                 'SelectionMode','single','ListSize',[420 200], ...
+                 'Name','Select an existing process','PromptString', ...
+                 {['There are existing ',sameProcName{1},' processes saved during previous sessions. You can choose to:'],...
+                 '',...
+                 '1. Use one of the following existing processes by click ''Select''',...
+                 '2. click ''New'' to start over this process'} , ...
+                 'OKString','Select','CancelString','New'); 
+             if ok 
+                 % Add process to current package
+                 userData.crtPackage.setProcess(i,MD.processes_{sameProcID(select)});
+             end
+        end
+    end
+end
+save([MD.movieDataPath_ MD.movieDataFileName_], 'MD');
+
+    userData.MD = MD;
+
     % Dependency matrix is defined in BioSensorsPackage class
     userData.dependM = userData.crtPackage.depMatrix_;
-else
-    % Default dependency matrix. For test reason, define a dependency 
-    % matrix in here
-    load movieData.mat
-    userData.MD = MD;
-    userData.crtPackage = MD.packages_{1};
-    userData.dependM = userData.crtPackage.depMatrix_;
-end
+
+% -----------------------Load and set up icons----------------------------
 
 % Load icon images from dialogicons.mat
 load lccbGuiIcons.mat
@@ -120,6 +172,8 @@ for i = 1:size(userData.dependM, 1)
     eval([ 'set(Img,''tag'',''',num2str(i),''');' ])
 end
 
+% --------------------------Other GUI settings-----------------------------
+
 % set text body
 set(handles.text_body1, 'string',[userData.crtPackage.name_ ' Package']);
 
@@ -131,7 +185,8 @@ setappdata(hObject, 'setupMovieDataFlag', 0);
 set(handles.figure1,'UserData',userData);
 guidata(hObject, handles);
 
-% all processes full sanity check
+% --------------------------Package Sanity Check---------------------------
+
 procEx = userData.crtPackage.sanityCheck(true, 'all');
 k = [];
 for i = 1: size(userData.dependM, 1)
@@ -169,7 +224,9 @@ for i = 1: size(userData.dependM, 1)
            
        end
    end
-   
+
+% --------------------------Set up uicontrols------------------------------
+
    % If process's sucess = 1, release the process from GUI enable/disable
    % control
    if ~isempty(userData.crtPackage.processes_{i}) && ...
@@ -622,7 +679,8 @@ if any(setFlag)
 end
 
 % Delete setupMovieData GUI figure
-if getappdata(hObject,'setupMovieDataFlag')
+
+if getappdata(hObject,'setupMovieDataFlag');
     delete(userData.setupMovieDataFig);
 end
 
