@@ -26,9 +26,10 @@ end;
 
 N = (length(prmVect)-1)/3;
 offset = prmVect(1);
-A = prmVect(2:3:end);
-lambda = prmVect(3:3:end);
-k = prmVect(4:3:end);
+A = abs(prmVect(2:3:end));
+
+lambda = abs(prmVect(3:3:end));
+k = abs(prmVect(4:3:end));
 
 W = zeros(N, length(t));
 switch distribution
