@@ -16,7 +16,7 @@
 % Francois Aguet, March 2010
 
 
-function [prmVect] = fitNWeibull(t, data, prmVect, estVect, mode, display)
+function [prmVect, residual, estimatesSigma, BIC] = fitNWeibull(t, data, prmVect, estVect, mode, display)
 
 if nargin<6
     display = 0;
@@ -45,7 +45,7 @@ if (display~=0)
         hold on;
         h(n) = plot(t{n}, nWeibull(t{n}, prmVect, mode), 'r');
     end
-    axis([0 max([t{:}]) 0 1]);
+    axis([0 max([t{:}]) 0 1.1*max([data{:}])]);
     xlabel('Time (s)', 'FontName', 'Helvetica', 'FontSize', 16);
     ylabel('Relative frequency', 'FontName', 'Helvetica', 'FontSize', 16);
     set(gca, 'FontName', 'Helvetica', 'FontSize', 14, 'LineWidth', 1.5);
@@ -53,8 +53,46 @@ if (display~=0)
 end
 
 % run optimization
-p = lsqnonlin(@nWeibullCost, prmVect(estIdx), [], [], opts, t, data, prmVect, estIdx, mode, h);
-prmVect(estIdx) = abs(p);
+[p, resnorm, residual, exitflag, output, lambda, jacobian] = lsqnonlin(@nWeibullCost, prmVect(estIdx), [], [], opts, t, data, prmVect, estIdx, mode, h);
+prmVect(estIdx) = p;
+prmVect(2:end) = abs(prmVect(2:end));
+
+
+%===========================================================
+% BIC/Schwarz criterion (assumption: normal errors)
+%===========================================================
+n = length([data{:}]); % data points
+deg = sum(estIdx); % degrees of freedom
+BIC = n*log(resnorm/n) + deg*log(n);
+
+
+% % degrees of freedom = number of data points minus number of free fit parameters
+% numFreeFitP = sum(estVect);
+% degFreedom  = numel([data{:}]) - numFreeFitP;
+% % chi square = sum of residual divided by degrees of freedom
+% chiSquare   = nansum(residual.^2)/degFreedom;
+% % cofactor matrix Q; since inverse on JJ isn't possible because of the
+% % zeros at positions of fixed parameters, perform the inverse operation on
+% % a condensed version of JJ with no zeros
+% JJ          = full(jacobian)'*full(jacobian);
+% JJdefpos    = find(JJ~=0);
+% if length(JJdefpos)==numFreeFitP^2
+%     JJsmall     = zeros(numFreeFitP);
+%     JJsmall(:)  = JJ(JJdefpos);
+%     Qsmall      = inv(JJsmall);
+%     Q           = zeros(length(estVect));
+%     Q(JJdefpos)    = Qsmall(:);
+%     
+%     % standard deviation of parameters uses only diagonal of covariance matrix,
+%     % which is cofactor times error
+%     % Note: large values outside of the diagonal (i.e. on the same order of
+%     % magnitude as the diagonal) indicate interdependence of parameters
+%     estimatesSigma = sqrt(chiSquare*diag(Q))';
+% else
+%     estimatesSigma = [];
+% end
+estimatesSigma = [];
+
 
 % plot subpopulations
 if (display~=0)
