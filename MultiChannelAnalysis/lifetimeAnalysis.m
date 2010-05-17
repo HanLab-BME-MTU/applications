@@ -1,4 +1,4 @@
-function output = lifetimeAnalysis_2p(data, Results, kWeibull, cutoffIdx, name)
+function output = lifetimeAnalysis(data, Results, kWeibull, cutoffIdx, name)
 %(Results, restrict, kWeibull, estartvec, efixvec)
 
 % data = fillStructLifetimeHist(data);
@@ -141,7 +141,7 @@ set(gca, 'YTick', 0:0.1:1, 'FontName', 'Helvetica', 'FontSize', 14, 'LineWidth',
 xlabel('t [s]', 'FontName', 'Helvetica', 'FontSize', 14);
 ylabel('Relative frequency', 'FontName', 'Helvetica', 'FontSize', 14);
 title(['Cumulative histogram' name], 'FontName', 'Helvetica', 'FontSize', 14);
-print('-depsc2', '-r300', 'CumulativeHistogramFit.eps');
+%print('-depsc2', '-r300', 'CumulativeHistogramFit.eps');
 
 
 % Plot CDF fit parameters on PDF
@@ -157,5 +157,5 @@ set(gca, 'FontName', 'Helvetica', 'FontSize', 14, 'LineWidth', 1.5);
 xlabel('t [s]', 'FontName', 'Helvetica', 'FontSize', 14);
 ylabel('Relative frequency', 'FontName', 'Helvetica', 'FontSize', 14);
 title(['Histogram' name], 'FontName', 'Helvetica', 'FontSize', 14);
-print('-depsc2', '-r300', 'HistogramFit.eps');
+%print('-depsc2', '-r300', 'HistogramFit.eps');
 
