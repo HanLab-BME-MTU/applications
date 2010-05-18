@@ -50,12 +50,10 @@ for iTM = 1:numel(paths)
     protrusionSamples.averageNormalComponent = ...
         protrusionSamples.averageNormalComponent * pixelSize / timeInterval;
     
-    % Load activity class
-    fileName = [movieData.labels.directory filesep 'labelClasses.mat'];
-    if ~exist(fileName, 'file')
-        error(['Unale to locate ' fileName]);
+    % Check whether the speed classification has been performed
+    if ~isfield(protrusionSamples,'classNames') || ~isfield(protrusionSamples,'classes')
+        error('Classification of edge velocity has not been performed.');
     end
-    load(fileName);
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -64,7 +62,8 @@ for iTM = 1:numel(paths)
     %-----------------------------------------------------------------%
     
     % Build activtyStep
-    activityStep = zeros(size(labelClasses));
+    classes = protrusionSamples.classes;
+    activityStep = zeros(size(classes));
     
     % Forward sweep: initialize 1st frame so that protrution / retraction
     % events which start at first frame are discarded.
@@ -72,23 +71,23 @@ for iTM = 1:numel(paths)
     
     for iFrame = 2:nFrames-1
         % Protrusion at frames iFrame and iFrame-1
-        ind = labelClasses(:,iFrame) == 1 & ...
-            labelClasses(:,iFrame-1) == 1 & ...
+        ind = classes(:,iFrame) == 1 & ...
+            classes(:,iFrame-1) == 1 & ...
             activityStep(:,iFrame-1);        
         activityStep(ind,iFrame) = activityStep(ind,iFrame-1) + 1;
         
         % Retration at frames iFrame and iFrame-1
-        ind = labelClasses(:,iFrame) == 2 & ...
-            labelClasses(:,iFrame-1) == 2 & ...
+        ind = classes(:,iFrame) == 2 & ...
+            classes(:,iFrame-1) == 2 & ...
             activityStep(:,iFrame-1);
         activityStep(ind,iFrame) = activityStep(ind,iFrame-1) - 1;
         
         % Protrusion at frame iFrame but not at iFrame-1
-        ind = labelClasses(:,iFrame) == 1 & labelClasses(:,iFrame-1) ~= 1;
+        ind = classes(:,iFrame) == 1 & classes(:,iFrame-1) ~= 1;
         activityStep(ind,iFrame) = 1;
         
         % Retraction at frame iFrame but not at iFrame-1
-        ind = labelClasses(:,iFrame) == 2 & labelClasses(:,iFrame-1) ~= 2;
+        ind = classes(:,iFrame) == 2 & classes(:,iFrame-1) ~= 2;
         activityStep(ind,iFrame) = -1;
     end
     
@@ -98,8 +97,8 @@ for iTM = 1:numel(paths)
     
     for iFrame = nFrames-2:-1:1
         % Protrusion or Retration at frame iFrame and iFrame+1
-        ind = labelClasses(:,iFrame) == labelClasses(:,iFrame+1) & ...
-            labelClasses(:,iFrame) & ~activityStep(:,iFrame+1);
+        ind = classes(:,iFrame) == classes(:,iFrame+1) & ...
+            classes(:,iFrame) & ~activityStep(:,iFrame+1);
         activityStep(ind,iFrame) = 0;
     end
     
@@ -131,8 +130,22 @@ for iTM = 1:numel(paths)
             ind1 = (locMax1 .* (L == iWin)) ~= 0;
             ind2 = (locMax2 .* (L == iWin)) ~= 0;
             
-            d1 = distToEdge(ind1);
-            d2 = distToEdge(ind2);
+            if any(ind1(:))
+                d1 = sort(distToEdge(ind1));
+                d1 = d1(1);
+            else
+                d1 = [];
+            end
+            
+            if any(ind2(:))
+                d2 = sort(distToEdge(ind2));
+                d2 = d2(1);
+            else
+                d2 = [];
+            end
+            
+%             d1 = distToEdge(ind1);
+%             d2 = distToEdge(ind2);
             
             step = activityStep(iWin,iFrame);
             

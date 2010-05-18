@@ -19,17 +19,14 @@ load([movieData.windows.directory filesep movieData.windows.fileName])
 %Determine number of bands, windows and images
 [nBandsTot,nWindowsTot,nImages] = size(allWinPoly);
 
-%Load window class
-disp('Loading window classes...');
-load([movieData.labels.directory filesep 'labelClasses.mat']);
-
-%load the samples to see if window passed quality control
-disp('Checking activity samples...')
-try
-    load([movieData.activity.directory filesep movieData.activity.fileName]);
-catch
-    disp('Couldnt load activity samples, using all windows')
+%Load protrusion samples
+disp('Loading protrusion samples...');
+load(fullfile(movieData.protrusion.directory, movieData.protrusion.samples.fileName));
+if ~isfield(protrusionSamples,'classNames') || ~isfield(protrusionSamples,'classes')
+    error('Classification of edge velocity has not been performed.');
 end
+
+classes = protrusionSamples.classes;
 
 if exist('allWindowSamples','var') && isfield(allWindowSamples,'nPixels')
     winStati = ~isnan(allWindowSamples.nPixels);
@@ -54,27 +51,14 @@ nWindows = length(iWindows);
 disp('Checking image files...')
 imageFileNames = dir([movieData.imageDirectory filesep movieData.channelDirectory{iChan} filesep '*.tif']); %TEMP TEMP
 
-%Load the first image
-currImage = imread([movieData.imageDirectory filesep movieData.channelDirectory{iChan} filesep imageFileNames(1).name]);
-
-%Determine size of the image
-[imageM,imageN] = size(currImage);
-
-winColors = rand(nBands,nWindows,3);
-%scrSize = get(0,'ScreenSize');
-%h = figure('Position',[20 520 1000 650]);%Desktop work
-%h = figure('Position',[25 50 950 640]);%laptop work
-
-
 try
     disp('Checking protrusion vectors....')
     load([movieData.protrusion.directory filesep movieData.protrusion.fileName])
     useProt = true;
-catch
-    disp('Couldnt load protrusion vectors - not displaying.')
+catch errMsg
+    disp(['Warning: ' errMsg]);
     useProt = false;
 end
-
 
 for iImage = 1:nImages-1
     
@@ -98,7 +82,7 @@ for iImage = 1:nImages-1
     set(gca,'YDir','reverse')
     %Overlay each requested window on the image
     for iWindow = 1:nWindows
-        switch labelClasses(iWindow,iImage)
+        switch classes(iWindow,iImage)
             case 0
                 color = 'y'; % pause
             case 1
@@ -121,7 +105,7 @@ for iImage = 1:nImages-1
         end
     end
     
-    if useProt && iImage <= length(protrusion)
+    if useProt && iImage <= length(protrusion) %#ok<USENS>
         %Draw the protrusion vectors
         quiver(protrusion{iImage}(:,1),protrusion{iImage}(:,2),protrusion{iImage}(:,3),protrusion{iImage}(:,4),0,'Color','m')
                          
@@ -134,14 +118,12 @@ for iImage = 1:nImages-1
     set(gca,'color','w');
     
     if iImage == 1
-        MakeQTMovie('start',[movieData.analysisDirectory filesep movieName '.mov'])
-        MakeQTMovie('quality',.75)
+        MakeQTMovie('start',[movieData.analysisDirectory filesep movieName '.mov']);
+        MakeQTMovie('quality',.75);
     end    
-    MakeQTMovie('addfigure')
+    MakeQTMovie('addaxes');
     
 end
 
-MakeQTMovie('finish')
-%movie2avi(windowTrackMovie,[movieData.analysisDirectory filesep movieName],'compression','Cinepak');
-%close(h);
+MakeQTMovie('finish');
 

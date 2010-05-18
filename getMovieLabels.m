@@ -14,22 +14,44 @@ if ~checkMovieProtrusionSamples(movieData)
     error('Must sample protrusion before labeling windows.');
 end
 
+% Step 1: Classify protrusion speed into 3 classes:
+
+% Add this classification into protrusionSamples variable. This should not
+% be done here. Instead, add this lines into getProtrusionSamples.m (Talk
+% to Hunter).
+
+%Load protrusion sample
+load(fullfile(movieData.protrusion.directory, ...
+    movieData.protrusion.samples.fileName));
+
+%Check that the protrusion sample map loaded
+if ~exist('protrusionSamples','var')
+    error(['Problem loading protrusionSamples from ' movieData.windows.directory ...
+        filesep movieData.windows.fileName],mfilename);
+end
+
+if ~isfield(protrusionSamples,'classNames') || ~isfield(protrusionSamples,'classes') %#ok<NODEF>
+    % Store class names
+    protrusionSamples.classNames = {'Pause', 'Protrusion', 'Retraction'};
+    
+    % classify speeds
+    protrusionSamples.classes = zeros(size(protrusionSamples.averageNormalComponent));
+    protrusionSamples.classes(protrusionSamples.averageNormalComponent >= 1) = 1;
+    protrusionSamples.classes(protrusionSamples.averageNormalComponent <= -1) = 2;
+
+    % Update protrusionSamples file
+    save(fullfile(movieData.protrusion.directory, ...
+        movieData.protrusion.samples.fileName), 'protrusionSamples');
+end
+
+% Step 2: Go through each frame and save the windows to a file
+
 %Load the windows
 load([movieData.windows.directory filesep movieData.windows.fileName]);
 
 %Check that they loaded
 if ~exist('allWinPoly','var') || isempty(allWinPoly) %#ok<NODEF>
     error(['Problem loading windows from ' movieData.windows.directory ...
-        filesep movieData.windows.fileName],mfilename);
-end
-
-%Load protrusion sample
-load([movieData.protrusion.directory filesep ...
-    movieData.protrusion.samples.fileName]);
-
-%Check that the protrusion sample map loaded
-if ~exist('protrusionSamples','var')
-    error(['Problem loading protrusionSamples from ' movieData.windows.directory ...
         filesep movieData.windows.fileName],mfilename);
 end
 
@@ -49,18 +71,6 @@ movieData.labels.nFrames = nFrames;
 %Make the string for formatting
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 
-% Step 1: Classify protrusion speed into 3 classes: pause = 0, prot = 1,
-% ret = 2.
-
-labelClasses = zeros(size(protrusionSamples.averageNormalComponent));
-v = sort(protrusionSamples.averageMagnitude(:));
-val = v(ceil(.01 * numel(v)));
-labelClasses(protrusionSamples.averageNormalComponent >= 1) = 1;
-labelClasses(protrusionSamples.averageNormalComponent <= -1) = 2; %#ok<NASGU>
-
-save([movieData.labels.directory filesep 'labelClasses.mat'], 'labelClasses');
-
-% Step 2: Go through each frame and save the windows to a file
 if ~batchMode
     h = waitbar(0,'Please wait, labeling window frames...');
 end

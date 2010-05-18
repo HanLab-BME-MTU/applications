@@ -1,6 +1,15 @@
 function batchMakeTropoFigures(dataDirectory, analysisDirectory, forceRun, batchMode)
 
-nSteps = 7;
+% STEP 1: Setup movie data
+% STEP 2: Get movie contours            (depends on STEP 1)
+% STEP 3: Compute protrusion            (depends on STEP 1)
+% STEP 4: Get movie windows             (depends on STEP 2)
+% STEP 5: Sample protrusion             (depends on STEP 3, 4)
+% STEP 6: Get movie labels              (depends on STEP 4)
+% STEP 7: Compute distance transform    (depends on STEP 1)
+% STEP 8: Get movie density             (depends on STEP 1, 6)
+
+nSteps = 8;
 
 if nargin < 1 || isempty(dataDirectory)
     dataDirectory = uigetdir('', 'Select a data directory:');
@@ -18,12 +27,12 @@ if nargin < 2 || isempty(analysisDirectory)
     end
 end
 
-if nargin < 3 || isempty(forceRun)        
+if nargin < 3 || isempty(forceRun)
     forceRun = zeros(nSteps, 1);
 end
 
 if length(forceRun) ~= nSteps
-    error('Invalid number of steps in forceRun (2nd argument).');
+    error('Invalid number of steps in forceRun (3rd argument).');
 end
 
 if nargin < 4 || isempty(batchMode)
@@ -36,42 +45,54 @@ end
 % TMx TMy
 
 isValidFSMProject = @(x) exist(fullfile(x, 'lastProjSettings.mat'),'file');
-dataPaths = [];
-%dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'Actin', 'GFP'}, isValidFSMProject)];
-dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'Actin', 'TM2'}, isValidFSMProject)];
-dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'Actin', 'TM4'}, isValidFSMProject)];
-dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'Actin', 'TM5NM1'}, isValidFSMProject)];
-dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'TM4', 'TM2'}, isValidFSMProject)];
-dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject)];
-dataPaths = [dataPaths; getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject)];
+%dataPaths.ActinGFP = getDirectories(dataDirectory, 2, {'Actin', 'GFP'}, isValidFSMProject);
+%dataPaths.ActinTM2 = getDirectories(dataDirectory, 2, {'Actin', 'TM2'}, isValidFSMProject);
+%dataPaths.ActinTM4 = getDirectories(dataDirectory, 2, {'Actin', 'TM4'}, isValidFSMProject);
+%dataPaths.ActinTM5 = getDirectories(dataDirectory, 2, {'Actin', 'TM5NM1'}, isValidFSMProject);
+dataPaths.TM4TM2 = getDirectories(dataDirectory, 2, {'TM4', 'TM2'}, isValidFSMProject);
+%dataPaths.TM5TM2 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject);
+%dataPaths.TM5TM4 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject);
+
+dataPathsFull = struct2cell(dataPaths);
+dataPathsFull = vertcat(dataPathsFull{:});
 
 disp('List of directories:');
 
-for iMovie = 1:numel(dataPaths)
-    disp([num2str(iMovie) ': ' dataPaths{iMovie}]);
+for iMovie = 1:numel(dataPathsFull)
+    disp([num2str(iMovie) ': ' dataPathsFull{iMovie}]);
 end
 
-sstr = numel(dataDirectory);
-analysisPaths = cellfun(@(x) fullfile(analysisDirectory, x(sstr+1:end)),...
-    dataPaths, 'UniformOutput', false);
+% Create analysis directory for each data set
 
-for iMovie = 1:numel(analysisPaths)
-    if ~exist(analysisPaths{iMovie}, 'dir');
-        mkdir(analysisPaths{iMovie});
+sstr = numel(dataDirectory);
+analysisPaths = structfun(@(f) cellfun(@(x) fullfile(analysisDirectory,...
+    x(sstr+1:end)), f, 'UniformOutput', false), dataPaths, ...
+    'UniformOutput', false);
+
+analysisPathsFull = struct2cell(analysisPaths);
+analysisPathsFull = vertcat(analysisPathsFull{:});
+
+for iMovie = 1:numel(analysisPathsFull)
+    if ~exist(analysisPathsFull{iMovie}, 'dir');
+        mkdir(analysisPathsFull{iMovie});
     end
 end
 
+%
+% Process
+%
+
 disp('Process all directories...');
 
-nMovies = numel(dataPaths);
+nMovies = numel(dataPathsFull);
 
 movieData = cell(nMovies, 1);
 
 for iMovie = 1:nMovies
     movieName = ['Movie ' num2str(iMovie) '/' num2str(nMovies)];
     
-    dataPath = dataPaths{iMovie};
-    analysisPath = analysisPaths{iMovie};
+    dataPath = dataPathsFull{iMovie};
+    analysisPath = analysisPathsFull{iMovie};
    
     currMovie = movieData{iMovie};
     
@@ -193,7 +214,7 @@ for iMovie = 1:nMovies
     end
     
     % STEP 4: Create windowing
-    winSize = 3000 / currMovie.pixelSize_nm; % ~ 3um
+    winSize = 500 / currMovie.pixelSize_nm; % ~ 0.5um
     nBands = (5000 / (currMovie.pixelSize_nm * dContour)); % ~5 um depth
     iOuter = 2;
     iInner = 4;
@@ -240,7 +261,7 @@ for iMovie = 1:nMovies
         end
     end 
 
-    % STEP 6: Activity Label (pause = 1, protrusion = 2, retraction = 3)
+    % STEP 6: Activity Label (pause = 0, protrusion = 1, retraction = 2)
     if ~checkMovieLabels(currMovie) || forceRun(6)
         try
             disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
@@ -275,6 +296,23 @@ for iMovie = 1:nMovies
         end
     end
     
+    % STEP 8: get Movie density map
+    if ~checkMovieDensityMap(currMovie) || forceRun(8)
+        try
+            disp(['Compute Density map for movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
+            currMovie = getMovieDensityMap(currMovie, batchMode);
+            
+            if isfield(currMovie.density,'error')
+                currMovie.density = rmfield(currMovie.density,'error');
+            end
+        catch errMess
+            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+            currMovie.density.error = errMess;
+            currMovie.density.status = 0;
+            continue;
+        end
+    end
+    
     try
         %Save the updated movie data
         updateMovieData(currMovie)
@@ -296,9 +334,9 @@ if ~exist(outputDirectory, 'dir')
     mkdir(analysisDirectory, 'figures');
 end
 
-% Save the list of dataPaths in the figure in a text file format.
+% Save the list of dataPathsFull in the figure in a text file format.
 fid = fopen([outputDirectory filesep 'listFolders.txt'], 'w');
-fprintf(fid, '%s\n%s\n%s\n', dataPaths{:});
+fprintf(fid, '%s\n%s\n%s\n', dataPathsFull{:});
 fclose(fid);
 
 % Figure 4
@@ -309,4 +347,4 @@ fclose(fid);
 %makeTropoFigure5(analysisPaths, outputDirectory);
 % Figure 5bis
 disp('Make figure 5bis...');
-makeTropoFigure5bis(analysisPaths, outputDirectory);
+makeTropoFigure5bis(analysisPaths.TM4TM2, outputDirectory);
