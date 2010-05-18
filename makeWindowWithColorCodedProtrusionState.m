@@ -22,11 +22,13 @@ load([movieData.windows.directory filesep movieData.windows.fileName])
 %Load protrusion samples
 disp('Loading protrusion samples...');
 load(fullfile(movieData.protrusion.directory, movieData.protrusion.samples.fileName));
-if ~isfield(protrusionSamples,'classNames') || ~isfield(protrusionSamples,'classes')
+if ~isfield(protrusionSamples,'stateNames') || ...
+        ~isfield(protrusionSamples,'states') || ...
+        ~isfield(protrusionSamples,'statePersistence')
     error('Classification of edge velocity has not been performed.');
 end
 
-classes = protrusionSamples.classes;
+states = protrusionSamples.states;
 
 if exist('allWindowSamples','var') && isfield(allWindowSamples,'nPixels')
     winStati = ~isnan(allWindowSamples.nPixels);
@@ -81,16 +83,12 @@ for iImage = 1:nImages-1
 
     set(gca,'YDir','reverse')
     %Overlay each requested window on the image
+
+    % Color definition for pause, protrusion and retraction states
+    colors = {'y','b','r'};
+    
     for iWindow = 1:nWindows
-        switch classes(iWindow,iImage)
-            case 0
-                color = 'y'; % pause
-            case 1
-                color = 'b'; % protrusion
-            case 2
-                color = 'r'; % retraction
-        end
-        
+
         for iBand = 1:nBands            
             if ~isempty(allWinPoly(iBands(iBand),iWindows(iWindow),iImage).outerBorder) &&  ~isempty(allWinPoly(iBands(iBand),iWindows(iWindow),iImage).innerBorder)
                 xTmp = [ allWinPoly(iBands(iBand),iWindows(iWindow),iImage).outerBorder(1,:) ...
@@ -99,7 +97,7 @@ for iImage = 1:nImages-1
                          allWinPoly(iBands(iBand),iWindows(iWindow),iImage).innerBorder(2,end:-1:1)];
                      
                  if winStati(iBands(iBand),iWindows(iWindow),iImage) > 0
-                    fill(xTmp,yTmp,color,'FaceAlpha',.5,'EdgeColor','k','EdgeAlpha',.5);
+                    fill(xTmp,yTmp,colors{states(iWindow,iImage)},'FaceAlpha',.5,'EdgeColor','k','EdgeAlpha',.5);
                  end
             end            
         end
@@ -107,8 +105,7 @@ for iImage = 1:nImages-1
     
     if useProt && iImage <= length(protrusion) %#ok<USENS>
         %Draw the protrusion vectors
-        quiver(protrusion{iImage}(:,1),protrusion{iImage}(:,2),protrusion{iImage}(:,3),protrusion{iImage}(:,4),0,'Color','m')
-                         
+        quiver(protrusion{iImage}(:,1),protrusion{iImage}(:,2),protrusion{iImage}(:,3),protrusion{iImage}(:,4),0,'Color','m')             
      end
     
     %Draw the time

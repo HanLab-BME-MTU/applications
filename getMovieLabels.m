@@ -10,42 +10,6 @@ if ~checkMovieWindows(movieData)
     error('Must window movie before labeling windows.');
 end
 
-if ~checkMovieProtrusionSamples(movieData)
-    error('Must sample protrusion before labeling windows.');
-end
-
-% Step 1: Classify protrusion speed into 3 classes:
-
-% Add this classification into protrusionSamples variable. This should not
-% be done here. Instead, add this lines into getProtrusionSamples.m (Talk
-% to Hunter).
-
-%Load protrusion sample
-load(fullfile(movieData.protrusion.directory, ...
-    movieData.protrusion.samples.fileName));
-
-%Check that the protrusion sample map loaded
-if ~exist('protrusionSamples','var')
-    error(['Problem loading protrusionSamples from ' movieData.windows.directory ...
-        filesep movieData.windows.fileName],mfilename);
-end
-
-if ~isfield(protrusionSamples,'classNames') || ~isfield(protrusionSamples,'classes') %#ok<NODEF>
-    % Store class names
-    protrusionSamples.classNames = {'Pause', 'Protrusion', 'Retraction'};
-    
-    % classify speeds
-    protrusionSamples.classes = zeros(size(protrusionSamples.averageNormalComponent));
-    protrusionSamples.classes(protrusionSamples.averageNormalComponent >= 1) = 1;
-    protrusionSamples.classes(protrusionSamples.averageNormalComponent <= -1) = 2;
-
-    % Update protrusionSamples file
-    save(fullfile(movieData.protrusion.directory, ...
-        movieData.protrusion.samples.fileName), 'protrusionSamples');
-end
-
-% Step 2: Go through each frame and save the windows to a file
-
 %Load the windows
 load([movieData.windows.directory filesep movieData.windows.fileName]);
 
@@ -91,6 +55,97 @@ end
 if ~batchMode && ishandle(h)
     close(h);
 end
+
+if ~checkMovieProtrusionSamples(movieData)
+    error('Must sample protrusion before labeling windows.');
+end
+
+% NOTE: Add this classification into protrusionSamples variable. This
+% should not be done here. Instead, add this lines into
+% getProtrusionSamples.m (Talk to Hunter). The following variables will be
+% add to protrusionSample variable:
+%
+% stateNames
+% states
+% statePersistence
+
+% BEGIN
+
+% Classify edge velocity into 3 states: Pause, Protrusion, Retraction
+
+%Load protrusion sample
+load(fullfile(movieData.protrusion.directory, ...
+    movieData.protrusion.samples.fileName));
+
+%Check that the protrusion sample map loaded
+if ~exist('protrusionSamples','var')
+    error(['Problem loading protrusionSamples from ' movieData.windows.directory ...
+        filesep movieData.windows.fileName],mfilename);
+end
+
+if ~isfield(protrusionSamples,'stateNames') || ~isfield(protrusionSamples,'states') || ...
+        ~isfield(protrusionSamples,'statePersistence') %#ok<NODEF>
+    
+    %
+    % Store state names
+    %
+    
+    % Pause = 1, Protrusion = 2, Retraction = 3
+    protrusionSamples.stateNames = {'Pause', 'Protrusion', 'Retraction'};
+    
+    %
+    % classify speeds
+    %
+    
+    states = ones(size(protrusionSamples.averageNormalComponent));
+    states(protrusionSamples.averageNormalComponent >= 1) = 2;
+    states(protrusionSamples.averageNormalComponent <= -1) = 3;
+    
+    protrusionSamples.states = states;
+    
+    %
+    % compute state persistence
+    %
+
+    statePersistence = zeros(size(states));
+    
+    % Forward sweep: initialize 1st frame so that protrution / retraction
+    % events which start at first frame are discarded.
+    statePersistence(:,1) = 0;
+
+    for iFrame = 2:nFrames-1
+        for iState = 1:numel(stateNames)
+            % iState at frames iFrame and iFrame-1
+            ind = states(:,iFrame) == iState & ...
+                states(:,iFrame-1) == iState & ...
+                statePersistence(:,iFrame-1);
+            statePersistence(ind,iFrame) = statePersistence(ind,iFrame-1) + 1;
+    
+            % iState at frame iFrame but not at iFrame-1
+            ind = states(:,iFrame) == iState & states(:,iFrame-1) ~= iState;
+            statePersistence(ind,iFrame) = 1;
+        end
+    end
+
+    % Backward sweep: discard protrusion / retraction events which continue
+    % at last frame.
+    statePersistence(:,end) = 0;
+
+    for iFrame = nFrames-2:-1:1
+        % any state at frame iFrame and iFrame+1
+        ind = states(:,iFrame) == states(:,iFrame+1) & ...
+            ~statePersistence(:,iFrame+1);
+        statePersistence(ind,iFrame) = 0;
+    end
+    
+    protrusionSamples.statePersistence = statePersistence;
+    
+    % Update protrusionSamples file
+    save(fullfile(movieData.protrusion.directory, ...
+        movieData.protrusion.samples.fileName), 'protrusionSamples');
+end
+
+% END
 
 movieData.labels.dateTime = datestr(now);
 movieData.labels.status = 1;

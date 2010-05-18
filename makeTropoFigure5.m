@@ -53,7 +53,9 @@ for iTM = 1:3
         protrusionSamples.averageNormalComponent * pixelSize / timeInterval;
     
     % Check whether the speed classification has been performed
-    if ~isfield(protrusionSamples,'classNames') || ~isfield(protrusionSamples,'classes')
+    if ~isfield(protrusionSamples,'stateNames') || ...
+            ~isfield(protrusionSamples,'states') || ...
+            ~isfield(protrusionSamples,'statePersistence')
         error('Classification of edge velocity has not been performed.');
     end
     
@@ -63,49 +65,11 @@ for iTM = 1:3
     %                                                                 %
     %-----------------------------------------------------------------%
     
-    % Build activtyStep
-    classes = protrusionSamples.classes;
-    activityStep = zeros(size(classes));
+    states = protrusionSamples.states;
+    statePersistence = protrusionSamples.statePersistence;
     
-    % Forward sweep: initialize 1st frame so that protrution / retraction
-    % events which start at first frame are discarded.
-    activityStep(:,1) = 0;
-    
-    for iFrame = 2:nFrames-1
-        % Protrusion at frames iFrame and iFrame-1
-        ind = classes(:,iFrame) == 1 & ...
-            classes(:,iFrame-1) == 1 & ...
-            activityStep(:,iFrame-1);        
-        activityStep(ind,iFrame) = activityStep(ind,iFrame-1) + 1;
-        
-        % Retration at frames iFrame and iFrame-1
-        ind = classes(:,iFrame) == 2 & ...
-            classes(:,iFrame-1) == 2 & ...
-            activityStep(:,iFrame-1);
-        activityStep(ind,iFrame) = activityStep(ind,iFrame-1) - 1;
-        
-        % Protrusion at frame iFrame but not at iFrame-1
-        ind = classes(:,iFrame) == 1 & classes(:,iFrame-1) ~= 1;
-        activityStep(ind,iFrame) = 1;
-        
-        % Retraction at frame iFrame but not at iFrame-1
-        ind = classes(:,iFrame) == 2 & classes(:,iFrame-1) ~= 2;
-        activityStep(ind,iFrame) = -1;
-    end
-    
-    % Backward sweep: discard protrusion / retraction events which continue
-    % at last frame.
-    activityStep(:,end) = 0;
-    
-    for iFrame = nFrames-2:-1:1
-        % Protrusion or Retration at frame iFrame and iFrame+1
-        ind = classes(:,iFrame) == classes(:,iFrame+1) & ...
-            classes(:,iFrame) & ~activityStep(:,iFrame+1);
-        activityStep(ind,iFrame) = 0;
-    end
-    
-    prFrames = cell(1, max(activityStep(:)));
-    reFrames = cell(1, -min(activityStep(:)));
+    prFrames = cell(1, max(statePersistence(states == 2)));
+    reFrames = cell(1, max(statePersistence(states == 3)));
     
     for iFrame = 2:nFrames-2
         % Load label
@@ -126,12 +90,13 @@ for iTM = 1:3
             
             d = distToEdge(ind);
             
-            step = activityStep(iWin,iFrame);
+            p = statePersistence(iWin,iFrame);
             
-            if step > 0
-                prFrames{step} = vertcat(prFrames{step}, d);
-            elseif step < 0
-                reFrames{-step} = vertcat(reFrames{-step}, d);
+            switch states(iWin,iFrame)
+                case 2
+                    prFrames{p} = vertcat(prFrames{p}, d);
+                case 3
+                    reFrames{p} = vertcat(reFrames{p}, d);
             end
         end
     end
