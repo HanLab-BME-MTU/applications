@@ -82,12 +82,12 @@ end
 
 
 %Get the indices of any previous background mask processes from this function                                                                              
-iProc = find(cellfun(@(x)(isa(x,'BackgroundMaskProcess')),movieData.processes_),1);                          
+iProc = find(cellfun(@(x)(isa(x,'BackgroundMasksProcess')),movieData.processes_),1);                          
 
 %If the process doesn't exist, create it
 if isempty(iProc)
     iProc = numel(movieData.processes_)+1;
-    movieData.addProcess(BackgroundMaskProcess(movieData));                                                                                                 
+    movieData.addProcess(BackgroundMasksProcess(movieData));                                                                                                 
 end
 
 nChan = length(movieData.channelPath_);

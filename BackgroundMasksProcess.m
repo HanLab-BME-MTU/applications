@@ -9,7 +9,8 @@ classdef BackgroundMasksProcess < SegmentationProcess
                 nChan = numel(owner.channelPath_);
                 
                 super_args{1} = owner;
-                super_args{2} = @createMovieBackgroundMasksNEW;                               
+                super_args{2} = 'Background Mask Creation';
+                super_args{3} = @createMovieBackgroundMasksNEW;                               
                 
                 if nargin < 2 || isempty(funParams)                                       
                     
@@ -21,7 +22,7 @@ classdef BackgroundMasksProcess < SegmentationProcess
                     funParams.BatchMode = false;                                              
                 end
                 %Make sure the input parameters are legit??
-                super_args{3} = funParams;                    
+                super_args{4} = funParams;                    
             end
             
             obj = obj@SegmentationProcess(super_args{:});

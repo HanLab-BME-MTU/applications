@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 12-May-2010 22:30:50
+% Last Modified by GUIDE v2.5 18-May-2010 13:30:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,10 +57,12 @@ function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 %       userData.warnIconData - warning icon image data
 %       userData.setFig - array of handles of sub-windows (may not exist)
 %       userData.setupMovieDataFig - handle of setupMovieData figure (may not exist)
+%       userData.overviewFig - handles of overviewMovieDataGUI figure (may not exist)
 %       
 % App Data:
 %       'setFlag' in figure1 - set flag of open sub window, open or close
 %       'setupMovieDataFlag' in figure1 - flag of setupMovieData figure
+%       'overviewFlag' in figure1 - flag of view status figure
 %
 
 handles.output = hObject;
@@ -180,6 +182,7 @@ set(handles.text_body1, 'string',[userData.crtPackage.name_ ' Package']);
 % Set flag of sub window. Sub window open flag = 1, close flag = 0
 setappdata(hObject, 'setFlag', zeros(1,size(userData.dependM,1)));
 setappdata(hObject, 'setupMovieDataFlag', 0);
+setappdata(hObject,'overviewFlag',0);
 
 % Update handles structure
 set(handles.figure1,'UserData',userData);
@@ -301,10 +304,9 @@ userfcn_lampSwitch(2, get(hObject,'value'), handles);
 function pushbutton_set2_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
-procID = 2;
 userData = get(handles.figure1, 'UserData');
-userData.setFig(procID) = ...
-    testProcessGUI('mainFig',handles.figure1,procID);
+procID = 2;
+userData.setFig(procID) = backgroundMasksProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
@@ -380,11 +382,13 @@ delete(handles.figure1);
 
 % --- Executes on button press in pushbutton_status.
 function pushbutton_status_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_status (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-userData = get(handles.figure1, 'UserData'); 
-disp('status');
+
+userData = get(handles.figure1, 'UserData');
+
+userData.overviewFig = overviewMovieDataGUI('mainFig',handles.figure1);
+set(handles.figure1, 'UserData', userData);
+guidata(hObject,handles);
+
 
 % --- Executes on button press in pushbutton_run.
 function pushbutton_run_Callback(hObject, eventdata, handles)
@@ -395,6 +399,7 @@ procCheck = [ ]; % save id of checked processes
 procRun = [ ]; % save id of processes to run
 nProcesses = size(userData.dependM,1);
 MD = userData.MD;
+
 for i = 1: nProcesses
     % collect the processes that are checked
     eval([ 'checked = get(handles.checkbox_',num2str(i),', ''value'');' ])
@@ -406,26 +411,37 @@ if isempty(procCheck)
     errordlg('Please select a step to run','No Step Selected','modal');
     return
 end
+
 % Check if process exist
-% Check if selected processes have alrady be successfully run
-k = true;
 for i = procCheck
     if isempty (userData.crtPackage.processes_{i})
         errordlg([num2str(i),' th step is not set up yet'], ...
             'Step Not Set Up','modal');
         return;
-    end
-    if ~( userData.crtPackage.processes_{i}.success_ ...
-                && ~userData.crtPackage.processes_{i}.procChanged_ ) ...
-            || ~userData.crtPackage.processes_{i}.updated_
-        k = false;
-        procRun = horzcat(procRun, i);
-    end
+    end    
 end
-if k
-    warndlg('All selected steps have been processed successfully. Please change settings to run again', ...
+
+% Check if selected processes have alrady be successfully run
+% If force run, re-run every process that is checked
+if ~get(handles.checkbox_forcerun, 'Value')
+
+    k = true;
+    for i = procCheck
+
+        if ~( userData.crtPackage.processes_{i}.success_ ...
+                && ~userData.crtPackage.processes_{i}.procChanged_ ) ...
+                || ~userData.crtPackage.processes_{i}.updated_
+            k = false;
+            procRun = horzcat(procRun, i);
+        end
+    end
+    if k
+        warndlg('All selected steps have been processed successfully. Please check ''Force Run'' to re-run the steps.', ...
         'Step Processed')
-    return;
+        return;
+    end
+else
+    procRun = procCheck;
 end
 
 
@@ -678,11 +694,16 @@ if any(setFlag)
     end
 end
 
-% Delete setupMovieData GUI figure
-
+% If open, delete setupMovieData GUI figure
 if getappdata(hObject,'setupMovieDataFlag');
     delete(userData.setupMovieDataFig);
 end
+
+% If open, delete setupMovieData GUI figure
+if getappdata(hObject,'overviewFlag');
+    delete(userData.overviewFig);
+end
+
 
 % --- Executes on button press in checkbox_5.
 function checkbox_5_Callback(hObject, eventdata, handles)
@@ -867,3 +888,12 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 delete(handles.figure1);
+
+
+% --- Executes on button press in checkbox_forcerun.
+function checkbox_forcerun_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_forcerun (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_forcerun
