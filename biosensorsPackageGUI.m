@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 18-May-2010 13:30:34
+% Last Modified by GUIDE v2.5 19-May-2010 10:33:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -72,6 +72,9 @@ userData = get(handles.figure1,'UserData');
 
 if nargin == 3
     error('User-defined: Please call biosensors control panel with a MovieData object. E.g. biosensorsPackageGUI(movieDataObject)');
+%     userData.setupMovieDataFig = setupMovieDataGUI;
+    
+%     set(handles.figure1,'UserData',userData);
 end
 
 % ----------------------------- Load MovieData ----------------------------
@@ -376,7 +379,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
 MD = userData.MD;
-save([userData.MD.movieDataPath_ userData.MD.movieDataFileName_], 'MD');
+save([MD.movieDataPath_ MD.movieDataFileName_], 'MD');
 delete(handles.figure1);
 
 
@@ -897,3 +900,23 @@ function checkbox_forcerun_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_forcerun
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+userData = get(handles.figure1,'Userdata');
+MD = userData.MD;
+
+user_response = questdlg(['Do you want to save the current progress to ',MD.movieDataFileName_,'?'], ...
+    'BioSensors Package Control Panel');
+switch lower(user_response)
+    case 'yes'
+        save([MD.movieDataPath_ MD.movieDataFileName_], 'MD');
+        delete(handles.figure1);
+    case 'no'
+        delete(handles.figure1);
+    case 'cancel'
+end
