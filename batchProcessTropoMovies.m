@@ -31,7 +31,7 @@ procFuns = {...
     'getMovieProtrusionSamples',...
     'getMovieLabels',...
     'getMovieBWDist',...
-    'getMovieDensityMap'};
+    'getMovieDensity'};
 
 assert(numel(procNames) == numel(procLocs));
 assert(numel(procNames) == numel(procFuns));
@@ -204,7 +204,7 @@ for iMovie = 1:nMovies
     currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
     currMovie.masks.status = 1;
     
-    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file') && ~forceRun(1)
+    if exist([currMovie.analysisDirectory filesep 'movieData.mat'], 'file')
        currMovie = load([currMovie.analysisDirectory filesep 'movieData.mat']);
        currMovie = currMovie.movieData;
     end
@@ -245,7 +245,7 @@ for iMovie = 1:nMovies
                 continue;
             end
         else
-            disp([movieName ': process ' procName{iProc} ' not run']);
+            disp([movieName ': process ' procName ' not run']);
         end
     end   
     

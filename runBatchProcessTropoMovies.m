@@ -23,16 +23,16 @@ params.protrusion.nSeg = 30;
 
 % PROC 3: windows
 params.windows.methodStr = 'p';
-params.windows.winSize = 1000 / pixelSize; % ~1um;
+params.windows.winSize = 1000 / params.pixelSize; % ~1um;
 params.windows.nBands = 5;
 params.windows.iOuter = 2;
 params.windows.iInner = 4;
 params.windows.nReinit = [];
 params.windows.meshQuality = [];
-params.windows.windowName = [num2str(dContour) 'by' num2str(winSize) 'pix_' num2str(iOuter) '_' num2str(iInner)];
+params.windows.windowName = [num2str(dContour) 'by' num2str(params.windows.winSize) 'pix_' num2str(params.windows.iOuter) '_' num2str(params.windows.iInner)];
 
 % PROC 4: protrusion sampling
-params.protrusion.samples.protName = ['protSamples_' params.windows.winMethod '_' params.windows.windowString  '.mat'];
+params.protrusion.samples.protName = ['protSamples_' params.windows.methodStr '_' params.windows.windowName  '.mat'];
 
 % PROC 5: labels
 params.labels.method = 'window';
