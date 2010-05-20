@@ -1,4 +1,4 @@
-function batchCreateOverlayMovies(rootDirectory)
+function batchCreateOverlayMovies(rootDirectory, subDirs, movieDataSubDir)
 
 if nargin < 1 || isempty(rootDirectory)
     dataDirectory = uigetdir('', 'Select a data directory:');
@@ -8,8 +8,17 @@ if nargin < 1 || isempty(rootDirectory)
     end
 end
 
-% Get every path from rootDirectory containing ch488 & ch560 subfolders.
-paths = getDirectories(rootDirectory, 2, {'ch488', 'ch560'});
+if nargin < 2 || ~numel(subDirs) || ~iscell(subDirs)
+    error('no valid subfolders provided.');
+end
+
+if nargin < 3 || isempty(movieDataSubDir)
+    movieDataSubDir = subDirs{1};
+end
+
+% Get every path from rootDirectory containing the given subfolders.
+nSubDirs = numel(subDirs);
+paths = getDirectories(rootDirectory, nSubDirs, subDirs);
 
 disp('List of directories:');
 
@@ -28,8 +37,8 @@ for iMovie = 1:nMovies
     
     try
         % Load movieData
-        path = [paths{iMovie} filesep 'ch488' filesep 'analysis'];
-        filename = [path filesep 'movieData.mat'];
+        path = fullfile(paths{iMovie}, movieDataSubDir);
+        filename = fullfile(path, 'movieData.mat');
         load(filename);
 
         % Create inputMovieInfo        

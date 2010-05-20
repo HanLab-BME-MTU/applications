@@ -31,7 +31,7 @@ for iMovie = 1:numel(paths)
     disp([num2str(iMovie) ': ' paths{iMovie}]);
 end
 
-disp('Process all directories (Grab a coffee)...');
+disp('Process all directories...');
 
 nMovies = numel(paths);
 

@@ -22,8 +22,8 @@ movieData.detection.filename = 'segmentParams.mat';
 nFrames = numel(imageFiles);
 
 % !!!! LINK THIS WITH THE REAL PARAMS:
-% sigmaPSF = vectorialPSFSigma(1.4, 509, 67)
-sigmaPSF = 1.6255;
+% sigmaPSF = vectorialPSFSigma(1.4, 509, 64.5)
+sigmaPSF = 1.686;
 minSize = 2;
 
 segmentParams = cell(nFrames, 1);
