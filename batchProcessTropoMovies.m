@@ -3,7 +3,11 @@ function batchProcessTropoMovies(dataDirectory, analysisDirectory, params)
 % params is a structure containing the following fields:
 % .pixelSize
 % .timeInterval
-% .forceRun       a boolean array of size equal to the number of processes
+% .runSteps       an array of size equal to the number of processes with
+%                 value equal to
+%                 -1: skip process
+%                  0: skip process unless it has never been run
+%                  1: run process anyway
 % .batchMode      trigger for graphical display
 
 procNames = {...
@@ -65,12 +69,12 @@ if nargin < 3 || isempty(params)
     error('''params'' argument is missing.');
 end
 
-if ~isfield(params,'forceRun') || isempty(params.forceRun)
-    params.forceRun = zeros(nSteps, 1);
+if ~isfield(params,'runSteps') || isempty(params.runSteps)
+    params.runSteps = zeros(nSteps, 1);
 end
 
-if length(params.forceRun) ~= nProcesses
-    error('size of parameter ''forceRun'' differs from number of processes.');
+if length(params.runSteps) ~= nProcesses
+    error('size of parameter ''runSteps'' differs from number of processes.');
 end
 
 if ~isfield(params,'batchMode') || isempty(params.batchMode)
@@ -218,8 +222,8 @@ for iMovie = 1:nMovies
         procFun = procFuns{iProc}; %#ok<NASGU>
         procLoc = procLocs{iProc};
         
-        if ~checkProcess(procName, currMovie) || params.forceRun(iProc)
-            
+        if  params.runSteps(iProc) == 1 || (~checkProcess(procName, currMovie) && params.runSteps(iProc) == 0)
+
             disp([movieName ': running process ' procName]);
             
             procParams = eval(['params.' procLoc]);
