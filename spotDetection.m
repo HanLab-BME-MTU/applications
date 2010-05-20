@@ -87,7 +87,7 @@ for k = 1:nFrames
     % The support of the objects is given by the multiscale product in the wavelet domain.
     % Since only positive objects are of interest, negative coefficients are set to zero.
     W = awt(imgDenoised, S);
-    imgDenoised = imgDenoised - min(imgDenoised(:)); %%%%% This generates false detections, will be removed in next release.
+    %imgDenoised = imgDenoised - min(imgDenoised(:)); %%%%% This generates false detections, will be removed in next release.
         
     % W(W<0) = 0;
     % imgMSP = abs(prod(W(:,:,1:S),3));
@@ -136,8 +136,10 @@ for k = 1:nFrames
 
 
     % rescale denoised image
-    imgDenoised = imgDenoised * (maxI-minI) / max(imgDenoised(:));
-
+    %imgDenoised = imgDenoised * (maxI-minI) / max(imgDenoised(:));
+    imgDenoised = (imgDenoised-min(imgDenoised(:))) * (maxI-minI) / (max(imgDenoised(:))-min(imgDenoised(:)));
+    
+    
     imgDenoised = mask.*imgDenoised;
     localMax = locmax2d(imgDenoised, [9 9]);
 
@@ -286,11 +288,13 @@ for k = 1:nFrames
     frameInfo(k).amp(:,1) = frameInfo(k).totalInt;
     frameInfo(k).xCoord(:,1) = frameInfo(k).xcom;
     frameInfo(k).yCoord(:,1) = frameInfo(k).ycom;
+    frameInfo(k).path = [sourcePath tifFiles(k).name];
+    frameInfo(k).mask = [maskPath 'dmask_' num2str(k, ['%.' num2str(length(num2str(nFrames))) 'd']) '.tif'];
     
     %fprintf('Frame #%d, #maxima = %d, #components = %d\n', k, nMaxima, nComp);
     
     % Save denoised and masked frame as compressed TIFF file
-    imwrite(uint8(255*imgDenoised/max(imgDenoised(:))), [maskPath 'dmask_' num2str(k, ['%.' num2str(length(num2str(nFrames))) 'd']) '.tif'], 'tif', 'compression' , 'lzw');
+    imwrite(uint8(255*imgDenoised/max(imgDenoised(:))), frameInfo(k).mask, 'tif', 'compression' , 'lzw');
     fprintf('\b\b\b\b%3d%%', round(100*k/nFrames));
 end
 fprintf('\n');
