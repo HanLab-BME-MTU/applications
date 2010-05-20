@@ -46,12 +46,12 @@ end
 
 isValidFSMProject = @(x) exist(fullfile(x, 'lastProjSettings.mat'),'file');
 %dataPaths.ActinGFP = getDirectories(dataDirectory, 2, {'Actin', 'GFP'}, isValidFSMProject);
-%dataPaths.ActinTM2 = getDirectories(dataDirectory, 2, {'Actin', 'TM2'}, isValidFSMProject);
-%dataPaths.ActinTM4 = getDirectories(dataDirectory, 2, {'Actin', 'TM4'}, isValidFSMProject);
-%dataPaths.ActinTM5 = getDirectories(dataDirectory, 2, {'Actin', 'TM5NM1'}, isValidFSMProject);
-dataPaths.TM4TM2 = getDirectories(dataDirectory, 2, {'TM4', 'TM2'}, isValidFSMProject);
-%dataPaths.TM5TM2 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject);
-%dataPaths.TM5TM4 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject);
+dataPaths.ActinTM2 = getDirectories(dataDirectory, 2, {'Actin', 'TM2'}, isValidFSMProject);
+% dataPaths.ActinTM4 = getDirectories(dataDirectory, 2, {'Actin', 'TM4'}, isValidFSMProject);
+% dataPaths.ActinTM5 = getDirectories(dataDirectory, 2, {'Actin', 'TM5NM1'}, isValidFSMProject);
+% dataPaths.TM4TM2 = getDirectories(dataDirectory, 2, {'TM4', 'TM2'}, isValidFSMProject);
+% dataPaths.TM5TM2 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject);
+% dataPaths.TM5TM4 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject);
 
 dataPathsFull = struct2cell(dataPaths);
 dataPathsFull = vertcat(dataPathsFull{:});
@@ -155,7 +155,7 @@ for iMovie = 1:nMovies
     end
 
     % STEP 2: Get contours
-    dContour = 500 / currMovie.pixelSize_nm;
+    dContour = 1000 / currMovie.pixelSize_nm; % 1 um
     
     if ~checkMovieContours(currMovie) || forceRun(2)
         try
@@ -214,7 +214,7 @@ for iMovie = 1:nMovies
     end
     
     % STEP 4: Create windowing
-    winSize = 500 / currMovie.pixelSize_nm; % ~ 0.5um
+    winSize = 1000 / currMovie.pixelSize_nm; % ~1um
     nBands = (5000 / (currMovie.pixelSize_nm * dContour)); % ~5 um depth
     iOuter = 2;
     iInner = 4;
@@ -265,7 +265,7 @@ for iMovie = 1:nMovies
     if ~checkMovieLabels(currMovie) || forceRun(6)
         try
             disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
-            currMovie = getMovieLabels(currMovie, batchMode);
+            currMovie = getMovieLabels(currMovie, 'window', batchMode);
             
             if isfield(currMovie.labels,'error')
                 currMovie.labels = rmfield(currMovie.labels,'error');
@@ -346,5 +346,5 @@ fclose(fid);
 %disp('Make figure 5...');
 %makeTropoFigure5(analysisPaths, outputDirectory);
 % Figure 5bis
-disp('Make figure 5bis...');
-makeTropoFigure5bis(analysisPaths.TM4TM2, outputDirectory);
+%disp('Make figure 5bis...');
+%makeTropoFigure5bis(analysisPaths.TM4TM2, outputDirectory);

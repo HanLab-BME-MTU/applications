@@ -1,6 +1,6 @@
 function makeWindowWithColorCodedProtrusionState(movieData,...
                                                  iBands,...
-                                                 iWindows,...
+                                                 iSectors,...
                                                  iChan,...
                                                  movieName)
                                                   
@@ -17,7 +17,7 @@ disp('Loading Windows...')
 load([movieData.windows.directory filesep movieData.windows.fileName])
 
 %Determine number of bands, windows and images
-[nBandsTot,nWindowsTot,nImages] = size(allWinPoly);
+[nBandsTot,nSectorsTot,nFrames] = size(allWinPoly);
 
 %Load protrusion samples
 disp('Loading protrusion samples...');
@@ -34,12 +34,12 @@ if exist('allWindowSamples','var') && isfield(allWindowSamples,'nPixels')
     winStati = ~isnan(allWindowSamples.nPixels);
 else
     disp('Cannot find window samples, displaying all windows!');
-    winStati = ones(nBandsTot,nWindowsTot,nImages); %TEMP TEMP!
+    winStati = ones(nBandsTot,nSectorsTot,nImages); %TEMP TEMP!
 end
 
 %Default is to use all windows
-if nargin < 3 || isempty(iWindows)
-    iWindows = 1:nWindowsTot;
+if nargin < 3 || isempty(iSectors)
+    iSectors = 1:nWindowsTot;
 end
 %Default is to use all bands
 if nargin < 2 || isempty(iBands)
@@ -48,7 +48,7 @@ end
 
 %Determine number of windows/bands requested for tracking
 nBands = length(iBands);
-nWindows = length(iWindows);
+nSectors = length(iSectors);
 
 disp('Checking image files...')
 imageFileNames = dir([movieData.imageDirectory filesep movieData.channelDirectory{iChan} filesep '*.tif']); %TEMP TEMP
@@ -62,8 +62,10 @@ catch errMsg
     useProt = false;
 end
 
-for iImage = 1:nImages-1
-    
+MakeQTMovie('start',[movieData.analysisDirectory filesep movieName '.mov']);
+MakeQTMovie('quality',.75);
+        
+for iFrame = 1:nFrames-1
     clf
     hold on
     
@@ -87,39 +89,33 @@ for iImage = 1:nImages-1
     % Color definition for pause, protrusion and retraction states
     colors = {'y','b','r'};
     
-    for iWindow = 1:nWindows
-
+    for iSector = 1:nSectors
         for iBand = 1:nBands            
-            if ~isempty(allWinPoly(iBands(iBand),iWindows(iWindow),iImage).outerBorder) &&  ~isempty(allWinPoly(iBands(iBand),iWindows(iWindow),iImage).innerBorder)
-                xTmp = [ allWinPoly(iBands(iBand),iWindows(iWindow),iImage).outerBorder(1,:) ...
-                         allWinPoly(iBands(iBand),iWindows(iWindow),iImage).innerBorder(1,end:-1:1)];
-                yTmp = [ allWinPoly(iBands(iBand),iWindows(iWindow),iImage).outerBorder(2,:) ...
-                         allWinPoly(iBands(iBand),iWindows(iWindow),iImage).innerBorder(2,end:-1:1)];
+            if ~isempty(allWinPoly(iBands(iBand),iSectors(iSector),iFrame).outerBorder) &&  ~isempty(allWinPoly(iBands(iBand),iSectors(iSector),iFrame).innerBorder)
+                xTmp = [ allWinPoly(iBands(iBand),iSectors(iSector),iFrame).outerBorder(1,:) ...
+                         allWinPoly(iBands(iBand),iSectors(iSector),iFrame).innerBorder(1,end:-1:1)];
+                yTmp = [ allWinPoly(iBands(iBand),iSectors(iSector),iFrame).outerBorder(2,:) ...
+                         allWinPoly(iBands(iBand),iSectors(iSector),iFrame).innerBorder(2,end:-1:1)];
                      
-                 if winStati(iBands(iBand),iWindows(iWindow),iImage) > 0
-                    fill(xTmp,yTmp,colors{states(iWindow,iImage)},'FaceAlpha',.5,'EdgeColor','k','EdgeAlpha',.5);
+                 if winStati(iBands(iBand),iSectors(iSector),iFrame) > 0
+                    fill(xTmp,yTmp,colors{states(iSector,iFrame)},'FaceAlpha',.5,'EdgeColor','k','EdgeAlpha',.5);
                  end
             end            
         end
     end
     
-    if useProt && iImage <= length(protrusion) %#ok<USENS>
+    if useProt && iFrame <= length(protrusion) %#ok<USENS>
         %Draw the protrusion vectors
-        quiver(protrusion{iImage}(:,1),protrusion{iImage}(:,2),protrusion{iImage}(:,3),protrusion{iImage}(:,4),0,'Color','m')             
+        quiver(protrusion{iFrame}(:,1),protrusion{iFrame}(:,2),protrusion{iFrame}(:,3),protrusion{iFrame}(:,4),0,'Color','m')             
      end
     
     %Draw the time
-    text(10,20,[num2str((iImage-1)*movieData.timeInterval_s) ' s'],'color','w','FontSize',16)
+    text(10,20,[num2str((iFrame-1)*movieData.timeInterval_s) ' s'],'color','w','FontSize',16)
     
     axis fill,axis image
     set(gca,'color','w');
-    
-    if iImage == 1
-        MakeQTMovie('start',[movieData.analysisDirectory filesep movieName '.mov']);
-        MakeQTMovie('quality',.75);
-    end    
-    MakeQTMovie('addaxes');
-    
+
+    MakeQTMovie('addaxes'); 
 end
 
 MakeQTMovie('finish');

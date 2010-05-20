@@ -1,4 +1,4 @@
-function movieData = getMovieLabels(movieData, batchMode)
+function movieData = getMovieLabels(movieData, method, batchMode)
 
 %Indicate that labeling was started
 movieData.labels.status = 0;
@@ -26,11 +26,18 @@ if ~exist(movieData.labels.directory, 'dir')
 end
 
 %Determine number of windows/bands
-[nBands,nWindows,nFrames] = size(allWinPoly);
+[nBands,nSectors,nFrames] = size(allWinPoly);
 
-movieData.labels.nWindows = nWindows;
+movieData.labels.nSectors = nSectors;
 movieData.labels.nBands = nBands;
 movieData.labels.nFrames = nFrames;
+movieData.labels.method = method;
+
+% Eventually, we need to update labels structure since we've changed
+% nWindows field to nSectors
+if isfield(movieData.labels, 'nWindows')
+    movieData.labels = rmfield(movieData.labels, method);
+end
 
 %Make the string for formatting
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
@@ -42,7 +49,7 @@ end
 for iFrame = 1:nFrames-1
     winPoly = allWinPoly(:,:,iFrame);
     
-    labels = createLabelsFromWindows(winPoly, imSize);
+    labels = createLabelsFromWindows(winPoly, imSize, 'window');
 
     imwrite(uint16(labels), [movieData.labels.directory filesep 'labels_' ...
         num2str(iFrame,fString) '.tif'], 'Compression', 'lzw');
@@ -61,9 +68,8 @@ if ~checkMovieProtrusionSamples(movieData)
 end
 
 % NOTE: Add this classification into protrusionSamples variable. This
-% should not be done here. Instead, add this lines into
-% getProtrusionSamples.m (Talk to Hunter). The following variables will be
-% add to protrusionSample variable:
+% should add into getProtrusionSamples.m (Talk to Hunter). The following
+% variables will be add to protrusionSample variable:
 %
 % stateNames
 % states
@@ -74,8 +80,7 @@ end
 % Classify edge velocity into 3 states: Pause, Protrusion, Retraction
 
 %Load protrusion sample
-load(fullfile(movieData.protrusion.directory, ...
-    movieData.protrusion.samples.fileName));
+load(fullfile(movieData.protrusion.directory, movieData.protrusion.samples.fileName));
 
 %Check that the protrusion sample map loaded
 if ~exist('protrusionSamples','var')
@@ -91,7 +96,8 @@ if ~isfield(protrusionSamples,'stateNames') || ~isfield(protrusionSamples,'state
     %
     
     % Pause = 1, Protrusion = 2, Retraction = 3
-    protrusionSamples.stateNames = {'Pause', 'Protrusion', 'Retraction'};
+    stateNames = {'Pause', 'Protrusion', 'Retraction'};
+    protrusionSamples.stateNames = stateNames;
     
     %
     % classify speeds
