@@ -6,7 +6,7 @@ analysisDirectory = '/home/sb234/Projects/Tropo/Analysis_for_paper';
 
 params.pixelSize = 67;
 params.timeInterval = 10;
-params.forceRun = zeros(7,1);
+params.forceRun = [0 0 0 0 1 0 0];
 params.batchMode = 1;
 
 % PROC 1: contours

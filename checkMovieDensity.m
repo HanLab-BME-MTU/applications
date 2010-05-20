@@ -1,8 +1,8 @@
-function status = checkMovieDensityMap(movieData)
+function status = checkMovieDensity(movieData)
 %
-% status = checkMovieDensityMap(movieData)
+% status = checkMovieDensity(movieData)
 % Returns true if the movie specified by the input movieData has been
-% successfully compute density maps using getMovieDensityMap.m and false
+% successfully compute density maps using getMovieDensity.m and false
 % otherwise.
 %
 % Sylvain Berlemont, 12/2009

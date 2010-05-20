@@ -42,7 +42,7 @@ checkProcess = @(procName, movieData) ...
     eval(['checkMovie' upper(procName(1)) procName(2:end) '(movieData)']);
 
 %
-% CHECK INPUT ARGUMENT
+% CHECK INPUT ARGUMENTS
 %
 
 if nargin < 1 || isempty(dataDirectory)
@@ -215,33 +215,33 @@ for iMovie = 1:nMovies
 
     for iProc = 1:nProcesses
         procName = procNames{iProc};
-        procFun = procFuns{iProc};
+        procFun = procFuns{iProc}; %#ok<NASGU>
         procLoc = procLocs{iProc};
         
         if ~checkProcess(procName, currMovie) || params.forceRun(iProc)
             
-            disp([movieName ': running process ' procName{iProc}]);
+            disp([movieName ': running process ' procName]);
             
             procParams = eval(['params.' procLoc]);
             procParamKeys = fieldnames(procParams);
             procParamsStr = arrayfun(@(iKey) ['procParams.' procParamKeys{iKey} ','], ...
                 1:numel(procParamKeys), 'UniformOutput', false);
             % concatenate all params
-            procParamsStr = strcat(procParamsStr{:}, params.batchMode);
+            procParamsStr = strcat(procParamsStr{:}, 'params.batchMode');
             
             try
-                currMovie = procFun(currMovie, procParamsStr);
+                currMovie = eval(['feval(procFun,currMovie,' procParamsStr ');']);
                 
                 if isfield(currMovie.(procName),'error')
-                    eval(['currMovie.' procLoc ' = rmfield(currMovie.' procLoc ',''error'')']);
+                    eval(['currMovie.' procLoc ' = rmfield(currMovie.' procLoc ',''error'');']);
                 end
  
             catch errMess
                 disp(['Error in ' movieName ': ' errMess.stack(1).name ':' ...
                     num2str(errMess.stack(1).line) ' : ' errMess.message]);
                 
-                eval(['currMovie.' procLoc '.error = errMess']);
-                eval(['currMovie.' procLoc '.status = 0']);
+                eval(['currMovie.' procLoc '.error = errMess;']);
+                eval(['currMovie.' procLoc '.status = 0;']);
                 continue;
             end
         else
@@ -258,7 +258,7 @@ for iMovie = 1:nMovies
     
     movieData{iMovie} = currMovie;
     
-    disp([movieName ': DONE']);
+    fprintf('%s\n\n', [movieName ': DONE']);
 end
 
 %

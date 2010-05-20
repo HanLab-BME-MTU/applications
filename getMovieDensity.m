@@ -1,4 +1,4 @@
-function movieData = getMovieDensityMap(movieData, batchMode)
+function movieData = getMovieDensity(movieData, batchMode)
 
 %Indicate that labeling was started
 movieData.density.status = 0;
