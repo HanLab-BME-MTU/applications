@@ -334,9 +334,9 @@ userfcn_lampSwitch(3, get(hObject,'value'), handles);
 function pushbutton_set3_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
-procID = 3;
 userData = get(handles.figure1, 'UserData');
-userData.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+procID = 3;
+userData.setFig(procID) = maskRefinementProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
@@ -505,9 +505,9 @@ userfcn_lampSwitch(4, get(hObject,'value'), handles);
 function pushbutton_set4_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
+userData = get(handles.figure1, 'UserData');
 procID = 4;
-userData = get(handles.figure1, 'userData');
-userData.setFig(procID) = testProcessGUI('mainFig',handles.figure1,procID);
+userData.setFig(procID) = darkCurrentCorrectionProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
@@ -720,9 +720,13 @@ userfcn_lampSwitch(5, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set5.
 function pushbutton_set5_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+userData = get(handles.figure1, 'UserData');
+procID = 5;
+userData.setFig(procID) = shadeCorrectionProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_show5.
@@ -744,9 +748,13 @@ userfcn_lampSwitch(6, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set6.
 function pushbutton_set6_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set6 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+userData = get(handles.figure1, 'UserData');
+procID = 6;
+userData.setFig(procID) = backgroundSubtractionProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_show6.
@@ -768,9 +776,13 @@ userfcn_lampSwitch(7, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set7.
 function pushbutton_set7_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set7 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+userData = get(handles.figure1, 'UserData');
+procID = 7;
+userData.setFig(procID) = bleedthroughCorrectionProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_show7.
@@ -792,9 +804,7 @@ userfcn_lampSwitch(8, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set8.
 function pushbutton_set8_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set8 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
 
 
 % --- Executes on button press in pushbutton_show8.
@@ -816,16 +826,18 @@ userfcn_lampSwitch(9, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set9.
 function pushbutton_set9_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set9 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+userData = get(handles.figure1, 'UserData');
+procID = 9;
+userData.setFig(procID) = ratioingProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_show9.
 function pushbutton_show9_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show9 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
 
 
 % --- Executes on button press in checkbox_10.
@@ -840,9 +852,13 @@ userfcn_lampSwitch(10, get(hObject,'value'), handles);
 
 % --- Executes on button press in pushbutton_set10.
 function pushbutton_set10_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_set10 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+userData = get(handles.figure1, 'UserData');
+procID = 10;
+userData.setFig(procID) = photobleachCorrectionProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_show10.
