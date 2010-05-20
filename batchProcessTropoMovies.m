@@ -1,15 +1,47 @@
-function batchMakeTropoFigures(dataDirectory, analysisDirectory, forceRun, batchMode)
+function batchProcessTropoMovies(dataDirectory, analysisDirectory, params)
 
-% STEP 1: Setup movie data
-% STEP 2: Get movie contours            (depends on STEP 1)
-% STEP 3: Compute protrusion            (depends on STEP 1)
-% STEP 4: Get movie windows             (depends on STEP 2)
-% STEP 5: Sample protrusion             (depends on STEP 3, 4)
-% STEP 6: Get movie labels              (depends on STEP 4)
-% STEP 7: Compute distance transform    (depends on STEP 1)
-% STEP 8: Get movie density             (depends on STEP 1, 6)
+% params is a structure containing the following fields:
+% .forceRun       a boolean array of size equal to the number of processes
+% .batchMode      trigger for graphical display
 
-nSteps = 8;
+procNames = {...
+    'contours',...
+    'protrusion',...
+    'windows',...
+    'protrusionSamples',...
+    'labels',...
+    'bwdist',...
+    'density'};
+
+procLocs = {...
+    'contours',...
+    'protrusion',...
+    'windows',...
+    'protrusion.samples',...
+    'labels',...
+    'bwdist',...
+    'density'};
+
+procFuns = {...
+    'getMovieContours',...
+    'getMovieProtrusion',...
+    'getMovieWindows',...
+    'getMovieProtrusionSamples',...
+    'getMovieLabels',...
+    'getMovieBWDist',...
+    'getMovieDensityMap'};
+
+assert(numel(procNames) == numel(procLocs));
+assert(numel(procNames) == numel(procFuns));
+
+nProcesses = length(procFuns);
+
+checkProcess = @(procName, movieData) ...
+    eval(['checkMovie' upper(procName(1)) procName(2:end) '(movieData)']);
+
+%
+% CHECK INPUT ARGUMENT
+%
 
 if nargin < 1 || isempty(dataDirectory)
     dataDirectory = uigetdir('', 'Select a data directory:');
@@ -27,16 +59,20 @@ if nargin < 2 || isempty(analysisDirectory)
     end
 end
 
-if nargin < 3 || isempty(forceRun)
-    forceRun = zeros(nSteps, 1);
+if nargin < 3 || isempty(params)
+    error('''params'' argument is missing.');
 end
 
-if length(forceRun) ~= nSteps
-    error('Invalid number of steps in forceRun (3rd argument).');
+if ~isfield(params,'forceRun') || isempty(params.forceRun)
+    params.forceRun = zeros(nSteps, 1);
 end
 
-if nargin < 4 || isempty(batchMode)
-    batchMode = 1;
+if length(params.forceRun) ~= nProcesses
+    error('size of parameter ''forceRun'' differs from number of processes.');
+end
+
+if ~isfield(params,'batchMode') || isempty(params.batchMode)
+    params.batchMode = 1;
 end
 
 % Get every movies folder that contains 2 FSM subfolders either called:
@@ -53,6 +89,7 @@ dataPaths.ActinTM2 = getDirectories(dataDirectory, 2, {'Actin', 'TM2'}, isValidF
 % dataPaths.TM5TM2 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject);
 % dataPaths.TM5TM4 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject);
 
+% Concatenate all data paths
 dataPathsFull = struct2cell(dataPaths);
 dataPathsFull = vertcat(dataPathsFull{:});
 
@@ -63,12 +100,12 @@ for iMovie = 1:numel(dataPathsFull)
 end
 
 % Create analysis directory for each data set
-
 sstr = numel(dataDirectory);
 analysisPaths = structfun(@(f) cellfun(@(x) fullfile(analysisDirectory,...
     x(sstr+1:end)), f, 'UniformOutput', false), dataPaths, ...
     'UniformOutput', false);
 
+% Concatenate all data paths
 analysisPathsFull = struct2cell(analysisPaths);
 analysisPathsFull = vertcat(analysisPathsFull{:});
 
@@ -79,7 +116,7 @@ for iMovie = 1:numel(analysisPathsFull)
 end
 
 %
-% Process
+% BATCH ALL MOVIES
 %
 
 disp('Process all directories...');
@@ -96,7 +133,10 @@ for iMovie = 1:nMovies
    
     currMovie = movieData{iMovie};
     
-    % STEP 1: Create movieData
+    %
+    % INIT: SETUP MOVIE DATA
+    %
+    
     currMovie.analysisDirectory = analysisPath;
     content = dir(dataPath);
     content = {content.name};
@@ -154,164 +194,203 @@ for iMovie = 1:nMovies
        currMovie = currMovie.movieData;
     end
 
-    % STEP 2: Get contours
-    dContour = 1000 / currMovie.pixelSize_nm; % 1 um
-    
-    if ~checkMovieContours(currMovie) || forceRun(2)
-        try
-            disp(['Get contours of movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
-            currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 1, ...
-                ['contours_'  num2str(dContour) 'pix.mat'], batchMode);
-        catch errMess
-            disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
-            currMovie.contours.error = errMess;
-            currMovie.contours.status = 0;
-            continue;
-        end
-    end
-    
-    % STEP 3: Calculate protrusion
-    if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'status') || ...
-            currMovie.protrusion.status ~= 1 || forceRun(3)
-        try
-            currMovie.protrusion.status = 0;
+    %
+    % RUN PROCESSES
+    %
 
-            currMovie = setupMovieData(currMovie);
-
-            handles.batch_processing = 1; %batchMode;
-            handles.directory_name = [currMovie.masks.directory];
-            handles.result_directory_name = currMovie.analysisDirectory;
-            handles.FileType = '*.tif';
-            handles.timevalue = currMovie.timeInterval_s;
-            handles.resolutionvalue = currMovie.pixelSize_nm;
-            handles.segvalue = 30;
-            handles.dl_rate = 30;
-
-            %run it
-            [OK,handles] = protrusionAnalysis(handles);
-
-            if ~OK
-                currMovie.protrusion.status = 0;
-            else
-                if isfield(currMovie.protrusion,'error')
-                    currMovie.protrusion = rmfield(currMovie.protrusion,'error');
-                end
+    for iProc = 1:nProcesses
+        procName = procNames{iProc};
+        procFun = procFuns{iProc};
+        procLoc = procLocs{iProc};
+        
+        if ~checkProcess(procName, currMovie) || params.forceRun(iProc)
+            
+            disp([movieName ': running process ' procName{iProc}]);
+            
+            procParams = params.(procName);
+            procParamKeys = fieldnames(procParams);
+            procParamsStr = arrayfun(@(iKey) ['procParams.' procParamKeys{iKey} ','], ...
+                1:numel(procParamKeys), 'UniformOutput', false);
+            procParamsStr = strcat(procParamsStr{:});
+            procParamsStr = procParamsStr(1:end-1); % remove last coma
+            
+            try
+                currMovie = procFun(currMovie, procParamsStr, params.batchMode);
                 
-                currMovie.protrusion.directory = handles.outdir;                
-                currMovie.protrusion.fileName = 'protrusion.mat';
-                currMovie.protrusion.nfileName = 'normal_matrix.mat';
-                currMovie.protrusion.status = 1;
+                if isfield(currMovie.(procName),'error')
+                    eval(['currMovie.' procLoc ' = rmfield(currMovie.' procLoc ',''error'')']);
+                end
+ 
+            catch errMess
+                disp(['Error in ' movieName ': ' errMess.stack(1).name ':' ...
+                    num2str(errMess.stack(1).line) ' : ' errMess.message]);
+                
+                eval(['currMovie.' procLoc '.error = errMess']);
+                eval(['currMovie.' procLoc '.status = 0']);
+                continue;
             end
-            
-            updateMovieData(currMovie);
-            
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.protrusion.error = errMess;
-            currMovie.protrusion.status = 0;
-            continue;
+        else
+            disp([movieName ': process ' procName{iProc} ' not run']);
         end
-    end
+    end   
     
-    % STEP 4: Create windowing
-    winSize = 1000 / currMovie.pixelSize_nm; % ~1um
-    nBands = (5000 / (currMovie.pixelSize_nm * dContour)); % ~5 um depth
-    iOuter = 2;
-    iInner = 4;
-    winMethod = 'p';            
-    windowString = [num2str(dContour) 'by' num2str(winSize) 'pix_' ...
-                num2str(iOuter) '_' num2str(iInner)];
-            
-    if ~checkMovieWindows(currMovie) || forceRun(4)
-        try
-            currMovie = setupMovieData(currMovie);
-
-            disp(['Windowing movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
-            currMovie = getMovieWindows(currMovie,winMethod,winSize,...
-                nBands,iOuter,iInner,[],[],...
-                ['windows_' winMethod '_' windowString '.mat'], batchMode);
-            
-            if isfield(currMovie.windows,'error')
-                currMovie.windows = rmfield(currMovie.windows,'error');
-            end
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.windows.error = errMess;
-            currMovie.windows.status = 0;
-            continue;
-        end
-    end
-    
-    % STEP 5: Sample the protrusion vector in each window
-    if ~checkMovieProtrusionSamples(currMovie) || forceRun(5)
-        try
-            disp(['Sampling protrusion in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
-            currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
-                winMethod '_' windowString  '.mat'], batchMode);
-            
-            if isfield(currMovie.protrusion.samples,'error')
-               currMovie.protrusion.samples = rmfield(currMovie.protrusion.samples,'error');
-           end
-            
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);           
-            currMovie.protrusion.samples.error = errMess;
-            currMovie.protrusion.samples.status = 0;
-            continue;
-        end
-    end 
-
-    % STEP 6: Activity Label (pause = 0, protrusion = 1, retraction = 2)
-    if ~checkMovieLabels(currMovie) || forceRun(6)
-        try
-            disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
-            currMovie = getMovieLabels(currMovie, 'window', batchMode);
-            
-            if isfield(currMovie.labels,'error')
-                currMovie.labels = rmfield(currMovie.labels,'error');
-            end
-            
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.labels.error = errMess;
-            currMovie.labels.status = 0;
-            continue;
-        end
-    end
-    
-    % STEP 7: Save Distance transform
-    if ~checkMovieBWDist(currMovie) || forceRun(7)
-        try
-            disp(['Compute distance transform ' num2str(iMovie) ' of ' num2str(nMovies)]);
-            currMovie = getMovieBWDist(currMovie, batchMode);
-            
-            if isfield(currMovie.bwdist,'error')
-                currMovie.bwdist = rmfield(currMovie.bwdist,'error');
-            end
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.bwdist.error = errMess;
-            currMovie.bwdist.status = 0;
-            continue;
-        end
-    end
-    
-    % STEP 8: get Movie density map
-    if ~checkMovieDensityMap(currMovie) || forceRun(8)
-        try
-            disp(['Compute Density map for movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
-            currMovie = getMovieDensityMap(currMovie, batchMode);
-            
-            if isfield(currMovie.density,'error')
-                currMovie.density = rmfield(currMovie.density,'error');
-            end
-        catch errMess
-            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-            currMovie.density.error = errMess;
-            currMovie.density.status = 0;
-            continue;
-        end
-    end
+%     % STEP 1: Get contours
+%     dContour = 1000 / currMovie.pixelSize_nm; % 1 um
+%     
+%     if ~checkMovieContours(currMovie) || forceRun(2)
+%         try
+%             disp(['Get contours of movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
+%             currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 1, ...
+%                 ['contours_'  num2str(dContour) 'pix.mat'], batchMode);
+%         catch errMess
+%             disp(['Error in movie ' num2str(iMovie) ': ' errMess.message]);
+%             currMovie.contours.error = errMess;
+%             currMovie.contours.status = 0;
+%             continue;
+%         end
+%     end
+%     
+%     % STEP 2: Calculate protrusion
+%     if ~checkMovieProtrusion(currMovie) || forceRun(3)
+%         try
+%             currMovie.protrusion.status = 0;
+% 
+%             currMovie = setupMovieData(currMovie);
+% 
+%             handles.batch_processing = 1; %batchMode;
+%             handles.directory_name = [currMovie.masks.directory];
+%             handles.result_directory_name = currMovie.analysisDirectory;
+%             handles.FileType = '*.tif';
+%             handles.timevalue = currMovie.timeInterval_s;
+%             handles.resolutionvalue = currMovie.pixelSize_nm;
+%             handles.segvalue = 30;
+%             handles.dl_rate = 30;
+% 
+%             %run it
+%             [OK,handles] = protrusionAnalysis(handles);
+% 
+%             if ~OK
+%                 currMovie.protrusion.status = 0;
+%             else
+%                 if isfield(currMovie.protrusion,'error')
+%                     currMovie.protrusion = rmfield(currMovie.protrusion,'error');
+%                 end
+%                 
+%                 currMovie.protrusion.directory = handles.outdir;                
+%                 currMovie.protrusion.fileName = 'protrusion.mat';
+%                 currMovie.protrusion.nfileName = 'normal_matrix.mat';
+%                 currMovie.protrusion.status = 1;
+%             end
+%             
+%             updateMovieData(currMovie);
+%             
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+%             currMovie.protrusion.error = errMess;
+%             currMovie.protrusion.status = 0;
+%             continue;
+%         end
+%     end
+%     
+%     % STEP 3: Create windowing
+%     winSize = 1000 / currMovie.pixelSize_nm; % ~1um
+%     nBands = (5000 / (currMovie.pixelSize_nm * dContour)); % ~5 um depth
+%     iOuter = 2;
+%     iInner = 4;
+%     winMethod = 'p';            
+%     windowString = [num2str(dContour) 'by' num2str(winSize) 'pix_' ...
+%                 num2str(iOuter) '_' num2str(iInner)];
+%             
+%     if ~checkMovieWindows(currMovie) || forceRun(4)
+%         try
+%             currMovie = setupMovieData(currMovie);
+% 
+%             disp(['Windowing movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
+%             currMovie = getMovieWindows(currMovie,winMethod,winSize,...
+%                 nBands,iOuter,iInner,[],[],...
+%                 ['windows_' winMethod '_' windowString '.mat'], batchMode);
+%             
+%             if isfield(currMovie.windows,'error')
+%                 currMovie.windows = rmfield(currMovie.windows,'error');
+%             end
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+%             currMovie.windows.error = errMess;
+%             currMovie.windows.status = 0;
+%             continue;
+%         end
+%     end
+%     
+%     % STEP 4: Sample the protrusion vector in each window
+%     if ~checkMovieProtrusionSamples(currMovie) || forceRun(5)
+%         try
+%             disp(['Sampling protrusion in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
+%             currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
+%                 winMethod '_' windowString  '.mat'], batchMode);
+%             
+%             if isfield(currMovie.protrusion.samples,'error')
+%                currMovie.protrusion.samples = rmfield(currMovie.protrusion.samples,'error');
+%            end
+%             
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);           
+%             currMovie.protrusion.samples.error = errMess;
+%             currMovie.protrusion.samples.status = 0;
+%             continue;
+%         end
+%     end 
+% 
+%     % STEP 5:
+%     if ~checkMovieLabels(currMovie) || forceRun(6)
+%         try
+%             disp(['Labeling windows in movie ' num2str(iMovie) ' of ' num2str(nMovies)]);            
+%             currMovie = getMovieLabels(currMovie, 'window', batchMode);
+%             
+%             if isfield(currMovie.labels,'error')
+%                 currMovie.labels = rmfield(currMovie.labels,'error');
+%             end
+%             
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+%             currMovie.labels.error = errMess;
+%             currMovie.labels.status = 0;
+%             continue;
+%         end
+%     end
+%     
+%     % STEP 6: Save Distance transform
+%     if ~checkMovieBWDist(currMovie) || forceRun(7)
+%         try
+%             disp(['Compute distance transform ' num2str(iMovie) ' of ' num2str(nMovies)]);
+%             currMovie = getMovieBWDist(currMovie, batchMode);
+%             
+%             if isfield(currMovie.bwdist,'error')
+%                 currMovie.bwdist = rmfield(currMovie.bwdist,'error');
+%             end
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+%             currMovie.bwdist.error = errMess;
+%             currMovie.bwdist.status = 0;
+%             continue;
+%         end
+%     end
+%     
+%     % STEP 7: get Movie density map
+%     if ~checkMovieDensityMap(currMovie) || forceRun(8)
+%         try
+%             disp(['Compute Density map for movie ' num2str(iMovie) ' of ' num2str(nMovies)]);
+%             currMovie = getMovieDensityMap(currMovie, batchMode);
+%             
+%             if isfield(currMovie.density,'error')
+%                 currMovie.density = rmfield(currMovie.density,'error');
+%             end
+%         catch errMess
+%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
+%             currMovie.density.error = errMess;
+%             currMovie.density.status = 0;
+%             continue;
+%         end
+%     end
     
     try
         %Save the updated movie data
