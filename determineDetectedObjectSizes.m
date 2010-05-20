@@ -2,7 +2,7 @@ function [res] = determineDetectedObjectSizes(exp)
 % determine size of clathrin pits in all images for a given condition
 %
 % SYNOPSIS:
-% [pitResults]=determineAllPitsizes(exp);
+% [res] = determineDetectedObjectSizes(exp);
 %
 % INPUT     :   exp   = field containign all exp for the condition
 %
@@ -66,7 +66,7 @@ axis([0 xa(end) 0 max(nv)]);
 set(gca, 'FontName', 'Helvetica', 'FontSize', 14, 'LineWidth', 1.5);
 title(['Sigma: mean = ' num2str(mu, '%3.3f') ', std = ' num2str(std(res.sigma), '%3.3f')]);
 
-end % of function
+end
 
 
 function [results] = determinePitsizeFromImage_2d(image, x, y)
@@ -107,7 +107,7 @@ for k = 1:N
         % Gaussian parameter vector: [x y A sigma background]
         
         % sigma fixed, other parameters free
-        [estimates1] = fitGaussian2D(window, [ru+1 ru+1 imax-imean 1.5 imean], 'xyAc');
+        [estimates1] = fitGaussian2D(window, [0 0 imax-imean 1.5 imean], 'xyAc');
         
         % background and positions fixed, estimate A and sigma
         [estimates2] = fitGaussian2D(window, estimates1, 'As');
