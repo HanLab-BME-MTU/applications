@@ -1,6 +1,49 @@
-function batchMakeFAFigures(rootDirectory, forceRun, batchMode)
+function batchProcessVinculinMovies(rootDirectory, params)
 
-nSteps = 8;
+% params is a structure containing the following fields:
+% .pixelSize
+% .timeInterval
+% .runSteps       a boolean array of size equal to the number of processes
+% .batchMode      trigger for graphical display
+
+procNames = {...
+    'contours',...
+    'protrusion',...
+    'windows',...
+    'protrusionSamples',...
+    'labels',...
+    'detection',...
+    'tracking'};
+
+procLocs = {...
+    'contours',...
+    'protrusion',...
+    'windows',...
+    'protrusion.samples',...
+    'labels',...
+    'detection',...
+    'tracking'};
+
+procFuns = {...
+    'getMovieContours',...
+    'getMovieProtrusion',...
+    'getMovieWindows',...
+    'getMovieProtrusionSamples',...
+    'getMovieLabels',...
+    'getMovieDetection',...
+    'getMovieTracking'};
+
+assert(numel(procNames) == numel(procLocs));
+assert(numel(procNames) == numel(procFuns));
+
+nProcesses = length(procFuns);
+
+checkProcess = @(procName, movieData) ...
+    eval(['checkMovie' upper(procName(1)) procName(2:end) '(movieData)']);
+
+%
+% CHECK INPUT ARGUMENTS
+%
 
 if nargin < 1 || isempty(rootDirectory)
     dataDirectory = uigetdir('', 'Select a data directory:');
@@ -10,16 +53,20 @@ if nargin < 1 || isempty(rootDirectory)
     end
 end
 
-if nargin < 2 || isempty(forceRun)        
-    forceRun = zeros(nSteps, 1);
+if nargin < 2 || isempty(params)
+    error('''params'' argument is missing.');
 end
 
-if length(forceRun) ~= nSteps
-    error('Invalid number of steps in forceRun (2nd argument).');
+if ~isfield(params,'runSteps') || isempty(params.runSteps)
+    params.runSteps = zeros(nSteps, 1);
 end
 
-if nargin < 3 || isempty(batchMode)
-        batchMode = 1;
+if length(params.runSteps) ~= nProcesses
+    error('size of parameter ''runSteps'' differs from number of processes.');
+end
+
+if ~isfield(params,'batchMode') || isempty(params.batchMode)
+    params.batchMode = 1;
 end
 
 % Get every path from rootDirectory containing ch488 & ch560 subfolders.
@@ -30,6 +77,10 @@ disp('List of directories:');
 for iMovie = 1:numel(paths)
     disp([num2str(iMovie) ': ' paths{iMovie}]);
 end
+
+%
+% BATCH ALL MOVIES
+%
 
 disp('Process all directories...');
 
@@ -44,7 +95,7 @@ for iMovie = 1:nMovies
    
     currMovie = movieData{iMovie};
     
-    % STEP 1: SETUP MOVIE DATA
+    % INIT: SETUP MOVIE DATA
 
     try
         fieldNames = {...
@@ -70,31 +121,40 @@ for iMovie = 1:nMovies
         currMovie.imageDirectory = currMovie.channels(1).roiDirectory;
         currMovie.channelDirectory = {''};
         
-        % STEP 1.1: Get the number of images
+        % Get the number of images
         
         n1 = numel(dir([currMovie.channels(1).roiDirectory filesep '*.tif']));
         n2 = numel(dir([currMovie.channels(2).roiDirectory filesep '*.tif']));
         
         % In case one of the channel hasn't been set, we still might want
-        % to compute some process.
+        % to compute some processes.
         currMovie.nImages = max(n1,n2);
         
         assert(currMovie.nImages ~= 0);
 
-        % STEP 1.2: Load physical parameter from
+        % Load physical parameter from
         filename = [currMovie.channels(2).analysisDirectory filesep 'fsmPhysiParam.mat'];
+        
         if exist(filename, 'file')
             load(filename);
-            currMovie.pixelSize_nm = fsmPhysiParam.pixelSize;
-            currMovie.timeInterval_s = fsmPhysiParam.frameInterval;
+
+            if fsmPhysiParam.pixelSize ~= params.pixelSize
+                disp([movieName ': pixel size in qFSM differs from value in batch params (SKIPPING).']);
+                continue;
+            end
+        
+            if fsmPhysiParam.frameInterval ~= params.timeInterval
+                displ([movieName ': time interval in qFSM differs from value in batch params (SKIPPING).']);
+                continue;
+            end
+            
             clear fsmPhysiParam;
-        else
-            % It can happens when qFSM hasn't been run yet.
-            currMovie.pixelSize_nm = 67;
-            currMovie.timeInteral_s = 10;
         end
         
-        % STEP 1.3: Get the mask directory
+        currMovie.pixelSize_nm = params.pixelSize;
+        currMovie.timeInterval_s = params.timeInterval;
+        
+        % Get the mask directory
         currMovie.masks.channelDirectory = {''};
         currMovie.masks.directory = [currMovie.channels(2).analysisDirectory...
             filesep 'edge' filesep 'cell_mask'];
@@ -105,9 +165,9 @@ for iMovie = 1:nMovies
             currMovie.masks.status = 0;
         end
         
-        % STEP 1.4: Update from already saved movieData
+        % Update from already saved movieData
         filename = [currMovie.analysisDirectory filesep 'movieData.mat'];
-        if exist(filename, 'file') && ~forceRun(1)
+        if exist(filename, 'file')
             currMovie = load(filename);
             currMovie = currMovie.movieData;
         end
@@ -118,187 +178,45 @@ for iMovie = 1:nMovies
         continue;
     end
     
-%     % STEP 2: CONTOUR
-%     
-%     dContour = 1000 / currMovie.pixelSize_nm; % ~ 1um
-%     
-%     if ~checkMovieContours(currMovie) || forceRun(2)
-%         try
-%             disp(['Get contours of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-%             currMovie = getMovieContours(currMovie, 0:dContour:500, 0, 1, ...
-%                 ['contours_'  num2str(dContour) 'pix.mat'], batchMode);
-%             
-%             if isfield(currMovie.contours, 'error')
-%                 currMovie.contours = rmfield(currMovie.contours,'error');
-%             end            
-%         catch errMess
-%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-%             currMovie.contours.error = errMess;
-%             currMovie.contours.status = 0;
-%         end
-%     end
-% 
-%     % STEP 3: PROTRUSION
-% 
-%     if ~isfield(currMovie,'protrusion') || ~isfield(currMovie.protrusion,'status') || ...
-%             currMovie.protrusion.status ~= 1 || forceRun(3)
-%         try
-%             currMovie.protrusion.status = 0;
-% 
-%             currMovie = setupMovieData(currMovie);
-% 
-%             handles.batch_processing = batchMode;
-%             handles.directory_name = [currMovie.masks.directory];
-%             handles.result_directory_name = [currMovie.masks.directory];
-%             handles.FileType = '*.tif';
-%             handles.timevalue = currMovie.timeInterval_s;
-%             handles.resolutionvalue = currMovie.pixelSize_nm;
-%             handles.segvalue = 30;
-%             handles.dl_rate = 30;
-% 
-%             %run it
-%             [OK,handles] = protrusionAnalysis(handles);
-% 
-%             if ~OK
-%                 currMovie.protrusion.status = 0;
-%             else
-%                 if isfield(currMovie.protrusion,'error')
-%                     currMovie.protrusion = rmfield(currMovie.protrusion,'error');
-%                 end
-%                 
-%                 %currMovie.protrusion.directory = [currMovie.masks.directory];
-%                 % Workaround:
-%                 currMovie.protrusion.directory = [currMovie.masks.directory filesep ...
-%                     'analysis_dl' num2str(handles.dl_rate)];
-%                 
-%                 currMovie.protrusion.fileName = 'protrusion.mat';
-%                 currMovie.protrusion.nfileName = 'normal_matrix.mat';
-%                 currMovie.protrusion.status = 1;
-%             end
-%             
-%             updateMovieData(currMovie);
-% 
-%             if isfield(currMovie.protrusion, 'error')
-%                 currMovie.protrusion = rmfield(currMovie.protrusion,'error');
-%             end            
-%             
-%         catch errMess
-%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-%             currMovie.protrusion.error = errMess;
-%             currMovie.protrusion.status = 0;
-%         end
-%     end
-% 
-%     % STEP 4: WINDOWING
-%     
-%     dWin = 2000 / currMovie.pixelSize_nm; % ~ 2um
-%     iStart = 2;
-%     iEnd = 5;
-%     winMethod = 'c';
-% 
-%     windowString = [num2str(dContour) 'by' num2str(dWin) 'pix_' num2str(iStart) '_' num2str(iEnd)];
-% 
-%     if ~checkMovieWindows(currMovie) || forceRun(4)
-%         try
-%             currMovie = setupMovieData(currMovie);
-% 
-%             disp(['Get windows of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-%             currMovie = getMovieWindows(currMovie,winMethod,dWin,[],iStart,iEnd,[],[],...
-%                 ['windows_' winMethod '_' windowString '.mat'], batchMode);
-%             
-%             if isfield(currMovie.windows,'error')
-%                 currMovie.windows = rmfield(currMovie.windows,'error');
-%             end
-% 
-%         catch errMess
-%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-%             currMovie.windows.error = errMess;
-%             currMovie.windows.status = 0;
-%         end
-%     end
-%     
-%     % STEP 5: SAMPLE PROTRUSION
-% 
-%     if ~checkMovieProtrusionSamples(currMovie) || forceRun(5)
-%         try
-%             disp(['Get sampled protrusion of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-%             currMovie = getMovieProtrusionSamples(currMovie,['protSamples_' ...
-%                 winMethod '_' windowString  '.mat'], batchMode);
-%             
-%             if isfield(currMovie.protrusion.samples,'error')
-%                currMovie.protrusion.samples = rmfield(currMovie.protrusion.samples,'error');
-%            end
-%             
-%         catch errMess
-%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);           
-%             currMovie.protrusion.samples.error = errMess;
-%             currMovie.protrusion.samples.status = 0;
-%         end
-%         
-%     end 
-%     
-%     % STEP 6: WINDOW LABELING
-% 
-%     if ~checkMovieLabels(currMovie) || forceRun(6)
-%         try
-%             currMovie = setupMovieData(currMovie);
-% 
-%             disp(['Get labels of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-%             
-%             currMovie = getMovieLabels(currMovie, [], batchMode);
-% 
-%             if isfield(currMovie.labels,'error')
-%                 currMovie.labels = rmfield(currMovie.labels,'error');
-%             end
-% 
-%         catch errMess
-%            disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-%            currMovie.labels.error = errMess;
-%            currMovie.labels.status = 0;
-%         end
-%     end
-%
-%     % STEP 7: FA DETECTION
-%     
-%     if ~checkMovieDetection(currMovie) || forceRun(7)
-%         try
-%             currMovie = setupMovieData(currMovie);
-%             
-%             disp(['Detect FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-%             
-%             currMovie = getMovieDetection(currMovie, batchMode);
-%             
-%             if isfield(currMovie.detection, 'error')
-%                 currMovie.detection = rmfield(currMovie.detection, 'error');
-%             end
-%             
-%         catch errMess
-%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-%             currMovie.detection.error = errMess;
-%             currMovie.detection.status = 0;
-%         end
-%     end 
-%  
-%     % STEP 8: FA TRACKING
-%     
-%     if ~checkMovieTracking(currMovie) || forceRun(8)
-%         try
-%             currMovie = setupMovieData(currMovie);
-%             
-%             disp(['Track FA of movie ' num2str(iMovie) ' of ' num2str(nMovies) '...']);
-%             
-%             currMovie = getMovieTracking(currMovie, batchMode);
-%             
-%             if isfield(currMovie.tracking, 'error')
-%                 currMovie.tracking = rmfield(currMovie.tracking, 'error');
-%             end
-%             
-%         catch errMess
-%             disp([movieName ': ' errMess.stack(1).name ':' num2str(errMess.stack(1).line) ' : ' errMess.message]);
-%             currMovie.tracking.error = errMess;
-%             currMovie.tracking.status = 0;
-%         end
-%     end
+    %
+    % RUN PROCESSES
+    %
+
+    for iProc = 1:nProcesses
+        procName = procNames{iProc};
+        procFun = procFuns{iProc}; %#ok<NASGU>
+        procLoc = procLocs{iProc};
+        
+        if  params.runSteps(iProc) == 1 || (~checkProcess(procName, currMovie) && params.runSteps(iProc) == 0)
+            
+            disp([movieName ': running process ' procName]);
+            
+            procParams = eval(['params.' procLoc]);
+            procParamKeys = fieldnames(procParams);
+            procParamsStr = arrayfun(@(iKey) ['procParams.' procParamKeys{iKey} ','], ...
+                1:numel(procParamKeys), 'UniformOutput', false);
+            % concatenate all params
+            procParamsStr = strcat(procParamsStr{:}, 'params.batchMode');
+            
+            try
+                currMovie = eval(['feval(procFun,currMovie,' procParamsStr ');']);
+                
+                if isfield(currMovie.(procName),'error')
+                    eval(['currMovie.' procLoc ' = rmfield(currMovie.' procLoc ',''error'');']);
+                end
+ 
+            catch errMess
+                disp(['Error in ' movieName ': ' errMess.stack(1).name ':' ...
+                    num2str(errMess.stack(1).line) ' : ' errMess.message]);
+                
+                eval(['currMovie.' procLoc '.error = errMess;']);
+                eval(['currMovie.' procLoc '.status = 0;']);
+                continue;
+            end
+        else
+            disp([movieName ': process ' procName ' not run']);
+        end
+    end   
     
     % Save results
     try
@@ -317,17 +235,17 @@ end
 % Create output directory for figures
 %
 
-outputDirectory = fullfile(rootDirectory,'figures');
-if ~exist(outputDirectory, 'dir')
-    mkdir(rootDirectory, 'figures');
-end
-
-% prefix the rootDirectory
-selectedPaths = paths(9:-1:8);
-
-% suffix ch488/analysis
-selectedPaths = cellfun(@(subDir) fullfile(subDir,'ch488','analysis'),...
-    selectedPaths, 'UniformOutput', false);
+% outputDirectory = fullfile(rootDirectory,'figures');
+% if ~exist(outputDirectory, 'dir')
+%     mkdir(rootDirectory, 'figures');
+% end
+% 
+% % prefix the rootDirectory
+% selectedPaths = paths(9:-1:8);
+% 
+% % suffix ch488/analysis
+% selectedPaths = cellfun(@(subDir) fullfile(subDir,'ch488','analysis'),...
+%     selectedPaths, 'UniformOutput', false);
 
 %
 % Make Figure 1
@@ -344,7 +262,7 @@ selectedPaths = cellfun(@(subDir) fullfile(subDir,'ch488','analysis'),...
 %
 % Make Figure 3
 %
-disp('Make figure 3...');
-makeFAFigure3(selectedPaths, outputDirectory);
+%disp('Make figure 3...');
+%makeFAFigure3(selectedPaths, outputDirectory);
 
 
