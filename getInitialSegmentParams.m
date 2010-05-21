@@ -1,15 +1,15 @@
-function [params, ImBG] = getInitialSegmentParams(I,sigmaPSF,minSize)
+function [params, ImBG] = getInitialSegmentParams(ima,mask,sigmaPSF,minSize)
 
 % Make sure image's class is double
-if ~isa(I,'double')
-    I = double(I);
+if ~isa(ima,'double')
+    ima = double(ima);
 end
 
 % Get a first coarse segmentation
-BW = logical(blobSegmentThreshold(I,minSize,0));
+BW = logical(blobSegmentThreshold(ima,minSize,0,mask));
 
 % Get the local orientations
-[R,T] = steerableFiltering(I,2,sigmaPSF); % TODO: Use M=4
+[R,T] = steerableFiltering(ima,2,sigmaPSF); % TODO: Use M=4
 R(R < 0) = 0; % Should not happen
 R(BW == 0) = 0;
 
@@ -26,7 +26,7 @@ indCC = (1:nCC)';
 %
 
 % Estimate background intensity (TODO: 10 is arbitrary)
-ImBG = I - filterGauss2D(I,10);
+ImBG = ima - filterGauss2D(ima,10);
 
 A = cellfun(@(idx) mean(ImBG(idx)), {CCstats(:).PixelIdxList});
 
@@ -98,7 +98,7 @@ for i = 1:nCC
     % local maximum of the 1-dimentional signal radon(Rcrop,theta0) ./
     % radon(BW,theta0).
     
-    % The Radon origin is floor((size(I)+1)/2).
+    % The Radon origin is floor((size(BW)+1)/2).
     cRadon = floor((bb(:,3:4)+1)/2);
     
     % Radon angle is defined in degree in a counterclockwise axis
