@@ -181,7 +181,7 @@ for i = 1:numel(newProjDirList)
         
         if iscell(fsmParam.specific.fileList)
             fsmParam.specific.fileList = cellfun(@(c) [newImgDirList ...
-                c(n+1:end)], fsmParam.specific.fileList);
+                c(n+1:end)], fsmParam.specific.fileList,'UniformOutput',false);
         elseif ischar(fsmParam.specific.fileList)
             m = size(fsmParam.specific.fileList, 1);
             
