@@ -22,15 +22,11 @@ for i=1:length(data)
     if ~(exist(lftPath, 'file')==2) || (overwrite==1)
         fprintf('Generating lifetimes for movie %d of %d\n', i, length(data));
         
-        %trackInfoPath = [data(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'];
         trackedFeaturesPath = [data(i).source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'];
         tracksFinalPath = [data(i).source 'TrackInfoMatrices' filesep 'tracksFinal.mat'];
         
         if (exist(trackedFeaturesPath, 'file')==2)
-            %tfile = load(trackInfoPath);
             tfile = load(trackedFeaturesPath);
-            %trackFields = fieldnames(tfile);
-            %trackInfo = tfile.(trackFields{1});
             trackInfo = tfile.trackedFeatureInfo;
         elseif (exist(tracksFinalPath, 'file')==2)
             tfile = load(tracksFinalPath);
