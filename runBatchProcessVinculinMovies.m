@@ -36,11 +36,11 @@ params.protrusion.samples.protName = ['protSamples_' params.windows.methodStr '_
 params.labels.method = 'window';
 
 % PROC 6: adhesion detection
-params.detection.channelIndex = 1;
-params.detection.sigmaPSF = 1.686; % sigmaPSF = vectorialPSFSigma(1.45, 488, 67)
-params.detection.minSize = 2;
+params.segmentDetection.channelIndex = 1;
+params.segmentDetection.sigmaPSF = 1.686; % sigmaPSF = vectorialPSFSigma(1.45, 488, 67)
+params.segmentDetection.minSize = 2;
 
 % PROC 7: adhesion tracking
-params.tracking = struct([]); % no parameter
+params.segmentTracking = struct([]); % no parameter
 
 batchProcessVinculinMovies(rootDirectory,params);

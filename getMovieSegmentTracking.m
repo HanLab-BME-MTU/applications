@@ -1,23 +1,26 @@
-function movieData = getMovieTracking(movieData,batchMode)
+function movieData = getMovieSegmentTracking(movieData,batchMode)
 
 %Indicate that tracking was started
-movieData.tracking.status = 0;
+movieData.segmentTracking.status = 0;
 
 %Check that detection has been performed
-assert(checkMovieDetection(movieData));
+assert(checkMovieSegmentDetection(movieData));
 
-movieData.tracking.directory = [movieData.channels(1).analysisDirectory ...
-    filesep 'tracking'];
-movieData.tracking.filename = 'tracks.mat';
+movieData.segmentTracking.directory = [movieData.analysisDirectory filesep 'segmentTracking'];
+movieData.segmentTracking.filename = 'tracks.mat';
 
-if ~exist(movieData.tracking.directory, 'dir')
-    mkdir(movieData.tracking.directory);
+if ~exist(movieData.segmentTracking.directory, 'dir')
+    mkdir(movieData.segmentTracking.directory);
 end
 
 % Load detection
-filename = [movieData.detection.directory filesep movieData.detection.filename];
+filename = [movieData.segmentDetection.directory filesep movieData.segmentDetection.filename];
 load(filename);
 nFrames = numel(segmentParams); %#ok<USENS>
+
+%
+% TODO: this should go in the runBatchProcess*.m
+%
 
 % Create movieInfo structure
 
@@ -161,8 +164,8 @@ kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
 
 % Create saveResutls structure
 
-saveResults.dir = movieData.tracking.directory;
-saveResults.filename = movieData.tracking.filename;
+saveResults.dir = movieData.segmentTracking.directory;
+saveResults.filename = movieData.segmentTracking.filename;
 
 % We set probDim to 3 since each feature are defined by 3  
 probDim = 2;
@@ -172,9 +175,7 @@ verbose = ~batchMode;
 [tracks,kalmanInfoLink,errFlag] = trackCloseGapsKalmanSparse(movieInfo,...
     costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
 
-%overlayTracksMovieNew(tracks, [1 nFrames], nFrames, 1);
-
-movieData.tracking.dateTime = datestr(now);
-movieData.tracking.status = 1;
+movieData.segmentTracking.dateTime = datestr(now);
+movieData.segmentTracking.status = 1;
 
 updateMovieData(movieData);

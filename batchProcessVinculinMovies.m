@@ -12,8 +12,8 @@ procNames = {...
     'windows',...
     'protrusionSamples',...
     'labels',...
-    'detection',...
-    'tracking'};
+    'segmentDetection',...
+    'segmentTracking'};
 
 procLocs = {...
     'contours',...
@@ -21,8 +21,8 @@ procLocs = {...
     'windows',...
     'protrusion.samples',...
     'labels',...
-    'detection',...
-    'tracking'};
+    'segmentDetection',...
+    'segmentTracking'};
 
 procFuns = {...
     'getMovieContours',...
@@ -30,8 +30,8 @@ procFuns = {...
     'getMovieWindows',...
     'getMovieProtrusionSamples',...
     'getMovieLabels',...
-    'getMovieDetection',...
-    'getMovieTracking'};
+    'getMovieSegmentDetection',...
+    'getMovieSegmentTracking'};
 
 assert(numel(procNames) == numel(procLocs));
 assert(numel(procNames) == numel(procFuns));
@@ -98,42 +98,57 @@ for iMovie = 1:nMovies
     % INIT: SETUP MOVIE DATA
 
     try
-        fieldNames = {...
-            'bgDirectory',...
-            'roiDirectory',...
-            'tifDirectory',...
-            'stkDirectory',...
-            'analysisDirectory'};
+        % Analysis directory
+        currMovie.analysisDirectory = fullfile(path, 'analysis');
         
-        subDirNames = {'bg', 'roi', 'tif', 'stk', 'analysis'};
-        
-        channels = cell(numel(fieldNames), 1, 2);
-        channels(:, 1, 1) = cellfun(@(x) [path filesep 'ch488' filesep x],...
-            subDirNames, 'UniformOutput', false);
-        channels(:, 1, 2) = cellfun(@(x) [path filesep 'ch560' filesep x],...
-            subDirNames, 'UniformOutput', false);
-        currMovie.channels = cell2struct(channels, fieldNames, 1);
-        
-        % We put every subsequent analysis in the ch488 analysis directory.
-        currMovie.analysisDirectory = currMovie.channels(1).analysisDirectory;
-        
-        % Add these 2 fields to be compliant with Hunter's check routines:
-        currMovie.imageDirectory = currMovie.channels(1).roiDirectory;
-        currMovie.channelDirectory = {''};
+        % Image directory
+        currMovie.imageDirectory = path;
+        currMovie.channelDirectory = cellfun(@(x) fullfile(x, 'roi'), {'ch488', 'ch560'});
         
         % Get the number of images
-        
-        n1 = numel(dir([currMovie.channels(1).roiDirectory filesep '*.tif']));
-        n2 = numel(dir([currMovie.channels(2).roiDirectory filesep '*.tif']));
-        
+        nImages = cellfun(@(channelPath) ...
+            numel(dir([currMovie.imageDirectory filesep channelPath filesep '*.tif'])), currMovie.channelDirectory);
         % In case one of the channel hasn't been set, we still might want
         % to compute some processes.
-        currMovie.nImages = max(n1,n2);
+        currMovie.nImages = max(nImages{:});
+        assert(currMovie.nImages);
         
-        assert(currMovie.nImages ~= 0);
+%         fieldNames = {...
+%             'bgDirectory',...
+%             'roiDirectory',...
+%             'tifDirectory',...
+%             'stkDirectory',...
+%             'analysisDirectory'};
+%         
+%         subDirNames = {'bg', 'roi', 'tif', 'stk', 'analysis'};
+%         
+%         channels = cell(numel(fieldNames), 1, 2);
+%         channels(:, 1, 1) = cellfun(@(x) [path filesep 'ch488' filesep x],...
+%             subDirNames, 'UniformOutput', false);
+%         channels(:, 1, 2) = cellfun(@(x) [path filesep 'ch560' filesep x],...
+%             subDirNames, 'UniformOutput', false);
+%         currMovie.channels = cell2struct(channels, fieldNames, 1);
+%         
+%         % We put every subsequent analysis in the ch488 analysis directory.
+%         currMovie.analysisDirectory = currMovie.channels(1).analysisDirectory;
+%         
+%         % Add these 2 fields to be compliant with Hunter's check routines:
+%         currMovie.imageDirectory = currMovie.channels(1).roiDirectory;
+%         currMovie.channelDirectory = {''};
+%         
+%         % Get the number of images
+%         
+%         n1 = numel(dir([currMovie.channels(1).roiDirectory filesep '*.tif']));
+%         n2 = numel(dir([currMovie.channels(2).roiDirectory filesep '*.tif']));
+%         
+%         % In case one of the channel hasn't been set, we still might want
+%         % to compute some processes.
+%         currMovie.nImages = max(n1,n2);
+%         
+%         assert(currMovie.nImages ~= 0);
 
         % Load physical parameter from
-        filename = [currMovie.channels(2).analysisDirectory filesep 'fsmPhysiParam.mat'];
+        filename = fullfile(currMovie.imageDirectory, 'ch560', 'analysis', 'fsmPhysiParam.mat');
         
         if exist(filename, 'file')
             load(filename);
@@ -156,8 +171,7 @@ for iMovie = 1:nMovies
         
         % Get the mask directory
         currMovie.masks.channelDirectory = {''};
-        currMovie.masks.directory = [currMovie.channels(2).analysisDirectory...
-            filesep 'edge' filesep 'cell_mask'];
+        currMovie.masks.directory = fullfile(currMovie.imageDirectory, 'ch560', 'analysis', 'edge', 'cell_mask');
         if exist(currMovie.masks.directory, 'dir')
             currMovie.masks.n = numel(dir([currMovie.masks.directory filesep '*.tif']));
             currMovie.masks.status = 1;
