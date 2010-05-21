@@ -178,7 +178,7 @@ for k = 1:nFrames
     %===================================================
     
     [labels, nComp] = bwlabel(mask, 8);
-    
+
     area = zeros(nComp, 1);
     totalInt = zeros(nComp, 1);
     nMaxima = zeros(nComp, 1);
@@ -186,11 +186,13 @@ for k = 1:nFrames
     ymax = zeros(nComp, 1);
     xcom = zeros(nComp, 1);
     ycom = zeros(nComp, 1);
+    labelVect = zeros(nComp, 1);
+    
     xmax2 = cell(nComp, 1);
     ymax2 = cell(nComp, 1);
     area2 = cell(nComp, 1);
     totalInt2 = cell(nComp, 1);
-    labels2 = cell(nComp, 1);
+    labelVect2 = cell(nComp, 1);
         
     % Compute area and center of mass for each component
     stats = regionprops(labels, imgDenoised, 'Area', 'WeightedCentroid', 'PixelIdxList');
@@ -220,16 +222,19 @@ for k = 1:nFrames
             xmax(n) = xm;
             ymax(n) = ym;
             nMaxima(n) = 1;
+            labelVect(n) = labels(ym,xm);
         elseif nMaxima(n)==0 % no maximum was detected for this cluster
             maxValueIdx = find(values == max(values));
             xmax(n) = xi(maxValueIdx(1));
             ymax(n) = yi(maxValueIdx(1));
             nMaxima(n) = 1;
+            labelVect(n) = labels(ymax(n), xmax(n));
         else % resolve multiple maxima cases
             maxValues = localMax(sub2ind(size(localMax), ym, xm)); % highest local max
             maxIdx = find(maxValues == max(maxValues));
             xmax(n) = xm(maxIdx(1));
             ymax(n) = ym(maxIdx(1));
+            labelVect(n) = labels(ymax(n), xmax(n));
             
             % remove highest max from list
             xm(maxIdx(1)) = [];
@@ -251,8 +256,8 @@ for k = 1:nFrames
                 % split area
                 area2{n} = area(n)*ones(nSecMax,1)/nMaxima(n);
                 area(n) = area(n)/nMaxima(n);
-                labels2{n} = labels(n)*ones(nSecMax,1);
-            
+                labelVect2{n} = labels(sub2ind(size(labels), ymax2{n}, xmax2{n}));
+                
                 %intensity values
                 totalInt2{n} = totalInt(n)*ones(nSecMax,1)/nMaxima(n);
                 totalInt(n) = totalInt(n)/nMaxima(n);
@@ -264,6 +269,7 @@ for k = 1:nFrames
     ymax2 = vertcat(ymax2{:});
     totalInt2 = vertcat(totalInt2{:});
     area2 = vertcat(area2{:});
+    labelVect2 = vertcat(labelVect2{:});
     
     % assign
     frameInfo(k).xmax = [xmax; xmax2(:)];
@@ -274,7 +280,7 @@ for k = 1:nFrames
     frameInfo(k).area = [area; area2(:)];
     
     frameInfo(k).nMaxima = nMaxima; % maxima per component
-    %frameInfo(k).labels = [labels; [labels2{:}]]; % labels MxN -> N
+    frameInfo(k).labels = [labelVect; labelVect2(:)];
     frameInfo(k).nComp = nComp;
     
     
