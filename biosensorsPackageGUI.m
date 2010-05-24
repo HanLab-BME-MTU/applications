@@ -197,41 +197,32 @@ procEx = userData.crtPackage.sanityCheck(true, 'all');
 k = [];
 for i = 1: size(userData.dependM, 1)
    if ~isempty(procEx{i})
-       l = 0;
-       for j = 1: length(procEx{i})
-           if strcmp(procEx{i}(j).identifier, 'lccb:set:fatal')
-               if l <= 2
-                   l = 2;
-                   eInd = j;
-               end
-           elseif strcmp(procEx{i}(j).identifier, 'lccb:parachanged:warn')
-               if l <= 1
-                  l = 1;
-                  eInd = j;
-               end
-           else
-               if l == 0
-                   eInd = j;
-               end
-           end
-       end
-       if l > 1
-           userfcn_drawIcon(handles,'error',i,procEx{i}(eInd).message);
+
+       if strcmp(procEx{i}(1).identifier, 'lccb:set:fatal')
+           userfcn_drawIcon(handles,'error',i,procEx{i}(1).message);
        else
-           userfcn_drawIcon(handles,'warn',i,procEx{i}(eInd).message);
+           userfcn_drawIcon(handles,'warn',i,procEx{i}(1).message);
        end
+           
    else
        if ~isempty(userData.crtPackage.processes_{i}) && ...
           userData.crtPackage.processes_{i}.success_ && ...
            ~userData.crtPackage.processes_{i}.procChanged_ && ...
            userData.crtPackage.processes_{i}.updated_
       
-           userfcn_drawIcon(handles,'pass',i,'Current step is processed successfully') ;
+           userfcn_drawIcon(handles,'pass',i,'Current step was processed successfully') ;
            
        end
    end
+   
+% -------------------Bold Existing Process Name--------------------
 
-% --------------------------Set up uicontrols------------------------------
+   if ~isempty(userData.crtPackage.processes_{i})
+       eval([ 'set(handles.checkbox_',num2str(i),', ''FontWeight'',''bold'')' ]);
+   end
+    
+    
+% -------------------Set Up Uicontrols Enable/Disable--------------------
 
    % If process's sucess = 1, release the process from GUI enable/disable
    % control
@@ -240,11 +231,16 @@ for i = 1: size(userData.dependM, 1)
        k = [k, i];
        eval([ 'set(handles.pushbutton_show',num2str(i),', ''enable'', ''on'');']);
    end
+   
 end
+
 tempDependM = userData.dependM;
 tempDependM(:,k) = zeros(size(userData.dependM,1),length(k));
+
 % Checkbox enable/disable set up
 userfcn_enable(find (any(tempDependM,2)), 'off',handles);
+
+
 
 
 
@@ -418,7 +414,7 @@ end
 % Check if process exist
 for i = procCheck
     if isempty (userData.crtPackage.processes_{i})
-        errordlg([num2str(i),' th step is not set up yet'], ...
+        errordlg(['The ',num2str(i),' th step is not set up yet. Tip: when step is set up successfully, the font of step''s name is bold.'], ...
             'Step Not Set Up','modal');
         return;
     end    
@@ -450,24 +446,26 @@ end
 
 % Package full sanity check. Sanitycheck every checked process
 procEx = userData.crtPackage.sanityCheck(true, procCheck);
-k = {};
+k = [];
 
 for i = procCheck
    if ~isempty(procEx{i})
+       
        % Check if there is fatal error in exception array
-       for j = 1: length(procEx{i})
-           if strcmp(procEx{i}(j).identifier, 'lccb:set:fatal');
-               k = horzcat(k,[num2str(i) ' ']);
-%                userData.crtPackage.processes_{i}.setSuccess(false);
-               userfcn_drawIcon(handles,'error',i,procEx{i}(j).message)
+           if strcmp(procEx{i}(1).identifier, 'lccb:set:fatal') || ...
+                   strcmp(procEx{i}(1).identifier, 'lccb:input:fatal')
+               
+               k = horzcat(k,i);
+               userfcn_drawIcon(handles,'error',i,procEx{i}(1).message)
            end
-       end
+
    end
 end
+
 % If setting error, stop and pop up notice
 if ~isempty(k)
-    errordlg(['Settings are incorrect in ' k{:} 'th step.' ...
-        'Click corresponding error icon for further information'],...
+    errordlg(['Settings are incorrect in ' num2str(k) 'th step.' ...
+        'Please click the error icons for further information.'],...
              'Setting Error','modal');
     return
 end
