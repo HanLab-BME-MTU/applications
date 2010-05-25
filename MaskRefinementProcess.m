@@ -3,7 +3,7 @@ classdef MaskRefinementProcess < SegmentationProcess
     %CLASS. HLE  
 
     methods(Access = public)        
-        function obj = RefineMaskProcess(owner,funParams)
+        function obj = MaskRefinementProcess(owner,funParams)
             
             if nargin == 0
                 super_args = {};
@@ -34,7 +34,6 @@ classdef MaskRefinementProcess < SegmentationProcess
             end
             
             obj = obj@SegmentationProcess(super_args{:});
-            obj.name_ = mfilename('class');
             
         end        
     end

@@ -46,6 +46,9 @@ end
 
 % --- Executes just before biosensorsPackageGUI is made visible.
 function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
+%
+% biosensorsPackageGUI(MD)   MD: MovieData object
+%
 % Useful tools
 % User Data:
 %       userData.MD - the MovieData object
@@ -194,7 +197,7 @@ guidata(hObject, handles);
 % --------------------------Package Sanity Check---------------------------
 
 procEx = userData.crtPackage.sanityCheck(true, 'all');
-k = [];
+k = zeros(1,size(userData.dependM, 1));
 for i = 1: size(userData.dependM, 1)
    if ~isempty(procEx{i})
 
@@ -228,20 +231,17 @@ for i = 1: size(userData.dependM, 1)
    % control
    if ~isempty(userData.crtPackage.processes_{i}) && ...
       userData.crtPackage.processes_{i}.success_ 
-       k = [k, i];
+       k(i) = 1;
        eval([ 'set(handles.pushbutton_show',num2str(i),', ''enable'', ''on'');']);
    end
    
 end
 
 tempDependM = userData.dependM;
-tempDependM(:,k) = zeros(size(userData.dependM,1),length(k));
+tempDependM(:,logical(k)) = zeros(size(userData.dependM,1), nnz(k));
 
 % Checkbox enable/disable set up
 userfcn_enable(find (any(tempDependM,2)), 'off',handles);
-
-
-
 
 
 % UIWAIT makes biosensorsPackageGUI wait for user response (see UIRESUME)
@@ -485,7 +485,9 @@ try
     end
     
 catch ME
-    errordlg(ME.message,'Run Time Error','modal');
+%     errordlg(ME.message,'Run Time Error');
+    
+    rethrow(ME) %%
 end
 
 

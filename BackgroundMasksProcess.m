@@ -26,7 +26,6 @@ classdef BackgroundMasksProcess < SegmentationProcess
             end
             
             obj = obj@SegmentationProcess(super_args{:});
-            obj.name_ = mfilename('class');
             
         end        
     end
