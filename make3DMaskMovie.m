@@ -94,6 +94,8 @@ for iImage = 1:nImages;
     %Overlay the mask
     maskSurf = isosurface(currMask,.5); %Get the surface of the mask
     patch(maskSurf,'EdgeColor','none','FaceColor','r','FaceAlpha',.5)
+    maskCaps = isocaps(currMask,.5);
+    patch(maskCaps,'EdgeColor','none','FaceColor','b','FaceAlpha',.5)
     light %Add a light    
     
     title(['Frame ' num2str(iImage)])

@@ -70,7 +70,7 @@ function movieData = segment3DMovie(movieData,varargin)
 %% ----- Parameters ---- %%
 
 maxJump = .25; %The maximum fractional change in a threshold value to allow if the FixJumps option is enabled
-
+gSig = 1; %Sigma of the filter used in the smoothed gradient filter.
 
 %% ------ Input ----- %%
 
@@ -162,12 +162,14 @@ for iChan = 1:nChan
             case 'Gradient'
                 
                 %Get the gradient of the image
-                [gX,gY,gZ] = gradient(double(currIm));
-                currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2); %Just overwrite the image, save memory etc.                              
+%                 [gX,gY,gZ] = gradient(double(currIm));
+%                 currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2); %Just overwrite the image, save memory etc.                              
+%                 
+                currIm = matitk('FGMS',gSig,double(currIm));
                 
                 %Threshold this gradient based on intensity histogram
                 try
-                    [currMask,currThresh] = thresholdFluorescenceImage(currIm);                
+                    currThresh = thresholdFluorescenceImage(currIm);                
                 catch errMess %If the auto-thresholding fails, 
                     if fJump
                         % just force use of last good threshold, if Fix
@@ -220,12 +222,14 @@ for iChan = 1:nChan
                     
             labelMask = bwlabeln(currMask);
             
-            rProp = regionprops(labelMask);
-            [goodObj,iGood] = sort([rProp(:).Area],'descend');
-            
-            currMask = false(size(currMask));
-            for i = 1:nObjects
-                currMask = currMask | (labelMask == iGood(i));
+            if nObjects > 0
+                rProp = regionprops(labelMask,'Area');
+                [goodObj,iGood] = sort([rProp(:).Area],'descend');
+
+                currMask = false(size(currMask));
+                for i = 1:nObjects
+                    currMask = currMask | (labelMask == iGood(i));
+                end
             end
         end
         
@@ -302,8 +306,8 @@ for i = 1:2:nArg
        case 'NumObjects'
            nObjects = argArray{i+1};
            
-       case 'CloseRad'
-           nObjects = argArray{i+1};
+       case 'ClosureRadius'
+           closeRad = argArray{i+1};
            
        case 'Method'
            methName = argArray{i+1};
