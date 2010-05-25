@@ -33,8 +33,8 @@ opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e6, ...
     'MaxIter', 1e6, ...
     'Display', 'off', ...
-    'TolX', 1e-8, ...
-    'Tolfun', 1e-8);
+    'TolX', 1e-6, ...
+    'Tolfun', 1e-6);
 
 
 if (display~=0)
@@ -71,8 +71,9 @@ sigma2 = resnorm / (numel([data{:}]) - sum(estVect));
 
 % parameter variance is given by the diagonal elements of the variance-covariance matrix
 jacobian = full(jacobian);
+warning('off', 'MATLAB:singularMatrix'); % s = warning('query','last');
 prmSigma = sqrt(sigma2 * diag(inv(jacobian'*jacobian)));
-
+warning('on', 'MATLAB:singularMatrix');
 
 % plot subpopulations
 if (display~=0)
