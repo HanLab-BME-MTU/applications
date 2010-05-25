@@ -153,7 +153,7 @@ if ~p.BatchMode
     wtBar = waitbar(0,['Please wait, thresholding channel ' num2str(p.ChannelIndex(1)) ' ...']);        
 end    
 
-for iChan = 1:nChan
+for iChan = 1:nChanBack
            
     disp(['Creating background masks for channel ' num2str(p.ChannelIndex(iChan)) '...']);
 
