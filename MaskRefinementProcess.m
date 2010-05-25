@@ -11,7 +11,8 @@ classdef MaskRefinementProcess < SegmentationProcess
                 nChan = numel(owner.channelPath_);
                 
                 super_args{1} = owner;
-                super_args{2} = @refineMovieMasksNEW;                               
+                super_args{2} = 'Mask Refinement';
+                super_args{3} = @refineMovieMasksNEW;                               
                 
                 if nargin < 2 || isempty(funParams)                                       
                     
@@ -29,7 +30,7 @@ classdef MaskRefinementProcess < SegmentationProcess
                     funParams.BatchMode = false;                                              
                 end
                 %Make sure the input parameters are legit??
-                super_args{3} = funParams;                    
+                super_args{4} = funParams;                    
             end
             
             obj = obj@SegmentationProcess(super_args{:});
