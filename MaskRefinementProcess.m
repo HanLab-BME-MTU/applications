@@ -1,4 +1,4 @@
-classdef RefineMaskProcess < SegmentationProcess
+classdef MaskRefinementProcess < SegmentationProcess
     %INHERITANCE OF SEGMENTATIONPROCESS IS TEMPORARY - NEED TO MOVE TO OWN
     %CLASS. HLE  
 
