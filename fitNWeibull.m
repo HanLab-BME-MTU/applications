@@ -16,7 +16,7 @@
 % Francois Aguet, March 2010
 
 
-function [prmVect, residual, estimatesSigma, BIC] = fitNWeibull(t, data, prmVect, estVect, mode, display)
+function [prmVect, residual, prmSigma, BIC] = fitNWeibull(t, data, prmVect, estVect, mode, display)
 
 if nargin<6
     display = 0;
@@ -33,8 +33,8 @@ opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e6, ...
     'MaxIter', 1e6, ...
     'Display', 'off', ...
-    'TolX', 1e-12, ...
-    'Tolfun', 1e-12);
+    'TolX', 1e-8, ...
+    'Tolfun', 1e-8);
 
 
 if (display~=0)
@@ -66,32 +66,12 @@ deg = sum(estIdx); % degrees of freedom
 BIC = n*log(resnorm/n) + deg*log(n);
 
 
-% % degrees of freedom = number of data points minus number of free fit parameters
-% numFreeFitP = sum(estVect);
-% degFreedom  = numel([data{:}]) - numFreeFitP;
-% % chi square = sum of residual divided by degrees of freedom
-% chiSquare   = nansum(residual.^2)/degFreedom;
-% % cofactor matrix Q; since inverse on JJ isn't possible because of the
-% % zeros at positions of fixed parameters, perform the inverse operation on
-% % a condensed version of JJ with no zeros
-% JJ          = full(jacobian)'*full(jacobian);
-% JJdefpos    = find(JJ~=0);
-% if length(JJdefpos)==numFreeFitP^2
-%     JJsmall     = zeros(numFreeFitP);
-%     JJsmall(:)  = JJ(JJdefpos);
-%     Qsmall      = inv(JJsmall);
-%     Q           = zeros(length(estVect));
-%     Q(JJdefpos)    = Qsmall(:);
-%     
-%     % standard deviation of parameters uses only diagonal of covariance matrix,
-%     % which is cofactor times error
-%     % Note: large values outside of the diagonal (i.e. on the same order of
-%     % magnitude as the diagonal) indicate interdependence of parameters
-%     estimatesSigma = sqrt(chiSquare*diag(Q))';
-% else
-%     estimatesSigma = [];
-% end
-estimatesSigma = [];
+% estimated error variance: RSS/(n-p). n: data points, p: degrees of freedom.
+sigma2 = resnorm / (numel([data{:}]) - sum(estVect));
+
+% parameter variance is given by the diagonal elements of the variance-covariance matrix
+jacobian = full(jacobian);
+prmSigma = sqrt(sigma2 * diag(inv(jacobian'*jacobian)));
 
 
 % plot subpopulations
