@@ -26,8 +26,8 @@ for i = 1:length(data)
 
         load([data(i).source 'LifetimeInfo' filesep 'lftInfo.mat']);
 
-        lftMat = lftInfo.Mat_lifetime;
-        statMat = lftInfo.Mat_status;
+        lftMat = full(lftInfo.Mat_lifetime);
+        statMat = full(lftInfo.Mat_status);
 
         sx = size(lftMat,1);
         lftVec = NaN(sx,1);
