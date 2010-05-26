@@ -72,8 +72,11 @@ sigma2 = resnorm / (numel([data{:}]) - sum(estVect));
 % parameter variance is given by the diagonal elements of the variance-covariance matrix
 jacobian = full(jacobian);
 warning('off', 'MATLAB:singularMatrix'); % s = warning('query','last');
+warning('off', 'MATLAB:nearlySingularMatrix');
 prmSigma = sqrt(sigma2 * diag(inv(jacobian'*jacobian)));
 warning('on', 'MATLAB:singularMatrix');
+warning('on', 'MATLAB:nearlySingularMatrix');
+
 
 % plot subpopulations
 if (display~=0)
