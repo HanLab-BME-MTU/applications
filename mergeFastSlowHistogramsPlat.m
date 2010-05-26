@@ -247,9 +247,8 @@ if nargin>2
 else
     shapevec = [2 1 1];
 end
-
-startv1template = [0 0.2 sigRay  2   0.1  10  2   0.2  90  1 0.2  100  1];
-
+% startv1template = [0 0.2 sigRay  2   0.1  10  2   0.2  90  1 0.2  100  1];
+startv1template = [0 0.2 sigRay 2 0.1 10 2 0.2 90 1 0.2 100 1];
 startv1 = zeros(1,1+3*length(shapevec));
 startv1(1:length(startv1)) = startv1template(1:length(startv1));
 startv1(4:3:length(startv1)) = shapevec;
