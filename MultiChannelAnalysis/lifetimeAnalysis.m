@@ -18,11 +18,15 @@ if (nargin < 4)
 else
     name = [' (' name ')'];
 end
+
+histName = 'hist_2s';
+
+
 N = length(kWeibull);
 
-t = Results.hist_slow(1,:);
+t = Results.(histName)(1,:);
 tc = t(cutoffIdx:end);
-t = (0:size(Results.hist_slow,2))*data(1).framerate;
+t = (0:size(Results.(histName),2))*data(1).framerate;
 
 % optional input restrict: restrict final fitting analysis to a stretch of
 % the data, e.g. to the first 300s of the histogram, since measured
@@ -37,12 +41,12 @@ t = (0:size(Results.hist_slow,2))*data(1).framerate;
 
 
 % loop through all histograms in input structure
-nHist = size(Results.hist_slow,1)-1;
+nHist = size(Results.(histName),1)-1;
 
 for k = 1:nHist
 
     % re-normalize histogram
-    histVect = Results.hist_slow(k+1,:);
+    histVect = Results.(histName)(k+1,:);
     histVect = histVect / sum(histVect);
     
     % cut-off for 2-population fit:
@@ -110,7 +114,7 @@ output.percentile75 = output.tau .* nthroot(-log(0.25), kWeibull);
 output.range50 = arrayfun(@(x) boxwhiskerPerRange(output.tau(x), kWeibull(x), 0.5), 1:N);
 
 output.nCell = length(data);
-output.nCCP = Results.numcells_slow;
+output.nCCP = Results.numtracks_2s;
 
 
 % Plot results
