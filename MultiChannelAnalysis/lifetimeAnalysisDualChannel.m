@@ -1,10 +1,10 @@
 function [resCargo resNoCargo resGlobal] = lifetimeAnalysisDualChannel(data, kWeibull, cutoffIdx)
 
 if nargin < 2
-    kWeibull = [1 2];
+    kWeibull = [2 2 1];
 end
 if nargin < 3
-    cutoffIdx = 5;
+    cutoffIdx = 1;
 end
 
 
@@ -53,13 +53,10 @@ end
 
 % create mean histograms
 lftHistMean = stageFitLifetimes(data, 'lftHist');
-cargoLftHistMean = stageFitLifetimes(data, 'cargoLftHist');
-nocargoLftHistMean = stageFitLifetimes(data, 'nocargoLftHist');
-
-resGlobal = lifetimeAnalysis_2p(data, lftHistMean, kWeibull, cutoffIdx, 'all pits');
-resCargo = lifetimeAnalysis_2p(data, cargoLftHistMean, kWeibull, cutoffIdx, 'w/ cargo');
-resNoCargo = lifetimeAnalysis_2p(data, nocargoLftHistMean, kWeibull, cutoffIdx, 'w/o cargo');
+cargoLftHistMean = stageFitLifetimes(data, 'cargoLftHist', lftHistMean.detectionCutoff);
+nocargoLftHistMean = stageFitLifetimes(data, 'nocargoLftHist', lftHistMean.detectionCutoff);
 
 
-
-
+resGlobal = lifetimeAnalysis(data, lftHistMean, kWeibull, cutoffIdx, 'all pits');
+resCargo = lifetimeAnalysis(data, cargoLftHistMean, kWeibull, cutoffIdx, 'w/ cargo');
+resNoCargo = lifetimeAnalysis(data, nocargoLftHistMean, kWeibull, cutoffIdx, 'w/o cargo');
