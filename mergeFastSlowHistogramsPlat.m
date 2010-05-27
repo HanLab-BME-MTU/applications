@@ -1,4 +1,4 @@
-function [mergedHistRes] = mergeFastSlowHistogramsPlat(Results, restrict, shape, estartvec, efixvec)
+function [mergedHistRes] = mergeFastSlowHistogramsPlat(Results, restrict, shapevec, estartvec, efixvec)
 % merge the fast and slow histograms preserving the normalization, and
 % fit multiple populations to lifetimes
 % SYNOPSIS [mergedHistRes]=mergeFastSlowHistogramsPlat(Results, restrict, shape);
@@ -39,10 +39,10 @@ function [mergedHistRes] = mergeFastSlowHistogramsPlat(Results, restrict, shape,
 
 
 % the input results have the following format:
-tvecfast = Results.hist_fast(1,:);
-hvecfast = Results.hist_fast(2,:);
-tvecslow = Results.hist_slow(1,:);
-hvecslow = Results.hist_slow(2,:);
+tvecfast = Results.hist_400ms(1,:);
+hvecfast = Results.hist_400ms(2,:);
+tvecslow = Results.hist_2s(1,:);
+hvecslow = Results.hist_2s(2,:);
 
 % optional input restrict: restrict final fitting analysis to a stretch of
 % the data, e.g. to the first 300s of the histogram, since measured
@@ -53,10 +53,14 @@ if nargin < 2 || isempty(restrict)
     restrict = max(tvecslow);
 end
 
+if nargin<3
+    shapevec = [2 1 1];
+end
+
 
 % number of cells for statistics
-nc_fast = Results.numcells_fast;
-nc_slow = Results.numcells_slow;
+nc_fast = Results.numtracks_400ms;
+nc_slow = Results.numtracks_2s;
 
 % offset from 1 in the cumulative histogram of the slow data
 OffsetCH = 1 - sum(hvecslow);
@@ -88,10 +92,9 @@ end
 text(10, 0.9*max(hvecfast), textF);
 title('fast framerate');
 
-% extract value of sigma for first fast Rayleigh distribution to be kept
-% fixed in the slow data
+% extract value of sigma for first fast Rayleigh distribution to be kept fixed in the slow data
 sigRay = estFast(3);
-% sigRay = estFast(6);
+
 
 % variation 03/21
 % newly initialized startvector
@@ -242,23 +245,15 @@ maxt = tcomb(end);
 %
 % =========================================================================
 
-if nargin>2
-    shapevec = shape;
-else
-    shapevec = [2 1 1];
-end
-% startv1template = [0 0.2 sigRay  2   0.1  10  2   0.2  90  1 0.2  100  1];
-startv1template = [0 0.2 sigRay 2 0.1 10 2 0.2 90 1 0.2 100 1];
-startv1 = zeros(1,1+3*length(shapevec));
-startv1(1:length(startv1)) = startv1template(1:length(startv1));
-startv1(4:3:length(startv1)) = shapevec;
 
-fixv1template   = [1  0  1  1  0  0  1  0  0  1  0  0  1]; 
-fixv1 = startv1;
-fixv1(1:length(fixv1)) = fixv1template(1:length(fixv1));
+startv1template = [0  0.2 sigRay 2  0.1 10 2  0.2 90 1  0.2 100 1];
+startv1 = startv1template(1:1+3*length(shapevec));
+startv1(4:3:end) = shapevec;
 
-% subplot(2,1,1); hold on;
-[est1] = fitcurveMultiWeibullODF_lsq( tcomb, hfitNorm, startv1, fixv1);
+fixv1template   = [1  0 1 1  0 0 1  0 0 1  0 0 1]; 
+fixv1 = fixv1template(1:length(startv1));
+
+[est1] = fitcurveMultiWeibullODF_lsq(tcomb, hfitNorm, startv1, fixv1);
 
 % for t=1:length(shapevec), text1{t}=num2str(est1(3*t-1:3*t+1)); end
 % text( 10, 0.9*max(hfitNorm),text1 );
@@ -337,14 +332,14 @@ ATcont = round(ATcont*10000)/100;
 
 % time constants
 ATtau = est3(3:3:length(est3));
-ATtau = [ 0 round(ATtau*100)/100];
+ATtau = [0 round(ATtau*100)/100];
 
 
 
 for t = 1:length(shapevec)+1
     text3{t} = num2str([ATcont(t) ATtau(t)]);
 end
-text( 10, 0.9*max(1-hfitNormCum),text3 );
+text( 10, 0.9*max(1-hfitNormCum), text3 );
 axis([0 maxt 0 1.01*max(1-hfitNormCum)]);
 
 

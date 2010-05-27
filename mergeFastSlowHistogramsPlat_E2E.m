@@ -42,15 +42,15 @@ function [mergedHistRes]=mergeFastSlowHistogramsPlat_E2E(Results, restrict, shap
 % loop over fast and slow results (multiple entries, which are the results
 % of deleting one movie after the other)
 
-nfast = size(Results.hist_fast, 1);
-nslow = size(Results.hist_slow, 1);
+nfast = size(Results.hist_400ms, 1);
+nslow = size(Results.hist_2s, 1);
 
 nc = 1;
 
 for nf = 1:nfast-1
     
-    tvecfast = Results.hist_fast(1,:);
-    hvecfast = Results.hist_fast(nf+1,:);
+    tvecfast = Results.hist_400ms(1,:);
+    hvecfast = Results.hist_400ms(nf+1,:);
     
     if nf==1
         nslowloop = nslow-1;
@@ -59,8 +59,8 @@ for nf = 1:nfast-1
     end
     
     for ns = 1: nslowloop
-        tvecslow = Results.hist_slow(1,:);
-        hvecslow = Results.hist_slow(ns+1,:);
+        tvecslow = Results.hist_2s(1,:);
+        hvecslow = Results.hist_2s(ns+1,:);
 
 
         % optional input restrict: restrict final fitting analysis to a stretch of
@@ -75,8 +75,8 @@ for nf = 1:nfast-1
 
 
         % number of cells for statistics
-        nc_fast = Results.numcells_fast;
-        nc_slow = Results.numcells_slow;
+        nc_fast = Results.numtracks_2s;
+        nc_slow = Results.numtracks_400ms;
 
         % offset from 1 in the cumulative histogram of the slow data
         OffsetCH = 1 - sum(hvecslow);
