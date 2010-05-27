@@ -1,29 +1,22 @@
-function [results] = stageFitLifetimesNEW2(data, histName, cutoff_start)
+function [results] = stageFitLifetimes(data, histName, cutoff_start)
 % STAGEFITLIFETIMES(DATA) fits the lifetimes contained in the structure in
-% several stages, using data with slow and fast framerates. Globally averaged
+% several stages, using data with different framerates. Globally averaged
 % and leave-one-out histograms are returned for later jackknife estimation.
 %
 % SYNOPSIS [results] = stageFitLifetimes(data)
 %
 % INPUT     data:   structure containing all raw data
 %
-% OUTPUT:   results: structure containing the fields
-%                       .hist_fast
-%                       .hist_slow
-%                       .numcells_slow
-%                       .numcells_fast
-%           lftHist_fast =  (2+length(data))xn matrix containing
-%                           row 1: time vector
-%                           row 2: normalized lifetimes
-%                           rows 3-end: leave-one-out normalized lifetimes
-%                           (for FAST acquisition)
-%           lftHist_slow =  (2+length(data))xn matrix containing
-%                           row 1: time vector
-%                           row 2: normalized lifetimes
-%                           rows 3-end: leave-one-out normalized lifetimes
-%                           (for SLOW acquisition)
+% OUTPUT:   results: structure containing the fields, for each framerate
+%                       .hist_Xs
+%                       .numcells_Xs
+%                    where X is the framerate
+%           lftHist_Xs :  (2+length(data)) x N matrices containing
+%                                   row 1: time vector
+%                                   row 2: normalized lifetimes
+%                                   rows 3-end: leave-one-out normalized lifetimes
 %
-% last modified DATE: 31-Jul-2007 (Dinah)
+% Dinah Loerke, 31-Jul-2007
 % Francois Aguet, Feb 2010
 
 if nargin<2 || isempty(histName)
@@ -96,25 +89,14 @@ end
 results.detectionCutoff = cutoff_start;
 
 
-% ========================================================================
-%       determine which entries in the data structure represent fast or
-%       slow movies and store the positions
-% =========================================================================
-
 % In this implementation, since we want to average over the data without
 % any breaks due to averaging over different numbers of histograms, the
 % histograms are all cut to the same length. Thus, we need to know what's
-% the maximum common time span for all the fast/slow movies - as we only
-% input movies with the same framerate (2s slow, 0.4s fast), the knowledge
-% of the last frame suffices
-
+% the maximum common time span for all the movies.
 
 % ========================================================================
-% Average all fast/slow data
+% Average all data
 % =========================================================================
-
-% the following procedure is performed twice, once for fast, once for slow
-% movies; the respective interpolation time vectors were defined above
 
 timespan = [data.framerate].*[data.movieLength];
 nTracks = zeros(1, length(data));
