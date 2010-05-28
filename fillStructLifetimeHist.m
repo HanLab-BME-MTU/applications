@@ -1,4 +1,4 @@
-function [data] = fillStructLifetimeHist(data)
+function [data] = fillStructLifetimeHist(data, overwrite)
 % fill experiment structure with lifetime histogram based on the lftInfo
 % file saved at the specified directory
 % FILLSTRUCTLIFETIMEINFO calculates lifetime from trackInfo matrix and
@@ -20,9 +20,13 @@ function [data] = fillStructLifetimeHist(data)
 % Dinah Loerke, last modified Mar 2008
 % Francois Aguet, 01/21/2010
 
+if nargin<2
+    overwrite = 0;
+end
+
 for i = 1:length(data)
     
-    if ~isfield(data,'lftHist') || isempty(data(i).lftHist)
+    if ~isfield(data,'lftHist') || isempty(data(i).lftHist) || overwrite
 
         load([data(i).source 'LifetimeInfo' filesep 'lftInfo.mat']);
 
