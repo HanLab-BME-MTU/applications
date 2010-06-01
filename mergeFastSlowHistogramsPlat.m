@@ -247,7 +247,7 @@ maxt = tcomb(end);
 
 
 startv1template = [0  0.2 sigRay 2  0.1 10 2  0.2 90 1  0.2 100 1];
-startv1 = startv1template(1:1+3*length(shapevec));
+startv1 = startv1template(1:(1+3*length(shapevec)));
 startv1(4:3:end) = shapevec;
 
 fixv1template   = [1  0 1 1  0 0 1  0 0 1  0 0 1]; 
