@@ -198,7 +198,7 @@ for r = 1:length(frameRates)
         end
         
         results.(['numtracks_' frString]) = sum(nTracks(idx));
-        results.histMatrix = histMatrix;
+        results.(['histMatrix_' frString]) = histMatrix;
         
         
         % Plot cumulative lifetime distributions
