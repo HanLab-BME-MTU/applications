@@ -38,18 +38,33 @@ t = (0:size(Results.(histName),2))*data(1).framerate;
 %     resT = max(tvecslow);
 % end
 
+% (1:N)/(N+1)*t(floor(end/10))
+
+histVect = Results.(histName)(2,:);
+histVect = histVect / sum(histVect);
+histVect(1:cutoffIdx-1) = [];
+histMean = sum(histVect.*tc);
 
 % initial values
 initVect = zeros(1,1+3*N);
 initVect(2:3:end) = ones(1,N)/N; % A
-initVect(3:3:end) = (1:N)/(N+1)*t(floor(end/10)); % lambda
+initVect(3:3:end) = 2.^(1:N)/2^N * histMean; % lambda
 initVect(4:3:end) = kWeibull;
 estVect = [1 repmat([1 1 0], [1 N])];
 
 
-% loop through all histograms in input structure
-nHist = size(Results.(histName),1)-1;
+% loop though individual histograms
+for k = 1:size(Results.histMatrix_2s, 1)
+    histVect = Results.histMatrix_2s(k,:);
+    histVect = histVect/sum(histVect);
+    offset = sum(histVect(1:cutoffIdx-1));
+    histVect(1:cutoffIdx-1) = [];
+    [prmVect] = fitHistogram(tc, histVect, offset, initVect, estVect);
+    output.indPrm(k,:) = prmVect;
+end
 
+% loop through averaged histograms in input structure
+nHist = size(Results.(histName),1)-1;
 for k = 1:nHist
 
     % re-normalize histogram
@@ -77,9 +92,14 @@ JK = sqrt((nHist-2)*var(output.prmVect(2:end,:), 1, 1));
 % Store results
 output.populationContributions = prmVect(2:3:end) / sum(prmVect(2:3:end));
 output.A_JKerror = JK(2:3:end);
+output.A_c2c = mean(output.indPrm(:,2:3:end),1);
+output.A_std_c2c = std(output.indPrm(:,2:3:end),1);
+
 
 output.tau = prmVect(3:3:end);
 output.tau_JKerror = JK(3:3:end);
+output.tau_c2c = mean(output.indPrm(:,3:3:end),1);
+output.tau_std_c2c = std(output.indPrm(:,3:3:end),1);
 
 output.median = output.tau .* nthroot(-log(0.5), kWeibull);
 output.percentile25 = output.tau .* nthroot(-log(0.75), kWeibull);
@@ -129,7 +149,7 @@ plot(tc, output.histVect, 'k.-', 'LineWidth', 1, 'MarkerSize', 10);
 hold on;
 plot(t, w*data(1).framerate, 'r', 'LineWidth', 2);
 plot(t, W*data(1).framerate, 'b', 'LineWidth', 1.5);
-axis([0 t(end) 0 1.1*max(histVect)]);
+axis([0 t(end) 0 1.1*max(output.histVect)]);
 set(gca, 'FontName', 'Helvetica', 'FontSize', 14, 'LineWidth', 1.5);
 xlabel('t [s]', 'FontName', 'Helvetica', 'FontSize', 14);
 ylabel('Relative frequency', 'FontName', 'Helvetica', 'FontSize', 14);
