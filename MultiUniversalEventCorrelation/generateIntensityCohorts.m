@@ -11,7 +11,9 @@ function [intRes] = generateIntensityCohorts(data, restvector, cohortBounds, cha
 %                       .framerate
 %           restvector: restriction vector to define objects of interest;
 %                       this vector traditionally has the format
-%                       [stat da minfr minsec maxsec]
+%                       [stat da minfr]
+%           cohortBounds:
+%
 %                       Definitions see further below
 %           channel:    OPTIONAL - designates the path where to look for
 %                       parameter data; DEFAULT = directory in .source
@@ -165,11 +167,10 @@ for i = 1:nMovies
         paramMatRef = load(fileNameRef{i});
         paramMatRef = paramMatRef.iMat_ref;
     end
-    nTracks = size(paramMat,1);
     
     % extract the positions with the desired parameters (e.g. lifetime range) from lftInfo data
-    posvec = getCohortIndexes([data(i).source 'LifetimeInfo'], restvector, cohortBounds, data(i).framerate);
-  
+    [posvec nTracksRestricted] = getCohortIndexes([data(i).source 'LifetimeInfo'], restvector, cohortBounds, data(i).framerate);
+
     for c = 1:nCohorts
         
         if ~isempty(status)
@@ -177,7 +178,7 @@ for i = 1:nMovies
         end
         
         intRes(c).cohortSize(i) = numel(posvec{c});
-        intRes(c).cohortPercent(i) = intRes(c).cohortSize(i)/nTracks;
+        intRes(c).cohortPercent(i) = intRes(c).cohortSize(i)/nTracksRestricted;
         intRes(c).cohortBounds = [cohortBounds(c) cohortBounds(c+1)];
         
         tlen_st  = floor((cohortBounds(c)+cohortBounds(c+1))/(2*sframerate)); % middle of the interval

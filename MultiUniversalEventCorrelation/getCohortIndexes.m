@@ -1,4 +1,4 @@
-function [posvec] = getCohortIndexes(lftinfopath, restvector, cohorts, framerate)
+function [posvec nTracksRestricted] = getCohortIndexes(lftinfopath, restvector, cohorts, framerate)
 % this function extracts an MPM of points of interest from trackInfo using
 % specified restrictions, and time delays in the third dimension
 % 
@@ -43,19 +43,16 @@ mat_stat(mat_stat==0) = nan;
 vec_stat = nanmin(mat_stat,[],2);
 
 % if intensity information is used, upload trackInfo and extract intensity data here
-if length(restvector)>5
+if length(restvector)>3
     tmat = load([strrep(lftinfopath, 'LifetimeInfo', 'TrackInfoMatrices') filesep 'trackInfo.mat']);
     tmat = full(tmat.trackInfo);
     imat = tmat(:,4:8:size(tmat,2));
-    % maximum intensity
-    ivec = nanmax(imat,[],2);
     % intensity vector of all usable positions (>4 frames lft)
-    ivec_all = ivec;
+    ivec_all = nanmax(imat,[],2); % maximum intensity
     ivec_all(vec_lft<4) = NaN;
     % calculate intensity percentile rank vector
     ivec_rank_all = intensityPercentageRank(ivec_all);
 end
-
 
 % =====================================================================
 % DESIRED CONDITIONS
@@ -65,28 +62,29 @@ end
 dstat = restvector(1);
 dminfr = restvector(3);
 
+% find positions that fulfill required conditions, as logical matrices correct status
+if isfinite(dstat)
+    findpos_stat = (vec_stat==dstat);
+else
+    findpos_stat = isfinite(vec_stat);
+end
+nTracksRestricted = sum((vec_lft>dminfr) & findpos_stat);
+
+
 nCohorts = length(cohorts)-1;
 posvec = cell(1,nCohorts);
 for r = 1:nCohorts       
     
     minlft_fr = round(cohorts(r)/framerate);
-    maxlft_fr = round(cohorts(r+1)/framerate); % overlapping intervals
-    %maxlft_fr = round(cohorts(r+1)/framerate)-1; % non-overlapping intervals   
-
-    % find positions that fulfill required conditions, as logical matrices correct status
-    if isfinite(dstat)
-        findpos_stat = (vec_stat==dstat);
-    else
-        findpos_stat = isfinite(vec_stat);
-    end
-
+    maxlft_fr = round(cohorts(r+1)/framerate);
+    
     % correct lifetime    
-    findpos_lft = (vec_lft>dminfr) & (vec_lft>=minlft_fr) & (vec_lft<=maxlft_fr);
+    findpos_lft = (vec_lft>dminfr) & (vec_lft>=minlft_fr) & (vec_lft<maxlft_fr); % interval: [...)
          
     % combine positions
-    findpos_all = find(findpos_stat & findpos_lft );
+    findpos_all = find(findpos_stat & findpos_lft);
     
-    if length(restvector)>5
+    if length(restvector)>3
         
         % OPTION 1 (default) - continued below: 
         % USE PERCENTAGE RANK RELATIVE TO ALL USABLE POSITIONS
