@@ -79,7 +79,7 @@ axis([0.5 35 0 1.05*max(hvecfast)]);
 
 % fit histogram with 3 distributions, of which 2 are free, and the first
 % one is kept fixed to a Rayleigh
-startvF = [0    0.1 4   2   0.2 10  2   0.2 90  1];
+startvF = [0    0.1 4   2   0.2 15  2   0.2 60  1];
 fixvF   = [0    0   0   1   0   0   0   0   0   0]; 
 estFast = fitcurveMultiWeibullODF_lsq( tvecfast, hvecfast, startvF, fixvF);
 
@@ -246,7 +246,7 @@ maxt = tcomb(end);
 % =========================================================================
 
 
-startv1template = [0  0.2 sigRay 2  0.1 10 2  0.2 90 1  0.2 100 1];
+startv1template = [0  0.2 sigRay 2  0.2 15 2  0.2 60 1  0.2 120 1];
 startv1 = startv1template(1:(1+3*length(shapevec)));
 startv1(4:3:end) = shapevec;
 
