@@ -63,11 +63,11 @@ if nargin<3
     
     % sort parameter vector according to population mean
     N = 2;
-    [dummy order] = sort(prmVect(3:3:end));
+    [~, order] = sort(prmVect(3:3:end));
     idx = reshape(2:3*N+1, [3 N]);
     idx = reshape(idx(:,order), [1 3*N]);
     prmVect(2:end) = prmVect(idx);
-    [w W] = nWeibull(tvec, prmVect, 'PDF');
+    [~, W] = nWeibull(tvec, prmVect, 'PDF');
     
     % plot first component, which is the detection artifact
     plot(tvec, W(1,:), 'r-');
@@ -120,13 +120,12 @@ for r = 1:length(frameRates)
         cutpoint = round(floor(min(timespan(idx))/frameRates(r))*0.9); % cut at 90% of total length
         %cutpoint = min([data(idx).movieLength]); % no cutoff
         
-        %figure;
+        % time vector, cut off at beginning and end
+        tvec_curr = frameRates(r)*(cutoff_start+1:cutpoint-1);
+        
         for p = 1:nMovies
             i = idx(p);
-            
-            % time vector, cut off at beginning and end
-            tvec_curr = data(i).framerate*(cutoff_start+1:cutpoint-1);
-            
+
             % Number of trajectories in movie
             nTracks(i) = sum(data(i).(histName)(cutoff_start:end));
             
@@ -158,10 +157,9 @@ for r = 1:length(frameRates)
             histStruct(p).hist = currHistNorm;
         end
         
-        tmax = max([histStruct.t]);
-        histMatrix = NaN(nMovies, tmax/frameRates(r)+1);
+        histMatrix = NaN(nMovies, length(tvec_curr));
         for p = 1:nMovies
-            histMatrix(p,1:length(histStruct(p).t)) = histStruct(p).hist;
+            histMatrix(p,:) = histStruct(p).hist;
         end
         
         % when the averaging takes place, that's a possible source for
