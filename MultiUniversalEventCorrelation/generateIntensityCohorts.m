@@ -104,9 +104,7 @@ if nargin<10
     status = [];
 end
 if nargin<11
-    condition = '';
-else
-    condition = [', ' condition];
+    condition = [];
 end
 
 
@@ -156,7 +154,6 @@ colorV = hsv2rgb(colorV);
 intRes(1:nCohorts) = struct('cohortBounds', [], 'cohortSize', [], 'cohortPercent', []);
 
 
-figure;
 for i = 1:nMovies
     fprintf('Movie no. %d\n', i);
     
@@ -222,20 +219,9 @@ for i = 1:nMovies
         [cIntensity cIntensityStd] = alignCohort(data(i), [restvector cohortBounds(c) cohortBounds(c+1)], reference, sframerate, voidAlignPoint, alignvar, paraT1, paraT2, paraInt, paraInt2, intRes(c).tFrames);
         intRes(c).cIntensity(i,:) = cIntensity;
         intRes(c).cIntensityStd(i,:) = cIntensityStd;
-        
-        % errorbars: standard error of the mean (SEM)
-        errorbar(intRes(c).t(1,:), intRes(c).cIntensity(i,:), intRes(c).cIntensityStd(i,:)/sqrt(intRes(c).cohortSize(i)), 'Color', colorV(c,:));
-        hold on;
     end    
 end
-set(gca, 'FontName', 'Helvetiva', 'FontSize', 12, 'LineWidth', 1.5);
-xlabel('time [s]', 'FontName', 'Helvetiva', 'FontSize', 14);
-ylabel('intensity (above background) [A.U.]', 'FontName', 'Helvetiva', 'FontSize', 14);
-title(['Cohorts for all movies' condition], 'FontName', 'Helvetiva', 'FontSize', 14);
 
-
-% plot mean w/ standard error of mean for all movies combined
-figure;
 for c = 1:nCohorts
     intRes(c).intensityMean = nanmean(intRes(c).cIntensity, 1);
     
@@ -243,20 +229,13 @@ for c = 1:nCohorts
     intRes(c).intensitySEM = sqrt(nansum(varmat)/sum(intRes(c).cohortSize)) / sqrt(sum(intRes(c).cohortSize));
 
     if alignvar==2
-        tvec = intRes(c).tFrames(2,:);
+        intRes(c).tvec = intRes(c).tFrames(2,:);
     else
-        tvec = intRes(c).tFrames(1,:);
+        intRes(c).tvec = intRes(c).tFrames(1,:);
     end
-    h = errorbar(intRes(c).framerate*tvec, intRes(c).intensityMean, intRes(c).intensitySEM, 'k-');
-    h = get(h, 'Children');
-    set(h(1), 'LineWidth', 2, 'Color', colorV(c,:));    
-    hold on;
 end
-set(gca, 'FontName', 'Helvetiva', 'FontSize', 12, 'LineWidth', 1.5);
-xlabel('time [s]', 'FontName', 'Helvetiva', 'FontSize', 14);
-ylabel('intensity (above background) [A.U.]', 'FontName', 'Helvetiva', 'FontSize', 14);
-title(['Averaged cohorts' condition], 'FontName', 'Helvetiva', 'FontSize', 14);
 
+plotIntensityCohorts(data, intRes, condition);
 
 
 
