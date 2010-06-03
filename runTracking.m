@@ -1,4 +1,4 @@
-function [] = runTrackingNEW(data, tracksettings, overwrite)
+function [] = runTracking(data, tracksettings, overwrite)
 % runTracking tracks movies under a given condition folder. This creates
 % the TrackInfo and lftInfo data structures necessary for lifetime
 % analysis.
