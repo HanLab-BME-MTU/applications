@@ -20,7 +20,7 @@ function [experiment] = loadConditionData(condDir)
 
 if nargin<1
     % select directory where all data for this condition are located
-    condDir = uigetdir(pwd, 'Please select the folder for this condition');
+    condDir = [uigetdir(pwd, 'Please select the folder for this condition') filesep];
 end
 
 % get directories for experiments under this condition
@@ -39,7 +39,7 @@ if ~isempty(expDir)
             currDate = currDate(lengths == max(lengths(:)));
         end;
         currDate = currDate{1};
-        expPath = [condDir filesep expDir(i).name];
+        expPath = [condDir expDir(i).name];
 
         % look for the individual cell data in this folder
         cellDir = dirList(expPath);
@@ -52,10 +52,10 @@ if ~isempty(expDir)
                 % NOTE: if there's no specific identification for fast, default to slow
                 if ~isempty(regexp(cellDir(k).name, '\d+s', 'match'))
                     fr = regexp(cellDir(k).name, '\d+s', 'match');
-                    framerate = str2num(fr{1}(1:end-1));
+                    framerate = str2double(fr{1}(1:end-1));
                 elseif ~isempty(regexp(cellDir(k).name, '\d+ms', 'match'))
                     fr = regexp(cellDir(k).name, '\d+ms', 'match');
-                    framerate = str2num(fr{1}(1:end-2))/1000;
+                    framerate = str2double(fr{1}(1:end-2))/1000;
                 elseif ~isempty(findstr(cellDir(k).name, 'fast'))
                     framerate = 0.4;
                 else 
