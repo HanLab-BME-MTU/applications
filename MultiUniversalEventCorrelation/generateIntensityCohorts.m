@@ -167,15 +167,16 @@ for i = 1:nMovies
     
     % extract the positions with the desired parameters (e.g. lifetime range) from lftInfo data
     [posvec nTracksRestricted] = getCohortIndexes([data(i).source 'LifetimeInfo'], restvector, cohortBounds, data(i).framerate);
-
+    
     for c = 1:nCohorts
         
         if ~isempty(status)
             posvec{c} = posvec{c}(data(i).statusVector(posvec{c}) == status); % select status
+            nTracksRestricted = nTracksRestricted(:) & data(i).statusVector(:);
         end
         
         intRes(c).cohortSize(i) = numel(posvec{c});
-        intRes(c).cohortPercent(i) = intRes(c).cohortSize(i)/nTracksRestricted;
+        intRes(c).cohortPercent(i) = intRes(c).cohortSize(i)/sum(nTracksRestricted);
         intRes(c).cohortBounds = [cohortBounds(c) cohortBounds(c+1)];
         
         tlen_st  = floor((cohortBounds(c)+cohortBounds(c+1))/(2*sframerate)); % middle of the interval

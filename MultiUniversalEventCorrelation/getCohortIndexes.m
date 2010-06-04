@@ -68,8 +68,7 @@ if isfinite(dstat)
 else
     findpos_stat = isfinite(vec_stat);
 end
-nTracksRestricted = sum((vec_lft>dminfr) & findpos_stat);
-
+nTracksRestricted = ((vec_lft>dminfr) & findpos_stat);
 
 nCohorts = length(cohorts)-1;
 posvec = cell(1,nCohorts);
