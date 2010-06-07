@@ -53,9 +53,57 @@ else
     end
 end
 
-% count number of images in image directory
+% Get list of Images in Image Directory and count them. 
+%NOTE: LIST OF IMAGES WILL BE
+% IN ORDER FOUND IN DIRECTORY! DOES NOT YET SORT TIF FILES BY NUMBER!
 [listOfImages] = searchFiles('.tif',[],projData.imDir,0);
 nImTot = size(listOfImages,1);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Sort Images: Image sorting is required for image names where the number 
+% is not padded by zeros. Here we quickly sort images by number.
+% If the images are already padded sortedImages will be the same as 
+% listOfImages above. If the numbers are not padded, sortedImages will 
+% provide a list of images in the correct numerical order. 
+% Note: Current Method for sorting requires that path and body for each image in the
+% list are the same
+
+%Initialize Cells for Sorting
+%path = path of file, body = body of filename, ext = extension of filename 
+%(tif etc) (all of these require a cell because they are strings)
+% num = number of filename (do not want in cell so can sort)
+pathCell = cell(nImTot,1);
+bodyCell = cell(nImTot,1);
+extCell = cell(nImTot,1);
+num = zeros(nImTot,1);
+
+%Sort List
+% For each frame get the image name from listOfImages
+for iFrame =  1:nImTot;
+    imageName = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
+
+%Call "getFilenameBody" from common dir to split filename into path,
+%body, no, and ext. Put path, body and ext into appropriate cell/number vector for that
+%frame
+    [path body no ext ] = getFilenameBody(imageName);
+
+pathCell(iFrame) = cellstr(path);
+bodyCell(iFrame) = cellstr(body);
+extCell(iFrame) = cellstr(ext);
+% output "no" is a string so convert to number to sort
+num(iFrame)  = str2double(no);
+
+end 
+
+%Sort number vector numerically
+sortednum = sort(num);
+
+%Convert number vector to cell
+sortednum_cell = num2cell(sortednum);
+
+%Create Sorted Image List
+sortedImages = [pathCell, bodyCell, sortednum_cell, extCell];
+
 
 % check timeRange input, assign start and end frame
 if nargin<2 || isempty(timeRange)
@@ -76,7 +124,8 @@ end
 nFrames = endFrame-startFrame+1;
 
 % get image dimensions, max intensity from first image
-fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
+fileNameIm = [char(sortedImages(1,1)) filesep char(sortedImages(1,2)),...;
+    num2str(sortednum(1)) char(sortedImages(1,4))];
 img = double(imread(fileNameIm));
 [imL,imW] = size(img);
 maxIntensity = max(img(:));
@@ -112,6 +161,7 @@ mkdir(featDir)
 mkdir([featDir filesep 'filterDiff']);    
 if savePlots==1
     mkdir([featDir filesep 'overlayImages']);
+    mkdir([featDir filesep 'overlayImages' filesep 'tifs']);
 end
 
 
@@ -152,7 +202,8 @@ for iFrame = startFrame:endFrame
     progressText(count/nFrames,'Filtering images for comet detection');
     
     % load image and normalize to 0-1
-    fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
+    fileNameIm =  [char(sortedImages(iFrame,1)) filesep char(sortedImages(iFrame,2)), num2str(sortednum(iFrame)),char(sortedImages(iFrame,4)) ];
+
     img = double(imread(fileNameIm))./((2^bitDepth)-1);
 
     % create kernels for gauss filtering
@@ -318,7 +369,8 @@ for iFrame = startFrame:endFrame
 
     %plot feat outlines and centroid on image
     if savePlots==1
-        fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
+        fileNameIm = [char(sortedImages(iFrame,1)) filesep char(sortedImages(iFrame,2)),...;
+    num2str(sortednum(iFrame)), char(sortedImages(iFrame,4))];
         img = double(imread(fileNameIm))./((2^bitDepth)-1);
 
         figure
@@ -327,8 +379,8 @@ for iFrame = startFrame:endFrame
         scatter(xCoord(:,1),yCoord(:,1),'c.'); % plot centroid in cyan
         colormap gray
         plot(roiYX(2),roiYX(1),'w')
-        axis equal
-        saveas(gcf,[featDir filesep 'overlayImages' filesep 'overlay' indxStr1 '.tif']);
+        axis equal     
+        saveas(gcf,[featDir filesep 'overlayImages' filesep 'tifs' filesep 'overlay' indxStr1 '.tif']);
         saveas(gcf,[featDir filesep 'overlayImages' filesep 'overlay' indxStr1 '.fig']);
         close(gcf)
     end
