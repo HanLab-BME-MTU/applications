@@ -75,8 +75,8 @@ for nf = 1:nfast-1
 
 
         % number of cells for statistics
-        nc_fast = Results.numtracks_2s;
-        nc_slow = Results.numtracks_400ms;
+        nc_fast = Results.numtracks_400ms;
+        nc_slow = Results.numtracks_2s;
 
         % offset from 1 in the cumulative histogram of the slow data
         OffsetCH = 1 - sum(hvecslow);
