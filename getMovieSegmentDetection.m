@@ -48,7 +48,7 @@ for i = 1:nFrames
     end
     
     % Get initial segment parameters
-    segmentParams{i} = getInitialSegmentParams(ima,mask,sigmaPSF,minSize);
+    segmentParams{i} = subResSegment2DInit(ima,mask,sigmaPSF,minSize);
     
     if ~batchMode && ishandle(h)
         waitbar(i/nFrames, h)
