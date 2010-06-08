@@ -18,11 +18,11 @@ data = fillStructLifetimeHist(data);
 % combine lifetime histograms of the slow and fast movies separately
 res = stageFitLifetimes(data);
 
-mer     = mergeFastSlowHistogramsPlat(res, restrict, shape);
 mer_E2E = mergeFastSlowHistogramsPlat_E2E(res, restrict, shape);
+%mer_E2E = mergeHistogramsFitWeibull(res, restrict, shape);
 
 % fit results
-resmat1 = mer.compactFitRes;
+resmat1 = mer_E2E(1).compactFitRes;
 
 % determine cell-to-cell error with jackknife
 for s = 1:length(mer_E2E)
@@ -38,7 +38,7 @@ end
 
 % enter output results
 compactRes.numcells = length(data);
-compactRes.numtraj = mer.numcells;
+compactRes.numtraj = mer_E2E(1).numcells;
 compactRes.contr = resmat1(:,1);
 compactRes.contrError = round(100*E2Eval(:,1))/100;
 compactRes.tau = resmat1(:,2);
