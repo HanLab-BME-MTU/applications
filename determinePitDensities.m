@@ -31,21 +31,21 @@ for i = 1:length(data)
     if (exist(trackInfoPath, 'file')==2)
         ti = load(trackInfoPath);
         if isfield(ti,'trackInfo')
-            currTrackInfo = ti.trackInfo;
+            currTrackInfo = full(ti.trackInfo);
         elseif isfield(ti,'trackInfoMat')
-            currTrackInfo = ti.trackInfoMat;
+            currTrackInfo = full(ti.trackInfoMat);
         end
         
         nFrames = size(currTrackInfo, 2)/8;
         
         % extract all x and y positions of object
-        cmx = full(currTrackInfo(:,1:8:end));
-        cmy = full(currTrackInfo(:,2:8:end));
+        cmx = currTrackInfo(:,1:8:end);
+        cmy = currTrackInfo(:,2:8:end);
         
         % number of objects detected in each frame
         numPitsFrame = zeros(1,nFrames);
-        for k=1:nFrames
-            numPitsFrame(k) = length(find(cmx(:,k)>0));
+        for k = 1:nFrames
+            numPitsFrame(k) = sum(cmx(:,k)>0);
         end
         
         % all positions together
@@ -60,17 +60,19 @@ for i = 1:length(data)
         % calculate 'basis mask', which is the overlay of all detected objects
         % first, set central pixels of detected objects to 1
         mask_detection = zeros( round(max(allx)), round(max(ally))  );
-        for t=1:length(allx)
-            detxpos = max(1,round(allx(t)));
-            detypos = max(1,round(ally(t)));
-            mask_detection(detxpos,detypos) = 1;
-        end
+        detxpos = max(1, round(allx));
+        detypos = max(1, round(ally));
+        mask_detection(sub2ind(size(mask_detection), detxpos, detypos)) = 1;
+
         % second, dilate the single pixels to little discs
         mask_detectdilate = imdilate(logical(mask_detection), strel('disk',5));
+        
+        %figure; imagesc(mask_detectdilate); colormap(gray(256)); axis image;
+        
         % third, fill the resulting area and filter with Gaussian profile to
         % create a continuous area
-        mask_filled = imfill(double(mask_detectdilate),'holes');
-        mask_close = imclose(mask_filled, strel('disk',20));
+        mask_filled = imfill(double(mask_detectdilate), 'holes');
+        mask_close = imclose(mask_filled, strel('disk', 20));
         
         totalarea = sum(mask_close(:));
         denPitsFrame = numPitsFrame/totalarea;        
@@ -81,7 +83,4 @@ for i = 1:length(data)
         data(i).pitDensity = NaN;
     end 
 end
-
-avDensity = nanmean(localDensity);
-stdDensity = nanstd(localDensity);
-fprintf('Pit density %2.4f +- %2.4f obj. per square pixel.\n', avDensity, stdDensity);   
+fprintf('Pit density %2.4f +- %2.4f obj. per square pixel.\n', nanmean(localDensity), nanstd(localDensity));   
