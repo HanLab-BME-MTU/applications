@@ -21,10 +21,10 @@ for i = 1:nMovies;
         hold on;
     end    
 end
-set(gca, 'FontName', 'Helvetiva', 'FontSize', 12, 'LineWidth', 1.5);
-xlabel('time [s]', 'FontName', 'Helvetiva', 'FontSize', 14);
-ylabel('intensity (above background) [A.U.]', 'FontName', 'Helvetiva', 'FontSize', 14);
-title(['Cohorts for all movies' condition], 'FontName', 'Helvetiva', 'FontSize', 14);
+set(gca, 'FontName', 'Helvetica', 'FontSize', 12, 'LineWidth', 1.5);
+xlabel('time [s]', 'FontName', 'Helvetica', 'FontSize', 14);
+ylabel('intensity (above background) [A.U.]', 'FontName', 'Helvetica', 'FontSize', 14);
+title(['Cohorts for all movies' condition], 'FontName', 'Helvetica', 'FontSize', 14);
 
 
 % plot mean w/ standard error of mean for all movies combined
@@ -35,7 +35,7 @@ for c = 1:nCohorts
     set(h(1), 'LineWidth', 2, 'Color', colorV(c,:));    
     hold on;
 end
-set(gca, 'FontName', 'Helvetiva', 'FontSize', 12, 'LineWidth', 1.5);
-xlabel('time [s]', 'FontName', 'Helvetiva', 'FontSize', 14);
-ylabel('intensity (above background) [A.U.]', 'FontName', 'Helvetiva', 'FontSize', 14);
-title(['Averaged cohorts' condition], 'FontName', 'Helvetiva', 'FontSize', 14);
+set(gca, 'FontName', 'Helvetica', 'FontSize', 12, 'LineWidth', 1.5);
+xlabel('Time (s)', 'FontName', 'Helvetica', 'FontSize', 14);
+ylabel('Intensity (A.U.)', 'FontName', 'Helvetica', 'FontSize', 14);
+title(['Averaged cohorts' condition], 'FontName', 'Helvetica', 'FontSize', 14);
