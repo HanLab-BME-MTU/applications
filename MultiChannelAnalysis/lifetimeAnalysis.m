@@ -43,12 +43,14 @@ t = (0:size(Results.(histName),2))*data(1).framerate;
 histVect = Results.(histName)(2,:);
 histVect = histVect / sum(histVect);
 histVect(1:cutoffIdx-1) = [];
-histMean = sum(histVect.*tc);
+%histMean = sum(histVect.*tc);
 
 % initial values
 initVect = zeros(1,1+3*N);
 initVect(2:3:end) = ones(1,N)/N; % A
-initVect(3:3:end) = 2.^(1:N)/2^N * histMean; % lambda
+% initVect(3:3:end) = 2.^(1:N)/2^N * histMean; % lambda
+initVect(3:3:end) = 25 * (1:N);
+
 initVect(4:3:end) = kWeibull;
 estVect = [1 repmat([1 1 0], [1 N])];
 
