@@ -1,4 +1,4 @@
-function [experiment] = loadConditionDataDualChannel(condDir)
+function [experiment] = loadConditionDataDualChannel(condDir, channel1Name, channel2Name)
 % loadConditionData loads the relevant information for all the data
 % available for a specific experiment condition; this requires a specific
 % dircetory structure and nomenclature (see below)
@@ -18,7 +18,7 @@ function [experiment] = loadConditionDataDualChannel(condDir)
 % Francois Aguet, 12/14/2009
 
 % select directory where all data for this condition are located
-if (nargin == 0)
+if (nargin<1)
     condDir = [uigetdir(pwd, 'Select the ''condition'' folder') filesep];
 end
 fprintf('Condition selected: %s\n', condDir);
@@ -55,22 +55,31 @@ if ~isempty(expDir)
                 % only load slow movies that have two channels                
                 if isempty(findstr(cellDir(k).name, 'fast')) && isempty(findstr(cellDir(k).name, '400ms')) && isempty(findstr(expPath, '1channel'))
                     framerate = 2;
-                    
+                    cellPath = [expPath cellDir(k).name filesep];
                     if (ct == 1)
-                        % get directories for individual channels
-                        cellPath = [expPath cellDir(k).name filesep];
-                        channel1Path = [uigetdir(cellPath, 'select first (master) channel (e.g. CCP channel)') filesep];
-                        channel2Path = [uigetdir(cellPath, 'select second (slave) channel (e.g. other protein)') filesep];
-                        channel1Name = channel1Path(length(cellPath)+1:end-1);
-                        channel2Name = channel2Path(length(cellPath)+1:end-1);
+                        % get directories for individual channels                       
+                        if nargin<2
+                            channel1Path = [uigetdir(cellPath, 'select first (master) channel (e.g. CCP channel)') filesep];
+                            channel1Name = channel1Path(length(cellPath)+1:end-1);
+                        elseif ~isempty(channel1Name)
+                            channel1Path = [cellPath channel1Name filesep];
+                        else
+                            channel1Path = cellPath;
+                        end
+                        if nargin<3
+                            channel2Path = [uigetdir(cellPath, 'select second (slave) channel (e.g. other protein)') filesep];
+                            channel2Name = channel2Path(length(cellPath)+1:end-1);
+                        else
+                            channel2Path = [cellPath channel2Name filesep];
+                        end                        
                         fprintf('Channel 1 name: "%s"\n', channel1Name);
                         fprintf('Channel 2 name: "%s"\n', channel2Name);
                     else
                         % look for the individual channels in cell folder
                         if ~isempty(channel1Name)
-                            channel1Path = [expPath cellDir(k).name filesep channel1Name filesep];
+                            channel1Path = [cellPath channel1Name filesep];
                         else
-                            channel1Path = [expPath cellDir(k).name filesep];
+                            channel1Path = cellPath;
                         end
                         if ~(exist(channel1Path, 'dir')==7)
                             channel1Path = [uigetdir(cellDir(k).name, 'select first (master) channel (e.g. CCP channel)') filesep];
