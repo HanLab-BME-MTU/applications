@@ -40,9 +40,9 @@ t = (0:size(Results.(histName),2))*data(1).framerate;
 
 % (1:N)/(N+1)*t(floor(end/10))
 
-histVect = Results.(histName)(2,:);
-histVect = histVect / sum(histVect);
-histVect(1:cutoffIdx-1) = [];
+%histVect = Results.(histName)(2,:);
+%histVect = histVect / sum(histVect);
+%histVect(1:cutoffIdx-1) = [];
 %histMean = sum(histVect.*tc);
 
 % initial values
@@ -81,6 +81,7 @@ for k = 1:nHist
         fprintf('BIC = %.2f %s\n', BIC, name);
         output.histVect = histVect;
         output.cumulativeHist = cumulativeHist;
+        output.BIC = BIC;
     end
 
     output.prmVect(k,:) = prmVect;
