@@ -99,19 +99,19 @@ for iMovie = 1:nMovies
 
     try
         % Analysis directory
-        currMovie.analysisDirectory = fullfile(path, 'analysis');
+        currMovie.analysisDirectory = fullfile(path, 'ch488', 'analysis');
         
         % Image directory
         currMovie.imageDirectory = path;
-        currMovie.channelDirectory = cellfun(@(x) fullfile(x, 'roi'), {'ch488', 'ch560'});
+        currMovie.channelDirectory = cellfun(@(x) fullfile(x, 'roi'), {'ch488', 'ch560'}, 'UniformOutput', false);
         
         % Get the number of images
         nImages = cellfun(@(channelPath) ...
             numel(dir([currMovie.imageDirectory filesep channelPath filesep '*.tif'])), currMovie.channelDirectory);
         % In case one of the channel hasn't been set, we still might want
         % to compute some processes.
-        currMovie.nImages = max(nImages{:});
-        assert(currMovie.nImages);
+        currMovie.nImages = max(nImages);
+        assert(currMovie.nImages ~= 0);
         
 %         fieldNames = {...
 %             'bgDirectory',...
@@ -184,6 +184,28 @@ for iMovie = 1:nMovies
         if exist(filename, 'file')
             currMovie = load(filename);
             currMovie = currMovie.movieData;
+            
+            bkdCmp = false;
+            
+            % BACKWARD COMPATIBILITY: remove 'channels' field
+            if isfield(currMovie, 'channels')
+                currMovie = rmfield(currMovie,'channels');
+                
+                bkdCmp = true;
+            end
+            
+            % BACKWARD COMPATIBILITY: overwrite image location
+            if ~strcmp(currMovie.imageDirectory, path)
+                currMovie.imageDirectory = path;
+                currMovie.channelDirectory = cellfun(@(x) fullfile(x, 'roi'), {'ch488', 'ch560'}, 'UniformOutput', false);
+                
+                bkdCmp = true;
+            end
+
+            %Save the modified movieData structure
+            if bkdCmp
+                updateMovieData(currMovie);
+            end
         end
          
     catch errMess

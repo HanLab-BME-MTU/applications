@@ -1,10 +1,10 @@
 function runBatchProcessVinculinMovies
 
-rootDirectory = '/home/sb234/Projects/VinculinFA/';
+rootDirectory = '/home/sb234/Projects/VinculinFA/CSUX560_Adcon_1a_062609';%/home/sb234/Projects/VinculinFA/';
 
 params.pixelSize = 67;
 params.timeInterval = 10;
-params.runSteps = [-1 -1 -1 -1 -1 0 0];
+params.runSteps = [-1 -1 -1 -1 -1 -1 -1];
 params.batchMode = 1;
 
 % PROC 1: contours

@@ -12,7 +12,7 @@ imageFiles = dir([imagePath filesep '*.tif']);
 
 % Read mask file list of every channel
 nChannels = numel(movieData.masks.channelDirectory);
-maskPaths = cellfun(@(channelPath) fullfile(movieData.masks.directory, channelPath), movieData.masks.channelDirectory);
+maskPaths = cellfun(@(channelPath) fullfile(movieData.masks.directory, channelPath), movieData.masks.channelDirectory, 'UniformOutput', false);
 maskFiles = cell(nChannels,1);
 for iChannel = 1:nChannels
     maskFiles{iChannel} = dir([maskPaths{iChannel} filesep '*.tif']);
@@ -38,9 +38,6 @@ for i = 1:nFrames
     % Read images
     ima = imread(fullfile(imagePath, imageFiles(i).name));
     
-    % Make sure I is type double
-    ima = double(ima);
-
     % Read and merge every channel mask
     mask = zeros(size(ima));
     for iChannel = 1:nChannels
