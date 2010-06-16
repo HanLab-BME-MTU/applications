@@ -1,4 +1,4 @@
-function cands=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,fsmParam)
+function cands=fsmPrepMainSecondarySpeckles(I,strg,counter,noiseParam,Speckles,fsmParam,saveResults)
 
 % fsmPrepMainSecondarySpeckles is the main function of the fsmPrepSecondarySpeckles sub-module
 %
@@ -36,6 +36,11 @@ if nargin==5
     userROIbw=[];
 end
 
+
+if nargin < 7 || isempty(saveResults)
+    saveResults = false;
+end
+
 if ~isempty(fsmParam)
     if fsmParam.prep.drawROI~=0 % Either 1 (drawn) or 2 (loaded)
         
@@ -68,21 +73,23 @@ bwMask = I ~= 0;
 
 if ~all(bwMask)
     % Dilate the cell mask
-    psfSigma = fsmParam.prep.psfSigma;
-    radius = ceil(2 * psfSigma);
-    bwMaskExt = imdilate(bwMask, strel('disk', radius));
-    % Compute the outline of the cell mask (get 1 point out of 5 along the
-    % contour).
-    outline = contourc(bwMaskExt, [0, 0]);
-    % Discard first and last point (they might be too close to image border
-    % and may yield very stretched triangles in the delaunay triangulation.
-    outline = round(outline(:,3:5:end-1));
-    % make sure outline coordinate stay within the image range
-    outline(outline(:) <= 0) = 1;
-    outline(outline(1,:) > size(I,2)) = size(I,2);
-    outline(outline(2,:) > size(I,1)) = size(I,1);
+    bwMaskExt = imdilate(bwMask, strel('disk', 1));
+
+    % Compute Distance transform
+    bwDist = bwdist(1 - bwMaskExt);
+    % Get first outline
+    outline = contourc(double(bwDist), [0, 0]);
+    X = [];
+    Y = [];
+    iChunk = 1;
+    while iChunk < size(outline,2)
+        n = outline(2,iChunk);
+        X = [X, round(outline(1,iChunk+1:5:iChunk+n))];
+        Y = [Y, round(outline(2,iChunk+1:5:iChunk+n))];
+        iChunk = iChunk + n + 1;
+    end
     % add these points to Imin
-    ind = sub2ind(size(Imin), outline(2,:), outline(1,:));
+    ind = sub2ind(size(Imin), Y, X);
     Imin(ind) = -1000;
 end
 
@@ -129,9 +136,11 @@ if any(validCands)
 end
 
 % Save speckle information (cands and locMax) to disk for future use
-indxStr=sprintf(strg,counter);
-save(['cands',filesep,'cands',indxStr,'.mat'], 'cands');
-save(['locMax',filesep,'locMax',indxStr,'.mat'], 'locMax');
+if saveResults == true
+    indxStr=sprintf(strg,counter);
+    save(['cands',filesep,'cands',indxStr,'.mat'], 'cands');
+    save(['locMax',filesep,'locMax',indxStr,'.mat'], 'locMax');
+end
 
 %-----------------------------------------
 % Estimate subpixel positions of speckles
