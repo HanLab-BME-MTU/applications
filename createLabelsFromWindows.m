@@ -20,29 +20,22 @@ if strcmp(method,'band') || strcmp(method,'window')
         e = cellfun(@(x) ~(isempty(x) || any(isnan(x(:)))), {winPoly(iBand,:).outerBorder}) & ...
             cellfun(@(x) ~(isempty(x) || any(isnan(x(:)))), {winPoly(iBand,:).innerBorder});
         
-        firstSector = find(e, 1, 'first');
-        lastSector = find(e, 1, 'last');
+        validSectors = find(e);        
         
-        % This is a little patch to avoid non-contigous windows in a
-        % band. Should not happen anymore.
-        if isempty(firstSector) || isempty(lastSector) || ~min(e(firstSector:lastSector))
-            continue;
-        end
-        
-        n = 2 * numel(firstSector:lastSector);
+        n = 2 * numel(validSectors);
         
         X = cell(1, n);
         Y = cell(1, n);
         
         cnt = 1;
         
-        for iSector = firstSector:lastSector
+        for iSector = validSectors
             X{cnt} = winPoly(iBand,iSector).outerBorder(1,:);
             Y{cnt} = winPoly(iBand,iSector).outerBorder(2,:);
             cnt = cnt + 1;
         end
         
-        for iSector = lastSector:-1:firstSector
+        for iSector = fliplr(validSectors)
             X{cnt} = winPoly(iBand,iSector).innerBorder(1,end:-1:1);
             Y{cnt} = winPoly(iBand,iSector).innerBorder(2,end:-1:1);
             cnt = cnt + 1;

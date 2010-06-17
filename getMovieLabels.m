@@ -46,7 +46,7 @@ if ~batchMode
     h = waitbar(0,'Please wait, labeling window frames...');
 end
 
-for iFrame = 1:nFrames-1
+for iFrame = 1:nFrames
     winPoly = allWinPoly(:,:,iFrame);
     
     labels = createLabelsFromWindows(winPoly, imSize, 'window');

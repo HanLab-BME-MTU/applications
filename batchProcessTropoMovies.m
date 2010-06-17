@@ -89,11 +89,11 @@ end
 isValidFSMProject = @(x) exist(fullfile(x, 'lastProjSettings.mat'),'file');
 %dataPaths.ActinGFP = getDirectories(dataDirectory, 2, {'Actin', 'GFP'}, isValidFSMProject);
 dataPaths.ActinTM2 = getDirectories(dataDirectory, 2, {'Actin', 'TM2'}, isValidFSMProject);
-% dataPaths.ActinTM4 = getDirectories(dataDirectory, 2, {'Actin', 'TM4'}, isValidFSMProject);
-% dataPaths.ActinTM5 = getDirectories(dataDirectory, 2, {'Actin', 'TM5NM1'}, isValidFSMProject);
-% dataPaths.TM4TM2 = getDirectories(dataDirectory, 2, {'TM4', 'TM2'}, isValidFSMProject);
-% dataPaths.TM5TM2 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject);
-% dataPaths.TM5TM4 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject);
+dataPaths.ActinTM4 = getDirectories(dataDirectory, 2, {'Actin', 'TM4'}, isValidFSMProject);
+dataPaths.ActinTM5 = getDirectories(dataDirectory, 2, {'Actin', 'TM5NM1'}, isValidFSMProject);
+dataPaths.TM4TM2 = getDirectories(dataDirectory, 2, {'TM4', 'TM2'}, isValidFSMProject);
+dataPaths.TM5TM2 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject);
+dataPaths.TM5TM4 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject);
 
 % Concatenate all data paths
 dataPathsFull = struct2cell(dataPaths);
@@ -236,7 +236,7 @@ for iMovie = 1:nMovies
             try
                 currMovie = eval(['feval(procFun,currMovie,' procParamsStr ');']);
                 
-                if isfield(currMovie.(procName),'error')
+                if isfield(eval(['currMovie.' procLoc]),'error')
                     eval(['currMovie.' procLoc ' = rmfield(currMovie.' procLoc ',''error'');']);
                 end
  
@@ -288,3 +288,6 @@ fclose(fid);
 % Figure 5bis
 %disp('Make figure 5bis...');
 %makeTropoFigure5bis(analysisPaths.TM4TM2, outputDirectory);
+
+% Figure 6 stands for the density map display
+makeTropoFigure6(analysisPathsFull);

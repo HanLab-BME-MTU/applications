@@ -14,10 +14,8 @@ for iTM = 1:3
     end
     
     % Get the names of the 2 FSM subfolders
-    names = cellfun(@fliplr, strtok(cellfun(@fliplr,movieData.fsmDirectory, ...
-        'UniformOutput', false), filesep), 'UniformOutput', false);
-    % Force channel 2's name to be 'Actin'
-    names{2} = 'Actin';
+    names = cellfun(@(x) x(max(regexp(x,filesep))+1:end),...
+        movieData.fsmDirectory, 'UniformOutput', false);
     
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
