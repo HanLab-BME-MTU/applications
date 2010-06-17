@@ -125,7 +125,7 @@ for iexp = 1:length(experiment)
         findPos = findPos(diag(inputMask(ceil(matY(findPos)),ceil(matX(findPos)))) == 1);
     end
 
-    [areamask] = makeCellMaskDetections([matX(:),matY(:)],closureRadius,dilationRadius,doFill,imSize,plotMask,[]);
+    [areamask] = makeCellMaskDetections([matX(~isnan(matX)),matY(~isnan(matY))],closureRadius,dilationRadius,doFill,imSize,plotMask,[]);
     normArea = bwarea(areamask);
     
     experiment(iexp).initiationDen = length(findPos)/normArea/movieLength;
