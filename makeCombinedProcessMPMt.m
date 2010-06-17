@@ -177,6 +177,12 @@ for iproc = 1:length(pos_generate)
         genProc(iproc).clusterRadius = 0;
     end
     
+    if length(cvec)>11
+        genProc(iproc).diffusionRadius = cvec(12);
+    else
+        genProc(iproc).diffusionRadius = 0;
+    end
+    
 end
 
 %% NOW LOOP OVER ALL RESTRICTING PROCESSES
@@ -268,7 +274,7 @@ for t=1:numf
         %diffuse all parents for this frame
         % fill subsequent time positions
         %designate space
-        mpmMothers = nan(length(parents),2);
+%        mpmMothers = nan(length(parents),2);
         %get parent positions from last frame
         %NOTE: these are indexed in the following way for speed
         %get all parent xpositions
@@ -277,19 +283,24 @@ for t=1:numf
         mpmy = [parents.ypos];
         %pick out x and y positions for all parents for the last frame
         %(hence the t-1) and put into one mpm
-        mpm_mother_prev = [mpmx(1:length(mpmx)/length(parents):end)' mpmy(1:length(mpmx)/length(parents):end)'];
-        %find parents that are dead and take them out
-        mpm_mother_prev = mpm_mother_prev([parents.currentParentLifetime] <= [parents.lifetime],:);
-        %diffuse parents
-        mpm_generatedMothers = diffuseParentMPM(mpm_mother_prev,[parents([parents.currentParentLifetime] <= [parents.lifetime]).diffusion]');
-        %add these new positions back into mpm, which makes the
-        %positions for dead parents NaNs
-        mpmMothers([parents.currentParentLifetime] <= [parents.lifetime],:) = mpm_generatedMothers;
+%         mpm_mother_first = [mpmx(1:length(mpmx)/length(parents):end)' mpmy(1:length(mpmx)/length(parents):end)'];
+         mpm_mother_prev = [mpmx(t-1:length(mpmx)/length(parents):end)' mpmy(t-1:length(mpmx)/length(parents):end)'];
+%         %find parents that are dead and take them out
+%         mpm_mother_prev = mpm_mother_prev([parents.currentParentLifetime] <= [parents.lifetime],:);
+%         mpm_mother_first = mpm_mother_first([parents.currentParentLifetime] <= [parents.lifetime],:);
+%         %diffuse parents
+%         mpm_generatedMothers = diffuseParentMPM(mpm_mother_prev,...
+%             [parents([parents.currentParentLifetime] <= [parents.lifetime]).diffusion]',...
+%             [parents([parents.currentParentLifetime] <= [parents.lifetime]).diffusionRadius]',...
+%             mpm_mother_first);
+%         %add these new positions back into mpm, which makes the
+%         %positions for dead parents NaNs
+%         mpmMothers([parents.currentParentLifetime] <= [parents.lifetime],:) = mpm_generatedMothers;
         %add these back unto parents structure array for
         %long-term storage
         for ipar = 1:length(parents)
-            parents(ipar).xpos(t) = mpmMothers(ipar,1);
-            parents(ipar).ypos(t) = mpmMothers(ipar,2);
+            parents(ipar).xpos(t) = mpm_mother_prev(ipar,1);
+            parents(ipar).ypos(t) = mpm_mother_prev(ipar,2);
             %update parent life count
             parents(ipar).currentParentLifetime = parents(ipar).currentParentLifetime+1;
         end
@@ -330,7 +341,7 @@ for t=1:numf
                     parentTimer = round(repmat([genProc(i).lifetime-1 numf-1],nump,1).*rand(nump,2))+1;
                     % initiate parent positions
                     mpm_generatedMothers = makeParentMPM(nump,[sxLarge syLarge],genProc(i).minDistance, buffer);
-                    
+                    mpm_generatedMothers(1:size(mpm_generatedMothers,1),3:2*numf) = nan;
                     %how many restrictions do we have thus far?
                     if exist('parents','var')
                         numParents = length(parents);
@@ -348,6 +359,7 @@ for t=1:numf
                         'minDistance',num2cell(repmat(genProc(i).minDistance,size(mpm_generatedMothers,1),1)),...
                         'lifetime',num2cell(repmat(genProc(i).lifetime,size(mpm_generatedMothers,1),1)),...
                         'clusterRadius',num2cell(repmat(genProc(i).clusterRadius,size(mpm_generatedMothers,1),1)),...
+                        'diffusionRadius',num2cell(repmat(genProc(i).diffusionRadius,size(mpm_generatedMothers,1),1)),...
                         'currentParentLifetime',num2cell(parentTimer(:,1)),...
                         'currentTimeSinceLastChild',num2cell(parentTimer(:,2)),...
                         'groupNumber',num2cell(repmat(i,size(mpm_generatedMothers,1),1)),...
@@ -361,38 +373,7 @@ for t=1:numf
                 %if parent process we follow instead the number of parents
                 %because this is the number we set instead of the child density
                 % number of points is intensity times area
-                nump = poissrnd(vi_int * imareaLarge);
-                
-                % generate random distribution
-                x_mpm = 1+(sx-1)*rand(nump,1);
-                y_mpm = 1+(sy-1)*rand(nump,1);
-                %store resulting mpm
-                mpm_generatedMothers = [x_mpm y_mpm];
-                
-                
-                %how many restrictions do we have thus far?
-                if exist('parents','var')
-                    numParents = length(parents);
-                else
-                    numParents = 0;
-                end
-                %add values for each parent created
-                parents(1+numParents:size(mpm_generateMothers,1)+numParents) = ...
-                    struct('numChild',num2cell(repmat(genProc(i).numChild,size(mpm_generatedMothers,1),1)),...
-                    'timeLag',num2cell(repmat(genProc(i).timeLag,size(mpm_generatedMothers,1),1)),...
-                    'radius',num2cell(repmat(genProc(i).radius,size(mpm_generatedMothers,1),1)),...
-                    'percentRestrict',num2cell(repmat(genProc(i).percentRestrict,size(mpm_generatedMothers,1),1)),...
-                    'type',num2cell(repmat(genProc(i).type,size(mpm_generatedMothers,1),1)),...
-                    'diffusion',num2cell(repmat(genProc(i).diffusion,size(mpm_generatedMothers,1),1)),...
-                    'minDistance',num2cell(repmat(genProc(i).minDistance,size(mpm_generatedMothers,1),1)),...
-                    'lifetime',num2cell(repmat(genProc(i).lifetime,size(mpm_generatedMothers,1),1)),...
-                'clusterRadius',num2cell(repmat(genProc(i).clusterRadius,size(mpm_generatedMothers,1),1)),...    
-                'groupNumber',num2cell(repmat(i,size(mpm_restrict,1),1)),...
-                    'currentParentLifetime',num2cell([],size(mpm_generatedMothers,1),1),...
-                    'currentTimeSinceLastChild',num2cell([],size(mpm_generatedMothers,1),1),...
-                    'xpos',num2cell(mpm_generatedMothers(:,1:2:end),2),...
-                    'ypos',num2cell(mpm_generatedMothers(:,2:2:end),2),...
-                    'redrawn',num2cell([],size(mpm_generatedMothers,1),1));
+                nump = poissrnd(genProc(i).intensity * imareaLarge);
                 
         end %of switch
         
@@ -429,7 +410,28 @@ for t=1:numf
                         'ypos',num2cell(mpm(:,2),2));
                     % saffarian process
                 case 2.1
-                    currChildren = makeCoxProcessMPM(parents([parents.groupNumber]==i),imagesize,t,'saffarian');
+                    % generate random distribution
+                    cmpm = [1+(sx-1)*rand(nump,1) 1+(sy-1)*rand(nump,1)];
+                    
+                    for ichild = 1:genProc(i).numChild
+                        cmpm = cmpm + genProc(i).clusterRadius*randn(size(cmpm));
+                        px0 = (cmpm(:,1)>1);
+                        py0 = (cmpm(:,2)>1);
+                        pxi = (cmpm(:,1)<sx);
+                        pyi = (cmpm(:,2)<sy);
+                        cmpm = cmpm(px0 & py0 & pxi & pyi,:);
+                    currChildren((ichild-1)*size(cmpm,1)+1:ichild*size(cmpm,1)) = ...
+                        struct('reshuffle',num2cell(repmat(genProc(i).reshuffle,size(cmpm,1),1)),...
+                        'timeLag',num2cell(repmat(genProc(i).timeLag,size(cmpm,1),1)),...
+                        'parentID',num2cell(repmat(0,size(cmpm,1),1)),...
+                        'type',num2cell(repmat(genProc(i).type,size(cmpm,1),1)),...
+                        'radius',num2cell((repmat(genProc(i).radius,size(cmpm,1),1))),...
+                        'nucleationFrame',num2cell(t+(ichild-1)*genProc(i).timeLag,2),...
+                        'percentRestrict',num2cell((repmat(genProc(i).percentRestrict,size(cmpm,1),1))),...
+                        'groupNumber',num2cell(repmat(i,size(cmpm,1),1)),...
+                        'xpos',num2cell(cmpm(:,1),2),...
+                        'ypos',num2cell(cmpm(:,2),2));
+                    end
                     % distribution is cluster (of raft or Cox type)
                 case { 2, 3}
                     % generate daughters
@@ -462,7 +464,8 @@ for t=1:numf
             if exist('restrictions','var') && ~isempty(restrictions)
                 [currChildren] = makeExcludedOrIncludedMPM(currChildren,restrictions,t);
             end
-            if t~=1 && exist('currChildren','var') && ~isempty(currChildren) &&  any([children.type] == 1 & [children.radius] ~= 0)
+            if t~=1 && exist('currChildren','var') && ~isempty(currChildren) && ~isempty(children) && ...
+                    any([children.type] == 1 & [children.radius] ~= 0)
                 [currChildren] = restrictMPMBasedOnResources(currChildren,children([children.radius] ~= 0 & [children.type] == 1),t);
             end
              if exist('parents','var') && ~isempty(parents) && any([parents.radius] ~= 0)
@@ -472,7 +475,9 @@ for t=1:numf
             
             %STORE GENERATED POINTS
             children = [children currChildren];
-            
+%             if length(children) == 0
+%                keyboard 
+%             end
             % CALCULATE HOW MANY POINTS ARE MISSING
             switch genProc(i).type
                 %
@@ -538,7 +543,9 @@ sy = imagesize(2);
 % image
 
 vec_nump = poissrnd([parents.numChild]);
-vec_nump([parents.currentTimeSinceLastChild] < [parents.timeLag]) = 0;
+if ~strcmp(processType,'saffarian')
+vec_nump([parents.currentTimeSinceLastChild] < [parents.timeLag]) = 0; %2*vec_nump([parents.currentTimeSinceLastChild] < [parents.timeLag]);
+end
 % initialize daughter points
 cmpm_daughters = [];
 %loop over all mother points
@@ -555,7 +562,7 @@ for ipar=1:length(parents)
         %generate vector length of mother-daughter distance
         if strcmp(processType,'cox') || strcmp(processType,'saffarian')
             %randn if cox
-            lenDis = parents(ipar).clusterRadius*randn(numd,1);
+            lenDis = (parents(ipar).clusterRadius)*randn(numd,1);
         elseif strcmp(processType,'raft')
             %rand if raft
             lenDis = parents(ipar).clusterRadius*rand(numd,1);
@@ -565,7 +572,7 @@ for ipar=1:length(parents)
         %resulting endpoint for this daughter point
         endx = repmat(parents(ipar).xpos(t),numd,1) + lenDis .* sin(angle);
         endy = repmat(parents(ipar).ypos(t),numd,1) + lenDis .* cos(angle);
-        cmpm = [endx endy repmat(ipar,numd,1)];
+        cmpm = [endx endy repmat(ipar,numd,1) repmat(t-1,numd,1)+[1:numd]'];
         cmpm_daughters = [cmpm_daughters ; cmpm];
         %mark frame in which redrawn
         parents(ipar).currentTimeSinceLastChild = 0;
@@ -644,15 +651,24 @@ while any(min(parentDistance,[],2) < minDist) && loopcount ~=50
 end
 
 %stop after 50 loops
-if loopcount == 50
+if loopcount == 1000
     error('could not place all parents beyond minimum distance from each other')
 end
 
 end %of function make parent mpm
 
 %%  =======================================================================
-function [mpm_mother_curr] = diffuseParentMPM( mpm_mother_prev,sigma_diff)
-mpm_mother_curr = mpm_mother_prev + repmat(sigma_diff,1,2).*randn(size(mpm_mother_prev,1),2);
+function [mpm_mother_curr] = diffuseParentMPM( mpm_mother_prev,sigma_diff, confRad, mpm_mother_first)
+%Note: does not yet work with parent turn over...since these are given new
+%positions, the reference positions should be the positions that the parent
+%was originally changed to, not those of the first frame.
+findBoundaries = 1:length(mpm_mother_prev);
+while ~isempty(findBoundaries)
+mpm_mother_curr(findBoundaries,:) = mpm_mother_prev(findBoundaries,:) + ...
+    repmat(sigma_diff(findBoundaries),1,2).*rand(length(findBoundaries),2);
+distances = distMat2(mpm_mother_curr,mpm_mother_first);
+findBoundaries = find(diag(distances,0) > confRad);
+end
 end % of function diffuse parents
 
 %%  =======================================================================
@@ -717,7 +733,7 @@ for itype = typeUnique
                 elseif itype == 5
                     fpos_stat = find(dm_min <= irad);
                 elseif itype == 2 || itype == 3
-                    fpos_stat = find(dm_min <= irad & dm_min >= iclus);
+                    fpos_stat = find([children.type]' == 1 & dm_min <= irad);
                 else
                     error('restriction not recognized')
                 end
