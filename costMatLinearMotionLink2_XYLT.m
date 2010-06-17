@@ -1,6 +1,7 @@
 function [costMat,propagationScheme,kalmanFilterInfoFrame2,nonlinkMarker,...
     errFlag] = costMatLinearMotionLink2_XYLT(movieInfo,kalmanFilterInfoFrame1,...
-    costMatParam,nnDistFeatures,probDim,prevCost,featLifetime)
+    costMatParam,nnDistFeatures,probDim,prevCost,featLifetime,...
+    trackedFeatureIndx,currentFrame)
 %COSTMATLINEARMOTIONLINK2_XYLT provides a cost matrix for linking features
 %based on competing linear motion models, asuming alongated features
 %defined by x, y position, length and orientation.
@@ -62,6 +63,11 @@ function [costMat,propagationScheme,kalmanFilterInfoFrame2,nonlinkMarker,...
 %             .max                : Maximum previous linking cost.
 %      featLifetime           : Lengths of tracks that features in
 %                               first frame belong to.
+%      trackedFeatureIndx     : The matrix of feature index connectivity up
+%                               to current frame.
+%                               Currently not used in this cost function.
+%      currentFrame           : Current frame that is being linked to the
+%                               next frame.
 %%
 %OUTPUT costMat               : Cost matrix.
 %       propagationScheme     : Propagation scheme corresponding to each
@@ -97,7 +103,7 @@ errFlag = [];
 
 %check whether correct number of input arguments was used
 if nargin ~= nargin('costMatLinearMotionLink2_XYLT')
-    disp('--costMatLinearMotionLink2: Incorrect number of input arguments!');
+    disp('--costMatLinearMotionLink2_XYLT: Incorrect number of input arguments!');
     errFlag  = 1;
     return
 end
@@ -127,6 +133,9 @@ end
 frameNum = size(nnDistFeatures,2);
 tmpNN = max(1,frameNum-nnWindow);
 nnDistTracks = min(nnDistFeatures(:,tmpNN:end),[],2);
+
+%extract the two frames of interest from movieInfo
+movieInfo = movieInfo(currentFrame:currentFrame+1);
 
 %% Motion propagation
 
