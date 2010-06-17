@@ -104,8 +104,9 @@ experiment = changePathUsingEndocytosis(experiment);
 %initialize
 for iexp = 1:length(experiment)
 experiment(iexp).pairCorrelation = [];
+experiment(iexp).pairCorrelationRandom = [];
 end
-parfor iexp = 1:length(experiment)
+for iexp = 1:length(experiment)
     
     %Load Lifetime Information
     lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
@@ -137,7 +138,7 @@ parfor iexp = 1:length(experiment)
     
     %MAKE MASK
     imsizS = [imsize(2) imsize(1)];
-    [areamask] = makeCellMaskDetections([matX(:),matY(:)],closureRadius,dilationRadius,doFill,imsize,plotMask,[]);
+    [areamask] = makeCellMaskDetections([matX(~isnan(matX)),matY(~isnan(matY))],closureRadius,dilationRadius,doFill,imsize,plotMask,[]);
     %CALCULATE NORMALIZED AREA FROM MASK
     normArea = bwarea(areamask);
     
@@ -168,13 +169,12 @@ parfor iexp = 1:length(experiment)
     %store pair in each experiment structure
     experiment(iexp).pairCorrelation = pair;
     
-    %
-    %     %SCRAMBLE MPM
-    %     [mpm2] = makeRandomMPM(mpm2, areamask',1);
-    %     mpm1 = mpm2;
-    %     [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
-    %     [currDen] = calculatePitDenFromLR(kr,dist);
-    %     pairCorrelationRand(:,iexp) = currDen;
+    
+        %SCRAMBLE MPM
+        [mpm1] = makeRandomMPM(mpm1, areamask',1);
+        [kr,lr]=RipleysKfunction(mpm1,mpm1,imsizS,dist,corrFacMat,normArea);
+        [currDen] = calculatePitDenFromLR(kr,dist);
+        experiment(iexp).pairCorrelationRandom = currDen;
     
     
 end
