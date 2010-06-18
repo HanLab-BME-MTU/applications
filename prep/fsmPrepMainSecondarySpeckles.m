@@ -38,7 +38,7 @@ end
 
 
 if nargin < 7 || isempty(saveResults)
-    saveResults = false;
+    saveResults = true;
 end
 
 if ~isempty(fsmParam)
