@@ -1,4 +1,4 @@
-function movieData = segment3DMovie(movieData,varargin)
+function movieData = segment3DMovie(movieData,paramsIn)
 % 
 % movieData = segment3DMovie(movieData)
 % 
@@ -10,15 +10,14 @@ function movieData = segment3DMovie(movieData,varargin)
 % 
 % Input:
 % 
-%     movieData - Structure describing the movie, as created by
-%     setup3DMovieData.m
+%   movieData - MovieData3D object describing the movie to segment.
+%
+%   paramsIn - Structure with inputs for optional parameters. The
+%   parameters should be stored as fields in the structure, with the field
+%   names and possible values as described below
 % 
-%     OptionName/value Pairs. - A string with option name followed by
-%     its value.
-%
-%     Possible Option Names:
-%
-%       (OptionName -> possibleValues)
+%   Possible Parameter Structure Field Names:
+%       ('FieldName' -> possible values)
 %
 %       ('ChannelIndex' -> positive integer) Integer indices of the
 %       channel(s) to segment. Default is to segment all image channels.
@@ -35,10 +34,10 @@ function movieData = segment3DMovie(movieData,varargin)
 %               thresholdFluorescenceImage.m
 %
 % 
-%       ('BatchMode' -> logical) If true, all graphical output is suppressed. 
+%       ('p.BatchMode' -> logical) If true, all graphical output is suppressed. 
 %       Default is false.       
 %
-%       ('PostProcess' -> logical) If true, post-processing will be
+%       ('p.PostProcess' -> logical) If true, post-processing will be
 %       performed on the mask. This includes closure, area-opening and
 %       object selection. Default is false.
 %
@@ -55,7 +54,7 @@ function movieData = segment3DMovie(movieData,varargin)
 %           removed from masks. If zero, no objects are removed. Default is
 %           100 pixels.
 % 
-%           ('NumObjects' -> positive integer) Keep only the largest nObjects
+%           ('NumObjects' -> positive integer) Keep only the largest p.NumObjects
 %           objects in the masks. If set to zero, all objects are kept.
 %           Default is 1.
 %
@@ -71,74 +70,73 @@ function movieData = segment3DMovie(movieData,varargin)
 
 maxJump = .25; %The maximum fractional change in a threshold value to allow if the FixJumps option is enabled
 gSig = 1; %Sigma of the filter used in the smoothed gradient filter.
+dName = 'masks_channel_'; %Name for mask directories
 
 %% ------ Input ----- %%
 
 
-movieData = setup3DMovieData(movieData,'masks');
+if ~isa(movieData,'MovieData3D')
+    error('The first input argument must be a valid MovieData object!')
+end
 
+%Check for existing seg processes
+iSegProc = cellfun(@(x)(isa(x,'SegmentationProcess3D')),movieData.processes_);
 
-[batchMode,iChannels,postProcess,minVolume,nObjects,closeRad,methName,fJump] = parseInput(varargin);
+if isempty(iSegProc)
+    iSegProc = numel(movieData.processes_)+1;
+    movieData.addProcess(SegmentationProcess3D(movieData));
+end
 
+if nargin < 2
+    paramsIn = [];
+end
 
+p = parseProcessParams(movieData.processes_{iSegProc},paramsIn);
 
-if isempty(iChannels)
+if isempty(p.ChannelIndex)
     %Default is to use all channels
-    iChannels = 1:length(movieData.channelDirectory);
+    p.ChannelIndex = 1:length(movieData.channelDirectory);
 end
 
 
 %% ----- Init -----%%
 
-%Make sure this is a 3D movie
-if ~isMovie3D(movieData)
-    error('This function can only be used for 3D movies!')
-end
-
 %Get number of channels to segment
-nChan = length(iChannels);
+nChanSeg = length(p.ChannelIndex);
 
-movieData.masks.channelDirectory(iChannels) = movieData.channelDirectory(iChannels);
-
-movieData.masks.status = 0;
+%Set up mask output paths
+for j = 1:nChanSeg
+    movieData.processes_{iSegProc}.setMaskPath(p.ChannelIndex(j),...
+            [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))]);
+        
+    mkClrDir(movieData.processes_{iSegProc}.maskPaths_{p.ChannelIndex(j)});
+end
 
 %Create structuring element for post-processing
-if postProcess && closeRad > 0
-    closeDisk = strel('disk',closeRad);        
+if p.PostProcess && p.ClosureRadius > 0
+    closeBall = binarySphere(p.ClosureRadius);
 end
+
+
 
 %% ---------- Segmentation ----------%%
 %Go through each image in each channel and create a mask
 
-if ~batchMode
+if ~p.BatchMode
     wtBar = waitbar(0,'Please wait, creating masks....');
 end
 
-nImTot = sum(movieData.nImages);
+nImages = movieData.nFrames_;
+nImTot = nImages * nChanSeg;
 
+imNames = movieData.getImageFileNames(p.ChannelIndex);
 
-
-for iChan = 1:nChan
+for iChan = 1:nChanSeg                
     
-    imNames = getMovieImageFileNames(movieData,iChannels);
+    maskDir = movieData.processes_{iSegProc}.maskPaths_{p.ChannelIndex(iChan)};
+    imDir = movieData.channelPath_{p.ChannelIndex(iChan)};
     
-    nImages = movieData.nImages(iChannels(iChan));
-    
-    %Check/create the directory for masks for this channel
-    if ~isempty(movieData.masks.channelDirectory{iChan})
-        maskDir = [movieData.masks.directory filesep movieData.masks.channelDirectory{iChan}];
-    else
-        maskDir = movieData.masks.directory; %This prevents addition of a trailing file seperator
-    end
-    
-    if ~exist(maskDir,'dir')
-        mkdir(maskDir)
-    end
-    
-    nDig = floor(log10(nImages))+1;
-    fString = ['%0' num2str(nDig) '.0f']; %Get formatting string for image names
-    
-    if fJump
+    if p.FixJumps
         threshVals = nan(nImages,1);                                
     end
     
@@ -146,18 +144,18 @@ for iChan = 1:nChan
     for iImage = 1:nImages
 
         %Load the current image
-        currIm = stackRead(imNames{iChan}{iImage});
+        currIm = stackRead([imDir filesep imNames{iChan}{iImage}]);
                
         % ---- Perform initial segmentation ---- %
         
-        switch methName
+        switch p.Method
                     
             case 'Otsu'
                 
                 %Perform otsu thresholding to get the mask
                 currThresh = graythresh(currIm);
                 range = getrangefromclass(currIm);
-                currThresh = range(2) * currThresh; %Convert the stupid fractional threshold                                           
+                currThresh = range(2) * currThresh; %Convert the stupid fractional threshold
                 
             case 'Gradient'
                 
@@ -171,7 +169,7 @@ for iChan = 1:nChan
                 try
                     currThresh = thresholdFluorescenceImage(currIm);                
                 catch errMess %If the auto-thresholding fails, 
-                    if fJump
+                    if p.FixJumps
                         % just force use of last good threshold, if Fix
                         % Jumps enabled
                         currThresh = Inf;                        
@@ -183,14 +181,14 @@ for iChan = 1:nChan
                 
             otherwise
                 
-                error(['The segmentation method ' methName ' is not recognized! Please check Method option!'])
+                error(['The segmentation method ' p.Method ' is not recognized! Please check Method option!'])
                                                 
         end     
                 
         
         
         % --- Check the new thresholdValue if requested ---- % 
-        if fJump
+        if p.FixJumps
             
             if iImage == 1
                 threshVals(iImage) = currThresh; %Nothing to compare 1st frame to
@@ -210,121 +208,50 @@ for iChan = 1:nChan
         %Threshold the damn thing!
         currMask = currIm > currThresh;
         
-        
-        
+                
         % ---- Post-Processing if Requested ----- %
         
-        if postProcess
+        if p.PostProcess
                     
-            currMask = imclose(currMask,closeDisk);
+            currMask = imclose(currMask,closeBall);
             
-            currMask = bwareaopen(currMask,minVolume);
+            currMask = bwareaopen(currMask,p.MinVolume);
                     
             labelMask = bwlabeln(currMask);
             
-            if nObjects > 0
+            if p.NumObjects > 0
                 rProp = regionprops(labelMask,'Area');
-                [goodObj,iGood] = sort([rProp(:).Area],'descend');
+                [goodObj,iGood] = sort([rProp(:).Area],'descend'); %#ok<ASGLU>
 
                 currMask = false(size(currMask));
-                for i = 1:nObjects
+                for i = 1:p.NumObjects
                     currMask = currMask | (labelMask == iGood(i));
                 end
             end
         end
-        
-        %Overwrite on the first z-slice to clear existing masks if present
-        imwrite(currMask(:,:,1),[maskDir filesep ...
-            'mask_' num2str(iImage,fString) '.tif'],'tif','WriteMode','overwrite')
-        for i = 2:size(currIm,3)
-            %Append the rest of the z-slices to this tiff
+           
+        %We want to compress the masks, so don't use stackWrite.m
+        for i = 1:size(currIm,3)
+            %Append each z-slice to the tiff
             imwrite(currMask(:,:,i),[maskDir filesep ...
-            'mask_' num2str(iImage,fString) '.tif'],'tif','WriteMode','append')
-        
+            'mask_' imNames{iChan}{iImage}(1:end-3) 'tif'],'tif','WriteMode','append')
         end
         
-        if ~batchMode
-            waitbar( (iImage+(nImages*(iChan-1))) / nImTot,wtBar) %it's approximate, but who cares
+        if ~p.BatchMode
+            waitbar( (iImage+(nImages*(iChan-1))) / nImTot,wtBar)
         end
     end
 end
 
 %% ------Output/Finalization----- %%
 
-movieData.masks.status = 1;
-movieData.masks.dateTime = datestr(now);
+movieData.processes_{iSegProc}.setSuccess(true);
+movieData.processes_{iSegProc}.setDateTime;
+movieData.saveMovieData; %Save the new movieData to disk
 
+disp('Finished thresholding!')
 
-updateMovieData(movieData);
-
-if ~batchMode && ishandle(wtBar)
+if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)
 end
-
-function [batchMode,iChannels,postProcess,minVolume,nObjects,closeRad,methName,fJump]...
-    = parseInput(argArray)
-%Sub-function for parsing input optionName/value pairs
-
-%Default values
-batchMode = false;
-iChannels = [];
-postProcess = false;
-minVolume = 100;
-nObjects = 1;
-closeRad = 3;
-methName = 'Otsu';
-fJump = false;
-
-if isempty(argArray)
-    return
-end
-
-nArg = length(argArray);
-
-%Make sure there is an even number of arguments corresponding to
-%optionName/value pairs
-if mod(nArg,2) ~= 0
-    error('Inputs must be as optionName/ value pairs!')
-end
-
-for i = 1:2:nArg
-    
-   switch argArray{i}                     
-              
-       case 'BatchMode'
-           batchMode = argArray{i+1};
-           
-       case 'ChannelIndex'
-           iChannels = argArray{i+1};
-           
-       case 'PostProcess'
-           postProcess = argArray{i+1};
-           
-       case 'MinVolume'
-           minVolume = argArray{i+1};
-           
-       case 'NumObjects'
-           nObjects = argArray{i+1};
-           
-       case 'ClosureRadius'
-           closeRad = argArray{i+1};
-           
-       case 'Method'
-           methName = argArray{i+1};
-           
-       case 'FixJumps'
-           fJump = argArray{i+1};
-           
-       otherwise
-       
-           error(['"' argArray{i} '" is not a valid option name! Please check input!'])
-   end
-               
-      
-   
-end
-
-
-
-
 
