@@ -366,7 +366,6 @@ projData.pair2pairDiffMicPerMinStd=std(pixPerFrame2umPerMin(projData.pair2pairDi
 NNdist=nan(length(vertcat(movieInfo.xCoord)),1);
 count=1;
 for iFrame=5:length(movieInfo)
-
     xCoord = movieInfo(iFrame).xCoord;
     yCoord = movieInfo(iFrame).yCoord;
     

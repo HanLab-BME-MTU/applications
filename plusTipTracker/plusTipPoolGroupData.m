@@ -39,7 +39,7 @@ if nargin<3 || isempty(doBtw)
 end
 
 if nargin<4 || isempty(doWtn)
-    doWtn=0;
+    doWtn=1;
 end
 
 if nargin<5 || isempty(doPlot)

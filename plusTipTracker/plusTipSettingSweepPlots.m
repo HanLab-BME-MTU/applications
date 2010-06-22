@@ -109,7 +109,7 @@ prop_name(4) = {'Color'};
 cM=varycolor(nLines);
 cMap=mat2cell(cM,ones(nLines,1),3);
 
-figure; hold on
+figure('Visible','off'); hold on
 for iLine=1:nLines
     prop_values(1,1) = {mrkTpe(iLine)};
     prop_values(1,2) = cMap(iLine,:);

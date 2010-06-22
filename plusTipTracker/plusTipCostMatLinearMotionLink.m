@@ -330,7 +330,7 @@ if currentFrame ~= 1 && any(diagnostics == currentFrame)
     linkingDistances = sqrt(prevCostNoCol1(~isnan(prevCostNoCol1)));
     
     %plot histogram
-    figure('Name',['frame # ' num2str(currentFrame)],'NumberTitle','off');
+    figure('Visible','off','Name',['frame # ' num2str(currentFrame)],'NumberTitle','off');
     try
         %         % create bins
         %         n=1:20;

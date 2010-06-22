@@ -1,8 +1,7 @@
 function [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots,scales)
 % plusTipCometDetector locates plus tip comets (or other blobs) in a movie stack
 %
-%SYNOPSIS [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)
-%
+%SYNOPSIS [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)%
 %INPUT  projData           : structure containing fields .anDir, which gives
 %                           the full path to the roi_x directory
 %                           and .imDir, which gives the full path to the
@@ -59,50 +58,59 @@ end
 [listOfImages] = searchFiles('.tif',[],projData.imDir,0);
 nImTot = size(listOfImages,1);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Sort Images: Image sorting is required for image names where the number 
 % is not padded by zeros. Here we quickly sort images by number.
-% If the images are already padded sortedImages will be the same as 
-% listOfImages above. If the numbers are not padded, sortedImages will 
-% provide a list of images in the correct numerical order. 
-% Note: Current Method for sorting requires that path and body for each image in the
-% list are the same
+% If the numbers of the image namer are padded, use listOfImages. 
 
-%Initialize Cells for Sorting
-%path = path of file, body = body of filename, ext = extension of filename 
-%(tif etc) (all of these require a cell because they are strings)
-% num = number of filename (do not want in cell so can sort)
-pathCell = cell(nImTot,1);
-bodyCell = cell(nImTot,1);
-extCell = cell(nImTot,1);
-num = zeros(nImTot,1);
+imageName1 = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
+ 
+[path body no ext ] = getFilenameBody(imageName1);
 
-%Sort List
-% For each frame get the image name from listOfImages
-for iFrame =  1:nImTot;
-    imageName = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
+if length(no)>1
+    padded = 1;
+else 
+    padded = 0;
+end
 
-%Call "getFilenameBody" from common dir to split filename into path,
-%body, no, and ext. Put path, body and ext into appropriate cell/number vector for that
-%frame
-    [path body no ext ] = getFilenameBody(imageName);
+if padded == 0
+    %Initialize Cells for Sorting
+    %path = path of file, body = body of filename, ext = extension of filename 
+    %(tif etc) (all of these require a cell because they are strings)
+    % num = number of filename (do not want in cell so can sort)
+    pathCell = cell(nImTot,1);
+    bodyCell = cell(nImTot,1);
+    extCell = cell(nImTot,1);
+    num = zeros(nImTot,1);
 
-pathCell(iFrame) = cellstr(path);
-bodyCell(iFrame) = cellstr(body);
-extCell(iFrame) = cellstr(ext);
-% output "no" is a string so convert to number to sort
-num(iFrame)  = str2double(no);
+        %Sort List
+        % For each frame get the image name from listOfImages
+        for iFrame =  1:nImTot;
+            imageName = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
 
-end 
+            %Call "getFilenameBody" from common dir to split filename into path,
+            %body, no, and ext. Put path, body and ext into appropriate cell/number vector for that
+            %frame
+            [path body no ext ] = getFilenameBody(imageName);
 
-%Sort number vector numerically
-sortednum = sort(num);
 
-%Convert number vector to cell
-sortednum_cell = num2cell(sortednum);
+            pathCell(iFrame) = cellstr(path);
+            bodyCell(iFrame) = cellstr(body);
+            extCell(iFrame) = cellstr(ext);
 
-%Create Sorted Image List
-sortedImages = [pathCell, bodyCell, sortednum_cell, extCell];
+            % output "no" is a string so convert to number to sort
+            num(iFrame)  = str2double(no);
+ 
+        end
+    %Sort number vector numerically
+    sortednum = sort(num);
+
+    %Convert number vector to cell
+    sortednum_cell = num2cell(sortednum);
+
+    %Create Sorted Image List
+    sortedImages = [pathCell, bodyCell, sortednum_cell, extCell];
+else
+end
 
 
 % check timeRange input, assign start and end frame
@@ -121,11 +129,18 @@ elseif isequal(unique(size(timeRange)),[1 2])
 else
     error('--plusTipCometDetector: timeRange should be [startFrame endFrame] or [] for all frames')
 end
+
 nFrames = endFrame-startFrame+1;
 
-% get image dimensions, max intensity from first image
-fileNameIm = [char(sortedImages(1,1)) filesep char(sortedImages(1,2)),...;
+% Get image dimensions, max intensity from first image
+% If image filename padded use listOfImages 
+if padded == 1;
+    fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
+else % use sortedImages 
+    fileNameIm = [char(sortedImages(1,1)) filesep char(sortedImages(1,2)),...;
     num2str(sortednum(1)) char(sortedImages(1,4))];
+end
+
 img = double(imread(fileNameIm));
 [imL,imW] = size(img);
 maxIntensity = max(img(:));
@@ -148,6 +163,7 @@ if nargin<4 || isempty(savePlots)
     savePlots = 1;
 end
 
+% check input for sigma values of gaussians 
 if nargin<5 || isempty(scales)
     scales=[1 4];
 end
@@ -202,7 +218,14 @@ for iFrame = startFrame:endFrame
     progressText(count/nFrames,'Filtering images for comet detection');
     
     % load image and normalize to 0-1
-    fileNameIm =  [char(sortedImages(iFrame,1)) filesep char(sortedImages(iFrame,2)), num2str(sortednum(iFrame)),char(sortedImages(iFrame,4)) ];
+    
+    if padded == 1;% If image filename padded use listOfImages 
+        fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
+    else % use sortedImages 
+        fileNameIm = [char(sortedImages(iFrame,1)) filesep char(sortedImages(iFrame,2)),...;
+        num2str(sortednum(iFrame)) char(sortedImages(iFrame,4))];
+    end
+    
 
     img = double(imread(fileNameIm))./((2^bitDepth)-1);
 
@@ -369,11 +392,17 @@ for iFrame = startFrame:endFrame
 
     %plot feat outlines and centroid on image
     if savePlots==1
-        fileNameIm = [char(sortedImages(iFrame,1)) filesep char(sortedImages(iFrame,2)),...;
-    num2str(sortednum(iFrame)), char(sortedImages(iFrame,4))];
+        
+        if padded == 1;% If image filename padded use listOfImages 
+            fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
+        else % use sortedImages 
+            fileNameIm = [char(sortedImages(iFrame,1)) filesep char(sortedImages(iFrame,2)),...;
+            num2str(sortednum(iFrame)), char(sortedImages(iFrame,4))];
+        end
+        
         img = double(imread(fileNameIm))./((2^bitDepth)-1);
 
-        figure
+        figure('Visible','off');
         imagesc(img);
         hold on
         scatter(xCoord(:,1),yCoord(:,1),'c.'); % plot centroid in cyan

@@ -71,6 +71,7 @@ handles.timeRangeDetect = [1 inf];
 handles.bitDepth  = 16; 
 handles.savePlots = 1;
 
+
 % TRACKING parameters
 handles.timeWindow=[];
 handles.minTrackLen=3;

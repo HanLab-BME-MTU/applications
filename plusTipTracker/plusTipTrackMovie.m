@@ -164,7 +164,66 @@ end
 
 % load startFrame image and get size
 [listOfImages] = searchFiles('.tif',[],projData.imDir,0);
-fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
+nImTot = size(listOfImages,1);
+
+imageName1 = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
+ 
+
+%Check if Image Name Numbers are Padded (Ext no will be greater than
+%1 if padded) If Image Name Not Padded Than Sort
+
+[path body no ext ] = getFilenameBody(imageName1);
+
+if length(no)>1
+   fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
+   padded = 1;
+else 
+    padded = 0;
+end
+
+if padded == 0     
+ %Initialize Cells for Sorting
+    %path = path of file, body = body of filename, ext = extension of filename 
+    %(tif etc) (all of these require a cell because they are strings)
+    % num = number of filename (do not want in cell so can sort)
+    pathCell = cell(nImTot,1);
+    bodyCell = cell(nImTot,1);
+    extCell = cell(nImTot,1);
+    num = zeros(nImTot,1);
+
+        %Sort List
+        % For each frame get the image name from listOfImages
+        for iFrame =  1:nImTot;
+            imageName = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
+
+            %Call "getFilenameBody" from common dir to split filename into path,
+            %body, no, and ext. Put path, body and ext into appropriate cell/number vector for that
+            %frame
+            [path body no ext ] = getFilenameBody(imageName);
+
+
+            pathCell(iFrame) = cellstr(path);
+            bodyCell(iFrame) = cellstr(body);
+            extCell(iFrame) = cellstr(ext);
+
+            % output "no" is a string so convert to number to sort
+            num(iFrame)  = str2double(no);
+ 
+        end
+    %Sort number vector numerically
+    sortednum = sort(num);
+
+    %Convert number vector to cell
+    sortednum_cell = num2cell(sortednum);
+
+    %Create Sorted Image List
+    sortedImages = [pathCell, bodyCell, sortednum_cell, extCell];
+    
+    fileNameIm = [char(sortedImages(1,1)) filesep char(sortedImages(1,2)),...;
+    num2str(sortednum(1)) char(sortedImages(1,4))];
+end
+
+
 img1 = double(imread(fileNameIm));
 [imL,imW,dim] = size(img1);
 
@@ -283,8 +342,12 @@ for iMovie=1:size(timeRange,1)
     frmCount=1;
     colorOverTime = jet(endFrame-startFrame+1);
     for iFrame=startFrame:endFrame
-
-        img=(imread([char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))]));
+        if padded == 1 % if file number padded with zeros use original file list
+            img=(imread([char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))]));
+        else % use sorted list
+            img = (imread([char(sortedImages(iFrame,1)) filesep char(sortedImages(iFrame,2)),...;
+            num2str(sortednum(iFrame)) char(sortedImages(iFrame,4))]));
+        end 
         if showTracks==1
             % plot the tracks
             plusTipPlotTracks(projData,subIdx{iMovie,1},[startFrame endFrame],img,0,iFrame,roiYX,[],rawToo);
