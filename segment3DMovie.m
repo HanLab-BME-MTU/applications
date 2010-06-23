@@ -28,6 +28,9 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %           Available methods are:
 % 
 %               'Otsu' - Global Otsu thresholding. This is the default.
+%
+%               'HuntThresh' - Global threshold based on my histogram
+%               analysis function thresholdFluorescenceImage.m
 % 
 %               'Gradient' - The image gradient is calculated
 %               and this gradient image is then thresholded using
@@ -157,6 +160,22 @@ for iChan = 1:nChanSeg
                 range = getrangefromclass(currIm);
                 currThresh = range(2) * currThresh; %Convert the stupid fractional threshold
                 
+            case 'HuntThresh'
+                
+                try                
+                    currThresh = thresholdFluorescenceImage(currIm);
+                    
+                 catch errMess %If the auto-thresholding fails, 
+                    if p.FixJumps
+                        % just force use of last good threshold, if Fix
+                        % Jumps enabled
+                        currThresh = Inf;                        
+                    else
+                        %Otherwise, throw an error.
+                        error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
+                    end                    
+                end
+                
             case 'Gradient'
                 
                 %Get the gradient of the image
@@ -211,11 +230,11 @@ for iChan = 1:nChanSeg
                 
         % ---- Post-Processing if Requested ----- %
         
-        if p.PostProcess
-                    
-            currMask = imclose(currMask,closeBall);
+        if p.PostProcess                                
             
             currMask = bwareaopen(currMask,p.MinVolume);
+            
+            currMask = imclose(currMask,closeBall);
                     
             labelMask = bwlabeln(currMask);
             

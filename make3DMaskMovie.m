@@ -1,5 +1,5 @@
 function make3DMaskMovie(movieData,iChan)
-
+%MAKE3DMASKMOVIE makes a movie overlaying the 3D masks on the fluorescence images
 % 
 % make3DMaskMovie(movieData,iChan)
 % 
@@ -8,8 +8,7 @@ function make3DMaskMovie(movieData,iChan)
 % 
 % Input:
 % 
-%   movieData - A movieData structure describing a 3D movie as created with
-%   setup3DMovieData.m
+%   movieData - A MovieData3D object describing the movie.
 % 
 %   iChan - The index of the channel to make the movie from.
 %   Optional. Default is 1.
@@ -31,35 +30,38 @@ mvName = 'mask_overlay_movie'; % The file name to save the movie as
 
 %% ------- Input ------ %%
 
-%Init / validate the movieData
-movieData = setup3DMovieData(movieData);
+if ~isa(movieData,'MovieData3D')
+    error('The first input must be a valid MovieData3D object!')
+end
 
 if nargin < 2 || isempty(iChan)
     iChan = 1;
 end
 
-%Make sure it is a 3D movie
-if ~isMovie3D(movieData)
-    error('This function can only be used with 3D movies! Please create the movieData with setup3dMovieData!')
+%Check for existing seg processes
+iSegProc = cellfun(@(x)(isa(x,'SegmentationProcess3D')),movieData.processes_);
+
+if isempty(iSegProc)
+    error('The movie has not been segmented! Please segment movie first!')
 end
 
-%Make sure the masks have been created
-if ~checkMovieMasks(movieData,1);
-    error('Problem with masks in input movie! Check mask files and movieData!')
+if ~movieData.processes_{iSegProc}.checkChannelOutput(iChan);
+    error('The selected channel does not have valid masks! Check specified channel!')
 end
-
 
 %% ----- Init ----- %%
 
 
 %Get the mask and image file names
-maskFiles = getMovieMaskFileNames(movieData,iChan);
-imageFiles = getMovieImageFileNames(movieData,iChan);
+maskFiles = movieData.processes_{iSegProc}.getMaskFileNames(iChan);
+maskDir = movieData.processes_{iSegProc}.maskPaths_{iChan};
+imageFiles = movieData.getImageFileNames(iChan);
+imageDir = movieData.channelPath_{iChan};
 
 
 %% ---- Make the movie ----- %%
 
-nImages = movieData.nImages(iChan);
+nImages = movieData.nFrames_;
 
 
 for iImage = 1:nImages;
@@ -67,15 +69,14 @@ for iImage = 1:nImages;
     clf    
     
     %Load image & mask for this timepoint
-    currIm = double(stackRead(imageFiles{1}{iImage}));    
-    currMask = tif3Dread(maskFiles{1}{iImage});
+    currIm = double(stackRead([imageDir filesep imageFiles{1}{iImage}]));    
+    currMask = tif3Dread([maskDir filesep maskFiles{1}{iImage}]);
     
     %Normalize the image
 %     currIm = currIm - min(currIm(:));
 %     currIm = currIm * round((2^16 ./ max(currIm(:))));
 %     currIm = uint16(currIm);
-%     
-    
+%         
     
     %Display the image
     subplot(1,2,1)
@@ -101,7 +102,7 @@ for iImage = 1:nImages;
     title(['Frame ' num2str(iImage)])
     
     if iImage == 1
-        MakeQTMovie('start',[movieData.analysisDirectory filesep mvName '.mov'])
+        MakeQTMovie('start',[movieData.outputDirectory_ filesep mvName '.mov'])
         MakeQTMovie('quality',.9)                    
         
     end
