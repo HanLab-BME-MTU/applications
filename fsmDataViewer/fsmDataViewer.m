@@ -19,6 +19,10 @@ end
 % Set up the main figure (using imtool)
 hFig = imtool(loadChannels(settings, 1), []);
 
+% Change 'save as...' menu to custom function
+% hSaveMenu = findobj(hFig, '-regexp', 'Tag', 'save as menu item');
+% set(hSaveMenu, 'Callback', @saveFrame);
+
 % Unlock imtool axes children.
 set(hFig, 'HandleVisibility', 'on');
 
@@ -49,4 +53,7 @@ displayLayers(hFig, 1);
 % Relock imtool axes children.
 set(hFig, 'HandleVisibility', 'callback');
 
-end
+% function saveFrame(varargin)
+% 
+% uiputfile({'*.jpg;*.tif;*.png;*.gif','All Image Files'}, 'Save As', 'Untitled.tif')
+% 
