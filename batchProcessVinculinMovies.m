@@ -69,7 +69,7 @@ if ~isfield(params,'batchMode') || isempty(params.batchMode)
     params.batchMode = 1;
 end
 
-% Get every path from rootDirectory containing ch488 & ch560 subfolders.
+% Get every path from rootDirectory containing ch488 & ch560 subfolders
 paths = getDirectories(rootDirectory, 2, {'ch488', 'ch560'});
 
 disp('List of directories:');
@@ -202,6 +202,22 @@ for iMovie = 1:nMovies
                 bkdCmp = true;
             end
 
+            % BACKWARD COMPATIBILITY: update detection field name
+            if isfield(currMovie,'detection')
+                currMovie.segmentDetection = currMovie.detection;
+                currMovie = rmfield(currMovie,'detection');
+                
+                bkdCmp = true;
+            end
+            
+            % BACKWARD COMPATIBILITY: update tracking field name
+            if isfield(currMovie,'tracking')
+                currMovie.segmentTracking = currMovie.tracking;
+                currMovie = rmfield(currMovie,'tracking');
+                
+                bkdCmp = true;
+            end
+            
             %Save the modified movieData structure
             if bkdCmp
                 updateMovieData(currMovie);
@@ -271,17 +287,17 @@ end
 % Create output directory for figures
 %
 
-% outputDirectory = fullfile(rootDirectory,'figures');
-% if ~exist(outputDirectory, 'dir')
-%     mkdir(rootDirectory, 'figures');
-% end
-% 
-% % prefix the rootDirectory
-% selectedPaths = paths(9:-1:8);
-% 
-% % suffix ch488/analysis
-% selectedPaths = cellfun(@(subDir) fullfile(subDir,'ch488','analysis'),...
-%     selectedPaths, 'UniformOutput', false);
+outputDirectory = fullfile(rootDirectory,'figures');
+if ~exist(outputDirectory, 'dir')
+    mkdir(rootDirectory, 'figures');
+end
+ 
+% prefix the rootDirectory
+selectedPaths = paths;
+
+% suffix ch488/analysis
+selectedPaths = cellfun(@(subDir) fullfile(subDir,'ch488','analysis'),...
+    selectedPaths, 'UniformOutput', false);
 
 %
 % Make Figure 1
@@ -298,7 +314,7 @@ end
 %
 % Make Figure 3
 %
-%disp('Make figure 3...');
-%makeFAFigure3(selectedPaths, outputDirectory);
+disp('Make figure 3...');
+makeFAFigure3(selectedPaths, outputDirectory);
 
 

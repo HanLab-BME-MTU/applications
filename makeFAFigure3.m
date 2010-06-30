@@ -3,7 +3,8 @@ function makeFAFigure3(paths, outputDirectory)
 
 % TODO: we still need to remove 1-frame long tracks
 
-speeds = cell(2,1);
+avgSpeeds = cell(2, 1);
+stdSpeeds = cell(2, 1);
 
 for iMovie = 1:2
     % Load movieData
@@ -20,15 +21,15 @@ for iMovie = 1:2
     sigmaPSF = 1.6255;
 
     % Check that detection has been performed
-    if ~checkMovieDetection(movieData) 
-        error('Need detections to make Figure 1.');
+    if ~checkMovieSegmentDetection(movieData) 
+        error('Need detections to make Figure 3.');
     end
 
     % Load detections
-    load(fullfile(movieData.detection.directory, movieData.detection.filename));
+    load(fullfile(movieData.segmentDetection.directory, movieData.segmentDetection.filename));
 
     % Check that Actin tracking has been done
-    filename = fullfile(movieData.channels(2).analysisDirectory, 'tack', 'mpm.mat');
+    filename = fullfile(movieData.imageDirectory, movieData.channelDirectory{2}, '..', 'analysis', 'tack', 'mpm.mat');
     
     if ~exist(filename, 'file')
         error('Unable to find mpm.mat');
@@ -42,12 +43,12 @@ for iMovie = 1:2
     % Get the indices where there are vectors in M
     nnzInd = all(M(:,:,:),2);
     
-    % Get the indices where speckles are inside FA footprints.
-    insideInd = false(size(nnzInd));
+    length = zeros(size(nnzInd));
     
     % Generate FA's footprint
     for iFrame = 1:nFrames
-        BW = false(imSize(1), imSize(2));
+        lengthMap = zeros(imSize(1), imSize(2));
+        nMap = zeros(imSize(1), imSize(2));
         
         segments = segmentParams{iFrame}; %#ok<USENS>
         
@@ -61,11 +62,15 @@ for iMovie = 1:2
         
             [xRange,yRange,nzIdx] = subResSegment2DSupport(xC,yC,sigmaPSF,l,theta,imSize);
         
-            S = false(numel(yRange),numel(xRange));
-            S(nzIdx) = true;
+            S = zeros(numel(yRange),numel(xRange));
+            S(nzIdx) = l;
             
-            BW(yRange,xRange) = BW(yRange,xRange) | S;
+            lengthMap(yRange,xRange) = lengthMap(yRange,xRange) + S;
+            nMap(yRange,xRange) = nMap(yRange,xRange) + (S ~= 0);
         end
+        
+        ind = find(nMap);
+        lengthMap(ind) = lengthMap(ind) ./ nMap(ind);
         
         ind = nnzInd(:,:,iFrame);
         
@@ -74,36 +79,66 @@ for iMovie = 1:2
         
         locMax = sub2ind(imSize, I, J);
         
-        insideInd(ind,:,iFrame) = BW(locMax);        
+        length(ind,:,iFrame) = lengthMap(locMax);        
     end
 
     % Compute the speed
     D = cell(nFrames,1);
+    L = cell(nFrames,1);
     for iFrame = 1:nFrames
-        ind = insideInd(:,:,iFrame);
+        ind = length(:,:,iFrame) ~= 0;
         
         D{iFrame} = sqrt((M(ind,1,iFrame) - M(ind,3,iFrame)).^2 + ...
             (M(ind,2,iFrame) - M(ind,4,iFrame)).^2);
+        
+        L{iFrame} = length(ind,:,iFrame);
     end
     
-    speeds{iMovie} =  vertcat(D{:}) * pixelSize / timeInterval;
+    speeds =  vertcat(D{:}) * pixelSize / timeInterval;
+    lengths = vertcat(L{:}) * pixelSize;
+    
+    lengthRange = min(lengths):1000:max(lengths);
+  
+    avgSpeeds{iMovie} = zeros(numel(lengthRange)-1,1);
+    stdSpeeds{iMovie} = zeros(numel(lengthRange)-1,1);
+    
+    for iLength = 1:numel(lengthRange)-1
+        ind = lengths >= lengthRange(iLength) & lengths < lengthRange(iLength+1);
+        
+        avgSpeeds{iMovie}(iLength) = mean(speeds(ind));
+        stdSpeeds{iMovie}(iLength) = std(speeds(ind));
+    end
+    
 end
 
-avgSpeeds = cellfun(@mean,speeds);
-stdSpeeds = cellfun(@std,speeds);
+n1 = numel(avgSpeeds{1});
+n2 = numel(avgSpeeds{2});
+
+if n1 ~= n2
+    [r, i] = max([n1,n2]);
+    avgSpeeds{2-i+1}(end+1:r) = NaN;
+    stdSpeeds{2-i+1}(end+1:r) = NaN;
+end
+
+avgSpeeds = horzcat(avgSpeeds{:});
+stdSpeeds = horzcat(stdSpeeds{:});
 
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
 set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
 h = bar(gca, avgSpeeds, 'group'); hold on;
-% Get the central position over the bars
-XTicks = get(h, 'XData');
-errorbar(XTicks,avgSpeeds(:),zeros(size(XTicks)),stdSpeeds(:),'xk'); hold off;
-set(gca, 'XTickLabel', {'Vcl fl/fl', 'Vcl -/-'});
+XTicks = get(h(1), 'XData');
+XTicks = XTicks - .5;
+set(h(1), 'XData', XTicks);
+set(h(2), 'XData', XTicks);
+errorbar([XTicks-.15 XTicks+.15],avgSpeeds(:),zeros(2*numel(XTicks),1),stdSpeeds(:),'xk'); hold off;
+xlabel('Adhesion length (nm)');
 ylabel('Actin Speed (nm/s)');
+legend('fl/fl', 'WT');
 
 fileName = [outputDirectory filesep 'Fig3-1.eps'];
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);text
 close(hFig);
+
 
