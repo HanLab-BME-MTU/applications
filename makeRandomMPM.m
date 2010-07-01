@@ -80,7 +80,7 @@ else
             yvec_ct = max_y*rand(1);
         end
             
-        if maskImage(max(1,xvec_ct), max(1,yvec_ct))>0
+        if maskImage(max(1,round(xvec_ct)), max(1,round(yvec_ct)))>0
             
             xvec_res(ct) = xvec_ct;
             yvec_res(ct) = yvec_ct;
