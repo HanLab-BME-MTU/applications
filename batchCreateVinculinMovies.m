@@ -17,7 +17,7 @@ for iMovie = 1:numel(paths)
     disp([num2str(iMovie) ': ' paths{iMovie}]);
 end
 
-disp('Process all directories (Grab a coffee)...');
+movieDataSubDir = ['ch488' filesep 'analysis'];
 
 nMovies = numel(paths);
 scrsz = get(0,'ScreenSize');
@@ -58,8 +58,8 @@ for iMovie = 1:nMovies
             load([movieData.segmentTracking.directory filesep movieData.segmentTracking.filename]);
             
             % remove tracks with lifetime == 1
-            trackSEL = getTrackSEL(tracksFinal);
-            tracksFinal = tracksFinal(trackSEL(:,3) >= 2);
+            %trackSEL = getTrackSEL(tracksFinal);
+            %tracksFinal = tracksFinal(trackSEL(:,3) >= 2);
             
             clf;
             overlayTrackedSegment2DMovie(tracksFinal,segmentParams,[],1000,inputMovieInfo,saveMovieInfo);

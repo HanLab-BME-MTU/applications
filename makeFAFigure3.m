@@ -38,6 +38,10 @@ for iMovie = 1:2
     % Load MPM.mat
     load(filename);
 
+    % Read mask file list
+    %maskPath = fullfile(movieData.masks.directory, movieData.masks.channelDirectory{1});
+    %maskFiles = dir([maskPath filesep '*.tif']);
+    
     nFrames = size(M,3); %#ok<NODEF>
     
     % Get the indices where there are vectors in M
@@ -71,6 +75,10 @@ for iMovie = 1:2
         
         ind = find(nMap);
         lengthMap(ind) = lengthMap(ind) ./ nMap(ind);
+        
+        %BW = imread(fullfile(maskPath, maskFiles(iFrame).name));
+        %dist = bwdist(1 - double(BW)) * pixelSize;
+        %lengthMap(dist > 5000) = 0;
         
         ind = nnzInd(:,:,iFrame);
         
