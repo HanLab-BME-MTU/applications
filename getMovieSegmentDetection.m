@@ -1,4 +1,4 @@
-function movieData = getMovieSegmentDetection(movieData,iChannel,sigmaPSF,minSize,batchMode)
+function movieData = getMovieSegmentDetection(movieData,iChannel,sigmaPSF,minSize,bitDepth,batchMode)
 
 %Indicate that detection was started
 movieData.segmentDetection.status = 0;
@@ -42,7 +42,7 @@ for i = 1:nFrames
     end
     
     % Get initial segment parameters
-    segmentParams{i} = subResSegment2DInit(ima,mask,sigmaPSF,minSize);
+    segmentParams{i} = detectSubResSegment2D(ima,mask,sigmaPSF,minSize,bitDepth);
     
     if ~batchMode && ishandle(h)
         waitbar(i/nFrames, h)

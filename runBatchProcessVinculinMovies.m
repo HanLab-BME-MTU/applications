@@ -1,6 +1,6 @@
 function runBatchProcessVinculinMovies
 
-rootDirectory = '/home/sb234/Projects/VinculinFA/completed';
+rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
 
 params.pixelSize = 67;
 params.timeInterval = 10;
@@ -39,6 +39,7 @@ params.labels.method = 'window';
 params.segmentDetection.channelIndex = 1;
 params.segmentDetection.sigmaPSF = 1.686; % sigmaPSF = vectorialPSFSigma(1.45, 488, 67)
 params.segmentDetection.minSize = 2;
+params.segmentDetection.bitDepth = 14;
 
 % PROC 7: adhesion tracking
 params.segmentTracking = struct([]); % no parameter
