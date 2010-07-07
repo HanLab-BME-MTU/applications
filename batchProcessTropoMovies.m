@@ -289,4 +289,4 @@ fclose(fid);
 %disp('Make figure 5bis...');
 %makeTropoFigure5bis(analysisPaths.TM4TM2, outputDirectory);
 % Figure 6 stands for the density map display
-%makeTropoFigure6(analysisPathsFull);
+makeTropoFigure6(analysisPathsFull);

@@ -6,7 +6,7 @@ analysisDirectory = '/home/sb234/Projects/Tropo/Analysis_for_paper';
 
 params.pixelSize = 67;
 params.timeInterval = 10;
-params.runSteps = [1 -1 1 1 1 1 1];
+params.runSteps = [-1 -1 -1 -1 -1 -1 -1];
 params.batchMode = 1;
 
 % PROC 1: contours
@@ -24,7 +24,7 @@ params.protrusion.nSeg = 30;
 % PROC 3: windows
 params.windows.methodStr = 'p';
 params.windows.winSize = 1000 / params.pixelSize; % ~1um;
-params.windows.nBands = 25;
+params.windows.nBands = [];
 params.windows.iOuter = 2;
 params.windows.iInner = 4;
 params.windows.nReinit = [];
