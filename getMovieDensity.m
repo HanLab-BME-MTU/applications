@@ -7,8 +7,18 @@ movieData.density = [];
 movieData.density.status = 0;
 
 % Verify that the distance transform has been computed
-if checkMovieBWDist(movieData)
+if ~checkMovieBWDist(movieData)
     error('Must compute distance transform first!');
+end
+
+% Verify that the label has been computed 
+if ~checkMovieLabels(movieData,'sector')
+    error('Must compute labels first!');
+end
+
+% Verity that the protrusion sample have been computed
+if ~checkMovieProtrusionSamples(movieData)
+    error('Must compute protrusion samples first!');
 end
 
 movieData.density.directory = fullfile(movieData.analysisDirectory, 'density');
@@ -35,24 +45,39 @@ end
 % Determine number of frames
 nFrames = movieData.labels.nFrames;
 
-% Read the list of label files
+% Read the list of distance transform files
 bwDistPath = movieData.bwdist.directory;
-bwDistFiles = dir([bwDistPath filesep '*.tif']);
+bwDistFiles = dir([bwDistPath filesep '*.mat']);
+
+% Read the list of label files
+labelPath = movieData.labels.directory;
+labelFiles = dir([labelPath filesep '*.tif']);
 
 % Read the list of speckle files
 specklePaths = cellfun(@(x) fullfile(x, 'tack', 'locMax'), movieData.fsmDirectory, 'UniformOutput' ,false);
 speckleFiles = cellfun(@(x) dir([x, filesep, '*.mat']), specklePaths, 'UniformOutput' ,false);
 
-%Make the string for formatting
-fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
+% Load protrusion samples file
+load(fullfile(movieData.protrusion.directory, movieData.protrusion.samples.fileName));
 
 if ~batchMode
     h = waitbar(0,'Please wait, labeling window frames...');
 end
- 
-for iFrame = 1:nFrames
+
+densityScores(1:nChannels,1:nFrames-1) = struct(...
+    'distFromEdge',[],...
+    'protrusionSpeed',[],...
+    'protrusionState',[],...
+    'protrusionPersistence',[],...
+    'averageDensity',[],...
+    'minMaxDensity',[]);
+
+for iFrame = 1:nFrames-1
     % Load bwDist
-    load([bwDistPath filesep bwDistFiles(iFrame).name]);
+    load(fullfile(bwDistPath, bwDistFiles(iFrame).name));
+    
+    % Load label
+    L = imread(fullfile(labelPath, labelFiles(iFrame).name));
     
     % Add virtual points on cell edges
     outline = contourc(double(distToEdge), [0, 0]);
@@ -70,8 +95,9 @@ for iFrame = 1:nFrames
     
         % Load speckles
         load(fullfile(specklePaths{iChannel}, speckleFiles{iChannel}(iFrame).name));
-        ind = find(locMax ~= 0);
-    
+        % Keep speckles that lay in the labels area.
+        ind = find(locMax ~= 0 & L ~= 0);
+            
         nPoints = numel(ind);
         [Y X] = ind2sub(size(locMax), ind);
     
@@ -101,34 +127,48 @@ for iFrame = 1:nFrames
     
         % Remove lonely speckles which are linked only with virtual points.
         validDist = cellfun(@(x) ~isempty(x), dist);
+
+        % save distance from edge per speckle
+        densityScores(iChannel,iFrame).distFromEdge = ...
+            distToEdge(ind(validDist));
         
-        % create average density score
-        averageDensityScore = cellfun(@mean, dist(validDist));
+        sectors = L(ind(validDist));
+        
+        % save protrusion speed per speckle
+        densityScores(iChannel,iFrame).protrusionSpeed = ...
+            protrusionSamples.averageNormalComponent(sectors,iFrame);
+        
+        % save protrusion state per speckle
+        densityScores(iChannel,iFrame).protrusionState = ...
+            protrusionSamples.states(sectors,iFrame);
+        
+        % save protrusion persistence per speckle
+        densityScores(iChannel,iFrame).protrusionPersistence = ...
+            protrusionSamples.statePersistence(sectors,iFrame);
+    
+        % calculate average density score
+        densityScores(iChannel,iFrame).averageDensity = ...
+            cellfun(@mean, dist(validDist));
    
-        averageDensityMap = zeros(size(L));
-        averageDensityMap(ind(validDist)) = averageDensityScore; %#ok<NASGU>
-    
-        save(fullfile(movieData.density.directory, ...
-            movieData.density.channelDirectory{iChannel}, ...
-            ['averageDensityMap_', num2str(iFrame,fString), '.mat']), ...
-            'averageDensityMap');
-    
-        % create min/max density score
-        minMaxDensityScore = cellfun(@(x) (max(x) - min(x)) / ...
-            (max(x) + min(x)), dist(validDist));
-    
-        minMaxDensityMap = zeros(size(L));
-        minMaxDensityMap(ind(validDist)) = minMaxDensityScore; %#ok<NASGU>
-    
-        save(fullfile(movieData.density.directory, ...
-            movieData.density.channelDirectory{iChannel}, ...
-            ['minMaxDensityMap_', num2str(iFrame,fString), '.mat']), ...
-            'minMaxDensityMap');
+        % calculate min/max density score
+        densityScores(iChannel,iFrame).minMaxDensity = ...
+            cellfun(@(x) (max(x) - min(x)) / (max(x) + min(x)), dist(validDist));    
     end
     
     if ~batchMode && ishandle(h)
         waitbar(iFrame/nFrames,h)
     end
+end
+
+% Save scores
+tmp = densityScores;
+
+for iChannel = 1:nChannels
+    densityScores = tmp(iChannel,:); %#ok<NASGU>
+
+    save(fullfile(movieData.density.directory, ...
+        movieData.density.channelDirectory{iChannel}, ...
+        'densityScores.mat'), 'densityScores');
 end
 
 if ~batchMode && ishandle(h)

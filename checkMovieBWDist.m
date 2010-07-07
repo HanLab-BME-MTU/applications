@@ -1,4 +1,4 @@
-function status = checkMovieBWDIst(movieData)
+function status = checkMovieBWDist(movieData)
 %
 % status = checkMovieBWDist(movieData)
 % Returns true if the movie specified by the input movieData has

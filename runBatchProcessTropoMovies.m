@@ -6,7 +6,7 @@ analysisDirectory = '/home/sb234/Projects/Tropo/Analysis_for_paper';
 
 params.pixelSize = 67;
 params.timeInterval = 10;
-params.runSteps = [0 0 0 0 0 0 0];
+params.runSteps = [1 -1 1 1 1 1 1];
 params.batchMode = 1;
 
 % PROC 1: contours
@@ -24,18 +24,20 @@ params.protrusion.nSeg = 30;
 % PROC 3: windows
 params.windows.methodStr = 'p';
 params.windows.winSize = 1000 / params.pixelSize; % ~1um;
-params.windows.nBands = 5;
+params.windows.nBands = 25;
 params.windows.iOuter = 2;
 params.windows.iInner = 4;
 params.windows.nReinit = [];
 params.windows.meshQuality = [];
-params.windows.windowName = [num2str(dContour) 'by' num2str(params.windows.winSize) 'pix_' num2str(params.windows.iOuter) '_' num2str(params.windows.iInner)];
+params.windows.windowName = ['windows_' params.windows.methodStr '_' ...
+    num2str(dContour) 'by' num2str(params.windows.winSize) 'pix_' ...
+    num2str(params.windows.iOuter) '_' num2str(params.windows.iInner) '.mat'];
 
 % PROC 4: protrusion sampling
 params.protrusion.samples.protName = ['protSamples_' params.windows.methodStr '_' params.windows.windowName  '.mat'];
 
 % PROC 5: labels
-params.labels.method = 'window';
+params.labels.method = 'sector';
 
 % PROC 6: distance transform
 params.bwdist = struct([]); % no parameter

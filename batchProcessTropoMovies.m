@@ -91,9 +91,9 @@ isValidFSMProject = @(x) exist(fullfile(x, 'lastProjSettings.mat'),'file');
 dataPaths.ActinTM2 = getDirectories(dataDirectory, 2, {'Actin', 'TM2'}, isValidFSMProject);
 dataPaths.ActinTM4 = getDirectories(dataDirectory, 2, {'Actin', 'TM4'}, isValidFSMProject);
 dataPaths.ActinTM5 = getDirectories(dataDirectory, 2, {'Actin', 'TM5NM1'}, isValidFSMProject);
-dataPaths.TM4TM2 = getDirectories(dataDirectory, 2, {'TM4', 'TM2'}, isValidFSMProject);
-dataPaths.TM5TM2 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject);
-dataPaths.TM5TM4 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject);
+%dataPaths.TM4TM2 = getDirectories(dataDirectory, 2, {'TM4', 'TM2'}, isValidFSMProject);
+%dataPaths.TM5TM2 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM2'}, isValidFSMProject);
+%dataPaths.TM5TM4 = getDirectories(dataDirectory, 2, {'TM5NM1', 'TM4'}, isValidFSMProject);
 
 % Concatenate all data paths
 dataPathsFull = struct2cell(dataPaths);
@@ -288,6 +288,5 @@ fclose(fid);
 % Figure 5bis
 %disp('Make figure 5bis...');
 %makeTropoFigure5bis(analysisPaths.TM4TM2, outputDirectory);
-
 % Figure 6 stands for the density map display
-makeTropoFigure6(analysisPathsFull);
+%makeTropoFigure6(analysisPathsFull);

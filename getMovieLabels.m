@@ -49,7 +49,7 @@ end
 for iFrame = 1:nFrames
     winPoly = allWinPoly(:,:,iFrame);
     
-    labels = createLabelsFromWindows(winPoly, imSize, 'window');
+    labels = createLabelsFromWindows(winPoly, imSize, method);
 
     imwrite(uint16(labels), [movieData.labels.directory filesep 'labels_' ...
         num2str(iFrame,fString) '.tif'], 'Compression', 'lzw');
