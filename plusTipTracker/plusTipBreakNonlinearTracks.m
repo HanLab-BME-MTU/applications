@@ -1,4 +1,4 @@
-function [newTrackedFeatureInfo,newTrackedFeatureIndx,newNnDistFeatures]=plusTipBreakNonlinearTracks(trackedFeatureInfo,trackedFeatureIndx,nnDistFeatures)
+function [newTrackedFeatureInfo,newTrackedFeatureIndx,newNnDistFeatures,diagnosticTrackLinearity]=plusTipBreakNonlinearTracks(trackedFeatureInfo,trackedFeatureIndx,nnDistFeatures)
 % plusTipBreakNonlinearTracks splits up tracks not following uni-directional behavior
 
 % this function splits up individial tracks where the displacement vectors
@@ -26,9 +26,19 @@ function [newTrackedFeatureInfo,newTrackedFeatureIndx,newNnDistFeatures]=plusTip
 % find track start and end frames
 trackSEL = getTrackSEL(trackedFeatureInfo);
 
-% extract coordinates
+% extract x and y coordinates for all tracks for all frames (NaN will be
+% used as a place holder if no linked feature exists in that frame)
+% trackedFeatureInfo is such that row = track #  
+% column = [x1 y1 z1 a1 dx1 dy1 dz1 da1 x2 y2 z2 a2 dx2 dy2 dz2 da2 ...xn,yn,zn,an,dxn,dyn,dzn]
+% where n = total number of frames
+% and x,y are the respective coordinates, a is the "intensity" of the
+% feature (in this case area)
+% and dx,dy,dz,da are the uncertainty associated with each param.  
+% If no linked feature exists in that frame: NaN will be used
+% as a place holder
 px=trackedFeatureInfo(:,1:8:end);
 py=trackedFeatureInfo(:,2:8:end);
+%amp = trackedFeatureInfo(:,4:8:end); 
 
 % get vector coordinates between linked features
 vx=diff(px,1,2);
@@ -48,13 +58,50 @@ v2mag=sqrt(v2x.^2+v2y.^2);
 % cos of angle between consecutive vectors (displacements)
 cosV12=(v1x.*v2x+v1y.*v2y)./(v1mag.*v2mag);
 
+
+%% Additional Diagnostic to assess linearity of tracking data: (MB July 2010)
+% Gives the percentage of total displacement vectors
+% created by consecutive frame-frame pairs which differ in direction
+% by the following angles:
+% 0(perfect coorelation)-45, 45-90, 90-135, 135-180(perfect anti-coorelation)
+
+%Bin according to the angle between the displacement vectors 
+% Retains Original Matrix Dimensions: Puts "1" where angle of displacement 
+% vectors lies between respective values and "0" everywhere else. 
+angles0to45 = cosV12 > cos(45*pi/180);
+angles45to90 = (cosV12 > cos(90*pi/180)) & (cosV12 < cos(45*pi/180));
+angles90to135 = (cosV12 > cos(135*pi/180)) & (cosV12 < cos(90*pi/180));
+angles135to180 = cosV12 < cos(135*pi/180);
+
+%Calculate Number of Total Displacement Vector Angles Measured For
+%Percent
+% Calculation: Subtract out the place holders in the cosV12 matrix which 
+% are Nan (not a number) to get the total number of angles included in
+% the binning 
+[dim1 dim2] = size(cosV12);
+totalAngles = dim1*dim2 - sum(sum(isnan(cosV12)));
+
+%Calculate Percent Populations From Respective Bins 
+diagnosticTrackLinearity.percentAngles0to45 = (sum(sum(angles0to45))/totalAngles)*100;
+diagnosticTrackLinearity.percentAngles45to90 = (sum(sum(angles45to90))/totalAngles)*100;
+diagnosticTrackLinearity.percentAngles90to135 = (sum(sum(angles90to135))/totalAngles)*100;
+diagnosticTrackLinearity.percentAngles135to180 = (sum(sum(angles135to180))/totalAngles)*100;
+
+
+ 
+%%
 % assume max angle is 45 degrees
-cosMax=cos(45*pi/180);
+% Note: It is potentially useful to modifiy the max angle to retain some 
+% non-linear tracks depending on data set at hand: See above diagnostic 
+% to help trouble-shoot this parameter
+cosMax=cos(180*pi/180);
 
 % lower bound displacement - if smaller than this, may just be jitter
 lb=prctile(vmag(:),3); 
 
-% keep track of where cos or displacement vectors are NaNs
+% keep track of where cos or displacement vectors are NaNs 
+% (nanMat = matrix with value '1' where cos(angle) value is numerical and NaN at all
+% other coordinates)
 nanMat=swapMaskValues(isnan(cosV12) | isnan(v1mag) | isnan(v2mag),[0 1],[1 NaN]);
 
 % these are within forward cone, so they're ok
@@ -63,6 +110,9 @@ okAngles=cosV12>cosMax;
 % these are not in the forward cone but one or both of the vectors is shorter 
 % than the nth percentile of all vectors, so maybe just jitter
 okLength=cosV12<cosMax & (v1mag<lb | v2mag<lb); 
+
+diagnosticTrackLinearity.percentLinksSavedFromBreak = (sum(sum(okLength))/totalAngles)*100;
+
 
 % if either the angle or the length criterion isn't met, then it's a bad
 % link which we will break
