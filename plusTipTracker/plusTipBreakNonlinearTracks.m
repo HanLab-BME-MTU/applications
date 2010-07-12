@@ -94,7 +94,7 @@ diagnosticTrackLinearity.percentAngles135to180 = (sum(sum(angles135to180))/total
 % Note: It is potentially useful to modifiy the max angle to retain some 
 % non-linear tracks depending on data set at hand: See above diagnostic 
 % to help trouble-shoot this parameter
-cosMax=cos(180*pi/180);
+cosMax=cos(45*pi/180);
 
 % lower bound displacement - if smaller than this, may just be jitter
 lb=prctile(vmag(:),3); 
