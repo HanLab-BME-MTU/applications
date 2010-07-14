@@ -1,4 +1,4 @@
-function computeRatioIntensity(nChannels, bandWidth, normalized)
+function ratios = computeRatioIntensity(nChannels, bandWidth, normalized)
 
 % Ask for mask
 [fileName,pathName] = uigetfile({'*.tif'},'Select mask file');
@@ -35,6 +35,6 @@ if normalized
     ratios = bsxfun(@rdivide,ratios,sum(ratios,2));
 end
 
-bar(ratios,'stack');
+figure, bar(ratios,'stack');
 xlabel('Bands (pixel)');
 ylabel('Average intensity');
