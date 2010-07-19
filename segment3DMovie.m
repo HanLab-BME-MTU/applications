@@ -79,7 +79,7 @@ dName = 'masks_channel_'; %Name for mask directories
 
 
 if ~isa(movieData,'MovieData3D')
-    error('The first input argument must be a valid MovieData object!')
+    error('The first input argument must be a valid MovieData object for a 3D movie!')
 end
 
 %Check for existing seg processes
