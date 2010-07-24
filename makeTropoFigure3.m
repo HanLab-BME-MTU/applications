@@ -1,4 +1,4 @@
-function makeTropoFigure4(paths, outputDirectory)
+function makeTropoFigure3(paths, outputDirectory)
 
 % Chosen frame to display in Panel A
 iFrames = [16, 74, 42];
