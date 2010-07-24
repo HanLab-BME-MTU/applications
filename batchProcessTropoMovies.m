@@ -274,14 +274,11 @@ if ~exist(outputDirectory, 'dir')
     mkdir(analysisDirectory, 'figures');
 end
 
-% Save the list of dataPathsFull in the figure in a text file format.
-fid = fopen([outputDirectory filesep 'listFolders.txt'], 'w');
-fprintf(fid, '%s\n%s\n%s\n', dataPathsFull{:});
-fclose(fid);
-
 % Figure 4
-%disp('Make figure 4...');
-%makeTropoFigure4(analysisPaths, outputDirectory);
+disp('Make figure 4...');
+pathForFig4 = {analysisPaths.ActinTM2{3}, analysisPaths.ActinTM4{5}, analysisPaths.ActinTM5{2}};
+makeTropoFigure4(pathForFig4, outputDirectory);
+
 % Figure 5
 %disp('Make figure 5...');
 %makeTropoFigure5(analysisPaths, outputDirectory);
@@ -289,4 +286,4 @@ fclose(fid);
 %disp('Make figure 5bis...');
 %makeTropoFigure5bis(analysisPaths.TM4TM2, outputDirectory);
 % Figure 6 stands for the density map display
-makeTropoFigure6(analysisPathsFull);
+%makeTropoFigure6(analysisPathsFull);
