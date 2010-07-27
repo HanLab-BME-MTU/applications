@@ -3,11 +3,11 @@ function makeTropoFigure3(paths, outputDirectory)
 % Chosen frame to display in Panel A
 iFrames = [16, 74, 42];
 % Size of images in Panel A
-imageSize = [463 496; 567 624; 419 502];
+imageSize = [419 502];
 % Size of the inset in Panel A
-insetSize = [180 180; 180 180; 180 180];
+insetSize = [150 180];
 % Location of the crop in Panel A
-imagePos = [106 142; 1 1; 30 30];
+imagePos = [157 144; 106 49; 30 30];
 % Location of the inset in Panel A
 insetPos = [304,267; 154,161; 233 134];
 
@@ -73,11 +73,11 @@ for iTM = 1:numel(paths)
     protMask = protrusionSamples.averageNormalComponent > val;
     retMask = protrusionSamples.averageNormalComponent < -val;
     
-    yRange = imagePos(iTM,1):imagePos(iTM,1)+imageSize(iTM,1)-1;
-    xRange = imagePos(iTM,2):imagePos(iTM,2)+imageSize(iTM,2)-1;
+    yRange = imagePos(iTM,1):imagePos(iTM,1)+imageSize(1)-1;
+    xRange = imagePos(iTM,2):imagePos(iTM,2)+imageSize(2)-1;
     
-    yRangeInset = insetPos(iTM,1):insetPos(iTM,1)+insetSize(iTM,1)-1;
-    xRangeInset = insetPos(iTM,2):insetPos(iTM,2)+insetSize(iTM,2)-1;
+    yRangeInset = insetPos(iTM,1):insetPos(iTM,1)+insetSize(1)-1;
+    xRangeInset = insetPos(iTM,2):insetPos(iTM,2)+insetSize(2)-1;
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -145,8 +145,8 @@ for iTM = 1:numel(paths)
     line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',6);
     % Draw the inset box
     p = insetPos(iTM, :) - imagePos(iTM, :);
-    line([p(2), p(2) + insetSize(iTM,2), p(2) + insetSize(iTM,2), p(2), p(2)], ...
-        [p(1), p(1), p(1) + insetSize(iTM,1), p(1) + insetSize(iTM,1), p(1)], ...
+    line([p(2), p(2) + insetSize(2), p(2) + insetSize(2), p(2), p(2)], ...
+        [p(1), p(1), p(1) + insetSize(1), p(1) + insetSize(1), p(1)], ...
         'Color', [.3 .3 .3], 'Linewidth', 1);
     fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '3.eps']);
     print(hFig, '-depsc' , '-painters', fileName);

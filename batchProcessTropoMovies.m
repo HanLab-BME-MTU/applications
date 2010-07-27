@@ -274,10 +274,14 @@ if ~exist(outputDirectory, 'dir')
     mkdir(analysisDirectory, 'figures');
 end
 
-% Figure 4
-disp('Make figure 4...');
-pathForFig4 = {analysisPaths.ActinTM2{3}, analysisPaths.ActinTM4{5}, analysisPaths.ActinTM5{2}};
-makeTropoFigure4(pathForFig4, outputDirectory);
+% Figure 3
+% disp('Make figure 3...');
+% pathForFig3 = {analysisPaths.ActinTM2{3}, analysisPaths.ActinTM4{5}, analysisPaths.ActinTM5{2}};
+% makeTropoFigure3(pathForFig3, outputDirectory);
+
+% Figure 4 stands for the density map display
+% disp('Make figure 4...');
+makeTropoFigure4(analysisPathsFull);
 
 % Figure 5
 %disp('Make figure 5...');
@@ -285,5 +289,3 @@ makeTropoFigure4(pathForFig4, outputDirectory);
 % Figure 5bis
 %disp('Make figure 5bis...');
 %makeTropoFigure5bis(analysisPaths.TM4TM2, outputDirectory);
-% Figure 6 stands for the density map display
-%makeTropoFigure6(analysisPathsFull);
