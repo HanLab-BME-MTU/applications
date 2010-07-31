@@ -146,11 +146,11 @@ for iFrame = 1:nFrames-1
         densityScores(iChannel,iFrame).protrusionPersistence = ...
             protrusionSamples.statePersistence(sectors,iFrame);
     
-        % calculate average density score
+        % calculate average density score: density = 1 / (pi * (mean(d)^2)
         densityScores(iChannel,iFrame).averageDensity = ...
-            cellfun(@mean, dist(validDist));
+            cellfun(@(x) 1 / (pi * mean(x)^2), dist(validDist));
    
-        % calculate min/max density score
+        % calculate min/max density score (DEPRECATED)
         densityScores(iChannel,iFrame).minMaxDensity = ...
             cellfun(@(x) (max(x) - min(x)) / (max(x) + min(x)), dist(validDist));    
     end

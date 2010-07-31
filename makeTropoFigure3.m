@@ -1,5 +1,8 @@
 function makeTropoFigure3(paths, outputDirectory)
 
+nBands = 4;
+distIntervals = [0 .5 1 2 5 10 15] * 1000;
+
 % Chosen frame to display in Panel A
 iFrames = [16, 74, 42];
 % Size of images in Panel A
@@ -11,8 +14,8 @@ imagePos = [157 144; 106 49; 30 30];
 % Location of the inset in Panel A
 insetPos = [304,267; 154,161; 233 134];
 
-dataB = cell(3,2);
-dataC = cell(3,1);
+dataC = cell(3,2);
+dataD = cell(3,nBands);
 
 maxDist = 5000;
 
@@ -85,11 +88,11 @@ for iTM = 1:numel(paths)
     %                                                                 %
     %-----------------------------------------------------------------%
     
-    % TM (Panel A, column 1)
+    % TM (Panel A, row 1)
     
     % Read image
     fileName = fullfile(image1Path, image1Files(iFrames(iTM)).name);
-    I = imread(fileName);
+    I = double(imread(fileName));
     % Crop image
     I1 = I(yRange,xRange);
     % Save
@@ -100,11 +103,11 @@ for iTM = 1:numel(paths)
     % Close the figure
     close(hFig);
     
-    % Actin (Panel A, column 2)
+    % Actin (Panel A, row 2)
     
     % Read image
     fileName = fullfile(image2Path, image2Files(iFrames(iTM)).name);
-    I = imread(fileName);
+    I = double(imread(fileName));
     % Crop image
     I2 = I(yRange,xRange);
     % Save
@@ -115,7 +118,26 @@ for iTM = 1:numel(paths)
     % Close the figure
     close(hFig);
 
-    % Mask + TM speckle + Actin speckle + inset frame (Panel A, column 3)
+    % Merge (Panel A, row 3)
+    
+    I1 = (I1 - min(I1(:))) / max(I1(:));
+    I2 = (I2 - min(I2(:))) / max(I2(:));
+    C = cat(3,I2, I1, zeros(size(I1)));
+    
+    hFig = figure('Visible','off');
+    imshow(C);
+    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '3.eps']);
+    print(hFig, '-depsc' , '-painters', fileName);
+    % Close the figure
+    close(hFig);
+    
+    %-----------------------------------------------------------------%
+    %                                                                 %
+    %                          FIGURE 3 PANEL B                       %
+    %                                                                 %
+    %-----------------------------------------------------------------%
+
+    % Mask + TM speckle + Actin speckle + inset frame (Panel B, row 1)
     
     % Read mask
     fileName = fullfile(maskPath, maskFiles(iFrames(iTM)).name);
@@ -147,13 +169,24 @@ for iTM = 1:numel(paths)
     p = insetPos(iTM, :) - imagePos(iTM, :);
     line([p(2), p(2) + insetSize(2), p(2) + insetSize(2), p(2), p(2)], ...
         [p(1), p(1), p(1) + insetSize(1), p(1) + insetSize(1), p(1)], ...
-        'Color', [.3 .3 .3], 'Linewidth', 1);
-    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '3.eps']);
+        'Color', 'y', 'Linewidth', 2);
+    fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '1.eps']);
     print(hFig, '-depsc' , '-painters', fileName);
     % Close the figure
     close(hFig);
        
-    % Inset of Fig4 A.3 (Panel A, column 4)
+    % Inset of Fig3 B.3 (Panel B, row 2)
+    
+    % Crop image
+    Cinset = C(yRangeInset - yRange(1) + 1, xRangeInset - xRange(1) + 1);
+    hFig = figure('Visible', 'off');
+    imshow(Cinset,[]);
+    fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '2.eps']);
+    print(hFig, '-depsc' , '-painters', fileName);
+    % Close the figure
+    close(hFig);
+    
+    % Inset of Fig3 B.4 (Panel B, row 3)
 
     % Crop mask
     BWinset = BW(yRangeInset, xRangeInset);
@@ -164,35 +197,27 @@ for iTM = 1:numel(paths)
     
     % Save
     hFig = figure('Visible', 'off');
+    % Set a black frame on the image
+    BWinset(:,[1,end]) = false;
+    BWinset([1,end],:) = false;
     imshow(BWinset,[]); hold on;
     [y x] = ind2sub(size(BWinset), idxLoc1);    
     line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',6);
     % Drw Actin speckles
     [y x] = ind2sub(size(BWinset), idxLoc2);
     line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',6);
-    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '4.eps']);
+    fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '3.eps']);
     print(hFig, '-depsc' , '-painters', fileName);
     % Close the figure
     close(hFig);
     
     %-----------------------------------------------------------%
     %                                                           %
-    %                    DATA FOR PANEL B & C                   %
+    %                    DATA FOR PANEL C                       %
     %                                                           %
     %-----------------------------------------------------------%
 
-    % Read the MPM
-    load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));    
-    nrows = size(MPM,1); %#ok<NODEF>   
-    trackMask = MPM(:,1:2:end) ~= 0;
-    accu = zeros(nrows,1);
-    inBand = false(nrows,1);    
-    trackID = (1:nrows)';
-    
-    
-    for iFrame = 1:nFrames-1
-        %% Data For Panel B
-        
+    for iFrame = 1:nFrames-1    
         % Load label
         L = imread(fullfile(labelPath, labelFiles(iFrame).name));
         
@@ -210,9 +235,9 @@ for iTM = 1:numel(paths)
         distToEdge = distToEdge * pixelSize;
     
         % Restrinct locMax to the first maxDist nanometer
-        validDist = distToEdge > maxDist;
-        locMax1(validDist) = 0;
-        locMax2(validDist) = 0;
+        outsideBand = distToEdge > maxDist;
+        locMax1(outsideBand) = 0;
+        locMax2(outsideBand) = 0;
                 
         Lprot = ismember(L, find(protMask(:, iFrame) == 1));
         
@@ -220,7 +245,7 @@ for iTM = 1:numel(paths)
         idxS2 = locMax2 ~= 0 & Lprot;
 
         if any(idxS1(:)) && any(idxS2(:))
-            dataB{iTM,1} = cat(1, dataB{iTM,1}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
+            dataC{iTM,1} = cat(1, dataC{iTM,1}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
         end
         
         Lret = ismember(L, find(retMask(:, iFrame) == 1));
@@ -229,10 +254,47 @@ for iTM = 1:numel(paths)
         idxS2 = locMax2 ~= 0 & Lret;
         
         if any(idxS1(:)) && any(idxS2(:))
-            dataB{iTM,2} = cat(1, dataB{iTM,2}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
+            dataC{iTM,2} = cat(1, dataC{iTM,2}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
         end
-        
-        %% Data for panel C
+    end
+    
+    %-----------------------------------------------------------%
+    %                                                           %
+    %                    DATA FOR PANEL D                       %
+    %                                                           %
+    %-----------------------------------------------------------%
+
+    % Read the MPM
+    load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));    
+    nrows = size(MPM,1); %#ok<NODEF>
+    trackID = (1:nrows)';
+    trackMask = MPM(:,1:2:end) ~= 0;
+    
+    % remove any track that begins at 1st frame
+    startAtFirstFrame = trackMask(:,1);
+    trackMask(:,1) = false;
+    for iFrame = 2:nFrames-1
+        idxDead = trackID(~trackMask(:,iFrame));
+        trackMask(:,iFrame) = trackMask(:,iFrame) & ~startAtFirstFrame;
+        startAtFirstFrame(idxDead) = false;
+    end
+    % remove any track that ends at last frame
+    endAtLastFrame = trackMask(:,end);
+    trackMask(:,end) = false;
+    for iFrame = nFrames-1:-1:1
+        idxDead = trackID(~trackMask(:,iFrame));
+        trackMask(:,iFrame) = trackMask(:,iFrame) & ~endAtLastFrame;
+        endAtLastFrame(idxDead) = false;
+    end
+    
+    accu = zeros(nrows,1);
+    inBand = false(nrows,nBands);        
+    
+    for iFrame = 1:nFrames-1
+        % Read the distance transform
+        fileName = fullfile(bwdistPath, bwdistFiles(iFrame).name);
+        load(fileName);
+        distToEdge = distToEdge * pixelSize;
         
         idxLive = trackID(trackMask(:,iFrame));
         idxDead = trackID(~trackMask(:,iFrame));
@@ -240,24 +302,32 @@ for iTM = 1:numel(paths)
         % Accumulate lifetime
         accu(idxLive) = accu(idxLive) + 1;
             
-        % Check whether idxLive points are within the maxDist band. A track
-        % is considered to be within the band (inBand == true) if it has
-        % been within the band at least during 1 frame.
-        idxLivePoints = sub2ind(size(L), MPM(idxLive,2*iFrame-1), MPM(idxLive,2*iFrame));
-        inBand(idxLive) = inBand(idxLive) | locMax1(idxLivePoints) ~= 0;
-        
-        % Keep
-        dataC{iTM} = vertcat(dataC{iTM}, accu(~trackMask(:,iFrame) & accu > 0 & inBand));
+        for iBand = 1:nBands
+            % Check whether idxLive points are within the current band. A track
+            % is considered to be within the band (inBand == true) if it has
+            % been within the band at least during 1 frame.
+            idxLivePoints = sub2ind(size(distToEdge), MPM(idxLive,2*iFrame-1), MPM(idxLive,2*iFrame));
+            
+            inBand(idxLive,iBand) = inBand(idxLive,iBand) | ...
+                (distToEdge(idxLivePoints) >= distIntervals(iBand) & ...
+                distToEdge(idxLivePoints) < distIntervals(iBand+1));
+            
+            % Keep
+            dataD{iTM,iBand} = vertcat(dataD{iTM,iBand},...
+                accu(~trackMask(:,iFrame) & accu > 1 & inBand(:,iBand)));
+            
+            % Reset
+            inBand(idxDead,iBand) = false;
+        end
         
         % Reset
         accu(idxDead) = 0;
-        inBand(idxDead) = false;
     end    
 end
  
 %-----------------------------------------------------------------%
 %                                                                 %
-%                          FIGURE 3 PANEL B                       %
+%                          FIGURE 3 PANEL C                       %
 %                                                                 %
 %-----------------------------------------------------------------% 
 
@@ -273,8 +343,8 @@ colors = [
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
 set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-mu = cellfun(@mean, dataB);
-sigma = cellfun(@std, dataB);
+mu = cellfun(@mean, dataC);
+sigma = cellfun(@std, dataC);
 h = bar(gca, mu', 'group'); hold on;
 
 XTicks = zeros(size(mu));
@@ -299,49 +369,58 @@ for i=1:numel(hC)
     set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
 end
 
-fileName = [outputDirectory filesep 'Fig3_B.eps'];
+fileName = [outputDirectory filesep 'Fig3_C.eps'];
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);
 close(hFig);
    
 %-----------------------------------------------------------------%
 %                                                                 %
-%                          FIGURE 3 PANEL C                       %
+%                          FIGURE 3 PANEL D                       %
 %                                                                 %
 %-----------------------------------------------------------------%
 
-lifeTimeRange = 1:10;
-
-hFig = figure('Visible', 'off');
-set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-n = cell2mat(arrayfun(@(i) hist(dataC{i}, lifeTimeRange), (1:3)', 'UniformOutput', false));
-n = bsxfun(@rdivide,n,sum(n,2));
-h = bar(lifeTimeRange, n','group');
-
-set(gca,'XLim',[lifeTimeRange(1)-1, lifeTimeRange(end)+1]);
-
-for i=1:numel(h)
-    hC = get(h(i), 'Children');
-    set(hC,'FaceColor', colors(i,:));
+for iBand = 1:nBands
+    
+    lifeTimeRange = 2:10;
+    
+    hFig = figure('Visible', 'off');
+    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
+    set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
+    n = cell2mat(arrayfun(@(iTM) hist(dataD{iTM,iBand}, lifeTimeRange), (1:3)', 'UniformOutput', false));
+    n = bsxfun(@rdivide,n,sum(n,2));
+    h = bar(lifeTimeRange, n','group');
+    
+    set(gca,'XLim',[lifeTimeRange(1)-1, lifeTimeRange(end)+1]);
+    
+    for i=1:numel(h)
+        hC = get(h(i), 'Children');
+        set(hC,'FaceColor', colors(i,:));
+    end
+    
+    set(gca,'XTickLabel',[]);
+    arrayfun(@(x) text(x, -.8/800,[num2str((x-1)*timeInterval) '-' num2str(x*timeInterval) 's'],...
+        'VerticalAlignment', 'Top', 'HorizontalAlignment', 'Right', 'Rotation', 45,...
+        'FontSize', 12), lifeTimeRange(1:end-1));
+    text(lifeTimeRange(end), -.8/800, ['\geq' num2str(lifeTimeRange(end-1) * timeInterval) 's'],...
+        'VerticalAlignment', 'Top', 'HorizontalAlignment', 'Right', 'Rotation', 45,...
+        'FontSize', 12);
+    
+    ylabel('%');
+    
+    title([num2str(distIntervals(iBand)/1000) '-' num2str(distIntervals(iBand+1)/1000) char(181) 'm']);
+    
+    h = legend({'TM2', 'TM4', 'TM5NM1'});
+    hC = get(h,'Children');
+    hC = hC(1:2:end);
+    for i=1:numel(hC)
+        hCC = get(hC(i),'Children');
+        set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
+    end
+    legend('boxoff');
+    
+    fileName = [outputDirectory filesep 'Fig3_D' num2str(iBand) '.eps'];
+    print(hFig, '-depsc', fileName);
+    fixEpsFile(fileName);
+    close(hFig);
 end
-
-xTickLabels = arrayfun(@int2str,lifeTimeRange,'UniformOutput',false);
-xTickLabels{end} = [xTickLabels{end} '+'];
-set(gca,'XTickLabel',xTickLabels);
-
-xlabel('# frame');
-ylabel('%');
-h = legend({'TM2', 'TM4', 'TM5NM1'});
-hC = get(h,'Children');
-hC = hC(1:2:end);
-for i=1:numel(hC)
-    hCC = get(hC(i),'Children');
-    set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
-end
-legend('boxoff');
-
-fileName = [outputDirectory filesep 'Fig3_C.eps'];
-print(hFig, '-depsc', fileName);
-fixEpsFile(fileName);
-close(hFig);

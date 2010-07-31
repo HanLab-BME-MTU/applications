@@ -1,5 +1,15 @@
 function makeTropoFigure5(paths, outputDirectory)
 
+colors = [
+   0.983333333333333   1.000000000000000   0.800000000000000;
+   0.360000000000000   0.630000000000000   0.900000000000000;
+   0.060000000000000   0.330000000000000   0.600000000000000;
+   0.700000000000000   0.245000000000000   0.245000000000000;
+   0.550000000000000                   0                   0;
+   0.250000000000000                   0                   0; ];
+
+names = {'TM2','TM4','TM5NM1'};
+
 for iTM = 1:3
     % Load Movie Data
     fileName = [paths{iTM} filesep 'movieData.mat'];
@@ -8,146 +18,87 @@ for iTM = 1:3
     end
     load(fileName);
 
-    %Verify that the labeling has been performed
-    if ~checkMovieLabels(movieData)
-        error('Must label movie before computing figure 3.');
-    end
-    
-    % Get the names of the 2 FSM subfolders
-    names = cellfun(@(x) x(max(regexp(x,filesep))+1:end),...
-        movieData.fsmDirectory, 'UniformOutput', false);
-    
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
     timeInterval = movieData.timeInterval_s;
     
-    % Read the list of label files
-    labelPath = movieData.labels.directory;
-    labelFiles = dir([labelPath filesep '*.tif']);
-
-    % Read the list of TMs speckles (channel 1)
-    s1Path = [movieData.fsmDirectory{1} filesep 'tack' filesep 'locMax'];
-    s1Files = dir([s1Path filesep '*.mat']);
-
-    % Read the list of Actin speckles (channel 2)
-    s2Path = [movieData.fsmDirectory{2} filesep 'tack' filesep 'locMax'];
-    s2Files = dir([s2Path filesep '*.mat']);
-
-    % Read the list of distance transforms
-    bwdistPath = movieData.bwdist.directory;
-    bwdistFiles = dir([bwdistPath filesep '*.mat']);
-
-    % Load activity map
-    fileName = [movieData.protrusion.directory filesep ...
-        movieData.protrusion.samples.fileName];
-    if ~exist(fileName, 'file')
-        error(['Unable to locate ' fileName]);
-    end
-    load(fileName);
-    % Convert activity maps to nm/s
-    protrusionSamples.averageMagnitude = ...
-        protrusionSamples.averageMagnitude * pixelSize / timeInterval;
-    protrusionSamples.averageNormalComponent = ...
-        protrusionSamples.averageNormalComponent * pixelSize / timeInterval;
+    % Read the MPM
+    load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));
     
-    % Check whether the speed classification has been performed
-    if ~isfield(protrusionSamples,'stateNames') || ...
-            ~isfield(protrusionSamples,'states') || ...
-            ~isfield(protrusionSamples,'statePersistence')
-        error('Classification of edge velocity has not been performed.');
-    end
+    % Correct and use this function (return the 2 speckles classes)
+    track_length_plotter(MPM, outputDirectory);    
     
-    %-----------------------------------------------------------------%
-    %                                                                 %
-    %                          FIGURE 5 PANEL A                       %
-    %                                                                 %
-    %-----------------------------------------------------------------%
-    
-    states = protrusionSamples.states;
-    statePersistence = protrusionSamples.statePersistence;
-    
-    prFrames = cell(1, max(statePersistence(states == 2)));
-    reFrames = cell(1, max(statePersistence(states == 3)));
-    
-    for iFrame = 2:nFrames-2
-        % Load label
-        L = imread([labelPath filesep labelFiles(iFrame).name]);
-        
-        % Load TM speckles (channel 1)
-        load([s1Path filesep s1Files(iFrame).name]);
-        locMax1 = locMax;
-        
-        % Read the distance transform
-        fileName = [bwdistPath filesep bwdistFiles(iFrame).name];
-        load(fileName);
-        distToEdge = distToEdge * (pixelSize / 1000); % in microns        
-
-        % iterate over windows, discarding the 2 first and 2 last.
-        for iWin = 3:max(L(:))-2
-            ind = (locMax1 .* (L == iWin)) ~= 0;
-            
-            d = distToEdge(ind);
-            
-            p = statePersistence(iWin,iFrame);
-            
-            switch states(iWin,iFrame)
-                case 2
-                    prFrames{p} = vertcat(prFrames{p}, d);
-                case 3
-                    reFrames{p} = vertcat(reFrames{p}, d);
-            end
-        end
-    end
-    
-    hFig = figure('Visible', 'off');
-    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-    set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-
-    X = 1:numel(prFrames);
-    Y = cellfun(@mean, prFrames);
-    E = cellfun(@std, prFrames);
-    
-    errorbar(X(:),Y(:),E(:),'k');
-
-    set(gca, 'XTick', 1:5:nFrames);
-    
-    set(gca, 'XTickLabel', arrayfun(@(x) num2str(x, '%.f'), (0:5:nFrames-1)*timeInterval, ...
-        'UniformOutput', false));
-    
-    xlabel('Time (s)');
-    ylabel([char(181) 'm']);
-
-    fileName = [outputDirectory filesep 'Fig5_A' num2str(iTM) '.eps'];
-    print(hFig, '-depsc', fileName);
-    fixEpsFile(fileName);
-    close(hFig);
-    
-    %-----------------------------------------------------------------%
-    %                                                                 %
-    %                          FIGURE 5 PANEL B                       %
-    %                                                                 %
-    %-----------------------------------------------------------------%
-
-    hFig = figure('Visible', 'off');
-    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-    set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-
-    X = 1:numel(reFrames);
-    Y = cellfun(@mean, reFrames);
-    E = cellfun(@std, reFrames);
-    
-    errorbar(X(:),Y(:),E(:),'k');
-    
-    set(gca, 'XTick', 1:5:nFrames);
-    
-    set(gca, 'XTickLabel', arrayfun(@(x) num2str(x, '%.f'), (0:5:nFrames-1)*timeInterval, ...
-        'UniformOutput', false));
-    
-    xlabel('Time (s)');
-    ylabel([char(181) 'm']);
-
-    fileName = [outputDirectory filesep 'Fig5_B' num2str(iTM) '.eps'];
-    print(hFig, '-depsc', fileName);
-    fixEpsFile(fileName);
-    close(hFig);    
+%     nrows = size(MPM,1); %#ok<NODEF>
+%     trackID = (1:nrows)';
+%     trackMask = MPM(:,1:2:end) ~= 0;
+%     
+%     % Remove any track that begins at 1st frame
+%     startAtFirstFrame = trackMask(:,1);
+%     trackMask(:,1) = false;
+%     for iFrame = 2:nFrames
+%         idxDead = trackID(~trackMask(:,iFrame));
+%         trackMask(:,iFrame) = trackMask(:,iFrame) & ~startAtFirstFrame;
+%         startAtFirstFrame(idxDead) = false;
+%     end
+%     % Remove any track that ends at last frame
+%     endAtLastFrame = trackMask(:,end);
+%     trackMask(:,end) = false;
+%     for iFrame = nFrames-1:-1:1
+%         idxDead = trackID(~trackMask(:,iFrame));
+%         trackMask(:,iFrame) = trackMask(:,iFrame) & ~endAtLastFrame;
+%         endAtLastFrame(idxDead) = false;
+%     end
+%     
+%     % Compute pairwise distance
+%     D = sqrt((MPM(:,3:2:end-3)-MPM(:,5:2:end-1)).^2 + ...
+%         (MPM(:,4:2:end-2)-MPM(:,6:2:end)).^2);
+% 
+%     % Set pairwise distance of 1 point long track to 0
+%     D(trackMask(:, 2:end-1) & ~trackMask(:, 3:end)) = 0;
+%     D = [zeros(nrows,1) D zeros(nrows,1)];
+% 
+%     D(~trackMask) = 0;
+%     
+%     accuLT = zeros(nrows,1);
+%     accuV = zeros(nrows,1);
+%     
+%     LT = [];
+%     V = []; 
+%     
+%     for iFrame = 1:nFrames
+%         idxLive = trackID(trackMask(:,iFrame));
+%         idxDead = trackID(~trackMask(:,iFrame));
+%         
+%         % Accumulate lifetime
+%         accuLT(idxLive) = accuLT(idxLive) + 1;
+%         
+%         % Accumulate velocity
+%         accuV(idxLive) = accuV(idxLive) + D(idxLive,iFrame);
+%         
+%         % Gather lifetime and velocity
+%         idx = trackID(~trackMask(:,iFrame) & accuLT > 1);
+%         
+%         LT = vertcat(LT, (accuLT(idx) - 1) * timeInterval);
+%         V = vertcat(V, (accuV(idx) ./ (accuLT(idx) - 1)) * pixelSize * 60 / timeInterval);
+%         
+%         % Reset
+%         accuLT(idxDead) = 0;
+%         accuV(idxDead) = 0;
+%     end
+%     
+%     hFig = figure('Visible', 'off');
+%     set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
+%     set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
+% 
+%     scatter(V, LT, 12, colors(2,:), 'Marker', '.');
+%     legend(names{iTM}); legend('boxoff');
+%     
+%     xlabel('Average Edge Velocity (nm/min)');
+%     ylabel('Lifetime (s)');
+% 
+%     fileName = [outputDirectory filesep 'Fig5_A' num2str(iTM) '.eps'];
+%     print(hFig, '-depsc', fileName);
+%     fixEpsFile(fileName);
+%     close(hFig);
 end
+

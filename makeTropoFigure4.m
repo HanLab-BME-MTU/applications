@@ -1,177 +1,249 @@
-function makeTropoFigure6(paths)
+function makeTropoFigure4(paths, outputDirectory)
 
-paths = paths([3 9 13 15]);
+colors = [
+   0.983333333333333   1.000000000000000   0.800000000000000;
+   0.360000000000000   0.630000000000000   0.900000000000000;
+   0.060000000000000   0.330000000000000   0.600000000000000;
+   0.700000000000000   0.245000000000000   0.245000000000000;
+   0.550000000000000                   0                   0;
+   0.250000000000000                   0                   0; ];
 
 nMovies = numel(paths);
 
-legendNames = {'TM2','TM4','TM5NM1', 'TM5NM1'};
+% Panel A
+dataA1 = cell(nMovies,1);
+dataA2 = cell(nMovies,1);
 
-averageDensityTotal = cell(1, 3);
+% Panel B
+dataB = cell(nMovies,2);
 
-for iMovie = 1:3
+for iMovie = 1:nMovies
     % Load Movie data
     load(fullfile(paths{iMovie}, 'movieData.mat'));
     
+    pixelSize = movieData.pixelSize_nm;
+    %timeInterval = movieData.timeInterval_s;
+
     % Load density scores
     load(fullfile(movieData.density.directory, movieData.density.channelDirectory{1}, 'densityScores.mat'));
     
-    distFromEdge = vertcat(densityScores(:).distFromEdge) * movieData.pixelSize_nm; %#ok<NODEF>
-    averageDensity = vertcat(densityScores(:).averageDensity) * movieData.pixelSize_nm;
+    distFromEdge = vertcat(densityScores(:).distFromEdge) * pixelSize; %#ok<NODEF>
+    averageDensity = vertcat(densityScores(:).averageDensity) * pixelSize;
     protrusionState = vertcat(densityScores(:).protrusionState);
-    %minMaxDensity = vertcat(densityScores(:).minMaxDensity) * movieData.pixelSize_nm;
+    protrusionPersistence = vertcat(densityScores(:).protrusionPersistence);
+    %protrusionSpeed = abs(vertcat(densityScores(:).protrusionSpeed) * pixelSize / timeInterval);
     
-    maxDistFromEdge = min(15000,max(distFromEdge));
+    %
+    % Data for Panel A1
+    %
     
+    maxDistFromEdge = min(15000,max(distFromEdge));    
     dist = 0:500:maxDistFromEdge;
     
-    averageDensityTotal{iMovie} = zeros(numel(dist)-1,1);
+    dataA1{iMovie} = zeros(numel(dist)-1,1);
+
+    for i = 1:numel(dist)-1
+        dataA1{iMovie}(i) = ...
+            mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 2));
+    end
+    
+    %
+    % Data for Panel A2
+    %
+
+    dataA2{iMovie} = zeros(numel(dist)-1,1);
     
     for i = 1:numel(dist)-1
-        averageDensityTotal{iMovie}(i) = mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 3));
+        dataA2{iMovie}(i) = ...
+            mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 3));
     end
+    
+    %
+    % Data for Panel B
+    %
+    
+%     maxProtPersistence = max(protrusionPersistence(protrusionState == 2));
+%     maxRetPersistence = max(protrusionPersistence(protrusionState == 3));
+%     
+%     protPersistence = 1:maxProtPersistence;
+%     retPersistence = 1:maxRetPersistence;
+%     
+%     dataA1Lifetime{iMovie} = zeros(numel(protPersistence), 1);
+%     
+%     for i = 1:numel(protPersistence)
+%         dataA1Lifetime{iMovie}(i) = ...
+%             mean(averageDensity(distFromEdge < 2000 & protrusionPersistence == protPersistence(i)));
+%     end
+
+    dataB{iMovie,1} = ...
+        averageDensity(distFromEdge < 2000 & protrusionState == 2 & protrusionPersistence == 1);
+
+    dataB{iMovie,2} = ...
+        averageDensity(distFromEdge < 2000 & protrusionState == 3 & protrusionPersistence == 1);
+    
+    %
+    % Data for Panel B2
+    %
+    
+%     dataA2Lifetime{iMovie} = zeros(numel(retPersistence), 1);
+%     
+%     for i = 1:numel(retPersistence)
+%         dataA2Lifetime{iMovie}(i) = ...
+%             mean(averageDensity(distFromEdge < 2000 & protrusionPersistence == retPersistence(i)));
+%     end
+    
 end
 
-maxLength = max(cellfun(@numel, averageDensityTotal));
+%
+% Panel A1
+%
 
-for iMovie = 1:3
-    averageDensityTotal{iMovie}(maxLength+1) = 0;
+% convert dist in microns:
+dist = dist / 1000;
+
+hFig = figure('Visible', 'off');
+set(gca,'XTick',dist(1:4:end-1));
+set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
+set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
+
+averageDensityTotal = horzcat(dataA1{:});
+
+% plot x axis in um
+h = line(dist(1:end-1), averageDensityTotal,'LineWidth',2);
+
+for i=1:numel(h)
+    set(h(i),'Color', colors(i,:));
 end
 
-averageDensityTotal = horzcat(averageDensityTotal{:});
+h = legend({'TM2', 'TM4', 'TM5'}); legend('boxoff');
+hC = get(h,'Children');
+hC = hC(1:2:end);
 
-averageDensityTotal(averageDensityTotal == 0) = NaN;
+for i=1:numel(hC)
+    hCC = get(hC(i),'Children');
+    set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
+end
 
-plot(dist, averageDensityTotal);
+xlabel(['Distance away from cell edge during protrusion (' char(181) 'm)']);
+ylabel('Speckle Density (nm^{-2})');
 
-legend(legendNames);
-xlabel('Distance away from cell edge during retraction (nm)');
-ylabel('Average neightbor distance (nm)');
+fileName = [outputDirectory filesep 'Fig4_A1.eps'];
+print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
+close(hFig);
 
-% nMovies = numel(paths);
+%
+% Panel A2
+%
+
+hFig = figure('Visible', 'off');
+set(gca,'XTick',dist(1:4:end-1));
+set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
+set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
+
+averageDensityTotal = horzcat(dataA2{:});
+
+% plot x axis in um
+h = line(dist(1:end-1), averageDensityTotal,'LineWidth',2);
+
+for i=1:numel(h)
+    set(h(i),'Color', colors(i,:));
+end
+
+h = legend({'TM2', 'TM4', 'TM5'}); legend('boxoff');
+hC = get(h,'Children');
+hC = hC(1:2:end);
+
+for i=1:numel(hC)
+    hCC = get(hC(i),'Children');
+    set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
+end
+
+xlabel(['Distance away from cell edge during retraction (' char(181) 'm)']);
+ylabel('Speckle Density (nm^{-2})');
+
+fileName = [outputDirectory filesep 'Fig4_A2.eps'];
+print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
+close(hFig);
+
+%
+% Panel B
+%
+
+hFig = figure('Visible', 'off');
+set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
+set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
+
+mu = cellfun(@mean, dataB);
+sigma = cellfun(@std, dataB);
+h = bar(gca, mu', 'group'); hold on;
+
+XTicks = zeros(size(mu));
+
+for i=1:numel(h)
+    hC = get(h(i), 'Children');
+    set(hC,'FaceColor', colors(i,:));
+    XData = get(hC, 'XData');
+    XTicks(i,1:2) = .5 * (XData(1,1:2) + XData(3,1:2));
+end
+
+errorbar(XTicks(:),mu(:),sigma(:),'xk'); hold off;
+
+set(gca,'XTickLabel',{'Protrusion', 'Retraction'})
+ylabel('D_0 (nm^{-2})');
+
+h = legend({'TM2', 'TM4', 'TM5NM1'}); legend('boxoff');
+hC = get(h,'Children');
+hC = hC(1:2:end);
+for i=1:numel(hC)
+    hCC = get(hC(i),'Children');
+    set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
+end
+
+fileName = [outputDirectory filesep 'Fig4_B.eps'];
+print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
+close(hFig);
+
+% %
+% % Panel B2
+% %
 % 
-% scrsz = get(0,'ScreenSize');
-% h = figure('Position',scrsz);
-
-% mapNames = {'averageDensityMap*.mat', 'minMaxDensityMap*.mat'};
-% nMaps = numel(mapNames);
-% movieNames = {'averageDensityMapMovie.mov', 'minMaxDensityMapMovie.mov'};
-% titles = {'Average Speckle Distance', 'Min/Max Speckle Distance'};
+% hFig = figure('Visible', 'off');
+% set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
+% set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
 % 
-% for iMovie = 1:nMovies
-%     % Load movieData
-%     load(fullfile(paths{iMovie}, 'movieData.mat'));
-%     
-%     if ~checkMovieDensity(movieData)
-%         disp('Density needs to be computed!');
-%         continue;
-%     end
-%     
-%     nFrames = movieData.labels.nFrames;
-%     nChannels = numel(movieData.density.channelDirectory);
-%     imSize = movieData.imSize';
-%     
-%     imageRange = [1 movieData.imSize(1); 1 movieData.imSize(2)];
-%     textDeltaCoord = min(diff(imageRange,[],2)) / 20;
-%         
-%     % Get image file list
-%     imagePaths = cellfun(@(x) fullfile(x, 'crop'), movieData.fsmDirectory, 'UniformOutput' ,false);
-%     imageFiles = cellfun(@(x) dir([x filesep '*.tif']), imagePaths, 'UniformOutput', false);
+% % append with zero
+% maxLength = max(cellfun(@numel, dataA2Lifetime));
+% dataA2Lifetime = cellfun(@(x)...
+%     padarray(x, maxLength - numel(x), 0, 'post'), ...
+%     dataA2Lifetime, 'UniformOutput', false);
 % 
-%     % Get speckle file list
-%     specklePaths = cellfun(@(x) fullfile(x, 'tack', 'locMax'), movieData.fsmDirectory, 'UniformOutput', false);
-%     speckleFiles = cellfun(@(x) dir([x filesep '*.mat']), specklePaths, 'UniformOutput', false);
-%     
-%     % Get map file location
-%     mapPaths = cellfun(@(x) fullfile(movieData.density.directory, x), movieData.density.channelDirectory, 'UniformOutput', false);
-%     
-%     for iMap = 1:nMaps
-%         
-%         mapFiles = cellfun(@(x) dir([x filesep mapNames{iMap}]), mapPaths, 'UniformOutput', false);
-%         
-%         % Get the min and max value of the every channel
-%         minValue = +inf;
-%         maxValue = -inf;
-%         
-%         for iFrame = 1:nFrames
-%             for iChannel = 1:nChannels
-%                 map = load(fullfile(mapPaths{iChannel}, mapFiles{iChannel}(iFrame).name));
-%                 s = fieldnames(map);
-%                 map = map.(s{1});
-%                 
-%                 minValue = min(minValue, min(nonzeros(map(:))));
-%                 maxValue = max(maxValue, max(nonzeros(map(:))));
-%             end
-%         end
-%         
-%         clf;
-%         
-%         MakeQTMovie('start',fullfile(movieData.density.directory, movieNames{iMap}));
-%         
-%         colorMap = colormap('jet');
-%         set(h,'Colormap',colormap('gray'));
-%             
-%         for iFrame = 1:nFrames
-%             for iChannel = 1:nChannels
-%                 subplot(1,4, 2*iChannel - 1);
-%                                
-%                 ima = imread(fullfile(imagePaths{iChannel}, imageFiles{iChannel}(iFrame).name));
-%                 
-%                 % Display image
-%                 imagesc(ima),axis image,axis off;
-%                 
-%                 hold on;
-%                 
-%                 % Display speckles
-%                 load(fullfile(specklePaths{iChannel}, speckleFiles{iChannel}(iFrame).name));
-%                 ind = find(locMax ~= 0);
-%                 nPoints = numel(ind);
-%                 [Y X] = ind2sub(size(locMax), ind);
-%                 plot(X,Y,'r.');
-%                 
-%                 % Display Time count
-%                 text(imageRange(1,1)+textDeltaCoord,imageRange(2,1)+...
-%                     textDeltaCoord,num2str(iFrame),'Color','white');
-%                 text(imageRange(2,2)-2*textDeltaCoord,imageRange(2,1)+...
-%                     textDeltaCoord,movieData.density.channelDirectory{iChannel},...
-%                     'Color','white');
-%                 
-%                 % Display speckle count
-%                 text(imageRange(1,1)+textDeltaCoord,imageRange(1,2)-...
-%                     textDeltaCoord,['Speckle count = ' num2str(nPoints)],...
-%                     'Color','white');
-%                 
-%                 subplot(1,4,2*iChannel);
-%                 
-%                 map = load(fullfile(mapPaths{iChannel}, mapFiles{iChannel}(iFrame).name));
-%                 s = fieldnames(map);
-%                 map = map.(s{1});
-%                 
-%                 map = (map - minValue) / (maxValue - minValue);
-%                 indexedIma = gray2ind(map,size(colorMap,1)) + 1;
-%                 coloredIma = zeros([imSize(1) imSize(2),3]);
-%                 coloredIma(:,:,1) = reshape(colorMap(indexedIma(:),1), imSize);
-%                 coloredIma(:,:,2) = reshape(colorMap(indexedIma(:),2), imSize);
-%                 coloredIma(:,:,3) = reshape(colorMap(indexedIma(:),3), imSize);
-%                 
-%                 imshow(coloredIma);
-%                 hold on;
-%                 text(imageRange(1,1)+textDeltaCoord,imageRange(2,1)+...
-%                     textDeltaCoord,num2str(iFrame),'Color','white');
-%                 text(imageRange(2,2)-2*textDeltaCoord,imageRange(2,1)+...
-%                     textDeltaCoord,movieData.density.channelDirectory{iChannel},...
-%                     'Color','white');
-%                 
-%                 title(titles{iMap});
-%             end
-%             
-%             %add frame to movie if movie is saved
-%             MakeQTMovie('addfigure');
-%         end
-%         
-%         %finish movie
-%         MakeQTMovie('finish');
-%     
-%     end
+% averageDensityTotal = horzcat(dataA2Lifetime{:});
+% 
+% % plot x axis in um
+% h = bar(1:size(averageDensityTotal,1), averageDensityTotal, 'group');
+% 
+% for i=1:numel(h)
+%     hC = get(h(i), 'Children');
+%     set(hC,'FaceColor', colors(i,:));
 % end
 % 
-% close(h);
+% h = legend({'TM2', 'TM4', 'TM5'}); legend('boxoff');
+% hC = get(h,'Children');
+% hC = hC(1:2:end);
+% 
+% for i=1:numel(hC)
+%     hCC = get(hC(i),'Children');
+%     set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
+% end
+% 
+% xlabel('Retraction Lifetime (#frame)');
+% ylabel('Speckle Density (nm^{-2})');
+% 
+% fileName = [outputDirectory filesep 'Fig4_B2.eps'];
+% print(hFig, '-depsc', fileName);
+% fixEpsFile(fileName);
+% close(hFig);
+
