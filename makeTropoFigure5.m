@@ -1,7 +1,7 @@
 function makeTropoFigure5(paths, outputDirectory)
 
 nBands = 4;
-distIntervals = [0 .5 1 2 5 10 15] * 1000;
+dLims = [0 .5 1 2 +inf] * 1000;
 
 for iTM = 1:numel(paths)
     % Load Movie Data
@@ -15,32 +15,32 @@ for iTM = 1:numel(paths)
     pixelSize = movieData.pixelSize_nm;
     timeInterval = movieData.timeInterval_s;
     
+    % Read the list of distance transforms
+    bwdistPath = movieData.bwdist.directory;
+    bwdistFiles = dir([bwdistPath filesep '*.mat']);
+
     % Read distance transforms
     distToEdge = zeros(movieData.imSize(1),movieData.imSize(2),nFrames);
     
     for iFrame = 1:nFrames
         fileName = fullfile(bwdistPath, bwdistFiles(iFrame).name);
         tmp = load(fileName);
-        distToEdge(:,:,iFrame) = tmp.distToEdge;
+        distToEdge(:,:,iFrame) = tmp.distToEdge * pixelSize;
     end
     
-    % Read the MPMs
+    % Read the TM MPM
     load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));
-    mpmTM = MPM;
-    load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));
-    mpmActin = MPM;
-
-    for iBand = 1:nBands
-        % Get the lifetime and average velocity of TM tracks that belong to
-        % the ith band.
-        [lifeTimeTM avgSpeedTM] = getTrackParamsFromMPM(mpmTM,distToEdge,...
-            distIntervals(iBand:iBand+1) / pixelSize, 2, true);
-
-        % Get the lifetime and average velocity of Actin tracks that belong
-        % to the ith band.
-        [lifeTimeActin avgSpeedActin] = getTrackParamsFromMPM(mpmActin,...
-            distToEdge,distIntervals(iBand:iBand+1) / pixelSize, 2, true);
-    end
+    
+    % Compute lifetime and average speed of TM tracks within each bands
+    % defined by dLims
+    [lifeTimeTM, avgSpeedTM] = getLifeTimeAndAvgSpeed(MPM,distToEdge,dLims);
+    
+    % Read the Actin MPM    
+    load(fullfile(movieData.fsmDirectory{2}, 'tack', 'mpm.mat'));
+    
+    % Compute lifetime and average speed of TM tracks within each bands
+    % defined by dLims
+    [lifeTimeActin, avgSpeedActin] = getLifeTimeAndAvgSpeed(MPM,distToEdge,dLims);
 end
 
 colors = [

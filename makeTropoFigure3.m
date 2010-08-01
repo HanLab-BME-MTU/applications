@@ -1,7 +1,7 @@
 function makeTropoFigure3(paths, outputDirectory)
 
 nBands = 4;
-distIntervals = [0 .5 1 2 5 10 15] * 1000;
+dLims = [0 .5 1 2 10] * 1000;
 
 % Chosen frame to display in Panel A
 iFrames = [16, 74, 42];
@@ -225,7 +225,7 @@ for iTM = 1:numel(paths)
     for iFrame = 1:nFrames
         fileName = fullfile(bwdistPath, bwdistFiles(iFrame).name);
         tmp = load(fileName);
-        distToEdge(:,:,iFrame) = tmp.distToEdge;
+        distToEdge(:,:,iFrame) = tmp.distToEdge * pixelSize;
     end
     
     for iFrame = 1:nFrames-1    
@@ -241,10 +241,10 @@ for iTM = 1:numel(paths)
         locMax2 = locMax;
         
         % Convert the distance transform in nanometers
-        distToEdge_nm = distToEdge(:,:,iFrame) * pixelSize;
+        distToEdgeFrame = distToEdge(:,:,iFrame);
     
         % Restrinct locMax to the first maxDist nanometer
-        outsideBand = distToEdge_nm > maxDist;
+        outsideBand = distToEdgeFrame > maxDist;
         locMax1(outsideBand) = 0;
         locMax2(outsideBand) = 0;
                 
@@ -254,8 +254,8 @@ for iTM = 1:numel(paths)
         idxS2 = locMax2 ~= 0 & Lprot;
 
         if any(idxS1(:)) && any(idxS2(:))
-            dataC{iTM,1} = cat(1, dataC{iTM,1}, mean(distToEdge_nm(idxS1)) - ...
-                mean(distToEdge_nm(idxS2)));
+            dataC{iTM,1} = cat(1, dataC{iTM,1}, mean(distToEdgeFrame(idxS1)) - ...
+                mean(distToEdgeFrame(idxS2)));
         end
         
         Lret = ismember(L, find(retMask(:, iFrame) == 1));
@@ -264,8 +264,8 @@ for iTM = 1:numel(paths)
         idxS2 = locMax2 ~= 0 & Lret;
         
         if any(idxS1(:)) && any(idxS2(:))
-            dataC{iTM,2} = cat(1, dataC{iTM,2}, mean(distToEdge_nm(idxS1)) - ...
-                mean(distToEdge_nm(idxS2)));
+            dataC{iTM,2} = cat(1, dataC{iTM,2}, mean(distToEdgeFrame(idxS1)) - ...
+                mean(distToEdgeFrame(idxS2)));
         end
     end
     
@@ -278,30 +278,10 @@ for iTM = 1:numel(paths)
     % Read the MPM
     load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));    
 
-    trackEvents = mpm2trackEvents(MPM);
-    nTracks = size(trackEvents,1);
-    frameOffset = nrows * ncols;
-    
-    lifeTime = zeros(nTracks,nBands);
-    
-    for iTrack = 1:nTracks
-        t1 = trackEvents(iTrack,1);
-        t2 = trackEvents(iTrack,2);
-        iRow = trackEvents(iTrack,3);
-        l = t2-t1+1;
-        
-        pts = reshape(MPM(iRow,2*t1-1:2*t2),2,l)';
-        
-        ind = sub2ind([nrows ncols],pts(:,1),pts(:,2));
-        
-        dist = distToEdge(ind' + ((t1:t2)-1) * frameOffset) * pixelSize;
-
-        lifeTime(iTrack,:) = arrayfun(@(iBand) any(dist >= distIntervals(iBand) & ...
-            dist < distIntervals(iBand+1)), 1:nBands) * l;
-    end
+    lifeTime = getLifeTimeAndAvgSpeed(MPM,distToEdge,dLims);
     
     for iBand = 1:nBands
-        dataD{iTM,iBand} = lifeTime(lifeTime(:,iBand) > 1,iBand);
+        dataD{iTM,iBand} = lifeTime{iBand};
     end
 end
  
@@ -388,7 +368,7 @@ for iBand = 1:nBands
     
     ylabel('%');
     
-    title([num2str(distIntervals(iBand)/1000) '-' num2str(distIntervals(iBand+1)/1000) char(181) 'm']);
+    title([num2str(dLims(iBand)/1000) '-' num2str(dLims(iBand+1)/1000) char(181) 'm']);
     
     h = legend({'TM2', 'TM4', 'TM5NM1'});
     hC = get(h,'Children');
