@@ -32,6 +32,8 @@ for iTM = 1:numel(paths)
         error('Must label movie before computing figure 3.');
     end
 
+    nrows = movieData.imSize(1);
+    ncols = movieData.imSize(2);
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
     timeInterval = movieData.timeInterval_s;
@@ -217,6 +219,15 @@ for iTM = 1:numel(paths)
     %                                                           %
     %-----------------------------------------------------------%
 
+    % Read distance transforms
+    distToEdge = zeros(nrows,ncols,nFrames);
+    
+    for iFrame = 1:nFrames
+        fileName = fullfile(bwdistPath, bwdistFiles(iFrame).name);
+        tmp = load(fileName);
+        distToEdge(:,:,iFrame) = tmp.distToEdge;
+    end
+    
     for iFrame = 1:nFrames-1    
         % Load label
         L = imread(fullfile(labelPath, labelFiles(iFrame).name));
@@ -229,13 +240,11 @@ for iTM = 1:numel(paths)
         load(fullfile(s2Path, s2Files(iFrame).name));
         locMax2 = locMax;
         
-        % Read the distance transform
-        fileName = fullfile(bwdistPath, bwdistFiles(iFrame).name);
-        load(fileName);
-        distToEdge = distToEdge * pixelSize;
+        % Convert the distance transform in nanometers
+        distToEdge_nm = distToEdge(:,:,iFrame) * pixelSize;
     
         % Restrinct locMax to the first maxDist nanometer
-        outsideBand = distToEdge > maxDist;
+        outsideBand = distToEdge_nm > maxDist;
         locMax1(outsideBand) = 0;
         locMax2(outsideBand) = 0;
                 
@@ -245,7 +254,8 @@ for iTM = 1:numel(paths)
         idxS2 = locMax2 ~= 0 & Lprot;
 
         if any(idxS1(:)) && any(idxS2(:))
-            dataC{iTM,1} = cat(1, dataC{iTM,1}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
+            dataC{iTM,1} = cat(1, dataC{iTM,1}, mean(distToEdge_nm(idxS1)) - ...
+                mean(distToEdge_nm(idxS2)));
         end
         
         Lret = ismember(L, find(retMask(:, iFrame) == 1));
@@ -254,7 +264,8 @@ for iTM = 1:numel(paths)
         idxS2 = locMax2 ~= 0 & Lret;
         
         if any(idxS1(:)) && any(idxS2(:))
-            dataC{iTM,2} = cat(1, dataC{iTM,2}, mean(distToEdge(idxS1)) - mean(distToEdge(idxS2)));
+            dataC{iTM,2} = cat(1, dataC{iTM,2}, mean(distToEdge_nm(idxS1)) - ...
+                mean(distToEdge_nm(idxS2)));
         end
     end
     
@@ -266,63 +277,32 @@ for iTM = 1:numel(paths)
 
     % Read the MPM
     load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));    
-    nrows = size(MPM,1); %#ok<NODEF>
-    trackID = (1:nrows)';
-    trackMask = MPM(:,1:2:end) ~= 0;
+
+    trackEvents = mpm2trackEvents(MPM);
+    nTracks = size(trackEvents,1);
+    frameOffset = nrows * ncols;
     
-    % remove any track that begins at 1st frame
-    startAtFirstFrame = trackMask(:,1);
-    trackMask(:,1) = false;
-    for iFrame = 2:nFrames-1
-        idxDead = trackID(~trackMask(:,iFrame));
-        trackMask(:,iFrame) = trackMask(:,iFrame) & ~startAtFirstFrame;
-        startAtFirstFrame(idxDead) = false;
+    lifeTime = zeros(nTracks,nBands);
+    
+    for iTrack = 1:nTracks
+        t1 = trackEvents(iTrack,1);
+        t2 = trackEvents(iTrack,2);
+        iRow = trackEvents(iTrack,3);
+        l = t2-t1+1;
+        
+        pts = reshape(MPM(iRow,2*t1-1:2*t2),2,l)';
+        
+        ind = sub2ind([nrows ncols],pts(:,1),pts(:,2));
+        
+        dist = distToEdge(ind' + ((t1:t2)-1) * frameOffset) * pixelSize;
+
+        lifeTime(iTrack,:) = arrayfun(@(iBand) any(dist >= distIntervals(iBand) & ...
+            dist < distIntervals(iBand+1)), 1:nBands) * l;
     end
-    % remove any track that ends at last frame
-    endAtLastFrame = trackMask(:,end);
-    trackMask(:,end) = false;
-    for iFrame = nFrames-1:-1:1
-        idxDead = trackID(~trackMask(:,iFrame));
-        trackMask(:,iFrame) = trackMask(:,iFrame) & ~endAtLastFrame;
-        endAtLastFrame(idxDead) = false;
+    
+    for iBand = 1:nBands
+        dataD{iTM,iBand} = lifeTime(lifeTime(:,iBand) > 1,iBand);
     end
-    
-    accu = zeros(nrows,1);
-    inBand = false(nrows,nBands);        
-    
-    for iFrame = 1:nFrames-1
-        % Read the distance transform
-        fileName = fullfile(bwdistPath, bwdistFiles(iFrame).name);
-        load(fileName);
-        distToEdge = distToEdge * pixelSize;
-        
-        idxLive = trackID(trackMask(:,iFrame));
-        idxDead = trackID(~trackMask(:,iFrame));
-        
-        % Accumulate lifetime
-        accu(idxLive) = accu(idxLive) + 1;
-            
-        for iBand = 1:nBands
-            % Check whether idxLive points are within the current band. A track
-            % is considered to be within the band (inBand == true) if it has
-            % been within the band at least during 1 frame.
-            idxLivePoints = sub2ind(size(distToEdge), MPM(idxLive,2*iFrame-1), MPM(idxLive,2*iFrame));
-            
-            inBand(idxLive,iBand) = inBand(idxLive,iBand) | ...
-                (distToEdge(idxLivePoints) >= distIntervals(iBand) & ...
-                distToEdge(idxLivePoints) < distIntervals(iBand+1));
-            
-            % Keep
-            dataD{iTM,iBand} = vertcat(dataD{iTM,iBand},...
-                accu(~trackMask(:,iFrame) & accu > 1 & inBand(:,iBand)));
-            
-            % Reset
-            inBand(idxDead,iBand) = false;
-        end
-        
-        % Reset
-        accu(idxDead) = 0;
-    end    
 end
  
 %-----------------------------------------------------------------%

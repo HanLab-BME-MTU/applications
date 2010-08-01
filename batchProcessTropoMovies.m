@@ -277,16 +277,14 @@ end
 pathForFigures = {analysisPaths.ActinTM2{3}, analysisPaths.ActinTM4{5}, analysisPaths.ActinTM5{2}};
 
 % Figure 3
-disp('Make figure 3...');
-makeTropoFigure3(pathForFigures, outputDirectory);
+%disp('Make figure 3...');
+%makeTropoFigure3(pathForFigures, outputDirectory);
 
 % Figure 4 stands for the density map display
 %disp('Make figure 4...');
 %makeTropoFigure4(pathForFigures, outputDirectory);
 
 % Figure 5
-%disp('Make figure 5...');
-%makeTropoFigure5(pathForFigures, outputDirectory);
-% Figure 5bis
-%disp('Make figure 5bis...');
-%makeTropoFigure5bis(analysisPaths.TM4TM2, outputDirectory);
+disp('Make figure 5...');
+makeTropoFigure5(pathForFigures, outputDirectory);
+
