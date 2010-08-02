@@ -1,4 +1,4 @@
-function [trackInfos xMap yMap] = getLifeTimeAndAvgSpeed(MPM,distToEdge,dLims,keepCompleteTracksOnly)
+function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,keepCompleteTracksOnly)
 % Input values:
 %
 % MPM:                    the Magic Position Matrix (see qfsm for details)
@@ -82,7 +82,9 @@ accu = zeros(size(trackID));
 accuPWD = zeros(size(trackID));
 
 inBand = false(size(trackID,1), nBands);
-    
+   
+firstFrame = zeros(size(trackID));
+
 %lifeTime = cell(nFrames,nBands);
 %avgSpeed = cell(nFrames,nBands);
 trackInfos = cell(nFrames,nBands);
@@ -96,7 +98,10 @@ for iFrame = 1:nFrames
     
     % accumulate pair-wise distance
     accuPWD(idxLive) = accuPWD(idxLive) + trackPWDPoints(idxLive,iFrame);
-    
+  
+    % keep first frame
+    firstFrame(trackMask(:,iFrame) & firstFrame == 0) = iFrame;
+
     for iBand = 1:nBands
         % accumulate iBand
         inBand(idxLive,iBand) = inBand(idxLive,iBand) | ...
@@ -106,9 +111,12 @@ for iFrame = 1:nFrames
         % Indices to Keep
         ind2keep = ~trackMask(:,iFrame) & accu > 1 & inBand(:,iBand);
         
-        lifeTime{iFrame,iBand} = accu(ind2keep);
-        
-        avgSpeed{iFrame,iBand} = (1 ./ accu(ind2keep)) .* accuPWD(ind2keep);
+        trackInfos{iFrame,iBand} = horzcat(...
+            idxLive,...
+            firstFrame(ind2keep),...
+            repmat(iFrame-1,size(idxLive)),...
+            accu(ind2keep),...
+            (1 ./ accu(ind2keep)) .* accuPWD(ind2keep));
         
         % Reset
         inBand(idxDead,iBand) = false;
@@ -119,8 +127,5 @@ for iFrame = 1:nFrames
     accuPWD(idxDead) = 0;
 end
 
-%lifeTime = arrayfun(@(iBand) vertcat(lifeTime{:,iBand}), 1:nBands, 'UniformOutput', false);
-%avgSpeed = arrayfun(@(iBand) vertcat(avgSpeed{:,iBand}), 1:nBands,
-%'UniformOutput', false);
-
-trackInfos
+trackInfos = arrayfun(@(iBand) vertcat(trackInfos{:,iBand}), 1:nBands,...
+    'UniformOutput', false);
