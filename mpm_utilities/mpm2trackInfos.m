@@ -26,7 +26,7 @@ function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,keepComple
 %        tracks(i,2) = first frame
 %        tracks(i,3) = last frame
 %        tracks(i,4) = lifetime
-%        tracks(i,5) = average velocity
+%        tracks(i,5) = average head-to-tail velocity
 %
 % xMap:                   the x-coordinate of track point. xMap is a matrix
 %                         which number of rows equals MPM's number of rows
@@ -65,28 +65,16 @@ ind2 = sub2ind(size(distToEdge),yMap(ind),xMap(ind),t);
 trackDistPoints = zeros(size(trackMask));
 trackDistPoints(ind) = distToEdge(ind2);
 
-%% Compute the pairwise distance between consecutive track points
-% A single point track has a distance equals to 0. A two-point track has a
-% distance equals to the distance between the 2 points, etc.
-trackPWDPoints = zeros(size(trackMask));
-xMap2 = [xMap(:,2:end), zeros(nrows,1)];
-yMap2 = [yMap(:,2:end), zeros(nrows,1)];
-trackPWDPoints(ind) = sqrt((xMap(ind) - xMap2(ind)).^2 + (yMap(ind) - yMap2(ind)).^2);
-% clear the value at the last frame of each track
-trackPWDPoints(trackMask & ~([trackMask(:,2:end) false(nrows,1)])) = 0;
-
-%% Compute lifetime and avg speed
+%% Get first and last frames
 trackID = (1:nrows)';
 
 accu = zeros(size(trackID));
-accuPWD = zeros(size(trackID));
+%accuPWD = zeros(size(trackID));
 
 inBand = false(size(trackID,1), nBands);
    
 firstFrame = zeros(size(trackID));
 
-%lifeTime = cell(nFrames,nBands);
-%avgSpeed = cell(nFrames,nBands);
 trackInfos = cell(nFrames,nBands);
 
 for iFrame = 1:nFrames
@@ -96,9 +84,6 @@ for iFrame = 1:nFrames
     % accumulate lifetime
     accu(idxLive) = accu(idxLive) + 1;
     
-    % accumulate pair-wise distance
-    accuPWD(idxLive) = accuPWD(idxLive) + trackPWDPoints(idxLive,iFrame);
-  
     % keep first frame
     firstFrame(trackMask(:,iFrame) & firstFrame == 0) = iFrame;
 
@@ -114,17 +99,15 @@ for iFrame = 1:nFrames
         trackInfos{iFrame,iBand} = horzcat(...
             trackID(ind2keep),...
             firstFrame(ind2keep),...
-            repmat(iFrame-1,nnz(ind2keep),1),...
-            accu(ind2keep),...
-            (1 ./ accu(ind2keep)) .* accuPWD(ind2keep));
-        
+            repmat(iFrame-1,nnz(ind2keep),1));
+            
         % Reset
         inBand(idxDead,iBand) = false;
     end
     
     % Reset
     accu(idxDead) = 0;
-    accuPWD(idxDead) = 0;
+    firstFrame(idxDead) = 0;
 end
 
 trackInfos = arrayfun(@(iBand) vertcat(trackInfos{:,iBand}), 1:nBands,...
