@@ -4,15 +4,15 @@ nBands = 4;
 dLims = [0 .5 1 2 10] * 1000;
 
 % Chosen frame to display in Panel A
-iFrames = [16, 74, 42];
+iFrames = [16, 30, 42];
 % Size of images in Panel A
-imageSize = [419 502];
+imageSize = [390 390];
 % Size of the inset in Panel A
-insetSize = [150 180];
+insetSize = [180 180];
 % Location of the crop in Panel A
-imagePos = [157 144; 106 49; 30 30];
+imagePos = [157 144; 180 67; 30 30];
 % Location of the inset in Panel A
-insetPos = [304,267; 154,161; 233 134];
+insetPos = [304,267; 275,167; 233 134];
 
 dataC = cell(3,2);
 dataD = cell(3,nBands);
@@ -180,7 +180,7 @@ for iTM = 1:numel(paths)
     % Inset of Fig3 B.3 (Panel B, row 2)
     
     % Crop image
-    Cinset = C(yRangeInset - yRange(1) + 1, xRangeInset - xRange(1) + 1);
+    Cinset = C(yRangeInset - yRange(1) + 1, xRangeInset - xRange(1) + 1,:);
     hFig = figure('Visible', 'off');
     imshow(Cinset,[]);
     fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '2.eps']);
@@ -278,13 +278,13 @@ for iTM = 1:numel(paths)
     % Read the MPM
     load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));    
 
-    lifeTime = getLifeTimeAndAvgSpeed(MPM,distToEdge,dLims);
-    
+    trackInfos = mpm2trackInfos(MPM,distToEdge,dLims,2);
+
     for iBand = 1:nBands
-        dataD{iTM,iBand} = lifeTime{iBand};
+        dataD{iTM,iBand} = trackInfos{iBand}(:,3) - trackInfos{iBand}(:,2) + 1;
     end
 end
- 
+
 %-----------------------------------------------------------------%
 %                                                                 %
 %                          FIGURE 3 PANEL C                       %

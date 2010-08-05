@@ -274,7 +274,7 @@ if ~exist(outputDirectory, 'dir')
     mkdir(analysisDirectory, 'figures');
 end
 
-pathForFigures = {analysisPaths.ActinTM2{3}, analysisPaths.ActinTM4{5}, analysisPaths.ActinTM5{2}};
+pathForFigures = {analysisPaths.ActinTM2{3}, analysisPaths.ActinTM4{1}, analysisPaths.ActinTM5{2}};
 
 % Figure 3
 %disp('Make figure 3...');
