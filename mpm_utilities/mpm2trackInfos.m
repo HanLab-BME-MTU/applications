@@ -1,4 +1,4 @@
-function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,keepCompleteTracksOnly)
+function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,minLifetime,keepCompleteTracksOnly)
 % Input values:
 %
 % MPM:                    the Magic Position Matrix (see qfsm for details)
@@ -10,6 +10,9 @@ function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,keepComple
 % dLims:                  a vector of distances away from the cell edge.
 %                         These distances have to be ordered.
 %
+% minLifetime:            minimum number of frames a track needs to live
+%                         for. Default is 1.
+%
 % keepCompleteTracksOnly: a logical value that allows to discard track that
 %                         are either beginning at the very first frame of
 %                         the movie or ending at the very last frame.
@@ -17,7 +20,7 @@ function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,keepComple
 % Output values:
 %
 % tracks:                 is a cell array of size = numel(dLims)-1. Each
-%                         cell element i contains a array Nx4 where N is
+%                         cell element i contains a array Nx3 where N is
 %                         the number of tracks falling into a band away
 %                         from the cell edge defined by dLims(i)
 %                         dLims(i+1). Each track contains:
@@ -25,8 +28,6 @@ function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,keepComple
 %        tracks(i,1) = row index in the MPM
 %        tracks(i,2) = first frame
 %        tracks(i,3) = last frame
-%        tracks(i,4) = lifetime
-%        tracks(i,5) = average head-to-tail velocity
 %
 % xMap:                   the x-coordinate of track point. xMap is a matrix
 %                         which number of rows equals MPM's number of rows
@@ -37,7 +38,11 @@ function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,keepComple
 %
 % Sylvain Berlemont, 2010
 
-if nargin < 4 || isempty(keepCompleteTracksOnly)
+if nargin < 4 || isempty(minLifetime)
+    minLifetime = 1;
+end
+
+if nargin < 5 || isempty(keepCompleteTracksOnly)
     keepCompleteTracksOnly = true;
 end
 
@@ -94,7 +99,7 @@ for iFrame = 1:nFrames
             trackDistPoints(idxLive,iFrame) <= dLims(iBand+1);
         
         % Indices to Keep
-        ind2keep = ~trackMask(:,iFrame) & accu > 1 & inBand(:,iBand);
+        ind2keep = ~trackMask(:,iFrame) & accu >= minLifetime & inBand(:,iBand);
         
         trackInfos{iFrame,iBand} = horzcat(...
             trackID(ind2keep),...
