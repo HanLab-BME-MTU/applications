@@ -1,5 +1,70 @@
 function makeTropoFigure4(paths, outputDirectory)
 
+outputDirectory = fullfile(outputDirectory, 'Fig4');
+
+if ~exist(outputDirectory,'dir')
+    mkdir(outputDirectory);
+end
+
+nBands = 4;
+dLims = [0 .5 1 2 10] * 1000;
+
+dataB = cell(3,nBands);
+
+for iTM = 1:numel(paths)
+    % Load Movie Data
+    fileName = [paths{iTM} filesep 'movieData.mat'];
+    if ~exist(fileName, 'file')
+        error(['Unable to locate ' fileName]);
+    end
+    load(fileName);
+
+    %Verify that the distance transforms have been performed
+    if ~checkMovieBWDist(movieData)
+        error('Distance transforms need to be computed before processing figure 4.');
+    end
+    
+    nrows = movieData.imSize(1);
+    ncols = movieData.imSize(2);
+    nFrames = movieData.labels.nFrames;
+    pixelSize = movieData.pixelSize_nm;
+    timeInterval = movieData.timeInterval_s;
+
+    % Read the list of distance transforms
+    bwdistPath = movieData.bwdist.directory;
+    bwdistFiles = dir([bwdistPath filesep '*.mat']);
+
+    % Read distance transforms
+    distToEdge = zeros(nrows,ncols,nFrames);
+    
+    for iFrame = 1:nFrames
+        fileName = fullfile(bwdistPath, bwdistFiles(iFrame).name);
+        tmp = load(fileName);
+        distToEdge(:,:,iFrame) = tmp.distToEdge * pixelSize;
+    end
+
+    %-----------------------------------------------------------%
+    %                                                           %
+    %                    DATA FOR PANEL B                       %
+    %                                                           %
+    %-----------------------------------------------------------%
+
+    % Read the MPM
+    load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));    
+
+    trackInfos = mpm2trackInfos(MPM,distToEdge,dLims,2);
+
+    for iBand = 1:nBands
+        dataB{iTM,iBand} = trackInfos{iBand}(:,3) - trackInfos{iBand}(:,2) + 1;
+    end
+end
+
+%-----------------------------------------------------------------%
+%                                                                 %
+%                          FIGURE 3 PANEL B                       %
+%                                                                 %
+%-----------------------------------------------------------------%
+
 colors = [
    0.983333333333333   1.000000000000000   0.800000000000000;
    0.360000000000000   0.630000000000000   0.900000000000000;
@@ -8,242 +73,49 @@ colors = [
    0.550000000000000                   0                   0;
    0.250000000000000                   0                   0; ];
 
-nMovies = numel(paths);
-
-% Panel A
-dataA1 = cell(nMovies,1);
-dataA2 = cell(nMovies,1);
-
-% Panel B
-dataB = cell(nMovies,2);
-
-for iMovie = 1:nMovies
-    % Load Movie data
-    load(fullfile(paths{iMovie}, 'movieData.mat'));
+for iBand = 1:nBands
     
-    pixelSize = movieData.pixelSize_nm;
-    %timeInterval = movieData.timeInterval_s;
-
-    % Load density scores
-    load(fullfile(movieData.density.directory, movieData.density.channelDirectory{1}, 'densityScores.mat'));
+    lifeTimeRange = 2:10;
     
-    distFromEdge = vertcat(densityScores(:).distFromEdge) * pixelSize; %#ok<NODEF>
-    averageDensity = vertcat(densityScores(:).averageDensity) * pixelSize;
-    protrusionState = vertcat(densityScores(:).protrusionState);
-    protrusionPersistence = vertcat(densityScores(:).protrusionPersistence);
-    %protrusionSpeed = abs(vertcat(densityScores(:).protrusionSpeed) * pixelSize / timeInterval);
+    hFig = figure('Visible', 'off');
+    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
+    set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
+    n = cell2mat(arrayfun(@(iTM) hist(dataB{iTM,iBand}, lifeTimeRange), (1:3)', 'UniformOutput', false));
+    n = bsxfun(@rdivide,n,sum(n,2));
+    h = bar(lifeTimeRange, n','group');
     
-    %
-    % Data for Panel A1
-    %
+    set(gca,'XLim',[lifeTimeRange(1)-1, lifeTimeRange(end)+1]);
     
-    maxDistFromEdge = min(15000,max(distFromEdge));    
-    dist = 0:500:maxDistFromEdge;
-    
-    dataA1{iMovie} = zeros(numel(dist)-1,1);
-
-    for i = 1:numel(dist)-1
-        dataA1{iMovie}(i) = ...
-            mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 2));
+    for i=1:numel(h)
+        hC = get(h(i), 'Children');
+        set(hC,'FaceColor', colors(i,:));
     end
     
-    %
-    % Data for Panel A2
-    %
-
-    dataA2{iMovie} = zeros(numel(dist)-1,1);
+    set(gca,'XTickLabel',[]);
+    arrayfun(@(x) text(x, -.8/800,[num2str((x-1)*timeInterval) '-' num2str(x*timeInterval) 's'],...
+        'VerticalAlignment', 'Top', 'HorizontalAlignment', 'Right', 'Rotation', 45,...
+        'FontSize', 12), lifeTimeRange(1:end-1));
+    text(lifeTimeRange(end), -.8/800, ['\geq' num2str(lifeTimeRange(end-1) * timeInterval) 's'],...
+        'VerticalAlignment', 'Top', 'HorizontalAlignment', 'Right', 'Rotation', 45,...
+        'FontSize', 12);
     
-    for i = 1:numel(dist)-1
-        dataA2{iMovie}(i) = ...
-            mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 3));
+    ylabel('%');
+    
+    text(6, 0.3, [num2str(dLims(iBand)/1000) '-' ...
+        num2str(dLims(iBand+1)/1000) char(181) 'm'], ...
+        'HorizontalAlignment','center', 'FontSize', 20);
+    
+    h = legend({'TM2', 'TM4', 'TM5NM1'});
+    hC = get(h,'Children');
+    hC = hC(1:2:end);
+    for i=1:numel(hC)
+        hCC = get(hC(i),'Children');
+        set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
     end
+    legend('boxoff');
     
-    %
-    % Data for Panel B
-    %
-    
-%     maxProtPersistence = max(protrusionPersistence(protrusionState == 2));
-%     maxRetPersistence = max(protrusionPersistence(protrusionState == 3));
-%     
-%     protPersistence = 1:maxProtPersistence;
-%     retPersistence = 1:maxRetPersistence;
-%     
-%     dataA1Lifetime{iMovie} = zeros(numel(protPersistence), 1);
-%     
-%     for i = 1:numel(protPersistence)
-%         dataA1Lifetime{iMovie}(i) = ...
-%             mean(averageDensity(distFromEdge < 2000 & protrusionPersistence == protPersistence(i)));
-%     end
-
-    dataB{iMovie,1} = ...
-        averageDensity(distFromEdge < 2000 & protrusionState == 2 & protrusionPersistence == 1);
-
-    dataB{iMovie,2} = ...
-        averageDensity(distFromEdge < 2000 & protrusionState == 3 & protrusionPersistence == 1);
-    
-    %
-    % Data for Panel B2
-    %
-    
-%     dataA2Lifetime{iMovie} = zeros(numel(retPersistence), 1);
-%     
-%     for i = 1:numel(retPersistence)
-%         dataA2Lifetime{iMovie}(i) = ...
-%             mean(averageDensity(distFromEdge < 2000 & protrusionPersistence == retPersistence(i)));
-%     end
-    
+    fileName = [outputDirectory filesep 'Fig4_B' num2str(iBand) '.eps'];
+    print(hFig, '-depsc', fileName);
+    fixEpsFile(fileName);
+    close(hFig);
 end
-
-%
-% Panel A1
-%
-
-% convert dist in microns:
-dist = dist / 1000;
-
-hFig = figure('Visible', 'off');
-set(gca,'XTick',dist(1:4:end-1));
-set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
-set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
-
-averageDensityTotal = horzcat(dataA1{:});
-
-% plot x axis in um
-h = line(dist(1:end-1), averageDensityTotal,'LineWidth',2);
-
-for i=1:numel(h)
-    set(h(i),'Color', colors(i,:));
-end
-
-h = legend({'TM2', 'TM4', 'TM5'}); legend('boxoff');
-hC = get(h,'Children');
-hC = hC(1:2:end);
-
-for i=1:numel(hC)
-    hCC = get(hC(i),'Children');
-    set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
-end
-
-xlabel(['Distance away from cell edge during protrusion (' char(181) 'm)']);
-ylabel('Speckle Density (nm^{-2})');
-
-fileName = [outputDirectory filesep 'Fig4_A1.eps'];
-print(hFig, '-depsc', fileName);
-fixEpsFile(fileName);
-close(hFig);
-
-%
-% Panel A2
-%
-
-hFig = figure('Visible', 'off');
-set(gca,'XTick',dist(1:4:end-1));
-set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
-set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
-
-averageDensityTotal = horzcat(dataA2{:});
-
-% plot x axis in um
-h = line(dist(1:end-1), averageDensityTotal,'LineWidth',2);
-
-for i=1:numel(h)
-    set(h(i),'Color', colors(i,:));
-end
-
-h = legend({'TM2', 'TM4', 'TM5'}); legend('boxoff');
-hC = get(h,'Children');
-hC = hC(1:2:end);
-
-for i=1:numel(hC)
-    hCC = get(hC(i),'Children');
-    set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
-end
-
-xlabel(['Distance away from cell edge during retraction (' char(181) 'm)']);
-ylabel('Speckle Density (nm^{-2})');
-
-fileName = [outputDirectory filesep 'Fig4_A2.eps'];
-print(hFig, '-depsc', fileName);
-fixEpsFile(fileName);
-close(hFig);
-
-%
-% Panel B
-%
-
-hFig = figure('Visible', 'off');
-set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
-set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
-
-mu = cellfun(@mean, dataB);
-sigma = cellfun(@std, dataB);
-h = bar(gca, mu', 'group'); hold on;
-
-XTicks = zeros(size(mu));
-
-for i=1:numel(h)
-    hC = get(h(i), 'Children');
-    set(hC,'FaceColor', colors(i,:));
-    XData = get(hC, 'XData');
-    XTicks(i,1:2) = .5 * (XData(1,1:2) + XData(3,1:2));
-end
-
-errorbar(XTicks(:),mu(:),sigma(:),'xk'); hold off;
-
-set(gca,'XTickLabel',{'Protrusion', 'Retraction'})
-ylabel('D_0 (nm^{-2})');
-
-h = legend({'TM2', 'TM4', 'TM5NM1'}); legend('boxoff');
-hC = get(h,'Children');
-hC = hC(1:2:end);
-for i=1:numel(hC)
-    hCC = get(hC(i),'Children');
-    set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
-end
-
-fileName = [outputDirectory filesep 'Fig4_B.eps'];
-print(hFig, '-depsc', fileName);
-fixEpsFile(fileName);
-close(hFig);
-
-% %
-% % Panel B2
-% %
-% 
-% hFig = figure('Visible', 'off');
-% set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
-% set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
-% 
-% % append with zero
-% maxLength = max(cellfun(@numel, dataA2Lifetime));
-% dataA2Lifetime = cellfun(@(x)...
-%     padarray(x, maxLength - numel(x), 0, 'post'), ...
-%     dataA2Lifetime, 'UniformOutput', false);
-% 
-% averageDensityTotal = horzcat(dataA2Lifetime{:});
-% 
-% % plot x axis in um
-% h = bar(1:size(averageDensityTotal,1), averageDensityTotal, 'group');
-% 
-% for i=1:numel(h)
-%     hC = get(h(i), 'Children');
-%     set(hC,'FaceColor', colors(i,:));
-% end
-% 
-% h = legend({'TM2', 'TM4', 'TM5'}); legend('boxoff');
-% hC = get(h,'Children');
-% hC = hC(1:2:end);
-% 
-% for i=1:numel(hC)
-%     hCC = get(hC(i),'Children');
-%     set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
-% end
-% 
-% xlabel('Retraction Lifetime (#frame)');
-% ylabel('Speckle Density (nm^{-2})');
-% 
-% fileName = [outputDirectory filesep 'Fig4_B2.eps'];
-% print(hFig, '-depsc', fileName);
-% fixEpsFile(fileName);
-% close(hFig);
-

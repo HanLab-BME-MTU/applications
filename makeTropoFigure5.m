@@ -1,7 +1,13 @@
 function makeTropoFigure5(paths, outputDirectory)
 
-nBands = 1;
-dLims = [0 2 10] * 1000;
+outputDirectory = fullfile(outputDirectory, 'Fig5');
+
+if ~exist(outputDirectory,'dir')
+    mkdir(outputDirectory);
+end
+
+nBands = 3;
+dLims = [0 2 4 6] * 1000;
 minLifetime = 3;
 maxDist = 2000;
 
@@ -79,73 +85,86 @@ for iTM = 1:numel(paths)
         pairTracks = pcombs2(1:n1, 1:n2);        
         
         % Compute the latest first frame
-        maxFirstFrame = max(firstFrame1(pairTracks(:,1)),firstFrame2(pairTracks(:,2)));
+        maxFirstFrame = max(firstFrame1(pairTracks(:,1)),...
+            firstFrame2(pairTracks(:,2)));
         % Compute the earliest last frame
-        minLastFrame = min(lastFrame1(pairTracks(:,1)),lastFrame2(pairTracks(:,2)));
+        minLastFrame = min(lastFrame1(pairTracks(:,1)),...
+            lastFrame2(pairTracks(:,2)));
         
         % Compute the number of overlapping frames
         overlap = max(minLastFrame - maxFirstFrame + 1, 0);
-
+        
+        clear minLastFrame;
+        
         % Sorted overlap
-        [sortedOverlap perms] = sort(overlap);
-        ind = find(sortedOverlap,'first',1);
+        [sortedOverlap indPair] = sort(overlap);
+        
+        clear overlap;
+        
+        ind = find(sortedOverlap >= 3,1,'first');
         sortedOverlap = sortedOverlap(ind:end);
-        perms = perms(ind:end);
+        indPair = indPair(ind:end);
         
         % Find the set of overlaps
         overlapSet = unique(sortedOverlap);
         
+        % Find the indices in sortedOverlap where an overlap transition
+        % occurs
+        overlapInterval = [0; find(sortedOverlap(2:end) ~= ...
+            sortedOverlap(1:end-1)); numel(sortedOverlap)] + 1;
+        
+        avgPWD = cell(numel(overlapSet), 1);
+        
         for i = 1:numel(overlapSet)
-            ind = perms(overlapInterval(i):overlapInterval(i+1));
+            ind = indPair(overlapInterval(i):overlapInterval(i+1)-1);
             
             firstFrame = maxFirstFrame(ind);
             
             rowRange1 = row1(pairTracks(ind,1));
             rowRange2 = row2(pairTracks(ind,2));
             
-            ind1 = arrayfun(@(j) rowRange1 + (firstFrame + j - 2) * n1, 1:overlapSet(i));
-            ind1 = ind1(:);
+            ind1 = arrayfun(@(j) rowRange1 + (firstFrame + j - 2) * size(xMap1,1),...
+                1:overlapSet(i),'UniformOutput',false);
+            ind1 = horzcat(ind1{:});
             
-            ind2 = arrayfun(@(j) rowRange2 + (firstFrame + j - 2) * n2, 1:overlapSet(i));
-            ind2 = ind2(:);
+            ind2 = arrayfun(@(j) rowRange2 + (firstFrame + j - 2) * size(xMap2,1),...
+                1:overlapSet(i),'UniformOutput',false);
+            ind2 = horzcat(ind2{:});
             
-            xData1 = reshape(xMap1(ind1), numel(ind), iOverlap);
-            yData1 = reshape(yMap1(ind1), numel(ind), iOverlap);
+            xData1 = reshape(xMap1(ind1), numel(ind), overlapSet(i));
+            yData1 = reshape(yMap1(ind1), numel(ind), overlapSet(i));
 
-            xData2 = reshape(xMap2(ind2), numel(ind), iOverlap);
-            yData2 = reshape(yMap2(ind2), numel(ind), iOverlap);
+            xData2 = reshape(xMap2(ind2), numel(ind), overlapSet(i));
+            yData2 = reshape(yMap2(ind2), numel(ind), overlapSet(i));
             
             avgPWD{i} = sqrt((mean(xData1,2) - mean(xData2,2)).^2 + ...
                 (mean(yData1,2) - mean(yData2,2)).^2);    
         end
         
-        
-        
-        
-        toc
-        disp([' (' num2str(nFrames) ') ' num2str(iTM) '/' num2str(iBand)]);
-        
-        indPair = vertcat(indPair{:});
-        avgPWD = vertcat(avgPWD{:});
+        avgPWD = vertcat(avgPWD{:}) * pixelSize;
 
-        th = avgPWD * pixelSize <= maxDist;
+        th = avgPWD <= maxDist;
         
-        costMatrix = zeros(n1,n2);
-        costMatrix(:) = -1; % nonlinkmarker
-        ind = sub2ind(size(costMatrix), pairTracks(indPair(th),1), pairTracks(indPair(th),2));
-        costMatrix(ind) = avgPWD(th);
+        indPair = indPair(th);
+        avgPWD = avgPWD(th);
         
         % Associate TM and Actin tracks using LAP.
-        link12 = lap(costMatrix,-1,0,1);
+        avgPWD(avgPWD == 0) = eps;
+        costMatrix2 = sparse(pairTracks(indPair,1), pairTracks(indPair,2), avgPWD, n1, n2);
+        link12 = lap(costMatrix2,[],0,1);
         
         % Save Data
         ind = find(link12(1:n1) <= n2);
-        
+        X = avgVelocity1(ind);
+        Y = avgVelocity2(link12(ind));
+        covXY = cov(X,Y);
+        r = covXY(2) / (std(X) * std(Y));
         hFig = figure('Visible', 'off');
         set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
         set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-        scatter(avgVelocity1(ind), avgVelocity2(link12(ind)), 8, [.7 .7 .7], 'Marker', '.');
-        
+        scatter(X, Y, 10, [.7 .7 .7], 'Marker', '.');
+        text(1000,1800,['r = ' num2str(r)],'HorizontalAlignment','center', 'FontSize', 20);
+                
         set(gca,'XLim',[0 2000]);
         set(gca,'YLim',[0 2000]);
         

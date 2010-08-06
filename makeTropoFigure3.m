@@ -1,7 +1,12 @@
 function makeTropoFigure3(paths, outputDirectory)
 
-nBands = 4;
-dLims = [0 .5 1 2 10] * 1000;
+outputDirectory = fullfile(outputDirectory, 'Fig3');
+
+if ~exist(outputDirectory,'dir')
+    mkdir(outputDirectory);
+end
+
+nMovies = numel(paths);
 
 % Chosen frame to display in Panel A
 iFrames = [16, 30, 42];
@@ -14,8 +19,9 @@ imagePos = [157 144; 180 67; 30 30];
 % Location of the inset in Panel A
 insetPos = [304,267; 275,167; 233 134];
 
-dataC = cell(3,2);
-dataD = cell(3,nBands);
+dataC = cell(nMovies,2);
+dataD1 = cell(nMovies,1);
+dataD2 = cell(nMovies,1);
 
 maxDist = 5000;
 
@@ -36,7 +42,6 @@ for iTM = 1:numel(paths)
     ncols = movieData.imSize(2);
     nFrames = movieData.labels.nFrames;
     pixelSize = movieData.pixelSize_nm;
-    timeInterval = movieData.timeInterval_s;
     
     % Read the list of mask files
     maskPath = movieData.masks.directory;
@@ -94,44 +99,31 @@ for iTM = 1:numel(paths)
     
     % Read image
     fileName = fullfile(image1Path, image1Files(iFrames(iTM)).name);
-    I = double(imread(fileName));
+    I = imread(fileName);
     % Crop image
-    I1 = I(yRange,xRange);
+    I1 = double(I(yRange,xRange));
+    I1 = (I1 - min(I1(:))) / max(I1(:));
     % Save
-    hFig = figure('Visible', 'off');
-    imshow(I1, []);
-    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '1.eps']);
-    print(hFig, '-depsc' , '-painters', fileName);
-    % Close the figure
-    close(hFig);
+    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '1.tif']);
+    imwrite(I1,fileName);
     
     % Actin (Panel A, row 2)
     
     % Read image
     fileName = fullfile(image2Path, image2Files(iFrames(iTM)).name);
-    I = double(imread(fileName));
+    I = imread(fileName);
     % Crop image
-    I2 = I(yRange,xRange);
+    I2 = double(I(yRange,xRange));
+    I2 = (I2 - min(I2(:))) / max(I2(:));
     % Save
-    hFig = figure('Visible', 'off');
-    imshow(I2, []);
-    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '2.eps']);
-    print(hFig, '-depsc' , '-painters', fileName);
-    % Close the figure
-    close(hFig);
+    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '2.tif']);
+    imwrite(uint8(I2 * 255),fileName);
 
     % Merge (Panel A, row 3)
-    
-    I1 = (I1 - min(I1(:))) / max(I1(:));
-    I2 = (I2 - min(I2(:))) / max(I2(:));
     C = cat(3,I2, I1, zeros(size(I1)));
-    
-    hFig = figure('Visible','off');
-    imshow(C);
-    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '3.eps']);
-    print(hFig, '-depsc' , '-painters', fileName);
-    % Close the figure
-    close(hFig);
+    % Save
+    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '3.tif']);
+    imwrite(C,fileName);
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -181,12 +173,8 @@ for iTM = 1:numel(paths)
     
     % Crop image
     Cinset = C(yRangeInset - yRange(1) + 1, xRangeInset - xRange(1) + 1,:);
-    hFig = figure('Visible', 'off');
-    imshow(Cinset,[]);
-    fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '2.eps']);
-    print(hFig, '-depsc' , '-painters', fileName);
-    % Close the figure
-    close(hFig);
+    fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '2.tif']);
+    imwrite(Cinset,fileName);
     
     % Inset of Fig3 B.4 (Panel B, row 3)
 
@@ -275,13 +263,38 @@ for iTM = 1:numel(paths)
     %                                                           %
     %-----------------------------------------------------------%
 
-    % Read the MPM
-    load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));    
+    % Load density scores
+    load(fullfile(movieData.density.directory, movieData.density.channelDirectory{1}, 'densityScores.mat'));
+    
+    distFromEdge = vertcat(densityScores(:).distFromEdge) * pixelSize; %#ok<NODEF>
+    averageDensity = vertcat(densityScores(:).averageDensity) * (pixelSize/1000)^-2; % in um-2
+    protrusionState = vertcat(densityScores(:).protrusionState);
+    %protrusionPersistence = vertcat(densityScores(:).protrusionPersistence);
+    %protrusionSpeed = abs(vertcat(densityScores(:).protrusionSpeed) * pixelSize / timeInterval);
 
-    trackInfos = mpm2trackInfos(MPM,distToEdge,dLims,2);
+    %
+    % Data for Panel D1
+    %
+    
+    maxDistFromEdge = min(15000,max(distFromEdge));    
+    dist = 0:500:maxDistFromEdge;
+    
+    dataD1{iTM} = zeros(numel(dist)-1,1);
 
-    for iBand = 1:nBands
-        dataD{iTM,iBand} = trackInfos{iBand}(:,3) - trackInfos{iBand}(:,2) + 1;
+    for i = 1:numel(dist)-1
+        dataD1{iTM}(i) = ...
+            mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 2));
+    end
+    
+    %
+    % Data for Panel D2
+    %
+
+    dataD2{iTM} = zeros(numel(dist)-1,1);
+    
+    for i = 1:numel(dist)-1
+        dataD2{iTM}(i) = ...
+            mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 3));
     end
 end
 
@@ -338,49 +351,77 @@ close(hFig);
 %                                                                 %
 %                          FIGURE 3 PANEL D                       %
 %                                                                 %
-%-----------------------------------------------------------------%
+%-----------------------------------------------------------------% 
 
-for iBand = 1:nBands
-    
-    lifeTimeRange = 2:10;
-    
-    hFig = figure('Visible', 'off');
-    set(gca, 'FontName', 'Helvetica', 'FontSize', 20);
-    set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-    n = cell2mat(arrayfun(@(iTM) hist(dataD{iTM,iBand}, lifeTimeRange), (1:3)', 'UniformOutput', false));
-    n = bsxfun(@rdivide,n,sum(n,2));
-    h = bar(lifeTimeRange, n','group');
-    
-    set(gca,'XLim',[lifeTimeRange(1)-1, lifeTimeRange(end)+1]);
-    
-    for i=1:numel(h)
-        hC = get(h(i), 'Children');
-        set(hC,'FaceColor', colors(i,:));
-    end
-    
-    set(gca,'XTickLabel',[]);
-    arrayfun(@(x) text(x, -.8/800,[num2str((x-1)*timeInterval) '-' num2str(x*timeInterval) 's'],...
-        'VerticalAlignment', 'Top', 'HorizontalAlignment', 'Right', 'Rotation', 45,...
-        'FontSize', 12), lifeTimeRange(1:end-1));
-    text(lifeTimeRange(end), -.8/800, ['\geq' num2str(lifeTimeRange(end-1) * timeInterval) 's'],...
-        'VerticalAlignment', 'Top', 'HorizontalAlignment', 'Right', 'Rotation', 45,...
-        'FontSize', 12);
-    
-    ylabel('%');
-    
-    title([num2str(dLims(iBand)/1000) '-' num2str(dLims(iBand+1)/1000) char(181) 'm']);
-    
-    h = legend({'TM2', 'TM4', 'TM5NM1'});
-    hC = get(h,'Children');
-    hC = hC(1:2:end);
-    for i=1:numel(hC)
-        hCC = get(hC(i),'Children');
-        set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
-    end
-    legend('boxoff');
-    
-    fileName = [outputDirectory filesep 'Fig3_D' num2str(iBand) '.eps'];
-    print(hFig, '-depsc', fileName);
-    fixEpsFile(fileName);
-    close(hFig);
+%
+% Panel D1
+%
+
+% convert dist in microns:
+dist = dist / 1000;
+
+hFig = figure('Visible', 'off');
+set(gca,'XTick',dist(1:4:end-1));
+set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
+set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
+
+averageDensityTotal = horzcat(dataD1{:});
+
+% plot x axis in um
+h = line(dist(1:end-1), averageDensityTotal,'LineWidth',2);
+
+for i=1:numel(h)
+    set(h(i),'Color', colors(i,:));
 end
+
+h = legend({'TM2', 'TM4', 'TM5NM1'}); legend('boxoff');
+hC = get(h,'Children');
+hC = hC(1:2:end);
+
+for i=1:numel(hC)
+    hCC = get(hC(i),'Children');
+    set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
+end
+
+xlabel(['Distance away from cell edge during protrusion (' char(181) 'm)']);
+ylabel(['Speckle Density (' char(181) 'm^{-2})']);
+
+fileName = [outputDirectory filesep 'Fig3_D1.eps'];
+print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
+close(hFig);
+
+%
+% Panel D2
+%
+
+hFig = figure('Visible', 'off');
+set(gca,'XTick',dist(1:4:end-1));
+set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
+set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
+
+averageDensityTotal = horzcat(dataD2{:});
+
+% plot x axis in um
+h = line(dist(1:end-1), averageDensityTotal,'LineWidth',2);
+
+for i=1:numel(h)
+    set(h(i),'Color', colors(i,:));
+end
+
+h = legend({'TM2', 'TM4', 'TM5NM1'}); legend('boxoff');
+hC = get(h,'Children');
+hC = hC(1:2:end);
+
+for i=1:numel(hC)
+    hCC = get(hC(i),'Children');
+    set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
+end
+
+xlabel(['Distance away from cell edge during retraction (' char(181) 'm)']);
+ylabel(['Speckle Density (' char(181) 'm^{-2})']);
+
+fileName = [outputDirectory filesep 'Fig3_D2.eps'];
+print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
+close(hFig);
