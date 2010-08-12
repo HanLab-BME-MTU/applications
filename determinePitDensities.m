@@ -21,19 +21,27 @@ function [data] = determinePitDensities(data)
 %
 % Dinah Loerke, last changed 03/19/2008
 %               modified 07/29/2008
+%modified by D Nunez 08/12/2010
 
 localDensity = zeros(1, length(data));
 
 for i = 1:length(data)
     
+    %There was a name change for the file containing the tracking info
     trackInfoPath = [data(i).source 'TrackInfoMatrices' filesep 'trackInfo.mat'];
+    if ~(exist(trackInfoPath, 'file')==2)
+    trackInfoPath = [data(i).source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'];
+    end
     
     if (exist(trackInfoPath, 'file')==2)
         ti = load(trackInfoPath);
+        %the trackingInfo variable name was also changed
         if isfield(ti,'trackInfo')
             currTrackInfo = full(ti.trackInfo);
         elseif isfield(ti,'trackInfoMat')
             currTrackInfo = full(ti.trackInfoMat);
+        elseif isfield(ti,'trackedFeatureInfo')
+            currTrackInfo = full(ti.trackedFeatureInfo);
         end
         
         nFrames = size(currTrackInfo, 2)/8;
