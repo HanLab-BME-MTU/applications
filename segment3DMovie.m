@@ -83,7 +83,7 @@ if ~isa(movieData,'MovieData3D')
 end
 
 %Check for existing seg processes
-iSegProc = cellfun(@(x)(isa(x,'SegmentationProcess3D')),movieData.processes_);
+iSegProc = movieData.getProcessIndex('SegmentationProcess3D',1,0);
 
 if isempty(iSegProc)
     iSegProc = numel(movieData.processes_)+1;
@@ -109,10 +109,10 @@ nChanSeg = length(p.ChannelIndex);
 
 %Set up mask output paths
 for j = 1:nChanSeg
-    movieData.processes_{iSegProc}.setMaskPath(p.ChannelIndex(j),...
+    movieData.processes_{iSegProc}.setOutMaskPath(p.ChannelIndex(j),...
             [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))]);
         
-    mkClrDir(movieData.processes_{iSegProc}.maskPaths_{p.ChannelIndex(j)});
+    mkClrDir(movieData.processes_{iSegProc}.outMaskPaths_{p.ChannelIndex(j)});
 end
 
 %Create structuring element for post-processing
@@ -133,11 +133,12 @@ nImages = movieData.nFrames_;
 nImTot = nImages * nChanSeg;
 
 imNames = movieData.getImageFileNames(p.ChannelIndex);
+maskDir = movieData.processes_{iSegProc}.outMaskPaths_(p.ChannelIndex);
+imDir = movieData.getChannelPaths(p.ChannelIndex);
+    
 
 for iChan = 1:nChanSeg                
     
-    maskDir = movieData.processes_{iSegProc}.maskPaths_{p.ChannelIndex(iChan)};
-    imDir = movieData.channelPath_{p.ChannelIndex(iChan)};
     
     if p.FixJumps
         threshVals = nan(nImages,1);                                
@@ -147,7 +148,7 @@ for iChan = 1:nChanSeg
     for iImage = 1:nImages
 
         %Load the current image
-        currIm = stackRead([imDir filesep imNames{iChan}{iImage}]);
+        currIm = stackRead([imDir{iChan} filesep imNames{iChan}{iImage}]);
                
         % ---- Perform initial segmentation ---- %
         
@@ -243,16 +244,19 @@ for iChan = 1:nChanSeg
                 [goodObj,iGood] = sort([rProp(:).Area],'descend'); %#ok<ASGLU>
 
                 currMask = false(size(currMask));
-                for i = 1:p.NumObjects
+                for i = 1:min(p.NumObjects,numel(iGood))
                     currMask = currMask | (labelMask == iGood(i));
                 end
             end
+            
+            currMask = imfill(currMask,'holes');
+            
         end
            
         %We want to compress the masks, so don't use stackWrite.m
         for i = 1:size(currIm,3)
             %Append each z-slice to the tiff
-            imwrite(currMask(:,:,i),[maskDir filesep ...
+            imwrite(currMask(:,:,i),[maskDir{iChan} filesep ...
             'mask_' imNames{iChan}{iImage}(1:end-3) 'tif'],'tif','WriteMode','append')
         end
         
@@ -264,7 +268,7 @@ end
 
 %% ------Output/Finalization----- %%
 
-movieData.processes_{iSegProc}.setSuccess(true);
+
 movieData.processes_{iSegProc}.setDateTime;
 movieData.saveMovieData; %Save the new movieData to disk
 

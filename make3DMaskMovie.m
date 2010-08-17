@@ -39,71 +39,75 @@ if nargin < 2 || isempty(iChan)
 end
 
 %Check for existing seg processes
-iSegProc = cellfun(@(x)(isa(x,'SegmentationProcess3D')),movieData.processes_);
+iSegProc = movieData.getProcessIndex('SegmentationProcess3D',1,1);
 
 if isempty(iSegProc)
     error('The movie has not been segmented! Please segment movie first!')
 end
 
 if ~movieData.processes_{iSegProc}.checkChannelOutput(iChan);
-    error('The selected channel does not have valid masks! Check specified channel!')
+     error('The selected channel does not have valid masks! Check specified channel!')
 end
 
 %% ----- Init ----- %%
 
 
 %Get the mask and image file names
-maskFiles = movieData.processes_{iSegProc}.getMaskFileNames(iChan);
-maskDir = movieData.processes_{iSegProc}.maskPaths_{iChan};
+maskFiles = movieData.processes_{iSegProc}.getOutMaskFileNames(iChan);
+maskDir = movieData.processes_{iSegProc}.outMaskPaths_{iChan};
 imageFiles = movieData.getImageFileNames(iChan);
-imageDir = movieData.channelPath_{iChan};
+imageDir = movieData.getChannelPaths(iChan);
 
 
 %% ---- Make the movie ----- %%
 
 nImages = movieData.nFrames_;
 
+fig = fsFigure(.75);
 
 for iImage = 1:nImages;
    
     clf    
     
     %Load image & mask for this timepoint
-    currIm = double(stackRead([imageDir filesep imageFiles{1}{iImage}]));    
+    currIm = double(stackRead([imageDir{1} filesep imageFiles{1}{iImage}]));    
     currMask = tif3Dread([maskDir filesep maskFiles{1}{iImage}]);
     
-    %Normalize the image
-%     currIm = currIm - min(currIm(:));
-%     currIm = currIm * round((2^16 ./ max(currIm(:))));
-%     currIm = uint16(currIm);
-%         
     
-    %Display the image
-    subplot(1,2,1)
+    %Sub-sample so I can graduate
+%     currIm = currIm(:,[1:2:end],:);
+%     currIm = currIm([1:2:end],:,:);
+%     currMask = currMask(:,[1:2:end],:);
+%     currMask = currMask([1:2:end],:,:);
+    
+    %Display the image    
     viewStack(currIm)            
-    
-    %set the alpha axis 
+    view(-10,60)
+    %Leave axis on four bounding box but turn ticks off
+    set(gca,'XTick',[]);
+    set(gca,'YTick',[]);
+    set(gca,'ZTick',[]);
+
+    %set the alpha axis to allow some display saturation
     %This formula is completely arbitrary, and just happens to work
     %okay with my data....!!
-    alim([median(currIm(:)) max(currIm(:))])        
-    
-    subplot(1,2,2)
-    viewStack(currIm)               
-    alim([median(currIm(:)) max(currIm(:))])
-    
+    %if iImage == 1;
+    alim([median(currIm(:)) max(currIm(:))/1.5])        
+    %end
+
     
     %Overlay the mask
     maskSurf = isosurface(currMask,.5); %Get the surface of the mask
-    patch(maskSurf,'EdgeColor','none','FaceColor','r','FaceAlpha',.5)
+    patch(maskSurf,'EdgeColor','r','FaceColor','none','EdgeAlpha',.025)
     maskCaps = isocaps(currMask,.5);
-    patch(maskCaps,'EdgeColor','none','FaceColor','b','FaceAlpha',.5)
-    light %Add a light    
+    patch(maskCaps,'EdgeColor','b','FaceColor','none','EdgeAlpha',.015)
+    %light %Add a light    
     
     title(['Frame ' num2str(iImage)])
     
     if iImage == 1
         MakeQTMovie('start',[movieData.outputDirectory_ filesep mvName '.mov'])
-        MakeQTMovie('quality',.9)                    
+        MakeQTMovie('quality',.95)                    
         
     end
     
@@ -112,5 +116,5 @@ for iImage = 1:nImages;
 end
 
 MakeQTMovie('finish')
-
+close(fig);
 
