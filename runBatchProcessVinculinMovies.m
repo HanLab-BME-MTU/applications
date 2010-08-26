@@ -1,6 +1,7 @@
 function runBatchProcessVinculinMovies
 
-rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
+%rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
+rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/completed/';
 
 params.pixelSize = 67;
 params.timeInterval = 10;
