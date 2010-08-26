@@ -1,4 +1,4 @@
-function makeTropoFigure3(paths, outputDirectory)
+function makeTropoFigure3(analysisPaths, outputDirectory)
 
 outputDirectory = fullfile(outputDirectory, 'Fig3');
 
@@ -6,7 +6,7 @@ if ~exist(outputDirectory,'dir')
     mkdir(outputDirectory);
 end
 
-nMovies = numel(paths);
+pathForPanelAB = {analysisPaths.ActinTM2{3}, analysisPaths.ActinTM4{1}, analysisPaths.ActinTM5{2}};
 
 % Chosen frame to display in Panel A
 iFrames = [16, 30, 42];
@@ -19,38 +19,18 @@ imagePos = [157 144; 180 67; 30 30];
 % Location of the inset in Panel A
 insetPos = [304,267; 275,167; 233 134];
 
-dataC = cell(nMovies,2);
-dataD1 = cell(nMovies,1);
-dataD2 = cell(nMovies,1);
-
-maxDist = 5000;
-
-for iTM = 1:numel(paths)
+for iTM = 1:3
     % Load Movie Data
-    fileName = [paths{iTM} filesep 'movieData.mat'];
+    fileName = fullfile(pathForPanelAB{iTM}, 'movieData.mat');
     if ~exist(fileName, 'file')
         error(['Unable to locate ' fileName]);
     end
     load(fileName);
 
-    %Verify that the labeling has been performed
-    if ~checkMovieLabels(movieData)
-        error('Must label movie before computing figure 3.');
-    end
-
-    nrows = movieData.imSize(1);
-    ncols = movieData.imSize(2);
-    nFrames = movieData.labels.nFrames;
-    pixelSize = movieData.pixelSize_nm;
-    
     % Read the list of mask files
     maskPath = movieData.masks.directory;
     maskFiles = dir([maskPath filesep '*.tif']);
     
-    % Read the list of label files
-    labelPath = movieData.labels.directory;
-    labelFiles = dir([labelPath filesep '*.tif']);
-
     % Read the list of TMs speckles (channel 1)
     s1Path = fullfile(movieData.fsmDirectory{1}, 'tack', 'locMax');
     s1Files = dir([s1Path filesep '*.mat']);
@@ -66,23 +46,7 @@ for iTM = 1:numel(paths)
     % Read the list of Actin images (channel 2)
     image2Path = fullfile(movieData.fsmDirectory{2}, 'crop');
     image2Files = dir([image2Path filesep '*.tif']);
-    
-    % Read the list of distance transforms
-    bwdistPath = movieData.bwdist.directory;
-    bwdistFiles = dir([bwdistPath filesep '*.mat']);
-
-    % Load activity map
-    fileName = fullfile(movieData.protrusion.directory,...
-        movieData.protrusion.samples.fileName);
-    if ~exist(fileName, 'file')
-        error(['Unable to locate ' fileName]);
-    end
-    load(fileName);
-    v = sort(protrusionSamples.averageMagnitude(:));
-    val = v(ceil(.01 * numel(v)));
-    protMask = protrusionSamples.averageNormalComponent > val;
-    retMask = protrusionSamples.averageNormalComponent < -val;
-    
+        
     yRange = imagePos(iTM,1):imagePos(iTM,1)+imageSize(1)-1;
     xRange = imagePos(iTM,2):imagePos(iTM,2)+imageSize(2)-1;
     
@@ -153,6 +117,9 @@ for iTM = 1:numel(paths)
     
     % Save
     hFig = figure('Visible', 'off');
+    % Set a black frame on the image
+    BWima(:,[1,end]) = false;
+    BWima([1,end],:) = false;    
     imshow(BWima,[]); hold on;
     [y x] = ind2sub(size(BWima), idxLoc1);    
     line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',6);
@@ -192,109 +159,178 @@ for iTM = 1:numel(paths)
     BWinset([1,end],:) = false;
     imshow(BWinset,[]); hold on;
     [y x] = ind2sub(size(BWinset), idxLoc1);    
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',6);
+    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',12);
     % Drw Actin speckles
     [y x] = ind2sub(size(BWinset), idxLoc2);
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',6);
+    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',12);
     fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '3.eps']);
     print(hFig, '-depsc' , '-painters', fileName);
     % Close the figure
     close(hFig);
-    
-    %-----------------------------------------------------------%
-    %                                                           %
-    %                    DATA FOR PANEL C                       %
-    %                                                           %
-    %-----------------------------------------------------------%
+end
 
-    % Read distance transforms
-    distToEdge = zeros(nrows,ncols,nFrames);
-    
-    for iFrame = 1:nFrames
-        fileName = fullfile(bwdistPath, bwdistFiles(iFrame).name);
-        tmp = load(fileName);
-        distToEdge(:,:,iFrame) = tmp.distToEdge * pixelSize;
-    end
-    
-    for iFrame = 1:nFrames-1    
-        % Load label
-        L = imread(fullfile(labelPath, labelFiles(iFrame).name));
-        
-        % Load TM speckles (channel 1)
-        load(fullfile(s1Path, s1Files(iFrame).name));
-        locMax1 = locMax;
-        
-        % Load Actin speckles (channel 2)
-        load(fullfile(s2Path, s2Files(iFrame).name));
-        locMax2 = locMax;
-        
-        % Convert the distance transform in nanometers
-        distToEdgeFrame = distToEdge(:,:,iFrame);
-    
-        % Restrinct locMax to the first maxDist nanometer
-        outsideBand = distToEdgeFrame > maxDist;
-        locMax1(outsideBand) = 0;
-        locMax2(outsideBand) = 0;
-                
-        Lprot = ismember(L, find(protMask(:, iFrame) == 1));
-        
-        idxS1 = locMax1 ~= 0 & Lprot;
-        idxS2 = locMax2 ~= 0 & Lprot;
+names = fieldnames(analysisPaths);
+paths = cellfun(@(x) analysisPaths.(x), names, 'UniformOutput',false);
+nMovies = cellfun(@numel, paths);
 
-        if any(idxS1(:)) && any(idxS2(:))
-            dataC{iTM,1} = cat(1, dataC{iTM,1}, mean(distToEdgeFrame(idxS1)) - ...
-                mean(distToEdgeFrame(idxS2)));
+dataC1 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
+dataC2 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
+dataD1 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
+dataD2 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
+
+maxDist = 5000;
+
+for iTM = 1:numel(names)
+    
+    for iMovie = 1:nMovies(iTM)
+        % Load Movie Data
+        fileName = fullfile(paths{iTM}{iMovie}, 'movieData.mat');
+        if ~exist(fileName, 'file')
+            error(['Unable to locate ' fileName]);
+        end
+        load(fileName);
+        
+        %Verify that the labeling has been performed
+        if ~checkMovieLabels(movieData)
+            error('Must label movie before computing figure 3.');
         end
         
-        Lret = ismember(L, find(retMask(:, iFrame) == 1));
+        nrows = movieData.imSize(1);
+        ncols = movieData.imSize(2);
+        nFrames = movieData.labels.nFrames;
+        pixelSize = movieData.pixelSize_nm;
         
-        idxS1 = locMax1 ~= 0 & Lret;
-        idxS2 = locMax2 ~= 0 & Lret;
+        % Read the list of TMs speckles (channel 1)
+        s1Path = fullfile(movieData.fsmDirectory{1}, 'tack', 'locMax');
+        s1Files = dir([s1Path filesep '*.mat']);
+
+        % Read the list of Actin speckles (channel 2)
+        s2Path = fullfile(movieData.fsmDirectory{2}, 'tack', 'locMax');
+        s2Files = dir([s2Path filesep '*.mat']);
+
+        % Read the list of label files
+        labelPath = movieData.labels.directory;
+        labelFiles = dir([labelPath filesep '*.tif']);
         
-        if any(idxS1(:)) && any(idxS2(:))
-            dataC{iTM,2} = cat(1, dataC{iTM,2}, mean(distToEdgeFrame(idxS1)) - ...
-                mean(distToEdgeFrame(idxS2)));
+        % Read the list of distance transforms
+        bwdistPath = movieData.bwdist.directory;
+        bwdistFiles = dir([bwdistPath filesep '*.mat']);
+        
+        % Load activity map
+        fileName = fullfile(movieData.protrusion.directory,...
+            movieData.protrusion.samples.fileName);
+        if ~exist(fileName, 'file')
+            error(['Unable to locate ' fileName]);
         end
-    end
-    
-    %-----------------------------------------------------------%
-    %                                                           %
-    %                    DATA FOR PANEL D                       %
-    %                                                           %
-    %-----------------------------------------------------------%
+        load(fileName);
+        v = sort(protrusionSamples.averageMagnitude(:));
+        val = v(ceil(.01 * numel(v)));
+        protMask = protrusionSamples.averageNormalComponent > val;
+        retMask = protrusionSamples.averageNormalComponent < -val;
+        
+        %-----------------------------------------------------------%
+        %                                                           %
+        %                    DATA FOR PANEL C                       %
+        %                                                           %
+        %-----------------------------------------------------------%
+        
+        % Read distance transforms
+        distToEdge = zeros(nrows,ncols,nFrames);
+        
+        for iFrame = 1:nFrames
+            fileName = fullfile(bwdistPath, bwdistFiles(iFrame).name);
+            tmp = load(fileName);
+            distToEdge(:,:,iFrame) = tmp.distToEdge * pixelSize;
+        end
+        
+        tmp1 = cell(nFrames-1,1);
+        tmp2 = cell(nFrames-1,1);
+        
+        for iFrame = 1:nFrames-1
+            % Load label
+            L = imread(fullfile(labelPath, labelFiles(iFrame).name));
+            
+            % Load TM speckles (channel 1)
+            load(fullfile(s1Path, s1Files(iFrame).name));
+            locMax1 = locMax;
+            
+            % Load Actin speckles (channel 2)
+            load(fullfile(s2Path, s2Files(iFrame).name));
+            locMax2 = locMax;
+            
+            % Convert the distance transform in nanometers
+            distToEdgeFrame = distToEdge(:,:,iFrame);
+            
+            % Restrinct locMax to the first maxDist nanometer
+            outsideBand = distToEdgeFrame > maxDist;
+            locMax1(outsideBand) = 0;
+            locMax2(outsideBand) = 0;
+            
+            Lprot = ismember(L, find(protMask(:, iFrame) == 1));
+            
+            idxS1 = locMax1 ~= 0 & Lprot;
+            idxS2 = locMax2 ~= 0 & Lprot;
+            
+            if any(idxS1(:)) && any(idxS2(:))
+                tmp1{iFrame} = mean(distToEdgeFrame(idxS1)) - ...
+                    mean(distToEdgeFrame(idxS2));
+            end
+            
+            Lret = ismember(L, find(retMask(:, iFrame) == 1));
+            
+            idxS1 = locMax1 ~= 0 & Lret;
+            idxS2 = locMax2 ~= 0 & Lret;
+            
+            if any(idxS1(:)) && any(idxS2(:))
+                tmp2{iFrame} = mean(distToEdgeFrame(idxS1)) - ...
+                    mean(distToEdgeFrame(idxS2));
+            end
+        end
 
-    % Load density scores
-    load(fullfile(movieData.density.directory, movieData.density.channelDirectory{1}, 'densityScores.mat'));
-    
-    distFromEdge = vertcat(densityScores(:).distFromEdge) * pixelSize; %#ok<NODEF>
-    averageDensity = vertcat(densityScores(:).averageDensity) * (pixelSize/1000)^-2; % in um-2
-    protrusionState = vertcat(densityScores(:).protrusionState);
-    %protrusionPersistence = vertcat(densityScores(:).protrusionPersistence);
-    %protrusionSpeed = abs(vertcat(densityScores(:).protrusionSpeed) * pixelSize / timeInterval);
-
-    %
-    % Data for Panel D1
-    %
-    
-    maxDistFromEdge = min(15000,max(distFromEdge));    
-    dist = 0:500:maxDistFromEdge;
-    
-    dataD1{iTM} = zeros(numel(dist)-1,1);
-
-    for i = 1:numel(dist)-1
-        dataD1{iTM}(i) = ...
-            mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 2));
-    end
-    
-    %
-    % Data for Panel D2
-    %
-
-    dataD2{iTM} = zeros(numel(dist)-1,1);
-    
-    for i = 1:numel(dist)-1
-        dataD2{iTM}(i) = ...
-            mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 3));
+        dataC1{iTM}{iMovie} = vertcat(tmp1{:});
+        dataC2{iTM}{iMovie} = vertcat(tmp2{:});
+        
+        %-----------------------------------------------------------%
+        %                                                           %
+        %                    DATA FOR PANEL D                       %
+        %                                                           %
+        %-----------------------------------------------------------%
+        
+        % Load density scores
+        load(fullfile(movieData.density.directory, movieData.density.channelDirectory{1}, 'densityScores.mat'));
+        
+        distFromEdge = vertcat(densityScores(:).distFromEdge) * pixelSize; %#ok<NODEF>
+        averageDensity = vertcat(densityScores(:).averageDensity) * (pixelSize/1000)^-2; % in um-2
+        protrusionState = vertcat(densityScores(:).protrusionState);
+        
+        %
+        % Data for Panel D1
+        %
+        
+        maxDistFromEdge = min(15000,max(distFromEdge));
+        dist = 0:500:maxDistFromEdge;
+        
+        tmp = zeros(numel(dist)-1,1);
+        
+        for i = 1:numel(dist)-1
+            tmp(i) = ...
+                mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 2));
+        end
+        
+        dataD1{iTM}{iMovie} = tmp;
+        
+        %
+        % Data for Panel D2
+        %
+        
+        tmp = zeros(numel(dist)-1,1);
+        
+        for i = 1:numel(dist)-1
+            tmp(i) = ...
+                mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 3));
+        end
+        
+        dataD2{iTM}{iMovie} = tmp;
     end
 end
 
@@ -316,8 +352,12 @@ colors = [
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
 set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
-mu = cellfun(@mean, dataC);
-sigma = cellfun(@std, dataC);
+
+mu1 = cellfun(@(x) cellfun(@mean, x), dataC1,'UniformOutput',false);
+mu2 = cellfun(@(x) cellfun(@mean, x), dataC2,'UniformOutput',false);
+
+mu = [cellfun(@mean,mu1) cellfun(@mean,mu2)];
+sigma = [cellfun(@std,mu1) cellfun(@std,mu2)]
 h = bar(gca, mu', 'group'); hold on;
 
 XTicks = zeros(size(mu));

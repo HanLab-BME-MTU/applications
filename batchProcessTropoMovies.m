@@ -277,14 +277,14 @@ end
 pathForFigures = {analysisPaths.ActinTM2{3}, analysisPaths.ActinTM4{1}, analysisPaths.ActinTM5{2}};
 
 % Figure 3: TM localization (distance to front + density)
-%disp('Make figure 3...');
-%makeTropoFigure3(pathForFigures, outputDirectory);
+disp('Make figure 3...');
+makeTropoFigure3(analysisPaths, outputDirectory);
 
 % Figure 4: TM lifetime
 %disp('Make figure 4...');
 %makeTropoFigure4(pathForFigures, outputDirectory);
 
 % Figure 5: TM-Actin speed correlation
-disp('Make figure 5...');
-makeTropoFigure5(pathForFigures, outputDirectory);
+%disp('Make figure 5...');
+%makeTropoFigure5(pathForFigures, outputDirectory);
 
