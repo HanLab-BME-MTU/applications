@@ -55,9 +55,10 @@ for i = 1:numel(newProjDirList)
     load(filename);
     projDir = projSettings.projDir;
     
-    if strcmp(projDir, newProjDir)
-        continue;
-    end
+    % TODO: enable this after the 2 FIXMEs are done.
+%     if strcmp(projDir, newProjDir)
+%         continue;
+%     end
     
     createdOnLinux = ~isempty(projSettings.unix_imgDirList);
     createdOnWindows = ~isempty(projSettings.win_imgDirList);
@@ -96,11 +97,18 @@ for i = 1:numel(newProjDirList)
     % folder of projDir.
     if isempty(projSubDir)
         newImgDirList = [newProjDir imgSubDir];
+        
+        % FIXME: check whether newImgDirList does exist. If no ask user to
+        % enter a new directory starting from newProjDir.
+        
     else
         % Second case: fsmCenter project and images are in 2 different
         % directories but have a common parent folder.
         ind = strfind(newProjDir, projSubDir);
         newImgDirList = [newProjDir(1:ind-1) imgSubDir];
+        
+        % FIXME: check whether newImgDirList does exist. If no ask user to
+        % enter a new directory starting from newProjDir.
     end
     
     % update projSettings.*_imgDirList

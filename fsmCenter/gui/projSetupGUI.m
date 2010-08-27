@@ -733,8 +733,7 @@ if ~isempty(imgDirList)
 end
 
 [firstImgFileName pathName filterIndex] = uigetfile( ...
-   {'*.tif;*.gif;*.jpg;*.png;*.TIF', ...
-   'Image Files (*.tif,*.gif,*.jpg,*.png)';
+   {'*.tif;*.TIF;*.gif;*.jpg;*.png','Image Files (*.tif,*.gif,*.jpg,*.png)';
    '*.tif','TIFF files (*.tif)';
    '*.gif','GIF files (*.gif)';
    '*.jpg','JPEG files (*.jpg)';
