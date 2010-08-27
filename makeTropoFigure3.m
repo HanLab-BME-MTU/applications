@@ -19,6 +19,9 @@ imagePos = [157 144; 180 67; 30 30];
 % Location of the inset in Panel A
 insetPos = [304,267; 275,167; 233 134];
 
+% Color of inset frame
+insetFrameColor = [.798 .057 .259];
+
 for iTM = 1:3
     % Load Movie Data
     fileName = fullfile(pathForPanelAB{iTM}, 'movieData.mat');
@@ -86,8 +89,24 @@ for iTM = 1:3
     % Merge (Panel A, row 3)
     C = cat(3,I2, I1, zeros(size(I1)));
     % Save
-    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '3.tif']);
-    imwrite(C,fileName);
+    hFig = figure('Visible', 'off');
+    imshow(C,[]); hold on;
+    % Draw the inset box
+    p = insetPos(iTM, :) - imagePos(iTM, :);
+    line([p(2), p(2) + insetSize(2), p(2) + insetSize(2), p(2), p(2)], ...
+        [p(1), p(1), p(1) + insetSize(1), p(1) + insetSize(1), p(1)], ...
+        'Color', insetFrameColor, 'Linewidth', 2);
+    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '3.eps']);
+    print(hFig, '-depsc' , '-painters', fileName);
+    % Close the figure
+    close(hFig);
+    
+    % Inset of Fig3 (Panel A, row 4)
+    
+    % Crop image
+    Cinset = C(yRangeInset - yRange(1) + 1, xRangeInset - xRange(1) + 1,:);
+    fileName = fullfile(outputDirectory, ['Fig3_A' num2str(iTM) '4.tif']);
+    imwrite(Cinset,fileName);
     
     %-----------------------------------------------------------------%
     %                                                                 %
@@ -122,28 +141,21 @@ for iTM = 1:3
     BWima([1,end],:) = false;    
     imshow(BWima,[]); hold on;
     [y x] = ind2sub(size(BWima), idxLoc1);    
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',6);
+    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',12);
     % Draw Actin speckles
     [y x] = ind2sub(size(BWima), idxLoc2);
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',6);
+    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',12);
     % Draw the inset box
     p = insetPos(iTM, :) - imagePos(iTM, :);
     line([p(2), p(2) + insetSize(2), p(2) + insetSize(2), p(2), p(2)], ...
         [p(1), p(1), p(1) + insetSize(1), p(1) + insetSize(1), p(1)], ...
-        'Color', 'y', 'Linewidth', 2);
+        'Color', insetFrameColor, 'Linewidth', 2);
     fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '1.eps']);
     print(hFig, '-depsc' , '-painters', fileName);
     % Close the figure
     close(hFig);
        
-    % Inset of Fig3 B.3 (Panel B, row 2)
-    
-    % Crop image
-    Cinset = C(yRangeInset - yRange(1) + 1, xRangeInset - xRange(1) + 1,:);
-    fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '2.tif']);
-    imwrite(Cinset,fileName);
-    
-    % Inset of Fig3 B.4 (Panel B, row 3)
+    % Inset (Panel B, row 2)
 
     % Crop mask
     BWinset = BW(yRangeInset, xRangeInset);
@@ -159,11 +171,11 @@ for iTM = 1:3
     BWinset([1,end],:) = false;
     imshow(BWinset,[]); hold on;
     [y x] = ind2sub(size(BWinset), idxLoc1);    
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',12);
+    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',15);
     % Drw Actin speckles
     [y x] = ind2sub(size(BWinset), idxLoc2);
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',12);
-    fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '3.eps']);
+    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',15);
+    fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '2.eps']);
     print(hFig, '-depsc' , '-painters', fileName);
     % Close the figure
     close(hFig);
@@ -173,12 +185,15 @@ names = fieldnames(analysisPaths);
 paths = cellfun(@(x) analysisPaths.(x), names, 'UniformOutput',false);
 nMovies = cellfun(@numel, paths);
 
-dataC1 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
-dataC2 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
 dataD1 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
 dataD2 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
 
+dataE1 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
+dataE2 = arrayfun(@(x) cell(x,1), nMovies, 'UniformOutput',false);
+
 maxDist = 5000;
+
+maxDistFromEdge = [];
 
 for iTM = 1:numel(names)
     
@@ -230,7 +245,7 @@ for iTM = 1:numel(names)
         
         %-----------------------------------------------------------%
         %                                                           %
-        %                    DATA FOR PANEL C                       %
+        %                   DATA FOR PANELS C and D                 %
         %                                                           %
         %-----------------------------------------------------------%
         
@@ -287,12 +302,12 @@ for iTM = 1:numel(names)
             end
         end
 
-        dataC1{iTM}{iMovie} = vertcat(tmp1{:});
-        dataC2{iTM}{iMovie} = vertcat(tmp2{:});
+        dataD1{iTM}{iMovie} = vertcat(tmp1{:});
+        dataD2{iTM}{iMovie} = vertcat(tmp2{:});
         
         %-----------------------------------------------------------%
         %                                                           %
-        %                    DATA FOR PANEL D                       %
+        %                    DATA FOR PANEL E                       %
         %                                                           %
         %-----------------------------------------------------------%
         
@@ -304,10 +319,10 @@ for iTM = 1:numel(names)
         protrusionState = vertcat(densityScores(:).protrusionState);
         
         %
-        % Data for Panel D1
+        % Data for Panel E1
         %
         
-        maxDistFromEdge = min(15000,max(distFromEdge));
+        maxDistFromEdge = min([15000,max(distFromEdge), maxDistFromEdge]);
         dist = 0:500:maxDistFromEdge;
         
         tmp = zeros(numel(dist)-1,1);
@@ -317,10 +332,10 @@ for iTM = 1:numel(names)
                 mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 2));
         end
         
-        dataD1{iTM}{iMovie} = tmp;
+        dataE1{iTM}{iMovie} = tmp;
         
         %
-        % Data for Panel D2
+        % Data for Panel E2
         %
         
         tmp = zeros(numel(dist)-1,1);
@@ -330,34 +345,103 @@ for iTM = 1:numel(names)
                 mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 3));
         end
         
-        dataD2{iTM}{iMovie} = tmp;
+        dataE2{iTM}{iMovie} = tmp;
     end
 end
 
+colors = [
+   0.290000000000000   0.617000000000000   0.547000000000000;
+   0.360000000000000   0.630000000000000   0.900000000000000;
+   0.060000000000000   0.330000000000000   0.600000000000000;
+   0.000000000000000   0.000000000000000   0.000000000000000
+   0.000000000000000   0.000000000000000   0.000000000000000
+   0.000000000000000   0.000000000000000   0.000000000000000];
+
 %-----------------------------------------------------------------%
 %                                                                 %
-%                          FIGURE 3 PANEL C                       %
+%                          FIGURE 3 PANEL C1                      %
 %                                                                 %
 %-----------------------------------------------------------------% 
 
-colors = [
-   0.983333333333333   1.000000000000000   0.800000000000000;
-   0.360000000000000   0.630000000000000   0.900000000000000;
-   0.060000000000000   0.330000000000000   0.600000000000000;
-   0.700000000000000   0.245000000000000   0.245000000000000;
-   0.550000000000000                   0                   0;
-   0.250000000000000                   0                   0; ];
+hFig = figure('Visible', 'off');
+set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
+set(gcf, 'Position', [680 600 560 400], 'PaperPositionMode', 'auto');
 
+x = -500:100:1000;
+n = cellfun(@(Y) hist(Y{1}, x), dataD1, 'UniformOutput', false);
+n = cell2mat(cellfun(@(x) x / sum(x), n, 'UniformOutput', false));
+
+for iTM = 1:3
+    bar(x,n(iTM,:),'FaceColor',colors(iTM,:)); hold on;
+end
+hold off;
+
+hC = get(gca,'Children');
+
+for i = 1:numel(hC)
+    set(hC(i),'barWidth',1);
+    set(hC(i),'FaceColor',colors(i,:));
+end
+
+legend({'TM2', 'TM4', 'TM5NM1'}); legend('boxoff');
+xlabel('Distance to Actin Front (nm)');
+title('During Protrusion');
+
+fileName = [outputDirectory filesep 'Fig3_C1.eps'];
+print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
+close(hFig);
+
+%-----------------------------------------------------------------%
+%                                                                 %
+%                          FIGURE 3 PANEL C2                      %
+%                                                                 %
+%-----------------------------------------------------------------% 
+
+hFig = figure('Visible', 'off');
+set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
+set(gcf, 'Position', [680 600 560 400], 'PaperPositionMode', 'auto');
+
+x = -500:100:1000;
+n = cellfun(@(Y) hist(Y{1}, x), dataD2, 'UniformOutput', false);
+n = cell2mat(cellfun(@(x) x / sum(x), n, 'UniformOutput', false));
+
+for iTM = 1:3
+    bar(x,n(iTM,:),'FaceColor',colors(iTM,:)); hold on;
+end
+hold off;
+
+hC = get(gca,'Children');
+
+for i = 1:numel(hC)
+    set(hC(i),'barWidth',1);
+    set(hC(i),'FaceColor',colors(i,:));
+end
+
+legend({'TM2', 'TM4', 'TM5NM1'}); legend('boxoff');
+xlabel('Distance to Actin Front (nm)');
+title('During Retraction');
+
+fileName = [outputDirectory filesep 'Fig3_C2.eps'];
+print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
+close(hFig);
+
+%-----------------------------------------------------------------%
+%                                                                 %
+%                          FIGURE 3 PANEL D                       %
+%                                                                 %
+%-----------------------------------------------------------------% 
 
 hFig = figure('Visible', 'off');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
 set(gcf, 'Position', [680 678 560 400], 'PaperPositionMode', 'auto');
 
-mu1 = cellfun(@(x) cellfun(@mean, x), dataC1,'UniformOutput',false);
-mu2 = cellfun(@(x) cellfun(@mean, x), dataC2,'UniformOutput',false);
+mu1 = cellfun(@(x) cellfun(@mean, x), dataD1,'UniformOutput',false);
+mu2 = cellfun(@(x) cellfun(@mean, x), dataD2,'UniformOutput',false);
 
 mu = [cellfun(@mean,mu1) cellfun(@mean,mu2)];
-sigma = [cellfun(@std,mu1) cellfun(@std,mu2)]
+sigma = [cellfun(@std,mu1) cellfun(@std,mu2)];
 h = bar(gca, mu', 'group'); hold on;
 
 XTicks = zeros(size(mu));
@@ -382,33 +466,47 @@ for i=1:numel(hC)
     set(hCC,'FaceColor', colors(numel(hC) - i + 1,:));
 end
 
-fileName = [outputDirectory filesep 'Fig3_C.eps'];
+fileName = [outputDirectory filesep 'Fig3_D.eps'];
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);
 close(hFig);
    
 %-----------------------------------------------------------------%
 %                                                                 %
-%                          FIGURE 3 PANEL D                       %
+%                          FIGURE 3 PANEL E                       %
 %                                                                 %
 %-----------------------------------------------------------------% 
 
 %
-% Panel D1
+% Panel E1
 %
 
 % convert dist in microns:
 dist = dist / 1000;
 
 hFig = figure('Visible', 'off');
-set(gca,'XTick',dist(1:4:end-1));
 set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
 set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
 
-averageDensityTotal = horzcat(dataD1{:});
+mu = zeros(numel(dist)-1,3);
+sigma = zeros(numel(dist)-1,3);
+
+for iTM = 1:3
+    tmp = cell2mat(cellfun(@(x) x(1:numel(dist)-1), dataE1{iTM}, 'UniformOutput',false)');
+    
+    mu(:,iTM) = mean(tmp,2);
+    sigma(:,iTM) = std(tmp,[],2);
+end
 
 % plot x axis in um
-h = line(dist(1:end-1), averageDensityTotal,'LineWidth',2);
+h = line(dist(1:end-1), mu,'LineWidth',1.5); hold on;
+for iTM = 1:3
+    errorbar(dist(1:2:end-1),mu(1:2:end,iTM),sigma(1:2:end,iTM),'.', 'Color', colors(iTM,:));
+end
+hold off;
+ 
+set(gca,'XTick',dist(1:4:end-1));
+set(gca,'XLim', [dist(1)-1, dist(end-1)+1]);
 
 for i=1:numel(h)
     set(h(i),'Color', colors(i,:));
@@ -426,24 +524,35 @@ end
 xlabel(['Distance away from cell edge during protrusion (' char(181) 'm)']);
 ylabel(['Speckle Density (' char(181) 'm^{-2})']);
 
-fileName = [outputDirectory filesep 'Fig3_D1.eps'];
+fileName = [outputDirectory filesep 'Fig3_E1.eps'];
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);
 close(hFig);
 
 %
-% Panel D2
+% Panel E2
 %
 
 hFig = figure('Visible', 'off');
-set(gca,'XTick',dist(1:4:end-1));
 set(gca, 'FontName', 'Helvetica', 'FontSize', 18);
 set(gcf, 'Position', [680 678 650 450], 'PaperPositionMode', 'auto');
 
-averageDensityTotal = horzcat(dataD2{:});
+for iTM = 1:3
+    tmp = cell2mat(cellfun(@(x) x(1:numel(dist)-1), dataE2{iTM}, 'UniformOutput',false)');
+    
+    mu(:,iTM) = mean(tmp,2);
+    sigma(:,iTM) = std(tmp,[],2);
+end
 
 % plot x axis in um
-h = line(dist(1:end-1), averageDensityTotal,'LineWidth',2);
+h = line(dist(1:end-1), mu,'LineWidth',1.5); hold on;
+for iTM = 1:3
+    errorbar(dist(1:2:end-1),mu(1:2:end,iTM),sigma(1:2:end,iTM),'.', 'Color', colors(iTM,:));
+end
+hold off;
+ 
+set(gca,'XTick',dist(1:4:end-1));
+set(gca,'XLim', [dist(1)-1, dist(end-1)+1]);
 
 for i=1:numel(h)
     set(h(i),'Color', colors(i,:));
@@ -461,7 +570,7 @@ end
 xlabel(['Distance away from cell edge during retraction (' char(181) 'm)']);
 ylabel(['Speckle Density (' char(181) 'm^{-2})']);
 
-fileName = [outputDirectory filesep 'Fig3_D2.eps'];
+fileName = [outputDirectory filesep 'Fig3_E2.eps'];
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);
 close(hFig);

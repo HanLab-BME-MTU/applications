@@ -1,10 +1,10 @@
 function runBatchProcessTropoMovies
 
-%dataDirectory = '/home/sb234/Projects/Tropo/Data_for_paper';
-dataDirectory = '/Volumes/Time Machine Backups/HMS/Projects/Tropo/Data_for_paper';
+dataDirectory = '/home/sb234/Projects/Tropo/Data_for_paper';
+%dataDirectory = '/Volumes/Time Machine Backups/HMS/Projects/Tropo/Data_for_paper';
 
-%analysisDirectory = '/home/sb234/Projects/Tropo/Analysis_for_paper';
-analysisDirectory = '/Volumes/Time Machine Backups/HMS/Projects/Tropo/Analysis_for_paper';
+analysisDirectory = '/home/sb234/Projects/Tropo/Analysis_for_paper';
+%analysisDirectory = '/Volumes/Time Machine Backups/HMS/Projects/Tropo/Analysis_for_paper';
 
 params.pixelSize = 67;
 params.timeInterval = 10;
