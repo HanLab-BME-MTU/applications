@@ -55,7 +55,6 @@ for i = 1:numel(newProjDirList)
     load(filename);
     projDir = projSettings.projDir;
     
-    % TODO: enable this after the 2 FIXMEs are done.
 %     if strcmp(projDir, newProjDir)
 %         continue;
 %     end
@@ -96,21 +95,47 @@ for i = 1:numel(newProjDirList)
     % First case: images are either directly inside projDir or in a sub
     % folder of projDir.
     if isempty(projSubDir)
-        newImgDirList = [newProjDir imgSubDir];
-        
-        % FIXME: check whether newImgDirList does exist. If no ask user to
-        % enter a new directory starting from newProjDir.
-        
+        newImgDirList = [newProjDir imgSubDir];        
     else
         % Second case: fsmCenter project and images are in 2 different
         % directories but have a common parent folder.
         ind = strfind(newProjDir, projSubDir);
         newImgDirList = [newProjDir(1:ind-1) imgSubDir];
-        
-        % FIXME: check whether newImgDirList does exist. If no ask user to
-        % enter a new directory starting from newProjDir.
     end
     
+    % Edit: in some very rare cases, the above strategy could fail. Here we
+    % check if newImgDirList exist and check whether firstImage exists too.
+    % If this is not the case, we search firstImage from newProjDir.
+    % Finally, if the file is not found, we ask the user to specify
+    % newImgDirList manually.
+    
+    if ~exist(newImgDirList,'dir')
+        assert(~isempty(projSettings.firstImgList));
+    
+        listOfFiles = searchFiles(projSettings.firstImgList{1},[],newProjDir);
+        
+        if isempty(listOfFiles)
+            
+            [fName,dirName] = uigetfile('*.tif','Select first image');
+            
+            if(isa(fName,'char') && isa(dirName,'char'))
+                newImgDirList = dirName;
+            end
+        else
+            list = arrayfun(@(i) fullfile(listOfFiles{i,2}, listOfFiles{i,1}), ...
+                1:size(listOfFiles,1), 'UniformOutput', false);
+            
+            selectedItem = chooseFileGUI(list);            
+            
+            if selectedItem < 1 || selectedItem > numel(list)
+                disp('Unable to locate first image (SKIP).');
+                continue;
+            end
+            
+            newImgDirList = listOfFiles{selectedItem,2};            
+        end
+    end    
+
     % update projSettings.*_imgDirList
     if ispc
         projSettings.win_imgDirList = {newImgDirList};
@@ -158,13 +183,13 @@ for i = 1:numel(newProjDirList)
     % Update edge/parameters.dat
 
     edgeSubDir = projSettings.subProjDir{4};
-    filename = [newProjDir filesep edgeSubDir filesep 'parameters.dat'];
+    filename = fullfile(newProjDir, edgeSubDir, 'parameters.dat');
 
     if ~exist(filename, 'file')
         disp('   parameters.dat does not exist (skipping).');
     else
         parameters = read_parameters(filename, 0);
-        parameters.file = [newImgDirList projSettings.firstImgList{1}];
+        parameters.file = fullfile(newImgDirList, projSettings.firstImgList{1});
         parameters.results = [newProjDir filesep edgeSubDir filesep];
         save_parameters(filename, parameters);
     end
@@ -172,7 +197,7 @@ for i = 1:numel(newProjDirList)
     % Update tack/fsmParam.mat
     
     tackSubDir = projSettings.subProjDir{1};
-    filename = [newProjDir filesep tackSubDir filesep 'fsmParam.mat'];
+    filename = fullfile(newProjDir, tackSubDir, 'fsmParam.mat');
     
     if ~exist(filename, 'file')
         disp('   fsmParam.mat does not exist (skipping).');
@@ -188,8 +213,8 @@ for i = 1:numel(newProjDirList)
         n = numel(imgDirList);
         
         if iscell(fsmParam.specific.fileList)
-            fsmParam.specific.fileList = cellfun(@(c) [newImgDirList ...
-                c(n+1:end)], fsmParam.specific.fileList,'UniformOutput',false);
+            fsmParam.specific.fileList = cellfun(@(c) fullfile(newImgDirList, ...
+                c(n+1:end)), fsmParam.specific.fileList,'UniformOutput',false);
         elseif ischar(fsmParam.specific.fileList)
             m = size(fsmParam.specific.fileList, 1);
             
@@ -204,15 +229,15 @@ for i = 1:numel(newProjDirList)
     
     % Update tack/fsmImages.mat
     
-    filename = [newProjDir filesep tackSubDir filesep 'fsmImages.mat'];
+    filename = fullfile(newProjDir, tackSubDir, 'fsmImages.mat');
     
     if ~exist(filename, 'file')
         disp('   fsmImages.mat does not exist (skipping).');
     else
         load(filename);
         n = numel(imgDirList);
-        fsmImages.firstName = [newImgDirList fsmImages.firstName(n+1:end)]; 
-        fsmImages.lastName = [newImgDirList fsmImages.lastName(n+1:end)];
+        fsmImages.firstName = fullfile(newImgDirList, fsmImages.firstName(n+1:end)); 
+        fsmImages.lastName = fullfile(newImgDirList, fsmImages.lastName(n+1:end));
         save(filename, 'fsmImages');
     end
 end
