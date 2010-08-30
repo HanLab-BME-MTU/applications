@@ -46,32 +46,50 @@ for iTM = 1:3
     % Read image
     fileName = fullfile(imagePath, imageFiles(iFrames(iTM)).name);
     I = imread(fileName);
+    
     % Read the MPM
     load(fullfile(movieData.fsmDirectory{1}, 'tack', 'mpm.mat'));
+    
     % Crop image
     I = I(yRange,xRange);
-    % Crop TM speckles
-    idxLoc1 = find(loc1(yRange,xRange) ~= 0);    
-    % Crop Actin speckles
-    idxLoc2 = find(loc2(yRange,xRange) ~= 0);
+    
+    % Extract vectors
+    subM = M(:,:,iFrames(iTM) + (-1:1)); %#ok<NODEF>
+    
+    % Central frame
+    tmp = subM(:,:,2);
+    
+    vectors = tmp(tmp(:,1) >= yRange(1) & tmp(:,1) <= yRange(end) & ...
+        tmp(:,2) >= xRange(1) & tmp(:,2) <= xRange(end),:);
+    
+    xy = vectors(:,1:2);    
+    
+    for i = [1, 3]
+        tmp = subM(:,:,i);
+        
+        vectors = cat(1, vectors, tmp(tmp(:,1) >= yRange(1) & ...
+            tmp(:,1) <= yRange(end) & tmp(:,2) >= xRange(1) & ...
+            tmp(:,2) <= xRange(end),:));
+    end
+    
+    Md = vectorFieldAdaptInterp(vectors, xy, 33, [], 'strain');
+
+    % Shift vectors
+    Md(:,[1 3]) = Md(:,[1 3]) - yRange(1) + 1;
+    Md(:,[2 4]) = Md(:,[2 4]) - xRange(1) + 1;   
     
     % Save
     hFig = figure('Visible', 'off');
-    % Set a black frame on the image
-    BWima(:,[1,end]) = false;
-    BWima([1,end],:) = false;    
-    imshow(BWima,[]); hold on;
-    [y x] = ind2sub(size(BWima), idxLoc1);    
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'g','MarkerSize',12);
-    % Draw Actin speckles
-    [y x] = ind2sub(size(BWima), idxLoc2);
-    line(x, y,'LineStyle', 'none', 'Marker', '.', 'Color', 'r','MarkerSize',12);
+
+    imshow(I,[]); hold on;
+    quiver(Md(:,2), Md(:,1), Md(:,4) - Md(:,2), Md(:,3) - Md(:,1), 3, 'Color', 'y');
+    
     % Draw the inset box
     p = insetPos(iTM, :) - imagePos(iTM, :);
     line([p(2), p(2) + insetSize(2), p(2) + insetSize(2), p(2), p(2)], ...
         [p(1), p(1), p(1) + insetSize(1), p(1) + insetSize(1), p(1)], ...
         'Color', insetFrameColor, 'Linewidth', 2);
-    fileName = fullfile(outputDirectory, ['Fig3_B' num2str(iTM) '1.eps']);
+    fileName = fullfile(outputDirectory, ['Fig4_A' num2str(iTM) '1.eps']);
     print(hFig, '-depsc' , '-painters', fileName);
     % Close the figure
     close(hFig);
