@@ -81,7 +81,7 @@ end
 p = parseProcessParams(movieData.processes_{iProc},paramsIn);
 
 %Make sure the movie has masks
-iSegProc = movieData.getProcessIndex('SegmentationProcess3D',1,p.BatchMode);
+iSegProc = movieData.getProcessIndex('SegmentationProcess3D',1,~p.BatchMode);
 
 if isempty(iSegProc)
     error('The movie must be segmented before the branches can be found!')
@@ -109,17 +109,17 @@ end
 branches = cell(1,nFrames);
 
 
-for j = 1:nFrames
+parfor j = 1:nFrames
     
     mask = tif3Dread([maskDir filesep maskNames{j}]);
     
-    branches{j} = getBranchesFromMask(mask,p.MaxRadius,p.SmoothSigma,p.IsoValue);            
+    branches{j} = getBranchesFromMask(mask,p.MaxRadius,p.SmoothSigma,p.IsoValue);             %#ok<PFOUS>
    
-    if ~p.BatchMode
-       
-        waitbar(j/nFrames,wtBar)
-        
-    end
+%     if ~p.BatchMode
+%        
+%         waitbar(j/nFrames,wtBar)
+%         
+%     end
     
     disp(['Finished frame ' num2str(j)]);
     

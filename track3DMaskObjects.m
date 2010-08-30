@@ -81,7 +81,7 @@ if numel(p.ChannelIndex)>1
 end
 
 %Make sure the movie has masks
-iSegProc = movieData.getProcessIndex('SegmentationProcess3D',1,p.BatchMode);
+iSegProc = movieData.getProcessIndex('SegmentationProcess3D',1,~p.BatchMode);
 
 if isempty(iSegProc)
     error('The movie must be segmented before the branches can be found!')
