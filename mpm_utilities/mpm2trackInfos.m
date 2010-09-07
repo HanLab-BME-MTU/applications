@@ -7,8 +7,10 @@ function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,minLifetim
 %                         It is a matrix of size NxMxT where T is the
 %                         number of frames.
 %
-% dLims:                  a vector of distances away from the cell edge.
-%                         These distances have to be ordered.
+% dLims:                  a Dx2 maxtrix of distances representing bands
+%                         away from the cell edge. For every i in 1:D,
+%                         dLims(i,1) < dLims(i,2) and dLims(i,:) <
+%                         dLims(i+1,:).
 %
 % minLifetime:            minimum number of frames a track needs to live
 %                         for. Default is 1.
@@ -19,11 +21,11 @@ function [trackInfos xMap yMap] = mpm2trackInfos(MPM,distToEdge,dLims,minLifetim
 %
 % Output values:
 %
-% tracks:                 is a cell array of size = numel(dLims)-1. Each
+% tracks:                 is a cell array of size = size(dLims,1). Each
 %                         cell element i contains a array Nx3 where N is
 %                         the number of tracks falling into a band away
-%                         from the cell edge defined by dLims(i)
-%                         dLims(i+1). Each track contains:
+%                         from the cell edge defined by dLims(i,:). Each
+%                         track contains:
 %
 %        tracks(i,1) = row index in the MPM
 %        tracks(i,2) = first frame
@@ -48,7 +50,7 @@ end
 
 [nrows ncols] = size(MPM);
 nFrames = ncols / 2;
-nBands = numel(dLims)-1;
+nBands = size(dLims,1);
 
 %% Compute the distance of each track point away from the cell edge.
 
@@ -95,8 +97,8 @@ for iFrame = 1:nFrames
     for iBand = 1:nBands
         % accumulate iBand
         inBand(idxLive,iBand) = inBand(idxLive,iBand) | ...
-            trackDistPoints(idxLive,iFrame) >= dLims(iBand) & ...
-            trackDistPoints(idxLive,iFrame) <= dLims(iBand+1);
+            trackDistPoints(idxLive,iFrame) >= dLims(iBand,1) & ...
+            trackDistPoints(idxLive,iFrame) <= dLims(iBand,2);
         
         % Indices to Keep
         ind2keep = ~trackMask(:,iFrame) & accu >= minLifetime & inBand(:,iBand);
