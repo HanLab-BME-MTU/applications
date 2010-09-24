@@ -22,7 +22,7 @@ function varargout = trackDisplay_GUI(varargin)
 
 % Edit the above text to modify the response to help trackDisplay_GUI
 
-% Last Modified by GUIDE v2.5 23-Sep-2010 23:37:46
+% Last Modified by GUIDE v2.5 24-Sep-2010 00:03:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -332,11 +332,37 @@ xlim(handles.('axes3'), [0 handles.data.movieLength]);
 legend(handles.('axes3'), 'Amplitude', 'Background');
 
 
-% --- Executes on button press in pushbutton2.
-function pushbutton2_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton2 (see GCBO)
+% --- Executes on button press in montageButton.
+function montageButton_Callback(hObject, eventdata, handles)
+% hObject    handle to montageButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
-
+if ~isempty(handles.selectedTrack)
+    tracks = handles.('tracks');
+    t = tracks(handles.selectedTrack);
+    % load all visible frames of this track and store
+    
+    tifFiles = dir([handles.data.source '*.tif*']);
+    
+    % buffer with 5 frames before and after
+    buffer = 5;
+    bStart = t.start - max(1, t.start-buffer);
+    bEnd = min(handles.data.movieLength, t.end+buffer) - t.end;
+    
+    xi = round(t.x);
+    yi = round(t.y);
+    xi = [xi(1)*ones(1,bStart) xi xi(end)*ones(1,bEnd)];
+    yi = [yi(1)*ones(1,bStart) yi yi(end)*ones(1,bEnd)];
+    
+    tifFiles = tifFiles(t.start-bStart:t.end+bEnd);
+    nf = length(tifFiles);
+    sigma = 1.628;
+    w = ceil(4*sigma);
+    window = cell(1,nf);
+    for k = 1:nf
+        frame = imread([handles.data.source tifFiles(k).name]);
+        window{k} = frame(yi(k)-w:yi(k)+w, xi(k)-w:xi(k)+w);
+    end
+    montagePlot(window, 12)
+end
