@@ -22,7 +22,7 @@ function varargout = trackDisplay_GUI(varargin)
 
 % Edit the above text to modify the response to help trackDisplay_GUI
 
-% Last Modified by GUIDE v2.5 22-Sep-2010 11:18:58
+% Last Modified by GUIDE v2.5 23-Sep-2010 23:37:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -79,6 +79,8 @@ load([data.source 'Detection' filesep 'detectionResults.mat']);
 handles.detection = frameInfo;
 
 handles.visibleIdx = [];
+handles.selectedTrack = [];
+
 
 
 % Update handles structure
@@ -100,6 +102,9 @@ imagesc(mask, 'Parent', handles.('axes2'));
 colormap(gray(256));
 linkaxes([handles.('axes1') handles.('axes2')]);
 axis([handles.('axes1') handles.('axes2')],'image');
+
+axis(handles.('axes3'), [0 handles.data.movieLength 0 1]);
+
 
 % UIWAIT makes trackDisplay_GUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -169,16 +174,17 @@ cmap = jet(301);
 % 
 % 
 
-% axes(handles.('axes1'));
+
 imagesc(frame, 'Parent', handles.('axes1'));
 axis(handles.('axes1'),'image');
+ 
 
-hold(handles.('axes1'), 'on');
-for k = idx
-    fi = 1:f-tracks(k).start+1;
-    plot(tracks(k).x(fi), tracks(k).y(fi), '-', 'Color', cmap(tracks(k).lifetime,:));
-end
-hold(handles.('axes1'), 'off');
+% hold(handles.('axes1'), 'on');
+% for k = idx
+%     fi = 1:f-tracks(k).start+1;
+%     plot(tracks(k).x(fi), tracks(k).y(fi), '-', 'Color', cmap(tracks(k).lifetime,:));
+% end
+% hold(handles.('axes1'), 'off');
 
 
 % axes(handles.('axes2'));
@@ -200,12 +206,26 @@ if isfield(handles, 'tracks2')
     end
 end
 
+% plot selected track marker
+if ~isempty(handles.selectedTrack)
+    t = tracks(handles.selectedTrack);
+    ci = f-t.start+1;
+    if 1 <= ci && ci <= t.lifetime
+        plot(handles.('axes2'), t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
+    end
+end
+
+% show detection COM values
 if get(handles.('checkbox1'), 'Value')
     detection = handles.('detection');
     plot(handles.('axes2'), detection(f).xcom, detection(f).ycom, 'x', 'Color', hsv2rgb([120/360 0.5 0.5]));
 end
 hold(handles.('axes2'), 'off');
 
+% frame indicator
+% ybounds = get(handles.('axes3'), 'YLim');
+% axis(handles.('axes3'), [0 handles.data.movieLength ybounds(1) ybounds(2)]);
+% plot(handles.('axes3'), [f ybounds(1)], [f ybounds(2)], 'k--');
 
 % write zoom level
 set(haxes, 'XLim', XLim);
@@ -252,7 +272,7 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 
 % set focus for next input
 axes(handles.('axes1')); % linked to axes2, selection possible in both
-[x,y] = ginput(1)
+[x,y] = ginput(1);
 
 
 
@@ -285,18 +305,22 @@ minIdx = d==min(d);
 % mu_x(idx)
 % mu_y(idx)
 
-% plot selected tracks
-h = handles.('axes2');
-hold(h, 'on');
-plot(h, mu_x, mu_y, 'yo');
-plot(h, tracks(idx(minIdx)).x(fi), tracks(idx(minIdx)).y(fi), 'ro', 'MarkerSize', 15);
-hold(h, 'off');
+handles.selectedTrack = idx(minIdx);
+guidata(hObject,handles);
+refreshDisplay(hObject, handles);
 
 
+% % plot selected tracks
+% h = handles.('axes2');
+% hold(h, 'on');
+% % plot(h, mu_x, mu_y, 'yo');
+% plot(h, tracks(idx(minIdx)).x(fi), tracks(idx(minIdx)).y(fi), 'ro', 'MarkerSize', 15);
+% hold(h, 'off');
 
+sigma = 1.628;
 h = handles.('axes3');
 hold(h, 'off');
-plot(h, tracks(idx(minIdx)).t, tracks(idx(minIdx)).I, 'r');
+plot(h, tracks(idx(minIdx)).t, tracks(idx(minIdx)).I/(2*pi*sigma^2) + tracks(idx(minIdx)).c, 'r');
 hold(h, 'on');
 plot(h, tracks(idx(minIdx)).t, tracks(idx(minIdx)).c, 'k');
 
@@ -305,7 +329,14 @@ plot(h, tracks(idx(minIdx)).t, tracks(idx(minIdx)).c, 'k');
 % tracks(idx).t
 
 xlim(handles.('axes3'), [0 handles.data.movieLength]);
-legend(handles.('axes3'), 'Intensity');
+legend(handles.('axes3'), 'Amplitude', 'Background');
+
+
+% --- Executes on button press in pushbutton2.
+function pushbutton2_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
 
 
