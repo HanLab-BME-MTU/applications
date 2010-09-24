@@ -22,7 +22,7 @@ function varargout = trackDisplay_GUI(varargin)
 
 % Edit the above text to modify the response to help trackDisplay_GUI
 
-% Last Modified by GUIDE v2.5 24-Sep-2010 00:03:35
+% Last Modified by GUIDE v2.5 24-Sep-2010 00:46:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -54,12 +54,22 @@ function trackDisplay_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
 
 data = varargin{1};
 
-frames = dir([data.source '*.tif']);
-frameList = cellfun(@(x,y) [x y], repmat({data.source}, [1 data.movieLength]), {frames.name}, 'UniformOutput', false);
+if isfield(data, 'channel1')
+    framesCh1 = dir([data.channel1 '*.tif']);
+    frameListCh1 = cellfun(@(x,y) [x y], repmat({data.channel1}, [1 data.movieLength]), {framesCh1.name}, 'UniformOutput', false);
+    framesCh2 = dir([data.channel2 '*.tif']);
+    frameListCh2 = cellfun(@(x,y) [x y], repmat({data.channel2}, [1 data.movieLength]), {framesCh2.name}, 'UniformOutput', false);
+else
+    framesCh1 = dir([data.source '*.tif']);
+    frameListCh1 = cellfun(@(x,y) [x y], repmat({data.source}, [1 data.movieLength]), {framesCh1.name}, 'UniformOutput', false);
 
-mpath = [data.source 'Detection' filesep 'Masks' filesep];
-masks = dir([mpath '*.tif']);
-maskList = cellfun(@(x,y) [x y], repmat({mpath}, [1 data.movieLength]), {masks.name}, 'UniformOutput', false);
+    mpath = [data.source 'Detection' filesep 'Masks' filesep];
+    framesCh2 = dir([mpath '*.tif']);
+    frameListCh2 = cellfun(@(x,y) [x y], repmat({mpath}, [1 data.movieLength]), {framesCh2.name}, 'UniformOutput', false);
+end
+
+frameCh1 = imread(frameListCh1{1});
+frameCh2 = imread(frameListCh2{1});
 
 
 % Choose default command line output for trackDisplay_GUI
@@ -67,16 +77,22 @@ handles.output = hObject;
 
 
 % initialize handles
-handles.frameList = frameList;
-handles.maskList = maskList;
+handles.frameListCh1 = frameListCh1;
+handles.frameListCh2 = frameListCh2;
+
+
 handles.data = data;
 handles.tracks = varargin{2};
 if numel(varargin)>2
     handles.tracks2 = varargin{3};
 end
 
-load([data.source 'Detection' filesep 'detectionResults.mat']);
-handles.detection = frameInfo;
+if isfield(data, 'channel1')
+
+else
+    load([data.source 'Detection' filesep 'detectionResults.mat']);
+    handles.detection = frameInfo;
+end
 
 handles.visibleIdx = [];
 handles.selectedTrack = [];
@@ -94,11 +110,10 @@ set(h, 'Min', 1);
 set(h, 'Max', data.movieLength);
 set(h, 'SliderStep', [1/(data.movieLength-1) 0.05]);
 
-frame = imread(frameList{1});
-mask = imread(maskList{1});
 
-imagesc(frame, 'Parent', handles.('axes1'));
-imagesc(mask, 'Parent', handles.('axes2'));
+
+imagesc(frameCh1, 'Parent', handles.('axes1'));
+imagesc(frameCh2, 'Parent', handles.('axes2'));
 colormap(gray(256));
 linkaxes([handles.('axes1') handles.('axes2')]);
 axis([handles.('axes1') handles.('axes2')],'image');
@@ -148,10 +163,10 @@ haxes = handles.('axes1');
 XLim = get(haxes, 'XLim');
 YLim = get(haxes, 'YLim');
 
-fr = handles.('frameList');
-frame = imread(fr{f});
-fr = handles.('maskList');
-mask = imread(fr{f});
+fr = handles.('frameListCh1');
+frameCh1 = imread(fr{f});
+fr = handles.('frameListCh2');
+frameCh2 = imread(fr{f});
 tracks = handles.('tracks');
 
 startV = [tracks.start];
@@ -175,7 +190,7 @@ cmap = jet(301);
 % 
 
 
-imagesc(frame, 'Parent', handles.('axes1'));
+imagesc(frameCh1, 'Parent', handles.('axes1'));
 axis(handles.('axes1'),'image');
  
 
@@ -187,11 +202,10 @@ axis(handles.('axes1'),'image');
 % hold(handles.('axes1'), 'off');
 
 
-% axes(handles.('axes2'));
-imagesc(mask, 'Parent', handles.('axes2'));
+imagesc(frameCh2, 'Parent', handles.('axes2'));
 axis(handles.('axes2'),'image');
-hold(handles.('axes2'), 'on');
 
+hold(handles.('axes2'), 'on');
 for k = idx
     fi = 1:f-tracks(k).start+1;
     plot(handles.('axes2'), tracks(k).x(1), tracks(k).y(1), '*', 'Color', cmap(tracks(k).lifetime,:));
@@ -320,9 +334,11 @@ refreshDisplay(hObject, handles);
 sigma = 1.628;
 h = handles.('axes3');
 hold(h, 'off');
-plot(h, tracks(idx(minIdx)).t, tracks(idx(minIdx)).I/(2*pi*sigma^2) + tracks(idx(minIdx)).c, 'r');
+plot(h, tracks(idx(minIdx)).t, tracks(idx(minIdx)).A + tracks(idx(minIdx)).c, 'r');
 hold(h, 'on');
+plot(h, tracks(idx(minIdx)).t, tracks(idx(minIdx)).I/(2*pi*sigma^2) + tracks(idx(minIdx)).c, 'b--');
 plot(h, tracks(idx(minIdx)).t, tracks(idx(minIdx)).c, 'k');
+plot(h, tracks(idx(minIdx)).t, tracks(idx(minIdx)).c + 3*tracks(idx(minIdx)).cStd, 'k--');
 
 
 % tracks(idx).I
@@ -365,4 +381,27 @@ if ~isempty(handles.selectedTrack)
         window{k} = frame(yi(k)-w:yi(k)+w, xi(k)-w:xi(k)+w);
     end
     montagePlot(window, 12)
+end
+
+
+% --- Executes on selection change in popupmenu1.
+function popupmenu1_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu1
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
