@@ -336,7 +336,7 @@ np = length(idx);
 mu_x = zeros(1,length(np));
 mu_y = zeros(1,length(np));
 for k = 1:np
-    fi = 1:handles.f-handles.tracks1(idx(k)).start+1;
+    fi = 1:handles.f-handles.tracks2(idx(k)).start+1;
     mu_x(k) = mean(handles.tracks2(idx(k)).x(fi));
     mu_y(k) = mean(handles.tracks2(idx(k)).y(fi));
 end
@@ -360,7 +360,8 @@ if ~isempty(handles.selectedTrack)
     t = handles.tracks1(handles.selectedTrack(1));
     % load all visible frames of this track and store
     
-    tifFiles = dir([handles.data.source '*.tif*']);
+    tifFiles1 = dir([handles.data.source '*.tif*']);
+    tifFiles2 = dir([handles.data.channel2 '*.tif*']);
     
     % buffer with 5 frames before and after
     buffer = 5;
@@ -372,16 +373,21 @@ if ~isempty(handles.selectedTrack)
     xi = [xi(1)*ones(1,bStart) xi xi(end)*ones(1,bEnd)];
     yi = [yi(1)*ones(1,bStart) yi yi(end)*ones(1,bEnd)];
     
-    tifFiles = tifFiles(t.start-bStart:t.end+bEnd);
-    nf = length(tifFiles);
+    tifFiles1 = tifFiles1(t.start-bStart:t.end+bEnd);
+    tifFiles2 = tifFiles2(t.start-bStart:t.end+bEnd);
+    nf = length(tifFiles1);
     sigma = 1.628;
     w = ceil(4*sigma);
-    window = cell(1,nf);
+    window = cell(length(handles.selectedTrack),nf);
     for k = 1:nf
-        frame = imread([handles.data.source tifFiles(k).name]);
-        window{k} = frame(yi(k)-w:yi(k)+w, xi(k)-w:xi(k)+w);
+        frame = imread([handles.data.source tifFiles1(k).name]);
+        window{1,k} = frame(yi(k)-w:yi(k)+w, xi(k)-w:xi(k)+w);
+        if length(handles.selectedTrack)==2
+            frame = imread([handles.data.channel2 tifFiles2(k).name]);
+            window{2,k} = frame(yi(k)-w:yi(k)+w, xi(k)-w:xi(k)+w);
+        end
     end
-    montagePlot(window, 12)
+    montagePlot(window, 12);
 end
 
 
