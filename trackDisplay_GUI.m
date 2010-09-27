@@ -79,7 +79,7 @@ handles.output = hObject;
 % initialize handles
 handles.frameListCh1 = frameListCh1;
 handles.frameListCh2 = frameListCh2;
-
+handles.f = 1;
 
 handles.data = data;
 handles.tracks1 = varargin{2};
@@ -154,8 +154,9 @@ function slider1_Callback(hObject, eventdata, handles)
 f = round(get(hObject, 'value'));
 set(hObject, 'Value', f);
 set(handles.('text1'), 'String', ['Frame ' num2str(f)]);
+handles.f = f;
+guidata(hObject,handles);
 refreshFrameDisplay(hObject, handles);
-
 refreshTrackDisplay(handles);
 
 
@@ -163,7 +164,7 @@ refreshTrackDisplay(handles);
 function refreshFrameDisplay(hObject, handles)
 
 cmap = jet(handles.data.movieLength);
-f = get(handles.('slider1'), 'value');
+f = handles.f;
 
 % save zoom properties
 haxes = handles.('axes1');
@@ -212,12 +213,18 @@ if isfield(handles, 'tracks2')
 end
 
 % plot selected track marker
-if ~isempty(handles.selectedTrack)
-    t = tracks(handles.selectedTrack);
+if length(handles.selectedTrack)==2
+    t = handles.tracks1(handles.selectedTrack(1));
+    ci = f-t.start+1;
+    if 1 <= ci && ci <= t.lifetime
+        plot(handles.('axes1'), t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
+        text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(1)), 'Color', [1 0 0], 'Parent', handles.('axes1'));
+    end
+    t = handles.tracks2(handles.selectedTrack(2));
     ci = f-t.start+1;
     if 1 <= ci && ci <= t.lifetime
         plot(handles.('axes2'), t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
-        text(t.x(ci), t.y(ci), num2str(handles.selectedTrack), 'Color', [1 0 0], 'Parent', handles.('axes2'));
+        text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(2)), 'Color', [1 0 0], 'Parent', handles.('axes2'));
     end
 end
 
@@ -244,19 +251,20 @@ function refreshTrackDisplay(handles)
 if ~isempty(handles.selectedTrack)
 
     h = handles.('axes3');
-    sTrack = handles.tracks(handles.selectedTrack);
-    % frame indicator
-    f = get(handles.('slider1'), 'value');
     
+    sTrack = handles.tracks1(handles.selectedTrack(1));
     hold(h, 'off');
-   
     plot(h, sTrack.t, sTrack.A + sTrack.c, 'r');
     hold(h, 'on');
     plot(h, sTrack.t, sTrack.c, 'k');
     plot(h, sTrack.t, sTrack.c + 3*sTrack.cStd, 'k--');
     
+    sTrack = handles.tracks2(handles.selectedTrack(2));
+    plot(h, sTrack.t, sTrack.A + sTrack.c, 'b');
+    
+    
     ybounds = get(h, 'YLim');
-    plot(h, [f f], ybounds, '--', 'Color', 0.7*[1 1 1]);
+    plot(h, [handles.f handles.f], ybounds, '--', 'Color', 0.7*[1 1 1]);
     
     xlim(h, [0 handles.data.movieLength]);
     legend(h, 'Amplitude', 'Background');
@@ -308,34 +316,35 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 axes(handles.('axes1')); % linked to axes2, selection possible in both
 [x,y] = ginput(1);
 
-
-
 % mean position of visible tracks
-idx = handles.visibleIdx;
-
+idx = handles.visibleIdx1;
 np = length(idx);
-
 mu_x = zeros(1,length(np));
 mu_y = zeros(1,length(np));
-
-f = get(handles.('slider1'), 'value');
-
 for k = 1:np
-    fi = 1:f-handles.tracks1(idx(k)).start+1;
+    fi = 1:handles.f-handles.tracks1(idx(k)).start+1;
     mu_x(k) = mean(handles.tracks1(idx(k)).x(fi));
     mu_y(k) = mean(handles.tracks1(idx(k)).y(fi));
 end
-
-% mu_x = tracks(idx(k)).x(fi);
-% mu_y = tracks(idx(k)).y(fi);
-
 % nearest point
 d = sqrt((x-mu_x).^2 + (y-mu_y).^2);
-minIdx = d==min(d);
+handles.selectedTrack(1) = idx(d==min(d));
 
-handles.selectedTrack = idx(minIdx);
+% mean position of visible tracks
+idx = handles.visibleIdx2;
+np = length(idx);
+mu_x = zeros(1,length(np));
+mu_y = zeros(1,length(np));
+for k = 1:np
+    fi = 1:handles.f-handles.tracks1(idx(k)).start+1;
+    mu_x(k) = mean(handles.tracks2(idx(k)).x(fi));
+    mu_y(k) = mean(handles.tracks2(idx(k)).y(fi));
+end
+% nearest point
+d = sqrt((x-mu_x).^2 + (y-mu_y).^2);
+handles.selectedTrack(2) = idx(d==min(d));
+
 guidata(hObject,handles);
-
 refreshFrameDisplay(hObject, handles);
 refreshTrackDisplay(handles)
 
@@ -348,8 +357,7 @@ function montageButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if ~isempty(handles.selectedTrack)
-    tracks = handles.('tracks');
-    t = tracks(handles.selectedTrack);
+    t = handles.tracks1(handles.selectedTrack(1));
     % load all visible frames of this track and store
     
     tifFiles = dir([handles.data.source '*.tif*']);
