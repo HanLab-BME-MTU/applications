@@ -1,8 +1,9 @@
 function movieData = segment3DMovie(movieData,paramsIn)
+%SEGMENT3DMOVIE creates 3D masks for the input 3D movie
 % 
 % movieData = segment3DMovie(movieData)
 % 
-% movieData = segment3DMovie(movieData,'OptionName',optionValue)
+% movieData = segment3DMovie(movieData,paramsIn)
 % 
 % This function creates 3D masks for the input movie. The masks can be
 % initially created using a few methods (see below). Post-processing is also
@@ -37,10 +38,10 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %               thresholdFluorescenceImage.m
 %
 % 
-%       ('p.BatchMode' -> logical) If true, all graphical output is suppressed. 
+%       ('BatchMode' -> logical) If true, all graphical output is suppressed. 
 %       Default is false.       
 %
-%       ('p.PostProcess' -> logical) If true, post-processing will be
+%       ('PostProcess' -> logical) If true, post-processing will be
 %       performed on the mask. This includes closure, area-opening and
 %       object selection. Default is false.
 %
