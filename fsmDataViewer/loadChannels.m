@@ -59,7 +59,7 @@ if nMasks
     idx = cell(c,1);
     idx{1} = find(BW == 0);
     for iChannel = 2:size(I,3)
-      idx{2} = idx{1} + numel(BW);
+      idx{iChannel} = idx{1} + numel(BW);
     end
     I(vertcat(idx{:})) = 0;
   else
