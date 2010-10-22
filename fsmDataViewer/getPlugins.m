@@ -32,38 +32,14 @@ channelPlugins(4).loadFunc = @loadDepolyMap;
 
 layerPlugins = struct('desc', {}, 'filterSpec', {}, 'display', {});
 
-% Vector Field
-layerPlugins(1).desc = 'Vector Field';
-layerPlugins(1).filterSpec = {'*.mat'};
-layerPlugins(1).displayFunc = @displayVectorField;
-
-% Points
-layerPlugins(2).desc = 'Points';
-layerPlugins(2).filterSpec = {'*.mat'};
-layerPlugins(2).displayFunc = @displayPoints;
-
 % [qFSM] Speckles
-layerPlugins(3).desc = '[qFSM] Speckles';
-layerPlugins(3).filterSpec = {'*.mat'}; 
-layerPlugins(3).displayFunc = @displaySpeckles;
+layerPlugins(1).desc = '[qFSM] Speckles';
+layerPlugins(1).filterSpec = {'*.mat'}; 
+layerPlugins(1).displayFunc = @displaySpeckles;
 
 % [PANDA] Window
-layerPlugins(4).desc = '[PANDA] Windows';
-layerPlugins(4).filterSpec = {'*.mat'}; 
-layerPlugins(4).displayFunc = @plotWindowsFSM;
+layerPlugins(2).desc = '[PANDA] Windows';
+layerPlugins(2).filterSpec = {'*.mat'}; 
+layerPlugins(2).displayFunc = @plotWindowsFSM;
 
-% [IF] Graph
-layerPlugins(5).desc = '[IF] Graph';
-layerPlugins(5).filterSpec = {'*.mat'}; 
-layerPlugins(5).displayFunc = @displayGraph;
-
-% [IF] MinimalPaths
-layerPlugins(6).desc = '[IF] Minimal Paths';
-layerPlugins(6).filterSpec = {'*.mat'}; 
-layerPlugins(6).displayFunc = @displayMinimalPaths;
-
-% [IF] ProfileLocations
-layerPlugins(7).desc = '[IF] Profile Locations';
-layerPlugins(7).filterSpec = {'*.mat'}; 
-layerPlugins(7).displayFunc = @displayProfileLocations;
 end
