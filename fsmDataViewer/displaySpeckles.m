@@ -1,15 +1,9 @@
-function displaySpeckles(hAxes, tag, fileName, layerColor)
+function displaySpeckles(hAxes, tag, cands, layerColor)
 
 hImage = findobj(hAxes,'Type','image');
 imSize = size(get(hImage,'CData'));
 
-load(fileName);
-
-if ~exist('cands', 'var')
-    error('cands variable cannot be found in specified file.');
-end
-
-status = vertcat(cands(:).status); %#ok<NODEF>
+status = vertcat(cands(:).status);
 cands = vertcat(cands(status == 1).Lmax);
 
 % Get the list of speckles which had been already display

@@ -19,10 +19,10 @@ for iChannel = 1:nChannels
     
     if selected
         channelTypeName = data{iChannel, 2};
-        channel.type = strcmp(channelTypeName, channelTypeNames) - 1;
+        channel.type = find(strncmp(channelTypeNames,channelTypeName, length(channelTypeName))) - 1;
 
         colorName = data{iChannel, 3};
-        channel.color = strcmp(colorName, colorNames);        
+        channel.color = find(strncmp(colorNames,colorName,length(colorName)));
         
         [path, fileNames] = getFileNames(data{iChannel, 4});
         
@@ -75,7 +75,7 @@ for iLayer = 1:nLayers
     
     if selected
         layerTypeName = data{iLayer, 2};
-        layer.type = strmcmp(layerTypeName, layerTypeNames, 'exact') - 1;
+        layer.type = find(strncmp(layerTypeNames, layerTypeName, numel(layerTypeName))) - 1;
         layer.tag = [layerTypeName '_' num2str(iLayer)];
         layer.color = data{iLayer, 3};
         
@@ -97,7 +97,7 @@ nLayers = numel(settings.layers);
 % - no multiple occurences of any color allowed
 
 numColorsOcc = zeros(1, 3);
-for iChannel = 1:settings.numChannels
+for iChannel = 1:nChannels
     numColorsOcc(settings.channels{iChannel}.color) = ...
         numColorsOcc(settings.channels{iChannel}.color) + 1;
 end
@@ -109,11 +109,11 @@ if any(numColorsOcc > 1)
 end
 
 % Check channel type compatibility
-if settings.numChannels > 1
+if nChannels > 1
     hasRawImage = 0;
     hasOtherData = 0;
     
-    for iChannel = 1:settings.numChannels
+    for iChannel = 1:nChannels
         if settings.channels{iChannel}.type == 1
             hasRawImage = 1; % raw image
         else
@@ -159,13 +159,19 @@ for iChannel = 1:nChannels
   end
 end
 
-% Check the number of frames in every layer is equal
+% Dispatch data layers
+[~, layerPlugins] = getPlugins();
+
 for iLayer = 1:nLayers
-  if numel(settings.layers{iLayer}.fileName) ~= settings.nFrames
-    status = 0;
-    errordlg('Number of files in layer differ.');
-    return;
-  end
+    layerTypeID = settings.layers{iLayer}.type;
+
+    layer = settings.layers{iLayer};
+    
+    fileList = cellfun(@(x) fullfile(layer.path, x), ...
+        layer.fileNames,'UniformOutput', false);
+    
+    settings.layers{iLayer}.data = ...
+        layerPlugins(layerTypeID).dispatchFunc(fileList, settings.nFrames);
 end
 
 status = 1;

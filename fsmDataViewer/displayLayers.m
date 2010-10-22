@@ -2,16 +2,16 @@ function displayLayers(hFig, iFrame)
 
 settings = get(hFig, 'UserData');
 
-numLayers = settings.numLayers;
+nLayers = numel(settings.layers);
 
 % Get the axes of hFig.
 hAxes = get(hFig, 'CurrentAxes');
 
 % Get the channel plugins list
-[channelPlugins layerPlugins] = getPlugins();
+[~, layerPlugins] = getPlugins();
 
 % Clear all layers
-for iLayer = 1:numLayers
+for iLayer = 1:nLayers
     tag = settings.layers{iLayer}.tag;
     
     hLayers = findall(get(hAxes, 'Children'), 'Tag', tag);
@@ -20,16 +20,13 @@ for iLayer = 1:numLayers
 end
 
 % Draw new layers
-for iLayer = 1:numLayers
+for iLayer = 1:nLayers
     layerTypeID = settings.layers{iLayer}.type;
     layerColor = settings.layers{iLayer}.color;
     tag = settings.layers{iLayer}.tag;
                 
     % Display layer
-    fileName = [settings.layers{iLayer}.path ...
-        filesep settings.layers{iLayer}.fileNames{iFrame}];
+    layerData = settings.layers{iLayer}.data{iFrame};
     
-    layerPlugins(layerTypeID).displayFunc(hAxes, tag, fileName, layerColor);
-end
-
+    layerPlugins(layerTypeID).displayFunc(hAxes, tag, layerData, layerColor);
 end

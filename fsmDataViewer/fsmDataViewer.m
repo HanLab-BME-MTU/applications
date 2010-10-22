@@ -27,17 +27,17 @@ set(hSaveMenu, 'Callback', @saveMovie);
 set(hFig, 'HandleVisibility', 'on');
 
 % Set the title of the window
-set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(1) '/' num2str(settings.numFrames) ')' ]);
+set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(1) '/' num2str(settings.nFrames) ')' ]);
 
 % Add a slider
-if settings.numFrames > 1
-    sliderStep = [1 5] / (settings.numFrames - 1);
+if settings.nFrames > 1
+    sliderStep = [1 5] / (settings.nFrames - 1);
 
     uicontrol(hFig, 'Style', 'slider', ...
         'BackgroundColor', [.91 .91 .91],...
         'Value', 1, ...
         'Min', 1, ...
-        'Max', settings.numFrames, ...
+        'Max', settings.nFrames, ...
         'SliderStep', sliderStep, ...
         'Callback', 'sliderShowFrame_Callback', ...
         'Tag', 'sliderShowFrame', ...
@@ -58,7 +58,7 @@ function saveMovie(varargin)
 % Get figure handler
 h = findall(0, '-regexp', 'Name', 'fsmDataViewer');
 settings = get(h, 'UserData');
-nFrames = settings.numFrames;
+nFrames = settings.nFrames;
 fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 
 filterSpec = {...
@@ -94,7 +94,7 @@ if ischar(fileName) && ischar(pathName)
         eval(evalString);
     end
     
-    if settings.numChannels == 1
+    if numel(settings.channels) == 1
         colormap 'gray';
     end
         

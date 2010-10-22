@@ -30,16 +30,63 @@ channelPlugins(4).loadFunc = @loadDepolyMap;
 % LAYERS
 %
 
-layerPlugins = struct('desc', {}, 'filterSpec', {}, 'display', {});
+% 'displayFunc' function displays layer information at a given frame into
+% an axes. The prototype of 'displayFunc' should follows:
+%
+% @displayFunc(hAxes, tag, layer, layerColor) 
+%
+% There are 2 types of layers that can be used in this viewer:
+% - 1 bundle file containing layer information for the whole movie
+% - multiple file containing layer information per frame, 1 file / frame.
+%
+% 'dispatchFunc' function is responsible for dispatching data per frame,
+% whether it comes from 1 bundle file or multiple files. Builins functions
+% are provided to handle multiple senarios:
+%
+% @dispatchFilesToFrames:    1 file per frame. Each file should contains
+%                            only 1 variable.
+%
+% @dispatchStructToFrames:   1 file containing a structure array where the
+%                            number of elements is equal to the number of
+%                            frames. The bundle file should contains only 1
+%                            struct variable.
+%
+% @dispatchCellToFrames:     1 file containing a cell array where the
+%                            number of elements is equal to the number of
+%                            frames. The bundle file should contains only 1
+%                            cell variable.
+%
+% @dispatchMatrix1ToFrames:  1 file containaing a matrix where the 1st
+%                            dimension corresponds to the data of each
+%                            frame. The bundle file should contains only 1
+%                            matrix.
+%
+% @dispatchMatrix2ToFrames:  1 file containing a matrix where the 2nd
+%                            dimension corresponds to the data of each
+%                            frame. The bundle file should contains only 1
+%                            matrix.
+%
+% @dispatchMatrix3ToFrames:  1 file containing a matrix where the 3rd
+%                            dimension corresponds to the data of each
+%                            frame. The bundle file should contains only 1
+%                            matrix.
+
+layerPlugins = struct(...
+    'desc', {},...
+    'filterSpec', {},...
+    'display', {},...
+    'inBundleFile', {});
 
 % [qFSM] Speckles
 layerPlugins(1).desc = '[qFSM] Speckles';
 layerPlugins(1).filterSpec = {'*.mat'}; 
 layerPlugins(1).displayFunc = @displaySpeckles;
+layerPlugins(1).dispatchFunc = @dispatchFilesToFrames;
 
-% [PANDA] Window
-layerPlugins(2).desc = '[PANDA] Windows';
+% [panda] Window
+layerPlugins(2).desc = '[panda] Windows';
 layerPlugins(2).filterSpec = {'*.mat'}; 
 layerPlugins(2).displayFunc = @plotWindowsFSM;
+layerPlugins(2).dispatchFunc = @dispatchMatrix3ToFrames;
 
 end

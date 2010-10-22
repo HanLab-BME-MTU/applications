@@ -37,7 +37,7 @@ displayLayers(hFig, iFrame);
 
 % Update the title of the window.
 set(hFig, 'Name', ['fsmDataViewer: frame (' num2str(iFrame) '/'...
-    num2str(settings.numFrames) ')' ]);
+    num2str(settings.nFrames) ')' ]);
 
 refresh(hFig);
 
