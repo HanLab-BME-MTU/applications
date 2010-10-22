@@ -10,25 +10,38 @@ data = get(h, 'Data');
 columnFormat = get(h, 'ColumnFormat');
 colorNames = columnFormat{3};
 
-settings.channels = {};
+nChannels = size(data, 1);
 
-for iChannel = 1:size(data, 1)
+settings.channels = cell(nChannels,1);
+
+for iChannel = 1:nChannels
     selected = data{iChannel, 1};
     
     if selected
         channelTypeName = data{iChannel, 2};
-        channel.type = strmatch(channelTypeName, channelTypeNames) - 1;
+        channel.type = strcmp(channelTypeName, channelTypeNames) - 1;
 
         colorName = data{iChannel, 3};
-        channel.color = strmatch(colorName, colorNames);        
+        channel.color = strcmp(colorName, colorNames);        
         
         [path, fileNames] = getFileNames(data{iChannel, 4});
         
         channel.path = path;
         channel.fileNames = fileNames;
         
-        settings.channels = vertcat(settings.channels, channel);
+        settings.channels{iChannel} = channel;
     end
+end
+
+% update the number of channels
+settings.channels = settings.channels(~cellfun(@isempty,settings.channels));
+nChannels = numel(settings.channels);
+
+% Check number of channels <= 3
+if nChannels > 3
+    status = 0;
+    errordlg('Number of channels must be lesser or equal to 3.');
+    return;
 end
 
 % Get mask
@@ -53,14 +66,16 @@ layerTypeNames = get(h, 'String');
 h = findobj(hFig, 'Tag', 'uitableLayers');
 data = get(h, 'Data');
 
-settings.layers = {};
+nLayers = size(data,1);
 
-for iLayer = 1:size(data, 1)
+settings.layers = cell(nLayers,1);
+
+for iLayer = 1:nLayers
     selected = data{iLayer, 1};
     
     if selected
         layerTypeName = data{iLayer, 2};
-        layer.type = strmatch(layerTypeName, layerTypeNames, 'exact') - 1;
+        layer.type = strmcmp(layerTypeName, layerTypeNames, 'exact') - 1;
         layer.tag = [layerTypeName '_' num2str(iLayer)];
         layer.color = data{iLayer, 3};
         
@@ -69,19 +84,13 @@ for iLayer = 1:size(data, 1)
         layer.path = path;
         layer.fileNames = fileNames;
         
-        settings.layers = vertcat(settings.layers, layer);
+        settings.layers{iLayer} = layer;
     end
 end
 
-% Get the number of channels
-settings.numChannels = numel(settings.channels);
-
-% Check number of channels <= 3
-if settings.numChannels > 3
-    status = 0;
-    errordlg('Number of channels must be lesser or equal to 3.');
-    return;
-end
+% Update the number of layers
+settings.layers = settings.layers(~cellfun(@isempty,settings.layers));
+nLayers = numel(settings.layers);
 
 % Check channel color compatibility
 %
@@ -93,7 +102,7 @@ for iChannel = 1:settings.numChannels
         numColorsOcc(settings.channels{iChannel}.color) + 1;
 end
 
-if max(numColorsOcc) > 1
+if any(numColorsOcc > 1)
     status = 0;
     errordlg('Multiple occurences of the same channel color is not possible.');
     return;
@@ -119,120 +128,44 @@ if settings.numChannels > 1
     end
 end
 
-% Get the number of layers
-settings.numLayers = numel(settings.layers);
-
-% Get the number of channel files
-if settings.numChannels
-    settings.numChannelFiles = numel(settings.channels{1}.fileNames);
-else
-    settings.numChannelFiles = 0;
-end
-
-% Check the number of files in every channel to be equal
-for iChannel = 1:settings.numChannels
-    if numel(settings.channels{iChannel}.fileNames) ~= settings.numChannelFiles
-        status = 0;
-        errordlg('Number of files in channels differ.');
-        return;
-    end
-end
-
-% Get the number of mask files
-settings.numMaskFiles = numel(settings.maskFileNames);
-
-% Get the number of layer files
-
-% we would like to load layers with different number of files. e.g. speckles
-% set, which are defined for every frame, with the vector fields, which are
-% defined only on a subset of the whole sequence, due to temporal averaging.
-% Hence we set 'numLayerFiles' to be the smallest number of files among the
-% layers. 'iNumLayerFiles' corresponds to the argmin.
-
-if settings.numLayers
-    minNum = +Inf;
-    for iLayer = 1:settings.numLayers
-        curNum = numel(settings.layers{iLayer}.fileNames);
-        if curNum < minNum
-            minNum = curNum;
-            iMinNum = iLayer;
-        end
+% Get the number of frames (defined either by the number of image files or,
+% if there is no channel provided, it is defined by the number of mask
+% files.
+if nChannels
+    settings.nFrames = numel(settings.channels{1}.fileNames);
+    
+    nMasks = numel(settings.maskFileNames);
+    
+    if nMasks && nMasks ~= settings.nFrames
+      status = 0;
+      errordlg('Number of masks files differ from number of image files.');
+      return
     end
     
-    settings.numLayerFiles = minNum;
-    settings.iNumLayerFiles = iMinNum;
+elseif numel(settings.maskFileNames)
+    settings.nFrames = numel(settings.maskFileNames);
 else
-    settings.numLayerFiles = 0;
-    settings.iNumLayerFiles = 0;
+  status = 0;
+  errordlg('Mask must be provided in case no channel has been set.');
+  return;
 end
-        
-% Check mask is provided in case no channel are set.
-if ~settings.numChannelFiles && ~settings.numMaskFiles
+
+% Check the number of frames in every channel is equal
+for iChannel = 1:nChannels
+  if numel(settings.channels{iChannel}.fileNames) ~= settings.nFrames
     status = 0;
-    errordlg('Mask must be provided in case no channel has been set.');
+    errordlg('Number of files in channels differ.');
     return;
+  end
 end
 
-% Check every mask file is available for every channel file.
-if settings.numChannels && settings.numMaskFiles
-    for iFile = 1:settings.numChannelFiles
-        [dummy, body, no] = ...
-            getFilenameBody(settings.channels{1}.fileNames{iFile});
-        
-        [dummy, found] = findNumberedFileInList(settings.maskFileNames, str2double(no));
-
-        if ~found
-            status = 0;
-            errordlg(['Unable to find the mask file for '...
-                settings.channels{1}.fileNames{iFile}, '.']);
-            return;
-        end
-    end
-end
-
-% Check every mask file is available for every layer file.
-if settings.numLayers && settings.numMaskFiles
-    for iFile = 1:settings.numLayerFiles
-        [dummy, body, no] = ...
-            getFilenameBody(settings.layers{settings.iNumLayerFiles}.fileNames{iFile});
-        
-        [dummy, found] = findNumberedFileInList(settings.maskFileNames, str2double(no));
-
-        if ~found
-            status = 0;
-            errordlg(['Unable to find the mask file for ' ...
-                settings.layers{settings.iNumLayerFiles}.fileNames{iFile}, '.']);
-            return;
-        end
-    end
-end
-
-% Check every channel file is available for every layer file.
-if settings.numLayers && settings.numChannels
-    for iFile = 1:settings.numLayerFiles
-        [dummy, body, no] = ...
-            getFilenameBody(settings.layers{settings.iNumLayerFiles}.fileNames{iFile});
-        
-        no = str2double(no);
-        
-        [dummy, found] = findNumberedFileInList(settings.channels{1}.fileNames, no);
-        
-        if ~found
-            status = 0;
-            errordlg(['Unable to find the channel file for ' ...
-                settings.layers{settings.iNumLayerFiles}.fileNames{iFile}, '.']);
-            return;
-        end
-    end    
-end
-
-% set the number of frames
-settings.numFrames = settings.numLayerFiles;
-if ~settings.numFrames
-    settings.numFrames = settings.numChannelFiles;
-    if ~settings.numFrames
-        settings.numFrames = settings.numMaskFiles;
-    end
+% Check the number of frames in every layer is equal
+for iLayer = 1:nLayers
+  if numel(settings.layers{iLayer}.fileName) ~= settings.nFrames
+    status = 0;
+    errordlg('Number of files in layer differ.');
+    return;
+  end
 end
 
 status = 1;
