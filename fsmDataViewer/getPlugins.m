@@ -89,4 +89,10 @@ layerPlugins(2).filterSpec = {'*.mat'};
 layerPlugins(2).displayFunc = @plotWindowsFSM;
 layerPlugins(2).dispatchFunc = @dispatchMatrix3ToFrames;
 
+% [Khuloud tracker] Tracks
+layerPlugins(3).desc = '[Khuloud Tracker] Tracks';
+layerPlugins(3).filterSpec = {'*.mat'};
+layerPlugins(3).displayFunc = @displayKhuloudTracks;
+layerPlugins(3).dispatchFunc = @dispatchKhuloudTracks;
+
 end
