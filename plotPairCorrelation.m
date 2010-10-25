@@ -100,7 +100,7 @@ if nargin < 4 || isempty(plotMask)
 end
 
 %convert movie paths to correct OS
-experiment = changePathUsingEndocytosis(experiment);
+%experiment = changePathUsingEndocytosis(experiment);
 %initialize
 for iexp = 1:length(experiment)
 experiment(iexp).pairCorrelation = [];
@@ -134,7 +134,8 @@ for iexp = 1:length(experiment)
     %find all pits in movie that meet requirements specified by restriction
     %vector
     findPos = ((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
-        (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)));
+        (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) & ...
+        repmat(experiment(iexp).status',1,size(statMat,2)) == 1);
     
     %MAKE MASK
     imsizS = [imsize(2) imsize(1)];
