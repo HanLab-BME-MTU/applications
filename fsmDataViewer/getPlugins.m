@@ -77,22 +77,28 @@ layerPlugins = struct(...
     'display', {},...
     'inBundleFile', {});
 
+% Vector Field
+layerPlugins(1).desc = 'Vector Field';
+layerPlugins(1).filterSpec = {'*.mat'};
+layerPlugins(1).displayFunc = @displayVectorField;
+layerPlugins(1).dispatchFunc = @dispatchCellToFrames;
+
 % [qFSM] Speckles
-layerPlugins(1).desc = '[qFSM] Speckles';
-layerPlugins(1).filterSpec = {'*.mat'}; 
-layerPlugins(1).displayFunc = @displaySpeckles;
-layerPlugins(1).dispatchFunc = @dispatchFilesToFrames;
+layerPlugins(2).desc = '[qFSM] Speckles';
+layerPlugins(2).filterSpec = {'*.mat'}; 
+layerPlugins(2).displayFunc = @displaySpeckles;
+layerPlugins(2).dispatchFunc = @dispatchFilesToFrames;
 
 % [panda] Window
-layerPlugins(2).desc = '[panda] Windows';
-layerPlugins(2).filterSpec = {'*.mat'}; 
-layerPlugins(2).displayFunc = @plotWindowsFSM;
-layerPlugins(2).dispatchFunc = @dispatchMatrix3ToFrames;
+layerPlugins(3).desc = '[panda] Windows';
+layerPlugins(3).filterSpec = {'*.mat'}; 
+layerPlugins(3).displayFunc = @plotWindowsFSM;
+layerPlugins(3).dispatchFunc = @dispatchMatrix3ToFrames;
 
 % [Khuloud tracker] Tracks
-layerPlugins(3).desc = '[Khuloud Tracker] Tracks';
-layerPlugins(3).filterSpec = {'*.mat'};
-layerPlugins(3).displayFunc = @displayKhuloudTracks;
-layerPlugins(3).dispatchFunc = @dispatchKhuloudTracks;
+layerPlugins(4).desc = '[Khuloud Tracker] Tracks';
+layerPlugins(4).filterSpec = {'*.mat'};
+layerPlugins(4).displayFunc = @displayKhuloudTracks;
+layerPlugins(4).dispatchFunc = @dispatchKhuloudTracks;
 
 end
