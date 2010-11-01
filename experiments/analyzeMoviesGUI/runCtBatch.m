@@ -159,11 +159,25 @@ try
                                     while ~loopDone
 
                                         %filter movie
+                                        
+                                        %KJ - filter movie with theoretical
+                                        %PSF sigma, regardless of
+                                        %empirical correction from Gaussian
+                                        %fit to data
+                                        
+                                        %Old:
+                                        %lf = loadStruct.loadedFrames;
+                                        %fprintf(fidJob,[nowString,' filteredMovie = filtermovie(movie,dataProperties.FILTERPRM);\n']);
+                                        %fprintf(fid,sprintf('%s, filtermovie frames %i:%i\n',nowString,lf(1),lf(end)));
+                                        %filteredMovie = filtermovie(movie,dataProperties.FILTERPRM);
+                                        
+                                        %New:
+                                        filterParamNew = dataProperties.FILTERPRM(1:3)./dataProperties.sigmaCorrection([1,1,2]);
+                                        patchXYZ=roundOddOrEven(4*filterParamNew,'odd','inf');
                                         lf = loadStruct.loadedFrames;
-                                        fprintf(fidJob,[nowString,' filteredMovie = filtermovie(movie,dataProperties.FILTERPRM);\n']);
+                                        fprintf(fidJob,[nowString,' filteredMovie = filtermovie(movie,[filterParamNew patchXYZ]);\n']);
                                         fprintf(fid,sprintf('%s, filtermovie frames %i:%i\n',nowString,lf(1),lf(end)));
-                                        filteredMovie = filtermovie(movie,dataProperties.FILTERPRM);
-
+                                        filteredMovie = filtermovie(movie,[filterParamNew patchXYZ]);
 
 
                                         %now save. Writemat appends to an
