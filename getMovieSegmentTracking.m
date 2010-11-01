@@ -32,11 +32,14 @@ movieInfo(1:nFrames) = struct(...
     'angle',[]);
 
 for iFrame = 1:nFrames
-    xC = segmentParams{iFrame}(:,1);
-    yC = segmentParams{iFrame}(:,2);
-    A = segmentParams{iFrame}(:,3);
-    l = segmentParams{iFrame}(:,4);
-    t = segmentParams{iFrame}(:,5);
+    clusters = segmentParams{iFrame};
+    segments = vertcat(clusters(:).segments);
+    
+    xC = segments(:,1);
+    yC = segments(:,2);
+    A = segments(:,3);
+    l = segments(:,5);
+    t = segments(:,6);
 
     Z = zeros(size(xC));
     movieInfo(iFrame).xCoord = [xC Z];

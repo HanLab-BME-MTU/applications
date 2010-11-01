@@ -12,6 +12,7 @@ procNames = {...
     'windows',...
     'protrusionSamples',...
     'labels',...
+    'bwdist',...
     'segmentDetection',...
     'segmentTracking'};
 
@@ -21,6 +22,7 @@ procLocs = {...
     'windows',...
     'protrusion.samples',...
     'labels',...
+    'bwdist',...
     'segmentDetection',...
     'segmentTracking'};
 
@@ -30,6 +32,7 @@ procFuns = {...
     'getMovieWindows',...
     'getMovieProtrusionSamples',...
     'getMovieLabels',...
+    'getMovieBWDist',...
     'getMovieSegmentDetection',...
     'getMovieSegmentTracking'};
 
@@ -58,7 +61,7 @@ if nargin < 2 || isempty(params)
 end
 
 if ~isfield(params,'runSteps') || isempty(params.runSteps)
-    params.runSteps = zeros(nSteps, 1);
+    params.runSteps = zeros(nProcesses, 1);
 end
 
 if length(params.runSteps) ~= nProcesses
@@ -66,7 +69,7 @@ if length(params.runSteps) ~= nProcesses
 end
 
 if ~isfield(params,'batchMode') || isempty(params.batchMode)
-    params.batchMode = 1;
+    params.batchMode = 1;makeFAFigure3
 end
 
 % Get every path from rootDirectory containing ch488 & ch560 subfolders
@@ -113,40 +116,6 @@ for iMovie = 1:nMovies
         currMovie.nImages = max(nImages);
         assert(currMovie.nImages ~= 0);
         
-%         fieldNames = {...
-%             'bgDirectory',...
-%             'roiDirectory',...
-%             'tifDirectory',...
-%             'stkDirectory',...
-%             'analysisDirectory'};
-%         
-%         subDirNames = {'bg', 'roi', 'tif', 'stk', 'analysis'};
-%         
-%         channels = cell(numel(fieldNames), 1, 2);
-%         channels(:, 1, 1) = cellfun(@(x) [path filesep 'ch488' filesep x],...
-%             subDirNames, 'UniformOutput', false);
-%         channels(:, 1, 2) = cellfun(@(x) [path filesep 'ch560' filesep x],...
-%             subDirNames, 'UniformOutput', false);
-%         currMovie.channels = cell2struct(channels, fieldNames, 1);
-%         
-%         % We put every subsequent analysis in the ch488 analysis directory.
-%         currMovie.analysisDirectory = currMovie.channels(1).analysisDirectory;
-%         
-%         % Add these 2 fields to be compliant with Hunter's check routines:
-%         currMovie.imageDirectory = currMovie.channels(1).roiDirectory;
-%         currMovie.channelDirectory = {''};
-%         
-%         % Get the number of images
-%         
-%         n1 = numel(dir([currMovie.channels(1).roiDirectory filesep '*.tif']));
-%         n2 = numel(dir([currMovie.channels(2).roiDirectory filesep '*.tif']));
-%         
-%         % In case one of the channel hasn't been set, we still might want
-%         % to compute some processes.
-%         currMovie.nImages = max(n1,n2);
-%         
-%         assert(currMovie.nImages ~= 0);
-
         % Load physical parameter from
         filename = fullfile(currMovie.imageDirectory, 'ch560', 'analysis', 'fsmPhysiParam.mat');
         
@@ -253,7 +222,7 @@ for iMovie = 1:nMovies
             try
                 currMovie = eval(['feval(procFun,currMovie,' procParamsStr ');']);
                 
-                if isfield(currMovie.(procName),'error')
+                if isfield(eval(['currMovie.' procLoc]),'error')                
                     eval(['currMovie.' procLoc ' = rmfield(currMovie.' procLoc ',''error'');']);
                 end
  
@@ -270,12 +239,11 @@ for iMovie = 1:nMovies
         end
     end   
     
-    % Save results
     try
         %Save the updated movie data
         updateMovieData(currMovie)
     catch errMess
-        errordlg(['Problem saving movie data in movie ' num2str(iMov) ': ' errMess.message], mfileName());
+        errordlg(['Problem saving movie data in movie ' num2str(iMovie) ': ' errMess.message]);
     end
     
     movieData{iMovie} = currMovie;
@@ -315,6 +283,6 @@ selectedPaths = cellfun(@(subDir) fullfile(subDir,'ch488','analysis'),...
 % Make Figure 3
 %
 disp('Make figure 3...');
-makeFAFigure3(selectedPaths, outputDirectory);
+makeFAFigure3({selectedPaths{1} selectedPaths{2}}, outputDirectory);
 
 
